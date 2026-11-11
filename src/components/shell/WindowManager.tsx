@@ -2,6 +2,7 @@
 import * as React from "react";
 import { useDomicile } from "@domicile-desktop/react/domicile-provider";
 import {
+  WEBVIEW_FAVICON_CHANGE_EVENT,
   WEBVIEW_GUEST_FOCUS_EVENT,
   WEBVIEW_HISTORY_CHANGE_EVENT,
   WEBVIEW_LOADING_CHANGE_EVENT,
@@ -14,9 +15,12 @@ import {
   Code2Icon,
   GlobeIcon,
   LockIcon,
+  Maximize2Icon,
+  MinusIcon,
   RotateCwIcon,
   XIcon,
 } from "lucide-react";
+import { ConsoleApp } from "@/components/apps/ConsoleApp";
 import { SettingsApp } from "@/components/apps/SettingsApp";
 import { Button } from "@/components/ui/button";
 import {
@@ -104,9 +108,21 @@ function WaylandAppSurface({ win }: { win: DesktopWindowInstance }) {
   );
 }
 
-function WebViewSurface({ win }: { win: DesktopWindowInstance }) {
+function WebViewSurface({
+  win,
+  isCsd,
+}: {
+  win: DesktopWindowInstance;
+  isCsd: boolean;
+}) {
   const { isBrowserRuntime } = useSettings();
-  const { focusWindow } = useWindowManager();
+  const {
+    focusWindow,
+    closeWindow,
+    minimizeWindow,
+    toggleMaximizeWindow,
+    setBrowserFavicon,
+  } = useWindowManager();
   const windowCtx = useWindowContext();
   const webviewRef = React.useRef<HTMLWebViewElement | null>(null);
 
@@ -122,6 +138,12 @@ function WebViewSurface({ win }: { win: DesktopWindowInstance }) {
 
   const focusSelfRef = React.useRef(() => focusWindow(win.id));
   focusSelfRef.current = () => focusWindow(win.id);
+  const faviconHandlerRef = React.useRef((fav: string) => {
+    if (win.browserWindowId) setBrowserFavicon(win.browserWindowId, fav);
+  });
+  faviconHandlerRef.current = (fav: string) => {
+    if (win.browserWindowId) setBrowserFavicon(win.browserWindowId, fav);
+  };
 
   React.useEffect(() => {
     if (win.browserUrl) {
@@ -142,6 +164,7 @@ function WebViewSurface({ win }: { win: DesktopWindowInstance }) {
       setCanGoForward(Boolean(view.canGoForward));
     };
     const syncLoading = () => setLoading(Boolean(view.loading));
+    const syncFavicon = () => faviconHandlerRef.current(view.favicon || "");
     const syncFailure = () => {
       setPageFailure(view.pageFailure || "");
       setPageFailureError(view.pageFailureError || "");
@@ -153,11 +176,13 @@ function WebViewSurface({ win }: { win: DesktopWindowInstance }) {
     view.addEventListener(WEBVIEW_PAGE_CHANGE_EVENT, syncPage);
     view.addEventListener(WEBVIEW_HISTORY_CHANGE_EVENT, syncHistory);
     view.addEventListener(WEBVIEW_LOADING_CHANGE_EVENT, syncLoading);
+    view.addEventListener(WEBVIEW_FAVICON_CHANGE_EVENT, syncFavicon);
     view.addEventListener(WEBVIEW_PAGE_FAILURE_CHANGE_EVENT, syncFailure);
 
     syncPage();
     syncHistory();
     syncLoading();
+    syncFavicon();
     syncFailure();
 
     return () => {
@@ -165,6 +190,7 @@ function WebViewSurface({ win }: { win: DesktopWindowInstance }) {
       view.removeEventListener(WEBVIEW_PAGE_CHANGE_EVENT, syncPage);
       view.removeEventListener(WEBVIEW_HISTORY_CHANGE_EVENT, syncHistory);
       view.removeEventListener(WEBVIEW_LOADING_CHANGE_EVENT, syncLoading);
+      view.removeEventListener(WEBVIEW_FAVICON_CHANGE_EVENT, syncFavicon);
       view.removeEventListener(WEBVIEW_PAGE_FAILURE_CHANGE_EVENT, syncFailure);
     };
   }, [isBrowserRuntime, win.browserWindowId]);
@@ -179,77 +205,142 @@ function WebViewSurface({ win }: { win: DesktopWindowInstance }) {
     }
   };
 
+  const showHeader = isCsd || !win.browserIsApp;
+
   return (
     <div className="flex h-full w-full flex-1 flex-col overflow-hidden bg-mac-content">
-      {!win.browserIsApp && (
-        <form
-          onSubmit={navigate}
-          className="flex h-9 shrink-0 items-center gap-1.5 border-b border-mac-separator bg-mac-titlebar px-2.5"
-        >
-          <Button
-            type="button"
-            size="icon-xs"
-            variant="ghost"
-            disabled={!canGoBack}
-            aria-label="Back"
-            onClick={() => webviewRef.current?.goBack()}
-          >
-            <ChevronLeftIcon className="size-3.5" />
-          </Button>
-          <Button
-            type="button"
-            size="icon-xs"
-            variant="ghost"
-            disabled={!canGoForward}
-            aria-label="Forward"
-            onClick={() => webviewRef.current?.goForward()}
-          >
-            <ChevronRightIcon className="size-3.5" />
-          </Button>
-          <Button
-            type="button"
-            size="icon-xs"
-            variant="ghost"
-            aria-label={loading ? "Stop loading" : "Reload"}
-            onClick={() =>
-              loading ? webviewRef.current?.stop() : webviewRef.current?.reload()
-            }
-          >
-            {loading ? (
-              <XIcon className="size-3.5" />
-            ) : (
-              <RotateCwIcon className="size-3.5" />
-            )}
-          </Button>
-
-          <div className="flex h-6 flex-1 items-center gap-1.5 rounded-md border border-mac-field-border bg-mac-field px-2">
-            {security === "secure" ? (
-              <LockIcon className="size-3 shrink-0 text-emerald-500" />
-            ) : (
-              <GlobeIcon className="size-3 shrink-0 text-mac-label-secondary" />
-            )}
-            <input
-              type="text"
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              placeholder="Enter URL"
-              className="h-full w-full bg-transparent text-[12px] text-mac-label outline-none placeholder:text-mac-label-tertiary"
-            />
-          </div>
-
-          {!isBrowserRuntime && (
-            <Button
-              type="button"
-              size="icon-xs"
-              variant="ghost"
-              title="Inspect (DevTools)"
-              aria-label="Inspect page"
-              onClick={() => webviewRef.current?.inspect()}
-            >
-              <Code2Icon className="size-3.5" />
-            </Button>
+      {showHeader && (
+        <div
+          data-window-drag-region={isCsd ? "" : undefined}
+          onDoubleClick={(e) => {
+            if (!isCsd) return;
+            if ((e.target as HTMLElement).closest("button, input")) return;
+            toggleMaximizeWindow(win.id);
+          }}
+          className={cn(
+            "relative flex shrink-0 items-center gap-2 border-b border-mac-separator bg-mac-titlebar px-3 select-none",
+            isCsd ? "h-[46px] rounded-t-[inherit]" : "h-9"
           )}
-        </form>
+        >
+          {!win.browserIsApp && (
+            <div className="flex shrink-0 items-center gap-1" data-window-no-drag>
+              <Button
+                type="button"
+                size="icon-xs"
+                variant="ghost"
+                disabled={!canGoBack}
+                aria-label="Back"
+                onClick={() => webviewRef.current?.goBack()}
+                className="size-6 rounded-md"
+              >
+                <ChevronLeftIcon className="size-3.5" />
+              </Button>
+              <Button
+                type="button"
+                size="icon-xs"
+                variant="ghost"
+                disabled={!canGoForward}
+                aria-label="Forward"
+                onClick={() => webviewRef.current?.goForward()}
+                className="size-6 rounded-md"
+              >
+                <ChevronRightIcon className="size-3.5" />
+              </Button>
+              <Button
+                type="button"
+                size="icon-xs"
+                variant="ghost"
+                aria-label={loading ? "Stop loading" : "Reload"}
+                onClick={() =>
+                  loading
+                    ? webviewRef.current?.stop()
+                    : webviewRef.current?.reload()
+                }
+                className="size-6 rounded-md"
+              >
+                {loading ? (
+                  <XIcon className="size-3.5" />
+                ) : (
+                  <RotateCwIcon className="size-3.5" />
+                )}
+              </Button>
+            </div>
+          )}
+
+          {win.browserIsApp ? (
+            <div className="pointer-events-none flex min-w-0 flex-1 items-center justify-center px-4">
+              <span className="truncate text-[13px] font-semibold text-mac-label">
+                {win.title}
+              </span>
+            </div>
+          ) : (
+            <div className="flex min-w-0 flex-1 items-center justify-center px-2">
+              <form
+                onSubmit={navigate}
+                data-window-no-drag
+                className="flex h-7 w-full max-w-[460px] items-center gap-1.5 rounded-lg border border-mac-field-border bg-mac-field px-2.5"
+              >
+                {security === "secure" ? (
+                  <LockIcon className="size-3 shrink-0 text-emerald-500" />
+                ) : (
+                  <GlobeIcon className="size-3 shrink-0 text-mac-label-secondary" />
+                )}
+                <input
+                  type="text"
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                  placeholder="Enter URL"
+                  className="h-full w-full bg-transparent text-[12px] text-mac-label outline-none placeholder:text-mac-label-tertiary"
+                />
+              </form>
+            </div>
+          )}
+
+          <div className="flex shrink-0 items-center gap-1.5" data-window-no-drag>
+            {!isBrowserRuntime && !win.browserIsApp && (
+              <Button
+                type="button"
+                size="icon-xs"
+                variant="ghost"
+                title="Inspect (DevTools)"
+                aria-label="Inspect page"
+                onClick={() => webviewRef.current?.inspect()}
+                className="size-6 rounded-md"
+              >
+                <Code2Icon className="size-3.5" />
+              </Button>
+            )}
+
+            {isCsd && (
+              <>
+                <button
+                  type="button"
+                  aria-label="Minimize"
+                  onClick={() => minimizeWindow(win.id)}
+                  className="flex size-6 items-center justify-center rounded-full bg-black/8 text-mac-label transition-colors hover:bg-black/14 dark:bg-white/10 dark:hover:bg-white/16"
+                >
+                  <MinusIcon className="size-3" strokeWidth={2.25} />
+                </button>
+                <button
+                  type="button"
+                  aria-label="Maximize"
+                  onClick={() => toggleMaximizeWindow(win.id)}
+                  className="flex size-6 items-center justify-center rounded-full bg-black/8 text-mac-label transition-colors hover:bg-black/14 dark:bg-white/10 dark:hover:bg-white/16"
+                >
+                  <Maximize2Icon className="size-3" strokeWidth={2.25} />
+                </button>
+                <button
+                  type="button"
+                  aria-label="Close"
+                  onClick={() => closeWindow(win.id)}
+                  className="flex size-6 items-center justify-center rounded-full bg-black/8 text-mac-label transition-colors hover:bg-black/14 dark:bg-white/10 dark:hover:bg-white/16"
+                >
+                  <XIcon className="size-3.5" strokeWidth={2.25} />
+                </button>
+              </>
+            )}
+          </div>
+        </div>
       )}
 
       <div className="relative min-h-0 flex-1 overflow-hidden">
@@ -314,13 +405,23 @@ const WindowBody = React.memo(
     }
 
     if (win.browserWindowId) {
-      return <WebViewSurface win={win} />;
+      return <WebViewSurface win={win} isCsd={isCsd} />;
     }
 
     if (win.builtinComponent === "settings") {
       return (
         <SettingsApp
           initialPane={win.payload}
+          isCsd={isCsd}
+          windowId={win.id}
+        />
+      );
+    }
+
+    if (win.builtinComponent === "console") {
+      return (
+        <ConsoleApp
+          initialModule={win.payload}
           isCsd={isCsd}
           windowId={win.id}
         />
@@ -390,10 +491,18 @@ export function WindowManager() {
     const clearModifier = () => setModifierGrabActive(false);
 
     window.addEventListener("keydown", syncModifier);
+    window.addEventListener(
+      "domicile-guest-keydown",
+      syncModifier as EventListener
+    );
     window.addEventListener("keyup", syncModifier);
     window.addEventListener("blur", clearModifier);
     return () => {
       window.removeEventListener("keydown", syncModifier);
+      window.removeEventListener(
+        "domicile-guest-keydown",
+        syncModifier as EventListener
+      );
       window.removeEventListener("keyup", syncModifier);
       window.removeEventListener("blur", clearModifier);
     };

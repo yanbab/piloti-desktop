@@ -62,6 +62,7 @@ bun run build
 ## Documentation & Website
 
 - **[Project Website (`docs/index.html`)](./docs/index.html)** (served directly when GitHub Pages is configured to `/docs`)
+- **[Live Web Demo (`docs/demo/`)](./docs/demo/)** (built automatically on `bun run build` / `bun run build:web`)
 - **[Documentation Index (`docs/README.md`)](./docs/README.md)**
 - **[Architecture (`docs/architecture.md`)](./docs/architecture.md)**
 - **[Components & Shortcuts (`docs/components-and-features.md`)](./docs/components-and-features.md)**

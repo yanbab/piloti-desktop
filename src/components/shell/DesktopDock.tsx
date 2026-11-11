@@ -28,6 +28,7 @@ export function DesktopDock() {
     closeWindow,
     toggleMinimizeWindow,
     setCommandPaletteOpen,
+    setOpenUrlOpen,
     registerDockRef,
   } = useWindowManager();
 
@@ -159,14 +160,22 @@ export function DesktopDock() {
                   {isRunning ? `Show ${app.shortName}` : `Open ${app.shortName}`}
                 </ContextMenuItem>
                 <ContextMenuItem
-                  onClick={() => launchApp(app.id, { forceNew: true })}
+                  onClick={() =>
+                    app.id.startsWith("webview:")
+                      ? setOpenUrlOpen(true)
+                      : launchApp(app.id, { forceNew: true })
+                  }
                 >
                   New Window
                 </ContextMenuItem>
-                <ContextMenuSeparator />
-                <ContextMenuItem onClick={() => togglePinApp(app.id)}>
-                  {isPinned ? "Remove from Dock" : "Keep in Dock"}
-                </ContextMenuItem>
+                {!app.id.startsWith("webview:") && (
+                  <>
+                    <ContextMenuSeparator />
+                    <ContextMenuItem onClick={() => togglePinApp(app.id)}>
+                      {isPinned ? "Remove from Dock" : "Keep in Dock"}
+                    </ContextMenuItem>
+                  </>
+                )}
                 {isRunning && (
                   <>
                     <ContextMenuSeparator />

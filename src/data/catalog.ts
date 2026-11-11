@@ -103,7 +103,7 @@ export const WALLPAPERS: WallpaperOption[] = [
   },
 ];
 
-export type BuiltinAppId = "settings";
+export type BuiltinAppId = "settings" | "console";
 
 export interface AppMenuSection {
   title: string;
@@ -166,6 +166,30 @@ export const APP_CATALOG: AppDefinition[] = [
           { label: "Sound", shortcut: "⌘5", actionId: "settings:sound" },
           { label: "Displays", shortcut: "⌘6", actionId: "settings:displays" },
           { label: "About Piloti", shortcut: "⌘7", actionId: "settings:about" },
+        ],
+      },
+    ],
+  },
+  {
+    id: "console",
+    name: "Piloti Console",
+    shortName: "Console",
+    description: "Shell DevTools, live logs, window inspector, and JS/Domicile REPL",
+    category: "Development",
+    iconName: "code",
+    xdgIcons: ["utilities-terminal", "org.gnome.Ptyxis", "terminal"],
+    gradient: "from-slate-700 via-zinc-800 to-zinc-950",
+    pinnedByDefault: false,
+    builtinComponent: "console",
+    defaultSize: { width: 840, height: 540 },
+    minSize: { width: 560, height: 360 },
+    menus: [
+      {
+        title: "Module",
+        items: [
+          { label: "REPL", actionId: "console:repl" },
+          { label: "Logs", actionId: "console:logs" },
+          { label: "Inspector", actionId: "console:inspector" },
         ],
       },
     ],

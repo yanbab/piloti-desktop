@@ -129,6 +129,9 @@ export function TopMenuBar() {
             <MenubarItem onClick={() => setOpenUrlOpen(true)}>
               Open URL…
             </MenubarItem>
+            <MenubarItem onClick={() => launchApp("console")}>
+              Console / REPL…
+            </MenubarItem>
             <MenubarSeparator />
             <MenubarItem
               onClick={() =>
@@ -281,6 +284,9 @@ export function TopMenuBar() {
               Record Screen…
             </MenubarItem>
             <MenubarSeparator />
+            <MenubarItem onClick={() => launchApp("console")}>
+              Piloti Console &amp; REPL…
+            </MenubarItem>
             <MenubarItem onClick={() => launchApp("settings", { payload: "about" })}>
               About Piloti &amp; Shortcuts…
             </MenubarItem>

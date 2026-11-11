@@ -127,9 +127,9 @@ export function CommandPalette() {
             </>
           )}
 
-          {/* Piloti Settings */}
+          {/* Piloti Built-in Apps (Settings & Console) */}
           <CommandGroup heading="System">
-            {APP_CATALOG.filter((app) => app.builtinComponent === "settings").map(
+            {APP_CATALOG.filter((app) => Boolean(app.builtinComponent)).map(
               (app) => (
                 <CommandItem
                   key={app.id}

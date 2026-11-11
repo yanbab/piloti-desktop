@@ -32,6 +32,9 @@ import { PilotiLogo } from "./PilotiLogo";
 import { PortalDialogs } from "./PortalDialogs";
 import { TopMenuBar } from "./TopMenuBar";
 import { WindowManager } from "./WindowManager";
+import { installConsoleCapture } from "@/lib/console-store";
+
+installConsoleCapture();
 
 function DesktopSurface() {
   const { isBrowserRuntime, settings, activeWallpaper } = useSettings();

@@ -7,6 +7,7 @@ Welcome to the documentation for **Piloti Desktop** — a Linux Wayland desktop 
 ## Documentation Index
 
 - **[Landing Page (`./index.html`)](./index.html)** — Flathub & GNOME-inspired project website under `docs/` (ready for GitHub Pages).
+- **[Live Web Demo (`./demo/`)](./demo/)** — Interactive browser-hosted version of Piloti Desktop (automatically deployed to `docs/demo/` on `bun run build` / `bun run build:web`).
 - **[Architecture & Dual-Runtime Bridge (`./architecture.md`)](./architecture.md)** — Modular context providers (`SettingsContext`, `SystemBackendsContext`, `AppsContext`, `WindowsContext`), Domicile Wayland integration, and the Browser/macOS development harness.
 - **[Components, Shortcuts & Features (`./components-and-features.md`)](./components-and-features.md)** — Walkthrough of the Top Menubar, DBusMenu Tray, Bottom Dock, CSD/SSD Window Manager, `Alt+Tab` Live Previews, `Alt+Space` Command Palette, Control Center, Portal Dialogs, Lock Screen, and System Settings.
 - **[Debian / VMware Testing Guide (`./vmware-debian-guide.md`)](./vmware-debian-guide.md)** — Running, hot-reloading, and bundling Piloti inside Debian Linux with Domicile.
