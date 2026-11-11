@@ -1,0 +1,124 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" fill="none">
+  <defs>
+    <!-- Adwaita Sky-to-Slate Card Backdrop -->
+    <linearGradient id="bg-grad" x1="64" y1="12" x2="64" y2="116" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#2c4466"/>
+      <stop offset="62%" stop-color="#1c273b"/>
+      <stop offset="100%" stop-color="#152c3f"/>
+    </linearGradient>
+
+    <!-- Calm Water / Ground Plane at Base -->
+    <linearGradient id="water-grad" x1="64" y1="88" x2="64" y2="116" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#2190a4"/>
+      <stop offset="100%" stop-color="#185d75"/>
+    </linearGradient>
+
+    <!-- Stilt Column Shading (Cylindrical Highlight) -->
+    <linearGradient id="stilt-grad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#9a9996"/>
+      <stop offset="40%" stop-color="#f6f5f4"/>
+      <stop offset="100%" stop-color="#77767b"/>
+    </linearGradient>
+
+    <!-- House Body Shell -->
+    <linearGradient id="house-wall" x1="64" y1="36" x2="64" y2="82" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#deddda"/>
+    </linearGradient>
+
+    <!-- Adwaita Roof Terracotta / Orange -->
+    <linearGradient id="roof-grad" x1="64" y1="18" x2="64" y2="44" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#ff8e3c"/>
+      <stop offset="100%" stop-color="#e66100"/>
+    </linearGradient>
+
+    <!-- Window Screen Backdrop -->
+    <linearGradient id="screen-grad" x1="34" y1="42" x2="94" y2="76" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#1c71d8"/>
+      <stop offset="55%" stop-color="#3584e4"/>
+      <stop offset="100%" stop-color="#613583"/>
+    </linearGradient>
+
+    <clipPath id="tile-clip">
+      <rect x="12" y="12" width="104" height="104" rx="24"/>
+    </clipPath>
+  </defs>
+
+  <!-- Tactile GNOME 3D Bottom Extrusion Shadow -->
+  <rect x="12" y="15" width="104" height="104" rx="24" fill="#0f141d"/>
+
+  <!-- Main 104x104 Adwaita Rounded Tile -->
+  <g clip-path="url(#tile-clip)">
+    <rect x="12" y="12" width="104" height="104" rx="24" fill="url(#bg-grad)"/>
+
+    <!-- Subtle Moon / Sun Glow in Upper Left -->
+    <circle cx="34" cy="30" r="18" fill="#62a0ea" fill-opacity="0.16"/>
+    <circle cx="32" cy="28" r="5" fill="#99c1f1" fill-opacity="0.45"/>
+
+    <!-- Water / Ground Horizon -->
+    <rect x="12" y="90" width="104" height="26" fill="url(#water-grad)"/>
+    <rect x="12" y="90" width="104" height="2" fill="#62d2e3" fill-opacity="0.45"/>
+
+    <!-- Gentle Water Ripples Around Stilts -->
+    <ellipse cx="38" cy="100" rx="8" ry="2.2" fill="#99e5f0" fill-opacity="0.35"/>
+    <ellipse cx="64" cy="102" rx="7" ry="2" fill="#99e5f0" fill-opacity="0.3"/>
+    <ellipse cx="90" cy="100" rx="8" ry="2.2" fill="#99e5f0" fill-opacity="0.35"/>
+
+    <!-- Structural Stilts (Les Pilotis) -->
+    <!-- Left Stilt -->
+    <rect x="34" y="79" width="8" height="21" rx="2" fill="url(#stilt-grad)"/>
+    <!-- Center Rear Stilt (subtle depth) -->
+    <rect x="61" y="79" width="6" height="23" rx="2" fill="#77767b"/>
+    <!-- Right Stilt -->
+    <rect x="86" y="79" width="8" height="21" rx="2" fill="url(#stilt-grad)"/>
+    <!-- Cross-brace Structural Joist -->
+    <rect x="36" y="88" width="56" height="3.5" rx="1.5" fill="#9a9996" fill-opacity="0.85"/>
+
+    <!-- Elevated House Slab / Veranda Shadow & Extrusion -->
+    <rect x="24" y="76" width="80" height="6" rx="3" fill="#9a9996"/>
+    <rect x="24" y="74" width="80" height="5" rx="2.5" fill="#f6f5f4"/>
+
+    <!-- Elevated House Volume (Desktop Shell Frame) -->
+    <rect x="28" y="38" width="72" height="38" rx="6" fill="url(#house-wall)"/>
+
+    <!-- Desktop Screen Facade Inside the House -->
+    <rect x="33" y="42" width="62" height="30" rx="4.5" fill="url(#screen-grad)"/>
+
+    <!-- Top Menu Bar Inside Desktop Facade -->
+    <rect x="33" y="42" width="62" height="5" rx="2" fill="#1e1e24" fill-opacity="0.65"/>
+    <circle cx="37" cy="44.5" r="1.1" fill="#62a0ea"/>
+    <rect x="84" y="43.6" width="7" height="1.8" rx="0.9" fill="#ffffff" fill-opacity="0.75"/>
+
+    <!-- Floating Adwaita App Window 1 (Dark Slate + Blue Header Accent) -->
+    <rect x="37" y="49.5" width="31" height="16" rx="3" fill="#242429" fill-opacity="0.96"/>
+    <rect x="37" y="49.5" width="9" height="16" rx="2" fill="#323238"/>
+    <circle cx="65" cy="52" r="1.2" fill="#ffffff" fill-opacity="0.55"/>
+    <rect x="49" y="54" width="15" height="2.4" rx="1.2" fill="#3584e4"/>
+    <rect x="49" y="58.5" width="12" height="2.2" rx="1.1" fill="#ffffff" fill-opacity="0.35"/>
+
+    <!-- Floating Adwaita App Window 2 (Light Card) -->
+    <rect x="64" y="53" width="27" height="14" rx="3" fill="#f6f5f4"/>
+    <rect x="67" y="56.5" width="14" height="2.2" rx="1.1" fill="#3d3846" fill-opacity="0.75"/>
+    <rect x="67" y="60.5" width="18" height="2.2" rx="1.1" fill="#9a9996" fill-opacity="0.6"/>
+    <circle cx="87.5" cy="55.5" r="1.1" fill="#77767b"/>
+
+    <!-- Bottom Dock Pill on Window Sill -->
+    <rect x="50" y="67.5" width="28" height="3.2" rx="1.6" fill="#1e1e24" fill-opacity="0.75"/>
+    <circle cx="55.5" cy="69.1" r="1" fill="#62a0ea"/>
+    <circle cx="61" cy="69.1" r="1" fill="#ff7800"/>
+    <circle cx="66.5" cy="69.1" r="1" fill="#57e389"/>
+    <circle cx="72" cy="69.1" r="1" fill="#ffffff"/>
+
+    <!-- Tactile Overhanging Pitched Roof (Stilt-House Silhouette) -->
+    <!-- Roof Shadow Lip -->
+    <path d="M19 42L64 20L109 42L106 46L64 25L22 46L19 42Z" fill="#c64600"/>
+    <!-- Main Pitched Roof -->
+    <path d="M18 40L64 17L110 40L106 43.5L64 22.5L22 43.5L18 40Z" fill="url(#roof-grad)"/>
+    <!-- Crisp Top Edge Highlight -->
+    <path d="M19 39.5L64 17.2L109 39.5" stroke="#ffbe6f" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+
+  <!-- Subtle Inner Border Rim (Adwaita Icon Spec) -->
+  <rect x="12.5" y="12.5" width="103" height="103" rx="23.5" stroke="#ffffff" stroke-opacity="0.14"/>
+</svg>
+

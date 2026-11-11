@@ -1,0 +1,908 @@
+<!doctype html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Piloti — Wayland Desktop Shell for Domicile</title>
+    <link rel="icon" type="image/svg+xml" href="./assets/piloti-icon.svg" />
+    <meta
+      name="description"
+      content="A fluid Linux Wayland desktop environment built on Domicile, combining GNOME Adwaita and Apple Cupertino design systems."
+    />
+    <style>
+      :root {
+        --adw-accent: #3584e4;
+        --adw-bg: #fafafa;
+        --adw-sidebar: #ebebee;
+        --adw-card: #ffffff;
+        --adw-card-alt: rgba(0, 0, 0, 0.04);
+        --adw-field: rgba(0, 0, 0, 0.065);
+        --adw-text: rgba(0, 0, 0, 0.85);
+        --adw-text-muted: rgba(0, 0, 0, 0.56);
+        --adw-border: rgba(0, 0, 0, 0.1);
+        --adw-shadow: 0 1px 2px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.08);
+        --adw-window-shadow: 0 12px 36px rgba(0, 0, 0, 0.16), 0 0 0 1px rgba(0, 0, 0, 0.12);
+        --adw-switch-off: rgba(0, 0, 0, 0.18);
+        --adw-switch-knob: #ffffff;
+        --font-sans: "Cantarell", "Inter", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+        --font-mono: "Adwaita Mono", "JetBrains Mono", ui-monospace, monospace;
+      }
+
+      html.dark {
+        --adw-bg: #202024;
+        --adw-sidebar: #28282c;
+        --adw-card: #343437;
+        --adw-card-alt: rgba(255, 255, 255, 0.06);
+        --adw-field: #333336;
+        --adw-text: #ffffff;
+        --adw-text-muted: rgba(255, 255, 255, 0.6);
+        --adw-border: rgba(255, 255, 255, 0.08);
+        --adw-shadow: 0 1px 2px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.06);
+        --adw-window-shadow: 0 20px 54px rgba(0, 0, 0, 0.52), 0 0 0 1px rgba(255, 255, 255, 0.08);
+        --adw-switch-off: #4e4e52;
+        --adw-switch-knob: #d2d2d5;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        font-family: var(--font-sans);
+        background: var(--adw-bg);
+        color: var(--adw-text);
+        line-height: 1.55;
+        -webkit-font-smoothing: antialiased;
+        transition: background-color 180ms ease, color 180ms ease;
+      }
+
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+
+      .container {
+        max-width: 1080px;
+        margin: 0 auto;
+        padding: 0 24px;
+      }
+
+      /* Adwaita HeaderBar Navigation (Flathub/GNOME style) */
+      .topbar {
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        background: color-mix(in srgb, var(--adw-bg) 84%, transparent);
+        border-bottom: 1px solid var(--adw-border);
+      }
+
+      .topbar-inner {
+        height: 60px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: 700;
+        font-size: 16px;
+        letter-spacing: -0.01em;
+      }
+
+      .brand-mark {
+        width: 30px;
+        height: 30px;
+        border-radius: 9px;
+        background: linear-gradient(135deg, var(--adw-accent), color-mix(in srgb, var(--adw-accent) 65%, #9141ac));
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        box-shadow: 0 2px 8px color-mix(in srgb, var(--adw-accent) 45%, transparent);
+      }
+
+      .nav-links {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .nav-link {
+        padding: 6px 12px;
+        border-radius: 9999px;
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--adw-text-muted);
+        transition: background-color 140ms ease, color 140ms ease;
+      }
+
+      .nav-link:hover {
+        background: var(--adw-card-alt);
+        color: var(--adw-text);
+      }
+
+      .icon-btn {
+        width: 34px;
+        height: 34px;
+        border-radius: 9999px;
+        border: none;
+        background: var(--adw-field);
+        color: var(--adw-text);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: filter 140ms ease, transform 140ms ease;
+      }
+
+      .icon-btn:hover {
+        filter: brightness(1.12);
+      }
+
+      /* Hero */
+      .hero {
+        padding: 64px 0 44px;
+        text-align: center;
+      }
+
+      .pill-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 5px 14px;
+        border-radius: 9999px;
+        background: color-mix(in srgb, var(--adw-accent) 16%, transparent);
+        color: var(--adw-accent);
+        font-size: 13px;
+        font-weight: 700;
+        margin-bottom: 20px;
+      }
+
+      h1 {
+        margin: 0 auto 16px;
+        max-width: 780px;
+        font-size: clamp(34px, 5.2vw, 54px);
+        line-height: 1.08;
+        letter-spacing: -0.03em;
+        font-weight: 800;
+      }
+
+      .hero-sub {
+        margin: 0 auto 28px;
+        max-width: 640px;
+        font-size: 17px;
+        color: var(--adw-text-muted);
+      }
+
+      .hero-actions {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 12px;
+        margin-bottom: 44px;
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        height: 40px;
+        padding: 0 20px;
+        border-radius: 9999px;
+        font-size: 14px;
+        font-weight: 700;
+        border: none;
+        cursor: pointer;
+        transition: transform 120ms ease, filter 140ms ease;
+      }
+
+      .btn:hover {
+        filter: brightness(1.08);
+        transform: translateY(-1px);
+      }
+
+      .btn-primary {
+        background: var(--adw-accent);
+        color: #ffffff;
+        box-shadow: 0 6px 20px color-mix(in srgb, var(--adw-accent) 35%, transparent);
+      }
+
+      .btn-secondary {
+        background: var(--adw-card);
+        color: var(--adw-text);
+        box-shadow: var(--adw-shadow);
+      }
+
+      /* Interactive Adwaita Window Mockup */
+      .desktop-stage {
+        position: relative;
+        border-radius: 20px;
+        padding: 18px 18px 20px;
+        background:
+          radial-gradient(95% 90% at 15% 15%, color-mix(in srgb, var(--adw-accent) 42%, transparent), transparent 60%),
+          radial-gradient(90% 90% at 85% 20%, rgba(145, 65, 172, 0.35), transparent 55%),
+          radial-gradient(90% 90% at 50% 95%, rgba(33, 144, 164, 0.35), transparent 60%),
+          linear-gradient(145deg, #12151f 0%, #191a24 100%);
+        box-shadow: var(--adw-window-shadow);
+        text-align: left;
+      }
+
+      .mock-menubar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        height: 30px;
+        padding: 0 12px;
+        border-radius: 10px;
+        background: rgba(0, 0, 0, 0.38);
+        color: #fff;
+        font-size: 12px;
+        margin-bottom: 14px;
+      }
+
+      .mock-workspaces {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+
+      .mock-ws-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 9999px;
+        background: rgba(255, 255, 255, 0.35);
+      }
+
+      .mock-ws-dot.active {
+        width: 22px;
+        height: 14px;
+        background: #fff;
+        color: #111;
+        font-weight: 700;
+        font-size: 9px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .mock-window {
+        display: grid;
+        grid-template-columns: 220px 1fr;
+        min-height: 330px;
+        border-radius: 15px;
+        overflow: hidden;
+        background: var(--adw-bg);
+        color: var(--adw-text);
+        box-shadow: var(--adw-window-shadow);
+      }
+
+      .mock-sidebar {
+        background: var(--adw-sidebar);
+        border-right: 1px solid var(--adw-border);
+        padding: 14px 10px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .mock-sidebar-title {
+        font-size: 13px;
+        font-weight: 700;
+        text-align: center;
+        padding: 2px 0 10px;
+      }
+
+      .mock-nav-item {
+        padding: 8px 12px;
+        border-radius: 9px;
+        font-size: 13px;
+        color: var(--adw-text-muted);
+      }
+
+      .mock-nav-item.active {
+        background: var(--adw-card-alt);
+        color: var(--adw-text);
+        font-weight: 600;
+      }
+
+      .mock-pane {
+        padding: 16px 24px 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+
+      .mock-headerbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 14px;
+        font-weight: 700;
+      }
+
+      .mock-controls {
+        display: flex;
+        gap: 8px;
+      }
+
+      .mock-circle {
+        width: 22px;
+        height: 22px;
+        border-radius: 9999px;
+        background: var(--adw-field);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        color: var(--adw-text-muted);
+      }
+
+      .adw-group-title {
+        font-size: 13px;
+        font-weight: 700;
+        margin: 4px 0 6px;
+      }
+
+      .adw-boxed-list {
+        border-radius: 12px;
+        background: var(--adw-card);
+        box-shadow: var(--adw-shadow);
+        overflow: hidden;
+      }
+
+      .adw-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        padding: 12px 16px;
+        border-bottom: 1px solid var(--adw-border);
+        font-size: 13.5px;
+      }
+
+      .adw-row:last-child {
+        border-bottom: none;
+      }
+
+      .adw-row-sub {
+        font-size: 11.5px;
+        color: var(--adw-text-muted);
+      }
+
+      .adw-switch {
+        position: relative;
+        width: 44px;
+        height: 24px;
+        border-radius: 9999px;
+        background: var(--adw-accent);
+        border: none;
+        padding: 3px;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        transition: background-color 140ms ease;
+      }
+
+      .adw-switch[data-checked="false"] {
+        background: var(--adw-switch-off);
+      }
+
+      .adw-switch-knob {
+        width: 18px;
+        height: 18px;
+        border-radius: 9999px;
+        background: #fff;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+        transform: translateX(20px);
+        transition: transform 140ms ease;
+      }
+
+      .adw-switch[data-checked="false"] .adw-switch-knob {
+        background: var(--adw-switch-knob);
+        transform: translateX(0);
+      }
+
+      .swatches {
+        display: flex;
+        gap: 7px;
+        flex-wrap: wrap;
+      }
+
+      .swatch {
+        width: 18px;
+        height: 18px;
+        border-radius: 9999px;
+        border: none;
+        cursor: pointer;
+        transition: transform 120ms ease;
+      }
+
+      .swatch:hover {
+        transform: scale(1.15);
+      }
+
+      .swatch.active {
+        box-shadow: 0 0 0 2px var(--adw-card), 0 0 0 4px var(--adw-text);
+      }
+
+      /* Sections */
+      section {
+        padding: 46px 0;
+      }
+
+      .section-head {
+        margin-bottom: 24px;
+      }
+
+      .section-head h2 {
+        margin: 0 0 6px;
+        font-size: 26px;
+        letter-spacing: -0.02em;
+      }
+
+      .section-head p {
+        margin: 0;
+        color: var(--adw-text-muted);
+        font-size: 15px;
+      }
+
+      /* Feature Cards Grid (Flathub aesthetic) */
+      .cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+        gap: 16px;
+      }
+
+      .card {
+        background: var(--adw-card);
+        border-radius: 14px;
+        padding: 20px;
+        box-shadow: var(--adw-shadow);
+      }
+
+      .card-icon {
+        width: 38px;
+        height: 38px;
+        border-radius: 10px;
+        background: color-mix(in srgb, var(--adw-accent) 16%, transparent);
+        color: var(--adw-accent);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 12px;
+      }
+
+      .card h3 {
+        margin: 0 0 6px;
+        font-size: 16px;
+        font-weight: 700;
+      }
+
+      .card p {
+        margin: 0;
+        font-size: 13.5px;
+        color: var(--adw-text-muted);
+      }
+
+      /* Code & Docs */
+      .code-box {
+        background: var(--adw-card);
+        border-radius: 14px;
+        box-shadow: var(--adw-shadow);
+        overflow: hidden;
+      }
+
+      .code-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 16px;
+        border-bottom: 1px solid var(--adw-border);
+        font-size: 12.5px;
+        font-weight: 700;
+        color: var(--adw-text-muted);
+      }
+
+      pre {
+        margin: 0;
+        padding: 16px;
+        overflow-x: auto;
+        font-family: var(--font-mono);
+        font-size: 13px;
+        line-height: 1.65;
+      }
+
+      .copy-btn {
+        padding: 4px 10px;
+        border-radius: 6px;
+        border: none;
+        background: var(--adw-field);
+        color: var(--adw-text);
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+
+      .doc-link-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 18px;
+        border-bottom: 1px solid var(--adw-border);
+        transition: background-color 140ms ease;
+      }
+
+      .doc-link-row:last-child {
+        border-bottom: none;
+      }
+
+      .doc-link-row:hover {
+        background: var(--adw-card-alt);
+      }
+
+      .doc-title {
+        font-size: 14.5px;
+        font-weight: 600;
+      }
+
+      .doc-arrow {
+        color: var(--adw-text-muted);
+        font-size: 14px;
+      }
+
+      footer {
+        padding: 36px 0 48px;
+        border-top: 1px solid var(--adw-border);
+        color: var(--adw-text-muted);
+        font-size: 13px;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      @media (max-width: 720px) {
+        .mock-window {
+          grid-template-columns: 1fr;
+        }
+        .mock-sidebar {
+          display: none;
+        }
+        .nav-links .hide-sm {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="container topbar-inner">
+        <a href="#" class="brand">
+          <img src="./assets/piloti-icon.svg" alt="Piloti Icon" width="32" height="32" />
+          <span>Piloti</span>
+        </a>
+
+        <nav class="nav-links" aria-label="Primary">
+          <a href="#features" class="nav-link hide-sm">Features</a>
+          <a href="#quickstart" class="nav-link hide-sm">Quick Start</a>
+          <a href="#documentation" class="nav-link">Docs</a>
+          <button
+            id="theme-toggle"
+            type="button"
+            class="icon-btn"
+            aria-label="Toggle Light/Dark theme"
+            title="Toggle Light / Dark theme"
+          >
+            ☀
+          </button>
+        </nav>
+      </div>
+    </header>
+
+    <main class="container">
+      <section class="hero">
+        <img
+          src="./assets/piloti-icon.svg"
+          alt="Piloti Desktop Icon"
+          width="96"
+          height="96"
+          style="display: block; margin: 0 auto 14px; filter: drop-shadow(0 10px 24px rgba(0, 0, 0, 0.32));"
+        />
+        <div class="pill-badge">Built for Domicile Wayland Compositor</div>
+        <h1>A fast Linux desktop shell blending Adwaita and Cupertino.</h1>
+        <p class="hero-sub">
+          Run native GTK4 &amp; Wayland applications seamlessly with real XDG icon themes,
+          two-way GSettings sync, live Alt+Tab thumbnails, and interactive screenshots.
+        </p>
+
+        <div class="hero-actions">
+          <a href="#quickstart" class="btn btn-primary">Get Started</a>
+          <a href="./README.md" class="btn btn-secondary">Read Documentation</a>
+        </div>
+
+        <!-- Interactive Adwaita Window Mockup -->
+        <div class="desktop-stage">
+          <div class="mock-menubar">
+            <span><strong>Piloti</strong> · Settings</span>
+            <span class="mock-workspaces" aria-hidden="true">
+              <span class="mock-ws-dot active">1</span>
+              <span class="mock-ws-dot"></span>
+              <span class="mock-ws-dot"></span>
+              <span class="mock-ws-dot"></span>
+            </span>
+            <span>Wi-Fi · 78% · 12:06</span>
+          </div>
+
+          <div class="mock-window">
+            <aside class="mock-sidebar">
+              <div class="mock-sidebar-title">Settings</div>
+              <div class="mock-nav-item active">Appearance</div>
+              <div class="mock-nav-item">Dock &amp; Menu Bar</div>
+              <div class="mock-nav-item">Wallpaper</div>
+              <div class="mock-nav-item">Wi-Fi &amp; Network</div>
+              <div class="mock-nav-item">Sound</div>
+              <div class="mock-nav-item">Displays</div>
+              <div class="mock-nav-item">About Piloti</div>
+            </aside>
+
+            <div class="mock-pane">
+              <div class="mock-headerbar">
+                <span>Appearance</span>
+                <div class="mock-controls" aria-hidden="true">
+                  <span class="mock-circle">−</span>
+                  <span class="mock-circle">□</span>
+                  <span class="mock-circle">×</span>
+                </div>
+              </div>
+
+              <div>
+                <div class="adw-group-title">GNOME Adwaita 1.6 Calibration</div>
+                <div class="adw-boxed-list">
+                  <div class="adw-row">
+                    <div>
+                      <div>Dark Appearance</div>
+                      <div class="adw-row-sub">
+                        Syncs live with GSettings &amp; Domicile
+                      </div>
+                    </div>
+                    <button
+                      id="mock-dark-switch"
+                      type="button"
+                      class="adw-switch"
+                      data-checked="true"
+                      aria-label="Toggle preview dark mode"
+                    >
+                      <span class="adw-switch-knob"></span>
+                    </button>
+                  </div>
+
+                  <div class="adw-row">
+                    <div>
+                      <div>Adwaita Accent Color</div>
+                      <div class="adw-row-sub">
+                        Click a swatch to preview the page accent
+                      </div>
+                    </div>
+                    <div class="swatches" id="accent-swatches"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="features">
+        <div class="section-head">
+          <h2>Designed for Real Wayland Workflows</h2>
+          <p>
+            Lightweight React &amp; Tailwind shell with native Linux system integrations.
+          </p>
+        </div>
+
+        <div class="cards">
+          <article class="card">
+            <div class="card-icon">W</div>
+            <h3>Native Wayland &amp; CSD</h3>
+            <p>
+              Embeds client windows via <code>&lt;app&gt;</code>, syncs
+              <code>xdg_toplevel</code> tiled states to strip redundant GTK shadows,
+              remembers bounds per app, and snaps on screen edges.
+            </p>
+          </article>
+
+          <article class="card">
+            <div class="card-icon">X</div>
+            <h3>XDG Apps &amp; Icon Themes</h3>
+            <p>
+              Full FreeDesktop Desktop Entry &amp; Icon Theme Spec parser loads
+              installed <code>.desktop</code> apps and real SVG/PNG icons from
+              <code>Adwaita</code>, <code>hicolor</code>, and Flatpak exports.
+            </p>
+          </article>
+
+          <article class="card">
+            <div class="card-icon">G</div>
+            <h3>GNOME Stack Bridge</h3>
+            <p>
+              Two-way <code>GSettings</code> sync, <code>gnome-control-center</code>
+              panel launching, PipeWire volume/sinks (<code>wpctl</code> /
+              <code>pactl</code>), NetworkManager (<code>nmcli</code>), and UPower.
+            </p>
+          </article>
+
+          <article class="card">
+            <div class="card-icon">A</div>
+            <h3>Cupertino &amp; Adwaita Themes</h3>
+            <p>
+              Switch instantaneously between translucent Liquid Glass and official
+              GNOME 47 / Libadwaita 1.6 surfaces, radii, and accent colors.
+            </p>
+          </article>
+
+          <article class="card">
+            <div class="card-icon">P</div>
+            <h3>Live Previews &amp; Portals</h3>
+            <p>
+              <code>Alt+Tab</code> captures live PNG frames, <code>LockScreen</code>
+              authenticates via PAM, and <code>PortalDialogs</code> handles
+              screenshots, screen casts, and color picking.
+            </p>
+          </article>
+
+          <article class="card">
+            <div class="card-icon">C</div>
+            <h3>Zero-Offset DRM Cursors</h3>
+            <p>
+              Anchors custom SVG hardware cursor hotspots at <code>(0, 0)</code>
+              for pixel-accurate clicks under Ozone/DRM and VMware
+              <code>vmwgfx</code>.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section id="quickstart">
+        <div class="section-head">
+          <h2>Quick Start</h2>
+          <p>Run in a macOS/Linux browser harness or launch natively inside Domicile.</p>
+        </div>
+
+        <div class="code-box">
+          <div class="code-header">
+            <span>Terminal — Local Dev &amp; Linux Launch</span>
+            <button id="copy-code" type="button" class="copy-btn">Copy</button>
+          </div>
+          <pre><code id="quickstart-code"># 1. Install dependencies &amp; launch browser harness
+bun install
+bun run dev
+
+# 2. Run directly on Linux with Domicile
+domicile ./desktop.tsx
+
+# 3. Or build standalone shell bundle &amp; run tests
+bun test &amp;&amp; bun run typecheck &amp;&amp; bun run build
+domicile ./dist/shell.js</code></pre>
+        </div>
+      </section>
+
+      <section id="documentation">
+        <div class="section-head">
+          <h2>Documentation</h2>
+          <p>Guides, architecture breakdown, and VMware/Debian setup notes.</p>
+        </div>
+
+        <div class="adw-boxed-list">
+          <a class="doc-link-row" href="./README.md">
+            <div>
+              <div class="doc-title">Documentation Index &amp; Shortcuts</div>
+              <div class="adw-row-sub">Quick start commands and full keyboard shortcut reference</div>
+            </div>
+            <span class="doc-arrow">→</span>
+          </a>
+          <a class="doc-link-row" href="./architecture.md">
+            <div>
+              <div class="doc-title">Architecture &amp; Dual-Runtime Bridge</div>
+              <div class="adw-row-sub">Context providers, Wayland surfaces, XDG &amp; GNOME bridges</div>
+            </div>
+            <span class="doc-arrow">→</span>
+          </a>
+          <a class="doc-link-row" href="./components-and-features.md">
+            <div>
+              <div class="doc-title">Components &amp; Features</div>
+              <div class="adw-row-sub">Menubar, Dock, Window Manager, Alt+Tab, Portals &amp; Settings</div>
+            </div>
+            <span class="doc-arrow">→</span>
+          </a>
+          <a class="doc-link-row" href="./vmware-debian-guide.md">
+            <div>
+              <div class="doc-title">Debian / VMware Testing Guide</div>
+              <div class="adw-row-sub">Running and hot-reloading Piloti inside a Debian Linux VM</div>
+            </div>
+            <span class="doc-arrow">→</span>
+          </a>
+        </div>
+      </section>
+
+      <footer>
+        <span>Piloti Desktop · Built with Domicile &amp; React</span>
+        <a href="#quickstart">Install &amp; Release Notes</a>
+      </footer>
+    </main>
+
+    <script>
+      const root = document.documentElement;
+      const themeBtn = document.getElementById("theme-toggle");
+      const mockSwitch = document.getElementById("mock-dark-switch");
+
+      function syncThemeUi() {
+        const dark = root.classList.contains("dark");
+        themeBtn.textContent = dark ? "☀" : "☾";
+        mockSwitch.dataset.checked = String(dark);
+      }
+
+      themeBtn.addEventListener("click", () => {
+        root.classList.toggle("dark");
+        syncThemeUi();
+      });
+
+      mockSwitch.addEventListener("click", () => {
+        root.classList.toggle("dark");
+        syncThemeUi();
+      });
+
+      const accents = [
+        { name: "Blue", hex: "#3584e4" },
+        { name: "Teal", hex: "#2190a4" },
+        { name: "Green", hex: "#3a944a" },
+        { name: "Yellow", hex: "#c88800" },
+        { name: "Orange", hex: "#ed5b00" },
+        { name: "Red", hex: "#e62d42" },
+        { name: "Pink", hex: "#d56199" },
+        { name: "Purple", hex: "#9141ac" },
+        { name: "Slate", hex: "#6f8396" },
+      ];
+
+      const swatchesEl = document.getElementById("accent-swatches");
+      accents.forEach((acc, i) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "swatch" + (i === 0 ? " active" : "");
+        btn.title = acc.name;
+        btn.ariaLabel = acc.name;
+        btn.style.backgroundColor = acc.hex;
+        btn.addEventListener("click", () => {
+          root.style.setProperty("--adw-accent", acc.hex);
+          document.querySelectorAll(".swatch").forEach((s) => s.classList.remove("active"));
+          btn.classList.add("active");
+        });
+        swatchesEl.appendChild(btn);
+      });
+
+      document.getElementById("copy-code").addEventListener("click", async (e) => {
+        const text = document.getElementById("quickstart-code").textContent;
+        try {
+          await navigator.clipboard.writeText(text);
+          e.target.textContent = "Copied!";
+          setTimeout(() => (e.target.textContent = "Copy"), 1500);
+        } catch {
+          // ignore
+        }
+      });
+
+      syncThemeUi();
+    </script>
+  </body>
+</html>
+

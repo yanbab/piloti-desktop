@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "strict": true,
+    "noEmit": true,
+    "isolatedModules": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"],
+      "xdg-desktop": ["./src/lib/xdg-desktop.ts"]
+    }
+  },
+  "include": ["src", "desktop.tsx", "vite.config.ts", "vite.shell.config.ts"],
+  "exclude": ["**/*.test.ts"]
+}
+

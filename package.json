@@ -1,0 +1,41 @@
+{
+  "name": "piloti-desktop",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Piloti Desktop — A Linux Wayland desktop shell built on Domicile",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build && vite build --config vite.shell.config.ts",
+    "build:web": "vite build",
+    "build:shell": "vite build --config vite.shell.config.ts",
+    "preview": "vite preview",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@base-ui/react": "^1.0.0",
+    "@domicile-desktop/react": "next",
+    "@domicile-desktop/sdk": "next",
+    "@tailwindcss/browser": "^4.1.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "cmdk": "^1.1.1",
+    "lucide-react": "^1.16.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "tailwind-merge": "^3.2.0",
+    "tw-animate-css": "^1.2.9"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.1.0",
+    "@types/node": "^22.14.0",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "@vitejs/plugin-react": "^4.4.1",
+    "tailwindcss": "^4.1.0",
+    "typescript": "^5.8.3",
+    "vite": "^6.3.2"
+  }
+}
+
