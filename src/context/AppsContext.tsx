@@ -7,15 +7,114 @@ import {
 } from "@/data/catalog";
 import { launchWithGnomeEnv } from "@/lib/gnome-bridge";
 import {
-  buildXdgIconThemeIndex,
   discoverInstalledXdgApps,
-  resolveXdgIconUrl,
-  resolveXdgVisualStyle,
   type XdgDesktopEntry,
+} from "xdg-desktop-entry";
+import {
+  buildXdgIconThemeIndex,
+  resolveXdgIconUrl,
   type XdgIconThemeIndex,
-} from "xdg-desktop";
+} from "xdg-icon-theme";
 import { useSettings } from "./SettingsContext";
 import { useSystemBackends } from "./SystemBackendsContext";
+
+function resolveXdgVisualStyle(entry: XdgDesktopEntry): {
+  iconName:
+    | "settings"
+    | "terminal"
+    | "folder"
+    | "globe"
+    | "notes"
+    | "activity"
+    | "code"
+    | "sparkles";
+  gradient: string;
+} {
+  const lower = `${entry.desktopId} ${entry.icon ?? ""} ${entry.categories.join(" ")}`.toLowerCase();
+
+  if (
+    lower.includes("terminal") ||
+    lower.includes("console") ||
+    lower.includes("kitty") ||
+    lower.includes("alacritty")
+  ) {
+    return {
+      iconName: "terminal",
+      gradient: "from-zinc-700 via-zinc-800 to-zinc-950",
+    };
+  }
+  if (
+    lower.includes("nautilus") ||
+    lower.includes("folder") ||
+    lower.includes("filemanager") ||
+    lower.includes("baobab")
+  ) {
+    return {
+      iconName: "folder",
+      gradient: "from-sky-400 via-blue-500 to-blue-600",
+    };
+  }
+  if (
+    lower.includes("browser") ||
+    lower.includes("firefox") ||
+    lower.includes("chromium") ||
+    lower.includes("epiphany") ||
+    lower.includes("web")
+  ) {
+    return {
+      iconName: "globe",
+      gradient: "from-cyan-400 via-blue-500 to-indigo-600",
+    };
+  }
+  if (
+    lower.includes("code") ||
+    lower.includes("builder") ||
+    lower.includes("development") ||
+    lower.includes("ide")
+  ) {
+    return {
+      iconName: "code",
+      gradient: "from-blue-500 via-indigo-500 to-purple-600",
+    };
+  }
+  if (
+    lower.includes("texteditor") ||
+    lower.includes("gedit") ||
+    lower.includes("notes") ||
+    lower.includes("evince") ||
+    lower.includes("office")
+  ) {
+    return {
+      iconName: "notes",
+      gradient: "from-amber-400 via-orange-500 to-amber-600",
+    };
+  }
+  if (
+    lower.includes("monitor") ||
+    lower.includes("htop") ||
+    lower.includes("system")
+  ) {
+    return {
+      iconName: "activity",
+      gradient: "from-emerald-400 via-teal-500 to-cyan-600",
+    };
+  }
+  if (
+    lower.includes("settings") ||
+    lower.includes("controlcenter") ||
+    lower.includes("tweaks") ||
+    lower.includes("dconf")
+  ) {
+    return {
+      iconName: "settings",
+      gradient: "from-slate-400 via-slate-600 to-zinc-800",
+    };
+  }
+  return {
+    iconName: "sparkles",
+    gradient: "from-violet-500 via-purple-500 to-indigo-600",
+  };
+}
 
 export function matchAppFromWayland(
   desktopId: string,

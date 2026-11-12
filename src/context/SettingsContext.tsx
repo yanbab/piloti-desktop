@@ -26,6 +26,13 @@ export interface SavedWindowBounds {
   size: { width: number; height: number };
 }
 
+export interface InstalledWebApp {
+  id: string;
+  title: string;
+  url: string;
+  iconUrl?: string;
+}
+
 export interface DesktopSettings {
   uiTheme: UiThemeId;
   themeMode: "dark" | "light" | "system";
@@ -56,7 +63,9 @@ export interface DesktopSettings {
   doNotDisturb: boolean;
   powerMode: "balanced" | "performance" | "power-saver";
   activeWorkspace: number;
+  workspaceCount: number;
   pinnedAppIds: string[];
+  installedWebApps: InstalledWebApp[];
   savedWindowBounds: Record<string, SavedWindowBounds>;
 }
 
@@ -90,7 +99,9 @@ const DEFAULT_SETTINGS: DesktopSettings = {
   doNotDisturb: false,
   powerMode: "balanced",
   activeWorkspace: 1,
+  workspaceCount: 2,
   pinnedAppIds: APP_CATALOG.filter((a) => a.pinnedByDefault).map((a) => a.id),
+  installedWebApps: [],
   savedWindowBounds: {},
 };
 
@@ -124,9 +135,22 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved) as Partial<DesktopSettings>;
+        const workspaceCount =
+          typeof parsed.workspaceCount === "number" && parsed.workspaceCount >= 1
+            ? parsed.workspaceCount
+            : DEFAULT_SETTINGS.workspaceCount;
+        const activeWorkspace = Math.max(
+          1,
+          Math.min(workspaceCount, parsed.activeWorkspace ?? 1)
+        );
         return {
           ...DEFAULT_SETTINGS,
           ...parsed,
+          workspaceCount,
+          activeWorkspace,
+          installedWebApps: Array.isArray(parsed.installedWebApps)
+            ? parsed.installedWebApps
+            : [],
           savedWindowBounds: parsed.savedWindowBounds ?? {},
         };
       }

@@ -1,6 +1,6 @@
 import type { Domicile } from "@domicile-desktop/sdk/desktop/desktop";
 import type { AccentColorId, WifiNetwork } from "@/data/catalog";
-import { parseDesktopEntry } from "xdg-desktop";
+import { parseDesktopEntry } from "xdg-desktop-entry";
 
 /**
  * Environment variables injected when launching GNOME / GTK / XDG applications

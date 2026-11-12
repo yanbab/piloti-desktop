@@ -1,14 +1,22 @@
 import { describe, expect, test } from "bun:test";
 import {
+  xdgCacheHome,
+  xdgConfigHome,
+  xdgDataDirs,
+  xdgDataHome,
+} from "./xdg-basedir";
+import {
   computeDesktopFileId,
-  directoryMatchesSize,
-  directorySizeDistance,
   expandExecArgv,
   parseDesktopEntry,
-  parseIconThemeIndex,
   splitXdgList,
   unescapeXdgValue,
-} from "./xdg-desktop";
+} from "./xdg-desktop-entry";
+import {
+  directoryMatchesSize,
+  directorySizeDistance,
+  parseIconThemeIndex,
+} from "./xdg-icon-theme";
 
 describe("xdg-desktop Desktop Entry parser", () => {
   test("unescapes XDG values and splits semicolon lists", () => {
@@ -106,6 +114,20 @@ Type=Scalable
     expect(directoryMatchesSize(scalable, 64, 1)).toBe(true);
     expect(directorySizeDistance(scalable, 64, 1)).toBe(0);
     expect(directorySizeDistance(fixed48, 64, 1)).toBe(16);
+  });
+});
+
+describe("xdg-basedir", () => {
+  test("resolves XDG Base Directory defaults and overrides", () => {
+    expect(xdgDataHome({ HOME: "/home/alice" })).toBe("/home/alice/.local/share");
+    expect(
+      xdgConfigHome({ HOME: "/home/alice", XDG_CONFIG_HOME: "/custom/cfg" })
+    ).toBe("/custom/cfg");
+    expect(xdgCacheHome({ HOME: "/home/alice" })).toBe("/home/alice/.cache");
+    expect(xdgDataDirs({ XDG_DATA_DIRS: "/opt/share:/usr/share" })).toEqual([
+      "/opt/share",
+      "/usr/share",
+    ]);
   });
 });
 

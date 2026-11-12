@@ -59,10 +59,26 @@ function DesktopSurface() {
   } = useWindowManager();
 
   const [urlInput, setUrlInput] = React.useState("");
+  const [urlHistory, setUrlHistory] = React.useState<string[]>(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      const saved = localStorage.getItem("piloti.open-url.history.v1");
+      const parsed = saved ? JSON.parse(saved) : [];
+      return Array.isArray(parsed)
+        ? parsed.filter((item): item is string => typeof item === "string")
+        : [];
+    } catch {
+      return [];
+    }
+  });
+  const historyIndexRef = React.useRef<number | null>(null);
+  const draftUrlRef = React.useRef("");
 
   React.useEffect(() => {
     if (openUrlOpen) {
       setUrlInput("");
+      historyIndexRef.current = null;
+      draftUrlRef.current = "";
     }
   }, [openUrlOpen]);
 
@@ -111,7 +127,7 @@ function DesktopSurface() {
         </ContextMenuTrigger>
         <ContextMenuContent className="w-60">
           <ContextMenuItem onClick={() => setCommandPaletteOpen(true)}>
-            Command Palette…
+            Command Palette
             <ContextMenuShortcut>Alt+Space</ContextMenuShortcut>
           </ContextMenuItem>
           <ContextMenuItem onClick={() => openAltTab()}>
@@ -119,7 +135,7 @@ function DesktopSurface() {
             <ContextMenuShortcut>Alt+Tab</ContextMenuShortcut>
           </ContextMenuItem>
           <ContextMenuItem onClick={() => void takeScreenshot()}>
-            Take Screenshot…
+            Take Screenshot
             <ContextMenuShortcut>Print</ContextMenuShortcut>
           </ContextMenuItem>
           <ContextMenuSeparator />
@@ -134,16 +150,16 @@ function DesktopSurface() {
           <ContextMenuItem
             onClick={() => launchApp("settings", { payload: "wallpaper" })}
           >
-            Change Wallpaper…
+            Change Wallpaper
           </ContextMenuItem>
           <ContextMenuItem
             onClick={() => launchApp("settings", { payload: "appearance" })}
           >
-            System Settings…
+            System Settings
             <ContextMenuShortcut>Alt+,</ContextMenuShortcut>
           </ContextMenuItem>
           <ContextMenuItem onClick={() => openGnomeSettings()}>
-            GNOME Settings…
+            GNOME Settings
           </ContextMenuItem>
           <ContextMenuSeparator />
           <ContextMenuItem onClick={() => lockSession()}>
@@ -227,18 +243,64 @@ function DesktopSurface() {
             className="space-y-4"
             onSubmit={(e) => {
               e.preventDefault();
-              if (!urlInput.trim()) return;
-              openWebUrl(urlInput);
+              const trimmed = urlInput.trim();
+              if (!trimmed) return;
+              const nextHistory = [
+                trimmed,
+                ...urlHistory.filter((item) => item !== trimmed),
+              ].slice(0, 50);
+              setUrlHistory(nextHistory);
+              try {
+                localStorage.setItem(
+                  "piloti.open-url.history.v1",
+                  JSON.stringify(nextHistory)
+                );
+              } catch {
+                // ignore storage errors
+              }
+              openWebUrl(trimmed);
               setOpenUrlOpen(false);
             }}
           >
             <Input
               autoFocus
+              list="piloti-open-url-history"
               value={urlInput}
-              onChange={(e) => setUrlInput(e.target.value)}
+              onChange={(e) => {
+                historyIndexRef.current = null;
+                setUrlInput(e.target.value);
+              }}
+              onKeyDown={(e) => {
+                if (urlHistory.length === 0) return;
+                if (e.key === "ArrowUp") {
+                  e.preventDefault();
+                  if (historyIndexRef.current === null) {
+                    draftUrlRef.current = urlInput;
+                    historyIndexRef.current = 0;
+                  } else if (historyIndexRef.current < urlHistory.length - 1) {
+                    historyIndexRef.current += 1;
+                  }
+                  setUrlInput(urlHistory[historyIndexRef.current] ?? "");
+                } else if (e.key === "ArrowDown") {
+                  if (historyIndexRef.current === null) return;
+                  e.preventDefault();
+                  if (historyIndexRef.current > 0) {
+                    historyIndexRef.current -= 1;
+                    setUrlInput(urlHistory[historyIndexRef.current] ?? "");
+                  } else {
+                    historyIndexRef.current = null;
+                    setUrlInput(draftUrlRef.current);
+                  }
+                }
+              }}
               placeholder="https://example.com"
               aria-label="URL"
             />
+            <datalist id="piloti-open-url-history">
+              {urlHistory.map((item) => (
+                <option key={item} value={item} />
+              ))}
+            </datalist>
             <DialogFooter>
               <Button
                 type="button"

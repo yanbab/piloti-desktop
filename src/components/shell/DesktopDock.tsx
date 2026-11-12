@@ -191,7 +191,6 @@ export function DesktopDock() {
                         : "Minimize"}
                     </ContextMenuItem>
                     <ContextMenuItem
-                      variant="destructive"
                       onClick={() => {
                         for (const w of appWins) {
                           closeWindow(w.id);

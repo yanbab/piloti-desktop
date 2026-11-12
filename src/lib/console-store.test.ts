@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { evaluateReplCode, formatInspectValue } from "./console-store";
+import { evaluateCspSafe } from "./csp-repl-eval";
 
 describe("console-store REPL and formatter", () => {
   test("evaluates single expressions and async calls against scope", async () => {
@@ -22,6 +23,28 @@ describe("console-store REPL and formatter", () => {
     const formatted = formatInspectValue(obj);
     expect(formatted).toContain('name: "piloti"');
     expect(formatted).toContain("self: [Circular]");
+  });
+
+  test("evaluates expressions, await, arrows, and objects in CSP-safe mode", async () => {
+    const scope = {
+      windows: [{ title: "Settings" }, { title: "Console" }],
+      run: async (cmd: string) => `ok:${cmd}`,
+      updateSettings: (patch: Record<string, unknown>) => patch,
+    };
+
+    expect(await evaluateCspSafe('await run("uname -a")', scope)).toBe(
+      "ok:uname -a"
+    );
+    expect(await evaluateCspSafe("windows.map(w => w.title)", scope)).toEqual([
+      "Settings",
+      "Console",
+    ]);
+    expect(
+      await evaluateCspSafe('updateSettings({ uiTheme: "adwaita" })', scope)
+    ).toEqual({ uiTheme: "adwaita" });
+    expect(
+      await evaluateCspSafe("const a = 5; a * 3", scope)
+    ).toBe(15);
   });
 });
 

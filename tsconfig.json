@@ -14,7 +14,9 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
-      "xdg-desktop": ["./src/lib/xdg-desktop.ts"]
+      "xdg-basedir": ["./src/lib/xdg-basedir.ts"],
+      "xdg-desktop-entry": ["./src/lib/xdg-desktop-entry.ts"],
+      "xdg-icon-theme": ["./src/lib/xdg-icon-theme.ts"]
     }
   },
   "include": ["src", "desktop.tsx", "vite.config.ts", "vite.shell.config.ts"],

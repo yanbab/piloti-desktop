@@ -37,7 +37,7 @@
   --mac-accent: var(--adw-active-accent, var(--mac-blue));
   --mac-accent-foreground: #ffffff;
   --mac-selection: color-mix(in srgb, var(--mac-accent) 88%, black);
-  --mac-menu-highlight: rgb(0 0 0 / 0.08);
+  --mac-menu-highlight: var(--mac-accent);
   --mac-selection-unfocused: rgb(0 0 0 / 0.08);
   --mac-link: #1c71d8;
 
@@ -146,7 +146,7 @@
 
   --mac-accent: var(--adw-active-accent, var(--mac-blue));
   --mac-selection: var(--mac-accent);
-  --mac-menu-highlight: rgb(255 255 255 / 0.1);
+  --mac-menu-highlight: var(--mac-accent);
   --mac-selection-unfocused: rgb(255 255 255 / 0.1);
   --mac-link: #78aeed;
 

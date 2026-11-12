@@ -2,6 +2,7 @@ import * as React from "react";
 import { AppsProvider, useApps } from "./AppsContext";
 import {
   type DesktopSettings,
+  type InstalledWebApp,
   SettingsProvider,
   type SavedWindowBounds,
   type WindowDecorationMode,
@@ -24,6 +25,7 @@ import {
 export type {
   DesktopSettings,
   DesktopWindowInstance,
+  InstalledWebApp,
   PowerAction,
   ResolvedPopupWindow,
   SavedWindowBounds,

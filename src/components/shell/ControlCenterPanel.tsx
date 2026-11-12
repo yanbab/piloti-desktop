@@ -6,7 +6,6 @@ import {
   BellOffIcon,
   BluetoothIcon,
   CameraIcon,
-  CheckCircle2Icon,
   FlameIcon,
   GaugeIcon,
   MoonIcon,
@@ -90,16 +89,16 @@ export function ControlCenterPanel() {
     >
       {/* Top Header: Date, Battery & Settings Shortcut */}
       <div className="flex items-center justify-between px-1">
-        <div className="text-[11px] font-semibold tracking-wider text-mac-label-secondary uppercase">
+        <div className="text-[11px] font-semibold text-mac-label-secondary">
           {new Date().toLocaleDateString("en-US", {
-            weekday: "long",
-            month: "long",
+            weekday: "short",
+            month: "short",
             day: "numeric",
           })}
         </div>
         <div className="flex items-center gap-1.5">
           {batteryInfo.present && (
-            <div className="flex items-center gap-1 rounded-full bg-emerald-500/15 px-2.5 py-1 text-[11px] font-semibold text-emerald-500 dark:text-emerald-300">
+            <div className="flex items-center gap-1 rounded-full bg-black/8 px-2.5 py-1 text-[11px] font-semibold text-mac-label dark:bg-white/10 dark:text-white">
               <BatteryChargingIcon className="size-3.5" />
               <span>{batteryInfo.percentage}%</span>
             </div>
@@ -422,12 +421,9 @@ export function ControlCenterPanel() {
         <div className="flex max-h-[250px] flex-col gap-2 overflow-y-auto pr-0.5">
           {notifications.length === 0 ? (
             <div className="flex flex-col items-center justify-center rounded-[14px] bg-black/4 py-8 text-center dark:bg-white/5">
-              <CheckCircle2Icon className="mb-1.5 size-6 text-mac-label-tertiary" />
+              <BellIcon className="mb-1.5 size-6 text-mac-label-tertiary" />
               <div className="text-[12px] font-medium text-mac-label-secondary">
-                No New Notifications
-              </div>
-              <div className="text-[11px] text-mac-label-tertiary">
-                You’re all caught up
+                No notifications
               </div>
             </div>
           ) : (

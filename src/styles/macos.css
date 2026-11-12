@@ -36,7 +36,7 @@
   --mac-accent-foreground: #ffffff;
   /* Selected rows in a focused list, and the highlighted menu item */
   --mac-selection: #0064e1;
-  --mac-menu-highlight: #0069f9;
+  --mac-menu-highlight: var(--mac-accent);
   /* Selected rows in an unfocused list */
   --mac-selection-unfocused: rgb(0 0 0 / 0.14);
   --mac-link: #0068da;

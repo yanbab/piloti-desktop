@@ -32,7 +32,9 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
-      "xdg-desktop": path.resolve(__dirname, "./src/lib/xdg-desktop.ts"),
+      "xdg-basedir": path.resolve(__dirname, "./src/lib/xdg-basedir.ts"),
+      "xdg-desktop-entry": path.resolve(__dirname, "./src/lib/xdg-desktop-entry.ts"),
+      "xdg-icon-theme": path.resolve(__dirname, "./src/lib/xdg-icon-theme.ts"),
     },
   },
   build: {

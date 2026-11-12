@@ -100,7 +100,7 @@ export function TopMenuBar() {
 
   return (
     <header className="relative z-[200] shrink-0">
-      <Menubar className="h-[30px] border-b border-white/10 bg-black/35 px-2 text-white backdrop-blur-2xl">
+      <Menubar className="h-[30px] border-b border-black/10 bg-white/55 px-2 text-mac-label backdrop-blur-2xl dark:border-white/10 dark:bg-black/35 dark:text-white">
         {/* System / Piloti Logo Menu */}
         <MenubarMenu>
           <MenubarTrigger
@@ -115,7 +115,7 @@ export function TopMenuBar() {
             </MenubarItem>
             <MenubarSeparator />
             <MenubarItem onClick={() => launchApp("settings")}>
-              Settings…
+              Settings
               {notifications.length > 0 ? (
                 <MenubarBadge>{notifications.length}</MenubarBadge>
               ) : (
@@ -123,14 +123,14 @@ export function TopMenuBar() {
               )}
             </MenubarItem>
             <MenubarItem onClick={() => setCommandPaletteOpen(true)}>
-              Applications…
+              Applications
               <MenubarShortcut>Alt+Space</MenubarShortcut>
             </MenubarItem>
             <MenubarItem onClick={() => setOpenUrlOpen(true)}>
-              Open URL…
+              Open URL
             </MenubarItem>
             <MenubarItem onClick={() => launchApp("console")}>
-              Console / REPL…
+              Console / REPL
             </MenubarItem>
             <MenubarSeparator />
             <MenubarItem
@@ -152,16 +152,13 @@ export function TopMenuBar() {
             </MenubarItem>
             <MenubarSeparator />
             <MenubarItem onClick={() => requestPowerAction("logout")}>
-              Log Out…
+              Log Out
             </MenubarItem>
             <MenubarItem onClick={() => requestPowerAction("restart")}>
-              Restart…
+              Restart
             </MenubarItem>
-            <MenubarItem
-              variant="destructive"
-              onClick={() => requestPowerAction("poweroff")}
-            >
-              Turn Off…
+            <MenubarItem onClick={() => requestPowerAction("poweroff")}>
+              Turn Off
             </MenubarItem>
           </MenubarContent>
         </MenubarMenu>
@@ -175,7 +172,7 @@ export function TopMenuBar() {
             </MenubarItem>
             <MenubarSeparator />
             <MenubarItem onClick={() => launchApp("settings")}>
-              Settings…
+              Settings
               <MenubarShortcut>Alt+,</MenubarShortcut>
             </MenubarItem>
             <MenubarSeparator />
@@ -272,30 +269,33 @@ export function TopMenuBar() {
           <MenubarTrigger>Help</MenubarTrigger>
           <MenubarContent>
             <MenubarItem onClick={() => setCommandPaletteOpen(true)}>
-              Search Actions & Apps…
+              Search Actions & Apps
               <MenubarShortcut>Alt+Space</MenubarShortcut>
             </MenubarItem>
             <MenubarSeparator />
             <MenubarItem onClick={() => void takeScreenshot()}>
-              Take Screenshot…
+              Take Screenshot
               <MenubarShortcut>Print</MenubarShortcut>
             </MenubarItem>
             <MenubarItem onClick={() => void startScreenRecording()}>
-              Record Screen…
+              Record Screen
             </MenubarItem>
             <MenubarSeparator />
             <MenubarItem onClick={() => launchApp("console")}>
-              Piloti Console &amp; REPL…
+              Piloti Console &amp; REPL
             </MenubarItem>
             <MenubarItem onClick={() => launchApp("settings", { payload: "about" })}>
-              About Piloti &amp; Shortcuts…
+              About Piloti &amp; Shortcuts
             </MenubarItem>
           </MenubarContent>
         </MenubarMenu>
 
-        {/* Center GNOME-inspired Workspace Switcher Pill */}
-        <div className="pointer-events-auto absolute left-1/2 hidden -translate-x-1/2 items-center gap-1.5 rounded-full bg-white/8 px-2 py-1 ring-1 ring-white/10 md:flex">
-          {[1, 2, 3, 4].map((ws) => {
+        {/* Center GNOME-style Workspace Switcher (full-height click targets) */}
+        <div className="pointer-events-auto absolute inset-y-0 left-1/2 hidden -translate-x-1/2 items-center md:flex">
+          {Array.from(
+            { length: settings.workspaceCount },
+            (_, idx) => idx + 1
+          ).map((ws) => {
             const active = settings.activeWorkspace === ws;
             const hasWins = windows.some((w) => w.workspace === ws);
             return (
@@ -304,15 +304,19 @@ export function TopMenuBar() {
                 type="button"
                 aria-label={`Workspace ${ws}`}
                 onClick={() => updateSettings({ activeWorkspace: ws })}
-                className={cn(
-                  "rounded-full transition-all duration-200 motion-reduce:transition-none",
-                  active
-                    ? "size-2.5 bg-white shadow-xs"
-                    : hasWins
-                      ? "size-2 bg-white/55 hover:bg-white/80"
-                      : "size-1.5 bg-white/25 hover:bg-white/50"
-                )}
-              />
+                className="group flex h-full cursor-default items-center justify-center px-[3.5px] outline-none"
+              >
+                <span
+                  className={cn(
+                    "h-[7px] rounded-full transition-all duration-200 motion-reduce:transition-none",
+                    active
+                      ? "w-[18px] bg-mac-label shadow-xs dark:bg-white"
+                      : hasWins
+                        ? "w-[7px] bg-mac-label/55 group-hover:bg-mac-label/80 dark:bg-white/55 dark:group-hover:bg-white/80"
+                        : "w-[7px] bg-mac-label/28 group-hover:bg-mac-label/55 dark:bg-white/28 dark:group-hover:bg-white/55"
+                  )}
+                />
+              </button>
             );
           })}
         </div>
@@ -369,7 +373,7 @@ export function TopMenuBar() {
             onClick={() => openAltTab()}
             className="px-2"
           >
-            <LayersIcon className="size-3.5 text-white/85" />
+            <LayersIcon className="size-3.5 text-mac-label/85 dark:text-white/85" />
           </MenubarExtra>
 
           {/* Command Palette Trigger (icon only) */}
@@ -378,7 +382,7 @@ export function TopMenuBar() {
             onClick={() => setCommandPaletteOpen(true)}
             className="px-2"
           >
-            <SearchIcon className="size-3.5 text-white/90" />
+            <SearchIcon className="size-3.5 text-mac-label/90 dark:text-white/90" />
           </MenubarExtra>
 
           {/* Unified Status + Clock Trigger for Right-Side Notifications & Quick Settings Panel */}
@@ -387,29 +391,29 @@ export function TopMenuBar() {
             onClick={() => setControlCenterOpen((v) => !v)}
             data-control-center-trigger
             className={cn(
-              "ml-1 flex h-[22px] items-center gap-2 rounded-full px-2.5 text-[12px] font-medium text-white transition-colors outline-none",
+              "ml-1 flex h-[22px] items-center gap-2 rounded-full px-2.5 text-[12px] font-medium text-mac-label transition-colors outline-none dark:text-white",
               controlCenterOpen
-                ? "bg-white/25 shadow-inner ring-1 ring-white/30"
-                : "hover:bg-white/15"
+                ? "bg-black/12 shadow-inner ring-1 ring-black/15 dark:bg-white/25 dark:ring-white/30"
+                : "hover:bg-black/8 dark:hover:bg-white/15"
             )}
           >
-            <span className="flex items-center gap-1.5 text-white/90">
+            <span className="flex items-center gap-1.5 text-mac-label/90 dark:text-white/90">
               {settings.doNotDisturb && (
-                <MoonIcon className="size-3.5 text-violet-300" />
+                <MoonIcon className="size-3.5 text-violet-600 dark:text-violet-300" />
               )}
               {settings.wifiEnabled ? (
                 <WifiIcon className="size-3.5" />
               ) : (
-                <WifiOffIcon className="size-3.5 text-white/45" />
+                <WifiOffIcon className="size-3.5 text-mac-label/45 dark:text-white/45" />
               )}
               {settings.muted || settings.volume === 0 ? (
-                <VolumeXIcon className="size-3.5 text-rose-300" />
+                <VolumeXIcon className="size-3.5 text-rose-600 dark:text-rose-300" />
               ) : (
                 <Volume2Icon className="size-3.5" />
               )}
               {batteryInfo.present && (
                 <span className="hidden items-center gap-0.5 text-[11px] tabular-nums lg:inline-flex">
-                  <BatteryChargingIcon className="size-3.5 text-emerald-300" />
+                  <BatteryChargingIcon className="size-3.5" />
                   <span>{batteryInfo.percentage}%</span>
                 </span>
               )}
@@ -421,7 +425,7 @@ export function TopMenuBar() {
                 <span className="flex size-2 rounded-full bg-sky-400 shadow-[0_0_6px_#38bdf8]" />
               )}
               {settings.doNotDisturb && (
-                <BellOffIcon className="size-3 text-white/50" />
+                <BellOffIcon className="size-3 text-mac-label/50 dark:text-white/50" />
               )}
             </span>
           </button>

@@ -31,7 +31,7 @@ import {
   useWindowManager,
 } from "@/context/DesktopStateContext";
 import { APP_CATALOG } from "@/data/catalog";
-import { resolveXdgVisualStyle } from "xdg-desktop";
+import { resolveXdgVisualStyle } from "@/context/AppsContext";
 import { AppSquircleIcon } from "./AppSymbol";
 
 export function CommandPalette() {
@@ -50,6 +50,7 @@ export function CommandPalette() {
     focusedWindowId,
     launchApp,
     launchXdgApp,
+    openWebUrl,
     openGnomeSettings,
     focusWindow,
     tileWindow,
@@ -99,8 +100,9 @@ export function CommandPalette() {
             </>
           )}
 
-          {/* Installed XDG Desktop Applications Group */}
-          {installedXdgApps.length > 0 && (
+          {/* Installed XDG & Web Applications Group */}
+          {(installedXdgApps.length > 0 ||
+            settings.installedWebApps.length > 0) && (
             <>
               <CommandGroup heading="Applications">
                 {installedXdgApps.map((entry) => {
@@ -122,6 +124,22 @@ export function CommandPalette() {
                     </CommandItem>
                   );
                 })}
+                {settings.installedWebApps.map((webApp) => (
+                  <CommandItem
+                    key={webApp.id}
+                    value={`web app ${webApp.title} ${webApp.url}`}
+                    onSelect={() => runAndClose(() => openWebUrl(webApp.url))}
+                  >
+                    <AppSquircleIcon
+                      iconName="globe"
+                      iconUrl={webApp.iconUrl}
+                      gradient="from-sky-500 to-indigo-600"
+                      className="size-5 shrink-0 rounded-[5px]"
+                      glyphClassName="size-3"
+                    />
+                    <span className="truncate font-medium">{webApp.title}</span>
+                  </CommandItem>
+                ))}
               </CommandGroup>
               <CommandSeparator />
             </>

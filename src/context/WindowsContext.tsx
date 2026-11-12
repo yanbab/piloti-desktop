@@ -17,7 +17,13 @@ import {
   launchWithGnomeEnv,
   openGnomeControlCenter,
 } from "@/lib/gnome-bridge";
-import type { XdgDesktopEntry } from "xdg-desktop";
+import type { XdgDesktopEntry } from "xdg-desktop-entry";
+import {
+  loadXdgSession,
+  saveXdgSession,
+  serializeWindowToXdgSession,
+  type XdgSessionWindow,
+} from "@/lib/xdg-session-management";
 import { matchAppFromWayland, useApps } from "./AppsContext";
 import { useSettings } from "./SettingsContext";
 import { useSystemBackends } from "./SystemBackendsContext";
@@ -44,6 +50,8 @@ export interface DesktopWindowInstance {
   minSize: { width: number; height: number };
   minimized: boolean;
   maximized: boolean;
+  fullscreen?: boolean;
+  pinned?: boolean;
   zIndex: number;
   payload?: string;
 }
@@ -119,6 +127,8 @@ interface ExternalWindowMeta {
   size: { width: number; height: number };
   minimized: boolean;
   maximized: boolean;
+  fullscreen?: boolean;
+  pinned?: boolean;
   tiled?: "left" | "right" | null;
   zIndex: number;
   workspace: number;
@@ -171,6 +181,7 @@ export function WindowsProvider({ children }: { children: React.ReactNode }) {
   } = useApps();
 
   const primaryDisplay = displays?.[0];
+  const primaryMonitorName = primaryDisplay?.name ?? "primary";
   const screenWidth =
     primaryDisplay?.width ??
     (typeof window !== "undefined" ? window.innerWidth : 1440);
@@ -178,10 +189,49 @@ export function WindowsProvider({ children }: { children: React.ReactNode }) {
     primaryDisplay?.height ??
     (typeof window !== "undefined" ? window.innerHeight : 900);
 
-  // Built-in Settings window (the sole built-in shell app; auto-opened in Browser Dev Mode)
+  const pendingSessionRestoreRef = React.useRef<Map<string, XdgSessionWindow>>(
+    new Map()
+  );
+  const sessionHydratedRef = React.useRef(false);
+
+  // Restore built-in shell windows from xdg-session-management-v1 (or default Browser Dev Mode window on first run)
   const [shellWindows, setShellWindows] = React.useState<
     DesktopWindowInstance[]
   >(() => {
+    const savedSession = loadXdgSession();
+    if (savedSession !== null) {
+      const restoredShell: DesktopWindowInstance[] = [];
+      for (const rec of savedSession) {
+        if (rec.id === "settings" || rec.id === "console") {
+          const def = APP_CATALOG.find((a) => a.id === rec.id);
+          if (!def) continue;
+          const count = ++nextShellWinCounter;
+          restoredShell.push({
+            id: `shell:${rec.id}-${count}`,
+            appId: rec.id,
+            title: rec.title || def.name,
+            iconName: def.iconName,
+            gradient: def.gradient,
+            builtinComponent: rec.id,
+            clientFrame: settings.uiTheme === "adwaita" || rec.id === "console",
+            workspace: rec.workspace,
+            position: { x: rec.x, y: rec.y },
+            size: { width: rec.width, height: rec.height },
+            minSize: def.minSize ?? { width: 620, height: 400 },
+            minimized: false,
+            maximized: rec.maximized,
+            fullscreen: rec.fullscreen,
+            pinned: rec.pinned,
+            zIndex: ++nextZIndex,
+            payload: rec.id === "settings" ? "appearance" : undefined,
+          });
+        } else {
+          pendingSessionRestoreRef.current.set(rec.id, rec);
+        }
+      }
+      return restoredShell;
+    }
+
     if (typeof window !== "undefined" && window.__PILOTI_BROWSER_HOST__) {
       const settingsDef = APP_CATALOG.find((a) => a.id === "settings")!;
       const saved = settings.savedWindowBounds?.settings;
@@ -209,6 +259,21 @@ export function WindowsProvider({ children }: { children: React.ReactNode }) {
     }
     return [];
   });
+
+  // Restore external (webview / Wayland) windows queued from xdg-session-management-v1
+  React.useEffect(() => {
+    if (sessionHydratedRef.current) return;
+    sessionHydratedRef.current = true;
+
+    for (const rec of pendingSessionRestoreRef.current.values()) {
+      if (rec.id.startsWith("web:")) {
+        const url = rec.id.slice(4);
+        if (url) domicile.browser.open(url);
+      } else if (!isBrowserRuntime) {
+        launchWithGnomeEnv(domicile, [rec.id]);
+      }
+    }
+  }, [domicile, isBrowserRuntime]);
 
   const [waylandMeta, setWaylandMeta] = React.useState<
     Record<string, ExternalWindowMeta>
@@ -264,30 +329,43 @@ export function WindowsProvider({ children }: { children: React.ReactNode }) {
       browserWindows.forEach((bw, idx) => {
         if (!next[bw.id]) {
           changed = true;
+          const sessionKey = bw.url ? `web:${bw.url}` : undefined;
+          const restored = sessionKey
+            ? pendingSessionRestoreRef.current.get(sessionKey)
+            : undefined;
+          if (sessionKey && restored) {
+            pendingSessionRestoreRef.current.delete(sessionKey);
+          }
           const remembered =
             (bw.appId ? settings.savedWindowBounds[bw.appId] : undefined) ??
             settings.savedWindowBounds.webview;
           const defaultW =
+            restored?.width ??
             remembered?.size.width ??
             (bw.width > 200
               ? bw.width
               : Math.min(1040, Math.max(640, screenWidth - 120)));
           const defaultH =
+            restored?.height ??
             remembered?.size.height ??
             (bw.height > 150
               ? bw.height
               : Math.min(720, Math.max(460, screenHeight - 140)));
           next[bw.id] = {
-            position: remembered?.position ?? {
-              x: Math.max(40, 110 + (idx % 5) * 44),
-              y: Math.max(24, 40 + (idx % 5) * 32),
-            },
+            position: restored
+              ? { x: restored.x, y: restored.y }
+              : remembered?.position ?? {
+                  x: Math.max(40, 110 + (idx % 5) * 44),
+                  y: Math.max(24, 40 + (idx % 5) * 32),
+                },
             size: { width: defaultW, height: defaultH },
             minimized: false,
-            maximized: false,
+            maximized: restored?.maximized ?? false,
+            fullscreen: restored?.fullscreen ?? false,
+            pinned: restored?.pinned ?? false,
             tiled: null,
             zIndex: ++nextZIndex,
-            workspace: settings.activeWorkspace,
+            workspace: restored?.workspace ?? settings.activeWorkspace,
           };
           newlyFocusedId = `browser:${bw.id}`;
         }
@@ -323,23 +401,37 @@ export function WindowsProvider({ children }: { children: React.ReactNode }) {
         if (w.desktopId) idsToResolve.push(w.desktopId);
         if (!next[w.appId]) {
           changed = true;
+          const shortId = w.desktopId.replace(/\.desktop$/i, "");
+          const restored =
+            pendingSessionRestoreRef.current.get(w.desktopId) ??
+            pendingSessionRestoreRef.current.get(shortId);
+          if (restored) {
+            pendingSessionRestoreRef.current.delete(w.desktopId);
+            pendingSessionRestoreRef.current.delete(shortId);
+          }
           const remembered =
             settings.savedWindowBounds[w.desktopId] ??
-            settings.savedWindowBounds[w.desktopId.replace(/\.desktop$/i, "")];
+            settings.savedWindowBounds[shortId];
           next[w.appId] = {
-            position: remembered?.position ?? {
-              x: 90 + (idx % 5) * 48,
-              y: 44 + (idx % 5) * 34,
-            },
-            size: remembered?.size ?? {
-              width: w.width && w.width > 200 ? w.width : 760,
-              height: w.height && w.height > 150 ? w.height : 500,
-            },
+            position: restored
+              ? { x: restored.x, y: restored.y }
+              : remembered?.position ?? {
+                  x: 90 + (idx % 5) * 48,
+                  y: 44 + (idx % 5) * 34,
+                },
+            size: restored
+              ? { width: restored.width, height: restored.height }
+              : remembered?.size ?? {
+                  width: w.width && w.width > 200 ? w.width : 760,
+                  height: w.height && w.height > 150 ? w.height : 500,
+                },
             minimized: false,
-            maximized: false,
+            maximized: restored?.maximized ?? false,
+            fullscreen: restored?.fullscreen ?? false,
+            pinned: restored?.pinned ?? false,
             tiled: null,
             zIndex: ++nextZIndex,
-            workspace: settings.activeWorkspace,
+            workspace: restored?.workspace ?? settings.activeWorkspace,
           };
         }
       });
@@ -508,6 +600,8 @@ export function WindowsProvider({ children }: { children: React.ReactNode }) {
           },
           minimized: meta.minimized,
           maximized: meta.maximized,
+          fullscreen: meta.fullscreen,
+          pinned: meta.pinned,
           zIndex: meta.zIndex,
         };
       });
@@ -551,6 +645,8 @@ export function WindowsProvider({ children }: { children: React.ReactNode }) {
         minSize: { width: 420, height: 300 },
         minimized: meta.minimized,
         maximized: meta.maximized,
+        fullscreen: meta.fullscreen,
+        pinned: meta.pinned,
         tiled: meta.tiled ?? null,
         zIndex: meta.zIndex,
       };
@@ -1189,6 +1285,19 @@ export function WindowsProvider({ children }: { children: React.ReactNode }) {
     setAltTabState((prev) => (prev.open ? { ...prev, open: false } : prev));
   }, []);
 
+  const switchWorkspace = React.useCallback(
+    (delta: -1 | 1) => {
+      const next = Math.max(
+        1,
+        Math.min(settings.workspaceCount, settings.activeWorkspace + delta)
+      );
+      if (next !== settings.activeWorkspace) {
+        updateSettings({ activeWorkspace: next });
+      }
+    },
+    [settings.activeWorkspace, settings.workspaceCount, updateSettings]
+  );
+
   // Global Domicile key grabs
   React.useEffect(() => {
     const chords = [
@@ -1197,6 +1306,8 @@ export function WindowsProvider({ children }: { children: React.ReactNode }) {
       "Alt+Tab",
       "Alt+Shift+Tab",
       "Meta+Return",
+      "Meta+Left",
+      "Meta+Right",
       "Print",
     ];
     for (const c of chords) {
@@ -1218,6 +1329,10 @@ export function WindowsProvider({ children }: { children: React.ReactNode }) {
         cycleAltTab(-1);
       } else if (chord === "Meta+Return") {
         launchWithGnomeEnv(domicile, ["kitty"]);
+      } else if (chord === "Meta+Left") {
+        switchWorkspace(-1);
+      } else if (chord === "Meta+Right") {
+        switchWorkspace(1);
       } else if (chord === "Print") {
         void takeScreenshot();
       }
@@ -1256,6 +1371,7 @@ export function WindowsProvider({ children }: { children: React.ReactNode }) {
     commitAltTab,
     cycleAltTab,
     domicile,
+    switchWorkspace,
     takeScreenshot,
   ]);
 
@@ -1301,6 +1417,18 @@ export function WindowsProvider({ children }: { children: React.ReactNode }) {
         e.preventDefault();
         launchWithGnomeEnv(domicile, ["kitty"]);
         return;
+      }
+      if (e.metaKey && !e.altKey && !e.ctrlKey && !e.shiftKey) {
+        if (e.key === "ArrowLeft") {
+          e.preventDefault();
+          switchWorkspace(-1);
+          return;
+        }
+        if (e.key === "ArrowRight") {
+          e.preventDefault();
+          switchWorkspace(1);
+          return;
+        }
       }
       if (e.altKey && e.key === ",") {
         e.preventDefault();
@@ -1369,6 +1497,7 @@ export function WindowsProvider({ children }: { children: React.ReactNode }) {
     focusedWindowId,
     isBrowserRuntime,
     launchApp,
+    switchWorkspace,
     tileWindow,
     toggleMaximizeWindow,
     toggleMinimizeWindow,
@@ -1433,7 +1562,7 @@ export function WindowsProvider({ children }: { children: React.ReactNode }) {
               actionId: "launch:nautilus",
             },
             {
-              label: "Open Command Palette…",
+              label: "Open Command Palette",
               shortcut: "Alt+Space",
               actionId: "shell:palette",
             },
@@ -1443,7 +1572,7 @@ export function WindowsProvider({ children }: { children: React.ReactNode }) {
           title: "View",
           items: [
             {
-              label: "System Settings…",
+              label: "System Settings",
               shortcut: "Alt+,",
               actionId: "launch:settings",
             },
@@ -1498,8 +1627,28 @@ export function WindowsProvider({ children }: { children: React.ReactNode }) {
     ]
   );
 
+  // Persist open windows to localStorage via xdg-session-management-v1
+  React.useEffect(() => {
+    if (!sessionHydratedRef.current) return;
+    const records = combinedWindows.map((w) =>
+      serializeWindowToXdgSession(w, primaryMonitorName)
+    );
+    const timer = setTimeout(() => {
+      saveXdgSession(records);
+    }, 150);
+    const flush = () => saveXdgSession(records);
+    window.addEventListener("beforeunload", flush);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("beforeunload", flush);
+    };
+  }, [combinedWindows, primaryMonitorName]);
+
   const workspaceWindows = React.useMemo(
-    () => combinedWindows.filter((w) => w.workspace === settings.activeWorkspace),
+    () =>
+      combinedWindows.filter(
+        (w) => w.pinned || w.workspace === settings.activeWorkspace
+      ),
     [combinedWindows, settings.activeWorkspace]
   );
 

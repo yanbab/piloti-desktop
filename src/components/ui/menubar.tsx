@@ -14,7 +14,7 @@ function Menubar({ className, ...props }: MenubarPrimitive.Props) {
     <MenubarPrimitive
       data-slot="menubar"
       className={cn(
-        "flex h-[30px] w-full items-center gap-0 pr-[7px] pl-[5px] pb-0.5 text-mac-body text-white select-none",
+        "flex h-[30px] w-full items-center gap-0 pr-[7px] pl-[5px] pb-0.5 text-mac-body text-mac-label select-none",
         className
       )}
       {...props}
@@ -40,7 +40,7 @@ function MenubarTrigger({
       data-slot="menubar-trigger"
       data-app={app || undefined}
       className={cn(
-        "flex h-5 cursor-default items-center rounded-full px-2.5 outline-none select-none data-[app]:font-bold data-highlighted:bg-white/12 data-popup-open:bg-white/12 focus-visible:bg-white/12 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        "flex h-5 cursor-default items-center rounded-full px-2.5 outline-none select-none data-[app]:font-bold data-highlighted:bg-black/8 data-popup-open:bg-black/8 focus-visible:bg-black/8 dark:data-highlighted:bg-white/12 dark:data-popup-open:bg-white/12 dark:focus-visible:bg-white/12 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
         className
       )}
       {...props}
@@ -102,7 +102,7 @@ function MenubarItem({
       data-inset={inset}
       data-variant={variant}
       className={cn(
-        "relative flex h-6 cursor-default items-center gap-2 rounded-mac-item pr-[14px] pl-[11px] text-mac-body font-normal outline-hidden select-none data-highlighted:bg-mac-menu-highlight data-highlighted:text-white data-disabled:pointer-events-none data-disabled:text-mac-label-tertiary data-[inset]:pl-[27px] data-[variant=destructive]:text-mac-red data-[variant=destructive]:data-highlighted:bg-mac-red data-[variant=destructive]:data-highlighted:text-white [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 [&_svg:not([class*='text-'])]:text-current",
+        "relative flex h-6 cursor-default items-center gap-2 rounded-mac-item pr-[14px] pl-[11px] text-mac-body font-normal outline-hidden select-none data-highlighted:bg-mac-menu-highlight data-highlighted:text-white data-disabled:pointer-events-none data-disabled:text-mac-label-tertiary data-[inset]:pl-[27px] [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 [&_svg:not([class*='text-'])]:text-current",
         className
       )}
       {...props}
@@ -301,7 +301,7 @@ function MenubarExtra({ className, ...props }: React.ComponentProps<"button">) {
       role="menuitem"
       data-slot="menubar-extra"
       className={cn(
-        "flex h-5 min-w-6 cursor-default items-center justify-center rounded-full px-[10px] outline-none hover:bg-white/15 focus-visible:bg-white/15",
+        "flex h-5 min-w-6 cursor-default items-center justify-center rounded-full px-[10px] outline-none hover:bg-black/8 focus-visible:bg-black/8 dark:hover:bg-white/15 dark:focus-visible:bg-white/15",
         className
       )}
       {...props}
