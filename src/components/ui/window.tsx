@@ -345,7 +345,12 @@ function Window({
       if (parentRect) {
         const nextPos = {
           x: Math.round(resume.clientX - parentRect.left - node.offsetWidth / 2),
-          y: Math.round(Math.max(0, resume.clientY - parentRect.top - 18)),
+          y: Math.round(
+            Math.min(
+              Math.max(0, parentRect.height - 48),
+              Math.max(0, resume.clientY - parentRect.top - 18)
+            )
+          ),
         }
         node.style.translate = `${nextPos.x}px ${nextPos.y}px`
         move(nextPos)
@@ -569,16 +574,27 @@ function Window({
     const scale = rect.width / node.offsetWidth || 1
     const limit = Number.POSITIVE_INFINITY
     let min = { x: -limit, y: -limit }
-    const max = { x: limit, y: limit }
+    let max = { x: limit, y: limit }
     const parent = bounds === "parent" ? node.parentElement : null
     if (parent) {
       const area = parent.getBoundingClientRect()
-      // Only clamp at the top edge so titlebars never slide under the menubar;
-      // left, right, and bottom edges allow moving partially off-screen.
+      // Keep the titlebar inside the viewport/canvas vertically (top >= area.top,
+      // and at least 48px above area.bottom) and keep >= 80px horizontally reachable.
       const minY = current.y + (area.top - rect.top) / scale
+      const maxY =
+        current.y +
+        (area.bottom - rect.top) / scale -
+        Math.min(48, node.offsetHeight)
+      const keepX = Math.min(80, node.offsetWidth)
+      const minX = current.x + (area.left - rect.right) / scale + keepX
+      const maxX = current.x + (area.right - rect.left) / scale - keepX
       min = {
-        x: -limit,
+        x: minX,
         y: minY,
+      }
+      max = {
+        x: Math.max(minX, maxX),
+        y: Math.max(minY, maxY),
       }
     }
 
@@ -653,8 +669,8 @@ function Window({
     const rawX = state.start.x + (clientX - state.pointer.x) / state.scale
     const rawY = state.start.y + (clientY - state.pointer.y) / state.scale
     const next = {
-      x: Math.round(rawX),
-      y: Math.round(Math.max(state.min.y, rawY)),
+      x: Math.round(Math.min(state.max.x, Math.max(state.min.x, rawX))),
+      y: Math.round(Math.min(state.max.y, Math.max(state.min.y, rawY))),
     }
     state.latest = next
 

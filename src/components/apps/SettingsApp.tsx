@@ -290,7 +290,7 @@ export function SettingsApp({
         {isCsd ? (
           <div
             data-window-drag-region
-            className="relative flex h-8 shrink-0 items-center justify-between gap-2 border-b border-adw-separator bg-adw-titlebar px-2.5 select-none"
+            className="relative flex h-10 shrink-0 items-center justify-between gap-2 border-b border-adw-separator bg-adw-titlebar px-3 select-none"
           >
             <div className="flex items-center gap-1.5" data-window-no-drag>
               {windowId && <WindowMenuButton windowId={windowId} />}

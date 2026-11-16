@@ -62,8 +62,9 @@ export function normalizeVfsPath(rawPath?: string): string {
  */
 export function resolveVfsPath(cwd: string, rawTarget?: string): string {
   const base = normalizeVfsPath(cwd);
-  if (!rawTarget || rawTarget.trim() === "~") return WEB_VFS_HOME;
+  if (!rawTarget || !rawTarget.trim()) return base;
   const target = rawTarget.trim();
+  if (target === "~") return WEB_VFS_HOME;
   const combined = target.startsWith("~/")
     ? `${WEB_VFS_HOME}/${target.slice(2)}`
     : target.startsWith("/")
@@ -224,16 +225,39 @@ export function listVfsDir(
   const normalized = normalizeVfsPath(dirPath);
   const entries = loadVfs();
   const includeHidden = Boolean(options?.includeHidden);
-  return entries.filter(
+  const direct = entries.filter(
     (entry) =>
       entry.parentPath === normalized &&
       (includeHidden || !entry.name.startsWith("."))
   );
+  if (normalized === "/" && !direct.some((e) => e.path === "/home")) {
+    direct.unshift({
+      id: "/home",
+      name: "home",
+      kind: "directory",
+      path: "/home",
+      parentPath: "/",
+      updatedAt: 0,
+    });
+  }
+  return direct;
 }
 
 export function getVfsEntry(path: string): WebVfsEntry | undefined {
   const normalized = normalizeVfsPath(path);
-  return loadVfs().find((entry) => entry.path === normalized);
+  const found = loadVfs().find((entry) => entry.path === normalized);
+  if (found) return found;
+  if (normalized === "/" || normalized === "/home") {
+    return {
+      id: normalized,
+      name: basename(normalized),
+      kind: "directory",
+      path: normalized,
+      parentPath: "/",
+      updatedAt: 0,
+    };
+  }
+  return undefined;
 }
 
 export function createVfsFolder(
@@ -537,6 +561,21 @@ export function buildVfsEntryWebAppUrl(entry: WebVfsEntry): string {
   return URL.createObjectURL(
     new Blob([content], { type: "text/plain;charset=utf-8" })
   );
+}
+
+const TEXT_EDITABLE_EXT_RE =
+  /\.(txt|md|markdown|json|css|scss|less|js|mjs|cjs|ts|tsx|jsx|xml|csv|tsv|ya?ml|toml|ini|conf|cfg|log|sh|bash|zsh|py|rb|rs|go|java|c|cpp|h|hpp|sql)$/i;
+
+/**
+ * Returns true for plain-text / markdown / code files that should open in
+ * `TextEditorApp` by default instead of a standalone web view.
+ */
+export function isTextEditableVfsFile(name: string): boolean {
+  const lower = name.toLowerCase();
+  if (/\.(html?|svg|png|jpe?g|gif|webp|bmp|ico|avif|mp4|webm|mkv|mov|avi|m4v|mp3|wav|flac|m4a|ogg|aac|pdf|zip|tar|gz|bz2|xz|7z|rar)$/i.test(lower)) {
+    return false;
+  }
+  return TEXT_EDITABLE_EXT_RE.test(lower) || !/\.[a-z0-9]+$/i.test(lower);
 }
 
 const TEXT_FILE_EXT_RE =

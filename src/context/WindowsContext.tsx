@@ -425,7 +425,7 @@ function pruneBrowserRecord(
   // Sync Domicile `<webview>` browser windows
   const knownBrowserIdsRef = React.useRef<Set<string>>(new Set());
 
-  React.useEffect(() => {
+  React.useLayoutEffect(() => {
     const activeIds = new Set(browserWindows.map((bw) => bw.id));
     const newEntries = new Map<string, ExternalWindowMeta>();
     let newlyFocused: {
@@ -538,7 +538,7 @@ function pruneBrowserRecord(
   // Sync new Wayland windows and restore remembered geometry per desktopId
   const knownWaylandIdsRef = React.useRef<Set<string>>(new Set());
 
-  React.useEffect(() => {
+  React.useLayoutEffect(() => {
     const toplevels = waylandWindows.filter((w) => w.parent === undefined);
     const idsToResolve: string[] = [];
     const currentIds = new Set(toplevels.map((w) => w.appId));
@@ -813,7 +813,9 @@ function pruneBrowserRecord(
 
     const toplevels = waylandWindows
       .filter((w) => w.parent === undefined)
-      .map((w, idx): DesktopWindowInstance => {
+      .flatMap((w): DesktopWindowInstance[] => {
+        const meta = waylandMeta[w.appId];
+        if (!meta) return [];
         const matched = matchAppFromWayland(w.desktopId, w.title);
         const xdgMatch = matchXdgEntryForWaylandWindow(
           installedXdgApps,
@@ -824,24 +826,7 @@ function pruneBrowserRecord(
           getAppIconUrl(w.desktopId) ??
           getAppIconUrl(w.appId) ??
           getAppIconUrl(matched.id);
-        const meta = waylandMeta[w.appId] ?? {
-          ...clampWindowBounds(
-            { x: 90 + idx * 45, y: 48 + idx * 36 },
-            { width: 740, height: 480 },
-            screenWidth,
-            screenHeight,
-            { minWidth: w.minWidth ?? 320, minHeight: w.minHeight ?? 220 }
-          ),
-          minimized: false,
-          maximized: false,
-          tiled: null,
-          zIndex: 15 + idx,
-          workspace: clampWorkspace(
-            settings.activeWorkspace,
-            settings.workspaceCount
-          ),
-        };
-        return {
+        return [{
           id: `wayland:${w.appId}`,
           appId: xdgMatch?.appId ?? matched.id,
           title: w.title || xdgMatch?.name || matched.name || w.appId,
@@ -872,27 +857,12 @@ function pruneBrowserRecord(
           fullscreen: meta.fullscreen,
           pinned: meta.pinned,
           zIndex: meta.zIndex,
-        };
+        }];
       });
 
-    const resolvedBrowserWindows = browserWindows.map((bw, idx): DesktopWindowInstance => {
-      const meta = browserMeta[bw.id] ?? {
-        ...clampWindowBounds(
-          { x: 110 + idx * 44, y: 40 + idx * 32 },
-          { width: 960, height: 640 },
-          screenWidth,
-          screenHeight,
-          { minWidth: 420, minHeight: 300 }
-        ),
-        minimized: false,
-        maximized: false,
-        tiled: null,
-        zIndex: 18 + idx,
-        workspace: clampWorkspace(
-          settings.activeWorkspace,
-          settings.workspaceCount
-        ),
-      };
+    const resolvedBrowserWindows = browserWindows.flatMap((bw): DesktopWindowInstance[] => {
+      const meta = browserMeta[bw.id];
+      if (!meta) return [];
       const webAppMatch = findMatchingWebApp(bw.url, settings.installedWebApps);
       const pendingTitle =
         pendingWebTitlesRef.current.get(bw.appId) ??
@@ -905,7 +875,7 @@ function pruneBrowserRecord(
           hostTitle: bw.title,
           installedApps: settings.installedWebApps,
         });
-      return {
+      return [{
         id: `browser:${bw.id}`,
         appId: bw.appId || `webview:${bw.id}`,
         title: resolvedTitle,
@@ -929,7 +899,7 @@ function pruneBrowserRecord(
         pinned: meta.pinned,
         tiled: meta.tiled ?? null,
         zIndex: meta.zIndex,
-      };
+      }];
     });
 
     return [...resolvedShellWindows, ...resolvedBrowserWindows, ...toplevels].sort(
@@ -1274,10 +1244,15 @@ function pruneBrowserRecord(
         size?: { width: number; height: number };
       }
     ) => {
+      const targetWin = combinedWindows.find((w) => w.id === windowId);
+      const winWidth = patch.size?.width ?? targetWin?.size.width ?? 240;
+      const maxY = Math.max(0, screenHeight - 30 - 48);
+      const minX = -Math.max(0, winWidth - 80);
+      const maxX = Math.max(0, screenWidth - 80);
       const clampedPosition = patch.position
         ? {
-          x: Math.round(patch.position.x),
-          y: Math.max(0, Math.round(patch.position.y)),
+          x: Math.min(maxX, Math.max(minX, Math.round(patch.position.x))),
+          y: Math.min(maxY, Math.max(0, Math.round(patch.position.y))),
         }
         : undefined;
       const roundedSize = patch.size
@@ -1287,7 +1262,6 @@ function pruneBrowserRecord(
         }
         : undefined;
 
-      const targetWin = combinedWindows.find((w) => w.id === windowId);
       if (targetWin) {
         const nextPos = clampedPosition ?? targetWin.position;
         const nextSize = patch.size ?? targetWin.size;

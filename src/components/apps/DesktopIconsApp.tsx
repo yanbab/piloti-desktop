@@ -43,6 +43,7 @@ import {
   createVfsTextFile,
   getVfsEntry,
   importExternalFilesToVfs,
+  isTextEditableVfsFile,
   listVfsDir,
   moveVfsEntry,
   renameVfsEntry,
@@ -1042,6 +1043,10 @@ export function DesktopIconsApp({
       if (isBrowserRuntime) {
         const entry = getVfsEntry(item.path);
         if (entry && entry.kind === "file") {
+          if (isTextEditableVfsFile(entry.name)) {
+            launchApp("text-editor", { payload: entry.path });
+            return;
+          }
           openWebUrl(buildVfsEntryWebAppUrl(entry), {
             asApp: true,
             appId: `file:${entry.path}`,

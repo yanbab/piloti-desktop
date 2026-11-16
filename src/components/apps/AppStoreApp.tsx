@@ -28,6 +28,8 @@ import { APP_CATALOG, type AppDefinition } from "@/data/catalog";
 import {
   canonicalizeWebUrl,
   DEFAULT_BROWSER_WEB_APPS,
+  fetchWebPageMetadata,
+  getCachedWebDescription,
   getWebAppFaviconUrl,
   type InstalledWebApp,
 } from "@/data/web-apps";
@@ -255,18 +257,45 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
     return set;
   }, [settings.installedWebApps]);
 
+  const [descriptionTick, setDescriptionTick] = React.useState(0);
+
+  React.useEffect(() => {
+    const missing = DEFAULT_BROWSER_WEB_APPS.filter(
+      (app) => getCachedWebDescription(app.url) === undefined
+    );
+    if (missing.length === 0) return;
+
+    const controller = new AbortController();
+    let cancelled = false;
+    Promise.allSettled(
+      missing.map(async (app) => {
+        const res = await fetchWebPageMetadata(app.url, controller.signal);
+        if (!cancelled && res.description) {
+          setDescriptionTick((n) => n + 1);
+        }
+      })
+    );
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
+  }, []);
+
   const items = React.useMemo<StoreItem[]>(() => {
+    void descriptionTick;
     const fakeInstalledSet = new Set(meta.fakeInstalledAppIds);
     const fakeRemovedSet = new Set(meta.fakeRemovedAppIds);
 
     const webItems: StoreItem[] = DEFAULT_BROWSER_WEB_APPS.map((webApp) => {
       const canonical = canonicalizeWebUrl(webApp.url) ?? webApp.url;
       const installed = installedWebUrls.has(canonical);
+      const cachedDesc = getCachedWebDescription(webApp.url);
       return {
         id: webApp.id,
         kind: "web",
         title: webApp.title,
-        subtitle: new URL(webApp.url).hostname.replace(/^www\./, ""),
+        subtitle:
+          cachedDesc || new URL(webApp.url).hostname.replace(/^www\./, ""),
         category:
           (webApp.category as StoreItem["category"]) ??
           classifyWebAppCategory(webApp),
@@ -297,7 +326,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
     });
 
     return [...appItems, ...webItems];
-  }, [installedWebUrls, meta]);
+  }, [installedWebUrls, meta, descriptionTick]);
 
   const filteredItems = React.useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -446,8 +475,8 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
       <div
         data-window-drag-region={isCsd ? "" : undefined}
         className={cn(
-          "relative flex shrink-0 items-center justify-between gap-3 border-b border-adw-separator bg-adw-titlebar px-2.5 select-none",
-          isCsd ? "h-8 rounded-t-[inherit]" : "h-8",
+          "relative flex shrink-0 items-center justify-between gap-3 border-b border-adw-separator bg-adw-titlebar px-3 select-none",
+          isCsd ? "h-10 rounded-t-[inherit]" : "h-10",
         )}
       >
         <div className="flex items-center gap-2" data-window-no-drag>

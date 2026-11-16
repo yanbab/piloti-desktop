@@ -1,5 +1,6 @@
 # Changelog
 
+- **Uppercase docs, text/md default editor & default pinned apps**: Uppercased `docs/` filenames, opened text/markdown/code VFS files in `TextEditorApp` by default, and set default pinned apps to Files, Terminal, Application Store, and DevTools (with `org.gnome.DevTools` Adwaita icon).
 - **Respect Wayland/GTK size limits & dialog hints**: Honored `maxWidth`/`maxHeight` in `clampWindowBounds` and `Window`, respected `dialog`/`transientFor` parent centering and small committed sizes, and lowered built-in fallback `minSize` so app `defaultSize` is preserved.
 - **Host-to-VFS file drag-and-drop**: Added `importExternalFilesToVfs` in `web-vfs.ts` so dragging files from the user's OS onto Desktop or `FilesApp` copies them into the virtual filesystem.
 - **Unified headerbar layout, Dock order & minimize flash fix**: Standardized all SSD/CSD headers (`WindowMenuButton` left, title center, icon-only `WindowControls` right), fixed Dock icon order stability on minimize/maximize, respected `dockPosition` in `tileWindow`, and eliminated the 1-frame flash at the end of minimize animations.

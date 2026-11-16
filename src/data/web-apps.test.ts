@@ -3,9 +3,12 @@ import {
   canonicalizeWebUrl,
   DEFAULT_BROWSER_WEB_APPS,
   DEFAULT_LAUNCHER_WEB_APPS,
+  fetchWebPageMetadata,
   fetchWebPageTitle,
+  getCachedWebDescription,
   getContrastForeground,
   getWebAppFaviconUrl,
+  parseHtmlDescription,
   parseHtmlThemeColor,
   parseHtmlTitle,
   resolveWebAppTitle,
@@ -61,9 +64,10 @@ describe("resolveInitialSettings web defaults and seeding", () => {
     const nativeFresh = resolveInitialSettings(null, false);
     expect(nativeFresh.installedWebApps).toEqual([]);
     expect(nativeFresh.pinnedAppIds).toEqual([
-      "settings",
+      "console",
+      "nautilus",
       "terminal",
-      "browser",
+      "app-store",
     ]);
     expect(nativeFresh.webDefaultsVersion).toBeUndefined();
 
@@ -75,10 +79,15 @@ describe("resolveInitialSettings web defaults and seeding", () => {
     expect(nativeSaved.webDefaultsVersion).toBeUndefined();
   });
 
-  it("pins only nautilus and settings and populates 10 launcher web apps on fresh web startup", () => {
+  it("pins Files, Terminal, App Store, and DevTools and populates 10 launcher web apps on fresh web startup", () => {
     expect(DEFAULT_LAUNCHER_WEB_APPS).toHaveLength(10);
     const webFresh = resolveInitialSettings(null, true);
-    expect(webFresh.pinnedAppIds).toEqual(["nautilus", "settings"]);
+    expect(webFresh.pinnedAppIds).toEqual([
+      "nautilus",
+      "terminal",
+      "app-store",
+      "console",
+    ]);
     expect(webFresh.installedWebApps).toEqual([...DEFAULT_LAUNCHER_WEB_APPS]);
     expect(webFresh.webAppsSeeded).toBe(true);
     expect(webFresh.webDefaultsVersion).toBe(WEB_DEFAULTS_VERSION);
@@ -101,7 +110,13 @@ describe("resolveInitialSettings web defaults and seeding", () => {
 
     expect(upgraded.webAppsSeeded).toBe(true);
     expect(upgraded.webDefaultsVersion).toBe(WEB_DEFAULTS_VERSION);
-    expect(upgraded.pinnedAppIds).toEqual(["settings", "nautilus"]);
+    expect(upgraded.pinnedAppIds).toEqual([
+      "settings",
+      "terminal",
+      "nautilus",
+      "app-store",
+      "console",
+    ]);
     expect(upgraded.installedWebApps).toHaveLength(
       DEFAULT_LAUNCHER_WEB_APPS.length + 1
     );
@@ -123,7 +138,12 @@ describe("resolveInitialSettings web defaults and seeding", () => {
 
     expect(v1Upgraded.webDefaultsVersion).toBe(WEB_DEFAULTS_VERSION);
     expect(v1Upgraded.installedWebApps).toEqual([...DEFAULT_LAUNCHER_WEB_APPS]);
-    expect(v1Upgraded.pinnedAppIds).toEqual(["nautilus", "settings"]);
+    expect(v1Upgraded.pinnedAppIds).toEqual([
+      "nautilus",
+      "terminal",
+      "app-store",
+      "console",
+    ]);
   });
 
   it("preserves user web app and dock edits once webDefaultsVersion is current", () => {
@@ -253,5 +273,38 @@ describe("HTML page title helpers for web apps", () => {
     expect(getContrastForeground("#1a5fb4")).toBe("#ffffff");
     expect(getContrastForeground("rgb(20, 20, 20)")).toBe("#ffffff");
     expect(getContrastForeground("rgba(0, 0, 0, 0)")).toBeNull();
+  });
+
+  it("parses <meta name='description'> (and og:description fallback) and caches via fetchWebPageMetadata", async () => {
+    const html = `
+      <html><head>
+        <title>Example App</title>
+        <meta name="description" content="  Fast &amp; collaborative   whiteboard  " />
+      </head></html>
+    `;
+    expect(parseHtmlDescription(html)).toBe("Fast & collaborative whiteboard");
+    expect(
+      parseHtmlDescription(
+        `<meta property="og:description" content="OpenGraph fallback desc" />`
+      )
+    ).toBe("OpenGraph fallback desc");
+
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = (async () =>
+      new Response(html, {
+        status: 200,
+        headers: { "content-type": "text/html; charset=utf-8" },
+      })) as unknown as typeof fetch;
+
+    try {
+      const meta = await fetchWebPageMetadata("https://cached-desc.example/");
+      expect(meta.title).toBe("Example App");
+      expect(meta.description).toBe("Fast & collaborative whiteboard");
+      expect(getCachedWebDescription("https://cached-desc.example/")).toBe(
+        "Fast & collaborative whiteboard"
+      );
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
   });
 });

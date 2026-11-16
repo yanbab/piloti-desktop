@@ -211,6 +211,24 @@ export const TerminalApp: React.FC<TerminalAppProps> = ({ initialPath }) => {
       return;
     }
 
+    if (cmd === "whoami") {
+      appendLines([commandLine, { text: "user" }]);
+      return;
+    }
+
+    if (cmd === "uname") {
+      appendLines([
+        commandLine,
+        { text: "Linux residence-web 6.12.0-piloti #1 SMP PREEMPT_DYNAMIC x86_64 GNU/Linux" },
+      ]);
+      return;
+    }
+
+    if (cmd === "echo") {
+      appendLines([commandLine, { text: args.join(" ") }]);
+      return;
+    }
+
     if (cmd === "pwd") {
       appendLines([commandLine, { text: cwd }]);
       return;
@@ -259,9 +277,7 @@ export const TerminalApp: React.FC<TerminalAppProps> = ({ initialPath }) => {
         return;
       }
 
-      const items = listVfsDir(entry.path).filter(
-        (item) => showAll || !item.name.startsWith("."),
-      );
+      const items = listVfsDir(entry.path, { includeHidden: showAll });
       if (items.length === 0) {
         appendLines([commandLine]);
         return;
@@ -289,7 +305,9 @@ export const TerminalApp: React.FC<TerminalAppProps> = ({ initialPath }) => {
     }
 
     if (cmd === "mkdir") {
-      if (args.length === 0) {
+      const targets = args.filter((a) => !a.startsWith("-"));
+      const recursive = args.some((a) => a.startsWith("-") && a.includes("p"));
+      if (targets.length === 0) {
         appendLines([
           commandLine,
           { text: "mkdir: missing operand", tone: "error" },
@@ -297,8 +315,20 @@ export const TerminalApp: React.FC<TerminalAppProps> = ({ initialPath }) => {
         return;
       }
       const out: Array<Omit<OutputLine, "id">> = [commandLine];
-      for (const arg of args) {
+      for (const arg of targets) {
         const target = resolveVfsPath(cwd, arg);
+        if (recursive) {
+          const parts = target.split("/").filter(Boolean);
+          let acc = "";
+          for (const part of parts) {
+            const parent = acc || "/";
+            acc = `${acc}/${part}`;
+            if (!getVfsEntry(acc)) {
+              createVfsFolder(parent, part);
+            }
+          }
+          continue;
+        }
         const { parent, name } = getParentAndName(target);
         if (!name) {
           out.push({ text: `mkdir: invalid directory '${arg}'`, tone: "error" });

@@ -298,28 +298,119 @@ function LogsModule() {
   );
 }
 
-function safeJsonStringify(value: unknown): string {
-  const seen = new WeakSet<object>();
+function formatCellValue(val: unknown): string {
+  if (val === null) return "null";
+  if (val === undefined) return "—";
+  if (typeof val === "string") return abbreviateDataImageUri(val);
+  if (typeof val === "number" || typeof val === "boolean") return String(val);
   try {
     return (
-      JSON.stringify(
-        value,
-        (_key, val) => {
-          if (typeof val === "string") return abbreviateDataImageUri(val);
-          if (typeof val === "bigint") return `${val.toString()}n`;
-          if (typeof val === "function") return `[Function ${val.name || "anonymous"}]`;
-          if (typeof val === "object" && val !== null) {
-            if (seen.has(val)) return "[Circular]";
-            seen.add(val);
-          }
-          return val;
-        },
-        2
-      ) ?? "undefined"
+      JSON.stringify(val, (_k, v) =>
+        typeof v === "string" ? abbreviateDataImageUri(v) : v
+      ) ?? "—"
     );
-  } catch (err) {
-    return String(err);
+  } catch {
+    return String(val);
   }
+}
+
+interface StateTableColumn {
+  key: string;
+  label: string;
+  align?: "left" | "right";
+}
+
+function StateSectionTable({
+  title,
+  columns,
+  rows,
+  emptyLabel = "No entries.",
+}: {
+  title?: string;
+  columns: StateTableColumn[];
+  rows: Record<string, unknown>[];
+  emptyLabel?: string;
+}) {
+  return (
+    <div className="space-y-1.5">
+      {title && (
+        <div className="flex items-center justify-between px-0.5 text-[11.5px] font-semibold tracking-wide text-adw-label-secondary uppercase">
+          <span>{title}</span>
+          <span className="font-mono text-[11px] font-normal">
+            {rows.length}
+          </span>
+        </div>
+      )}
+      <div className="overflow-x-auto rounded-lg border border-adw-separator bg-adw-window">
+        {rows.length === 0 ? (
+          <div className="px-3 py-2.5 text-[12px] text-adw-label-tertiary">
+            {emptyLabel}
+          </div>
+        ) : (
+          <table className="w-full border-collapse text-left text-[12px]">
+            <thead>
+              <tr className="border-b border-adw-separator bg-black/4 text-[11px] font-semibold text-adw-label-secondary dark:bg-white/5">
+                {columns.map((col) => (
+                  <th
+                    key={col.key}
+                    className={cn(
+                      "px-3 py-2 whitespace-nowrap",
+                      col.align === "right" && "text-right"
+                    )}
+                  >
+                    {col.label}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row, idx) => (
+                <tr
+                  key={idx}
+                  className="border-t border-adw-separator/60 first:border-t-0 hover:bg-black/3 dark:hover:bg-white/4"
+                >
+                  {columns.map((col) => (
+                    <td
+                      key={col.key}
+                      className={cn(
+                        "max-w-[360px] px-3 py-1.5 align-top font-mono text-[11.5px] break-words text-adw-label select-text",
+                        col.align === "right" && "text-right"
+                      )}
+                    >
+                      {formatCellValue(row[col.key])}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function StateKeyValueTable({
+  title,
+  data,
+}: {
+  title?: string;
+  data: Record<string, unknown>;
+}) {
+  const rows = Object.entries(data).map(([key, value]) => ({
+    key,
+    value,
+  }));
+  return (
+    <StateSectionTable
+      title={title}
+      columns={[
+        { key: "key", label: "Key" },
+        { key: "value", label: "Value" },
+      ]}
+      rows={rows}
+    />
+  );
 }
 
 type InspectorSectionId =
@@ -364,68 +455,226 @@ function InspectorModule() {
     { id: "notifications", label: "notifications" },
   ];
 
-  const activeStateValue = React.useMemo(() => {
+  const renderSectionTables = () => {
     switch (activeSection) {
-      case "windows":
-        return safeJsonStringify({
-          focusedWindowId,
-          windows,
-          waylandPopups,
-          browserWindows,
+      case "windows": {
+        const windowRows = windows.map((w) => {
+          const flags = [
+            w.id === focusedWindowId ? "focused" : null,
+            w.minimized ? "minimized" : null,
+            w.maximized ? "maximized" : null,
+            w.fullscreen ? "fullscreen" : null,
+            w.tiled ? `tiled:${w.tiled}` : null,
+          ]
+            .filter(Boolean)
+            .join(", ");
+          return {
+            id: w.id,
+            title: w.title,
+            appId: w.appId,
+            workspace: w.workspace,
+            position: `${w.position.x}, ${w.position.y}`,
+            size: `${w.size.width}×${w.size.height}`,
+            state: flags || "normal",
+            zIndex: w.zIndex,
+          };
         });
+        return (
+          <div className="space-y-4">
+            <StateKeyValueTable
+              title="Summary"
+              data={{
+                focusedWindowId: focusedWindowId ?? null,
+                windows: windows.length,
+                waylandPopups: waylandPopups.length,
+                browserWindows: browserWindows.length,
+              }}
+            />
+            <StateSectionTable
+              title="Windows"
+              columns={[
+                { key: "id", label: "ID" },
+                { key: "title", label: "Title" },
+                { key: "appId", label: "App" },
+                { key: "workspace", label: "WS", align: "right" },
+                { key: "position", label: "Pos" },
+                { key: "size", label: "Size" },
+                { key: "state", label: "State" },
+                { key: "zIndex", label: "Z", align: "right" },
+              ]}
+              rows={windowRows}
+              emptyLabel="No open windows."
+            />
+            {waylandPopups.length > 0 && (
+              <StateSectionTable
+                title="Wayland Popups"
+                columns={[
+                  { key: "appId", label: "App ID" },
+                  { key: "x", label: "X", align: "right" },
+                  { key: "y", label: "Y", align: "right" },
+                  { key: "width", label: "Width", align: "right" },
+                  { key: "height", label: "Height", align: "right" },
+                ]}
+                rows={waylandPopups.map((p) => ({ ...p }))}
+              />
+            )}
+            {browserWindows.length > 0 && (
+              <StateSectionTable
+                title="Browser Windows"
+                columns={[
+                  { key: "id", label: "ID" },
+                  { key: "appId", label: "App ID" },
+                  { key: "title", label: "Title" },
+                  { key: "url", label: "URL" },
+                ]}
+                rows={browserWindows.map((bw) => ({
+                  id: bw.id,
+                  appId: bw.appId,
+                  title: bw.title,
+                  url: bw.url,
+                }))}
+              />
+            )}
+          </div>
+        );
+      }
       case "displays":
-        return safeJsonStringify(displays);
+        return (
+          <StateSectionTable
+            title="Displays"
+            columns={[
+              { key: "id", label: "ID" },
+              { key: "name", label: "Name" },
+              { key: "geometry", label: "Geometry" },
+              { key: "scale", label: "Scale", align: "right" },
+              { key: "primary", label: "Primary" },
+            ]}
+            rows={displays.map((d) => {
+              const rec = d as unknown as Record<string, unknown>;
+              const x = rec.x ?? 0;
+              const y = rec.y ?? 0;
+              const w = rec.width ?? "—";
+              const h = rec.height ?? "—";
+              return {
+                id: rec.id ?? "—",
+                name: rec.name ?? rec.model ?? "—",
+                geometry: `${w}×${h} @ ${x},${y}`,
+                scale: rec.scale ?? 1,
+                primary: rec.primary ?? false,
+              };
+            })}
+            emptyLabel="No displays reported."
+          />
+        );
       case "system":
-        return safeJsonStringify({
-          runtime: isBrowserRuntime ? "Browser Harness" : "Domicile Wayland",
-          activeIconTheme,
-          dockIconsReady,
-          gnomeCapabilities,
-          batteryInfo,
-          mprisMedia,
-          audioSinks,
-          wifi: {
-            enabled: settings.wifiEnabled,
-            connectedWifi: settings.connectedWifi,
-          },
-        });
+        return (
+          <div className="space-y-4">
+            <StateKeyValueTable
+              title="System Backends"
+              data={{
+                runtime: isBrowserRuntime ? "Browser Harness" : "Domicile Wayland",
+                activeIconTheme,
+                dockIconsReady,
+                wifiEnabled: settings.wifiEnabled,
+                connectedWifi: settings.connectedWifi,
+                batteryInfo,
+                mprisMedia,
+              }}
+            />
+            {gnomeCapabilities && (
+              <StateKeyValueTable
+                title="GNOME Capabilities"
+                data={gnomeCapabilities as unknown as Record<string, unknown>}
+              />
+            )}
+            <StateSectionTable
+              title="Audio Sinks"
+              columns={[
+                { key: "id", label: "ID" },
+                { key: "name", label: "Name" },
+                { key: "description", label: "Description" },
+                { key: "volume", label: "Volume", align: "right" },
+                { key: "muted", label: "Muted" },
+              ]}
+              rows={audioSinks.map((s) => ({
+                ...(s as unknown as Record<string, unknown>),
+              }))}
+              emptyLabel="No audio sinks."
+            />
+          </div>
+        );
       case "apps":
-        return safeJsonStringify({
-          xdgUserDirs,
-          installedWebApps: settings.installedWebApps,
-          availableGnomePanels,
-          installedXdgApps: installedXdgApps.map((a) => ({
-            desktopId: a.desktopId,
-            name: a.name,
-            exec: a.exec,
-            icon: a.icon,
-          })),
-        });
+        return (
+          <div className="space-y-4">
+            <StateKeyValueTable
+              title="XDG User Dirs"
+              data={xdgUserDirs as unknown as Record<string, unknown>}
+            />
+            <StateSectionTable
+              title="Installed Web Apps"
+              columns={[
+                { key: "id", label: "ID" },
+                { key: "title", label: "Title" },
+                { key: "url", label: "URL" },
+              ]}
+              rows={settings.installedWebApps.map((a) => ({
+                id: a.id,
+                title: a.title,
+                url: a.url,
+              }))}
+              emptyLabel="No installed web apps."
+            />
+            <StateSectionTable
+              title="Available GNOME Panels"
+              columns={[{ key: "panel", label: "Panel" }]}
+              rows={availableGnomePanels.map((panel) => ({ panel }))}
+              emptyLabel="No GNOME panels detected."
+            />
+            <StateSectionTable
+              title="Installed XDG Apps"
+              columns={[
+                { key: "desktopId", label: "Desktop ID" },
+                { key: "name", label: "Name" },
+                { key: "exec", label: "Exec" },
+                { key: "icon", label: "Icon" },
+              ]}
+              rows={installedXdgApps.map((a) => ({
+                desktopId: a.desktopId,
+                name: a.name,
+                exec: a.exec,
+                icon: a.icon,
+              }))}
+              emptyLabel="No XDG apps indexed."
+            />
+          </div>
+        );
       case "settings":
-        return safeJsonStringify(settings);
+        return (
+          <StateKeyValueTable
+            title="Settings"
+            data={settings as unknown as Record<string, unknown>}
+          />
+        );
       case "notifications":
-        return safeJsonStringify(notifications);
+        return (
+          <StateSectionTable
+            title="Notifications"
+            columns={[
+              { key: "id", label: "ID" },
+              { key: "appName", label: "App" },
+              { key: "summary", label: "Summary" },
+              { key: "body", label: "Body" },
+              { key: "urgency", label: "Urgency" },
+              { key: "timestamp", label: "Timestamp" },
+            ]}
+            rows={notifications.map((n) => ({
+              ...(n as unknown as Record<string, unknown>),
+            }))}
+            emptyLabel="No notifications."
+          />
+        );
     }
-  }, [
-    activeIconTheme,
-    activeSection,
-    audioSinks,
-    availableGnomePanels,
-    batteryInfo,
-    browserWindows,
-    displays,
-    dockIconsReady,
-    focusedWindowId,
-    gnomeCapabilities,
-    installedXdgApps,
-    isBrowserRuntime,
-    mprisMedia,
-    notifications,
-    settings,
-    waylandPopups,
-    windows,
-    xdgUserDirs,
-  ]);
+  };
 
   return (
     <div className="flex min-h-0 flex-1">
@@ -451,12 +700,10 @@ function InspectorModule() {
         })}
       </aside>
 
-      {/* Right Content (Same raw view as Storage tab) */}
+      {/* Right Content: Structured Tables */}
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden bg-black/2 dark:bg-white/2">
         <div className="min-h-0 flex-1 overflow-auto p-4">
-          <pre className="font-mono text-[12.5px] leading-relaxed break-words whitespace-pre-wrap text-adw-label select-text">
-            {activeStateValue}
-          </pre>
+          {renderSectionTables()}
         </div>
       </div>
     </div>
@@ -489,7 +736,7 @@ function extractDataImages(entry: StorageEntry): DataImagePreview[] {
 
   const found: DataImagePreview[] = [];
   const visit = (node: unknown, path: string) => {
-    if (found.length >= 64) return;
+    if (found.length >= 256) return;
     if (typeof node === "string") {
       if (isDataImageUri(node)) {
         found.push({ label: path || entry.key, src: node.trim() });
@@ -538,7 +785,11 @@ function readLocalStorageEntries(): StorageEntry[] {
     try {
       const parsed: unknown = JSON.parse(rawValue);
       isJson = true;
-      formattedJson = JSON.stringify(parsed, null, 2);
+      formattedJson = JSON.stringify(
+        parsed,
+        (_k, val) => (typeof val === "string" ? abbreviateDataImageUri(val) : val),
+        2
+      );
     } catch {
       // Plain non-JSON string value
     }
@@ -584,7 +835,7 @@ function StorageModule() {
   const activeDisplayValue = activeEntry
     ? activeEntry.formattedJson !== null
       ? activeEntry.formattedJson
-      : activeEntry.rawValue
+      : abbreviateDataImageUri(activeEntry.rawValue)
     : "";
 
   const activeImages = React.useMemo(
@@ -817,8 +1068,8 @@ export function ConsoleApp({
       <div
         data-window-drag-region={isCsd ? "" : undefined}
         className={cn(
-          "relative flex shrink-0 items-center justify-between gap-2 border-b border-adw-separator bg-adw-titlebar px-2.5 select-none",
-          isCsd ? "h-8 rounded-t-[inherit]" : "h-8"
+          "relative flex shrink-0 items-center justify-between gap-2 border-b border-adw-separator bg-adw-titlebar px-3 select-none",
+          isCsd ? "h-10 rounded-t-[inherit]" : "h-10"
         )}
       >
         <div className="flex w-16 items-center" data-window-no-drag>

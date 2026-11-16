@@ -8,12 +8,14 @@ import {
 import {
   WEBVIEW_FAVICON_CHANGE_EVENT,
   WEBVIEW_GUEST_FOCUS_EVENT,
+  WEBVIEW_LOADING_CHANGE_EVENT,
   WEBVIEW_PAGE_CHANGE_EVENT,
   WEBVIEW_PAGE_FAILURE_CHANGE_EVENT,
 } from "@domicile-desktop/sdk/webview-element";
 import {
   DownloadIcon,
   GlobeIcon,
+  Loader2Icon,
   Maximize2Icon,
   MinusIcon,
   Trash2Icon,
@@ -84,6 +86,7 @@ import {
   getContrastForeground,
   getHostnameFallbackTitle,
   isHostnameFallbackTitle,
+  setCachedWebDescription,
   setCachedWebThemeColor,
 } from "@/data/web-apps";
 import { cn } from "@/lib/utils";
@@ -169,6 +172,7 @@ function WebViewSurface({
   const { isBrowserRuntime, resolvedTheme, settings, updateSettings } =
     useSettings();
   const {
+    focusedWindowId,
     focusWindow,
     closeWindow,
     minimizeWindow,
@@ -179,8 +183,12 @@ function WebViewSurface({
   const windowCtx = useWindowContext();
   const webviewRef = React.useRef<HTMLWebViewElement | null>(null);
   const iframeRef = React.useRef<HTMLIFrameElement | null>(null);
+  const addressInputRef = React.useRef<HTMLInputElement | null>(null);
 
   const [address, setAddress] = React.useState(win.browserUrl ?? "");
+  const [editingAddress, setEditingAddress] = React.useState(false);
+  const [draftAddress, setDraftAddress] = React.useState("");
+  const [isLoading, setIsLoading] = React.useState(false);
   const [latestFavicon, setLatestFavicon] = React.useState("");
   const [themeColor, setThemeColor] = React.useState<string | null>(
     () =>
@@ -215,6 +223,7 @@ function WebViewSurface({
     const syncPage = () => {
       if (view.url) setAddress(view.url);
     };
+    const syncLoading = () => setIsLoading(Boolean(view.loading));
     const syncFavicon = () => faviconHandlerRef.current(view.favicon || "");
     const syncFailure = () => {
       setPageFailure(view.pageFailure || "");
@@ -239,17 +248,20 @@ function WebViewSurface({
     };
 
     view.addEventListener(WEBVIEW_GUEST_FOCUS_EVENT, onGuestFocus);
+    view.addEventListener(WEBVIEW_LOADING_CHANGE_EVENT, syncLoading);
     view.addEventListener(WEBVIEW_PAGE_CHANGE_EVENT, syncPage);
     view.addEventListener(WEBVIEW_FAVICON_CHANGE_EVENT, syncFavicon);
     view.addEventListener(WEBVIEW_PAGE_FAILURE_CHANGE_EVENT, syncFailure);
     view.addEventListener("did-change-theme-color", onThemeColor);
 
+    syncLoading();
     syncPage();
     syncFavicon();
     syncFailure();
 
     return () => {
       view.removeEventListener(WEBVIEW_GUEST_FOCUS_EVENT, onGuestFocus);
+      view.removeEventListener(WEBVIEW_LOADING_CHANGE_EVENT, syncLoading);
       view.removeEventListener(WEBVIEW_PAGE_CHANGE_EVENT, syncPage);
       view.removeEventListener(WEBVIEW_FAVICON_CHANGE_EVENT, syncFavicon);
       view.removeEventListener(WEBVIEW_PAGE_FAILURE_CHANGE_EVENT, syncFailure);
@@ -259,6 +271,40 @@ function WebViewSurface({
 
   const currentUrl = normalizeWebUrl(address) ?? win.browserUrl ?? "";
   const canonicalUrl = canonicalizeWebUrl(currentUrl) ?? currentUrl;
+
+  React.useEffect(() => {
+    if (focusedWindowId !== win.id) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && !e.altKey && e.key.toLowerCase() === "l") {
+        e.preventDefault();
+        setDraftAddress(currentUrl);
+        setEditingAddress(true);
+      }
+    };
+    window.addEventListener("keydown", onKeyDown, true);
+    return () => window.removeEventListener("keydown", onKeyDown, true);
+  }, [focusedWindowId, win.id, currentUrl]);
+
+  React.useEffect(() => {
+    if (!editingAddress) return;
+    const frame = requestAnimationFrame(() => {
+      addressInputRef.current?.focus();
+      addressInputRef.current?.select();
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [editingAddress]);
+
+  const submitAddressEdit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const normalized = normalizeWebUrl(draftAddress);
+    if (normalized) {
+      setAddress(normalized);
+      if (!isBrowserRuntime && webviewRef.current) {
+        webviewRef.current.src = normalized;
+      }
+    }
+    setEditingAddress(false);
+  };
   const installedApps = settings.installedWebApps ?? [];
   const matchedInstalledApp = findMatchingWebApp(currentUrl, installedApps);
   const isInstalled = currentUrl !== "" && Boolean(matchedInstalledApp);
@@ -310,12 +356,38 @@ function WebViewSurface({
     return () => controller.abort();
   }, [isBrowserRuntime, currentUrl, win.browserWindowId, resolvedTheme]);
 
+  const iframeSrc = normalizeWebUrl(address) ?? "about:blank";
+
+  React.useEffect(() => {
+    if (!isBrowserRuntime) return;
+    if (iframeSrc === "about:blank") {
+      setIsLoading(false);
+      return;
+    }
+    setIsLoading(true);
+    const timeout = setTimeout(() => setIsLoading(false), 15000);
+    return () => clearTimeout(timeout);
+  }, [isBrowserRuntime, iframeSrc]);
+
   const handleIframeLoad = React.useCallback(() => {
+    setIsLoading(false);
     try {
       const doc = iframeRef.current?.contentDocument;
       const docTitle = doc?.title?.trim();
       if (docTitle) {
         titleHandlerRef.current(docTitle);
+      }
+      const descContent =
+        doc
+          ?.querySelector('meta[name="description" i]')
+          ?.getAttribute("content")
+          ?.trim() ||
+        doc
+          ?.querySelector('meta[property="og:description" i]')
+          ?.getAttribute("content")
+          ?.trim();
+      if (descContent && currentUrl) {
+        setCachedWebDescription(currentUrl, descContent.replace(/\s+/g, " "));
       }
       const metaTags = doc?.querySelectorAll('meta[name="theme-color" i]');
       if (metaTags && metaTags.length > 0) {
@@ -391,8 +463,8 @@ function WebViewSurface({
             : undefined
         }
         className={cn(
-          "relative flex shrink-0 items-center gap-2 border-b border-adw-separator bg-adw-titlebar px-2.5 transition-colors duration-200 select-none",
-          isCsd ? "h-8 rounded-t-[inherit]" : "h-7"
+          "relative flex shrink-0 items-center gap-2 border-b border-adw-separator bg-adw-titlebar px-3 transition-colors duration-200 select-none",
+          isCsd ? "h-10 rounded-t-[inherit]" : "h-9"
         )}
       >
         <div className="flex shrink-0 items-center" data-window-no-drag>
@@ -414,16 +486,53 @@ function WebViewSurface({
           />
         </div>
 
-        <div className="pointer-events-none flex min-w-0 flex-1 items-center justify-center px-4">
-          <span
-            className={cn(
-              "truncate text-[13px] font-semibold",
-              !contrastFg && "text-adw-label"
-            )}
+        {editingAddress ? (
+          <form
+            onSubmit={submitAddressEdit}
+            data-window-no-drag
+            className="flex min-w-0 flex-1 items-center justify-center px-2"
           >
-            {win.title}
-          </span>
-        </div>
+            <input
+              ref={addressInputRef}
+              type="text"
+              value={draftAddress}
+              onChange={(e) => setDraftAddress(e.target.value)}
+              onBlur={() => setEditingAddress(false)}
+              onKeyDown={(e) => {
+                if (e.key === "Escape") {
+                  e.preventDefault();
+                  setEditingAddress(false);
+                }
+              }}
+              aria-label="Address"
+              placeholder="https://…"
+              className={cn(
+                "h-7 w-full max-w-xl rounded-md border border-adw-accent/70 bg-black/8 px-2.5 text-[12.5px] font-medium outline-none dark:bg-white/12",
+                !contrastFg && "text-adw-label"
+              )}
+            />
+          </form>
+        ) : (
+          <div className="pointer-events-none flex min-w-0 flex-1 items-center justify-center gap-1.5 px-4">
+            {isLoading && (
+              <Loader2Icon
+                aria-label="Loading"
+                className={cn(
+                  "size-3.5 shrink-0 animate-spin opacity-75",
+                  !contrastFg && "text-adw-label"
+                )}
+              />
+            )}
+            <span
+              className={cn(
+                "truncate text-[13px] font-semibold",
+                !contrastFg && "text-adw-label"
+              )}
+            >
+              {win.title}
+            </span>
+          </div>
+        )}
 
         <div className="flex shrink-0 items-center gap-1" data-window-no-drag>
           {isCsd ? (
@@ -438,9 +547,10 @@ function WebViewSurface({
         {isBrowserRuntime ? (
           <iframe
             ref={iframeRef}
-            src={normalizeWebUrl(address) ?? "about:blank"}
+            src={iframeSrc}
             title={win.title}
             onLoad={handleIframeLoad}
+            onError={() => setIsLoading(false)}
             className="h-full w-full border-0 bg-white"
           />
         ) : (
@@ -767,7 +877,13 @@ export function WindowManager() {
   const rightDockClearance = dockPosition === "right" ? dockEdgeClearance : 0;
 
   return (
-    <div className="relative isolate z-10 min-h-0 flex-1 overflow-hidden">
+    <div
+      className="relative isolate z-10 min-h-0 flex-1 overflow-clip"
+      onScroll={(e) => {
+        if (e.currentTarget.scrollTop !== 0) e.currentTarget.scrollTop = 0;
+        if (e.currentTarget.scrollLeft !== 0) e.currentTarget.scrollLeft = 0;
+      }}
+    >
       {/* Transparent Desktop Icons App (below windows, above wallpaper) */}
       {!overviewOpen && <DesktopIconsApp bottomInset={bottomDockClearance} />}
 

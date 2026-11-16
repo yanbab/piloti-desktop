@@ -119,6 +119,50 @@ export function parseHtmlTitle(html: string): string | null {
 }
 
 /**
+ * Extracts and normalizes `<meta name="description">` (or `og:description`)
+ * from an HTML document string.
+ */
+export function parseHtmlDescription(html: string): string | null {
+  if (!html) return null;
+  let rawDescription = "";
+  if (typeof DOMParser !== "undefined") {
+    try {
+      const doc = new DOMParser().parseFromString(html, "text/html");
+      rawDescription =
+        doc
+          .querySelector('meta[name="description" i]')
+          ?.getAttribute("content") ??
+        doc
+          .querySelector('meta[property="og:description" i]')
+          ?.getAttribute("content") ??
+        "";
+    } catch {
+      rawDescription = "";
+    }
+  }
+  if (!rawDescription) {
+    const match =
+      html.match(
+        /<meta\b[^>]*\bname\s*=\s*["']description["'][^>]*\bcontent\s*=\s*["']([^"']+)["'][^>]*>/i
+      ) ??
+      html.match(
+        /<meta\b[^>]*\bcontent\s*=\s*["']([^"']+)["'][^>]*\bname\s*=\s*["']description["'][^>]*>/i
+      ) ??
+      html.match(
+        /<meta\b[^>]*\bproperty\s*=\s*["']og:description["'][^>]*\bcontent\s*=\s*["']([^"']+)["'][^>]*>/i
+      ) ??
+      html.match(
+        /<meta\b[^>]*\bcontent\s*=\s*["']([^"']+)["'][^>]*\bproperty\s*=\s*["']og:description["'][^>]*>/i
+      );
+    if (match?.[1]) {
+      rawDescription = decodeHtmlEntities(match[1]);
+    }
+  }
+  const normalized = rawDescription.replace(/\s+/g, " ").trim();
+  return normalized || null;
+}
+
+/**
  * Extracts the human-readable hostname fallback (without leading `www.`) for a URL.
  */
 export function getHostnameFallbackTitle(rawUrl?: string): string {
@@ -353,21 +397,82 @@ export function setCachedWebThemeColor(
   }
 }
 
+const WEB_DESCRIPTION_CACHE_KEY = "piloti.web-descriptions.v1";
+const webDescriptionMemoryCache = new Map<string, string | null>();
+let webDescriptionStorageLoaded = false;
+
+function ensureWebDescriptionCacheLoaded() {
+  if (webDescriptionStorageLoaded || typeof localStorage === "undefined") return;
+  webDescriptionStorageLoaded = true;
+  try {
+    const raw = localStorage.getItem(WEB_DESCRIPTION_CACHE_KEY);
+    if (!raw) return;
+    const parsed = JSON.parse(raw) as Record<string, string | null>;
+    if (parsed && typeof parsed === "object") {
+      for (const [k, v] of Object.entries(parsed)) {
+        if (typeof v === "string" || v === null) {
+          webDescriptionMemoryCache.set(k, v);
+        }
+      }
+    }
+  } catch {
+    // ignore storage errors
+  }
+}
+
+function makeWebDescriptionCacheKey(rawUrl: string): string {
+  return canonicalizeWebUrl(rawUrl) ?? rawUrl.trim();
+}
+
+export function getCachedWebDescription(
+  rawUrl?: string
+): string | null | undefined {
+  if (!rawUrl) return undefined;
+  ensureWebDescriptionCacheLoaded();
+  return webDescriptionMemoryCache.get(makeWebDescriptionCacheKey(rawUrl));
+}
+
+export function setCachedWebDescription(
+  rawUrl: string | undefined,
+  description: string | null
+) {
+  if (!rawUrl) return;
+  ensureWebDescriptionCacheLoaded();
+  const key = makeWebDescriptionCacheKey(rawUrl);
+  webDescriptionMemoryCache.set(key, description);
+  if (typeof localStorage === "undefined") return;
+  try {
+    const obj: Record<string, string | null> = {};
+    for (const [k, v] of webDescriptionMemoryCache.entries()) {
+      obj[k] = v;
+    }
+    localStorage.setItem(WEB_DESCRIPTION_CACHE_KEY, JSON.stringify(obj));
+  } catch {
+    // ignore storage errors
+  }
+}
+
 /**
- * Best-effort CORS fetch of an HTML document to extract `<title>` and
- * `<meta name="theme-color">` when running in the browser backend.
+ * Best-effort CORS fetch of an HTML document to extract `<title>`,
+ * `<meta name="theme-color">`, and `<meta name="description">` when running in
+ * the browser backend.
  */
 export async function fetchWebPageMetadata(
   rawUrl: string,
   signal?: AbortSignal,
   prefersDark = false
-): Promise<{ title: string | null; themeColor: string | null }> {
+): Promise<{
+  title: string | null;
+  themeColor: string | null;
+  description: string | null;
+}> {
   const parsed = parseHttpUrl(rawUrl);
   if (!parsed || !isPublicHttpUrl(parsed)) {
-    return { title: null, themeColor: null };
+    return { title: null, themeColor: null, description: null };
   }
 
   const cachedColor = getCachedWebThemeColor(parsed.href, prefersDark);
+  const cachedDescription = getCachedWebDescription(parsed.href);
 
   if (
     typeof window !== "undefined" &&
@@ -384,13 +489,22 @@ export async function fetchWebPageMetadata(
         const data = (await proxyRes.json()) as {
           title?: string | null;
           themeColor?: string | null;
+          description?: string | null;
         };
-        if (data.title || data.themeColor) {
+        if (data.title || data.themeColor || data.description) {
           const resolvedColor = data.themeColor ?? null;
+          const resolvedDescription = data.description
+            ? decodeHtmlEntities(data.description).replace(/\s+/g, " ").trim() ||
+              null
+            : null;
           setCachedWebThemeColor(parsed.href, resolvedColor, prefersDark);
+          if (resolvedDescription !== null) {
+            setCachedWebDescription(parsed.href, resolvedDescription);
+          }
           return {
             title: data.title ?? null,
             themeColor: resolvedColor,
+            description: resolvedDescription ?? cachedDescription ?? null,
           };
         }
       }
@@ -405,24 +519,43 @@ export async function fetchWebPageMetadata(
       credentials: "omit",
       signal,
     });
-    if (!res.ok) return { title: null, themeColor: cachedColor ?? null };
+    if (!res.ok) {
+      return {
+        title: null,
+        themeColor: cachedColor ?? null,
+        description: cachedDescription ?? null,
+      };
+    }
     const contentType = res.headers.get("content-type")?.toLowerCase() ?? "";
     if (
       contentType &&
       !contentType.includes("text/html") &&
       !contentType.includes("application/xhtml+xml")
     ) {
-      return { title: null, themeColor: cachedColor ?? null };
+      return {
+        title: null,
+        themeColor: cachedColor ?? null,
+        description: cachedDescription ?? null,
+      };
     }
     const html = (await res.text()).slice(0, 131072);
     const resolvedColor = parseHtmlThemeColor(html, prefersDark);
+    const resolvedDescription = parseHtmlDescription(html);
     setCachedWebThemeColor(parsed.href, resolvedColor, prefersDark);
+    if (resolvedDescription !== null) {
+      setCachedWebDescription(parsed.href, resolvedDescription);
+    }
     return {
       title: parseHtmlTitle(html),
       themeColor: resolvedColor,
+      description: resolvedDescription ?? cachedDescription ?? null,
     };
   } catch {
-    return { title: null, themeColor: cachedColor ?? null };
+    return {
+      title: null,
+      themeColor: cachedColor ?? null,
+      description: cachedDescription ?? null,
+    };
   }
 }
 

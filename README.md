@@ -67,6 +67,6 @@ bun run build
 
 ## Documentation
 
-- **[Architecture & Shell API (`docs/architecture.md`)](./docs/architecture.md)** — Runtime model, directory structure, and APIs for querying/controlling apps, windows, and settings.
-- **[Debian / VMware Guide (`docs/vmware-debian-guide.md`)](./docs/vmware-debian-guide.md)** — Running and hot-reloading Piloti inside a Debian VM with Domicile.
+- **[Architecture & Shell API (`docs/ARCHITECTURE.md`)](./docs/ARCHITECTURE.md)** — Runtime model, directory structure, and APIs for querying/controlling apps, windows, and settings.
+- **[Debian / VMware Guide (`docs/VMWARE-DEBIAN-GUIDE.md`)](./docs/VMWARE-DEBIAN-GUIDE.md)** — Running and hot-reloading Piloti inside a Debian VM with Domicile.
 - **[Project Website (`docs/index.html`)](./docs/index.html)** & **[Web Demo (`docs/demo/`)](./docs/demo/)**.

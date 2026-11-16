@@ -44,6 +44,7 @@ import {
   emptyVfsTrash,
   getVfsEntry,
   importExternalFilesToVfs,
+  isTextEditableVfsFile,
   listVfsDir,
   moveVfsEntry,
   normalizeVfsPath,
@@ -260,6 +261,10 @@ export function FilesApp({
     }
     const entry = getVfsEntry(item.path);
     if (entry && entry.kind === "file") {
+      if (isTextEditableVfsFile(entry.name)) {
+        launchApp("text-editor", { payload: entry.path });
+        return;
+      }
       openWebUrl(buildVfsEntryWebAppUrl(entry), {
         asApp: true,
         appId: `file:${entry.path}`,
@@ -368,8 +373,8 @@ export function FilesApp({
       <div
         data-window-drag-region={isCsd ? "" : undefined}
         className={cn(
-          "relative flex shrink-0 items-center justify-between gap-2 border-b border-adw-separator bg-adw-titlebar px-2.5 select-none",
-          isCsd ? "h-8 rounded-t-[inherit]" : "h-8"
+          "relative flex shrink-0 items-center justify-between gap-2 border-b border-adw-separator bg-adw-titlebar px-3 select-none",
+          isCsd ? "h-10 rounded-t-[inherit]" : "h-10"
         )}
       >
         <div className="flex min-w-0 items-center gap-1.5" data-window-no-drag>

@@ -6,6 +6,7 @@ import {
   getVfsEntry,
   listVfsDir,
   renameVfsEntry,
+  resolveVfsPath,
   trashVfsEntry,
   WEB_VFS_HOME,
   WEB_VFS_STORAGE_KEY,
@@ -62,6 +63,21 @@ describe("web-vfs", () => {
 
     emptyVfsTrash();
     expect(listVfsDir(WEB_VFS_TRASH)).toHaveLength(0);
+  });
+
+  it("resolves /, /home, .., and ~ for Terminal navigation", () => {
+    expect(getVfsEntry("/")?.kind).toBe("directory");
+    expect(getVfsEntry("/home")?.kind).toBe("directory");
+    expect(listVfsDir("/").some((e) => e.name === "home")).toBe(true);
+    expect(listVfsDir("/home").some((e) => e.name === "user")).toBe(true);
+    expect(
+      listVfsDir("/home/user", { includeHidden: true }).some(
+        (e) => e.name === ".local"
+      )
+    ).toBe(true);
+    expect(resolveVfsPath("/home/user/Desktop")).toBe("/home/user/Desktop");
+    expect(resolveVfsPath("/home/user/Desktop", "~")).toBe("/home/user");
+    expect(resolveVfsPath("/home/user", "Desktop")).toBe("/home/user/Desktop");
   });
 });
 

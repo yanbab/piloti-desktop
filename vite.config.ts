@@ -19,7 +19,9 @@ function webMetaProxyPlugin(): Plugin {
             target.hostname === "127.0.0.1"
           ) {
             res.statusCode = 400;
-            res.end(JSON.stringify({ title: null, themeColor: null }));
+            res.end(
+              JSON.stringify({ title: null, themeColor: null, description: null })
+            );
             return;
           }
           const upstream = await fetch(target.href, {
@@ -29,13 +31,31 @@ function webMetaProxyPlugin(): Plugin {
           const ct = upstream.headers.get("content-type")?.toLowerCase() ?? "";
           if (!upstream.ok || (ct && !ct.includes("html"))) {
             res.setHeader("content-type", "application/json");
-            res.end(JSON.stringify({ title: null, themeColor: null }));
+            res.end(
+              JSON.stringify({ title: null, themeColor: null, description: null })
+            );
             return;
           }
           const html = (await upstream.text()).slice(0, 65536);
           const titleMatch = html.match(/<title\b[^>]*>([\s\S]*?)<\/title>/i);
           const title = titleMatch?.[1]
             ? titleMatch[1].replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim()
+            : null;
+          const descMatch =
+            html.match(
+              /<meta\b[^>]*\bname\s*=\s*["']description["'][^>]*\bcontent\s*=\s*["']([^"']+)["'][^>]*>/i
+            ) ??
+            html.match(
+              /<meta\b[^>]*\bcontent\s*=\s*["']([^"']+)["'][^>]*\bname\s*=\s*["']description["'][^>]*>/i
+            ) ??
+            html.match(
+              /<meta\b[^>]*\bproperty\s*=\s*["']og:description["'][^>]*\bcontent\s*=\s*["']([^"']+)["'][^>]*>/i
+            ) ??
+            html.match(
+              /<meta\b[^>]*\bcontent\s*=\s*["']([^"']+)["'][^>]*\bproperty\s*=\s*["']og:description["'][^>]*>/i
+            );
+          const description = descMatch?.[1]
+            ? descMatch[1].replace(/\s+/g, " ").trim() || null
             : null;
           const metas: Array<{ content: string; media: string }> = [];
           const metaRegex =
@@ -67,10 +87,12 @@ function webMetaProxyPlugin(): Plugin {
           }
           if (!themeColor && metas.length > 0) themeColor = metas[0].content;
           res.setHeader("content-type", "application/json");
-          res.end(JSON.stringify({ title, themeColor }));
+          res.end(JSON.stringify({ title, themeColor, description }));
         } catch {
           res.setHeader("content-type", "application/json");
-          res.end(JSON.stringify({ title: null, themeColor: null }));
+          res.end(
+            JSON.stringify({ title: null, themeColor: null, description: null })
+          );
         }
       });
     },

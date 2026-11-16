@@ -228,13 +228,13 @@ const ADWAITA_DIRECT_ICON_FALLBACKS: Record<string, readonly string[]> = {
     "/usr/share/icons/Adwaita/scalable/places/folder.svg",
     "/usr/share/icons/hicolor/scalable/apps/org.gnome.Nautilus.svg",
   ],
-  settings: ["/usr/share/icons/hicolor/scalable/apps/org.gnome.Settings.svg"],
+  settings: ["/usr/share/icons/hicolor/scalable/apps/piloti-settings.svg"],
   console: ["/usr/share/icons/hicolor/scalable/apps/org.gnome.DevTools.svg"],
-  terminal: ["/usr/share/icons/hicolor/scalable/apps/org.gnome.Console.svg"],
+  terminal: ["/usr/share/icons/hicolor/scalable/apps/piloti-terminal.svg"],
   browser: ["/usr/share/icons/Adwaita/scalable/mimetypes/text-html.svg"],
   "web-view": ["/usr/share/icons/Adwaita/scalable/mimetypes/text-html.svg"],
   "text-editor": [
-    "/usr/share/icons/hicolor/scalable/apps/org.gnome.TextEditor.svg",
+    "/usr/share/icons/hicolor/scalable/apps/piloti-text-editor.svg",
   ],
   "app-store": [
     "/usr/share/icons/hicolor/scalable/apps/org.gnome.Software.svg",
@@ -290,7 +290,7 @@ async function resolveWithDirectAdwaitaFallback(
   return undefined;
 }
 
-const DOCK_ICONS_CACHE_KEY = "piloti.dock-icons.v5";
+const DOCK_ICONS_CACHE_KEY = "piloti.dock-icons.v8";
 
 interface DockIconsCachePayload {
   theme: string;
