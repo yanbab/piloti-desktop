@@ -39,7 +39,7 @@ function DialogOverlay({
     <DialogPrimitive.Backdrop
       data-slot="dialog-overlay"
       className={cn(
-        "fixed inset-0 z-[450] bg-mac-overlay data-closed:animate-out data-closed:fade-out-0 data-open:animate-in data-open:fade-in-0",
+        "fixed inset-0 z-[450] bg-adw-overlay data-open:animate-in data-open:fade-in-0",
         className
       )}
       {...props}
@@ -47,7 +47,7 @@ function DialogOverlay({
   )
 }
 
-// A macOS panel window. The close button is the red window control in the top-left corner.
+// A modal dialog panel with a close button in the header.
 function DialogContent({
   className,
   children,
@@ -71,10 +71,10 @@ function DialogContent({
       <DialogPrimitive.Popup
         data-slot="dialog-content"
         className={cn(
-          "fixed top-[50%] left-[50%] z-[450] grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] text-mac-label outline-none sm:max-w-md",
+          "fixed top-[50%] left-[50%] z-[450] grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] text-adw-label outline-none sm:max-w-md",
           variant === "menu"
-            ? "gap-0 overflow-hidden rounded-mac-menu p-0 shadow-mac-menu mac-material-menu duration-150 data-open:animate-in data-open:fade-in-0 motion-reduce:animate-none"
-            : "gap-4 rounded-mac-window bg-mac-window p-5 shadow-mac-window duration-200 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-[0.97] data-open:animate-in data-open:fade-in-0 data-open:zoom-in-[0.97] dark:shadow-[0_0_0_1px_rgb(0_0_0/0.92),inset_0_0_0_1px_var(--mac-window-rim),0_18px_54px_rgb(0_0_0/0.57)]",
+            ? "gap-0 overflow-hidden rounded-adw-menu p-0 shadow-adw-menu adw-material-menu duration-150 data-open:animate-in data-open:fade-in-0 motion-reduce:animate-none"
+            : "gap-4 rounded-adw-window bg-adw-window p-5 shadow-adw-window duration-150 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-[0.97] dark:shadow-[0_0_0_1px_rgb(0_0_0/0.92),inset_0_0_0_1px_var(--adw-window-rim),0_18px_54px_rgb(0_0_0/0.57)]",
           showCloseButton && "pt-12",
           className
         )}
@@ -84,7 +84,7 @@ function DialogContent({
         {showCloseButton && (
           <DialogPrimitive.Close
             data-slot="dialog-close"
-            className="group/close absolute top-[19px] left-[19px] flex size-3.5 items-center justify-center rounded-full [background:var(--mac-traffic-close)] shadow-[inset_0_0_0_0.5px_rgb(0_0_0/0.12)] outline-none focus-visible:outline-3 focus-visible:outline-solid focus-visible:outline-mac-accent/50"
+            className="group/close absolute top-[19px] left-[19px] flex size-3.5 items-center justify-center rounded-full [background:var(--adw-traffic-close)] shadow-[inset_0_0_0_0.5px_rgb(0_0_0/0.12)] outline-none focus-visible:outline-3 focus-visible:outline-solid focus-visible:outline-adw-accent/50"
           >
             <XIcon
               className="size-2 text-black/60 opacity-0 group-hover/close:opacity-100 group-focus-visible/close:opacity-100"
@@ -142,7 +142,7 @@ function DialogTitle({
   return (
     <DialogPrimitive.Title
       data-slot="dialog-title"
-      className={cn("text-mac-title-3 font-semibold", className)}
+      className={cn("text-adw-title-3 font-semibold", className)}
       {...props}
     />
   )
@@ -155,7 +155,7 @@ function DialogDescription({
   return (
     <DialogPrimitive.Description
       data-slot="dialog-description"
-      className={cn("text-mac-body text-mac-label-secondary", className)}
+      className={cn("text-adw-body text-adw-label-secondary", className)}
       {...props}
     />
   )

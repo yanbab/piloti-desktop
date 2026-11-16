@@ -1,127 +1,420 @@
 import * as React from "react";
+import { PipetteIcon } from "lucide-react";
+import { DesktopBackgroundLayers } from "@/components/shell/DesktopBackgroundLayers";
 import { Button } from "@/components/ui/button";
 import {
   GroupedForm,
   GroupedFormGroup,
   GroupedFormRow,
+  GroupedFormRowControl,
+  GroupedFormRowDescription,
+  GroupedFormRowLabel,
+  GroupedFormRowTitle,
   GroupedFormSection,
   GroupedFormSectionTitle,
 } from "@/components/ui/grouped-form";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Slider } from "@/components/ui/slider";
 import { useSettings } from "@/context/DesktopStateContext";
 import { WALLPAPERS } from "@/data/catalog";
+import {
+  GNOME_PICTURE_OPTIONS,
+  GNOME_SHADING_TYPES,
+  type GnomeBackgroundSettings,
+  type GnomeColorShadingType,
+  type GnomePictureOptions,
+  normalizeBackgroundPictureUri,
+  selectGnomePictureUri,
+  toHexColorInputValue,
+} from "@/lib/gnome-background";
 import { cn } from "@/lib/utils";
 
 export function WallpaperPane() {
-  const { settings, updateSettings, activeWallpaper } = useSettings();
-  const [customUrlDraft, setCustomUrlDraft] = React.useState(
-    settings.customWallpaperUrl
+  const { settings, updateSettings, resolvedTheme } = useSettings();
+  const gnomeBg = settings.gnomeBackground;
+
+  const [lightUriDraft, setLightUriDraft] = React.useState(
+    gnomeBg.pictureUri || settings.customWallpaperUrl
   );
+  const [darkUriDraft, setDarkUriDraft] = React.useState(gnomeBg.pictureUriDark);
+
+  React.useEffect(() => {
+    setLightUriDraft(gnomeBg.pictureUri || settings.customWallpaperUrl);
+  }, [gnomeBg.pictureUri, settings.customWallpaperUrl]);
+
+  React.useEffect(() => {
+    setDarkUriDraft(gnomeBg.pictureUriDark);
+  }, [gnomeBg.pictureUriDark]);
+
+  const [customColorDraft, setCustomColorDraft] = React.useState(
+    settings.wallpaperId.startsWith("#") ? settings.wallpaperId : "#4f46e5"
+  );
+
+  const gradients = React.useMemo(
+    () => WALLPAPERS.filter((wp) => wp.category !== "Solid"),
+    []
+  );
+
+  const solidWallpapers = React.useMemo(
+    () => WALLPAPERS.filter((wp) => wp.category === "Solid"),
+    []
+  );
+
+  const activePictureUri =
+    selectGnomePictureUri(gnomeBg, resolvedTheme) || settings.customWallpaperUrl;
+
+  const updateGnomeBg = (patch: Partial<GnomeBackgroundSettings>) => {
+    updateSettings({
+      wallpaperId: "gnome",
+      customWallpaperUrl: "",
+      gnomeBackground: { ...gnomeBg, ...patch },
+    });
+  };
+
+  const isCustomSelected =
+    !activePictureUri &&
+    (settings.wallpaperId.startsWith("#") ||
+      (settings.wallpaperId === "gnome" &&
+        gnomeBg.colorShadingType === "solid")) &&
+    !solidWallpapers.some(
+      (w) =>
+        w.id.toLowerCase() ===
+        (settings.wallpaperId.startsWith("#")
+          ? settings.wallpaperId
+          : gnomeBg.primaryColor
+        ).toLowerCase()
+    );
+
+  const customHexValue = toHexColorInputValue(
+    settings.wallpaperId.startsWith("#")
+      ? settings.wallpaperId
+      : gnomeBg.primaryColor,
+    customColorDraft
+  );
+
+  const applySolidColor = (hex: string) => {
+    updateSettings({
+      wallpaperId: hex,
+      customWallpaperUrl: "",
+      gnomeBackground: {
+        ...gnomeBg,
+        pictureUri: "",
+        pictureUriDark: "",
+        pictureOptions: "none",
+        colorShadingType: "solid",
+        primaryColor: hex,
+      },
+    });
+  };
+
+  const renderWallpaperCard = (
+    wp: (typeof WALLPAPERS)[number],
+    isSolid = false
+  ) => {
+    const selected = isSolid
+      ? !activePictureUri &&
+        (settings.wallpaperId.toLowerCase() === wp.id.toLowerCase() ||
+          (settings.wallpaperId === "gnome" &&
+            gnomeBg.colorShadingType === "solid" &&
+            gnomeBg.primaryColor.toLowerCase() === wp.id.toLowerCase()))
+      : !activePictureUri && settings.wallpaperId === wp.id;
+
+    return (
+      <button
+        key={wp.id}
+        type="button"
+        aria-label={wp.name}
+        onClick={() => {
+          if (isSolid) {
+            applySolidColor(wp.id);
+          } else {
+            updateSettings({
+              wallpaperId: wp.id,
+              customWallpaperUrl: "",
+              gnomeBackground: {
+                ...gnomeBg,
+                pictureUri: "",
+                pictureUriDark: "",
+                pictureOptions: "none",
+              },
+            });
+          }
+        }}
+        className={cn(
+          "group flex flex-col overflow-hidden rounded-[12px] border p-1.5 text-left transition-all outline-none",
+          selected
+            ? "border-adw-accent bg-adw-accent/10 ring-2 ring-adw-accent/40"
+            : "border-adw-separator bg-adw-group hover:border-white/30"
+        )}
+      >
+        <div
+          className={cn(
+            "w-full rounded-[8px] shadow-inner transition-transform duration-300 group-hover:scale-[1.02]",
+            isSolid
+              ? "h-16 border border-black/10 dark:border-white/10"
+              : "h-20"
+          )}
+          style={{ background: wp.backgroundCss }}
+        />
+      </button>
+    );
+  };
 
   return (
     <GroupedForm>
       <GroupedFormSection>
         <GroupedFormSectionTitle>Current Wallpaper</GroupedFormSectionTitle>
-        <div className="flex items-center gap-4 rounded-[14px] border border-mac-separator bg-mac-group p-3.5">
-          <div
-            className="h-24 w-40 shrink-0 rounded-[10px] border border-white/20 shadow-md"
-            style={{
-              background: settings.customWallpaperUrl
-                ? `url(${settings.customWallpaperUrl}) center/cover no-repeat`
-                : activeWallpaper.backgroundCss,
-            }}
-          />
-          <div className="min-w-0 flex-1">
-            <div className="text-[14px] font-bold">
-              {settings.customWallpaperUrl
-                ? "Custom Image Wallpaper"
-                : activeWallpaper.name}
-            </div>
-            <div className="mt-0.5 text-[12px] text-mac-label-secondary">
-              {settings.customWallpaperUrl
-                ? settings.customWallpaperUrl.slice(0, 64)
-                : activeWallpaper.subtitle}
-            </div>
-            <span className="mt-2 inline-block rounded-full bg-mac-accent/15 px-2.5 py-0.5 text-[11px] font-medium text-mac-accent">
-              {activeWallpaper.category}
-            </span>
+        <div className="flex justify-center rounded-[14px] bg-adw-group p-3.5">
+          <div className="relative aspect-video h-32 w-auto max-w-full overflow-hidden rounded-[10px] border border-black/10 shadow-md dark:border-white/20">
+            <DesktopBackgroundLayers />
           </div>
         </div>
       </GroupedFormSection>
 
       <GroupedFormSection>
-        <GroupedFormSectionTitle>Curated Wallpapers</GroupedFormSectionTitle>
+        <GroupedFormSectionTitle>Gradients</GroupedFormSectionTitle>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          {WALLPAPERS.map((wp) => {
-            const selected =
-              !settings.customWallpaperUrl && settings.wallpaperId === wp.id;
-            return (
-              <button
-                key={wp.id}
-                type="button"
-                onClick={() =>
-                  updateSettings({
-                    wallpaperId: wp.id,
-                    customWallpaperUrl: "",
-                  })
-                }
-                className={cn(
-                  "group flex flex-col overflow-hidden rounded-[12px] border p-1.5 text-left transition-all",
-                  selected
-                    ? "border-mac-accent bg-mac-accent/10 ring-2 ring-mac-accent/40"
-                    : "border-mac-separator bg-mac-group hover:border-white/30"
-                )}
-              >
-                <div
-                  className="h-20 w-full rounded-[8px] shadow-inner transition-transform duration-300 group-hover:scale-[1.02]"
-                  style={{ background: wp.backgroundCss }}
-                />
-                <div className="mt-1.5 px-1">
-                  <div className="truncate text-[12px] font-semibold">
-                    {wp.name}
-                  </div>
-                  <div className="truncate text-[10px] text-mac-label-secondary">
-                    {wp.subtitle}
-                  </div>
-                </div>
-              </button>
-            );
-          })}
+          {gradients.map((wp) => renderWallpaperCard(wp, false))}
         </div>
       </GroupedFormSection>
 
       <GroupedFormSection>
-        <GroupedFormSectionTitle>Custom Wallpaper URL</GroupedFormSectionTitle>
+        <GroupedFormSectionTitle>Solid colors</GroupedFormSectionTitle>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+          {solidWallpapers.map((wp) => renderWallpaperCard(wp, true))}
+
+          {/* Custom Solid Color with HTML5 Color Selector */}
+          <div
+            className={cn(
+              "group relative flex flex-col overflow-hidden rounded-[12px] border p-1.5 transition-all",
+              isCustomSelected
+                ? "border-adw-accent bg-adw-accent/10 ring-2 ring-adw-accent/40"
+                : "border-adw-separator bg-adw-group hover:border-white/30"
+            )}
+          >
+            <div
+              className="relative flex h-16 w-full items-center justify-center overflow-hidden rounded-[8px] border border-black/10 shadow-inner transition-transform duration-300 group-hover:scale-[1.02] dark:border-white/10"
+              style={{
+                background: isCustomSelected
+                  ? customHexValue
+                  : "conic-gradient(from 180deg at 50% 50%, #ff3b30, #ff9500, #ffcc00, #34c759, #00c7be, #32ade6, #007aff, #5856d6, #af52de, #ff2d55, #ff3b30)",
+              }}
+            >
+              <div className="pointer-events-none flex size-7 items-center justify-center rounded-full bg-black/35 text-white shadow-xs backdrop-blur-xs">
+                <PipetteIcon className="size-3.5" />
+              </div>
+              <input
+                type="color"
+                aria-label="Custom Color Picker"
+                value={customHexValue}
+                onChange={(e) => {
+                  const hex = e.target.value;
+                  setCustomColorDraft(hex);
+                  applySolidColor(hex);
+                }}
+                className="absolute inset-0 size-full cursor-pointer opacity-0"
+              />
+            </div>
+          </div>
+        </div>
+      </GroupedFormSection>
+
+      <GroupedFormSection>
+        <GroupedFormSectionTitle>GNOME Background Spec</GroupedFormSectionTitle>
         <GroupedFormGroup>
           <GroupedFormRow className="gap-2 py-3">
-            <Input
-              placeholder="https://images.unsplash.com/..."
-              value={customUrlDraft}
-              onChange={(e) => setCustomUrlDraft(e.target.value)}
-              className="flex-1"
-            />
-            <Button
-              onClick={() =>
-                updateSettings({ customWallpaperUrl: customUrlDraft.trim() })
-              }
-            >
-              Apply URL
-            </Button>
-            {settings.customWallpaperUrl && (
+            <GroupedFormRowLabel>
+              <GroupedFormRowTitle>Picture URI</GroupedFormRowTitle>
+              <GroupedFormRowDescription>
+                Supports `file://`, local POSIX paths, or `https://` (`picture-uri`)
+              </GroupedFormRowDescription>
+            </GroupedFormRowLabel>
+            <GroupedFormRowControl className="flex-1 justify-end gap-2">
+              <Input
+                placeholder="file:///usr/share/backgrounds/..."
+                value={lightUriDraft}
+                onChange={(e) => setLightUriDraft(e.target.value)}
+                className="min-w-[180px] flex-1"
+              />
               <Button
-                variant="secondary"
-                onClick={() => {
-                  setCustomUrlDraft("");
-                  updateSettings({ customWallpaperUrl: "" });
-                }}
+                size="sm"
+                onClick={() =>
+                  updateGnomeBg({
+                    pictureUri: normalizeBackgroundPictureUri(lightUriDraft),
+                    pictureOptions:
+                      gnomeBg.pictureOptions === "none"
+                        ? "zoom"
+                        : gnomeBg.pictureOptions,
+                  })
+                }
               >
-                Reset
+                Apply
               </Button>
-            )}
+              {(gnomeBg.pictureUri || settings.customWallpaperUrl) && (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => {
+                    setLightUriDraft("");
+                    updateGnomeBg({ pictureUri: "" });
+                  }}
+                >
+                  Clear
+                </Button>
+              )}
+            </GroupedFormRowControl>
+          </GroupedFormRow>
+
+          <GroupedFormRow className="gap-2 py-3">
+            <GroupedFormRowLabel>
+              <GroupedFormRowTitle>Dark Style Picture URI</GroupedFormRowTitle>
+              <GroupedFormRowDescription>
+                Optional wallpaper when Dark style is active (`picture-uri-dark`)
+              </GroupedFormRowDescription>
+            </GroupedFormRowLabel>
+            <GroupedFormRowControl className="flex-1 justify-end gap-2">
+              <Input
+                placeholder="file:///usr/share/backgrounds/...-d.jxl"
+                value={darkUriDraft}
+                onChange={(e) => setDarkUriDraft(e.target.value)}
+                className="min-w-[180px] flex-1"
+              />
+              <Button
+                size="sm"
+                onClick={() =>
+                  updateGnomeBg({
+                    pictureUriDark: normalizeBackgroundPictureUri(darkUriDraft),
+                    pictureOptions:
+                      gnomeBg.pictureOptions === "none"
+                        ? "zoom"
+                        : gnomeBg.pictureOptions,
+                  })
+                }
+              >
+                Apply
+              </Button>
+              {gnomeBg.pictureUriDark && (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => {
+                    setDarkUriDraft("");
+                    updateGnomeBg({ pictureUriDark: "" });
+                  }}
+                >
+                  Clear
+                </Button>
+              )}
+            </GroupedFormRowControl>
+          </GroupedFormRow>
+
+          <GroupedFormRow>
+            <GroupedFormRowLabel>
+              <GroupedFormRowTitle>Picture Options</GroupedFormRowTitle>
+              <GroupedFormRowDescription>
+                How GNOME renders and scales the image (`picture-options`)
+              </GroupedFormRowDescription>
+            </GroupedFormRowLabel>
+            <GroupedFormRowControl>
+              <Select
+                value={gnomeBg.pictureOptions}
+                onValueChange={(value) =>
+                  updateGnomeBg({ pictureOptions: value as GnomePictureOptions })
+                }
+              >
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {GNOME_PICTURE_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </GroupedFormRowControl>
+          </GroupedFormRow>
+
+          <GroupedFormRow>
+            <GroupedFormRowLabel>
+              <GroupedFormRowTitle>Picture Opacity</GroupedFormRowTitle>
+              <GroupedFormRowDescription>
+                Opacity over the shading backdrop ({gnomeBg.pictureOpacity}%)
+              </GroupedFormRowDescription>
+            </GroupedFormRowLabel>
+            <GroupedFormRowControl className="w-44">
+              <Slider
+                value={[gnomeBg.pictureOpacity]}
+                min={0}
+                max={100}
+                step={5}
+                onValueChange={(vals) => {
+                  const next = Array.isArray(vals) ? vals[0] : vals;
+                  if (typeof next === "number") {
+                    updateGnomeBg({ pictureOpacity: next });
+                  }
+                }}
+              />
+            </GroupedFormRowControl>
+          </GroupedFormRow>
+
+          <GroupedFormRow>
+            <GroupedFormRowLabel>
+              <GroupedFormRowTitle>Color Shading</GroupedFormRowTitle>
+              <GroupedFormRowDescription>
+                Backdrop fill or gradient behind scaled/transparent pictures
+              </GroupedFormRowDescription>
+            </GroupedFormRowLabel>
+            <GroupedFormRowControl className="gap-2">
+              <Select
+                value={gnomeBg.colorShadingType}
+                onValueChange={(value) =>
+                  updateGnomeBg({
+                    colorShadingType: value as GnomeColorShadingType,
+                  })
+                }
+              >
+                <SelectTrigger className="w-[170px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {GNOME_SHADING_TYPES.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <input
+                type="color"
+                aria-label="Primary Background Color"
+                value={toHexColorInputValue(gnomeBg.primaryColor, "#023c88")}
+                onChange={(e) => updateGnomeBg({ primaryColor: e.target.value })}
+                className="h-8 w-8 cursor-pointer rounded-md border border-adw-separator bg-transparent p-0.5"
+              />
+              {gnomeBg.colorShadingType !== "solid" && (
+                <input
+                  type="color"
+                  aria-label="Secondary Background Color"
+                  value={toHexColorInputValue(gnomeBg.secondaryColor, "#5789ca")}
+                  onChange={(e) =>
+                    updateGnomeBg({ secondaryColor: e.target.value })
+                  }
+                  className="h-8 w-8 cursor-pointer rounded-md border border-adw-separator bg-transparent p-0.5"
+                />
+              )}
+            </GroupedFormRowControl>
           </GroupedFormRow>
         </GroupedFormGroup>
       </GroupedFormSection>
     </GroupedForm>
   );
 }
-

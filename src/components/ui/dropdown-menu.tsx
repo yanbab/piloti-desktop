@@ -5,9 +5,18 @@ import { CheckIcon, ChevronRightIcon, CircleIcon } from "lucide-react"
 import { Menu as MenuPrimitive } from "@base-ui/react/menu"
 
 import { cn } from "@/lib/utils"
+import {
+  MENU_BADGE_CLASS,
+  MENU_CHECK_ITEM_CLASS,
+  MENU_ITEM_CLASS,
+  MENU_LABEL_CLASS,
+  MENU_POPUP_CLASS,
+  MENU_SEPARATOR_CLASS,
+  MENU_SHORTCUT_CLASS,
+  MENU_SUB_TRIGGER_CLASS,
+} from "./menu-styles"
 
-// A macOS pull-down menu: the glass menu material, 24pt items and a
-// rounded accent highlight.
+// A pull-down menu using Adwaita popover surface and accent highlight.
 
 function DropdownMenu({ ...props }: MenuPrimitive.Root.Props) {
   return <MenuPrimitive.Root data-slot="dropdown-menu" {...props} />
@@ -27,9 +36,16 @@ function DropdownMenuContent({
   alignOffset = 0,
   side = "bottom",
   sideOffset = 4,
+  anchor,
+  initialFocus,
   ...props
 }: MenuPrimitive.Popup.Props &
-  Pick<MenuPrimitive.Positioner.Props, "align" | "alignOffset" | "side" | "sideOffset">) {
+  Pick<
+    MenuPrimitive.Positioner.Props,
+    "align" | "alignOffset" | "side" | "sideOffset" | "anchor"
+  > & {
+    initialFocus?: boolean | React.RefObject<HTMLElement | null>;
+  }) {
   return (
     <MenuPrimitive.Portal>
       <MenuPrimitive.Positioner
@@ -37,14 +53,15 @@ function DropdownMenuContent({
         alignOffset={alignOffset}
         side={side}
         sideOffset={sideOffset}
-        className="isolate z-50 outline-none"
+        anchor={anchor}
+        className="isolate z-[400] outline-none"
       >
         <MenuPrimitive.Popup
           data-slot="dropdown-menu-content"
-          className={cn(
-            "z-50 max-h-(--available-height) min-w-[8rem] origin-(--transform-origin) overflow-x-hidden overflow-y-auto rounded-mac-menu p-[5px] text-mac-label shadow-mac-menu mac-material-menu outline-none data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0",
-            className
-          )}
+          className={cn(MENU_POPUP_CLASS, className)}
+          {...(initialFocus !== undefined
+            ? ({ initialFocus } as Record<string, unknown>)
+            : {})}
           {...props}
         />
       </MenuPrimitive.Positioner>
@@ -70,10 +87,7 @@ function DropdownMenuItem({
       data-slot="dropdown-menu-item"
       data-inset={inset}
       data-variant={variant}
-      className={cn(
-        "relative flex h-6 cursor-default items-center gap-2 rounded-mac-item pr-[14px] pl-[11px] text-mac-body outline-hidden select-none data-highlighted:bg-mac-menu-highlight data-highlighted:text-white data-disabled:pointer-events-none data-disabled:text-mac-label-tertiary data-[inset]:pl-[27px] [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 [&_svg:not([class*='text-'])]:text-current",
-        className
-      )}
+      className={cn(MENU_ITEM_CLASS, className)}
       {...props}
     />
   )
@@ -87,15 +101,12 @@ function DropdownMenuCheckboxItem({
   return (
     <MenuPrimitive.CheckboxItem
       data-slot="dropdown-menu-checkbox-item"
-      className={cn(
-        "relative flex h-6 cursor-default items-center gap-2 rounded-mac-item pr-[14px] pl-[27px] text-mac-body outline-hidden select-none data-highlighted:bg-mac-menu-highlight data-highlighted:text-white data-disabled:pointer-events-none data-disabled:text-mac-label-tertiary [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
-        className
-      )}
+      className={cn(MENU_CHECK_ITEM_CLASS, className)}
       {...props}
     >
-      <span className="pointer-events-none absolute left-[11px] flex size-3 items-center justify-center">
+      <span className="pointer-events-none absolute left-[10px] flex size-3.5 items-center justify-center">
         <MenuPrimitive.CheckboxItemIndicator>
-          <CheckIcon className="size-3" strokeWidth={3} />
+          <CheckIcon className="size-3.5" strokeWidth={2.5} />
         </MenuPrimitive.CheckboxItemIndicator>
       </span>
       {children}
@@ -115,13 +126,10 @@ function DropdownMenuRadioItem({
   return (
     <MenuPrimitive.RadioItem
       data-slot="dropdown-menu-radio-item"
-      className={cn(
-        "relative flex h-6 cursor-default items-center gap-2 rounded-mac-item pr-[14px] pl-[27px] text-mac-body outline-hidden select-none data-highlighted:bg-mac-menu-highlight data-highlighted:text-white data-disabled:pointer-events-none data-disabled:text-mac-label-tertiary [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
-        className
-      )}
+      className={cn(MENU_CHECK_ITEM_CLASS, className)}
       {...props}
     >
-      <span className="pointer-events-none absolute left-[11px] flex size-3 items-center justify-center">
+      <span className="pointer-events-none absolute left-[10px] flex size-3.5 items-center justify-center">
         <MenuPrimitive.RadioItemIndicator>
           <CircleIcon className="size-1.5 fill-current" />
         </MenuPrimitive.RadioItemIndicator>
@@ -144,10 +152,7 @@ function DropdownMenuLabel({
     <div
       data-slot="dropdown-menu-label"
       data-inset={inset}
-      className={cn(
-        "px-[11px] pt-[5px] pb-1 text-mac-subheadline font-semibold text-mac-label-secondary data-[inset]:pl-[27px]",
-        className
-      )}
+      className={cn(MENU_LABEL_CLASS, className)}
       {...props}
     />
   )
@@ -157,7 +162,7 @@ function DropdownMenuSeparator({ className, ...props }: MenuPrimitive.Separator.
   return (
     <MenuPrimitive.Separator
       data-slot="dropdown-menu-separator"
-      className={cn("mx-[11px] my-[5px] h-px bg-mac-grid", className)}
+      className={cn(MENU_SEPARATOR_CLASS, className)}
       {...props}
     />
   )
@@ -167,10 +172,7 @@ function DropdownMenuShortcut({ className, ...props }: React.ComponentProps<"spa
   return (
     <span
       data-slot="dropdown-menu-shortcut"
-      className={cn(
-        "ml-auto pl-4 text-mac-body font-medium tracking-wider text-mac-label-tertiary in-data-highlighted:text-white/75",
-        className
-      )}
+      className={cn(MENU_SHORTCUT_CLASS, className)}
       {...props}
     />
   )
@@ -181,10 +183,7 @@ function DropdownMenuBadge({ className, ...props }: React.ComponentProps<"span">
   return (
     <span
       data-slot="dropdown-menu-badge"
-      className={cn(
-        "-mr-[3px] ml-auto flex h-[15px] shrink-0 items-center rounded-full bg-black/6 px-2 text-[10px] font-semibold text-mac-label in-data-highlighted:bg-white/20 in-data-highlighted:text-white dark:bg-white/10",
-        className
-      )}
+      className={cn(MENU_BADGE_CLASS, className)}
       {...props}
     />
   )
@@ -206,14 +205,11 @@ function DropdownMenuSubTrigger({
     <MenuPrimitive.SubmenuTrigger
       data-slot="dropdown-menu-sub-trigger"
       data-inset={inset}
-      className={cn(
-        "flex h-6 cursor-default items-center gap-2 rounded-mac-item pr-[14px] pl-[11px] text-mac-body outline-hidden select-none data-highlighted:bg-mac-menu-highlight data-highlighted:text-white data-popup-open:bg-mac-menu-highlight data-popup-open:text-white data-[inset]:pl-[27px] [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 [&_svg:not([class*='text-'])]:text-current",
-        className
-      )}
+      className={cn(MENU_SUB_TRIGGER_CLASS, className)}
       {...props}
     >
       {children}
-      <ChevronRightIcon className="ml-auto size-3" strokeWidth={2.5} />
+      <ChevronRightIcon className="ml-auto size-3.5" strokeWidth={2.25} />
     </MenuPrimitive.SubmenuTrigger>
   )
 }
@@ -221,9 +217,9 @@ function DropdownMenuSubTrigger({
 function DropdownMenuSubContent({
   className,
   align = "start",
-  alignOffset = -5,
+  alignOffset = -6,
   side = "right",
-  sideOffset = 0,
+  sideOffset = 2,
   ...props
 }: MenuPrimitive.Popup.Props &
   Pick<MenuPrimitive.Positioner.Props, "align" | "alignOffset" | "side" | "sideOffset">) {
@@ -234,14 +230,11 @@ function DropdownMenuSubContent({
         alignOffset={alignOffset}
         side={side}
         sideOffset={sideOffset}
-        className="isolate z-50 outline-none"
+        className="isolate z-[400] outline-none"
       >
         <MenuPrimitive.Popup
           data-slot="dropdown-menu-sub-content"
-          className={cn(
-            "z-50 max-h-(--available-height) min-w-[8rem] origin-(--transform-origin) overflow-x-hidden overflow-y-auto rounded-mac-menu p-[5px] text-mac-label shadow-mac-menu mac-material-menu outline-none data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0",
-            className
-          )}
+          className={cn(MENU_POPUP_CLASS, className)}
           {...props}
         />
       </MenuPrimitive.Positioner>

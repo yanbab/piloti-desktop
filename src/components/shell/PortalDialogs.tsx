@@ -186,12 +186,12 @@ function ScreenCastPortalDialog({
 
   return (
     <div className="fixed inset-0 z-[800] flex items-center justify-center bg-black/45 p-4">
-      <div className="w-full max-w-[460px] rounded-mac-menu p-5 text-mac-label shadow-mac-menu mac-material-menu">
+      <div className="w-full max-w-[460px] rounded-adw-menu p-5 text-adw-label shadow-adw-menu adw-material-menu">
         <div className="mb-3 flex items-center gap-2.5">
-          <VideoIcon className="size-5 text-mac-accent" />
+          <VideoIcon className="size-5 text-adw-accent" />
           <div>
             <h3 className="text-[14px] font-bold">Share Screen or Window</h3>
-            <p className="text-[11px] text-mac-label-secondary">
+            <p className="text-[11px] text-adw-label-secondary">
               Requested by {request.appId || "Application"}
             </p>
           </div>
@@ -215,10 +215,10 @@ function ScreenCastPortalDialog({
                 type="button"
                 onClick={() => toggleIndex(idx)}
                 className={cn(
-                  "flex w-full items-center gap-2.5 rounded-mac-item px-3 py-2 text-left text-xs transition-colors",
+                  "flex w-full items-center gap-2.5 rounded-adw-item px-3 py-2 text-left text-xs transition-colors",
                   active
-                    ? "bg-mac-accent text-white"
-                    : "bg-mac-fill-tertiary hover:bg-mac-fill-secondary"
+                    ? "bg-adw-accent text-white"
+                    : "bg-adw-fill-tertiary hover:bg-adw-fill-secondary"
                 )}
               >
                 <MonitorIcon className="size-4 shrink-0" />
@@ -372,12 +372,12 @@ export function PortalDialogs() {
 
     return (
       <div className="fixed inset-0 z-[800] flex items-center justify-center bg-black/45 p-4">
-        <div className="w-full max-w-[380px] rounded-mac-menu p-5 text-mac-label shadow-mac-menu mac-material-menu">
+        <div className="w-full max-w-[380px] rounded-adw-menu p-5 text-adw-label shadow-adw-menu adw-material-menu">
           <div className="mb-3 flex items-center gap-2.5">
-            <ShieldCheckIcon className="size-5 text-mac-accent" />
+            <ShieldCheckIcon className="size-5 text-adw-accent" />
             <div>
               <h3 className="text-[14px] font-bold">{title}</h3>
-              <p className="text-[11px] text-mac-label-secondary">
+              <p className="text-[11px] text-adw-label-secondary">
                 {current.appId || "System Application"}
               </p>
             </div>
@@ -412,9 +412,9 @@ export function PortalDialogs() {
   // Fallback for unhandled portal request kinds (e.g. AppChooser / FileChooser / Print)
   return (
     <div className="fixed inset-0 z-[800] flex items-center justify-center bg-black/45 p-4">
-      <div className="w-full max-w-[380px] rounded-mac-menu p-5 text-mac-label shadow-mac-menu mac-material-menu">
+      <div className="w-full max-w-[380px] rounded-adw-menu p-5 text-adw-label shadow-adw-menu adw-material-menu">
         <h3 className="text-[14px] font-bold">Application Portal Request</h3>
-        <p className="mt-1 text-xs text-mac-label-secondary">
+        <p className="mt-1 text-xs text-adw-label-secondary">
           {current.appId || "Application"} requested{" "}
           {describePortalKind(current)}.
         </p>

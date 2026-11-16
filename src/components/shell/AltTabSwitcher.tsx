@@ -57,6 +57,7 @@ function WindowMiniPreview({
       <AppSquircleIcon
         iconName={win.iconName}
         iconUrl={win.iconUrl}
+        squircle={Boolean(win.browserWindowId)}
         gradient={win.gradient}
         className="size-9"
         glyphClassName="size-5"
@@ -128,13 +129,13 @@ export function AltTabSwitcher() {
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="flex max-h-[82vh] w-full max-w-[820px] flex-col overflow-hidden rounded-mac-menu p-3.5 text-mac-label shadow-mac-menu mac-material-menu animate-in fade-in-0 duration-150 motion-reduce:animate-none"
+        className="flex max-h-[82vh] w-full max-w-[820px] flex-col overflow-hidden rounded-adw-menu p-3.5 text-adw-label shadow-adw-menu adw-material-menu animate-in fade-in-0 duration-150 motion-reduce:animate-none"
       >
         {/* Windows Grid */}
         {mruWindows.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-10 text-center text-mac-label-secondary">
-            <SparklesIcon className="mb-2 size-8 text-mac-accent" />
-            <p className="text-sm font-medium text-mac-label">
+          <div className="flex flex-col items-center justify-center py-10 text-center text-adw-label-secondary">
+            <SparklesIcon className="mb-2 size-8 text-adw-accent" />
+            <p className="text-sm font-medium text-adw-label">
               No open windows
             </p>
           </div>
@@ -151,10 +152,10 @@ export function AltTabSwitcher() {
                   onPointerEnter={() => setAltTabIndex(index)}
                   onClick={() => commitAltTab(win.id)}
                   className={cn(
-                    "group flex flex-col overflow-hidden rounded-mac-item p-2 text-left transition-all duration-150 outline-none motion-reduce:transition-none",
+                    "group flex flex-col overflow-hidden rounded-adw-item p-2 text-left transition-all duration-150 outline-none motion-reduce:transition-none",
                     selected
-                      ? "scale-[1.02] bg-mac-fill-primary ring-2 ring-mac-accent shadow-md"
-                      : "bg-mac-fill-tertiary ring-1 ring-mac-border hover:bg-mac-fill-secondary"
+                      ? "scale-[1.02] bg-adw-fill-primary ring-2 ring-adw-accent shadow-md"
+                      : "bg-adw-fill-tertiary ring-1 ring-adw-border hover:bg-adw-fill-secondary"
                   )}
                 >
                   {/* Window Card Header */}
@@ -162,11 +163,15 @@ export function AltTabSwitcher() {
                     <AppSquircleIcon
                       iconName={win.iconName}
                       iconUrl={resolvedIconUrl}
+                      fallbackIconUrl={
+                        win.browserWindowId ? getAppIconUrl("browser") : undefined
+                      }
+                      squircle={Boolean(win.browserWindowId)}
                       gradient={win.gradient}
-                      className="size-5 shrink-0 rounded-[5px]"
+                      className="size-5 shrink-0"
                       glyphClassName="size-3"
                     />
-                    <span className="truncate text-[12px] font-medium text-mac-label">
+                    <span className="truncate text-[12px] font-medium text-adw-label">
                       {win.title}
                     </span>
                     {win.minimized && (
@@ -180,7 +185,7 @@ export function AltTabSwitcher() {
                   </div>
 
                   {/* Miniature Window Frame Preview */}
-                  <div className="relative h-28 w-full overflow-hidden rounded-[10px] border border-mac-border bg-zinc-950 shadow-inner">
+                  <div className="relative h-28 w-full overflow-hidden rounded-[10px] border border-adw-border bg-zinc-950 shadow-inner">
                     <div className="flex h-4 items-center gap-1 border-b border-white/10 bg-zinc-900 px-2">
                       <span className="size-1.5 rounded-full bg-rose-500/80" />
                       <span className="size-1.5 rounded-full bg-amber-400/80" />

@@ -1,4 +1,4 @@
-import { PilotiLogo } from "@/components/shell/PilotiLogo";
+import { PilotiBrandIllustration } from "@/components/shell/PilotiLogo";
 import { Button } from "@/components/ui/button";
 import {
   GroupedForm,
@@ -42,14 +42,14 @@ export function AboutPane() {
   return (
     <GroupedForm>
       <GroupedFormSection>
-        <div className="flex items-center gap-4 rounded-[16px] border border-mac-separator bg-mac-group p-4">
-          <PilotiLogo className="size-16 drop-shadow-md" />
+        <div className="flex items-center gap-4 rounded-[16px] bg-adw-group p-4">
+          <PilotiBrandIllustration className="size-16 drop-shadow-md" />
           <div>
             <h3 className="text-[16px] font-bold">
               Piloti Desktop Environment
             </h3>
-            <p className="text-[12px] text-mac-label-secondary">
-              Version 1.0.0 · Built on Domicile Wayland Compositor &amp; CupertinoUI / Adwaita
+            <p className="text-[12px] text-adw-label-secondary">
+              Version 1.0.0 · Built on Domicile Wayland Compositor · GNOME Adwaita
             </p>
           </div>
         </div>
@@ -83,7 +83,7 @@ export function AboutPane() {
                 Prefer Native `gnome-control-center`
               </GroupedFormRowTitle>
               <GroupedFormRowDescription>
-                Launches GNOME Settings with `XDG_CURRENT_DESKTOP=GNOME` when opening Settings on Linux
+                Launches System Settings with `XDG_CURRENT_DESKTOP=GNOME` when opening Settings on Linux
               </GroupedFormRowDescription>
             </GroupedFormRowLabel>
             <GroupedFormRowControl>
@@ -98,7 +98,7 @@ export function AboutPane() {
 
           <GroupedFormRow className="py-3">
             <GroupedFormRowLabel>
-              <GroupedFormRowTitle>GNOME Settings Panels</GroupedFormRowTitle>
+              <GroupedFormRowTitle>System Settings Panels</GroupedFormRowTitle>
               <GroupedFormRowDescription>
                 Detected:{" "}
                 {[
@@ -117,6 +117,7 @@ export function AboutPane() {
               <div className="flex flex-wrap justify-end gap-1.5">
                 {(
                   [
+                    { id: "background", label: "Background" },
                     { id: "wifi", label: "Wi-Fi" },
                     { id: "bluetooth", label: "Bluetooth" },
                     { id: "sound", label: "Sound" },
@@ -134,8 +135,8 @@ export function AboutPane() {
                       disabled={isHidden}
                       title={
                         isHidden
-                          ? `${p.label} is hidden in Available GNOME Settings Panels below`
-                          : `Open ${p.label} in GNOME Settings`
+                          ? `${p.label} is hidden in Available System Settings Panels below`
+                          : `Open ${p.label} in System Settings`
                       }
                       onClick={() => openGnomeSettings(p.id)}
                       className="h-7 px-2.5 text-[11px]"
@@ -152,13 +153,13 @@ export function AboutPane() {
 
       <GroupedFormSection>
         <GroupedFormSectionTitle>
-          Available GNOME Settings Panels ({enabledCount}/
+          Available System Settings Panels ({enabledCount}/
           {availableGnomePanels.length})
         </GroupedFormSectionTitle>
         <GroupedFormGroup>
           <GroupedFormRow className="py-3">
             <GroupedFormRowLabel>
-              <GroupedFormRowTitle>Filter Panels Shown in GNOME Settings</GroupedFormRowTitle>
+              <GroupedFormRowTitle>Filter Panels Shown in System Settings</GroupedFormRowTitle>
               <GroupedFormRowDescription>
                 Disabled panels write isolated `Hidden=true` stubs to{" "}
                 <code className="font-mono text-[11px]">
@@ -188,7 +189,7 @@ export function AboutPane() {
                   onClick={() => openGnomeSettings()}
                   className="h-7 px-2.5 text-[11px]"
                 >
-                  Open GNOME Settings…
+                  Open System Settings…
                 </Button>
               </div>
             </GroupedFormRowControl>
@@ -233,15 +234,16 @@ export function AboutPane() {
           {[
             {
               key: "Alt + Space",
-              desc: "Open Command Palette (Apps, Windows, System Actions)",
+              desc: "Open Launcher (Apps, Windows, System Actions)",
             },
             { key: "Alt + Tab", desc: "Open Window Switcher with Live Previews" },
+            { key: "Meta + ↑ / F3", desc: "Toggle Overview" },
             { key: "Print", desc: "Take Interactive Screenshot (Area / Window)" },
             { key: "Meta + Return", desc: "Launch Terminal (`kitty`)" },
-            { key: "Alt + ,", desc: "Open System Settings" },
+            { key: "Alt + ,", desc: "Open Desktop Settings" },
             {
               key: "Alt + N",
-              desc: "Toggle Right-Side Notifications & Quick Settings Panel",
+              desc: "Toggle Control panel & Notifications",
             },
             {
               key: "Alt + [  /  Alt + ]",

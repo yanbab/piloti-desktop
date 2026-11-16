@@ -6,53 +6,94 @@ import {
   ACCENT_COLORS,
   APP_CATALOG,
   type AccentColorId,
-  type UiThemeId,
   WALLPAPERS,
   type WallpaperOption,
 } from "@/data/catalog";
 import {
+  DEFAULT_LAUNCHER_WEB_APPS,
+  type InstalledWebApp,
+} from "@/data/web-apps";
+import {
+  DEFAULT_GNOME_BACKGROUND,
+  type BackgroundRenderSpec,
+  type GnomeBackgroundSettings,
+  fileUriToLocalPath,
+  localPathToFileUri,
+  resolveBackgroundRenderSpec,
+  selectGnomePictureUri,
+} from "@/lib/gnome-background";
+import {
+  type NotificationBannerPosition,
+  clampHistoryLimit,
+} from "@/lib/notifications";
+import {
+  readGnomeBackgroundBlob,
   setSystemAudio,
   setSystemBrightness,
   setSystemPowerProfile,
   setSystemWifiEnabled,
+  syncGnomeBackgroundSettings,
   syncGnomeInterfaceKey,
+  syncGnomeNotificationSettings,
   DEFAULT_HIDDEN_GNOME_PANELS,
+  type GtkFontAntialiasing,
+  type GtkFontHinting,
+  type GtkFontRgbaOrder,
 } from "@/lib/gnome-bridge";
+import { startBootPhase } from "@/lib/perf-log";
 
 export type WindowDecorationMode = "auto" | "csd" | "ssd";
+export type CssFontSmoothing = "antialiased" | "subpixel-antialiased" | "auto";
+export type CssTextRendering =
+  | "auto"
+  | "optimizeLegibility"
+  | "optimizeSpeed"
+  | "geometricPrecision";
+export type CssFontOpticalSizing = "auto" | "none";
+export type CssFontKerning = "auto" | "normal" | "none";
+export type CssFontSynthesis = "auto" | "none";
 
 export interface SavedWindowBounds {
   position: { x: number; y: number };
   size: { width: number; height: number };
 }
 
-export interface InstalledWebApp {
-  id: string;
-  title: string;
-  url: string;
-  iconUrl?: string;
-}
+export type { InstalledWebApp };
 
 export interface DesktopSettings {
-  uiTheme: UiThemeId;
   themeMode: "dark" | "light" | "system";
   accentColor: AccentColorId;
   wallpaperId: string;
   customWallpaperUrl: string;
+  gnomeBackground: GnomeBackgroundSettings;
   dockSize: number;
+  dockPosition: "bottom" | "left" | "right";
   dockMagnification: boolean;
   dockMagnificationSize: number;
   dockAutoHide: boolean;
   clock24Hour: boolean;
   clockShowSeconds: boolean;
-  clockShowDate: boolean;
-  windowTranslucency: boolean;
   windowDecorationMode: WindowDecorationMode;
-  csdClipShadow: boolean;
-  csdShowGrabBar: boolean;
   syncGnomeSettings: boolean;
   preferGnomeControlCenter: boolean;
   hiddenGnomePanels: string[];
+  fontSansFamily: string;
+  fontMonoFamily: string;
+  fontScale: number;
+  cssFontSmoothing: CssFontSmoothing;
+  cssTextRendering: CssTextRendering;
+  cssFontOpticalSizing: CssFontOpticalSizing;
+  cssFontKerning: CssFontKerning;
+  cssFontSynthesis: CssFontSynthesis;
+  cssLetterSpacingEm: number;
+  cssTextStrokePx: number;
+  gtkFontName: string;
+  gtkDocumentFontName: string;
+  gtkMonospaceFontName: string;
+  gtkTextScalingFactor: number;
+  gtkFontAntialiasing: GtkFontAntialiasing;
+  gtkFontHinting: GtkFontHinting;
+  gtkFontRgbaOrder: GtkFontRgbaOrder;
   volume: number;
   muted: boolean;
   brightness: number;
@@ -61,34 +102,61 @@ export interface DesktopSettings {
   connectedWifi: string;
   bluetoothEnabled: boolean;
   doNotDisturb: boolean;
+  notificationsEnabled: boolean;
+  notificationBannersEnabled: boolean;
+  notificationShowOnLockScreen: boolean;
+  notificationShowPreviews: boolean;
+  notificationAllowCriticalInDnd: boolean;
+  notificationBannerPosition: NotificationBannerPosition;
+  notificationBannerTimeoutMs: number;
+  notificationHistoryLimit: number;
   powerMode: "balanced" | "performance" | "power-saver";
   activeWorkspace: number;
   workspaceCount: number;
+  restoreWindowsOnLogin: boolean;
+  desktopIconsEnabled: boolean;
+  desktopIconPositions: Record<string, { col: number; row: number }>;
   pinnedAppIds: string[];
   installedWebApps: InstalledWebApp[];
+  webAppsSeeded?: boolean;
+  webDefaultsVersion?: number;
   savedWindowBounds: Record<string, SavedWindowBounds>;
 }
 
 const DEFAULT_SETTINGS: DesktopSettings = {
-  uiTheme: "cupertino",
   themeMode: "dark",
   accentColor: "blue",
   wallpaperId: "piloti-aurora",
   customWallpaperUrl: "",
+  gnomeBackground: { ...DEFAULT_GNOME_BACKGROUND },
   dockSize: 52,
+  dockPosition: "bottom",
   dockMagnification: true,
   dockMagnificationSize: 76,
   dockAutoHide: false,
   clock24Hour: true,
   clockShowSeconds: false,
-  clockShowDate: false,
-  windowTranslucency: true,
   windowDecorationMode: "auto",
-  csdClipShadow: true,
-  csdShowGrabBar: true,
   syncGnomeSettings: true,
   preferGnomeControlCenter: false,
   hiddenGnomePanels: [...DEFAULT_HIDDEN_GNOME_PANELS],
+  fontSansFamily: "Cantarell",
+  fontMonoFamily: "Adwaita Mono",
+  fontScale: 1,
+  cssFontSmoothing: "antialiased",
+  cssTextRendering: "auto",
+  cssFontOpticalSizing: "auto",
+  cssFontKerning: "auto",
+  cssFontSynthesis: "auto",
+  cssLetterSpacingEm: 0,
+  cssTextStrokePx: 0,
+  gtkFontName: "Adwaita Sans 11",
+  gtkDocumentFontName: "Sans 11",
+  gtkMonospaceFontName: "Adwaita Mono 11",
+  gtkTextScalingFactor: 1,
+  gtkFontAntialiasing: "grayscale",
+  gtkFontHinting: "slight",
+  gtkFontRgbaOrder: "rgb",
   volume: 78,
   muted: false,
   brightness: 95,
@@ -97,21 +165,193 @@ const DEFAULT_SETTINGS: DesktopSettings = {
   connectedWifi: "Piloti-5G-Ultra",
   bluetoothEnabled: true,
   doNotDisturb: false,
+  notificationsEnabled: true,
+  notificationBannersEnabled: true,
+  notificationShowOnLockScreen: true,
+  notificationShowPreviews: true,
+  notificationAllowCriticalInDnd: true,
+  notificationBannerPosition: "top-center",
+  notificationBannerTimeoutMs: 5000,
+  notificationHistoryLimit: 50,
   powerMode: "balanced",
   activeWorkspace: 1,
   workspaceCount: 2,
+  restoreWindowsOnLogin: true,
+  desktopIconsEnabled: true,
+  desktopIconPositions: {},
   pinnedAppIds: APP_CATALOG.filter((a) => a.pinnedByDefault).map((a) => a.id),
   installedWebApps: [],
   savedWindowBounds: {},
 };
 
 const STORAGE_KEY = "piloti.desktop.settings.v1";
+const WINDOW_BOUNDS_STORAGE_KEY = "piloti.window-bounds.v1";
+const DESKTOP_ICONS_STORAGE_KEY = "piloti.desktop-icon-positions.v1";
+
+function loadSeparatedRecord<T>(key: string): Record<string, T> | null {
+  if (typeof localStorage === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+      ? (parsed as Record<string, T>)
+      : null;
+  } catch {
+    return null;
+  }
+}
 
 export function isBrowserDevRuntime(): boolean {
   return typeof window !== "undefined" && Boolean(window.__PILOTI_BROWSER_HOST__);
 }
 
-interface SettingsContextValue {
+export const WEB_DEFAULTS_VERSION = 4;
+
+const DEFAULT_WEB_PINNED_APP_IDS = ["nautilus", "settings"];
+
+const WEB_HIDDEN_APP_IDS = new Set([
+  "terminal",
+  "browser",
+  "org.gnome.Console.desktop",
+  "org.gnome.TextEditor.desktop",
+  "org.gnome.Calculator.desktop",
+  "org.gnome.Loupe.desktop",
+  "org.gnome.Evince.desktop",
+  "org.gnome.baobab.desktop",
+  "org.gnome.SystemMonitor.desktop",
+  "kitty.desktop",
+  "firefox-esr.desktop",
+  "code.desktop",
+  "gimp.desktop",
+]);
+
+function normalizeWebPinnedApps(rawPins: unknown): string[] {
+  const base = Array.isArray(rawPins)
+    ? rawPins.filter(
+        (id): id is string =>
+          typeof id === "string" && !WEB_HIDDEN_APP_IDS.has(id)
+      )
+    : [];
+  const merged = [...base];
+  for (const requiredId of DEFAULT_WEB_PINNED_APP_IDS) {
+    if (!merged.includes(requiredId)) {
+      merged.push(requiredId);
+    }
+  }
+  return merged;
+}
+
+function mergeDefaultBrowserWebApps(
+  existing: InstalledWebApp[]
+): InstalledWebApp[] {
+  const existingUrls = new Set(existing.map((app) => app.url));
+  return [
+    ...existing,
+    ...DEFAULT_LAUNCHER_WEB_APPS.filter((app) => !existingUrls.has(app.url)),
+  ];
+}
+
+/**
+ * Resolves initial desktop settings from serialized storage. When running the
+ * web backend (`isBrowserBackend`), pins only Files (Nautilus) and Settings and
+ * pre-installs the curated 20 iframe-friendly web apps once per defaults
+ * version without overriding subsequent user edits.
+ */
+export function resolveInitialSettings(
+  savedJson: string | null,
+  isBrowserBackend: boolean
+): DesktopSettings {
+  if (savedJson) {
+    try {
+      const parsed = JSON.parse(savedJson) as Partial<DesktopSettings>;
+      const workspaceCount =
+        typeof parsed.workspaceCount === "number" && parsed.workspaceCount >= 1
+          ? parsed.workspaceCount
+          : DEFAULT_SETTINGS.workspaceCount;
+      const activeWorkspace = Math.max(
+        1,
+        Math.min(workspaceCount, parsed.activeWorkspace ?? 1)
+      );
+      const rawWebApps = Array.isArray(parsed.installedWebApps)
+        ? parsed.installedWebApps
+        : [];
+      const needsWebDefaults =
+        isBrowserBackend && parsed.webDefaultsVersion !== WEB_DEFAULTS_VERSION;
+
+      const installedWebApps = needsWebDefaults
+        ? parsed.webAppsSeeded === true
+          ? [...DEFAULT_LAUNCHER_WEB_APPS]
+          : mergeDefaultBrowserWebApps(rawWebApps)
+        : rawWebApps;
+
+      const pinnedAppIds = needsWebDefaults
+        ? normalizeWebPinnedApps(parsed.pinnedAppIds)
+        : Array.isArray(parsed.pinnedAppIds)
+          ? parsed.pinnedAppIds
+          : DEFAULT_SETTINGS.pinnedAppIds;
+
+      const rawGnomeBg =
+        parsed.gnomeBackground && typeof parsed.gnomeBackground === "object"
+          ? parsed.gnomeBackground
+          : {};
+      const gnomeBackground: GnomeBackgroundSettings = {
+        ...DEFAULT_GNOME_BACKGROUND,
+        ...rawGnomeBg,
+      };
+      if (parsed.customWallpaperUrl && !gnomeBackground.pictureUri) {
+        gnomeBackground.pictureUri = parsed.customWallpaperUrl;
+      }
+
+      const notificationBannerPosition: NotificationBannerPosition =
+        parsed.notificationBannerPosition === "top-right" ||
+        parsed.notificationBannerPosition === "bottom-right" ||
+        parsed.notificationBannerPosition === "top-center"
+          ? parsed.notificationBannerPosition
+          : DEFAULT_SETTINGS.notificationBannerPosition;
+      const notificationBannerTimeoutMs =
+        typeof parsed.notificationBannerTimeoutMs === "number" &&
+        Number.isFinite(parsed.notificationBannerTimeoutMs)
+          ? Math.max(0, parsed.notificationBannerTimeoutMs)
+          : DEFAULT_SETTINGS.notificationBannerTimeoutMs;
+      const notificationHistoryLimit = clampHistoryLimit(
+        parsed.notificationHistoryLimit
+      );
+
+      return {
+        ...DEFAULT_SETTINGS,
+        ...parsed,
+        gnomeBackground,
+        notificationBannerPosition,
+        notificationBannerTimeoutMs,
+        notificationHistoryLimit,
+        workspaceCount,
+        activeWorkspace,
+        pinnedAppIds,
+        installedWebApps,
+        ...(isBrowserBackend
+          ? { webAppsSeeded: true, webDefaultsVersion: WEB_DEFAULTS_VERSION }
+          : {}),
+        savedWindowBounds: parsed.savedWindowBounds ?? {},
+      };
+    } catch {
+      // ignore storage errors
+    }
+  }
+
+  if (isBrowserBackend) {
+    return {
+      ...DEFAULT_SETTINGS,
+      pinnedAppIds: [...DEFAULT_WEB_PINNED_APP_IDS],
+      installedWebApps: [...DEFAULT_LAUNCHER_WEB_APPS],
+      webAppsSeeded: true,
+      webDefaultsVersion: WEB_DEFAULTS_VERSION,
+    };
+  }
+  return DEFAULT_SETTINGS;
+}
+
+export interface SettingsContextValue {
   isBrowserRuntime: boolean;
   settings: DesktopSettings;
   updateSettings: (patch: Partial<DesktopSettings>) => void;
@@ -120,54 +360,123 @@ interface SettingsContextValue {
   resolvedTheme: "dark" | "light";
   reducedMotion: boolean;
   activeWallpaper: WallpaperOption;
+  backgroundSpec: BackgroundRenderSpec;
 }
 
-const SettingsContext = React.createContext<SettingsContextValue | null>(null);
+export const SettingsContext = React.createContext<SettingsContextValue | null>(null);
 
-export function SettingsProvider({ children }: { children: React.ReactNode }) {
+export function useSettingsValue(options?: {
+  deferLocalWallpaper?: boolean;
+}): SettingsContextValue {
+  const deferLocalWallpaper = Boolean(options?.deferLocalWallpaper);
   const domicile = useDomicile();
   const isBrowserRuntime = isBrowserDevRuntime();
   const portalWallpaper = usePortalWallpaper();
+  const [wallpaperFallbackReady, setWallpaperFallbackReady] =
+    React.useState(false);
+
+  React.useEffect(() => {
+    if (!deferLocalWallpaper || wallpaperFallbackReady) return;
+    const timer = window.setTimeout(() => {
+      setWallpaperFallbackReady(true);
+    }, 1500);
+    return () => window.clearTimeout(timer);
+  }, [deferLocalWallpaper, wallpaperFallbackReady]);
+
+  const allowLocalWallpaper = !deferLocalWallpaper || wallpaperFallbackReady;
 
   const [settings, setSettings] = React.useState<DesktopSettings>(() => {
     if (typeof window === "undefined") return DEFAULT_SETTINGS;
     try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved) as Partial<DesktopSettings>;
-        const workspaceCount =
-          typeof parsed.workspaceCount === "number" && parsed.workspaceCount >= 1
-            ? parsed.workspaceCount
-            : DEFAULT_SETTINGS.workspaceCount;
-        const activeWorkspace = Math.max(
-          1,
-          Math.min(workspaceCount, parsed.activeWorkspace ?? 1)
-        );
-        return {
-          ...DEFAULT_SETTINGS,
-          ...parsed,
-          workspaceCount,
-          activeWorkspace,
-          installedWebApps: Array.isArray(parsed.installedWebApps)
-            ? parsed.installedWebApps
-            : [],
-          savedWindowBounds: parsed.savedWindowBounds ?? {},
-        };
-      }
+      const base = resolveInitialSettings(
+        localStorage.getItem(STORAGE_KEY),
+        isBrowserRuntime
+      );
+      const separatedBounds = loadSeparatedRecord<SavedWindowBounds>(
+        WINDOW_BOUNDS_STORAGE_KEY
+      );
+      const separatedIcons = loadSeparatedRecord<{ col: number; row: number }>(
+        DESKTOP_ICONS_STORAGE_KEY
+      );
+      return {
+        ...base,
+        savedWindowBounds: separatedBounds
+          ? { ...base.savedWindowBounds, ...separatedBounds }
+          : base.savedWindowBounds,
+        desktopIconPositions: separatedIcons
+          ? { ...base.desktopIconPositions, ...separatedIcons }
+          : base.desktopIconPositions,
+      };
     } catch {
-      // ignore storage errors
+      return resolveInitialSettings(null, isBrowserRuntime);
     }
-    return DEFAULT_SETTINGS;
   });
 
   const applyingGnomeSyncRef = React.useRef(false);
+  const settingsRef = React.useRef(settings);
+  settingsRef.current = settings;
   const sliderTimersRef = React.useRef<{
     audio?: ReturnType<typeof setTimeout>;
     brightness?: ReturnType<typeof setTimeout>;
+    boundsStorage?: ReturnType<typeof setTimeout>;
+    iconsStorage?: ReturnType<typeof setTimeout>;
   }>({});
 
-  const persist = (next: DesktopSettings) => {
+  const persist = (next: DesktopSettings, patch?: Partial<DesktopSettings>) => {
+    if (typeof localStorage === "undefined") return;
     try {
+      const patchKeys = patch ? Object.keys(patch) : null;
+      const onlyBounds =
+        patchKeys !== null &&
+        patchKeys.length === 1 &&
+        patchKeys[0] === "savedWindowBounds";
+      const onlyIcons =
+        patchKeys !== null &&
+        patchKeys.length === 1 &&
+        patchKeys[0] === "desktopIconPositions";
+
+      if (onlyBounds) {
+        clearTimeout(sliderTimersRef.current.boundsStorage);
+        sliderTimersRef.current.boundsStorage = setTimeout(() => {
+          try {
+            localStorage.setItem(
+              WINDOW_BOUNDS_STORAGE_KEY,
+              JSON.stringify(next.savedWindowBounds)
+            );
+          } catch {
+            // ignore
+          }
+        }, 120);
+        return;
+      }
+
+      if (onlyIcons) {
+        clearTimeout(sliderTimersRef.current.iconsStorage);
+        sliderTimersRef.current.iconsStorage = setTimeout(() => {
+          try {
+            localStorage.setItem(
+              DESKTOP_ICONS_STORAGE_KEY,
+              JSON.stringify(next.desktopIconPositions)
+            );
+          } catch {
+            // ignore
+          }
+        }, 120);
+        return;
+      }
+
+      if (patch?.savedWindowBounds !== undefined) {
+        localStorage.setItem(
+          WINDOW_BOUNDS_STORAGE_KEY,
+          JSON.stringify(next.savedWindowBounds)
+        );
+      }
+      if (patch?.desktopIconPositions !== undefined) {
+        localStorage.setItem(
+          DESKTOP_ICONS_STORAGE_KEY,
+          JSON.stringify(next.desktopIconPositions)
+        );
+      }
       localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
     } catch {
       // ignore storage errors
@@ -177,7 +486,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const applySettingsState = React.useCallback((patch: Partial<DesktopSettings>) => {
     setSettings((prev) => {
       const next = { ...prev, ...patch };
-      persist(next);
+      persist(next, patch);
       return next;
     });
   }, []);
@@ -186,7 +495,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     (patch: Partial<DesktopSettings>) => {
       setSettings((prev) => {
         const next = { ...prev, ...patch };
-        persist(next);
+        persist(next, patch);
 
         if (!isBrowserRuntime && !applyingGnomeSyncRef.current) {
           if (
@@ -194,7 +503,14 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
             (patch.themeMode !== undefined ||
               patch.accentColor !== undefined ||
               patch.clock24Hour !== undefined ||
-              patch.clockShowSeconds !== undefined)
+              patch.clockShowSeconds !== undefined ||
+              patch.gtkFontName !== undefined ||
+              patch.gtkDocumentFontName !== undefined ||
+              patch.gtkMonospaceFontName !== undefined ||
+              patch.gtkTextScalingFactor !== undefined ||
+              patch.gtkFontAntialiasing !== undefined ||
+              patch.gtkFontHinting !== undefined ||
+              patch.gtkFontRgbaOrder !== undefined)
           ) {
             void syncGnomeInterfaceKey(domicile, {
               ...(patch.themeMode !== undefined ? { themeMode: next.themeMode } : {}),
@@ -202,6 +518,56 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
               ...(patch.clock24Hour !== undefined ? { clock24Hour: next.clock24Hour } : {}),
               ...(patch.clockShowSeconds !== undefined
                 ? { clockShowSeconds: next.clockShowSeconds }
+                : {}),
+              ...(patch.gtkFontName !== undefined ? { gtkFontName: next.gtkFontName } : {}),
+              ...(patch.gtkDocumentFontName !== undefined
+                ? { gtkDocumentFontName: next.gtkDocumentFontName }
+                : {}),
+              ...(patch.gtkMonospaceFontName !== undefined
+                ? { gtkMonospaceFontName: next.gtkMonospaceFontName }
+                : {}),
+              ...(patch.gtkTextScalingFactor !== undefined
+                ? { gtkTextScalingFactor: next.gtkTextScalingFactor }
+                : {}),
+              ...(patch.gtkFontAntialiasing !== undefined
+                ? { gtkFontAntialiasing: next.gtkFontAntialiasing }
+                : {}),
+              ...(patch.gtkFontHinting !== undefined
+                ? { gtkFontHinting: next.gtkFontHinting }
+                : {}),
+              ...(patch.gtkFontRgbaOrder !== undefined
+                ? { gtkFontRgbaOrder: next.gtkFontRgbaOrder }
+                : {}),
+            });
+          }
+
+          if (next.syncGnomeSettings && patch.gnomeBackground) {
+            const bgDiff: Partial<GnomeBackgroundSettings> = {};
+            const keys = Object.keys(
+              patch.gnomeBackground
+            ) as (keyof GnomeBackgroundSettings)[];
+            for (const key of keys) {
+              if (next.gnomeBackground[key] !== prev.gnomeBackground[key]) {
+                (bgDiff as Record<string, unknown>)[key] =
+                  next.gnomeBackground[key];
+              }
+            }
+            if (Object.keys(bgDiff).length > 0) {
+              void syncGnomeBackgroundSettings(domicile, bgDiff);
+            }
+          }
+
+          if (
+            next.syncGnomeSettings &&
+            (patch.doNotDisturb !== undefined ||
+              patch.notificationShowOnLockScreen !== undefined)
+          ) {
+            void syncGnomeNotificationSettings(domicile, {
+              ...(patch.doNotDisturb !== undefined
+                ? { doNotDisturb: next.doNotDisturb }
+                : {}),
+              ...(patch.notificationShowOnLockScreen !== undefined
+                ? { showInLockScreen: next.notificationShowOnLockScreen }
                 : {}),
             });
           }
@@ -241,37 +607,23 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     [domicile, isBrowserRuntime]
   );
 
-  // Sync portal-requested background wallpaper path into customWallpaperUrl
+  // Sync portal-requested background wallpaper path into GNOME background spec
   React.useEffect(() => {
     const bgPath = portalWallpaper?.background;
     if (!bgPath || isBrowserRuntime) return;
-    let cancelled = false;
-
-    (async () => {
-      const res = await domicile.files.read(bgPath);
-      res.match({
-        Ok: (bytes) => {
-          if (cancelled || bytes.length === 0) return;
-          const lower = bgPath.toLowerCase();
-          const mime = lower.endsWith(".png")
-            ? "image/png"
-            : lower.endsWith(".webp")
-              ? "image/webp"
-              : "image/jpeg";
-          let bin = "";
-          for (let i = 0; i < bytes.length; i += 0x8000) {
-            bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
-          }
-          updateSettings({ customWallpaperUrl: `data:${mime};base64,${btoa(bin)}` });
-        },
-        Err: () => {},
-      });
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [domicile.files, isBrowserRuntime, portalWallpaper?.background, updateSettings]);
+    const fileUri = localPathToFileUri(bgPath);
+    const curBg = settingsRef.current.gnomeBackground;
+    updateSettings({
+      wallpaperId: "gnome",
+      customWallpaperUrl: "",
+      gnomeBackground: {
+        ...curBg,
+        pictureUri: fileUri,
+        pictureUriDark: fileUri,
+        pictureOptions: curBg.pictureOptions === "none" ? "zoom" : curBg.pictureOptions,
+      },
+    });
+  }, [isBrowserRuntime, portalWallpaper?.background, updateSettings]);
 
   const [systemDark, setSystemDark] = React.useState(() =>
     typeof window !== "undefined"
@@ -312,20 +664,104 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     document.documentElement.dataset.reducedMotion = reducedMotion ? "true" : "false";
   }, [reducedMotion]);
 
+  React.useLayoutEffect(() => {
+    const root = document.documentElement;
+    const formatFontList = (raw: string, fallback: string) => {
+      const cleaned = raw.trim();
+      if (!cleaned) return fallback;
+      const parts = cleaned
+        .split(",")
+        .map((p) => p.trim())
+        .filter(Boolean)
+        .map((p) =>
+          p.includes(" ") && !/^["'].*["']$/.test(p) ? `"${p}"` : p
+        );
+      return parts.length > 0 ? `${parts.join(", ")}, ${fallback}` : fallback;
+    };
+
+    root.style.setProperty(
+      "--font-adw",
+      formatFontList(
+        settings.fontSansFamily,
+        '"Cantarell", "Adwaita Sans", "Inter", system-ui, -apple-system, BlinkMacSystemFont, sans-serif'
+      )
+    );
+    root.style.setProperty(
+      "--font-adw-mono",
+      formatFontList(
+        settings.fontMonoFamily,
+        '"Adwaita Mono", "Source Code Pro", "JetBrains Mono", ui-monospace, monospace'
+      )
+    );
+    root.style.setProperty("--piloti-font-smoothing", settings.cssFontSmoothing);
+    root.style.setProperty("--piloti-text-rendering", settings.cssTextRendering);
+    root.style.setProperty(
+      "--piloti-font-optical-sizing",
+      settings.cssFontOpticalSizing
+    );
+    root.style.setProperty("--piloti-font-kerning", settings.cssFontKerning);
+    root.style.setProperty(
+      "--piloti-font-synthesis",
+      settings.cssFontSynthesis === "none" ? "none" : "weight style"
+    );
+    root.style.setProperty(
+      "--piloti-letter-spacing",
+      `${settings.cssLetterSpacingEm}em`
+    );
+    root.style.setProperty(
+      "--piloti-text-stroke-width",
+      `${settings.cssTextStrokePx}px`
+    );
+
+    const scale = Math.max(0.8, Math.min(1.5, settings.fontScale || 1));
+    if (Math.abs(scale - 1) < 0.001) {
+      root.style.removeProperty("--text-adw-large-title");
+      root.style.removeProperty("--text-adw-title-1");
+      root.style.removeProperty("--text-adw-title-2");
+      root.style.removeProperty("--text-adw-title-3");
+      root.style.removeProperty("--text-adw-headline");
+      root.style.removeProperty("--text-adw-body");
+      root.style.removeProperty("--text-adw-callout");
+      root.style.removeProperty("--text-adw-subheadline");
+      root.style.removeProperty("--text-adw-footnote");
+      root.style.removeProperty("--text-adw-caption");
+    } else {
+      const px = (base: number) => `${Math.round(base * scale * 10) / 10}px`;
+      root.style.setProperty("--text-adw-large-title", px(26));
+      root.style.setProperty("--text-adw-title-1", px(22));
+      root.style.setProperty("--text-adw-title-2", px(17));
+      root.style.setProperty("--text-adw-title-3", px(15));
+      root.style.setProperty("--text-adw-headline", px(13));
+      root.style.setProperty("--text-adw-body", px(13));
+      root.style.setProperty("--text-adw-callout", px(12));
+      root.style.setProperty("--text-adw-subheadline", px(11));
+      root.style.setProperty("--text-adw-footnote", px(10));
+      root.style.setProperty("--text-adw-caption", px(10));
+    }
+  }, [
+    settings.cssFontKerning,
+    settings.cssFontOpticalSizing,
+    settings.cssFontSmoothing,
+    settings.cssFontSynthesis,
+    settings.cssLetterSpacingEm,
+    settings.cssTextRendering,
+    settings.cssTextStrokePx,
+    settings.fontMonoFamily,
+    settings.fontSansFamily,
+    settings.fontScale,
+  ]);
+
   const resolvedTheme: "dark" | "light" =
     settings.themeMode === "system" ? (systemDark ? "dark" : "light") : settings.themeMode;
 
   React.useLayoutEffect(() => {
     const root = document.documentElement;
-    root.dataset.uiTheme = settings.uiTheme ?? "cupertino";
     root.classList.toggle("dark", resolvedTheme === "dark");
     root.style.colorScheme = resolvedTheme;
     const accent = ACCENT_COLORS.find((a) => a.id === settings.accentColor);
     if (accent && accent.id !== "blue") {
-      root.style.setProperty("--mac-accent", accent.cssVar);
       root.style.setProperty("--adw-active-accent", accent.cssVar);
     } else {
-      root.style.removeProperty("--mac-accent");
       root.style.removeProperty("--adw-active-accent");
     }
     try {
@@ -333,7 +769,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     } catch {
       // ignore if compositor not ready
     }
-  }, [resolvedTheme, settings.accentColor, settings.uiTheme, domicile.theme]);
+  }, [resolvedTheme, settings.accentColor, domicile.theme]);
 
   React.useEffect(() => {
     if (isBrowserRuntime) return;
@@ -346,12 +782,104 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     return domicile.on("compositorreplaced", applyTemp);
   }, [domicile, isBrowserRuntime, settings.nightLight]);
 
-  const activeWallpaper = React.useMemo(
-    () => WALLPAPERS.find((w) => w.id === settings.wallpaperId) ?? WALLPAPERS[0],
-    [settings.wallpaperId]
+  const activeWallpaper = React.useMemo(() => {
+    if (settings.wallpaperId?.startsWith("#")) {
+      return {
+        id: settings.wallpaperId,
+        name: "Custom Color",
+        subtitle: settings.wallpaperId,
+        category: "Solid" as const,
+        backgroundCss: settings.wallpaperId,
+      };
+    }
+    return WALLPAPERS.find((w) => w.id === settings.wallpaperId) ?? WALLPAPERS[0];
+  }, [settings.wallpaperId]);
+
+  const activePictureUri =
+    selectGnomePictureUri(settings.gnomeBackground, resolvedTheme) ||
+    settings.customWallpaperUrl ||
+    "";
+  const isLocalPictureUri = Boolean(fileUriToLocalPath(activePictureUri));
+  const [resolvedLocalPicture, setResolvedLocalPicture] = React.useState<{
+    raw: string;
+    blobUrl: string;
+  }>({ raw: "", blobUrl: "" });
+  const activeBlobUrlRef = React.useRef("");
+
+  React.useEffect(() => {
+    if (!activePictureUri || !isLocalPictureUri || isBrowserRuntime) {
+      if (activeBlobUrlRef.current) {
+        URL.revokeObjectURL(activeBlobUrlRef.current);
+        activeBlobUrlRef.current = "";
+      }
+      setResolvedLocalPicture({ raw: "", blobUrl: "" });
+      return;
+    }
+    if (!allowLocalWallpaper) return;
+
+    let cancelled = false;
+    const finishBg = startBootPhase("bg");
+    void readGnomeBackgroundBlob(domicile, activePictureUri).then((blob) => {
+      if (cancelled || !blob) {
+        if (!cancelled) finishBg("empty");
+        return;
+      }
+      const nextUrl = URL.createObjectURL(blob);
+      if (activeBlobUrlRef.current) {
+        URL.revokeObjectURL(activeBlobUrlRef.current);
+      }
+      activeBlobUrlRef.current = nextUrl;
+      setResolvedLocalPicture({ raw: activePictureUri, blobUrl: nextUrl });
+      finishBg(`${Math.round(blob.size / 1024)} KB`);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    activePictureUri,
+    allowLocalWallpaper,
+    domicile,
+    isBrowserRuntime,
+    isLocalPictureUri,
+  ]);
+
+  React.useEffect(() => {
+    return () => {
+      if (activeBlobUrlRef.current) {
+        URL.revokeObjectURL(activeBlobUrlRef.current);
+        activeBlobUrlRef.current = "";
+      }
+    };
+  }, []);
+
+  const resolvedPictureSrc = isLocalPictureUri
+    ? resolvedLocalPicture.raw === activePictureUri
+      ? resolvedLocalPicture.blobUrl
+      : ""
+    : activePictureUri;
+
+  const backgroundSpec = React.useMemo(
+    () =>
+      resolveBackgroundRenderSpec({
+        wallpaperId: settings.wallpaperId,
+        customWallpaperUrl: settings.customWallpaperUrl,
+        gnomeBackground: settings.gnomeBackground,
+        activeWallpaper,
+        resolvedTheme,
+        resolvedPictureSrc,
+      }),
+    [
+      activeWallpaper,
+      resolvedPictureSrc,
+      resolvedTheme,
+      settings.customWallpaperUrl,
+      settings.gnomeBackground,
+      settings.wallpaperId,
+    ]
   );
 
-  const value = React.useMemo<SettingsContextValue>(
+  return React.useMemo<SettingsContextValue>(
     () => ({
       isBrowserRuntime,
       settings,
@@ -361,6 +889,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       resolvedTheme,
       reducedMotion,
       activeWallpaper,
+      backgroundSpec,
     }),
     [
       isBrowserRuntime,
@@ -370,18 +899,15 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       resolvedTheme,
       reducedMotion,
       activeWallpaper,
+      backgroundSpec,
     ]
-  );
-
-  return (
-    <SettingsContext.Provider value={value}>{children}</SettingsContext.Provider>
   );
 }
 
 export function useSettings() {
   const ctx = React.useContext(SettingsContext);
   if (!ctx) {
-    throw new Error("useSettings must be used within SettingsProvider");
+    throw new Error("useSettings must be used within DesktopStateProvider");
   }
   return ctx;
 }

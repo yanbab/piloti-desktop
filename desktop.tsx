@@ -1,7 +1,15 @@
 /// <reference types="@domicile-desktop/react/elements" />
 import "./src/styles/globals.css";
 import { mount } from "@domicile-desktop/react/mount";
-import { PilotiShell } from "./src/components/shell/PilotiShell";
+import { Desktop as DesktopView } from "./src/components/shell/Desktop";
+import { ShellErrorBoundary } from "./src/components/shell/ShellErrorBoundary";
 
-export const Desktop = PilotiShell;
-export const Shell = mount(PilotiShell);
+export function Desktop() {
+  return (
+    <ShellErrorBoundary>
+      <DesktopView />
+    </ShellErrorBoundary>
+  );
+}
+
+export const Shell = mount(Desktop);

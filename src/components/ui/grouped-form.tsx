@@ -9,7 +9,7 @@ function GroupedForm({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="grouped-form"
       className={cn(
-        "flex flex-col gap-2.5 px-5 pt-[11px] pb-5 text-mac-body text-mac-label",
+        "flex flex-col gap-2.5 px-5 pt-[11px] pb-5 text-adw-body text-adw-label",
         className
       )}
       {...props}
@@ -38,7 +38,7 @@ function GroupedFormSectionTitle({
     <h3
       data-slot="grouped-form-section-title"
       className={cn(
-        "px-[11px] text-mac-body font-semibold text-mac-label",
+        "px-[11px] text-adw-body font-semibold text-adw-label",
         className
       )}
       {...props}
@@ -55,7 +55,7 @@ function GroupedFormGroup({
     <div
       data-slot="grouped-form-group"
       className={cn(
-        "flex flex-col rounded-mac-group bg-mac-group px-2.5",
+        "flex flex-col rounded-adw-group bg-adw-group px-2.5",
         className
       )}
       {...props}
@@ -68,7 +68,7 @@ function GroupedFormRow({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="grouped-form-row"
       className={cn(
-        "flex min-h-9 items-center justify-between gap-4 py-2 not-first:min-h-[37px] has-[[data-slot=grouped-form-row-description]]:py-2.5 not-first:border-t not-first:border-mac-separator has-[[data-slot=select-trigger]]:min-h-[37.5px] not-first:has-[[data-slot=select-trigger]]:min-h-[38.5px]",
+        "flex min-h-9 items-center justify-between gap-4 py-2 not-first:min-h-[37px] has-[[data-slot=grouped-form-row-description]]:py-2.5 not-first:border-t not-first:border-adw-separator has-[[data-slot=select-trigger]]:min-h-[37.5px] not-first:has-[[data-slot=select-trigger]]:min-h-[38.5px]",
         className
       )}
       {...props}
@@ -97,7 +97,7 @@ function GroupedFormRowTitle({
   return (
     <div
       data-slot="grouped-form-row-title"
-      className={cn("text-mac-body text-mac-label", className)}
+      className={cn("text-adw-body text-adw-label", className)}
       {...props}
     />
   )
@@ -111,7 +111,7 @@ function GroupedFormRowDescription({
     <p
       data-slot="grouped-form-row-description"
       className={cn(
-        "text-mac-subheadline text-mac-label-secondary",
+        "text-adw-subheadline text-adw-label-secondary",
         className
       )}
       {...props}

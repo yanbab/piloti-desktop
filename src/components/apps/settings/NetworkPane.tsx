@@ -1,3 +1,4 @@
+import * as React from "react";
 import { CheckIcon, SignalHighIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,8 +17,16 @@ import { useSettings, useSystemBackends } from "@/context/DesktopStateContext";
 
 export function NetworkPane() {
   const { settings, updateSettings } = useSettings();
-  const { gnomeCapabilities, liveWifiNetworks, connectWifiNetwork } =
-    useSystemBackends();
+  const {
+    gnomeCapabilities,
+    liveWifiNetworks,
+    connectWifiNetwork,
+    refreshSystemBackends,
+  } = useSystemBackends();
+
+  React.useEffect(() => {
+    void refreshSystemBackends({ scanWifi: true });
+  }, [refreshSystemBackends]);
 
   return (
     <GroupedForm>
@@ -59,7 +68,7 @@ export function NetworkPane() {
                 <GroupedFormRow key={net.ssid}>
                   <GroupedFormRowLabel>
                     <GroupedFormRowTitle className="flex items-center gap-2 font-medium">
-                      <SignalHighIcon className="size-4 text-mac-accent" />
+                      <SignalHighIcon className="size-4 text-adw-accent" />
                       <span>{net.ssid}</span>
                       {connected && (
                         <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-[10px] font-semibold text-emerald-400">
@@ -74,7 +83,7 @@ export function NetworkPane() {
                   </GroupedFormRowLabel>
                   <GroupedFormRowControl>
                     {connected ? (
-                      <CheckIcon className="size-4 text-mac-accent" />
+                      <CheckIcon className="size-4 text-adw-accent" />
                     ) : (
                       <Button
                         size="sm"

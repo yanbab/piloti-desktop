@@ -4,38 +4,30 @@
 
 # Piloti Desktop
 
-A fluid Linux Wayland desktop shell built on [Domicile](https://domicile-desktop.com/) combining **Apple Cupertino (Liquid Glass)** and **GNOME Adwaita (Libadwaita 1.6)** design systems.
-
----
+A Linux Wayland desktop shell built on [Domicile](https://domicile-desktop.com/) with an **Adwaita / GNOME** design system.
 
 ## Features
 
-- **Native Wayland Compositor Integration**: Renders real Linux Wayland apps inside `<app>` surfaces via Domicile with per-app geometry memory, edge snapping drop zones, and 8-edge resizing.
-- **Dual Design Language**: Switch live between **Cupertino** and calibrated **GNOME Adwaita** (`#202024` / `#343437` surfaces, Adwaita accent colors, and native CSD support with no duplicate titlebars).
-- **XDG Desktop & Icon Theme Spec**: Single-file [`xdg-desktop`](./src/lib/xdg-desktop.ts) module discovers installed `.desktop` applications and resolves real SVG/PNG icons across active icon themes (`Adwaita`, `hicolor`, `pixmaps`).
-- **GNOME Stack & `gnome-control-center` Integration**: Two-way `GSettings` / `dconf` sync (`color-scheme`, `accent-color`, `clock-format`, `icon-theme`), PipeWire (`wpctl` / `pactl`), NetworkManager (`nmcli`), UPower, `power-profiles-daemon`, hardware Night Light (`setColorTemperature`), and `XDG_CURRENT_DESKTOP=GNOME` app launching.
-- **Shell Chrome & Wayland Features**:
-  - **Top Menu Bar** with workspace switcher, active capture controls, and DBusMenu system tray indicators
-  - **Bottom Magnifying Dock** & **Right-Side Control Center / Notifications Panel**
-  - **Command Palette (`Alt+Space`)** with unified menu material
-  - **Task Switcher (`Alt+Tab`)** with live PNG window previews (`domicile.capture.preview`)
-  - **Lock Screen (`domicile.session`)** & **XDG Portal Dialogs** (screenshots, screen casts, color picker, permissions)
-  - **Zero-Offset `(0, 0)` SVG Cursors** for pixel-accurate clicks under Ozone/DRM & VMware `vmwgfx`
-
----
+- **Wayland Window Management**: Renders native Wayland clients (`<app app-id="…" />`) with `xdg_toplevel` state synchronization (`Maximized`, `Fullscreen`, `Tiled*`), client-initiated `Move` / `Resize` / `Minimize`, `Alt`/`Super` + drag, 8-edge resizing, edge snapping, and per-app geometry memory.
+- **Unified Menu bar**: Dynamic application menu, Overview switcher, live screen-capture indicator pill, DBusMenu System Tray, `Launcher`, and `ControlPanel` unified under a single non-modal menu bar.
+- **Dock & Desktop Icons**: Magnifying app dock with macOS-style slide-in entrance, XDG Trash status + actions, and a transparent spatial `DesktopIconsApp` for `~/Desktop` with rubber-band selection, drag placement, and 2D keyboard navigation.
+- **Notifications & History**: FreeDesktop-compatible toast banners with urgency timeouts, Do Not Disturb, lock screen privacy rules, and persistent notification history in `ControlPanel`.
+- **GNOME Adwaita Styling**: Light and dark modes, official Libadwaita 1.6 accent colors, GNOME `org.gnome.desktop.background` wallpapers (including `.jxl` transcode + host downscaling), solid wallpapers, and custom background images.
+- **XDG & GNOME Integration**: Standards-compliant FreeDesktop `.desktop`, `index.theme`, Base Directory, Trash, and Session Management modules with two-way `GSettings` sync, PipeWire (`wpctl`/`pactl`), NetworkManager (`nmcli`), UPower, Web Battery API fallback, `powerprofilesctl`, and XDG Desktop Portals.
+- **Built-in Utilities**: System Settings (`appearance`, `fonts`, `dock`, `notifications`, `wallpaper`, `network`, `sound`, `displays`, `about`) and **DevTools** (CSP-safe JS REPL, live logs persisted to `~/.cache/piloti/piloti.log`, state inspector, and `localStorage` explorer).
 
 ## Quick Start
 
-### 1. Run in Browser (macOS / Linux Dev Harness)
+### Browser Development Mode
 
 ```bash
 bun install
 bun run dev
 ```
 
-Open `http://localhost:5173`.
+Open `http://localhost:5173`. Runs against a local `FakeDomicileHost` harness with simulated apps and hardware controls.
 
-### 2. Run on Linux under Domicile
+### Native Wayland Session (Linux + Domicile)
 
 ```bash
 # Run directly from TypeScript source
@@ -44,12 +36,12 @@ domicile ./desktop.tsx
 # Hot-swap into a running Domicile session
 domicile load-shell ./desktop.tsx
 
-# Or build a standalone single-file bundle
+# Build standalone bundle
 bun run build:shell
 domicile ./dist/shell.js
 ```
 
-### 3. Tests & Typechecking
+### Tests, Typecheck & Build
 
 ```bash
 bun test
@@ -57,14 +49,24 @@ bun run typecheck
 bun run build
 ```
 
----
+## Keyboard Shortcuts
 
-## Documentation & Website
+| Shortcut | Action |
+| :--- | :--- |
+| `Alt + Space` / `Meta + K` | Toggle Launcher (Search apps, windows, actions, URLs) |
+| `Alt + Tab` / `Alt + Shift + Tab` | Cycle open windows with live thumbnails |
+| `Meta + ↑` / `F3` | Toggle Overview |
+| `Print` | Take interactive screenshot |
+| `Meta + Return` | Launch terminal (`kitty`) |
+| `Alt + ,` | Open System Settings |
+| `Alt + N` | Toggle Control panel & Notifications |
+| `Alt + [` / `Alt + ]` | Tile focused window left / right |
+| `Alt + F` | Maximize / restore focused window |
+| `Alt + M` | Minimize focused window |
+| `Alt + W` | Close focused window |
 
-- **[Project Website (`docs/index.html`)](./docs/index.html)** (served directly when GitHub Pages is configured to `/docs`)
-- **[Live Web Demo (`docs/demo/`)](./docs/demo/)** (built automatically on `bun run build` / `bun run build:web`)
-- **[Documentation Index (`docs/README.md`)](./docs/README.md)**
-- **[Architecture (`docs/architecture.md`)](./docs/architecture.md)**
-- **[Components & Shortcuts (`docs/components-and-features.md`)](./docs/components-and-features.md)**
-- **[Debian / VMware Guide (`docs/vmware-debian-guide.md`)](./docs/vmware-debian-guide.md)**
+## Documentation
 
+- **[Architecture & Shell API (`docs/architecture.md`)](./docs/architecture.md)** — Runtime model, directory structure, and APIs for querying/controlling apps, windows, and settings.
+- **[Debian / VMware Guide (`docs/vmware-debian-guide.md`)](./docs/vmware-debian-guide.md)** — Running and hot-reloading Piloti inside a Debian VM with Domicile.
+- **[Project Website (`docs/index.html`)](./docs/index.html)** & **[Web Demo (`docs/demo/`)](./docs/demo/)**.

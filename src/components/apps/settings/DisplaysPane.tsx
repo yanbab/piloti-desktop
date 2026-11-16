@@ -82,7 +82,7 @@ export function DisplaysPane() {
                 </GroupedFormRowDescription>
               </GroupedFormRowLabel>
               <GroupedFormRowControl>
-                <span className="rounded-full bg-mac-accent/15 px-2.5 py-0.5 text-[11px] font-semibold text-mac-accent">
+                <span className="rounded-full bg-adw-accent/15 px-2.5 py-0.5 text-[11px] font-semibold text-adw-accent">
                   {idx === 0 ? "Primary Output" : "Extended"}
                 </span>
               </GroupedFormRowControl>

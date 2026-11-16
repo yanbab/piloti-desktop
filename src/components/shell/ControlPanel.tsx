@@ -1,0 +1,799 @@
+import * as React from "react";
+import {
+  BellIcon,
+  BellOffIcon,
+  BluetoothIcon,
+  CameraIcon,
+  CheckIcon,
+  ChevronRightIcon,
+  FlameIcon,
+  GaugeIcon,
+  LockIcon,
+  MoonIcon,
+  Music2Icon,
+  PauseIcon,
+  PlayIcon,
+  SettingsIcon,
+  SkipBackIcon,
+  SkipForwardIcon,
+  SlidersHorizontalIcon,
+  SpeakerIcon,
+  SunIcon,
+  Trash2Icon,
+  VideoIcon,
+  Volume2Icon,
+  VolumeXIcon,
+  WifiIcon,
+  XIcon,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Slider } from "@/components/ui/slider";
+import {
+  useSettings,
+  useSystemBackends,
+  useWindowManager,
+} from "@/context/DesktopStateContext";
+import { formatRelativeNotificationTime } from "@/lib/notifications";
+import { cn } from "@/lib/utils";
+import {
+  NotificationActionControls,
+  NotificationAppIcon,
+} from "./NotificationParts";
+
+export function ControlPanel() {
+  const { settings, updateSettings } = useSettings();
+  const {
+    liveWifiNetworks,
+    connectWifiNetwork,
+    audioSinks,
+    selectAudioSink,
+    mprisMedia,
+    controlMpris,
+    refreshSystemBackends,
+    notifications,
+    unreadNotificationCount,
+    dismissNotification,
+    clearAllNotifications,
+    markAllNotificationsRead,
+    invokeNotificationAction,
+    takeScreenshot,
+    startScreenRecording,
+  } = useSystemBackends();
+  const { setControlPanelOpen, launchApp, openGnomeSettings } =
+    useWindowManager();
+  const [expandedPicker, setExpandedPicker] = React.useState<
+    "wifi" | "audio" | null
+  >(null);
+
+  const [unreadSnapshot] = React.useState<Set<number>>(
+    () => new Set(notifications.filter((n) => !n.read).map((n) => n.id))
+  );
+
+  React.useEffect(() => {
+    if (unreadNotificationCount > 0) {
+      markAllNotificationsRead();
+    }
+  }, [markAllNotificationsRead, unreadNotificationCount]);
+
+  const togglePicker = (picker: "wifi" | "audio") => {
+    setExpandedPicker((prev) => {
+      const next = prev === picker ? null : picker;
+      if (next !== null) {
+        void refreshSystemBackends({ scanWifi: next === "wifi" });
+      }
+      return next;
+    });
+  };
+
+  const activeSink =
+    audioSinks.find((s) => s.active) ?? audioSinks[0];
+
+  const togglePowerSaver = () => {
+    const nextMode =
+      settings.powerMode === "power-saver" ? "balanced" : "power-saver";
+    console.info("[Piloti] control-panel: power-mode", nextMode);
+    updateSettings({
+      powerMode: nextMode,
+    });
+  };
+
+  return (
+    <div
+      aria-label="Notifications and Quick Settings"
+      onKeyDown={(e) => {
+        if (e.key === "Escape") return;
+        if (
+          (e.key === "ArrowLeft" || e.key === "ArrowRight") &&
+          !(
+            e.target instanceof HTMLElement &&
+            (e.target.closest('[role="slider"]') ||
+              e.target instanceof HTMLInputElement ||
+              e.target instanceof HTMLTextAreaElement)
+          )
+        ) {
+          return;
+        }
+        e.stopPropagation();
+      }}
+      className="flex max-h-[calc(100vh-52px)] w-full flex-col gap-3 overflow-hidden"
+    >
+      {/* Top Header: Date & Settings Shortcut */}
+      <div className="flex items-center justify-between px-1">
+        <div className="flex items-center gap-1.5">
+          <span className="text-[12px] font-semibold text-adw-label-secondary">
+            {new Date().toLocaleDateString("en-US", {
+              weekday: "long",
+              month: "long",
+              day: "numeric",
+            })}
+          </span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            title="Take Screenshot (Print)"
+            onClick={() => {
+              setControlPanelOpen(false);
+              void takeScreenshot();
+            }}
+            className="flex size-7 items-center justify-center rounded-full bg-black/8 text-adw-label transition-colors hover:bg-adw-accent hover:text-white dark:bg-white/10"
+          >
+            <CameraIcon className="size-3.5" />
+          </button>
+          <button
+            type="button"
+            title="Record Screen"
+            onClick={() => {
+              setControlPanelOpen(false);
+              void startScreenRecording();
+            }}
+            className="flex size-7 items-center justify-center rounded-full bg-black/8 text-adw-label transition-colors hover:bg-adw-accent hover:text-white dark:bg-white/10"
+          >
+            <VideoIcon className="size-3.5" />
+          </button>
+          <button
+            type="button"
+            title="Open System Settings (Shift+Click) or Desktop Settings"
+            onClick={(e) => {
+              console.info(
+                "[Piloti] control-panel: open settings",
+                e.shiftKey ? "gnome" : "desktop"
+              );
+              setControlPanelOpen(false);
+              if (e.shiftKey) {
+                openGnomeSettings();
+              } else {
+                launchApp("settings");
+              }
+            }}
+            className="flex size-7 items-center justify-center rounded-full bg-black/8 text-adw-label transition-colors hover:bg-adw-accent hover:text-white dark:bg-white/10"
+          >
+            <SettingsIcon className="size-3.5" />
+          </button>
+        </div>
+      </div>
+
+      {/* Quick Settings Grid */}
+      <div className="grid grid-cols-2 gap-2">
+        {/* Wi-Fi Split Pill (Toggle + Inline Network Picker) */}
+        <div
+          className={cn(
+            "flex items-stretch overflow-hidden rounded-[14px] transition-all",
+            settings.wifiEnabled
+              ? "bg-adw-accent text-white shadow-xs"
+              : "bg-black/6 text-adw-label dark:bg-white/8"
+          )}
+        >
+          <button
+            type="button"
+            onClick={() => {
+              const next = !settings.wifiEnabled;
+              console.info("[Piloti] control-panel: wifi", next ? "on" : "off");
+              updateSettings({ wifiEnabled: next });
+            }}
+            className="flex min-w-0 flex-1 items-center gap-2.5 p-2.5 text-left transition-colors hover:bg-black/5 dark:hover:bg-white/5"
+          >
+            <span
+              className={cn(
+                "flex size-8 shrink-0 items-center justify-center rounded-full",
+                settings.wifiEnabled ? "bg-white/20" : "bg-black/10 dark:bg-white/10"
+              )}
+            >
+              <WifiIcon className="size-4" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <div className="text-[12px] font-semibold">Wi-Fi</div>
+              <div className="truncate text-[10px] opacity-80">
+                {settings.wifiEnabled ? settings.connectedWifi : "Off"}
+              </div>
+            </div>
+          </button>
+          <button
+            type="button"
+            aria-label="Choose Wi-Fi network"
+            aria-expanded={expandedPicker === "wifi"}
+            onClick={() => togglePicker("wifi")}
+            className={cn(
+              "flex w-7 shrink-0 items-center justify-center border-l transition-colors",
+              settings.wifiEnabled
+                ? "border-white/20 hover:bg-white/15"
+                : "border-black/10 hover:bg-black/8 dark:border-white/10 dark:hover:bg-white/10"
+            )}
+          >
+            <ChevronRightIcon
+              className={cn(
+                "size-3.5 transition-transform duration-150",
+                expandedPicker === "wifi" && "rotate-90"
+              )}
+            />
+          </button>
+        </div>
+
+        {/* Bluetooth Pill */}
+        <button
+          type="button"
+          onClick={() => {
+            const next = !settings.bluetoothEnabled;
+            console.info(
+              "[Piloti] control-panel: bluetooth",
+              next ? "on" : "off"
+            );
+            updateSettings({ bluetoothEnabled: next });
+          }}
+          className={cn(
+            "flex items-center gap-2.5 rounded-[14px] p-2.5 text-left transition-all",
+            settings.bluetoothEnabled
+              ? "bg-adw-accent text-white shadow-xs"
+              : "bg-black/6 text-adw-label hover:bg-black/10 dark:bg-white/8 dark:hover:bg-white/12"
+          )}
+        >
+          <span
+            className={cn(
+              "flex size-8 shrink-0 items-center justify-center rounded-full",
+              settings.bluetoothEnabled
+                ? "bg-white/20"
+                : "bg-black/10 dark:bg-white/10"
+            )}
+          >
+            <BluetoothIcon className="size-4" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="text-[12px] font-semibold">Bluetooth</div>
+            <div className="truncate text-[10px] opacity-80">
+              {settings.bluetoothEnabled ? "On · 2 Devices" : "Off"}
+            </div>
+          </div>
+        </button>
+
+        {/* Dark Mode Pill */}
+        <button
+          type="button"
+          onClick={() => {
+            const next = settings.themeMode === "dark" ? "light" : "dark";
+            console.info("[Piloti] control-panel: theme", next);
+            updateSettings({
+              themeMode: next,
+            });
+          }}
+          className={cn(
+            "flex items-center gap-2.5 rounded-[14px] p-2.5 text-left transition-all",
+            settings.themeMode === "dark"
+              ? "bg-adw-accent text-white shadow-xs"
+              : "bg-black/6 text-adw-label hover:bg-black/10 dark:bg-white/8 dark:hover:bg-white/12"
+          )}
+        >
+          <span
+            className={cn(
+              "flex size-8 shrink-0 items-center justify-center rounded-full",
+              settings.themeMode === "dark"
+                ? "bg-white/20"
+                : "bg-black/10 dark:bg-white/10"
+            )}
+          >
+            <MoonIcon className="size-4" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="text-[12px] font-semibold">Dark Mode</div>
+            <div className="truncate text-[10px] opacity-80 capitalize">
+              {settings.themeMode}
+            </div>
+          </div>
+        </button>
+
+        {/* Do Not Disturb Pill */}
+        <button
+          type="button"
+          onClick={() => {
+            const next = !settings.doNotDisturb;
+            console.info(
+              "[Piloti] control-panel: do-not-disturb",
+              next ? "on" : "off"
+            );
+            updateSettings({ doNotDisturb: next });
+          }}
+          className={cn(
+            "flex items-center gap-2.5 rounded-[14px] p-2.5 text-left transition-all",
+            settings.doNotDisturb
+              ? "bg-adw-accent text-white shadow-xs"
+              : "bg-black/6 text-adw-label hover:bg-black/10 dark:bg-white/8 dark:hover:bg-white/12"
+          )}
+        >
+          <span
+            className={cn(
+              "flex size-8 shrink-0 items-center justify-center rounded-full",
+              settings.doNotDisturb
+                ? "bg-white/20"
+                : "bg-black/10 dark:bg-white/10"
+            )}
+          >
+            <BellOffIcon className="size-4" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="text-[12px] font-semibold">Do Not Disturb</div>
+            <div className="truncate text-[10px] opacity-80">
+              {settings.doNotDisturb ? "Silence Active" : "Off"}
+            </div>
+          </div>
+        </button>
+
+        {/* Night Light Pill */}
+        <button
+          type="button"
+          onClick={() => {
+            const next = !settings.nightLight;
+            console.info(
+              "[Piloti] control-panel: night-light",
+              next ? "on" : "off"
+            );
+            updateSettings({ nightLight: next });
+          }}
+          className={cn(
+            "flex items-center gap-2.5 rounded-[14px] p-2.5 text-left transition-all",
+            settings.nightLight
+              ? "bg-adw-accent text-white shadow-xs"
+              : "bg-black/6 text-adw-label hover:bg-black/10 dark:bg-white/8 dark:hover:bg-white/12"
+          )}
+        >
+          <span
+            className={cn(
+              "flex size-8 shrink-0 items-center justify-center rounded-full",
+              settings.nightLight
+                ? "bg-white/20"
+                : "bg-black/10 dark:bg-white/10"
+            )}
+          >
+            <FlameIcon className="size-4" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="text-[12px] font-semibold">Night Light</div>
+            <div className="truncate text-[10px] opacity-80">
+              {settings.nightLight ? "Warm 4200K" : "Off"}
+            </div>
+          </div>
+        </button>
+
+        {/* Power Saver Pill */}
+        <button
+          type="button"
+          onClick={togglePowerSaver}
+          className={cn(
+            "flex items-center gap-2.5 rounded-[14px] p-2.5 text-left transition-all",
+            settings.powerMode === "power-saver"
+              ? "bg-adw-accent text-white shadow-xs"
+              : "bg-black/6 text-adw-label hover:bg-black/10 dark:bg-white/8 dark:hover:bg-white/12"
+          )}
+        >
+          <span
+            className={cn(
+              "flex size-8 shrink-0 items-center justify-center rounded-full",
+              settings.powerMode === "power-saver"
+                ? "bg-white/20"
+                : "bg-black/10 dark:bg-white/10"
+            )}
+          >
+            <GaugeIcon className="size-4" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="text-[12px] font-semibold">Power Saver</div>
+            <div className="truncate text-[10px] opacity-80">
+              {settings.powerMode === "power-saver" ? "On" : "Off"}
+            </div>
+          </div>
+        </button>
+      </div>
+
+      {/* Inline Wi-Fi Network Picker */}
+      {expandedPicker === "wifi" && (
+        <div className="flex flex-col gap-1 rounded-[14px] bg-black/6 p-2.5 dark:bg-white/8">
+          <div className="mb-1 flex items-center justify-between px-1">
+            <span className="text-[11px] font-semibold text-adw-label-secondary">
+              Wi-Fi Networks
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                setControlPanelOpen(false);
+                launchApp("settings", { payload: "network" });
+              }}
+              className="text-[10.5px] font-medium text-adw-accent hover:underline"
+            >
+              Network Settings…
+            </button>
+          </div>
+          {!settings.wifiEnabled ? (
+            <div className="px-2 py-2 text-[11px] text-adw-label-secondary">
+              Wi-Fi is turned off.
+            </div>
+          ) : liveWifiNetworks.length === 0 ? (
+            <div className="px-2 py-2 text-[11px] text-adw-label-secondary">
+              No wireless networks discovered.
+            </div>
+          ) : (
+            <div className="flex max-h-[148px] flex-col gap-0.5 overflow-y-auto">
+              {liveWifiNetworks.map((net) => {
+                const connected = net.ssid === settings.connectedWifi;
+                return (
+                  <button
+                    key={net.ssid}
+                    type="button"
+                    onClick={() => void connectWifiNetwork(net.ssid)}
+                    className={cn(
+                      "flex items-center justify-between gap-2 rounded-[9px] px-2.5 py-1.5 text-left text-[11.5px] transition-colors",
+                      connected
+                        ? "bg-adw-accent/18 font-semibold text-adw-label"
+                        : "hover:bg-black/6 dark:hover:bg-white/8"
+                    )}
+                  >
+                    <span className="flex min-w-0 items-center gap-2">
+                      <WifiIcon className="size-3.5 shrink-0 opacity-80" />
+                      <span className="truncate">{net.ssid}</span>
+                    </span>
+                    <span className="flex shrink-0 items-center gap-1.5 text-[10.5px] text-adw-label-secondary tabular-nums">
+                      {net.secured && <LockIcon className="size-3 opacity-75" />}
+                      <span>{net.signal}%</span>
+                      {connected && (
+                        <CheckIcon className="size-3.5 text-adw-accent" />
+                      )}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Sound Volume & Display Brightness Sliders */}
+      <div className="flex flex-col gap-2.5 rounded-[16px] bg-black/6 p-3 dark:bg-white/8">
+        {/* Sound Volume + Audio Output Picker Toggle */}
+        <div className="flex items-center gap-2.5 text-adw-label dark:text-white">
+          <button
+            type="button"
+            aria-label="Toggle Mute"
+            onClick={() => {
+              const next = !settings.muted;
+              console.info("[Piloti] control-panel: mute", next ? "on" : "off");
+              updateSettings({ muted: next });
+            }}
+            className="flex shrink-0 items-center justify-center hover:opacity-80"
+          >
+            {settings.muted || settings.volume === 0 ? (
+              <VolumeXIcon className="size-4" />
+            ) : (
+              <Volume2Icon className="size-4" />
+            )}
+          </button>
+          <Slider
+            aria-label="Sound Output"
+            className="flex-1"
+            min={0}
+            max={100}
+            value={[settings.muted ? 0 : settings.volume]}
+            onValueChange={(val) => {
+              const next = Array.isArray(val) ? val[0] : val;
+              if (typeof next === "number") {
+                updateSettings({ volume: next, muted: next === 0 });
+              }
+            }}
+          />
+          <button
+            type="button"
+            title={
+              activeSink
+                ? `Output: ${activeSink.description || activeSink.name}`
+                : "Choose audio output device"
+            }
+            aria-label="Choose audio output device"
+            aria-expanded={expandedPicker === "audio"}
+            onClick={() => togglePicker("audio")}
+            className={cn(
+              "flex size-6 shrink-0 items-center justify-center rounded-full transition-colors",
+              expandedPicker === "audio"
+                ? "bg-adw-accent text-white"
+                : "bg-black/8 text-adw-label-secondary hover:bg-black/14 dark:bg-white/10 dark:hover:bg-white/16"
+            )}
+          >
+            <ChevronRightIcon
+              className={cn(
+                "size-3.5 transition-transform duration-150",
+                expandedPicker === "audio" && "rotate-90"
+              )}
+            />
+          </button>
+        </div>
+
+        {expandedPicker === "audio" && (
+          <div className="flex flex-col gap-1 border-t border-adw-separator pt-2">
+            <div className="flex items-center justify-between px-0.5">
+              <span className="text-[11px] font-semibold text-adw-label-secondary">
+                Output Device
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  setControlPanelOpen(false);
+                  launchApp("settings", { payload: "sound" });
+                }}
+                className="text-[10.5px] font-medium text-adw-accent hover:underline"
+              >
+                Sound Settings…
+              </button>
+            </div>
+            {audioSinks.length === 0 ? (
+              <div className="px-1 py-1.5 text-[11px] text-adw-label-secondary">
+                Using default system output.
+              </div>
+            ) : (
+              <div className="flex max-h-[132px] flex-col gap-0.5 overflow-y-auto">
+                {audioSinks.map((sink) => (
+                  <button
+                    key={sink.id}
+                    type="button"
+                    onClick={() => void selectAudioSink(sink.name)}
+                    className={cn(
+                      "flex items-center justify-between gap-2 rounded-[9px] px-2 py-1.5 text-left text-[11.5px] transition-colors",
+                      sink.active
+                        ? "bg-adw-accent/18 font-semibold text-adw-label"
+                        : "hover:bg-black/6 dark:hover:bg-white/8"
+                    )}
+                  >
+                    <span className="flex min-w-0 items-center gap-2">
+                      <SpeakerIcon className="size-3.5 shrink-0 opacity-80" />
+                      <span className="truncate">
+                        {sink.description || sink.name}
+                      </span>
+                    </span>
+                    {sink.active && (
+                      <CheckIcon className="size-3.5 shrink-0 text-adw-accent" />
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Display Brightness */}
+        <div className="flex items-center gap-2.5 text-adw-label dark:text-white">
+          <SunIcon className="size-4 shrink-0" />
+          <Slider
+            aria-label="Display Brightness"
+            className="flex-1"
+            min={25}
+            max={100}
+            value={[settings.brightness]}
+            onValueChange={(val) => {
+              const next = Array.isArray(val) ? val[0] : val;
+              if (typeof next === "number") {
+                updateSettings({ brightness: next });
+              }
+            }}
+          />
+        </div>
+      </div>
+
+      {/* MPRIS Media Player Card */}
+      {mprisMedia && (
+        <div className="flex items-center justify-between gap-2.5 rounded-adw-card bg-black/6 px-3 py-2.5 dark:bg-white/8">
+          <div className="flex min-w-0 flex-1 items-center gap-2.5">
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-adw-accent/20 text-adw-accent">
+              <Music2Icon className="size-4" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <div className="truncate text-[12px] font-semibold text-adw-label">
+                {mprisMedia.title}
+              </div>
+              <div className="truncate text-[10.5px] text-adw-label-secondary">
+                {mprisMedia.artist}
+              </div>
+            </div>
+          </div>
+          <div className="flex shrink-0 items-center gap-1">
+            <button
+              type="button"
+              aria-label="Previous track"
+              onClick={() => void controlMpris("previous")}
+              className="flex size-7 items-center justify-center rounded-full text-adw-label transition-colors hover:bg-black/10 dark:hover:bg-white/12"
+            >
+              <SkipBackIcon className="size-3.5" />
+            </button>
+            <button
+              type="button"
+              aria-label={mprisMedia.status === "Playing" ? "Pause" : "Play"}
+              onClick={() => void controlMpris("play-pause")}
+              className="flex size-7 items-center justify-center rounded-full bg-adw-accent text-white transition-opacity hover:opacity-90"
+            >
+              {mprisMedia.status === "Playing" ? (
+                <PauseIcon className="size-3.5" />
+              ) : (
+                <PlayIcon className="size-3.5" />
+              )}
+            </button>
+            <button
+              type="button"
+              aria-label="Next track"
+              onClick={() => void controlMpris("next")}
+              className="flex size-7 items-center justify-center rounded-full text-adw-label transition-colors hover:bg-black/10 dark:hover:bg-white/12"
+            >
+              <SkipForwardIcon className="size-3.5" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Notifications History Section */}
+      <div className="flex min-h-0 flex-1 flex-col">
+        <div className="mb-2 flex items-center justify-between px-1">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[12px] font-semibold text-adw-label-secondary">
+              Notifications
+            </span>
+            {notifications.length > 0 && (
+              <span className="rounded-full bg-adw-accent/20 px-1.5 py-0.2 text-[10px] font-bold text-adw-accent tabular-nums">
+                {notifications.length}
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-1">
+            {notifications.length > 0 && (
+              <Button
+                size="sm"
+                variant="secondary"
+                className="h-5 px-2 text-[10px]"
+                onClick={clearAllNotifications}
+              >
+                <Trash2Icon className="size-2.5" />
+                Clear
+              </Button>
+            )}
+            <button
+              type="button"
+              title="Notification Settings"
+              aria-label="Notification Settings"
+              onClick={() => {
+                setControlPanelOpen(false);
+                launchApp("settings", { payload: "notifications" });
+              }}
+              className="flex size-5 items-center justify-center rounded-full bg-black/8 text-adw-label-secondary transition-colors hover:bg-black/14 hover:text-adw-label dark:bg-white/10 dark:hover:bg-white/16"
+            >
+              <SlidersHorizontalIcon className="size-2.5" />
+            </button>
+          </div>
+        </div>
+
+        {(settings.doNotDisturb || !settings.notificationsEnabled) && (
+          <div className="mb-2 flex items-center justify-between gap-2 rounded-[10px] bg-black/5 px-2.5 py-1.5 text-[11px] text-adw-label-secondary dark:bg-white/6">
+            <span className="flex min-w-0 items-center gap-1.5 truncate">
+              <BellOffIcon className="size-3 shrink-0 text-adw-accent" />
+              <span className="truncate">
+                {!settings.notificationsEnabled
+                  ? "Notifications paused in Settings"
+                  : "Do Not Disturb · Banners silenced"}
+              </span>
+            </span>
+            <button
+              type="button"
+              onClick={() =>
+                updateSettings(
+                  !settings.notificationsEnabled
+                    ? { notificationsEnabled: true }
+                    : { doNotDisturb: false }
+                )
+              }
+              className="shrink-0 font-semibold text-adw-accent hover:underline"
+            >
+              Resume
+            </button>
+          </div>
+        )}
+
+        <div className="flex max-h-[250px] flex-col gap-2 overflow-y-auto pr-0.5">
+          {notifications.length === 0 ? (
+            <div className="flex flex-col items-center justify-center rounded-[14px] bg-black/4 py-4 text-center dark:bg-white/5">
+              <BellIcon className="mb-1 size-5 text-adw-label-tertiary" />
+              <div className="text-[12px] font-medium text-adw-label-secondary">
+                No notifications
+              </div>
+              <div className="mt-0.5 text-[10.5px] text-adw-label-tertiary">
+                Recent alerts appear here
+              </div>
+            </div>
+          ) : (
+            notifications.map((n) => {
+              const isNew = unreadSnapshot.has(n.id);
+              const isCritical = n.urgency === "critical";
+              return (
+                <div
+                  key={n.id}
+                  onClick={() => {
+                    if (n.fromDomicile && n.clickable) {
+                      invokeNotificationAction(n.id, "default");
+                    }
+                  }}
+                  className={cn(
+                    "group relative flex items-start gap-2.5 rounded-[14px] bg-black/6 p-3 transition-colors hover:bg-black/10 dark:bg-white/8 dark:hover:bg-white/12",
+                    isCritical && "ring-1 ring-rose-500/35",
+                    n.fromDomicile && n.clickable && "cursor-pointer"
+                  )}
+                >
+                  <NotificationAppIcon
+                    appName={n.appName}
+                    icon={n.icon}
+                    urgency={n.urgency}
+                    className="mt-0.5 size-8 rounded-[7px]"
+                  />
+
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex min-w-0 flex-1 items-center gap-1.5">
+                        {isNew && (
+                          <span
+                            title="New"
+                            className="size-1.5 shrink-0 rounded-full bg-adw-accent"
+                          />
+                        )}
+                        <span className="truncate text-[12.5px] font-semibold leading-snug">
+                          {n.summary}
+                        </span>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-1.5">
+                        <span className="text-[10px] text-adw-label-tertiary tabular-nums">
+                          {formatRelativeNotificationTime(n.time)}
+                        </span>
+                        <button
+                          type="button"
+                          aria-label="Dismiss notification"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            dismissNotification(n.id);
+                          }}
+                          className="flex size-4 items-center justify-center rounded-full bg-black/10 text-adw-label-secondary opacity-70 transition-opacity hover:opacity-100 dark:bg-white/15"
+                        >
+                          <XIcon className="size-2.5" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {n.body && (
+                      <div className="mt-0.5 text-[11.5px] leading-relaxed text-adw-label-secondary">
+                        {n.body}
+                      </div>
+                    )}
+
+                    <NotificationActionControls
+                      notificationId={n.id}
+                      actions={n.actions}
+                      fromDomicile={n.fromDomicile}
+                      onAfterAction={() => setControlPanelOpen(false)}
+                    />
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+

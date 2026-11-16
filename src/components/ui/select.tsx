@@ -10,6 +10,11 @@ import {
 import { Select as SelectPrimitive } from "@base-ui/react/select"
 
 import { cn } from "@/lib/utils"
+import {
+  MENU_CHECK_ITEM_CLASS,
+  MENU_LABEL_CLASS,
+  MENU_SEPARATOR_CLASS,
+} from "./menu-styles"
 
 // Pass `items` (value → label, or a list of { value, label }) so that
 // SelectValue shows the label of the chosen item rather than its value.
@@ -29,9 +34,8 @@ function SelectValue({ className, ...props }: SelectPrimitive.Value.Props) {
   )
 }
 
-// A macOS pop-up button. `default` is a bordered button with up/down
-// chevrons; `borderless` is the System Settings style: the value followed by
-// chevrons in a small round chip.
+// A pop-up select button. `default` is a bordered button with up/down
+// chevrons; `borderless` is the compact System Settings style.
 function SelectTrigger({
   className,
   size = "default",
@@ -48,11 +52,11 @@ function SelectTrigger({
       data-size={size}
       data-variant={variant}
       className={cn(
-        "group/select-trigger flex w-fit cursor-default items-center justify-between font-medium whitespace-nowrap text-mac-label outline-none select-none focus-visible:mac-focus-ring data-disabled:cursor-not-allowed data-disabled:text-mac-label-tertiary aria-invalid:mac-focus-ring data-[placeholder]:text-mac-label-secondary *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-1.5 [&_svg]:pointer-events-none [&_svg]:shrink-0",
+        "group/select-trigger flex w-fit cursor-default items-center justify-between font-medium whitespace-nowrap text-adw-label outline-none select-none focus-visible:adw-focus-ring data-disabled:cursor-not-allowed data-disabled:text-adw-label-tertiary aria-invalid:adw-focus-ring data-[placeholder]:text-adw-label-secondary *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-1.5 [&_svg]:pointer-events-none [&_svg]:shrink-0",
         variant === "default" &&
-          "gap-0 bg-mac-control active:bg-mac-control-pressed data-disabled:bg-mac-control-disabled data-[size=default]:h-6 data-[size=default]:rounded-[6px] data-[size=default]:pl-3 data-[size=default]:text-mac-body data-[size=lg]:h-7 data-[size=lg]:rounded-full data-[size=lg]:pl-3.5 data-[size=lg]:text-mac-body data-[size=sm]:h-5 data-[size=sm]:rounded-[5px] data-[size=sm]:pl-2.5 data-[size=sm]:text-mac-subheadline",
+          "gap-0 bg-adw-control active:bg-adw-control-pressed data-disabled:bg-adw-control-disabled data-[size=default]:h-6 data-[size=default]:rounded-[6px] data-[size=default]:pl-3 data-[size=default]:text-adw-body data-[size=lg]:h-7 data-[size=lg]:rounded-full data-[size=lg]:pl-3.5 data-[size=lg]:text-adw-body data-[size=sm]:h-5 data-[size=sm]:rounded-[5px] data-[size=sm]:pl-2.5 data-[size=sm]:text-adw-subheadline",
         variant === "borderless" &&
-          "h-5 gap-3 rounded-full bg-transparent pl-1 text-mac-body hover:*:data-[slot=select-chip]:bg-mac-control-pressed",
+          "h-5 gap-3 rounded-full bg-transparent pl-1 text-adw-body hover:*:data-[slot=select-chip]:bg-adw-control-pressed",
         className
       )}
       {...props}
@@ -63,7 +67,7 @@ function SelectTrigger({
           variant === "borderless" ? (
           <span
             data-slot="select-chip"
-            className="flex size-5 items-center justify-center rounded-full bg-mac-control text-mac-label"
+            className="flex size-5 items-center justify-center rounded-full bg-adw-control text-adw-label"
           >
             <ChevronsUpDownIcon className="size-3" strokeWidth={2.25} />
           </span>
@@ -84,9 +88,8 @@ function SelectTrigger({
   )
 }
 
-// The menu of a pop-up button. Like macOS, it opens over the trigger with
-// the chosen item on top of it; set alignItemWithTrigger={false} to drop it
-// below instead.
+// The popup menu for a select trigger; opens aligned over the trigger by default
+// (set alignItemWithTrigger={false} to drop it below instead).
 function SelectContent({
   className,
   children,
@@ -114,13 +117,13 @@ function SelectContent({
         <SelectPrimitive.Popup
           data-slot="select-content"
           className={cn(
-            "relative z-50 max-h-(--available-height) min-w-[max(8rem,var(--anchor-width))] origin-(--transform-origin) overflow-x-hidden overflow-y-auto rounded-mac-menu text-mac-label shadow-mac-menu mac-material-menu outline-none data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0",
+            "relative z-50 max-h-(--available-height) min-w-[max(8rem,var(--anchor-width))] origin-(--transform-origin) overflow-x-hidden overflow-y-auto rounded-adw-menu text-adw-label shadow-adw-menu adw-material-menu outline-none data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0",
             className
           )}
           {...props}
         >
           <SelectScrollUpButton />
-          <SelectPrimitive.List className="p-[5px]">{children}</SelectPrimitive.List>
+          <SelectPrimitive.List className="p-[6px]">{children}</SelectPrimitive.List>
           <SelectScrollDownButton />
         </SelectPrimitive.Popup>
       </SelectPrimitive.Positioner>
@@ -135,10 +138,7 @@ function SelectLabel({
   return (
     <SelectPrimitive.GroupLabel
       data-slot="select-label"
-      className={cn(
-        "px-[11px] pt-[5px] pb-1 text-mac-subheadline font-semibold text-mac-label-secondary",
-        className
-      )}
+      className={cn(MENU_LABEL_CLASS, className)}
       {...props}
     />
   )
@@ -153,17 +153,18 @@ function SelectItem({
     <SelectPrimitive.Item
       data-slot="select-item"
       className={cn(
-        "relative flex h-6 w-full cursor-default items-center gap-2 rounded-mac-item pr-[14px] pl-[27px] text-mac-body outline-hidden select-none data-highlighted:bg-mac-menu-highlight data-highlighted:text-white data-disabled:pointer-events-none data-disabled:text-mac-label-tertiary [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 *:[span]:last:flex *:[span]:last:items-center *:[span]:last:gap-1.5",
+        MENU_CHECK_ITEM_CLASS,
+        "w-full *:[span]:last:flex *:[span]:last:items-center *:[span]:last:gap-1.5",
         className
       )}
       {...props}
     >
       <span
         data-slot="select-item-indicator"
-        className="absolute left-[11px] flex size-3 items-center justify-center"
+        className="absolute left-[10px] flex size-3.5 items-center justify-center"
       >
         <SelectPrimitive.ItemIndicator>
-          <CheckIcon className="size-3" strokeWidth={3} />
+          <CheckIcon className="size-3.5" strokeWidth={2.5} />
         </SelectPrimitive.ItemIndicator>
       </span>
       <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>
@@ -178,10 +179,7 @@ function SelectSeparator({
   return (
     <SelectPrimitive.Separator
       data-slot="select-separator"
-      className={cn(
-        "pointer-events-none mx-[11px] my-[5px] h-px bg-mac-grid",
-        className
-      )}
+      className={cn("pointer-events-none", MENU_SEPARATOR_CLASS, className)}
       {...props}
     />
   )

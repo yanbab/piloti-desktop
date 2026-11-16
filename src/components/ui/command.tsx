@@ -5,6 +5,7 @@ import { Command as CommandPrimitive } from "cmdk"
 import { CheckIcon, SearchIcon } from "lucide-react"
 
 import { cn } from "@/lib/utils"
+import { InlineCompletionInput } from "@/components/ui/inline-completion-input"
 
 import {
   Dialog,
@@ -48,7 +49,7 @@ function Command({
     <CommandPrimitive
       data-slot="command"
       className={cn(
-        "flex size-full flex-col overflow-hidden text-mac-body text-mac-label",
+        "flex size-full flex-col overflow-hidden text-adw-body text-adw-label",
         className
       )}
       {...props}
@@ -57,8 +58,8 @@ function Command({
 }
 
 function CommandDialog({
-  title = "Command Palette",
-  description = "Search for a command to run...",
+  title = "Launcher",
+  description = "Search for an app, window, or action...",
   children,
   className,
   showCloseButton = false,
@@ -81,7 +82,7 @@ function CommandDialog({
         showBackdrop={false}
         showCloseButton={showCloseButton}
         className={cn(
-          "top-[20%] translate-y-0 sm:max-w-[460px]",
+          "top-[36px] right-2.5 left-auto translate-x-0 translate-y-0 w-full max-w-[calc(100vw-20px)] sm:w-[340px] sm:max-w-[340px]",
           className
         )}
       >
@@ -93,18 +94,32 @@ function CommandDialog({
 
 function CommandInput({
   className,
+  completion,
+  completionHint,
+  onAcceptCompletion,
+  value,
   ...props
-}: React.ComponentProps<typeof CommandPrimitive.Input>) {
+}: React.ComponentProps<typeof CommandPrimitive.Input> & {
+  completion?: string
+  completionHint?: string
+  onAcceptCompletion?: (completed: string) => void
+}) {
   return (
-    <div data-slot="command-input-wrapper" className="flex h-12 shrink-0 items-center gap-2.5 border-b border-mac-grid px-4">
-      <SearchIcon className="size-[18px] shrink-0 text-mac-label-secondary" strokeWidth={2.25} />
-      <CommandPrimitive.Input
-        data-slot="command-input"
-        className={cn(
-          "h-full w-full bg-transparent text-[17px] text-mac-label outline-hidden placeholder:text-mac-label-tertiary disabled:cursor-not-allowed disabled:opacity-50",
-          className
+    <div data-slot="command-input-wrapper" className="flex h-12 shrink-0 items-center gap-2.5 border-b border-adw-grid px-4">
+      <SearchIcon className="size-[18px] shrink-0 text-adw-label-secondary" strokeWidth={2.25} />
+      <InlineCompletionInput
+        value={typeof value === "string" ? value : ""}
+        completion={completion}
+        completionHint={completionHint}
+        onAcceptCompletion={onAcceptCompletion}
+        className={className}
+        renderInput={(inputProps) => (
+          <CommandPrimitive.Input
+            data-slot="command-input"
+            {...(props as React.ComponentProps<typeof CommandPrimitive.Input>)}
+            {...(inputProps as React.ComponentProps<typeof CommandPrimitive.Input>)}
+          />
         )}
-        {...props}
       />
     </div>
   )
@@ -133,7 +148,7 @@ function CommandEmpty({
   return (
     <CommandPrimitive.Empty
       data-slot="command-empty"
-      className={cn("py-6 text-center text-mac-body text-mac-label-secondary", className)}
+      className={cn("py-6 text-center text-adw-body text-adw-label-secondary", className)}
       {...props}
     />
   )
@@ -149,7 +164,7 @@ function CommandGroup({
       ref={listScrollRef(ref, (node) => node.querySelector<HTMLElement>("[cmdk-group-heading]"))}
       data-slot="command-group"
       className={cn(
-        "overflow-hidden text-mac-label **:[[cmdk-group-heading]]:px-2.5 **:[[cmdk-group-heading]]:pt-2 **:[[cmdk-group-heading]]:pb-1 **:[[cmdk-group-heading]]:text-mac-subheadline **:[[cmdk-group-heading]]:font-semibold **:[[cmdk-group-heading]]:text-mac-label-secondary",
+        "overflow-hidden text-adw-label **:[[cmdk-group-heading]]:px-2.5 **:[[cmdk-group-heading]]:pt-2 **:[[cmdk-group-heading]]:pb-1 **:[[cmdk-group-heading]]:text-adw-subheadline **:[[cmdk-group-heading]]:font-semibold **:[[cmdk-group-heading]]:text-adw-label-secondary",
         className
       )}
       {...props}
@@ -165,7 +180,7 @@ function CommandSeparator({
     <CommandPrimitive.Separator
       aria-hidden="true"
       data-slot="command-separator"
-      className={cn("mx-2.5 my-1.5 h-px bg-mac-grid", className)}
+      className={cn("mx-2.5 my-1.5 h-px bg-adw-grid", className)}
       {...props}
     />
   )
@@ -182,7 +197,7 @@ function CommandItem({
       ref={listScrollRef(ref)}
       data-slot="command-item"
       className={cn(
-        "group/command-item relative flex h-8 cursor-default items-center gap-2.5 rounded-mac-item px-2.5 text-mac-body outline-hidden select-none data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 data-[selected=true]:bg-mac-menu-highlight data-[selected=true]:text-white [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 [&_svg:not([class*='text-'])]:text-mac-label-secondary data-[selected=true]:*:[svg]:text-white",
+        "group/command-item relative flex h-8 cursor-default items-center gap-2.5 rounded-adw-item px-2.5 text-adw-body outline-hidden select-none data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 data-[selected=true]:bg-adw-menu-highlight data-[selected=true]:text-adw-label [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 [&_svg:not([class*='text-'])]:text-adw-label-secondary data-[selected=true]:*:[svg]:text-adw-label",
         className
       )}
       {...props}
@@ -202,7 +217,7 @@ function CommandShortcut({
     <span
       data-slot="command-shortcut"
       className={cn(
-        "ml-auto text-mac-body tracking-wider text-mac-label-tertiary group-data-[selected=true]/command-item:text-white/75",
+        "ml-auto text-adw-body tracking-normal text-adw-label-secondary",
         className
       )}
       {...props}

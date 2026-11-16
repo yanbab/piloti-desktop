@@ -79,6 +79,16 @@ const DEFAULT_ICON_SUBDIRS: readonly XdgIconSubdirDescriptor[] = [
     maxSize: 512,
     threshold: 2,
   },
+  {
+    path: "symbolic/actions",
+    size: 16,
+    scale: 1,
+    context: "Actions",
+    type: "Scalable",
+    minSize: 8,
+    maxSize: 512,
+    threshold: 2,
+  },
 ];
 
 function parseIniGroups(content: string): Record<string, Record<string, string>> {
@@ -217,22 +227,42 @@ function directorySizeDistance(
 function isRelevantIconSubdir(subdir: XdgIconSubdirDescriptor): boolean {
   const lowerPath = subdir.path.toLowerCase();
   const lowerCtx = (subdir.context ?? "").toLowerCase();
+  const isSymbolic = lowerPath.includes("symbolic");
   if (
     lowerPath.includes("cursors") ||
     lowerPath.includes("animations") ||
     lowerPath.includes("emblems") ||
-    lowerPath.includes("intl")
+    lowerPath.includes("intl") ||
+    (!isSymbolic && lowerPath.includes("actions")) ||
+    lowerPath.includes("mimetypes") ||
+    lowerPath.includes("status") ||
+    lowerPath.includes("panel")
   ) {
     return false;
   }
+
+  if (isSymbolic) {
+    return (
+      lowerPath.includes("places") ||
+      lowerPath.includes("apps") ||
+      lowerPath.includes("actions")
+    );
+  }
+
+  // Skip small bitmap sizes (< 32px) so shell/dock icons only scan crisp assets.
+  if (subdir.type !== "Scalable" && subdir.size < 32) {
+    return false;
+  }
+
+  if (lowerPath.includes("legacy")) {
+    return subdir.type === "Scalable" || subdir.size >= 48;
+  }
+
   return (
     lowerPath.includes("apps") ||
     lowerPath.includes("places") ||
     lowerPath.includes("categories") ||
     lowerPath.includes("devices") ||
-    lowerPath.includes("mimetypes") ||
-    lowerPath.includes("status") ||
-    lowerPath.includes("legacy") ||
     lowerCtx.includes("application") ||
     lowerCtx.includes("place") ||
     lowerCtx.includes("category") ||
@@ -301,15 +331,7 @@ async function buildXdgIconThemeIndex(
     })
   );
 
-  const queue = [
-    ...preferredThemes,
-    "Adwaita",
-    "Papirus",
-    "breeze",
-    "Yaru",
-    "gnome",
-    "hicolor",
-  ];
+  const queue = [...preferredThemes, "Adwaita", "hicolor"];
 
   while (queue.length > 0) {
     const themeId = queue.shift()!;
@@ -327,14 +349,17 @@ async function buildXdgIconThemeIndex(
       continue;
     }
 
+    const indexTexts = await Promise.all(
+      matchingBaseDirs.map(async (baseDir) => {
+        const indexRes = await files.readText(`${baseDir}/${themeId}/index.theme`);
+        return indexRes.match({ Ok: (t) => t, Err: () => undefined });
+      })
+    );
     let descriptor: XdgIconThemeDescriptor | null = null;
-    for (const baseDir of matchingBaseDirs) {
-      const indexRes = await files.readText(`${baseDir}/${themeId}/index.theme`);
-      const text = indexRes.match({ Ok: (t) => t, Err: () => undefined });
-      if (text) {
-        descriptor = parseIconThemeIndex(text, themeId);
-        if (descriptor) break;
-      }
+    for (const text of indexTexts) {
+      if (!text) continue;
+      descriptor = parseIconThemeIndex(text, themeId);
+      if (descriptor) break;
     }
 
     descriptor ??= {
@@ -347,15 +372,22 @@ async function buildXdgIconThemeIndex(
     themes.set(themeId, descriptor);
     themeOrder.push(themeId);
 
-    for (const parent of descriptor.inherits) {
-      if (!visitedThemes.has(parent)) {
-        queue.unshift(parent);
-      }
+    const pendingParents = descriptor.inherits.filter(
+      (parent) => !visitedThemes.has(parent)
+    );
+    if (pendingParents.length > 0) {
+      queue.unshift(...pendingParents);
     }
   }
 
+  // Per XDG Icon Theme Spec, `hicolor` is always the final fallback theme.
+  const orderedThemeOrder = [
+    ...themeOrder.filter((id) => id !== "hicolor"),
+    ...themeOrder.filter((id) => id === "hicolor"),
+  ];
+
   const readTasks: Promise<void>[] = [];
-  for (const themeId of themeOrder) {
+  for (const themeId of orderedThemeOrder) {
     const descriptor = themes.get(themeId);
     if (!descriptor) continue;
     const matchingBaseDirs = XDG_ICON_BASE_DIRS.filter((bd) =>
@@ -393,7 +425,12 @@ async function buildXdgIconThemeIndex(
   }
 
   await Promise.all(readTasks);
-  return { themeOrder, themes, subdirFiles, fallbackFiles };
+  return {
+    themeOrder: orderedThemeOrder,
+    themes,
+    subdirFiles,
+    fallbackFiles,
+  };
 }
 
 function lookupSingleIconInTheme(
@@ -436,46 +473,90 @@ function lookupSingleIconInTheme(
   return closestPath ?? bestSymbolicFallback;
 }
 
+function expandIconCandidateNames(
+  rawCandidates: string | readonly string[] | undefined
+): string[] {
+  if (!rawCandidates) return [];
+  const rawList =
+    typeof rawCandidates === "string" ? [rawCandidates] : rawCandidates;
+  const seen = new Set<string>();
+  const out: string[] = [];
+  const push = (name: string) => {
+    if (name && !seen.has(name)) {
+      seen.add(name);
+      out.push(name);
+    }
+  };
+
+  for (const raw of rawList) {
+    const trimmed = raw.trim();
+    if (!trimmed) continue;
+    const baseIcon = stripIconExtension(trimmed);
+    push(baseIcon);
+    if (baseIcon.toLowerCase() !== baseIcon) {
+      push(baseIcon.toLowerCase());
+    }
+    if (baseIcon.includes(".")) {
+      const lastSegment = baseIcon.split(".").pop()!;
+      if (lastSegment) {
+        push(lastSegment);
+        push(`gnome-${lastSegment.toLowerCase()}`);
+        push(lastSegment.toLowerCase());
+      }
+    }
+    if (
+      baseIcon.toLowerCase() === "org.gnome.nautilus" ||
+      baseIcon.toLowerCase() === "nautilus"
+    ) {
+      push("system-file-manager");
+      push("folder");
+    }
+  }
+  return out;
+}
+
 function lookupXdgIconPath(
   index: XdgIconThemeIndex,
-  rawIconName: string | undefined,
+  rawIconNameOrCandidates: string | readonly string[] | undefined,
   size = 64,
   scale = 1
 ): string | undefined {
-  if (!rawIconName) return undefined;
-  const trimmed = rawIconName.trim();
-  if (!trimmed) return undefined;
-  if (trimmed.startsWith("/")) return trimmed;
+  if (!rawIconNameOrCandidates) return undefined;
+  const rawList =
+    typeof rawIconNameOrCandidates === "string"
+      ? [rawIconNameOrCandidates]
+      : rawIconNameOrCandidates;
 
-  const baseIcon = stripIconExtension(trimmed);
-  const candidateNames: string[] = [baseIcon];
-  if (baseIcon.toLowerCase() !== baseIcon) {
-    candidateNames.push(baseIcon.toLowerCase());
-  }
-  if (baseIcon.includes(".")) {
-    const lastSegment = baseIcon.split(".").pop()!;
-    if (lastSegment) {
-      candidateNames.push(
-        lastSegment,
-        `gnome-${lastSegment.toLowerCase()}`,
-        lastSegment.toLowerCase()
-      );
-    }
+  for (const raw of rawList) {
+    const trimmed = raw.trim();
+    if (trimmed.startsWith("/")) return trimmed;
   }
 
-  for (const name of candidateNames) {
-    for (const themeId of index.themeOrder) {
+  const candidateNames = expandIconCandidateNames(rawList);
+  if (candidateNames.length === 0) return undefined;
+
+  // Per XDG Icon Theme Spec, search every candidate name within each theme
+  // before falling back to inherited themes, `hicolor`, or pixmaps.
+  for (const themeId of index.themeOrder) {
+    for (const name of candidateNames) {
       const hit = lookupSingleIconInTheme(index, themeId, name, size, scale);
       if (hit && !hit.includes("/symbolic/") && !hit.endsWith("-symbolic.svg")) {
         return hit;
       }
     }
+  }
+
+  for (const name of candidateNames) {
     const pixmapHit = index.fallbackFiles.get(name);
     if (pixmapHit) return pixmapHit;
   }
 
-  for (const name of [...candidateNames, `${baseIcon}-symbolic`]) {
-    for (const themeId of index.themeOrder) {
+  const symbolicCandidates = [
+    ...candidateNames,
+    ...candidateNames.map((n) => `${n}-symbolic`),
+  ];
+  for (const themeId of index.themeOrder) {
+    for (const name of symbolicCandidates) {
       const hit = lookupSingleIconInTheme(index, themeId, name, size, scale);
       if (hit) return hit;
     }
@@ -544,29 +625,106 @@ async function resolveXdgIconUrl(
   scale = 1
 ): Promise<string | undefined> {
   if (!iconNameOrCandidates) return undefined;
-  const list =
-    typeof iconNameOrCandidates === "string"
-      ? [iconNameOrCandidates]
-      : iconNameOrCandidates;
+  const path = lookupXdgIconPath(index, iconNameOrCandidates, size, scale);
+  if (!path) return undefined;
+  return loadXdgIconDataUrl(files, path);
+}
 
-  for (const candidate of list) {
-    const path = lookupXdgIconPath(index, candidate, size, scale);
-    if (path) {
-      const url = await loadXdgIconDataUrl(files, path);
-      if (url) return url;
+const ICON_INDEX_CACHE_KEY = "piloti.xdg-icon-index.v1";
+
+interface SerializedIconThemeIndex {
+  key: string;
+  themeOrder: string[];
+  themes: [string, XdgIconThemeDescriptor][];
+  subdirFiles: [string, [string, string][]][];
+  fallbackFiles: [string, string][];
+}
+
+function serializeXdgIconThemeIndex(
+  key: string,
+  index: XdgIconThemeIndex
+): string {
+  const payload: SerializedIconThemeIndex = {
+    key,
+    themeOrder: index.themeOrder,
+    themes: Array.from(index.themes.entries()),
+    subdirFiles: Array.from(index.subdirFiles.entries()).map(([k, map]) => [
+      k,
+      Array.from(map.entries()),
+    ]),
+    fallbackFiles: Array.from(index.fallbackFiles.entries()),
+  };
+  return JSON.stringify(payload);
+}
+
+function deserializeXdgIconThemeIndex(
+  key: string,
+  raw: string
+): XdgIconThemeIndex | null {
+  try {
+    const parsed = JSON.parse(raw) as Partial<SerializedIconThemeIndex>;
+    if (
+      parsed.key !== key ||
+      !Array.isArray(parsed.themeOrder) ||
+      !Array.isArray(parsed.themes) ||
+      !Array.isArray(parsed.subdirFiles) ||
+      !Array.isArray(parsed.fallbackFiles)
+    ) {
+      return null;
     }
+    return {
+      themeOrder: parsed.themeOrder,
+      themes: new Map(parsed.themes),
+      subdirFiles: new Map(
+        parsed.subdirFiles.map(([k, entries]) => [k, new Map(entries)])
+      ),
+      fallbackFiles: new Map(parsed.fallbackFiles),
+    };
+  } catch {
+    return null;
   }
-  return undefined;
+}
+
+function loadCachedXdgIconThemeIndex(
+  preferredThemes: readonly string[]
+): XdgIconThemeIndex | null {
+  if (typeof localStorage === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(ICON_INDEX_CACHE_KEY);
+    if (!raw) return null;
+    return deserializeXdgIconThemeIndex(preferredThemes.join("|"), raw);
+  } catch {
+    return null;
+  }
+}
+
+function saveCachedXdgIconThemeIndex(
+  preferredThemes: readonly string[],
+  index: XdgIconThemeIndex
+): void {
+  if (typeof localStorage === "undefined") return;
+  try {
+    localStorage.setItem(
+      ICON_INDEX_CACHE_KEY,
+      serializeXdgIconThemeIndex(preferredThemes.join("|"), index)
+    );
+  } catch {
+    // ignore storage quota errors
+  }
 }
 
 export {
   buildXdgIconThemeIndex,
+  deserializeXdgIconThemeIndex,
   directoryMatchesSize,
   directorySizeDistance,
+  loadCachedXdgIconThemeIndex,
   loadXdgIconDataUrl,
   lookupXdgIconPath,
   parseIconThemeIndex,
   resolveXdgIconUrl,
+  saveCachedXdgIconThemeIndex,
+  serializeXdgIconThemeIndex,
 };
 export type {
   XdgIconSubdirDescriptor,

@@ -12,6 +12,7 @@ import {
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { useSettings } from "@/context/DesktopStateContext";
+import { cn } from "@/lib/utils";
 
 export function DockPane() {
   const { settings, updateSettings } = useSettings();
@@ -23,6 +24,37 @@ export function DockPane() {
         <GroupedFormGroup>
           <GroupedFormRow>
             <GroupedFormRowLabel>
+              <GroupedFormRowTitle>Position on Screen</GroupedFormRowTitle>
+              <GroupedFormRowDescription>
+                Anchor the Dock to the left, bottom, or right edge
+              </GroupedFormRowDescription>
+            </GroupedFormRowLabel>
+            <GroupedFormRowControl>
+              <div className="flex items-center gap-0.5 rounded-lg bg-black/6 p-0.5 dark:bg-white/8">
+                {(["left", "bottom", "right"] as const).map((pos) => {
+                  const active = settings.dockPosition === pos;
+                  return (
+                    <button
+                      key={pos}
+                      type="button"
+                      onClick={() => updateSettings({ dockPosition: pos })}
+                      className={cn(
+                        "rounded-md px-2.5 py-1 text-[12px] capitalize",
+                        active
+                          ? "bg-adw-sidebar-selection font-medium text-adw-label shadow-2xs"
+                          : "text-adw-label-secondary active:bg-black/10 dark:active:bg-white/12"
+                      )}
+                    >
+                      {pos}
+                    </button>
+                  );
+                })}
+              </div>
+            </GroupedFormRowControl>
+          </GroupedFormRow>
+
+          <GroupedFormRow>
+            <GroupedFormRowLabel>
               <GroupedFormRowTitle>Icon Size ({settings.dockSize}px)</GroupedFormRowTitle>
               <GroupedFormRowDescription>
                 Base size of application tiles in the bottom Dock
@@ -30,8 +62,8 @@ export function DockPane() {
             </GroupedFormRowLabel>
             <GroupedFormRowControl className="w-44">
               <Slider
-                min={38}
-                max={68}
+                min={24}
+                max={72}
                 value={[settings.dockSize]}
                 onValueChange={(val) => {
                   const next = Array.isArray(val) ? val[0] : val;

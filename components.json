@@ -15,9 +15,6 @@
     "ui": "@/components/ui",
     "lib": "@/lib",
     "hooks": "@/hooks"
-  },
-  "registries": {
-    "@cupertinoui": "https://www.cupertino-ui.com/r/{name}.json"
   }
 }
 

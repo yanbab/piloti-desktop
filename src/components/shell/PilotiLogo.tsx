@@ -2,10 +2,38 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 
 /**
- * Piloti Desktop official GNOME / Adwaita 128×128 application icon:
- * a modernist stilt-house (*pilotis*) whose elevated facade frames a desktop shell.
+ * Symbolic Piloti icon:
+ * A modernist stilt-house (lucide-style home) with 3 small square pilotis (stilts) underneath.
  */
-export function PilotiLogo({ className }: { className?: string }) {
+export function PilotiSymbolicIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={cn("size-4 shrink-0", className)}
+      aria-hidden="true"
+    >
+      {/* Roof */}
+      <path d="M3 10.5L12 3l9 7.5" />
+      {/* Elevated House Body */}
+      <path d="M5 10v6h14v-6" />
+      {/* 3 small squares (pilotis/stilts) underneath */}
+      <rect x="5.5" y="18.5" width="2.5" height="2.5" rx="0.5" fill="currentColor" stroke="none" />
+      <rect x="10.75" y="18.5" width="2.5" height="2.5" rx="0.5" fill="currentColor" stroke="none" />
+      <rect x="16" y="18.5" width="2.5" height="2.5" rx="0.5" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+/**
+ * Full-color brand illustration for About dialogs and splash views.
+ */
+export function PilotiBrandIllustration({ className }: { className?: string }) {
   const id = React.useId().replace(/:/g, "");
   return (
     <svg
@@ -142,3 +170,4 @@ export function PilotiLogo({ className }: { className?: string }) {
   );
 }
 
+export { PilotiSymbolicIcon as PilotiLogo };

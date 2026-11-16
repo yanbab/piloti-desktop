@@ -3,12 +3,6 @@
 import * as React from "react"
 import { MinusIcon, XIcon } from "lucide-react"
 
-import {
-  CURSOR_EW_RESIZE,
-  CURSOR_NESW_RESIZE,
-  CURSOR_NS_RESIZE,
-  CURSOR_NWSE_RESIZE,
-} from "@/lib/cursors"
 import { cn } from "@/lib/utils"
 
 type WindowPosition = { x: number; y: number }
@@ -18,6 +12,11 @@ type WindowSize = { width: number; height: number }
 type WindowInsets = { top?: number; right?: number; bottom?: number; left?: number }
 
 type ResizeEdge = "n" | "e" | "s" | "w" | "ne" | "se" | "sw" | "nw"
+
+type WindowHandle = {
+  startMove: (clientX: number, clientY: number) => void
+  startResize: (edge: ResizeEdge, clientX: number, clientY: number) => void
+}
 
 // Invisible strips along the inside of the frame; the corner squares are
 // clipped to the rounded corners, so they follow the curve.
@@ -33,14 +32,14 @@ const RESIZE_HANDLES: Record<ResizeEdge, string> = {
 }
 
 const RESIZE_CURSORS: Record<ResizeEdge, string> = {
-  n: CURSOR_NS_RESIZE,
-  s: CURSOR_NS_RESIZE,
-  e: CURSOR_EW_RESIZE,
-  w: CURSOR_EW_RESIZE,
-  nw: CURSOR_NWSE_RESIZE,
-  se: CURSOR_NWSE_RESIZE,
-  ne: CURSOR_NESW_RESIZE,
-  sw: CURSOR_NESW_RESIZE,
+  n: "ns-resize",
+  s: "ns-resize",
+  e: "ew-resize",
+  w: "ew-resize",
+  nw: "nwse-resize",
+  se: "nwse-resize",
+  ne: "nesw-resize",
+  sw: "nesw-resize",
 }
 
 const OPPOSITE = { n: "s", s: "n", e: "w", w: "e" } as const
@@ -63,7 +62,7 @@ function useWindowContext() {
 // Where a draggable window can be grabbed: the title bar, the toolbar, the
 // strip above the sidebar, or anything marked with data-window-drag-region.
 const DRAG_REGION =
-  '[data-slot="window-titlebar"], [data-slot="toolbar"], [data-slot="mac-sidebar-header"], [data-window-drag-region]'
+  '[data-slot="window-titlebar"], [data-slot="toolbar"], [data-slot="adw-sidebar-header"], [data-window-drag-region]'
 
 // Controls inside a drag region keep working instead of moving the window.
 const NO_DRAG =
@@ -179,11 +178,9 @@ function minimizeAnimation(
   }
 }
 
-// A macOS window frame. Compose it with MacSidebar, WindowMain, Toolbar
-// (or WindowTitlebar) and WindowContent. `inactive` renders the unfocused
-// look: grey traffic lights, dimmed titles and a grey accent color.
-// `draggable` lets people move the window by its title bar or toolbar; the
-// offset is applied with the CSS `translate` property.
+// A desktop window frame. Compose it with WindowTitlebar, Toolbar, and WindowContent.
+// `inactive` renders the unfocused look. `draggable` lets users move the window
+// by its title bar or toolbar; the offset is applied with the CSS `translate` property.
 // `onClose`, `onMinimize` and `onZoom` wire up the traffic lights. Setting
 // `minimized` animates the window into `minimizeTo` (e.g. a Dock tile) and
 // back; `maximized` grows it to fill its parent.
@@ -194,6 +191,7 @@ function Window({
   className,
   style,
   ref,
+  windowRef,
   children,
   inactive = false,
   draggable = false,
@@ -212,7 +210,7 @@ function Window({
   onZoom,
   minimized = false,
   minimizeTo,
-  minimizeEffect = "genie",
+  minimizeEffect = "scale",
   maximized = false,
   maximizeInsets,
   onSnapPreviewChange,
@@ -246,6 +244,7 @@ function Window({
   maximizeInsets?: WindowInsets
   onSnapPreviewChange?: (zone: "left" | "right" | "full" | null) => void
   onSnapCommit?: (zone: "left" | "right" | "full") => void
+  windowRef?: React.Ref<WindowHandle>
 }) {
   const [uncontrolledPosition, setUncontrolledPosition] =
     React.useState<WindowPosition>(defaultPosition ?? { x: 0, y: 0 })
@@ -295,12 +294,16 @@ function Window({
     const node = element.current
     if (!node || previousMinimized.current === minimized) return
     previousMinimized.current = minimized
+    if (!minimized) {
+      node.style.visibility = ""
+    }
     if (reducedMotion()) return
     const { keyframes, options } = minimizeAnimation(node, minimizeTo?.current, minimizeEffect)
     if (minimized) {
       const animation = node.animate(keyframes, { ...options, fill: "forwards" })
       animation.finished
         .then(() => {
+          node.style.visibility = "hidden"
           setHidden(true)
           animation.cancel()
         })
@@ -318,11 +321,39 @@ function Window({
   // Zooming in and out morphs the window from its old frame to the new one.
   const lastRect = React.useRef<DOMRect | null>(null)
   const previousMaximized = React.useRef(maximized)
+  const maxDragPending = React.useRef<{
+    pointerId: number
+    startX: number
+    startY: number
+  } | null>(null)
+  const pendingResumeDrag = React.useRef<{
+    clientX: number
+    clientY: number
+  } | null>(null)
+
   React.useLayoutEffect(() => {
     const node = element.current
     const before = lastRect.current
     if (!node || previousMaximized.current === maximized) return
     previousMaximized.current = maximized
+
+    const resume = pendingResumeDrag.current
+    if (!maximized && resume) {
+      pendingResumeDrag.current = null
+      const parent = node.offsetParent as HTMLElement | null
+      const parentRect = parent?.getBoundingClientRect()
+      if (parentRect) {
+        const nextPos = {
+          x: Math.round(resume.clientX - parentRect.left - node.offsetWidth / 2),
+          y: Math.round(Math.max(0, resume.clientY - parentRect.top - 18)),
+        }
+        node.style.translate = `${nextPos.x}px ${nextPos.y}px`
+        move(nextPos)
+        beginDrag(node, resume.clientX, resume.clientY)
+      }
+      return
+    }
+
     if (!before || reducedMotion()) return
     const after = node.getBoundingClientRect()
     const scale = after.width / node.offsetWidth || 1
@@ -381,8 +412,7 @@ function Window({
     }
   }
 
-  function startResize(event: React.PointerEvent<HTMLDivElement>, edge: ResizeEdge) {
-    const node = event.currentTarget
+  function beginResize(node: HTMLElement, edge: ResizeEdge, clientX: number, clientY: number, pointerId?: number) {
     const { rect, scale, start, corner } = measure(node)
     // A window that starts outside its limits doesn't jump to them.
     const min = {
@@ -394,17 +424,15 @@ function Window({
       height: Math.max(maxSize?.height ?? Number.POSITIVE_INFINITY, start.height),
     }
     const parent = bounds === "parent" ? node.parentElement : null
-    if (parent) {
+    if (parent && edge.includes("n")) {
       const area = parent.getBoundingClientRect()
-      const roomX = edge.includes("e") ? area.right - rect.right : edge.includes("w") ? rect.left - area.left : 0
-      const roomY = edge.includes("s") ? area.bottom - rect.bottom : edge.includes("n") ? rect.top - area.top : 0
-      max.width = Math.min(max.width, start.width + Math.max(0, roomX / scale))
-      max.height = Math.min(max.height, start.height + Math.max(0, roomY / scale))
+      const roomTop = Math.max(0, (rect.top - area.top) / scale)
+      max.height = Math.min(max.height, start.height + roomTop)
     }
 
     resize.current = {
       edge,
-      pointer: { x: event.clientX, y: event.clientY },
+      pointer: { x: clientX, y: clientY },
       start,
       corner,
       latestSize: start,
@@ -413,16 +441,24 @@ function Window({
       min,
       max,
     }
-    node.setPointerCapture(event.pointerId)
+    if (pointerId !== undefined) {
+      node.setPointerCapture(pointerId)
+    } else {
+      attachGlobalInteractionListeners()
+    }
     setResizing(edge)
+  }
+
+  function startResize(event: React.PointerEvent<HTMLDivElement>, edge: ResizeEdge) {
+    beginResize(event.currentTarget, edge, event.clientX, event.clientY, event.pointerId)
     event.preventDefault()
   }
 
-  function handleResize(event: React.PointerEvent<HTMLDivElement>) {
+  function applyResize(clientX: number, clientY: number) {
     const state = resize.current!
     const { edge, pointer, start, corner, scale, min, max } = state
-    const dx = (event.clientX - pointer.x) / scale
-    const dy = (event.clientY - pointer.y) / scale
+    const dx = (clientX - pointer.x) / scale
+    const dy = (clientY - pointer.y) / scale
     const fit = (value: number, axis: keyof WindowSize) =>
       Math.round(Math.min(max[axis], Math.max(min[axis], value)))
     const width = fit(edge.includes("e") ? start.width + dx : edge.includes("w") ? start.width - dx : start.width, "width")
@@ -484,53 +520,70 @@ function Window({
   // edge it started on is remembered.
   const pressedEdge = React.useRef<ResizeEdge | undefined>(undefined)
 
-  function handlePointerDown(event: React.PointerEvent<HTMLDivElement>) {
-    onPointerDown?.(event)
-    if (maximized || event.defaultPrevented || event.button !== 0) return
+  const globalCleanup = React.useRef<(() => void) | null>(null)
 
-    const edge = resizable ? resizeEdge(event) : undefined
-    pressedEdge.current = edge
-    if (edge) return startResize(event, edge)
-    if (!draggable) return
+  React.useEffect(() => () => globalCleanup.current?.(), [])
 
-    const element = event.currentTarget
-    const target = event.target as HTMLElement
-    const region = target.closest(DRAG_REGION)
-    if (
-      !region ||
-      region.closest('[data-slot="window"]') !== element ||
-      target.closest(NO_DRAG)
-    ) {
-      return
+  function detachGlobalInteractionListeners() {
+    globalCleanup.current?.()
+    globalCleanup.current = null
+  }
+
+  function attachGlobalInteractionListeners() {
+    detachGlobalInteractionListeners()
+    // When a drag/resize is initiated by a Wayland client (xdg_toplevel.move /
+    // resize), the initial pointerdown happened inside <app>, so Chromium may
+    // report `e.buttons === 0` on subsequent pointermove events. Only treat
+    // `buttons === 0` as a missed pointerup if we previously observed bit 1 set.
+    let sawPrimaryButtonDown = false
+    const onWinPointerMove = (e: PointerEvent) => {
+      if ((e.buttons & 1) !== 0) {
+        sawPrimaryButtonDown = true
+      } else if (sawPrimaryButtonDown) {
+        finishInteraction()
+        return
+      }
+      if (resize.current) {
+        applyResize(e.clientX, e.clientY)
+      } else if (drag.current) {
+        applyDragMove(e.clientX, e.clientY)
+      }
     }
+    const onWinEnd = () => finishInteraction()
+    window.addEventListener("pointermove", onWinPointerMove, { capture: true })
+    window.addEventListener("pointerup", onWinEnd, { capture: true })
+    window.addEventListener("pointercancel", onWinEnd, { capture: true })
+    window.addEventListener("blur", onWinEnd)
+    globalCleanup.current = () => {
+      window.removeEventListener("pointermove", onWinPointerMove, { capture: true })
+      window.removeEventListener("pointerup", onWinEnd, { capture: true })
+      window.removeEventListener("pointercancel", onWinEnd, { capture: true })
+      window.removeEventListener("blur", onWinEnd)
+    }
+  }
 
+  function beginDrag(node: HTMLElement, clientX: number, clientY: number, pointerId?: number) {
     // Pointer movement is in screen pixels; divide by any CSS scale applied
     // to the window (e.g. a scaled-down preview) to get layout pixels.
-    const rect = element.getBoundingClientRect()
-    const scale = rect.width / element.offsetWidth || 1
+    const rect = node.getBoundingClientRect()
+    const scale = rect.width / node.offsetWidth || 1
     const limit = Number.POSITIVE_INFINITY
     let min = { x: -limit, y: -limit }
-    let max = { x: limit, y: limit }
-    const parent = bounds === "parent" ? element.parentElement : null
+    const max = { x: limit, y: limit }
+    const parent = bounds === "parent" ? node.parentElement : null
     if (parent) {
       const area = parent.getBoundingClientRect()
+      // Only clamp at the top edge so titlebars never slide under the menubar;
+      // left, right, and bottom edges allow moving partially off-screen.
       const minY = current.y + (area.top - rect.top) / scale
-      const rawMaxY = current.y + (area.bottom - rect.bottom) / scale
-      const titlebarMaxY = current.y + (area.bottom - rect.top - 44 * scale) / scale
       min = {
-        x: current.x + (area.left - rect.left) / scale,
+        x: -limit,
         y: minY,
-      }
-      max = {
-        x: current.x + (area.right - rect.right) / scale,
-        // Never allow max.y < min.y (which previously allowed dragging tall windows onto the menubar),
-        // and always keep at least 44px of the titlebar reachable inside the workspace.
-        y: Math.max(minY, Math.min(Math.max(minY, rawMaxY), titlebarMaxY)),
       }
     }
 
     drag.current = {
-      pointer: { x: event.clientX, y: event.clientY },
+      pointer: { x: clientX, y: clientY },
       start: current,
       latest: current,
       scale,
@@ -539,26 +592,69 @@ function Window({
       snapZone: null,
       parentRect: parent ? parent.getBoundingClientRect() : null,
     }
-    element.setPointerCapture(event.pointerId)
+    if (pointerId !== undefined) {
+      node.setPointerCapture(pointerId)
+    } else {
+      attachGlobalInteractionListeners()
+    }
     setDragging(true)
+  }
+
+  function handlePointerDown(event: React.PointerEvent<HTMLDivElement>) {
+    onPointerDown?.(event)
+    if (event.defaultPrevented || event.button !== 0) return
+
+    if (maximized) {
+      if (!draggable || !onZoom) return
+      const node = event.currentTarget
+      const target = event.target as HTMLElement
+      const region = target.closest(DRAG_REGION)
+      if (
+        !region ||
+        region.closest('[data-slot="window"]') !== node ||
+        target.closest(NO_DRAG)
+      ) {
+        return
+      }
+      maxDragPending.current = {
+        pointerId: event.pointerId,
+        startX: event.clientX,
+        startY: event.clientY,
+      }
+      node.setPointerCapture(event.pointerId)
+      event.preventDefault()
+      return
+    }
+
+    const edge = resizable ? resizeEdge(event) : undefined
+    pressedEdge.current = edge
+    if (edge) return startResize(event, edge)
+    if (!draggable) return
+
+    const node = event.currentTarget
+    const target = event.target as HTMLElement
+    const region = target.closest(DRAG_REGION)
+    if (
+      !region ||
+      region.closest('[data-slot="window"]') !== node ||
+      target.closest(NO_DRAG)
+    ) {
+      return
+    }
+
+    beginDrag(node, event.clientX, event.clientY, event.pointerId)
     // Keeps the drag from selecting text.
     event.preventDefault()
   }
 
-  function handlePointerMove(event: React.PointerEvent<HTMLDivElement>) {
-    onPointerMove?.(event)
-    if (resize.current) return handleResize(event)
+  function applyDragMove(clientX: number, clientY: number) {
     const state = drag.current
     if (!state) return
-    // A window larger than its horizontal bounds slides between its two edges;
-    // vertically, the titlebar is strictly kept below the menubar (y >= state.min.y).
-    const within = (value: number, a: number, b: number) =>
-      Math.min(Math.max(a, b), Math.max(Math.min(a, b), value))
-    const rawX = state.start.x + (event.clientX - state.pointer.x) / state.scale
-    const rawY = state.start.y + (event.clientY - state.pointer.y) / state.scale
+    const rawX = state.start.x + (clientX - state.pointer.x) / state.scale
+    const rawY = state.start.y + (clientY - state.pointer.y) / state.scale
     const next = {
-      x: Math.round(within(rawX, state.min.x, state.max.x)),
-      y: Math.round(Math.max(state.min.y, Math.min(state.max.y, rawY))),
+      x: Math.round(rawX),
+      y: Math.round(Math.max(state.min.y, rawY)),
     }
     state.latest = next
 
@@ -574,11 +670,11 @@ function Window({
       const area = state.parentRect
       let nextSnap: "left" | "right" | "full" | null = null
       if (area) {
-        if (event.clientX <= area.left + 16) {
+        if (clientX <= area.left + 16) {
           nextSnap = "left"
-        } else if (event.clientX >= area.right - 16) {
+        } else if (clientX >= area.right - 16) {
           nextSnap = "right"
-        } else if (event.clientY <= area.top + 8) {
+        } else if (clientY <= area.top + 8) {
           nextSnap = "full"
         }
       }
@@ -589,7 +685,35 @@ function Window({
     }
   }
 
-  function endDrag(event: React.PointerEvent<HTMLDivElement>) {
+  function handlePointerMove(event: React.PointerEvent<HTMLDivElement>) {
+    onPointerMove?.(event)
+    const pendingMax = maxDragPending.current
+    if (pendingMax && event.pointerId === pendingMax.pointerId) {
+      if (
+        Math.hypot(
+          event.clientX - pendingMax.startX,
+          event.clientY - pendingMax.startY
+        ) >= 6
+      ) {
+        maxDragPending.current = null
+        if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+          event.currentTarget.releasePointerCapture(event.pointerId)
+        }
+        pendingResumeDrag.current = {
+          clientX: event.clientX,
+          clientY: event.clientY,
+        }
+        onZoom?.()
+      }
+      return
+    }
+    if (resize.current) return applyResize(event.clientX, event.clientY)
+    applyDragMove(event.clientX, event.clientY)
+  }
+
+  function finishInteraction(event?: React.PointerEvent<HTMLDivElement>) {
+    maxDragPending.current = null
+    detachGlobalInteractionListeners()
     const finishedDrag = drag.current
     const finishedResize = resize.current
     if (!finishedDrag && !finishedResize) return
@@ -598,7 +722,7 @@ function Window({
     anchor.current = null
     setDragging(false)
     setResizing(null)
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+    if (event && event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId)
     }
     if (finishedDrag?.snapZone) {
@@ -626,6 +750,19 @@ function Window({
       setFrame(finishedResize.latestSize, finishedResize.latestCorner)
     }
   }
+
+  React.useImperativeHandle(windowRef, () => ({
+    startMove: (clientX: number, clientY: number) => {
+      const node = element.current
+      if (!node || maximized || !draggable) return
+      beginDrag(node, clientX, clientY)
+    },
+    startResize: (edge: ResizeEdge, clientX: number, clientY: number) => {
+      const node = element.current
+      if (!node || maximized || !resizable) return
+      beginResize(node, edge, clientX, clientY)
+    },
+  }))
 
   const activePosition = drag.current?.latest ?? current
   const activeSize = resize.current?.latestSize ?? currentSize
@@ -659,14 +796,14 @@ function Window({
         aria-hidden={hidden || undefined}
         inert={hidden || undefined}
         className={cn(
-          "group/window relative isolate flex overflow-hidden rounded-mac-window bg-mac-window text-mac-body text-mac-label shadow-mac-window data-[inactive]:shadow-mac-window-inactive has-[>[data-slot=mac-sidebar]]:bg-transparent",
+          "group/window relative isolate flex overflow-hidden rounded-adw-window bg-adw-window text-adw-body text-adw-label shadow-adw-window data-[inactive]:shadow-adw-window-inactive has-[>[data-slot=adw-sidebar]]:bg-transparent",
           // The thin light rim drawn on top of everything inside the frame.
-          "after:pointer-events-none after:absolute after:inset-0 after:z-20 after:rounded-[inherit] after:shadow-[inset_0_0_0_1px_var(--mac-window-rim)]",
+          "after:pointer-events-none after:absolute after:inset-0 after:z-20 after:rounded-[inherit] after:shadow-[inset_0_0_0_1px_var(--adw-window-rim)]",
           // Touch drags on the drag regions move the window instead of scrolling.
-          "data-[draggable]:[&_:is([data-slot=window-titlebar],[data-slot=toolbar],[data-slot=mac-sidebar-header],[data-window-drag-region])]:touch-none data-[dragging]:select-none",
-          // While resizing, the content can't take the pointer or change the
-          // cursor, and an iframe can't swallow the moves of a drag.
-          "data-[resizing]:select-none data-[resizing]:*:pointer-events-none data-[dragging]:[&_iframe]:pointer-events-none",
+          "data-[draggable]:[&_:is([data-slot=window-titlebar],[data-slot=toolbar],[data-slot=adw-sidebar-header],[data-window-drag-region])]:touch-none data-[dragging]:select-none",
+          // While dragging or resizing, prevent iframes or Wayland <app> surfaces
+          // from swallowing pointer moves without changing the cursor during drag.
+          "data-[resizing]:select-none data-[resizing]:*:pointer-events-none data-[dragging]:[&_iframe]:pointer-events-none data-[dragging]:[&_app]:pointer-events-none",
           "data-[dragging]:will-change-[translate] data-[resizing]:will-change-[translate,width,height]",
           "data-[minimized]:invisible",
           className
@@ -700,21 +837,15 @@ function Window({
         onPointerMove={handlePointerMove}
         onPointerUp={(event) => {
           onPointerUp?.(event)
-          endDrag(event)
+          finishInteraction(event)
         }}
         onPointerCancel={(event) => {
           onPointerCancel?.(event)
-          endDrag(event)
+          finishInteraction(event)
         }}
         onDoubleClick={(event) => {
           onDoubleClick?.(event)
-          const edge =
-            resizeEdge(event) ??
-            (event.target === event.currentTarget ? pressedEdge.current : undefined)
-          if (resizable && edge && !event.defaultPrevented) {
-            return fillToEdge(event.currentTarget, edge, event.altKey)
-          }
-          // Double-clicking the title bar zooms the window, as on macOS.
+          // Double-clicking the title bar toggles window zoom/maximize.
           const target = event.target as HTMLElement
           if (
             onZoom &&
@@ -723,6 +854,13 @@ function Window({
             !target.closest(NO_DRAG)
           ) {
             onZoom()
+            return
+          }
+          const edge =
+            resizeEdge(event) ??
+            (event.target === event.currentTarget ? pressedEdge.current : undefined)
+          if (resizable && edge && !event.defaultPrevented) {
+            return fillToEdge(event.currentTarget, edge, event.altKey)
           }
         }}
         {...props}
@@ -760,7 +898,7 @@ function WindowTitlebar({
     <div
       data-slot="window-titlebar"
       className={cn(
-        "relative flex h-8 shrink-0 items-center rounded-t-[inherit] border-b border-mac-separator px-[11px] select-none mac-material-titlebar",
+        "relative flex h-7 shrink-0 items-center rounded-t-[inherit] border-b border-adw-separator px-2.5 select-none adw-material-titlebar",
         className
       )}
       {...props}
@@ -775,7 +913,7 @@ function WindowTitle({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="window-title"
       className={cn(
-        "pointer-events-none absolute inset-x-24 truncate text-center text-mac-body font-semibold text-mac-label group-data-[inactive]/window:text-mac-label-tertiary",
+        "pointer-events-none absolute inset-x-24 truncate text-center text-adw-body font-semibold text-adw-label group-data-[inactive]/window:text-adw-label-tertiary",
         className
       )}
       {...props}
@@ -802,7 +940,7 @@ function WindowMain({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="window-main"
       className={cn(
-        "flex min-w-0 flex-1 flex-col rounded-r-[inherit] bg-mac-window first:rounded-l-[inherit]",
+        "flex min-w-0 flex-1 flex-col rounded-r-[inherit] bg-adw-window first:rounded-l-[inherit]",
         className
       )}
       {...props}
@@ -818,7 +956,7 @@ function WindowControlButton({
     <button
       type="button"
       className={cn(
-        "flex size-3.5 items-center justify-center rounded-full shadow-(--mac-traffic-edge) outline-none focus-visible:outline-3 focus-visible:outline-solid focus-visible:outline-mac-accent/50 disabled:[background:var(--mac-traffic-inactive)] group-data-[inactive]/window:[background:var(--mac-traffic-inactive)] group-data-[inactive]/window:shadow-none [&_svg]:size-2.5 [&_svg]:text-black/55 [&_svg]:opacity-0 group-hover/controls:[&_svg]:opacity-100",
+        "flex size-5 items-center justify-center rounded-md text-adw-label-secondary transition-colors outline-none hover:bg-black/8 hover:text-adw-label focus-visible:outline-3 focus-visible:outline-solid focus-visible:outline-adw-accent/50 group-data-[inactive]/window:opacity-50 dark:hover:bg-white/10 [&_svg]:size-3.5",
         className
       )}
       {...props}
@@ -826,8 +964,8 @@ function WindowControlButton({
   )
 }
 
-// The red, yellow and green "traffic light" buttons. Without handlers of
-// their own they call the onClose, onMinimize and onZoom of their Window.
+// Icon-only window controls (Minimize, Zoom, Close). Without handlers of
+// their own they call the onMinimize, onZoom and onClose of their Window.
 function WindowControls({
   className,
   onClose,
@@ -847,37 +985,25 @@ function WindowControls({
   return (
     <div
       data-slot="window-controls"
-      className={cn("group/controls flex items-center gap-[9px]", className)}
+      className={cn("group/controls flex items-center gap-1", className)}
       {...props}
     >
-      <WindowControlButton
-        aria-label="Close"
-        onClick={onClose}
-        className="[background:var(--mac-traffic-close)]"
-      >
-        <XIcon strokeWidth={3} />
+      <WindowControlButton aria-label="Minimize" onClick={onMinimize}>
+        <MinusIcon strokeWidth={2.25} />
       </WindowControlButton>
-      <WindowControlButton
-        aria-label="Minimize"
-        onClick={onMinimize}
-        className="[background:var(--mac-traffic-minimize)]"
-      >
-        <MinusIcon strokeWidth={3} />
-      </WindowControlButton>
-      <WindowControlButton
-        aria-label="Zoom"
-        onClick={onZoom}
-        className="[background:var(--mac-traffic-zoom)]"
-      >
-        <svg viewBox="0 0 8 8" fill="currentColor" aria-hidden="true">
-          <path d="M1.5 6.5V3.2L4.8 6.5H1.5ZM6.5 1.5V4.8L3.2 1.5H6.5Z" />
+      <WindowControlButton aria-label="Maximize" onClick={onZoom}>
+        <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
+          <rect x="2.2" y="2.2" width="7.6" height="7.6" rx="1.2" />
         </svg>
+      </WindowControlButton>
+      <WindowControlButton aria-label="Close" onClick={onClose}>
+        <XIcon strokeWidth={2.25} />
       </WindowControlButton>
     </div>
   )
 }
 
-export type { WindowInsets, WindowPosition, WindowSize }
+export type { WindowHandle, WindowInsets, WindowPosition, WindowSize, ResizeEdge as WindowResizeEdge }
 export {
   useWindowContext,
   Window,

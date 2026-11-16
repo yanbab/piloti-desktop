@@ -1,25 +1,30 @@
 import * as React from "react";
-import { AppsProvider, useApps } from "./AppsContext";
+import { useDomicile } from "@domicile-desktop/react/domicile-provider";
+import { attachConsoleDiskSink } from "@/lib/console-store";
+import { AppsContext, useApps, useAppsValue } from "./AppsContext";
 import {
   type DesktopSettings,
   type InstalledWebApp,
-  SettingsProvider,
   type SavedWindowBounds,
+  SettingsContext,
   type WindowDecorationMode,
   useSettings,
+  useSettingsValue,
 } from "./SettingsContext";
 import {
   type PowerAction,
   type ShellNotification,
-  SystemBackendsProvider,
+  SystemBackendsContext,
   useSystemBackends,
+  useSystemBackendsValue,
 } from "./SystemBackendsContext";
 import {
   type DesktopWindowInstance,
   normalizeWebUrl,
   type ResolvedPopupWindow,
-  WindowsProvider,
   useWindowManager,
+  useWindowsValue,
+  WindowsContext,
 } from "./WindowsContext";
 
 export type {
@@ -46,35 +51,40 @@ export function DesktopStateProvider({
 }: {
   children: React.ReactNode;
 }) {
-  return (
-    <SettingsProvider>
-      <SystemBackendsProvider>
-        <AppsProvider>
-          <WindowsProvider>{children}</WindowsProvider>
-        </AppsProvider>
-      </SystemBackendsProvider>
-    </SettingsProvider>
+  const domicile = useDomicile();
+  const [essentialIconsReady, setEssentialIconsReady] = React.useState(false);
+  const handleEssentialIconsReady = React.useCallback(() => {
+    setEssentialIconsReady(true);
+  }, []);
+
+  const settingsValue = useSettingsValue({
+    deferLocalWallpaper: !essentialIconsReady,
+  });
+
+  React.useEffect(() => {
+    attachConsoleDiskSink(domicile, settingsValue.isBrowserRuntime);
+  }, [domicile, settingsValue.isBrowserRuntime]);
+  const systemBackendsValue = useSystemBackendsValue(settingsValue);
+  const appsValue = useAppsValue(
+    settingsValue,
+    systemBackendsValue,
+    handleEssentialIconsReady
   );
-}
+  const windowsValue = useWindowsValue(
+    settingsValue,
+    systemBackendsValue,
+    appsValue
+  );
 
-/**
- * Compatibility facade aggregating all 4 focused shell contexts. Components can
- * also subscribe directly via `useSettings()`, `useSystemBackends()`, `useApps()`,
- * or `useWindowManager()` for narrower re-render scopes.
- */
-export function useDesktopState() {
-  const settingsSlice = useSettings();
-  const backendsSlice = useSystemBackends();
-  const appsSlice = useApps();
-  const windowsSlice = useWindowManager();
-
-  return React.useMemo(
-    () => ({
-      ...settingsSlice,
-      ...backendsSlice,
-      ...appsSlice,
-      ...windowsSlice,
-    }),
-    [appsSlice, backendsSlice, settingsSlice, windowsSlice]
+  return (
+    <SettingsContext.Provider value={settingsValue}>
+      <SystemBackendsContext.Provider value={systemBackendsValue}>
+        <AppsContext.Provider value={appsValue}>
+          <WindowsContext.Provider value={windowsValue}>
+            {children}
+          </WindowsContext.Provider>
+        </AppsContext.Provider>
+      </SystemBackendsContext.Provider>
+    </SettingsContext.Provider>
   );
 }

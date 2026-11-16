@@ -25,6 +25,16 @@ describe("console-store REPL and formatter", () => {
     expect(formatted).toContain("self: [Circular]");
   });
 
+  test("prettyprints JSON strings and objects with indentation", () => {
+    const rawJson = '{"foo":"bar","nums":[1,2]}';
+    const formattedJson = formatInspectValue(rawJson);
+    expect(formattedJson).toBe('{\n  "foo": "bar",\n  "nums": [\n    1,\n    2\n  ]\n}');
+
+    const arr = [{ id: 1 }, { id: 2 }];
+    const formattedArr = formatInspectValue(arr);
+    expect(formattedArr).toContain("[\n  {\n    id: 1\n  },\n  {\n    id: 2\n  }\n]");
+  });
+
   test("evaluates expressions, await, arrows, and objects in CSP-safe mode", async () => {
     const scope = {
       windows: [{ title: "Settings" }, { title: "Console" }],
@@ -40,11 +50,23 @@ describe("console-store REPL and formatter", () => {
       "Console",
     ]);
     expect(
-      await evaluateCspSafe('updateSettings({ uiTheme: "adwaita" })', scope)
-    ).toEqual({ uiTheme: "adwaita" });
+      await evaluateCspSafe('updateSettings({ themeMode: "dark" })', scope)
+    ).toEqual({ themeMode: "dark" });
     expect(
       await evaluateCspSafe("const a = 5; a * 3", scope)
     ).toBe(15);
+  });
+
+  test("abbreviates long data:image URIs in console inspection", () => {
+    const longImg = `data:image/png;base64,${"A".repeat(200)}`;
+    const formatted = formatInspectValue(longImg);
+    expect(formatted.length).toBeLessThan(90);
+    expect(formatted).toContain("data:image/png;base64,");
+    expect(formatted).toContain("chars)");
+
+    const nested = formatInspectValue({ icon: longImg });
+    expect(nested).toContain("chars)");
+    expect(nested).not.toContain("A".repeat(100));
   });
 });
 

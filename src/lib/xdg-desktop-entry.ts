@@ -67,6 +67,8 @@ interface ParseDesktopEntryOptions {
   iconThemes?: string[];
   iconSize?: number;
   iconScale?: number;
+  /** Populate `iconPath` without awaiting base64 `iconUrl` payloads upfront. */
+  deferIconDataLoad?: boolean;
 }
 
 const ESCAPE_MAP: Record<string, string> = {
@@ -309,6 +311,35 @@ function mapPrimaryCategory(
   return "Utilities";
 }
 
+const CSD_HINT_TOKENS = [
+  "gnome",
+  "gtk",
+  "adwaita",
+  "nautilus",
+  "loupe",
+  "papers",
+  "evince",
+  "gedit",
+  "kgx",
+  "ptyxis",
+  "blanket",
+  "snapshot",
+  "showtime",
+  "baobab",
+  "seahorse",
+  "dconf",
+  "pavucontrol",
+  "blueman",
+  "nm-connection-editor",
+  "simple-scan",
+  "file-roller",
+] as const;
+
+function hasCsdMetadataHint(text: string): boolean {
+  const lower = text.toLowerCase();
+  return CSD_HINT_TOKENS.some((token) => lower.includes(token));
+}
+
 function parseDesktopEntry(
   content: string,
   options: ParseDesktopEntryOptions = {}
@@ -354,15 +385,10 @@ function parseDesktopEntry(
     });
   }
 
-  const lowerMeta = `${desktopId} ${categories.join(" ")} ${exec ?? ""}`.toLowerCase();
+  const onlyShowIn = splitXdgList(main["OnlyShowIn"]);
+  const lowerMeta = `${desktopId} ${categories.join(" ")} ${exec ?? ""} ${onlyShowIn.join(" ")}`;
   const prefersCsd =
-    lowerMeta.includes("gnome") ||
-    lowerMeta.includes("gtk") ||
-    lowerMeta.includes("adwaita") ||
-    lowerMeta.includes("nautilus") ||
-    lowerMeta.includes("loupe") ||
-    lowerMeta.includes("evince") ||
-    lowerMeta.includes("kgx") ||
+    hasCsdMetadataHint(lowerMeta) ||
     Boolean(main["X-GNOME-UsesNotifications"]);
 
   return {
@@ -392,7 +418,7 @@ function parseDesktopEntry(
       getLocalizedKey(main, "Keywords", localeFallbacks) ?? main["Keywords"]
     ),
     mimeTypes: splitXdgList(main["MimeType"]),
-    onlyShowIn: splitXdgList(main["OnlyShowIn"]),
+    onlyShowIn,
     notShowIn: splitXdgList(main["NotShowIn"]),
     dbusActivatable: parseXdgBoolean(main["DBusActivatable"]),
     prefersCsd,
@@ -423,78 +449,159 @@ function isLaunchableDesktopApp(
 async function discoverInstalledXdgApps(
   files: XdgFileReader,
   options: ParseDesktopEntryOptions = {},
-  existingIconIndex?: XdgIconThemeIndex
+  existingIconIndex?: XdgIconThemeIndex | Promise<XdgIconThemeIndex>
 ): Promise<XdgDesktopEntry[]> {
-  const seenIds = new Set<string>();
-  const results: XdgDesktopEntry[] = [];
+  interface CandidateDesktopFile {
+    desktopId: string;
+    fullPath: string;
+    baseDir: string;
+  }
 
   const iconIndexPromise =
     existingIconIndex !== undefined
       ? Promise.resolve(existingIconIndex)
       : buildXdgIconThemeIndex(files, options.iconThemes);
 
-  async function scanDir(baseDir: string, currentDir: string, depth: number) {
-    if (depth > 2) return;
+  async function collectDir(
+    baseDir: string,
+    currentDir: string,
+    depth: number
+  ): Promise<CandidateDesktopFile[]> {
+    if (depth > 2) return [];
     const dirRes = await files.readDir(currentDir);
     const entries = dirRes.match({ Ok: (list) => list, Err: () => [] });
+    if (entries.length === 0) return [];
+
+    const out: CandidateDesktopFile[] = [];
+    const childDirTasks: Promise<CandidateDesktopFile[]>[] = [];
 
     for (const item of entries) {
       const fullPath = `${currentDir}/${item.name}`;
       if (item.fileType === 1 && !item.name.startsWith(".")) {
-        await scanDir(baseDir, fullPath, depth + 1);
-        continue;
+        childDirTasks.push(collectDir(baseDir, fullPath, depth + 1));
+      } else if (item.name.endsWith(".desktop")) {
+        out.push({
+          desktopId: computeDesktopFileId(fullPath, baseDir),
+          fullPath,
+          baseDir,
+        });
       }
-      if (!item.name.endsWith(".desktop")) continue;
+    }
 
-      const desktopId = computeDesktopFileId(fullPath, baseDir);
-      if (seenIds.has(desktopId)) continue;
+    if (childDirTasks.length > 0) {
+      const nested = await Promise.all(childDirTasks);
+      for (const batch of nested) out.push(...batch);
+    }
+    return out;
+  }
 
-      const textRes = await files.readText(fullPath);
-      const text = textRes.match({ Ok: (t) => t, Err: () => undefined });
-      if (!text) continue;
-
-      const parsed = parseDesktopEntry(text, {
-        ...options,
-        filePath: fullPath,
-        baseDir,
-      });
-      if (!parsed) continue;
-
-      seenIds.add(desktopId);
-      if (isLaunchableDesktopApp(parsed, options.currentDesktops)) {
-        results.push(parsed);
-      }
+  // Scan application dirs in parallel, then deduplicate by XDG precedence order.
+  const perDirCandidates = await Promise.all(
+    XDG_APPLICATION_DIRS.map((appDir) => collectDir(appDir, appDir, 0))
+  );
+  const seenIds = new Set<string>();
+  const uniqueCandidates: CandidateDesktopFile[] = [];
+  for (const batch of perDirCandidates) {
+    for (const item of batch) {
+      if (seenIds.has(item.desktopId)) continue;
+      seenIds.add(item.desktopId);
+      uniqueCandidates.push(item);
     }
   }
 
-  for (const appDir of XDG_APPLICATION_DIRS) {
-    await scanDir(appDir, appDir, 0);
+  const results: XdgDesktopEntry[] = [];
+  const BATCH_SIZE = 24;
+  for (let i = 0; i < uniqueCandidates.length; i += BATCH_SIZE) {
+    const chunk = uniqueCandidates.slice(i, i + BATCH_SIZE);
+    const parsedBatch = await Promise.all(
+      chunk.map(async (item) => {
+        const textRes = await files.readText(item.fullPath);
+        const text = textRes.match({ Ok: (t) => t, Err: () => undefined });
+        if (!text) return null;
+        return parseDesktopEntry(text, {
+          ...options,
+          filePath: item.fullPath,
+          baseDir: item.baseDir,
+        });
+      })
+    );
+    for (const parsed of parsedBatch) {
+      if (parsed && isLaunchableDesktopApp(parsed, options.currentDesktops)) {
+        results.push(parsed);
+      }
+    }
   }
 
   const iconIndex = await iconIndexPromise;
   const iconSize = options.iconSize ?? 64;
   const iconScale = options.iconScale ?? 1;
 
-  await Promise.all(
-    results.map(async (entry) => {
-      const candidates = [entry.icon, entry.appId].filter(
-        (c): c is string => Boolean(c)
-      );
-      for (const candidate of candidates) {
-        const iconPath = lookupXdgIconPath(iconIndex, candidate, iconSize, iconScale);
-        if (iconPath) {
-          entry.iconPath = iconPath;
-          const iconUrl = await loadXdgIconDataUrl(files, iconPath);
-          if (iconUrl) {
-            entry.iconUrl = iconUrl;
-            break;
-          }
+  for (const entry of results) {
+    const candidates = [entry.icon, entry.appId].filter(
+      (c): c is string => Boolean(c)
+    );
+    const iconPath = lookupXdgIconPath(iconIndex, candidates, iconSize, iconScale);
+    if (iconPath) {
+      entry.iconPath = iconPath;
+    }
+  }
+
+  if (!options.deferIconDataLoad) {
+    await Promise.all(
+      results.map(async (entry) => {
+        if (!entry.iconPath) return;
+        const iconUrl = await loadXdgIconDataUrl(files, entry.iconPath);
+        if (iconUrl) {
+          entry.iconUrl = iconUrl;
         }
-      }
-    })
-  );
+      })
+    );
+  }
 
   return results.sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/**
+ * Matches a Wayland toplevel's `desktopId` (`xdg_toplevel.app_id`) to its
+ * installed `.desktop` entry using Desktop File ID, `StartupWMClass`, or
+ * primary executable basename.
+ */
+function matchXdgEntryForWaylandWindow(
+  entries: readonly XdgDesktopEntry[],
+  waylandDesktopId: string
+): XdgDesktopEntry | undefined {
+  const raw = waylandDesktopId.trim();
+  if (!raw) return undefined;
+  const rawLower = raw.toLowerCase();
+  const cleanLower = raw.replace(/\.desktop$/i, "").toLowerCase();
+
+  return (
+    entries.find(
+      (e) =>
+        e.desktopId.toLowerCase() === rawLower ||
+        e.appId.toLowerCase() === cleanLower
+    ) ??
+    entries.find((e) => e.startupWMClass?.toLowerCase() === cleanLower) ??
+    entries.find((e) => {
+      const bin = e.execArgv[0]?.split("/").pop()?.toLowerCase();
+      return bin !== undefined && bin === cleanLower;
+    })
+  );
+}
+
+/**
+ * Resolves whether a Wayland toplevel draws Client-Side Decorations (CSD) under
+ * `"auto"` mode: respects Domicile's `clientFrame` (`xdg-decoration`), XDG
+ * `.desktop` metadata (`prefersCsd`), and GNOME/GTK `desktopId` hints since GTK4
+ * apps typically render CSD without advertising `xdg-decoration`.
+ */
+function resolveWaylandClientFrame(
+  win: { clientFrame: boolean; desktopId: string },
+  xdgMatch?: XdgDesktopEntry
+): boolean {
+  return Boolean(
+    win.clientFrame || xdgMatch?.prefersCsd || hasCsdMetadataHint(win.desktopId)
+  );
 }
 
 export {
@@ -502,7 +609,9 @@ export {
   discoverInstalledXdgApps,
   expandExecArgv,
   isLaunchableDesktopApp,
+  matchXdgEntryForWaylandWindow,
   parseDesktopEntry,
+  resolveWaylandClientFrame,
   splitXdgList,
   unescapeXdgValue,
 };

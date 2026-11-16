@@ -1,0 +1,28 @@
+{
+  "My english sentence is: %s": "Ma phrase anglaise est : %s",
+  "Launcher": "Lanceur",
+  "Switch Windows": "Changer de fenêtre",
+  "Overview": "Vue d'ensemble",
+  "Take Screenshot": "Capture d'écran",
+  "Launch Terminal": "Ouvrir le terminal",
+  "New Folder": "Nouveau dossier",
+  "Hide Desktop Icons": "Masquer les icônes du bureau",
+  "Show Desktop Icons": "Afficher les icônes du bureau",
+  "Change Wallpaper": "Changer le fond d'écran",
+  "Desktop Settings": "Paramètres du bureau",
+  "System Settings": "Paramètres système",
+  "Lock Screen": "Verrouiller l'écran",
+  "Open": "Ouvrir",
+  "Rename…": "Renommer…",
+  "Move to Trash": "Mettre à la corbeille",
+  "DevTools": "Outils de développement",
+  "No console messages": "Aucun message de console",
+  "No keys stored in localStorage.": "Aucune clé dans localStorage.",
+  "No keys matching \"%s\".": "Aucune clé correspondant à « %s ».",
+  "Select a key to inspect its stored state.": "Sélectionnez une clé pour inspecter son état.",
+  "Notifications": "Notifications",
+  "No notifications": "Aucune notification",
+  "Clear All": "Tout effacer",
+  "Settings": "Paramètres"
+}
+

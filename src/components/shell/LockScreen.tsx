@@ -1,12 +1,15 @@
 import * as React from "react";
-import { LockIcon, UnlockIcon } from "lucide-react";
+import { BellIcon, LockIcon, UnlockIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useSettings, useSystemBackends } from "@/context/DesktopStateContext";
+import { formatRelativeNotificationTime } from "@/lib/notifications";
+import { DesktopBackgroundLayers } from "./DesktopBackgroundLayers";
 
 export function LockScreen() {
-  const { isBrowserRuntime, settings, activeWallpaper } = useSettings();
-  const { locked, unlockSession, unlockError } = useSystemBackends();
+  const { isBrowserRuntime, settings } = useSettings();
+  const { locked, notifications, unlockSession, unlockError } =
+    useSystemBackends();
   const [passphrase, setPassphrase] = React.useState("");
   const [now, setNow] = React.useState(() => new Date());
 
@@ -27,14 +30,8 @@ export function LockScreen() {
   };
 
   return (
-    <div
-      style={{
-        background: settings.customWallpaperUrl
-          ? `url(${settings.customWallpaperUrl}) center/cover no-repeat`
-          : activeWallpaper.backgroundCss,
-      }}
-      className="fixed inset-0 z-[900] flex flex-col items-center justify-center text-white animate-in fade-in-0"
-    >
+    <div className="fixed inset-0 z-[900] flex flex-col items-center justify-center text-white animate-in fade-in-0">
+      <DesktopBackgroundLayers />
       <div className="absolute inset-0 bg-black/55 backdrop-blur-2xl" />
 
       <div className="relative z-10 mb-8 text-center">
@@ -89,6 +86,43 @@ export function LockScreen() {
           Unlock Session
         </Button>
       </form>
+
+      {settings.notificationsEnabled &&
+        settings.notificationShowOnLockScreen &&
+        notifications.length > 0 && (
+          <div className="relative z-10 mt-5 flex w-[340px] max-w-[calc(100vw-32px)] flex-col gap-2">
+            {notifications.slice(0, 3).map((n) => (
+              <div
+                key={n.id}
+                className="flex flex-col gap-0.5 rounded-[14px] bg-white/12 px-3.5 py-2.5 text-left text-white shadow-lg ring-1 ring-white/15 backdrop-blur-xl"
+              >
+                <div className="flex items-center justify-between gap-2 text-[10.5px] text-white/75">
+                  <span className="flex items-center gap-1 font-semibold uppercase tracking-wide">
+                    <BellIcon className="size-3" />
+                    {n.appName}
+                  </span>
+                  <span className="tabular-nums">
+                    {formatRelativeNotificationTime(n.time)}
+                  </span>
+                </div>
+                <div className="truncate text-[12.5px] font-semibold">
+                  {n.summary}
+                </div>
+                {settings.notificationShowPreviews ? (
+                  n.body && (
+                    <div className="line-clamp-2 text-[11.5px] text-white/80">
+                      {n.body}
+                    </div>
+                  )
+                ) : (
+                  <div className="text-[11px] text-white/60 italic">
+                    Notification content hidden
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
     </div>
   );
 }

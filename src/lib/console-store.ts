@@ -3,6 +3,15 @@ import { evaluateCspSafe } from "./csp-repl-eval";
 
 export type ConsoleLogLevel = "log" | "info" | "warn" | "error";
 
+export interface ConsoleDiskSink {
+  files: {
+    write: (path: string, content: string) => Promise<unknown>;
+  };
+  processes: {
+    run: (argv: string[]) => Promise<unknown>;
+  };
+}
+
 export interface ConsoleLogEntry {
   id: number;
   level: ConsoleLogLevel;
@@ -11,16 +20,91 @@ export interface ConsoleLogEntry {
   count: number;
 }
 
-const MAX_LOG_ENTRIES = 300;
+const MAX_LOG_ENTRIES = 2000;
+const CONSOLE_LOG_FILE = ".cache/piloti/piloti.log";
+const CONSOLE_LOG_STORAGE_KEY = "piloti.console.log.v1";
 let nextEntryId = 1;
 let installed = false;
 let entries: ConsoleLogEntry[] = [];
 const listeners = new Set<() => void>();
+let diskSink: ConsoleDiskSink | null = null;
+let diskSinkIsBrowser = true;
+let diskFlushTimer: ReturnType<typeof setTimeout> | null = null;
+let ensuredCacheDir = false;
+
+async function flushConsoleLogToDisk(): Promise<void> {
+  if (entries.length === 0) return;
+  const payload =
+    entries
+      .map((entry) => {
+        const ts = new Date(entry.timestamp).toISOString();
+        const repeat = entry.count > 1 ? ` (×${entry.count})` : "";
+        return `[${ts}] [${entry.level.toUpperCase()}] ${entry.message}${repeat}`;
+      })
+      .join("\n") + "\n";
+
+  if (typeof localStorage !== "undefined") {
+    try {
+      localStorage.setItem(CONSOLE_LOG_STORAGE_KEY, payload);
+    } catch {
+      // ignore storage quota errors
+    }
+  }
+
+  const domicile = diskSink;
+  if (!domicile || diskSinkIsBrowser) return;
+
+  try {
+    if (!ensuredCacheDir) {
+      ensuredCacheDir = true;
+      await domicile.processes.run(["mkdir", "-p", ".cache/piloti"]);
+    }
+    await domicile.files.write(CONSOLE_LOG_FILE, payload);
+  } catch {
+    // ignore if filesystem is locked or unavailable
+  }
+}
+
+function scheduleConsoleDiskFlush(): void {
+  if (diskFlushTimer !== null) {
+    clearTimeout(diskFlushTimer);
+  }
+  diskFlushTimer = setTimeout(() => {
+    diskFlushTimer = null;
+    void flushConsoleLogToDisk();
+  }, 350);
+}
+
+/**
+ * Attaches a disk sink (`.cache/piloti/piloti.log` on Linux, `localStorage`
+ * in browser dev mode) that persists every console message shown in DevTools.
+ */
+export function attachConsoleDiskSink(
+  domicile: ConsoleDiskSink,
+  isBrowserRuntime: boolean
+): void {
+  diskSink = domicile;
+  diskSinkIsBrowser = isBrowserRuntime;
+  scheduleConsoleDiskFlush();
+}
 
 function notifyListeners() {
   for (const listener of listeners) {
     listener();
   }
+}
+
+const DATA_IMAGE_URI_PREFIX = /^data:image\/[a-z0-9.+-]+(?:;[^,]*)?,/i;
+
+/**
+ * Abbreviates long `data:image/...` URIs so console/log output stays readable.
+ */
+export function abbreviateDataImageUri(value: string, maxLength = 96): string {
+  const trimmed = value.trim();
+  if (!DATA_IMAGE_URI_PREFIX.test(trimmed) || trimmed.length <= maxLength) {
+    return value;
+  }
+  return `${trimmed.slice(0, 48)}… (${trimmed.length} chars)`;
 }
 
 /**
@@ -35,7 +119,27 @@ export function formatInspectValue(
   if (value === null) return "null";
   if (value === undefined) return "undefined";
   if (typeof value === "string") {
-    return depth === 0 ? value : JSON.stringify(value);
+    if (depth === 0) {
+      const trimmed = value.trim();
+      if (
+        (trimmed.startsWith("{") && trimmed.endsWith("}")) ||
+        (trimmed.startsWith("[") && trimmed.endsWith("]"))
+      ) {
+        try {
+          const parsed = JSON.parse(trimmed);
+          return JSON.stringify(
+            parsed,
+            (_k, v) =>
+              typeof v === "string" ? abbreviateDataImageUri(v) : v,
+            2
+          );
+        } catch {
+          // not valid JSON, keep as raw string
+        }
+      }
+      return abbreviateDataImageUri(value);
+    }
+    return JSON.stringify(abbreviateDataImageUri(value));
   }
   if (
     typeof value === "number" ||
@@ -66,13 +170,15 @@ export function formatInspectValue(
 
     if (Array.isArray(value)) {
       if (value.length === 0) return "[]";
+      const indent = "  ".repeat(depth + 1);
+      const closingIndent = "  ".repeat(depth);
       const items = value
-        .slice(0, 20)
-        .map((item) => formatInspectValue(item, depth + 1, seen));
-      if (value.length > 20) {
-        items.push(`… +${value.length - 20} more`);
+        .slice(0, 50)
+        .map((item) => `${indent}${formatInspectValue(item, depth + 1, seen)}`);
+      if (value.length > 50) {
+        items.push(`${indent}… +${value.length - 50} more`);
       }
-      return `[${items.join(", ")}]`;
+      return `[\n${items.join(",\n")}\n${closingIndent}]`;
     }
 
     if (value instanceof Map) {
@@ -86,13 +192,14 @@ export function formatInspectValue(
     if (keys.length === 0) return "{}";
     const indent = "  ".repeat(depth + 1);
     const closingIndent = "  ".repeat(depth);
-    const previewKeys = keys.slice(0, 24);
+    const previewKeys = keys.slice(0, 50);
     const lines = previewKeys.map((k) => {
       const prop = (value as Record<string, unknown>)[k];
-      return `${indent}${k}: ${formatInspectValue(prop, depth + 1, seen)}`;
+      const safeKey = /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(k) ? k : JSON.stringify(k);
+      return `${indent}${safeKey}: ${formatInspectValue(prop, depth + 1, seen)}`;
     });
-    if (keys.length > 24) {
-      lines.push(`${indent}… +${keys.length - 24} keys`);
+    if (keys.length > 50) {
+      lines.push(`${indent}… +${keys.length - 50} keys`);
     }
     return `{\n${lines.join(",\n")}\n${closingIndent}}`;
   }
@@ -121,6 +228,7 @@ function appendLog(level: ConsoleLogLevel, args: unknown[]) {
     ];
   }
   queueMicrotask(notifyListeners);
+  scheduleConsoleDiskFlush();
 }
 
 /**

@@ -1,0 +1,357 @@
+{
+  "webApps": [
+    {
+      "id": "web:https://excalidraw.com/",
+      "title": "Excalidraw",
+      "url": "https://excalidraw.com/",
+      "category": "Graphics",
+      "keywords": "whiteboard drawing diagram sketch pwa",
+      "launcherDefault": true
+    },
+    {
+      "id": "web:https://tldraw.com/",
+      "title": "tldraw",
+      "url": "https://tldraw.com/",
+      "category": "Graphics",
+      "keywords": "whiteboard canvas drawing diagram wireframe"
+    },
+    {
+      "id": "web:https://embed.diagrams.net/",
+      "title": "Diagrams.net (Embed)",
+      "url": "https://embed.diagrams.net/",
+      "category": "Graphics",
+      "keywords": "drawio flowchart uml architecture diagram",
+      "launcherDefault": true
+    },
+    {
+      "id": "web:https://mermaid.live/",
+      "title": "Mermaid Live Editor",
+      "url": "https://mermaid.live/",
+      "category": "Graphics",
+      "keywords": "diagram flowchart sequence gantt markdown"
+    },
+    {
+      "id": "web:https://www.photopea.com/",
+      "title": "Photopea",
+      "url": "https://www.photopea.com/",
+      "category": "Graphics",
+      "keywords": "photo image editor psd raster vector pwa",
+      "launcherDefault": true
+    },
+    {
+      "id": "web:https://jspaint.app/",
+      "title": "JS Paint",
+      "url": "https://jspaint.app/",
+      "category": "Graphics",
+      "keywords": "paint drawing pixel art retro pwa"
+    },
+    {
+      "id": "web:https://sketch.io/sketchpad/",
+      "title": "Sketchpad",
+      "url": "https://sketch.io/sketchpad/",
+      "category": "Graphics",
+      "keywords": "drawing painting illustration vector studio"
+    },
+    {
+      "id": "web:https://draw.chat/",
+      "title": "Draw.chat",
+      "url": "https://draw.chat/",
+      "category": "Graphics",
+      "keywords": "whiteboard collaborative annotation pdf"
+    },
+    {
+      "id": "web:https://wbo.ophir.dev/",
+      "title": "WBO (Whitebophir)",
+      "url": "https://wbo.ophir.dev/",
+      "category": "Graphics",
+      "keywords": "whiteboard collaborative vector drawing"
+    },
+    {
+      "id": "web:https://squoosh.app/",
+      "title": "Squoosh",
+      "url": "https://squoosh.app/",
+      "category": "Graphics",
+      "keywords": "image compression optimizer webp avif jpeg pwa",
+      "launcherDefault": true
+    },
+    {
+      "id": "web:https://svgomg.net/",
+      "title": "SVGOMG",
+      "url": "https://svgomg.net/",
+      "category": "Graphics",
+      "keywords": "svg optimizer svgo vector minify pwa"
+    },
+    {
+      "id": "web:https://threejs.org/editor/",
+      "title": "Three.js Editor",
+      "url": "https://threejs.org/editor/",
+      "category": "Graphics",
+      "keywords": "3d webgl scene modeler"
+    },
+    {
+      "id": "web:https://stephaneginier.com/sculptgl/",
+      "title": "SculptGL",
+      "url": "https://stephaneginier.com/sculptgl/",
+      "category": "Graphics",
+      "keywords": "3d sculpting webgl modeler mesh"
+    },
+    {
+      "id": "web:https://notse.github.io/Calculator/",
+      "title": "Calculator",
+      "url": "https://notse.github.io/Calculator/",
+      "category": "Science & Math",
+      "keywords": "calculator math arithmetic utility"
+    },
+    {
+      "id": "web:https://www.desmos.com/calculator",
+      "title": "Desmos Graphing Calculator",
+      "url": "https://www.desmos.com/calculator",
+      "category": "Science & Math",
+      "keywords": "math graph plot equations pwa",
+      "launcherDefault": true
+    },
+    {
+      "id": "web:https://www.geogebra.org/classic",
+      "title": "GeoGebra Classic",
+      "url": "https://www.geogebra.org/classic",
+      "category": "Science & Math",
+      "keywords": "math geometry algebra calculus"
+    },
+    {
+      "id": "web:https://pairdrop.net/",
+      "title": "PairDrop",
+      "url": "https://pairdrop.net/",
+      "category": "Audio & Media",
+      "keywords": "file share airdrop webrtc transfer pwa"
+    },
+    {
+      "id": "web:https://gchq.github.io/CyberChef/",
+      "title": "CyberChef",
+      "url": "https://gchq.github.io/CyberChef/",
+      "category": "Development",
+      "keywords": "encode decode hash crypto hex base64 utility",
+      "launcherDefault": true
+    },
+    {
+      "id": "web:https://pomofocus.io/",
+      "title": "Pomofocus",
+      "url": "https://pomofocus.io/",
+      "category": "Productivity",
+      "keywords": "pomodoro timer focus tasks productivity"
+    },
+    {
+      "id": "web:https://time.is/",
+      "title": "Time.is",
+      "url": "https://time.is/",
+      "category": "Productivity",
+      "keywords": "clock time timezone atomic reference"
+    },
+    {
+      "id": "web:https://devdocs.io/",
+      "title": "DevDocs",
+      "url": "https://devdocs.io/",
+      "category": "Development",
+      "keywords": "documentation api reference offline developer pwa",
+      "launcherDefault": true
+    },
+    {
+      "id": "web:https://it-tools.tech/",
+      "title": "IT-Tools",
+      "url": "https://it-tools.tech/",
+      "category": "Development",
+      "keywords": "developer utilities jwt uuid regex diff json pwa",
+      "launcherDefault": true
+    },
+    {
+      "id": "web:https://transform.tools/",
+      "title": "Transform Tools",
+      "url": "https://transform.tools/",
+      "category": "Graphics",
+      "keywords": "converter json typescript zod graphql svg jsx pwa"
+    },
+    {
+      "id": "web:https://jsoncrack.com/editor",
+      "title": "JSON Crack",
+      "url": "https://jsoncrack.com/editor",
+      "category": "Development",
+      "keywords": "json yaml xml csv visualizer graph"
+    },
+    {
+      "id": "web:https://sqliteviewer.app/",
+      "title": "SQLite Viewer",
+      "url": "https://sqliteviewer.app/",
+      "category": "Development",
+      "keywords": "sqlite db database inspector sql wasm"
+    },
+    {
+      "id": "web:https://omatsuri.app/",
+      "title": "Omatsuri",
+      "url": "https://omatsuri.app/",
+      "category": "Graphics",
+      "keywords": "css svg generator color converter frontend pwa"
+    },
+    {
+      "id": "web:https://strudel.cc/",
+      "title": "Strudel REPL",
+      "url": "https://strudel.cc/",
+      "category": "Audio & Media",
+      "keywords": "music live coding pattern repl audio"
+    },
+    {
+      "id": "web:https://stackedit.io/",
+      "title": "StackEdit",
+      "url": "https://stackedit.io/",
+      "category": "Productivity",
+      "keywords": "markdown editor notes writing latex pwa",
+      "launcherDefault": true
+    },
+    {
+      "id": "web:https://dillinger.io/",
+      "title": "Dillinger",
+      "url": "https://dillinger.io/",
+      "category": "Productivity",
+      "keywords": "markdown editor html pdf export"
+    },
+    {
+      "id": "web:https://audiomass.co/",
+      "title": "AudioMass",
+      "url": "https://audiomass.co/",
+      "category": "Audio & Media",
+      "keywords": "audio waveform editor trim eq sound",
+      "launcherDefault": true
+    },
+    {
+      "id": "web:https://musiclab.chromeexperiments.com/",
+      "title": "Chrome Music Lab",
+      "url": "https://musiclab.chromeexperiments.com/",
+      "category": "Audio & Media",
+      "keywords": "music song maker rhythm audio"
+    },
+    {
+      "id": "web:https://asoftmurmur.com/",
+      "title": "A Soft Murmur",
+      "url": "https://asoftmurmur.com/",
+      "category": "Audio & Media",
+      "keywords": "ambient sound rain thunder focus audio"
+    },
+    {
+      "id": "web:https://radio.garden/",
+      "title": "Radio Garden",
+      "url": "https://radio.garden/",
+      "category": "Audio & Media",
+      "keywords": "radio streaming globe music audio"
+    },
+    {
+      "id": "web:https://bitmidi.com/",
+      "title": "BitMidi",
+      "url": "https://bitmidi.com/",
+      "category": "Audio & Media",
+      "keywords": "midi music player retro pwa"
+    },
+    {
+      "id": "web:https://earth.nullschool.net/",
+      "title": "Earth Nullschool",
+      "url": "https://earth.nullschool.net/",
+      "category": "Science & Math",
+      "keywords": "weather wind ocean globe map"
+    },
+    {
+      "id": "web:https://www.ventusky.com/",
+      "title": "Ventusky",
+      "url": "https://www.ventusky.com/",
+      "category": "Science & Math",
+      "keywords": "weather radar wind precipitation map"
+    },
+    {
+      "id": "web:https://stellarium-web.org/",
+      "title": "Stellarium Web",
+      "url": "https://stellarium-web.org/",
+      "category": "Science & Math",
+      "keywords": "astronomy planetarium stars sky map"
+    },
+    {
+      "id": "web:https://meet.jit.si/",
+      "title": "Jitsi Meet",
+      "url": "https://meet.jit.si/",
+      "category": "Audio & Media",
+      "keywords": "video call meeting conferencing webrtc"
+    },
+    {
+      "id": "web:https://vdo.ninja/",
+      "title": "VDO.Ninja",
+      "url": "https://vdo.ninja/",
+      "category": "Audio & Media",
+      "keywords": "webrtc video audio stream camera"
+    },
+    {
+      "id": "web:https://editor.gdevelop.io/",
+      "title": "GDevelop Editor",
+      "url": "https://editor.gdevelop.io/",
+      "category": "Graphics",
+      "keywords": "game engine 2d 3d scene editor"
+    },
+    {
+      "id": "web:https://www.towergame.app/",
+      "title": "Tower Game",
+      "url": "https://www.towergame.app/",
+      "category": "Games",
+      "keywords": "game arcade tower stack"
+    },
+    {
+      "id": "web:https://gabrielecirulli.github.io/2048/",
+      "title": "2048",
+      "url": "https://gabrielecirulli.github.io/2048/",
+      "category": "Games",
+      "keywords": "game puzzle numbers 2048"
+    },
+    {
+      "id": "web:https://chvin.github.io/react-tetris/",
+      "title": "Tetris",
+      "url": "https://chvin.github.io/react-tetris/",
+      "category": "Games",
+      "keywords": "game arcade puzzle tetris"
+    },
+    {
+      "id": "web:https://macek.github.io/google_pacman/",
+      "title": "Pac-Man",
+      "url": "https://macek.github.io/google_pacman/",
+      "category": "Games",
+      "keywords": "game arcade retro pacman"
+    },
+    {
+      "id": "web:https://minesweeperonline.com/",
+      "title": "Minesweeper",
+      "url": "https://minesweeperonline.com/",
+      "category": "Games",
+      "keywords": "game puzzle minesweeper classic"
+    },
+    {
+      "id": "web:https://sandspiel.club/",
+      "title": "Sandspiel",
+      "url": "https://sandspiel.club/",
+      "category": "Games",
+      "keywords": "game sandbox physics falling sand"
+    },
+    {
+      "id": "web:https://ellisonleao.github.io/clumsy-bird/",
+      "title": "Clumsy Bird",
+      "url": "https://ellisonleao.github.io/clumsy-bird/",
+      "category": "Games",
+      "keywords": "game arcade flappy bird"
+    },
+    {
+      "id": "web:https://flexboxfroggy.com/",
+      "title": "Flexbox Froggy",
+      "url": "https://flexboxfroggy.com/",
+      "category": "Games",
+      "keywords": "game css learning puzzle"
+    },
+    {
+      "id": "web:https://ncase.me/trust/",
+      "title": "The Evolution of Trust",
+      "url": "https://ncase.me/trust/",
+      "category": "Games",
+      "keywords": "game theory interactive story"
+    }
+  ]
+}

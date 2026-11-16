@@ -1,9 +1,11 @@
 import * as React from "react";
 import { useDisplays } from "@domicile-desktop/react/displays";
 import { useDomicile } from "@domicile-desktop/react/domicile-provider";
+import { AppReuse } from "@domicile-desktop/sdk/desktop/browser";
 import { useWatch } from "@domicile-desktop/react/use-watch";
 import { useFocusedWindow, useWindows } from "@domicile-desktop/react/windows";
 import {
+  type WindowRequest,
   WindowRequestKind,
   WindowState,
 } from "@domicile-desktop/sdk/window-state";
@@ -13,20 +15,31 @@ import {
   type BuiltinAppId,
 } from "@/data/catalog";
 import {
+  findMatchingWebApp,
+  getWebAppFaviconUrl,
+  resolveWebAppTitle,
+} from "@/data/web-apps";
+import {
   type GnomeSettingsPanel,
-  launchWithGnomeEnv,
+  launchDesktopCommand,
   openGnomeControlCenter,
 } from "@/lib/gnome-bridge";
-import type { XdgDesktopEntry } from "xdg-desktop-entry";
 import {
+  matchXdgEntryForWaylandWindow,
+  resolveWaylandClientFrame,
+  type XdgDesktopEntry,
+} from "xdg-desktop-entry";
+import {
+  clearXdgSession,
   loadXdgSession,
   saveXdgSession,
   serializeWindowToXdgSession,
   type XdgSessionWindow,
 } from "@/lib/xdg-session-management";
-import { matchAppFromWayland, useApps } from "./AppsContext";
-import { useSettings } from "./SettingsContext";
-import { useSystemBackends } from "./SystemBackendsContext";
+import { clampWindowBounds, clampWorkspace } from "@/lib/window-bounds";
+import { type AppsContextValue, matchAppFromWayland } from "./AppsContext";
+import { type SettingsContextValue } from "./SettingsContext";
+import { type SystemBackendsContextValue } from "./SystemBackendsContext";
 
 export interface DesktopWindowInstance {
   id: string;
@@ -48,6 +61,7 @@ export interface DesktopWindowInstance {
   position: { x: number; y: number };
   size: { width: number; height: number };
   minSize: { width: number; height: number };
+  maxSize?: { width: number; height: number };
   minimized: boolean;
   maximized: boolean;
   fullscreen?: boolean;
@@ -68,7 +82,7 @@ export interface ResolvedPopupWindow {
   zIndex: number;
 }
 
-interface WindowsContextValue {
+export interface WindowsContextValue {
   windows: DesktopWindowInstance[];
   workspaceWindows: DesktopWindowInstance[];
   waylandPopups: ResolvedPopupWindow[];
@@ -76,16 +90,22 @@ interface WindowsContextValue {
   focusedWindow: DesktopWindowInstance | undefined;
   activeAppDef: AppDefinition;
   mruWindows: DesktopWindowInstance[];
+  launchingApps: string[];
   launchApp: (
     appId: string,
     options?: { payload?: string; forceNew?: boolean; forceCsd?: boolean }
   ) => void;
   launchXdgApp: (entry: XdgDesktopEntry, actionId?: string) => void;
-  openGnomeSettings: (panel?: GnomeSettingsPanel) => void;
-  openWebUrl: (rawUrl: string) => void;
+  openGnomeSettings: (panel?: GnomeSettingsPanel | (string & {})) => void;
+  openWebUrl: (
+    rawUrl: string,
+    options?: { asApp?: boolean; appId?: string; title?: string }
+  ) => void;
   setBrowserFavicon: (browserWindowId: string, favicon: string) => void;
+  setBrowserTitle: (browserWindowId: string, title: string) => void;
   focusWindow: (windowId: string) => void;
   closeWindow: (windowId: string) => void;
+  forceQuitApp: (appId: string) => void;
   toggleMinimizeWindow: (windowId: string) => void;
   minimizeWindow: (windowId: string) => void;
   toggleMaximizeWindow: (windowId: string) => void;
@@ -98,14 +118,12 @@ interface WindowsContextValue {
     }
   ) => void;
   handleMenuAction: (actionId: string) => void;
-  commandPaletteOpen: boolean;
-  setCommandPaletteOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  controlCenterOpen: boolean;
-  setControlCenterOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  launcherOpen: boolean;
+  setLauncherOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  controlPanelOpen: boolean;
+  setControlPanelOpen: React.Dispatch<React.SetStateAction<boolean>>;
   aboutOpen: boolean;
   setAboutOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  openUrlOpen: boolean;
-  setOpenUrlOpen: React.Dispatch<React.SetStateAction<boolean>>;
   altTabOpen: boolean;
   altTabIndex: number;
   setAltTabIndex: React.Dispatch<React.SetStateAction<number>>;
@@ -113,11 +131,19 @@ interface WindowsContextValue {
   cycleAltTab: (delta: number) => void;
   commitAltTab: (explicitWindowId?: string) => void;
   closeAltTab: () => void;
+  overviewOpen: boolean;
+  setOverviewOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  toggleOverview: () => void;
+  moveWindowToWorkspace: (windowId: string, workspace: number) => void;
+  removeWorkspace: (workspace: number) => void;
   registerDockRef: (appId: string, node: HTMLElement | null) => void;
   getDockRef: (appId: string) => React.RefObject<Element | null>;
+  subscribeClientWindowRequest: (
+    listener: (req: WindowRequest) => void
+  ) => () => void;
 }
 
-const WindowsContext = React.createContext<WindowsContextValue | null>(null);
+export const WindowsContext = React.createContext<WindowsContextValue | null>(null);
 
 let nextZIndex = 20;
 let nextShellWinCounter = 1;
@@ -163,7 +189,11 @@ function patchExternalMeta(
   });
 }
 
-export function WindowsProvider({ children }: { children: React.ReactNode }) {
+export function useWindowsValue(
+  settingsCtx: SettingsContextValue,
+  backendsCtx: SystemBackendsContextValue,
+  appsCtx: AppsContextValue
+): WindowsContextValue {
   const domicile = useDomicile();
   const displays = useDisplays();
   const waylandWindows = useWindows();
@@ -171,14 +201,14 @@ export function WindowsProvider({ children }: { children: React.ReactNode }) {
   const browserWindows =
     useWatch(domicile.browser, "change", () => domicile.browser.windows) ?? [];
 
-  const { isBrowserRuntime, settings, updateSettings } = useSettings();
-  const { gnomeCapabilities, takeScreenshot } = useSystemBackends();
+  const { isBrowserRuntime, settings, updateSettings } = settingsCtx;
+  const { gnomeCapabilities, takeScreenshot } = backendsCtx;
   const {
     installedXdgApps,
     getAppIconUrl,
     ensureWaylandIcons,
     launchXdgEntry,
-  } = useApps();
+  } = appsCtx;
 
   const primaryDisplay = displays?.[0];
   const primaryMonitorName = primaryDisplay?.name ?? "primary";
@@ -193,63 +223,114 @@ export function WindowsProvider({ children }: { children: React.ReactNode }) {
     new Map()
   );
   const sessionHydratedRef = React.useRef(false);
+  const clientWindowRequestListenersRef = React.useRef(
+    new Set<(req: WindowRequest) => void>()
+  );
+  const subscribeClientWindowRequest = React.useCallback(
+    (listener: (req: WindowRequest) => void) => {
+      clientWindowRequestListenersRef.current.add(listener);
+      return () => {
+        clientWindowRequestListenersRef.current.delete(listener);
+      };
+    },
+    []
+  );
+
+  const pendingWebTitlesRef = React.useRef<Map<string, string>>(new Map());
+  const [launcherOpen, setLauncherOpen] = React.useState(false);
+  const [controlPanelOpen, setControlPanelOpen] = React.useState(false);
+  const [aboutOpen, setAboutOpen] = React.useState(false);
+  const [overviewOpen, setOverviewOpen] = React.useState(false);
+  const [altTabState, setAltTabState] = React.useState<{
+    open: boolean;
+    index: number;
+  }>({ open: false, index: 0 });
+  const altTabOpen = altTabState.open;
+  const altTabIndex = altTabState.index;
+
+  const clearLaunchOverlays = React.useCallback(() => {
+    setOverviewOpen(false);
+    setLauncherOpen(false);
+    setControlPanelOpen(false);
+    setAltTabState((prev) => (prev.open ? { ...prev, open: false } : prev));
+  }, []);
 
   // Restore built-in shell windows from xdg-session-management-v1 (or default Browser Dev Mode window on first run)
   const [shellWindows, setShellWindows] = React.useState<
     DesktopWindowInstance[]
   >(() => {
-    const savedSession = loadXdgSession();
-    if (savedSession !== null) {
-      const restoredShell: DesktopWindowInstance[] = [];
-      for (const rec of savedSession) {
-        if (rec.id === "settings" || rec.id === "console") {
-          const def = APP_CATALOG.find((a) => a.id === rec.id);
-          if (!def) continue;
-          const count = ++nextShellWinCounter;
-          restoredShell.push({
-            id: `shell:${rec.id}-${count}`,
-            appId: rec.id,
-            title: rec.title || def.name,
-            iconName: def.iconName,
-            gradient: def.gradient,
-            builtinComponent: rec.id,
-            clientFrame: settings.uiTheme === "adwaita" || rec.id === "console",
-            workspace: rec.workspace,
-            position: { x: rec.x, y: rec.y },
-            size: { width: rec.width, height: rec.height },
-            minSize: def.minSize ?? { width: 620, height: 400 },
-            minimized: false,
-            maximized: rec.maximized,
-            fullscreen: rec.fullscreen,
-            pinned: rec.pinned,
-            zIndex: ++nextZIndex,
-            payload: rec.id === "settings" ? "appearance" : undefined,
-          });
-        } else {
-          pendingSessionRestoreRef.current.set(rec.id, rec);
+    if (!settings.restoreWindowsOnLogin) {
+      clearXdgSession();
+    } else {
+      const savedSession = loadXdgSession();
+      if (savedSession !== null) {
+        const restoredShell: DesktopWindowInstance[] = [];
+        for (const rec of savedSession) {
+          if (rec.id === "settings" || rec.id === "console" || rec.id === "open") {
+            const def = APP_CATALOG.find((a) => a.id === rec.id);
+            if (!def) continue;
+            const count = ++nextShellWinCounter;
+            const minSize = def.minSize ?? { width: 620, height: 400 };
+            const clamped = clampWindowBounds(
+              { x: rec.x, y: rec.y },
+              { width: rec.width, height: rec.height },
+              screenWidth,
+              screenHeight,
+              { minWidth: minSize.width, minHeight: minSize.height }
+            );
+            restoredShell.push({
+              id: `shell:${rec.id}-${count}`,
+              appId: rec.id,
+              title: rec.title || def.name,
+              iconName: def.iconName,
+              gradient: def.gradient,
+              builtinComponent: rec.id as BuiltinAppId,
+              clientFrame: true,
+              workspace: clampWorkspace(rec.workspace, settings.workspaceCount),
+              position: clamped.position,
+              size: clamped.size,
+              minSize,
+              minimized: false,
+              maximized: rec.maximized,
+              fullscreen: rec.fullscreen,
+              pinned: rec.pinned,
+              zIndex: ++nextZIndex,
+              payload: rec.id === "settings" ? "appearance" : undefined,
+            });
+          } else {
+            pendingSessionRestoreRef.current.set(rec.id, rec);
+          }
         }
+        return restoredShell;
       }
-      return restoredShell;
     }
 
     if (typeof window !== "undefined" && window.__PILOTI_BROWSER_HOST__) {
       const settingsDef = APP_CATALOG.find((a) => a.id === "settings")!;
+      const minSize = settingsDef.minSize ?? { width: 620, height: 400 };
       const saved = settings.savedWindowBounds?.settings;
+      const clamped = clampWindowBounds(
+        saved?.position ?? {
+          x: Math.max(80, Math.round(screenWidth * 0.22)),
+          y: Math.max(48, Math.round(screenHeight * 0.1)),
+        },
+        saved?.size ?? { width: 820, height: 540 },
+        screenWidth,
+        screenHeight,
+        { minWidth: minSize.width, minHeight: minSize.height }
+      );
       return [
         {
           id: "shell:settings-1",
           appId: "settings",
-          title: "System Settings",
+          title: "Desktop Settings",
           iconName: settingsDef.iconName,
           gradient: settingsDef.gradient,
           builtinComponent: "settings",
           workspace: 1,
-          position: saved?.position ?? {
-            x: Math.max(80, Math.round(screenWidth * 0.22)),
-            y: Math.max(48, Math.round(screenHeight * 0.1)),
-          },
-          size: saved?.size ?? { width: 820, height: 540 },
-          minSize: settingsDef.minSize ?? { width: 620, height: 400 },
+          position: clamped.position,
+          size: clamped.size,
+          minSize,
           minimized: false,
           maximized: false,
           zIndex: ++nextZIndex,
@@ -264,16 +345,21 @@ export function WindowsProvider({ children }: { children: React.ReactNode }) {
   React.useEffect(() => {
     if (sessionHydratedRef.current) return;
     sessionHydratedRef.current = true;
+    if (!settings.restoreWindowsOnLogin) {
+      pendingSessionRestoreRef.current.clear();
+      return;
+    }
 
     for (const rec of pendingSessionRestoreRef.current.values()) {
       if (rec.id.startsWith("web:")) {
         const url = rec.id.slice(4);
         if (url) domicile.browser.open(url);
       } else if (!isBrowserRuntime) {
-        launchWithGnomeEnv(domicile, [rec.id]);
+        const def = APP_CATALOG.find((a) => a.id === rec.id);
+        launchDesktopCommand(domicile, def?.linuxCommand ?? [rec.id]);
       }
     }
-  }, [domicile, isBrowserRuntime]);
+  }, [domicile, isBrowserRuntime, settings.restoreWindowsOnLogin]);
 
   const [waylandMeta, setWaylandMeta] = React.useState<
     Record<string, ExternalWindowMeta>
@@ -283,40 +369,133 @@ export function WindowsProvider({ children }: { children: React.ReactNode }) {
     Record<string, ExternalWindowMeta>
   >({});
 
+function upsertBrowserRecord(
+  prev: Record<string, string>,
+  browserWindowId: string,
+  value: string
+): Record<string, string> {
+  if (!value) {
+    if (!(browserWindowId in prev)) return prev;
+    const next = { ...prev };
+    delete next[browserWindowId];
+    return next;
+  }
+  if (prev[browserWindowId] === value) return prev;
+  return { ...prev, [browserWindowId]: value };
+}
+
+function pruneBrowserRecord(
+  prev: Record<string, string>,
+  activeIds: Set<string>
+): Record<string, string> {
+  let changed = false;
+  const next: Record<string, string> = {};
+  for (const [id, val] of Object.entries(prev)) {
+    if (activeIds.has(id)) next[id] = val;
+    else changed = true;
+  }
+  return changed ? next : prev;
+}
+
   const [browserFavicons, setBrowserFavicons] = React.useState<
+    Record<string, string>
+  >({});
+  const [browserTitles, setBrowserTitles] = React.useState<
     Record<string, string>
   >({});
 
   const setBrowserFavicon = React.useCallback(
     (browserWindowId: string, favicon: string) => {
-      setBrowserFavicons((prev) => {
-        if (prev[browserWindowId] === favicon) return prev;
-        if (!favicon) {
-          if (!(browserWindowId in prev)) return prev;
-          const next = { ...prev };
-          delete next[browserWindowId];
-          return next;
-        }
-        return { ...prev, [browserWindowId]: favicon };
-      });
+      setBrowserFavicons((prev) =>
+        upsertBrowserRecord(prev, browserWindowId, favicon)
+      );
+    },
+    []
+  );
+
+  const setBrowserTitle = React.useCallback(
+    (browserWindowId: string, title: string) => {
+      setBrowserTitles((prev) =>
+        upsertBrowserRecord(prev, browserWindowId, title.trim())
+      );
     },
     []
   );
 
   // Sync Domicile `<webview>` browser windows
+  const knownBrowserIdsRef = React.useRef<Set<string>>(new Set());
+
   React.useEffect(() => {
     const activeIds = new Set(browserWindows.map((bw) => bw.id));
-    let newlyFocusedId: string | null = null;
+    const newEntries = new Map<string, ExternalWindowMeta>();
+    let newlyFocused: {
+      id: string;
+      workspace: number;
+      pinned: boolean;
+    } | null = null;
 
-    setBrowserFavicons((prev) => {
-      let changed = false;
-      const next: Record<string, string> = {};
-      for (const [id, url] of Object.entries(prev)) {
-        if (activeIds.has(id)) next[id] = url;
-        else changed = true;
+    for (const [idx, bw] of browserWindows.entries()) {
+      if (!knownBrowserIdsRef.current.has(bw.id)) {
+        const sessionKey = bw.url ? `web:${bw.url}` : undefined;
+        const restored = sessionKey
+          ? pendingSessionRestoreRef.current.get(sessionKey)
+          : undefined;
+        if (sessionKey && restored) {
+          pendingSessionRestoreRef.current.delete(sessionKey);
+        }
+        const remembered =
+          (bw.appId ? settings.savedWindowBounds[bw.appId] : undefined) ??
+          settings.savedWindowBounds.webview;
+        const defaultW =
+          restored?.width ??
+          remembered?.size.width ??
+          (bw.width > 200
+            ? bw.width
+            : Math.min(1040, Math.max(640, screenWidth - 120)));
+        const defaultH =
+          restored?.height ??
+          remembered?.size.height ??
+          (bw.height > 150
+            ? bw.height
+            : Math.min(720, Math.max(460, screenHeight - 140)));
+        const clamped = clampWindowBounds(
+          restored
+            ? { x: restored.x, y: restored.y }
+            : remembered?.position ?? {
+              x: Math.max(40, 110 + (idx % 5) * 44),
+              y: Math.max(24, 40 + (idx % 5) * 32),
+            },
+          { width: defaultW, height: defaultH },
+          screenWidth,
+          screenHeight,
+          { minWidth: 420, minHeight: 300 }
+        );
+        const workspace = restored
+          ? clampWorkspace(restored.workspace, settings.workspaceCount)
+          : clampWorkspace(settings.activeWorkspace, settings.workspaceCount);
+        const pinned = restored?.pinned ?? false;
+        newEntries.set(bw.id, {
+          position: clamped.position,
+          size: clamped.size,
+          minimized: false,
+          maximized: restored?.maximized ?? false,
+          fullscreen: restored?.fullscreen ?? false,
+          pinned,
+          tiled: null,
+          zIndex: ++nextZIndex,
+          workspace,
+        });
+        newlyFocused = {
+          id: `browser:${bw.id}`,
+          workspace,
+          pinned,
+        };
       }
-      return changed ? next : prev;
-    });
+    }
+    knownBrowserIdsRef.current = activeIds;
+
+    setBrowserFavicons((prev) => pruneBrowserRecord(prev, activeIds));
+    setBrowserTitles((prev) => pruneBrowserRecord(prev, activeIds));
 
     setBrowserMeta((prev) => {
       let changed = false;
@@ -325,126 +504,176 @@ export function WindowsProvider({ children }: { children: React.ReactNode }) {
         if (activeIds.has(id)) next[id] = meta;
         else changed = true;
       }
-
-      browserWindows.forEach((bw, idx) => {
-        if (!next[bw.id]) {
+      for (const [id, entry] of newEntries) {
+        if (!next[id]) {
+          next[id] = entry;
           changed = true;
-          const sessionKey = bw.url ? `web:${bw.url}` : undefined;
-          const restored = sessionKey
-            ? pendingSessionRestoreRef.current.get(sessionKey)
-            : undefined;
-          if (sessionKey && restored) {
-            pendingSessionRestoreRef.current.delete(sessionKey);
-          }
-          const remembered =
-            (bw.appId ? settings.savedWindowBounds[bw.appId] : undefined) ??
-            settings.savedWindowBounds.webview;
-          const defaultW =
-            restored?.width ??
-            remembered?.size.width ??
-            (bw.width > 200
-              ? bw.width
-              : Math.min(1040, Math.max(640, screenWidth - 120)));
-          const defaultH =
-            restored?.height ??
-            remembered?.size.height ??
-            (bw.height > 150
-              ? bw.height
-              : Math.min(720, Math.max(460, screenHeight - 140)));
-          next[bw.id] = {
-            position: restored
-              ? { x: restored.x, y: restored.y }
-              : remembered?.position ?? {
-                  x: Math.max(40, 110 + (idx % 5) * 44),
-                  y: Math.max(24, 40 + (idx % 5) * 32),
-                },
-            size: { width: defaultW, height: defaultH },
-            minimized: false,
-            maximized: restored?.maximized ?? false,
-            fullscreen: restored?.fullscreen ?? false,
-            pinned: restored?.pinned ?? false,
-            tiled: null,
-            zIndex: ++nextZIndex,
-            workspace: restored?.workspace ?? settings.activeWorkspace,
-          };
-          newlyFocusedId = `browser:${bw.id}`;
         }
-      });
-
+      }
       return changed ? next : prev;
     });
 
-    if (newlyFocusedId) {
-      const fid = newlyFocusedId;
-      setFocusedWindowId(fid);
-      setMruIds((prev) => [fid, ...prev.filter((id) => id !== fid)]);
+    if (newlyFocused) {
+      const target = newlyFocused;
+      clearLaunchOverlays();
+      if (!target.pinned && target.workspace !== settings.activeWorkspace) {
+        updateSettings({ activeWorkspace: target.workspace });
+      }
+      setFocusedWindowId(target.id);
+      setMruIds((prev) => [target.id, ...prev.filter((id) => id !== target.id)]);
       domicile.windows.focusShell();
     }
   }, [
     browserWindows,
+    clearLaunchOverlays,
     domicile.windows,
     screenHeight,
     screenWidth,
     settings.activeWorkspace,
     settings.savedWindowBounds,
+    settings.workspaceCount,
+    updateSettings,
   ]);
 
   // Sync new Wayland windows and restore remembered geometry per desktopId
+  const knownWaylandIdsRef = React.useRef<Set<string>>(new Set());
+
   React.useEffect(() => {
     const toplevels = waylandWindows.filter((w) => w.parent === undefined);
     const idsToResolve: string[] = [];
+    const currentIds = new Set(toplevels.map((w) => w.appId));
+    const newEntries = new Map<string, ExternalWindowMeta>();
+    let newlyMapped: {
+      appId: string;
+      workspace: number;
+      pinned: boolean;
+    } | null = null;
+
+    for (const [idx, w] of toplevels.entries()) {
+      if (w.desktopId) idsToResolve.push(w.desktopId);
+      if (!knownWaylandIdsRef.current.has(w.appId)) {
+        const shortId = w.desktopId.replace(/\.desktop$/i, "");
+        const restored =
+          pendingSessionRestoreRef.current.get(w.desktopId) ??
+          pendingSessionRestoreRef.current.get(shortId);
+        if (restored) {
+          pendingSessionRestoreRef.current.delete(w.desktopId);
+          pendingSessionRestoreRef.current.delete(shortId);
+        }
+        const remembered = w.dialog
+          ? undefined
+          : settings.savedWindowBounds[w.desktopId] ??
+            settings.savedWindowBounds[shortId];
+        const minW = w.minWidth ?? (w.dialog ? 180 : 320);
+        const minH = w.minHeight ?? (w.dialog ? 140 : 220);
+        const rawSize = restored
+          ? { width: restored.width, height: restored.height }
+          : remembered?.size ?? {
+            width: w.width && w.width > 0 ? w.width : 760,
+            height: w.height && w.height > 0 ? w.height : 500,
+          };
+        const parentMeta = w.transientFor
+          ? newEntries.get(w.transientFor)
+          : undefined;
+        const rawPos = restored
+          ? { x: restored.x, y: restored.y }
+          : remembered?.position ??
+            (parentMeta
+              ? {
+                  x: Math.round(
+                    parentMeta.position.x +
+                      (parentMeta.size.width - rawSize.width) / 2
+                  ),
+                  y: Math.round(
+                    parentMeta.position.y +
+                      (parentMeta.size.height - rawSize.height) / 2
+                  ),
+                }
+              : {
+                  x: 90 + (idx % 5) * 48,
+                  y: 44 + (idx % 5) * 34,
+                });
+        const clamped = clampWindowBounds(
+          rawPos,
+          rawSize,
+          screenWidth,
+          screenHeight,
+          {
+            minWidth: minW,
+            minHeight: minH,
+            maxWidth: w.maxWidth ?? undefined,
+            maxHeight: w.maxHeight ?? undefined,
+          }
+        );
+        const workspace = restored
+          ? clampWorkspace(restored.workspace, settings.workspaceCount)
+          : clampWorkspace(settings.activeWorkspace, settings.workspaceCount);
+        const pinned = restored?.pinned ?? false;
+
+        newEntries.set(w.appId, {
+          position: clamped.position,
+          size: clamped.size,
+          minimized: false,
+          maximized: restored?.maximized ?? false,
+          fullscreen: restored?.fullscreen ?? false,
+          pinned,
+          tiled: null,
+          zIndex: ++nextZIndex,
+          workspace,
+        });
+        newlyMapped = {
+          appId: w.appId,
+          workspace,
+          pinned,
+        };
+      }
+    }
+    knownWaylandIdsRef.current = currentIds;
 
     setWaylandMeta((prev) => {
       let changed = false;
-      const next = { ...prev };
-      toplevels.forEach((w, idx) => {
-        if (w.desktopId) idsToResolve.push(w.desktopId);
-        if (!next[w.appId]) {
+      const next: Record<string, ExternalWindowMeta> = {};
+      for (const [id, meta] of Object.entries(prev)) {
+        if (currentIds.has(id)) next[id] = meta;
+        else changed = true;
+      }
+      for (const [id, entry] of newEntries) {
+        if (!next[id]) {
+          next[id] = entry;
           changed = true;
-          const shortId = w.desktopId.replace(/\.desktop$/i, "");
-          const restored =
-            pendingSessionRestoreRef.current.get(w.desktopId) ??
-            pendingSessionRestoreRef.current.get(shortId);
-          if (restored) {
-            pendingSessionRestoreRef.current.delete(w.desktopId);
-            pendingSessionRestoreRef.current.delete(shortId);
-          }
-          const remembered =
-            settings.savedWindowBounds[w.desktopId] ??
-            settings.savedWindowBounds[shortId];
-          next[w.appId] = {
-            position: restored
-              ? { x: restored.x, y: restored.y }
-              : remembered?.position ?? {
-                  x: 90 + (idx % 5) * 48,
-                  y: 44 + (idx % 5) * 34,
-                },
-            size: restored
-              ? { width: restored.width, height: restored.height }
-              : remembered?.size ?? {
-                  width: w.width && w.width > 200 ? w.width : 760,
-                  height: w.height && w.height > 150 ? w.height : 500,
-                },
-            minimized: false,
-            maximized: restored?.maximized ?? false,
-            fullscreen: restored?.fullscreen ?? false,
-            pinned: restored?.pinned ?? false,
-            tiled: null,
-            zIndex: ++nextZIndex,
-            workspace: restored?.workspace ?? settings.activeWorkspace,
-          };
         }
-      });
+      }
       return changed ? next : prev;
     });
 
     if (idsToResolve.length > 0) {
       ensureWaylandIcons(idsToResolve);
     }
+
+    if (newlyMapped) {
+      const target = newlyMapped;
+      const wid = `wayland:${target.appId}`;
+      clearLaunchOverlays();
+      if (!target.pinned && target.workspace !== settings.activeWorkspace) {
+        updateSettings({ activeWorkspace: target.workspace });
+      }
+      setFocusedWindowId(wid);
+      setMruIds((prev) => [wid, ...prev.filter((id) => id !== wid)]);
+      const frame = requestAnimationFrame(() => {
+        domicile.windows.focus(target.appId);
+      });
+      return () => cancelAnimationFrame(frame);
+    }
   }, [
+    clearLaunchOverlays,
+    domicile.windows,
     ensureWaylandIcons,
+    screenHeight,
+    screenWidth,
     settings.activeWorkspace,
     settings.savedWindowBounds,
+    settings.workspaceCount,
+    updateSettings,
     waylandWindows,
   ]);
 
@@ -458,7 +687,10 @@ export function WindowsProvider({ children }: { children: React.ReactNode }) {
         const res = await domicile.windows.requests();
         const listening = res.match({
           Ok: (v) => v,
-          Err: () => undefined,
+          Err: (err) => {
+            console.warn("[Piloti] windowRequests subscribe Err", err);
+            return undefined;
+          },
         });
         if (cancelled || !listening) return;
         stopListening = () => listening.stop();
@@ -467,6 +699,11 @@ export function WindowsProvider({ children }: { children: React.ReactNode }) {
         while (!cancelled) {
           const { done, value: req } = await reader.read();
           if (done || !req || cancelled) break;
+          console.info(
+            "[Piloti] windowRequest",
+            WindowRequestKind[req.kind] ?? req.kind,
+            req
+          );
           if (
             req.kind === WindowRequestKind.Maximize ||
             req.kind === WindowRequestKind.Fullscreen
@@ -485,8 +722,7 @@ export function WindowsProvider({ children }: { children: React.ReactNode }) {
               };
             });
           } else if (
-            req.kind === WindowRequestKind.Unmaximize ||
-            req.kind === WindowRequestKind.Unfullscreen
+            req.kind === WindowRequestKind.Unmaximize
           ) {
             setWaylandMeta((prev) => {
               const cur = prev[req.appId];
@@ -500,10 +736,30 @@ export function WindowsProvider({ children }: { children: React.ReactNode }) {
                 },
               };
             });
+          } else if (req.kind === WindowRequestKind.Minimize) {
+            setWaylandMeta((prev) => {
+              const cur = prev[req.appId];
+              if (!cur) return prev;
+              return {
+                ...prev,
+                [req.appId]: {
+                  ...cur,
+                  minimized: true,
+                },
+              };
+            });
+          } else if (
+            req.kind === WindowRequestKind.Move ||
+            req.kind === WindowRequestKind.Resize ||
+            req.kind === WindowRequestKind.Unfullscreen
+          ) {
+            for (const listener of clientWindowRequestListenersRef.current) {
+              listener(req);
+            }
           }
         }
-      } catch {
-        // ignore if stream closes
+      } catch (err) {
+        console.warn("[Piloti] windowRequests stream error", err);
       }
     })();
 
@@ -559,11 +815,9 @@ export function WindowsProvider({ children }: { children: React.ReactNode }) {
       .filter((w) => w.parent === undefined)
       .map((w, idx): DesktopWindowInstance => {
         const matched = matchAppFromWayland(w.desktopId, w.title);
-        const xdgMatch = installedXdgApps.find(
-          (e) =>
-            e.desktopId === w.desktopId ||
-            e.appId === w.desktopId ||
-            e.appId.toLowerCase() === w.desktopId.toLowerCase()
+        const xdgMatch = matchXdgEntryForWaylandWindow(
+          installedXdgApps,
+          w.desktopId
         );
         const resolvedIconUrl =
           xdgMatch?.iconUrl ??
@@ -571,13 +825,21 @@ export function WindowsProvider({ children }: { children: React.ReactNode }) {
           getAppIconUrl(w.appId) ??
           getAppIconUrl(matched.id);
         const meta = waylandMeta[w.appId] ?? {
-          position: { x: 90 + idx * 45, y: 48 + idx * 36 },
-          size: { width: 740, height: 480 },
+          ...clampWindowBounds(
+            { x: 90 + idx * 45, y: 48 + idx * 36 },
+            { width: 740, height: 480 },
+            screenWidth,
+            screenHeight,
+            { minWidth: w.minWidth ?? 320, minHeight: w.minHeight ?? 220 }
+          ),
           minimized: false,
           maximized: false,
           tiled: null,
           zIndex: 15 + idx,
-          workspace: 1,
+          workspace: clampWorkspace(
+            settings.activeWorkspace,
+            settings.workspaceCount
+          ),
         };
         return {
           id: `wayland:${w.appId}`,
@@ -587,7 +849,7 @@ export function WindowsProvider({ children }: { children: React.ReactNode }) {
           iconUrl: resolvedIconUrl,
           gradient: matched.gradient,
           waylandAppId: w.appId,
-          clientFrame: w.clientFrame,
+          clientFrame: resolveWaylandClientFrame(w, xdgMatch),
           cursor: w.cursor,
           syncedFrame: syncedParentFrames.get(w.appId),
           tiled: meta.tiled ?? null,
@@ -595,9 +857,16 @@ export function WindowsProvider({ children }: { children: React.ReactNode }) {
           position: meta.position,
           size: meta.size,
           minSize: {
-            width: w.minWidth ?? matched.minSize?.width ?? 320,
-            height: w.minHeight ?? matched.minSize?.height ?? 220,
+            width: w.minWidth ?? matched.minSize?.width ?? (w.dialog ? 180 : 320),
+            height: w.minHeight ?? matched.minSize?.height ?? (w.dialog ? 140 : 220),
           },
+          maxSize:
+            w.maxWidth || w.maxHeight
+              ? {
+                  width: w.maxWidth ?? screenWidth,
+                  height: w.maxHeight ?? screenHeight,
+                }
+              : undefined,
           minimized: meta.minimized,
           maximized: meta.maximized,
           fullscreen: meta.fullscreen,
@@ -608,32 +877,43 @@ export function WindowsProvider({ children }: { children: React.ReactNode }) {
 
     const resolvedBrowserWindows = browserWindows.map((bw, idx): DesktopWindowInstance => {
       const meta = browserMeta[bw.id] ?? {
-        position: { x: 110 + idx * 44, y: 40 + idx * 32 },
-        size: { width: 960, height: 640 },
+        ...clampWindowBounds(
+          { x: 110 + idx * 44, y: 40 + idx * 32 },
+          { width: 960, height: 640 },
+          screenWidth,
+          screenHeight,
+          { minWidth: 420, minHeight: 300 }
+        ),
         minimized: false,
         maximized: false,
         tiled: null,
         zIndex: 18 + idx,
-        workspace: settings.activeWorkspace,
+        workspace: clampWorkspace(
+          settings.activeWorkspace,
+          settings.workspaceCount
+        ),
       };
-      let fallbackTitle = "Web View";
-      if (bw.title) {
-        fallbackTitle = bw.title;
-      } else if (bw.url) {
-        try {
-          fallbackTitle = new URL(bw.url).hostname || bw.url;
-        } catch {
-          fallbackTitle = bw.url;
-        }
-      }
+      const webAppMatch = findMatchingWebApp(bw.url, settings.installedWebApps);
+      const pendingTitle =
+        pendingWebTitlesRef.current.get(bw.appId) ??
+        pendingWebTitlesRef.current.get(bw.url);
+      const resolvedTitle =
+        pendingTitle ??
+        resolveWebAppTitle({
+          rawUrl: bw.url,
+          liveTitle: browserTitles[bw.id],
+          hostTitle: bw.title,
+          installedApps: settings.installedWebApps,
+        });
       return {
         id: `browser:${bw.id}`,
         appId: bw.appId || `webview:${bw.id}`,
-        title: fallbackTitle,
+        title: resolvedTitle,
         iconName: "globe",
         iconUrl:
           browserFavicons[bw.id] ||
-          (bw.appId ? getAppIconUrl(bw.appId) : undefined),
+          webAppMatch?.iconUrl ||
+          getWebAppFaviconUrl(bw.url),
         gradient: "from-cyan-400 via-blue-500 to-indigo-600",
         browserWindowId: bw.id,
         browserUrl: bw.url,
@@ -659,13 +939,18 @@ export function WindowsProvider({ children }: { children: React.ReactNode }) {
     shellWindows,
     browserWindows,
     browserFavicons,
+    browserTitles,
     browserMeta,
     waylandWindows,
     waylandMeta,
     syncedParentFrames,
     installedXdgApps,
     getAppIconUrl,
+    screenWidth,
+    screenHeight,
     settings.activeWorkspace,
+    settings.installedWebApps,
+    settings.workspaceCount,
   ]);
 
   const waylandPopups = React.useMemo<ResolvedPopupWindow[]>(() => {
@@ -766,49 +1051,116 @@ export function WindowsProvider({ children }: { children: React.ReactNode }) {
   const focusWindow = React.useCallback(
     (windowId: string) => {
       const newZ = ++nextZIndex;
+      clearLaunchOverlays();
       setFocusedWindowId(windowId);
       setMruIds((prev) => [windowId, ...prev.filter((id) => id !== windowId)]);
+
+      const existing = combinedWindows.find((w) => w.id === windowId);
+      const targetWorkspace = existing
+        ? clampWorkspace(existing.workspace, settings.workspaceCount)
+        : undefined;
+      if (
+        existing &&
+        targetWorkspace !== undefined &&
+        !existing.pinned &&
+        targetWorkspace !== settings.activeWorkspace
+      ) {
+        updateSettings({ activeWorkspace: targetWorkspace });
+      }
+
+      const clampedFrame =
+        existing && !existing.maximized && !existing.fullscreen
+          ? clampWindowBounds(
+            existing.position,
+            existing.size,
+            screenWidth,
+            screenHeight,
+            {
+              minWidth: existing.minSize?.width,
+              minHeight: existing.minSize?.height,
+            }
+          )
+          : null;
 
       if (windowId.startsWith("wayland:")) {
         const rawId = windowId.slice("wayland:".length);
         patchExternalMeta(setWaylandMeta, rawId, (cur) => ({
           ...cur,
+          ...(clampedFrame
+            ? { position: clampedFrame.position, size: clampedFrame.size }
+            : {}),
+          workspace: clampWorkspace(cur.workspace, settings.workspaceCount),
           minimized: false,
           zIndex: newZ,
         }));
         domicile.windows.focus(rawId);
       } else if (windowId.startsWith("browser:")) {
         const rawId = windowId.slice("browser:".length);
-        const curMeta = browserMeta[rawId];
-        if (curMeta && curMeta.workspace !== settings.activeWorkspace) {
-          updateSettings({ activeWorkspace: curMeta.workspace });
-        }
         patchExternalMeta(setBrowserMeta, rawId, (cur) => ({
           ...cur,
+          ...(clampedFrame
+            ? { position: clampedFrame.position, size: clampedFrame.size }
+            : {}),
+          workspace: clampWorkspace(cur.workspace, settings.workspaceCount),
           minimized: false,
           zIndex: newZ,
         }));
         domicile.windows.focusShell();
       } else {
         setShellWindows((prev) =>
-          prev.map((w) => {
-            if (w.id === windowId) {
-              if (w.workspace !== settings.activeWorkspace) {
-                updateSettings({ activeWorkspace: w.workspace });
+          prev.map((w) =>
+            w.id === windowId
+              ? {
+                ...w,
+                ...(clampedFrame
+                  ? {
+                    position: clampedFrame.position,
+                    size: clampedFrame.size,
+                  }
+                  : {}),
+                workspace: clampWorkspace(
+                  w.workspace,
+                  settings.workspaceCount
+                ),
+                minimized: false,
+                zIndex: newZ,
               }
-              return { ...w, minimized: false, zIndex: newZ };
-            }
-            return w;
-          })
+              : w
+          )
         );
         domicile.windows.focusShell();
       }
     },
-    [browserMeta, domicile.windows, settings.activeWorkspace, updateSettings]
+    [
+      clearLaunchOverlays,
+      combinedWindows,
+      domicile.windows,
+      screenHeight,
+      screenWidth,
+      settings.activeWorkspace,
+      settings.workspaceCount,
+      updateSettings,
+    ]
   );
+
+  const focusWindowRef = React.useRef(focusWindow);
+  focusWindowRef.current = focusWindow;
+
+  React.useEffect(() => {
+    return domicile.windows.on("focusrequest", (appId) => {
+      const byId = new Map(domicile.windows.list.map((w) => [w.appId, w]));
+      let cur = byId.get(appId);
+      while (cur?.parent !== undefined) {
+        cur = byId.get(cur.parent);
+      }
+      const rootAppId = cur?.appId ?? appId;
+      focusWindowRef.current(`wayland:${rootAppId}`);
+    });
+  }, [domicile.windows]);
 
   const closeWindow = React.useCallback(
     (windowId: string) => {
+      console.info("[Piloti] closeWindow", windowId);
       if (windowId.startsWith("wayland:")) {
         const rawId = windowId.slice("wayland:".length);
         domicile.windows.close(rawId);
@@ -825,6 +1177,7 @@ export function WindowsProvider({ children }: { children: React.ReactNode }) {
 
   const minimizeWindow = React.useCallback(
     (windowId: string) => {
+      console.info("[Piloti] minimizeWindow", windowId);
       if (windowId.startsWith("wayland:")) {
         const rawId = windowId.slice("wayland:".length);
         patchExternalMeta(setWaylandMeta, rawId, (cur) => ({
@@ -861,6 +1214,7 @@ export function WindowsProvider({ children }: { children: React.ReactNode }) {
   );
 
   const toggleMaximizeWindow = React.useCallback((windowId: string) => {
+    console.info("[Piloti] toggleMaximizeWindow", windowId);
     const newZ = ++nextZIndex;
     if (windowId.startsWith("wayland:")) {
       const rawId = windowId.slice("wayland:".length);
@@ -890,6 +1244,28 @@ export function WindowsProvider({ children }: { children: React.ReactNode }) {
     setFocusedWindowId(windowId);
   }, []);
 
+  const geometryLogRef = React.useRef<
+    Map<
+      string,
+      {
+        timer: ReturnType<typeof setTimeout>;
+        label: string;
+        position?: { x: number; y: number };
+        size?: { width: number; height: number };
+      }
+    >
+  >(new Map());
+
+  React.useEffect(() => {
+    const timers = geometryLogRef.current;
+    return () => {
+      for (const entry of timers.values()) {
+        clearTimeout(entry.timer);
+      }
+      timers.clear();
+    };
+  }, []);
+
   const updateWindowGeometry = React.useCallback(
     (
       windowId: string,
@@ -900,9 +1276,15 @@ export function WindowsProvider({ children }: { children: React.ReactNode }) {
     ) => {
       const clampedPosition = patch.position
         ? {
-            x: Math.round(patch.position.x),
-            y: Math.max(0, Math.round(patch.position.y)),
-          }
+          x: Math.round(patch.position.x),
+          y: Math.max(0, Math.round(patch.position.y)),
+        }
+        : undefined;
+      const roundedSize = patch.size
+        ? {
+          width: Math.round(patch.size.width),
+          height: Math.round(patch.size.height),
+        }
         : undefined;
 
       const targetWin = combinedWindows.find((w) => w.id === windowId);
@@ -917,6 +1299,37 @@ export function WindowsProvider({ children }: { children: React.ReactNode }) {
             ...settings.savedWindowBounds,
             [key]: { position: nextPos, size: nextSize },
           },
+        });
+      }
+
+      if (clampedPosition || roundedSize) {
+        const label = targetWin?.appId || windowId;
+        const existing = geometryLogRef.current.get(windowId);
+        if (existing) {
+          clearTimeout(existing.timer);
+        }
+        const nextPosition = clampedPosition ?? existing?.position;
+        const nextSize = roundedSize ?? existing?.size;
+        const timer = setTimeout(() => {
+          const entry = geometryLogRef.current.get(windowId);
+          if (!entry) return;
+          geometryLogRef.current.delete(windowId);
+          if (entry.position) {
+            console.info(
+              `[Piloti] moved ${entry.label} to ${entry.position.x}x${entry.position.y}`
+            );
+          }
+          if (entry.size) {
+            console.info(
+              `[Piloti] resized ${entry.label} to ${entry.size.width}x${entry.size.height}`
+            );
+          }
+        }, 300);
+        geometryLogRef.current.set(windowId, {
+          timer,
+          label,
+          position: nextPosition,
+          size: nextSize,
         });
       }
 
@@ -941,11 +1354,11 @@ export function WindowsProvider({ children }: { children: React.ReactNode }) {
           prev.map((w) =>
             w.id === windowId
               ? {
-                  ...w,
-                  position: clampedPosition ?? w.position,
-                  size: patch.size ?? w.size,
-                  tiled: clampedPosition ? null : w.tiled,
-                }
+                ...w,
+                position: clampedPosition ?? w.position,
+                size: patch.size ?? w.size,
+                tiled: clampedPosition ? null : w.tiled,
+              }
               : w
           )
         );
@@ -956,20 +1369,26 @@ export function WindowsProvider({ children }: { children: React.ReactNode }) {
 
   const tileWindow = React.useCallback(
     (windowId: string, side: "left" | "right" | "full") => {
+      console.info("[Piloti] tileWindow", windowId, side);
       if (side === "full") {
         toggleMaximizeWindow(windowId);
         return;
       }
       const menubarHeight = 30;
       const topInset = 6;
-      const bottomInset = settings.dockAutoHide ? 12 : settings.dockSize + 30;
+      const dockPos = settings.dockPosition ?? "bottom";
+      const dockClearance = settings.dockAutoHide ? 8 : settings.dockSize + 24;
+      const bottomInset = dockPos === "bottom" ? dockClearance + 6 : 8;
+      const leftInset = dockPos === "left" ? dockClearance + 8 : 8;
+      const rightInset = dockPos === "right" ? dockClearance + 8 : 8;
       const usableHeight = Math.max(
         300,
         screenHeight - menubarHeight - topInset - bottomInset
       );
-      const halfWidth = Math.floor((screenWidth - 24) / 2);
+      const usableWidth = Math.max(400, screenWidth - leftInset - rightInset);
+      const halfWidth = Math.floor((usableWidth - 8) / 2);
       const pos = {
-        x: side === "left" ? 8 : halfWidth + 16,
+        x: side === "left" ? leftInset : leftInset + halfWidth + 8,
         y: topInset,
       };
       const sz = { width: halfWidth, height: usableHeight };
@@ -1001,14 +1420,14 @@ export function WindowsProvider({ children }: { children: React.ReactNode }) {
           prev.map((w) =>
             w.id === windowId
               ? {
-                  ...w,
-                  maximized: false,
-                  minimized: false,
-                  tiled: side,
-                  position: pos,
-                  size: sz,
-                  zIndex: ++nextZIndex,
-                }
+                ...w,
+                maximized: false,
+                minimized: false,
+                tiled: side,
+                position: pos,
+                size: sz,
+                zIndex: ++nextZIndex,
+              }
               : w
           )
         );
@@ -1025,11 +1444,91 @@ export function WindowsProvider({ children }: { children: React.ReactNode }) {
     ]
   );
 
+  const [launchingApps, setLaunchingApps] = React.useState<string[]>([]);
+  const launchingTimersRef = React.useRef<Map<string, ReturnType<typeof setTimeout>>>(
+    new Map()
+  );
+
+  const beginStartupNotification = React.useCallback((appId: string) => {
+    setLaunchingApps((prev) => (prev.includes(appId) ? prev : [...prev, appId]));
+    const existingTimer = launchingTimersRef.current.get(appId);
+    if (existingTimer) clearTimeout(existingTimer);
+    // Per XDG Startup Notification Spec, clear launching state after timeout if no window maps
+    const timer = setTimeout(() => {
+      launchingTimersRef.current.delete(appId);
+      setLaunchingApps((prev) => prev.filter((id) => id !== appId));
+    }, 15000);
+    launchingTimersRef.current.set(appId, timer);
+  }, []);
+
+  // Clear XDG Startup Notification launching state when a matching window appears
+  React.useEffect(() => {
+    if (launchingApps.length === 0) return;
+    const runningIds = new Set(
+      combinedWindows.flatMap((w) => [
+        w.appId.toLowerCase(),
+        (w.waylandAppId ?? "").toLowerCase(),
+      ])
+    );
+    const completed = launchingApps.filter((id) => {
+      const lower = id.toLowerCase();
+      const base = lower.replace(/\.desktop$/, "");
+      return runningIds.has(lower) || runningIds.has(base);
+    });
+    if (completed.length > 0) {
+      for (const id of completed) {
+        const timer = launchingTimersRef.current.get(id);
+        if (timer) {
+          clearTimeout(timer);
+          launchingTimersRef.current.delete(id);
+        }
+      }
+      setLaunchingApps((prev) => prev.filter((id) => !completed.includes(id)));
+    }
+  }, [combinedWindows, launchingApps]);
+
+  React.useEffect(() => {
+    const timers = launchingTimersRef.current;
+    return () => {
+      for (const timer of timers.values()) clearTimeout(timer);
+      timers.clear();
+    };
+  }, []);
+
+  const forceQuitApp = React.useCallback(
+    (appId: string) => {
+      console.info("[Piloti] forceQuitApp", appId);
+      const appWins = combinedWindows.filter((w) => w.appId === appId);
+      for (const win of appWins) {
+        if (win.id.startsWith("wayland:")) {
+          const rawId = win.waylandAppId ?? win.id.slice("wayland:".length);
+          domicile.windows.close(rawId);
+          if (!isBrowserRuntime) {
+            // Best-effort forceful termination for hung Wayland clients
+            const procName = (win.waylandAppId || appId)
+              .replace(/\.desktop$/, "")
+              .split(".")
+              .pop();
+            if (procName) {
+              domicile.processes.run(["pkill", "-KILL", "-i", procName]).catch(() => { });
+            }
+          }
+        } else {
+          closeWindow(win.id);
+        }
+      }
+      setLaunchingApps((prev) => prev.filter((id) => id !== appId));
+    },
+    [closeWindow, combinedWindows, domicile.processes, domicile.windows, isBrowserRuntime]
+  );
+
   const launchApp = React.useCallback(
     (
       appId: string,
       options?: { payload?: string; forceNew?: boolean; forceCsd?: boolean }
     ) => {
+      clearLaunchOverlays();
+      console.info("[Piloti] launchApp", appId, options ?? {});
       const def = APP_CATALOG.find((a) => a.id === appId);
 
       // Focus existing window unless forceNew
@@ -1044,10 +1543,10 @@ export function WindowsProvider({ children }: { children: React.ReactNode }) {
               prev.map((w) =>
                 w.id === existing.id
                   ? {
-                      ...w,
-                      payload: options.payload ?? w.payload,
-                      clientFrame: options.forceCsd ?? w.clientFrame,
-                    }
+                    ...w,
+                    payload: options.payload ?? w.payload,
+                    clientFrame: options.forceCsd ?? w.clientFrame,
+                  }
                   : w
               )
             );
@@ -1066,6 +1565,7 @@ export function WindowsProvider({ children }: { children: React.ReactNode }) {
       ) {
         const panelMap: Record<string, GnomeSettingsPanel> = {
           appearance: "appearance",
+          notifications: "notifications",
           wallpaper: "background",
           network: "wifi",
           sound: "sound",
@@ -1077,42 +1577,66 @@ export function WindowsProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      // Built-in shell windows (`settings`, `console`)
-      const builtinKind =
+      // Built-in shell windows (`settings`, `console`, or web `files` / `terminal` / `text-editor`)
+      const builtinKind: BuiltinAppId | undefined =
         def?.builtinComponent ??
-        (appId === "settings" || appId === "console" ? appId : undefined);
+        (appId === "settings" || appId === "console"
+          ? (appId as BuiltinAppId)
+          : isBrowserRuntime && appId === "nautilus"
+            ? "files"
+            : isBrowserRuntime && appId === "terminal"
+              ? "terminal"
+              : undefined);
       if (builtinKind) {
         const builtinDef =
           def ?? APP_CATALOG.find((a) => a.id === builtinKind) ?? APP_CATALOG[0];
         const count = ++nextShellWinCounter;
         const offset = (count % 5) * 28;
-        const remembered = settings.savedWindowBounds?.[builtinKind];
+        const resolvedAppId = def?.id ?? builtinKind;
+        const remembered = settings.savedWindowBounds?.[resolvedAppId];
+        const minSize = builtinDef.minSize ?? {
+          width: Math.min(360, builtinDef.defaultSize.width),
+          height: Math.min(260, builtinDef.defaultSize.height),
+        };
         const width =
           remembered?.size.width ??
           Math.min(builtinDef.defaultSize.width, screenWidth - 48);
         const height =
           remembered?.size.height ??
           Math.min(builtinDef.defaultSize.height, screenHeight - 120);
-        const newWin: DesktopWindowInstance = {
-          id: `shell:${builtinKind}-${count}`,
-          appId: builtinKind,
-          title: builtinDef.name,
-          iconName: builtinDef.iconName,
-          gradient: builtinDef.gradient,
-          builtinComponent: builtinKind,
-          clientFrame:
-            options?.forceCsd ??
-            (settings.uiTheme === "adwaita" || builtinKind === "console"),
-          workspace: settings.activeWorkspace,
-          position: remembered?.position ?? {
+        const clamped = clampWindowBounds(
+          remembered?.position ?? {
             x: Math.max(24, Math.round((screenWidth - width) / 2 - 20 + offset)),
             y: Math.max(
               42,
               Math.round((screenHeight - height) / 2 - 20 + offset)
             ),
           },
-          size: { width, height },
-          minSize: builtinDef.minSize ?? { width: 620, height: 400 },
+          { width, height },
+          screenWidth,
+          screenHeight,
+          { minWidth: minSize.width, minHeight: minSize.height }
+        );
+        const newWin: DesktopWindowInstance = {
+          id: `shell:${builtinKind}-${count}`,
+          appId: resolvedAppId,
+          title:
+            builtinKind === "text-editor" && options?.payload
+              ? options.payload.split("/").pop() || builtinDef.name
+              : builtinDef.name,
+          iconName: builtinDef.iconName,
+          gradient: builtinDef.gradient,
+          builtinComponent: builtinKind,
+          clientFrame:
+            options?.forceCsd ??
+            (builtinKind !== "text-editor" && builtinKind !== "terminal"),
+          workspace: clampWorkspace(
+            settings.activeWorkspace,
+            settings.workspaceCount
+          ),
+          position: clamped.position,
+          size: clamped.size,
+          minSize,
           minimized: false,
           maximized: false,
           zIndex: ++nextZIndex,
@@ -1121,13 +1645,17 @@ export function WindowsProvider({ children }: { children: React.ReactNode }) {
         setShellWindows((prev) => [...prev, newWin]);
         setFocusedWindowId(newWin.id);
         setMruIds((prev) => [newWin.id, ...prev]);
+        domicile.windows.focusShell();
         return;
       }
 
-      // All other applications run as native Wayland / Linux processes (or FakeHost Wayland windows)
-      launchWithGnomeEnv(domicile, def?.linuxCommand ?? [appId]);
+      // All other applications run as native Wayland / Linux processes (with XDG Startup Notification)
+      beginStartupNotification(appId);
+      launchDesktopCommand(domicile, def?.linuxCommand ?? [appId]);
     },
     [
+      beginStartupNotification,
+      clearLaunchOverlays,
       combinedWindows,
       domicile,
       focusWindow,
@@ -1139,14 +1667,14 @@ export function WindowsProvider({ children }: { children: React.ReactNode }) {
       settings.hiddenGnomePanels,
       settings.preferGnomeControlCenter,
       settings.savedWindowBounds,
-      settings.uiTheme,
+      settings.workspaceCount,
     ]
   );
 
   const openGnomeSettings = React.useCallback(
-    (panel?: GnomeSettingsPanel) => {
+    (panel?: GnomeSettingsPanel | (string & {})) => {
       if (isBrowserRuntime) {
-        const reverseMap: Partial<Record<GnomeSettingsPanel, string>> = {
+        const reverseMap: Record<string, string> = {
           wifi: "network",
           network: "network",
           bluetooth: "network",
@@ -1154,6 +1682,7 @@ export function WindowsProvider({ children }: { children: React.ReactNode }) {
           display: "displays",
           background: "wallpaper",
           appearance: "appearance",
+          notifications: "notifications",
           system: "about",
         };
         launchApp("settings", {
@@ -1169,6 +1698,8 @@ export function WindowsProvider({ children }: { children: React.ReactNode }) {
 
   const launchXdgApp = React.useCallback(
     (entry: XdgDesktopEntry, actionId?: string) => {
+      clearLaunchOverlays();
+      console.info("[Piloti] launchXdgApp", entry.desktopId, actionId ?? null);
       if (isBrowserRuntime) {
         const lower = `${entry.desktopId} ${entry.appId}`.toLowerCase();
         if (lower.includes("settings") || lower.includes("controlcenter")) {
@@ -1184,9 +1715,12 @@ export function WindowsProvider({ children }: { children: React.ReactNode }) {
         openGnomeControlCenter(domicile, undefined, settings.hiddenGnomePanels);
         return;
       }
+      beginStartupNotification(entry.appId);
       launchXdgEntry(entry, actionId);
     },
     [
+      beginStartupNotification,
+      clearLaunchOverlays,
       domicile,
       isBrowserRuntime,
       launchApp,
@@ -1195,26 +1729,109 @@ export function WindowsProvider({ children }: { children: React.ReactNode }) {
     ]
   );
 
-  const [commandPaletteOpen, setCommandPaletteOpen] = React.useState(false);
-  const [controlCenterOpen, setControlCenterOpen] = React.useState(false);
-  const [aboutOpen, setAboutOpen] = React.useState(false);
-  const [openUrlOpen, setOpenUrlOpen] = React.useState(false);
-
   const openWebUrl = React.useCallback(
-    (rawUrl: string) => {
+    (
+      rawUrl: string,
+      options?: { asApp?: boolean; appId?: string; title?: string }
+    ) => {
       const normalized = normalizeWebUrl(rawUrl);
       if (!normalized) return;
-      domicile.browser.open(normalized);
+      clearLaunchOverlays();
+      console.info("[Piloti] openWebUrl", normalized);
+      if (options?.title) {
+        pendingWebTitlesRef.current.set(
+          options.appId ?? normalized,
+          options.title
+        );
+        pendingWebTitlesRef.current.set(normalized, options.title);
+      }
+      if (options?.asApp) {
+        domicile.browser.openApp(normalized, {
+          id: options.appId ?? normalized,
+          reuse: AppReuse.Focus,
+        });
+      } else {
+        domicile.browser.open(normalized);
+      }
     },
-    [domicile.browser]
+    [clearLaunchOverlays, domicile.browser]
   );
 
-  const [altTabState, setAltTabState] = React.useState<{
-    open: boolean;
-    index: number;
-  }>({ open: false, index: 0 });
-  const altTabOpen = altTabState.open;
-  const altTabIndex = altTabState.index;
+  const toggleOverview = React.useCallback(() => {
+    setAltTabState((prev) => (prev.open ? { ...prev, open: false } : prev));
+    setOverviewOpen((prev) => {
+      const next = !prev;
+      if (next) domicile.windows.focusShell();
+      return next;
+    });
+  }, [domicile.windows]);
+
+  const moveWindowToWorkspace = React.useCallback(
+    (windowId: string, targetWorkspace: number) => {
+      const ws = Math.max(1, targetWorkspace);
+      const targetWin = combinedWindows.find((w) => w.id === windowId);
+      console.info(
+        `[Piloti] moved ${targetWin?.appId || windowId} to workspace ${ws}`
+      );
+      if (ws > settings.workspaceCount) {
+        updateSettings({ workspaceCount: ws });
+      }
+      if (windowId.startsWith("wayland:")) {
+        const rawId = windowId.slice("wayland:".length);
+        patchExternalMeta(setWaylandMeta, rawId, (cur) => ({
+          ...cur,
+          workspace: ws,
+        }));
+      } else if (windowId.startsWith("browser:")) {
+        const rawId = windowId.slice("browser:".length);
+        patchExternalMeta(setBrowserMeta, rawId, (cur) => ({
+          ...cur,
+          workspace: ws,
+        }));
+      } else {
+        setShellWindows((prev) =>
+          prev.map((w) => (w.id === windowId ? { ...w, workspace: ws } : w))
+        );
+      }
+    },
+    [combinedWindows, settings.workspaceCount, updateSettings]
+  );
+
+  const removeWorkspace = React.useCallback(
+    (workspace: number) => {
+      if (settings.workspaceCount <= 1) return;
+      const remap = (ws: number) =>
+        ws === workspace ? 1 : ws > workspace ? ws - 1 : ws;
+      setWaylandMeta((prev) => {
+        const next: Record<string, ExternalWindowMeta> = {};
+        for (const [k, v] of Object.entries(prev)) {
+          next[k] = { ...v, workspace: remap(v.workspace) };
+        }
+        return next;
+      });
+      setBrowserMeta((prev) => {
+        const next: Record<string, ExternalWindowMeta> = {};
+        for (const [k, v] of Object.entries(prev)) {
+          next[k] = { ...v, workspace: remap(v.workspace) };
+        }
+        return next;
+      });
+      setShellWindows((prev) =>
+        prev.map((w) => ({ ...w, workspace: remap(w.workspace) }))
+      );
+      const nextCount = settings.workspaceCount - 1;
+      const nextActive = Math.min(
+        nextCount,
+        settings.activeWorkspace === workspace
+          ? 1
+          : settings.activeWorkspace > workspace
+            ? settings.activeWorkspace - 1
+            : settings.activeWorkspace
+      );
+      updateSettings({ workspaceCount: nextCount, activeWorkspace: nextActive });
+    },
+    [settings.activeWorkspace, settings.workspaceCount, updateSettings]
+  );
 
   const setAltTabIndex = React.useCallback<
     React.Dispatch<React.SetStateAction<number>>
@@ -1292,6 +1909,7 @@ export function WindowsProvider({ children }: { children: React.ReactNode }) {
         Math.min(settings.workspaceCount, settings.activeWorkspace + delta)
       );
       if (next !== settings.activeWorkspace) {
+        console.info(`[Piloti] switched to workspace ${next}`);
         updateSettings({ activeWorkspace: next });
       }
     },
@@ -1308,6 +1926,8 @@ export function WindowsProvider({ children }: { children: React.ReactNode }) {
       "Meta+Return",
       "Meta+Left",
       "Meta+Right",
+      "Meta+Up",
+      "F3",
       "Print",
     ];
     for (const c of chords) {
@@ -1320,7 +1940,7 @@ export function WindowsProvider({ children }: { children: React.ReactNode }) {
     const unlisten = domicile.keyboard.on("shortcut", ({ chord }) => {
       if (chord === "Alt+Space" || chord === "Alt+space") {
         domicile.windows.focusShell();
-        setCommandPaletteOpen((v) => !v);
+        setLauncherOpen((v) => !v);
       } else if (chord === "Alt+Tab") {
         domicile.windows.focusShell();
         cycleAltTab(1);
@@ -1328,11 +1948,13 @@ export function WindowsProvider({ children }: { children: React.ReactNode }) {
         domicile.windows.focusShell();
         cycleAltTab(-1);
       } else if (chord === "Meta+Return") {
-        launchWithGnomeEnv(domicile, ["kitty"]);
+        launchDesktopCommand(domicile, ["kitty"]);
       } else if (chord === "Meta+Left") {
         switchWorkspace(-1);
       } else if (chord === "Meta+Right") {
         switchWorkspace(1);
+      } else if (chord === "Meta+Up" || chord === "F3") {
+        toggleOverview();
       } else if (chord === "Print") {
         void takeScreenshot();
       }
@@ -1373,21 +1995,37 @@ export function WindowsProvider({ children }: { children: React.ReactNode }) {
     domicile,
     switchWorkspace,
     takeScreenshot,
+    toggleOverview,
   ]);
 
   // DOM keyboard shortcuts (Browser Dev Mode & shell-focused windows)
   React.useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
+      if (overviewOpen && e.key === "Escape") {
+        e.preventDefault();
+        setOverviewOpen(false);
+        return;
+      }
+      if (
+        (e.key === "F3" && !e.altKey && !e.ctrlKey && !e.metaKey) ||
+        (e.metaKey && !e.altKey && !e.ctrlKey && !e.shiftKey && e.key === "ArrowUp")
+      ) {
+        e.preventDefault();
+        toggleOverview();
+        return;
+      }
       if (
         (isBrowserRuntime && e.altKey && e.code === "Space") ||
         ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k")
       ) {
         e.preventDefault();
-        setCommandPaletteOpen((v) => !v);
+        setOverviewOpen(false);
+        setLauncherOpen((v) => !v);
         return;
       }
       if (isBrowserRuntime && e.altKey && e.key === "Tab") {
         e.preventDefault();
+        setOverviewOpen(false);
         cycleAltTab(e.shiftKey ? -1 : 1);
         return;
       }
@@ -1413,11 +2051,6 @@ export function WindowsProvider({ children }: { children: React.ReactNode }) {
           return;
         }
       }
-      if (isBrowserRuntime && e.metaKey && e.key === "Enter") {
-        e.preventDefault();
-        launchWithGnomeEnv(domicile, ["kitty"]);
-        return;
-      }
       if (e.metaKey && !e.altKey && !e.ctrlKey && !e.shiftKey) {
         if (e.key === "ArrowLeft") {
           e.preventDefault();
@@ -1437,7 +2070,7 @@ export function WindowsProvider({ children }: { children: React.ReactNode }) {
       }
       if (e.altKey && e.key.toLowerCase() === "n") {
         e.preventDefault();
-        setControlCenterOpen((v) => !v);
+        setControlPanelOpen((v) => !v);
         return;
       }
       if (e.altKey && e.key.toLowerCase() === "w" && focusedWindowId) {
@@ -1494,11 +2127,13 @@ export function WindowsProvider({ children }: { children: React.ReactNode }) {
     commitAltTab,
     cycleAltTab,
     domicile,
+    overviewOpen,
     focusedWindowId,
     isBrowserRuntime,
     launchApp,
     switchWorkspace,
     tileWindow,
+    toggleOverview,
     toggleMaximizeWindow,
     toggleMinimizeWindow,
   ]);
@@ -1534,9 +2169,50 @@ export function WindowsProvider({ children }: { children: React.ReactNode }) {
 
   const activeAppDef = React.useMemo<AppDefinition>(() => {
     if (focusedWindow) {
+      if (focusedWindow.browserWindowId) {
+        const safeLabel = resolveWebAppTitle({
+          rawUrl: focusedWindow.browserUrl,
+          hostTitle: focusedWindow.title,
+          installedApps: settings.installedWebApps,
+          fallback: "Web",
+        });
+        return {
+          ...(APP_CATALOG.find((a) => a.id === "browser") ?? {
+            category: "Internet" as const,
+            iconName: "globe" as const,
+            gradient: "from-cyan-400 via-blue-500 to-indigo-600",
+            pinnedByDefault: false,
+            defaultSize: { width: 880, height: 560 },
+            menus: [],
+          }),
+          id: focusedWindow.appId,
+          name: safeLabel,
+          shortName: safeLabel,
+          description: focusedWindow.browserUrl || "Web Application",
+          iconUrl: focusedWindow.iconUrl,
+        };
+      }
       const def = APP_CATALOG.find((a) => a.id === focusedWindow.appId);
       if (def) return def;
-      return matchAppFromWayland(focusedWindow.appId, focusedWindow.title);
+      const xdgMatch = installedXdgApps.find(
+        (e) =>
+          e.appId === focusedWindow.appId ||
+          e.desktopId === focusedWindow.appId ||
+          e.appId.toLowerCase() === focusedWindow.appId.toLowerCase() ||
+          e.desktopId.replace(/\.desktop$/i, "").toLowerCase() ===
+          focusedWindow.appId.toLowerCase()
+      );
+      const matched = matchAppFromWayland(focusedWindow.appId, focusedWindow.title);
+      if (xdgMatch) {
+        return {
+          ...matched,
+          id: xdgMatch.appId,
+          name: xdgMatch.name,
+          shortName: xdgMatch.name,
+          iconUrl: xdgMatch.iconUrl ?? matched.iconUrl,
+        };
+      }
+      return matched;
     }
     return {
       id: "piloti",
@@ -1552,19 +2228,19 @@ export function WindowsProvider({ children }: { children: React.ReactNode }) {
         {
           title: "File",
           items: [
+            ...(!isBrowserRuntime
+              ? [
+                  {
+                    label: "Launch Terminal",
+                    shortcut: "Meta+↵",
+                    actionId: "launch:terminal",
+                  },
+                ]
+              : []),
             {
-              label: "Launch Terminal",
-              shortcut: "Meta+↵",
-              actionId: "launch:terminal",
-            },
-            {
-              label: "Open Files (Nautilus)",
-              actionId: "launch:nautilus",
-            },
-            {
-              label: "Open Command Palette",
+              label: "Launcher",
               shortcut: "Alt+Space",
-              actionId: "shell:palette",
+              actionId: "shell:launcher",
             },
           ],
         },
@@ -1572,20 +2248,20 @@ export function WindowsProvider({ children }: { children: React.ReactNode }) {
           title: "View",
           items: [
             {
-              label: "System Settings",
+              label: "Desktop Settings",
               shortcut: "Alt+,",
               actionId: "launch:settings",
             },
             {
-              label: "Toggle Control Center",
+              label: "Toggle Control Panel",
               shortcut: "Alt+N",
-              actionId: "shell:control-center",
+              actionId: "shell:control-panel",
             },
           ],
         },
       ],
     };
-  }, [focusedWindow]);
+  }, [focusedWindow, isBrowserRuntime, settings.installedWebApps]);
 
   const handleMenuAction = React.useCallback(
     (actionId: string) => {
@@ -1610,10 +2286,16 @@ export function WindowsProvider({ children }: { children: React.ReactNode }) {
       } else if (actionId.startsWith("launch:")) {
         const target = actionId.split(":")[1];
         launchApp(target);
-      } else if (actionId === "shell:palette") {
-        setCommandPaletteOpen(true);
-      } else if (actionId === "shell:control-center") {
-        setControlCenterOpen((v) => !v);
+      } else if (
+        actionId === "shell:launcher" ||
+        actionId === "shell:palette"
+      ) {
+        setLauncherOpen(true);
+      } else if (
+        actionId === "shell:control-panel" ||
+        actionId === "shell:control-center"
+      ) {
+        setControlPanelOpen((v) => !v);
       }
     },
     [
@@ -1630,6 +2312,10 @@ export function WindowsProvider({ children }: { children: React.ReactNode }) {
   // Persist open windows to localStorage via xdg-session-management-v1
   React.useEffect(() => {
     if (!sessionHydratedRef.current) return;
+    if (!settings.restoreWindowsOnLogin) {
+      clearXdgSession();
+      return;
+    }
     const records = combinedWindows.map((w) =>
       serializeWindowToXdgSession(w, primaryMonitorName)
     );
@@ -1642,7 +2328,7 @@ export function WindowsProvider({ children }: { children: React.ReactNode }) {
       clearTimeout(timer);
       window.removeEventListener("beforeunload", flush);
     };
-  }, [combinedWindows, primaryMonitorName]);
+  }, [combinedWindows, primaryMonitorName, settings.restoreWindowsOnLogin]);
 
   const workspaceWindows = React.useMemo(
     () =>
@@ -1661,27 +2347,28 @@ export function WindowsProvider({ children }: { children: React.ReactNode }) {
       focusedWindow,
       activeAppDef,
       mruWindows,
+      launchingApps,
       launchApp,
       launchXdgApp,
       openGnomeSettings,
       openWebUrl,
       setBrowserFavicon,
+      setBrowserTitle,
       focusWindow,
       closeWindow,
+      forceQuitApp,
       toggleMinimizeWindow,
       minimizeWindow,
       toggleMaximizeWindow,
       tileWindow,
       updateWindowGeometry,
       handleMenuAction,
-      commandPaletteOpen,
-      setCommandPaletteOpen,
-      controlCenterOpen,
-      setControlCenterOpen,
+      launcherOpen,
+      setLauncherOpen,
+      controlPanelOpen,
+      setControlPanelOpen,
       aboutOpen,
       setAboutOpen,
-      openUrlOpen,
-      setOpenUrlOpen,
       altTabOpen,
       altTabIndex,
       setAltTabIndex,
@@ -1689,8 +2376,14 @@ export function WindowsProvider({ children }: { children: React.ReactNode }) {
       cycleAltTab,
       commitAltTab,
       closeAltTab,
+      overviewOpen,
+      setOverviewOpen,
+      toggleOverview,
+      moveWindowToWorkspace,
+      removeWorkspace,
       registerDockRef,
       getDockRef,
+      subscribeClientWindowRequest,
     }),
     [
       aboutOpen,
@@ -1700,27 +2393,34 @@ export function WindowsProvider({ children }: { children: React.ReactNode }) {
       closeAltTab,
       closeWindow,
       combinedWindows,
-      commandPaletteOpen,
+      launcherOpen,
       commitAltTab,
-      controlCenterOpen,
+      controlPanelOpen,
       cycleAltTab,
+      overviewOpen,
       focusWindow,
       focusedWindow,
       focusedWindowId,
+      forceQuitApp,
       getDockRef,
       handleMenuAction,
       launchApp,
       launchXdgApp,
+      launchingApps,
       minimizeWindow,
+      moveWindowToWorkspace,
       mruWindows,
       openAltTab,
       openGnomeSettings,
-      openUrlOpen,
       openWebUrl,
       registerDockRef,
+      removeWorkspace,
       setAltTabIndex,
       setBrowserFavicon,
+      setBrowserTitle,
+      subscribeClientWindowRequest,
       tileWindow,
+      toggleOverview,
       toggleMaximizeWindow,
       toggleMinimizeWindow,
       updateWindowGeometry,
@@ -1729,15 +2429,13 @@ export function WindowsProvider({ children }: { children: React.ReactNode }) {
     ]
   );
 
-  return (
-    <WindowsContext.Provider value={value}>{children}</WindowsContext.Provider>
-  );
+  return value;
 }
 
 export function useWindowManager() {
   const ctx = React.useContext(WindowsContext);
   if (!ctx) {
-    throw new Error("useWindowManager must be used within WindowsProvider");
+    throw new Error("useWindowManager must be used within DesktopStateProvider");
   }
   return ctx;
 }

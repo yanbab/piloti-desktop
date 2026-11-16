@@ -1,40 +1,40 @@
 import { clsx, type ClassValue } from "clsx"
 import { extendTailwindMerge } from "tailwind-merge"
 
-// Teach tailwind-merge the macOS theme scales, so e.g. `text-mac-body`
+// Teach tailwind-merge our Adwaita theme scales so e.g. `text-adw-body`
 // (a font size) is not mistaken for a text color and dropped.
 const twMerge = extendTailwindMerge({
   extend: {
     theme: {
       text: [
-        "mac-large-title",
-        "mac-title-1",
-        "mac-title-2",
-        "mac-title-3",
-        "mac-headline",
-        "mac-body",
-        "mac-callout",
-        "mac-subheadline",
-        "mac-footnote",
-        "mac-caption",
+        "adw-large-title",
+        "adw-title-1",
+        "adw-title-2",
+        "adw-title-3",
+        "adw-headline",
+        "adw-body",
+        "adw-callout",
+        "adw-subheadline",
+        "adw-footnote",
+        "adw-caption",
       ],
       radius: [
-        "mac-control",
-        "mac-menu",
-        "mac-item",
-        "mac-group",
-        "mac-popover",
-        "mac-alert",
-        "mac-window",
+        "adw-control",
+        "adw-menu",
+        "adw-item",
+        "adw-group",
+        "adw-popover",
+        "adw-alert",
+        "adw-window",
       ],
       shadow: [
-        "mac-menu",
-        "mac-popover",
-        "mac-tooltip",
-        "mac-dock",
-        "mac-window",
-        "mac-window-inactive",
-        "mac-focus",
+        "adw-menu",
+        "adw-popover",
+        "adw-tooltip",
+        "adw-dock",
+        "adw-window",
+        "adw-window-inactive",
+        "adw-focus",
       ],
     },
   },

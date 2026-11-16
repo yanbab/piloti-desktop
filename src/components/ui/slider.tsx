@@ -4,7 +4,7 @@ import { Slider as SliderPrimitive } from "@base-ui/react/slider"
 
 import { cn } from "@/lib/utils"
 
-// A macOS 27 slider: a thin capsule track with a pill-shaped knob.
+// A pill-knob slider with a thin capsule track.
 function Slider<Value extends number | readonly number[]>({
   className,
   defaultValue,
@@ -37,7 +37,7 @@ function Slider<Value extends number | readonly number[]>({
         >
           <SliderPrimitive.Indicator
             data-slot="slider-range"
-            className="rounded-full bg-mac-accent select-none data-[orientation=horizontal]:h-full data-[orientation=vertical]:w-full"
+            className="rounded-full bg-adw-accent select-none data-[orientation=horizontal]:h-full data-[orientation=vertical]:w-full"
           />
         </SliderPrimitive.Track>
         {Array.from({ length: _values.length }, (_, index) => (
@@ -47,7 +47,7 @@ function Slider<Value extends number | readonly number[]>({
             index={index}
             aria-label={props["aria-label"]}
             aria-labelledby={props["aria-labelledby"]}
-            className="block h-4 w-5 shrink-0 rounded-full bg-white shadow-[0_0_0_0.5px_rgb(0_0_0/0.08),0_1px_3px_rgb(0_0_0/0.25)] outline-none select-none has-focus-visible:outline-3 has-focus-visible:outline-solid has-focus-visible:outline-mac-accent/50 active:bg-[#f2f2f2] data-disabled:pointer-events-none dark:bg-[#dedede] dark:shadow-none"
+            className="block h-4 w-5 shrink-0 rounded-full bg-white shadow-[0_0_0_0.5px_rgb(0_0_0/0.08),0_1px_3px_rgb(0_0_0/0.25)] outline-none select-none has-focus-visible:outline-3 has-focus-visible:outline-solid has-focus-visible:outline-adw-accent/50 active:bg-[#f2f2f2] data-disabled:pointer-events-none dark:bg-[#dedede] dark:shadow-none"
           />
         ))}
       </SliderPrimitive.Control>

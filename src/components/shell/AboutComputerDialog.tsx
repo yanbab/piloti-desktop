@@ -1,0 +1,185 @@
+import * as React from "react";
+import { useDomicile } from "@domicile-desktop/react/domicile-provider";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  GroupedFormGroup,
+  GroupedFormRow,
+  GroupedFormRowControl,
+  GroupedFormRowLabel,
+  GroupedFormRowTitle,
+} from "@/components/ui/grouped-form";
+import { useSettings, useWindowManager } from "@/context/DesktopStateContext";
+import { type ComputerInfo, probeComputerInfo } from "@/lib/system-info";
+
+function ComputerHardwareIllustration({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 160 112"
+      fill="none"
+      aria-hidden="true"
+      className={className}
+    >
+      <defs>
+        <linearGradient
+          id="piloti-computer-screen"
+          x1="0"
+          y1="0"
+          x2="1"
+          y2="1"
+        >
+          <stop offset="0%" stopColor="#46a3ff" />
+          <stop offset="100%" stopColor="#1b6bd4" />
+        </linearGradient>
+        <linearGradient
+          id="piloti-computer-body"
+          x1="0"
+          y1="0"
+          x2="0"
+          y2="1"
+        >
+          <stop offset="0%" stopColor="#dcdce0" />
+          <stop offset="100%" stopColor="#aeaeb4" />
+        </linearGradient>
+      </defs>
+      {/* Display lid + bezel */}
+      <rect
+        x="24"
+        y="12"
+        width="112"
+        height="72"
+        rx="6"
+        fill="#161618"
+        stroke="#4a4a50"
+        strokeWidth="1.5"
+      />
+      {/* Active Wallpaper Viewport */}
+      <rect
+        x="29"
+        y="17"
+        width="102"
+        height="62"
+        rx="2"
+        fill="url(#piloti-computer-screen)"
+      />
+      {/* Subtle Topbar Hint inside illustration */}
+      <rect
+        x="29"
+        y="17"
+        width="102"
+        height="5"
+        fill="rgb(0 0 0 / 0.25)"
+      />
+      {/* Camera dot */}
+      <circle cx="80" cy="14.5" r="1" fill="#52525a" />
+      {/* Unibody deck / base */}
+      <path
+        d="M10 86h140l-5 8c-1.2 2-3.3 3-6 3H21c-2.7 0-4.8-1-6-3l-5-8Z"
+        fill="url(#piloti-computer-body)"
+      />
+      {/* Thumb notch */}
+      <path
+        d="M66 86h28c0 2-1.5 3.5-3.5 3.5h-21c-2 0-3.5-1.5-3.5-3.5Z"
+        fill="#8e8e95"
+      />
+      {/* Shadow */}
+      <ellipse cx="80" cy="100" rx="64" ry="4" fill="rgb(0 0 0 / 0.22)" />
+    </svg>
+  );
+}
+
+/**
+ * macOS "About This Mac"-inspired About Computer window built with Adwaita grouped rows.
+ */
+export function AboutComputerDialog() {
+  const domicile = useDomicile();
+  const { isBrowserRuntime } = useSettings();
+  const { aboutOpen, setAboutOpen, openGnomeSettings } = useWindowManager();
+  const [info, setInfo] = React.useState<ComputerInfo>({
+    computerName: "Piloti Workstation",
+    modelSubtitle: isBrowserRuntime
+      ? "Wayland Web Shell"
+      : "Domicile Wayland Computer",
+    processor: "Detecting…",
+    graphics: "Detecting…",
+    memory: "Detecting…",
+    osName: "Piloti Desktop",
+  });
+
+  React.useEffect(() => {
+    if (!aboutOpen) return;
+    let cancelled = false;
+    void probeComputerInfo(domicile, isBrowserRuntime).then((next) => {
+      if (!cancelled) setInfo(next);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [aboutOpen, domicile, isBrowserRuntime]);
+
+  const rows = [
+    { label: "Processor", value: info.processor },
+    { label: "Graphics", value: info.graphics },
+    { label: "Memory", value: info.memory },
+    {
+      label: isBrowserRuntime ? "System" : "Linux",
+      value: info.kernel ? `${info.osName} (${info.kernel})` : info.osName,
+    },
+  ];
+
+  return (
+    <Dialog open={aboutOpen} onOpenChange={setAboutOpen}>
+      <DialogContent className="w-[332px] max-w-[calc(100vw-2rem)] gap-4 pt-10 pb-5">
+        <DialogHeader className="items-center gap-0.5 text-center">
+          <ComputerHardwareIllustration className="mx-auto mb-2 h-24 w-36 drop-shadow-md" />
+          <DialogTitle className="text-[20px] font-bold tracking-tight">
+            {info.computerName}
+          </DialogTitle>
+          <DialogDescription className="text-[12px] text-adw-label-secondary">
+            {info.modelSubtitle}
+          </DialogDescription>
+        </DialogHeader>
+
+        <GroupedFormGroup className="text-left">
+          {rows.map((row) => (
+            <GroupedFormRow key={row.label} className="min-h-[38px] px-3.5 py-2">
+              <GroupedFormRowLabel className="shrink-0">
+                <GroupedFormRowTitle className="text-[12.5px] font-medium">
+                  {row.label}
+                </GroupedFormRowTitle>
+              </GroupedFormRowLabel>
+              <GroupedFormRowControl className="min-w-0 justify-end text-right">
+                <span className="truncate text-[12.5px] text-adw-label-secondary select-text">
+                  {row.value}
+                </span>
+              </GroupedFormRowControl>
+            </GroupedFormRow>
+          ))}
+        </GroupedFormGroup>
+
+        <div className="flex flex-col items-center gap-2 pt-0.5">
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => {
+              setAboutOpen(false);
+              openGnomeSettings("system");
+            }}
+          >
+            More Info…
+          </Button>
+          <p className="text-[10.5px] text-adw-label-tertiary">
+            Piloti Desktop Environment · Domicile Wayland
+          </p>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+

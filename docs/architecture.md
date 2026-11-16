@@ -1,81 +1,109 @@
-# Architecture & Dual-Runtime Design
+# Architecture & Shell API
 
-Piloti is architected to run identically across two environments:
-1. **Domicile Wayland Compositor (Linux / Debian)**: `Shell` runs inside Domicile's Chromium engine with a live `Domicile` desktop object (`windows`, `keyboard`, `processes`, `notifications`, `tray`, `theme`, `displays`, `files`, `dbus`, `portals`, `capture`, `session`), rendering native Wayland clients inside `<app app-id="…" />` elements.
-2. **Web Browser / macOS Development Harness**: Mounts into `#root` using `@domicile-desktop/react/fake-domicile` (`FakeDomicileHost`) paired with virtual XDG `.desktop` / Adwaita `.svg` files in [`src/lib/browser-domicile.ts`](../src/lib/browser-domicile.ts).
+Piloti runs the same React tree across two runtimes:
 
-Only **System Settings** is built directly into the shell; all other applications (`nautilus`, `kitty`, `firefox`, `gnome-control-center`, etc.) run as native Wayland / XDG processes.
+1. **Domicile Runtime (`desktop.tsx`)**: Mounted inside Domicile's Chromium compositor via `mount(PilotiShell)`. Renders real Wayland surfaces in `<app app-id="…" />` and talks to Linux subsystems over Domicile APIs.
+2. **Browser Dev Runtime (`src/main.tsx`)**: Mounted via [`createBrowserDomicile()`](../src/lib/browser-domicile.ts), providing a `FakeDomicileHost`, virtual `.desktop` entries, and mock hardware/theme backends for local browser development.
+
+Only **System Settings** and **Piloti Console** are built into the shell; all other apps run as Wayland/XDG processes or browser webviews.
 
 ---
 
-## 1. Directory Structure
+## Directory Structure
 
 ```text
-piloti-desktop/
-├── desktop.tsx                              # Domicile entry (`export const Shell = mount(PilotiShell)`)
-├── index.html                               # Browser / macOS Vite entry HTML
-├── vite.config.ts                           # Browser dev & `dist-web/` build config
-├── vite.shell.config.ts                     # Standalone Domicile bundle (`dist/shell.js`)
-├── docs/                                    # Website (`index.html`) + Markdown documentation
-│   ├── index.html                           # Adwaita / Flathub-inspired landing page
-│   ├── .nojekyll                            # Direct static serving on GitHub Pages
-│   ├── README.md
-│   ├── architecture.md
-│   ├── components-and-features.md
-│   └── vmware-debian-guide.md
+├── desktop.tsx                    # Domicile entry point
+├── index.html                     # Browser dev entry point
+├── vite.config.ts                 # Browser build -> docs/demo/
+├── vite.shell.config.ts           # Standalone Domicile bundle -> dist/shell.js
 └── src/
-    ├── main.tsx                             # Browser harness bootstrap
+    ├── main.tsx                   # Browser runtime bootstrap
     ├── context/
-    │   ├── SettingsContext.tsx              # Persisted preferences, themes, wallpapers, per-app bounds
-    │   ├── SystemBackendsContext.tsx        # GSettings monitor, daemons, notifications, session lock, capture
-    │   ├── AppsContext.tsx                  # XDG .desktop & Icon Theme indexing + launching
-    │   ├── WindowsContext.tsx               # Settings + Wayland windows, popups, tiling, Alt+Tab, shortcuts
-    │   └── DesktopStateContext.tsx          # Composes providers & exports focused hooks + useDesktopState
-    ├── data/
-    │   └── catalog.ts                       # Accent palettes, wallpapers, Settings & default launcher metadata
+    │   ├── SettingsContext.tsx    # Persisted settings, themes, wallpapers, bounds
+    │   ├── SystemBackendsContext.tsx # GSettings, audio, Wi-Fi, battery, portals, lock, capture
+    │   ├── AppsContext.tsx        # XDG .desktop & Icon Theme discovery + launching
+    │   ├── WindowsContext.tsx     # Wayland/shell/browser window state, popups, shortcuts
+    │   └── DesktopStateContext.tsx# Provider composition & hook re-exports
+    ├── data/catalog.ts            # Accent palettes, wallpapers, built-in app metadata
     ├── components/
-    │   ├── shell/
-    │   │   ├── PilotiShell.tsx              # Root surface, wallpaper, idle banner, overlays
-    │   │   ├── TopMenuBar.tsx               # App menus, workspace switcher, capture pill & tray
-    │   │   ├── TrayIndicatorButton.tsx      # DBusMenu popup renderer for StatusNotifierItems
-    │   │   ├── DesktopDock.tsx              # Magnifying Dock for pinned & running apps
-    │   │   ├── WindowManager.tsx            # CSD/SSD window frames, edge snap preview, <app> surfaces
-    │   │   ├── AltTabSwitcher.tsx           # MRU task switcher with live PNG window previews
-    │   │   ├── CommandPalette.tsx           # Alt+Space launcher (XDG apps, windows, actions)
-    │   │   ├── ControlCenterPanel.tsx       # Quick Settings, hardware sliders, screenshot/record & notifications
-    │   │   ├── PortalDialogs.tsx            # XDG Desktop Portal UI (Screenshot, ScreenCast, PickColor, Access)
-    │   │   ├── LockScreen.tsx               # PAM / compositor lock screen overlay
-    │   │   └── AppSymbol.tsx                # XDG SVG/PNG icon renderer with squircle fallback
-    │   ├── apps/
-    │   │   ├── SettingsApp.tsx              # Built-in System Settings host window
-    │   │   └── settings/                    # Focused pane modules (Appearance, Dock, Wallpaper, Network, Sound, Displays, About)
-    │   └── ui/                              # Shared UI primitives (window, dock, menubar, command, dialog, etc.)
+    │   ├── shell/                 # Menubar, Dock, WindowManager, CommandPalette, ControlCenter, Alt+Tab, LockScreen, Portals
+    │   ├── apps/                  # SettingsApp (+ settings/* panes) and ConsoleApp
+    │   │   └── ui/                    # Adwaita-styled Base UI primitives
     ├── lib/
-    │   ├── xdg-desktop.ts                   # Single-file XDG Desktop Entry + Icon Theme Spec module
-    │   ├── gnome-bridge.ts                  # GSettings, gnome-control-center, wpctl/pactl, nmcli, sysfs battery
-    │   ├── cursors.ts                       # Zero-offset (0, 0) SVG cursors for Ozone/DRM + vmwgfx
-    │   ├── browser-domicile.ts              # FakeDomicileHost dev harness with virtual XDG apps & icons
-    │   ├── xdg-desktop.test.ts              # Unit tests for Desktop Entry & Icon Theme parsers
-    │   └── gnome-bridge.test.ts             # Unit tests for GSettings, wpctl & nmcli parsers
-    └── styles/
-        ├── globals.css                      # Tailwind v4 + cursor variables
-        ├── macos.css                        # Cupertino macOS Liquid Glass tokens
-        └── adwaita.css                      # GNOME 47 / Libadwaita 1.6 calibrated tokens
+    │   ├── xdg-basedir.ts         # FreeDesktop XDG Base Directory paths
+    │   ├── xdg-desktop-entry.ts   # .desktop scanner, parser, Exec field code expansion
+    │   ├── xdg-icon-theme.ts      # index.theme inheritance & SVG/PNG icon resolution
+    │   ├── xdg-session-management.ts # xdg-session-management-v1 JSON persistence
+    │   ├── xdg-trash.ts           # FreeDesktop Trash inspection & emptying
+    │   ├── gnome-bridge.ts        # gsettings/dconf, wpctl/pactl, nmcli, UPower, powerprofilesctl
+    │   ├── cursors.ts             # Unified CursorShape CSS variables (native & zero-hotspot SVG modes)
+    │   ├── console-store.ts       # Captured logs & Piloti Console state
+    │   ├── csp-repl-eval.ts       # CSP-safe JS expression/statement evaluator for REPL
+    │   └── browser-domicile.ts    # Browser mock Domicile host
+    └── styles/                    # Tailwind v4 + GNOME Adwaita design tokens
 ```
 
 ---
 
-## 2. Core System Bridges
+## Key Subsystems
 
-### 2.1 Wayland Surfaces (`<app app-id="…">`) & CSD Support
-- **Bounding Box Sync**: `WaylandAppSurface` calls `domicile.windows.setBounds(appId, rect)` on layout and resize changes, and sets `0×0` when minimized.
-- **Zero-Duplicate CSD**: Sends `WindowState.TiledLeft/Right/Top/Bottom` (and `Maximized` when zoomed) so GTK4/Libadwaita windows drop their client-side drop shadows and render cleanly inside Piloti's rounded frame.
-- **Fast Drag & Edge Snap**: Dragging updates `style.translate` directly on the DOM node at display refresh rate and commits geometry to React state (and `savedWindowBounds`) on release; dragging to screen edges triggers a translucent snap zone (`left`, `right`, or `full`).
+- **State Layer (`src/context/DesktopStateContext.tsx`)**: Composes `SettingsProvider` → `SystemBackendsProvider` → `AppsProvider` → `WindowsProvider`. Components subscribe to the narrowest hook needed (`useSettings()`, `useSystemBackends()`, `useApps()`, `useWindowManager()`).
+- **Window Management (`src/components/shell/WindowManager.tsx`)**:
+  - `WaylandAppSurface` synchronizes each `<app>` element's viewport CSS pixel box to `domicile.windows.setBounds(...)` via `ResizeObserver` and layout effects (`0×0` when minimized).
+  - Sends `WindowState.TiledLeft/Right/Top/Bottom` (and `Maximized`) via `domicile.windows.setStates(...)` so GTK4/Libadwaita CSD clients drop duplicate outer shadows.
+  - Subscribes to `domicile.windows.requests()` (`Maximize`, `Unmaximize`, `Fullscreen`, `Unfullscreen`, `Minimize`, `Move`, `Resize`) to handle client-initiated moves, resizes, and state transitions alongside `Alt`/`Super` + drag.
+- **Cursor Management (`src/lib/cursors.ts`)**: Single source of truth covering all 35 `@domicile-desktop/sdk/cursor-shape` values. `installCursorVars()` injects `--cursor-*` CSS variables onto `:root` using `"native"` CSS keywords in browser mode and `(0, 0)`-anchored 24×24 SVGs (`"zero-hotspot"`) under Domicile DRM.
 
-### 2.2 XDG Desktop & Icon Theme Module (`src/lib/xdg-desktop.ts`)
-- Scans `$XDG_DATA_HOME/applications`, Flatpak/Snap exports, and `/usr/share/applications` with localization and `Exec=` field code expansion.
-- Parses `index.theme` (`Inherits`, `Fixed`/`Scalable`/`Threshold` directories) and loads real `.svg`/`.png` app icons across the active theme (`watchIconTheme`), falling back cleanly to `/usr/share/pixmaps`.
+---
 
-### 2.3 GNOME Integration (`src/lib/gnome-bridge.ts`)
-- Launches applications with `XDG_CURRENT_DESKTOP=GNOME` and `XDG_SESSION_DESKTOP=gnome`, unlocking full panels in `gnome-control-center`.
-- Maintains two-way `GSettings` sync (`gsettings monitor org.gnome.desktop.interface` and `gsettings set`) and bridges PipeWire (`wpctl` / `pactl`), NetworkManager (`nmcli`), `powerprofilesctl`, ACPI battery sysfs, and hardware Night Light (`domicile.displays.setColorTemperature`).
+## Shell & Runtime API Reference
+
+### 1. React Context Hooks (Inside Shell Components)
+
+Import from `@/context/DesktopStateContext`:
+
+- **Apps (`useApps()`)**:
+  - `installedXdgApps`: `XdgDesktopEntry[]` — discovered `.desktop` apps (`appId`, `desktopId`, `name`, `execArgv`, `iconUrl`, `actions`).
+  - `getAppIconUrl(id)`: resolves SVG/PNG icon data URL for a desktop/catalog app ID.
+  - `launchXdgEntry(entry, actionId?)` / `refreshXdgApps()`.
+- **Windows (`useWindowManager()`)**:
+  - `windows` (`combinedWindows`) / `workspaceWindows` / `mruWindows`: unified `DesktopWindowInstance[]` across Wayland clients, built-in shell apps, and Domicile browser windows.
+  - `focusedWindow` / `focusedWindowId` / `waylandPopups`: active window and child Wayland popups.
+  - Actions: `launchApp(appId, options?)`, `launchXdgApp(entry, actionId?)`, `openWebUrl(url)`, `focusWindow(windowId)`, `closeWindow(windowId)`, `minimizeWindow(windowId)`, `toggleMinimizeWindow(windowId)`, `toggleMaximizeWindow(windowId)`, `tileWindow(windowId, "left" | "right" | "full")`, `forceQuitApp(appId)`, `updateWindowGeometry(windowId, { position, size })`.
+- **Settings (`useSettings()`)**:
+  - `settings`: `DesktopSettings` (`themeMode`, `accentColor`, `wallpaperId`, `dockSize`, `dockMagnification`, `volume`, `muted`, `brightness`, `nightLight`, `activeWorkspace`, `pinnedAppIds`, etc.).
+  - `updateSettings(patch)` / `isBrowserRuntime`.
+- **System Backends (`useSystemBackends()`)**:
+  - Hardware & daemon state: `batteryInfo`, `wifiNetworks`, `audioSinks`, `availableGnomePanels`, `gnomeCapabilities`, `notifications`, `capturing`, `locked`.
+  - Actions: `pushNotification(...)`, `dismissNotification(id)`, `takeScreenshot()`, `startScreenRecording()`, `stopCapture()`, `lockSession()`, `unlockSession(passphrase)`, `requestPowerAction(...)`.
+
+### 2. Domicile SDK (`useDomicile()`)
+
+Direct low-level compositor access from `@domicile-desktop/react/domicile-provider`:
+
+| Domain | Common Calls / Properties |
+| :--- | :--- |
+| Windows | `domicile.windows.list`, `focused`, `focus(appId)`, `close(appId)`, `setBounds(appId, box)`, `setStates(appId, states)`, `requests()`, `on("change" \| "focuschange" \| "focusrequest", cb)` |
+| Processes & Files | `domicile.processes.launch(argv, env?)`, `domicile.processes.run(argv)`, `domicile.files.readDir(path)`, `readText(path)`, `writeText(path, text)` |
+| Displays & Theme | `domicile.displays.list`, `setBrightness(pct)`, `setColorTemperature(kelvin)`, `domicile.theme.set(mode)` |
+| Session & Portals | `domicile.session.lock()`, `unlock(passphrase)`, `domicile.portals.requests()`, `domicile.capture.preview(target)` |
+
+### 3. Piloti Console REPL
+
+Open **Piloti Console** (`Alt + Space` → `Piloti Console`) to inspect state or script the desktop live. Exposed REPL bindings:
+
+- **State**: `windows`, `focusedWindow`, `waylandPopups`, `apps` (XDG `.desktop` list), `displays`, `browserWindows`, `settings`, `notifications`, `gnomeCapabilities`, `domicile`.
+- **Actions**: `launchApp(id)`, `focusWindow(id)`, `closeWindow(id)`, `openWebUrl(url)`, `openGnomeSettings(panel?)`, `updateSettings(patch)`, `pushNotification(...)`, `await run(shellCmd)`, `$_` (last result), `help()`, `clear()`.
+
+```js
+// List open Wayland & shell windows
+windows.map(w => ({ id: w.id, appId: w.appId, title: w.title }))
+
+// Find installed XDG apps
+apps.filter(a => a.name.toLowerCase().includes("files")).map(a => a.desktopId)
+
+// Focus, launch, or update settings
+launchApp("nautilus")
+updateSettings({ themeMode: "dark", accentColor: "teal" })
+await run("uname -a")
+```

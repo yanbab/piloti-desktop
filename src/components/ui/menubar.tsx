@@ -6,15 +6,24 @@ import { Menu as MenuPrimitive } from "@base-ui/react/menu"
 import { Menubar as MenubarPrimitive } from "@base-ui/react/menubar"
 
 import { cn } from "@/lib/utils"
+import {
+  MENU_BADGE_CLASS,
+  MENU_CHECK_ITEM_CLASS,
+  MENU_ITEM_CLASS,
+  MENU_LABEL_CLASS,
+  MENU_POPUP_CLASS,
+  MENU_SEPARATOR_CLASS,
+  MENU_SHORTCUT_CLASS,
+  MENU_SUB_TRIGGER_CLASS,
+} from "./menu-styles"
 
-// The macOS menu bar: the Apple menu, the app name in bold, the app's
-// menus, and status items with the clock on the right (MenubarExtras).
+// The left-aligned application menu bar strip.
 function Menubar({ className, ...props }: MenubarPrimitive.Props) {
   return (
     <MenubarPrimitive
       data-slot="menubar"
       className={cn(
-        "flex h-[30px] w-full items-center gap-0 pr-[7px] pl-[5px] pb-0.5 text-mac-body text-mac-label select-none",
+        "flex items-center gap-0.5 text-adw-body text-adw-label select-none",
         className
       )}
       {...props}
@@ -40,7 +49,7 @@ function MenubarTrigger({
       data-slot="menubar-trigger"
       data-app={app || undefined}
       className={cn(
-        "flex h-5 cursor-default items-center rounded-full px-2.5 outline-none select-none data-[app]:font-bold data-highlighted:bg-black/8 data-popup-open:bg-black/8 focus-visible:bg-black/8 dark:data-highlighted:bg-white/12 dark:data-popup-open:bg-white/12 dark:focus-visible:bg-white/12 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        "flex h-[22px] shrink-0 cursor-default items-center rounded-full px-2 outline-none select-none data-[app]:font-bold active:bg-black/14 data-popup-open:bg-black/12 focus-visible:bg-black/10 dark:active:bg-white/18 dark:data-popup-open:bg-white/15 dark:focus-visible:bg-white/12 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
         className
       )}
       {...props}
@@ -56,26 +65,35 @@ function MenubarContent({
   className,
   align = "start",
   alignOffset = 0,
+  anchor,
   side = "bottom",
   sideOffset = 6,
+  initialFocus,
   ...props
 }: MenuPrimitive.Popup.Props &
-  Pick<MenuPrimitive.Positioner.Props, "align" | "alignOffset" | "side" | "sideOffset">) {
+  Pick<
+    MenuPrimitive.Positioner.Props,
+    "align" | "alignOffset" | "anchor" | "side" | "sideOffset"
+  > & {
+    /** Base UI MenuPopup forwards `initialFocus` to FloatingFocusManager at runtime. */
+    initialFocus?: boolean | React.RefObject<HTMLElement | null>;
+  }) {
   return (
     <MenuPrimitive.Portal>
       <MenuPrimitive.Positioner
         align={align}
         alignOffset={alignOffset}
+        anchor={anchor}
         side={side}
         sideOffset={sideOffset}
         className="isolate z-[400] outline-none"
       >
         <MenuPrimitive.Popup
           data-slot="menubar-content"
-          className={cn(
-            "z-50 max-h-(--available-height) min-w-[12rem] origin-(--transform-origin) overflow-x-hidden overflow-y-auto rounded-mac-menu p-[5px] text-mac-label shadow-mac-menu mac-material-menu outline-none data-open:animate-in data-open:fade-in-0 motion-reduce:animate-none",
-            className
-          )}
+          className={cn(MENU_POPUP_CLASS, "min-w-[12rem]", className)}
+          {...(initialFocus !== undefined
+            ? ({ initialFocus } as Record<string, unknown>)
+            : {})}
           {...props}
         />
       </MenuPrimitive.Positioner>
@@ -101,10 +119,7 @@ function MenubarItem({
       data-slot="menubar-item"
       data-inset={inset}
       data-variant={variant}
-      className={cn(
-        "relative flex h-6 cursor-default items-center gap-2 rounded-mac-item pr-[14px] pl-[11px] text-mac-body font-normal outline-hidden select-none data-highlighted:bg-mac-menu-highlight data-highlighted:text-white data-disabled:pointer-events-none data-disabled:text-mac-label-tertiary data-[inset]:pl-[27px] [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 [&_svg:not([class*='text-'])]:text-current",
-        className
-      )}
+      className={cn(MENU_ITEM_CLASS, className)}
       {...props}
     />
   )
@@ -118,15 +133,12 @@ function MenubarCheckboxItem({
   return (
     <MenuPrimitive.CheckboxItem
       data-slot="menubar-checkbox-item"
-      className={cn(
-        "relative flex h-6 cursor-default items-center gap-2 rounded-mac-item pr-[14px] pl-[27px] text-mac-body font-normal outline-hidden select-none data-highlighted:bg-mac-menu-highlight data-highlighted:text-white data-disabled:pointer-events-none data-disabled:text-mac-label-tertiary [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
-        className
-      )}
+      className={cn(MENU_CHECK_ITEM_CLASS, className)}
       {...props}
     >
-      <span className="pointer-events-none absolute left-[11px] flex size-3 items-center justify-center">
+      <span className="pointer-events-none absolute left-[10px] flex size-3.5 items-center justify-center">
         <MenuPrimitive.CheckboxItemIndicator>
-          <CheckIcon className="size-3" strokeWidth={3} />
+          <CheckIcon className="size-3.5" strokeWidth={2.5} />
         </MenuPrimitive.CheckboxItemIndicator>
       </span>
       {children}
@@ -146,13 +158,10 @@ function MenubarRadioItem({
   return (
     <MenuPrimitive.RadioItem
       data-slot="menubar-radio-item"
-      className={cn(
-        "relative flex h-6 cursor-default items-center gap-2 rounded-mac-item pr-[14px] pl-[27px] text-mac-body font-normal outline-hidden select-none data-highlighted:bg-mac-menu-highlight data-highlighted:text-white data-disabled:pointer-events-none data-disabled:text-mac-label-tertiary [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
-        className
-      )}
+      className={cn(MENU_CHECK_ITEM_CLASS, className)}
       {...props}
     >
-      <span className="pointer-events-none absolute left-[11px] flex size-3 items-center justify-center">
+      <span className="pointer-events-none absolute left-[10px] flex size-3.5 items-center justify-center">
         <MenuPrimitive.RadioItemIndicator>
           <CircleIcon className="size-1.5 fill-current" />
         </MenuPrimitive.RadioItemIndicator>
@@ -175,10 +184,7 @@ function MenubarLabel({
     <div
       data-slot="menubar-label"
       data-inset={inset}
-      className={cn(
-        "px-[11px] pt-[5px] pb-1 text-mac-subheadline font-semibold text-mac-label-secondary data-[inset]:pl-[27px]",
-        className
-      )}
+      className={cn(MENU_LABEL_CLASS, className)}
       {...props}
     />
   )
@@ -188,7 +194,7 @@ function MenubarSeparator({ className, ...props }: MenuPrimitive.Separator.Props
   return (
     <MenuPrimitive.Separator
       data-slot="menubar-separator"
-      className={cn("mx-[11px] my-[5px] h-px bg-mac-grid", className)}
+      className={cn(MENU_SEPARATOR_CLASS, className)}
       {...props}
     />
   )
@@ -198,10 +204,7 @@ function MenubarShortcut({ className, ...props }: React.ComponentProps<"span">) 
   return (
     <span
       data-slot="menubar-shortcut"
-      className={cn(
-        "ml-auto pl-4 text-mac-body font-medium tracking-wider text-mac-label-tertiary in-data-highlighted:text-white/75",
-        className
-      )}
+      className={cn(MENU_SHORTCUT_CLASS, className)}
       {...props}
     />
   )
@@ -212,10 +215,7 @@ function MenubarBadge({ className, ...props }: React.ComponentProps<"span">) {
   return (
     <span
       data-slot="menubar-badge"
-      className={cn(
-        "-mr-[3px] ml-auto flex h-[15px] shrink-0 items-center rounded-full bg-black/6 px-2 text-[10px] font-semibold text-mac-label in-data-highlighted:bg-white/20 in-data-highlighted:text-white dark:bg-white/10",
-        className
-      )}
+      className={cn(MENU_BADGE_CLASS, className)}
       {...props}
     />
   )
@@ -237,14 +237,11 @@ function MenubarSubTrigger({
     <MenuPrimitive.SubmenuTrigger
       data-slot="menubar-sub-trigger"
       data-inset={inset}
-      className={cn(
-        "flex h-6 cursor-default items-center gap-2 rounded-mac-item pr-[14px] pl-[11px] text-mac-body font-normal outline-hidden select-none data-highlighted:bg-mac-menu-highlight data-highlighted:text-white data-popup-open:bg-mac-menu-highlight data-popup-open:text-white data-[inset]:pl-[27px] [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 [&_svg:not([class*='text-'])]:text-current",
-        className
-      )}
+      className={cn(MENU_SUB_TRIGGER_CLASS, className)}
       {...props}
     >
       {children}
-      <ChevronRightIcon className="ml-auto size-3" strokeWidth={2.5} />
+      <ChevronRightIcon className="ml-auto size-3.5" strokeWidth={2.25} />
     </MenuPrimitive.SubmenuTrigger>
   )
 }
@@ -252,9 +249,9 @@ function MenubarSubTrigger({
 function MenubarSubContent({
   className,
   align = "start",
-  alignOffset = -5,
+  alignOffset = -6,
   side = "right",
-  sideOffset = 0,
+  sideOffset = 2,
   ...props
 }: MenuPrimitive.Popup.Props &
   Pick<MenuPrimitive.Positioner.Props, "align" | "alignOffset" | "side" | "sideOffset">) {
@@ -269,43 +266,11 @@ function MenubarSubContent({
       >
         <MenuPrimitive.Popup
           data-slot="menubar-sub-content"
-          className={cn(
-            "z-50 max-h-(--available-height) min-w-[8rem] origin-(--transform-origin) overflow-x-hidden overflow-y-auto rounded-mac-menu p-[5px] text-mac-label shadow-mac-menu mac-material-menu outline-none data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0 motion-reduce:animate-none",
-            className
-          )}
+          className={cn(MENU_POPUP_CLASS, className)}
           {...props}
         />
       </MenuPrimitive.Positioner>
     </MenuPrimitive.Portal>
-  )
-}
-
-// Status items on the right of the menu bar: icons, then the clock.
-function MenubarExtras({ className, ...props }: React.ComponentProps<"div">) {
-  return (
-    <div
-      data-slot="menubar-extras"
-      className={cn(
-        "ml-auto flex h-full items-center [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
-        className
-      )}
-      {...props}
-    />
-  )
-}
-
-function MenubarExtra({ className, ...props }: React.ComponentProps<"button">) {
-  return (
-    <button
-      type="button"
-      role="menuitem"
-      data-slot="menubar-extra"
-      className={cn(
-        "flex h-5 min-w-6 cursor-default items-center justify-center rounded-full px-[10px] outline-none hover:bg-black/8 focus-visible:bg-black/8 dark:hover:bg-white/15 dark:focus-visible:bg-white/15",
-        className
-      )}
-      {...props}
-    />
   )
 }
 
@@ -314,8 +279,6 @@ export {
   MenubarBadge,
   MenubarCheckboxItem,
   MenubarContent,
-  MenubarExtra,
-  MenubarExtras,
   MenubarGroup,
   MenubarItem,
   MenubarLabel,

@@ -6,46 +6,33 @@ export type AccentColorId =
   | "orange"
   | "yellow"
   | "green"
-  | "mint"
   | "teal"
-  | "cyan"
-  | "indigo"
-  | "brown"
   | "graphite";
-
-export type UiThemeId = "cupertino" | "adwaita";
 
 export interface AccentColorOption {
   id: AccentColorId;
   label: string;
-  adwaitaLabel?: string;
   cssVar: string;
   hex: string;
-  adwaitaHex: string;
-  inAdwaita: boolean;
 }
 
 export const ACCENT_COLORS: AccentColorOption[] = [
-  { id: "blue", label: "Blue", cssVar: "var(--mac-blue)", hex: "#0088ff", adwaitaHex: "#3584e4", inAdwaita: true },
-  { id: "teal", label: "Teal", cssVar: "var(--mac-teal)", hex: "#00c3d0", adwaitaHex: "#2190a4", inAdwaita: true },
-  { id: "green", label: "Green", cssVar: "var(--mac-green)", hex: "#34c759", adwaitaHex: "#3a944a", inAdwaita: true },
-  { id: "yellow", label: "Yellow", cssVar: "var(--mac-yellow)", hex: "#ffcc00", adwaitaHex: "#c88800", inAdwaita: true },
-  { id: "orange", label: "Orange", cssVar: "var(--mac-orange)", hex: "#ff8d28", adwaitaHex: "#ed5b00", inAdwaita: true },
-  { id: "red", label: "Red", cssVar: "var(--mac-red)", hex: "#ff383c", adwaitaHex: "#e62d42", inAdwaita: true },
-  { id: "pink", label: "Pink", cssVar: "var(--mac-pink)", hex: "#ff2d55", adwaitaHex: "#d56199", inAdwaita: true },
-  { id: "purple", label: "Purple", cssVar: "var(--mac-purple)", hex: "#cb30e0", adwaitaHex: "#9141ac", inAdwaita: true },
-  { id: "graphite", label: "Graphite", adwaitaLabel: "Slate", cssVar: "var(--mac-gray)", hex: "#8e8e93", adwaitaHex: "#6f8396", inAdwaita: true },
-  { id: "mint", label: "Mint", cssVar: "var(--mac-mint)", hex: "#00c8b3", adwaitaHex: "#2190a4", inAdwaita: false },
-  { id: "cyan", label: "Cyan", cssVar: "var(--mac-cyan)", hex: "#00c0e8", adwaitaHex: "#2190a4", inAdwaita: false },
-  { id: "indigo", label: "Indigo", cssVar: "var(--mac-indigo)", hex: "#6155f5", adwaitaHex: "#3584e4", inAdwaita: false },
-  { id: "brown", label: "Brown", cssVar: "var(--mac-brown)", hex: "#ac7f5e", adwaitaHex: "#986a44", inAdwaita: false },
+  { id: "blue", label: "Blue", cssVar: "var(--adw-blue)", hex: "#3584e4" },
+  { id: "teal", label: "Teal", cssVar: "var(--adw-teal)", hex: "#2190a4" },
+  { id: "green", label: "Green", cssVar: "var(--adw-green)", hex: "#3a944a" },
+  { id: "yellow", label: "Yellow", cssVar: "var(--adw-yellow)", hex: "#c88800" },
+  { id: "orange", label: "Orange", cssVar: "var(--adw-orange)", hex: "#ed5b00" },
+  { id: "red", label: "Red", cssVar: "var(--adw-red)", hex: "#e62d42" },
+  { id: "pink", label: "Pink", cssVar: "var(--adw-pink)", hex: "#d56199" },
+  { id: "purple", label: "Purple", cssVar: "var(--adw-purple)", hex: "#9141ac" },
+  { id: "graphite", label: "Slate", cssVar: "var(--adw-gray)", hex: "#6f8396" },
 ];
 
 export interface WallpaperOption {
   id: string;
   name: string;
   subtitle: string;
-  category: "Dynamic" | "Landscape" | "Minimal";
+  category: "Dynamic" | "Landscape" | "Minimal" | "Solid";
   backgroundCss: string;
   overlayCss?: string;
 }
@@ -62,8 +49,8 @@ export const WALLPAPERS: WallpaperOption[] = [
       "radial-gradient(circle at 65% 35%, rgba(56, 189, 248, 0.18), transparent 45%)",
   },
   {
-    id: "cupertino-sequoia",
-    name: "Cupertino Horizon",
+    id: "horizon-dusk",
+    name: "Horizon Dusk",
     subtitle: "Warm Dusk over the Ridge",
     category: "Dynamic",
     backgroundCss:
@@ -101,9 +88,51 @@ export const WALLPAPERS: WallpaperOption[] = [
     backgroundCss:
       "radial-gradient(90% 90% at 50% 10%, rgba(255,255,255,0.09) 0%, transparent 60%), linear-gradient(180deg, #18181b 0%, #09090b 100%)",
   },
+  // Solid Color Wallpapers (Classic OS default colors + Black)
+  {
+    id: "solid-w95-teal",
+    name: "Windows 95 Teal",
+    subtitle: "Classic Windows 95 / 98 Teal",
+    category: "Solid",
+    backgroundCss: "#008080",
+  },
+  {
+    id: "solid-beos-cobalt",
+    name: "BeOS Cobalt",
+    subtitle: "BeOS R5 Desktop Blue",
+    category: "Solid",
+    backgroundCss: "#336699",
+  },
+  {
+    id: "solid-gnome-slate",
+    name: "Adwaita Slate",
+    subtitle: "Deep Libadwaita Neutral",
+    category: "Solid",
+    backgroundCss: "#202024",
+  },
+  {
+    id: "solid-debian-blue",
+    name: "GNOME Cobalt",
+    subtitle: "Classic Linux Desktop Blue",
+    category: "Solid",
+    backgroundCss: "#1c4a7e",
+  },
+  {
+    id: "solid-black",
+    name: "Black",
+    subtitle: "Solid Black",
+    category: "Solid",
+    backgroundCss: "#000000",
+  },
 ];
 
-export type BuiltinAppId = "settings" | "console";
+export type BuiltinAppId =
+  | "settings"
+  | "console"
+  | "files"
+  | "text-editor"
+  | "terminal"
+  | "app-store";
 
 export interface AppMenuSection {
   title: string;
@@ -132,6 +161,7 @@ export interface AppDefinition {
     | "sparkles";
   xdgIcons?: string[];
   iconUrl?: string;
+  isWebApp?: boolean;
   gradient: string;
   pinnedByDefault: boolean;
   builtinComponent?: BuiltinAppId;
@@ -144,8 +174,8 @@ export interface AppDefinition {
 export const APP_CATALOG: AppDefinition[] = [
   {
     id: "settings",
-    name: "System Settings",
-    shortName: "Settings",
+    name: "Desktop Settings",
+    shortName: "Desktop Settings",
     description: "Configure appearance, dock, wallpaper, network, sound, and displays",
     category: "System",
     iconName: "settings",
@@ -160,24 +190,30 @@ export const APP_CATALOG: AppDefinition[] = [
         title: "View",
         items: [
           { label: "Appearance", shortcut: "⌘1", actionId: "settings:appearance" },
-          { label: "Dock & Menu Bar", shortcut: "⌘2", actionId: "settings:dock" },
-          { label: "Wallpaper", shortcut: "⌘3", actionId: "settings:wallpaper" },
-          { label: "Wi-Fi & Network", shortcut: "⌘4", actionId: "settings:network" },
-          { label: "Sound", shortcut: "⌘5", actionId: "settings:sound" },
-          { label: "Displays", shortcut: "⌘6", actionId: "settings:displays" },
-          { label: "About Piloti", shortcut: "⌘7", actionId: "settings:about" },
+          { label: "Fonts & Rendering", shortcut: "⌘2", actionId: "settings:fonts" },
+          { label: "Dock & Menu Bar", shortcut: "⌘3", actionId: "settings:dock" },
+          { label: "Wallpaper", shortcut: "⌘4", actionId: "settings:wallpaper" },
+          { label: "Wi-Fi & Network", shortcut: "⌘5", actionId: "settings:network" },
+          { label: "Sound", shortcut: "⌘6", actionId: "settings:sound" },
+          { label: "Displays", shortcut: "⌘7", actionId: "settings:displays" },
+          { label: "About Piloti", shortcut: "⌘8", actionId: "settings:about" },
         ],
       },
     ],
   },
   {
     id: "console",
-    name: "Piloti Console",
-    shortName: "Console",
-    description: "Shell DevTools, live logs, window inspector, and JS/Domicile REPL",
+    name: "DevTools",
+    shortName: "DevTools",
+    description: "Shell DevTools, live logs, inspector, and JS console",
     category: "Development",
     iconName: "code",
-    xdgIcons: ["utilities-terminal", "org.gnome.Ptyxis", "terminal"],
+    xdgIcons: [
+      "user-desktop",
+      "preferences-desktop",
+      "applications-development",
+      "utilities-system-monitor",
+    ],
     gradient: "from-slate-700 via-zinc-800 to-zinc-950",
     pinnedByDefault: false,
     builtinComponent: "console",
@@ -185,11 +221,12 @@ export const APP_CATALOG: AppDefinition[] = [
     minSize: { width: 560, height: 360 },
     menus: [
       {
-        title: "Module",
+        title: "View",
         items: [
-          { label: "REPL", actionId: "console:repl" },
+          { label: "Console", actionId: "console:repl" },
           { label: "Logs", actionId: "console:logs" },
-          { label: "Inspector", actionId: "console:inspector" },
+          { label: "State", actionId: "console:inspector" },
+          { label: "Storage", actionId: "console:storage" },
         ],
       },
     ],
@@ -203,7 +240,7 @@ export const APP_CATALOG: AppDefinition[] = [
     iconName: "folder",
     xdgIcons: ["org.gnome.Nautilus", "system-file-manager", "folder"],
     gradient: "from-sky-400 via-blue-500 to-blue-600",
-    pinnedByDefault: true,
+    pinnedByDefault: false,
     linuxCommand: ["nautilus"],
     defaultSize: { width: 780, height: 500 },
     menus: [],
@@ -223,13 +260,42 @@ export const APP_CATALOG: AppDefinition[] = [
     menus: [],
   },
   {
+    id: "text-editor",
+    name: "Text Editor",
+    shortName: "Notepad",
+    description: "Minimal plain-text notepad with instant localStorage VFS save",
+    category: "Utilities",
+    iconName: "file-text",
+    xdgIcons: ["org.gnome.TextEditor", "accessories-text-editor", "text-editor"],
+    gradient: "from-amber-400 via-orange-500 to-rose-500",
+    pinnedByDefault: false,
+    builtinComponent: "text-editor",
+    defaultSize: { width: 520, height: 380 },
+    menus: [],
+  },
+  {
+    id: "app-store",
+    name: "Application Store",
+    shortName: "Application Store",
+    description: "Browse and install apps and web apps",
+    category: "System",
+    iconName: "sparkles",
+    xdgIcons: ["org.gnome.Software", "system-software-install", "software-store"],
+    gradient: "from-blue-500 via-indigo-500 to-violet-600",
+    pinnedByDefault: false,
+    builtinComponent: "app-store",
+    defaultSize: { width: 880, height: 580 },
+    minSize: { width: 640, height: 420 },
+    menus: [],
+  },
+  {
     id: "browser",
     name: "Web Browser",
     shortName: "Browser",
     description: "Launch Web Browser (`firefox`)",
     category: "Internet",
     iconName: "globe",
-    xdgIcons: ["org.gnome.Epiphany", "firefox-esr", "firefox", "chromium", "web-browser"],
+    xdgIcons: ["org.gnome.Epiphany", "chromium", "firefox-esr", "firefox", "web-browser", "text-html"],
     gradient: "from-cyan-400 via-blue-500 to-indigo-600",
     pinnedByDefault: true,
     linuxCommand: ["firefox"],
@@ -249,5 +315,5 @@ export interface WifiNetwork {
 export const SAMPLE_WIFI_NETWORKS: WifiNetwork[] = [
   { ssid: "Piloti-5G-Ultra", signal: 96, secured: true, band: "6 GHz", ipAddress: "192.168.1.42" },
   { ssid: "Debian-VMware-Bridge", signal: 100, secured: true, band: "5 GHz", ipAddress: "172.16.84.129" },
-  { ssid: "Cupertino-Studio-Mesh", signal: 84, secured: true, band: "5 GHz", ipAddress: "10.0.1.18" },
+  { ssid: "Adwaita-Lab-5G", signal: 84, secured: true, band: "5 GHz", ipAddress: "10.0.1.18" },
 ];

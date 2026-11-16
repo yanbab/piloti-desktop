@@ -1,7 +1,7 @@
 /*
  * GNOME Adwaita (Libadwaita 1.6 / GNOME 47+) Theme for Piloti Desktop
  *
- * Sampled and calibrated directly against native `org.gnome.Adwaita1.Demo`
+ * Sampled and calibrated against native `org.gnome.Adwaita1.Demo`
  * running under Domicile Wayland:
  *   - Dark Surfaces:
  *       @window_bg_color / @view_bg_color = #202024
@@ -15,160 +15,196 @@
  *   - Boxed Lists: 14px bold section headers, edge-to-edge row dividers, 52px AdwActionRow height
  */
 
-:root[data-ui-theme="adwaita"] {
-  --font-macos: "Cantarell", "Inter", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-macos-mono: "Adwaita Mono", "Source Code Pro", "JetBrains Mono", ui-monospace, monospace;
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --font-adw: "Cantarell", "Inter", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-adw-mono: "Adwaita Mono", "Source Code Pro", "JetBrains Mono", ui-monospace, monospace;
 
   /* Official GNOME 47 / Libadwaita 1.6 Accent Colors */
-  --mac-blue: #3584e4;
-  --mac-teal: #2190a4;
-  --mac-green: #3a944a;
-  --mac-yellow: #c88800;
-  --mac-orange: #ed5b00;
-  --mac-red: #e62d42;
-  --mac-pink: #d56199;
-  --mac-purple: #9141ac;
-  --mac-gray: #6f8396;
-  --mac-mint: #2190a4;
-  --mac-cyan: #2190a4;
-  --mac-indigo: #3584e4;
-  --mac-brown: #986a44;
+  --adw-blue: #3584e4;
+  --adw-teal: #2190a4;
+  --adw-green: #3a944a;
+  --adw-yellow: #c88800;
+  --adw-orange: #ed5b00;
+  --adw-red: #e62d42;
+  --adw-pink: #d56199;
+  --adw-purple: #9141ac;
+  --adw-gray: #6f8396;
+  --adw-mint: #2190a4;
+  --adw-cyan: #2190a4;
+  --adw-indigo: #3584e4;
+  --adw-brown: #986a44;
 
-  --mac-accent: var(--adw-active-accent, var(--mac-blue));
-  --mac-accent-foreground: #ffffff;
-  --mac-selection: color-mix(in srgb, var(--mac-accent) 88%, black);
-  --mac-menu-highlight: var(--mac-accent);
-  --mac-selection-unfocused: rgb(0 0 0 / 0.08);
-  --mac-link: #1c71d8;
+  --adw-accent: var(--adw-active-accent, var(--adw-blue));
+  --adw-accent-foreground: #ffffff;
+  --adw-selection: color-mix(in srgb, var(--adw-accent) 88%, black);
+  --adw-menu-highlight: rgb(0 0 0 / 0.07);
+  --adw-selection-unfocused: rgb(0 0 0 / 0.08);
+  --adw-link: #1c71d8;
 
   /* Adwaita Light Labels */
-  --mac-label: rgb(0 0 0 / 0.82);
-  --mac-label-secondary: rgb(0 0 0 / 0.55);
-  --mac-label-tertiary: rgb(0 0 0 / 0.36);
-  --mac-label-quaternary: rgb(0 0 0 / 0.12);
-  --mac-label-quinary: rgb(0 0 0 / 0.06);
+  --adw-label: rgb(0 0 0 / 0.82);
+  --adw-label-secondary: rgb(0 0 0 / 0.55);
+  --adw-label-tertiary: rgb(0 0 0 / 0.36);
+  --adw-label-quaternary: rgb(0 0 0 / 0.12);
+  --adw-label-quinary: rgb(0 0 0 / 0.06);
 
   /* Adwaita Light Fills & Controls */
-  --mac-fill-primary: rgb(0 0 0 / 0.12);
-  --mac-fill-secondary: rgb(0 0 0 / 0.08);
-  --mac-fill-tertiary: rgb(0 0 0 / 0.05);
-  --mac-fill-quaternary: rgb(0 0 0 / 0.03);
-  --mac-fill-quinary: rgb(0 0 0 / 0.015);
+  --adw-fill-primary: rgb(0 0 0 / 0.12);
+  --adw-fill-secondary: rgb(0 0 0 / 0.08);
+  --adw-fill-tertiary: rgb(0 0 0 / 0.05);
+  --adw-fill-quaternary: rgb(0 0 0 / 0.03);
+  --adw-fill-quinary: rgb(0 0 0 / 0.015);
 
-  --mac-control: rgb(0 0 0 / 0.08);
-  --mac-control-pressed: rgb(0 0 0 / 0.16);
-  --mac-control-disabled: rgb(0 0 0 / 0.04);
-  --mac-field: rgb(0 0 0 / 0.065);
-  --mac-field-border: transparent;
+  --adw-control: rgb(0 0 0 / 0.08);
+  --adw-control-pressed: rgb(0 0 0 / 0.16);
+  --adw-control-disabled: rgb(0 0 0 / 0.04);
+  --adw-field: rgb(0 0 0 / 0.065);
+  --adw-field-border: transparent;
 
   /* Adwaita Light Surfaces */
-  --mac-window: #fafafa;
-  --mac-content: #fafafa;
-  --mac-content-alternate: rgb(0 0 0 / 0.035);
-  --mac-group: #ffffff;
-  --mac-separator: rgb(0 0 0 / 0.09);
-  --mac-grid: rgb(0 0 0 / 0.1);
-  --mac-border: rgb(0 0 0 / 0.11);
-  --mac-sidebar: #ebebee;
-  --mac-sidebar-selection: rgb(0 0 0 / 0.08);
-  --mac-sidebar-label-inactive: rgb(0 0 0 / 0.45);
-  --mac-titlebar: #fafafa;
+  --adw-window: #fafafa;
+  --adw-content: #fafafa;
+  --adw-content-alternate: rgb(0 0 0 / 0.035);
+  --adw-group: #ffffff;
+  --adw-separator: rgb(0 0 0 / 0.09);
+  --adw-grid: rgb(0 0 0 / 0.1);
+  --adw-border: rgb(0 0 0 / 0.11);
+  --adw-sidebar: #ebebee;
+  --adw-sidebar-selection: rgb(0 0 0 / 0.08);
+  --adw-sidebar-label-inactive: rgb(0 0 0 / 0.45);
+  --adw-titlebar: #fafafa;
 
   /* Adwaita HeaderBar / Toolbar Button Surfaces */
-  --mac-glass: rgb(0 0 0 / 0.07);
-  --mac-glass-pressed: rgb(0 0 0 / 0.14);
-  --mac-glass-selected: rgb(0 0 0 / 0.12);
-  --mac-glass-edge: transparent;
-  --mac-glass-rim: transparent;
-  --mac-glass-shadow: none;
+  --adw-glass: rgb(0 0 0 / 0.07);
+  --adw-glass-pressed: rgb(0 0 0 / 0.14);
+  --adw-glass-selected: rgb(0 0 0 / 0.12);
+  --adw-glass-edge: transparent;
+  --adw-glass-rim: transparent;
+  --adw-glass-shadow: none;
 
-  /* Adwaita Popovers, Menus & Dash */
-  --mac-material-menu: #ffffff;
-  --mac-material-popover: #ffffff;
-  --mac-material-hud: #fafafa;
-  --mac-material-tooltip: rgb(0 0 0 / 0.85);
-  --mac-material-dock: rgb(235 235 238 / 0.92);
-  --mac-dock-label: #ffffff;
-  --mac-material-blur: 6px;
-  --mac-material-border: rgb(0 0 0 / 0.12);
-  --mac-material-highlight: transparent;
-  --mac-overlay: rgb(0 0 0 / 0.35);
+  /* Adwaita Popovers, Menus & Dock */
+  --adw-material-menu: #ffffff;
+  --adw-material-popover: #ffffff;
+  --adw-material-hud: #fafafa;
+  --adw-material-tooltip: rgb(0 0 0 / 0.85);
+  --adw-material-dock: rgb(255 255 255 / 0.6);
+  --adw-dock-label: #ffffff;
+  --adw-material-blur: 6px;
+  --adw-material-border: rgb(0 0 0 / 0.12);
+  --adw-material-highlight: transparent;
+  --adw-overlay: rgb(0 0 0 / 0.35);
 
   /* Adwaita Circular Window Controls (Light) */
-  --mac-traffic-close: rgb(0 0 0 / 0.08);
-  --mac-traffic-minimize: rgb(0 0 0 / 0.08);
-  --mac-traffic-zoom: rgb(0 0 0 / 0.08);
-  --mac-traffic-inactive: rgb(0 0 0 / 0.05);
-  --mac-traffic-edge: none;
+  --adw-traffic-close: rgb(0 0 0 / 0.08);
+  --adw-traffic-minimize: rgb(0 0 0 / 0.08);
+  --adw-traffic-zoom: rgb(0 0 0 / 0.08);
+  --adw-traffic-inactive: rgb(0 0 0 / 0.05);
+  --adw-traffic-edge: none;
 
   /* Adwaita Shadows */
-  --mac-shadow-menu: 0 0 0 1px rgb(0 0 0 / 0.1), 0 4px 18px rgb(0 0 0 / 0.14);
-  --mac-shadow-popover: 0 0 0 1px rgb(0 0 0 / 0.1), 0 4px 18px rgb(0 0 0 / 0.14);
-  --mac-shadow-tooltip: 0 0 0 1px rgb(0 0 0 / 0.14), 0 2px 6px rgb(0 0 0 / 0.14);
-  --mac-shadow-dock-label: 0 0 0 1px rgb(0 0 0 / 0.12), 0 2px 8px rgb(0 0 0 / 0.14);
-  --mac-shadow-dock: 0 0 0 1px rgb(0 0 0 / 0.12), 0 6px 20px rgb(0 0 0 / 0.16);
-  --mac-shadow-window: 0 0 0 1px rgb(0 0 0 / 0.14), 0 8px 28px 2px rgb(0 0 0 / 0.18), 0 3px 10px rgb(0 0 0 / 0.1);
-  --mac-shadow-window-inactive: 0 0 0 1px rgb(0 0 0 / 0.1), 0 4px 14px rgb(0 0 0 / 0.1);
-  --mac-window-rim: rgb(0 0 0 / 0.08);
-  --mac-focus-ring: 0 0 0 2px color-mix(in srgb, var(--mac-accent) 55%, transparent);
+  --adw-shadow-menu: 0 1px 5px 1px rgb(0 0 0 / 0.09), 0 2px 14px 3px rgb(0 0 0 / 0.05);
+  --adw-shadow-popover: 0 1px 5px 1px rgb(0 0 0 / 0.09), 0 2px 14px 3px rgb(0 0 0 / 0.05);
+  --adw-shadow-tooltip: 0 0 0 1px rgb(0 0 0 / 0.14), 0 2px 6px rgb(0 0 0 / 0.14);
+  --adw-shadow-dock-label: 0 0 0 1px rgb(0 0 0 / 0.12), 0 2px 8px rgb(0 0 0 / 0.14);
+  --adw-shadow-dock: 0 0 0 1px rgb(0 0 0 / 0.12), 0 6px 20px rgb(0 0 0 / 0.16);
+  --adw-shadow-window: 0 0 0 1px rgb(0 0 0 / 0.14), 0 8px 28px 2px rgb(0 0 0 / 0.18), 0 3px 10px rgb(0 0 0 / 0.1);
+  --adw-shadow-window-inactive: 0 0 0 1px rgb(0 0 0 / 0.1), 0 4px 14px rgb(0 0 0 / 0.1);
+  --adw-window-rim: rgb(0 0 0 / 0.08);
+  --adw-focus-ring: 0 0 0 2px color-mix(in srgb, var(--adw-accent) 55%, transparent);
 
   /* Official Libadwaita Corner Radii */
-  --mac-radius-control: 6px;
-  --mac-radius-menu: 12px;
-  --mac-radius-item: 9px;
-  --mac-radius-group: 12px;
-  --mac-radius-popover: 12px;
-  --mac-radius-alert: 15px;
-  --mac-radius-window: 15px;
+  --adw-radius-control: 6px;
+  --adw-radius-menu: 12px;
+  --adw-radius-item: 6px;
+  --adw-radius-group: 12px;
+  --adw-radius-popover: 12px;
+  --adw-radius-alert: 15px;
+  --adw-radius-window: 15px;
 
   /* Libadwaita Control Heights */
-  --mac-control-mini: 20px;
-  --mac-control-small: 24px;
-  --mac-control-medium: 30px;
-  --mac-control-large: 34px;
-  --mac-control-xl: 40px;
+  --adw-control-mini: 20px;
+  --adw-control-small: 24px;
+  --adw-control-medium: 30px;
+  --adw-control-large: 34px;
+  --adw-control-xl: 40px;
+
+  /* shadcn/Base UI semantic tokens mapped onto Adwaita values */
+  --radius: var(--adw-radius-control);
+  --background: var(--adw-window);
+  --foreground: var(--adw-label);
+  --card: var(--adw-content);
+  --card-foreground: var(--adw-label);
+  --popover: var(--adw-material-popover);
+  --popover-foreground: var(--adw-label);
+  --primary: var(--adw-accent);
+  --primary-foreground: var(--adw-accent-foreground);
+  --secondary: var(--adw-control);
+  --secondary-foreground: var(--adw-label);
+  --muted: var(--adw-fill-tertiary);
+  --muted-foreground: var(--adw-label-secondary);
+  --accent: var(--adw-accent);
+  --accent-foreground: var(--adw-accent-foreground);
+  --destructive: var(--adw-red);
+  --border: var(--adw-border);
+  --input: var(--adw-field-border);
+  --ring: var(--adw-accent);
+  --chart-1: var(--adw-blue);
+  --chart-2: var(--adw-green);
+  --chart-3: var(--adw-orange);
+  --chart-4: var(--adw-purple);
+  --chart-5: var(--adw-pink);
+  --sidebar: var(--adw-sidebar);
+  --sidebar-foreground: var(--adw-label);
+  --sidebar-primary: var(--adw-accent);
+  --sidebar-primary-foreground: var(--adw-accent-foreground);
+  --sidebar-accent: var(--adw-sidebar-selection);
+  --sidebar-accent-foreground: var(--adw-label);
+  --sidebar-border: var(--adw-separator);
+  --sidebar-ring: var(--adw-accent);
 }
 
-:root[data-ui-theme="adwaita"].dark {
-  --mac-blue: #3584e4;
-  --mac-teal: #2190a4;
-  --mac-green: #3a944a;
-  --mac-yellow: #c88800;
-  --mac-orange: #ed5b00;
-  --mac-red: #e62d42;
-  --mac-pink: #d56199;
-  --mac-purple: #9141ac;
-  --mac-gray: #6f8396;
-  --mac-mint: #2190a4;
-  --mac-cyan: #2190a4;
-  --mac-indigo: #3584e4;
-  --mac-brown: #986a44;
+.dark {
+  --adw-blue: #3584e4;
+  --adw-teal: #2190a4;
+  --adw-green: #3a944a;
+  --adw-yellow: #c88800;
+  --adw-orange: #ed5b00;
+  --adw-red: #e62d42;
+  --adw-pink: #d56199;
+  --adw-purple: #9141ac;
+  --adw-gray: #6f8396;
+  --adw-mint: #2190a4;
+  --adw-cyan: #2190a4;
+  --adw-indigo: #3584e4;
+  --adw-brown: #986a44;
 
-  --mac-accent: var(--adw-active-accent, var(--mac-blue));
-  --mac-selection: var(--mac-accent);
-  --mac-menu-highlight: var(--mac-accent);
-  --mac-selection-unfocused: rgb(255 255 255 / 0.1);
-  --mac-link: #78aeed;
+  --adw-accent: var(--adw-active-accent, var(--adw-blue));
+  --adw-selection: var(--adw-accent);
+  --adw-menu-highlight: rgb(255 255 255 / 0.09);
+  --adw-selection-unfocused: rgb(255 255 255 / 0.1);
+  --adw-link: #78aeed;
 
   /* Adwaita Dark Labels */
-  --mac-label: #ffffff;
-  --mac-label-secondary: rgb(255 255 255 / 0.58);
-  --mac-label-tertiary: rgb(255 255 255 / 0.38);
-  --mac-label-quaternary: rgb(255 255 255 / 0.14);
-  --mac-label-quinary: rgb(255 255 255 / 0.06);
+  --adw-label: #ffffff;
+  --adw-label-secondary: rgb(255 255 255 / 0.58);
+  --adw-label-tertiary: rgb(255 255 255 / 0.38);
+  --adw-label-quaternary: rgb(255 255 255 / 0.14);
+  --adw-label-quinary: rgb(255 255 255 / 0.06);
 
   /* Adwaita Dark Fills & Controls */
-  --mac-fill-primary: rgb(255 255 255 / 0.12);
-  --mac-fill-secondary: rgb(255 255 255 / 0.09);
-  --mac-fill-tertiary: rgb(255 255 255 / 0.06);
-  --mac-fill-quaternary: rgb(255 255 255 / 0.04);
-  --mac-fill-quinary: rgb(255 255 255 / 0.02);
+  --adw-fill-primary: rgb(255 255 255 / 0.12);
+  --adw-fill-secondary: rgb(255 255 255 / 0.09);
+  --adw-fill-tertiary: rgb(255 255 255 / 0.06);
+  --adw-fill-quaternary: rgb(255 255 255 / 0.04);
+  --adw-fill-quinary: rgb(255 255 255 / 0.02);
 
-  --mac-control: rgb(255 255 255 / 0.1);
-  --mac-control-pressed: rgb(255 255 255 / 0.18);
-  --mac-control-disabled: rgb(255 255 255 / 0.04);
-  --mac-field: #333336;
-  --mac-field-border: transparent;
+  --adw-control: rgb(255 255 255 / 0.1);
+  --adw-control-pressed: rgb(255 255 255 / 0.18);
+  --adw-control-disabled: rgb(255 255 255 / 0.04);
+  --adw-field: #333336;
+  --adw-field-border: transparent;
 
   /*
    * Official Libadwaita 1.6 Cool Dark Surfaces (sampled from org.gnome.Adwaita1.Demo):
@@ -178,108 +214,310 @@
    * @card_bg_color = #343437
    * @popover_bg_color = #343437
    */
-  --mac-window: #202024;
-  --mac-content: #202024;
-  --mac-content-alternate: rgb(255 255 255 / 0.04);
-  --mac-group: #343437;
-  --mac-separator: rgb(255 255 255 / 0.08);
-  --mac-grid: rgb(255 255 255 / 0.1);
-  --mac-border: rgb(255 255 255 / 0.1);
-  --mac-sidebar: #28282c;
-  --mac-sidebar-selection: #3e3e41;
-  --mac-sidebar-label-inactive: rgb(255 255 255 / 0.45);
-  --mac-titlebar: #202024;
+  --adw-window: #202024;
+  --adw-content: #202024;
+  --adw-content-alternate: rgb(255 255 255 / 0.04);
+  --adw-group: #343437;
+  --adw-separator: rgb(255 255 255 / 0.08);
+  --adw-grid: rgb(255 255 255 / 0.1);
+  --adw-border: rgb(255 255 255 / 0.1);
+  --adw-sidebar: #28282c;
+  --adw-sidebar-selection: #3e3e41;
+  --adw-sidebar-label-inactive: rgb(255 255 255 / 0.45);
+  --adw-titlebar: #202024;
 
-  --mac-glass: rgb(255 255 255 / 0.1);
-  --mac-glass-pressed: rgb(255 255 255 / 0.18);
-  --mac-glass-selected: rgb(255 255 255 / 0.14);
-  --mac-glass-edge: transparent;
-  --mac-glass-rim: transparent;
-  --mac-glass-shadow: none;
+  --adw-glass: rgb(255 255 255 / 0.1);
+  --adw-glass-pressed: rgb(255 255 255 / 0.18);
+  --adw-glass-selected: rgb(255 255 255 / 0.14);
+  --adw-glass-edge: transparent;
+  --adw-glass-rim: transparent;
+  --adw-glass-shadow: none;
 
-  --mac-material-menu: #343437;
-  --mac-material-popover: #343437;
-  --mac-material-hud: #28282c;
-  --mac-material-tooltip: rgb(0 0 0 / 0.88);
-  --mac-material-dock: rgb(32 32 36 / 0.92);
-  --mac-dock-label: #343437;
-  --mac-material-blur: 8px;
-  --mac-material-border: rgb(255 255 255 / 0.1);
-  --mac-material-highlight: transparent;
-  --mac-overlay: rgb(0 0 0 / 0.55);
+  --adw-material-menu: #353538;
+  --adw-material-popover: #353538;
+  --adw-material-hud: #28282c;
+  --adw-material-tooltip: rgb(0 0 0 / 0.88);
+  --adw-material-dock: rgb(0 0 0 / 0.4);
+  --adw-dock-label: #343437;
+  --adw-material-blur: 8px;
+  --adw-material-border: rgb(255 255 255 / 0.1);
+  --adw-material-highlight: transparent;
+  --adw-overlay: rgb(0 0 0 / 0.55);
 
   /* Adwaita Circular Window Controls (Dark) */
-  --mac-traffic-close: rgb(255 255 255 / 0.1);
-  --mac-traffic-minimize: rgb(255 255 255 / 0.1);
-  --mac-traffic-zoom: rgb(255 255 255 / 0.1);
-  --mac-traffic-inactive: rgb(255 255 255 / 0.06);
-  --mac-traffic-edge: none;
+  --adw-traffic-close: rgb(255 255 255 / 0.1);
+  --adw-traffic-minimize: rgb(255 255 255 / 0.1);
+  --adw-traffic-zoom: rgb(255 255 255 / 0.1);
+  --adw-traffic-inactive: rgb(255 255 255 / 0.06);
+  --adw-traffic-edge: none;
 
-  --mac-shadow-menu: 0 0 0 1px rgb(255 255 255 / 0.07), 0 0 0 1px rgb(0 0 0 / 0.65), 0 6px 24px rgb(0 0 0 / 0.44);
-  --mac-shadow-popover: 0 0 0 1px rgb(255 255 255 / 0.07), 0 0 0 1px rgb(0 0 0 / 0.65), 0 6px 24px rgb(0 0 0 / 0.44);
-  --mac-shadow-tooltip: 0 0 0 1px rgb(255 255 255 / 0.1), 0 2px 8px rgb(0 0 0 / 0.35);
-  --mac-shadow-dock-label: 0 0 0 1px rgb(255 255 255 / 0.1), 0 2px 8px rgb(0 0 0 / 0.35);
-  --mac-shadow-dock: 0 0 0 1px rgb(255 255 255 / 0.1), 0 8px 24px rgb(0 0 0 / 0.48);
-  --mac-shadow-window: 0 0 0 1px rgb(0 0 0 / 0.78), 0 10px 32px 4px rgb(0 0 0 / 0.5), 0 4px 12px rgb(0 0 0 / 0.34);
-  --mac-shadow-window-inactive: 0 0 0 1px rgb(0 0 0 / 0.75), 0 5px 16px rgb(0 0 0 / 0.3);
-  --mac-window-rim: rgb(255 255 255 / 0.07);
+  --adw-shadow-menu: 0 2px 8px rgb(0 0 0 / 0.34), 0 8px 24px rgb(0 0 0 / 0.36);
+  --adw-shadow-popover: 0 2px 8px rgb(0 0 0 / 0.34), 0 8px 24px rgb(0 0 0 / 0.36);
+  --adw-shadow-tooltip: 0 0 0 1px rgb(255 255 255 / 0.1), 0 2px 8px rgb(0 0 0 / 0.35);
+  --adw-shadow-dock-label: 0 0 0 1px rgb(255 255 255 / 0.1), 0 2px 8px rgb(0 0 0 / 0.35);
+  --adw-shadow-dock: 0 0 0 1px rgb(255 255 255 / 0.1), 0 8px 24px rgb(0 0 0 / 0.48);
+  --adw-shadow-window: 0 0 0 1px rgb(0 0 0 / 0.78), 0 10px 32px 4px rgb(0 0 0 / 0.5), 0 4px 12px rgb(0 0 0 / 0.34);
+  --adw-shadow-window-inactive: 0 0 0 1px rgb(0 0 0 / 0.75), 0 5px 16px rgb(0 0 0 / 0.3);
+  --adw-window-rim: rgb(255 255 255 / 0.07);
 }
 
 /*
  * In Adwaita, unfocused (:backdrop) windows keep their accent color on active
- * switches and controls (unlike macOS which greys out --mac-accent).
+ * switches and controls.
  */
-:root[data-ui-theme="adwaita"] [data-slot="window"][data-inactive] {
-  --mac-accent: var(--adw-active-accent, var(--mac-blue));
-  --mac-selection: var(--mac-accent);
-  --mac-titlebar: #f6f6f8;
-  --mac-sidebar: #f0f0f3;
+[data-slot="window"][data-inactive] {
+  --adw-accent: var(--adw-active-accent, var(--adw-blue));
+  --adw-selection: var(--adw-accent);
+  --adw-titlebar: #f6f6f8;
+  --adw-sidebar: #f0f0f3;
 }
 
-:root[data-ui-theme="adwaita"].dark [data-slot="window"][data-inactive] {
-  --mac-accent: var(--adw-active-accent, var(--mac-blue));
-  --mac-selection: var(--mac-accent);
-  --mac-titlebar: #202024;
-  --mac-sidebar: #242428;
-  --mac-content: #202024;
+.dark [data-slot="window"][data-inactive],
+.dark[data-slot="window"][data-inactive] {
+  --adw-accent: var(--adw-active-accent, var(--adw-blue));
+  --adw-selection: var(--adw-accent);
+  --adw-titlebar: #202024;
+  --adw-sidebar: #242428;
+  --adw-content: #202024;
+}
+
+@theme inline {
+  --font-sans: var(--font-adw);
+  --font-mono: var(--font-adw-mono);
+
+  --radius-sm: calc(var(--radius) - 2px);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 2px);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  --color-adw-blue: var(--adw-blue);
+  --color-adw-red: var(--adw-red);
+  --color-adw-orange: var(--adw-orange);
+  --color-adw-yellow: var(--adw-yellow);
+  --color-adw-green: var(--adw-green);
+  --color-adw-mint: var(--adw-mint);
+  --color-adw-teal: var(--adw-teal);
+  --color-adw-cyan: var(--adw-cyan);
+  --color-adw-indigo: var(--adw-indigo);
+  --color-adw-purple: var(--adw-purple);
+  --color-adw-pink: var(--adw-pink);
+  --color-adw-brown: var(--adw-brown);
+  --color-adw-gray: var(--adw-gray);
+  --color-adw-accent: var(--adw-accent);
+  --color-adw-accent-foreground: var(--adw-accent-foreground);
+  --color-adw-selection: var(--adw-selection);
+  --color-adw-selection-unfocused: var(--adw-selection-unfocused);
+  --color-adw-menu-highlight: var(--adw-menu-highlight);
+  --color-adw-link: var(--adw-link);
+  --color-adw-label: var(--adw-label);
+  --color-adw-label-secondary: var(--adw-label-secondary);
+  --color-adw-label-tertiary: var(--adw-label-tertiary);
+  --color-adw-label-quaternary: var(--adw-label-quaternary);
+  --color-adw-label-quinary: var(--adw-label-quinary);
+  --color-adw-fill: var(--adw-fill-tertiary);
+  --color-adw-fill-primary: var(--adw-fill-primary);
+  --color-adw-fill-secondary: var(--adw-fill-secondary);
+  --color-adw-fill-tertiary: var(--adw-fill-tertiary);
+  --color-adw-fill-quaternary: var(--adw-fill-quaternary);
+  --color-adw-fill-quinary: var(--adw-fill-quinary);
+  --color-adw-fill-strong: var(--adw-fill-primary);
+  --color-adw-control: var(--adw-control);
+  --color-adw-control-pressed: var(--adw-control-pressed);
+  --color-adw-control-disabled: var(--adw-control-disabled);
+  --color-adw-field: var(--adw-field);
+  --color-adw-field-border: var(--adw-field-border);
+  --color-adw-window: var(--adw-window);
+  --color-adw-content: var(--adw-content);
+  --color-adw-content-alternate: var(--adw-content-alternate);
+  --color-adw-group: var(--adw-group);
+  --color-adw-separator: var(--adw-separator);
+  --color-adw-grid: var(--adw-grid);
+  --color-adw-border: var(--adw-border);
+  --color-adw-sidebar: var(--adw-sidebar);
+  --color-adw-sidebar-selection: var(--adw-sidebar-selection);
+  --color-adw-titlebar: var(--adw-titlebar);
+  --color-adw-glass: var(--adw-glass);
+  --color-adw-glass-pressed: var(--adw-glass-pressed);
+  --color-adw-glass-selected: var(--adw-glass-selected);
+  --color-adw-overlay: var(--adw-overlay);
+
+  --radius-adw-control: var(--adw-radius-control);
+  --radius-adw-menu: var(--adw-radius-menu);
+  --radius-adw-item: var(--adw-radius-item);
+  --radius-adw-group: var(--adw-radius-group);
+  --radius-adw-popover: var(--adw-radius-popover);
+  --radius-adw-alert: var(--adw-radius-alert);
+  --radius-adw-window: var(--adw-radius-window);
+
+  --shadow-adw-menu: var(--adw-shadow-menu);
+  --shadow-adw-popover: var(--adw-shadow-popover);
+  --shadow-adw-tooltip: var(--adw-shadow-tooltip);
+  --shadow-adw-dock: var(--adw-shadow-dock);
+  --shadow-adw-dock-label: var(--adw-shadow-dock-label);
+  --shadow-adw-window: var(--adw-shadow-window);
+  --shadow-adw-window-inactive: var(--adw-shadow-window-inactive);
+  --shadow-adw-focus: var(--adw-focus-ring);
+
+  /* Adwaita typography scale (size / line-height) */
+  --text-adw-large-title: 26px;
+  --text-adw-large-title--line-height: 32px;
+  --text-adw-title-1: 22px;
+  --text-adw-title-1--line-height: 26px;
+  --text-adw-title-2: 17px;
+  --text-adw-title-2--line-height: 22px;
+  --text-adw-title-3: 15px;
+  --text-adw-title-3--line-height: 20px;
+  --text-adw-headline: 13px;
+  --text-adw-headline--line-height: 16px;
+  --text-adw-body: 13px;
+  --text-adw-body--line-height: 16px;
+  --text-adw-callout: 12px;
+  --text-adw-callout--line-height: 15px;
+  --text-adw-subheadline: 11px;
+  --text-adw-subheadline--line-height: 14px;
+  --text-adw-footnote: 10px;
+  --text-adw-footnote--line-height: 13px;
+  --text-adw-caption: 10px;
+  --text-adw-caption--line-height: 13px;
+}
+
+/* Surfaces used by menus, popovers, sidebars, dock and titlebars */
+@utility adw-material-menu {
+  background-color: var(--adw-material-menu);
+}
+
+@utility adw-material-popover {
+  background-color: var(--adw-material-popover);
+}
+
+@utility adw-material-hud {
+  background-color: var(--adw-material-hud);
+}
+
+@utility adw-material-tooltip {
+  background-color: var(--adw-material-tooltip);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(20px) saturate(180%);
+}
+
+@utility adw-material-dock {
+  background-color: var(--adw-material-dock);
+  -webkit-backdrop-filter: blur(var(--adw-material-blur)) saturate(var(--adw-material-dock-saturation, 180%)) brightness(var(--adw-material-dock-brightness, 1));
+  backdrop-filter: blur(var(--adw-material-blur)) saturate(var(--adw-material-dock-saturation, 180%)) brightness(var(--adw-material-dock-brightness, 1));
+}
+
+@utility adw-material-dock-label {
+  background-color: var(--adw-dock-label);
+  -webkit-backdrop-filter: blur(20px) saturate(var(--adw-dock-label-saturation, 180%));
+  backdrop-filter: blur(20px) saturate(var(--adw-dock-label-saturation, 180%));
+}
+
+@utility adw-material-sidebar {
+  background-color: var(--adw-sidebar);
+  -webkit-backdrop-filter: blur(var(--adw-material-blur)) saturate(180%);
+  backdrop-filter: blur(var(--adw-material-blur)) saturate(180%);
+}
+
+@utility adw-material-titlebar {
+  background-color: var(--adw-titlebar);
+  -webkit-backdrop-filter: blur(var(--adw-material-blur)) saturate(180%);
+  backdrop-filter: blur(var(--adw-material-blur)) saturate(180%);
+}
+
+@utility adw-glass {
+  background-color: var(--adw-glass);
+  box-shadow:
+    inset 0 1px 0 var(--adw-glass-edge),
+    inset 0 -1px 0 var(--adw-glass-edge),
+    inset 1px 0 0 var(--adw-glass-rim),
+    inset -1px 0 0 var(--adw-glass-rim),
+    var(--adw-glass-shadow);
+}
+
+@utility adw-focus-ring {
+  outline: none;
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--adw-accent) 55%, transparent),
+    inset 0 0 0 1px color-mix(in srgb, var(--adw-accent) 50%, transparent);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-transparent font-sans text-adw-body text-foreground;
+  }
 }
 
 /*
  * Adwaita GtkSwitch / AdwSwitchRow Proportions:
  * 44x24px pill track with an 18x18px circular knob and 3px inset.
  */
-:root[data-ui-theme="adwaita"] [data-slot="switch"] {
+[data-slot="switch"] {
   width: 44px !important;
   height: 24px !important;
   padding-inline: 3px !important;
   border-radius: 9999px !important;
 }
 
-:root[data-ui-theme="adwaita"] [data-slot="switch"][data-unchecked] {
+[data-slot="switch"][data-unchecked] {
   background-color: rgb(0 0 0 / 0.16) !important;
 }
 
-:root[data-ui-theme="adwaita"].dark [data-slot="switch"][data-unchecked] {
+.dark [data-slot="switch"][data-unchecked] {
   background-color: #4e4e52 !important;
 }
 
-:root[data-ui-theme="adwaita"] [data-slot="switch"][data-checked] {
-  background-color: var(--mac-accent) !important;
+[data-slot="switch"][data-checked] {
+  background-color: var(--adw-accent) !important;
 }
 
-:root[data-ui-theme="adwaita"] [data-slot="switch-thumb"] {
+[data-slot="switch-thumb"] {
   width: 18px !important;
   height: 18px !important;
   border-radius: 9999px !important;
   box-shadow: 0 1px 2px rgb(0 0 0 / 0.25) !important;
 }
 
-:root[data-ui-theme="adwaita"].dark [data-slot="switch-thumb"][data-unchecked] {
+.dark [data-slot="switch-thumb"][data-unchecked] {
   background-color: #d2d2d5 !important;
   translate: 0 0 !important;
 }
 
-:root[data-ui-theme="adwaita"] [data-slot="switch-thumb"][data-checked] {
+[data-slot="switch-thumb"][data-checked] {
   background-color: #ffffff !important;
   translate: 20px 0 !important;
 }
@@ -288,25 +526,25 @@
  * Adwaita GtkSearchEntry:
  * Borderless 34px-tall rounded-rectangle (9px radius) with #333336 fill.
  */
-:root[data-ui-theme="adwaita"] [data-slot="search-field"] {
+[data-slot="search-field"] {
   height: 34px !important;
   border-radius: 9px !important;
   padding-inline: 10px !important;
   gap: 6px !important;
-  background-color: var(--mac-field) !important;
+  background-color: var(--adw-field) !important;
   box-shadow: none !important;
   font-size: 13.5px !important;
 }
 
-:root[data-ui-theme="adwaita"] [data-slot="search-field"]:focus-within {
-  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--mac-accent) 75%, transparent) !important;
+[data-slot="search-field"]:focus-within {
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--adw-accent) 75%, transparent) !important;
 }
 
 /*
  * Adwaita Boxed Lists (AdwPreferencesPage / AdwPreferencesGroup / AdwActionRow):
  * Matches `Adwaita Demo -> Boxed Lists` pixel-for-pixel.
  */
-:root[data-ui-theme="adwaita"] [data-slot="grouped-form"] {
+[data-slot="grouped-form"] {
   max-width: 660px;
   width: 100%;
   margin-inline: auto;
@@ -314,83 +552,83 @@
   gap: 6px;
 }
 
-:root[data-ui-theme="adwaita"] [data-slot="grouped-form-section"] {
+[data-slot="grouped-form-section"] {
   gap: 8px;
 }
 
-:root[data-ui-theme="adwaita"] [data-slot="grouped-form-section-title"] {
+[data-slot="grouped-form-section-title"] {
   padding-inline: 2px;
   font-size: 14px;
   font-weight: 700;
   letter-spacing: -0.005em;
-  color: var(--mac-label);
+  color: var(--adw-label);
 }
 
-:root[data-ui-theme="adwaita"] [data-slot="grouped-form-group"] {
+[data-slot="grouped-form-group"] {
   padding-inline: 0;
   border-radius: 12px;
   overflow: hidden;
-  background-color: var(--mac-group);
+  background-color: var(--adw-group);
   box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.16), 0 0 0 1px rgb(0 0 0 / 0.16);
 }
 
-:root[data-ui-theme="adwaita"] [data-slot="grouped-form-row"] {
+[data-slot="grouped-form-row"] {
   padding-inline: 16px;
   min-height: 52px;
   padding-block: 10px;
   border-color: rgb(0 0 0 / 0.18);
 }
 
-:root[data-ui-theme="adwaita"].dark [data-slot="grouped-form-row"] {
+.dark [data-slot="grouped-form-row"] {
   border-color: rgb(255 255 255 / 0.065);
 }
 
-:root[data-ui-theme="adwaita"] [data-slot="grouped-form-row-title"] {
+[data-slot="grouped-form-row-title"] {
   font-size: 14px;
   font-weight: 400;
   line-height: 1.3;
 }
 
-:root[data-ui-theme="adwaita"] [data-slot="grouped-form-row-description"] {
+[data-slot="grouped-form-row-description"] {
   font-size: 12px;
   line-height: 1.35;
-  color: var(--mac-label-secondary);
+  color: var(--adw-label-secondary);
 }
 
 /* Adwaita Select / ComboRow Trigger */
-:root[data-ui-theme="adwaita"] [data-slot="select-trigger"] {
+[data-slot="select-trigger"] {
   height: 32px !important;
   border-radius: 8px !important;
   padding-inline: 10px 8px !important;
   font-size: 13.5px !important;
-  background-color: var(--mac-control) !important;
+  background-color: var(--adw-control) !important;
 }
 
 /*
  * Adwaita HeaderBar & Circular Monochrome Window Controls
  */
-:root[data-ui-theme="adwaita"] [data-slot="window-titlebar"] {
+[data-slot="window-titlebar"] {
   height: 46px;
   padding-inline: 12px;
   border-bottom-color: transparent;
 }
 
-:root[data-ui-theme="adwaita"] [data-slot="window-controls"] {
+[data-slot="window-controls"] {
   gap: 8px;
 }
 
-:root[data-ui-theme="adwaita"] [data-slot="window-controls"] > button {
+[data-slot="window-controls"] > button {
   width: 24px;
   height: 24px;
 }
 
-:root[data-ui-theme="adwaita"] [data-slot="window-controls"] > button svg {
+[data-slot="window-controls"] > button svg {
   opacity: 0.85 !important;
-  color: var(--mac-label) !important;
+  color: var(--adw-label) !important;
   width: 12px;
   height: 12px;
 }
 
-:root[data-ui-theme="adwaita"] [data-slot="window-controls"] > button:hover {
+[data-slot="window-controls"] > button:hover {
   filter: brightness(1.2);
 }

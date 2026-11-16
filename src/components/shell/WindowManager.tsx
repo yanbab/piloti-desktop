@@ -2,6 +2,10 @@
 import * as React from "react";
 import { useDomicile } from "@domicile-desktop/react/domicile-provider";
 import {
+  ResizeEdge as DomicileResizeEdge,
+  WindowRequestKind,
+} from "@domicile-desktop/sdk/window-state";
+import {
   WEBVIEW_FAVICON_CHANGE_EVENT,
   WEBVIEW_GUEST_FOCUS_EVENT,
   WEBVIEW_PAGE_CHANGE_EVENT,
@@ -11,13 +15,43 @@ import {
   DownloadIcon,
   GlobeIcon,
   Maximize2Icon,
-  MenuIcon,
   MinusIcon,
   Trash2Icon,
   XIcon,
 } from "lucide-react";
-import { ConsoleApp } from "@/components/apps/ConsoleApp";
-import { SettingsApp } from "@/components/apps/SettingsApp";
+import { WindowMenuButton } from "@/components/shell/WindowMenuButton";
+const ConsoleApp = React.lazy(() =>
+  import("@/components/apps/ConsoleApp").then((m) => ({
+    default: m.ConsoleApp,
+  }))
+);
+
+const FilesApp = React.lazy(() =>
+  import("@/components/apps/FilesApp").then((m) => ({
+    default: m.FilesApp,
+  }))
+);
+const TextEditorApp = React.lazy(() =>
+  import("@/components/apps/TextEditorApp").then((m) => ({
+    default: m.TextEditorApp,
+  }))
+);
+const TerminalApp = React.lazy(() =>
+  import("@/components/apps/TerminalApp").then((m) => ({
+    default: m.TerminalApp,
+  }))
+);
+const AppStoreApp = React.lazy(() =>
+  import("@/components/apps/AppStoreApp").then((m) => ({
+    default: m.AppStoreApp,
+  }))
+);
+const SettingsApp = React.lazy(() =>
+  import("@/components/apps/SettingsApp").then((m) => ({
+    default: m.SettingsApp,
+  }))
+);
+import { DesktopIconsApp } from "@/components/apps/DesktopIconsApp";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -30,7 +64,9 @@ import {
   Window,
   WindowContent,
   WindowControls,
+  type WindowHandle,
   WindowMain,
+  type WindowResizeEdge,
   WindowTitle,
   WindowTitlebar,
 } from "@/components/ui/window";
@@ -40,7 +76,16 @@ import {
   useWindowManager,
   type DesktopWindowInstance,
 } from "@/context/DesktopStateContext";
-import { resolveCursorStyle } from "@/lib/cursors";
+import {
+  canonicalizeWebUrl,
+  fetchWebPageMetadata,
+  findMatchingWebApp,
+  getCachedWebThemeColor,
+  getContrastForeground,
+  getHostnameFallbackTitle,
+  isHostnameFallbackTitle,
+  setCachedWebThemeColor,
+} from "@/data/web-apps";
 import { cn } from "@/lib/utils";
 
 /**
@@ -96,14 +141,18 @@ function WaylandAppSurface({ win }: { win: DesktopWindowInstance }) {
   }, [syncBounds]);
 
   return (
-    <div ref={containerRef} className="h-full w-full flex-1 overflow-hidden">
+    <div
+      ref={containerRef}
+      onWheel={(e) => e.stopPropagation()}
+      className="h-full w-full flex-1 overflow-hidden overscroll-none"
+    >
       <app
         app-id={win.waylandAppId ?? ""}
         frame={
           win.syncedFrame !== undefined ? String(win.syncedFrame) : undefined
         }
         resizing={windowCtx?.resizing ? "" : undefined}
-        style={{ cursor: resolveCursorStyle(win.cursor) }}
+        style={win.cursor ? { cursor: win.cursor } : undefined}
         className="block h-full w-full"
       />
     </div>
@@ -117,19 +166,26 @@ function WebViewSurface({
   win: DesktopWindowInstance;
   isCsd: boolean;
 }) {
-  const { isBrowserRuntime, settings, updateSettings } = useSettings();
+  const { isBrowserRuntime, resolvedTheme, settings, updateSettings } =
+    useSettings();
   const {
     focusWindow,
     closeWindow,
     minimizeWindow,
     toggleMaximizeWindow,
     setBrowserFavicon,
+    setBrowserTitle,
   } = useWindowManager();
   const windowCtx = useWindowContext();
   const webviewRef = React.useRef<HTMLWebViewElement | null>(null);
+  const iframeRef = React.useRef<HTMLIFrameElement | null>(null);
 
   const [address, setAddress] = React.useState(win.browserUrl ?? "");
   const [latestFavicon, setLatestFavicon] = React.useState("");
+  const [themeColor, setThemeColor] = React.useState<string | null>(
+    () =>
+      getCachedWebThemeColor(win.browserUrl, resolvedTheme === "dark") ?? null
+  );
   const [pageFailure, setPageFailure] = React.useState("");
   const [pageFailureError, setPageFailureError] = React.useState("");
   const [pageFailureCanProceed, setPageFailureCanProceed] =
@@ -166,11 +222,27 @@ function WebViewSurface({
       setPageFailureCanProceed(Boolean(view.pageFailureCanProceed));
     };
     const onGuestFocus = () => focusSelfRef.current();
+    const onThemeColor = (e: Event) => {
+      const color =
+        (
+          e as CustomEvent<{ themeColor?: string }> & {
+            themeColor?: string;
+          }
+        ).detail?.themeColor ?? (e as { themeColor?: string }).themeColor;
+      const next = color?.trim() || null;
+      setThemeColor(next);
+      setCachedWebThemeColor(
+        view.url || win.browserUrl,
+        next,
+        resolvedTheme === "dark"
+      );
+    };
 
     view.addEventListener(WEBVIEW_GUEST_FOCUS_EVENT, onGuestFocus);
     view.addEventListener(WEBVIEW_PAGE_CHANGE_EVENT, syncPage);
     view.addEventListener(WEBVIEW_FAVICON_CHANGE_EVENT, syncFavicon);
     view.addEventListener(WEBVIEW_PAGE_FAILURE_CHANGE_EVENT, syncFailure);
+    view.addEventListener("did-change-theme-color", onThemeColor);
 
     syncPage();
     syncFavicon();
@@ -181,120 +253,181 @@ function WebViewSurface({
       view.removeEventListener(WEBVIEW_PAGE_CHANGE_EVENT, syncPage);
       view.removeEventListener(WEBVIEW_FAVICON_CHANGE_EVENT, syncFavicon);
       view.removeEventListener(WEBVIEW_PAGE_FAILURE_CHANGE_EVENT, syncFailure);
+      view.removeEventListener("did-change-theme-color", onThemeColor);
     };
   }, [isBrowserRuntime, win.browserWindowId]);
 
   const currentUrl = normalizeWebUrl(address) ?? win.browserUrl ?? "";
+  const canonicalUrl = canonicalizeWebUrl(currentUrl) ?? currentUrl;
   const installedApps = settings.installedWebApps ?? [];
-  const isInstalled =
-    currentUrl !== "" && installedApps.some((a) => a.url === currentUrl);
+  const matchedInstalledApp = findMatchingWebApp(currentUrl, installedApps);
+  const isInstalled = currentUrl !== "" && Boolean(matchedInstalledApp);
+
+  const titleHandlerRef = React.useRef<(discoveredTitle: string) => void>(
+    () => {}
+  );
+  titleHandlerRef.current = (discoveredTitle: string) => {
+    const clean = discoveredTitle.trim();
+    if (!clean) return;
+    if (win.browserWindowId) {
+      setBrowserTitle(win.browserWindowId, clean);
+    }
+    if (
+      matchedInstalledApp &&
+      isHostnameFallbackTitle(matchedInstalledApp.title, matchedInstalledApp.url) &&
+      !isHostnameFallbackTitle(clean, currentUrl)
+    ) {
+      updateSettings({
+        installedWebApps: installedApps.map((app) =>
+          app.id === matchedInstalledApp.id ? { ...app, title: clean } : app
+        ),
+      });
+    }
+  };
+
+  React.useEffect(() => {
+    const cached =
+      getCachedWebThemeColor(currentUrl, resolvedTheme === "dark") ?? null;
+    setThemeColor(cached);
+    if (!isBrowserRuntime || !currentUrl || !win.browserWindowId) return;
+    if (cached !== null) {
+      // Still fetch title if needed, or update themeColor in background
+    }
+    const controller = new AbortController();
+    fetchWebPageMetadata(
+      currentUrl,
+      controller.signal,
+      resolvedTheme === "dark"
+    ).then(({ title, themeColor: fetchedThemeColor }) => {
+      if (controller.signal.aborted) return;
+      if (title) {
+        titleHandlerRef.current(title);
+      }
+      if (fetchedThemeColor) {
+        setThemeColor(fetchedThemeColor);
+      }
+    });
+    return () => controller.abort();
+  }, [isBrowserRuntime, currentUrl, win.browserWindowId, resolvedTheme]);
+
+  const handleIframeLoad = React.useCallback(() => {
+    try {
+      const doc = iframeRef.current?.contentDocument;
+      const docTitle = doc?.title?.trim();
+      if (docTitle) {
+        titleHandlerRef.current(docTitle);
+      }
+      const metaTags = doc?.querySelectorAll('meta[name="theme-color" i]');
+      if (metaTags && metaTags.length > 0) {
+        let matched: string | null = null;
+        const prefersDark = resolvedTheme === "dark";
+        for (const el of Array.from(metaTags)) {
+          const content = el.getAttribute("content")?.trim();
+          if (!content) continue;
+          const media = el.getAttribute("media")?.toLowerCase() ?? "";
+          if (!media) {
+            matched = content;
+            break;
+          }
+          if (
+            (media.includes("prefers-color-scheme: dark") && prefersDark) ||
+            (media.includes("prefers-color-scheme: light") && !prefersDark)
+          ) {
+            matched = content;
+            break;
+          }
+          if (!matched) matched = content;
+        }
+        setThemeColor(matched);
+      }
+    } catch {
+      // Cross-origin iframes restrict contentDocument access.
+    }
+  }, [resolvedTheme]);
 
   const toggleInstallApp = () => {
     if (!currentUrl) return;
     if (isInstalled) {
       updateSettings({
-        installedWebApps: installedApps.filter((a) => a.url !== currentUrl),
+        installedWebApps: installedApps.filter(
+          (a) =>
+            a.url !== currentUrl &&
+            canonicalizeWebUrl(a.url) !== canonicalUrl
+        ),
       });
       return;
     }
-    let fallbackTitle = currentUrl;
-    try {
-      fallbackTitle = new URL(currentUrl).hostname.replace(/^www\./, "");
-    } catch {
-      // keep raw URL
-    }
+    const fallbackTitle = getHostnameFallbackTitle(currentUrl) || currentUrl;
     const appTitle =
-      win.title && win.title !== "Web" ? win.title : fallbackTitle;
+      win.title && win.title !== "Web" && win.title !== "Web View"
+        ? win.title
+        : fallbackTitle;
     updateSettings({
       installedWebApps: [
         ...installedApps,
         {
-          id: `web:${currentUrl}`,
+          id: `web:${canonicalUrl}`,
           title: appTitle,
-          url: currentUrl,
+          url: canonicalUrl,
           ...(latestFavicon ? { iconUrl: latestFavicon } : {}),
         },
       ],
     });
   };
 
+  const contrastFg = getContrastForeground(themeColor);
+
   return (
-    <div className="flex h-full w-full flex-1 flex-col overflow-hidden bg-mac-content">
+    <div className="flex h-full w-full flex-1 flex-col overflow-hidden bg-adw-content">
       <div
         data-window-drag-region={isCsd ? "" : undefined}
-        onDoubleClick={(e) => {
-          if (!isCsd) return;
-          if ((e.target as HTMLElement).closest("button")) return;
-          toggleMaximizeWindow(win.id);
-        }}
+        style={
+          themeColor
+            ? {
+                backgroundColor: themeColor,
+                color: contrastFg ?? undefined,
+                borderBottomColor: "rgba(128,128,128,0.22)",
+              }
+            : undefined
+        }
         className={cn(
-          "relative flex shrink-0 items-center gap-2 border-b border-mac-separator bg-mac-titlebar px-3 select-none",
-          isCsd ? "h-[46px] rounded-t-[inherit]" : "h-9"
+          "relative flex shrink-0 items-center gap-2 border-b border-adw-separator bg-adw-titlebar px-2.5 transition-colors duration-200 select-none",
+          isCsd ? "h-8 rounded-t-[inherit]" : "h-7"
         )}
       >
         <div className="flex shrink-0 items-center" data-window-no-drag>
-          <DropdownMenu>
-            <DropdownMenuTrigger
-              aria-label="App menu"
-              className="flex size-7 items-center justify-center rounded-md text-mac-label transition-colors hover:bg-black/8 dark:hover:bg-white/10"
-            >
-              <MenuIcon className="size-4" />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start">
+          <WindowMenuButton
+            windowId={win.id}
+            appId={win.appId}
+            iconUrl={win.iconUrl}
+            iconName={win.iconName}
+            gradient={win.gradient}
+            isWebApp
+            extraItems={
               <DropdownMenuItem
                 disabled={!currentUrl}
                 onClick={toggleInstallApp}
               >
-                {isInstalled ? (
-                  <>
-                    <Trash2Icon className="size-3.5" />
-                    Remove App
-                  </>
-                ) : (
-                  <>
-                    <DownloadIcon className="size-3.5" />
-                    Install App
-                  </>
-                )}
+                {isInstalled ? "Remove App" : "Install App"}
               </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+            }
+          />
         </div>
 
         <div className="pointer-events-none flex min-w-0 flex-1 items-center justify-center px-4">
-          <span className="truncate text-[13px] font-semibold text-mac-label">
+          <span
+            className={cn(
+              "truncate text-[13px] font-semibold",
+              !contrastFg && "text-adw-label"
+            )}
+          >
             {win.title}
           </span>
         </div>
 
-        <div className="flex shrink-0 items-center gap-1.5" data-window-no-drag>
+        <div className="flex shrink-0 items-center gap-1" data-window-no-drag>
           {isCsd ? (
-            <>
-              <button
-                type="button"
-                aria-label="Minimize"
-                onClick={() => minimizeWindow(win.id)}
-                className="flex size-6 items-center justify-center rounded-full bg-black/8 text-mac-label transition-colors hover:bg-black/14 dark:bg-white/10 dark:hover:bg-white/16"
-              >
-                <MinusIcon className="size-3" strokeWidth={2.25} />
-              </button>
-              <button
-                type="button"
-                aria-label="Maximize"
-                onClick={() => toggleMaximizeWindow(win.id)}
-                className="flex size-6 items-center justify-center rounded-full bg-black/8 text-mac-label transition-colors hover:bg-black/14 dark:bg-white/10 dark:hover:bg-white/16"
-              >
-                <Maximize2Icon className="size-3" strokeWidth={2.25} />
-              </button>
-              <button
-                type="button"
-                aria-label="Close"
-                onClick={() => closeWindow(win.id)}
-                className="flex size-6 items-center justify-center rounded-full bg-black/8 text-mac-label transition-colors hover:bg-black/14 dark:bg-white/10 dark:hover:bg-white/16"
-              >
-                <XIcon className="size-3.5" strokeWidth={2.25} />
-              </button>
-            </>
+            <WindowControls className="[&_button]:text-current [&_button:hover]:bg-black/10 dark:[&_button:hover]:bg-white/12" />
           ) : (
             <div className="w-7" />
           )}
@@ -304,8 +437,10 @@ function WebViewSurface({
       <div className="relative min-h-0 flex-1 overflow-hidden">
         {isBrowserRuntime ? (
           <iframe
+            ref={iframeRef}
             src={normalizeWebUrl(address) ?? "about:blank"}
             title={win.title}
+            onLoad={handleIframeLoad}
             className="h-full w-full border-0 bg-white"
           />
         ) : (
@@ -318,10 +453,10 @@ function WebViewSurface({
         )}
 
         {pageFailure && !isBrowserRuntime && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-mac-content p-6 text-center text-mac-label">
-            <GlobeIcon className="size-7 text-mac-label-secondary" />
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-adw-content p-6 text-center text-adw-label">
+            <GlobeIcon className="size-7 text-adw-label-secondary" />
             <div className="text-sm font-semibold">Unable to load page</div>
-            <div className="text-xs text-mac-label-secondary">
+            <div className="text-xs text-adw-label-secondary">
               {pageFailureError || pageFailure}
             </div>
             <div className="mt-2 flex gap-2">
@@ -368,29 +503,66 @@ const WindowBody = React.memo(
 
     if (win.builtinComponent === "settings") {
       return (
-        <SettingsApp
-          initialPane={win.payload}
-          isCsd={isCsd}
-          windowId={win.id}
-        />
+        <React.Suspense fallback={null}>
+          <SettingsApp
+            initialPane={win.payload}
+            isCsd={isCsd}
+            windowId={win.id}
+          />
+        </React.Suspense>
       );
     }
 
     if (win.builtinComponent === "console") {
       return (
-        <ConsoleApp
-          initialModule={win.payload}
-          isCsd={isCsd}
-          windowId={win.id}
-        />
+        <React.Suspense fallback={null}>
+          <ConsoleApp
+            initialModule={win.payload}
+            isCsd={isCsd}
+            windowId={win.id}
+          />
+        </React.Suspense>
+      );
+    }
+
+    if (win.builtinComponent === "files") {
+      return (
+        <React.Suspense fallback={null}>
+          <FilesApp
+            initialPath={win.payload}
+            isCsd={isCsd}
+            windowId={win.id}
+          />
+        </React.Suspense>
+      );
+    }
+    if (win.builtinComponent === "text-editor") {
+      return (
+        <React.Suspense fallback={null}>
+          <TextEditorApp initialPath={win.payload} windowId={win.id} />
+        </React.Suspense>
+      );
+    }
+    if (win.builtinComponent === "terminal") {
+      return (
+        <React.Suspense fallback={null}>
+          <TerminalApp initialPath={win.payload} windowId={win.id} />
+        </React.Suspense>
+      );
+    }
+    if (win.builtinComponent === "app-store") {
+      return (
+        <React.Suspense fallback={null}>
+          <AppStoreApp isCsd={isCsd} windowId={win.id} />
+        </React.Suspense>
       );
     }
 
     // In Browser Dev Mode, simulated non-Settings Wayland windows render a minimal surface card
     return (
-      <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-mac-content p-6 text-center text-mac-label">
+      <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-adw-content p-6 text-center text-adw-label">
         <div className="text-sm font-semibold">{win.title}</div>
-        <div className="text-xs text-mac-label-secondary">
+        <div className="text-xs text-adw-label-secondary">
           Simulated Wayland surface (`{win.waylandAppId ?? win.appId}`) ·
           Renders native Linux client under Domicile
         </div>
@@ -417,13 +589,28 @@ const WindowBody = React.memo(
     prev.win.minimized === next.win.minimized
 );
 
+const DOMICILE_RESIZE_EDGE_MAP: Record<DomicileResizeEdge, WindowResizeEdge> = {
+  [DomicileResizeEdge.Top]: "n",
+  [DomicileResizeEdge.Bottom]: "s",
+  [DomicileResizeEdge.Left]: "w",
+  [DomicileResizeEdge.Right]: "e",
+  [DomicileResizeEdge.TopLeft]: "nw",
+  [DomicileResizeEdge.TopRight]: "ne",
+  [DomicileResizeEdge.BottomLeft]: "sw",
+  [DomicileResizeEdge.BottomRight]: "se",
+};
+
 export function WindowManager() {
+  const domicile = useDomicile();
   const { isBrowserRuntime, settings } = useSettings();
   const {
     workspaceWindows,
     waylandPopups,
     focusedWindowId,
     altTabOpen,
+    overviewOpen,
+    launcherOpen,
+    controlPanelOpen,
     focusWindow,
     closeWindow,
     minimizeWindow,
@@ -431,7 +618,65 @@ export function WindowManager() {
     tileWindow,
     updateWindowGeometry,
     getDockRef,
+    subscribeClientWindowRequest,
   } = useWindowManager();
+
+  const lastPointerRef = React.useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const windowHandlesRef = React.useRef<Map<string, WindowHandle>>(new Map());
+  const windowElementsRef = React.useRef<Map<string, HTMLDivElement>>(
+    new Map()
+  );
+  const lastDomFocusedIdRef = React.useRef<string | null>(null);
+  const workspaceWindowsRef = React.useRef(workspaceWindows);
+  workspaceWindowsRef.current = workspaceWindows;
+  const focusWindowRef = React.useRef(focusWindow);
+  focusWindowRef.current = focusWindow;
+
+  React.useEffect(() => {
+    const trackPointer = (e: PointerEvent) => {
+      lastPointerRef.current = { x: e.clientX, y: e.clientY };
+    };
+    window.addEventListener("pointerdown", trackPointer, {
+      capture: true,
+      passive: true,
+    });
+    window.addEventListener("pointermove", trackPointer, {
+      capture: true,
+      passive: true,
+    });
+    return () => {
+      window.removeEventListener("pointerdown", trackPointer, {
+        capture: true,
+      });
+      window.removeEventListener("pointermove", trackPointer, {
+        capture: true,
+      });
+    };
+  }, []);
+
+  React.useEffect(() => {
+    return subscribeClientWindowRequest((req) => {
+      const targetWin = workspaceWindowsRef.current.find(
+        (w) => w.waylandAppId === req.appId
+      );
+      const handle = targetWin
+        ? windowHandlesRef.current.get(targetWin.id)
+        : undefined;
+      if (!targetWin || !handle) return;
+      focusWindowRef.current(targetWin.id);
+      const { x, y } = lastPointerRef.current;
+      // Note: some domicile .deb builds emit kind 3 (Unfullscreen) on headerbar
+      // drag instead of kind 5 (Move); handle both until upstream .deb aligns.
+      if (
+        req.kind === WindowRequestKind.Move ||
+        req.kind === WindowRequestKind.Unfullscreen
+      ) {
+        handle.startMove(x, y);
+      } else if (req.kind === WindowRequestKind.Resize) {
+        handle.startResize(DOMICILE_RESIZE_EDGE_MAP[req.edges], x, y);
+      }
+    });
+  }, [subscribeClientWindowRequest]);
 
   const [modifierGrabActive, setModifierGrabActive] = React.useState(false);
   const [snapPreview, setSnapPreview] = React.useState<
@@ -466,10 +711,66 @@ export function WindowManager() {
     };
   }, []);
 
-  const bottomDockClearance = settings.dockAutoHide ? 8 : settings.dockSize + 26;
+  React.useEffect(() => {
+    if (launcherOpen || controlPanelOpen || altTabOpen || overviewOpen) {
+      // Allow re-focusing the active window once shell overlays close.
+      lastDomFocusedIdRef.current = null;
+      return;
+    }
+    if (!focusedWindowId) {
+      lastDomFocusedIdRef.current = null;
+      return;
+    }
+    if (lastDomFocusedIdRef.current === focusedWindowId) return;
+
+    const targetWin = workspaceWindowsRef.current.find(
+      (w) => w.id === focusedWindowId && !w.minimized
+    );
+    if (!targetWin) return;
+    lastDomFocusedIdRef.current = focusedWindowId;
+
+    const frame = requestAnimationFrame(() => {
+      if (targetWin.waylandAppId && !isBrowserRuntime) {
+        if (domicile.windows.focused !== targetWin.waylandAppId) {
+          domicile.windows.focus(targetWin.waylandAppId);
+        }
+        return;
+      }
+
+      if (domicile.windows.focused !== undefined) {
+        domicile.windows.focusShell();
+      }
+      const el = windowElementsRef.current.get(targetWin.id);
+      if (!el || el.contains(document.activeElement)) return;
+      const preferred = el.querySelector<HTMLElement>(
+        "webview, iframe, [autofocus], [data-window-autofocus]"
+      );
+      (preferred ?? el).focus({ preventScroll: true });
+    });
+
+    return () => cancelAnimationFrame(frame);
+  }, [
+    altTabOpen,
+    launcherOpen,
+    controlPanelOpen,
+    domicile.windows,
+    overviewOpen,
+    focusedWindowId,
+    isBrowserRuntime,
+    workspaceWindows.length,
+  ]);
+
+  const dockPosition = settings.dockPosition ?? "bottom";
+  const dockEdgeClearance = settings.dockAutoHide ? 8 : settings.dockSize + 24;
+  const bottomDockClearance = dockPosition === "bottom" ? dockEdgeClearance : 8;
+  const leftDockClearance = dockPosition === "left" ? dockEdgeClearance : 0;
+  const rightDockClearance = dockPosition === "right" ? dockEdgeClearance : 0;
 
   return (
     <div className="relative isolate z-10 min-h-0 flex-1 overflow-hidden">
+      {/* Transparent Desktop Icons App (below windows, above wallpaper) */}
+      {!overviewOpen && <DesktopIconsApp bottomInset={bottomDockClearance} />}
+
       {/* Edge Snapping Drop Zone Preview */}
       {snapPreview && (
         <div
@@ -478,7 +779,7 @@ export function WindowManager() {
             bottom: `${bottomDockClearance + 6}px`,
           }}
           className={cn(
-            "pointer-events-none absolute top-1.5 z-[5] rounded-[14px] border-2 border-mac-accent/70 bg-mac-accent/18 backdrop-blur-sm transition-all duration-150",
+            "pointer-events-none absolute top-1.5 z-[5] rounded-[14px] border-2 border-adw-accent/70 bg-adw-accent/18 backdrop-blur-sm transition-all duration-150",
             snapPreview === "left" && "left-2 right-1/2 mr-1",
             snapPreview === "right" && "right-2 left-1/2 ml-1",
             snapPreview === "full" && "inset-x-2"
@@ -496,6 +797,21 @@ export function WindowManager() {
         return (
           <Window
             key={win.id}
+            ref={(node) => {
+              if (node) {
+                windowElementsRef.current.set(win.id, node);
+              } else {
+                windowElementsRef.current.delete(win.id);
+              }
+            }}
+            tabIndex={-1}
+            windowRef={(handle) => {
+              if (handle) {
+                windowHandlesRef.current.set(win.id, handle);
+              } else {
+                windowHandlesRef.current.delete(win.id);
+              }
+            }}
             position={win.position}
             onPositionChange={(pos) =>
               updateWindowGeometry(win.id, { position: pos })
@@ -503,24 +819,28 @@ export function WindowManager() {
             size={win.size}
             onSizeChange={(sz) => updateWindowGeometry(win.id, { size: sz })}
             minSize={win.minSize}
+            maxSize={win.maxSize}
             draggable
             resizable
             bounds="parent"
             inactive={!isFocused}
             minimized={win.minimized}
             minimizeTo={getDockRef(win.appId)}
+            minimizeEffect="scale"
             maximized={win.maximized}
             maximizeInsets={{
               top: 0,
-              right: 0,
+              right: rightDockClearance,
               bottom: bottomDockClearance,
-              left: 0,
+              left: leftDockClearance,
             }}
             onSnapPreviewChange={setSnapPreview}
             onSnapCommit={(zone) => tileWindow(win.id, zone)}
             onClose={() => closeWindow(win.id)}
             onMinimize={() => minimizeWindow(win.id)}
             onZoom={() => toggleMaximizeWindow(win.id)}
+            onContextMenu={(e) => e.stopPropagation()}
+            onWheel={(e) => e.stopPropagation()}
             onPointerDown={() => {
               if (!isFocused) {
                 focusWindow(win.id);
@@ -533,8 +853,9 @@ export function WindowManager() {
               zIndex: win.zIndex,
             }}
             className={cn(
-              "contain-[layout_style]",
-              isWaylandSurface && "bg-transparent"
+              "contain-[layout_style] outline-none",
+              isWaylandSurface && "bg-transparent",
+              overviewOpen && "pointer-events-none opacity-0"
             )}
           >
             <WindowMain
@@ -546,27 +867,23 @@ export function WindowManager() {
               {/* Server-Side Titlebar (SSD) */}
               {!isCsd && (
                 <WindowTitlebar className="justify-between">
-                  <WindowControls />
+                  <div className="flex shrink-0 items-center" data-window-no-drag>
+                    <WindowMenuButton windowId={win.id} />
+                  </div>
                   <WindowTitle className="flex items-center justify-center gap-1.5">
                     <span className="truncate">{win.title}</span>
                   </WindowTitle>
+                  <div className="flex shrink-0 items-center" data-window-no-drag>
+                    <WindowControls />
+                  </div>
                 </WindowTitlebar>
-              )}
-
-              {/* Single-Click Adwaita HeaderBar Drag Strip for CSD Wayland Windows */}
-              {isCsd && win.waylandAppId && !win.builtinComponent && (
-                <div
-                  data-window-drag-region
-                  onDoubleClick={() => toggleMaximizeWindow(win.id)}
-                  className="absolute inset-x-24 top-0 z-30 h-[46px] cursor-grab active:cursor-grabbing"
-                />
               )}
 
               {/* Silent Alt / Super + Drag Full-Window Grab Overlay */}
               {modifierGrabActive && !altTabOpen && (
                 <div
                   data-window-drag-region
-                  className="absolute inset-0 z-40 cursor-grab active:cursor-grabbing"
+                  className="absolute inset-0 z-40"
                 />
               )}
 
@@ -595,7 +912,7 @@ export function WindowManager() {
           <app
             app-id={popup.appId}
             frame={String(popup.frame)}
-            style={{ cursor: resolveCursorStyle(popup.cursor) }}
+            style={popup.cursor ? { cursor: popup.cursor } : undefined}
             className="block h-full w-full"
           />
         </div>

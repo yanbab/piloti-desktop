@@ -11,6 +11,7 @@ import {
   GroupedFormSection,
   GroupedFormSectionTitle,
 } from "@/components/ui/grouped-form";
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -18,56 +19,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
-import { useSettings, useWindowManager } from "@/context/DesktopStateContext";
+import { useSettings } from "@/context/DesktopStateContext";
 import { ACCENT_COLORS } from "@/data/catalog";
 import { cn } from "@/lib/utils";
 
 export function AppearancePane() {
   const { settings, updateSettings } = useSettings();
-  const { launchApp } = useWindowManager();
 
   return (
     <GroupedForm>
       <GroupedFormSection>
-        <GroupedFormSectionTitle>Theme & Appearance</GroupedFormSectionTitle>
+        <GroupedFormSectionTitle>Appearance</GroupedFormSectionTitle>
         <GroupedFormGroup>
-          <GroupedFormRow>
-            <GroupedFormRowLabel>
-              <GroupedFormRowTitle>Desktop Theme</GroupedFormRowTitle>
-              <GroupedFormRowDescription>
-                Switch between Apple Cupertino and GNOME Adwaita design systems
-              </GroupedFormRowDescription>
-            </GroupedFormRowLabel>
-            <GroupedFormRowControl>
-              <div className="inline-flex items-center gap-1 rounded-[9px] bg-black/8 p-1 dark:bg-white/8">
-                {(
-                  [
-                    { id: "cupertino", label: "Cupertino" },
-                    { id: "adwaita", label: "Adwaita" },
-                  ] as const
-                ).map((theme) => {
-                  const active = settings.uiTheme === theme.id;
-                  return (
-                    <button
-                      key={theme.id}
-                      type="button"
-                      onClick={() => updateSettings({ uiTheme: theme.id })}
-                      className={cn(
-                        "rounded-[6px] px-3 py-1 text-[13px] font-medium transition-all",
-                        active
-                          ? "bg-white text-black shadow-xs dark:bg-white/18 dark:text-white"
-                          : "text-mac-label-secondary hover:text-mac-label"
-                      )}
-                    >
-                      {theme.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </GroupedFormRowControl>
-          </GroupedFormRow>
-
           <GroupedFormRow>
             <GroupedFormRowLabel>
               <GroupedFormRowTitle>Color Scheme</GroupedFormRowTitle>
@@ -106,7 +69,7 @@ export function AppearancePane() {
                         "flex items-center gap-1.5 rounded-[6px] px-2.5 py-1 text-[13px] font-medium transition-all",
                         active
                           ? "bg-white text-black shadow-xs dark:bg-white/18 dark:text-white"
-                          : "text-mac-label-secondary hover:text-mac-label"
+                          : "text-adw-label-secondary hover:text-adw-label"
                       )}
                     >
                       {mode.icon}
@@ -120,39 +83,23 @@ export function AppearancePane() {
 
           <GroupedFormRow className="py-3.5">
             <GroupedFormRowLabel>
-              <GroupedFormRowTitle>
-                {settings.uiTheme === "adwaita"
-                  ? "Adwaita Accent Color"
-                  : "Accent Color"}
-              </GroupedFormRowTitle>
+              <GroupedFormRowTitle>Adwaita Accent Color</GroupedFormRowTitle>
               <GroupedFormRowDescription>
-                {settings.uiTheme === "adwaita"
-                  ? "Official GNOME 47 / Libadwaita 1.6 AdwAccentColor palette"
-                  : "Highlights buttons, menus, selection rings, and active controls"}
+                Official GNOME 47 / Libadwaita 1.6 AdwAccentColor palette
               </GroupedFormRowDescription>
             </GroupedFormRowLabel>
             <GroupedFormRowControl>
               <div className="flex max-w-[280px] flex-wrap items-center justify-end gap-2">
-                {ACCENT_COLORS.filter((c) =>
-                  settings.uiTheme === "adwaita" ? c.inAdwaita : true
-                ).map((color) => {
+                {ACCENT_COLORS.map((color) => {
                   const selected = settings.accentColor === color.id;
-                  const swatchHex =
-                    settings.uiTheme === "adwaita"
-                      ? color.adwaitaHex
-                      : color.hex;
-                  const swatchLabel =
-                    settings.uiTheme === "adwaita"
-                      ? color.adwaitaLabel ?? color.label
-                      : color.label;
                   return (
                     <button
                       key={color.id}
                       type="button"
-                      title={swatchLabel}
-                      aria-label={swatchLabel}
+                      title={color.label}
+                      aria-label={color.label}
                       onClick={() => updateSettings({ accentColor: color.id })}
-                      style={{ backgroundColor: swatchHex }}
+                      style={{ backgroundColor: color.hex }}
                       className={cn(
                         "flex size-5 items-center justify-center rounded-full shadow-inner transition-transform hover:scale-110",
                         selected &&
@@ -169,23 +116,6 @@ export function AppearancePane() {
                   );
                 })}
               </div>
-            </GroupedFormRowControl>
-          </GroupedFormRow>
-
-          <GroupedFormRow>
-            <GroupedFormRowLabel>
-              <GroupedFormRowTitle>Liquid Glass Vibrancy</GroupedFormRowTitle>
-              <GroupedFormRowDescription>
-                Allow wallpaper tinting in windows, Dock, and menus
-              </GroupedFormRowDescription>
-            </GroupedFormRowLabel>
-            <GroupedFormRowControl>
-              <Switch
-                checked={settings.windowTranslucency}
-                onCheckedChange={(checked) =>
-                  updateSettings({ windowTranslucency: Boolean(checked) })
-                }
-              />
             </GroupedFormRowControl>
           </GroupedFormRow>
         </GroupedFormGroup>
@@ -229,24 +159,49 @@ export function AppearancePane() {
               </Select>
             </GroupedFormRowControl>
           </GroupedFormRow>
+        </GroupedFormGroup>
+      </GroupedFormSection>
 
+      <GroupedFormSection>
+        <GroupedFormSectionTitle>Desktop</GroupedFormSectionTitle>
+        <GroupedFormGroup>
           <GroupedFormRow>
             <GroupedFormRowLabel>
-              <GroupedFormRowTitle>Launch GNOME Files (Nautilus)</GroupedFormRowTitle>
+              <GroupedFormRowTitle>Show Desktop Icons</GroupedFormRowTitle>
               <GroupedFormRowDescription>
-                Opens native `nautilus` with Libadwaita `AdwHeaderBar`
+                Display files, folders, and shortcuts from your Desktop folder
               </GroupedFormRowDescription>
             </GroupedFormRowLabel>
             <GroupedFormRowControl>
-              <Button
-                size="sm"
-                variant="secondary"
-                onClick={() => launchApp("nautilus", { forceNew: true })}
-              >
-                Open Nautilus
-              </Button>
+              <Switch
+                checked={settings.desktopIconsEnabled}
+                onCheckedChange={(checked) =>
+                  updateSettings({ desktopIconsEnabled: Boolean(checked) })
+                }
+              />
             </GroupedFormRowControl>
           </GroupedFormRow>
+
+          {settings.desktopIconsEnabled &&
+            Object.keys(settings.desktopIconPositions).length > 0 && (
+              <GroupedFormRow>
+                <GroupedFormRowLabel>
+                  <GroupedFormRowTitle>Reset Icon Layout</GroupedFormRowTitle>
+                  <GroupedFormRowDescription>
+                    Arrange desktop icons back into default column order
+                  </GroupedFormRowDescription>
+                </GroupedFormRowLabel>
+                <GroupedFormRowControl>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => updateSettings({ desktopIconPositions: {} })}
+                  >
+                    Reset Positions
+                  </Button>
+                </GroupedFormRowControl>
+              </GroupedFormRow>
+            )}
         </GroupedFormGroup>
       </GroupedFormSection>
     </GroupedForm>
