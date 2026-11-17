@@ -38,7 +38,11 @@ const Overview = React.lazy(() =>
     default: m.Overview,
   }))
 );
-import { PortalDialogs } from "./PortalDialogs";
+const PortalDialogs = React.lazy(() =>
+  import("./PortalDialogs").then((m) => ({
+    default: m.PortalDialogs,
+  }))
+);
 const PowerActionDialog = React.lazy(() =>
   import("./PowerActionDialog").then((m) => ({
     default: m.PowerActionDialog,
@@ -112,82 +116,34 @@ function DesktopSurface() {
           <WindowManager />
         </ContextMenuTrigger>
         <ContextMenuContent className="w-max min-w-60">
-          <ContextMenuItem onClick={() => setLauncherOpen(true)}>
-            {_("Launcher")}
-            <ContextMenuShortcut>Alt+Space</ContextMenuShortcut>
-          </ContextMenuItem>
-          <ContextMenuItem onClick={() => openAltTab()}>
-            {_("Switch Windows")}
-            <ContextMenuShortcut>Alt+Tab</ContextMenuShortcut>
-          </ContextMenuItem>
-          <ContextMenuItem onClick={() => toggleOverview()}>
-            {_("Overview")}
-            <ContextMenuShortcut>Meta+↑</ContextMenuShortcut>
-          </ContextMenuItem>
-          <ContextMenuItem onClick={() => void takeScreenshot()}>
-            {_("Take Screenshot")}
-            <ContextMenuShortcut>Print</ContextMenuShortcut>
-          </ContextMenuItem>
-          {!isBrowserRuntime && (
-            <>
-              <ContextMenuSeparator />
-              <ContextMenuItem onClick={() => launchApp("terminal", { forceNew: true })}>
-                {_("Launch Terminal")}
-                <ContextMenuShortcut>Meta+↵</ContextMenuShortcut>
-              </ContextMenuItem>
-            </>
-          )}
-          <ContextMenuSeparator />
-          {settings.desktopIconsEnabled && (
-            <>
-              <ContextMenuItem
-                onClick={() =>
-                  window.dispatchEvent(
-                    new CustomEvent("piloti:desktop-new-folder")
-                  )
-                }
-              >
-                {_("New Folder")}
-              </ContextMenuItem>
-              <ContextMenuItem
-                onClick={() =>
-                  window.dispatchEvent(
-                    new CustomEvent("piloti:desktop-new-file")
-                  )
-                }
-              >
-                {_("New Text File")}
-              </ContextMenuItem>
-            </>
-          )}
           <ContextMenuItem
             onClick={() =>
-              updateSettings({
-                desktopIconsEnabled: !settings.desktopIconsEnabled,
-              })
+              window.dispatchEvent(
+                new CustomEvent("piloti:desktop-new-folder")
+              )
             }
           >
-            {settings.desktopIconsEnabled
-              ? _("Hide Desktop Icons")
-              : _("Show Desktop Icons")}
+            {_("New Folder")}
+          </ContextMenuItem>
+          <ContextMenuItem
+            onClick={() =>
+              window.dispatchEvent(
+                new CustomEvent("piloti:desktop-new-file")
+              )
+            }
+          >
+            {_("New Text File")}
+          </ContextMenuItem>
+          <ContextMenuSeparator />
+          <ContextMenuItem
+            onClick={() => updateSettings({ desktopIconPositions: {} })}
+          >
+            {_("Align Icons")}
           </ContextMenuItem>
           <ContextMenuItem
             onClick={() => launchApp("settings", { payload: "wallpaper" })}
           >
             {_("Change Wallpaper")}
-          </ContextMenuItem>
-          <ContextMenuItem
-            onClick={() => launchApp("settings", { payload: "appearance" })}
-          >
-            {_("Desktop Settings")}
-            <ContextMenuShortcut>Alt+,</ContextMenuShortcut>
-          </ContextMenuItem>
-          <ContextMenuItem onClick={() => openGnomeSettings()}>
-            {_("System Settings")}
-          </ContextMenuItem>
-          <ContextMenuSeparator />
-          <ContextMenuItem onClick={() => lockSession()}>
-            {_("Lock Screen")}
           </ContextMenuItem>
         </ContextMenuContent>
       </ContextMenu>
@@ -213,7 +169,9 @@ function DesktopSurface() {
       )}
 
       {/* XDG Desktop Portal Dialogs (Screenshot, ScreenCast, Access, PickColor) */}
-      <PortalDialogs />
+      <React.Suspense fallback={null}>
+        <PortalDialogs />
+      </React.Suspense>
 
       {/* About Computer Dialog */}
       {aboutOpen && (

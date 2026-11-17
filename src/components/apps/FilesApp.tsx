@@ -7,6 +7,8 @@ import {
   FolderIcon,
   HomeIcon,
   ImageIcon,
+  LayoutGridIcon,
+  ListIcon,
   Maximize2Icon,
   MinusIcon,
   MonitorIcon,
@@ -19,7 +21,8 @@ import {
 } from "lucide-react";
 import { IconGrid } from "@/components/apps/DesktopIconsApp";
 import { WindowMenuButton } from "@/components/shell/WindowMenuButton";
-import { WindowControls } from "@/components/ui/window";
+import { WindowControls, WindowTitlebar } from "@/components/ui/window";
+import { useSidebarKeyboardNav } from "@/hooks/use-sidebar-keyboard-nav";
 import {
   FileItemContextMenu,
   type FileItemContextMenuState,
@@ -149,12 +152,20 @@ export function FilesApp({
 }) {
   const { getAppIconUrl, ensureWaylandIcons } = useApps();
   const {
+    focusedWindowId,
     closeWindow,
     launchApp,
     minimizeWindow,
     openWebUrl,
     toggleMaximizeWindow,
   } = useWindowManager();
+
+  const [viewMode, setViewMode] = React.useState<"grid" | "list">("grid");
+  const [editingLocation, setEditingLocation] = React.useState(false);
+  const [draftLocation, setDraftLocation] = React.useState("");
+  const locationInputRef = React.useRef<HTMLInputElement | null>(null);
+  const sidebarRef = React.useRef<HTMLElement | null>(null);
+  const mainViewRef = React.useRef<HTMLDivElement | null>(null);
 
   const [currentPath, setCurrentPath] = React.useState<string>(() => {
     if (!initialPath) return WEB_VFS_HOME;
@@ -182,6 +193,44 @@ export function FilesApp({
   const reloadDir = React.useCallback(() => {
     setVfsEntries(listVfsDir(currentPath));
   }, [currentPath]);
+
+  React.useEffect(() => {
+    if (!windowId || focusedWindowId !== windowId) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && !e.altKey && e.key.toLowerCase() === "l") {
+        e.preventDefault();
+        setDraftLocation(currentPath);
+        setEditingLocation(true);
+      }
+    };
+    window.addEventListener("keydown", onKeyDown, true);
+    return () => window.removeEventListener("keydown", onKeyDown, true);
+  }, [focusedWindowId, windowId, currentPath]);
+
+  React.useEffect(() => {
+    if (!editingLocation) return;
+    const frame = requestAnimationFrame(() => {
+      locationInputRef.current?.focus();
+      locationInputRef.current?.select();
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [editingLocation]);
+
+  const submitLocationEdit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const raw = draftLocation.trim();
+    if (raw) {
+      const target = raw.startsWith("~")
+        ? `${WEB_VFS_HOME}${raw.slice(1)}`
+        : normalizeVfsPath(raw);
+      const entry = getVfsEntry(target);
+      if (entry?.kind === "directory") {
+        setCurrentPath(entry.path);
+        setSelectedIds([]);
+      }
+    }
+    setEditingLocation(false);
+  };
 
   React.useEffect(() => {
     reloadDir();
@@ -230,6 +279,22 @@ export function FilesApp({
     !isTrashView &&
     currentPath !== WEB_VFS_HOME &&
     currentPath.startsWith(`${WEB_VFS_HOME}/`);
+
+  const {
+    highlightedId: highlightedPlace,
+    onSidebarKeyDown,
+    onSidebarKeyUp,
+    onContentKeyDown,
+  } = useSidebarKeyboardNav({
+    itemIds: XDG_PLACES.map((p) => p.path),
+    activeId: currentPath,
+    onActivate: (path) => {
+      setCurrentPath(path);
+      setSelectedIds([]);
+    },
+    sidebarRef,
+    contentRef: mainViewRef,
+  });
 
   const handleGoUp = () => {
     if (!canGoUp) return;
@@ -370,14 +435,15 @@ export function FilesApp({
   return (
     <div className="flex h-full w-full flex-col overflow-hidden bg-adw-window text-adw-label select-none">
       {/* Full-width movable CSD Header Bar */}
-      <div
+      <WindowTitlebar
         data-window-drag-region={isCsd ? "" : undefined}
         className={cn(
-          "relative flex shrink-0 items-center justify-between gap-2 border-b border-adw-separator bg-adw-titlebar px-3 select-none",
-          isCsd ? "h-10 rounded-t-[inherit]" : "h-10"
+          "border-b border-adw-separator bg-adw-titlebar",
+          !isCsd && "rounded-t-none"
         )}
       >
         <div className="flex min-w-0 items-center gap-1.5" data-window-no-drag>
+          {isCsd && windowId && <WindowControls side="left" />}
           <WindowMenuButton
             windowId={windowId}
             appId="nautilus"
@@ -394,12 +460,53 @@ export function FilesApp({
             <ArrowLeftIcon className="size-4" />
           </button>
           <FolderIcon className="size-4 shrink-0 text-adw-label-secondary" />
-          <span className="truncate text-[13.5px] font-semibold">
-            {_(currentTitle)}
-          </span>
+          {editingLocation ? (
+            <form onSubmit={submitLocationEdit} className="min-w-0 flex-1">
+              <input
+                ref={locationInputRef}
+                type="text"
+                value={draftLocation}
+                onChange={(e) => setDraftLocation(e.target.value)}
+                onBlur={() => setEditingLocation(false)}
+                onKeyDown={(e) => {
+                  if (e.key === "Escape") {
+                    e.preventDefault();
+                    setEditingLocation(false);
+                  }
+                }}
+                aria-label="Folder path"
+                className="h-7 w-64 max-w-full rounded-md border border-adw-accent/70 bg-black/8 px-2 font-mono text-[12px] text-adw-label outline-none dark:bg-white/12"
+              />
+            </form>
+          ) : (
+            <button
+              type="button"
+              title="Click or press Ctrl+L to edit location"
+              onClick={() => {
+                setDraftLocation(currentPath);
+                setEditingLocation(true);
+              }}
+              className="truncate rounded px-1.5 py-0.5 text-[13.5px] font-semibold hover:bg-black/6 dark:hover:bg-white/8"
+            >
+              {_(currentTitle)}
+            </button>
+          )}
         </div>
 
         <div className="flex shrink-0 items-center gap-1" data-window-no-drag>
+          <button
+            type="button"
+            aria-label={viewMode === "grid" ? "List view" : "Grid view"}
+            title={viewMode === "grid" ? "List view" : "Grid view"}
+            onClick={() => setViewMode((m) => (m === "grid" ? "list" : "grid"))}
+            className="flex size-7 items-center justify-center rounded-md text-adw-label-secondary transition-colors hover:bg-black/8 hover:text-adw-label dark:hover:bg-white/10"
+          >
+            {viewMode === "grid" ? (
+              <ListIcon className="size-4" />
+            ) : (
+              <LayoutGridIcon className="size-4" />
+            )}
+          </button>
           {isTrashView && (
             <Button
               size="sm"
@@ -441,22 +548,28 @@ export function FilesApp({
           {/* CSD Window Controls */}
           {isCsd && windowId && (
             <div className="ml-1 flex items-center" data-window-no-drag>
-              <WindowControls />
+              <WindowControls side="right" />
             </div>
           )}
         </div>
-      </div>
+      </WindowTitlebar>
 
       {/* Body: Sidebar + Main Icon View */}
       <div className="flex min-h-0 flex-1 overflow-hidden">
         {/* Standard Adwaita XDG Places Sidebar */}
-        <aside className="flex w-44 shrink-0 flex-col gap-0.5 overflow-y-auto border-r border-adw-separator bg-adw-sidebar p-2 sm:w-48">
+        <aside
+          ref={sidebarRef}
+          onKeyDown={onSidebarKeyDown}
+          onKeyUp={onSidebarKeyUp}
+          className="flex w-44 shrink-0 flex-col gap-0.5 overflow-y-auto border-r border-adw-separator bg-adw-sidebar p-2 sm:w-48"
+        >
           {XDG_PLACES.map((place) => {
-            const selected = currentPath === place.path;
+            const selected = highlightedPlace === place.path;
             return (
               <button
                 key={place.id}
                 type="button"
+                data-sidebar-item={place.path}
                 data-vfs-drop-path={place.path}
                 onClick={() => {
                   setCurrentPath(place.path);
@@ -480,6 +593,8 @@ export function FilesApp({
 
         {/* Desktop-style Icon View */}
         <div
+          ref={mainViewRef}
+          onKeyDown={onContentKeyDown}
           className="relative min-h-0 flex-1 overflow-auto bg-adw-content"
           onDragOver={(e) => {
             if (isTrashView || !e.dataTransfer?.types?.includes("Files")) return;
@@ -521,6 +636,64 @@ export function FilesApp({
               <span className="text-[12.5px]">
                 {isTrashView ? _("Trash is empty") : _("Folder is empty")}
               </span>
+            </div>
+          ) : viewMode === "list" ? (
+            <div className="p-2">
+              <table className="w-full border-collapse text-left text-[12.5px]">
+                <thead>
+                  <tr className="border-b border-adw-separator text-[11px] font-semibold text-adw-label-secondary uppercase">
+                    <th className="px-3 py-1.5">Name</th>
+                    <th className="px-3 py-1.5">Kind</th>
+                    <th className="px-3 py-1.5 text-right">Size</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {items.map((item) => {
+                    const vfsEntry = getVfsEntry(item.path ?? item.id);
+                    const isSelected = selectedIds.includes(item.id);
+                    const sizeLabel =
+                      item.kind === "directory"
+                        ? "Folder"
+                        : `${(vfsEntry?.content ?? "").length} B`;
+                    return (
+                      <tr
+                        key={item.id}
+                        onPointerDown={(e) => {
+                          if (e.button === 0) setSelectedIds([item.id]);
+                        }}
+                        onDoubleClick={() => handleActivateItem(item)}
+                        onContextMenu={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setBgMenu(null);
+                          setItemMenu({ item, x: e.clientX, y: e.clientY });
+                        }}
+                        className={cn(
+                          "cursor-default border-b border-adw-separator/40 transition-colors",
+                          isSelected
+                            ? "bg-adw-accent/20 text-adw-label"
+                            : "hover:bg-black/4 dark:hover:bg-white/5"
+                        )}
+                      >
+                        <td className="flex items-center gap-2 px-3 py-2 font-medium">
+                          {item.kind === "directory" ? (
+                            <FolderIcon className="size-4 shrink-0 text-blue-400" />
+                          ) : (
+                            <FileTextIcon className="size-4 shrink-0 text-adw-label-secondary" />
+                          )}
+                          <span className="truncate">{item.name}</span>
+                        </td>
+                        <td className="px-3 py-2 text-adw-label-secondary">
+                          {item.kind === "directory" ? "Directory" : "File"}
+                        </td>
+                        <td className="px-3 py-2 text-right font-mono text-[11.5px] text-adw-label-secondary">
+                          {sizeLabel}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
           ) : (
             <IconGrid

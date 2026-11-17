@@ -11,7 +11,8 @@ import {
 } from "lucide-react";
 import { AppSquircleIcon } from "@/components/shell/AppSymbol";
 import { WindowMenuButton } from "@/components/shell/WindowMenuButton";
-import { WindowControls } from "@/components/ui/window";
+import { WindowControls, WindowTitlebar } from "@/components/ui/window";
+import { useSidebarKeyboardNav } from "@/hooks/use-sidebar-keyboard-nav";
 import { Button } from "@/components/ui/button";
 import {
   ContextMenu,
@@ -184,7 +185,7 @@ const WebAppFavicon: React.FC<{
       <GlobeIcon
         aria-label={title}
         className={cn(
-          "shrink-0 text-sky-400 drop-shadow-[0_2px_5px_rgba(0,0,0,0.28)]",
+          "shrink-0 text-sky-400",
           className,
         )}
       />
@@ -197,7 +198,7 @@ const WebAppFavicon: React.FC<{
       alt={title}
       onError={() => setFailed(true)}
       className={cn(
-        "shrink-0 object-contain drop-shadow-[0_2px_5px_rgba(0,0,0,0.28)]",
+        "shrink-0 object-contain",
         className,
       )}
       draggable={false}
@@ -221,6 +222,20 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
 
   const [category, setCategory] = React.useState<StoreCategory>("all");
   const [query, setQuery] = React.useState("");
+  const sidebarRef = React.useRef<HTMLElement | null>(null);
+  const mainRef = React.useRef<HTMLElement | null>(null);
+  const {
+    highlightedId: highlightedCategory,
+    onSidebarKeyDown,
+    onSidebarKeyUp,
+    onContentKeyDown,
+  } = useSidebarKeyboardNav({
+    itemIds: [...SIDEBAR_ITEMS, ...CATEGORY_ITEMS].map((e) => e.id),
+    activeId: category,
+    onActivate: (id) => setCategory(id),
+    sidebarRef,
+    contentRef: mainRef,
+  });
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
   const [meta, setMeta] = React.useState<StoreMetaState>(loadStoreMeta);
   const [pendingOp, setPendingOp] = React.useState<{
@@ -258,6 +273,47 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
   }, [settings.installedWebApps]);
 
   const [descriptionTick, setDescriptionTick] = React.useState(0);
+  const [customWebUrl, setCustomWebUrl] = React.useState("");
+
+  const handleAddCustomWebApp = (e: React.FormEvent) => {
+    e.preventDefault();
+    const canonical = canonicalizeWebUrl(customWebUrl);
+    if (!canonical) return;
+    const hostTitle = new URL(canonical).hostname.replace(/^www\./, "");
+    if (!installedWebUrls.has(canonical)) {
+      updateSettings({
+        installedWebApps: [
+          ...settings.installedWebApps,
+          {
+            id: `web:${canonical}`,
+            title: hostTitle,
+            url: canonical,
+            iconUrl: getWebAppFaviconUrl(canonical),
+          },
+        ],
+      });
+      void fetchWebPageMetadata(canonical).then(({ title }) => {
+        if (title) {
+          updateSettings({
+            installedWebApps: [
+              ...settings.installedWebApps.filter(
+                (a) => canonicalizeWebUrl(a.url) !== canonical
+              ),
+              {
+                id: `web:${canonical}`,
+                title,
+                url: canonical,
+                iconUrl: getWebAppFaviconUrl(canonical),
+              },
+            ],
+          });
+        }
+        setDescriptionTick((n) => n + 1);
+      });
+    }
+    setCustomWebUrl("");
+    openWebUrl(canonical);
+  };
 
   React.useEffect(() => {
     const missing = DEFAULT_BROWSER_WEB_APPS.filter(
@@ -472,36 +528,44 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
   return (
     <div className="flex h-full w-full flex-col overflow-hidden bg-adw-window text-adw-label select-none">
       {/* Header Bar */}
-      <div
+      <WindowTitlebar
         data-window-drag-region={isCsd ? "" : undefined}
         className={cn(
-          "relative flex shrink-0 items-center justify-between gap-3 border-b border-adw-separator bg-adw-titlebar px-3 select-none",
-          isCsd ? "h-10 rounded-t-[inherit]" : "h-10",
+          "border-b border-adw-separator bg-adw-titlebar",
+          !isCsd && "rounded-t-none"
         )}
       >
         <div className="flex items-center gap-2" data-window-no-drag>
           {isCsd && windowId && (
-            <WindowMenuButton windowId={windowId} appId="app-store" />
+            <>
+              <WindowControls side="left" />
+              <WindowMenuButton windowId={windowId} appId="app-store" />
+            </>
           )}
         </div>
 
         <span className="pointer-events-none text-[13px] font-semibold">
-          Application Store
+          App Store (Web)
         </span>
 
         {isCsd && windowId ? (
           <div className="flex items-center" data-window-no-drag>
-            <WindowControls />
+            <WindowControls side="right" />
           </div>
         ) : (
           <div className="w-6" />
         )}
-      </div>
+      </WindowTitlebar>
 
       {/* Main Split: Sidebar + Main View Column */}
       <div className="flex min-h-0 flex-1 overflow-hidden">
         {/* Sidebar */}
-        <aside className="flex w-52 shrink-0 flex-col gap-1 overflow-y-auto border-r border-adw-separator bg-adw-sidebar p-2.5">
+        <aside
+          ref={sidebarRef}
+          onKeyDown={onSidebarKeyDown}
+          onKeyUp={onSidebarKeyUp}
+          className="flex w-52 shrink-0 flex-col gap-1 overflow-y-auto border-r border-adw-separator bg-adw-sidebar p-2.5"
+        >
           <div className="relative mb-1.5 flex items-center">
             <SearchIcon className="pointer-events-none absolute left-2.5 size-3.5 text-adw-label-secondary" />
             <input
@@ -515,11 +579,12 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
           </div>
 
           {SIDEBAR_ITEMS.map((entry) => {
-            const active = category === entry.id;
+            const active = highlightedCategory === entry.id;
             return (
               <button
                 key={entry.id}
                 type="button"
+                data-sidebar-item={entry.id}
                 onClick={() => setCategory(entry.id)}
                 className={cn(
                   "flex items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-[13px] font-medium transition-colors",
@@ -540,11 +605,12 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
           </div>
 
           {CATEGORY_ITEMS.map((entry) => {
-            const active = category === entry.id;
+            const active = highlightedCategory === entry.id;
             return (
               <button
                 key={entry.id}
                 type="button"
+                data-sidebar-item={entry.id}
                 onClick={() => setCategory(entry.id)}
                 className={cn(
                   "flex items-center rounded-md px-2.5 py-1.5 text-left text-[13px] font-medium transition-colors",
@@ -557,11 +623,28 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
               </button>
             );
           })}
+
+          <div className="my-1.5 h-px bg-adw-separator" />
+          <form onSubmit={handleAddCustomWebApp} className="space-y-1.5 px-1 pt-1">
+            <div className="px-1.5 text-[11px] font-semibold tracking-wider text-adw-label-tertiary uppercase">
+              Add Web App
+            </div>
+            <input
+              type="text"
+              value={customWebUrl}
+              onChange={(e) => setCustomWebUrl(e.target.value)}
+              placeholder="https://example.com"
+              aria-label="Custom Web App URL"
+              className="h-7 w-full rounded-md border border-adw-separator bg-black/5 px-2 text-[12px] text-adw-label placeholder:text-adw-label-secondary focus:border-adw-accent focus:outline-none dark:bg-white/8"
+            />
+          </form>
         </aside>
 
         {/* Right Main Column (Scrollable Grid + Scoped Bottom Action Bar) */}
         <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
           <main
+            ref={mainRef}
+            onKeyDown={onContentKeyDown}
             className="flex-1 overflow-y-auto p-4"
             onClick={() => setSelectedId(null)}
           >

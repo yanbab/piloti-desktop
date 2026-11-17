@@ -3,7 +3,6 @@ import {
   GroupedFormGroup,
   GroupedFormRow,
   GroupedFormRowControl,
-  GroupedFormRowDescription,
   GroupedFormRowLabel,
   GroupedFormRowTitle,
   GroupedFormSection,
@@ -25,9 +24,6 @@ export function DockPane() {
           <GroupedFormRow>
             <GroupedFormRowLabel>
               <GroupedFormRowTitle>Position on Screen</GroupedFormRowTitle>
-              <GroupedFormRowDescription>
-                Anchor the Dock to the left, bottom, or right edge
-              </GroupedFormRowDescription>
             </GroupedFormRowLabel>
             <GroupedFormRowControl>
               <div className="flex items-center gap-0.5 rounded-lg bg-black/6 p-0.5 dark:bg-white/8">
@@ -56,9 +52,6 @@ export function DockPane() {
           <GroupedFormRow>
             <GroupedFormRowLabel>
               <GroupedFormRowTitle>Icon Size ({settings.dockSize}px)</GroupedFormRowTitle>
-              <GroupedFormRowDescription>
-                Base size of application tiles in the bottom Dock
-              </GroupedFormRowDescription>
             </GroupedFormRowLabel>
             <GroupedFormRowControl className="w-44">
               <Slider
@@ -76,9 +69,6 @@ export function DockPane() {
           <GroupedFormRow>
             <GroupedFormRowLabel>
               <GroupedFormRowTitle>Magnification</GroupedFormRowTitle>
-              <GroupedFormRowDescription>
-                Enlarge Dock icons smoothly as the pointer approaches
-              </GroupedFormRowDescription>
             </GroupedFormRowLabel>
             <GroupedFormRowControl>
               <Switch
@@ -118,9 +108,6 @@ export function DockPane() {
               <GroupedFormRowTitle>
                 Automatically Hide and Show the Dock
               </GroupedFormRowTitle>
-              <GroupedFormRowDescription>
-                Slide the Dock away until the pointer touches the bottom edge
-              </GroupedFormRowDescription>
             </GroupedFormRowLabel>
             <GroupedFormRowControl>
               <Switch

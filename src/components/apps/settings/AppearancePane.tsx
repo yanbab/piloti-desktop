@@ -5,7 +5,6 @@ import {
   GroupedFormGroup,
   GroupedFormRow,
   GroupedFormRowControl,
-  GroupedFormRowDescription,
   GroupedFormRowLabel,
   GroupedFormRowTitle,
   GroupedFormSection,
@@ -26,6 +25,28 @@ import { cn } from "@/lib/utils";
 export function AppearancePane() {
   const { settings, updateSettings } = useSettings();
 
+  const layoutRaw = (settings.windowButtonLayout ?? ":close").trim();
+  const isLeftPlacement = layoutRaw.indexOf(":") > 0 && !layoutRaw.startsWith(":");
+  const hasMinimize = layoutRaw.toLowerCase().includes("minimize");
+  const hasMaximize = layoutRaw.toLowerCase().includes("maximize");
+
+  const updateButtonLayout = (next: {
+    left?: boolean;
+    minimize?: boolean;
+    maximize?: boolean;
+  }) => {
+    const useLeft = next.left ?? isLeftPlacement;
+    const min = next.minimize ?? hasMinimize;
+    const max = next.maximize ?? hasMaximize;
+    const buttons = useLeft
+      ? ["close", ...(min ? ["minimize"] : []), ...(max ? ["maximize"] : [])]
+      : [...(min ? ["minimize"] : []), ...(max ? ["maximize"] : []), "close"];
+    const joined = buttons.join(",");
+    updateSettings({
+      windowButtonLayout: useLeft ? `${joined}:` : `:${joined}`,
+    });
+  };
+
   return (
     <GroupedForm>
       <GroupedFormSection>
@@ -33,10 +54,7 @@ export function AppearancePane() {
         <GroupedFormGroup>
           <GroupedFormRow>
             <GroupedFormRowLabel>
-              <GroupedFormRowTitle>Color Scheme</GroupedFormRowTitle>
-              <GroupedFormRowDescription>
-                Syncs with Domicile compositor and client GTK/Qt windows
-              </GroupedFormRowDescription>
+              <GroupedFormRowTitle>Style</GroupedFormRowTitle>
             </GroupedFormRowLabel>
             <GroupedFormRowControl>
               <div className="inline-flex items-center gap-1 rounded-[9px] bg-black/8 p-1 dark:bg-white/8">
@@ -83,10 +101,7 @@ export function AppearancePane() {
 
           <GroupedFormRow className="py-3.5">
             <GroupedFormRowLabel>
-              <GroupedFormRowTitle>Adwaita Accent Color</GroupedFormRowTitle>
-              <GroupedFormRowDescription>
-                Official GNOME 47 / Libadwaita 1.6 AdwAccentColor palette
-              </GroupedFormRowDescription>
+              <GroupedFormRowTitle>Accent Color</GroupedFormRowTitle>
             </GroupedFormRowLabel>
             <GroupedFormRowControl>
               <div className="flex max-w-[280px] flex-wrap items-center justify-end gap-2">
@@ -103,7 +118,7 @@ export function AppearancePane() {
                       className={cn(
                         "flex size-5 items-center justify-center rounded-full shadow-inner transition-transform hover:scale-110",
                         selected &&
-                          "scale-110 ring-2 ring-white ring-offset-2 ring-offset-zinc-900"
+                        "scale-110 ring-2 ring-white ring-offset-2 ring-offset-zinc-900"
                       )}
                     >
                       {selected && (
@@ -129,9 +144,6 @@ export function AppearancePane() {
           <GroupedFormRow className="py-3.5">
             <GroupedFormRowLabel>
               <GroupedFormRowTitle>Titlebar &amp; Frame Mode</GroupedFormRowTitle>
-              <GroupedFormRowDescription>
-                Auto omits server titlebars on GNOME / GTK4 / Libadwaita apps (`clientFrame`) so their native `AdwHeaderBar` renders without duplication
-              </GroupedFormRowDescription>
             </GroupedFormRowLabel>
             <GroupedFormRowControl>
               <Select
@@ -159,6 +171,67 @@ export function AppearancePane() {
               </Select>
             </GroupedFormRowControl>
           </GroupedFormRow>
+
+          <GroupedFormRow>
+            <GroupedFormRowLabel>
+              <GroupedFormRowTitle>Minimize Button</GroupedFormRowTitle>
+            </GroupedFormRowLabel>
+            <GroupedFormRowControl>
+              <Switch
+                checked={hasMinimize}
+                onCheckedChange={(checked) =>
+                  updateButtonLayout({ minimize: Boolean(checked) })
+                }
+              />
+            </GroupedFormRowControl>
+          </GroupedFormRow>
+
+          <GroupedFormRow>
+            <GroupedFormRowLabel>
+              <GroupedFormRowTitle>Maximize Button</GroupedFormRowTitle>
+            </GroupedFormRowLabel>
+            <GroupedFormRowControl>
+              <Switch
+                checked={hasMaximize}
+                onCheckedChange={(checked) =>
+                  updateButtonLayout({ maximize: Boolean(checked) })
+                }
+              />
+            </GroupedFormRowControl>
+          </GroupedFormRow>
+
+          <GroupedFormRow className="py-3.5">
+            <GroupedFormRowLabel>
+              <GroupedFormRowTitle>Titlebar Button Placement</GroupedFormRowTitle>
+            </GroupedFormRowLabel>
+            <GroupedFormRowControl>
+              <div className="inline-flex items-center gap-1 rounded-[9px] bg-black/8 p-1 dark:bg-white/8">
+                {(
+                  [
+                    { id: "left", label: "Left", left: true },
+                    { id: "right", label: "Right", left: false },
+                  ] as const
+                ).map((opt) => {
+                  const active = isLeftPlacement === opt.left;
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => updateButtonLayout({ left: opt.left })}
+                      className={cn(
+                        "rounded-[6px] px-3 py-1 text-[13px] font-medium transition-all",
+                        active
+                          ? "bg-white text-black shadow-xs dark:bg-white/18 dark:text-white"
+                          : "text-adw-label-secondary hover:text-adw-label"
+                      )}
+                    >
+                      {opt.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </GroupedFormRowControl>
+          </GroupedFormRow>
         </GroupedFormGroup>
       </GroupedFormSection>
 
@@ -168,9 +241,6 @@ export function AppearancePane() {
           <GroupedFormRow>
             <GroupedFormRowLabel>
               <GroupedFormRowTitle>Show Desktop Icons</GroupedFormRowTitle>
-              <GroupedFormRowDescription>
-                Display files, folders, and shortcuts from your Desktop folder
-              </GroupedFormRowDescription>
             </GroupedFormRowLabel>
             <GroupedFormRowControl>
               <Switch
@@ -187,9 +257,6 @@ export function AppearancePane() {
               <GroupedFormRow>
                 <GroupedFormRowLabel>
                   <GroupedFormRowTitle>Reset Icon Layout</GroupedFormRowTitle>
-                  <GroupedFormRowDescription>
-                    Arrange desktop icons back into default column order
-                  </GroupedFormRowDescription>
                 </GroupedFormRowLabel>
                 <GroupedFormRowControl>
                   <Button

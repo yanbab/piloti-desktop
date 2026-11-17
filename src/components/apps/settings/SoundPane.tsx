@@ -5,7 +5,6 @@ import {
   GroupedFormGroup,
   GroupedFormRow,
   GroupedFormRowControl,
-  GroupedFormRowDescription,
   GroupedFormRowLabel,
   GroupedFormRowTitle,
   GroupedFormSection,
@@ -21,6 +20,7 @@ import {
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { useSettings, useSystemBackends } from "@/context/DesktopStateContext";
+import { playAlertSound } from "@/lib/sound-effects";
 
 export function SoundPane() {
   const { settings, updateSettings } = useSettings();
@@ -38,9 +38,6 @@ export function SoundPane() {
               <GroupedFormRowTitle>
                 Output Volume ({settings.muted ? "Muted" : `${settings.volume}%`})
               </GroupedFormRowTitle>
-              <GroupedFormRowDescription>
-                Master audio level via PipeWire / PulseAudio (`wpctl` / `pactl`)
-              </GroupedFormRowDescription>
             </GroupedFormRowLabel>
             <GroupedFormRowControl className="w-48">
               <Slider
@@ -74,11 +71,6 @@ export function SoundPane() {
           <GroupedFormRow>
             <GroupedFormRowLabel>
               <GroupedFormRowTitle>Output Device</GroupedFormRowTitle>
-              <GroupedFormRowDescription>
-                {audioSinks.length > 0
-                  ? "Live PipeWire / PulseAudio sinks (`pactl`)"
-                  : "Audio output routing"}
-              </GroupedFormRowDescription>
             </GroupedFormRowLabel>
             <GroupedFormRowControl>
               {audioSinks.length > 0 ? (
@@ -126,21 +118,21 @@ export function SoundPane() {
           <GroupedFormRow>
             <GroupedFormRowLabel>
               <GroupedFormRowTitle>Notification Sound Effects</GroupedFormRowTitle>
-              <GroupedFormRowDescription>
-                Test system alert chime and notification banner
-              </GroupedFormRowDescription>
             </GroupedFormRowLabel>
             <GroupedFormRowControl>
               <Button
                 size="sm"
                 variant="secondary"
-                onClick={() =>
+                onClick={() => {
+                  void playAlertSound(settings.volume, settings.muted);
                   pushNotification({
                     appName: "Sound Settings",
                     summary: "Audio Test Chime",
-                    body: `Output routing active at ${settings.volume}% volume.`,
-                  })
-                }
+                    body: settings.muted
+                      ? "Output is currently muted."
+                      : `Output routing active at ${settings.volume}% volume.`,
+                  });
+                }}
               >
                 Play Test Alert
               </Button>

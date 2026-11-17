@@ -339,28 +339,13 @@ export function getContrastForeground(cssColor?: string | null): string | null {
   return luminance > 0.58 ? "#1d1d20" : "#ffffff";
 }
 
-const THEME_COLOR_CACHE_KEY = "piloti.web-theme-colors.v1";
-const themeColorMemoryCache = new Map<string, string | null>();
-let themeColorStorageLoaded = false;
+import { createLocalStorageCache } from "@/lib/storage-cache";
 
-function ensureThemeColorCacheLoaded() {
-  if (themeColorStorageLoaded || typeof localStorage === "undefined") return;
-  themeColorStorageLoaded = true;
-  try {
-    const raw = localStorage.getItem(THEME_COLOR_CACHE_KEY);
-    if (!raw) return;
-    const parsed = JSON.parse(raw) as Record<string, string | null>;
-    if (parsed && typeof parsed === "object") {
-      for (const [k, v] of Object.entries(parsed)) {
-        if (typeof v === "string" || v === null) {
-          themeColorMemoryCache.set(k, v);
-        }
-      }
-    }
-  } catch {
-    // ignore storage errors
-  }
-}
+const THEME_COLOR_CACHE_KEY = "piloti.web-theme-colors.v1";
+const themeColorCache = createLocalStorageCache<string | null>(
+  THEME_COLOR_CACHE_KEY,
+  (v): v is string | null => typeof v === "string" || v === null
+);
 
 function makeThemeColorCacheKey(rawUrl: string, prefersDark: boolean): string {
   const canonical = canonicalizeWebUrl(rawUrl) ?? rawUrl.trim();
@@ -372,8 +357,7 @@ export function getCachedWebThemeColor(
   prefersDark = false
 ): string | null | undefined {
   if (!rawUrl) return undefined;
-  ensureThemeColorCacheLoaded();
-  return themeColorMemoryCache.get(makeThemeColorCacheKey(rawUrl, prefersDark));
+  return themeColorCache.get(makeThemeColorCacheKey(rawUrl, prefersDark));
 }
 
 export function setCachedWebThemeColor(
@@ -382,43 +366,14 @@ export function setCachedWebThemeColor(
   prefersDark = false
 ) {
   if (!rawUrl) return;
-  ensureThemeColorCacheLoaded();
-  const key = makeThemeColorCacheKey(rawUrl, prefersDark);
-  themeColorMemoryCache.set(key, themeColor);
-  if (typeof localStorage === "undefined") return;
-  try {
-    const obj: Record<string, string | null> = {};
-    for (const [k, v] of themeColorMemoryCache.entries()) {
-      obj[k] = v;
-    }
-    localStorage.setItem(THEME_COLOR_CACHE_KEY, JSON.stringify(obj));
-  } catch {
-    // ignore storage errors
-  }
+  themeColorCache.set(makeThemeColorCacheKey(rawUrl, prefersDark), themeColor);
 }
 
 const WEB_DESCRIPTION_CACHE_KEY = "piloti.web-descriptions.v1";
-const webDescriptionMemoryCache = new Map<string, string | null>();
-let webDescriptionStorageLoaded = false;
-
-function ensureWebDescriptionCacheLoaded() {
-  if (webDescriptionStorageLoaded || typeof localStorage === "undefined") return;
-  webDescriptionStorageLoaded = true;
-  try {
-    const raw = localStorage.getItem(WEB_DESCRIPTION_CACHE_KEY);
-    if (!raw) return;
-    const parsed = JSON.parse(raw) as Record<string, string | null>;
-    if (parsed && typeof parsed === "object") {
-      for (const [k, v] of Object.entries(parsed)) {
-        if (typeof v === "string" || v === null) {
-          webDescriptionMemoryCache.set(k, v);
-        }
-      }
-    }
-  } catch {
-    // ignore storage errors
-  }
-}
+const webDescriptionCache = createLocalStorageCache<string | null>(
+  WEB_DESCRIPTION_CACHE_KEY,
+  (v): v is string | null => typeof v === "string" || v === null
+);
 
 function makeWebDescriptionCacheKey(rawUrl: string): string {
   return canonicalizeWebUrl(rawUrl) ?? rawUrl.trim();
@@ -428,8 +383,7 @@ export function getCachedWebDescription(
   rawUrl?: string
 ): string | null | undefined {
   if (!rawUrl) return undefined;
-  ensureWebDescriptionCacheLoaded();
-  return webDescriptionMemoryCache.get(makeWebDescriptionCacheKey(rawUrl));
+  return webDescriptionCache.get(makeWebDescriptionCacheKey(rawUrl));
 }
 
 export function setCachedWebDescription(
@@ -437,19 +391,7 @@ export function setCachedWebDescription(
   description: string | null
 ) {
   if (!rawUrl) return;
-  ensureWebDescriptionCacheLoaded();
-  const key = makeWebDescriptionCacheKey(rawUrl);
-  webDescriptionMemoryCache.set(key, description);
-  if (typeof localStorage === "undefined") return;
-  try {
-    const obj: Record<string, string | null> = {};
-    for (const [k, v] of webDescriptionMemoryCache.entries()) {
-      obj[k] = v;
-    }
-    localStorage.setItem(WEB_DESCRIPTION_CACHE_KEY, JSON.stringify(obj));
-  } catch {
-    // ignore storage errors
-  }
+  webDescriptionCache.set(makeWebDescriptionCacheKey(rawUrl), description);
 }
 
 /**

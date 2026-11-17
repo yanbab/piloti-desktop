@@ -7,7 +7,6 @@ import {
   GroupedFormGroup,
   GroupedFormRow,
   GroupedFormRowControl,
-  GroupedFormRowDescription,
   GroupedFormRowLabel,
   GroupedFormRowTitle,
   GroupedFormSection,
@@ -76,10 +75,6 @@ export function DisplaysPane() {
                 <GroupedFormRowTitle className="font-semibold">
                   {d.name}
                 </GroupedFormRowTitle>
-                <GroupedFormRowDescription>
-                  Logical {d.width}×{d.height} px · Offset ({d.x}, {d.y}) · Scale{" "}
-                  {d.scale}x · Transform {d.transform}
-                </GroupedFormRowDescription>
               </GroupedFormRowLabel>
               <GroupedFormRowControl>
                 <span className="rounded-full bg-adw-accent/15 px-2.5 py-0.5 text-[11px] font-semibold text-adw-accent">
@@ -92,9 +87,6 @@ export function DisplaysPane() {
           <GroupedFormRow>
             <GroupedFormRowLabel>
               <GroupedFormRowTitle>Add Virtual Cast Monitor</GroupedFormRowTitle>
-              <GroupedFormRowDescription>
-                Extend desktop with a virtual 1920×1080 output via Domicile (`addVirtual`)
-              </GroupedFormRowDescription>
             </GroupedFormRowLabel>
             <GroupedFormRowControl>
               <Button
@@ -137,9 +129,6 @@ export function DisplaysPane() {
           <GroupedFormRow>
             <GroupedFormRowLabel>
               <GroupedFormRowTitle>Night Light</GroupedFormRowTitle>
-              <GroupedFormRowDescription>
-                Hardware 4200K color temperature via Domicile compositor (`setColorTemperature`)
-              </GroupedFormRowDescription>
             </GroupedFormRowLabel>
             <GroupedFormRowControl>
               <Switch

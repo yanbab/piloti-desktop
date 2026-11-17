@@ -34,6 +34,48 @@ function getBaseName(path: string): string {
   return idx >= 0 ? norm.slice(idx + 1) : norm;
 }
 
+function renderSimpleMarkdown(md: string): React.ReactNode {
+  const lines = md.split("\n");
+  return lines.map((line, i) => {
+    if (line.startsWith("# ")) {
+      return (
+        <h1 key={i} className="mt-2 mb-1 text-lg font-bold text-adw-label">
+          {line.slice(2)}
+        </h1>
+      );
+    }
+    if (line.startsWith("## ")) {
+      return (
+        <h2 key={i} className="mt-2 mb-1 text-base font-semibold text-adw-label">
+          {line.slice(3)}
+        </h2>
+      );
+    }
+    if (line.startsWith("### ")) {
+      return (
+        <h3 key={i} className="mt-1.5 mb-0.5 text-sm font-semibold text-adw-label">
+          {line.slice(4)}
+        </h3>
+      );
+    }
+    if (line.startsWith("- ") || line.startsWith("* ")) {
+      return (
+        <li key={i} className="ml-4 list-disc text-[13px] leading-relaxed text-adw-label">
+          {line.slice(2)}
+        </li>
+      );
+    }
+    if (!line.trim()) {
+      return <div key={i} className="h-2" />;
+    }
+    return (
+      <p key={i} className="text-[13px] leading-relaxed text-adw-label">
+        {line}
+      </p>
+    );
+  });
+}
+
 export const TextEditorApp: React.FC<TextEditorAppProps> = ({
   initialPath,
   windowId,
@@ -41,6 +83,7 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
   const { launchApp } = useWindowManager();
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
   const [isDropTarget, setIsDropTarget] = React.useState(false);
+  const [previewMarkdown, setPreviewMarkdown] = React.useState(false);
 
   const [filePath, setFilePath] = React.useState<string | null>(() => {
     if (!initialPath) return null;
@@ -184,25 +227,47 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
     textareaRef.current?.focus();
   };
 
+  const isMarkdownFile = Boolean(
+    filePath && /\.(md|markdown)$/i.test(filePath)
+  );
+
   return (
     <div data-drop-window-id={windowId} className="relative h-full w-full">
+      {isMarkdownFile && (
+        <button
+          type="button"
+          onClick={() => setPreviewMarkdown((v) => !v)}
+          className="absolute top-2 right-3 z-10 rounded-md border border-adw-separator bg-adw-window/90 px-2.5 py-1 text-[11px] font-medium text-adw-label-secondary shadow-xs backdrop-blur-xs transition-colors hover:text-adw-label"
+        >
+          {previewMarkdown ? "Edit Markdown" : "Preview Markdown"}
+        </button>
+      )}
       <ContextMenu>
         <ContextMenuTrigger className="h-full w-full">
-          <textarea
-            ref={textareaRef}
-            value={content}
-            onChange={handleChange}
-            spellCheck={false}
-            autoFocus
-            aria-label={filePath ? getBaseName(filePath) : "Text Editor"}
-            className="h-full w-full resize-none border-0 bg-adw-content p-3 font-mono text-[13px] leading-relaxed text-adw-label placeholder:text-adw-label-tertiary focus:outline-none select-text"
-            placeholder="Start typing..."
-          />
+          {previewMarkdown ? (
+            <div className="h-full w-full overflow-auto bg-adw-content p-4 select-text">
+              {renderSimpleMarkdown(content)}
+            </div>
+          ) : (
+            <textarea
+              ref={textareaRef}
+              value={content}
+              onChange={handleChange}
+              spellCheck={false}
+              autoFocus
+              aria-label={filePath ? getBaseName(filePath) : "Text Editor"}
+              className="h-full w-full resize-none border-0 bg-adw-content p-3 font-mono text-[13px] leading-relaxed text-adw-label placeholder:text-adw-label-tertiary focus:outline-none select-text"
+              placeholder="Start typing..."
+            />
+          )}
         </ContextMenuTrigger>
         <ContextMenuContent className="w-44">
           <ContextMenuItem onClick={handleNewFile}>New File</ContextMenuItem>
           <ContextMenuItem onClick={handleOpenInFiles}>
             Open in Files
+          </ContextMenuItem>
+          <ContextMenuItem onClick={() => setPreviewMarkdown((v) => !v)}>
+            {previewMarkdown ? "Edit Source" : "Markdown Preview"}
           </ContextMenuItem>
           <ContextMenuSeparator />
           <ContextMenuItem onClick={handleCopyAll}>Copy All</ContextMenuItem>

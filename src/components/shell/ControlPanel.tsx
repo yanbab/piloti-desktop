@@ -16,10 +16,8 @@ import {
   SettingsIcon,
   SkipBackIcon,
   SkipForwardIcon,
-  SlidersHorizontalIcon,
   SpeakerIcon,
   SunIcon,
-  Trash2Icon,
   VideoIcon,
   Volume2Icon,
   VolumeXIcon,
@@ -136,7 +134,7 @@ export function ControlPanel() {
               setControlPanelOpen(false);
               void takeScreenshot();
             }}
-            className="flex size-7 items-center justify-center rounded-full bg-black/8 text-adw-label transition-colors hover:bg-adw-accent hover:text-white dark:bg-white/10"
+            className="flex size-7 items-center justify-center rounded-full bg-black/8 text-adw-label dark:bg-white/10"
           >
             <CameraIcon className="size-3.5" />
           </button>
@@ -147,7 +145,7 @@ export function ControlPanel() {
               setControlPanelOpen(false);
               void startScreenRecording();
             }}
-            className="flex size-7 items-center justify-center rounded-full bg-black/8 text-adw-label transition-colors hover:bg-adw-accent hover:text-white dark:bg-white/10"
+            className="flex size-7 items-center justify-center rounded-full bg-black/8 text-adw-label dark:bg-white/10"
           >
             <VideoIcon className="size-3.5" />
           </button>
@@ -166,302 +164,12 @@ export function ControlPanel() {
                 launchApp("settings");
               }
             }}
-            className="flex size-7 items-center justify-center rounded-full bg-black/8 text-adw-label transition-colors hover:bg-adw-accent hover:text-white dark:bg-white/10"
+            className="flex size-7 items-center justify-center rounded-full bg-black/8 text-adw-label dark:bg-white/10"
           >
             <SettingsIcon className="size-3.5" />
           </button>
         </div>
       </div>
-
-      {/* Quick Settings Grid */}
-      <div className="grid grid-cols-2 gap-2">
-        {/* Wi-Fi Split Pill (Toggle + Inline Network Picker) */}
-        <div
-          className={cn(
-            "flex items-stretch overflow-hidden rounded-[14px] transition-all",
-            settings.wifiEnabled
-              ? "bg-adw-accent text-white shadow-xs"
-              : "bg-black/6 text-adw-label dark:bg-white/8"
-          )}
-        >
-          <button
-            type="button"
-            onClick={() => {
-              const next = !settings.wifiEnabled;
-              console.info("[Piloti] control-panel: wifi", next ? "on" : "off");
-              updateSettings({ wifiEnabled: next });
-            }}
-            className="flex min-w-0 flex-1 items-center gap-2.5 p-2.5 text-left transition-colors hover:bg-black/5 dark:hover:bg-white/5"
-          >
-            <span
-              className={cn(
-                "flex size-8 shrink-0 items-center justify-center rounded-full",
-                settings.wifiEnabled ? "bg-white/20" : "bg-black/10 dark:bg-white/10"
-              )}
-            >
-              <WifiIcon className="size-4" />
-            </span>
-            <div className="min-w-0 flex-1">
-              <div className="text-[12px] font-semibold">Wi-Fi</div>
-              <div className="truncate text-[10px] opacity-80">
-                {settings.wifiEnabled ? settings.connectedWifi : "Off"}
-              </div>
-            </div>
-          </button>
-          <button
-            type="button"
-            aria-label="Choose Wi-Fi network"
-            aria-expanded={expandedPicker === "wifi"}
-            onClick={() => togglePicker("wifi")}
-            className={cn(
-              "flex w-7 shrink-0 items-center justify-center border-l transition-colors",
-              settings.wifiEnabled
-                ? "border-white/20 hover:bg-white/15"
-                : "border-black/10 hover:bg-black/8 dark:border-white/10 dark:hover:bg-white/10"
-            )}
-          >
-            <ChevronRightIcon
-              className={cn(
-                "size-3.5 transition-transform duration-150",
-                expandedPicker === "wifi" && "rotate-90"
-              )}
-            />
-          </button>
-        </div>
-
-        {/* Bluetooth Pill */}
-        <button
-          type="button"
-          onClick={() => {
-            const next = !settings.bluetoothEnabled;
-            console.info(
-              "[Piloti] control-panel: bluetooth",
-              next ? "on" : "off"
-            );
-            updateSettings({ bluetoothEnabled: next });
-          }}
-          className={cn(
-            "flex items-center gap-2.5 rounded-[14px] p-2.5 text-left transition-all",
-            settings.bluetoothEnabled
-              ? "bg-adw-accent text-white shadow-xs"
-              : "bg-black/6 text-adw-label hover:bg-black/10 dark:bg-white/8 dark:hover:bg-white/12"
-          )}
-        >
-          <span
-            className={cn(
-              "flex size-8 shrink-0 items-center justify-center rounded-full",
-              settings.bluetoothEnabled
-                ? "bg-white/20"
-                : "bg-black/10 dark:bg-white/10"
-            )}
-          >
-            <BluetoothIcon className="size-4" />
-          </span>
-          <div className="min-w-0 flex-1">
-            <div className="text-[12px] font-semibold">Bluetooth</div>
-            <div className="truncate text-[10px] opacity-80">
-              {settings.bluetoothEnabled ? "On · 2 Devices" : "Off"}
-            </div>
-          </div>
-        </button>
-
-        {/* Dark Mode Pill */}
-        <button
-          type="button"
-          onClick={() => {
-            const next = settings.themeMode === "dark" ? "light" : "dark";
-            console.info("[Piloti] control-panel: theme", next);
-            updateSettings({
-              themeMode: next,
-            });
-          }}
-          className={cn(
-            "flex items-center gap-2.5 rounded-[14px] p-2.5 text-left transition-all",
-            settings.themeMode === "dark"
-              ? "bg-adw-accent text-white shadow-xs"
-              : "bg-black/6 text-adw-label hover:bg-black/10 dark:bg-white/8 dark:hover:bg-white/12"
-          )}
-        >
-          <span
-            className={cn(
-              "flex size-8 shrink-0 items-center justify-center rounded-full",
-              settings.themeMode === "dark"
-                ? "bg-white/20"
-                : "bg-black/10 dark:bg-white/10"
-            )}
-          >
-            <MoonIcon className="size-4" />
-          </span>
-          <div className="min-w-0 flex-1">
-            <div className="text-[12px] font-semibold">Dark Mode</div>
-            <div className="truncate text-[10px] opacity-80 capitalize">
-              {settings.themeMode}
-            </div>
-          </div>
-        </button>
-
-        {/* Do Not Disturb Pill */}
-        <button
-          type="button"
-          onClick={() => {
-            const next = !settings.doNotDisturb;
-            console.info(
-              "[Piloti] control-panel: do-not-disturb",
-              next ? "on" : "off"
-            );
-            updateSettings({ doNotDisturb: next });
-          }}
-          className={cn(
-            "flex items-center gap-2.5 rounded-[14px] p-2.5 text-left transition-all",
-            settings.doNotDisturb
-              ? "bg-adw-accent text-white shadow-xs"
-              : "bg-black/6 text-adw-label hover:bg-black/10 dark:bg-white/8 dark:hover:bg-white/12"
-          )}
-        >
-          <span
-            className={cn(
-              "flex size-8 shrink-0 items-center justify-center rounded-full",
-              settings.doNotDisturb
-                ? "bg-white/20"
-                : "bg-black/10 dark:bg-white/10"
-            )}
-          >
-            <BellOffIcon className="size-4" />
-          </span>
-          <div className="min-w-0 flex-1">
-            <div className="text-[12px] font-semibold">Do Not Disturb</div>
-            <div className="truncate text-[10px] opacity-80">
-              {settings.doNotDisturb ? "Silence Active" : "Off"}
-            </div>
-          </div>
-        </button>
-
-        {/* Night Light Pill */}
-        <button
-          type="button"
-          onClick={() => {
-            const next = !settings.nightLight;
-            console.info(
-              "[Piloti] control-panel: night-light",
-              next ? "on" : "off"
-            );
-            updateSettings({ nightLight: next });
-          }}
-          className={cn(
-            "flex items-center gap-2.5 rounded-[14px] p-2.5 text-left transition-all",
-            settings.nightLight
-              ? "bg-adw-accent text-white shadow-xs"
-              : "bg-black/6 text-adw-label hover:bg-black/10 dark:bg-white/8 dark:hover:bg-white/12"
-          )}
-        >
-          <span
-            className={cn(
-              "flex size-8 shrink-0 items-center justify-center rounded-full",
-              settings.nightLight
-                ? "bg-white/20"
-                : "bg-black/10 dark:bg-white/10"
-            )}
-          >
-            <FlameIcon className="size-4" />
-          </span>
-          <div className="min-w-0 flex-1">
-            <div className="text-[12px] font-semibold">Night Light</div>
-            <div className="truncate text-[10px] opacity-80">
-              {settings.nightLight ? "Warm 4200K" : "Off"}
-            </div>
-          </div>
-        </button>
-
-        {/* Power Saver Pill */}
-        <button
-          type="button"
-          onClick={togglePowerSaver}
-          className={cn(
-            "flex items-center gap-2.5 rounded-[14px] p-2.5 text-left transition-all",
-            settings.powerMode === "power-saver"
-              ? "bg-adw-accent text-white shadow-xs"
-              : "bg-black/6 text-adw-label hover:bg-black/10 dark:bg-white/8 dark:hover:bg-white/12"
-          )}
-        >
-          <span
-            className={cn(
-              "flex size-8 shrink-0 items-center justify-center rounded-full",
-              settings.powerMode === "power-saver"
-                ? "bg-white/20"
-                : "bg-black/10 dark:bg-white/10"
-            )}
-          >
-            <GaugeIcon className="size-4" />
-          </span>
-          <div className="min-w-0 flex-1">
-            <div className="text-[12px] font-semibold">Power Saver</div>
-            <div className="truncate text-[10px] opacity-80">
-              {settings.powerMode === "power-saver" ? "On" : "Off"}
-            </div>
-          </div>
-        </button>
-      </div>
-
-      {/* Inline Wi-Fi Network Picker */}
-      {expandedPicker === "wifi" && (
-        <div className="flex flex-col gap-1 rounded-[14px] bg-black/6 p-2.5 dark:bg-white/8">
-          <div className="mb-1 flex items-center justify-between px-1">
-            <span className="text-[11px] font-semibold text-adw-label-secondary">
-              Wi-Fi Networks
-            </span>
-            <button
-              type="button"
-              onClick={() => {
-                setControlPanelOpen(false);
-                launchApp("settings", { payload: "network" });
-              }}
-              className="text-[10.5px] font-medium text-adw-accent hover:underline"
-            >
-              Network Settings…
-            </button>
-          </div>
-          {!settings.wifiEnabled ? (
-            <div className="px-2 py-2 text-[11px] text-adw-label-secondary">
-              Wi-Fi is turned off.
-            </div>
-          ) : liveWifiNetworks.length === 0 ? (
-            <div className="px-2 py-2 text-[11px] text-adw-label-secondary">
-              No wireless networks discovered.
-            </div>
-          ) : (
-            <div className="flex max-h-[148px] flex-col gap-0.5 overflow-y-auto">
-              {liveWifiNetworks.map((net) => {
-                const connected = net.ssid === settings.connectedWifi;
-                return (
-                  <button
-                    key={net.ssid}
-                    type="button"
-                    onClick={() => void connectWifiNetwork(net.ssid)}
-                    className={cn(
-                      "flex items-center justify-between gap-2 rounded-[9px] px-2.5 py-1.5 text-left text-[11.5px] transition-colors",
-                      connected
-                        ? "bg-adw-accent/18 font-semibold text-adw-label"
-                        : "hover:bg-black/6 dark:hover:bg-white/8"
-                    )}
-                  >
-                    <span className="flex min-w-0 items-center gap-2">
-                      <WifiIcon className="size-3.5 shrink-0 opacity-80" />
-                      <span className="truncate">{net.ssid}</span>
-                    </span>
-                    <span className="flex shrink-0 items-center gap-1.5 text-[10.5px] text-adw-label-secondary tabular-nums">
-                      {net.secured && <LockIcon className="size-3 opacity-75" />}
-                      <span>{net.signal}%</span>
-                      {connected && (
-                        <CheckIcon className="size-3.5 text-adw-accent" />
-                      )}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      )}
 
       {/* Sound Volume & Display Brightness Sliders */}
       <div className="flex flex-col gap-2.5 rounded-[16px] bg-black/6 p-3 dark:bg-white/8">
@@ -475,7 +183,7 @@ export function ControlPanel() {
               console.info("[Piloti] control-panel: mute", next ? "on" : "off");
               updateSettings({ muted: next });
             }}
-            className="flex shrink-0 items-center justify-center hover:opacity-80"
+            className="flex shrink-0 items-center justify-center active:opacity-75"
           >
             {settings.muted || settings.volume === 0 ? (
               <VolumeXIcon className="size-4" />
@@ -507,10 +215,10 @@ export function ControlPanel() {
             aria-expanded={expandedPicker === "audio"}
             onClick={() => togglePicker("audio")}
             className={cn(
-              "flex size-6 shrink-0 items-center justify-center rounded-full transition-colors",
+              "flex size-6 shrink-0 items-center justify-center rounded-full",
               expandedPicker === "audio"
-                ? "bg-adw-accent text-white"
-                : "bg-black/8 text-adw-label-secondary hover:bg-black/14 dark:bg-white/10 dark:hover:bg-white/16"
+                ? "bg-adw-accent text-white active:bg-[color-mix(in_srgb,var(--adw-accent),white_20%)]"
+                : "bg-black/8 text-adw-label-secondary active:bg-black/16 dark:bg-white/10 dark:active:bg-white/18"
             )}
           >
             <ChevronRightIcon
@@ -534,7 +242,7 @@ export function ControlPanel() {
                   setControlPanelOpen(false);
                   launchApp("settings", { payload: "sound" });
                 }}
-                className="text-[10.5px] font-medium text-adw-accent hover:underline"
+                className="text-[10.5px] font-medium text-adw-accent active:opacity-70"
               >
                 Sound Settings…
               </button>
@@ -551,10 +259,10 @@ export function ControlPanel() {
                     type="button"
                     onClick={() => void selectAudioSink(sink.name)}
                     className={cn(
-                      "flex items-center justify-between gap-2 rounded-[9px] px-2 py-1.5 text-left text-[11.5px] transition-colors",
+                      "flex items-center justify-between gap-2 rounded-[9px] px-2 py-1.5 text-left text-[11.5px]",
                       sink.active
                         ? "bg-adw-accent/18 font-semibold text-adw-label"
-                        : "hover:bg-black/6 dark:hover:bg-white/8"
+                        : "active:bg-black/10 dark:active:bg-white/12"
                     )}
                   >
                     <span className="flex min-w-0 items-center gap-2">
@@ -592,6 +300,301 @@ export function ControlPanel() {
         </div>
       </div>
 
+      {/* Quick Settings Grid */}
+      <div className="grid grid-cols-2 gap-2">
+        {/* Wi-Fi Split Pill (Toggle + Inline Network Picker) */}
+        <div
+          className={cn(
+            "flex items-stretch overflow-hidden rounded-[14px]",
+            settings.wifiEnabled
+              ? "bg-adw-accent text-white shadow-xs"
+              : "bg-black/6 text-adw-label dark:bg-white/8"
+          )}
+        >
+          <button
+            type="button"
+            onClick={() => {
+              const next = !settings.wifiEnabled;
+              console.info("[Piloti] control-panel: wifi", next ? "on" : "off");
+              updateSettings({ wifiEnabled: next });
+            }}
+            className={cn(
+              "flex min-w-0 flex-1 items-center gap-2.5 p-2.5 text-left",
+              settings.wifiEnabled
+                ? "active:bg-white/20"
+                : "active:bg-black/14 dark:active:bg-white/18"
+            )}
+          >
+            <span
+              className={cn(
+                "flex size-8 shrink-0 items-center justify-center rounded-full",
+                settings.wifiEnabled ? "bg-white/20" : "bg-black/10 dark:bg-white/10"
+              )}
+            >
+              <WifiIcon className="size-4" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <div className="text-[12px] font-semibold">Wi-Fi</div>
+              <div className="truncate text-[10px] opacity-80">
+                {settings.wifiEnabled ? settings.connectedWifi : "Off"}
+              </div>
+            </div>
+          </button>
+          <button
+            type="button"
+            aria-label="Choose Wi-Fi network"
+            aria-expanded={expandedPicker === "wifi"}
+            onClick={() => togglePicker("wifi")}
+            className={cn(
+              "flex w-7 shrink-0 items-center justify-center border-l",
+              settings.wifiEnabled
+                ? "border-white/20 active:bg-white/20"
+                : "border-black/10 active:bg-black/14 dark:border-white/10 dark:active:bg-white/18"
+            )}
+          >
+            <ChevronRightIcon
+              className={cn(
+                "size-3.5 transition-transform duration-150",
+                expandedPicker === "wifi" && "rotate-90"
+              )}
+            />
+          </button>
+        </div>
+
+        {/* Bluetooth Pill */}
+        <button
+          type="button"
+          onClick={() => {
+            const next = !settings.bluetoothEnabled;
+            console.info(
+              "[Piloti] control-panel: bluetooth",
+              next ? "on" : "off"
+            );
+            updateSettings({ bluetoothEnabled: next });
+          }}
+          className={cn(
+            "flex items-center gap-2.5 rounded-[14px] p-2.5 text-left",
+            settings.bluetoothEnabled
+              ? "bg-adw-accent text-white shadow-xs active:bg-[color-mix(in_srgb,var(--adw-accent),white_20%)]"
+              : "bg-black/6 text-adw-label active:bg-black/14 dark:bg-white/8 dark:active:bg-white/18"
+          )}
+        >
+          <span
+            className={cn(
+              "flex size-8 shrink-0 items-center justify-center rounded-full",
+              settings.bluetoothEnabled
+                ? "bg-white/20"
+                : "bg-black/10 dark:bg-white/10"
+            )}
+          >
+            <BluetoothIcon className="size-4" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="text-[12px] font-semibold">Bluetooth</div>
+            <div className="truncate text-[10px] opacity-80">
+              {settings.bluetoothEnabled ? "On · 2 Devices" : "Off"}
+            </div>
+          </div>
+        </button>
+
+        {/* Dark Mode Pill */}
+        <button
+          type="button"
+          onClick={() => {
+            const next = settings.themeMode === "dark" ? "light" : "dark";
+            console.info("[Piloti] control-panel: theme", next);
+            updateSettings({
+              themeMode: next,
+            });
+          }}
+          className={cn(
+            "flex items-center gap-2.5 rounded-[14px] p-2.5 text-left",
+            settings.themeMode === "dark"
+              ? "bg-adw-accent text-white shadow-xs active:bg-[color-mix(in_srgb,var(--adw-accent),white_20%)]"
+              : "bg-black/6 text-adw-label active:bg-black/14 dark:bg-white/8 dark:active:bg-white/18"
+          )}
+        >
+          <span
+            className={cn(
+              "flex size-8 shrink-0 items-center justify-center rounded-full",
+              settings.themeMode === "dark"
+                ? "bg-white/20"
+                : "bg-black/10 dark:bg-white/10"
+            )}
+          >
+            <MoonIcon className="size-4" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="text-[12px] font-semibold">Dark Mode</div>
+            <div className="truncate text-[10px] opacity-80 capitalize">
+              {settings.themeMode}
+            </div>
+          </div>
+        </button>
+
+        {/* Do Not Disturb Pill */}
+        <button
+          type="button"
+          onClick={() => {
+            const next = !settings.doNotDisturb;
+            console.info(
+              "[Piloti] control-panel: do-not-disturb",
+              next ? "on" : "off"
+            );
+            updateSettings({ doNotDisturb: next });
+          }}
+          className={cn(
+            "flex items-center gap-2.5 rounded-[14px] p-2.5 text-left",
+            settings.doNotDisturb
+              ? "bg-adw-accent text-white shadow-xs active:bg-[color-mix(in_srgb,var(--adw-accent),white_20%)]"
+              : "bg-black/6 text-adw-label active:bg-black/14 dark:bg-white/8 dark:active:bg-white/18"
+          )}
+        >
+          <span
+            className={cn(
+              "flex size-8 shrink-0 items-center justify-center rounded-full",
+              settings.doNotDisturb
+                ? "bg-white/20"
+                : "bg-black/10 dark:bg-white/10"
+            )}
+          >
+            <BellOffIcon className="size-4" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="text-[12px] font-semibold">Do Not Disturb</div>
+            <div className="truncate text-[10px] opacity-80">
+              {settings.doNotDisturb ? "Silence Active" : "Off"}
+            </div>
+          </div>
+        </button>
+
+        {/* Night Light Pill */}
+        <button
+          type="button"
+          onClick={() => {
+            const next = !settings.nightLight;
+            console.info(
+              "[Piloti] control-panel: night-light",
+              next ? "on" : "off"
+            );
+            updateSettings({ nightLight: next });
+          }}
+          className={cn(
+            "flex items-center gap-2.5 rounded-[14px] p-2.5 text-left",
+            settings.nightLight
+              ? "bg-adw-accent text-white shadow-xs active:bg-[color-mix(in_srgb,var(--adw-accent),white_20%)]"
+              : "bg-black/6 text-adw-label active:bg-black/14 dark:bg-white/8 dark:active:bg-white/18"
+          )}
+        >
+          <span
+            className={cn(
+              "flex size-8 shrink-0 items-center justify-center rounded-full",
+              settings.nightLight
+                ? "bg-white/20"
+                : "bg-black/10 dark:bg-white/10"
+            )}
+          >
+            <FlameIcon className="size-4" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="text-[12px] font-semibold">Night Light</div>
+            <div className="truncate text-[10px] opacity-80">
+              {settings.nightLight ? "Warm 4200K" : "Off"}
+            </div>
+          </div>
+        </button>
+
+        {/* Power Saver Pill */}
+        <button
+          type="button"
+          onClick={togglePowerSaver}
+          className={cn(
+            "flex items-center gap-2.5 rounded-[14px] p-2.5 text-left",
+            settings.powerMode === "power-saver"
+              ? "bg-adw-accent text-white shadow-xs active:bg-[color-mix(in_srgb,var(--adw-accent),white_20%)]"
+              : "bg-black/6 text-adw-label active:bg-black/14 dark:bg-white/8 dark:active:bg-white/18"
+          )}
+        >
+          <span
+            className={cn(
+              "flex size-8 shrink-0 items-center justify-center rounded-full",
+              settings.powerMode === "power-saver"
+                ? "bg-white/20"
+                : "bg-black/10 dark:bg-white/10"
+            )}
+          >
+            <GaugeIcon className="size-4" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="text-[12px] font-semibold">Power Saver</div>
+            <div className="truncate text-[10px] opacity-80">
+              {settings.powerMode === "power-saver" ? "On" : "Off"}
+            </div>
+          </div>
+        </button>
+      </div>
+
+      {/* Inline Wi-Fi Network Picker */}
+      {expandedPicker === "wifi" && (
+        <div className="flex flex-col gap-1 rounded-[14px] bg-black/6 p-2.5 dark:bg-white/8">
+          <div className="mb-1 flex items-center justify-between px-1">
+            <span className="text-[11px] font-semibold text-adw-label-secondary">
+              Wi-Fi Networks
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                setControlPanelOpen(false);
+                launchApp("settings", { payload: "network" });
+              }}
+              className="text-[10.5px] font-medium text-adw-accent active:opacity-70"
+            >
+              Network Settings…
+            </button>
+          </div>
+          {!settings.wifiEnabled ? (
+            <div className="px-2 py-2 text-[11px] text-adw-label-secondary">
+              Wi-Fi is turned off.
+            </div>
+          ) : liveWifiNetworks.length === 0 ? (
+            <div className="px-2 py-2 text-[11px] text-adw-label-secondary">
+              No wireless networks discovered.
+            </div>
+          ) : (
+            <div className="flex max-h-[148px] flex-col gap-0.5 overflow-y-auto">
+              {liveWifiNetworks.map((net) => {
+                const connected = net.ssid === settings.connectedWifi;
+                return (
+                  <button
+                    key={net.ssid}
+                    type="button"
+                    onClick={() => void connectWifiNetwork(net.ssid)}
+                    className={cn(
+                      "flex items-center justify-between gap-2 rounded-[9px] px-2.5 py-1.5 text-left text-[11.5px]",
+                      connected
+                        ? "bg-adw-accent/18 font-semibold text-adw-label"
+                        : "active:bg-black/10 dark:active:bg-white/12"
+                    )}
+                  >
+                    <span className="flex min-w-0 items-center gap-2">
+                      <WifiIcon className="size-3.5 shrink-0 opacity-80" />
+                      <span className="truncate">{net.ssid}</span>
+                    </span>
+                    <span className="flex shrink-0 items-center gap-1.5 text-[10.5px] text-adw-label-secondary tabular-nums">
+                      {net.secured && <LockIcon className="size-3 opacity-75" />}
+                      <span>{net.signal}%</span>
+                      {connected && (
+                        <CheckIcon className="size-3.5 text-adw-accent" />
+                      )}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* MPRIS Media Player Card */}
       {mprisMedia && (
         <div className="flex items-center justify-between gap-2.5 rounded-adw-card bg-black/6 px-3 py-2.5 dark:bg-white/8">
@@ -613,7 +616,7 @@ export function ControlPanel() {
               type="button"
               aria-label="Previous track"
               onClick={() => void controlMpris("previous")}
-              className="flex size-7 items-center justify-center rounded-full text-adw-label transition-colors hover:bg-black/10 dark:hover:bg-white/12"
+              className="flex size-7 items-center justify-center rounded-full text-adw-label active:bg-black/14 dark:active:bg-white/18"
             >
               <SkipBackIcon className="size-3.5" />
             </button>
@@ -621,7 +624,7 @@ export function ControlPanel() {
               type="button"
               aria-label={mprisMedia.status === "Playing" ? "Pause" : "Play"}
               onClick={() => void controlMpris("play-pause")}
-              className="flex size-7 items-center justify-center rounded-full bg-adw-accent text-white transition-opacity hover:opacity-90"
+              className="flex size-7 items-center justify-center rounded-full bg-adw-accent text-white active:bg-adw-accent/80"
             >
               {mprisMedia.status === "Playing" ? (
                 <PauseIcon className="size-3.5" />
@@ -633,7 +636,7 @@ export function ControlPanel() {
               type="button"
               aria-label="Next track"
               onClick={() => void controlMpris("next")}
-              className="flex size-7 items-center justify-center rounded-full text-adw-label transition-colors hover:bg-black/10 dark:hover:bg-white/12"
+              className="flex size-7 items-center justify-center rounded-full text-adw-label active:bg-black/14 dark:active:bg-white/18"
             >
               <SkipForwardIcon className="size-3.5" />
             </button>
@@ -642,7 +645,8 @@ export function ControlPanel() {
       )}
 
       {/* Notifications History Section */}
-      <div className="flex min-h-0 flex-1 flex-col">
+      {notifications.length > 0 && (
+        <div className="flex min-h-0 flex-1 flex-col">
         <div className="mb-2 flex items-center justify-between px-1">
           <div className="flex items-center gap-1.5">
             <span className="text-[12px] font-semibold text-adw-label-secondary">
@@ -662,22 +666,9 @@ export function ControlPanel() {
                 className="h-5 px-2 text-[10px]"
                 onClick={clearAllNotifications}
               >
-                <Trash2Icon className="size-2.5" />
                 Clear
               </Button>
             )}
-            <button
-              type="button"
-              title="Notification Settings"
-              aria-label="Notification Settings"
-              onClick={() => {
-                setControlPanelOpen(false);
-                launchApp("settings", { payload: "notifications" });
-              }}
-              className="flex size-5 items-center justify-center rounded-full bg-black/8 text-adw-label-secondary transition-colors hover:bg-black/14 hover:text-adw-label dark:bg-white/10 dark:hover:bg-white/16"
-            >
-              <SlidersHorizontalIcon className="size-2.5" />
-            </button>
           </div>
         </div>
 
@@ -700,7 +691,7 @@ export function ControlPanel() {
                     : { doNotDisturb: false }
                 )
               }
-              className="shrink-0 font-semibold text-adw-accent hover:underline"
+              className="shrink-0 font-semibold text-adw-accent active:opacity-70"
             >
               Resume
             </button>
@@ -731,7 +722,7 @@ export function ControlPanel() {
                     }
                   }}
                   className={cn(
-                    "group relative flex items-start gap-2.5 rounded-[14px] bg-black/6 p-3 transition-colors hover:bg-black/10 dark:bg-white/8 dark:hover:bg-white/12",
+                    "group relative flex items-start gap-2.5 rounded-[14px] bg-black/6 p-3 dark:bg-white/8",
                     isCritical && "ring-1 ring-rose-500/35",
                     n.fromDomicile && n.clickable && "cursor-pointer"
                   )}
@@ -767,7 +758,7 @@ export function ControlPanel() {
                             e.stopPropagation();
                             dismissNotification(n.id);
                           }}
-                          className="flex size-4 items-center justify-center rounded-full bg-black/10 text-adw-label-secondary opacity-70 transition-opacity hover:opacity-100 dark:bg-white/15"
+                          className="flex size-4 items-center justify-center rounded-full bg-black/10 text-adw-label-secondary opacity-70 active:bg-black/20 active:opacity-100 dark:bg-white/15 dark:active:bg-white/25"
                         >
                           <XIcon className="size-2.5" />
                         </button>
@@ -792,7 +783,8 @@ export function ControlPanel() {
             })
           )}
         </div>
-      </div>
+        </div>
+      )}
     </div>
   );
 }

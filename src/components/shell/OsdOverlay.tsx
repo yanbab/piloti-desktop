@@ -48,21 +48,17 @@ export function OsdOverlay() {
     ) {
       prev.volume = settings.volume;
       prev.muted = settings.muted;
-      if (!controlPanelOpen) {
-        showOsd({
-          kind: "volume",
-          value: settings.muted ? 0 : settings.volume,
-          muted: settings.muted,
-        });
-      }
+      showOsd({
+        kind: "volume",
+        value: settings.muted ? 0 : settings.volume,
+        muted: settings.muted,
+      });
     } else if (prev.brightness !== settings.brightness) {
       prev.brightness = settings.brightness;
-      if (!controlPanelOpen) {
-        showOsd({
-          kind: "brightness",
-          value: settings.brightness,
-        });
-      }
+      showOsd({
+        kind: "brightness",
+        value: settings.brightness,
+      });
     }
   }, [
     controlPanelOpen,

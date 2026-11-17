@@ -112,7 +112,7 @@ function OverviewWorkspacesBar({
       onClick={(e) => e.stopPropagation()}
       className="relative flex w-full shrink-0 items-center justify-center border-b border-black/10 bg-white/60 px-6 py-3 backdrop-blur-md dark:border-white/10 dark:bg-black/40"
     >
-      <div className="flex max-w-full items-center gap-4 overflow-x-auto px-2 py-1">
+      <div className="flex max-w-full items-center gap-4 overflow-x-auto px-3 py-2.5">
         {Array.from({ length: settings.workspaceCount }, (_, idx) => idx + 1).map(
           (ws) => {
             const active = settings.activeWorkspace === ws;
@@ -357,6 +357,13 @@ export function Overview() {
                       setDraggingWindowId(win.id);
                     }}
                     onDragEnd={() => setDraggingWindowId(null)}
+                    onAuxClick={(e) => {
+                      if (e.button === 1) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        closeWindow(win.id);
+                      }
+                    }}
                     onClick={(e) => {
                       e.stopPropagation();
                       setOverviewOpen(false);
@@ -397,13 +404,7 @@ export function Overview() {
                     </div>
 
                     {/* Bottom-center overlapping badge */}
-                    <div
-                      className={cn(
-                        "relative z-10 -mt-5 transition-transform duration-150 group-hover:scale-105",
-                        !win.browserWindowId &&
-                          "drop-shadow-[0_4px_10px_rgba(0,0,0,0.55)]"
-                      )}
-                    >
+                    <div className="relative z-10 -mt-5">
                       <AppSquircleIcon
                         iconName={win.iconName}
                         iconUrl={resolvedIconUrl}

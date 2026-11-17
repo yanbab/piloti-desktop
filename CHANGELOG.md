@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.3.0 (2026-11-17)
+
+- **Window Manager & Edge Snapping**: Unified Adwaita `WindowTitlebar` (`46px` height) and circular monochrome `WindowControls` respecting GNOME `buttonLayout` (`:close` default), added titlebar double-click maximize/restore, staggered multi-window cascade (`+24px, +24px`), fixed left/right edge snapping reverting to pre-tile size (and tightened snap zone to `12px` left/right, `10px` top), and clamped window bounds cleanly.
+- **Web Apps & Icons**: Renamed built-in web apps (`Settings (Web)`, `Files (Web)`, `Terminal (Web)`, `Text Editor (Web)`), added custom app icons and aligned web app icons vertically on the Dock, added webview URL bar and loading state, and removed icon drop shadows for a crisp desktop.
+- **Terminal (Web)**: Updated prompt to `<path>> `, kept entered commands white, styled folders in bold blue in `ls`, added `Tab` command autocompletion, `ArrowUp`/`ArrowDown` history navigation, and full-page text cursor.
+- **Global MenuBar & Keyboard Navigation**: Updated Desktop menu (`Piloti -> Desktop`, `File` with New Window / New Text File / Screenshot / Record / Restart Desktop, `View` with Launcher / Control Panel / Settings (Web) / DevTools, `Help` with Shortcuts / Report Issue), added `Ctrl+Esc` to open the Piloti menu, and fixed continuous `ArrowLeft`/`ArrowRight` navigation across menus, Launcher, and Control Panel.
+- **Launcher**: Split `Apps` and `Web apps` categories, renamed `Recent` and `Actions`, muted and aligned inline autocomplete text (`InlineCompletionInput`), and added `ArrowUp`/`ArrowDown` search query history navigation.
+- **Control Panel & Notifications**: Moved brightness/volume sliders above quick toggles with OSD overlay feedback, hid empty notifications section, removed hover states on controls, matched active pill feedback (`color-mix` lighter accent), locked notification banners to top-right, and added real Web Audio chime playback (`sound-effects.ts`) for **Play Test Alert**.
+- **Desktop, Files & Settings**: Updated Desktop context menu (`New Folder`, `New Text File`, `Align Icons`, `Change Wallpaper`), switched icon/file selection to `onPointerDown`, added `useSidebarKeyboardNav` for arrow/Tab sidebar navigation, removed row descriptions in Settings panes, and removed CSS transitions on active states.
+- **DevTools & Architecture**: Set Console & Logs background to white/black, added DevTools tables, extracted `NotificationsContext`, modularized `src/lib/gnome/`, added `storage-cache.ts` debounced `localStorage` persistence, switched BSOD background to black, and updated `docs/ARCHITECTURE.md`, `docs/API.md`, and `docs/WELCOME.html`.
+
+## 0.2.0 (2026-11-16)
+
 - **Uppercase docs, text/md default editor & default pinned apps**: Uppercased `docs/` filenames, opened text/markdown/code VFS files in `TextEditorApp` by default, and set default pinned apps to Files, Terminal, Application Store, and DevTools (with `org.gnome.DevTools` Adwaita icon).
 - **Respect Wayland/GTK size limits & dialog hints**: Honored `maxWidth`/`maxHeight` in `clampWindowBounds` and `Window`, respected `dialog`/`transientFor` parent centering and small committed sizes, and lowered built-in fallback `minSize` so app `defaultSize` is preserved.
 - **Host-to-VFS file drag-and-drop**: Added `importExternalFilesToVfs` in `web-vfs.ts` so dragging files from the user's OS onto Desktop or `FilesApp` copies them into the virtual filesystem.
@@ -35,3 +48,7 @@
 - **Boot & wallpaper transitions**: Eliminated solid-color flash behind image wallpapers and improved Dock icon loading.
 - **Quit dialogs & Welcome guide**: Updated quit dialogs with a restore-windows checkbox and added `docs/Welcome.html`.
 - **i18n & unified logging**: Consolidated logs into `.cache/piloti/piloti.log` and added `_(...)` localization (`en.json` / `fr.json`).
+
+## 0.1.0
+
+- Initial release.

@@ -11,7 +11,8 @@ import {
   XIcon,
 } from "lucide-react";
 import { WindowMenuButton } from "@/components/shell/WindowMenuButton";
-import { WindowControls } from "@/components/ui/window";
+import { WindowControls, WindowTitlebar } from "@/components/ui/window";
+import { useSidebarKeyboardNav } from "@/hooks/use-sidebar-keyboard-nav";
 import {
   useApps,
   useSettings,
@@ -182,7 +183,7 @@ function ReplModule({
   };
 
   return (
-    <div className="relative flex min-h-0 flex-1 flex-col">
+    <div className="relative flex min-h-0 flex-1 flex-col bg-white dark:bg-black">
       {/* Output Transcript */}
       <div
         ref={scrollRef}
@@ -252,7 +253,7 @@ function LogsModule() {
   }, [entries.length]);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <div className="flex min-h-0 flex-1 flex-col bg-white dark:bg-black">
       <div className="min-h-0 flex-1 overflow-y-auto px-3 py-2 font-mono text-[11.5px]">
         {entries.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center gap-1 text-center font-sans text-adw-label-secondary">
@@ -445,6 +446,8 @@ function InspectorModule() {
 
   const [activeSection, setActiveSection] =
     React.useState<InspectorSectionId>("windows");
+  const inspectorSidebarRef = React.useRef<HTMLElement | null>(null);
+  const inspectorContentRef = React.useRef<HTMLDivElement | null>(null);
 
   const sections: { id: InspectorSectionId; label: string }[] = [
     { id: "windows", label: "windows" },
@@ -454,6 +457,19 @@ function InspectorModule() {
     { id: "settings", label: "settings" },
     { id: "notifications", label: "notifications" },
   ];
+
+  const {
+    highlightedId: highlightedSection,
+    onSidebarKeyDown: onInspectorSidebarKeyDown,
+    onSidebarKeyUp: onInspectorSidebarKeyUp,
+    onContentKeyDown: onInspectorContentKeyDown,
+  } = useSidebarKeyboardNav({
+    itemIds: sections.map((s) => s.id),
+    activeId: activeSection,
+    onActivate: (id) => setActiveSection(id),
+    sidebarRef: inspectorSidebarRef,
+    contentRef: inspectorContentRef,
+  });
 
   const renderSectionTables = () => {
     switch (activeSection) {
@@ -679,13 +695,19 @@ function InspectorModule() {
   return (
     <div className="flex min-h-0 flex-1">
       {/* Settings-style Left Sidebar */}
-      <aside className="w-40 shrink-0 space-y-1 overflow-y-auto border-r border-adw-separator bg-adw-sidebar p-2 sm:w-44">
+      <aside
+        ref={inspectorSidebarRef}
+        onKeyDown={onInspectorSidebarKeyDown}
+        onKeyUp={onInspectorSidebarKeyUp}
+        className="w-40 shrink-0 space-y-1 overflow-y-auto border-r border-adw-separator bg-adw-sidebar p-2 sm:w-44"
+      >
         {sections.map((section) => {
-          const active = activeSection === section.id;
+          const active = highlightedSection === section.id;
           return (
             <button
               key={section.id}
               type="button"
+              data-sidebar-item={section.id}
               onClick={() => setActiveSection(section.id)}
               className={cn(
                 "flex w-full items-center rounded-lg px-3 py-2 text-left text-[12.5px] transition-colors",
@@ -701,7 +723,11 @@ function InspectorModule() {
       </aside>
 
       {/* Right Content: Structured Tables */}
-      <div className="flex min-w-0 flex-1 flex-col overflow-hidden bg-black/2 dark:bg-white/2">
+      <div
+        ref={inspectorContentRef}
+        onKeyDown={onInspectorContentKeyDown}
+        className="flex min-w-0 flex-1 flex-col overflow-hidden bg-black/2 dark:bg-white/2"
+      >
         <div className="min-h-0 flex-1 overflow-auto p-4">
           {renderSectionTables()}
         </div>
@@ -806,6 +832,20 @@ function StorageModule() {
   const [selectedKey, setSelectedKey] = React.useState<string | null>(
     () => entries[0]?.key ?? null
   );
+  const storageSidebarRef = React.useRef<HTMLElement | null>(null);
+  const storageContentRef = React.useRef<HTMLDivElement | null>(null);
+  const {
+    highlightedId: highlightedStorageKey,
+    onSidebarKeyDown: onStorageSidebarKeyDown,
+    onSidebarKeyUp: onStorageSidebarKeyUp,
+    onContentKeyDown: onStorageContentKeyDown,
+  } = useSidebarKeyboardNav({
+    itemIds: entries.map((e) => e.key),
+    activeId: selectedKey ?? entries[0]?.key ?? null,
+    onActivate: (key) => setSelectedKey(key),
+    sidebarRef: storageSidebarRef,
+    contentRef: storageContentRef,
+  });
 
   const refresh = React.useCallback(() => {
     const next = readLocalStorageEntries();
@@ -856,13 +896,19 @@ function StorageModule() {
       ) : (
         <div className="flex min-h-0 flex-1">
           {/* Left: Settings-style Sidebar with 1-line key names */}
-          <aside className="w-40 shrink-0 space-y-1 overflow-y-auto border-r border-adw-separator bg-adw-sidebar p-2 sm:w-44">
+          <aside
+            ref={storageSidebarRef}
+            onKeyDown={onStorageSidebarKeyDown}
+            onKeyUp={onStorageSidebarKeyUp}
+            className="w-40 shrink-0 space-y-1 overflow-y-auto border-r border-adw-separator bg-adw-sidebar p-2 sm:w-44"
+          >
             {entries.map((entry) => {
-              const isSelected = activeEntry?.key === entry.key;
+              const isSelected = highlightedStorageKey === entry.key;
               return (
                 <button
                   key={entry.key}
                   type="button"
+                  data-sidebar-item={entry.key}
                   title={entry.key}
                   onClick={() => setSelectedKey(entry.key)}
                   className={cn(
@@ -882,7 +928,11 @@ function StorageModule() {
 
           {/* Right: Selected Entry Value Inspector (no pane header) */}
           {activeEntry ? (
-            <div className="flex min-w-0 flex-1 flex-col overflow-hidden bg-black/2 dark:bg-white/2">
+            <div
+              ref={storageContentRef}
+              onKeyDown={onStorageContentKeyDown}
+              className="flex min-w-0 flex-1 flex-col overflow-hidden bg-black/2 dark:bg-white/2"
+            >
               <div className="min-h-0 flex-1 overflow-auto p-4">
                 {activeImages.length > 0 && (
                   <div className="mb-4 flex flex-wrap gap-3 border-b border-adw-separator pb-4">
@@ -1065,14 +1115,15 @@ export function ConsoleApp({
   return (
     <div className="flex h-full w-full flex-col overflow-hidden bg-adw-window text-adw-label">
       {/* Header / Module Switcher */}
-      <div
+      <WindowTitlebar
         data-window-drag-region={isCsd ? "" : undefined}
         className={cn(
-          "relative flex shrink-0 items-center justify-between gap-2 border-b border-adw-separator bg-adw-titlebar px-3 select-none",
-          isCsd ? "h-10 rounded-t-[inherit]" : "h-10"
+          "border-b border-adw-separator bg-adw-titlebar",
+          !isCsd && "rounded-t-none"
         )}
       >
-        <div className="flex w-16 items-center" data-window-no-drag>
+        <div className="flex w-16 items-center gap-1.5" data-window-no-drag>
+          {isCsd && windowId && <WindowControls side="left" />}
           <WindowMenuButton
             windowId={windowId}
             appId="console"
@@ -1113,12 +1164,12 @@ export function ConsoleApp({
         {/* CSD Window Controls */}
         {isCsd && windowId ? (
           <div className="flex w-16 items-center justify-end" data-window-no-drag>
-            <WindowControls />
+            <WindowControls side="right" />
           </div>
         ) : (
           <div className="w-16" />
         )}
-      </div>
+      </WindowTitlebar>
 
       {/* Active Module */}
       {activeModule === "repl" && <ReplModule scope={replScope} />}

@@ -50,6 +50,7 @@ import {
   type RemoteMenuEntry,
 } from "@/lib/xdg-app-menu";
 import { cn } from "@/lib/utils";
+import { buildVfsEntryWebAppUrl, getVfsEntry } from "@/lib/web-vfs";
 import { ControlPanel } from "./ControlPanel";
 import { Launcher } from "./Launcher";
 import { PilotiLogo } from "./PilotiLogo";
@@ -132,6 +133,7 @@ export function MenuBar() {
     tileWindow,
     launchApp,
     openGnomeSettings,
+    openWebUrl,
     handleMenuAction,
     launcherOpen,
     setLauncherOpen,
@@ -236,8 +238,155 @@ export function MenuBar() {
     return () => clearInterval(interval);
   }, [formatTime]);
 
+  const headerRef = React.useRef<HTMLElement | null>(null);
+  const pilotiTriggerRef = React.useRef<HTMLButtonElement | null>(null);
   const controlPanelPopupRef = React.useRef<HTMLDivElement | null>(null);
   const rightClusterRef = React.useRef<HTMLDivElement | null>(null);
+
+  React.useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey && !e.altKey && !e.metaKey && e.key === "Escape") {
+        e.preventDefault();
+        e.stopPropagation();
+        setLauncherOpen(false);
+        setControlPanelOpen(false);
+        requestAnimationFrame(() => {
+          pilotiTriggerRef.current?.focus();
+          if (pilotiTriggerRef.current?.getAttribute("aria-expanded") !== "true") {
+            pilotiTriggerRef.current?.click();
+          }
+        });
+        return;
+      }
+
+      if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+      const header = headerRef.current;
+      if (!header) return;
+
+      const target = e.target as HTMLElement | null;
+      if (
+        target &&
+        ((target.tagName === "INPUT" || target.tagName === "TEXTAREA") &&
+          (target as HTMLInputElement).value.length > 0)
+      ) {
+        return;
+      }
+      if (target?.closest('[role="slider"]')) {
+        return;
+      }
+
+      const allNavItems = Array.from(
+        header.querySelectorAll<HTMLElement>(
+          '[role="menubar"] > [role="menuitem"], [data-menubar-nav]'
+        )
+      ).filter((el) => el.offsetParent !== null);
+      if (allNavItems.length === 0) return;
+
+      const openMenubarTrigger = allNavItems.find(
+        (el) =>
+          el.getAttribute("role") === "menuitem" &&
+          el.getAttribute("aria-expanded") === "true"
+      );
+      const wasOpen =
+        launcherOpen || controlPanelOpen || Boolean(openMenubarTrigger);
+
+      // When a menu or panel is open, cycle directly across menus and panels
+      // (skipping the non-panel workspace Overview toggle button).
+      const navItems = wasOpen
+        ? allNavItems.filter((el) => el.dataset.menubarNav !== "workspace")
+        : allNavItems;
+      if (navItems.length === 0) return;
+
+      const menubarItems = navItems.filter(
+        (el) => el.getAttribute("role") === "menuitem"
+      );
+      const openMenubarIdx = openMenubarTrigger
+        ? navItems.indexOf(openMenubarTrigger)
+        : -1;
+      const active = document.activeElement as HTMLElement | null;
+
+      // Let Base UI handle submenu open (ArrowRight on sub-trigger) / close (ArrowLeft inside sub-content)
+      if (
+        openMenubarIdx !== -1 &&
+        active &&
+        ((e.key === "ArrowRight" &&
+          active.getAttribute("aria-haspopup") === "menu" &&
+          !active.closest('[role="menubar"]')) ||
+          (e.key === "ArrowLeft" &&
+            Boolean(active.closest('[data-slot="menubar-sub-content"]'))))
+      ) {
+        return;
+      }
+
+      let idx = -1;
+      if (launcherOpen) {
+        idx = navItems.findIndex((el) => el.dataset.menubarNav === "launcher");
+      } else if (controlPanelOpen) {
+        idx = navItems.findIndex(
+          (el) => el.dataset.menubarNav === "control-panel"
+        );
+      } else if (openMenubarIdx !== -1) {
+        idx = openMenubarIdx;
+      } else {
+        idx = navItems.findIndex((el) => el === active || el.contains(active));
+      }
+      if (idx === -1) return;
+
+      const currentEl = navItems[idx];
+      const inMenubar = currentEl?.getAttribute("role") === "menuitem";
+      const isFirstMenubar = inMenubar && currentEl === menubarItems[0];
+      const isLastMenubar =
+        inMenubar && currentEl === menubarItems[menubarItems.length - 1];
+
+      // Let Base UI handle intra-menubar Left/Right except at the outer edges
+      if (
+        inMenubar &&
+        !(
+          (e.key === "ArrowLeft" && isFirstMenubar) ||
+          (e.key === "ArrowRight" && isLastMenubar)
+        )
+      ) {
+        return;
+      }
+
+      e.preventDefault();
+      e.stopPropagation();
+
+      const delta = e.key === "ArrowRight" ? 1 : -1;
+      const nextEl =
+        navItems[(idx + delta + navItems.length) % navItems.length];
+      if (!nextEl) return;
+
+      if (openMenubarIdx !== -1) {
+        navItems[openMenubarIdx].click();
+      }
+      if (launcherOpen) setLauncherOpen(false);
+      if (controlPanelOpen) setControlPanelOpen(false);
+
+      const navKind = nextEl.dataset.menubarNav;
+      if (navKind === "launcher") {
+        setLauncherOpen(true);
+      } else if (navKind === "control-panel") {
+        setControlPanelOpen(true);
+      } else if (navKind === "workspace") {
+        requestAnimationFrame(() => nextEl.focus());
+      } else {
+        requestAnimationFrame(() => {
+          nextEl.focus();
+          if (wasOpen && nextEl.getAttribute("aria-expanded") !== "true") {
+            nextEl.click();
+          }
+        });
+      }
+    };
+    window.addEventListener("keydown", onKeyDown, true);
+    return () => window.removeEventListener("keydown", onKeyDown, true);
+  }, [
+    controlPanelOpen,
+    launcherOpen,
+    setControlPanelOpen,
+    setLauncherOpen,
+  ]);
 
   const handlePowerMenuClick = (
     action: "logout" | "restart" | "poweroff",
@@ -251,13 +400,17 @@ export function MenuBar() {
   };
 
   return (
-    <header className="z-[200] flex h-[30px] w-full shrink-0 items-center justify-between gap-2 border-b border-black/10 bg-[#ececef] px-2 text-adw-body text-adw-label select-none dark:border-white/10 dark:bg-[#1c1c20] dark:text-white">
+    <header
+      ref={headerRef}
+      className="z-[200] flex h-[30px] w-full shrink-0 items-center justify-between gap-2 border-b border-black/10 bg-[#ececef] px-2 text-adw-body text-adw-label select-none dark:border-white/10 dark:bg-[#1c1c20] dark:text-white"
+    >
       {/* Left: System, Active App & Application Menus */}
       <div className="flex min-w-0 flex-1 items-center overflow-hidden">
         <Menubar modal={false}>
           {/* System / Piloti Logo Menu */}
           <MenubarMenu>
             <MenubarTrigger
+              ref={pilotiTriggerRef}
               aria-label="Piloti Menu"
               className="gap-1.5 px-2 font-semibold tracking-tight"
             >
@@ -289,9 +442,6 @@ export function MenuBar() {
               <MenubarItem onClick={() => lockSession()}>
                 Lock Screen
                 <MenubarShortcut>⌃⌘Q</MenubarShortcut>
-              </MenubarItem>
-              <MenubarItem onClick={() => window.location.reload()}>
-                Reload Shell
               </MenubarItem>
               <MenubarSeparator />
               <MenubarItem onClick={(e) => handlePowerMenuClick("logout", e)}>
@@ -329,13 +479,18 @@ export function MenuBar() {
                 </>
               )}
               <MenubarSeparator />
-              <MenubarItem
-                disabled={!focusedWindowId}
-                onClick={() => focusedWindowId && closeWindow(focusedWindowId)}
-              >
-                Quit {activeAppDef.shortName}
-                <MenubarShortcut>Alt+W</MenubarShortcut>
-              </MenubarItem>
+              {focusedWindowId ? (
+                <MenubarItem
+                  onClick={() => closeWindow(focusedWindowId)}
+                >
+                  Quit {activeAppDef.shortName}
+                  <MenubarShortcut>Alt+W</MenubarShortcut>
+                </MenubarItem>
+              ) : (
+                <MenubarItem onClick={() => window.location.reload()}>
+                  Restart Desktop
+                </MenubarItem>
+              )}
             </MenubarContent>
           </MenubarMenu>
 
@@ -434,24 +589,38 @@ export function MenuBar() {
           <MenubarMenu>
             <MenubarTrigger>Help</MenubarTrigger>
             <MenubarContent>
-              <MenubarItem onClick={() => setLauncherOpen(true)}>
-                Open Launcher
-                <MenubarShortcut>Alt+Space</MenubarShortcut>
+              <MenubarItem
+                onClick={() => {
+                  const welcomeEntry = getVfsEntry(
+                    "/home/user/Desktop/Welcome.html"
+                  );
+                  const url = welcomeEntry
+                    ? buildVfsEntryWebAppUrl(welcomeEntry)
+                    : null;
+                  if (url) {
+                    openWebUrl(`${url}#shortcuts`, { title: "Welcome.html" });
+                  } else {
+                    openWebUrl(
+                      "https://yanbab.github.io/piloti-desktop/WELCOME.html#shortcuts",
+                      { title: "Shortcuts" }
+                    );
+                  }
+                }}
+              >
+                Shortcuts
               </MenubarItem>
-              <MenubarSeparator />
-              <MenubarItem onClick={() => void takeScreenshot()}>
-                Take Screenshot
-                <MenubarShortcut>Print</MenubarShortcut>
-              </MenubarItem>
-              <MenubarItem onClick={() => void startScreenRecording()}>
-                Record Screen
-              </MenubarItem>
-              <MenubarSeparator />
-              <MenubarItem onClick={() => launchApp("console")}>
-                DevTools
-              </MenubarItem>
-              <MenubarItem onClick={() => launchApp("settings", { payload: "about" })}>
-                About Piloti &amp; Shortcuts
+              <MenubarItem
+                onClick={() => {
+                  const issueUrl =
+                    "https://github.com/yanbab/piloti-desktop/issues/new";
+                  if (isBrowserRuntime) {
+                    window.open(issueUrl, "_blank", "noopener,noreferrer");
+                  } else {
+                    openWebUrl(issueUrl, { title: "Report Issue" });
+                  }
+                }}
+              >
+                Report Issue…
               </MenubarItem>
             </MenubarContent>
           </MenubarMenu>
@@ -461,12 +630,13 @@ export function MenuBar() {
       {/* Center: Workspace Indicators (click pill to toggle Overview) */}
       <button
         type="button"
+        data-menubar-nav="workspace"
         aria-label="Toggle Overview"
         title="Overview (Meta+↑ / F3)"
         aria-pressed={overviewOpen}
         onClick={() => toggleOverview()}
         className={cn(
-          "hidden h-[22px] shrink-0 cursor-default items-center gap-[5px] rounded-full px-2 outline-none transition-colors md:flex",
+          "hidden h-[22px] shrink-0 cursor-default items-center gap-[5px] rounded-full px-2 outline-none transition-colors focus-visible:bg-black/10 dark:focus-visible:bg-white/12 md:flex",
           overviewOpen
             ? "bg-black/8 dark:bg-white/12"
             : "hover:bg-black/8 dark:hover:bg-white/12"
@@ -551,6 +721,7 @@ export function MenuBar() {
           }}
         >
           <DropdownMenuTrigger
+            data-menubar-nav="launcher"
             aria-label="Launcher (Alt+Space)"
             className="flex h-[22px] shrink-0 cursor-default items-center rounded-full px-2 outline-none select-none active:bg-black/14 data-popup-open:bg-black/12 focus-visible:bg-black/10 dark:active:bg-white/18 dark:data-popup-open:bg-white/15 dark:focus-visible:bg-white/12"
           >
@@ -576,6 +747,7 @@ export function MenuBar() {
           }}
         >
           <DropdownMenuTrigger
+            data-menubar-nav="control-panel"
             aria-label="Control panel and Notifications"
             data-control-panel-trigger
             className="flex h-[22px] shrink-0 cursor-default items-center gap-2 rounded-full px-2.5 text-adw-body font-normal outline-none select-none active:bg-black/14 data-popup-open:bg-black/12 focus-visible:bg-black/10 dark:active:bg-white/18 dark:data-popup-open:bg-white/15 dark:focus-visible:bg-white/12"

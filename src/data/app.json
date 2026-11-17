@@ -198,9 +198,9 @@
       "keywords": "music live coding pattern repl audio"
     },
     {
-      "id": "web:https://stackedit.io/",
+      "id": "web:https://stackedit.io/app",
       "title": "StackEdit",
-      "url": "https://stackedit.io/",
+      "url": "https://stackedit.io/app",
       "category": "Productivity",
       "keywords": "markdown editor notes writing latex pwa",
       "launcherDefault": true

@@ -1,10 +1,5 @@
 import { createToastManager } from "@/components/ui/toast";
 
-export type NotificationBannerPosition =
-  | "top-center"
-  | "top-right"
-  | "bottom-right";
-
 export interface NotificationActionItem {
   key: string;
   label: string;

@@ -290,7 +290,7 @@ async function resolveWithDirectAdwaitaFallback(
   return undefined;
 }
 
-const DOCK_ICONS_CACHE_KEY = "piloti.dock-icons.v8";
+const DOCK_ICONS_CACHE_KEY = "piloti.dock-icons.v9";
 
 interface DockIconsCachePayload {
   theme: string;

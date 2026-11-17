@@ -228,7 +228,7 @@ function DockItem({
       {...restTileProps}
       className={cn(
         // A size container, so the badge scales with the tile and the icon matches `--dock-size` exactly.
-        "@container relative flex size-[var(--dock-item-size,var(--dock-size))] shrink-0 items-center justify-center transition-[width,height] duration-200 ease-out group-data-[resizing]/dock:transition-none has-[>button:active]:brightness-75 data-[launching]:animate-pulse [&>img]:size-full [&>svg]:size-full",
+        "@container relative flex size-[var(--dock-item-size,var(--dock-size))] shrink-0 items-center justify-center transition-[width,height] duration-200 ease-out group-data-[resizing]/dock:transition-none has-[>button:active]:brightness-75 data-[launching]:animate-[dock-launch-pulse_0.8s_ease-in-out_infinite] [&>img]:size-full [&>svg]:size-full",
         tileClassName,
         className
       )}

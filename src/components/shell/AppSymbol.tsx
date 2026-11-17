@@ -42,7 +42,6 @@ export function AppSquircleIcon({
         }}
         className={cn(
           "pointer-events-none shrink-0 object-contain select-none",
-          !squircle && "drop-shadow-[0_2px_5px_rgba(0,0,0,0.28)]",
           className
         )}
       />

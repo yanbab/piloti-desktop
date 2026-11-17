@@ -1,5 +1,4 @@
 import * as React from "react";
-import { evaluateCspSafe } from "./csp-repl-eval";
 
 export type ConsoleLogLevel = "log" | "info" | "warn" | "error";
 
@@ -298,12 +297,14 @@ export async function evaluateReplCode(
     fn = new AsyncFunction(...keys, `"use strict";\nreturn (${trimmed});`);
   } catch (err) {
     if (err instanceof EvalError) {
+      const { evaluateCspSafe } = await import("./csp-repl-eval");
       return evaluateCspSafe(trimmed, scope);
     }
     try {
       fn = new AsyncFunction(...keys, `"use strict";\n${trimmed}`);
     } catch (innerErr) {
       if (innerErr instanceof EvalError) {
+        const { evaluateCspSafe } = await import("./csp-repl-eval");
         return evaluateCspSafe(trimmed, scope);
       }
       throw innerErr;

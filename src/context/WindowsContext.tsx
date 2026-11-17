@@ -88,6 +88,7 @@ export interface WindowsContextValue {
   waylandPopups: ResolvedPopupWindow[];
   focusedWindowId: string | null;
   focusedWindow: DesktopWindowInstance | undefined;
+  clearFocusedWindow: () => void;
   activeAppDef: AppDefinition;
   mruWindows: DesktopWindowInstance[];
   launchingApps: string[];
@@ -187,6 +188,26 @@ function patchExternalMeta(
     if (!cur) return prev;
     return { ...prev, [rawId]: updater(cur) };
   });
+}
+
+function computeCenteredOrCascadedPosition(
+  existingPositions: Array<{ x: number; y: number }>,
+  size: { width: number; height: number },
+  screenWidth: number,
+  screenHeight: number,
+  rememberedPosition?: { x: number; y: number }
+): { x: number; y: number } {
+  if (existingPositions.length > 0) {
+    const last = existingPositions[existingPositions.length - 1];
+    return { x: last.x + 24, y: last.y + 24 };
+  }
+  if (rememberedPosition) {
+    return rememberedPosition;
+  }
+  return {
+    x: Math.max(0, Math.round((screenWidth - size.width) / 2)),
+    y: Math.max(0, Math.round((screenHeight - 30 - size.height) / 2)),
+  };
 }
 
 export function useWindowsValue(
@@ -458,13 +479,28 @@ function pruneBrowserRecord(
           (bw.height > 150
             ? bw.height
             : Math.min(720, Math.max(460, screenHeight - 140)));
+        const sameAppPositions: Array<{ x: number; y: number }> = [];
+        for (const prevBw of browserWindows) {
+          if (prevBw.id === bw.id) continue;
+          const prevKey = prevBw.appId || prevBw.url;
+          const curKey = bw.appId || bw.url;
+          if (prevKey !== curKey) continue;
+          const existingMeta =
+            newEntries.get(prevBw.id) ?? browserMeta[prevBw.id];
+          if (existingMeta && !existingMeta.minimized) {
+            sameAppPositions.push(existingMeta.position);
+          }
+        }
         const clamped = clampWindowBounds(
           restored
             ? { x: restored.x, y: restored.y }
-            : remembered?.position ?? {
-              x: Math.max(40, 110 + (idx % 5) * 44),
-              y: Math.max(24, 40 + (idx % 5) * 32),
-            },
+            : computeCenteredOrCascadedPosition(
+                sameAppPositions,
+                { width: defaultW, height: defaultH },
+                screenWidth,
+                screenHeight,
+                remembered?.position
+              ),
           { width: defaultW, height: defaultH },
           screenWidth,
           screenHeight,
@@ -575,24 +611,38 @@ function pruneBrowserRecord(
         const parentMeta = w.transientFor
           ? newEntries.get(w.transientFor)
           : undefined;
+        const sameAppPositions: Array<{ x: number; y: number }> = [];
+        for (const prevW of toplevels) {
+          if (prevW.appId === w.appId) continue;
+          if ((prevW.desktopId || prevW.appId) !== (w.desktopId || w.appId)) {
+            continue;
+          }
+          const existingMeta =
+            newEntries.get(prevW.appId) ?? waylandMeta[prevW.appId];
+          if (existingMeta && !existingMeta.minimized) {
+            sameAppPositions.push(existingMeta.position);
+          }
+        }
         const rawPos = restored
           ? { x: restored.x, y: restored.y }
-          : remembered?.position ??
-            (parentMeta
-              ? {
-                  x: Math.round(
-                    parentMeta.position.x +
-                      (parentMeta.size.width - rawSize.width) / 2
-                  ),
-                  y: Math.round(
-                    parentMeta.position.y +
-                      (parentMeta.size.height - rawSize.height) / 2
-                  ),
-                }
-              : {
-                  x: 90 + (idx % 5) * 48,
-                  y: 44 + (idx % 5) * 34,
-                });
+          : parentMeta
+            ? {
+                x: Math.round(
+                  parentMeta.position.x +
+                    (parentMeta.size.width - rawSize.width) / 2
+                ),
+                y: Math.round(
+                  parentMeta.position.y +
+                    (parentMeta.size.height - rawSize.height) / 2
+                ),
+              }
+            : computeCenteredOrCascadedPosition(
+                sameAppPositions,
+                rawSize,
+                screenWidth,
+                screenHeight,
+                remembered?.position
+              );
         const clamped = clampWindowBounds(
           rawPos,
           rawSize,
@@ -1018,6 +1068,11 @@ function pruneBrowserRecord(
     }
   }, [combinedWindows, focusedWindowId, settings.activeWorkspace]);
 
+  const clearFocusedWindow = React.useCallback(() => {
+    setFocusedWindowId(null);
+    domicile.windows.focusShell();
+  }, [domicile.windows]);
+
   const focusWindow = React.useCallback(
     (windowId: string) => {
       const newZ = ++nextZIndex;
@@ -1038,65 +1093,86 @@ function pruneBrowserRecord(
         updateSettings({ activeWorkspace: targetWorkspace });
       }
 
-      const clampedFrame =
-        existing && !existing.maximized && !existing.fullscreen
-          ? clampWindowBounds(
-            existing.position,
-            existing.size,
-            screenWidth,
-            screenHeight,
-            {
-              minWidth: existing.minSize?.width,
-              minHeight: existing.minSize?.height,
-            }
-          )
+      const clampForWindow = (
+        pos: { x: number; y: number },
+        sz: { width: number; height: number },
+        maximized?: boolean,
+        fullscreen?: boolean,
+        minSize?: { width?: number; height?: number }
+      ) =>
+        !maximized && !fullscreen
+          ? clampWindowBounds(pos, sz, screenWidth, screenHeight, {
+              minWidth: minSize?.width,
+              minHeight: minSize?.height,
+            })
           : null;
 
       if (windowId.startsWith("wayland:")) {
         const rawId = windowId.slice("wayland:".length);
-        patchExternalMeta(setWaylandMeta, rawId, (cur) => ({
-          ...cur,
-          ...(clampedFrame
-            ? { position: clampedFrame.position, size: clampedFrame.size }
-            : {}),
-          workspace: clampWorkspace(cur.workspace, settings.workspaceCount),
-          minimized: false,
-          zIndex: newZ,
-        }));
+        patchExternalMeta(setWaylandMeta, rawId, (cur) => {
+          const clamped = clampForWindow(
+            cur.position,
+            cur.size,
+            cur.maximized,
+            cur.fullscreen,
+            existing?.minSize
+          );
+          return {
+            ...cur,
+            ...(clamped
+              ? { position: clamped.position, size: clamped.size }
+              : {}),
+            workspace: clampWorkspace(cur.workspace, settings.workspaceCount),
+            minimized: false,
+            zIndex: newZ,
+          };
+        });
         domicile.windows.focus(rawId);
       } else if (windowId.startsWith("browser:")) {
         const rawId = windowId.slice("browser:".length);
-        patchExternalMeta(setBrowserMeta, rawId, (cur) => ({
-          ...cur,
-          ...(clampedFrame
-            ? { position: clampedFrame.position, size: clampedFrame.size }
-            : {}),
-          workspace: clampWorkspace(cur.workspace, settings.workspaceCount),
-          minimized: false,
-          zIndex: newZ,
-        }));
+        patchExternalMeta(setBrowserMeta, rawId, (cur) => {
+          const clamped = clampForWindow(
+            cur.position,
+            cur.size,
+            cur.maximized,
+            cur.fullscreen,
+            existing?.minSize
+          );
+          return {
+            ...cur,
+            ...(clamped
+              ? { position: clamped.position, size: clamped.size }
+              : {}),
+            workspace: clampWorkspace(cur.workspace, settings.workspaceCount),
+            minimized: false,
+            zIndex: newZ,
+          };
+        });
         domicile.windows.focusShell();
       } else {
         setShellWindows((prev) =>
-          prev.map((w) =>
-            w.id === windowId
-              ? {
-                ...w,
-                ...(clampedFrame
-                  ? {
-                    position: clampedFrame.position,
-                    size: clampedFrame.size,
+          prev.map((w) => {
+            if (w.id !== windowId) return w;
+            const clamped = clampForWindow(
+              w.position,
+              w.size,
+              w.maximized,
+              w.fullscreen,
+              w.minSize
+            );
+            return {
+              ...w,
+              ...(clamped
+                ? {
+                    position: clamped.position,
+                    size: clamped.size,
                   }
-                  : {}),
-                workspace: clampWorkspace(
-                  w.workspace,
-                  settings.workspaceCount
-                ),
-                minimized: false,
-                zIndex: newZ,
-              }
-              : w
-          )
+                : {}),
+              workspace: clampWorkspace(w.workspace, settings.workspaceCount),
+              minimized: false,
+              zIndex: newZ,
+            };
+          })
         );
         domicile.windows.focusShell();
       }
@@ -1245,7 +1321,15 @@ function pruneBrowserRecord(
       }
     ) => {
       const targetWin = combinedWindows.find((w) => w.id === windowId);
-      const winWidth = patch.size?.width ?? targetWin?.size.width ?? 240;
+      const untileRestoredSize =
+        patch.position && !patch.size && targetWin?.tiled
+          ? preTileSizesRef.current.get(windowId)
+          : undefined;
+      if (untileRestoredSize) {
+        preTileSizesRef.current.delete(windowId);
+      }
+      const effectiveSizePatch = patch.size ?? untileRestoredSize;
+      const winWidth = effectiveSizePatch?.width ?? targetWin?.size.width ?? 240;
       const maxY = Math.max(0, screenHeight - 30 - 48);
       const minX = -Math.max(0, winWidth - 80);
       const maxX = Math.max(0, screenWidth - 80);
@@ -1255,16 +1339,16 @@ function pruneBrowserRecord(
           y: Math.min(maxY, Math.max(0, Math.round(patch.position.y))),
         }
         : undefined;
-      const roundedSize = patch.size
+      const roundedSize = effectiveSizePatch
         ? {
-          width: Math.round(patch.size.width),
-          height: Math.round(patch.size.height),
+          width: Math.round(effectiveSizePatch.width),
+          height: Math.round(effectiveSizePatch.height),
         }
         : undefined;
 
       if (targetWin) {
         const nextPos = clampedPosition ?? targetWin.position;
-        const nextSize = patch.size ?? targetWin.size;
+        const nextSize = effectiveSizePatch ?? targetWin.size;
         const key = targetWin.appId.startsWith("webview:")
           ? "webview"
           : targetWin.appId;
@@ -1312,7 +1396,7 @@ function pruneBrowserRecord(
         patchExternalMeta(setWaylandMeta, rawId, (cur) => ({
           ...cur,
           position: clampedPosition ?? cur.position,
-          size: patch.size ?? cur.size,
+          size: effectiveSizePatch ?? cur.size,
           tiled: clampedPosition ? null : cur.tiled,
         }));
       } else if (windowId.startsWith("browser:")) {
@@ -1320,7 +1404,7 @@ function pruneBrowserRecord(
         patchExternalMeta(setBrowserMeta, rawId, (cur) => ({
           ...cur,
           position: clampedPosition ?? cur.position,
-          size: patch.size ?? cur.size,
+          size: effectiveSizePatch ?? cur.size,
           tiled: clampedPosition ? null : cur.tiled,
         }));
       } else {
@@ -1330,7 +1414,7 @@ function pruneBrowserRecord(
               ? {
                 ...w,
                 position: clampedPosition ?? w.position,
-                size: patch.size ?? w.size,
+                size: effectiveSizePatch ?? w.size,
                 tiled: clampedPosition ? null : w.tiled,
               }
               : w
@@ -1338,8 +1422,12 @@ function pruneBrowserRecord(
         );
       }
     },
-    [combinedWindows, settings.savedWindowBounds, updateSettings]
+    [combinedWindows, screenHeight, screenWidth, settings.savedWindowBounds, updateSettings]
   );
+
+  const preTileSizesRef = React.useRef<
+    Map<string, { width: number; height: number }>
+  >(new Map());
 
   const tileWindow = React.useCallback(
     (windowId: string, side: "left" | "right" | "full") => {
@@ -1347,6 +1435,10 @@ function pruneBrowserRecord(
       if (side === "full") {
         toggleMaximizeWindow(windowId);
         return;
+      }
+      const existingWin = combinedWindows.find((w) => w.id === windowId);
+      if (existingWin && !existingWin.tiled) {
+        preTileSizesRef.current.set(windowId, existingWin.size);
       }
       const menubarHeight = 30;
       const topInset = 6;
@@ -1406,13 +1498,23 @@ function pruneBrowserRecord(
           )
         );
       }
-      focusWindow(windowId);
+      clearLaunchOverlays();
+      setFocusedWindowId(windowId);
+      setMruIds((prev) => [windowId, ...prev.filter((id) => id !== windowId)]);
+      if (windowId.startsWith("wayland:")) {
+        domicile.windows.focus(windowId.slice("wayland:".length));
+      } else {
+        domicile.windows.focusShell();
+      }
     },
     [
-      focusWindow,
+      clearLaunchOverlays,
+      combinedWindows,
+      domicile.windows,
       screenHeight,
       screenWidth,
       settings.dockAutoHide,
+      settings.dockPosition,
       settings.dockSize,
       toggleMaximizeWindow,
     ]
@@ -1530,42 +1632,20 @@ function pruneBrowserRecord(
         }
       }
 
-      if (
-        !isBrowserRuntime &&
-        appId === "settings" &&
-        settings.preferGnomeControlCenter &&
-        gnomeCapabilities.gnomeControlCenter &&
-        options?.forceCsd === undefined
-      ) {
-        const panelMap: Record<string, GnomeSettingsPanel> = {
-          appearance: "appearance",
-          notifications: "notifications",
-          wallpaper: "background",
-          network: "wifi",
-          sound: "sound",
-          displays: "display",
-          about: "system",
-        };
-        const panel = options?.payload ? panelMap[options.payload] : undefined;
-        openGnomeControlCenter(domicile, panel, settings.hiddenGnomePanels);
-        return;
-      }
-
-      // Built-in shell windows (`settings`, `console`, or web `files` / `terminal` / `text-editor`)
+      // Built-in shell windows (`settings`, `console`, `files`, `terminal`, `text-editor`, `app-store`)
       const builtinKind: BuiltinAppId | undefined =
         def?.builtinComponent ??
         (appId === "settings" || appId === "console"
           ? (appId as BuiltinAppId)
-          : isBrowserRuntime && appId === "nautilus"
+          : appId === "nautilus"
             ? "files"
-            : isBrowserRuntime && appId === "terminal"
+            : appId === "terminal"
               ? "terminal"
               : undefined);
       if (builtinKind) {
         const builtinDef =
           def ?? APP_CATALOG.find((a) => a.id === builtinKind) ?? APP_CATALOG[0];
         const count = ++nextShellWinCounter;
-        const offset = (count % 5) * 28;
         const resolvedAppId = def?.id ?? builtinKind;
         const remembered = settings.savedWindowBounds?.[resolvedAppId];
         const minSize = builtinDef.minSize ?? {
@@ -1578,14 +1658,18 @@ function pruneBrowserRecord(
         const height =
           remembered?.size.height ??
           Math.min(builtinDef.defaultSize.height, screenHeight - 120);
+        const sameAppPositions = shellWindows
+          .filter((w) => w.appId === resolvedAppId && !w.minimized)
+          .sort((a, b) => a.zIndex - b.zIndex)
+          .map((w) => w.position);
         const clamped = clampWindowBounds(
-          remembered?.position ?? {
-            x: Math.max(24, Math.round((screenWidth - width) / 2 - 20 + offset)),
-            y: Math.max(
-              42,
-              Math.round((screenHeight - height) / 2 - 20 + offset)
-            ),
-          },
+          computeCenteredOrCascadedPosition(
+            sameAppPositions,
+            { width, height },
+            screenWidth,
+            screenHeight,
+            remembered?.position
+          ),
           { width, height },
           screenWidth,
           screenHeight,
@@ -2189,9 +2273,9 @@ function pruneBrowserRecord(
       return matched;
     }
     return {
-      id: "piloti",
-      name: "Piloti",
-      shortName: "Piloti",
+      id: "desktop",
+      name: "Desktop",
+      shortName: "Desktop",
       description: "Piloti Desktop Shell",
       category: "System",
       iconName: "sparkles",
@@ -2202,19 +2286,28 @@ function pruneBrowserRecord(
         {
           title: "File",
           items: [
-            ...(!isBrowserRuntime
-              ? [
-                  {
-                    label: "Launch Terminal",
-                    shortcut: "Meta+↵",
-                    actionId: "launch:terminal",
-                  },
-                ]
-              : []),
             {
-              label: "Launcher",
-              shortcut: "Alt+Space",
-              actionId: "shell:launcher",
+              label: "New Window",
+              actionId: "desktop:new-window",
+            },
+            {
+              label: "New Text File",
+              actionId: "desktop:new-text-file",
+              separatorAfter: true,
+            },
+            {
+              label: "Screenshot",
+              shortcut: "Print",
+              actionId: "shell:screenshot",
+            },
+            {
+              label: "Record",
+              actionId: "shell:record",
+              separatorAfter: true,
+            },
+            {
+              label: "Restart Desktop",
+              actionId: "shell:reload",
             },
           ],
         },
@@ -2222,20 +2315,29 @@ function pruneBrowserRecord(
           title: "View",
           items: [
             {
-              label: "Desktop Settings",
+              label: "Launcher",
+              shortcut: "Alt+Space",
+              actionId: "shell:launcher",
+            },
+            {
+              label: "Control Panel",
+              shortcut: "Alt+N",
+              actionId: "shell:control-panel",
+            },
+            {
+              label: "Settings (Web)",
               shortcut: "Alt+,",
               actionId: "launch:settings",
             },
             {
-              label: "Toggle Control Panel",
-              shortcut: "Alt+N",
-              actionId: "shell:control-panel",
+              label: "DevTools",
+              actionId: "launch:console",
             },
           ],
         },
       ],
     };
-  }, [focusedWindow, isBrowserRuntime, settings.installedWebApps]);
+  }, [focusedWindow, settings.installedWebApps]);
 
   const handleMenuAction = React.useCallback(
     (actionId: string) => {
@@ -2251,6 +2353,16 @@ function pruneBrowserRecord(
         tileWindow(focusedWindowId, "right");
       } else if (actionId === "app:new-window" && focusedWindow) {
         launchApp(focusedWindow.appId, { forceNew: true });
+      } else if (actionId === "desktop:new-window") {
+        launchApp("nautilus", { forceNew: true });
+      } else if (actionId === "desktop:new-text-file") {
+        launchApp("text-editor", { forceNew: true });
+      } else if (actionId === "shell:screenshot") {
+        void backendsCtx.takeScreenshot();
+      } else if (actionId === "shell:record") {
+        void backendsCtx.startScreenRecording();
+      } else if (actionId === "shell:reload") {
+        window.location.reload();
       } else if (actionId.startsWith("settings:")) {
         const section = actionId.split(":")[1];
         launchApp("settings", { payload: section });
@@ -2273,6 +2385,7 @@ function pruneBrowserRecord(
       }
     },
     [
+      backendsCtx,
       closeWindow,
       focusedWindow,
       focusedWindowId,
@@ -2319,6 +2432,7 @@ function pruneBrowserRecord(
       waylandPopups,
       focusedWindowId,
       focusedWindow,
+      clearFocusedWindow,
       activeAppDef,
       mruWindows,
       launchingApps,
@@ -2366,6 +2480,7 @@ function pruneBrowserRecord(
       altTabOpen,
       closeAltTab,
       closeWindow,
+      clearFocusedWindow,
       combinedWindows,
       launcherOpen,
       commitAltTab,

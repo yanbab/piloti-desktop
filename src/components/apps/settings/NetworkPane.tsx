@@ -6,7 +6,6 @@ import {
   GroupedFormGroup,
   GroupedFormRow,
   GroupedFormRowControl,
-  GroupedFormRowDescription,
   GroupedFormRowLabel,
   GroupedFormRowTitle,
   GroupedFormSection,
@@ -36,11 +35,6 @@ export function NetworkPane() {
           <GroupedFormRow>
             <GroupedFormRowLabel>
               <GroupedFormRowTitle>Wi-Fi</GroupedFormRowTitle>
-              <GroupedFormRowDescription>
-                {settings.wifiEnabled
-                  ? `Connected to ${settings.connectedWifi} · WPA3 Personal`
-                  : "Wireless networking is turned off"}
-              </GroupedFormRowDescription>
             </GroupedFormRowLabel>
             <GroupedFormRowControl>
               <Switch
@@ -76,10 +70,6 @@ export function NetworkPane() {
                         </span>
                       )}
                     </GroupedFormRowTitle>
-                    <GroupedFormRowDescription>
-                      {net.band} · Signal {net.signal}%
-                      {net.ipAddress ? ` · IP ${net.ipAddress}` : ""}
-                    </GroupedFormRowDescription>
                   </GroupedFormRowLabel>
                   <GroupedFormRowControl>
                     {connected ? (

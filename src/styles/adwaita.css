@@ -608,8 +608,9 @@
  * Adwaita HeaderBar & Circular Monochrome Window Controls
  */
 [data-slot="window-titlebar"] {
-  height: 50px;
-  padding-inline: 14px;
+  height: 46px;
+  min-height: 46px;
+  padding-inline: 12px;
   border-bottom-color: transparent;
 }
 
@@ -631,4 +632,14 @@
 
 [data-slot="window-controls"] > button:hover {
   filter: brightness(1.2);
+}
+
+@keyframes dock-launch-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.2;
+  }
 }

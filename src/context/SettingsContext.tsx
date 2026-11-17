@@ -22,10 +22,7 @@ import {
   resolveBackgroundRenderSpec,
   selectGnomePictureUri,
 } from "@/lib/gnome-background";
-import {
-  type NotificationBannerPosition,
-  clampHistoryLimit,
-} from "@/lib/notifications";
+import { clampHistoryLimit } from "@/lib/notifications";
 import {
   readGnomeBackgroundBlob,
   setSystemAudio,
@@ -74,6 +71,7 @@ export interface DesktopSettings {
   clock24Hour: boolean;
   clockShowSeconds: boolean;
   windowDecorationMode: WindowDecorationMode;
+  windowButtonLayout: string;
   syncGnomeSettings: boolean;
   preferGnomeControlCenter: boolean;
   hiddenGnomePanels: string[];
@@ -107,7 +105,6 @@ export interface DesktopSettings {
   notificationShowOnLockScreen: boolean;
   notificationShowPreviews: boolean;
   notificationAllowCriticalInDnd: boolean;
-  notificationBannerPosition: NotificationBannerPosition;
   notificationBannerTimeoutMs: number;
   notificationHistoryLimit: number;
   powerMode: "balanced" | "performance" | "power-saver";
@@ -137,6 +134,7 @@ const DEFAULT_SETTINGS: DesktopSettings = {
   clock24Hour: true,
   clockShowSeconds: false,
   windowDecorationMode: "auto",
+  windowButtonLayout: ":close",
   syncGnomeSettings: true,
   preferGnomeControlCenter: false,
   hiddenGnomePanels: [...DEFAULT_HIDDEN_GNOME_PANELS],
@@ -170,7 +168,6 @@ const DEFAULT_SETTINGS: DesktopSettings = {
   notificationShowOnLockScreen: true,
   notificationShowPreviews: true,
   notificationAllowCriticalInDnd: true,
-  notificationBannerPosition: "top-center",
   notificationBannerTimeoutMs: 5000,
   notificationHistoryLimit: 50,
   powerMode: "balanced",
@@ -307,12 +304,6 @@ export function resolveInitialSettings(
         gnomeBackground.pictureUri = parsed.customWallpaperUrl;
       }
 
-      const notificationBannerPosition: NotificationBannerPosition =
-        parsed.notificationBannerPosition === "top-right" ||
-        parsed.notificationBannerPosition === "bottom-right" ||
-        parsed.notificationBannerPosition === "top-center"
-          ? parsed.notificationBannerPosition
-          : DEFAULT_SETTINGS.notificationBannerPosition;
       const notificationBannerTimeoutMs =
         typeof parsed.notificationBannerTimeoutMs === "number" &&
         Number.isFinite(parsed.notificationBannerTimeoutMs)
@@ -326,7 +317,6 @@ export function resolveInitialSettings(
         ...DEFAULT_SETTINGS,
         ...parsed,
         gnomeBackground,
-        notificationBannerPosition,
         notificationBannerTimeoutMs,
         notificationHistoryLimit,
         workspaceCount,

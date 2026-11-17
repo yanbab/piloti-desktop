@@ -484,7 +484,7 @@ export function Dock() {
                     src={appGridIconUrl}
                     alt=""
                     draggable={false}
-                    className={`pointer-events-none size-full shrink-0 object-contain select-none drop-shadow-[0_2px_5px_rgba(0,0,0,0.28)] ${appGridIsSymbolic ? "opacity-90 dark:invert" : ""
+                    className={`pointer-events-none size-full shrink-0 object-contain select-none ${appGridIsSymbolic ? "opacity-90 dark:invert" : ""
                       }`}
                   />
                 );

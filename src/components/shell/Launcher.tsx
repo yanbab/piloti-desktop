@@ -40,6 +40,39 @@ import { AppSquircleIcon } from "./AppSymbol";
 const RECENT_LAUNCHES_KEY = "piloti.launcher.recent.v1";
 const LEGACY_RECENT_LAUNCHES_KEY = "piloti.command-palette.recent.v1";
 const MAX_RECENT_LAUNCHES = 6;
+const QUERY_HISTORY_KEY = "piloti.launcher.query-history.v1";
+const MAX_QUERY_HISTORY = 20;
+
+function loadQueryHistory(): string[] {
+  if (typeof localStorage === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(QUERY_HISTORY_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed)
+      ? parsed.filter((x): x is string => typeof x === "string" && x.trim().length > 0)
+      : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveQueryHistory(query: string, prev: readonly string[]): string[] {
+  const trimmed = query.trim();
+  if (!trimmed) return [...prev];
+  const next = [trimmed, ...prev.filter((q) => q !== trimmed)].slice(
+    0,
+    MAX_QUERY_HISTORY
+  );
+  if (typeof localStorage !== "undefined") {
+    try {
+      localStorage.setItem(QUERY_HISTORY_KEY, JSON.stringify(next));
+    } catch {
+      // ignore storage errors
+    }
+  }
+  return next;
+}
 
 function loadRecentLaunches(): string[] {
   if (typeof localStorage === "undefined") return [];
@@ -170,6 +203,9 @@ export function Launcher() {
   const [recentLaunches, setRecentLaunches] = React.useState<string[]>(
     loadRecentLaunches
   );
+  const [queryHistory, setQueryHistory] =
+    React.useState<string[]>(loadQueryHistory);
+  const [historyIndex, setHistoryIndex] = React.useState<number>(-1);
   const inputRef = React.useRef<HTMLInputElement | null>(null);
 
   const recordLaunch = React.useCallback((key: string) => {
@@ -180,6 +216,7 @@ export function Launcher() {
     if (launcherOpen) {
       setSearchQuery("");
       setSelectedValue("");
+      setHistoryIndex(-1);
       const frame = requestAnimationFrame(() => {
         inputRef.current?.focus();
       });
@@ -194,10 +231,14 @@ export function Launcher() {
 
   const runAndClose = React.useCallback(
     (fn: () => void) => {
+      if (searchQuery.trim()) {
+        setQueryHistory((prev) => saveQueryHistory(searchQuery, prev));
+      }
+      setHistoryIndex(-1);
       setLauncherOpen(false);
       fn();
     },
-    [setLauncherOpen]
+    [searchQuery, setLauncherOpen]
   );
 
   const tokens = React.useMemo(
@@ -223,7 +264,7 @@ export function Launcher() {
       });
     }
 
-    const appEntries: PaletteEntry[] = [
+    const nativeAppEntries: PaletteEntry[] = [
       ...APP_CATALOG.filter((app) => Boolean(app.builtinComponent)).map(
         (app) => ({
           value: `builtin:${app.id}`,
@@ -264,36 +305,38 @@ export function Launcher() {
           runAndClose(() => launchXdgApp(entry));
         },
       })),
-      ...settings.installedWebApps.map((webApp) => {
-        const displayTitle = resolveWebAppTitle({
-          rawUrl: webApp.url,
-          hostTitle: webApp.title,
-          installedApps: settings.installedWebApps,
-        });
-        return {
-          value: `web:${webApp.id}`,
-          score: scoreMatch(
-            tokens,
-            displayTitle,
-            `${webApp.url} ${webApp.keywords ?? ""}`
-          ),
-          icon: (
-            <AppSquircleIcon
-              iconUrl={webApp.iconUrl ?? getWebAppFaviconUrl(webApp.url)}
-              fallbackIconUrl={getAppIconUrl("browser")}
-              squircle
-              className="size-5 shrink-0"
-            />
-          ),
-          label: displayTitle,
-          hint: "Web App",
-          onSelect: () => {
-            recordLaunch(`web:${webApp.id}`);
-            runAndClose(() => openWebUrl(webApp.url));
-          },
-        };
-      }),
     ];
+
+    const webAppEntries: PaletteEntry[] = settings.installedWebApps.map((webApp) => {
+      const displayTitle = resolveWebAppTitle({
+        rawUrl: webApp.url,
+        hostTitle: webApp.title,
+        installedApps: settings.installedWebApps,
+      });
+      return {
+        value: `web:${webApp.id}`,
+        score: scoreMatch(
+          tokens,
+          displayTitle,
+          `${webApp.url} ${webApp.keywords ?? ""}`
+        ),
+        icon: (
+          <AppSquircleIcon
+            iconUrl={webApp.iconUrl ?? getWebAppFaviconUrl(webApp.url)}
+            fallbackIconUrl={getAppIconUrl("browser")}
+            squircle
+            className="size-5 shrink-0"
+          />
+        ),
+        label: displayTitle,
+        onSelect: () => {
+          recordLaunch(`web:${webApp.id}`);
+          runAndClose(() => openWebUrl(webApp.url));
+        },
+      };
+    });
+
+    const appEntries: PaletteEntry[] = [...nativeAppEntries, ...webAppEntries];
 
     if (tokens.length === 0) {
       const runningEntries: PaletteEntry[] = mruWindows.map((win) => ({
@@ -351,7 +394,7 @@ export function Launcher() {
       const combinedRecentAndRunning = [...runningEntries, ...recentEntries];
       if (combinedRecentAndRunning.length > 0) {
         out.push({
-          heading: "Running & Recent",
+          heading: "Recent",
           items: combinedRecentAndRunning,
         });
       }
@@ -380,9 +423,14 @@ export function Launcher() {
       }
     }
 
-    const filteredApps = filterAndSort(appEntries);
+    const filteredApps = filterAndSort(nativeAppEntries);
     if (filteredApps.length > 0) {
-      out.push({ heading: "Applications", items: filteredApps });
+      out.push({ heading: "Apps", items: filteredApps });
+    }
+
+    const filteredWebApps = filterAndSort(webAppEntries);
+    if (filteredWebApps.length > 0) {
+      out.push({ heading: "Web Apps", items: filteredWebApps });
     }
 
     const folderItems = filterAndSort(
@@ -578,7 +626,7 @@ export function Launcher() {
     ];
     const filteredActions = filterAndSort(actionEntries);
     if (filteredActions.length > 0) {
-      out.push({ heading: "System Actions", items: filteredActions });
+      out.push({ heading: "Actions", items: filteredActions });
     }
 
     return out;
@@ -705,6 +753,33 @@ export function Launcher() {
         ) {
           return;
         }
+        if (
+          e.key === "ArrowUp" &&
+          (historyIndex >= 0 || selectedValue === firstItemValue || !firstItemValue) &&
+          queryHistory.length > 0
+        ) {
+          const nextIdx = Math.min(queryHistory.length - 1, historyIndex + 1);
+          if (nextIdx !== historyIndex) {
+            e.preventDefault();
+            e.stopPropagation();
+            setHistoryIndex(nextIdx);
+            setSearchQuery(queryHistory[nextIdx] ?? "");
+            return;
+          }
+        }
+        if (e.key === "ArrowDown" && historyIndex >= 0) {
+          e.preventDefault();
+          e.stopPropagation();
+          if (historyIndex === 0) {
+            setHistoryIndex(-1);
+            setSearchQuery("");
+          } else {
+            const nextIdx = historyIndex - 1;
+            setHistoryIndex(nextIdx);
+            setSearchQuery(queryHistory[nextIdx] ?? "");
+          }
+          return;
+        }
         e.stopPropagation();
       }}
       className="relative w-full"
@@ -714,7 +789,10 @@ export function Launcher() {
         autoFocus
         placeholder="Search or URL"
         value={searchQuery}
-        onValueChange={setSearchQuery}
+        onValueChange={(val) => {
+          setHistoryIndex(-1);
+          setSearchQuery(val);
+        }}
         completion={activeCompletionItem?.label}
         onAcceptCompletion={setSearchQuery}
       />

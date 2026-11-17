@@ -44,12 +44,37 @@ const RESIZE_CURSORS: Record<ResizeEdge, string> = {
 
 const OPPOSITE = { n: "s", s: "n", e: "w", w: "e" } as const
 
+type WindowControlKind = "minimize" | "maximize" | "close"
+
+function parseWindowButtonLayout(layout?: string): {
+  left: WindowControlKind[]
+  right: WindowControlKind[]
+} {
+  const raw = (layout ?? ":close").trim()
+  const colonIdx = raw.indexOf(":")
+  const leftPart = colonIdx >= 0 ? raw.slice(0, colonIdx) : ""
+  const rightPart = colonIdx >= 0 ? raw.slice(colonIdx + 1) : raw
+  const parseSide = (part: string): WindowControlKind[] =>
+    part
+      .split(",")
+      .map((token) => token.trim().toLowerCase())
+      .filter(
+        (token): token is WindowControlKind =>
+          token === "minimize" || token === "maximize" || token === "close"
+      )
+  return {
+    left: parseSide(leftPart),
+    right: parseSide(rightPart),
+  }
+}
+
 type WindowContextValue = {
   onClose?: () => void
   onMinimize?: () => void
   onZoom?: () => void
   maximized: boolean
   resizing: boolean
+  buttonLayout: string
 }
 
 // Lets the traffic lights anywhere inside a window reach its handlers.
@@ -213,6 +238,7 @@ function Window({
   minimizeEffect = "scale",
   maximized = false,
   maximizeInsets,
+  buttonLayout = ":close",
   onSnapPreviewChange,
   onSnapCommit,
   onPointerDown,
@@ -242,6 +268,7 @@ function Window({
   minimizeEffect?: "genie" | "scale"
   maximized?: boolean
   maximizeInsets?: WindowInsets
+  buttonLayout?: string
   onSnapPreviewChange?: (zone: "left" | "right" | "full" | null) => void
   onSnapCommit?: (zone: "left" | "right" | "full") => void
   windowRef?: React.Ref<WindowHandle>
@@ -379,13 +406,21 @@ function Window({
 
   const isResizing = resizing !== null
   const context = React.useMemo(
-    () => ({ onClose, onMinimize, onZoom, maximized, resizing: isResizing }),
-    [onClose, onMinimize, onZoom, maximized, isResizing]
+    () => ({
+      onClose,
+      onMinimize,
+      onZoom,
+      maximized,
+      resizing: isResizing,
+      buttonLayout,
+    }),
+    [onClose, onMinimize, onZoom, maximized, isResizing, buttonLayout]
   )
   const drag = React.useRef<{
     pointer: WindowPosition
     start: WindowPosition
     latest: WindowPosition
+    size: WindowSize
     scale: number
     min: WindowPosition
     max: WindowPosition
@@ -602,6 +637,7 @@ function Window({
       pointer: { x: clientX, y: clientY },
       start: current,
       latest: current,
+      size: { width: node.offsetWidth, height: node.offsetHeight },
       scale,
       min,
       max,
@@ -686,11 +722,11 @@ function Window({
       const area = state.parentRect
       let nextSnap: "left" | "right" | "full" | null = null
       if (area) {
-        if (clientX <= area.left + 16) {
+        if (clientX <= area.left + 12) {
           nextSnap = "left"
-        } else if (clientX >= area.right - 16) {
+        } else if (clientX >= area.right - 12) {
           nextSnap = "right"
-        } else if (clientY <= area.top + 8) {
+        } else if (clientY <= area.top + 10) {
           nextSnap = "full"
         }
       }
@@ -745,6 +781,10 @@ function Window({
       const zone = finishedDrag.snapZone
       onSnapPreviewChange?.(null)
       if (onSnapCommit) {
+        if (element.current) {
+          element.current.style.translate =
+            current.x || current.y ? `${current.x}px ${current.y}px` : ""
+        }
         onSnapCommit(zone)
         return
       }
@@ -859,6 +899,9 @@ function Window({
           onPointerCancel?.(event)
           finishInteraction(event)
         }}
+        onLostPointerCapture={() => {
+          finishInteraction()
+        }}
         onDoubleClick={(event) => {
           onDoubleClick?.(event)
           // Double-clicking the title bar toggles window zoom/maximize.
@@ -903,18 +946,27 @@ function Window({
   )
 }
 
-// A plain title bar with the window controls and a centered title,
-// for windows without a toolbar.
+// Unified Adwaita titlebar / headerbar used by both SSD and CSD windows.
+// Double-clicking empty titlebar space toggles maximize/unmaximize.
 function WindowTitlebar({
   className,
   children,
+  onDoubleClick,
   ...props
 }: React.ComponentProps<"div">) {
+  const context = React.useContext(WindowContext)
   return (
     <div
       data-slot="window-titlebar"
+      onDoubleClick={(event) => {
+        onDoubleClick?.(event)
+        if (event.defaultPrevented) return
+        const target = event.target as HTMLElement
+        if (target.closest(NO_DRAG)) return
+        context?.onZoom?.()
+      }}
       className={cn(
-        "relative flex h-7 shrink-0 items-center rounded-t-[inherit] border-b border-adw-separator px-2.5 select-none adw-material-titlebar",
+        "relative flex h-[46px] min-h-[46px] shrink-0 items-center justify-between gap-2 rounded-t-[inherit] border-b border-adw-separator px-3 select-none adw-material-titlebar",
         className
       )}
       {...props}
@@ -972,7 +1024,7 @@ function WindowControlButton({
     <button
       type="button"
       className={cn(
-        "flex size-5 items-center justify-center rounded-md text-adw-label-secondary transition-colors outline-none hover:bg-black/8 hover:text-adw-label focus-visible:outline-3 focus-visible:outline-solid focus-visible:outline-adw-accent/50 group-data-[inactive]/window:opacity-50 dark:hover:bg-white/10 [&_svg]:size-3.5",
+        "flex size-6 items-center justify-center rounded-full bg-black/6 text-adw-label-secondary transition-colors outline-none hover:bg-black/12 hover:text-adw-label focus-visible:outline-3 focus-visible:outline-solid focus-visible:outline-adw-accent/50 group-data-[inactive]/window:opacity-50 dark:bg-white/8 dark:hover:bg-white/15 [&_svg]:size-3",
         className
       )}
       {...props}
@@ -980,15 +1032,18 @@ function WindowControlButton({
   )
 }
 
-// Icon-only window controls (Minimize, Zoom, Close). Without handlers of
-// their own they call the onMinimize, onZoom and onClose of their Window.
+// Adwaita circular monochrome window controls respecting GNOME `button-layout`.
 function WindowControls({
   className,
+  side = "right",
+  layout,
   onClose,
   onMinimize,
   onZoom,
   ...props
 }: Omit<React.ComponentProps<"div">, "children"> & {
+  side?: "left" | "right"
+  layout?: string
   onClose?: () => void
   onMinimize?: () => void
   onZoom?: () => void
@@ -998,23 +1053,39 @@ function WindowControls({
   onMinimize ??= context?.onMinimize
   onZoom ??= context?.onZoom
 
+  const parsed = parseWindowButtonLayout(layout ?? context?.buttonLayout)
+  const buttons = side === "left" ? parsed.left : parsed.right
+  if (buttons.length === 0) return null
+
   return (
     <div
       data-slot="window-controls"
-      className={cn("group/controls flex items-center gap-1", className)}
+      className={cn("group/controls flex items-center gap-2", className)}
       {...props}
     >
-      <WindowControlButton aria-label="Minimize" onClick={onMinimize}>
-        <MinusIcon strokeWidth={2.25} />
-      </WindowControlButton>
-      <WindowControlButton aria-label="Maximize" onClick={onZoom}>
-        <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
-          <rect x="2.2" y="2.2" width="7.6" height="7.6" rx="1.2" />
-        </svg>
-      </WindowControlButton>
-      <WindowControlButton aria-label="Close" onClick={onClose}>
-        <XIcon strokeWidth={2.25} />
-      </WindowControlButton>
+      {buttons.map((kind) => {
+        if (kind === "minimize") {
+          return (
+            <WindowControlButton key={kind} aria-label="Minimize" onClick={onMinimize}>
+              <MinusIcon strokeWidth={2.25} />
+            </WindowControlButton>
+          )
+        }
+        if (kind === "maximize") {
+          return (
+            <WindowControlButton key={kind} aria-label="Maximize" onClick={onZoom}>
+              <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
+                <rect x="2.2" y="2.2" width="7.6" height="7.6" rx="1.2" />
+              </svg>
+            </WindowControlButton>
+          )
+        }
+        return (
+          <WindowControlButton key={kind} aria-label="Close" onClick={onClose}>
+            <XIcon strokeWidth={2.25} />
+          </WindowControlButton>
+        )
+      })}
     </div>
   )
 }

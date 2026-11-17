@@ -32,11 +32,18 @@ Brief one-line-per-function reference for Piloti shell APIs, the Domicile SDK (`
 - `launchXdgEntry(entry, actionId?)` — Launches a `.desktop` application or desktop action.
 - `openXdgFolder(folder)` — Opens an XDG user directory in Files / Nautilus.
 
-#### `SystemBackendsContext` (`useSystemBackends()`)
+#### `NotificationsContext` (`useNotifications()`)
 - `pushNotification(input)` / `dismissNotification(id)` / `markAllNotificationsRead()` — Creates, dismisses, or marks notifications read.
+- `clearNotifications()` — Clears notification history.
+
+#### `SystemBackendsContext` (`useSystemBackends()`)
 - `lockSession()` / `unlockSession(password)` — Locks or unlocks the desktop lock screen.
 - `requestPowerAction(action)` / `executePowerAction(action, options?)` — Opens quit confirmation or executes logout/restart/poweroff.
 - `takeScreenshot()` / `startScreenRecording()` / `stopCapturing(id)` — Captures screenshots or screencasts via portal/host.
+
+### Hooks & Storage Cache
+- `useSidebarKeyboardNav(options)` (`src/hooks/use-sidebar-keyboard-nav.ts`) — Enables `ArrowUp`/`ArrowDown` sidebar item cycling (activating on keyup) and `Tab`/`ArrowRight`/`ArrowLeft` focus handoff between sidebar and view content.
+- `getCachedStorageItem(key)` / `setCachedStorageItem(key, value)` / `removeCachedStorageItem(key)` (`src/lib/storage-cache.ts`) — In-memory cached and debounced `localStorage` persistence with `beforeunload` flushing.
 
 ### Virtual Filesystem (`src/lib/web-vfs.ts`)
 - `normalizeVfsPath(rawPath?)` — Normalizes a POSIX VFS path (collapses `.`, `..`, trailing slashes).

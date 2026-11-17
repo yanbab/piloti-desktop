@@ -5,7 +5,6 @@ import {
   GroupedFormGroup,
   GroupedFormRow,
   GroupedFormRowControl,
-  GroupedFormRowDescription,
   GroupedFormRowLabel,
   GroupedFormRowTitle,
   GroupedFormSection,
@@ -20,13 +19,6 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { useSettings, useSystemBackends } from "@/context/DesktopStateContext";
-import type { NotificationBannerPosition } from "@/lib/notifications";
-
-const POSITION_ITEMS: { value: NotificationBannerPosition; label: string }[] = [
-  { value: "top-center", label: "Top Center (GNOME)" },
-  { value: "top-right", label: "Top Right" },
-  { value: "bottom-right", label: "Bottom Right" },
-];
 
 const TIMEOUT_ITEMS: { value: string; label: string }[] = [
   { value: "3000", label: "3 seconds" },
@@ -56,9 +48,6 @@ export function NotificationsPane() {
           <GroupedFormRow>
             <GroupedFormRowLabel>
               <GroupedFormRowTitle>Do Not Disturb</GroupedFormRowTitle>
-              <GroupedFormRowDescription>
-                Mute popup banners and hide the Menu bar unread dot; alerts still log to Control panel history
-              </GroupedFormRowDescription>
             </GroupedFormRowLabel>
             <GroupedFormRowControl>
               <Switch
@@ -73,9 +62,6 @@ export function NotificationsPane() {
           <GroupedFormRow>
             <GroupedFormRowLabel>
               <GroupedFormRowTitle>Allow Critical Alerts in Do Not Disturb</GroupedFormRowTitle>
-              <GroupedFormRowDescription>
-                Urgent system warnings bypass Do Not Disturb and remain until dismissed
-              </GroupedFormRowDescription>
             </GroupedFormRowLabel>
             <GroupedFormRowControl>
               <Switch
@@ -92,9 +78,6 @@ export function NotificationsPane() {
           <GroupedFormRow>
             <GroupedFormRowLabel>
               <GroupedFormRowTitle>Enable Notifications</GroupedFormRowTitle>
-              <GroupedFormRowDescription>
-                Allow Piloti shell and system events to trigger alerts
-              </GroupedFormRowDescription>
             </GroupedFormRowLabel>
             <GroupedFormRowControl>
               <Switch
@@ -114,9 +97,6 @@ export function NotificationsPane() {
           <GroupedFormRow>
             <GroupedFormRowLabel>
               <GroupedFormRowTitle>Show Popup Banners</GroupedFormRowTitle>
-              <GroupedFormRowDescription>
-                Display temporary floating toasts on screen when notifications arrive
-              </GroupedFormRowDescription>
             </GroupedFormRowLabel>
             <GroupedFormRowControl>
               <Switch
@@ -133,49 +113,7 @@ export function NotificationsPane() {
 
           <GroupedFormRow>
             <GroupedFormRowLabel>
-              <GroupedFormRowTitle>Banner Position</GroupedFormRowTitle>
-              <GroupedFormRowDescription>
-                Where notification toasts appear on the workspace
-              </GroupedFormRowDescription>
-            </GroupedFormRowLabel>
-            <GroupedFormRowControl>
-              <Select
-                items={POSITION_ITEMS}
-                disabled={
-                  !settings.notificationsEnabled ||
-                  !settings.notificationBannersEnabled
-                }
-                value={settings.notificationBannerPosition}
-                onValueChange={(val) => {
-                  if (
-                    val === "top-center" ||
-                    val === "top-right" ||
-                    val === "bottom-right"
-                  ) {
-                    updateSettings({ notificationBannerPosition: val });
-                  }
-                }}
-              >
-                <SelectTrigger variant="borderless">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {POSITION_ITEMS.map((item) => (
-                    <SelectItem key={item.value} value={item.value}>
-                      {item.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </GroupedFormRowControl>
-          </GroupedFormRow>
-
-          <GroupedFormRow>
-            <GroupedFormRowLabel>
               <GroupedFormRowTitle>Auto-Hide Delay</GroupedFormRowTitle>
-              <GroupedFormRowDescription>
-                Timed-out banners remain saved inside Control panel history
-              </GroupedFormRowDescription>
             </GroupedFormRowLabel>
             <GroupedFormRowControl>
               <Select
@@ -214,9 +152,6 @@ export function NotificationsPane() {
           <GroupedFormRow>
             <GroupedFormRowLabel>
               <GroupedFormRowTitle>Lock Screen Notifications</GroupedFormRowTitle>
-              <GroupedFormRowDescription>
-                Show recent notifications when the session is locked
-              </GroupedFormRowDescription>
             </GroupedFormRowLabel>
             <GroupedFormRowControl>
               <Switch
@@ -234,9 +169,6 @@ export function NotificationsPane() {
           <GroupedFormRow>
             <GroupedFormRowLabel>
               <GroupedFormRowTitle>Show Message Previews</GroupedFormRowTitle>
-              <GroupedFormRowDescription>
-                Display body text in floating banners and on the lock screen
-              </GroupedFormRowDescription>
             </GroupedFormRowLabel>
             <GroupedFormRowControl>
               <Switch
@@ -259,9 +191,6 @@ export function NotificationsPane() {
           <GroupedFormRow>
             <GroupedFormRowLabel>
               <GroupedFormRowTitle>History Retention</GroupedFormRowTitle>
-              <GroupedFormRowDescription>
-                Maximum shell notifications kept across sessions in Control panel
-              </GroupedFormRowDescription>
             </GroupedFormRowLabel>
             <GroupedFormRowControl>
               <Select
@@ -291,9 +220,6 @@ export function NotificationsPane() {
           <GroupedFormRow>
             <GroupedFormRowLabel>
               <GroupedFormRowTitle>Send Test Notification</GroupedFormRowTitle>
-              <GroupedFormRowDescription>
-                Preview banner placement, DND rules, and Control panel logging
-              </GroupedFormRowDescription>
             </GroupedFormRowLabel>
             <GroupedFormRowControl className="flex items-center gap-1.5">
               <Button
@@ -341,9 +267,6 @@ export function NotificationsPane() {
               <GroupedFormRowTitle>
                 Notification History ({notifications.length})
               </GroupedFormRowTitle>
-              <GroupedFormRowDescription>
-                Remove all stored alerts from Control panel
-              </GroupedFormRowDescription>
             </GroupedFormRowLabel>
             <GroupedFormRowControl>
               <Button

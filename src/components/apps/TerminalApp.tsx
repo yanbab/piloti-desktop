@@ -9,6 +9,7 @@ import {
   listVfsDir,
   resolveVfsPath,
   trashVfsEntry,
+  writeVfsTextFile,
 } from "@/lib/web-vfs";
 
 interface TerminalAppProps {
@@ -16,10 +17,50 @@ interface TerminalAppProps {
   windowId: string;
 }
 
+interface OutputSpan {
+  text: string;
+  className?: string;
+}
+
 interface OutputLine {
   id: number;
+  prompt?: string;
   text: string;
   tone?: "default" | "muted" | "error" | "accent" | "dir";
+  spans?: OutputSpan[];
+}
+
+const TERMINAL_COMMANDS = [
+  "help",
+  "clear",
+  "pwd",
+  "cd",
+  "ls",
+  "mkdir",
+  "touch",
+  "cat",
+  "rm",
+  "open",
+  "notepad",
+  "edit",
+  "top",
+  "ps",
+  "uname",
+  "whoami",
+  "date",
+  "echo",
+  "env",
+] as const;
+
+function longestCommonPrefix(values: string[]): string {
+  if (values.length === 0) return "";
+  let prefix = values[0];
+  for (let i = 1; i < values.length; i++) {
+    while (!values[i].startsWith(prefix) && prefix.length > 0) {
+      prefix = prefix.slice(0, -1);
+    }
+  }
+  return prefix;
 }
 
 interface TopProcess {
@@ -102,7 +143,7 @@ export const TerminalApp: React.FC<TerminalAppProps> = ({ initialPath }) => {
   const [lines, setLines] = React.useState<OutputLine[]>([
     {
       id: nextIdRef.current++,
-      text: "Residence Web Shell — type 'help' for available commands.",
+      text: "Web Shell — type 'help' for help.",
       tone: "muted",
     },
   ]);
@@ -175,12 +216,129 @@ export const TerminalApp: React.FC<TerminalAppProps> = ({ initialPath }) => {
     return [...daemons, ...appProcs];
   }, [topActive, topTick, windows]);
 
+  const runSingleCommand = (
+    rawSeg: string,
+    activeCwd: string
+  ): {
+    nextCwd: string;
+    output: Array<Omit<OutputLine, "id">>;
+    ok: boolean;
+  } => {
+    const segTrimmed = rawSeg.trim();
+    if (!segTrimmed) return { nextCwd: activeCwd, output: [], ok: true };
+
+    let redirectFile: string | null = null;
+    let redirectAppend = false;
+    let cmdPart = segTrimmed;
+    const redirMatch = segTrimmed.match(/^(.*?)\s*(>>|>)\s*(\S+)\s*$/);
+    if (redirMatch) {
+      cmdPart = redirMatch[1].trim();
+      redirectAppend = redirMatch[2] === ">>";
+      redirectFile = redirMatch[3];
+    }
+
+    const writeRedirect = (linesOut: Array<Omit<OutputLine, "id">>): {
+      nextCwd: string;
+      output: Array<Omit<OutputLine, "id">>;
+      ok: boolean;
+    } => {
+      if (!redirectFile) {
+        return { nextCwd: activeCwd, output: linesOut, ok: true };
+      }
+      const target = resolveVfsPath(activeCwd, redirectFile);
+      const { parent, name } = getParentAndName(target);
+      if (!name) {
+        return {
+          nextCwd: activeCwd,
+          output: [{ text: `redirect: invalid path '${redirectFile}'`, tone: "error" }],
+          ok: false,
+        };
+      }
+      const textContent = linesOut
+        .map((l) =>
+          l.spans ? l.spans.map((s) => s.text).join("") : l.text
+        )
+        .join("\n");
+      const existing = getVfsEntry(target);
+      if (existing && existing.kind === "file") {
+        const nextText = redirectAppend
+          ? `${existing.content ?? ""}${existing.content ? "\n" : ""}${textContent}`
+          : textContent;
+        writeVfsTextFile(target, nextText);
+      } else {
+        createVfsTextFile(parent, name, textContent);
+      }
+      return { nextCwd: activeCwd, output: [], ok: true };
+    };
+
+    const tokens = splitArgs(cmdPart);
+    const cmd = tokens[0];
+    const args = tokens.slice(1);
+    const curCwd = activeCwd;
+
+    if (cmd === "date") {
+      return writeRedirect([{ text: new Date().toString() }]);
+    }
+    if (cmd === "env") {
+      return writeRedirect([
+        { text: `USER=user\nHOME=${WEB_VFS_HOME}\nPWD=${curCwd}\nSHELL=/bin/piloti-sh\nXDG_CURRENT_DESKTOP=GNOME` },
+      ]);
+    }
+    if (cmd === "ps") {
+      return writeRedirect(
+        CORE_DAEMONS.map((d) => ({
+          text: `${String(d.pid).padStart(5, " ")} pts/0    00:00:00 ${d.command}`,
+        }))
+      );
+    }
+    if (cmd === "echo") {
+      return writeRedirect([{ text: args.join(" ") }]);
+    }
+    if (cmd === "pwd") {
+      return writeRedirect([{ text: curCwd }]);
+    }
+    if (cmd === "whoami") {
+      return writeRedirect([{ text: "user" }]);
+    }
+    if (cmd === "uname") {
+      return writeRedirect([
+        {
+          text: "Linux residence-web 6.12.0-piloti #1 SMP PREEMPT_DYNAMIC x86_64 GNU/Linux",
+        },
+      ]);
+    }
+    if (cmd === "cd") {
+      const target = resolveVfsPath(curCwd, args[0] ?? "~");
+      const entry = getVfsEntry(target);
+      if (!entry) {
+        return {
+          nextCwd: curCwd,
+          output: [
+            { text: `cd: no such file or directory: ${args[0] ?? "~"}`, tone: "error" },
+          ],
+          ok: false,
+        };
+      }
+      if (entry.kind !== "directory") {
+        return {
+          nextCwd: curCwd,
+          output: [{ text: `cd: not a directory: ${args[0]}`, tone: "error" }],
+          ok: false,
+        };
+      }
+      setCwd(entry.path);
+      return { nextCwd: entry.path, output: [], ok: true };
+    }
+    return { nextCwd: curCwd, output: [], ok: true };
+  };
+
   const runCommand = (raw: string) => {
     const trimmed = raw.trim();
-    const promptPrefix = `user@residence:${formatPromptPath(cwd)}$`;
+    const promptPrefix = `${formatPromptPath(cwd)}> `;
     const commandLine: Omit<OutputLine, "id"> = {
-      text: `${promptPrefix} ${raw}`,
-      tone: "accent",
+      prompt: promptPrefix,
+      text: raw,
+      tone: "default",
     };
 
     if (!trimmed) {
@@ -191,9 +349,47 @@ export const TerminalApp: React.FC<TerminalAppProps> = ({ initialPath }) => {
     setHistory((prev) => [...prev, trimmed]);
     setHistoryIndex(-1);
 
+    if (trimmed.includes("&&") || /(?:^|\s)>>?(?:\s|$)/.test(trimmed)) {
+      const segments = trimmed.split(/\s*&&\s*/);
+      let cur = cwd;
+      const collected: Array<Omit<OutputLine, "id">> = [commandLine];
+      for (const seg of segments) {
+        const segTokens = splitArgs(seg.replace(/\s*>>?\s*\S+\s*$/, "").trim());
+        const segCmd = segTokens[0];
+        if (
+          segCmd === "date" ||
+          segCmd === "env" ||
+          segCmd === "ps" ||
+          segCmd === "echo" ||
+          segCmd === "pwd" ||
+          segCmd === "whoami" ||
+          segCmd === "uname" ||
+          segCmd === "cd"
+        ) {
+          const res = runSingleCommand(seg, cur);
+          cur = res.nextCwd;
+          collected.push(...res.output);
+          if (!res.ok) break;
+        } else {
+          // Delegate other commands if single segment without redirect
+          break;
+        }
+      }
+      if (collected.length > 1 || segments.every((s) => /^(date|env|ps|echo|pwd|whoami|uname|cd)\b/.test(s.trim()))) {
+        appendLines(collected);
+        return;
+      }
+    }
+
     const tokens = splitArgs(trimmed);
     const cmd = tokens[0];
     const args = tokens.slice(1);
+
+    if (cmd === "date" || cmd === "env" || cmd === "ps") {
+      const res = runSingleCommand(trimmed, cwd);
+      appendLines([commandLine, ...res.output]);
+      return;
+    }
 
     if (cmd === "clear") {
       setLines([]);
@@ -288,18 +484,35 @@ export const TerminalApp: React.FC<TerminalAppProps> = ({ initialPath }) => {
           const kindChar = item.kind === "directory" ? "d" : "-";
           const size =
             item.kind === "directory" ? "4096" : String(item.content?.length ?? 0);
-          const suffix = item.kind === "directory" ? "/" : "";
+          const isDir = item.kind === "directory";
           return {
-            text: `${kindChar}rw-r--r--  user  ${size.padStart(6, " ")}  ${item.name}${suffix}`,
-            tone: item.kind === "directory" ? "dir" : "default",
+            text: "",
+            spans: [
+              {
+                text: `${kindChar}rw-r--r--  user  ${size.padStart(6, " ")}  `,
+                className: "text-zinc-100",
+              },
+              {
+                text: isDir ? `${item.name}/` : item.name,
+                className: isDir ? "font-bold text-blue-400" : "text-zinc-100",
+              },
+            ],
           };
         });
         appendLines([commandLine, ...rows]);
       } else {
-        const summary = items
-          .map((item) => (item.kind === "directory" ? `${item.name}/` : item.name))
-          .join("  ");
-        appendLines([commandLine, { text: summary }]);
+        const spans: OutputSpan[] = [];
+        items.forEach((item, index) => {
+          if (index > 0) {
+            spans.push({ text: "  " });
+          }
+          const isDir = item.kind === "directory";
+          spans.push({
+            text: isDir ? `${item.name}/` : item.name,
+            className: isDir ? "font-bold text-blue-400" : "text-zinc-100",
+          });
+        });
+        appendLines([commandLine, { text: "", spans }]);
       }
       return;
     }
@@ -481,7 +694,87 @@ export const TerminalApp: React.FC<TerminalAppProps> = ({ initialPath }) => {
     ]);
   };
 
+  const moveCursorToEnd = () => {
+    window.requestAnimationFrame(() => {
+      const el = inputRef.current;
+      if (!el) return;
+      const len = el.value.length;
+      el.setSelectionRange(len, len);
+    });
+  };
+
+  const handleTabComplete = () => {
+    const beforeSpace = !/\s/.test(input);
+    if (beforeSpace) {
+      const matches = TERMINAL_COMMANDS.filter((c) => c.startsWith(input));
+      if (matches.length === 1) {
+        setInput(`${matches[0]} `);
+        moveCursorToEnd();
+      } else if (matches.length > 1) {
+        const lcp = longestCommonPrefix(matches);
+        if (lcp.length > input.length) {
+          setInput(lcp);
+          moveCursorToEnd();
+        } else {
+          appendLines([
+            { prompt: `${formatPromptPath(cwd)}> `, text: input },
+            { text: matches.join("  "), tone: "muted" },
+          ]);
+        }
+      }
+      return;
+    }
+
+    const lastSpaceIdx = input.search(/\S+$/);
+    const prefixStart = lastSpaceIdx === -1 ? input.length : lastSpaceIdx;
+    const head = input.slice(0, prefixStart);
+    const token = input.slice(prefixStart);
+    const slashIdx = token.lastIndexOf("/");
+    const dirPart = slashIdx >= 0 ? token.slice(0, slashIdx + 1) : "";
+    const namePart = slashIdx >= 0 ? token.slice(slashIdx + 1) : token;
+    const searchDir = dirPart ? resolveVfsPath(cwd, dirPart) : cwd;
+    const entries = listVfsDir(searchDir, {
+      includeHidden: namePart.startsWith("."),
+    });
+    const matches = entries.filter((item) => item.name.startsWith(namePart));
+    if (matches.length === 1) {
+      const m = matches[0];
+      const completed = `${dirPart}${m.name}${m.kind === "directory" ? "/" : " "}`;
+      setInput(`${head}${completed}`);
+      moveCursorToEnd();
+    } else if (matches.length > 1) {
+      const lcp = longestCommonPrefix(matches.map((m) => m.name));
+      if (lcp.length > namePart.length) {
+        setInput(`${head}${dirPart}${lcp}`);
+        moveCursorToEnd();
+      } else {
+        appendLines([
+          { prompt: `${formatPromptPath(cwd)}> `, text: input },
+          {
+            text: "",
+            spans: matches.flatMap((m, i) => [
+              ...(i > 0 ? [{ text: "  " }] : []),
+              {
+                text: m.kind === "directory" ? `${m.name}/` : m.name,
+                className:
+                  m.kind === "directory"
+                    ? "font-bold text-blue-400"
+                    : "text-zinc-100",
+              },
+            ]),
+          },
+        ]);
+      }
+    }
+  };
+
   const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Tab") {
+      e.preventDefault();
+      e.stopPropagation();
+      handleTabComplete();
+      return;
+    }
     if (e.key === "Enter") {
       e.preventDefault();
       const value = input;
@@ -491,15 +784,18 @@ export const TerminalApp: React.FC<TerminalAppProps> = ({ initialPath }) => {
     }
     if (e.key === "ArrowUp") {
       e.preventDefault();
+      e.stopPropagation();
       if (history.length === 0) return;
       const nextIdx =
         historyIndex === -1 ? history.length - 1 : Math.max(0, historyIndex - 1);
       setHistoryIndex(nextIdx);
       setInput(history[nextIdx] ?? "");
+      moveCursorToEnd();
       return;
     }
     if (e.key === "ArrowDown") {
       e.preventDefault();
+      e.stopPropagation();
       if (historyIndex === -1) return;
       if (historyIndex >= history.length - 1) {
         setHistoryIndex(-1);
@@ -509,6 +805,7 @@ export const TerminalApp: React.FC<TerminalAppProps> = ({ initialPath }) => {
         setHistoryIndex(nextIdx);
         setInput(history[nextIdx] ?? "");
       }
+      moveCursorToEnd();
       return;
     }
     if (e.ctrlKey && e.key.toLowerCase() === "l") {
@@ -518,8 +815,9 @@ export const TerminalApp: React.FC<TerminalAppProps> = ({ initialPath }) => {
     }
     if (e.ctrlKey && e.key.toLowerCase() === "c") {
       e.preventDefault();
-      const promptPrefix = `user@residence:${formatPromptPath(cwd)}$`;
-      appendLines([{ text: `${promptPrefix} ${input}^C`, tone: "accent" }]);
+      appendLines([
+        { prompt: `${formatPromptPath(cwd)}> `, text: `${input}^C` },
+      ]);
       setInput("");
     }
   };
@@ -585,7 +883,7 @@ export const TerminalApp: React.FC<TerminalAppProps> = ({ initialPath }) => {
     <div
       ref={scrollRef}
       onClick={() => inputRef.current?.focus()}
-      className="h-full w-full overflow-auto bg-zinc-950 p-3 font-mono text-[13px] leading-relaxed text-zinc-100 select-text"
+      className="h-full w-full cursor-text overflow-auto bg-zinc-950 p-3 font-mono text-[13px] leading-relaxed text-zinc-100 select-text"
     >
       {lines.map((line) => (
         <div
@@ -598,16 +896,25 @@ export const TerminalApp: React.FC<TerminalAppProps> = ({ initialPath }) => {
                 : line.tone === "accent"
                   ? "whitespace-pre-wrap text-emerald-400"
                   : line.tone === "dir"
-                    ? "whitespace-pre-wrap text-sky-400"
+                    ? "whitespace-pre-wrap font-bold text-blue-400"
                     : "whitespace-pre-wrap text-zinc-100"
           }
         >
-          {line.text || "\u00A0"}
+          {line.prompt && (
+            <span className="text-emerald-400">{line.prompt}</span>
+          )}
+          {line.spans
+            ? line.spans.map((span, idx) => (
+              <span key={idx} className={span.className}>
+                {span.text}
+              </span>
+            ))
+            : line.text || (line.prompt ? "" : "\u00A0")}
         </div>
       ))}
-      <div className="flex items-center gap-2">
-        <span className="shrink-0 text-emerald-400">
-          user@residence:{formatPromptPath(cwd)}$
+      <div className="flex items-center">
+        <span className="shrink-0 whitespace-pre text-emerald-400">
+          {formatPromptPath(cwd)}&gt;{" "}
         </span>
         <input
           ref={inputRef}

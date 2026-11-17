@@ -7,7 +7,6 @@ import {
   GroupedFormGroup,
   GroupedFormRow,
   GroupedFormRowControl,
-  GroupedFormRowDescription,
   GroupedFormRowLabel,
   GroupedFormRowTitle,
   GroupedFormSection,
@@ -232,9 +231,6 @@ export function WallpaperPane() {
           <GroupedFormRow className="gap-2 py-3">
             <GroupedFormRowLabel>
               <GroupedFormRowTitle>Picture URI</GroupedFormRowTitle>
-              <GroupedFormRowDescription>
-                Supports `file://`, local POSIX paths, or `https://` (`picture-uri`)
-              </GroupedFormRowDescription>
             </GroupedFormRowLabel>
             <GroupedFormRowControl className="flex-1 justify-end gap-2">
               <Input
@@ -275,9 +271,6 @@ export function WallpaperPane() {
           <GroupedFormRow className="gap-2 py-3">
             <GroupedFormRowLabel>
               <GroupedFormRowTitle>Dark Style Picture URI</GroupedFormRowTitle>
-              <GroupedFormRowDescription>
-                Optional wallpaper when Dark style is active (`picture-uri-dark`)
-              </GroupedFormRowDescription>
             </GroupedFormRowLabel>
             <GroupedFormRowControl className="flex-1 justify-end gap-2">
               <Input
@@ -318,9 +311,6 @@ export function WallpaperPane() {
           <GroupedFormRow>
             <GroupedFormRowLabel>
               <GroupedFormRowTitle>Picture Options</GroupedFormRowTitle>
-              <GroupedFormRowDescription>
-                How GNOME renders and scales the image (`picture-options`)
-              </GroupedFormRowDescription>
             </GroupedFormRowLabel>
             <GroupedFormRowControl>
               <Select
@@ -346,9 +336,6 @@ export function WallpaperPane() {
           <GroupedFormRow>
             <GroupedFormRowLabel>
               <GroupedFormRowTitle>Picture Opacity</GroupedFormRowTitle>
-              <GroupedFormRowDescription>
-                Opacity over the shading backdrop ({gnomeBg.pictureOpacity}%)
-              </GroupedFormRowDescription>
             </GroupedFormRowLabel>
             <GroupedFormRowControl className="w-44">
               <Slider
@@ -369,9 +356,6 @@ export function WallpaperPane() {
           <GroupedFormRow>
             <GroupedFormRowLabel>
               <GroupedFormRowTitle>Color Shading</GroupedFormRowTitle>
-              <GroupedFormRowDescription>
-                Backdrop fill or gradient behind scaled/transparent pictures
-              </GroupedFormRowDescription>
             </GroupedFormRowLabel>
             <GroupedFormRowControl className="gap-2">
               <Select

@@ -54,6 +54,10 @@ export interface GnomeInterfaceSnapshot {
   fontRgbaOrder?: GtkFontRgbaOrder;
 }
 
+export interface GnomeWmPreferencesSnapshot {
+  buttonLayout?: string;
+}
+
 export interface GnomeSystemCapabilities {
   gsettings: boolean;
   gnomeControlCenter: boolean;

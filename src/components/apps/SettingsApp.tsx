@@ -14,7 +14,8 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SearchField } from "@/components/ui/search-field";
-import { WindowControls } from "@/components/ui/window";
+import { WindowControls, WindowTitlebar } from "@/components/ui/window";
+import { useSidebarKeyboardNav } from "@/hooks/use-sidebar-keyboard-nav";
 import { WindowMenuButton } from "@/components/shell/WindowMenuButton";
 import {
   useSettings,
@@ -202,6 +203,20 @@ export function SettingsApp({
 
   const matchingGnomePanel = PANE_TO_GNOME[activePane];
   const currentPaneMeta = PANES.find((p) => p.id === activePane);
+  const sidebarNavRef = React.useRef<HTMLElement | null>(null);
+  const detailContentRef = React.useRef<HTMLDivElement | null>(null);
+  const {
+    highlightedId: highlightedPane,
+    onSidebarKeyDown,
+    onSidebarKeyUp,
+    onContentKeyDown,
+  } = useSidebarKeyboardNav({
+    itemIds: filteredPanes.map((p) => p.id),
+    activeId: activePane,
+    onActivate: (id) => setActivePane(id),
+    sidebarRef: sidebarNavRef,
+    contentRef: detailContentRef,
+  });
 
   return (
     <div
@@ -217,11 +232,12 @@ export function SettingsApp({
           )}
         >
         {isCsd && (
-          <div
+          <WindowTitlebar
             data-window-drag-region
-            className="relative flex h-[46px] shrink-0 items-center justify-between px-3 select-none"
+            className="border-b-0 bg-transparent"
           >
-            <div data-window-no-drag>
+            <div className="flex items-center gap-1.5" data-window-no-drag>
+              {windowId && <WindowControls side="left" />}
               <WindowMenuButton
                 windowId={windowId}
                 appId="settings"
@@ -229,10 +245,10 @@ export function SettingsApp({
               />
             </div>
             <span className="text-[14px] font-bold tracking-tight text-adw-label">
-              Desktop Settings
+              Settings (Web)
             </span>
             <div className="w-7" />
-          </div>
+          </WindowTitlebar>
         )}
 
         <div className={cn("px-3 pb-2", isCsd ? "pt-0.5" : "pt-3")}>
@@ -243,13 +259,19 @@ export function SettingsApp({
           />
         </div>
 
-        <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto px-2.5 py-1">
+        <nav
+          ref={sidebarNavRef}
+          onKeyDown={onSidebarKeyDown}
+          onKeyUp={onSidebarKeyUp}
+          className="flex flex-1 flex-col gap-0.5 overflow-y-auto px-2.5 py-1"
+        >
           {filteredPanes.map((pane) => {
-            const selected = activePane === pane.id;
+            const selected = highlightedPane === pane.id;
             return (
               <button
                 key={pane.id}
                 type="button"
+                data-sidebar-item={pane.id}
                 onClick={() => {
                   setActivePane(pane.id);
                   if (isCompact) setCompactShowDetail(true);
@@ -288,9 +310,9 @@ export function SettingsApp({
       {showDetail && (
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden bg-adw-window">
         {isCsd ? (
-          <div
+          <WindowTitlebar
             data-window-drag-region
-            className="relative flex h-10 shrink-0 items-center justify-between gap-2 border-b border-adw-separator bg-adw-titlebar px-3 select-none"
+            className="rounded-tl-none border-b border-adw-separator bg-adw-titlebar"
           >
             <div className="flex items-center gap-1.5" data-window-no-drag>
               {windowId && <WindowMenuButton windowId={windowId} />}
@@ -322,9 +344,9 @@ export function SettingsApp({
                     System Settings…
                   </Button>
                 )}
-              {windowId && <WindowControls />}
+              {windowId && <WindowControls side="right" />}
             </div>
-          </div>
+          </WindowTitlebar>
         ) : (
           <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-adw-separator bg-adw-window px-6 py-3">
             <div className="flex min-w-0 items-center gap-2.5">
@@ -361,7 +383,11 @@ export function SettingsApp({
           </div>
         )}
 
-        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+        <div
+          ref={detailContentRef}
+          onKeyDown={onContentKeyDown}
+          className="flex min-h-0 flex-1 flex-col overflow-y-auto"
+        >
           {activePane === "appearance" && <AppearancePane />}
           {activePane === "fonts" && <FontsPane />}
           {activePane === "dock" && <DockPane />}

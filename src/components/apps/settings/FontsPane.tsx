@@ -6,7 +6,6 @@ import {
   GroupedFormGroup,
   GroupedFormRow,
   GroupedFormRowControl,
-  GroupedFormRowDescription,
   GroupedFormRowLabel,
   GroupedFormRowTitle,
   GroupedFormSection,
@@ -325,9 +324,6 @@ export function FontsPane() {
             <div className="flex items-center justify-between gap-4">
               <GroupedFormRowLabel>
                 <GroupedFormRowTitle>UI Font Family</GroupedFormRowTitle>
-                <GroupedFormRowDescription>
-                  Sets `--font-adw` across Piloti shell, menus, and Desktop Settings
-                </GroupedFormRowDescription>
               </GroupedFormRowLabel>
               <GroupedFormRowControl className="w-60">
                 <Input
@@ -363,9 +359,6 @@ export function FontsPane() {
             <div className="flex items-center justify-between gap-4">
               <GroupedFormRowLabel>
                 <GroupedFormRowTitle>Monospace Font Family</GroupedFormRowTitle>
-                <GroupedFormRowDescription>
-                  Sets `--font-adw-mono` for REPL, logs, shortcuts, and hints
-                </GroupedFormRowDescription>
               </GroupedFormRowLabel>
               <GroupedFormRowControl className="w-60">
                 <Input
@@ -402,9 +395,6 @@ export function FontsPane() {
               <GroupedFormRowTitle>
                 Piloti UI Font Scale ({Math.round(settings.fontScale * 100)}%)
               </GroupedFormRowTitle>
-              <GroupedFormRowDescription>
-                Scales semantic `--text-adw-*` sizes without altering Wayland bounds
-              </GroupedFormRowDescription>
             </GroupedFormRowLabel>
             <GroupedFormRowControl className="w-48 gap-2">
               <Slider
@@ -443,9 +433,6 @@ export function FontsPane() {
           <GroupedFormRow className="py-2.5">
             <GroupedFormRowLabel>
               <GroupedFormRowTitle>Quick Experiment Profiles</GroupedFormRowTitle>
-              <GroupedFormRowDescription>
-                Compare grayscale AA, RGB subpixel, unhinted geometry, and stem stroke
-              </GroupedFormRowDescription>
             </GroupedFormRowLabel>
             <GroupedFormRowControl>
               <div className="flex flex-wrap justify-end gap-1.5">
@@ -490,9 +477,6 @@ export function FontsPane() {
               <GroupedFormRowTitle>
                 Font Smoothing (`-webkit-font-smoothing`)
               </GroupedFormRowTitle>
-              <GroupedFormRowDescription>
-                `antialiased` forces grayscale AA; `subpixel-antialiased` / `auto` allows LCD subpixel AA when Skia enables it
-              </GroupedFormRowDescription>
             </GroupedFormRowLabel>
             <GroupedFormRowControl>
               <Select
@@ -522,9 +506,6 @@ export function FontsPane() {
               <GroupedFormRowTitle>
                 Text Rendering (`text-rendering`)
               </GroupedFormRowTitle>
-              <GroupedFormRowDescription>
-                `optimizeLegibility` enforces HarfBuzz kerning/ligatures; `geometricPrecision` disables pixel-grid hinting
-              </GroupedFormRowDescription>
             </GroupedFormRowLabel>
             <GroupedFormRowControl>
               <Select
@@ -555,9 +536,6 @@ export function FontsPane() {
               <GroupedFormRowTitle>
                 Optical Sizing (`font-optical-sizing`)
               </GroupedFormRowTitle>
-              <GroupedFormRowDescription>
-                Adjusts `opsz` axis on variable fonts like Adwaita Sans and Inter
-              </GroupedFormRowDescription>
             </GroupedFormRowLabel>
             <GroupedFormRowControl>
               <Select
@@ -584,9 +562,6 @@ export function FontsPane() {
               <GroupedFormRowTitle>
                 Kerning &amp; Synthesis (`font-kerning` / `font-synthesis`)
               </GroupedFormRowTitle>
-              <GroupedFormRowDescription>
-                Controls pair kerning and synthetic faux bold/italic generation
-              </GroupedFormRowDescription>
             </GroupedFormRowLabel>
             <GroupedFormRowControl className="gap-2">
               <Select
@@ -626,9 +601,6 @@ export function FontsPane() {
               <GroupedFormRowTitle>
                 Letter Spacing ({settings.cssLetterSpacingEm.toFixed(3)}em)
               </GroupedFormRowTitle>
-              <GroupedFormRowDescription>
-                Fine-tune glyph tracking to match Pango/FreeType spacing
-              </GroupedFormRowDescription>
             </GroupedFormRowLabel>
             <GroupedFormRowControl className="w-44">
               <Slider
@@ -651,9 +623,6 @@ export function FontsPane() {
               <GroupedFormRowTitle>
                 CSS Stem Darkening ({settings.cssTextStrokePx.toFixed(2)}px)
               </GroupedFormRowTitle>
-              <GroupedFormRowDescription>
-                Applies `-webkit-text-stroke-width` in `currentColor` to thicken thin light-on-dark stems
-              </GroupedFormRowDescription>
             </GroupedFormRowLabel>
             <GroupedFormRowControl className="w-44">
               <Slider
@@ -699,9 +668,6 @@ export function FontsPane() {
           <GroupedFormRow>
             <GroupedFormRowLabel>
               <GroupedFormRowTitle>GTK Interface Font (`font-name`)</GroupedFormRowTitle>
-              <GroupedFormRowDescription>
-                Pango font spec (`Family Size`) used live by GTK4 / Libadwaita windows
-              </GroupedFormRowDescription>
             </GroupedFormRowLabel>
             <GroupedFormRowControl className="w-56">
               <Input
@@ -718,9 +684,6 @@ export function FontsPane() {
               <GroupedFormRowTitle>
                 GTK Document &amp; Monospace Fonts
               </GroupedFormRowTitle>
-              <GroupedFormRowDescription>
-                `document-font-name` and `monospace-font-name` in `org.gnome.desktop.interface`
-              </GroupedFormRowDescription>
             </GroupedFormRowLabel>
             <GroupedFormRowControl className="w-80 gap-2">
               <Input
@@ -747,9 +710,6 @@ export function FontsPane() {
               <GroupedFormRowTitle>
                 GTK Text Scaling ({settings.gtkTextScalingFactor.toFixed(2)}×)
               </GroupedFormRowTitle>
-              <GroupedFormRowDescription>
-                Sets `text-scaling-factor` across GNOME / GTK4 clients
-              </GroupedFormRowDescription>
             </GroupedFormRowLabel>
             <GroupedFormRowControl className="w-44">
               <Slider
@@ -772,9 +732,6 @@ export function FontsPane() {
               <GroupedFormRowTitle>
                 GTK4 Antialiasing, Hinting &amp; Subpixel Order
               </GroupedFormRowTitle>
-              <GroupedFormRowDescription>
-                Live FreeType / Cairo settings in `org.gnome.desktop.interface`
-              </GroupedFormRowDescription>
             </GroupedFormRowLabel>
             <GroupedFormRowControl className="gap-2">
               <Select
@@ -836,9 +793,6 @@ export function FontsPane() {
               <GroupedFormRowTitle>
                 GTK4 `gtk-hint-font-metrics` (`settings.ini`)
               </GroupedFormRowTitle>
-              <GroupedFormRowDescription>
-                Writes `~/.config/gtk-4.0/settings.ini`. Disabled by default in GTK4 for fractional scaling; enabling snaps glyph baselines to integer pixels on 1× displays (relaunch GTK4 apps to observe)
-              </GroupedFormRowDescription>
             </GroupedFormRowLabel>
             <GroupedFormRowControl>
               <Switch

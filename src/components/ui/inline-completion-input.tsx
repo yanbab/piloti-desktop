@@ -97,7 +97,7 @@ export const InlineCompletionInput = React.forwardRef<
   };
 
   const sharedTypographyClass = cn(
-    "h-full w-full bg-transparent text-[17px] leading-none tracking-normal",
+    "w-full border-0 bg-transparent p-0 font-sans text-[17px] leading-[1.4] tracking-normal",
     className
   );
 
@@ -122,15 +122,15 @@ export const InlineCompletionInput = React.forwardRef<
         aria-hidden="true"
         className={cn(
           sharedTypographyClass,
-          "pointer-events-none absolute inset-0 flex items-center overflow-hidden whitespace-pre select-none"
+          "pointer-events-none absolute inset-x-0 top-1/2 -translate-y-1/2 overflow-hidden whitespace-pre select-none"
         )}
       >
         <span className="text-transparent">{value}</span>
         {suffix && (
-          <span className="inline-flex items-center rounded-[4px] bg-adw-accent/35 pr-1 text-adw-label/90 dark:bg-adw-accent/45 dark:text-white">
+          <span className="text-adw-label-tertiary dark:text-white/45">
             <span>{suffix}</span>
             {completionHint && (
-              <span className="text-[0.78em] opacity-80">
+              <span className="ml-1 text-[0.78em] opacity-80">
                 {completionHint}
               </span>
             )}

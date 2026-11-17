@@ -24,18 +24,13 @@ import {
 } from "./NotificationParts";
 
 function ToastBannerStack() {
-  const { settings } = useSettings();
   const { invokeNotificationAction } = useSystemBackends();
   const { toasts, close } = useToastManager<NotificationToastData>();
-
-  const position = settings.notificationBannerPosition;
-  const swipeDirection: ("up" | "down" | "right")[] =
-    position === "bottom-right" ? ["down", "right"] : ["up", "right"];
 
   if (toasts.length === 0) return null;
 
   return (
-    <ToastViewport position={position}>
+    <ToastViewport position="top-right">
       {toasts.map((toast) => {
         const data = toast.data;
         const isCritical = data?.urgency === "critical" || toast.type === "critical";
@@ -45,7 +40,7 @@ function ToastBannerStack() {
           <ToastRoot
             key={toast.id}
             toast={toast}
-            swipeDirection={swipeDirection}
+            swipeDirection={["up", "right"]}
             onClick={() => {
               if (isClickable && data) {
                 invokeNotificationAction(data.notificationId, "default");

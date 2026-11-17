@@ -8,6 +8,7 @@ import { runText } from "./exec";
 import type {
   GnomeInterfaceSnapshot,
   GnomeNotificationSettings,
+  GnomeWmPreferencesSnapshot,
   GtkFontAntialiasing,
   GtkFontHinting,
   GtkFontRgbaOrder,
@@ -241,6 +242,39 @@ export function monitorGnomeBackgroundSettings(
     domicile,
     "org.gnome.desktop.background",
     parseGnomeBackgroundKeyVal,
+    onChange
+  );
+}
+
+export function parseGnomeWmKeyVal(
+  key: string,
+  rawVal: string
+): GnomeWmPreferencesSnapshot {
+  if (key === "button-layout") {
+    const val = stripGVariantQuotes(rawVal);
+    return val ? { buttonLayout: val } : {};
+  }
+  return {};
+}
+
+export function readGnomeWmPreferences(
+  domicile: Domicile
+): Promise<GnomeWmPreferencesSnapshot> {
+  return readGSettingsSchema<GnomeWmPreferencesSnapshot>(
+    domicile,
+    "org.gnome.desktop.wm.preferences",
+    parseGnomeWmKeyVal
+  );
+}
+
+export function monitorGnomeWmPreferences(
+  domicile: Domicile,
+  onChange: (patch: GnomeWmPreferencesSnapshot) => void
+): () => void {
+  return monitorGSettingsSchema<GnomeWmPreferencesSnapshot>(
+    domicile,
+    "org.gnome.desktop.wm.preferences",
+    parseGnomeWmKeyVal,
     onChange
   );
 }

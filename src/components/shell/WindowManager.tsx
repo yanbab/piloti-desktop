@@ -174,6 +174,7 @@ function WebViewSurface({
   const {
     focusedWindowId,
     focusWindow,
+    clearFocusedWindow,
     closeWindow,
     minimizeWindow,
     toggleMaximizeWindow,
@@ -451,7 +452,7 @@ function WebViewSurface({
 
   return (
     <div className="flex h-full w-full flex-1 flex-col overflow-hidden bg-adw-content">
-      <div
+      <WindowTitlebar
         data-window-drag-region={isCsd ? "" : undefined}
         style={
           themeColor
@@ -463,11 +464,17 @@ function WebViewSurface({
             : undefined
         }
         className={cn(
-          "relative flex shrink-0 items-center gap-2 border-b border-adw-separator bg-adw-titlebar px-3 transition-colors duration-200 select-none",
-          isCsd ? "h-10 rounded-t-[inherit]" : "h-9"
+          "border-b border-adw-separator bg-adw-titlebar transition-colors duration-200",
+          !isCsd && "rounded-t-none"
         )}
       >
-        <div className="flex shrink-0 items-center" data-window-no-drag>
+        <div className="flex shrink-0 items-center gap-1.5" data-window-no-drag>
+          {isCsd && (
+            <WindowControls
+              side="left"
+              className="[&_button]:text-current [&_button:hover]:bg-black/10 dark:[&_button:hover]:bg-white/12"
+            />
+          )}
           <WindowMenuButton
             windowId={win.id}
             appId={win.appId}
@@ -536,12 +543,15 @@ function WebViewSurface({
 
         <div className="flex shrink-0 items-center gap-1" data-window-no-drag>
           {isCsd ? (
-            <WindowControls className="[&_button]:text-current [&_button:hover]:bg-black/10 dark:[&_button:hover]:bg-white/12" />
+            <WindowControls
+              side="right"
+              className="[&_button]:text-current [&_button:hover]:bg-black/10 dark:[&_button:hover]:bg-white/12"
+            />
           ) : (
             <div className="w-7" />
           )}
         </div>
-      </div>
+      </WindowTitlebar>
 
       <div className="relative min-h-0 flex-1 overflow-hidden">
         {isBrowserRuntime ? (
@@ -722,6 +732,7 @@ export function WindowManager() {
     launcherOpen,
     controlPanelOpen,
     focusWindow,
+    clearFocusedWindow,
     closeWindow,
     minimizeWindow,
     toggleMaximizeWindow,
@@ -879,6 +890,11 @@ export function WindowManager() {
   return (
     <div
       className="relative isolate z-10 min-h-0 flex-1 overflow-clip"
+      onPointerDown={(e) => {
+        if (!(e.target as HTMLElement).closest('[data-slot="window"]')) {
+          clearFocusedWindow();
+        }
+      }}
       onScroll={(e) => {
         if (e.currentTarget.scrollTop !== 0) e.currentTarget.scrollTop = 0;
         if (e.currentTarget.scrollLeft !== 0) e.currentTarget.scrollLeft = 0;
@@ -944,6 +960,7 @@ export function WindowManager() {
             minimizeTo={getDockRef(win.appId)}
             minimizeEffect="scale"
             maximized={win.maximized}
+            buttonLayout={settings.windowButtonLayout}
             maximizeInsets={{
               top: 0,
               right: rightDockClearance,
@@ -983,14 +1000,15 @@ export function WindowManager() {
               {/* Server-Side Titlebar (SSD) */}
               {!isCsd && (
                 <WindowTitlebar className="justify-between">
-                  <div className="flex shrink-0 items-center" data-window-no-drag>
+                  <div className="flex shrink-0 items-center gap-1.5" data-window-no-drag>
+                    <WindowControls side="left" />
                     <WindowMenuButton windowId={win.id} />
                   </div>
                   <WindowTitle className="flex items-center justify-center gap-1.5">
                     <span className="truncate">{win.title}</span>
                   </WindowTitle>
                   <div className="flex shrink-0 items-center" data-window-no-drag>
-                    <WindowControls />
+                    <WindowControls side="right" />
                   </div>
                 </WindowTitlebar>
               )}

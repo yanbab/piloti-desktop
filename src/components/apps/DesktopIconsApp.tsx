@@ -428,6 +428,9 @@ export function IconGrid({
         const startX = e.clientX - rect.left;
         const startY = e.clientY - rect.top;
         const additive = e.shiftKey || e.metaKey || e.ctrlKey;
+        if (!additive && selectedIds.length > 0) {
+          onSelectIds([]);
+        }
         setMarquee({
           pointerId: e.pointerId,
           startX,
@@ -440,12 +443,8 @@ export function IconGrid({
         });
       }}
       onClick={(e) => {
-        if (e.target === e.currentTarget) {
-          if (suppressContainerClickRef.current) {
-            suppressContainerClickRef.current = false;
-            return;
-          }
-          onSelectIds([]);
+        if (e.target === e.currentTarget && suppressContainerClickRef.current) {
+          suppressContainerClickRef.current = false;
         }
       }}
       className={cn(
@@ -513,6 +512,18 @@ export function IconGrid({
             style={spatialStyle}
             onPointerDown={(e) => {
               if (e.button !== 0) return;
+              if (e.metaKey || e.ctrlKey) {
+                const next = selectedSet.has(item.id)
+                  ? selectedIds.filter((id) => id !== item.id)
+                  : [...selectedIds, item.id];
+                onSelectIds(next);
+              } else if (e.shiftKey) {
+                if (!selectedSet.has(item.id)) {
+                  onSelectIds([...selectedIds, item.id]);
+                }
+              } else if (!selectedSet.has(item.id)) {
+                onSelectIds([item.id]);
+              }
               if ((mode === "spatial" && onMoveItem) || onDropItem) {
                 const itemRect = e.currentTarget.getBoundingClientRect();
                 setDrag({
@@ -535,20 +546,12 @@ export function IconGrid({
                 suppressClickRef.current = null;
                 return;
               }
-              if (e.metaKey || e.ctrlKey) {
-                const next = selectedSet.has(item.id)
-                  ? selectedIds.filter((id) => id !== item.id)
-                  : [...selectedIds, item.id];
-                onSelectIds(next);
+              if (e.metaKey || e.ctrlKey || e.shiftKey) {
                 return;
               }
-              if (e.shiftKey) {
-                if (!selectedSet.has(item.id)) {
-                  onSelectIds([...selectedIds, item.id]);
-                }
-                return;
+              if (selectedIds.length !== 1 || !selectedSet.has(item.id)) {
+                onSelectIds([item.id]);
               }
-              onSelectIds([item.id]);
               onActivateItem(item);
             }}
             onContextMenu={(e) => {

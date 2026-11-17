@@ -23,10 +23,12 @@ import {
   listSystemAudioSinks,
   monitorGnomeBackgroundSettings,
   monitorGnomeInterfaceSettings,
+  monitorGnomeWmPreferences,
   probeGnomeCapabilities,
   readGnomeBackgroundSettings,
   readGnomeInterfaceSettings,
   readGnomeNotificationSettings,
+  readGnomeWmPreferences,
   readMprisMediaInfo,
   readSystemAudio,
   readSystemBattery,
@@ -882,11 +884,24 @@ export function useSystemBackendsValue(
       (snap) => applyGnomeBackgroundSnapshot(snap, true)
     );
 
+    const applyGnomeWmSnapshot = (snap: { buttonLayout?: string }) => {
+      if (cancelled || !settings.syncGnomeSettings || !snap.buttonLayout) return;
+      applyingGnomeSyncRef.current = true;
+      applySettingsState({ windowButtonLayout: snap.buttonLayout });
+      applyingGnomeSyncRef.current = false;
+    };
+    void readGnomeWmPreferences(domicile).then(applyGnomeWmSnapshot);
+    const stopWmMonitor = monitorGnomeWmPreferences(
+      domicile,
+      applyGnomeWmSnapshot
+    );
+
     return () => {
       cancelled = true;
       window.clearTimeout(deferTimer);
       stopInterfaceMonitor();
       stopBackgroundMonitor();
+      stopWmMonitor();
     };
   }, [
     applySettingsState,

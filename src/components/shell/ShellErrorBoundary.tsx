@@ -71,7 +71,7 @@ export class ShellErrorBoundary extends React.Component<
     return (
       <div
         role="alert"
-        className="fixed inset-0 z-[99999] flex flex-col justify-center bg-[#1a5fb4] px-8 py-12 text-white select-text sm:px-16 lg:px-28"
+        className="fixed inset-0 z-[99999] flex flex-col justify-center bg-black px-8 py-12 text-white select-text sm:px-16 lg:px-28"
       >
         <div className="mx-auto w-full max-w-3xl space-y-6">
           <div className="text-[72px] leading-none font-light tracking-tight select-none">
@@ -98,7 +98,7 @@ export class ShellErrorBoundary extends React.Component<
               type="button"
               autoFocus
               onClick={this.handleReload}
-              className="rounded-md bg-white px-5 py-2.5 text-sm font-semibold text-[#1a5fb4] shadow-sm active:brightness-90"
+              className="rounded-md bg-white px-5 py-2.5 text-sm font-semibold text-black shadow-sm active:brightness-90"
             >
               Reload Shell
             </button>

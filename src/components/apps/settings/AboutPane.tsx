@@ -5,7 +5,6 @@ import {
   GroupedFormGroup,
   GroupedFormRow,
   GroupedFormRowControl,
-  GroupedFormRowDescription,
   GroupedFormRowLabel,
   GroupedFormRowTitle,
   GroupedFormSection,
@@ -63,9 +62,6 @@ export function AboutPane() {
           <GroupedFormRow>
             <GroupedFormRowLabel>
               <GroupedFormRowTitle>Two-Way GSettings / dconf Sync</GroupedFormRowTitle>
-              <GroupedFormRowDescription>
-                Syncs color scheme, Adwaita accent color, clock format, and icon theme with `org.gnome.desktop.interface`
-              </GroupedFormRowDescription>
             </GroupedFormRowLabel>
             <GroupedFormRowControl>
               <Switch
@@ -82,9 +78,6 @@ export function AboutPane() {
               <GroupedFormRowTitle>
                 Prefer Native `gnome-control-center`
               </GroupedFormRowTitle>
-              <GroupedFormRowDescription>
-                Launches System Settings with `XDG_CURRENT_DESKTOP=GNOME` when opening Settings on Linux
-              </GroupedFormRowDescription>
             </GroupedFormRowLabel>
             <GroupedFormRowControl>
               <Switch
@@ -99,19 +92,6 @@ export function AboutPane() {
           <GroupedFormRow className="py-3">
             <GroupedFormRowLabel>
               <GroupedFormRowTitle>System Settings Panels</GroupedFormRowTitle>
-              <GroupedFormRowDescription>
-                Detected:{" "}
-                {[
-                  gnomeCapabilities.gnomeControlCenter && "gnome-control-center",
-                  gnomeCapabilities.gsettings && "gsettings",
-                  gnomeCapabilities.pipewire && "PipeWire",
-                  gnomeCapabilities.networkManager && "NetworkManager",
-                  gnomeCapabilities.powerProfiles && "power-profiles-daemon",
-                ]
-                  .filter(Boolean)
-                  .join(" · ") ||
-                  (isBrowserRuntime ? "Browser Harness" : "Probing…")}
-              </GroupedFormRowDescription>
             </GroupedFormRowLabel>
             <GroupedFormRowControl>
               <div className="flex flex-wrap justify-end gap-1.5">
@@ -160,13 +140,6 @@ export function AboutPane() {
           <GroupedFormRow className="py-3">
             <GroupedFormRowLabel>
               <GroupedFormRowTitle>Filter Panels Shown in System Settings</GroupedFormRowTitle>
-              <GroupedFormRowDescription>
-                Disabled panels write isolated `Hidden=true` stubs to{" "}
-                <code className="font-mono text-[11px]">
-                  ~/.local/share/piloti-gcc/applications
-                </code>{" "}
-                so normal GNOME sessions are untouched.
-              </GroupedFormRowDescription>
             </GroupedFormRowLabel>
             <GroupedFormRowControl>
               <div className="flex items-center gap-2">
@@ -208,11 +181,6 @@ export function AboutPane() {
                       </span>
                     )}
                   </GroupedFormRowTitle>
-                  <GroupedFormRowDescription>
-                    {panel.comment
-                      ? `${panel.comment} · ${panel.desktopId}`
-                      : panel.desktopId}
-                  </GroupedFormRowDescription>
                 </GroupedFormRowLabel>
                 <GroupedFormRowControl>
                   <Switch

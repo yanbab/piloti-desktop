@@ -46,6 +46,61 @@ export {
   useWindowManager,
 };
 
+function WindowsLayer({ children }: { children: React.ReactNode }) {
+  const settingsValue = useSettings();
+  const systemBackendsValue = useSystemBackends();
+  const appsValue = useApps();
+  const windowsValue = useWindowsValue(
+    settingsValue,
+    systemBackendsValue,
+    appsValue
+  );
+  return (
+    <WindowsContext.Provider value={windowsValue}>
+      {children}
+    </WindowsContext.Provider>
+  );
+}
+
+function AppsLayer({
+  onEssentialIconsReady,
+  children,
+}: {
+  onEssentialIconsReady: () => void;
+  children: React.ReactNode;
+}) {
+  const settingsValue = useSettings();
+  const systemBackendsValue = useSystemBackends();
+  const appsValue = useAppsValue(
+    settingsValue,
+    systemBackendsValue,
+    onEssentialIconsReady
+  );
+  return (
+    <AppsContext.Provider value={appsValue}>
+      <WindowsLayer>{children}</WindowsLayer>
+    </AppsContext.Provider>
+  );
+}
+
+function SystemBackendsLayer({
+  onEssentialIconsReady,
+  children,
+}: {
+  onEssentialIconsReady: () => void;
+  children: React.ReactNode;
+}) {
+  const settingsValue = useSettings();
+  const systemBackendsValue = useSystemBackendsValue(settingsValue);
+  return (
+    <SystemBackendsContext.Provider value={systemBackendsValue}>
+      <AppsLayer onEssentialIconsReady={onEssentialIconsReady}>
+        {children}
+      </AppsLayer>
+    </SystemBackendsContext.Provider>
+  );
+}
+
 export function DesktopStateProvider({
   children,
 }: {
@@ -64,27 +119,12 @@ export function DesktopStateProvider({
   React.useEffect(() => {
     attachConsoleDiskSink(domicile, settingsValue.isBrowserRuntime);
   }, [domicile, settingsValue.isBrowserRuntime]);
-  const systemBackendsValue = useSystemBackendsValue(settingsValue);
-  const appsValue = useAppsValue(
-    settingsValue,
-    systemBackendsValue,
-    handleEssentialIconsReady
-  );
-  const windowsValue = useWindowsValue(
-    settingsValue,
-    systemBackendsValue,
-    appsValue
-  );
 
   return (
     <SettingsContext.Provider value={settingsValue}>
-      <SystemBackendsContext.Provider value={systemBackendsValue}>
-        <AppsContext.Provider value={appsValue}>
-          <WindowsContext.Provider value={windowsValue}>
-            {children}
-          </WindowsContext.Provider>
-        </AppsContext.Provider>
-      </SystemBackendsContext.Provider>
+      <SystemBackendsLayer onEssentialIconsReady={handleEssentialIconsReady}>
+        {children}
+      </SystemBackendsLayer>
     </SettingsContext.Provider>
   );
 }

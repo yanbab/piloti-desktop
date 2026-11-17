@@ -6,12 +6,10 @@ import { Toast as ToastPrimitive } from "@base-ui/react/toast"
 
 import { cn } from "@/lib/utils"
 
-export type ToastViewportPosition = "top-center" | "top-right" | "bottom-right"
+export type ToastViewportPosition = "top-right"
 
 const VIEWPORT_POSITION_CLASSES: Record<ToastViewportPosition, string> = {
-  "top-center": "top-10 left-1/2 -translate-x-1/2",
   "top-right": "top-10 right-3",
-  "bottom-right": "right-3 bottom-20",
 }
 
 function ToastProvider({ ...props }: ToastPrimitive.Provider.Props) {
@@ -20,7 +18,7 @@ function ToastProvider({ ...props }: ToastPrimitive.Provider.Props) {
 
 function ToastViewport({
   className,
-  position = "top-center",
+  position = "top-right",
   ...props
 }: ToastPrimitive.Viewport.Props & {
   position?: ToastViewportPosition
