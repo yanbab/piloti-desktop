@@ -22,8 +22,11 @@ import {
   type DesktopWindowInstance,
   normalizeWebUrl,
   type ResolvedPopupWindow,
+  useWindowActions,
   useWindowManager,
   useWindowsValue,
+  WindowActionsContext,
+  type WindowActionsValue,
   WindowsContext,
 } from "./WindowsContext";
 
@@ -35,6 +38,7 @@ export type {
   ResolvedPopupWindow,
   SavedWindowBounds,
   ShellNotification,
+  WindowActionsValue,
   WindowDecorationMode,
 };
 
@@ -43,6 +47,7 @@ export {
   useApps,
   useSettings,
   useSystemBackends,
+  useWindowActions,
   useWindowManager,
 };
 
@@ -55,10 +60,58 @@ function WindowsLayer({ children }: { children: React.ReactNode }) {
     systemBackendsValue,
     appsValue
   );
+  const actionsValue = React.useMemo<WindowActionsValue>(
+    () => ({
+      launchApp: windowsValue.launchApp,
+      launchXdgApp: windowsValue.launchXdgApp,
+      openGnomeSettings: windowsValue.openGnomeSettings,
+      openWebUrl: windowsValue.openWebUrl,
+      focusWindow: windowsValue.focusWindow,
+      closeWindow: windowsValue.closeWindow,
+      forceQuitApp: windowsValue.forceQuitApp,
+      toggleMinimizeWindow: windowsValue.toggleMinimizeWindow,
+      minimizeWindow: windowsValue.minimizeWindow,
+      toggleMaximizeWindow: windowsValue.toggleMaximizeWindow,
+      tileWindow: windowsValue.tileWindow,
+      updateWindowGeometry: windowsValue.updateWindowGeometry,
+      handleMenuAction: windowsValue.handleMenuAction,
+      setLauncherOpen: windowsValue.setLauncherOpen,
+      setControlPanelOpen: windowsValue.setControlPanelOpen,
+      setAboutOpen: windowsValue.setAboutOpen,
+      setOverviewOpen: windowsValue.setOverviewOpen,
+      toggleOverview: windowsValue.toggleOverview,
+      moveWindowToWorkspace: windowsValue.moveWindowToWorkspace,
+      removeWorkspace: windowsValue.removeWorkspace,
+    }),
+    [
+      windowsValue.closeWindow,
+      windowsValue.focusWindow,
+      windowsValue.forceQuitApp,
+      windowsValue.handleMenuAction,
+      windowsValue.launchApp,
+      windowsValue.launchXdgApp,
+      windowsValue.minimizeWindow,
+      windowsValue.moveWindowToWorkspace,
+      windowsValue.openGnomeSettings,
+      windowsValue.openWebUrl,
+      windowsValue.removeWorkspace,
+      windowsValue.setAboutOpen,
+      windowsValue.setControlPanelOpen,
+      windowsValue.setLauncherOpen,
+      windowsValue.setOverviewOpen,
+      windowsValue.tileWindow,
+      windowsValue.toggleMaximizeWindow,
+      windowsValue.toggleMinimizeWindow,
+      windowsValue.toggleOverview,
+      windowsValue.updateWindowGeometry,
+    ]
+  );
   return (
-    <WindowsContext.Provider value={windowsValue}>
-      {children}
-    </WindowsContext.Provider>
+    <WindowActionsContext.Provider value={actionsValue}>
+      <WindowsContext.Provider value={windowsValue}>
+        {children}
+      </WindowsContext.Provider>
+    </WindowActionsContext.Provider>
   );
 }
 

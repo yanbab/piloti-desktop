@@ -394,17 +394,9 @@ export function Dock() {
     });
   };
 
-  const handleTrashInfo = () => {
-    if (isBrowserRuntime) {
-      launchApp("nautilus", { payload: WEB_VFS_TRASH });
-      return;
-    }
-    pushNotification({
-      appName: "Trash",
-      summary: trashEmpty ? "Trash is Empty" : `Trash (${trashCount} items)`,
-      body: trashEmpty
-        ? "No deleted files in ~/.local/share/Trash."
-        : "Right-click Trash and choose Empty Trash to permanently delete items.",
+  const handleOpenTrash = () => {
+    launchApp("nautilus", {
+      payload: isBrowserRuntime ? WEB_VFS_TRASH : "trash:///",
     });
   };
 
@@ -593,7 +585,7 @@ export function Dock() {
               "data-dock-context": "trash",
               "data-vfs-drop-path": WEB_VFS_TRASH,
             }}
-            onClick={handleTrashInfo}
+            onClick={handleOpenTrash}
           >
             <AppSquircleIcon
               iconUrl={getAppIconUrl(
@@ -684,13 +676,18 @@ export function Dock() {
               )}
             </>
           ) : contextTarget.kind === "trash" ? (
-            <ContextMenuItem
-              disabled={trashEmpty}
-              variant={altPressed ? "destructive" : "default"}
-              onClick={() => void handleEmptyTrash()}
-            >
-              Empty Trash
-            </ContextMenuItem>
+            <>
+              <ContextMenuItem onClick={handleOpenTrash}>
+                Open Trash
+              </ContextMenuItem>
+              <ContextMenuSeparator />
+              <ContextMenuItem
+                disabled={trashEmpty}
+                onClick={() => void handleEmptyTrash()}
+              >
+                Empty Trash
+              </ContextMenuItem>
+            </>
           ) : (
             <>
               <ContextMenuCheckboxItem

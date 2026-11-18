@@ -4,17 +4,32 @@
 
 # Piloti Desktop
 
-A Linux Wayland desktop shell built on [Domicile](https://domicile-desktop.com/) with an **Adwaita / GNOME** design system.
+An hybrid Web/Linux desktop shell built on [Domicile](https://domicile-desktop.com/), a Chromium based Wayland.
+
+It allows nice experiments when boundaries between web and native apps are not so important anymore.
+
 
 ## Features
 
-- **Wayland Window Management**: Renders native Wayland clients (`<app app-id="…" />`) with `xdg_toplevel` state synchronization (`Maximized`, `Fullscreen`, `Tiled*`), client-initiated `Move` / `Resize` / `Minimize`, `Alt`/`Super` + drag, 8-edge resizing, edge snapping, and per-app geometry memory.
-- **Unified Menu bar**: Dynamic application menu, Overview switcher, live screen-capture indicator pill, DBusMenu System Tray, `Launcher`, and `ControlPanel` unified under a single non-modal menu bar.
-- **Dock & Desktop Icons**: Magnifying app dock with macOS-style slide-in entrance, XDG Trash status + actions, and a transparent spatial `DesktopIconsApp` for `~/Desktop` with rubber-band selection, drag placement, and 2D keyboard navigation.
-- **Notifications & History**: FreeDesktop-compatible toast banners with urgency timeouts, Do Not Disturb, lock screen privacy rules, and persistent notification history in `ControlPanel`.
-- **GNOME Adwaita Styling**: Light and dark modes, official Libadwaita 1.6 accent colors, GNOME `org.gnome.desktop.background` wallpapers (including `.jxl` transcode + host downscaling), solid wallpapers, and custom background images.
-- **XDG & GNOME Integration**: Standards-compliant FreeDesktop `.desktop`, `index.theme`, Base Directory, Trash, and Session Management modules with two-way `GSettings` sync, PipeWire (`wpctl`/`pactl`), NetworkManager (`nmcli`), UPower, Web Battery API fallback, `powerprofilesctl`, and XDG Desktop Portals.
-- **Built-in Utilities**: System Settings (`appearance`, `fonts`, `dock`, `notifications`, `wallpaper`, `network`, `sound`, `displays`, `about`) and **DevTools** (CSP-safe JS REPL, live logs persisted to `~/.cache/piloti/piloti.log`, state inspector, and `localStorage` explorer).
+### Shell
+- Wayland window management
+- Unified menu bar & system tray
+- Application launcher
+- Window overview & workspaces
+- Dock & Trash
+- Desktop icons
+- Notifications & Control Panel
+- Alt+Tab window switcher
+- Lock screen & power actions
+- GNOME Adwaita light/dark themes & wallpapers
+
+### Apps
+- Files (Web)
+- Terminal (Web)
+- Text Editor (Web)
+- App Store (Web & Flatpak)
+- Settings (Web)
+- DevTools
 
 ## Quick Start
 
@@ -22,12 +37,15 @@ A Linux Wayland desktop shell built on [Domicile](https://domicile-desktop.com/)
 
 ```bash
 bun install
+bun run build
 bun run dev
 ```
 
 Open `http://localhost:5173`. Runs against a local `FakeDomicileHost` harness with simulated apps and hardware controls.
 
 ### Native Wayland Session (Linux + Domicile)
+
+Install Domicile: https://domicile-desktop.com/
 
 ```bash
 # Run directly from TypeScript source
@@ -64,9 +82,3 @@ bun run build
 | `Alt + F` | Maximize / restore focused window |
 | `Alt + M` | Minimize focused window |
 | `Alt + W` | Close focused window |
-
-## Documentation
-
-- **[Architecture & Shell API (`docs/ARCHITECTURE.md`)](./docs/ARCHITECTURE.md)** — Runtime model, directory structure, and APIs for querying/controlling apps, windows, and settings.
-- **[Debian / VMware Guide (`docs/VMWARE-DEBIAN-GUIDE.md`)](./docs/VMWARE-DEBIAN-GUIDE.md)** — Running and hot-reloading Piloti inside a Debian VM with Domicile.
-- **[Project Website (`docs/index.html`)](./docs/index.html)** & **[Web Demo (`docs/demo/`)](./docs/demo/)**.

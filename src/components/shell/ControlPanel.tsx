@@ -39,8 +39,9 @@ import {
 } from "./NotificationParts";
 
 export function ControlPanel() {
-  const { settings, updateSettings } = useSettings();
+  const { isBrowserRuntime, settings, updateSettings } = useSettings();
   const {
+    gnomeCapabilities,
     liveWifiNetworks,
     connectWifiNetwork,
     audioSinks,
@@ -134,7 +135,7 @@ export function ControlPanel() {
               setControlPanelOpen(false);
               void takeScreenshot();
             }}
-            className="flex size-7 items-center justify-center rounded-full bg-black/8 text-adw-label dark:bg-white/10"
+            className="flex size-7 items-center justify-center rounded-full bg-black/8 text-adw-label active:bg-black/16 dark:bg-white/10 dark:active:bg-white/22"
           >
             <CameraIcon className="size-3.5" />
           </button>
@@ -145,7 +146,7 @@ export function ControlPanel() {
               setControlPanelOpen(false);
               void startScreenRecording();
             }}
-            className="flex size-7 items-center justify-center rounded-full bg-black/8 text-adw-label dark:bg-white/10"
+            className="flex size-7 items-center justify-center rounded-full bg-black/8 text-adw-label active:bg-black/16 dark:bg-white/10 dark:active:bg-white/22"
           >
             <VideoIcon className="size-3.5" />
           </button>
@@ -164,7 +165,7 @@ export function ControlPanel() {
                 launchApp("settings");
               }
             }}
-            className="flex size-7 items-center justify-center rounded-full bg-black/8 text-adw-label dark:bg-white/10"
+            className="flex size-7 items-center justify-center rounded-full bg-black/8 text-adw-label active:bg-black/16 dark:bg-white/10 dark:active:bg-white/22"
           >
             <SettingsIcon className="size-3.5" />
           </button>
@@ -236,16 +237,18 @@ export function ControlPanel() {
               <span className="text-[11px] font-semibold text-adw-label-secondary">
                 Output Device
               </span>
-              <button
-                type="button"
-                onClick={() => {
-                  setControlPanelOpen(false);
-                  launchApp("settings", { payload: "sound" });
-                }}
-                className="text-[10.5px] font-medium text-adw-accent active:opacity-70"
-              >
-                Sound Settings…
-              </button>
+              {!isBrowserRuntime && gnomeCapabilities.gnomeControlCenter && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setControlPanelOpen(false);
+                    openGnomeSettings("sound");
+                  }}
+                  className="text-[10.5px] font-medium text-adw-accent active:opacity-70"
+                >
+                  Sound Settings…
+                </button>
+              )}
             </div>
             {audioSinks.length === 0 ? (
               <div className="px-1 py-1.5 text-[11px] text-adw-label-secondary">
@@ -541,16 +544,18 @@ export function ControlPanel() {
             <span className="text-[11px] font-semibold text-adw-label-secondary">
               Wi-Fi Networks
             </span>
-            <button
-              type="button"
-              onClick={() => {
-                setControlPanelOpen(false);
-                launchApp("settings", { payload: "network" });
-              }}
-              className="text-[10.5px] font-medium text-adw-accent active:opacity-70"
-            >
-              Network Settings…
-            </button>
+            {!isBrowserRuntime && gnomeCapabilities.gnomeControlCenter && (
+              <button
+                type="button"
+                onClick={() => {
+                  setControlPanelOpen(false);
+                  openGnomeSettings("wifi");
+                }}
+                className="text-[10.5px] font-medium text-adw-accent active:opacity-70"
+              >
+                Network Settings…
+              </button>
+            )}
           </div>
           {!settings.wifiEnabled ? (
             <div className="px-2 py-2 text-[11px] text-adw-label-secondary">

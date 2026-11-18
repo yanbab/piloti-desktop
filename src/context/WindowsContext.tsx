@@ -40,6 +40,8 @@ import { clampWindowBounds, clampWorkspace } from "@/lib/window-bounds";
 import { type AppsContextValue, matchAppFromWayland } from "./AppsContext";
 import { type SettingsContextValue } from "./SettingsContext";
 import { type SystemBackendsContextValue } from "./SystemBackendsContext";
+import { useGlobalAppMenu } from "./windows/useGlobalAppMenu";
+import { useGlobalShortcuts } from "./windows/useGlobalShortcuts";
 
 export interface DesktopWindowInstance {
   id: string;
@@ -144,7 +146,33 @@ export interface WindowsContextValue {
   ) => () => void;
 }
 
+export type WindowActionsValue = Pick<
+  WindowsContextValue,
+  | "launchApp"
+  | "launchXdgApp"
+  | "openGnomeSettings"
+  | "openWebUrl"
+  | "focusWindow"
+  | "closeWindow"
+  | "forceQuitApp"
+  | "toggleMinimizeWindow"
+  | "minimizeWindow"
+  | "toggleMaximizeWindow"
+  | "tileWindow"
+  | "updateWindowGeometry"
+  | "handleMenuAction"
+  | "setLauncherOpen"
+  | "setControlPanelOpen"
+  | "setAboutOpen"
+  | "setOverviewOpen"
+  | "toggleOverview"
+  | "moveWindowToWorkspace"
+  | "removeWorkspace"
+>;
+
 export const WindowsContext = React.createContext<WindowsContextValue | null>(null);
+export const WindowActionsContext =
+  React.createContext<WindowActionsValue | null>(null);
 
 let nextZIndex = 20;
 let nextShellWinCounter = 1;
@@ -1607,9 +1635,13 @@ function pruneBrowserRecord(
       console.info("[Piloti] launchApp", appId, options ?? {});
       const def = APP_CATALOG.find((a) => a.id === appId);
 
-      // Focus existing window unless forceNew
+      // Focus existing window unless forceNew (for text-editor with a file payload, only reuse if the same file is already open)
       if (!options?.forceNew) {
-        const existing = combinedWindows.find((w) => w.appId === appId);
+        const existing = combinedWindows.find((w) =>
+          appId === "text-editor" && options?.payload
+            ? w.appId === appId && w.payload === options.payload
+            : w.appId === appId,
+        );
         if (existing) {
           if (
             (options?.payload || options?.forceCsd !== undefined) &&
@@ -1974,227 +2006,27 @@ function pruneBrowserRecord(
     [settings.activeWorkspace, settings.workspaceCount, updateSettings]
   );
 
-  // Global Domicile key grabs
-  React.useEffect(() => {
-    const chords = [
-      "Alt+Space",
-      "Alt+space",
-      "Alt+Tab",
-      "Alt+Shift+Tab",
-      "Meta+Return",
-      "Meta+Left",
-      "Meta+Right",
-      "Meta+Up",
-      "F3",
-      "Print",
-    ];
-    for (const c of chords) {
-      try {
-        domicile.keyboard.grab(c);
-      } catch {
-        // ignore invalid keysym warnings in fake host
-      }
-    }
-    const unlisten = domicile.keyboard.on("shortcut", ({ chord }) => {
-      if (chord === "Alt+Space" || chord === "Alt+space") {
-        domicile.windows.focusShell();
-        setLauncherOpen((v) => !v);
-      } else if (chord === "Alt+Tab") {
-        domicile.windows.focusShell();
-        cycleAltTab(1);
-      } else if (chord === "Alt+Shift+Tab") {
-        domicile.windows.focusShell();
-        cycleAltTab(-1);
-      } else if (chord === "Meta+Return") {
-        launchDesktopCommand(domicile, ["kitty"]);
-      } else if (chord === "Meta+Left") {
-        switchWorkspace(-1);
-      } else if (chord === "Meta+Right") {
-        switchWorkspace(1);
-      } else if (chord === "Meta+Up" || chord === "F3") {
-        toggleOverview();
-      } else if (chord === "Print") {
-        void takeScreenshot();
-      }
-    });
-    const unlistenRelease = domicile.keyboard.on(
-      "shortcutrelease",
-      ({ chord, altKey }) => {
-        if ((chord === "Alt+Tab" || chord === "Alt+Shift+Tab") && !altKey) {
-          commitAltTab();
-        }
-      }
-    );
-    const unlistenMods = domicile.keyboard.on("modifierschange", () => {
-      if (
-        altTabOpen &&
-        domicile.keyboard.modifiers &&
-        !domicile.keyboard.modifiers.alt
-      ) {
-        commitAltTab();
-      }
-    });
-    return () => {
-      unlisten();
-      unlistenRelease();
-      unlistenMods();
-      for (const c of chords) {
-        try {
-          domicile.keyboard.ungrab(c);
-        } catch {
-          // ignore
-        }
-      }
-    };
-  }, [
-    altTabOpen,
-    commitAltTab,
-    cycleAltTab,
+  useGlobalShortcuts({
     domicile,
+    isBrowserRuntime,
+    overviewOpen,
+    setOverviewOpen,
+    toggleOverview,
+    setLauncherOpen,
+    setControlPanelOpen,
+    altTabOpen,
+    cycleAltTab,
+    commitAltTab,
+    closeAltTab,
     switchWorkspace,
     takeScreenshot,
-    toggleOverview,
-  ]);
-
-  // DOM keyboard shortcuts (Browser Dev Mode & shell-focused windows)
-  React.useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (overviewOpen && e.key === "Escape") {
-        e.preventDefault();
-        setOverviewOpen(false);
-        return;
-      }
-      if (
-        (e.key === "F3" && !e.altKey && !e.ctrlKey && !e.metaKey) ||
-        (e.metaKey && !e.altKey && !e.ctrlKey && !e.shiftKey && e.key === "ArrowUp")
-      ) {
-        e.preventDefault();
-        toggleOverview();
-        return;
-      }
-      if (
-        (isBrowserRuntime && e.altKey && e.code === "Space") ||
-        ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k")
-      ) {
-        e.preventDefault();
-        setOverviewOpen(false);
-        setLauncherOpen((v) => !v);
-        return;
-      }
-      if (isBrowserRuntime && e.altKey && e.key === "Tab") {
-        e.preventDefault();
-        setOverviewOpen(false);
-        cycleAltTab(e.shiftKey ? -1 : 1);
-        return;
-      }
-      if (altTabOpen) {
-        if (e.key === "ArrowRight" || (isBrowserRuntime && e.key === "Tab")) {
-          e.preventDefault();
-          cycleAltTab(e.shiftKey ? -1 : 1);
-          return;
-        }
-        if (e.key === "ArrowLeft") {
-          e.preventDefault();
-          cycleAltTab(-1);
-          return;
-        }
-        if (e.key === "Enter") {
-          e.preventDefault();
-          commitAltTab();
-          return;
-        }
-        if (e.key === "Escape") {
-          e.preventDefault();
-          closeAltTab();
-          return;
-        }
-      }
-      if (e.metaKey && !e.altKey && !e.ctrlKey && !e.shiftKey) {
-        if (e.key === "ArrowLeft") {
-          e.preventDefault();
-          switchWorkspace(-1);
-          return;
-        }
-        if (e.key === "ArrowRight") {
-          e.preventDefault();
-          switchWorkspace(1);
-          return;
-        }
-      }
-      if (e.altKey && e.key === ",") {
-        e.preventDefault();
-        launchApp("settings");
-        return;
-      }
-      if (e.altKey && e.key.toLowerCase() === "n") {
-        e.preventDefault();
-        setControlPanelOpen((v) => !v);
-        return;
-      }
-      if (e.altKey && e.key.toLowerCase() === "w" && focusedWindowId) {
-        e.preventDefault();
-        closeWindow(focusedWindowId);
-        return;
-      }
-      if (e.altKey && e.key.toLowerCase() === "m" && focusedWindowId) {
-        e.preventDefault();
-        toggleMinimizeWindow(focusedWindowId);
-        return;
-      }
-      if (e.altKey && e.key.toLowerCase() === "f" && focusedWindowId) {
-        e.preventDefault();
-        toggleMaximizeWindow(focusedWindowId);
-        return;
-      }
-      if (e.altKey && e.key === "[" && focusedWindowId) {
-        e.preventDefault();
-        tileWindow(focusedWindowId, "left");
-        return;
-      }
-      if (e.altKey && e.key === "]" && focusedWindowId) {
-        e.preventDefault();
-        tileWindow(focusedWindowId, "right");
-        return;
-      }
-    };
-
-    const onKeyUp = (e: KeyboardEvent) => {
-      if (altTabOpen && e.key === "Alt") {
-        commitAltTab();
-      }
-    };
-
-    window.addEventListener("keydown", onKeyDown);
-    window.addEventListener(
-      "domicile-guest-keydown",
-      onKeyDown as EventListener
-    );
-    window.addEventListener("keyup", onKeyUp);
-    return () => {
-      window.removeEventListener("keydown", onKeyDown);
-      window.removeEventListener(
-        "domicile-guest-keydown",
-        onKeyDown as EventListener
-      );
-      window.removeEventListener("keyup", onKeyUp);
-    };
-  }, [
-    altTabOpen,
-    closeAltTab,
-    closeWindow,
-    commitAltTab,
-    cycleAltTab,
-    domicile,
-    overviewOpen,
     focusedWindowId,
-    isBrowserRuntime,
     launchApp,
-    switchWorkspace,
-    tileWindow,
-    toggleOverview,
-    toggleMaximizeWindow,
+    closeWindow,
     toggleMinimizeWindow,
-  ]);
+    toggleMaximizeWindow,
+    tileWindow,
+  });
 
   const dockRefs = React.useRef<
     Record<string, React.RefObject<Element | null>>
@@ -2225,176 +2057,20 @@ function pruneBrowserRecord(
     [combinedWindows, focusedWindowId]
   );
 
-  const activeAppDef = React.useMemo<AppDefinition>(() => {
-    if (focusedWindow) {
-      if (focusedWindow.browserWindowId) {
-        const safeLabel = resolveWebAppTitle({
-          rawUrl: focusedWindow.browserUrl,
-          hostTitle: focusedWindow.title,
-          installedApps: settings.installedWebApps,
-          fallback: "Web",
-        });
-        return {
-          ...(APP_CATALOG.find((a) => a.id === "browser") ?? {
-            category: "Internet" as const,
-            iconName: "globe" as const,
-            gradient: "from-cyan-400 via-blue-500 to-indigo-600",
-            pinnedByDefault: false,
-            defaultSize: { width: 880, height: 560 },
-            menus: [],
-          }),
-          id: focusedWindow.appId,
-          name: safeLabel,
-          shortName: safeLabel,
-          description: focusedWindow.browserUrl || "Web Application",
-          iconUrl: focusedWindow.iconUrl,
-        };
-      }
-      const def = APP_CATALOG.find((a) => a.id === focusedWindow.appId);
-      if (def) return def;
-      const xdgMatch = installedXdgApps.find(
-        (e) =>
-          e.appId === focusedWindow.appId ||
-          e.desktopId === focusedWindow.appId ||
-          e.appId.toLowerCase() === focusedWindow.appId.toLowerCase() ||
-          e.desktopId.replace(/\.desktop$/i, "").toLowerCase() ===
-          focusedWindow.appId.toLowerCase()
-      );
-      const matched = matchAppFromWayland(focusedWindow.appId, focusedWindow.title);
-      if (xdgMatch) {
-        return {
-          ...matched,
-          id: xdgMatch.appId,
-          name: xdgMatch.name,
-          shortName: xdgMatch.name,
-          iconUrl: xdgMatch.iconUrl ?? matched.iconUrl,
-        };
-      }
-      return matched;
-    }
-    return {
-      id: "desktop",
-      name: "Desktop",
-      shortName: "Desktop",
-      description: "Piloti Desktop Shell",
-      category: "System",
-      iconName: "sparkles",
-      gradient: "from-blue-500 to-indigo-600",
-      pinnedByDefault: false,
-      defaultSize: { width: 800, height: 500 },
-      menus: [
-        {
-          title: "File",
-          items: [
-            {
-              label: "New Window",
-              actionId: "desktop:new-window",
-            },
-            {
-              label: "New Text File",
-              actionId: "desktop:new-text-file",
-              separatorAfter: true,
-            },
-            {
-              label: "Screenshot",
-              shortcut: "Print",
-              actionId: "shell:screenshot",
-            },
-            {
-              label: "Record",
-              actionId: "shell:record",
-              separatorAfter: true,
-            },
-            {
-              label: "Restart Desktop",
-              actionId: "shell:reload",
-            },
-          ],
-        },
-        {
-          title: "View",
-          items: [
-            {
-              label: "Launcher",
-              shortcut: "Alt+Space",
-              actionId: "shell:launcher",
-            },
-            {
-              label: "Control Panel",
-              shortcut: "Alt+N",
-              actionId: "shell:control-panel",
-            },
-            {
-              label: "Settings (Web)",
-              shortcut: "Alt+,",
-              actionId: "launch:settings",
-            },
-            {
-              label: "DevTools",
-              actionId: "launch:console",
-            },
-          ],
-        },
-      ],
-    };
-  }, [focusedWindow, settings.installedWebApps]);
-
-  const handleMenuAction = React.useCallback(
-    (actionId: string) => {
-      if (actionId === "window:close" && focusedWindowId) {
-        closeWindow(focusedWindowId);
-      } else if (actionId === "window:minimize" && focusedWindowId) {
-        toggleMinimizeWindow(focusedWindowId);
-      } else if (actionId === "window:zoom" && focusedWindowId) {
-        toggleMaximizeWindow(focusedWindowId);
-      } else if (actionId === "window:tile-left" && focusedWindowId) {
-        tileWindow(focusedWindowId, "left");
-      } else if (actionId === "window:tile-right" && focusedWindowId) {
-        tileWindow(focusedWindowId, "right");
-      } else if (actionId === "app:new-window" && focusedWindow) {
-        launchApp(focusedWindow.appId, { forceNew: true });
-      } else if (actionId === "desktop:new-window") {
-        launchApp("nautilus", { forceNew: true });
-      } else if (actionId === "desktop:new-text-file") {
-        launchApp("text-editor", { forceNew: true });
-      } else if (actionId === "shell:screenshot") {
-        void backendsCtx.takeScreenshot();
-      } else if (actionId === "shell:record") {
-        void backendsCtx.startScreenRecording();
-      } else if (actionId === "shell:reload") {
-        window.location.reload();
-      } else if (actionId.startsWith("settings:")) {
-        const section = actionId.split(":")[1];
-        launchApp("settings", { payload: section });
-      } else if (actionId.startsWith("console:")) {
-        const mod = actionId.split(":")[1];
-        launchApp("console", { payload: mod });
-      } else if (actionId.startsWith("launch:")) {
-        const target = actionId.split(":")[1];
-        launchApp(target);
-      } else if (
-        actionId === "shell:launcher" ||
-        actionId === "shell:palette"
-      ) {
-        setLauncherOpen(true);
-      } else if (
-        actionId === "shell:control-panel" ||
-        actionId === "shell:control-center"
-      ) {
-        setControlPanelOpen((v) => !v);
-      }
-    },
-    [
-      backendsCtx,
-      closeWindow,
-      focusedWindow,
-      focusedWindowId,
-      launchApp,
-      tileWindow,
-      toggleMaximizeWindow,
-      toggleMinimizeWindow,
-    ]
-  );
+  const { activeAppDef, handleMenuAction } = useGlobalAppMenu({
+    focusedWindow,
+    focusedWindowId,
+    installedWebApps: settings.installedWebApps,
+    installedXdgApps,
+    backendsCtx,
+    closeWindow,
+    toggleMinimizeWindow,
+    toggleMaximizeWindow,
+    tileWindow,
+    launchApp,
+    setLauncherOpen,
+    setControlPanelOpen,
+  });
 
   // Persist open windows to localStorage via xdg-session-management-v1
   React.useEffect(() => {
@@ -2525,6 +2201,16 @@ export function useWindowManager() {
   const ctx = React.useContext(WindowsContext);
   if (!ctx) {
     throw new Error("useWindowManager must be used within DesktopStateProvider");
+  }
+  return ctx;
+}
+
+export function useWindowActions(): WindowActionsValue {
+  const actions = React.useContext(WindowActionsContext);
+  if (actions) return actions;
+  const ctx = React.useContext(WindowsContext);
+  if (!ctx) {
+    throw new Error("useWindowActions must be used within DesktopStateProvider");
   }
   return ctx;
 }

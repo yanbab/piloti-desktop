@@ -4,3 +4,4 @@ export * from "./gnome/gsettings";
 export * from "./gnome/control-center";
 export * from "./gnome/wallpaper";
 export * from "./gnome/hardware";
+export * from "./gnome/flatpak";

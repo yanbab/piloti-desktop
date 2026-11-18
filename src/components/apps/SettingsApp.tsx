@@ -1,49 +1,32 @@
 import * as React from "react";
 import {
   ArrowLeftIcon,
-  BellIcon,
   DockIcon as LucideDockIcon,
   ImageIcon,
-  InfoIcon,
-  MonitorIcon,
   PaletteIcon,
   TypeIcon,
-  Volume2Icon,
-  WifiIcon,
-  XIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { SearchField } from "@/components/ui/search-field";
 import { WindowControls, WindowTitlebar } from "@/components/ui/window";
 import { useSidebarKeyboardNav } from "@/hooks/use-sidebar-keyboard-nav";
 import { WindowMenuButton } from "@/components/shell/WindowMenuButton";
 import {
   useSettings,
   useSystemBackends,
-  useWindowManager,
+  useWindowActions,
 } from "@/context/DesktopStateContext";
 import type { GnomeSettingsPanel } from "@/lib/gnome-bridge";
 import { cn } from "@/lib/utils";
-import { AboutPane } from "./settings/AboutPane";
 import { AppearancePane } from "./settings/AppearancePane";
-import { DisplaysPane } from "./settings/DisplaysPane";
 import { DockPane } from "./settings/DockPane";
 import { FontsPane } from "./settings/FontsPane";
-import { NetworkPane } from "./settings/NetworkPane";
-import { NotificationsPane } from "./settings/NotificationsPane";
-import { SoundPane } from "./settings/SoundPane";
 import { WallpaperPane } from "./settings/WallpaperPane";
 
 type SettingsPaneId =
   | "appearance"
   | "fonts"
   | "dock"
-  | "notifications"
-  | "wallpaper"
-  | "network"
-  | "sound"
-  | "displays"
-  | "about";
+  | "wallpaper";
 
 const PANES: {
   id: SettingsPaneId;
@@ -54,13 +37,13 @@ const PANES: {
   {
     id: "appearance",
     label: "Appearance",
-    subtitle: "Theme, accent color, frames",
+    subtitle: "Theme, accent color, desktop",
     icon: <PaletteIcon />,
   },
   {
     id: "fonts",
-    label: "Fonts & Rendering",
-    subtitle: "Chromium CSS & GTK4 typography",
+    label: "Fonts",
+    subtitle: "Typeface, size, style & rendering",
     icon: <TypeIcon />,
   },
   {
@@ -70,51 +53,16 @@ const PANES: {
     icon: <LucideDockIcon />,
   },
   {
-    id: "notifications",
-    label: "Notifications",
-    subtitle: "Do Not Disturb, banners, lock screen & history",
-    icon: <BellIcon />,
-  },
-  {
     id: "wallpaper",
     label: "Wallpaper",
     subtitle: "Dynamic meshes & custom backgrounds",
     icon: <ImageIcon />,
   },
-  {
-    id: "network",
-    label: "Wi-Fi & Network",
-    subtitle: "Wireless connections & IP status",
-    icon: <WifiIcon />,
-  },
-  {
-    id: "sound",
-    label: "Sound",
-    subtitle: "Volume, output & input devices",
-    icon: <Volume2Icon />,
-  },
-  {
-    id: "displays",
-    label: "Displays",
-    subtitle: "Resolution, virtual cast & Night Light",
-    icon: <MonitorIcon />,
-  },
-  {
-    id: "about",
-    label: "About Piloti",
-    subtitle: "GNOME integration & shortcuts",
-    icon: <InfoIcon />,
-  },
 ];
 
 const PANE_TO_GNOME: Partial<Record<SettingsPaneId, GnomeSettingsPanel>> = {
   appearance: "appearance",
-  notifications: "notifications",
   wallpaper: "background",
-  network: "wifi",
-  sound: "sound",
-  displays: "display",
-  about: "system",
 };
 
 const SETTINGS_ACTIVE_PANE_KEY = "piloti.settings.activePane.v1";
@@ -136,7 +84,7 @@ export function SettingsApp({
 }) {
   const { isBrowserRuntime } = useSettings();
   const { gnomeCapabilities } = useSystemBackends();
-  const { openGnomeSettings, closeWindow } = useWindowManager();
+  const { openGnomeSettings, closeWindow } = useWindowActions();
 
   const [activePane, setActivePane] = React.useState<SettingsPaneId>(() => {
     if (isSettingsPaneId(initialPane)) {
@@ -165,7 +113,6 @@ export function SettingsApp({
     }
   }, [activePane]);
 
-  const [search, setSearch] = React.useState("");
   const containerRef = React.useRef<HTMLDivElement | null>(null);
   const [isCompact, setIsCompact] = React.useState(false);
   const [compactShowDetail, setCompactShowDetail] = React.useState(
@@ -191,16 +138,6 @@ export function SettingsApp({
   const showSidebar = !isCompact || !compactShowDetail;
   const showDetail = !isCompact || compactShowDetail;
 
-  const filteredPanes = React.useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return PANES;
-    return PANES.filter(
-      (p) =>
-        p.label.toLowerCase().includes(q) ||
-        p.subtitle.toLowerCase().includes(q)
-    );
-  }, [search]);
-
   const matchingGnomePanel = PANE_TO_GNOME[activePane];
   const currentPaneMeta = PANES.find((p) => p.id === activePane);
   const sidebarNavRef = React.useRef<HTMLElement | null>(null);
@@ -211,7 +148,7 @@ export function SettingsApp({
     onSidebarKeyUp,
     onContentKeyDown,
   } = useSidebarKeyboardNav({
-    itemIds: filteredPanes.map((p) => p.id),
+    itemIds: PANES.map((p) => p.id),
     activeId: activePane,
     onActivate: (id) => setActivePane(id),
     sidebarRef: sidebarNavRef,
@@ -251,21 +188,16 @@ export function SettingsApp({
           </WindowTitlebar>
         )}
 
-        <div className={cn("px-3 pb-2", isCsd ? "pt-0.5" : "pt-3")}>
-          <SearchField
-            placeholder="Search Desktop Settings"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
-
         <nav
           ref={sidebarNavRef}
           onKeyDown={onSidebarKeyDown}
           onKeyUp={onSidebarKeyUp}
-          className="flex flex-1 flex-col gap-0.5 overflow-y-auto px-2.5 py-1"
+          className={cn(
+            "flex flex-1 flex-col gap-0.5 overflow-y-auto px-2.5 pb-2",
+            isCsd ? "pt-0.5" : "pt-2.5"
+          )}
         >
-          {filteredPanes.map((pane) => {
+          {PANES.map((pane) => {
             const selected = highlightedPane === pane.id;
             return (
               <button
@@ -291,18 +223,6 @@ export function SettingsApp({
             );
           })}
         </nav>
-
-        <div className="m-2.5 rounded-[10px] bg-black/5 p-2.5 text-[11px] dark:bg-white/5">
-          <div className="flex items-center gap-1.5 font-semibold">
-            <span className="size-2 rounded-full bg-emerald-400" />
-            <span>
-              {isBrowserRuntime ? "Browser Dev Mode" : "Domicile Wayland"}
-            </span>
-          </div>
-          <div className="mt-0.5 text-[10px] text-adw-label-secondary">
-            GNOME Adwaita · Tailwind v4
-          </div>
-        </div>
         </aside>
       )}
 
@@ -315,7 +235,6 @@ export function SettingsApp({
             className="rounded-tl-none border-b border-adw-separator bg-adw-titlebar"
           >
             <div className="flex items-center gap-1.5" data-window-no-drag>
-              {windowId && <WindowMenuButton windowId={windowId} />}
               {isCompact && (
                 <button
                   type="button"
@@ -338,6 +257,7 @@ export function SettingsApp({
                   <Button
                     size="sm"
                     variant="secondary"
+                    disabled={isBrowserRuntime}
                     onClick={() => openGnomeSettings(matchingGnomePanel)}
                     className="h-6 text-[11px]"
                   >
@@ -374,6 +294,7 @@ export function SettingsApp({
                 <Button
                   size="sm"
                   variant="secondary"
+                  disabled={isBrowserRuntime}
                   onClick={() => openGnomeSettings(matchingGnomePanel)}
                   className="text-[11px]"
                 >
@@ -391,12 +312,7 @@ export function SettingsApp({
           {activePane === "appearance" && <AppearancePane />}
           {activePane === "fonts" && <FontsPane />}
           {activePane === "dock" && <DockPane />}
-          {activePane === "notifications" && <NotificationsPane />}
           {activePane === "wallpaper" && <WallpaperPane />}
-          {activePane === "network" && <NetworkPane />}
-          {activePane === "sound" && <SoundPane />}
-          {activePane === "displays" && <DisplaysPane />}
-          {activePane === "about" && <AboutPane />}
         </div>
       </div>
       )}

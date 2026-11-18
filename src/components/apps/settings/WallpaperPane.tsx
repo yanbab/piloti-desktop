@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { useSettings } from "@/context/DesktopStateContext";
-import { WALLPAPERS } from "@/data/catalog";
+import { ACCENT_COLORS, WALLPAPERS, resolveDynamicWallpaperCss } from "@/data/catalog";
 import {
   GNOME_PICTURE_OPTIONS,
   GNOME_SHADING_TYPES,
@@ -57,7 +57,15 @@ export function WallpaperPane() {
   );
 
   const gradients = React.useMemo(
-    () => WALLPAPERS.filter((wp) => wp.category !== "Solid"),
+    () =>
+      WALLPAPERS.filter(
+        (wp) => wp.category === "Dynamic" || wp.category === "Minimal"
+      ),
+    []
+  );
+
+  const pictures = React.useMemo(
+    () => WALLPAPERS.filter((wp) => wp.category === "Pictures"),
     []
   );
 
@@ -117,18 +125,25 @@ export function WallpaperPane() {
     wp: (typeof WALLPAPERS)[number],
     isSolid = false
   ) => {
+    const accentHex =
+      ACCENT_COLORS.find((c) => c.id === settings.accentColor)?.hex ?? "#3584e4";
+    const resolvedBgCss =
+      resolveDynamicWallpaperCss(wp.id, accentHex) ?? wp.backgroundCss;
     const selected = isSolid
       ? !activePictureUri &&
         (settings.wallpaperId.toLowerCase() === wp.id.toLowerCase() ||
           (settings.wallpaperId === "gnome" &&
             gnomeBg.colorShadingType === "solid" &&
             gnomeBg.primaryColor.toLowerCase() === wp.id.toLowerCase()))
-      : !activePictureUri && settings.wallpaperId === wp.id;
+      : wp.imageUrl
+        ? settings.wallpaperId === wp.id || activePictureUri === wp.imageUrl
+        : !activePictureUri && settings.wallpaperId === wp.id;
 
     return (
       <button
         key={wp.id}
         type="button"
+        title={wp.name}
         aria-label={wp.name}
         onClick={() => {
           if (isSolid) {
@@ -136,12 +151,12 @@ export function WallpaperPane() {
           } else {
             updateSettings({
               wallpaperId: wp.id,
-              customWallpaperUrl: "",
+              customWallpaperUrl: wp.imageUrl ?? "",
               gnomeBackground: {
                 ...gnomeBg,
-                pictureUri: "",
-                pictureUriDark: "",
-                pictureOptions: "none",
+                pictureUri: wp.imageUrl ?? "",
+                pictureUriDark: wp.imageUrl ?? "",
+                pictureOptions: wp.imageUrl ? "zoom" : "none",
               },
             });
           }
@@ -160,7 +175,16 @@ export function WallpaperPane() {
               ? "h-16 border border-black/10 dark:border-white/10"
               : "h-20"
           )}
-          style={{ background: wp.backgroundCss }}
+          style={
+            wp.imageUrl
+              ? {
+                  backgroundColor: wp.backgroundCss,
+                  backgroundImage: `url("${wp.imageUrl}")`,
+                  backgroundSize: "cover",
+                  backgroundPosition: "center",
+                }
+              : { background: resolvedBgCss }
+          }
         />
       </button>
     );
@@ -178,9 +202,16 @@ export function WallpaperPane() {
       </GroupedFormSection>
 
       <GroupedFormSection>
-        <GroupedFormSectionTitle>Gradients</GroupedFormSectionTitle>
+        <GroupedFormSectionTitle>Dynamic &amp; Gradients</GroupedFormSectionTitle>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           {gradients.map((wp) => renderWallpaperCard(wp, false))}
+        </div>
+      </GroupedFormSection>
+
+      <GroupedFormSection>
+        <GroupedFormSectionTitle>Pictures</GroupedFormSectionTitle>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          {pictures.map((wp) => renderWallpaperCard(wp, false))}
         </div>
       </GroupedFormSection>
 

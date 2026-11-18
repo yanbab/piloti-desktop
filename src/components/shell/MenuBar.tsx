@@ -18,6 +18,15 @@ import {
   WifiOffIcon,
 } from "lucide-react";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { WindowControls } from "@/components/ui/window";
+import { AppSquircleIcon } from "./AppSymbol";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuTrigger,
@@ -239,6 +248,7 @@ export function MenuBar() {
   }, [formatTime]);
 
   const headerRef = React.useRef<HTMLElement | null>(null);
+  const [appAboutOpen, setAppAboutOpen] = React.useState(false);
   const pilotiTriggerRef = React.useRef<HTMLButtonElement | null>(null);
   const controlPanelPopupRef = React.useRef<HTMLDivElement | null>(null);
   const rightClusterRef = React.useRef<HTMLDivElement | null>(null);
@@ -402,7 +412,7 @@ export function MenuBar() {
   return (
     <header
       ref={headerRef}
-      className="z-[200] flex h-[30px] w-full shrink-0 items-center justify-between gap-2 border-b border-black/10 bg-[#ececef] px-2 text-adw-body text-adw-label select-none dark:border-white/10 dark:bg-[#1c1c20] dark:text-white"
+      className="z-[200] flex h-[30px] w-full shrink-0 items-center justify-between gap-2 bg-white/60 px-2 text-adw-body text-adw-label backdrop-blur-md select-none dark:bg-black/40 dark:text-white"
     >
       {/* Left: System, Active App & Application Menus */}
       <div className="flex min-w-0 flex-1 items-center overflow-hidden">
@@ -429,7 +439,10 @@ export function MenuBar() {
                   <MenubarShortcut>Alt+,</MenubarShortcut>
                 )}
               </MenubarItem>
-              <MenubarItem onClick={() => openGnomeSettings()}>
+              <MenubarItem
+                disabled={isBrowserRuntime}
+                onClick={() => openGnomeSettings()}
+              >
                 System Settings
               </MenubarItem>
               <MenubarItem onClick={() => launchApp("app-store")}>
@@ -464,13 +477,16 @@ export function MenuBar() {
               </span>
             </MenubarTrigger>
             <MenubarContent>
-              <MenubarItem onClick={() => setAboutOpen(true)}>
+              <MenubarItem
+                onClick={() => {
+                  if (focusedWindowId) {
+                    setAppAboutOpen(true);
+                  } else {
+                    setAboutOpen(true);
+                  }
+                }}
+              >
                 About {activeAppDef.name}
-              </MenubarItem>
-              <MenubarSeparator />
-              <MenubarItem onClick={() => launchApp("settings")}>
-                Desktop Settings
-                <MenubarShortcut>Alt+,</MenubarShortcut>
               </MenubarItem>
               {remoteMenu && remoteMenu.appActions.length > 0 && (
                 <>
@@ -607,7 +623,7 @@ export function MenuBar() {
                   }
                 }}
               >
-                Shortcuts
+                Shortcuts…
               </MenubarItem>
               <MenubarItem
                 onClick={() => {
@@ -807,6 +823,42 @@ export function MenuBar() {
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+
+      {/* About Focused App Modal */}
+      <Dialog open={appAboutOpen} onOpenChange={setAppAboutOpen}>
+        <DialogContent
+          showCloseButton={false}
+          className="w-[300px] max-w-[calc(100vw-2rem)] gap-3 pt-3 pb-5"
+        >
+          <div className="flex justify-end">
+            <WindowControls
+              layout=":close"
+              onClose={() => setAppAboutOpen(false)}
+            />
+          </div>
+          <DialogHeader className="-mt-2 items-center gap-1.5 text-center">
+            <div className="mx-auto mb-1 size-16">
+              <AppSquircleIcon
+                iconName={activeAppDef.iconName}
+                iconUrl={activeAppDef.iconUrl}
+                gradient={activeAppDef.gradient}
+                squircle={false}
+                className="size-16"
+                glyphClassName="size-9"
+              />
+            </div>
+            <DialogTitle className="text-[18px] font-bold tracking-tight">
+              {activeAppDef.name}
+            </DialogTitle>
+            <DialogDescription className="text-[12px] text-adw-label-secondary">
+              {activeAppDef.description}
+            </DialogDescription>
+            <span className="mt-1 rounded-full bg-black/6 px-2.5 py-0.5 text-[11px] font-medium text-adw-label-secondary dark:bg-white/10">
+              Version 0.4.0
+            </span>
+          </DialogHeader>
+        </DialogContent>
+      </Dialog>
     </header>
   );
 }

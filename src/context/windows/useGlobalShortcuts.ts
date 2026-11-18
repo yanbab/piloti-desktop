@@ -1,0 +1,275 @@
+import * as React from "react";
+import type { Domicile } from "@domicile-desktop/sdk/desktop/desktop";
+import { launchDesktopCommand } from "@/lib/gnome-bridge";
+
+export interface UseGlobalShortcutsParams {
+  domicile: Domicile;
+  isBrowserRuntime: boolean;
+  overviewOpen: boolean;
+  setOverviewOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  toggleOverview: () => void;
+  setLauncherOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  setControlPanelOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  altTabOpen: boolean;
+  cycleAltTab: (dir: 1 | -1) => void;
+  commitAltTab: () => void;
+  closeAltTab: () => void;
+  switchWorkspace: (delta: -1 | 1) => void;
+  takeScreenshot: () => Promise<void>;
+  focusedWindowId: string | null;
+  launchApp: (
+    appId: string,
+    options?: { payload?: string; forceNew?: boolean; forceCsd?: boolean },
+  ) => void;
+  closeWindow: (id: string) => void;
+  toggleMinimizeWindow: (id: string) => void;
+  toggleMaximizeWindow: (id: string) => void;
+  tileWindow: (id: string, side: "left" | "right") => void;
+}
+
+export function useGlobalShortcuts({
+  domicile,
+  isBrowserRuntime,
+  overviewOpen,
+  setOverviewOpen,
+  toggleOverview,
+  setLauncherOpen,
+  setControlPanelOpen,
+  altTabOpen,
+  cycleAltTab,
+  commitAltTab,
+  closeAltTab,
+  switchWorkspace,
+  takeScreenshot,
+  focusedWindowId,
+  launchApp,
+  closeWindow,
+  toggleMinimizeWindow,
+  toggleMaximizeWindow,
+  tileWindow,
+}: UseGlobalShortcutsParams) {
+  // Global Domicile key grabs
+  React.useEffect(() => {
+    const chords = [
+      "Alt+Space",
+      "Alt+space",
+      "Alt+Tab",
+      "Alt+Shift+Tab",
+      "Meta+Return",
+      "Meta+Left",
+      "Meta+Right",
+      "Meta+Up",
+      "F3",
+      "Print",
+    ];
+    for (const c of chords) {
+      try {
+        domicile.keyboard.grab(c);
+      } catch {
+        // ignore invalid keysym warnings in fake host
+      }
+    }
+    const unlisten = domicile.keyboard.on("shortcut", ({ chord }) => {
+      if (chord === "Alt+Space" || chord === "Alt+space") {
+        domicile.windows.focusShell();
+        setLauncherOpen((v) => !v);
+      } else if (chord === "Alt+Tab") {
+        domicile.windows.focusShell();
+        cycleAltTab(1);
+      } else if (chord === "Alt+Shift+Tab") {
+        domicile.windows.focusShell();
+        cycleAltTab(-1);
+      } else if (chord === "Meta+Return") {
+        launchDesktopCommand(domicile, ["kitty"]);
+      } else if (chord === "Meta+Left") {
+        switchWorkspace(-1);
+      } else if (chord === "Meta+Right") {
+        switchWorkspace(1);
+      } else if (chord === "Meta+Up" || chord === "F3") {
+        toggleOverview();
+      } else if (chord === "Print") {
+        void takeScreenshot();
+      }
+    });
+    const unlistenRelease = domicile.keyboard.on(
+      "shortcutrelease",
+      ({ chord, altKey }) => {
+        if ((chord === "Alt+Tab" || chord === "Alt+Shift+Tab") && !altKey) {
+          commitAltTab();
+        }
+      },
+    );
+    const unlistenMods = domicile.keyboard.on("modifierschange", () => {
+      if (
+        altTabOpen &&
+        domicile.keyboard.modifiers &&
+        !domicile.keyboard.modifiers.alt
+      ) {
+        commitAltTab();
+      }
+    });
+    return () => {
+      unlisten();
+      unlistenRelease();
+      unlistenMods();
+      for (const c of chords) {
+        try {
+          domicile.keyboard.ungrab(c);
+        } catch {
+          // ignore
+        }
+      }
+    };
+  }, [
+    altTabOpen,
+    commitAltTab,
+    cycleAltTab,
+    domicile,
+    setLauncherOpen,
+    switchWorkspace,
+    takeScreenshot,
+    toggleOverview,
+  ]);
+
+  // DOM keyboard shortcuts (Browser Dev Mode & shell-focused windows)
+  React.useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (overviewOpen && e.key === "Escape") {
+        e.preventDefault();
+        setOverviewOpen(false);
+        return;
+      }
+      if (
+        (e.key === "F3" && !e.altKey && !e.ctrlKey && !e.metaKey) ||
+        (e.metaKey && !e.altKey && !e.ctrlKey && !e.shiftKey && e.key === "ArrowUp")
+      ) {
+        e.preventDefault();
+        toggleOverview();
+        return;
+      }
+      if (
+        (isBrowserRuntime && e.altKey && e.code === "Space") ||
+        ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k")
+      ) {
+        e.preventDefault();
+        setOverviewOpen(false);
+        setLauncherOpen((v) => !v);
+        return;
+      }
+      if (isBrowserRuntime && e.altKey && e.key === "Tab") {
+        e.preventDefault();
+        setOverviewOpen(false);
+        cycleAltTab(e.shiftKey ? -1 : 1);
+        return;
+      }
+      if (altTabOpen) {
+        if (e.key === "ArrowRight" || (isBrowserRuntime && e.key === "Tab")) {
+          e.preventDefault();
+          cycleAltTab(e.shiftKey ? -1 : 1);
+          return;
+        }
+        if (e.key === "ArrowLeft") {
+          e.preventDefault();
+          cycleAltTab(-1);
+          return;
+        }
+        if (e.key === "Enter") {
+          e.preventDefault();
+          commitAltTab();
+          return;
+        }
+        if (e.key === "Escape") {
+          e.preventDefault();
+          closeAltTab();
+          return;
+        }
+      }
+      if (e.metaKey && !e.altKey && !e.ctrlKey && !e.shiftKey) {
+        if (e.key === "ArrowLeft") {
+          e.preventDefault();
+          switchWorkspace(-1);
+          return;
+        }
+        if (e.key === "ArrowRight") {
+          e.preventDefault();
+          switchWorkspace(1);
+          return;
+        }
+      }
+      if (e.altKey && e.key === ",") {
+        e.preventDefault();
+        launchApp("settings");
+        return;
+      }
+      if (e.altKey && e.key.toLowerCase() === "n") {
+        e.preventDefault();
+        setControlPanelOpen((v) => !v);
+        return;
+      }
+      if (e.altKey && e.key.toLowerCase() === "w" && focusedWindowId) {
+        e.preventDefault();
+        closeWindow(focusedWindowId);
+        return;
+      }
+      if (e.altKey && e.key.toLowerCase() === "m" && focusedWindowId) {
+        e.preventDefault();
+        toggleMinimizeWindow(focusedWindowId);
+        return;
+      }
+      if (e.altKey && e.key.toLowerCase() === "f" && focusedWindowId) {
+        e.preventDefault();
+        toggleMaximizeWindow(focusedWindowId);
+        return;
+      }
+      if (e.altKey && e.key === "[" && focusedWindowId) {
+        e.preventDefault();
+        tileWindow(focusedWindowId, "left");
+        return;
+      }
+      if (e.altKey && e.key === "]" && focusedWindowId) {
+        e.preventDefault();
+        tileWindow(focusedWindowId, "right");
+        return;
+      }
+    };
+
+    const onKeyUp = (e: KeyboardEvent) => {
+      if (altTabOpen && e.key === "Alt") {
+        commitAltTab();
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener(
+      "domicile-guest-keydown",
+      onKeyDown as EventListener,
+    );
+    window.addEventListener("keyup", onKeyUp);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener(
+        "domicile-guest-keydown",
+        onKeyDown as EventListener,
+      );
+      window.removeEventListener("keyup", onKeyUp);
+    };
+  }, [
+    altTabOpen,
+    closeAltTab,
+    closeWindow,
+    commitAltTab,
+    cycleAltTab,
+    focusedWindowId,
+    isBrowserRuntime,
+    launchApp,
+    overviewOpen,
+    setControlPanelOpen,
+    setLauncherOpen,
+    setOverviewOpen,
+    switchWorkspace,
+    tileWindow,
+    toggleMaximizeWindow,
+    toggleMinimizeWindow,
+    toggleOverview,
+  ]);
+}

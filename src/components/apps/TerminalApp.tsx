@@ -400,7 +400,7 @@ export const TerminalApp: React.FC<TerminalAppProps> = ({ initialPath }) => {
       appendLines([
         commandLine,
         {
-          text: "Commands: cd, pwd, ls [-la], mkdir, touch, cat, rm, open, notepad, top, clear, help",
+          text: "Commands: cd, pwd, ls [-la], mkdir, touch, cat, rm, open, edit, notepad, echo, whoami, uname, date, env, ps, top, clear, help",
           tone: "muted",
         },
       ]);

@@ -8,6 +8,10 @@ import {
 } from "@/components/apps/FileItemContextMenu";
 import { AppSquircleIcon } from "@/components/shell/AppSymbol";
 import {
+  getAccentFolderIconUrl,
+  getAccentHtmlIconUrl,
+} from "@/data/folder-icons";
+import {
   useApps,
   useSettings,
   useSystemBackends,
@@ -123,6 +127,22 @@ export function IconGrid({
   ariaLabel = "Icon Grid",
   className,
 }: IconGridProps) {
+  const { settings, isBrowserRuntime } = useSettings();
+  const useAccentIcons = isBrowserRuntime || mode === "flow";
+  const resolveItemIconUrl = (item: IconGridItem): string | undefined => {
+    if (useAccentIcons) {
+      if (item.kind === "directory") {
+        return getAccentFolderIconUrl(settings.accentColor);
+      }
+      if (
+        item.iconCandidates?.includes("text-html") ||
+        /\.(html|htm)$/i.test(item.name)
+      ) {
+        return getAccentHtmlIconUrl(settings.accentColor);
+      }
+    }
+    return item.iconUrl;
+  };
   const containerRef = React.useRef<HTMLDivElement | null>(null);
   const itemRefs = React.useRef<Map<string, HTMLButtonElement>>(new Map());
   const suppressClickRef = React.useRef<string | null>(null);
@@ -552,7 +572,15 @@ export function IconGrid({
               if (selectedIds.length !== 1 || !selectedSet.has(item.id)) {
                 onSelectIds([item.id]);
               }
-              onActivateItem(item);
+              if (settings.fileActivationMode !== "double") {
+                onActivateItem(item);
+              }
+            }}
+            onDoubleClick={(e) => {
+              e.stopPropagation();
+              if (settings.fileActivationMode === "double") {
+                onActivateItem(item);
+              }
             }}
             onContextMenu={(e) => {
               if (!selectedSet.has(item.id)) {
@@ -574,7 +602,7 @@ export function IconGrid({
             >
               <AppSquircleIcon
                 iconName={item.iconName}
-                iconUrl={item.iconUrl}
+                iconUrl={resolveItemIconUrl(item)}
                 gradient={item.gradient}
                 squircle={false}
                 className="size-full"
@@ -640,7 +668,7 @@ export function IconGrid({
               >
                 <AppSquircleIcon
                   iconName={draggedItem.iconName}
-                  iconUrl={draggedItem.iconUrl}
+                  iconUrl={resolveItemIconUrl(draggedItem)}
                   gradient={draggedItem.gradient}
                   squircle={false}
                   className="size-full"
@@ -1147,6 +1175,9 @@ export function DesktopIconsApp({
         menu={contextMenu}
         onClose={() => setContextMenu(null)}
         onOpen={handleActivateItem}
+        onOpenInTerminal={(target) =>
+          launchApp("terminal", { payload: target.path, forceNew: true })
+        }
         onEditText={(target) =>
           launchApp("text-editor", { payload: target.path })
         }

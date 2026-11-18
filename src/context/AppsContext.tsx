@@ -186,6 +186,7 @@ export interface AppsContextValue {
   ensureWaylandIcons: (ids: readonly string[]) => void;
   launchXdgEntry: (entry: XdgDesktopEntry, actionId?: string) => void;
   openXdgFolder: (folder: XdgUserDir) => void;
+  refreshXdgApps: () => void;
 }
 
 export const AppsContext = React.createContext<AppsContextValue | null>(null);
@@ -342,7 +343,8 @@ export function useAppsValue(
   onEssentialIconsReadyRef.current = onEssentialIconsReady;
 
   const [portalIconTheme, setPortalIconTheme] = React.useState<string>("Adwaita");
-  const activeIconTheme = gnomeIconThemeOverride || portalIconTheme;
+  const activeIconTheme =
+    settings.iconTheme || gnomeIconThemeOverride || portalIconTheme;
 
   const [installedXdgApps, setInstalledXdgApps] = React.useState<
     XdgDesktopEntry[]
@@ -353,6 +355,10 @@ export function useAppsValue(
   );
   const [appGridIsSymbolic, setAppGridIsSymbolic] = React.useState(true);
   const [dockIconsReady, setDockIconsReady] = React.useState(false);
+  const [refreshNonce, setRefreshNonce] = React.useState(0);
+  const refreshXdgApps = React.useCallback(() => {
+    setRefreshNonce((n) => n + 1);
+  }, []);
   const iconThemeIndexRef = React.useRef<XdgIconThemeIndex | null>(null);
 
   React.useEffect(() => {
@@ -376,6 +382,7 @@ export function useAppsValue(
   }, [domicile]);
 
   React.useEffect(() => {
+    void refreshNonce;
     let cancelled = false;
     const preferredThemes = [activeIconTheme, "Adwaita", "hicolor"];
     const cachedIndex = loadCachedXdgIconThemeIndex(preferredThemes);
@@ -667,6 +674,7 @@ export function useAppsValue(
       ensureWaylandIcons,
       launchXdgEntry,
       openXdgFolder,
+      refreshXdgApps,
     }),
     [
       activeIconTheme,
@@ -678,6 +686,7 @@ export function useAppsValue(
       installedXdgApps,
       launchXdgEntry,
       openXdgFolder,
+      refreshXdgApps,
       xdgUserDirs,
     ]
   );

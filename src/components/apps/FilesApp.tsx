@@ -1,7 +1,9 @@
 import * as React from "react";
 import { createPortal } from "react-dom";
+import { useDomicile } from "@domicile-desktop/react/domicile-provider";
 import {
   ArrowLeftIcon,
+  ChevronRightIcon,
   DownloadIcon,
   FileTextIcon,
   FolderIcon,
@@ -13,6 +15,7 @@ import {
   MinusIcon,
   MonitorIcon,
   MusicIcon,
+  SearchIcon,
   Trash2Icon,
   VideoIcon,
   XIcon,
@@ -32,32 +35,37 @@ import {
   MENU_ITEM_CLASS,
   MENU_POPUP_CLASS,
 } from "@/components/ui/menu-styles";
-import { useApps, useWindowManager } from "@/context/DesktopStateContext";
+import { useApps, useSettings, useWindowManager } from "@/context/DesktopStateContext";
 import {
   type IconGridItem,
   inferFileVisual,
   sortDesktopItems,
 } from "@/lib/desktop-icons";
 import { _ } from "@/lib/i18n";
+import {
+  getAccentFolderIconUrl,
+  getAccentHtmlIconUrl,
+} from "@/data/folder-icons";
 import { cn } from "@/lib/utils";
 import {
   buildVfsEntryWebAppUrl,
-  createVfsFolder,
-  createVfsTextFile,
-  emptyVfsTrash,
+  createFsFolder,
+  createFsTextFile,
+  emptyFsTrash,
   getVfsEntry,
   importExternalFilesToVfs,
   isTextEditableVfsFile,
+  listFsDir,
   listVfsDir,
-  moveVfsEntry,
+  moveFsEntry,
   normalizeVfsPath,
-  renameVfsEntry,
+  renameFsEntry,
   subscribeWebVfs,
-  trashVfsEntry,
+  trashFsEntry,
   WEB_VFS_HOME,
   WEB_VFS_TRASH,
   type WebVfsEntry,
-} from "@/lib/web-vfs";
+} from "@/lib/fs-bridge";
 
 interface XdgPlaceItem {
   id: string;
@@ -150,7 +158,9 @@ export function FilesApp({
   isCsd?: boolean;
   windowId?: string;
 }) {
+  const domicile = useDomicile();
   const { getAppIconUrl, ensureWaylandIcons } = useApps();
+  const { isBrowserRuntime, settings } = useSettings();
   const {
     focusedWindowId,
     closeWindow,
@@ -163,7 +173,10 @@ export function FilesApp({
   const [viewMode, setViewMode] = React.useState<"grid" | "list">("grid");
   const [editingLocation, setEditingLocation] = React.useState(false);
   const [draftLocation, setDraftLocation] = React.useState("");
+  const [searchOpen, setSearchOpen] = React.useState(false);
+  const [searchQuery, setSearchQuery] = React.useState("");
   const locationInputRef = React.useRef<HTMLInputElement | null>(null);
+  const searchInputRef = React.useRef<HTMLInputElement | null>(null);
   const sidebarRef = React.useRef<HTMLElement | null>(null);
   const mainViewRef = React.useRef<HTMLDivElement | null>(null);
 
@@ -178,6 +191,7 @@ export function FilesApp({
   });
 
   const [zoomIndex, setZoomIndex] = React.useState(1);
+  const [showHidden, setShowHidden] = React.useState(false);
   const [vfsEntries, setVfsEntries] = React.useState<WebVfsEntry[]>(() =>
     listVfsDir(currentPath)
   );
@@ -191,8 +205,14 @@ export function FilesApp({
   );
 
   const reloadDir = React.useCallback(() => {
-    setVfsEntries(listVfsDir(currentPath));
-  }, [currentPath]);
+    if (isBrowserRuntime) {
+      setVfsEntries(listVfsDir(currentPath));
+      return;
+    }
+    void listFsDir(domicile, isBrowserRuntime, currentPath).then((entries) => {
+      setVfsEntries(entries);
+    });
+  }, [currentPath, domicile, isBrowserRuntime]);
 
   React.useEffect(() => {
     if (!windowId || focusedWindowId !== windowId) return;
@@ -201,11 +221,37 @@ export function FilesApp({
         e.preventDefault();
         setDraftLocation(currentPath);
         setEditingLocation(true);
+      } else if (
+        (e.ctrlKey || e.metaKey) &&
+        !e.altKey &&
+        e.key.toLowerCase() === "h"
+      ) {
+        e.preventDefault();
+        setShowHidden((prev) => !prev);
+      } else if (
+        (e.ctrlKey || e.metaKey) &&
+        !e.altKey &&
+        e.key.toLowerCase() === "f"
+      ) {
+        e.preventDefault();
+        setSearchOpen((prev) => {
+          const next = !prev;
+          if (!next) setSearchQuery("");
+          return next;
+        });
       }
     };
     window.addEventListener("keydown", onKeyDown, true);
     return () => window.removeEventListener("keydown", onKeyDown, true);
   }, [focusedWindowId, windowId, currentPath]);
+
+  React.useEffect(() => {
+    if (!searchOpen) return;
+    const frame = requestAnimationFrame(() => {
+      searchInputRef.current?.focus();
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [searchOpen]);
 
   React.useEffect(() => {
     if (!editingLocation) return;
@@ -261,13 +307,46 @@ export function FilesApp({
     }
   }, [ensureWaylandIcons, vfsEntries]);
 
-  const items = React.useMemo(
-    () =>
-      sortDesktopItems(
-        vfsEntries.map((entry) => vfsEntryToGridItem(entry, getAppIconUrl))
-      ),
-    [getAppIconUrl, vfsEntries]
-  );
+  const items = React.useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    const visible = showHidden
+      ? vfsEntries
+      : vfsEntries.filter((entry) => !entry.name.startsWith("."));
+    const filtered = q
+      ? visible.filter((entry) => entry.name.toLowerCase().includes(q))
+      : visible;
+    return sortDesktopItems(
+      filtered.map((entry) => vfsEntryToGridItem(entry, getAppIconUrl))
+    );
+  }, [getAppIconUrl, searchQuery, showHidden, vfsEntries]);
+
+  const breadcrumbSegments = React.useMemo(() => {
+    if (currentPath === WEB_VFS_TRASH) {
+      return [{ label: _("Trash"), path: WEB_VFS_TRASH }];
+    }
+    if (currentPath === WEB_VFS_HOME) {
+      return [{ label: _("Home"), path: WEB_VFS_HOME }];
+    }
+    if (currentPath.startsWith(`${WEB_VFS_HOME}/`)) {
+      const rel = currentPath.slice(WEB_VFS_HOME.length + 1);
+      const parts = rel.split("/").filter(Boolean);
+      const segs = [{ label: _("Home"), path: WEB_VFS_HOME }];
+      let acc = WEB_VFS_HOME;
+      for (const part of parts) {
+        acc = `${acc}/${part}`;
+        segs.push({ label: part, path: acc });
+      }
+      return segs;
+    }
+    const parts = currentPath.split("/").filter(Boolean);
+    const segs = [{ label: "/", path: "/" }];
+    let acc = "";
+    for (const part of parts) {
+      acc = `${acc}/${part}`;
+      segs.push({ label: part, path: acc });
+    }
+    return segs;
+  }, [currentPath]);
 
   const isTrashView = currentPath === WEB_VFS_TRASH;
   const activePlace = XDG_PLACES.find((p) => p.path === currentPath);
@@ -305,18 +384,34 @@ export function FilesApp({
   };
 
   const handleNewFolder = () => {
-    const created = createVfsFolder(currentPath);
+    const created = createFsFolder(domicile, isBrowserRuntime, currentPath);
     reloadDir();
     setSelectedIds([created.path]);
     setRenamingId(created.path);
   };
 
   const handleNewTextFile = () => {
-    const created = createVfsTextFile(currentPath);
+    const created = createFsTextFile(domicile, isBrowserRuntime, currentPath);
     reloadDir();
     setSelectedIds([created.path]);
     setRenamingId(created.path);
   };
+
+  React.useEffect(() => {
+    const isThisFocused = () => !windowId || focusedWindowId === windowId;
+    const onNewFolder = () => {
+      if (!isTrashView && isThisFocused()) handleNewFolder();
+    };
+    const onNewFile = () => {
+      if (!isTrashView && isThisFocused()) handleNewTextFile();
+    };
+    window.addEventListener("piloti:files-new-folder", onNewFolder);
+    window.addEventListener("piloti:files-new-file", onNewFile);
+    return () => {
+      window.removeEventListener("piloti:files-new-folder", onNewFolder);
+      window.removeEventListener("piloti:files-new-file", onNewFile);
+    };
+  });
 
   const handleActivateItem = (item: IconGridItem) => {
     if (item.kind === "directory") {
@@ -340,7 +435,7 @@ export function FilesApp({
 
   const handleCommitRename = (item: IconGridItem, nextName: string) => {
     setRenamingId(null);
-    const renamed = renameVfsEntry(item.path, nextName);
+    const renamed = renameFsEntry(domicile, isBrowserRuntime, item.path, nextName);
     if (renamed) {
       reloadDir();
       setSelectedIds([renamed.path]);
@@ -348,7 +443,7 @@ export function FilesApp({
   };
 
   const handleTrashItem = (item: IconGridItem) => {
-    trashVfsEntry(item.path);
+    trashFsEntry(domicile, isBrowserRuntime, item.path);
     reloadDir();
     setSelectedIds((prev) => prev.filter((id) => id !== item.id));
   };
@@ -364,14 +459,14 @@ export function FilesApp({
       const dropTarget = (el as HTMLElement).closest?.("[data-vfs-drop-path]");
       const destPath = dropTarget?.getAttribute("data-vfs-drop-path");
       if (destPath && destPath !== item.path && destPath !== currentPath) {
-        moveVfsEntry(item.path, destPath);
+        moveFsEntry(domicile, isBrowserRuntime, item.path, destPath);
         reloadDir();
         return;
       }
       if ((el as HTMLElement).closest?.("[data-desktop-icons-root]")) {
         const desktopPath = `${WEB_VFS_HOME}/Desktop`;
         if (currentPath !== desktopPath) {
-          moveVfsEntry(item.path, desktopPath);
+          moveFsEntry(domicile, isBrowserRuntime, item.path, desktopPath);
           reloadDir();
         }
         return;
@@ -428,140 +523,59 @@ export function FilesApp({
         >
           {_("New Text File")}
         </button>
+        <div className="my-1 h-px bg-adw-separator" />
+        <button
+          type="button"
+          role="menuitem"
+          onClick={() => {
+            setBgMenu(null);
+            launchApp("terminal", { payload: currentPath, forceNew: true });
+          }}
+          className={cn(
+            MENU_ITEM_CLASS,
+            "w-full text-left hover:bg-adw-menu-highlight"
+          )}
+        >
+          {_("Open in Terminal")}
+        </button>
       </div>
     </div>
   ) : null;
 
   return (
-    <div className="flex h-full w-full flex-col overflow-hidden bg-adw-window text-adw-label select-none">
-      {/* Full-width movable CSD Header Bar */}
-      <WindowTitlebar
-        data-window-drag-region={isCsd ? "" : undefined}
-        className={cn(
-          "border-b border-adw-separator bg-adw-titlebar",
-          !isCsd && "rounded-t-none"
-        )}
+    <div className="flex h-full w-full overflow-hidden bg-adw-window text-adw-label select-none">
+      {/* Left Places Sidebar (Split Header like Settings) */}
+      <aside
+        ref={sidebarRef}
+        onKeyDown={onSidebarKeyDown}
+        onKeyUp={onSidebarKeyUp}
+        className="flex w-44 shrink-0 flex-col border-r border-adw-separator bg-adw-sidebar sm:w-48"
       >
-        <div className="flex min-w-0 items-center gap-1.5" data-window-no-drag>
-          {isCsd && windowId && <WindowControls side="left" />}
-          <WindowMenuButton
-            windowId={windowId}
-            appId="nautilus"
-            iconName="folder"
-          />
-          <button
-            type="button"
-            aria-label={_("Back")}
-            title={_("Back")}
-            disabled={!canGoUp}
-            onClick={handleGoUp}
-            className="flex size-7 items-center justify-center rounded-md text-adw-label-secondary transition-colors hover:bg-black/8 hover:text-adw-label disabled:pointer-events-none disabled:opacity-35 dark:hover:bg-white/10"
+        {isCsd && (
+          <WindowTitlebar
+            data-window-drag-region
+            className="border-b-0 bg-transparent"
           >
-            <ArrowLeftIcon className="size-4" />
-          </button>
-          <FolderIcon className="size-4 shrink-0 text-adw-label-secondary" />
-          {editingLocation ? (
-            <form onSubmit={submitLocationEdit} className="min-w-0 flex-1">
-              <input
-                ref={locationInputRef}
-                type="text"
-                value={draftLocation}
-                onChange={(e) => setDraftLocation(e.target.value)}
-                onBlur={() => setEditingLocation(false)}
-                onKeyDown={(e) => {
-                  if (e.key === "Escape") {
-                    e.preventDefault();
-                    setEditingLocation(false);
-                  }
-                }}
-                aria-label="Folder path"
-                className="h-7 w-64 max-w-full rounded-md border border-adw-accent/70 bg-black/8 px-2 font-mono text-[12px] text-adw-label outline-none dark:bg-white/12"
+            <div className="flex items-center gap-1.5" data-window-no-drag>
+              {windowId && <WindowControls side="left" />}
+              <WindowMenuButton
+                windowId={windowId}
+                appId="nautilus"
+                iconName="folder"
               />
-            </form>
-          ) : (
-            <button
-              type="button"
-              title="Click or press Ctrl+L to edit location"
-              onClick={() => {
-                setDraftLocation(currentPath);
-                setEditingLocation(true);
-              }}
-              className="truncate rounded px-1.5 py-0.5 text-[13.5px] font-semibold hover:bg-black/6 dark:hover:bg-white/8"
-            >
-              {_(currentTitle)}
-            </button>
-          )}
-        </div>
-
-        <div className="flex shrink-0 items-center gap-1" data-window-no-drag>
-          <button
-            type="button"
-            aria-label={viewMode === "grid" ? "List view" : "Grid view"}
-            title={viewMode === "grid" ? "List view" : "Grid view"}
-            onClick={() => setViewMode((m) => (m === "grid" ? "list" : "grid"))}
-            className="flex size-7 items-center justify-center rounded-md text-adw-label-secondary transition-colors hover:bg-black/8 hover:text-adw-label dark:hover:bg-white/10"
-          >
-            {viewMode === "grid" ? (
-              <ListIcon className="size-4" />
-            ) : (
-              <LayoutGridIcon className="size-4" />
-            )}
-          </button>
-          {isTrashView && (
-            <Button
-              size="sm"
-              variant="secondary"
-              disabled={items.length === 0}
-              onClick={() => {
-                emptyVfsTrash();
-                reloadDir();
-              }}
-            >
-              {_("Empty Trash")}
-            </Button>
-          )}
-
-          {/* Zoom Out / Zoom In Icon Buttons (same style as Back) */}
-          <button
-            type="button"
-            aria-label={_("Zoom out")}
-            title={_("Zoom out")}
-            disabled={zoomIndex <= 0}
-            onClick={() => setZoomIndex((z) => Math.max(0, z - 1))}
-            className="flex size-7 items-center justify-center rounded-md text-adw-label-secondary transition-colors hover:bg-black/8 hover:text-adw-label disabled:pointer-events-none disabled:opacity-35 dark:hover:bg-white/10"
-          >
-            <ZoomOutIcon className="size-4" />
-          </button>
-          <button
-            type="button"
-            aria-label={_("Zoom in")}
-            title={_("Zoom in")}
-            disabled={zoomIndex >= ZOOM_LEVELS.length - 1}
-            onClick={() =>
-              setZoomIndex((z) => Math.min(ZOOM_LEVELS.length - 1, z + 1))
-            }
-            className="flex size-7 items-center justify-center rounded-md text-adw-label-secondary transition-colors hover:bg-black/8 hover:text-adw-label disabled:pointer-events-none disabled:opacity-35 dark:hover:bg-white/10"
-          >
-            <ZoomInIcon className="size-4" />
-          </button>
-
-          {/* CSD Window Controls */}
-          {isCsd && windowId && (
-            <div className="ml-1 flex items-center" data-window-no-drag>
-              <WindowControls side="right" />
             </div>
-          )}
-        </div>
-      </WindowTitlebar>
+            <span className="text-[14px] font-bold tracking-tight text-adw-label">
+              {_("Files")}
+            </span>
+            <div className="w-7" />
+          </WindowTitlebar>
+        )}
 
-      {/* Body: Sidebar + Main Icon View */}
-      <div className="flex min-h-0 flex-1 overflow-hidden">
-        {/* Standard Adwaita XDG Places Sidebar */}
-        <aside
-          ref={sidebarRef}
-          onKeyDown={onSidebarKeyDown}
-          onKeyUp={onSidebarKeyUp}
-          className="flex w-44 shrink-0 flex-col gap-0.5 overflow-y-auto border-r border-adw-separator bg-adw-sidebar p-2 sm:w-48"
+        <div
+          className={cn(
+            "flex flex-1 flex-col gap-0.5 overflow-y-auto px-2 pb-2",
+            isCsd ? "pt-0.5" : "pt-2"
+          )}
         >
           {XDG_PLACES.map((place) => {
             const selected = highlightedPlace === place.path;
@@ -589,7 +603,199 @@ export function FilesApp({
               </button>
             );
           })}
-        </aside>
+        </div>
+      </aside>
+
+      {/* Right Main Area */}
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden bg-adw-content">
+        <WindowTitlebar
+          data-window-drag-region={isCsd ? "" : undefined}
+          className={cn(
+            "rounded-tl-none border-b border-adw-separator bg-adw-titlebar",
+            !isCsd && "rounded-t-none"
+          )}
+        >
+          <div className="flex min-w-0 items-center gap-1.5" data-window-no-drag>
+            {!isCsd && (
+              <WindowMenuButton
+                windowId={windowId}
+                appId="nautilus"
+                iconName="folder"
+              />
+            )}
+            <button
+              type="button"
+              aria-label={_("Back")}
+              title={_("Back")}
+              disabled={!canGoUp}
+              onClick={handleGoUp}
+              className="flex size-7 items-center justify-center rounded-md text-adw-label-secondary transition-colors hover:bg-black/8 hover:text-adw-label disabled:pointer-events-none disabled:opacity-35 dark:hover:bg-white/10"
+            >
+              <ArrowLeftIcon className="size-4" />
+            </button>
+            {editingLocation ? (
+              <form onSubmit={submitLocationEdit} className="min-w-0 flex-1">
+                <input
+                  ref={locationInputRef}
+                  type="text"
+                  value={draftLocation}
+                  onChange={(e) => setDraftLocation(e.target.value)}
+                  onBlur={() => setEditingLocation(false)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Escape") {
+                      e.preventDefault();
+                      setEditingLocation(false);
+                    }
+                  }}
+                  aria-label="Folder path"
+                  className="h-7 w-64 max-w-full rounded-md border border-adw-accent/70 bg-black/8 px-2 font-mono text-[12px] text-adw-label outline-none dark:bg-white/12"
+                />
+              </form>
+            ) : (
+              <div
+                onClick={() => {
+                  setDraftLocation(currentPath);
+                  setEditingLocation(true);
+                }}
+                title="Click or press Ctrl+L to edit location"
+                className="flex min-w-0 items-center gap-0.5 overflow-x-auto rounded-md px-1 py-0.5"
+              >
+                {breadcrumbSegments.map((seg, idx) => {
+                  const isLast = idx === breadcrumbSegments.length - 1;
+                  return (
+                    <React.Fragment key={seg.path}>
+                      {idx > 0 && (
+                        <ChevronRightIcon className="size-3.5 shrink-0 text-adw-label-tertiary" />
+                      )}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (isLast) {
+                            setDraftLocation(currentPath);
+                            setEditingLocation(true);
+                          } else {
+                            setCurrentPath(seg.path);
+                            setSelectedIds([]);
+                          }
+                        }}
+                        className={cn(
+                          "truncate rounded px-1.5 py-0.5 text-[13px] transition-colors hover:bg-black/6 dark:hover:bg-white/8",
+                          isLast
+                            ? "font-semibold text-adw-label"
+                            : "font-medium text-adw-label-secondary hover:text-adw-label"
+                        )}
+                      >
+                        {seg.label}
+                      </button>
+                    </React.Fragment>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          <div className="flex shrink-0 items-center gap-1" data-window-no-drag>
+            {isTrashView && (
+              <Button
+                size="sm"
+                variant="secondary"
+                disabled={items.length === 0}
+                onClick={() => {
+                  void emptyFsTrash(domicile, isBrowserRuntime).then(() =>
+                    reloadDir()
+                  );
+                }}
+              >
+                {_("Empty Trash")}
+              </Button>
+            )}
+            {searchOpen && (
+              <div className="relative flex items-center">
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Escape") {
+                      e.preventDefault();
+                      setSearchOpen(false);
+                      setSearchQuery("");
+                    }
+                  }}
+                  placeholder={_("Filter folder…")}
+                  aria-label="Filter files"
+                  className="h-7 w-36 rounded-md border border-adw-separator bg-black/6 px-2 text-[12px] text-adw-label outline-none focus:border-adw-accent dark:bg-white/10"
+                />
+              </div>
+            )}
+            <button
+              type="button"
+              aria-label={_("Search")}
+              title="Search (Ctrl+F)"
+              onClick={() =>
+                setSearchOpen((prev) => {
+                  const next = !prev;
+                  if (!next) setSearchQuery("");
+                  return next;
+                })
+              }
+              className={cn(
+                "flex size-7 items-center justify-center rounded-md transition-colors",
+                searchOpen
+                  ? "bg-adw-accent/15 text-adw-accent"
+                  : "text-adw-label-secondary hover:bg-black/8 hover:text-adw-label dark:hover:bg-white/10"
+              )}
+            >
+              <SearchIcon className="size-4" />
+            </button>
+            <button
+              type="button"
+              aria-label={viewMode === "grid" ? "List view" : "Grid view"}
+              title={viewMode === "grid" ? "List view" : "Grid view"}
+              onClick={() => setViewMode((m) => (m === "grid" ? "list" : "grid"))}
+              className="flex size-7 items-center justify-center rounded-md text-adw-label-secondary transition-colors hover:bg-black/8 hover:text-adw-label dark:hover:bg-white/10"
+            >
+              {viewMode === "grid" ? (
+                <ListIcon className="size-4" />
+              ) : (
+                <LayoutGridIcon className="size-4" />
+              )}
+            </button>
+
+            {/* Zoom Out / Zoom In Icon Buttons */}
+            <button
+              type="button"
+              aria-label={_("Zoom out")}
+              title={_("Zoom out")}
+              disabled={zoomIndex <= 0}
+              onClick={() => setZoomIndex((z) => Math.max(0, z - 1))}
+              className="flex size-7 items-center justify-center rounded-md text-adw-label-secondary transition-colors hover:bg-black/8 hover:text-adw-label disabled:pointer-events-none disabled:opacity-35 dark:hover:bg-white/10"
+            >
+              <ZoomOutIcon className="size-4" />
+            </button>
+            <button
+              type="button"
+              aria-label={_("Zoom in")}
+              title={_("Zoom in")}
+              disabled={zoomIndex >= ZOOM_LEVELS.length - 1}
+              onClick={() =>
+                setZoomIndex((z) => Math.min(ZOOM_LEVELS.length - 1, z + 1))
+              }
+              className="flex size-7 items-center justify-center rounded-md text-adw-label-secondary transition-colors hover:bg-black/8 hover:text-adw-label disabled:pointer-events-none disabled:opacity-35 dark:hover:bg-white/10"
+            >
+              <ZoomInIcon className="size-4" />
+            </button>
+
+            {/* CSD Window Controls */}
+            {isCsd && windowId && (
+              <div className="ml-1 flex items-center" data-window-no-drag>
+                <WindowControls side="right" />
+              </div>
+            )}
+          </div>
+        </WindowTitlebar>
 
         {/* Desktop-style Icon View */}
         <div
@@ -661,7 +867,16 @@ export function FilesApp({
                         onPointerDown={(e) => {
                           if (e.button === 0) setSelectedIds([item.id]);
                         }}
-                        onDoubleClick={() => handleActivateItem(item)}
+                        onClick={() => {
+                          if (settings.fileActivationMode === "single") {
+                            handleActivateItem(item);
+                          }
+                        }}
+                        onDoubleClick={() => {
+                          if (settings.fileActivationMode === "double") {
+                            handleActivateItem(item);
+                          }
+                        }}
                         onContextMenu={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
@@ -677,7 +892,17 @@ export function FilesApp({
                       >
                         <td className="flex items-center gap-2 px-3 py-2 font-medium">
                           {item.kind === "directory" ? (
-                            <FolderIcon className="size-4 shrink-0 text-blue-400" />
+                            <img
+                              src={getAccentFolderIconUrl(settings.accentColor)}
+                              alt=""
+                              className="size-4 shrink-0"
+                            />
+                          ) : /\.(html|htm)$/i.test(item.name) ? (
+                            <img
+                              src={getAccentHtmlIconUrl(settings.accentColor)}
+                              alt=""
+                              className="size-4 shrink-0"
+                            />
                           ) : (
                             <FileTextIcon className="size-4 shrink-0 text-adw-label-secondary" />
                           )}
@@ -716,7 +941,7 @@ export function FilesApp({
               selectedIds={selectedIds}
               onSelectIds={setSelectedIds}
               ariaLabel={currentTitle}
-              className="[&_button_span]:text-adw-label [&_button_span]:drop-shadow-none"
+              className="[&_button[aria-selected=false]_span]:text-adw-label [&_button_span]:drop-shadow-none"
             />
           )}
         </div>
@@ -728,12 +953,13 @@ export function FilesApp({
         isTrash={isTrashView}
         onClose={() => setItemMenu(null)}
         onOpen={handleActivateItem}
+        onOpenInTerminal={(target) =>
+          launchApp("terminal", { payload: target.path, forceNew: true })
+        }
         onEditText={(target) =>
           launchApp("text-editor", { payload: target.path })
         }
         onRename={(target) => setRenamingId(target.id)}
-        onNewFolder={isTrashView ? undefined : handleNewFolder}
-        onNewTextFile={isTrashView ? undefined : handleNewTextFile}
         onTrash={handleTrashItem}
       />
 

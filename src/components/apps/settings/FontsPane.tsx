@@ -1,6 +1,7 @@
 import * as React from "react";
-import { RotateCcwIcon } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Popover } from "@base-ui/react/popover";
+import { CheckIcon, ChevronsUpDownIcon, SearchIcon } from "lucide-react";
+import { useDomicile } from "@domicile-desktop/react/domicile-provider";
 import {
   GroupedForm,
   GroupedFormGroup,
@@ -20,30 +21,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
-import { Switch } from "@/components/ui/switch";
-import { useDomicile } from "@domicile-desktop/react/domicile-provider";
-import {
-  useApps,
-  useSettings,
-  useWindowManager,
-} from "@/context/DesktopStateContext";
-import type {
-  CssFontKerning,
-  CssFontOpticalSizing,
-  CssFontSmoothing,
-  CssFontSynthesis,
-  CssTextRendering,
-} from "@/context/SettingsContext";
-import {
-  listInstalledFontFamilies,
-  readGtk4CustomCss,
-  readGtk4HintFontMetrics,
-  setGtk4HintFontMetrics,
-  writeGtk4CustomCss,
-  type GtkFontAntialiasing,
-  type GtkFontHinting,
-  type GtkFontRgbaOrder,
-} from "@/lib/gnome-bridge";
+import { useSettings } from "@/context/DesktopStateContext";
+import type { CssFontStyle } from "@/context/SettingsContext";
+import { listInstalledFontFamilies } from "@/lib/gnome-bridge";
+import { cn } from "@/lib/utils";
 
 const SANS_PRESETS = [
   "Adwaita Sans",
@@ -51,6 +32,8 @@ const SANS_PRESETS = [
   "Inter",
   "Noto Sans",
   "Ubuntu",
+  "Liberation Sans",
+  "DejaVu Sans",
   "system-ui",
 ] as const;
 
@@ -62,54 +45,185 @@ const MONO_PRESETS = [
   "monospace",
 ] as const;
 
-const BROWSER_FALLBACK_FONTS = [
-  ...SANS_PRESETS,
-  ...MONO_PRESETS,
-  "Liberation Sans",
-  "DejaVu Sans",
+const FONT_STYLE_OPTIONS: Array<{ value: CssFontStyle; label: string }> = [
+  { value: "light", label: "Light" },
+  { value: "regular", label: "Regular" },
+  { value: "medium", label: "Medium" },
+  { value: "semibold", label: "Semibold" },
+  { value: "italic", label: "Italic" },
 ];
 
-function stripPangoSize(fontSpec: string): string {
-  return fontSpec.replace(/\s+\d+(?:\.\d+)?$/, "").trim();
+type RenderingStylePreset = "default" | "subpixel" | "geometric" | "darkened";
+
+const RENDERING_STYLE_OPTIONS: Array<{
+  value: RenderingStylePreset;
+  label: string;
+}> = [
+  { value: "default", label: "Default (Antialiased)" },
+  { value: "subpixel", label: "Subpixel (LCD)" },
+  { value: "geometric", label: "Geometric Precision" },
+  { value: "darkened", label: "Darkened" },
+];
+
+function inferRenderingStyle(settings: {
+  cssFontSmoothing: string;
+  cssTextRendering: string;
+  cssTextStrokePx: number;
+}): RenderingStylePreset {
+  if (settings.cssTextStrokePx > 0) return "darkened";
+  if (settings.cssFontSmoothing === "subpixel-antialiased") return "subpixel";
+  if (settings.cssTextRendering === "geometricPrecision") return "geometric";
+  return "default";
 }
 
-function buildPangoSpec(family: string, existingSpec: string): string {
-  const sizeMatch = /\s+(\d+(?:\.\d+)?)$/.exec(existingSpec.trim());
-  const pt = sizeMatch ? sizeMatch[1] : "11";
-  const primary = family.split(",")[0]?.trim().replace(/^["']|["']$/g, "") || "Sans";
-  return `${primary} ${pt}`;
+interface FontPopoverSelectorProps {
+  value: string;
+  fonts: string[];
+  summary: string;
+  onSelectFont: (family: string) => void;
+  sizePx?: number;
+  fontScale?: number;
+  onChangeScale?: (scale: number) => void;
+  fontStyle?: CssFontStyle;
+  onChangeStyle?: (style: CssFontStyle) => void;
+}
+
+function FontPopoverSelector({
+  value,
+  fonts,
+  summary,
+  onSelectFont,
+  fontScale,
+  onChangeScale,
+  fontStyle,
+  onChangeStyle,
+}: FontPopoverSelectorProps) {
+  const [open, setOpen] = React.useState(false);
+  const [search, setSearch] = React.useState("");
+
+  const filteredFonts = React.useMemo(() => {
+    const q = search.trim().toLowerCase();
+    const list = q
+      ? fonts.filter((f) => f.toLowerCase().includes(q))
+      : fonts;
+    if (value && !list.includes(value) && (!q || value.toLowerCase().includes(q))) {
+      return [value, ...list];
+    }
+    return list;
+  }, [fonts, search, value]);
+
+  return (
+    <Popover.Root
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next);
+        if (!next) setSearch("");
+      }}
+    >
+      <Popover.Trigger className="inline-flex h-7 max-w-[260px] items-center gap-1.5 rounded-lg px-2.5 text-[13px] font-medium text-adw-label transition-colors hover:bg-black/6 focus-visible:outline-none dark:hover:bg-white/10">
+        <span className="truncate">{summary}</span>
+        <ChevronsUpDownIcon className="size-3.5 shrink-0 text-adw-label-secondary" />
+      </Popover.Trigger>
+
+      <Popover.Portal>
+        <Popover.Positioner side="bottom" align="end" sideOffset={6} className="z-50">
+          <Popover.Popup className="w-72 overflow-hidden rounded-adw-popover p-2 text-adw-label shadow-adw-menu adw-material-menu outline-none">
+            <div className="relative mb-2">
+              <SearchIcon className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-adw-label-tertiary" />
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search fonts…"
+                className="h-7 pl-8 text-[12px]"
+              />
+            </div>
+
+            <div className="max-h-52 overflow-y-auto pr-0.5">
+              {filteredFonts.length === 0 ? (
+                <div className="px-2 py-4 text-center text-[12px] text-adw-label-secondary">
+                  No matching fonts
+                </div>
+              ) : (
+                filteredFonts.map((family) => {
+                  const selected = value === family;
+                  return (
+                    <button
+                      key={family}
+                      type="button"
+                      onClick={() => onSelectFont(family)}
+                      className={cn(
+                        "flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-left text-[12.5px] transition-colors",
+                        selected
+                          ? "bg-adw-accent/15 font-medium text-adw-label"
+                          : "hover:bg-black/6 dark:hover:bg-white/8",
+                      )}
+                    >
+                      <span className="truncate">{family}</span>
+                      {selected && (
+                        <CheckIcon className="size-3.5 shrink-0 text-adw-accent" />
+                      )}
+                    </button>
+                  );
+                })
+              )}
+            </div>
+
+            {fontScale !== undefined && onChangeScale && (
+              <div className="mt-2 border-t border-adw-separator pt-2">
+                <div className="mb-1 flex items-center justify-between text-[11px] text-adw-label-secondary">
+                  <span>Size</span>
+                  <span className="tabular-nums">
+                    {Math.round(13 * fontScale)}px ({Math.round(fontScale * 100)}%)
+                  </span>
+                </div>
+                <Slider
+                  min={0.85}
+                  max={1.35}
+                  step={0.05}
+                  value={[fontScale]}
+                  onValueChange={(val) => {
+                    const next = Array.isArray(val) ? val[0] : val;
+                    if (typeof next === "number") onChangeScale(next);
+                  }}
+                />
+              </div>
+            )}
+
+            {fontStyle !== undefined && onChangeStyle && (
+              <div className="mt-2 border-t border-adw-separator pt-2">
+                <div className="mb-1.5 text-[11px] text-adw-label-secondary">
+                  Style
+                </div>
+                <div className="flex flex-wrap gap-1">
+                  {FONT_STYLE_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => onChangeStyle(opt.value)}
+                      className={cn(
+                        "rounded-md px-2 py-0.5 text-[11px] font-medium transition-colors",
+                        fontStyle === opt.value
+                          ? "bg-adw-accent text-white"
+                          : "bg-black/6 text-adw-label-secondary hover:text-adw-label dark:bg-white/8",
+                      )}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </Popover.Popup>
+        </Popover.Positioner>
+      </Popover.Portal>
+    </Popover.Root>
+  );
 }
 
 export function FontsPane() {
   const domicile = useDomicile();
   const { isBrowserRuntime, settings, updateSettings } = useSettings();
-  const { installedXdgApps, launchXdgEntry } = useApps();
-  const { openGnomeSettings } = useWindowManager();
-
-  const [sampleText, setSampleText] = React.useState(
-    "Sphinx of black quartz, judge my vow — Il1 O0 0123456789 != === ->"
-  );
-  const [installedFonts, setInstalledFonts] = React.useState<string[]>(
-    BROWSER_FALLBACK_FONTS
-  );
-  const [gtkHintMetrics, setGtkHintMetricsState] = React.useState(false);
-  const [gtkCustomCss, setGtkCustomCss] = React.useState("");
-  const [gtkCssSavedMsg, setGtkCssSavedMsg] = React.useState<string | null>(
-    null
-  );
-  const [computedBlinkFont, setComputedBlinkFont] = React.useState("");
-
-  React.useEffect(() => {
-    if (typeof document === "undefined") return;
-    const style = getComputedStyle(document.body);
-    const loadedFaces = Array.from(document.fonts)
-      .filter((f) => f.status === "loaded")
-      .map((f) => f.family.replace(/^["']|["']$/g, ""));
-    const uniqueLoaded = Array.from(new Set(loadedFaces));
-    const faceSuffix =
-      uniqueLoaded.length > 0 ? ` · Loaded: ${uniqueLoaded.slice(0, 3).join(", ")}` : "";
-    setComputedBlinkFont(`${style.fontFamily} (${style.fontSize})${faceSuffix}`);
-  }, [settings.fontSansFamily, settings.fontMonoFamily, settings.fontScale]);
+  const [installedFonts, setInstalledFonts] = React.useState<string[]>([]);
 
   React.useEffect(() => {
     if (isBrowserRuntime) return;
@@ -119,45 +233,24 @@ export function FontsPane() {
         setInstalledFonts(fonts);
       }
     });
-    void readGtk4HintFontMetrics(domicile).then((enabled) => {
-      if (!cancelled) {
-        setGtkHintMetricsState(enabled);
-      }
-    });
-    void readGtk4CustomCss(domicile).then((css) => {
-      if (!cancelled) {
-        setGtkCustomCss(css);
-      }
-    });
     return () => {
       cancelled = true;
     };
   }, [domicile, isBrowserRuntime]);
 
-  const handleSaveGtkCss = async (nextCss: string) => {
-    setGtkCustomCss(nextCss);
-    if (isBrowserRuntime) {
-      setGtkCssSavedMsg("Saved (Browser preview only)");
-      return;
-    }
-    const ok = await writeGtk4CustomCss(domicile, nextCss);
-    setGtkCssSavedMsg(
-      ok
-        ? "Saved to ~/.config/gtk-4.0/gtk.css — relaunch GTK4 apps to inspect"
-        : "Failed to write ~/.config/gtk-4.0/gtk.css"
-    );
-  };
+  const sansFonts = React.useMemo(() => {
+    const set = new Set<string>([...SANS_PRESETS, ...installedFonts]);
+    return Array.from(set);
+  }, [installedFonts]);
 
-  const handleToggleGtkHintMetrics = async (checked: boolean) => {
-    setGtkHintMetricsState(checked);
-    if (!isBrowserRuntime) {
-      await setGtk4HintFontMetrics(domicile, checked);
-    }
-  };
+  const monoFonts = React.useMemo(() => {
+    const set = new Set<string>([...MONO_PRESETS, ...installedFonts]);
+    return Array.from(set);
+  }, [installedFonts]);
 
-  const applyCssPreset = (
-    preset: "default" | "subpixel" | "geometric" | "darkened"
-  ) => {
+  const renderingPreset = inferRenderingStyle(settings);
+
+  const applyRenderingPreset = (preset: RenderingStylePreset) => {
     if (preset === "default") {
       updateSettings({
         cssFontSmoothing: "antialiased",
@@ -201,202 +294,61 @@ export function FontsPane() {
     }
   };
 
-  const launchGtkComparisonApp = () => {
-    const preferred = installedXdgApps.find((entry) =>
-      /adwaita.*demo|texteditor|gtk4-demo|tweaks/i.test(
-        `${entry.desktopId} ${entry.name}`
-      )
-    );
-    if (preferred) {
-      launchXdgEntry(preferred);
-    } else {
-      openGnomeSettings("appearance");
-    }
-  };
-
-  const dpr = typeof window !== "undefined" ? window.devicePixelRatio : 1;
+  const styleLabel =
+    FONT_STYLE_OPTIONS.find((o) => o.value === settings.fontSansStyle)?.label ??
+    "Regular";
 
   return (
     <GroupedForm>
-      <datalist id="piloti-sans-fonts">
-        {installedFonts.map((f) => (
-          <option key={f} value={f} />
-        ))}
-      </datalist>
-
-      {/* Live Preview Specimen */}
       <GroupedFormSection>
-        <div className="mb-2 flex items-center justify-between px-1">
-          <GroupedFormSectionTitle className="mb-0 px-0">
-            Live Specimen &amp; Comparison
-          </GroupedFormSectionTitle>
-          <div className="flex items-center gap-2">
-            <span className="text-[11px] text-adw-label-tertiary tabular-nums">
-              DPR {dpr.toFixed(2)}× · Piloti (Blink/Skia)
-            </span>
-            <Button
-              size="sm"
-              variant="secondary"
-              onClick={launchGtkComparisonApp}
-              className="h-6 px-2.5 text-[11px]"
-            >
-              Open GTK4 Window…
-            </Button>
-          </div>
-        </div>
-
+        <GroupedFormSectionTitle>Fonts</GroupedFormSectionTitle>
         <GroupedFormGroup>
-          <div className="space-y-3 p-4">
-            <Input
-              value={sampleText}
-              onChange={(e) => setSampleText(e.target.value)}
-              placeholder="Type custom comparison specimen…"
-              className="h-7 text-[12px]"
-            />
-
-            <div className="grid gap-3 md:grid-cols-2">
-              <div className="rounded-[10px] border border-white/10 bg-[#202024] p-3 text-[#f6f5f4]">
-                <div className="mb-1.5 flex items-center justify-between text-[10.5px] text-white/55">
-                  <span>Dark Surface ({settings.fontSansFamily})</span>
-                  <span>
-                    {settings.cssFontSmoothing} · {settings.cssTextRendering}
-                  </span>
-                </div>
-                <p className="text-adw-title-3 font-semibold">{sampleText}</p>
-                <p className="mt-1 text-adw-body text-white/90">{sampleText}</p>
-                <p className="mt-1 font-mono text-[12px] text-white/75">
-                  {sampleText}
-                </p>
-              </div>
-
-              <div className="rounded-[10px] border border-black/10 bg-[#fafafa] p-3 text-[#202024]">
-                <div className="mb-1.5 flex items-center justify-between text-[10.5px] text-black/55">
-                  <span>Light Surface ({settings.fontSansFamily})</span>
-                  <span>
-                    GTK4: {settings.gtkFontAntialiasing}/{settings.gtkFontHinting}
-                  </span>
-                </div>
-                <p className="text-adw-title-3 font-semibold">{sampleText}</p>
-                <p className="mt-1 text-adw-body text-black/85">{sampleText}</p>
-                <p className="mt-1 font-mono text-[12px] text-black/70">
-                  {sampleText}
-                </p>
-              </div>
-            </div>
-
-            {computedBlinkFont && (
-              <div className="rounded-[8px] bg-black/5 px-2.5 py-1.5 font-mono text-[10.5px] text-adw-label-secondary dark:bg-white/6">
-                Computed Blink font: {computedBlinkFont}
-              </div>
-            )}
-          </div>
-        </GroupedFormGroup>
-      </GroupedFormSection>
-
-      {/* Editable Font Family Inputs */}
-      <GroupedFormSection>
-        <div className="mb-2 flex items-center justify-between px-1">
-          <GroupedFormSectionTitle className="mb-0 px-0">
-            Piloti Shell Fonts (Chromium CSS)
-          </GroupedFormSectionTitle>
-          <Button
-            size="sm"
-            variant="secondary"
-            onClick={() =>
-              updateSettings({
-                gtkFontName: buildPangoSpec(
-                  settings.fontSansFamily,
-                  settings.gtkFontName
-                ),
-                gtkMonospaceFontName: buildPangoSpec(
-                  settings.fontMonoFamily,
-                  settings.gtkMonospaceFontName
-                ),
-              })
-            }
-            className="h-6 px-2.5 text-[11px]"
-          >
-            Copy Font Names → GTK4
-          </Button>
-        </div>
-        <GroupedFormGroup>
-          <GroupedFormRow className="flex-col items-stretch gap-2 py-3">
-            <div className="flex items-center justify-between gap-4">
-              <GroupedFormRowLabel>
-                <GroupedFormRowTitle>UI Font Family</GroupedFormRowTitle>
-              </GroupedFormRowLabel>
-              <GroupedFormRowControl className="w-60">
-                <Input
-                  list="piloti-sans-fonts"
-                  value={settings.fontSansFamily}
-                  onChange={(e) =>
-                    updateSettings({ fontSansFamily: e.target.value })
-                  }
-                  placeholder="e.g. Adwaita Sans, Cantarell, Inter"
-                  className="h-7"
-                />
-              </GroupedFormRowControl>
-            </div>
-            <div className="flex flex-wrap gap-1.5">
-              {SANS_PRESETS.map((preset) => (
-                <button
-                  key={preset}
-                  type="button"
-                  onClick={() => updateSettings({ fontSansFamily: preset })}
-                  className={`rounded-full px-2.5 py-0.5 text-[11px] transition-colors ${
-                    settings.fontSansFamily === preset
-                      ? "bg-adw-accent text-white"
-                      : "bg-adw-fill text-adw-label-secondary hover:text-adw-label"
-                  }`}
-                >
-                  {preset}
-                </button>
-              ))}
-            </div>
+          <GroupedFormRow>
+            <GroupedFormRowLabel>
+              <GroupedFormRowTitle>Interface Font</GroupedFormRowTitle>
+            </GroupedFormRowLabel>
+            <GroupedFormRowControl>
+              <FontPopoverSelector
+                value={settings.fontSansFamily}
+                fonts={sansFonts}
+                summary={`${settings.fontSansFamily} · ${Math.round(13 * settings.fontScale)}px · ${styleLabel}`}
+                onSelectFont={(fontSansFamily) =>
+                  updateSettings({ fontSansFamily })
+                }
+                fontScale={settings.fontScale}
+                onChangeScale={(fontScale) => updateSettings({ fontScale })}
+                fontStyle={settings.fontSansStyle}
+                onChangeStyle={(fontSansStyle) =>
+                  updateSettings({ fontSansStyle })
+                }
+              />
+            </GroupedFormRowControl>
           </GroupedFormRow>
 
-          <GroupedFormRow className="flex-col items-stretch gap-2 py-3">
-            <div className="flex items-center justify-between gap-4">
-              <GroupedFormRowLabel>
-                <GroupedFormRowTitle>Monospace Font Family</GroupedFormRowTitle>
-              </GroupedFormRowLabel>
-              <GroupedFormRowControl className="w-60">
-                <Input
-                  list="piloti-sans-fonts"
-                  value={settings.fontMonoFamily}
-                  onChange={(e) =>
-                    updateSettings({ fontMonoFamily: e.target.value })
-                  }
-                  placeholder="e.g. Adwaita Mono, JetBrains Mono"
-                  className="h-7 font-mono"
-                />
-              </GroupedFormRowControl>
-            </div>
-            <div className="flex flex-wrap gap-1.5">
-              {MONO_PRESETS.map((preset) => (
-                <button
-                  key={preset}
-                  type="button"
-                  onClick={() => updateSettings({ fontMonoFamily: preset })}
-                  className={`rounded-full px-2.5 py-0.5 text-[11px] transition-colors ${
-                    settings.fontMonoFamily === preset
-                      ? "bg-adw-accent text-white"
-                      : "bg-adw-fill text-adw-label-secondary hover:text-adw-label"
-                  }`}
-                >
-                  {preset}
-                </button>
-              ))}
-            </div>
+          <GroupedFormRow>
+            <GroupedFormRowLabel>
+              <GroupedFormRowTitle>Monospace Font</GroupedFormRowTitle>
+            </GroupedFormRowLabel>
+            <GroupedFormRowControl>
+              <FontPopoverSelector
+                value={settings.fontMonoFamily}
+                fonts={monoFonts}
+                summary={settings.fontMonoFamily}
+                onSelectFont={(fontMonoFamily) =>
+                  updateSettings({ fontMonoFamily })
+                }
+              />
+            </GroupedFormRowControl>
           </GroupedFormRow>
 
           <GroupedFormRow>
             <GroupedFormRowLabel>
               <GroupedFormRowTitle>
-                Piloti UI Font Scale ({Math.round(settings.fontScale * 100)}%)
+                Size ({Math.round(13 * settings.fontScale)}px ·{" "}
+                {Math.round(settings.fontScale * 100)}%)
               </GroupedFormRowTitle>
             </GroupedFormRowLabel>
-            <GroupedFormRowControl className="w-48 gap-2">
+            <GroupedFormRowControl className="w-44">
               <Slider
                 min={0.85}
                 max={1.35}
@@ -404,214 +356,8 @@ export function FontsPane() {
                 value={[settings.fontScale]}
                 onValueChange={(val) => {
                   const next = Array.isArray(val) ? val[0] : val;
-                  if (typeof next === "number") updateSettings({ fontScale: next });
-                }}
-              />
-            </GroupedFormRowControl>
-          </GroupedFormRow>
-        </GroupedFormGroup>
-      </GroupedFormSection>
-
-      {/* Chromium / Blink CSS Rendering Tweaks */}
-      <GroupedFormSection>
-        <div className="mb-2 flex items-center justify-between px-1">
-          <GroupedFormSectionTitle className="mb-0 px-0">
-            Chromium / Piloti CSS Font Rendering
-          </GroupedFormSectionTitle>
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => applyCssPreset("default")}
-            className="h-6 gap-1 px-2 text-[11px]"
-          >
-            <RotateCcwIcon className="size-3" />
-            Reset CSS
-          </Button>
-        </div>
-
-        <GroupedFormGroup>
-          <GroupedFormRow className="py-2.5">
-            <GroupedFormRowLabel>
-              <GroupedFormRowTitle>Quick Experiment Profiles</GroupedFormRowTitle>
-            </GroupedFormRowLabel>
-            <GroupedFormRowControl>
-              <div className="flex flex-wrap justify-end gap-1.5">
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={() => applyCssPreset("default")}
-                  className="h-7 px-2.5 text-[11px]"
-                >
-                  Grayscale Default
-                </Button>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={() => applyCssPreset("subpixel")}
-                  className="h-7 px-2.5 text-[11px]"
-                >
-                  Subpixel + Legibility
-                </Button>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={() => applyCssPreset("geometric")}
-                  className="h-7 px-2.5 text-[11px]"
-                >
-                  Geometric Precision
-                </Button>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={() => applyCssPreset("darkened")}
-                  className="h-7 px-2.5 text-[11px]"
-                >
-                  Stem Darkened
-                </Button>
-              </div>
-            </GroupedFormRowControl>
-          </GroupedFormRow>
-
-          <GroupedFormRow>
-            <GroupedFormRowLabel>
-              <GroupedFormRowTitle>
-                Font Smoothing (`-webkit-font-smoothing`)
-              </GroupedFormRowTitle>
-            </GroupedFormRowLabel>
-            <GroupedFormRowControl>
-              <Select
-                value={settings.cssFontSmoothing}
-                onValueChange={(val) =>
-                  updateSettings({ cssFontSmoothing: val as CssFontSmoothing })
-                }
-              >
-                <SelectTrigger variant="borderless">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="antialiased">
-                    antialiased (Grayscale AA)
-                  </SelectItem>
-                  <SelectItem value="subpixel-antialiased">
-                    subpixel-antialiased (RGB Subpixel)
-                  </SelectItem>
-                  <SelectItem value="auto">auto (Platform Default)</SelectItem>
-                </SelectContent>
-              </Select>
-            </GroupedFormRowControl>
-          </GroupedFormRow>
-
-          <GroupedFormRow>
-            <GroupedFormRowLabel>
-              <GroupedFormRowTitle>
-                Text Rendering (`text-rendering`)
-              </GroupedFormRowTitle>
-            </GroupedFormRowLabel>
-            <GroupedFormRowControl>
-              <Select
-                value={settings.cssTextRendering}
-                onValueChange={(val) =>
-                  updateSettings({ cssTextRendering: val as CssTextRendering })
-                }
-              >
-                <SelectTrigger variant="borderless">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="auto">auto</SelectItem>
-                  <SelectItem value="optimizeLegibility">
-                    optimizeLegibility
-                  </SelectItem>
-                  <SelectItem value="geometricPrecision">
-                    geometricPrecision (Unhinted)
-                  </SelectItem>
-                  <SelectItem value="optimizeSpeed">optimizeSpeed</SelectItem>
-                </SelectContent>
-              </Select>
-            </GroupedFormRowControl>
-          </GroupedFormRow>
-
-          <GroupedFormRow>
-            <GroupedFormRowLabel>
-              <GroupedFormRowTitle>
-                Optical Sizing (`font-optical-sizing`)
-              </GroupedFormRowTitle>
-            </GroupedFormRowLabel>
-            <GroupedFormRowControl>
-              <Select
-                value={settings.cssFontOpticalSizing}
-                onValueChange={(val) =>
-                  updateSettings({
-                    cssFontOpticalSizing: val as CssFontOpticalSizing,
-                  })
-                }
-              >
-                <SelectTrigger variant="borderless">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="auto">auto</SelectItem>
-                  <SelectItem value="none">none</SelectItem>
-                </SelectContent>
-              </Select>
-            </GroupedFormRowControl>
-          </GroupedFormRow>
-
-          <GroupedFormRow>
-            <GroupedFormRowLabel>
-              <GroupedFormRowTitle>
-                Kerning &amp; Synthesis (`font-kerning` / `font-synthesis`)
-              </GroupedFormRowTitle>
-            </GroupedFormRowLabel>
-            <GroupedFormRowControl className="gap-2">
-              <Select
-                value={settings.cssFontKerning}
-                onValueChange={(val) =>
-                  updateSettings({ cssFontKerning: val as CssFontKerning })
-                }
-              >
-                <SelectTrigger variant="borderless">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="auto">kerning: auto</SelectItem>
-                  <SelectItem value="normal">kerning: normal</SelectItem>
-                  <SelectItem value="none">kerning: none</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select
-                value={settings.cssFontSynthesis}
-                onValueChange={(val) =>
-                  updateSettings({ cssFontSynthesis: val as CssFontSynthesis })
-                }
-              >
-                <SelectTrigger variant="borderless">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="auto">synthesis: auto</SelectItem>
-                  <SelectItem value="none">synthesis: none</SelectItem>
-                </SelectContent>
-              </Select>
-            </GroupedFormRowControl>
-          </GroupedFormRow>
-
-          <GroupedFormRow>
-            <GroupedFormRowLabel>
-              <GroupedFormRowTitle>
-                Letter Spacing ({settings.cssLetterSpacingEm.toFixed(3)}em)
-              </GroupedFormRowTitle>
-            </GroupedFormRowLabel>
-            <GroupedFormRowControl className="w-44">
-              <Slider
-                min={-0.02}
-                max={0.04}
-                step={0.005}
-                value={[settings.cssLetterSpacingEm]}
-                onValueChange={(val) => {
-                  const next = Array.isArray(val) ? val[0] : val;
                   if (typeof next === "number") {
-                    updateSettings({ cssLetterSpacingEm: next });
+                    updateSettings({ fontScale: next });
                   }
                 }}
               />
@@ -620,267 +366,71 @@ export function FontsPane() {
 
           <GroupedFormRow>
             <GroupedFormRowLabel>
-              <GroupedFormRowTitle>
-                CSS Stem Darkening ({settings.cssTextStrokePx.toFixed(2)}px)
-              </GroupedFormRowTitle>
-            </GroupedFormRowLabel>
-            <GroupedFormRowControl className="w-44">
-              <Slider
-                min={0}
-                max={0.35}
-                step={0.05}
-                value={[settings.cssTextStrokePx]}
-                onValueChange={(val) => {
-                  const next = Array.isArray(val) ? val[0] : val;
-                  if (typeof next === "number") {
-                    updateSettings({ cssTextStrokePx: next });
-                  }
-                }}
-              />
-            </GroupedFormRowControl>
-          </GroupedFormRow>
-        </GroupedFormGroup>
-      </GroupedFormSection>
-
-      {/* GTK4 / GNOME GSettings & FreeType Controls */}
-      <GroupedFormSection>
-        <div className="mb-2 flex items-center justify-between px-1">
-          <GroupedFormSectionTitle className="mb-0 px-0">
-            GTK4 &amp; GNOME Typography (`gsettings`)
-          </GroupedFormSectionTitle>
-          <Button
-            size="sm"
-            variant="secondary"
-            onClick={() =>
-              updateSettings({
-                fontSansFamily: stripPangoSize(settings.gtkFontName) || "Cantarell",
-                fontMonoFamily:
-                  stripPangoSize(settings.gtkMonospaceFontName) || "Adwaita Mono",
-              })
-            }
-            className="h-6 px-2.5 text-[11px]"
-          >
-            Pull GTK4 Fonts → Piloti
-          </Button>
-        </div>
-
-        <GroupedFormGroup>
-          <GroupedFormRow>
-            <GroupedFormRowLabel>
-              <GroupedFormRowTitle>GTK Interface Font (`font-name`)</GroupedFormRowTitle>
-            </GroupedFormRowLabel>
-            <GroupedFormRowControl className="w-56">
-              <Input
-                value={settings.gtkFontName}
-                onChange={(e) => updateSettings({ gtkFontName: e.target.value })}
-                placeholder="Adwaita Sans 11"
-                className="h-7"
-              />
-            </GroupedFormRowControl>
-          </GroupedFormRow>
-
-          <GroupedFormRow>
-            <GroupedFormRowLabel>
-              <GroupedFormRowTitle>
-                GTK Document &amp; Monospace Fonts
-              </GroupedFormRowTitle>
-            </GroupedFormRowLabel>
-            <GroupedFormRowControl className="w-80 gap-2">
-              <Input
-                value={settings.gtkDocumentFontName}
-                onChange={(e) =>
-                  updateSettings({ gtkDocumentFontName: e.target.value })
-                }
-                placeholder="Sans 11"
-                className="h-7"
-              />
-              <Input
-                value={settings.gtkMonospaceFontName}
-                onChange={(e) =>
-                  updateSettings({ gtkMonospaceFontName: e.target.value })
-                }
-                placeholder="Adwaita Mono 11"
-                className="h-7 font-mono"
-              />
-            </GroupedFormRowControl>
-          </GroupedFormRow>
-
-          <GroupedFormRow>
-            <GroupedFormRowLabel>
-              <GroupedFormRowTitle>
-                GTK Text Scaling ({settings.gtkTextScalingFactor.toFixed(2)}×)
-              </GroupedFormRowTitle>
-            </GroupedFormRowLabel>
-            <GroupedFormRowControl className="w-44">
-              <Slider
-                min={0.85}
-                max={1.5}
-                step={0.05}
-                value={[settings.gtkTextScalingFactor]}
-                onValueChange={(val) => {
-                  const next = Array.isArray(val) ? val[0] : val;
-                  if (typeof next === "number") {
-                    updateSettings({ gtkTextScalingFactor: next });
-                  }
-                }}
-              />
-            </GroupedFormRowControl>
-          </GroupedFormRow>
-
-          <GroupedFormRow>
-            <GroupedFormRowLabel>
-              <GroupedFormRowTitle>
-                GTK4 Antialiasing, Hinting &amp; Subpixel Order
-              </GroupedFormRowTitle>
-            </GroupedFormRowLabel>
-            <GroupedFormRowControl className="gap-2">
-              <Select
-                value={settings.gtkFontAntialiasing}
-                onValueChange={(val) =>
-                  updateSettings({
-                    gtkFontAntialiasing: val as GtkFontAntialiasing,
-                  })
-                }
-              >
-                <SelectTrigger variant="borderless">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">AA: none</SelectItem>
-                  <SelectItem value="grayscale">AA: grayscale</SelectItem>
-                  <SelectItem value="rgba">AA: rgba (subpixel)</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Select
-                value={settings.gtkFontHinting}
-                onValueChange={(val) =>
-                  updateSettings({ gtkFontHinting: val as GtkFontHinting })
-                }
-              >
-                <SelectTrigger variant="borderless">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">hint: none</SelectItem>
-                  <SelectItem value="slight">hint: slight</SelectItem>
-                  <SelectItem value="medium">hint: medium</SelectItem>
-                  <SelectItem value="full">hint: full</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Select
-                value={settings.gtkFontRgbaOrder}
-                onValueChange={(val) =>
-                  updateSettings({ gtkFontRgbaOrder: val as GtkFontRgbaOrder })
-                }
-              >
-                <SelectTrigger variant="borderless">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="rgb">rgb</SelectItem>
-                  <SelectItem value="bgr">bgr</SelectItem>
-                  <SelectItem value="vrgb">vrgb</SelectItem>
-                  <SelectItem value="vbgr">vbgr</SelectItem>
-                </SelectContent>
-              </Select>
-            </GroupedFormRowControl>
-          </GroupedFormRow>
-
-          <GroupedFormRow>
-            <GroupedFormRowLabel>
-              <GroupedFormRowTitle>
-                GTK4 `gtk-hint-font-metrics` (`settings.ini`)
-              </GroupedFormRowTitle>
+              <GroupedFormRowTitle>Style</GroupedFormRowTitle>
             </GroupedFormRowLabel>
             <GroupedFormRowControl>
-              <Switch
-                checked={gtkHintMetrics}
-                onCheckedChange={(checked) =>
-                  void handleToggleGtkHintMetrics(Boolean(checked))
-                }
-              />
+              <Select
+                value={settings.fontSansStyle}
+                items={FONT_STYLE_OPTIONS}
+                onValueChange={(val) => {
+                  if (val) {
+                    updateSettings({ fontSansStyle: val as CssFontStyle });
+                  }
+                }}
+              >
+                <SelectTrigger variant="borderless">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {FONT_STYLE_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </GroupedFormRowControl>
           </GroupedFormRow>
         </GroupedFormGroup>
       </GroupedFormSection>
 
-      {/* Custom GTK4 gtk.css Scratchpad */}
       <GroupedFormSection>
-        <div className="mb-2 flex items-center justify-between px-1">
-          <GroupedFormSectionTitle className="mb-0 px-0">
-            Custom `~/.config/gtk-4.0/gtk.css` Scratchpad
-          </GroupedFormSectionTitle>
-          <div className="flex flex-wrap items-center gap-1.5">
-            <Button
-              size="sm"
-              variant="secondary"
-              className="h-6 px-2 text-[10.5px]"
-              onClick={() =>
-                setGtkCustomCss(
-                  "/* Slightly looser UI tracking & crisp font feature settings */\n* {\n  letter-spacing: 0.01em;\n}\n"
-                )
-              }
-            >
-              Loose Tracking
-            </Button>
-            <Button
-              size="sm"
-              variant="secondary"
-              className="h-6 px-2 text-[10.5px]"
-              onClick={() => setGtkCustomCss("")}
-            >
-              Clear
-            </Button>
-          </div>
-        </div>
+        <GroupedFormSectionTitle>Rendering</GroupedFormSectionTitle>
         <GroupedFormGroup>
-          <div className="space-y-2.5 p-3.5">
-            <textarea
-              value={gtkCustomCss}
-              onChange={(e) => {
-                setGtkCustomCss(e.target.value);
-                setGtkCssSavedMsg(null);
-              }}
-              rows={4}
-              placeholder="/* Optional GTK4 CSS overrides, e.g. window, label { ... } */"
-              className="w-full rounded-[8px] border border-adw-separator bg-black/5 p-2.5 font-mono text-[11.5px] text-adw-label outline-none focus-visible:adw-focus-ring dark:bg-white/6"
-            />
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-[11px] text-adw-label-secondary">
-                {gtkCssSavedMsg ??
-                  "Applied to newly launched GTK4 / Libadwaita windows."}
-              </span>
-              <div className="flex items-center gap-1.5">
-                {!isBrowserRuntime && (
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    className="h-7 px-2.5 text-[11px]"
-                    onClick={() => {
-                      void readGtk4CustomCss(domicile).then((css) => {
-                        setGtkCustomCss(css);
-                        setGtkCssSavedMsg("Reloaded from ~/.config/gtk-4.0/gtk.css");
-                      });
-                    }}
-                  >
-                    Reload
-                  </Button>
-                )}
-                <Button
-                  size="sm"
-                  className="h-7 px-3 text-[11px]"
-                  onClick={() => void handleSaveGtkCss(gtkCustomCss)}
-                >
-                  Save gtk.css
-                </Button>
-              </div>
-            </div>
-          </div>
+          <GroupedFormRow>
+            <GroupedFormRowLabel>
+              <GroupedFormRowTitle>Rendering Style</GroupedFormRowTitle>
+            </GroupedFormRowLabel>
+            <GroupedFormRowControl>
+              <Select
+                value={renderingPreset}
+                items={RENDERING_STYLE_OPTIONS}
+                onValueChange={(val) => {
+                  if (
+                    val === "default" ||
+                    val === "subpixel" ||
+                    val === "geometric" ||
+                    val === "darkened"
+                  ) {
+                    applyRenderingPreset(val);
+                  }
+                }}
+              >
+                <SelectTrigger variant="borderless">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {RENDERING_STYLE_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </GroupedFormRowControl>
+          </GroupedFormRow>
         </GroupedFormGroup>
       </GroupedFormSection>
     </GroupedForm>
   );
 }
-

@@ -593,12 +593,10 @@ function Window({
     window.addEventListener("pointermove", onWinPointerMove, { capture: true })
     window.addEventListener("pointerup", onWinEnd, { capture: true })
     window.addEventListener("pointercancel", onWinEnd, { capture: true })
-    window.addEventListener("blur", onWinEnd)
     globalCleanup.current = () => {
       window.removeEventListener("pointermove", onWinPointerMove, { capture: true })
       window.removeEventListener("pointerup", onWinEnd, { capture: true })
       window.removeEventListener("pointercancel", onWinEnd, { capture: true })
-      window.removeEventListener("blur", onWinEnd)
     }
   }
 

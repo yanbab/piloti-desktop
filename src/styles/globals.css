@@ -23,6 +23,8 @@
     background-color: transparent;
     user-select: none;
     font-family: var(--font-adw);
+    font-weight: var(--piloti-font-weight, 400);
+    font-style: var(--piloti-font-style, normal);
     -webkit-font-smoothing: var(--piloti-font-smoothing, antialiased);
     text-rendering: var(--piloti-text-rendering, auto);
     font-optical-sizing: var(--piloti-font-optical-sizing, auto);

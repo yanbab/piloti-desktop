@@ -99,7 +99,8 @@ function OverviewWorkspacesBar({
   onClearDrag: () => void;
 }) {
   const { settings, updateSettings } = useSettings();
-  const { moveWindowToWorkspace, removeWorkspace } = useWindowManager();
+  const { moveWindowToWorkspace, removeWorkspace, setOverviewOpen } =
+    useWindowManager();
   const [hoveredTarget, setHoveredTarget] = React.useState<number | "new" | null>(
     null
   );
@@ -145,7 +146,10 @@ function OverviewWorkspacesBar({
                 <button
                   type="button"
                   aria-label={`Desktop ${ws}`}
-                  onClick={() => updateSettings({ activeWorkspace: ws })}
+                  onClick={() => {
+                    updateSettings({ activeWorkspace: ws });
+                    setOverviewOpen(false);
+                  }}
                   className={cn(
                     "relative h-[68px] w-[114px] overflow-hidden rounded-[8px] shadow-[0_6px_18px_rgba(0,0,0,0.4)] transition-all duration-150 outline-none",
                     active

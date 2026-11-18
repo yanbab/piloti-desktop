@@ -1,4 +1,6 @@
 import React from "react";
+import { CodeJar } from "codejar";
+import { useDomicile } from "@domicile-desktop/react/domicile-provider";
 import {
   ContextMenu,
   ContextMenuContent,
@@ -6,15 +8,16 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
-import { useWindowManager } from "@/context/WindowsContext";
+import { useSettings, useWindowActions } from "@/context/DesktopStateContext";
 import {
   WEB_VFS_HOME,
-  createVfsTextFile,
+  createFsTextFile,
   getVfsEntry,
   normalizeVfsPath,
+  readFsTextFile,
   subscribeWebVfs,
-  writeVfsTextFile,
-} from "@/lib/web-vfs";
+  writeFsTextFile,
+} from "@/lib/fs-bridge";
 
 interface TextEditorAppProps {
   initialPath?: string;
@@ -32,6 +35,74 @@ function getBaseName(path: string): string {
   const norm = normalizeVfsPath(path);
   const idx = norm.lastIndexOf("/");
   return idx >= 0 ? norm.slice(idx + 1) : norm;
+}
+
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+function highlightCode(text: string, filePath: string | null): string {
+  const ext = filePath?.split(".").pop()?.toLowerCase() ?? "";
+  if (!ext || ext === "txt") {
+    return escapeHtml(text);
+  }
+
+  if (ext === "html" || ext === "htm" || ext === "xml" || ext === "svg") {
+    return escapeHtml(text).replace(
+      /(&lt;!--[\s\S]*?--&gt;)|(&lt;\/?[a-zA-Z0-9:-]+)|(\s+[a-zA-Z0-9:-]+)(?==)|(&quot;[^&]*?&quot;|"[^"]*?"|'[^']*?')/g,
+      (match, comment, tag, attr, str) => {
+        if (comment) return `<span class="text-adw-label-tertiary italic">${comment}</span>`;
+        if (tag) return `<span class="text-sky-600 dark:text-sky-400 font-medium">${tag}</span>`;
+        if (attr) return `<span class="text-purple-700 dark:text-purple-400">${attr}</span>`;
+        if (str) return `<span class="text-emerald-700 dark:text-emerald-400">${str}</span>`;
+        return match;
+      }
+    );
+  }
+
+  if (ext === "md" || ext === "markdown") {
+    return escapeHtml(text).replace(
+      /^(#{1,6}\s+.*)$|(`[^`\n]+`)|(\*\*[^*\n]+\*\*)/gm,
+      (match, heading, code, bold) => {
+        if (heading) return `<span class="text-sky-600 dark:text-sky-400 font-bold">${heading}</span>`;
+        if (code) return `<span class="text-emerald-700 dark:text-emerald-400">${code}</span>`;
+        if (bold) return `<span class="font-semibold text-amber-700 dark:text-amber-300">${bold}</span>`;
+        return match;
+      }
+    );
+  }
+
+  if (ext === "json") {
+    return escapeHtml(text).replace(
+      /("([^"\\]|\\.)*")(\s*:)?|\b(true|false|null)\b|(-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)/g,
+      (match, str, _inner, colon, bool, num) => {
+        if (str && colon) return `<span class="text-sky-600 dark:text-sky-400">${str}</span>${colon}`;
+        if (str) return `<span class="text-emerald-700 dark:text-emerald-400">${str}</span>`;
+        if (bool) return `<span class="text-purple-700 dark:text-purple-400">${bool}</span>`;
+        if (num) return `<span class="text-amber-700 dark:text-amber-300">${num}</span>`;
+        return match;
+      }
+    );
+  }
+
+  // JS / TS / CSS / Shell / Python
+  if (/^(js|jsx|ts|tsx|mjs|cjs|css|scss|sh|bash|zsh|py)$/.test(ext)) {
+    return escapeHtml(text).replace(
+      /(\/\/[^\n]*|\/\*[\s\S]*?\*\/|#[^\n]*)|("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|`(?:[^`\\]|\\.)*`)|\b(const|let|var|function|return|if|else|for|while|switch|case|break|continue|import|export|from|default|type|interface|class|extends|async|await|try|catch|throw|new|true|false|null|undefined|def|elif|in|not|and|or|fi|then|do|done)\b|\b(\d+(?:\.\d+)?)\b/g,
+      (match, comment, str, kw, num) => {
+        if (comment) return `<span class="text-adw-label-tertiary italic">${comment}</span>`;
+        if (str) return `<span class="text-emerald-700 dark:text-emerald-400">${str}</span>`;
+        if (kw) return `<span class="text-purple-700 dark:text-purple-400 font-medium">${kw}</span>`;
+        if (num) return `<span class="text-amber-700 dark:text-amber-300">${num}</span>`;
+        return match;
+      }
+    );
+  }
+
+  return escapeHtml(text);
 }
 
 function renderSimpleMarkdown(md: string): React.ReactNode {
@@ -80,8 +151,11 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
   initialPath,
   windowId,
 }) => {
-  const { launchApp } = useWindowManager();
-  const textareaRef = React.useRef<HTMLTextAreaElement>(null);
+  const domicile = useDomicile();
+  const { isBrowserRuntime } = useSettings();
+  const { launchApp } = useWindowActions();
+  const editorRef = React.useRef<HTMLPreElement>(null);
+  const jarRef = React.useRef<ReturnType<typeof CodeJar> | null>(null);
   const [isDropTarget, setIsDropTarget] = React.useState(false);
   const [previewMarkdown, setPreviewMarkdown] = React.useState(false);
 
@@ -92,7 +166,9 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
     if (existing && existing.kind === "file") {
       return existing.path;
     }
-    const created = createVfsTextFile(
+    const created = createFsTextFile(
+      domicile,
+      isBrowserRuntime,
       getParentDir(norm),
       getBaseName(norm) || "Untitled.txt",
       "",
@@ -106,13 +182,85 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
     return entry?.kind === "file" ? (entry.content ?? "") : "";
   });
 
+  const filePathRef = React.useRef(filePath);
+  filePathRef.current = filePath;
+  const contentRef = React.useRef(content);
+  contentRef.current = content;
+
+  React.useEffect(() => {
+    if (!filePath || isBrowserRuntime) return;
+    let cancelled = false;
+    void readFsTextFile(domicile, isBrowserRuntime, filePath).then((next) => {
+      if (!cancelled) {
+        setContent(next);
+        jarRef.current?.updateCode(next);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [domicile, filePath, isBrowserRuntime]);
+
+  const persistContent = React.useCallback(
+    (next: string) => {
+      setContent(next);
+      if (filePathRef.current) {
+        writeFsTextFile(domicile, isBrowserRuntime, filePathRef.current, next);
+        return;
+      }
+      const created = createFsTextFile(
+        domicile,
+        isBrowserRuntime,
+        `${WEB_VFS_HOME}/Desktop`,
+        "Untitled.txt",
+        next,
+      );
+      if (created) {
+        filePathRef.current = created.path;
+        setFilePath(created.path);
+      }
+    },
+    [domicile, isBrowserRuntime],
+  );
+
+  React.useEffect(() => {
+    if (previewMarkdown) {
+      jarRef.current?.destroy();
+      jarRef.current = null;
+      return;
+    }
+    const el = editorRef.current;
+    if (!el) return;
+    const jar = CodeJar(
+      el,
+      (node) => {
+        node.innerHTML = highlightCode(
+          node.textContent ?? "",
+          filePathRef.current,
+        );
+      },
+      { tab: "  ", addClosing: true }
+    );
+    jar.updateCode(contentRef.current);
+    jar.onUpdate((next) => {
+      persistContent(next);
+    });
+    jarRef.current = jar;
+    return () => {
+      jar.destroy();
+      jarRef.current = null;
+    };
+  }, [filePath, persistContent, previewMarkdown]);
+
   React.useEffect(() => {
     if (!filePath) return;
     return subscribeWebVfs(() => {
-      if (document.activeElement === textareaRef.current) return;
+      if (document.activeElement === editorRef.current) return;
       const entry = getVfsEntry(filePath);
       if (entry && entry.kind === "file") {
-        setContent(entry.content ?? "");
+        const next = entry.content ?? "";
+        setContent(next);
+        jarRef.current?.updateCode(next);
       }
     });
   }, [filePath]);
@@ -161,13 +309,16 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
       const norm = normalizeVfsPath(detail.item.path);
       const entry = getVfsEntry(norm);
       if (entry && entry.kind === "file") {
+        const next = entry.content ?? "";
         setFilePath(entry.path);
-        setContent(entry.content ?? "");
+        setContent(next);
+        jarRef.current?.updateCode(next);
       } else {
         setFilePath(norm);
         setContent("");
+        jarRef.current?.updateCode("");
       }
-      textareaRef.current?.focus();
+      editorRef.current?.focus();
     };
 
     window.addEventListener("residence:file-drag", handleFileDrag);
@@ -178,25 +329,10 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
     };
   }, [windowId]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const next = e.target.value;
-    setContent(next);
-    if (filePath) {
-      writeVfsTextFile(filePath, next);
-      return;
-    }
-    const created = createVfsTextFile(
-      `${WEB_VFS_HOME}/Desktop`,
-      "Untitled.txt",
-      next,
-    );
-    if (created) {
-      setFilePath(created.path);
-    }
-  };
-
   const handleNewFile = () => {
-    const created = createVfsTextFile(
+    const created = createFsTextFile(
+      domicile,
+      isBrowserRuntime,
       `${WEB_VFS_HOME}/Desktop`,
       "Untitled.txt",
       "",
@@ -204,7 +340,8 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
     if (created) {
       setFilePath(created.path);
       setContent("");
-      textareaRef.current?.focus();
+      jarRef.current?.updateCode("");
+      editorRef.current?.focus();
     }
   };
 
@@ -221,10 +358,11 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
 
   const handleClear = () => {
     setContent("");
+    jarRef.current?.updateCode("");
     if (filePath) {
-      writeVfsTextFile(filePath, "");
+      writeFsTextFile(domicile, isBrowserRuntime, filePath, "");
     }
-    textareaRef.current?.focus();
+    editorRef.current?.focus();
   };
 
   const isMarkdownFile = Boolean(
@@ -249,15 +387,11 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
               {renderSimpleMarkdown(content)}
             </div>
           ) : (
-            <textarea
-              ref={textareaRef}
-              value={content}
-              onChange={handleChange}
+            <pre
+              ref={editorRef}
               spellCheck={false}
-              autoFocus
               aria-label={filePath ? getBaseName(filePath) : "Text Editor"}
-              className="h-full w-full resize-none border-0 bg-adw-content p-3 font-mono text-[13px] leading-relaxed text-adw-label placeholder:text-adw-label-tertiary focus:outline-none select-text"
-              placeholder="Start typing..."
+              className="m-0 h-full w-full overflow-auto border-0 bg-adw-content p-3 font-mono text-[13px] leading-relaxed whitespace-pre-wrap break-words text-adw-label focus:outline-none select-text"
             />
           )}
         </ContextMenuTrigger>

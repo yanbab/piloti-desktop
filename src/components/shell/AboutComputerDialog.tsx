@@ -8,13 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  GroupedFormGroup,
-  GroupedFormRow,
-  GroupedFormRowControl,
-  GroupedFormRowLabel,
-  GroupedFormRowTitle,
-} from "@/components/ui/grouped-form";
+import { WindowControls } from "@/components/ui/window";
 import { useSettings, useWindowManager } from "@/context/DesktopStateContext";
 import { type ComputerInfo, probeComputerInfo } from "@/lib/system-info";
 
@@ -123,22 +117,39 @@ export function AboutComputerDialog() {
     };
   }, [aboutOpen, domicile, isBrowserRuntime]);
 
+  const platformLabel = React.useMemo(() => {
+    if (!isBrowserRuntime) {
+      return info.kernel ? `Linux ${info.kernel}` : info.osName;
+    }
+    const ua = typeof navigator !== "undefined" ? navigator.userAgent : "";
+    if (/Firefox\//.test(ua)) return "Web Engine (Gecko)";
+    if (/Edg\//.test(ua) || /Chrome\//.test(ua)) return "Web Engine (Blink)";
+    if (/Safari\//.test(ua)) return "Web Engine (WebKit)";
+    return "Web Engine";
+  }, [info.kernel, info.osName, isBrowserRuntime]);
+
   const rows = [
+    { label: "Platform", value: platformLabel },
     { label: "Processor", value: info.processor },
     { label: "Graphics", value: info.graphics },
     { label: "Memory", value: info.memory },
-    {
-      label: isBrowserRuntime ? "System" : "Linux",
-      value: info.kernel ? `${info.osName} (${info.kernel})` : info.osName,
-    },
   ];
 
   return (
     <Dialog open={aboutOpen} onOpenChange={setAboutOpen}>
-      <DialogContent className="w-[332px] max-w-[calc(100vw-2rem)] gap-4 pt-10 pb-5">
-        <DialogHeader className="items-center gap-0.5 text-center">
-          <ComputerHardwareIllustration className="mx-auto mb-2 h-24 w-36 drop-shadow-md" />
-          <DialogTitle className="text-[20px] font-bold tracking-tight">
+      <DialogContent
+        showCloseButton={false}
+        className="w-[320px] max-w-[calc(100vw-2rem)] gap-3.5 pt-3 pb-4"
+      >
+        <div className="flex justify-end">
+          <WindowControls
+            layout=":close"
+            onClose={() => setAboutOpen(false)}
+          />
+        </div>
+        <DialogHeader className="-mt-2 items-center gap-0.5 text-center">
+          <ComputerHardwareIllustration className="mx-auto mb-1.5 h-20 w-32 drop-shadow-md" />
+          <DialogTitle className="text-[19px] font-bold tracking-tight">
             {info.computerName}
           </DialogTitle>
           <DialogDescription className="text-[12px] text-adw-label-secondary">
@@ -146,24 +157,18 @@ export function AboutComputerDialog() {
           </DialogDescription>
         </DialogHeader>
 
-        <GroupedFormGroup className="text-left">
+        <dl className="grid grid-cols-[auto_1fr] items-baseline gap-x-4 gap-y-1.5 rounded-xl bg-black/4 px-3.5 py-2.5 text-[12px] dark:bg-white/5">
           {rows.map((row) => (
-            <GroupedFormRow key={row.label} className="min-h-[38px] px-3.5 py-2">
-              <GroupedFormRowLabel className="shrink-0">
-                <GroupedFormRowTitle className="text-[12.5px] font-medium">
-                  {row.label}
-                </GroupedFormRowTitle>
-              </GroupedFormRowLabel>
-              <GroupedFormRowControl className="min-w-0 justify-end text-right">
-                <span className="truncate text-[12.5px] text-adw-label-secondary select-text">
-                  {row.value}
-                </span>
-              </GroupedFormRowControl>
-            </GroupedFormRow>
+            <React.Fragment key={row.label}>
+              <dt className="font-medium text-adw-label">{row.label}</dt>
+              <dd className="truncate text-right text-adw-label-secondary select-text">
+                {row.value}
+              </dd>
+            </React.Fragment>
           ))}
-        </GroupedFormGroup>
+        </dl>
 
-        <div className="flex flex-col items-center gap-2 pt-0.5">
+        <div className="flex justify-center pt-0.5">
           <Button
             size="sm"
             variant="secondary"
@@ -174,9 +179,6 @@ export function AboutComputerDialog() {
           >
             More Info…
           </Button>
-          <p className="text-[10.5px] text-adw-label-tertiary">
-            Piloti Desktop Environment · Domicile Wayland
-          </p>
         </div>
       </DialogContent>
     </Dialog>

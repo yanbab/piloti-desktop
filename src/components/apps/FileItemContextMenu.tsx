@@ -19,6 +19,7 @@ export function FileItemContextMenu({
   isTrash = false,
   onClose,
   onOpen,
+  onOpenInTerminal,
   onEditText,
   onRename,
   onNewFolder,
@@ -29,6 +30,7 @@ export function FileItemContextMenu({
   isTrash?: boolean;
   onClose: () => void;
   onOpen: (item: IconGridItem) => void;
+  onOpenInTerminal?: (item: IconGridItem) => void;
   onEditText?: (item: IconGridItem) => void;
   onRename: (item: IconGridItem) => void;
   onNewFolder?: () => void;
@@ -74,6 +76,20 @@ export function FileItemContextMenu({
         >
           {_("Open")}
         </button>
+        {onOpenInTerminal && menu.item.kind === "directory" && (
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => {
+              const target = menu.item;
+              onClose();
+              onOpenInTerminal(target);
+            }}
+            className={cn(MENU_ITEM_CLASS, "w-full text-left hover:bg-adw-menu-highlight")}
+          >
+            {_("Open in Terminal")}
+          </button>
+        )}
         {onEditText && menu.item.kind === "file" && (
           <button
             type="button"

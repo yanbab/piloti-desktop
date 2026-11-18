@@ -41,8 +41,26 @@ export function DesktopBackgroundLayers({
     return () => window.clearTimeout(timer);
   }, [active.pictureLayer]);
 
+  const isDesktopRoot = !spec;
+  const [mounted, setMounted] = React.useState(!isDesktopRoot);
+
+  React.useEffect(() => {
+    if (!isDesktopRoot) return;
+    const raf = requestAnimationFrame(() => setMounted(true));
+    return () => cancelAnimationFrame(raf);
+  }, [isDesktopRoot]);
+
   return (
-    <>
+    <div
+      aria-hidden
+      className={
+        isDesktopRoot
+          ? `pointer-events-none absolute inset-0 transition-opacity duration-500 ease-out ${
+              mounted ? "opacity-100" : "opacity-0"
+            }`
+          : "pointer-events-none absolute inset-0"
+      }
+    >
       {active.baseCss !== "transparent" && (
         <div
           aria-hidden
@@ -72,6 +90,6 @@ export function DesktopBackgroundLayers({
           style={active.pictureLayer}
         />
       )}
-    </>
+    </div>
   );
 }

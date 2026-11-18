@@ -273,128 +273,27 @@
         </svg>
       </header>
 
-      <section>
-        <h2>Desktop Basics</h2>
-        <div class="grid">
-          <article class="card">
-            <div class="card-head">
-              <span class="icon-box" aria-hidden="true">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                  <rect x="3" y="4" width="18" height="5" rx="2.5" fill="currentColor" />
-                  <rect x="3" y="12" width="8" height="8" rx="2" fill="currentColor" opacity="0.3" />
-                  <rect x="13" y="12" width="8" height="8" rx="2" fill="currentColor" opacity="0.3" />
-                </svg>
-              </span>
-              <h3>Menu Bar</h3>
-            </div>
-            <p>
-              Access app menus on the left, click the center pill to toggle
-              <strong>Overview</strong>, and open <strong>Launcher</strong> or
-              <strong>Control panel</strong> &amp; notifications on the right.
-            </p>
-          </article>
-
-          <article class="card">
-            <div class="card-head">
-              <span class="icon-box" aria-hidden="true">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                  <rect x="2" y="14" width="20" height="7" rx="3.5" fill="currentColor" opacity="0.25" />
-                  <rect x="5" y="15.5" width="4" height="4" rx="1.2" fill="currentColor" />
-                  <rect x="10" y="15.5" width="4" height="4" rx="1.2" fill="currentColor" />
-                  <rect x="15" y="15.5" width="4" height="4" rx="1.2" fill="currentColor" />
-                </svg>
-              </span>
-              <h3>Dock</h3>
-            </div>
-            <p>
-              Launch pinned apps, switch running windows, or open Trash. Drag
-              pinned tiles to reorder them, or right-click for window actions.
-            </p>
-          </article>
-
-          <article class="card">
-            <div class="card-head">
-              <span class="icon-box" aria-hidden="true">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                  <path d="M3 6.5A2.5 2.5 0 0 1 5.5 4h4.2l2 2H18.5A2.5 2.5 0 0 1 21 8.5v9A2.5 2.5 0 0 1 18.5 20h-13A2.5 2.5 0 0 1 3 17.5v-11Z" fill="currentColor" opacity="0.9" />
-                </svg>
-              </span>
-              <h3>Desktop Icons</h3>
-            </div>
-            <p>
-              Single-click items to open, drag to place anywhere on the grid,
-              drag across empty space for rubber-band selection, or navigate with
-              Arrow keys.
-            </p>
-          </article>
-
-          <article class="card">
-            <div class="card-head">
-              <span class="icon-box" aria-hidden="true">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                  <circle cx="11" cy="11" r="6.5" stroke="currentColor" stroke-width="2.5" />
-                  <path d="M16 16l4.5 4.5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" />
-                </svg>
-              </span>
-              <h3>Launcher &amp; Overview</h3>
-            </div>
-            <p>
-              Press <kbd>Alt</kbd> + <kbd>Space</kbd> to search apps, folders,
-              settings, or URLs. Use <strong>Overview</strong> to spread windows
-              and drag them across workspaces.
-            </p>
-          </article>
-
-          <article class="card">
-            <div class="card-head">
-              <span class="icon-box" aria-hidden="true">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                  <rect x="3" y="5" width="18" height="6" rx="3" fill="currentColor" opacity="0.3" />
-                  <circle cx="16" cy="8" r="2.2" fill="currentColor" />
-                  <rect x="3" y="13" width="18" height="6" rx="3" fill="currentColor" opacity="0.3" />
-                  <circle cx="8" cy="16" r="2.2" fill="currentColor" />
-                </svg>
-              </span>
-              <h3>Control Panel &amp; Settings</h3>
-            </div>
-            <p>
-              Adjust Wi-Fi, Bluetooth, Volume, Brightness, Do Not Disturb, and
-              notification history in Control panel, or customize themes and
-              wallpapers in Desktop Settings.
-            </p>
-          </article>
-
-          <article class="card">
-            <div class="card-head">
-              <span class="icon-box" aria-hidden="true">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                  <rect x="3" y="4" width="8.5" height="16" rx="2" fill="currentColor" />
-                  <rect x="12.5" y="4" width="8.5" height="16" rx="2" fill="currentColor" opacity="0.35" />
-                </svg>
-              </span>
-              <h3>Window Snapping</h3>
-            </div>
-            <p>
-              Drag windows to screen edges or hold <kbd>Alt</kbd> while dragging
-              anywhere inside a window to move it effortlessly.
-            </p>
-          </article>
-        </div>
-      </section>
+      <div id="shortcuts"></div>
 
       <section>
-        <h2>Keyboard Shortcuts</h2>
-        <div id="shortcuts" class="shortcuts">
+        <h2>Shell &amp; Navigation</h2>
+        <div class="shortcuts">
           <div class="shortcut-row">
             <span>Open Launcher (search apps, folders, actions, URLs)</span>
             <span class="shortcut-keys">
-              <kbd>Alt</kbd> + <kbd>Space</kbd>
+              <kbd>Alt</kbd> + <kbd>Space</kbd> / <kbd>Cmd</kbd> + <kbd>K</kbd>
             </span>
           </div>
           <div class="shortcut-row">
-            <span>Switch open windows with live previews</span>
+            <span>Open Piloti system menu</span>
             <span class="shortcut-keys">
-              <kbd>Alt</kbd> + <kbd>Tab</kbd>
+              <kbd>Ctrl</kbd> + <kbd>Esc</kbd>
+            </span>
+          </div>
+          <div class="shortcut-row">
+            <span>Navigate open menus &amp; panels</span>
+            <span class="shortcut-keys">
+              <kbd>←</kbd> / <kbd>→</kbd>
             </span>
           </div>
           <div class="shortcut-row">
@@ -404,21 +303,15 @@
             </span>
           </div>
           <div class="shortcut-row">
-            <span>Toggle Control panel &amp; Notifications</span>
+            <span>Switch workspace</span>
+            <span class="shortcut-keys">
+              <kbd>Meta</kbd> + <kbd>←</kbd> / <kbd>→</kbd>
+            </span>
+          </div>
+          <div class="shortcut-row">
+            <span>Toggle Control Panel &amp; Notifications</span>
             <span class="shortcut-keys">
               <kbd>Alt</kbd> + <kbd>N</kbd>
-            </span>
-          </div>
-          <div class="shortcut-row">
-            <span>Take interactive screenshot</span>
-            <span class="shortcut-keys">
-              <kbd>Print</kbd>
-            </span>
-          </div>
-          <div class="shortcut-row">
-            <span>Launch Terminal</span>
-            <span class="shortcut-keys">
-              <kbd>Meta</kbd> + <kbd>Return</kbd>
             </span>
           </div>
           <div class="shortcut-row">
@@ -427,6 +320,18 @@
               <kbd>Alt</kbd> + <kbd>,</kbd>
             </span>
           </div>
+          <div class="shortcut-row">
+            <span>Switch open windows with live previews</span>
+            <span class="shortcut-keys">
+              <kbd>Alt</kbd> + <kbd>Tab</kbd>
+            </span>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <h2>Windows</h2>
+        <div class="shortcuts">
           <div class="shortcut-row">
             <span>Tile focused window left / right half</span>
             <span class="shortcut-keys">
@@ -453,7 +358,54 @@
           </div>
         </div>
       </section>
+
+      <section>
+        <h2>Capture &amp; System</h2>
+        <div class="shortcuts">
+          <div class="shortcut-row">
+            <span>Take screenshot</span>
+            <span class="shortcut-keys">
+              <kbd>Print</kbd>
+            </span>
+          </div>
+          <div class="shortcut-row">
+            <span>Launch Terminal</span>
+            <span class="shortcut-keys">
+              <kbd>Meta</kbd> + <kbd>Return</kbd>
+            </span>
+          </div>
+          <div class="shortcut-row">
+            <span>Lock Screen</span>
+            <span class="shortcut-keys">
+              <kbd>Ctrl</kbd> + <kbd>Cmd</kbd> + <kbd>Q</kbd>
+            </span>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <h2>Launcher &amp; App Sidebars</h2>
+        <div class="shortcuts">
+          <div class="shortcut-row">
+            <span>Accept inline autocomplete in Launcher</span>
+            <span class="shortcut-keys">
+              <kbd>Tab</kbd> / <kbd>→</kbd>
+            </span>
+          </div>
+          <div class="shortcut-row">
+            <span>Browse Launcher search history</span>
+            <span class="shortcut-keys">
+              <kbd>↑</kbd> / <kbd>↓</kbd>
+            </span>
+          </div>
+          <div class="shortcut-row">
+            <span>Navigate sidebar items &amp; move focus to content</span>
+            <span class="shortcut-keys">
+              <kbd>↑</kbd> / <kbd>↓</kbd>, <kbd>Tab</kbd> / <kbd>→</kbd>
+            </span>
+          </div>
+        </div>
+      </section>
     </main>
   </body>
 </html>
-

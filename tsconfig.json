@@ -19,7 +19,7 @@
       "xdg-icon-theme": ["./src/lib/xdg-icon-theme.ts"]
     }
   },
-  "include": ["src", "desktop.tsx", "vite.config.ts", "vite.shell.config.ts"],
+  "include": ["src", "desktop.tsx"],
   "exclude": ["**/*.test.ts"]
 }
 

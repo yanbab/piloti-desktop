@@ -32,63 +32,108 @@ export interface WallpaperOption {
   id: string;
   name: string;
   subtitle: string;
-  category: "Dynamic" | "Landscape" | "Minimal" | "Solid";
+  category: "Dynamic" | "Pictures" | "Minimal" | "Solid";
   backgroundCss: string;
   overlayCss?: string;
+  imageUrl?: string;
+}
+
+export function resolveDynamicWallpaperCss(
+  id: string,
+  accentHex = "#3584e4",
+  hour = new Date().getHours()
+): string | null {
+  if (id === "dynamic-accent") {
+    return `radial-gradient(95% 85% at 18% 18%, color-mix(in srgb, ${accentHex} 72%, white) 0%, transparent 58%), radial-gradient(90% 90% at 84% 78%, color-mix(in srgb, ${accentHex} 65%, black) 0%, transparent 62%), linear-gradient(145deg, color-mix(in srgb, ${accentHex} 28%, #0b0f19) 0%, #090b10 100%)`;
+  }
+  if (id === "dynamic-time") {
+    if (hour >= 6 && hour < 10) {
+      // Morning sunrise
+      return "radial-gradient(110% 85% at 25% 15%, #fda4af 0%, transparent 55%), radial-gradient(95% 85% at 80% 35%, #fdba74 0%, transparent 58%), linear-gradient(165deg, #312e81 0%, #1e1b4b 60%, #0f172a 100%)";
+    }
+    if (hour >= 10 && hour < 17) {
+      // Crisp daylight sky
+      return "radial-gradient(100% 85% at 20% 15%, #38bdf8 0%, transparent 55%), radial-gradient(95% 90% at 85% 75%, #2563eb 0%, transparent 60%), linear-gradient(160deg, #0c4a6e 0%, #0f172a 100%)";
+    }
+    if (hour >= 17 && hour < 21) {
+      // Golden evening dusk
+      return "radial-gradient(110% 80% at 70% 15%, #fb923c 0%, transparent 52%), radial-gradient(95% 85% at 20% 70%, #be185d 0%, transparent 60%), linear-gradient(175deg, #2e1065 0%, #0f172a 75%, #020617 100%)";
+    }
+    // Deep night
+    return "radial-gradient(95% 75% at 72% 18%, #1e3a8a 0%, transparent 55%), radial-gradient(90% 80% at 22% 80%, #312e81 0%, transparent 60%), linear-gradient(180deg, #030712 0%, #090d16 60%, #020617 100%)";
+  }
+  return null;
 }
 
 export const WALLPAPERS: WallpaperOption[] = [
   {
+    id: "dynamic-time",
+    name: "Time of Day",
+    subtitle: "Shifts with Morning, Day, Dusk & Night",
+    category: "Dynamic",
+    backgroundCss: resolveDynamicWallpaperCss("dynamic-time")!,
+  },
+  {
+    id: "dynamic-accent",
+    name: "Accent Mesh",
+    subtitle: "Matches Active System Accent Color",
+    category: "Dynamic",
+    backgroundCss: resolveDynamicWallpaperCss("dynamic-accent")!,
+  },
+  {
     id: "piloti-aurora",
-    name: "Piloti Aurora",
-    subtitle: "Dynamic Liquid Glass Mesh",
+    name: "Piloti Deep Blue",
+    subtitle: "Subtle Cobalt & Slate Depth",
     category: "Dynamic",
     backgroundCss:
-      "radial-gradient(120% 90% at 15% 10%, #1d4ed8 0%, transparent 55%), radial-gradient(100% 90% at 85% 15%, #7c3aed 0%, transparent 55%), radial-gradient(110% 100% at 50% 90%, #0f766e 0%, transparent 60%), linear-gradient(135deg, #090d16 0%, #111827 50%, #0f172a 100%)",
-    overlayCss:
-      "radial-gradient(circle at 65% 35%, rgba(56, 189, 248, 0.18), transparent 45%)",
-  },
-  {
-    id: "horizon-dusk",
-    name: "Horizon Dusk",
-    subtitle: "Warm Dusk over the Ridge",
-    category: "Dynamic",
-    backgroundCss:
-      "radial-gradient(130% 80% at 50% 0%, #fb7185 0%, transparent 50%), radial-gradient(90% 80% at 15% 40%, #f97316 0%, transparent 55%), radial-gradient(110% 90% at 85% 65%, #6366f1 0%, transparent 60%), linear-gradient(180deg, #1e1b4b 0%, #0f172a 65%, #020617 100%)",
-  },
-  {
-    id: "gnome-adwaita",
-    name: "Adwaita Emerald",
-    subtitle: "GNOME Inspired Geometric Flow",
-    category: "Dynamic",
-    backgroundCss:
-      "radial-gradient(100% 100% at 20% 20%, #059669 0%, transparent 55%), radial-gradient(100% 90% at 80% 30%, #0284c7 0%, transparent 55%), radial-gradient(90% 90% at 40% 85%, #1e40af 0%, transparent 60%), linear-gradient(160deg, #042f2e 0%, #0f172a 100%)",
-  },
-  {
-    id: "alpine-midnight",
-    name: "Alpine Midnight",
-    subtitle: "Deep Slate & Indigo Peaks",
-    category: "Landscape",
-    backgroundCss:
-      "radial-gradient(90% 70% at 70% 15%, #38bdf8 0%, transparent 50%), radial-gradient(110% 85% at 25% 70%, #312e81 0%, transparent 60%), linear-gradient(180deg, #0b1120 0%, #111827 55%, #030712 100%)",
-  },
-  {
-    id: "solar-bloom",
-    name: "Solar Bloom",
-    subtitle: "Daylight Amber & Violet",
-    category: "Dynamic",
-    backgroundCss:
-      "radial-gradient(100% 90% at 20% 15%, #f59e0b 0%, transparent 55%), radial-gradient(100% 90% at 85% 25%, #ec4899 0%, transparent 55%), radial-gradient(120% 100% at 50% 90%, #3b82f6 0%, transparent 65%), linear-gradient(135deg, #1e1b4b 0%, #311042 100%)",
+      "radial-gradient(110% 85% at 20% 15%, rgba(53, 132, 228, 0.48) 0%, transparent 60%), radial-gradient(90% 85% at 82% 85%, rgba(28, 74, 126, 0.55) 0%, transparent 62%), linear-gradient(155deg, #0c1322 0%, #0a0f1a 100%)",
   },
   {
     id: "monolith-graphite",
     name: "Studio Graphite",
-    subtitle: "Minimalist Pro Studio Surface",
+    subtitle: "Minimalist Neutral Surface",
     category: "Minimal",
     backgroundCss:
-      "radial-gradient(90% 90% at 50% 10%, rgba(255,255,255,0.09) 0%, transparent 60%), linear-gradient(180deg, #18181b 0%, #09090b 100%)",
+      "radial-gradient(90% 85% at 50% 8%, rgba(255,255,255,0.08) 0%, transparent 60%), linear-gradient(180deg, #18181b 0%, #09090b 100%)",
   },
-  // Solid Color Wallpapers (Classic OS default colors + Black)
+  // Curated Unsplash Pictures
+  {
+    id: "unsplash-alpine-mist",
+    name: "Alpine Mist",
+    subtitle: "Unsplash · Mountain Ridge",
+    category: "Pictures",
+    backgroundCss: "#0f172a",
+    imageUrl:
+      "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=2400&q=80",
+  },
+  {
+    id: "unsplash-nordic-fjord",
+    name: "Nordic Fjord",
+    subtitle: "Unsplash · Calm Blue Water",
+    category: "Pictures",
+    backgroundCss: "#0c192c",
+    imageUrl:
+      "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=2400&q=80",
+  },
+  {
+    id: "unsplash-desert-dunes",
+    name: "Desert Dunes",
+    subtitle: "Unsplash · Warm Minimalism",
+    category: "Pictures",
+    backgroundCss: "#2c1d11",
+    imageUrl:
+      "https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?auto=format&fit=crop&w=2400&q=80",
+  },
+  {
+    id: "unsplash-dark-forest",
+    name: "Evergreen Canopy",
+    subtitle: "Unsplash · Misty Pines",
+    category: "Pictures",
+    backgroundCss: "#0b1914",
+    imageUrl:
+      "https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=2400&q=80",
+  },
+  // Solid Color Wallpapers
   {
     id: "solid-w95-teal",
     name: "Windows 95 Teal",
@@ -116,6 +161,27 @@ export const WALLPAPERS: WallpaperOption[] = [
     subtitle: "Classic Linux Desktop Blue",
     category: "Solid",
     backgroundCss: "#1c4a7e",
+  },
+  {
+    id: "solid-nord-polar",
+    name: "Nord Polar",
+    subtitle: "Cool Arctic Slate",
+    category: "Solid",
+    backgroundCss: "#2e3440",
+  },
+  {
+    id: "solid-deep-forest",
+    name: "Deep Forest",
+    subtitle: "Muted Pine Green",
+    category: "Solid",
+    backgroundCss: "#183329",
+  },
+  {
+    id: "solid-indigo",
+    name: "Classic Indigo",
+    subtitle: "Deep Night Indigo",
+    category: "Solid",
+    backgroundCss: "#1e1b4b",
   },
   {
     id: "solid-black",
@@ -176,7 +242,7 @@ export const APP_CATALOG: AppDefinition[] = [
     id: "settings",
     name: "Settings (Web)",
     shortName: "Settings (Web)",
-    description: "Configure appearance, dock, wallpaper, network, sound, and displays",
+    description: "Configure appearance, fonts, dock, and wallpaper",
     category: "System",
     iconName: "settings",
     xdgIcons: ["piloti-settings"],
@@ -190,13 +256,9 @@ export const APP_CATALOG: AppDefinition[] = [
         title: "View",
         items: [
           { label: "Appearance", shortcut: "⌘1", actionId: "settings:appearance" },
-          { label: "Fonts & Rendering", shortcut: "⌘2", actionId: "settings:fonts" },
+          { label: "Fonts", shortcut: "⌘2", actionId: "settings:fonts" },
           { label: "Dock & Menu Bar", shortcut: "⌘3", actionId: "settings:dock" },
           { label: "Wallpaper", shortcut: "⌘4", actionId: "settings:wallpaper" },
-          { label: "Wi-Fi & Network", shortcut: "⌘5", actionId: "settings:network" },
-          { label: "Sound", shortcut: "⌘6", actionId: "settings:sound" },
-          { label: "Displays", shortcut: "⌘7", actionId: "settings:displays" },
-          { label: "About Piloti", shortcut: "⌘8", actionId: "settings:about" },
         ],
       },
     ],
@@ -238,7 +300,15 @@ export const APP_CATALOG: AppDefinition[] = [
     pinnedByDefault: true,
     builtinComponent: "files",
     defaultSize: { width: 780, height: 500 },
-    menus: [],
+    menus: [
+      {
+        title: "File",
+        items: [
+          { label: "New Folder", actionId: "files:new-folder" },
+          { label: "New Text File", actionId: "files:new-text-file" },
+        ],
+      },
+    ],
   },
   {
     id: "terminal",

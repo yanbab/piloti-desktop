@@ -713,11 +713,51 @@ function saveCachedXdgIconThemeIndex(
   }
 }
 
+/**
+ * Scans `XDG_ICON_BASE_DIRS` for installed icon themes that contain an
+ * `index.theme` file (excluding internal fallbacks `default`, `hicolor`, `locolor`).
+ */
+async function discoverInstalledIconThemes(
+  files: XdgFileReader
+): Promise<string[]> {
+  const discovered = new Set<string>(["Adwaita"]);
+  const SKIP = new Set(["default", "hicolor", "locolor"]);
+
+  await Promise.all(
+    XDG_ICON_BASE_DIRS.map(async (baseDir) => {
+      const res = await files.readDir(baseDir);
+      const entries = res.match({ Ok: (list) => list, Err: () => [] });
+      await Promise.all(
+        entries
+          .filter(
+            (e) =>
+              (e.fileType === 1 || e.fileType === 2) &&
+              !e.name.startsWith(".") &&
+              !SKIP.has(e.name)
+          )
+          .map(async (entry) => {
+            const idxRes = await files.readText(
+              `${baseDir}/${entry.name}/index.theme`
+            );
+            const hasIndex = idxRes.match({
+              Ok: (txt) => txt.trim().length > 0,
+              Err: () => false,
+            });
+            if (hasIndex) discovered.add(entry.name);
+          })
+      );
+    })
+  );
+
+  return Array.from(discovered).sort((a, b) => a.localeCompare(b));
+}
+
 export {
   buildXdgIconThemeIndex,
   deserializeXdgIconThemeIndex,
   directoryMatchesSize,
   directorySizeDistance,
+  discoverInstalledIconThemes,
   loadCachedXdgIconThemeIndex,
   loadXdgIconDataUrl,
   lookupXdgIconPath,

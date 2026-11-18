@@ -37,7 +37,7 @@ export function DockPane() {
                       className={cn(
                         "rounded-md px-2.5 py-1 text-[12px] capitalize",
                         active
-                          ? "bg-adw-sidebar-selection font-medium text-adw-label shadow-2xs"
+                          ? "bg-adw-sidebar-selection font-medium text-adw-label"
                           : "text-adw-label-secondary active:bg-black/10 dark:active:bg-white/12"
                       )}
                     >

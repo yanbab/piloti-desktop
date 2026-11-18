@@ -2,7 +2,7 @@ import * as React from "react";
 import { useDomicile } from "@domicile-desktop/react/domicile-provider";
 import { useCapturing } from "@domicile-desktop/react/portals";
 import { useWatch } from "@domicile-desktop/react/use-watch";
-import type { Capturing } from "@domicile-desktop/sdk/portal";
+import { type Capturing, CapturingKind } from "@domicile-desktop/sdk/portal";
 import { ScreenshotKeptKind, UnlockRefusal, type UnlockRefused } from "@domicile-desktop/sdk/system";
 import { SAMPLE_WIFI_NETWORKS, type WifiNetwork } from "@/data/catalog";
 import {
@@ -820,6 +820,7 @@ export function useSystemBackendsValue(
       if (snap.fontHinting) patch.gtkFontHinting = snap.fontHinting;
       if (snap.fontRgbaOrder) patch.gtkFontRgbaOrder = snap.fontRgbaOrder;
       if (snap.iconTheme) {
+        patch.iconTheme = snap.iconTheme;
         setGnomeIconThemeOverride(snap.iconTheme);
         void syncGtkIconTheme(domicile, snap.iconTheme);
       }
@@ -939,16 +940,71 @@ export function useSystemBackendsValue(
   );
 
   // Screenshots, Screen Recording, and Capturing sessions
-  const capturingSessions = useCapturing() ?? [];
+  const nativeCapturingSessions = useCapturing() ?? [];
+  const [browserCapturingSessions, setBrowserCapturingSessions] =
+    React.useState<Capturing[]>([]);
+  const browserRecordersRef = React.useRef<
+    Map<
+      number,
+      {
+        recorder: MediaRecorder;
+        stream: MediaStream;
+        discarded: boolean;
+      }
+    >
+  >(new Map());
+  const capturingSessions = isBrowserRuntime
+    ? browserCapturingSessions
+    : nativeCapturingSessions;
 
   const takeScreenshot = React.useCallback(async () => {
     console.info("[Piloti] control-panel: screenshot");
     if (isBrowserRuntime) {
-      pushNotification({
-        appName: "Screenshot",
-        summary: "Screenshot Captured (Browser Preview)",
-        body: "Under Domicile Linux, this opens the interactive FrozenDesk area & window picker.",
-      });
+      if (!navigator.mediaDevices?.getDisplayMedia) {
+        pushNotification({
+          appName: "Screenshot",
+          summary: "Screen Capture Unavailable",
+          body: "navigator.mediaDevices.getDisplayMedia is not supported in this browser.",
+        });
+        return;
+      }
+      try {
+        const stream = await navigator.mediaDevices.getDisplayMedia({
+          video: true,
+        });
+        const video = document.createElement("video");
+        video.srcObject = stream;
+        video.muted = true;
+        await new Promise<void>((resolve) => {
+          video.onloadedmetadata = () => resolve();
+        });
+        await video.play();
+        const canvas = document.createElement("canvas");
+        canvas.width = video.videoWidth || 1280;
+        canvas.height = video.videoHeight || 720;
+        const ctx = canvas.getContext("2d");
+        ctx?.drawImage(video, 0, 0, canvas.width, canvas.height);
+        for (const track of stream.getTracks()) track.stop();
+        const dataUrl = canvas.toDataURL("image/png");
+        const filename = `screenshot-${new Date().toISOString().replace(/[:.]/g, "-")}.png`;
+        const link = document.createElement("a");
+        link.href = dataUrl;
+        link.download = filename;
+        link.click();
+        pushNotification({
+          appName: "Screenshot",
+          summary: "Screenshot Captured",
+          body: `Saved ${filename}`,
+        });
+      } catch (err) {
+        if ((err as Error)?.name !== "NotAllowedError" && (err as Error)?.name !== "AbortError") {
+          pushNotification({
+            appName: "Screenshot",
+            summary: "Screenshot Failed",
+            body: String(err),
+          });
+        }
+      }
       return;
     }
     const res = await domicile.capture.screenshot();
@@ -975,11 +1031,81 @@ export function useSystemBackendsValue(
   const startScreenRecording = React.useCallback(async () => {
     console.info("[Piloti] control-panel: screen recording");
     if (isBrowserRuntime) {
-      pushNotification({
-        appName: "Screen Recorder",
-        summary: "Screen Recorder Available on Domicile Linux",
-        body: "Records monitors, windows, or regions to WebM under ~/Videos/Screen recordings.",
-      });
+      if (!navigator.mediaDevices?.getDisplayMedia) {
+        pushNotification({
+          appName: "Screen Recorder",
+          summary: "Screen Recording Unavailable",
+          body: "navigator.mediaDevices.getDisplayMedia is not supported in this browser.",
+        });
+        return;
+      }
+      try {
+        let stream: MediaStream;
+        try {
+          stream = await navigator.mediaDevices.getDisplayMedia({
+            video: true,
+            audio: true,
+          });
+        } catch {
+          stream = await navigator.mediaDevices.getDisplayMedia({
+            video: true,
+          });
+        }
+        const id = Date.now();
+        const chunks: BlobPart[] = [];
+        const mimeType = MediaRecorder.isTypeSupported("video/webm;codecs=vp9")
+          ? "video/webm;codecs=vp9"
+          : "video/webm";
+        const recorder = new MediaRecorder(stream, { mimeType });
+        const entry = { recorder, stream, discarded: false };
+        browserRecordersRef.current.set(id, entry);
+
+        recorder.ondataavailable = (e) => {
+          if (e.data.size > 0) chunks.push(e.data);
+        };
+        recorder.onstop = () => {
+          for (const track of stream.getTracks()) track.stop();
+          browserRecordersRef.current.delete(id);
+          setBrowserCapturingSessions((prev) => prev.filter((c) => c.id !== id));
+          if (!entry.discarded && chunks.length > 0) {
+            const blob = new Blob(chunks, { type: "video/webm" });
+            const url = URL.createObjectURL(blob);
+            const filename = `recording-${new Date().toISOString().replace(/[:.]/g, "-")}.webm`;
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = filename;
+            link.click();
+            setTimeout(() => URL.revokeObjectURL(url), 10000);
+            pushNotification({
+              appName: "Screen Recorder",
+              summary: "Screen Recording Saved",
+              body: `Saved ${filename}`,
+            });
+          }
+        };
+        for (const track of stream.getVideoTracks()) {
+          track.onended = () => {
+            if (recorder.state !== "inactive") recorder.stop();
+          };
+        }
+        recorder.start(250);
+        setBrowserCapturingSessions((prev) => [
+          ...prev,
+          {
+            id,
+            kind: CapturingKind.Recording,
+            runningSinceMs: Date.now(),
+          } as Capturing,
+        ]);
+      } catch (err) {
+        if ((err as Error)?.name !== "NotAllowedError" && (err as Error)?.name !== "AbortError") {
+          pushNotification({
+            appName: "Screen Recorder",
+            summary: "Screen Recording Failed",
+            body: String(err),
+          });
+        }
+      }
       return;
     }
     const res = await domicile.capture.screenRecord();
@@ -1031,10 +1157,55 @@ export function useSystemBackendsValue(
       capturingSessions,
       takeScreenshot,
       startScreenRecording,
-      stopCapturing: (id) => domicile.portals.stopCapturing(id),
-      pauseRecording: (id) => domicile.portals.pauseRecording(id),
-      resumeRecording: (id) => domicile.portals.resumeRecording(id),
-      discardRecording: (id) => domicile.portals.discardRecording(id),
+      stopCapturing: (id) => {
+        if (isBrowserRuntime) {
+          const rec = browserRecordersRef.current.get(id);
+          if (rec && rec.recorder.state !== "inactive") rec.recorder.stop();
+          return;
+        }
+        domicile.portals.stopCapturing(id);
+      },
+      pauseRecording: (id) => {
+        if (isBrowserRuntime) {
+          const rec = browserRecordersRef.current.get(id);
+          if (rec && rec.recorder.state === "recording") {
+            rec.recorder.pause();
+            setBrowserCapturingSessions((prev) =>
+              prev.map((c) =>
+                c.id === id ? { ...c, runningSinceMs: undefined } : c
+              )
+            );
+          }
+          return;
+        }
+        domicile.portals.pauseRecording(id);
+      },
+      resumeRecording: (id) => {
+        if (isBrowserRuntime) {
+          const rec = browserRecordersRef.current.get(id);
+          if (rec && rec.recorder.state === "paused") {
+            rec.recorder.resume();
+            setBrowserCapturingSessions((prev) =>
+              prev.map((c) =>
+                c.id === id ? { ...c, runningSinceMs: Date.now() } : c
+              )
+            );
+          }
+          return;
+        }
+        domicile.portals.resumeRecording(id);
+      },
+      discardRecording: (id) => {
+        if (isBrowserRuntime) {
+          const rec = browserRecordersRef.current.get(id);
+          if (rec) {
+            rec.discarded = true;
+            if (rec.recorder.state !== "inactive") rec.recorder.stop();
+          }
+          return;
+        }
+        domicile.portals.discardRecording(id);
+      },
     }),
     [
       audioSinks,

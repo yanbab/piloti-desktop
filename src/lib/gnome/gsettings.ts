@@ -328,6 +328,7 @@ export async function syncGnomeInterfaceKey(
   patch: {
     themeMode?: "dark" | "light" | "system";
     accentColor?: AccentColorId;
+    iconTheme?: string;
     clock24Hour?: boolean;
     clockShowSeconds?: boolean;
     gtkFontName?: string;
@@ -350,6 +351,9 @@ export async function syncGnomeInterfaceKey(
   if (patch.accentColor !== undefined) {
     const gnomeAccent = PILOTI_ACCENT_TO_GNOME[patch.accentColor];
     if (gnomeAccent) pairs.push(["accent-color", gnomeAccent]);
+  }
+  if (patch.iconTheme !== undefined && patch.iconTheme.trim()) {
+    pairs.push(["icon-theme", patch.iconTheme.trim()]);
   }
   if (patch.clock24Hour !== undefined) {
     pairs.push(["clock-format", patch.clock24Hour ? "24h" : "12h"]);

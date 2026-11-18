@@ -14,9 +14,10 @@ Built-in web apps (**Settings (Web)**, **Files (Web)**, **Terminal (Web)**, **Te
 ```text
 ├── desktop.tsx                    # Domicile entry point
 ├── index.html                     # Browser dev entry point
-├── vite.config.ts                 # Browser build -> docs/demo/
-├── vite.shell.config.ts           # Standalone Domicile bundle -> dist/shell.js
 └── src/
+    ├── config/
+    │   ├── vite.config.ts         # Browser build -> docs/demo/
+    │   └── vite.shell.config.ts   # Standalone Domicile bundle -> dist/shell.js
     ├── main.tsx                   # Browser runtime bootstrap
     ├── context/
     │   ├── SettingsContext.tsx    # Persisted settings, themes, wallpapers, bounds

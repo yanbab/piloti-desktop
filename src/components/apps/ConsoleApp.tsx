@@ -85,33 +85,43 @@ function ReplModule({
             setItems([]);
             return "Cleared";
           },
-          help: () => ({
-            bindings: [
-              "domicile",
-              "windows",
-              "focusedWindow",
-              "displays",
-              "browserWindows",
-              "settings",
-              "updateSettings(patch)",
-              "apps",
-              "notifications",
-              "gnomeCapabilities",
-              "launchApp(id)",
-              "focusWindow(id)",
-              "closeWindow(id)",
-              "openWebUrl(url)",
-              "run(shellCmd)",
-              "clear()",
-              "$_ (last result)",
-            ],
-            examples: [
-              'await run("uname -a")',
-              'await domicile.files.readDir("/usr/share/applications")',
-              'updateSettings({ themeMode: "dark" })',
-              'openWebUrl("https://gnome.org")',
-            ],
-          }),
+          help: () =>
+            [
+              "Piloti DevTools REPL — usage: <command> [args]",
+              "",
+              "Globals:",
+              "  domicile              Domicile host bridge (files, windows, processes)",
+              "  windows               All open shell & Wayland windows",
+              "  focusedWindow         Currently focused window",
+              "  waylandPopups         Active Wayland popup surfaces",
+              "  displays              Connected display descriptors",
+              "  browserWindows        Active webview windows",
+              "  settings              Current DesktopSettings object",
+              "  apps                  Discovered XDG .desktop applications",
+              "  notifications         Notification history items",
+              "  gnomeCapabilities     Available GNOME/systemd backends",
+              "  availableGnomePanels  Supported GNOME Settings panels",
+              "  $_                    Result of the previous evaluation",
+              "",
+              "Commands:",
+              "  launchApp(id, opts?)          Launch an app by ID",
+              "  focusWindow(id)               Focus a window",
+              "  closeWindow(id)               Close a window",
+              "  openWebUrl(url, opts?)        Open a URL in browser/web-app mode",
+              "  openGnomeSettings(panel?)     Open GNOME Settings panel",
+              "  updateSettings(patch)         Patch DesktopSettings",
+              "  pushNotification(input)       Send a desktop notification",
+              "  run(shellCmd)                 Run a shell command (returns Promise)",
+              "  bsod(message?)                Trigger crash screen test",
+              "  clear()                       Clear REPL output",
+              "  help()                        Show this help message",
+              "",
+              "Examples:",
+              '  await run("uname -a")',
+              '  await domicile.files.readDir("/usr/share/applications")',
+              '  updateSettings({ themeMode: "dark" })',
+              '  openWebUrl("https://gnome.org")',
+            ].join("\n"),
         };
 
         const result = await evaluateReplCode(code, evalScope);
@@ -123,7 +133,10 @@ function ReplModule({
             id: nextReplId++,
             code,
             ok: true,
-            output: formatInspectValue(result),
+            output:
+              typeof result === "string" && result.includes("\n")
+                ? result
+                : formatInspectValue(result),
             durationMs,
           },
         ]);
@@ -190,6 +203,9 @@ function ReplModule({
         onClick={() => inputRef.current?.focus()}
         className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-3 font-mono text-[12px]"
       >
+        <div className="text-adw-label-tertiary select-none">
+          Type &quot;help()&quot; for help.
+        </div>
         {items.map((item) => (
           <div
             key={item.id}
@@ -233,7 +249,6 @@ function ReplModule({
           ref={inputRef}
           autoFocus
           rows={1}
-          placeholder="help()"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={onKeyDown}
@@ -1108,7 +1123,7 @@ export function ConsoleApp({
       label: "Logs",
       badge: errorCount > 0 ? errorCount : undefined,
     },
-    { id: "inspector", label: "State" },
+    { id: "inspector", label: "Infos" },
     { id: "storage", label: "Storage" },
   ];
 

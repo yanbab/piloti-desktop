@@ -1,6 +1,9 @@
 import * as React from "react";
+import { useDomicile } from "@domicile-desktop/react/domicile-provider";
 import {
   CheckCircle2Icon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
   GlobeIcon,
   Maximize2Icon,
   MinusIcon,
@@ -23,8 +26,20 @@ import {
 import {
   useApps,
   useSettings,
-  useWindowManager,
+  useSystemBackends,
+  useWindowActions,
 } from "@/context/DesktopStateContext";
+import {
+  ensureFlathubRemote,
+  type FlatpakAppEntry,
+  type FlatpakCapabilities,
+  getPopularFlathubApps,
+  installFlatpakApp,
+  listInstalledFlatpaks,
+  probeFlatpakCapabilities,
+  searchFlatpaks,
+  uninstallFlatpakApp,
+} from "@/lib/gnome/flatpak";
 import { APP_CATALOG, type AppDefinition } from "@/data/catalog";
 import {
   canonicalizeWebUrl,
@@ -54,7 +69,7 @@ type StoreCategory =
 
 interface StoreItem {
   id: string;
-  kind: "app" | "web";
+  kind: "app" | "web" | "flatpak";
   title: string;
   subtitle: string;
   category: Exclude<StoreCategory, "all" | "installed">;
@@ -62,6 +77,7 @@ interface StoreItem {
   removable: boolean;
   appDef?: AppDefinition;
   webApp?: InstalledWebApp;
+  flatpak?: FlatpakAppEntry;
   faviconUrl?: string;
 }
 
@@ -160,6 +176,21 @@ const SIDEBAR_ITEMS: Array<{
   },
 ];
 
+function classifyFlatpakCategory(
+  mainCategories?: string[],
+): Exclude<StoreCategory, "all" | "installed"> {
+  const cats = (mainCategories ?? []).map((c) => c.toLowerCase());
+  if (cats.includes("game")) return "Games";
+  if (cats.includes("graphics")) return "Graphics";
+  if (cats.includes("development")) return "Development";
+  if (cats.includes("office")) return "Productivity";
+  if (cats.includes("audiovideo")) return "Audio & Media";
+  if (cats.includes("science") || cats.includes("education")) {
+    return "Science & Math";
+  }
+  return "Utilities";
+}
+
 const CATEGORY_ITEMS: Array<{
   id: Exclude<StoreCategory, "all" | "installed">;
   label: string;
@@ -179,6 +210,10 @@ const WebAppFavicon: React.FC<{
   className?: string;
 }> = ({ url, title, className = "size-11" }) => {
   const [failed, setFailed] = React.useState(false);
+
+  React.useEffect(() => {
+    setFailed(false);
+  }, [url]);
 
   if (!url || failed) {
     return (
@@ -210,15 +245,29 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
   isCsd = false,
   windowId,
 }) => {
-  const { getAppIconUrl } = useApps();
-  const { settings, updateSettings } = useSettings();
+  const domicile = useDomicile();
+  const { getAppIconUrl, refreshXdgApps } = useApps();
+  const { isBrowserRuntime, settings, updateSettings } = useSettings();
+  const { pushNotification } = useSystemBackends();
   const {
     launchApp,
     openWebUrl,
     minimizeWindow,
     toggleMaximizeWindow,
     closeWindow,
-  } = useWindowManager();
+  } = useWindowActions();
+
+  const [flatpakCaps, setFlatpakCaps] = React.useState<FlatpakCapabilities>({
+    available: false,
+    hasFlathub: false,
+  });
+  const [installedFlatpaks, setInstalledFlatpaks] = React.useState<
+    FlatpakAppEntry[]
+  >([]);
+  const [flathubEntries, setFlathubEntries] = React.useState<FlatpakAppEntry[]>(
+    () => getPopularFlathubApps(),
+  );
+  const [featuredSlide, setFeaturedSlide] = React.useState(0);
 
   const [category, setCategory] = React.useState<StoreCategory>("all");
   const [query, setQuery] = React.useState("");
@@ -337,6 +386,95 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
     };
   }, []);
 
+  const installedFlatpakIds = React.useMemo(
+    () => new Set(installedFlatpaks.map((f) => f.appId)),
+    [installedFlatpaks],
+  );
+
+  const refreshFlatpakList = React.useCallback(async () => {
+    if (isBrowserRuntime) return;
+    const [caps, list] = await Promise.all([
+      probeFlatpakCapabilities(domicile),
+      listInstalledFlatpaks(domicile),
+    ]);
+    setFlatpakCaps(caps);
+    setInstalledFlatpaks(list);
+  }, [domicile, isBrowserRuntime]);
+
+  React.useEffect(() => {
+    void refreshFlatpakList();
+  }, [refreshFlatpakList]);
+
+  React.useEffect(() => {
+    const q = query.trim();
+    if (!q) {
+      setFlathubEntries(getPopularFlathubApps(installedFlatpakIds));
+      return;
+    }
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => {
+      void searchFlatpaks(
+        domicile,
+        q,
+        installedFlatpakIds,
+        controller.signal,
+      ).then((entries) => {
+        if (!controller.signal.aborted) {
+          setFlathubEntries(entries);
+        }
+      });
+    }, 250);
+    return () => {
+      window.clearTimeout(timer);
+      controller.abort();
+    };
+  }, [domicile, installedFlatpakIds, query]);
+
+  const flatpakItems = React.useMemo<StoreItem[]>(() => {
+    const popularById = new Map(
+      getPopularFlathubApps().map((entry) => [entry.appId, entry]),
+    );
+    const byId = new Map<string, FlatpakAppEntry>();
+    for (const entry of installedFlatpaks) {
+      const popular = popularById.get(entry.appId);
+      byId.set(entry.appId, {
+        ...popular,
+        ...entry,
+        description: entry.description || popular?.description,
+        iconUrl: entry.iconUrl || popular?.iconUrl,
+        mainCategories: entry.mainCategories ?? popular?.mainCategories,
+        installed: true,
+      });
+    }
+    for (const entry of flathubEntries) {
+      const existing = byId.get(entry.appId);
+      byId.set(
+        entry.appId,
+        existing
+          ? {
+              ...entry,
+              ...existing,
+              description: existing.description || entry.description,
+              iconUrl: existing.iconUrl || entry.iconUrl,
+              mainCategories: existing.mainCategories ?? entry.mainCategories,
+              installed: true,
+            }
+          : { ...entry, installed: installedFlatpakIds.has(entry.appId) },
+      );
+    }
+    return Array.from(byId.values()).map((fp) => ({
+      id: `flatpak:${fp.appId}`,
+      kind: "flatpak",
+      title: fp.name,
+      subtitle: fp.description || fp.appId,
+      category: classifyFlatpakCategory(fp.mainCategories),
+      installed: fp.installed,
+      removable: fp.installed,
+      flatpak: fp,
+      faviconUrl: fp.iconUrl || getAppIconUrl(fp.appId),
+    }));
+  }, [flathubEntries, getAppIconUrl, installedFlatpakIds, installedFlatpaks]);
+
   const items = React.useMemo<StoreItem[]>(() => {
     void descriptionTick;
     const fakeInstalledSet = new Set(meta.fakeInstalledAppIds);
@@ -381,8 +519,8 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
       };
     });
 
-    return [...appItems, ...webItems];
-  }, [installedWebUrls, meta, descriptionTick]);
+    return [...appItems, ...webItems, ...flatpakItems];
+  }, [installedWebUrls, meta, descriptionTick, flatpakItems]);
 
   const filteredItems = React.useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -404,6 +542,25 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
       );
     });
   }, [items, category, query]);
+
+  const webAndAppItems = React.useMemo(
+    () => filteredItems.filter((item) => item.kind !== "flatpak"),
+    [filteredItems],
+  );
+
+  const flatpakStoreItems = React.useMemo(
+    () => filteredItems.filter((item) => item.kind === "flatpak"),
+    [filteredItems],
+  );
+
+  const featuredItems = React.useMemo(() => {
+    const withIcons = flatpakItems.filter((item) => item.faviconUrl);
+    return (withIcons.length > 0 ? withIcons : flatpakItems).slice(0, 6);
+  }, [flatpakItems]);
+
+  const activeSlideIndex =
+    featuredItems.length > 0 ? featuredSlide % featuredItems.length : 0;
+  const activeFeaturedItem = featuredItems[activeSlideIndex] ?? null;
 
   const selectedItem = React.useMemo(
     () => items.find((item) => item.id === selectedId) ?? null,
@@ -499,23 +656,114 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
 
   const handleInstall = React.useCallback(
     (item: StoreItem) => {
+      if (item.kind === "flatpak" && item.flatpak) {
+        const fp = item.flatpak;
+        if (isBrowserRuntime) {
+          pushNotification({
+            appName: "App Store",
+            summary: `Flatpak: ${fp.name}`,
+            body: `Run on Domicile Linux: flatpak install --user flathub ${fp.appId}`,
+          });
+          return;
+        }
+        if (pendingOp) return;
+        setPendingOp({ id: item.id, kind: "installing", progress: 8 });
+        void (async () => {
+          if (!flatpakCaps.hasFlathub) {
+            await ensureFlathubRemote(domicile);
+          }
+          const res = await installFlatpakApp(
+            domicile,
+            fp.appId,
+            fp.origin || "flathub",
+            (pct) => setPendingOp({ id: item.id, kind: "installing", progress: pct }),
+          );
+          setPendingOp(null);
+          if (res.ok) {
+            await refreshFlatpakList();
+            await refreshXdgApps();
+            pushNotification({
+              appName: "App Store",
+              summary: `Installed ${fp.name}`,
+              body: fp.appId,
+            });
+          } else {
+            pushNotification({
+              appName: "App Store",
+              summary: `Failed to install ${fp.name}`,
+              body: res.error || "Flatpak install failed",
+              urgency: "critical",
+            });
+          }
+        })();
+        return;
+      }
       runFakeProgress(item.id, "installing", () => commitInstall(item));
     },
-    [commitInstall, runFakeProgress],
+    [
+      commitInstall,
+      domicile,
+      flatpakCaps.hasFlathub,
+      isBrowserRuntime,
+      pendingOp,
+      pushNotification,
+      refreshFlatpakList,
+      refreshXdgApps,
+      runFakeProgress,
+    ],
   );
 
   const handleUninstall = React.useCallback(
     (item: StoreItem) => {
       if (!item.removable) return;
+      if (item.kind === "flatpak" && item.flatpak) {
+        if (isBrowserRuntime || pendingOp) return;
+        const fp = item.flatpak;
+        setPendingOp({ id: item.id, kind: "removing", progress: 25 });
+        void (async () => {
+          const res = await uninstallFlatpakApp(domicile, fp.appId);
+          setPendingOp(null);
+          if (res.ok) {
+            await refreshFlatpakList();
+            await refreshXdgApps();
+            pushNotification({
+              appName: "App Store",
+              summary: `Uninstalled ${fp.name}`,
+              body: fp.appId,
+            });
+          } else {
+            pushNotification({
+              appName: "App Store",
+              summary: `Failed to uninstall ${fp.name}`,
+              body: res.error || "Flatpak uninstall failed",
+              urgency: "critical",
+            });
+          }
+        })();
+        return;
+      }
       runFakeProgress(item.id, "removing", () => commitUninstall(item));
     },
-    [commitUninstall, runFakeProgress],
+    [
+      commitUninstall,
+      domicile,
+      isBrowserRuntime,
+      pendingOp,
+      pushNotification,
+      refreshFlatpakList,
+      refreshXdgApps,
+      runFakeProgress,
+    ],
   );
 
   const handleOpen = React.useCallback(
     (item: StoreItem) => {
       if (item.kind === "web" && item.webApp) {
         openWebUrl(item.webApp.url, { title: item.webApp.title });
+        return;
+      }
+      if (item.kind === "flatpak" && item.flatpak) {
+        launchApp(item.flatpak.appId);
         return;
       }
       if (item.kind === "app" && item.appDef) {
@@ -623,21 +871,6 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
               </button>
             );
           })}
-
-          <div className="my-1.5 h-px bg-adw-separator" />
-          <form onSubmit={handleAddCustomWebApp} className="space-y-1.5 px-1 pt-1">
-            <div className="px-1.5 text-[11px] font-semibold tracking-wider text-adw-label-tertiary uppercase">
-              Add Web App
-            </div>
-            <input
-              type="text"
-              value={customWebUrl}
-              onChange={(e) => setCustomWebUrl(e.target.value)}
-              placeholder="https://example.com"
-              aria-label="Custom Web App URL"
-              className="h-7 w-full rounded-md border border-adw-separator bg-black/5 px-2 text-[12px] text-adw-label placeholder:text-adw-label-secondary focus:border-adw-accent focus:outline-none dark:bg-white/8"
-            />
-          </form>
         </aside>
 
         {/* Right Main Column (Scrollable Grid + Scoped Bottom Action Bar) */}
@@ -648,108 +881,223 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
             className="flex-1 overflow-y-auto p-4"
             onClick={() => setSelectedId(null)}
           >
+            {category === "all" && !query.trim() && activeFeaturedItem && (
+              <section
+                aria-label="Featured applications"
+                onClick={(e) => e.stopPropagation()}
+                className="relative mb-5 overflow-hidden rounded-2xl border border-adw-separator bg-gradient-to-br from-adw-accent/15 via-black/[0.03] to-transparent p-4 dark:from-adw-accent/20 dark:via-white/[0.04]"
+              >
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    aria-label="Previous featured app"
+                    onClick={() =>
+                      setFeaturedSlide(
+                        (prev) =>
+                          (prev - 1 + featuredItems.length) %
+                          featuredItems.length,
+                      )
+                    }
+                    className="flex size-8 shrink-0 items-center justify-center rounded-full bg-black/5 text-adw-label-secondary transition-colors hover:bg-black/10 hover:text-adw-label dark:bg-white/8 dark:hover:bg-white/15"
+                  >
+                    <ChevronLeftIcon className="size-4" />
+                  </button>
+
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setSelectedId(activeFeaturedItem.id)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        setSelectedId(activeFeaturedItem.id);
+                      }
+                    }}
+                    className="flex min-w-0 flex-1 cursor-default items-center gap-4 outline-none"
+                  >
+                    <WebAppFavicon
+                      url={activeFeaturedItem.faviconUrl}
+                      title={activeFeaturedItem.title}
+                      className="size-16"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-base font-bold text-adw-label">
+                        {activeFeaturedItem.title}
+                      </div>
+                      <p className="mt-0.5 line-clamp-2 text-[12.5px] text-adw-label-secondary">
+                        {activeFeaturedItem.subtitle}
+                      </p>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant={
+                        activeFeaturedItem.installed ? "secondary" : "default"
+                      }
+                      disabled={pendingOp?.id === activeFeaturedItem.id}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (activeFeaturedItem.installed) {
+                          handleOpen(activeFeaturedItem);
+                        } else {
+                          handleInstall(activeFeaturedItem);
+                        }
+                      }}
+                      className="shrink-0"
+                    >
+                      {activeFeaturedItem.installed ? "Open" : "Install"}
+                    </Button>
+                  </div>
+
+                  <button
+                    type="button"
+                    aria-label="Next featured app"
+                    onClick={() =>
+                      setFeaturedSlide(
+                        (prev) => (prev + 1) % featuredItems.length,
+                      )
+                    }
+                    className="flex size-8 shrink-0 items-center justify-center rounded-full bg-black/5 text-adw-label-secondary transition-colors hover:bg-black/10 hover:text-adw-label dark:bg-white/8 dark:hover:bg-white/15"
+                  >
+                    <ChevronRightIcon className="size-4" />
+                  </button>
+                </div>
+
+                {featuredItems.length > 1 && (
+                  <div className="mt-3 flex items-center justify-center gap-1.5">
+                    {featuredItems.map((feat, idx) => (
+                      <button
+                        key={feat.id}
+                        type="button"
+                        aria-label={`Show ${feat.title}`}
+                        onClick={() => setFeaturedSlide(idx)}
+                        className={cn(
+                          "h-1.5 rounded-full transition-all",
+                          idx === activeSlideIndex
+                            ? "w-4 bg-adw-accent"
+                            : "w-1.5 bg-black/20 hover:bg-black/35 dark:bg-white/25 dark:hover:bg-white/45",
+                        )}
+                      />
+                    ))}
+                  </div>
+                )}
+              </section>
+            )}
+
             {filteredItems.length === 0 ? (
               <div className="flex h-full flex-col items-center justify-center gap-2 text-center text-adw-label-secondary">
                 <PackageIcon className="size-10 opacity-40" />
                 <p className="text-sm font-medium">No applications found</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
-                {filteredItems.map((item) => {
-                  const isSelected = selectedId === item.id;
-                  return (
-                    <ContextMenu key={item.id}>
-                      <ContextMenuTrigger>
-                        <div
-                          role="button"
-                          tabIndex={0}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedId(item.id);
-                          }}
-                          onDoubleClick={(e) => {
-                            e.stopPropagation();
-                            if (item.installed) {
-                              handleOpen(item);
-                            } else {
-                              handleInstall(item);
-                            }
-                          }}
-                          onContextMenu={() => setSelectedId(item.id)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                              setSelectedId(item.id);
-                            }
-                          }}
-                          className={cn(
-                            "relative flex cursor-default items-center gap-3 overflow-hidden rounded-xl p-3 transition-colors outline-none",
-                            isSelected
-                              ? "bg-adw-accent/15 ring-1 ring-adw-accent/60"
-                              : "bg-black/[0.03] hover:bg-black/[0.06] dark:bg-white/[0.04] dark:hover:bg-white/[0.07]",
-                          )}
-                        >
-                          {item.kind === "app" && item.appDef ? (
-                            <AppSquircleIcon
-                              iconUrl={getAppIconUrl(item.appDef.id)}
-                              iconName={item.appDef.iconName}
-                              gradient={item.appDef.gradient}
-                              className="size-11"
-                            />
-                          ) : (
-                            <WebAppFavicon
-                              url={item.faviconUrl}
-                              title={item.title}
-                            />
-                          )}
+              <div className="space-y-5">
+                {[
+                  { id: "web", title: "Web Apps", list: webAndAppItems },
+                  { id: "flatpak", title: "Flatpaks", list: flatpakStoreItems },
+                ]
+                  .filter((group) => group.list.length > 0)
+                  .map((group) => (
+                    <section key={group.id} className="space-y-2.5">
+                      <h2 className="px-0.5 text-[12px] font-semibold tracking-wider text-adw-label-tertiary uppercase">
+                        {group.title}
+                      </h2>
+                      <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
+                        {group.list.map((item) => {
+                          const isSelected = selectedId === item.id;
+                          return (
+                            <ContextMenu key={item.id}>
+                              <ContextMenuTrigger>
+                                <div
+                                  role="button"
+                                  tabIndex={0}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedId(item.id);
+                                  }}
+                                  onDoubleClick={(e) => {
+                                    e.stopPropagation();
+                                    if (item.installed) {
+                                      handleOpen(item);
+                                    } else {
+                                      handleInstall(item);
+                                    }
+                                  }}
+                                  onContextMenu={() => setSelectedId(item.id)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter") {
+                                      setSelectedId(item.id);
+                                    }
+                                  }}
+                                  className={cn(
+                                    "relative flex cursor-default items-center gap-3 overflow-hidden rounded-xl p-3 transition-colors outline-none",
+                                    isSelected
+                                      ? "bg-adw-accent/15 ring-1 ring-adw-accent/60"
+                                      : "bg-black/[0.03] hover:bg-black/[0.06] dark:bg-white/[0.04] dark:hover:bg-white/[0.07]",
+                                  )}
+                                >
+                                  {item.kind === "app" && item.appDef ? (
+                                    <AppSquircleIcon
+                                      iconUrl={getAppIconUrl(item.appDef.id)}
+                                      iconName={item.appDef.iconName}
+                                      gradient={item.appDef.gradient}
+                                      className="size-11"
+                                    />
+                                  ) : (
+                                    <WebAppFavicon
+                                      url={item.faviconUrl}
+                                      title={item.title}
+                                    />
+                                  )}
 
-                          <div className="min-w-0 flex-1">
-                            <div className="truncate text-[13px] font-semibold">
-                              {item.title}
-                            </div>
-                            <p className="truncate text-[11.5px] text-adw-label-secondary">
-                              {item.subtitle}
-                            </p>
-                          </div>
+                                  <div className="min-w-0 flex-1">
+                                    <div className="truncate text-[13px] font-semibold">
+                                      {item.title}
+                                    </div>
+                                    <p className="truncate text-[11.5px] text-adw-label-secondary">
+                                      {item.subtitle}
+                                    </p>
+                                  </div>
 
-                          {pendingOp?.id === item.id && (
-                            <div className="absolute inset-x-0 bottom-0 h-1 bg-black/10 dark:bg-white/10">
-                              <div
-                                style={{ width: `${pendingOp.progress}%` }}
-                                className={cn(
-                                  "h-full transition-[width] duration-75",
-                                  pendingOp.kind === "removing"
-                                    ? "bg-adw-red"
-                                    : "bg-adw-accent",
+                                  {pendingOp?.id === item.id && (
+                                    <div className="absolute inset-x-0 bottom-0 h-1 bg-black/10 dark:bg-white/10">
+                                      <div
+                                        style={{ width: `${pendingOp.progress}%` }}
+                                        className={cn(
+                                          "h-full transition-[width] duration-75",
+                                          pendingOp.kind === "removing"
+                                            ? "bg-adw-red"
+                                            : "bg-adw-accent",
+                                        )}
+                                      />
+                                    </div>
+                                  )}
+                                </div>
+                              </ContextMenuTrigger>
+                              <ContextMenuContent className="w-40">
+                                {!item.installed ? (
+                                  <ContextMenuItem onClick={() => handleInstall(item)}>
+                                    Install
+                                  </ContextMenuItem>
+                                ) : (
+                                  <>
+                                    <ContextMenuItem onClick={() => handleOpen(item)}>
+                                      Open
+                                    </ContextMenuItem>
+                                    {item.removable && (
+                                      <ContextMenuItem
+                                        variant="destructive"
+                                        onClick={() => handleUninstall(item)}
+                                      >
+                                        Uninstall
+                                      </ContextMenuItem>
+                                    )}
+                                  </>
                                 )}
-                              />
-                            </div>
-                          )}
-                        </div>
-                      </ContextMenuTrigger>
-                      <ContextMenuContent className="w-40">
-                        {!item.installed ? (
-                          <ContextMenuItem onClick={() => handleInstall(item)}>
-                            Install
-                          </ContextMenuItem>
-                        ) : (
-                          <>
-                            <ContextMenuItem onClick={() => handleOpen(item)}>
-                              Open
-                            </ContextMenuItem>
-                            {item.removable && (
-                              <ContextMenuItem
-                                variant="destructive"
-                                onClick={() => handleUninstall(item)}
-                              >
-                                Uninstall
-                              </ContextMenuItem>
-                            )}
-                          </>
-                        )}
-                      </ContextMenuContent>
-                    </ContextMenu>
-                  );
-                })}
+                              </ContextMenuContent>
+                            </ContextMenu>
+                          );
+                        })}
+                      </div>
+                    </section>
+                  ))}
               </div>
             )}
           </main>

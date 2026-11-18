@@ -8,6 +8,7 @@ import {
   type AccentColorId,
   WALLPAPERS,
   type WallpaperOption,
+  resolveDynamicWallpaperCss,
 } from "@/data/catalog";
 import {
   DEFAULT_LAUNCHER_WEB_APPS,
@@ -32,6 +33,7 @@ import {
   syncGnomeBackgroundSettings,
   syncGnomeInterfaceKey,
   syncGnomeNotificationSettings,
+  syncGtkIconTheme,
   DEFAULT_HIDDEN_GNOME_PANELS,
   type GtkFontAntialiasing,
   type GtkFontHinting,
@@ -49,6 +51,7 @@ export type CssTextRendering =
 export type CssFontOpticalSizing = "auto" | "none";
 export type CssFontKerning = "auto" | "normal" | "none";
 export type CssFontSynthesis = "auto" | "none";
+export type CssFontStyle = "regular" | "light" | "medium" | "semibold" | "italic";
 
 export interface SavedWindowBounds {
   position: { x: number; y: number };
@@ -72,12 +75,14 @@ export interface DesktopSettings {
   clockShowSeconds: boolean;
   windowDecorationMode: WindowDecorationMode;
   windowButtonLayout: string;
+  iconTheme: string;
   syncGnomeSettings: boolean;
   preferGnomeControlCenter: boolean;
   hiddenGnomePanels: string[];
   fontSansFamily: string;
   fontMonoFamily: string;
   fontScale: number;
+  fontSansStyle: CssFontStyle;
   cssFontSmoothing: CssFontSmoothing;
   cssTextRendering: CssTextRendering;
   cssFontOpticalSizing: CssFontOpticalSizing;
@@ -112,6 +117,7 @@ export interface DesktopSettings {
   workspaceCount: number;
   restoreWindowsOnLogin: boolean;
   desktopIconsEnabled: boolean;
+  fileActivationMode: "single" | "double";
   desktopIconPositions: Record<string, { col: number; row: number }>;
   pinnedAppIds: string[];
   installedWebApps: InstalledWebApp[];
@@ -135,12 +141,14 @@ const DEFAULT_SETTINGS: DesktopSettings = {
   clockShowSeconds: false,
   windowDecorationMode: "auto",
   windowButtonLayout: ":close",
+  iconTheme: "Adwaita",
   syncGnomeSettings: true,
   preferGnomeControlCenter: false,
   hiddenGnomePanels: [...DEFAULT_HIDDEN_GNOME_PANELS],
   fontSansFamily: "Cantarell",
   fontMonoFamily: "Adwaita Mono",
   fontScale: 1,
+  fontSansStyle: "regular",
   cssFontSmoothing: "antialiased",
   cssTextRendering: "auto",
   cssFontOpticalSizing: "auto",
@@ -175,6 +183,7 @@ const DEFAULT_SETTINGS: DesktopSettings = {
   workspaceCount: 2,
   restoreWindowsOnLogin: true,
   desktopIconsEnabled: true,
+  fileActivationMode: "single",
   desktopIconPositions: {},
   pinnedAppIds: APP_CATALOG.filter((a) => a.pinnedByDefault).map((a) => a.id),
   installedWebApps: [],
@@ -496,6 +505,7 @@ export function useSettingsValue(options?: {
             next.syncGnomeSettings &&
             (patch.themeMode !== undefined ||
               patch.accentColor !== undefined ||
+              patch.iconTheme !== undefined ||
               patch.clock24Hour !== undefined ||
               patch.clockShowSeconds !== undefined ||
               patch.gtkFontName !== undefined ||
@@ -509,6 +519,7 @@ export function useSettingsValue(options?: {
             void syncGnomeInterfaceKey(domicile, {
               ...(patch.themeMode !== undefined ? { themeMode: next.themeMode } : {}),
               ...(patch.accentColor !== undefined ? { accentColor: next.accentColor } : {}),
+              ...(patch.iconTheme !== undefined ? { iconTheme: next.iconTheme } : {}),
               ...(patch.clock24Hour !== undefined ? { clock24Hour: next.clock24Hour } : {}),
               ...(patch.clockShowSeconds !== undefined
                 ? { clockShowSeconds: next.clockShowSeconds }
@@ -533,6 +544,9 @@ export function useSettingsValue(options?: {
                 ? { gtkFontRgbaOrder: next.gtkFontRgbaOrder }
                 : {}),
             });
+            if (patch.iconTheme !== undefined) {
+              void syncGtkIconTheme(domicile, next.iconTheme);
+            }
           }
 
           if (next.syncGnomeSettings && patch.gnomeBackground) {
@@ -706,6 +720,16 @@ export function useSettingsValue(options?: {
       "--piloti-text-stroke-width",
       `${settings.cssTextStrokePx}px`
     );
+    const fontStyleMap: Record<CssFontStyle, { weight: string; style: string }> = {
+      light: { weight: "300", style: "normal" },
+      regular: { weight: "400", style: "normal" },
+      medium: { weight: "500", style: "normal" },
+      semibold: { weight: "600", style: "normal" },
+      italic: { weight: "400", style: "italic" },
+    };
+    const styleSpec = fontStyleMap[settings.fontSansStyle] ?? fontStyleMap.regular;
+    root.style.setProperty("--piloti-font-weight", styleSpec.weight);
+    root.style.setProperty("--piloti-font-style", styleSpec.style);
 
     const scale = Math.max(0.8, Math.min(1.5, settings.fontScale || 1));
     if (Math.abs(scale - 1) < 0.001) {
@@ -742,6 +766,7 @@ export function useSettingsValue(options?: {
     settings.cssTextStrokePx,
     settings.fontMonoFamily,
     settings.fontSansFamily,
+    settings.fontSansStyle,
     settings.fontScale,
   ]);
 
@@ -853,18 +878,29 @@ export function useSettingsValue(options?: {
       : ""
     : activePictureUri;
 
+  const resolvedActiveWallpaper = React.useMemo(() => {
+    const accentHex =
+      ACCENT_COLORS.find((c) => c.id === settings.accentColor)?.hex ?? "#3584e4";
+    const dynamicCss = resolveDynamicWallpaperCss(activeWallpaper.id, accentHex);
+    return dynamicCss
+      ? { ...activeWallpaper, backgroundCss: dynamicCss }
+      : activeWallpaper;
+  }, [activeWallpaper, settings.accentColor]);
+
   const backgroundSpec = React.useMemo(
     () =>
       resolveBackgroundRenderSpec({
         wallpaperId: settings.wallpaperId,
-        customWallpaperUrl: settings.customWallpaperUrl,
+        customWallpaperUrl:
+          settings.customWallpaperUrl || resolvedActiveWallpaper?.imageUrl || "",
         gnomeBackground: settings.gnomeBackground,
-        activeWallpaper,
+        activeWallpaper: resolvedActiveWallpaper,
         resolvedTheme,
-        resolvedPictureSrc,
+        resolvedPictureSrc:
+          resolvedPictureSrc || resolvedActiveWallpaper?.imageUrl || "",
       }),
     [
-      activeWallpaper,
+      resolvedActiveWallpaper,
       resolvedPictureSrc,
       resolvedTheme,
       settings.customWallpaperUrl,
