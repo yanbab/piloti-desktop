@@ -4,9 +4,16 @@ import {
   DockIcon as LucideDockIcon,
   ImageIcon,
   PaletteIcon,
+  SlidersHorizontalIcon,
   TypeIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { WindowControls, WindowTitlebar } from "@/components/ui/window";
 import { useSidebarKeyboardNav } from "@/hooks/use-sidebar-keyboard-nav";
 import { WindowMenuButton } from "@/components/shell/WindowMenuButton";
@@ -20,12 +27,14 @@ import { cn } from "@/lib/utils";
 import { AppearancePane } from "./settings/AppearancePane";
 import { DockPane } from "./settings/DockPane";
 import { FontsPane } from "./settings/FontsPane";
+import { TopBarPane } from "./settings/TopBarPane";
 import { WallpaperPane } from "./settings/WallpaperPane";
 
 type SettingsPaneId =
   | "appearance"
   | "fonts"
   | "dock"
+  | "topbar"
   | "wallpaper";
 
 const PANES: {
@@ -48,9 +57,15 @@ const PANES: {
   },
   {
     id: "dock",
-    label: "Dock & Menu Bar",
-    subtitle: "Size, magnification, clock",
+    label: "Dock",
+    subtitle: "Size, position, magnification, widgets",
     icon: <LucideDockIcon />,
+  },
+  {
+    id: "topbar",
+    label: "Control Panel",
+    subtitle: "Clock, date, seconds, battery",
+    icon: <SlidersHorizontalIcon />,
   },
   {
     id: "wallpaper",
@@ -135,8 +150,8 @@ export function SettingsApp({
     }
   }, [initialPane, isCompact]);
 
-  const showSidebar = !isCompact || !compactShowDetail;
-  const showDetail = !isCompact || compactShowDetail;
+  const showSidebar = true;
+  const showDetail = true;
 
   const matchingGnomePanel = PANE_TO_GNOME[activePane];
   const currentPaneMeta = PANES.find((p) => p.id === activePane);
@@ -160,12 +175,12 @@ export function SettingsApp({
       ref={containerRef}
       className="flex h-full w-full overflow-hidden bg-adw-window text-adw-label"
     >
-      {/* Left Sidebar (collapses to full-width navigation view when < 640px) */}
+      {/* Left Sidebar (collapses to VS Code-style icon activity bar when < 640px) */}
       {showSidebar && (
         <aside
           className={cn(
-            "flex shrink-0 flex-col bg-adw-sidebar",
-            isCompact ? "w-full" : "w-[230px] border-r border-adw-separator"
+            "flex min-h-0 shrink-0 flex-col overflow-hidden border-r border-adw-separator bg-adw-sidebar transition-[width] duration-150",
+            isCompact ? "w-[52px]" : "w-[176px]"
           )}
         >
         {isCsd && (
@@ -181,48 +196,81 @@ export function SettingsApp({
                 iconName="settings"
               />
             </div>
-            <span className="text-[14px] font-bold tracking-tight text-adw-label">
-              Settings (Web)
-            </span>
+            {!isCompact && (
+              <span className="truncate whitespace-nowrap text-[14px] font-bold tracking-tight text-adw-label">
+                Desktop Settings
+              </span>
+            )}
             <div className="w-7" />
           </WindowTitlebar>
         )}
 
-        <nav
-          ref={sidebarNavRef}
-          onKeyDown={onSidebarKeyDown}
-          onKeyUp={onSidebarKeyUp}
-          className={cn(
-            "flex flex-1 flex-col gap-0.5 overflow-y-auto px-2.5 pb-2",
-            isCsd ? "pt-0.5" : "pt-2.5"
-          )}
-        >
-          {PANES.map((pane) => {
-            const selected = highlightedPane === pane.id;
-            return (
-              <button
-                key={pane.id}
-                type="button"
-                data-sidebar-item={pane.id}
-                onClick={() => {
-                  setActivePane(pane.id);
-                  if (isCompact) setCompactShowDetail(true);
-                }}
-                className={cn(
-                  "flex items-center gap-3 rounded-[9px] px-3 py-2 text-left text-[14px] font-normal transition-colors outline-none",
-                  selected
-                    ? "bg-adw-sidebar-selection font-medium text-adw-label"
-                    : "text-adw-label/85 hover:bg-black/5 dark:hover:bg-white/6"
-                )}
-              >
-                <span className="flex size-4 shrink-0 items-center justify-center opacity-85 [&_svg]:size-4">
-                  {pane.icon}
-                </span>
-                <span className="truncate">{pane.label}</span>
-              </button>
-            );
-          })}
-        </nav>
+        <TooltipProvider delay={450}>
+          <nav
+            ref={sidebarNavRef}
+            onKeyDown={onSidebarKeyDown}
+            onKeyUp={onSidebarKeyUp}
+            className={cn(
+              "flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto px-2 pb-2",
+              isCsd ? "pt-0.5" : "pt-2.5"
+            )}
+          >
+            {PANES.map((pane) => {
+              const selected = highlightedPane === pane.id;
+              const btn = (
+                <button
+                  key={pane.id}
+                  type="button"
+                  aria-label={pane.label}
+                  data-sidebar-item={pane.id}
+                  onClick={() => {
+                    setActivePane(pane.id);
+                  }}
+                  className={cn(
+                    "flex w-full shrink-0 items-center gap-3 rounded-[9px] px-2.5 py-2 text-left text-[14px] font-normal transition-colors outline-none",
+                    selected
+                      ? "bg-adw-sidebar-selection font-medium text-adw-label"
+                      : "text-adw-label/85 hover:bg-black/5 dark:hover:bg-white/6"
+                  )}
+                >
+                  <span className="flex size-4 shrink-0 items-center justify-center opacity-85 [&_svg]:size-4">
+                    {pane.icon}
+                  </span>
+                  <span
+                    className={cn(
+                      "truncate transition-opacity duration-150",
+                      isCompact ? "opacity-0" : "opacity-100"
+                    )}
+                  >
+                    {pane.label}
+                  </span>
+                </button>
+              );
+
+              if (!isCompact) return btn;
+              return (
+                <Tooltip key={pane.id}>
+                  <TooltipTrigger render={btn} />
+                  <TooltipContent
+                    side="right"
+                    sideOffset={-36}
+                    className={cn(
+                      "pointer-events-none h-[37px] gap-3 rounded-[9px] border border-adw-separator px-2.5 py-2 text-[14px] shadow-md",
+                      selected
+                        ? "bg-adw-sidebar-selection font-medium text-adw-label"
+                        : "bg-adw-sidebar font-normal text-adw-label"
+                    )}
+                  >
+                    <span className="flex size-4 shrink-0 items-center justify-center opacity-85 [&_svg]:size-4">
+                      {pane.icon}
+                    </span>
+                    <span className="whitespace-nowrap">{pane.label}</span>
+                  </TooltipContent>
+                </Tooltip>
+              );
+            })}
+          </nav>
+        </TooltipProvider>
         </aside>
       )}
 
@@ -234,18 +282,7 @@ export function SettingsApp({
             data-window-drag-region
             className="rounded-tl-none border-b border-adw-separator bg-adw-titlebar"
           >
-            <div className="flex items-center gap-1.5" data-window-no-drag>
-              {isCompact && (
-                <button
-                  type="button"
-                  aria-label="Back to settings sidebar"
-                  onClick={() => setCompactShowDetail(false)}
-                  className="flex size-6 items-center justify-center rounded-md text-adw-label-secondary transition-colors hover:bg-black/8 hover:text-adw-label dark:hover:bg-white/10"
-                >
-                  <ArrowLeftIcon className="size-4" />
-                </button>
-              )}
-            </div>
+            <div className="flex items-center gap-1.5" data-window-no-drag />
             <div className="pointer-events-none absolute inset-x-28 flex items-center justify-center">
               <h2 className="truncate text-[13px] font-semibold text-adw-label">
                 {currentPaneMeta?.label}
@@ -270,16 +307,6 @@ export function SettingsApp({
         ) : (
           <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-adw-separator bg-adw-window px-6 py-3">
             <div className="flex min-w-0 items-center gap-2.5">
-              {isCompact && (
-                <button
-                  type="button"
-                  aria-label="Back to settings sidebar"
-                  onClick={() => setCompactShowDetail(false)}
-                  className="flex size-7 shrink-0 items-center justify-center rounded-full bg-black/8 text-adw-label transition-colors hover:bg-black/14 dark:bg-white/10 dark:hover:bg-white/16"
-                >
-                  <ArrowLeftIcon className="size-4" />
-                </button>
-              )}
               <div className="min-w-0">
                 <h2 className="truncate text-[15px] font-bold tracking-tight">
                   {currentPaneMeta?.label}
@@ -312,6 +339,7 @@ export function SettingsApp({
           {activePane === "appearance" && <AppearancePane />}
           {activePane === "fonts" && <FontsPane />}
           {activePane === "dock" && <DockPane />}
+          {activePane === "topbar" && <TopBarPane />}
           {activePane === "wallpaper" && <WallpaperPane />}
         </div>
       </div>

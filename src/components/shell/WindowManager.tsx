@@ -21,7 +21,16 @@ import {
   Trash2Icon,
   XIcon,
 } from "lucide-react";
-import { WindowMenuButton } from "@/components/shell/WindowMenuButton";
+import { IsolatedAppFrame } from "@/components/shell/IsolatedAppFrame";
+import {
+  useWindowVisualModifiers,
+  WindowMenuButton,
+} from "@/components/shell/WindowMenuButton";
+const CalculatorApp = React.lazy(() =>
+  import("@/components/apps/CalculatorApp").then((m) => ({
+    default: m.CalculatorApp,
+  }))
+);
 const ConsoleApp = React.lazy(() =>
   import("@/components/apps/ConsoleApp").then((m) => ({
     default: m.ConsoleApp,
@@ -36,6 +45,11 @@ const FilesApp = React.lazy(() =>
 const TextEditorApp = React.lazy(() =>
   import("@/components/apps/TextEditorApp").then((m) => ({
     default: m.TextEditorApp,
+  }))
+);
+const ImageViewerApp = React.lazy(() =>
+  import("@/components/apps/ImageViewerApp").then((m) => ({
+    default: m.ImageViewerApp,
   }))
 );
 const TerminalApp = React.lazy(() =>
@@ -658,9 +672,38 @@ const WindowBody = React.memo(
     }
     if (win.builtinComponent === "text-editor") {
       return (
-        <React.Suspense fallback={null}>
-          <TextEditorApp initialPath={win.payload} windowId={win.id} />
-        </React.Suspense>
+        <IsolatedAppFrame
+          appId="text-editor"
+          windowId={win.id}
+          title={win.title}
+          isCsd={false}
+          initialPath={win.payload}
+          fallbackElement={
+            <React.Suspense fallback={null}>
+              <TextEditorApp initialPath={win.payload} windowId={win.id} />
+            </React.Suspense>
+          }
+        />
+      );
+    }
+    if (win.builtinComponent === "image-viewer") {
+      return (
+        <IsolatedAppFrame
+          appId="image-viewer"
+          windowId={win.id}
+          title={win.title}
+          isCsd={isCsd}
+          initialPath={win.payload}
+          fallbackElement={
+            <React.Suspense fallback={null}>
+              <ImageViewerApp
+                initialPath={win.payload}
+                windowId={win.id}
+                isCsd={isCsd}
+              />
+            </React.Suspense>
+          }
+        />
       );
     }
     if (win.builtinComponent === "terminal") {
@@ -675,6 +718,21 @@ const WindowBody = React.memo(
         <React.Suspense fallback={null}>
           <AppStoreApp isCsd={isCsd} windowId={win.id} />
         </React.Suspense>
+      );
+    }
+    if (win.builtinComponent === "calculator") {
+      return (
+        <IsolatedAppFrame
+          appId="calculator"
+          windowId={win.id}
+          title={win.title}
+          isCsd={isCsd}
+          fallbackElement={
+            <React.Suspense fallback={null}>
+              <CalculatorApp windowId={win.id} isCsd={isCsd} />
+            </React.Suspense>
+          }
+        />
       );
     }
 
@@ -881,6 +939,7 @@ export function WindowManager() {
     workspaceWindows.length,
   ]);
 
+  const windowVisualModifiers = useWindowVisualModifiers();
   const dockPosition = settings.dockPosition ?? "bottom";
   const dockEdgeClearance = settings.dockAutoHide ? 8 : settings.dockSize + 24;
   const bottomDockClearance = dockPosition === "bottom" ? dockEdgeClearance : 8;
@@ -891,7 +950,11 @@ export function WindowManager() {
     <div
       className="relative isolate z-10 min-h-0 flex-1 overflow-clip"
       onPointerDown={(e) => {
-        if (!(e.target as HTMLElement).closest('[data-slot="window"]')) {
+        if (
+          !(e.target as HTMLElement).closest(
+            '[data-slot="window"], [data-slot="select-content"], [data-slot="dropdown-menu-content"], [data-slot="context-menu-content"]',
+          )
+        ) {
           clearFocusedWindow();
         }
       }}
@@ -901,7 +964,14 @@ export function WindowManager() {
       }}
     >
       {/* Transparent Desktop Icons App (below windows, above wallpaper) */}
-      {!overviewOpen && <DesktopIconsApp bottomInset={bottomDockClearance} />}
+      <div
+        className={cn(
+          "transition-opacity duration-200",
+          overviewOpen && "pointer-events-none opacity-0",
+        )}
+      >
+        <DesktopIconsApp bottomInset={bottomDockClearance} />
+      </div>
 
       {/* Edge Snapping Drop Zone Preview */}
       {snapPreview && (
@@ -925,6 +995,7 @@ export function WindowManager() {
           settings.windowDecorationMode === "csd" ||
           (settings.windowDecorationMode === "auto" && Boolean(win.clientFrame));
         const isWaylandSurface = Boolean(win.waylandAppId) && !isBrowserRuntime;
+        const visualMod = windowVisualModifiers.get(win.id);
 
         return (
           <Window
@@ -953,7 +1024,7 @@ export function WindowManager() {
             minSize={win.minSize}
             maxSize={win.maxSize}
             draggable
-            resizable
+            resizable={win.appId !== "calculator"}
             bounds="parent"
             inactive={!isFocused}
             minimized={win.minimized}
@@ -983,11 +1054,12 @@ export function WindowManager() {
               position: "absolute",
               top: 0,
               left: 0,
-              zIndex: win.zIndex,
+              zIndex: visualMod?.alwaysOnTop ? win.zIndex + 500 : win.zIndex,
             }}
             className={cn(
               "contain-[layout_style] outline-none",
               isWaylandSurface && "bg-transparent",
+              visualMod?.effect === "translucent" && "opacity-85",
               overviewOpen && "pointer-events-none opacity-0"
             )}
           >
@@ -1021,7 +1093,14 @@ export function WindowManager() {
                 />
               )}
 
-              <WindowContent className="flex flex-col overflow-hidden">
+              <WindowContent
+                className={cn(
+                  "flex flex-col overflow-hidden",
+                  visualMod?.effect === "invert" &&
+                    "[filter:invert(1)_hue-rotate(180deg)]",
+                  visualMod?.effect === "grayscale" && "grayscale",
+                )}
+              >
                 <WindowBody win={win} isCsd={isCsd} />
               </WindowContent>
             </WindowMain>

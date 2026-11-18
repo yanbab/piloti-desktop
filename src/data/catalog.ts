@@ -198,7 +198,9 @@ export type BuiltinAppId =
   | "files"
   | "text-editor"
   | "terminal"
-  | "app-store";
+  | "app-store"
+  | "calculator"
+  | "image-viewer";
 
 export interface AppMenuSection {
   title: string;
@@ -240,8 +242,8 @@ export interface AppDefinition {
 export const APP_CATALOG: AppDefinition[] = [
   {
     id: "settings",
-    name: "Settings (Web)",
-    shortName: "Settings (Web)",
+    name: "Desktop Settings",
+    shortName: "Desktop Settings",
     description: "Configure appearance, fonts, dock, and wallpaper",
     category: "System",
     iconName: "settings",
@@ -250,7 +252,7 @@ export const APP_CATALOG: AppDefinition[] = [
     pinnedByDefault: false,
     builtinComponent: "settings",
     defaultSize: { width: 820, height: 550 },
-    minSize: { width: 620, height: 400 },
+    minSize: { width: 320, height: 400 },
     menus: [
       {
         title: "View",
@@ -275,7 +277,7 @@ export const APP_CATALOG: AppDefinition[] = [
     pinnedByDefault: true,
     builtinComponent: "console",
     defaultSize: { width: 840, height: 540 },
-    minSize: { width: 560, height: 360 },
+    minSize: { width: 320, height: 360 },
     menus: [
       {
         title: "View",
@@ -350,7 +352,37 @@ export const APP_CATALOG: AppDefinition[] = [
     pinnedByDefault: true,
     builtinComponent: "app-store",
     defaultSize: { width: 880, height: 580 },
-    minSize: { width: 640, height: 420 },
+    minSize: { width: 320, height: 400 },
+    menus: [],
+  },
+  {
+    id: "calculator",
+    name: "Calculator",
+    shortName: "Calculator",
+    description: "macOS-style Basic & Scientific Calculator (Isolated App)",
+    category: "Utilities",
+    iconName: "activity",
+    xdgIcons: ["piloti-calculator", "org.gnome.Calculator", "accessories-calculator"],
+    gradient: "from-zinc-700 via-zinc-800 to-orange-500",
+    pinnedByDefault: false,
+    builtinComponent: "calculator",
+    defaultSize: { width: 260, height: 380 },
+    minSize: { width: 232, height: 340 },
+    menus: [],
+  },
+  {
+    id: "image-viewer",
+    name: "Image Viewer",
+    shortName: "Image Viewer",
+    description: "Fast image viewer and crop/rotate editor (Isolated App)",
+    category: "Utilities",
+    iconName: "sparkles",
+    xdgIcons: ["org.gnome.Loupe", "eog", "image-viewer"],
+    gradient: "from-sky-500 via-indigo-500 to-purple-600",
+    pinnedByDefault: false,
+    builtinComponent: "image-viewer",
+    defaultSize: { width: 640, height: 480 },
+    minSize: { width: 320, height: 300 },
     menus: [],
   },
   {

@@ -196,8 +196,57 @@ function DesktopSurface() {
 
       {/* Notification Toast Banners */}
       <NotificationToasts />
+      <ShellFocusAndContextGuard />
     </div>
   );
+}
+
+function ShellFocusAndContextGuard() {
+  const { launcherOpen, controlPanelOpen } = useWindowManager();
+  const previousFocusRef = React.useRef<HTMLElement | null>(null);
+  const wasPopoverOpenRef = React.useRef(false);
+
+  React.useEffect(() => {
+    const isPopoverOpen = launcherOpen || controlPanelOpen;
+    if (isPopoverOpen && !wasPopoverOpenRef.current) {
+      const active = document.activeElement;
+      if (active instanceof HTMLElement && active !== document.body) {
+        previousFocusRef.current = active;
+      }
+    } else if (!isPopoverOpen && wasPopoverOpenRef.current) {
+      const prev = previousFocusRef.current;
+      previousFocusRef.current = null;
+      if (prev && prev.isConnected) {
+        requestAnimationFrame(() => {
+          if (prev.isConnected) {
+            prev.focus({ preventScroll: true });
+          }
+        });
+      }
+    }
+    wasPopoverOpenRef.current = isPopoverOpen;
+  }, [launcherOpen, controlPanelOpen]);
+
+  React.useEffect(() => {
+    const onContextMenu = (e: MouseEvent) => {
+      if (e.defaultPrevented) return;
+      const target = e.target as HTMLElement | null;
+      if (!target) return;
+      const tagName = target.tagName;
+      if (
+        tagName === "INPUT" ||
+        tagName === "TEXTAREA" ||
+        target.isContentEditable
+      ) {
+        return;
+      }
+      e.preventDefault();
+    };
+    window.addEventListener("contextmenu", onContextMenu);
+    return () => window.removeEventListener("contextmenu", onContextMenu);
+  }, []);
+
+  return null;
 }
 
 export function Desktop() {

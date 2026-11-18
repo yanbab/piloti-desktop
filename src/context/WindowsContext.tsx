@@ -980,9 +980,9 @@ function pruneBrowserRecord(
       }];
     });
 
-    return [...resolvedShellWindows, ...resolvedBrowserWindows, ...toplevels].sort(
-      (a, b) => a.zIndex - b.zIndex
-    );
+    // Keep stable insertion order in DOM so zIndex CSS handles stacking without
+    // moving <iframe> nodes via insertBefore (which reloads iframes on focus).
+    return [...resolvedShellWindows, ...resolvedBrowserWindows, ...toplevels];
   }, [
     shellWindows,
     browserWindows,

@@ -23,6 +23,13 @@
   "Notifications": "Notifications",
   "No notifications": "Aucune notification",
   "Clear All": "Tout effacer",
-  "Settings": "Paramètres"
+  "Settings": "Paramètres",
+  "View": "Affichage",
+  "Full Screen": "Plein écran",
+  "Exit Full Screen": "Quitter le plein écran",
+  "Window": "Fenêtre",
+  "Effects": "Effets",
+  "Always on Top": "Toujours au premier plan",
+  "Reload Shell": "Recharger le shell"
 }
 

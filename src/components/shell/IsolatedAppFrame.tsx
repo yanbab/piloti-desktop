@@ -1,0 +1,229 @@
+import * as React from "react";
+import { createRoot, type Root } from "react-dom/client";
+import {
+  useSettings,
+  useSystemBackends,
+  useWindowActions,
+} from "@/context/DesktopStateContext";
+import {
+  type AppToShellMessage,
+  applyThemeToDocument,
+  type IsolatedFsEntry,
+  type ShellToAppMessage,
+} from "@/lib/app-bridge";
+import { getVfsEntry, listVfsDir, writeVfsTextFile } from "@/lib/web-vfs";
+
+export interface IsolatedAppFrameProps {
+  appId: string;
+  windowId: string;
+  title: string;
+  isCsd?: boolean;
+  initialPath?: string;
+  initialHash?: string;
+  fallbackElement?: React.ReactNode;
+}
+
+export const IsolatedAppFrame: React.FC<IsolatedAppFrameProps> = ({
+  appId,
+  windowId,
+  title,
+  isCsd = true,
+  initialPath,
+  initialHash,
+  fallbackElement,
+}) => {
+  const { settings } = useSettings();
+  const { pushNotification } = useSystemBackends();
+  const {
+    focusWindow,
+    closeWindow,
+    minimizeWindow,
+    toggleMaximizeWindow,
+    updateWindowGeometry,
+  } = useWindowActions();
+
+  const iframeRef = React.useRef<HTMLIFrameElement | null>(null);
+  const portalRootRef = React.useRef<Root | null>(null);
+  const fallbackElementRef = React.useRef<React.ReactNode>(fallbackElement);
+  fallbackElementRef.current = fallbackElement;
+
+  const isHttpRuntime =
+    typeof window !== "undefined" &&
+    (window.location.protocol === "http:" ||
+      window.location.protocol === "https:");
+
+  const iframeSrc = React.useMemo(() => {
+    if (!isHttpRuntime) return undefined;
+    const url = new URL(window.location.href);
+    url.searchParams.set("piloti_app", appId);
+    url.searchParams.set("windowId", windowId);
+    url.searchParams.set("csd", isCsd ? "1" : "0");
+    if (initialPath) {
+      url.searchParams.set("path", initialPath);
+    }
+    const hash = initialHash ? `#${initialHash.replace(/^#/, "")}` : "";
+    return `${url.pathname}${url.search}${hash}`;
+  }, [appId, initialHash, initialPath, isCsd, isHttpRuntime, windowId]);
+
+  const sendThemeSync = React.useCallback(() => {
+    const win = iframeRef.current?.contentWindow;
+    if (!win) return;
+    const msg: ShellToAppMessage = {
+      type: "piloti:theme-sync",
+      themeMode: settings.themeMode,
+      accentColor: settings.accentColor,
+      fontSansFamily: settings.fontSansFamily,
+      fontMonoFamily: settings.fontMonoFamily,
+      fontScale: settings.fontScale,
+      isCsd,
+      windowId,
+    };
+    win.postMessage(msg, "*");
+  }, [
+    isCsd,
+    settings.accentColor,
+    settings.fontMonoFamily,
+    settings.fontSansFamily,
+    settings.fontScale,
+    settings.themeMode,
+    windowId,
+  ]);
+
+  React.useEffect(() => {
+    sendThemeSync();
+  }, [sendThemeSync]);
+
+  React.useEffect(() => {
+    const onMessage = (e: MessageEvent) => {
+      if (e.source !== iframeRef.current?.contentWindow) return;
+      const data = e.data as AppToShellMessage | undefined;
+      if (!data || typeof data !== "object" || !("type" in data)) return;
+      if (data.windowId && data.windowId !== windowId) return;
+
+      if (data.type === "piloti:ready") {
+        sendThemeSync();
+      } else if (data.type === "piloti:focus-window") {
+        focusWindow(windowId);
+      } else if (data.type === "piloti:window-control") {
+        if (data.action === "close") closeWindow(windowId);
+        else if (data.action === "minimize") minimizeWindow(windowId);
+        else if (data.action === "maximize") toggleMaximizeWindow(windowId);
+      } else if (data.type === "piloti:resize-window") {
+        updateWindowGeometry(windowId, {
+          size: { width: data.width, height: data.height },
+        });
+      } else if (data.type === "piloti:notify") {
+        pushNotification({
+          appName: title,
+          summary: data.summary,
+          body: data.body ?? "",
+        });
+      } else if (data.type === "piloti:fs-read") {
+        const win = iframeRef.current?.contentWindow;
+        if (!win) return;
+        const entry = getVfsEntry(data.path);
+        const resp: ShellToAppMessage = {
+          type: "piloti:fs-response",
+          requestId: data.requestId,
+          ok: true,
+          data: entry?.kind === "file" ? (entry.content ?? "") : null,
+        };
+        win.postMessage(resp, "*");
+      } else if (data.type === "piloti:fs-write") {
+        const win = iframeRef.current?.contentWindow;
+        if (!win) return;
+        writeVfsTextFile(data.path, data.content);
+        const resp: ShellToAppMessage = {
+          type: "piloti:fs-response",
+          requestId: data.requestId,
+          ok: true,
+          data: true,
+        };
+        win.postMessage(resp, "*");
+      } else if (data.type === "piloti:fs-list") {
+        const win = iframeRef.current?.contentWindow;
+        if (!win) return;
+        const entries: IsolatedFsEntry[] = listVfsDir(data.path).map((item) => ({
+          name: item.name,
+          path: item.path,
+          kind: item.kind,
+        }));
+        const resp: ShellToAppMessage = {
+          type: "piloti:fs-response",
+          requestId: data.requestId,
+          ok: true,
+          data: entries,
+        };
+        win.postMessage(resp, "*");
+      }
+    };
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, [
+    closeWindow,
+    focusWindow,
+    minimizeWindow,
+    pushNotification,
+    sendThemeSync,
+    title,
+    toggleMaximizeWindow,
+    windowId,
+  ]);
+
+  // Fallback isolated DOM mount when running under file:// (Domicile standalone bundle)
+  React.useEffect(() => {
+    if (isHttpRuntime || !fallbackElementRef.current) return;
+    const iframe = iframeRef.current;
+    const doc = iframe?.contentDocument;
+    if (!iframe || !doc) return;
+
+    doc.open();
+    doc.write(
+      '<!doctype html><html><head><meta charset="utf-8" /></head><body class="m-0 h-full w-full overflow-hidden bg-adw-window"><div id="isolated-root" class="h-full w-full"></div></body></html>',
+    );
+    doc.close();
+
+    for (const node of Array.from(
+      document.head.querySelectorAll('style, link[rel="stylesheet"]'),
+    )) {
+      doc.head.appendChild(node.cloneNode(true));
+    }
+    applyThemeToDocument(doc, settings);
+
+    const mountNode = doc.getElementById("isolated-root");
+    if (mountNode) {
+      const root = createRoot(mountNode);
+      portalRootRef.current = root;
+      root.render(fallbackElementRef.current);
+    }
+
+    return () => {
+      portalRootRef.current?.unmount();
+      portalRootRef.current = null;
+    };
+  }, [appId, isHttpRuntime, windowId]);
+
+  React.useEffect(() => {
+    if (isHttpRuntime || !portalRootRef.current || !fallbackElement) return;
+    portalRootRef.current.render(fallbackElement);
+  }, [fallbackElement, isHttpRuntime]);
+
+  return (
+    <div className="relative h-full w-full overflow-hidden bg-adw-window">
+      {isCsd && (
+        <div
+          data-window-drag-region=""
+          className="absolute top-0 right-24 left-10 z-10 h-9"
+        />
+      )}
+      <iframe
+        ref={iframeRef}
+        src={iframeSrc}
+        title={title}
+        onLoad={sendThemeSync}
+        className="h-full w-full border-0 bg-adw-window"
+      />
+    </div>
+  );
+};
+

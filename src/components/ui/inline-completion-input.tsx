@@ -127,7 +127,7 @@ export const InlineCompletionInput = React.forwardRef<
       >
         <span className="text-transparent">{value}</span>
         {suffix && (
-          <span className="text-adw-label-tertiary dark:text-white/45">
+          <span className="rounded-[3px] bg-adw-accent/28 text-adw-label dark:bg-adw-accent/40 dark:text-white">
             <span>{suffix}</span>
             {completionHint && (
               <span className="ml-1 text-[0.78em] opacity-80">

@@ -422,6 +422,22 @@
   background-color: var(--adw-material-popover);
 }
 
+:root[data-more-transparency="true"] {
+  --adw-material-menu: rgb(255 255 255 / 0.72);
+  --adw-material-popover: rgb(255 255 255 / 0.72);
+}
+
+:root.dark[data-more-transparency="true"] {
+  --adw-material-menu: rgb(42 42 46 / 0.72);
+  --adw-material-popover: rgb(42 42 46 / 0.72);
+}
+
+:root[data-more-transparency="true"] .adw-material-menu,
+:root[data-more-transparency="true"] .adw-material-popover {
+  -webkit-backdrop-filter: blur(22px) saturate(180%);
+  backdrop-filter: blur(22px) saturate(180%);
+}
+
 @utility adw-material-hud {
   background-color: var(--adw-material-hud);
 }

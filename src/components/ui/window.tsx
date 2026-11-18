@@ -284,6 +284,14 @@ function Window({
   const currentSize = size ?? uncontrolledSize
   const [resizing, setResizing] = React.useState<ResizeEdge | null>(null)
 
+  React.useEffect(() => {
+    if (!dragging && !resizing) return
+    document.documentElement.setAttribute("data-piloti-window-dragging", "")
+    return () => {
+      document.documentElement.removeAttribute("data-piloti-window-dragging")
+    }
+  }, [dragging, resizing])
+
   function move(next: WindowPosition) {
     if (position === undefined) setUncontrolledPosition(next)
     onPositionChange?.(next)
@@ -964,7 +972,7 @@ function WindowTitlebar({
         context?.onZoom?.()
       }}
       className={cn(
-        "relative flex h-[46px] min-h-[46px] shrink-0 items-center justify-between gap-2 rounded-t-[inherit] border-b border-adw-separator px-3 select-none adw-material-titlebar",
+        "relative flex h-[46px] min-h-[46px] shrink-0 items-center justify-between gap-2 rounded-t-[inherit] border-b border-adw-separator px-3 select-none adw-material-titlebar in-data-[inactive]:[&>*]:opacity-65",
         className
       )}
       {...props}
@@ -979,7 +987,7 @@ function WindowTitle({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="window-title"
       className={cn(
-        "pointer-events-none absolute inset-x-24 truncate text-center text-adw-body font-semibold text-adw-label group-data-[inactive]/window:text-adw-label-tertiary",
+        "pointer-events-none absolute inset-x-24 truncate whitespace-nowrap text-center text-adw-body font-semibold text-adw-label group-data-[inactive]/window:text-adw-label-tertiary",
         className
       )}
       {...props}

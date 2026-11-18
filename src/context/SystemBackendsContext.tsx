@@ -5,6 +5,7 @@ import { useWatch } from "@domicile-desktop/react/use-watch";
 import { type Capturing, CapturingKind } from "@domicile-desktop/sdk/portal";
 import { ScreenshotKeptKind, UnlockRefusal, type UnlockRefused } from "@domicile-desktop/sdk/system";
 import { SAMPLE_WIFI_NETWORKS, type WifiNetwork } from "@/data/catalog";
+import { WEB_VFS_HOME, writeVfsTextFile } from "@/lib/web-vfs";
 import {
   type GnomeBackgroundSettings,
   isGnomeBackgroundConfigured,
@@ -987,6 +988,7 @@ export function useSystemBackendsValue(
         for (const track of stream.getTracks()) track.stop();
         const dataUrl = canvas.toDataURL("image/png");
         const filename = `screenshot-${new Date().toISOString().replace(/[:.]/g, "-")}.png`;
+        writeVfsTextFile(`${WEB_VFS_HOME}/Desktop/${filename}`, dataUrl);
         const link = document.createElement("a");
         link.href = dataUrl;
         link.download = filename;
@@ -994,7 +996,7 @@ export function useSystemBackendsValue(
         pushNotification({
           appName: "Screenshot",
           summary: "Screenshot Captured",
-          body: `Saved ${filename}`,
+          body: `Saved to Desktop/${filename}`,
         });
       } catch (err) {
         if ((err as Error)?.name !== "NotAllowedError" && (err as Error)?.name !== "AbortError") {

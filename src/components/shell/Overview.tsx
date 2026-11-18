@@ -73,14 +73,6 @@ function OverviewThumbnailBody({
         </span>
       </div>
       <div className="flex flex-1 flex-col items-center justify-center gap-2 bg-gradient-to-br from-zinc-900 to-zinc-950 p-4 text-center">
-        <AppSquircleIcon
-          iconName={win.iconName}
-          iconUrl={win.iconUrl}
-          squircle={Boolean(win.browserWindowId)}
-          gradient={win.gradient}
-          className="size-11 opacity-85"
-          glyphClassName="size-6"
-        />
         <span className="max-w-full truncate text-[11px] text-white/55">
           {win.waylandAppId ?? `${win.size.width}×${win.size.height}`}
         </span>
@@ -111,7 +103,7 @@ function OverviewWorkspacesBar({
   return (
     <div
       onClick={(e) => e.stopPropagation()}
-      className="relative flex w-full shrink-0 items-center justify-center border-b border-black/10 bg-white/60 px-6 py-3 backdrop-blur-md dark:border-white/10 dark:bg-black/40"
+      className="relative flex w-full shrink-0 items-center justify-center border-b border-black/10 bg-white/60 px-6 py-3 backdrop-blur-md animate-in fade-in slide-in-from-top-4 duration-200 motion-reduce:animate-none dark:border-white/10 dark:bg-black/40"
     >
       <div className="flex max-w-full items-center gap-4 overflow-x-auto px-3 py-2.5">
         {Array.from({ length: settings.workspaceCount }, (_, idx) => idx + 1).map(
@@ -342,7 +334,7 @@ export function Overview() {
               style={{
                 gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
               }}
-              className="grid w-full max-w-[1160px] place-items-center gap-x-10 gap-y-8"
+              className="grid w-full max-w-[1160px] place-items-center gap-x-10 gap-y-8 animate-in fade-in zoom-in-95 duration-200 motion-reduce:animate-none"
             >
               {activeWindows.map((win) => {
                 const resolvedIconUrl = win.iconUrl ?? getAppIconUrl(win.appId);

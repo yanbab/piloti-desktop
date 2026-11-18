@@ -1,34 +1,38 @@
-import React from "react";
-import { CodeJar } from "codejar";
-import { useDomicile } from "@domicile-desktop/react/domicile-provider";
+import * as React from "react";
 import {
-  ContextMenu,
-  ContextMenuContent,
-  ContextMenuItem,
-  ContextMenuSeparator,
-  ContextMenuTrigger,
-} from "@/components/ui/context-menu";
-import { useSettings, useWindowActions } from "@/context/DesktopStateContext";
+  defaultKeymap,
+  history,
+  historyKeymap,
+  indentWithTab,
+} from "@codemirror/commands";
+import { css } from "@codemirror/lang-css";
+import { html } from "@codemirror/lang-html";
+import { javascript } from "@codemirror/lang-javascript";
+import { json } from "@codemirror/lang-json";
+import { markdown } from "@codemirror/lang-markdown";
+import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
+import { EditorState, type Extension } from "@codemirror/state";
 import {
-  WEB_VFS_HOME,
-  createFsTextFile,
-  getVfsEntry,
-  normalizeVfsPath,
-  readFsTextFile,
-  subscribeWebVfs,
-  writeFsTextFile,
-} from "@/lib/fs-bridge";
+  EditorView,
+  highlightActiveLine,
+  highlightActiveLineGutter,
+  keymap,
+  lineNumbers,
+} from "@codemirror/view";
+import { tags } from "@lezer/highlight";
+import { SlidersHorizontalIcon } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useIsolatedAppBridge } from "@/lib/app-bridge";
+import { normalizeVfsPath } from "@/lib/web-vfs";
 
 interface TextEditorAppProps {
   initialPath?: string;
-  windowId: string;
-}
-
-function getParentDir(path: string): string {
-  const norm = normalizeVfsPath(path);
-  const idx = norm.lastIndexOf("/");
-  if (idx <= 0) return "/";
-  return norm.slice(0, idx);
+  windowId?: string;
 }
 
 function getBaseName(path: string): string {
@@ -37,73 +41,57 @@ function getBaseName(path: string): string {
   return idx >= 0 ? norm.slice(idx + 1) : norm;
 }
 
-function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
-}
-
-function highlightCode(text: string, filePath: string | null): string {
+function resolveLanguageExtension(filePath: string | null): Extension[] {
   const ext = filePath?.split(".").pop()?.toLowerCase() ?? "";
-  if (!ext || ext === "txt") {
-    return escapeHtml(text);
-  }
-
-  if (ext === "html" || ext === "htm" || ext === "xml" || ext === "svg") {
-    return escapeHtml(text).replace(
-      /(&lt;!--[\s\S]*?--&gt;)|(&lt;\/?[a-zA-Z0-9:-]+)|(\s+[a-zA-Z0-9:-]+)(?==)|(&quot;[^&]*?&quot;|"[^"]*?"|'[^']*?')/g,
-      (match, comment, tag, attr, str) => {
-        if (comment) return `<span class="text-adw-label-tertiary italic">${comment}</span>`;
-        if (tag) return `<span class="text-sky-600 dark:text-sky-400 font-medium">${tag}</span>`;
-        if (attr) return `<span class="text-purple-700 dark:text-purple-400">${attr}</span>`;
-        if (str) return `<span class="text-emerald-700 dark:text-emerald-400">${str}</span>`;
-        return match;
-      }
-    );
-  }
-
-  if (ext === "md" || ext === "markdown") {
-    return escapeHtml(text).replace(
-      /^(#{1,6}\s+.*)$|(`[^`\n]+`)|(\*\*[^*\n]+\*\*)/gm,
-      (match, heading, code, bold) => {
-        if (heading) return `<span class="text-sky-600 dark:text-sky-400 font-bold">${heading}</span>`;
-        if (code) return `<span class="text-emerald-700 dark:text-emerald-400">${code}</span>`;
-        if (bold) return `<span class="font-semibold text-amber-700 dark:text-amber-300">${bold}</span>`;
-        return match;
-      }
-    );
-  }
-
-  if (ext === "json") {
-    return escapeHtml(text).replace(
-      /("([^"\\]|\\.)*")(\s*:)?|\b(true|false|null)\b|(-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)/g,
-      (match, str, _inner, colon, bool, num) => {
-        if (str && colon) return `<span class="text-sky-600 dark:text-sky-400">${str}</span>${colon}`;
-        if (str) return `<span class="text-emerald-700 dark:text-emerald-400">${str}</span>`;
-        if (bool) return `<span class="text-purple-700 dark:text-purple-400">${bool}</span>`;
-        if (num) return `<span class="text-amber-700 dark:text-amber-300">${num}</span>`;
-        return match;
-      }
-    );
-  }
-
-  // JS / TS / CSS / Shell / Python
-  if (/^(js|jsx|ts|tsx|mjs|cjs|css|scss|sh|bash|zsh|py)$/.test(ext)) {
-    return escapeHtml(text).replace(
-      /(\/\/[^\n]*|\/\*[\s\S]*?\*\/|#[^\n]*)|("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|`(?:[^`\\]|\\.)*`)|\b(const|let|var|function|return|if|else|for|while|switch|case|break|continue|import|export|from|default|type|interface|class|extends|async|await|try|catch|throw|new|true|false|null|undefined|def|elif|in|not|and|or|fi|then|do|done)\b|\b(\d+(?:\.\d+)?)\b/g,
-      (match, comment, str, kw, num) => {
-        if (comment) return `<span class="text-adw-label-tertiary italic">${comment}</span>`;
-        if (str) return `<span class="text-emerald-700 dark:text-emerald-400">${str}</span>`;
-        if (kw) return `<span class="text-purple-700 dark:text-purple-400 font-medium">${kw}</span>`;
-        if (num) return `<span class="text-amber-700 dark:text-amber-300">${num}</span>`;
-        return match;
-      }
-    );
-  }
-
-  return escapeHtml(text);
+  if (ext === "js" || ext === "mjs" || ext === "cjs") return [javascript()];
+  if (ext === "jsx") return [javascript({ jsx: true })];
+  if (ext === "ts") return [javascript({ typescript: true })];
+  if (ext === "tsx") return [javascript({ typescript: true, jsx: true })];
+  if (ext === "json") return [json()];
+  if (ext === "md" || ext === "markdown") return [markdown()];
+  if (ext === "html" || ext === "htm" || ext === "xml" || ext === "svg")
+    return [html()];
+  if (ext === "css" || ext === "scss") return [css()];
+  return [];
 }
+
+const adwLightHighlightStyle = HighlightStyle.define([
+  { tag: tags.keyword, color: "#9333ea", fontWeight: "500" },
+  { tag: [tags.name, tags.deleted, tags.character, tags.macroName], color: "#1f2937" },
+  { tag: [tags.propertyName], color: "#0284c7" },
+  { tag: [tags.function(tags.variableName), tags.labelName], color: "#2563eb" },
+  { tag: [tags.color, tags.constant(tags.name), tags.standard(tags.name)], color: "#d97706" },
+  { tag: [tags.definition(tags.name), tags.separator], color: "#374151" },
+  { tag: [tags.typeName, tags.className, tags.number, tags.changed, tags.annotation, tags.modifier, tags.self, tags.namespace], color: "#b45309" },
+  { tag: [tags.operator, tags.operatorKeyword, tags.url, tags.escape, tags.regexp, tags.link], color: "#0d9488" },
+  { tag: [tags.meta, tags.comment], color: "#6b7280", fontStyle: "italic" },
+  { tag: tags.strong, fontWeight: "bold" },
+  { tag: tags.emphasis, fontStyle: "italic" },
+  { tag: tags.heading, fontWeight: "bold", color: "#0284c7" },
+  { tag: [tags.atom, tags.bool, tags.special(tags.variableName)], color: "#7c3aed" },
+  { tag: [tags.processingInstruction, tags.string, tags.inserted], color: "#059669" },
+  { tag: [tags.tagName], color: "#0284c7", fontWeight: "500" },
+  { tag: [tags.attributeName], color: "#7c3aed" },
+]);
+
+const adwDarkHighlightStyle = HighlightStyle.define([
+  { tag: tags.keyword, color: "#c084fc", fontWeight: "500" },
+  { tag: [tags.name, tags.deleted, tags.character, tags.macroName], color: "#e5e7eb" },
+  { tag: [tags.propertyName], color: "#38bdf8" },
+  { tag: [tags.function(tags.variableName), tags.labelName], color: "#60a5fa" },
+  { tag: [tags.color, tags.constant(tags.name), tags.standard(tags.name)], color: "#fbbf24" },
+  { tag: [tags.definition(tags.name), tags.separator], color: "#d1d5db" },
+  { tag: [tags.typeName, tags.className, tags.number, tags.changed, tags.annotation, tags.modifier, tags.self, tags.namespace], color: "#f59e0b" },
+  { tag: [tags.operator, tags.operatorKeyword, tags.url, tags.escape, tags.regexp, tags.link], color: "#2dd4bf" },
+  { tag: [tags.meta, tags.comment], color: "#9ca3af", fontStyle: "italic" },
+  { tag: tags.strong, fontWeight: "bold" },
+  { tag: tags.emphasis, fontStyle: "italic" },
+  { tag: tags.heading, fontWeight: "bold", color: "#38bdf8" },
+  { tag: [tags.atom, tags.bool, tags.special(tags.variableName)], color: "#c084fc" },
+  { tag: [tags.processingInstruction, tags.string, tags.inserted], color: "#34d399" },
+  { tag: [tags.tagName], color: "#38bdf8", fontWeight: "500" },
+  { tag: [tags.attributeName], color: "#c084fc" },
+]);
 
 function renderSimpleMarkdown(md: string): React.ReactNode {
   const lines = md.split("\n");
@@ -131,7 +119,10 @@ function renderSimpleMarkdown(md: string): React.ReactNode {
     }
     if (line.startsWith("- ") || line.startsWith("* ")) {
       return (
-        <li key={i} className="ml-4 list-disc text-[13px] leading-relaxed text-adw-label">
+        <li
+          key={i}
+          className="ml-4 list-disc text-[13px] leading-relaxed text-adw-label"
+        >
           {line.slice(2)}
         </li>
       );
@@ -147,274 +138,342 @@ function renderSimpleMarkdown(md: string): React.ReactNode {
   });
 }
 
+const adwEditorTheme = EditorView.theme({
+  "&": {
+    height: "100%",
+    backgroundColor: "var(--adw-content-bg, var(--adw-window-bg))",
+    color: "var(--adw-label)",
+    fontFamily: "var(--font-adw-mono)",
+    fontSize: "13px",
+  },
+  ".cm-scroller": {
+    overflow: "auto",
+    fontFamily: "var(--font-adw-mono)",
+    paddingBottom: "32px",
+  },
+  ".cm-content": {
+    padding: "10px 4px",
+    caretColor: "var(--adw-accent)",
+  },
+  ".cm-gutters": {
+    backgroundColor: "transparent",
+    color: "var(--adw-dim)",
+    border: "none",
+    paddingLeft: "6px",
+  },
+  ".cm-activeLineGutter": {
+    backgroundColor: "transparent",
+    color: "var(--adw-label)",
+  },
+  ".cm-activeLine": {
+    backgroundColor: "rgb(128 128 128 / 0.08)",
+  },
+  ".cm-selectionBackground, ::selection": {
+    backgroundColor: "color-mix(in srgb, var(--adw-accent) 28%, transparent)",
+  },
+  "&.cm-focused": {
+    outline: "none",
+  },
+});
+
 export const TextEditorApp: React.FC<TextEditorAppProps> = ({
   initialPath,
-  windowId,
+  windowId = "",
 }) => {
-  const domicile = useDomicile();
-  const { isBrowserRuntime } = useSettings();
-  const { launchApp } = useWindowActions();
-  const editorRef = React.useRef<HTMLPreElement>(null);
-  const jarRef = React.useRef<ReturnType<typeof CodeJar> | null>(null);
-  const [isDropTarget, setIsDropTarget] = React.useState(false);
-  const [previewMarkdown, setPreviewMarkdown] = React.useState(false);
-
-  const [filePath, setFilePath] = React.useState<string | null>(() => {
-    if (!initialPath) return null;
-    const norm = normalizeVfsPath(initialPath);
-    const existing = getVfsEntry(norm);
-    if (existing && existing.kind === "file") {
-      return existing.path;
+  const bridge = useIsolatedAppBridge(windowId, false);
+  const resolvedPath = React.useMemo(() => {
+    if (initialPath) return normalizeVfsPath(initialPath);
+    if (typeof window !== "undefined") {
+      const p = new URLSearchParams(window.location.search).get("path");
+      if (p) return normalizeVfsPath(p);
     }
-    const created = createFsTextFile(
-      domicile,
-      isBrowserRuntime,
-      getParentDir(norm),
-      getBaseName(norm) || "Untitled.txt",
-      "",
-    );
-    return created?.path ?? norm;
+    return null;
+  }, [initialPath]);
+
+  const [filePath, setFilePath] = React.useState<string | null>(resolvedPath);
+  const [content, setContent] = React.useState<string>("");
+  const [previewMarkdown, setPreviewMarkdown] = React.useState(false);
+  const [findOpen, setFindOpen] = React.useState(false);
+  const [findQuery, setFindQuery] = React.useState("");
+  const [cursorPos, setCursorPos] = React.useState<{ ln: number; col: number }>({
+    ln: 1,
+    col: 1,
   });
 
-  const [content, setContent] = React.useState<string>(() => {
-    if (!initialPath) return "";
-    const entry = getVfsEntry(normalizeVfsPath(initialPath));
-    return entry?.kind === "file" ? (entry.content ?? "") : "";
-  });
-
-  const filePathRef = React.useRef(filePath);
-  filePathRef.current = filePath;
-  const contentRef = React.useRef(content);
-  contentRef.current = content;
+  // Editor preferences
+  const [showLineNumbers, setShowLineNumbers] = React.useState(true);
+  const [enableHighlight, setEnableHighlight] = React.useState(true);
+  const [wordWrap, setWordWrap] = React.useState(true);
+  const [highlightLine, setHighlightLine] = React.useState(true);
+  const [isDark, setIsDark] = React.useState(() =>
+    typeof document !== "undefined"
+      ? document.documentElement.classList.contains("dark")
+      : true,
+  );
 
   React.useEffect(() => {
-    if (!filePath || isBrowserRuntime) return;
+    if (typeof document === "undefined" || typeof MutationObserver === "undefined")
+      return;
+    const root = document.documentElement;
+    const obs = new MutationObserver(() => {
+      setIsDark(root.classList.contains("dark"));
+    });
+    obs.observe(root, { attributes: true, attributeFilter: ["class"] });
+    return () => obs.disconnect();
+  }, []);
+
+  const editorHostRef = React.useRef<HTMLDivElement | null>(null);
+  const viewRef = React.useRef<EditorView | null>(null);
+  const findInputRef = React.useRef<HTMLInputElement | null>(null);
+  const contentRef = React.useRef(content);
+  contentRef.current = content;
+  const filePathRef = React.useRef(filePath);
+  filePathRef.current = filePath;
+
+  React.useEffect(() => {
+    setFilePath(resolvedPath);
+  }, [resolvedPath]);
+
+  React.useEffect(() => {
+    if (!filePath) return;
     let cancelled = false;
-    void readFsTextFile(domicile, isBrowserRuntime, filePath).then((next) => {
-      if (!cancelled) {
-        setContent(next);
-        jarRef.current?.updateCode(next);
+    void bridge.fs.readText(filePath).then((next) => {
+      if (cancelled || next === null) return;
+      setContent(next);
+      bridge.setTitle(getBaseName(filePath));
+      const view = viewRef.current;
+      if (view && view.state.doc.toString() !== next) {
+        view.dispatch({
+          changes: { from: 0, to: view.state.doc.length, insert: next },
+        });
       }
     });
     return () => {
       cancelled = true;
     };
-  }, [domicile, filePath, isBrowserRuntime]);
+  }, [bridge, filePath]);
 
-  const persistContent = React.useCallback(
+  const persistTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
+
+  const persistText = React.useCallback(
     (next: string) => {
       setContent(next);
-      if (filePathRef.current) {
-        writeFsTextFile(domicile, isBrowserRuntime, filePathRef.current, next);
-        return;
-      }
-      const created = createFsTextFile(
-        domicile,
-        isBrowserRuntime,
-        `${WEB_VFS_HOME}/Desktop`,
-        "Untitled.txt",
-        next,
-      );
-      if (created) {
-        filePathRef.current = created.path;
-        setFilePath(created.path);
-      }
+      if (persistTimerRef.current) clearTimeout(persistTimerRef.current);
+      persistTimerRef.current = setTimeout(() => {
+        const targetPath =
+          filePathRef.current ?? "/home/user/Desktop/Untitled.txt";
+        if (!filePathRef.current) {
+          filePathRef.current = targetPath;
+          setFilePath(targetPath);
+        }
+        void bridge.fs.writeText(targetPath, next);
+      }, 120);
     },
-    [domicile, isBrowserRuntime],
+    [bridge.fs],
   );
 
   React.useEffect(() => {
     if (previewMarkdown) {
-      jarRef.current?.destroy();
-      jarRef.current = null;
+      viewRef.current?.destroy();
+      viewRef.current = null;
       return;
     }
-    const el = editorRef.current;
-    if (!el) return;
-    const jar = CodeJar(
-      el,
-      (node) => {
-        node.innerHTML = highlightCode(
-          node.textContent ?? "",
-          filePathRef.current,
-        );
-      },
-      { tab: "  ", addClosing: true }
-    );
-    jar.updateCode(contentRef.current);
-    jar.onUpdate((next) => {
-      persistContent(next);
-    });
-    jarRef.current = jar;
-    return () => {
-      jar.destroy();
-      jarRef.current = null;
-    };
-  }, [filePath, persistContent, previewMarkdown]);
+    const host = editorHostRef.current;
+    if (!host) return;
 
-  React.useEffect(() => {
-    if (!filePath) return;
-    return subscribeWebVfs(() => {
-      if (document.activeElement === editorRef.current) return;
-      const entry = getVfsEntry(filePath);
-      if (entry && entry.kind === "file") {
-        const next = entry.content ?? "";
-        setContent(next);
-        jarRef.current?.updateCode(next);
-      }
-    });
-  }, [filePath]);
-
-  React.useEffect(() => {
-    const handleFileDrag = (e: Event) => {
-      const detail = (
-        e as CustomEvent<{
-          active: boolean;
-          item?: { kind?: string };
-          clientX?: number;
-          clientY?: number;
-        }>
-      ).detail;
-      if (
-        !detail?.active ||
-        detail.item?.kind !== "file" ||
-        detail.clientX === undefined ||
-        detail.clientY === undefined
-      ) {
-        setIsDropTarget(false);
-        return;
-      }
-      const hits = document.elementsFromPoint(detail.clientX, detail.clientY);
-      const overThis = hits.some(
-        (el) => el.getAttribute("data-drop-window-id") === windowId,
+    const extensions: Extension[] = [
+      history(),
+      keymap.of([indentWithTab, ...defaultKeymap, ...historyKeymap]),
+      adwEditorTheme,
+      EditorView.updateListener.of((update) => {
+        if (update.docChanged) {
+          persistText(update.state.doc.toString());
+        }
+        if (update.selectionSet || update.docChanged) {
+          const head = update.state.selection.main.head;
+          const line = update.state.doc.lineAt(head);
+          setCursorPos({
+            ln: line.number,
+            col: head - line.from + 1,
+          });
+        }
+      }),
+    ];
+    if (showLineNumbers) {
+      extensions.push(lineNumbers(), highlightActiveLineGutter());
+    }
+    if (highlightLine) {
+      extensions.push(highlightActiveLine());
+    }
+    if (wordWrap) {
+      extensions.push(EditorView.lineWrapping);
+    }
+    if (enableHighlight) {
+      extensions.push(
+        syntaxHighlighting(
+          isDark ? adwDarkHighlightStyle : adwLightHighlightStyle,
+          { fallback: true },
+        ),
+        ...resolveLanguageExtension(filePath),
       );
-      setIsDropTarget(overThis);
-    };
+    }
 
-    const handleFileDrop = (e: Event) => {
-      const detail = (
-        e as CustomEvent<{
-          windowId?: string;
-          item?: { kind?: string; path?: string };
-        }>
-      ).detail;
-      setIsDropTarget(false);
-      if (
-        detail?.windowId !== windowId ||
-        detail.item?.kind !== "file" ||
-        !detail.item.path
-      ) {
-        return;
-      }
-      const norm = normalizeVfsPath(detail.item.path);
-      const entry = getVfsEntry(norm);
-      if (entry && entry.kind === "file") {
-        const next = entry.content ?? "";
-        setFilePath(entry.path);
-        setContent(next);
-        jarRef.current?.updateCode(next);
-      } else {
-        setFilePath(norm);
-        setContent("");
-        jarRef.current?.updateCode("");
-      }
-      editorRef.current?.focus();
-    };
+    const state = EditorState.create({
+      doc: contentRef.current,
+      extensions,
+    });
 
-    window.addEventListener("residence:file-drag", handleFileDrag);
-    window.addEventListener("residence:file-drop-window", handleFileDrop);
+    const view = new EditorView({ state, parent: host });
+    viewRef.current = view;
     return () => {
-      window.removeEventListener("residence:file-drag", handleFileDrag);
-      window.removeEventListener("residence:file-drop-window", handleFileDrop);
+      view.destroy();
+      viewRef.current = null;
     };
-  }, [windowId]);
+  }, [
+    enableHighlight,
+    filePath,
+    highlightLine,
+    isDark,
+    persistText,
+    previewMarkdown,
+    showLineNumbers,
+    wordWrap,
+  ]);
 
-  const handleNewFile = () => {
-    const created = createFsTextFile(
-      domicile,
-      isBrowserRuntime,
-      `${WEB_VFS_HOME}/Desktop`,
-      "Untitled.txt",
-      "",
-    );
-    if (created) {
-      setFilePath(created.path);
-      setContent("");
-      jarRef.current?.updateCode("");
-      editorRef.current?.focus();
+  const findMatchCount = React.useMemo(() => {
+    const q = findQuery.trim().toLowerCase();
+    if (!q) return 0;
+    const hay = content.toLowerCase();
+    let count = 0;
+    let idx = 0;
+    while ((idx = hay.indexOf(q, idx)) !== -1) {
+      count += 1;
+      idx += q.length;
     }
-  };
-
-  const handleOpenInFiles = () => {
-    const targetDir = filePath
-      ? getParentDir(filePath)
-      : `${WEB_VFS_HOME}/Desktop`;
-    launchApp("nautilus", { payload: targetDir });
-  };
-
-  const handleCopyAll = () => {
-    void navigator.clipboard?.writeText(content);
-  };
-
-  const handleClear = () => {
-    setContent("");
-    jarRef.current?.updateCode("");
-    if (filePath) {
-      writeFsTextFile(domicile, isBrowserRuntime, filePath, "");
-    }
-    editorRef.current?.focus();
-  };
+    return count;
+  }, [content, findQuery]);
 
   const isMarkdownFile = Boolean(
-    filePath && /\.(md|markdown)$/i.test(filePath)
+    filePath && /\.(md|markdown)$/i.test(filePath),
   );
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "f") {
+      e.preventDefault();
+      e.stopPropagation();
+      setFindOpen((prev) => {
+        const next = !prev;
+        if (next) {
+          requestAnimationFrame(() => findInputRef.current?.focus());
+        }
+        return next;
+      });
+    } else if (e.key === "Escape" && findOpen) {
+      e.preventDefault();
+      setFindOpen(false);
+      viewRef.current?.focus();
+    }
+  };
+
   return (
-    <div data-drop-window-id={windowId} className="relative h-full w-full">
-      {isMarkdownFile && (
-        <button
-          type="button"
-          onClick={() => setPreviewMarkdown((v) => !v)}
-          className="absolute top-2 right-3 z-10 rounded-md border border-adw-separator bg-adw-window/90 px-2.5 py-1 text-[11px] font-medium text-adw-label-secondary shadow-xs backdrop-blur-xs transition-colors hover:text-adw-label"
+    <div
+      data-drop-window-id={windowId}
+      onKeyDown={handleKeyDown}
+      className="relative h-full w-full overflow-hidden bg-adw-content text-adw-label"
+    >
+      {/* Top-right Preferences & Markdown Preview Controls */}
+      <div className="absolute top-2 right-3 z-20 flex items-center gap-1.5">
+        {isMarkdownFile && (
+          <button
+            type="button"
+            onClick={() => setPreviewMarkdown((v) => !v)}
+            className="rounded-md border border-adw-separator bg-adw-window/90 px-2.5 py-1 text-[11px] font-medium text-adw-label-secondary shadow-xs backdrop-blur-xs transition-colors hover:text-adw-label"
+          >
+            {previewMarkdown ? "Edit Markdown" : "Preview Markdown"}
+          </button>
+        )}
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            aria-label="Editor Preferences"
+            title="Preferences"
+            className="flex size-7 items-center justify-center rounded-md border border-adw-separator bg-adw-window/90 text-adw-label-secondary shadow-xs backdrop-blur-xs transition-colors outline-none hover:text-adw-label"
+          >
+            <SlidersHorizontalIcon className="size-3.5" />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuCheckboxItem
+              checked={showLineNumbers}
+              onClick={() => setShowLineNumbers((v) => !v)}
+            >
+              Line Numbers
+            </DropdownMenuCheckboxItem>
+            <DropdownMenuCheckboxItem
+              checked={enableHighlight}
+              onClick={() => setEnableHighlight((v) => !v)}
+            >
+              Syntax Highlighting
+            </DropdownMenuCheckboxItem>
+            <DropdownMenuCheckboxItem
+              checked={wordWrap}
+              onClick={() => setWordWrap((v) => !v)}
+            >
+              Word Wrap
+            </DropdownMenuCheckboxItem>
+            <DropdownMenuCheckboxItem
+              checked={highlightLine}
+              onClick={() => setHighlightLine((v) => !v)}
+            >
+              Highlight Active Line
+            </DropdownMenuCheckboxItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
+      {findOpen && (
+        <div
+          data-testid="text-editor-find-bar"
+          className="absolute top-11 right-3 z-20 flex items-center gap-1.5 rounded-lg border border-adw-border bg-adw-card/95 px-2 py-1 shadow-md backdrop-blur-md"
         >
-          {previewMarkdown ? "Edit Markdown" : "Preview Markdown"}
-        </button>
-      )}
-      <ContextMenu>
-        <ContextMenuTrigger className="h-full w-full">
-          {previewMarkdown ? (
-            <div className="h-full w-full overflow-auto bg-adw-content p-4 select-text">
-              {renderSimpleMarkdown(content)}
-            </div>
-          ) : (
-            <pre
-              ref={editorRef}
-              spellCheck={false}
-              aria-label={filePath ? getBaseName(filePath) : "Text Editor"}
-              className="m-0 h-full w-full overflow-auto border-0 bg-adw-content p-3 font-mono text-[13px] leading-relaxed whitespace-pre-wrap break-words text-adw-label focus:outline-none select-text"
-            />
-          )}
-        </ContextMenuTrigger>
-        <ContextMenuContent className="w-44">
-          <ContextMenuItem onClick={handleNewFile}>New File</ContextMenuItem>
-          <ContextMenuItem onClick={handleOpenInFiles}>
-            Open in Files
-          </ContextMenuItem>
-          <ContextMenuItem onClick={() => setPreviewMarkdown((v) => !v)}>
-            {previewMarkdown ? "Edit Source" : "Markdown Preview"}
-          </ContextMenuItem>
-          <ContextMenuSeparator />
-          <ContextMenuItem onClick={handleCopyAll}>Copy All</ContextMenuItem>
-          <ContextMenuItem onClick={handleClear}>Clear</ContextMenuItem>
-        </ContextMenuContent>
-      </ContextMenu>
-      {isDropTarget && (
-        <div className="pointer-events-none absolute inset-1.5 flex items-end justify-center rounded-md border-2 border-dashed border-adw-accent/70 bg-adw-accent/10 pb-3 transition-opacity">
-          <span className="rounded-full bg-adw-window/95 px-3 py-1 text-[11.5px] font-medium text-adw-label shadow-sm ring-1 ring-adw-separator">
-            Drop to open in Text Editor
+          <input
+            ref={findInputRef}
+            type="search"
+            value={findQuery}
+            onChange={(e) => setFindQuery(e.target.value)}
+            className="w-36 bg-transparent text-xs text-adw-label outline-none"
+          />
+          <span className="font-mono text-[10.5px] text-adw-dim tabular-nums">
+            {findQuery.trim() ? `${findMatchCount} found` : ""}
           </span>
+          <button
+            type="button"
+            aria-label="Close Find"
+            onClick={() => {
+              setFindOpen(false);
+              viewRef.current?.focus();
+            }}
+            className="rounded px-1 text-xs text-adw-dim hover:bg-adw-hover hover:text-adw-label"
+          >
+            ×
+          </button>
         </div>
       )}
+
+      {previewMarkdown ? (
+        <div className="h-full w-full overflow-auto bg-adw-content p-4 select-text">
+          {renderSimpleMarkdown(content)}
+        </div>
+      ) : (
+        <div ref={editorHostRef} className="h-full w-full" />
+      )}
+
+      <div
+        data-testid="text-editor-status-pill"
+        className="pointer-events-none absolute right-2.5 bottom-2 z-10 rounded-full border border-adw-border/60 bg-adw-card/90 px-2.5 py-0.5 font-mono text-[10.5px] text-adw-dim shadow-xs backdrop-blur-md"
+      >
+        Ln {cursorPos.ln}, Col {cursorPos.col}
+      </div>
     </div>
   );
 };

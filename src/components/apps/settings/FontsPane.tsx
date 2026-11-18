@@ -59,11 +59,11 @@ const RENDERING_STYLE_OPTIONS: Array<{
   value: RenderingStylePreset;
   label: string;
 }> = [
-  { value: "default", label: "Default (Antialiased)" },
-  { value: "subpixel", label: "Subpixel (LCD)" },
-  { value: "geometric", label: "Geometric Precision" },
-  { value: "darkened", label: "Darkened" },
-];
+    { value: "default", label: "Default (Antialiased)" },
+    { value: "subpixel", label: "Subpixel (LCD)" },
+    { value: "geometric", label: "Geometric Precision" },
+    { value: "darkened", label: "Darkened" },
+  ];
 
 function inferRenderingStyle(settings: {
   cssFontSmoothing: string;
@@ -391,15 +391,9 @@ export function FontsPane() {
               </Select>
             </GroupedFormRowControl>
           </GroupedFormRow>
-        </GroupedFormGroup>
-      </GroupedFormSection>
-
-      <GroupedFormSection>
-        <GroupedFormSectionTitle>Rendering</GroupedFormSectionTitle>
-        <GroupedFormGroup>
           <GroupedFormRow>
             <GroupedFormRowLabel>
-              <GroupedFormRowTitle>Rendering Style</GroupedFormRowTitle>
+              <GroupedFormRowTitle>Rendering</GroupedFormRowTitle>
             </GroupedFormRowLabel>
             <GroupedFormRowControl>
               <Select

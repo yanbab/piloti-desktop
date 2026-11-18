@@ -399,10 +399,30 @@ export const TerminalApp: React.FC<TerminalAppProps> = ({ initialPath }) => {
     if (cmd === "help") {
       appendLines([
         commandLine,
-        {
-          text: "Commands: cd, pwd, ls [-la], mkdir, touch, cat, rm, open, edit, notepad, echo, whoami, uname, date, env, ps, top, clear, help",
-          tone: "muted",
-        },
+        { text: "Piloti Web Shell — usage: <command> [args]", tone: "accent" },
+        { text: "" },
+        { text: "Navigation & Files:", tone: "muted" },
+        { text: "  pwd                 Print current working directory" },
+        { text: "  cd [dir]            Change directory (default: ~)" },
+        { text: "  ls [-la] [dir]      List directory contents" },
+        { text: "  mkdir <dir>         Create a directory" },
+        { text: "  touch <file>        Create an empty file" },
+        { text: "  cat <file>          Print file contents" },
+        { text: "  rm <path>           Move file or folder to Trash" },
+        { text: "" },
+        { text: "Editing & Apps:", tone: "muted" },
+        { text: "  open <path|url>     Open file, folder, or web URL" },
+        { text: "  edit <file>         Open file in Text Editor" },
+        { text: "  notepad <file>      Alias for edit" },
+        { text: "" },
+        { text: "System & Process:", tone: "muted" },
+        { text: "  ps / top            Show running daemons & windows" },
+        { text: "  whoami / uname      Print user and kernel info" },
+        { text: "  date / env / echo   Print date, environment, or text" },
+        { text: "" },
+        { text: "Shell:", tone: "muted" },
+        { text: "  clear               Clear terminal output" },
+        { text: "  help                Show this help message" },
       ]);
       return;
     }

@@ -3,10 +3,12 @@ import { createPortal } from "react-dom";
 import { useDomicile } from "@domicile-desktop/react/domicile-provider";
 import {
   ArrowLeftIcon,
-  ChevronRightIcon,
+  ClockIcon,
   DownloadIcon,
   FileTextIcon,
   FolderIcon,
+  HeartCrackIcon,
+  HeartIcon,
   HomeIcon,
   ImageIcon,
   LayoutGridIcon,
@@ -15,6 +17,7 @@ import {
   MinusIcon,
   MonitorIcon,
   MusicIcon,
+  PanelLeftIcon,
   SearchIcon,
   Trash2Icon,
   VideoIcon,
@@ -22,7 +25,13 @@ import {
   ZoomInIcon,
   ZoomOutIcon,
 } from "lucide-react";
-import { IconGrid } from "@/components/apps/DesktopIconsApp";
+import { IconGrid } from "@/components/ui/icon-grid";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { WindowMenuButton } from "@/components/shell/WindowMenuButton";
 import { WindowControls, WindowTitlebar } from "@/components/ui/window";
 import { useSidebarKeyboardNav } from "@/hooks/use-sidebar-keyboard-nav";
@@ -43,28 +52,42 @@ import {
 } from "@/lib/desktop-icons";
 import { _ } from "@/lib/i18n";
 import {
-  getAccentFolderIconUrl,
-  getAccentHtmlIconUrl,
+  DynamicFileIcon,
+  DynamicFolderIcon,
+  registerOpenFolderPath,
+  useOpenFolderPaths,
 } from "@/data/folder-icons";
 import { cn } from "@/lib/utils";
 import {
   buildVfsEntryWebAppUrl,
+  copyVfsEntry,
+  getVfsEntry,
+  importExternalFilesToVfs,
+  isImageVfsFile,
+  isTextEditableVfsFile,
+  isVfsFavorite,
+  listVfsDir,
+  listVfsFavoriteEntries,
+  listVfsRecentEntries,
+  loadVfsFavorites,
+  normalizeVfsPath,
+  subscribeWebVfs,
+  toggleVfsFavorite,
+  WEB_VFS_FAVORITES_URI,
+  WEB_VFS_HOME,
+  WEB_VFS_RECENTS_URI,
+  WEB_VFS_TRASH,
+  type WebVfsEntry,
+} from "@/lib/web-vfs";
+import {
   createFsFolder,
   createFsTextFile,
   emptyFsTrash,
-  getVfsEntry,
-  importExternalFilesToVfs,
-  isTextEditableVfsFile,
-  listFsDir,
-  listVfsDir,
+  listFsDir as bridgeListFsDir,
   moveFsEntry,
-  normalizeVfsPath,
+  moveFsEntry as bridgeMoveFsEntry,
   renameFsEntry,
-  subscribeWebVfs,
   trashFsEntry,
-  WEB_VFS_HOME,
-  WEB_VFS_TRASH,
-  type WebVfsEntry,
 } from "@/lib/fs-bridge";
 
 interface XdgPlaceItem {
@@ -75,6 +98,18 @@ interface XdgPlaceItem {
 }
 
 const XDG_PLACES: readonly XdgPlaceItem[] = [
+  {
+    id: "recents",
+    label: "Recents",
+    path: WEB_VFS_RECENTS_URI,
+    icon: <ClockIcon className="size-4" />,
+  },
+  {
+    id: "favorites",
+    label: "Favorites",
+    path: WEB_VFS_FAVORITES_URI,
+    icon: <HeartIcon className="size-4" />,
+  },
   {
     id: "home",
     label: "Home",
@@ -126,10 +161,14 @@ const XDG_PLACES: readonly XdgPlaceItem[] = [
 ];
 
 const ZOOM_LEVELS = [
-  { cellWidth: 80, cellHeight: 88, iconSize: 36 },
-  { cellWidth: 96, cellHeight: 104, iconSize: 48 },
-  { cellWidth: 116, cellHeight: 124, iconSize: 64 },
-  { cellWidth: 136, cellHeight: 144, iconSize: 80 },
+  { cellWidth: 168, cellHeight: 28, iconSize: 16 },
+  { cellWidth: 168, cellHeight: 28, iconSize: 20 },
+  { cellWidth: 76, cellHeight: 82, iconSize: 24 },
+  { cellWidth: 84, cellHeight: 92, iconSize: 32 },
+  { cellWidth: 108, cellHeight: 110, iconSize: 48 },
+  { cellWidth: 120, cellHeight: 126, iconSize: 64 },
+  { cellWidth: 148, cellHeight: 156, iconSize: 96 },
+  { cellWidth: 176, cellHeight: 184, iconSize: 128 },
 ] as const;
 
 function vfsEntryToGridItem(
@@ -177,8 +216,28 @@ export function FilesApp({
   const [searchQuery, setSearchQuery] = React.useState("");
   const locationInputRef = React.useRef<HTMLInputElement | null>(null);
   const searchInputRef = React.useRef<HTMLInputElement | null>(null);
+  const containerRef = React.useRef<HTMLDivElement | null>(null);
   const sidebarRef = React.useRef<HTMLElement | null>(null);
   const mainViewRef = React.useRef<HTMLDivElement | null>(null);
+  const [isCompact, setIsCompact] = React.useState(false);
+  const [compactSidebarOpen, setCompactSidebarOpen] = React.useState(false);
+
+  React.useLayoutEffect(() => {
+    const el = containerRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const check = () => {
+      const narrow = el.clientWidth < 580;
+      setIsCompact(narrow);
+      if (!narrow) setCompactSidebarOpen(false);
+    };
+    check();
+    const ro = new ResizeObserver(check);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const showSidebar = !isCompact || compactSidebarOpen;
+  const openFolderPaths = useOpenFolderPaths();
 
   const [currentPath, setCurrentPath] = React.useState<string>(() => {
     if (!initialPath) return WEB_VFS_HOME;
@@ -190,7 +249,11 @@ export function FilesApp({
     return existing?.kind === "directory" ? normalized : WEB_VFS_HOME;
   });
 
-  const [zoomIndex, setZoomIndex] = React.useState(1);
+  React.useEffect(() => {
+    return registerOpenFolderPath(currentPath);
+  }, [currentPath]);
+
+  const [zoomIndex, setZoomIndex] = React.useState(4);
   const [showHidden, setShowHidden] = React.useState(false);
   const [vfsEntries, setVfsEntries] = React.useState<WebVfsEntry[]>(() =>
     listVfsDir(currentPath)
@@ -204,21 +267,44 @@ export function FilesApp({
     null
   );
 
+  const [clipboard, setClipboard] = React.useState<{
+    mode: "cut" | "copy";
+    path: string;
+  } | null>(null);
+  const [hasFavorites, setHasFavorites] = React.useState(
+    () => loadVfsFavorites().length > 0,
+  );
+  React.useEffect(() => {
+    return subscribeWebVfs(() => {
+      setHasFavorites(loadVfsFavorites().length > 0);
+    });
+  }, []);
+
   const reloadDir = React.useCallback(() => {
-    if (isBrowserRuntime) {
-      setVfsEntries(listVfsDir(currentPath));
+    if (currentPath === WEB_VFS_FAVORITES_URI) {
+      setVfsEntries(listVfsFavoriteEntries());
       return;
     }
-    void listFsDir(domicile, isBrowserRuntime, currentPath).then((entries) => {
+    if (currentPath === WEB_VFS_RECENTS_URI) {
+      setVfsEntries(listVfsRecentEntries());
+      return;
+    }
+    if (isBrowserRuntime) {
+      setVfsEntries(listVfsDir(currentPath, { includeHidden: showHidden }));
+      return;
+    }
+    void bridgeListFsDir(domicile, isBrowserRuntime, currentPath).then((entries) => {
       setVfsEntries(entries);
     });
-  }, [currentPath, domicile, isBrowserRuntime]);
+  }, [currentPath, domicile, isBrowserRuntime, showHidden]);
 
   React.useEffect(() => {
     if (!windowId || focusedWindowId !== windowId) return;
     const onKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && !e.altKey && e.key.toLowerCase() === "l") {
         e.preventDefault();
+        setSearchOpen(false);
+        setSearchQuery("");
         setDraftLocation(currentPath);
         setEditingLocation(true);
       } else if (
@@ -234,11 +320,42 @@ export function FilesApp({
         e.key.toLowerCase() === "f"
       ) {
         e.preventDefault();
+        setEditingLocation(false);
         setSearchOpen((prev) => {
           const next = !prev;
           if (!next) setSearchQuery("");
           return next;
         });
+      } else if (
+        (e.ctrlKey || e.metaKey) &&
+        !e.altKey &&
+        e.key.toLowerCase() === "x" &&
+        selectedIds.length > 0
+      ) {
+        e.preventDefault();
+        setClipboard({ mode: "cut", path: selectedIds[0] });
+      } else if (
+        (e.ctrlKey || e.metaKey) &&
+        !e.altKey &&
+        e.key.toLowerCase() === "c" &&
+        selectedIds.length > 0
+      ) {
+        e.preventDefault();
+        setClipboard({ mode: "copy", path: selectedIds[0] });
+      } else if (
+        (e.ctrlKey || e.metaKey) &&
+        !e.altKey &&
+        e.key.toLowerCase() === "v" &&
+        clipboard
+      ) {
+        e.preventDefault();
+        if (clipboard.mode === "cut") {
+          bridgeMoveFsEntry(domicile, isBrowserRuntime, clipboard.path, currentPath);
+          setClipboard(null);
+        } else {
+          copyVfsEntry(clipboard.path, currentPath);
+        }
+        reloadDir();
       }
     };
     window.addEventListener("keydown", onKeyDown, true);
@@ -320,34 +437,6 @@ export function FilesApp({
     );
   }, [getAppIconUrl, searchQuery, showHidden, vfsEntries]);
 
-  const breadcrumbSegments = React.useMemo(() => {
-    if (currentPath === WEB_VFS_TRASH) {
-      return [{ label: _("Trash"), path: WEB_VFS_TRASH }];
-    }
-    if (currentPath === WEB_VFS_HOME) {
-      return [{ label: _("Home"), path: WEB_VFS_HOME }];
-    }
-    if (currentPath.startsWith(`${WEB_VFS_HOME}/`)) {
-      const rel = currentPath.slice(WEB_VFS_HOME.length + 1);
-      const parts = rel.split("/").filter(Boolean);
-      const segs = [{ label: _("Home"), path: WEB_VFS_HOME }];
-      let acc = WEB_VFS_HOME;
-      for (const part of parts) {
-        acc = `${acc}/${part}`;
-        segs.push({ label: part, path: acc });
-      }
-      return segs;
-    }
-    const parts = currentPath.split("/").filter(Boolean);
-    const segs = [{ label: "/", path: "/" }];
-    let acc = "";
-    for (const part of parts) {
-      acc = `${acc}/${part}`;
-      segs.push({ label: part, path: acc });
-    }
-    return segs;
-  }, [currentPath]);
-
   const isTrashView = currentPath === WEB_VFS_TRASH;
   const activePlace = XDG_PLACES.find((p) => p.path === currentPath);
   const currentTitle =
@@ -421,6 +510,10 @@ export function FilesApp({
     }
     const entry = getVfsEntry(item.path);
     if (entry && entry.kind === "file") {
+      if (isImageVfsFile(entry.name, entry.content)) {
+        launchApp("image-viewer", { payload: entry.path });
+        return;
+      }
       if (isTextEditableVfsFile(entry.name)) {
         launchApp("text-editor", { payload: entry.path });
         return;
@@ -543,13 +636,19 @@ export function FilesApp({
   ) : null;
 
   return (
-    <div className="flex h-full w-full overflow-hidden bg-adw-window text-adw-label select-none">
-      {/* Left Places Sidebar (Split Header like Settings) */}
+    <div
+      ref={containerRef}
+      className="relative flex h-full w-full overflow-hidden bg-adw-window text-adw-label select-none"
+    >
+      {/* Left Places Sidebar (collapses to VS Code-style icon activity bar on small size) */}
       <aside
         ref={sidebarRef}
         onKeyDown={onSidebarKeyDown}
         onKeyUp={onSidebarKeyUp}
-        className="flex w-44 shrink-0 flex-col border-r border-adw-separator bg-adw-sidebar sm:w-48"
+        className={cn(
+          "flex min-h-0 shrink-0 flex-col overflow-hidden border-r border-adw-separator bg-adw-sidebar transition-[width] duration-150",
+          isCompact ? "w-[52px]" : "w-40"
+        )}
       >
         {isCsd && (
           <WindowTitlebar
@@ -564,46 +663,93 @@ export function FilesApp({
                 iconName="folder"
               />
             </div>
-            <span className="text-[14px] font-bold tracking-tight text-adw-label">
-              {_("Files")}
-            </span>
+            {!isCompact && (
+              <span className="truncate whitespace-nowrap text-[14px] font-bold tracking-tight text-adw-label">
+                {_("Files")}
+              </span>
+            )}
             <div className="w-7" />
           </WindowTitlebar>
         )}
 
-        <div
-          className={cn(
-            "flex flex-1 flex-col gap-0.5 overflow-y-auto px-2 pb-2",
-            isCsd ? "pt-0.5" : "pt-2"
-          )}
-        >
-          {XDG_PLACES.map((place) => {
-            const selected = highlightedPlace === place.path;
-            return (
-              <button
-                key={place.id}
-                type="button"
-                data-sidebar-item={place.path}
-                data-vfs-drop-path={place.path}
-                onClick={() => {
-                  setCurrentPath(place.path);
-                  setSelectedIds([]);
-                }}
-                className={cn(
-                  "flex w-full items-center gap-2.5 rounded-[9px] px-3 py-2 text-left text-[13px] transition-colors outline-none",
-                  selected
-                    ? "bg-adw-sidebar-selection font-medium text-adw-label"
-                    : "font-normal text-adw-label/85 hover:bg-black/5 dark:hover:bg-white/6"
-                )}
-              >
-                <span className="flex size-4 shrink-0 items-center justify-center opacity-85">
-                  {place.icon}
-                </span>
-                <span className="truncate">{_(place.label)}</span>
-              </button>
-            );
-          })}
-        </div>
+        <TooltipProvider delay={450}>
+          <div
+            className={cn(
+              "flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto px-2 pb-2",
+              isCsd ? "pt-0.5" : "pt-2"
+            )}
+          >
+            {XDG_PLACES.map((place) => {
+              const selected = highlightedPlace === place.path;
+              const isFavPlace = place.id === "favorites";
+              const iconNode = isFavPlace ? (
+                hasFavorites ? (
+                  <>
+                    <HeartIcon className="size-4 fill-rose-500 text-rose-500 group-hover/place:hidden" />
+                    <HeartCrackIcon className="hidden size-4 text-rose-500 group-hover/place:block" />
+                  </>
+                ) : (
+                  <HeartIcon className="size-4 text-adw-dim opacity-60" />
+                )
+              ) : (
+                place.icon
+              );
+              const btn = (
+                <button
+                  key={place.id}
+                  type="button"
+                  aria-label={_(place.label)}
+                  data-sidebar-item={place.path}
+                  data-vfs-drop-path={place.path}
+                  onClick={() => {
+                    setCurrentPath(place.path);
+                    setSelectedIds([]);
+                  }}
+                  className={cn(
+                    "group/place flex w-full shrink-0 items-center gap-2.5 rounded-[9px] px-2.5 py-1.5 text-left text-[13px] transition-colors outline-none",
+                    selected
+                      ? "bg-adw-sidebar-selection font-medium text-adw-label"
+                      : "font-normal text-adw-label/85 hover:bg-black/5 dark:hover:bg-white/6"
+                  )}
+                >
+                  <span className="flex size-4 shrink-0 items-center justify-center opacity-85">
+                    {iconNode}
+                  </span>
+                  <span
+                    className={cn(
+                      "truncate transition-opacity duration-150",
+                      isCompact ? "opacity-0" : "opacity-100"
+                    )}
+                  >
+                    {_(place.label)}
+                  </span>
+                </button>
+              );
+
+              if (!isCompact) return btn;
+              return (
+                <Tooltip key={place.id}>
+                  <TooltipTrigger render={btn} />
+                  <TooltipContent
+                    side="right"
+                    sideOffset={-36}
+                    className={cn(
+                      "pointer-events-none h-[32px] gap-2.5 rounded-[9px] border border-adw-separator px-2.5 py-1.5 text-[13px] shadow-md",
+                      selected
+                        ? "bg-adw-sidebar-selection font-medium text-adw-label"
+                        : "bg-adw-sidebar font-normal text-adw-label"
+                    )}
+                  >
+                    <span className="flex size-4 shrink-0 items-center justify-center opacity-85">
+                      {iconNode}
+                    </span>
+                    <span className="whitespace-nowrap">{_(place.label)}</span>
+                  </TooltipContent>
+                </Tooltip>
+              );
+            })}
+          </div>
+        </TooltipProvider>
       </aside>
 
       {/* Right Main Area */}
@@ -611,7 +757,8 @@ export function FilesApp({
         <WindowTitlebar
           data-window-drag-region={isCsd ? "" : undefined}
           className={cn(
-            "rounded-tl-none border-b border-adw-separator bg-adw-titlebar",
+            "border-b border-adw-separator bg-adw-titlebar",
+            !isCompact && "rounded-tl-none",
             !isCsd && "rounded-t-none"
           )}
         >
@@ -652,46 +799,19 @@ export function FilesApp({
                 />
               </form>
             ) : (
-              <div
+              <button
+                type="button"
+                title="Click or press Ctrl+L to edit location"
                 onClick={() => {
+                  setSearchOpen(false);
+                  setSearchQuery("");
                   setDraftLocation(currentPath);
                   setEditingLocation(true);
                 }}
-                title="Click or press Ctrl+L to edit location"
-                className="flex min-w-0 items-center gap-0.5 overflow-x-auto rounded-md px-1 py-0.5"
+                className="flex h-7 items-center truncate rounded-md px-2 text-[13.5px] font-semibold text-adw-label transition-colors hover:bg-black/8 dark:hover:bg-white/10"
               >
-                {breadcrumbSegments.map((seg, idx) => {
-                  const isLast = idx === breadcrumbSegments.length - 1;
-                  return (
-                    <React.Fragment key={seg.path}>
-                      {idx > 0 && (
-                        <ChevronRightIcon className="size-3.5 shrink-0 text-adw-label-tertiary" />
-                      )}
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (isLast) {
-                            setDraftLocation(currentPath);
-                            setEditingLocation(true);
-                          } else {
-                            setCurrentPath(seg.path);
-                            setSelectedIds([]);
-                          }
-                        }}
-                        className={cn(
-                          "truncate rounded px-1.5 py-0.5 text-[13px] transition-colors hover:bg-black/6 dark:hover:bg-white/8",
-                          isLast
-                            ? "font-semibold text-adw-label"
-                            : "font-medium text-adw-label-secondary hover:text-adw-label"
-                        )}
-                      >
-                        {seg.label}
-                      </button>
-                    </React.Fragment>
-                  );
-                })}
-              </div>
+                {_(currentTitle)}
+              </button>
             )}
           </div>
 
@@ -710,11 +830,11 @@ export function FilesApp({
                 {_("Empty Trash")}
               </Button>
             )}
-            {searchOpen && (
+            {searchOpen ? (
               <div className="relative flex items-center">
                 <input
                   ref={searchInputRef}
-                  type="text"
+                  type="search"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyDown={(e) => {
@@ -724,23 +844,64 @@ export function FilesApp({
                       setSearchQuery("");
                     }
                   }}
-                  placeholder={_("Filter folder…")}
                   aria-label="Filter files"
-                  className="h-7 w-36 rounded-md border border-adw-separator bg-black/6 px-2 text-[12px] text-adw-label outline-none focus:border-adw-accent dark:bg-white/10"
+                  className="h-7 w-44 rounded-md border border-adw-separator bg-black/6 px-2 text-[12px] text-adw-label outline-none focus:border-adw-accent dark:bg-white/10"
                 />
               </div>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  aria-label={viewMode === "grid" ? "List view" : "Grid view"}
+                  title={viewMode === "grid" ? "List view" : "Grid view"}
+                  onClick={() => setViewMode((m) => (m === "grid" ? "list" : "grid"))}
+                  className="flex size-7 items-center justify-center rounded-md text-adw-label-secondary transition-colors hover:bg-black/8 hover:text-adw-label dark:hover:bg-white/10"
+                >
+                  {viewMode === "grid" ? (
+                    <ListIcon className="size-4" />
+                  ) : (
+                    <LayoutGridIcon className="size-4" />
+                  )}
+                </button>
+
+                {/* Zoom Out / Zoom In Icon Buttons */}
+                <button
+                  type="button"
+                  aria-label={_("Zoom out")}
+                  title={_("Zoom out")}
+                  disabled={zoomIndex <= 0}
+                  onClick={() => setZoomIndex((z) => Math.max(0, z - 1))}
+                  className="flex size-7 items-center justify-center rounded-md text-adw-label-secondary transition-colors hover:bg-black/8 hover:text-adw-label disabled:pointer-events-none disabled:opacity-35 dark:hover:bg-white/10"
+                >
+                  <ZoomOutIcon className="size-4" />
+                </button>
+                <button
+                  type="button"
+                  aria-label={_("Zoom in")}
+                  title={_("Zoom in")}
+                  disabled={zoomIndex >= ZOOM_LEVELS.length - 1}
+                  onClick={() =>
+                    setZoomIndex((z) => Math.min(ZOOM_LEVELS.length - 1, z + 1))
+                  }
+                  className="flex size-7 items-center justify-center rounded-md text-adw-label-secondary transition-colors hover:bg-black/8 hover:text-adw-label disabled:pointer-events-none disabled:opacity-35 dark:hover:bg-white/10"
+                >
+                  <ZoomInIcon className="size-4" />
+                </button>
+              </>
             )}
+
             <button
               type="button"
               aria-label={_("Search")}
               title="Search (Ctrl+F)"
-              onClick={() =>
+              onClick={() => {
+                setEditingLocation(false);
                 setSearchOpen((prev) => {
                   const next = !prev;
                   if (!next) setSearchQuery("");
                   return next;
-                })
-              }
+                });
+              }}
               className={cn(
                 "flex size-7 items-center justify-center rounded-md transition-colors",
                 searchOpen
@@ -749,43 +910,6 @@ export function FilesApp({
               )}
             >
               <SearchIcon className="size-4" />
-            </button>
-            <button
-              type="button"
-              aria-label={viewMode === "grid" ? "List view" : "Grid view"}
-              title={viewMode === "grid" ? "List view" : "Grid view"}
-              onClick={() => setViewMode((m) => (m === "grid" ? "list" : "grid"))}
-              className="flex size-7 items-center justify-center rounded-md text-adw-label-secondary transition-colors hover:bg-black/8 hover:text-adw-label dark:hover:bg-white/10"
-            >
-              {viewMode === "grid" ? (
-                <ListIcon className="size-4" />
-              ) : (
-                <LayoutGridIcon className="size-4" />
-              )}
-            </button>
-
-            {/* Zoom Out / Zoom In Icon Buttons */}
-            <button
-              type="button"
-              aria-label={_("Zoom out")}
-              title={_("Zoom out")}
-              disabled={zoomIndex <= 0}
-              onClick={() => setZoomIndex((z) => Math.max(0, z - 1))}
-              className="flex size-7 items-center justify-center rounded-md text-adw-label-secondary transition-colors hover:bg-black/8 hover:text-adw-label disabled:pointer-events-none disabled:opacity-35 dark:hover:bg-white/10"
-            >
-              <ZoomOutIcon className="size-4" />
-            </button>
-            <button
-              type="button"
-              aria-label={_("Zoom in")}
-              title={_("Zoom in")}
-              disabled={zoomIndex >= ZOOM_LEVELS.length - 1}
-              onClick={() =>
-                setZoomIndex((z) => Math.min(ZOOM_LEVELS.length - 1, z + 1))
-              }
-              className="flex size-7 items-center justify-center rounded-md text-adw-label-secondary transition-colors hover:bg-black/8 hover:text-adw-label disabled:pointer-events-none disabled:opacity-35 dark:hover:bg-white/10"
-            >
-              <ZoomInIcon className="size-4" />
             </button>
 
             {/* CSD Window Controls */}
@@ -890,23 +1014,96 @@ export function FilesApp({
                             : "hover:bg-black/4 dark:hover:bg-white/5"
                         )}
                       >
-                        <td className="flex items-center gap-2 px-3 py-2 font-medium">
+                        <td className="px-3 py-2 font-medium">
                           {item.kind === "directory" ? (
-                            <img
-                              src={getAccentFolderIconUrl(settings.accentColor)}
-                              alt=""
-                              className="size-4 shrink-0"
-                            />
-                          ) : /\.(html|htm)$/i.test(item.name) ? (
-                            <img
-                              src={getAccentHtmlIconUrl(settings.accentColor)}
-                              alt=""
-                              className="size-4 shrink-0"
-                            />
+                            <details
+                              onClick={(e) => e.stopPropagation()}
+                              className="group/dir"
+                            >
+                              <summary className="flex cursor-default list-none items-center gap-2 [&::-webkit-details-marker]:hidden">
+                                <span className="inline-block w-3 text-[10px] text-adw-dim transition-transform group-open/dir:rotate-90">
+                                  ▸
+                                </span>
+                                <span
+                                  style={{
+                                    width: `${Math.max(16, Math.min(32, zoom.iconSize))}px`,
+                                    height: `${Math.max(16, Math.min(32, zoom.iconSize))}px`,
+                                  }}
+                                  className="inline-flex shrink-0"
+                                >
+                                  <DynamicFolderIcon
+                                    accentColor={settings.accentColor}
+                                    opened={openFolderPaths.has(item.path)}
+                                    pathOrName={item.path || item.name}
+                                    className="size-full"
+                                  />
+                                </span>
+                                <span className="truncate">{item.name}</span>
+                              </summary>
+                              <div className="mt-1.5 ml-6 space-y-1 border-l border-adw-separator pl-2.5 text-[11.5px] font-normal text-adw-label-secondary">
+                                {(() => {
+                                  const children = listVfsDir(item.path);
+                                  if (children.length === 0) {
+                                    return <div className="italic opacity-65">Empty</div>;
+                                  }
+                                  return children.map((child) => (
+                                    <div
+                                      key={child.id}
+                                      onDoubleClick={() => {
+                                        if (child.kind === "directory") {
+                                          setCurrentPath(child.path);
+                                        } else {
+                                          handleActivateItem({
+                                            id: child.id,
+                                            name: child.name,
+                                            kind: child.kind,
+                                            path: child.path,
+                                            iconName: inferFileVisual(child.name, child.kind).iconName,
+                                            gradient: "",
+                                          });
+                                        }
+                                      }}
+                                      className="flex items-center gap-2 rounded px-1.5 py-0.5 hover:bg-black/4 dark:hover:bg-white/5"
+                                    >
+                                      {child.kind === "directory" ? (
+                                        <DynamicFolderIcon
+                                          accentColor={settings.accentColor}
+                                          opened={false}
+                                          pathOrName={child.path}
+                                          className="size-4 shrink-0"
+                                        />
+                                      ) : (
+                                        <DynamicFileIcon
+                                          accentColor={settings.accentColor}
+                                          name={child.name}
+                                          className="size-4 shrink-0"
+                                        />
+                                      )}
+                                      <span className="truncate">{child.name}</span>
+                                    </div>
+                                  ));
+                                })()}
+                              </div>
+                            </details>
                           ) : (
-                            <FileTextIcon className="size-4 shrink-0 text-adw-label-secondary" />
+                            <div className="flex items-center gap-2 pl-5">
+                              <span
+                                style={{
+                                  width: `${Math.max(16, Math.min(32, zoom.iconSize))}px`,
+                                  height: `${Math.max(16, Math.min(32, zoom.iconSize))}px`,
+                                }}
+                                className="inline-flex shrink-0"
+                              >
+                                <DynamicFileIcon
+                                  accentColor={settings.accentColor}
+                                  name={item.name}
+                                  iconCandidates={item.iconCandidates}
+                                  className="size-full"
+                                />
+                              </span>
+                              <span className="truncate">{item.name}</span>
+                            </div>
                           )}
-                          <span className="truncate">{item.name}</span>
                         </td>
                         <td className="px-3 py-2 text-adw-label-secondary">
                           {item.kind === "directory" ? "Directory" : "File"}
@@ -944,6 +1141,14 @@ export function FilesApp({
               className="[&_button[aria-selected=false]_span]:text-adw-label [&_button_span]:drop-shadow-none"
             />
           )}
+          <div
+            data-testid="files-status-pill"
+            className="pointer-events-none absolute right-2.5 bottom-2 z-10 rounded-full border border-adw-border/60 bg-adw-card/90 px-2.5 py-0.5 text-[11px] font-medium text-adw-dim shadow-xs backdrop-blur-md"
+          >
+            {selectedIds.length > 0
+              ? `${selectedIds.length} selected`
+              : `${items.length} ${items.length === 1 ? "item" : "items"}`}
+          </div>
         </div>
       </div>
 
@@ -956,9 +1161,24 @@ export function FilesApp({
         onOpenInTerminal={(target) =>
           launchApp("terminal", { payload: target.path, forceNew: true })
         }
-        onEditText={(target) =>
-          launchApp("text-editor", { payload: target.path })
-        }
+        onCut={(target) => setClipboard({ mode: "cut", path: target.path })}
+        onCopy={(target) => setClipboard({ mode: "copy", path: target.path })}
+        canPaste={Boolean(clipboard)}
+        onPaste={() => {
+          if (!clipboard) return;
+          if (clipboard.mode === "cut") {
+            bridgeMoveFsEntry(domicile, isBrowserRuntime, clipboard.path, currentPath);
+            setClipboard(null);
+          } else {
+            copyVfsEntry(clipboard.path, currentPath);
+          }
+          reloadDir();
+        }}
+        isFavorite={Boolean(itemMenu && isVfsFavorite(itemMenu.item.path))}
+        onToggleFavorite={(target) => {
+          toggleVfsFavorite(target.path);
+          reloadDir();
+        }}
         onRename={(target) => setRenamingId(target.id)}
         onTrash={handleTrashItem}
       />

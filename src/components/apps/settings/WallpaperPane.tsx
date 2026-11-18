@@ -162,18 +162,16 @@ export function WallpaperPane() {
           }
         }}
         className={cn(
-          "group flex flex-col overflow-hidden rounded-[12px] border p-1.5 text-left transition-all outline-none",
+          "group relative overflow-hidden rounded-[8px] transition-all outline-none",
           selected
-            ? "border-adw-accent bg-adw-accent/10 ring-2 ring-adw-accent/40"
-            : "border-adw-separator bg-adw-group hover:border-white/30"
+            ? "ring-2 ring-adw-accent ring-offset-2 ring-offset-adw-group"
+            : "opacity-90 hover:opacity-100"
         )}
       >
         <div
           className={cn(
-            "w-full rounded-[8px] shadow-inner transition-transform duration-300 group-hover:scale-[1.02]",
-            isSolid
-              ? "h-16 border border-black/10 dark:border-white/10"
-              : "h-20"
+            "w-full rounded-[8px] transition-transform duration-200 group-hover:scale-[1.02]",
+            isSolid ? "h-12" : "h-18"
           )}
           style={
             wp.imageUrl
@@ -194,43 +192,50 @@ export function WallpaperPane() {
     <GroupedForm>
       <GroupedFormSection>
         <GroupedFormSectionTitle>Current Wallpaper</GroupedFormSectionTitle>
-        <div className="flex justify-center rounded-[14px] bg-adw-group p-3.5">
-          <div className="relative aspect-video h-32 w-auto max-w-full overflow-hidden rounded-[10px] border border-black/10 shadow-md dark:border-white/20">
-            <DesktopBackgroundLayers />
+        <GroupedFormGroup>
+          <div className="flex justify-center p-3.5">
+            <div className="relative aspect-video h-28 w-auto max-w-full overflow-hidden rounded-[8px] border border-black/10 dark:border-white/15">
+              <DesktopBackgroundLayers />
+            </div>
           </div>
-        </div>
+        </GroupedFormGroup>
       </GroupedFormSection>
 
       <GroupedFormSection>
         <GroupedFormSectionTitle>Dynamic &amp; Gradients</GroupedFormSectionTitle>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          {gradients.map((wp) => renderWallpaperCard(wp, false))}
-        </div>
+        <GroupedFormGroup>
+          <div className="grid grid-cols-2 gap-3 p-3.5 sm:grid-cols-3">
+            {gradients.map((wp) => renderWallpaperCard(wp, false))}
+          </div>
+        </GroupedFormGroup>
       </GroupedFormSection>
 
       <GroupedFormSection>
         <GroupedFormSectionTitle>Pictures</GroupedFormSectionTitle>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          {pictures.map((wp) => renderWallpaperCard(wp, false))}
-        </div>
+        <GroupedFormGroup>
+          <div className="grid grid-cols-2 gap-3 p-3.5 sm:grid-cols-3">
+            {pictures.map((wp) => renderWallpaperCard(wp, false))}
+          </div>
+        </GroupedFormGroup>
       </GroupedFormSection>
 
       <GroupedFormSection>
         <GroupedFormSectionTitle>Solid colors</GroupedFormSectionTitle>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-          {solidWallpapers.map((wp) => renderWallpaperCard(wp, true))}
+        <GroupedFormGroup>
+          <div className="grid grid-cols-3 gap-3 p-3.5 sm:grid-cols-4 lg:grid-cols-6">
+            {solidWallpapers.map((wp) => renderWallpaperCard(wp, true))}
 
-          {/* Custom Solid Color with HTML5 Color Selector */}
-          <div
-            className={cn(
-              "group relative flex flex-col overflow-hidden rounded-[12px] border p-1.5 transition-all",
-              isCustomSelected
-                ? "border-adw-accent bg-adw-accent/10 ring-2 ring-adw-accent/40"
-                : "border-adw-separator bg-adw-group hover:border-white/30"
-            )}
-          >
+            {/* Custom Solid Color with HTML5 Color Selector */}
             <div
-              className="relative flex h-16 w-full items-center justify-center overflow-hidden rounded-[8px] border border-black/10 shadow-inner transition-transform duration-300 group-hover:scale-[1.02] dark:border-white/10"
+              className={cn(
+                "group relative overflow-hidden rounded-[8px] transition-all",
+                isCustomSelected
+                  ? "ring-2 ring-adw-accent ring-offset-2 ring-offset-adw-group"
+                  : "opacity-90 hover:opacity-100"
+              )}
+            >
+              <div
+                className="relative flex h-12 w-full items-center justify-center overflow-hidden rounded-[8px] transition-transform duration-200 group-hover:scale-[1.02]"
               style={{
                 background: isCustomSelected
                   ? customHexValue
@@ -253,7 +258,8 @@ export function WallpaperPane() {
               />
             </div>
           </div>
-        </div>
+          </div>
+        </GroupedFormGroup>
       </GroupedFormSection>
 
       <GroupedFormSection>

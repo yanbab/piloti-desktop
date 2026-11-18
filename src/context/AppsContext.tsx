@@ -240,6 +240,9 @@ const ADWAITA_DIRECT_ICON_FALLBACKS: Record<string, readonly string[]> = {
   "app-store": [
     "/usr/share/icons/hicolor/scalable/apps/org.gnome.Software.svg",
   ],
+  calculator: [
+    "/usr/share/icons/hicolor/scalable/apps/piloti-calculator.svg",
+  ],
   "image-x-generic": [
     "/usr/share/icons/Adwaita/scalable/mimetypes/image-x-generic.svg",
   ],

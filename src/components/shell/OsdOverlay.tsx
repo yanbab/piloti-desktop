@@ -124,7 +124,7 @@ export function OsdOverlay() {
           <Volume2Icon className="size-4.5 shrink-0 text-white" />
         )
       ) : (
-        <SunIcon className="size-4.5 shrink-0 text-amber-400" />
+        <SunIcon className="size-4.5 shrink-0 text-white" />
       )}
       <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/20">
         <div

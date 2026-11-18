@@ -46,6 +46,28 @@
     -webkit-text-stroke-width: inherit;
     -webkit-text-stroke-color: currentColor;
   }
+
+  [data-piloti-window-dragging] iframe,
+  [data-piloti-window-dragging] webview,
+  [data-piloti-window-dragging] app {
+    pointer-events: none !important;
+  }
+
+  button,
+  [role="button"],
+  [role="menuitem"],
+  label {
+    cursor: default;
+  }
+
+  a[href] {
+    cursor: pointer;
+  }
+
+  iframe {
+    color-scheme: light dark;
+    background-color: var(--adw-window-bg, #222222);
+  }
 }
 
 app {

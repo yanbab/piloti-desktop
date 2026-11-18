@@ -20,7 +20,12 @@ export function FileItemContextMenu({
   onClose,
   onOpen,
   onOpenInTerminal,
-  onEditText,
+  onCut,
+  onCopy,
+  onPaste,
+  canPaste = false,
+  isFavorite = false,
+  onToggleFavorite,
   onRename,
   onNewFolder,
   onNewTextFile,
@@ -32,6 +37,12 @@ export function FileItemContextMenu({
   onOpen: (item: IconGridItem) => void;
   onOpenInTerminal?: (item: IconGridItem) => void;
   onEditText?: (item: IconGridItem) => void;
+  onCut?: (item: IconGridItem) => void;
+  onCopy?: (item: IconGridItem) => void;
+  onPaste?: () => void;
+  canPaste?: boolean;
+  isFavorite?: boolean;
+  onToggleFavorite?: (item: IconGridItem) => void;
   onRename: (item: IconGridItem) => void;
   onNewFolder?: () => void;
   onNewTextFile?: () => void;
@@ -90,19 +101,68 @@ export function FileItemContextMenu({
             {_("Open in Terminal")}
           </button>
         )}
-        {onEditText && menu.item.kind === "file" && (
-          <button
-            type="button"
-            role="menuitem"
-            onClick={() => {
-              const target = menu.item;
-              onClose();
-              onEditText(target);
-            }}
-            className={cn(MENU_ITEM_CLASS, "w-full text-left hover:bg-adw-menu-highlight")}
-          >
-            {_("Edit in Text Editor")}
-          </button>
+        {(onCut || onCopy || (onPaste && canPaste)) && (
+          <>
+            <div className={MENU_SEPARATOR_CLASS} />
+            {onCut && (
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  const target = menu.item;
+                  onClose();
+                  onCut(target);
+                }}
+                className={cn(MENU_ITEM_CLASS, "w-full text-left hover:bg-adw-menu-highlight")}
+              >
+                {_("Cut")}
+              </button>
+            )}
+            {onCopy && (
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  const target = menu.item;
+                  onClose();
+                  onCopy(target);
+                }}
+                className={cn(MENU_ITEM_CLASS, "w-full text-left hover:bg-adw-menu-highlight")}
+              >
+                {_("Copy")}
+              </button>
+            )}
+            {onPaste && canPaste && (
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  onClose();
+                  onPaste();
+                }}
+                className={cn(MENU_ITEM_CLASS, "w-full text-left hover:bg-adw-menu-highlight")}
+              >
+                {_("Paste")}
+              </button>
+            )}
+          </>
+        )}
+        {onToggleFavorite && (
+          <>
+            <div className={MENU_SEPARATOR_CLASS} />
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                const target = menu.item;
+                onClose();
+                onToggleFavorite(target);
+              }}
+              className={cn(MENU_ITEM_CLASS, "w-full text-left hover:bg-adw-menu-highlight")}
+            >
+              {isFavorite ? _("Remove from Favorites") : _("Add to Favorites")}
+            </button>
+          </>
         )}
         <button
           type="button"

@@ -3,14 +3,28 @@ import { useDisplays } from "@domicile-desktop/react/displays";
 import { useDomicile } from "@domicile-desktop/react/domicile-provider";
 import { useWatch } from "@domicile-desktop/react/use-watch";
 import {
+  AppWindowIcon,
+  BellIcon,
   ChevronRightIcon,
+  CpuIcon,
   DatabaseIcon,
+  LayoutGridIcon,
   Maximize2Icon,
   MinusIcon,
+  MonitorIcon,
   ScrollTextIcon,
+  SettingsIcon,
   XIcon,
 } from "lucide-react";
+import { ObjectView, themeGitHubLight, themeOneDark } from "react-obj-view";
+import "react-obj-view/dist/react-obj-view.css";
 import { WindowMenuButton } from "@/components/shell/WindowMenuButton";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { WindowControls, WindowTitlebar } from "@/components/ui/window";
 import { useSidebarKeyboardNav } from "@/hooks/use-sidebar-keyboard-nav";
 import {
@@ -464,13 +478,13 @@ function InspectorModule() {
   const inspectorSidebarRef = React.useRef<HTMLElement | null>(null);
   const inspectorContentRef = React.useRef<HTMLDivElement | null>(null);
 
-  const sections: { id: InspectorSectionId; label: string }[] = [
-    { id: "windows", label: "windows" },
-    { id: "displays", label: "displays" },
-    { id: "system", label: "systemBackends" },
-    { id: "apps", label: "installedXdgApps" },
-    { id: "settings", label: "settings" },
-    { id: "notifications", label: "notifications" },
+  const sections: { id: InspectorSectionId; label: string; icon: React.ReactNode }[] = [
+    { id: "windows", label: "Windows", icon: <AppWindowIcon className="size-4 shrink-0" /> },
+    { id: "displays", label: "Displays", icon: <MonitorIcon className="size-4 shrink-0" /> },
+    { id: "system", label: "System Backends", icon: <CpuIcon className="size-4 shrink-0" /> },
+    { id: "apps", label: "Installed Apps", icon: <LayoutGridIcon className="size-4 shrink-0" /> },
+    { id: "settings", label: "Settings", icon: <SettingsIcon className="size-4 shrink-0" /> },
+    { id: "notifications", label: "Notifications", icon: <BellIcon className="size-4 shrink-0" /> },
   ];
 
   const {
@@ -709,33 +723,57 @@ function InspectorModule() {
 
   return (
     <div className="flex min-h-0 flex-1">
-      {/* Settings-style Left Sidebar */}
-      <aside
-        ref={inspectorSidebarRef}
-        onKeyDown={onInspectorSidebarKeyDown}
-        onKeyUp={onInspectorSidebarKeyUp}
-        className="w-40 shrink-0 space-y-1 overflow-y-auto border-r border-adw-separator bg-adw-sidebar p-2 sm:w-44"
-      >
-        {sections.map((section) => {
-          const active = highlightedSection === section.id;
-          return (
-            <button
-              key={section.id}
-              type="button"
-              data-sidebar-item={section.id}
-              onClick={() => setActiveSection(section.id)}
-              className={cn(
-                "flex w-full items-center rounded-lg px-3 py-2 text-left text-[12.5px] transition-colors",
-                active
-                  ? "bg-adw-sidebar-selection font-medium text-adw-label"
-                  : "font-normal text-adw-label/85 hover:bg-black/5 dark:hover:bg-white/6"
-              )}
-            >
-              <span className="truncate">{section.label}</span>
-            </button>
-          );
-        })}
-      </aside>
+      {/* Settings-style Left Sidebar (collapses to VS Code-style icon bar when narrow) */}
+      <TooltipProvider delay={450}>
+        <aside
+          ref={inspectorSidebarRef}
+          onKeyDown={onInspectorSidebarKeyDown}
+          onKeyUp={onInspectorSidebarKeyUp}
+          className="flex min-h-0 w-[52px] shrink-0 flex-col space-y-1 overflow-x-hidden overflow-y-auto border-r border-adw-separator bg-adw-sidebar p-1.5 transition-[width] duration-150 sm:w-44 sm:p-2"
+        >
+          {sections.map((section) => {
+            const active = highlightedSection === section.id;
+            const btn = (
+              <button
+                key={section.id}
+                type="button"
+                aria-label={section.label}
+                data-sidebar-item={section.id}
+                onClick={() => setActiveSection(section.id)}
+                className={cn(
+                  "flex w-full shrink-0 items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-[12.5px] transition-colors",
+                  active
+                    ? "bg-adw-sidebar-selection font-medium text-adw-label"
+                    : "font-normal text-adw-label/85 hover:bg-black/5 dark:hover:bg-white/6"
+                )}
+              >
+                <span className="shrink-0 opacity-85">{section.icon}</span>
+                <span className="truncate opacity-0 transition-opacity duration-150 sm:opacity-100">
+                  {section.label}
+                </span>
+              </button>
+            );
+            return (
+              <Tooltip key={section.id}>
+                <TooltipTrigger render={btn} />
+                <TooltipContent
+                  side="right"
+                  sideOffset={-36}
+                  className={cn(
+                    "pointer-events-none h-[34px] gap-2.5 rounded-lg border border-adw-separator px-2.5 py-2 text-[12.5px] shadow-md sm:hidden",
+                    active
+                      ? "bg-adw-sidebar-selection font-medium text-adw-label"
+                      : "bg-adw-sidebar font-normal text-adw-label"
+                  )}
+                >
+                  <span className="shrink-0 opacity-85">{section.icon}</span>
+                  <span className="whitespace-nowrap">{section.label}</span>
+                </TooltipContent>
+              </Tooltip>
+            );
+          })}
+        </aside>
+      </TooltipProvider>
 
       {/* Right Content: Structured Tables */}
       <div
@@ -757,6 +795,11 @@ interface StorageEntry {
   byteSize: number;
   isJson: boolean;
   formattedJson: string | null;
+  parsedJson?: unknown;
+}
+
+function formatStorageKeyLabel(key: string): string {
+  return key.replace(/^(?:piloti|residence)\./i, "").replace(/\.v\d+$/i, "");
 }
 
 interface DataImagePreview {
@@ -823,6 +866,7 @@ function readLocalStorageEntries(): StorageEntry[] {
     const byteSize = encoder ? encoder.encode(rawValue).length : rawValue.length;
     let isJson = false;
     let formattedJson: string | null = null;
+    let parsedJson: unknown;
     try {
       const parsed: unknown = JSON.parse(rawValue);
       isJson = true;
@@ -831,16 +875,18 @@ function readLocalStorageEntries(): StorageEntry[] {
         (_k, val) => (typeof val === "string" ? abbreviateDataImageUri(val) : val),
         2
       );
+      parsedJson = JSON.parse(formattedJson);
     } catch {
       // Plain non-JSON string value
     }
-    entries.push({ key, rawValue, byteSize, isJson, formattedJson });
+    entries.push({ key, rawValue, byteSize, isJson, formattedJson, parsedJson });
   }
   entries.sort((a, b) => a.key.localeCompare(b.key));
   return entries;
 }
 
 function StorageModule() {
+  const { settings } = useSettings();
   const [entries, setEntries] = React.useState<StorageEntry[]>(() =>
     readLocalStorageEntries()
   );
@@ -898,6 +944,44 @@ function StorageModule() {
     [activeEntry]
   );
 
+  const groupedStorageEntries = React.useMemo(() => {
+    const classify = (key: string): { section: string; shortLabel: string } => {
+      const k = key.toLowerCase();
+      if (k.includes("launcher")) {
+        if (k.includes("recent")) return { section: "Launcher", shortLabel: "Recent" };
+        if (k.includes("history")) return { section: "Launcher", shortLabel: "History" };
+        if (k.includes("height")) return { section: "Launcher", shortLabel: "Height" };
+        if (k.includes("snapshot")) return { section: "Launcher", shortLabel: "Snapshots" };
+        return { section: "Launcher", shortLabel: formatStorageKeyLabel(key) };
+      }
+      if (k.includes("vfs") || k.includes("files") || k.includes("bookmark") || k.includes("favorite")) {
+        if (k.includes("vfs")) return { section: "Files & VFS", shortLabel: "Filesystem" };
+        if (k.includes("favorite")) return { section: "Files & VFS", shortLabel: "Favorites" };
+        if (k.includes("bookmark")) return { section: "Files & VFS", shortLabel: "Bookmarks" };
+        return { section: "Files & VFS", shortLabel: formatStorageKeyLabel(key) };
+      }
+      if (k.includes("settings") || k.includes("notif") || k.includes("session") || k.includes("piloti")) {
+        if (k.includes("settings")) return { section: "Shell", shortLabel: "Settings" };
+        if (k.includes("notif")) return { section: "Shell", shortLabel: "Notifications" };
+        if (k.includes("session")) return { section: "Shell", shortLabel: "Session" };
+        if (k.includes("activepane")) return { section: "Shell", shortLabel: "Settings Pane" };
+        return { section: "Shell", shortLabel: formatStorageKeyLabel(key) };
+      }
+      return { section: "Other", shortLabel: formatStorageKeyLabel(key) };
+    };
+
+    const order = ["Shell", "Launcher", "Files & VFS", "Other"];
+    const map = new Map<string, Array<{ entry: StorageEntry; shortLabel: string }>>();
+    for (const s of order) map.set(s, []);
+    for (const entry of entries) {
+      const { section, shortLabel } = classify(entry.key);
+      map.get(section)?.push({ entry, shortLabel });
+    }
+    return order
+      .map((section) => ({ section, items: map.get(section) ?? [] }))
+      .filter((g) => g.items.length > 0);
+  }, [entries]);
+
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       {/* Split Explorer */}
@@ -910,44 +994,58 @@ function StorageModule() {
         </div>
       ) : (
         <div className="flex min-h-0 flex-1">
-          {/* Left: Settings-style Sidebar with 1-line key names */}
+          {/* Left: Sectioned Sidebar with simple labels */}
           <aside
             ref={storageSidebarRef}
             onKeyDown={onStorageSidebarKeyDown}
             onKeyUp={onStorageSidebarKeyUp}
-            className="w-40 shrink-0 space-y-1 overflow-y-auto border-r border-adw-separator bg-adw-sidebar p-2 sm:w-44"
+            className="w-40 shrink-0 space-y-3 overflow-y-auto border-r border-adw-separator bg-adw-sidebar p-2 sm:w-44"
           >
-            {entries.map((entry) => {
-              const isSelected = highlightedStorageKey === entry.key;
-              return (
-                <button
-                  key={entry.key}
-                  type="button"
-                  data-sidebar-item={entry.key}
-                  title={entry.key}
-                  onClick={() => setSelectedKey(entry.key)}
-                  className={cn(
-                    "flex w-full items-center rounded-lg px-3 py-2 text-left transition-colors",
-                    isSelected
-                      ? "bg-adw-sidebar-selection font-medium text-adw-label"
-                      : "font-normal text-adw-label/85 hover:bg-black/5 dark:hover:bg-white/6"
-                  )}
-                >
-                  <span className="truncate text-[12.5px] font-medium">
-                    {entry.key}
-                  </span>
-                </button>
-              );
-            })}
+            {groupedStorageEntries.map((group) => (
+              <div key={group.section} className="space-y-0.5">
+                <div className="px-2.5 pb-1 text-[10px] font-semibold tracking-wider text-adw-dim uppercase">
+                  {group.section}
+                </div>
+                {group.items.map(({ entry, shortLabel }) => {
+                  const isSelected = highlightedStorageKey === entry.key;
+                  return (
+                    <button
+                      key={entry.key}
+                      type="button"
+                      data-sidebar-item={entry.key}
+                      onClick={() => setSelectedKey(entry.key)}
+                      className={cn(
+                        "flex w-full items-center rounded-lg px-3 py-1.5 text-left transition-colors",
+                        isSelected
+                          ? "bg-adw-sidebar-selection font-medium text-adw-label"
+                          : "font-normal text-adw-label/85 hover:bg-black/5 dark:hover:bg-white/6"
+                      )}
+                    >
+                      <span className="truncate text-[12.5px] font-medium">
+                        {shortLabel}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            ))}
           </aside>
 
-          {/* Right: Selected Entry Value Inspector (no pane header) */}
+          {/* Right: Selected Entry Value Inspector with small key header */}
           {activeEntry ? (
             <div
               ref={storageContentRef}
               onKeyDown={onStorageContentKeyDown}
               className="flex min-w-0 flex-1 flex-col overflow-hidden bg-black/2 dark:bg-white/2"
             >
+              <div className="flex shrink-0 items-center justify-between border-b border-adw-separator bg-adw-window/60 px-4 py-1.5">
+                <span className="truncate font-mono text-[11px] font-medium text-adw-dim select-text">
+                  {activeEntry.key}
+                </span>
+                <span className="shrink-0 font-mono text-[10.5px] text-adw-dim tabular-nums">
+                  {activeEntry.rawValue.length} chars
+                </span>
+              </div>
               <div className="min-h-0 flex-1 overflow-auto p-4">
                 {activeImages.length > 0 && (
                   <div className="mb-4 flex flex-wrap gap-3 border-b border-adw-separator pb-4">
@@ -968,9 +1066,29 @@ function StorageModule() {
                     ))}
                   </div>
                 )}
-                <pre className="font-mono text-[12.5px] leading-relaxed break-words whitespace-pre-wrap text-adw-label select-text">
-                  {activeDisplayValue}
-                </pre>
+                {activeEntry.isJson &&
+                typeof activeEntry.parsedJson === "object" &&
+                activeEntry.parsedJson !== null ? (
+                  <ObjectView
+                    key={activeEntry.key}
+                    valueGetter={() => activeEntry.parsedJson}
+                    name={formatStorageKeyLabel(activeEntry.key)}
+                    expandLevel={2}
+                    style={
+                      {
+                        ...(settings.themeMode === "light"
+                          ? themeGitHubLight
+                          : themeOneDark),
+                        backgroundColor: "transparent",
+                        fontSize: "12.5px",
+                      } as React.CSSProperties
+                    }
+                  />
+                ) : (
+                  <pre className="font-mono text-[12.5px] leading-relaxed break-words whitespace-pre-wrap text-adw-label select-text">
+                    {activeDisplayValue}
+                  </pre>
+                )}
               </div>
             </div>
           ) : (

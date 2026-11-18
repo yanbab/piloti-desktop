@@ -132,7 +132,7 @@ export function AppearancePane() {
             </GroupedFormRowControl>
           </GroupedFormRow>
 
-          <GroupedFormRow>
+          {/* <GroupedFormRow>
             <GroupedFormRowLabel>
               <GroupedFormRowTitle>Icon Theme</GroupedFormRowTitle>
             </GroupedFormRowLabel>
@@ -155,7 +155,9 @@ export function AppearancePane() {
                 </SelectContent>
               </Select>
             </GroupedFormRowControl>
-          </GroupedFormRow>
+          </GroupedFormRow> */}
+
+
         </GroupedFormGroup>
       </GroupedFormSection>
 
@@ -208,7 +210,7 @@ export function AppearancePane() {
               </div>
             </GroupedFormRowControl>
           </GroupedFormRow>
-
+          {/* 
           {settings.desktopIconsEnabled &&
             Object.keys(settings.desktopIconPositions).length > 0 && (
               <GroupedFormRow>
@@ -225,7 +227,37 @@ export function AppearancePane() {
                   </Button>
                 </GroupedFormRowControl>
               </GroupedFormRow>
-            )}
+            )} 
+             */}
+
+
+          <GroupedFormRow>
+            <GroupedFormRowLabel>
+              <GroupedFormRowTitle>More Transparency</GroupedFormRowTitle>
+            </GroupedFormRowLabel>
+            <GroupedFormRowControl>
+              <Switch
+                checked={settings.moreTransparency}
+                onCheckedChange={(checked) =>
+                  updateSettings({ moreTransparency: Boolean(checked) })
+                }
+              />
+            </GroupedFormRowControl>
+          </GroupedFormRow>
+
+          <GroupedFormRow>
+            <GroupedFormRowLabel>
+              <GroupedFormRowTitle>Reduce Motion</GroupedFormRowTitle>
+            </GroupedFormRowLabel>
+            <GroupedFormRowControl>
+              <Switch
+                checked={settings.reduceMotion}
+                onCheckedChange={(checked) =>
+                  updateSettings({ reduceMotion: Boolean(checked) })
+                }
+              />
+            </GroupedFormRowControl>
+          </GroupedFormRow>
         </GroupedFormGroup>
       </GroupedFormSection>
     </GroupedForm>

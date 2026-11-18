@@ -129,18 +129,17 @@ export function AltTabSwitcher() {
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="flex max-h-[82vh] w-full max-w-[820px] flex-col overflow-hidden rounded-adw-menu p-3.5 text-adw-label shadow-adw-menu adw-material-menu animate-in fade-in-0 duration-150 motion-reduce:animate-none"
+        className="flex max-w-[90vw] flex-col items-center overflow-hidden rounded-[22px] px-5 py-4 text-adw-label shadow-adw-menu adw-material-menu animate-in fade-in-0 zoom-in-95 duration-150 motion-reduce:animate-none"
       >
-        {/* Windows Grid */}
         {mruWindows.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-10 text-center text-adw-label-secondary">
-            <SparklesIcon className="mb-2 size-8 text-adw-accent" />
+          <div className="flex flex-col items-center justify-center px-6 py-4 text-center text-adw-label-secondary">
+            <SparklesIcon className="mb-2 size-7 text-adw-accent" />
             <p className="text-sm font-medium text-adw-label">
               No open windows
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-3.5 overflow-y-auto p-1 sm:grid-cols-3 md:grid-cols-4">
+          <div className="flex max-w-full items-start gap-3 overflow-x-auto px-1 py-1">
             {mruWindows.map((win, index) => {
               const selected = index === altTabIndex;
               const resolvedIconUrl =
@@ -151,15 +150,17 @@ export function AltTabSwitcher() {
                   type="button"
                   onPointerEnter={() => setAltTabIndex(index)}
                   onClick={() => commitAltTab(win.id)}
-                  className={cn(
-                    "group flex flex-col overflow-hidden rounded-adw-item p-2 text-left transition-all duration-150 outline-none motion-reduce:transition-none",
-                    selected
-                      ? "scale-[1.02] bg-adw-fill-primary ring-2 ring-adw-accent shadow-md"
-                      : "bg-adw-fill-tertiary ring-1 ring-adw-border hover:bg-adw-fill-secondary"
-                  )}
+                  className="group flex w-[84px] shrink-0 flex-col items-center gap-2 outline-none"
                 >
-                  {/* Window Card Header */}
-                  <div className="mb-2 flex items-center gap-2 px-1">
+                  <div
+                    className={cn(
+                      "flex size-[68px] items-center justify-center rounded-[16px] p-2 transition-all duration-100 motion-reduce:transition-none",
+                      selected
+                        ? "bg-black/14 ring-2 ring-adw-accent dark:bg-white/16"
+                        : "bg-transparent hover:bg-black/6 dark:hover:bg-white/8",
+                      win.minimized && "opacity-65"
+                    )}
+                  >
                     <AppSquircleIcon
                       iconName={win.iconName}
                       iconUrl={resolvedIconUrl}
@@ -168,39 +169,20 @@ export function AltTabSwitcher() {
                       }
                       squircle={Boolean(win.browserWindowId)}
                       gradient={win.gradient}
-                      className="size-5 shrink-0"
-                      glyphClassName="size-3"
+                      className="size-13"
+                      glyphClassName="size-7"
                     />
-                    <span className="truncate text-[12px] font-medium text-adw-label">
-                      {win.title}
-                    </span>
-                    {win.minimized && (
-                      <span
-                        title="Minimized"
-                        className="ml-auto flex items-center gap-0.5 rounded-full bg-amber-500/20 px-1.5 py-0.5 text-[9px] font-medium text-amber-500 dark:text-amber-300"
-                      >
-                        <Minimize2Icon className="size-2.5" />
-                      </span>
+                  </div>
+                  <span
+                    className={cn(
+                      "line-clamp-2 max-w-full rounded px-1.5 py-0.5 text-center text-[11.5px] leading-tight font-medium transition-opacity",
+                      selected
+                        ? "bg-adw-accent text-white opacity-100"
+                        : "text-adw-label-secondary opacity-0"
                     )}
-                  </div>
-
-                  {/* Miniature Window Frame Preview */}
-                  <div className="relative h-28 w-full overflow-hidden rounded-[10px] border border-adw-border bg-zinc-950 shadow-inner">
-                    <div className="flex h-4 items-center gap-1 border-b border-white/10 bg-zinc-900 px-2">
-                      <span className="size-1.5 rounded-full bg-rose-500/80" />
-                      <span className="size-1.5 rounded-full bg-amber-400/80" />
-                      <span className="size-1.5 rounded-full bg-emerald-500/80" />
-                      <span className="ml-auto text-[8px] text-white/40">
-                        WS {win.workspace}
-                      </span>
-                    </div>
-                    <div className="h-[calc(100%-16px)] w-full">
-                      <WindowMiniPreview
-                        win={{ ...win, iconUrl: resolvedIconUrl }}
-                        captureUrl={previews[win.id]}
-                      />
-                    </div>
-                  </div>
+                  >
+                    {win.title}
+                  </span>
                 </button>
               );
             })}

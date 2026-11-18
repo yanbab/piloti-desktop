@@ -308,9 +308,9 @@ export function ControlPanel() {
         {/* Wi-Fi Split Pill (Toggle + Inline Network Picker) */}
         <div
           className={cn(
-            "flex items-stretch overflow-hidden rounded-[14px]",
+            "flex items-stretch overflow-hidden rounded-[12px]",
             settings.wifiEnabled
-              ? "bg-adw-accent text-white shadow-xs"
+              ? "bg-adw-accent text-white"
               : "bg-black/6 text-adw-label dark:bg-white/8"
           )}
         >
@@ -322,26 +322,14 @@ export function ControlPanel() {
               updateSettings({ wifiEnabled: next });
             }}
             className={cn(
-              "flex min-w-0 flex-1 items-center gap-2.5 p-2.5 text-left",
+              "flex min-w-0 flex-1 items-center gap-2.5 px-3 py-2 text-left",
               settings.wifiEnabled
                 ? "active:bg-white/20"
                 : "active:bg-black/14 dark:active:bg-white/18"
             )}
           >
-            <span
-              className={cn(
-                "flex size-8 shrink-0 items-center justify-center rounded-full",
-                settings.wifiEnabled ? "bg-white/20" : "bg-black/10 dark:bg-white/10"
-              )}
-            >
-              <WifiIcon className="size-4" />
-            </span>
-            <div className="min-w-0 flex-1">
-              <div className="text-[12px] font-semibold">Wi-Fi</div>
-              <div className="truncate text-[10px] opacity-80">
-                {settings.wifiEnabled ? settings.connectedWifi : "Off"}
-              </div>
-            </div>
+            <WifiIcon className="size-[18px] shrink-0" />
+            <span className="truncate text-[12.5px] font-semibold">Wi-Fi</span>
           </button>
           <button
             type="button"
@@ -376,28 +364,16 @@ export function ControlPanel() {
             updateSettings({ bluetoothEnabled: next });
           }}
           className={cn(
-            "flex items-center gap-2.5 rounded-[14px] p-2.5 text-left",
+            "flex items-center gap-2.5 rounded-[12px] px-3 py-2 text-left",
             settings.bluetoothEnabled
-              ? "bg-adw-accent text-white shadow-xs active:bg-[color-mix(in_srgb,var(--adw-accent),white_20%)]"
+              ? "bg-adw-accent text-white active:bg-[color-mix(in_srgb,var(--adw-accent),white_20%)]"
               : "bg-black/6 text-adw-label active:bg-black/14 dark:bg-white/8 dark:active:bg-white/18"
           )}
         >
-          <span
-            className={cn(
-              "flex size-8 shrink-0 items-center justify-center rounded-full",
-              settings.bluetoothEnabled
-                ? "bg-white/20"
-                : "bg-black/10 dark:bg-white/10"
-            )}
-          >
-            <BluetoothIcon className="size-4" />
+          <BluetoothIcon className="size-[18px] shrink-0" />
+          <span className="truncate text-[12.5px] font-semibold">
+            Bluetooth
           </span>
-          <div className="min-w-0 flex-1">
-            <div className="text-[12px] font-semibold">Bluetooth</div>
-            <div className="truncate text-[10px] opacity-80">
-              {settings.bluetoothEnabled ? "On · 2 Devices" : "Off"}
-            </div>
-          </div>
         </button>
 
         {/* Dark Mode Pill */}
@@ -411,28 +387,16 @@ export function ControlPanel() {
             });
           }}
           className={cn(
-            "flex items-center gap-2.5 rounded-[14px] p-2.5 text-left",
+            "flex items-center gap-2.5 rounded-[12px] px-3 py-2 text-left",
             settings.themeMode === "dark"
-              ? "bg-adw-accent text-white shadow-xs active:bg-[color-mix(in_srgb,var(--adw-accent),white_20%)]"
+              ? "bg-adw-accent text-white active:bg-[color-mix(in_srgb,var(--adw-accent),white_20%)]"
               : "bg-black/6 text-adw-label active:bg-black/14 dark:bg-white/8 dark:active:bg-white/18"
           )}
         >
-          <span
-            className={cn(
-              "flex size-8 shrink-0 items-center justify-center rounded-full",
-              settings.themeMode === "dark"
-                ? "bg-white/20"
-                : "bg-black/10 dark:bg-white/10"
-            )}
-          >
-            <MoonIcon className="size-4" />
+          <MoonIcon className="size-[18px] shrink-0" />
+          <span className="truncate text-[12.5px] font-semibold">
+            Dark Mode
           </span>
-          <div className="min-w-0 flex-1">
-            <div className="text-[12px] font-semibold">Dark Mode</div>
-            <div className="truncate text-[10px] opacity-80 capitalize">
-              {settings.themeMode}
-            </div>
-          </div>
         </button>
 
         {/* Do Not Disturb Pill */}
@@ -447,28 +411,16 @@ export function ControlPanel() {
             updateSettings({ doNotDisturb: next });
           }}
           className={cn(
-            "flex items-center gap-2.5 rounded-[14px] p-2.5 text-left",
+            "flex items-center gap-2.5 rounded-[12px] px-3 py-2 text-left",
             settings.doNotDisturb
-              ? "bg-adw-accent text-white shadow-xs active:bg-[color-mix(in_srgb,var(--adw-accent),white_20%)]"
+              ? "bg-adw-accent text-white active:bg-[color-mix(in_srgb,var(--adw-accent),white_20%)]"
               : "bg-black/6 text-adw-label active:bg-black/14 dark:bg-white/8 dark:active:bg-white/18"
           )}
         >
-          <span
-            className={cn(
-              "flex size-8 shrink-0 items-center justify-center rounded-full",
-              settings.doNotDisturb
-                ? "bg-white/20"
-                : "bg-black/10 dark:bg-white/10"
-            )}
-          >
-            <BellOffIcon className="size-4" />
+          <BellOffIcon className="size-[18px] shrink-0" />
+          <span className="truncate text-[12.5px] font-semibold">
+            Silent
           </span>
-          <div className="min-w-0 flex-1">
-            <div className="text-[12px] font-semibold">Do Not Disturb</div>
-            <div className="truncate text-[10px] opacity-80">
-              {settings.doNotDisturb ? "Silence Active" : "Off"}
-            </div>
-          </div>
         </button>
 
         {/* Night Light Pill */}
@@ -483,28 +435,16 @@ export function ControlPanel() {
             updateSettings({ nightLight: next });
           }}
           className={cn(
-            "flex items-center gap-2.5 rounded-[14px] p-2.5 text-left",
+            "flex items-center gap-2.5 rounded-[12px] px-3 py-2 text-left",
             settings.nightLight
-              ? "bg-adw-accent text-white shadow-xs active:bg-[color-mix(in_srgb,var(--adw-accent),white_20%)]"
+              ? "bg-adw-accent text-white active:bg-[color-mix(in_srgb,var(--adw-accent),white_20%)]"
               : "bg-black/6 text-adw-label active:bg-black/14 dark:bg-white/8 dark:active:bg-white/18"
           )}
         >
-          <span
-            className={cn(
-              "flex size-8 shrink-0 items-center justify-center rounded-full",
-              settings.nightLight
-                ? "bg-white/20"
-                : "bg-black/10 dark:bg-white/10"
-            )}
-          >
-            <FlameIcon className="size-4" />
+          <FlameIcon className="size-[18px] shrink-0" />
+          <span className="truncate text-[12.5px] font-semibold">
+            Night Light
           </span>
-          <div className="min-w-0 flex-1">
-            <div className="text-[12px] font-semibold">Night Light</div>
-            <div className="truncate text-[10px] opacity-80">
-              {settings.nightLight ? "Warm 4200K" : "Off"}
-            </div>
-          </div>
         </button>
 
         {/* Power Saver Pill */}
@@ -512,28 +452,16 @@ export function ControlPanel() {
           type="button"
           onClick={togglePowerSaver}
           className={cn(
-            "flex items-center gap-2.5 rounded-[14px] p-2.5 text-left",
+            "flex items-center gap-2.5 rounded-[12px] px-3 py-2 text-left",
             settings.powerMode === "power-saver"
-              ? "bg-adw-accent text-white shadow-xs active:bg-[color-mix(in_srgb,var(--adw-accent),white_20%)]"
+              ? "bg-adw-accent text-white active:bg-[color-mix(in_srgb,var(--adw-accent),white_20%)]"
               : "bg-black/6 text-adw-label active:bg-black/14 dark:bg-white/8 dark:active:bg-white/18"
           )}
         >
-          <span
-            className={cn(
-              "flex size-8 shrink-0 items-center justify-center rounded-full",
-              settings.powerMode === "power-saver"
-                ? "bg-white/20"
-                : "bg-black/10 dark:bg-white/10"
-            )}
-          >
-            <GaugeIcon className="size-4" />
+          <GaugeIcon className="size-[18px] shrink-0" />
+          <span className="truncate text-[12.5px] font-semibold">
+            Power Saver
           </span>
-          <div className="min-w-0 flex-1">
-            <div className="text-[12px] font-semibold">Power Saver</div>
-            <div className="truncate text-[10px] opacity-80">
-              {settings.powerMode === "power-saver" ? "On" : "Off"}
-            </div>
-          </div>
         </button>
       </div>
 
@@ -684,7 +612,7 @@ export function ControlPanel() {
               <span className="truncate">
                 {!settings.notificationsEnabled
                   ? "Notifications paused in Settings"
-                  : "Do Not Disturb · Banners silenced"}
+                  : "Silent · Banners silenced"}
               </span>
             </span>
             <button
@@ -703,7 +631,7 @@ export function ControlPanel() {
           </div>
         )}
 
-        <div className="flex max-h-[250px] flex-col gap-2 overflow-y-auto pr-0.5">
+        <div className="flex max-h-[min(460px,calc(100vh-310px))] flex-col gap-2 overflow-y-auto pr-0.5">
           {notifications.length === 0 ? (
             <div className="flex flex-col items-center justify-center rounded-[14px] bg-black/4 py-4 text-center dark:bg-white/5">
               <BellIcon className="mb-1 size-5 text-adw-label-tertiary" />
@@ -729,7 +657,7 @@ export function ControlPanel() {
                   className={cn(
                     "group relative flex items-start gap-2.5 rounded-[14px] bg-black/6 p-3 dark:bg-white/8",
                     isCritical && "ring-1 ring-rose-500/35",
-                    n.fromDomicile && n.clickable && "cursor-pointer"
+                    n.fromDomicile && n.clickable && "cursor-default"
                   )}
                 >
                   <NotificationAppIcon

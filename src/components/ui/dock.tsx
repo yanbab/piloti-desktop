@@ -123,10 +123,10 @@ function Dock({
 
   const positionClass =
     position === "left"
-      ? "flex-col w-[calc(var(--dock-size)+14px)] h-fit items-center rounded-r-[18px] rounded-l-none border border-l-0 px-[7px] py-[10px] data-[state=hidden]:-translate-x-[calc(100%+24px)]"
+      ? "flex-col w-[calc(var(--dock-size)+14px)] h-fit items-start rounded-r-[18px] rounded-l-none border border-l-0 px-[7px] py-[10px] data-[state=hidden]:-translate-x-[calc(100%+24px)]"
       : position === "right"
-        ? "flex-col w-[calc(var(--dock-size)+14px)] h-fit items-center rounded-l-[18px] rounded-r-none border border-r-0 px-[7px] py-[10px] data-[state=hidden]:translate-x-[calc(100%+24px)]"
-        : "flex-row h-[calc(var(--dock-size)+14px)] w-fit items-center rounded-t-[18px] rounded-b-none border border-b-0 px-[10px] py-[7px] data-[state=hidden]:translate-y-[calc(100%+24px)]"
+        ? "flex-col w-[calc(var(--dock-size)+14px)] h-fit items-end rounded-l-[18px] rounded-r-none border border-r-0 px-[7px] py-[10px] data-[state=hidden]:translate-x-[calc(100%+24px)]"
+        : "flex-row h-[calc(var(--dock-size)+14px)] w-fit items-end rounded-t-[18px] rounded-b-none border border-b-0 px-[10px] py-[7px] data-[state=hidden]:translate-y-[calc(100%+24px)]"
 
   return (
     <DockPositionContext.Provider value={position}>
@@ -269,7 +269,7 @@ function DockItem({
               sideOffset={9}
               className="z-[400]"
             >
-              <TooltipPrimitive.Popup className="flex h-[26px] items-center rounded-full px-3.5 text-[14px] text-adw-label shadow-adw-dock-label adw-material-dock-label dark:text-white/90">
+              <TooltipPrimitive.Popup className="flex h-[26px] items-center rounded-[9px] px-3 text-[12.5px] font-medium text-adw-label shadow-adw-dock-label adw-material-dock-label dark:text-white/95">
                 {label}
               </TooltipPrimitive.Popup>
             </TooltipPrimitive.Positioner>

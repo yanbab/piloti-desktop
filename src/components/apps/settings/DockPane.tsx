@@ -118,34 +118,18 @@ export function DockPane() {
               />
             </GroupedFormRowControl>
           </GroupedFormRow>
-        </GroupedFormGroup>
-      </GroupedFormSection>
 
-      <GroupedFormSection>
-        <GroupedFormSectionTitle>Top Menu Bar Clock</GroupedFormSectionTitle>
-        <GroupedFormGroup>
           <GroupedFormRow>
             <GroupedFormRowLabel>
-              <GroupedFormRowTitle>Use 24-Hour Clock</GroupedFormRowTitle>
+              <GroupedFormRowTitle>
+                Dock Clock Widget (NeXTSTEP)
+              </GroupedFormRowTitle>
             </GroupedFormRowLabel>
             <GroupedFormRowControl>
               <Switch
-                checked={settings.clock24Hour}
+                checked={settings.dockClockWidget}
                 onCheckedChange={(checked) =>
-                  updateSettings({ clock24Hour: Boolean(checked) })
-                }
-              />
-            </GroupedFormRowControl>
-          </GroupedFormRow>
-          <GroupedFormRow>
-            <GroupedFormRowLabel>
-              <GroupedFormRowTitle>Display the Time with Seconds</GroupedFormRowTitle>
-            </GroupedFormRowLabel>
-            <GroupedFormRowControl>
-              <Switch
-                checked={settings.clockShowSeconds}
-                onCheckedChange={(checked) =>
-                  updateSettings({ clockShowSeconds: Boolean(checked) })
+                  updateSettings({ dockClockWidget: Boolean(checked) })
                 }
               />
             </GroupedFormRowControl>

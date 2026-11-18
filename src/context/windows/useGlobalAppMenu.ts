@@ -109,21 +109,6 @@ export function useGlobalAppMenu({
             {
               label: "New Text File",
               actionId: "desktop:new-text-file",
-              separatorAfter: true,
-            },
-            {
-              label: "Screenshot",
-              shortcut: "Print",
-              actionId: "shell:screenshot",
-            },
-            {
-              label: "Record",
-              actionId: "shell:record",
-              separatorAfter: true,
-            },
-            {
-              label: "Restart Desktop",
-              actionId: "shell:reload",
             },
           ],
         },
@@ -131,23 +116,17 @@ export function useGlobalAppMenu({
           title: "View",
           items: [
             {
-              label: "Launcher",
-              shortcut: "Alt+Space",
-              actionId: "shell:launcher",
+              label: "Full Screen",
+              actionId: "shell:fullscreen",
+              separatorAfter: true,
             },
             {
-              label: "Control Panel",
-              shortcut: "Alt+N",
-              actionId: "shell:control-panel",
+              label: "Arrange Icons",
+              actionId: "desktop:align-icons",
             },
             {
-              label: "Settings (Web)",
-              shortcut: "Alt+,",
-              actionId: "launch:settings",
-            },
-            {
-              label: "DevTools",
-              actionId: "launch:console",
+              label: "Change Wallpaper",
+              actionId: "launch:wallpaper",
             },
           ],
         },
@@ -173,6 +152,18 @@ export function useGlobalAppMenu({
         window.dispatchEvent(new CustomEvent("piloti:desktop-new-folder"));
       } else if (actionId === "desktop:new-text-file") {
         window.dispatchEvent(new CustomEvent("piloti:desktop-new-file"));
+      } else if (actionId === "desktop:align-icons") {
+        window.dispatchEvent(new CustomEvent("piloti:desktop-align-icons"));
+      } else if (actionId === "shell:fullscreen") {
+        if (typeof document !== "undefined") {
+          if (document.fullscreenElement) {
+            void document.exitFullscreen?.();
+          } else {
+            void document.documentElement.requestFullscreen?.();
+          }
+        }
+      } else if (actionId === "launch:wallpaper") {
+        launchApp("settings", { payload: "wallpaper" });
       } else if (actionId === "files:new-folder") {
         window.dispatchEvent(new CustomEvent("piloti:files-new-folder"));
       } else if (actionId === "files:new-text-file") {

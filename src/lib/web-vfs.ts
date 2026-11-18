@@ -618,3 +618,100 @@ export async function importExternalFilesToVfs(
   return imported;
 }
 
+export const WEB_VFS_FAVORITES_STORAGE_KEY = "piloti.web.vfs.favorites.v1";
+export const WEB_VFS_FAVORITES_URI = "piloti://favorites";
+export const WEB_VFS_RECENTS_URI = "piloti://recents";
+
+export function loadVfsFavorites(): string[] {
+  if (typeof localStorage === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(WEB_VFS_FAVORITES_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed)
+      ? parsed.filter((x): x is string => typeof x === "string")
+      : [];
+  } catch {
+    return [];
+  }
+}
+
+export function isVfsFavorite(path: string): boolean {
+  const norm = normalizeVfsPath(path);
+  return loadVfsFavorites().includes(norm);
+}
+
+export function toggleVfsFavorite(path: string): string[] {
+  const norm = normalizeVfsPath(path);
+  const prev = loadVfsFavorites();
+  const next = prev.includes(norm)
+    ? prev.filter((p) => p !== norm)
+    : [norm, ...prev];
+  if (typeof localStorage !== "undefined") {
+    try {
+      localStorage.setItem(WEB_VFS_FAVORITES_STORAGE_KEY, JSON.stringify(next));
+    } catch {
+      // ignore storage errors
+    }
+  }
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent(WEB_VFS_CHANGED_EVENT));
+  }
+  return next;
+}
+
+export function listVfsFavoriteEntries(): WebVfsEntry[] {
+  const favSet = new Set(loadVfsFavorites());
+  return loadVfs().filter((e) => favSet.has(e.path));
+}
+
+export function listVfsRecentEntries(limit = 30): WebVfsEntry[] {
+  return loadVfs()
+    .filter(
+      (e) =>
+        e.kind === "file" &&
+        !e.path.startsWith("/home/user/.local/") &&
+        e.updatedAt > 0,
+    )
+    .sort((a, b) => b.updatedAt - a.updatedAt)
+    .slice(0, limit);
+}
+
+export function copyVfsEntry(
+  rawSourcePath: string,
+  rawTargetDir: string,
+): WebVfsEntry | null {
+  const srcPath = normalizeVfsPath(rawSourcePath);
+  const targetDir = normalizeVfsPath(rawTargetDir);
+  const src = getVfsEntry(srcPath);
+  if (!src) return null;
+  if (src.kind === "file") {
+    return createVfsTextFile(targetDir, src.name, src.content ?? "");
+  }
+  const folder = createVfsFolder(targetDir, src.name);
+  const children = listVfsDir(src.path);
+  for (const child of children) {
+    copyVfsEntry(child.path, folder.path);
+  }
+  return folder;
+}
+
+const IMAGE_FILE_EXT_RE = /\.(png|jpe?g|gif|webp|bmp|ico|svg)$/i;
+
+export function isImageVfsFile(name: string, content?: string): boolean {
+  if (IMAGE_FILE_EXT_RE.test(name)) return true;
+  return Boolean(content && content.startsWith("data:image/"));
+}
+
+export function getVfsImageThumbnailUrl(
+  name: string,
+  content?: string,
+): string | undefined {
+  if (!content) return undefined;
+  if (content.startsWith("data:image/")) return content;
+  if (name.toLowerCase().endsWith(".svg") && content.includes("<svg")) {
+    return `data:image/svg+xml;utf8,${encodeURIComponent(content)}`;
+  }
+  return undefined;
+}
+

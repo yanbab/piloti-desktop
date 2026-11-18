@@ -96,7 +96,7 @@ function ScreenshotPortalOverlay({
         <CameraIcon className="size-4 text-sky-400" />
         <span className="font-medium">Drag to select area</span>
 
-        <label className="ml-2 flex cursor-pointer items-center gap-1.5 text-white/80">
+        <label className="ml-2 flex cursor-default items-center gap-1.5 text-white/80">
           <input
             type="checkbox"
             checked={copyToClipboard}

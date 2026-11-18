@@ -1,10 +1,12 @@
 import * as React from "react";
 import {
   BellRingIcon,
+  CalculatorIcon,
   CameraIcon,
   Columns2Icon,
   GlobeIcon,
   LayersIcon,
+  LayoutTemplateIcon,
   LockIcon,
   Maximize2Icon,
   MoonIcon,
@@ -35,6 +37,12 @@ import {
   getWebAppFaviconUrl,
   resolveWebAppTitle,
 } from "@/data/web-apps";
+import { evaluateLauncherMath } from "@/lib/launcher-math";
+import {
+  loadWorkspaceSnapshots,
+  saveWorkspaceSnapshot,
+  type WorkspaceSnapshot,
+} from "@/lib/workspace-snapshots";
 import { AppSquircleIcon } from "./AppSymbol";
 
 const RECENT_LAUNCHES_KEY = "piloti.launcher.recent.v1";
@@ -224,8 +232,17 @@ export function Launcher() {
     }
   }, [launcherOpen]);
 
+  const [snapshots, setSnapshots] = React.useState<WorkspaceSnapshot[]>(() =>
+    loadWorkspaceSnapshots()
+  );
+
   const detectedUrl = React.useMemo(
     () => detectValidUrl(searchQuery),
+    [searchQuery]
+  );
+
+  const mathResult = React.useMemo(
+    () => evaluateLauncherMath(searchQuery),
     [searchQuery]
   );
 
@@ -248,6 +265,34 @@ export function Launcher() {
 
   const sections = React.useMemo(() => {
     const out: { heading: string; items: PaletteEntry[] }[] = [];
+
+    if (mathResult) {
+      out.push({
+        heading: "Calculator",
+        items: [
+          {
+            value: `math:copy:${mathResult.result}`,
+            score: 1200,
+            icon: <CalculatorIcon className="size-4 text-adw-accent" />,
+            label: `= ${mathResult.result}`,
+            hint: `${mathResult.expression} · Copy Result`,
+            onSelect: () =>
+              runAndClose(() => {
+                void navigator.clipboard?.writeText(
+                  String(mathResult.rawValue)
+                );
+              }),
+          },
+          {
+            value: `math:open:${mathResult.result}`,
+            score: 1190,
+            icon: <CalculatorIcon className="size-4" />,
+            label: "Open in Calculator",
+            onSelect: () => runAndClose(() => launchApp("calculator")),
+          },
+        ],
+      });
+    }
 
     if (detectedUrl) {
       out.push({
@@ -456,33 +501,16 @@ export function Launcher() {
       out.push({ heading: "Folders", items: folderItems });
     }
 
-    const hiddenSet = new Set(settings.hiddenGnomePanels);
-    const settingsIconUrl = getAppIconUrl("settings");
-    const settingsItems = filterAndSort([
-      {
-        value: "settings:__overview__",
-        score: scoreMatch(
-          tokens,
-          "System Settings",
-          "gnome control center preferences"
-        ),
-        icon: (
-          <AppSquircleIcon
-            iconUrl={settingsIconUrl}
-            className="size-5 shrink-0 rounded-[5px]"
-          />
-        ),
-        label: "Open System Settings",
-        onSelect: () => runAndClose(() => openGnomeSettings()),
-      },
-      ...availableGnomePanels
-        .filter((p) => !hiddenSet.has(p.desktopId))
-        .map((panel) => ({
-          value: `settings:${panel.panelId}`,
+    if (tokens.length > 0) {
+      const hiddenSet = new Set(settings.hiddenGnomePanels);
+      const settingsIconUrl = getAppIconUrl("settings");
+      const settingsItems = filterAndSort([
+        {
+          value: "settings:__overview__",
           score: scoreMatch(
             tokens,
-            panel.name,
-            `settings system ${panel.panelId} ${panel.comment ?? ""}`
+            "System Settings",
+            "gnome control center preferences"
           ),
           icon: (
             <AppSquircleIcon
@@ -490,16 +518,36 @@ export function Launcher() {
               className="size-5 shrink-0 rounded-[5px]"
             />
           ),
-          label: panel.name,
-          hint: "System Settings",
-          onSelect: () => runAndClose(() => openGnomeSettings(panel.panelId)),
-        })),
-    ]);
-    if (settingsItems.length > 0) {
-      out.push({ heading: "Settings", items: settingsItems });
+          label: "Open System Settings",
+          onSelect: () => runAndClose(() => openGnomeSettings()),
+        },
+        ...availableGnomePanels
+          .filter((p) => !hiddenSet.has(p.desktopId))
+          .map((panel) => ({
+            value: `settings:${panel.panelId}`,
+            score: scoreMatch(
+              tokens,
+              panel.name,
+              `settings system ${panel.panelId} ${panel.comment ?? ""}`
+            ),
+            icon: (
+              <AppSquircleIcon
+                iconUrl={settingsIconUrl}
+                className="size-5 shrink-0 rounded-[5px]"
+              />
+            ),
+            label: panel.name,
+            hint: "System Settings",
+            onSelect: () => runAndClose(() => openGnomeSettings(panel.panelId)),
+          })),
+      ]);
+      if (settingsItems.length > 0) {
+        out.push({ heading: "Settings", items: settingsItems });
+      }
     }
 
-    const actionEntries: PaletteEntry[] = [
+    if (tokens.length > 0) {
+      const actionEntries: PaletteEntry[] = [
       {
         value: "act:screenshot",
         score: scoreMatch(tokens, "Take Interactive Screenshot", "capture area window"),
@@ -617,6 +665,65 @@ export function Launcher() {
           ),
       },
       {
+        value: "act:save-snapshot",
+        score: scoreMatch(
+          tokens,
+          "Save Current Workspace Layout",
+          "snapshot profile save layout workspace"
+        ),
+        icon: <LayoutTemplateIcon className="size-4" />,
+        label: searchQuery.trim().toLowerCase().startsWith("save ")
+          ? `Save Workspace Layout "${searchQuery.trim().slice(5).trim()}"`
+          : "Save Current Workspace Layout",
+        onSelect: () =>
+          runAndClose(() => {
+            const customName = searchQuery
+              .trim()
+              .toLowerCase()
+              .startsWith("save ")
+              ? searchQuery.trim().slice(5).trim()
+              : `Layout ${snapshots.length + 1}`;
+            const saved = saveWorkspaceSnapshot(
+              customName,
+              windows
+                .filter((w) => !w.minimized)
+                .map((w) => ({
+                  appId: w.appId,
+                  payload: w.payload,
+                  browserUrl: w.browserUrl,
+                  title: w.title,
+                }))
+            );
+            setSnapshots(saved);
+            pushNotification({
+              appName: "Launcher",
+              summary: `Saved layout "${customName}"`,
+              body: `${windows.filter((w) => !w.minimized).length} window(s) snapshotted.`,
+            });
+          }),
+      },
+      ...snapshots.map((snap) => ({
+        value: `act:restore-snapshot:${snap.id}`,
+        score: scoreMatch(
+          tokens,
+          `Restore Layout: ${snap.name}`,
+          "snapshot profile restore layout workspace"
+        ),
+        icon: <LayoutTemplateIcon className="size-4" />,
+        label: `Restore Layout: ${snap.name}`,
+        hint: `${snap.windows.length} window(s)`,
+        onSelect: () =>
+          runAndClose(() => {
+            for (const w of snap.windows) {
+              if (w.browserUrl) {
+                openWebUrl(w.browserUrl, { asApp: true, title: w.title });
+              } else {
+                launchApp(w.appId, { payload: w.payload, forceNew: true });
+              }
+            }
+          }),
+      })),
+      {
         value: "act:lock",
         score: scoreMatch(tokens, "Lock Session", "lock screen security"),
         icon: <LockIcon className="size-4" />,
@@ -624,15 +731,19 @@ export function Launcher() {
         onSelect: () => runAndClose(() => lockSession()),
       },
     ];
-    const filteredActions = filterAndSort(actionEntries);
-    if (filteredActions.length > 0) {
-      out.push({ heading: "Actions", items: filteredActions });
+      const filteredActions = filterAndSort(actionEntries);
+      if (filteredActions.length > 0) {
+        out.push({ heading: "Actions", items: filteredActions });
+      }
     }
 
     return out;
   }, [
     availableGnomePanels,
     detectedUrl,
+    mathResult,
+    searchQuery,
+    snapshots,
     focusWindow,
     focusedWindowId,
     getAppIconUrl,
@@ -701,7 +812,7 @@ export function Launcher() {
     } catch {
       // ignore storage errors
     }
-    return 380;
+    return 360;
   });
 
   const handleResizePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {

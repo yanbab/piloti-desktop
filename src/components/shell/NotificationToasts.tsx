@@ -48,7 +48,7 @@ function ToastBannerStack() {
             }}
             className={cn(
               isCritical && "border-rose-500/45 ring-1 ring-rose-500/30",
-              isClickable && "cursor-pointer hover:brightness-105"
+              isClickable && "cursor-default hover:brightness-105"
             )}
           >
             <ToastContent>

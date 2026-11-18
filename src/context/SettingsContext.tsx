@@ -73,6 +73,12 @@ export interface DesktopSettings {
   dockAutoHide: boolean;
   clock24Hour: boolean;
   clockShowSeconds: boolean;
+  clockShowDay: boolean;
+  clockShowDate: boolean;
+  showBatteryPercentage: boolean;
+  dockClockWidget: boolean;
+  reduceMotion: boolean;
+  moreTransparency: boolean;
   windowDecorationMode: WindowDecorationMode;
   windowButtonLayout: string;
   iconTheme: string;
@@ -139,6 +145,12 @@ const DEFAULT_SETTINGS: DesktopSettings = {
   dockAutoHide: false,
   clock24Hour: true,
   clockShowSeconds: false,
+  clockShowDay: true,
+  clockShowDate: true,
+  showBatteryPercentage: true,
+  dockClockWidget: false,
+  reduceMotion: false,
+  moreTransparency: true,
   windowDecorationMode: "auto",
   windowButtonLayout: ":close",
   iconTheme: "Adwaita",
@@ -666,11 +678,16 @@ export function useSettingsValue(options?: {
     "change",
     () => domicile.appearance.reducedMotion
   );
-  const reducedMotion = Boolean(domicileReducedMotion || osReducedMotion);
+  const reducedMotion = Boolean(
+    settings.reduceMotion || domicileReducedMotion || osReducedMotion
+  );
 
   React.useLayoutEffect(() => {
     document.documentElement.dataset.reducedMotion = reducedMotion ? "true" : "false";
-  }, [reducedMotion]);
+    document.documentElement.dataset.moreTransparency = settings.moreTransparency
+      ? "true"
+      : "false";
+  }, [reducedMotion, settings.moreTransparency]);
 
   React.useLayoutEffect(() => {
     const root = document.documentElement;

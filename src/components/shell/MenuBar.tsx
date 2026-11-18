@@ -18,13 +18,13 @@ import {
   WifiOffIcon,
 } from "lucide-react";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { WindowControls } from "@/components/ui/window";
+  Window,
+  WindowContent,
+  WindowControls,
+  WindowMain,
+  WindowTitle,
+  WindowTitlebar,
+} from "@/components/ui/window";
 import { AppSquircleIcon } from "./AppSymbol";
 import {
   DropdownMenu,
@@ -38,6 +38,8 @@ import {
   MenubarContent,
   MenubarItem,
   MenubarMenu,
+  MenubarRadioGroup,
+  MenubarRadioItem,
   MenubarSeparator,
   MenubarShortcut,
   MenubarSub,
@@ -46,12 +48,19 @@ import {
   MenubarTrigger,
 } from "@/components/ui/menubar";
 import {
+  setWindowVisualEffect,
+  toggleWindowAlwaysOnTop,
+  useWindowVisualModifiers,
+  type WindowVisualEffect,
+} from "@/components/shell/WindowMenuButton";
+import {
   useApps,
   useSettings,
   useSystemBackends,
   useWindowManager,
 } from "@/context/DesktopStateContext";
 import { matchXdgEntryForWaylandWindow } from "xdg-desktop-entry";
+import { _ } from "@/lib/i18n";
 import { useAltKey } from "@/hooks/use-alt-key";
 import {
   discoverRemoteGlobalMenu,
@@ -113,7 +122,7 @@ function renderRemoteMenuItems(entries: readonly RemoteMenuEntry[]): React.React
 
 export function MenuBar() {
   const domicile = useDomicile();
-  const { isBrowserRuntime, settings } = useSettings();
+  const { isBrowserRuntime, settings, updateSettings } = useSettings();
   const { installedXdgApps, launchXdgEntry } = useApps();
   const {
     batteryInfo,
@@ -224,14 +233,32 @@ export function MenuBar() {
   ]);
 
   const formatTime = React.useCallback(
-    (date: Date) =>
-      date.toLocaleTimeString("en-US", {
+    (date: Date) => {
+      const dateParts: string[] = [];
+      if (settings.clockShowDay) {
+        dateParts.push(date.toLocaleDateString("en-US", { weekday: "short" }));
+      }
+      if (settings.clockShowDate) {
+        dateParts.push(
+          date.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+        );
+      }
+      const timeStr = date.toLocaleTimeString("en-US", {
         hour12: !settings.clock24Hour,
         hour: settings.clock24Hour ? "2-digit" : "numeric",
         minute: "2-digit",
         ...(settings.clockShowSeconds ? { second: "2-digit" } : {}),
-      }),
-    [settings.clock24Hour, settings.clockShowSeconds]
+      });
+      return dateParts.length > 0
+        ? `${dateParts.join(" ")}  ${timeStr}`
+        : timeStr;
+    },
+    [
+      settings.clock24Hour,
+      settings.clockShowDate,
+      settings.clockShowDay,
+      settings.clockShowSeconds,
+    ],
   );
 
   const [formattedClock, setFormattedClock] = React.useState(() =>
@@ -248,6 +275,8 @@ export function MenuBar() {
   }, [formatTime]);
 
   const headerRef = React.useRef<HTMLElement | null>(null);
+  const windowVisualModifiers = useWindowVisualModifiers();
+
   const [appAboutOpen, setAppAboutOpen] = React.useState(false);
   const pilotiTriggerRef = React.useRef<HTMLButtonElement | null>(null);
   const controlPanelPopupRef = React.useRef<HTMLDivElement | null>(null);
@@ -431,25 +460,28 @@ export function MenuBar() {
                 About Computer
               </MenubarItem>
               <MenubarSeparator />
+              <MenubarItem
+                disabled={isBrowserRuntime}
+                onClick={() => openGnomeSettings()}
+              >
+                {_("System Settings")}
+              </MenubarItem>
               <MenubarItem onClick={() => launchApp("settings")}>
-                Desktop Settings
+                {_("Desktop Settings")}
                 {notifications.length > 0 ? (
                   <MenubarBadge>{notifications.length}</MenubarBadge>
                 ) : (
                   <MenubarShortcut>Alt+,</MenubarShortcut>
                 )}
               </MenubarItem>
-              <MenubarItem
-                disabled={isBrowserRuntime}
-                onClick={() => openGnomeSettings()}
-              >
-                System Settings
-              </MenubarItem>
               <MenubarItem onClick={() => launchApp("app-store")}>
                 Application Store
               </MenubarItem>
               <MenubarItem onClick={() => launchApp("console")}>
                 DevTools
+              </MenubarItem>
+              <MenubarItem onClick={() => window.location.reload()}>
+                Reload Shell
               </MenubarItem>
               <MenubarSeparator />
               <MenubarItem onClick={() => lockSession()}>
@@ -494,18 +526,25 @@ export function MenuBar() {
                   {renderRemoteMenuItems(remoteMenu.appActions)}
                 </>
               )}
-              <MenubarSeparator />
-              {focusedWindowId ? (
-                <MenubarItem
-                  onClick={() => closeWindow(focusedWindowId)}
-                >
-                  Quit {activeAppDef.shortName}
-                  <MenubarShortcut>Alt+W</MenubarShortcut>
-                </MenubarItem>
-              ) : (
-                <MenubarItem onClick={() => window.location.reload()}>
-                  Restart Desktop
-                </MenubarItem>
+              {!focusedWindowId && (
+                <>
+                  <MenubarSeparator />
+                  <MenubarItem onClick={() => launchApp("settings")}>
+                    {_("Desktop Settings")}
+                    <MenubarShortcut>Alt+,</MenubarShortcut>
+                  </MenubarItem>
+                </>
+              )}
+              {focusedWindowId && (
+                <>
+                  <MenubarSeparator />
+                  <MenubarItem
+                    onClick={() => closeWindow(focusedWindowId)}
+                  >
+                    Quit {activeAppDef.shortName}
+                    <MenubarShortcut>Alt+W</MenubarShortcut>
+                  </MenubarItem>
+                </>
               )}
             </MenubarContent>
           </MenubarMenu>
@@ -544,60 +583,140 @@ export function MenuBar() {
                 </MenubarMenu>
               ))}
 
-          {/* Universal Window Menu */}
+          {/* Edit Menu */}
           <MenubarMenu>
-            <MenubarTrigger>Window</MenubarTrigger>
+            <MenubarTrigger>{_("Edit")}</MenubarTrigger>
+            <MenubarContent>
+              <MenubarItem onClick={() => document.execCommand?.("undo")}>
+                {_("Undo")}
+                <MenubarShortcut>Ctrl+Z</MenubarShortcut>
+              </MenubarItem>
+              <MenubarItem onClick={() => document.execCommand?.("redo")}>
+                {_("Redo")}
+                <MenubarShortcut>Ctrl+Shift+Z</MenubarShortcut>
+              </MenubarItem>
+              <MenubarSeparator />
+              <MenubarItem onClick={() => document.execCommand?.("cut")}>
+                {_("Cut")}
+                <MenubarShortcut>Ctrl+X</MenubarShortcut>
+              </MenubarItem>
+              <MenubarItem onClick={() => document.execCommand?.("copy")}>
+                {_("Copy")}
+                <MenubarShortcut>Ctrl+C</MenubarShortcut>
+              </MenubarItem>
+              <MenubarItem onClick={() => document.execCommand?.("paste")}>
+                {_("Paste")}
+                <MenubarShortcut>Ctrl+V</MenubarShortcut>
+              </MenubarItem>
+            </MenubarContent>
+          </MenubarMenu>
+
+          {/* Universal Window Menu (matches top-left WindowMenuButton + active app window list) */}
+          <MenubarMenu>
+            <MenubarTrigger>{_("Window")}</MenubarTrigger>
             <MenubarContent>
               <MenubarItem
                 disabled={!focusedWindowId}
                 onClick={() => focusedWindowId && toggleMinimizeWindow(focusedWindowId)}
               >
-                Minimize
+                {_("Minimize")}
                 <MenubarShortcut>Alt+M</MenubarShortcut>
               </MenubarItem>
               <MenubarItem
                 disabled={!focusedWindowId}
                 onClick={() => focusedWindowId && toggleMaximizeWindow(focusedWindowId)}
               >
-                {focusedWindow?.maximized ? "Restore Window Size" : "Zoom / Maximize"}
+                {focusedWindow?.maximized ? _("Restore") : _("Maximize")}
                 <MenubarShortcut>Alt+F</MenubarShortcut>
               </MenubarItem>
-              <MenubarSeparator />
               <MenubarItem
                 disabled={!focusedWindowId}
                 onClick={() => focusedWindowId && tileWindow(focusedWindowId, "left")}
               >
-                Tile Window to Left of Screen
+                {_("Tile Left")}
                 <MenubarShortcut>Alt+[</MenubarShortcut>
               </MenubarItem>
               <MenubarItem
                 disabled={!focusedWindowId}
                 onClick={() => focusedWindowId && tileWindow(focusedWindowId, "right")}
               >
-                Tile Window to Right of Screen
+                {_("Tile Right")}
                 <MenubarShortcut>Alt+]</MenubarShortcut>
               </MenubarItem>
               <MenubarSeparator />
-              <MenubarItem onClick={() => openAltTab()}>
-                Switch Windows (Alt+Tab)
-                <MenubarShortcut>Alt+Tab</MenubarShortcut>
-              </MenubarItem>
-              <MenubarItem onClick={() => toggleOverview()}>
-                Overview
-                <MenubarShortcut>Meta+↑</MenubarShortcut>
-              </MenubarItem>
-              {windows.length > 0 && (
-                <>
+              <MenubarSub>
+                <MenubarSubTrigger disabled={!focusedWindowId}>
+                  {_("Effects")}
+                </MenubarSubTrigger>
+                <MenubarSubContent>
+                  <MenubarCheckboxItem
+                    disabled={!focusedWindowId}
+                    checked={Boolean(
+                      focusedWindowId &&
+                        windowVisualModifiers.get(focusedWindowId)?.alwaysOnTop,
+                    )}
+                    onClick={() =>
+                      focusedWindowId && toggleWindowAlwaysOnTop(focusedWindowId)
+                    }
+                  >
+                    {_("Always on Top")}
+                  </MenubarCheckboxItem>
                   <MenubarSeparator />
-                  {windows.map((win) => (
-                    <MenubarItem key={win.id} onClick={() => focusWindow(win.id)}>
-                      <span className="max-w-[180px] truncate">{win.title}</span>
-                      {win.id === focusedWindowId && <MenubarBadge>Active</MenubarBadge>}
-                      {win.minimized && <MenubarBadge>Min</MenubarBadge>}
-                    </MenubarItem>
-                  ))}
-                </>
-              )}
+                  <MenubarRadioGroup
+                    value={
+                      (focusedWindowId &&
+                        windowVisualModifiers.get(focusedWindowId)?.effect) ||
+                      "normal"
+                    }
+                    onValueChange={(val) =>
+                      focusedWindowId &&
+                      setWindowVisualEffect(
+                        focusedWindowId,
+                        val as WindowVisualEffect,
+                      )
+                    }
+                  >
+                    <MenubarRadioItem value="normal">
+                      {_("Normal")}
+                    </MenubarRadioItem>
+                    <MenubarRadioItem value="invert">
+                      {_("Night Reader (Invert)")}
+                    </MenubarRadioItem>
+                    <MenubarRadioItem value="grayscale">
+                      {_("Grayscale")}
+                    </MenubarRadioItem>
+                    <MenubarRadioItem value="translucent">
+                      {_("Translucent (85%)")}
+                    </MenubarRadioItem>
+                  </MenubarRadioGroup>
+                </MenubarSubContent>
+              </MenubarSub>
+              <MenubarSeparator />
+              <MenubarItem
+                disabled={!focusedWindowId}
+                onClick={() => focusedWindowId && closeWindow(focusedWindowId)}
+              >
+                {_("Close")}
+                <MenubarShortcut>Alt+W</MenubarShortcut>
+              </MenubarItem>
+              {(() => {
+                const appWindows = focusedWindowId
+                  ? windows.filter((w) => w.appId === activeAppDef.id)
+                  : [];
+                if (appWindows.length === 0) return null;
+                return (
+                  <>
+                    <MenubarSeparator />
+                    {appWindows.map((win) => (
+                      <MenubarItem key={win.id} onClick={() => focusWindow(win.id)}>
+                        <span className="max-w-[180px] truncate">{win.title}</span>
+                        {win.id === focusedWindowId && <MenubarBadge>Active</MenubarBadge>}
+                        {win.minimized && <MenubarBadge>Min</MenubarBadge>}
+                      </MenubarItem>
+                    ))}
+                  </>
+                );
+              })()}
             </MenubarContent>
           </MenubarMenu>
 
@@ -747,7 +866,7 @@ export function MenuBar() {
             anchor={rightClusterRef}
             align="end"
             sideOffset={6}
-            className="w-[340px] max-w-[calc(100vw-16px)] overflow-hidden p-0"
+            className="w-[312px] max-w-[calc(100vw-16px)] overflow-hidden p-0"
           >
             {launcherOpen && <Launcher />}
           </DropdownMenuContent>
@@ -766,6 +885,13 @@ export function MenuBar() {
             data-menubar-nav="control-panel"
             aria-label="Control panel and Notifications"
             data-control-panel-trigger
+            onWheel={(e) => {
+              if (e.deltaY === 0) return;
+              e.preventDefault();
+              const step = e.deltaY < 0 ? 5 : -5;
+              const next = Math.max(0, Math.min(100, settings.volume + step));
+              updateSettings({ volume: next, muted: next === 0 });
+            }}
             className="flex h-[22px] shrink-0 cursor-default items-center gap-2 rounded-full px-2.5 text-adw-body font-normal outline-none select-none active:bg-black/14 data-popup-open:bg-black/12 focus-visible:bg-black/10 dark:active:bg-white/18 dark:data-popup-open:bg-white/15 dark:focus-visible:bg-white/12"
           >
             <span className="flex items-center gap-1.5 text-adw-label/90 dark:text-white/90">
@@ -802,7 +928,9 @@ export function MenuBar() {
                   ) : (
                     <BatteryIcon className="size-4" />
                   )}
-                  <span>{batteryInfo.percentage}%</span>
+                  {settings.showBatteryPercentage && (
+                    <span>{batteryInfo.percentage}%</span>
+                  )}
                 </span>
               )}
             </span>
@@ -817,48 +945,63 @@ export function MenuBar() {
             initialFocus={controlPanelPopupRef}
             align="end"
             sideOffset={6}
-            className="w-[360px] max-w-[calc(100vw-16px)] rounded-adw-popover p-3.5 shadow-adw-popover"
+            className="w-[312px] max-w-[calc(100vw-16px)] rounded-adw-popover p-3 shadow-adw-popover"
           >
             {controlPanelOpen && <ControlPanel />}
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
 
-      {/* About Focused App Modal */}
-      <Dialog open={appAboutOpen} onOpenChange={setAppAboutOpen}>
-        <DialogContent
-          showCloseButton={false}
-          className="w-[300px] max-w-[calc(100vw-2rem)] gap-3 pt-3 pb-5"
+      {/* About Focused App Window */}
+      {appAboutOpen && (
+        <Window
+          position={{
+            x:
+              typeof window !== "undefined"
+                ? Math.max(24, Math.round((window.innerWidth - 300) / 2))
+                : 240,
+            y:
+              typeof window !== "undefined"
+                ? Math.max(48, Math.round((window.innerHeight - 260) / 2))
+                : 140,
+          }}
+          size={{ width: 300, height: 260 }}
+          draggable
+          resizable={false}
+          bounds="parent"
+          onClose={() => setAppAboutOpen(false)}
+          style={{ position: "fixed", top: 0, left: 0, zIndex: 420 }}
         >
-          <div className="flex justify-end">
-            <WindowControls
-              layout=":close"
-              onClose={() => setAppAboutOpen(false)}
-            />
-          </div>
-          <DialogHeader className="-mt-2 items-center gap-1.5 text-center">
-            <div className="mx-auto mb-1 size-16">
-              <AppSquircleIcon
-                iconName={activeAppDef.iconName}
-                iconUrl={activeAppDef.iconUrl}
-                gradient={activeAppDef.gradient}
-                squircle={false}
-                className="size-16"
-                glyphClassName="size-9"
-              />
-            </div>
-            <DialogTitle className="text-[18px] font-bold tracking-tight">
-              {activeAppDef.name}
-            </DialogTitle>
-            <DialogDescription className="text-[12px] text-adw-label-secondary">
-              {activeAppDef.description}
-            </DialogDescription>
-            <span className="mt-1 rounded-full bg-black/6 px-2.5 py-0.5 text-[11px] font-medium text-adw-label-secondary dark:bg-white/10">
-              Version 0.4.0
-            </span>
-          </DialogHeader>
-        </DialogContent>
-      </Dialog>
+          <WindowMain>
+            <WindowTitlebar className="justify-between">
+              <div className="w-7" />
+              <WindowTitle>About {activeAppDef.name}</WindowTitle>
+              <WindowControls side="right" />
+            </WindowTitlebar>
+            <WindowContent className="flex flex-col items-center justify-center gap-1.5 p-5 text-center">
+              <div className="mx-auto mb-1 size-16">
+                <AppSquircleIcon
+                  iconName={activeAppDef.iconName}
+                  iconUrl={activeAppDef.iconUrl}
+                  gradient={activeAppDef.gradient}
+                  squircle={false}
+                  className="size-16"
+                  glyphClassName="size-9"
+                />
+              </div>
+              <h2 className="text-[18px] font-bold tracking-tight text-adw-label">
+                {activeAppDef.name}
+              </h2>
+              <p className="text-[12px] text-adw-label-secondary">
+                {activeAppDef.description}
+              </p>
+              <span className="mt-1 rounded-full bg-black/6 px-2.5 py-0.5 text-[11px] font-medium text-adw-label-secondary dark:bg-white/10">
+                Version 0.4.0
+              </span>
+            </WindowContent>
+          </WindowMain>
+        </Window>
+      )}
     </header>
   );
 }
