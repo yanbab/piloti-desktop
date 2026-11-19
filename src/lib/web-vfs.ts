@@ -330,6 +330,201 @@ export function writeVfsTextFile(path: string, content: string): WebVfsEntry {
   return created;
 }
 
+export type VfsEmblemId = "favorite" | "important" | "work" | "personal";
+
+export const VFS_EMBLEMS_STORAGE_KEY = "piloti.web.vfs.emblems.v1";
+export const WEB_VFS_FAVORITES_STORAGE_KEY = "piloti.web.vfs.favorites.v1";
+export const WEB_VFS_FAVORITES_URI = "piloti://favorites";
+export const WEB_VFS_RECENTS_URI = "piloti://recents";
+
+export const VFS_EMBLEM_META: Record<
+  VfsEmblemId,
+  { label: string; colorClass: string; badgeBgClass: string }
+> = {
+  favorite: {
+    label: "Favorite",
+    colorClass: "text-rose-500",
+    badgeBgClass: "bg-rose-500/90 text-white",
+  },
+  important: {
+    label: "Important",
+    colorClass: "text-amber-500",
+    badgeBgClass: "bg-amber-500/90 text-white",
+  },
+  work: {
+    label: "Work",
+    colorClass: "text-sky-500",
+    badgeBgClass: "bg-sky-500/90 text-white",
+  },
+  personal: {
+    label: "Personal",
+    colorClass: "text-emerald-500",
+    badgeBgClass: "bg-emerald-500/90 text-white",
+  },
+};
+
+const VALID_EMBLEM_IDS = new Set<VfsEmblemId>([
+  "favorite",
+  "important",
+  "work",
+  "personal",
+]);
+
+function normalizeEmblemList(raw: unknown): VfsEmblemId[] {
+  if (!Array.isArray(raw)) return [];
+  const out: VfsEmblemId[] = [];
+  for (const item of raw) {
+    if (
+      typeof item === "string" &&
+      VALID_EMBLEM_IDS.has(item as VfsEmblemId) &&
+      !out.includes(item as VfsEmblemId)
+    ) {
+      out.push(item as VfsEmblemId);
+    }
+  }
+  return out;
+}
+
+export function loadVfsEmblemsMap(): Record<string, VfsEmblemId[]> {
+  if (typeof localStorage === "undefined") return {};
+  try {
+    const raw = localStorage.getItem(VFS_EMBLEMS_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw) as Record<string, unknown>;
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        const result: Record<string, VfsEmblemId[]> = {};
+        for (const [k, v] of Object.entries(parsed)) {
+          const list = normalizeEmblemList(v);
+          if (list.length > 0) {
+            result[normalizeVfsPath(k)] = list;
+          }
+        }
+        return result;
+      }
+    }
+    // Migrate legacy favorites key if emblem map is not yet populated
+    const legacyRaw = localStorage.getItem(WEB_VFS_FAVORITES_STORAGE_KEY);
+    if (legacyRaw) {
+      const parsedLegacy = JSON.parse(legacyRaw);
+      if (Array.isArray(parsedLegacy)) {
+        const migrated: Record<string, VfsEmblemId[]> = {};
+        for (const item of parsedLegacy) {
+          if (typeof item === "string") {
+            migrated[normalizeVfsPath(item)] = ["favorite"];
+          }
+        }
+        return migrated;
+      }
+    }
+  } catch {
+    // ignore storage errors
+  }
+  return {};
+}
+
+function saveVfsEmblemsMap(map: Record<string, VfsEmblemId[]>, emit = true): void {
+  if (typeof localStorage !== "undefined") {
+    try {
+      const cleaned: Record<string, VfsEmblemId[]> = {};
+      const favorites: string[] = [];
+      for (const [path, list] of Object.entries(map)) {
+        if (list.length > 0) {
+          cleaned[path] = list;
+          if (list.includes("favorite")) {
+            favorites.push(path);
+          }
+        }
+      }
+      localStorage.setItem(VFS_EMBLEMS_STORAGE_KEY, JSON.stringify(cleaned));
+      localStorage.setItem(
+        WEB_VFS_FAVORITES_STORAGE_KEY,
+        JSON.stringify(favorites)
+      );
+    } catch {
+      // ignore storage errors
+    }
+  }
+  if (emit && typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent(WEB_VFS_CHANGED_EVENT));
+  }
+}
+
+function migrateVfsEmblemsPrefix(
+  oldRawPath: string,
+  newRawPath: string | null
+): void {
+  const oldPath = normalizeVfsPath(oldRawPath);
+  const newPath = newRawPath ? normalizeVfsPath(newRawPath) : null;
+  const current = loadVfsEmblemsMap();
+  if (Object.keys(current).length === 0) return;
+
+  const oldPrefix = `${oldPath}/`;
+  const next: Record<string, VfsEmblemId[]> = {};
+  let changed = false;
+
+  for (const [key, emblems] of Object.entries(current)) {
+    if (key === oldPath) {
+      changed = true;
+      if (newPath) {
+        next[newPath] = Array.from(new Set([...(next[newPath] ?? []), ...emblems]));
+      }
+    } else if (key.startsWith(oldPrefix)) {
+      changed = true;
+      if (newPath) {
+        const suffix = key.slice(oldPrefix.length);
+        const childPath = `${newPath}/${suffix}`;
+        next[childPath] = Array.from(
+          new Set([...(next[childPath] ?? []), ...emblems])
+        );
+      }
+    } else {
+      next[key] = emblems;
+    }
+  }
+
+  if (changed) {
+    saveVfsEmblemsMap(next, false);
+  }
+}
+
+export function getVfsEmblems(rawPath: string): VfsEmblemId[] {
+  const norm = normalizeVfsPath(rawPath);
+  return loadVfsEmblemsMap()[norm] ?? [];
+}
+
+export function hasVfsEmblem(rawPath: string, emblem: VfsEmblemId): boolean {
+  return getVfsEmblems(rawPath).includes(emblem);
+}
+
+export function setVfsEmblem(
+  rawPath: string,
+  emblem: VfsEmblemId,
+  enabled: boolean
+): VfsEmblemId[] {
+  const norm = normalizeVfsPath(rawPath);
+  const map = loadVfsEmblemsMap();
+  const prev = map[norm] ?? [];
+  const nextForPath = enabled
+    ? prev.includes(emblem)
+      ? prev
+      : [...prev, emblem]
+    : prev.filter((e) => e !== emblem);
+  if (nextForPath.length > 0) {
+    map[norm] = nextForPath;
+  } else {
+    delete map[norm];
+  }
+  saveVfsEmblemsMap(map, true);
+  return nextForPath;
+}
+
+export function toggleVfsEmblem(
+  rawPath: string,
+  emblem: VfsEmblemId
+): VfsEmblemId[] {
+  return setVfsEmblem(rawPath, emblem, !hasVfsEmblem(rawPath, emblem));
+}
+
 export function renameVfsEntry(
   rawPath: string,
   rawNextName: string
@@ -369,6 +564,7 @@ export function renameVfsEntry(
     return entry;
   });
 
+  migrateVfsEmblemsPrefix(oldPath, newPath);
   saveVfs(updated);
   return updated.find((e) => e.path === newPath) ?? null;
 }
@@ -384,6 +580,7 @@ export function trashVfsEntry(rawPath: string): void {
     target.parentPath === WEB_VFS_TRASH ||
     targetPath.startsWith(`${WEB_VFS_TRASH}/`)
   ) {
+    migrateVfsEmblemsPrefix(targetPath, null);
     saveVfs(
       entries.filter(
         (e) => e.path !== targetPath && !e.path.startsWith(targetPrefix)
@@ -425,6 +622,7 @@ export function trashVfsEntry(rawPath: string): void {
     return entry;
   });
 
+  migrateVfsEmblemsPrefix(targetPath, newPath);
   saveVfs(updated);
 }
 
@@ -478,6 +676,7 @@ export function restoreVfsEntry(rawTrashPath: string): WebVfsEntry | null {
     return entry;
   });
 
+  migrateVfsEmblemsPrefix(trashPath, newPath);
   saveVfs(updated);
   return restoredEntry;
 }
@@ -485,6 +684,11 @@ export function restoreVfsEntry(rawTrashPath: string): WebVfsEntry | null {
 export function emptyVfsTrash(): void {
   const entries = loadVfs();
   const trashPrefix = `${WEB_VFS_TRASH}/`;
+  for (const entry of entries) {
+    if (entry.parentPath === WEB_VFS_TRASH) {
+      migrateVfsEmblemsPrefix(entry.path, null);
+    }
+  }
   saveVfs(entries.filter((e) => !e.path.startsWith(trashPrefix)));
 }
 
@@ -538,6 +742,7 @@ export function moveVfsEntry(
     return entry;
   });
 
+  migrateVfsEmblemsPrefix(srcPath, newPath);
   saveVfs(updated);
   return updated.find((e) => e.path === newPath) ?? null;
 }
@@ -545,7 +750,13 @@ export function moveVfsEntry(
 export function subscribeWebVfs(listener: () => void): () => void {
   if (typeof window === "undefined") return () => {};
   const onStorage = (e: StorageEvent) => {
-    if (e.key === WEB_VFS_STORAGE_KEY) listener();
+    if (
+      e.key === WEB_VFS_STORAGE_KEY ||
+      e.key === VFS_EMBLEMS_STORAGE_KEY ||
+      e.key === WEB_VFS_FAVORITES_STORAGE_KEY
+    ) {
+      listener();
+    }
   };
   window.addEventListener(WEB_VFS_CHANGED_EVENT, listener);
   window.addEventListener("storage", onStorage);
@@ -674,46 +885,20 @@ export async function importExternalFilesToVfs(
   return imported;
 }
 
-export const WEB_VFS_FAVORITES_STORAGE_KEY = "piloti.web.vfs.favorites.v1";
-export const WEB_VFS_FAVORITES_URI = "piloti://favorites";
-export const WEB_VFS_RECENTS_URI = "piloti://recents";
-
 export function loadVfsFavorites(): string[] {
-  if (typeof localStorage === "undefined") return [];
-  try {
-    const raw = localStorage.getItem(WEB_VFS_FAVORITES_STORAGE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed)
-      ? parsed.filter((x): x is string => typeof x === "string")
-      : [];
-  } catch {
-    return [];
-  }
+  const map = loadVfsEmblemsMap();
+  return Object.entries(map)
+    .filter(([, emblems]) => emblems.includes("favorite"))
+    .map(([path]) => path);
 }
 
 export function isVfsFavorite(path: string): boolean {
-  const norm = normalizeVfsPath(path);
-  return loadVfsFavorites().includes(norm);
+  return hasVfsEmblem(path, "favorite");
 }
 
 export function toggleVfsFavorite(path: string): string[] {
-  const norm = normalizeVfsPath(path);
-  const prev = loadVfsFavorites();
-  const next = prev.includes(norm)
-    ? prev.filter((p) => p !== norm)
-    : [norm, ...prev];
-  if (typeof localStorage !== "undefined") {
-    try {
-      localStorage.setItem(WEB_VFS_FAVORITES_STORAGE_KEY, JSON.stringify(next));
-    } catch {
-      // ignore storage errors
-    }
-  }
-  if (typeof window !== "undefined") {
-    window.dispatchEvent(new CustomEvent(WEB_VFS_CHANGED_EVENT));
-  }
-  return next;
+  toggleVfsEmblem(path, "favorite");
+  return loadVfsFavorites();
 }
 
 export function listVfsFavoriteEntries(): WebVfsEntry[] {
@@ -742,14 +927,113 @@ export function copyVfsEntry(
   const src = getVfsEntry(srcPath);
   if (!src) return null;
   if (src.kind === "file") {
-    return createVfsTextFile(targetDir, src.name, src.content ?? "");
+    const entries = loadVfs();
+    const hasExt = /\.[a-z0-9]+$/i.test(src.name);
+    const stem = hasExt ? src.name.replace(/\.[a-z0-9]+$/i, "") : src.name;
+    const ext = hasExt ? src.name.slice(stem.length) : "";
+    const name = uniqueChildName(entries, targetDir, stem, ext);
+    const fullPath = `${targetDir === "/" ? "" : targetDir}/${name}`;
+    const created: WebVfsEntry = {
+      id: fullPath,
+      name,
+      kind: "file",
+      path: fullPath,
+      parentPath: targetDir,
+      content: src.content ?? "",
+      updatedAt: Date.now(),
+    };
+    saveVfs([...entries, created]);
+    return created;
   }
+  if (targetDir === srcPath || targetDir.startsWith(`${srcPath}/`)) return null;
   const folder = createVfsFolder(targetDir, src.name);
   const children = listVfsDir(src.path);
   for (const child of children) {
     copyVfsEntry(child.path, folder.path);
   }
   return folder;
+}
+
+export function duplicateVfsEntry(rawPath: string): WebVfsEntry | null {
+  const srcPath = normalizeVfsPath(rawPath);
+  const src = getVfsEntry(srcPath);
+  if (!src) return null;
+  const parentDir = src.parentPath;
+  const entries = loadVfs();
+
+  if (src.kind === "file") {
+    const hasExt = /\.[a-z0-9]+$/i.test(src.name);
+    const stem = hasExt ? src.name.replace(/\.[a-z0-9]+$/i, "") : src.name;
+    const ext = hasExt ? src.name.slice(stem.length) : "";
+    const copyName = uniqueChildName(entries, parentDir, `${stem} Copy`, ext);
+    const fullPath = `${parentDir === "/" ? "" : parentDir}/${copyName}`;
+    const created: WebVfsEntry = {
+      id: fullPath,
+      name: copyName,
+      kind: "file",
+      path: fullPath,
+      parentPath: parentDir,
+      content: src.content ?? "",
+      updatedAt: Date.now(),
+    };
+    saveVfs([...entries, created]);
+    return created;
+  }
+
+  const copyFolderName = uniqueChildName(entries, parentDir, `${src.name} Copy`);
+  const folderPath = `${parentDir === "/" ? "" : parentDir}/${copyFolderName}`;
+  const folder: WebVfsEntry = {
+    id: folderPath,
+    name: copyFolderName,
+    kind: "directory",
+    path: folderPath,
+    parentPath: parentDir,
+    updatedAt: Date.now(),
+  };
+  saveVfs([...entries, folder]);
+  for (const child of listVfsDir(src.path)) {
+    copyVfsEntry(child.path, folder.path);
+  }
+  return folder;
+}
+
+export interface VfsClipboardState {
+  mode: "cut" | "copy";
+  paths: string[];
+}
+
+export const WEB_VFS_CLIPBOARD_CHANGED_EVENT = "piloti:vfs-clipboard-changed";
+
+let sharedVfsClipboard: VfsClipboardState | null = null;
+
+export function getVfsClipboard(): VfsClipboardState | null {
+  return sharedVfsClipboard
+    ? { mode: sharedVfsClipboard.mode, paths: [...sharedVfsClipboard.paths] }
+    : null;
+}
+
+export function setVfsClipboard(next: VfsClipboardState | null): void {
+  const cleaned =
+    next && next.paths.length > 0
+      ? {
+          mode: next.mode,
+          paths: Array.from(
+            new Set(next.paths.map((p) => normalizeVfsPath(p))),
+          ),
+        }
+      : null;
+  sharedVfsClipboard = cleaned;
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent(WEB_VFS_CLIPBOARD_CHANGED_EVENT));
+  }
+}
+
+export function subscribeVfsClipboard(listener: () => void): () => void {
+  if (typeof window === "undefined") return () => {};
+  window.addEventListener(WEB_VFS_CLIPBOARD_CHANGED_EVENT, listener);
+  return () => {
+    window.removeEventListener(WEB_VFS_CLIPBOARD_CHANGED_EVENT, listener);
+  };
 }
 
 const IMAGE_FILE_EXT_RE = /\.(png|jpe?g|gif|webp|bmp|ico|svg)$/i;

@@ -180,6 +180,44 @@ export function AppearancePane() {
 
           <GroupedFormRow>
             <GroupedFormRowLabel>
+              <GroupedFormRowTitle>Icon Alignment</GroupedFormRowTitle>
+            </GroupedFormRowLabel>
+            <GroupedFormRowControl>
+              <div className="inline-flex items-center gap-1 rounded-[9px] bg-black/8 p-1 dark:bg-white/8">
+                {(
+                  [
+                    { id: "left", label: "Left" },
+                    { id: "right", label: "Right" },
+                  ] as const
+                ).map((opt) => {
+                  const active = (settings.desktopIconAlign ?? "left") === opt.id;
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() =>
+                        updateSettings({
+                          desktopIconAlign: opt.id,
+                          desktopIconPositions: {},
+                        })
+                      }
+                      className={cn(
+                        "rounded-[6px] px-2.5 py-1 text-[13px] font-medium transition-all",
+                        active
+                          ? "bg-white text-black dark:bg-white/18 dark:text-white"
+                          : "text-adw-label-secondary hover:text-adw-label"
+                      )}
+                    >
+                      {opt.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </GroupedFormRowControl>
+          </GroupedFormRow>
+
+          <GroupedFormRow>
+            <GroupedFormRowLabel>
               <GroupedFormRowTitle>Open Files &amp; Folders</GroupedFormRowTitle>
             </GroupedFormRowLabel>
             <GroupedFormRowControl>

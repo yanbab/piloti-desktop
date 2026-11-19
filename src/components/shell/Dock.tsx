@@ -23,6 +23,10 @@ import {
   useWindowManager,
 } from "@/context/DesktopStateContext";
 import { APP_CATALOG, type AppDefinition } from "@/data/catalog";
+import {
+  getHostnameFallbackTitle,
+  getWebAppFaviconUrl,
+} from "@/data/web-apps";
 import { useAltKey } from "@/hooks/use-alt-key";
 import {
   emptyXdgTrash,
@@ -106,23 +110,42 @@ export function Dock() {
       const hits = document.elementsFromPoint(detail.clientX, detail.clientY);
       const dockEl = hits.find((el) => el.hasAttribute("data-dock-app-id"));
       const hoveredId = dockEl?.getAttribute("data-dock-app-id") ?? null;
-      setDropTargetAppId(hoveredId === "text-editor" ? hoveredId : null);
+      setDropTargetAppId(
+        hoveredId === "text-editor" ||
+          hoveredId === "image-viewer" ||
+          hoveredId === "nautilus"
+          ? hoveredId
+          : null
+      );
     };
 
     const handleFileDrop = (e: Event) => {
       const detail = (
         e as CustomEvent<{
           appId?: string;
-          item?: { kind?: string; path?: string };
+          item?: { kind?: string; path?: string; name?: string };
+          items?: Array<{ kind?: string; path?: string; name?: string }>;
         }>
       ).detail;
       setDropTargetAppId(null);
-      if (
-        detail?.appId === "text-editor" &&
-        detail.item?.kind === "file" &&
-        detail.item.path
-      ) {
-        launchApp("text-editor", { payload: detail.item.path });
+      const droppedItems = detail?.items?.length
+        ? detail.items
+        : detail?.item
+          ? [detail.item]
+          : [];
+      for (const item of droppedItems) {
+        if (!item.path) continue;
+        if (detail?.appId === "text-editor" && item.kind === "file") {
+          launchApp("text-editor", { payload: item.path });
+        } else if (
+          detail?.appId === "image-viewer" &&
+          item.kind === "file" &&
+          /\.(png|jpe?g|gif|webp|svg|bmp|avif)$/i.test(item.name ?? item.path)
+        ) {
+          launchApp("image-viewer", { payload: item.path });
+        } else if (detail?.appId === "nautilus" && item.kind === "directory") {
+          launchApp("nautilus", { payload: item.path, forceNew: true });
+        }
       }
     };
 
@@ -228,6 +251,26 @@ export function Dock() {
         };
       }
 
+      const webMatch = (settings.installedWebApps ?? []).find(
+        (a) => a.id === appId
+      );
+      if (webMatch) {
+        return {
+          id: webMatch.id,
+          name: webMatch.title,
+          shortName: webMatch.title,
+          description: webMatch.url,
+          category: "Utilities",
+          iconName: "globe",
+          iconUrl: webMatch.iconUrl || getWebAppFaviconUrl(webMatch.url),
+          isWebApp: true,
+          gradient: "from-cyan-400 via-blue-500 to-indigo-600",
+          pinnedByDefault: false,
+          defaultSize: { width: 1040, height: 720 },
+          menus: [],
+        };
+      }
+
       const winMatch = windows.find((w) => w.appId === appId);
       if (winMatch) {
         const isWebApp = Boolean(winMatch.browserWindowId);
@@ -249,9 +292,28 @@ export function Dock() {
         };
       }
 
+      if (appId.startsWith("webview:")) {
+        const rawUrl = appId.slice("webview:".length);
+        const title = getHostnameFallbackTitle(rawUrl) || "Web View";
+        return {
+          id: appId,
+          name: title,
+          shortName: title,
+          description: rawUrl,
+          category: "Utilities",
+          iconName: "globe",
+          iconUrl: getWebAppFaviconUrl(rawUrl),
+          isWebApp: true,
+          gradient: "from-cyan-400 via-blue-500 to-indigo-600",
+          pinnedByDefault: false,
+          defaultSize: { width: 1040, height: 720 },
+          menus: [],
+        };
+      }
+
       return null;
     },
-    [getAppIconUrl, installedXdgApps, windows]
+    [getAppIconUrl, installedXdgApps, settings.installedWebApps, windows]
   );
 
   const firstSeenOrderRef = React.useRef<Map<string, number>>(new Map());
@@ -533,8 +595,11 @@ export function Dock() {
           {/* Pinned, Launching & Running Applications */}
           {dockApps.map((app) => {
             const appWins = windows.filter((w) => w.appId === app.id);
-            const isRunning = appWins.length > 0;
-            const isLaunching = !isRunning && launchingApps.includes(app.id);
+            const readyWins = appWins.filter((w) => w.ready !== false);
+            const hasUnreadyWin = appWins.some((w) => w.ready === false);
+            const isRunning = readyWins.length > 0;
+            const isLaunching =
+              (!isRunning && launchingApps.includes(app.id)) || hasUnreadyWin;
             const isPinned = settings.pinnedAppIds.includes(app.id);
 
             return (
@@ -542,7 +607,7 @@ export function Dock() {
                 key={app.id}
                 label={app.name}
                 running={isRunning}
-                runningCount={appWins.length}
+                runningCount={readyWins.length}
                 launching={isLaunching}
                 tileRef={(node) => {
                   registerDockRef(app.id, node);

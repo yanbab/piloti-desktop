@@ -2,6 +2,8 @@ import type { XdgDesktopEntry } from "./xdg-desktop-entry";
 
 export type IconGridMode = "spatial" | "flow";
 
+export type DesktopIconAlign = "left" | "right";
+
 export type DesktopIconKind = "directory" | "file" | "desktop-entry";
 
 export type AppSymbolName =
@@ -39,9 +41,9 @@ export interface IconGridItem {
   desktopEntry?: XdgDesktopEntry;
 }
 
-export const DESKTOP_ICON_CELL_WIDTH = 108;
-export const DESKTOP_ICON_CELL_HEIGHT = 104;
-export const DESKTOP_GRID_PADDING = 16;
+export const DESKTOP_ICON_CELL_WIDTH = 92;
+export const DESKTOP_ICON_CELL_HEIGHT = 90;
+export const DESKTOP_GRID_PADDING = 12;
 
 function coordKey(coord: GridCoord): string {
   return `${coord.col}:${coord.row}`;
@@ -117,7 +119,8 @@ export function assignGridPositions(
   items: readonly Pick<IconGridItem, "id">[],
   savedPositions: Readonly<Record<string, GridCoord>>,
   cols: number,
-  rows: number
+  rows: number,
+  align: DesktopIconAlign = "left"
 ): Record<string, GridCoord> {
   const safeCols = Math.max(1, cols);
   const safeRows = Math.max(1, rows);
@@ -132,7 +135,7 @@ export function assignGridPositions(
     occupied.add(coordKey(cell));
   }
 
-  let nextCol = 0;
+  let nextCol = align === "right" ? safeCols - 1 : 0;
   let nextRow = 0;
   for (const item of items) {
     if (resolved[item.id]) continue;
@@ -140,16 +143,16 @@ export function assignGridPositions(
       nextRow += 1;
       if (nextRow >= safeRows) {
         nextRow = 0;
-        nextCol += 1;
+        nextCol += align === "right" ? -1 : 1;
       }
-      if (nextCol >= safeCols) {
+      if (nextCol < 0 || nextCol >= safeCols) {
         // Overflow beyond visible columns: place in next row slot.
-        nextCol = 0;
+        nextCol = align === "right" ? safeCols - 1 : 0;
         let overflowRow = safeRows;
         while (occupied.has(coordKey({ col: nextCol, row: overflowRow }))) {
-          nextCol += 1;
-          if (nextCol >= safeCols) {
-            nextCol = 0;
+          nextCol += align === "right" ? -1 : 1;
+          if (nextCol < 0 || nextCol >= safeCols) {
+            nextCol = align === "right" ? safeCols - 1 : 0;
             overflowRow += 1;
           }
         }

@@ -9,8 +9,6 @@ import {
   FlaskConicalIcon,
   Gamepad2Icon,
   GlobeIcon,
-  Maximize2Icon,
-  MinusIcon,
   MusicIcon,
   PackageIcon,
   PaletteIcon,
@@ -19,14 +17,9 @@ import {
   WrenchIcon,
   XIcon,
 } from "lucide-react";
+import { AdwSplitView, type AdwSplitSidebarItem } from "@/components/ui/adw-split-view";
 import { AppSquircleIcon } from "@/components/shell/AppSymbol";
 import { WindowMenuButton } from "@/components/shell/WindowMenuButton";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import {
   WindowControlButton,
   WindowControls,
@@ -291,13 +284,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
   const { getAppIconUrl, refreshXdgApps } = useApps();
   const { isBrowserRuntime, settings, updateSettings } = useSettings();
   const { pushNotification } = useSystemBackends();
-  const {
-    launchApp,
-    openWebUrl,
-    minimizeWindow,
-    toggleMaximizeWindow,
-    closeWindow,
-  } = useWindowActions();
+  const { launchApp, openWebUrl } = useWindowActions();
 
   const [flatpakCaps, setFlatpakCaps] = React.useState<FlatpakCapabilities>({
     available: false,
@@ -313,28 +300,9 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
 
   const [category, setCategory] = React.useState<StoreCategory>("all");
   const [query, setQuery] = React.useState("");
-  const containerRef = React.useRef<HTMLDivElement | null>(null);
   const searchInputRef = React.useRef<HTMLInputElement | null>(null);
   const sidebarRef = React.useRef<HTMLElement | null>(null);
   const mainRef = React.useRef<HTMLElement | null>(null);
-  const [isCompact, setIsCompact] = React.useState(false);
-  const [sidebarReady, setSidebarReady] = React.useState(false);
-  const [sidebarScrolled, setSidebarScrolled] = React.useState(false);
-  const [contentScrolled, setContentScrolled] = React.useState(false);
-
-  React.useLayoutEffect(() => {
-    const el = containerRef.current;
-    if (!el || typeof ResizeObserver === "undefined") {
-      setSidebarReady(true);
-      return;
-    }
-    const check = () => setIsCompact(el.clientWidth < 580);
-    check();
-    setSidebarReady(true);
-    const ro = new ResizeObserver(check);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
   const {
     highlightedId: highlightedCategory,
     onSidebarKeyDown,
@@ -347,6 +315,18 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
     sidebarRef,
     contentRef: mainRef,
   });
+  const sidebarItems = React.useMemo<AdwSplitSidebarItem[]>(
+    () =>
+      [...SIDEBAR_ITEMS, ...CATEGORY_ITEMS].map((entry, idx) => ({
+        id: entry.id,
+        label: entry.label,
+        icon: entry.icon,
+        selected: highlightedCategory === entry.id,
+        onClick: () => setCategory(entry.id),
+        separatorAfter: idx === SIDEBAR_ITEMS.length - 1,
+      })),
+    [highlightedCategory],
+  );
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
   const [meta, setMeta] = React.useState<StoreMetaState>(loadStoreMeta);
   const [pendingOp, setPendingOp] = React.useState<{
@@ -836,8 +816,17 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
   );
 
   return (
-    <div
-      ref={containerRef}
+    <AdwSplitView
+      title="App Store"
+      appId="app-store"
+      windowId={windowId}
+      isCsd={isCsd}
+      sidebarItems={sidebarItems}
+      sidebarWidthClass="w-44"
+      compactBreakpoint={580}
+      sidebarRef={sidebarRef}
+      onSidebarKeyDown={onSidebarKeyDown}
+      onSidebarKeyUp={onSidebarKeyUp}
       onKeyDown={(e) => {
         if (
           e.target instanceof HTMLInputElement ||
@@ -857,123 +846,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
           requestAnimationFrame(() => searchInputRef.current?.focus());
         }
       }}
-      className="flex h-full w-full overflow-hidden bg-transparent text-adw-label select-none"
-    >
-      {/* Left Sidebar (extends to top, collapsible like Files) */}
-      <aside
-        ref={sidebarRef}
-        onKeyDown={onSidebarKeyDown}
-        onKeyUp={onSidebarKeyUp}
-        className={cn(
-          "flex min-h-0 shrink-0 flex-col overflow-hidden border-r border-adw-separator bg-adw-sidebar",
-          sidebarReady && "transition-[width] duration-150",
-          isCompact ? "w-[52px]" : "w-44",
-        )}
-      >
-        {isCsd && (
-          <WindowTitlebar
-            data-window-drag-region
-            className={cn(
-              "bg-transparent transition-colors",
-              sidebarScrolled
-                ? "border-b border-adw-separator/70"
-                : "border-b border-transparent",
-            )}
-          >
-            <div className="flex items-center gap-1.5" data-window-no-drag>
-              {windowId && <WindowControls side="left" />}
-              <WindowMenuButton windowId={windowId} appId="app-store" />
-            </div>
-            {!isCompact && (
-              <span className="truncate text-[14px] font-bold tracking-tight whitespace-nowrap text-adw-label">
-                App Store
-              </span>
-            )}
-            <div className="w-7" />
-          </WindowTitlebar>
-        )}
-
-        <TooltipProvider delay={450}>
-          <div
-            onScroll={(e) => setSidebarScrolled(e.currentTarget.scrollTop > 2)}
-            className={cn(
-              "flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto px-2 pb-2",
-              isCsd ? "pt-0.5" : "pt-2",
-            )}
-          >
-            {[...SIDEBAR_ITEMS, ...CATEGORY_ITEMS].map((entry, idx) => {
-              const active = highlightedCategory === entry.id;
-              const btn = (
-                <button
-                  key={entry.id}
-                  type="button"
-                  aria-label={entry.label}
-                  data-sidebar-item={entry.id}
-                  onClick={() => setCategory(entry.id)}
-                  className={cn(
-                    "flex w-full shrink-0 items-center gap-2.5 rounded-[9px] px-2.5 py-1.5 text-left text-[13px] transition-colors outline-none",
-                    active
-                      ? "bg-adw-sidebar-selection font-medium text-adw-label"
-                      : "font-normal text-adw-label/85 hover:bg-black/5 dark:hover:bg-white/6",
-                  )}
-                >
-                  <span className="flex size-4 shrink-0 items-center justify-center opacity-85">
-                    {entry.icon}
-                  </span>
-                  <span
-                    className={cn(
-                      "truncate transition-opacity duration-150",
-                      isCompact ? "opacity-0" : "opacity-100",
-                    )}
-                  >
-                    {entry.label}
-                  </span>
-                </button>
-              );
-
-              const sep =
-                idx === SIDEBAR_ITEMS.length - 1 ? (
-                  <div className="my-1 h-px shrink-0 bg-adw-separator" />
-                ) : null;
-
-              if (!isCompact) {
-                return (
-                  <React.Fragment key={entry.id}>
-                    {btn}
-                    {sep}
-                  </React.Fragment>
-                );
-              }
-              return (
-                <React.Fragment key={entry.id}>
-                  <Tooltip>
-                    <TooltipTrigger render={btn} />
-                    <TooltipContent
-                      side="right"
-                      sideOffset={-36}
-                      className={cn(
-                        "pointer-events-none h-[32px] gap-2.5 rounded-[9px] border border-adw-separator px-2.5 py-1.5 text-[13px] shadow-md",
-                        active
-                          ? "bg-adw-sidebar-selection font-medium text-adw-label"
-                          : "bg-adw-sidebar font-normal text-adw-label",
-                      )}
-                    >
-                      <span className="flex size-4 shrink-0 items-center justify-center opacity-85">
-                        {entry.icon}
-                      </span>
-                      <span className="whitespace-nowrap">{entry.label}</span>
-                    </TooltipContent>
-                  </Tooltip>
-                  {sep}
-                </React.Fragment>
-              );
-            })}
-          </div>
-        </TooltipProvider>
-      </aside>
-
-      {/* Right Main Column (Solid content + Headerbar + Scrollable Grid + Scoped Bottom Action Bar) */}
-      <div className="flex min-w-0 flex-1 flex-col overflow-hidden bg-adw-content">
+      header={({ isCompact, contentScrolled }) => (
         <WindowTitlebar
           data-window-drag-region={isCsd ? "" : undefined}
           className={cn(
@@ -1030,11 +903,106 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
             {isCsd && windowId && <WindowControls side="right" />}
           </div>
         </WindowTitlebar>
+      )}
+      footer={
+        selectedItem ? (
+          <div className="flex h-[46px] shrink-0 items-center justify-between gap-4 border-t border-adw-separator bg-adw-titlebar px-4">
+            <div className="flex min-w-0 items-center gap-3">
+              {selectedItem.kind === "app" && selectedItem.appDef ? (
+                <AppSquircleIcon
+                  iconUrl={getAppIconUrl(selectedItem.appDef.id)}
+                  iconName={selectedItem.appDef.iconName}
+                  gradient={selectedItem.appDef.gradient}
+                  className="size-9"
+                />
+              ) : (
+                <WebAppFavicon
+                  url={selectedItem.faviconUrl}
+                  title={selectedItem.title}
+                  className="size-9"
+                />
+              )}
+              <div className="min-w-0">
+                <div className="truncate text-[13.5px] font-semibold">
+                  {selectedItem.title}
+                </div>
+                <div className="truncate text-[12px] text-adw-label-secondary">
+                  {selectedItem.subtitle}
+                </div>
+              </div>
+            </div>
 
+            <div className="flex shrink-0 items-center gap-2">
+              {pendingOp?.id === selectedItem.id ? (
+                <div className="flex items-center gap-3">
+                  <span className="text-[12.5px] font-medium text-adw-label-secondary">
+                    {pendingOp.kind === "removing"
+                      ? "Removing…"
+                      : "Installing…"}
+                  </span>
+                  <div
+                    role="progressbar"
+                    aria-valuenow={pendingOp.progress}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    className="h-2 w-36 overflow-hidden rounded-full bg-black/10 dark:bg-white/12"
+                  >
+                    <div
+                      style={{ width: `${pendingOp.progress}%` }}
+                      className={cn(
+                        "h-full rounded-full transition-[width] duration-75",
+                        pendingOp.kind === "removing"
+                          ? "bg-adw-red"
+                          : "bg-adw-accent",
+                      )}
+                    />
+                  </div>
+                </div>
+              ) : !selectedItem.installed ? (
+                <Button
+                  type="button"
+                  size="lg"
+                  className="px-5"
+                  disabled={pendingOp !== null}
+                  onClick={() => handleInstall(selectedItem)}
+                >
+                  Install
+                </Button>
+              ) : (
+                <>
+                  <Button
+                    type="button"
+                    size="lg"
+                    variant="secondary"
+                    className="px-5"
+                    onClick={() => handleOpen(selectedItem)}
+                  >
+                    Open
+                  </Button>
+                  {selectedItem.removable && (
+                    <Button
+                      type="button"
+                      size="lg"
+                      variant="destructive"
+                      className="px-5"
+                      disabled={pendingOp !== null}
+                      onClick={() => handleUninstall(selectedItem)}
+                    >
+                      Uninstall
+                    </Button>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+        ) : undefined
+      }
+    >
+      {({ onContentScroll }) => (
         <main
           ref={mainRef}
           onKeyDown={onContentKeyDown}
-          onScroll={(e) => setContentScrolled(e.currentTarget.scrollTop > 2)}
+          onScroll={onContentScroll}
           className="flex-1 overflow-y-auto p-4"
           onClick={() => setSelectedId(null)}
         >
@@ -1249,100 +1217,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
               </div>
             )}
           </main>
-
-          {/* Main-View-Only Bottom Selection Bar */}
-          {selectedItem && (
-            <div className="flex h-[46px] shrink-0 items-center justify-between gap-4 border-t border-adw-separator bg-adw-titlebar px-4">
-              <div className="flex min-w-0 items-center gap-3">
-                {selectedItem.kind === "app" && selectedItem.appDef ? (
-                  <AppSquircleIcon
-                    iconUrl={getAppIconUrl(selectedItem.appDef.id)}
-                    iconName={selectedItem.appDef.iconName}
-                    gradient={selectedItem.appDef.gradient}
-                    className="size-9"
-                  />
-                ) : (
-                  <WebAppFavicon
-                    url={selectedItem.faviconUrl}
-                    title={selectedItem.title}
-                    className="size-9"
-                  />
-                )}
-                <div className="min-w-0">
-                  <div className="truncate text-[13.5px] font-semibold">
-                    {selectedItem.title}
-                  </div>
-                  <div className="truncate text-[12px] text-adw-label-secondary">
-                    {selectedItem.subtitle}
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex shrink-0 items-center gap-2">
-                {pendingOp?.id === selectedItem.id ? (
-                  <div className="flex items-center gap-3">
-                    <span className="text-[12.5px] font-medium text-adw-label-secondary">
-                      {pendingOp.kind === "removing"
-                        ? "Removing…"
-                        : "Installing…"}
-                    </span>
-                    <div
-                      role="progressbar"
-                      aria-valuenow={pendingOp.progress}
-                      aria-valuemin={0}
-                      aria-valuemax={100}
-                      className="h-2 w-36 overflow-hidden rounded-full bg-black/10 dark:bg-white/12"
-                    >
-                      <div
-                        style={{ width: `${pendingOp.progress}%` }}
-                        className={cn(
-                          "h-full rounded-full transition-[width] duration-75",
-                          pendingOp.kind === "removing"
-                            ? "bg-adw-red"
-                            : "bg-adw-accent",
-                        )}
-                      />
-                    </div>
-                  </div>
-                ) : !selectedItem.installed ? (
-                  <Button
-                    type="button"
-                    size="lg"
-                    className="px-5"
-                    disabled={pendingOp !== null}
-                    onClick={() => handleInstall(selectedItem)}
-                  >
-                    Install
-                  </Button>
-                ) : (
-                  <>
-                    <Button
-                      type="button"
-                      size="lg"
-                      variant="secondary"
-                      className="px-5"
-                      onClick={() => handleOpen(selectedItem)}
-                    >
-                      Open
-                    </Button>
-                    {selectedItem.removable && (
-                      <Button
-                        type="button"
-                        size="lg"
-                        variant="destructive"
-                        className="px-5"
-                        disabled={pendingOp !== null}
-                        onClick={() => handleUninstall(selectedItem)}
-                      >
-                        Uninstall
-                      </Button>
-                    )}
-                  </>
-                )}
-              </div>
-            </div>
-          )}
-      </div>
-    </div>
-  );
-};
+        )}
+      </AdwSplitView>
+    );
+  };

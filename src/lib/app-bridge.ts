@@ -184,13 +184,24 @@ export function useIsolatedAppBridge(
       }
     };
 
+    const onCustomAction = (e: Event) => {
+      const detail = (
+        e as CustomEvent<{ windowId?: string; actionId?: string }>
+      ).detail;
+      if (!detail?.actionId) return;
+      if (detail.windowId && windowId && detail.windowId !== windowId) return;
+      onActionRef.current?.(detail.actionId);
+    };
+
     window.addEventListener("message", onMessage);
+    window.addEventListener("piloti:app-action", onCustomAction);
     window.addEventListener("pointerdown", onPointerDown, true);
     if (windowId) {
       postToShell({ type: "piloti:ready", windowId });
     }
     return () => {
       window.removeEventListener("message", onMessage);
+      window.removeEventListener("piloti:app-action", onCustomAction);
       window.removeEventListener("pointerdown", onPointerDown, true);
     };
   }, [windowId]);

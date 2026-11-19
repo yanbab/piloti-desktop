@@ -192,6 +192,7 @@ function WebViewSurface({
     toggleMaximizeWindow,
     setBrowserFavicon,
     setBrowserTitle,
+    markWindowReady,
   } = useWindowManager();
   const windowCtx = useWindowContext();
   const webviewRef = React.useRef<HTMLWebViewElement | null>(null);
@@ -214,6 +215,8 @@ function WebViewSurface({
 
   const focusSelfRef = React.useRef(() => focusWindow(win.id));
   focusSelfRef.current = () => focusWindow(win.id);
+  const markReadyRef = React.useRef(() => markWindowReady(win.id));
+  markReadyRef.current = () => markWindowReady(win.id);
   const faviconHandlerRef = React.useRef((fav: string) => {
     setLatestFavicon(fav);
     if (win.browserWindowId) setBrowserFavicon(win.browserWindowId, fav);
@@ -235,13 +238,25 @@ function WebViewSurface({
 
     const syncPage = () => {
       if (view.url) setAddress(view.url);
+      if (view.url && !view.loading) {
+        markReadyRef.current();
+      }
     };
-    const syncLoading = () => setIsLoading(Boolean(view.loading));
+    const syncLoading = () => {
+      const loading = Boolean(view.loading);
+      setIsLoading(loading);
+      if (!loading) {
+        markReadyRef.current();
+      }
+    };
     const syncFavicon = () => faviconHandlerRef.current(view.favicon || "");
     const syncFailure = () => {
       setPageFailure(view.pageFailure || "");
       setPageFailureError(view.pageFailureError || "");
       setPageFailureCanProceed(Boolean(view.pageFailureCanProceed));
+      if (view.pageFailure) {
+        markReadyRef.current();
+      }
     };
     const onGuestFocus = () => focusSelfRef.current();
     const onThemeColor = (e: Event) => {
@@ -375,15 +390,20 @@ function WebViewSurface({
     if (!isBrowserRuntime) return;
     if (iframeSrc === "about:blank") {
       setIsLoading(false);
+      markReadyRef.current();
       return;
     }
     setIsLoading(true);
-    const timeout = setTimeout(() => setIsLoading(false), 15000);
+    const timeout = setTimeout(() => {
+      setIsLoading(false);
+      markReadyRef.current();
+    }, 15000);
     return () => clearTimeout(timeout);
   }, [isBrowserRuntime, iframeSrc]);
 
   const handleIframeLoad = React.useCallback(() => {
     setIsLoading(false);
+    markReadyRef.current();
     try {
       const doc = iframeRef.current?.contentDocument;
       const docTitle = doc?.title?.trim();
@@ -1111,11 +1131,12 @@ export function WindowManager() {
                 ? `translate(${ovLayout.dx}px, ${ovLayout.dy}px) scale(${ovLayout.scale})`
                 : undefined,
               transition:
-                "transform 420ms cubic-bezier(0.22, 1, 0.36, 1)",
+                "transform 420ms cubic-bezier(0.22, 1, 0.36, 1), opacity 140ms ease-out",
             }}
             className={cn(
               "contain-[layout_style] outline-none",
               isWaylandSurface && "bg-transparent",
+              win.ready === false && "opacity-0 pointer-events-none",
               overviewOpen && "pointer-events-none",
               !isActiveWorkspace && "invisible pointer-events-none",
             )}

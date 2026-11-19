@@ -1,5 +1,11 @@
 import { createPortal } from "react-dom";
 import {
+  AlertCircleIcon,
+  BriefcaseIcon,
+  HeartIcon,
+  TagIcon,
+} from "lucide-react";
+import {
   MENU_ITEM_CLASS,
   MENU_POPUP_CLASS,
   MENU_SEPARATOR_CLASS,
@@ -7,6 +13,7 @@ import {
 import type { IconGridItem } from "@/lib/desktop-icons";
 import { _ } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
+import { VFS_EMBLEM_META, type VfsEmblemId } from "@/lib/web-vfs";
 
 export interface FileItemContextMenuState {
   item: IconGridItem;
@@ -14,51 +21,125 @@ export interface FileItemContextMenuState {
   y: number;
 }
 
+export type FileContextMenuKind =
+  | "normal"
+  | "desktop"
+  | "trash"
+  | "favorites"
+  | "recents";
+
+const EMBLEM_ORDER: readonly VfsEmblemId[] = [
+  "favorite",
+  "important",
+  "work",
+  "personal",
+];
+
+function EmblemIconGlyph({
+  emblem,
+  active,
+}: {
+  emblem: VfsEmblemId;
+  active: boolean;
+}) {
+  if (emblem === "favorite") {
+    return <HeartIcon className={cn("size-3.5", active && "fill-current")} />;
+  }
+  if (emblem === "important") {
+    return <AlertCircleIcon className="size-3.5" />;
+  }
+  if (emblem === "work") {
+    return <BriefcaseIcon className="size-3.5" />;
+  }
+  return <TagIcon className="size-3.5" />;
+}
+
 export function FileItemContextMenu({
   menu,
+  context = "normal",
   isTrash = false,
+  selectedItems,
   onClose,
   onOpen,
+  onOpenInNewWindow,
+  onOpenContainingFolder,
   onRestore,
+  onRestoreItems,
   onOpenInTerminal,
   onCut,
+  onCutItems,
   onCopy,
+  onCopyItems,
+  onDuplicate,
   onPaste,
   canPaste = false,
   isFavorite = false,
   onToggleFavorite,
+  activeEmblems,
+  onToggleEmblem,
   onRename,
+  onGetInfo,
   onNewFolder,
   onNewTextFile,
   onTrash,
+  onTrashItems,
 }: {
   menu: FileItemContextMenuState | null;
+  context?: FileContextMenuKind;
   isTrash?: boolean;
+  selectedItems?: IconGridItem[];
   onClose: () => void;
   onOpen: (item: IconGridItem) => void;
+  onOpenInNewWindow?: (item: IconGridItem) => void;
+  onOpenContainingFolder?: (item: IconGridItem) => void;
   onRestore?: (item: IconGridItem) => void;
+  onRestoreItems?: (items: IconGridItem[]) => void;
   onOpenInTerminal?: (item: IconGridItem) => void;
   onEditText?: (item: IconGridItem) => void;
   onCut?: (item: IconGridItem) => void;
+  onCutItems?: (items: IconGridItem[]) => void;
   onCopy?: (item: IconGridItem) => void;
+  onCopyItems?: (items: IconGridItem[]) => void;
+  onDuplicate?: (items: IconGridItem[]) => void;
   onPaste?: () => void;
   canPaste?: boolean;
   isFavorite?: boolean;
   onToggleFavorite?: (item: IconGridItem) => void;
+  activeEmblems?: readonly VfsEmblemId[];
+  onToggleEmblem?: (items: IconGridItem[], emblem: VfsEmblemId) => void;
   onRename: (item: IconGridItem) => void;
+  onGetInfo?: (item: IconGridItem) => void;
   onNewFolder?: () => void;
   onNewTextFile?: () => void;
   onTrash: (item: IconGridItem) => void;
+  onTrashItems?: (items: IconGridItem[]) => void;
 }) {
   if (!menu) return null;
 
+  const effectiveContext: FileContextMenuKind = isTrash ? "trash" : context;
+  const targetItems =
+    selectedItems &&
+    selectedItems.length > 0 &&
+    selectedItems.some((i) => i.id === menu.item.id)
+      ? selectedItems
+      : [menu.item];
+  const multiCount = targetItems.length;
+  const isSingle = multiCount === 1;
+  const isVirtualView =
+    effectiveContext === "favorites" || effectiveContext === "recents";
+
+  const resolvedEmblems = new Set<VfsEmblemId>(activeEmblems ?? []);
+  if (isFavorite) {
+    resolvedEmblems.add("favorite");
+  }
+
   const left =
     typeof window !== "undefined"
-      ? Math.min(window.innerWidth - 196, menu.x)
+      ? Math.min(window.innerWidth - 216, menu.x)
       : menu.x;
   const top =
     typeof window !== "undefined"
-      ? Math.min(window.innerHeight - 200, menu.y)
+      ? Math.min(window.innerHeight - 280, menu.y)
       : menu.y;
 
   const content = (
@@ -75,179 +156,372 @@ export function FileItemContextMenu({
         role="menu"
         style={{ left: `${left}px`, top: `${top}px` }}
         onClick={(e) => e.stopPropagation()}
-        className={cn(MENU_POPUP_CLASS, "fixed min-w-44")}
+        className={cn(MENU_POPUP_CLASS, "fixed min-w-48")}
       >
-        {isTrash && onRestore ? (
-          <button
-            type="button"
-            role="menuitem"
-            onClick={() => {
-              const target = menu.item;
-              onClose();
-              onRestore(target);
-            }}
-            className={cn(MENU_ITEM_CLASS, "w-full text-left hover:bg-adw-menu-highlight")}
-          >
-            {_("Restore")}
-          </button>
-        ) : (
-          <button
-            type="button"
-            role="menuitem"
-            onClick={() => {
-              const target = menu.item;
-              onClose();
-              onOpen(target);
-            }}
-            className={cn(MENU_ITEM_CLASS, "w-full text-left hover:bg-adw-menu-highlight")}
-          >
-            {_("Open")}
-          </button>
-        )}
-        {onOpenInTerminal && menu.item.kind === "directory" && (
-          <button
-            type="button"
-            role="menuitem"
-            onClick={() => {
-              const target = menu.item;
-              onClose();
-              onOpenInTerminal(target);
-            }}
-            className={cn(MENU_ITEM_CLASS, "w-full text-left hover:bg-adw-menu-highlight")}
-          >
-            {_("Open in Terminal")}
-          </button>
-        )}
-        {(onCut || onCopy || (onPaste && canPaste)) && (
+        {effectiveContext === "trash" ? (
           <>
-            <div className={MENU_SEPARATOR_CLASS} />
-            {onCut && (
-              <button
-                type="button"
-                role="menuitem"
-                onClick={() => {
-                  const target = menu.item;
-                  onClose();
-                  onCut(target);
-                }}
-                className={cn(MENU_ITEM_CLASS, "w-full text-left hover:bg-adw-menu-highlight")}
-              >
-                {_("Cut")}
-              </button>
-            )}
-            {onCopy && (
-              <button
-                type="button"
-                role="menuitem"
-                onClick={() => {
-                  const target = menu.item;
-                  onClose();
-                  onCopy(target);
-                }}
-                className={cn(MENU_ITEM_CLASS, "w-full text-left hover:bg-adw-menu-highlight")}
-              >
-                {_("Copy")}
-              </button>
-            )}
-            {onPaste && canPaste && (
+            {(onRestoreItems || onRestore) && (
               <button
                 type="button"
                 role="menuitem"
                 onClick={() => {
                   onClose();
-                  onPaste();
+                  if (onRestoreItems) onRestoreItems(targetItems);
+                  else if (onRestore) {
+                    for (const t of targetItems) onRestore(t);
+                  }
                 }}
-                className={cn(MENU_ITEM_CLASS, "w-full text-left hover:bg-adw-menu-highlight")}
+                className={cn(
+                  MENU_ITEM_CLASS,
+                  "w-full text-left hover:bg-adw-menu-highlight",
+                )}
               >
-                {_("Paste")}
+                {multiCount > 1
+                  ? `${_("Restore")} (${multiCount})`
+                  : _("Restore")}
               </button>
             )}
-          </>
-        )}
-        {onToggleFavorite && (
-          <>
             <div className={MENU_SEPARATOR_CLASS} />
             <button
               type="button"
               role="menuitem"
               onClick={() => {
-                const target = menu.item;
                 onClose();
-                onToggleFavorite(target);
+                if (onTrashItems) onTrashItems(targetItems);
+                else {
+                  for (const t of targetItems) onTrash(t);
+                }
               }}
-              className={cn(MENU_ITEM_CLASS, "w-full text-left hover:bg-adw-menu-highlight")}
+              className={cn(
+                MENU_ITEM_CLASS,
+                "w-full text-left text-destructive hover:bg-adw-menu-highlight",
+              )}
             >
-              {isFavorite ? _("Remove from Favorites") : _("Add to Favorites")}
+              {multiCount > 1
+                ? `${_("Delete Permanently")} (${multiCount})`
+                : _("Delete Permanently")}
+            </button>
+          </>
+        ) : (
+          <>
+            {isSingle && (
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  const target = menu.item;
+                  onClose();
+                  onOpen(target);
+                }}
+                className={cn(
+                  MENU_ITEM_CLASS,
+                  "w-full text-left hover:bg-adw-menu-highlight",
+                )}
+              >
+                {_("Open")}
+              </button>
+            )}
+            {isSingle &&
+              menu.item.kind === "directory" &&
+              onOpenInNewWindow && (
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    const target = menu.item;
+                    onClose();
+                    onOpenInNewWindow(target);
+                  }}
+                  className={cn(
+                    MENU_ITEM_CLASS,
+                    "w-full text-left hover:bg-adw-menu-highlight",
+                  )}
+                >
+                  {_("Open in New Window")}
+                </button>
+              )}
+            {isSingle && isVirtualView && onOpenContainingFolder && (
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  const target = menu.item;
+                  onClose();
+                  onOpenContainingFolder(target);
+                }}
+                className={cn(
+                  MENU_ITEM_CLASS,
+                  "w-full text-left hover:bg-adw-menu-highlight",
+                )}
+              >
+                {_("Open Containing Folder")}
+              </button>
+            )}
+            {isSingle &&
+              onOpenInTerminal &&
+              menu.item.kind === "directory" && (
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    const target = menu.item;
+                    onClose();
+                    onOpenInTerminal(target);
+                  }}
+                  className={cn(
+                    MENU_ITEM_CLASS,
+                    "w-full text-left hover:bg-adw-menu-highlight",
+                  )}
+                >
+                  {_("Open in Terminal")}
+                </button>
+              )}
+
+            {(onCut ||
+              onCutItems ||
+              onCopy ||
+              onCopyItems ||
+              onDuplicate ||
+              (onPaste && canPaste && !isVirtualView)) && (
+              <>
+                <div className={MENU_SEPARATOR_CLASS} />
+                {(onCutItems || onCut) && !isVirtualView && (
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      onClose();
+                      if (onCutItems) onCutItems(targetItems);
+                      else onCut?.(menu.item);
+                    }}
+                    className={cn(
+                      MENU_ITEM_CLASS,
+                      "w-full text-left hover:bg-adw-menu-highlight",
+                    )}
+                  >
+                    {multiCount > 1
+                      ? `${_("Cut")} (${multiCount})`
+                      : _("Cut")}
+                  </button>
+                )}
+                {(onCopyItems || onCopy) && (
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      onClose();
+                      if (onCopyItems) onCopyItems(targetItems);
+                      else onCopy?.(menu.item);
+                    }}
+                    className={cn(
+                      MENU_ITEM_CLASS,
+                      "w-full text-left hover:bg-adw-menu-highlight",
+                    )}
+                  >
+                    {multiCount > 1
+                      ? `${_("Copy")} (${multiCount})`
+                      : _("Copy")}
+                  </button>
+                )}
+                {onDuplicate && !isVirtualView && (
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      onClose();
+                      onDuplicate(targetItems);
+                    }}
+                    className={cn(
+                      MENU_ITEM_CLASS,
+                      "w-full text-left hover:bg-adw-menu-highlight",
+                    )}
+                  >
+                    {multiCount > 1
+                      ? `${_("Duplicate")} (${multiCount})`
+                      : _("Duplicate")}
+                  </button>
+                )}
+                {onPaste && canPaste && !isVirtualView && (
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      onClose();
+                      onPaste();
+                    }}
+                    className={cn(
+                      MENU_ITEM_CLASS,
+                      "w-full text-left hover:bg-adw-menu-highlight",
+                    )}
+                  >
+                    {_("Paste")}
+                  </button>
+                )}
+              </>
+            )}
+
+            {onToggleEmblem ? (
+              <>
+                <div className={MENU_SEPARATOR_CLASS} />
+                <div className="px-2.5 py-1">
+                  <div className="mb-1 text-[10.5px] font-semibold tracking-wide text-adw-dim uppercase">
+                    {_("Emblems")}
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {EMBLEM_ORDER.map((emblem) => {
+                      const meta = VFS_EMBLEM_META[emblem];
+                      const active = resolvedEmblems.has(emblem);
+                      return (
+                        <button
+                          key={emblem}
+                          type="button"
+                          title={meta.label}
+                          aria-label={meta.label}
+                          aria-pressed={active}
+                          onClick={() => {
+                            onClose();
+                            onToggleEmblem(targetItems, emblem);
+                          }}
+                          className={cn(
+                            "flex size-7 items-center justify-center rounded-md border transition-colors",
+                            active
+                              ? cn(
+                                  "border-current bg-black/10 dark:bg-white/12",
+                                  meta.colorClass,
+                                )
+                              : "border-transparent text-adw-label-secondary hover:bg-black/6 dark:hover:bg-white/8",
+                          )}
+                        >
+                          <EmblemIconGlyph emblem={emblem} active={active} />
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </>
+            ) : onToggleFavorite && isSingle ? (
+              <>
+                <div className={MENU_SEPARATOR_CLASS} />
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    const target = menu.item;
+                    onClose();
+                    onToggleFavorite(target);
+                  }}
+                  className={cn(
+                    MENU_ITEM_CLASS,
+                    "w-full text-left hover:bg-adw-menu-highlight",
+                  )}
+                >
+                  {isFavorite
+                    ? _("Remove from Favorites")
+                    : _("Add to Favorites")}
+                </button>
+              </>
+            ) : null}
+
+            {isSingle && (
+              <>
+                <div className={MENU_SEPARATOR_CLASS} />
+                {!isVirtualView && (
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      const target = menu.item;
+                      onClose();
+                      onRename(target);
+                    }}
+                    className={cn(
+                      MENU_ITEM_CLASS,
+                      "w-full text-left hover:bg-adw-menu-highlight",
+                    )}
+                  >
+                    {_("Rename…")}
+                  </button>
+                )}
+                {onGetInfo && (
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      const target = menu.item;
+                      onClose();
+                      onGetInfo(target);
+                    }}
+                    className={cn(
+                      MENU_ITEM_CLASS,
+                      "w-full text-left hover:bg-adw-menu-highlight",
+                    )}
+                  >
+                    {_("Get Info")}
+                  </button>
+                )}
+              </>
+            )}
+
+            {(onNewFolder || onNewTextFile) && !isVirtualView && (
+              <>
+                <div className={MENU_SEPARATOR_CLASS} />
+                {onNewFolder && (
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      onClose();
+                      onNewFolder();
+                    }}
+                    className={cn(
+                      MENU_ITEM_CLASS,
+                      "w-full text-left hover:bg-adw-menu-highlight",
+                    )}
+                  >
+                    {_("New Folder")}
+                  </button>
+                )}
+                {onNewTextFile && (
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      onClose();
+                      onNewTextFile();
+                    }}
+                    className={cn(
+                      MENU_ITEM_CLASS,
+                      "w-full text-left hover:bg-adw-menu-highlight",
+                    )}
+                  >
+                    {_("New Text File")}
+                  </button>
+                )}
+              </>
+            )}
+
+            <div className={MENU_SEPARATOR_CLASS} />
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                onClose();
+                if (onTrashItems) onTrashItems(targetItems);
+                else {
+                  for (const t of targetItems) onTrash(t);
+                }
+              }}
+              className={cn(
+                MENU_ITEM_CLASS,
+                "w-full text-left hover:bg-adw-menu-highlight",
+              )}
+            >
+              {multiCount > 1
+                ? `${_("Move to Trash")} (${multiCount})`
+                : _("Move to Trash")}
             </button>
           </>
         )}
-        <button
-          type="button"
-          role="menuitem"
-          onClick={() => {
-            const target = menu.item;
-            onClose();
-            onRename(target);
-          }}
-          className={cn(MENU_ITEM_CLASS, "w-full text-left hover:bg-adw-menu-highlight")}
-        >
-          {_("Rename…")}
-        </button>
-
-        {(onNewFolder || onNewTextFile) && (
-          <>
-            <div className={MENU_SEPARATOR_CLASS} />
-            {onNewFolder && (
-              <button
-                type="button"
-                role="menuitem"
-                onClick={() => {
-                  onClose();
-                  onNewFolder();
-                }}
-                className={cn(
-                  MENU_ITEM_CLASS,
-                  "w-full text-left hover:bg-adw-menu-highlight"
-                )}
-              >
-                {_("New Folder")}
-              </button>
-            )}
-            {onNewTextFile && (
-              <button
-                type="button"
-                role="menuitem"
-                onClick={() => {
-                  onClose();
-                  onNewTextFile();
-                }}
-                className={cn(
-                  MENU_ITEM_CLASS,
-                  "w-full text-left hover:bg-adw-menu-highlight"
-                )}
-              >
-                {_("New Text File")}
-              </button>
-            )}
-          </>
-        )}
-
-        <div className={MENU_SEPARATOR_CLASS} />
-        <button
-          type="button"
-          role="menuitem"
-          onClick={() => {
-            const target = menu.item;
-            onClose();
-            onTrash(target);
-          }}
-          className={cn(
-            MENU_ITEM_CLASS,
-            "w-full text-left hover:bg-adw-menu-highlight"
-          )}
-        >
-          {isTrash ? _("Delete Permanently") : _("Move to Trash")}
-        </button>
       </div>
     </div>
   );

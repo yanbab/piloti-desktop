@@ -64,6 +64,7 @@ function WindowsLayer({ children }: { children: React.ReactNode }) {
     () => ({
       launchApp: windowsValue.launchApp,
       launchXdgApp: windowsValue.launchXdgApp,
+      markWindowReady: windowsValue.markWindowReady,
       openGnomeSettings: windowsValue.openGnomeSettings,
       openWebUrl: windowsValue.openWebUrl,
       focusWindow: windowsValue.focusWindow,
@@ -90,6 +91,7 @@ function WindowsLayer({ children }: { children: React.ReactNode }) {
       windowsValue.handleMenuAction,
       windowsValue.launchApp,
       windowsValue.launchXdgApp,
+      windowsValue.markWindowReady,
       windowsValue.minimizeWindow,
       windowsValue.moveWindowToWorkspace,
       windowsValue.openGnomeSettings,

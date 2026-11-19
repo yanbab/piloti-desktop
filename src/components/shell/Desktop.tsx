@@ -4,7 +4,6 @@ import {
   ContextMenuContent,
   ContextMenuItem,
   ContextMenuSeparator,
-  ContextMenuShortcut,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
 import {
@@ -52,6 +51,14 @@ import { WindowManager } from "./WindowManager";
 import { installConsoleCapture } from "@/lib/console-store";
 import { _ } from "@/lib/i18n";
 import { bootElapsedMs, logBootEvent } from "@/lib/perf-log";
+import {
+  copyVfsEntry,
+  getVfsClipboard,
+  moveVfsEntry,
+  setVfsClipboard,
+  subscribeVfsClipboard,
+  WEB_VFS_HOME,
+} from "@/lib/web-vfs";
 
 installConsoleCapture();
 logBootEvent("starting shell");
@@ -64,21 +71,40 @@ function DesktopSurface() {
   }, []);
   const {
     locked,
-    lockSession,
     idleWarningMs,
     pendingPowerAction,
-    takeScreenshot,
   } = useSystemBackends();
   const {
     aboutOpen,
     altTabOpen,
     overviewOpen,
     launchApp,
-    openGnomeSettings,
-    setLauncherOpen,
-    openAltTab,
-    toggleOverview,
   } = useWindowManager();
+
+  const [clipboard, setLocalClipboard] = React.useState(() =>
+    getVfsClipboard()
+  );
+  React.useEffect(() => {
+    return subscribeVfsClipboard(() => {
+      setLocalClipboard(getVfsClipboard());
+    });
+  }, []);
+
+  const handlePasteToDesktop = () => {
+    const clip = getVfsClipboard();
+    if (!clip || clip.paths.length === 0 || !isBrowserRuntime) return;
+    const desktopDir = `${WEB_VFS_HOME}/Desktop`;
+    for (const srcPath of clip.paths) {
+      if (clip.mode === "cut") {
+        moveVfsEntry(srcPath, desktopDir);
+      } else {
+        copyVfsEntry(srcPath, desktopDir);
+      }
+    }
+    if (clip.mode === "cut") {
+      setVfsClipboard(null);
+    }
+  };
 
   const brightnessFilter =
     settings.brightness < 100
@@ -134,11 +160,32 @@ function DesktopSurface() {
           >
             {_("New Text File")}
           </ContextMenuItem>
+          {isBrowserRuntime && clipboard && clipboard.paths.length > 0 && (
+            <ContextMenuItem onClick={handlePasteToDesktop}>
+              {_("Paste")}
+            </ContextMenuItem>
+          )}
           <ContextMenuSeparator />
           <ContextMenuItem
             onClick={() => updateSettings({ desktopIconPositions: {} })}
           >
             {_("Align Icons")}
+          </ContextMenuItem>
+          <ContextMenuItem
+            onClick={() => {
+              const nextAlign =
+                (settings.desktopIconAlign ?? "left") === "right"
+                  ? "left"
+                  : "right";
+              updateSettings({
+                desktopIconAlign: nextAlign,
+                desktopIconPositions: {},
+              });
+            }}
+          >
+            {(settings.desktopIconAlign ?? "left") === "right"
+              ? _("Align Icons Left")
+              : _("Align Icons Right")}
           </ContextMenuItem>
           <ContextMenuItem
             onClick={() => launchApp("settings", { payload: "wallpaper" })}

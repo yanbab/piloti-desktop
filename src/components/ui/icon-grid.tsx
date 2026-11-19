@@ -1,6 +1,12 @@
 import * as React from "react";
 import { createPortal } from "react-dom";
-import { HeartCrackIcon, HeartIcon } from "lucide-react";
+import {
+  AlertCircleIcon,
+  BriefcaseIcon,
+  HeartCrackIcon,
+  HeartIcon,
+  TagIcon,
+} from "lucide-react";
 import { AppSquircleIcon } from "@/components/shell/AppSymbol";
 import { useSettings } from "@/context/DesktopStateContext";
 import {
@@ -17,6 +23,7 @@ import {
   DESKTOP_GRID_PADDING,
   DESKTOP_ICON_CELL_HEIGHT,
   DESKTOP_ICON_CELL_WIDTH,
+  type DesktopIconAlign,
   findItemsInRect,
   findNextKeyboardItemId,
   findTypeAheadItemId,
@@ -30,9 +37,11 @@ import { cn } from "@/lib/utils";
 import {
   getVfsEntry,
   getVfsImageThumbnailUrl,
-  loadVfsFavorites,
+  loadVfsEmblemsMap,
+  setVfsEmblem,
   subscribeWebVfs,
-  toggleVfsFavorite,
+  VFS_EMBLEM_META,
+  type VfsEmblemId,
 } from "@/lib/web-vfs";
 
 function splitFileNameExt(name: string, kind: IconGridItem["kind"]): [string, string] {
@@ -42,12 +51,56 @@ function splitFileNameExt(name: string, kind: IconGridItem["kind"]): [string, st
   return [name.slice(0, dotIdx), name.slice(dotIdx)];
 }
 
+type ResolvedDropTarget =
+  | { kind: "dock"; appId: string }
+  | { kind: "vfs"; destPath: string }
+  | { kind: "window"; windowId: string }
+  | { kind: "blocked" }
+  | null;
+
+function resolveTopDropTarget(
+  clientX: number,
+  clientY: number,
+  draggedPaths: readonly string[],
+): ResolvedDropTarget {
+  if (typeof document === "undefined") return null;
+  const hits = document.elementsFromPoint(clientX, clientY);
+  for (const el of hits) {
+    if (el.hasAttribute("data-dock-app-id")) {
+      const appId = el.getAttribute("data-dock-app-id");
+      if (appId) return { kind: "dock", appId };
+    }
+    if (el.hasAttribute("data-vfs-drop-path")) {
+      const destPath = el.getAttribute("data-vfs-drop-path");
+      if (destPath) {
+        const isSelfOrChild = draggedPaths.some(
+          (src) => src === destPath || destPath.startsWith(`${src}/`),
+        );
+        if (!isSelfOrChild) {
+          return { kind: "vfs", destPath };
+        }
+      }
+    }
+    if (el.hasAttribute("data-drop-window-id")) {
+      const windowId = el.getAttribute("data-drop-window-id");
+      if (windowId) return { kind: "window", windowId };
+    }
+    if (el.getAttribute("data-slot") === "window") {
+      return { kind: "blocked" };
+    }
+  }
+  return null;
+}
+
 export interface IconGridProps {
   items: readonly IconGridItem[];
   mode?: IconGridMode;
+  align?: DesktopIconAlign;
+  currentDirPath?: string;
   positions?: Readonly<Record<string, GridCoord>>;
   onMoveItem?: (itemId: string, cell: GridCoord, metrics: GridMetrics) => void;
   onDropItem?: (item: IconGridItem, clientX: number, clientY: number) => void;
+  onDropItems?: (items: IconGridItem[], destPath: string) => void;
   onActivateItem: (item: IconGridItem) => void;
   onContextMenuItem?: (item: IconGridItem, event: React.MouseEvent) => void;
   renamingId?: string | null;
@@ -65,6 +118,7 @@ export interface IconGridProps {
 
 interface DragState {
   itemId: string;
+  draggedIds: string[];
   pointerId: number;
   startX: number;
   startY: number;
@@ -90,9 +144,12 @@ interface MarqueeState {
 export function IconGrid({
   items,
   mode = "spatial",
+  align = "left",
+  currentDirPath,
   positions,
   onMoveItem,
   onDropItem,
+  onDropItems,
   onActivateItem,
   onContextMenuItem,
   renamingId = null,
@@ -112,12 +169,12 @@ export function IconGrid({
   const [hoveredDropPath, setHoveredDropPath] = React.useState<string | null>(
     null,
   );
-  const [favoritesSet, setFavoritesSet] = React.useState<Set<string>>(
-    () => new Set(loadVfsFavorites()),
-  );
+  const [emblemsMap, setEmblemsMap] = React.useState<
+    Record<string, VfsEmblemId[]>
+  >(() => loadVfsEmblemsMap());
   React.useEffect(() => {
     return subscribeWebVfs(() => {
-      setFavoritesSet(new Set(loadVfsFavorites()));
+      setEmblemsMap(loadVfsEmblemsMap());
     });
   }, []);
   const useAccentIcons = isBrowserRuntime || mode === "flow";
@@ -189,8 +246,14 @@ export function IconGrid({
 
   const resolvedPositions = React.useMemo(
     () =>
-      assignGridPositions(items, positions ?? {}, metrics.cols, metrics.rows),
-    [items, metrics.cols, metrics.rows, positions],
+      assignGridPositions(
+        items,
+        positions ?? {},
+        metrics.cols,
+        metrics.rows,
+        align,
+      ),
+    [align, items, metrics.cols, metrics.rows, positions],
   );
 
   const focusItemButton = React.useCallback((id: string) => {
@@ -207,6 +270,7 @@ export function IconGrid({
         e as CustomEvent<{
           active?: boolean;
           item?: { path?: string };
+          items?: Array<{ path?: string }>;
           clientX?: number;
           clientY?: number;
         }>
@@ -219,16 +283,19 @@ export function IconGrid({
         setHoveredDropPath(null);
         return;
       }
-      const hits = document.elementsFromPoint(detail.clientX, detail.clientY);
-      let found: string | null = null;
-      for (const el of hits) {
-        const dropEl = (el as HTMLElement).closest?.("[data-vfs-drop-path]");
-        const dest = dropEl?.getAttribute("data-vfs-drop-path");
-        if (dest && dest !== detail.item?.path) {
-          found = dest;
-          break;
-        }
-      }
+      const draggedPaths = detail.items?.length
+        ? detail.items
+            .map((d) => d.path)
+            .filter((p): p is string => Boolean(p))
+        : detail.item?.path
+          ? [detail.item.path]
+          : [];
+      const topTarget = resolveTopDropTarget(
+        detail.clientX,
+        detail.clientY,
+        draggedPaths,
+      );
+      const found = topTarget?.kind === "vfs" ? topTarget.destPath : null;
       setHoveredDropPath((prev) => (prev === found ? prev : found));
     };
     window.addEventListener("residence:file-drag", onGlobalFileDrag);
@@ -258,7 +325,9 @@ export function IconGrid({
         dragGhostRef.current.style.transform = `translate3d(${dx}px, ${dy}px, 0)`;
       }
 
-      const draggedItem = items.find((i) => i.id === cur.itemId);
+      const draggedItems = items.filter((i) => cur.draggedIds.includes(i.id));
+      const draggedItem =
+        items.find((i) => i.id === cur.itemId) ?? draggedItems[0];
       if (draggedItem && !rafId) {
         rafId = requestAnimationFrame(() => {
           rafId = 0;
@@ -269,6 +338,7 @@ export function IconGrid({
               detail: {
                 active: true,
                 item: draggedItem,
+                items: draggedItems,
                 clientX: latest.currentX,
                 clientY: latest.currentY,
               },
@@ -309,49 +379,59 @@ export function IconGrid({
           }),
         );
         suppressClickRef.current = cur.itemId;
-        const draggedItem = items.find((i) => i.id === cur.itemId);
-        const hits = document.elementsFromPoint(e.clientX, e.clientY);
-        const dropWindowEl = hits.find((el) =>
-          el.hasAttribute("data-drop-window-id"),
+        const draggedItems = items.filter((i) =>
+          cur.draggedIds.includes(i.id),
         );
-        const dropDockEl = hits.find((el) =>
-          el.hasAttribute("data-dock-app-id"),
-        );
-        if (draggedItem && dropWindowEl) {
-          const targetWindowId =
-            dropWindowEl.getAttribute("data-drop-window-id");
-          window.dispatchEvent(
-            new CustomEvent("residence:file-drop-window", {
-              detail: { windowId: targetWindowId, item: draggedItem },
-            }),
+        const draggedItem =
+          items.find((i) => i.id === cur.itemId) ?? draggedItems[0];
+        if (draggedItem) {
+          const topTarget = resolveTopDropTarget(
+            e.clientX,
+            e.clientY,
+            draggedItems.map((d) => d.path),
           );
-        } else if (draggedItem && dropDockEl) {
-          const dockAppId = dropDockEl.getAttribute("data-dock-app-id");
-          window.dispatchEvent(
-            new CustomEvent("residence:file-drop-dock", {
-              detail: { appId: dockAppId, item: draggedItem },
-            }),
-          );
-        } else {
-          const dropVfsTarget = hits
-            .find((el) => el.closest?.("[data-vfs-drop-path]"))
-            ?.closest?.("[data-vfs-drop-path]")
-            ?.getAttribute("data-vfs-drop-path");
-          const isDroppingOnFolderOrTrash = Boolean(
-            draggedItem &&
-              dropVfsTarget &&
-              dropVfsTarget !== draggedItem.path,
-          );
-          if (
-            !isDroppingOnFolderOrTrash &&
-            cur.targetCell &&
-            onMoveItem &&
-            mode === "spatial"
-          ) {
+          if (topTarget?.kind === "dock") {
+            window.dispatchEvent(
+              new CustomEvent("residence:file-drop-dock", {
+                detail: {
+                  appId: topTarget.appId,
+                  item: draggedItem,
+                  items: draggedItems,
+                },
+              }),
+            );
+          } else if (topTarget?.kind === "window") {
+            window.dispatchEvent(
+              new CustomEvent("residence:file-drop-window", {
+                detail: {
+                  windowId: topTarget.windowId,
+                  item: draggedItem,
+                  items: draggedItems,
+                },
+              }),
+            );
+          } else if (topTarget?.kind === "vfs") {
+            const isSameDir =
+              (currentDirPath !== undefined &&
+                topTarget.destPath === currentDirPath) ||
+              draggedItems.every(
+                (d) =>
+                  d.path.startsWith(`${topTarget.destPath}/`) &&
+                  !d.path
+                    .slice(topTarget.destPath.length + 1)
+                    .includes("/"),
+              );
+            if (isSameDir) {
+              if (mode === "spatial" && cur.targetCell && onMoveItem) {
+                onMoveItem(cur.itemId, cur.targetCell, metrics);
+              }
+            } else if (onDropItems) {
+              onDropItems(draggedItems, topTarget.destPath);
+            } else if (onDropItem) {
+              onDropItem(draggedItem, e.clientX, e.clientY);
+            }
+          } else if (!topTarget && mode === "spatial" && cur.targetCell && onMoveItem) {
             onMoveItem(cur.itemId, cur.targetCell, metrics);
-          }
-          if (draggedItem && onDropItem) {
-            onDropItem(draggedItem, e.clientX, e.clientY);
           }
         }
       }
@@ -368,7 +448,16 @@ export function IconGrid({
       window.removeEventListener("pointerup", handlePointerUp);
       window.removeEventListener("pointercancel", handlePointerUp);
     };
-  }, [isDragStarted, items, metrics, mode, onDropItem, onMoveItem]);
+  }, [
+    currentDirPath,
+    isDragStarted,
+    items,
+    metrics,
+    mode,
+    onDropItem,
+    onDropItems,
+    onMoveItem,
+  ]);
 
   React.useEffect(() => {
     if (!marquee) return;
@@ -563,7 +652,8 @@ export function IconGrid({
 
       {items.map((item) => {
         const selected = selectedSet.has(item.id);
-        const isDragging = drag?.active && drag.itemId === item.id;
+        const isDragging =
+          Boolean(drag?.active) && Boolean(drag?.draggedIds.includes(item.id));
         const coord = resolvedPositions[item.id] ?? { col: 0, row: 0 };
 
         const spatialStyle: React.CSSProperties | undefined =
@@ -606,22 +696,37 @@ export function IconGrid({
             style={spatialStyle}
             onPointerDown={(e) => {
               if (e.button !== 0) return;
+              let nextSelectedIds: string[];
               if (e.metaKey || e.ctrlKey) {
-                const next = selectedSet.has(item.id)
+                nextSelectedIds = selectedSet.has(item.id)
                   ? selectedIds.filter((id) => id !== item.id)
                   : [...selectedIds, item.id];
-                onSelectIds(next);
+                onSelectIds(nextSelectedIds);
               } else if (e.shiftKey) {
+                nextSelectedIds = selectedSet.has(item.id)
+                  ? [...selectedIds]
+                  : [...selectedIds, item.id];
                 if (!selectedSet.has(item.id)) {
-                  onSelectIds([...selectedIds, item.id]);
+                  onSelectIds(nextSelectedIds);
                 }
               } else if (!selectedSet.has(item.id)) {
-                onSelectIds([item.id]);
+                nextSelectedIds = [item.id];
+                onSelectIds(nextSelectedIds);
+              } else {
+                nextSelectedIds = [...selectedIds];
               }
-              if ((mode === "spatial" && onMoveItem) || onDropItem) {
+              const activeDraggedIds = nextSelectedIds.includes(item.id)
+                ? nextSelectedIds
+                : [item.id];
+              if (
+                (mode === "spatial" && onMoveItem) ||
+                onDropItem ||
+                onDropItems
+              ) {
                 const itemRect = e.currentTarget.getBoundingClientRect();
                 setDrag({
                   itemId: item.id,
+                  draggedIds: activeDraggedIds,
                   pointerId: e.pointerId,
                   startX: e.clientX,
                   startY: e.clientY,
@@ -685,7 +790,7 @@ export function IconGrid({
               "group relative flex cursor-default rounded-xl outline-none select-none",
               compactHorizontal
                 ? "flex-row items-center justify-start gap-1 px-1.5 py-0.5 text-left"
-                : "flex-col items-center justify-start gap-1.5 px-1.5 py-2 text-center",
+                : "flex-col items-center justify-start gap-1 px-1 py-1.5 text-center",
               !isDragging && "transition-colors duration-100",
               isDragging && "opacity-25",
             )}
@@ -748,20 +853,56 @@ export function IconGrid({
                   />
                 );
               })()}
-              {item.path && favoritesSet.has(item.path) && (
-                <button
-                  type="button"
-                  aria-label="Remove from Favorites"
-                  onPointerDown={(e) => e.stopPropagation()}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    toggleVfsFavorite(item.path!);
-                  }}
-                  className="group/fav absolute -top-1.5 -right-1.5 z-10 flex size-5 items-center justify-center text-rose-500 drop-shadow-[0_1px_2px_rgba(0,0,0,0.45)] transition-transform hover:scale-110"
-                >
-                  <HeartIcon className="size-4 fill-current group-hover/fav:hidden" />
-                  <HeartCrackIcon className="hidden size-4 group-hover/fav:block" />
-                </button>
+              {item.path && (emblemsMap[item.path]?.length ?? 0) > 0 && (
+                <div className="pointer-events-auto absolute -top-1 -right-1 z-10 flex items-center gap-0.5">
+                  {(emblemsMap[item.path] ?? []).map((emblemId) => {
+                    const meta = VFS_EMBLEM_META[emblemId];
+                    if (emblemId === "favorite") {
+                      return (
+                        <button
+                          key={emblemId}
+                          type="button"
+                          aria-label="Remove Favorite Emblem"
+                          title="Remove from Favorites"
+                          onPointerDown={(e) => e.stopPropagation()}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setVfsEmblem(item.path, "favorite", false);
+                          }}
+                          className="group/fav flex size-4 items-center justify-center rounded-full bg-black/55 text-rose-400 shadow-xs backdrop-blur-xs transition-transform hover:scale-110"
+                        >
+                          <HeartIcon className="size-2.5 fill-current group-hover/fav:hidden" />
+                          <HeartCrackIcon className="hidden size-2.5 group-hover/fav:block" />
+                        </button>
+                      );
+                    }
+                    const EmblemIcon =
+                      emblemId === "important"
+                        ? AlertCircleIcon
+                        : emblemId === "work"
+                          ? BriefcaseIcon
+                          : TagIcon;
+                    return (
+                      <button
+                        key={emblemId}
+                        type="button"
+                        aria-label={`Remove ${meta.label} Emblem`}
+                        title={`Remove ${meta.label} Emblem`}
+                        onPointerDown={(e) => e.stopPropagation()}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setVfsEmblem(item.path, emblemId, false);
+                        }}
+                        className={cn(
+                          "flex size-4 items-center justify-center rounded-full shadow-xs transition-transform hover:scale-110",
+                          meta.badgeBgClass,
+                        )}
+                      >
+                        <EmblemIcon className="size-2.5" />
+                      </button>
+                    );
+                  })}
+                </div>
               )}
             </div>
             {renamingId === item.id ? (
@@ -820,24 +961,30 @@ export function IconGrid({
           if (!draggedItem) return null;
           const dx = drag.currentX - drag.startX;
           const dy = drag.currentY - drag.startY;
+          const dragCount = drag.draggedIds.length;
           return createPortal(
             <div
               ref={dragGhostRef}
               style={{
                 left: `${drag.originLeft}px`,
                 top: `${drag.originTop}px`,
-                width: `${cellWidth}px`,
-                height: `${cellHeight}px`,
+                width: `${effectiveCellWidth}px`,
+                height: `${effectiveCellHeight}px`,
                 transform: `translate3d(${dx}px, ${dy}px, 0)`,
                 willChange: "transform",
                 transition: "none",
                 animation: "none",
               }}
-              className="pointer-events-none fixed z-[9999] flex flex-col items-center justify-start gap-1.5 rounded-xl px-1.5 py-2 text-center opacity-90 select-none"
+              className={cn(
+                "pointer-events-none fixed z-[9999] flex rounded-xl opacity-90 select-none",
+                compactHorizontal
+                  ? "flex-row items-center justify-start gap-1 px-1.5 py-0.5 text-left"
+                  : "flex-col items-center justify-start gap-1 px-1 py-1.5 text-center",
+              )}
             >
               <div
                 style={{ width: `${iconSize}px`, height: `${iconSize}px` }}
-                className="shrink-0"
+                className="relative shrink-0"
               >
                 {draggedItem.kind === "directory" ? (
                   <DynamicFolderIcon
@@ -862,9 +1009,16 @@ export function IconGrid({
                     glyphClassName="size-7"
                   />
                 )}
+                {dragCount > 1 && (
+                  <span className="absolute -top-1.5 -right-1.5 flex min-w-5 items-center justify-center rounded-full bg-adw-accent px-1.5 py-0.5 text-[10px] font-bold text-white shadow-md">
+                    {dragCount}
+                  </span>
+                )}
               </div>
               <span className="line-clamp-2 w-fit max-w-full rounded bg-adw-accent px-1.5 py-0.5 text-[11.5px] leading-tight font-medium break-words text-white shadow-md">
-                {draggedItem.name}
+                {dragCount > 1
+                  ? `${draggedItem.name} (+${dragCount - 1})`
+                  : draggedItem.name}
               </span>
             </div>,
             document.body,

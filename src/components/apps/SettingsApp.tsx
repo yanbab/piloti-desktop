@@ -1,22 +1,15 @@
 import * as React from "react";
 import {
-  ArrowLeftIcon,
   DockIcon as LucideDockIcon,
   ImageIcon,
   PaletteIcon,
   SlidersHorizontalIcon,
   TypeIcon,
 } from "lucide-react";
+import { AdwSplitView, type AdwSplitSidebarItem } from "@/components/ui/adw-split-view";
 import { Button } from "@/components/ui/button";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { WindowControls, WindowTitlebar } from "@/components/ui/window";
 import { useSidebarKeyboardNav } from "@/hooks/use-sidebar-keyboard-nav";
-import { WindowMenuButton } from "@/components/shell/WindowMenuButton";
 import {
   useSettings,
   useSystemBackends,
@@ -99,7 +92,7 @@ export function SettingsApp({
 }) {
   const { isBrowserRuntime } = useSettings();
   const { gnomeCapabilities } = useSystemBackends();
-  const { openGnomeSettings, closeWindow } = useWindowActions();
+  const { openGnomeSettings } = useWindowActions();
 
   const [activePane, setActivePane] = React.useState<SettingsPaneId>(() => {
     if (isSettingsPaneId(initialPane)) {
@@ -128,38 +121,6 @@ export function SettingsApp({
     }
   }, [activePane]);
 
-  const containerRef = React.useRef<HTMLDivElement | null>(null);
-  const [isCompact, setIsCompact] = React.useState(false);
-  const [sidebarReady, setSidebarReady] = React.useState(false);
-  const [sidebarScrolled, setSidebarScrolled] = React.useState(false);
-  const [contentScrolled, setContentScrolled] = React.useState(false);
-  const [compactShowDetail, setCompactShowDetail] = React.useState(
-    () => Boolean(initialPane)
-  );
-
-  React.useLayoutEffect(() => {
-    const el = containerRef.current;
-    if (!el || typeof ResizeObserver === "undefined") {
-      setSidebarReady(true);
-      return;
-    }
-    const check = () => setIsCompact(el.clientWidth < 640);
-    check();
-    setSidebarReady(true);
-    const ro = new ResizeObserver(check);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
-
-  React.useEffect(() => {
-    if (initialPane && isCompact) {
-      setCompactShowDetail(true);
-    }
-  }, [initialPane, isCompact]);
-
-  const showSidebar = true;
-  const showDetail = true;
-
   const matchingGnomePanel = PANE_TO_GNOME[activePane];
   const currentPaneMeta = PANES.find((p) => p.id === activePane);
   const sidebarNavRef = React.useRef<HTMLElement | null>(null);
@@ -177,121 +138,34 @@ export function SettingsApp({
     contentRef: detailContentRef,
   });
 
+  const sidebarItems = React.useMemo<AdwSplitSidebarItem[]>(
+    () =>
+      PANES.map((pane) => ({
+        id: pane.id,
+        label: pane.label,
+        icon: pane.icon,
+        selected: highlightedPane === pane.id,
+        onClick: () => setActivePane(pane.id),
+      })),
+    [highlightedPane]
+  );
+
   return (
-    <div
-      ref={containerRef}
-      className="flex h-full w-full overflow-hidden bg-transparent text-adw-label"
-    >
-      {/* Left Sidebar (collapses to VS Code-style icon activity bar when < 640px) */}
-      {showSidebar && (
-        <aside
-          className={cn(
-            "flex min-h-0 shrink-0 flex-col overflow-hidden border-r border-adw-separator bg-adw-sidebar",
-            sidebarReady && "transition-[width] duration-150",
-            isCompact ? "w-[52px]" : "w-[176px]"
-          )}
-        >
-        {isCsd && (
-          <WindowTitlebar
-            data-window-drag-region
-            className={cn(
-              "bg-transparent transition-colors",
-              sidebarScrolled
-                ? "border-b border-adw-separator/70"
-                : "border-b border-transparent",
-            )}
-          >
-            <div className="flex items-center gap-1.5" data-window-no-drag>
-              {windowId && <WindowControls side="left" />}
-              <WindowMenuButton
-                windowId={windowId}
-                appId="settings"
-                iconName="settings"
-              />
-            </div>
-            {!isCompact && (
-              <span className="truncate whitespace-nowrap text-[14px] font-bold tracking-tight text-adw-label">
-                Settings
-              </span>
-            )}
-            <div className="w-7" />
-          </WindowTitlebar>
-        )}
-
-        <TooltipProvider delay={450}>
-          <nav
-            ref={sidebarNavRef}
-            onKeyDown={onSidebarKeyDown}
-            onKeyUp={onSidebarKeyUp}
-            onScroll={(e) => setSidebarScrolled(e.currentTarget.scrollTop > 2)}
-            className={cn(
-              "flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto px-2 pb-2",
-              isCsd ? "pt-0.5" : "pt-2.5"
-            )}
-          >
-            {PANES.map((pane) => {
-              const selected = highlightedPane === pane.id;
-              const btn = (
-                <button
-                  key={pane.id}
-                  type="button"
-                  aria-label={pane.label}
-                  data-sidebar-item={pane.id}
-                  onClick={() => {
-                    setActivePane(pane.id);
-                  }}
-                  className={cn(
-                    "flex w-full shrink-0 items-center gap-3 rounded-[9px] px-2.5 py-2 text-left text-[14px] font-normal transition-colors outline-none",
-                    selected
-                      ? "bg-adw-sidebar-selection font-medium text-adw-label"
-                      : "text-adw-label/85 hover:bg-black/5 dark:hover:bg-white/6"
-                  )}
-                >
-                  <span className="flex size-4 shrink-0 items-center justify-center opacity-85 [&_svg]:size-4">
-                    {pane.icon}
-                  </span>
-                  <span
-                    className={cn(
-                      "truncate transition-opacity duration-150",
-                      isCompact ? "opacity-0" : "opacity-100"
-                    )}
-                  >
-                    {pane.label}
-                  </span>
-                </button>
-              );
-
-              if (!isCompact) return btn;
-              return (
-                <Tooltip key={pane.id}>
-                  <TooltipTrigger render={btn} />
-                  <TooltipContent
-                    side="right"
-                    sideOffset={-36}
-                    className={cn(
-                      "pointer-events-none h-[37px] gap-3 rounded-[9px] border border-adw-separator px-2.5 py-2 text-[14px] shadow-md",
-                      selected
-                        ? "bg-adw-sidebar-selection font-medium text-adw-label"
-                        : "bg-adw-sidebar font-normal text-adw-label"
-                    )}
-                  >
-                    <span className="flex size-4 shrink-0 items-center justify-center opacity-85 [&_svg]:size-4">
-                      {pane.icon}
-                    </span>
-                    <span className="whitespace-nowrap">{pane.label}</span>
-                  </TooltipContent>
-                </Tooltip>
-              );
-            })}
-          </nav>
-        </TooltipProvider>
-        </aside>
-      )}
-
-      {/* Right Content Area */}
-      {showDetail && (
-      <div className="flex min-w-0 flex-1 flex-col overflow-hidden bg-adw-window">
-        {isCsd ? (
+    <AdwSplitView
+      title="Settings"
+      appId="settings"
+      iconName="settings"
+      windowId={windowId}
+      isCsd={isCsd}
+      sidebarItems={sidebarItems}
+      sidebarWidthClass="w-[176px]"
+      sidebarDensity="tall"
+      sidebarRef={sidebarNavRef}
+      onSidebarKeyDown={onSidebarKeyDown}
+      onSidebarKeyUp={onSidebarKeyUp}
+      contentClassName="bg-adw-window"
+      header={({ contentScrolled }) =>
+        isCsd ? (
           <WindowTitlebar
             data-window-drag-region
             className={cn(
@@ -348,12 +222,14 @@ export function SettingsApp({
                 </Button>
               )}
           </div>
-        )}
-
+        )
+      }
+    >
+      {({ onContentScroll }) => (
         <div
           ref={detailContentRef}
           onKeyDown={onContentKeyDown}
-          onScroll={(e) => setContentScrolled(e.currentTarget.scrollTop > 2)}
+          onScroll={onContentScroll}
           className="flex min-h-0 flex-1 flex-col overflow-y-auto"
         >
           {activePane === "appearance" && <AppearancePane />}
@@ -362,8 +238,7 @@ export function SettingsApp({
           {activePane === "topbar" && <TopBarPane />}
           {activePane === "wallpaper" && <WallpaperPane />}
         </div>
-      </div>
       )}
-    </div>
+    </AdwSplitView>
   );
 }

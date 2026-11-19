@@ -67,6 +67,11 @@ bun run typecheck
 bun run build
 ```
 
+## Documentation
+
+- [Architecture & Shell API](./docs/ARCHITECTURE.md) — Runtime architecture, spatial window manager, VFS/DnD design, and Shell REPL API.
+- [Roadmap](./docs/ROADMAP.md) — Milestones and actionable tasks across shell, apps, design system, and testing.
+
 ## Keyboard Shortcuts
 
 | Shortcut | Action |

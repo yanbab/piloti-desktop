@@ -5,6 +5,7 @@ import {
   Maximize2Icon,
   RotateCcwIcon,
   RotateCwIcon,
+  SaveIcon,
   XIcon,
   ZoomInIcon,
   ZoomOutIcon,
@@ -24,11 +25,6 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
   isCsd: propIsCsd = true,
 }) => {
   const [dragRegionHovered, setDragRegionHovered] = React.useState(false);
-  const handleShellAction = React.useCallback((actionId: string) => {
-    if (actionId === "piloti:header-enter") setDragRegionHovered(true);
-    else if (actionId === "piloti:header-leave") setDragRegionHovered(false);
-  }, []);
-  const bridge = useIsolatedAppBridge(windowId, propIsCsd, handleShellAction);
   const resolvedPath = React.useMemo(() => {
     if (initialPath) return initialPath;
     if (typeof window !== "undefined") {
@@ -36,6 +32,19 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
     }
     return "";
   }, [initialPath]);
+  const [activePath, setActivePath] = React.useState(resolvedPath);
+  React.useEffect(() => {
+    setActivePath(resolvedPath);
+  }, [resolvedPath]);
+
+  const handleShellAction = React.useCallback((actionId: string) => {
+    if (actionId === "piloti:header-enter") setDragRegionHovered(true);
+    else if (actionId === "piloti:header-leave") setDragRegionHovered(false);
+    else if (actionId.startsWith("piloti:open-path:")) {
+      setActivePath(actionId.slice("piloti:open-path:".length));
+    }
+  }, []);
+  const bridge = useIsolatedAppBridge(windowId, propIsCsd, handleShellAction);
 
   const [imageSrc, setImageSrc] = React.useState<string>("");
   const [zoom, setZoom] = React.useState(1);
@@ -52,6 +61,7 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
   const [croppedDataUrl, setCroppedDataUrl] = React.useState<string | null>(
     null,
   );
+  const [savedFlash, setSavedFlash] = React.useState(false);
   const imgRef = React.useRef<HTMLImageElement | null>(null);
   const panDragRef = React.useRef<{
     startX: number;
@@ -70,22 +80,22 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
     setZoom(1);
     setRotation(0);
     setCroppedDataUrl(null);
-    if (!resolvedPath) return;
+    if (!activePath) return;
     if (
-      resolvedPath.startsWith("data:") ||
-      resolvedPath.startsWith("http://") ||
-      resolvedPath.startsWith("https://") ||
-      resolvedPath.startsWith("blob:")
+      activePath.startsWith("data:") ||
+      activePath.startsWith("http://") ||
+      activePath.startsWith("https://") ||
+      activePath.startsWith("blob:")
     ) {
-      setImageSrc(resolvedPath);
+      setImageSrc(activePath);
       return;
     }
     let cancelled = false;
-    void bridge.fs.readText(resolvedPath).then((content) => {
+    void bridge.fs.readText(activePath).then((content) => {
       if (cancelled || !content) return;
       if (content.startsWith("data:image/")) {
         setImageSrc(content);
-      } else if (resolvedPath.toLowerCase().endsWith(".svg")) {
+      } else if (activePath.toLowerCase().endsWith(".svg")) {
         setImageSrc(`data:image/svg+xml;utf8,${encodeURIComponent(content)}`);
       } else {
         setImageSrc(content);
@@ -94,7 +104,7 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [bridge.fs, resolvedPath]);
+  }, [activePath, bridge.fs]);
 
   const activeSrc = croppedDataUrl ?? imageSrc;
 
@@ -133,21 +143,99 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
     setZoom(1);
   };
 
-  const resetView = () => {
+  const resetView = React.useCallback(() => {
     setZoom(1);
     setPan({ x: 0, y: 0 });
     setRotation(0);
     setCroppedDataUrl(null);
     setCropping(false);
     setCropRect({ x: 15, y: 15, w: 70, h: 70 });
-  };
+  }, []);
 
-  const fileName = resolvedPath
-    ? (resolvedPath.split("/").filter(Boolean).pop() ?? "Image Viewer")
+  const canSave = Boolean(
+    (croppedDataUrl || rotation !== 0) && activePath.startsWith("/"),
+  );
+
+  const handleSave = React.useCallback(async () => {
+    const img = imgRef.current;
+    if (!img || !activePath.startsWith("/")) return;
+    const natW = img.naturalWidth || img.width;
+    const natH = img.naturalHeight || img.height;
+    if (!natW || !natH) return;
+
+    const normRot = ((rotation % 360) + 360) % 360;
+    const swap = normRot === 90 || normRot === 270;
+    const canvas = document.createElement("canvas");
+    canvas.width = swap ? natH : natW;
+    canvas.height = swap ? natW : natH;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    ctx.translate(canvas.width / 2, canvas.height / 2);
+    ctx.rotate((normRot * Math.PI) / 180);
+    ctx.drawImage(img, -natW / 2, -natH / 2, natW, natH);
+    try {
+      const nextDataUrl = canvas.toDataURL("image/png");
+      const ok = await bridge.fs.writeText(activePath, nextDataUrl);
+      if (ok) {
+        setImageSrc(nextDataUrl);
+        setCroppedDataUrl(null);
+        setRotation(0);
+        setSavedFlash(true);
+        window.setTimeout(() => setSavedFlash(false), 1800);
+      }
+    } catch {
+      // ignore tainted canvas
+    }
+  }, [activePath, bridge.fs, rotation]);
+
+  React.useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
+        if (canSave) {
+          e.preventDefault();
+          void handleSave();
+        }
+        return;
+      }
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      if (e.key === "+" || e.key === "=") {
+        e.preventDefault();
+        setZoom((z) => Math.min(12, Number((z * 1.25).toFixed(2))));
+      } else if (e.key === "-" || e.key === "_") {
+        e.preventDefault();
+        setZoom((z) => Math.max(0.15, Number((z / 1.25).toFixed(2))));
+      } else if (e.key === "0") {
+        e.preventDefault();
+        resetView();
+      } else if (e.key === "r") {
+        e.preventDefault();
+        setRotation((r) => (r + 90) % 360);
+      } else if (e.key === "R") {
+        e.preventDefault();
+        setRotation((r) => (r + 270) % 360);
+      } else if (e.key === "Escape" && cropping) {
+        e.preventDefault();
+        setCropRect({ x: 15, y: 15, w: 70, h: 70 });
+        setCropping(false);
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [canSave, cropping, handleSave, resetView]);
+
+  const fileName = activePath
+    ? (activePath.split("/").filter(Boolean).pop() ?? "Image Viewer")
     : "Image Viewer";
 
   return (
-    <div className="relative flex h-full w-full flex-col overflow-hidden bg-adw-window text-adw-label select-none">
+    <div
+      data-drop-window-id={windowId}
+      className="relative flex h-full w-full flex-col overflow-hidden bg-adw-window text-adw-label select-none"
+    >
       {/* Translucent Headerbar revealed only when hovering the top headerbar zone */}
       <div className="group/header absolute inset-x-0 top-0 z-20 h-10">
         <div
@@ -378,12 +466,30 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
           <div className="mx-0.5 h-4 w-px bg-white/15" />
           <button
             type="button"
-            title="Reset"
+            title="Reset (0)"
             onClick={resetView}
             className="flex size-8 items-center justify-center rounded-lg hover:bg-white/15 active:bg-white/25"
           >
             <RotateCcwIcon className="size-3.5" />
           </button>
+          {canSave && (
+            <>
+              <div className="mx-0.5 h-4 w-px bg-white/15" />
+              <button
+                type="button"
+                title="Save Changes (Ctrl+S)"
+                onClick={() => void handleSave()}
+                className="flex size-8 items-center justify-center rounded-lg bg-adw-accent text-white hover:opacity-90"
+              >
+                <SaveIcon className="size-3.5" />
+              </button>
+            </>
+          )}
+          {savedFlash && (
+            <span className="px-2 text-[11px] font-medium text-emerald-400">
+              Saved
+            </span>
+          )}
         </div>
       </div>
     </div>

@@ -15,10 +15,16 @@ import {
   type BuiltinAppId,
 } from "@/data/catalog";
 import {
+  canonicalizeWebUrl,
   findMatchingWebApp,
   getWebAppFaviconUrl,
   resolveWebAppTitle,
 } from "@/data/web-apps";
+import {
+  DOCUMENT_SCOPED_APP_IDS,
+  lookupSpatialWindowBounds,
+  resolveSpatialBoundsKey,
+} from "@/lib/spatial-window-bounds";
 import {
   type GnomeSettingsPanel,
   launchDesktopCommand,
@@ -52,6 +58,7 @@ export interface DesktopWindowInstance {
   gradient: string;
   builtinComponent?: BuiltinAppId;
   waylandAppId?: string;
+  waylandDesktopId?: string;
   browserWindowId?: string;
   browserUrl?: string;
   browserIsApp?: boolean;
@@ -68,6 +75,7 @@ export interface DesktopWindowInstance {
   maximized: boolean;
   fullscreen?: boolean;
   pinned?: boolean;
+  ready?: boolean;
   zIndex: number;
   payload?: string;
 }
@@ -94,6 +102,7 @@ export interface WindowsContextValue {
   activeAppDef: AppDefinition;
   mruWindows: DesktopWindowInstance[];
   launchingApps: string[];
+  markWindowReady: (windowId: string) => void;
   launchApp: (
     appId: string,
     options?: { payload?: string; forceNew?: boolean; forceCsd?: boolean }
@@ -150,6 +159,7 @@ export type WindowActionsValue = Pick<
   WindowsContextValue,
   | "launchApp"
   | "launchXdgApp"
+  | "markWindowReady"
   | "openGnomeSettings"
   | "openWebUrl"
   | "focusWindow"
@@ -478,6 +488,46 @@ function pruneBrowserRecord(
     []
   );
 
+  const [unreadyWindowIds, setUnreadyWindowIds] = React.useState<Set<string>>(
+    () => new Set()
+  );
+  const readyTimersRef = React.useRef<Map<string, ReturnType<typeof setTimeout>>>(
+    new Map()
+  );
+
+  const markWindowReady = React.useCallback((windowId: string) => {
+    const timer = readyTimersRef.current.get(windowId);
+    if (timer) {
+      clearTimeout(timer);
+      readyTimersRef.current.delete(windowId);
+    }
+    setUnreadyWindowIds((prev) => {
+      if (!prev.has(windowId)) return prev;
+      const next = new Set(prev);
+      next.delete(windowId);
+      return next;
+    });
+  }, []);
+
+  const markWindowUnready = React.useCallback(
+    (windowId: string, timeoutMs = 2500) => {
+      setUnreadyWindowIds((prev) => {
+        if (prev.has(windowId)) return prev;
+        const next = new Set(prev);
+        next.add(windowId);
+        return next;
+      });
+      const existingTimer = readyTimersRef.current.get(windowId);
+      if (existingTimer) clearTimeout(existingTimer);
+      const timer = setTimeout(() => {
+        readyTimersRef.current.delete(windowId);
+        markWindowReady(windowId);
+      }, timeoutMs);
+      readyTimersRef.current.set(windowId, timer);
+    },
+    [markWindowReady]
+  );
+
   // Sync Domicile `<webview>` browser windows
   const knownBrowserIdsRef = React.useRef<Set<string>>(new Set());
 
@@ -492,6 +542,7 @@ function pruneBrowserRecord(
 
     for (const [idx, bw] of browserWindows.entries()) {
       if (!knownBrowserIdsRef.current.has(bw.id)) {
+        markWindowUnready(`browser:${bw.id}`, 2500);
         const sessionKey = bw.url ? `web:${bw.url}` : undefined;
         const restored = sessionKey
           ? pendingSessionRestoreRef.current.get(sessionKey)
@@ -499,9 +550,10 @@ function pruneBrowserRecord(
         if (sessionKey && restored) {
           pendingSessionRestoreRef.current.delete(sessionKey);
         }
-        const remembered =
-          (bw.appId ? settings.savedWindowBounds[bw.appId] : undefined) ??
-          settings.savedWindowBounds.webview;
+        const remembered = lookupSpatialWindowBounds(settings.savedWindowBounds, {
+          appId: bw.appId || "webview",
+          browserUrl: bw.url,
+        });
         const defaultW =
           restored?.width ??
           remembered?.size.width ??
@@ -543,7 +595,9 @@ function pruneBrowserRecord(
         );
         const workspace = restored
           ? clampWorkspace(restored.workspace, settings.workspaceCount)
-          : clampWorkspace(settings.activeWorkspace, settings.workspaceCount);
+          : remembered?.workspace !== undefined
+            ? clampWorkspace(remembered.workspace, settings.workspaceCount)
+            : clampWorkspace(settings.activeWorkspace, settings.workspaceCount);
         const pinned = restored?.pinned ?? false;
         newEntries.set(bw.id, {
           position: clamped.position,
@@ -598,6 +652,7 @@ function pruneBrowserRecord(
     browserWindows,
     clearLaunchOverlays,
     domicile.windows,
+    markWindowUnready,
     screenHeight,
     screenWidth,
     settings.activeWorkspace,
@@ -633,8 +688,11 @@ function pruneBrowserRecord(
         }
         const remembered = w.dialog
           ? undefined
-          : settings.savedWindowBounds[w.desktopId] ??
-            settings.savedWindowBounds[shortId];
+          : lookupSpatialWindowBounds(settings.savedWindowBounds, {
+              appId: shortId || w.appId,
+              desktopId: w.desktopId,
+              shortId,
+            });
         const minW = w.minWidth ?? (w.dialog ? 180 : 320);
         const minH = w.minHeight ?? (w.dialog ? 140 : 220);
         const rawSize = restored
@@ -692,7 +750,9 @@ function pruneBrowserRecord(
         );
         const workspace = restored
           ? clampWorkspace(restored.workspace, settings.workspaceCount)
-          : clampWorkspace(settings.activeWorkspace, settings.workspaceCount);
+          : remembered?.workspace !== undefined
+            ? clampWorkspace(remembered.workspace, settings.workspaceCount)
+            : clampWorkspace(settings.activeWorkspace, settings.workspaceCount);
         const pinned = restored?.pinned ?? false;
 
         newEntries.set(w.appId, {
@@ -894,6 +954,7 @@ function pruneBrowserRecord(
     const resolvedShellWindows = shellWindows.map((sw) => ({
       ...sw,
       iconUrl: sw.iconUrl ?? getAppIconUrl(sw.appId),
+      ready: !unreadyWindowIds.has(sw.id),
     }));
 
     const toplevels = waylandWindows
@@ -919,6 +980,7 @@ function pruneBrowserRecord(
           iconUrl: resolvedIconUrl,
           gradient: matched.gradient,
           waylandAppId: w.appId,
+          waylandDesktopId: w.desktopId,
           clientFrame: resolveWaylandClientFrame(w, xdgMatch),
           cursor: w.cursor,
           syncedFrame: syncedParentFrames.get(w.appId),
@@ -941,6 +1003,7 @@ function pruneBrowserRecord(
           maximized: meta.maximized,
           fullscreen: meta.fullscreen,
           pinned: meta.pinned,
+          ready: !unreadyWindowIds.has(`wayland:${w.appId}`),
           zIndex: meta.zIndex,
         }];
       });
@@ -962,7 +1025,7 @@ function pruneBrowserRecord(
         });
       return [{
         id: `browser:${bw.id}`,
-        appId: bw.appId || `webview:${bw.id}`,
+        appId: bw.appId || webAppMatch?.id || `webview:${bw.id}`,
         title: resolvedTitle,
         iconName: "globe",
         iconUrl:
@@ -983,6 +1046,7 @@ function pruneBrowserRecord(
         fullscreen: meta.fullscreen,
         pinned: meta.pinned,
         tiled: meta.tiled ?? null,
+        ready: !unreadyWindowIds.has(`browser:${bw.id}`),
         zIndex: meta.zIndex,
       }];
     });
@@ -1001,6 +1065,7 @@ function pruneBrowserRecord(
     syncedParentFrames,
     installedXdgApps,
     getAppIconUrl,
+    unreadyWindowIds,
     screenWidth,
     screenHeight,
     settings.activeWorkspace,
@@ -1242,6 +1307,7 @@ function pruneBrowserRecord(
   const closeWindow = React.useCallback(
     (windowId: string) => {
       console.info("[Piloti] closeWindow", windowId);
+      markWindowReady(windowId);
       if (windowId.startsWith("wayland:")) {
         const rawId = windowId.slice("wayland:".length);
         domicile.windows.close(rawId);
@@ -1253,7 +1319,7 @@ function pruneBrowserRecord(
       }
       setMruIds((prev) => prev.filter((id) => id !== windowId));
     },
-    [domicile.browser, domicile.windows]
+    [domicile.browser, domicile.windows, markWindowReady]
   );
 
   const minimizeWindow = React.useCallback(
@@ -1384,19 +1450,20 @@ function pruneBrowserRecord(
       if (targetWin) {
         const nextPos = clampedPosition ?? targetWin.position;
         const nextSize = effectiveSizePatch ?? targetWin.size;
-        const key =
-          (targetWin.appId === "nautilus" ||
-            targetWin.appId === "text-editor" ||
-            targetWin.appId === "image-viewer") &&
-          targetWin.payload
-            ? `${targetWin.appId}:${targetWin.payload}`
-            : targetWin.appId.startsWith("webview:")
-              ? "webview"
-              : targetWin.appId;
+        const key = resolveSpatialBoundsKey({
+          appId: targetWin.appId,
+          payload: targetWin.payload,
+          browserUrl: targetWin.browserUrl,
+          desktopId: targetWin.waylandDesktopId,
+        });
         updateSettings({
           savedWindowBounds: {
             ...settings.savedWindowBounds,
-            [key]: { position: nextPos, size: nextSize },
+            [key]: {
+              position: nextPos,
+              size: nextSize,
+              workspace: targetWin.workspace,
+            },
           },
         });
       }
@@ -1578,19 +1645,30 @@ function pruneBrowserRecord(
     launchingTimersRef.current.set(appId, timer);
   }, []);
 
-  // Clear XDG Startup Notification launching state when a matching window appears
+  // Clear XDG Startup Notification launching state when a matching ready window appears
   React.useEffect(() => {
     if (launchingApps.length === 0) return;
+    const readyWindows = combinedWindows.filter((w) => w.ready !== false);
     const runningIds = new Set(
-      combinedWindows.flatMap((w) => [
+      readyWindows.flatMap((w) => [
         w.appId.toLowerCase(),
         (w.waylandAppId ?? "").toLowerCase(),
       ])
     );
+    const readyWebCanonicals = new Set(
+      readyWindows
+        .map((w) => canonicalizeWebUrl(w.browserUrl))
+        .filter((u): u is string => Boolean(u))
+    );
     const completed = launchingApps.filter((id) => {
       const lower = id.toLowerCase();
       const base = lower.replace(/\.desktop$/, "");
-      return runningIds.has(lower) || runningIds.has(base);
+      if (runningIds.has(lower) || runningIds.has(base)) return true;
+      if (id.startsWith("webview:")) {
+        const canonical = canonicalizeWebUrl(id.slice("webview:".length));
+        if (canonical && readyWebCanonicals.has(canonical)) return true;
+      }
+      return false;
     });
     if (completed.length > 0) {
       for (const id of completed) {
@@ -1606,9 +1684,12 @@ function pruneBrowserRecord(
 
   React.useEffect(() => {
     const timers = launchingTimersRef.current;
+    const readyTimers = readyTimersRef.current;
     return () => {
       for (const timer of timers.values()) clearTimeout(timer);
       timers.clear();
+      for (const timer of readyTimers.values()) clearTimeout(timer);
+      readyTimers.clear();
     };
   }, []);
 
@@ -1648,11 +1729,10 @@ function pruneBrowserRecord(
       console.info("[Piloti] launchApp", appId, options ?? {});
       const def = APP_CATALOG.find((a) => a.id === appId);
 
-      // Focus existing window unless forceNew (for document-scoped apps with a file payload, only reuse if the same file is already open)
+      // Focus existing window unless forceNew (for document-scoped apps with a payload, only reuse matching document/folder)
       if (!options?.forceNew) {
         const existing = combinedWindows.find((w) =>
-          (appId === "text-editor" || appId === "image-viewer") &&
-          options?.payload
+          DOCUMENT_SCOPED_APP_IDS.has(appId) && options?.payload
             ? w.appId === appId && w.payload === options.payload
             : w.appId === appId,
         );
@@ -1688,7 +1768,7 @@ function pruneBrowserRecord(
         }
       }
 
-      // Built-in shell windows (`settings`, `console`, `files`, `terminal`, `text-editor`, `app-store`)
+      // Built-in shell windows (`settings`, `console`, `files`, `terminal`, `text-editor`, `app-store`, `calculator`, `image-viewer`)
       const builtinKind: BuiltinAppId | undefined =
         def?.builtinComponent ??
         (appId === "settings" || appId === "console"
@@ -1703,16 +1783,11 @@ function pruneBrowserRecord(
           def ?? APP_CATALOG.find((a) => a.id === builtinKind) ?? APP_CATALOG[0];
         const count = ++nextShellWinCounter;
         const resolvedAppId = def?.id ?? builtinKind;
-        const boundsKey =
-          (resolvedAppId === "nautilus" ||
-            resolvedAppId === "text-editor" ||
-            resolvedAppId === "image-viewer") &&
-          options?.payload
-            ? `${resolvedAppId}:${options.payload}`
-            : resolvedAppId;
-        const remembered =
-          settings.savedWindowBounds?.[boundsKey] ??
-          settings.savedWindowBounds?.[resolvedAppId];
+        const newWinId = `shell:${builtinKind}-${count}`;
+        const remembered = lookupSpatialWindowBounds(settings.savedWindowBounds, {
+          appId: resolvedAppId,
+          payload: options?.payload,
+        });
         const minSize = builtinDef.minSize ?? {
           width: Math.min(360, builtinDef.defaultSize.width),
           height: Math.min(260, builtinDef.defaultSize.height),
@@ -1740,11 +1815,28 @@ function pruneBrowserRecord(
           screenHeight,
           { minWidth: minSize.width, minHeight: minSize.height }
         );
+        const targetWorkspace =
+          remembered?.workspace !== undefined
+            ? clampWorkspace(remembered.workspace, settings.workspaceCount)
+            : clampWorkspace(settings.activeWorkspace, settings.workspaceCount);
+        const isHttpRuntime =
+          typeof window !== "undefined" &&
+          (window.location.protocol === "http:" ||
+            window.location.protocol === "https:");
+        const isIsolatedHttpApp =
+          isHttpRuntime &&
+          (builtinKind === "calculator" ||
+            builtinKind === "text-editor" ||
+            builtinKind === "image-viewer");
+        if (isIsolatedHttpApp) {
+          markWindowUnready(newWinId, 2500);
+        }
         const newWin: DesktopWindowInstance = {
-          id: `shell:${builtinKind}-${count}`,
+          id: newWinId,
           appId: resolvedAppId,
           title:
-            builtinKind === "text-editor" && options?.payload
+            (builtinKind === "text-editor" || builtinKind === "image-viewer") &&
+            options?.payload
               ? options.payload.split("/").pop() || builtinDef.name
               : builtinDef.name,
           iconName: builtinDef.iconName,
@@ -1752,10 +1844,7 @@ function pruneBrowserRecord(
           builtinComponent: builtinKind,
           clientFrame:
             options?.forceCsd ?? builtinKind !== "terminal",
-          workspace: clampWorkspace(
-            settings.activeWorkspace,
-            settings.workspaceCount
-          ),
+          workspace: targetWorkspace,
           position: clamped.position,
           size: clamped.size,
           minSize,
@@ -1765,6 +1854,9 @@ function pruneBrowserRecord(
           payload: options?.payload,
         };
         beginStartupNotification(resolvedAppId);
+        if (targetWorkspace !== settings.activeWorkspace) {
+          updateSettings({ activeWorkspace: targetWorkspace });
+        }
         setShellWindows((prev) => [...prev, newWin]);
         setFocusedWindowId(newWin.id);
         setMruIds((prev) => [newWin.id, ...prev]);
@@ -1784,6 +1876,7 @@ function pruneBrowserRecord(
       focusWindow,
       gnomeCapabilities.gnomeControlCenter,
       isBrowserRuntime,
+      markWindowUnready,
       screenHeight,
       screenWidth,
       settings.activeWorkspace,
@@ -1791,6 +1884,8 @@ function pruneBrowserRecord(
       settings.preferGnomeControlCenter,
       settings.savedWindowBounds,
       settings.workspaceCount,
+      shellWindows,
+      updateSettings,
     ]
   );
 
@@ -1860,25 +1955,53 @@ function pruneBrowserRecord(
       const normalized = normalizeWebUrl(rawUrl);
       if (!normalized) return;
       clearLaunchOverlays();
-      console.info("[Piloti] openWebUrl", normalized);
-      beginStartupNotification(options?.appId ?? "browser");
-      if (options?.title) {
-        pendingWebTitlesRef.current.set(
-          options.appId ?? normalized,
-          options.title
+      const matchedWebApp = findMatchingWebApp(
+        normalized,
+        settings.installedWebApps
+      );
+      const resolvedAppId = options?.appId ?? matchedWebApp?.id;
+      const resolvedTitle = options?.title ?? matchedWebApp?.title;
+      const canonical = canonicalizeWebUrl(normalized);
+      if (canonical) {
+        const existing = combinedWindows.find(
+          (w) =>
+            w.browserUrl &&
+            canonicalizeWebUrl(w.browserUrl) === canonical &&
+            (!resolvedAppId || w.appId === resolvedAppId)
         );
-        pendingWebTitlesRef.current.set(normalized, options.title);
+        if (existing) {
+          focusWindow(existing.id);
+          return;
+        }
+      }
+      console.info("[Piloti] openWebUrl", normalized);
+      beginStartupNotification(
+        resolvedAppId ?? (canonical ? `webview:${canonical}` : "browser")
+      );
+      if (resolvedTitle) {
+        pendingWebTitlesRef.current.set(
+          resolvedAppId ?? normalized,
+          resolvedTitle
+        );
+        pendingWebTitlesRef.current.set(normalized, resolvedTitle);
       }
       if (options?.asApp) {
         domicile.browser.openApp(normalized, {
-          id: options.appId ?? normalized,
+          id: resolvedAppId ?? normalized,
           reuse: AppReuse.Focus,
         });
       } else {
         domicile.browser.open(normalized);
       }
     },
-    [beginStartupNotification, clearLaunchOverlays, domicile.browser]
+    [
+      beginStartupNotification,
+      clearLaunchOverlays,
+      combinedWindows,
+      domicile.browser,
+      focusWindow,
+      settings.installedWebApps,
+    ]
   );
 
   const toggleOverview = React.useCallback(() => {
@@ -1897,8 +2020,31 @@ function pruneBrowserRecord(
       console.info(
         `[Piloti] moved ${targetWin?.appId || windowId} to workspace ${ws}`
       );
+      const settingsPatch: {
+        workspaceCount?: number;
+        savedWindowBounds?: typeof settings.savedWindowBounds;
+      } = {};
       if (ws > settings.workspaceCount) {
-        updateSettings({ workspaceCount: ws });
+        settingsPatch.workspaceCount = ws;
+      }
+      if (targetWin) {
+        const key = resolveSpatialBoundsKey({
+          appId: targetWin.appId,
+          payload: targetWin.payload,
+          browserUrl: targetWin.browserUrl,
+          desktopId: targetWin.waylandDesktopId,
+        });
+        settingsPatch.savedWindowBounds = {
+          ...settings.savedWindowBounds,
+          [key]: {
+            position: targetWin.position,
+            size: targetWin.size,
+            workspace: ws,
+          },
+        };
+      }
+      if (Object.keys(settingsPatch).length > 0) {
+        updateSettings(settingsPatch);
       }
       if (windowId.startsWith("wayland:")) {
         const rawId = windowId.slice("wayland:".length);
@@ -1918,7 +2064,12 @@ function pruneBrowserRecord(
         );
       }
     },
-    [combinedWindows, settings.workspaceCount, updateSettings]
+    [
+      combinedWindows,
+      settings.savedWindowBounds,
+      settings.workspaceCount,
+      updateSettings,
+    ]
   );
 
   const removeWorkspace = React.useCallback(
@@ -2146,6 +2297,7 @@ function pruneBrowserRecord(
       activeAppDef,
       mruWindows,
       launchingApps,
+      markWindowReady,
       launchApp,
       launchXdgApp,
       openGnomeSettings,
@@ -2206,6 +2358,7 @@ function pruneBrowserRecord(
       launchApp,
       launchXdgApp,
       launchingApps,
+      markWindowReady,
       minimizeWindow,
       moveWindowToWorkspace,
       mruWindows,

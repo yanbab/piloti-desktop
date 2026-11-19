@@ -137,5 +137,13 @@ describe("desktop-icons spatial grid helpers", () => {
       "b",
     ]);
   });
+
+  test("auto-places unassigned items right-to-left when align is right", () => {
+    const items = [{ id: "a" }, { id: "b" }, { id: "c" }];
+    const positions = assignGridPositions(items, {}, 4, 2, "right");
+    expect(positions.a).toEqual({ col: 3, row: 0 });
+    expect(positions.b).toEqual({ col: 3, row: 1 });
+    expect(positions.c).toEqual({ col: 2, row: 0 });
+  });
 });
 

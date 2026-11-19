@@ -192,6 +192,11 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
       setWordWrap((v) => !v);
     } else if (actionId === "text-editor:toggle-active-line") {
       setHighlightLine((v) => !v);
+    } else if (actionId.startsWith("piloti:open-path:")) {
+      const droppedPath = actionId.slice("piloti:open-path:".length).trim();
+      if (droppedPath) {
+        setFilePath(normalizeVfsPath(droppedPath));
+      }
     }
   }, []);
   const bridge = useIsolatedAppBridge(windowId, propIsCsd, handleMenuAction);
@@ -209,6 +214,7 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
   const [previewMarkdown, setPreviewMarkdown] = React.useState(false);
   const [findOpen, setFindOpen] = React.useState(false);
   const [findQuery, setFindQuery] = React.useState("");
+  const [savedFlash, setSavedFlash] = React.useState(false);
   const [cursorPos, setCursorPos] = React.useState<{ ln: number; col: number }>({
     ln: 1,
     col: 1,
@@ -374,7 +380,21 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
   );
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "f") {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
+      e.preventDefault();
+      e.stopPropagation();
+      if (persistTimerRef.current) clearTimeout(persistTimerRef.current);
+      const targetPath =
+        filePathRef.current ?? "/home/user/Desktop/Untitled.txt";
+      if (!filePathRef.current) {
+        filePathRef.current = targetPath;
+        setFilePath(targetPath);
+      }
+      void bridge.fs.writeText(targetPath, contentRef.current).then(() => {
+        setSavedFlash(true);
+        window.setTimeout(() => setSavedFlash(false), 1500);
+      });
+    } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "f") {
       e.preventDefault();
       e.stopPropagation();
       setFindOpen((prev) => {
@@ -406,9 +426,16 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
         )}
       >
         <div className="w-6 shrink-0" />
-        <span className="pointer-events-none truncate px-2 text-adw-body font-semibold text-adw-label">
-          {filePath ? getBaseName(filePath) : "Untitled"}
-        </span>
+        <div className="pointer-events-none flex min-w-0 items-center gap-1.5 px-2">
+          <span className="truncate text-adw-body font-semibold text-adw-label">
+            {filePath ? getBaseName(filePath) : "Untitled"}
+          </span>
+          {savedFlash && (
+            <span className="shrink-0 rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-medium text-emerald-500">
+              Saved
+            </span>
+          )}
+        </div>
         <div className="flex items-center gap-1" data-window-no-drag>
           {isMarkdownFile && (
             <button

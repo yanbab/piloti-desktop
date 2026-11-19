@@ -3,10 +3,14 @@ import { useWindowManager } from "@/context/WindowsContext";
 import {
   WEB_VFS_HOME,
   buildVfsEntryWebAppUrl,
+  copyVfsEntry,
   createVfsFolder,
   createVfsTextFile,
   getVfsEntry,
+  isImageVfsFile,
   listVfsDir,
+  moveVfsEntry,
+  renameVfsEntry,
   resolveVfsPath,
   trashVfsEntry,
   writeVfsTextFile,
@@ -39,6 +43,8 @@ const TERMINAL_COMMANDS = [
   "mkdir",
   "touch",
   "cat",
+  "cp",
+  "mv",
   "rm",
   "open",
   "notepad",
@@ -408,6 +414,8 @@ export const TerminalApp: React.FC<TerminalAppProps> = ({ initialPath }) => {
         { text: "  mkdir <dir>         Create a directory" },
         { text: "  touch <file>        Create an empty file" },
         { text: "  cat <file>          Print file contents" },
+        { text: "  cp <src> <dest>     Copy file or folder" },
+        { text: "  mv <src> <dest>     Move or rename file or folder" },
         { text: "  rm <path>           Move file or folder to Trash" },
         { text: "" },
         { text: "Editing & Apps:", tone: "muted" },
@@ -644,6 +652,108 @@ export const TerminalApp: React.FC<TerminalAppProps> = ({ initialPath }) => {
       return;
     }
 
+    if (cmd === "cp") {
+      const paths = args.filter((a) => !a.startsWith("-"));
+      if (paths.length < 2) {
+        appendLines([
+          commandLine,
+          { text: "cp: missing file operand", tone: "error" },
+        ]);
+        return;
+      }
+      const srcPath = resolveVfsPath(cwd, paths[0]);
+      const destPath = resolveVfsPath(cwd, paths[1]);
+      const srcEntry = getVfsEntry(srcPath);
+      if (!srcEntry) {
+        appendLines([
+          commandLine,
+          {
+            text: `cp: cannot stat '${paths[0]}': No such file or directory`,
+            tone: "error",
+          },
+        ]);
+        return;
+      }
+      const destEntry = getVfsEntry(destPath);
+      if (destEntry?.kind === "directory") {
+        copyVfsEntry(srcPath, destPath);
+      } else if (srcEntry.kind === "file") {
+        const { parent } = getParentAndName(destPath);
+        if (!getVfsEntry(parent)) {
+          appendLines([
+            commandLine,
+            {
+              text: `cp: cannot create regular file '${paths[1]}': No such directory`,
+              tone: "error",
+            },
+          ]);
+          return;
+        }
+        writeVfsTextFile(destPath, srcEntry.content ?? "");
+      } else {
+        appendLines([
+          commandLine,
+          {
+            text: `cp: cannot copy directory '${paths[0]}' to non-directory '${paths[1]}'`,
+            tone: "error",
+          },
+        ]);
+        return;
+      }
+      appendLines([commandLine]);
+      return;
+    }
+
+    if (cmd === "mv") {
+      const paths = args.filter((a) => !a.startsWith("-"));
+      if (paths.length < 2) {
+        appendLines([
+          commandLine,
+          { text: "mv: missing file operand", tone: "error" },
+        ]);
+        return;
+      }
+      const srcPath = resolveVfsPath(cwd, paths[0]);
+      const destPath = resolveVfsPath(cwd, paths[1]);
+      const srcEntry = getVfsEntry(srcPath);
+      if (!srcEntry) {
+        appendLines([
+          commandLine,
+          {
+            text: `mv: cannot stat '${paths[0]}': No such file or directory`,
+            tone: "error",
+          },
+        ]);
+        return;
+      }
+      const destEntry = getVfsEntry(destPath);
+      if (destEntry?.kind === "directory") {
+        moveVfsEntry(srcPath, destPath);
+      } else {
+        const { parent: destParent, name: destName } = getParentAndName(destPath);
+        if (!destName || !getVfsEntry(destParent)) {
+          appendLines([
+            commandLine,
+            {
+              text: `mv: cannot move '${paths[0]}' to '${paths[1]}': No such directory`,
+              tone: "error",
+            },
+          ]);
+          return;
+        }
+        if (srcEntry.parentPath === destParent) {
+          renameVfsEntry(srcPath, destName);
+        } else {
+          const moved = moveVfsEntry(srcPath, destParent);
+          if (moved && moved.name !== destName) {
+            renameVfsEntry(moved.path, destName);
+          }
+        }
+      }
+      appendLines([commandLine]);
+      return;
+    }
+
     if (cmd === "rm") {
       if (args.length === 0) {
         appendLines([
@@ -687,7 +797,13 @@ export const TerminalApp: React.FC<TerminalAppProps> = ({ initialPath }) => {
       } else if (
         cmd === "open" &&
         entry &&
-        /\.(html?|svg|png|jpe?g|gif|webp)$/i.test(entry.name)
+        isImageVfsFile(entry.name, entry.content)
+      ) {
+        launchApp("image-viewer", { payload: entry.path });
+      } else if (
+        cmd === "open" &&
+        entry &&
+        /\.(html?)$/i.test(entry.name)
       ) {
         const webUrl = buildVfsEntryWebAppUrl(entry);
         if (webUrl) {

@@ -41,6 +41,7 @@ export const IsolatedAppFrame: React.FC<IsolatedAppFrameProps> = ({
     minimizeWindow,
     toggleMaximizeWindow,
     updateWindowGeometry,
+    markWindowReady,
   } = useWindowActions();
 
   const iframeRef = React.useRef<HTMLIFrameElement | null>(null);
@@ -107,9 +108,38 @@ export const IsolatedAppFrame: React.FC<IsolatedAppFrameProps> = ({
       };
       win.postMessage(msg, "*");
     };
+    const onFileDropWindow = (e: Event) => {
+      const detail = (
+        e as CustomEvent<{
+          windowId?: string;
+          item?: { path?: string };
+          items?: Array<{ path?: string }>;
+        }>
+      ).detail;
+      if (!detail || detail.windowId !== windowId) return;
+      const path = detail.items?.[0]?.path ?? detail.item?.path;
+      if (!path) return;
+      const actionId = `piloti:open-path:${path}`;
+      if (isHttpRuntime) {
+        iframeRef.current?.contentWindow?.postMessage(
+          { type: "piloti:app-action", actionId } satisfies ShellToAppMessage,
+          "*",
+        );
+      } else {
+        window.dispatchEvent(
+          new CustomEvent("piloti:app-action", {
+            detail: { windowId, actionId },
+          }),
+        );
+      }
+    };
     window.addEventListener("piloti:app-action", onAppAction);
-    return () => window.removeEventListener("piloti:app-action", onAppAction);
-  }, [windowId]);
+    window.addEventListener("residence:file-drop-window", onFileDropWindow);
+    return () => {
+      window.removeEventListener("piloti:app-action", onAppAction);
+      window.removeEventListener("residence:file-drop-window", onFileDropWindow);
+    };
+  }, [isHttpRuntime, windowId]);
 
   React.useEffect(() => {
     const onMessage = (e: MessageEvent) => {
@@ -120,6 +150,7 @@ export const IsolatedAppFrame: React.FC<IsolatedAppFrameProps> = ({
 
       if (data.type === "piloti:ready") {
         sendThemeSync();
+        markWindowReady(windowId);
       } else if (data.type === "piloti:focus-window") {
         focusWindow(windowId);
       } else if (data.type === "piloti:window-control") {
@@ -180,11 +211,13 @@ export const IsolatedAppFrame: React.FC<IsolatedAppFrameProps> = ({
   }, [
     closeWindow,
     focusWindow,
+    markWindowReady,
     minimizeWindow,
     pushNotification,
     sendThemeSync,
     title,
     toggleMaximizeWindow,
+    updateWindowGeometry,
     windowId,
   ]);
 
@@ -213,13 +246,14 @@ export const IsolatedAppFrame: React.FC<IsolatedAppFrameProps> = ({
       const root = createRoot(mountNode);
       portalRootRef.current = root;
       root.render(fallbackElementRef.current);
+      markWindowReady(windowId);
     }
 
     return () => {
       portalRootRef.current?.unmount();
       portalRootRef.current = null;
     };
-  }, [appId, isHttpRuntime, windowId]);
+  }, [appId, isHttpRuntime, markWindowReady, windowId]);
 
   React.useEffect(() => {
     if (isHttpRuntime || !portalRootRef.current || !fallbackElement) return;
@@ -228,6 +262,7 @@ export const IsolatedAppFrame: React.FC<IsolatedAppFrameProps> = ({
 
   return (
     <div
+      data-drop-window-id={windowId}
       className={cn(
         "relative h-full w-full overflow-hidden",
         appId === "calculator" ? "bg-transparent" : "bg-adw-window",
@@ -255,7 +290,10 @@ export const IsolatedAppFrame: React.FC<IsolatedAppFrameProps> = ({
         ref={iframeRef}
         src={iframeSrc}
         title={title}
-        onLoad={sendThemeSync}
+        onLoad={() => {
+          sendThemeSync();
+          markWindowReady(windowId);
+        }}
         className={cn(
           "h-full w-full border-0",
           appId === "calculator" ? "bg-transparent" : "bg-adw-window",

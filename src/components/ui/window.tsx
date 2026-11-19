@@ -21,14 +21,14 @@ type WindowHandle = {
 // Invisible strips along the inside of the frame; the corner squares are
 // clipped to the rounded corners, so they follow the curve.
 const RESIZE_HANDLES: Record<ResizeEdge, string> = {
-  n: "inset-x-4 -top-[5px] h-[10px] cursor-ns-resize",
-  s: "inset-x-4 -bottom-[5px] h-[10px] cursor-ns-resize",
-  e: "inset-y-4 -right-[5px] w-[10px] cursor-ew-resize",
-  w: "inset-y-4 -left-[5px] w-[10px] cursor-ew-resize",
-  nw: "-top-[6px] -left-[6px] size-5 cursor-nwse-resize",
-  ne: "-top-[6px] -right-[6px] size-5 cursor-nesw-resize",
-  se: "-right-[6px] -bottom-[6px] size-5 cursor-nwse-resize",
-  sw: "-bottom-[6px] -left-[6px] size-5 cursor-nesw-resize",
+  n: "inset-x-4 -top-[6px] h-[12px] cursor-ns-resize",
+  s: "inset-x-4 -bottom-[6px] h-[12px] cursor-ns-resize",
+  e: "inset-y-4 -right-[6px] w-[12px] cursor-ew-resize",
+  w: "inset-y-4 -left-[6px] w-[12px] cursor-ew-resize",
+  nw: "-top-[7px] -left-[7px] size-5 cursor-nwse-resize",
+  ne: "-top-[7px] -right-[7px] size-5 cursor-nesw-resize",
+  se: "-right-[7px] -bottom-[7px] size-5 cursor-nwse-resize",
+  sw: "-bottom-[7px] -left-[7px] size-5 cursor-nesw-resize",
 }
 
 const RESIZE_CURSORS: Record<ResizeEdge, string> = {
@@ -858,7 +858,7 @@ function Window({
         aria-hidden={hidden || undefined}
         inert={hidden || undefined}
         className={cn(
-          "group/window relative isolate flex overflow-hidden rounded-adw-window bg-adw-window text-adw-body text-adw-label shadow-adw-window data-[inactive]:shadow-adw-window-inactive has-[>[data-slot=adw-sidebar]]:bg-transparent has-[.bg-adw-sidebar]:bg-transparent",
+          "group/window relative isolate flex overflow-visible rounded-adw-window bg-adw-window text-adw-body text-adw-label shadow-adw-window data-[inactive]:shadow-adw-window-inactive has-[>[data-slot=adw-sidebar]]:bg-transparent has-[.bg-adw-sidebar]:bg-transparent",
           // The thin light rim drawn on top of everything inside the frame.
           "after:pointer-events-none after:absolute after:inset-0 after:z-20 after:rounded-[inherit] after:shadow-[inset_0_0_0_1px_var(--adw-window-rim)]",
           // Touch drags on the drag regions move the window instead of scrolling.
@@ -1015,7 +1015,7 @@ function WindowMain({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="window-main"
       className={cn(
-        "flex min-w-0 flex-1 flex-col rounded-r-[inherit] bg-adw-window first:rounded-l-[inherit] has-[.bg-adw-sidebar]:bg-transparent",
+        "flex min-w-0 flex-1 flex-col overflow-hidden rounded-r-[inherit] bg-adw-window first:rounded-l-[inherit] has-[.bg-adw-sidebar]:bg-transparent",
         className
       )}
       {...props}

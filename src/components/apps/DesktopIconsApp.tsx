@@ -1,19 +1,10 @@
 import * as React from "react";
-import { createPortal } from "react-dom";
 import { useDomicile } from "@domicile-desktop/react/domicile-provider";
 import { FileType } from "@domicile-desktop/sdk/system";
 import {
   FileItemContextMenu,
   type FileItemContextMenuState,
 } from "@/components/apps/FileItemContextMenu";
-import { AppSquircleIcon } from "@/components/shell/AppSymbol";
-import {
-  DynamicFileIcon,
-  DynamicFolderIcon,
-  getAccentFolderIconUrl,
-  getAccentHtmlIconUrl,
-  useOpenFolderPaths,
-} from "@/data/folder-icons";
 import {
   useApps,
   useSettings,
@@ -22,42 +13,36 @@ import {
 } from "@/context/DesktopStateContext";
 import {
   assignGridPositions,
-  clientPointToGridCell,
-  computeGridMetrics,
-  DESKTOP_GRID_PADDING,
-  DESKTOP_ICON_CELL_HEIGHT,
-  DESKTOP_ICON_CELL_WIDTH,
-  findItemsInRect,
-  findNextKeyboardItemId,
-  findTypeAheadItemId,
   type GridCoord,
   type GridMetrics,
   type IconGridItem,
-  type IconGridMode,
   inferFileVisual,
   moveItemToCell,
-  normalizeRect,
   sortDesktopItems,
 } from "@/lib/desktop-icons";
 import { launchDesktopCommand } from "@/lib/gnome-bridge";
 import { _ } from "@/lib/i18n";
 import { startBootPhase } from "@/lib/perf-log";
-import { cn } from "@/lib/utils";
 import { parseDesktopEntry } from "@/lib/xdg-desktop-entry";
 import {
   buildVfsEntryWebAppUrl,
+  copyVfsEntry,
   createVfsFolder,
   createVfsTextFile,
+  duplicateVfsEntry,
+  getVfsClipboard,
+  getVfsEmblems,
   getVfsEntry,
   importExternalFilesToVfs,
   isImageVfsFile,
   isTextEditableVfsFile,
-  isVfsFavorite,
   listVfsDir,
   moveVfsEntry,
   renameVfsEntry,
+  setVfsClipboard,
+  subscribeVfsClipboard,
   subscribeWebVfs,
-  toggleVfsFavorite,
+  toggleVfsEmblem,
   trashVfsEntry,
   WEB_VFS_HOME,
   WEB_VFS_TRASH,
@@ -92,9 +77,18 @@ export function DesktopIconsApp({
   const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
   const [renamingId, setRenamingId] = React.useState<string | null>(null);
   const [externalDropActive, setExternalDropActive] = React.useState(false);
+  const [clipboard, setLocalClipboard] = React.useState(() =>
+    getVfsClipboard()
+  );
   const [contextMenu, setContextMenu] =
     React.useState<FileItemContextMenuState | null>(null);
   const initialDesktopLoadLoggedRef = React.useRef(false);
+
+  React.useEffect(() => {
+    return subscribeVfsClipboard(() => {
+      setLocalClipboard(getVfsClipboard());
+    });
+  }, []);
 
   const desktopDirPath = React.useMemo(() => {
     if (isBrowserRuntime) return `${WEB_VFS_HOME}/Desktop`;
@@ -413,7 +407,8 @@ export function DesktopIconsApp({
         enrichedItems,
         settings.desktopIconPositions,
         metrics.cols,
-        metrics.rows
+        metrics.rows,
+        settings.desktopIconAlign ?? "left"
       );
       const nextPositions = moveItemToCell(
         currentAssigned,
@@ -424,7 +419,12 @@ export function DesktopIconsApp({
       );
       updateSettings({ desktopIconPositions: nextPositions });
     },
-    [enrichedItems, settings.desktopIconPositions, updateSettings]
+    [
+      enrichedItems,
+      settings.desktopIconAlign,
+      settings.desktopIconPositions,
+      updateSettings,
+    ]
   );
 
   const handleActivateItem = React.useCallback(
@@ -478,36 +478,113 @@ export function DesktopIconsApp({
     [domicile, isBrowserRuntime, launchApp, launchXdgEntry, openWebUrl]
   );
 
-  const handleDropDesktopItem = React.useCallback(
-    async (item: IconGridItem, clientX: number, clientY: number) => {
-      if (typeof document === "undefined") return;
-      const hitElements = document.elementsFromPoint(clientX, clientY);
-      for (const el of hitElements) {
-        const dropTarget = (el as HTMLElement).closest?.("[data-vfs-drop-path]");
-        const destPath = dropTarget?.getAttribute("data-vfs-drop-path");
-        if (!destPath || destPath === item.path) continue;
-        if (destPath === WEB_VFS_TRASH) {
-          await handleMoveToTrash(item);
-          return;
-        }
-        if (isBrowserRuntime) {
-          moveVfsEntry(item.path, destPath);
-          await loadDesktopFolder();
-          setSelectedIds((prev) => prev.filter((id) => id !== item.id));
-          return;
-        }
+  const handlePasteToDesktop = React.useCallback(async () => {
+    const clip = getVfsClipboard();
+    if (!clip || clip.paths.length === 0 || !isBrowserRuntime) return;
+    for (const srcPath of clip.paths) {
+      if (clip.mode === "cut") {
+        moveVfsEntry(srcPath, desktopDirPath);
+      } else {
+        copyVfsEntry(srcPath, desktopDirPath);
+      }
+    }
+    if (clip.mode === "cut") {
+      setVfsClipboard(null);
+    }
+    await loadDesktopFolder();
+  }, [desktopDirPath, isBrowserRuntime, loadDesktopFolder]);
+
+  const handleDuplicateItems = React.useCallback(
+    async (list: IconGridItem[]) => {
+      if (!isBrowserRuntime) return;
+      const createdNames: string[] = [];
+      for (const item of list) {
+        const dup = duplicateVfsEntry(item.path);
+        if (dup) createdNames.push(dup.name);
+      }
+      await loadDesktopFolder();
+      if (createdNames.length > 0) {
+        setSelectedIds(createdNames);
       }
     },
-    [handleMoveToTrash, isBrowserRuntime, loadDesktopFolder]
+    [isBrowserRuntime, loadDesktopFolder]
+  );
+
+  const handleMoveItemsToTrash = React.useCallback(
+    async (list: IconGridItem[]) => {
+      for (const item of list) {
+        await handleMoveToTrash(item);
+      }
+    },
+    [handleMoveToTrash]
+  );
+
+  const handleDropDesktopItems = React.useCallback(
+    async (droppedItems: IconGridItem[], destPath: string) => {
+      if (destPath === WEB_VFS_TRASH) {
+        await handleMoveItemsToTrash(droppedItems);
+        return;
+      }
+      if (!isBrowserRuntime) return;
+      const movedIds = new Set<string>();
+      for (const item of droppedItems) {
+        if (item.path === destPath || destPath.startsWith(`${item.path}/`)) {
+          continue;
+        }
+        moveVfsEntry(item.path, destPath);
+        movedIds.add(item.id);
+      }
+      if (movedIds.size > 0) {
+        await loadDesktopFolder();
+        setSelectedIds((prev) => prev.filter((id) => !movedIds.has(id)));
+      }
+    },
+    [handleMoveItemsToTrash, isBrowserRuntime, loadDesktopFolder]
   );
 
   if (!settings.desktopIconsEnabled) return null;
 
+  const selectedItems = enrichedItems.filter((i) => selectedIds.includes(i.id));
+
   return (
     <div
       data-desktop-icons-root
+      data-vfs-drop-path={desktopDirPath}
       style={{ bottom: `${bottomInset}px` }}
       className="pointer-events-auto absolute inset-x-0 top-0 z-0"
+      onKeyDown={(e) => {
+        if (renamingId || e.target instanceof HTMLInputElement) return;
+        const mod = e.ctrlKey || e.metaKey;
+        const key = e.key.toLowerCase();
+        if (mod && key === "c" && selectedItems.length > 0) {
+          e.preventDefault();
+          setVfsClipboard({
+            mode: "copy",
+            paths: selectedItems.map((i) => i.path),
+          });
+        } else if (mod && key === "x" && selectedItems.length > 0) {
+          e.preventDefault();
+          setVfsClipboard({
+            mode: "cut",
+            paths: selectedItems.map((i) => i.path),
+          });
+        } else if (mod && key === "v") {
+          e.preventDefault();
+          void handlePasteToDesktop();
+        } else if (mod && key === "d" && selectedItems.length > 0) {
+          e.preventDefault();
+          void handleDuplicateItems(selectedItems);
+        } else if (e.key === "F2" && selectedIds.length === 1) {
+          e.preventDefault();
+          setRenamingId(selectedIds[0]);
+        } else if (
+          (e.key === "Delete" || e.key === "Backspace") &&
+          selectedItems.length > 0
+        ) {
+          e.preventDefault();
+          void handleMoveItemsToTrash(selectedItems);
+        }
+      }}
       onDragOver={(e) => {
         if (!isBrowserRuntime || !e.dataTransfer?.types?.includes("Files")) {
           return;
@@ -531,9 +608,13 @@ export function DesktopIconsApp({
       <IconGrid
         items={enrichedItems}
         mode="spatial"
+        align={settings.desktopIconAlign ?? "left"}
+        currentDirPath={desktopDirPath}
         positions={settings.desktopIconPositions}
         onMoveItem={handleMoveItem}
-        onDropItem={(item, x, y) => void handleDropDesktopItem(item, x, y)}
+        onDropItems={(dropped, destPath) =>
+          void handleDropDesktopItems(dropped, destPath)
+        }
         onActivateItem={handleActivateItem}
         onContextMenuItem={(item, e) => {
           e.preventDefault();
@@ -560,17 +641,37 @@ export function DesktopIconsApp({
 
       <FileItemContextMenu
         menu={contextMenu}
+        context="desktop"
+        selectedItems={selectedItems}
         onClose={() => setContextMenu(null)}
         onOpen={handleActivateItem}
+        onOpenInNewWindow={(target) =>
+          launchApp("nautilus", { payload: target.path, forceNew: true })
+        }
         onOpenInTerminal={(target) =>
           launchApp("terminal", { payload: target.path, forceNew: true })
         }
-        isFavorite={Boolean(contextMenu && isVfsFavorite(contextMenu.item.path))}
-        onToggleFavorite={(target) => toggleVfsFavorite(target.path)}
+        onCutItems={(list) =>
+          setVfsClipboard({ mode: "cut", paths: list.map((i) => i.path) })
+        }
+        onCopyItems={(list) =>
+          setVfsClipboard({ mode: "copy", paths: list.map((i) => i.path) })
+        }
+        onDuplicate={(list) => void handleDuplicateItems(list)}
+        canPaste={Boolean(clipboard && clipboard.paths.length > 0)}
+        onPaste={() => void handlePasteToDesktop()}
+        activeEmblems={contextMenu ? getVfsEmblems(contextMenu.item.path) : []}
+        onToggleEmblem={(list, emblem) => {
+          for (const target of list) {
+            toggleVfsEmblem(target.path, emblem);
+          }
+          void loadDesktopFolder();
+        }}
         onRename={(target) => setRenamingId(target.id)}
         onNewFolder={() => void createDesktopFolder()}
         onNewTextFile={() => void createDesktopTextFile()}
         onTrash={(target) => void handleMoveToTrash(target)}
+        onTrashItems={(list) => void handleMoveItemsToTrash(list)}
       />
     </div>
   );

@@ -40,6 +40,8 @@ import {
   type GtkFontRgbaOrder,
 } from "@/lib/gnome-bridge";
 import { startBootPhase } from "@/lib/perf-log";
+import type { DesktopIconAlign } from "@/lib/desktop-icons";
+import type { SavedWindowBounds } from "@/lib/spatial-window-bounds";
 
 export type WindowDecorationMode = "auto" | "csd" | "ssd";
 export type CssFontSmoothing = "antialiased" | "subpixel-antialiased" | "auto";
@@ -53,12 +55,7 @@ export type CssFontKerning = "auto" | "normal" | "none";
 export type CssFontSynthesis = "auto" | "none";
 export type CssFontStyle = "regular" | "light" | "medium" | "semibold" | "italic";
 
-export interface SavedWindowBounds {
-  position: { x: number; y: number };
-  size: { width: number; height: number };
-}
-
-export type { InstalledWebApp };
+export type { InstalledWebApp, SavedWindowBounds };
 
 export interface DesktopSettings {
   themeMode: "dark" | "light" | "system";
@@ -122,6 +119,7 @@ export interface DesktopSettings {
   workspaceCount: number;
   restoreWindowsOnLogin: boolean;
   desktopIconsEnabled: boolean;
+  desktopIconAlign: DesktopIconAlign;
   fileActivationMode: "single" | "double";
   desktopIconPositions: Record<string, { col: number; row: number }>;
   pinnedAppIds: string[];
@@ -193,6 +191,7 @@ const DEFAULT_SETTINGS: DesktopSettings = {
   workspaceCount: 2,
   restoreWindowsOnLogin: true,
   desktopIconsEnabled: true,
+  desktopIconAlign: "left",
   fileActivationMode: "double",
   desktopIconPositions: {},
   pinnedAppIds: APP_CATALOG.filter((a) => a.pinnedByDefault).map((a) => a.id),
