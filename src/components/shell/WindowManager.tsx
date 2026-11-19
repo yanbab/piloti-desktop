@@ -22,10 +22,8 @@ import {
   XIcon,
 } from "lucide-react";
 import { IsolatedAppFrame } from "@/components/shell/IsolatedAppFrame";
-import {
-  useWindowVisualModifiers,
-  WindowMenuButton,
-} from "@/components/shell/WindowMenuButton";
+import { WindowMenuButton } from "@/components/shell/WindowMenuButton";
+import { computeOverviewWindowLayouts } from "@/lib/overview-layout";
 const CalculatorApp = React.lazy(() =>
   import("@/components/apps/CalculatorApp").then((m) => ({
     default: m.CalculatorApp,
@@ -575,14 +573,14 @@ function WebViewSurface({
             title={win.title}
             onLoad={handleIframeLoad}
             onError={() => setIsLoading(false)}
-            className="h-full w-full border-0 bg-white"
+            className="h-full w-full border-0 bg-adw-window"
           />
         ) : (
           <webview
             ref={webviewRef}
             window={win.browserWindowId}
             resizing={windowCtx?.resizing ? "" : undefined}
-            className="block h-full w-full bg-white dark:bg-zinc-950"
+            className="block h-full w-full bg-adw-window"
           />
         )}
 
@@ -676,11 +674,15 @@ const WindowBody = React.memo(
           appId="text-editor"
           windowId={win.id}
           title={win.title}
-          isCsd={false}
+          isCsd={isCsd}
           initialPath={win.payload}
           fallbackElement={
             <React.Suspense fallback={null}>
-              <TextEditorApp initialPath={win.payload} windowId={win.id} />
+              <TextEditorApp
+                initialPath={win.payload}
+                windowId={win.id}
+                isCsd={isCsd}
+              />
             </React.Suspense>
           }
         />
@@ -782,6 +784,7 @@ export function WindowManager() {
   const domicile = useDomicile();
   const { isBrowserRuntime, settings } = useSettings();
   const {
+    windows,
     workspaceWindows,
     waylandPopups,
     focusedWindowId,
@@ -805,6 +808,27 @@ export function WindowManager() {
   const windowElementsRef = React.useRef<Map<string, HTMLDivElement>>(
     new Map()
   );
+  const [windowContextMenu, setWindowContextMenu] = React.useState<{
+    windowId: string;
+    x: number;
+    y: number;
+  } | null>(null);
+
+  React.useEffect(() => {
+    if (!windowContextMenu) return;
+    const close = () => setWindowContextMenu(null);
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") close();
+    };
+    window.addEventListener("pointerdown", close);
+    window.addEventListener("keydown", onKey);
+    window.addEventListener("blur", close);
+    return () => {
+      window.removeEventListener("pointerdown", close);
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("blur", close);
+    };
+  }, [windowContextMenu]);
   const lastDomFocusedIdRef = React.useRef<string | null>(null);
   const workspaceWindowsRef = React.useRef(workspaceWindows);
   workspaceWindowsRef.current = workspaceWindows;
@@ -939,7 +963,14 @@ export function WindowManager() {
     workspaceWindows.length,
   ]);
 
-  const windowVisualModifiers = useWindowVisualModifiers();
+  const overviewLayouts = React.useMemo(() => {
+    if (!overviewOpen || typeof window === "undefined") return null;
+    return computeOverviewWindowLayouts(
+      workspaceWindows,
+      window.innerWidth,
+      window.innerHeight - 30,
+    );
+  }, [overviewOpen, workspaceWindows]);
   const dockPosition = settings.dockPosition ?? "bottom";
   const dockEdgeClearance = settings.dockAutoHide ? 8 : settings.dockSize + 24;
   const bottomDockClearance = dockPosition === "bottom" ? dockEdgeClearance : 8;
@@ -989,13 +1020,17 @@ export function WindowManager() {
         />
       )}
 
-      {workspaceWindows.map((win) => {
-        const isFocused = focusedWindowId === win.id;
+      {windows.map((win) => {
+        const isActiveWorkspace = win.workspace === settings.activeWorkspace;
+        const isFocused = isActiveWorkspace && focusedWindowId === win.id;
         const isCsd =
           settings.windowDecorationMode === "csd" ||
           (settings.windowDecorationMode === "auto" && Boolean(win.clientFrame));
         const isWaylandSurface = Boolean(win.waylandAppId) && !isBrowserRuntime;
-        const visualMod = windowVisualModifiers.get(win.id);
+        const ovLayout =
+          overviewOpen && isActiveWorkspace
+            ? overviewLayouts?.get(win.id)
+            : undefined;
 
         return (
           <Window
@@ -1027,7 +1062,7 @@ export function WindowManager() {
             resizable={win.appId !== "calculator"}
             bounds="parent"
             inactive={!isFocused}
-            minimized={win.minimized}
+            minimized={overviewOpen ? false : win.minimized}
             minimizeTo={getDockRef(win.appId)}
             minimizeEffect="scale"
             maximized={win.maximized}
@@ -1043,7 +1078,23 @@ export function WindowManager() {
             onClose={() => closeWindow(win.id)}
             onMinimize={() => minimizeWindow(win.id)}
             onZoom={() => toggleMaximizeWindow(win.id)}
-            onContextMenu={(e) => e.stopPropagation()}
+            onContextMenu={(e) => {
+              e.stopPropagation();
+              const target = e.target as HTMLElement | null;
+              if (
+                target?.closest(
+                  '[data-slot="window-titlebar"], [data-window-drag-region], [data-slot="adw-sidebar-header"]',
+                )
+              ) {
+                e.preventDefault();
+                focusWindow(win.id);
+                setWindowContextMenu({
+                  windowId: win.id,
+                  x: e.clientX,
+                  y: e.clientY,
+                });
+              }
+            }}
             onWheel={(e) => e.stopPropagation()}
             onPointerDown={() => {
               if (!isFocused) {
@@ -1054,14 +1105,21 @@ export function WindowManager() {
               position: "absolute",
               top: 0,
               left: 0,
-              zIndex: visualMod?.alwaysOnTop ? win.zIndex + 500 : win.zIndex,
+              zIndex: win.zIndex,
+              transformOrigin: "top left",
+              transform: ovLayout
+                ? `translate(${ovLayout.dx}px, ${ovLayout.dy}px) scale(${ovLayout.scale})`
+                : undefined,
+              transition:
+                "transform 420ms cubic-bezier(0.22, 1, 0.36, 1)",
             }}
             className={cn(
               "contain-[layout_style] outline-none",
               isWaylandSurface && "bg-transparent",
-              visualMod?.effect === "translucent" && "opacity-85",
-              overviewOpen && "pointer-events-none opacity-0"
+              overviewOpen && "pointer-events-none",
+              !isActiveWorkspace && "invisible pointer-events-none",
             )}
+            aria-hidden={!isActiveWorkspace || undefined}
           >
             <WindowMain
               className={cn(
@@ -1093,14 +1151,7 @@ export function WindowManager() {
                 />
               )}
 
-              <WindowContent
-                className={cn(
-                  "flex flex-col overflow-hidden",
-                  visualMod?.effect === "invert" &&
-                    "[filter:invert(1)_hue-rotate(180deg)]",
-                  visualMod?.effect === "grayscale" && "grayscale",
-                )}
-              >
+              <WindowContent className="flex flex-col overflow-hidden">
                 <WindowBody win={win} isCsd={isCsd} />
               </WindowContent>
             </WindowMain>
@@ -1130,6 +1181,92 @@ export function WindowManager() {
           />
         </div>
       ))}
+
+      {/* Headerbar Right-Click Window Menu */}
+      {windowContextMenu &&
+        (() => {
+          const ctxWin = windows.find((w) => w.id === windowContextMenu.windowId);
+          if (!ctxWin) return null;
+          const menuLeft =
+            typeof window !== "undefined"
+              ? Math.min(window.innerWidth - 180, windowContextMenu.x)
+              : windowContextMenu.x;
+          const menuTop =
+            typeof window !== "undefined"
+              ? Math.min(window.innerHeight - 200, windowContextMenu.y)
+              : windowContextMenu.y;
+          const itemCls =
+            "flex w-full items-center rounded-lg px-2.5 py-1.5 text-left text-adw-body text-adw-label hover:bg-adw-accent hover:text-white";
+          return (
+            <div
+              role="menu"
+              style={{ left: `${menuLeft}px`, top: `${menuTop}px`, zIndex: 9999 }}
+              onPointerDown={(e) => e.stopPropagation()}
+              onContextMenu={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+              }}
+              className="adw-material-menu fixed min-w-44 rounded-xl border border-adw-border/60 p-1 shadow-xl backdrop-blur-md"
+            >
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  minimizeWindow(ctxWin.id);
+                  setWindowContextMenu(null);
+                }}
+                className={itemCls}
+              >
+                Minimize
+              </button>
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  toggleMaximizeWindow(ctxWin.id);
+                  setWindowContextMenu(null);
+                }}
+                className={itemCls}
+              >
+                {ctxWin.maximized ? "Restore" : "Maximize"}
+              </button>
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  tileWindow(ctxWin.id, "left");
+                  setWindowContextMenu(null);
+                }}
+                className={itemCls}
+              >
+                Tile Left
+              </button>
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  tileWindow(ctxWin.id, "right");
+                  setWindowContextMenu(null);
+                }}
+                className={itemCls}
+              >
+                Tile Right
+              </button>
+              <div className="my-1 h-px bg-adw-separator" />
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  closeWindow(ctxWin.id);
+                  setWindowContextMenu(null);
+                }}
+                className={itemCls}
+              >
+                Close
+              </button>
+            </div>
+          );
+        })()}
     </div>
   );
 }

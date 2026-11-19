@@ -7,7 +7,6 @@ import {
   DownloadIcon,
   FileTextIcon,
   FolderIcon,
-  HeartCrackIcon,
   HeartIcon,
   HomeIcon,
   ImageIcon,
@@ -18,6 +17,7 @@ import {
   MonitorIcon,
   MusicIcon,
   PanelLeftIcon,
+  PanelRightIcon,
   SearchIcon,
   Trash2Icon,
   VideoIcon,
@@ -87,6 +87,7 @@ import {
   moveFsEntry,
   moveFsEntry as bridgeMoveFsEntry,
   renameFsEntry,
+  restoreFsEntry,
   trashFsEntry,
 } from "@/lib/fs-bridge";
 
@@ -99,6 +100,12 @@ interface XdgPlaceItem {
 
 const XDG_PLACES: readonly XdgPlaceItem[] = [
   {
+    id: "home",
+    label: "Home",
+    path: WEB_VFS_HOME,
+    icon: <HomeIcon className="size-4" />,
+  },
+  {
     id: "recents",
     label: "Recents",
     path: WEB_VFS_RECENTS_URI,
@@ -109,12 +116,6 @@ const XDG_PLACES: readonly XdgPlaceItem[] = [
     label: "Favorites",
     path: WEB_VFS_FAVORITES_URI,
     icon: <HeartIcon className="size-4" />,
-  },
-  {
-    id: "home",
-    label: "Home",
-    path: WEB_VFS_HOME,
-    icon: <HomeIcon className="size-4" />,
   },
   {
     id: "desktop",
@@ -147,29 +148,33 @@ const XDG_PLACES: readonly XdgPlaceItem[] = [
     icon: <ImageIcon className="size-4" />,
   },
   {
-    id: "videos",
-    label: "Videos",
-    path: `${WEB_VFS_HOME}/Videos`,
-    icon: <VideoIcon className="size-4" />,
-  },
-  {
     id: "trash",
     label: "Trash",
     path: WEB_VFS_TRASH,
     icon: <Trash2Icon className="size-4" />,
   },
+  {
+    id: "videos",
+    label: "Videos",
+    path: `${WEB_VFS_HOME}/Videos`,
+    icon: <VideoIcon className="size-4" />,
+  },
 ];
 
-const ZOOM_LEVELS = [
-  { cellWidth: 168, cellHeight: 28, iconSize: 16 },
-  { cellWidth: 168, cellHeight: 28, iconSize: 20 },
-  { cellWidth: 76, cellHeight: 82, iconSize: 24 },
+const ICON_ZOOM_LEVELS = [
+  { cellWidth: 148, cellHeight: 24, iconSize: 16 },
+  { cellWidth: 158, cellHeight: 30, iconSize: 24 },
   { cellWidth: 84, cellHeight: 92, iconSize: 32 },
   { cellWidth: 108, cellHeight: 110, iconSize: 48 },
   { cellWidth: 120, cellHeight: 126, iconSize: 64 },
-  { cellWidth: 148, cellHeight: 156, iconSize: 96 },
-  { cellWidth: 176, cellHeight: 184, iconSize: 128 },
+  { cellWidth: 132, cellHeight: 138, iconSize: 72 },
+  { cellWidth: 156, cellHeight: 164, iconSize: 96 },
+  { cellWidth: 184, cellHeight: 196, iconSize: 128 },
+  { cellWidth: 248, cellHeight: 260, iconSize: 192 },
+  { cellWidth: 312, cellHeight: 324, iconSize: 256 },
 ] as const;
+
+const LIST_ZOOM_LEVELS = [16, 24, 32, 48] as const;
 
 function vfsEntryToGridItem(
   entry: WebVfsEntry,
@@ -221,16 +226,21 @@ export function FilesApp({
   const mainViewRef = React.useRef<HTMLDivElement | null>(null);
   const [isCompact, setIsCompact] = React.useState(false);
   const [compactSidebarOpen, setCompactSidebarOpen] = React.useState(false);
+  const [sidebarReady, setSidebarReady] = React.useState(false);
 
   React.useLayoutEffect(() => {
     const el = containerRef.current;
-    if (!el || typeof ResizeObserver === "undefined") return;
+    if (!el || typeof ResizeObserver === "undefined") {
+      setSidebarReady(true);
+      return;
+    }
     const check = () => {
       const narrow = el.clientWidth < 580;
       setIsCompact(narrow);
       if (!narrow) setCompactSidebarOpen(false);
     };
     check();
+    setSidebarReady(true);
     const ro = new ResizeObserver(check);
     ro.observe(el);
     return () => ro.disconnect();
@@ -253,7 +263,10 @@ export function FilesApp({
     return registerOpenFolderPath(currentPath);
   }, [currentPath]);
 
-  const [zoomIndex, setZoomIndex] = React.useState(4);
+  const [gridZoomIndex, setGridZoomIndex] = React.useState(3);
+  const [listZoomIndex, setListZoomIndex] = React.useState(1);
+  const [infoPaneOpen, setInfoPaneOpen] = React.useState(false);
+  const [sidebarScrolled, setSidebarScrolled] = React.useState(false);
   const [showHidden, setShowHidden] = React.useState(false);
   const [vfsEntries, setVfsEntries] = React.useState<WebVfsEntry[]>(() =>
     listVfsDir(currentPath)
@@ -271,14 +284,6 @@ export function FilesApp({
     mode: "cut" | "copy";
     path: string;
   } | null>(null);
-  const [hasFavorites, setHasFavorites] = React.useState(
-    () => loadVfsFavorites().length > 0,
-  );
-  React.useEffect(() => {
-    return subscribeWebVfs(() => {
-      setHasFavorites(loadVfsFavorites().length > 0);
-    });
-  }, []);
 
   const reloadDir = React.useCallback(() => {
     if (currentPath === WEB_VFS_FAVORITES_URI) {
@@ -567,7 +572,24 @@ export function FilesApp({
     }
   };
 
-  const zoom = ZOOM_LEVELS[zoomIndex] ?? ZOOM_LEVELS[1];
+  const zoom = ICON_ZOOM_LEVELS[gridZoomIndex] ?? ICON_ZOOM_LEVELS[3];
+  const listIconSize = LIST_ZOOM_LEVELS[listZoomIndex] ?? LIST_ZOOM_LEVELS[1];
+  const activeZoomIndex = viewMode === "list" ? listZoomIndex : gridZoomIndex;
+  const maxZoomIndex =
+    viewMode === "list"
+      ? LIST_ZOOM_LEVELS.length - 1
+      : ICON_ZOOM_LEVELS.length - 1;
+  const stepZoom = (delta: number) => {
+    if (viewMode === "list") {
+      setListZoomIndex((z) =>
+        Math.max(0, Math.min(LIST_ZOOM_LEVELS.length - 1, z + delta)),
+      );
+    } else {
+      setGridZoomIndex((z) =>
+        Math.max(0, Math.min(ICON_ZOOM_LEVELS.length - 1, z + delta)),
+      );
+    }
+  };
 
   const bgMenuPortal = bgMenu ? (
     <div
@@ -638,7 +660,29 @@ export function FilesApp({
   return (
     <div
       ref={containerRef}
-      className="relative flex h-full w-full overflow-hidden bg-adw-window text-adw-label select-none"
+      onKeyDown={(e) => {
+        if (
+          editingLocation ||
+          renamingId ||
+          e.target instanceof HTMLInputElement ||
+          e.target instanceof HTMLTextAreaElement
+        ) {
+          return;
+        }
+        if (
+          !e.ctrlKey &&
+          !e.metaKey &&
+          !e.altKey &&
+          e.key.length === 1 &&
+          /^[a-z0-9._-]$/i.test(e.key)
+        ) {
+          e.preventDefault();
+          setSearchOpen(true);
+          setSearchQuery((prev) => (searchOpen ? prev + e.key : e.key));
+          requestAnimationFrame(() => searchInputRef.current?.focus());
+        }
+      }}
+      className="relative flex h-full w-full overflow-hidden bg-transparent text-adw-label select-none"
     >
       {/* Left Places Sidebar (collapses to VS Code-style icon activity bar on small size) */}
       <aside
@@ -646,14 +690,20 @@ export function FilesApp({
         onKeyDown={onSidebarKeyDown}
         onKeyUp={onSidebarKeyUp}
         className={cn(
-          "flex min-h-0 shrink-0 flex-col overflow-hidden border-r border-adw-separator bg-adw-sidebar transition-[width] duration-150",
+          "flex min-h-0 shrink-0 flex-col overflow-hidden border-r border-adw-separator bg-adw-sidebar",
+          sidebarReady && "transition-[width] duration-150",
           isCompact ? "w-[52px]" : "w-40"
         )}
       >
         {isCsd && (
           <WindowTitlebar
             data-window-drag-region
-            className="border-b-0 bg-transparent"
+            className={cn(
+              "bg-transparent transition-colors",
+              sidebarScrolled
+                ? "border-b border-adw-separator/70"
+                : "border-b border-transparent",
+            )}
           >
             <div className="flex items-center gap-1.5" data-window-no-drag>
               {windowId && <WindowControls side="left" />}
@@ -674,6 +724,7 @@ export function FilesApp({
 
         <TooltipProvider delay={450}>
           <div
+            onScroll={(e) => setSidebarScrolled(e.currentTarget.scrollTop > 2)}
             className={cn(
               "flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto px-2 pb-2",
               isCsd ? "pt-0.5" : "pt-2"
@@ -681,19 +732,7 @@ export function FilesApp({
           >
             {XDG_PLACES.map((place) => {
               const selected = highlightedPlace === place.path;
-              const isFavPlace = place.id === "favorites";
-              const iconNode = isFavPlace ? (
-                hasFavorites ? (
-                  <>
-                    <HeartIcon className="size-4 fill-rose-500 text-rose-500 group-hover/place:hidden" />
-                    <HeartCrackIcon className="hidden size-4 text-rose-500 group-hover/place:block" />
-                  </>
-                ) : (
-                  <HeartIcon className="size-4 text-adw-dim opacity-60" />
-                )
-              ) : (
-                place.icon
-              );
+              const iconNode = place.icon;
               const btn = (
                 <button
                   key={place.id}
@@ -726,26 +765,41 @@ export function FilesApp({
                 </button>
               );
 
-              if (!isCompact) return btn;
+              const sep =
+                place.id === "favorites" ? (
+                  <div className="my-1 h-px shrink-0 bg-adw-separator" />
+                ) : null;
+
+              if (!isCompact) {
+                return (
+                  <React.Fragment key={place.id}>
+                    {btn}
+                    {sep}
+                  </React.Fragment>
+                );
+              }
               return (
-                <Tooltip key={place.id}>
-                  <TooltipTrigger render={btn} />
-                  <TooltipContent
-                    side="right"
-                    sideOffset={-36}
-                    className={cn(
-                      "pointer-events-none h-[32px] gap-2.5 rounded-[9px] border border-adw-separator px-2.5 py-1.5 text-[13px] shadow-md",
-                      selected
-                        ? "bg-adw-sidebar-selection font-medium text-adw-label"
-                        : "bg-adw-sidebar font-normal text-adw-label"
-                    )}
-                  >
-                    <span className="flex size-4 shrink-0 items-center justify-center opacity-85">
-                      {iconNode}
-                    </span>
-                    <span className="whitespace-nowrap">{_(place.label)}</span>
-                  </TooltipContent>
-                </Tooltip>
+                <React.Fragment key={place.id}>
+                  <Tooltip>
+                    <TooltipTrigger render={btn} />
+                    <TooltipContent
+                      side="right"
+                      sideOffset={-36}
+                      className={cn(
+                        "pointer-events-none h-[32px] gap-2.5 rounded-[9px] border border-adw-separator px-2.5 py-1.5 text-[13px] shadow-md",
+                        selected
+                          ? "bg-adw-sidebar-selection font-medium text-adw-label"
+                          : "bg-adw-sidebar font-normal text-adw-label"
+                      )}
+                    >
+                      <span className="flex size-4 shrink-0 items-center justify-center opacity-85">
+                        {iconNode}
+                      </span>
+                      <span className="whitespace-nowrap">{_(place.label)}</span>
+                    </TooltipContent>
+                  </Tooltip>
+                  {sep}
+                </React.Fragment>
               );
             })}
           </div>
@@ -869,8 +923,8 @@ export function FilesApp({
                   type="button"
                   aria-label={_("Zoom out")}
                   title={_("Zoom out")}
-                  disabled={zoomIndex <= 0}
-                  onClick={() => setZoomIndex((z) => Math.max(0, z - 1))}
+                  disabled={activeZoomIndex <= 0}
+                  onClick={() => stepZoom(-1)}
                   className="flex size-7 items-center justify-center rounded-md text-adw-label-secondary transition-colors hover:bg-black/8 hover:text-adw-label disabled:pointer-events-none disabled:opacity-35 dark:hover:bg-white/10"
                 >
                   <ZoomOutIcon className="size-4" />
@@ -879,10 +933,8 @@ export function FilesApp({
                   type="button"
                   aria-label={_("Zoom in")}
                   title={_("Zoom in")}
-                  disabled={zoomIndex >= ZOOM_LEVELS.length - 1}
-                  onClick={() =>
-                    setZoomIndex((z) => Math.min(ZOOM_LEVELS.length - 1, z + 1))
-                  }
+                  disabled={activeZoomIndex >= maxZoomIndex}
+                  onClick={() => stepZoom(1)}
                   className="flex size-7 items-center justify-center rounded-md text-adw-label-secondary transition-colors hover:bg-black/8 hover:text-adw-label disabled:pointer-events-none disabled:opacity-35 dark:hover:bg-white/10"
                 >
                   <ZoomInIcon className="size-4" />
@@ -905,11 +957,26 @@ export function FilesApp({
               className={cn(
                 "flex size-7 items-center justify-center rounded-md transition-colors",
                 searchOpen
-                  ? "bg-adw-accent/15 text-adw-accent"
+                  ? "bg-black/10 text-adw-label dark:bg-white/15"
                   : "text-adw-label-secondary hover:bg-black/8 hover:text-adw-label dark:hover:bg-white/10"
               )}
             >
               <SearchIcon className="size-4" />
+            </button>
+
+            <button
+              type="button"
+              aria-label="Toggle Info Pane"
+              title="Get Info"
+              onClick={() => setInfoPaneOpen((v) => !v)}
+              className={cn(
+                "flex size-7 items-center justify-center rounded-md transition-colors",
+                infoPaneOpen
+                  ? "bg-black/10 text-adw-label dark:bg-white/15"
+                  : "text-adw-label-secondary hover:bg-black/8 hover:text-adw-label dark:hover:bg-white/10"
+              )}
+            >
+              <PanelRightIcon className="size-4" />
             </button>
 
             {/* CSD Window Controls */}
@@ -921,7 +988,8 @@ export function FilesApp({
           </div>
         </WindowTitlebar>
 
-        {/* Desktop-style Icon View */}
+        {/* Desktop-style Icon View + Optional Info Pane */}
+        <div className="flex min-h-0 flex-1 overflow-hidden">
         <div
           ref={mainViewRef}
           onKeyDown={onContentKeyDown}
@@ -1014,96 +1082,33 @@ export function FilesApp({
                             : "hover:bg-black/4 dark:hover:bg-white/5"
                         )}
                       >
-                        <td className="px-3 py-2 font-medium">
-                          {item.kind === "directory" ? (
-                            <details
-                              onClick={(e) => e.stopPropagation()}
-                              className="group/dir"
+                        <td className="px-3 py-1.5 font-medium">
+                          <div className="flex items-center gap-2.5">
+                            <span
+                              style={{
+                                width: `${listIconSize}px`,
+                                height: `${listIconSize}px`,
+                              }}
+                              className="inline-flex shrink-0"
                             >
-                              <summary className="flex cursor-default list-none items-center gap-2 [&::-webkit-details-marker]:hidden">
-                                <span className="inline-block w-3 text-[10px] text-adw-dim transition-transform group-open/dir:rotate-90">
-                                  ▸
-                                </span>
-                                <span
-                                  style={{
-                                    width: `${Math.max(16, Math.min(32, zoom.iconSize))}px`,
-                                    height: `${Math.max(16, Math.min(32, zoom.iconSize))}px`,
-                                  }}
-                                  className="inline-flex shrink-0"
-                                >
-                                  <DynamicFolderIcon
-                                    accentColor={settings.accentColor}
-                                    opened={openFolderPaths.has(item.path)}
-                                    pathOrName={item.path || item.name}
-                                    className="size-full"
-                                  />
-                                </span>
-                                <span className="truncate">{item.name}</span>
-                              </summary>
-                              <div className="mt-1.5 ml-6 space-y-1 border-l border-adw-separator pl-2.5 text-[11.5px] font-normal text-adw-label-secondary">
-                                {(() => {
-                                  const children = listVfsDir(item.path);
-                                  if (children.length === 0) {
-                                    return <div className="italic opacity-65">Empty</div>;
-                                  }
-                                  return children.map((child) => (
-                                    <div
-                                      key={child.id}
-                                      onDoubleClick={() => {
-                                        if (child.kind === "directory") {
-                                          setCurrentPath(child.path);
-                                        } else {
-                                          handleActivateItem({
-                                            id: child.id,
-                                            name: child.name,
-                                            kind: child.kind,
-                                            path: child.path,
-                                            iconName: inferFileVisual(child.name, child.kind).iconName,
-                                            gradient: "",
-                                          });
-                                        }
-                                      }}
-                                      className="flex items-center gap-2 rounded px-1.5 py-0.5 hover:bg-black/4 dark:hover:bg-white/5"
-                                    >
-                                      {child.kind === "directory" ? (
-                                        <DynamicFolderIcon
-                                          accentColor={settings.accentColor}
-                                          opened={false}
-                                          pathOrName={child.path}
-                                          className="size-4 shrink-0"
-                                        />
-                                      ) : (
-                                        <DynamicFileIcon
-                                          accentColor={settings.accentColor}
-                                          name={child.name}
-                                          className="size-4 shrink-0"
-                                        />
-                                      )}
-                                      <span className="truncate">{child.name}</span>
-                                    </div>
-                                  ));
-                                })()}
-                              </div>
-                            </details>
-                          ) : (
-                            <div className="flex items-center gap-2 pl-5">
-                              <span
-                                style={{
-                                  width: `${Math.max(16, Math.min(32, zoom.iconSize))}px`,
-                                  height: `${Math.max(16, Math.min(32, zoom.iconSize))}px`,
-                                }}
-                                className="inline-flex shrink-0"
-                              >
+                              {item.kind === "directory" ? (
+                                <DynamicFolderIcon
+                                  accentColor={settings.accentColor}
+                                  opened={openFolderPaths.has(item.path)}
+                                  pathOrName={item.path || item.name}
+                                  className="size-full"
+                                />
+                              ) : (
                                 <DynamicFileIcon
                                   accentColor={settings.accentColor}
                                   name={item.name}
                                   iconCandidates={item.iconCandidates}
                                   className="size-full"
                                 />
-                              </span>
-                              <span className="truncate">{item.name}</span>
-                            </div>
-                          )}
+                              )}
+                            </span>
+                            <span className="truncate">{item.name}</span>
+                          </div>
                         </td>
                         <td className="px-3 py-2 text-adw-label-secondary">
                           {item.kind === "directory" ? "Directory" : "File"}
@@ -1150,6 +1155,82 @@ export function FilesApp({
               : `${items.length} ${items.length === 1 ? "item" : "items"}`}
           </div>
         </div>
+        {infoPaneOpen &&
+          (() => {
+            const inspectedItem =
+              selectedIds.length > 0
+                ? items.find((i) => i.id === selectedIds[0])
+                : null;
+            const inspectedVfs = inspectedItem
+              ? getVfsEntry(inspectedItem.path ?? inspectedItem.id)
+              : getVfsEntry(currentPath);
+            const displayName =
+              inspectedItem?.name ?? currentTitle;
+            const displayKind = inspectedItem
+              ? inspectedItem.kind === "directory"
+                ? "Folder"
+                : inspectedItem.name.includes(".")
+                  ? `${inspectedItem.name.split(".").pop()?.toUpperCase()} File`
+                  : "File"
+              : "Folder";
+            const displaySize = inspectedItem
+              ? inspectedItem.kind === "directory"
+                ? `${listVfsDir(inspectedItem.path).length} items`
+                : `${(inspectedVfs?.content ?? "").length} bytes`
+              : `${items.length} items`;
+            const modifiedLabel = inspectedVfs?.updatedAt
+              ? new Date(inspectedVfs.updatedAt).toLocaleString()
+              : "—";
+            return (
+              <aside
+                aria-label="Info Pane"
+                className="flex w-56 shrink-0 flex-col gap-3 overflow-y-auto border-l border-adw-separator bg-adw-sidebar/70 p-3 text-adw-label"
+              >
+                <div className="flex flex-col items-center gap-2 border-b border-adw-separator pb-3 text-center">
+                  <div className="size-16 shrink-0">
+                    {(!inspectedItem || inspectedItem.kind === "directory") ? (
+                      <DynamicFolderIcon
+                        accentColor={settings.accentColor}
+                        opened={false}
+                        pathOrName={inspectedItem?.path ?? currentPath}
+                        className="size-full"
+                      />
+                    ) : (
+                      <DynamicFileIcon
+                        accentColor={settings.accentColor}
+                        name={inspectedItem.name}
+                        iconCandidates={inspectedItem.iconCandidates}
+                        className="size-full"
+                      />
+                    )}
+                  </div>
+                  <div className="w-full truncate text-adw-body font-semibold">
+                    {displayName}
+                  </div>
+                  <div className="text-[11px] text-adw-label-secondary">
+                    {displayKind}
+                  </div>
+                </div>
+                <dl className="space-y-2 text-[11.5px]">
+                  <div>
+                    <dt className="text-adw-dim">Size</dt>
+                    <dd className="font-medium">{displaySize}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-adw-dim">Modified</dt>
+                    <dd className="font-medium">{modifiedLabel}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-adw-dim">Where</dt>
+                    <dd className="truncate font-mono text-[11px] text-adw-label-secondary">
+                      {inspectedItem?.path ?? currentPath}
+                    </dd>
+                  </div>
+                </dl>
+              </aside>
+            );
+          })()}
+        </div>
       </div>
 
       {/* Shared Icon Right-Click Menu */}
@@ -1158,6 +1239,11 @@ export function FilesApp({
         isTrash={isTrashView}
         onClose={() => setItemMenu(null)}
         onOpen={handleActivateItem}
+        onRestore={(target) => {
+          restoreFsEntry(domicile, isBrowserRuntime, target.path);
+          reloadDir();
+          setSelectedIds((prev) => prev.filter((id) => id !== target.id));
+        }}
         onOpenInTerminal={(target) =>
           launchApp("terminal", { payload: target.path, forceNew: true })
         }

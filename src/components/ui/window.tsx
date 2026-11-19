@@ -21,14 +21,14 @@ type WindowHandle = {
 // Invisible strips along the inside of the frame; the corner squares are
 // clipped to the rounded corners, so they follow the curve.
 const RESIZE_HANDLES: Record<ResizeEdge, string> = {
-  n: "inset-x-4 top-0 h-[5px] cursor-ns-resize",
-  s: "inset-x-4 bottom-0 h-[5px] cursor-ns-resize",
-  e: "inset-y-4 right-0 w-[5px] cursor-ew-resize",
-  w: "inset-y-4 left-0 w-[5px] cursor-ew-resize",
-  nw: "top-0 left-0 size-4 cursor-nwse-resize",
-  ne: "top-0 right-0 size-4 cursor-nesw-resize",
-  se: "right-0 bottom-0 size-4 cursor-nwse-resize",
-  sw: "bottom-0 left-0 size-4 cursor-nesw-resize",
+  n: "inset-x-4 -top-[5px] h-[10px] cursor-ns-resize",
+  s: "inset-x-4 -bottom-[5px] h-[10px] cursor-ns-resize",
+  e: "inset-y-4 -right-[5px] w-[10px] cursor-ew-resize",
+  w: "inset-y-4 -left-[5px] w-[10px] cursor-ew-resize",
+  nw: "-top-[6px] -left-[6px] size-5 cursor-nwse-resize",
+  ne: "-top-[6px] -right-[6px] size-5 cursor-nesw-resize",
+  se: "-right-[6px] -bottom-[6px] size-5 cursor-nwse-resize",
+  sw: "-bottom-[6px] -left-[6px] size-5 cursor-nesw-resize",
 }
 
 const RESIZE_CURSORS: Record<ResizeEdge, string> = {
@@ -858,7 +858,7 @@ function Window({
         aria-hidden={hidden || undefined}
         inert={hidden || undefined}
         className={cn(
-          "group/window relative isolate flex overflow-hidden rounded-adw-window bg-adw-window text-adw-body text-adw-label shadow-adw-window data-[inactive]:shadow-adw-window-inactive has-[>[data-slot=adw-sidebar]]:bg-transparent",
+          "group/window relative isolate flex overflow-hidden rounded-adw-window bg-adw-window text-adw-body text-adw-label shadow-adw-window data-[inactive]:shadow-adw-window-inactive has-[>[data-slot=adw-sidebar]]:bg-transparent has-[.bg-adw-sidebar]:bg-transparent",
           // The thin light rim drawn on top of everything inside the frame.
           "after:pointer-events-none after:absolute after:inset-0 after:z-20 after:rounded-[inherit] after:shadow-[inset_0_0_0_1px_var(--adw-window-rim)]",
           // Touch drags on the drag regions move the window instead of scrolling.
@@ -969,6 +969,7 @@ function WindowTitlebar({
         if (event.defaultPrevented) return
         const target = event.target as HTMLElement
         if (target.closest(NO_DRAG)) return
+        event.stopPropagation()
         context?.onZoom?.()
       }}
       className={cn(
@@ -1014,7 +1015,7 @@ function WindowMain({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="window-main"
       className={cn(
-        "flex min-w-0 flex-1 flex-col rounded-r-[inherit] bg-adw-window first:rounded-l-[inherit]",
+        "flex min-w-0 flex-1 flex-col rounded-r-[inherit] bg-adw-window first:rounded-l-[inherit] has-[.bg-adw-sidebar]:bg-transparent",
         className
       )}
       {...props}
@@ -1030,7 +1031,7 @@ function WindowControlButton({
     <button
       type="button"
       className={cn(
-        "flex size-6 items-center justify-center rounded-full bg-black/6 text-adw-label-secondary transition-colors outline-none hover:bg-black/12 hover:text-adw-label focus-visible:outline-3 focus-visible:outline-solid focus-visible:outline-adw-accent/50 group-data-[inactive]/window:opacity-50 dark:bg-white/8 dark:hover:bg-white/15 [&_svg]:size-3",
+        "flex size-6 items-center justify-center rounded-full bg-black/6 text-adw-label-secondary transition-colors outline-none hover:bg-black/12 hover:text-adw-label active:bg-black/18 focus-visible:outline-3 focus-visible:outline-solid focus-visible:outline-adw-accent/50 group-data-[inactive]/window:opacity-50 dark:bg-white/8 dark:hover:bg-white/15 dark:active:bg-white/22 [&_svg]:size-3",
         className
       )}
       {...props}
@@ -1101,6 +1102,7 @@ export {
   useWindowContext,
   Window,
   WindowContent,
+  WindowControlButton,
   WindowControls,
   WindowMain,
   WindowTitle,

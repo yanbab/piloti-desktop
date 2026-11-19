@@ -243,6 +243,9 @@ const ADWAITA_DIRECT_ICON_FALLBACKS: Record<string, readonly string[]> = {
   calculator: [
     "/usr/share/icons/hicolor/scalable/apps/piloti-calculator.svg",
   ],
+  "image-viewer": [
+    "/usr/share/icons/hicolor/scalable/apps/piloti-image-viewer.svg",
+  ],
   "image-x-generic": [
     "/usr/share/icons/Adwaita/scalable/mimetypes/image-x-generic.svg",
   ],

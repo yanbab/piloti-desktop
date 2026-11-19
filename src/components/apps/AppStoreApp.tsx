@@ -1,20 +1,37 @@
 import * as React from "react";
 import { useDomicile } from "@domicile-desktop/react/domicile-provider";
 import {
+  BriefcaseIcon,
   CheckCircle2Icon,
   ChevronLeftIcon,
   ChevronRightIcon,
+  Code2Icon,
+  FlaskConicalIcon,
+  Gamepad2Icon,
   GlobeIcon,
   Maximize2Icon,
   MinusIcon,
+  MusicIcon,
   PackageIcon,
+  PaletteIcon,
   SearchIcon,
   SparklesIcon,
+  WrenchIcon,
   XIcon,
 } from "lucide-react";
 import { AppSquircleIcon } from "@/components/shell/AppSymbol";
 import { WindowMenuButton } from "@/components/shell/WindowMenuButton";
-import { WindowControls, WindowTitlebar } from "@/components/ui/window";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  WindowControlButton,
+  WindowControls,
+  WindowTitlebar,
+} from "@/components/ui/window";
 import { useSidebarKeyboardNav } from "@/hooks/use-sidebar-keyboard-nav";
 import { Button } from "@/components/ui/button";
 import {
@@ -194,14 +211,39 @@ function classifyFlatpakCategory(
 const CATEGORY_ITEMS: Array<{
   id: Exclude<StoreCategory, "all" | "installed">;
   label: string;
+  icon: React.ReactNode;
 }> = [
-  { id: "Games", label: "Games" },
-  { id: "Graphics", label: "Graphics & Design" },
-  { id: "Development", label: "Developer Tools" },
-  { id: "Productivity", label: "Productivity" },
-  { id: "Audio & Media", label: "Audio & Media" },
-  { id: "Science & Math", label: "Science & Math" },
-  { id: "Utilities", label: "Utilities" },
+  { id: "Games", label: "Games", icon: <Gamepad2Icon className="size-4" /> },
+  {
+    id: "Graphics",
+    label: "Graphics & Design",
+    icon: <PaletteIcon className="size-4" />,
+  },
+  {
+    id: "Development",
+    label: "Developer Tools",
+    icon: <Code2Icon className="size-4" />,
+  },
+  {
+    id: "Productivity",
+    label: "Productivity",
+    icon: <BriefcaseIcon className="size-4" />,
+  },
+  {
+    id: "Audio & Media",
+    label: "Audio & Media",
+    icon: <MusicIcon className="size-4" />,
+  },
+  {
+    id: "Science & Math",
+    label: "Science & Math",
+    icon: <FlaskConicalIcon className="size-4" />,
+  },
+  {
+    id: "Utilities",
+    label: "Utilities",
+    icon: <WrenchIcon className="size-4" />,
+  },
 ];
 
 const WebAppFavicon: React.FC<{
@@ -271,8 +313,28 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
 
   const [category, setCategory] = React.useState<StoreCategory>("all");
   const [query, setQuery] = React.useState("");
+  const containerRef = React.useRef<HTMLDivElement | null>(null);
+  const searchInputRef = React.useRef<HTMLInputElement | null>(null);
   const sidebarRef = React.useRef<HTMLElement | null>(null);
   const mainRef = React.useRef<HTMLElement | null>(null);
+  const [isCompact, setIsCompact] = React.useState(false);
+  const [sidebarReady, setSidebarReady] = React.useState(false);
+  const [sidebarScrolled, setSidebarScrolled] = React.useState(false);
+  const [contentScrolled, setContentScrolled] = React.useState(false);
+
+  React.useLayoutEffect(() => {
+    const el = containerRef.current;
+    if (!el || typeof ResizeObserver === "undefined") {
+      setSidebarReady(true);
+      return;
+    }
+    const check = () => setIsCompact(el.clientWidth < 580);
+    check();
+    setSidebarReady(true);
+    const ro = new ResizeObserver(check);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
   const {
     highlightedId: highlightedCategory,
     onSidebarKeyDown,
@@ -774,120 +836,224 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
   );
 
   return (
-    <div className="flex h-full w-full flex-col overflow-hidden bg-adw-window text-adw-label select-none">
-      {/* Header Bar */}
-      <WindowTitlebar
-        data-window-drag-region={isCsd ? "" : undefined}
+    <div
+      ref={containerRef}
+      onKeyDown={(e) => {
+        if (
+          e.target instanceof HTMLInputElement ||
+          e.target instanceof HTMLTextAreaElement
+        ) {
+          return;
+        }
+        if (
+          !e.ctrlKey &&
+          !e.metaKey &&
+          !e.altKey &&
+          e.key.length === 1 &&
+          /^[a-z0-9._-]$/i.test(e.key)
+        ) {
+          e.preventDefault();
+          setQuery((prev) => prev + e.key);
+          requestAnimationFrame(() => searchInputRef.current?.focus());
+        }
+      }}
+      className="flex h-full w-full overflow-hidden bg-transparent text-adw-label select-none"
+    >
+      {/* Left Sidebar (extends to top, collapsible like Files) */}
+      <aside
+        ref={sidebarRef}
+        onKeyDown={onSidebarKeyDown}
+        onKeyUp={onSidebarKeyUp}
         className={cn(
-          "border-b border-adw-separator bg-adw-titlebar",
-          !isCsd && "rounded-t-none"
+          "flex min-h-0 shrink-0 flex-col overflow-hidden border-r border-adw-separator bg-adw-sidebar",
+          sidebarReady && "transition-[width] duration-150",
+          isCompact ? "w-[52px]" : "w-44",
         )}
       >
-        <div className="flex items-center gap-2" data-window-no-drag>
-          {isCsd && windowId && (
-            <>
-              <WindowControls side="left" />
-              <WindowMenuButton windowId={windowId} appId="app-store" />
-            </>
-          )}
-        </div>
-
-        <span className="pointer-events-none text-[13px] font-semibold">
-          App Store (Web)
-        </span>
-
-        {isCsd && windowId ? (
-          <div className="flex items-center" data-window-no-drag>
-            <WindowControls side="right" />
-          </div>
-        ) : (
-          <div className="w-6" />
-        )}
-      </WindowTitlebar>
-
-      {/* Main Split: Sidebar + Main View Column */}
-      <div className="flex min-h-0 flex-1 overflow-hidden">
-        {/* Sidebar */}
-        <aside
-          ref={sidebarRef}
-          onKeyDown={onSidebarKeyDown}
-          onKeyUp={onSidebarKeyUp}
-          className="flex w-52 shrink-0 flex-col gap-1 overflow-y-auto border-r border-adw-separator bg-adw-sidebar p-2.5"
-        >
-          <div className="relative mb-1.5 flex items-center">
-            <SearchIcon className="pointer-events-none absolute left-2.5 size-3.5 text-adw-label-secondary" />
-            <input
-              type="text"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search"
-              aria-label="Search"
-              className="h-8 w-full rounded-lg border border-adw-separator bg-black/5 pr-2.5 pl-8 text-[12.5px] text-adw-label placeholder:text-adw-label-secondary focus:border-adw-accent focus:outline-none dark:bg-white/8"
-            />
-          </div>
-
-          {SIDEBAR_ITEMS.map((entry) => {
-            const active = highlightedCategory === entry.id;
-            return (
-              <button
-                key={entry.id}
-                type="button"
-                data-sidebar-item={entry.id}
-                onClick={() => setCategory(entry.id)}
-                className={cn(
-                  "flex items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-[13px] font-medium transition-colors",
-                  active
-                    ? "bg-black/10 text-adw-label dark:bg-white/12"
-                    : "text-adw-label-secondary hover:bg-black/5 hover:text-adw-label dark:hover:bg-white/6",
-                )}
-              >
-                {entry.icon}
-                <span>{entry.label}</span>
-              </button>
-            );
-          })}
-
-          <div className="my-1.5 h-px bg-adw-separator" />
-          <div className="px-2.5 py-1 text-[11px] font-semibold tracking-wider text-adw-label-tertiary uppercase">
-            Categories
-          </div>
-
-          {CATEGORY_ITEMS.map((entry) => {
-            const active = highlightedCategory === entry.id;
-            return (
-              <button
-                key={entry.id}
-                type="button"
-                data-sidebar-item={entry.id}
-                onClick={() => setCategory(entry.id)}
-                className={cn(
-                  "flex items-center rounded-md px-2.5 py-1.5 text-left text-[13px] font-medium transition-colors",
-                  active
-                    ? "bg-black/10 text-adw-label dark:bg-white/12"
-                    : "text-adw-label-secondary hover:bg-black/5 hover:text-adw-label dark:hover:bg-white/6",
-                )}
-              >
-                <span className="truncate">{entry.label}</span>
-              </button>
-            );
-          })}
-        </aside>
-
-        {/* Right Main Column (Scrollable Grid + Scoped Bottom Action Bar) */}
-        <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-          <main
-            ref={mainRef}
-            onKeyDown={onContentKeyDown}
-            className="flex-1 overflow-y-auto p-4"
-            onClick={() => setSelectedId(null)}
+        {isCsd && (
+          <WindowTitlebar
+            data-window-drag-region
+            className={cn(
+              "bg-transparent transition-colors",
+              sidebarScrolled
+                ? "border-b border-adw-separator/70"
+                : "border-b border-transparent",
+            )}
           >
+            <div className="flex items-center gap-1.5" data-window-no-drag>
+              {windowId && <WindowControls side="left" />}
+              <WindowMenuButton windowId={windowId} appId="app-store" />
+            </div>
+            {!isCompact && (
+              <span className="truncate text-[14px] font-bold tracking-tight whitespace-nowrap text-adw-label">
+                App Store
+              </span>
+            )}
+            <div className="w-7" />
+          </WindowTitlebar>
+        )}
+
+        <TooltipProvider delay={450}>
+          <div
+            onScroll={(e) => setSidebarScrolled(e.currentTarget.scrollTop > 2)}
+            className={cn(
+              "flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto px-2 pb-2",
+              isCsd ? "pt-0.5" : "pt-2",
+            )}
+          >
+            {[...SIDEBAR_ITEMS, ...CATEGORY_ITEMS].map((entry, idx) => {
+              const active = highlightedCategory === entry.id;
+              const btn = (
+                <button
+                  key={entry.id}
+                  type="button"
+                  aria-label={entry.label}
+                  data-sidebar-item={entry.id}
+                  onClick={() => setCategory(entry.id)}
+                  className={cn(
+                    "flex w-full shrink-0 items-center gap-2.5 rounded-[9px] px-2.5 py-1.5 text-left text-[13px] transition-colors outline-none",
+                    active
+                      ? "bg-adw-sidebar-selection font-medium text-adw-label"
+                      : "font-normal text-adw-label/85 hover:bg-black/5 dark:hover:bg-white/6",
+                  )}
+                >
+                  <span className="flex size-4 shrink-0 items-center justify-center opacity-85">
+                    {entry.icon}
+                  </span>
+                  <span
+                    className={cn(
+                      "truncate transition-opacity duration-150",
+                      isCompact ? "opacity-0" : "opacity-100",
+                    )}
+                  >
+                    {entry.label}
+                  </span>
+                </button>
+              );
+
+              const sep =
+                idx === SIDEBAR_ITEMS.length - 1 ? (
+                  <div className="my-1 h-px shrink-0 bg-adw-separator" />
+                ) : null;
+
+              if (!isCompact) {
+                return (
+                  <React.Fragment key={entry.id}>
+                    {btn}
+                    {sep}
+                  </React.Fragment>
+                );
+              }
+              return (
+                <React.Fragment key={entry.id}>
+                  <Tooltip>
+                    <TooltipTrigger render={btn} />
+                    <TooltipContent
+                      side="right"
+                      sideOffset={-36}
+                      className={cn(
+                        "pointer-events-none h-[32px] gap-2.5 rounded-[9px] border border-adw-separator px-2.5 py-1.5 text-[13px] shadow-md",
+                        active
+                          ? "bg-adw-sidebar-selection font-medium text-adw-label"
+                          : "bg-adw-sidebar font-normal text-adw-label",
+                      )}
+                    >
+                      <span className="flex size-4 shrink-0 items-center justify-center opacity-85">
+                        {entry.icon}
+                      </span>
+                      <span className="whitespace-nowrap">{entry.label}</span>
+                    </TooltipContent>
+                  </Tooltip>
+                  {sep}
+                </React.Fragment>
+              );
+            })}
+          </div>
+        </TooltipProvider>
+      </aside>
+
+      {/* Right Main Column (Solid content + Headerbar + Scrollable Grid + Scoped Bottom Action Bar) */}
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden bg-adw-content">
+        <WindowTitlebar
+          data-window-drag-region={isCsd ? "" : undefined}
+          className={cn(
+            "bg-adw-titlebar transition-colors",
+            !isCompact && "rounded-tl-none",
+            !isCsd && "rounded-t-none",
+            contentScrolled
+              ? "border-b border-adw-separator"
+              : "border-b border-transparent",
+          )}
+        >
+          <div className="flex items-center gap-2" data-window-no-drag>
+            {!isCsd && (
+              <WindowMenuButton windowId={windowId} appId="app-store" />
+            )}
+          </div>
+
+          <span className="pointer-events-none truncate text-[13px] font-semibold">
+            {[...SIDEBAR_ITEMS, ...CATEGORY_ITEMS].find((i) => i.id === category)
+              ?.label ?? "Explore"}
+          </span>
+
+          <div className="flex items-center gap-1.5" data-window-no-drag>
+            <div className="relative flex items-center">
+              <SearchIcon className="pointer-events-none absolute left-2 size-3.5 text-adw-label-secondary" />
+              <input
+                ref={searchInputRef}
+                type="search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Escape" && query) {
+                    e.preventDefault();
+                    setQuery("");
+                  }
+                }}
+                placeholder="Search"
+                aria-label="Search"
+                className="h-7 w-40 rounded-md border border-adw-separator bg-black/5 pr-6 pl-7 text-[12px] text-adw-label placeholder:text-adw-label-secondary focus:border-adw-accent focus:outline-none dark:bg-white/8 [&::-webkit-search-cancel-button]:hidden"
+              />
+              {query && (
+                <WindowControlButton
+                  aria-label="Clear search"
+                  onClick={() => {
+                    setQuery("");
+                    searchInputRef.current?.focus();
+                  }}
+                  className="absolute right-1 size-4.5 [&_svg]:size-2.5"
+                >
+                  <XIcon strokeWidth={2.25} />
+                </WindowControlButton>
+              )}
+            </div>
+            {isCsd && windowId && <WindowControls side="right" />}
+          </div>
+        </WindowTitlebar>
+
+        <main
+          ref={mainRef}
+          onKeyDown={onContentKeyDown}
+          onScroll={(e) => setContentScrolled(e.currentTarget.scrollTop > 2)}
+          className="flex-1 overflow-y-auto p-4"
+          onClick={() => setSelectedId(null)}
+        >
             {category === "all" && !query.trim() && activeFeaturedItem && (
               <section
                 aria-label="Featured applications"
                 onClick={(e) => e.stopPropagation()}
-                className="relative mb-5 overflow-hidden rounded-2xl border border-adw-separator bg-gradient-to-br from-adw-accent/15 via-black/[0.03] to-transparent p-4 dark:from-adw-accent/20 dark:via-white/[0.04]"
+                className="relative mb-5 overflow-hidden rounded-2xl border border-adw-separator bg-adw-card px-5 py-6"
               >
-                <div className="flex items-center gap-3">
+                {activeFeaturedItem.faviconUrl && (
+                  <img
+                    src={activeFeaturedItem.faviconUrl}
+                    alt=""
+                    aria-hidden="true"
+                    draggable={false}
+                    className="pointer-events-none absolute top-1/2 left-1/2 size-[640px] -translate-x-1/2 -translate-y-1/2 scale-150 object-contain opacity-50 blur-2xl saturate-150 select-none"
+                  />
+                )}
+                <div className="relative z-10 flex items-center gap-3">
                   <button
                     type="button"
                     aria-label="Previous featured app"
@@ -912,14 +1078,14 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                         setSelectedId(activeFeaturedItem.id);
                       }
                     }}
-                    className="flex min-w-0 flex-1 cursor-default items-center gap-4 outline-none"
+                    className="flex min-w-0 flex-1 cursor-default items-center justify-center gap-4 text-left outline-none"
                   >
                     <WebAppFavicon
                       url={activeFeaturedItem.faviconUrl}
                       title={activeFeaturedItem.title}
-                      className="size-16"
+                      className="size-16 shrink-0"
                     />
-                    <div className="min-w-0 flex-1">
+                    <div className="min-w-0 max-w-md">
                       <div className="truncate text-base font-bold text-adw-label">
                         {activeFeaturedItem.title}
                       </div>
@@ -927,24 +1093,6 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                         {activeFeaturedItem.subtitle}
                       </p>
                     </div>
-                    <Button
-                      size="sm"
-                      variant={
-                        activeFeaturedItem.installed ? "secondary" : "default"
-                      }
-                      disabled={pendingOp?.id === activeFeaturedItem.id}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (activeFeaturedItem.installed) {
-                          handleOpen(activeFeaturedItem);
-                        } else {
-                          handleInstall(activeFeaturedItem);
-                        }
-                      }}
-                      className="shrink-0"
-                    >
-                      {activeFeaturedItem.installed ? "Open" : "Install"}
-                    </Button>
                   </div>
 
                   <button
@@ -1104,7 +1252,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
 
           {/* Main-View-Only Bottom Selection Bar */}
           {selectedItem && (
-            <div className="flex shrink-0 items-center justify-between gap-4 border-t border-adw-separator bg-adw-titlebar px-4 py-3">
+            <div className="flex h-[46px] shrink-0 items-center justify-between gap-4 border-t border-adw-separator bg-adw-titlebar px-4">
               <div className="flex min-w-0 items-center gap-3">
                 {selectedItem.kind === "app" && selectedItem.appDef ? (
                   <AppSquircleIcon
@@ -1194,7 +1342,6 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
               </div>
             </div>
           )}
-        </div>
       </div>
     </div>
   );

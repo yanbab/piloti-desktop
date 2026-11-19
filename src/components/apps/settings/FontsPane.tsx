@@ -333,33 +333,12 @@ export function FontsPane() {
               <FontPopoverSelector
                 value={settings.fontMonoFamily}
                 fonts={monoFonts}
-                summary={settings.fontMonoFamily}
+                summary={`${settings.fontMonoFamily} · ${Math.round(13 * settings.fontScale)}px`}
                 onSelectFont={(fontMonoFamily) =>
                   updateSettings({ fontMonoFamily })
                 }
-              />
-            </GroupedFormRowControl>
-          </GroupedFormRow>
-
-          <GroupedFormRow>
-            <GroupedFormRowLabel>
-              <GroupedFormRowTitle>
-                Size ({Math.round(13 * settings.fontScale)}px ·{" "}
-                {Math.round(settings.fontScale * 100)}%)
-              </GroupedFormRowTitle>
-            </GroupedFormRowLabel>
-            <GroupedFormRowControl className="w-44">
-              <Slider
-                min={0.85}
-                max={1.35}
-                step={0.05}
-                value={[settings.fontScale]}
-                onValueChange={(val) => {
-                  const next = Array.isArray(val) ? val[0] : val;
-                  if (typeof next === "number") {
-                    updateSettings({ fontScale: next });
-                  }
-                }}
+                fontScale={settings.fontScale}
+                onChangeScale={(fontScale) => updateSettings({ fontScale })}
               />
             </GroupedFormRowControl>
           </GroupedFormRow>

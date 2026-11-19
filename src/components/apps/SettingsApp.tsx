@@ -58,7 +58,7 @@ const PANES: {
   {
     id: "dock",
     label: "Dock",
-    subtitle: "Size, position, magnification, widgets",
+    subtitle: "Size, position, zoom",
     icon: <LucideDockIcon />,
   },
   {
@@ -130,15 +130,22 @@ export function SettingsApp({
 
   const containerRef = React.useRef<HTMLDivElement | null>(null);
   const [isCompact, setIsCompact] = React.useState(false);
+  const [sidebarReady, setSidebarReady] = React.useState(false);
+  const [sidebarScrolled, setSidebarScrolled] = React.useState(false);
+  const [contentScrolled, setContentScrolled] = React.useState(false);
   const [compactShowDetail, setCompactShowDetail] = React.useState(
     () => Boolean(initialPane)
   );
 
   React.useLayoutEffect(() => {
     const el = containerRef.current;
-    if (!el || typeof ResizeObserver === "undefined") return;
+    if (!el || typeof ResizeObserver === "undefined") {
+      setSidebarReady(true);
+      return;
+    }
     const check = () => setIsCompact(el.clientWidth < 640);
     check();
+    setSidebarReady(true);
     const ro = new ResizeObserver(check);
     ro.observe(el);
     return () => ro.disconnect();
@@ -173,20 +180,26 @@ export function SettingsApp({
   return (
     <div
       ref={containerRef}
-      className="flex h-full w-full overflow-hidden bg-adw-window text-adw-label"
+      className="flex h-full w-full overflow-hidden bg-transparent text-adw-label"
     >
       {/* Left Sidebar (collapses to VS Code-style icon activity bar when < 640px) */}
       {showSidebar && (
         <aside
           className={cn(
-            "flex min-h-0 shrink-0 flex-col overflow-hidden border-r border-adw-separator bg-adw-sidebar transition-[width] duration-150",
+            "flex min-h-0 shrink-0 flex-col overflow-hidden border-r border-adw-separator bg-adw-sidebar",
+            sidebarReady && "transition-[width] duration-150",
             isCompact ? "w-[52px]" : "w-[176px]"
           )}
         >
         {isCsd && (
           <WindowTitlebar
             data-window-drag-region
-            className="border-b-0 bg-transparent"
+            className={cn(
+              "bg-transparent transition-colors",
+              sidebarScrolled
+                ? "border-b border-adw-separator/70"
+                : "border-b border-transparent",
+            )}
           >
             <div className="flex items-center gap-1.5" data-window-no-drag>
               {windowId && <WindowControls side="left" />}
@@ -198,7 +211,7 @@ export function SettingsApp({
             </div>
             {!isCompact && (
               <span className="truncate whitespace-nowrap text-[14px] font-bold tracking-tight text-adw-label">
-                Desktop Settings
+                Settings
               </span>
             )}
             <div className="w-7" />
@@ -210,6 +223,7 @@ export function SettingsApp({
             ref={sidebarNavRef}
             onKeyDown={onSidebarKeyDown}
             onKeyUp={onSidebarKeyUp}
+            onScroll={(e) => setSidebarScrolled(e.currentTarget.scrollTop > 2)}
             className={cn(
               "flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto px-2 pb-2",
               isCsd ? "pt-0.5" : "pt-2.5"
@@ -280,7 +294,12 @@ export function SettingsApp({
         {isCsd ? (
           <WindowTitlebar
             data-window-drag-region
-            className="rounded-tl-none border-b border-adw-separator bg-adw-titlebar"
+            className={cn(
+              "rounded-tl-none bg-adw-titlebar transition-colors",
+              contentScrolled
+                ? "border-b border-adw-separator"
+                : "border-b border-transparent",
+            )}
           >
             <div className="flex items-center gap-1.5" data-window-no-drag />
             <div className="pointer-events-none absolute inset-x-28 flex items-center justify-center">
@@ -334,6 +353,7 @@ export function SettingsApp({
         <div
           ref={detailContentRef}
           onKeyDown={onContentKeyDown}
+          onScroll={(e) => setContentScrolled(e.currentTarget.scrollTop > 2)}
           className="flex min-h-0 flex-1 flex-col overflow-y-auto"
         >
           {activePane === "appearance" && <AppearancePane />}

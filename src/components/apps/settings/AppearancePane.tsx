@@ -231,15 +231,21 @@ export function AppearancePane() {
              */}
 
 
+        </GroupedFormGroup>
+      </GroupedFormSection>
+
+      <GroupedFormSection>
+        <GroupedFormSectionTitle>Effects</GroupedFormSectionTitle>
+        <GroupedFormGroup>
           <GroupedFormRow>
             <GroupedFormRowLabel>
-              <GroupedFormRowTitle>More Transparency</GroupedFormRowTitle>
+              <GroupedFormRowTitle>Reduce Transparency</GroupedFormRowTitle>
             </GroupedFormRowLabel>
             <GroupedFormRowControl>
               <Switch
-                checked={settings.moreTransparency}
+                checked={!settings.moreTransparency}
                 onCheckedChange={(checked) =>
-                  updateSettings({ moreTransparency: Boolean(checked) })
+                  updateSettings({ moreTransparency: !Boolean(checked) })
                 }
               />
             </GroupedFormRowControl>

@@ -139,7 +139,7 @@ export function AltTabSwitcher() {
             </p>
           </div>
         ) : (
-          <div className="flex max-w-full items-start gap-3 overflow-x-auto px-1 py-1">
+          <div className="flex max-w-full items-start gap-3 overflow-x-auto px-4 pt-1 pb-6">
             {mruWindows.map((win, index) => {
               const selected = index === altTabIndex;
               const resolvedIconUrl =
@@ -150,11 +150,11 @@ export function AltTabSwitcher() {
                   type="button"
                   onPointerEnter={() => setAltTabIndex(index)}
                   onClick={() => commitAltTab(win.id)}
-                  className="group flex w-[84px] shrink-0 flex-col items-center gap-2 outline-none"
+                  className="group relative flex w-[92px] shrink-0 flex-col items-center outline-none"
                 >
                   <div
                     className={cn(
-                      "flex size-[68px] items-center justify-center rounded-[16px] p-2 transition-all duration-100 motion-reduce:transition-none",
+                      "flex size-[80px] items-center justify-center rounded-[18px] p-2 transition-all duration-100 motion-reduce:transition-none",
                       selected
                         ? "bg-black/14 ring-2 ring-adw-accent dark:bg-white/16"
                         : "bg-transparent hover:bg-black/6 dark:hover:bg-white/8",
@@ -169,20 +169,15 @@ export function AltTabSwitcher() {
                       }
                       squircle={Boolean(win.browserWindowId)}
                       gradient={win.gradient}
-                      className="size-13"
-                      glyphClassName="size-7"
+                      className="size-16"
+                      glyphClassName="size-8"
                     />
                   </div>
-                  <span
-                    className={cn(
-                      "line-clamp-2 max-w-full rounded px-1.5 py-0.5 text-center text-[11.5px] leading-tight font-medium transition-opacity",
-                      selected
-                        ? "bg-adw-accent text-white opacity-100"
-                        : "text-adw-label-secondary opacity-0"
-                    )}
-                  >
-                    {win.title}
-                  </span>
+                  {selected && (
+                    <span className="pointer-events-none absolute -bottom-5 left-1/2 -translate-x-1/2 whitespace-nowrap text-center text-[12px] font-medium text-black dark:text-white">
+                      {win.title}
+                    </span>
+                  )}
                 </button>
               );
             })}

@@ -44,23 +44,23 @@ export function resolveDynamicWallpaperCss(
   hour = new Date().getHours()
 ): string | null {
   if (id === "dynamic-accent") {
-    return `radial-gradient(95% 85% at 18% 18%, color-mix(in srgb, ${accentHex} 72%, white) 0%, transparent 58%), radial-gradient(90% 90% at 84% 78%, color-mix(in srgb, ${accentHex} 65%, black) 0%, transparent 62%), linear-gradient(145deg, color-mix(in srgb, ${accentHex} 28%, #0b0f19) 0%, #090b10 100%)`;
+    return `radial-gradient(85% 65% at 50% 92%, color-mix(in srgb, ${accentHex} 58%, #111827) 0%, transparent 65%), radial-gradient(65% 45% at 50% 100%, color-mix(in srgb, ${accentHex} 40%, #090d16) 0%, transparent 60%), linear-gradient(180deg, #05070d 0%, color-mix(in srgb, ${accentHex} 18%, #090d16) 72%, #06080f 100%)`;
   }
   if (id === "dynamic-time") {
     if (hour >= 6 && hour < 10) {
-      // Morning sunrise
-      return "radial-gradient(110% 85% at 25% 15%, #fda4af 0%, transparent 55%), radial-gradient(95% 85% at 80% 35%, #fdba74 0%, transparent 58%), linear-gradient(165deg, #312e81 0%, #1e1b4b 60%, #0f172a 100%)";
+      // Morning sunrise (dark top, centered dock-upward glow)
+      return "radial-gradient(85% 65% at 50% 92%, #9f1239 0%, transparent 64%), radial-gradient(65% 45% at 50% 100%, #9a3412 0%, transparent 60%), linear-gradient(180deg, #070917 0%, #17153b 64%, #1e1b4b 100%)";
     }
     if (hour >= 10 && hour < 17) {
-      // Crisp daylight sky
-      return "radial-gradient(100% 85% at 20% 15%, #38bdf8 0%, transparent 55%), radial-gradient(95% 90% at 85% 75%, #2563eb 0%, transparent 60%), linear-gradient(160deg, #0c4a6e 0%, #0f172a 100%)";
+      // Crisp daylight sky (dark top, centered dock-upward glow)
+      return "radial-gradient(85% 65% at 50% 92%, #0369a1 0%, transparent 64%), radial-gradient(65% 45% at 50% 100%, #1d4ed8 0%, transparent 60%), linear-gradient(180deg, #040b18 0%, #082f49 66%, #0c192c 100%)";
     }
     if (hour >= 17 && hour < 21) {
-      // Golden evening dusk
-      return "radial-gradient(110% 80% at 70% 15%, #fb923c 0%, transparent 52%), radial-gradient(95% 85% at 20% 70%, #be185d 0%, transparent 60%), linear-gradient(175deg, #2e1065 0%, #0f172a 75%, #020617 100%)";
+      // Golden evening dusk (dark top, centered dock-upward glow)
+      return "radial-gradient(85% 65% at 50% 92%, #9a3412 0%, transparent 62%), radial-gradient(65% 45% at 50% 100%, #831843 0%, transparent 60%), linear-gradient(180deg, #050412 0%, #1e1038 66%, #090d1a 100%)";
     }
     // Deep night
-    return "radial-gradient(95% 75% at 72% 18%, #1e3a8a 0%, transparent 55%), radial-gradient(90% 80% at 22% 80%, #312e81 0%, transparent 60%), linear-gradient(180deg, #030712 0%, #090d16 60%, #020617 100%)";
+    return "radial-gradient(85% 65% at 50% 92%, #1e3a8a 0%, transparent 64%), radial-gradient(65% 45% at 50% 100%, #312e81 0%, transparent 60%), linear-gradient(180deg, #02050e 0%, #060a14 66%, #090d18 100%)";
   }
   return null;
 }
@@ -86,7 +86,7 @@ export const WALLPAPERS: WallpaperOption[] = [
     subtitle: "Subtle Cobalt & Slate Depth",
     category: "Dynamic",
     backgroundCss:
-      "radial-gradient(110% 85% at 20% 15%, rgba(53, 132, 228, 0.48) 0%, transparent 60%), radial-gradient(90% 85% at 82% 85%, rgba(28, 74, 126, 0.55) 0%, transparent 62%), linear-gradient(155deg, #0c1322 0%, #0a0f1a 100%)",
+      "radial-gradient(95% 85% at 84% 84%, rgba(37, 99, 185, 0.44) 0%, transparent 62%), radial-gradient(85% 75% at 58% 92%, rgba(23, 62, 110, 0.48) 0%, transparent 62%), linear-gradient(175deg, #050811 0%, #0a101d 65%, #0c1424 100%)",
   },
   {
     id: "monolith-graphite",
@@ -94,7 +94,7 @@ export const WALLPAPERS: WallpaperOption[] = [
     subtitle: "Minimalist Neutral Surface",
     category: "Minimal",
     backgroundCss:
-      "radial-gradient(90% 85% at 50% 8%, rgba(255,255,255,0.08) 0%, transparent 60%), linear-gradient(180deg, #18181b 0%, #09090b 100%)",
+      "radial-gradient(90% 85% at 84% 86%, rgba(255,255,255,0.08) 0%, transparent 60%), linear-gradient(175deg, #09090b 0%, #121215 65%, #18181b 100%)",
   },
   // Curated Unsplash Pictures
   {
@@ -338,7 +338,29 @@ export const APP_CATALOG: AppDefinition[] = [
     pinnedByDefault: false,
     builtinComponent: "text-editor",
     defaultSize: { width: 520, height: 380 },
-    menus: [],
+    menus: [
+      {
+        title: "View",
+        items: [
+          {
+            label: "Toggle Line Numbers",
+            actionId: "text-editor:toggle-line-numbers",
+          },
+          {
+            label: "Toggle Syntax Highlighting",
+            actionId: "text-editor:toggle-syntax",
+          },
+          {
+            label: "Toggle Word Wrap",
+            actionId: "text-editor:toggle-word-wrap",
+          },
+          {
+            label: "Toggle Active Line",
+            actionId: "text-editor:toggle-active-line",
+          },
+        ],
+      },
+    ],
   },
   {
     id: "app-store",
@@ -366,8 +388,8 @@ export const APP_CATALOG: AppDefinition[] = [
     gradient: "from-zinc-700 via-zinc-800 to-orange-500",
     pinnedByDefault: false,
     builtinComponent: "calculator",
-    defaultSize: { width: 260, height: 380 },
-    minSize: { width: 232, height: 340 },
+    defaultSize: { width: 224, height: 320 },
+    minSize: { width: 210, height: 300 },
     menus: [],
   },
   {
@@ -377,7 +399,7 @@ export const APP_CATALOG: AppDefinition[] = [
     description: "Fast image viewer and crop/rotate editor (Isolated App)",
     category: "Utilities",
     iconName: "sparkles",
-    xdgIcons: ["org.gnome.Loupe", "eog", "image-viewer"],
+    xdgIcons: ["piloti-image-viewer", "org.gnome.Loupe", "eog", "image-viewer"],
     gradient: "from-sky-500 via-indigo-500 to-purple-600",
     pinnedByDefault: false,
     builtinComponent: "image-viewer",

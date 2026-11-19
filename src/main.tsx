@@ -1,9 +1,7 @@
 import * as React from "react";
 import { createRoot } from "react-dom/client";
 import "./styles/globals.css";
-import { Shell } from "../desktop";
 import { ShellErrorBoundary } from "./components/shell/ShellErrorBoundary";
-import { createBrowserDomicile } from "./lib/browser-domicile";
 
 const CalculatorApp = React.lazy(() =>
   import("./components/apps/CalculatorApp").then((m) => ({
@@ -61,7 +59,12 @@ if (root) {
       </ShellErrorBoundary>,
     );
   } else {
-    const domicile = createBrowserDomicile();
-    Shell(root, domicile);
+    void Promise.all([
+      import("../desktop"),
+      import("./lib/browser-domicile"),
+    ]).then(([{ Shell }, { createBrowserDomicile }]) => {
+      const domicile = createBrowserDomicile();
+      Shell(root, domicile);
+    });
   }
 }

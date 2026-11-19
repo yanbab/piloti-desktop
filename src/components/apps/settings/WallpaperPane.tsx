@@ -171,7 +171,7 @@ export function WallpaperPane() {
         <div
           className={cn(
             "w-full rounded-[8px] transition-transform duration-200 group-hover:scale-[1.02]",
-            isSolid ? "h-12" : "h-18"
+            isSolid ? "h-12" : "aspect-[16/10]"
           )}
           style={
             wp.imageUrl
@@ -194,7 +194,7 @@ export function WallpaperPane() {
         <GroupedFormSectionTitle>Current Wallpaper</GroupedFormSectionTitle>
         <GroupedFormGroup>
           <div className="flex justify-center p-3.5">
-            <div className="relative aspect-video h-28 w-auto max-w-full overflow-hidden rounded-[8px] border border-black/10 dark:border-white/15">
+            <div className="relative aspect-[16/10] h-28 w-auto max-w-full overflow-hidden rounded-[8px] border border-black/10 dark:border-white/15">
               <DesktopBackgroundLayers />
             </div>
           </div>
@@ -202,7 +202,7 @@ export function WallpaperPane() {
       </GroupedFormSection>
 
       <GroupedFormSection>
-        <GroupedFormSectionTitle>Dynamic &amp; Gradients</GroupedFormSectionTitle>
+        <GroupedFormSectionTitle>Gradients</GroupedFormSectionTitle>
         <GroupedFormGroup>
           <div className="grid grid-cols-2 gap-3 p-3.5 sm:grid-cols-3">
             {gradients.map((wp) => renderWallpaperCard(wp, false))}
@@ -220,7 +220,7 @@ export function WallpaperPane() {
       </GroupedFormSection>
 
       <GroupedFormSection>
-        <GroupedFormSectionTitle>Solid colors</GroupedFormSectionTitle>
+        <GroupedFormSectionTitle>Colors</GroupedFormSectionTitle>
         <GroupedFormGroup>
           <div className="grid grid-cols-3 gap-3 p-3.5 sm:grid-cols-4 lg:grid-cols-6">
             {solidWallpapers.map((wp) => renderWallpaperCard(wp, true))}
@@ -263,7 +263,7 @@ export function WallpaperPane() {
       </GroupedFormSection>
 
       <GroupedFormSection>
-        <GroupedFormSectionTitle>GNOME Background Spec</GroupedFormSectionTitle>
+        <GroupedFormSectionTitle>Advanced</GroupedFormSectionTitle>
         <GroupedFormGroup>
           <GroupedFormRow className="gap-2 py-3">
             <GroupedFormRowLabel>

@@ -7,6 +7,7 @@ export interface WebVfsEntry {
   path: string;
   parentPath: string;
   content?: string;
+  trashedFromPath?: string;
   updatedAt: number;
 }
 
@@ -407,6 +408,7 @@ export function trashVfsEntry(rawPath: string): void {
         name: trashName,
         path: newPath,
         parentPath: WEB_VFS_TRASH,
+        trashedFromPath: entry.path,
         updatedAt: Date.now(),
       };
     }
@@ -424,6 +426,60 @@ export function trashVfsEntry(rawPath: string): void {
   });
 
   saveVfs(updated);
+}
+
+export function restoreVfsEntry(rawTrashPath: string): WebVfsEntry | null {
+  const trashPath = normalizeVfsPath(rawTrashPath);
+  const entries = loadVfs();
+  const target = entries.find((e) => e.path === trashPath);
+  if (!target) return null;
+
+  const desiredOriginal =
+    target.trashedFromPath || `${WEB_VFS_HOME}/Desktop/${target.name}`;
+  let destDir = dirname(desiredOriginal);
+  if (!entries.some((e) => e.path === destDir && e.kind === "directory")) {
+    destDir = `${WEB_VFS_HOME}/Desktop`;
+  }
+
+  const hasExt = target.kind === "file" && /\.[a-z0-9]+$/i.test(target.name);
+  const stem = hasExt
+    ? target.name.replace(/\.[a-z0-9]+$/i, "")
+    : target.name;
+  const ext = hasExt ? target.name.slice(stem.length) : "";
+  const restoredName = uniqueChildName(entries, destDir, stem, ext);
+  const newPath = `${destDir === "/" ? "" : destDir}/${restoredName}`;
+  const oldPrefix = `${trashPath}/`;
+
+  let restoredEntry: WebVfsEntry | null = null;
+  const updated = entries.map((entry) => {
+    if (entry.path === trashPath) {
+      const next: WebVfsEntry = {
+        ...entry,
+        id: newPath,
+        name: restoredName,
+        path: newPath,
+        parentPath: destDir,
+        trashedFromPath: undefined,
+        updatedAt: Date.now(),
+      };
+      restoredEntry = next;
+      return next;
+    }
+    if (entry.path.startsWith(oldPrefix)) {
+      const suffix = entry.path.slice(oldPrefix.length);
+      const childPath = `${newPath}/${suffix}`;
+      return {
+        ...entry,
+        id: childPath,
+        path: childPath,
+        parentPath: dirname(childPath),
+      };
+    }
+    return entry;
+  });
+
+  saveVfs(updated);
+  return restoredEntry;
 }
 
 export function emptyVfsTrash(): void {

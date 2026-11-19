@@ -447,7 +447,7 @@ export function DesktopIconsApp({
 
       if (item.kind === "directory") {
         if (isBrowserRuntime) {
-          launchApp("nautilus", { payload: item.path });
+          launchApp("nautilus", { payload: item.path, forceNew: true });
           return;
         }
         launchDesktopCommand(domicile, ["nautilus", item.path]);

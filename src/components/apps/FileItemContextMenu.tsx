@@ -19,6 +19,7 @@ export function FileItemContextMenu({
   isTrash = false,
   onClose,
   onOpen,
+  onRestore,
   onOpenInTerminal,
   onCut,
   onCopy,
@@ -35,6 +36,7 @@ export function FileItemContextMenu({
   isTrash?: boolean;
   onClose: () => void;
   onOpen: (item: IconGridItem) => void;
+  onRestore?: (item: IconGridItem) => void;
   onOpenInTerminal?: (item: IconGridItem) => void;
   onEditText?: (item: IconGridItem) => void;
   onCut?: (item: IconGridItem) => void;
@@ -75,18 +77,33 @@ export function FileItemContextMenu({
         onClick={(e) => e.stopPropagation()}
         className={cn(MENU_POPUP_CLASS, "fixed min-w-44")}
       >
-        <button
-          type="button"
-          role="menuitem"
-          onClick={() => {
-            const target = menu.item;
-            onClose();
-            onOpen(target);
-          }}
-          className={cn(MENU_ITEM_CLASS, "w-full text-left hover:bg-adw-menu-highlight")}
-        >
-          {_("Open")}
-        </button>
+        {isTrash && onRestore ? (
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => {
+              const target = menu.item;
+              onClose();
+              onRestore(target);
+            }}
+            className={cn(MENU_ITEM_CLASS, "w-full text-left hover:bg-adw-menu-highlight")}
+          >
+            {_("Restore")}
+          </button>
+        ) : (
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => {
+              const target = menu.item;
+              onClose();
+              onOpen(target);
+            }}
+            className={cn(MENU_ITEM_CLASS, "w-full text-left hover:bg-adw-menu-highlight")}
+          >
+            {_("Open")}
+          </button>
+        )}
         {onOpenInTerminal && menu.item.kind === "directory" && (
           <button
             type="button"

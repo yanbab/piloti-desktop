@@ -60,20 +60,6 @@ export function TopBarPane() {
               />
             </GroupedFormRowControl>
           </GroupedFormRow>
-
-          <GroupedFormRow>
-            <GroupedFormRowLabel>
-              <GroupedFormRowTitle>Show Seconds</GroupedFormRowTitle>
-            </GroupedFormRowLabel>
-            <GroupedFormRowControl>
-              <Switch
-                checked={settings.clockShowSeconds}
-                onCheckedChange={(checked) =>
-                  updateSettings({ clockShowSeconds: Boolean(checked) })
-                }
-              />
-            </GroupedFormRowControl>
-          </GroupedFormRow>
         </GroupedFormGroup>
       </GroupedFormSection>
 

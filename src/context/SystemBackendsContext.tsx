@@ -419,6 +419,30 @@ export function useSystemBackendsValue(
     [maybeShowBanner]
   );
 
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    const key = "piloti.firstRunNotif.v1";
+    try {
+      if (window.localStorage.getItem(key) === "1") return;
+    } catch {
+      // ignore storage errors
+    }
+    const timer = window.setTimeout(() => {
+      try {
+        window.localStorage.setItem(key, "1");
+      } catch {
+        // ignore storage errors
+      }
+      pushNotification({
+        appName: "Piloti Desktop",
+        summary: "Welcome to your Piloti Desktop !",
+        body: "Press Alt+Space to open the Launcher",
+        actions: [{ key: "launcher", label: "Open Launcher" }],
+      });
+    }, 5000);
+    return () => window.clearTimeout(timer);
+  }, [pushNotification]);
+
   const dismissNotification = React.useCallback(
     (id: number) => {
       console.info("[Piloti] notification dismissed:", id);
@@ -460,6 +484,9 @@ export function useSystemBackendsValue(
       markNotificationRead(id);
       pilotiToastManager.close(toToastId(id));
       const isDomicile = domicileNotifs.some((n) => n.id === id);
+      if (action === "launcher" && typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("piloti:open-launcher"));
+      }
       if (isDomicile) {
         try {
           domicile.notifications.invoke(id, action);

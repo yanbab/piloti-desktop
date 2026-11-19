@@ -1,6 +1,6 @@
 import * as React from "react";
 import { createPortal } from "react-dom";
-import { HeartIcon } from "lucide-react";
+import { HeartCrackIcon, HeartIcon } from "lucide-react";
 import { AppSquircleIcon } from "@/components/shell/AppSymbol";
 import { useSettings } from "@/context/DesktopStateContext";
 import {
@@ -32,6 +32,7 @@ import {
   getVfsImageThumbnailUrl,
   loadVfsFavorites,
   subscribeWebVfs,
+  toggleVfsFavorite,
 } from "@/lib/web-vfs";
 
 function splitFileNameExt(name: string, kind: IconGridItem["kind"]): [string, string] {
@@ -136,6 +137,7 @@ export function IconGrid({
   };
   const containerRef = React.useRef<HTMLDivElement | null>(null);
   const itemRefs = React.useRef<Map<string, HTMLButtonElement>>(new Map());
+  const dragGhostRef = React.useRef<HTMLDivElement | null>(null);
   const suppressClickRef = React.useRef<string | null>(null);
   const suppressContainerClickRef = React.useRef(false);
   const [size, setSize] = React.useState<{ width: number; height: number }>({
@@ -143,6 +145,8 @@ export function IconGrid({
     height: 760,
   });
   const [drag, setDrag] = React.useState<DragState | null>(null);
+  const dragRef = React.useRef<DragState | null>(null);
+  dragRef.current = drag;
   const [marquee, setMarquee] = React.useState<MarqueeState | null>(null);
 
   const selectedSet = React.useMemo(() => new Set(selectedIds), [selectedIds]);
@@ -167,9 +171,9 @@ export function IconGrid({
     return () => observer.disconnect();
   }, []);
 
-  const compactHorizontal = iconSize < 24;
+  const compactHorizontal = iconSize <= 24;
   const effectiveCellWidth = compactHorizontal ? Math.max(cellWidth, 168) : cellWidth;
-  const effectiveCellHeight = compactHorizontal ? 28 : cellHeight;
+  const effectiveCellHeight = compactHorizontal ? 30 : cellHeight;
 
   const metrics = React.useMemo(
     () =>
@@ -225,69 +229,87 @@ export function IconGrid({
           break;
         }
       }
-      setHoveredDropPath(found);
+      setHoveredDropPath((prev) => (prev === found ? prev : found));
     };
     window.addEventListener("residence:file-drag", onGlobalFileDrag);
     return () =>
       window.removeEventListener("residence:file-drag", onGlobalFileDrag);
   }, []);
 
+  const isDragStarted = Boolean(drag);
   React.useEffect(() => {
-    if (!drag) return;
+    if (!isDragStarted) return;
+    let rafId = 0;
 
     const handlePointerMove = (e: PointerEvent) => {
-      if (e.pointerId !== drag.pointerId) return;
-      const dx = e.clientX - drag.startX;
-      const dy = e.clientY - drag.startY;
-      const movedEnough = drag.active || Math.hypot(dx, dy) >= 6;
+      const cur = dragRef.current;
+      if (!cur || e.pointerId !== cur.pointerId) return;
+      const dx = e.clientX - cur.startX;
+      const dy = e.clientY - cur.startY;
+      const movedEnough = cur.active || Math.hypot(dx, dy) >= 6;
       if (!movedEnough) return;
 
-      const draggedItem = items.find((i) => i.id === drag.itemId);
-      if (draggedItem) {
-        window.dispatchEvent(
-          new CustomEvent("residence:file-drag", {
-            detail: {
-              active: true,
-              item: draggedItem,
-              clientX: e.clientX,
-              clientY: e.clientY,
-            },
-          }),
-        );
+      const wasActive = cur.active;
+      cur.active = true;
+      cur.currentX = e.clientX;
+      cur.currentY = e.clientY;
+
+      if (dragGhostRef.current) {
+        dragGhostRef.current.style.transform = `translate3d(${dx}px, ${dy}px, 0)`;
+      }
+
+      const draggedItem = items.find((i) => i.id === cur.itemId);
+      if (draggedItem && !rafId) {
+        rafId = requestAnimationFrame(() => {
+          rafId = 0;
+          const latest = dragRef.current;
+          if (!latest?.active) return;
+          window.dispatchEvent(
+            new CustomEvent("residence:file-drag", {
+              detail: {
+                active: true,
+                item: draggedItem,
+                clientX: latest.currentX,
+                clientY: latest.currentY,
+              },
+            }),
+          );
+        });
       }
 
       const rect = containerRef.current?.getBoundingClientRect();
-      const targetCell = rect
+      const nextCell = rect
         ? clientPointToGridCell(
             e.clientX - rect.left,
             e.clientY - rect.top,
             metrics,
           )
         : null;
+      const cellChanged =
+        cur.targetCell?.col !== nextCell?.col ||
+        cur.targetCell?.row !== nextCell?.row;
+      cur.targetCell = nextCell;
 
-      setDrag((prev) =>
-        prev
-          ? {
-              ...prev,
-              currentX: e.clientX,
-              currentY: e.clientY,
-              active: true,
-              targetCell,
-            }
-          : null,
-      );
+      if (!wasActive || cellChanged) {
+        setDrag({ ...cur });
+      }
     };
 
     const handlePointerUp = (e: PointerEvent) => {
-      if (e.pointerId !== drag.pointerId) return;
-      if (drag.active) {
+      const cur = dragRef.current;
+      if (!cur || e.pointerId !== cur.pointerId) return;
+      if (rafId) {
+        cancelAnimationFrame(rafId);
+        rafId = 0;
+      }
+      if (cur.active) {
         window.dispatchEvent(
           new CustomEvent("residence:file-drag", {
             detail: { active: false },
           }),
         );
-        suppressClickRef.current = drag.itemId;
-        const draggedItem = items.find((i) => i.id === drag.itemId);
+        suppressClickRef.current = cur.itemId;
+        const draggedItem = items.find((i) => i.id === cur.itemId);
         const hits = document.elementsFromPoint(e.clientX, e.clientY);
         const dropWindowEl = hits.find((el) =>
           el.hasAttribute("data-drop-window-id"),
@@ -311,14 +333,29 @@ export function IconGrid({
             }),
           );
         } else {
-          if (drag.targetCell && onMoveItem && mode === "spatial") {
-            onMoveItem(drag.itemId, drag.targetCell, metrics);
+          const dropVfsTarget = hits
+            .find((el) => el.closest?.("[data-vfs-drop-path]"))
+            ?.closest?.("[data-vfs-drop-path]")
+            ?.getAttribute("data-vfs-drop-path");
+          const isDroppingOnFolderOrTrash = Boolean(
+            draggedItem &&
+              dropVfsTarget &&
+              dropVfsTarget !== draggedItem.path,
+          );
+          if (
+            !isDroppingOnFolderOrTrash &&
+            cur.targetCell &&
+            onMoveItem &&
+            mode === "spatial"
+          ) {
+            onMoveItem(cur.itemId, cur.targetCell, metrics);
           }
           if (draggedItem && onDropItem) {
             onDropItem(draggedItem, e.clientX, e.clientY);
           }
         }
       }
+      dragRef.current = null;
       setDrag(null);
     };
 
@@ -326,11 +363,12 @@ export function IconGrid({
     window.addEventListener("pointerup", handlePointerUp);
     window.addEventListener("pointercancel", handlePointerUp);
     return () => {
+      if (rafId) cancelAnimationFrame(rafId);
       window.removeEventListener("pointermove", handlePointerMove);
       window.removeEventListener("pointerup", handlePointerUp);
       window.removeEventListener("pointercancel", handlePointerUp);
     };
-  }, [drag, items, metrics, mode, onDropItem, onMoveItem]);
+  }, [isDragStarted, items, metrics, mode, onDropItem, onMoveItem]);
 
   React.useEffect(() => {
     if (!marquee) return;
@@ -504,7 +542,9 @@ export function IconGrid({
       className={cn(
         "relative h-full w-full overflow-hidden bg-transparent outline-none",
         mode === "flow" &&
-          "flex flex-wrap content-start gap-2 overflow-y-auto p-4",
+          (compactHorizontal
+            ? "flex flex-wrap content-start gap-0.5 overflow-y-auto p-3"
+            : "flex flex-wrap content-start gap-2 overflow-y-auto p-4"),
         className,
       )}
     >
@@ -642,9 +682,9 @@ export function IconGrid({
               }
             }}
             className={cn(
-              "group flex cursor-default rounded-xl outline-none select-none",
+              "group relative flex cursor-default rounded-xl outline-none select-none",
               compactHorizontal
-                ? "flex-row items-center justify-start gap-2 px-2 py-1 text-left"
+                ? "flex-row items-center justify-start gap-1 px-1.5 py-0.5 text-left"
                 : "flex-col items-center justify-start gap-1.5 px-1.5 py-2 text-center",
               !isDragging && "transition-colors duration-100",
               isDragging && "opacity-25",
@@ -709,12 +749,19 @@ export function IconGrid({
                 );
               })()}
               {item.path && favoritesSet.has(item.path) && (
-                <span
-                  aria-label="Favorite"
-                  className="pointer-events-none absolute -top-1 -right-1 flex size-4 items-center justify-center rounded-full bg-rose-500 text-white shadow-sm ring-1 ring-white/80"
+                <button
+                  type="button"
+                  aria-label="Remove from Favorites"
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleVfsFavorite(item.path!);
+                  }}
+                  className="group/fav absolute -top-1.5 -right-1.5 z-10 flex size-5 items-center justify-center text-rose-500 drop-shadow-[0_1px_2px_rgba(0,0,0,0.45)] transition-transform hover:scale-110"
                 >
-                  <HeartIcon className="size-2.5 fill-current" />
-                </span>
+                  <HeartIcon className="size-4 fill-current group-hover/fav:hidden" />
+                  <HeartCrackIcon className="hidden size-4 group-hover/fav:block" />
+                </button>
               )}
             </div>
             {renamingId === item.id ? (
@@ -775,11 +822,16 @@ export function IconGrid({
           const dy = drag.currentY - drag.startY;
           return createPortal(
             <div
+              ref={dragGhostRef}
               style={{
-                left: `${drag.originLeft + dx}px`,
-                top: `${drag.originTop + dy}px`,
+                left: `${drag.originLeft}px`,
+                top: `${drag.originTop}px`,
                 width: `${cellWidth}px`,
                 height: `${cellHeight}px`,
+                transform: `translate3d(${dx}px, ${dy}px, 0)`,
+                willChange: "transform",
+                transition: "none",
+                animation: "none",
               }}
               className="pointer-events-none fixed z-[9999] flex flex-col items-center justify-start gap-1.5 rounded-xl px-1.5 py-2 text-center opacity-90 select-none"
             >

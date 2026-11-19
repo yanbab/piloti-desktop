@@ -38,8 +38,6 @@ import {
   MenubarContent,
   MenubarItem,
   MenubarMenu,
-  MenubarRadioGroup,
-  MenubarRadioItem,
   MenubarSeparator,
   MenubarShortcut,
   MenubarSub,
@@ -47,12 +45,6 @@ import {
   MenubarSubTrigger,
   MenubarTrigger,
 } from "@/components/ui/menubar";
-import {
-  setWindowVisualEffect,
-  toggleWindowAlwaysOnTop,
-  useWindowVisualModifiers,
-  type WindowVisualEffect,
-} from "@/components/shell/WindowMenuButton";
 import {
   useApps,
   useSettings,
@@ -236,28 +228,28 @@ export function MenuBar() {
     (date: Date) => {
       const dateParts: string[] = [];
       if (settings.clockShowDay) {
-        dateParts.push(date.toLocaleDateString("en-US", { weekday: "short" }));
+        const wd = date.toLocaleDateString("en-US", { weekday: "short" });
+        dateParts.push(`${wd}.`);
       }
       if (settings.clockShowDate) {
-        dateParts.push(
-          date.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
-        );
+        const mo = date
+          .toLocaleDateString("en-US", { month: "short" })
+          .toLowerCase();
+        dateParts.push(`${mo}. ${date.getDate()}`);
       }
       const timeStr = date.toLocaleTimeString("en-US", {
         hour12: !settings.clock24Hour,
         hour: settings.clock24Hour ? "2-digit" : "numeric",
         minute: "2-digit",
-        ...(settings.clockShowSeconds ? { second: "2-digit" } : {}),
       });
       return dateParts.length > 0
-        ? `${dateParts.join(" ")}  ${timeStr}`
+        ? `${dateParts.join(" ")},\u00A0 ${timeStr}`
         : timeStr;
     },
     [
       settings.clock24Hour,
       settings.clockShowDate,
       settings.clockShowDay,
-      settings.clockShowSeconds,
     ],
   );
 
@@ -275,7 +267,6 @@ export function MenuBar() {
   }, [formatTime]);
 
   const headerRef = React.useRef<HTMLElement | null>(null);
-  const windowVisualModifiers = useWindowVisualModifiers();
 
   const [appAboutOpen, setAppAboutOpen] = React.useState(false);
   const pilotiTriggerRef = React.useRef<HTMLButtonElement | null>(null);
@@ -441,7 +432,12 @@ export function MenuBar() {
   return (
     <header
       ref={headerRef}
-      className="z-[200] flex h-[30px] w-full shrink-0 items-center justify-between gap-2 bg-white/60 px-2 text-adw-body text-adw-label backdrop-blur-md select-none dark:bg-black/40 dark:text-white"
+      className={cn(
+        "z-[200] flex h-[30px] w-full shrink-0 items-center justify-between gap-2 px-2 text-adw-body text-adw-label select-none dark:text-white",
+        settings.moreTransparency
+          ? "bg-white/60 backdrop-blur-md dark:bg-black/40"
+          : "bg-[#f3f3f5] dark:bg-[#1e1e22]",
+      )}
     >
       {/* Left: System, Active App & Application Menus */}
       <div className="flex min-w-0 flex-1 items-center overflow-hidden">
@@ -468,35 +464,32 @@ export function MenuBar() {
               </MenubarItem>
               <MenubarItem onClick={() => launchApp("settings")}>
                 {_("Desktop Settings")}
-                {notifications.length > 0 ? (
-                  <MenubarBadge>{notifications.length}</MenubarBadge>
-                ) : (
-                  <MenubarShortcut>Alt+,</MenubarShortcut>
-                )}
+                <MenubarShortcut>Alt+,</MenubarShortcut>
               </MenubarItem>
               <MenubarItem onClick={() => launchApp("app-store")}>
                 Application Store
               </MenubarItem>
-              <MenubarItem onClick={() => launchApp("console")}>
-                DevTools
+              <MenubarItem
+                onClick={() =>
+                  altHeld ? window.location.reload() : launchApp("console")
+                }
+              >
+                {altHeld ? "Reload Shell" : "DevTools"}
               </MenubarItem>
-              <MenubarItem onClick={() => window.location.reload()}>
-                Reload Shell
+              <MenubarSeparator />
+              <MenubarItem onClick={(e) => handlePowerMenuClick("restart", e)}>
+                {altHeld ? "Restart" : "Restart…"}
+              </MenubarItem>
+              <MenubarItem onClick={(e) => handlePowerMenuClick("poweroff", e)}>
+                {altHeld ? "Turn Off" : "Turn Off…"}
               </MenubarItem>
               <MenubarSeparator />
               <MenubarItem onClick={() => lockSession()}>
                 Lock Screen
                 <MenubarShortcut>⌃⌘Q</MenubarShortcut>
               </MenubarItem>
-              <MenubarSeparator />
               <MenubarItem onClick={(e) => handlePowerMenuClick("logout", e)}>
                 {altHeld ? "Log Out" : "Log Out…"}
-              </MenubarItem>
-              <MenubarItem onClick={(e) => handlePowerMenuClick("restart", e)}>
-                {altHeld ? "Restart" : "Restart…"}
-              </MenubarItem>
-              <MenubarItem onClick={(e) => handlePowerMenuClick("poweroff", e)}>
-                {altHeld ? "Turn Off" : "Turn Off…"}
               </MenubarItem>
             </MenubarContent>
           </MenubarMenu>
@@ -612,6 +605,7 @@ export function MenuBar() {
           </MenubarMenu>
 
           {/* Universal Window Menu (matches top-left WindowMenuButton + active app window list) */}
+          {activeAppDef.id !== "desktop" && (
           <MenubarMenu>
             <MenubarTrigger>{_("Window")}</MenubarTrigger>
             <MenubarContent>
@@ -644,54 +638,6 @@ export function MenuBar() {
                 <MenubarShortcut>Alt+]</MenubarShortcut>
               </MenubarItem>
               <MenubarSeparator />
-              <MenubarSub>
-                <MenubarSubTrigger disabled={!focusedWindowId}>
-                  {_("Effects")}
-                </MenubarSubTrigger>
-                <MenubarSubContent>
-                  <MenubarCheckboxItem
-                    disabled={!focusedWindowId}
-                    checked={Boolean(
-                      focusedWindowId &&
-                        windowVisualModifiers.get(focusedWindowId)?.alwaysOnTop,
-                    )}
-                    onClick={() =>
-                      focusedWindowId && toggleWindowAlwaysOnTop(focusedWindowId)
-                    }
-                  >
-                    {_("Always on Top")}
-                  </MenubarCheckboxItem>
-                  <MenubarSeparator />
-                  <MenubarRadioGroup
-                    value={
-                      (focusedWindowId &&
-                        windowVisualModifiers.get(focusedWindowId)?.effect) ||
-                      "normal"
-                    }
-                    onValueChange={(val) =>
-                      focusedWindowId &&
-                      setWindowVisualEffect(
-                        focusedWindowId,
-                        val as WindowVisualEffect,
-                      )
-                    }
-                  >
-                    <MenubarRadioItem value="normal">
-                      {_("Normal")}
-                    </MenubarRadioItem>
-                    <MenubarRadioItem value="invert">
-                      {_("Night Reader (Invert)")}
-                    </MenubarRadioItem>
-                    <MenubarRadioItem value="grayscale">
-                      {_("Grayscale")}
-                    </MenubarRadioItem>
-                    <MenubarRadioItem value="translucent">
-                      {_("Translucent (85%)")}
-                    </MenubarRadioItem>
-                  </MenubarRadioGroup>
-                </MenubarSubContent>
-              </MenubarSub>
-              <MenubarSeparator />
               <MenubarItem
                 disabled={!focusedWindowId}
                 onClick={() => focusedWindowId && closeWindow(focusedWindowId)}
@@ -719,6 +665,7 @@ export function MenuBar() {
               })()}
             </MenubarContent>
           </MenubarMenu>
+          )}
 
           {/* Help Menu */}
           <MenubarMenu>

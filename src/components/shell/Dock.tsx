@@ -38,66 +38,6 @@ import {
 import { cn } from "@/lib/utils";
 import { AppSquircleIcon } from "./AppSymbol";
 
-function NextstepDockClock() {
-  const [now, setNow] = React.useState(() => new Date());
-  React.useEffect(() => {
-    const t = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(t);
-  }, []);
-  const sec = now.getSeconds();
-  const min = now.getMinutes() + sec / 60;
-  const hr = (now.getHours() % 12) + min / 60;
-  const day = now.toLocaleDateString("en-US", { weekday: "short" }).toUpperCase();
-  const dateNum = now.getDate();
-
-  return (
-    <div className="flex size-full flex-col items-center justify-between rounded-[6px] border-t border-l border-white/60 border-r-black/50 border-b-black/60 bg-gradient-to-b from-[#d6d6d6] to-[#9b9b9b] p-0.5 text-zinc-900 shadow-inner dark:border-t-white/30 dark:border-l-white/25 dark:from-[#525257] dark:to-[#2e2e32] dark:text-zinc-100">
-      <div className="flex w-full items-center justify-between px-1 text-[7px] leading-none font-bold tracking-tight opacity-85">
-        <span>{day}</span>
-        <span>{dateNum}</span>
-      </div>
-      <svg viewBox="0 0 32 32" className="size-[72%] shrink-0">
-        <circle
-          cx="16"
-          cy="16"
-          r="13.5"
-          fill="#f8f8f8"
-          stroke="#27272a"
-          strokeWidth="1.2"
-        />
-        <line
-          x1="16"
-          y1="16"
-          x2={16 + 7 * Math.sin((hr * Math.PI) / 6)}
-          y2={16 - 7 * Math.cos((hr * Math.PI) / 6)}
-          stroke="#18181b"
-          strokeWidth="1.8"
-          strokeLinecap="round"
-        />
-        <line
-          x1="16"
-          y1="16"
-          x2={16 + 10 * Math.sin((min * Math.PI) / 30)}
-          y2={16 - 10 * Math.cos((min * Math.PI) / 30)}
-          stroke="#18181b"
-          strokeWidth="1.3"
-          strokeLinecap="round"
-        />
-        <line
-          x1="16"
-          y1="16"
-          x2={16 + 11 * Math.sin((sec * Math.PI) / 30)}
-          y2={16 - 11 * Math.cos((sec * Math.PI) / 30)}
-          stroke="#e11d48"
-          strokeWidth="0.9"
-          strokeLinecap="round"
-        />
-        <circle cx="16" cy="16" r="1.4" fill="#18181b" />
-      </svg>
-    </div>
-  );
-}
-
 export function Dock() {
   const domicile = useDomicile();
   const { isBrowserRuntime, settings, updateSettings } = useSettings();
@@ -198,10 +138,31 @@ export function Dock() {
   >({ kind: "dock" });
   const didReorderRef = React.useRef(false);
   const dockTilesRef = React.useRef<Map<string, HTMLElement>>(new Map());
-  const activeDockSize = dragDockSize ?? settings.dockSize;
   const dockPosition = settings.dockPosition ?? "bottom";
   const isVerticalDock = dockPosition === "left" || dockPosition === "right";
   const effectivePinnedIds = dragPinnedOrder ?? settings.pinnedAppIds;
+  const [viewportSize, setViewportSize] = React.useState(() => ({
+    width: typeof window !== "undefined" ? window.innerWidth : 1280,
+    height: typeof window !== "undefined" ? window.innerHeight : 800,
+  }));
+  React.useEffect(() => {
+    const onResize = () =>
+      setViewportSize({ width: window.innerWidth, height: window.innerHeight });
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+  const totalSlots = Math.max(1, effectivePinnedIds.length + 3);
+  const availableSpan = isVerticalDock
+    ? viewportSize.height - 96
+    : viewportSize.width - 48;
+  const maxDockSizeForSpace = Math.max(
+    32,
+    Math.min(128, Math.floor(availableSpan / totalSlots) - 10),
+  );
+  const activeDockSize = Math.min(
+    dragDockSize ?? settings.dockSize,
+    maxDockSizeForSpace,
+  );
   const trashPaths = React.useMemo(() => resolveXdgTrashPaths(), []);
 
   const refreshTrashStatus = React.useCallback(async () => {
@@ -432,6 +393,13 @@ export function Dock() {
       }
       return;
     }
+    if (appId === "nautilus") {
+      const ordered = [...appWins].sort((a, b) => a.zIndex - b.zIndex);
+      for (const win of ordered) {
+        focusWindow(win.id);
+      }
+      return;
+    }
     const visibleWins = appWins
       .filter((w) => !w.minimized)
       .sort((a, b) => b.zIndex - a.zIndex);
@@ -636,8 +604,8 @@ export function Dock() {
           <DockSeparator
             resizable
             resizeSize={activeDockSize}
-            minSize={24}
-            maxSize={72}
+            minSize={32}
+            maxSize={maxDockSizeForSpace}
             onResizingChange={(dragging) => {
               setResizingDock(dragging);
               if (!dragging) setDragDockSize(null);
@@ -664,15 +632,6 @@ export function Dock() {
               className="size-full"
             />
           </DockItem>
-
-          {settings.dockClockWidget && (
-            <DockItem
-              label="NeXTSTEP Clock"
-              onClick={() => launchApp("settings", { payload: "dock" })}
-            >
-              <NextstepDockClock />
-            </DockItem>
-          )}
         </ContextMenuTrigger>
 
         <ContextMenuContent

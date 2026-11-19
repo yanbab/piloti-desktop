@@ -20,7 +20,7 @@ import {
   lineNumbers,
 } from "@codemirror/view";
 import { tags } from "@lezer/highlight";
-import { SlidersHorizontalIcon } from "lucide-react";
+import { SlidersHorizontalIcon, XIcon } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -28,11 +28,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useIsolatedAppBridge } from "@/lib/app-bridge";
+import { cn } from "@/lib/utils";
 import { normalizeVfsPath } from "@/lib/web-vfs";
 
 interface TextEditorAppProps {
   initialPath?: string;
   windowId?: string;
+  isCsd?: boolean;
 }
 
 function getBaseName(path: string): string {
@@ -179,8 +181,20 @@ const adwEditorTheme = EditorView.theme({
 export const TextEditorApp: React.FC<TextEditorAppProps> = ({
   initialPath,
   windowId = "",
+  isCsd: propIsCsd = true,
 }) => {
-  const bridge = useIsolatedAppBridge(windowId, false);
+  const handleMenuAction = React.useCallback((actionId: string) => {
+    if (actionId === "text-editor:toggle-line-numbers") {
+      setShowLineNumbers((v) => !v);
+    } else if (actionId === "text-editor:toggle-syntax") {
+      setEnableHighlight((v) => !v);
+    } else if (actionId === "text-editor:toggle-word-wrap") {
+      setWordWrap((v) => !v);
+    } else if (actionId === "text-editor:toggle-active-line") {
+      setHighlightLine((v) => !v);
+    }
+  }, []);
+  const bridge = useIsolatedAppBridge(windowId, propIsCsd, handleMenuAction);
   const resolvedPath = React.useMemo(() => {
     if (initialPath) return normalizeVfsPath(initialPath);
     if (typeof window !== "undefined") {
@@ -381,98 +395,123 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
     <div
       data-drop-window-id={windowId}
       onKeyDown={handleKeyDown}
-      className="relative h-full w-full overflow-hidden bg-adw-content text-adw-label"
+      className="flex h-full w-full flex-col overflow-hidden bg-adw-content text-adw-label"
     >
-      {/* Top-right Preferences & Markdown Preview Controls */}
-      <div className="absolute top-2 right-3 z-20 flex items-center gap-1.5">
-        {isMarkdownFile && (
-          <button
-            type="button"
-            onClick={() => setPreviewMarkdown((v) => !v)}
-            className="rounded-md border border-adw-separator bg-adw-window/90 px-2.5 py-1 text-[11px] font-medium text-adw-label-secondary shadow-xs backdrop-blur-xs transition-colors hover:text-adw-label"
-          >
-            {previewMarkdown ? "Edit Markdown" : "Preview Markdown"}
-          </button>
+      {/* Headerbar */}
+      <div
+        data-window-drag-region={bridge.isCsd ? "" : undefined}
+        className={cn(
+          "flex h-9 shrink-0 items-center justify-between border-b border-adw-separator bg-adw-titlebar px-2.5 select-none",
+          !bridge.isCsd && "rounded-t-none",
         )}
-        <DropdownMenu>
-          <DropdownMenuTrigger
-            aria-label="Editor Preferences"
-            title="Preferences"
-            className="flex size-7 items-center justify-center rounded-md border border-adw-separator bg-adw-window/90 text-adw-label-secondary shadow-xs backdrop-blur-xs transition-colors outline-none hover:text-adw-label"
-          >
-            <SlidersHorizontalIcon className="size-3.5" />
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuCheckboxItem
-              checked={showLineNumbers}
-              onClick={() => setShowLineNumbers((v) => !v)}
+      >
+        <div className="w-6 shrink-0" />
+        <span className="pointer-events-none truncate px-2 text-adw-body font-semibold text-adw-label">
+          {filePath ? getBaseName(filePath) : "Untitled"}
+        </span>
+        <div className="flex items-center gap-1" data-window-no-drag>
+          {isMarkdownFile && (
+            <button
+              type="button"
+              onClick={() => setPreviewMarkdown((v) => !v)}
+              className="rounded-md bg-adw-fill-secondary px-2 py-0.5 text-[11px] font-medium text-adw-label-secondary transition-colors hover:bg-adw-fill-primary hover:text-adw-label"
             >
-              Line Numbers
-            </DropdownMenuCheckboxItem>
-            <DropdownMenuCheckboxItem
-              checked={enableHighlight}
-              onClick={() => setEnableHighlight((v) => !v)}
+              {previewMarkdown ? "Edit" : "Preview"}
+            </button>
+          )}
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              aria-label="Editor Preferences"
+              title="Preferences"
+              className="flex size-6 items-center justify-center rounded-md text-adw-label-secondary transition-colors outline-none hover:bg-adw-fill-secondary hover:text-adw-label"
             >
-              Syntax Highlighting
-            </DropdownMenuCheckboxItem>
-            <DropdownMenuCheckboxItem
-              checked={wordWrap}
-              onClick={() => setWordWrap((v) => !v)}
+              <SlidersHorizontalIcon className="size-3.5" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuCheckboxItem
+                checked={showLineNumbers}
+                onClick={() => setShowLineNumbers((v) => !v)}
+              >
+                Line Numbers
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                checked={enableHighlight}
+                onClick={() => setEnableHighlight((v) => !v)}
+              >
+                Syntax Highlighting
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                checked={wordWrap}
+                onClick={() => setWordWrap((v) => !v)}
+              >
+                Word Wrap
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                checked={highlightLine}
+                onClick={() => setHighlightLine((v) => !v)}
+              >
+                Highlight Active Line
+              </DropdownMenuCheckboxItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          {bridge.isCsd && (
+            <button
+              type="button"
+              aria-label="Close window"
+              onClick={() => bridge.closeWindow()}
+              className="flex size-6 items-center justify-center rounded-full bg-adw-fill-secondary text-adw-label-secondary transition-colors hover:bg-adw-fill-primary hover:text-adw-label"
             >
-              Word Wrap
-            </DropdownMenuCheckboxItem>
-            <DropdownMenuCheckboxItem
-              checked={highlightLine}
-              onClick={() => setHighlightLine((v) => !v)}
-            >
-              Highlight Active Line
-            </DropdownMenuCheckboxItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+              <XIcon className="size-3.5" />
+            </button>
+          )}
+        </div>
       </div>
 
-      {findOpen && (
-        <div
-          data-testid="text-editor-find-bar"
-          className="absolute top-11 right-3 z-20 flex items-center gap-1.5 rounded-lg border border-adw-border bg-adw-card/95 px-2 py-1 shadow-md backdrop-blur-md"
-        >
-          <input
-            ref={findInputRef}
-            type="search"
-            value={findQuery}
-            onChange={(e) => setFindQuery(e.target.value)}
-            className="w-36 bg-transparent text-xs text-adw-label outline-none"
-          />
-          <span className="font-mono text-[10.5px] text-adw-dim tabular-nums">
-            {findQuery.trim() ? `${findMatchCount} found` : ""}
-          </span>
-          <button
-            type="button"
-            aria-label="Close Find"
-            onClick={() => {
-              setFindOpen(false);
-              viewRef.current?.focus();
-            }}
-            className="rounded px-1 text-xs text-adw-dim hover:bg-adw-hover hover:text-adw-label"
+      {/* Editor Body */}
+      <div className="relative min-h-0 flex-1 overflow-hidden">
+        {findOpen && (
+          <div
+            data-testid="text-editor-find-bar"
+            className="absolute top-2 right-3 z-20 flex items-center gap-1.5 rounded-lg border border-adw-border bg-adw-card/95 px-2 py-1 shadow-md backdrop-blur-md"
           >
-            ×
-          </button>
-        </div>
-      )}
+            <input
+              ref={findInputRef}
+              type="search"
+              value={findQuery}
+              onChange={(e) => setFindQuery(e.target.value)}
+              className="w-36 bg-transparent text-xs text-adw-label outline-none"
+            />
+            <span className="font-mono text-[10.5px] text-adw-dim tabular-nums">
+              {findQuery.trim() ? `${findMatchCount} found` : ""}
+            </span>
+            <button
+              type="button"
+              aria-label="Close Find"
+              onClick={() => {
+                setFindOpen(false);
+                viewRef.current?.focus();
+              }}
+              className="rounded px-1 text-xs text-adw-dim hover:bg-adw-hover hover:text-adw-label"
+            >
+              ×
+            </button>
+          </div>
+        )}
 
-      {previewMarkdown ? (
-        <div className="h-full w-full overflow-auto bg-adw-content p-4 select-text">
-          {renderSimpleMarkdown(content)}
-        </div>
-      ) : (
-        <div ref={editorHostRef} className="h-full w-full" />
-      )}
+        {previewMarkdown ? (
+          <div className="h-full w-full overflow-auto bg-adw-content p-4 select-text">
+            {renderSimpleMarkdown(content)}
+          </div>
+        ) : (
+          <div ref={editorHostRef} className="h-full w-full" />
+        )}
 
-      <div
-        data-testid="text-editor-status-pill"
-        className="pointer-events-none absolute right-2.5 bottom-2 z-10 rounded-full border border-adw-border/60 bg-adw-card/90 px-2.5 py-0.5 font-mono text-[10.5px] text-adw-dim shadow-xs backdrop-blur-md"
-      >
-        Ln {cursorPos.ln}, Col {cursorPos.col}
+        <div
+          data-testid="text-editor-status-pill"
+          className="pointer-events-none absolute right-2.5 bottom-2 z-10 rounded-full border border-adw-border/60 bg-adw-card/90 px-2.5 py-0.5 font-mono text-[10.5px] text-adw-dim shadow-xs backdrop-blur-md"
+        >
+          Ln {cursorPos.ln}, Col {cursorPos.col}
+        </div>
       </div>
     </div>
   );

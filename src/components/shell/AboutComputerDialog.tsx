@@ -97,7 +97,7 @@ export function AboutComputerDialog() {
   const { isBrowserRuntime } = useSettings();
   const { aboutOpen, setAboutOpen, openGnomeSettings } = useWindowManager();
   const [info, setInfo] = React.useState<ComputerInfo>({
-    computerName: "Piloti Workstation",
+    computerName: "Piloti Desktop",
     modelSubtitle: isBrowserRuntime
       ? "Wayland Web Shell"
       : "Domicile Wayland Computer",
@@ -177,7 +177,7 @@ export function AboutComputerDialog() {
             </p>
           </div>
 
-          <dl className="grid grid-cols-[auto_1fr] items-baseline gap-x-4 gap-y-1.5 rounded-xl bg-black/4 px-3.5 py-2.5 text-[12px] dark:bg-white/5">
+          <dl className="grid grid-cols-[auto_1fr] items-baseline gap-x-4 gap-y-2 rounded-xl bg-black/4 px-3.5 py-2.5 text-adw-body dark:bg-white/5">
             {rows.map((row) => (
               <React.Fragment key={row.label}>
                 <dt className="font-medium text-adw-label">{row.label}</dt>
@@ -190,7 +190,6 @@ export function AboutComputerDialog() {
 
           <div className="flex justify-center pt-0.5">
             <Button
-              size="sm"
               variant="secondary"
               onClick={() => {
                 setAboutOpen(false);

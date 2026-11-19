@@ -23,7 +23,12 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
   windowId = "",
   isCsd: propIsCsd = true,
 }) => {
-  const bridge = useIsolatedAppBridge(windowId, propIsCsd);
+  const [dragRegionHovered, setDragRegionHovered] = React.useState(false);
+  const handleShellAction = React.useCallback((actionId: string) => {
+    if (actionId === "piloti:header-enter") setDragRegionHovered(true);
+    else if (actionId === "piloti:header-leave") setDragRegionHovered(false);
+  }, []);
+  const bridge = useIsolatedAppBridge(windowId, propIsCsd, handleShellAction);
   const resolvedPath = React.useMemo(() => {
     if (initialPath) return initialPath;
     if (typeof window !== "undefined") {
@@ -34,6 +39,8 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
 
   const [imageSrc, setImageSrc] = React.useState<string>("");
   const [zoom, setZoom] = React.useState(1);
+  const [pan, setPan] = React.useState({ x: 0, y: 0 });
+  const [isPanning, setIsPanning] = React.useState(false);
   const [rotation, setRotation] = React.useState(0);
   const [cropping, setCropping] = React.useState(false);
   const [cropRect, setCropRect] = React.useState({
@@ -46,6 +53,12 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
     null,
   );
   const imgRef = React.useRef<HTMLImageElement | null>(null);
+  const panDragRef = React.useRef<{
+    startX: number;
+    startY: number;
+    origX: number;
+    origY: number;
+  } | null>(null);
   const cropDragRef = React.useRef<{
     startX: number;
     startY: number;
@@ -53,6 +66,10 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
   } | null>(null);
 
   React.useEffect(() => {
+    setPan({ x: 0, y: 0 });
+    setZoom(1);
+    setRotation(0);
+    setCroppedDataUrl(null);
     if (!resolvedPath) return;
     if (
       resolvedPath.startsWith("data:") ||
@@ -118,6 +135,7 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
 
   const resetView = () => {
     setZoom(1);
+    setPan({ x: 0, y: 0 });
     setRotation(0);
     setCroppedDataUrl(null);
     setCropping(false);
@@ -129,38 +147,76 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
     : "Image Viewer";
 
   return (
-    <div className="group/viewer relative flex h-full w-full flex-col overflow-hidden bg-adw-window text-adw-label select-none">
-      {/* Translucent Headerbar revealed on hover / moving up to drag */}
-      <div
-        data-window-drag-region=""
-        className="absolute inset-x-0 top-0 z-20 flex h-9 items-center justify-between border-b border-adw-separator/60 bg-adw-titlebar/85 px-3 opacity-0 backdrop-blur-md transition-opacity duration-150 group-hover/viewer:opacity-100"
-      >
-        <div className="w-6" />
-        <span className="pointer-events-none truncate text-adw-body font-semibold whitespace-nowrap text-adw-label">
-          {fileName}
-        </span>
-        <button
-          type="button"
-          data-window-no-drag
-          aria-label="Close window"
-          onClick={() => bridge.closeWindow()}
-          className="flex size-6 items-center justify-center rounded-full bg-adw-fill-secondary text-adw-label-secondary transition-colors hover:bg-adw-fill-primary hover:text-adw-label"
+    <div className="relative flex h-full w-full flex-col overflow-hidden bg-adw-window text-adw-label select-none">
+      {/* Translucent Headerbar revealed only when hovering the top headerbar zone */}
+      <div className="group/header absolute inset-x-0 top-0 z-20 h-10">
+        <div
+          data-window-drag-region=""
+          className={cn(
+            "flex h-9 items-center justify-between border-b border-adw-separator/60 bg-adw-titlebar/85 px-3 backdrop-blur-md transition-opacity duration-150 group-hover/header:opacity-100",
+            dragRegionHovered ? "opacity-100" : "opacity-0",
+          )}
         >
-          <XIcon className="size-3.5" />
-        </button>
+          <div className="w-6" />
+          <span className="pointer-events-none truncate text-adw-body font-semibold whitespace-nowrap text-adw-label">
+            {fileName}
+          </span>
+          <button
+            type="button"
+            data-window-no-drag
+            aria-label="Close window"
+            onClick={() => bridge.closeWindow()}
+            className="flex size-6 items-center justify-center rounded-full bg-adw-fill-secondary text-adw-label-secondary transition-colors hover:bg-adw-fill-primary hover:text-adw-label"
+          >
+            <XIcon className="size-3.5" />
+          </button>
+        </div>
       </div>
 
       {/* Canvas */}
       <div
         onWheel={handleWheel}
-        className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-black/25 dark:bg-black/45"
+        onPointerDown={(e) => {
+          if (cropping || !activeSrc || e.button !== 0) return;
+          e.currentTarget.setPointerCapture(e.pointerId);
+          panDragRef.current = {
+            startX: e.clientX,
+            startY: e.clientY,
+            origX: pan.x,
+            origY: pan.y,
+          };
+          setIsPanning(true);
+        }}
+        onPointerMove={(e) => {
+          const drag = panDragRef.current;
+          if (!drag) return;
+          setPan({
+            x: drag.origX + (e.clientX - drag.startX),
+            y: drag.origY + (e.clientY - drag.startY),
+          });
+        }}
+        onPointerUp={() => {
+          panDragRef.current = null;
+          setIsPanning(false);
+        }}
+        onPointerCancel={() => {
+          panDragRef.current = null;
+          setIsPanning(false);
+        }}
+        className={cn(
+          "relative flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-black/25 dark:bg-black/45",
+          !cropping && activeSrc && (isPanning ? "cursor-grabbing" : "cursor-grab"),
+        )}
       >
         {activeSrc ? (
           <div
             style={{
-              transform: `scale(${zoom}) rotate(${rotation}deg)`,
+              transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom}) rotate(${rotation}deg)`,
             }}
-            className="relative transition-transform duration-75 ease-out"
+            className={cn(
+              "relative will-change-transform",
+              !isPanning && "transition-transform duration-75 ease-out",
+            )}
           >
             <img
               ref={imgRef}

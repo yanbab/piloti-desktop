@@ -8,6 +8,7 @@ import {
   moveVfsEntry,
   normalizeVfsPath,
   renameVfsEntry,
+  restoreVfsEntry,
   trashVfsEntry,
   WEB_VFS_HOME,
   WEB_VFS_TRASH,
@@ -229,6 +230,27 @@ export function trashFsEntry(
         ]),
       );
   }
+}
+
+/**
+ * Restores an entry from Trash back to its original location (`web-vfs` or XDG Trash).
+ */
+export function restoreFsEntry(
+  domicile: Domicile,
+  isBrowserRuntime: boolean,
+  trashPath: string,
+): WebVfsEntry | null {
+  const norm = normalizeVfsPath(trashPath);
+  const restored = restoreVfsEntry(norm);
+  if (!isBrowserRuntime && restored) {
+    void domicile.processes.run([
+      "mv",
+      "--",
+      toDomicilePath(norm),
+      toDomicilePath(restored.path),
+    ]);
+  }
+  return restored;
 }
 
 /**

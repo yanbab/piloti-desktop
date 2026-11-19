@@ -51,12 +51,12 @@ export function DockPane() {
 
           <GroupedFormRow>
             <GroupedFormRowLabel>
-              <GroupedFormRowTitle>Icon Size ({settings.dockSize}px)</GroupedFormRowTitle>
+              <GroupedFormRowTitle>Size</GroupedFormRowTitle>
             </GroupedFormRowLabel>
             <GroupedFormRowControl className="w-44">
               <Slider
-                min={24}
-                max={72}
+                min={32}
+                max={128}
                 value={[settings.dockSize]}
                 onValueChange={(val) => {
                   const next = Array.isArray(val) ? val[0] : val;
@@ -68,7 +68,7 @@ export function DockPane() {
 
           <GroupedFormRow>
             <GroupedFormRowLabel>
-              <GroupedFormRowTitle>Magnification</GroupedFormRowTitle>
+              <GroupedFormRowTitle>Zoom</GroupedFormRowTitle>
             </GroupedFormRowLabel>
             <GroupedFormRowControl>
               <Switch
@@ -83,9 +83,7 @@ export function DockPane() {
           {settings.dockMagnification && (
             <GroupedFormRow>
               <GroupedFormRowLabel>
-                <GroupedFormRowTitle>
-                  Magnified Size ({settings.dockMagnificationSize}px)
-                </GroupedFormRowTitle>
+                <GroupedFormRowTitle>Zoom Size</GroupedFormRowTitle>
               </GroupedFormRowLabel>
               <GroupedFormRowControl className="w-44">
                 <Slider
@@ -106,7 +104,7 @@ export function DockPane() {
           <GroupedFormRow>
             <GroupedFormRowLabel>
               <GroupedFormRowTitle>
-                Automatically Hide and Show the Dock
+                Automatically Hide and Show
               </GroupedFormRowTitle>
             </GroupedFormRowLabel>
             <GroupedFormRowControl>
@@ -114,22 +112,6 @@ export function DockPane() {
                 checked={settings.dockAutoHide}
                 onCheckedChange={(checked) =>
                   updateSettings({ dockAutoHide: Boolean(checked) })
-                }
-              />
-            </GroupedFormRowControl>
-          </GroupedFormRow>
-
-          <GroupedFormRow>
-            <GroupedFormRowLabel>
-              <GroupedFormRowTitle>
-                Dock Clock Widget (NeXTSTEP)
-              </GroupedFormRowTitle>
-            </GroupedFormRowLabel>
-            <GroupedFormRowControl>
-              <Switch
-                checked={settings.dockClockWidget}
-                onCheckedChange={(checked) =>
-                  updateSettings({ dockClockWidget: Boolean(checked) })
                 }
               />
             </GroupedFormRowControl>

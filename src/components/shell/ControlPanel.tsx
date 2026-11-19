@@ -61,7 +61,7 @@ export function ControlPanel() {
   const { setControlPanelOpen, launchApp, openGnomeSettings } =
     useWindowManager();
   const [expandedPicker, setExpandedPicker] = React.useState<
-    "wifi" | "audio" | null
+    "wifi" | "bluetooth" | "audio" | null
   >(null);
 
   const [unreadSnapshot] = React.useState<Set<number>>(
@@ -74,7 +74,7 @@ export function ControlPanel() {
     }
   }, [markAllNotificationsRead, unreadNotificationCount]);
 
-  const togglePicker = (picker: "wifi" | "audio") => {
+  const togglePicker = (picker: "wifi" | "bluetooth" | "audio") => {
     setExpandedPicker((prev) => {
       const next = prev === picker ? null : picker;
       if (next !== null) {
@@ -352,29 +352,152 @@ export function ControlPanel() {
           </button>
         </div>
 
-        {/* Bluetooth Pill */}
-        <button
-          type="button"
-          onClick={() => {
-            const next = !settings.bluetoothEnabled;
-            console.info(
-              "[Piloti] control-panel: bluetooth",
-              next ? "on" : "off"
-            );
-            updateSettings({ bluetoothEnabled: next });
-          }}
+        {/* Bluetooth Split Pill (Toggle + Inline Device Picker) */}
+        <div
           className={cn(
-            "flex items-center gap-2.5 rounded-[12px] px-3 py-2 text-left",
+            "flex items-stretch overflow-hidden rounded-[12px]",
             settings.bluetoothEnabled
-              ? "bg-adw-accent text-white active:bg-[color-mix(in_srgb,var(--adw-accent),white_20%)]"
-              : "bg-black/6 text-adw-label active:bg-black/14 dark:bg-white/8 dark:active:bg-white/18"
+              ? "bg-adw-accent text-white"
+              : "bg-black/6 text-adw-label dark:bg-white/8"
           )}
         >
-          <BluetoothIcon className="size-[18px] shrink-0" />
-          <span className="truncate text-[12.5px] font-semibold">
-            Bluetooth
-          </span>
-        </button>
+          <button
+            type="button"
+            onClick={() => {
+              const next = !settings.bluetoothEnabled;
+              console.info(
+                "[Piloti] control-panel: bluetooth",
+                next ? "on" : "off"
+              );
+              updateSettings({ bluetoothEnabled: next });
+            }}
+            className={cn(
+              "flex min-w-0 flex-1 items-center gap-2.5 px-3 py-2 text-left",
+              settings.bluetoothEnabled
+                ? "active:bg-white/20"
+                : "active:bg-black/14 dark:active:bg-white/18"
+            )}
+          >
+            <BluetoothIcon className="size-[18px] shrink-0" />
+            <span className="truncate text-[12.5px] font-semibold">
+              Bluetooth
+            </span>
+          </button>
+          <button
+            type="button"
+            aria-label="Choose Bluetooth device"
+            aria-expanded={expandedPicker === "bluetooth"}
+            onClick={() => togglePicker("bluetooth")}
+            className={cn(
+              "flex w-7 shrink-0 items-center justify-center border-l",
+              settings.bluetoothEnabled
+                ? "border-white/20 active:bg-white/20"
+                : "border-black/10 active:bg-black/14 dark:border-white/10 dark:active:bg-white/18"
+            )}
+          >
+            <ChevronRightIcon
+              className={cn(
+                "size-3.5 transition-transform duration-150",
+                expandedPicker === "bluetooth" && "rotate-90"
+              )}
+            />
+          </button>
+        </div>
+
+        {/* Inline Wi-Fi Network Picker (expands directly under Wi-Fi / Bluetooth) */}
+        {expandedPicker === "wifi" && (
+          <div className="col-span-2 flex flex-col gap-1 rounded-[14px] bg-black/6 p-2.5 dark:bg-white/8">
+            <div className="mb-1 flex items-center justify-between px-1">
+              <span className="text-[11px] font-semibold text-adw-label-secondary">
+                Wi-Fi Networks
+              </span>
+              {!isBrowserRuntime && gnomeCapabilities.gnomeControlCenter && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setControlPanelOpen(false);
+                    openGnomeSettings("wifi");
+                  }}
+                  className="text-[10.5px] font-medium text-adw-accent active:opacity-70"
+                >
+                  Network Settings…
+                </button>
+              )}
+            </div>
+            {!settings.wifiEnabled ? (
+              <div className="px-2 py-2 text-[11px] text-adw-label-secondary">
+                Wi-Fi is turned off.
+              </div>
+            ) : liveWifiNetworks.length === 0 ? (
+              <div className="px-2 py-2 text-[11px] text-adw-label-secondary">
+                No wireless networks discovered.
+              </div>
+            ) : (
+              <div className="flex max-h-[148px] flex-col gap-0.5 overflow-y-auto">
+                {liveWifiNetworks.map((net) => {
+                  const connected = net.ssid === settings.connectedWifi;
+                  return (
+                    <button
+                      key={net.ssid}
+                      type="button"
+                      onClick={() => void connectWifiNetwork(net.ssid)}
+                      className={cn(
+                        "flex items-center justify-between gap-2 rounded-[9px] px-2.5 py-1.5 text-left text-[11.5px]",
+                        connected
+                          ? "bg-adw-accent/18 font-semibold text-adw-label"
+                          : "active:bg-black/10 dark:active:bg-white/12"
+                      )}
+                    >
+                      <span className="flex min-w-0 items-center gap-2">
+                        <WifiIcon className="size-3.5 shrink-0 opacity-80" />
+                        <span className="truncate">{net.ssid}</span>
+                      </span>
+                      <span className="flex shrink-0 items-center gap-1.5 text-[10.5px] text-adw-label-secondary tabular-nums">
+                        {net.secured && <LockIcon className="size-3 opacity-75" />}
+                        <span>{net.signal}%</span>
+                        {connected && (
+                          <CheckIcon className="size-3.5 text-adw-accent" />
+                        )}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Inline Bluetooth Device Picker (expands directly under Wi-Fi / Bluetooth) */}
+        {expandedPicker === "bluetooth" && (
+          <div className="col-span-2 flex flex-col gap-1 rounded-[14px] bg-black/6 p-2.5 dark:bg-white/8">
+            <div className="mb-1 flex items-center justify-between px-1">
+              <span className="text-[11px] font-semibold text-adw-label-secondary">
+                Bluetooth Devices
+              </span>
+              {!isBrowserRuntime && gnomeCapabilities.gnomeControlCenter && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setControlPanelOpen(false);
+                    openGnomeSettings("bluetooth");
+                  }}
+                  className="text-[10.5px] font-medium text-adw-accent active:opacity-70"
+                >
+                  Bluetooth Settings…
+                </button>
+              )}
+            </div>
+            {!settings.bluetoothEnabled ? (
+              <div className="px-2 py-2 text-[11px] text-adw-label-secondary">
+                Bluetooth is turned off.
+              </div>
+            ) : (
+              <div className="px-2 py-2 text-[11px] text-adw-label-secondary">
+                No paired Bluetooth devices nearby.
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Dark Mode Pill */}
         <button
@@ -464,69 +587,6 @@ export function ControlPanel() {
           </span>
         </button>
       </div>
-
-      {/* Inline Wi-Fi Network Picker */}
-      {expandedPicker === "wifi" && (
-        <div className="flex flex-col gap-1 rounded-[14px] bg-black/6 p-2.5 dark:bg-white/8">
-          <div className="mb-1 flex items-center justify-between px-1">
-            <span className="text-[11px] font-semibold text-adw-label-secondary">
-              Wi-Fi Networks
-            </span>
-            {!isBrowserRuntime && gnomeCapabilities.gnomeControlCenter && (
-              <button
-                type="button"
-                onClick={() => {
-                  setControlPanelOpen(false);
-                  openGnomeSettings("wifi");
-                }}
-                className="text-[10.5px] font-medium text-adw-accent active:opacity-70"
-              >
-                Network Settings…
-              </button>
-            )}
-          </div>
-          {!settings.wifiEnabled ? (
-            <div className="px-2 py-2 text-[11px] text-adw-label-secondary">
-              Wi-Fi is turned off.
-            </div>
-          ) : liveWifiNetworks.length === 0 ? (
-            <div className="px-2 py-2 text-[11px] text-adw-label-secondary">
-              No wireless networks discovered.
-            </div>
-          ) : (
-            <div className="flex max-h-[148px] flex-col gap-0.5 overflow-y-auto">
-              {liveWifiNetworks.map((net) => {
-                const connected = net.ssid === settings.connectedWifi;
-                return (
-                  <button
-                    key={net.ssid}
-                    type="button"
-                    onClick={() => void connectWifiNetwork(net.ssid)}
-                    className={cn(
-                      "flex items-center justify-between gap-2 rounded-[9px] px-2.5 py-1.5 text-left text-[11.5px]",
-                      connected
-                        ? "bg-adw-accent/18 font-semibold text-adw-label"
-                        : "active:bg-black/10 dark:active:bg-white/12"
-                    )}
-                  >
-                    <span className="flex min-w-0 items-center gap-2">
-                      <WifiIcon className="size-3.5 shrink-0 opacity-80" />
-                      <span className="truncate">{net.ssid}</span>
-                    </span>
-                    <span className="flex shrink-0 items-center gap-1.5 text-[10.5px] text-adw-label-secondary tabular-nums">
-                      {net.secured && <LockIcon className="size-3 opacity-75" />}
-                      <span>{net.signal}%</span>
-                      {connected && (
-                        <CheckIcon className="size-3.5 text-adw-accent" />
-                      )}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      )}
 
       {/* MPRIS Media Player Card */}
       {mprisMedia && (

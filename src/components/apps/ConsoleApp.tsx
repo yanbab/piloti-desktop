@@ -256,7 +256,7 @@ function ReplModule({
           e.preventDefault();
           void execute();
         }}
-        className="flex shrink-0 items-end gap-2 border-t border-adw-separator bg-adw-titlebar px-3 py-2"
+        className="flex min-h-[46px] shrink-0 items-center gap-2 border-t border-adw-separator bg-adw-titlebar px-3 py-1.5"
       >
         <ChevronRightIcon className="mb-1.5 size-4 shrink-0 text-adw-label dark:text-white" />
         <textarea

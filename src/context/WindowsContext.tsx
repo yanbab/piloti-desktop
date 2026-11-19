@@ -287,6 +287,13 @@ export function useWindowsValue(
 
   const pendingWebTitlesRef = React.useRef<Map<string, string>>(new Map());
   const [launcherOpen, setLauncherOpen] = React.useState(false);
+
+  React.useEffect(() => {
+    const onOpenLauncher = () => setLauncherOpen(true);
+    window.addEventListener("piloti:open-launcher", onOpenLauncher);
+    return () =>
+      window.removeEventListener("piloti:open-launcher", onOpenLauncher);
+  }, []);
   const [controlPanelOpen, setControlPanelOpen] = React.useState(false);
   const [aboutOpen, setAboutOpen] = React.useState(false);
   const [overviewOpen, setOverviewOpen] = React.useState(false);
@@ -1377,9 +1384,15 @@ function pruneBrowserRecord(
       if (targetWin) {
         const nextPos = clampedPosition ?? targetWin.position;
         const nextSize = effectiveSizePatch ?? targetWin.size;
-        const key = targetWin.appId.startsWith("webview:")
-          ? "webview"
-          : targetWin.appId;
+        const key =
+          (targetWin.appId === "nautilus" ||
+            targetWin.appId === "text-editor" ||
+            targetWin.appId === "image-viewer") &&
+          targetWin.payload
+            ? `${targetWin.appId}:${targetWin.payload}`
+            : targetWin.appId.startsWith("webview:")
+              ? "webview"
+              : targetWin.appId;
         updateSettings({
           savedWindowBounds: {
             ...settings.savedWindowBounds,
@@ -1635,10 +1648,11 @@ function pruneBrowserRecord(
       console.info("[Piloti] launchApp", appId, options ?? {});
       const def = APP_CATALOG.find((a) => a.id === appId);
 
-      // Focus existing window unless forceNew (for text-editor with a file payload, only reuse if the same file is already open)
+      // Focus existing window unless forceNew (for document-scoped apps with a file payload, only reuse if the same file is already open)
       if (!options?.forceNew) {
         const existing = combinedWindows.find((w) =>
-          appId === "text-editor" && options?.payload
+          (appId === "text-editor" || appId === "image-viewer") &&
+          options?.payload
             ? w.appId === appId && w.payload === options.payload
             : w.appId === appId,
         );
@@ -1664,6 +1678,16 @@ function pruneBrowserRecord(
         }
       }
 
+      if (appId === "nautilus" && options?.payload && options?.forceNew) {
+        const sameFolderWin = combinedWindows.find(
+          (w) => w.appId === "nautilus" && w.payload === options.payload,
+        );
+        if (sameFolderWin) {
+          focusWindow(sameFolderWin.id);
+          return;
+        }
+      }
+
       // Built-in shell windows (`settings`, `console`, `files`, `terminal`, `text-editor`, `app-store`)
       const builtinKind: BuiltinAppId | undefined =
         def?.builtinComponent ??
@@ -1679,7 +1703,16 @@ function pruneBrowserRecord(
           def ?? APP_CATALOG.find((a) => a.id === builtinKind) ?? APP_CATALOG[0];
         const count = ++nextShellWinCounter;
         const resolvedAppId = def?.id ?? builtinKind;
-        const remembered = settings.savedWindowBounds?.[resolvedAppId];
+        const boundsKey =
+          (resolvedAppId === "nautilus" ||
+            resolvedAppId === "text-editor" ||
+            resolvedAppId === "image-viewer") &&
+          options?.payload
+            ? `${resolvedAppId}:${options.payload}`
+            : resolvedAppId;
+        const remembered =
+          settings.savedWindowBounds?.[boundsKey] ??
+          settings.savedWindowBounds?.[resolvedAppId];
         const minSize = builtinDef.minSize ?? {
           width: Math.min(360, builtinDef.defaultSize.width),
           height: Math.min(260, builtinDef.defaultSize.height),
@@ -1718,8 +1751,7 @@ function pruneBrowserRecord(
           gradient: builtinDef.gradient,
           builtinComponent: builtinKind,
           clientFrame:
-            options?.forceCsd ??
-            (builtinKind !== "text-editor" && builtinKind !== "terminal"),
+            options?.forceCsd ?? builtinKind !== "terminal",
           workspace: clampWorkspace(
             settings.activeWorkspace,
             settings.workspaceCount
@@ -1732,6 +1764,7 @@ function pruneBrowserRecord(
           zIndex: ++nextZIndex,
           payload: options?.payload,
         };
+        beginStartupNotification(resolvedAppId);
         setShellWindows((prev) => [...prev, newWin]);
         setFocusedWindowId(newWin.id);
         setMruIds((prev) => [newWin.id, ...prev]);
@@ -1828,6 +1861,7 @@ function pruneBrowserRecord(
       if (!normalized) return;
       clearLaunchOverlays();
       console.info("[Piloti] openWebUrl", normalized);
+      beginStartupNotification(options?.appId ?? "browser");
       if (options?.title) {
         pendingWebTitlesRef.current.set(
           options.appId ?? normalized,
@@ -1844,7 +1878,7 @@ function pruneBrowserRecord(
         domicile.browser.open(normalized);
       }
     },
-    [clearLaunchOverlays, domicile.browser]
+    [beginStartupNotification, clearLaunchOverlays, domicile.browser]
   );
 
   const toggleOverview = React.useCallback(() => {

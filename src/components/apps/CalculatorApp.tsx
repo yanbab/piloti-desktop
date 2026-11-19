@@ -267,19 +267,19 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
   return (
     <div
       style={{ "--adw-accent": "#ff9f0a" } as React.CSSProperties}
-      className="flex h-full w-full flex-col overflow-hidden bg-adw-window text-adw-label select-none"
+      className="adw-material-sidebar flex h-full w-full flex-col overflow-hidden text-adw-label select-none"
     >
       {/* Top Drag Header + Mode Toggle + Window Close on Right */}
       <div
         data-window-drag-region={isCsd ? "" : undefined}
-        className="flex h-8 shrink-0 items-center justify-end gap-1.5 px-2.5 pt-1"
+        className="flex h-8 shrink-0 items-center justify-end gap-1.5 px-2 pt-0.5"
       >
         <button
           type="button"
           data-window-no-drag
           onClick={() => setMode(!scientific)}
           className={cn(
-            "rounded-md border px-2 py-0.5 text-[10.5px] font-medium transition-colors",
+            "flex h-5 items-center rounded-full border px-2 text-[10.5px] font-semibold transition-colors",
             scientific
               ? "border-[#ff9f0a] bg-[#ff9f0a] text-white"
               : "border-adw-border bg-adw-fill-secondary text-adw-label hover:bg-adw-fill-primary",
@@ -308,9 +308,9 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
           window.setTimeout(() => setCopied(false), 900);
         }}
         title="Click to copy"
-        className="mx-2.5 mb-1.5 flex shrink-0 cursor-default flex-col items-end justify-end rounded-lg border border-adw-border bg-adw-content px-2.5 py-1.5"
+        className="mx-2 mb-1.5 flex shrink-0 cursor-default flex-col items-end justify-end rounded-lg border border-adw-border/60 bg-adw-content/80 px-2.5 py-1"
       >
-        <div className="flex h-3.5 w-full items-center justify-between text-[10.5px] text-adw-dim tabular-nums">
+        <div className="flex h-3 w-full items-center justify-between text-[10px] text-adw-dim tabular-nums">
           <span>{copied ? "Copied" : ""}</span>
           <span className="truncate">{expressionLine}</span>
         </div>
@@ -318,10 +318,10 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
           className={cn(
             "w-full truncate text-right font-light tracking-tight tabular-nums",
             formatted.length > 11
-              ? "text-[18px]"
+              ? "text-[16px]"
               : formatted.length > 8
-                ? "text-[22px]"
-                : "text-[28px] leading-[1.1]",
+                ? "text-[20px]"
+                : "text-[24px] leading-[1.1]",
           )}
         >
           {formatted}
@@ -329,62 +329,62 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
       </div>
 
       {/* Keypad */}
-      <div className="flex min-h-0 flex-1 gap-1 p-2.5 pt-0">
+      <div className="flex min-h-0 flex-1 gap-1 p-2 pt-0 [&_button]:font-bold">
         {scientific && (
           <div className="grid w-24 shrink-0 grid-cols-2 grid-rows-5 gap-1">
             <button
               type="button"
               onClick={() => applyUnary("sq", (x) => x * x)}
-              className="rounded-md border border-adw-border/70 bg-adw-fill-tertiary text-[11.5px] font-medium text-adw-label transition-colors hover:bg-adw-fill-secondary active:bg-adw-fill-primary"
+              className="rounded-md bg-adw-fill-tertiary text-[11.5px] font-medium text-adw-label outline-none focus:outline-none active:bg-adw-fill-primary"
             >
               x²
             </button>
             <button
               type="button"
               onClick={() => applyUnary("sqrt", (x) => Math.sqrt(x))}
-              className="rounded-md border border-adw-border/70 bg-adw-fill-tertiary text-[11.5px] font-medium text-adw-label transition-colors hover:bg-adw-fill-secondary active:bg-adw-fill-primary"
+              className="rounded-md bg-adw-fill-tertiary text-[11.5px] font-medium text-adw-label outline-none focus:outline-none active:bg-adw-fill-primary"
             >
               √x
             </button>
             <button
               type="button"
               onClick={() => applyUnary("sin", (x) => Math.sin(x))}
-              className="rounded-md border border-adw-border/70 bg-adw-fill-tertiary text-[11.5px] font-medium text-adw-label transition-colors hover:bg-adw-fill-secondary active:bg-adw-fill-primary"
+              className="rounded-md bg-adw-fill-tertiary text-[11.5px] font-medium text-adw-label outline-none focus:outline-none active:bg-adw-fill-primary"
             >
               sin
             </button>
             <button
               type="button"
               onClick={() => applyUnary("cos", (x) => Math.cos(x))}
-              className="rounded-md border border-adw-border/70 bg-adw-fill-tertiary text-[11.5px] font-medium text-adw-label transition-colors hover:bg-adw-fill-secondary active:bg-adw-fill-primary"
+              className="rounded-md bg-adw-fill-tertiary text-[11.5px] font-medium text-adw-label outline-none focus:outline-none active:bg-adw-fill-primary"
             >
               cos
             </button>
             <button
               type="button"
               onClick={() => applyUnary("tan", (x) => Math.tan(x))}
-              className="rounded-md border border-adw-border/70 bg-adw-fill-tertiary text-[11.5px] font-medium text-adw-label transition-colors hover:bg-adw-fill-secondary active:bg-adw-fill-primary"
+              className="rounded-md bg-adw-fill-tertiary text-[11.5px] font-medium text-adw-label outline-none focus:outline-none active:bg-adw-fill-primary"
             >
               tan
             </button>
             <button
               type="button"
               onClick={() => applyUnary("ln", (x) => Math.log(x))}
-              className="rounded-md border border-adw-border/70 bg-adw-fill-tertiary text-[11.5px] font-medium text-adw-label transition-colors hover:bg-adw-fill-secondary active:bg-adw-fill-primary"
+              className="rounded-md bg-adw-fill-tertiary text-[11.5px] font-medium text-adw-label outline-none focus:outline-none active:bg-adw-fill-primary"
             >
               ln
             </button>
             <button
               type="button"
               onClick={() => applyUnary("log", (x) => Math.log10(x))}
-              className="rounded-md border border-adw-border/70 bg-adw-fill-tertiary text-[11.5px] font-medium text-adw-label transition-colors hover:bg-adw-fill-secondary active:bg-adw-fill-primary"
+              className="rounded-md bg-adw-fill-tertiary text-[11.5px] font-medium text-adw-label outline-none focus:outline-none active:bg-adw-fill-primary"
             >
               log
             </button>
             <button
               type="button"
               onClick={() => applyUnary("inv", (x) => 1 / x)}
-              className="rounded-md border border-adw-border/70 bg-adw-fill-tertiary text-[11.5px] font-medium text-adw-label transition-colors hover:bg-adw-fill-secondary active:bg-adw-fill-primary"
+              className="rounded-md bg-adw-fill-tertiary text-[11.5px] font-medium text-adw-label outline-none focus:outline-none active:bg-adw-fill-primary"
             >
               1/x
             </button>
@@ -394,7 +394,7 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
                 setDisplay(Number(Math.PI.toPrecision(12)).toString());
                 setWaitingForOperand(false);
               }}
-              className="rounded-md border border-adw-border/70 bg-adw-fill-tertiary text-[11.5px] font-medium text-adw-label transition-colors hover:bg-adw-fill-secondary active:bg-adw-fill-primary"
+              className="rounded-md bg-adw-fill-tertiary text-[11.5px] font-medium text-adw-label outline-none focus:outline-none active:bg-adw-fill-primary"
             >
               π
             </button>
@@ -404,7 +404,7 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
                 setDisplay(Number(Math.E.toPrecision(12)).toString());
                 setWaitingForOperand(false);
               }}
-              className="rounded-md border border-adw-border/70 bg-adw-fill-tertiary text-[11.5px] font-medium text-adw-label transition-colors hover:bg-adw-fill-secondary active:bg-adw-fill-primary"
+              className="rounded-md bg-adw-fill-tertiary text-[11.5px] font-medium text-adw-label outline-none focus:outline-none active:bg-adw-fill-primary"
             >
               e
             </button>
@@ -416,33 +416,28 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
           <button
             type="button"
             onClick={clearAll}
-            className="rounded-md border border-adw-border/70 bg-adw-fill-secondary text-[13px] font-medium text-adw-label transition-colors hover:bg-adw-fill-primary active:opacity-80"
+            className="rounded-md bg-adw-fill-secondary text-[13px] font-medium text-adw-label outline-none focus:outline-none active:bg-adw-fill-primary"
           >
             {clearLabel}
           </button>
           <button
             type="button"
             onClick={toggleSign}
-            className="rounded-md border border-adw-border/70 bg-adw-fill-secondary text-[13px] font-medium text-adw-label transition-colors hover:bg-adw-fill-primary active:opacity-80"
+            className="rounded-md bg-adw-fill-secondary text-[13px] font-medium text-adw-label outline-none focus:outline-none active:bg-adw-fill-primary"
           >
             +/−
           </button>
           <button
             type="button"
             onClick={inputPercent}
-            className="rounded-md border border-adw-border/70 bg-adw-fill-secondary text-[13px] font-medium text-adw-label transition-colors hover:bg-adw-fill-primary active:opacity-80"
+            className="rounded-md bg-adw-fill-secondary text-[13px] font-medium text-adw-label outline-none focus:outline-none active:bg-adw-fill-primary"
           >
             %
           </button>
           <button
             type="button"
             onClick={() => performOperation("/")}
-            className={cn(
-              "rounded-md text-[16px] font-medium transition-colors",
-              pendingOp === "/" && waitingForOperand
-                ? "bg-white text-[#ff9f0a] ring-1 ring-[#ff9f0a]"
-                : "bg-[#ff9f0a] text-white hover:bg-[#ffb340] active:bg-[#d98200]",
-            )}
+            className="rounded-md bg-[#ff9f0a] text-[16px] font-medium text-white outline-none focus:outline-none active:brightness-90"
           >
             ÷
           </button>
@@ -453,7 +448,7 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
               key={d}
               type="button"
               onClick={() => inputDigit(d)}
-              className="rounded-md border border-adw-border/70 bg-adw-card text-[15px] font-medium text-adw-label transition-colors hover:bg-adw-fill-secondary active:bg-adw-fill-primary"
+              className="rounded-md bg-adw-card text-[15px] font-medium text-adw-label outline-none focus:outline-none active:bg-adw-fill-primary"
             >
               {d}
             </button>
@@ -461,12 +456,7 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
           <button
             type="button"
             onClick={() => performOperation("*")}
-            className={cn(
-              "rounded-md text-[16px] font-medium transition-colors",
-              pendingOp === "*" && waitingForOperand
-                ? "bg-white text-[#ff9f0a] ring-1 ring-[#ff9f0a]"
-                : "bg-[#ff9f0a] text-white hover:bg-[#ffb340] active:bg-[#d98200]",
-            )}
+            className="rounded-md bg-[#ff9f0a] text-[16px] font-medium text-white outline-none focus:outline-none active:brightness-90"
           >
             ×
           </button>
@@ -477,7 +467,7 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
               key={d}
               type="button"
               onClick={() => inputDigit(d)}
-              className="rounded-md border border-adw-border/70 bg-adw-card text-[15px] font-medium text-adw-label transition-colors hover:bg-adw-fill-secondary active:bg-adw-fill-primary"
+              className="rounded-md bg-adw-card text-[15px] font-medium text-adw-label outline-none focus:outline-none active:bg-adw-fill-primary"
             >
               {d}
             </button>
@@ -485,12 +475,7 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
           <button
             type="button"
             onClick={() => performOperation("-")}
-            className={cn(
-              "rounded-md text-[16px] font-medium transition-colors",
-              pendingOp === "-" && waitingForOperand
-                ? "bg-white text-[#ff9f0a] ring-1 ring-[#ff9f0a]"
-                : "bg-[#ff9f0a] text-white hover:bg-[#ffb340] active:bg-[#d98200]",
-            )}
+            className="rounded-md bg-[#ff9f0a] text-[16px] font-medium text-white outline-none focus:outline-none active:brightness-90"
           >
             −
           </button>
@@ -501,7 +486,7 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
               key={d}
               type="button"
               onClick={() => inputDigit(d)}
-              className="rounded-md border border-adw-border/70 bg-adw-card text-[15px] font-medium text-adw-label transition-colors hover:bg-adw-fill-secondary active:bg-adw-fill-primary"
+              className="rounded-md bg-adw-card text-[15px] font-medium text-adw-label outline-none focus:outline-none active:bg-adw-fill-primary"
             >
               {d}
             </button>
@@ -509,12 +494,7 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
           <button
             type="button"
             onClick={() => performOperation("+")}
-            className={cn(
-              "rounded-md text-[16px] font-medium transition-colors",
-              pendingOp === "+" && waitingForOperand
-                ? "bg-white text-[#ff9f0a] ring-1 ring-[#ff9f0a]"
-                : "bg-[#ff9f0a] text-white hover:bg-[#ffb340] active:bg-[#d98200]",
-            )}
+            className="rounded-md bg-[#ff9f0a] text-[16px] font-medium text-white outline-none focus:outline-none active:brightness-90"
           >
             +
           </button>
@@ -523,21 +503,21 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
           <button
             type="button"
             onClick={() => inputDigit("0")}
-            className="col-span-2 flex items-center rounded-md border border-adw-border/70 bg-adw-card pl-4 text-left text-[15px] font-medium text-adw-label transition-colors hover:bg-adw-fill-secondary active:bg-adw-fill-primary"
+            className="col-span-2 flex items-center rounded-md bg-adw-card pl-4 text-left text-[15px] font-medium text-adw-label outline-none focus:outline-none active:bg-adw-fill-primary"
           >
             0
           </button>
           <button
             type="button"
             onClick={inputDecimal}
-            className="rounded-md border border-adw-border/70 bg-adw-card text-[15px] font-medium text-adw-label transition-colors hover:bg-adw-fill-secondary active:bg-adw-fill-primary"
+            className="rounded-md bg-adw-card text-[15px] font-medium text-adw-label outline-none focus:outline-none active:bg-adw-fill-primary"
           >
             .
           </button>
           <button
             type="button"
             onClick={performEquals}
-            className="rounded-md bg-[#ff9f0a] text-[16px] font-medium text-white transition-colors hover:bg-[#ffb340] active:bg-[#d98200]"
+            className="rounded-md bg-[#ff9f0a] text-[16px] font-medium text-white outline-none focus:outline-none active:brightness-90"
           >
             =
           </button>

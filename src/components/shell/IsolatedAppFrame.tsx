@@ -12,6 +12,7 @@ import {
   type ShellToAppMessage,
 } from "@/lib/app-bridge";
 import { getVfsEntry, listVfsDir, writeVfsTextFile } from "@/lib/web-vfs";
+import { cn } from "@/lib/utils";
 
 export interface IsolatedAppFrameProps {
   appId: string;
@@ -92,6 +93,23 @@ export const IsolatedAppFrame: React.FC<IsolatedAppFrameProps> = ({
   React.useEffect(() => {
     sendThemeSync();
   }, [sendThemeSync]);
+
+  React.useEffect(() => {
+    const onAppAction = (e: Event) => {
+      const detail = (e as CustomEvent<{ windowId?: string; actionId?: string }>)
+        .detail;
+      if (!detail || detail.windowId !== windowId || !detail.actionId) return;
+      const win = iframeRef.current?.contentWindow;
+      if (!win) return;
+      const msg: ShellToAppMessage = {
+        type: "piloti:app-action",
+        actionId: detail.actionId,
+      };
+      win.postMessage(msg, "*");
+    };
+    window.addEventListener("piloti:app-action", onAppAction);
+    return () => window.removeEventListener("piloti:app-action", onAppAction);
+  }, [windowId]);
 
   React.useEffect(() => {
     const onMessage = (e: MessageEvent) => {
@@ -209,10 +227,27 @@ export const IsolatedAppFrame: React.FC<IsolatedAppFrameProps> = ({
   }, [fallbackElement, isHttpRuntime]);
 
   return (
-    <div className="relative h-full w-full overflow-hidden bg-adw-window">
+    <div
+      className={cn(
+        "relative h-full w-full overflow-hidden",
+        appId === "calculator" ? "bg-transparent" : "bg-adw-window",
+      )}
+    >
       {isCsd && (
         <div
           data-window-drag-region=""
+          onMouseEnter={() =>
+            iframeRef.current?.contentWindow?.postMessage(
+              { type: "piloti:app-action", actionId: "piloti:header-enter" },
+              "*",
+            )
+          }
+          onMouseLeave={() =>
+            iframeRef.current?.contentWindow?.postMessage(
+              { type: "piloti:app-action", actionId: "piloti:header-leave" },
+              "*",
+            )
+          }
           className="absolute top-0 right-24 left-10 z-10 h-9"
         />
       )}
@@ -221,7 +256,10 @@ export const IsolatedAppFrame: React.FC<IsolatedAppFrameProps> = ({
         src={iframeSrc}
         title={title}
         onLoad={sendThemeSync}
-        className="h-full w-full border-0 bg-adw-window"
+        className={cn(
+          "h-full w-full border-0",
+          appId === "calculator" ? "bg-transparent" : "bg-adw-window",
+        )}
       />
     </div>
   );

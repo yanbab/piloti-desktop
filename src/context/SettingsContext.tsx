@@ -76,7 +76,6 @@ export interface DesktopSettings {
   clockShowDay: boolean;
   clockShowDate: boolean;
   showBatteryPercentage: boolean;
-  dockClockWidget: boolean;
   reduceMotion: boolean;
   moreTransparency: boolean;
   windowDecorationMode: WindowDecorationMode;
@@ -133,22 +132,21 @@ export interface DesktopSettings {
 }
 
 const DEFAULT_SETTINGS: DesktopSettings = {
-  themeMode: "dark",
-  accentColor: "blue",
+  themeMode: "system",
+  accentColor: "teal",
   wallpaperId: "piloti-aurora",
   customWallpaperUrl: "",
   gnomeBackground: { ...DEFAULT_GNOME_BACKGROUND },
   dockSize: 52,
   dockPosition: "bottom",
-  dockMagnification: true,
+  dockMagnification: false,
   dockMagnificationSize: 76,
   dockAutoHide: false,
   clock24Hour: true,
   clockShowSeconds: false,
-  clockShowDay: true,
-  clockShowDate: true,
+  clockShowDay: false,
+  clockShowDate: false,
   showBatteryPercentage: true,
-  dockClockWidget: false,
   reduceMotion: false,
   moreTransparency: true,
   windowDecorationMode: "auto",
@@ -195,7 +193,7 @@ const DEFAULT_SETTINGS: DesktopSettings = {
   workspaceCount: 2,
   restoreWindowsOnLogin: true,
   desktopIconsEnabled: true,
-  fileActivationMode: "single",
+  fileActivationMode: "double",
   desktopIconPositions: {},
   pinnedAppIds: APP_CATALOG.filter((a) => a.pinnedByDefault).map((a) => a.id),
   installedWebApps: [],
@@ -749,29 +747,52 @@ export function useSettingsValue(options?: {
     root.style.setProperty("--piloti-font-style", styleSpec.style);
 
     const scale = Math.max(0.8, Math.min(1.5, settings.fontScale || 1));
+    root.style.setProperty("--piloti-font-scale", String(scale));
     if (Math.abs(scale - 1) < 0.001) {
+      root.style.fontSize = "";
       root.style.removeProperty("--text-adw-large-title");
+      root.style.removeProperty("--text-adw-large-title--line-height");
       root.style.removeProperty("--text-adw-title-1");
+      root.style.removeProperty("--text-adw-title-1--line-height");
       root.style.removeProperty("--text-adw-title-2");
+      root.style.removeProperty("--text-adw-title-2--line-height");
       root.style.removeProperty("--text-adw-title-3");
+      root.style.removeProperty("--text-adw-title-3--line-height");
       root.style.removeProperty("--text-adw-headline");
+      root.style.removeProperty("--text-adw-headline--line-height");
       root.style.removeProperty("--text-adw-body");
+      root.style.removeProperty("--text-adw-body--line-height");
       root.style.removeProperty("--text-adw-callout");
+      root.style.removeProperty("--text-adw-callout--line-height");
       root.style.removeProperty("--text-adw-subheadline");
+      root.style.removeProperty("--text-adw-subheadline--line-height");
       root.style.removeProperty("--text-adw-footnote");
+      root.style.removeProperty("--text-adw-footnote--line-height");
       root.style.removeProperty("--text-adw-caption");
+      root.style.removeProperty("--text-adw-caption--line-height");
     } else {
       const px = (base: number) => `${Math.round(base * scale * 10) / 10}px`;
+      root.style.fontSize = `${Math.round(16 * scale * 100) / 100}px`;
       root.style.setProperty("--text-adw-large-title", px(26));
+      root.style.setProperty("--text-adw-large-title--line-height", px(32));
       root.style.setProperty("--text-adw-title-1", px(22));
+      root.style.setProperty("--text-adw-title-1--line-height", px(26));
       root.style.setProperty("--text-adw-title-2", px(17));
+      root.style.setProperty("--text-adw-title-2--line-height", px(22));
       root.style.setProperty("--text-adw-title-3", px(15));
+      root.style.setProperty("--text-adw-title-3--line-height", px(20));
       root.style.setProperty("--text-adw-headline", px(13));
+      root.style.setProperty("--text-adw-headline--line-height", px(16));
       root.style.setProperty("--text-adw-body", px(13));
+      root.style.setProperty("--text-adw-body--line-height", px(16));
       root.style.setProperty("--text-adw-callout", px(12));
+      root.style.setProperty("--text-adw-callout--line-height", px(15));
       root.style.setProperty("--text-adw-subheadline", px(11));
+      root.style.setProperty("--text-adw-subheadline--line-height", px(14));
       root.style.setProperty("--text-adw-footnote", px(10));
+      root.style.setProperty("--text-adw-footnote--line-height", px(13));
       root.style.setProperty("--text-adw-caption", px(10));
+      root.style.setProperty("--text-adw-caption--line-height", px(13));
     }
   }, [
     settings.cssFontKerning,

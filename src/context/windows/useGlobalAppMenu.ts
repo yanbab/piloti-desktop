@@ -193,6 +193,12 @@ export function useGlobalAppMenu({
         actionId === "shell:control-center"
       ) {
         setControlPanelOpen((v) => !v);
+      } else if (actionId.startsWith("text-editor:") && focusedWindowId) {
+        window.dispatchEvent(
+          new CustomEvent("piloti:app-action", {
+            detail: { windowId: focusedWindowId, actionId },
+          }),
+        );
       }
     },
     [

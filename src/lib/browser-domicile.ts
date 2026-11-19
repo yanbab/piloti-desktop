@@ -9,47 +9,7 @@ declare global {
   }
 }
 
-const INITIAL_NOTIFICATIONS: DomicileNotification[] = [
-  {
-    id: 101,
-    appName: "Domicile Compositor",
-    summary: "Piloti Shell Ready",
-    body: "Press Alt+Space to open the Launcher or Alt+Tab to switch windows.",
-    icon: "",
-    urgency: "normal",
-    actions: [{ key: "settings", label: "Open Settings" }],
-    clickable: true,
-    timeoutMs: 0,
-    time: Date.now() - 1000 * 60 * 4,
-    browserWindow: "",
-  },
-  {
-    id: 102,
-    appName: "Theme Engine",
-    summary: "GNOME Adwaita Theme Ready",
-    body: "Customize light/dark mode and Adwaita accent colors in Desktop Settings → Appearance.",
-    icon: "",
-    urgency: "low",
-    actions: [],
-    clickable: true,
-    timeoutMs: 0,
-    time: Date.now() - 1000 * 60 * 18,
-    browserWindow: "",
-  },
-  {
-    id: 103,
-    appName: "VMware / Debian Bridge",
-    summary: "XDG Desktop Applications Indexed",
-    body: "Installed .desktop applications loaded via the xdg-desktop specification module.",
-    icon: "",
-    urgency: "normal",
-    actions: [],
-    clickable: true,
-    timeoutMs: 0,
-    time: Date.now() - 1000 * 60 * 42,
-    browserWindow: "",
-  },
-];
+const INITIAL_NOTIFICATIONS: DomicileNotification[] = [];
 
 /**
  * Virtual `/usr/share/applications/*.desktop` files served by `FakeDomicileHost`
