@@ -41,8 +41,18 @@ import {
 } from "@/lib/console-store";
 import { _ } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
+import {
+  WEB_VFS_CHANGED_EVENT,
+  WEB_VFS_STORAGE_KEY,
+  type WebVfsEntry,
+} from "@/lib/web-vfs";
 
-export type ConsoleModuleId = "repl" | "logs" | "inspector" | "storage";
+export type ConsoleModuleId =
+  | "repl"
+  | "logs"
+  | "inspector"
+  | "storage"
+  | "vfs-events";
 
 interface ReplItem {
   id: number;
@@ -885,6 +895,248 @@ function readLocalStorageEntries(): StorageEntry[] {
   return entries;
 }
 
+interface InspectorEventLog {
+  id: number;
+  time: string;
+  type: string;
+  detail: string;
+}
+
+interface VfsDiffItem {
+  kind: "added" | "modified" | "removed";
+  path: string;
+  entryType: "file" | "directory";
+  sizeDelta?: number;
+}
+
+function readVfsSnapshotMap(): Map<string, WebVfsEntry> {
+  const map = new Map<string, WebVfsEntry>();
+  if (typeof localStorage === "undefined") return map;
+  try {
+    const raw = localStorage.getItem(WEB_VFS_STORAGE_KEY);
+    if (!raw) return map;
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) {
+      for (const entry of parsed as WebVfsEntry[]) {
+        if (entry?.path) map.set(entry.path, entry);
+      }
+    }
+  } catch {
+    // ignore
+  }
+  return map;
+}
+
+function VfsEventsModule() {
+  const { windows, focusedWindowId } = useWindowManager();
+  const [baseline, setBaseline] = React.useState<Map<string, WebVfsEntry>>(() =>
+    readVfsSnapshotMap()
+  );
+  const [currentMap, setCurrentMap] = React.useState<Map<string, WebVfsEntry>>(
+    () => readVfsSnapshotMap()
+  );
+  const [events, setEvents] = React.useState<InspectorEventLog[]>([]);
+  const nextEventIdRef = React.useRef(1);
+  const prevWinSummaryRef = React.useRef<string>("");
+
+  const pushEvent = React.useCallback((type: string, detail: string) => {
+    const time = new Date().toLocaleTimeString();
+    setEvents((prev) => [
+      { id: nextEventIdRef.current++, time, type, detail },
+      ...prev.slice(0, 149),
+    ]);
+  }, []);
+
+  React.useEffect(() => {
+    const summary = JSON.stringify({
+      focusedWindowId,
+      wins: windows.map((w) => ({
+        id: w.id,
+        appId: w.appId,
+        ws: w.workspace,
+        min: w.minimized,
+        max: w.maximized,
+      })),
+    });
+    if (prevWinSummaryRef.current && prevWinSummaryRef.current !== summary) {
+      pushEvent(
+        "WindowEvent",
+        `focused=${focusedWindowId ?? "none"} count=${windows.length}`
+      );
+    }
+    prevWinSummaryRef.current = summary;
+  }, [focusedWindowId, pushEvent, windows]);
+
+  React.useEffect(() => {
+    const eventNames = [
+      "piloti:app-action",
+      "piloti:app-menu-state",
+      "piloti:open-launcher",
+      "piloti:workspace-zoom-from-thumb",
+      "piloti:xdg-webapps-changed",
+      "residence:file-drop-dock",
+      "residence:file-drop-window",
+      "residence:desktop-drop-position",
+      WEB_VFS_CHANGED_EVENT,
+    ];
+    const listeners = eventNames.map((name) => {
+      const fn = (e: Event) => {
+        if (name === WEB_VFS_CHANGED_EVENT) {
+          setCurrentMap(readVfsSnapshotMap());
+        }
+        const detail = (e as CustomEvent<unknown>).detail;
+        let detailStr = "";
+        try {
+          detailStr = detail ? JSON.stringify(detail) : "";
+        } catch {
+          detailStr = String(detail);
+        }
+        pushEvent(name, detailStr.slice(0, 180));
+      };
+      window.addEventListener(name, fn);
+      return { name, fn };
+    });
+    return () => {
+      for (const { name, fn } of listeners) {
+        window.removeEventListener(name, fn);
+      }
+    };
+  }, [pushEvent]);
+
+  const diffs = React.useMemo<VfsDiffItem[]>(() => {
+    const items: VfsDiffItem[] = [];
+    for (const [path, cur] of currentMap.entries()) {
+      const base = baseline.get(path);
+      if (!base) {
+        items.push({
+          kind: "added",
+          path,
+          entryType: cur.kind,
+          sizeDelta: cur.content?.length ?? 0,
+        });
+      } else if (
+        base.content !== cur.content ||
+        base.updatedAt !== cur.updatedAt
+      ) {
+        items.push({
+          kind: "modified",
+          path,
+          entryType: cur.kind,
+          sizeDelta: (cur.content?.length ?? 0) - (base.content?.length ?? 0),
+        });
+      }
+    }
+    for (const [path, base] of baseline.entries()) {
+      if (!currentMap.has(path)) {
+        items.push({
+          kind: "removed",
+          path,
+          entryType: base.kind,
+          sizeDelta: -(base.content?.length ?? 0),
+        });
+      }
+    }
+    return items.sort((a, b) => a.path.localeCompare(b.path));
+  }, [baseline, currentMap]);
+
+  return (
+    <div className="grid min-h-0 flex-1 grid-cols-1 divide-y divide-adw-separator overflow-hidden bg-adw-content md:grid-cols-2 md:divide-x md:divide-y-0">
+      {/* Left: Live VFS Diff Viewer */}
+      <div className="flex min-h-0 flex-col overflow-hidden">
+        <div className="flex items-center justify-between border-b border-adw-separator px-3 py-2">
+          <span className="text-[12px] font-semibold text-adw-label">
+            VFS Diff ({diffs.length})
+          </span>
+          <button
+            type="button"
+            onClick={() => {
+              const snap = readVfsSnapshotMap();
+              setBaseline(snap);
+              setCurrentMap(snap);
+            }}
+            className="rounded-md bg-black/8 px-2 py-0.5 text-[11px] font-medium text-adw-label transition-colors hover:bg-black/14 dark:bg-white/10 dark:hover:bg-white/16"
+          >
+            Snapshot Baseline
+          </button>
+        </div>
+        <div className="min-h-0 flex-1 overflow-y-auto p-2 font-mono text-[11.5px]">
+          {diffs.length === 0 ? (
+            <div className="px-2 py-4 text-adw-dim">
+              No VFS changes since baseline ({currentMap.size} entries tracked).
+            </div>
+          ) : (
+            diffs.map((d) => (
+              <div
+                key={`${d.kind}:${d.path}`}
+                className="flex items-center justify-between gap-2 rounded px-2 py-1 hover:bg-black/5 dark:hover:bg-white/5"
+              >
+                <span
+                  className={cn(
+                    "truncate",
+                    d.kind === "added" && "text-emerald-500",
+                    d.kind === "modified" && "text-amber-500",
+                    d.kind === "removed" && "text-rose-500"
+                  )}
+                >
+                  {d.kind === "added" ? "+ " : d.kind === "modified" ? "~ " : "- "}
+                  {d.path}
+                </span>
+                {typeof d.sizeDelta === "number" && d.entryType === "file" && (
+                  <span className="shrink-0 text-[10.5px] text-adw-dim">
+                    {d.sizeDelta >= 0 ? `+${d.sizeDelta}B` : `${d.sizeDelta}B`}
+                  </span>
+                )}
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+
+      {/* Right: Live WindowEvent & Shell Event Stream */}
+      <div className="flex min-h-0 flex-col overflow-hidden">
+        <div className="flex items-center justify-between border-b border-adw-separator px-3 py-2">
+          <span className="text-[12px] font-semibold text-adw-label">
+            Window & Shell Events ({events.length})
+          </span>
+          <button
+            type="button"
+            onClick={() => setEvents([])}
+            className="rounded-md bg-black/8 px-2 py-0.5 text-[11px] font-medium text-adw-label transition-colors hover:bg-black/14 dark:bg-white/10 dark:hover:bg-white/16"
+          >
+            Clear
+          </button>
+        </div>
+        <div className="min-h-0 flex-1 overflow-y-auto p-2 font-mono text-[11px]">
+          {events.length === 0 ? (
+            <div className="px-2 py-4 text-adw-dim">
+              Listening for WindowEvent, VFS, and Shell events...
+            </div>
+          ) : (
+            events.map((ev) => (
+              <div
+                key={ev.id}
+                className="border-b border-adw-separator/40 px-2 py-1.5 last:border-none"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-semibold text-adw-accent">
+                    {ev.type}
+                  </span>
+                  <span className="text-[10px] text-adw-dim">{ev.time}</span>
+                </div>
+                {ev.detail && (
+                  <div className="mt-0.5 truncate text-adw-label-secondary">
+                    {ev.detail}
+                  </div>
+                )}
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function StorageModule() {
   const { settings } = useSettings();
   const [entries, setEntries] = React.useState<StorageEntry[]>(() =>
@@ -1135,7 +1387,11 @@ export function ConsoleApp({
 
   const DEVTOOLS_ACTIVE_MODULE_KEY = "piloti.devtools.activeModule.v1";
   const isModuleId = (v: string | null | undefined): v is ConsoleModuleId =>
-    v === "repl" || v === "logs" || v === "inspector" || v === "storage";
+    v === "repl" ||
+    v === "logs" ||
+    v === "inspector" ||
+    v === "storage" ||
+    v === "vfs-events";
 
   const [activeModule, setActiveModule] = React.useState<ConsoleModuleId>(
     () => {
@@ -1242,6 +1498,7 @@ export function ConsoleApp({
       badge: errorCount > 0 ? errorCount : undefined,
     },
     { id: "inspector", label: "Infos" },
+    { id: "vfs-events", label: "VFS & Events" },
     { id: "storage", label: "Storage" },
   ];
 
@@ -1308,6 +1565,7 @@ export function ConsoleApp({
       {activeModule === "repl" && <ReplModule scope={replScope} />}
       {activeModule === "logs" && <LogsModule />}
       {activeModule === "inspector" && <InspectorModule />}
+      {activeModule === "vfs-events" && <VfsEventsModule />}
       {activeModule === "storage" && <StorageModule />}
     </div>
   );
