@@ -30,14 +30,14 @@ import { type SystemBackendsContextValue } from "./SystemBackendsContext";
 
 function resolveXdgVisualStyle(entry: XdgDesktopEntry): {
   iconName:
-    | "settings"
-    | "terminal"
-    | "folder"
-    | "globe"
-    | "notes"
-    | "activity"
-    | "code"
-    | "sparkles";
+  | "settings"
+  | "terminal"
+  | "folder"
+  | "globe"
+  | "notes"
+  | "activity"
+  | "code"
+  | "sparkles";
   gradient: string;
 } {
   const lower = `${entry.desktopId} ${entry.icon ?? ""} ${entry.categories.join(" ")}`.toLowerCase();
@@ -384,7 +384,7 @@ export function useAppsValue(
               None: () => setPortalIconTheme("Adwaita"),
             });
           },
-          Err: () => {},
+          Err: () => { },
         });
       });
     } catch {
@@ -611,7 +611,60 @@ export function useAppsValue(
     };
     // pinnedAppIds only affects icon batch ordering, not discovery
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [domicile.files, activeIconTheme]);
+  }, [domicile.files, activeIconTheme, refreshNonce]);
+
+  // Watch XDG application directories so newly installed apps appear without restarting the shell
+  React.useEffect(() => {
+    if (isBrowserRuntime) return;
+    let stopped = false;
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+    const stopFns: Array<() => void> = [];
+    const appDirs = [
+      ".local/share/applications",
+      "/usr/share/applications",
+      "/usr/local/share/applications",
+      "/var/lib/flatpak/exports/share/applications",
+      ".local/share/flatpak/exports/share/applications",
+    ];
+
+    const scheduleRefresh = () => {
+      if (stopped) return;
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        if (!stopped) refreshXdgApps();
+      }, 400);
+    };
+
+    for (const dir of appDirs) {
+      void domicile.files
+        .watch(dir)
+        .then((res) => {
+          res.match({
+            Ok: async (listening) => {
+              if (stopped) {
+                listening.stop();
+                return;
+              }
+              stopFns.push(() => listening.stop());
+              const reader = listening.items.getReader();
+              while (!stopped) {
+                const next = await reader.read();
+                if (next.done) break;
+                scheduleRefresh();
+              }
+            },
+            Err: () => undefined,
+          });
+        })
+        .catch(() => undefined);
+    }
+
+    return () => {
+      stopped = true;
+      if (debounceTimer) clearTimeout(debounceTimer);
+      for (const stop of stopFns) stop();
+    };
+  }, [domicile.files, isBrowserRuntime, refreshXdgApps]);
 
   const ensureWaylandIcons = React.useCallback(
     (ids: readonly string[]) => {

@@ -7,7 +7,7 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useIsolatedAppBridge } from "@/lib/app-bridge";
+import { useWindowManager } from "@/context/DesktopStateContext";
 import { _ } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
@@ -76,12 +76,11 @@ function loadSavedCalculatorState(): SavedCalculatorState {
 }
 
 export const CalculatorApp: React.FC<CalculatorAppProps> = ({
-  windowId: propWindowId = "",
-  isCsd: propIsCsd = true,
+  windowId = "",
+  isCsd = true,
   onCloseWindow,
 }) => {
-  const bridge = useIsolatedAppBridge(propWindowId, propIsCsd);
-  const isCsd = bridge.isCsd ?? propIsCsd;
+  const { updateWindowGeometry } = useWindowManager();
 
   const initialStateRef = React.useRef<SavedCalculatorState | null>(null);
   if (initialStateRef.current === null) {
@@ -141,13 +140,19 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
     }
   }, [display, expressionLine, pendingOp, scientific, storedValue, waitingForOperand]);
 
+  const resizeCalculator = React.useCallback(
+    (nextScientific: boolean) => {
+      if (!windowId) return;
+      updateWindowGeometry(windowId, {
+        size: { width: nextScientific ? 298 : 196, height: 294 },
+      });
+    },
+    [updateWindowGeometry, windowId],
+  );
+
   React.useEffect(() => {
-    if (typeof window !== "undefined" && window.parent !== window) {
-      document.documentElement.style.backgroundColor = "transparent";
-      document.body.style.backgroundColor = "transparent";
-    }
     if (initialSaved.scientific) {
-      bridge.resizeWindow(298, 294);
+      resizeCalculator(true);
     }
     // only resize on mount if restored in scientific mode
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -161,31 +166,35 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
           window.history.replaceState(null, "", nextHash);
         }
       }
-      bridge.resizeWindow(nextScientific ? 298 : 196, 294);
+      resizeCalculator(nextScientific);
       if (nextScientific) {
         requestAnimationFrame(() => setScientific(true));
       } else {
         setScientific(false);
       }
     },
-    [bridge],
+    [resizeCalculator],
   );
 
   React.useEffect(() => {
     const onHashChange = () => {
       const next = window.location.hash === "#scientific";
       setScientific(next);
-      bridge.resizeWindow(next ? 388 : 260, 380);
+      resizeCalculator(next);
     };
     window.addEventListener("hashchange", onHashChange);
     return () => window.removeEventListener("hashchange", onHashChange);
-  }, [bridge]);
+  }, [resizeCalculator]);
 
   const handleClose = () => {
     if (onCloseWindow) {
       onCloseWindow();
-    } else {
-      bridge.closeWindow();
+    } else if (windowId) {
+      window.dispatchEvent(
+        new CustomEvent("piloti:request-animated-close", {
+          detail: { windowId },
+        }),
+      );
     }
   };
 

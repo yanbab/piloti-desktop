@@ -192,8 +192,13 @@ export function Launcher() {
     startScreenRecording,
     availableGnomePanels,
   } = useSystemBackends();
-  const { installedXdgApps, xdgUserDirs, openXdgFolder, getAppIconUrl } =
-    useApps();
+  const {
+    installedXdgApps,
+    xdgUserDirs,
+    openXdgFolder,
+    getAppIconUrl,
+    refreshXdgApps,
+  } = useApps();
   const {
     launcherOpen,
     setLauncherOpen,
@@ -224,8 +229,15 @@ export function Launcher() {
     setRecentLaunches((prev) => saveRecentLaunch(key, prev));
   }, []);
 
+  const lastXdgRefreshRef = React.useRef(0);
+
   React.useEffect(() => {
     if (launcherOpen) {
+      const now = Date.now();
+      if (now - lastXdgRefreshRef.current > 3000) {
+        lastXdgRefreshRef.current = now;
+        refreshXdgApps();
+      }
       setSearchQuery("");
       setSelectedValue("");
       setHistoryIndex(-1);
@@ -234,7 +246,7 @@ export function Launcher() {
       });
       return () => cancelAnimationFrame(frame);
     }
-  }, [launcherOpen]);
+  }, [launcherOpen, refreshXdgApps]);
 
   const [snapshots, setSnapshots] = React.useState<WorkspaceSnapshot[]>(() =>
     loadWorkspaceSnapshots()

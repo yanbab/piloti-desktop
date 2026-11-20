@@ -138,5 +138,42 @@ test.describe("Piloti Desktop E2E", () => {
 
     await expect(editorWindow).toContainText("lastPane=wallpaper");
   });
+
+  test("Calculator resizes on mode switch, cannot maximize, and closes", async ({
+    page,
+  }) => {
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+
+    const calcDockIcon = page.locator('[data-dock-app-id="calculator"]');
+    await expect(calcDockIcon).toBeVisible({ timeout: 20_000 });
+    await calcDockIcon.click();
+
+    const calcWindow = page
+      .locator('[data-slot="window"][data-app-id="calculator"]')
+      .first();
+    await expect(calcWindow).toBeVisible();
+    await page.waitForTimeout(300);
+
+    const basicBox = await calcWindow.boundingBox();
+    expect(basicBox).not.toBeNull();
+
+    // Switch to Scientific mode -> window widens
+    await calcWindow.getByRole("button", { name: "Scientific Mode" }).click();
+    await page.waitForTimeout(150);
+    const sciBox = await calcWindow.boundingBox();
+    expect(sciBox).not.toBeNull();
+    expect(sciBox!.width).toBeGreaterThan(basicBox!.width + 60);
+
+    // Switch back to Basic mode -> window shrinks back
+    await calcWindow.getByRole("button", { name: "Basic Mode" }).click();
+    await page.waitForTimeout(150);
+    const backBox = await calcWindow.boundingBox();
+    expect(backBox).not.toBeNull();
+    expect(Math.abs(backBox!.width - basicBox!.width)).toBeLessThanOrEqual(4);
+
+    // Close Calculator
+    await calcWindow.getByRole("button", { name: "Close window" }).click();
+    await expect(calcWindow).toBeHidden();
+  });
 });
 

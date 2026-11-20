@@ -1477,11 +1477,21 @@ export function WindowManager() {
               bottom: bottomDockClearance,
               left: leftDockClearance,
             }}
-            onSnapPreviewChange={setSnapPreview}
-            onSnapCommit={(zone) => tileWindow(win.id, zone)}
+            onSnapPreviewChange={
+              win.appId === "calculator" ? undefined : setSnapPreview
+            }
+            onSnapCommit={
+              win.appId === "calculator"
+                ? undefined
+                : (zone) => tileWindow(win.id, zone)
+            }
             onClose={() => handleAnimatedClose(win)}
             onMinimize={() => minimizeWindow(win.id)}
-            onZoom={() => toggleMaximizeWindow(win.id)}
+            onZoom={
+              win.appId === "calculator"
+                ? undefined
+                : () => toggleMaximizeWindow(win.id)
+            }
             onContextMenu={(e) => {
               e.stopPropagation();
               const target = e.target as HTMLElement | null;

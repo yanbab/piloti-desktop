@@ -1363,6 +1363,9 @@ function pruneBrowserRecord(
     (windowId: string) => {
       console.info("[Piloti] toggleMaximizeWindow", windowId);
       const targetWin = combinedWindows.find((w) => w.id === windowId);
+      if (targetWin?.appId === "calculator") {
+        return;
+      }
       if (targetWin) {
         const key = resolveSpatialBoundsKey({
           appId: targetWin.appId,
@@ -1572,11 +1575,14 @@ function pruneBrowserRecord(
   const tileWindow = React.useCallback(
     (windowId: string, side: "left" | "right" | "full") => {
       console.info("[Piloti] tileWindow", windowId, side);
+      const existingWin = combinedWindows.find((w) => w.id === windowId);
+      if (existingWin?.appId === "calculator") {
+        return;
+      }
       if (side === "full") {
         toggleMaximizeWindow(windowId);
         return;
       }
-      const existingWin = combinedWindows.find((w) => w.id === windowId);
       if (existingWin && !existingWin.tiled) {
         preTileSizesRef.current.set(windowId, existingWin.size);
       }
