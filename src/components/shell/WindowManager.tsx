@@ -217,6 +217,8 @@ function WebViewSurface({
     width: number;
     height: number;
   }>({ width: 360, height: 440 });
+  const [demoPopupOpen, setDemoPopupOpen] = React.useState(false);
+  const [demoBadgeCount, setDemoBadgeCount] = React.useState(1);
 
   React.useEffect(() => {
     if (isBrowserRuntime) return;
@@ -622,6 +624,30 @@ function WebViewSurface({
         )}
 
         <div className="flex shrink-0 items-center gap-1" data-window-no-drag>
+          {isBrowserRuntime && settings.demoExtensionEnabled !== false && (
+            <button
+              type="button"
+              title="Piloti Demo Extension"
+              aria-label="Piloti Demo Extension"
+              onClick={() => setDemoPopupOpen((v) => !v)}
+              className={cn(
+                "relative flex size-7 items-center justify-center rounded-md transition-colors",
+                demoPopupOpen
+                  ? "bg-black/14 dark:bg-white/18"
+                  : "hover:bg-black/8 dark:hover:bg-white/10"
+              )}
+            >
+              <PuzzleIcon className="size-3.5" />
+              {demoBadgeCount > 0 && (
+                <span
+                  style={{ backgroundColor: "var(--adw-accent)" }}
+                  className="pointer-events-none absolute right-0.5 bottom-0.5 min-w-3 rounded-full px-0.5 text-center text-[8.5px] leading-tight font-bold text-white shadow-xs"
+                >
+                  {demoBadgeCount}
+                </span>
+              )}
+            </button>
+          )}
           {!isBrowserRuntime &&
             extensions.map((ext) => (
               <button
@@ -725,6 +751,47 @@ function WebViewSurface({
                 extensionpopup=""
                 className="block h-full w-full"
               />
+            </div>
+          </>
+        )}
+
+        {demoPopupOpen && isBrowserRuntime && settings.demoExtensionEnabled !== false && (
+          <>
+            <div
+              className="absolute inset-0 z-30"
+              onClick={() => setDemoPopupOpen(false)}
+            />
+            <div className="absolute top-1.5 right-2 z-40 w-[290px] max-w-[calc(100%-16px)] rounded-xl border border-adw-separator bg-adw-window p-3.5 text-adw-label shadow-2xl">
+              <div className="flex items-center gap-2">
+                <PuzzleIcon className="size-4 text-adw-accent" />
+                <div className="text-[13px] font-semibold">
+                  Piloti Demo Extension
+                </div>
+              </div>
+              <p className="mt-1 text-[11.5px] leading-relaxed text-adw-label-secondary">
+                {_("Simulated extension popup in Web mode. On native Domicile, real Chrome extensions load via extensions.unpacked / extensions.web_store.")}
+              </p>
+              <div className="mt-2.5 rounded-lg bg-black/5 px-2.5 py-2 text-[11px] break-all text-adw-label-secondary dark:bg-white/6">
+                <div className="font-medium text-adw-label">{win.title}</div>
+                <div className="mt-0.5 opacity-80">{win.browserUrl || address}</div>
+              </div>
+              <div className="mt-3 flex gap-1.5">
+                <Button
+                  size="sm"
+                  className="h-7 flex-1 text-xs"
+                  onClick={() => setDemoBadgeCount((c) => c + 1)}
+                >
+                  {_("Increment Badge")}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className="h-7 text-xs"
+                  onClick={() => setDemoBadgeCount(0)}
+                >
+                  {_("Clear")}
+                </Button>
+              </div>
             </div>
           </>
         )}

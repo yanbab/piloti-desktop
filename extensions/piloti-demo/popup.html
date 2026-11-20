@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Piloti Demo Extension</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        font-family: -apple-system, BlinkMacSystemFont, "Inter", "Cantarell", sans-serif;
+      }
+      body {
+        margin: 0;
+        padding: 14px;
+        width: 280px;
+        font-size: 13px;
+        line-height: 1.45;
+      }
+      h1 {
+        margin: 0 0 6px;
+        font-size: 14px;
+        font-weight: 600;
+      }
+      p {
+        margin: 0 0 10px;
+        opacity: 0.78;
+        font-size: 12px;
+      }
+      .meta {
+        border-radius: 8px;
+        padding: 8px 10px;
+        background: rgba(127, 127, 127, 0.12);
+        margin-bottom: 10px;
+        font-size: 11.5px;
+        word-break: break-all;
+      }
+      .actions {
+        display: flex;
+        gap: 6px;
+      }
+      button {
+        flex: 1;
+        border: 0;
+        border-radius: 7px;
+        padding: 6px 10px;
+        font-size: 12px;
+        font-weight: 500;
+        cursor: pointer;
+        background: #3584e4;
+        color: #fff;
+      }
+      button.secondary {
+        background: rgba(127, 127, 127, 0.18);
+        color: inherit;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Piloti Demo Extension</h1>
+    <p>Manifest V3 extension running inside Domicile WebView.</p>
+    <div id="tab-info" class="meta">Loading active tab…</div>
+    <div class="actions">
+      <button id="inc-badge" type="button">Increment Badge</button>
+      <button id="clear-badge" type="button" class="secondary">Clear</button>
+    </div>
+    <script src="popup.js"></script>
+  </body>
+</html>
+

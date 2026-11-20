@@ -1,9 +1,14 @@
 import * as React from "react";
+import { useDomicile } from "@domicile-desktop/react/domicile-provider";
+import { useWatch } from "@domicile-desktop/react/use-watch";
+import { PlusIcon, PuzzleIcon, Trash2Icon } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
   GroupedForm,
   GroupedFormGroup,
   GroupedFormRow,
   GroupedFormRowControl,
+  GroupedFormRowDescription,
   GroupedFormRowLabel,
   GroupedFormRowTitle,
   GroupedFormSection,
@@ -30,10 +35,104 @@ import { cn } from "@/lib/utils";
 import { useSettings } from "@/context/DesktopStateContext";
 
 export function AdvancedPane() {
-  const { settings, updateSettings } = useSettings();
+  const domicile = useDomicile();
+  const { isBrowserRuntime, settings, updateSettings } = useSettings();
   const [preference, setPreference] = React.useState<LocalePreference>(() =>
     getLocalePreference()
   );
+
+  const extensions =
+    useWatch(domicile.extensions, "change", () => domicile.extensions.list) ??
+    [];
+
+  const [unpackedPaths, setUnpackedPaths] = React.useState<string[]>([]);
+  const [webStoreIds, setWebStoreIds] = React.useState<string[]>([]);
+  const [newExtInput, setNewExtInput] = React.useState("");
+  const [extConfigNote, setExtConfigNote] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (isBrowserRuntime) return;
+    let cancelled = false;
+    domicile.files
+      .readText(".config/domicile/config.json")
+      .then((res) => {
+        if (cancelled) return;
+        res.match({
+          Ok: (text) => {
+            const parsed = JSON.parse(text) as {
+              extensions?: { unpacked?: string[]; web_store?: string[] };
+            };
+            setUnpackedPaths(parsed.extensions?.unpacked ?? []);
+            setWebStoreIds(parsed.extensions?.web_store ?? []);
+          },
+          Err: () => undefined,
+        });
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [domicile.files, isBrowserRuntime]);
+
+  const saveDomicileExtensionsConfig = async (
+    nextUnpacked: string[],
+    nextWebStore: string[]
+  ) => {
+    try {
+      await domicile.files.createDir(".config/domicile").catch(() => undefined);
+      let existing: Record<string, unknown> = {};
+      const readRes = await domicile.files
+        .readText(".config/domicile/config.json")
+        .catch(() => null);
+      if (readRes) {
+        readRes.match({
+          Ok: (text) => {
+            try {
+              existing = JSON.parse(text) as Record<string, unknown>;
+            } catch {
+              existing = {};
+            }
+          },
+          Err: () => undefined,
+        });
+      }
+      const prevExt =
+        (existing.extensions as Record<string, unknown> | undefined) ?? {};
+      const updated = {
+        ...existing,
+        extensions: {
+          ...prevExt,
+          unpacked: nextUnpacked,
+          web_store: nextWebStore,
+        },
+      };
+      await domicile.files.write(
+        ".config/domicile/config.json",
+        JSON.stringify(updated, null, 2) + "\n"
+      );
+      setUnpackedPaths(nextUnpacked);
+      setWebStoreIds(nextWebStore);
+      setExtConfigNote(
+        _("Saved to ~/.config/domicile/config.json. Restart Domicile to apply.")
+      );
+    } catch {
+      setExtConfigNote(_("Could not write ~/.config/domicile/config.json."));
+    }
+  };
+
+  const handleAddExtensionEntry = () => {
+    const val = newExtInput.trim();
+    if (!val) return;
+    const isPath = val.includes("/") || val.startsWith("~") || val.startsWith(".");
+    if (isPath) {
+      if (!unpackedPaths.includes(val)) {
+        void saveDomicileExtensionsConfig([...unpackedPaths, val], webStoreIds);
+      }
+    } else if (!webStoreIds.includes(val)) {
+      void saveDomicileExtensionsConfig(unpackedPaths, [...webStoreIds, val]);
+    }
+    setNewExtInput("");
+  };
 
   React.useEffect(() => {
     return subscribeLocale(() => {
@@ -123,6 +222,189 @@ export function AdvancedPane() {
               />
             </GroupedFormRowControl>
           </GroupedFormRow>
+        </GroupedFormGroup>
+      </GroupedFormSection>
+
+      <GroupedFormSection>
+        <GroupedFormSectionTitle>{_("Browser Extensions")}</GroupedFormSectionTitle>
+        <GroupedFormGroup>
+          {isBrowserRuntime ? (
+            <>
+              <GroupedFormRow>
+                <GroupedFormRowLabel>
+                  <GroupedFormRowTitle>
+                    {_("Demo Extension (Web Preview)")}
+                  </GroupedFormRowTitle>
+                  <GroupedFormRowDescription>
+                    {_(
+                      "Simulates a toolbar extension in Web windows. Real Chrome extensions run in native Domicile."
+                    )}
+                  </GroupedFormRowDescription>
+                </GroupedFormRowLabel>
+                <GroupedFormRowControl>
+                  <Switch
+                    checked={settings.demoExtensionEnabled !== false}
+                    onCheckedChange={(checked) =>
+                      updateSettings({ demoExtensionEnabled: checked })
+                    }
+                  />
+                </GroupedFormRowControl>
+              </GroupedFormRow>
+              {settings.demoExtensionEnabled !== false && (
+                <GroupedFormRow>
+                  <GroupedFormRowLabel>
+                    <div className="flex items-center gap-2">
+                      <PuzzleIcon className="size-4 text-adw-accent" />
+                      <GroupedFormRowTitle>
+                        Piloti Demo Extension
+                      </GroupedFormRowTitle>
+                    </div>
+                    <GroupedFormRowDescription>
+                      {_("Manifest V3 sample also available in extensions/piloti-demo/")}
+                    </GroupedFormRowDescription>
+                  </GroupedFormRowLabel>
+                  <GroupedFormRowControl>
+                    <span className="rounded-full bg-black/6 px-2 py-0.5 text-[11px] font-medium text-adw-label-secondary dark:bg-white/10">
+                      {_("Active")}
+                    </span>
+                  </GroupedFormRowControl>
+                </GroupedFormRow>
+              )}
+            </>
+          ) : (
+            <>
+              <GroupedFormRow>
+                <GroupedFormRowLabel>
+                  <GroupedFormRowTitle>
+                    {_("Add Extension (Web Store ID or Unpacked Path)")}
+                  </GroupedFormRowTitle>
+                  <GroupedFormRowDescription>
+                    {_(
+                      "Configure extensions.unpacked or extensions.web_store in ~/.config/domicile/config.json"
+                    )}
+                  </GroupedFormRowDescription>
+                </GroupedFormRowLabel>
+                <GroupedFormRowControl className="flex items-center gap-1.5">
+                  <input
+                    type="text"
+                    value={newExtInput}
+                    onChange={(e) => setNewExtInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleAddExtensionEntry();
+                    }}
+                    placeholder="/path/to/ext or Web Store ID"
+                    className="h-7 w-48 rounded-md border border-adw-separator bg-black/4 px-2 text-xs text-adw-label outline-none focus:border-adw-accent dark:bg-white/6"
+                  />
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    className="h-7 px-2 text-xs"
+                    onClick={handleAddExtensionEntry}
+                  >
+                    <PlusIcon className="mr-1 size-3.5" />
+                    {_("Add")}
+                  </Button>
+                </GroupedFormRowControl>
+              </GroupedFormRow>
+
+              {extensions.length === 0 ? (
+                <GroupedFormRow>
+                  <GroupedFormRowLabel>
+                    <GroupedFormRowTitle>
+                      {_("No Active Browser Extensions")}
+                    </GroupedFormRowTitle>
+                    <GroupedFormRowDescription>
+                      {_(
+                        "Add a Chrome Web Store ID or unpacked path (e.g. extensions/piloti-demo/) above."
+                      )}
+                    </GroupedFormRowDescription>
+                  </GroupedFormRowLabel>
+                </GroupedFormRow>
+              ) : (
+                extensions.map((ext) => (
+                  <GroupedFormRow key={ext.id}>
+                    <GroupedFormRowLabel>
+                      <div className="flex items-center gap-2">
+                        {ext.icon ? (
+                          <img
+                            src={ext.icon}
+                            alt=""
+                            className="size-4 rounded-[3px] object-contain"
+                          />
+                        ) : (
+                          <PuzzleIcon className="size-4 text-adw-label-secondary" />
+                        )}
+                        <GroupedFormRowTitle>{ext.name}</GroupedFormRowTitle>
+                      </div>
+                      <GroupedFormRowDescription>
+                        {ext.id}
+                      </GroupedFormRowDescription>
+                    </GroupedFormRowLabel>
+                    <GroupedFormRowControl>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        className="h-7 text-xs"
+                        disabled={!ext.enabled}
+                        onClick={() => domicile.extensions.activate(ext.id)}
+                      >
+                        {_("Activate")}
+                      </Button>
+                    </GroupedFormRowControl>
+                  </GroupedFormRow>
+                ))
+              )}
+
+              {[...unpackedPaths.map((p) => ({ kind: "unpacked" as const, value: p })), ...webStoreIds.map((id) => ({ kind: "web_store" as const, value: id }))].map(
+                (entry) => (
+                  <GroupedFormRow key={`${entry.kind}:${entry.value}`}>
+                    <GroupedFormRowLabel>
+                      <GroupedFormRowTitle className="font-mono text-xs">
+                        {entry.value}
+                      </GroupedFormRowTitle>
+                      <GroupedFormRowDescription>
+                        {entry.kind === "unpacked"
+                          ? _("Unpacked extension")
+                          : _("Chrome Web Store ID")}
+                      </GroupedFormRowDescription>
+                    </GroupedFormRowLabel>
+                    <GroupedFormRowControl>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="size-7 p-0 text-adw-label-secondary hover:text-destructive"
+                        onClick={() => {
+                          if (entry.kind === "unpacked") {
+                            void saveDomicileExtensionsConfig(
+                              unpackedPaths.filter((p) => p !== entry.value),
+                              webStoreIds
+                            );
+                          } else {
+                            void saveDomicileExtensionsConfig(
+                              unpackedPaths,
+                              webStoreIds.filter((id) => id !== entry.value)
+                            );
+                          }
+                        }}
+                      >
+                        <Trash2Icon className="size-3.5" />
+                      </Button>
+                    </GroupedFormRowControl>
+                  </GroupedFormRow>
+                )
+              )}
+
+              {extConfigNote && (
+                <GroupedFormRow>
+                  <GroupedFormRowLabel>
+                    <GroupedFormRowDescription>
+                      {extConfigNote}
+                    </GroupedFormRowDescription>
+                  </GroupedFormRowLabel>
+                </GroupedFormRow>
+              )}
+            </>
+          )}
         </GroupedFormGroup>
       </GroupedFormSection>
     </GroupedForm>
