@@ -537,7 +537,15 @@ export function FilesApp({
       locationInputRef.current?.focus();
       locationInputRef.current?.select();
     });
-    return () => cancelAnimationFrame(frame);
+    const onPointerDown = (e: PointerEvent) => {
+      if (locationInputRef.current?.contains(e.target as Node)) return;
+      setEditingLocation(false);
+    };
+    document.addEventListener("pointerdown", onPointerDown, true);
+    return () => {
+      cancelAnimationFrame(frame);
+      document.removeEventListener("pointerdown", onPointerDown, true);
+    };
   }, [editingLocation]);
 
   const submitLocationEdit = (e: React.FormEvent) => {

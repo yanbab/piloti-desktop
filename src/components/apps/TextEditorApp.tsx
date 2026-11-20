@@ -23,12 +23,14 @@ import { tags } from "@lezer/highlight";
 import { EyeIcon, SlidersHorizontalIcon, XIcon } from "lucide-react";
 import { ObjectView, themeGitHubLight, themeOneDark } from "react-obj-view";
 import "react-obj-view/dist/react-obj-view.css";
+import { WindowMenuButton } from "@/components/shell/WindowMenuButton";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { WindowControls, WindowTitlebar } from "@/components/ui/window";
 import { publishWindowMenuState, useIsolatedAppBridge } from "@/lib/app-bridge";
 import { _ } from "@/lib/i18n";
 import { getCachedPilotiAppIni, writePilotiAppIni } from "@/lib/piloti-ini";
@@ -268,6 +270,7 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
   ]);
   const [editingTitle, setEditingTitle] = React.useState(false);
   const [draftTitle, setDraftTitle] = React.useState("");
+  const titleInputRef = React.useRef<HTMLInputElement | null>(null);
 
   const isPreviewable = React.useMemo(
     () =>
@@ -305,6 +308,16 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
       bridge.setTitle(renamed.name);
     }
   }, [bridge, draftTitle, filePath]);
+
+  React.useEffect(() => {
+    if (!editingTitle) return;
+    const onPointerDown = (e: PointerEvent) => {
+      if (titleInputRef.current?.contains(e.target as Node)) return;
+      commitTitleRename();
+    };
+    document.addEventListener("pointerdown", onPointerDown, true);
+    return () => document.removeEventListener("pointerdown", onPointerDown, true);
+  }, [commitTitleRename, editingTitle]);
 
   React.useEffect(() => {
     if (!windowId) return;
@@ -516,17 +529,27 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
       className="flex h-full w-full flex-col overflow-hidden bg-adw-content text-adw-label"
     >
       {/* Headerbar */}
-      <div
+      <WindowTitlebar
         data-window-drag-region={bridge.isCsd ? "" : undefined}
         className={cn(
-          "flex h-9 shrink-0 items-center justify-between border-b border-adw-separator bg-adw-titlebar px-2.5 select-none",
+          "h-9 shrink-0 justify-between border-b border-adw-separator bg-adw-titlebar px-2.5 select-none",
           !bridge.isCsd && "rounded-t-none",
         )}
       >
-        <div className="w-6 shrink-0" />
+        <div className="flex shrink-0 items-center gap-1.5" data-window-no-drag>
+          {windowId && bridge.isCsd && <WindowControls side="left" />}
+          {windowId && (
+            <WindowMenuButton
+              windowId={windowId}
+              appId="text-editor"
+              iconName="file-text"
+            />
+          )}
+        </div>
         <div className="flex min-w-0 items-center gap-1.5 px-2" data-window-no-drag>
           {editingTitle && filePath ? (
             <input
+              ref={titleInputRef}
               type="text"
               autoFocus
               value={draftTitle}
@@ -628,18 +651,9 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
               </DropdownMenuCheckboxItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          {bridge.isCsd && (
-            <button
-              type="button"
-              aria-label={_("Close window")}
-              onClick={() => bridge.closeWindow()}
-              className="flex size-6 items-center justify-center rounded-full bg-adw-fill-secondary text-adw-label-secondary transition-colors hover:bg-adw-fill-primary hover:text-adw-label"
-            >
-              <XIcon className="size-3.5" />
-            </button>
-          )}
+          {windowId && bridge.isCsd && <WindowControls side="right" />}
         </div>
-      </div>
+      </WindowTitlebar>
 
       {/* Editor Body */}
       <div className="relative min-h-0 flex-1 overflow-hidden">

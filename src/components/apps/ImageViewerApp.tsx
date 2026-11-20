@@ -10,6 +10,8 @@ import {
   ZoomInIcon,
   ZoomOutIcon,
 } from "lucide-react";
+import { WindowMenuButton } from "@/components/shell/WindowMenuButton";
+import { WindowControls } from "@/components/ui/window";
 import { useIsolatedAppBridge } from "@/lib/app-bridge";
 import { _ } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
@@ -70,6 +72,7 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
   const [savedFlash, setSavedFlash] = React.useState(false);
   const [editingTitle, setEditingTitle] = React.useState(false);
   const [draftTitle, setDraftTitle] = React.useState("");
+  const titleInputRef = React.useRef<HTMLInputElement | null>(null);
   const imgRef = React.useRef<HTMLImageElement | null>(null);
   const panDragRef = React.useRef<{
     startX: number;
@@ -269,6 +272,16 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
     }
   }, [activePath, bridge, draftTitle, fileName, isRenameableVfsFile]);
 
+  React.useEffect(() => {
+    if (!editingTitle) return;
+    const onPointerDown = (e: PointerEvent) => {
+      if (titleInputRef.current?.contains(e.target as Node)) return;
+      commitTitleRename();
+    };
+    document.addEventListener("pointerdown", onPointerDown, true);
+    return () => document.removeEventListener("pointerdown", onPointerDown, true);
+  }, [commitTitleRename, editingTitle]);
+
   return (
     <div
       data-drop-window-id={windowId}
@@ -279,13 +292,23 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
         <div
           data-window-drag-region=""
           className={cn(
-            "flex h-9 items-center justify-between border-b border-adw-separator/60 bg-adw-titlebar/85 px-3 backdrop-blur-md transition-opacity duration-150 group-hover/header:opacity-100 group-data-[dragging]/window:opacity-100",
+            "flex h-9 items-center justify-between border-b border-adw-separator/60 bg-adw-titlebar/85 px-2.5 backdrop-blur-md transition-opacity duration-150 group-hover/header:opacity-100 group-data-[dragging]/window:opacity-100",
             dragRegionHovered || editingTitle ? "opacity-100" : "opacity-0",
           )}
         >
-          <div className="w-6" />
+          <div className="flex shrink-0 items-center gap-1.5" data-window-no-drag>
+            {windowId && bridge.isCsd && <WindowControls side="left" />}
+            {windowId && (
+              <WindowMenuButton
+                windowId={windowId}
+                appId="image-viewer"
+                iconName="sparkles"
+              />
+            )}
+          </div>
           {editingTitle && isRenameableVfsFile ? (
             <input
+              ref={titleInputRef}
               type="text"
               autoFocus
               data-window-no-drag
@@ -321,15 +344,9 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
               {fileName}
             </span>
           )}
-          <button
-            type="button"
-            data-window-no-drag
-            aria-label="Close window"
-            onClick={() => bridge.closeWindow()}
-            className="flex size-6 items-center justify-center rounded-full bg-adw-fill-secondary text-adw-label-secondary transition-colors hover:bg-adw-fill-primary hover:text-adw-label"
-          >
-            <XIcon className="size-3.5" />
-          </button>
+          <div className="flex shrink-0 items-center gap-1" data-window-no-drag>
+            {windowId && bridge.isCsd && <WindowControls side="right" />}
+          </div>
         </div>
       </div>
 
