@@ -54,7 +54,7 @@ function DropdownMenuContent({
         side={side}
         sideOffset={sideOffset}
         anchor={anchor}
-        className="isolate z-[400] outline-none"
+        className="isolate z-[610] outline-none"
       >
         <MenuPrimitive.Popup
           data-slot="dropdown-menu-content"
@@ -230,7 +230,7 @@ function DropdownMenuSubContent({
         alignOffset={alignOffset}
         side={side}
         sideOffset={sideOffset}
-        className="isolate z-[400] outline-none"
+        className="isolate z-[610] outline-none"
       >
         <MenuPrimitive.Popup
           data-slot="dropdown-menu-sub-content"

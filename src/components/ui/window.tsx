@@ -99,6 +99,8 @@ const INTERACTIVE_DRAG_CONTROL =
   'button, a, [role="button"], [role="tab"], [role="switch"], [role="menuitem"], [data-window-no-drag]'
 
 // Controls inside a drag region keep working instead of moving the window on double-click.
+const DOUBLE_CLICK_NO_ZOOM =
+  'button, input, textarea, select, a, [role="button"], [role="tab"], [role="switch"], [role="slider"], [role="menuitem"], [contenteditable="true"]'
 const NO_DRAG = `${STRICT_NO_DRAG}, ${INTERACTIVE_DRAG_CONTROL}`
 
 const reducedMotion = () =>
@@ -1003,11 +1005,17 @@ function Window({
           onDoubleClick?.(event)
           // Double-clicking the title bar toggles window zoom/maximize.
           const target = event.target as HTMLElement
+          const region = target.closest(DRAG_REGION)
+          const isSidebarBody = Boolean(
+            target.closest('aside, [data-slot="adw-sidebar"]') &&
+              !target.closest('[data-slot="window-titlebar"]')
+          )
           if (
             onZoom &&
             !event.defaultPrevented &&
-            target.closest(DRAG_REGION)?.closest('[data-slot="window"]') === event.currentTarget &&
-            !target.closest(NO_DRAG)
+            !isSidebarBody &&
+            region?.closest('[data-slot="window"]') === event.currentTarget &&
+            !target.closest(DOUBLE_CLICK_NO_ZOOM)
           ) {
             onZoom()
             return
@@ -1059,7 +1067,7 @@ function WindowTitlebar({
         onDoubleClick?.(event)
         if (event.defaultPrevented) return
         const target = event.target as HTMLElement
-        if (target.closest(NO_DRAG)) return
+        if (target.closest(DOUBLE_CLICK_NO_ZOOM)) return
         event.stopPropagation()
         context?.onZoom?.()
       }}

@@ -86,7 +86,7 @@ function MenubarContent({
         anchor={anchor}
         side={side}
         sideOffset={sideOffset}
-        className="isolate z-[400] outline-none"
+        className="isolate z-[610] outline-none"
       >
         <MenuPrimitive.Popup
           data-slot="menubar-content"
@@ -262,7 +262,7 @@ function MenubarSubContent({
         alignOffset={alignOffset}
         side={side}
         sideOffset={sideOffset}
-        className="isolate z-[400] outline-none"
+        className="isolate z-[610] outline-none"
       >
         <MenuPrimitive.Popup
           data-slot="menubar-sub-content"

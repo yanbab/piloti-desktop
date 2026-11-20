@@ -456,23 +456,20 @@ export function Dock() {
       }
       return;
     }
-    if (appId === "nautilus") {
-      const ordered = [...appWins].sort((a, b) => a.zIndex - b.zIndex);
-      for (const win of ordered) {
+    const orderedWins = [...appWins].sort((a, b) => a.zIndex - b.zIndex);
+    const visibleWins = orderedWins.filter((w) => !w.minimized);
+    if (visibleWins.length === 0) {
+      for (const win of orderedWins) {
         focusWindow(win.id);
       }
-      return;
-    }
-    const visibleWins = appWins
-      .filter((w) => !w.minimized)
-      .sort((a, b) => b.zIndex - a.zIndex);
-    if (visibleWins.length === 0) {
-      const topMinimized = [...appWins].sort((a, b) => b.zIndex - a.zIndex)[0];
-      focusWindow(topMinimized.id);
-    } else if (visibleWins[0].id === focusedWindowId) {
-      toggleMinimizeWindow(visibleWins[0].id);
+    } else if (visibleWins.some((w) => w.id === focusedWindowId)) {
+      for (const win of visibleWins) {
+        toggleMinimizeWindow(win.id);
+      }
     } else {
-      focusWindow(visibleWins[0].id);
+      for (const win of orderedWins) {
+        focusWindow(win.id);
+      }
     }
   };
 

@@ -46,7 +46,7 @@ function ContextMenuContent({
         alignOffset={alignOffset}
         side={side}
         sideOffset={sideOffset}
-        className="isolate z-[400] outline-none"
+        className="isolate z-[610] outline-none"
       >
         <ContextMenuPrimitive.Popup
           data-slot="context-menu-content"
@@ -219,7 +219,7 @@ function ContextMenuSubContent({
         alignOffset={alignOffset}
         side={side}
         sideOffset={sideOffset}
-        className="isolate z-[400] outline-none"
+        className="isolate z-[610] outline-none"
       >
         <ContextMenuPrimitive.Popup
           data-slot="context-menu-sub-content"
