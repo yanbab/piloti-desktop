@@ -1057,13 +1057,11 @@ export function FilesApp({
                             reloadDir();
                           }}
                           className={cn(
-                            "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10.5px] font-medium transition-colors active:bg-black/14 dark:active:bg-white/18",
+                            "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10.5px] font-medium transition-colors active:bg-[color-mix(in_srgb,currentColor_22%,transparent)]",
+                            meta.colorClass,
                             active
-                              ? cn(
-                                  "border-current/45 bg-[color-mix(in_srgb,currentColor_14%,transparent)]",
-                                  meta.colorClass
-                                )
-                              : "border-adw-separator text-adw-label-secondary hover:bg-black/5 dark:hover:bg-white/8"
+                              ? "border-current/45 bg-[color-mix(in_srgb,currentColor_14%,transparent)] hover:bg-[color-mix(in_srgb,currentColor_22%,transparent)]"
+                              : "border-adw-separator opacity-75 hover:opacity-100 hover:bg-[color-mix(in_srgb,currentColor_12%,transparent)]"
                           )}
                         >
                           <Icon
@@ -1415,6 +1413,7 @@ export function FilesApp({
                       }}
                       className={cn(
                         "cursor-default border-b border-adw-separator/40 transition-colors",
+                        item.name.startsWith(".") && "opacity-85",
                         isSelected
                           ? "bg-adw-accent/20 text-adw-label"
                           : "hover:bg-black/4 dark:hover:bg-white/5"

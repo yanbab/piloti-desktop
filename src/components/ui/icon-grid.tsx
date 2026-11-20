@@ -763,6 +763,7 @@ export function IconGrid({
 
       {items.map((item) => {
         const selected = selectedSet.has(item.id);
+        const isHiddenFile = item.name.startsWith(".");
         const isDragging =
           Boolean(drag?.active) && Boolean(drag?.draggedIds.includes(item.id));
         const coord = resolvedPositions[item.id] ?? { col: 0, row: 0 };
@@ -902,13 +903,15 @@ export function IconGrid({
               compactHorizontal
                 ? "flex-row items-center justify-start gap-1 px-1.5 py-0.5 text-left"
                 : "flex-col items-center justify-start gap-1 px-1 py-1.5 text-center",
-              !isDragging && "transition-colors duration-100",
+              !isDragging &&
+                "transition-[left,top,width,height,background-color,opacity] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)]",
+              isHiddenFile && !isDragging && "opacity-85",
               isDragging && "opacity-25",
             )}
           >
             <div
               style={{ width: `${iconSize}px`, height: `${iconSize}px` }}
-              className="relative shrink-0 drop-shadow-[0_1px_2px_rgba(0,0,0,0.2)]"
+              className="relative shrink-0 drop-shadow-[0_1px_2px_rgba(0,0,0,0.2)] transition-[width,height] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)]"
             >
               {(() => {
                 const vfsEntry =

@@ -475,13 +475,11 @@ export function FileItemContextMenu({
                             onToggleEmblem(targetItems, emblem);
                           }}
                           className={cn(
-                            "flex size-7 items-center justify-center rounded-md border transition-colors active:bg-black/14 dark:active:bg-white/18",
+                            "flex size-7 items-center justify-center rounded-md border transition-colors active:bg-[color-mix(in_srgb,currentColor_22%,transparent)]",
+                            meta.colorClass,
                             active
-                              ? cn(
-                                  "border-current/45 bg-[color-mix(in_srgb,currentColor_14%,transparent)]",
-                                  meta.colorClass,
-                                )
-                              : "border-transparent text-adw-label-secondary hover:bg-black/6 dark:hover:bg-white/8",
+                              ? "border-current/45 bg-[color-mix(in_srgb,currentColor_14%,transparent)] hover:bg-[color-mix(in_srgb,currentColor_22%,transparent)]"
+                              : "border-transparent opacity-75 hover:opacity-100 hover:bg-[color-mix(in_srgb,currentColor_12%,transparent)]",
                           )}
                         >
                           <EmblemIconGlyph emblem={emblem} active={active} />
