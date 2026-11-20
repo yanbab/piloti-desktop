@@ -1,6 +1,7 @@
 import * as React from "react";
 import { ACCENT_COLORS, type AccentColorId } from "@/data/catalog";
 import { subscribeLocale } from "@/lib/i18n";
+import { getVfsEntry, listVfsDir, writeVfsTextFile } from "@/lib/web-vfs";
 
 export type ShellToAppMessage =
   | {
@@ -262,28 +263,80 @@ export function useIsolatedAppBridge(
       notify: (summary: string, body?: string) =>
         postToShell({ type: "piloti:notify", windowId, summary, body }),
       fs: {
-        readText: (path: string) =>
-          sendFsRpc<string | null>((requestId) => ({
+        readText: async (path: string) => {
+          if (typeof window !== "undefined" && window.parent === window) {
+            const isBrowser = Boolean((window as unknown as { __PILOTI_BROWSER_HOST__?: unknown }).__PILOTI_BROWSER_HOST__);
+            const domicileFiles = !isBrowser
+              ? (window as unknown as { __PILOTI__?: { domicile?: { files?: { readText: (p: string) => Promise<{ match: <R>(h: { Ok: (v: string) => R; Err: () => R }) => R }> } } } }).__PILOTI__?.domicile?.files
+              : undefined;
+            if (domicileFiles) {
+              const res = await domicileFiles.readText(path).catch(() => null);
+              if (res) return res.match({ Ok: (t) => t, Err: () => null });
+            }
+            const entry = getVfsEntry(path);
+            return entry?.kind === "file" ? (entry.content ?? "") : null;
+          }
+          return sendFsRpc<string | null>((requestId) => ({
             type: "piloti:fs-read",
             windowId,
             requestId,
             path,
-          })),
-        writeText: (path: string, content: string) =>
-          sendFsRpc<boolean>((requestId) => ({
+          }));
+        },
+        writeText: async (path: string, content: string) => {
+          if (typeof window !== "undefined" && window.parent === window) {
+            const isBrowser = Boolean((window as unknown as { __PILOTI_BROWSER_HOST__?: unknown }).__PILOTI_BROWSER_HOST__);
+            const domicileFiles = !isBrowser
+              ? (window as unknown as { __PILOTI__?: { domicile?: { files?: { write: (p: string, d: string) => Promise<unknown> } } } }).__PILOTI__?.domicile?.files
+              : undefined;
+            if (domicileFiles) {
+              await domicileFiles.write(path, content);
+              return true;
+            }
+            writeVfsTextFile(path, content);
+            return true;
+          }
+          return sendFsRpc<boolean>((requestId) => ({
             type: "piloti:fs-write",
             windowId,
             requestId,
             path,
             content,
-          })),
-        listDir: (path: string) =>
-          sendFsRpc<IsolatedFsEntry[]>((requestId) => ({
+          }));
+        },
+        listDir: async (path: string) => {
+          if (typeof window !== "undefined" && window.parent === window) {
+            const isBrowser = Boolean((window as unknown as { __PILOTI_BROWSER_HOST__?: unknown }).__PILOTI_BROWSER_HOST__);
+            const domicileFiles = !isBrowser
+              ? (window as unknown as { __PILOTI__?: { domicile?: { files?: { readDir: (p: string) => Promise<{ match: <R>(h: { Ok: (v: Array<{ name: string; fileType: number }>) => R; Err: () => R }) => R }> } } } }).__PILOTI__?.domicile?.files
+              : undefined;
+            if (domicileFiles) {
+              const res = await domicileFiles.readDir(path).catch(() => null);
+              if (res) {
+                return res.match({
+                  Ok: (list) =>
+                    list.map((e) => ({
+                      name: e.name,
+                      kind: e.fileType === 1 ? ("directory" as const) : ("file" as const),
+                      path: `${path.replace(/\/+$/, "")}/${e.name}`,
+                    })),
+                  Err: () => [],
+                });
+              }
+            }
+            return listVfsDir(path).map((e) => ({
+              name: e.name,
+              kind: e.kind,
+              path: e.path,
+            }));
+          }
+          return sendFsRpc<IsolatedFsEntry[]>((requestId) => ({
             type: "piloti:fs-list",
             windowId,
             requestId,
             path,
-          })),
+          }));
+        },
       },
     }),
     [isCsd, localeTick, sendFsRpc, windowId],
