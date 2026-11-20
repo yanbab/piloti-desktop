@@ -11,6 +11,11 @@ import {
   getWebAppFaviconUrl,
 } from "@/data/web-apps";
 import {
+  executeTextPipeline,
+  parseCommandPipeline,
+  runGrepFilter,
+} from "@/lib/terminal-pipeline";
+import {
   installWebAppDesktopEntry,
   removeWebAppDesktopEntry,
 } from "@/lib/xdg-web-apps";
@@ -70,6 +75,12 @@ const TERMINAL_COMMANDS = [
   "date",
   "echo",
   "env",
+  "grep",
+  "history",
+  "head",
+  "tail",
+  "wc",
+  "sort",
   "curl",
   "wget",
   "piloti",
@@ -188,9 +199,26 @@ export const TerminalApp: React.FC<TerminalAppProps> = ({ initialPath }) => {
       tone: "muted" as const,
     }));
   });
+  const TERMINAL_HISTORY_KEY = "piloti.web.terminal.history.v1";
   const [input, setInput] = React.useState("");
-  const [history, setHistory] = React.useState<string[]>([]);
+  const [history, setHistory] = React.useState<string[]>(() => {
+    if (typeof localStorage === "undefined") return [];
+    try {
+      const raw = localStorage.getItem(TERMINAL_HISTORY_KEY);
+      const parsed = raw ? JSON.parse(raw) : [];
+      return Array.isArray(parsed)
+        ? parsed.filter((x): x is string => typeof x === "string").slice(-500)
+        : [];
+    } catch {
+      return [];
+    }
+  });
   const [historyIndex, setHistoryIndex] = React.useState<number>(-1);
+  const [reverseSearch, setReverseSearch] = React.useState<{
+    active: boolean;
+    query: string;
+    matchOffset: number;
+  }>({ active: false, query: "", matchOffset: 0 });
   const [topActive, setTopActive] = React.useState(false);
   const [topTick, setTopTick] = React.useState(0);
 
@@ -387,10 +415,34 @@ export const TerminalApp: React.FC<TerminalAppProps> = ({ initialPath }) => {
       return;
     }
 
-    setHistory((prev) => [...prev, trimmed]);
+    setHistory((prev) => {
+      const next = [...prev, trimmed].slice(-500);
+      try {
+        localStorage.setItem(TERMINAL_HISTORY_KEY, JSON.stringify(next));
+      } catch {
+        // ignore storage quota
+      }
+      return next;
+    });
     setHistoryIndex(-1);
 
-    if (trimmed.includes("&&") || /(?:^|\s)>>?(?:\s|$)/.test(trimmed)) {
+    const parsedPipe = parseCommandPipeline(trimmed);
+    if (parsedPipe.stages.length > 1 || parsedPipe.redirect) {
+      const pipeRes = executeTextPipeline(parsedPipe, cwd, history);
+      if (!pipeRes.ok) {
+        appendLines([commandLine, { text: pipeRes.error, tone: "error" }]);
+      } else if (pipeRes.stdout) {
+        appendLines([
+          commandLine,
+          ...pipeRes.stdout.split(/\r?\n/).map((line) => ({ text: line })),
+        ]);
+      } else {
+        appendLines([commandLine]);
+      }
+      return;
+    }
+
+    if (trimmed.includes("&&")) {
       const segments = trimmed.split(/\s*&&\s*/);
       let cur = cwd;
       const collected: Array<Omit<OutputLine, "id">> = [commandLine];
@@ -859,6 +911,31 @@ export const TerminalApp: React.FC<TerminalAppProps> = ({ initialPath }) => {
       return;
     }
 
+    if (cmd === "history") {
+      appendLines([
+        commandLine,
+        ...history.map((h, i) => ({
+          text: `${String(i + 1).padStart(4)}  ${h}`,
+        })),
+      ]);
+      return;
+    }
+
+    if (cmd === "grep") {
+      const res = runGrepFilter("", args, cwd);
+      if (!res.ok) {
+        appendLines([commandLine, { text: res.error, tone: "error" }]);
+      } else if (res.output) {
+        appendLines([
+          commandLine,
+          ...res.output.split(/\r?\n/).map((line) => ({ text: line })),
+        ]);
+      } else {
+        appendLines([commandLine]);
+      }
+      return;
+    }
+
     if (cmd === "curl" || cmd === "wget") {
       let outFile: string | null = null;
       let targetUrl: string | null = null;
@@ -1154,7 +1231,84 @@ export const TerminalApp: React.FC<TerminalAppProps> = ({ initialPath }) => {
     }
   };
 
+  const reverseMatches = React.useMemo(() => {
+    if (!reverseSearch.active) return [];
+    const q = reverseSearch.query.toLowerCase();
+    const out: string[] = [];
+    for (let i = history.length - 1; i >= 0; i--) {
+      const item = history[i];
+      if (!q || item.toLowerCase().includes(q)) {
+        if (!out.includes(item)) out.push(item);
+      }
+    }
+    return out;
+  }, [history, reverseSearch.active, reverseSearch.query]);
+
+  const activeReverseMatch = reverseSearch.active
+    ? (reverseMatches[reverseSearch.matchOffset] ?? "")
+    : "";
+
   const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.ctrlKey && e.key.toLowerCase() === "r") {
+      e.preventDefault();
+      e.stopPropagation();
+      setReverseSearch((prev) =>
+        prev.active
+          ? {
+              ...prev,
+              matchOffset:
+                reverseMatches.length > 0
+                  ? (prev.matchOffset + 1) % reverseMatches.length
+                  : 0,
+            }
+          : { active: true, query: "", matchOffset: 0 },
+      );
+      return;
+    }
+    if (reverseSearch.active) {
+      if (e.key === "Escape" || (e.ctrlKey && e.key.toLowerCase() === "c")) {
+        e.preventDefault();
+        setReverseSearch({ active: false, query: "", matchOffset: 0 });
+        return;
+      }
+      if (e.key === "Enter") {
+        e.preventDefault();
+        const chosen = activeReverseMatch;
+        setReverseSearch({ active: false, query: "", matchOffset: 0 });
+        if (chosen) {
+          setInput("");
+          runCommand(chosen);
+        }
+        return;
+      }
+      if (e.key === "ArrowRight" || e.key === "Tab") {
+        e.preventDefault();
+        if (activeReverseMatch) {
+          setInput(activeReverseMatch);
+          moveCursorToEnd();
+        }
+        setReverseSearch({ active: false, query: "", matchOffset: 0 });
+        return;
+      }
+      if (e.key === "Backspace") {
+        e.preventDefault();
+        setReverseSearch((prev) => ({
+          active: true,
+          query: prev.query.slice(0, -1),
+          matchOffset: 0,
+        }));
+        return;
+      }
+      if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        e.preventDefault();
+        setReverseSearch((prev) => ({
+          active: true,
+          query: prev.query + e.key,
+          matchOffset: 0,
+        }));
+        return;
+      }
+    }
     if (e.key === "Tab") {
       e.preventDefault();
       e.stopPropagation();
@@ -1298,6 +1452,14 @@ export const TerminalApp: React.FC<TerminalAppProps> = ({ initialPath }) => {
             : line.text || (line.prompt ? "" : "\u00A0")}
         </div>
       ))}
+      {reverseSearch.active && (
+        <div className="mb-1 flex items-center gap-1.5 text-[12px] text-amber-300">
+          <span>(reverse-i-search)`{reverseSearch.query}`:</span>
+          <span className="text-zinc-100">
+            {activeReverseMatch || "(no match)"}
+          </span>
+        </div>
+      )}
       <div className="flex items-center">
         <span className="shrink-0 whitespace-pre text-emerald-400">
           {formatPromptPath(cwd)}&gt;{" "}
