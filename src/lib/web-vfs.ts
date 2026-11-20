@@ -53,12 +53,86 @@ const DEFAULT_DIRS = [
   "/home/user/Pictures",
   "/home/user/Videos",
   "/home/user/.config",
+  "/home/user/.config/piloti",
+  "/home/user/.config/piloti/plugins",
+  "/home/user/.config/Piloti",
+  "/home/user/.config/domicile",
   "/home/user/.local",
   "/home/user/.local/share",
   "/home/user/.local/share/applications",
   "/home/user/.local/share/Trash",
   WEB_VFS_TRASH,
 ];
+
+const DEFAULT_LOCAL_DESKTOP_FILES: Record<string, string> = {
+  "piloti-files.desktop": `[Desktop Entry]
+Type=Application
+Name=Files
+Comment=Browse local virtual files and folders
+Exec=piloti-files %U
+Icon=system-file-manager
+Categories=System;FileManager;
+MimeType=inode/directory;
+`,
+  "piloti-terminal.desktop": `[Desktop Entry]
+Type=Application
+Name=Web Terminal
+Comment=Web shell with VFS commands
+Exec=piloti-terminal
+Icon=piloti-terminal
+Categories=System;TerminalEmulator;Development;
+`,
+  "piloti-notepad.desktop": `[Desktop Entry]
+Type=Application
+Name=Notepad
+Comment=Minimal plain-text notepad with instant VFS save
+Exec=piloti-notepad %F
+Icon=piloti-text-editor
+Categories=Utility;TextEditor;
+MimeType=text/plain;text/markdown;application/json;
+`,
+  "piloti-calculator.desktop": `[Desktop Entry]
+Type=Application
+Name=Calculator
+Comment=Basic & Scientific Calculator
+Exec=piloti-calculator
+Icon=piloti-calculator
+Categories=Utility;Calculator;
+`,
+  "piloti-image-viewer.desktop": `[Desktop Entry]
+Type=Application
+Name=Image Viewer
+Comment=Fast image viewer and crop/rotate editor
+Exec=piloti-image-viewer %F
+Icon=piloti-image-viewer
+Categories=Graphics;Viewer;
+MimeType=image/png;image/jpeg;image/webp;image/gif;image/svg+xml;
+`,
+  "piloti-app-store.desktop": `[Desktop Entry]
+Type=Application
+Name=App Store
+Comment=Browse and install apps and web apps
+Exec=piloti-app-store
+Icon=org.gnome.Software
+Categories=System;PackageManager;
+`,
+  "piloti-devtools.desktop": `[Desktop Entry]
+Type=Application
+Name=DevTools
+Comment=Shell DevTools, live logs, inspector, and JS console
+Exec=piloti-devtools
+Icon=org.gnome.DevTools
+Categories=Development;Debugger;
+`,
+  "piloti-settings.desktop": `[Desktop Entry]
+Type=Application
+Name=Desktop Settings
+Comment=Configure appearance, fonts, dock, and wallpaper
+Exec=piloti-settings
+Icon=piloti-settings
+Categories=Settings;DesktopSettings;
+`,
+};
 
 function basename(path: string): string {
   const parts = path.split("/").filter(Boolean);
@@ -180,6 +254,19 @@ function createInitialVfs(): WebVfsEntry[] {
     }
   );
 
+  for (const [fileName, content] of Object.entries(DEFAULT_LOCAL_DESKTOP_FILES)) {
+    const fullPath = `/home/user/.local/share/applications/${fileName}`;
+    entries.push({
+      id: fullPath,
+      name: fileName,
+      kind: "file",
+      path: fullPath,
+      parentPath: "/home/user/.local/share/applications",
+      content,
+      updatedAt: now,
+    });
+  }
+
   return entries;
 }
 
@@ -263,6 +350,34 @@ function loadVfs(): WebVfsEntry[] {
           updatedAt: now,
         });
         addedDefaults = true;
+      }
+      for (const dirPath of DEFAULT_DIRS) {
+        if (!entries.some((e) => e.path === dirPath)) {
+          entries.push({
+            id: dirPath,
+            name: basename(dirPath),
+            kind: "directory",
+            path: dirPath,
+            parentPath: dirname(dirPath),
+            updatedAt: now,
+          });
+          addedDefaults = true;
+        }
+      }
+      for (const [fileName, content] of Object.entries(DEFAULT_LOCAL_DESKTOP_FILES)) {
+        const fullPath = `/home/user/.local/share/applications/${fileName}`;
+        if (!entries.some((e) => e.path === fullPath)) {
+          entries.push({
+            id: fullPath,
+            name: fileName,
+            kind: "file",
+            path: fullPath,
+            parentPath: "/home/user/.local/share/applications",
+            content,
+            updatedAt: now,
+          });
+          addedDefaults = true;
+        }
       }
       if (addedDefaults) {
         localStorage.setItem(WEB_VFS_STORAGE_KEY, JSON.stringify(entries));
@@ -402,8 +517,53 @@ export function createVfsTextFile(
   return created;
 }
 
+export function ensureVfsDir(rawPath: string): WebVfsEntry {
+  const normalized = normalizeVfsPath(rawPath);
+  let entries = loadVfs();
+  const existing = entries.find((e) => e.path === normalized);
+  if (existing) return existing;
+
+  const segments = normalized.split("/").filter(Boolean);
+  let curr = "";
+  const now = Date.now();
+  let last: WebVfsEntry | undefined;
+  let changed = false;
+  for (const seg of segments) {
+    const parent = curr || "/";
+    curr = `${curr}/${seg}`;
+    const found = entries.find((e) => e.path === curr);
+    if (found) {
+      last = found;
+    } else {
+      const created: WebVfsEntry = {
+        id: curr,
+        name: seg,
+        kind: "directory",
+        path: curr,
+        parentPath: parent,
+        updatedAt: now,
+      };
+      entries = [...entries, created];
+      last = created;
+      changed = true;
+    }
+  }
+  if (changed) saveVfs(entries);
+  return (
+    last ?? {
+      id: normalized,
+      name: basename(normalized),
+      kind: "directory",
+      path: normalized,
+      parentPath: dirname(normalized),
+      updatedAt: now,
+    }
+  );
+}
+
 export function writeVfsTextFile(path: string, content: string): WebVfsEntry {
   const normalized = normalizeVfsPath(path);
+  ensureVfsDir(dirname(normalized));
   const entries = loadVfs();
   const existing = entries.find((e) => e.path === normalized);
   if (existing) {

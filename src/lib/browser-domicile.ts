@@ -2,7 +2,13 @@ import { desktop, type Domicile } from "@domicile-desktop/sdk/desktop/desktop";
 import type { DomicileHost, DomicileNotification } from "@domicile-desktop/sdk/domicile-host";
 import { FakeDomicileHost } from "@domicile-desktop/sdk/fake-host";
 import { ADWAITA_VIRTUAL_ICONS } from "./adwaita-virtual-icons";
-import { getVfsEntry, listVfsDir, normalizeVfsPath } from "./web-vfs";
+import {
+  ensureVfsDir,
+  getVfsEntry,
+  listVfsDir,
+  normalizeVfsPath,
+  writeVfsTextFile,
+} from "./web-vfs";
 
 declare global {
   interface Window {
@@ -18,26 +24,7 @@ const INITIAL_NOTIFICATIONS: DomicileNotification[] = [];
  * runs the exact same `domicile.files.readDir` + `domicile.files.readText` pipeline
  * in the browser as on Debian Linux.
  */
-const VIRTUAL_XDG_DESKTOP_FILES: Record<string, string> = {
-  "/usr/share/applications/org.gnome.Nautilus.desktop": `[Desktop Entry]
-Name=Files (Nautilus)
-GenericName=File Manager
-Comment=Access and organize files in GNOME Adwaita
-Exec=nautilus --new-window %U
-Icon=org.gnome.Nautilus
-Terminal=false
-Type=Application
-StartupNotify=true
-Categories=GNOME;GTK;Utility;Core;FileManager;
-Keywords=folder;manager;explore;disk;filesystem;nautilus;
-X-GNOME-UsesNotifications=true
-Actions=new-window;
-
-[Desktop Action new-window]
-Name=New Window
-Exec=nautilus --new-window
-`,
-};
+const VIRTUAL_XDG_DESKTOP_FILES: Record<string, string> = {};
 
 /**
  * Virtual `/usr/share/icons/{Adwaita,hicolor}` files served by `FakeDomicileHost`
@@ -172,6 +159,15 @@ function encodeUtf8Base64(text: string): string {
   return btoa(binary);
 }
 
+function decodeUtf8Base64(b64: string): string {
+  const binary = atob(b64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return new TextDecoder().decode(bytes);
+}
+
 /**
  * Creates an interactive Domicile instance backed by FakeDomicileHost
  * for developing and running Piloti inside any web browser.
@@ -269,7 +265,67 @@ export function createBrowserDomicile(): Domicile {
             const req = JSON.parse(rawRequest) as {
               call: string;
               path?: string;
+              data?: string;
             };
+            if (req.call === "create_dir" && req.path) {
+              const vfsPath = normalizeVfsPath(req.path);
+              ensureVfsDir(vfsPath);
+              dispatchSystemLine({
+                id,
+                type: "system_reply",
+                reply: { kind: "created" },
+              });
+              return;
+            }
+            if (req.call === "write_file" && req.path && typeof req.data === "string") {
+              const vfsPath = normalizeVfsPath(req.path);
+              writeVfsTextFile(vfsPath, decodeUtf8Base64(req.data));
+              dispatchSystemLine({
+                id,
+                type: "system_reply",
+                reply: { kind: "written" },
+              });
+              return;
+            }
+            if (req.call === "stat" && req.path) {
+              const vfsPath = normalizeVfsPath(req.path);
+              const vfsEntry = vfsPath.startsWith("/home/user")
+                ? getVfsEntry(vfsPath)
+                : undefined;
+              const virtualContent = ALL_VIRTUAL_FILES[req.path];
+              if (vfsEntry) {
+                dispatchSystemLine({
+                  id,
+                  type: "system_reply",
+                  reply: {
+                    kind: "stat",
+                    file_type: vfsEntry.kind === "directory" ? "directory" : "file",
+                    size: vfsEntry.content?.length ?? 0,
+                    modified_ms: vfsEntry.updatedAt,
+                  },
+                });
+              } else if (virtualContent !== undefined) {
+                dispatchSystemLine({
+                  id,
+                  type: "system_reply",
+                  reply: {
+                    kind: "stat",
+                    file_type: "file",
+                    size: virtualContent.length,
+                  },
+                });
+              } else {
+                dispatchSystemLine({
+                  id,
+                  type: "system_reply",
+                  reply: {
+                    kind: "failed",
+                    error: { kind: "not_found", message: "No such file" },
+                  },
+                });
+              }
+              return;
+            }
             if (req.call === "read_dir" && req.path) {
               const vfsPath = normalizeVfsPath(req.path);
               const vfsEntries =

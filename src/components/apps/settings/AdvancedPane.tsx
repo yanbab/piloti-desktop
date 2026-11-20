@@ -1,7 +1,8 @@
 import * as React from "react";
 import { useDomicile } from "@domicile-desktop/react/domicile-provider";
 import { useWatch } from "@domicile-desktop/react/use-watch";
-import { PlusIcon, PuzzleIcon, RefreshCwIcon, SparklesIcon, Trash2Icon } from "lucide-react";
+import { FolderOpenIcon, PlusIcon, PuzzleIcon, RefreshCwIcon, SparklesIcon, Trash2Icon } from "lucide-react";
+import { useWindowManager } from "@/context/DesktopStateContext";
 import { usePlugins } from "@/context/PluginsContext";
 import { Button } from "@/components/ui/button";
 import {
@@ -38,6 +39,7 @@ import { useSettings } from "@/context/DesktopStateContext";
 export function AdvancedPane() {
   const domicile = useDomicile();
   const { isBrowserRuntime, settings, updateSettings } = useSettings();
+  const { launchApp } = useWindowManager();
   const {
     plugins: userPlugins,
     safeMode: pluginsSafeMode,
@@ -273,7 +275,21 @@ export function AdvancedPane() {
                       {_("Manifest V3 sample also available in extensions/piloti-demo/")}
                     </GroupedFormRowDescription>
                   </GroupedFormRowLabel>
-                  <GroupedFormRowControl>
+                  <GroupedFormRowControl className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      className="h-7 px-2 text-xs"
+                      onClick={() =>
+                        launchApp("nautilus", {
+                          payload: "/home/user/.config/domicile",
+                          forceNew: true,
+                        })
+                      }
+                    >
+                      <FolderOpenIcon className="mr-1 size-3.5" />
+                      {_("Open Folder")}
+                    </Button>
                     <span className="rounded-full bg-black/6 px-2 py-0.5 text-[11px] font-medium text-adw-label-secondary dark:bg-white/10">
                       {_("Active")}
                     </span>
@@ -295,6 +311,20 @@ export function AdvancedPane() {
                   </GroupedFormRowDescription>
                 </GroupedFormRowLabel>
                 <GroupedFormRowControl className="flex items-center gap-1.5">
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    className="h-7 px-2 text-xs"
+                    onClick={() =>
+                      launchApp("nautilus", {
+                        payload: "/home/user/.config/domicile",
+                        forceNew: true,
+                      })
+                    }
+                  >
+                    <FolderOpenIcon className="mr-1 size-3.5" />
+                    {_("Open Folder")}
+                  </Button>
                   <input
                     type="text"
                     value={newExtInput}
@@ -435,6 +465,20 @@ export function AdvancedPane() {
               </GroupedFormRowDescription>
             </GroupedFormRowLabel>
             <GroupedFormRowControl className="flex flex-wrap items-center gap-1.5">
+              <Button
+                size="sm"
+                variant="secondary"
+                className="h-7 px-2 text-xs"
+                onClick={() =>
+                  launchApp("nautilus", {
+                    payload: "/home/user/.config/piloti/plugins",
+                    forceNew: true,
+                  })
+                }
+              >
+                <FolderOpenIcon className="mr-1 size-3.5" />
+                {_("Open Folder")}
+              </Button>
               <Button
                 size="sm"
                 variant="secondary"

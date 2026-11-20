@@ -599,6 +599,23 @@ export function FilesApp({
   }, [getAppIconUrl, searchQuery, showHidden, vfsEntries]);
 
   const activePlace = XDG_PLACES.find((p) => p.path === currentPath);
+  const activeSidebarPath = React.useMemo(() => {
+    const exact = XDG_PLACES.find((p) => p.path === currentPath);
+    if (exact) return exact.path;
+    if (!currentPath.startsWith(`${WEB_VFS_HOME}/`)) return "";
+    let bestPath = WEB_VFS_HOME;
+    for (const place of XDG_PLACES) {
+      if (place.path.startsWith("piloti://")) continue;
+      if (
+        (currentPath === place.path ||
+          currentPath.startsWith(`${place.path}/`)) &&
+        place.path.length > bestPath.length
+      ) {
+        bestPath = place.path;
+      }
+    }
+    return bestPath;
+  }, [currentPath]);
   const currentTitle =
     activePlace?.label ??
     (currentPath.split("/").filter(Boolean).pop() || "Files");
@@ -610,13 +627,12 @@ export function FilesApp({
     currentPath.startsWith(`${WEB_VFS_HOME}/`);
 
   const {
-    highlightedId: highlightedPlace,
     onSidebarKeyDown,
     onSidebarKeyUp,
     onContentKeyDown,
   } = useSidebarKeyboardNav({
     itemIds: XDG_PLACES.map((p) => p.path),
-    activeId: currentPath,
+    activeId: activeSidebarPath,
     onActivate: (path) => {
       setCurrentPath(path);
       setSelectedIds([]);
@@ -631,7 +647,7 @@ export function FilesApp({
         id: place.path,
         label: _(place.label),
         icon: place.icon,
-        selected: highlightedPlace === place.path,
+        selected: activeSidebarPath === place.path,
         dropPath:
           place.path === WEB_VFS_FAVORITES_URI ||
           place.path === WEB_VFS_RECENTS_URI
@@ -643,7 +659,7 @@ export function FilesApp({
           setSelectedIds([]);
         },
       })),
-    [highlightedPlace]
+    [activeSidebarPath]
   );
 
   const handleGoUp = () => {
@@ -1410,6 +1426,9 @@ export function FilesApp({
                         }
                         setBgMenu(null);
                         setItemMenu({ item, x: e.clientX, y: e.clientY });
+                      }}
+                      style={{
+                        opacity: item.name.startsWith(".") ? 0.85 : undefined,
                       }}
                       className={cn(
                         "cursor-default border-b border-adw-separator/40 transition-colors",

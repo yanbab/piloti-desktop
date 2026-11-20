@@ -244,13 +244,17 @@ export function isBrowserDevRuntime(): boolean {
   return typeof window !== "undefined" && Boolean(window.__PILOTI_BROWSER_HOST__);
 }
 
-export const WEB_DEFAULTS_VERSION = 5;
+export const WEB_DEFAULTS_VERSION = 6;
 
 const DEFAULT_WEB_PINNED_APP_IDS = [
   "nautilus",
   "terminal",
+  "text-editor",
+  "calculator",
+  "image-viewer",
   "app-store",
   "console",
+  "settings",
 ];
 
 const WEB_HIDDEN_APP_IDS = new Set([

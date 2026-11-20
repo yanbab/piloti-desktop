@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useDomicile } from "@domicile-desktop/react/domicile-provider";
 import {
   DockIcon as LucideDockIcon,
   ImageIcon,
@@ -18,6 +19,11 @@ import {
 } from "@/context/DesktopStateContext";
 import type { GnomeSettingsPanel } from "@/lib/gnome-bridge";
 import { _ } from "@/lib/i18n";
+import {
+  getCachedPilotiAppIni,
+  readPilotiAppIni,
+  writePilotiAppIni,
+} from "@/lib/piloti-ini";
 import { cn } from "@/lib/utils";
 import { AdvancedPane } from "./settings/AdvancedPane";
 import { AppearancePane } from "./settings/AppearancePane";
@@ -100,6 +106,7 @@ export function SettingsApp({
   isCsd?: boolean;
   windowId?: string;
 }) {
+  const domicile = useDomicile();
   const { isBrowserRuntime } = useSettings();
   const { gnomeCapabilities } = useSystemBackends();
   const { openGnomeSettings } = useWindowActions();
@@ -108,6 +115,8 @@ export function SettingsApp({
     if (isSettingsPaneId(initialPane)) {
       return initialPane;
     }
+    const iniPane = getCachedPilotiAppIni("settings").General?.lastPane;
+    if (isSettingsPaneId(iniPane)) return iniPane;
     try {
       const saved = localStorage.getItem(SETTINGS_ACTIVE_PANE_KEY);
       if (isSettingsPaneId(saved)) return saved;
@@ -120,8 +129,20 @@ export function SettingsApp({
   React.useEffect(() => {
     if (isSettingsPaneId(initialPane)) {
       setActivePane(initialPane);
+      return;
     }
-  }, [initialPane]);
+    let cancelled = false;
+    readPilotiAppIni(domicile, "settings").then((ini) => {
+      if (cancelled) return;
+      const pane = ini.General?.lastPane;
+      if (isSettingsPaneId(pane)) {
+        setActivePane(pane);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [domicile, initialPane]);
 
   React.useEffect(() => {
     try {
@@ -129,7 +150,10 @@ export function SettingsApp({
     } catch {
       // ignore storage errors
     }
-  }, [activePane]);
+    void writePilotiAppIni(domicile, "settings", "General", {
+      lastPane: activePane,
+    });
+  }, [activePane, domicile]);
 
   const matchingGnomePanel = PANE_TO_GNOME[activePane];
   const currentPaneMeta = PANES.find((p) => p.id === activePane);

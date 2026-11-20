@@ -64,10 +64,14 @@ describe("resolveInitialSettings web defaults and seeding", () => {
     const nativeFresh = resolveInitialSettings(null, false);
     expect(nativeFresh.installedWebApps).toEqual([]);
     expect(nativeFresh.pinnedAppIds).toEqual([
+      "settings",
       "console",
       "nautilus",
       "terminal",
+      "text-editor",
       "app-store",
+      "calculator",
+      "image-viewer",
     ]);
     expect(nativeFresh.webDefaultsVersion).toBeUndefined();
 
@@ -85,8 +89,12 @@ describe("resolveInitialSettings web defaults and seeding", () => {
     expect(webFresh.pinnedAppIds).toEqual([
       "nautilus",
       "terminal",
+      "text-editor",
+      "calculator",
+      "image-viewer",
       "app-store",
       "console",
+      "settings",
     ]);
     expect(webFresh.installedWebApps).toEqual([...DEFAULT_LAUNCHER_WEB_APPS]);
     expect(webFresh.webAppsSeeded).toBe(true);
@@ -114,6 +122,9 @@ describe("resolveInitialSettings web defaults and seeding", () => {
       "settings",
       "terminal",
       "nautilus",
+      "text-editor",
+      "calculator",
+      "image-viewer",
       "app-store",
       "console",
     ]);
@@ -141,8 +152,12 @@ describe("resolveInitialSettings web defaults and seeding", () => {
     expect(v1Upgraded.pinnedAppIds).toEqual([
       "nautilus",
       "terminal",
+      "text-editor",
+      "calculator",
+      "image-viewer",
       "app-store",
       "console",
+      "settings",
     ]);
   });
 

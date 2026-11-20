@@ -1935,7 +1935,7 @@ function pruneBrowserRecord(
           system: "about",
         };
         launchApp("settings", {
-          payload: panel ? reverseMap[panel] ?? "appearance" : "appearance",
+          payload: panel ? reverseMap[panel] : undefined,
           forceCsd: true,
         });
         return;

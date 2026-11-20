@@ -198,7 +198,7 @@ export function FileItemContextMenu({
         role="menu"
         style={{ left: `${left}px`, top: `${top}px` }}
         onClick={(e) => e.stopPropagation()}
-        className={cn(MENU_POPUP_CLASS, "fixed min-w-48")}
+        className={cn(MENU_POPUP_CLASS, "fixed min-w-48 overflow-visible")}
       >
         {effectiveContext === "trash" ? (
           <>
@@ -288,7 +288,10 @@ export function FileItemContextMenu({
                     role="menu"
                     className={cn(
                       MENU_POPUP_CLASS,
-                      "absolute top-0 left-full ml-1 min-w-40",
+                      "absolute top-0 z-[520] min-w-44",
+                      typeof window !== "undefined" && left + 360 > window.innerWidth
+                        ? "right-full mr-1"
+                        : "left-full ml-1",
                     )}
                   >
                     {openWithApps.map((appOpt) => (

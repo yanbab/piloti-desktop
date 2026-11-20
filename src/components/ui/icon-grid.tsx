@@ -768,7 +768,7 @@ export function IconGrid({
           Boolean(drag?.active) && Boolean(drag?.draggedIds.includes(item.id));
         const coord = resolvedPositions[item.id] ?? { col: 0, row: 0 };
 
-        const spatialStyle: React.CSSProperties | undefined =
+        const spatialStyle: React.CSSProperties =
           mode === "spatial"
             ? {
                 position: "absolute",
@@ -777,10 +777,12 @@ export function IconGrid({
                 width: `${effectiveCellWidth}px`,
                 height: `${effectiveCellHeight}px`,
                 zIndex: isDragging ? 9999 : selected ? 20 : 1,
+                opacity: isDragging ? 0.25 : isHiddenFile ? 0.85 : undefined,
               }
             : {
                 width: `${effectiveCellWidth}px`,
                 height: `${effectiveCellHeight}px`,
+                opacity: isDragging ? 0.25 : isHiddenFile ? 0.85 : undefined,
               };
 
         return (

@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { publishWindowMenuState, useIsolatedAppBridge } from "@/lib/app-bridge";
 import { _ } from "@/lib/i18n";
+import { getCachedPilotiAppIni, writePilotiAppIni } from "@/lib/piloti-ini";
 import { cn } from "@/lib/utils";
 import { normalizeVfsPath, renameVfsEntry } from "@/lib/web-vfs";
 
@@ -225,12 +226,42 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
     col: 1,
   });
 
-  // Editor preferences (only syntax highlighting enabled by default)
-  const [showLineNumbers, setShowLineNumbers] = React.useState(false);
-  const [enableHighlight, setEnableHighlight] = React.useState(true);
-  const [wordWrap, setWordWrap] = React.useState(false);
-  const [highlightLine, setHighlightLine] = React.useState(false);
-  const [showCursorPos, setShowCursorPos] = React.useState(false);
+  // Editor preferences (only syntax highlighting enabled by default; persisted to .config/Piloti/notepad.ini)
+  const initialEditorPrefs = React.useMemo(
+    () => getCachedPilotiAppIni("notepad").Editor ?? {},
+    []
+  );
+  const [showLineNumbers, setShowLineNumbers] = React.useState(
+    () => initialEditorPrefs.lineNumbers === "true"
+  );
+  const [enableHighlight, setEnableHighlight] = React.useState(
+    () => initialEditorPrefs.syntaxHighlight !== "false"
+  );
+  const [wordWrap, setWordWrap] = React.useState(
+    () => initialEditorPrefs.wordWrap === "true"
+  );
+  const [highlightLine, setHighlightLine] = React.useState(
+    () => initialEditorPrefs.activeLine === "true"
+  );
+  const [showCursorPos, setShowCursorPos] = React.useState(
+    () => initialEditorPrefs.cursorPosition === "true"
+  );
+
+  React.useEffect(() => {
+    void writePilotiAppIni(null, "notepad", "Editor", {
+      lineNumbers: showLineNumbers,
+      syntaxHighlight: enableHighlight,
+      wordWrap,
+      activeLine: highlightLine,
+      cursorPosition: showCursorPos,
+    });
+  }, [
+    showLineNumbers,
+    enableHighlight,
+    wordWrap,
+    highlightLine,
+    showCursorPos,
+  ]);
   const [editingTitle, setEditingTitle] = React.useState(false);
   const [draftTitle, setDraftTitle] = React.useState("");
 
