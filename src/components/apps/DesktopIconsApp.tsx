@@ -743,6 +743,9 @@ export function DesktopIconsApp({
         selectedItems={selectedItems}
         onClose={() => setContextMenu(null)}
         onOpen={handleActivateItem}
+        onOpenWithApp={(target, appId) => {
+          launchApp(appId, { payload: target.path, forceNew: true });
+        }}
         onOpenInNewWindow={(target) =>
           launchApp("nautilus", { payload: target.path, forceNew: true })
         }

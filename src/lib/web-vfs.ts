@@ -17,7 +17,34 @@ export const WEB_VFS_CHANGED_EVENT = "piloti:web-vfs-changed";
 export const WEB_VFS_HOME = "/home/user";
 export const WEB_VFS_TRASH = "/home/user/.local/share/Trash/files";
 
+export const DEFAULT_ETC_ISSUE = `Piloti Desktop Web VFS (localStorage)
+Type 'help' for shell commands, 'piloti help' for desktop controls, or 'cat ~/Documents/Notes.txt'.
+`;
+
+export const DEFAULT_MIMEAPPS_INI = `[Default Applications]
+inode/directory=nautilus.desktop
+text/plain=text-editor.desktop
+text/markdown=text-editor.desktop
+text/html=browser.desktop
+application/json=text-editor.desktop
+image/png=image-viewer.desktop
+image/jpeg=image-viewer.desktop
+image/webp=image-viewer.desktop
+image/gif=image-viewer.desktop
+image/svg+xml=image-viewer.desktop
+
+[Added Associations]
+inode/directory=nautilus.desktop;terminal.desktop;
+text/plain=text-editor.desktop;terminal.desktop;
+text/markdown=text-editor.desktop;browser.desktop;
+text/html=browser.desktop;text-editor.desktop;
+text/*=text-editor.desktop;terminal.desktop;
+application/json=text-editor.desktop;console.desktop;
+image/*=image-viewer.desktop;browser.desktop;
+`;
+
 const DEFAULT_DIRS = [
+  "/etc",
   "/home/user",
   "/home/user/Desktop",
   "/home/user/Documents",
@@ -25,6 +52,7 @@ const DEFAULT_DIRS = [
   "/home/user/Music",
   "/home/user/Pictures",
   "/home/user/Videos",
+  "/home/user/.config",
   "/home/user/.local",
   "/home/user/.local/share",
   "/home/user/.local/share/applications",
@@ -131,6 +159,24 @@ function createInitialVfs(): WebVfsEntry[] {
       parentPath: "/home/user/Downloads",
       content: "# Downloads\n\nLocal browser VFS folder stored in localStorage.\n",
       updatedAt: now,
+    },
+    {
+      id: "/etc/issue",
+      name: "issue",
+      kind: "file",
+      path: "/etc/issue",
+      parentPath: "/etc",
+      content: DEFAULT_ETC_ISSUE,
+      updatedAt: now,
+    },
+    {
+      id: "/home/user/.config/mimeapps.list",
+      name: "mimeapps.list",
+      kind: "file",
+      path: "/home/user/.config/mimeapps.list",
+      parentPath: "/home/user/.config",
+      content: DEFAULT_MIMEAPPS_INI,
+      updatedAt: now,
     }
   );
 
@@ -171,6 +217,55 @@ function loadVfs(): WebVfsEntry[] {
           });
           localStorage.setItem(WEB_VFS_STORAGE_KEY, JSON.stringify(entries));
         }
+      }
+      let addedDefaults = false;
+      const now = Date.now();
+      if (!entries.some((e) => e.path === "/etc/issue")) {
+        if (!entries.some((e) => e.path === "/etc")) {
+          entries.push({
+            id: "/etc",
+            name: "etc",
+            kind: "directory",
+            path: "/etc",
+            parentPath: "/",
+            updatedAt: now,
+          });
+        }
+        entries.push({
+          id: "/etc/issue",
+          name: "issue",
+          kind: "file",
+          path: "/etc/issue",
+          parentPath: "/etc",
+          content: DEFAULT_ETC_ISSUE,
+          updatedAt: now,
+        });
+        addedDefaults = true;
+      }
+      if (!entries.some((e) => e.path === "/home/user/.config/mimeapps.list")) {
+        if (!entries.some((e) => e.path === "/home/user/.config")) {
+          entries.push({
+            id: "/home/user/.config",
+            name: ".config",
+            kind: "directory",
+            path: "/home/user/.config",
+            parentPath: "/home/user",
+            updatedAt: now,
+          });
+        }
+        entries.push({
+          id: "/home/user/.config/mimeapps.list",
+          name: "mimeapps.list",
+          kind: "file",
+          path: "/home/user/.config/mimeapps.list",
+          parentPath: "/home/user/.config",
+          content: DEFAULT_MIMEAPPS_INI,
+          updatedAt: now,
+        });
+        addedDefaults = true;
+      }
+      if (addedDefaults) {
+        localStorage.setItem(WEB_VFS_STORAGE_KEY, JSON.stringify(entries));
       }
       return entries;
     }

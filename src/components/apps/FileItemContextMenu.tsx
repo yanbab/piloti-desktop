@@ -1,7 +1,10 @@
+import * as React from "react";
 import { createPortal } from "react-dom";
+import { useDomicile } from "@domicile-desktop/react/domicile-provider";
 import {
   AlertCircleIcon,
   BriefcaseIcon,
+  ChevronRightIcon,
   HeartIcon,
   TagIcon,
 } from "lucide-react";
@@ -10,10 +13,18 @@ import {
   MENU_POPUP_CLASS,
   MENU_SEPARATOR_CLASS,
 } from "@/components/ui/menu-styles";
+import { useSettings } from "@/context/DesktopStateContext";
 import type { IconGridItem } from "@/lib/desktop-icons";
 import { _ } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { VFS_EMBLEM_META, type VfsEmblemId } from "@/lib/web-vfs";
+import {
+  inferMimeType,
+  loadMimeAppsConfig,
+  type MimeAppOption,
+  type MimeAppsConfig,
+  resolveAppsForMime,
+} from "@/lib/xdg-mimeapps";
 
 export interface FileItemContextMenuState {
   item: IconGridItem;
@@ -61,6 +72,7 @@ export function FileItemContextMenu({
   selectedItems,
   onClose,
   onOpen,
+  onOpenWithApp,
   onOpenInNewWindow,
   onOpenContainingFolder,
   onRestore,
@@ -90,6 +102,7 @@ export function FileItemContextMenu({
   selectedItems?: IconGridItem[];
   onClose: () => void;
   onOpen: (item: IconGridItem) => void;
+  onOpenWithApp?: (item: IconGridItem, appId: string) => void;
   onOpenInNewWindow?: (item: IconGridItem) => void;
   onOpenContainingFolder?: (item: IconGridItem) => void;
   onRestore?: (item: IconGridItem) => void;
@@ -114,6 +127,25 @@ export function FileItemContextMenu({
   onTrash: (item: IconGridItem) => void;
   onTrashItems?: (items: IconGridItem[]) => void;
 }) {
+  const domicile = useDomicile();
+  const { isBrowserRuntime } = useSettings();
+  const [mimeConfig, setMimeConfig] = React.useState<MimeAppsConfig | null>(null);
+  const [openWithHovered, setOpenWithHovered] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!menu) {
+      setOpenWithHovered(false);
+      return;
+    }
+    let cancelled = false;
+    void loadMimeAppsConfig(domicile, isBrowserRuntime).then((cfg) => {
+      if (!cancelled) setMimeConfig(cfg);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [domicile, isBrowserRuntime, menu]);
+
   if (!menu) return null;
 
   const effectiveContext: FileContextMenuKind = isTrash ? "trash" : context;
@@ -125,6 +157,16 @@ export function FileItemContextMenu({
       : [menu.item];
   const multiCount = targetItems.length;
   const isSingle = multiCount === 1;
+  const openWithApps: MimeAppOption[] =
+    isSingle && mimeConfig
+      ? resolveAppsForMime(
+          inferMimeType(
+            menu.item.name,
+            menu.item.kind === "directory" ? "directory" : "file",
+          ),
+          mimeConfig,
+        )
+      : [];
   const isVirtualView =
     effectiveContext === "favorites" || effectiveContext === "recents";
 
@@ -220,6 +262,56 @@ export function FileItemContextMenu({
               >
                 {_("Open")}
               </button>
+            )}
+            {isSingle && onOpenWithApp && openWithApps.length >= 2 && (
+              <div
+                className="relative"
+                onMouseEnter={() => setOpenWithHovered(true)}
+                onMouseLeave={() => setOpenWithHovered(false)}
+              >
+                <button
+                  type="button"
+                  role="menuitem"
+                  aria-haspopup="menu"
+                  aria-expanded={openWithHovered}
+                  onClick={() => setOpenWithHovered((v) => !v)}
+                  className={cn(
+                    MENU_ITEM_CLASS,
+                    "flex w-full items-center justify-between text-left hover:bg-adw-menu-highlight",
+                  )}
+                >
+                  <span>{_("Open With")}</span>
+                  <ChevronRightIcon className="size-3.5 opacity-70" />
+                </button>
+                {openWithHovered && (
+                  <div
+                    role="menu"
+                    className={cn(
+                      MENU_POPUP_CLASS,
+                      "absolute top-0 left-full ml-1 min-w-40",
+                    )}
+                  >
+                    {openWithApps.map((appOpt) => (
+                      <button
+                        key={appOpt.desktopId}
+                        type="button"
+                        role="menuitem"
+                        onClick={() => {
+                          const target = menu.item;
+                          onClose();
+                          onOpenWithApp(target, appOpt.appId);
+                        }}
+                        className={cn(
+                          MENU_ITEM_CLASS,
+                          "w-full text-left hover:bg-adw-menu-highlight",
+                        )}
+                      >
+                        {_(appOpt.label)}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             )}
             {isSingle &&
               menu.item.kind === "directory" &&

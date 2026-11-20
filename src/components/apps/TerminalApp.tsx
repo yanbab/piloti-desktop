@@ -177,13 +177,17 @@ export const TerminalApp: React.FC<TerminalAppProps> = ({ initialPath }) => {
   });
 
   const nextIdRef = React.useRef(1);
-  const [lines, setLines] = React.useState<OutputLine[]>([
-    {
+  const [lines, setLines] = React.useState<OutputLine[]>(() => {
+    const issue = getVfsEntry("/etc/issue")?.content?.trimEnd();
+    const issueLines = issue
+      ? issue.split(/\r?\n/)
+      : ["Web Shell — type 'help' for help."];
+    return issueLines.map((text) => ({
       id: nextIdRef.current++,
-      text: "Web Shell — type 'help' for help.",
-      tone: "muted",
-    },
-  ]);
+      text,
+      tone: "muted" as const,
+    }));
+  });
   const [input, setInput] = React.useState("");
   const [history, setHistory] = React.useState<string[]>([]);
   const [historyIndex, setHistoryIndex] = React.useState<number>(-1);
