@@ -332,11 +332,10 @@ export function useWindowsValue(
       if (savedSession !== null) {
         const restoredShell: DesktopWindowInstance[] = [];
         for (const rec of savedSession) {
-          if (rec.id === "settings" || rec.id === "console" || rec.id === "open") {
-            const def = APP_CATALOG.find((a) => a.id === rec.id);
-            if (!def) continue;
+          const def = APP_CATALOG.find((a) => a.id === rec.id);
+          if (def?.builtinComponent) {
             const count = ++nextShellWinCounter;
-            const minSize = def.minSize ?? { width: 620, height: 400 };
+            const minSize = def.minSize ?? { width: 320, height: 240 };
             const clamped = clampWindowBounds(
               { x: rec.x, y: rec.y },
               { width: rec.width, height: rec.height },
@@ -350,8 +349,8 @@ export function useWindowsValue(
               title: rec.title || def.name,
               iconName: def.iconName,
               gradient: def.gradient,
-              builtinComponent: rec.id as BuiltinAppId,
-              clientFrame: true,
+              builtinComponent: def.builtinComponent,
+              clientFrame: def.builtinComponent !== "terminal",
               workspace: clampWorkspace(rec.workspace, settings.workspaceCount),
               position: clamped.position,
               size: clamped.size,
@@ -361,7 +360,7 @@ export function useWindowsValue(
               fullscreen: rec.fullscreen,
               pinned: rec.pinned,
               zIndex: ++nextZIndex,
-              payload: rec.id === "settings" ? "appearance" : undefined,
+              payload: rec.payload,
             });
           } else {
             pendingSessionRestoreRef.current.set(rec.id, rec);

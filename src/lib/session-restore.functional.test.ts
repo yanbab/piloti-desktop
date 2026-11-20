@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, test } from "bun:test";
 import { resolveInitialSettings } from "@/context/SettingsContext";
 import {
   lookupSpatialWindowBounds,
-  recordSpatialWindowBounds,
+  resolveSpatialBoundsKey,
 } from "@/lib/spatial-window-bounds";
 import {
   clearXdgSession,
@@ -97,14 +97,19 @@ describe("Functional: open 3 apps, move/resize, reload desktop & restore state",
     ];
 
     for (const win of movedWindows) {
-      savedBounds = recordSpatialWindowBounds(savedBounds, {
+      const key = resolveSpatialBoundsKey({
         appId: win.appId,
         payload: win.payload,
-        position: win.position,
-        size: win.size,
-        workspace: win.workspace,
-        maximized: win.maximized,
       });
+      savedBounds = {
+        ...savedBounds,
+        [key]: {
+          position: win.position,
+          size: win.size,
+          workspace: win.workspace,
+          maximized: win.maximized,
+        },
+      };
     }
 
     // Persist session + settings before reload

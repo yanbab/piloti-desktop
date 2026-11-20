@@ -18,6 +18,7 @@ interface XdgSessionWindow {
   maximized: boolean;
   fullscreen: boolean;
   pinned: boolean;
+  payload?: string;
 }
 
 interface SessionWindowInput {
@@ -33,6 +34,7 @@ interface SessionWindowInput {
   maximized: boolean;
   fullscreen?: boolean;
   pinned?: boolean;
+  payload?: string;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -56,6 +58,7 @@ function parseSessionWindow(raw: unknown): XdgSessionWindow | null {
     maximized: Boolean(raw.maximized),
     fullscreen: Boolean(raw.fullscreen),
     pinned: Boolean(raw.pinned),
+    ...(typeof raw.payload === "string" && raw.payload ? { payload: raw.payload } : {}),
   };
 }
 
@@ -77,6 +80,7 @@ function serializeWindowToXdgSession(
     maximized: Boolean(win.maximized),
     fullscreen: Boolean(win.fullscreen),
     pinned: Boolean(win.pinned),
+    ...(typeof win.payload === "string" && win.payload ? { payload: win.payload } : {}),
   };
 }
 
