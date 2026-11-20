@@ -272,22 +272,33 @@ export const IsolatedAppFrame: React.FC<IsolatedAppFrameProps> = ({
       )}
     >
       {isCsd && (
-        <div
-          data-window-drag-region=""
-          onMouseEnter={() =>
-            iframeRef.current?.contentWindow?.postMessage(
-              { type: "piloti:app-action", actionId: "piloti:header-enter" },
-              "*",
-            )
-          }
-          onMouseLeave={() =>
-            iframeRef.current?.contentWindow?.postMessage(
-              { type: "piloti:app-action", actionId: "piloti:header-leave" },
-              "*",
-            )
-          }
-          className="absolute top-0 right-24 left-10 z-10 h-9"
-        />
+        <>
+          <div
+            data-window-drag-region=""
+            onMouseEnter={() =>
+              iframeRef.current?.contentWindow?.postMessage(
+                { type: "piloti:app-action", actionId: "piloti:header-enter" },
+                "*",
+              )
+            }
+            onMouseLeave={() =>
+              iframeRef.current?.contentWindow?.postMessage(
+                { type: "piloti:app-action", actionId: "piloti:header-leave" },
+                "*",
+              )
+            }
+            className={cn(
+              "absolute top-0 z-10 h-9",
+              appId === "calculator" ? "right-8 left-8" : "right-24 left-10",
+            )}
+          />
+          {appId === "calculator" && (
+            <div
+              data-window-drag-region=""
+              className="absolute top-9 right-0 left-0 z-10 h-[60px]"
+            />
+          )}
+        </>
       )}
       <iframe
         ref={iframeRef}

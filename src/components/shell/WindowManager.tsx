@@ -2,10 +2,7 @@
 import * as React from "react";
 import { useDomicile } from "@domicile-desktop/react/domicile-provider";
 import { useWatch } from "@domicile-desktop/react/use-watch";
-import {
-  ResizeEdge as DomicileResizeEdge,
-  WindowRequestKind,
-} from "@domicile-desktop/sdk/window-state";
+import { WindowRequestKind } from "@domicile-desktop/sdk/window-state";
 import {
   WEBVIEW_CLOSE_EVENT,
   WEBVIEW_CONTENT_SIZE_CHANGE_EVENT,
@@ -968,15 +965,15 @@ const WindowBody = React.memo(
     prev.win.minimized === next.win.minimized
 );
 
-const DOMICILE_RESIZE_EDGE_MAP: Record<DomicileResizeEdge, WindowResizeEdge> = {
-  [DomicileResizeEdge.Top]: "n",
-  [DomicileResizeEdge.Bottom]: "s",
-  [DomicileResizeEdge.Left]: "w",
-  [DomicileResizeEdge.Right]: "e",
-  [DomicileResizeEdge.TopLeft]: "nw",
-  [DomicileResizeEdge.TopRight]: "ne",
-  [DomicileResizeEdge.BottomLeft]: "sw",
-  [DomicileResizeEdge.BottomRight]: "se",
+const DOMICILE_RESIZE_EDGE_MAP: Record<number, WindowResizeEdge> = {
+  1: "n",
+  2: "s",
+  4: "w",
+  5: "nw",
+  6: "sw",
+  8: "e",
+  9: "ne",
+  10: "se",
 };
 
 export function WindowManager() {
@@ -1224,13 +1221,15 @@ export function WindowManager() {
       const { x, y } = lastPointerRef.current;
       // Note: some domicile .deb builds emit kind 3 (Unfullscreen) on headerbar
       // drag instead of kind 5 (Move); handle both until upstream .deb aligns.
+      const rawReq = req as { kind: number; edges?: number };
       if (
-        req.kind === WindowRequestKind.Move ||
+        rawReq.kind === 5 ||
         req.kind === WindowRequestKind.Unfullscreen
       ) {
         handle.startMove(x, y);
-      } else if (req.kind === WindowRequestKind.Resize) {
-        handle.startResize(DOMICILE_RESIZE_EDGE_MAP[req.edges], x, y);
+      } else if (rawReq.kind === 6 && typeof rawReq.edges === "number") {
+        const edge = DOMICILE_RESIZE_EDGE_MAP[rawReq.edges];
+        if (edge) handle.startResize(edge, x, y);
       }
     });
   }, [subscribeClientWindowRequest]);

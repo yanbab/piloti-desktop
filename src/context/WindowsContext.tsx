@@ -880,7 +880,7 @@ function pruneBrowserRecord(
                 },
               };
             });
-          } else if (req.kind === WindowRequestKind.Minimize) {
+          } else if ((req as { kind: number }).kind === 4) {
             setWaylandMeta((prev) => {
               const cur = prev[req.appId];
               if (!cur) return prev;
@@ -893,8 +893,8 @@ function pruneBrowserRecord(
               };
             });
           } else if (
-            req.kind === WindowRequestKind.Move ||
-            req.kind === WindowRequestKind.Resize ||
+            (req as { kind: number }).kind === 5 ||
+            (req as { kind: number }).kind === 6 ||
             req.kind === WindowRequestKind.Unfullscreen
           ) {
             for (const listener of clientWindowRequestListenersRef.current) {

@@ -84,6 +84,9 @@ export function FileItemContextMenu({
   onCopy,
   onCopyItems,
   onDuplicate,
+  onCompress,
+  onExtract,
+  onDownload,
   onPaste,
   canPaste = false,
   isFavorite = false,
@@ -115,6 +118,9 @@ export function FileItemContextMenu({
   onCopy?: (item: IconGridItem) => void;
   onCopyItems?: (items: IconGridItem[]) => void;
   onDuplicate?: (items: IconGridItem[]) => void;
+  onCompress?: (items: IconGridItem[]) => void;
+  onExtract?: (item: IconGridItem) => void;
+  onDownload?: (item: IconGridItem) => void;
   onPaste?: () => void;
   canPaste?: boolean;
   isFavorite?: boolean;
@@ -430,6 +436,63 @@ export function FileItemContextMenu({
                       : _("Duplicate")}
                   </button>
                 )}
+                {onCompress && !isVirtualView && (
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      onClose();
+                      onCompress(targetItems);
+                    }}
+                    className={cn(
+                      MENU_ITEM_CLASS,
+                      "w-full text-left hover:bg-adw-menu-highlight",
+                    )}
+                  >
+                    {multiCount > 1
+                      ? `${_("Compress")} (${multiCount})`
+                      : _("Compress")}
+                  </button>
+                )}
+                {onExtract &&
+                  !isVirtualView &&
+                  multiCount === 1 &&
+                  menu.item.kind === "file" &&
+                  menu.item.name.toLowerCase().endsWith(".zip") && (
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={() => {
+                        onClose();
+                        onExtract(menu.item);
+                      }}
+                      className={cn(
+                        MENU_ITEM_CLASS,
+                        "w-full text-left hover:bg-adw-menu-highlight",
+                      )}
+                    >
+                      {_("Extract Here")}
+                    </button>
+                  )}
+                {onDownload &&
+                  isBrowserRuntime &&
+                  multiCount === 1 &&
+                  menu.item.kind === "file" && (
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={() => {
+                        onClose();
+                        onDownload(menu.item);
+                      }}
+                      className={cn(
+                        MENU_ITEM_CLASS,
+                        "w-full text-left hover:bg-adw-menu-highlight",
+                      )}
+                    >
+                      {_("Download")}
+                    </button>
+                  )}
                 {onPaste && canPaste && !isVirtualView && (
                   <button
                     type="button"

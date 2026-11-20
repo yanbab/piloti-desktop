@@ -190,8 +190,6 @@ export function createBrowserDomicile(): Domicile {
           scale: typeof window !== "undefined" ? Math.round(window.devicePixelRatio || 2) : 2,
           modeWidth: w * 2,
           modeHeight: h * 2,
-          refreshMhz: 60000,
-          adaptiveSync: "unsupported",
           transform: "normal",
         },
       ],

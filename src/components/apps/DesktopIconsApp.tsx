@@ -51,6 +51,9 @@ import {
   trashVfsEntry,
   WEB_VFS_HOME,
   WEB_VFS_TRASH,
+  compressVfsEntries,
+  downloadVfsFile,
+  extractVfsZip,
 } from "@/lib/web-vfs";
 
 import { IconGrid, type IconGridProps } from "@/components/ui/icon-grid";
@@ -784,6 +787,27 @@ export function DesktopIconsApp({
           setVfsClipboard({ mode: "copy", paths: list.map((i) => i.path) })
         }
         onDuplicate={(list) => void handleDuplicateItems(list)}
+        onCompress={
+          isBrowserRuntime
+            ? (list) => {
+                void compressVfsEntries(list.map((i) => i.path)).then((created) => {
+                  if (created) void loadDesktopFolder();
+                });
+              }
+            : undefined
+        }
+        onExtract={
+          isBrowserRuntime
+            ? (target) => {
+                void extractVfsZip(target.path).then((folder) => {
+                  if (folder) void loadDesktopFolder();
+                });
+              }
+            : undefined
+        }
+        onDownload={
+          isBrowserRuntime ? (target) => downloadVfsFile(target.path) : undefined
+        }
         canPaste={Boolean(clipboard && clipboard.paths.length > 0)}
         onPaste={() => void handlePasteToDesktop()}
         activeEmblems={contextMenu ? getVfsEmblems(contextMenu.item.path) : []}

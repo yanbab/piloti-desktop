@@ -1503,3 +1503,198 @@ export function getVfsImageThumbnailUrl(
   return undefined;
 }
 
+const TEXT_UNZIP_EXT_RE =
+  /\.(txt|md|markdown|json|html?|css|scss|js|jsx|ts|tsx|mjs|cjs|sh|bash|zsh|ini|conf|cfg|toml|ya?ml|xml|svg|csv|log|py|rs|go|c|h|cpp|java|rb|php|sql)$/i;
+
+export function isZipVfsFile(name: string, content?: string): boolean {
+  return (
+    name.toLowerCase().endsWith(".zip") ||
+    Boolean(content?.startsWith("data:application/zip;"))
+  );
+}
+
+function dataUrlToBlob(dataUrl: string): Blob | null {
+  const commaIdx = dataUrl.indexOf(",");
+  if (commaIdx < 0) return null;
+  const header = dataUrl.slice(5, commaIdx);
+  const payload = dataUrl.slice(commaIdx + 1);
+  const isBase64 = header.endsWith(";base64");
+  const mime =
+    (isBase64 ? header.slice(0, -";base64".length) : header) ||
+    "application/octet-stream";
+  if (isBase64) {
+    const bin = atob(payload);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i += 1) {
+      bytes[i] = bin.charCodeAt(i);
+    }
+    return new Blob([bytes], { type: mime });
+  }
+  return new Blob([decodeURIComponent(payload)], { type: mime });
+}
+
+export function downloadVfsFile(path: string): boolean {
+  if (typeof document === "undefined") return false;
+  const entry = getVfsEntry(path);
+  if (!entry || entry.kind !== "file") return false;
+  const content = entry.content ?? "";
+  const blob = content.startsWith("data:")
+    ? (dataUrlToBlob(content) ?? new Blob([content], { type: "text/plain;charset=utf-8" }))
+    : new Blob([content], { type: "text/plain;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = entry.name;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  return true;
+}
+
+export async function compressVfsEntries(
+  paths: readonly string[],
+): Promise<WebVfsEntry | null> {
+  if (paths.length === 0) return null;
+  const entries = loadVfs();
+  const targets = paths
+    .map((p) => entries.find((e) => e.path === normalizeVfsPath(p)))
+    .filter((e): e is WebVfsEntry => Boolean(e));
+  if (targets.length === 0) return null;
+
+  const JSZip = (await import("jszip")).default;
+  const zip = new JSZip();
+
+  const addEntryToZip = (entry: WebVfsEntry, relPath: string) => {
+    if (entry.kind === "directory") {
+      zip.folder(relPath);
+      const children = entries.filter((e) => e.parentPath === entry.path);
+      for (const child of children) {
+        addEntryToZip(child, `${relPath}/${child.name}`);
+      }
+      return;
+    }
+    const content = entry.content ?? "";
+    const base64Match = content.match(/^data:[^;]*;base64,(.*)$/s);
+    if (base64Match) {
+      zip.file(relPath, base64Match[1], { base64: true });
+    } else {
+      zip.file(relPath, content);
+    }
+  };
+
+  for (const target of targets) {
+    addEntryToZip(target, target.name);
+  }
+
+  const parentPath = targets[0].parentPath || WEB_VFS_HOME;
+  const baseName = targets.length === 1 ? targets[0].name : "Archive";
+  const zipName = uniqueChildName(entries, parentPath, baseName, ".zip");
+  const zipPath = `${parentPath === "/" ? "" : parentPath}/${zipName}`;
+  const b64 = await zip.generateAsync({ type: "base64" });
+  const created: WebVfsEntry = {
+    id: zipPath,
+    name: zipName,
+    kind: "file",
+    path: zipPath,
+    parentPath,
+    content: `data:application/zip;base64,${b64}`,
+    updatedAt: Date.now(),
+  };
+  entries.push(created);
+  saveVfs(entries);
+  return created;
+}
+
+export async function extractVfsZip(zipPath: string): Promise<WebVfsEntry | null> {
+  const entries = loadVfs();
+  const zipEntry = entries.find((e) => e.path === normalizeVfsPath(zipPath));
+  if (!zipEntry || zipEntry.kind !== "file") return null;
+
+  const JSZip = (await import("jszip")).default;
+  const content = zipEntry.content ?? "";
+  const base64Match = content.match(/^data:[^;]*;base64,(.*)$/s);
+  const zip = await JSZip.loadAsync(
+    base64Match ? base64Match[1] : content,
+    base64Match ? { base64: true } : undefined,
+  );
+
+  const parentPath = zipEntry.parentPath || WEB_VFS_HOME;
+  const stem = zipEntry.name.replace(/\.zip$/i, "") || "Archive";
+  const folderName = uniqueChildName(entries, parentPath, stem);
+  const rootFolderPath = `${parentPath === "/" ? "" : parentPath}/${folderName}`;
+  const now = Date.now();
+
+  const ensureDir = (dirPath: string) => {
+    const norm = normalizeVfsPath(dirPath);
+    if (entries.some((e) => e.path === norm)) return;
+    const idx = norm.lastIndexOf("/");
+    const pPath = idx <= 0 ? "/" : norm.slice(0, idx);
+    if (pPath !== "/" && !entries.some((e) => e.path === pPath)) {
+      ensureDir(pPath);
+    }
+    entries.push({
+      id: norm,
+      name: basename(norm),
+      kind: "directory",
+      path: norm,
+      parentPath: pPath,
+      updatedAt: now,
+    });
+  };
+
+  const rootFolder: WebVfsEntry = {
+    id: rootFolderPath,
+    name: folderName,
+    kind: "directory",
+    path: rootFolderPath,
+    parentPath,
+    updatedAt: now,
+  };
+  entries.push(rootFolder);
+
+  for (const [relRaw, fileObj] of Object.entries(zip.files)) {
+    const cleanRel = relRaw.replace(/^\/+|\/+$/g, "");
+    if (!cleanRel || cleanRel.includes("..")) continue;
+    const targetPath = `${rootFolderPath}/${cleanRel}`;
+    if (fileObj.dir) {
+      ensureDir(targetPath);
+      continue;
+    }
+    const lastSlash = targetPath.lastIndexOf("/");
+    const dirPath = targetPath.slice(0, lastSlash);
+    ensureDir(dirPath);
+    const fileName = basename(targetPath);
+    let fileContent: string;
+    if (TEXT_UNZIP_EXT_RE.test(fileName)) {
+      fileContent = await fileObj.async("string");
+    } else {
+      const b64 = await fileObj.async("base64");
+      const ext = fileName.split(".").pop()?.toLowerCase() ?? "";
+      const mime =
+        ext === "png"
+          ? "image/png"
+          : ext === "jpg" || ext === "jpeg"
+            ? "image/jpeg"
+            : ext === "gif"
+              ? "image/gif"
+              : ext === "webp"
+                ? "image/webp"
+                : "application/octet-stream";
+      fileContent = `data:${mime};base64,${b64}`;
+    }
+    entries.push({
+      id: targetPath,
+      name: fileName,
+      kind: "file",
+      path: targetPath,
+      parentPath: dirPath,
+      content: fileContent,
+      updatedAt: now,
+    });
+  }
+
+  saveVfs(entries);
+  return rootFolder;
+}
+

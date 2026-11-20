@@ -61,14 +61,18 @@ import {
 import { cn } from "@/lib/utils";
 import {
   buildVfsEntryWebAppUrl,
+  compressVfsEntries,
   copyVfsEntry,
+  downloadVfsFile,
   duplicateVfsEntry,
+  extractVfsZip,
   getVfsClipboard,
   getVfsEmblems,
   getVfsEntry,
   importExternalFilesToVfs,
   isImageVfsFile,
   isTextEditableVfsFile,
+  isZipVfsFile,
   listVfsDir,
   listVfsFavoriteEntries,
   listVfsRecentEntries,
@@ -882,6 +886,12 @@ export function FilesApp({
     if (entry && entry.kind === "file") {
       if (isImageVfsFile(entry.name, entry.content)) {
         launchApp("image-viewer", { payload: entry.path });
+        return;
+      }
+      if (isZipVfsFile(entry.name, entry.content)) {
+        void extractVfsZip(entry.path).then((folder) => {
+          if (folder) reloadDir();
+        });
         return;
       }
       if (isTextEditableVfsFile(entry.name)) {
@@ -1771,6 +1781,27 @@ export function FilesApp({
           setVfsClipboard({ mode: "copy", paths: list.map((i) => i.path) })
         }
         onDuplicate={handleDuplicateItems}
+        onCompress={
+          isBrowserRuntime
+            ? (list) => {
+                void compressVfsEntries(list.map((i) => i.path)).then((created) => {
+                  if (created) reloadDir();
+                });
+              }
+            : undefined
+        }
+        onExtract={
+          isBrowserRuntime
+            ? (target) => {
+                void extractVfsZip(target.path).then((folder) => {
+                  if (folder) reloadDir();
+                });
+              }
+            : undefined
+        }
+        onDownload={
+          isBrowserRuntime ? (target) => downloadVfsFile(target.path) : undefined
+        }
         canPaste={Boolean(clipboard && clipboard.paths.length > 0)}
         onPaste={handlePasteItems}
         activeEmblems={itemMenu ? getVfsEmblems(itemMenu.item.path) : []}
