@@ -1,11 +1,14 @@
 /// <reference types="@domicile-desktop/react/elements" />
 import * as React from "react";
 import { useDomicile } from "@domicile-desktop/react/domicile-provider";
+import { useWatch } from "@domicile-desktop/react/use-watch";
 import {
   ResizeEdge as DomicileResizeEdge,
   WindowRequestKind,
 } from "@domicile-desktop/sdk/window-state";
 import {
+  WEBVIEW_CLOSE_EVENT,
+  WEBVIEW_CONTENT_SIZE_CHANGE_EVENT,
   WEBVIEW_FAVICON_CHANGE_EVENT,
   WEBVIEW_GUEST_FOCUS_EVENT,
   WEBVIEW_LOADING_CHANGE_EVENT,
@@ -18,6 +21,7 @@ import {
   Loader2Icon,
   Maximize2Icon,
   MinusIcon,
+  PuzzleIcon,
   Trash2Icon,
   XIcon,
 } from "lucide-react";
@@ -182,6 +186,7 @@ function WebViewSurface({
   win: DesktopWindowInstance;
   isCsd: boolean;
 }) {
+  const domicile = useDomicile();
   const { isBrowserRuntime, resolvedTheme, settings, updateSettings } =
     useSettings();
   const {
@@ -197,8 +202,50 @@ function WebViewSurface({
   } = useWindowManager();
   const windowCtx = useWindowContext();
   const webviewRef = React.useRef<HTMLWebViewElement | null>(null);
+  const extPopupWebviewRef = React.useRef<HTMLWebViewElement | null>(null);
   const iframeRef = React.useRef<HTMLIFrameElement | null>(null);
   const addressInputRef = React.useRef<HTMLInputElement | null>(null);
+
+  const extensions =
+    useWatch(domicile.extensions, "change", () => domicile.extensions.list) ??
+    [];
+  const [activeExtPopup, setActiveExtPopup] = React.useState<{
+    id: string;
+    popup: string;
+  } | null>(null);
+  const [extPopupSize, setExtPopupSize] = React.useState<{
+    width: number;
+    height: number;
+  }>({ width: 360, height: 440 });
+
+  React.useEffect(() => {
+    if (isBrowserRuntime) return;
+    return domicile.extensions.on("popup", (req) => {
+      if (focusedWindowId !== win.id) return;
+      setExtPopupSize({ width: 360, height: 440 });
+      setActiveExtPopup(req);
+    });
+  }, [domicile.extensions, focusedWindowId, isBrowserRuntime, win.id]);
+
+  React.useEffect(() => {
+    const view = extPopupWebviewRef.current;
+    if (!view || !activeExtPopup) return;
+    const onSize = () => {
+      if (view.contentWidth > 0 && view.contentHeight > 0) {
+        setExtPopupSize({
+          width: Math.max(200, Math.min(800, Math.round(view.contentWidth))),
+          height: Math.max(120, Math.min(600, Math.round(view.contentHeight))),
+        });
+      }
+    };
+    const onClose = () => setActiveExtPopup(null);
+    view.addEventListener(WEBVIEW_CONTENT_SIZE_CHANGE_EVENT, onSize);
+    view.addEventListener(WEBVIEW_CLOSE_EVENT, onClose);
+    return () => {
+      view.removeEventListener(WEBVIEW_CONTENT_SIZE_CHANGE_EVENT, onSize);
+      view.removeEventListener(WEBVIEW_CLOSE_EVENT, onClose);
+    };
+  }, [activeExtPopup]);
 
   const [address, setAddress] = React.useState(win.browserUrl ?? "");
   const [editingAddress, setEditingAddress] = React.useState(false);
@@ -575,6 +622,60 @@ function WebViewSurface({
         )}
 
         <div className="flex shrink-0 items-center gap-1" data-window-no-drag>
+          {!isBrowserRuntime &&
+            extensions.map((ext) => (
+              <button
+                key={ext.id}
+                type="button"
+                disabled={!ext.enabled}
+                title={ext.title || ext.name}
+                aria-label={ext.title || ext.name}
+                onClick={() => {
+                  if (ext.popup) {
+                    const popupUrl = ext.popup;
+                    setExtPopupSize({ width: 360, height: 440 });
+                    setActiveExtPopup((prev) =>
+                      prev?.id === ext.id
+                        ? null
+                        : { id: ext.id, popup: popupUrl }
+                    );
+                  } else {
+                    setActiveExtPopup(null);
+                    domicile.extensions.activate(ext.id);
+                  }
+                }}
+                className={cn(
+                  "relative flex size-7 items-center justify-center rounded-md transition-colors disabled:pointer-events-none disabled:opacity-40",
+                  activeExtPopup?.id === ext.id
+                    ? "bg-black/14 dark:bg-white/18"
+                    : "hover:bg-black/8 dark:hover:bg-white/10"
+                )}
+              >
+                {ext.icon ? (
+                  <img
+                    src={ext.icon}
+                    alt=""
+                    draggable={false}
+                    className="size-4 rounded-[3px] object-contain"
+                  />
+                ) : (
+                  <PuzzleIcon className="size-3.5" />
+                )}
+                {ext.badgeText && (
+                  <span
+                    style={{
+                      backgroundColor:
+                        ext.badgeColor && ext.badgeColor !== "#00000000"
+                          ? ext.badgeColor
+                          : "var(--adw-accent)",
+                    }}
+                    className="pointer-events-none absolute right-0.5 bottom-0.5 min-w-3 rounded-full px-0.5 text-center text-[8.5px] leading-tight font-bold text-white shadow-xs"
+                  >
+                    {ext.badgeText}
+                  </span>
+                )}
+              </button>
+            ))}
           {isCsd ? (
             <WindowControls
               side="right"
@@ -603,6 +704,29 @@ function WebViewSurface({
             resizing={windowCtx?.resizing ? "" : undefined}
             className="block h-full w-full bg-adw-window"
           />
+        )}
+
+        {!isBrowserRuntime && activeExtPopup && (
+          <>
+            <div
+              className="absolute inset-0 z-30"
+              onClick={() => setActiveExtPopup(null)}
+            />
+            <div
+              style={{
+                width: `${extPopupSize.width}px`,
+                height: `${extPopupSize.height}px`,
+              }}
+              className="absolute top-1.5 right-2 z-40 max-h-[calc(100%-12px)] max-w-[calc(100%-16px)] overflow-hidden rounded-xl border border-adw-separator bg-adw-window shadow-2xl"
+            >
+              <webview
+                ref={extPopupWebviewRef}
+                src={activeExtPopup.popup}
+                extensionpopup=""
+                className="block h-full w-full"
+              />
+            </div>
+          </>
         )}
 
         {pageFailure && !isBrowserRuntime && (
