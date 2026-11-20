@@ -142,6 +142,10 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
   }, [display, expressionLine, pendingOp, scientific, storedValue, waitingForOperand]);
 
   React.useEffect(() => {
+    if (typeof window !== "undefined" && window.parent !== window) {
+      document.documentElement.style.backgroundColor = "transparent";
+      document.body.style.backgroundColor = "transparent";
+    }
     if (initialSaved.scientific) {
       bridge.resizeWindow(298, 294);
     }
@@ -353,7 +357,7 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
       {/* Combined Vibrant Headerbar + Result Display */}
       <div
         data-window-drag-region={isCsd ? "" : undefined}
-        className="adw-material-sidebar flex shrink-0 flex-col justify-between border-b border-adw-separator/60 px-2.5 pt-1.5 pb-2"
+        className="bg-adw-sidebar adw-material-sidebar flex shrink-0 flex-col justify-between border-b border-adw-separator/60 px-2.5 pt-1.5 pb-2"
       >
         <div className="flex h-6 items-center justify-between">
           <button

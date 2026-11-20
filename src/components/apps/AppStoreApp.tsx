@@ -1014,7 +1014,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
               <section
                 aria-label="Featured applications"
                 onClick={(e) => e.stopPropagation()}
-                className="relative mb-5 overflow-hidden rounded-2xl border border-adw-separator bg-adw-card px-5 py-8"
+                className="relative mb-5 overflow-hidden rounded-2xl border border-adw-separator bg-black/5 px-5 py-8 dark:bg-white/5"
               >
                 {activeFeaturedItem.faviconUrl && (
                   <>
@@ -1023,11 +1023,18 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                       alt=""
                       aria-hidden="true"
                       draggable={false}
-                      className="pointer-events-none absolute top-0 left-0 size-[1280px] -translate-x-1/2 -translate-y-1/2 scale-150 object-contain opacity-75 blur-2xl saturate-[2.2] contrast-115 select-none dark:opacity-70"
+                      className="pointer-events-none absolute inset-0 size-full scale-[2.2] object-cover opacity-85 blur-[64px] saturate-[2.4] contrast-110 select-none dark:opacity-75"
+                    />
+                    <img
+                      src={activeFeaturedItem.faviconUrl}
+                      alt=""
+                      aria-hidden="true"
+                      draggable={false}
+                      className="pointer-events-none absolute -top-1/2 -left-1/4 size-[960px] object-contain opacity-65 blur-[72px] saturate-[2.6] select-none dark:opacity-55"
                     />
                     <div
                       aria-hidden="true"
-                      className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,var(--color-adw-card)_0%,transparent_72%)] opacity-45"
+                      className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/35 via-white/15 to-white/25 dark:from-black/25 dark:via-black/15 dark:to-black/35"
                     />
                   </>
                 )}

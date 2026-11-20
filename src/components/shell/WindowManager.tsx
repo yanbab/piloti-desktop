@@ -1532,7 +1532,7 @@ export function WindowManager() {
             }}
             className={cn(
               "contain-[layout_style] outline-none",
-              isWaylandSurface && "bg-transparent",
+              (isWaylandSurface || win.appId === "calculator") && "bg-transparent",
               win.ready === false && "opacity-0 pointer-events-none",
               overviewOpen && "pointer-events-none",
               closingWindowIds.has(win.id) && "pointer-events-none",
@@ -1543,7 +1543,7 @@ export function WindowManager() {
             <WindowMain
               className={cn(
                 "relative",
-                isWaylandSurface && "bg-transparent"
+                (isWaylandSurface || win.appId === "calculator") && "bg-transparent"
               )}
             >
               {/* Server-Side Titlebar (SSD) */}
