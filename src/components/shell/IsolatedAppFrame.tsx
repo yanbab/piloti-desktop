@@ -271,6 +271,24 @@ export const IsolatedAppFrame: React.FC<IsolatedAppFrameProps> = ({
       {isCsd && (
         <div
           data-window-drag-region=""
+          onPointerDown={(e) => {
+            (e.currentTarget as HTMLDivElement).dataset.downX = String(e.clientX);
+            (e.currentTarget as HTMLDivElement).dataset.downY = String(e.clientY);
+          }}
+          onClick={(e) => {
+            if (e.detail !== 1) return;
+            const downX = Number((e.currentTarget as HTMLDivElement).dataset.downX ?? e.clientX);
+            const downY = Number((e.currentTarget as HTMLDivElement).dataset.downY ?? e.clientY);
+            if (Math.hypot(e.clientX - downX, e.clientY - downY) >= 5) return;
+            const rect = e.currentTarget.getBoundingClientRect();
+            const relX = rect.width > 0 ? (e.clientX - rect.left) / rect.width : 0.5;
+            if (relX >= 0.22 && relX <= 0.78) {
+              iframeRef.current?.contentWindow?.postMessage(
+                { type: "piloti:app-action", actionId: "piloti:title-click" },
+                "*",
+              );
+            }
+          }}
           onMouseEnter={() =>
             iframeRef.current?.contentWindow?.postMessage(
               { type: "piloti:app-action", actionId: "piloti:header-enter" },

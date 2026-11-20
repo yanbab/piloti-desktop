@@ -39,6 +39,8 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
     return "";
   }, [initialPath]);
   const [activePath, setActivePath] = React.useState(resolvedPath);
+  const activePathRef = React.useRef(activePath);
+  activePathRef.current = activePath;
   React.useEffect(() => {
     setActivePath(resolvedPath);
   }, [resolvedPath]);
@@ -46,7 +48,22 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
   const handleShellAction = React.useCallback((actionId: string) => {
     if (actionId === "piloti:header-enter") setDragRegionHovered(true);
     else if (actionId === "piloti:header-leave") setDragRegionHovered(false);
-    else if (actionId.startsWith("piloti:open-path:")) {
+    else if (actionId === "piloti:title-click") {
+      const p = activePathRef.current;
+      if (
+        p &&
+        !p.startsWith("data:") &&
+        !p.startsWith("http://") &&
+        !p.startsWith("https://") &&
+        !p.startsWith("blob:")
+      ) {
+        const name = p.split("/").filter(Boolean).pop() ?? "";
+        if (name) {
+          setDraftTitle(name);
+          setEditingTitle(true);
+        }
+      }
+    } else if (actionId.startsWith("piloti:open-path:")) {
       setActivePath(actionId.slice("piloti:open-path:".length));
     }
   }, []);
