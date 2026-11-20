@@ -335,25 +335,37 @@ export function Launcher() {
           },
         })
       ),
-      ...installedXdgApps.map((entry) => ({
-        value: `app:${entry.desktopId}`,
-        score: scoreMatch(
-          tokens,
-          entry.name,
-          `${entry.genericName ?? ""} ${entry.keywords.join(" ")}`
-        ),
-        icon: (
-          <AppSquircleIcon
-            iconUrl={entry.iconUrl ?? getAppIconUrl(entry.desktopId)}
-            className="size-5 shrink-0 rounded-[5px]"
-          />
-        ),
-        label: entry.name,
-        onSelect: () => {
-          recordLaunch(`app:${entry.desktopId}`);
-          runAndClose(() => launchXdgApp(entry));
-        },
-      })),
+      ...installedXdgApps
+        .filter(
+          (entry) =>
+            !entry.desktopId.startsWith("piloti-webapp-") &&
+            !entry.exec?.startsWith("piloti-webapp ")
+        )
+        .map((entry) => ({
+          value: `app:${entry.desktopId}`,
+          score: scoreMatch(
+            tokens,
+            entry.name,
+            `${entry.genericName ?? ""} ${entry.keywords.join(" ")}`
+          ),
+          icon: (
+            <AppSquircleIcon
+              iconUrl={
+                entry.iconUrl ??
+                getAppIconUrl(entry.desktopId) ??
+                (entry.icon && /^https?:\/\//i.test(entry.icon)
+                  ? entry.icon
+                  : undefined)
+              }
+              className="size-5 shrink-0 rounded-[5px]"
+            />
+          ),
+          label: entry.name,
+          onSelect: () => {
+            recordLaunch(`app:${entry.desktopId}`);
+            runAndClose(() => launchXdgApp(entry));
+          },
+        })),
     ];
 
     const webAppEntries: PaletteEntry[] = settings.installedWebApps.map((webApp) => {
@@ -362,6 +374,10 @@ export function Launcher() {
         hostTitle: webApp.title,
         installedApps: settings.installedWebApps,
       });
+      const resolvedWebIcon =
+        (webApp.iconUrl && /^(https?:|data:|blob:|\/)/i.test(webApp.iconUrl)
+          ? webApp.iconUrl
+          : undefined) || getWebAppFaviconUrl(webApp.url);
       return {
         value: `web:${webApp.id}`,
         score: scoreMatch(
@@ -371,7 +387,7 @@ export function Launcher() {
         ),
         icon: (
           <AppSquircleIcon
-            iconUrl={webApp.iconUrl || getWebAppFaviconUrl(webApp.url)}
+            iconUrl={resolvedWebIcon}
             fallbackIconUrl={
               getAppIconUrl("browser") ?? getAppIconUrl("web-browser")
             }

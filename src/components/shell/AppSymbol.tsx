@@ -38,6 +38,7 @@ export function AppSquircleIcon({
         src={resolvedUrl}
         alt=""
         draggable={false}
+        referrerPolicy="no-referrer"
         onError={() => {
           if (!imgFailed) setImgFailed(true);
         }}

@@ -274,16 +274,31 @@ function createInitialVfs(): WebVfsEntry[] {
   return entries;
 }
 
+let vfsCacheRaw: string | null = null;
+let vfsCacheEntries: WebVfsEntry[] | null = null;
+let vfsCacheByPath: Map<string, WebVfsEntry> | null = null;
+
+function setVfsCache(entries: WebVfsEntry[], raw: string | null): WebVfsEntry[] {
+  vfsCacheRaw = raw;
+  vfsCacheEntries = entries;
+  vfsCacheByPath = new Map(entries.map((entry) => [entry.path, entry]));
+  return entries;
+}
+
 function loadVfs(): WebVfsEntry[] {
   if (typeof localStorage === "undefined") {
-    return createInitialVfs();
+    return vfsCacheEntries ?? setVfsCache(createInitialVfs(), null);
   }
   try {
     const raw = localStorage.getItem(WEB_VFS_STORAGE_KEY);
+    if (raw !== null && raw === vfsCacheRaw && vfsCacheEntries) {
+      return vfsCacheEntries;
+    }
     if (!raw) {
       const seeded = createInitialVfs();
-      localStorage.setItem(WEB_VFS_STORAGE_KEY, JSON.stringify(seeded));
-      return seeded;
+      const json = JSON.stringify(seeded);
+      localStorage.setItem(WEB_VFS_STORAGE_KEY, json);
+      return setVfsCache(seeded, json);
     }
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed)) {
@@ -384,20 +399,24 @@ function loadVfs(): WebVfsEntry[] {
         }
       }
       if (addedDefaults) {
-        localStorage.setItem(WEB_VFS_STORAGE_KEY, JSON.stringify(entries));
+        const json = JSON.stringify(entries);
+        localStorage.setItem(WEB_VFS_STORAGE_KEY, json);
+        return setVfsCache(entries, json);
       }
-      return entries;
+      return setVfsCache(entries, raw);
     }
   } catch {
     // ignore corrupted storage and re-seed
   }
   const seeded = createInitialVfs();
+  let json: string | null = null;
   try {
-    localStorage.setItem(WEB_VFS_STORAGE_KEY, JSON.stringify(seeded));
+    json = JSON.stringify(seeded);
+    localStorage.setItem(WEB_VFS_STORAGE_KEY, json);
   } catch {
     // ignore quota errors
   }
-  return seeded;
+  return setVfsCache(seeded, json);
 }
 
 type VfsBroadcastMessage =
@@ -428,13 +447,16 @@ function postVfsBroadcast(msg: VfsBroadcastMessage): void {
 }
 
 function saveVfs(entries: WebVfsEntry[]): void {
+  let json: string | null = null;
   if (typeof localStorage !== "undefined") {
     try {
-      localStorage.setItem(WEB_VFS_STORAGE_KEY, JSON.stringify(entries));
+      json = JSON.stringify(entries);
+      localStorage.setItem(WEB_VFS_STORAGE_KEY, json);
     } catch {
       // ignore quota errors
     }
   }
+  setVfsCache(entries, json);
   if (typeof window !== "undefined") {
     window.dispatchEvent(new CustomEvent(WEB_VFS_CHANGED_EVENT));
   }
@@ -489,7 +511,8 @@ export function listVfsDir(
 
 export function getVfsEntry(path: string): WebVfsEntry | undefined {
   const normalized = normalizeVfsPath(path);
-  const found = loadVfs().find((entry) => entry.path === normalized);
+  loadVfs();
+  const found = vfsCacheByPath?.get(normalized);
   if (found) return found;
   if (normalized === "/" || normalized === "/home") {
     return {

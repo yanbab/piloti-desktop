@@ -632,46 +632,85 @@ export function FilesApp({
   const items = React.useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     if (isAppsView) {
-      const appItems: IconGridItem[] = [
-        ...APP_CATALOG.filter((app) => Boolean(app.builtinComponent)).map(
-          (app) => ({
-            id: `app:builtin:${app.id}`,
-            name: _(app.name),
-            kind: "desktop-entry" as const,
-            path: `${WEB_VFS_APPS_URI}/${app.id}`,
-            iconName: (app.iconName === "file-text"
-              ? "notes"
-              : app.iconName) as AppSymbolName,
-            iconUrl: getAppIconUrl(app.id),
-            gradient: app.gradient,
-          })
-        ),
-        ...installedXdgApps.map((entry) => ({
+      const builtins = APP_CATALOG.filter((app) => Boolean(app.builtinComponent));
+      const seenKeys = new Set<string>();
+      const appItems: IconGridItem[] = [];
+      for (const app of builtins) {
+        seenKeys.add(app.id.toLowerCase());
+        seenKeys.add(app.name.toLowerCase());
+        appItems.push({
+          id: `app:builtin:${app.id}`,
+          name: _(app.name),
+          kind: "desktop-entry",
+          path: `${WEB_VFS_APPS_URI}/${app.id}`,
+          iconName: (app.iconName === "file-text"
+            ? "notes"
+            : app.iconName) as AppSymbolName,
+          iconUrl: getAppIconUrl(app.id),
+          gradient: app.gradient,
+        });
+      }
+      for (const entry of installedXdgApps) {
+        if (
+          entry.desktopId.startsWith("piloti-webapp-") ||
+          entry.exec?.startsWith("piloti-webapp ")
+        ) {
+          continue;
+        }
+        const idKey = entry.appId.toLowerCase();
+        const desktopKey = entry.desktopId.toLowerCase();
+        const nameKey = entry.name.toLowerCase();
+        if (
+          seenKeys.has(idKey) ||
+          seenKeys.has(desktopKey) ||
+          seenKeys.has(nameKey)
+        ) {
+          continue;
+        }
+        seenKeys.add(desktopKey);
+        seenKeys.add(nameKey);
+        appItems.push({
           id: `app:xdg:${entry.desktopId}`,
           name: entry.name,
-          kind: "desktop-entry" as const,
+          kind: "desktop-entry",
           path: `${WEB_VFS_APPS_URI}/${entry.desktopId}`,
-          iconName: "sparkles" as const,
-          iconUrl: entry.iconUrl ?? getAppIconUrl(entry.desktopId),
+          iconName: "sparkles",
+          iconUrl:
+            entry.iconUrl ??
+            getAppIconUrl(entry.desktopId) ??
+            (entry.icon && /^https?:\/\//i.test(entry.icon)
+              ? entry.icon
+              : undefined),
           desktopEntry: entry,
-        })),
-        ...settings.installedWebApps.map((webApp) => ({
+        });
+      }
+      for (const webApp of settings.installedWebApps) {
+        const webKey = `web:${webApp.url.toLowerCase()}`;
+        if (seenKeys.has(webKey) || seenKeys.has(webApp.id.toLowerCase())) {
+          continue;
+        }
+        seenKeys.add(webKey);
+        seenKeys.add(webApp.id.toLowerCase());
+        const resolvedIcon =
+          (webApp.iconUrl && /^(https?:|data:|blob:|\/)/i.test(webApp.iconUrl)
+            ? webApp.iconUrl
+            : undefined) ||
+          getWebAppFaviconUrl(webApp.url) ||
+          getAppIconUrl("browser") ||
+          getAppIconUrl("web-browser");
+        appItems.push({
           id: `app:web:${webApp.id}`,
           name: resolveWebAppTitle({
             rawUrl: webApp.url,
             hostTitle: webApp.title,
             installedApps: settings.installedWebApps,
           }),
-          kind: "desktop-entry" as const,
+          kind: "desktop-entry",
           path: webApp.url,
-          iconName: "globe" as const,
-          iconUrl:
-            webApp.iconUrl ||
-            getWebAppFaviconUrl(webApp.url) ||
-            getAppIconUrl("browser") ||
-            getAppIconUrl("web-browser"),
-        })),
-      ];
+          iconName: "globe",
+          iconUrl: resolvedIcon,
+        });
+      }
       const filtered = q
         ? appItems.filter((item) => item.name.toLowerCase().includes(q))
         : appItems;

@@ -1023,7 +1023,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                       alt=""
                       aria-hidden="true"
                       draggable={false}
-                      className="pointer-events-none absolute inset-0 size-full scale-150 object-cover opacity-75 blur-2xl saturate-[2.2] contrast-115 select-none dark:opacity-70"
+                      className="pointer-events-none absolute top-0 left-0 size-[1280px] -translate-x-1/2 -translate-y-1/2 object-contain opacity-75 blur-2xl saturate-[2.2] contrast-115 select-none dark:opacity-70"
                     />
                     <div
                       aria-hidden="true"

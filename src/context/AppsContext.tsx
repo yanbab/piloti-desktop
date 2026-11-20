@@ -366,6 +366,11 @@ export function useAppsValue(
     setRefreshNonce((n) => n + 1);
   }, []);
   const iconThemeIndexRef = React.useRef<XdgIconThemeIndex | null>(null);
+  const attemptedIconIdsRef = React.useRef<Set<string>>(new Set());
+
+  React.useEffect(() => {
+    attemptedIconIdsRef.current.clear();
+  }, [activeIconTheme]);
 
   React.useEffect(() => {
     try {
@@ -558,7 +563,15 @@ export function useAppsValue(
           const batchIcons: Record<string, string> = {};
           await Promise.all(
             chunk.map(async (entry) => {
-              if (!entry.iconPath) return;
+              if (!entry.iconPath) {
+                if (entry.icon && /^https?:\/\//i.test(entry.icon)) {
+                  resolvedUrls.set(entry.desktopId, entry.icon);
+                  batchIcons[entry.desktopId] = entry.icon;
+                  batchIcons[entry.appId] = entry.icon;
+                  batchIcons[entry.appId.toLowerCase()] = entry.icon;
+                }
+                return;
+              }
               const url = await loadXdgIconDataUrl(domicile.files, entry.iconPath);
               if (!url) return;
               resolvedUrls.set(entry.desktopId, url);
@@ -605,22 +618,48 @@ export function useAppsValue(
       const iconIndex = iconThemeIndexRef.current;
       if (!iconIndex) return;
 
+      const pending: Array<{ baseId: string; raw: string }> = [];
       for (const raw of ids) {
         const baseId = raw.replace(/\.desktop$/i, "");
-        if (!baseId || appIconsMap[baseId] || appIconsMap[raw]) continue;
-
-        resolveXdgIconUrl(domicile.files, iconIndex, [baseId, raw], 64, 1)
-          .then((url) => {
-            if (url) {
-              setAppIconsMap((prev) => ({
-                ...prev,
-                [baseId]: url,
-                [raw]: url,
-              }));
-            }
-          })
-          .catch(() => {});
+        if (
+          !baseId ||
+          appIconsMap[baseId] ||
+          appIconsMap[raw] ||
+          attemptedIconIdsRef.current.has(baseId)
+        ) {
+          continue;
+        }
+        attemptedIconIdsRef.current.add(baseId);
+        pending.push({ baseId, raw });
       }
+      if (pending.length === 0) return;
+
+      void Promise.all(
+        pending.map(async ({ baseId, raw }) => {
+          try {
+            const url = await resolveXdgIconUrl(
+              domicile.files,
+              iconIndex,
+              [baseId, raw],
+              64,
+              1
+            );
+            return url ? { baseId, raw, url } : null;
+          } catch {
+            return null;
+          }
+        })
+      ).then((results) => {
+        const updates: Record<string, string> = {};
+        for (const res of results) {
+          if (!res) continue;
+          updates[res.baseId] = res.url;
+          updates[res.raw] = res.url;
+        }
+        if (Object.keys(updates).length > 0) {
+          setAppIconsMap((prev) => ({ ...prev, ...updates }));
+        }
+      });
     },
     [appIconsMap, domicile.files]
   );
