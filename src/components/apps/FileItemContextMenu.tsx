@@ -4,6 +4,7 @@ import { useDomicile } from "@domicile-desktop/react/domicile-provider";
 import {
   AlertCircleIcon,
   BriefcaseIcon,
+  ChevronDownIcon,
   ChevronRightIcon,
   HeartIcon,
   TagIcon,
@@ -264,15 +265,10 @@ export function FileItemContextMenu({
               </button>
             )}
             {isSingle && onOpenWithApp && openWithApps.length >= 2 && (
-              <div
-                className="relative"
-                onMouseEnter={() => setOpenWithHovered(true)}
-                onMouseLeave={() => setOpenWithHovered(false)}
-              >
+              <div>
                 <button
                   type="button"
                   role="menuitem"
-                  aria-haspopup="menu"
                   aria-expanded={openWithHovered}
                   onClick={() => setOpenWithHovered((v) => !v)}
                   className={cn(
@@ -281,18 +277,16 @@ export function FileItemContextMenu({
                   )}
                 >
                   <span>{_("Open With")}</span>
-                  <ChevronRightIcon className="size-3.5 opacity-70" />
+                  {openWithHovered ? (
+                    <ChevronDownIcon className="size-3.5 opacity-70" />
+                  ) : (
+                    <ChevronRightIcon className="size-3.5 opacity-70" />
+                  )}
                 </button>
                 {openWithHovered && (
                   <div
-                    role="menu"
-                    className={cn(
-                      MENU_POPUP_CLASS,
-                      "absolute top-0 z-[520] min-w-44",
-                      typeof window !== "undefined" && left + 360 > window.innerWidth
-                        ? "right-full mr-1"
-                        : "left-full ml-1",
-                    )}
+                    role="group"
+                    className="my-0.5 ml-2.5 max-h-44 overflow-y-auto border-l border-adw-separator/60 pl-1"
                   >
                     {openWithApps.map((appOpt) => (
                       <button
@@ -306,7 +300,7 @@ export function FileItemContextMenu({
                         }}
                         className={cn(
                           MENU_ITEM_CLASS,
-                          "w-full text-left hover:bg-adw-menu-highlight",
+                          "w-full text-left text-[12px] hover:bg-adw-menu-highlight",
                         )}
                       >
                         {_(appOpt.label)}

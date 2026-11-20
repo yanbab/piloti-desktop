@@ -8,6 +8,8 @@ import {
   BatteryLowIcon,
   BellIcon,
   BellOffIcon,
+  ChevronDownIcon,
+  ChevronRightIcon,
   PauseIcon,
   PlayIcon,
   SearchIcon,
@@ -40,9 +42,6 @@ import {
   MenubarMenu,
   MenubarSeparator,
   MenubarShortcut,
-  MenubarSub,
-  MenubarSubContent,
-  MenubarSubTrigger,
   MenubarTrigger,
 } from "@/components/ui/menubar";
 import {
@@ -125,6 +124,43 @@ function formatMenuShortcut(shortcut: string, model: "mac" | "pc"): string {
   return mods ? `${mods} ${keys.join(" ")}` : keys.join(" ");
 }
 
+function RemoteSubmenuGroup({
+  entry,
+  hasCheckable,
+  computerModel,
+}: {
+  entry: Extract<RemoteMenuEntry, { submenu?: readonly RemoteMenuEntry[] }>;
+  hasCheckable: boolean;
+  computerModel: "mac" | "pc";
+}) {
+  const [expanded, setExpanded] = React.useState(false);
+  return (
+    <div>
+      <MenubarItem
+        closeOnClick={false}
+        disabled={!entry.enabled}
+        className={cn("justify-between", hasCheckable && "pl-8")}
+        onClick={(e) => {
+          e.preventDefault();
+          setExpanded((v) => !v);
+        }}
+      >
+        <span>{entry.label}</span>
+        {expanded ? (
+          <ChevronDownIcon className="ml-2 size-3.5 opacity-70" />
+        ) : (
+          <ChevronRightIcon className="ml-2 size-3.5 opacity-70" />
+        )}
+      </MenubarItem>
+      {expanded && entry.submenu && (
+        <div className="my-0.5 ml-2.5 max-h-56 overflow-y-auto border-l border-adw-separator/60 pl-1">
+          {renderRemoteMenuItems(entry.submenu, computerModel)}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function renderRemoteMenuItems(
   entries: readonly RemoteMenuEntry[],
   computerModel: "mac" | "pc",
@@ -139,17 +175,12 @@ function renderRemoteMenuItems(
 
     if (entry.submenu && entry.submenu.length > 0) {
       return (
-        <MenubarSub key={entry.id}>
-          <MenubarSubTrigger
-            disabled={!entry.enabled}
-            className={hasCheckable ? "pl-8" : undefined}
-          >
-            {entry.label}
-          </MenubarSubTrigger>
-          <MenubarSubContent>
-            {renderRemoteMenuItems(entry.submenu, computerModel)}
-          </MenubarSubContent>
-        </MenubarSub>
+        <RemoteSubmenuGroup
+          key={entry.id}
+          entry={entry}
+          hasCheckable={hasCheckable}
+          computerModel={computerModel}
+        />
       );
     }
 

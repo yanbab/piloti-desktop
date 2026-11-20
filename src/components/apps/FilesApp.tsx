@@ -1428,11 +1428,10 @@ export function FilesApp({
                         setItemMenu({ item, x: e.clientX, y: e.clientY });
                       }}
                       style={{
-                        opacity: item.name.startsWith(".") ? 0.85 : undefined,
+                        opacity: item.name.startsWith(".") ? 0.55 : undefined,
                       }}
                       className={cn(
                         "cursor-default border-b border-adw-separator/40 transition-colors",
-                        item.name.startsWith(".") && "opacity-85",
                         isSelected
                           ? "bg-adw-accent/20 text-adw-label"
                           : "hover:bg-black/4 dark:hover:bg-white/5"

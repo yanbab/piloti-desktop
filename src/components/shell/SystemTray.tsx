@@ -7,6 +7,7 @@ import {
   type WatchedMenu,
 } from "@domicile-desktop/sdk/dbusmenu";
 import type { TrayItem } from "@domicile-desktop/sdk/tray";
+import { ChevronDownIcon, ChevronRightIcon } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -15,11 +16,43 @@ import {
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
   DropdownMenuSeparator,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+
+function TraySubmenuGroup({
+  entry,
+  watched,
+}: {
+  entry: Extract<MenuEntry, { submenu?: readonly MenuEntry[] }>;
+  watched: WatchedMenu | null;
+}) {
+  const [expanded, setExpanded] = React.useState(false);
+  return (
+    <div>
+      <DropdownMenuItem
+        closeOnClick={false}
+        disabled={!entry.enabled}
+        className="justify-between"
+        onClick={(e) => {
+          e.preventDefault();
+          setExpanded((v) => !v);
+        }}
+      >
+        <span>{entry.label}</span>
+        {expanded ? (
+          <ChevronDownIcon className="ml-2 size-3.5 opacity-70" />
+        ) : (
+          <ChevronRightIcon className="ml-2 size-3.5 opacity-70" />
+        )}
+      </DropdownMenuItem>
+      {expanded && entry.submenu && (
+        <div className="my-0.5 ml-2.5 max-h-56 overflow-y-auto border-l border-adw-separator/60 pl-1">
+          {renderMenuEntries(entry.submenu, watched)}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function renderMenuEntries(
   entries: readonly MenuEntry[],
@@ -31,14 +64,7 @@ function renderMenuEntries(
     }
 
     if (entry.submenu && entry.submenu.length > 0) {
-      return (
-        <DropdownMenuSub key={entry.id}>
-          <DropdownMenuSubTrigger>{entry.label}</DropdownMenuSubTrigger>
-          <DropdownMenuSubContent>
-            {renderMenuEntries(entry.submenu, watched)}
-          </DropdownMenuSubContent>
-        </DropdownMenuSub>
-      );
+      return <TraySubmenuGroup key={entry.id} entry={entry} watched={watched} />;
     }
 
     if (entry.toggle?.kind === ToggleKind.Checkmark) {

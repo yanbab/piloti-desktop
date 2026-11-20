@@ -777,12 +777,12 @@ export function IconGrid({
                 width: `${effectiveCellWidth}px`,
                 height: `${effectiveCellHeight}px`,
                 zIndex: isDragging ? 9999 : selected ? 20 : 1,
-                opacity: isDragging ? 0.25 : isHiddenFile ? 0.85 : undefined,
+                opacity: isDragging ? 0.25 : isHiddenFile ? 0.55 : undefined,
               }
             : {
                 width: `${effectiveCellWidth}px`,
                 height: `${effectiveCellHeight}px`,
-                opacity: isDragging ? 0.25 : isHiddenFile ? 0.85 : undefined,
+                opacity: isDragging ? 0.25 : isHiddenFile ? 0.55 : undefined,
               };
 
         return (
@@ -907,7 +907,6 @@ export function IconGrid({
                 : "flex-col items-center justify-start gap-1 px-1 py-1.5 text-center",
               !isDragging &&
                 "transition-[left,top,width,height,background-color,opacity] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)]",
-              isHiddenFile && !isDragging && "opacity-85",
               isDragging && "opacity-25",
             )}
           >
