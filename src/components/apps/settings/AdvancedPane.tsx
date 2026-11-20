@@ -2,7 +2,7 @@ import * as React from "react";
 import { useDomicile } from "@domicile-desktop/react/domicile-provider";
 import { useWatch } from "@domicile-desktop/react/use-watch";
 import { FolderOpenIcon, PlusIcon, PuzzleIcon, RefreshCwIcon, SparklesIcon, Trash2Icon } from "lucide-react";
-import { useWindowManager } from "@/context/DesktopStateContext";
+import { useWindowActions } from "@/context/DesktopStateContext";
 import { usePlugins } from "@/context/PluginsContext";
 import { Button } from "@/components/ui/button";
 import {
@@ -39,7 +39,7 @@ import { useSettings } from "@/context/DesktopStateContext";
 export function AdvancedPane() {
   const domicile = useDomicile();
   const { isBrowserRuntime, settings, updateSettings } = useSettings();
-  const { launchApp } = useWindowManager();
+  const { launchApp } = useWindowActions();
   const {
     plugins: userPlugins,
     safeMode: pluginsSafeMode,

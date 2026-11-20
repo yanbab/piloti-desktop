@@ -542,7 +542,7 @@ function pruneBrowserRecord(
 
     for (const [idx, bw] of browserWindows.entries()) {
       if (!knownBrowserIdsRef.current.has(bw.id)) {
-        markWindowUnready(`browser:${bw.id}`, 2500);
+        markWindowUnready(`browser:${bw.id}`, 180);
         const sessionKey = bw.url ? `web:${bw.url}` : undefined;
         const restored = sessionKey
           ? pendingSessionRestoreRef.current.get(sessionKey)
@@ -1855,10 +1855,7 @@ function pruneBrowserRecord(
           (window.location.protocol === "http:" ||
             window.location.protocol === "https:");
         const isIsolatedHttpApp =
-          isHttpRuntime &&
-          (builtinKind === "calculator" ||
-            builtinKind === "text-editor" ||
-            builtinKind === "image-viewer");
+          isHttpRuntime && builtinKind === "calculator";
         if (isIsolatedHttpApp) {
           markWindowUnready(newWinId, 2500);
         }

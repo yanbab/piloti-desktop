@@ -1009,6 +1009,36 @@ export function WindowManager() {
   } | null>(null);
 
   React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    const preload = () => {
+      void import("@/components/apps/FilesApp");
+      void import("@/components/apps/TextEditorApp");
+      void import("@/components/apps/ImageViewerApp");
+      void import("@/components/apps/TerminalApp");
+      void import("@/components/apps/SettingsApp");
+    };
+    const ric = (
+      window as {
+        requestIdleCallback?: (
+          cb: () => void,
+          opts?: { timeout: number }
+        ) => number;
+        cancelIdleCallback?: (id: number) => void;
+      }
+    ).requestIdleCallback;
+    if (typeof ric === "function") {
+      const id = ric(preload, { timeout: 1500 });
+      return () => {
+        (
+          window as { cancelIdleCallback?: (id: number) => void }
+        ).cancelIdleCallback?.(id);
+      };
+    }
+    const timer = globalThis.setTimeout(preload, 800);
+    return () => globalThis.clearTimeout(timer);
+  }, []);
+
+  React.useEffect(() => {
     if (!windowContextMenu) return;
     const close = () => setWindowContextMenu(null);
     const onKey = (e: KeyboardEvent) => {

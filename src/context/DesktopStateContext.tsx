@@ -61,6 +61,9 @@ function WindowsLayer({ children }: { children: React.ReactNode }) {
     systemBackendsValue,
     appsValue
   );
+  const windowsRef = React.useRef(windowsValue.windows);
+  windowsRef.current = windowsValue.windows;
+  const getWindows = React.useCallback(() => windowsRef.current, []);
   const actionsValue = React.useMemo<WindowActionsValue>(
     () => ({
       launchApp: windowsValue.launchApp,
@@ -112,7 +115,7 @@ function WindowsLayer({ children }: { children: React.ReactNode }) {
   return (
     <WindowActionsContext.Provider value={actionsValue}>
       <WindowsContext.Provider value={windowsValue}>
-        <PluginsProvider>{children}</PluginsProvider>
+        <PluginsProvider getWindows={getWindows}>{children}</PluginsProvider>
       </WindowsContext.Provider>
     </WindowActionsContext.Provider>
   );

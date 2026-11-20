@@ -694,13 +694,31 @@ export function FilesApp({
     setRenamingId(created.path);
   };
 
+  const newItemActionsRef = React.useRef({
+    focusedWindowId,
+    isTrashView,
+    isVirtualView,
+    handleNewFolder,
+    handleNewTextFile,
+  });
+  newItemActionsRef.current = {
+    focusedWindowId,
+    isTrashView,
+    isVirtualView,
+    handleNewFolder,
+    handleNewTextFile,
+  };
+
   React.useEffect(() => {
-    const isThisFocused = () => !windowId || focusedWindowId === windowId;
     const onNewFolder = () => {
-      if (!isTrashView && !isVirtualView && isThisFocused()) handleNewFolder();
+      const s = newItemActionsRef.current;
+      const focused = !windowId || s.focusedWindowId === windowId;
+      if (!s.isTrashView && !s.isVirtualView && focused) s.handleNewFolder();
     };
     const onNewFile = () => {
-      if (!isTrashView && !isVirtualView && isThisFocused()) handleNewTextFile();
+      const s = newItemActionsRef.current;
+      const focused = !windowId || s.focusedWindowId === windowId;
+      if (!s.isTrashView && !s.isVirtualView && focused) s.handleNewTextFile();
     };
     window.addEventListener("piloti:files-new-folder", onNewFolder);
     window.addEventListener("piloti:files-new-file", onNewFile);
@@ -708,7 +726,7 @@ export function FilesApp({
       window.removeEventListener("piloti:files-new-folder", onNewFolder);
       window.removeEventListener("piloti:files-new-file", onNewFile);
     };
-  });
+  }, [windowId]);
 
   const handleActivateItem = (item: IconGridItem) => {
     if (item.kind === "directory") {

@@ -3,7 +3,7 @@ import { useDomicile } from "@domicile-desktop/react/domicile-provider";
 import {
   useSettings,
   useSystemBackends,
-  useWindowManager,
+  useWindowActions,
 } from "@/context/DesktopStateContext";
 import {
   discoverPlugins,
@@ -47,18 +47,23 @@ function isSafeModeRequested(): boolean {
   }
 }
 
-export function PluginsProvider({ children }: { children: React.ReactNode }) {
+export function PluginsProvider({
+  children,
+  getWindows,
+}: {
+  children: React.ReactNode;
+  getWindows?: () => unknown[];
+}) {
   const domicile = useDomicile();
   const { settings, updateSettings } = useSettings();
   const {
-    windows,
     openWebUrl,
     launchApp,
     focusWindow,
     closeWindow,
     minimizeWindow,
     toggleMaximizeWindow,
-  } = useWindowManager();
+  } = useWindowActions();
   const { pushNotification } = useSystemBackends();
 
   const [safeMode] = React.useState(() => isSafeModeRequested());
@@ -81,7 +86,7 @@ export function PluginsProvider({ children }: { children: React.ReactNode }) {
 
   // Keep latest shell actions in refs so plugin callbacks never go stale
   const shellActionsRef = React.useRef({
-    windows,
+    getWindows,
     openWebUrl,
     launchApp,
     focusWindow,
@@ -93,7 +98,7 @@ export function PluginsProvider({ children }: { children: React.ReactNode }) {
     updateSettings,
   });
   shellActionsRef.current = {
-    windows,
+    getWindows,
     openWebUrl,
     launchApp,
     focusWindow,
@@ -112,7 +117,7 @@ export function PluginsProvider({ children }: { children: React.ReactNode }) {
       domicile,
       windows: {
         get list() {
-          return shellActionsRef.current.windows;
+          return shellActionsRef.current.getWindows?.() ?? [];
         },
         openWebUrl: (url: string, title?: string) =>
           shellActionsRef.current.openWebUrl(url, title ? { title } : undefined),

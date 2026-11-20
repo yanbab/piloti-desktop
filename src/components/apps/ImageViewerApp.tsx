@@ -16,6 +16,7 @@ import { useIsolatedAppBridge } from "@/lib/app-bridge";
 import { _ } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import {
+  getVfsEntry,
   normalizeVfsPath,
   renameVfsEntry,
   subscribeVfsRenamed,
@@ -54,7 +55,28 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
   }, []);
   const bridge = useIsolatedAppBridge(windowId, propIsCsd, handleShellAction);
 
-  const [imageSrc, setImageSrc] = React.useState<string>("");
+  const [imageSrc, setImageSrc] = React.useState<string>(() => {
+    if (!resolvedPath) return "";
+    if (
+      resolvedPath.startsWith("data:") ||
+      resolvedPath.startsWith("http://") ||
+      resolvedPath.startsWith("https://") ||
+      resolvedPath.startsWith("blob:")
+    ) {
+      return resolvedPath;
+    }
+    if (typeof window !== "undefined" && window.parent === window) {
+      const entry = getVfsEntry(resolvedPath);
+      const content = entry?.kind === "file" ? (entry.content ?? "") : "";
+      if (!content) return "";
+      if (content.startsWith("data:image/")) return content;
+      if (resolvedPath.toLowerCase().endsWith(".svg")) {
+        return `data:image/svg+xml;utf8,${encodeURIComponent(content)}`;
+      }
+      return content;
+    }
+    return "";
+  });
   const [zoom, setZoom] = React.useState(1);
   const [pan, setPan] = React.useState({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = React.useState(false);

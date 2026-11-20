@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import {
   useApps,
   useSystemBackends,
-  useWindowManager,
+  useWindowActions,
 } from "@/context/DesktopStateContext";
 import { APP_CATALOG } from "@/data/catalog";
 import {
@@ -107,7 +107,7 @@ export function NotificationActionControls({
   stopPropagation?: boolean;
 }) {
   const { invokeNotificationAction, replyToNotification } = useSystemBackends();
-  const { launchApp } = useWindowManager();
+  const { launchApp } = useWindowActions();
   const [replyText, setReplyText] = React.useState("");
 
   if (!actions || actions.length === 0) return null;

@@ -36,6 +36,7 @@ import { _ } from "@/lib/i18n";
 import { getCachedPilotiAppIni, writePilotiAppIni } from "@/lib/piloti-ini";
 import { cn } from "@/lib/utils";
 import {
+  getVfsEntry,
   normalizeVfsPath,
   renameVfsEntry,
   subscribeVfsRenamed,
@@ -222,7 +223,14 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
   }, [initialPath]);
 
   const [filePath, setFilePath] = React.useState<string | null>(resolvedPath);
-  const [content, setContent] = React.useState<string>("");
+  const [content, setContent] = React.useState<string>(() => {
+    if (!resolvedPath) return "";
+    if (typeof window !== "undefined" && window.parent === window) {
+      const entry = getVfsEntry(resolvedPath);
+      if (entry?.kind === "file") return entry.content ?? "";
+    }
+    return "";
+  });
   const [previewMarkdown, setPreviewMarkdown] = React.useState(false);
   const [findOpen, setFindOpen] = React.useState(false);
   const [findQuery, setFindQuery] = React.useState("");

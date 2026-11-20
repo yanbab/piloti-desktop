@@ -9,7 +9,7 @@ import {
   useApps,
   useSettings,
   useSystemBackends,
-  useWindowManager,
+  useWindowActions,
 } from "@/context/DesktopStateContext";
 import {
   assignGridPositions,
@@ -76,7 +76,7 @@ export function DesktopIconsApp({
     ensureWaylandIcons,
     launchXdgEntry,
   } = useApps();
-  const { launchApp, openWebUrl } = useWindowManager();
+  const { launchApp, openWebUrl } = useWindowActions();
 
   const [items, setItems] = React.useState<IconGridItem[]>([]);
   const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
