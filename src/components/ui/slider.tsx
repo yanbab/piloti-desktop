@@ -4,20 +4,27 @@ import { Slider as SliderPrimitive } from "@base-ui/react/slider"
 
 import { cn } from "@/lib/utils"
 
-// A pill-knob slider with a thin capsule track.
+// A pill-knob slider with a thin capsule track, or a Control Center capsule slider with an embedded icon.
 function Slider<Value extends number | readonly number[]>({
   className,
   defaultValue,
   value,
   min = 0,
   max = 100,
+  variant = "default",
+  icon,
   ...props
-}: SliderPrimitive.Root.Props<Value>) {
+}: SliderPrimitive.Root.Props<Value> & {
+  variant?: "default" | "capsule"
+  icon?: React.ReactNode
+}) {
   const _values = Array.isArray(value)
     ? value
     : Array.isArray(defaultValue)
       ? defaultValue
       : [min, max]
+
+  const isCapsule = variant === "capsule"
 
   return (
     <SliderPrimitive.Root
@@ -30,15 +37,33 @@ function Slider<Value extends number | readonly number[]>({
       className={cn("data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full", className)}
       {...props}
     >
-      <SliderPrimitive.Control className="relative flex w-full touch-none items-center select-none data-disabled:opacity-40 data-[orientation=horizontal]:h-4 data-[orientation=vertical]:h-full data-[orientation=vertical]:min-h-44 data-[orientation=vertical]:w-4 data-[orientation=vertical]:flex-col">
+      <SliderPrimitive.Control
+        className={cn(
+          "relative flex w-full touch-none items-center select-none data-disabled:opacity-40 data-[orientation=vertical]:h-full data-[orientation=vertical]:min-h-44 data-[orientation=vertical]:w-4 data-[orientation=vertical]:flex-col",
+          isCapsule ? "data-[orientation=horizontal]:h-7" : "data-[orientation=horizontal]:h-4"
+        )}
+      >
         <SliderPrimitive.Track
           data-slot="slider-track"
-          className="relative grow overflow-hidden rounded-full bg-black/8 select-none data-[orientation=horizontal]:h-1.5 data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-1.5 dark:bg-white/10"
+          className={cn(
+            "relative grow overflow-hidden rounded-full select-none",
+            isCapsule
+              ? "h-7 w-full bg-black/10 ring-1 ring-inset ring-black/8 dark:bg-white/12 dark:ring-white/10"
+              : "bg-black/8 data-[orientation=horizontal]:h-1.5 data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-1.5 dark:bg-white/10"
+          )}
         >
           <SliderPrimitive.Indicator
             data-slot="slider-range"
-            className="rounded-full bg-adw-accent select-none data-[orientation=horizontal]:h-full data-[orientation=vertical]:w-full"
+            className={cn(
+              "rounded-full select-none data-[orientation=horizontal]:h-full data-[orientation=vertical]:w-full",
+              isCapsule ? "bg-white/95 shadow-xs" : "bg-adw-accent"
+            )}
           />
+          {isCapsule && icon && (
+            <span className="pointer-events-none absolute inset-y-0 left-2.5 z-10 flex items-center justify-center text-white mix-blend-difference">
+              {icon}
+            </span>
+          )}
         </SliderPrimitive.Track>
         {Array.from({ length: _values.length }, (_, index) => (
           <SliderPrimitive.Thumb
@@ -47,7 +72,12 @@ function Slider<Value extends number | readonly number[]>({
             index={index}
             aria-label={props["aria-label"]}
             aria-labelledby={props["aria-labelledby"]}
-            className="block h-4 w-5 shrink-0 rounded-full bg-white shadow-[0_0_0_0.5px_rgb(0_0_0/0.08),0_1px_3px_rgb(0_0_0/0.25)] outline-none select-none has-focus-visible:outline-3 has-focus-visible:outline-solid has-focus-visible:outline-adw-accent/50 active:bg-[#f2f2f2] data-disabled:pointer-events-none dark:bg-[#dedede] dark:shadow-none"
+            className={cn(
+              "block shrink-0 rounded-full outline-none select-none data-disabled:pointer-events-none",
+              isCapsule
+                ? "size-7 opacity-0"
+                : "h-4 w-5 bg-white shadow-[0_0_0_0.5px_rgb(0_0_0/0.08),0_1px_3px_rgb(0_0_0/0.25)] has-focus-visible:outline-3 has-focus-visible:outline-solid has-focus-visible:outline-adw-accent/50 active:bg-[#f2f2f2] dark:bg-[#dedede] dark:shadow-none"
+            )}
           />
         ))}
       </SliderPrimitive.Control>

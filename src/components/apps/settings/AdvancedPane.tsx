@@ -25,8 +25,10 @@ import {
   setLocale,
   subscribeLocale,
 } from "@/lib/i18n";
+import { useSettings } from "@/context/DesktopStateContext";
 
 export function AdvancedPane() {
+  const { settings, updateSettings } = useSettings();
   const [preference, setPreference] = React.useState<LocalePreference>(() =>
     getLocalePreference()
   );
@@ -75,6 +77,33 @@ export function AdvancedPane() {
                   <SelectSeparator />
                   <SelectItem value="en">{_("English")}</SelectItem>
                   <SelectItem value="fr">{_("French")}</SelectItem>
+                </SelectContent>
+              </Select>
+            </GroupedFormRowControl>
+          </GroupedFormRow>
+          <GroupedFormRow>
+            <GroupedFormRowLabel>
+              <GroupedFormRowTitle>{_("Computer Model")}</GroupedFormRowTitle>
+            </GroupedFormRowLabel>
+            <GroupedFormRowControl>
+              <Select
+                value={settings.computerModel}
+                items={[
+                  { value: "mac", label: "Mac" },
+                  { value: "pc", label: "PC" },
+                ]}
+                onValueChange={(val) => {
+                  if (val === "mac" || val === "pc") {
+                    updateSettings({ computerModel: val });
+                  }
+                }}
+              >
+                <SelectTrigger variant="borderless">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="mac">Mac</SelectItem>
+                  <SelectItem value="pc">PC</SelectItem>
                 </SelectContent>
               </Select>
             </GroupedFormRowControl>

@@ -128,6 +128,7 @@ export interface DesktopSettings {
   desktopIconsEnabled: boolean;
   desktopIconAlign: DesktopIconAlign;
   fileActivationMode: "single" | "double";
+  computerModel: "mac" | "pc";
   desktopIconPositions: Record<string, { col: number; row: number }>;
   pinnedAppIds: string[];
   installedWebApps: InstalledWebApp[];
@@ -200,6 +201,11 @@ const DEFAULT_SETTINGS: DesktopSettings = {
   desktopIconsEnabled: true,
   desktopIconAlign: "left",
   fileActivationMode: "double",
+  computerModel:
+    typeof navigator !== "undefined" &&
+    /mac/i.test(navigator.platform || navigator.userAgent || "")
+      ? "mac"
+      : "pc",
   desktopIconPositions: {},
   pinnedAppIds: APP_CATALOG.filter((a) => a.pinnedByDefault).map((a) => a.id),
   installedWebApps: [],

@@ -209,6 +209,12 @@ export function IconGrid({
   const [drag, setDrag] = React.useState<DragState | null>(null);
   const dragRef = React.useRef<DragState | null>(null);
   dragRef.current = drag;
+  const pendingSettleRef = React.useRef<{
+    ids: Set<string>;
+    oldCoords: Record<string, GridCoord>;
+    dropDx: number;
+    dropDy: number;
+  } | null>(null);
   const [marquee, setMarquee] = React.useState<MarqueeState | null>(null);
 
   const selectedSet = React.useMemo(() => new Set(selectedIds), [selectedIds]);
@@ -236,6 +242,10 @@ export function IconGrid({
   const compactHorizontal = iconSize <= 24;
   const effectiveCellWidth = compactHorizontal ? Math.max(cellWidth, 168) : cellWidth;
   const effectiveCellHeight = compactHorizontal ? 30 : cellHeight;
+  const emblemSize = Math.max(12, Math.round(iconSize * 0.28));
+  const emblemGlyphSize = Math.max(8, Math.round(emblemSize * 0.62));
+  const heartSize = Math.max(13, Math.round(iconSize * 0.3));
+  const emblemStackOverlap = Math.max(4, Math.round(emblemSize * 0.36));
 
   const metrics = React.useMemo(
     () =>
@@ -260,6 +270,38 @@ export function IconGrid({
       ),
     [align, items, metrics.cols, metrics.rows, positions],
   );
+  const resolvedPositionsRef = React.useRef(resolvedPositions);
+  resolvedPositionsRef.current = resolvedPositions;
+
+  React.useLayoutEffect(() => {
+    const pending = pendingSettleRef.current;
+    if (!pending || mode !== "spatial") return;
+    pendingSettleRef.current = null;
+    const timers: number[] = [];
+    for (const id of pending.ids) {
+      const btn = itemRefs.current.get(id);
+      const oldCoord = pending.oldCoords[id];
+      const newCoord = resolvedPositions[id];
+      if (!btn || !oldCoord || !newCoord) continue;
+      const offsetX =
+        (oldCoord.col - newCoord.col) * effectiveCellWidth + pending.dropDx;
+      const offsetY =
+        (oldCoord.row - newCoord.row) * effectiveCellHeight + pending.dropDy;
+      btn.style.transition = "none";
+      btn.style.transform = `translate3d(${offsetX}px, ${offsetY}px, 0)`;
+      void btn.offsetWidth;
+      btn.style.transition = "transform 220ms cubic-bezier(0.22, 1, 0.36, 1)";
+      btn.style.transform = "translate3d(0, 0, 0)";
+      const t = window.setTimeout(() => {
+        btn.style.transition = "";
+        btn.style.transform = "";
+      }, 240);
+      timers.push(t);
+    }
+    return () => {
+      for (const t of timers) window.clearTimeout(t);
+    };
+  }, [effectiveCellHeight, effectiveCellWidth, mode, resolvedPositions]);
 
   const focusItemButton = React.useCallback((id: string) => {
     const btn = itemRefs.current.get(id);
@@ -423,6 +465,12 @@ export function IconGrid({
               );
             if (isSameDir) {
               if (mode === "spatial" && dropCell) {
+                pendingSettleRef.current = {
+                  ids: new Set(cur.draggedIds),
+                  oldCoords: { ...resolvedPositionsRef.current },
+                  dropDx: e.clientX - cur.startX,
+                  dropDy: e.clientY - cur.startY,
+                };
                 if (onMoveItems) {
                   onMoveItems(cur.draggedIds, cur.itemId, dropCell, metrics);
                 } else {
@@ -447,6 +495,12 @@ export function IconGrid({
               }
             }
           } else if (!topTarget && mode === "spatial" && dropCell) {
+            pendingSettleRef.current = {
+              ids: new Set(cur.draggedIds),
+              oldCoords: { ...resolvedPositionsRef.current },
+              dropDx: e.clientX - cur.startX,
+              dropDy: e.clientY - cur.startY,
+            };
             if (onMoveItems) {
               onMoveItems(cur.draggedIds, cur.itemId, dropCell, metrics);
             } else {
@@ -875,17 +929,32 @@ export function IconGrid({
                 );
               })()}
               {item.path && (emblemsMap[item.path]?.length ?? 0) > 0 && (
-                <div className="pointer-events-none absolute -top-1 -right-1 z-10 flex flex-col items-center -space-y-1.5">
-                  {(emblemsMap[item.path] ?? []).map((emblemId) => {
+                <div className="pointer-events-none absolute -top-1 -right-1 z-10 flex flex-col items-center">
+                  {(emblemsMap[item.path] ?? []).map((emblemId, emblemIdx) => {
                     const meta = VFS_EMBLEM_META[emblemId];
+                    const overlapStyle =
+                      emblemIdx > 0
+                        ? { marginTop: `-${emblemStackOverlap}px` }
+                        : undefined;
                     if (emblemId === "favorite") {
                       return (
                         <span
                           key={emblemId}
                           aria-label={meta.label}
-                          className="flex size-4 items-center justify-center rounded-full bg-black/65 text-rose-400 shadow-xs ring-1 ring-black/25 backdrop-blur-xs dark:ring-white/20"
+                          style={{
+                            width: `${heartSize}px`,
+                            height: `${heartSize}px`,
+                            ...overlapStyle,
+                          }}
+                          className="flex items-center justify-center text-rose-500 drop-shadow-[0_1px_2px_rgba(0,0,0,0.65)]"
                         >
-                          <HeartIcon className="size-2.5 fill-current" />
+                          <HeartIcon
+                            style={{
+                              width: `${heartSize}px`,
+                              height: `${heartSize}px`,
+                            }}
+                            className="fill-current"
+                          />
                         </span>
                       );
                     }
@@ -899,12 +968,22 @@ export function IconGrid({
                       <span
                         key={emblemId}
                         aria-label={meta.label}
+                        style={{
+                          width: `${emblemSize}px`,
+                          height: `${emblemSize}px`,
+                          ...overlapStyle,
+                        }}
                         className={cn(
-                          "flex size-4 items-center justify-center rounded-full shadow-xs ring-1 ring-black/25 dark:ring-white/20",
+                          "flex items-center justify-center rounded-full shadow-xs ring-1 ring-black/25 dark:ring-white/20",
                           meta.badgeBgClass,
                         )}
                       >
-                        <EmblemIcon className="size-2.5" />
+                        <EmblemIcon
+                          style={{
+                            width: `${emblemGlyphSize}px`,
+                            height: `${emblemGlyphSize}px`,
+                          }}
+                        />
                       </span>
                     );
                   })}

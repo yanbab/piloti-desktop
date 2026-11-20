@@ -87,7 +87,6 @@ export function AdwSplitView({
 }: AdwSplitViewProps) {
   const containerRef = React.useRef<HTMLDivElement | null>(null);
   const [isCompact, setIsCompact] = React.useState(false);
-  const [sidebarReady, setSidebarReady] = React.useState(false);
   const [sidebarScrolled, setSidebarScrolled] = React.useState(false);
   const [contentScrolled, setContentScrolled] = React.useState(false);
 
@@ -97,7 +96,6 @@ export function AdwSplitView({
   React.useLayoutEffect(() => {
     const el = containerRef.current;
     if (!el || typeof ResizeObserver === "undefined") {
-      setSidebarReady(true);
       return;
     }
     const update = () => {
@@ -107,15 +105,9 @@ export function AdwSplitView({
       onCompactChangeRef.current?.(compact);
     };
     update();
-    let raf2 = 0;
-    const raf1 = requestAnimationFrame(() => {
-      raf2 = requestAnimationFrame(() => setSidebarReady(true));
-    });
     const ro = new ResizeObserver(update);
     ro.observe(el);
     return () => {
-      cancelAnimationFrame(raf1);
-      cancelAnimationFrame(raf2);
       ro.disconnect();
     };
   }, [compactBreakpoint]);
@@ -150,7 +142,6 @@ export function AdwSplitView({
         onKeyUp={onSidebarKeyUp}
         className={cn(
           "flex min-h-0 shrink-0 flex-col overflow-hidden border-r border-adw-separator bg-adw-sidebar",
-          sidebarReady && "transition-[width] duration-150",
           isCompact ? "w-[52px]" : sidebarWidthClass,
         )}
       >
@@ -214,7 +205,6 @@ export function AdwSplitView({
                   <span
                     className={cn(
                       "truncate",
-                      sidebarReady && "transition-opacity duration-150",
                       isCompact ? "opacity-0" : "opacity-100",
                     )}
                   >

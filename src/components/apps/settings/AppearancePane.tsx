@@ -89,12 +89,12 @@ export function AppearancePane() {
             </GroupedFormRowControl>
           </GroupedFormRow>
 
-          <GroupedFormRow className="py-3.5">
+          <GroupedFormRow className="flex-wrap gap-3 py-3.5">
             <GroupedFormRowLabel>
               <GroupedFormRowTitle>{_("Accent Color")}</GroupedFormRowTitle>
             </GroupedFormRowLabel>
-            <GroupedFormRowControl>
-              <div className="flex max-w-[280px] flex-wrap items-center justify-end gap-2">
+            <GroupedFormRowControl className="w-full sm:w-auto">
+              <div className="flex max-w-full flex-wrap items-center justify-start gap-2 sm:max-w-[280px] sm:justify-end">
                 {ACCENT_COLORS.map((color) => {
                   const selected = settings.accentColor === color.id;
                   return (

@@ -67,7 +67,64 @@ import { Launcher } from "./Launcher";
 import { PilotiLogo } from "./PilotiLogo";
 import { SystemTrayItem } from "./SystemTray";
 
-function renderRemoteMenuItems(entries: readonly RemoteMenuEntry[]): React.ReactNode {
+function formatMenuShortcut(shortcut: string, model: "mac" | "pc"): string {
+  if (!shortcut) return shortcut;
+  if (model === "pc") {
+    return shortcut
+      .replace(/⌃/g, "Ctrl+")
+      .replace(/⌥/g, "Alt+")
+      .replace(/⇧/g, "Shift+")
+      .replace(/⌘/g, "Super+")
+      .replace(/\+\+/g, "+PLUS")
+      .replace(/\+$/g, "")
+      .replace(/\+PLUS/g, "++");
+  }
+  // Mac style with Apple key symbols
+  if (/[⌘⌥⇧⌃]/.test(shortcut)) return shortcut;
+  const normalized = shortcut.replace(/\+\+/g, "+PLUS");
+  const parts = normalized.split("+").filter(Boolean);
+  let hasCtrl = false;
+  let hasAlt = false;
+  let hasShift = false;
+  let hasCmd = false;
+  const keys: string[] = [];
+  for (const part of parts) {
+    const lower = part.toLowerCase();
+    if (lower === "ctrl" || lower === "control") hasCtrl = true;
+    else if (lower === "alt" || lower === "option") hasAlt = true;
+    else if (lower === "shift") hasShift = true;
+    else if (lower === "cmd" || lower === "meta" || lower === "super") hasCmd = true;
+    else if (lower === "plus") keys.push("+");
+    else if (lower === "left") keys.push("←");
+    else if (lower === "right") keys.push("→");
+    else if (lower === "up") keys.push("↑");
+    else if (lower === "down") keys.push("↓");
+    else if (lower === "return" || lower === "enter") keys.push("↩");
+    else if (lower === "esc" || lower === "escape") keys.push("⎋");
+    else if (lower === "tab") keys.push("⇥");
+    else keys.push(part);
+  }
+  // In Mac menus, primary Ctrl+ shortcuts map to ⌘ (unless paired with Cmd)
+  if (hasCtrl && !hasCmd) {
+    hasCmd = true;
+    hasCtrl = false;
+  }
+  const mods = [
+    hasCtrl ? "⌃" : "",
+    hasAlt ? "⌥" : "",
+    hasShift ? "⇧" : "",
+    hasCmd ? "⌘" : "",
+  ].join("");
+  return `${mods}${keys.join("")}`;
+}
+
+function renderRemoteMenuItems(
+  entries: readonly RemoteMenuEntry[],
+  computerModel: "mac" | "pc",
+): React.ReactNode {
+  const hasCheckable = entries.some(
+    (e) => e.kind !== "separator" && e.checked !== undefined,
+  );
   return entries.map((entry) => {
     if (entry.kind === "separator") {
       return <MenubarSeparator key={entry.id} />;
@@ -76,11 +133,14 @@ function renderRemoteMenuItems(entries: readonly RemoteMenuEntry[]): React.React
     if (entry.submenu && entry.submenu.length > 0) {
       return (
         <MenubarSub key={entry.id}>
-          <MenubarSubTrigger disabled={!entry.enabled}>
+          <MenubarSubTrigger
+            disabled={!entry.enabled}
+            className={hasCheckable ? "pl-8" : undefined}
+          >
             {entry.label}
           </MenubarSubTrigger>
           <MenubarSubContent>
-            {renderRemoteMenuItems(entry.submenu)}
+            {renderRemoteMenuItems(entry.submenu, computerModel)}
           </MenubarSubContent>
         </MenubarSub>
       );
@@ -95,7 +155,11 @@ function renderRemoteMenuItems(entries: readonly RemoteMenuEntry[]): React.React
           onClick={() => void entry.activate?.()}
         >
           {entry.label}
-          {entry.shortcut && <MenubarShortcut>{entry.shortcut}</MenubarShortcut>}
+          {entry.shortcut && (
+            <MenubarShortcut>
+              {formatMenuShortcut(entry.shortcut, computerModel)}
+            </MenubarShortcut>
+          )}
         </MenubarCheckboxItem>
       );
     }
@@ -104,10 +168,15 @@ function renderRemoteMenuItems(entries: readonly RemoteMenuEntry[]): React.React
       <MenubarItem
         key={entry.id}
         disabled={!entry.enabled}
+        className={hasCheckable ? "pl-8" : undefined}
         onClick={() => void entry.activate?.()}
       >
         {entry.label}
-        {entry.shortcut && <MenubarShortcut>{entry.shortcut}</MenubarShortcut>}
+        {entry.shortcut && (
+          <MenubarShortcut>
+            {formatMenuShortcut(entry.shortcut, computerModel)}
+          </MenubarShortcut>
+        )}
       </MenubarItem>
     );
   });
@@ -470,7 +539,9 @@ export function MenuBar() {
               </MenubarItem>
               <MenubarItem onClick={() => launchApp("settings")}>
                 {_("Desktop Settings")}
-                <MenubarShortcut>Alt+,</MenubarShortcut>
+                <MenubarShortcut>
+                  {formatMenuShortcut("Alt+,", settings.computerModel)}
+                </MenubarShortcut>
               </MenubarItem>
               <MenubarItem onClick={() => launchApp("app-store")}>
                 {_("Application Store")}
@@ -492,7 +563,9 @@ export function MenuBar() {
               <MenubarSeparator />
               <MenubarItem onClick={() => lockSession()}>
                 {_("Lock Screen")}
-                <MenubarShortcut>⌃⌘Q</MenubarShortcut>
+                <MenubarShortcut>
+                  {formatMenuShortcut("⌃⌘Q", settings.computerModel)}
+                </MenubarShortcut>
               </MenubarItem>
               <MenubarItem onClick={(e) => handlePowerMenuClick("logout", e)}>
                 {altHeld ? _("Log Out") : _("Log Out…")}
@@ -522,7 +595,7 @@ export function MenuBar() {
               {remoteMenu && remoteMenu.appActions.length > 0 && (
                 <>
                   <MenubarSeparator />
-                  {renderRemoteMenuItems(remoteMenu.appActions)}
+                  {renderRemoteMenuItems(remoteMenu.appActions, settings.computerModel)}
                 </>
               )}
               {!focusedWindowId && (
@@ -530,7 +603,9 @@ export function MenuBar() {
                   <MenubarSeparator />
                   <MenubarItem onClick={() => launchApp("settings")}>
                     {_("Desktop Settings")}
-                    <MenubarShortcut>Alt+,</MenubarShortcut>
+                    <MenubarShortcut>
+                      {formatMenuShortcut("Alt+,", settings.computerModel)}
+                    </MenubarShortcut>
                   </MenubarItem>
                 </>
               )}
@@ -541,7 +616,9 @@ export function MenuBar() {
                     onClick={() => closeWindow(focusedWindowId)}
                   >
                     {_("Quit %s", _(activeAppDef.shortName))}
-                    <MenubarShortcut>Alt+W</MenubarShortcut>
+                    <MenubarShortcut>
+                      {formatMenuShortcut("Alt+W", settings.computerModel)}
+                    </MenubarShortcut>
                   </MenubarItem>
                 </>
               )}
@@ -559,13 +636,119 @@ export function MenuBar() {
                 >
                   <MenubarTrigger>{section.title}</MenubarTrigger>
                   <MenubarContent>
-                    {renderRemoteMenuItems(section.items)}
+                    {renderRemoteMenuItems(section.items, settings.computerModel)}
                   </MenubarContent>
                 </MenubarMenu>
               ))
             : activeAppDef.menus
                 .filter((section) => section.title !== "View")
-                .map((section) => (
+                .map((section) => {
+                  const hasCheckable = section.items.some(
+                    (i) =>
+                      (windowMenuState[i.actionId]?.checked ?? i.checked) !==
+                      undefined,
+                  );
+                  return (
+                    <MenubarMenu key={section.title}>
+                      <MenubarTrigger>{_(section.title)}</MenubarTrigger>
+                      <MenubarContent>
+                        {section.items.map((item) => {
+                          const itemState = windowMenuState[item.actionId];
+                          const checked = itemState?.checked ?? item.checked;
+                          const disabled = itemState?.disabled ?? false;
+                          return (
+                            <React.Fragment key={item.actionId}>
+                              {checked !== undefined ? (
+                                <MenubarCheckboxItem
+                                  checked={checked}
+                                  disabled={disabled}
+                                  onClick={() => handleMenuAction(item.actionId)}
+                                >
+                                  {_(item.label)}
+                                  {item.shortcut && (
+                                    <MenubarShortcut>
+                                      {formatMenuShortcut(
+                                        item.shortcut,
+                                        settings.computerModel,
+                                      )}
+                                    </MenubarShortcut>
+                                  )}
+                                </MenubarCheckboxItem>
+                              ) : (
+                                <MenubarItem
+                                  disabled={disabled}
+                                  className={hasCheckable ? "pl-8" : undefined}
+                                  onClick={() => handleMenuAction(item.actionId)}
+                                >
+                                  {_(item.label)}
+                                  {item.shortcut && (
+                                    <MenubarShortcut>
+                                      {formatMenuShortcut(
+                                        item.shortcut,
+                                        settings.computerModel,
+                                      )}
+                                    </MenubarShortcut>
+                                  )}
+                                </MenubarItem>
+                              )}
+                              {item.separatorAfter && <MenubarSeparator />}
+                            </React.Fragment>
+                          );
+                        })}
+                      </MenubarContent>
+                    </MenubarMenu>
+                  );
+                })}
+
+          {/* Edit Menu */}
+          <MenubarMenu>
+            <MenubarTrigger>{_("Edit")}</MenubarTrigger>
+            <MenubarContent>
+              <MenubarItem onClick={() => document.execCommand?.("undo")}>
+                {_("Undo")}
+                <MenubarShortcut>
+                  {formatMenuShortcut("Ctrl+Z", settings.computerModel)}
+                </MenubarShortcut>
+              </MenubarItem>
+              <MenubarItem onClick={() => document.execCommand?.("redo")}>
+                {_("Redo")}
+                <MenubarShortcut>
+                  {formatMenuShortcut("Ctrl+Shift+Z", settings.computerModel)}
+                </MenubarShortcut>
+              </MenubarItem>
+              <MenubarSeparator />
+              <MenubarItem onClick={() => document.execCommand?.("cut")}>
+                {_("Cut")}
+                <MenubarShortcut>
+                  {formatMenuShortcut("Ctrl+X", settings.computerModel)}
+                </MenubarShortcut>
+              </MenubarItem>
+              <MenubarItem onClick={() => document.execCommand?.("copy")}>
+                {_("Copy")}
+                <MenubarShortcut>
+                  {formatMenuShortcut("Ctrl+C", settings.computerModel)}
+                </MenubarShortcut>
+              </MenubarItem>
+              <MenubarItem onClick={() => document.execCommand?.("paste")}>
+                {_("Paste")}
+                <MenubarShortcut>
+                  {formatMenuShortcut("Ctrl+V", settings.computerModel)}
+                </MenubarShortcut>
+              </MenubarItem>
+            </MenubarContent>
+          </MenubarMenu>
+
+          {/* View Menu (always after Edit) */}
+          {!(remoteMenu && remoteMenu.sections.length > 0) &&
+            activeAppDef.menus
+              .filter((section) => section.title === "View")
+              .map((section) => {
+                const hasCheckable = section.items.some(
+                  (i) =>
+                    (windowMenuState[i.actionId]?.checked ?? i.checked) !==
+                    undefined,
+                );
+                return (
                   <MenubarMenu key={section.title}>
                     <MenubarTrigger>{_(section.title)}</MenubarTrigger>
                     <MenubarContent>
@@ -583,17 +766,28 @@ export function MenuBar() {
                               >
                                 {_(item.label)}
                                 {item.shortcut && (
-                                  <MenubarShortcut>{item.shortcut}</MenubarShortcut>
+                                  <MenubarShortcut>
+                                    {formatMenuShortcut(
+                                      item.shortcut,
+                                      settings.computerModel,
+                                    )}
+                                  </MenubarShortcut>
                                 )}
                               </MenubarCheckboxItem>
                             ) : (
                               <MenubarItem
                                 disabled={disabled}
+                                className={hasCheckable ? "pl-8" : undefined}
                                 onClick={() => handleMenuAction(item.actionId)}
                               >
                                 {_(item.label)}
                                 {item.shortcut && (
-                                  <MenubarShortcut>{item.shortcut}</MenubarShortcut>
+                                  <MenubarShortcut>
+                                    {formatMenuShortcut(
+                                      item.shortcut,
+                                      settings.computerModel,
+                                    )}
+                                  </MenubarShortcut>
                                 )}
                               </MenubarItem>
                             )}
@@ -603,79 +797,8 @@ export function MenuBar() {
                       })}
                     </MenubarContent>
                   </MenubarMenu>
-                ))}
-
-          {/* Edit Menu */}
-          <MenubarMenu>
-            <MenubarTrigger>{_("Edit")}</MenubarTrigger>
-            <MenubarContent>
-              <MenubarItem onClick={() => document.execCommand?.("undo")}>
-                {_("Undo")}
-                <MenubarShortcut>Ctrl+Z</MenubarShortcut>
-              </MenubarItem>
-              <MenubarItem onClick={() => document.execCommand?.("redo")}>
-                {_("Redo")}
-                <MenubarShortcut>Ctrl+Shift+Z</MenubarShortcut>
-              </MenubarItem>
-              <MenubarSeparator />
-              <MenubarItem onClick={() => document.execCommand?.("cut")}>
-                {_("Cut")}
-                <MenubarShortcut>Ctrl+X</MenubarShortcut>
-              </MenubarItem>
-              <MenubarItem onClick={() => document.execCommand?.("copy")}>
-                {_("Copy")}
-                <MenubarShortcut>Ctrl+C</MenubarShortcut>
-              </MenubarItem>
-              <MenubarItem onClick={() => document.execCommand?.("paste")}>
-                {_("Paste")}
-                <MenubarShortcut>Ctrl+V</MenubarShortcut>
-              </MenubarItem>
-            </MenubarContent>
-          </MenubarMenu>
-
-          {/* View Menu (always after Edit) */}
-          {!(remoteMenu && remoteMenu.sections.length > 0) &&
-            activeAppDef.menus
-              .filter((section) => section.title === "View")
-              .map((section) => (
-                <MenubarMenu key={section.title}>
-                  <MenubarTrigger>{_(section.title)}</MenubarTrigger>
-                  <MenubarContent>
-                    {section.items.map((item) => {
-                      const itemState = windowMenuState[item.actionId];
-                      const checked = itemState?.checked ?? item.checked;
-                      const disabled = itemState?.disabled ?? false;
-                      return (
-                        <React.Fragment key={item.actionId}>
-                          {checked !== undefined ? (
-                            <MenubarCheckboxItem
-                              checked={checked}
-                              disabled={disabled}
-                              onClick={() => handleMenuAction(item.actionId)}
-                            >
-                              {_(item.label)}
-                              {item.shortcut && (
-                                <MenubarShortcut>{item.shortcut}</MenubarShortcut>
-                              )}
-                            </MenubarCheckboxItem>
-                          ) : (
-                            <MenubarItem
-                              disabled={disabled}
-                              onClick={() => handleMenuAction(item.actionId)}
-                            >
-                              {_(item.label)}
-                              {item.shortcut && (
-                                <MenubarShortcut>{item.shortcut}</MenubarShortcut>
-                              )}
-                            </MenubarItem>
-                          )}
-                          {item.separatorAfter && <MenubarSeparator />}
-                        </React.Fragment>
-                      );
-                    })}
-                  </MenubarContent>
-                </MenubarMenu>
-              ))}
+                );
+              })}
 
           {/* Universal Window Menu (matches top-left WindowMenuButton + active app window list) */}
           {activeAppDef.id !== "desktop" && (
@@ -687,28 +810,36 @@ export function MenuBar() {
                 onClick={() => focusedWindowId && toggleMinimizeWindow(focusedWindowId)}
               >
                 {_("Minimize")}
-                <MenubarShortcut>Alt+M</MenubarShortcut>
+                <MenubarShortcut>
+                  {formatMenuShortcut("Alt+M", settings.computerModel)}
+                </MenubarShortcut>
               </MenubarItem>
               <MenubarItem
                 disabled={!focusedWindowId}
                 onClick={() => focusedWindowId && toggleMaximizeWindow(focusedWindowId)}
               >
                 {focusedWindow?.maximized ? _("Restore") : _("Maximize")}
-                <MenubarShortcut>Alt+F</MenubarShortcut>
+                <MenubarShortcut>
+                  {formatMenuShortcut("Alt+F", settings.computerModel)}
+                </MenubarShortcut>
               </MenubarItem>
               <MenubarItem
                 disabled={!focusedWindowId}
                 onClick={() => focusedWindowId && tileWindow(focusedWindowId, "left")}
               >
                 {_("Tile Left")}
-                <MenubarShortcut>Alt+[</MenubarShortcut>
+                <MenubarShortcut>
+                  {formatMenuShortcut("Alt+[", settings.computerModel)}
+                </MenubarShortcut>
               </MenubarItem>
               <MenubarItem
                 disabled={!focusedWindowId}
                 onClick={() => focusedWindowId && tileWindow(focusedWindowId, "right")}
               >
                 {_("Tile Right")}
-                <MenubarShortcut>Alt+]</MenubarShortcut>
+                <MenubarShortcut>
+                  {formatMenuShortcut("Alt+]", settings.computerModel)}
+                </MenubarShortcut>
               </MenubarItem>
               <MenubarSeparator />
               <MenubarItem
@@ -716,7 +847,9 @@ export function MenuBar() {
                 onClick={() => focusedWindowId && closeWindow(focusedWindowId)}
               >
                 {_("Close")}
-                <MenubarShortcut>Alt+W</MenubarShortcut>
+                <MenubarShortcut>
+                  {formatMenuShortcut("Alt+W", settings.computerModel)}
+                </MenubarShortcut>
               </MenubarItem>
               {(() => {
                 const appWindows = focusedWindowId

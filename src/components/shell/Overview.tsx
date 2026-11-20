@@ -37,7 +37,7 @@ function OverviewWorkspacesBar({
   return (
     <div
       onClick={(e) => e.stopPropagation()}
-      className="relative flex w-full shrink-0 items-center justify-center bg-white/60 px-6 py-3 backdrop-blur-md animate-in slide-in-from-top-full duration-200 motion-reduce:animate-none dark:bg-black/40"
+      className="relative flex w-full shrink-0 items-center justify-center bg-white/60 px-6 py-3 backdrop-blur-md animate-in slide-in-from-top-full duration-[350ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:animate-none dark:bg-black/40"
     >
       <div className="flex max-w-full items-center gap-4 overflow-x-auto px-3 py-2.5">
         {Array.from({ length: settings.workspaceCount }, (_, idx) => idx + 1).map(
@@ -72,7 +72,18 @@ function OverviewWorkspacesBar({
                 <button
                   type="button"
                   aria-label={_("Desktop %d", ws)}
-                  onClick={() => {
+                  onClick={(e) => {
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    window.dispatchEvent(
+                      new CustomEvent("piloti:workspace-zoom-from-thumb", {
+                        detail: {
+                          left: rect.left,
+                          top: rect.top,
+                          width: rect.width,
+                          height: rect.height,
+                        },
+                      }),
+                    );
                     updateSettings({ activeWorkspace: ws });
                     setOverviewOpen(false);
                   }}
@@ -213,7 +224,7 @@ export function Overview() {
       role="dialog"
       aria-label="Overview"
       onClick={() => setOverviewOpen(false)}
-      className="fixed inset-x-0 top-[30px] bottom-0 z-[90] flex flex-col overflow-hidden"
+      className="fixed inset-x-0 top-[30px] bottom-0 z-[90] flex flex-col overflow-hidden animate-in fade-in duration-[350ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:animate-none"
     >
       <OverviewWorkspacesBar
         windows={windows}

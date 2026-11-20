@@ -599,8 +599,7 @@ export function Dock() {
             const readyWins = appWins.filter((w) => w.ready !== false);
             const hasUnreadyWin = appWins.some((w) => w.ready === false);
             const isRunning = readyWins.length > 0;
-            const isLaunching =
-              (!isRunning && launchingApps.includes(app.id)) || hasUnreadyWin;
+            const isLaunching = launchingApps.includes(app.id) || hasUnreadyWin;
             const isPinned = settings.pinnedAppIds.includes(app.id);
 
             return (

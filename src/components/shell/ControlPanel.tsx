@@ -179,36 +179,41 @@ export function ControlPanel() {
       {/* Sound Volume & Display Brightness Sliders */}
       <div className="flex flex-col gap-2.5 rounded-[16px] bg-black/6 p-3 dark:bg-white/8">
         {/* Sound Volume + Audio Output Picker Toggle */}
-        <div className="flex items-center gap-2.5 text-adw-label dark:text-white">
-          <button
-            type="button"
-            aria-label="Toggle Mute"
-            onClick={() => {
-              const next = !settings.muted;
-              console.info("[Piloti] control-panel: mute", next ? "on" : "off");
-              updateSettings({ muted: next });
-            }}
-            className="flex shrink-0 items-center justify-center active:opacity-75"
-          >
-            {settings.muted || settings.volume === 0 ? (
-              <VolumeXIcon className="size-4" />
-            ) : (
-              <Volume2Icon className="size-4" />
-            )}
-          </button>
-          <Slider
-            aria-label="Sound Output"
-            className="flex-1"
-            min={0}
-            max={100}
-            value={[settings.muted ? 0 : settings.volume]}
-            onValueChange={(val) => {
-              const next = Array.isArray(val) ? val[0] : val;
-              if (typeof next === "number") {
-                updateSettings({ volume: next, muted: next === 0 });
+        <div className="flex items-center gap-2 text-adw-label dark:text-white">
+          <div className="relative flex flex-1 items-center">
+            <Slider
+              aria-label="Sound Output"
+              variant="capsule"
+              icon={
+                settings.muted || settings.volume === 0 ? (
+                  <VolumeXIcon className="size-4" />
+                ) : (
+                  <Volume2Icon className="size-4" />
+                )
               }
-            }}
-          />
+              className="flex-1"
+              min={0}
+              max={100}
+              value={[settings.muted ? 0 : settings.volume]}
+              onValueChange={(val) => {
+                const next = Array.isArray(val) ? val[0] : val;
+                if (typeof next === "number") {
+                  updateSettings({ volume: next, muted: next === 0 });
+                }
+              }}
+            />
+            <button
+              type="button"
+              aria-label="Toggle Mute"
+              title="Toggle Mute"
+              onClick={() => {
+                const next = !settings.muted;
+                console.info("[Piloti] control-panel: mute", next ? "on" : "off");
+                updateSettings({ muted: next });
+              }}
+              className="absolute inset-y-0 left-0 z-20 w-8 rounded-l-full"
+            />
+          </div>
           <button
             type="button"
             title={
@@ -289,10 +294,11 @@ export function ControlPanel() {
         )}
 
         {/* Display Brightness */}
-        <div className="flex items-center gap-2.5 text-adw-label dark:text-white">
-          <SunIcon className="size-4 shrink-0" />
+        <div className="flex items-center text-adw-label dark:text-white">
           <Slider
             aria-label="Display Brightness"
+            variant="capsule"
+            icon={<SunIcon className="size-4" />}
             className="flex-1"
             min={25}
             max={100}

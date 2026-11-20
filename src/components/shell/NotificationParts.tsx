@@ -127,7 +127,9 @@ export function NotificationActionControls({
     } else if (act.key === "notifications-settings") {
       launchApp("settings", { payload: "notifications" });
       invokeNotificationAction(notificationId, act.key);
-    } else if (fromDomicile) {
+    } else if (act.key === "launcher" || fromDomicile) {
+      invokeNotificationAction(notificationId, act.key);
+    } else {
       invokeNotificationAction(notificationId, act.key);
     }
     onAfterAction?.();

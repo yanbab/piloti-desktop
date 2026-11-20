@@ -998,8 +998,59 @@ export function WindowManager() {
   const leftDockClearance = dockPosition === "left" ? dockEdgeClearance : 0;
   const rightDockClearance = dockPosition === "right" ? dockEdgeClearance : 0;
 
+  const workspaceStageRef = React.useRef<HTMLDivElement | null>(null);
+
+  React.useEffect(() => {
+    let cleanupTimer = 0;
+    const onZoomFromThumb = (e: Event) => {
+      const detail = (
+        e as CustomEvent<{
+          left?: number;
+          top?: number;
+          width?: number;
+          height?: number;
+        }>
+      ).detail;
+      const stage = workspaceStageRef.current;
+      if (!stage || !detail || !detail.width || !detail.height) return;
+      const stageRect = stage.getBoundingClientRect();
+      if (stageRect.width <= 0 || stageRect.height <= 0) return;
+
+      const scaleX = detail.width / stageRect.width;
+      const scaleY = detail.height / stageRect.height;
+      const dx = (detail.left ?? 0) - stageRect.left;
+      const dy = (detail.top ?? 0) - stageRect.top;
+
+      window.clearTimeout(cleanupTimer);
+      stage.style.transition = "none";
+      stage.style.transformOrigin = "top left";
+      stage.style.transform = `translate3d(${dx}px, ${dy}px, 0) scale(${scaleX}, ${scaleY})`;
+      stage.style.borderRadius = "14px";
+      void stage.offsetWidth;
+      stage.style.transition =
+        "transform 350ms cubic-bezier(0.22, 1, 0.36, 1), border-radius 350ms cubic-bezier(0.22, 1, 0.36, 1)";
+      stage.style.transform = "translate3d(0, 0, 0) scale(1, 1)";
+      stage.style.borderRadius = "0px";
+      cleanupTimer = window.setTimeout(() => {
+        stage.style.transition = "";
+        stage.style.transformOrigin = "";
+        stage.style.transform = "";
+        stage.style.borderRadius = "";
+      }, 370);
+    };
+    window.addEventListener("piloti:workspace-zoom-from-thumb", onZoomFromThumb);
+    return () => {
+      window.clearTimeout(cleanupTimer);
+      window.removeEventListener(
+        "piloti:workspace-zoom-from-thumb",
+        onZoomFromThumb,
+      );
+    };
+  }, []);
+
   return (
     <div
+      ref={workspaceStageRef}
       className="relative isolate z-10 min-h-0 flex-1 overflow-clip"
       onPointerDown={(e) => {
         if (
@@ -1017,9 +1068,12 @@ export function WindowManager() {
     >
       {/* Transparent Desktop Icons App (below windows, above wallpaper) */}
       <div
+        style={{
+          transition: "opacity 350ms cubic-bezier(0.22, 1, 0.36, 1)",
+        }}
         className={cn(
-          "transition-opacity duration-200",
-          overviewOpen && "pointer-events-none opacity-0",
+          "pointer-events-none absolute inset-0 z-0",
+          overviewOpen && "opacity-0",
         )}
       >
         <DesktopIconsApp bottomInset={0} />
@@ -1137,7 +1191,7 @@ export function WindowManager() {
                 ? `translate(${ovLayout.dx}px, ${ovLayout.dy}px) scale(${ovLayout.scale})`
                 : undefined,
               transition:
-                "transform 420ms cubic-bezier(0.22, 1, 0.36, 1), opacity 140ms ease-out",
+                "transform 350ms cubic-bezier(0.22, 1, 0.36, 1), opacity 350ms cubic-bezier(0.22, 1, 0.36, 1)",
             }}
             className={cn(
               "contain-[layout_style] outline-none",
