@@ -1017,13 +1017,19 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                 className="relative mb-5 overflow-hidden rounded-2xl border border-adw-separator bg-adw-card px-5 py-8"
               >
                 {activeFeaturedItem.faviconUrl && (
-                  <img
-                    src={activeFeaturedItem.faviconUrl}
-                    alt=""
-                    aria-hidden="true"
-                    draggable={false}
-                    className="pointer-events-none absolute top-1/2 left-1/3 size-[1280px] -translate-x-1/2 -translate-y-1/2 scale-150 object-contain opacity-45 blur-3xl saturate-150 select-none"
-                  />
+                  <>
+                    <img
+                      src={activeFeaturedItem.faviconUrl}
+                      alt=""
+                      aria-hidden="true"
+                      draggable={false}
+                      className="pointer-events-none absolute inset-0 size-full scale-150 object-cover opacity-75 blur-2xl saturate-[2.2] contrast-115 select-none dark:opacity-70"
+                    />
+                    <div
+                      aria-hidden="true"
+                      className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,var(--color-adw-card)_0%,transparent_72%)] opacity-45"
+                    />
+                  </>
                 )}
                 <div className="relative z-10 flex items-center gap-3">
                   <button
