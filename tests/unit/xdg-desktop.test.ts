@@ -140,6 +140,20 @@ Categories=System;TerminalEmulator;
         matchedKitty
       )
     ).toBe(true);
+
+    const pcmanfmEntry = parseDesktopEntry(
+      `[Desktop Entry]
+Name=PCMan File Manager
+Exec=pcmanfm %U
+Type=Application
+Categories=GTK;System;Core;FileTools;FileManager;
+`,
+      { filePath: "/usr/share/applications/pcmanfm.desktop", baseDir: "/usr/share/applications" }
+    )!;
+    expect(pcmanfmEntry.prefersCsd).toBe(false);
+    expect(
+      resolveWaylandClientFrame({ clientFrame: false, desktopId: "pcmanfm" }, pcmanfmEntry)
+    ).toBe(false);
   });
 });
 

@@ -1178,23 +1178,62 @@ export function WindowManager() {
   const focusWindowRef = React.useRef(focusWindow);
   focusWindowRef.current = focusWindow;
 
+  const heldPressRef = React.useRef<{
+    pointerId: number;
+    button: number;
+    clientX: number;
+    clientY: number;
+  } | null>(null);
+
   React.useEffect(() => {
-    const trackPointer = (e: PointerEvent) => {
+    const onPointerDown = (e: PointerEvent) => {
       lastPointerRef.current = { x: e.clientX, y: e.clientY };
+      heldPressRef.current = {
+        pointerId: e.pointerId,
+        button: e.button,
+        clientX: e.clientX,
+        clientY: e.clientY,
+      };
     };
-    window.addEventListener("pointerdown", trackPointer, {
+    const onPointerMove = (e: PointerEvent) => {
+      lastPointerRef.current = { x: e.clientX, y: e.clientY };
+      if (heldPressRef.current && e.pointerId === heldPressRef.current.pointerId) {
+        heldPressRef.current.clientX = e.clientX;
+        heldPressRef.current.clientY = e.clientY;
+      }
+    };
+    const onPointerEnd = (e: PointerEvent) => {
+      if (heldPressRef.current && e.pointerId === heldPressRef.current.pointerId) {
+        heldPressRef.current = null;
+      }
+    };
+    window.addEventListener("pointerdown", onPointerDown, {
       capture: true,
       passive: true,
     });
-    window.addEventListener("pointermove", trackPointer, {
+    window.addEventListener("pointermove", onPointerMove, {
+      capture: true,
+      passive: true,
+    });
+    window.addEventListener("pointerup", onPointerEnd, {
+      capture: true,
+      passive: true,
+    });
+    window.addEventListener("pointercancel", onPointerEnd, {
       capture: true,
       passive: true,
     });
     return () => {
-      window.removeEventListener("pointerdown", trackPointer, {
+      window.removeEventListener("pointerdown", onPointerDown, {
         capture: true,
       });
-      window.removeEventListener("pointermove", trackPointer, {
+      window.removeEventListener("pointermove", onPointerMove, {
+        capture: true,
+      });
+      window.removeEventListener("pointerup", onPointerEnd, {
+        capture: true,
+      });
+      window.removeEventListener("pointercancel", onPointerEnd, {
         capture: true,
       });
     };
@@ -1210,18 +1249,21 @@ export function WindowManager() {
         : undefined;
       if (!targetWin || !handle) return;
       focusWindowRef.current(targetWin.id);
-      const { x, y } = lastPointerRef.current;
-      // Note: some domicile .deb builds emit kind 3 (Unfullscreen) on headerbar
-      // drag instead of kind 5 (Move); handle both until upstream .deb aligns.
       const rawReq = req as { kind: number; edges?: number };
-      if (
-        rawReq.kind === 5 ||
-        req.kind === WindowRequestKind.Unfullscreen
-      ) {
-        handle.startMove(x, y);
+      const held = heldPressRef.current;
+      console.info(
+        `[Piloti] client window request kind=${rawReq.kind} app=${req.appId} held=${held ? held.pointerId : "none"}`
+      );
+      if (!held) {
+        // The button was already released before the async request arrived; drop it
+        // so the window does not get stuck following the cursor.
+        return;
+      }
+      if (rawReq.kind === 5) {
+        handle.startMove(held.clientX, held.clientY, held.pointerId);
       } else if (rawReq.kind === 6 && typeof rawReq.edges === "number") {
         const edge = DOMICILE_RESIZE_EDGE_MAP[rawReq.edges];
-        if (edge) handle.startResize(edge, x, y);
+        if (edge) handle.startResize(edge, held.clientX, held.clientY, held.pointerId);
       }
     });
   }, [subscribeClientWindowRequest]);

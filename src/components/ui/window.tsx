@@ -14,8 +14,8 @@ type WindowInsets = { top?: number; right?: number; bottom?: number; left?: numb
 type ResizeEdge = "n" | "e" | "s" | "w" | "ne" | "se" | "sw" | "nw"
 
 type WindowHandle = {
-  startMove: (clientX: number, clientY: number) => void
-  startResize: (edge: ResizeEdge, clientX: number, clientY: number) => void
+  startMove: (clientX: number, clientY: number, pointerId?: number) => void
+  startResize: (edge: ResizeEdge, clientX: number, clientY: number, pointerId?: number) => void
 }
 
 // Invisible strips along the inside of the frame; the corner squares are
@@ -500,7 +500,11 @@ function Window({
       max,
     }
     if (pointerId !== undefined) {
-      node.setPointerCapture(pointerId)
+      try {
+        node.setPointerCapture(pointerId)
+      } catch {
+        attachGlobalInteractionListeners()
+      }
     } else {
       attachGlobalInteractionListeners()
     }
@@ -661,7 +665,11 @@ function Window({
       parentRect: parent ? parent.getBoundingClientRect() : null,
     }
     if (pointerId !== undefined) {
-      node.setPointerCapture(pointerId)
+      try {
+        node.setPointerCapture(pointerId)
+      } catch {
+        attachGlobalInteractionListeners()
+      }
     } else {
       attachGlobalInteractionListeners()
     }
@@ -907,15 +915,15 @@ function Window({
   }
 
   React.useImperativeHandle(windowRef, () => ({
-    startMove: (clientX: number, clientY: number) => {
+    startMove: (clientX: number, clientY: number, pointerId?: number) => {
       const node = element.current
       if (!node || maximized || !draggable) return
-      beginDrag(node, clientX, clientY)
+      beginDrag(node, clientX, clientY, pointerId)
     },
-    startResize: (edge: ResizeEdge, clientX: number, clientY: number) => {
+    startResize: (edge: ResizeEdge, clientX: number, clientY: number, pointerId?: number) => {
       const node = element.current
       if (!node || maximized || !resizable) return
-      beginResize(node, edge, clientX, clientY)
+      beginResize(node, edge, clientX, clientY, pointerId)
     },
   }))
 

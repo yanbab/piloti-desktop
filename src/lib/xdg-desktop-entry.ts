@@ -313,7 +313,7 @@ function mapPrimaryCategory(
 
 const CSD_HINT_TOKENS = [
   "gnome",
-  "gtk",
+  "gtk4",
   "adwaita",
   "nautilus",
   "loupe",
@@ -386,7 +386,9 @@ function parseDesktopEntry(
   }
 
   const onlyShowIn = splitXdgList(main["OnlyShowIn"]);
-  const lowerMeta = `${desktopId} ${categories.join(" ")} ${exec ?? ""} ${onlyShowIn.join(" ")}`;
+  // Do not inspect `categories` here: GTK2/SSD apps (e.g. pcmanfm) include `GTK;`
+  // in Categories despite drawing no client-side decorations.
+  const lowerMeta = `${desktopId} ${exec ?? ""} ${onlyShowIn.join(" ")}`;
   const prefersCsd =
     hasCsdMetadataHint(lowerMeta) ||
     Boolean(main["X-GNOME-UsesNotifications"]);
