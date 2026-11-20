@@ -5,7 +5,7 @@ import { useWatch } from "@domicile-desktop/react/use-watch";
 import { type Capturing, CapturingKind } from "@domicile-desktop/sdk/portal";
 import { ScreenshotKeptKind, UnlockRefusal, type UnlockRefused } from "@domicile-desktop/sdk/system";
 import { SAMPLE_WIFI_NETWORKS, type WifiNetwork } from "@/data/catalog";
-import { WEB_VFS_HOME, writeVfsTextFile } from "@/lib/web-vfs";
+import { listVfsDir, WEB_VFS_HOME, writeVfsTextFile } from "@/lib/web-vfs";
 import {
   type GnomeBackgroundSettings,
   isGnomeBackgroundConfigured,
@@ -113,6 +113,7 @@ export interface SystemBackendsContextValue {
   capturingSessions: readonly Capturing[];
   takeScreenshot: () => Promise<void>;
   startScreenRecording: () => Promise<void>;
+  startAudioRecording: () => Promise<void>;
   stopCapturing: (id: number) => void;
   pauseRecording: (id: number) => void;
   resumeRecording: (id: number) => void;
@@ -985,6 +986,20 @@ export function useSystemBackendsValue(
     ? browserCapturingSessions
     : nativeCapturingSessions;
 
+  const nextDesktopCaptureFilename = React.useCallback(
+    (prefix: string, ext: string) => {
+      const existing = new Set(
+        listVfsDir(`${WEB_VFS_HOME}/Desktop`).map((e) => e.name)
+      );
+      let n = 1;
+      while (existing.has(`${prefix} ${n}.${ext}`)) {
+        n += 1;
+      }
+      return `${prefix} ${n}.${ext}`;
+    },
+    []
+  );
+
   const takeScreenshot = React.useCallback(async () => {
     console.info("[Piloti] control-panel: screenshot");
     if (isBrowserRuntime) {
@@ -1014,7 +1029,7 @@ export function useSystemBackendsValue(
         ctx?.drawImage(video, 0, 0, canvas.width, canvas.height);
         for (const track of stream.getTracks()) track.stop();
         const dataUrl = canvas.toDataURL("image/png");
-        const filename = `screenshot-${new Date().toISOString().replace(/[:.]/g, "-")}.png`;
+        const filename = nextDesktopCaptureFilename("Screenshot", "png");
         try {
           writeVfsTextFile(`${WEB_VFS_HOME}/Desktop/${filename}`, dataUrl);
           pushNotification({
@@ -1063,7 +1078,7 @@ export function useSystemBackendsValue(
       },
       Err: () => {},
     });
-  }, [domicile.capture, isBrowserRuntime, pushNotification]);
+  }, [domicile.capture, isBrowserRuntime, nextDesktopCaptureFilename, pushNotification]);
 
   const startScreenRecording = React.useCallback(async () => {
     console.info("[Piloti] control-panel: screen recording");
@@ -1106,7 +1121,7 @@ export function useSystemBackendsValue(
           setBrowserCapturingSessions((prev) => prev.filter((c) => c.id !== id));
           if (!entry.discarded && chunks.length > 0) {
             const blob = new Blob(chunks, { type: "video/webm" });
-            const filename = `recording-${new Date().toISOString().replace(/[:.]/g, "-")}.webm`;
+            const filename = nextDesktopCaptureFilename("Screencast", "webm");
             const fallbackDownload = () => {
               const url = URL.createObjectURL(blob);
               const link = document.createElement("a");
@@ -1178,7 +1193,100 @@ export function useSystemBackendsValue(
       },
       Err: () => {},
     });
-  }, [domicile.capture, isBrowserRuntime, pushNotification]);
+  }, [domicile.capture, isBrowserRuntime, nextDesktopCaptureFilename, pushNotification]);
+
+  const startAudioRecording = React.useCallback(async () => {
+    console.info("[Piloti] control-panel: audio recording");
+    if (!navigator.mediaDevices?.getUserMedia) {
+      pushNotification({
+        appName: "Audio Recorder",
+        summary: "Audio Recording Unavailable",
+        body: "navigator.mediaDevices.getUserMedia is not supported in this environment.",
+      });
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const id = Date.now();
+      const chunks: BlobPart[] = [];
+      const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
+        ? "audio/webm;codecs=opus"
+        : MediaRecorder.isTypeSupported("audio/webm")
+          ? "audio/webm"
+          : "";
+      const recorder = mimeType
+        ? new MediaRecorder(stream, { mimeType })
+        : new MediaRecorder(stream);
+      const entry = { recorder, stream, discarded: false };
+      browserRecordersRef.current.set(id, entry);
+
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) chunks.push(e.data);
+      };
+      recorder.onstop = () => {
+        for (const track of stream.getTracks()) track.stop();
+        browserRecordersRef.current.delete(id);
+        setBrowserCapturingSessions((prev) => prev.filter((c) => c.id !== id));
+        if (!entry.discarded && chunks.length > 0) {
+          const blob = new Blob(chunks, { type: mimeType || "audio/webm" });
+          const filename = nextDesktopCaptureFilename("Record", "webm");
+          const fallbackDownload = () => {
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = filename;
+            link.click();
+            setTimeout(() => URL.revokeObjectURL(url), 10000);
+            pushNotification({
+              appName: "Audio Recorder",
+              summary: "Audio Note Saved",
+              body: `Downloaded ${filename} (Desktop storage full)`,
+            });
+          };
+          const reader = new FileReader();
+          reader.onload = () => {
+            const dataUrl = typeof reader.result === "string" ? reader.result : null;
+            if (!dataUrl) {
+              fallbackDownload();
+              return;
+            }
+            try {
+              writeVfsTextFile(`${WEB_VFS_HOME}/Desktop/${filename}`, dataUrl);
+              pushNotification({
+                appName: "Audio Recorder",
+                summary: "Audio Note Saved",
+                body: `Saved to Desktop/${filename}`,
+              });
+            } catch {
+              fallbackDownload();
+            }
+          };
+          reader.onerror = fallbackDownload;
+          reader.readAsDataURL(blob);
+        }
+      };
+      recorder.start(250);
+      setBrowserCapturingSessions((prev) => [
+        ...prev,
+        {
+          id,
+          kind: CapturingKind.Recording,
+          runningSinceMs: Date.now(),
+        } as Capturing,
+      ]);
+    } catch (err) {
+      if (
+        (err as Error)?.name !== "NotAllowedError" &&
+        (err as Error)?.name !== "AbortError"
+      ) {
+        pushNotification({
+          appName: "Audio Recorder",
+          summary: "Audio Recording Failed",
+          body: String(err),
+        });
+      }
+    }
+  }, [nextDesktopCaptureFilename, pushNotification]);
 
   return React.useMemo<SystemBackendsContextValue>(
     () => ({
@@ -1216,6 +1324,7 @@ export function useSystemBackendsValue(
       capturingSessions,
       takeScreenshot,
       startScreenRecording,
+      startAudioRecording,
       stopCapturing: (id) => {
         if (isBrowserRuntime) {
           const rec = browserRecordersRef.current.get(id);
@@ -1296,6 +1405,7 @@ export function useSystemBackendsValue(
       replyToNotification,
       requestPowerAction,
       selectAudioSink,
+      startAudioRecording,
       startScreenRecording,
       takeScreenshot,
       unlockError,
