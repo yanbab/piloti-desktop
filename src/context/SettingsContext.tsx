@@ -82,6 +82,8 @@ export interface DesktopSettings {
   showBatteryPercentage: boolean;
   reduceMotion: boolean;
   moreTransparency: boolean;
+  customAccentHex?: string;
+  highContrast: boolean;
   windowDecorationMode: WindowDecorationMode;
   windowButtonLayout: string;
   iconTheme: string;
@@ -141,6 +143,8 @@ export interface DesktopSettings {
 const DEFAULT_SETTINGS: DesktopSettings = {
   themeMode: "system",
   accentColor: "teal",
+  customAccentHex: "",
+  highContrast: false,
   wallpaperId: "piloti-aurora",
   customWallpaperUrl: "",
   gnomeBackground: { ...DEFAULT_GNOME_BACKGROUND },
@@ -875,18 +879,30 @@ export function useSettingsValue(options?: {
     const root = document.documentElement;
     root.classList.toggle("dark", resolvedTheme === "dark");
     root.style.colorScheme = resolvedTheme;
-    const accent = ACCENT_COLORS.find((a) => a.id === settings.accentColor);
-    if (accent && accent.id !== "blue") {
-      root.style.setProperty("--adw-active-accent", accent.cssVar);
+    root.dataset.highContrast = settings.highContrast ? "true" : "false";
+    const customHex = settings.customAccentHex?.trim();
+    if (customHex && /^#[0-9a-f]{6}$/i.test(customHex)) {
+      root.style.setProperty("--adw-active-accent", customHex);
     } else {
-      root.style.removeProperty("--adw-active-accent");
+      const accent = ACCENT_COLORS.find((a) => a.id === settings.accentColor);
+      if (accent && accent.id !== "blue") {
+        root.style.setProperty("--adw-active-accent", accent.cssVar);
+      } else {
+        root.style.removeProperty("--adw-active-accent");
+      }
     }
     try {
       domicile.theme.set(resolvedTheme);
     } catch {
       // ignore if compositor not ready
     }
-  }, [resolvedTheme, settings.accentColor, domicile.theme]);
+  }, [
+    resolvedTheme,
+    settings.accentColor,
+    settings.customAccentHex,
+    settings.highContrast,
+    domicile.theme,
+  ]);
 
   React.useEffect(() => {
     if (isBrowserRuntime) return;

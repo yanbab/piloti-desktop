@@ -281,6 +281,37 @@
   --adw-content: #202024;
 }
 
+/*
+ * Adwaita High-Contrast Theme Variant (Light & Dark)
+ */
+:root[data-high-contrast="true"] {
+  --adw-window: #ffffff;
+  --adw-content: #ffffff;
+  --adw-titlebar: #f2f2f5;
+  --adw-sidebar: #ebebf0;
+  --adw-card: #ffffff;
+  --adw-label: #000000;
+  --adw-label-secondary: rgb(0 0 0 / 0.85);
+  --adw-dim: rgb(0 0 0 / 0.72);
+  --adw-separator: rgb(0 0 0 / 0.45);
+  --adw-border: rgb(0 0 0 / 0.5);
+  --adw-shadow-window: 0 0 0 2px rgb(0 0 0 / 0.75), 0 10px 28px rgb(0 0 0 / 0.25);
+}
+
+:root.dark[data-high-contrast="true"] {
+  --adw-window: #000000;
+  --adw-content: #000000;
+  --adw-titlebar: #121216;
+  --adw-sidebar: #0c0c10;
+  --adw-card: #141418;
+  --adw-label: #ffffff;
+  --adw-label-secondary: rgb(255 255 255 / 0.9);
+  --adw-dim: rgb(255 255 255 / 0.78);
+  --adw-separator: rgb(255 255 255 / 0.48);
+  --adw-border: rgb(255 255 255 / 0.55);
+  --adw-shadow-window: 0 0 0 2px rgb(255 255 255 / 0.72), 0 10px 32px rgb(0 0 0 / 0.65);
+}
+
 @theme inline {
   --font-sans: var(--font-adw);
   --font-mono: var(--font-adw-mono);

@@ -40,3 +40,4 @@ describe("terminal-pipeline pipes, redirects, and grep", () => {
     expect(content).toContain("appended line");
   });
 });
+

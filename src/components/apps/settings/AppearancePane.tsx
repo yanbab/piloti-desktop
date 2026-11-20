@@ -96,19 +96,26 @@ export function AppearancePane() {
             <GroupedFormRowControl className="w-full sm:w-auto">
               <div className="flex max-w-full flex-wrap items-center justify-start gap-2 sm:max-w-[280px] sm:justify-end">
                 {ACCENT_COLORS.map((color) => {
-                  const selected = settings.accentColor === color.id;
+                  const selected =
+                    !settings.customAccentHex &&
+                    settings.accentColor === color.id;
                   return (
                     <button
                       key={color.id}
                       type="button"
                       title={_(color.label)}
                       aria-label={_(color.label)}
-                      onClick={() => updateSettings({ accentColor: color.id })}
+                      onClick={() =>
+                        updateSettings({
+                          accentColor: color.id,
+                          customAccentHex: "",
+                        })
+                      }
                       style={{ backgroundColor: color.hex }}
                       className={cn(
                         "flex size-5 items-center justify-center rounded-full shadow-inner transition-transform hover:scale-110",
                         selected &&
-                        "scale-110 ring-2 ring-white ring-offset-2 ring-offset-zinc-900"
+                          "scale-110 ring-2 ring-white ring-offset-2 ring-offset-zinc-900"
                       )}
                     >
                       {selected && (
@@ -120,7 +127,50 @@ export function AppearancePane() {
                     </button>
                   );
                 })}
+                <label
+                  title={_("Custom Accent Color")}
+                  aria-label={_("Custom Accent Color")}
+                  style={{
+                    background: settings.customAccentHex
+                      ? settings.customAccentHex
+                      : "conic-gradient(#ef4444, #eab308, #22c55e, #3b82f6, #a855f7, #ef4444)",
+                  }}
+                  className={cn(
+                    "relative flex size-5 cursor-pointer items-center justify-center overflow-hidden rounded-full shadow-inner transition-transform hover:scale-110",
+                    Boolean(settings.customAccentHex) &&
+                      "scale-110 ring-2 ring-white ring-offset-2 ring-offset-zinc-900"
+                  )}
+                >
+                  <input
+                    type="color"
+                    value={settings.customAccentHex || "#3584e4"}
+                    onChange={(e) =>
+                      updateSettings({ customAccentHex: e.target.value })
+                    }
+                    className="absolute inset-0 cursor-pointer opacity-0"
+                  />
+                  {settings.customAccentHex && (
+                    <CheckIcon
+                      className="pointer-events-none size-3 text-white drop-shadow-xs"
+                      strokeWidth={3}
+                    />
+                  )}
+                </label>
               </div>
+            </GroupedFormRowControl>
+          </GroupedFormRow>
+
+          <GroupedFormRow>
+            <GroupedFormRowLabel>
+              <GroupedFormRowTitle>{_("High Contrast")}</GroupedFormRowTitle>
+            </GroupedFormRowLabel>
+            <GroupedFormRowControl>
+              <Switch
+                checked={settings.highContrast}
+                onCheckedChange={(checked) =>
+                  updateSettings({ highContrast: checked })
+                }
+              />
             </GroupedFormRowControl>
           </GroupedFormRow>
         </GroupedFormGroup>

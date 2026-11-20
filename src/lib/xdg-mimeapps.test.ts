@@ -27,3 +27,4 @@ describe("xdg-mimeapps", () => {
     ]);
   });
 });
+

@@ -271,3 +271,4 @@ export function executeTextPipeline(
 
   return { ok: true, stdout: stdin };
 }
+
