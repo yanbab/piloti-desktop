@@ -1,7 +1,8 @@
 import * as React from "react";
 import { useDomicile } from "@domicile-desktop/react/domicile-provider";
 import { useWatch } from "@domicile-desktop/react/use-watch";
-import { PlusIcon, PuzzleIcon, Trash2Icon } from "lucide-react";
+import { PlusIcon, PuzzleIcon, RefreshCwIcon, SparklesIcon, Trash2Icon } from "lucide-react";
+import { usePlugins } from "@/context/PluginsContext";
 import { Button } from "@/components/ui/button";
 import {
   GroupedForm,
@@ -37,6 +38,15 @@ import { useSettings } from "@/context/DesktopStateContext";
 export function AdvancedPane() {
   const domicile = useDomicile();
   const { isBrowserRuntime, settings, updateSettings } = useSettings();
+  const {
+    plugins: userPlugins,
+    safeMode: pluginsSafeMode,
+    loading: pluginsLoading,
+    togglePlugin,
+    reloadPlugin,
+    refreshPlugins,
+    createSamplePlugin,
+  } = usePlugins();
   const [preference, setPreference] = React.useState<LocalePreference>(() =>
     getLocalePreference()
   );
@@ -404,6 +414,127 @@ export function AdvancedPane() {
                 </GroupedFormRow>
               )}
             </>
+          )}
+        </GroupedFormGroup>
+      </GroupedFormSection>
+
+      <GroupedFormSection>
+        <GroupedFormSectionTitle>{_("User Plugins")}</GroupedFormSectionTitle>
+        <GroupedFormGroup>
+          <GroupedFormRow>
+            <GroupedFormRowLabel>
+              <GroupedFormRowTitle>
+                {_("Plugins Folder (~/.config/piloti/plugins/)")}
+              </GroupedFormRowTitle>
+              <GroupedFormRowDescription>
+                {pluginsSafeMode
+                  ? _("Safe mode active (?safe-mode=1): JS plugins are skipped.")
+                  : _(
+                      "Drop a .css file, .js file, or folder (manifest.json optional)."
+                    )}
+              </GroupedFormRowDescription>
+            </GroupedFormRowLabel>
+            <GroupedFormRowControl className="flex flex-wrap items-center gap-1.5">
+              <Button
+                size="sm"
+                variant="secondary"
+                className="h-7 px-2 text-xs"
+                onClick={() => void createSamplePlugin("css")}
+              >
+                <SparklesIcon className="mr-1 size-3" />
+                {_("Sample CSS")}
+              </Button>
+              <Button
+                size="sm"
+                variant="secondary"
+                className="h-7 px-2 text-xs"
+                onClick={() => void createSamplePlugin("js")}
+              >
+                <SparklesIcon className="mr-1 size-3" />
+                {_("Sample JS")}
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="size-7 p-0"
+                title={_("Refresh plugins")}
+                disabled={pluginsLoading}
+                onClick={() => void refreshPlugins()}
+              >
+                <RefreshCwIcon
+                  className={cn("size-3.5", pluginsLoading && "animate-spin")}
+                />
+              </Button>
+            </GroupedFormRowControl>
+          </GroupedFormRow>
+
+          {userPlugins.length === 0 ? (
+            <GroupedFormRow>
+              <GroupedFormRowLabel>
+                <GroupedFormRowTitle>
+                  {_("No User Plugins Found")}
+                </GroupedFormRowTitle>
+                <GroupedFormRowDescription>
+                  {_(
+                    "Click Sample CSS or Sample JS above to create your first plugin."
+                  )}
+                </GroupedFormRowDescription>
+              </GroupedFormRowLabel>
+            </GroupedFormRow>
+          ) : (
+            userPlugins.map((plugin) => {
+              const kindLabel =
+                plugin.stylePath && plugin.scriptPath
+                  ? "CSS + JS"
+                  : plugin.stylePath
+                    ? "CSS"
+                    : plugin.scriptPath
+                      ? "JS"
+                      : "Manifest";
+              return (
+                <GroupedFormRow key={plugin.id}>
+                  <GroupedFormRowLabel>
+                    <div className="flex items-center gap-2">
+                      <GroupedFormRowTitle>{plugin.name}</GroupedFormRowTitle>
+                      <span className="rounded-md bg-black/6 px-1.5 py-0.5 text-[10px] font-medium text-adw-label-secondary dark:bg-white/10">
+                        {kindLabel}
+                      </span>
+                      {plugin.version && (
+                        <span className="text-[11px] text-adw-label-secondary">
+                          v{plugin.version}
+                        </span>
+                      )}
+                    </div>
+                    <GroupedFormRowDescription>
+                      {plugin.error ? (
+                        <span className="text-destructive">{plugin.error}</span>
+                      ) : (
+                        plugin.description || plugin.entryPath
+                      )}
+                    </GroupedFormRowDescription>
+                  </GroupedFormRowLabel>
+                  <GroupedFormRowControl className="flex items-center gap-2">
+                    {plugin.enabled && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="size-7 p-0"
+                        title={_("Reload plugin")}
+                        onClick={() => void reloadPlugin(plugin.id)}
+                      >
+                        <RefreshCwIcon className="size-3.5" />
+                      </Button>
+                    )}
+                    <Switch
+                      checked={plugin.enabled}
+                      onCheckedChange={(checked) =>
+                        togglePlugin(plugin.id, checked)
+                      }
+                    />
+                  </GroupedFormRowControl>
+                </GroupedFormRow>
+              );
+            })
           )}
         </GroupedFormGroup>
       </GroupedFormSection>

@@ -12,6 +12,7 @@ import {
   MoonIcon,
   PaletteIcon,
   SettingsIcon,
+  PuzzleIcon,
   SunIcon,
   VideoIcon,
   Volume2Icon,
@@ -31,6 +32,7 @@ import {
   useSystemBackends,
   useWindowManager,
 } from "@/context/DesktopStateContext";
+import { usePlugins } from "@/context/PluginsContext";
 import { APP_CATALOG } from "@/data/catalog";
 import {
   canonicalizeWebUrl,
@@ -181,6 +183,7 @@ function filterAndSort(entries: PaletteEntry[]): PaletteEntry[] {
 
 export function Launcher() {
   const { settings, updateSettings } = useSettings();
+  const { pluginCommands } = usePlugins();
   const {
     pushNotification,
     lockSession,
@@ -737,11 +740,28 @@ export function Launcher() {
       }
     }
 
+    if (pluginCommands.length > 0) {
+      const pluginItems = filterAndSort(
+        pluginCommands.map((cmd) => ({
+          value: `plugin:${cmd.pluginId}:${cmd.id}`,
+          score: scoreMatch(tokens, cmd.title, `${cmd.pluginId} ${cmd.keywords ?? ""}`),
+          icon: <PuzzleIcon className="size-4" />,
+          label: cmd.title,
+          hint: cmd.pluginId,
+          onSelect: () => runAndClose(() => cmd.run()),
+        }))
+      );
+      if (pluginItems.length > 0) {
+        out.push({ heading: "Plugins", items: pluginItems });
+      }
+    }
+
     return out;
   }, [
     availableGnomePanels,
     detectedUrl,
     mathResult,
+    pluginCommands,
     searchQuery,
     snapshots,
     focusWindow,

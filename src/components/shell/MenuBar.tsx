@@ -65,6 +65,7 @@ import { buildVfsEntryWebAppUrl, getVfsEntry } from "@/lib/web-vfs";
 import { ControlPanel } from "./ControlPanel";
 import { Launcher } from "./Launcher";
 import { PilotiLogo } from "./PilotiLogo";
+import { usePlugins } from "@/context/PluginsContext";
 import { SystemTrayItem } from "./SystemTray";
 
 function formatMenuShortcut(shortcut: string, model: "mac" | "pc"): string {
@@ -190,6 +191,7 @@ function renderRemoteMenuItems(
 
 export function MenuBar() {
   const domicile = useDomicile();
+  const { statusItems } = usePlugins();
   const { isBrowserRuntime, settings, updateSettings } = useSettings();
   const { installedXdgApps, launchXdgEntry } = useApps();
   const {
@@ -1009,6 +1011,24 @@ export function MenuBar() {
             </div>
           );
         })}
+
+        {statusItems.map((item) => (
+          <button
+            key={item.fullId}
+            type="button"
+            title={item.tooltip || item.label}
+            onClick={() => {
+              try {
+                item.onClick?.();
+              } catch (err) {
+                console.error(`[Plugin:${item.pluginId}] status click error:`, err);
+              }
+            }}
+            className="flex h-[22px] shrink-0 cursor-default items-center rounded-full px-2 text-[12px] font-medium outline-none select-none hover:bg-black/8 active:bg-black/14 dark:hover:bg-white/10 dark:active:bg-white/18"
+          >
+            {item.label}
+          </button>
+        ))}
 
         {trayItems.map((item) => (
           <SystemTrayItem key={item.id} item={item} />

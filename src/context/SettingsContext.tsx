@@ -132,6 +132,7 @@ export interface DesktopSettings {
   fileActivationMode: "single" | "double";
   showFileExtensionBadges: boolean;
   demoExtensionEnabled: boolean;
+  enabledPluginIds: string[];
   computerModel: "mac" | "pc";
   desktopIconPositions: Record<string, { col: number; row: number }>;
   pinnedAppIds: string[];
@@ -209,6 +210,7 @@ const DEFAULT_SETTINGS: DesktopSettings = {
   fileActivationMode: "double",
   showFileExtensionBadges: true,
   demoExtensionEnabled: true,
+  enabledPluginIds: [],
   computerModel:
     typeof navigator !== "undefined" &&
     /mac/i.test(navigator.platform || navigator.userAgent || "")

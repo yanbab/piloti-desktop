@@ -1,5 +1,6 @@
 import * as React from "react";
 import { useDomicile } from "@domicile-desktop/react/domicile-provider";
+import { PluginsProvider } from "@/context/PluginsContext";
 import { attachConsoleDiskSink } from "@/lib/console-store";
 import { AppsContext, useApps, useAppsValue } from "./AppsContext";
 import {
@@ -111,7 +112,7 @@ function WindowsLayer({ children }: { children: React.ReactNode }) {
   return (
     <WindowActionsContext.Provider value={actionsValue}>
       <WindowsContext.Provider value={windowsValue}>
-        {children}
+        <PluginsProvider>{children}</PluginsProvider>
       </WindowsContext.Provider>
     </WindowActionsContext.Provider>
   );
