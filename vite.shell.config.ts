@@ -44,6 +44,7 @@ export default defineConfig({
       input: "desktop.tsx",
       output: {
         entryFileNames: "shell.js",
+        inlineDynamicImports: true,
       },
       preserveEntrySignatures: "exports-only",
     },
