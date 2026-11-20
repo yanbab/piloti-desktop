@@ -444,6 +444,13 @@ export function createBrowserDomicile(): Domicile {
           }
           const effectiveArgs = command.slice(idx);
           const cmd = effectiveArgs[0] ?? command[0] ?? "app";
+          if (cmd === "piloti-webapp" && effectiveArgs[1]) {
+            fake.openBrowser(effectiveArgs[1], {
+              isApp: true,
+              appId: effectiveArgs[1],
+            });
+            return;
+          }
           const lowerCmd = cmd.toLowerCase();
           const isGnomeCsd =
             lowerCmd.includes("nautilus") ||

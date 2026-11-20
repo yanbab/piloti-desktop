@@ -1945,39 +1945,6 @@ function pruneBrowserRecord(
     [domicile, isBrowserRuntime, launchApp, settings.hiddenGnomePanels]
   );
 
-  const launchXdgApp = React.useCallback(
-    (entry: XdgDesktopEntry, actionId?: string) => {
-      clearLaunchOverlays();
-      console.info("[Piloti] launchXdgApp", entry.desktopId, actionId ?? null);
-      if (isBrowserRuntime) {
-        const lower = `${entry.desktopId} ${entry.appId}`.toLowerCase();
-        if (lower.includes("settings") || lower.includes("controlcenter")) {
-          launchApp("settings", { forceCsd: true });
-          return;
-        }
-      } else if (
-        !actionId &&
-        (entry.desktopId === "org.gnome.Settings.desktop" ||
-          entry.desktopId === "gnome-control-center.desktop" ||
-          entry.execArgv[0]?.endsWith("gnome-control-center") === true)
-      ) {
-        openGnomeControlCenter(domicile, undefined, settings.hiddenGnomePanels);
-        return;
-      }
-      beginStartupNotification(entry.appId);
-      launchXdgEntry(entry, actionId);
-    },
-    [
-      beginStartupNotification,
-      clearLaunchOverlays,
-      domicile,
-      isBrowserRuntime,
-      launchApp,
-      launchXdgEntry,
-      settings.hiddenGnomePanels,
-    ]
-  );
-
   const openWebUrl = React.useCallback(
     (
       rawUrl: string,
@@ -2032,6 +1999,62 @@ function pruneBrowserRecord(
       domicile.browser,
       focusWindow,
       settings.installedWebApps,
+    ]
+  );
+
+  const launchXdgApp = React.useCallback(
+    (entry: XdgDesktopEntry, actionId?: string) => {
+      clearLaunchOverlays();
+      console.info("[Piloti] launchXdgApp", entry.desktopId, actionId ?? null);
+      const execCmd = entry.execArgv[0];
+      if (execCmd === "piloti-webapp" && entry.execArgv[1]) {
+        openWebUrl(entry.execArgv[1], {
+          asApp: true,
+          title: entry.name,
+        });
+        return;
+      }
+      const builtinExecMap: Record<string, string> = {
+        "piloti-files": "nautilus",
+        "piloti-terminal": "terminal",
+        "piloti-notepad": "text-editor",
+        "piloti-calculator": "calculator",
+        "piloti-image-viewer": "image-viewer",
+        "piloti-app-store": "app-store",
+        "piloti-devtools": "console",
+        "piloti-settings": "settings",
+      };
+      if (execCmd && builtinExecMap[execCmd]) {
+        launchApp(builtinExecMap[execCmd]);
+        return;
+      }
+      if (isBrowserRuntime) {
+        const lower = `${entry.desktopId} ${entry.appId}`.toLowerCase();
+        if (lower.includes("settings") || lower.includes("controlcenter")) {
+          launchApp("settings", { forceCsd: true });
+          return;
+        }
+      } else if (
+        !actionId &&
+        (entry.desktopId === "org.gnome.Settings.desktop" ||
+          entry.desktopId === "gnome-control-center.desktop" ||
+          entry.execArgv[0]?.endsWith("gnome-control-center") === true)
+      ) {
+        openGnomeControlCenter(domicile, undefined, settings.hiddenGnomePanels);
+        return;
+      }
+      beginStartupNotification(entry.appId);
+      launchXdgEntry(entry, actionId);
+    },
+    [
+      beginStartupNotification,
+      clearLaunchOverlays,
+      domicile,
+      isBrowserRuntime,
+      launchApp,
+      launchXdgEntry,
+      openWebUrl,
+      settings.hiddenGnomePanels,
     ]
   );
 
