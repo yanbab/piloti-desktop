@@ -7,6 +7,7 @@ import {
   listVfsDir,
   moveVfsEntry,
   normalizeVfsPath,
+  removeVfsEntry,
   renameVfsEntry,
   restoreVfsEntry,
   trashVfsEntry,
@@ -263,5 +264,20 @@ export async function emptyFsTrash(
   emptyVfsTrash();
   if (!isBrowserRuntime) {
     await emptyXdgTrash(domicile.processes, resolveXdgTrashPaths());
+  }
+}
+
+/**
+ * Permanently removes a file on both `web-vfs` and Linux (`rm -f`).
+ */
+export async function removeFsFile(
+  domicile: Domicile,
+  isBrowserRuntime: boolean,
+  filePath: string,
+): Promise<void> {
+  const norm = normalizeVfsPath(filePath);
+  removeVfsEntry(norm);
+  if (!isBrowserRuntime) {
+    await domicile.processes.run(["rm", "-f", "--", toDomicilePath(norm)]).catch(() => undefined);
   }
 }

@@ -40,6 +40,7 @@ import {
   MENU_SEPARATOR_CLASS,
 } from "@/components/ui/menu-styles";
 import { useApps, useSettings, useWindowManager } from "@/context/DesktopStateContext";
+import { publishWindowMenuState } from "@/lib/app-bridge";
 import {
   type IconGridItem,
   inferFileVisual,
@@ -341,6 +342,18 @@ export function FilesApp({
     [domicile, isBrowserRuntime, reloadDir]
   );
 
+  const latestActionsRef = React.useRef<{
+    canGoUp: boolean;
+    handleGoUp: () => void;
+    handleNewFolder: () => void;
+    stepZoom: (delta: number) => void;
+  }>({
+    canGoUp: false,
+    handleGoUp: () => {},
+    handleNewFolder: () => {},
+    stepZoom: () => {},
+  });
+
   React.useEffect(() => {
     if (!windowId || focusedWindowId !== windowId) return;
     const onKeyDown = (e: KeyboardEvent) => {
@@ -432,6 +445,63 @@ export function FilesApp({
       ) {
         e.preventDefault();
         handleTrashItems(selectedIds.map((p) => ({ id: p, path: p })));
+      } else if (
+        (e.ctrlKey || e.metaKey) &&
+        e.shiftKey &&
+        !e.altKey &&
+        e.key.toLowerCase() === "n" &&
+        !isTrashView &&
+        !isVirtualView
+      ) {
+        e.preventDefault();
+        latestActionsRef.current.handleNewFolder();
+      } else if (
+        e.altKey &&
+        !e.ctrlKey &&
+        !e.metaKey &&
+        (e.key === "ArrowLeft" || e.key === "ArrowUp") &&
+        latestActionsRef.current.canGoUp
+      ) {
+        e.preventDefault();
+        latestActionsRef.current.handleGoUp();
+      } else if (
+        (e.ctrlKey || e.metaKey) &&
+        !e.altKey &&
+        !e.shiftKey &&
+        e.key === "1"
+      ) {
+        e.preventDefault();
+        setViewMode("grid");
+      } else if (
+        (e.ctrlKey || e.metaKey) &&
+        !e.altKey &&
+        !e.shiftKey &&
+        e.key === "2"
+      ) {
+        e.preventDefault();
+        setViewMode("list");
+      } else if (
+        (e.ctrlKey || e.metaKey) &&
+        !e.altKey &&
+        (e.key === "=" || e.key === "+")
+      ) {
+        e.preventDefault();
+        latestActionsRef.current.stepZoom(1);
+      } else if (
+        (e.ctrlKey || e.metaKey) &&
+        !e.altKey &&
+        e.key === "-"
+      ) {
+        e.preventDefault();
+        latestActionsRef.current.stepZoom(-1);
+      } else if (
+        (e.ctrlKey || e.metaKey) &&
+        !e.altKey &&
+        !e.shiftKey &&
+        e.key.toLowerCase() === "i"
+      ) {
+        e.preventDefault();
+        setInfoPaneOpen((v) => !v);
       }
     };
     window.addEventListener("keydown", onKeyDown, true);
@@ -696,6 +766,104 @@ export function FilesApp({
     }
   };
 
+  latestActionsRef.current = {
+    canGoUp,
+    handleGoUp,
+    handleNewFolder,
+    stepZoom,
+  };
+
+  React.useEffect(() => {
+    if (!windowId) return;
+    publishWindowMenuState(windowId, {
+      "files:go-up": { disabled: !canGoUp },
+      "files:empty-trash": { disabled: !isTrashView || items.length === 0 },
+      "files:view-grid": { checked: viewMode === "grid" },
+      "files:view-list": { checked: viewMode === "list" },
+      "files:zoom-in": { disabled: activeZoomIndex >= maxZoomIndex },
+      "files:zoom-out": { disabled: activeZoomIndex <= 0 },
+      "files:toggle-hidden": { checked: showHidden },
+      "files:toggle-info": { checked: infoPaneOpen },
+    });
+  }, [
+    activeZoomIndex,
+    canGoUp,
+    infoPaneOpen,
+    isTrashView,
+    items.length,
+    maxZoomIndex,
+    showHidden,
+    viewMode,
+    windowId,
+  ]);
+
+  React.useEffect(() => {
+    if (!windowId) return;
+    const onAppAction = (e: Event) => {
+      const detail = (
+        e as CustomEvent<{ windowId?: string; actionId?: string }>
+      ).detail;
+      if (!detail?.actionId) return;
+      if (detail.windowId && detail.windowId !== windowId) return;
+      switch (detail.actionId) {
+        case "files:go-up":
+          if (latestActionsRef.current.canGoUp) {
+            latestActionsRef.current.handleGoUp();
+          }
+          break;
+        case "files:edit-location":
+          setSearchOpen(false);
+          setSearchQuery("");
+          setDraftLocation(currentPath);
+          setEditingLocation(true);
+          break;
+        case "files:find":
+          setEditingLocation(false);
+          setSearchOpen((prev) => {
+            const next = !prev;
+            if (!next) setSearchQuery("");
+            return next;
+          });
+          break;
+        case "files:empty-trash":
+          if (isTrashView && items.length > 0) {
+            void emptyFsTrash(domicile, isBrowserRuntime).then(() =>
+              reloadDir(),
+            );
+          }
+          break;
+        case "files:view-grid":
+          setViewMode("grid");
+          break;
+        case "files:view-list":
+          setViewMode("list");
+          break;
+        case "files:zoom-in":
+          latestActionsRef.current.stepZoom(1);
+          break;
+        case "files:zoom-out":
+          latestActionsRef.current.stepZoom(-1);
+          break;
+        case "files:toggle-hidden":
+          setShowHidden((v) => !v);
+          break;
+        case "files:toggle-info":
+          setInfoPaneOpen((v) => !v);
+          break;
+      }
+    };
+    window.addEventListener("piloti:app-action", onAppAction);
+    return () => window.removeEventListener("piloti:app-action", onAppAction);
+  }, [
+    currentPath,
+    domicile,
+    isBrowserRuntime,
+    isTrashView,
+    items.length,
+    reloadDir,
+    windowId,
+  ]);
+
   const selectedItems = items.filter((i) => selectedIds.includes(i.id));
 
   const bgMenuPortal = bgMenu ? (
@@ -954,7 +1122,7 @@ export function FilesApp({
         <WindowTitlebar
           data-window-drag-region={isCsd ? "" : undefined}
           className={cn(
-            "border-b border-adw-separator bg-adw-titlebar",
+            "!border-b !border-adw-separator bg-adw-titlebar",
             !isCompact && "rounded-tl-none",
             !isCsd && "rounded-t-none"
           )}

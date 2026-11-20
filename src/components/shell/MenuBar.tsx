@@ -53,6 +53,7 @@ import {
 } from "@/context/DesktopStateContext";
 import { matchXdgEntryForWaylandWindow } from "xdg-desktop-entry";
 import { _, getLocale } from "@/lib/i18n";
+import { useWindowMenuState } from "@/lib/app-bridge";
 import { useAltKey } from "@/hooks/use-alt-key";
 import {
   discoverRemoteGlobalMenu,
@@ -158,6 +159,7 @@ export function MenuBar() {
   const trayItems = useWatch(domicile.tray, "change", () => domicile.tray.items) ?? [];
   const waylandClients =
     useWatch(domicile.windows, "change", () => domicile.windows.list) ?? [];
+  const windowMenuState = useWindowMenuState(focusedWindowId);
   const [remoteMenu, setRemoteMenu] = React.useState<RemoteGlobalMenu | null>(
     null
   );
@@ -561,24 +563,47 @@ export function MenuBar() {
                   </MenubarContent>
                 </MenubarMenu>
               ))
-            : activeAppDef.menus.map((section) => (
-                <MenubarMenu key={section.title}>
-                  <MenubarTrigger>{_(section.title)}</MenubarTrigger>
-                  <MenubarContent>
-                    {section.items.map((item) => (
-                      <React.Fragment key={item.label}>
-                        <MenubarItem onClick={() => handleMenuAction(item.actionId)}>
-                          {_(item.label)}
-                          {item.shortcut && (
-                            <MenubarShortcut>{item.shortcut}</MenubarShortcut>
-                          )}
-                        </MenubarItem>
-                        {item.separatorAfter && <MenubarSeparator />}
-                      </React.Fragment>
-                    ))}
-                  </MenubarContent>
-                </MenubarMenu>
-              ))}
+            : activeAppDef.menus
+                .filter((section) => section.title !== "View")
+                .map((section) => (
+                  <MenubarMenu key={section.title}>
+                    <MenubarTrigger>{_(section.title)}</MenubarTrigger>
+                    <MenubarContent>
+                      {section.items.map((item) => {
+                        const itemState = windowMenuState[item.actionId];
+                        const checked = itemState?.checked ?? item.checked;
+                        const disabled = itemState?.disabled ?? false;
+                        return (
+                          <React.Fragment key={item.actionId}>
+                            {checked !== undefined ? (
+                              <MenubarCheckboxItem
+                                checked={checked}
+                                disabled={disabled}
+                                onClick={() => handleMenuAction(item.actionId)}
+                              >
+                                {_(item.label)}
+                                {item.shortcut && (
+                                  <MenubarShortcut>{item.shortcut}</MenubarShortcut>
+                                )}
+                              </MenubarCheckboxItem>
+                            ) : (
+                              <MenubarItem
+                                disabled={disabled}
+                                onClick={() => handleMenuAction(item.actionId)}
+                              >
+                                {_(item.label)}
+                                {item.shortcut && (
+                                  <MenubarShortcut>{item.shortcut}</MenubarShortcut>
+                                )}
+                              </MenubarItem>
+                            )}
+                            {item.separatorAfter && <MenubarSeparator />}
+                          </React.Fragment>
+                        );
+                      })}
+                    </MenubarContent>
+                  </MenubarMenu>
+                ))}
 
           {/* Edit Menu */}
           <MenubarMenu>
@@ -607,6 +632,50 @@ export function MenuBar() {
               </MenubarItem>
             </MenubarContent>
           </MenubarMenu>
+
+          {/* View Menu (always after Edit) */}
+          {!(remoteMenu && remoteMenu.sections.length > 0) &&
+            activeAppDef.menus
+              .filter((section) => section.title === "View")
+              .map((section) => (
+                <MenubarMenu key={section.title}>
+                  <MenubarTrigger>{_(section.title)}</MenubarTrigger>
+                  <MenubarContent>
+                    {section.items.map((item) => {
+                      const itemState = windowMenuState[item.actionId];
+                      const checked = itemState?.checked ?? item.checked;
+                      const disabled = itemState?.disabled ?? false;
+                      return (
+                        <React.Fragment key={item.actionId}>
+                          {checked !== undefined ? (
+                            <MenubarCheckboxItem
+                              checked={checked}
+                              disabled={disabled}
+                              onClick={() => handleMenuAction(item.actionId)}
+                            >
+                              {_(item.label)}
+                              {item.shortcut && (
+                                <MenubarShortcut>{item.shortcut}</MenubarShortcut>
+                              )}
+                            </MenubarCheckboxItem>
+                          ) : (
+                            <MenubarItem
+                              disabled={disabled}
+                              onClick={() => handleMenuAction(item.actionId)}
+                            >
+                              {_(item.label)}
+                              {item.shortcut && (
+                                <MenubarShortcut>{item.shortcut}</MenubarShortcut>
+                              )}
+                            </MenubarItem>
+                          )}
+                          {item.separatorAfter && <MenubarSeparator />}
+                        </React.Fragment>
+                      );
+                    })}
+                  </MenubarContent>
+                </MenubarMenu>
+              ))}
 
           {/* Universal Window Menu (matches top-left WindowMenuButton + active app window list) */}
           {activeAppDef.id !== "desktop" && (

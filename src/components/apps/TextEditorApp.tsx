@@ -27,7 +27,7 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useIsolatedAppBridge } from "@/lib/app-bridge";
+import { publishWindowMenuState, useIsolatedAppBridge } from "@/lib/app-bridge";
 import { _ } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { normalizeVfsPath } from "@/lib/web-vfs";
@@ -193,6 +193,8 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
       setWordWrap((v) => !v);
     } else if (actionId === "text-editor:toggle-active-line") {
       setHighlightLine((v) => !v);
+    } else if (actionId === "text-editor:toggle-cursor-position") {
+      setShowCursorPos((v) => !v);
     } else if (actionId.startsWith("piloti:open-path:")) {
       const droppedPath = actionId.slice("piloti:open-path:".length).trim();
       if (droppedPath) {
@@ -226,6 +228,25 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
   const [enableHighlight, setEnableHighlight] = React.useState(true);
   const [wordWrap, setWordWrap] = React.useState(true);
   const [highlightLine, setHighlightLine] = React.useState(true);
+  const [showCursorPos, setShowCursorPos] = React.useState(true);
+
+  React.useEffect(() => {
+    if (!windowId) return;
+    publishWindowMenuState(windowId, {
+      "text-editor:toggle-line-numbers": { checked: showLineNumbers },
+      "text-editor:toggle-syntax": { checked: enableHighlight },
+      "text-editor:toggle-word-wrap": { checked: wordWrap },
+      "text-editor:toggle-active-line": { checked: highlightLine },
+      "text-editor:toggle-cursor-position": { checked: showCursorPos },
+    });
+  }, [
+    enableHighlight,
+    highlightLine,
+    showCursorPos,
+    showLineNumbers,
+    windowId,
+    wordWrap,
+  ]);
   const [isDark, setIsDark] = React.useState(() =>
     typeof document !== "undefined"
       ? document.documentElement.classList.contains("dark")
@@ -534,12 +555,14 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
           <div ref={editorHostRef} className="h-full w-full" />
         )}
 
-        <div
-          data-testid="text-editor-status-pill"
-          className="pointer-events-none absolute right-2.5 bottom-2 z-10 rounded-full border border-adw-border/60 bg-adw-card/90 px-2.5 py-0.5 font-mono text-[10.5px] text-adw-dim shadow-xs backdrop-blur-md"
-        >
-          Ln {cursorPos.ln}, Col {cursorPos.col}
-        </div>
+        {showCursorPos && (
+          <div
+            data-testid="text-editor-status-pill"
+            className="pointer-events-none absolute right-2.5 bottom-2 z-10 rounded-full border border-adw-border/60 bg-adw-card/90 px-2.5 py-0.5 font-mono text-[10.5px] text-adw-dim shadow-xs backdrop-blur-md"
+          >
+            Ln {cursorPos.ln}, Col {cursorPos.col}
+          </div>
+        )}
       </div>
     </div>
   );

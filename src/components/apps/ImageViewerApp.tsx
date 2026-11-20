@@ -237,12 +237,12 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
       data-drop-window-id={windowId}
       className="relative flex h-full w-full flex-col overflow-hidden bg-adw-window text-adw-label select-none"
     >
-      {/* Translucent Headerbar revealed only when hovering the top headerbar zone */}
+      {/* Translucent Headerbar revealed when hovering the top headerbar zone or dragging the window */}
       <div className="group/header absolute inset-x-0 top-0 z-20 h-10">
         <div
           data-window-drag-region=""
           className={cn(
-            "flex h-9 items-center justify-between border-b border-adw-separator/60 bg-adw-titlebar/85 px-3 backdrop-blur-md transition-opacity duration-150 group-hover/header:opacity-100",
+            "flex h-9 items-center justify-between border-b border-adw-separator/60 bg-adw-titlebar/85 px-3 backdrop-blur-md transition-opacity duration-150 group-hover/header:opacity-100 group-data-[dragging]/window:opacity-100",
             dragRegionHovered ? "opacity-100" : "opacity-0",
           )}
         >

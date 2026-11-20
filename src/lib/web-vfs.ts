@@ -27,6 +27,7 @@ const DEFAULT_DIRS = [
   "/home/user/Videos",
   "/home/user/.local",
   "/home/user/.local/share",
+  "/home/user/.local/share/applications",
   "/home/user/.local/share/Trash",
   WEB_VFS_TRASH,
 ];
@@ -567,6 +568,24 @@ export function renameVfsEntry(
   migrateVfsEmblemsPrefix(oldPath, newPath);
   saveVfs(updated);
   return updated.find((e) => e.path === newPath) ?? null;
+}
+
+/**
+ * Permanently removes a file or directory (recursively) from `web-vfs`.
+ */
+export function removeVfsEntry(rawPath: string): boolean {
+  const targetPath = normalizeVfsPath(rawPath);
+  const entries = loadVfs();
+  const target = entries.find((e) => e.path === targetPath);
+  if (!target) return false;
+  const targetPrefix = `${targetPath}/`;
+  migrateVfsEmblemsPrefix(targetPath, null);
+  saveVfs(
+    entries.filter(
+      (e) => e.path !== targetPath && !e.path.startsWith(targetPrefix),
+    ),
+  );
+  return true;
 }
 
 export function trashVfsEntry(rawPath: string): void {

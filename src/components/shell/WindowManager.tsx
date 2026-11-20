@@ -1022,7 +1022,7 @@ export function WindowManager() {
           overviewOpen && "pointer-events-none opacity-0",
         )}
       >
-        <DesktopIconsApp bottomInset={bottomDockClearance} />
+        <DesktopIconsApp bottomInset={0} />
       </div>
 
       {/* Edge Snapping Drop Zone Preview */}
@@ -1102,7 +1102,12 @@ export function WindowManager() {
             onContextMenu={(e) => {
               e.stopPropagation();
               const target = e.target as HTMLElement | null;
+              const isSidebarBody = Boolean(
+                target?.closest('[data-slot="adw-sidebar"], aside') &&
+                  !target?.closest('[data-slot="window-titlebar"]'),
+              );
               if (
+                !isSidebarBody &&
                 target?.closest(
                   '[data-slot="window-titlebar"], [data-window-drag-region], [data-slot="adw-sidebar-header"]',
                 )

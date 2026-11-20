@@ -2,6 +2,7 @@ import { desktop, type Domicile } from "@domicile-desktop/sdk/desktop/desktop";
 import type { DomicileHost, DomicileNotification } from "@domicile-desktop/sdk/domicile-host";
 import { FakeDomicileHost } from "@domicile-desktop/sdk/fake-host";
 import { ADWAITA_VIRTUAL_ICONS } from "./adwaita-virtual-icons";
+import { getVfsEntry, listVfsDir, normalizeVfsPath } from "./web-vfs";
 
 declare global {
   interface Window {
@@ -270,7 +271,17 @@ export function createBrowserDomicile(): Domicile {
               path?: string;
             };
             if (req.call === "read_dir" && req.path) {
-              const entries = readVirtualDirectory(req.path);
+              const vfsPath = normalizeVfsPath(req.path);
+              const vfsEntries =
+                vfsPath.startsWith("/home/user") ? listVfsDir(vfsPath) : [];
+              const virtualEntries = readVirtualDirectory(req.path);
+              const entries =
+                vfsEntries.length > 0
+                  ? vfsEntries.map((item) => ({
+                      name: item.name,
+                      file_type: item.kind,
+                    }))
+                  : virtualEntries;
               if (entries) {
                 dispatchSystemLine({
                   id,
@@ -290,7 +301,14 @@ export function createBrowserDomicile(): Domicile {
               return;
             }
             if (req.call === "read_file" && req.path) {
-              const content = ALL_VIRTUAL_FILES[req.path];
+              const vfsPath = normalizeVfsPath(req.path);
+              const vfsEntry = vfsPath.startsWith("/home/user")
+                ? getVfsEntry(vfsPath)
+                : undefined;
+              const content =
+                vfsEntry?.kind === "file"
+                  ? (vfsEntry.content ?? "")
+                  : ALL_VIRTUAL_FILES[req.path];
               if (content !== undefined) {
                 dispatchSystemLine({
                   id,

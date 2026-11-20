@@ -45,7 +45,7 @@ export const DESKTOP_ICON_CELL_WIDTH = 96;
 export const DESKTOP_ICON_CELL_HEIGHT = 100;
 export const DESKTOP_GRID_PADDING = 12;
 
-function coordKey(coord: GridCoord): string {
+export function coordKey(coord: GridCoord): string {
   return `${coord.col}:${coord.row}`;
 }
 
@@ -192,6 +192,78 @@ export function moveItemToCell(
     next[occupantId] = previous;
   }
   next[itemId] = clamped;
+  return next;
+}
+
+/**
+ * Finds the closest unoccupied grid cell to `target` within `[cols, rows]`.
+ * Falls back to `clampCoord(target, cols, rows)` if every cell is occupied.
+ */
+export function findClosestFreeCell(
+  occupied: ReadonlySet<string>,
+  target: GridCoord,
+  cols: number,
+  rows: number
+): GridCoord {
+  const clamped = clampCoord(target, cols, rows);
+  if (!occupied.has(coordKey(clamped))) {
+    return clamped;
+  }
+  let best: GridCoord | null = null;
+  let bestDistSq = Number.POSITIVE_INFINITY;
+  for (let c = 0; c < cols; c++) {
+    for (let r = 0; r < rows; r++) {
+      const candidate = { col: c, row: r };
+      if (occupied.has(coordKey(candidate))) continue;
+      const dc = c - clamped.col;
+      const dr = r - clamped.row;
+      const distSq = dc * dc + dr * dr;
+      if (
+        distSq < bestDistSq ||
+        (distSq === bestDistSq && best && (c < best.col || (c === best.col && r < best.row)))
+      ) {
+        bestDistSq = distSq;
+        best = candidate;
+      }
+    }
+  }
+  return best ?? clamped;
+}
+
+/**
+ * Moves one or more items so `primaryId` lands at `targetCell` (or swaps if single)
+ * and any additional dragged items land in the closest unoccupied cells around `targetCell`.
+ */
+export function moveItemsToCells(
+  positions: Readonly<Record<string, GridCoord>>,
+  itemIds: readonly string[],
+  primaryId: string,
+  targetCell: GridCoord,
+  cols: number,
+  rows: number
+): Record<string, GridCoord> {
+  if (itemIds.length <= 1) {
+    return moveItemToCell(positions, primaryId, targetCell, cols, rows);
+  }
+  const clamped = clampCoord(targetCell, cols, rows);
+  const next: Record<string, GridCoord> = { ...positions };
+  const movingSet = new Set(itemIds);
+  const occupied = new Set<string>();
+  for (const [id, pos] of Object.entries(next)) {
+    if (!movingSet.has(id) && pos) {
+      occupied.add(coordKey(pos));
+    }
+  }
+
+  const orderedIds = [
+    primaryId,
+    ...itemIds.filter((id) => id !== primaryId),
+  ];
+  for (const id of orderedIds) {
+    const cell = findClosestFreeCell(occupied, clamped, cols, rows);
+    next[id] = cell;
+    occupied.add(coordKey(cell));
+  }
   return next;
 }
 

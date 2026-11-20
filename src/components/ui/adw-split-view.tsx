@@ -101,15 +101,23 @@ export function AdwSplitView({
       return;
     }
     const update = () => {
+      if (el.clientWidth === 0) return;
       const compact = el.clientWidth < compactBreakpoint;
       setIsCompact(compact);
       onCompactChangeRef.current?.(compact);
     };
     update();
-    setSidebarReady(true);
+    let raf2 = 0;
+    const raf1 = requestAnimationFrame(() => {
+      raf2 = requestAnimationFrame(() => setSidebarReady(true));
+    });
     const ro = new ResizeObserver(update);
     ro.observe(el);
-    return () => ro.disconnect();
+    return () => {
+      cancelAnimationFrame(raf1);
+      cancelAnimationFrame(raf2);
+      ro.disconnect();
+    };
   }, [compactBreakpoint]);
 
   const onContentScroll = React.useCallback((e: React.UIEvent<HTMLElement>) => {
@@ -137,6 +145,7 @@ export function AdwSplitView({
       {/* Left Sidebar (collapses to compact icon bar; kept as <aside> for Adwaita transparent titlebar styling) */}
       <aside
         ref={sidebarRef}
+        data-window-drag-region=""
         onKeyDown={onSidebarKeyDown}
         onKeyUp={onSidebarKeyUp}
         className={cn(
@@ -204,7 +213,8 @@ export function AdwSplitView({
                   </span>
                   <span
                     className={cn(
-                      "truncate transition-opacity duration-150",
+                      "truncate",
+                      sidebarReady && "transition-opacity duration-150",
                       isCompact ? "opacity-0" : "opacity-100",
                     )}
                   >

@@ -208,6 +208,7 @@ export interface AppMenuSection {
     label: string;
     shortcut?: string;
     actionId: string;
+    checked?: boolean;
     separatorAfter?: boolean;
   }[];
 }
@@ -306,8 +307,23 @@ export const APP_CATALOG: AppDefinition[] = [
       {
         title: "File",
         items: [
-          { label: "New Folder", actionId: "files:new-folder" },
-          { label: "New Text File", actionId: "files:new-text-file" },
+          { label: "New Folder", shortcut: "Ctrl+Shift+N", actionId: "files:new-folder" },
+          { label: "New Text File", actionId: "files:new-text-file", separatorAfter: true },
+          { label: "Back", shortcut: "Alt+Left", actionId: "files:go-up" },
+          { label: "Edit Location", shortcut: "Ctrl+L", actionId: "files:edit-location" },
+          { label: "Search", shortcut: "Ctrl+F", actionId: "files:find", separatorAfter: true },
+          { label: "Empty Trash", actionId: "files:empty-trash" },
+        ],
+      },
+      {
+        title: "View",
+        items: [
+          { label: "As Icons", shortcut: "Ctrl+1", actionId: "files:view-grid", checked: true },
+          { label: "As List", shortcut: "Ctrl+2", actionId: "files:view-list", checked: false, separatorAfter: true },
+          { label: "Zoom In", shortcut: "Ctrl++", actionId: "files:zoom-in" },
+          { label: "Zoom Out", shortcut: "Ctrl+-", actionId: "files:zoom-out", separatorAfter: true },
+          { label: "Show Hidden Files", shortcut: "Ctrl+H", actionId: "files:toggle-hidden", checked: false },
+          { label: "Info Panel", shortcut: "Ctrl+I", actionId: "files:toggle-info", checked: false },
         ],
       },
     ],
@@ -343,20 +359,29 @@ export const APP_CATALOG: AppDefinition[] = [
         title: "View",
         items: [
           {
-            label: "Toggle Line Numbers",
+            label: "Line Numbers",
             actionId: "text-editor:toggle-line-numbers",
+            checked: true,
           },
           {
-            label: "Toggle Syntax Highlighting",
+            label: "Syntax Highlighting",
             actionId: "text-editor:toggle-syntax",
+            checked: true,
           },
           {
-            label: "Toggle Word Wrap",
+            label: "Word Wrap",
             actionId: "text-editor:toggle-word-wrap",
+            checked: true,
           },
           {
-            label: "Toggle Active Line",
+            label: "Active Line",
             actionId: "text-editor:toggle-active-line",
+            checked: true,
+          },
+          {
+            label: "Cursor Position",
+            actionId: "text-editor:toggle-cursor-position",
+            checked: true,
           },
         ],
       },

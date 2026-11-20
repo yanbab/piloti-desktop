@@ -290,3 +290,57 @@ export function useIsolatedAppBridge(
   );
 }
 
+export interface AppMenuItemState {
+  checked?: boolean;
+  disabled?: boolean;
+}
+
+const windowMenuStateMap = new Map<string, Record<string, AppMenuItemState>>();
+const MENU_STATE_EVENT = "piloti:app-menu-state";
+
+/**
+ * Publishes per-window menu item state (checkboxes / disabled flags) so the
+ * global MenuBar reflects live app state for the focused window.
+ */
+export function publishWindowMenuState(
+  windowId: string,
+  state: Record<string, AppMenuItemState>,
+): void {
+  if (!windowId || typeof window === "undefined") return;
+  windowMenuStateMap.set(windowId, state);
+  window.dispatchEvent(
+    new CustomEvent(MENU_STATE_EVENT, { detail: { windowId, state } }),
+  );
+}
+
+/**
+ * Subscribes to live menu item state for `windowId`.
+ */
+export function useWindowMenuState(
+  windowId: string | null,
+): Record<string, AppMenuItemState> {
+  const [state, setState] = React.useState<Record<string, AppMenuItemState>>(
+    () => (windowId ? (windowMenuStateMap.get(windowId) ?? {}) : {}),
+  );
+
+  React.useEffect(() => {
+    setState(windowId ? (windowMenuStateMap.get(windowId) ?? {}) : {});
+    if (!windowId) return;
+    const onUpdate = (e: Event) => {
+      const detail = (
+        e as CustomEvent<{
+          windowId?: string;
+          state?: Record<string, AppMenuItemState>;
+        }>
+      ).detail;
+      if (detail?.windowId === windowId && detail.state) {
+        setState(detail.state);
+      }
+    };
+    window.addEventListener(MENU_STATE_EVENT, onUpdate);
+    return () => window.removeEventListener(MENU_STATE_EVENT, onUpdate);
+  }, [windowId]);
+
+  return state;
+}
+

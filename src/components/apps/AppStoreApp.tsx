@@ -61,6 +61,10 @@ import {
 } from "@/data/web-apps";
 import { _ } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
+import {
+  installWebAppDesktopEntry,
+  removeWebAppDesktopEntry,
+} from "@/lib/xdg-web-apps";
 
 interface AppStoreAppProps {
   isCsd?: boolean;
@@ -372,31 +376,19 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
     if (!canonical) return;
     const hostTitle = new URL(canonical).hostname.replace(/^www\./, "");
     if (!installedWebUrls.has(canonical)) {
-      updateSettings({
-        installedWebApps: [
-          ...settings.installedWebApps,
-          {
-            id: `web:${canonical}`,
-            title: hostTitle,
-            url: canonical,
-            iconUrl: getWebAppFaviconUrl(canonical),
-          },
-        ],
-      });
+      const initialApp: InstalledWebApp = {
+        id: `web:${canonical}`,
+        title: hostTitle,
+        url: canonical,
+        iconUrl: getWebAppFaviconUrl(canonical),
+        category: "Internet",
+      };
+      void installWebAppDesktopEntry(domicile, isBrowserRuntime, initialApp);
       void fetchWebPageMetadata(canonical).then(({ title }) => {
         if (title) {
-          updateSettings({
-            installedWebApps: [
-              ...settings.installedWebApps.filter(
-                (a) => canonicalizeWebUrl(a.url) !== canonical
-              ),
-              {
-                id: `web:${canonical}`,
-                title,
-                url: canonical,
-                iconUrl: getWebAppFaviconUrl(canonical),
-              },
-            ],
+          void installWebAppDesktopEntry(domicile, isBrowserRuntime, {
+            ...initialApp,
+            title,
           });
         }
         setDescriptionTick((n) => n + 1);
@@ -644,9 +636,11 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
             (w) => (canonicalizeWebUrl(w.url) ?? w.url) === targetCanonical,
           )
         ) {
-          updateSettings({
-            installedWebApps: [...settings.installedWebApps, item.webApp],
-          });
+          void installWebAppDesktopEntry(
+            domicile,
+            isBrowserRuntime,
+            item.webApp,
+          );
         }
         return;
       }
@@ -661,23 +655,25 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
         }));
       }
     },
-    [settings.installedWebApps, updateMeta, updateSettings],
+    [domicile, isBrowserRuntime, settings.installedWebApps, updateMeta],
   );
 
   const commitUninstall = React.useCallback(
     (item: StoreItem) => {
       if (!item.removable) return;
       if (item.kind === "web" && item.webApp) {
-        const targetCanonical =
-          canonicalizeWebUrl(item.webApp.url) ?? item.webApp.url;
-        updateSettings({
-          installedWebApps: settings.installedWebApps.filter(
-            (w) => (canonicalizeWebUrl(w.url) ?? w.url) !== targetCanonical,
-          ),
-          pinnedAppIds: settings.pinnedAppIds.filter(
-            (id) => id !== item.webApp?.id,
-          ),
-        });
+        void removeWebAppDesktopEntry(
+          domicile,
+          isBrowserRuntime,
+          item.webApp,
+        );
+        if (settings.pinnedAppIds.includes(item.webApp.id)) {
+          updateSettings({
+            pinnedAppIds: settings.pinnedAppIds.filter(
+              (id) => id !== item.webApp?.id,
+            ),
+          });
+        }
         return;
       }
       if (item.kind === "app" && item.appDef) {
@@ -693,7 +689,13 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
         }));
       }
     },
-    [settings.installedWebApps, settings.pinnedAppIds, updateMeta, updateSettings],
+    [
+      domicile,
+      isBrowserRuntime,
+      settings.pinnedAppIds,
+      updateMeta,
+      updateSettings,
+    ],
   );
 
   const handleInstall = React.useCallback(

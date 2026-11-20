@@ -1015,16 +1015,24 @@ export function useSystemBackendsValue(
         for (const track of stream.getTracks()) track.stop();
         const dataUrl = canvas.toDataURL("image/png");
         const filename = `screenshot-${new Date().toISOString().replace(/[:.]/g, "-")}.png`;
-        writeVfsTextFile(`${WEB_VFS_HOME}/Desktop/${filename}`, dataUrl);
-        const link = document.createElement("a");
-        link.href = dataUrl;
-        link.download = filename;
-        link.click();
-        pushNotification({
-          appName: "Screenshot",
-          summary: "Screenshot Captured",
-          body: `Saved to Desktop/${filename}`,
-        });
+        try {
+          writeVfsTextFile(`${WEB_VFS_HOME}/Desktop/${filename}`, dataUrl);
+          pushNotification({
+            appName: "Screenshot",
+            summary: "Screenshot Captured",
+            body: `Saved to Desktop/${filename}`,
+          });
+        } catch {
+          const link = document.createElement("a");
+          link.href = dataUrl;
+          link.download = filename;
+          link.click();
+          pushNotification({
+            appName: "Screenshot",
+            summary: "Screenshot Captured",
+            body: `Downloaded ${filename} (Desktop storage full)`,
+          });
+        }
       } catch (err) {
         if ((err as Error)?.name !== "NotAllowedError" && (err as Error)?.name !== "AbortError") {
           pushNotification({
@@ -1098,18 +1106,40 @@ export function useSystemBackendsValue(
           setBrowserCapturingSessions((prev) => prev.filter((c) => c.id !== id));
           if (!entry.discarded && chunks.length > 0) {
             const blob = new Blob(chunks, { type: "video/webm" });
-            const url = URL.createObjectURL(blob);
             const filename = `recording-${new Date().toISOString().replace(/[:.]/g, "-")}.webm`;
-            const link = document.createElement("a");
-            link.href = url;
-            link.download = filename;
-            link.click();
-            setTimeout(() => URL.revokeObjectURL(url), 10000);
-            pushNotification({
-              appName: "Screen Recorder",
-              summary: "Screen Recording Saved",
-              body: `Saved ${filename}`,
-            });
+            const fallbackDownload = () => {
+              const url = URL.createObjectURL(blob);
+              const link = document.createElement("a");
+              link.href = url;
+              link.download = filename;
+              link.click();
+              setTimeout(() => URL.revokeObjectURL(url), 10000);
+              pushNotification({
+                appName: "Screen Recorder",
+                summary: "Screen Recording Saved",
+                body: `Downloaded ${filename} (Desktop storage full)`,
+              });
+            };
+            const reader = new FileReader();
+            reader.onload = () => {
+              const dataUrl = typeof reader.result === "string" ? reader.result : null;
+              if (!dataUrl) {
+                fallbackDownload();
+                return;
+              }
+              try {
+                writeVfsTextFile(`${WEB_VFS_HOME}/Desktop/${filename}`, dataUrl);
+                pushNotification({
+                  appName: "Screen Recorder",
+                  summary: "Screen Recording Saved",
+                  body: `Saved to Desktop/${filename}`,
+                });
+              } catch {
+                fallbackDownload();
+              }
+            };
+            reader.onerror = fallbackDownload;
+            reader.readAsDataURL(blob);
           }
         };
         for (const track of stream.getVideoTracks()) {

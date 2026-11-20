@@ -89,9 +89,17 @@ function useWindowContext() {
 const DRAG_REGION =
   '[data-slot="window-titlebar"], [data-slot="toolbar"], [data-slot="adw-sidebar-header"], [data-window-drag-region]'
 
-// Controls inside a drag region keep working instead of moving the window.
-const NO_DRAG =
-  'button, input, textarea, select, a, [role="button"], [role="tab"], [role="switch"], [role="slider"], [role="menuitem"], [contenteditable="true"], [data-window-no-drag]'
+// Controls inside a drag region that should never start a window drag (text inputs, sliders).
+const STRICT_NO_DRAG =
+  'input, textarea, select, [role="slider"], [contenteditable="true"]'
+
+// Interactive controls inside a drag region that work on click, but still allow
+// dragging the window if the pointer moves past the drag threshold (GNOME behavior).
+const INTERACTIVE_DRAG_CONTROL =
+  'button, a, [role="button"], [role="tab"], [role="switch"], [role="menuitem"], [data-window-no-drag]'
+
+// Controls inside a drag region keep working instead of moving the window on double-click.
+const NO_DRAG = `${STRICT_NO_DRAG}, ${INTERACTIVE_DRAG_CONTROL}`
 
 const reducedMotion = () =>
   typeof window !== "undefined" &&
@@ -658,6 +666,67 @@ function Window({
     setDragging(true)
   }
 
+  const interactiveDragCleanupRef = React.useRef<(() => void) | null>(null)
+
+  React.useEffect(() => {
+    return () => {
+      interactiveDragCleanupRef.current?.()
+      interactiveDragCleanupRef.current = null
+    }
+  }, [])
+
+  function startPendingInteractiveDrag(
+    node: HTMLDivElement,
+    pointerId: number,
+    startX: number,
+    startY: number,
+    isMaximized: boolean
+  ) {
+    interactiveDragCleanupRef.current?.()
+    const threshold = 5
+    const cleanup = () => {
+      window.removeEventListener("pointermove", onMove, true)
+      window.removeEventListener("pointerup", onEnd, true)
+      window.removeEventListener("pointercancel", onEnd, true)
+      if (interactiveDragCleanupRef.current === cleanup) {
+        interactiveDragCleanupRef.current = null
+      }
+    }
+    const suppressNextClick = () => {
+      const blockClick = (ev: MouseEvent) => {
+        ev.preventDefault()
+        ev.stopPropagation()
+        window.removeEventListener("click", blockClick, true)
+      }
+      window.addEventListener("click", blockClick, true)
+      window.setTimeout(() => window.removeEventListener("click", blockClick, true), 400)
+    }
+    const onMove = (ev: PointerEvent) => {
+      if (ev.pointerId !== pointerId) return
+      if (Math.hypot(ev.clientX - startX, ev.clientY - startY) < threshold) return
+      cleanup()
+      window.getSelection()?.removeAllRanges()
+      suppressNextClick()
+      if (isMaximized) {
+        pendingResumeDrag.current = {
+          clientX: ev.clientX,
+          clientY: ev.clientY,
+        }
+        onZoom?.()
+      } else {
+        beginDrag(node, ev.clientX, ev.clientY, pointerId)
+      }
+    }
+    const onEnd = (ev: PointerEvent) => {
+      if (ev.pointerId !== pointerId) return
+      cleanup()
+    }
+    window.addEventListener("pointermove", onMove, true)
+    window.addEventListener("pointerup", onEnd, true)
+    window.addEventListener("pointercancel", onEnd, true)
+    interactiveDragCleanupRef.current = cleanup
+  }
+
   function handlePointerDown(event: React.PointerEvent<HTMLDivElement>) {
     onPointerDown?.(event)
     if (event.defaultPrevented || event.button !== 0) return
@@ -670,8 +739,18 @@ function Window({
       if (
         !region ||
         region.closest('[data-slot="window"]') !== node ||
-        target.closest(NO_DRAG)
+        target.closest(STRICT_NO_DRAG)
       ) {
+        return
+      }
+      if (target.closest(INTERACTIVE_DRAG_CONTROL)) {
+        startPendingInteractiveDrag(
+          node,
+          event.pointerId,
+          event.clientX,
+          event.clientY,
+          true
+        )
         return
       }
       maxDragPending.current = {
@@ -695,8 +774,19 @@ function Window({
     if (
       !region ||
       region.closest('[data-slot="window"]') !== node ||
-      target.closest(NO_DRAG)
+      target.closest(STRICT_NO_DRAG)
     ) {
+      return
+    }
+
+    if (target.closest(INTERACTIVE_DRAG_CONTROL)) {
+      startPendingInteractiveDrag(
+        node,
+        event.pointerId,
+        event.clientX,
+        event.clientY,
+        false
+      )
       return
     }
 
@@ -771,6 +861,7 @@ function Window({
 
   function finishInteraction(event?: React.PointerEvent<HTMLDivElement>) {
     maxDragPending.current = null
+    interactiveDragCleanupRef.current?.()
     detachGlobalInteractionListeners()
     const finishedDrag = drag.current
     const finishedResize = resize.current

@@ -13,11 +13,15 @@ import {
 } from "@/context/DesktopStateContext";
 import {
   assignGridPositions,
+  clientPointToGridCell,
+  computeGridMetrics,
+  coordKey,
+  findClosestFreeCell,
   type GridCoord,
   type GridMetrics,
   type IconGridItem,
   inferFileVisual,
-  moveItemToCell,
+  moveItemsToCells,
   sortDesktopItems,
 } from "@/lib/desktop-icons";
 import { launchDesktopCommand } from "@/lib/gnome-bridge";
@@ -56,7 +60,7 @@ export { IconGrid, type IconGridProps };
  * Reads the user's XDG Desktop folder (`$HOME/Desktop`) and persists grid coordinates.
  */
 export function DesktopIconsApp({
-  bottomInset = 82,
+  bottomInset = 0,
 }: {
   bottomInset?: number;
 }) {
@@ -401,8 +405,19 @@ export function DesktopIconsApp({
     [getAppIconUrl, items]
   );
 
-  const handleMoveItem = React.useCallback(
-    (itemId: string, cell: GridCoord, metrics: GridMetrics) => {
+  const rootRef = React.useRef<HTMLDivElement | null>(null);
+
+  const assignDroppedNamesNearCursor = React.useCallback(
+    (names: readonly string[], clientX: number, clientY: number) => {
+      const rootEl = rootRef.current;
+      if (!rootEl || names.length === 0) return;
+      const rect = rootEl.getBoundingClientRect();
+      const metrics = computeGridMetrics(rect.width, rect.height);
+      const targetCell = clientPointToGridCell(
+        clientX - rect.left,
+        clientY - rect.top,
+        metrics
+      );
       const currentAssigned = assignGridPositions(
         enrichedItems,
         settings.desktopIconPositions,
@@ -410,9 +425,89 @@ export function DesktopIconsApp({
         metrics.rows,
         settings.desktopIconAlign ?? "left"
       );
-      const nextPositions = moveItemToCell(
+      const occupied = new Set<string>();
+      for (const pos of Object.values(currentAssigned)) {
+        if (pos) occupied.add(coordKey(pos));
+      }
+      const nextPositions: Record<string, GridCoord> = {
+        ...settings.desktopIconPositions,
+      };
+      for (const name of names) {
+        const dropId = `${desktopDirPath}/${name}`;
+        const cell = findClosestFreeCell(
+          occupied,
+          targetCell,
+          metrics.cols,
+          metrics.rows
+        );
+        nextPositions[dropId] = cell;
+        occupied.add(coordKey(cell));
+      }
+      updateSettings({ desktopIconPositions: nextPositions });
+    },
+    [
+      desktopDirPath,
+      enrichedItems,
+      settings.desktopIconAlign,
+      settings.desktopIconPositions,
+      updateSettings,
+    ]
+  );
+
+  React.useEffect(() => {
+    const onDesktopDropPosition = (e: Event) => {
+      const detail = (
+        e as CustomEvent<{
+          destPath?: string;
+          names?: string[];
+          clientX?: number;
+          clientY?: number;
+        }>
+      ).detail;
+      if (
+        !detail ||
+        detail.destPath !== desktopDirPath ||
+        !detail.names?.length ||
+        typeof detail.clientX !== "number" ||
+        typeof detail.clientY !== "number"
+      ) {
+        return;
+      }
+      assignDroppedNamesNearCursor(
+        detail.names,
+        detail.clientX,
+        detail.clientY
+      );
+    };
+    window.addEventListener(
+      "residence:desktop-drop-position",
+      onDesktopDropPosition
+    );
+    return () =>
+      window.removeEventListener(
+        "residence:desktop-drop-position",
+        onDesktopDropPosition
+      );
+  }, [assignDroppedNamesNearCursor, desktopDirPath]);
+
+  const handleMoveItems = React.useCallback(
+    (
+      itemIds: string[],
+      primaryId: string,
+      cell: GridCoord,
+      metrics: GridMetrics
+    ) => {
+      const currentAssigned = assignGridPositions(
+        enrichedItems,
+        settings.desktopIconPositions,
+        metrics.cols,
+        metrics.rows,
+        settings.desktopIconAlign ?? "left"
+      );
+      const nextPositions = moveItemsToCells(
         currentAssigned,
-        itemId,
+        itemIds,
+        primaryId,
         cell,
         metrics.cols,
         metrics.rows
@@ -548,6 +643,7 @@ export function DesktopIconsApp({
 
   return (
     <div
+      ref={rootRef}
       data-desktop-icons-root
       data-vfs-drop-path={desktopDirPath}
       style={{ bottom: `${bottomInset}px` }}
@@ -602,6 +698,8 @@ export function DesktopIconsApp({
         if (!isBrowserRuntime || !e.dataTransfer?.files?.length) return;
         e.preventDefault();
         setExternalDropActive(false);
+        const names = Array.from(e.dataTransfer.files).map((f) => f.name);
+        assignDroppedNamesNearCursor(names, e.clientX, e.clientY);
         void importExternalFilesToVfs(desktopDirPath, e.dataTransfer.files);
       }}
     >
@@ -611,7 +709,7 @@ export function DesktopIconsApp({
         align={settings.desktopIconAlign ?? "left"}
         currentDirPath={desktopDirPath}
         positions={settings.desktopIconPositions}
-        onMoveItem={handleMoveItem}
+        onMoveItems={handleMoveItems}
         onDropItems={(dropped, destPath) =>
           void handleDropDesktopItems(dropped, destPath)
         }

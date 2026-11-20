@@ -3,7 +3,6 @@ import { createPortal } from "react-dom";
 import {
   AlertCircleIcon,
   BriefcaseIcon,
-  HeartCrackIcon,
   HeartIcon,
   TagIcon,
 } from "lucide-react";
@@ -38,7 +37,6 @@ import {
   getVfsEntry,
   getVfsImageThumbnailUrl,
   loadVfsEmblemsMap,
-  setVfsEmblem,
   subscribeWebVfs,
   VFS_EMBLEM_META,
   type VfsEmblemId,
@@ -99,6 +97,12 @@ export interface IconGridProps {
   currentDirPath?: string;
   positions?: Readonly<Record<string, GridCoord>>;
   onMoveItem?: (itemId: string, cell: GridCoord, metrics: GridMetrics) => void;
+  onMoveItems?: (
+    itemIds: string[],
+    primaryId: string,
+    cell: GridCoord,
+    metrics: GridMetrics,
+  ) => void;
   onDropItem?: (item: IconGridItem, clientX: number, clientY: number) => void;
   onDropItems?: (items: IconGridItem[], destPath: string) => void;
   onActivateItem: (item: IconGridItem) => void;
@@ -148,6 +152,7 @@ export function IconGrid({
   currentDirPath,
   positions,
   onMoveItem,
+  onMoveItems,
   onDropItem,
   onDropItems,
   onActivateItem,
@@ -347,20 +352,7 @@ export function IconGrid({
         });
       }
 
-      const rect = containerRef.current?.getBoundingClientRect();
-      const nextCell = rect
-        ? clientPointToGridCell(
-            e.clientX - rect.left,
-            e.clientY - rect.top,
-            metrics,
-          )
-        : null;
-      const cellChanged =
-        cur.targetCell?.col !== nextCell?.col ||
-        cur.targetCell?.row !== nextCell?.row;
-      cur.targetCell = nextCell;
-
-      if (!wasActive || cellChanged) {
+      if (!wasActive) {
         setDrag({ ...cur });
       }
     };
@@ -379,6 +371,14 @@ export function IconGrid({
           }),
         );
         suppressClickRef.current = cur.itemId;
+        const rect = containerRef.current?.getBoundingClientRect();
+        const dropCell = rect
+          ? clientPointToGridCell(
+              e.clientX - rect.left,
+              e.clientY - rect.top,
+              metrics,
+            )
+          : cur.targetCell;
         const draggedItems = items.filter((i) =>
           cur.draggedIds.includes(i.id),
         );
@@ -422,16 +422,36 @@ export function IconGrid({
                     .includes("/"),
               );
             if (isSameDir) {
-              if (mode === "spatial" && cur.targetCell && onMoveItem) {
-                onMoveItem(cur.itemId, cur.targetCell, metrics);
+              if (mode === "spatial" && dropCell) {
+                if (onMoveItems) {
+                  onMoveItems(cur.draggedIds, cur.itemId, dropCell, metrics);
+                } else {
+                  onMoveItem?.(cur.itemId, dropCell, metrics);
+                }
               }
-            } else if (onDropItems) {
-              onDropItems(draggedItems, topTarget.destPath);
-            } else if (onDropItem) {
-              onDropItem(draggedItem, e.clientX, e.clientY);
+            } else {
+              window.dispatchEvent(
+                new CustomEvent("residence:desktop-drop-position", {
+                  detail: {
+                    destPath: topTarget.destPath,
+                    names: draggedItems.map((d) => d.name),
+                    clientX: e.clientX,
+                    clientY: e.clientY,
+                  },
+                }),
+              );
+              if (onDropItems) {
+                onDropItems(draggedItems, topTarget.destPath);
+              } else if (onDropItem) {
+                onDropItem(draggedItem, e.clientX, e.clientY);
+              }
             }
-          } else if (!topTarget && mode === "spatial" && cur.targetCell && onMoveItem) {
-            onMoveItem(cur.itemId, cur.targetCell, metrics);
+          } else if (!topTarget && mode === "spatial" && dropCell) {
+            if (onMoveItems) {
+              onMoveItems(cur.draggedIds, cur.itemId, dropCell, metrics);
+            } else {
+              onMoveItem?.(cur.itemId, dropCell, metrics);
+            }
           }
         }
       }
@@ -457,6 +477,7 @@ export function IconGrid({
     onDropItem,
     onDropItems,
     onMoveItem,
+    onMoveItems,
   ]);
 
   React.useEffect(() => {
@@ -719,7 +740,7 @@ export function IconGrid({
                 ? nextSelectedIds
                 : [item.id];
               if (
-                (mode === "spatial" && onMoveItem) ||
+                (mode === "spatial" && (onMoveItem || onMoveItems)) ||
                 onDropItem ||
                 onDropItems
               ) {
@@ -854,26 +875,18 @@ export function IconGrid({
                 );
               })()}
               {item.path && (emblemsMap[item.path]?.length ?? 0) > 0 && (
-                <div className="pointer-events-auto absolute -top-1 -right-1 z-10 flex items-center gap-0.5">
+                <div className="pointer-events-none absolute -top-1 -right-1 z-10 flex flex-col items-center -space-y-1.5">
                   {(emblemsMap[item.path] ?? []).map((emblemId) => {
                     const meta = VFS_EMBLEM_META[emblemId];
                     if (emblemId === "favorite") {
                       return (
-                        <button
+                        <span
                           key={emblemId}
-                          type="button"
-                          aria-label="Remove Favorite Emblem"
-                          title="Remove from Favorites"
-                          onPointerDown={(e) => e.stopPropagation()}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setVfsEmblem(item.path, "favorite", false);
-                          }}
-                          className="group/fav flex size-4 items-center justify-center rounded-full bg-black/55 text-rose-400 shadow-xs backdrop-blur-xs transition-transform hover:scale-110"
+                          aria-label={meta.label}
+                          className="flex size-4 items-center justify-center rounded-full bg-black/65 text-rose-400 shadow-xs ring-1 ring-black/25 backdrop-blur-xs dark:ring-white/20"
                         >
-                          <HeartIcon className="size-2.5 fill-current group-hover/fav:hidden" />
-                          <HeartCrackIcon className="hidden size-2.5 group-hover/fav:block" />
-                        </button>
+                          <HeartIcon className="size-2.5 fill-current" />
+                        </span>
                       );
                     }
                     const EmblemIcon =
@@ -883,23 +896,16 @@ export function IconGrid({
                           ? BriefcaseIcon
                           : TagIcon;
                     return (
-                      <button
+                      <span
                         key={emblemId}
-                        type="button"
-                        aria-label={`Remove ${meta.label} Emblem`}
-                        title={`Remove ${meta.label} Emblem`}
-                        onPointerDown={(e) => e.stopPropagation()}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setVfsEmblem(item.path, emblemId, false);
-                        }}
+                        aria-label={meta.label}
                         className={cn(
-                          "flex size-4 items-center justify-center rounded-full shadow-xs transition-transform hover:scale-110",
+                          "flex size-4 items-center justify-center rounded-full shadow-xs ring-1 ring-black/25 dark:ring-white/20",
                           meta.badgeBgClass,
                         )}
                       >
                         <EmblemIcon className="size-2.5" />
-                      </button>
+                      </span>
                     );
                   })}
                 </div>
@@ -964,18 +970,21 @@ export function IconGrid({
         (() => {
           const draggedItem = items.find((i) => i.id === drag.itemId);
           if (!draggedItem) return null;
-          const dx = drag.currentX - drag.startX;
-          const dy = drag.currentY - drag.startY;
           const dragCount = drag.draggedIds.length;
           return createPortal(
             <div
-              ref={dragGhostRef}
+              ref={(el) => {
+                dragGhostRef.current = el;
+                const latest = dragRef.current;
+                if (el && latest) {
+                  el.style.transform = `translate3d(${latest.currentX - latest.startX}px, ${latest.currentY - latest.startY}px, 0)`;
+                }
+              }}
               style={{
                 left: `${drag.originLeft}px`,
                 top: `${drag.originTop}px`,
                 width: `${effectiveCellWidth}px`,
                 height: `${effectiveCellHeight}px`,
-                transform: `translate3d(${dx}px, ${dy}px, 0)`,
                 willChange: "transform",
                 transition: "none",
                 animation: "none",

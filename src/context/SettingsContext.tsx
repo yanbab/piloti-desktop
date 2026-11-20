@@ -14,6 +14,12 @@ import {
   DEFAULT_LAUNCHER_WEB_APPS,
   type InstalledWebApp,
 } from "@/data/web-apps";
+import { WEB_VFS_CHANGED_EVENT } from "@/lib/web-vfs";
+import {
+  installWebAppDesktopEntry,
+  loadWebAppsFromDesktopEntries,
+  XDG_WEBAPPS_CHANGED_EVENT,
+} from "@/lib/xdg-web-apps";
 import {
   DEFAULT_GNOME_BACKGROUND,
   type BackgroundRenderSpec,
@@ -490,7 +496,8 @@ export function useSettingsValue(options?: {
           JSON.stringify(next.desktopIconPositions)
         );
       }
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      const { installedWebApps: _ignoredWebApps, ...serializable } = next;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(serializable));
     } catch {
       // ignore storage errors
     }
@@ -503,6 +510,51 @@ export function useSettingsValue(options?: {
       return next;
     });
   }, []);
+
+  // Load & sync installed web apps from FreeDesktop .desktop files in ~/.local/share/applications
+  React.useEffect(() => {
+    let cancelled = false;
+
+    const syncFromXdg = async (seedIfEmpty: boolean) => {
+      const fromXdg = await loadWebAppsFromDesktopEntries(
+        domicile,
+        isBrowserRuntime,
+      );
+      if (cancelled) return;
+      if (
+        seedIfEmpty &&
+        fromXdg.length === 0 &&
+        settingsRef.current.installedWebApps.length > 0
+      ) {
+        const toSeed = settingsRef.current.installedWebApps;
+        for (const app of toSeed) {
+          await installWebAppDesktopEntry(domicile, isBrowserRuntime, app);
+        }
+        return;
+      }
+      setSettings((prev) => ({
+        ...prev,
+        installedWebApps: fromXdg,
+      }));
+    };
+
+    void syncFromXdg(true);
+
+    const onXdgChanged = () => {
+      void syncFromXdg(false);
+    };
+    window.addEventListener(XDG_WEBAPPS_CHANGED_EVENT, onXdgChanged);
+    if (isBrowserRuntime) {
+      window.addEventListener(WEB_VFS_CHANGED_EVENT, onXdgChanged);
+    }
+    return () => {
+      cancelled = true;
+      window.removeEventListener(XDG_WEBAPPS_CHANGED_EVENT, onXdgChanged);
+      if (isBrowserRuntime) {
+        window.removeEventListener(WEB_VFS_CHANGED_EVENT, onXdgChanged);
+      }
+    };
+  }, [domicile, isBrowserRuntime]);
 
   const updateSettings = React.useCallback(
     (patch: Partial<DesktopSettings>) => {
