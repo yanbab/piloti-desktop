@@ -548,6 +548,7 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
           {windowId && bridge.isCsd && <WindowControls side="left" />}
           {windowId && (
             <WindowMenuButton
+              side="left"
               windowId={windowId}
               appId="text-editor"
               iconName="file-text"
@@ -659,6 +660,14 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
               </DropdownMenuCheckboxItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          {windowId && (
+            <WindowMenuButton
+              side="right"
+              windowId={windowId}
+              appId="text-editor"
+              iconName="file-text"
+            />
+          )}
           {windowId && bridge.isCsd && <WindowControls side="right" />}
         </div>
       </WindowTitlebar>

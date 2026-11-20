@@ -214,6 +214,20 @@ export function AppearancePane() {
 
           <GroupedFormRow>
             <GroupedFormRowLabel>
+              <GroupedFormRowTitle>{_("Window Menu")}</GroupedFormRowTitle>
+            </GroupedFormRowLabel>
+            <GroupedFormRowControl>
+              <Switch
+                checked={settings.showWindowMenu}
+                onCheckedChange={(checked) =>
+                  updateSettings({ showWindowMenu: Boolean(checked) })
+                }
+              />
+            </GroupedFormRowControl>
+          </GroupedFormRow>
+
+          <GroupedFormRow>
+            <GroupedFormRowLabel>
               <GroupedFormRowTitle>{_("Button Placement")}</GroupedFormRowTitle>
             </GroupedFormRowLabel>
             <GroupedFormRowControl>

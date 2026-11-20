@@ -86,6 +86,7 @@ export interface DesktopSettings {
   highContrast: boolean;
   windowDecorationMode: WindowDecorationMode;
   windowButtonLayout: string;
+  showWindowMenu: boolean;
   iconTheme: string;
   syncGnomeSettings: boolean;
   preferGnomeControlCenter: boolean;
@@ -164,6 +165,7 @@ const DEFAULT_SETTINGS: DesktopSettings = {
   moreTransparency: true,
   windowDecorationMode: "auto",
   windowButtonLayout: ":close",
+  showWindowMenu: true,
   iconTheme: "Adwaita",
   syncGnomeSettings: true,
   preferGnomeControlCenter: false,

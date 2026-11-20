@@ -1,5 +1,5 @@
 import * as React from "react";
-import { ChevronDownIcon, XIcon } from "lucide-react";
+import { ChevronDownIcon, PanelLeftIcon, XIcon } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -52,6 +52,29 @@ export interface CalculatorAppProps {
   onCloseWindow?: () => void;
 }
 
+const CALCULATOR_STATE_KEY = "piloti.calculator.state.v1";
+
+interface SavedCalculatorState {
+  display?: string;
+  storedValue?: number | null;
+  pendingOp?: Operator | null;
+  waitingForOperand?: boolean;
+  expressionLine?: string;
+  scientific?: boolean;
+}
+
+function loadSavedCalculatorState(): SavedCalculatorState {
+  if (typeof localStorage === "undefined") return {};
+  try {
+    const raw = localStorage.getItem(CALCULATOR_STATE_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw) as SavedCalculatorState;
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
 export const CalculatorApp: React.FC<CalculatorAppProps> = ({
   windowId: propWindowId = "",
   isCsd: propIsCsd = true,
@@ -60,15 +83,71 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
   const bridge = useIsolatedAppBridge(propWindowId, propIsCsd);
   const isCsd = bridge.isCsd ?? propIsCsd;
 
-  const [display, setDisplay] = React.useState("0");
-  const [storedValue, setStoredValue] = React.useState<number | null>(null);
-  const [pendingOp, setPendingOp] = React.useState<Operator | null>(null);
-  const [waitingForOperand, setWaitingForOperand] = React.useState(false);
-  const [expressionLine, setExpressionLine] = React.useState("");
-  const [scientific, setScientific] = React.useState(() =>
-    typeof window !== "undefined" && window.location.hash === "#scientific",
+  const initialStateRef = React.useRef<SavedCalculatorState | null>(null);
+  if (initialStateRef.current === null) {
+    initialStateRef.current = loadSavedCalculatorState();
+  }
+  const initialSaved = initialStateRef.current;
+
+  const [display, setDisplay] = React.useState(
+    typeof initialSaved.display === "string" ? initialSaved.display : "0"
   );
+  const [storedValue, setStoredValue] = React.useState<number | null>(
+    typeof initialSaved.storedValue === "number" ? initialSaved.storedValue : null
+  );
+  const [pendingOp, setPendingOp] = React.useState<Operator | null>(
+    initialSaved.pendingOp === "+" ||
+      initialSaved.pendingOp === "-" ||
+      initialSaved.pendingOp === "*" ||
+      initialSaved.pendingOp === "/"
+      ? initialSaved.pendingOp
+      : null
+  );
+  const [waitingForOperand, setWaitingForOperand] = React.useState(
+    Boolean(initialSaved.waitingForOperand)
+  );
+  const [expressionLine, setExpressionLine] = React.useState(
+    typeof initialSaved.expressionLine === "string"
+      ? initialSaved.expressionLine
+      : ""
+  );
+  const [scientific, setScientific] = React.useState(() => {
+    if (typeof window !== "undefined" && window.location.hash === "#scientific") {
+      return true;
+    }
+    if (typeof window !== "undefined" && window.location.hash === "#basic") {
+      return false;
+    }
+    return Boolean(initialSaved.scientific);
+  });
   const [copied, setCopied] = React.useState(false);
+
+  React.useEffect(() => {
+    if (typeof localStorage === "undefined") return;
+    try {
+      localStorage.setItem(
+        CALCULATOR_STATE_KEY,
+        JSON.stringify({
+          display,
+          storedValue,
+          pendingOp,
+          waitingForOperand,
+          expressionLine,
+          scientific,
+        } satisfies SavedCalculatorState)
+      );
+    } catch {
+      // ignore storage errors
+    }
+  }, [display, expressionLine, pendingOp, scientific, storedValue, waitingForOperand]);
+
+  React.useEffect(() => {
+    if (initialSaved.scientific) {
+      bridge.resizeWindow(316, 292);
+    }
+    // only resize on mount if restored in scientific mode
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const setMode = React.useCallback(
     (nextScientific: boolean) => {
@@ -79,7 +158,7 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
           window.history.replaceState(null, "", nextHash);
         }
       }
-      bridge.resizeWindow(nextScientific ? 388 : 260, 380);
+      bridge.resizeWindow(nextScientific ? 316 : 196, 292);
     },
     [bridge],
   );
@@ -266,126 +345,127 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
     display !== "0" || storedValue !== null || pendingOp !== null ? "C" : "AC";
 
   return (
-    <div
-      style={{ "--adw-accent": "#ff9f0a" } as React.CSSProperties}
-      className="adw-material-sidebar flex h-full w-full flex-col overflow-hidden text-adw-label select-none"
-    >
-      {/* Top Drag Header + Mode Toggle + Window Close on Right */}
+    <div className="flex h-full w-full flex-col overflow-hidden bg-adw-window text-adw-label select-none">
+      {/* Combined Vibrant Headerbar + Result Display */}
       <div
         data-window-drag-region={isCsd ? "" : undefined}
-        className="flex h-8 shrink-0 items-center justify-end gap-1.5 px-2 pt-0.5"
+        className="adw-material-sidebar flex shrink-0 flex-col justify-between border-b border-black/25 px-2.5 pt-1.5 pb-2 dark:border-black/50"
       >
-        <button
-          type="button"
-          data-window-no-drag
-          onClick={() => setMode(!scientific)}
-          className={cn(
-            "flex h-5 items-center rounded-full border px-2 text-[10.5px] font-semibold transition-colors",
-            scientific
-              ? "border-[#ff9f0a] bg-[#ff9f0a] text-white"
-              : "border-adw-border bg-adw-fill-secondary text-adw-label hover:bg-adw-fill-primary",
-          )}
-        >
-          {scientific ? _("Scientific") : _("Basic")}
-        </button>
-        {isCsd && (
+        <div className="flex h-6 items-center justify-between">
           <button
             type="button"
             data-window-no-drag
-            aria-label={_("Close window")}
-            onClick={handleClose}
-            className="flex size-5 items-center justify-center rounded-full bg-adw-fill-secondary text-adw-label-secondary transition-colors hover:bg-adw-fill-primary hover:text-adw-label"
+            title={scientific ? _("Basic Mode") : _("Scientific Mode")}
+            aria-label={scientific ? _("Basic Mode") : _("Scientific Mode")}
+            onClick={() => setMode(!scientific)}
+            className={cn(
+              "flex size-6 items-center justify-center rounded-md transition-colors",
+              scientific
+                ? "bg-black/12 text-adw-label dark:bg-white/16"
+                : "text-adw-label-secondary hover:bg-black/8 hover:text-adw-label dark:hover:bg-white/12",
+            )}
           >
-            <XIcon className="size-3" strokeWidth={2.5} />
+            <PanelLeftIcon className="size-3.5" />
           </button>
-        )}
-      </div>
-
-      {/* Display Screen */}
-      <div
-        onClick={() => {
-          void navigator.clipboard?.writeText(display);
-          setCopied(true);
-          window.setTimeout(() => setCopied(false), 900);
-        }}
-        title={_("Click to copy")}
-        className="mx-2 mb-1.5 flex shrink-0 cursor-default flex-col items-end justify-end rounded-lg border border-adw-border/60 bg-adw-content/80 px-2.5 py-1"
-      >
-        <div className="flex h-3 w-full items-center justify-between text-[10px] text-adw-dim tabular-nums">
-          <span>{copied ? _("Copied") : ""}</span>
-          <span className="truncate">{expressionLine}</span>
-        </div>
-        <div
-          className={cn(
-            "w-full truncate text-right font-light tracking-tight tabular-nums",
-            formatted.length > 11
-              ? "text-[16px]"
-              : formatted.length > 8
-                ? "text-[20px]"
-                : "text-[24px] leading-[1.1]",
+          {isCsd && (
+            <button
+              type="button"
+              data-window-no-drag
+              aria-label={_("Close window")}
+              onClick={handleClose}
+              className="flex size-5 items-center justify-center rounded-full bg-black/10 text-adw-label-secondary transition-colors hover:bg-black/18 hover:text-adw-label dark:bg-white/12 dark:hover:bg-white/22"
+            >
+              <XIcon className="size-3" strokeWidth={2.5} />
+            </button>
           )}
+        </div>
+
+        <div
+          data-window-no-drag
+          onClick={() => {
+            void navigator.clipboard?.writeText(display);
+            setCopied(true);
+            window.setTimeout(() => setCopied(false), 900);
+          }}
+          title={_("Click to copy")}
+          className="mt-1 flex cursor-default flex-col items-end justify-end"
         >
-          {formatted}
+          <div className="flex h-3.5 w-full items-center justify-between text-[10px] text-adw-dim tabular-nums">
+            <span>{copied ? _("Copied") : ""}</span>
+            <span className="truncate">{expressionLine}</span>
+          </div>
+          <div
+            className={cn(
+              "w-full truncate text-right font-extralight tracking-tight tabular-nums",
+              formatted.length > 11
+                ? "text-[20px] leading-[1.15]"
+                : formatted.length > 8
+                  ? "text-[26px] leading-[1.1]"
+                  : "text-[34px] leading-[1.05]",
+            )}
+          >
+            {formatted}
+          </div>
         </div>
       </div>
 
       {/* Keypad */}
-      <div className="flex min-h-0 flex-1 gap-1 p-2 pt-0 [&_button]:font-bold">
+      <div className="flex min-h-0 flex-1 gap-[1px] bg-black/25 dark:bg-black/45">
         {scientific && (
-          <div className="grid w-24 shrink-0 grid-cols-2 grid-rows-5 gap-1">
+          <div className="grid w-[98px] shrink-0 grid-cols-2 grid-rows-5 gap-[1px]">
             <button
               type="button"
               onClick={() => applyUnary("sq", (x) => x * x)}
-              className="rounded-md bg-adw-fill-tertiary text-[11.5px] font-medium text-adw-label outline-none focus:outline-none active:bg-adw-fill-primary"
+              className="bg-black/14 text-[11.5px] font-medium text-adw-label outline-none hover:bg-black/20 focus:outline-none active:bg-black/26 dark:bg-white/12 dark:hover:bg-white/18 dark:active:bg-white/24"
             >
               x²
             </button>
             <button
               type="button"
               onClick={() => applyUnary("sqrt", (x) => Math.sqrt(x))}
-              className="rounded-md bg-adw-fill-tertiary text-[11.5px] font-medium text-adw-label outline-none focus:outline-none active:bg-adw-fill-primary"
+              className="bg-black/14 text-[11.5px] font-medium text-adw-label outline-none hover:bg-black/20 focus:outline-none active:bg-black/26 dark:bg-white/12 dark:hover:bg-white/18 dark:active:bg-white/24"
             >
               √x
             </button>
             <button
               type="button"
               onClick={() => applyUnary("sin", (x) => Math.sin(x))}
-              className="rounded-md bg-adw-fill-tertiary text-[11.5px] font-medium text-adw-label outline-none focus:outline-none active:bg-adw-fill-primary"
+              className="bg-black/14 text-[11.5px] font-medium text-adw-label outline-none hover:bg-black/20 focus:outline-none active:bg-black/26 dark:bg-white/12 dark:hover:bg-white/18 dark:active:bg-white/24"
             >
               sin
             </button>
             <button
               type="button"
               onClick={() => applyUnary("cos", (x) => Math.cos(x))}
-              className="rounded-md bg-adw-fill-tertiary text-[11.5px] font-medium text-adw-label outline-none focus:outline-none active:bg-adw-fill-primary"
+              className="bg-black/14 text-[11.5px] font-medium text-adw-label outline-none hover:bg-black/20 focus:outline-none active:bg-black/26 dark:bg-white/12 dark:hover:bg-white/18 dark:active:bg-white/24"
             >
               cos
             </button>
             <button
               type="button"
               onClick={() => applyUnary("tan", (x) => Math.tan(x))}
-              className="rounded-md bg-adw-fill-tertiary text-[11.5px] font-medium text-adw-label outline-none focus:outline-none active:bg-adw-fill-primary"
+              className="bg-black/14 text-[11.5px] font-medium text-adw-label outline-none hover:bg-black/20 focus:outline-none active:bg-black/26 dark:bg-white/12 dark:hover:bg-white/18 dark:active:bg-white/24"
             >
               tan
             </button>
             <button
               type="button"
               onClick={() => applyUnary("ln", (x) => Math.log(x))}
-              className="rounded-md bg-adw-fill-tertiary text-[11.5px] font-medium text-adw-label outline-none focus:outline-none active:bg-adw-fill-primary"
+              className="bg-black/14 text-[11.5px] font-medium text-adw-label outline-none hover:bg-black/20 focus:outline-none active:bg-black/26 dark:bg-white/12 dark:hover:bg-white/18 dark:active:bg-white/24"
             >
               ln
             </button>
             <button
               type="button"
               onClick={() => applyUnary("log", (x) => Math.log10(x))}
-              className="rounded-md bg-adw-fill-tertiary text-[11.5px] font-medium text-adw-label outline-none focus:outline-none active:bg-adw-fill-primary"
+              className="bg-black/14 text-[11.5px] font-medium text-adw-label outline-none hover:bg-black/20 focus:outline-none active:bg-black/26 dark:bg-white/12 dark:hover:bg-white/18 dark:active:bg-white/24"
             >
               log
             </button>
             <button
               type="button"
               onClick={() => applyUnary("inv", (x) => 1 / x)}
-              className="rounded-md bg-adw-fill-tertiary text-[11.5px] font-medium text-adw-label outline-none focus:outline-none active:bg-adw-fill-primary"
+              className="bg-black/14 text-[11.5px] font-medium text-adw-label outline-none hover:bg-black/20 focus:outline-none active:bg-black/26 dark:bg-white/12 dark:hover:bg-white/18 dark:active:bg-white/24"
             >
               1/x
             </button>
@@ -395,7 +475,7 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
                 setDisplay(Number(Math.PI.toPrecision(12)).toString());
                 setWaitingForOperand(false);
               }}
-              className="rounded-md bg-adw-fill-tertiary text-[11.5px] font-medium text-adw-label outline-none focus:outline-none active:bg-adw-fill-primary"
+              className="bg-black/14 text-[11.5px] font-medium text-adw-label outline-none hover:bg-black/20 focus:outline-none active:bg-black/26 dark:bg-white/12 dark:hover:bg-white/18 dark:active:bg-white/24"
             >
               π
             </button>
@@ -405,40 +485,40 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
                 setDisplay(Number(Math.E.toPrecision(12)).toString());
                 setWaitingForOperand(false);
               }}
-              className="rounded-md bg-adw-fill-tertiary text-[11.5px] font-medium text-adw-label outline-none focus:outline-none active:bg-adw-fill-primary"
+              className="bg-black/14 text-[11.5px] font-medium text-adw-label outline-none hover:bg-black/20 focus:outline-none active:bg-black/26 dark:bg-white/12 dark:hover:bg-white/18 dark:active:bg-white/24"
             >
               e
             </button>
           </div>
         )}
 
-        <div className="grid flex-1 grid-cols-4 grid-rows-5 gap-1">
+        <div className="grid flex-1 grid-cols-4 grid-rows-5 gap-[1px]">
           {/* Row 1 */}
           <button
             type="button"
             onClick={clearAll}
-            className="rounded-md bg-adw-fill-secondary text-[13px] font-medium text-adw-label outline-none focus:outline-none active:bg-adw-fill-primary"
+            className="bg-black/14 text-[13px] font-medium text-adw-label outline-none hover:bg-black/20 focus:outline-none active:bg-black/26 dark:bg-white/12 dark:hover:bg-white/18 dark:active:bg-white/24"
           >
             {clearLabel}
           </button>
           <button
             type="button"
             onClick={toggleSign}
-            className="rounded-md bg-adw-fill-secondary text-[13px] font-medium text-adw-label outline-none focus:outline-none active:bg-adw-fill-primary"
+            className="bg-black/14 text-[13px] font-medium text-adw-label outline-none hover:bg-black/20 focus:outline-none active:bg-black/26 dark:bg-white/12 dark:hover:bg-white/18 dark:active:bg-white/24"
           >
             +/−
           </button>
           <button
             type="button"
             onClick={inputPercent}
-            className="rounded-md bg-adw-fill-secondary text-[13px] font-medium text-adw-label outline-none focus:outline-none active:bg-adw-fill-primary"
+            className="bg-black/14 text-[13px] font-medium text-adw-label outline-none hover:bg-black/20 focus:outline-none active:bg-black/26 dark:bg-white/12 dark:hover:bg-white/18 dark:active:bg-white/24"
           >
             %
           </button>
           <button
             type="button"
             onClick={() => performOperation("/")}
-            className="rounded-md bg-[#ff9f0a] text-[16px] font-medium text-white outline-none focus:outline-none active:brightness-90"
+            className="bg-adw-accent text-[16px] font-medium text-white outline-none hover:brightness-110 focus:outline-none active:brightness-90"
           >
             ÷
           </button>
@@ -449,7 +529,7 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
               key={d}
               type="button"
               onClick={() => inputDigit(d)}
-              className="rounded-md bg-adw-card text-[15px] font-medium text-adw-label outline-none focus:outline-none active:bg-adw-fill-primary"
+              className="bg-black/7 text-[15px] font-medium text-adw-label outline-none hover:bg-black/13 focus:outline-none active:bg-black/20 dark:bg-white/24 dark:hover:bg-white/30 dark:active:bg-white/36"
             >
               {d}
             </button>
@@ -457,7 +537,7 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
           <button
             type="button"
             onClick={() => performOperation("*")}
-            className="rounded-md bg-[#ff9f0a] text-[16px] font-medium text-white outline-none focus:outline-none active:brightness-90"
+            className="bg-adw-accent text-[16px] font-medium text-white outline-none hover:brightness-110 focus:outline-none active:brightness-90"
           >
             ×
           </button>
@@ -468,7 +548,7 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
               key={d}
               type="button"
               onClick={() => inputDigit(d)}
-              className="rounded-md bg-adw-card text-[15px] font-medium text-adw-label outline-none focus:outline-none active:bg-adw-fill-primary"
+              className="bg-black/7 text-[15px] font-medium text-adw-label outline-none hover:bg-black/13 focus:outline-none active:bg-black/20 dark:bg-white/24 dark:hover:bg-white/30 dark:active:bg-white/36"
             >
               {d}
             </button>
@@ -476,7 +556,7 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
           <button
             type="button"
             onClick={() => performOperation("-")}
-            className="rounded-md bg-[#ff9f0a] text-[16px] font-medium text-white outline-none focus:outline-none active:brightness-90"
+            className="bg-adw-accent text-[16px] font-medium text-white outline-none hover:brightness-110 focus:outline-none active:brightness-90"
           >
             −
           </button>
@@ -487,7 +567,7 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
               key={d}
               type="button"
               onClick={() => inputDigit(d)}
-              className="rounded-md bg-adw-card text-[15px] font-medium text-adw-label outline-none focus:outline-none active:bg-adw-fill-primary"
+              className="bg-black/7 text-[15px] font-medium text-adw-label outline-none hover:bg-black/13 focus:outline-none active:bg-black/20 dark:bg-white/24 dark:hover:bg-white/30 dark:active:bg-white/36"
             >
               {d}
             </button>
@@ -495,7 +575,7 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
           <button
             type="button"
             onClick={() => performOperation("+")}
-            className="rounded-md bg-[#ff9f0a] text-[16px] font-medium text-white outline-none focus:outline-none active:brightness-90"
+            className="bg-adw-accent text-[16px] font-medium text-white outline-none hover:brightness-110 focus:outline-none active:brightness-90"
           >
             +
           </button>
@@ -504,21 +584,21 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
           <button
             type="button"
             onClick={() => inputDigit("0")}
-            className="col-span-2 flex items-center rounded-md bg-adw-card pl-4 text-left text-[15px] font-medium text-adw-label outline-none focus:outline-none active:bg-adw-fill-primary"
+            className="col-span-2 flex items-center justify-center bg-black/7 text-[15px] font-medium text-adw-label outline-none hover:bg-black/13 focus:outline-none active:bg-black/20 dark:bg-white/24 dark:hover:bg-white/30 dark:active:bg-white/36"
           >
             0
           </button>
           <button
             type="button"
             onClick={inputDecimal}
-            className="rounded-md bg-adw-card text-[15px] font-medium text-adw-label outline-none focus:outline-none active:bg-adw-fill-primary"
+            className="bg-black/7 text-[15px] font-medium text-adw-label outline-none hover:bg-black/13 focus:outline-none active:bg-black/20 dark:bg-white/24 dark:hover:bg-white/30 dark:active:bg-white/36"
           >
             .
           </button>
           <button
             type="button"
             onClick={performEquals}
-            className="rounded-md bg-[#ff9f0a] text-[16px] font-medium text-white outline-none focus:outline-none active:brightness-90"
+            className="bg-adw-accent text-[16px] font-medium text-white outline-none hover:brightness-110 focus:outline-none active:brightness-90"
           >
             =
           </button>

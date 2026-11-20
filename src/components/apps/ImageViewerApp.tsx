@@ -322,6 +322,7 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
             {windowId && bridge.isCsd && <WindowControls side="left" />}
             {windowId && (
               <WindowMenuButton
+                side="left"
                 windowId={windowId}
                 appId="image-viewer"
                 iconName="sparkles"
@@ -367,6 +368,14 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
             </span>
           )}
           <div className="flex shrink-0 items-center gap-1" data-window-no-drag>
+            {windowId && (
+              <WindowMenuButton
+                side="right"
+                windowId={windowId}
+                appId="image-viewer"
+                iconName="sparkles"
+              />
+            )}
             {windowId && bridge.isCsd && <WindowControls side="right" />}
           </div>
         </div>

@@ -562,6 +562,7 @@ function WebViewSurface({
             />
           )}
           <WindowMenuButton
+            side="left"
             windowId={win.id}
             appId={win.appId}
             iconUrl={win.iconUrl}
@@ -1551,12 +1552,13 @@ export function WindowManager() {
                 <WindowTitlebar className="justify-between">
                   <div className="flex shrink-0 items-center gap-1.5" data-window-no-drag>
                     <WindowControls side="left" />
-                    <WindowMenuButton windowId={win.id} />
+                    <WindowMenuButton side="left" windowId={win.id} />
                   </div>
                   <WindowTitle className="flex items-center justify-center gap-1.5">
                     <span className="truncate">{win.title}</span>
                   </WindowTitle>
-                  <div className="flex shrink-0 items-center" data-window-no-drag>
+                  <div className="flex shrink-0 items-center gap-1.5" data-window-no-drag>
+                    <WindowMenuButton side="right" windowId={win.id} />
                     <WindowControls side="right" />
                   </div>
                 </WindowTitlebar>

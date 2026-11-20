@@ -158,6 +158,7 @@ export function AdwSplitView({
             <div className="flex items-center gap-1.5" data-window-no-drag>
               {windowId && <WindowControls side="left" />}
               <WindowMenuButton
+                side="left"
                 windowId={windowId}
                 appId={appId}
                 iconName={iconName}
@@ -168,7 +169,14 @@ export function AdwSplitView({
                 {title}
               </span>
             )}
-            <div className="w-7" />
+            <div className="flex items-center justify-end" data-window-no-drag>
+              <WindowMenuButton
+                side="right"
+                windowId={windowId}
+                appId={appId}
+                iconName={iconName}
+              />
+            </div>
           </WindowTitlebar>
         )}
 

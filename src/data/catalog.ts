@@ -413,8 +413,8 @@ export const APP_CATALOG: AppDefinition[] = [
     gradient: "from-zinc-700 via-zinc-800 to-orange-500",
     pinnedByDefault: true,
     builtinComponent: "calculator",
-    defaultSize: { width: 224, height: 320 },
-    minSize: { width: 210, height: 300 },
+    defaultSize: { width: 196, height: 292 },
+    minSize: { width: 184, height: 276 },
     menus: [],
   },
   {

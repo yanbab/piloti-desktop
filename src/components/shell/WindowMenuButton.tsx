@@ -7,14 +7,21 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useWindowManager } from "@/context/DesktopStateContext";
+import { useSettings, useWindowManager } from "@/context/DesktopStateContext";
 import { _ } from "@/lib/i18n";
+
+export function isWindowControlsLeft(layout?: string): boolean {
+  const raw = (layout ?? ":close").trim();
+  return raw.indexOf(":") > 0 && !raw.startsWith(":");
+}
 
 export function WindowMenuButton({
   windowId,
+  side,
   extraItems,
 }: {
   windowId?: string;
+  side?: "left" | "right";
   appId?: string;
   iconUrl?: string;
   iconName?: string;
@@ -22,6 +29,7 @@ export function WindowMenuButton({
   isWebApp?: boolean;
   extraItems?: React.ReactNode;
 }) {
+  const { settings } = useSettings();
   const {
     windows,
     minimizeWindow,
@@ -32,6 +40,15 @@ export function WindowMenuButton({
 
   const win = windowId ? windows.find((w) => w.id === windowId) : undefined;
   const [open, setOpen] = React.useState(false);
+
+  if (!settings.showWindowMenu) {
+    return null;
+  }
+  if (side) {
+    const controlsLeft = isWindowControlsLeft(settings.windowButtonLayout);
+    if (side === "left" && controlsLeft) return null;
+    if (side === "right" && !controlsLeft) return null;
+  }
 
   return (
     <DropdownMenu

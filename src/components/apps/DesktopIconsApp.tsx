@@ -729,6 +729,9 @@ export function DesktopIconsApp({
         items={enrichedItems}
         mode="spatial"
         align={settings.desktopIconAlign ?? "left"}
+        cellWidth={120}
+        cellHeight={126}
+        iconSize={64}
         currentDirPath={desktopDirPath}
         positions={settings.desktopIconPositions}
         onMoveItems={handleMoveItems}

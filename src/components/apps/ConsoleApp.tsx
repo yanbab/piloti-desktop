@@ -1515,6 +1515,7 @@ export function ConsoleApp({
         <div className="flex w-16 items-center gap-1.5" data-window-no-drag>
           {isCsd && windowId && <WindowControls side="left" />}
           <WindowMenuButton
+            side="left"
             windowId={windowId}
             appId="console"
             iconName="activity"
@@ -1552,13 +1553,15 @@ export function ConsoleApp({
         </div>
 
         {/* CSD Window Controls */}
-        {isCsd && windowId ? (
-          <div className="flex w-16 items-center justify-end" data-window-no-drag>
-            <WindowControls side="right" />
-          </div>
-        ) : (
-          <div className="w-16" />
-        )}
+        <div className="flex w-16 items-center justify-end gap-1.5" data-window-no-drag>
+          <WindowMenuButton
+            side="right"
+            windowId={windowId}
+            appId="console"
+            iconName="activity"
+          />
+          {isCsd && windowId && <WindowControls side="right" />}
+        </div>
       </WindowTitlebar>
 
       {/* Active Module */}
