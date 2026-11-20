@@ -20,7 +20,7 @@ import {
   lineNumbers,
 } from "@codemirror/view";
 import { tags } from "@lezer/highlight";
-import { SlidersHorizontalIcon, XIcon } from "lucide-react";
+import { EyeIcon, SlidersHorizontalIcon, XIcon } from "lucide-react";
 import { ObjectView, themeGitHubLight, themeOneDark } from "react-obj-view";
 import "react-obj-view/dist/react-obj-view.css";
 import {
@@ -32,7 +32,7 @@ import {
 import { publishWindowMenuState, useIsolatedAppBridge } from "@/lib/app-bridge";
 import { _ } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
-import { normalizeVfsPath } from "@/lib/web-vfs";
+import { normalizeVfsPath, renameVfsEntry } from "@/lib/web-vfs";
 
 interface TextEditorAppProps {
   initialPath?: string;
@@ -225,12 +225,56 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
     col: 1,
   });
 
-  // Editor preferences
-  const [showLineNumbers, setShowLineNumbers] = React.useState(true);
+  // Editor preferences (only syntax highlighting enabled by default)
+  const [showLineNumbers, setShowLineNumbers] = React.useState(false);
   const [enableHighlight, setEnableHighlight] = React.useState(true);
-  const [wordWrap, setWordWrap] = React.useState(true);
-  const [highlightLine, setHighlightLine] = React.useState(true);
-  const [showCursorPos, setShowCursorPos] = React.useState(true);
+  const [wordWrap, setWordWrap] = React.useState(false);
+  const [highlightLine, setHighlightLine] = React.useState(false);
+  const [showCursorPos, setShowCursorPos] = React.useState(false);
+  const [editingTitle, setEditingTitle] = React.useState(false);
+  const [draftTitle, setDraftTitle] = React.useState("");
+
+  const isPreviewable = React.useMemo(
+    () =>
+      Boolean(
+        filePath &&
+          (/\.(md|markdown|json)$/i.test(filePath)),
+      ),
+    [filePath],
+  );
+
+  React.useEffect(() => {
+    if (!isPreviewable && previewMarkdown) {
+      setPreviewMarkdown(false);
+    }
+  }, [isPreviewable, previewMarkdown]);
+
+  React.useEffect(() => {
+    const onVfsRenamed = (e: Event) => {
+      const detail = (
+        e as CustomEvent<{ oldPath?: string; newPath?: string }>
+      ).detail;
+      if (!detail?.oldPath || !detail?.newPath || !filePath) return;
+      if (normalizeVfsPath(filePath) === normalizeVfsPath(detail.oldPath)) {
+        setFilePath(detail.newPath);
+        bridge.setTitle(getBaseName(detail.newPath));
+      }
+    };
+    window.addEventListener("piloti:vfs-renamed", onVfsRenamed);
+    return () => window.removeEventListener("piloti:vfs-renamed", onVfsRenamed);
+  }, [bridge, filePath]);
+
+  const commitTitleRename = React.useCallback(() => {
+    setEditingTitle(false);
+    if (!filePath) return;
+    const nextName = draftTitle.trim().replace(/[/\\]/g, "");
+    if (!nextName || nextName === getBaseName(filePath)) return;
+    const renamed = renameVfsEntry(filePath, nextName);
+    if (renamed) {
+      setFilePath(renamed.path);
+      bridge.setTitle(renamed.name);
+    }
+  }, [bridge, draftTitle, filePath]);
 
   React.useEffect(() => {
     if (!windowId) return;
@@ -450,10 +494,46 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
         )}
       >
         <div className="w-6 shrink-0" />
-        <div className="pointer-events-none flex min-w-0 items-center gap-1.5 px-2">
-          <span className="truncate text-adw-body font-semibold text-adw-label">
-            {filePath ? getBaseName(filePath) : _("Untitled")}
-          </span>
+        <div className="flex min-w-0 items-center gap-1.5 px-2" data-window-no-drag>
+          {editingTitle && filePath ? (
+            <input
+              type="text"
+              autoFocus
+              value={draftTitle}
+              onChange={(e) => setDraftTitle(e.target.value)}
+              onBlur={commitTitleRename}
+              onKeyDown={(e) => {
+                e.stopPropagation();
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  commitTitleRename();
+                } else if (e.key === "Escape") {
+                  e.preventDefault();
+                  setEditingTitle(false);
+                }
+              }}
+              style={{ width: `${Math.max(8, draftTitle.length + 2)}ch` }}
+              className="h-6 max-w-48 rounded-md border border-adw-accent/70 bg-black/8 px-2 text-center text-adw-body font-semibold text-adw-label outline-none dark:bg-white/12"
+            />
+          ) : (
+            <button
+              type="button"
+              disabled={!filePath}
+              title={filePath ? _("Click to rename file") : undefined}
+              onClick={() => {
+                if (!filePath) return;
+                setDraftTitle(getBaseName(filePath));
+                setEditingTitle(true);
+              }}
+              className={cn(
+                "truncate rounded-md px-2 py-0.5 text-adw-body font-semibold text-adw-label transition-colors",
+                filePath &&
+                  "hover:bg-black/8 dark:hover:bg-white/10",
+              )}
+            >
+              {filePath ? getBaseName(filePath) : _("Untitled")}
+            </button>
+          )}
           {savedFlash && (
             <span className="shrink-0 rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-medium text-emerald-500">
               {_("Saved")}
@@ -461,24 +541,31 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
           )}
         </div>
         <div className="flex items-center gap-1" data-window-no-drag>
-          {(isMarkdownFile || /\.json$/i.test(filePath ?? "")) && (
+          {isPreviewable && (
             <button
               type="button"
+              aria-label={previewMarkdown ? _("Edit") : _("Preview")}
+              title={previewMarkdown ? _("Edit") : _("Preview")}
               onClick={() => setPreviewMarkdown((v) => !v)}
-              className="rounded-md bg-adw-fill-secondary px-2 py-0.5 text-[11px] font-medium text-adw-label-secondary transition-colors hover:bg-adw-fill-primary hover:text-adw-label"
+              className={cn(
+                "flex size-7 items-center justify-center rounded-md transition-colors",
+                previewMarkdown
+                  ? "bg-black/10 text-adw-label dark:bg-white/15"
+                  : "text-adw-label-secondary hover:bg-black/8 hover:text-adw-label dark:hover:bg-white/10",
+              )}
             >
-              {previewMarkdown ? _("Edit") : _("Preview")}
+              <EyeIcon className="size-4" />
             </button>
           )}
           <DropdownMenu>
             <DropdownMenuTrigger
               aria-label={_("Editor Preferences")}
               title={_("Preferences")}
-              className="flex size-6 items-center justify-center rounded-md text-adw-label-secondary transition-colors outline-none hover:bg-adw-fill-secondary hover:text-adw-label"
+              className="flex size-7 items-center justify-center rounded-md text-adw-label-secondary transition-colors outline-none hover:bg-black/8 hover:text-adw-label data-popup-open:bg-black/10 dark:hover:bg-white/10 dark:data-popup-open:bg-white/15"
             >
-              <SlidersHorizontalIcon className="size-3.5" />
+              <SlidersHorizontalIcon className="size-4" />
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuContent align="end" className="w-52">
               <DropdownMenuCheckboxItem
                 checked={showLineNumbers}
                 onClick={() => setShowLineNumbers((v) => !v)}
@@ -501,7 +588,13 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
                 checked={highlightLine}
                 onClick={() => setHighlightLine((v) => !v)}
               >
-                {_("Highlight Active Line")}
+                {_("Active Line")}
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                checked={showCursorPos}
+                onClick={() => setShowCursorPos((v) => !v)}
+              >
+                {_("Cursor Position")}
               </DropdownMenuCheckboxItem>
             </DropdownMenuContent>
           </DropdownMenu>

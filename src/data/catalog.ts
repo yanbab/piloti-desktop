@@ -361,7 +361,7 @@ export const APP_CATALOG: AppDefinition[] = [
           {
             label: "Line Numbers",
             actionId: "text-editor:toggle-line-numbers",
-            checked: true,
+            checked: false,
           },
           {
             label: "Syntax Highlighting",
@@ -371,17 +371,17 @@ export const APP_CATALOG: AppDefinition[] = [
           {
             label: "Word Wrap",
             actionId: "text-editor:toggle-word-wrap",
-            checked: true,
+            checked: false,
           },
           {
             label: "Active Line",
             actionId: "text-editor:toggle-active-line",
-            checked: true,
+            checked: false,
           },
           {
             label: "Cursor Position",
             actionId: "text-editor:toggle-cursor-position",
-            checked: true,
+            checked: false,
           },
         ],
       },

@@ -662,6 +662,13 @@ export function renameVfsEntry(
 
   migrateVfsEmblemsPrefix(oldPath, newPath);
   saveVfs(updated);
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(
+      new CustomEvent("piloti:vfs-renamed", {
+        detail: { oldPath, newPath },
+      })
+    );
+  }
   return updated.find((e) => e.path === newPath) ?? null;
 }
 
