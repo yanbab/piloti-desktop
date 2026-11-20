@@ -199,9 +199,9 @@ export function ControlPanel() {
               variant="capsule"
               icon={
                 settings.muted || settings.volume === 0 ? (
-                  <VolumeXIcon className="size-4" />
+                  <VolumeXIcon className="size-3.5" />
                 ) : (
-                  <Volume2Icon className="size-4" />
+                  <Volume2Icon className="size-3.5" />
                 )
               }
               className="flex-1"
@@ -224,7 +224,7 @@ export function ControlPanel() {
                 console.info("[Piloti] control-panel: mute", next ? "on" : "off");
                 updateSettings({ muted: next });
               }}
-              className="absolute inset-y-0 left-0 z-20 w-8 rounded-l-full"
+              className="absolute inset-y-0 left-0 z-20 w-6 rounded-l-full"
             />
           </div>
           <button
@@ -311,7 +311,7 @@ export function ControlPanel() {
           <Slider
             aria-label="Display Brightness"
             variant="capsule"
-            icon={<SunIcon className="size-4" />}
+            icon={<SunIcon className="size-3.5" />}
             className="flex-1"
             min={25}
             max={100}

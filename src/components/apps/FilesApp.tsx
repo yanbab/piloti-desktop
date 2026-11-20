@@ -47,6 +47,7 @@ import {
   sortDesktopItems,
 } from "@/lib/desktop-icons";
 import { _ } from "@/lib/i18n";
+import { captureLaunchOriginFromElement } from "@/lib/launch-origin";
 import {
   DynamicFileIcon,
   DynamicFolderIcon,
@@ -1434,19 +1435,22 @@ export function FilesApp({
                           setSelectedIds([item.id]);
                         }
                       }}
-                      onClick={() => {
+                      onClick={(e) => {
                         if (settings.fileActivationMode === "single") {
+                          captureLaunchOriginFromElement(e.currentTarget);
                           handleActivateItem(item);
                         }
                       }}
-                      onDoubleClick={() => {
+                      onDoubleClick={(e) => {
                         if (settings.fileActivationMode === "double") {
+                          captureLaunchOriginFromElement(e.currentTarget);
                           handleActivateItem(item);
                         }
                       }}
                       onContextMenu={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
+                        captureLaunchOriginFromElement(e.currentTarget, 10000);
                         if (!selectedIds.includes(item.id)) {
                           setSelectedIds([item.id]);
                         }

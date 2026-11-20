@@ -7,6 +7,7 @@ import {
   TagIcon,
 } from "lucide-react";
 import { AppSquircleIcon } from "@/components/shell/AppSymbol";
+import { captureLaunchOriginFromElement } from "@/lib/launch-origin";
 import { useSettings } from "@/context/DesktopStateContext";
 import {
   DynamicFileIcon,
@@ -918,12 +919,14 @@ export function IconGrid({
                 onSelectIds([item.id]);
               }
               if (settings.fileActivationMode !== "double") {
+                captureLaunchOriginFromElement(e.currentTarget);
                 onActivateItem(item);
               }
             }}
             onDoubleClick={(e) => {
               e.stopPropagation();
               if (settings.fileActivationMode === "double") {
+                captureLaunchOriginFromElement(e.currentTarget);
                 onActivateItem(item);
               }
             }}
@@ -945,6 +948,7 @@ export function IconGrid({
               }
             }}
             onContextMenu={(e) => {
+              captureLaunchOriginFromElement(e.currentTarget, 10000);
               if (!selectedSet.has(item.id)) {
                 onSelectIds([item.id]);
               }

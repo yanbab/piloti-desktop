@@ -28,6 +28,10 @@ import {
 import { IsolatedAppFrame } from "@/components/shell/IsolatedAppFrame";
 import { WindowMenuButton } from "@/components/shell/WindowMenuButton";
 import { _ } from "@/lib/i18n";
+import {
+  consumeLaunchOriginRect,
+  type LaunchOriginRect,
+} from "@/lib/launch-origin";
 import { computeOverviewWindowLayouts } from "@/lib/overview-layout";
 const CalculatorApp = React.lazy(() =>
   import("@/components/apps/CalculatorApp").then((m) => ({
@@ -1002,6 +1006,119 @@ export function WindowManager() {
   const windowElementsRef = React.useRef<Map<string, HTMLDivElement>>(
     new Map()
   );
+  const windowOriginsRef = React.useRef<Map<string, LaunchOriginRect>>(
+    new Map()
+  );
+  const animatedOpenedRef = React.useRef<Set<string>>(new Set());
+  const [closingWindowIds, setClosingWindowIds] = React.useState<Set<string>>(
+    () => new Set()
+  );
+
+  React.useLayoutEffect(() => {
+    const activeIds = new Set(windows.map((w) => w.id));
+    for (const id of Array.from(animatedOpenedRef.current)) {
+      if (!activeIds.has(id)) {
+        animatedOpenedRef.current.delete(id);
+        windowOriginsRef.current.delete(id);
+      }
+    }
+
+    for (const win of windows) {
+      if (animatedOpenedRef.current.has(win.id)) continue;
+      animatedOpenedRef.current.add(win.id);
+      if (win.minimized) continue;
+
+      let origin =
+        windowOriginsRef.current.get(win.id) ?? consumeLaunchOriginRect();
+      if (!origin) {
+        const dockEl = getDockRef(win.appId)?.current;
+        if (dockEl) {
+          const r = dockEl.getBoundingClientRect();
+          if (r.width > 0 && r.height > 0) {
+            origin = { left: r.left, top: r.top, width: r.width, height: r.height };
+          }
+        }
+      }
+      if (!origin) continue;
+      windowOriginsRef.current.set(win.id, origin);
+
+      const el = windowElementsRef.current.get(win.id);
+      if (!el) continue;
+      const originCx = origin.left + origin.width / 2;
+      const originCy = origin.top + origin.height / 2;
+      const winCx = win.position.x + win.size.width / 2;
+      const winCy = win.position.y + win.size.height / 2;
+      const dx = Math.round(originCx - winCx);
+      const dy = Math.round(originCy - winCy);
+      const scale = Math.max(
+        0.12,
+        Math.min(0.45, origin.width / Math.max(120, win.size.width))
+      );
+
+      el.style.transition = "none";
+      el.style.transformOrigin = "center center";
+      el.style.transform = `translate3d(${dx}px, ${dy}px, 0) scale(${scale})`;
+      el.style.opacity = "0.2";
+      void el.offsetWidth;
+      el.style.transition =
+        "transform 240ms cubic-bezier(0.22, 1, 0.36, 1), opacity 180ms ease-out";
+      el.style.transform = "translate3d(0px, 0px, 0px) scale(1)";
+      el.style.opacity = "1";
+      window.setTimeout(() => {
+        if (windowElementsRef.current.get(win.id) === el) {
+          el.style.transformOrigin = "top left";
+        }
+      }, 250);
+    }
+  }, [getDockRef, windows]);
+
+  const handleAnimatedClose = React.useCallback(
+    (win: DesktopWindowInstance) => {
+      if (closingWindowIds.has(win.id)) return;
+      let origin = windowOriginsRef.current.get(win.id);
+      if (!origin) {
+        const dockEl = getDockRef(win.appId)?.current;
+        if (dockEl) {
+          const r = dockEl.getBoundingClientRect();
+          if (r.width > 0 && r.height > 0) {
+            origin = { left: r.left, top: r.top, width: r.width, height: r.height };
+          }
+        }
+      }
+      const el = windowElementsRef.current.get(win.id);
+      if (!origin || !el) {
+        closeWindow(win.id);
+        return;
+      }
+
+      setClosingWindowIds((prev) => new Set(prev).add(win.id));
+      const originCx = origin.left + origin.width / 2;
+      const originCy = origin.top + origin.height / 2;
+      const winCx = win.position.x + win.size.width / 2;
+      const winCy = win.position.y + win.size.height / 2;
+      const dx = Math.round(originCx - winCx);
+      const dy = Math.round(originCy - winCy);
+      const scale = Math.max(
+        0.12,
+        Math.min(0.45, origin.width / Math.max(120, win.size.width))
+      );
+
+      el.style.transformOrigin = "center center";
+      el.style.transition =
+        "transform 190ms cubic-bezier(0.4, 0, 1, 1), opacity 160ms ease-in";
+      el.style.transform = `translate3d(${dx}px, ${dy}px, 0) scale(${scale})`;
+      el.style.opacity = "0";
+      window.setTimeout(() => {
+        setClosingWindowIds((prev) => {
+          const next = new Set(prev);
+          next.delete(win.id);
+          return next;
+        });
+        closeWindow(win.id);
+      }, 190);
+    },
+    [closeWindow, closingWindowIds, getDockRef]
+  );
   const [windowContextMenu, setWindowContextMenu] = React.useState<{
     windowId: string;
     x: number;
@@ -1356,7 +1473,7 @@ export function WindowManager() {
             }}
             onSnapPreviewChange={setSnapPreview}
             onSnapCommit={(zone) => tileWindow(win.id, zone)}
-            onClose={() => closeWindow(win.id)}
+            onClose={() => handleAnimatedClose(win)}
             onMinimize={() => minimizeWindow(win.id)}
             onZoom={() => toggleMaximizeWindow(win.id)}
             onContextMenu={(e) => {
@@ -1404,6 +1521,7 @@ export function WindowManager() {
               isWaylandSurface && "bg-transparent",
               win.ready === false && "opacity-0 pointer-events-none",
               overviewOpen && "pointer-events-none",
+              closingWindowIds.has(win.id) && "pointer-events-none",
               !isActiveWorkspace && "invisible pointer-events-none",
             )}
             aria-hidden={!isActiveWorkspace || undefined}

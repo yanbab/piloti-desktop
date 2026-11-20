@@ -40,6 +40,7 @@ import {
   WEB_VFS_TRASH,
 } from "@/lib/web-vfs";
 import { _ } from "@/lib/i18n";
+import { captureLaunchOriginFromElement } from "@/lib/launch-origin";
 import { cn } from "@/lib/utils";
 import { AppSquircleIcon } from "./AppSymbol";
 
@@ -645,7 +646,10 @@ export function Dock() {
                       ? "scale-110 rounded-xl bg-adw-accent/20 ring-2 ring-adw-accent/80 transition-transform"
                       : undefined
                 }
-                onClick={() => handleDockAppClick(app.id)}
+                onClick={(e) => {
+                  captureLaunchOriginFromElement(e.currentTarget);
+                  handleDockAppClick(app.id);
+                }}
               >
                 <AppSquircleIcon
                   iconName={app.iconName}
@@ -685,7 +689,10 @@ export function Dock() {
               "data-dock-context": "trash",
               "data-vfs-drop-path": WEB_VFS_TRASH,
             }}
-            onClick={handleOpenTrash}
+            onClick={(e) => {
+              captureLaunchOriginFromElement(e.currentTarget);
+              handleOpenTrash();
+            }}
           >
             <AppSquircleIcon
               iconUrl={getAppIconUrl(

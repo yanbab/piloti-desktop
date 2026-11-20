@@ -25,6 +25,9 @@ function Slider<Value extends number | readonly number[]>({
       : [min, max]
 
   const isCapsule = variant === "capsule"
+  const rawVal = Number(_values[0] ?? min)
+  const span = Math.max(1e-6, max - min)
+  const pct = Math.max(0, Math.min(100, ((rawVal - min) / span) * 100))
 
   return (
     <SliderPrimitive.Root
@@ -40,7 +43,7 @@ function Slider<Value extends number | readonly number[]>({
       <SliderPrimitive.Control
         className={cn(
           "relative flex w-full touch-none items-center select-none data-disabled:opacity-40 data-[orientation=vertical]:h-full data-[orientation=vertical]:min-h-44 data-[orientation=vertical]:w-4 data-[orientation=vertical]:flex-col",
-          isCapsule ? "data-[orientation=horizontal]:h-7" : "data-[orientation=horizontal]:h-4"
+          isCapsule ? "data-[orientation=horizontal]:h-5" : "data-[orientation=horizontal]:h-4"
         )}
       >
         <SliderPrimitive.Track
@@ -48,19 +51,24 @@ function Slider<Value extends number | readonly number[]>({
           className={cn(
             "relative grow overflow-hidden rounded-full select-none",
             isCapsule
-              ? "h-7 w-full bg-black/10 ring-1 ring-inset ring-black/8 dark:bg-white/12 dark:ring-white/10"
+              ? "h-5 w-full bg-black/12 ring-1 ring-inset ring-black/8 dark:bg-white/14 dark:ring-white/10"
               : "bg-black/8 data-[orientation=horizontal]:h-1.5 data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-1.5 dark:bg-white/10"
           )}
         >
           <SliderPrimitive.Indicator
             data-slot="slider-range"
+            style={
+              isCapsule
+                ? { width: `calc(${pct}% + ${((100 - pct) / 100) * 20}px)` }
+                : undefined
+            }
             className={cn(
               "rounded-full select-none data-[orientation=horizontal]:h-full data-[orientation=vertical]:w-full",
               isCapsule ? "bg-white/95 shadow-xs" : "bg-adw-accent"
             )}
           />
           {isCapsule && icon && (
-            <span className="pointer-events-none absolute inset-y-0 left-2.5 z-10 flex items-center justify-center text-white mix-blend-difference">
+            <span className="pointer-events-none absolute inset-y-0 left-1.5 z-10 flex items-center justify-center text-white mix-blend-difference">
               {icon}
             </span>
           )}
@@ -75,7 +83,7 @@ function Slider<Value extends number | readonly number[]>({
             className={cn(
               "block shrink-0 rounded-full outline-none select-none data-disabled:pointer-events-none",
               isCapsule
-                ? "size-7 opacity-0"
+                ? "size-5 bg-white shadow-[0_0_2px_rgba(0,0,0,0.22),0_1px_3px_rgba(0,0,0,0.18)]"
                 : "h-4 w-5 bg-white shadow-[0_0_0_0.5px_rgb(0_0_0/0.08),0_1px_3px_rgb(0_0_0/0.25)] has-focus-visible:outline-3 has-focus-visible:outline-solid has-focus-visible:outline-adw-accent/50 active:bg-[#f2f2f2] dark:bg-[#dedede] dark:shadow-none"
             )}
           />

@@ -5,9 +5,9 @@ import {
   WindowContent,
   WindowControls,
   WindowMain,
-  WindowTitle,
   WindowTitlebar,
 } from "@/components/ui/window";
+import pkg from "../../../package.json";
 import { useSettings, useWindowManager } from "@/context/DesktopStateContext";
 import { _ } from "@/lib/i18n";
 import { type ComputerInfo, probeComputerInfo } from "@/lib/system-info";
@@ -129,6 +129,7 @@ export function AboutComputerDialog() {
   }, [info.kernel, info.osName, isBrowserRuntime]);
 
   const rows = [
+    { label: _("Desktop"), value: `Piloti v${pkg.version}` },
     { label: _("Platform"), value: platformLabel },
     { label: _("Processor"), value: _(info.processor) },
     { label: _("Graphics"), value: _(info.graphics) },
@@ -160,9 +161,7 @@ export function AboutComputerDialog() {
       style={{ position: "fixed", top: 0, left: 0, zIndex: 420 }}
     >
       <WindowMain>
-        <WindowTitlebar className="justify-between">
-          <div className="w-7" />
-          <WindowTitle>{_("About Computer")}</WindowTitle>
+        <WindowTitlebar className="justify-end">
           <WindowControls side="right" />
         </WindowTitlebar>
         <WindowContent className="flex flex-col justify-between gap-3 p-4 pt-2">
