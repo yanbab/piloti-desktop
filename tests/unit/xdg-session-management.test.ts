@@ -5,7 +5,7 @@ import {
   loadXdgSession,
   saveXdgSession,
   serializeWindowToXdgSession,
-} from "./xdg-session-management";
+} from "@/lib/xdg-session-management";
 
 function createMemoryStorage() {
   const map = new Map<string, string>();

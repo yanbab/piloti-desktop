@@ -1,4 +1,5 @@
 import * as React from "react";
+import { AppWindowIcon, GlobeIcon } from "lucide-react";
 import { useOptionalApps } from "@/context/AppsContext";
 import { cn } from "@/lib/utils";
 
@@ -48,10 +49,19 @@ export function AppSquircleIcon({
     );
   }
 
+  if (squircle) {
+    return (
+      <GlobeIcon
+        aria-hidden="true"
+        className={cn("shrink-0 text-adw-label-secondary", className)}
+      />
+    );
+  }
+
   return (
-    <span
+    <AppWindowIcon
       aria-hidden="true"
-      className={cn("inline-block shrink-0", className)}
+      className={cn("shrink-0 text-adw-label-secondary", className)}
     />
   );
 }

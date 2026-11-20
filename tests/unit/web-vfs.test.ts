@@ -26,7 +26,7 @@ import {
   WEB_VFS_STORAGE_KEY,
   WEB_VFS_TRASH,
   writeVfsTextFile,
-} from "./web-vfs";
+} from "@/lib/web-vfs";
 
 function installMemoryLocalStorage() {
   const store = new Map<string, string>();

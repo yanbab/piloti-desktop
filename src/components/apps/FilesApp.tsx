@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { AdwSplitView, type AdwSplitSidebarItem } from "@/components/ui/adw-split-view";
 import { IconGrid } from "@/components/ui/icon-grid";
+import { AppSquircleIcon } from "@/components/shell/AppSymbol";
 import { WindowMenuButton } from "@/components/shell/WindowMenuButton";
 import { WindowControls, WindowTitlebar } from "@/components/ui/window";
 import { useSidebarKeyboardNav } from "@/hooks/use-sidebar-keyboard-nav";
@@ -42,12 +43,15 @@ import {
 import { useApps, useSettings, useWindowManager } from "@/context/DesktopStateContext";
 import { publishWindowMenuState } from "@/lib/app-bridge";
 import {
+  type AppSymbolName,
   type IconGridItem,
   inferFileVisual,
   sortDesktopItems,
 } from "@/lib/desktop-icons";
 import { _ } from "@/lib/i18n";
 import { captureLaunchOriginFromElement } from "@/lib/launch-origin";
+import { APP_CATALOG } from "@/data/catalog";
+import { getWebAppFaviconUrl, resolveWebAppTitle } from "@/data/web-apps";
 import {
   DynamicFileIcon,
   DynamicFolderIcon,
@@ -99,12 +103,20 @@ interface XdgPlaceItem {
   icon: React.ReactNode;
 }
 
+const WEB_VFS_APPS_URI = "piloti://apps";
+
 const XDG_PLACES: readonly XdgPlaceItem[] = [
   {
     id: "home",
     label: "Home",
     path: WEB_VFS_HOME,
     icon: <HomeIcon className="size-4" />,
+  },
+  {
+    id: "applications",
+    label: "Applications",
+    path: WEB_VFS_APPS_URI,
+    icon: <LayoutGridIcon className="size-4" />,
   },
   {
     id: "recents",
@@ -206,11 +218,13 @@ export function FilesApp({
   windowId?: string;
 }) {
   const domicile = useDomicile();
-  const { getAppIconUrl, ensureWaylandIcons } = useApps();
+  const { installedXdgApps, getAppIconUrl, ensureWaylandIcons } = useApps();
   const { isBrowserRuntime, settings } = useSettings();
   const {
+    windows,
     focusedWindowId,
     launchApp,
+    launchXdgApp,
     openWebUrl,
   } = useWindowManager();
 
@@ -267,9 +281,27 @@ export function FilesApp({
   const isTrashView = currentPath === WEB_VFS_TRASH;
   const isFavoritesView = currentPath === WEB_VFS_FAVORITES_URI;
   const isRecentsView = currentPath === WEB_VFS_RECENTS_URI;
-  const isVirtualView = isFavoritesView || isRecentsView;
+  const isAppsView = currentPath === WEB_VFS_APPS_URI;
+  const isVirtualView = isFavoritesView || isRecentsView || isAppsView;
+
+  const openFilePaths = React.useMemo(() => {
+    const set = new Set<string>();
+    for (const w of windows) {
+      if (w.payload && w.payload.startsWith("/")) {
+        set.add(w.payload.replace(/\/+$/, "") || "/");
+      }
+      if (w.appId.startsWith("file:")) {
+        set.add(w.appId.slice("file:".length).replace(/\/+$/, "") || "/");
+      }
+    }
+    return set;
+  }, [windows]);
 
   const reloadDir = React.useCallback(() => {
+    if (currentPath === WEB_VFS_APPS_URI) {
+      setVfsEntries([]);
+      return;
+    }
     if (currentPath === WEB_VFS_FAVORITES_URI) {
       setVfsEntries(listVfsFavoriteEntries());
       return;
@@ -552,7 +584,10 @@ export function FilesApp({
   const submitLocationEdit = (e: React.FormEvent) => {
     e.preventDefault();
     const raw = draftLocation.trim();
-    if (raw) {
+    if (raw === WEB_VFS_APPS_URI) {
+      setCurrentPath(WEB_VFS_APPS_URI);
+      setSelectedIds([]);
+    } else if (raw) {
       const target = raw.startsWith("~")
         ? `${WEB_VFS_HOME}${raw.slice(1)}`
         : normalizeVfsPath(raw);
@@ -596,6 +631,52 @@ export function FilesApp({
 
   const items = React.useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
+    if (isAppsView) {
+      const appItems: IconGridItem[] = [
+        ...APP_CATALOG.filter((app) => Boolean(app.builtinComponent)).map(
+          (app) => ({
+            id: `app:builtin:${app.id}`,
+            name: _(app.name),
+            kind: "desktop-entry" as const,
+            path: `${WEB_VFS_APPS_URI}/${app.id}`,
+            iconName: (app.iconName === "file-text"
+              ? "notes"
+              : app.iconName) as AppSymbolName,
+            iconUrl: getAppIconUrl(app.id),
+            gradient: app.gradient,
+          })
+        ),
+        ...installedXdgApps.map((entry) => ({
+          id: `app:xdg:${entry.desktopId}`,
+          name: entry.name,
+          kind: "desktop-entry" as const,
+          path: `${WEB_VFS_APPS_URI}/${entry.desktopId}`,
+          iconName: "sparkles" as const,
+          iconUrl: entry.iconUrl ?? getAppIconUrl(entry.desktopId),
+          desktopEntry: entry,
+        })),
+        ...settings.installedWebApps.map((webApp) => ({
+          id: `app:web:${webApp.id}`,
+          name: resolveWebAppTitle({
+            rawUrl: webApp.url,
+            hostTitle: webApp.title,
+            installedApps: settings.installedWebApps,
+          }),
+          kind: "desktop-entry" as const,
+          path: webApp.url,
+          iconName: "globe" as const,
+          iconUrl:
+            webApp.iconUrl ||
+            getWebAppFaviconUrl(webApp.url) ||
+            getAppIconUrl("browser") ||
+            getAppIconUrl("web-browser"),
+        })),
+      ];
+      const filtered = q
+        ? appItems.filter((item) => item.name.toLowerCase().includes(q))
+        : appItems;
+      return filtered.sort((a, b) => a.name.localeCompare(b.name));
+    }
     const visible = showHidden
       ? vfsEntries
       : vfsEntries.filter((entry) => !entry.name.startsWith("."));
@@ -605,7 +686,15 @@ export function FilesApp({
     return sortDesktopItems(
       filtered.map((entry) => vfsEntryToGridItem(entry, getAppIconUrl))
     );
-  }, [getAppIconUrl, searchQuery, showHidden, vfsEntries]);
+  }, [
+    getAppIconUrl,
+    installedXdgApps,
+    isAppsView,
+    searchQuery,
+    settings.installedWebApps,
+    showHidden,
+    vfsEntries,
+  ]);
 
   const activePlace = XDG_PLACES.find((p) => p.path === currentPath);
   const activeSidebarPath = React.useMemo(() => {
@@ -730,6 +819,21 @@ export function FilesApp({
   }, [windowId]);
 
   const handleActivateItem = (item: IconGridItem) => {
+    if (item.kind === "desktop-entry") {
+      if (item.desktopEntry) {
+        launchXdgApp(item.desktopEntry);
+        return;
+      }
+      if (item.id.startsWith("app:builtin:")) {
+        launchApp(item.id.slice("app:builtin:".length));
+        return;
+      }
+      if (item.id.startsWith("app:web:")) {
+        openWebUrl(item.path);
+        return;
+      }
+      return;
+    }
     if (item.kind === "directory") {
       setCurrentPath(item.path);
       setSelectedIds([]);
@@ -1406,13 +1510,21 @@ export function FilesApp({
               </thead>
               <tbody>
                 {items.map((item) => {
-                  const vfsEntry = getVfsEntry(item.path ?? item.id);
+                  const vfsEntry =
+                    item.kind === "desktop-entry" ? undefined : getVfsEntry(item.path ?? item.id);
                   const isSelected = selectedIds.includes(item.id);
-                  const rowEmblems = getVfsEmblems(item.path);
+                  const isOpenedFile =
+                    item.kind === "file" &&
+                    Boolean(item.path) &&
+                    openFilePaths.has(item.path.replace(/\/+$/, "") || "/");
+                  const rowEmblems =
+                    item.kind === "desktop-entry" ? [] : getVfsEmblems(item.path);
                   const sizeLabel =
-                    item.kind === "directory"
-                      ? _("Folder")
-                      : `${(vfsEntry?.content ?? "").length} B`;
+                    item.kind === "desktop-entry"
+                      ? _("Application")
+                      : item.kind === "directory"
+                        ? _("Folder")
+                        : `${(vfsEntry?.content ?? "").length} B`;
                   return (
                     <tr
                       key={item.id}
@@ -1436,13 +1548,19 @@ export function FilesApp({
                         }
                       }}
                       onClick={(e) => {
-                        if (settings.fileActivationMode === "single") {
+                        if (
+                          settings.fileActivationMode === "single" ||
+                          item.kind === "desktop-entry"
+                        ) {
                           captureLaunchOriginFromElement(e.currentTarget);
                           handleActivateItem(item);
                         }
                       }}
                       onDoubleClick={(e) => {
-                        if (settings.fileActivationMode === "double") {
+                        if (
+                          settings.fileActivationMode === "double" &&
+                          item.kind !== "desktop-entry"
+                        ) {
                           captureLaunchOriginFromElement(e.currentTarget);
                           handleActivateItem(item);
                         }
@@ -1474,9 +1592,21 @@ export function FilesApp({
                               width: `${listIconSize}px`,
                               height: `${listIconSize}px`,
                             }}
-                            className="inline-flex shrink-0"
+                            className={cn(
+                              "inline-flex shrink-0",
+                              isOpenedFile &&
+                                "opacity-55 grayscale-[0.45] brightness-90"
+                            )}
                           >
-                            {item.kind === "directory" ? (
+                            {item.kind === "desktop-entry" ? (
+                              <AppSquircleIcon
+                                iconName={item.iconName}
+                                iconUrl={item.iconUrl}
+                                gradient={item.gradient}
+                                squircle={item.id.startsWith("app:web:")}
+                                className="size-full"
+                              />
+                            ) : item.kind === "directory" ? (
                               <DynamicFolderIcon
                                 accentColor={settings.accentColor}
                                 opened={openFolderPaths.has(item.path)}

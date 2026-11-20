@@ -5,7 +5,7 @@ import {
   getLocalePreference,
   getSystemLocale,
   setLocale,
-} from "./i18n";
+} from "@/lib/i18n";
 
 describe("i18n translation helper", () => {
   afterEach(() => {

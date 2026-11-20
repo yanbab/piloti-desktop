@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import type { Domicile } from "@domicile-desktop/sdk/desktop/desktop";
 import type { InstalledWebApp } from "@/data/web-apps";
-import { getVfsEntry, WEB_VFS_STORAGE_KEY } from "./web-vfs";
+import { getVfsEntry, WEB_VFS_STORAGE_KEY } from "@/lib/web-vfs";
 import {
   installWebAppDesktopEntry,
   loadWebAppsFromDesktopEntries,
@@ -10,7 +10,7 @@ import {
   serializeWebAppDesktopEntry,
   WEB_APPS_XDG_DIR,
   webAppDesktopFileName,
-} from "./xdg-web-apps";
+} from "@/lib/xdg-web-apps";
 
 function createMemoryStorage(): Storage {
   const store = new Map<string, string>();

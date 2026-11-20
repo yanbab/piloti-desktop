@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import type { Files } from "@domicile-desktop/sdk/desktop/files";
-import { discoverPlugins } from "./loader";
+import { discoverPlugins } from "@/lib/plugins/loader";
 
 function createMockFiles(tree: Record<string, string | "dir">): Files {
   const ok = <T,>(val: T) => ({

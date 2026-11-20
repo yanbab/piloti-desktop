@@ -7,7 +7,7 @@ import {
   parseNmcliWifiOutput,
   parseWpctlVolumeOutput,
   upsertGtkSettingsIni,
-} from "./gnome-bridge";
+} from "@/lib/gnome-bridge";
 
 describe("gnome-bridge parsers", () => {
   test("parses GSettings interface keys", () => {

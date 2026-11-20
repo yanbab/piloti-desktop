@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import { AppSquircleIcon } from "@/components/shell/AppSymbol";
 import { captureLaunchOriginFromElement } from "@/lib/launch-origin";
-import { useSettings } from "@/context/DesktopStateContext";
+import { useSettings, useWindowManager } from "@/context/DesktopStateContext";
 import {
   DynamicFileIcon,
   DynamicFolderIcon,
@@ -171,7 +171,20 @@ export function IconGrid({
   className,
 }: IconGridProps) {
   const { settings, isBrowserRuntime } = useSettings();
+  const { windows } = useWindowManager();
   const openFolderPaths = useOpenFolderPaths();
+  const openFilePaths = React.useMemo(() => {
+    const set = new Set<string>();
+    for (const w of windows) {
+      if (w.payload && w.payload.startsWith("/")) {
+        set.add(w.payload.replace(/\/+$/, "") || "/");
+      }
+      if (w.appId.startsWith("file:")) {
+        set.add(w.appId.slice("file:".length).replace(/\/+$/, "") || "/");
+      }
+    }
+    return set;
+  }, [windows]);
   const [hoveredDropPath, setHoveredDropPath] = React.useState<string | null>(
     null,
   );
@@ -918,14 +931,14 @@ export function IconGrid({
               if (selectedIds.length !== 1 || !selectedSet.has(item.id)) {
                 onSelectIds([item.id]);
               }
-              if (settings.fileActivationMode !== "double") {
+              if (settings.fileActivationMode !== "double" || item.kind === "desktop-entry") {
                 captureLaunchOriginFromElement(e.currentTarget);
                 onActivateItem(item);
               }
             }}
             onDoubleClick={(e) => {
               e.stopPropagation();
-              if (settings.fileActivationMode === "double") {
+              if (settings.fileActivationMode === "double" && item.kind !== "desktop-entry") {
                 captureLaunchOriginFromElement(e.currentTarget);
                 onActivateItem(item);
               }
@@ -968,7 +981,13 @@ export function IconGrid({
           >
             <div
               style={{ width: `${iconSize}px`, height: `${iconSize}px` }}
-              className="relative shrink-0 drop-shadow-[0_1px_2px_rgba(0,0,0,0.2)] transition-[width,height] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)]"
+              className={cn(
+                "relative shrink-0 drop-shadow-[0_1px_2px_rgba(0,0,0,0.2)] transition-[width,height,opacity,filter] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)]",
+                item.kind === "file" &&
+                  item.path &&
+                  openFilePaths.has(item.path.replace(/\/+$/, "") || "/") &&
+                  "opacity-55 grayscale-[0.45] brightness-90"
+              )}
             >
               {(() => {
                 const vfsEntry =

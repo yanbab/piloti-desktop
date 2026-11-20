@@ -4,7 +4,7 @@ import {
   parseCpuInfo,
   parseMemTotalGiB,
   parseOsReleasePrettyName,
-} from "./system-info";
+} from "@/lib/system-info";
 
 describe("system-info parsers", () => {
   test("parses /proc/cpuinfo model and core count", () => {

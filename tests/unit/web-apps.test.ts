@@ -12,7 +12,7 @@ import {
   parseHtmlThemeColor,
   parseHtmlTitle,
   resolveWebAppTitle,
-} from "./web-apps";
+} from "@/data/web-apps";
 import {
   resolveInitialSettings,
   WEB_DEFAULTS_VERSION,

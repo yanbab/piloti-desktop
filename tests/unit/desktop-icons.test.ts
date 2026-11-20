@@ -10,7 +10,7 @@ import {
   moveItemToCell,
   normalizeRect,
   sortDesktopItems,
-} from "./desktop-icons";
+} from "@/lib/desktop-icons";
 
 describe("desktop-icons spatial grid helpers", () => {
   test("computes grid metrics with sensible minimums", () => {

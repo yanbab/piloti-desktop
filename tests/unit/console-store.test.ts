@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { evaluateReplCode, formatInspectValue } from "./console-store";
-import { evaluateCspSafe } from "./csp-repl-eval";
+import { evaluateReplCode, formatInspectValue } from "@/lib/console-store";
+import { evaluateCspSafe } from "@/lib/csp-repl-eval";
 
 describe("console-store REPL and formatter", () => {
   test("evaluates single expressions and async calls against scope", async () => {

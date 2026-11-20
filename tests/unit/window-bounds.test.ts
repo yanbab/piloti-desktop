@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { clampWindowBounds, clampWorkspace } from "./window-bounds";
+import { clampWindowBounds, clampWorkspace } from "@/lib/window-bounds";
 
 describe("window-bounds", () => {
   test("clamps offscreen negative and bottom-right positions inside viewport", () => {

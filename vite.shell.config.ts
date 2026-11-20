@@ -31,10 +31,10 @@ export default defineConfig({
   plugins: [react(), tailwindcss(), cssInTheModule()],
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, ".."),
-      "xdg-basedir": path.resolve(__dirname, "../lib/xdg-basedir.ts"),
-      "xdg-desktop-entry": path.resolve(__dirname, "../lib/xdg-desktop-entry.ts"),
-      "xdg-icon-theme": path.resolve(__dirname, "../lib/xdg-icon-theme.ts"),
+      "@": path.resolve(__dirname, "src"),
+      "xdg-basedir": path.resolve(__dirname, "src/lib/xdg-basedir.ts"),
+      "xdg-desktop-entry": path.resolve(__dirname, "src/lib/xdg-desktop-entry.ts"),
+      "xdg-icon-theme": path.resolve(__dirname, "src/lib/xdg-icon-theme.ts"),
     },
   },
   build: {

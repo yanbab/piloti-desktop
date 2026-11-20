@@ -4,7 +4,7 @@ import {
   inferMimeType,
   parseMimeAppsList,
   resolveAppsForMime,
-} from "./xdg-mimeapps";
+} from "@/lib/xdg-mimeapps";
 
 describe("xdg-mimeapps", () => {
   test("infers specific and generic MIME types", () => {

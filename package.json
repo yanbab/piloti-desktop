@@ -5,12 +5,12 @@
   "description": "Piloti Desktop — A Linux Wayland desktop shell built on Domicile",
   "type": "module",
   "scripts": {
-    "dev": "vite --config src/config/vite.config.ts",
-    "build": "vite build --config src/config/vite.config.ts && vite build --config src/config/vite.shell.config.ts",
-    "build:web": "vite build --config src/config/vite.config.ts",
-    "build:shell": "vite build --config src/config/vite.shell.config.ts",
-    "preview": "vite preview --config src/config/vite.config.ts",
-    "test": "bun test src",
+    "dev": "vite",
+    "build": "vite build && vite build --config vite.shell.config.ts",
+    "build:web": "vite build",
+    "build:shell": "vite build --config vite.shell.config.ts",
+    "preview": "vite preview",
+    "test": "bun test tests/unit tests/functional",
     "test:e2e": "playwright test",
     "typecheck": "tsc --noEmit"
   },

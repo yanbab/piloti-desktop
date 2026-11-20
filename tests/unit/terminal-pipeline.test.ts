@@ -2,8 +2,8 @@ import { beforeEach, describe, expect, test } from "bun:test";
 import {
   executeTextPipeline,
   parseCommandPipeline,
-} from "./terminal-pipeline";
-import { getVfsEntry, WEB_VFS_HOME, WEB_VFS_STORAGE_KEY } from "./web-vfs";
+} from "@/lib/terminal-pipeline";
+import { getVfsEntry, WEB_VFS_HOME, WEB_VFS_STORAGE_KEY } from "@/lib/web-vfs";
 
 describe("terminal-pipeline pipes, redirects, and grep", () => {
   beforeEach(() => {

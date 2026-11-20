@@ -371,8 +371,10 @@ export function Launcher() {
         ),
         icon: (
           <AppSquircleIcon
-            iconUrl={webApp.iconUrl ?? getWebAppFaviconUrl(webApp.url)}
-            fallbackIconUrl={getAppIconUrl("browser")}
+            iconUrl={webApp.iconUrl || getWebAppFaviconUrl(webApp.url)}
+            fallbackIconUrl={
+              getAppIconUrl("browser") ?? getAppIconUrl("web-browser")
+            }
             squircle
             className="size-5 shrink-0"
           />
