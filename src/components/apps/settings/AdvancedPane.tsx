@@ -153,13 +153,19 @@ export function AdvancedPane() {
   }, []);
 
   const systemLocale = getSystemLocale();
-  const systemLanguageName = systemLocale === "fr" ? "Français" : "English";
+  const systemLanguageName =
+    systemLocale === "fr"
+      ? "Français"
+      : systemLocale === "ja"
+        ? "日本語"
+        : "English";
   const defaultLabel = `${_("Default")} (${systemLanguageName})`;
 
   const languageItems = [
     { value: "default" as const, label: defaultLabel },
     { value: "en" as const, label: _("English") },
     { value: "fr" as const, label: _("French") },
+    { value: "ja" as const, label: "日本語" },
   ];
 
   return (
@@ -176,7 +182,7 @@ export function AdvancedPane() {
                 value={preference}
                 items={languageItems}
                 onValueChange={(val) => {
-                  if (val === "default" || val === "en" || val === "fr") {
+                  if (val === "default" || val === "en" || val === "fr" || val === "ja") {
                     setLocale(val);
                     setPreference(getLocalePreference());
                   }
@@ -190,6 +196,7 @@ export function AdvancedPane() {
                   <SelectSeparator />
                   <SelectItem value="en">{_("English")}</SelectItem>
                   <SelectItem value="fr">{_("French")}</SelectItem>
+                  <SelectItem value="ja">日本語</SelectItem>
                 </SelectContent>
               </Select>
             </GroupedFormRowControl>

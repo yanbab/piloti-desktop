@@ -573,12 +573,50 @@ export function IconGrid({
   React.useEffect(() => {
     if (!marquee) return;
 
-    const handlePointerMove = (e: PointerEvent) => {
-      if (e.pointerId !== marquee.pointerId) return;
-      const rect = containerRef.current?.getBoundingClientRect();
-      if (!rect) return;
-      const currentX = Math.max(0, Math.min(rect.width, e.clientX - rect.left));
-      const currentY = Math.max(0, Math.min(rect.height, e.clientY - rect.top));
+    const getHitIds = (
+      selectionRect: { left: number; top: number; right: number; bottom: number },
+      containerRect: DOMRect,
+      scrollLeft: number,
+      scrollTop: number,
+    ): string[] => {
+      const hasDomRefs = itemRefs.current.size > 0;
+      if (!hasDomRefs) {
+        return findItemsInRect(items, resolvedPositions, selectionRect, metrics);
+      }
+      const inset = 4;
+      const hit: string[] = [];
+      for (const item of items) {
+        const el = itemRefs.current.get(item.id);
+        if (!el) continue;
+        const r = el.getBoundingClientRect();
+        const itemLeft = r.left - containerRect.left + scrollLeft + inset;
+        const itemTop = r.top - containerRect.top + scrollTop + inset;
+        const itemRight = r.right - containerRect.left + scrollLeft - inset;
+        const itemBottom = r.bottom - containerRect.top + scrollTop - inset;
+        if (
+          selectionRect.left <= itemRight &&
+          selectionRect.right >= itemLeft &&
+          selectionRect.top <= itemBottom &&
+          selectionRect.bottom >= itemTop
+        ) {
+          hit.push(item.id);
+        }
+      }
+      return hit;
+    };
+
+    const applyMarqueeSelection = (e: PointerEvent, commitMove: boolean) => {
+      const container = containerRef.current;
+      if (!container) return;
+      const rect = container.getBoundingClientRect();
+      const currentX = Math.max(
+        0,
+        Math.min(container.scrollWidth, e.clientX - rect.left + container.scrollLeft),
+      );
+      const currentY = Math.max(
+        0,
+        Math.min(container.scrollHeight, e.clientY - rect.top + container.scrollTop),
+      );
       const movedEnough =
         marquee.active ||
         Math.hypot(currentX - marquee.startX, currentY - marquee.startY) >= 4;
@@ -590,11 +628,11 @@ export function IconGrid({
         currentX,
         currentY,
       );
-      const hitIds = findItemsInRect(
-        items,
-        resolvedPositions,
+      const hitIds = getHitIds(
         selectionRect,
-        metrics,
+        rect,
+        container.scrollLeft,
+        container.scrollTop,
       );
       if (marquee.additive) {
         const merged = new Set(marquee.initialSelection);
@@ -604,20 +642,28 @@ export function IconGrid({
         onSelectIds(hitIds);
       }
 
-      setMarquee((prev) =>
-        prev
-          ? {
-              ...prev,
-              currentX,
-              currentY,
-              active: true,
-            }
-          : null,
-      );
+      if (commitMove) {
+        setMarquee((prev) =>
+          prev
+            ? {
+                ...prev,
+                currentX,
+                currentY,
+                active: true,
+              }
+            : null,
+        );
+      }
+    };
+
+    const handlePointerMove = (e: PointerEvent) => {
+      if (e.pointerId !== marquee.pointerId) return;
+      applyMarqueeSelection(e, true);
     };
 
     const handlePointerUp = (e: PointerEvent) => {
       if (e.pointerId !== marquee.pointerId) return;
+      applyMarqueeSelection(e, false);
       if (marquee.active) {
         suppressContainerClickRef.current = true;
       }
@@ -711,11 +757,16 @@ export function IconGrid({
       tabIndex={items.length > 0 && selectedIds.length === 0 ? 0 : -1}
       onKeyDown={handleKeyDown}
       onPointerDown={(e) => {
-        if (e.button !== 0 || e.target !== e.currentTarget) return;
-        const rect = containerRef.current?.getBoundingClientRect();
-        if (!rect) return;
-        const startX = e.clientX - rect.left;
-        const startY = e.clientY - rect.top;
+        if (e.button !== 0) return;
+        const targetEl = e.target as HTMLElement | null;
+        if (targetEl?.closest?.('[role="gridcell"], input, textarea, button')) {
+          return;
+        }
+        const container = containerRef.current;
+        const rect = container?.getBoundingClientRect();
+        if (!container || !rect) return;
+        const startX = e.clientX - rect.left + container.scrollLeft;
+        const startY = e.clientY - rect.top + container.scrollTop;
         const additive = e.shiftKey || e.metaKey || e.ctrlKey;
         if (!additive && selectedIds.length > 0) {
           onSelectIds([]);
@@ -732,8 +783,9 @@ export function IconGrid({
         });
       }}
       onClick={(e) => {
+        const targetEl = e.target as HTMLElement | null;
         if (
-          e.target === e.currentTarget &&
+          !targetEl?.closest?.('[role="gridcell"]') &&
           suppressContainerClickRef.current
         ) {
           suppressContainerClickRef.current = false;

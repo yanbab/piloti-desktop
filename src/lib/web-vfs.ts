@@ -274,24 +274,15 @@ function createInitialVfs(): WebVfsEntry[] {
   return entries;
 }
 
-let vfsCache: WebVfsEntry[] | null = null;
-let vfsCacheRaw: string | null = null;
-
 function loadVfs(): WebVfsEntry[] {
   if (typeof localStorage === "undefined") {
     return createInitialVfs();
   }
   try {
     const raw = localStorage.getItem(WEB_VFS_STORAGE_KEY);
-    if (raw && vfsCache !== null && raw === vfsCacheRaw) {
-      return vfsCache;
-    }
     if (!raw) {
       const seeded = createInitialVfs();
-      const json = JSON.stringify(seeded);
-      localStorage.setItem(WEB_VFS_STORAGE_KEY, json);
-      vfsCache = seeded;
-      vfsCacheRaw = json;
+      localStorage.setItem(WEB_VFS_STORAGE_KEY, JSON.stringify(seeded));
       return seeded;
     }
     const parsed = JSON.parse(raw);
@@ -393,13 +384,7 @@ function loadVfs(): WebVfsEntry[] {
         }
       }
       if (addedDefaults) {
-        const nextJson = JSON.stringify(entries);
-        localStorage.setItem(WEB_VFS_STORAGE_KEY, nextJson);
-        vfsCache = entries;
-        vfsCacheRaw = nextJson;
-      } else {
-        vfsCache = entries;
-        vfsCacheRaw = raw;
+        localStorage.setItem(WEB_VFS_STORAGE_KEY, JSON.stringify(entries));
       }
       return entries;
     }
@@ -445,10 +430,7 @@ function postVfsBroadcast(msg: VfsBroadcastMessage): void {
 function saveVfs(entries: WebVfsEntry[]): void {
   if (typeof localStorage !== "undefined") {
     try {
-      const json = JSON.stringify(entries);
-      localStorage.setItem(WEB_VFS_STORAGE_KEY, json);
-      vfsCache = entries;
-      vfsCacheRaw = json;
+      localStorage.setItem(WEB_VFS_STORAGE_KEY, JSON.stringify(entries));
     } catch {
       // ignore quota errors
     }
