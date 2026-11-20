@@ -940,14 +940,19 @@ export function IconGrid({
             ) : (
               <span
                 className={cn(
-                  "w-fit max-w-full rounded px-1.5 py-0.5 text-[11.5px] leading-tight font-medium text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]",
-                  compactHorizontal
-                    ? "truncate"
-                    : "line-clamp-2 break-words",
+                  "w-fit max-w-full shrink-0 rounded px-1.5 py-0.5 text-[11.5px] leading-[1.3] font-medium text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]",
+                  compactHorizontal && "truncate",
                   selected && "bg-adw-accent text-white drop-shadow-none",
                 )}
               >
-                {item.name}
+                <span
+                  className={cn(
+                    !compactHorizontal &&
+                      "block line-clamp-2 break-words pb-[1px]",
+                  )}
+                >
+                  {item.name}
+                </span>
               </span>
             )}
           </button>
@@ -1015,10 +1020,12 @@ export function IconGrid({
                   </span>
                 )}
               </div>
-              <span className="line-clamp-2 w-fit max-w-full rounded bg-adw-accent px-1.5 py-0.5 text-[11.5px] leading-tight font-medium break-words text-white shadow-md">
-                {dragCount > 1
-                  ? `${draggedItem.name} (+${dragCount - 1})`
-                  : draggedItem.name}
+              <span className="w-fit max-w-full shrink-0 rounded bg-adw-accent px-1.5 py-0.5 text-[11.5px] leading-[1.3] font-medium text-white shadow-md">
+                <span className="block line-clamp-2 break-words pb-[1px]">
+                  {dragCount > 1
+                    ? `${draggedItem.name} (+${dragCount - 1})`
+                    : draggedItem.name}
+                </span>
               </span>
             </div>,
             document.body,

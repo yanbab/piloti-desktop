@@ -10,6 +10,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useSettings, useSystemBackends } from "@/context/DesktopStateContext";
+import { _ } from "@/lib/i18n";
 
 const AUTO_CONFIRM_SECONDS = 60;
 
@@ -57,18 +58,18 @@ export function PowerActionDialog() {
 
   const title =
     activePowerAction === "logout"
-      ? "Log Out"
+      ? _("Log Out")
       : activePowerAction === "restart"
-        ? "Restart"
-        : "Turn Off";
+        ? _("Restart")
+        : _("Turn Off");
 
-  const unit = secondsLeft === 1 ? "second" : "seconds";
+  const unit = secondsLeft === 1 ? _("second") : _("seconds");
   const description =
     activePowerAction === "logout"
-      ? `The session will log out automatically in ${secondsLeft} ${unit}.`
+      ? _("The session will log out automatically in %d %s.", secondsLeft, unit)
       : activePowerAction === "restart"
-        ? `This computer will restart automatically in ${secondsLeft} ${unit}.`
-        : `This computer will turn off automatically in ${secondsLeft} ${unit}.`;
+        ? _("This computer will restart automatically in %d %s.", secondsLeft, unit)
+        : _("This computer will turn off automatically in %d %s.", secondsLeft, unit);
 
   return (
     <Dialog
@@ -93,14 +94,14 @@ export function PowerActionDialog() {
 
         <label className="flex cursor-default items-center justify-center gap-2.5 rounded-adw-item px-2.5 py-2.5 select-none">
           <Checkbox
-            aria-label="Restore open windows"
+            aria-label={_("Restore open windows")}
             checked={settings.restoreWindowsOnLogin}
             onCheckedChange={(checked) =>
               updateSettings({ restoreWindowsOnLogin: Boolean(checked) })
             }
           />
           <span className="text-[13px] font-normal text-adw-label">
-            Restore open windows
+            {_("Restore open windows")}
           </span>
         </label>
 
@@ -112,7 +113,7 @@ export function PowerActionDialog() {
             className="h-9 w-full rounded-md font-semibold"
             onClick={() => cancelPowerAction()}
           >
-            Cancel
+            {_("Cancel")}
           </Button>
           <Button
             type="button"

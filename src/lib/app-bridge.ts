@@ -1,5 +1,6 @@
 import * as React from "react";
 import { ACCENT_COLORS, type AccentColorId } from "@/data/catalog";
+import { subscribeLocale } from "@/lib/i18n";
 
 export type ShellToAppMessage =
   | {
@@ -144,6 +145,11 @@ export function useIsolatedAppBridge(
 ): IsolatedAppBridge {
   const [windowId, setWindowId] = React.useState(defaultWindowId);
   const [isCsd, setIsCsd] = React.useState(defaultIsCsd);
+  const [localeTick, setLocaleTick] = React.useState(0);
+  React.useEffect(
+    () => subscribeLocale(() => setLocaleTick((t) => t + 1)),
+    [],
+  );
   const onActionRef = React.useRef(onAction);
   onActionRef.current = onAction;
   const pendingFsRequestsRef = React.useRef(
@@ -280,7 +286,7 @@ export function useIsolatedAppBridge(
           })),
       },
     }),
-    [isCsd, sendFsRpc, windowId],
+    [isCsd, localeTick, sendFsRpc, windowId],
   );
 }
 

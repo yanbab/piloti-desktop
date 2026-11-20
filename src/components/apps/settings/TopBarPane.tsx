@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/grouped-form";
 import { Switch } from "@/components/ui/switch";
 import { useSettings } from "@/context/DesktopStateContext";
+import { _ } from "@/lib/i18n";
 
 export function TopBarPane() {
   const { settings, updateSettings } = useSettings();
@@ -17,11 +18,11 @@ export function TopBarPane() {
   return (
     <GroupedForm>
       <GroupedFormSection>
-        <GroupedFormSectionTitle>Clock & Date</GroupedFormSectionTitle>
+        <GroupedFormSectionTitle>{_("Clock & Date")}</GroupedFormSectionTitle>
         <GroupedFormGroup>
           <GroupedFormRow>
             <GroupedFormRowLabel>
-              <GroupedFormRowTitle>Use 24-Hour Clock</GroupedFormRowTitle>
+              <GroupedFormRowTitle>{_("Use 24-Hour Clock")}</GroupedFormRowTitle>
             </GroupedFormRowLabel>
             <GroupedFormRowControl>
               <Switch
@@ -35,7 +36,7 @@ export function TopBarPane() {
 
           <GroupedFormRow>
             <GroupedFormRowLabel>
-              <GroupedFormRowTitle>Show Day of Week</GroupedFormRowTitle>
+              <GroupedFormRowTitle>{_("Show Day of Week")}</GroupedFormRowTitle>
             </GroupedFormRowLabel>
             <GroupedFormRowControl>
               <Switch
@@ -49,7 +50,7 @@ export function TopBarPane() {
 
           <GroupedFormRow>
             <GroupedFormRowLabel>
-              <GroupedFormRowTitle>Show Date</GroupedFormRowTitle>
+              <GroupedFormRowTitle>{_("Show Date")}</GroupedFormRowTitle>
             </GroupedFormRowLabel>
             <GroupedFormRowControl>
               <Switch
@@ -64,11 +65,11 @@ export function TopBarPane() {
       </GroupedFormSection>
 
       <GroupedFormSection>
-        <GroupedFormSectionTitle>Control Panel & Status</GroupedFormSectionTitle>
+        <GroupedFormSectionTitle>{_("Control Panel & Status")}</GroupedFormSectionTitle>
         <GroupedFormGroup>
           <GroupedFormRow>
             <GroupedFormRowLabel>
-              <GroupedFormRowTitle>Show Battery Percentage</GroupedFormRowTitle>
+              <GroupedFormRowTitle>{_("Show Battery Percentage")}</GroupedFormRowTitle>
             </GroupedFormRowLabel>
             <GroupedFormRowControl>
               <Switch

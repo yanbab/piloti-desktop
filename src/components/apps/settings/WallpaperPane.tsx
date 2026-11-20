@@ -33,6 +33,7 @@ import {
   selectGnomePictureUri,
   toHexColorInputValue,
 } from "@/lib/gnome-background";
+import { _ } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 export function WallpaperPane() {
@@ -191,7 +192,7 @@ export function WallpaperPane() {
   return (
     <GroupedForm>
       <GroupedFormSection>
-        <GroupedFormSectionTitle>Current Wallpaper</GroupedFormSectionTitle>
+        <GroupedFormSectionTitle>{_("Current Wallpaper")}</GroupedFormSectionTitle>
         <GroupedFormGroup>
           <div className="flex justify-center p-3.5">
             <div className="relative aspect-[16/10] h-28 w-auto max-w-full overflow-hidden rounded-[8px] border border-black/10 dark:border-white/15">
@@ -202,7 +203,7 @@ export function WallpaperPane() {
       </GroupedFormSection>
 
       <GroupedFormSection>
-        <GroupedFormSectionTitle>Gradients</GroupedFormSectionTitle>
+        <GroupedFormSectionTitle>{_("Gradients")}</GroupedFormSectionTitle>
         <GroupedFormGroup>
           <div className="grid grid-cols-2 gap-3 p-3.5 sm:grid-cols-3">
             {gradients.map((wp) => renderWallpaperCard(wp, false))}
@@ -211,7 +212,7 @@ export function WallpaperPane() {
       </GroupedFormSection>
 
       <GroupedFormSection>
-        <GroupedFormSectionTitle>Pictures</GroupedFormSectionTitle>
+        <GroupedFormSectionTitle>{_("Pictures")}</GroupedFormSectionTitle>
         <GroupedFormGroup>
           <div className="grid grid-cols-2 gap-3 p-3.5 sm:grid-cols-3">
             {pictures.map((wp) => renderWallpaperCard(wp, false))}
@@ -220,7 +221,7 @@ export function WallpaperPane() {
       </GroupedFormSection>
 
       <GroupedFormSection>
-        <GroupedFormSectionTitle>Colors</GroupedFormSectionTitle>
+        <GroupedFormSectionTitle>{_("Colors")}</GroupedFormSectionTitle>
         <GroupedFormGroup>
           <div className="grid grid-cols-3 gap-3 p-3.5 sm:grid-cols-4 lg:grid-cols-6">
             {solidWallpapers.map((wp) => renderWallpaperCard(wp, true))}
@@ -247,7 +248,7 @@ export function WallpaperPane() {
               </div>
               <input
                 type="color"
-                aria-label="Custom Color Picker"
+                aria-label={_("Custom Color Picker")}
                 value={customHexValue}
                 onChange={(e) => {
                   const hex = e.target.value;
@@ -263,11 +264,11 @@ export function WallpaperPane() {
       </GroupedFormSection>
 
       <GroupedFormSection>
-        <GroupedFormSectionTitle>Advanced</GroupedFormSectionTitle>
+        <GroupedFormSectionTitle>{_("Advanced")}</GroupedFormSectionTitle>
         <GroupedFormGroup>
           <GroupedFormRow className="gap-2 py-3">
             <GroupedFormRowLabel>
-              <GroupedFormRowTitle>Picture URI</GroupedFormRowTitle>
+              <GroupedFormRowTitle>{_("Picture URI")}</GroupedFormRowTitle>
             </GroupedFormRowLabel>
             <GroupedFormRowControl className="flex-1 justify-end gap-2">
               <Input
@@ -288,7 +289,7 @@ export function WallpaperPane() {
                   })
                 }
               >
-                Apply
+                {_("Apply")}
               </Button>
               {(gnomeBg.pictureUri || settings.customWallpaperUrl) && (
                 <Button
@@ -299,7 +300,7 @@ export function WallpaperPane() {
                     updateGnomeBg({ pictureUri: "" });
                   }}
                 >
-                  Clear
+                  {_("Clear")}
                 </Button>
               )}
             </GroupedFormRowControl>
@@ -307,7 +308,7 @@ export function WallpaperPane() {
 
           <GroupedFormRow className="gap-2 py-3">
             <GroupedFormRowLabel>
-              <GroupedFormRowTitle>Dark Style Picture URI</GroupedFormRowTitle>
+              <GroupedFormRowTitle>{_("Dark Style Picture URI")}</GroupedFormRowTitle>
             </GroupedFormRowLabel>
             <GroupedFormRowControl className="flex-1 justify-end gap-2">
               <Input
@@ -328,7 +329,7 @@ export function WallpaperPane() {
                   })
                 }
               >
-                Apply
+                {_("Apply")}
               </Button>
               {gnomeBg.pictureUriDark && (
                 <Button
@@ -339,7 +340,7 @@ export function WallpaperPane() {
                     updateGnomeBg({ pictureUriDark: "" });
                   }}
                 >
-                  Clear
+                  {_("Clear")}
                 </Button>
               )}
             </GroupedFormRowControl>
@@ -347,11 +348,15 @@ export function WallpaperPane() {
 
           <GroupedFormRow>
             <GroupedFormRowLabel>
-              <GroupedFormRowTitle>Picture Options</GroupedFormRowTitle>
+              <GroupedFormRowTitle>{_("Picture Options")}</GroupedFormRowTitle>
             </GroupedFormRowLabel>
             <GroupedFormRowControl>
               <Select
                 value={gnomeBg.pictureOptions}
+                items={GNOME_PICTURE_OPTIONS.map((opt) => ({
+                  value: opt.value,
+                  label: _(opt.label),
+                }))}
                 onValueChange={(value) =>
                   updateGnomeBg({ pictureOptions: value as GnomePictureOptions })
                 }
@@ -362,7 +367,7 @@ export function WallpaperPane() {
                 <SelectContent>
                   {GNOME_PICTURE_OPTIONS.map((opt) => (
                     <SelectItem key={opt.value} value={opt.value}>
-                      {opt.label}
+                      {_(opt.label)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -372,7 +377,7 @@ export function WallpaperPane() {
 
           <GroupedFormRow>
             <GroupedFormRowLabel>
-              <GroupedFormRowTitle>Picture Opacity</GroupedFormRowTitle>
+              <GroupedFormRowTitle>{_("Picture Opacity")}</GroupedFormRowTitle>
             </GroupedFormRowLabel>
             <GroupedFormRowControl className="w-44">
               <Slider
@@ -392,11 +397,15 @@ export function WallpaperPane() {
 
           <GroupedFormRow>
             <GroupedFormRowLabel>
-              <GroupedFormRowTitle>Color Shading</GroupedFormRowTitle>
+              <GroupedFormRowTitle>{_("Color Shading")}</GroupedFormRowTitle>
             </GroupedFormRowLabel>
             <GroupedFormRowControl className="gap-2">
               <Select
                 value={gnomeBg.colorShadingType}
+                items={GNOME_SHADING_TYPES.map((opt) => ({
+                  value: opt.value,
+                  label: _(opt.label),
+                }))}
                 onValueChange={(value) =>
                   updateGnomeBg({
                     colorShadingType: value as GnomeColorShadingType,
@@ -409,7 +418,7 @@ export function WallpaperPane() {
                 <SelectContent>
                   {GNOME_SHADING_TYPES.map((opt) => (
                     <SelectItem key={opt.value} value={opt.value}>
-                      {opt.label}
+                      {_(opt.label)}
                     </SelectItem>
                   ))}
                 </SelectContent>

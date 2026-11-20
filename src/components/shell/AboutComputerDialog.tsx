@@ -130,10 +130,10 @@ export function AboutComputerDialog() {
   }, [info.kernel, info.osName, isBrowserRuntime]);
 
   const rows = [
-    { label: "Platform", value: platformLabel },
-    { label: "Processor", value: info.processor },
-    { label: "Graphics", value: info.graphics },
-    { label: "Memory", value: info.memory },
+    { label: _("Platform"), value: platformLabel },
+    { label: _("Processor"), value: _(info.processor) },
+    { label: _("Graphics"), value: _(info.graphics) },
+    { label: _("Memory"), value: _(info.memory) },
   ];
 
   const [pos, setPos] = React.useState(() => ({
@@ -196,7 +196,7 @@ export function AboutComputerDialog() {
                 openGnomeSettings("system");
               }}
             >
-              More Info…
+              {_("More Info…")}
             </Button>
           </div>
         </WindowContent>

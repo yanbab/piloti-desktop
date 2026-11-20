@@ -39,6 +39,7 @@ import {
   subscribeWebVfs,
   WEB_VFS_TRASH,
 } from "@/lib/web-vfs";
+import { _ } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { AppSquircleIcon } from "./AppSymbol";
 
@@ -555,7 +556,7 @@ export function Dock() {
         >
           {/* Launcher Quick Tile (3x3 App Grid from XDG Icon Theme) */}
           <DockItem
-            label="Launcher (Alt+Space)"
+            label={_("Launcher (Alt+Space)")}
             onClick={() => setLauncherOpen(true)}
           >
             {(() => {
@@ -605,7 +606,7 @@ export function Dock() {
             return (
               <DockItem
                 key={app.id}
-                label={app.name}
+                label={_(app.name)}
                 running={isRunning}
                 runningCount={readyWins.length}
                 launching={isLaunching}
@@ -683,7 +684,7 @@ export function Dock() {
           />
 
           <DockItem
-            label={trashEmpty ? "Trash (Empty)" : `Trash (${trashCount})`}
+            label={trashEmpty ? _("Trash (Empty)") : _("Trash (%d)", trashCount)}
             tileProps={{
               "data-dock-context": "trash",
               "data-vfs-drop-path": WEB_VFS_TRASH,
@@ -713,8 +714,8 @@ export function Dock() {
             <>
               <ContextMenuItem onClick={() => handleDockAppClick(contextApp.id)}>
                 {contextAppRunning
-                  ? `Show ${contextApp.shortName}`
-                  : `Open ${contextApp.shortName}`}
+                  ? _("Show %s", _(contextApp.shortName))
+                  : _("Open %s", _(contextApp.shortName))}
               </ContextMenuItem>
               <ContextMenuItem
                 onClick={() => {
@@ -733,13 +734,13 @@ export function Dock() {
                   }
                 }}
               >
-                New Window
+                {_("New Window")}
               </ContextMenuItem>
               {!contextApp.id.startsWith("webview:") && (
                 <>
                   <ContextMenuSeparator />
                   <ContextMenuItem onClick={() => togglePinApp(contextApp.id)}>
-                    {contextAppPinned ? "Remove from Dock" : "Keep in Dock"}
+                    {contextAppPinned ? _("Remove from Dock") : _("Keep in Dock")}
                   </ContextMenuItem>
                 </>
               )}
@@ -754,15 +755,15 @@ export function Dock() {
                     }}
                   >
                     {contextAppWins.every((w) => w.minimized)
-                      ? "Restore All"
-                      : "Minimize"}
+                      ? _("Restore All")
+                      : _("Minimize")}
                   </ContextMenuItem>
                   {altPressed ? (
                     <ContextMenuItem
                       variant="destructive"
                       onClick={() => forceQuitApp(contextApp.id)}
                     >
-                      Force Quit {contextApp.shortName}
+                      {_("Force Quit %s", _(contextApp.shortName))}
                     </ContextMenuItem>
                   ) : (
                     <ContextMenuItem
@@ -772,7 +773,7 @@ export function Dock() {
                         }
                       }}
                     >
-                      Quit {contextApp.shortName}
+                      {_("Quit %s", _(contextApp.shortName))}
                     </ContextMenuItem>
                   )}
                 </>
@@ -781,14 +782,14 @@ export function Dock() {
           ) : contextTarget.kind === "trash" ? (
             <>
               <ContextMenuItem onClick={handleOpenTrash}>
-                Open Trash
+                {_("Open Trash")}
               </ContextMenuItem>
               <ContextMenuSeparator />
               <ContextMenuItem
                 disabled={trashEmpty}
                 onClick={() => void handleEmptyTrash()}
               >
-                Empty Trash
+                {_("Empty Trash")}
               </ContextMenuItem>
             </>
           ) : (
@@ -799,7 +800,7 @@ export function Dock() {
                   updateSettings({ dockAutoHide: !settings.dockAutoHide })
                 }
               >
-                Hide
+                {_("Hide")}
               </ContextMenuCheckboxItem>
               <ContextMenuCheckboxItem
                 checked={settings.dockMagnification}
@@ -809,14 +810,14 @@ export function Dock() {
                   })
                 }
               >
-                Zoom
+                {_("Zoom")}
               </ContextMenuCheckboxItem>
               <ContextMenuSeparator />
               <ContextMenuItem
                 inset
                 onClick={() => launchApp("settings", { payload: "dock" })}
               >
-                Dock Settings…
+                {_("Dock Settings…")}
               </ContextMenuItem>
             </>
           )}

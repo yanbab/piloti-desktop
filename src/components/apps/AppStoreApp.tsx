@@ -59,6 +59,7 @@ import {
   getWebAppFaviconUrl,
   type InstalledWebApp,
 } from "@/data/web-apps";
+import { _ } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 interface AppStoreAppProps {
@@ -315,18 +316,17 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
     sidebarRef,
     contentRef: mainRef,
   });
-  const sidebarItems = React.useMemo<AdwSplitSidebarItem[]>(
-    () =>
-      [...SIDEBAR_ITEMS, ...CATEGORY_ITEMS].map((entry, idx) => ({
-        id: entry.id,
-        label: entry.label,
-        icon: entry.icon,
-        selected: highlightedCategory === entry.id,
-        onClick: () => setCategory(entry.id),
-        separatorAfter: idx === SIDEBAR_ITEMS.length - 1,
-      })),
-    [highlightedCategory],
-  );
+  const sidebarItems: AdwSplitSidebarItem[] = [
+    ...SIDEBAR_ITEMS,
+    ...CATEGORY_ITEMS,
+  ].map((entry, idx) => ({
+    id: entry.id,
+    label: _(entry.label),
+    icon: entry.icon,
+    selected: highlightedCategory === entry.id,
+    onClick: () => setCategory(entry.id),
+    separatorAfter: idx === SIDEBAR_ITEMS.length - 1,
+  }));
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
   const [meta, setMeta] = React.useState<StoreMetaState>(loadStoreMeta);
   const [pendingOp, setPendingOp] = React.useState<{
@@ -552,8 +552,8 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
       return {
         id: `app:${app.id}`,
         kind: "app",
-        title: app.name,
-        subtitle: app.description,
+        title: _(app.name),
+        subtitle: _(app.description),
         category: classifyCatalogCategory(app.category),
         installed,
         removable: !isCore,
@@ -817,7 +817,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
 
   return (
     <AdwSplitView
-      title="App Store"
+      title={_("App Store")}
       appId="app-store"
       windowId={windowId}
       isCsd={isCsd}
@@ -865,8 +865,10 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
           </div>
 
           <span className="pointer-events-none truncate text-[13px] font-semibold">
-            {[...SIDEBAR_ITEMS, ...CATEGORY_ITEMS].find((i) => i.id === category)
-              ?.label ?? "Explore"}
+            {_(
+              [...SIDEBAR_ITEMS, ...CATEGORY_ITEMS].find((i) => i.id === category)
+                ?.label ?? "Explore"
+            )}
           </span>
 
           <div className="flex items-center gap-1.5" data-window-no-drag>
@@ -883,13 +885,13 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                     setQuery("");
                   }
                 }}
-                placeholder="Search"
-                aria-label="Search"
+                placeholder={_("Search")}
+                aria-label={_("Search")}
                 className="h-7 w-40 rounded-md border border-adw-separator bg-black/5 pr-6 pl-7 text-[12px] text-adw-label placeholder:text-adw-label-secondary focus:border-adw-accent focus:outline-none dark:bg-white/8 [&::-webkit-search-cancel-button]:hidden"
               />
               {query && (
                 <WindowControlButton
-                  aria-label="Clear search"
+                  aria-label={_("Clear search")}
                   onClick={() => {
                     setQuery("");
                     searchInputRef.current?.focus();
@@ -937,8 +939,8 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                 <div className="flex items-center gap-3">
                   <span className="text-[12.5px] font-medium text-adw-label-secondary">
                     {pendingOp.kind === "removing"
-                      ? "Removing…"
-                      : "Installing…"}
+                      ? _("Removing…")
+                      : _("Installing…")}
                   </span>
                   <div
                     role="progressbar"
@@ -966,7 +968,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                   disabled={pendingOp !== null}
                   onClick={() => handleInstall(selectedItem)}
                 >
-                  Install
+                  {_("Install")}
                 </Button>
               ) : (
                 <>
@@ -977,7 +979,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                     className="px-5"
                     onClick={() => handleOpen(selectedItem)}
                   >
-                    Open
+                    {_("Open")}
                   </Button>
                   {selectedItem.removable && (
                     <Button
@@ -988,7 +990,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                       disabled={pendingOp !== null}
                       onClick={() => handleUninstall(selectedItem)}
                     >
-                      Uninstall
+                      {_("Uninstall")}
                     </Button>
                   )}
                 </>
@@ -1101,13 +1103,13 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
             {filteredItems.length === 0 ? (
               <div className="flex h-full flex-col items-center justify-center gap-2 text-center text-adw-label-secondary">
                 <PackageIcon className="size-10 opacity-40" />
-                <p className="text-sm font-medium">No applications found</p>
+                <p className="text-sm font-medium">{_("No applications found")}</p>
               </div>
             ) : (
               <div className="space-y-5">
                 {[
-                  { id: "web", title: "Web Apps", list: webAndAppItems },
-                  { id: "flatpak", title: "Flatpaks", list: flatpakStoreItems },
+                  { id: "web", title: _("Web Apps"), list: webAndAppItems },
+                  { id: "flatpak", title: _("Flatpaks"), list: flatpakStoreItems },
                 ]
                   .filter((group) => group.list.length > 0)
                   .map((group) => (
@@ -1190,19 +1192,19 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                               <ContextMenuContent className="w-40">
                                 {!item.installed ? (
                                   <ContextMenuItem onClick={() => handleInstall(item)}>
-                                    Install
+                                    {_("Install")}
                                   </ContextMenuItem>
                                 ) : (
                                   <>
                                     <ContextMenuItem onClick={() => handleOpen(item)}>
-                                      Open
+                                      {_("Open")}
                                     </ContextMenuItem>
                                     {item.removable && (
                                       <ContextMenuItem
                                         variant="destructive"
                                         onClick={() => handleUninstall(item)}
                                       >
-                                        Uninstall
+                                        {_("Uninstall")}
                                       </ContextMenuItem>
                                     )}
                                   </>

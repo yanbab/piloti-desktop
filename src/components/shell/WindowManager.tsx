@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { IsolatedAppFrame } from "@/components/shell/IsolatedAppFrame";
 import { WindowMenuButton } from "@/components/shell/WindowMenuButton";
+import { _ } from "@/lib/i18n";
 import { computeOverviewWindowLayouts } from "@/lib/overview-layout";
 const CalculatorApp = React.lazy(() =>
   import("@/components/apps/CalculatorApp").then((m) => ({
@@ -1238,7 +1239,7 @@ export function WindowManager() {
                 }}
                 className={itemCls}
               >
-                Minimize
+                {_("Minimize")}
               </button>
               <button
                 type="button"
@@ -1249,7 +1250,7 @@ export function WindowManager() {
                 }}
                 className={itemCls}
               >
-                {ctxWin.maximized ? "Restore" : "Maximize"}
+                {ctxWin.maximized ? _("Restore") : _("Maximize")}
               </button>
               <button
                 type="button"
@@ -1260,7 +1261,7 @@ export function WindowManager() {
                 }}
                 className={itemCls}
               >
-                Tile Left
+                {_("Tile Left")}
               </button>
               <button
                 type="button"
@@ -1271,7 +1272,7 @@ export function WindowManager() {
                 }}
                 className={itemCls}
               >
-                Tile Right
+                {_("Tile Right")}
               </button>
               <div className="my-1 h-px bg-adw-separator" />
               <button
@@ -1283,7 +1284,7 @@ export function WindowManager() {
                 }}
                 className={itemCls}
               >
-                Close
+                {_("Close")}
               </button>
             </div>
           );

@@ -8,6 +8,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useIsolatedAppBridge } from "@/lib/app-bridge";
+import { _ } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 type Operator = "+" | "-" | "*" | "/";
@@ -285,13 +286,13 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
               : "border-adw-border bg-adw-fill-secondary text-adw-label hover:bg-adw-fill-primary",
           )}
         >
-          {scientific ? "Scientific" : "Basic"}
+          {scientific ? _("Scientific") : _("Basic")}
         </button>
         {isCsd && (
           <button
             type="button"
             data-window-no-drag
-            aria-label="Close window"
+            aria-label={_("Close window")}
             onClick={handleClose}
             className="flex size-5 items-center justify-center rounded-full bg-adw-fill-secondary text-adw-label-secondary transition-colors hover:bg-adw-fill-primary hover:text-adw-label"
           >
@@ -307,11 +308,11 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
           setCopied(true);
           window.setTimeout(() => setCopied(false), 900);
         }}
-        title="Click to copy"
+        title={_("Click to copy")}
         className="mx-2 mb-1.5 flex shrink-0 cursor-default flex-col items-end justify-end rounded-lg border border-adw-border/60 bg-adw-content/80 px-2.5 py-1"
       >
         <div className="flex h-3 w-full items-center justify-between text-[10px] text-adw-dim tabular-nums">
-          <span>{copied ? "Copied" : ""}</span>
+          <span>{copied ? _("Copied") : ""}</span>
           <span className="truncate">{expressionLine}</span>
         </div>
         <div

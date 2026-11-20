@@ -52,7 +52,7 @@ import {
   useWindowManager,
 } from "@/context/DesktopStateContext";
 import { matchXdgEntryForWaylandWindow } from "xdg-desktop-entry";
-import { _ } from "@/lib/i18n";
+import { _, getLocale } from "@/lib/i18n";
 import { useAltKey } from "@/hooks/use-alt-key";
 import {
   discoverRemoteGlobalMenu,
@@ -224,20 +224,23 @@ export function MenuBar() {
     launchXdgEntry,
   ]);
 
+  const localeTag = getLocale() === "fr" ? "fr-FR" : "en-US";
+
   const formatTime = React.useCallback(
     (date: Date) => {
       const dateParts: string[] = [];
       if (settings.clockShowDay) {
-        const wd = date.toLocaleDateString("en-US", { weekday: "short" });
-        dateParts.push(`${wd}.`);
+        const wd = date.toLocaleDateString(localeTag, { weekday: "short" });
+        dateParts.push(wd.endsWith(".") ? wd : `${wd}.`);
       }
       if (settings.clockShowDate) {
         const mo = date
-          .toLocaleDateString("en-US", { month: "short" })
+          .toLocaleDateString(localeTag, { month: "short" })
           .toLowerCase();
-        dateParts.push(`${mo}. ${date.getDate()}`);
+        const moClean = mo.endsWith(".") ? mo : `${mo}.`;
+        dateParts.push(`${moClean} ${date.getDate()}`);
       }
-      const timeStr = date.toLocaleTimeString("en-US", {
+      const timeStr = date.toLocaleTimeString(localeTag, {
         hour12: !settings.clock24Hour,
         hour: settings.clock24Hour ? "2-digit" : "numeric",
         minute: "2-digit",
@@ -247,6 +250,7 @@ export function MenuBar() {
         : timeStr;
     },
     [
+      localeTag,
       settings.clock24Hour,
       settings.clockShowDate,
       settings.clockShowDay,
@@ -453,7 +457,7 @@ export function MenuBar() {
             </MenubarTrigger>
             <MenubarContent>
               <MenubarItem onClick={() => setAboutOpen(true)}>
-                About Computer
+                {_("About Computer")}
               </MenubarItem>
               <MenubarSeparator />
               <MenubarItem
@@ -467,29 +471,29 @@ export function MenuBar() {
                 <MenubarShortcut>Alt+,</MenubarShortcut>
               </MenubarItem>
               <MenubarItem onClick={() => launchApp("app-store")}>
-                Application Store
+                {_("Application Store")}
               </MenubarItem>
               <MenubarItem
                 onClick={() =>
                   altHeld ? window.location.reload() : launchApp("console")
                 }
               >
-                {altHeld ? "Reload Shell" : "DevTools"}
+                {altHeld ? _("Reload Shell") : _("DevTools")}
               </MenubarItem>
               <MenubarSeparator />
               <MenubarItem onClick={(e) => handlePowerMenuClick("restart", e)}>
-                {altHeld ? "Restart" : "Restart…"}
+                {altHeld ? _("Restart") : _("Restart…")}
               </MenubarItem>
               <MenubarItem onClick={(e) => handlePowerMenuClick("poweroff", e)}>
-                {altHeld ? "Turn Off" : "Turn Off…"}
+                {altHeld ? _("Turn Off") : _("Turn Off…")}
               </MenubarItem>
               <MenubarSeparator />
               <MenubarItem onClick={() => lockSession()}>
-                Lock Screen
+                {_("Lock Screen")}
                 <MenubarShortcut>⌃⌘Q</MenubarShortcut>
               </MenubarItem>
               <MenubarItem onClick={(e) => handlePowerMenuClick("logout", e)}>
-                {altHeld ? "Log Out" : "Log Out…"}
+                {altHeld ? _("Log Out") : _("Log Out…")}
               </MenubarItem>
             </MenubarContent>
           </MenubarMenu>
@@ -498,7 +502,7 @@ export function MenuBar() {
           <MenubarMenu>
             <MenubarTrigger app>
               <span className="max-w-[180px] truncate">
-                {activeAppDef.shortName}
+                {_(activeAppDef.shortName)}
               </span>
             </MenubarTrigger>
             <MenubarContent>
@@ -511,7 +515,7 @@ export function MenuBar() {
                   }
                 }}
               >
-                About {activeAppDef.name}
+                {_("About %s", _(activeAppDef.name))}
               </MenubarItem>
               {remoteMenu && remoteMenu.appActions.length > 0 && (
                 <>
@@ -534,7 +538,7 @@ export function MenuBar() {
                   <MenubarItem
                     onClick={() => closeWindow(focusedWindowId)}
                   >
-                    Quit {activeAppDef.shortName}
+                    {_("Quit %s", _(activeAppDef.shortName))}
                     <MenubarShortcut>Alt+W</MenubarShortcut>
                   </MenubarItem>
                 </>
@@ -559,12 +563,12 @@ export function MenuBar() {
               ))
             : activeAppDef.menus.map((section) => (
                 <MenubarMenu key={section.title}>
-                  <MenubarTrigger>{section.title}</MenubarTrigger>
+                  <MenubarTrigger>{_(section.title)}</MenubarTrigger>
                   <MenubarContent>
                     {section.items.map((item) => (
                       <React.Fragment key={item.label}>
                         <MenubarItem onClick={() => handleMenuAction(item.actionId)}>
-                          {item.label}
+                          {_(item.label)}
                           {item.shortcut && (
                             <MenubarShortcut>{item.shortcut}</MenubarShortcut>
                           )}
@@ -656,8 +660,8 @@ export function MenuBar() {
                     {appWindows.map((win) => (
                       <MenubarItem key={win.id} onClick={() => focusWindow(win.id)}>
                         <span className="max-w-[180px] truncate">{win.title}</span>
-                        {win.id === focusedWindowId && <MenubarBadge>Active</MenubarBadge>}
-                        {win.minimized && <MenubarBadge>Min</MenubarBadge>}
+                        {win.id === focusedWindowId && <MenubarBadge>{_("Active")}</MenubarBadge>}
+                        {win.minimized && <MenubarBadge>{_("Min")}</MenubarBadge>}
                       </MenubarItem>
                     ))}
                   </>
@@ -669,7 +673,7 @@ export function MenuBar() {
 
           {/* Help Menu */}
           <MenubarMenu>
-            <MenubarTrigger>Help</MenubarTrigger>
+            <MenubarTrigger>{_("Help")}</MenubarTrigger>
             <MenubarContent>
               <MenubarItem
                 onClick={() => {
@@ -684,12 +688,12 @@ export function MenuBar() {
                   } else {
                     openWebUrl(
                       "https://yanbab.github.io/piloti-desktop/WELCOME.html#shortcuts",
-                      { title: "Shortcuts" }
+                      { title: _("Shortcuts") }
                     );
                   }
                 }}
               >
-                Shortcuts…
+                {_("Shortcuts…")}
               </MenubarItem>
               <MenubarItem
                 onClick={() => {
@@ -698,11 +702,11 @@ export function MenuBar() {
                   if (isBrowserRuntime) {
                     window.open(issueUrl, "_blank", "noopener,noreferrer");
                   } else {
-                    openWebUrl(issueUrl, { title: "Report Issue" });
+                    openWebUrl(issueUrl, { title: _("Report Issue") });
                   }
                 }}
               >
-                Report Issue…
+                {_("Report Issue…")}
               </MenubarItem>
             </MenubarContent>
           </MenubarMenu>
@@ -922,7 +926,7 @@ export function MenuBar() {
           <WindowMain>
             <WindowTitlebar className="justify-between">
               <div className="w-7" />
-              <WindowTitle>About {activeAppDef.name}</WindowTitle>
+              <WindowTitle>{_("About %s", _(activeAppDef.name))}</WindowTitle>
               <WindowControls side="right" />
             </WindowTitlebar>
             <WindowContent className="flex flex-col items-center justify-center gap-1.5 p-5 text-center">
@@ -937,10 +941,10 @@ export function MenuBar() {
                 />
               </div>
               <h2 className="text-[18px] font-bold tracking-tight text-adw-label">
-                {activeAppDef.name}
+                {_(activeAppDef.name)}
               </h2>
               <p className="text-[12px] text-adw-label-secondary">
-                {activeAppDef.description}
+                {_(activeAppDef.description)}
               </p>
               <span className="mt-1 rounded-full bg-black/6 px-2.5 py-0.5 text-[11px] font-medium text-adw-label-secondary dark:bg-white/10">
                 Version 0.4.0

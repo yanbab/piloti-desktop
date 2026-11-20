@@ -1,7 +1,5 @@
 import * as React from "react";
 import { CheckIcon, MoonIcon, SunIcon } from "lucide-react";
-import { useDomicile } from "@domicile-desktop/react/domicile-provider";
-import { Button } from "@/components/ui/button";
 import {
   GroupedForm,
   GroupedFormGroup,
@@ -13,51 +11,45 @@ import {
   GroupedFormSectionTitle,
 } from "@/components/ui/grouped-form";
 import { Switch } from "@/components/ui/switch";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { useSettings } from "@/context/DesktopStateContext";
 import { ACCENT_COLORS } from "@/data/catalog";
+import { _ } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
-import { discoverInstalledIconThemes } from "@/lib/xdg-icon-theme";
 
 export function AppearancePane() {
-  const domicile = useDomicile();
   const { settings, updateSettings } = useSettings();
-  const [installedIconThemes, setInstalledIconThemes] = React.useState<string[]>([
-    "Adwaita",
-  ]);
 
-  React.useEffect(() => {
-    let cancelled = false;
-    void discoverInstalledIconThemes(domicile.files).then((themes) => {
-      if (!cancelled && themes.length > 0) {
-        setInstalledIconThemes(themes);
-      }
+  const layoutRaw = (settings.windowButtonLayout ?? ":close").trim();
+  const isLeftPlacement =
+    layoutRaw.indexOf(":") > 0 && !layoutRaw.startsWith(":");
+  const hasMinimize = layoutRaw.toLowerCase().includes("minimize");
+  const hasMaximize = layoutRaw.toLowerCase().includes("maximize");
+
+  const updateButtonLayout = (next: {
+    left?: boolean;
+    minimize?: boolean;
+    maximize?: boolean;
+  }) => {
+    const useLeft = next.left ?? isLeftPlacement;
+    const min = next.minimize ?? hasMinimize;
+    const max = next.maximize ?? hasMaximize;
+    const buttons = useLeft
+      ? ["close", ...(min ? ["minimize"] : []), ...(max ? ["maximize"] : [])]
+      : [...(min ? ["minimize"] : []), ...(max ? ["maximize"] : []), "close"];
+    const joined = buttons.join(",");
+    updateSettings({
+      windowButtonLayout: useLeft ? `${joined}:` : `:${joined}`,
     });
-    return () => {
-      cancelled = true;
-    };
-  }, [domicile.files]);
-
-  const iconThemeOptions = React.useMemo(() => {
-    const set = new Set(installedIconThemes);
-    if (settings.iconTheme) set.add(settings.iconTheme);
-    return Array.from(set).sort((a, b) => a.localeCompare(b));
-  }, [installedIconThemes, settings.iconTheme]);
+  };
 
   return (
     <GroupedForm>
       <GroupedFormSection>
-        <GroupedFormSectionTitle>Appearance</GroupedFormSectionTitle>
+        <GroupedFormSectionTitle>{_("Appearance")}</GroupedFormSectionTitle>
         <GroupedFormGroup>
           <GroupedFormRow>
             <GroupedFormRowLabel>
-              <GroupedFormRowTitle>Style</GroupedFormRowTitle>
+              <GroupedFormRowTitle>{_("Style")}</GroupedFormRowTitle>
             </GroupedFormRowLabel>
             <GroupedFormRowControl>
               <div className="inline-flex items-center gap-1 rounded-[9px] bg-black/8 p-1 dark:bg-white/8">
@@ -65,12 +57,12 @@ export function AppearancePane() {
                   [
                     {
                       id: "light",
-                      label: "Light",
+                      label: _("Light"),
                       icon: <SunIcon className="size-3.5" />,
                     },
                     {
                       id: "dark",
-                      label: "Dark",
+                      label: _("Dark"),
                       icon: <MoonIcon className="size-3.5" />,
                     },
                   ] as const
@@ -99,7 +91,7 @@ export function AppearancePane() {
 
           <GroupedFormRow className="py-3.5">
             <GroupedFormRowLabel>
-              <GroupedFormRowTitle>Accent Color</GroupedFormRowTitle>
+              <GroupedFormRowTitle>{_("Accent Color")}</GroupedFormRowTitle>
             </GroupedFormRowLabel>
             <GroupedFormRowControl>
               <div className="flex max-w-[280px] flex-wrap items-center justify-end gap-2">
@@ -109,8 +101,8 @@ export function AppearancePane() {
                     <button
                       key={color.id}
                       type="button"
-                      title={color.label}
-                      aria-label={color.label}
+                      title={_(color.label)}
+                      aria-label={_(color.label)}
                       onClick={() => updateSettings({ accentColor: color.id })}
                       style={{ backgroundColor: color.hex }}
                       className={cn(
@@ -131,42 +123,81 @@ export function AppearancePane() {
               </div>
             </GroupedFormRowControl>
           </GroupedFormRow>
-
-          {/* <GroupedFormRow>
-            <GroupedFormRowLabel>
-              <GroupedFormRowTitle>Icon Theme</GroupedFormRowTitle>
-            </GroupedFormRowLabel>
-            <GroupedFormRowControl>
-              <Select
-                value={settings.iconTheme || "Adwaita"}
-                onValueChange={(val) => {
-                  if (val) updateSettings({ iconTheme: val });
-                }}
-              >
-                <SelectTrigger variant="borderless">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {iconThemeOptions.map((themeName) => (
-                    <SelectItem key={themeName} value={themeName}>
-                      {themeName}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </GroupedFormRowControl>
-          </GroupedFormRow> */}
-
-
         </GroupedFormGroup>
       </GroupedFormSection>
 
       <GroupedFormSection>
-        <GroupedFormSectionTitle>Desktop</GroupedFormSectionTitle>
+        <GroupedFormSectionTitle>{_("Window Controls")}</GroupedFormSectionTitle>
         <GroupedFormGroup>
           <GroupedFormRow>
             <GroupedFormRowLabel>
-              <GroupedFormRowTitle>Show Desktop Icons</GroupedFormRowTitle>
+              <GroupedFormRowTitle>{_("Minimize Button")}</GroupedFormRowTitle>
+            </GroupedFormRowLabel>
+            <GroupedFormRowControl>
+              <Switch
+                checked={hasMinimize}
+                onCheckedChange={(checked) =>
+                  updateButtonLayout({ minimize: Boolean(checked) })
+                }
+              />
+            </GroupedFormRowControl>
+          </GroupedFormRow>
+
+          <GroupedFormRow>
+            <GroupedFormRowLabel>
+              <GroupedFormRowTitle>{_("Maximize Button")}</GroupedFormRowTitle>
+            </GroupedFormRowLabel>
+            <GroupedFormRowControl>
+              <Switch
+                checked={hasMaximize}
+                onCheckedChange={(checked) =>
+                  updateButtonLayout({ maximize: Boolean(checked) })
+                }
+              />
+            </GroupedFormRowControl>
+          </GroupedFormRow>
+
+          <GroupedFormRow>
+            <GroupedFormRowLabel>
+              <GroupedFormRowTitle>{_("Button Placement")}</GroupedFormRowTitle>
+            </GroupedFormRowLabel>
+            <GroupedFormRowControl>
+              <div className="inline-flex items-center gap-1 rounded-[9px] bg-black/8 p-1 dark:bg-white/8">
+                {(
+                  [
+                    { id: "left", label: _("Left"), left: true },
+                    { id: "right", label: _("Right"), left: false },
+                  ] as const
+                ).map((opt) => {
+                  const active = isLeftPlacement === opt.left;
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => updateButtonLayout({ left: opt.left })}
+                      className={cn(
+                        "rounded-[6px] px-2.5 py-1 text-[13px] font-medium transition-all",
+                        active
+                          ? "bg-white text-black dark:bg-white/18 dark:text-white"
+                          : "text-adw-label-secondary hover:text-adw-label"
+                      )}
+                    >
+                      {opt.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </GroupedFormRowControl>
+          </GroupedFormRow>
+        </GroupedFormGroup>
+      </GroupedFormSection>
+
+      <GroupedFormSection>
+        <GroupedFormSectionTitle>{_("Desktop")}</GroupedFormSectionTitle>
+        <GroupedFormGroup>
+          <GroupedFormRow>
+            <GroupedFormRowLabel>
+              <GroupedFormRowTitle>{_("Show Desktop Icons")}</GroupedFormRowTitle>
             </GroupedFormRowLabel>
             <GroupedFormRowControl>
               <Switch
@@ -180,14 +211,14 @@ export function AppearancePane() {
 
           <GroupedFormRow>
             <GroupedFormRowLabel>
-              <GroupedFormRowTitle>Icon Alignment</GroupedFormRowTitle>
+              <GroupedFormRowTitle>{_("Icon Alignment")}</GroupedFormRowTitle>
             </GroupedFormRowLabel>
             <GroupedFormRowControl>
               <div className="inline-flex items-center gap-1 rounded-[9px] bg-black/8 p-1 dark:bg-white/8">
                 {(
                   [
-                    { id: "left", label: "Left" },
-                    { id: "right", label: "Right" },
+                    { id: "left", label: _("Left") },
+                    { id: "right", label: _("Right") },
                   ] as const
                 ).map((opt) => {
                   const active = (settings.desktopIconAlign ?? "left") === opt.id;
@@ -218,14 +249,14 @@ export function AppearancePane() {
 
           <GroupedFormRow>
             <GroupedFormRowLabel>
-              <GroupedFormRowTitle>Open Files &amp; Folders</GroupedFormRowTitle>
+              <GroupedFormRowTitle>{_("Open Files & Folders")}</GroupedFormRowTitle>
             </GroupedFormRowLabel>
             <GroupedFormRowControl>
               <div className="inline-flex items-center gap-1 rounded-[9px] bg-black/8 p-1 dark:bg-white/8">
                 {(
                   [
-                    { id: "single", label: "Single Click" },
-                    { id: "double", label: "Double Click" },
+                    { id: "single", label: _("Single Click") },
+                    { id: "double", label: _("Double Click") },
                   ] as const
                 ).map((opt) => {
                   const active = settings.fileActivationMode === opt.id;
@@ -248,36 +279,15 @@ export function AppearancePane() {
               </div>
             </GroupedFormRowControl>
           </GroupedFormRow>
-          {/* 
-          {settings.desktopIconsEnabled &&
-            Object.keys(settings.desktopIconPositions).length > 0 && (
-              <GroupedFormRow>
-                <GroupedFormRowLabel>
-                  <GroupedFormRowTitle>Reset Icon Layout</GroupedFormRowTitle>
-                </GroupedFormRowLabel>
-                <GroupedFormRowControl>
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={() => updateSettings({ desktopIconPositions: {} })}
-                  >
-                    Reset Positions
-                  </Button>
-                </GroupedFormRowControl>
-              </GroupedFormRow>
-            )} 
-             */}
-
-
         </GroupedFormGroup>
       </GroupedFormSection>
 
       <GroupedFormSection>
-        <GroupedFormSectionTitle>Effects</GroupedFormSectionTitle>
+        <GroupedFormSectionTitle>{_("Effects")}</GroupedFormSectionTitle>
         <GroupedFormGroup>
           <GroupedFormRow>
             <GroupedFormRowLabel>
-              <GroupedFormRowTitle>Reduce Transparency</GroupedFormRowTitle>
+              <GroupedFormRowTitle>{_("Reduce Transparency")}</GroupedFormRowTitle>
             </GroupedFormRowLabel>
             <GroupedFormRowControl>
               <Switch
@@ -291,7 +301,7 @@ export function AppearancePane() {
 
           <GroupedFormRow>
             <GroupedFormRowLabel>
-              <GroupedFormRowTitle>Reduce Motion</GroupedFormRowTitle>
+              <GroupedFormRowTitle>{_("Reduce Motion")}</GroupedFormRowTitle>
             </GroupedFormRowLabel>
             <GroupedFormRowControl>
               <Switch

@@ -11,6 +11,7 @@ import {
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { useSettings } from "@/context/DesktopStateContext";
+import { _ } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 export function DockPane() {
@@ -19,21 +20,27 @@ export function DockPane() {
   return (
     <GroupedForm>
       <GroupedFormSection>
-        <GroupedFormSectionTitle>Dock Behavior & Size</GroupedFormSectionTitle>
+        <GroupedFormSectionTitle>{_("Dock Behavior & Size")}</GroupedFormSectionTitle>
         <GroupedFormGroup>
           <GroupedFormRow>
             <GroupedFormRowLabel>
-              <GroupedFormRowTitle>Position on Screen</GroupedFormRowTitle>
+              <GroupedFormRowTitle>{_("Position on Screen")}</GroupedFormRowTitle>
             </GroupedFormRowLabel>
             <GroupedFormRowControl>
               <div className="flex items-center gap-0.5 rounded-lg bg-black/6 p-0.5 dark:bg-white/8">
-                {(["left", "bottom", "right"] as const).map((pos) => {
-                  const active = settings.dockPosition === pos;
+                {(
+                  [
+                    { id: "left", label: _("Left") },
+                    { id: "bottom", label: _("Bottom") },
+                    { id: "right", label: _("Right") },
+                  ] as const
+                ).map((pos) => {
+                  const active = settings.dockPosition === pos.id;
                   return (
                     <button
-                      key={pos}
+                      key={pos.id}
                       type="button"
-                      onClick={() => updateSettings({ dockPosition: pos })}
+                      onClick={() => updateSettings({ dockPosition: pos.id })}
                       className={cn(
                         "rounded-md px-2.5 py-1 text-[12px] capitalize",
                         active
@@ -41,7 +48,7 @@ export function DockPane() {
                           : "text-adw-label-secondary active:bg-black/10 dark:active:bg-white/12"
                       )}
                     >
-                      {pos}
+                      {pos.label}
                     </button>
                   );
                 })}
@@ -51,7 +58,7 @@ export function DockPane() {
 
           <GroupedFormRow>
             <GroupedFormRowLabel>
-              <GroupedFormRowTitle>Size</GroupedFormRowTitle>
+              <GroupedFormRowTitle>{_("Size")}</GroupedFormRowTitle>
             </GroupedFormRowLabel>
             <GroupedFormRowControl className="w-44">
               <Slider
@@ -68,7 +75,7 @@ export function DockPane() {
 
           <GroupedFormRow>
             <GroupedFormRowLabel>
-              <GroupedFormRowTitle>Zoom</GroupedFormRowTitle>
+              <GroupedFormRowTitle>{_("Zoom")}</GroupedFormRowTitle>
             </GroupedFormRowLabel>
             <GroupedFormRowControl>
               <Switch
@@ -83,7 +90,7 @@ export function DockPane() {
           {settings.dockMagnification && (
             <GroupedFormRow>
               <GroupedFormRowLabel>
-                <GroupedFormRowTitle>Zoom Size</GroupedFormRowTitle>
+                <GroupedFormRowTitle>{_("Zoom Size")}</GroupedFormRowTitle>
               </GroupedFormRowLabel>
               <GroupedFormRowControl className="w-44">
                 <Slider
@@ -104,7 +111,7 @@ export function DockPane() {
           <GroupedFormRow>
             <GroupedFormRowLabel>
               <GroupedFormRowTitle>
-                Automatically Hide and Show
+                {_("Automatically Hide and Show")}
               </GroupedFormRowTitle>
             </GroupedFormRowLabel>
             <GroupedFormRowControl>

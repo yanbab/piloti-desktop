@@ -40,6 +40,7 @@ import {
   type GtkFontRgbaOrder,
 } from "@/lib/gnome-bridge";
 import { startBootPhase } from "@/lib/perf-log";
+import { subscribeLocale } from "@/lib/i18n";
 import type { DesktopIconAlign } from "@/lib/desktop-icons";
 import type { SavedWindowBounds } from "@/lib/spatial-window-bounds";
 
@@ -946,6 +947,12 @@ export function useSettingsValue(options?: {
     ]
   );
 
+  const [localeTick, setLocaleTick] = React.useState(0);
+  React.useEffect(
+    () => subscribeLocale(() => setLocaleTick((t) => t + 1)),
+    []
+  );
+
   return React.useMemo<SettingsContextValue>(
     () => ({
       isBrowserRuntime,
@@ -967,6 +974,7 @@ export function useSettingsValue(options?: {
       reducedMotion,
       activeWallpaper,
       backgroundSpec,
+      localeTick,
     ]
   );
 }

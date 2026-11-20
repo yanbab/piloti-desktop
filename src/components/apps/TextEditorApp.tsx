@@ -28,6 +28,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useIsolatedAppBridge } from "@/lib/app-bridge";
+import { _ } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { normalizeVfsPath } from "@/lib/web-vfs";
 
@@ -428,11 +429,11 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
         <div className="w-6 shrink-0" />
         <div className="pointer-events-none flex min-w-0 items-center gap-1.5 px-2">
           <span className="truncate text-adw-body font-semibold text-adw-label">
-            {filePath ? getBaseName(filePath) : "Untitled"}
+            {filePath ? getBaseName(filePath) : _("Untitled")}
           </span>
           {savedFlash && (
             <span className="shrink-0 rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-medium text-emerald-500">
-              Saved
+              {_("Saved")}
             </span>
           )}
         </div>
@@ -443,13 +444,13 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
               onClick={() => setPreviewMarkdown((v) => !v)}
               className="rounded-md bg-adw-fill-secondary px-2 py-0.5 text-[11px] font-medium text-adw-label-secondary transition-colors hover:bg-adw-fill-primary hover:text-adw-label"
             >
-              {previewMarkdown ? "Edit" : "Preview"}
+              {previewMarkdown ? _("Edit") : _("Preview")}
             </button>
           )}
           <DropdownMenu>
             <DropdownMenuTrigger
-              aria-label="Editor Preferences"
-              title="Preferences"
+              aria-label={_("Editor Preferences")}
+              title={_("Preferences")}
               className="flex size-6 items-center justify-center rounded-md text-adw-label-secondary transition-colors outline-none hover:bg-adw-fill-secondary hover:text-adw-label"
             >
               <SlidersHorizontalIcon className="size-3.5" />
@@ -459,32 +460,32 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
                 checked={showLineNumbers}
                 onClick={() => setShowLineNumbers((v) => !v)}
               >
-                Line Numbers
+                {_("Line Numbers")}
               </DropdownMenuCheckboxItem>
               <DropdownMenuCheckboxItem
                 checked={enableHighlight}
                 onClick={() => setEnableHighlight((v) => !v)}
               >
-                Syntax Highlighting
+                {_("Syntax Highlighting")}
               </DropdownMenuCheckboxItem>
               <DropdownMenuCheckboxItem
                 checked={wordWrap}
                 onClick={() => setWordWrap((v) => !v)}
               >
-                Word Wrap
+                {_("Word Wrap")}
               </DropdownMenuCheckboxItem>
               <DropdownMenuCheckboxItem
                 checked={highlightLine}
                 onClick={() => setHighlightLine((v) => !v)}
               >
-                Highlight Active Line
+                {_("Highlight Active Line")}
               </DropdownMenuCheckboxItem>
             </DropdownMenuContent>
           </DropdownMenu>
           {bridge.isCsd && (
             <button
               type="button"
-              aria-label="Close window"
+              aria-label={_("Close window")}
               onClick={() => bridge.closeWindow()}
               className="flex size-6 items-center justify-center rounded-full bg-adw-fill-secondary text-adw-label-secondary transition-colors hover:bg-adw-fill-primary hover:text-adw-label"
             >
@@ -509,11 +510,11 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
               className="w-36 bg-transparent text-xs text-adw-label outline-none"
             />
             <span className="font-mono text-[10.5px] text-adw-dim tabular-nums">
-              {findQuery.trim() ? `${findMatchCount} found` : ""}
+              {findQuery.trim() ? _("%d found", findMatchCount) : ""}
             </span>
             <button
               type="button"
-              aria-label="Close Find"
+              aria-label={_("Close Find")}
               onClick={() => {
                 setFindOpen(false);
                 viewRef.current?.focus();

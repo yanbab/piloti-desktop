@@ -7,6 +7,7 @@ import {
   type DesktopWindowInstance,
 } from "@/context/DesktopStateContext";
 import { computeOverviewWindowLayouts } from "@/lib/overview-layout";
+import { _ } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { AppSquircleIcon } from "./AppSymbol";
 import { DesktopBackgroundLayers } from "./DesktopBackgroundLayers";
@@ -70,7 +71,7 @@ function OverviewWorkspacesBar({
               >
                 <button
                   type="button"
-                  aria-label={`Desktop ${ws}`}
+                  aria-label={_("Desktop %d", ws)}
                   onClick={() => {
                     updateSettings({ activeWorkspace: ws });
                     setOverviewOpen(false);
@@ -112,7 +113,7 @@ function OverviewWorkspacesBar({
 
                 {settings.workspaceCount > 1 && (
                   <WindowControlButton
-                    aria-label={`Close Desktop ${ws}`}
+                    aria-label={_("Close Desktop %d", ws)}
                     onClick={(e) => {
                       e.stopPropagation();
                       removeWorkspace(ws);
@@ -130,8 +131,8 @@ function OverviewWorkspacesBar({
         {/* Grey screen thumbnail with + next to workspaces */}
         <button
           type="button"
-          aria-label="Add Desktop"
-          title="Add Desktop"
+          aria-label={_("Add Desktop")}
+          title={_("Add Desktop")}
           onDragOver={(e) => {
             if (!draggingWindowId) return;
             e.preventDefault();

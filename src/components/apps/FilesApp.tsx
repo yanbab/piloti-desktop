@@ -798,16 +798,16 @@ export function FilesApp({
         const displayName = inspectedItem?.name ?? _(currentTitle);
         const displayKind = inspectedItem
           ? inspectedItem.kind === "directory"
-            ? "Folder"
+            ? _("Folder")
             : inspectedItem.name.includes(".")
-              ? `${inspectedItem.name.split(".").pop()?.toUpperCase()} File`
-              : "File"
-          : "Folder";
+              ? _("%s File", inspectedItem.name.split(".").pop()?.toUpperCase() ?? "")
+              : _("File")
+          : _("Folder");
         const displaySize = inspectedItem
           ? inspectedItem.kind === "directory"
-            ? `${listVfsDir(inspectedItem.path).length} items`
-            : `${(inspectedVfs?.content ?? "").length} bytes`
-          : `${items.length} items`;
+            ? _("%d items", listVfsDir(inspectedItem.path).length)
+            : _("%d bytes", (inspectedVfs?.content ?? "").length)
+          : _("%d items", items.length);
         const modifiedLabel = inspectedVfs?.updatedAt
           ? new Date(inspectedVfs.updatedAt).toLocaleString()
           : "—";
@@ -819,7 +819,7 @@ export function FilesApp({
         ];
         return (
           <aside
-            aria-label="Info Pane"
+            aria-label={_("Info Pane")}
             className="flex w-56 shrink-0 flex-col gap-3 overflow-y-auto border-l border-adw-separator bg-adw-sidebar/70 p-3 text-adw-label"
           >
             <div className="flex flex-col items-center gap-2 border-b border-adw-separator pb-3 text-center">
@@ -849,22 +849,22 @@ export function FilesApp({
             </div>
             <dl className="space-y-2 text-[11.5px]">
               <div>
-                <dt className="text-adw-dim">Size</dt>
+                <dt className="text-adw-dim">{_("Size")}</dt>
                 <dd className="font-medium">{displaySize}</dd>
               </div>
               <div>
-                <dt className="text-adw-dim">Modified</dt>
+                <dt className="text-adw-dim">{_("Modified")}</dt>
                 <dd className="font-medium">{modifiedLabel}</dd>
               </div>
               <div>
-                <dt className="text-adw-dim">Where</dt>
+                <dt className="text-adw-dim">{_("Where")}</dt>
                 <dd className="truncate font-mono text-[11px] text-adw-label-secondary">
                   {inspectedItem?.path ?? currentPath}
                 </dd>
               </div>
               {inspectedPath && !isTrashView && (
                 <div>
-                  <dt className="mb-1 text-adw-dim">Emblems</dt>
+                  <dt className="mb-1 text-adw-dim">{_("Emblems")}</dt>
                   <dd className="flex flex-wrap gap-1">
                     {emblemOrder.map((emblem) => {
                       const meta = VFS_EMBLEM_META[emblem];
@@ -902,7 +902,7 @@ export function FilesApp({
                               emblem === "favorite" && active && "fill-current"
                             )}
                           />
-                          {meta.label}
+                          {_(meta.label)}
                         </button>
                       );
                     })}
@@ -1109,8 +1109,8 @@ export function FilesApp({
 
             <button
               type="button"
-              aria-label="Toggle Info Pane"
-              title="Get Info"
+              aria-label={_("Toggle Info Pane")}
+              title={_("Get Info")}
               onClick={() => setInfoPaneOpen((v) => !v)}
               className={cn(
                 "flex size-7 items-center justify-center rounded-md transition-colors",
@@ -1188,9 +1188,9 @@ export function FilesApp({
             <table className="w-full border-collapse text-left text-[12.5px]">
               <thead>
                 <tr className="border-b border-adw-separator text-[11px] font-semibold text-adw-label-secondary uppercase">
-                  <th className="px-3 py-1.5">Name</th>
-                  <th className="px-3 py-1.5">Kind</th>
-                  <th className="px-3 py-1.5 text-right">Size</th>
+                  <th className="px-3 py-1.5">{_("Name")}</th>
+                  <th className="px-3 py-1.5">{_("Kind")}</th>
+                  <th className="px-3 py-1.5 text-right">{_("Size")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -1200,7 +1200,7 @@ export function FilesApp({
                   const rowEmblems = getVfsEmblems(item.path);
                   const sizeLabel =
                     item.kind === "directory"
-                      ? "Folder"
+                      ? _("Folder")
                       : `${(vfsEntry?.content ?? "").length} B`;
                   return (
                     <tr
@@ -1304,7 +1304,7 @@ export function FilesApp({
                         </div>
                       </td>
                       <td className="px-3 py-2 text-adw-label-secondary">
-                        {item.kind === "directory" ? "Directory" : "File"}
+                        {item.kind === "directory" ? _("Directory") : _("File")}
                       </td>
                       <td className="px-3 py-2 text-right font-mono text-[11.5px] text-adw-label-secondary">
                         {sizeLabel}
@@ -1345,8 +1345,10 @@ export function FilesApp({
           className="pointer-events-none absolute right-2.5 bottom-2 z-10 rounded-full border border-adw-border/60 bg-adw-card/90 px-2.5 py-0.5 text-[11px] font-medium text-adw-dim shadow-xs backdrop-blur-md"
         >
           {selectedIds.length > 0
-            ? `${selectedIds.length} selected`
-            : `${items.length} ${items.length === 1 ? "item" : "items"}`}
+            ? _("%d selected", selectedIds.length)
+            : items.length === 1
+              ? _("%d item", items.length)
+              : _("%d items", items.length)}
         </div>
       </div>
 

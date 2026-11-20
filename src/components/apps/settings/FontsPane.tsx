@@ -24,6 +24,7 @@ import { Slider } from "@/components/ui/slider";
 import { useSettings } from "@/context/DesktopStateContext";
 import type { CssFontStyle } from "@/context/SettingsContext";
 import { listInstalledFontFamilies } from "@/lib/gnome-bridge";
+import { _ } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 const SANS_PRESETS = [
@@ -133,7 +134,7 @@ function FontPopoverSelector({
               <Input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search fonts…"
+                placeholder={_("Search fonts…")}
                 className="h-7 pl-8 text-[12px]"
               />
             </div>
@@ -141,7 +142,7 @@ function FontPopoverSelector({
             <div className="max-h-52 overflow-y-auto pr-0.5">
               {filteredFonts.length === 0 ? (
                 <div className="px-2 py-4 text-center text-[12px] text-adw-label-secondary">
-                  No matching fonts
+                  {_("No matching fonts")}
                 </div>
               ) : (
                 filteredFonts.map((family) => {
@@ -171,7 +172,7 @@ function FontPopoverSelector({
             {fontScale !== undefined && onChangeScale && (
               <div className="mt-2 border-t border-adw-separator pt-2">
                 <div className="mb-1 flex items-center justify-between text-[11px] text-adw-label-secondary">
-                  <span>Size</span>
+                  <span>{_("Size")}</span>
                   <span className="tabular-nums">
                     {Math.round(13 * fontScale)}px ({Math.round(fontScale * 100)}%)
                   </span>
@@ -192,7 +193,7 @@ function FontPopoverSelector({
             {fontStyle !== undefined && onChangeStyle && (
               <div className="mt-2 border-t border-adw-separator pt-2">
                 <div className="mb-1.5 text-[11px] text-adw-label-secondary">
-                  Style
+                  {_("Style")}
                 </div>
                 <div className="flex flex-wrap gap-1">
                   {FONT_STYLE_OPTIONS.map((opt) => (
@@ -207,7 +208,7 @@ function FontPopoverSelector({
                           : "bg-black/6 text-adw-label-secondary hover:text-adw-label dark:bg-white/8",
                       )}
                     >
-                      {opt.label}
+                      {_(opt.label)}
                     </button>
                   ))}
                 </div>
@@ -294,18 +295,29 @@ export function FontsPane() {
     }
   };
 
-  const styleLabel =
+  const styleLabel = _(
     FONT_STYLE_OPTIONS.find((o) => o.value === settings.fontSansStyle)?.label ??
-    "Regular";
+      "Regular"
+  );
+
+  const translatedStyleOptions = FONT_STYLE_OPTIONS.map((opt) => ({
+    value: opt.value,
+    label: _(opt.label),
+  }));
+
+  const translatedRenderingOptions = RENDERING_STYLE_OPTIONS.map((opt) => ({
+    value: opt.value,
+    label: _(opt.label),
+  }));
 
   return (
     <GroupedForm>
       <GroupedFormSection>
-        <GroupedFormSectionTitle>Fonts</GroupedFormSectionTitle>
+        <GroupedFormSectionTitle>{_("Fonts")}</GroupedFormSectionTitle>
         <GroupedFormGroup>
           <GroupedFormRow>
             <GroupedFormRowLabel>
-              <GroupedFormRowTitle>Interface Font</GroupedFormRowTitle>
+              <GroupedFormRowTitle>{_("Interface Font")}</GroupedFormRowTitle>
             </GroupedFormRowLabel>
             <GroupedFormRowControl>
               <FontPopoverSelector
@@ -327,7 +339,7 @@ export function FontsPane() {
 
           <GroupedFormRow>
             <GroupedFormRowLabel>
-              <GroupedFormRowTitle>Monospace Font</GroupedFormRowTitle>
+              <GroupedFormRowTitle>{_("Monospace Font")}</GroupedFormRowTitle>
             </GroupedFormRowLabel>
             <GroupedFormRowControl>
               <FontPopoverSelector
@@ -345,12 +357,12 @@ export function FontsPane() {
 
           <GroupedFormRow>
             <GroupedFormRowLabel>
-              <GroupedFormRowTitle>Style</GroupedFormRowTitle>
+              <GroupedFormRowTitle>{_("Style")}</GroupedFormRowTitle>
             </GroupedFormRowLabel>
             <GroupedFormRowControl>
               <Select
                 value={settings.fontSansStyle}
-                items={FONT_STYLE_OPTIONS}
+                items={translatedStyleOptions}
                 onValueChange={(val) => {
                   if (val) {
                     updateSettings({ fontSansStyle: val as CssFontStyle });
@@ -361,7 +373,7 @@ export function FontsPane() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {FONT_STYLE_OPTIONS.map((opt) => (
+                  {translatedStyleOptions.map((opt) => (
                     <SelectItem key={opt.value} value={opt.value}>
                       {opt.label}
                     </SelectItem>
@@ -372,12 +384,12 @@ export function FontsPane() {
           </GroupedFormRow>
           <GroupedFormRow>
             <GroupedFormRowLabel>
-              <GroupedFormRowTitle>Rendering</GroupedFormRowTitle>
+              <GroupedFormRowTitle>{_("Rendering")}</GroupedFormRowTitle>
             </GroupedFormRowLabel>
             <GroupedFormRowControl>
               <Select
                 value={renderingPreset}
-                items={RENDERING_STYLE_OPTIONS}
+                items={translatedRenderingOptions}
                 onValueChange={(val) => {
                   if (
                     val === "default" ||
@@ -393,7 +405,7 @@ export function FontsPane() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {RENDERING_STYLE_OPTIONS.map((opt) => (
+                  {translatedRenderingOptions.map((opt) => (
                     <SelectItem key={opt.value} value={opt.value}>
                       {opt.label}
                     </SelectItem>

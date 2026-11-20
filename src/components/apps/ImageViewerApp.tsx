@@ -11,6 +11,7 @@ import {
   ZoomOutIcon,
 } from "lucide-react";
 import { useIsolatedAppBridge } from "@/lib/app-bridge";
+import { _ } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 export interface ImageViewerAppProps {
@@ -228,8 +229,8 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
   }, [canSave, cropping, handleSave, resetView]);
 
   const fileName = activePath
-    ? (activePath.split("/").filter(Boolean).pop() ?? "Image Viewer")
-    : "Image Viewer";
+    ? (activePath.split("/").filter(Boolean).pop() ?? _("Image Viewer"))
+    : _("Image Viewer");
 
   return (
     <div
@@ -380,7 +381,7 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
           </div>
         ) : (
           <div className="text-xs text-adw-dim">
-            No image loaded. Open an image from Files.
+            {_("No image loaded. Open an image from Files.")}
           </div>
         )}
 
@@ -391,7 +392,7 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
         >
           <button
             type="button"
-            title="Zoom Out"
+            title={_("Zoom Out")}
             onClick={() =>
               setZoom((z) => Math.max(0.15, Number((z / 1.25).toFixed(2))))
             }
@@ -404,7 +405,7 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
           </span>
           <button
             type="button"
-            title="Zoom In"
+            title={_("Zoom In")}
             onClick={() =>
               setZoom((z) => Math.min(12, Number((z * 1.25).toFixed(2))))
             }
@@ -414,7 +415,7 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
           </button>
           <button
             type="button"
-            title="Fit to Window"
+            title={_("Fit to Window")}
             onClick={() => setZoom(1)}
             className="flex size-8 items-center justify-center rounded-lg hover:bg-white/15 active:bg-white/25"
           >
@@ -423,7 +424,7 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
           <div className="mx-0.5 h-4 w-px bg-white/15" />
           <button
             type="button"
-            title="Rotate 90°"
+            title={_("Rotate 90°")}
             onClick={() => setRotation((r) => (r + 90) % 360)}
             className="flex size-8 items-center justify-center rounded-lg hover:bg-white/15 active:bg-white/25"
           >
@@ -431,7 +432,7 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
           </button>
           <button
             type="button"
-            title="Crop"
+            title={_("Crop")}
             onClick={() => setCropping((c) => !c)}
             className={cn(
               "flex size-8 items-center justify-center rounded-lg transition-colors",
@@ -444,7 +445,7 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
             <>
               <button
                 type="button"
-                title="Apply Crop"
+                title={_("Apply Crop")}
                 onClick={applyCrop}
                 className="flex size-8 items-center justify-center rounded-lg bg-emerald-600 text-white hover:bg-emerald-500"
               >
@@ -452,7 +453,7 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
               </button>
               <button
                 type="button"
-                title="Cancel Crop"
+                title={_("Cancel Crop")}
                 onClick={() => {
                   setCropRect({ x: 15, y: 15, w: 70, h: 70 });
                   setCropping(false);
@@ -466,7 +467,7 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
           <div className="mx-0.5 h-4 w-px bg-white/15" />
           <button
             type="button"
-            title="Reset (0)"
+            title={_("Reset (0)")}
             onClick={resetView}
             className="flex size-8 items-center justify-center rounded-lg hover:bg-white/15 active:bg-white/25"
           >
@@ -477,7 +478,7 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
               <div className="mx-0.5 h-4 w-px bg-white/15" />
               <button
                 type="button"
-                title="Save Changes (Ctrl+S)"
+                title={_("Save Changes (Ctrl+S)")}
                 onClick={() => void handleSave()}
                 className="flex size-8 items-center justify-center rounded-lg bg-adw-accent text-white hover:opacity-90"
               >
@@ -487,7 +488,7 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
           )}
           {savedFlash && (
             <span className="px-2 text-[11px] font-medium text-emerald-400">
-              Saved
+              {_("Saved")}
             </span>
           )}
         </div>

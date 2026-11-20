@@ -31,6 +31,7 @@ import {
   useSystemBackends,
   useWindowManager,
 } from "@/context/DesktopStateContext";
+import { _, getLocale } from "@/lib/i18n";
 import { formatRelativeNotificationTime } from "@/lib/notifications";
 import { cn } from "@/lib/utils";
 import {
@@ -120,17 +121,20 @@ export function ControlPanel() {
       <div className="flex items-center justify-between px-1">
         <div className="flex items-center gap-1.5">
           <span className="text-[12px] font-semibold text-adw-label-secondary">
-            {new Date().toLocaleDateString("en-US", {
-              weekday: "long",
-              month: "long",
-              day: "numeric",
-            })}
+            {new Date().toLocaleDateString(
+              getLocale() === "fr" ? "fr-FR" : "en-US",
+              {
+                weekday: "long",
+                month: "long",
+                day: "numeric",
+              }
+            )}
           </span>
         </div>
         <div className="flex items-center gap-1.5">
           <button
             type="button"
-            title="Take Screenshot (Print)"
+            title={_("Take Screenshot (Print)")}
             onClick={() => {
               setControlPanelOpen(false);
               void takeScreenshot();
@@ -141,7 +145,7 @@ export function ControlPanel() {
           </button>
           <button
             type="button"
-            title="Record Screen"
+            title={_("Record Screen")}
             onClick={() => {
               setControlPanelOpen(false);
               void startScreenRecording();
@@ -152,7 +156,7 @@ export function ControlPanel() {
           </button>
           <button
             type="button"
-            title="Open System Settings (Shift+Click) or Desktop Settings"
+            title={_("Open System Settings (Shift+Click) or Desktop Settings")}
             onClick={(e) => {
               console.info(
                 "[Piloti] control-panel: open settings",
@@ -235,7 +239,7 @@ export function ControlPanel() {
           <div className="flex flex-col gap-1 border-t border-adw-separator pt-2">
             <div className="flex items-center justify-between px-0.5">
               <span className="text-[11px] font-semibold text-adw-label-secondary">
-                Output Device
+                {_("Output Device")}
               </span>
               {!isBrowserRuntime && gnomeCapabilities.gnomeControlCenter && (
                 <button
@@ -246,13 +250,13 @@ export function ControlPanel() {
                   }}
                   className="text-[10.5px] font-medium text-adw-accent active:opacity-70"
                 >
-                  Sound Settings…
+                  {_("Sound Settings…")}
                 </button>
               )}
             </div>
             {audioSinks.length === 0 ? (
               <div className="px-1 py-1.5 text-[11px] text-adw-label-secondary">
-                Using default system output.
+                {_("Using default system output.")}
               </div>
             ) : (
               <div className="flex max-h-[132px] flex-col gap-0.5 overflow-y-auto">
@@ -409,7 +413,7 @@ export function ControlPanel() {
           <div className="col-span-2 flex flex-col gap-1 rounded-[14px] bg-black/6 p-2.5 dark:bg-white/8">
             <div className="mb-1 flex items-center justify-between px-1">
               <span className="text-[11px] font-semibold text-adw-label-secondary">
-                Wi-Fi Networks
+                {_("Wi-Fi Networks")}
               </span>
               {!isBrowserRuntime && gnomeCapabilities.gnomeControlCenter && (
                 <button
@@ -420,17 +424,17 @@ export function ControlPanel() {
                   }}
                   className="text-[10.5px] font-medium text-adw-accent active:opacity-70"
                 >
-                  Network Settings…
+                  {_("Network Settings…")}
                 </button>
               )}
             </div>
             {!settings.wifiEnabled ? (
               <div className="px-2 py-2 text-[11px] text-adw-label-secondary">
-                Wi-Fi is turned off.
+                {_("Wi-Fi is turned off.")}
               </div>
             ) : liveWifiNetworks.length === 0 ? (
               <div className="px-2 py-2 text-[11px] text-adw-label-secondary">
-                No wireless networks discovered.
+                {_("No wireless networks discovered.")}
               </div>
             ) : (
               <div className="flex max-h-[148px] flex-col gap-0.5 overflow-y-auto">
@@ -472,7 +476,7 @@ export function ControlPanel() {
           <div className="col-span-2 flex flex-col gap-1 rounded-[14px] bg-black/6 p-2.5 dark:bg-white/8">
             <div className="mb-1 flex items-center justify-between px-1">
               <span className="text-[11px] font-semibold text-adw-label-secondary">
-                Bluetooth Devices
+                {_("Bluetooth Devices")}
               </span>
               {!isBrowserRuntime && gnomeCapabilities.gnomeControlCenter && (
                 <button
@@ -483,17 +487,17 @@ export function ControlPanel() {
                   }}
                   className="text-[10.5px] font-medium text-adw-accent active:opacity-70"
                 >
-                  Bluetooth Settings…
+                  {_("Bluetooth Settings…")}
                 </button>
               )}
             </div>
             {!settings.bluetoothEnabled ? (
               <div className="px-2 py-2 text-[11px] text-adw-label-secondary">
-                Bluetooth is turned off.
+                {_("Bluetooth is turned off.")}
               </div>
             ) : (
               <div className="px-2 py-2 text-[11px] text-adw-label-secondary">
-                No paired Bluetooth devices nearby.
+                {_("No paired Bluetooth devices nearby.")}
               </div>
             )}
           </div>
@@ -518,7 +522,7 @@ export function ControlPanel() {
         >
           <MoonIcon className="size-[18px] shrink-0" />
           <span className="truncate text-[12.5px] font-semibold">
-            Dark Mode
+            {_("Dark Mode")}
           </span>
         </button>
 
@@ -542,7 +546,7 @@ export function ControlPanel() {
         >
           <BellOffIcon className="size-[18px] shrink-0" />
           <span className="truncate text-[12.5px] font-semibold">
-            Silent
+            {_("Silent")}
           </span>
         </button>
 
@@ -566,7 +570,7 @@ export function ControlPanel() {
         >
           <FlameIcon className="size-[18px] shrink-0" />
           <span className="truncate text-[12.5px] font-semibold">
-            Night Light
+            {_("Night Light")}
           </span>
         </button>
 
@@ -583,7 +587,7 @@ export function ControlPanel() {
         >
           <GaugeIcon className="size-[18px] shrink-0" />
           <span className="truncate text-[12.5px] font-semibold">
-            Power Saver
+            {_("Power Saver")}
           </span>
         </button>
       </div>
@@ -643,7 +647,7 @@ export function ControlPanel() {
         <div className="mb-2 flex items-center justify-between px-1">
           <div className="flex items-center gap-1.5">
             <span className="text-[12px] font-semibold text-adw-label-secondary">
-              Notifications
+              {_("Notifications")}
             </span>
             {notifications.length > 0 && (
               <span className="rounded-full bg-adw-accent/20 px-1.5 py-0.2 text-[10px] font-bold text-adw-accent tabular-nums">
@@ -659,7 +663,7 @@ export function ControlPanel() {
                 className="h-5 px-2 text-[10px]"
                 onClick={clearAllNotifications}
               >
-                Clear
+                {_("Clear")}
               </Button>
             )}
           </div>
@@ -671,8 +675,8 @@ export function ControlPanel() {
               <BellOffIcon className="size-3 shrink-0 text-adw-accent" />
               <span className="truncate">
                 {!settings.notificationsEnabled
-                  ? "Notifications paused in Settings"
-                  : "Silent · Banners silenced"}
+                  ? _("Notifications paused in Settings")
+                  : _("Silent · Banners silenced")}
               </span>
             </span>
             <button
@@ -686,7 +690,7 @@ export function ControlPanel() {
               }
               className="shrink-0 font-semibold text-adw-accent active:opacity-70"
             >
-              Resume
+              {_("Resume")}
             </button>
           </div>
         )}
@@ -696,10 +700,10 @@ export function ControlPanel() {
             <div className="flex flex-col items-center justify-center rounded-[14px] bg-black/4 py-4 text-center dark:bg-white/5">
               <BellIcon className="mb-1 size-5 text-adw-label-tertiary" />
               <div className="text-[12px] font-medium text-adw-label-secondary">
-                No notifications
+                {_("No notifications")}
               </div>
               <div className="mt-0.5 text-[10.5px] text-adw-label-tertiary">
-                Recent alerts appear here
+                {_("Recent alerts appear here")}
               </div>
             </div>
           ) : (

@@ -5,6 +5,7 @@ import {
   PaletteIcon,
   SlidersHorizontalIcon,
   TypeIcon,
+  WrenchIcon,
 } from "lucide-react";
 import { AdwSplitView, type AdwSplitSidebarItem } from "@/components/ui/adw-split-view";
 import { Button } from "@/components/ui/button";
@@ -16,7 +17,9 @@ import {
   useWindowActions,
 } from "@/context/DesktopStateContext";
 import type { GnomeSettingsPanel } from "@/lib/gnome-bridge";
+import { _ } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
+import { AdvancedPane } from "./settings/AdvancedPane";
 import { AppearancePane } from "./settings/AppearancePane";
 import { DockPane } from "./settings/DockPane";
 import { FontsPane } from "./settings/FontsPane";
@@ -28,7 +31,8 @@ type SettingsPaneId =
   | "fonts"
   | "dock"
   | "topbar"
-  | "wallpaper";
+  | "wallpaper"
+  | "advanced";
 
 const PANES: {
   id: SettingsPaneId;
@@ -65,6 +69,12 @@ const PANES: {
     label: "Wallpaper",
     subtitle: "Dynamic meshes & custom backgrounds",
     icon: <ImageIcon />,
+  },
+  {
+    id: "advanced",
+    label: "Advanced",
+    subtitle: "Language & regional preferences",
+    icon: <WrenchIcon />,
   },
 ];
 
@@ -138,21 +148,17 @@ export function SettingsApp({
     contentRef: detailContentRef,
   });
 
-  const sidebarItems = React.useMemo<AdwSplitSidebarItem[]>(
-    () =>
-      PANES.map((pane) => ({
-        id: pane.id,
-        label: pane.label,
-        icon: pane.icon,
-        selected: highlightedPane === pane.id,
-        onClick: () => setActivePane(pane.id),
-      })),
-    [highlightedPane]
-  );
+  const sidebarItems: AdwSplitSidebarItem[] = PANES.map((pane) => ({
+    id: pane.id,
+    label: _(pane.label),
+    icon: pane.icon,
+    selected: highlightedPane === pane.id,
+    onClick: () => setActivePane(pane.id),
+  }));
 
   return (
     <AdwSplitView
-      title="Settings"
+      title={_("Settings")}
       appId="settings"
       iconName="settings"
       windowId={windowId}
@@ -178,7 +184,7 @@ export function SettingsApp({
             <div className="flex items-center gap-1.5" data-window-no-drag />
             <div className="pointer-events-none absolute inset-x-28 flex items-center justify-center">
               <h2 className="truncate text-[13px] font-semibold text-adw-label">
-                {currentPaneMeta?.label}
+                {currentPaneMeta ? _(currentPaneMeta.label) : ""}
               </h2>
             </div>
             <div className="flex items-center gap-2" data-window-no-drag>
@@ -191,7 +197,7 @@ export function SettingsApp({
                     onClick={() => openGnomeSettings(matchingGnomePanel)}
                     className="h-6 text-[11px]"
                   >
-                    System Settings…
+                    {_("System Settings…")}
                   </Button>
                 )}
               {windowId && <WindowControls side="right" />}
@@ -202,10 +208,10 @@ export function SettingsApp({
             <div className="flex min-w-0 items-center gap-2.5">
               <div className="min-w-0">
                 <h2 className="truncate text-[15px] font-bold tracking-tight">
-                  {currentPaneMeta?.label}
+                  {currentPaneMeta ? _(currentPaneMeta.label) : ""}
                 </h2>
                 <p className="truncate text-[11.5px] text-adw-label-secondary">
-                  {currentPaneMeta?.subtitle}
+                  {currentPaneMeta ? _(currentPaneMeta.subtitle) : ""}
                 </p>
               </div>
             </div>
@@ -218,7 +224,7 @@ export function SettingsApp({
                   onClick={() => openGnomeSettings(matchingGnomePanel)}
                   className="text-[11px]"
                 >
-                  Open in System Settings…
+                  {_("Open in System Settings…")}
                 </Button>
               )}
           </div>
@@ -237,6 +243,7 @@ export function SettingsApp({
           {activePane === "dock" && <DockPane />}
           {activePane === "topbar" && <TopBarPane />}
           {activePane === "wallpaper" && <WallpaperPane />}
+          {activePane === "advanced" && <AdvancedPane />}
         </div>
       )}
     </AdwSplitView>

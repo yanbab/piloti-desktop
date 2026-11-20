@@ -41,8 +41,8 @@ export interface IconGridItem {
   desktopEntry?: XdgDesktopEntry;
 }
 
-export const DESKTOP_ICON_CELL_WIDTH = 92;
-export const DESKTOP_ICON_CELL_HEIGHT = 90;
+export const DESKTOP_ICON_CELL_WIDTH = 96;
+export const DESKTOP_ICON_CELL_HEIGHT = 100;
 export const DESKTOP_GRID_PADDING = 12;
 
 function coordKey(coord: GridCoord): string {
