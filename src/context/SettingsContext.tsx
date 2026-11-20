@@ -872,8 +872,32 @@ export function useSettingsValue(options?: {
     settings.fontScale,
   ]);
 
+  const [isNightTime, setIsNightTime] = React.useState(() => {
+    const h = new Date().getHours();
+    return h < 7 || h >= 19;
+  });
+
+  React.useEffect(() => {
+    if (isBrowserRuntime || settings.themeMode !== "system") return;
+    const updateTime = () => {
+      const h = new Date().getHours();
+      setIsNightTime(h < 7 || h >= 19);
+    };
+    updateTime();
+    const timer = window.setInterval(updateTime, 60_000);
+    return () => window.clearInterval(timer);
+  }, [isBrowserRuntime, settings.themeMode]);
+
   const resolvedTheme: "dark" | "light" =
-    settings.themeMode === "system" ? (systemDark ? "dark" : "light") : settings.themeMode;
+    settings.themeMode === "system"
+      ? isBrowserRuntime
+        ? systemDark
+          ? "dark"
+          : "light"
+        : isNightTime
+          ? "dark"
+          : "light"
+      : settings.themeMode;
 
   React.useLayoutEffect(() => {
     const root = document.documentElement;

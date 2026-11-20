@@ -1,5 +1,5 @@
 import * as React from "react";
-import { CheckIcon, MoonIcon, SunIcon } from "lucide-react";
+import { CheckIcon, MonitorIcon, MoonIcon, SunIcon } from "lucide-react";
 import {
   GroupedForm,
   GroupedFormGroup,
@@ -55,6 +55,11 @@ export function AppearancePane() {
               <div className="inline-flex items-center gap-1 rounded-[9px] bg-black/8 p-1 dark:bg-white/8">
                 {(
                   [
+                    {
+                      id: "system",
+                      label: _("Auto"),
+                      icon: <MonitorIcon className="size-3.5" />,
+                    },
                     {
                       id: "light",
                       label: _("Light"),

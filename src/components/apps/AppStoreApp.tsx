@@ -1014,7 +1014,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
               <section
                 aria-label="Featured applications"
                 onClick={(e) => e.stopPropagation()}
-                className="relative mb-5 overflow-hidden rounded-2xl border border-adw-separator bg-adw-card px-5 py-6"
+                className="relative mb-5 overflow-hidden rounded-2xl border border-adw-separator bg-adw-card px-5 py-8"
               >
                 {activeFeaturedItem.faviconUrl && (
                   <img
@@ -1022,7 +1022,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                     alt=""
                     aria-hidden="true"
                     draggable={false}
-                    className="pointer-events-none absolute top-1/2 left-1/2 size-[640px] -translate-x-1/2 -translate-y-1/2 scale-150 object-contain opacity-50 blur-2xl saturate-150 select-none"
+                    className="pointer-events-none absolute top-1/2 left-1/3 size-[1280px] -translate-x-1/2 -translate-y-1/2 scale-150 object-contain opacity-45 blur-3xl saturate-150 select-none"
                   />
                 )}
                 <div className="relative z-10 flex items-center gap-3">
@@ -1050,7 +1050,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                         setSelectedId(activeFeaturedItem.id);
                       }
                     }}
-                    className="flex min-w-0 flex-1 cursor-default items-center justify-center gap-4 text-left outline-none"
+                    className="flex min-w-0 flex-1 cursor-default flex-col items-center justify-center gap-2.5 text-center outline-none"
                   >
                     <WebAppFavicon
                       url={activeFeaturedItem.faviconUrl}

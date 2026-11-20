@@ -905,12 +905,9 @@ export function MenuBar() {
               </MenubarItem>
               <MenubarItem
                 onClick={() => {
-                  const siteUrl = "https://yanbab.github.io/piloti-desktop/";
-                  if (isBrowserRuntime) {
-                    window.open(siteUrl, "_blank", "noopener,noreferrer");
-                  } else {
-                    openWebUrl(siteUrl, { title: "Piloti Desktop" });
-                  }
+                  openWebUrl("https://yanbab.github.io/piloti-desktop/", {
+                    title: "Piloti Desktop",
+                  });
                 }}
               >
                 {_("Piloti Website…")}

@@ -281,6 +281,12 @@
   --adw-content: #202024;
 }
 
+[data-slot="window"][data-inactive] .bg-adw-sidebar {
+  background-color: var(--adw-sidebar) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
 /*
  * Adwaita High-Contrast Theme Variant (Light & Dark)
  */

@@ -139,7 +139,7 @@ export function AltTabSwitcher() {
             </p>
           </div>
         ) : (
-          <div className="flex max-w-full items-start gap-3 overflow-x-auto px-4 pt-1 pb-6">
+          <div className="flex max-w-full items-start gap-3 overflow-x-auto px-4 pt-1 pb-8">
             {mruWindows.map((win, index) => {
               const selected = index === altTabIndex;
               const resolvedIconUrl =
@@ -174,7 +174,7 @@ export function AltTabSwitcher() {
                     />
                   </div>
                   {selected && (
-                    <span className="pointer-events-none absolute -bottom-5 left-1/2 -translate-x-1/2 whitespace-nowrap text-center text-[12px] font-medium text-black dark:text-white">
+                    <span className="pointer-events-none absolute -bottom-7 left-1/2 -translate-x-1/2 whitespace-nowrap text-center text-[12px] font-medium text-adw-label-secondary">
                       {win.title}
                     </span>
                   )}

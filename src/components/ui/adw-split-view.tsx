@@ -142,7 +142,7 @@ export function AdwSplitView({
         onKeyUp={onSidebarKeyUp}
         className={cn(
           "flex min-h-0 shrink-0 flex-col overflow-hidden border-r border-adw-separator bg-adw-sidebar",
-          isCompact ? "w-[52px]" : sidebarWidthClass,
+          isCompact ? "w-[48px]" : sidebarWidthClass,
         )}
       >
         {isCsd && (
@@ -176,7 +176,8 @@ export function AdwSplitView({
           <nav
             onScroll={(e) => setSidebarScrolled(e.currentTarget.scrollTop > 2)}
             className={cn(
-              "flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto px-2 pb-2",
+              "flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto pb-2",
+              isCompact ? "px-1.5" : "px-2",
               isCsd ? "pt-0.5" : tall ? "pt-2.5" : "pt-2",
             )}
           >
@@ -190,10 +191,17 @@ export function AdwSplitView({
                   data-vfs-drop-path={item.dropPath}
                   onClick={item.onClick}
                   className={cn(
-                    "flex w-full shrink-0 items-center rounded-[9px] px-2.5 text-left transition-colors outline-none",
+                    "flex w-full shrink-0 items-center rounded-[9px] text-left transition-colors outline-none",
+                    isCompact
+                      ? "justify-center px-0"
+                      : "px-2.5",
                     tall
-                      ? "gap-3 py-2 text-[14px]"
-                      : "gap-2.5 py-1.5 text-[13px]",
+                      ? isCompact
+                        ? "gap-0 py-2 text-[14px]"
+                        : "gap-3 py-2 text-[14px]"
+                      : isCompact
+                        ? "gap-0 py-1.5 text-[13px]"
+                        : "gap-2.5 py-1.5 text-[13px]",
                     item.selected
                       ? "bg-adw-sidebar-selection font-medium text-adw-label"
                       : "font-normal text-adw-label/85 hover:bg-black/5 dark:hover:bg-white/6",
@@ -202,14 +210,9 @@ export function AdwSplitView({
                   <span className="flex size-4 shrink-0 items-center justify-center opacity-85 [&_svg]:size-4">
                     {item.icon}
                   </span>
-                  <span
-                    className={cn(
-                      "truncate",
-                      isCompact ? "opacity-0" : "opacity-100",
-                    )}
-                  >
-                    {item.label}
-                  </span>
+                  {!isCompact && (
+                    <span className="truncate">{item.label}</span>
+                  )}
                 </button>
               );
 
