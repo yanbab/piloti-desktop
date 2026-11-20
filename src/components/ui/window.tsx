@@ -18,17 +18,18 @@ type WindowHandle = {
   startResize: (edge: ResizeEdge, clientX: number, clientY: number, pointerId?: number) => void
 }
 
-// Invisible strips along the inside of the frame; the corner squares are
-// clipped to the rounded corners, so they follow the curve.
+// Invisible resize strips placed mostly outside the frame (3px inward on edges,
+// 4px inward on corners) so they remain easy to grab without stealing clicks
+// from client-side headerbar buttons near window corners.
 const RESIZE_HANDLES: Record<ResizeEdge, string> = {
-  n: "inset-x-4 -top-[6px] h-[12px] cursor-ns-resize",
-  s: "inset-x-4 -bottom-[6px] h-[12px] cursor-ns-resize",
-  e: "inset-y-4 -right-[6px] w-[12px] cursor-ew-resize",
-  w: "inset-y-4 -left-[6px] w-[12px] cursor-ew-resize",
-  nw: "-top-[7px] -left-[7px] size-5 cursor-nwse-resize",
-  ne: "-top-[7px] -right-[7px] size-5 cursor-nesw-resize",
-  se: "-right-[7px] -bottom-[7px] size-5 cursor-nwse-resize",
-  sw: "-bottom-[7px] -left-[7px] size-5 cursor-nesw-resize",
+  n: "inset-x-3 -top-[9px] h-[12px] cursor-ns-resize",
+  s: "inset-x-3 -bottom-[9px] h-[12px] cursor-ns-resize",
+  e: "inset-y-3 -right-[9px] w-[12px] cursor-ew-resize",
+  w: "inset-y-3 -left-[9px] w-[12px] cursor-ew-resize",
+  nw: "-top-[8px] -left-[8px] size-3 cursor-nwse-resize",
+  ne: "-top-[8px] -right-[8px] size-3 cursor-nesw-resize",
+  se: "-right-[8px] -bottom-[8px] size-3 cursor-nwse-resize",
+  sw: "-bottom-[8px] -left-[8px] size-3 cursor-nesw-resize",
 }
 
 const RESIZE_CURSORS: Record<ResizeEdge, string> = {

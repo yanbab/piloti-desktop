@@ -1108,7 +1108,7 @@ function pruneBrowserRecord(
         settings.windowDecorationMode === "csd" ||
         (settings.windowDecorationMode === "auto" &&
           Boolean(parentWin.clientFrame));
-      const titlebarHeight = isCsd ? 0 : 32;
+      const titlebarHeight = isCsd ? 0 : 46;
       const basePos = parentWin.maximized
         ? { x: 0, y: 0 }
         : parentWin.position;
