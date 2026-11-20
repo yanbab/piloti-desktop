@@ -40,6 +40,7 @@ import {
   resolveWebAppTitle,
 } from "@/data/web-apps";
 import { evaluateLauncherMath } from "@/lib/launcher-math";
+import { captureLaunchOriginFromElement } from "@/lib/launch-origin";
 import {
   loadWorkspaceSnapshots,
   saveWorkspaceSnapshot,
@@ -941,7 +942,14 @@ export function Launcher() {
                   <CommandItem
                     key={item.value}
                     value={item.value}
-                    onSelect={item.onSelect}
+                    data-launcher-item={item.value}
+                    onSelect={() => {
+                      const el = document.querySelector(
+                        `[data-launcher-item="${CSS.escape(item.value)}"]`
+                      ) as HTMLElement | null;
+                      captureLaunchOriginFromElement(el);
+                      item.onSelect();
+                    }}
                   >
                     {item.icon}
                     <span className="min-w-0 flex-1 truncate font-medium">

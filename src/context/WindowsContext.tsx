@@ -392,12 +392,12 @@ export function useWindowsValue(
           iconName: settingsDef.iconName,
           gradient: settingsDef.gradient,
           builtinComponent: "settings",
-          workspace: 1,
+          workspace: saved?.workspace ?? 1,
           position: clamped.position,
           size: clamped.size,
           minSize,
           minimized: false,
-          maximized: false,
+          maximized: saved?.maximized ?? false,
           zIndex: ++nextZIndex,
           payload: "appearance",
         },
@@ -602,7 +602,7 @@ function pruneBrowserRecord(
           position: clamped.position,
           size: clamped.size,
           minimized: false,
-          maximized: restored?.maximized ?? false,
+          maximized: restored?.maximized ?? remembered?.maximized ?? false,
           fullscreen: restored?.fullscreen ?? false,
           pinned,
           tiled: null,
@@ -758,7 +758,7 @@ function pruneBrowserRecord(
           position: clamped.position,
           size: clamped.size,
           minimized: false,
-          maximized: restored?.maximized ?? false,
+          maximized: restored?.maximized ?? remembered?.maximized ?? false,
           fullscreen: restored?.fullscreen ?? false,
           pinned,
           tiled: null,
@@ -1359,36 +1359,60 @@ function pruneBrowserRecord(
     [combinedWindows, focusWindow, minimizeWindow]
   );
 
-  const toggleMaximizeWindow = React.useCallback((windowId: string) => {
-    console.info("[Piloti] toggleMaximizeWindow", windowId);
-    const newZ = ++nextZIndex;
-    if (windowId.startsWith("wayland:")) {
-      const rawId = windowId.slice("wayland:".length);
-      patchExternalMeta(setWaylandMeta, rawId, (cur) => ({
-        ...cur,
-        maximized: !cur.maximized,
-        minimized: false,
-        zIndex: newZ,
-      }));
-    } else if (windowId.startsWith("browser:")) {
-      const rawId = windowId.slice("browser:".length);
-      patchExternalMeta(setBrowserMeta, rawId, (cur) => ({
-        ...cur,
-        maximized: !cur.maximized,
-        minimized: false,
-        zIndex: newZ,
-      }));
-    } else {
-      setShellWindows((prev) =>
-        prev.map((w) =>
-          w.id === windowId
-            ? { ...w, maximized: !w.maximized, minimized: false, zIndex: newZ }
-            : w
-        )
-      );
-    }
-    setFocusedWindowId(windowId);
-  }, []);
+  const toggleMaximizeWindow = React.useCallback(
+    (windowId: string) => {
+      console.info("[Piloti] toggleMaximizeWindow", windowId);
+      const targetWin = combinedWindows.find((w) => w.id === windowId);
+      if (targetWin) {
+        const key = resolveSpatialBoundsKey({
+          appId: targetWin.appId,
+          payload: targetWin.payload,
+          browserUrl: targetWin.browserUrl,
+          desktopId: targetWin.waylandDesktopId,
+        });
+        updateSettings({
+          savedWindowBounds: {
+            ...settings.savedWindowBounds,
+            [key]: {
+              position: targetWin.position,
+              size: targetWin.size,
+              workspace: targetWin.workspace,
+              maximized: !targetWin.maximized,
+              monitor: primaryMonitorName,
+            },
+          },
+        });
+      }
+      const newZ = ++nextZIndex;
+      if (windowId.startsWith("wayland:")) {
+        const rawId = windowId.slice("wayland:".length);
+        patchExternalMeta(setWaylandMeta, rawId, (cur) => ({
+          ...cur,
+          maximized: !cur.maximized,
+          minimized: false,
+          zIndex: newZ,
+        }));
+      } else if (windowId.startsWith("browser:")) {
+        const rawId = windowId.slice("browser:".length);
+        patchExternalMeta(setBrowserMeta, rawId, (cur) => ({
+          ...cur,
+          maximized: !cur.maximized,
+          minimized: false,
+          zIndex: newZ,
+        }));
+      } else {
+        setShellWindows((prev) =>
+          prev.map((w) =>
+            w.id === windowId
+              ? { ...w, maximized: !w.maximized, minimized: false, zIndex: newZ }
+              : w
+          )
+        );
+      }
+      setFocusedWindowId(windowId);
+    },
+    [combinedWindows, primaryMonitorName, settings.savedWindowBounds, updateSettings]
+  );
 
   const geometryLogRef = React.useRef<
     Map<
@@ -1462,6 +1486,8 @@ function pruneBrowserRecord(
               position: nextPos,
               size: nextSize,
               workspace: targetWin.workspace,
+              maximized: targetWin.maximized,
+              monitor: primaryMonitorName,
             },
           },
         });
@@ -1529,7 +1555,14 @@ function pruneBrowserRecord(
         );
       }
     },
-    [combinedWindows, screenHeight, screenWidth, settings.savedWindowBounds, updateSettings]
+    [
+      combinedWindows,
+      primaryMonitorName,
+      screenHeight,
+      screenWidth,
+      settings.savedWindowBounds,
+      updateSettings,
+    ]
   );
 
   const preTileSizesRef = React.useRef<
@@ -1876,7 +1909,7 @@ function pruneBrowserRecord(
           size: clamped.size,
           minSize,
           minimized: false,
-          maximized: false,
+          maximized: remembered?.maximized ?? false,
           zIndex: ++nextZIndex,
           payload: options?.payload,
         };
@@ -2090,6 +2123,8 @@ function pruneBrowserRecord(
             position: targetWin.position,
             size: targetWin.size,
             workspace: ws,
+            maximized: targetWin.maximized,
+            monitor: primaryMonitorName,
           },
         };
       }
@@ -2116,6 +2151,7 @@ function pruneBrowserRecord(
     },
     [
       combinedWindows,
+      primaryMonitorName,
       settings.savedWindowBounds,
       settings.workspaceCount,
       updateSettings,

@@ -60,6 +60,7 @@ import {
   type RemoteMenuEntry,
 } from "@/lib/xdg-app-menu";
 import { cn } from "@/lib/utils";
+import { captureLaunchOriginFromElement } from "@/lib/launch-origin";
 import { buildVfsEntryWebAppUrl, getVfsEntry } from "@/lib/web-vfs";
 import { ControlPanel } from "./ControlPanel";
 import { Launcher } from "./Launcher";
@@ -576,19 +577,34 @@ export function MenuBar() {
               >
                 {_("System Settings")}
               </MenubarItem>
-              <MenubarItem onClick={() => launchApp("settings")}>
+              <MenubarItem
+                onClick={(e) => {
+                  captureLaunchOriginFromElement(e.currentTarget);
+                  launchApp("settings");
+                }}
+              >
                 {_("Desktop Settings")}
                 <MenubarShortcut>
                   {formatMenuShortcut("Alt+,", settings.computerModel)}
                 </MenubarShortcut>
               </MenubarItem>
-              <MenubarItem onClick={() => launchApp("app-store")}>
+              <MenubarItem
+                onClick={(e) => {
+                  captureLaunchOriginFromElement(e.currentTarget);
+                  launchApp("app-store");
+                }}
+              >
                 {_("Application Store")}
               </MenubarItem>
               <MenubarItem
-                onClick={() =>
-                  altHeld ? window.location.reload() : launchApp("console")
-                }
+                onClick={(e) => {
+                  if (altHeld) {
+                    window.location.reload();
+                  } else {
+                    captureLaunchOriginFromElement(e.currentTarget);
+                    launchApp("console");
+                  }
+                }}
               >
                 {altHeld ? _("Reload Shell") : _("DevTools")}
               </MenubarItem>
@@ -640,7 +656,12 @@ export function MenuBar() {
               {!focusedWindowId && (
                 <>
                   <MenubarSeparator />
-                  <MenubarItem onClick={() => launchApp("settings")}>
+                  <MenubarItem
+                    onClick={(e) => {
+                      captureLaunchOriginFromElement(e.currentTarget);
+                      launchApp("settings");
+                    }}
+                  >
                     {_("Desktop Settings")}
                     <MenubarShortcut>
                       {formatMenuShortcut("Alt+,", settings.computerModel)}
@@ -652,7 +673,13 @@ export function MenuBar() {
                 <>
                   <MenubarSeparator />
                   <MenubarItem
-                    onClick={() => closeWindow(focusedWindowId)}
+                    onClick={() =>
+                      window.dispatchEvent(
+                        new CustomEvent("piloti:request-animated-close", {
+                          detail: { windowId: focusedWindowId },
+                        })
+                      )
+                    }
                   >
                     {_("Quit %s", _(activeAppDef.shortName))}
                     <MenubarShortcut>
@@ -883,7 +910,14 @@ export function MenuBar() {
                 <MenubarSeparator />
                 <MenubarItem
                   disabled={!focusedWindowId}
-                  onClick={() => focusedWindowId && closeWindow(focusedWindowId)}
+                  onClick={() =>
+                    focusedWindowId &&
+                    window.dispatchEvent(
+                      new CustomEvent("piloti:request-animated-close", {
+                        detail: { windowId: focusedWindowId },
+                      })
+                    )
+                  }
                 >
                   {_("Close")}
                   <MenubarShortcut>

@@ -1058,10 +1058,10 @@ export function WindowManager() {
       el.style.transition = "none";
       el.style.transformOrigin = "center center";
       el.style.transform = `translate3d(${dx}px, ${dy}px, 0) scale(${scale})`;
-      el.style.opacity = "0.2";
+      el.style.opacity = "0.75";
       void el.offsetWidth;
       el.style.transition =
-        "transform 240ms cubic-bezier(0.22, 1, 0.36, 1), opacity 180ms ease-out";
+        "transform 240ms cubic-bezier(0.22, 1, 0.36, 1), opacity 140ms ease-out";
       el.style.transform = "translate3d(0px, 0px, 0px) scale(1)";
       el.style.opacity = "1";
       window.setTimeout(() => {
@@ -1086,26 +1086,23 @@ export function WindowManager() {
         }
       }
       const el = windowElementsRef.current.get(win.id);
-      if (!origin || !el) {
+      if (!el) {
         closeWindow(win.id);
         return;
       }
 
       setClosingWindowIds((prev) => new Set(prev).add(win.id));
-      const originCx = origin.left + origin.width / 2;
-      const originCy = origin.top + origin.height / 2;
       const winCx = win.position.x + win.size.width / 2;
       const winCy = win.position.y + win.size.height / 2;
-      const dx = Math.round(originCx - winCx);
-      const dy = Math.round(originCy - winCy);
-      const scale = Math.max(
-        0.12,
-        Math.min(0.45, origin.width / Math.max(120, win.size.width))
-      );
+      const dx = origin ? Math.round(origin.left + origin.width / 2 - winCx) : 0;
+      const dy = origin ? Math.round(origin.top + origin.height / 2 - winCy) : 0;
+      const scale = origin
+        ? Math.max(0.12, Math.min(0.45, origin.width / Math.max(120, win.size.width)))
+        : 0.85;
 
       el.style.transformOrigin = "center center";
       el.style.transition =
-        "transform 190ms cubic-bezier(0.4, 0, 1, 1), opacity 160ms ease-in";
+        "transform 190ms cubic-bezier(0.4, 0, 1, 1), opacity 200ms cubic-bezier(0.8, 0, 1, 1)";
       el.style.transform = `translate3d(${dx}px, ${dy}px, 0) scale(${scale})`;
       el.style.opacity = "0";
       window.setTimeout(() => {
@@ -1119,6 +1116,21 @@ export function WindowManager() {
     },
     [closeWindow, closingWindowIds, getDockRef]
   );
+
+  React.useEffect(() => {
+    const onRequestAnimatedClose = (e: Event) => {
+      const windowId = (e as CustomEvent<{ windowId?: string }>).detail?.windowId;
+      if (!windowId) return;
+      const win = windows.find((w) => w.id === windowId);
+      if (win) {
+        handleAnimatedClose(win);
+      } else {
+        closeWindow(windowId);
+      }
+    };
+    window.addEventListener("piloti:request-animated-close", onRequestAnimatedClose);
+    return () => window.removeEventListener("piloti:request-animated-close", onRequestAnimatedClose);
+  }, [closeWindow, handleAnimatedClose, windows]);
   const [windowContextMenu, setWindowContextMenu] = React.useState<{
     windowId: string;
     x: number;
@@ -1433,6 +1445,8 @@ export function WindowManager() {
         return (
           <Window
             key={win.id}
+            data-app-id={win.appId}
+            data-window-id={win.id}
             ref={(node) => {
               if (node) {
                 windowElementsRef.current.set(win.id, node);

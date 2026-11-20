@@ -37,3 +37,4 @@ export function consumeLaunchOriginRect(): LaunchOriginRect | null {
   if (Date.now() > expiresAt) return null;
   return rect;
 }
+

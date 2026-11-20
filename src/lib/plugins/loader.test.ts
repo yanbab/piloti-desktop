@@ -100,3 +100,4 @@ describe("discoverPlugins", () => {
     expect(custom?.enabled).toBe(true);
   });
 });
+

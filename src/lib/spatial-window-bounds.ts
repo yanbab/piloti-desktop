@@ -4,6 +4,8 @@ export interface SavedWindowBounds {
   position: { x: number; y: number };
   size: { width: number; height: number };
   workspace?: number;
+  maximized?: boolean;
+  monitor?: string;
 }
 
 export const DOCUMENT_SCOPED_APP_IDS = new Set([

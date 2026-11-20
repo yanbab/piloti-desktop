@@ -154,8 +154,11 @@ export const IsolatedAppFrame: React.FC<IsolatedAppFrameProps> = ({
       } else if (data.type === "piloti:focus-window") {
         focusWindow(windowId);
       } else if (data.type === "piloti:window-control") {
-        if (data.action === "close") closeWindow(windowId);
-        else if (data.action === "minimize") minimizeWindow(windowId);
+        if (data.action === "close") {
+          window.dispatchEvent(
+            new CustomEvent("piloti:request-animated-close", { detail: { windowId } })
+          );
+        } else if (data.action === "minimize") minimizeWindow(windowId);
         else if (data.action === "maximize") toggleMaximizeWindow(windowId);
       } else if (data.type === "piloti:resize-window") {
         updateWindowGeometry(windowId, {

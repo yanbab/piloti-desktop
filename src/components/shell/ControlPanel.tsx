@@ -34,6 +34,7 @@ import {
 } from "@/context/DesktopStateContext";
 import { _, getLocale } from "@/lib/i18n";
 import { formatRelativeNotificationTime } from "@/lib/notifications";
+import { captureLaunchOriginFromElement } from "@/lib/launch-origin";
 import { cn } from "@/lib/utils";
 import {
   NotificationActionControls,
@@ -175,6 +176,7 @@ export function ControlPanel() {
                 "[Piloti] control-panel: open settings",
                 e.shiftKey ? "gnome" : "desktop"
               );
+              captureLaunchOriginFromElement(e.currentTarget);
               setControlPanelOpen(false);
               if (e.shiftKey) {
                 openGnomeSettings();
