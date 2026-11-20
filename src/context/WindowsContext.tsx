@@ -1882,15 +1882,6 @@ function pruneBrowserRecord(
           remembered?.workspace !== undefined
             ? clampWorkspace(remembered.workspace, settings.workspaceCount)
             : clampWorkspace(settings.activeWorkspace, settings.workspaceCount);
-        const isHttpRuntime =
-          typeof window !== "undefined" &&
-          (window.location.protocol === "http:" ||
-            window.location.protocol === "https:");
-        const isIsolatedHttpApp =
-          isHttpRuntime && builtinKind === "calculator";
-        if (isIsolatedHttpApp) {
-          markWindowUnready(newWinId, 2500);
-        }
         const newWin: DesktopWindowInstance = {
           id: newWinId,
           appId: resolvedAppId,

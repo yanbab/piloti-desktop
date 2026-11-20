@@ -55,7 +55,11 @@ function EmblemIconGlyph({
   active: boolean;
 }) {
   if (emblem === "favorite") {
-    return <HeartIcon className={cn("size-3.5", active && "fill-current")} />;
+    return (
+      <HeartIcon
+        className={cn("size-3.5 text-red-500", active && "fill-current")}
+      />
+    );
   }
   if (emblem === "important") {
     return <AlertCircleIcon className="size-3.5" />;

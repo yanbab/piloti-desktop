@@ -1059,16 +1059,18 @@ export function IconGrid({
                           style={{
                             width: `${heartSize}px`,
                             height: `${heartSize}px`,
+                            color: "#ef4444",
                             ...overlapStyle,
                           }}
-                          className="flex items-center justify-center text-red-500 drop-shadow-[0_1px_2px_rgba(0,0,0,0.65)]"
+                          className="flex items-center justify-center !text-red-500 drop-shadow-[0_1px_2px_rgba(0,0,0,0.65)]"
                         >
                           <HeartIcon
                             style={{
                               width: `${heartSize}px`,
                               height: `${heartSize}px`,
+                              color: "#ef4444",
                             }}
-                            className="fill-current"
+                            className="fill-current !text-red-500"
                           />
                         </span>
                       );

@@ -90,5 +90,53 @@ test.describe("Piloti Desktop E2E", () => {
     expect(Math.abs(restoredBox!.width - resizedBox!.width)).toBeLessThanOrEqual(4);
     expect(Math.abs(restoredBox!.height - resizedBox!.height)).toBeLessThanOrEqual(4);
   });
+
+  test("propagates Settings panel changes to settings.ini open in Text Editor", async ({
+    page,
+  }) => {
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+
+    const settingsWindow = page
+      .locator('[data-slot="window"][data-app-id="settings"]')
+      .first();
+    await expect(settingsWindow).toBeVisible({ timeout: 20_000 });
+
+    // Switch to Dock pane so /home/user/.config/Piloti/settings.ini is written
+    await settingsWindow.getByRole("button", { name: "Dock" }).click();
+
+    // Open Files and navigate to /home/user/.config/Piloti to open settings.ini
+    const filesDockIcon = page.locator('[data-dock-app-id="nautilus"]');
+    await filesDockIcon.click();
+
+    const filesWindow = page
+      .locator('[data-slot="window"][data-app-id="nautilus"]')
+      .first();
+    await expect(filesWindow).toBeVisible();
+    await filesWindow.click();
+    await page.keyboard.press("Control+l");
+    const locInput = filesWindow.locator("input").first();
+    await locInput.fill("/home/user/.config/Piloti");
+    await locInput.press("Enter");
+
+    const iniItem = filesWindow.getByText("settings.ini").first();
+    await expect(iniItem).toBeVisible();
+    await iniItem.dblclick();
+
+    const editorWindow = page
+      .locator('[data-slot="window"][data-app-id="text-editor"]')
+      .first();
+    await expect(editorWindow).toBeVisible();
+    await expect(editorWindow).toContainText("lastPane=dock");
+
+    // Bring Settings to front, switch to Wallpaper, close Settings, and verify Text Editor updates live
+    await page.locator('[data-dock-app-id="settings"]').click();
+    await settingsWindow.getByRole("button", { name: "Wallpaper" }).click();
+    await settingsWindow
+      .locator('[data-slot="window-controls"] button')
+      .last()
+      .click();
+
+    await expect(editorWindow).toContainText("lastPane=wallpaper");
+  });
 });
 

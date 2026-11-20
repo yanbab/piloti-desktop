@@ -1690,7 +1690,7 @@ export function FilesApp({
                                     className={cn(
                                       "size-3",
                                       meta.colorClass,
-                                      emblemId === "favorite" && "fill-current"
+                                      emblemId === "favorite" && "fill-current !text-red-500"
                                     )}
                                   />
                                 );

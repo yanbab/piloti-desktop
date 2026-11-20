@@ -920,17 +920,9 @@ const WindowBody = React.memo(
     }
     if (win.builtinComponent === "calculator") {
       return (
-        <IsolatedAppFrame
-          appId="calculator"
-          windowId={win.id}
-          title={win.title}
-          isCsd={isCsd}
-          fallbackElement={
-            <React.Suspense fallback={null}>
-              <CalculatorApp windowId={win.id} isCsd={isCsd} />
-            </React.Suspense>
-          }
-        />
+        <React.Suspense fallback={null}>
+          <CalculatorApp windowId={win.id} isCsd={isCsd} />
+        </React.Suspense>
       );
     }
 

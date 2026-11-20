@@ -39,6 +39,7 @@ import {
   getVfsEntry,
   normalizeVfsPath,
   renameVfsEntry,
+  subscribeWebVfs,
   subscribeVfsRenamed,
 } from "@/lib/web-vfs";
 
@@ -376,19 +377,28 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
   React.useEffect(() => {
     if (!filePath) return;
     let cancelled = false;
-    void bridge.fs.readText(filePath).then((next) => {
-      if (cancelled || next === null) return;
-      setContent(next);
-      bridge.setTitle(getBaseName(filePath));
-      const view = viewRef.current;
-      if (view && view.state.doc.toString() !== next) {
-        view.dispatch({
-          changes: { from: 0, to: view.state.doc.length, insert: next },
-        });
+    const syncFromDisk = () => {
+      void bridge.fs.readText(filePath).then((next) => {
+        if (cancelled || next === null) return;
+        setContent(next);
+        bridge.setTitle(getBaseName(filePath));
+        const view = viewRef.current;
+        if (view && view.state.doc.toString() !== next) {
+          view.dispatch({
+            changes: { from: 0, to: view.state.doc.length, insert: next },
+          });
+        }
+      });
+    };
+    syncFromDisk();
+    const unsub = subscribeWebVfs(() => {
+      if (!persistTimerRef.current) {
+        syncFromDisk();
       }
     });
     return () => {
       cancelled = true;
+      unsub();
     };
   }, [bridge, filePath]);
 
@@ -401,6 +411,7 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
       setContent(next);
       if (persistTimerRef.current) clearTimeout(persistTimerRef.current);
       persistTimerRef.current = setTimeout(() => {
+        persistTimerRef.current = null;
         const targetPath =
           filePathRef.current ?? "/home/user/Desktop/Untitled.txt";
         if (!filePathRef.current) {

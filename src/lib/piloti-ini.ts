@@ -47,12 +47,21 @@ export function getCachedPilotiAppIni(appName: string): IniRecord {
   }
 }
 
+const ensuredIniDirs = new Set<string>();
+
+function isBrowserHostRuntime(): boolean {
+  return (
+    typeof window !== "undefined" &&
+    Boolean((window as { __PILOTI_BROWSER_HOST__?: boolean }).__PILOTI_BROWSER_HOST__)
+  );
+}
+
 export async function readPilotiAppIni(
   domicile: Domicile | null | undefined,
   appName: string
 ): Promise<IniRecord> {
   const path = `${PILOTI_INI_DIR}/${appName}.ini`;
-  if (domicile) {
+  if (domicile && !isBrowserHostRuntime()) {
     try {
       const res = await domicile.files.readText(path);
       return res.match({
@@ -83,7 +92,11 @@ export async function writePilotiAppIni(
   section: string,
   values: Record<string, string | number | boolean>
 ): Promise<void> {
-  const current = await readPilotiAppIni(domicile, appName);
+  const cached = getCachedPilotiAppIni(appName);
+  const current =
+    Object.keys(cached).length > 0
+      ? cached
+      : await readPilotiAppIni(domicile, appName);
   const next: IniRecord = {
     ...current,
     [section]: {
@@ -99,13 +112,17 @@ export async function writePilotiAppIni(
   } catch {
     // ignore
   }
-  if (domicile) {
+  if (domicile && !isBrowserHostRuntime()) {
     try {
-      await domicile.files.createDir(".config").catch(() => undefined);
-      await domicile.files.createDir(PILOTI_INI_DIR).catch(() => undefined);
+      if (!ensuredIniDirs.has(PILOTI_INI_DIR)) {
+        await domicile.files.createDir(".config").catch(() => undefined);
+        await domicile.files.createDir(PILOTI_INI_DIR).catch(() => undefined);
+        ensuredIniDirs.add(PILOTI_INI_DIR);
+      }
       await domicile.files.write(`${PILOTI_INI_DIR}/${appName}.ini`, serialized);
       return;
     } catch {
+      ensuredIniDirs.delete(PILOTI_INI_DIR);
       // fallback below
     }
   }
