@@ -17,6 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import {
   _,
   getLocalePreference,
@@ -25,6 +26,7 @@ import {
   setLocale,
   subscribeLocale,
 } from "@/lib/i18n";
+import { cn } from "@/lib/utils";
 import { useSettings } from "@/context/DesktopStateContext";
 
 export function AdvancedPane() {
@@ -86,26 +88,39 @@ export function AdvancedPane() {
               <GroupedFormRowTitle>{_("Computer Model")}</GroupedFormRowTitle>
             </GroupedFormRowLabel>
             <GroupedFormRowControl>
-              <Select
-                value={settings.computerModel}
-                items={[
-                  { value: "mac", label: "Mac" },
-                  { value: "pc", label: "PC" },
-                ]}
-                onValueChange={(val) => {
-                  if (val === "mac" || val === "pc") {
-                    updateSettings({ computerModel: val });
-                  }
-                }}
-              >
-                <SelectTrigger variant="borderless">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="mac">Mac</SelectItem>
-                  <SelectItem value="pc">PC</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="inline-flex rounded-lg bg-black/8 p-0.5 dark:bg-white/10">
+                {(["pc", "mac"] as const).map((model) => {
+                  const selected = settings.computerModel === model;
+                  return (
+                    <button
+                      key={model}
+                      type="button"
+                      onClick={() => updateSettings({ computerModel: model })}
+                      className={cn(
+                        "rounded-md px-3 py-1 text-[12px] font-medium transition-all",
+                        selected
+                          ? "bg-white text-black shadow-xs dark:bg-white/16 dark:text-white"
+                          : "text-adw-label-secondary hover:text-adw-label"
+                      )}
+                    >
+                      {model === "mac" ? "Mac" : "PC"}
+                    </button>
+                  );
+                })}
+              </div>
+            </GroupedFormRowControl>
+          </GroupedFormRow>
+          <GroupedFormRow>
+            <GroupedFormRowLabel>
+              <GroupedFormRowTitle>{_("File Extension Badges")}</GroupedFormRowTitle>
+            </GroupedFormRowLabel>
+            <GroupedFormRowControl>
+              <Switch
+                checked={settings.showFileExtensionBadges !== false}
+                onCheckedChange={(checked) =>
+                  updateSettings({ showFileExtensionBadges: checked })
+                }
+              />
             </GroupedFormRowControl>
           </GroupedFormRow>
         </GroupedFormGroup>

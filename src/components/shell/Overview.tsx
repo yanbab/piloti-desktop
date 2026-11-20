@@ -19,10 +19,12 @@ function OverviewWorkspacesBar({
   windows,
   draggingWindowId,
   onClearDrag,
+  overviewOpen,
 }: {
   windows: readonly DesktopWindowInstance[];
   draggingWindowId: string | null;
   onClearDrag: () => void;
+  overviewOpen: boolean;
 }) {
   const { settings, updateSettings } = useSettings();
   const { moveWindowToWorkspace, removeWorkspace, setOverviewOpen } =
@@ -37,7 +39,13 @@ function OverviewWorkspacesBar({
   return (
     <div
       onClick={(e) => e.stopPropagation()}
-      className="relative flex w-full shrink-0 items-center justify-center bg-white/60 px-6 py-3 backdrop-blur-md animate-in slide-in-from-top-full duration-[350ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:animate-none dark:bg-black/40"
+      style={{
+        transition: "transform 350ms cubic-bezier(0.22, 1, 0.36, 1)",
+      }}
+      className={cn(
+        "relative flex w-full shrink-0 items-center justify-center bg-white/60 px-6 py-3 backdrop-blur-md animate-in slide-in-from-top-full duration-[350ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:animate-none dark:bg-black/40",
+        !overviewOpen && "-translate-y-full",
+      )}
     >
       <div className="flex max-w-full items-center gap-4 overflow-x-auto px-3 py-2.5">
         {Array.from({ length: settings.workspaceCount }, (_, idx) => idx + 1).map(
@@ -196,6 +204,7 @@ export function Overview() {
   const { getAppIconUrl } = useApps();
   const {
     windows,
+    overviewOpen,
     setOverviewOpen,
     focusWindow,
     closeWindow,
@@ -224,12 +233,16 @@ export function Overview() {
       role="dialog"
       aria-label="Overview"
       onClick={() => setOverviewOpen(false)}
-      className="fixed inset-x-0 top-[30px] bottom-0 z-[90] flex flex-col overflow-hidden animate-in fade-in duration-[350ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:animate-none"
+      className={cn(
+        "fixed inset-x-0 top-[30px] bottom-0 z-[90] flex flex-col overflow-hidden transition-opacity duration-[350ms] ease-[cubic-bezier(0.22,1,0.36,1)] animate-in fade-in motion-reduce:animate-none",
+        !overviewOpen && "pointer-events-none opacity-0",
+      )}
     >
       <OverviewWorkspacesBar
         windows={windows}
         draggingWindowId={draggingWindowId}
         onClearDrag={() => setDraggingWindowId(null)}
+        overviewOpen={overviewOpen}
       />
 
       {/* Transparent interactive hit overlays aligned with scaled real windows */}

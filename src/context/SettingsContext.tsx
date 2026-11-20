@@ -128,6 +128,7 @@ export interface DesktopSettings {
   desktopIconsEnabled: boolean;
   desktopIconAlign: DesktopIconAlign;
   fileActivationMode: "single" | "double";
+  showFileExtensionBadges: boolean;
   computerModel: "mac" | "pc";
   desktopIconPositions: Record<string, { col: number; row: number }>;
   pinnedAppIds: string[];
@@ -201,6 +202,7 @@ const DEFAULT_SETTINGS: DesktopSettings = {
   desktopIconsEnabled: true,
   desktopIconAlign: "left",
   fileActivationMode: "double",
+  showFileExtensionBadges: true,
   computerModel:
     typeof navigator !== "undefined" &&
     /mac/i.test(navigator.platform || navigator.userAgent || "")

@@ -1,5 +1,19 @@
 import React from "react";
-import { useWindowManager } from "@/context/WindowsContext";
+import { useDomicile } from "@domicile-desktop/react/domicile-provider";
+import {
+  useSettings,
+  useSystemBackends,
+  useWindowManager,
+} from "@/context/DesktopStateContext";
+import {
+  canonicalizeWebUrl,
+  fetchWebPageMetadata,
+  getWebAppFaviconUrl,
+} from "@/data/web-apps";
+import {
+  installWebAppDesktopEntry,
+  removeWebAppDesktopEntry,
+} from "@/lib/xdg-web-apps";
 import {
   WEB_VFS_HOME,
   buildVfsEntryWebAppUrl,
@@ -56,6 +70,9 @@ const TERMINAL_COMMANDS = [
   "date",
   "echo",
   "env",
+  "curl",
+  "wget",
+  "piloti",
 ] as const;
 
 function longestCommonPrefix(values: string[]): string {
@@ -136,7 +153,21 @@ const CORE_DAEMONS: Array<{ pid: number; command: string; baseCpu: number; baseM
 ];
 
 export const TerminalApp: React.FC<TerminalAppProps> = ({ initialPath }) => {
-  const { windows, launchApp, openWebUrl } = useWindowManager();
+  const domicile = useDomicile();
+  const { isBrowserRuntime, settings } = useSettings();
+  const {
+    lockSession,
+    requestPowerAction,
+    takeScreenshot,
+    startScreenRecording,
+  } = useSystemBackends();
+  const {
+    windows,
+    launchApp,
+    openWebUrl,
+    setLauncherOpen,
+    toggleOverview,
+  } = useWindowManager();
   const [cwd, setCwd] = React.useState<string>(() => {
     if (initialPath) {
       const entry = getVfsEntry(initialPath);
@@ -821,6 +852,221 @@ export const TerminalApp: React.FC<TerminalAppProps> = ({ initialPath }) => {
     if (cmd === "top") {
       appendLines([commandLine]);
       setTopActive(true);
+      return;
+    }
+
+    if (cmd === "curl" || cmd === "wget") {
+      let outFile: string | null = null;
+      let targetUrl: string | null = null;
+      for (let i = 0; i < args.length; i++) {
+        const a = args[i];
+        if ((a === "-o" || a === "-O") && args[i + 1]) {
+          outFile = args[++i];
+        } else if (!a.startsWith("-")) {
+          targetUrl = a;
+        }
+      }
+      if (!targetUrl) {
+        appendLines([
+          commandLine,
+          { text: `${cmd}: missing URL`, tone: "error" },
+        ]);
+        return;
+      }
+      const normalizedUrl = /^https?:\/\//i.test(targetUrl)
+        ? targetUrl
+        : `https://${targetUrl}`;
+      appendLines([
+        commandLine,
+        { text: `Fetching ${normalizedUrl}...`, tone: "muted" },
+      ]);
+      void fetch(normalizedUrl)
+        .then(async (res) => {
+          const text = await res.text();
+          if (!res.ok) {
+            appendLines([
+              {
+                text: `${cmd}: HTTP ${res.status} ${res.statusText}`,
+                tone: "error",
+              },
+            ]);
+            return;
+          }
+          if (outFile) {
+            const dest = resolveVfsPath(cwd, outFile);
+            writeVfsTextFile(dest, text);
+            appendLines([
+              {
+                text: `Saved ${text.length} bytes to ${dest}`,
+                tone: "accent",
+              },
+            ]);
+          } else {
+            const lines = text.split(/\r?\n/).slice(0, 80);
+            appendLines(lines.map((line) => ({ text: line })));
+            if (text.split(/\r?\n/).length > 80) {
+              appendLines([
+                { text: "... (truncated; use -o <file> to save full response)", tone: "muted" },
+              ]);
+            }
+          }
+        })
+        .catch((err) => {
+          appendLines([
+            {
+              text: `${cmd}: failed to fetch (${err instanceof Error ? err.message : String(err)} — CORS or network blocked)`,
+              tone: "error",
+            },
+          ]);
+        });
+      return;
+    }
+
+    if (cmd === "piloti") {
+      const sub = (args[0] ?? "help").toLowerCase();
+      if (sub === "help" || sub === "--help" || sub === "-h") {
+        appendLines([
+          commandLine,
+          { text: "piloti — Piloti Desktop control metacommand", tone: "accent" },
+          { text: "  piloti add|install <url>       Install web app (.desktop in ~/.local/share/applications)" },
+          { text: "  piloti del|remove|uninstall <url|id>  Remove installed web app" },
+          { text: "  piloti list                    List installed web apps" },
+          { text: "  piloti open <app|url>          Launch app or open URL" },
+          { text: "  piloti settings [pane]         Open Desktop Settings" },
+          { text: "  piloti launcher | overview     Open Launcher or Overview" },
+          { text: "  piloti screenshot | record     Take screenshot or start recording" },
+          { text: "  piloti lock | logout | restart | poweroff" },
+        ]);
+        return;
+      }
+      if (sub === "add" || sub === "install") {
+        const rawUrl = args[1];
+        const canonical = canonicalizeWebUrl(rawUrl);
+        if (!canonical) {
+          appendLines([
+            commandLine,
+            { text: "piloti install: valid http(s) URL required", tone: "error" },
+          ]);
+          return;
+        }
+        const hostTitle = new URL(canonical).hostname.replace(/^www\./, "");
+        const app = {
+          id: `web:${canonical}`,
+          title: hostTitle,
+          url: canonical,
+          iconUrl: getWebAppFaviconUrl(canonical),
+          category: "Internet",
+        };
+        appendLines([
+          commandLine,
+          { text: `Installing ${canonical}...`, tone: "muted" },
+        ]);
+        void installWebAppDesktopEntry(domicile, isBrowserRuntime, app).then(
+          () => {
+            void fetchWebPageMetadata(canonical).then(({ title }) => {
+              if (title) {
+                void installWebAppDesktopEntry(domicile, isBrowserRuntime, {
+                  ...app,
+                  title,
+                });
+              }
+            });
+            appendLines([
+              { text: `Installed ${hostTitle} (${canonical})`, tone: "accent" },
+            ]);
+          },
+        );
+        return;
+      }
+      if (sub === "del" || sub === "remove" || sub === "uninstall") {
+        const target = args[1];
+        if (!target) {
+          appendLines([
+            commandLine,
+            { text: "piloti remove: URL or app ID required", tone: "error" },
+          ]);
+          return;
+        }
+        const canonical = canonicalizeWebUrl(target);
+        const match = settings.installedWebApps.find(
+          (w) =>
+            w.id === target ||
+            (canonical !== undefined &&
+              (canonicalizeWebUrl(w.url) ?? w.url) === canonical),
+        );
+        const toRemove = match ?? {
+          id: target,
+          url: canonical ?? target,
+        };
+        void removeWebAppDesktopEntry(domicile, isBrowserRuntime, toRemove).then(
+          () => {
+            appendLines([
+              { text: `Removed ${toRemove.id}`, tone: "accent" },
+            ]);
+          },
+        );
+        appendLines([commandLine]);
+        return;
+      }
+      if (sub === "list") {
+        appendLines([
+          commandLine,
+          ...(settings.installedWebApps.length === 0
+            ? [{ text: "No web apps installed.", tone: "muted" as const }]
+            : settings.installedWebApps.map((w) => ({
+                text: `${w.id.padEnd(20)} ${w.title} (${w.url})`,
+              }))),
+        ]);
+        return;
+      }
+      if (sub === "poweroff" || sub === "restart" || sub === "logout") {
+        appendLines([commandLine, { text: `Requesting ${sub}...`, tone: "muted" }]);
+        requestPowerAction(sub);
+        return;
+      }
+      if (sub === "lock") {
+        appendLines([commandLine]);
+        lockSession();
+        return;
+      }
+      if (sub === "overview") {
+        appendLines([commandLine]);
+        toggleOverview();
+        return;
+      }
+      if (sub === "launcher") {
+        appendLines([commandLine]);
+        setLauncherOpen(true);
+        return;
+      }
+      if (sub === "settings") {
+        appendLines([commandLine]);
+        launchApp("settings", args[1] ? { payload: args[1] } : undefined);
+        return;
+      }
+      if (sub === "screenshot") {
+        appendLines([commandLine]);
+        void takeScreenshot();
+        return;
+      }
+      if (sub === "record") {
+        appendLines([commandLine]);
+        void startScreenRecording();
+        return;
+      }
+      if (sub === "open" && args[1]) {
+        appendLines([commandLine]);
+        if (/^https?:\/\//i.test(args[1])) {
+          openWebUrl(args[1]);
+        } else {
+          launchApp(args[1]);
+        }
+        return;
+      }
+      appendLines([
+        commandLine,
+        { text: `piloti: unknown subcommand '${sub}' (try 'piloti help')`, tone: "error" },
+      ]);
       return;
     }
 

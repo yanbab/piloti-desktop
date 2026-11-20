@@ -1050,7 +1050,6 @@ export function WindowManager() {
 
   return (
     <div
-      ref={workspaceStageRef}
       className="relative isolate z-10 min-h-0 flex-1 overflow-clip"
       onPointerDown={(e) => {
         if (
@@ -1095,6 +1094,10 @@ export function WindowManager() {
         />
       )}
 
+      <div
+        ref={workspaceStageRef}
+        className="pointer-events-none absolute inset-0 z-[1] [&>*]:pointer-events-auto"
+      >
       {windows.map((win) => {
         const isActiveWorkspace = win.workspace === settings.activeWorkspace;
         const isFocused = isActiveWorkspace && focusedWindowId === win.id;
@@ -1189,7 +1192,7 @@ export function WindowManager() {
               transformOrigin: "top left",
               transform: ovLayout
                 ? `translate(${ovLayout.dx}px, ${ovLayout.dy}px) scale(${ovLayout.scale})`
-                : undefined,
+                : "translate3d(0px, 0px, 0px) scale(1)",
               transition:
                 "transform 350ms cubic-bezier(0.22, 1, 0.36, 1), opacity 350ms cubic-bezier(0.22, 1, 0.36, 1)",
             }}
@@ -1239,6 +1242,7 @@ export function WindowManager() {
           </Window>
         );
       })}
+      </div>
 
       {/* Wayland Child Popups */}
       {waylandPopups.map((popup) => (

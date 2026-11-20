@@ -268,8 +268,8 @@ export const APP_CATALOG: AppDefinition[] = [
   },
   {
     id: "console",
-    name: "DevTools (Web)",
-    shortName: "DevTools (Web)",
+    name: "DevTools",
+    shortName: "DevTools",
     description: "Shell DevTools, live logs, inspector, and JS console",
     category: "Development",
     iconName: "code",
@@ -330,8 +330,8 @@ export const APP_CATALOG: AppDefinition[] = [
   },
   {
     id: "terminal",
-    name: "Terminal (Web)",
-    shortName: "Terminal (Web)",
+    name: "Web Terminal",
+    shortName: "Web Terminal",
     description: "Web shell with VFS commands (ls, cd, mkdir, cat, top)",
     category: "Development",
     iconName: "terminal",
@@ -344,8 +344,8 @@ export const APP_CATALOG: AppDefinition[] = [
   },
   {
     id: "text-editor",
-    name: "Text Editor (Web)",
-    shortName: "Text Editor (Web)",
+    name: "Notepad",
+    shortName: "Notepad",
     description: "Minimal plain-text notepad with instant localStorage VFS save",
     category: "Utilities",
     iconName: "file-text",
@@ -389,8 +389,8 @@ export const APP_CATALOG: AppDefinition[] = [
   },
   {
     id: "app-store",
-    name: "App Store (Web)",
-    shortName: "App Store (Web)",
+    name: "App Store",
+    shortName: "App Store",
     description: "Browse and install apps and web apps",
     category: "System",
     iconName: "sparkles",

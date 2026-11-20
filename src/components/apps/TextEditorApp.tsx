@@ -21,6 +21,8 @@ import {
 } from "@codemirror/view";
 import { tags } from "@lezer/highlight";
 import { SlidersHorizontalIcon, XIcon } from "lucide-react";
+import { ObjectView, themeGitHubLight, themeOneDark } from "react-obj-view";
+import "react-obj-view/dist/react-obj-view.css";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -459,7 +461,7 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
           )}
         </div>
         <div className="flex items-center gap-1" data-window-no-drag>
-          {isMarkdownFile && (
+          {(isMarkdownFile || /\.json$/i.test(filePath ?? "")) && (
             <button
               type="button"
               onClick={() => setPreviewMarkdown((v) => !v)}
@@ -548,9 +550,32 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
         )}
 
         {previewMarkdown ? (
-          <div className="h-full w-full overflow-auto bg-adw-content p-4 select-text">
-            {renderSimpleMarkdown(content)}
-          </div>
+          /\.json$/i.test(filePath ?? "") ? (
+            <div className="h-full w-full overflow-auto bg-adw-content p-4 font-mono text-[12px] select-text">
+              {(() => {
+                try {
+                  const parsed = JSON.parse(content || "null");
+                  return (
+                    <ObjectView
+                      valueGetter={() => parsed}
+                      style={isDark ? themeOneDark : themeGitHubLight}
+                      expandLevel={2}
+                    />
+                  );
+                } catch (err) {
+                  return (
+                    <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-red-400">
+                      Invalid JSON: {String(err)}
+                    </div>
+                  );
+                }
+              })()}
+            </div>
+          ) : (
+            <div className="h-full w-full overflow-auto bg-adw-content p-4 select-text">
+              {renderSimpleMarkdown(content)}
+            </div>
+          )
         ) : (
           <div ref={editorHostRef} className="h-full w-full" />
         )}

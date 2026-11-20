@@ -70,17 +70,24 @@ import { SystemTrayItem } from "./SystemTray";
 function formatMenuShortcut(shortcut: string, model: "mac" | "pc"): string {
   if (!shortcut) return shortcut;
   if (model === "pc") {
-    return shortcut
+    const pc = shortcut
       .replace(/⌃/g, "Ctrl+")
       .replace(/⌥/g, "Alt+")
       .replace(/⇧/g, "Shift+")
       .replace(/⌘/g, "Super+")
       .replace(/\+\+/g, "+PLUS")
       .replace(/\+$/g, "")
-      .replace(/\+PLUS/g, "++");
+      .split("+")
+      .filter(Boolean)
+      .map((p) => (p === "PLUS" ? "+" : p))
+      .join(" + ");
+    return pc;
   }
-  // Mac style with Apple key symbols
-  if (/[⌘⌥⇧⌃]/.test(shortcut)) return shortcut;
+  // Mac style with Apple key symbols and a space before the key
+  if (/[⌘⌥⇧⌃]/.test(shortcut)) {
+    const match = shortcut.match(/^([⌃⌥⇧⌘]+)\s*(.+)$/);
+    return match ? `${match[1]} ${match[2]}` : shortcut;
+  }
   const normalized = shortcut.replace(/\+\+/g, "+PLUS");
   const parts = normalized.split("+").filter(Boolean);
   let hasCtrl = false;
@@ -104,7 +111,6 @@ function formatMenuShortcut(shortcut: string, model: "mac" | "pc"): string {
     else if (lower === "tab") keys.push("⇥");
     else keys.push(part);
   }
-  // In Mac menus, primary Ctrl+ shortcuts map to ⌘ (unless paired with Cmd)
   if (hasCtrl && !hasCmd) {
     hasCmd = true;
     hasCtrl = false;
@@ -115,7 +121,7 @@ function formatMenuShortcut(shortcut: string, model: "mac" | "pc"): string {
     hasShift ? "⇧" : "",
     hasCmd ? "⌘" : "",
   ].join("");
-  return `${mods}${keys.join("")}`;
+  return mods ? `${mods} ${keys.join(" ")}` : keys.join(" ");
 }
 
 function renderRemoteMenuItems(
@@ -896,6 +902,18 @@ export function MenuBar() {
                 }}
               >
                 {_("Shortcuts…")}
+              </MenubarItem>
+              <MenubarItem
+                onClick={() => {
+                  const siteUrl = "https://yanbab.github.io/piloti-desktop/";
+                  if (isBrowserRuntime) {
+                    window.open(siteUrl, "_blank", "noopener,noreferrer");
+                  } else {
+                    openWebUrl(siteUrl, { title: "Piloti Desktop" });
+                  }
+                }}
+              >
+                {_("Piloti Website…")}
               </MenubarItem>
               <MenubarItem
                 onClick={() => {

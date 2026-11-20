@@ -1,6 +1,5 @@
 import * as React from "react";
 import { useDomicile } from "@domicile-desktop/react/domicile-provider";
-import { Button } from "@/components/ui/button";
 import {
   Window,
   WindowContent,
@@ -95,7 +94,7 @@ function ComputerHardwareIllustration({ className }: { className?: string }) {
 export function AboutComputerDialog() {
   const domicile = useDomicile();
   const { isBrowserRuntime } = useSettings();
-  const { aboutOpen, setAboutOpen, openGnomeSettings } = useWindowManager();
+  const { aboutOpen, setAboutOpen } = useWindowManager();
   const [info, setInfo] = React.useState<ComputerInfo>({
     computerName: "Piloti Desktop",
     modelSubtitle: isBrowserRuntime
@@ -139,11 +138,11 @@ export function AboutComputerDialog() {
   const [pos, setPos] = React.useState(() => ({
     x:
       typeof window !== "undefined"
-        ? Math.max(24, Math.round((window.innerWidth - 320) / 2))
+        ? Math.max(24, Math.round((window.innerWidth - 300) / 2))
         : 240,
     y:
       typeof window !== "undefined"
-        ? Math.max(48, Math.round((window.innerHeight - 390) / 2))
+        ? Math.max(48, Math.round((window.innerHeight - 340) / 2))
         : 120,
   }));
 
@@ -153,7 +152,7 @@ export function AboutComputerDialog() {
     <Window
       position={pos}
       onPositionChange={setPos}
-      size={{ width: 320, height: 390 }}
+      size={{ width: 300, height: 340 }}
       draggable
       resizable={false}
       bounds="parent"
@@ -166,10 +165,10 @@ export function AboutComputerDialog() {
           <WindowTitle>{_("About Computer")}</WindowTitle>
           <WindowControls side="right" />
         </WindowTitlebar>
-        <WindowContent className="flex flex-col justify-between gap-3.5 p-4 pt-2">
+        <WindowContent className="flex flex-col justify-between gap-3 p-4 pt-2">
           <div className="flex flex-col items-center gap-0.5 text-center">
-            <ComputerHardwareIllustration className="mx-auto mb-1.5 h-20 w-32 drop-shadow-md" />
-            <h2 className="text-[19px] font-bold tracking-tight text-adw-label">
+            <ComputerHardwareIllustration className="mx-auto mb-1 h-18 w-28 drop-shadow-md" />
+            <h2 className="text-[18px] font-bold tracking-tight text-adw-label">
               {info.computerName}
             </h2>
             <p className="text-[12px] text-adw-label-secondary">
@@ -177,7 +176,7 @@ export function AboutComputerDialog() {
             </p>
           </div>
 
-          <dl className="grid grid-cols-[auto_1fr] items-baseline gap-x-4 gap-y-2 rounded-xl bg-black/4 px-3.5 py-2.5 text-adw-body dark:bg-white/5">
+          <dl className="grid grid-cols-[auto_1fr] items-baseline gap-x-4 gap-y-2.5 rounded-xl bg-black/4 px-4 py-3.5 text-adw-body dark:bg-white/5">
             {rows.map((row) => (
               <React.Fragment key={row.label}>
                 <dt className="font-medium text-adw-label">{row.label}</dt>
@@ -187,18 +186,6 @@ export function AboutComputerDialog() {
               </React.Fragment>
             ))}
           </dl>
-
-          <div className="flex justify-center pt-0.5">
-            <Button
-              variant="secondary"
-              onClick={() => {
-                setAboutOpen(false);
-                openGnomeSettings("system");
-              }}
-            >
-              {_("More Info…")}
-            </Button>
-          </div>
         </WindowContent>
       </WindowMain>
     </Window>

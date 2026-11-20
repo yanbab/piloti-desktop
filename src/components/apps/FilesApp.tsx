@@ -172,9 +172,11 @@ const ICON_ZOOM_LEVELS = [
   { cellWidth: 184, cellHeight: 196, iconSize: 128 },
   { cellWidth: 248, cellHeight: 260, iconSize: 192 },
   { cellWidth: 312, cellHeight: 324, iconSize: 256 },
+  { cellWidth: 376, cellHeight: 388, iconSize: 320 },
+  { cellWidth: 440, cellHeight: 452, iconSize: 384 },
 ] as const;
 
-const LIST_ZOOM_LEVELS = [16, 24, 32, 48] as const;
+const LIST_ZOOM_LEVELS = [16, 24, 32, 48, 64, 80, 96] as const;
 
 function vfsEntryToGridItem(
   entry: WebVfsEntry,

@@ -242,10 +242,10 @@ export function IconGrid({
   const compactHorizontal = iconSize <= 24;
   const effectiveCellWidth = compactHorizontal ? Math.max(cellWidth, 168) : cellWidth;
   const effectiveCellHeight = compactHorizontal ? 30 : cellHeight;
-  const emblemSize = Math.max(12, Math.round(iconSize * 0.28));
-  const emblemGlyphSize = Math.max(8, Math.round(emblemSize * 0.62));
-  const heartSize = Math.max(13, Math.round(iconSize * 0.3));
-  const emblemStackOverlap = Math.max(4, Math.round(emblemSize * 0.36));
+  const emblemSize = Math.max(18, Math.round(iconSize * 0.32));
+  const emblemGlyphSize = Math.max(10, Math.round(emblemSize * 0.58));
+  const heartSize = Math.max(18, Math.round(iconSize * 0.34));
+  const emblemStackOverlap = Math.max(5, Math.round(emblemSize * 0.36));
 
   const metrics = React.useMemo(
     () =>
@@ -513,14 +513,50 @@ export function IconGrid({
       setDrag(null);
     };
 
+    let cancelTimer = 0;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      const cur = dragRef.current;
+      if (!cur) return;
+      e.preventDefault();
+      e.stopPropagation();
+      if (rafId) {
+        cancelAnimationFrame(rafId);
+        rafId = 0;
+      }
+      if (cur.active) {
+        window.dispatchEvent(
+          new CustomEvent("residence:file-drag", {
+            detail: { active: false },
+          }),
+        );
+        const ghost = dragGhostRef.current;
+        if (ghost) {
+          ghost.style.transition =
+            "transform 220ms cubic-bezier(0.22, 1, 0.36, 1)";
+          ghost.style.transform = "translate3d(0px, 0px, 0)";
+          cancelTimer = window.setTimeout(() => {
+            dragRef.current = null;
+            setDrag(null);
+          }, 220);
+          return;
+        }
+      }
+      dragRef.current = null;
+      setDrag(null);
+    };
+
     window.addEventListener("pointermove", handlePointerMove);
     window.addEventListener("pointerup", handlePointerUp);
     window.addEventListener("pointercancel", handlePointerUp);
+    window.addEventListener("keydown", handleKeyDown, true);
     return () => {
       if (rafId) cancelAnimationFrame(rafId);
+      if (cancelTimer) window.clearTimeout(cancelTimer);
       window.removeEventListener("pointermove", handlePointerMove);
       window.removeEventListener("pointerup", handlePointerUp);
       window.removeEventListener("pointercancel", handlePointerUp);
+      window.removeEventListener("keydown", handleKeyDown, true);
     };
   }, [
     currentDirPath,
@@ -946,7 +982,7 @@ export function IconGrid({
                             height: `${heartSize}px`,
                             ...overlapStyle,
                           }}
-                          className="flex items-center justify-center text-rose-500 drop-shadow-[0_1px_2px_rgba(0,0,0,0.65)]"
+                          className="flex items-center justify-center text-red-500 drop-shadow-[0_1px_2px_rgba(0,0,0,0.65)]"
                         >
                           <HeartIcon
                             style={{
@@ -989,12 +1025,29 @@ export function IconGrid({
                   })}
                 </div>
               )}
+              {settings.showFileExtensionBadges !== false &&
+                !compactHorizontal &&
+                item.kind === "file" &&
+                (() => {
+                  const [, ext] = splitFileNameExt(item.name, item.kind);
+                  const cleanExt = ext.replace(/^\./, "").toUpperCase();
+                  if (!cleanExt || cleanExt.length > 6) return null;
+                  return (
+                    <span className="pointer-events-none absolute -right-0.5 -bottom-0.5 z-10 rounded bg-zinc-900/85 px-1 py-0.5 text-[9px] leading-none font-bold tracking-wide text-white shadow-xs ring-1 ring-white/20">
+                      {cleanExt}
+                    </span>
+                  );
+                })()}
             </div>
             {renamingId === item.id ? (
               <input
                 type="text"
                 defaultValue={item.name}
                 autoFocus
+                style={{ width: `${Math.max(4, item.name.length + 1)}ch` }}
+                onInput={(e) => {
+                  e.currentTarget.style.width = `${Math.max(4, e.currentTarget.value.length + 1)}ch`;
+                }}
                 ref={(el) => {
                   if (!el) return;
                   requestAnimationFrame(() => {
@@ -1018,7 +1071,7 @@ export function IconGrid({
                   onCommitRename?.(item, e.currentTarget.value);
                 }}
                 className={cn(
-                  "w-full rounded bg-zinc-900/95 px-1 py-0.5 text-[11.5px] leading-tight font-medium text-white ring-1 ring-adw-accent outline-none",
+                  "w-auto min-w-[3.5rem] max-w-full rounded bg-zinc-900/95 px-1.5 py-0.5 text-[11.5px] leading-tight font-medium text-white ring-1 ring-adw-accent outline-none",
                   compactHorizontal ? "text-left" : "text-center",
                 )}
               />

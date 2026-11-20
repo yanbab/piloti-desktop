@@ -111,6 +111,16 @@ function DesktopSurface() {
       ? `brightness(${0.45 + (settings.brightness / 100) * 0.55})`
       : undefined;
 
+  const [overviewMounted, setOverviewMounted] = React.useState(overviewOpen);
+  React.useEffect(() => {
+    if (overviewOpen) {
+      setOverviewMounted(true);
+      return;
+    }
+    const timer = window.setTimeout(() => setOverviewMounted(false), 360);
+    return () => window.clearTimeout(timer);
+  }, [overviewOpen]);
+
   return (
     <div
       style={{
@@ -209,7 +219,7 @@ function DesktopSurface() {
       )}
 
       {/* Overview (Workspaces & Window Spread) */}
-      {overviewOpen && (
+      {overviewMounted && (
         <React.Suspense fallback={null}>
           <Overview />
         </React.Suspense>
