@@ -475,10 +475,10 @@ export function FileItemContextMenu({
                             onToggleEmblem(targetItems, emblem);
                           }}
                           className={cn(
-                            "flex size-7 items-center justify-center rounded-md border transition-colors",
+                            "flex size-7 items-center justify-center rounded-md border transition-colors active:bg-black/14 dark:active:bg-white/18",
                             active
                               ? cn(
-                                  "border-current bg-black/10 dark:bg-white/12",
+                                  "border-current/45 bg-[color-mix(in_srgb,currentColor_14%,transparent)]",
                                   meta.colorClass,
                                 )
                               : "border-transparent text-adw-label-secondary hover:bg-black/6 dark:hover:bg-white/8",

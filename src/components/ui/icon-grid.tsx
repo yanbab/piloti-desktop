@@ -1071,14 +1071,14 @@ export function IconGrid({
                   onCommitRename?.(item, e.currentTarget.value);
                 }}
                 className={cn(
-                  "w-auto min-w-[3.5rem] max-w-full rounded bg-zinc-900/95 px-1.5 py-0.5 text-[11.5px] leading-tight font-medium text-white ring-1 ring-adw-accent outline-none",
+                  "w-auto min-w-[3.5rem] max-w-full rounded bg-zinc-900/95 px-1.5 py-0.5 text-[0.82rem] leading-tight font-medium text-white ring-1 ring-adw-accent outline-none",
                   compactHorizontal ? "text-left" : "text-center",
                 )}
               />
             ) : (
               <span
                 className={cn(
-                  "w-fit max-w-full shrink-0 rounded px-1.5 py-0.5 text-[11.5px] leading-[1.3] font-medium text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]",
+                  "w-fit max-w-full shrink-0 rounded px-1.5 py-0.5 text-[0.82rem] leading-[1.3] font-medium text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]",
                   compactHorizontal && "truncate",
                   selected && "bg-adw-accent text-white drop-shadow-none",
                 )}

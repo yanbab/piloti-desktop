@@ -238,7 +238,7 @@ export function FilesApp({
     return registerOpenFolderPath(currentPath);
   }, [currentPath]);
 
-  const [gridZoomIndex, setGridZoomIndex] = React.useState(3);
+  const [gridZoomIndex, setGridZoomIndex] = React.useState(4);
   const [listZoomIndex, setListZoomIndex] = React.useState(1);
   const [infoPaneOpen, setInfoPaneOpen] = React.useState(false);
   const [showHidden, setShowHidden] = React.useState(false);
@@ -749,7 +749,7 @@ export function FilesApp({
     }
   };
 
-  const zoom = ICON_ZOOM_LEVELS[gridZoomIndex] ?? ICON_ZOOM_LEVELS[3];
+  const zoom = ICON_ZOOM_LEVELS[gridZoomIndex] ?? ICON_ZOOM_LEVELS[4];
   const listIconSize = LIST_ZOOM_LEVELS[listZoomIndex] ?? LIST_ZOOM_LEVELS[1];
   const activeZoomIndex = viewMode === "list" ? listZoomIndex : gridZoomIndex;
   const maxZoomIndex =
@@ -1057,10 +1057,10 @@ export function FilesApp({
                             reloadDir();
                           }}
                           className={cn(
-                            "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10.5px] font-medium transition-colors",
+                            "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10.5px] font-medium transition-colors active:bg-black/14 dark:active:bg-white/18",
                             active
                               ? cn(
-                                  "border-current bg-black/10 dark:bg-white/12",
+                                  "border-current/45 bg-[color-mix(in_srgb,currentColor_14%,transparent)]",
                                   meta.colorClass
                                 )
                               : "border-adw-separator text-adw-label-secondary hover:bg-black/5 dark:hover:bg-white/8"
