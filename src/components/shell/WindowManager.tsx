@@ -882,42 +882,24 @@ const WindowBody = React.memo(
     }
     if (win.builtinComponent === "text-editor") {
       return (
-        <IsolatedAppFrame
-          appId="text-editor"
-          windowId={win.id}
-          title={win.title}
-          isCsd={isCsd}
-          initialPath={win.payload}
-          fallbackElement={
-            <React.Suspense fallback={null}>
-              <TextEditorApp
-                initialPath={win.payload}
-                windowId={win.id}
-                isCsd={isCsd}
-              />
-            </React.Suspense>
-          }
-        />
+        <React.Suspense fallback={null}>
+          <TextEditorApp
+            initialPath={win.payload}
+            windowId={win.id}
+            isCsd={isCsd}
+          />
+        </React.Suspense>
       );
     }
     if (win.builtinComponent === "image-viewer") {
       return (
-        <IsolatedAppFrame
-          appId="image-viewer"
-          windowId={win.id}
-          title={win.title}
-          isCsd={isCsd}
-          initialPath={win.payload}
-          fallbackElement={
-            <React.Suspense fallback={null}>
-              <ImageViewerApp
-                initialPath={win.payload}
-                windowId={win.id}
-                isCsd={isCsd}
-              />
-            </React.Suspense>
-          }
-        />
+        <React.Suspense fallback={null}>
+          <ImageViewerApp
+            initialPath={win.payload}
+            windowId={win.id}
+            isCsd={isCsd}
+          />
+        </React.Suspense>
       );
     }
     if (win.builtinComponent === "terminal") {

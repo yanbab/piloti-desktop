@@ -202,11 +202,6 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
       setHighlightLine((v) => !v);
     } else if (actionId === "text-editor:toggle-cursor-position") {
       setShowCursorPos((v) => !v);
-    } else if (actionId === "piloti:title-click") {
-      if (filePathRef.current) {
-        setDraftTitle(getBaseName(filePathRef.current));
-        setEditingTitle(true);
-      }
     } else if (actionId.startsWith("piloti:open-path:")) {
       const droppedPath = actionId.slice("piloti:open-path:".length).trim();
       if (droppedPath) {
