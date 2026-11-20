@@ -4,7 +4,7 @@
 
 # Piloti Desktop
 
-An hybrid Web/Linux desktop shell built on [Domicile](https://domicile-desktop.com/), a Chromium based Wayland.
+An hybrid Web/Linux desktop shell built on [Domicile](https://domicile-desktop.com/), a Chromium based Wayland compositor.
 
 It allows nice experiments when boundaries between web and native apps are not so important anymore.
 
@@ -21,15 +21,17 @@ It allows nice experiments when boundaries between web and native apps are not s
 - Notifications & Control Panel
 - Alt+Tab window switcher
 - Lock screen & power actions
-- GNOME Adwaita light/dark themes & wallpapers
+- GNOME Adwaita light/dark/high-contrast themes & wallpapers
+- User CSS/JS plugins (`~/.config/piloti/plugins/`) & Chrome extensions in Web windows
 
 ### Apps
-- Files (Web)
-- Terminal (Web)
-- Text Editor (Web)
+- Files (Web) (`metadata::emblems` & `mimeapps.list` XDG support)
+- Web Terminal (pipes, redirects, history, `piloti` CLI)
+- Notepad (Markdown & JSON preview, `.config/Piloti/notepad.ini` prefs)
+- Calculator & Image Viewer
 - App Store (Web & Flatpak)
-- Settings (Web)
-- DevTools
+- Desktop Settings
+- DevTools (Console, Logs, State & VFS Inspector, Storage)
 
 ## Quick Start
 

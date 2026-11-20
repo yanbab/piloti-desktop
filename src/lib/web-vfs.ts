@@ -8,6 +8,10 @@ export interface WebVfsEntry {
   parentPath: string;
   content?: string;
   trashedFromPath?: string;
+  metadata?: {
+    "metadata::emblems"?: string[];
+    [key: string]: unknown;
+  };
   updatedAt: number;
 }
 
@@ -626,16 +630,40 @@ const VALID_EMBLEM_IDS = new Set<VfsEmblemId>([
   "personal",
 ]);
 
+const GNOME_EMBLEM_MAP: Record<VfsEmblemId, string> = {
+  favorite: "emblem-favorite",
+  important: "emblem-important",
+  work: "emblem-work",
+  personal: "emblem-personal",
+};
+
+const REVERSE_GNOME_EMBLEM_MAP: Record<string, VfsEmblemId> = {
+  "emblem-favorite": "favorite",
+  "emblem-important": "important",
+  "emblem-work": "work",
+  "emblem-personal": "personal",
+};
+
+export function toGnomeEmblemName(id: VfsEmblemId): string {
+  return GNOME_EMBLEM_MAP[id];
+}
+
+export function fromGnomeEmblemName(name: string): VfsEmblemId | null {
+  const lower = name.trim().toLowerCase();
+  if (VALID_EMBLEM_IDS.has(lower as VfsEmblemId)) {
+    return lower as VfsEmblemId;
+  }
+  return REVERSE_GNOME_EMBLEM_MAP[lower] ?? null;
+}
+
 function normalizeEmblemList(raw: unknown): VfsEmblemId[] {
   if (!Array.isArray(raw)) return [];
   const out: VfsEmblemId[] = [];
   for (const item of raw) {
-    if (
-      typeof item === "string" &&
-      VALID_EMBLEM_IDS.has(item as VfsEmblemId) &&
-      !out.includes(item as VfsEmblemId)
-    ) {
-      out.push(item as VfsEmblemId);
+    if (typeof item !== "string") continue;
+    const mapped = fromGnomeEmblemName(item);
+    if (mapped && !out.includes(mapped)) {
+      out.push(mapped);
     }
   }
   return out;
@@ -643,16 +671,34 @@ function normalizeEmblemList(raw: unknown): VfsEmblemId[] {
 
 export function loadVfsEmblemsMap(): Record<string, VfsEmblemId[]> {
   if (typeof localStorage === "undefined") return {};
+  const result: Record<string, VfsEmblemId[]> = {};
+
+  // Primary source: GVfs-compatible `metadata::emblems` on WebVfsEntry records
+  try {
+    const entries = loadVfs();
+    for (const entry of entries) {
+      const rawMeta = entry.metadata?.["metadata::emblems"];
+      const list = normalizeEmblemList(rawMeta);
+      if (list.length > 0) {
+        result[normalizeVfsPath(entry.path)] = list;
+      }
+    }
+  } catch {
+    // ignore VFS read errors
+  }
+
   try {
     const raw = localStorage.getItem(VFS_EMBLEMS_STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw) as Record<string, unknown>;
       if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
-        const result: Record<string, VfsEmblemId[]> = {};
         for (const [k, v] of Object.entries(parsed)) {
-          const list = normalizeEmblemList(v);
-          if (list.length > 0) {
-            result[normalizeVfsPath(k)] = list;
+          const normPath = normalizeVfsPath(k);
+          if (!result[normPath]) {
+            const list = normalizeEmblemList(v);
+            if (list.length > 0) {
+              result[normPath] = list;
+            }
           }
         }
         return result;
@@ -663,19 +709,21 @@ export function loadVfsEmblemsMap(): Record<string, VfsEmblemId[]> {
     if (legacyRaw) {
       const parsedLegacy = JSON.parse(legacyRaw);
       if (Array.isArray(parsedLegacy)) {
-        const migrated: Record<string, VfsEmblemId[]> = {};
         for (const item of parsedLegacy) {
           if (typeof item === "string") {
-            migrated[normalizeVfsPath(item)] = ["favorite"];
+            const normPath = normalizeVfsPath(item);
+            if (!result[normPath]) {
+              result[normPath] = ["favorite"];
+            }
           }
         }
-        return migrated;
+        return result;
       }
     }
   } catch {
     // ignore storage errors
   }
-  return {};
+  return result;
 }
 
 function saveVfsEmblemsMap(map: Record<string, VfsEmblemId[]>, emit = true): void {
@@ -690,6 +738,39 @@ function saveVfsEmblemsMap(map: Record<string, VfsEmblemId[]>, emit = true): voi
             favorites.push(path);
           }
         }
+      }
+      // Sync GVfs-compatible `metadata::emblems` onto VFS entries
+      const entries = loadVfs();
+      let entriesChanged = false;
+      const nextEntries = entries.map((entry) => {
+        const normPath = normalizeVfsPath(entry.path);
+        const list = cleaned[normPath];
+        const gnomeEmblems = list?.map(toGnomeEmblemName);
+        const prevMeta = entry.metadata?.["metadata::emblems"];
+        const same =
+          JSON.stringify(prevMeta ?? null) ===
+          JSON.stringify(gnomeEmblems ?? null);
+        if (same) return entry;
+        entriesChanged = true;
+        if (!gnomeEmblems || gnomeEmblems.length === 0) {
+          if (!entry.metadata) return entry;
+          const restMeta = { ...entry.metadata };
+          delete restMeta["metadata::emblems"];
+          return {
+            ...entry,
+            metadata: Object.keys(restMeta).length > 0 ? restMeta : undefined,
+          };
+        }
+        return {
+          ...entry,
+          metadata: {
+            ...(entry.metadata ?? {}),
+            "metadata::emblems": gnomeEmblems,
+          },
+        };
+      });
+      if (entriesChanged) {
+        localStorage.setItem(WEB_VFS_STORAGE_KEY, JSON.stringify(nextEntries));
       }
       localStorage.setItem(VFS_EMBLEMS_STORAGE_KEY, JSON.stringify(cleaned));
       localStorage.setItem(

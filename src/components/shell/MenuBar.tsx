@@ -129,7 +129,7 @@ function RemoteSubmenuGroup({
   hasCheckable,
   computerModel,
 }: {
-  entry: Extract<RemoteMenuEntry, { submenu?: readonly RemoteMenuEntry[] }>;
+  entry: Exclude<RemoteMenuEntry, { kind: "separator" }>;
   hasCheckable: boolean;
   computerModel: "mac" | "pc";
 }) {
@@ -667,77 +667,77 @@ export function MenuBar() {
           {/* Contextual App Menus (live XDG/D-Bus menus when exported, else catalog fallback) */}
           {remoteMenu && remoteMenu.sections.length > 0
             ? remoteMenu.sections.map((section, idx) => (
-                <MenubarMenu
-                  key={`remote-${idx}-${section.title}`}
-                  onOpenChange={(open) => {
-                    if (open) remoteMenu.aboutToShowSection?.(idx);
-                  }}
-                >
-                  <MenubarTrigger>{section.title}</MenubarTrigger>
-                  <MenubarContent>
-                    {renderRemoteMenuItems(section.items, settings.computerModel)}
-                  </MenubarContent>
-                </MenubarMenu>
-              ))
+              <MenubarMenu
+                key={`remote-${idx}-${section.title}`}
+                onOpenChange={(open) => {
+                  if (open) remoteMenu.aboutToShowSection?.(idx);
+                }}
+              >
+                <MenubarTrigger>{section.title}</MenubarTrigger>
+                <MenubarContent>
+                  {renderRemoteMenuItems(section.items, settings.computerModel)}
+                </MenubarContent>
+              </MenubarMenu>
+            ))
             : activeAppDef.menus
-                .filter((section) => section.title !== "View")
-                .map((section) => {
-                  const hasCheckable = section.items.some(
-                    (i) =>
-                      (windowMenuState[i.actionId]?.checked ?? i.checked) !==
-                      undefined,
-                  );
-                  return (
-                    <MenubarMenu key={section.title}>
-                      <MenubarTrigger>{_(section.title)}</MenubarTrigger>
-                      <MenubarContent>
-                        {section.items.map((item) => {
-                          const itemState = windowMenuState[item.actionId];
-                          const checked = itemState?.checked ?? item.checked;
-                          const disabled = itemState?.disabled ?? false;
-                          return (
-                            <React.Fragment key={item.actionId}>
-                              {checked !== undefined ? (
-                                <MenubarCheckboxItem
-                                  checked={checked}
-                                  disabled={disabled}
-                                  onClick={() => handleMenuAction(item.actionId)}
-                                >
-                                  {_(item.label)}
-                                  {item.shortcut && (
-                                    <MenubarShortcut>
-                                      {formatMenuShortcut(
-                                        item.shortcut,
-                                        settings.computerModel,
-                                      )}
-                                    </MenubarShortcut>
-                                  )}
-                                </MenubarCheckboxItem>
-                              ) : (
-                                <MenubarItem
-                                  disabled={disabled}
-                                  className={hasCheckable ? "pl-8" : undefined}
-                                  onClick={() => handleMenuAction(item.actionId)}
-                                >
-                                  {_(item.label)}
-                                  {item.shortcut && (
-                                    <MenubarShortcut>
-                                      {formatMenuShortcut(
-                                        item.shortcut,
-                                        settings.computerModel,
-                                      )}
-                                    </MenubarShortcut>
-                                  )}
-                                </MenubarItem>
-                              )}
-                              {item.separatorAfter && <MenubarSeparator />}
-                            </React.Fragment>
-                          );
-                        })}
-                      </MenubarContent>
-                    </MenubarMenu>
-                  );
-                })}
+              .filter((section) => section.title !== "View")
+              .map((section) => {
+                const hasCheckable = section.items.some(
+                  (i) =>
+                    (windowMenuState[i.actionId]?.checked ?? i.checked) !==
+                    undefined,
+                );
+                return (
+                  <MenubarMenu key={section.title}>
+                    <MenubarTrigger>{_(section.title)}</MenubarTrigger>
+                    <MenubarContent>
+                      {section.items.map((item) => {
+                        const itemState = windowMenuState[item.actionId];
+                        const checked = itemState?.checked ?? item.checked;
+                        const disabled = itemState?.disabled ?? false;
+                        return (
+                          <React.Fragment key={item.actionId}>
+                            {checked !== undefined ? (
+                              <MenubarCheckboxItem
+                                checked={checked}
+                                disabled={disabled}
+                                onClick={() => handleMenuAction(item.actionId)}
+                              >
+                                {_(item.label)}
+                                {item.shortcut && (
+                                  <MenubarShortcut>
+                                    {formatMenuShortcut(
+                                      item.shortcut,
+                                      settings.computerModel,
+                                    )}
+                                  </MenubarShortcut>
+                                )}
+                              </MenubarCheckboxItem>
+                            ) : (
+                              <MenubarItem
+                                disabled={disabled}
+                                className={hasCheckable ? "pl-8" : undefined}
+                                onClick={() => handleMenuAction(item.actionId)}
+                              >
+                                {_(item.label)}
+                                {item.shortcut && (
+                                  <MenubarShortcut>
+                                    {formatMenuShortcut(
+                                      item.shortcut,
+                                      settings.computerModel,
+                                    )}
+                                  </MenubarShortcut>
+                                )}
+                              </MenubarItem>
+                            )}
+                            {item.separatorAfter && <MenubarSeparator />}
+                          </React.Fragment>
+                        );
+                      })}
+                    </MenubarContent>
+                  </MenubarMenu>
+                );
+              })}
 
           {/* Edit Menu */}
           <MenubarMenu>
@@ -841,75 +841,75 @@ export function MenuBar() {
 
           {/* Universal Window Menu (matches top-left WindowMenuButton + active app window list) */}
           {activeAppDef.id !== "desktop" && (
-          <MenubarMenu>
-            <MenubarTrigger>{_("Window")}</MenubarTrigger>
-            <MenubarContent>
-              <MenubarItem
-                disabled={!focusedWindowId}
-                onClick={() => focusedWindowId && toggleMinimizeWindow(focusedWindowId)}
-              >
-                {_("Minimize")}
-                <MenubarShortcut>
-                  {formatMenuShortcut("Alt+M", settings.computerModel)}
-                </MenubarShortcut>
-              </MenubarItem>
-              <MenubarItem
-                disabled={!focusedWindowId}
-                onClick={() => focusedWindowId && toggleMaximizeWindow(focusedWindowId)}
-              >
-                {focusedWindow?.maximized ? _("Restore") : _("Maximize")}
-                <MenubarShortcut>
-                  {formatMenuShortcut("Alt+F", settings.computerModel)}
-                </MenubarShortcut>
-              </MenubarItem>
-              <MenubarItem
-                disabled={!focusedWindowId}
-                onClick={() => focusedWindowId && tileWindow(focusedWindowId, "left")}
-              >
-                {_("Tile Left")}
-                <MenubarShortcut>
-                  {formatMenuShortcut("Alt+[", settings.computerModel)}
-                </MenubarShortcut>
-              </MenubarItem>
-              <MenubarItem
-                disabled={!focusedWindowId}
-                onClick={() => focusedWindowId && tileWindow(focusedWindowId, "right")}
-              >
-                {_("Tile Right")}
-                <MenubarShortcut>
-                  {formatMenuShortcut("Alt+]", settings.computerModel)}
-                </MenubarShortcut>
-              </MenubarItem>
-              <MenubarSeparator />
-              <MenubarItem
-                disabled={!focusedWindowId}
-                onClick={() => focusedWindowId && closeWindow(focusedWindowId)}
-              >
-                {_("Close")}
-                <MenubarShortcut>
-                  {formatMenuShortcut("Alt+W", settings.computerModel)}
-                </MenubarShortcut>
-              </MenubarItem>
-              {(() => {
-                const appWindows = focusedWindowId
-                  ? windows.filter((w) => w.appId === activeAppDef.id)
-                  : [];
-                if (appWindows.length === 0) return null;
-                return (
-                  <>
-                    <MenubarSeparator />
-                    {appWindows.map((win) => (
-                      <MenubarItem key={win.id} onClick={() => focusWindow(win.id)}>
-                        <span className="max-w-[180px] truncate">{win.title}</span>
-                        {win.id === focusedWindowId && <MenubarBadge>{_("Active")}</MenubarBadge>}
-                        {win.minimized && <MenubarBadge>{_("Min")}</MenubarBadge>}
-                      </MenubarItem>
-                    ))}
-                  </>
-                );
-              })()}
-            </MenubarContent>
-          </MenubarMenu>
+            <MenubarMenu>
+              <MenubarTrigger>{_("Window")}</MenubarTrigger>
+              <MenubarContent>
+                <MenubarItem
+                  disabled={!focusedWindowId}
+                  onClick={() => focusedWindowId && toggleMinimizeWindow(focusedWindowId)}
+                >
+                  {_("Minimize")}
+                  <MenubarShortcut>
+                    {formatMenuShortcut("Alt+M", settings.computerModel)}
+                  </MenubarShortcut>
+                </MenubarItem>
+                <MenubarItem
+                  disabled={!focusedWindowId}
+                  onClick={() => focusedWindowId && toggleMaximizeWindow(focusedWindowId)}
+                >
+                  {focusedWindow?.maximized ? _("Restore") : _("Maximize")}
+                  <MenubarShortcut>
+                    {formatMenuShortcut("Alt+F", settings.computerModel)}
+                  </MenubarShortcut>
+                </MenubarItem>
+                <MenubarItem
+                  disabled={!focusedWindowId}
+                  onClick={() => focusedWindowId && tileWindow(focusedWindowId, "left")}
+                >
+                  {_("Tile Left")}
+                  <MenubarShortcut>
+                    {formatMenuShortcut("Alt+[", settings.computerModel)}
+                  </MenubarShortcut>
+                </MenubarItem>
+                <MenubarItem
+                  disabled={!focusedWindowId}
+                  onClick={() => focusedWindowId && tileWindow(focusedWindowId, "right")}
+                >
+                  {_("Tile Right")}
+                  <MenubarShortcut>
+                    {formatMenuShortcut("Alt+]", settings.computerModel)}
+                  </MenubarShortcut>
+                </MenubarItem>
+                <MenubarSeparator />
+                <MenubarItem
+                  disabled={!focusedWindowId}
+                  onClick={() => focusedWindowId && closeWindow(focusedWindowId)}
+                >
+                  {_("Close")}
+                  <MenubarShortcut>
+                    {formatMenuShortcut("Alt+W", settings.computerModel)}
+                  </MenubarShortcut>
+                </MenubarItem>
+                {(() => {
+                  const appWindows = focusedWindowId
+                    ? windows.filter((w) => w.appId === activeAppDef.id)
+                    : [];
+                  if (appWindows.length === 0) return null;
+                  return (
+                    <>
+                      <MenubarSeparator />
+                      {appWindows.map((win) => (
+                        <MenubarItem key={win.id} onClick={() => focusWindow(win.id)}>
+                          <span className="max-w-[180px] truncate">{win.title}</span>
+                          {win.id === focusedWindowId && <MenubarBadge>{_("Active")}</MenubarBadge>}
+                          {win.minimized && <MenubarBadge>{_("Min")}</MenubarBadge>}
+                        </MenubarItem>
+                      ))}
+                    </>
+                  );
+                })()}
+              </MenubarContent>
+            </MenubarMenu>
           )}
 
           {/* Help Menu */}

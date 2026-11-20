@@ -108,6 +108,11 @@ describe("web-vfs", () => {
     toggleVfsEmblem(file.path, "important");
     setVfsEmblem(file.path, "work", true);
     expect(getVfsEmblems(file.path)).toEqual(["favorite", "important", "work"]);
+    expect(getVfsEntry(file.path)?.metadata?.["metadata::emblems"]).toEqual([
+      "emblem-favorite",
+      "emblem-important",
+      "emblem-work",
+    ]);
 
     const renamed = renameVfsEntry(file.path, "AnnualReport.md");
     expect(renamed).not.toBeNull();

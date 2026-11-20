@@ -4,6 +4,18 @@ This document outlines practical ways to support simple, safe user plugins in Pi
 
 ---
 
+## Implemented Tier 1 & Manifestless Support
+
+Piloti implements Tier 1 plugins and manifestless single-file plugins out of the box in `~/.config/piloti/plugins/`:
+
+- **Single `.css` file** (`my-theme.css`) — no `manifest.json` required; injects `<style data-piloti-plugin="my-theme">` into `document.head`.
+- **Single `.js` / `.mjs` file** (`my-script.js`) — no `manifest.json` required; executes as a browser ES module via `Blob` URL (`activate(ctx)` / `deactivate()` or top-level code using `window.__PILOTI__`).
+- **Folder** (`my-plugin/`) — optional `manifest.json` (including declarative `commands`) or auto-detected `style.css` + `index.js`.
+- **Management UI** — **Settings → Advanced → User Plugins** lists discovered plugins with live enable/disable switches, reload, **Sample CSS** / **Sample JS** generators, and **Open Folder**.
+- **Safe Mode** — append `?safe-mode=1` to skip JS plugin execution while keeping CSS plugins active.
+
+---
+
 ## Design Goals
 
 1. **Simple to author**: A plugin should be a single folder with a `manifest.json` and an optional `style.css` or `index.js` — no build step required for basic extensions.
