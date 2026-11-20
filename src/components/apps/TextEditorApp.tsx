@@ -33,7 +33,11 @@ import { publishWindowMenuState, useIsolatedAppBridge } from "@/lib/app-bridge";
 import { _ } from "@/lib/i18n";
 import { getCachedPilotiAppIni, writePilotiAppIni } from "@/lib/piloti-ini";
 import { cn } from "@/lib/utils";
-import { normalizeVfsPath, renameVfsEntry } from "@/lib/web-vfs";
+import {
+  normalizeVfsPath,
+  renameVfsEntry,
+  subscribeVfsRenamed,
+} from "@/lib/web-vfs";
 
 interface TextEditorAppProps {
   initialPath?: string;
@@ -281,18 +285,13 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
   }, [isPreviewable, previewMarkdown]);
 
   React.useEffect(() => {
-    const onVfsRenamed = (e: Event) => {
-      const detail = (
-        e as CustomEvent<{ oldPath?: string; newPath?: string }>
-      ).detail;
-      if (!detail?.oldPath || !detail?.newPath || !filePath) return;
-      if (normalizeVfsPath(filePath) === normalizeVfsPath(detail.oldPath)) {
-        setFilePath(detail.newPath);
-        bridge.setTitle(getBaseName(detail.newPath));
+    if (!filePath) return;
+    return subscribeVfsRenamed(({ oldPath, newPath }) => {
+      if (normalizeVfsPath(filePath) === normalizeVfsPath(oldPath)) {
+        setFilePath(newPath);
+        bridge.setTitle(getBaseName(newPath));
       }
-    };
-    window.addEventListener("piloti:vfs-renamed", onVfsRenamed);
-    return () => window.removeEventListener("piloti:vfs-renamed", onVfsRenamed);
+    });
   }, [bridge, filePath]);
 
   const commitTitleRename = React.useCallback(() => {

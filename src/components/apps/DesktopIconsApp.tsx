@@ -45,6 +45,7 @@ import {
   renameVfsEntry,
   setVfsClipboard,
   subscribeVfsClipboard,
+  subscribeVfsRenamed,
   subscribeWebVfs,
   toggleVfsEmblem,
   trashVfsEntry,
@@ -245,9 +246,30 @@ export function DesktopIconsApp({
     if (!settings.desktopIconsEnabled || !dockIconsReady) return;
     void loadDesktopFolder();
     if (isBrowserRuntime) {
-      return subscribeWebVfs(() => {
+      const unsubVfs = subscribeWebVfs(() => {
         void loadDesktopFolder();
       });
+      const unsubRenamed = subscribeVfsRenamed(({ oldPath, newPath }) => {
+        const prefix = `${desktopDirPath.replace(/\/+$/, "")}/`;
+        if (!oldPath.startsWith(prefix) || !newPath.startsWith(prefix)) return;
+        const oldName = oldPath.slice(prefix.length);
+        const newName = newPath.slice(prefix.length);
+        if (!oldName || !newName || oldName === newName) return;
+        if (
+          settings.desktopIconPositions[oldName] &&
+          !settings.desktopIconPositions[newName]
+        ) {
+          const nextPositions = { ...settings.desktopIconPositions };
+          nextPositions[newName] = nextPositions[oldName];
+          delete nextPositions[oldName];
+          updateSettings({ desktopIconPositions: nextPositions });
+        }
+        void loadDesktopFolder();
+      });
+      return () => {
+        unsubVfs();
+        unsubRenamed();
+      };
     }
     const timer = window.setInterval(() => {
       if (

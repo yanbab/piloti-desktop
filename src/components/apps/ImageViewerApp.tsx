@@ -13,6 +13,11 @@ import {
 import { useIsolatedAppBridge } from "@/lib/app-bridge";
 import { _ } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
+import {
+  normalizeVfsPath,
+  renameVfsEntry,
+  subscribeVfsRenamed,
+} from "@/lib/web-vfs";
 
 export interface ImageViewerAppProps {
   initialPath?: string;
@@ -63,6 +68,8 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
     null,
   );
   const [savedFlash, setSavedFlash] = React.useState(false);
+  const [editingTitle, setEditingTitle] = React.useState(false);
+  const [draftTitle, setDraftTitle] = React.useState("");
   const imgRef = React.useRef<HTMLImageElement | null>(null);
   const panDragRef = React.useRef<{
     startX: number;
@@ -232,6 +239,36 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
     ? (activePath.split("/").filter(Boolean).pop() ?? _("Image Viewer"))
     : _("Image Viewer");
 
+  const isRenameableVfsFile =
+    Boolean(activePath) &&
+    !activePath.startsWith("data:") &&
+    !activePath.startsWith("http://") &&
+    !activePath.startsWith("https://") &&
+    !activePath.startsWith("blob:");
+
+  React.useEffect(() => {
+    if (!isRenameableVfsFile) return;
+    return subscribeVfsRenamed(({ oldPath, newPath }) => {
+      if (normalizeVfsPath(activePath) === normalizeVfsPath(oldPath)) {
+        setActivePath(newPath);
+        const nextName = newPath.split("/").filter(Boolean).pop();
+        if (nextName) bridge.setTitle(nextName);
+      }
+    });
+  }, [activePath, bridge, isRenameableVfsFile]);
+
+  const commitTitleRename = React.useCallback(() => {
+    setEditingTitle(false);
+    if (!isRenameableVfsFile) return;
+    const nextName = draftTitle.trim().replace(/[/\\]/g, "");
+    if (!nextName || nextName === fileName) return;
+    const renamed = renameVfsEntry(activePath, nextName);
+    if (renamed) {
+      setActivePath(renamed.path);
+      bridge.setTitle(renamed.name);
+    }
+  }, [activePath, bridge, draftTitle, fileName, isRenameableVfsFile]);
+
   return (
     <div
       data-drop-window-id={windowId}
@@ -243,13 +280,47 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
           data-window-drag-region=""
           className={cn(
             "flex h-9 items-center justify-between border-b border-adw-separator/60 bg-adw-titlebar/85 px-3 backdrop-blur-md transition-opacity duration-150 group-hover/header:opacity-100 group-data-[dragging]/window:opacity-100",
-            dragRegionHovered ? "opacity-100" : "opacity-0",
+            dragRegionHovered || editingTitle ? "opacity-100" : "opacity-0",
           )}
         >
           <div className="w-6" />
-          <span className="pointer-events-none truncate text-adw-body font-semibold whitespace-nowrap text-adw-label">
-            {fileName}
-          </span>
+          {editingTitle && isRenameableVfsFile ? (
+            <input
+              type="text"
+              autoFocus
+              data-window-no-drag
+              value={draftTitle}
+              onChange={(e) => setDraftTitle(e.target.value)}
+              onBlur={commitTitleRename}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") commitTitleRename();
+                if (e.key === "Escape") setEditingTitle(false);
+              }}
+              onFocus={(e) => {
+                const dot = e.currentTarget.value.lastIndexOf(".");
+                if (dot > 0) e.currentTarget.setSelectionRange(0, dot);
+                else e.currentTarget.select();
+              }}
+              className="h-6 w-48 rounded-md border border-adw-accent bg-adw-content px-2 text-center text-adw-body font-semibold text-adw-label outline-none"
+            />
+          ) : isRenameableVfsFile ? (
+            <button
+              type="button"
+              data-window-no-drag
+              title={_("Click to rename")}
+              onClick={() => {
+                setDraftTitle(fileName);
+                setEditingTitle(true);
+              }}
+              className="truncate rounded-md px-2 py-0.5 text-adw-body font-semibold whitespace-nowrap text-adw-label transition-colors hover:bg-black/8 dark:hover:bg-white/10"
+            >
+              {fileName}
+            </button>
+          ) : (
+            <span className="pointer-events-none truncate text-adw-body font-semibold whitespace-nowrap text-adw-label">
+              {fileName}
+            </span>
+          )}
           <button
             type="button"
             data-window-no-drag

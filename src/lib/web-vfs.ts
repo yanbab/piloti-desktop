@@ -400,6 +400,33 @@ function loadVfs(): WebVfsEntry[] {
   return seeded;
 }
 
+type VfsBroadcastMessage =
+  | { type: "vfs-changed" }
+  | { type: "vfs-renamed"; oldPath: string; newPath: string };
+
+let vfsBroadcastChannel: BroadcastChannel | null | undefined;
+function getVfsBroadcastChannel(): BroadcastChannel | null {
+  if (vfsBroadcastChannel !== undefined) return vfsBroadcastChannel;
+  if (typeof BroadcastChannel === "undefined") {
+    vfsBroadcastChannel = null;
+    return null;
+  }
+  try {
+    vfsBroadcastChannel = new BroadcastChannel("piloti-vfs");
+  } catch {
+    vfsBroadcastChannel = null;
+  }
+  return vfsBroadcastChannel;
+}
+
+function postVfsBroadcast(msg: VfsBroadcastMessage): void {
+  try {
+    getVfsBroadcastChannel()?.postMessage(msg);
+  } catch {
+    // ignore broadcast errors
+  }
+}
+
 function saveVfs(entries: WebVfsEntry[]): void {
   if (typeof localStorage !== "undefined") {
     try {
@@ -411,6 +438,7 @@ function saveVfs(entries: WebVfsEntry[]): void {
   if (typeof window !== "undefined") {
     window.dispatchEvent(new CustomEvent(WEB_VFS_CHANGED_EVENT));
   }
+  postVfsBroadcast({ type: "vfs-changed" });
 }
 
 function uniqueChildName(
@@ -910,6 +938,7 @@ export function renameVfsEntry(
       })
     );
   }
+  postVfsBroadcast({ type: "vfs-renamed", oldPath, newPath });
   return updated.find((e) => e.path === newPath) ?? null;
 }
 
@@ -1122,9 +1151,43 @@ export function subscribeWebVfs(listener: () => void): () => void {
   };
   window.addEventListener(WEB_VFS_CHANGED_EVENT, listener);
   window.addEventListener("storage", onStorage);
+  const channel = getVfsBroadcastChannel();
+  const onMessage = (e: MessageEvent<VfsBroadcastMessage>) => {
+    if (e.data?.type === "vfs-changed" || e.data?.type === "vfs-renamed") {
+      listener();
+    }
+  };
+  channel?.addEventListener("message", onMessage);
   return () => {
     window.removeEventListener(WEB_VFS_CHANGED_EVENT, listener);
     window.removeEventListener("storage", onStorage);
+    channel?.removeEventListener("message", onMessage);
+  };
+}
+
+export function subscribeVfsRenamed(
+  listener: (detail: { oldPath: string; newPath: string }) => void
+): () => void {
+  if (typeof window === "undefined") return () => {};
+  const onWindowRenamed = (e: Event) => {
+    const detail = (
+      e as CustomEvent<{ oldPath?: string; newPath?: string }>
+    ).detail;
+    if (detail?.oldPath && detail?.newPath) {
+      listener({ oldPath: detail.oldPath, newPath: detail.newPath });
+    }
+  };
+  const channel = getVfsBroadcastChannel();
+  const onMessage = (e: MessageEvent<VfsBroadcastMessage>) => {
+    if (e.data?.type === "vfs-renamed" && e.data.oldPath && e.data.newPath) {
+      listener({ oldPath: e.data.oldPath, newPath: e.data.newPath });
+    }
+  };
+  window.addEventListener("piloti:vfs-renamed", onWindowRenamed);
+  channel?.addEventListener("message", onMessage);
+  return () => {
+    window.removeEventListener("piloti:vfs-renamed", onWindowRenamed);
+    channel?.removeEventListener("message", onMessage);
   };
 }
 
