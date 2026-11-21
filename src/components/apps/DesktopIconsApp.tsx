@@ -27,7 +27,7 @@ import {
 import { launchDesktopCommand } from "@/lib/gnome-bridge";
 import { _ } from "@/lib/i18n";
 import { startBootPhase } from "@/lib/perf-log";
-import { parseDesktopEntry } from "@/lib/xdg-desktop-entry";
+import { parseDesktopEntry } from "@/lib/xdg/xdg-desktop-entry";
 import {
   buildVfsEntryWebAppUrl,
   copyVfsEntry,
@@ -39,6 +39,7 @@ import {
   getVfsEmblems,
   getVfsEntry,
   importExternalFilesToVfs,
+  incrementVfsAccessCount,
   isImageVfsFile,
   isTextEditableVfsFile,
   listVfsDir,
@@ -138,6 +139,8 @@ export function DesktopIconsApp({
             iconCandidates: visual.iconCandidates,
             gradient: visual.gradient,
             isEmpty,
+            accessCount:
+              entry.kind === "file" ? (entry.accessCount ?? 0) : undefined,
             iconUrl: visual.iconCandidates
               .map((c) => getAppIconUrl(c))
               .find(Boolean),
@@ -219,7 +222,7 @@ export function DesktopIconsApp({
                 Ok: (st) => {
                   isEmpty = st.size === 0;
                 },
-                Err: () => {},
+                Err: () => { },
               });
             } catch {
               // ignore stat failure
@@ -241,6 +244,10 @@ export function DesktopIconsApp({
             iconCandidates: visual.iconCandidates,
             gradient: visual.gradient,
             isEmpty,
+            accessCount:
+              entryFileType === "file"
+                ? (getVfsEntry(fullPath)?.accessCount ?? 0)
+                : undefined,
             iconUrl: visual.iconCandidates
               .map((c) => getAppIconUrl(c))
               .find(Boolean),
@@ -608,6 +615,7 @@ export function DesktopIconsApp({
       if (isBrowserRuntime) {
         const entry = getVfsEntry(item.path);
         if (entry && entry.kind === "file") {
+          incrementVfsAccessCount(entry.path);
           if (isImageVfsFile(entry.name, entry.content)) {
             launchApp("image-viewer", { payload: entry.path });
             return;
@@ -726,9 +734,24 @@ export function DesktopIconsApp({
         } else if (mod && key === "d" && selectedItems.length > 0) {
           e.preventDefault();
           void handleDuplicateItems(selectedItems);
-        } else if (e.key === "F2" && selectedIds.length === 1) {
+        } else if (
+          ((e.ctrlKey && !e.altKey && !e.shiftKey && e.key === "Enter") ||
+            e.key === "F2") &&
+          selectedIds.length === 1
+        ) {
           e.preventDefault();
           setRenamingId(selectedIds[0]);
+        } else if (
+          e.key === "Enter" &&
+          !e.ctrlKey &&
+          !e.metaKey &&
+          !e.altKey &&
+          !e.shiftKey &&
+          selectedItems.length === 1 &&
+          !(e.target as HTMLElement | null)?.closest('[role="grid"]')
+        ) {
+          e.preventDefault();
+          handleActivateItem(selectedItems[0]);
         } else if (
           (e.key === "Delete" || e.key === "Backspace") &&
           selectedItems.length > 0
@@ -756,7 +779,13 @@ export function DesktopIconsApp({
         setExternalDropActive(false);
         const names = Array.from(e.dataTransfer.files).map((f) => f.name);
         assignDroppedNamesNearCursor(names, e.clientX, e.clientY);
-        void importExternalFilesToVfs(desktopDirPath, e.dataTransfer.files);
+        void importExternalFilesToVfs(desktopDirPath, e.dataTransfer.files).then(() => {
+          window.dispatchEvent(
+            new CustomEvent("piloti:folder-drop-anim", {
+              detail: { path: desktopDirPath },
+            }),
+          );
+        });
       }}
     >
       <IconGrid
@@ -803,6 +832,9 @@ export function DesktopIconsApp({
         onClose={() => setContextMenu(null)}
         onOpen={handleActivateItem}
         onOpenWithApp={(target, appId) => {
+          if (target.kind === "file" && target.path) {
+            incrementVfsAccessCount(target.path);
+          }
           launchApp(appId, { payload: target.path, forceNew: true });
         }}
         onOpenInNewWindow={(target) =>
@@ -821,19 +853,19 @@ export function DesktopIconsApp({
         onCompress={
           isBrowserRuntime
             ? (list) => {
-                void compressVfsEntries(list.map((i) => i.path)).then((created) => {
-                  if (created) void loadDesktopFolder();
-                });
-              }
+              void compressVfsEntries(list.map((i) => i.path)).then((created) => {
+                if (created) void loadDesktopFolder();
+              });
+            }
             : undefined
         }
         onExtract={
           isBrowserRuntime
             ? (target) => {
-                void extractVfsZip(target.path).then((folder) => {
-                  if (folder) void loadDesktopFolder();
-                });
-              }
+              void extractVfsZip(target.path).then((folder) => {
+                if (folder) void loadDesktopFolder();
+              });
+            }
             : undefined
         }
         onDownload={
@@ -849,8 +881,6 @@ export function DesktopIconsApp({
           void loadDesktopFolder();
         }}
         onRename={(target) => setRenamingId(target.id)}
-        onNewFolder={() => void createDesktopFolder()}
-        onNewTextFile={() => void createDesktopTextFile()}
         onTrash={(target) => void handleMoveToTrash(target)}
         onTrashItems={(list) => void handleMoveItemsToTrash(list)}
       />

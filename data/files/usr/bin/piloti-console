@@ -1,0 +1,4 @@
+#!/bin/sh
+# piloti-console — Open Piloti Desktop Console
+set -eu
+exec /usr/bin/piloti open console "$@"

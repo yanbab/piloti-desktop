@@ -16,9 +16,14 @@ import { useOptionalPlugins } from "@/context/PluginsContext";
 import { ACCENT_COLORS } from "@/data/catalog";
 import { _ } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
+import { useThrottledColor } from "./use-throttled-color";
 
 export function AppearancePane() {
   const { settings, updateSettings } = useSettings();
+  const accentColorPicker = useThrottledColor(
+    settings.customAccentHex || "#3584e4",
+    (hex) => updateSettings({ customAccentHex: hex })
+  );
   const pluginsCtx = useOptionalPlugins();
   const themePlugins = React.useMemo(
     () => (pluginsCtx?.plugins ?? []).filter((p) => p.kind === "theme"),
@@ -187,10 +192,9 @@ export function AppearancePane() {
                 >
                   <input
                     type="color"
-                    value={settings.customAccentHex || "#3584e4"}
-                    onChange={(e) =>
-                      updateSettings({ customAccentHex: e.target.value })
-                    }
+                    value={accentColorPicker.draft}
+                    onChange={(e) => accentColorPicker.onChange(e.target.value)}
+                    onBlur={accentColorPicker.flush}
                     className="absolute inset-0 cursor-pointer opacity-0"
                   />
                   {settings.customAccentHex && (

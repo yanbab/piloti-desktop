@@ -693,7 +693,7 @@ function Window({
     isMaximized: boolean
   ) {
     interactiveDragCleanupRef.current?.()
-    const threshold = 5
+    const threshold = isMaximized ? 6 : 4
     const cleanup = () => {
       window.removeEventListener("pointermove", onMove, true)
       window.removeEventListener("pointerup", onEnd, true)
@@ -724,7 +724,8 @@ function Window({
         }
         onZoom?.()
       } else {
-        beginDrag(node, ev.clientX, ev.clientY, pointerId)
+        beginDrag(node, startX, startY, pointerId)
+        applyDragMove(ev.clientX, ev.clientY)
       }
     }
     const onEnd = (ev: PointerEvent) => {
@@ -753,23 +754,13 @@ function Window({
       ) {
         return
       }
-      if (target.closest(INTERACTIVE_DRAG_CONTROL)) {
-        startPendingInteractiveDrag(
-          node,
-          event.pointerId,
-          event.clientX,
-          event.clientY,
-          true
-        )
-        return
-      }
-      maxDragPending.current = {
-        pointerId: event.pointerId,
-        startX: event.clientX,
-        startY: event.clientY,
-      }
-      node.setPointerCapture(event.pointerId)
-      event.preventDefault()
+      startPendingInteractiveDrag(
+        node,
+        event.pointerId,
+        event.clientX,
+        event.clientY,
+        true
+      )
       return
     }
 
@@ -789,20 +780,13 @@ function Window({
       return
     }
 
-    if (target.closest(INTERACTIVE_DRAG_CONTROL)) {
-      startPendingInteractiveDrag(
-        node,
-        event.pointerId,
-        event.clientX,
-        event.clientY,
-        false
-      )
-      return
-    }
-
-    beginDrag(node, event.clientX, event.clientY, event.pointerId)
-    // Keeps the drag from selecting text.
-    event.preventDefault()
+    startPendingInteractiveDrag(
+      node,
+      event.pointerId,
+      event.clientX,
+      event.clientY,
+      false
+    )
   }
 
   function applyDragMove(clientX: number, clientY: number) {
@@ -1016,7 +1000,7 @@ function Window({
           const region = target.closest(DRAG_REGION)
           const isSidebarBody = Boolean(
             target.closest('aside, [data-slot="adw-sidebar"]') &&
-              !target.closest('[data-slot="window-titlebar"]')
+              !target.closest('[data-slot="window-titlebar"], [data-slot="adw-sidebar-header"]')
           )
           if (
             onZoom &&

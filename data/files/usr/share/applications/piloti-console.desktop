@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Desktop Console
+Comment=Desktop Console, live logs, inspector, and JS REPL
+Exec=piloti-console
+Icon=piloti-console
+Categories=Development;Debugger;
+OnlyShowIn=Piloti;

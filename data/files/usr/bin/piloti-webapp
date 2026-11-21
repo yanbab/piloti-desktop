@@ -1,0 +1,10 @@
+#!/bin/sh
+# piloti-webapp — Launch a URL as a standalone Piloti Web App window
+set -eu
+
+if [ "$#" -eq 0 ]; then
+  echo "Usage: piloti-webapp <url>" >&2
+  exit 2
+fi
+
+exec /usr/bin/piloti open --app "$@"

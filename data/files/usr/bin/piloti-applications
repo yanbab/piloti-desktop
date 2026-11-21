@@ -1,0 +1,4 @@
+#!/bin/sh
+# piloti-applications — Open Piloti Applications store
+set -eu
+exec /usr/bin/piloti open app-store "$@"

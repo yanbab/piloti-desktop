@@ -6,6 +6,11 @@ dist/
 dist-web/
 docs/demo/
 *.tsbuildinfo
+debian/piloti-desktop/
+debian/.debhelper/
+debian/files
+debian/*.debhelper*
+debian/*.substvars
 
 # Logs & caches
 *.log

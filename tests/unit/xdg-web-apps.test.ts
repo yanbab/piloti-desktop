@@ -10,7 +10,7 @@ import {
   serializeWebAppDesktopEntry,
   WEB_APPS_XDG_DIR,
   webAppDesktopFileName,
-} from "@/lib/xdg-web-apps";
+} from "@/lib/xdg/xdg-web-apps";
 
 function createMemoryStorage(): Storage {
   const store = new Map<string, string>();

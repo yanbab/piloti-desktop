@@ -1,0 +1,182 @@
+#!/bin/sh
+# piloti — Piloti Desktop CLI & Wayland session launcher
+set -eu
+
+PILOTI_VERSION="0.9.0"
+PILOTI_SHARE_DIR="${PILOTI_SHARE_DIR:-/usr/share/piloti-desktop}"
+PILOTI_SHELL_BUNDLE="${PILOTI_SHELL_BUNDLE:-${PILOTI_SHARE_DIR}/shell.js}"
+PILOTI_DEFAULT_CONFIG="${PILOTI_DEFAULT_CONFIG:-${PILOTI_SHARE_DIR}/domicile.json}"
+
+resolve_domicile_sock() {
+  if [ -n "${DOMICILE_SOCK:-}" ] && [ -S "${DOMICILE_SOCK}" ]; then
+    return 0
+  fi
+  runtime_dir="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+  if [ -d "${runtime_dir}" ]; then
+    # Pick the most recently modified domicile IPC socket for this user.
+    sock="$(ls -t "${runtime_dir}"/domicile-ipc.*.sock 2>/dev/null | head -n 1 || true)"
+    if [ -n "${sock}" ] && [ -S "${sock}" ]; then
+      DOMICILE_SOCK="${sock}"
+      export DOMICILE_SOCK
+      return 0
+    fi
+  fi
+  return 1
+}
+
+require_domicile() {
+  if ! command -v domicile >/dev/null 2>&1; then
+    echo "piloti: 'domicile' executable not found in PATH" >&2
+    exit 127
+  fi
+}
+
+send_shell() {
+  require_domicile
+  resolve_domicile_sock || true
+  exec domicile send-shell "$@"
+}
+
+print_help() {
+  cat <<EOF
+piloti ${PILOTI_VERSION} — Piloti Desktop CLI & Wayland session launcher
+
+Usage:
+  piloti [session|start] [domicile args...]   Start Piloti Desktop via Domicile
+  piloti reload [shell.js]                    Hot-reload shell into running session
+  piloti which-shell                          Print active Domicile shell path
+  piloti open [--app] <app|url|file> [arg]    Open built-in app, URL, or file
+  piloti settings [pane]                      Open Desktop Settings (optional pane)
+  piloti launcher | overview                  Toggle Launcher or Overview
+  piloti screenshot [file]                    Take screenshot
+  piloti record                               Toggle screen recording
+  piloti lock | logout | restart | poweroff   Session & power controls
+  piloti add|install <url>                    Install Web App (.desktop)
+  piloti del|remove|uninstall <url|id>        Remove installed Web App
+  piloti list                                 List installed Piloti Web Apps
+  piloti send <word...>                       Send raw command to running shell
+  piloti --version | --help                   Show version or this help
+EOF
+}
+
+list_webapps() {
+  apps_dir="${XDG_DATA_HOME:-${HOME}/.local/share}/applications"
+  found=0
+  if [ -d "${apps_dir}" ]; then
+    for f in "${apps_dir}"/piloti-webapp-*.desktop; do
+      [ -f "${f}" ] || continue
+      found=1
+      name="$(sed -n 's/^Name=//p' "${f}" | head -n 1)"
+      url="$(sed -n 's/^Exec=piloti-webapp[[:space:]]*//p' "${f}" | head -n 1)"
+      printf '%-24s %s\n' "${name:-$(basename "${f}" .desktop)}" "${url}"
+    done
+  fi
+  if [ "${found}" -eq 0 ]; then
+    echo "No web apps installed."
+  fi
+}
+
+start_session() {
+  require_domicile
+  export XDG_CURRENT_DESKTOP="${XDG_CURRENT_DESKTOP:-Piloti:GNOME}"
+  export XDG_SESSION_DESKTOP="${XDG_SESSION_DESKTOP:-piloti}"
+  export DESKTOP_SESSION="${DESKTOP_SESSION:-piloti}"
+  export XDG_SESSION_TYPE="${XDG_SESSION_TYPE:-wayland}"
+
+  # Prefer an explicit user domicile config when present; otherwise ship Piloti's default config.
+  config_dir="${XDG_CONFIG_HOME:-${HOME}/.config}/domicile"
+  has_user_config=0
+  for ext in ts tsx js mjs json; do
+    if [ -f "${config_dir}/domicile.${ext}" ]; then
+      has_user_config=1
+      break
+    fi
+  done
+
+  if [ "$#" -gt 0 ]; then
+    exec domicile "${PILOTI_SHELL_BUNDLE}" "$@"
+  elif [ "${has_user_config}" -eq 1 ]; then
+    exec domicile "${PILOTI_SHELL_BUNDLE}"
+  elif [ -f "${PILOTI_DEFAULT_CONFIG}" ]; then
+    exec domicile "${PILOTI_SHELL_BUNDLE}" --config "${PILOTI_DEFAULT_CONFIG}"
+  else
+    exec domicile "${PILOTI_SHELL_BUNDLE}"
+  fi
+}
+
+sub="${1:-session}"
+if [ "$#" -gt 0 ]; then
+  shift
+fi
+
+case "${sub}" in
+  help|--help|-h)
+    print_help
+    ;;
+  version|--version|-v)
+    echo "piloti-desktop ${PILOTI_VERSION}"
+    ;;
+  session|start)
+    start_session "$@"
+    ;;
+  reload)
+    require_domicile
+    resolve_domicile_sock || true
+    target="${1:-${PILOTI_SHELL_BUNDLE}}"
+    exec domicile load-shell "${target}"
+    ;;
+  which-shell)
+    require_domicile
+    resolve_domicile_sock || true
+    exec domicile which-shell
+    ;;
+  open)
+    if [ "$#" -eq 0 ]; then
+      echo "piloti open: app id, URL, or file path required" >&2
+      exit 2
+    fi
+    send_shell open "$@"
+    ;;
+  settings)
+    send_shell settings "$@"
+    ;;
+  launcher|overview|lock|logout|restart|poweroff|record)
+    send_shell "${sub}" "$@"
+    ;;
+  screenshot)
+    if [ "$#" -gt 0 ]; then
+      require_domicile
+      resolve_domicile_sock || true
+      exec domicile screenshot "$@"
+    fi
+    send_shell screenshot
+    ;;
+  add|install)
+    if [ "$#" -eq 0 ]; then
+      echo "piloti install: URL required" >&2
+      exit 2
+    fi
+    send_shell install "$@"
+    ;;
+  del|remove|uninstall)
+    if [ "$#" -eq 0 ]; then
+      echo "piloti remove: URL or app ID required" >&2
+      exit 2
+    fi
+    send_shell remove "$@"
+    ;;
+  list)
+    list_webapps
+    ;;
+  send)
+    if [ "$#" -eq 0 ]; then
+      echo "piloti send: command arguments required" >&2
+      exit 2
+    fi
+    send_shell "$@"
+    ;;
+  *)
+    echo "piloti: unknown subcommand '${sub}' (try 'piloti help')" >&2
+    exit 2
+    ;;
+esac

@@ -126,7 +126,7 @@ function ReplModule({
           },
           help: () =>
             [
-              "Piloti DevTools REPL — usage: <command> [args]",
+              "Piloti Desktop Console REPL — usage: <command> [args]",
               "",
               "Globals:",
               "  domicile              Domicile host bridge (files, windows, processes)",

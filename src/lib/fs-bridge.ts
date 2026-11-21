@@ -16,7 +16,8 @@ import {
   type WebVfsEntry,
   writeVfsTextFile,
 } from "./web-vfs";
-import { emptyXdgTrash, resolveXdgTrashPaths } from "./xdg-trash";
+import { emptyXdgTrash, resolveXdgTrashPaths } from "./xdg/xdg-trash";
+import { isSimulatedUsbPath } from "./usb-drive";
 
 export {
   buildVfsEntryWebAppUrl,
@@ -55,7 +56,7 @@ export async function listFsDir(
   dirPath: string,
 ): Promise<WebVfsEntry[]> {
   const normDir = normalizeVfsPath(dirPath);
-  if (isBrowserRuntime) {
+  if (isBrowserRuntime || isSimulatedUsbPath(normDir)) {
     return listVfsDir(normDir);
   }
   try {
@@ -119,7 +120,7 @@ export async function readFsTextFile(
   filePath: string,
 ): Promise<string> {
   const norm = normalizeVfsPath(filePath);
-  if (isBrowserRuntime) {
+  if (isBrowserRuntime || isSimulatedUsbPath(norm)) {
     const entry = getVfsEntry(norm);
     return entry?.kind === "file" ? (entry.content ?? "") : "";
   }
@@ -151,7 +152,7 @@ export function writeFsTextFile(
 ): WebVfsEntry | null {
   const norm = normalizeVfsPath(filePath);
   const updated = writeVfsTextFile(norm, content);
-  if (!isBrowserRuntime) {
+  if (!isBrowserRuntime && !isSimulatedUsbPath(norm)) {
     const bytes = new TextEncoder().encode(content);
     void domicile.files.write(toDomicilePath(norm), bytes);
   }
@@ -168,7 +169,7 @@ export function createFsFolder(
   baseName?: string,
 ): WebVfsEntry {
   const created = createVfsFolder(dirPath, baseName);
-  if (!isBrowserRuntime) {
+  if (!isBrowserRuntime && !isSimulatedUsbPath(created.path)) {
     void domicile.files.createDir(toDomicilePath(created.path));
   }
   return created;
@@ -185,7 +186,7 @@ export function createFsTextFile(
   content = "",
 ): WebVfsEntry {
   const created = createVfsTextFile(dirPath, baseName, content);
-  if (!isBrowserRuntime) {
+  if (!isBrowserRuntime && !isSimulatedUsbPath(created.path)) {
     const bytes = new TextEncoder().encode(content);
     void domicile.files.write(toDomicilePath(created.path), bytes);
   }
@@ -203,7 +204,7 @@ export function renameFsEntry(
 ): WebVfsEntry | null {
   const oldRel = toDomicilePath(path);
   const renamed = renameVfsEntry(path, newName);
-  if (renamed && !isBrowserRuntime) {
+  if (renamed && !isBrowserRuntime && !isSimulatedUsbPath(path)) {
     const newRel = toDomicilePath(renamed.path);
     if (oldRel !== newRel) {
       void domicile.processes.run(["mv", "--", oldRel, newRel]);
@@ -223,7 +224,12 @@ export function moveFsEntry(
 ): WebVfsEntry | null {
   const oldRel = toDomicilePath(path);
   const moved = moveVfsEntry(path, targetDirPath);
-  if (moved && !isBrowserRuntime) {
+  if (
+    moved &&
+    !isBrowserRuntime &&
+    !isSimulatedUsbPath(path) &&
+    !isSimulatedUsbPath(targetDirPath)
+  ) {
     const newRel = toDomicilePath(moved.path);
     if (oldRel !== newRel) {
       void domicile.processes.run(["mv", "--", oldRel, newRel]);
@@ -242,7 +248,7 @@ export function trashFsEntry(
 ): void {
   const rel = toDomicilePath(path);
   trashVfsEntry(path);
-  if (!isBrowserRuntime) {
+  if (!isBrowserRuntime && !isSimulatedUsbPath(path)) {
     void domicile.processes
       .run(["gio", "trash", "--", rel])
       .catch(() =>
@@ -266,7 +272,7 @@ export function restoreFsEntry(
 ): WebVfsEntry | null {
   const norm = normalizeVfsPath(trashPath);
   const restored = restoreVfsEntry(norm);
-  if (!isBrowserRuntime && restored) {
+  if (!isBrowserRuntime && restored && !isSimulatedUsbPath(restored.path)) {
     void domicile.processes.run([
       "mv",
       "--",
@@ -300,7 +306,7 @@ export async function removeFsFile(
 ): Promise<void> {
   const norm = normalizeVfsPath(filePath);
   removeVfsEntry(norm);
-  if (!isBrowserRuntime) {
+  if (!isBrowserRuntime && !isSimulatedUsbPath(norm)) {
     await domicile.processes.run(["rm", "-f", "--", toDomicilePath(norm)]).catch(() => undefined);
   }
 }

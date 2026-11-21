@@ -18,7 +18,7 @@ import {
 import {
   installWebAppDesktopEntry,
   removeWebAppDesktopEntry,
-} from "@/lib/xdg-web-apps";
+} from "@/lib/xdg/xdg-web-apps";
 import {
   WEB_VFS_HOME,
   buildVfsEntryWebAppUrl,
@@ -90,6 +90,14 @@ const TERMINAL_COMMANDS = [
   "curl",
   "wget",
   "piloti",
+  "piloti-settings",
+  "piloti-console",
+  "piloti-shell",
+  "piloti-applications",
+  "piloti-files",
+  "piloti-notepad",
+  "piloti-calculator",
+  "piloti-image-viewer",
 ] as const;
 
 function longestCommonPrefix(values: string[]): string {
@@ -162,7 +170,7 @@ function getParentAndName(fullPath: string): { parent: string; name: string } {
 
 const CORE_DAEMONS: Array<{ pid: number; command: string; baseCpu: number; baseMem: number }> = [
   { pid: 101, command: "piloti-compositor", baseCpu: 1.8, baseMem: 3.4 },
-  { pid: 112, command: "piloti-desktop", baseCpu: 0.7, baseMem: 2.1 },
+  { pid: 112, command: "piloti-console", baseCpu: 0.7, baseMem: 2.1 },
   { pid: 118, command: "piloti-menubar", baseCpu: 0.4, baseMem: 1.2 },
   { pid: 124, command: "piloti-dock", baseCpu: 0.5, baseMem: 1.5 },
   { pid: 131, command: "piloti-wm", baseCpu: 1.1, baseMem: 2.6 },
@@ -522,7 +530,7 @@ export const TerminalApp: React.FC<TerminalAppProps> = ({ initialPath }) => {
     if (cmd === "help") {
       appendLines([
         commandLine,
-        { text: "Piloti Web Shell — usage: <command> [args]", tone: "accent" },
+        { text: "Piloti Desktop Shell — usage: <command> [args]", tone: "accent" },
         { text: "" },
         { text: "Navigation & Files:", tone: "muted" },
         { text: "  pwd                 Print current working directory" },
@@ -539,6 +547,10 @@ export const TerminalApp: React.FC<TerminalAppProps> = ({ initialPath }) => {
         { text: "  open <path|url>     Open file, folder, or web URL" },
         { text: "  edit <file>         Open file in Text Editor" },
         { text: "  notepad <file>      Alias for edit" },
+        { text: "  piloti-settings     Open Desktop Settings" },
+        { text: "  piloti-console      Open Desktop Console" },
+        { text: "  piloti-shell        Open Desktop Shell" },
+        { text: "  piloti-applications Open Applications" },
         { text: "" },
         { text: "System & Process:", tone: "muted" },
         { text: "  ps / top            Show running daemons & windows" },
@@ -1130,8 +1142,8 @@ export const TerminalApp: React.FC<TerminalAppProps> = ({ initialPath }) => {
           ...(settings.installedWebApps.length === 0
             ? [{ text: "No web apps installed.", tone: "muted" as const }]
             : settings.installedWebApps.map((w) => ({
-                text: `${w.id.padEnd(20)} ${w.title} (${w.url})`,
-              }))),
+              text: `${w.id.padEnd(20)} ${w.title} (${w.url})`,
+            }))),
         ]);
         return;
       }
@@ -1183,6 +1195,30 @@ export const TerminalApp: React.FC<TerminalAppProps> = ({ initialPath }) => {
         commandLine,
         { text: `piloti: unknown subcommand '${sub}' (try 'piloti help')`, tone: "error" },
       ]);
+      return;
+    }
+
+    const builtinCmdMap: Record<string, string> = {
+      "piloti-settings": "settings",
+      "piloti-console": "console",
+      "piloti-desktop": "console",
+      "piloti-devtools": "console",
+      "piloti-shell": "terminal",
+      "piloti-terminal": "terminal",
+      "piloti-applications": "app-store",
+      "piloti-app-store": "app-store",
+      "piloti-files": "nautilus",
+      "piloti-notepad": "text-editor",
+      "piloti-calculator": "calculator",
+      "piloti-image-viewer": "image-viewer",
+    };
+
+    if (builtinCmdMap[cmd]) {
+      appendLines([commandLine]);
+      launchApp(
+        builtinCmdMap[cmd],
+        args[0] ? { payload: args[0] } : undefined,
+      );
       return;
     }
 
@@ -1290,12 +1326,12 @@ export const TerminalApp: React.FC<TerminalAppProps> = ({ initialPath }) => {
       setReverseSearch((prev) =>
         prev.active
           ? {
-              ...prev,
-              matchOffset:
-                reverseMatches.length > 0
-                  ? (prev.matchOffset + 1) % reverseMatches.length
-                  : 0,
-            }
+            ...prev,
+            matchOffset:
+              reverseMatches.length > 0
+                ? (prev.matchOffset + 1) % reverseMatches.length
+                : 0,
+          }
           : { active: true, query: "", matchOffset: 0 },
       );
       return;

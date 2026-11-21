@@ -1,0 +1,4 @@
+#!/bin/sh
+# piloti-settings — Open Piloti Desktop Settings
+set -eu
+exec /usr/bin/piloti open settings "$@"

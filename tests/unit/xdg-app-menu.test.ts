@@ -7,7 +7,7 @@ import {
   parseGtkActionsDescribeAll,
   parseGtkMenusStartResponse,
   stripGtkMnemonic,
-} from "@/lib/xdg-app-menu";
+} from "@/lib/xdg/xdg-app-menu";
 
 describe("xdg-app-menu D-Bus parsers", () => {
   test("strips GTK mnemonics and formats GTK accelerator strings", () => {

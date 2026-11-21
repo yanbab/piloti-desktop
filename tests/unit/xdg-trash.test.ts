@@ -3,7 +3,7 @@ import {
   inspectXdgTrash,
   parseTrashInfo,
   resolveXdgTrashPaths,
-} from "@/lib/xdg-trash";
+} from "@/lib/xdg/xdg-trash";
 
 describe("xdg-trash", () => {
   test("resolves default and overridden XDG Trash paths", () => {

@@ -62,13 +62,13 @@ export function DockPane() {
             </GroupedFormRowLabel>
             <GroupedFormRowControl className="w-44">
               <Slider
-                min={32}
-                max={64}
-                value={[Math.min(64, settings.dockSize)]}
+                min={18}
+                max={96}
+                value={[Math.max(18, Math.min(96, settings.dockSize))]}
                 onValueChange={(val) => {
                   const next = Array.isArray(val) ? val[0] : val;
                   if (typeof next === "number")
-                    updateSettings({ dockSize: Math.min(64, Math.max(32, next)) });
+                    updateSettings({ dockSize: Math.min(96, Math.max(18, next)) });
                 }}
               />
             </GroupedFormRowControl>

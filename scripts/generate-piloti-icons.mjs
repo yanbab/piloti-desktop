@@ -3,8 +3,9 @@ import fs from "node:fs";
 import path from "node:path";
 
 const ROOT = path.resolve(import.meta.dirname, "..");
-const ICONS_PAPIRUS_DIR = path.join(ROOT, "icons", "Papirus");
-const ICONS_PILOTI_DIR = path.join(ROOT, "icons", "Piloti");
+const DATA_FILES_DIR = path.join(ROOT, "data", "files");
+const ICONS_PAPIRUS_DIR = path.join(DATA_FILES_DIR, "usr", "share", "icons", "Papirus");
+const ICONS_PILOTI_DIR = path.join(DATA_FILES_DIR, "usr", "share", "icons", "Piloti");
 
 function hexRgb(hex) {
   const clean = hex.replace("#", "");
@@ -363,57 +364,63 @@ const PAPIRUS_FILE_HIGHLIGHT_D =
   "M 12.75 4 C 11.2265 4 10 5.2495812 10 6.8007812 L 10 7.8007812 C 10 6.2495813 11.2265 5 12.75 5 L 36 5 L 36 4 L 12.75 4 z";
 
 const ICONS = {
-  // 1. Papirus Folder: closed folder.svg -> opens cleanly into folder-open.svg + rising inner sheet!
-  "places/folder": lottieDoc("papirus-folder", [
-    layer(1, "FrontFlap", [
-      morphRectGroup("FrontShadow", {
-        sizes: kFrames([[0, [56, 36]], [18, [56, 30]], [28, [56, 30]], [48, [56, 36]]]),
-        positions: kFrames([[0, [32, 38]], [18, [32, 41]], [28, [32, 41]], [48, [32, 38]]]),
-        r: 2.8,
-        fill: "#000000",
-        opacity: 20,
-      }),
-      morphRectGroup("FrontBody", {
-        sizes: kFrames([[0, [56, 36]], [18, [56, 30]], [28, [56, 30]], [48, [56, 36]]]),
-        positions: kFrames([[0, [32, 39]], [18, [32, 42]], [28, [32, 42]], [48, [32, 39]]]),
-        r: 2.8,
-        fill: "#5294e2",
-      }),
-    ]),
-    layer(
-      2,
-      "InnerPaper",
-      [
-        rectGroup("Sheet", {
-          x: 8,
-          y: 16,
-          w: 48,
-          h: 22,
+  // 1. Papirus Folder:
+  //    Frame 0  = closed (`folder.svg`)
+  //    Frame 24 = opened (`folder-open.svg` + lifted inner paper) -> reversible on hover / mouseout / drag-over / opened
+  //    Frame 24..44 = drop-accept bounce settling cleanly back to frame 24
+  "places/folder": {
+    ...lottieDoc("papirus-folder", [
+      layer(1, "FrontFlap", [
+        morphRectGroup("FrontShadow", {
+          sizes: kFrames([[0, [56, 36]], [24, [56, 30]], [34, [56, 27]], [44, [56, 30]]]),
+          positions: kFrames([[0, [32, 38]], [24, [32, 41]], [34, [32, 42.5]], [44, [32, 41]]]),
           r: 2.8,
-          fill: "#e4e4e4",
+          fill: "#000000",
+          opacity: 20,
         }),
-        rectGroup("AccentLine", {
-          x: 13,
-          y: 19.5,
-          w: 20,
-          h: 2.5,
-          r: 1.25,
+        morphRectGroup("FrontBody", {
+          sizes: kFrames([[0, [56, 36]], [24, [56, 30]], [34, [56, 27]], [44, [56, 30]]]),
+          positions: kFrames([[0, [32, 39]], [24, [32, 42]], [34, [32, 43.5]], [44, [32, 42]]]),
+          r: 2.8,
           fill: "#5294e2",
-          opacity: 55,
         }),
-      ],
-      {
-        p: kFrames([[0, [32, 27]], [18, [32, 21]], [28, [32, 21]], [48, [32, 27]]]),
-        a: kStatic([32, 27]),
-        r: kFrames([[0, [0]], [18, [-2]], [28, [-2]], [48, [0]]]),
-      }
-    ),
-    layer(3, "BackTab", [
-      rectGroup("OuterShadow", { x: 4, y: 22, w: 56, h: 36, r: 2.8, fill: "#000000", opacity: 20 }),
-      pathGroup("BackBody", { d: PAPIRUS_FOLDER_BACK_D, fill: "#4877b1" }),
-      pathGroup("TopHighlight", { d: PAPIRUS_FOLDER_HIGHLIGHT_D, fill: "#ffffff", opacity: 10 }),
+      ]),
+      layer(
+        2,
+        "InnerPaper",
+        [
+          rectGroup("Sheet", {
+            x: 8,
+            y: 16,
+            w: 48,
+            h: 22,
+            r: 2.8,
+            fill: "#e4e4e4",
+          }),
+          rectGroup("AccentLine", {
+            x: 13,
+            y: 19.5,
+            w: 20,
+            h: 2.5,
+            r: 1.25,
+            fill: "#5294e2",
+            opacity: 55,
+          }),
+        ],
+        {
+          p: kFrames([[0, [32, 27]], [24, [32, 21]], [34, [32, 17]], [44, [32, 21]]]),
+          a: kStatic([32, 27]),
+          r: kFrames([[0, [0]], [24, [-2]], [34, [2.5]], [44, [-2]]]),
+        }
+      ),
+      layer(3, "BackTab", [
+        rectGroup("OuterShadow", { x: 4, y: 22, w: 56, h: 36, r: 2.8, fill: "#000000", opacity: 20 }),
+        pathGroup("BackBody", { d: PAPIRUS_FOLDER_BACK_D, fill: "#4877b1" }),
+        pathGroup("TopHighlight", { d: PAPIRUS_FOLDER_HIGHLIGHT_D, fill: "#ffffff", opacity: 10 }),
+      ]),
     ]),
-  ]),
+    op: 44,
+  },
 
   // 2. Papirus Folder Open: starts open (exact folder-open.svg silhouette), paper pops softly on hover
   "places/folder-open": lottieDoc("papirus-folder-open", [
@@ -624,365 +631,15 @@ const ICONS = {
       pathGroup("TopHighlight", { d: PAPIRUS_FILE_HIGHLIGHT_D, fill: "#ffffff", opacity: 20 }),
     ]),
   ]),
-
-  // 7. Papirus Loupe (`org.gnome.Loupe` / Image Viewer) — magnifying glass pans smoothly across sunset hills
-  "apps/org.gnome.Loupe": lottieDoc("papirus-loupe", [
-    layer(
-      1,
-      "Magnifier",
-      [
-        circleGroup("GlassTint", { cx: 30, cy: 32, r: 15, fill: "#ffffff", opacity: 18 }),
-        circleGroup("RingShadow", { cx: 30, cy: 33, r: 16, stroke: "#000000", strokeWidth: 4, opacity: 12 }),
-        circleGroup("Ring", { cx: 30, cy: 32, r: 16, stroke: "#4f4f4f", strokeWidth: 4 }),
-        pathGroup("InnerConnector", { d: "M 13,49 L 19,43", stroke: "#6e6e6e", strokeWidth: 3 }),
-        pathGroup("HandleShadow", { d: "M 3,60 L 12,51", stroke: "#000000", strokeWidth: 6, opacity: 10 }),
-        pathGroup("Handle", { d: "M 3,59 L 12,50", stroke: "#8e8e8e", strokeWidth: 6 }),
-      ],
-      {
-        p: kFrames([[0, [30, 32]], [16, [34, 29]], [32, [27, 33]], [48, [30, 32]]]),
-        a: kStatic([30, 32]),
-        s: kFrames([[0, [100, 100]], [16, [105, 105]], [32, [103, 103]], [48, [100, 100]]]),
-      }
-    ),
-    layer(2, "PhotoCard", [
-      rectGroup("CardShadow", { x: 4, y: 5, w: 56, h: 56, r: 2, fill: "#000000", opacity: 20 }),
-      rectGroup("CardFrame", { x: 4, y: 4, w: 56, h: 56, r: 2, fill: "#e4e4e4" }),
-      // Sunset sky gradient simulated cleanly in Papirus colors
-      rectGroup("SkyTop", { x: 8, y: 8, w: 48, h: 12, r: 0, fill: "#1c71d8" }),
-      rectGroup("SkyMid", { x: 8, y: 19, w: 48, h: 12, r: 0, fill: "#aa63cd" }),
-      rectGroup("SkyLow", { x: 8, y: 30, w: 48, h: 12, r: 0, fill: "#ffa348" }),
-      circleGroup("Sun", { cx: 49, cy: 15, r: 5, fill: "#ffffff", opacity: 55 }),
-      pathGroup("HillLeft", {
-        d: "M 16,38 L 20,30 C 20,30 22,26 25,26 C 28,26 30,30 30,30 L 38,42 L 12,42 Z",
-        fill: "#ffffff",
-        opacity: 48,
-      }),
-      pathGroup("HillRight", {
-        d: "M 30,42 L 36,34 C 36,34 38,30 41,30 C 44,30 46,34 46,34 L 50,42 Z",
-        fill: "#ffffff",
-        opacity: 38,
-      }),
-      rectGroup("MatteEdge", { x: 8, y: 42, w: 48, h: 1, r: 0, fill: "#000000", opacity: 10 }),
-      rectGroup("CardHighlight", { x: 5, y: 4, w: 54, h: 1, r: 0, fill: "#ffffff", opacity: 20 }),
-    ]),
-  ]),
-
-  // 8. Papirus File Manager (`system-file-manager`)
-  "apps/system-file-manager": lottieDoc("papirus-system-file-manager", [
-    layer(1, "DrawerFront", [
-      rectGroup("DrawerShadow", { x: 4, y: 22, w: 56, h: 39, r: 2.8, fill: "#000000", opacity: 20 }),
-      rectGroup("Drawer", { x: 4, y: 21, w: 56, h: 39, r: 2.8, fill: "#8e8e8e" }),
-      rectGroup("HandleShadow", { x: 22, y: 38, w: 20, h: 5, r: 1.4, fill: "#000000", opacity: 20 }),
-      rectGroup("Handle", { x: 22, y: 37, w: 20, h: 5, r: 1.4, fill: "#ececec" }),
-    ]),
-    layer(
-      2,
-      "YellowFolderTab",
-      [rectGroup("Tab3", { x: 7, y: 15, w: 50, h: 34, r: 2.1, fill: "#ffcd54" })],
-      { p: kFrames([[0, [32, 32]], [16, [32, 29]], [48, [32, 32]]]) }
-    ),
-    layer(
-      3,
-      "GreenFolderTab",
-      [rectGroup("Tab2", { x: 10, y: 9, w: 44, h: 34, r: 2.1, fill: "#89e058" })],
-      { p: kFrames([[0, [32, 32]], [16, [32, 26]], [48, [32, 32]]]) }
-    ),
-    layer(
-      4,
-      "BlueFolderTab",
-      [rectGroup("Tab1", { x: 13, y: 3, w: 38, h: 34, r: 2.1, fill: "#5294e2" })],
-      { p: kFrames([[0, [32, 32]], [16, [32, 24]], [48, [32, 32]]]) }
-    ),
-  ]),
-
-  // 9. Papirus Utilities Terminal
-  "apps/utilities-terminal": lottieDoc("papirus-utilities-terminal", [
-    layer(
-      1,
-      "CursorBar",
-      [rectGroup("Bar", { x: 26, y: 29, w: 17, h: 6, r: 1.5, fill: "#ffffff" })],
-      {
-        p: kStatic([34.5, 32]),
-        a: kStatic([34.5, 32]),
-        o: kFrames([[0, [100]], [12, [15]], [24, [100]], [36, [15]], [48, [100]]]),
-      }
-    ),
-    layer(
-      2,
-      "Chevron",
-      [
-        pathGroup("PromptArrow", {
-          d: "M 13,18 L 22,25.5 L 13,33",
-          stroke: "#62c9ea",
-          strokeWidth: 5.2,
-          lineCap: 2,
-        }),
-      ],
-      {
-        p: kFrames([[0, [18, 25.5]], [16, [21, 25.5]], [48, [18, 25.5]]]),
-        a: kStatic([18, 25.5]),
-      }
-    ),
-    layer(3, "TerminalBody", [
-      rectGroup("Shadow", { x: 4, y: 8, w: 56, h: 50, r: 4.2, fill: "#000000", opacity: 20 }),
-      rectGroup("Box", { x: 4, y: 7, w: 56, h: 50, r: 4.2, fill: "#4f4f4f" }),
-      rectGroup("TopHighlight", { x: 5, y: 7, w: 54, h: 1, r: 0.5, fill: "#ffffff", opacity: 12 }),
-    ]),
-  ]),
-
-  // 10. Papirus Accessories Text Editor
-  "apps/accessories-text-editor": lottieDoc("papirus-accessories-text-editor", [
-    layer(
-      1,
-      "PencilBadge",
-      [
-        circleGroup("BadgeShadow", { cx: 48, cy: 47, r: 16, fill: "#000000", opacity: 20 }),
-        circleGroup("RedCircle", { cx: 48, cy: 46, r: 16, fill: "#f34235" }),
-        pathGroup("Pencil", {
-          d: "M 40,50.436 V 54 H 43.5638 L 52.5646,44.9992 L 49.0008,41.4354 Z M 55.7172,41.8578 C 56.09416,41.48086 56.09416,40.8869 55.7172,40.50994 L 53.4898,38.28254 C 53.11284,37.90558 52.51888,37.90558 52.14194,38.28254 L 50.27994,40.15654 L 53.84394,43.72054 Z",
-          fill: "#ffffff",
-          tr: shapeTr({
-            p: [48, 46],
-            a: [48, 46],
-            r: kFrames([[0, [0]], [14, [-10]], [28, [8]], [48, [0]]]),
-          }),
-        }),
-      ],
-      {
-        p: kStatic([48, 46]),
-        a: kStatic([48, 46]),
-      }
-    ),
-    layer(2, "Pad", [
-      rectGroup("PadShadow", { x: 10, y: 6, w: 44, h: 55, r: 3, fill: "#000000", opacity: 20 }),
-      rectGroup("PadBody", { x: 10, y: 4, w: 44, h: 56, r: 3, fill: "#e4e4e4" }),
-      rectGroup("Line1", { x: 15, y: 9, w: 34, h: 4, r: 1, fill: "#000000", opacity: 20 }),
-      rectGroup("Line2", { x: 15, y: 18, w: 34, h: 4, r: 1, fill: "#000000", opacity: 20 }),
-      rectGroup("Line3", { x: 15, y: 27, w: 20, h: 4, r: 1, fill: "#000000", opacity: 20 }),
-    ]),
-  ]),
-
-  // 11. Papirus Calculator
-  "apps/accessories-calculator": lottieDoc("papirus-accessories-calculator", [
-    layer(
-      1,
-      "EqualsBadge",
-      [
-        circleGroup("BadgeShadow", { cx: 46, cy: 47, r: 16, fill: "#000000", opacity: 20 }),
-        circleGroup("GreenBadge", { cx: 46, cy: 46, r: 16, fill: "#07ce8e" }),
-        rectGroup("Eq1", { x: 40, y: 42, w: 12, h: 2, r: 0.5, fill: "#ffffff" }),
-        rectGroup("Eq2", { x: 40, y: 48, w: 12, h: 2, r: 0.5, fill: "#ffffff" }),
-      ],
-      {
-        p: kStatic([46, 46]),
-        a: kStatic([46, 46]),
-        s: kFrames([[0, [100, 100]], [16, [114, 114]], [32, [100, 100]], [48, [100, 100]]]),
-      }
-    ),
-    layer(2, "Quads", [
-      rectGroup("CalcShadow", { x: 4, y: 4, w: 56, h: 56, r: 3, fill: "#000000", opacity: 20 }),
-      rectGroup("TL", { x: 4, y: 3, w: 28, h: 28, r: 3, fill: "#a6a6a6" }),
-      rectGroup("TR", { x: 32, y: 3, w: 28, h: 28, r: 3, fill: "#595959" }),
-      rectGroup("BL", { x: 4, y: 31, w: 28, h: 28, r: 3, fill: "#8c8c8c" }),
-      rectGroup("BR", { x: 32, y: 31, w: 28, h: 28, r: 3, fill: "#666666" }),
-      // Plus, Minus, Multiply crisp white symbols
-      rectGroup("PlusV", { x: 18, y: 12, w: 2, h: 14, r: 0, fill: "#ffffff" }),
-      rectGroup("PlusH", { x: 12, y: 18, w: 14, h: 2, r: 0, fill: "#ffffff" }),
-      rectGroup("Minus", { x: 40, y: 18, w: 12, h: 2, r: 0, fill: "#ffffff" }),
-      rectGroup("Mul1", {
-        x: 17,
-        y: 38,
-        w: 2.2,
-        h: 16,
-        r: 0,
-        fill: "#ffffff",
-        tr: shapeTr({ p: [18, 46], r: 45 }),
-      }),
-      rectGroup("Mul2", {
-        x: 17,
-        y: 38,
-        w: 2.2,
-        h: 16,
-        r: 0,
-        fill: "#ffffff",
-        tr: shapeTr({ p: [18, 46], r: -45 }),
-      }),
-    ]),
-  ]),
-
-  // 12. Papirus Settings (`preferences-system`)
-  "apps/preferences-system": lottieDoc("papirus-preferences-system", [
-    layer(1, "WrenchFront", [
-      rectGroup("HandleShadow", { x: 25, y: 38.6, w: 14, h: 22.4, r: 5.6, fill: "#000000", opacity: 20 }),
-      rectGroup("Handle", { x: 25, y: 37.6, w: 14, h: 22.4, r: 5.6, fill: "#e4e4e4" }),
-      rectGroup("Slot", { x: 29, y: 40.2, w: 6, h: 16.8, r: 2.8, fill: "#000000", opacity: 40 }),
-      pathGroup("WrenchJaw", {
-        d: "M 38,19.367 V 29 L 32,33 L 26,29 V 19.38 C 21.136,21.69 18.007,26.589 18,32 C 18,39.732 24.268,46 32,46 C 39.732,46 46,39.732 46,32 C 45.997,26.585 42.869,21.678 38,19.367 Z",
-        fill: "#ffffff",
-      }),
-    ]),
-    layer(
-      2,
-      "TealGear",
-      [
-        rectGroup("Tooth1", {
-          x: 26.4,
-          y: 4,
-          w: 11.2,
-          h: 56,
-          r: 4.5,
-          fill: "#008374",
-          tr: shapeTr({ p: [32, 32], r: 0 }),
-        }),
-        rectGroup("Tooth2", {
-          x: 26.4,
-          y: 4,
-          w: 11.2,
-          h: 56,
-          r: 4.5,
-          fill: "#008374",
-          tr: shapeTr({ p: [32, 32], r: 60 }),
-        }),
-        rectGroup("Tooth3", {
-          x: 26.4,
-          y: 4,
-          w: 11.2,
-          h: 56,
-          r: 4.5,
-          fill: "#008374",
-          tr: shapeTr({ p: [32, 32], r: 120 }),
-        }),
-        circleGroup("GearBody", { cx: 32, cy: 32, r: 21, fill: "#008374" }),
-      ],
-      {
-        p: kStatic([32, 32]),
-        a: kStatic([32, 32]),
-        r: kFrames([[0, [0]], [24, [60]], [48, [120]]]),
-      }
-    ),
-  ]),
-
-  // 13. Papirus Preferences Desktop (`preferences-desktop`)
-  "apps/preferences-desktop": lottieDoc("papirus-preferences-desktop", [
-    layer(1, "Sliders", [
-      // Tracks
-      rectGroup("Track1", { x: 15, y: 15, w: 6, h: 34, r: 3, fill: "#3584e4" }),
-      rectGroup("Track2", { x: 29, y: 15, w: 6, h: 34, r: 3, fill: "#3584e4" }),
-      rectGroup("Track3", { x: 43, y: 15, w: 6, h: 34, r: 3, fill: "#3584e4" }),
-      // Sliding Knobs
-      circleGroup("Knob1", {
-        cx: 18,
-        cy: 21,
-        r: 6,
-        fill: "#ffffff",
-        tr: shapeTr({ p: kFrames([[0, [18, 21]], [20, [18, 39]], [48, [18, 21]]]) }),
-      }),
-      circleGroup("Knob2", {
-        cx: 32,
-        cy: 37,
-        r: 6,
-        fill: "#ffffff",
-        tr: shapeTr({ p: kFrames([[0, [32, 37]], [20, [32, 22]], [48, [32, 37]]]) }),
-      }),
-      circleGroup("Knob3", {
-        cx: 46,
-        cy: 32,
-        r: 6,
-        fill: "#ffffff",
-        tr: shapeTr({ p: kFrames([[0, [46, 32]], [20, [46, 40]], [48, [46, 32]]]) }),
-      }),
-    ]),
-    layer(2, "Card", [
-      rectGroup("Shadow", { x: 4, y: 5, w: 56, h: 56, r: 16.8, fill: "#000000", opacity: 20 }),
-      rectGroup("Squircle", { x: 4, y: 4, w: 56, h: 56, r: 16.8, fill: "#e4e4e4" }),
-    ]),
-  ]),
-
-  // 14. Papirus Internet Web Browser (`internet-web-browser`)
-  "apps/internet-web-browser": lottieDoc("papirus-internet-web-browser", [
-    layer(
-      1,
-      "RingOrbit",
-      [
-        pathGroup("Swoosh", {
-          d: "M 42.47,20 C 38.43,20 33.51,21.05 28.61,22.93 C 23.70,24.82 19.34,27.35 16.32,30.08 C 11.42,34.50 11.72,37.93 12.34,39.58 C 12.96,41.23 14.97,44 21.53,44 C 22.48,44 23.48,43.94 24.51,43.83 C 22.13,42.32 20.24,40.12 19.12,37.50 C 18.87,37.37 18.72,37.23 18.68,37.14 C 18.56,36.83 18.99,35.54 21.02,33.71 C 23.28,31.68 26.76,29.65 30.57,28.19 C 34.39,26.72 38.32,25.88 41.34,25.88 C 44.04,25.88 45.20,26.56 45.32,26.86 C 45.36,26.96 45.33,27.16 45.23,27.43 C 45.73,28.86 46,30.40 46,32 C 46,33.27 45.83,34.50 45.51,35.67 C 46.29,35.10 47.02,34.52 47.68,33.92 C 52.58,29.50 52.28,26.07 51.66,24.42 C 51.05,22.77 49.04,20 42.47,20 Z",
-          fill: "#3ea0f4",
-        }),
-      ],
-      {
-        p: kStatic([32, 32]),
-        a: kStatic([32, 32]),
-        r: kFrames([[0, [0]], [24, [-12]], [48, [0]]]),
-      }
-    ),
-    layer(2, "Globe", [
-      circleGroup("GlobeShadow", { cx: 32, cy: 33, r: 28, fill: "#000000", opacity: 20 }),
-      circleGroup("BlueOrb", { cx: 32, cy: 32, r: 28, fill: "#4354cb" }),
-      circleGroup("WhiteCore", { cx: 32, cy: 32, r: 14, fill: "#ffffff" }),
-    ]),
-  ]),
-
-  // 15. Papirus App Store (`system-software-install`)
-  "apps/system-software-install": lottieDoc("papirus-system-software-install", [
-    layer(
-      1,
-      "GreenArrow",
-      [
-        rectGroup("Shaft", { x: 41, y: 35, w: 5, h: 14, r: 2.5, fill: "#4caf50" }),
-        pathGroup("Head", {
-          d: "M 36.21,43 L 43.5,51.67 L 50.79,43 Z",
-          fill: "#4caf50",
-        }),
-      ],
-      {
-        p: kFrames([[0, [43.5, 43]], [16, [43.5, 47]], [32, [43.5, 42]], [48, [43.5, 43]]]),
-        a: kStatic([43.5, 43]),
-      }
-    ),
-    layer(2, "Tiles", [
-      rectGroup("Shadow", { x: 4, y: 5, w: 56, h: 56, r: 4.2, fill: "#000000", opacity: 20 }),
-      rectGroup("Card", { x: 4, y: 4, w: 56, h: 56, r: 4.2, fill: "#e4e4e4" }),
-      rectGroup("BlueTile", { x: 12, y: 12, w: 17, h: 17, r: 2.83, fill: "#03a9f4" }),
-      rectGroup("OrangeTile", { x: 35, y: 12, w: 17, h: 17, r: 2.83, fill: "#ff9107" }),
-      rectGroup("RedTile", { x: 12, y: 35, w: 17, h: 17, r: 2.83, fill: "#f44336" }),
-    ]),
-  ]),
-
-  // 16. Papirus DevTools (`applications-development`)
-  "apps/applications-development": lottieDoc("papirus-applications-development", [
-    layer(
-      1,
-      "Hammer",
-      [
-        pathGroup("Handle", {
-          d: "M 27.13,24.35 L 45.22,45.22",
-          stroke: "#ffffff",
-          strokeWidth: 5.5,
-          opacity: 55,
-        }),
-        pathGroup("HammerHead", {
-          d: "M 22.3,30.09 C 21.83,29.78 21.99,28.86 22.86,28.05 C 24.1,26.77 25.42,26.72 26.04,27.39 L 27.12,28.56 L 31.07,24.65 L 30.12,23.48 C 28.94,22.3 30.18,21.12 30.18,21.12 C 33.52,17.86 37.97,17.39 37.97,17.39 L 38.03,16.74 C 28.6,14.35 25.28,18.42 24,19.7 C 22.81,20.87 21.58,22.09 21.27,22.39 C 20.6,23.06 21.27,24.94 20.29,26.01 C 19.83,26.47 19.21,26.67 18.74,26.67 Z",
-          fill: "#ffffff",
-        }),
-      ],
-      {
-        p: kStatic([32, 32]),
-        a: kStatic([32, 32]),
-        r: kFrames([[0, [0]], [14, [-16]], [26, [8]], [48, [0]]]),
-      }
-    ),
-    layer(2, "Badge", [
-      circleGroup("Shadow", { cx: 32, cy: 33, r: 28, fill: "#000000", opacity: 20 }),
-      circleGroup("BrownBadge", { cx: 32, cy: 32, r: 28, fill: "#795548" }),
-    ]),
-  ]),
 };
 
-// Also keep multimedia-photo-viewer in animated/apps synced with Loupe so legacy lookups match too
-ICONS["apps/multimedia-photo-viewer"] = ICONS["apps/org.gnome.Loupe"];
-
+// Keep animated/ directory cleanly synced to the generated set only (remove old redrawn app animations)
+const animatedDir = path.join(ICONS_PILOTI_DIR, "animated");
+if (fs.existsSync(animatedDir)) {
+  fs.rmSync(animatedDir, { recursive: true, force: true });
+}
 for (const [rel, doc] of Object.entries(ICONS)) {
-  const outPath = path.join(ICONS_PILOTI_DIR, "animated", `${rel}.json`);
+  const outPath = path.join(animatedDir, `${rel}.json`);
   fs.mkdirSync(path.dirname(outPath), { recursive: true });
   fs.writeFileSync(outPath, JSON.stringify(doc), "utf8");
 }
@@ -995,7 +652,7 @@ function collectFiles(dir, prefix, exts) {
       const full = path.join(cur, ent.name);
       if (ent.isDirectory()) {
         walk(full);
-      } else if (exts.some((ext) => ent.name.endsWith(ext))) {
+      } else if (!exts || exts.some((ext) => ent.name.endsWith(ext))) {
         const rel = path.relative(dir, full).split(path.sep).join("/");
         out[`${prefix}/${rel}`] = fs.readFileSync(full, "utf8");
       }
@@ -1005,8 +662,54 @@ function collectFiles(dir, prefix, exts) {
   return out;
 }
 
+function collectHomeTree(homeDir) {
+  const dirs = [];
+  const files = {};
+  const walk = (cur, vfsPath) => {
+    dirs.push(vfsPath);
+    for (const ent of fs.readdirSync(cur, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
+      const full = path.join(cur, ent.name);
+      const childVfs = `${vfsPath}/${ent.name}`;
+      if (ent.isDirectory()) {
+        walk(full, childVfs);
+      } else {
+        files[childVfs] = fs.readFileSync(full, "utf8");
+      }
+    }
+  };
+  if (fs.existsSync(homeDir)) {
+    walk(homeDir, "/home/user");
+  }
+  return { dirs, files };
+}
+
+function collectStaticDirIndex(filesRoot) {
+  const index = {};
+  const walk = (cur, vfsPath) => {
+    const list = [];
+    for (const ent of fs.readdirSync(cur, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
+      if (ent.name === ".DS_Store") continue;
+      if (vfsPath === "/" && ent.name === "home") continue;
+      if (vfsPath === "/home" && ent.name === "user") continue;
+      const full = path.join(cur, ent.name);
+      const childVfs = vfsPath === "/" ? `/${ent.name}` : `${vfsPath}/${ent.name}`;
+      if (ent.isDirectory()) {
+        list.push({ name: ent.name, fileType: 1 });
+        walk(full, childVfs);
+      } else {
+        list.push({ name: ent.name, fileType: 0 });
+      }
+    }
+    index[vfsPath] = list;
+  };
+  if (fs.existsSync(filesRoot)) {
+    walk(filesRoot, "/");
+  }
+  return index;
+}
+
 const papirusEntries = collectFiles(ICONS_PAPIRUS_DIR, "/usr/share/icons/Papirus", [".svg", ".theme"]);
-const papirusTs = `// Auto-generated from icons/Papirus mini-theme.\nexport const PAPIRUS_VIRTUAL_ICONS: Record<string, string> = ${JSON.stringify(
+const papirusTs = `// Auto-generated from data/files/usr/share/icons/Papirus.\nexport const PAPIRUS_VIRTUAL_ICONS: Record<string, string> = ${JSON.stringify(
   papirusEntries,
   null,
   2
@@ -1014,14 +717,31 @@ const papirusTs = `// Auto-generated from icons/Papirus mini-theme.\nexport cons
 fs.writeFileSync(path.join(ROOT, "src", "lib", "papirus-virtual-icons.ts"), papirusTs, "utf8");
 
 const pilotiEntries = collectFiles(ICONS_PILOTI_DIR, "/usr/share/icons/Piloti", [".json", ".svg", ".theme"]);
-const pilotiTs = `// Auto-generated from icons/Piloti animated Papirus-derived theme.\nexport const PILOTI_VIRTUAL_ICONS: Record<string, string> = ${JSON.stringify(
+const pilotiTs = `// Auto-generated from data/files/usr/share/icons/Piloti.\nexport const PILOTI_VIRTUAL_ICONS: Record<string, string> = ${JSON.stringify(
   pilotiEntries,
   null,
   2
 )};\n`;
 fs.writeFileSync(path.join(ROOT, "src", "lib", "piloti-virtual-icons.ts"), pilotiTs, "utf8");
 
+const homeTree = collectHomeTree(path.join(DATA_FILES_DIR, "home", "user"));
+const staticDirIndex = collectStaticDirIndex(DATA_FILES_DIR);
+const defaultTreeTs = `// Auto-generated from data/files/.\nexport const DEFAULT_HOME_DIRS: readonly string[] = ${JSON.stringify(
+  homeTree.dirs,
+  null,
+  2
+)};\n\nexport const DEFAULT_HOME_FILES: Record<string, string> = ${JSON.stringify(
+  homeTree.files,
+  null,
+  2
+)};\n\nexport const DEFAULT_STATIC_DIR_INDEX: Record<string, readonly { name: string; fileType: 0 | 1 }[]> = ${JSON.stringify(
+  staticDirIndex,
+  null,
+  2
+)};\n`;
+fs.writeFileSync(path.join(ROOT, "src", "lib", "default-vfs-tree.ts"), defaultTreeTs, "utf8");
+
 console.log(
-  `Generated ${Object.keys(ICONS).length} animated icons, ${Object.keys(pilotiEntries).length} Piloti virtual entries, ${Object.keys(papirusEntries).length} Papirus virtual entries.`
+  `Generated ${Object.keys(ICONS).length} animated icons, ${Object.keys(pilotiEntries).length} Piloti entries, ${Object.keys(papirusEntries).length} Papirus entries, ${Object.keys(homeTree.files).length} home starter files, ${Object.keys(staticDirIndex).length} static dirs.`
 );
 

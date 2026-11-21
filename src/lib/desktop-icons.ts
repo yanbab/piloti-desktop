@@ -1,4 +1,4 @@
-import type { XdgDesktopEntry } from "./xdg-desktop-entry";
+import type { XdgDesktopEntry } from "./xdg/xdg-desktop-entry";
 
 export type IconGridMode = "spatial" | "flow";
 
@@ -39,6 +39,7 @@ export interface IconGridItem {
   iconUrl?: string;
   gradient?: string;
   isEmpty?: boolean;
+  accessCount?: number;
   desktopEntry?: XdgDesktopEntry;
 }
 

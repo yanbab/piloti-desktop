@@ -108,7 +108,7 @@ import {
   setCachedWebThemeColor,
 } from "@/data/web-apps";
 import { cn } from "@/lib/utils";
-import { toggleWebAppInstall } from "@/lib/xdg-web-apps";
+import { toggleWebAppInstall } from "@/lib/xdg/xdg-web-apps";
 
 /**
  * Wraps the native Domicile `<app>` element and reports its exact viewport CSS

@@ -220,20 +220,21 @@ export interface AppDefinition {
   description: string;
   category: "System" | "Utilities" | "Productivity" | "Development" | "Internet";
   iconName:
-    | "settings"
-    | "folder"
-    | "terminal"
-    | "file-text"
-    | "activity"
-    | "globe"
-    | "code"
-    | "sparkles";
+  | "settings"
+  | "folder"
+  | "terminal"
+  | "file-text"
+  | "activity"
+  | "globe"
+  | "code"
+  | "sparkles";
   xdgIcons?: string[];
   iconUrl?: string;
   isWebApp?: boolean;
   gradient: string;
   pinnedByDefault: boolean;
   builtinComponent?: BuiltinAppId;
+  command?: string;
   linuxCommand?: string[];
   defaultSize: { width: number; height: number };
   minSize?: { width: number; height: number };
@@ -248,10 +249,11 @@ export const APP_CATALOG: AppDefinition[] = [
     description: "Configure appearance, fonts, dock, and wallpaper",
     category: "System",
     iconName: "settings",
-    xdgIcons: ["preferences-system", "preferences-desktop"],
+    xdgIcons: ["preferences-desktop", "preferences-system"],
     gradient: "from-slate-400 via-zinc-500 to-zinc-700",
     pinnedByDefault: true,
     builtinComponent: "settings",
+    command: "piloti-settings",
     defaultSize: { width: 820, height: 550 },
     minSize: { width: 320, height: 400 },
     menus: [
@@ -268,15 +270,16 @@ export const APP_CATALOG: AppDefinition[] = [
   },
   {
     id: "console",
-    name: "DevTools",
-    shortName: "DevTools",
-    description: "Shell DevTools, live logs, inspector, and JS console",
+    name: "Desktop Console",
+    shortName: "Desktop Console",
+    description: "Desktop Console, live logs, inspector, and JS REPL",
     category: "Development",
     iconName: "code",
-    xdgIcons: ["applications-development", "utilities-terminal"],
-    gradient: "from-slate-700 via-zinc-800 to-zinc-950",
+    xdgIcons: ["piloti-console"],
+    gradient: "from-indigo-700 via-slate-800 to-zinc-950",
     pinnedByDefault: true,
     builtinComponent: "console",
+    command: "piloti-console",
     defaultSize: { width: 840, height: 540 },
     minSize: { width: 320, height: 360 },
     menus: [
@@ -293,8 +296,8 @@ export const APP_CATALOG: AppDefinition[] = [
   },
   {
     id: "nautilus",
-    name: "Files (Web)",
-    shortName: "Files (Web)",
+    name: "Folders",
+    shortName: "Folders",
     description: "Browse local virtual files and folders",
     category: "System",
     iconName: "folder",
@@ -302,6 +305,7 @@ export const APP_CATALOG: AppDefinition[] = [
     gradient: "from-sky-400 via-blue-500 to-blue-600",
     pinnedByDefault: true,
     builtinComponent: "files",
+    command: "piloti-files",
     defaultSize: { width: 780, height: 500 },
     menus: [
       {
@@ -309,10 +313,23 @@ export const APP_CATALOG: AppDefinition[] = [
         items: [
           { label: "New Folder", shortcut: "Ctrl+Shift+N", actionId: "files:new-folder" },
           { label: "New Text File", actionId: "files:new-text-file", separatorAfter: true },
+          { label: "Open", shortcut: "Enter", actionId: "files:open" },
           { label: "Back", shortcut: "Alt+Left", actionId: "files:go-up" },
           { label: "Edit Location", shortcut: "Ctrl+L", actionId: "files:edit-location" },
           { label: "Search", shortcut: "Ctrl+F", actionId: "files:find", separatorAfter: true },
           { label: "Empty Trash", actionId: "files:empty-trash" },
+        ],
+      },
+      {
+        title: "Edit",
+        items: [
+          { label: "Cut", shortcut: "Ctrl+X", actionId: "files:cut" },
+          { label: "Copy", shortcut: "Ctrl+C", actionId: "files:copy" },
+          { label: "Paste", shortcut: "Ctrl+V", actionId: "files:paste" },
+          { label: "Duplicate", shortcut: "Ctrl+D", actionId: "files:duplicate", separatorAfter: true },
+          { label: "Compress", actionId: "files:compress" },
+          { label: "Rename…", shortcut: "Ctrl+Enter", actionId: "files:rename", separatorAfter: true },
+          { label: "Move to Trash", shortcut: "Del", actionId: "files:trash" },
         ],
       },
       {
@@ -330,15 +347,16 @@ export const APP_CATALOG: AppDefinition[] = [
   },
   {
     id: "terminal",
-    name: "Web Terminal",
-    shortName: "Web Terminal",
-    description: "Web shell with VFS commands (ls, cd, mkdir, cat, top)",
+    name: "Desktop Shell",
+    shortName: "Desktop Shell",
+    description: "Desktop shell with VFS commands (ls, cd, mkdir, cat, top)",
     category: "Development",
     iconName: "terminal",
     xdgIcons: ["utilities-terminal"],
     gradient: "from-zinc-700 via-zinc-800 to-zinc-950",
     pinnedByDefault: true,
     builtinComponent: "terminal",
+    command: "piloti-shell",
     defaultSize: { width: 720, height: 460 },
     menus: [],
   },
@@ -353,6 +371,7 @@ export const APP_CATALOG: AppDefinition[] = [
     gradient: "from-amber-400 via-orange-500 to-rose-500",
     pinnedByDefault: true,
     builtinComponent: "text-editor",
+    command: "piloti-notepad",
     defaultSize: { width: 520, height: 380 },
     menus: [
       {
@@ -389,8 +408,8 @@ export const APP_CATALOG: AppDefinition[] = [
   },
   {
     id: "app-store",
-    name: "App Store",
-    shortName: "App Store",
+    name: "Applications",
+    shortName: "Applications",
     description: "Browse and install apps and web apps",
     category: "System",
     iconName: "sparkles",
@@ -398,6 +417,7 @@ export const APP_CATALOG: AppDefinition[] = [
     gradient: "from-blue-500 via-indigo-500 to-violet-600",
     pinnedByDefault: true,
     builtinComponent: "app-store",
+    command: "piloti-applications",
     defaultSize: { width: 880, height: 580 },
     minSize: { width: 320, height: 400 },
     menus: [],
@@ -413,6 +433,7 @@ export const APP_CATALOG: AppDefinition[] = [
     gradient: "from-zinc-700 via-zinc-800 to-orange-500",
     pinnedByDefault: true,
     builtinComponent: "calculator",
+    command: "piloti-calculator",
     defaultSize: { width: 196, height: 292 },
     minSize: { width: 184, height: 276 },
     menus: [],
@@ -428,6 +449,7 @@ export const APP_CATALOG: AppDefinition[] = [
     gradient: "from-sky-500 via-indigo-500 to-purple-600",
     pinnedByDefault: true,
     builtinComponent: "image-viewer",
+    command: "piloti-image-viewer",
     defaultSize: { width: 640, height: 480 },
     minSize: { width: 320, height: 300 },
     menus: [],

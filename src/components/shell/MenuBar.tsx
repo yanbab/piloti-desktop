@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/window";
 import { AppSquircleIcon } from "./AppSymbol";
 import { findMatchingWebApp } from "@/data/web-apps";
-import { toggleWebAppInstall } from "@/lib/xdg-web-apps";
+import { toggleWebAppInstall } from "@/lib/xdg/xdg-web-apps";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -60,7 +60,7 @@ import {
   discoverRemoteGlobalMenu,
   type RemoteGlobalMenu,
   type RemoteMenuEntry,
-} from "@/lib/xdg-app-menu";
+} from "@/lib/xdg/xdg-app-menu";
 import { cn } from "@/lib/utils";
 import { captureLaunchOriginFromElement } from "@/lib/launch-origin";
 import { buildVfsEntryWebAppUrl, getVfsEntry } from "@/lib/web-vfs";
@@ -596,7 +596,7 @@ export function MenuBar() {
                   launchApp("app-store");
                 }}
               >
-                {_("Application Store")}
+                {_("Applications")}
               </MenubarItem>
               <MenubarItem
                 onClick={(e) => {
@@ -608,7 +608,7 @@ export function MenuBar() {
                   }
                 }}
               >
-                {altHeld ? _("Reload Shell") : _("DevTools")}
+                {altHeld ? _("Reload Shell") : _("Desktop Console")}
               </MenubarItem>
               <MenubarSeparator />
               <MenubarItem onClick={(e) => handlePowerMenuClick("restart", e)}>

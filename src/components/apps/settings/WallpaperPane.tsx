@@ -35,9 +35,10 @@ import {
 } from "@/lib/gnome-background";
 import { _ } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
+import { useThrottledColor } from "./use-throttled-color";
 
 export function WallpaperPane() {
-  const { settings, updateSettings, resolvedTheme } = useSettings();
+  const { settings, updateSettings, resolvedTheme, backgroundSpec } = useSettings();
   const gnomeBg = settings.gnomeBackground;
 
   const [lightUriDraft, setLightUriDraft] = React.useState(
@@ -53,8 +54,27 @@ export function WallpaperPane() {
     setDarkUriDraft(gnomeBg.pictureUriDark);
   }, [gnomeBg.pictureUriDark]);
 
-  const [customColorDraft, setCustomColorDraft] = React.useState(
-    settings.wallpaperId.startsWith("#") ? settings.wallpaperId : "#4f46e5"
+  const applySolidColor = React.useCallback(
+    (hex: string) => {
+      updateSettings({
+        wallpaperId: hex,
+        customWallpaperUrl: "",
+        gnomeBackground: {
+          ...settings.gnomeBackground,
+          pictureUri: "",
+          pictureUriDark: "",
+          pictureOptions: "none",
+          colorShadingType: "solid",
+          primaryColor: hex,
+        },
+      });
+    },
+    [settings.gnomeBackground, updateSettings]
+  );
+
+  const solidWallpapers = React.useMemo(
+    () => WALLPAPERS.filter((wp) => wp.category === "Solid"),
+    []
   );
 
   const gradients = React.useMemo(
@@ -70,21 +90,19 @@ export function WallpaperPane() {
     []
   );
 
-  const solidWallpapers = React.useMemo(
-    () => WALLPAPERS.filter((wp) => wp.category === "Solid"),
-    []
-  );
-
   const activePictureUri =
     selectGnomePictureUri(gnomeBg, resolvedTheme) || settings.customWallpaperUrl;
 
-  const updateGnomeBg = (patch: Partial<GnomeBackgroundSettings>) => {
-    updateSettings({
-      wallpaperId: "gnome",
-      customWallpaperUrl: "",
-      gnomeBackground: { ...gnomeBg, ...patch },
-    });
-  };
+  const updateGnomeBg = React.useCallback(
+    (patch: Partial<GnomeBackgroundSettings>) => {
+      updateSettings({
+        wallpaperId: "gnome",
+        customWallpaperUrl: "",
+        gnomeBackground: { ...settings.gnomeBackground, ...patch },
+      });
+    },
+    [settings.gnomeBackground, updateSettings]
+  );
 
   const isCustomSelected =
     !activePictureUri &&
@@ -100,27 +118,59 @@ export function WallpaperPane() {
         ).toLowerCase()
     );
 
-  const customHexValue = toHexColorInputValue(
+  const committedCustomHex = toHexColorInputValue(
     settings.wallpaperId.startsWith("#")
       ? settings.wallpaperId
       : gnomeBg.primaryColor,
-    customColorDraft
+    "#4f46e5"
   );
-
-  const applySolidColor = (hex: string) => {
-    updateSettings({
-      wallpaperId: hex,
-      customWallpaperUrl: "",
-      gnomeBackground: {
-        ...gnomeBg,
-        pictureUri: "",
-        pictureUriDark: "",
-        pictureOptions: "none",
-        colorShadingType: "solid",
-        primaryColor: hex,
-      },
-    });
-  };
+  const customColorPicker = useThrottledColor(committedCustomHex, applySolidColor);
+  const primaryColorPicker = useThrottledColor(
+    toHexColorInputValue(gnomeBg.primaryColor, "#023c88"),
+    (hex) => updateGnomeBg({ primaryColor: hex })
+  );
+  const secondaryColorPicker = useThrottledColor(
+    toHexColorInputValue(gnomeBg.secondaryColor, "#5789ca"),
+    (hex) => updateGnomeBg({ secondaryColor: hex })
+  );
+  const customHexValue = customColorPicker.draft;
+  const previewSpec = React.useMemo(() => {
+    const p = primaryColorPicker.draft;
+    const s = secondaryColorPicker.draft;
+    if (
+      customHexValue !== committedCustomHex &&
+      customHexValue !== toHexColorInputValue(gnomeBg.primaryColor, "#023c88")
+    ) {
+      return {
+        ...backgroundSpec,
+        baseCss: customHexValue,
+        overlayCss: undefined,
+        pictureLayer: undefined,
+      };
+    }
+    if (
+      p !== toHexColorInputValue(gnomeBg.primaryColor, "#023c88") ||
+      s !== toHexColorInputValue(gnomeBg.secondaryColor, "#5789ca")
+    ) {
+      const baseCss =
+        gnomeBg.colorShadingType === "horizontal"
+          ? `linear-gradient(to right, ${p}, ${s})`
+          : gnomeBg.colorShadingType === "vertical"
+            ? `linear-gradient(to bottom, ${p}, ${s})`
+            : p;
+      return { ...backgroundSpec, baseCss };
+    }
+    return backgroundSpec;
+  }, [
+    backgroundSpec,
+    committedCustomHex,
+    customHexValue,
+    gnomeBg.colorShadingType,
+    gnomeBg.primaryColor,
+    gnomeBg.secondaryColor,
+    primaryColorPicker.draft,
+    secondaryColorPicker.draft,
+  ]);
 
   const renderWallpaperCard = (
     wp: (typeof WALLPAPERS)[number],
@@ -196,7 +246,7 @@ export function WallpaperPane() {
         <GroupedFormGroup>
           <div className="flex justify-center p-3.5">
             <div className="relative aspect-[16/10] h-28 w-auto max-w-full overflow-hidden rounded-[8px] border border-black/10 dark:border-white/15">
-              <DesktopBackgroundLayers />
+              <DesktopBackgroundLayers spec={previewSpec} />
             </div>
           </div>
         </GroupedFormGroup>
@@ -250,11 +300,8 @@ export function WallpaperPane() {
                 type="color"
                 aria-label={_("Custom Color Picker")}
                 value={customHexValue}
-                onChange={(e) => {
-                  const hex = e.target.value;
-                  setCustomColorDraft(hex);
-                  applySolidColor(hex);
-                }}
+                onChange={(e) => customColorPicker.onChange(e.target.value)}
+                onBlur={customColorPicker.flush}
                 className="absolute inset-0 size-full cursor-pointer opacity-0"
               />
             </div>
@@ -426,18 +473,18 @@ export function WallpaperPane() {
               <input
                 type="color"
                 aria-label="Primary Background Color"
-                value={toHexColorInputValue(gnomeBg.primaryColor, "#023c88")}
-                onChange={(e) => updateGnomeBg({ primaryColor: e.target.value })}
+                value={primaryColorPicker.draft}
+                onChange={(e) => primaryColorPicker.onChange(e.target.value)}
+                onBlur={primaryColorPicker.flush}
                 className="h-8 w-8 cursor-pointer rounded-md border border-adw-separator bg-transparent p-0.5"
               />
               {gnomeBg.colorShadingType !== "solid" && (
                 <input
                   type="color"
                   aria-label="Secondary Background Color"
-                  value={toHexColorInputValue(gnomeBg.secondaryColor, "#5789ca")}
-                  onChange={(e) =>
-                    updateGnomeBg({ secondaryColor: e.target.value })
-                  }
+                  value={secondaryColorPicker.draft}
+                  onChange={(e) => secondaryColorPicker.onChange(e.target.value)}
+                  onBlur={secondaryColorPicker.flush}
                   className="h-8 w-8 cursor-pointer rounded-md border border-adw-separator bg-transparent p-0.5"
                 />
               )}

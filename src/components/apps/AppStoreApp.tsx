@@ -54,7 +54,7 @@ import {
   probeFlatpakCapabilities,
   searchFlatpaks,
   uninstallFlatpakApp,
-} from "@/lib/engine-system/flatpak";
+} from "@/lib/engine-desktop/flatpak";
 import { APP_CATALOG, type AppDefinition } from "@/data/catalog";
 import {
   canonicalizeWebUrl,
@@ -69,7 +69,7 @@ import { cn } from "@/lib/utils";
 import {
   installWebAppDesktopEntry,
   removeWebAppDesktopEntry,
-} from "@/lib/xdg-web-apps";
+} from "@/lib/xdg/xdg-web-apps";
 
 interface AppStoreAppProps {
   isCsd?: boolean;
@@ -713,7 +713,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
         const fp = item.flatpak;
         if (isBrowserRuntime) {
           pushNotification({
-            appName: "App Store",
+            appName: "Applications",
             summary: `Flatpak: ${fp.name}`,
             body: `Run on Domicile Linux: flatpak install --user flathub ${fp.appId}`,
           });
@@ -736,13 +736,13 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
             await refreshFlatpakList();
             await refreshXdgApps();
             pushNotification({
-              appName: "App Store",
+              appName: "Applications",
               summary: `Installed ${fp.name}`,
               body: fp.appId,
             });
           } else {
             pushNotification({
-              appName: "App Store",
+              appName: "Applications",
               summary: `Failed to install ${fp.name}`,
               body: res.error || "Flatpak install failed",
               urgency: "critical",
@@ -780,13 +780,13 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
             await refreshFlatpakList();
             await refreshXdgApps();
             pushNotification({
-              appName: "App Store",
+              appName: "Applications",
               summary: `Uninstalled ${fp.name}`,
               body: fp.appId,
             });
           } else {
             pushNotification({
-              appName: "App Store",
+              appName: "Applications",
               summary: `Failed to uninstall ${fp.name}`,
               body: res.error || "Flatpak uninstall failed",
               urgency: "critical",
@@ -828,7 +828,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
 
   return (
     <AdwSplitView
-      title={_("App Store")}
+      title={_("Applications")}
       appId="app-store"
       windowId={windowId}
       isCsd={isCsd}

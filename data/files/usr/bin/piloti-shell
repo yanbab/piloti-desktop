@@ -1,0 +1,4 @@
+#!/bin/sh
+# piloti-shell — Open Piloti Desktop Shell
+set -eu
+exec /usr/bin/piloti open terminal "$@"

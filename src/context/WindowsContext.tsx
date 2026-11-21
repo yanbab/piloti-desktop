@@ -41,7 +41,7 @@ import {
   saveXdgSession,
   serializeWindowToXdgSession,
   type XdgSessionWindow,
-} from "@/lib/xdg-session-management";
+} from "@/lib/xdg/xdg-session-management";
 import {
   clampWindowBounds,
   clampWorkspace,
@@ -2059,11 +2059,15 @@ function pruneBrowserRecord(
       }
       const builtinExecMap: Record<string, string> = {
         "piloti-files": "nautilus",
+        "piloti-shell": "terminal",
         "piloti-terminal": "terminal",
         "piloti-notepad": "text-editor",
         "piloti-calculator": "calculator",
         "piloti-image-viewer": "image-viewer",
+        "piloti-applications": "app-store",
         "piloti-app-store": "app-store",
+        "piloti-console": "console",
+        "piloti-desktop": "console",
         "piloti-devtools": "console",
         "piloti-settings": "settings",
       };

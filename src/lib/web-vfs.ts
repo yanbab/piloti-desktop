@@ -1,4 +1,4 @@
-import { WELCOME_HTML } from "./welcome-html";
+import { DEFAULT_HOME_DIRS, DEFAULT_HOME_FILES } from "./default-vfs-tree";
 
 export interface WebVfsEntry {
   id: string;
@@ -8,6 +8,7 @@ export interface WebVfsEntry {
   parentPath: string;
   content?: string;
   size?: number;
+  accessCount?: number;
   trashedFromPath?: string;
   metadata?: {
     "standard::content-type"?: string;
@@ -28,7 +29,9 @@ export const DEFAULT_ETC_ISSUE = `Piloti Desktop Web VFS (localStorage)
 Type 'help' for shell commands, 'piloti help' for desktop controls, or 'cat ~/Documents/Notes.txt'.
 `;
 
-export const DEFAULT_MIMEAPPS_INI = `[Default Applications]
+export const DEFAULT_MIMEAPPS_INI =
+  DEFAULT_HOME_FILES["/home/user/.config/mimeapps.list"] ??
+  `[Default Applications]
 inode/directory=nautilus.desktop
 text/plain=text-editor.desktop
 text/markdown=text-editor.desktop
@@ -50,100 +53,18 @@ application/json=text-editor.desktop;console.desktop;
 image/*=image-viewer.desktop;browser.desktop;
 `;
 
-const DEFAULT_DIRS = [
-  "/etc",
-  "/home/user",
-  "/home/user/Desktop",
-  "/home/user/Documents",
-  "/home/user/Downloads",
-  "/home/user/Music",
-  "/home/user/Pictures",
-  "/home/user/Videos",
-  "/home/user/.config",
-  "/home/user/.config/piloti",
-  "/home/user/.config/piloti/plugins",
-  "/home/user/.config/Piloti",
-  "/home/user/.config/domicile",
-  "/home/user/.local",
-  "/home/user/.local/share",
-  "/home/user/.local/share/applications",
-  "/home/user/.local/share/Trash",
-  "/home/user/.local/state",
-  "/home/user/.local/state/piloti",
-  "/home/user/.cache",
-  "/home/user/.cache/piloti",
-  WEB_VFS_TRASH,
-];
+const WELCOME_HTML =
+  DEFAULT_HOME_FILES["/home/user/Desktop/Welcome.html"] ?? "";
 
-const DEFAULT_LOCAL_DESKTOP_FILES: Record<string, string> = {
-  "piloti-files.desktop": `[Desktop Entry]
-Type=Application
-Name=Files
-Comment=Browse local virtual files and folders
-Exec=piloti-files %U
-Icon=system-file-manager
-Categories=System;FileManager;
-MimeType=inode/directory;
-`,
-  "piloti-terminal.desktop": `[Desktop Entry]
-Type=Application
-Name=Web Terminal
-Comment=Web shell with VFS commands
-Exec=piloti-terminal
-Icon=piloti-terminal
-Categories=System;TerminalEmulator;Development;
-`,
-  "piloti-notepad.desktop": `[Desktop Entry]
-Type=Application
-Name=Notepad
-Comment=Minimal plain-text notepad with instant VFS save
-Exec=piloti-notepad %F
-Icon=piloti-text-editor
-Categories=Utility;TextEditor;
-MimeType=text/plain;text/markdown;application/json;
-`,
-  "piloti-calculator.desktop": `[Desktop Entry]
-Type=Application
-Name=Calculator
-Comment=Basic & Scientific Calculator
-Exec=piloti-calculator
-Icon=piloti-calculator
-Categories=Utility;Calculator;
-`,
-  "piloti-image-viewer.desktop": `[Desktop Entry]
-Type=Application
-Name=Image Viewer
-Comment=Fast image viewer and crop/rotate editor
-Exec=piloti-image-viewer %F
-Icon=piloti-image-viewer
-Categories=Graphics;Viewer;
-MimeType=image/png;image/jpeg;image/webp;image/gif;image/svg+xml;
-`,
-  "piloti-app-store.desktop": `[Desktop Entry]
-Type=Application
-Name=App Store
-Comment=Browse and install apps and web apps
-Exec=piloti-app-store
-Icon=org.gnome.Software
-Categories=System;PackageManager;
-`,
-  "piloti-devtools.desktop": `[Desktop Entry]
-Type=Application
-Name=DevTools
-Comment=Shell DevTools, live logs, inspector, and JS console
-Exec=piloti-devtools
-Icon=org.gnome.DevTools
-Categories=Development;Debugger;
-`,
-  "piloti-settings.desktop": `[Desktop Entry]
-Type=Application
-Name=Desktop Settings
-Comment=Configure appearance, fonts, dock, and wallpaper
-Exec=piloti-settings
-Icon=piloti-settings
-Categories=Settings;DesktopSettings;
-`,
-};
+const DEFAULT_DIRS = Array.from(
+  new Set(["/etc", "/home", WEB_VFS_HOME, ...DEFAULT_HOME_DIRS, WEB_VFS_TRASH]),
+);
+
+const DEFAULT_LOCAL_DESKTOP_FILES: Record<string, string> = Object.fromEntries(
+  Object.entries(DEFAULT_HOME_FILES)
+    .filter(([p]) => p.startsWith("/home/user/.local/share/applications/") && p.endsWith(".desktop"))
+    .map(([p, content]) => [p.slice("/home/user/.local/share/applications/".length), content]),
+);
 
 function basename(path: string): string {
   const parts = path.split("/").filter(Boolean);
@@ -209,70 +130,23 @@ function createInitialVfs(): WebVfsEntry[] {
     updatedAt: now,
   }));
 
-  entries.push(
-    {
-      id: "/home/user/Desktop/Welcome.html",
-      name: "Welcome.html",
-      kind: "file",
-      path: "/home/user/Desktop/Welcome.html",
-      parentPath: "/home/user/Desktop",
-      content: WELCOME_HTML,
-      updatedAt: now,
-    },
-    {
-      id: "/home/user/Desktop/Projects",
-      name: "Projects",
-      kind: "directory",
-      path: "/home/user/Desktop/Projects",
-      parentPath: "/home/user/Desktop",
-      updatedAt: now,
-    },
-    {
-      id: "/home/user/Documents/Notes.txt",
-      name: "Notes.txt",
-      kind: "file",
-      path: "/home/user/Documents/Notes.txt",
-      parentPath: "/home/user/Documents",
-      content: "Notes\n-----\n- Test Piloti Files & Desktop VFS\n",
-      updatedAt: now,
-    },
-    {
-      id: "/home/user/Downloads/readme.md",
-      name: "readme.md",
-      kind: "file",
-      path: "/home/user/Downloads/readme.md",
-      parentPath: "/home/user/Downloads",
-      content: "# Downloads\n\nLocal browser VFS folder stored in localStorage.\n",
-      updatedAt: now,
-    },
-    {
-      id: "/etc/issue",
-      name: "issue",
-      kind: "file",
-      path: "/etc/issue",
-      parentPath: "/etc",
-      content: DEFAULT_ETC_ISSUE,
-      updatedAt: now,
-    },
-    {
-      id: "/home/user/.config/mimeapps.list",
-      name: "mimeapps.list",
-      kind: "file",
-      path: "/home/user/.config/mimeapps.list",
-      parentPath: "/home/user/.config",
-      content: DEFAULT_MIMEAPPS_INI,
-      updatedAt: now,
-    }
-  );
+  entries.push({
+    id: "/etc/issue",
+    name: "issue",
+    kind: "file",
+    path: "/etc/issue",
+    parentPath: "/etc",
+    content: DEFAULT_ETC_ISSUE,
+    updatedAt: now,
+  });
 
-  for (const [fileName, content] of Object.entries(DEFAULT_LOCAL_DESKTOP_FILES)) {
-    const fullPath = `/home/user/.local/share/applications/${fileName}`;
+  for (const [fullPath, content] of Object.entries(DEFAULT_HOME_FILES)) {
     entries.push({
       id: fullPath,
-      name: fileName,
+      name: basename(fullPath),
       kind: "file",
       path: fullPath,
-      parentPath: "/home/user/.local/share/applications",
+      parentPath: dirname(fullPath),
       content,
       updatedAt: now,
     });
@@ -674,6 +548,25 @@ export function writeVfsTextFile(
   };
   saveVfs([...entries, created]);
   return created;
+}
+
+export function getVfsAccessCount(rawPath: string): number {
+  const entry = getVfsEntry(rawPath);
+  return entry?.accessCount ?? 0;
+}
+
+export function incrementVfsAccessCount(rawPath: string): number {
+  const normalized = normalizeVfsPath(rawPath);
+  const entries = loadVfs();
+  const existing = entries.find((e) => e.path === normalized);
+  if (!existing) return 0;
+  const nextCount = (existing.accessCount ?? 0) + 1;
+  saveVfs(
+    entries.map((e) =>
+      e.path === normalized ? { ...e, accessCount: nextCount } : e
+    )
+  );
+  return nextCount;
 }
 
 export type VfsEmblemId = "favorite" | "important" | "work" | "personal";

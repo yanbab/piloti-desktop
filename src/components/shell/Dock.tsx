@@ -32,13 +32,19 @@ import {
   emptyXdgTrash,
   inspectXdgTrash,
   resolveXdgTrashPaths,
-} from "@/lib/xdg-trash";
+} from "@/lib/xdg/xdg-trash";
 import {
   emptyVfsTrash,
   listVfsDir,
   subscribeWebVfs,
   WEB_VFS_TRASH,
 } from "@/lib/web-vfs";
+import {
+  SIMULATED_USB_LABEL,
+  SIMULATED_USB_PATH,
+  unmountSimulatedUsb,
+  useSimulatedUsbMounted,
+} from "@/lib/usb-drive";
 import { _ } from "@/lib/i18n";
 import { captureLaunchOriginFromElement } from "@/lib/launch-origin";
 import { cn } from "@/lib/utils";
@@ -159,8 +165,9 @@ export function Dock() {
     };
   }, [launchApp]);
   const [contextTarget, setContextTarget] = React.useState<
-    { kind: "dock" } | { kind: "trash" } | { kind: "app"; appId: string }
+    { kind: "dock" } | { kind: "trash" } | { kind: "usb" } | { kind: "app"; appId: string }
   >({ kind: "dock" });
+  const usbMounted = useSimulatedUsbMounted();
   const didReorderRef = React.useRef(false);
   const dockTilesRef = React.useRef<Map<string, HTMLElement>>(new Map());
   const dockPosition = settings.dockPosition ?? "bottom";
@@ -181,12 +188,12 @@ export function Dock() {
     ? viewportSize.height - 96
     : viewportSize.width - 48;
   const maxDockSizeForSpace = Math.max(
-    32,
-    Math.min(64, Math.floor(availableSpan / totalSlots) - 10),
+    18,
+    Math.min(96, Math.floor(availableSpan / totalSlots) - 10),
   );
   const activeDockSize = Math.min(
-    64,
-    dragDockSize ?? settings.dockSize,
+    96,
+    Math.max(18, dragDockSize ?? settings.dockSize),
     maxDockSizeForSpace,
   );
   const trashPaths = React.useMemo(() => resolveXdgTrashPaths(), []);
@@ -490,6 +497,12 @@ export function Dock() {
     });
   };
 
+  const handleOpenUsb = () => {
+    launchApp("nautilus", {
+      payload: SIMULATED_USB_PATH,
+    });
+  };
+
   const handleEmptyTrash = async () => {
     if (isBrowserRuntime) {
       emptyVfsTrash();
@@ -518,6 +531,8 @@ export function Dock() {
       ?.getAttribute("data-dock-context");
     if (raw === "trash") {
       setContextTarget({ kind: "trash" });
+    } else if (raw === "usb") {
+      setContextTarget({ kind: "usb" });
     } else if (raw?.startsWith("app:")) {
       setContextTarget({ kind: "app", appId: raw.slice(4) });
     } else {
@@ -671,7 +686,7 @@ export function Dock() {
           <DockSeparator
             resizable
             resizeSize={activeDockSize}
-            minSize={32}
+            minSize={18}
             maxSize={maxDockSizeForSpace}
             onResizingChange={(dragging) => {
               setResizingDock(dragging);
@@ -683,6 +698,25 @@ export function Dock() {
               updateSettings({ dockSize: finalSize });
             }}
           />
+
+          {usbMounted && (
+            <DockItem
+              label={SIMULATED_USB_LABEL}
+              tileProps={{
+                "data-dock-context": "usb",
+                "data-vfs-drop-path": SIMULATED_USB_PATH,
+              }}
+              onClick={(e) => {
+                captureLaunchOriginFromElement(e.currentTarget);
+                handleOpenUsb();
+              }}
+            >
+              <AppSquircleIcon
+                iconUrl={getAppIconUrl("__usb_drive__")}
+                className="size-full"
+              />
+            </DockItem>
+          )}
 
           <DockItem
             label={trashEmpty ? _("Trash (Empty)") : _("Trash (%d)", trashCount)}
@@ -794,6 +828,16 @@ export function Dock() {
                 onClick={() => void handleEmptyTrash()}
               >
                 {_("Empty Trash")}
+              </ContextMenuItem>
+            </>
+          ) : contextTarget.kind === "usb" ? (
+            <>
+              <ContextMenuItem onClick={handleOpenUsb}>
+                {_("Open USB Drive")}
+              </ContextMenuItem>
+              <ContextMenuSeparator />
+              <ContextMenuItem onClick={unmountSimulatedUsb}>
+                {_("Eject")}
               </ContextMenuItem>
             </>
           ) : (

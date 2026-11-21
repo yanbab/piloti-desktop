@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useDomicile } from "@domicile-desktop/react/domicile-provider";
 import {
   ContextMenu,
   ContextMenuContent,
@@ -12,6 +13,19 @@ import {
   useSystemBackends,
   useWindowManager,
 } from "@/context/DesktopStateContext";
+import {
+  canonicalizeWebUrl,
+  getHostnameFallbackTitle,
+  getWebAppFaviconUrl,
+} from "@/data/web-apps";
+import {
+  dispatchPilotiShellCommand,
+  type PilotiShellCommandHandlers,
+} from "@/lib/shell-commands";
+import {
+  installWebAppDesktopEntry,
+  removeWebAppDesktopEntry,
+} from "@/lib/xdg/xdg-web-apps";
 const AltTabSwitcher = React.lazy(() =>
   import("./AltTabSwitcher").then((m) => ({
     default: m.AltTabSwitcher,
@@ -254,6 +268,7 @@ function DesktopSurface() {
 
       {/* Notification Toast Banners */}
       <NotificationToasts />
+      <DomicileShellCommandBridge />
       <ShellFocusAndContextGuard />
       {/* Fast fade-to-black curtain when quitting/restarting/powering off the Shell */}
       <div
@@ -266,6 +281,102 @@ function DesktopSurface() {
       />
     </div>
   );
+}
+
+function DomicileShellCommandBridge() {
+  const domicile = useDomicile();
+  const { isBrowserRuntime, settings } = useSettings();
+  const {
+    lockSession,
+    requestPowerAction,
+    takeScreenshot,
+    startScreenRecording,
+  } = useSystemBackends();
+  const { launchApp, openWebUrl, setLauncherOpen, toggleOverview } =
+    useWindowManager();
+
+  const handlersRef = React.useRef<PilotiShellCommandHandlers>({
+    launchApp,
+    openWebUrl,
+    setLauncherOpen,
+    toggleOverview,
+    lockSession,
+    requestPowerAction,
+    takeScreenshot,
+    startScreenRecording,
+  });
+
+  handlersRef.current = {
+    launchApp,
+    openWebUrl,
+    setLauncherOpen,
+    toggleOverview,
+    lockSession,
+    requestPowerAction,
+    takeScreenshot,
+    startScreenRecording,
+    installWebApp: (rawUrl) => {
+      const canonical = canonicalizeWebUrl(rawUrl);
+      if (!canonical) return;
+      const app = {
+        id: `web:${canonical}`,
+        title: getHostnameFallbackTitle(canonical) || canonical,
+        url: canonical,
+        iconUrl: getWebAppFaviconUrl(canonical),
+        category: "Internet",
+      };
+      void installWebAppDesktopEntry(domicile, isBrowserRuntime, app);
+    },
+    removeWebApp: (target) => {
+      const canonical = canonicalizeWebUrl(target);
+      const match = (settings.installedWebApps ?? []).find(
+        (w) =>
+          w.id === target ||
+          (canonical !== undefined &&
+            (canonicalizeWebUrl(w.url) ?? w.url) === canonical)
+      );
+      const toRemove = match ?? { id: target, url: canonical ?? target };
+      void removeWebAppDesktopEntry(domicile, isBrowserRuntime, toRemove);
+    },
+  };
+
+  React.useEffect(() => {
+    if (isBrowserRuntime) return;
+    if (typeof domicile.shell?.commands !== "function") return;
+    let stopped = false;
+    let stopListening: (() => void) | null = null;
+
+    void domicile.shell
+      .commands()
+      .then((res) => {
+        res.match({
+          Ok: async (listening) => {
+            if (stopped) {
+              listening.stop();
+              return;
+            }
+            stopListening = () => listening.stop();
+            const reader = listening.items.getReader();
+            while (!stopped) {
+              const next = await reader.read();
+              if (next.done) break;
+              const words = next.value;
+              console.info("[Piloti] shellCommand", words);
+              dispatchPilotiShellCommand(words, handlersRef.current);
+            }
+          },
+          Err: () => undefined,
+        });
+      })
+      .catch(() => undefined);
+
+    return () => {
+      stopped = true;
+      stopListening?.();
+    };
+  }, [domicile, isBrowserRuntime]);
+
+  return null;
 }
 
 function ShellFocusAndContextGuard() {

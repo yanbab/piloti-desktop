@@ -1,7 +1,7 @@
 import { desktop, type Domicile } from "@domicile-desktop/sdk/desktop/desktop";
 import type { DomicileHost, DomicileNotification } from "@domicile-desktop/sdk/domicile-host";
 import { FakeDomicileHost } from "@domicile-desktop/sdk/fake-host";
-import { PAPIRUS_VIRTUAL_ICONS } from "../papirus-virtual-icons";
+import { DEFAULT_STATIC_DIR_INDEX } from "../default-vfs-tree";
 import { PILOTI_VIRTUAL_ICONS } from "../piloti-virtual-icons";
 import {
   ensureVfsDir,
@@ -19,146 +19,173 @@ declare global {
 
 const INITIAL_NOTIFICATIONS: DomicileNotification[] = [];
 
-/**
- * Virtual `/usr/share/applications/*.desktop` files served by `FakeDomicileHost`
- * in Browser Dev Mode so the XDG Desktop Entry Specification parser (`xdg-desktop`)
- * runs the exact same `domicile.files.readDir` + `domicile.files.readText` pipeline
- * in the browser as on Debian Linux.
- */
-const VIRTUAL_XDG_DESKTOP_FILES: Record<string, string> = {};
+type StaticDirEntry = { name: string; file_type: "file" | "directory" };
+type StaticTreeIndex = Record<string, readonly { name: string; fileType: 0 | 1 }[]>;
 
-/**
- * Virtual `/usr/share/icons/{Adwaita,hicolor}` files served by `FakeDomicileHost`
- * so the XDG Icon Theme Specification (`xdg-desktop`) resolves and renders real
- * GNOME Adwaita / Freedesktop SVG application icons in Browser Dev Mode too.
- */
-const VIRTUAL_XDG_ICON_FILES: Record<string, string> = {
-  "/usr/share/icons/Adwaita/index.theme": `[Icon Theme]
-Name=Adwaita
-Comment=GNOME Adwaita Icon Theme
-Inherits=hicolor
-Directories=scalable/apps,scalable/places,scalable/status,scalable/mimetypes,symbolic/actions
+let cachedStaticDirIndexPromise: Promise<StaticTreeIndex> | null = null;
+const cachedStaticFileBytes = new Map<string, Promise<Uint8Array | null>>();
 
-[scalable/apps]
-Context=Applications
-Size=128
-MinSize=8
-MaxSize=512
-Type=Scalable
-
-[scalable/places]
-Context=Places
-Size=128
-MinSize=8
-MaxSize=512
-Type=Scalable
-
-[scalable/status]
-Context=Status
-Size=128
-MinSize=8
-MaxSize=512
-Type=Scalable
-
-[scalable/mimetypes]
-Context=MimeTypes
-Size=128
-MinSize=8
-MaxSize=512
-Type=Scalable
-
-[symbolic/actions]
-Context=Actions
-Size=16
-MinSize=8
-MaxSize=512
-Type=Scalable
-`,
-  "/usr/share/icons/hicolor/index.theme": `[Icon Theme]
-Name=Hicolor
-Comment=Fallback Icon Theme
-Directories=scalable/apps
-
-[scalable/apps]
-Context=Applications
-Size=128
-MinSize=8
-MaxSize=512
-Type=Scalable
-`,
-  ...PAPIRUS_VIRTUAL_ICONS,
-  ...PILOTI_VIRTUAL_ICONS,
-};
-
-const VIRTUAL_XDG_CONFIG_FILES: Record<string, string> = {
-  ".config/user-dirs.dirs": `# Written by xdg-user-dirs-update
-XDG_DESKTOP_DIR="$HOME/Desktop"
-XDG_DOCUMENTS_DIR="$HOME/Documents"
-XDG_DOWNLOAD_DIR="$HOME/Downloads"
-XDG_MUSIC_DIR="$HOME/Music"
-XDG_PICTURES_DIR="$HOME/Pictures"
-XDG_VIDEOS_DIR="$HOME/Videos"
-XDG_PUBLICSHARE_DIR="$HOME/Public"
-XDG_TEMPLATES_DIR="$HOME/Templates"
-`,
-};
-
-const VIRTUAL_DESKTOP_FOLDER_FILES: Record<string, string> = {
-  "Desktop/Welcome.md": `# Piloti Desktop\n\nWelcome to Piloti! Drag icons anywhere on the grid, navigate with Arrow keys, and press Enter to open.\n`,
-  "Desktop/Projects/roadmap.md": `# Roadmap\n\n- Wayland shell\n- Desktop icons\n`,
-  "Desktop/Screenshots/aurora.txt": `Screenshot placeholder\n`,
-  "Desktop/Files.desktop": `[Desktop Entry]
-Name=Files
-Comment=Browse local folders
-Exec=nautilus
-Icon=system-file-manager
-Type=Application
-`,
-};
-
-const ALL_VIRTUAL_FILES: Record<string, string> = {
-  ...VIRTUAL_XDG_DESKTOP_FILES,
-  ...VIRTUAL_XDG_ICON_FILES,
-  ...VIRTUAL_XDG_CONFIG_FILES,
-  ...VIRTUAL_DESKTOP_FOLDER_FILES,
-};
-
-function readVirtualDirectory(
-  dirPath: string
-): { name: string; file_type: "file" | "directory" }[] | null {
-  const normalized = dirPath.replace(/\/+$/, "");
-  const prefix = `${normalized}/`;
-  const entries = new Map<string, "file" | "directory">();
-
-  for (const fullPath of Object.keys(ALL_VIRTUAL_FILES)) {
-    if (!fullPath.startsWith(prefix)) continue;
-    const rest = fullPath.slice(prefix.length);
-    if (!rest) continue;
-    const slashIdx = rest.indexOf("/");
-    if (slashIdx === -1) {
-      entries.set(rest, "file");
-    } else {
-      const childDir = rest.slice(0, slashIdx);
-      entries.set(childDir, "directory");
-    }
+function resolveDemoBaseUrl(): string {
+  if (typeof window === "undefined") return "";
+  const base = document.baseURI || window.location.href;
+  const parsed = new URL(base);
+  // Ensure directory-like routes without trailing slash (e.g. /piloti-desktop/demo)
+  // still resolve __fs assets relative to the demo directory rather than parent.
+  if (!parsed.pathname.endsWith("/") && !/\.[a-z0-9]+$/i.test(parsed.pathname)) {
+    parsed.pathname = `${parsed.pathname}/`;
   }
+  return parsed.toString();
+}
 
-  if (entries.size === 0) return null;
-  return Array.from(entries.entries()).map(([name, file_type]) => ({
-    name,
-    file_type,
+function getStaticDirIndex(): Promise<StaticTreeIndex> {
+  if (cachedStaticDirIndexPromise) return cachedStaticDirIndexPromise;
+  cachedStaticDirIndexPromise = (async () => {
+    if (
+      typeof window !== "undefined" &&
+      typeof fetch === "function" &&
+      window.location?.protocol?.startsWith("http")
+    ) {
+      try {
+        const res = await fetch(new URL("__fs_tree.json", resolveDemoBaseUrl()));
+        if (res.ok) {
+          return (await res.json()) as StaticTreeIndex;
+        }
+      } catch {
+        // fallback to compiled directory index
+      }
+    }
+    return DEFAULT_STATIC_DIR_INDEX;
+  })();
+  return cachedStaticDirIndexPromise;
+}
+
+function readStaticFileBytes(
+  normalizedPath: string,
+  hostFallbackFiles?: Domicile["files"],
+): Promise<Uint8Array | null> {
+  const existing = cachedStaticFileBytes.get(normalizedPath);
+  if (existing) return existing;
+
+  const task = (async (): Promise<Uint8Array | null> => {
+    const clean = normalizedPath.replace(/^\/+/, "");
+    if (!clean || clean === "home/user" || clean.startsWith("home/user/")) {
+      return null;
+    }
+
+    // 1. Static HTTP asset serving in Vite dev / static docs/demo build
+    if (
+      typeof window !== "undefined" &&
+      typeof fetch === "function" &&
+      window.location?.protocol?.startsWith("http")
+    ) {
+      try {
+        const absPath = `/${clean}`;
+        const slashIdx = absPath.lastIndexOf("/");
+        const parentDir = slashIdx <= 0 ? "/" : absPath.slice(0, slashIdx);
+        const fileName = absPath.slice(slashIdx + 1);
+        const idx = await getStaticDirIndex();
+        const dirEntries = idx[parentDir];
+        const listedInIndex = Boolean(
+          dirEntries?.some((ent) => ent.fileType === 0 && ent.name === fileName),
+        );
+        if (listedInIndex) {
+          const res = await fetch(new URL(`__fs/${clean}`, resolveDemoBaseUrl()));
+          if (res.ok) {
+            return new Uint8Array(await res.arrayBuffer());
+          }
+        }
+      } catch {
+        // try remaining fallbacks
+      }
+    }
+
+    // 2. Host Domicile files fallback (when toggling engine:web inside Domicile Linux)
+    if (hostFallbackFiles) {
+      try {
+        const hostRes = await hostFallbackFiles.read(normalizedPath);
+        const bytes = hostRes.match({ Ok: (b) => b, Err: () => null });
+        if (bytes && bytes.length > 0) return bytes;
+      } catch {
+        // ignore
+      }
+    }
+
+    // 3. Direct data/files disk fallback in Bun / Node test runner
+    if (
+      typeof process !== "undefined" &&
+      Boolean(process.versions?.bun || process.versions?.node)
+    ) {
+      try {
+        const fsMod = await import("node:fs");
+        const pathMod = await import("node:path");
+        const diskPath = pathMod.resolve(process.cwd(), "data/files", clean);
+        if (fsMod.existsSync(diskPath) && fsMod.statSync(diskPath).isFile()) {
+          return new Uint8Array(fsMod.readFileSync(diskPath));
+        }
+      } catch {
+        // ignore
+      }
+    }
+
+    // 4. Compact Piloti fallback assets
+    const pilotiInline = PILOTI_VIRTUAL_ICONS[normalizedPath];
+    if (pilotiInline !== undefined) {
+      return new TextEncoder().encode(pilotiInline);
+    }
+
+    return null;
+  })();
+
+  cachedStaticFileBytes.set(normalizedPath, task);
+  return task;
+}
+
+function isVfsPath(rawPath: string): boolean {
+  if (!rawPath.startsWith("/")) return true;
+  return (
+    rawPath === "/home/user" ||
+    rawPath.startsWith("/home/user/") ||
+    rawPath === "/media/user" ||
+    rawPath.startsWith("/media/user/")
+  );
+}
+
+async function readStaticDirectory(
+  dirPath: string,
+): Promise<StaticDirEntry[] | null> {
+  const normalized = dirPath.replace(/\/+$/, "") || "/";
+  if (normalized === "/home/user" || normalized.startsWith("/home/user/")) {
+    return null;
+  }
+  const idx = await getStaticDirIndex();
+  const entries = idx[normalized];
+  if (!entries) return null;
+  const mapped: StaticDirEntry[] = entries.map((e) => ({
+    name: e.name,
+    file_type: e.fileType === 1 ? "directory" : "file",
   }));
+  if (normalized === "/" && !mapped.some((e) => e.name === "home")) {
+    mapped.unshift({ name: "home", file_type: "directory" });
+  }
+  if (normalized === "/home" && !mapped.some((e) => e.name === "user")) {
+    mapped.unshift({ name: "user", file_type: "directory" });
+  }
+  return mapped;
 }
 
 let spawnCounter = 1;
 
-function encodeUtf8Base64(text: string): string {
-  const bytes = new TextEncoder().encode(text);
+function encodeBytesBase64(bytes: Uint8Array): string {
   let binary = "";
-  for (const b of bytes) {
-    binary += String.fromCharCode(b);
+  const chunkSize = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
   }
   return btoa(binary);
+}
+
+function encodeUtf8Base64(text: string): string {
+  return encodeBytesBase64(new TextEncoder().encode(text));
 }
 
 function decodeUtf8Base64(b64: string): string {
@@ -172,9 +199,10 @@ function decodeUtf8Base64(b64: string): string {
 
 /**
  * Creates an interactive Domicile instance backed by FakeDomicileHost
- * for developing and running Piloti inside any web browser.
+ * for developing and running Piloti inside any web browser (or toggling
+ * to `engine:web` inside Domicile Linux for testing).
  */
-export function createBrowserDomicile(): Domicile {
+export function createBrowserDomicile(hostFallbackFiles?: Domicile["files"]): Domicile {
   const fake = new FakeDomicileHost();
   window.__PILOTI_BROWSER_HOST__ = fake;
 
@@ -288,11 +316,9 @@ export function createBrowserDomicile(): Domicile {
               return;
             }
             if (req.call === "stat" && req.path) {
-              const vfsPath = normalizeVfsPath(req.path);
-              const vfsEntry = vfsPath.startsWith("/home/user")
-                ? getVfsEntry(vfsPath)
-                : undefined;
-              const virtualContent = ALL_VIRTUAL_FILES[req.path];
+              const rawPath = req.path;
+              const vfsPath = normalizeVfsPath(rawPath);
+              const vfsEntry = isVfsPath(rawPath) ? getVfsEntry(vfsPath) : undefined;
               if (vfsEntry) {
                 dispatchSystemLine({
                   id,
@@ -304,17 +330,9 @@ export function createBrowserDomicile(): Domicile {
                     modified_ms: vfsEntry.updatedAt,
                   },
                 });
-              } else if (virtualContent !== undefined) {
-                dispatchSystemLine({
-                  id,
-                  type: "system_reply",
-                  reply: {
-                    kind: "stat",
-                    file_type: "file",
-                    size: virtualContent.length,
-                  },
-                });
-              } else {
+                return;
+              }
+              if (isVfsPath(rawPath)) {
                 dispatchSystemLine({
                   id,
                   type: "system_reply",
@@ -323,58 +341,99 @@ export function createBrowserDomicile(): Domicile {
                     error: { kind: "not_found", message: "No such file" },
                   },
                 });
+                return;
               }
-              return;
-            }
-            if (req.call === "read_dir" && req.path) {
-              const vfsPath = normalizeVfsPath(req.path);
-              const vfsEntries =
-                vfsPath.startsWith("/home/user") ? listVfsDir(vfsPath) : [];
-              const virtualEntries = readVirtualDirectory(req.path);
-              const entries =
-                vfsEntries.length > 0
-                  ? vfsEntries.map((item) => ({
-                    name: item.name,
-                    file_type: item.kind,
-                  }))
-                  : virtualEntries;
-              if (entries) {
-                dispatchSystemLine({
-                  id,
-                  type: "system_reply",
-                  reply: { kind: "entries", entries },
-                });
-              } else {
+              const cleanStatic = rawPath.replace(/\/+$/, "") || "/";
+              void (async () => {
+                const dirHit = await readStaticDirectory(cleanStatic);
+                if (dirHit) {
+                  dispatchSystemLine({
+                    id,
+                    type: "system_reply",
+                    reply: { kind: "stat", file_type: "directory", size: 0 },
+                  });
+                  return;
+                }
+                const bytes = await readStaticFileBytes(cleanStatic, hostFallbackFiles);
+                if (bytes !== null) {
+                  dispatchSystemLine({
+                    id,
+                    type: "system_reply",
+                    reply: { kind: "stat", file_type: "file", size: bytes.length },
+                  });
+                  return;
+                }
                 dispatchSystemLine({
                   id,
                   type: "system_reply",
                   reply: {
                     kind: "failed",
-                    error: { kind: "not_found", message: "No such directory" },
+                    error: { kind: "not_found", message: "No such file" },
                   },
                 });
+              })();
+              return;
+            }
+            if (req.call === "read_dir" && req.path) {
+              const rawPath = req.path;
+              const vfsPath = normalizeVfsPath(rawPath);
+              const vfsEntries = isVfsPath(rawPath) ? listVfsDir(vfsPath) : [];
+              if (vfsEntries.length > 0) {
+                dispatchSystemLine({
+                  id,
+                  type: "system_reply",
+                  reply: {
+                    kind: "entries",
+                    entries: vfsEntries.map((item) => ({
+                      name: item.name,
+                      file_type: item.kind,
+                    })),
+                  },
+                });
+                return;
               }
+              void readStaticDirectory(rawPath).then((staticEntries) => {
+                if (staticEntries) {
+                  dispatchSystemLine({
+                    id,
+                    type: "system_reply",
+                    reply: { kind: "entries", entries: staticEntries },
+                  });
+                } else if (isVfsPath(rawPath) && getVfsEntry(vfsPath)?.kind === "directory") {
+                  dispatchSystemLine({
+                    id,
+                    type: "system_reply",
+                    reply: { kind: "entries", entries: [] },
+                  });
+                } else {
+                  dispatchSystemLine({
+                    id,
+                    type: "system_reply",
+                    reply: {
+                      kind: "failed",
+                      error: { kind: "not_found", message: "No such directory" },
+                    },
+                  });
+                }
+              });
               return;
             }
             if (req.call === "read_file" && req.path) {
-              const vfsPath = normalizeVfsPath(req.path);
-              const vfsEntry = vfsPath.startsWith("/home/user")
-                ? getVfsEntry(vfsPath)
-                : undefined;
-              const content =
-                vfsEntry?.kind === "file"
-                  ? (vfsEntry.content ?? "")
-                  : ALL_VIRTUAL_FILES[req.path];
-              if (content !== undefined) {
+              const rawPath = req.path;
+              const vfsPath = normalizeVfsPath(rawPath);
+              const vfsEntry = isVfsPath(rawPath) ? getVfsEntry(vfsPath) : undefined;
+              if (vfsEntry?.kind === "file") {
                 dispatchSystemLine({
                   id,
                   type: "system_reply",
                   reply: {
                     kind: "read",
-                    data: encodeUtf8Base64(content),
+                    data: encodeUtf8Base64(vfsEntry.content ?? ""),
                   },
                 });
-              } else {
+                return;
+              }
+              if (isVfsPath(rawPath)) {
                 dispatchSystemLine({
                   id,
                   type: "system_reply",
@@ -383,7 +442,42 @@ export function createBrowserDomicile(): Domicile {
                     error: { kind: "not_found", message: "No such file" },
                   },
                 });
+                return;
               }
+              const cleanStatic = rawPath.replace(/\/+$/, "") || "/";
+              void readStaticFileBytes(cleanStatic, hostFallbackFiles).then((bytes) => {
+                if (bytes !== null) {
+                  dispatchSystemLine({
+                    id,
+                    type: "system_reply",
+                    reply: {
+                      kind: "read",
+                      data: encodeBytesBase64(bytes),
+                    },
+                  });
+                  return;
+                }
+                const fallbackVfs = getVfsEntry(vfsPath);
+                if (fallbackVfs?.kind === "file") {
+                  dispatchSystemLine({
+                    id,
+                    type: "system_reply",
+                    reply: {
+                      kind: "read",
+                      data: encodeUtf8Base64(fallbackVfs.content ?? ""),
+                    },
+                  });
+                  return;
+                }
+                dispatchSystemLine({
+                  id,
+                  type: "system_reply",
+                  reply: {
+                    kind: "failed",
+                    error: { kind: "not_found", message: "No such file" },
+                  },
+                });
+              });
               return;
             }
             if (
@@ -465,7 +559,7 @@ export function createBrowserDomicile(): Domicile {
           const id = `wayland-${cmd}-${spawnCounter++}`;
           fake.appear(id, {
             title: isGnomeCsd
-              ? `${cmd === "nautilus" ? "Files" : cmd === "gnome-control-center" ? "System Settings" : cmd} — GNOME (CSD / Libadwaita)`
+              ? `${cmd === "nautilus" ? "Folders" : cmd === "gnome-control-center" ? "System Settings" : cmd} — GNOME (CSD / Libadwaita)`
               : `${cmd} — Wayland Client (${effectiveArgs.join(" ")})`,
             desktopId: cmd,
             width: 760,

@@ -1,0 +1,31 @@
+Source: piloti-desktop
+Section: x11
+Priority: optional
+Maintainer: Piloti Desktop Maintainers <maintainers@piloti-desktop.org>
+Build-Depends: debhelper-compat (= 13), nodejs
+Standards-Version: 4.7.0
+Rules-Requires-Root: no
+Homepage: https://github.com/yanbab/piloti-desktop
+
+Package: piloti-desktop
+Architecture: all
+Depends: domicile, ${misc:Depends}
+Recommends:
+ xwayland-satellite,
+ papirus-icon-theme,
+ adwaita-icon-theme,
+ hicolor-icon-theme,
+ xdg-utils,
+ dbus-user-session
+Suggests:
+ gnome-control-center,
+ flatpak,
+ network-manager,
+ pipewire
+Provides: wayland-session
+Description: Hybrid Web/Linux Wayland desktop shell built on Domicile
+ Piloti Desktop is a Wayland desktop shell built on the Domicile compositor.
+ It provides a unified menu bar, magnifying dock, spatial desktop icons,
+ launcher, overview, control panel, built-in desktop applications, custom
+ Piloti icon theme (with Lottie animated icons), CLI control utilities,
+ and a Wayland session entry for display managers (GDM, SDDM, LightDM).

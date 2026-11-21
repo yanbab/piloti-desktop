@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=Desktop Shell
+Comment=Desktop shell with VFS commands
+Exec=piloti-shell
+Icon=utilities-terminal
+Categories=System;TerminalEmulator;Development;

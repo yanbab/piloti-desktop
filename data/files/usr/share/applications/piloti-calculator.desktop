@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Calculator
+Comment=Basic & Scientific Calculator
+Exec=piloti-calculator
+Icon=piloti-calculator
+Categories=Utility;Calculator;
+OnlyShowIn=Piloti;

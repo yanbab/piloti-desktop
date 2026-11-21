@@ -51,6 +51,23 @@ bun run build:shell
 domicile ./dist/shell.js
 ```
 
+### Debian Package (`.deb`)
+
+Build a Debian binary package (`dist/piloti-desktop_<version>-1_all.deb`) from `data/files/` and `dist/shell.js`:
+
+```bash
+# Works on both Linux (uses dpkg-deb when available) and macOS (pure Node packager)
+npm run build:deb
+
+# Or build natively on Debian with debhelper
+dpkg-buildpackage -us -uc -b
+
+# Install on Debian / Ubuntu
+sudo apt install ./dist/piloti-desktop_0.9.0-1_all.deb
+```
+
+This installs `/usr/bin/piloti`, `/usr/bin/piloti-session`, `/usr/bin/piloti-*` app commands, `/usr/share/wayland-sessions/piloti.desktop`, `/usr/share/applications/piloti-*.desktop`, `/usr/share/icons/Piloti/`, and `/usr/share/piloti-desktop/shell.js`.
+
 ### Tests, Typecheck & Build
 
 ```bash

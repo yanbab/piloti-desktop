@@ -1,0 +1,4 @@
+#!/bin/sh
+# piloti-image-viewer — Open Piloti Image Viewer
+set -eu
+exec /usr/bin/piloti open image-viewer "$@"

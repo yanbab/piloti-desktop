@@ -3,7 +3,7 @@ import {
   buildXdgIconThemeIndex,
   loadXdgIconDataUrl,
   lookupXdgIconPath,
-} from "@/lib/xdg-icon-theme";
+} from "@/lib/xdg/xdg-icon-theme";
 import { PILOTI_VIRTUAL_ICONS } from "@/lib/piloti-virtual-icons";
 import { PAPIRUS_VIRTUAL_ICONS } from "@/lib/papirus-virtual-icons";
 
@@ -13,13 +13,13 @@ import {
   buildAutostartOverrideDesktopContent,
   mergeAutostartEntries,
   parseAutostartDesktopFile,
-} from "@/lib/xdg-autostart";
+} from "@/lib/xdg/xdg-autostart";
 import {
   parseRecentlyUsedXbel,
   serializeRecentlyUsedXbel,
   upsertRecentXbelItem,
-} from "@/lib/xdg-recents";
-import { parseGlobs2, sniffMimeType } from "@/lib/xdg-mimeapps";
+} from "@/lib/xdg/xdg-recents";
+import { parseGlobs2, sniffMimeType } from "@/lib/xdg/xdg-mimeapps";
 
 describe("XDG specifications (Autostart, Recents XBEL, Globs2/Magic)", () => {
   it("parses and merges XDG autostart entries with user overrides", () => {
@@ -94,7 +94,7 @@ describe("XDG specifications (Autostart, Recents XBEL, Globs2/Magic)", () => {
         vfs[filePath] ? mkOk(vfs[filePath]) : mkErr(),
     };
 
-    const index = await buildXdgIconThemeIndex(reader as never, ["Piloti", "Papirus", "hicolor"]);
+    const index = await buildXdgIconThemeIndex(reader as never, ["Piloti", "Papirus", "Adwaita", "hicolor"]);
     const folderPath = lookupXdgIconPath(index, "folder", 64, 1);
     expect(folderPath).toBe("/usr/share/icons/Piloti/animated/places/folder.json");
     expect(lookupXdgIconPath(index, "folder-open", 64, 1)).toBe(
@@ -104,20 +104,35 @@ describe("XDG specifications (Autostart, Recents XBEL, Globs2/Magic)", () => {
       "/usr/share/icons/Piloti/animated/mimetypes/application-x-zerosize.json"
     );
     expect(lookupXdgIconPath(index, "org.gnome.Loupe", 64, 1)).toBe(
-      "/usr/share/icons/Piloti/animated/apps/org.gnome.Loupe.json"
+      "/usr/share/icons/Papirus/64x64/apps/org.gnome.Loupe.svg"
+    );
+    expect(lookupXdgIconPath(index, "piloti-console", 64, 1)).toBe(
+      "/usr/share/icons/Papirus/64x64/apps/piloti-console.svg"
+    );
+    expect(lookupXdgIconPath(index, "preferences-desktop", 64, 1)).toBe(
+      "/usr/share/icons/Papirus/64x64/apps/preferences-desktop.svg"
     );
     const dataUrl = await loadXdgIconDataUrl(reader as never, folderPath!);
     expect(dataUrl?.startsWith("data:application/json;base64,")).toBe(true);
 
-    const papirusOnlyIndex = await buildXdgIconThemeIndex(reader as never, ["Papirus", "hicolor"]);
+    const papirusOnlyIndex = await buildXdgIconThemeIndex(reader as never, ["Papirus", "Adwaita", "hicolor"]);
     expect(lookupXdgIconPath(papirusOnlyIndex, "org.gnome.Loupe", 64, 1)).toBe(
       "/usr/share/icons/Papirus/64x64/apps/org.gnome.Loupe.svg"
+    );
+    expect(lookupXdgIconPath(papirusOnlyIndex, "piloti-console", 64, 1)).toBe(
+      "/usr/share/icons/Papirus/64x64/apps/piloti-console.svg"
+    );
+    expect(lookupXdgIconPath(papirusOnlyIndex, "preferences-desktop", 64, 1)).toBe(
+      "/usr/share/icons/Papirus/64x64/apps/preferences-desktop.svg"
     );
     expect(
       PAPIRUS_VIRTUAL_ICONS["/usr/share/icons/Papirus/64x64/mimetypes/application-x-zerosize.svg"]
     ).toContain("<svg");
     expect(
       PILOTI_VIRTUAL_ICONS["/usr/share/icons/Piloti/scalable/mimetypes/application-x-zerosize.svg"]
+    ).toContain("<svg");
+    expect(
+      PAPIRUS_VIRTUAL_ICONS["/usr/share/icons/Papirus/64x64/devices/drive-removable-media-usb.svg"]
     ).toContain("<svg");
   });
 });

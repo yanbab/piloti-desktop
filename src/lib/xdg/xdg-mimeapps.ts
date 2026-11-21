@@ -1,6 +1,6 @@
 import type { Domicile } from "@domicile-desktop/sdk/desktop/desktop";
-import { readFsTextFile, writeFsTextFile } from "./fs-bridge";
-import { DEFAULT_MIMEAPPS_INI, WEB_VFS_HOME } from "./web-vfs";
+import { readFsTextFile, writeFsTextFile } from "../fs-bridge";
+import { DEFAULT_MIMEAPPS_INI, WEB_VFS_HOME } from "../web-vfs";
 
 export { DEFAULT_MIMEAPPS_INI };
 export const MIMEAPPS_PATH = `${WEB_VFS_HOME}/.config/mimeapps.list`;
@@ -17,13 +17,13 @@ export interface MimeAppOption {
 }
 
 const KNOWN_MIME_APPS: Record<string, { appId: string; label: string }> = {
-  "nautilus.desktop": { appId: "nautilus", label: "Files" },
-  "org.gnome.Nautilus.desktop": { appId: "nautilus", label: "Files" },
+  "nautilus.desktop": { appId: "nautilus", label: "Folders" },
+  "org.gnome.Nautilus.desktop": { appId: "nautilus", label: "Folders" },
   "text-editor.desktop": { appId: "text-editor", label: "Notepad" },
-  "terminal.desktop": { appId: "terminal", label: "Web Terminal" },
+  "terminal.desktop": { appId: "terminal", label: "Desktop Shell" },
   "image-viewer.desktop": { appId: "image-viewer", label: "Image Viewer" },
   "browser.desktop": { appId: "browser", label: "Web Browser" },
-  "console.desktop": { appId: "console", label: "DevTools" },
+  "console.desktop": { appId: "console", label: "Desktop Console" },
 };
 
 export function inferMimeType(

@@ -1,0 +1,13 @@
+#!/usr/bin/make -f
+
+%:
+	dh $@
+
+override_dh_auto_build:
+	if [ ! -f dist/shell.js ]; then npm run build:shell; fi
+
+override_dh_auto_install:
+	node scripts/build-deb.mjs --stage-only --stage-dir debian/piloti-desktop --skip-build
+
+override_dh_auto_test:
+	@true

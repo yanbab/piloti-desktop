@@ -9,7 +9,7 @@ import {
   loadXdgSession,
   saveXdgSession,
   serializeWindowToXdgSession,
-} from "@/lib/xdg-session-management";
+} from "@/lib/xdg/xdg-session-management";
 
 function installMemoryLocalStorage() {
   const store = new Map<string, string>();
@@ -37,7 +37,7 @@ describe("Functional: open 3 apps, move/resize, reload desktop & restore state",
   });
 
   test("restores 3 open apps with moved positions, resized bounds, and payloads after desktop reload", () => {
-    // 1. Initial boot & open 3 apps: Files, Notepad (with file payload), Web Terminal
+    // 1. Initial boot & open 3 apps: Files, Notepad (with file payload), Desktop Shell
     const initialSettings = resolveInitialSettings(null, true);
     let savedBounds = initialSettings.savedWindowBounds;
 
@@ -67,7 +67,7 @@ describe("Functional: open 3 apps, move/resize, reload desktop & restore state",
       {
         id: "terminal-1",
         appId: "terminal",
-        title: "Web Terminal",
+        title: "Desktop Shell",
         workspace: 2,
         position: { x: 320, y: 180 },
         size: { width: 720, height: 460 },

@@ -8,6 +8,7 @@ import {
   BriefcaseIcon,
   ClockIcon,
   DownloadIcon,
+  EjectIcon,
   FileTextIcon,
   FolderIcon,
   HeartIcon,
@@ -21,10 +22,18 @@ import {
   SearchIcon,
   TagIcon,
   Trash2Icon,
+  UsbIcon,
   VideoIcon,
   ZoomInIcon,
   ZoomOutIcon,
 } from "lucide-react";
+import {
+  isSimulatedUsbPath,
+  SIMULATED_USB_LABEL,
+  SIMULATED_USB_PATH,
+  unmountSimulatedUsb,
+  useSimulatedUsbMounted,
+} from "@/lib/usb-drive";
 import { AdwSplitView, type AdwSplitSidebarItem } from "@/components/ui/adw-split-view";
 import { IconGrid } from "@/components/ui/icon-grid";
 import { AppSquircleIcon } from "@/components/shell/AppSymbol";
@@ -83,6 +92,7 @@ import {
   getVfsEmblems,
   getVfsEntry,
   importExternalFilesToVfs,
+  incrementVfsAccessCount,
   isImageVfsFile,
   isTextEditableVfsFile,
   isZipVfsFile,
@@ -231,6 +241,7 @@ function vfsEntryToGridItem(
     iconCandidates: visual.iconCandidates,
     gradient: visual.gradient,
     isEmpty,
+    accessCount: entry.kind === "file" ? (entry.accessCount ?? 0) : undefined,
     iconUrl: visual.iconCandidates.map((c) => getAppIconUrl(c)).find(Boolean),
   };
 }
@@ -247,6 +258,7 @@ export function FilesApp({
   const domicile = useDomicile();
   const { installedXdgApps, getAppIconUrl, ensureWaylandIcons } = useApps();
   const { isBrowserRuntime, settings } = useSettings();
+  const usbMounted = useSimulatedUsbMounted();
   const {
     windows,
     focusedWindowId,
@@ -411,12 +423,30 @@ export function FilesApp({
     canGoUp: boolean;
     handleGoUp: () => void;
     handleNewFolder: () => void;
+    handleNewTextFile: () => void;
     stepZoom: (delta: number) => void;
+    openSelected: () => void;
+    cutSelected: () => void;
+    copySelected: () => void;
+    pasteClipboard: () => void;
+    duplicateSelected: () => void;
+    compressSelected: () => void;
+    renameSelected: () => void;
+    trashSelected: () => void;
   }>({
     canGoUp: false,
-    handleGoUp: () => {},
-    handleNewFolder: () => {},
-    stepZoom: () => {},
+    handleGoUp: () => { },
+    handleNewFolder: () => { },
+    handleNewTextFile: () => { },
+    stepZoom: () => { },
+    openSelected: () => { },
+    cutSelected: () => { },
+    copySelected: () => { },
+    pasteClipboard: () => { },
+    duplicateSelected: () => { },
+    compressSelected: () => { },
+    renameSelected: () => { },
+    trashSelected: () => { },
   });
 
   React.useEffect(() => {
@@ -497,13 +527,28 @@ export function FilesApp({
         e.preventDefault();
         handleDuplicateItems(selectedIds.map((p) => ({ id: p, path: p })));
       } else if (
-        e.key === "F2" &&
+        ((e.ctrlKey && !e.altKey && !e.shiftKey && e.key === "Enter") ||
+          e.key === "F2") &&
         selectedIds.length === 1 &&
         !isTrashView &&
         !isVirtualView
       ) {
         e.preventDefault();
         setRenamingId(selectedIds[0]);
+      } else if (
+        e.key === "Enter" &&
+        !e.ctrlKey &&
+        !e.metaKey &&
+        !e.altKey &&
+        !e.shiftKey &&
+        selectedIds.length === 1 &&
+        !(e.target as HTMLElement | null)?.closest('[role="grid"]')
+      ) {
+        const target = items.find((i) => i.id === selectedIds[0]);
+        if (target) {
+          e.preventDefault();
+          handleActivateItem(target);
+        }
       } else if (
         (e.key === "Delete" || e.key === "Backspace") &&
         selectedIds.length > 0
@@ -799,14 +844,40 @@ export function FilesApp({
     vfsEntries,
   ]);
 
-  const activePlace = XDG_PLACES.find((p) => p.path === currentPath);
+  React.useEffect(() => {
+    if (!usbMounted && isSimulatedUsbPath(currentPath)) {
+      setCurrentPath(WEB_VFS_HOME);
+      setSelectedIds([]);
+    }
+  }, [currentPath, usbMounted]);
+
+  const placesList = React.useMemo<XdgPlaceItem[]>(
+    () =>
+      usbMounted
+        ? [
+          ...XDG_PLACES,
+          {
+            id: "usb-drive",
+            label: SIMULATED_USB_LABEL,
+            path: SIMULATED_USB_PATH,
+            icon: <UsbIcon className="size-4" />,
+          },
+        ]
+        : [...XDG_PLACES],
+    [usbMounted]
+  );
+
+  const activePlace = placesList.find((p) => p.path === currentPath);
   const activeSidebarPath = React.useMemo(() => {
-    const exact = XDG_PLACES.find((p) => p.path === currentPath);
+    const exact = placesList.find((p) => p.path === currentPath);
     if (exact) return exact.path;
+    if (isSimulatedUsbPath(currentPath) && usbMounted) {
+      return SIMULATED_USB_PATH;
+    }
     if (!currentPath.startsWith(`${WEB_VFS_HOME}/`)) return "";
     let bestPath = WEB_VFS_HOME;
-    for (const place of XDG_PLACES) {
-      if (place.path.startsWith("piloti://")) continue;
+    for (const place of placesList) {
+      if (place.path.startsWith("piloti://") || isSimulatedUsbPath(place.path)) continue;
       if (
         (currentPath === place.path ||
           currentPath.startsWith(`${place.path}/`)) &&
@@ -816,23 +887,24 @@ export function FilesApp({
       }
     }
     return bestPath;
-  }, [currentPath]);
+  }, [currentPath, placesList, usbMounted]);
   const currentTitle =
     activePlace?.label ??
-    (currentPath.split("/").filter(Boolean).pop() || "Files");
+    (currentPath.split("/").filter(Boolean).pop() || _("Folders"));
 
   const canGoUp =
     !isTrashView &&
     !isVirtualView &&
-    currentPath !== WEB_VFS_HOME &&
-    currentPath.startsWith(`${WEB_VFS_HOME}/`);
+    ((currentPath !== WEB_VFS_HOME &&
+      currentPath.startsWith(`${WEB_VFS_HOME}/`)) ||
+      currentPath.startsWith(`${SIMULATED_USB_PATH}/`));
 
   const {
     onSidebarKeyDown,
     onSidebarKeyUp,
     onContentKeyDown,
   } = useSidebarKeyboardNav({
-    itemIds: XDG_PLACES.map((p) => p.path),
+    itemIds: placesList.map((p) => p.path),
     activeId: activeSidebarPath,
     onActivate: (path) => {
       setCurrentPath(path);
@@ -844,23 +916,34 @@ export function FilesApp({
 
   const sidebarItems = React.useMemo<AdwSplitSidebarItem[]>(
     () =>
-      XDG_PLACES.map((place) => ({
-        id: place.path,
-        label: _(place.label),
-        icon: place.icon,
-        selected: activeSidebarPath === place.path,
-        dropPath:
-          place.path === WEB_VFS_FAVORITES_URI ||
-          place.path === WEB_VFS_RECENTS_URI
-            ? undefined
-            : place.path,
-        separatorAfter: place.id === "favorites",
-        onClick: () => {
-          setCurrentPath(place.path);
-          setSelectedIds([]);
-        },
-      })),
-    [activeSidebarPath]
+      placesList.map((place) => {
+        const isUsb = place.id === "usb-drive";
+        return {
+          id: place.path,
+          label: isUsb ? SIMULATED_USB_LABEL : _(place.label),
+          icon: place.icon,
+          selected: activeSidebarPath === place.path,
+          dropPath:
+            place.path === WEB_VFS_FAVORITES_URI ||
+              place.path === WEB_VFS_RECENTS_URI
+              ? undefined
+              : place.path,
+          separatorAfter: place.id === "favorites",
+          pinnedBottom: isUsb,
+          trailingAction: isUsb
+            ? {
+              icon: <EjectIcon className="size-3.5" />,
+              label: _("Eject USB Drive"),
+              onClick: unmountSimulatedUsb,
+            }
+            : undefined,
+          onClick: () => {
+            setCurrentPath(place.path);
+            setSelectedIds([]);
+          },
+        };
+      }),
+    [activeSidebarPath, placesList]
   );
 
   const handleGoUp = () => {
@@ -944,6 +1027,7 @@ export function FilesApp({
     }
     const entry = getVfsEntry(item.path);
     if (entry && entry.kind === "file") {
+      incrementVfsAccessCount(entry.path);
       if (isImageVfsFile(entry.name, entry.content)) {
         launchApp("image-viewer", { payload: entry.path });
         return;
@@ -1002,6 +1086,11 @@ export function FilesApp({
     if (movedIds.size > 0) {
       reloadDir();
       setSelectedIds((prev) => prev.filter((id) => !movedIds.has(id)));
+      window.dispatchEvent(
+        new CustomEvent("piloti:folder-drop-anim", {
+          detail: { path: destPath },
+        }),
+      );
     }
   };
 
@@ -1024,16 +1113,79 @@ export function FilesApp({
     }
   };
 
+  const selectedItems = React.useMemo(
+    () => items.filter((i) => selectedIds.includes(i.id)),
+    [items, selectedIds]
+  );
+
   latestActionsRef.current = {
     canGoUp,
     handleGoUp,
     handleNewFolder,
+    handleNewTextFile,
     stepZoom,
+    openSelected: () => {
+      if (selectedItems.length === 1) {
+        handleActivateItem(selectedItems[0]);
+      }
+    },
+    cutSelected: () => {
+      if (selectedItems.length > 0 && !isTrashView && !isVirtualView) {
+        setVfsClipboard({ mode: "cut", paths: selectedItems.map((i) => i.path) });
+      }
+    },
+    copySelected: () => {
+      if (selectedItems.length > 0 && !isTrashView) {
+        setVfsClipboard({ mode: "copy", paths: selectedItems.map((i) => i.path) });
+      }
+    },
+    pasteClipboard: () => handlePasteItems(),
+    duplicateSelected: () => {
+      if (selectedItems.length > 0 && !isTrashView && !isVirtualView) {
+        handleDuplicateItems(selectedItems);
+      }
+    },
+    compressSelected: () => {
+      if (
+        isBrowserRuntime &&
+        selectedItems.length > 0 &&
+        !isTrashView &&
+        !isVirtualView
+      ) {
+        void compressVfsEntries(selectedItems.map((i) => i.path)).then((created) => {
+          if (created) reloadDir();
+        });
+      }
+    },
+    renameSelected: () => {
+      if (selectedItems.length === 1 && !isTrashView && !isVirtualView) {
+        setRenamingId(selectedItems[0].id);
+      }
+    },
+    trashSelected: () => {
+      if (selectedItems.length > 0) {
+        handleTrashItems(selectedItems);
+      }
+    },
   };
 
   React.useEffect(() => {
     if (!windowId) return;
+    const hasSel = selectedItems.length > 0;
+    const hasSingleSel = selectedItems.length === 1;
+    const canModifyDir = !isTrashView && !isVirtualView;
+    const hasClip = Boolean(clipboard && clipboard.paths.length > 0);
     publishWindowMenuState(windowId, {
+      "files:new-folder": { disabled: !canModifyDir },
+      "files:new-text-file": { disabled: !canModifyDir },
+      "files:open": { disabled: !hasSingleSel },
+      "files:cut": { disabled: !hasSel || !canModifyDir },
+      "files:copy": { disabled: !hasSel || isTrashView },
+      "files:paste": { disabled: !hasClip || !canModifyDir },
+      "files:duplicate": { disabled: !hasSel || !canModifyDir },
+      "files:compress": { disabled: !isBrowserRuntime || !hasSel || !canModifyDir },
+      "files:rename": { disabled: !hasSingleSel || !canModifyDir },
+      "files:trash": { disabled: !hasSel },
       "files:go-up": { disabled: !canGoUp },
       "files:empty-trash": { disabled: !isTrashView || items.length === 0 },
       "files:view-grid": { checked: viewMode === "grid" },
@@ -1046,10 +1198,14 @@ export function FilesApp({
   }, [
     activeZoomIndex,
     canGoUp,
+    clipboard,
     infoPaneOpen,
+    isBrowserRuntime,
     isTrashView,
+    isVirtualView,
     items.length,
     maxZoomIndex,
+    selectedItems.length,
     showHidden,
     viewMode,
     windowId,
@@ -1064,6 +1220,36 @@ export function FilesApp({
       if (!detail?.actionId) return;
       if (detail.windowId && detail.windowId !== windowId) return;
       switch (detail.actionId) {
+        case "files:new-folder":
+          latestActionsRef.current.handleNewFolder();
+          break;
+        case "files:new-text-file":
+          latestActionsRef.current.handleNewTextFile();
+          break;
+        case "files:open":
+          latestActionsRef.current.openSelected();
+          break;
+        case "files:cut":
+          latestActionsRef.current.cutSelected();
+          break;
+        case "files:copy":
+          latestActionsRef.current.copySelected();
+          break;
+        case "files:paste":
+          latestActionsRef.current.pasteClipboard();
+          break;
+        case "files:duplicate":
+          latestActionsRef.current.duplicateSelected();
+          break;
+        case "files:compress":
+          latestActionsRef.current.compressSelected();
+          break;
+        case "files:rename":
+          latestActionsRef.current.renameSelected();
+          break;
+        case "files:trash":
+          latestActionsRef.current.trashSelected();
+          break;
         case "files:go-up":
           if (latestActionsRef.current.canGoUp) {
             latestActionsRef.current.handleGoUp();
@@ -1122,8 +1308,6 @@ export function FilesApp({
     windowId,
   ]);
 
-  const selectedItems = items.filter((i) => selectedIds.includes(i.id));
-
   const bgMenuPortal = bgMenu ? (
     <div
       className="fixed inset-0 z-[500]"
@@ -1171,7 +1355,7 @@ export function FilesApp({
         >
           {_("New Text File")}
         </button>
-        {clipboard && clipboard.paths.length > 0 && (
+        {clipboard && clipboard.paths.length > 0 ? (
           <button
             type="button"
             role="menuitem"
@@ -1182,6 +1366,18 @@ export function FilesApp({
             className={cn(
               MENU_ITEM_CLASS,
               "w-full text-left hover:bg-adw-menu-highlight"
+            )}
+          >
+            {_("Paste")}
+          </button>
+        ) : (
+          <button
+            type="button"
+            role="menuitem"
+            disabled
+            className={cn(
+              MENU_ITEM_CLASS,
+              "w-full text-left disabled:pointer-events-none disabled:opacity-40"
             )}
           >
             {_("Paste")}
@@ -1208,141 +1404,148 @@ export function FilesApp({
 
   const infoPaneNode = infoPaneOpen
     ? (() => {
-        const inspectedItem =
-          selectedIds.length > 0
-            ? items.find((i) => i.id === selectedIds[0])
-            : null;
-        const inspectedVfs = inspectedItem
-          ? getVfsEntry(inspectedItem.path ?? inspectedItem.id)
-          : getVfsEntry(currentPath);
-        const inspectedPath =
-          inspectedItem?.path ??
-          (!isVirtualView && !isTrashView ? currentPath : undefined);
-        const inspectedEmblems = inspectedPath
-          ? getVfsEmblems(inspectedPath)
-          : [];
-        const displayName = inspectedItem?.name ?? _(currentTitle);
-        const displayKind = inspectedItem
-          ? inspectedItem.kind === "directory"
-            ? _("Folder")
-            : inspectedItem.name.includes(".")
-              ? _("%s File", inspectedItem.name.split(".").pop()?.toUpperCase() ?? "")
-              : _("File")
-          : _("Folder");
-        const displaySize = inspectedItem
-          ? inspectedItem.kind === "directory"
-            ? _("%d items", listVfsDir(inspectedItem.path).length)
-            : _("%d bytes", (inspectedVfs?.content ?? "").length)
-          : _("%d items", items.length);
-        const modifiedLabel = inspectedVfs?.updatedAt
-          ? new Date(inspectedVfs.updatedAt).toLocaleString()
-          : "—";
-        const emblemOrder: readonly VfsEmblemId[] = [
-          "favorite",
-          "important",
-          "work",
-          "personal",
-        ];
-        return (
-          <aside
-            aria-label={_("Info Pane")}
-            className="flex w-56 shrink-0 flex-col gap-3 overflow-y-auto border-l border-adw-separator bg-adw-sidebar/70 p-3 text-adw-label"
-          >
-            <div className="flex flex-col items-center gap-2 border-b border-adw-separator pb-3 text-center">
-              <div className="size-16 shrink-0">
-                {!inspectedItem || inspectedItem.kind === "directory" ? (
-                  <DynamicFolderIcon
-                    accentColor={settings.accentColor}
-                    opened={false}
-                    pathOrName={inspectedItem?.path ?? currentPath}
-                    className="size-full"
-                  />
-                ) : (
-                  <DynamicFileIcon
-                    accentColor={settings.accentColor}
-                    name={inspectedItem.name}
-                    iconCandidates={inspectedItem.iconCandidates}
-                    isEmpty={inspectedItem.isEmpty}
-                    className="size-full"
-                  />
-                )}
-              </div>
-              <div className="w-full truncate text-adw-body font-semibold">
-                {displayName}
-              </div>
-              <div className="text-[11px] text-adw-label-secondary">
-                {displayKind}
-              </div>
+      const inspectedItem =
+        selectedIds.length > 0
+          ? items.find((i) => i.id === selectedIds[0])
+          : null;
+      const inspectedVfs = inspectedItem
+        ? getVfsEntry(inspectedItem.path ?? inspectedItem.id)
+        : getVfsEntry(currentPath);
+      const inspectedPath =
+        inspectedItem?.path ??
+        (!isVirtualView && !isTrashView ? currentPath : undefined);
+      const inspectedEmblems = inspectedPath
+        ? getVfsEmblems(inspectedPath)
+        : [];
+      const displayName = inspectedItem?.name ?? _(currentTitle);
+      const displayKind = inspectedItem
+        ? inspectedItem.kind === "directory"
+          ? _("Folder")
+          : inspectedItem.name.includes(".")
+            ? _("%s File", inspectedItem.name.split(".").pop()?.toUpperCase() ?? "")
+            : _("File")
+        : _("Folder");
+      const displaySize = inspectedItem
+        ? inspectedItem.kind === "directory"
+          ? _("%d items", listVfsDir(inspectedItem.path).length)
+          : _("%d bytes", (inspectedVfs?.content ?? "").length)
+        : _("%d items", items.length);
+      const modifiedLabel = inspectedVfs?.updatedAt
+        ? new Date(inspectedVfs.updatedAt).toLocaleString()
+        : "—";
+      const emblemOrder: readonly VfsEmblemId[] = [
+        "favorite",
+        "important",
+        "work",
+        "personal",
+      ];
+      return (
+        <aside
+          aria-label={_("Info Pane")}
+          className="flex w-56 shrink-0 flex-col gap-3 overflow-y-auto border-l border-adw-separator bg-adw-sidebar/70 p-3 text-adw-label"
+        >
+          <div className="flex flex-col items-center gap-2 border-b border-adw-separator pb-3 text-center">
+            <div className="size-16 shrink-0">
+              {!inspectedItem || inspectedItem.kind === "directory" ? (
+                <DynamicFolderIcon
+                  accentColor={settings.accentColor}
+                  opened={false}
+                  pathOrName={inspectedItem?.path ?? currentPath}
+                  className="size-full"
+                />
+              ) : (
+                <DynamicFileIcon
+                  accentColor={settings.accentColor}
+                  name={inspectedItem.name}
+                  iconCandidates={inspectedItem.iconCandidates}
+                  isEmpty={inspectedItem.isEmpty}
+                  className="size-full"
+                />
+              )}
             </div>
-            <dl className="space-y-2 text-[11.5px]">
-              <div>
-                <dt className="text-adw-dim">{_("Size")}</dt>
-                <dd className="font-medium">{displaySize}</dd>
-              </div>
-              <div>
-                <dt className="text-adw-dim">{_("Modified")}</dt>
-                <dd className="font-medium">{modifiedLabel}</dd>
-              </div>
-              <div>
-                <dt className="text-adw-dim">{_("Where")}</dt>
-                <dd className="truncate font-mono text-[11px] text-adw-label-secondary">
-                  {inspectedItem?.path ?? currentPath}
-                </dd>
-              </div>
-              {inspectedPath && !isTrashView && (
+            <div className="w-full truncate text-adw-body font-semibold">
+              {displayName}
+            </div>
+            <div className="text-[11px] text-adw-label-secondary">
+              {displayKind}
+            </div>
+          </div>
+          <dl className="space-y-2 text-[11.5px]">
+            <div>
+              <dt className="text-adw-dim">{_("Size")}</dt>
+              <dd className="font-medium">{displaySize}</dd>
+            </div>
+            <div>
+              <dt className="text-adw-dim">{_("Modified")}</dt>
+              <dd className="font-medium">{modifiedLabel}</dd>
+            </div>
+            <div>
+              <dt className="text-adw-dim">{_("Where")}</dt>
+              <dd className="truncate font-mono text-[11px] text-adw-label-secondary">
+                {inspectedItem?.path ?? currentPath}
+              </dd>
+            </div>
+            {inspectedItem?.kind === "file" &&
+              inspectedItem.accessCount !== undefined && (
                 <div>
-                  <dt className="mb-1 text-adw-dim">{_("Emblems")}</dt>
-                  <dd className="flex flex-wrap gap-1">
-                    {emblemOrder.map((emblem) => {
-                      const meta = VFS_EMBLEM_META[emblem];
-                      const active = inspectedEmblems.includes(emblem);
-                      const Icon =
-                        emblem === "favorite"
-                          ? HeartIcon
-                          : emblem === "important"
-                            ? AlertCircleIcon
-                            : emblem === "work"
-                              ? BriefcaseIcon
-                              : TagIcon;
-                      return (
-                        <button
-                          key={emblem}
-                          type="button"
-                          aria-pressed={active}
-                          onClick={() => {
-                            toggleVfsEmblem(inspectedPath, emblem);
-                            reloadDir();
-                          }}
-                          className={cn(
-                            "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10.5px] font-medium transition-colors active:bg-[color-mix(in_srgb,currentColor_22%,transparent)]",
-                            meta.colorClass,
-                            active
-                              ? "border-current/45 bg-[color-mix(in_srgb,currentColor_14%,transparent)] hover:bg-[color-mix(in_srgb,currentColor_22%,transparent)]"
-                              : "border-adw-separator opacity-75 hover:opacity-100 hover:bg-[color-mix(in_srgb,currentColor_12%,transparent)]"
-                          )}
-                        >
-                          <Icon
-                            className={cn(
-                              "size-2.5",
-                              emblem === "favorite" && active && "fill-current"
-                            )}
-                          />
-                          {_(meta.label)}
-                        </button>
-                      );
-                    })}
-                  </dd>
+                  <dt className="text-adw-dim">{_("Opens")}</dt>
+                  <dd className="font-medium">{inspectedItem.accessCount}</dd>
                 </div>
               )}
-            </dl>
-          </aside>
-        );
-      })()
+            {inspectedPath && !isTrashView && (
+              <div>
+                <dt className="mb-1 text-adw-dim">{_("Tags")}</dt>
+                <dd className="flex flex-wrap gap-1">
+                  {emblemOrder.map((emblem) => {
+                    const meta = VFS_EMBLEM_META[emblem];
+                    const active = inspectedEmblems.includes(emblem);
+                    const Icon =
+                      emblem === "favorite"
+                        ? HeartIcon
+                        : emblem === "important"
+                          ? AlertCircleIcon
+                          : emblem === "work"
+                            ? BriefcaseIcon
+                            : TagIcon;
+                    return (
+                      <button
+                        key={emblem}
+                        type="button"
+                        aria-pressed={active}
+                        onClick={() => {
+                          toggleVfsEmblem(inspectedPath, emblem);
+                          reloadDir();
+                        }}
+                        className={cn(
+                          "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10.5px] font-medium transition-colors active:bg-[color-mix(in_srgb,currentColor_22%,transparent)]",
+                          meta.colorClass,
+                          active
+                            ? "border-current/45 bg-[color-mix(in_srgb,currentColor_14%,transparent)] hover:bg-[color-mix(in_srgb,currentColor_22%,transparent)]"
+                            : "border-adw-separator opacity-75 hover:opacity-100 hover:bg-[color-mix(in_srgb,currentColor_12%,transparent)]"
+                        )}
+                      >
+                        <Icon
+                          className={cn(
+                            "size-2.5",
+                            emblem === "favorite" && active && "fill-current"
+                          )}
+                        />
+                        {_(meta.label)}
+                      </button>
+                    );
+                  })}
+                </dd>
+              </div>
+            )}
+          </dl>
+        </aside>
+      );
+    })()
     : null;
 
   return (
     <AdwSplitView
-      title={_("Files")}
+      title={_("Folders")}
       appId="nautilus"
       iconName="folder"
       windowId={windowId}
@@ -1508,7 +1711,7 @@ export function FilesApp({
                         <DropdownMenuRadioItem value="desc">{_("Descending")}</DropdownMenuRadioItem>
                       </DropdownMenuRadioGroup>
                       <DropdownMenuSeparator />
-                      <DropdownMenuLabel>{_("Filter by Emblem")}</DropdownMenuLabel>
+                      <DropdownMenuLabel>{_("Filter by Tag")}</DropdownMenuLabel>
                       {(Object.keys(VFS_EMBLEM_META) as VfsEmblemId[]).map((emblemId) => (
                         <DropdownMenuCheckboxItem
                           key={emblemId}
@@ -1594,241 +1797,282 @@ export function FilesApp({
           data-vfs-drop-path={isVirtualView ? undefined : currentPath}
           onKeyDown={onContentKeyDown}
           className="relative min-h-0 flex-1 overflow-auto bg-adw-content pb-10"
-        onDragOver={(e) => {
-          if (isTrashView || isVirtualView || !e.dataTransfer?.types?.includes("Files")) return;
-          e.preventDefault();
-          e.dataTransfer.dropEffect = "copy";
-          if (!externalDropActive) setExternalDropActive(true);
-        }}
-        onDragLeave={(e) => {
-          if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
+          onDragOver={(e) => {
+            if (isTrashView || isVirtualView || !e.dataTransfer?.types?.includes("Files")) return;
+            e.preventDefault();
+            e.dataTransfer.dropEffect = "copy";
+            if (!externalDropActive) setExternalDropActive(true);
+          }}
+          onDragLeave={(e) => {
+            if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
+              setExternalDropActive(false);
+            }
+          }}
+          onDrop={(e) => {
+            if (isTrashView || isVirtualView || !e.dataTransfer?.files?.length) return;
+            e.preventDefault();
             setExternalDropActive(false);
-          }
-        }}
-        onDrop={(e) => {
-          if (isTrashView || isVirtualView || !e.dataTransfer?.files?.length) return;
-          e.preventDefault();
-          setExternalDropActive(false);
-          void importExternalFilesToVfs(currentPath, e.dataTransfer.files).then(
-            () => reloadDir()
-          );
-        }}
-        onContextMenu={(e) => {
-          if (isTrashView || isVirtualView) return;
-          e.preventDefault();
-          e.stopPropagation();
-          setItemMenu(null);
-          setBgMenu({ x: e.clientX, y: e.clientY });
-        }}
-      >
-        {externalDropActive && (
-          <div className="pointer-events-none absolute inset-2 z-20 flex items-end justify-center rounded-xl border-2 border-dashed border-adw-accent/70 bg-adw-accent/10 pb-3">
-            <span className="rounded-full bg-zinc-900/90 px-3 py-1 text-xs font-medium text-white shadow-sm ring-1 ring-white/10">
-              {_("Drop files to copy here")}
-            </span>
-          </div>
-        )}
-        {items.length === 0 ? (
-          <div className="flex h-full flex-col items-center justify-center gap-1.5 text-center text-adw-label-tertiary">
-            <FolderIcon className="size-9 opacity-35" />
-            <span className="text-[12.5px]">
-              {isTrashView
-                ? _("Trash is empty")
-                : isFavoritesView
-                  ? _("No favorites yet")
-                  : _("Folder is empty")}
-            </span>
-          </div>
-        ) : viewMode === "list" ? (
-          <div className="p-2">
-            <table className="w-full border-collapse text-left text-[12.5px]">
-              <thead>
-                <tr className="border-b border-adw-separator text-[11px] font-semibold text-adw-label-secondary uppercase">
-                  <th className="px-3 py-1.5">{_("Name")}</th>
-                  <th className="px-3 py-1.5">{_("Kind")}</th>
-                  <th className="px-3 py-1.5 text-right">{_("Size")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((item) => {
-                  const vfsEntry =
-                    item.kind === "desktop-entry" ? undefined : getVfsEntry(item.path ?? item.id);
-                  const isSelected = selectedIds.includes(item.id);
-                  const isOpenedFile =
-                    item.kind === "file" &&
-                    Boolean(item.path) &&
-                    openFilePaths.has(item.path.replace(/\/+$/, "") || "/");
-                  const rowEmblems =
-                    item.kind === "desktop-entry" ? [] : getVfsEmblems(item.path);
-                  const sizeLabel =
-                    item.kind === "desktop-entry"
-                      ? _("Application")
-                      : item.kind === "directory"
-                        ? _("Folder")
-                        : `${(vfsEntry?.content ?? "").length} B`;
-                  return (
-                    <tr
-                      key={item.id}
-                      data-vfs-drop-path={
-                        item.kind === "directory" ? item.path : undefined
-                      }
-                      onPointerDown={(e) => {
-                        if (e.button !== 0) return;
-                        if (e.metaKey || e.ctrlKey) {
-                          setSelectedIds((prev) =>
-                            prev.includes(item.id)
-                              ? prev.filter((id) => id !== item.id)
-                              : [...prev, item.id]
-                          );
-                        } else if (e.shiftKey) {
-                          setSelectedIds((prev) =>
-                            prev.includes(item.id) ? prev : [...prev, item.id]
-                          );
-                        } else {
-                          setSelectedIds([item.id]);
+            void importExternalFilesToVfs(currentPath, e.dataTransfer.files).then(
+              () => {
+                reloadDir();
+                window.dispatchEvent(
+                  new CustomEvent("piloti:folder-drop-anim", {
+                    detail: { path: currentPath },
+                  }),
+                );
+              }
+            );
+          }}
+          onContextMenu={(e) => {
+            if (isTrashView || isVirtualView) return;
+            e.preventDefault();
+            e.stopPropagation();
+            setItemMenu(null);
+            setBgMenu({ x: e.clientX, y: e.clientY });
+          }}
+        >
+          {externalDropActive && (
+            <div className="pointer-events-none absolute inset-2 z-20 flex items-end justify-center rounded-xl border-2 border-dashed border-adw-accent/70 bg-adw-accent/10 pb-3">
+              <span className="rounded-full bg-zinc-900/90 px-3 py-1 text-xs font-medium text-white shadow-sm ring-1 ring-white/10">
+                {_("Drop files to copy here")}
+              </span>
+            </div>
+          )}
+          {items.length === 0 ? (
+            <div className="flex h-full flex-col items-center justify-center gap-1.5 text-center text-adw-label-tertiary">
+              <FolderIcon className="size-9 opacity-35" />
+              <span className="text-[12.5px]">
+                {isTrashView
+                  ? _("Trash is empty")
+                  : isFavoritesView
+                    ? _("No favorites yet")
+                    : _("Folder is empty")}
+              </span>
+            </div>
+          ) : viewMode === "list" ? (
+            <div className="p-2">
+              <table className="w-full border-collapse text-left text-[12.5px]">
+                <thead>
+                  <tr className="border-b border-adw-separator text-[11px] font-semibold text-adw-label-secondary uppercase">
+                    <th className="px-3 py-1.5">{_("Name")}</th>
+                    <th className="px-3 py-1.5">{_("Kind")}</th>
+                    <th className="px-3 py-1.5 text-right">{_("Size")}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {items.map((item) => {
+                    const vfsEntry =
+                      item.kind === "desktop-entry" ? undefined : getVfsEntry(item.path ?? item.id);
+                    const isSelected = selectedIds.includes(item.id);
+                    const isOpenedFile =
+                      item.kind === "file" &&
+                      Boolean(item.path) &&
+                      openFilePaths.has(item.path.replace(/\/+$/, "") || "/");
+                    const rowEmblems =
+                      item.kind === "desktop-entry" ? [] : getVfsEmblems(item.path);
+                    const sizeLabel =
+                      item.kind === "desktop-entry"
+                        ? _("Application")
+                        : item.kind === "directory"
+                          ? _("Folder")
+                          : `${(vfsEntry?.content ?? "").length} B`;
+                    return (
+                      <tr
+                        key={item.id}
+                        data-vfs-drop-path={
+                          item.kind === "directory" ? item.path : undefined
                         }
-                      }}
-                      onClick={(e) => {
-                        if (
-                          settings.fileActivationMode === "single" ||
-                          item.kind === "desktop-entry"
-                        ) {
-                          captureLaunchOriginFromElement(e.currentTarget);
-                          handleActivateItem(item);
-                        }
-                      }}
-                      onDoubleClick={(e) => {
-                        if (
-                          settings.fileActivationMode === "double" &&
-                          item.kind !== "desktop-entry"
-                        ) {
-                          captureLaunchOriginFromElement(e.currentTarget);
-                          handleActivateItem(item);
-                        }
-                      }}
-                      onContextMenu={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        captureLaunchOriginFromElement(e.currentTarget, 10000);
-                        if (!selectedIds.includes(item.id)) {
-                          setSelectedIds([item.id]);
-                        }
-                        setBgMenu(null);
-                        setItemMenu({ item, x: e.clientX, y: e.clientY });
-                      }}
-                      style={{
-                        opacity: item.name.startsWith(".") ? 0.55 : undefined,
-                      }}
-                      className={cn(
-                        "cursor-default border-b border-adw-separator/40 transition-colors",
-                        isSelected
-                          ? "bg-adw-accent/20 text-adw-label"
-                          : "hover:bg-black/4 dark:hover:bg-white/5"
-                      )}
-                    >
-                      <td className="px-3 py-1.5 font-medium">
-                        <div className="flex items-center gap-2.5">
-                          <span
-                            style={{
-                              width: `${listIconSize}px`,
-                              height: `${listIconSize}px`,
-                            }}
-                            className={cn(
-                              "inline-flex shrink-0",
-                              isOpenedFile &&
+                        onPointerDown={(e) => {
+                          if (e.button !== 0) return;
+                          if (e.metaKey || e.ctrlKey) {
+                            setSelectedIds((prev) =>
+                              prev.includes(item.id)
+                                ? prev.filter((id) => id !== item.id)
+                                : [...prev, item.id]
+                            );
+                          } else if (e.shiftKey) {
+                            setSelectedIds((prev) =>
+                              prev.includes(item.id) ? prev : [...prev, item.id]
+                            );
+                          } else {
+                            setSelectedIds([item.id]);
+                          }
+                        }}
+                        onClick={(e) => {
+                          if (
+                            settings.fileActivationMode === "single" ||
+                            item.kind === "desktop-entry"
+                          ) {
+                            captureLaunchOriginFromElement(e.currentTarget);
+                            handleActivateItem(item);
+                          }
+                        }}
+                        onDoubleClick={(e) => {
+                          if (
+                            settings.fileActivationMode === "double" &&
+                            item.kind !== "desktop-entry"
+                          ) {
+                            captureLaunchOriginFromElement(e.currentTarget);
+                            handleActivateItem(item);
+                          }
+                        }}
+                        onContextMenu={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          captureLaunchOriginFromElement(e.currentTarget, 10000);
+                          if (!selectedIds.includes(item.id)) {
+                            setSelectedIds([item.id]);
+                          }
+                          setBgMenu(null);
+                          setItemMenu({ item, x: e.clientX, y: e.clientY });
+                        }}
+                        style={{
+                          opacity: item.name.startsWith(".") ? 0.55 : undefined,
+                        }}
+                        className={cn(
+                          "cursor-default border-b border-adw-separator/40 transition-colors",
+                          isSelected
+                            ? "bg-adw-accent/20 text-adw-label"
+                            : "hover:bg-black/4 dark:hover:bg-white/5"
+                        )}
+                      >
+                        <td className="px-3 py-1.5 font-medium">
+                          <div className="flex items-center gap-2.5">
+                            <span
+                              style={{
+                                width: `${listIconSize}px`,
+                                height: `${listIconSize}px`,
+                              }}
+                              className={cn(
+                                "inline-flex shrink-0",
+                                isOpenedFile &&
                                 "opacity-55 grayscale-[0.45] brightness-90"
-                            )}
-                          >
-                            {item.kind === "desktop-entry" ? (
-                              <AppSquircleIcon
-                                iconName={item.iconName}
-                                iconUrl={item.iconUrl}
-                                gradient={item.gradient}
-                                squircle={item.id.startsWith("app:web:")}
-                                className="size-full"
-                              />
-                            ) : item.kind === "directory" ? (
-                              <DynamicFolderIcon
-                                accentColor={settings.accentColor}
-                                opened={openFolderPaths.has(item.path)}
-                                pathOrName={item.path || item.name}
-                                className="size-full"
+                              )}
+                            >
+                              {item.kind === "desktop-entry" ? (
+                                <AppSquircleIcon
+                                  iconName={item.iconName}
+                                  iconUrl={item.iconUrl}
+                                  gradient={item.gradient}
+                                  squircle={item.id.startsWith("app:web:")}
+                                  className="size-full"
+                                />
+                              ) : item.kind === "directory" ? (
+                                <DynamicFolderIcon
+                                  accentColor={settings.accentColor}
+                                  opened={openFolderPaths.has(item.path)}
+                                  pathOrName={item.path || item.name}
+                                  className="size-full"
+                                />
+                              ) : (
+                                <DynamicFileIcon
+                                  accentColor={settings.accentColor}
+                                  name={item.name}
+                                  iconCandidates={item.iconCandidates}
+                                  isEmpty={item.isEmpty}
+                                  className="size-full"
+                                />
+                              )}
+                            </span>
+                            {renamingId === item.id ? (
+                              <input
+                                type="text"
+                                defaultValue={item.name}
+                                autoFocus
+                                onClick={(e) => e.stopPropagation()}
+                                onPointerDown={(e) => e.stopPropagation()}
+                                onKeyDown={(e) => {
+                                  e.stopPropagation();
+                                  if (e.key === "Enter") {
+                                    e.preventDefault();
+                                    handleCommitRename(item, e.currentTarget.value);
+                                  } else if (e.key === "Escape") {
+                                    e.preventDefault();
+                                    setRenamingId(null);
+                                  }
+                                }}
+                                onBlur={(e) =>
+                                  handleCommitRename(item, e.currentTarget.value)
+                                }
+                                className="min-w-28 rounded bg-zinc-900/95 px-1.5 py-0.5 text-[12.5px] font-medium text-white ring-1 ring-adw-accent outline-none"
                               />
                             ) : (
-                              <DynamicFileIcon
-                                accentColor={settings.accentColor}
-                                name={item.name}
-                                iconCandidates={item.iconCandidates}
-                                isEmpty={item.isEmpty}
-                                className="size-full"
-                              />
+                              <span className="truncate">{item.name}</span>
                             )}
-                          </span>
-                          <span className="truncate">{item.name}</span>
-                          {rowEmblems.length > 0 && (
-                            <span className="inline-flex shrink-0 items-center gap-1">
-                              {rowEmblems.map((emblemId) => {
-                                const meta = VFS_EMBLEM_META[emblemId];
-                                const Icon =
-                                  emblemId === "favorite"
-                                    ? HeartIcon
-                                    : emblemId === "important"
-                                      ? AlertCircleIcon
-                                      : emblemId === "work"
-                                        ? BriefcaseIcon
-                                        : TagIcon;
-                                return (
-                                  <Icon
-                                    key={emblemId}
-                                    className={cn(
-                                      "size-3",
-                                      meta.colorClass,
-                                      emblemId === "favorite" && "fill-current !text-red-500"
-                                    )}
-                                  />
-                                );
-                              })}
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-3 py-2 text-adw-label-secondary">
-                        {item.kind === "directory" ? _("Directory") : _("File")}
-                      </td>
-                      <td className="px-3 py-2 text-right font-mono text-[11.5px] text-adw-label-secondary">
-                        {sizeLabel}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <IconGrid
-            items={items}
-            mode="flow"
-            currentDirPath={isVirtualView ? undefined : currentPath}
-            cellWidth={zoom.cellWidth}
-            cellHeight={zoom.cellHeight}
-            iconSize={zoom.iconSize}
-            onDropItems={handleDropItems}
-            onActivateItem={handleActivateItem}
-            onContextMenuItem={(item, e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              setBgMenu(null);
-              setItemMenu({ item, x: e.clientX, y: e.clientY });
-            }}
-            renamingId={renamingId}
-            onCommitRename={handleCommitRename}
-            onCancelRename={() => setRenamingId(null)}
-            selectedIds={selectedIds}
-            onSelectIds={setSelectedIds}
-            ariaLabel={currentTitle}
-            className="[&_button[aria-selected=false]_span]:text-adw-label [&_button_span]:drop-shadow-none"
-          />
-        )}
+                            {item.kind === "file" &&
+                              item.accessCount !== undefined && (
+                                <span
+                                  data-testid="vfs-access-count"
+                                  title={_("Opens")}
+                                  className="shrink-0 rounded bg-black/8 px-1.5 py-0.5 font-mono text-[10px] leading-none text-adw-label-secondary dark:bg-white/10"
+                                >
+                                  {item.accessCount}
+                                </span>
+                              )}
+                            {rowEmblems.length > 0 && (
+                              <span className="inline-flex shrink-0 items-center gap-1">
+                                {rowEmblems.map((emblemId) => {
+                                  const meta = VFS_EMBLEM_META[emblemId];
+                                  const Icon =
+                                    emblemId === "favorite"
+                                      ? HeartIcon
+                                      : emblemId === "important"
+                                        ? AlertCircleIcon
+                                        : emblemId === "work"
+                                          ? BriefcaseIcon
+                                          : TagIcon;
+                                  return (
+                                    <Icon
+                                      key={emblemId}
+                                      className={cn(
+                                        "size-3",
+                                        meta.colorClass,
+                                        emblemId === "favorite" && "fill-current !text-red-500"
+                                      )}
+                                    />
+                                  );
+                                })}
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-3 py-2 text-adw-label-secondary">
+                          {item.kind === "directory" ? _("Directory") : _("File")}
+                        </td>
+                        <td className="px-3 py-2 text-right font-mono text-[11.5px] text-adw-label-secondary">
+                          {sizeLabel}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <IconGrid
+              items={items}
+              mode="flow"
+              currentDirPath={isVirtualView ? undefined : currentPath}
+              cellWidth={zoom.cellWidth}
+              cellHeight={zoom.cellHeight}
+              iconSize={zoom.iconSize}
+              onDropItems={handleDropItems}
+              onActivateItem={handleActivateItem}
+              onContextMenuItem={(item, e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setBgMenu(null);
+                setItemMenu({ item, x: e.clientX, y: e.clientY });
+              }}
+              renamingId={renamingId}
+              onCommitRename={handleCommitRename}
+              onCancelRename={() => setRenamingId(null)}
+              selectedIds={selectedIds}
+              onSelectIds={setSelectedIds}
+              ariaLabel={currentTitle}
+              className="[&_button[aria-selected=false]_span]:text-adw-label [&_button_span]:drop-shadow-none"
+            />
+          )}
         </div>
         <div
           data-testid="files-status-pill"
@@ -1843,7 +2087,7 @@ export function FilesApp({
         {!isAppsView && (
           <div
             data-window-no-drag
-            className="absolute right-2.5 bottom-2 z-10 flex items-center gap-1.5 rounded-full border border-adw-border/60 bg-adw-card/90 px-2.5 py-1 shadow-xs backdrop-blur-md"
+            className="absolute right-2.5 bottom-2 z-10 flex items-center gap-1.5 px-1 py-0.5"
           >
             <button
               type="button"
@@ -1904,6 +2148,9 @@ export function FilesApp({
         onClose={() => setItemMenu(null)}
         onOpen={handleActivateItem}
         onOpenWithApp={(target, appId) => {
+          if (target.kind === "file" && target.path) {
+            incrementVfsAccessCount(target.path);
+          }
           launchApp(appId, { payload: target.path, forceNew: true });
         }}
         onOpenInNewWindow={(target) =>
@@ -1924,19 +2171,19 @@ export function FilesApp({
         onCompress={
           isBrowserRuntime
             ? (list) => {
-                void compressVfsEntries(list.map((i) => i.path)).then((created) => {
-                  if (created) reloadDir();
-                });
-              }
+              void compressVfsEntries(list.map((i) => i.path)).then((created) => {
+                if (created) reloadDir();
+              });
+            }
             : undefined
         }
         onExtract={
           isBrowserRuntime
             ? (target) => {
-                void extractVfsZip(target.path).then((folder) => {
-                  if (folder) reloadDir();
-                });
-              }
+              void extractVfsZip(target.path).then((folder) => {
+                if (folder) reloadDir();
+              });
+            }
             : undefined
         }
         onDownload={
@@ -1952,14 +2199,6 @@ export function FilesApp({
           reloadDir();
         }}
         onRename={(target) => setRenamingId(target.id)}
-        onGetInfo={(target) => {
-          setSelectedIds([target.id]);
-          setInfoPaneOpen(true);
-        }}
-        onNewFolder={!isTrashView && !isVirtualView ? handleNewFolder : undefined}
-        onNewTextFile={
-          !isTrashView && !isVirtualView ? handleNewTextFile : undefined
-        }
         onTrash={handleTrashItem}
         onTrashItems={handleTrashItems}
       />

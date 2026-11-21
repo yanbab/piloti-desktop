@@ -1,0 +1,4 @@
+#!/bin/sh
+# piloti-calculator — Open Piloti Calculator
+set -eu
+exec /usr/bin/piloti open calculator "$@"

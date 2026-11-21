@@ -255,7 +255,7 @@ test.describe("Piloti Desktop E2E", () => {
     ).toBeVisible();
   });
 
-  test("Launcher header drag moves popup in-screen and DevTools console persists across tabs", async ({
+  test("Launcher header drag moves popup in-screen and Desktop Console persists across tabs", async ({
     page,
   }) => {
     await page.goto("/", { waitUntil: "domcontentloaded" });
@@ -295,7 +295,7 @@ test.describe("Piloti Desktop E2E", () => {
     expect(Math.abs(cornerBox!.y - initialBox!.y)).toBeLessThanOrEqual(4);
     await page.keyboard.press("Escape");
 
-    // DevTools console persistence across tab switches
+    // Desktop Console persistence across tab switches
     await page.locator('[data-dock-app-id="console"]').click();
     const consoleWindow = page
       .locator('[data-slot="window"][data-app-id="console"]')
@@ -385,6 +385,102 @@ test.describe("Piloti Desktop E2E", () => {
       "data-interface-theme",
       "adwaita"
     );
+  });
+
+  test("double-click titlebar/headerbar maximizes and unmaximizes, and simulated USB mounts/ejects across Dock and Folders", async ({
+    page,
+  }) => {
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+
+    // SSD titlebar double-click (Settings)
+    const settingsWindow = page
+      .locator('[data-slot="window"][data-app-id="settings"]')
+      .first();
+    await expect(settingsWindow).toBeVisible({ timeout: 25_000 });
+    await page.waitForTimeout(300);
+
+    const ssdTitlebar = settingsWindow.locator('[data-slot="window-titlebar"]').first();
+    const ssdBox = await ssdTitlebar.boundingBox();
+    expect(ssdBox).not.toBeNull();
+    await page.mouse.dblclick(ssdBox!.x + ssdBox!.width * 0.5, ssdBox!.y + ssdBox!.height * 0.5);
+    await expect(settingsWindow).toHaveAttribute("data-maximized", "true");
+    await page.waitForTimeout(450);
+
+    const ssdMaxBox = await ssdTitlebar.boundingBox();
+    expect(ssdMaxBox).not.toBeNull();
+    await page.mouse.dblclick(
+      ssdMaxBox!.x + ssdMaxBox!.width * 0.5,
+      ssdMaxBox!.y + ssdMaxBox!.height * 0.5
+    );
+    await expect(settingsWindow).not.toHaveAttribute("data-maximized", "true");
+    await page.waitForTimeout(450);
+
+    // Folders headerbar double-click + SSD titlebar double-click (Terminal)
+    await page.locator('[data-dock-app-id="terminal"]').click();
+    const terminalWindow = page
+      .locator('[data-slot="window"][data-app-id="terminal"]')
+      .first();
+    await expect(terminalWindow).toBeVisible();
+    await page.waitForTimeout(300);
+
+    const termTitlebar = terminalWindow.locator('[data-slot="window-titlebar"]').first();
+    const termBox = await termTitlebar.boundingBox();
+    expect(termBox).not.toBeNull();
+    await page.mouse.dblclick(termBox!.x + termBox!.width * 0.5, termBox!.y + termBox!.height * 0.5);
+    await expect(terminalWindow).toHaveAttribute("data-maximized", "true");
+    await page.waitForTimeout(450);
+
+    const termMaxBox = await termTitlebar.boundingBox();
+    expect(termMaxBox).not.toBeNull();
+    await page.mouse.dblclick(
+      termMaxBox!.x + termMaxBox!.width * 0.5,
+      termMaxBox!.y + termMaxBox!.height * 0.5
+    );
+    await expect(terminalWindow).not.toHaveAttribute("data-maximized", "true");
+    await page.waitForTimeout(450);
+
+    // Bring Settings forward, go to Advanced, verify Engine switch & Mount USB Drive
+    await page.locator('[data-dock-app-id="settings"]').click();
+    await settingsWindow.getByRole("button", { name: "Advanced" }).click();
+    await expect(settingsWindow.getByLabel("Use engine:web")).toBeDisabled();
+
+    const mountBtn = settingsWindow.getByRole("button", { name: "Mount USB Drive" });
+    await expect(mountBtn).toBeVisible();
+    await mountBtn.click();
+
+    const usbDockItem = page.locator('[data-dock-context="usb"]');
+    await expect(usbDockItem).toBeVisible();
+
+    // Open USB drive from Dock -> opens Folders into /media/user/PILOTI_USB
+    await usbDockItem.click();
+    const foldersWindow = page
+      .locator('[data-slot="window"][data-app-id="nautilus"]')
+      .first();
+    await expect(foldersWindow).toBeVisible();
+    await expect(foldersWindow).toContainText("PILOTI USB");
+    await expect(foldersWindow.getByText("README.txt")).toBeVisible();
+
+    // Inner Adwaita headerbar double-click on Folders maximizes/unmaximizes
+    await page.waitForTimeout(300);
+    const foldersHeader = foldersWindow.locator('[data-slot="window-titlebar"]').last();
+    const fhBox = await foldersHeader.boundingBox();
+    expect(fhBox).not.toBeNull();
+    await page.mouse.dblclick(fhBox!.x + fhBox!.width * 0.5, fhBox!.y + fhBox!.height * 0.5);
+    await expect(foldersWindow).toHaveAttribute("data-maximized", "true");
+    await page.waitForTimeout(450);
+    const fhMaxBox = await foldersHeader.boundingBox();
+    expect(fhMaxBox).not.toBeNull();
+    await page.mouse.dblclick(fhMaxBox!.x + fhMaxBox!.width * 0.5, fhMaxBox!.y + fhMaxBox!.height * 0.5);
+    await expect(foldersWindow).not.toHaveAttribute("data-maximized", "true");
+    await page.waitForTimeout(450);
+
+    // Eject via the sidebar eject button on the right
+    const ejectBtn = foldersWindow.getByRole("button", { name: "Eject USB Drive" });
+    await expect(ejectBtn).toBeVisible();
+    await ejectBtn.click();
+
+    await expect(usbDockItem).toBeHidden();
+    await expect(ejectBtn).toBeHidden();
   });
 });
 

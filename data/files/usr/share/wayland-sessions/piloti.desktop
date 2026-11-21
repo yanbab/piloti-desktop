@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=Piloti Desktop
+Comment=Hybrid Web/Linux Wayland desktop shell built on Domicile
+Exec=/usr/bin/piloti-session
+TryExec=/usr/bin/domicile
+Type=Application
+DesktopNames=Piloti;GNOME;
+Keywords=wayland;desktop;shell;piloti;domicile;

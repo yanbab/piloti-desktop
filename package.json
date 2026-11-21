@@ -9,6 +9,7 @@
     "build": "vite build && vite build --config vite.shell.config.ts",
     "build:web": "vite build",
     "build:shell": "vite build --config vite.shell.config.ts",
+    "build:deb": "node scripts/build-deb.mjs",
     "preview": "vite preview",
     "test": "bun test tests/unit tests/functional",
     "test:e2e": "playwright test",

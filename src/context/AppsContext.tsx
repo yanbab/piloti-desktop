@@ -31,7 +31,7 @@ import {
   buildOpenXdgFolderArgv,
   discoverXdgUserDirs,
   type XdgUserDir,
-} from "@/lib/xdg-user-dirs";
+} from "@/lib/xdg/xdg-user-dirs";
 import { type SettingsContextValue } from "./SettingsContext";
 import { type SystemBackendsContextValue } from "./SystemBackendsContext";
 
@@ -216,6 +216,10 @@ const SHELL_XDG_ICON_GROUPS: Record<string, readonly string[]> = {
     "trash-full",
     "gnome-fs-trash-full",
   ],
+  __usb_drive__: [
+    "drive-removable-media-usb",
+    "drive-removable-media",
+  ],
   __fallback_app__: [
     "application-x-executable",
     "system-run",
@@ -248,8 +252,14 @@ const PAPIRUS_DIRECT_ICON_FALLBACKS: Record<string, readonly string[]> = {
     "/usr/share/icons/Papirus/64x64/places/folder-open.svg",
     "/usr/share/icons/Papirus/64x64/places/folder.svg",
   ],
-  settings: ["/usr/share/icons/Papirus/64x64/apps/preferences-system.svg"],
-  console: ["/usr/share/icons/Papirus/64x64/apps/applications-development.svg"],
+  settings: [
+    "/usr/share/icons/Papirus/64x64/apps/preferences-desktop.svg",
+    "/usr/share/icons/Papirus/64x64/apps/preferences-system.svg",
+  ],
+  console: [
+    "/usr/share/icons/Papirus/64x64/apps/piloti-console.svg",
+    "/usr/share/icons/Papirus/64x64/apps/utilities-terminal.svg",
+  ],
   terminal: ["/usr/share/icons/Papirus/64x64/apps/utilities-terminal.svg"],
   browser: ["/usr/share/icons/Papirus/64x64/apps/internet-web-browser.svg"],
   "web-view": ["/usr/share/icons/Papirus/64x64/apps/internet-web-browser.svg"],
@@ -301,6 +311,10 @@ const PAPIRUS_DIRECT_ICON_FALLBACKS: Record<string, readonly string[]> = {
   __user_trash_full__: [
     "/usr/share/icons/Papirus/64x64/status/user-trash-full.svg",
   ],
+  __usb_drive__: [
+    "/usr/share/icons/Papirus/64x64/devices/drive-removable-media-usb.svg",
+    "/usr/share/icons/Papirus/64x64/devices/drive-removable-media.svg",
+  ],
   __fallback_app__: [
     "/usr/share/icons/Papirus/64x64/mimetypes/application-x-executable.svg",
   ],
@@ -332,7 +346,7 @@ async function resolveWithDirectAdwaitaFallback(
   return undefined;
 }
 
-const DOCK_ICONS_CACHE_KEY = "piloti.dock-icons.v12";
+const DOCK_ICONS_CACHE_KEY = "piloti.dock-icons.v14";
 
 interface DockIconsCachePayload {
   theme: string;
@@ -430,7 +444,7 @@ export function useAppsValue(
   React.useEffect(() => {
     void refreshNonce;
     let cancelled = false;
-    const preferredThemes = [activeIconTheme, "Papirus", "hicolor"];
+    const preferredThemes = [activeIconTheme, "Papirus", "Adwaita", "hicolor"];
     const cachedIndex = loadCachedXdgIconThemeIndex(preferredThemes);
     iconThemeIndexRef.current = cachedIndex;
 

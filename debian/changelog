@@ -1,0 +1,9 @@
+piloti-desktop (0.9.0-1) unstable; urgency=medium
+
+  * Initial Debian package release of Piloti Desktop.
+  * Install /usr/bin/piloti, /usr/bin/piloti-session, /usr/bin/piloti-webapp,
+    and built-in piloti-* app launcher commands.
+  * Install Wayland session descriptor /usr/share/wayland-sessions/piloti.desktop,
+    system desktop entries, Piloti icon theme, and bundled Domicile shell.
+
+ -- Piloti Desktop Maintainers <maintainers@piloti-desktop.org>  Sat, 21 Nov 2026 23:55:00 +0100

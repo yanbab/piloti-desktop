@@ -44,7 +44,7 @@ import {
   syncGnomePanelOverrides,
   syncGtkIconTheme,
   ensureXwaylandSatellite,
-} from "@/lib/engine-system";
+} from "@/lib/engine-desktop";
 import {
   type NotificationActionItem,
   type ShellNotification,
@@ -59,7 +59,7 @@ import {
   toToastId,
 } from "@/lib/notifications";
 import { subscribeWebBattery } from "@/lib/web-battery";
-import { clearXdgSession } from "@/lib/xdg-session-management";
+import { clearXdgSession } from "@/lib/xdg/xdg-session-management";
 import {
   type DesktopSettings,
   type SettingsContextValue,

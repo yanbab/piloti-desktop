@@ -2,23 +2,23 @@
 
 Piloti runs the same React tree across two runtimes:
 
-1. **Domicile Runtime (`desktop.tsx`)**: Mounted inside Domicile's Chromium Wayland compositor via `mount PilotiShell`. Renders real Wayland surfaces in `<app app-id="…" />` and talks to Linux subsystems over Domicile APIs (`src/lib/engine-system/`).
-2. **Browser Dev Runtime (`src/main.tsx`)**: Mounted via [`createBrowserDomicile()`](../src/lib/engine-web/domicile.ts), providing a `FakeDomicileHost`, virtual `.desktop` entries, Indexed VFS/Trash storage, and mock hardware/theme backends for local browser development.
+1. **Domicile Runtime (`src/piloti-desktop.tsx`)**: Mounted inside Domicile's Chromium Wayland compositor via `mount PilotiShell`. Renders real Wayland surfaces in `<app app-id="…" />` and talks to Linux subsystems over Domicile APIs (`src/lib/engine-desktop/`).
+2. **Browser Dev Runtime (`src/piloti-web.tsx`)**: Mounted via [`createBrowserDomicile()`](../src/lib/engine-web/domicile.ts), providing a `FakeDomicileHost`, virtual `.desktop` entries, Indexed VFS/Trash storage, and mock hardware/theme backends for local browser development.
 
-Built-in web apps (**Settings**, **Files**, **Terminal**, **Text Editor**, **Image Viewer**, **Calculator**, **App Store**, **Piloti Console / DevTools**, and **Desktop Icons**) run inside the shell alongside native Wayland/XDG processes and browser `<webview>` / `<iframe>` windows.
+Built-in web apps (**Desktop Settings** `piloti-settings`, **Folders** `piloti-files`, **Desktop Shell** `piloti-shell`, **Text Editor**, **Image Viewer**, **Calculator**, **Applications** `piloti-applications`, **Desktop Console** `piloti-desktop`, and **Desktop Icons**) run inside the shell alongside native Wayland/XDG processes and browser `<webview>` / `<iframe>` windows.
 
 ---
 
 ## Directory Structure
 
 ```text
-├── desktop.tsx                          # Domicile entry point
 ├── index.html                           # Browser dev entry point
 └── src/
     ├── config/
     │   ├── vite.config.ts               # Browser build -> docs/demo/
     │   └── vite.shell.config.ts         # Standalone Domicile bundle -> dist/shell.js
-    ├── main.tsx                         # Browser runtime + isolated app mount bootstrap
+    ├── piloti-desktop.tsx               # Domicile desktop entry point
+    ├── piloti-web.tsx                   # Browser runtime + isolated app mount bootstrap
     ├── context/
     │   ├── SettingsContext.tsx          # Persisted desktop settings, themes, wallpapers, spatial bounds
     │   ├── SystemBackendsContext.tsx    # Notifications, GSettings, audio, Wi-Fi, battery, portals, lock, capture
@@ -49,12 +49,12 @@ Built-in web apps (**Settings**, **Files**, **Terminal**, **Text Editor**, **Ima
     │   ├── app-bridge.ts                # Typed postMessage RPC & theme sync bridge for isolated iframe apps
     │   ├── window-bounds.ts             # Viewport bounds clamping, SSD constraints & workspace index safety
     │   ├── overview-layout.ts           # Window spread placement math for Overview
-    │   ├── engine-system/               # Host Linux/GNOME bridges (gsettings, audio, network, power, flatpak, wallpaper, xwayland)
+    │   ├── engine-desktop/              # Host Linux/GNOME bridges (gsettings, audio, network, power, flatpak, wallpaper, xwayland)
     │   ├── engine-web/                  # Browser dev runtime (`FakeDomicileHost` + Indexed VFS/settings bridge)
-    │   ├── xdg-*.ts                     # XDG basedir, desktop entries, icon themes, app menus, session, trash
+    │   ├── xdg/                         # XDG basedir, desktop entries, icon themes, app menus, session, trash
     │   ├── notifications.ts             # Pure notification policy, DND, timeout & persistence helpers
     │   ├── vfs-state.ts                 # VFS-backed `.ini` state & GSettings-style schema persistence
-    │   └── console-store.ts & csp-repl-eval.ts # Captured shell logs & CSP-safe DevTools REPL evaluator
+    │   └── console-store.ts & csp-repl-eval.ts # Captured shell logs & CSP-safe Desktop Console REPL evaluator
     └── styles/                          # Tailwind v4 + GNOME Adwaita design tokens (adwaita.css, globals.css)
 ```
 
@@ -88,7 +88,7 @@ Notice `WindowsContext` is split into **state+actions (`WindowsContext`)** and *
 ### 4. Isolated Mini-App Runtime & RPC Bridge (`IsolatedAppFrame.tsx`, `src/lib/app-bridge.ts`)
 
 `calculator`, `text-editor`, and `image-viewer` run inside `IsolatedAppFrame`:
-- Over HTTP/HTTPS dev servers, an `<iframe>` loads `?piloti_app=<id>&windowId=<id>&csd=<0|1>&path=<...>` as a dedicated entry point in `src/main.tsx`.
+- Over HTTP/HTTPS dev servers, an `<iframe>` loads `?piloti_app=<id>&windowId=<id>&csd=<0|1>&path=<...>` as a dedicated entry point in `src/piloti-web.tsx`.
 - Over standalone `file://` Domicile bundles, it falls back cleanly to an isolated iframe DOM mounted via `createRoot`.
 - `useIsolatedAppBridge` receives `piloti:theme-sync` (mode, accent, fonts), `piloti:app-action` (menus, drag-region hover, dropped paths `piloti:open-path:<path>`), and executes bidirectional `piloti:fs-read` / `piloti:fs-write` / `piloti:fs-list` RPC against the shell VFS.
 
@@ -128,8 +128,8 @@ Import from `@/context/DesktopStateContext`:
 | Displays & Theme | `domicile.displays.list`, `setBrightness(pct)`, `setColorTemperature(kelvin)`, `domicile.theme.set(mode)` |
 | Session & Portals | `domicile.session.lock()`, `unlock(passphrase)`, `domicile.portals.requests()`, `domicile.capture.preview(target)` |
 
-### 3. Piloti Console REPL
+### 3. Desktop Console REPL
 
-Open **DevTools / Piloti Console** (`Alt + Space` → `DevTools` or Menu Bar → `DevTools`) to inspect state or script the desktop live:
+Open **Desktop Console** (`Alt + Space` → `Desktop Console` / `piloti-desktop` or Menu Bar → `Desktop Console`) to inspect state or script the desktop live:
 - **State**: `windows`, `focusedWindow`, `waylandPopups`, `apps`, `displays`, `browserWindows`, `settings`, `notifications`, `gnomeCapabilities`, `domicile`.
 - **Actions**: `launchApp(id)`, `focusWindow(id)`, `closeWindow(id)`, `openWebUrl(url)`, `openGnomeSettings(panel?)`, `updateSettings(patch)`, `pushNotification(...)`, `await run(shellCmd)`, `$_`, `help()`, `clear()`.

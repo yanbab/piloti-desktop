@@ -1,4 +1,4 @@
-import { parseDesktopEntry } from "@/lib/xdg-desktop-entry";
+import { parseDesktopEntry } from "./xdg-desktop-entry";
 
 export interface XdgAutostartEntry {
   id: string;

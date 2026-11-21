@@ -1,0 +1,18 @@
+#!/bin/sh
+# piloti-session — Wayland session launcher for display managers (GDM, SDDM, LightDM, greetd)
+set -eu
+
+export XDG_CURRENT_DESKTOP="Piloti:GNOME"
+export XDG_SESSION_DESKTOP="piloti"
+export DESKTOP_SESSION="piloti"
+export XDG_SESSION_TYPE="wayland"
+
+if command -v dbus-update-activation-environment >/dev/null 2>&1; then
+  dbus-update-activation-environment --systemd \
+    XDG_CURRENT_DESKTOP \
+    XDG_SESSION_DESKTOP \
+    DESKTOP_SESSION \
+    XDG_SESSION_TYPE 2>/dev/null || true
+fi
+
+exec /usr/bin/piloti session "$@"

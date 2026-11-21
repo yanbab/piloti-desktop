@@ -83,7 +83,7 @@ describe("resolveInitialSettings web defaults and seeding", () => {
     expect(nativeSaved.webDefaultsVersion).toBeUndefined();
   });
 
-  it("pins Files, Terminal, App Store, and DevTools and populates 10 launcher web apps on fresh web startup", () => {
+  it("pins Files, Desktop Shell, Applications, and Desktop Console and populates 10 launcher web apps on fresh web startup", () => {
     expect(DEFAULT_LAUNCHER_WEB_APPS).toHaveLength(10);
     const webFresh = resolveInitialSettings(null, true);
     expect(webFresh.pinnedAppIds).toEqual([

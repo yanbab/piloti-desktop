@@ -32,16 +32,16 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "src"),
-      "xdg-basedir": path.resolve(__dirname, "src/lib/xdg-basedir.ts"),
-      "xdg-desktop-entry": path.resolve(__dirname, "src/lib/xdg-desktop-entry.ts"),
-      "xdg-icon-theme": path.resolve(__dirname, "src/lib/xdg-icon-theme.ts"),
+      "xdg-basedir": path.resolve(__dirname, "src/lib/xdg/xdg-basedir.ts"),
+      "xdg-desktop-entry": path.resolve(__dirname, "src/lib/xdg/xdg-desktop-entry.ts"),
+      "xdg-icon-theme": path.resolve(__dirname, "src/lib/xdg/xdg-icon-theme.ts"),
     },
   },
   build: {
     outDir: "dist",
     emptyOutDir: true,
     rollupOptions: {
-      input: "desktop.tsx",
+      input: "src/piloti-desktop.tsx",
       output: {
         entryFileNames: "shell.js",
         inlineDynamicImports: true,

@@ -7,7 +7,7 @@ import {
   readVfsStateText,
   VFS_STATE_PATHS,
   writeVfsStateText,
-} from "./vfs-state";
+} from "../vfs-state";
 import {
   XDG_ICON_BASE_DIRS,
   XDG_PIXMAPS_DIRS,
@@ -669,7 +669,7 @@ async function resolveXdgIconUrl(
   return loadXdgIconDataUrl(files, path);
 }
 
-const ICON_INDEX_CACHE_KEY = "piloti.xdg-icon-index.v2";
+const ICON_INDEX_CACHE_KEY = "piloti.xdg-icon-index.v3";
 
 interface SerializedIconThemeIndex {
   key: string;

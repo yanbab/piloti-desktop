@@ -1,7 +1,113 @@
+import fs from "node:fs";
 import path from "node:path";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig, type Plugin } from "vite";
+
+const DATA_FILES_ROOT = path.resolve(__dirname, "data/files");
+
+function getStaticMimeType(filePath: string): string {
+  const lower = filePath.toLowerCase();
+  if (lower.endsWith(".svg")) return "image/svg+xml; charset=utf-8";
+  if (lower.endsWith(".json")) return "application/json; charset=utf-8";
+  if (lower.endsWith(".png")) return "image/png";
+  if (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) return "image/jpeg";
+  if (lower.endsWith(".webp")) return "image/webp";
+  if (lower.endsWith(".html") || lower.endsWith(".htm")) return "text/html; charset=utf-8";
+  return "text/plain; charset=utf-8";
+}
+
+function buildStaticTreeIndex(rootDir: string): Record<string, { name: string; fileType: 0 | 1 }[]> {
+  const index: Record<string, { name: string; fileType: 0 | 1 }[]> = {};
+  const walk = (cur: string, vfsPath: string) => {
+    if (!fs.existsSync(cur)) return;
+    const list: { name: string; fileType: 0 | 1 }[] = [];
+    for (const ent of fs.readdirSync(cur, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
+      if (ent.name === ".DS_Store") continue;
+      if (vfsPath === "/" && ent.name === "home") continue;
+      if (vfsPath === "/home" && ent.name === "user") continue;
+      const full = path.join(cur, ent.name);
+      const childVfs = vfsPath === "/" ? `/${ent.name}` : `${vfsPath}/${ent.name}`;
+      if (ent.isDirectory()) {
+        list.push({ name: ent.name, fileType: 1 });
+        walk(full, childVfs);
+      } else {
+        list.push({ name: ent.name, fileType: 0 });
+      }
+    }
+    index[vfsPath] = list;
+  };
+  walk(rootDir, "/");
+  return index;
+}
+
+function dataFilesStaticPlugin(): Plugin {
+  return {
+    name: "data-files-static",
+    configureServer(server) {
+      server.middlewares.use("/__fs_tree.json", (_req, res) => {
+        res.setHeader("content-type", "application/json; charset=utf-8");
+        res.end(JSON.stringify(buildStaticTreeIndex(DATA_FILES_ROOT)));
+      });
+      server.middlewares.use("/__fs", (req, res, next) => {
+        try {
+          const reqPath = decodeURIComponent((req.url ?? "/").split("?")[0]);
+          const relPath = reqPath.replace(/^\/+/, "");
+          if (!relPath || relPath === "home/user" || relPath.startsWith("home/user/")) {
+            next();
+            return;
+          }
+          const resolved = path.resolve(DATA_FILES_ROOT, relPath);
+          if (
+            resolved !== DATA_FILES_ROOT &&
+            !resolved.startsWith(`${DATA_FILES_ROOT}${path.sep}`)
+          ) {
+            res.statusCode = 403;
+            res.end();
+            return;
+          }
+          if (!fs.existsSync(resolved) || !fs.statSync(resolved).isFile()) {
+            next();
+            return;
+          }
+          res.setHeader("content-type", getStaticMimeType(resolved));
+          res.end(fs.readFileSync(resolved));
+        } catch {
+          next();
+        }
+      });
+    },
+    generateBundle() {
+      if (!fs.existsSync(DATA_FILES_ROOT)) return;
+      const walk = (cur: string, relDir: string) => {
+        for (const ent of fs.readdirSync(cur, { withFileTypes: true })) {
+          if (ent.name === ".DS_Store") continue;
+          const rel = relDir ? `${relDir}/${ent.name}` : ent.name;
+          if (rel === "home/user" || rel.startsWith("home/user/")) continue;
+          if (rel === "home" && !fs.readdirSync(path.join(cur, ent.name)).some((n) => n !== "user")) {
+            continue;
+          }
+          const full = path.join(cur, ent.name);
+          if (ent.isDirectory()) {
+            walk(full, rel);
+          } else {
+            this.emitFile({
+              type: "asset",
+              fileName: `__fs/${rel}`,
+              source: fs.readFileSync(full),
+            });
+          }
+        }
+      };
+      walk(DATA_FILES_ROOT, "");
+      this.emitFile({
+        type: "asset",
+        fileName: "__fs_tree.json",
+        source: JSON.stringify(buildStaticTreeIndex(DATA_FILES_ROOT)),
+      });
+    },
+  };
+}
 
 function webMetaProxyPlugin(): Plugin {
   return {
@@ -189,13 +295,13 @@ function webMetaProxyPlugin(): Plugin {
 
 export default defineConfig({
   base: "./",
-  plugins: [react(), tailwindcss(), webMetaProxyPlugin()],
+  plugins: [react(), tailwindcss(), webMetaProxyPlugin(), dataFilesStaticPlugin()],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "src"),
-      "xdg-basedir": path.resolve(__dirname, "src/lib/xdg-basedir.ts"),
-      "xdg-desktop-entry": path.resolve(__dirname, "src/lib/xdg-desktop-entry.ts"),
-      "xdg-icon-theme": path.resolve(__dirname, "src/lib/xdg-icon-theme.ts"),
+      "xdg-basedir": path.resolve(__dirname, "src/lib/xdg/xdg-basedir.ts"),
+      "xdg-desktop-entry": path.resolve(__dirname, "src/lib/xdg/xdg-desktop-entry.ts"),
+      "xdg-icon-theme": path.resolve(__dirname, "src/lib/xdg/xdg-icon-theme.ts"),
     },
   },
   // @domicile-desktop/* track "next" directly; skip Vite pre-bundling so

@@ -1,7 +1,7 @@
 import * as React from "react";
 import { useDomicile } from "@domicile-desktop/react/domicile-provider";
 import { useWatch } from "@domicile-desktop/react/use-watch";
-import { FolderOpenIcon, PlusIcon, PuzzleIcon, RefreshCwIcon, SparklesIcon, Trash2Icon } from "lucide-react";
+import { FolderOpenIcon, PlusIcon, PuzzleIcon, RefreshCwIcon, SparklesIcon, Trash2Icon, UsbIcon } from "lucide-react";
 import { useWindowActions } from "@/context/DesktopStateContext";
 import { usePlugins } from "@/context/PluginsContext";
 import { Button } from "@/components/ui/button";
@@ -40,12 +40,31 @@ import {
   mergeAutostartEntries,
   parseAutostartDesktopFile,
   type XdgAutostartEntry,
-} from "@/lib/xdg-autostart";
+} from "@/lib/xdg/xdg-autostart";
 import { listVfsDir, WEB_VFS_HOME, writeVfsTextFile } from "@/lib/web-vfs";
+import {
+  hasNativeSystemHost,
+  setEngineOverride,
+  useEngineOverride,
+} from "@/lib/engine-override";
+import {
+  SIMULATED_USB_PATH,
+  toggleSimulatedUsb,
+  useSimulatedUsbMounted,
+} from "@/lib/usb-drive";
 
 export function AdvancedPane() {
   const domicile = useDomicile();
   const { isBrowserRuntime, settings, updateSettings } = useSettings();
+  const usbMounted = useSimulatedUsbMounted();
+  const engineOverride = useEngineOverride();
+  const nativeSystemAvailable = hasNativeSystemHost();
+  const effectiveEngine =
+    nativeSystemAvailable && engineOverride !== "web"
+      ? "system"
+      : isBrowserRuntime
+        ? "web"
+        : "system";
   const { launchApp } = useWindowActions();
   const {
     plugins: userPlugins,
@@ -305,6 +324,60 @@ export function AdvancedPane() {
                   updateSettings({ showFileExtensionBadges: checked })
                 }
               />
+            </GroupedFormRowControl>
+          </GroupedFormRow>
+        </GroupedFormGroup>
+      </GroupedFormSection>
+
+      <GroupedFormSection>
+        <GroupedFormSectionTitle>{_("Developer & Testing")}</GroupedFormSectionTitle>
+        <GroupedFormGroup>
+          <GroupedFormRow>
+            <GroupedFormRowLabel>
+              <GroupedFormRowTitle>{_("Runtime Engine (engine:web)")}</GroupedFormRowTitle>
+              <GroupedFormRowDescription>
+                {nativeSystemAvailable
+                  ? _(
+                      "Active engine: %s. Toggle to switch between simulated web engine and native Linux system engine.",
+                      `engine:${effectiveEngine}`
+                    )
+                  : _(
+                      "Active engine: engine:web. Switching to engine:system requires the Domicile Linux Wayland host."
+                    )}
+              </GroupedFormRowDescription>
+            </GroupedFormRowLabel>
+            <GroupedFormRowControl>
+              <Switch
+                aria-label={_("Use engine:web")}
+                disabled={!nativeSystemAvailable}
+                checked={effectiveEngine === "web"}
+                onCheckedChange={(checked) => {
+                  if (!nativeSystemAvailable) return;
+                  setEngineOverride(checked ? "web" : "system");
+                }}
+              />
+            </GroupedFormRowControl>
+          </GroupedFormRow>
+          <GroupedFormRow>
+            <GroupedFormRowLabel>
+              <GroupedFormRowTitle>{_("Simulated USB Pen Drive")}</GroupedFormRowTitle>
+              <GroupedFormRowDescription>
+                {usbMounted
+                  ? _("Mounted at %s", SIMULATED_USB_PATH)
+                  : _("Simulate plugging in a removable USB flash drive")}
+              </GroupedFormRowDescription>
+            </GroupedFormRowLabel>
+            <GroupedFormRowControl>
+              <Button
+                type="button"
+                size="sm"
+                variant={usbMounted ? "outline" : "default"}
+                className="gap-1.5"
+                onClick={toggleSimulatedUsb}
+              >
+                <UsbIcon className="size-3.5" />
+                {usbMounted ? _("Eject USB Drive") : _("Mount USB Drive")}
+              </Button>
             </GroupedFormRowControl>
           </GroupedFormRow>
         </GroupedFormGroup>

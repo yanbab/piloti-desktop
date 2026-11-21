@@ -55,22 +55,52 @@ function isReducedMotionActive(): boolean {
 
 /**
  * Renders a Lottie `.json` animated icon using `lottie-web` SVG renderer.
- * Plays smoothly when hovered (or `playing` becomes true) and rests cleanly
- * at frame 0 when idle or when reduced-motion is enabled.
+ * - For stateless icons (`open === undefined`, e.g. text documents), plays on
+ *   hover or whenever `playNonce` / `playing` triggers and rests at frame 0.
+ * - For stateful icons (`open !== undefined`, e.g. folders), frame 0..`openFrame`
+ *   opens cleanly on hover, drag-over, or when `open` is true, and smoothly
+ *   reverses to closed on mouseout/close; `playNonce` plays a drop-accept pulse.
  */
 export function LottieIcon({
   src,
   playing = false,
   loop = false,
+  open,
+  openFrame = 24,
+  dropRange = [24, 44],
+  playNonce = 0,
+  animateOnHover,
   className,
 }: {
   src: string;
   playing?: boolean;
   loop?: boolean;
+  open?: boolean;
+  openFrame?: number;
+  dropRange?: readonly [number, number];
+  playNonce?: number;
+  animateOnHover?: boolean;
   className?: string;
 }) {
   const containerRef = React.useRef<HTMLDivElement | null>(null);
   const animRef = React.useRef<AnimationItem | null>(null);
+  const hoveredRef = React.useRef(false);
+  const openPropRef = React.useRef(open);
+  openPropRef.current = open;
+  const animateOnHoverRef = React.useRef(
+    animateOnHover ?? open !== undefined
+  );
+  animateOnHoverRef.current = animateOnHover ?? open !== undefined;
+  const openFrameRef = React.useRef(openFrame);
+  openFrameRef.current = openFrame;
+  const dropRangeRef = React.useRef(dropRange);
+  dropRangeRef.current = dropRange;
+  const prevPlayingRef = React.useRef(playing);
+  const prevPlayNonceRef = React.useRef(playNonce);
+  const initialMountPlayNonceRef = React.useRef(playNonce);
+  const desiredOpenRef = React.useRef(Boolean(open));
+  desiredOpenRef.current = Boolean(open) || (open !== undefined && hoveredRef.current);
+
   const [loadedData, setLoadedData] = React.useState<Record<string, unknown> | null>(
     () => decodeLottieDataUrl(src)
   );
@@ -90,11 +120,32 @@ export function LottieIcon({
           setLoadedData(data as Record<string, unknown>);
         }
       })
-      .catch(() => {});
+      .catch(() => { });
     return () => {
       cancelled = true;
     };
   }, [src]);
+
+  const syncStatefulAnimation = React.useCallback((shouldBeOpen: boolean) => {
+    const anim = animRef.current;
+    if (!anim) return;
+    const targetOpenFrame = openFrameRef.current;
+    const rawAbs = Math.round((anim.firstFrame ?? 0) + (anim.currentFrame ?? 0));
+    const currentAbs = Math.min(targetOpenFrame, Math.max(0, rawAbs));
+
+    if (isReducedMotionActive()) {
+      anim.resetSegments(true);
+      anim.goToAndStop(shouldBeOpen ? targetOpenFrame : 0, true);
+      return;
+    }
+    if (shouldBeOpen) {
+      if (currentAbs < targetOpenFrame) {
+        anim.playSegments([currentAbs, targetOpenFrame], true);
+      }
+    } else if (currentAbs > 0) {
+      anim.playSegments([currentAbs, 0], true);
+    }
+  }, []);
 
   React.useEffect(() => {
     const container = containerRef.current;
@@ -111,12 +162,37 @@ export function LottieIcon({
       },
     });
     animRef.current = anim;
-    anim.goToAndStop(0, true);
+
+    const isStateful = openPropRef.current !== undefined;
+    if (isStateful) {
+      const initOpen = Boolean(openPropRef.current) || hoveredRef.current;
+      anim.goToAndStop(initOpen ? openFrameRef.current : 0, true);
+      if (playNonce > initialMountPlayNonceRef.current && !isReducedMotionActive()) {
+        initialMountPlayNonceRef.current = playNonce;
+        const [dStart, dEnd] = dropRangeRef.current;
+        anim.playSegments([dStart, dEnd], true);
+      }
+    } else {
+      anim.goToAndStop(0, true);
+      if (
+        (playing || playNonce > 0) &&
+        !isReducedMotionActive()
+      ) {
+        anim.goToAndPlay(0, true);
+      }
+    }
 
     const onComplete = () => {
-      if (!loop) {
-        anim.goToAndStop(0, true);
+      if (loop) return;
+      if (openPropRef.current !== undefined) {
+        const shouldOpen = Boolean(openPropRef.current) || hoveredRef.current;
+        const rawAbs = Math.round((anim.firstFrame ?? 0) + (anim.currentFrame ?? 0));
+        if (!shouldOpen && rawAbs > 0) {
+          anim.playSegments([Math.min(openFrameRef.current, rawAbs), 0], true);
+        }
+        return;
       }
+      anim.goToAndStop(0, true);
     };
     anim.addEventListener("complete", onComplete);
 
@@ -124,26 +200,55 @@ export function LottieIcon({
       container.closest("button, [role='button'], [data-dock-tile], [role='option']") ??
       container;
     const handleEnter = () => {
-      if (isReducedMotionActive()) return;
+      hoveredRef.current = true;
+      if (openPropRef.current !== undefined) {
+        syncStatefulAnimation(true);
+        return;
+      }
+      if (!animateOnHoverRef.current || isReducedMotionActive()) return;
       anim.goToAndPlay(0, true);
     };
+    const handleLeave = () => {
+      hoveredRef.current = false;
+      if (openPropRef.current !== undefined) {
+        syncStatefulAnimation(Boolean(openPropRef.current));
+      }
+    };
     triggerTarget.addEventListener("pointerenter", handleEnter);
+    triggerTarget.addEventListener("pointerleave", handleLeave);
 
     return () => {
       triggerTarget.removeEventListener("pointerenter", handleEnter);
+      triggerTarget.removeEventListener("pointerleave", handleLeave);
       anim.removeEventListener("complete", onComplete);
       anim.destroy();
       if (animRef.current === anim) {
         animRef.current = null;
       }
     };
-  }, [loadedData, loop]);
+  }, [loadedData, loop, syncStatefulAnimation]);
+
+  React.useEffect(() => {
+    if (open === undefined) return;
+    syncStatefulAnimation(Boolean(open) || hoveredRef.current);
+  }, [open, syncStatefulAnimation]);
 
   React.useEffect(() => {
     const anim = animRef.current;
-    if (!anim || !playing || isReducedMotionActive()) return;
+    const playingRose = playing && !prevPlayingRef.current;
+    const nonceRose = playNonce !== prevPlayNonceRef.current && playNonce > 0;
+    prevPlayingRef.current = playing;
+    prevPlayNonceRef.current = playNonce;
+    if (!anim || isReducedMotionActive()) return;
+    if (!playingRose && !nonceRose) return;
+
+    if (openPropRef.current !== undefined) {
+      const [dStart, dEnd] = dropRangeRef.current;
+      anim.playSegments([dStart, dEnd], true);
+      return;
+    }
     anim.goToAndPlay(0, true);
-  }, [playing]);
+  }, [playing, playNonce]);
 
   return (
     <div

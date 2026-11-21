@@ -19,6 +19,12 @@ export interface AdwSplitSidebarItem {
   ariaLabel?: string;
   dropPath?: string;
   separatorAfter?: boolean;
+  pinnedBottom?: boolean;
+  trailingAction?: {
+    icon: React.ReactNode;
+    label: string;
+    onClick: () => void;
+  };
 }
 
 export interface AdwSplitRenderContext {
@@ -189,80 +195,125 @@ export function AdwSplitView({
               isCsd ? "pt-0.5" : tall ? "pt-2.5" : "pt-2",
             )}
           >
-            {sidebarItems.map((item) => {
-              const btn = (
-                <button
-                  key={item.id}
-                  type="button"
-                  aria-label={item.ariaLabel ?? item.label}
-                  data-sidebar-item={item.id}
-                  data-vfs-drop-path={item.dropPath}
-                  onClick={item.onClick}
-                  className={cn(
-                    "flex w-full shrink-0 items-center rounded-[9px] text-left transition-colors outline-none",
-                    isCompact
-                      ? "justify-center px-0"
-                      : "px-2.5",
-                    tall
-                      ? isCompact
-                        ? "gap-0 py-2 text-[14px]"
-                        : "gap-3 py-2 text-[14px]"
-                      : isCompact
-                        ? "gap-0 py-1.5 text-[13px]"
-                        : "gap-2.5 py-1.5 text-[13px]",
-                    item.selected
-                      ? "bg-adw-sidebar-selection font-medium text-adw-label"
-                      : "font-normal text-adw-label/85 hover:bg-black/5 dark:hover:bg-white/6",
-                  )}
-                >
-                  <span className="flex size-4 shrink-0 items-center justify-center opacity-85 [&_svg]:size-4">
-                    {item.icon}
-                  </span>
-                  {!isCompact && (
-                    <span className="truncate">{item.label}</span>
-                  )}
-                </button>
-              );
+            {(() => {
+              const renderItem = (item: AdwSplitSidebarItem) => {
+                const baseBtn = (
+                  <button
+                    key={item.trailingAction ? undefined : item.id}
+                    type="button"
+                    aria-label={item.ariaLabel ?? item.label}
+                    data-sidebar-item={item.id}
+                    data-vfs-drop-path={item.dropPath}
+                    onClick={item.onClick}
+                    className={cn(
+                      "flex min-w-0 flex-1 items-center rounded-[9px] text-left transition-colors outline-none",
+                      isCompact
+                        ? "w-full justify-center px-0"
+                        : item.trailingAction
+                          ? "px-2.5 pr-8"
+                          : "w-full px-2.5",
+                      tall
+                        ? isCompact
+                          ? "gap-0 py-2 text-[14px]"
+                          : "gap-3 py-2 text-[14px]"
+                        : isCompact
+                          ? "gap-0 py-1.5 text-[13px]"
+                          : "gap-2.5 py-1.5 text-[13px]",
+                      !item.trailingAction &&
+                        (item.selected
+                          ? "bg-adw-sidebar-selection font-medium text-adw-label"
+                          : "font-normal text-adw-label/85 hover:bg-black/5 dark:hover:bg-white/6"),
+                    )}
+                  >
+                    <span className="flex size-4 shrink-0 items-center justify-center opacity-85 [&_svg]:size-4">
+                      {item.icon}
+                    </span>
+                    {!isCompact && (
+                      <span className="truncate">{item.label}</span>
+                    )}
+                  </button>
+                );
 
-              const sep = item.separatorAfter ? (
-                <div className="my-1 h-px shrink-0 bg-adw-separator" />
-              ) : null;
+                const itemNode = item.trailingAction && !isCompact ? (
+                  <div
+                    className={cn(
+                      "relative flex w-full shrink-0 items-center rounded-[9px] transition-colors",
+                      item.selected
+                        ? "bg-adw-sidebar-selection font-medium text-adw-label"
+                        : "font-normal text-adw-label/85 hover:bg-black/5 dark:hover:bg-white/6",
+                    )}
+                  >
+                    {baseBtn}
+                    <button
+                      type="button"
+                      aria-label={item.trailingAction.label}
+                      title={item.trailingAction.label}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        item.trailingAction?.onClick();
+                      }}
+                      className="absolute right-1.5 flex size-6 items-center justify-center rounded-md text-adw-label-secondary transition-colors hover:bg-black/10 hover:text-adw-label dark:hover:bg-white/12 [&_svg]:size-3.5"
+                    >
+                      {item.trailingAction.icon}
+                    </button>
+                  </div>
+                ) : (
+                  baseBtn
+                );
 
-              if (!isCompact) {
+                const sep = item.separatorAfter ? (
+                  <div className="my-1 h-px shrink-0 bg-adw-separator" />
+                ) : null;
+
+                if (!isCompact) {
+                  return (
+                    <React.Fragment key={item.id}>
+                      {itemNode}
+                      {sep}
+                    </React.Fragment>
+                  );
+                }
                 return (
                   <React.Fragment key={item.id}>
-                    {btn}
+                    <Tooltip>
+                      <TooltipTrigger render={baseBtn} />
+                      <TooltipContent
+                        side="right"
+                        sideOffset={-36}
+                        className={cn(
+                          "pointer-events-none rounded-[9px] border border-adw-separator px-2.5 shadow-md",
+                          tall
+                            ? "h-[37px] gap-3 py-2 text-[14px]"
+                            : "h-[32px] gap-2.5 py-1.5 text-[13px]",
+                          item.selected
+                            ? "bg-adw-sidebar-selection font-medium text-adw-label"
+                            : "bg-adw-sidebar font-normal text-adw-label",
+                        )}
+                      >
+                        <span className="flex size-4 shrink-0 items-center justify-center opacity-85 [&_svg]:size-4">
+                          {item.icon}
+                        </span>
+                        <span className="whitespace-nowrap">{item.label}</span>
+                      </TooltipContent>
+                    </Tooltip>
                     {sep}
                   </React.Fragment>
                 );
-              }
+              };
+
+              const regularItems = sidebarItems.filter((item) => !item.pinnedBottom);
+              const bottomItems = sidebarItems.filter((item) => item.pinnedBottom);
               return (
-                <React.Fragment key={item.id}>
-                  <Tooltip>
-                    <TooltipTrigger render={btn} />
-                    <TooltipContent
-                      side="right"
-                      sideOffset={-36}
-                      className={cn(
-                        "pointer-events-none rounded-[9px] border border-adw-separator px-2.5 shadow-md",
-                        tall
-                          ? "h-[37px] gap-3 py-2 text-[14px]"
-                          : "h-[32px] gap-2.5 py-1.5 text-[13px]",
-                        item.selected
-                          ? "bg-adw-sidebar-selection font-medium text-adw-label"
-                          : "bg-adw-sidebar font-normal text-adw-label",
-                      )}
-                    >
-                      <span className="flex size-4 shrink-0 items-center justify-center opacity-85 [&_svg]:size-4">
-                        {item.icon}
-                      </span>
-                      <span className="whitespace-nowrap">{item.label}</span>
-                    </TooltipContent>
-                  </Tooltip>
-                  {sep}
-                </React.Fragment>
+                <>
+                  {regularItems.map(renderItem)}
+                  {bottomItems.length > 0 && (
+                    <div className="mt-auto flex flex-col gap-0.5 border-t border-adw-separator/60 pt-1.5">
+                      {bottomItems.map(renderItem)}
+                    </div>
+                  )}
+                </>
               );
-            })}
+            })()}
           </nav>
         </TooltipProvider>
       </aside>

@@ -6,12 +6,14 @@ import {
   createVfsTextFile,
   duplicateVfsEntry,
   emptyVfsTrash,
+  getVfsAccessCount,
   getVfsClipboard,
   getVfsContentType,
   getVfsEmblems,
   getVfsEntry,
   getVfsImageThumbnailUrl,
   hasVfsEmblem,
+  incrementVfsAccessCount,
   isVfsFavorite,
   listVfsDir,
   moveVfsEntry,
@@ -197,6 +199,15 @@ describe("web-vfs", () => {
     expect(inferFileVisual(video.name, video.kind, getVfsContentType(video)).iconCandidates[0]).toBe(
       "video-x-generic"
     );
+  });
+
+  it("tracks VFS file accessCount across opens", () => {
+    const notePath = `${WEB_VFS_HOME}/Documents/Notes.txt`;
+    expect(getVfsAccessCount(notePath)).toBe(0);
+    expect(incrementVfsAccessCount(notePath)).toBe(1);
+    expect(incrementVfsAccessCount(notePath)).toBe(2);
+    expect(getVfsEntry(notePath)?.accessCount).toBe(2);
+    expect(incrementVfsAccessCount(`${WEB_VFS_HOME}/Missing.txt`)).toBe(0);
   });
 });
 

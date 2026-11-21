@@ -389,7 +389,7 @@ export function Launcher() {
           score: scoreMatch(
             tokens,
             app.name,
-            `${app.shortName} ${app.description}`
+            `${app.shortName} ${app.command ?? ""} ${app.description}`
           ),
           icon: (
             <AppSquircleIcon

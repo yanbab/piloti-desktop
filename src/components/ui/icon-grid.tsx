@@ -38,6 +38,7 @@ import { cn } from "@/lib/utils";
 import {
   getVfsEntry,
   getVfsImageThumbnailUrl,
+  importExternalFilesToVfs,
   loadVfsEmblemsMap,
   subscribeWebVfs,
   VFS_EMBLEM_META,
@@ -133,6 +134,7 @@ interface DragState {
   currentX: number;
   currentY: number;
   active: boolean;
+  canceling?: boolean;
   targetCell: GridCoord | null;
 }
 
@@ -198,6 +200,78 @@ export function IconGrid({
   const [hoveredDropPath, setHoveredDropPath] = React.useState<string | null>(
     null,
   );
+  const [folderDropNonces, setFolderDropNonces] = React.useState<
+    Record<string, number>
+  >({});
+  const [fileAnimNonces, setFileAnimNonces] = React.useState<
+    Record<string, number>
+  >({});
+  const prevEmptyStateRef = React.useRef<Map<string, boolean>>(new Map());
+  const prevOpenFilePathsRef = React.useRef<Set<string> | null>(null);
+
+  React.useEffect(() => {
+    const onFolderDrop = (e: Event) => {
+      const detail = (e as CustomEvent<{ path?: string }>).detail;
+      const norm = detail?.path?.replace(/\/+$/, "") || "/";
+      if (!norm) return;
+      setFolderDropNonces((prev) => ({
+        ...prev,
+        [norm]: (prev[norm] ?? 0) + 1,
+      }));
+    };
+    window.addEventListener("piloti:folder-drop-anim", onFolderDrop);
+    return () =>
+      window.removeEventListener("piloti:folder-drop-anim", onFolderDrop);
+  }, []);
+
+  React.useEffect(() => {
+    const updates: Record<string, number> = {};
+    const prevMap = prevEmptyStateRef.current;
+    const nextMap = new Map<string, boolean>();
+    for (const item of items) {
+      if (item.kind !== "file" || !item.path || item.isEmpty === undefined) continue;
+      const norm = item.path.replace(/\/+$/, "") || "/";
+      if (prevMap.get(norm) === true && item.isEmpty === false) {
+        updates[norm] = (updates[norm] ?? 0) + 1;
+      }
+      nextMap.set(norm, item.isEmpty);
+    }
+    prevEmptyStateRef.current = nextMap;
+    if (Object.keys(updates).length > 0) {
+      setFileAnimNonces((prev) => {
+        const merged = { ...prev };
+        for (const [k, delta] of Object.entries(updates)) {
+          merged[k] = (merged[k] ?? 0) + delta;
+        }
+        return merged;
+      });
+    }
+  }, [items]);
+
+  React.useEffect(() => {
+    if (prevOpenFilePathsRef.current === null) {
+      prevOpenFilePathsRef.current = new Set(openFilePaths);
+      return;
+    }
+    const prevSet = prevOpenFilePathsRef.current;
+    const toggledPaths: string[] = [];
+    for (const p of openFilePaths) {
+      if (!prevSet.has(p)) toggledPaths.push(p);
+    }
+    for (const p of prevSet) {
+      if (!openFilePaths.has(p)) toggledPaths.push(p);
+    }
+    prevOpenFilePathsRef.current = new Set(openFilePaths);
+    if (toggledPaths.length > 0) {
+      setFileAnimNonces((prev) => {
+        const next = { ...prev };
+        for (const p of toggledPaths) {
+          next[p] = (next[p] ?? 0) + 1;
+        }
+        return next;
+      });
+    }
+  }, [openFilePaths]);
   const [emblemsMap, setEmblemsMap] = React.useState<
     Record<string, VfsEmblemId[]>
   >(() => loadVfsEmblemsMap());
@@ -356,8 +430,8 @@ export function IconGrid({
       }
       const draggedPaths = detail.items?.length
         ? detail.items
-            .map((d) => d.path)
-            .filter((p): p is string => Boolean(p))
+          .map((d) => d.path)
+          .filter((p): p is string => Boolean(p))
         : detail.item?.path
           ? [detail.item.path]
           : [];
@@ -381,7 +455,7 @@ export function IconGrid({
 
     const handlePointerMove = (e: PointerEvent) => {
       const cur = dragRef.current;
-      if (!cur || e.pointerId !== cur.pointerId) return;
+      if (!cur || cur.canceling || e.pointerId !== cur.pointerId) return;
       const dx = e.clientX - cur.startX;
       const dy = e.clientY - cur.startY;
       const movedEnough = cur.active || Math.hypot(dx, dy) >= 6;
@@ -425,7 +499,7 @@ export function IconGrid({
 
     const handlePointerUp = (e: PointerEvent) => {
       const cur = dragRef.current;
-      if (!cur || e.pointerId !== cur.pointerId) return;
+      if (!cur || cur.canceling || e.pointerId !== cur.pointerId) return;
       if (rafId) {
         cancelAnimationFrame(rafId);
         rafId = 0;
@@ -440,10 +514,10 @@ export function IconGrid({
         const rect = containerRef.current?.getBoundingClientRect();
         const dropCell = rect
           ? clientPointToGridCell(
-              e.clientX - rect.left,
-              e.clientY - rect.top,
-              metrics,
-            )
+            e.clientX - rect.left,
+            e.clientY - rect.top,
+            metrics,
+          )
           : cur.targetCell;
         const draggedItems = items.filter((i) =>
           cur.draggedIds.includes(i.id),
@@ -517,6 +591,11 @@ export function IconGrid({
               } else if (onDropItem) {
                 onDropItem(draggedItem, e.clientX, e.clientY);
               }
+              window.dispatchEvent(
+                new CustomEvent("piloti:folder-drop-anim", {
+                  detail: { path: topTarget.destPath },
+                }),
+              );
             }
           } else if (!topTarget && mode === "spatial" && dropCell) {
             pendingSettleRef.current = {
@@ -541,7 +620,7 @@ export function IconGrid({
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
       const cur = dragRef.current;
-      if (!cur) return;
+      if (!cur || cur.canceling) return;
       e.preventDefault();
       e.stopPropagation();
       if (rafId) {
@@ -549,6 +628,8 @@ export function IconGrid({
         rafId = 0;
       }
       if (cur.active) {
+        cur.canceling = true;
+        setDrag((prev) => (prev ? { ...prev, canceling: true } : null));
         window.dispatchEvent(
           new CustomEvent("residence:file-drag", {
             detail: { active: false },
@@ -556,13 +637,14 @@ export function IconGrid({
         );
         const ghost = dragGhostRef.current;
         if (ghost) {
+          ghost.getBoundingClientRect();
           ghost.style.transition =
-            "transform 220ms cubic-bezier(0.22, 1, 0.36, 1)";
+            "transform 240ms cubic-bezier(0.22, 1, 0.36, 1)";
           ghost.style.transform = "translate3d(0px, 0px, 0)";
           cancelTimer = window.setTimeout(() => {
             dragRef.current = null;
             setDrag(null);
-          }, 220);
+          }, 240);
           return;
         }
       }
@@ -670,11 +752,11 @@ export function IconGrid({
         setMarquee((prev) =>
           prev
             ? {
-                ...prev,
-                currentX,
-                currentY,
-                active: true,
-              }
+              ...prev,
+              currentX,
+              currentY,
+              active: true,
+            }
             : null,
         );
       }
@@ -729,11 +811,21 @@ export function IconGrid({
       return;
     }
 
-    if (e.key === "Enter" || e.key === " ") {
+    if (
+      (e.key === "Enter" || e.key === " ") &&
+      !e.ctrlKey &&
+      !e.metaKey &&
+      !e.altKey
+    ) {
       if (!primarySelectedId) return;
       const target = items.find((item) => item.id === primarySelectedId);
       if (target) {
         e.preventDefault();
+        e.stopPropagation();
+        if (target.kind === "file" && target.path) {
+          const norm = target.path.replace(/\/+$/, "") || "/";
+          setFileAnimNonces((prev) => ({ ...prev, [norm]: (prev[norm] ?? 0) + 1 }));
+        }
         onActivateItem(target);
       }
       return;
@@ -766,11 +858,11 @@ export function IconGrid({
   const firstVisibleId = items[0]?.id ?? null;
   const marqueeRect = marquee?.active
     ? normalizeRect(
-        marquee.startX,
-        marquee.startY,
-        marquee.currentX,
-        marquee.currentY,
-      )
+      marquee.startX,
+      marquee.startY,
+      marquee.currentX,
+      marquee.currentY,
+    )
     : null;
 
   return (
@@ -818,9 +910,9 @@ export function IconGrid({
       className={cn(
         "relative h-full w-full overflow-hidden bg-transparent outline-none",
         mode === "flow" &&
-          (compactHorizontal
-            ? "flex flex-wrap content-start gap-0.5 overflow-y-auto p-3"
-            : "flex flex-wrap content-start gap-2 overflow-y-auto p-4"),
+        (compactHorizontal
+          ? "flex flex-wrap content-start gap-0.5 overflow-y-auto p-3"
+          : "flex flex-wrap content-start gap-2 overflow-y-auto p-4"),
         className,
       )}
     >
@@ -847,19 +939,19 @@ export function IconGrid({
         const spatialStyle: React.CSSProperties =
           mode === "spatial"
             ? {
-                position: "absolute",
-                left: `${padding + coord.col * effectiveCellWidth}px`,
-                top: `${padding + coord.row * effectiveCellHeight}px`,
-                width: `${effectiveCellWidth}px`,
-                height: `${effectiveCellHeight}px`,
-                zIndex: isDragging ? 9999 : selected ? 20 : 1,
-                opacity: isDragging ? 0.25 : isHiddenFile ? 0.55 : undefined,
-              }
+              position: "absolute",
+              left: `${padding + coord.col * effectiveCellWidth}px`,
+              top: `${padding + coord.row * effectiveCellHeight}px`,
+              width: `${effectiveCellWidth}px`,
+              height: `${effectiveCellHeight}px`,
+              zIndex: isDragging ? 9999 : selected ? 20 : 1,
+              opacity: isDragging ? 0.25 : isHiddenFile ? 0.55 : undefined,
+            }
             : {
-                width: `${effectiveCellWidth}px`,
-                height: `${effectiveCellHeight}px`,
-                opacity: isDragging ? 0.25 : isHiddenFile ? 0.55 : undefined,
-              };
+              width: `${effectiveCellWidth}px`,
+              height: `${effectiveCellHeight}px`,
+              opacity: isDragging ? 0.25 : isHiddenFile ? 0.55 : undefined,
+            };
 
         return (
           <button
@@ -879,7 +971,7 @@ export function IconGrid({
             }
             tabIndex={
               item.id === primarySelectedId ||
-              (!primarySelectedId && item.id === firstVisibleId)
+                (!primarySelectedId && item.id === firstVisibleId)
                 ? 0
                 : -1
             }
@@ -943,6 +1035,10 @@ export function IconGrid({
               }
               if (settings.fileActivationMode !== "double" || item.kind === "desktop-entry") {
                 captureLaunchOriginFromElement(e.currentTarget);
+                if (item.kind === "file" && item.path) {
+                  const norm = item.path.replace(/\/+$/, "") || "/";
+                  setFileAnimNonces((prev) => ({ ...prev, [norm]: (prev[norm] ?? 0) + 1 }));
+                }
                 onActivateItem(item);
               }
             }}
@@ -950,6 +1046,10 @@ export function IconGrid({
               e.stopPropagation();
               if (settings.fileActivationMode === "double" && item.kind !== "desktop-entry") {
                 captureLaunchOriginFromElement(e.currentTarget);
+                if (item.kind === "file" && item.path) {
+                  const norm = item.path.replace(/\/+$/, "") || "/";
+                  setFileAnimNonces((prev) => ({ ...prev, [norm]: (prev[norm] ?? 0) + 1 }));
+                }
                 onActivateItem(item);
               }
             }}
@@ -965,9 +1065,24 @@ export function IconGrid({
                 setHoveredDropPath(null);
               }
             }}
-            onDrop={() => {
+            onDrop={(e) => {
               if (hoveredDropPath === item.path) {
                 setHoveredDropPath(null);
+              }
+              if (
+                item.kind === "directory" &&
+                item.path &&
+                e.dataTransfer?.files?.length
+              ) {
+                e.preventDefault();
+                e.stopPropagation();
+                void importExternalFilesToVfs(item.path, e.dataTransfer.files).then(() => {
+                  window.dispatchEvent(
+                    new CustomEvent("piloti:folder-drop-anim", {
+                      detail: { path: item.path },
+                    }),
+                  );
+                });
               }
             }}
             onContextMenu={(e) => {
@@ -985,7 +1100,7 @@ export function IconGrid({
                 ? "flex-row items-center justify-start gap-1 px-1.5 py-0.5 text-left"
                 : "flex-col items-center justify-start gap-1 px-1 py-1.5 text-center",
               !isDragging &&
-                "transition-[left,top,width,height,background-color,opacity] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)]",
+              "transition-[left,top,width,height,background-color,opacity] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)]",
               isDragging && "opacity-25",
             )}
           >
@@ -994,9 +1109,9 @@ export function IconGrid({
               className={cn(
                 "relative shrink-0 drop-shadow-[0_1px_2px_rgba(0,0,0,0.2)] transition-[width,height,opacity,filter] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)]",
                 item.kind === "file" &&
-                  item.path &&
-                  openFilePaths.has(item.path.replace(/\/+$/, "") || "/") &&
-                  "opacity-55 grayscale-[0.45] brightness-90"
+                item.path &&
+                openFilePaths.has(item.path.replace(/\/+$/, "") || "/") &&
+                "opacity-55 grayscale-[0.45] brightness-90"
               )}
             >
               {(() => {
@@ -1006,10 +1121,10 @@ export function IconGrid({
                     : undefined;
                 const thumbUrl = vfsEntry
                   ? getVfsImageThumbnailUrl(
-                      item.name,
-                      vfsEntry.content,
-                      vfsEntry.metadata
-                    )
+                    item.name,
+                    vfsEntry.content,
+                    vfsEntry.metadata
+                  )
                   : undefined;
                 if (thumbUrl) {
                   return (
@@ -1024,16 +1139,16 @@ export function IconGrid({
                   );
                 }
                 if (item.kind === "directory") {
+                  const normDir = item.path?.replace(/\/+$/, "") || "/";
                   const isOpened =
                     openFolderPaths.has(item.path) || hoveredDropPath === item.path;
-                  const activeFolderLottie = isOpened
-                    ? folderOpenLottieUrl ?? folderLottieUrl
-                    : folderLottieUrl;
+                  const activeFolderLottie = folderLottieUrl ?? folderOpenLottieUrl;
                   if (activeFolderLottie) {
                     return (
                       <LottieIcon
                         src={activeFolderLottie}
-                        playing={isOpened}
+                        open={isOpened}
+                        playNonce={folderDropNonces[normDir] ?? 0}
                         className="size-full drop-shadow-[0_1px_2px_rgba(0,0,0,0.22)]"
                       />
                     );
@@ -1048,11 +1163,13 @@ export function IconGrid({
                   );
                 }
                 if (item.kind === "file") {
+                  const normFile = item.path?.replace(/\/+$/, "") || "/";
                   if (item.iconUrl) {
                     if (isLottieIconUrl(item.iconUrl)) {
                       return (
                         <LottieIcon
                           src={item.iconUrl}
+                          playNonce={fileAnimNonces[normFile] ?? 0}
                           className="size-full drop-shadow-[0_1px_2px_rgba(0,0,0,0.22)]"
                         />
                       );
@@ -1211,10 +1328,18 @@ export function IconGrid({
                 <span
                   className={cn(
                     !compactHorizontal &&
-                      "block line-clamp-2 break-words pb-[1px]",
+                    "block line-clamp-2 break-words pb-[1px]",
                   )}
                 >
                   {item.name}
+                  {item.kind === "file" && item.accessCount !== undefined && (
+                    <span
+                      data-testid="vfs-access-count"
+                      className="ml-1 inline-block rounded bg-black/15 px-1 py-px font-mono text-[9.5px] leading-none opacity-75 dark:bg-white/15"
+                    >
+                      {item.accessCount}
+                    </span>
+                  )}
                 </span>
               </span>
             )}
@@ -1233,7 +1358,7 @@ export function IconGrid({
               ref={(el) => {
                 dragGhostRef.current = el;
                 const latest = dragRef.current;
-                if (el && latest) {
+                if (el && latest && !latest.canceling) {
                   el.style.transform = `translate3d(${latest.currentX - latest.startX}px, ${latest.currentY - latest.startY}px, 0)`;
                 }
               }}
@@ -1243,7 +1368,10 @@ export function IconGrid({
                 width: `${effectiveCellWidth}px`,
                 height: `${effectiveCellHeight}px`,
                 willChange: "transform",
-                transition: "none",
+                transition: drag.canceling
+                  ? "transform 240ms cubic-bezier(0.22, 1, 0.36, 1)"
+                  : "none",
+                ...(drag.canceling ? { transform: "translate3d(0px, 0px, 0)" } : {}),
                 animation: "none",
               }}
               className={cn(

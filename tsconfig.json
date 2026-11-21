@@ -14,12 +14,12 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
-      "xdg-basedir": ["./src/lib/xdg-basedir.ts"],
-      "xdg-desktop-entry": ["./src/lib/xdg-desktop-entry.ts"],
-      "xdg-icon-theme": ["./src/lib/xdg-icon-theme.ts"]
+      "xdg-basedir": ["./src/lib/xdg/xdg-basedir.ts"],
+      "xdg-desktop-entry": ["./src/lib/xdg/xdg-desktop-entry.ts"],
+      "xdg-icon-theme": ["./src/lib/xdg/xdg-icon-theme.ts"]
     }
   },
-  "include": ["src", "desktop.tsx"],
+  "include": ["src"],
   "exclude": ["**/*.test.ts"]
 }
 

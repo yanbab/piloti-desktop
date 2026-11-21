@@ -38,7 +38,7 @@ import {
   installWebAppDesktopEntry,
   loadWebAppsFromDesktopEntries,
   XDG_WEBAPPS_CHANGED_EVENT,
-} from "@/lib/xdg-web-apps";
+} from "@/lib/xdg/xdg-web-apps";
 import {
   DEFAULT_GNOME_BACKGROUND,
   type BackgroundRenderSpec,
@@ -47,7 +47,7 @@ import {
   localPathToFileUri,
   resolveBackgroundRenderSpec,
   selectGnomePictureUri,
-} from "@/lib/engine-system/background";
+} from "@/lib/engine-desktop/background";
 import { clampHistoryLimit } from "@/lib/notifications";
 import {
   readGnomeBackgroundBlob,
@@ -63,7 +63,7 @@ import {
   type GtkFontAntialiasing,
   type GtkFontHinting,
   type GtkFontRgbaOrder,
-} from "@/lib/engine-system";
+} from "@/lib/engine-desktop";
 import { startBootPhase } from "@/lib/perf-log";
 import { subscribeLocale } from "@/lib/i18n";
 import type { DesktopIconAlign } from "@/lib/desktop-icons";
@@ -238,7 +238,7 @@ const DEFAULT_SETTINGS: DesktopSettings = {
   enabledPluginIds: [],
   computerModel:
     typeof navigator !== "undefined" &&
-    /mac/i.test(navigator.platform || navigator.userAgent || "")
+      /mac/i.test(navigator.platform || navigator.userAgent || "")
       ? "mac"
       : "pc",
   desktopIconPositions: {},
@@ -300,9 +300,9 @@ const WEB_HIDDEN_APP_IDS = new Set([
 function normalizeWebPinnedApps(rawPins: unknown): string[] {
   const base = Array.isArray(rawPins)
     ? rawPins.filter(
-        (id): id is string =>
-          typeof id === "string" && !WEB_HIDDEN_APP_IDS.has(id)
-      )
+      (id): id is string =>
+        typeof id === "string" && !WEB_HIDDEN_APP_IDS.has(id)
+    )
     : [];
   const merged = [...base];
   for (const requiredId of DEFAULT_WEB_PINNED_APP_IDS) {
@@ -377,7 +377,7 @@ export function resolveInitialSettings(
 
         const notificationBannerTimeoutMs =
           typeof parsed.notificationBannerTimeoutMs === "number" &&
-          Number.isFinite(parsed.notificationBannerTimeoutMs)
+            Number.isFinite(parsed.notificationBannerTimeoutMs)
             ? Math.max(0, parsed.notificationBannerTimeoutMs)
             : DEFAULT_SETTINGS.notificationBannerTimeoutMs;
         const notificationHistoryLimit = clampHistoryLimit(
@@ -499,6 +499,9 @@ export function useSettingsValue(options?: {
     brightness?: ReturnType<typeof setTimeout>;
     boundsStorage?: ReturnType<typeof setTimeout>;
     iconsStorage?: ReturnType<typeof setTimeout>;
+    gnomeBg?: ReturnType<typeof setTimeout>;
+    gnomeBgPending?: Partial<GnomeBackgroundSettings>;
+    xdgWebApps?: ReturnType<typeof setTimeout>;
   }>({});
 
   React.useEffect(() => {
@@ -734,16 +737,30 @@ export function useSettingsValue(options?: {
         }
         return;
       }
-      setSettings((prev) => ({
-        ...prev,
-        installedWebApps: fromXdg,
-      }));
+      if (
+        JSON.stringify(fromXdg) ===
+        JSON.stringify(settingsRef.current.installedWebApps)
+      ) {
+        return;
+      }
+      setSettings((prev) => {
+        if (JSON.stringify(fromXdg) === JSON.stringify(prev.installedWebApps)) {
+          return prev;
+        }
+        return {
+          ...prev,
+          installedWebApps: fromXdg,
+        };
+      });
     };
 
     void syncFromXdg(true);
 
     const onXdgChanged = () => {
-      void syncFromXdg(false);
+      clearTimeout(sliderTimersRef.current.xdgWebApps);
+      sliderTimersRef.current.xdgWebApps = setTimeout(() => {
+        void syncFromXdg(false);
+      }, 150);
     };
     window.addEventListener(XDG_WEBAPPS_CHANGED_EVENT, onXdgChanged);
     if (isBrowserRuntime) {
@@ -751,6 +768,7 @@ export function useSettingsValue(options?: {
     }
     return () => {
       cancelled = true;
+      clearTimeout(sliderTimersRef.current.xdgWebApps);
       window.removeEventListener(XDG_WEBAPPS_CHANGED_EVENT, onXdgChanged);
       if (isBrowserRuntime) {
         window.removeEventListener(WEB_VFS_CHANGED_EVENT, onXdgChanged);
@@ -825,7 +843,18 @@ export function useSettingsValue(options?: {
               }
             }
             if (Object.keys(bgDiff).length > 0) {
-              void syncGnomeBackgroundSettings(domicile, bgDiff);
+              sliderTimersRef.current.gnomeBgPending = {
+                ...sliderTimersRef.current.gnomeBgPending,
+                ...bgDiff,
+              };
+              clearTimeout(sliderTimersRef.current.gnomeBg);
+              sliderTimersRef.current.gnomeBg = setTimeout(() => {
+                const pending = sliderTimersRef.current.gnomeBgPending;
+                sliderTimersRef.current.gnomeBgPending = undefined;
+                if (pending && Object.keys(pending).length > 0) {
+                  void syncGnomeBackgroundSettings(domicile, pending);
+                }
+              }, 120);
             }
           }
 
@@ -847,7 +876,7 @@ export function useSettingsValue(options?: {
           if (patch.nightLight !== undefined) {
             domicile.displays
               .setColorTemperature(next.nightLight ? 4200 : 6500)
-              .catch(() => {});
+              .catch(() => { });
           }
 
           if (patch.volume !== undefined || patch.muted !== undefined) {
@@ -1125,7 +1154,7 @@ export function useSettingsValue(options?: {
     const applyTemp = () => {
       domicile.displays
         .setColorTemperature(settings.nightLight ? 4200 : 6500)
-        .catch(() => {});
+        .catch(() => { });
     };
     applyTemp();
     return domicile.on("compositorreplaced", applyTemp);
