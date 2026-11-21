@@ -1275,14 +1275,17 @@ export function WindowManager() {
       // Because `held` guarantees a live pointer press on this window, accepting
       // Unfullscreen when not fullscreen enables GTK4 headerbar moves while still
       // ignoring startup/no-press unset_fullscreen events.
+      // Omit `pointerId` so Wayland `<app>` drags use `window` capture listeners;
+      // calling `setPointerCapture` from an async IPC callback after an `<app>`
+      // pointerdown immediately triggers `lostpointercapture` in Chromium.
       if (
         rawReq.kind === 5 ||
         (req.kind === WindowRequestKind.Unfullscreen && !targetWin.fullscreen)
       ) {
-        handle.startMove(held.clientX, held.clientY, held.pointerId);
+        handle.startMove(held.clientX, held.clientY);
       } else if (rawReq.kind === 6 && typeof rawReq.edges === "number") {
         const edge = DOMICILE_RESIZE_EDGE_MAP[rawReq.edges];
-        if (edge) handle.startResize(edge, held.clientX, held.clientY, held.pointerId);
+        if (edge) handle.startResize(edge, held.clientX, held.clientY);
       }
     });
   }, [subscribeClientWindowRequest]);
