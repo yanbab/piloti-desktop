@@ -7,8 +7,9 @@ import {
   TagIcon,
 } from "lucide-react";
 import { AppSquircleIcon } from "@/components/shell/AppSymbol";
+import { isLottieIconUrl, LottieIcon } from "@/components/ui/lottie-icon";
 import { captureLaunchOriginFromElement } from "@/lib/launch-origin";
-import { useSettings, useWindowManager } from "@/context/DesktopStateContext";
+import { useApps, useSettings, useWindowManager } from "@/context/DesktopStateContext";
 import {
   DynamicFileIcon,
   DynamicFolderIcon,
@@ -171,7 +172,12 @@ export function IconGrid({
   className,
 }: IconGridProps) {
   const { settings, isBrowserRuntime } = useSettings();
+  const { getAppIconUrl } = useApps();
   const { windows } = useWindowManager();
+  const folderLottieUrl = React.useMemo(() => {
+    const url = getAppIconUrl("folder");
+    return isLottieIconUrl(url) ? url : undefined;
+  }, [getAppIconUrl]);
   const openFolderPaths = useOpenFolderPaths();
   const openFilePaths = React.useMemo(() => {
     const set = new Set<string>();
@@ -1014,6 +1020,18 @@ export function IconGrid({
                   );
                 }
                 if (item.kind === "directory") {
+                  if (folderLottieUrl) {
+                    return (
+                      <LottieIcon
+                        src={folderLottieUrl}
+                        playing={
+                          openFolderPaths.has(item.path) ||
+                          hoveredDropPath === item.path
+                        }
+                        className="size-full drop-shadow-[0_1px_2px_rgba(0,0,0,0.22)]"
+                      />
+                    );
+                  }
                   return (
                     <DynamicFolderIcon
                       accentColor={settings.accentColor}
@@ -1028,6 +1046,14 @@ export function IconGrid({
                 }
                 if (item.kind === "file") {
                   if (item.iconUrl) {
+                    if (isLottieIconUrl(item.iconUrl)) {
+                      return (
+                        <LottieIcon
+                          src={item.iconUrl}
+                          className="size-full drop-shadow-[0_1px_2px_rgba(0,0,0,0.22)]"
+                        />
+                      );
+                    }
                     return (
                       <img
                         src={item.iconUrl}

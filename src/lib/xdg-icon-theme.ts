@@ -37,6 +37,18 @@ interface XdgIconThemeIndex {
 }
 
 const DEFAULT_ICON_SUBDIRS: readonly XdgIconSubdirDescriptor[] = [
+  ...(["Applications", "Places", "MimeTypes", "Status"] as const).map(
+    (context): XdgIconSubdirDescriptor => ({
+      path: `animated/${context.toLowerCase()}`,
+      size: 64,
+      scale: 1,
+      context,
+      type: "Scalable",
+      minSize: 16,
+      maxSize: 512,
+      threshold: 2,
+    })
+  ),
   {
     path: "scalable/apps",
     size: 128,
@@ -228,6 +240,14 @@ function isRelevantIconSubdir(subdir: XdgIconSubdirDescriptor): boolean {
   const lowerPath = subdir.path.toLowerCase();
   const lowerCtx = (subdir.context ?? "").toLowerCase();
   const isSymbolic = lowerPath.includes("symbolic");
+  if (lowerPath.startsWith("animated/")) {
+    return (
+      !lowerPath.includes("cursors") &&
+      !lowerPath.includes("emblems") &&
+      !lowerPath.includes("intl") &&
+      !lowerPath.includes("panel")
+    );
+  }
   if (
     lowerPath.includes("cursors") ||
     lowerPath.includes("animations") ||
@@ -270,8 +290,10 @@ function isRelevantIconSubdir(subdir: XdgIconSubdirDescriptor): boolean {
   );
 }
 
-function iconExtensionPriority(filename: string): number {
+function iconExtensionPriority(filename: string, allowAnimated = false): number {
   const lower = filename.toLowerCase();
+  if (allowAnimated && lower.endsWith(".lottie")) return 5;
+  if (allowAnimated && lower.endsWith(".json")) return 4;
   if (lower.endsWith(".svg")) return 3;
   if (lower.endsWith(".png")) return 2;
   if (lower.endsWith(".xpm")) return 1;
@@ -279,7 +301,7 @@ function iconExtensionPriority(filename: string): number {
 }
 
 function stripIconExtension(filename: string): string {
-  return filename.replace(/\.(svg|png|xpm)$/i, "");
+  return filename.replace(/\.(lottie|json|svg|png|xpm)$/i, "");
 }
 
 async function buildXdgIconThemeIndex(
@@ -403,6 +425,7 @@ async function buildXdgIconThemeIndex(
         subdirFiles.set(mapKey, targetMap);
       }
 
+      const allowAnimated = subdir.path.toLowerCase().startsWith("animated/");
       for (const baseDir of matchingBaseDirs) {
         const fullSubdirPath = `${baseDir}/${themeId}/${subdir.path}`;
         readTasks.push(
@@ -410,11 +433,14 @@ async function buildXdgIconThemeIndex(
             const entries = res.match({ Ok: (list) => list, Err: () => [] });
             for (const entry of entries) {
               if (entry.fileType === 1) continue;
-              const prio = iconExtensionPriority(entry.name);
+              const prio = iconExtensionPriority(entry.name, allowAnimated);
               if (prio === 0) continue;
               const baseName = stripIconExtension(entry.name);
               const existing = targetMap.get(baseName);
-              if (!existing || prio > iconExtensionPriority(existing)) {
+              if (
+                !existing ||
+                prio > iconExtensionPriority(existing, allowAnimated)
+              ) {
                 targetMap.set(baseName, `${fullSubdirPath}/${entry.name}`);
               }
             }
@@ -454,16 +480,22 @@ function lookupSingleIconInTheme(
     const found = filesInSubdir.get(iconName);
     if (!found) continue;
 
+    const isAnimated = subdir.path.toLowerCase().startsWith("animated/");
     const isSymbolic =
       subdir.path.includes("symbolic") || iconName.endsWith("-symbolic");
     if (directoryMatchesSize(subdir, size, scale)) {
-      if (!isSymbolic) return found;
-      bestSymbolicFallback ??= found;
+      if (isAnimated) return found;
+      if (!isSymbolic) {
+        closestPath ??= found;
+      } else {
+        bestSymbolicFallback ??= found;
+      }
     }
 
     const dist = directorySizeDistance(subdir, size, scale);
     const penalty = subdir.size < size && subdir.type !== "Scalable" ? 500 : 0;
-    const totalDist = dist + penalty + (isSymbolic ? 1000 : 0);
+    const totalDist =
+      dist + penalty + (isSymbolic ? 1000 : isAnimated ? -100 : 0);
     if (totalDist < closestDistance) {
       closestDistance = totalDist;
       closestPath = found;
@@ -585,11 +617,13 @@ function loadXdgIconDataUrl(
 
   const promise = (async (): Promise<string | undefined> => {
     const lower = iconPath.toLowerCase();
-    const mime = lower.endsWith(".svg")
-      ? "image/svg+xml"
-      : lower.endsWith(".png")
-        ? "image/png"
-        : undefined;
+    const mime = lower.endsWith(".json")
+      ? "application/json"
+      : lower.endsWith(".svg")
+        ? "image/svg+xml"
+        : lower.endsWith(".png")
+          ? "image/png"
+          : undefined;
     if (!mime) return undefined;
 
     if (files.read) {
@@ -600,11 +634,11 @@ function loadXdgIconDataUrl(
       }
     }
 
-    if (lower.endsWith(".svg")) {
+    if (lower.endsWith(".svg") || lower.endsWith(".json")) {
       const textRes = await files.readText(iconPath);
       const text = textRes.match({ Ok: (t) => t, Err: () => undefined });
       if (text) {
-        return `data:image/svg+xml;base64,${bytesToBase64(
+        return `data:${mime};base64,${bytesToBase64(
           new TextEncoder().encode(text)
         )}`;
       }
@@ -630,7 +664,7 @@ async function resolveXdgIconUrl(
   return loadXdgIconDataUrl(files, path);
 }
 
-const ICON_INDEX_CACHE_KEY = "piloti.xdg-icon-index.v1";
+const ICON_INDEX_CACHE_KEY = "piloti.xdg-icon-index.v2";
 
 interface SerializedIconThemeIndex {
   key: string;

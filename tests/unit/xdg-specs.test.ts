@@ -1,5 +1,15 @@
 import { describe, expect, it } from "bun:test";
 import {
+  buildXdgIconThemeIndex,
+  loadXdgIconDataUrl,
+  lookupXdgIconPath,
+} from "@/lib/xdg-icon-theme";
+import { PILOTI_VIRTUAL_ICONS } from "@/lib/piloti-virtual-icons";
+import { PAPIRUS_VIRTUAL_ICONS } from "@/lib/papirus-virtual-icons";
+
+const mkOk = <T>(v: T) => ({ match: ({ Ok }: { Ok: (x: T) => unknown }) => Ok(v) });
+const mkErr = () => ({ match: ({ Err }: { Err: (e: string) => unknown }) => Err("ENOENT") });
+import {
   buildAutostartOverrideDesktopContent,
   mergeAutostartEntries,
   parseAutostartDesktopFile,
@@ -59,6 +69,36 @@ describe("XDG specifications (Autostart, Recents XBEL, Globs2/Magic)", () => {
     expect(
       sniffMimeType("doc.bin", new Uint8Array([0x25, 0x50, 0x44, 0x46]))
     ).toBe("application/pdf");
+  });
+
+  it("indexes and resolves animated/ Lottie .json icons from Piloti icon theme", async () => {
+    const vfs: Record<string, string> = {
+      ...PAPIRUS_VIRTUAL_ICONS,
+      ...PILOTI_VIRTUAL_ICONS,
+    };
+    const reader = {
+      readDir: async (dir: string) => {
+        const prefix = dir.endsWith("/") ? dir : `${dir}/`;
+        const seen = new Map<string, { name: string; fileType: number }>();
+        for (const key of Object.keys(vfs)) {
+          if (!key.startsWith(prefix)) continue;
+          const rest = key.slice(prefix.length);
+          const slash = rest.indexOf("/");
+          const name = slash >= 0 ? rest.slice(0, slash) : rest;
+          const fileType = slash >= 0 ? 1 : 0;
+          if (!seen.has(name)) seen.set(name, { name, fileType });
+        }
+        return seen.size > 0 ? mkOk(Array.from(seen.values())) : mkErr();
+      },
+      readText: async (filePath: string) =>
+        vfs[filePath] ? mkOk(vfs[filePath]) : mkErr(),
+    };
+
+    const index = await buildXdgIconThemeIndex(reader as never, ["Piloti", "Papirus", "hicolor"]);
+    const folderPath = lookupXdgIconPath(index, "folder", 64, 1);
+    expect(folderPath).toBe("/usr/share/icons/Piloti/animated/places/folder.json");
+    const dataUrl = await loadXdgIconDataUrl(reader as never, folderPath!);
+    expect(dataUrl?.startsWith("data:application/json;base64,")).toBe(true);
   });
 });
 

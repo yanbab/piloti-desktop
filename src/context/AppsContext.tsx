@@ -7,6 +7,7 @@ import {
 } from "@/data/catalog";
 import { launchDesktopCommand } from "@/lib/gnome-bridge";
 import { PAPIRUS_VIRTUAL_ICONS } from "@/lib/papirus-virtual-icons";
+import { PILOTI_VIRTUAL_ICONS } from "@/lib/piloti-virtual-icons";
 import { logBootEvent, startBootPhase } from "@/lib/perf-log";
 import {
   discoverInstalledXdgApps,
@@ -202,6 +203,7 @@ const APP_GRID_ICON_CANDIDATES: readonly string[] = [
 ];
 
 const SHELL_XDG_ICON_GROUPS: Record<string, readonly string[]> = {
+  folder: ["folder", "inode-directory"],
   __user_trash__: ["user-trash", "trash-empty", "gnome-fs-trash-empty"],
   __user_trash_full__: [
     "user-trash-full",
@@ -298,6 +300,10 @@ async function resolveWithDirectAdwaitaFallback(
   for (const directPath of directPaths) {
     const url = await loadXdgIconDataUrl(files, directPath);
     if (url) return url;
+    const bundledJson = PILOTI_VIRTUAL_ICONS[directPath];
+    if (bundledJson) {
+      return `data:application/json;charset=utf-8,${encodeURIComponent(bundledJson)}`;
+    }
     const bundledSvg = PAPIRUS_VIRTUAL_ICONS[directPath];
     if (bundledSvg) {
       return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(bundledSvg)}`;
@@ -306,7 +312,7 @@ async function resolveWithDirectAdwaitaFallback(
   return undefined;
 }
 
-const DOCK_ICONS_CACHE_KEY = "piloti.dock-icons.v10";
+const DOCK_ICONS_CACHE_KEY = "piloti.dock-icons.v11";
 
 interface DockIconsCachePayload {
   theme: string;
@@ -357,7 +363,7 @@ export function useAppsValue(
   const onEssentialIconsReadyRef = React.useRef(onEssentialIconsReady);
   onEssentialIconsReadyRef.current = onEssentialIconsReady;
 
-  const [portalIconTheme, setPortalIconTheme] = React.useState<string>("Papirus");
+  const [portalIconTheme, setPortalIconTheme] = React.useState<string>("Piloti");
   const activeIconTheme =
     settings.iconTheme || gnomeIconThemeOverride || portalIconTheme;
 

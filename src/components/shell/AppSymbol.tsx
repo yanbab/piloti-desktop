@@ -1,5 +1,6 @@
 import * as React from "react";
 import { AppWindowIcon, GlobeIcon } from "lucide-react";
+import { isLottieIconUrl, LottieIcon } from "@/components/ui/lottie-icon";
 import { useOptionalApps } from "@/context/AppsContext";
 import { cn } from "@/lib/utils";
 
@@ -33,6 +34,17 @@ export function AppSquircleIcon({
     activePrimary ?? fallbackIconUrl ?? apps?.fallbackAppIconUrl;
 
   if (resolvedUrl) {
+    if (isLottieIconUrl(resolvedUrl)) {
+      return (
+        <LottieIcon
+          src={resolvedUrl}
+          className={cn(
+            "pointer-events-none shrink-0 drop-shadow-[0_1px_2px_rgba(0,0,0,0.2)] select-none",
+            className
+          )}
+        />
+      );
+    }
     return (
       <img
         src={resolvedUrl}

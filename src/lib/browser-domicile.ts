@@ -2,6 +2,7 @@ import { desktop, type Domicile } from "@domicile-desktop/sdk/desktop/desktop";
 import type { DomicileHost, DomicileNotification } from "@domicile-desktop/sdk/domicile-host";
 import { FakeDomicileHost } from "@domicile-desktop/sdk/fake-host";
 import { PAPIRUS_VIRTUAL_ICONS } from "./papirus-virtual-icons";
+import { PILOTI_VIRTUAL_ICONS } from "./piloti-virtual-icons";
 import {
   ensureVfsDir,
   getVfsEntry,
@@ -86,6 +87,7 @@ MaxSize=512
 Type=Scalable
 `,
   ...PAPIRUS_VIRTUAL_ICONS,
+  ...PILOTI_VIRTUAL_ICONS,
 };
 
 const VIRTUAL_XDG_CONFIG_FILES: Record<string, string> = {

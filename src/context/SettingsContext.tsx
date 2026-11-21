@@ -170,7 +170,7 @@ const DEFAULT_SETTINGS: DesktopSettings = {
   windowDecorationMode: "auto",
   windowButtonLayout: ":close",
   showWindowMenu: true,
-  iconTheme: "Papirus",
+  iconTheme: "Piloti",
   syncGnomeSettings: true,
   preferGnomeControlCenter: false,
   hiddenGnomePanels: [...DEFAULT_HIDDEN_GNOME_PANELS],
