@@ -1,4 +1,7 @@
 import * as React from "react";
+import { usePortalRequests } from "@domicile-desktop/react/portals";
+import { PortalKind, type PortalRequest } from "@domicile-desktop/sdk/portal";
+import { AlertTriangleIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -19,6 +22,15 @@ const AUTO_CONFIRM_SECONDS = 60;
  * built from standard Dialog, Switch, and Button primitives.
  */
 export function PowerActionDialog() {
+  const portalRequests = usePortalRequests() ?? [];
+  const inhibitors = React.useMemo(
+    () =>
+      portalRequests.filter(
+        (r): r is Extract<PortalRequest, { kind: PortalKind.Inhibit }> =>
+          r.kind === PortalKind.Inhibit
+      ),
+    [portalRequests]
+  );
   const { settings, updateSettings } = useSettings();
   const { pendingPowerAction, cancelPowerAction, confirmPowerAction } =
     useSystemBackends();
@@ -91,6 +103,23 @@ export function PowerActionDialog() {
             {description}
           </DialogDescription>
         </DialogHeader>
+
+        {inhibitors.length > 0 && (
+          <div className="mb-2 rounded-lg border border-amber-500/35 bg-amber-500/12 px-3 py-2 text-left text-[11.5px] text-amber-900 dark:text-amber-200">
+            <div className="flex items-center gap-1.5 font-semibold">
+              <AlertTriangleIcon className="size-3.5 shrink-0 text-amber-600 dark:text-amber-400" />
+              <span>{_("Blocked by running applications:")}</span>
+            </div>
+            <ul className="mt-1 space-y-0.5 pl-5 text-[11px] opacity-90">
+              {inhibitors.map((inh) => (
+                <li key={inh.id} className="list-disc">
+                  <span className="font-medium">{inh.appId || _("Application")}</span>
+                  {inh.body.reason ? ` — ${inh.body.reason}` : ""}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         <label className="flex cursor-default items-center justify-center gap-2.5 rounded-adw-item px-2.5 py-2.5 select-none">
           <Checkbox

@@ -515,9 +515,12 @@ export const TerminalApp: React.FC<TerminalAppProps> = ({ initialPath }) => {
         { text: "  whoami / uname      Print user and kernel info" },
         { text: "  date / env / echo   Print date, environment, or text" },
         { text: "" },
-        { text: "Shell:", tone: "muted" },
-        { text: "  clear               Clear terminal output" },
-        { text: "  help                Show this help message" },
+        { text: "Pipelines, Search & Control:", tone: "muted" },
+        { text: "  cmd | grep <pat>    Pipe output & filter lines" },
+        { text: "  cmd > / >> <file>   Redirect output (overwrite / append)" },
+        { text: "  piloti <subcmd>     Control desktop (run 'piloti help')" },
+        { text: "  Ctrl+R              Reverse search command history" },
+        { text: "  clear / help        Clear output or show this help" },
       ]);
       return;
     }

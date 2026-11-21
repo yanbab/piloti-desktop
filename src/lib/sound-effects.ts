@@ -13,11 +13,18 @@ function getAudioContext(): AudioContext | null {
   return sharedAudioContext;
 }
 
+export type SoundThemeEventId =
+  | "alert"
+  | "trash-empty"
+  | "screenshot"
+  | "volume-pop";
+
 /**
- * Plays a short two-tone desktop alert chime via the Web Audio API,
+ * Plays a synthesized FreeDesktop Sound Theme cue via the Web Audio API,
  * respecting the current output volume (0-100) and mute state.
  */
-export async function playAlertSound(
+export async function playSoundThemeEvent(
+  event: SoundThemeEventId,
   volumePct = 75,
   muted = false
 ): Promise<boolean> {
@@ -33,19 +40,33 @@ export async function playAlertSound(
   if (gainLevel <= 0) return false;
 
   const now = ctx.currentTime;
-  const notes = [
-    { freq: 587.33, start: 0, duration: 0.16 }, // D5
-    { freq: 880, start: 0.09, duration: 0.28 }, // A5
-  ];
+  const presets: Record<
+    SoundThemeEventId,
+    Array<{ freq: number; start: number; duration: number; type?: OscillatorType }>
+  > = {
+    alert: [
+      { freq: 587.33, start: 0, duration: 0.16, type: "sine" },
+      { freq: 880, start: 0.09, duration: 0.28, type: "sine" },
+    ],
+    "trash-empty": [
+      { freq: 440, start: 0, duration: 0.09, type: "triangle" },
+      { freq: 330, start: 0.07, duration: 0.14, type: "triangle" },
+    ],
+    screenshot: [
+      { freq: 1240, start: 0, duration: 0.045, type: "triangle" },
+      { freq: 880, start: 0.04, duration: 0.06, type: "sine" },
+    ],
+    "volume-pop": [{ freq: 523.25, start: 0, duration: 0.06, type: "sine" }],
+  };
 
-  for (const note of notes) {
+  for (const note of presets[event]) {
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
-    osc.type = "sine";
+    osc.type = note.type ?? "sine";
     osc.frequency.setValueAtTime(note.freq, now + note.start);
 
     gain.gain.setValueAtTime(0.0001, now + note.start);
-    gain.gain.exponentialRampToValueAtTime(gainLevel, now + note.start + 0.015);
+    gain.gain.exponentialRampToValueAtTime(gainLevel, now + note.start + 0.012);
     gain.gain.exponentialRampToValueAtTime(
       0.0001,
       now + note.start + note.duration
@@ -58,5 +79,16 @@ export async function playAlertSound(
   }
 
   return true;
+}
+
+/**
+ * Plays a short two-tone desktop alert chime via the Web Audio API,
+ * respecting the current output volume (0-100) and mute state.
+ */
+export async function playAlertSound(
+  volumePct = 75,
+  muted = false
+): Promise<boolean> {
+  return playSoundThemeEvent("alert", volumePct, muted);
 }
 

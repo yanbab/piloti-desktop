@@ -4,17 +4,27 @@ import { usePortalRequests } from "@domicile-desktop/react/portals";
 import {
   CastSource,
   CastSourceKind,
+  FileChooserMode,
   PortalAnswer,
   PortalKind,
   type PortalRequest,
 } from "@domicile-desktop/sdk/portal";
+import { FileType } from "@domicile-desktop/sdk/system";
 import {
+  AppWindowIcon,
   CameraIcon,
+  FolderIcon,
+  FileIcon,
+  KeyboardIcon,
   MonitorIcon,
   PipetteIcon,
+  PrinterIcon,
   ShieldCheckIcon,
+  SparklesIcon,
   VideoIcon,
 } from "lucide-react";
+import { useApps, useSettings } from "@/context/DesktopStateContext";
+import { listVfsDir } from "@/lib/web-vfs";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -284,6 +294,734 @@ function describePortalKind(req: PortalRequest): string {
  * Non-interactive state entries like `PortalKind.Inhibit` are ignored because the
  * compositor keeps them open until the app releases its inhibitor lock.
  */
+function FileChooserPortalDialog({
+  request,
+  onAnswer,
+}: {
+  request: Extract<PortalRequest, { kind: PortalKind.FileChooser }>;
+  onAnswer: (ans: PortalAnswer) => void;
+}) {
+  const domicile = useDomicile();
+  const { isBrowserRuntime } = useSettings();
+  const body = request.body;
+  const startDir = body.currentFolder || body.home || "/home/user";
+  const [cwd, setCwd] = React.useState(startDir);
+  const [entries, setEntries] = React.useState<
+    Array<{ name: string; path: string; isDir: boolean }>
+  >([]);
+  const [selectedPaths, setSelectedPaths] = React.useState<string[]>([]);
+  const [saveName, setSaveName] = React.useState(body.currentName ?? "");
+  const [filterIdx, setFilterIdx] = React.useState<number>(
+    body.currentFilter ?? 0
+  );
+  const [choiceValues, setChoiceValues] = React.useState<Record<string, string>>(
+    () =>
+      Object.fromEntries(body.choices.map((c) => [c.id, c.initial]))
+  );
+
+  React.useEffect(() => {
+    let active = true;
+    const load = async () => {
+      if (isBrowserRuntime) {
+        const list = listVfsDir(cwd)
+          .filter((e) => !e.name.startsWith("."))
+          .map((e) => ({
+            name: e.name,
+            path: e.path,
+            isDir: e.kind === "directory",
+          }));
+        if (active) setEntries(list);
+        return;
+      }
+      const res = await domicile.files.readDir(cwd);
+      const list = res.match({
+        Ok: (items) =>
+          items
+            .filter((i) => i.name && !i.name.startsWith("."))
+            .map((i) => ({
+              name: i.name,
+              path: `${cwd.replace(/\/$/, "")}/${i.name}`,
+              isDir: i.fileType === FileType.Directory,
+            })),
+        Err: () => [],
+      });
+      if (active) setEntries(list);
+    };
+    void load();
+    return () => {
+      active = false;
+    };
+  }, [cwd, domicile.files, isBrowserRuntime]);
+
+  const activeFilter = body.filters[filterIdx];
+  const visibleEntries = React.useMemo(() => {
+    const sorted = [...entries].sort((a, b) =>
+      a.isDir !== b.isDir ? (a.isDir ? -1 : 1) : a.name.localeCompare(b.name)
+    );
+    if (body.directory) return sorted.filter((e) => e.isDir);
+    if (!activeFilter || activeFilter.extensions.length === 0) return sorted;
+    return sorted.filter(
+      (e) =>
+        e.isDir ||
+        activeFilter.extensions.some((ext) =>
+          e.name.toLowerCase().endsWith(`.${ext.toLowerCase()}`)
+        )
+    );
+  }, [activeFilter, body.directory, entries]);
+
+  const canConfirm =
+    body.mode === FileChooserMode.Save
+      ? saveName.trim().length > 0
+      : body.mode === FileChooserMode.SaveFiles || body.directory
+        ? true
+        : selectedPaths.length > 0;
+
+  const confirm = () => {
+    let paths: string[];
+    if (body.mode === FileChooserMode.Save) {
+      paths = [`${cwd.replace(/\/$/, "")}/${saveName.trim()}`];
+    } else if (body.mode === FileChooserMode.SaveFiles) {
+      paths = selectedPaths.length > 0 ? [selectedPaths[0]] : [cwd];
+    } else if (body.directory) {
+      paths = selectedPaths.length > 0 ? selectedPaths : [cwd];
+    } else {
+      paths = selectedPaths;
+    }
+    onAnswer(
+      PortalAnswer.FileChooser({
+        paths,
+        currentFilter: body.filters.length > 0 ? filterIdx : undefined,
+        choices: new Map(Object.entries(choiceValues)),
+      })
+    );
+  };
+
+  const places = [
+    { label: "Home", path: body.home },
+    { label: "Desktop", path: `${body.home}/Desktop` },
+    { label: "Documents", path: `${body.home}/Documents` },
+    { label: "Downloads", path: `${body.home}/Downloads` },
+  ];
+
+  return (
+    <div className="fixed inset-0 z-[800] flex items-center justify-center bg-black/45 p-4">
+      <div className="flex max-h-[82vh] w-full max-w-[580px] flex-col overflow-hidden rounded-adw-menu text-adw-label shadow-adw-menu adw-material-menu">
+        <div className="flex items-center justify-between border-b border-adw-separator px-4 py-3">
+          <div>
+            <h3 className="text-[14px] font-bold">
+              {body.title ||
+                (body.mode === FileChooserMode.Save ? "Save File" : "Open File")}
+            </h3>
+            <p className="truncate font-mono text-[11px] text-adw-label-secondary">
+              {cwd}
+            </p>
+          </div>
+          {cwd !== "/" && (
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => {
+                const parent = cwd.slice(0, cwd.lastIndexOf("/")) || "/";
+                setCwd(parent);
+                setSelectedPaths([]);
+              }}
+            >
+              Up
+            </Button>
+          )}
+        </div>
+
+        <div className="flex min-h-[260px] flex-1 overflow-hidden">
+          <aside className="w-36 shrink-0 space-y-1 border-r border-adw-separator p-2">
+            {places.map((p) => (
+              <button
+                key={p.path}
+                type="button"
+                onClick={() => {
+                  setCwd(p.path);
+                  setSelectedPaths([]);
+                }}
+                className={cn(
+                  "flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-[12px] transition-colors",
+                  cwd === p.path
+                    ? "bg-adw-accent text-white"
+                    : "hover:bg-black/6 dark:hover:bg-white/10"
+                )}
+              >
+                <FolderIcon className="size-3.5 shrink-0" />
+                <span className="truncate">{p.label}</span>
+              </button>
+            ))}
+          </aside>
+
+          <div className="flex-1 overflow-y-auto p-2">
+            {visibleEntries.length === 0 ? (
+              <div className="py-12 text-center text-xs text-adw-label-secondary">
+                Empty folder
+              </div>
+            ) : (
+              <div className="space-y-0.5">
+                {visibleEntries.map((entry) => {
+                  const selected = selectedPaths.includes(entry.path);
+                  return (
+                    <button
+                      key={entry.path}
+                      type="button"
+                      onClick={() => {
+                        if (entry.isDir && !body.directory) {
+                          setCwd(entry.path);
+                          setSelectedPaths([]);
+                          return;
+                        }
+                        if (body.mode === FileChooserMode.Save && !entry.isDir) {
+                          setSaveName(entry.name);
+                          return;
+                        }
+                        if (body.multiple) {
+                          setSelectedPaths((prev) =>
+                            prev.includes(entry.path)
+                              ? prev.filter((p) => p !== entry.path)
+                              : [...prev, entry.path]
+                          );
+                        } else {
+                          setSelectedPaths([entry.path]);
+                        }
+                      }}
+                      onDoubleClick={() => {
+                        if (entry.isDir) {
+                          setCwd(entry.path);
+                          setSelectedPaths([]);
+                        } else {
+                          onAnswer(
+                            PortalAnswer.FileChooser({
+                              paths: [entry.path],
+                              currentFilter:
+                                body.filters.length > 0 ? filterIdx : undefined,
+                              choices: new Map(Object.entries(choiceValues)),
+                            })
+                          );
+                        }
+                      }}
+                      className={cn(
+                        "flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-[12.5px] transition-colors",
+                        selected
+                          ? "bg-adw-accent text-white"
+                          : "hover:bg-black/6 dark:hover:bg-white/10"
+                      )}
+                    >
+                      {entry.isDir ? (
+                        <FolderIcon className="size-4 shrink-0 text-sky-500" />
+                      ) : (
+                        <FileIcon className="size-4 shrink-0 opacity-75" />
+                      )}
+                      <span className="truncate">{entry.name}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="space-y-2 border-t border-adw-separator px-4 py-3">
+          {body.mode === FileChooserMode.Save && (
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-medium text-adw-label-secondary">
+                Name
+              </span>
+              <input
+                type="text"
+                value={saveName}
+                onChange={(e) => setSaveName(e.target.value)}
+                className="h-7 flex-1 rounded-md border border-adw-separator bg-black/5 px-2 text-xs text-adw-label outline-none focus:border-adw-accent dark:bg-white/10"
+              />
+            </div>
+          )}
+
+          {body.choices.length > 0 && (
+            <div className="flex flex-wrap gap-3">
+              {body.choices.map((c) =>
+                c.options.length === 0 ? (
+                  <label
+                    key={c.id}
+                    className="flex items-center gap-1.5 text-xs"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={choiceValues[c.id] === "true"}
+                      onChange={(e) =>
+                        setChoiceValues((prev) => ({
+                          ...prev,
+                          [c.id]: e.target.checked ? "true" : "false",
+                        }))
+                      }
+                    />
+                    <span>{c.label}</span>
+                  </label>
+                ) : (
+                  <label key={c.id} className="flex items-center gap-1.5 text-xs">
+                    <span className="text-adw-label-secondary">{c.label}:</span>
+                    <select
+                      value={choiceValues[c.id]}
+                      onChange={(e) =>
+                        setChoiceValues((prev) => ({
+                          ...prev,
+                          [c.id]: e.target.value,
+                        }))
+                      }
+                      className="rounded border border-adw-separator bg-adw-window px-1.5 py-0.5 text-xs"
+                    >
+                      {c.options.map((o) => (
+                        <option key={o.id} value={o.id}>
+                          {o.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                )
+              )}
+            </div>
+          )}
+
+          <div className="flex items-center justify-between gap-2">
+            {body.filters.length > 0 ? (
+              <select
+                value={filterIdx}
+                onChange={(e) => setFilterIdx(Number(e.target.value))}
+                className="h-7 max-w-[200px] rounded border border-adw-separator bg-adw-window px-2 text-xs"
+              >
+                {body.filters.map((f, idx) => (
+                  <option key={f.name} value={idx}>
+                    {f.name}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <span />
+            )}
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => onAnswer(PortalAnswer.Canceled())}
+              >
+                Cancel
+              </Button>
+              <Button size="sm" disabled={!canConfirm} onClick={confirm}>
+                {body.acceptLabel ||
+                  (body.mode === FileChooserMode.Save ? "Save" : "Open")}
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AppChooserPortalDialog({
+  request,
+  onAnswer,
+}: {
+  request: Extract<PortalRequest, { kind: PortalKind.AppChooser }>;
+  onAnswer: (ans: PortalAnswer) => void;
+}) {
+  const { installedXdgApps } = useApps();
+  const [selected, setSelected] = React.useState(
+    request.body.lastChoice ?? request.body.choices[0] ?? ""
+  );
+
+  return (
+    <div className="fixed inset-0 z-[800] flex items-center justify-center bg-black/45 p-4">
+      <div className="w-full max-w-[380px] rounded-adw-menu p-5 text-adw-label shadow-adw-menu adw-material-menu">
+        <div className="mb-3 flex items-center gap-2.5">
+          <AppWindowIcon className="size-5 text-adw-accent" />
+          <div>
+            <h3 className="text-[14px] font-bold">Open With</h3>
+            <p className="truncate text-[11px] text-adw-label-secondary">
+              {request.body.filename || request.body.contentType || request.body.uri}
+            </p>
+          </div>
+        </div>
+        <div className="max-h-56 space-y-1 overflow-y-auto">
+          {request.body.choices.map((choice) => {
+            const xdg = installedXdgApps.find(
+              (a) => a.appId === choice || a.desktopId === `${choice}.desktop`
+            );
+            return (
+              <button
+                key={choice}
+                type="button"
+                onClick={() => setSelected(choice)}
+                onDoubleClick={() => onAnswer(PortalAnswer.AppChooser(choice))}
+                className={cn(
+                  "flex w-full items-center gap-2.5 rounded-lg border px-3 py-2 text-left text-xs transition-colors",
+                  selected === choice
+                    ? "border-adw-accent bg-adw-accent/15 font-medium"
+                    : "border-transparent hover:bg-black/6 dark:hover:bg-white/10"
+                )}
+              >
+                {xdg?.iconUrl ? (
+                  <img src={xdg.iconUrl} alt="" className="size-5 shrink-0" />
+                ) : (
+                  <SparklesIcon className="size-4 shrink-0 text-adw-label-secondary" />
+                )}
+                <span className="truncate">{xdg?.name ?? choice}</span>
+              </button>
+            );
+          })}
+        </div>
+        <div className="mt-4 flex justify-end gap-2">
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => onAnswer(PortalAnswer.Canceled())}
+          >
+            Cancel
+          </Button>
+          <Button
+            size="sm"
+            disabled={!selected}
+            onClick={() => onAnswer(PortalAnswer.AppChooser(selected))}
+          >
+            Open
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DynamicLauncherPortalDialog({
+  request,
+  onAnswer,
+}: {
+  request: Extract<PortalRequest, { kind: PortalKind.DynamicLauncher }>;
+  onAnswer: (ans: PortalAnswer) => void;
+}) {
+  const [name, setName] = React.useState(request.body.name);
+  return (
+    <div className="fixed inset-0 z-[800] flex items-center justify-center bg-black/45 p-4">
+      <div className="w-full max-w-[380px] rounded-adw-menu p-5 text-adw-label shadow-adw-menu adw-material-menu">
+        <div className="mb-3 flex items-center gap-3">
+          {request.body.icon ? (
+            <img
+              src={request.body.icon}
+              alt=""
+              className="size-10 rounded-lg object-contain"
+            />
+          ) : (
+            <SparklesIcon className="size-6 text-adw-accent" />
+          )}
+          <div className="min-w-0">
+            <h3 className="text-[14px] font-bold">Install Application Launcher</h3>
+            {request.body.target && (
+              <p className="truncate text-[11px] text-adw-label-secondary">
+                {request.body.target}
+              </p>
+            )}
+          </div>
+        </div>
+        <input
+          type="text"
+          disabled={!request.body.editableName}
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          className="h-8 w-full rounded-md border border-adw-separator bg-black/5 px-2.5 text-xs text-adw-label outline-none focus:border-adw-accent disabled:opacity-70 dark:bg-white/10"
+        />
+        <div className="mt-4 flex justify-end gap-2">
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => onAnswer(PortalAnswer.Canceled())}
+          >
+            Cancel
+          </Button>
+          <Button
+            size="sm"
+            disabled={!name.trim()}
+            onClick={() => onAnswer(PortalAnswer.DynamicLauncher(name.trim()))}
+          >
+            Add
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function GlobalShortcutsPortalDialog({
+  request,
+  onAnswer,
+}: {
+  request: Extract<PortalRequest, { kind: PortalKind.GlobalShortcuts }>;
+  onAnswer: (ans: PortalAnswer) => void;
+}) {
+  const [triggers, setTriggers] = React.useState<Record<string, string | undefined>>(
+    () =>
+      Object.fromEntries(
+        request.body.shortcuts.map((s) => [s.id, s.trigger])
+      )
+  );
+
+  return (
+    <div className="fixed inset-0 z-[800] flex items-center justify-center bg-black/45 p-4">
+      <div className="w-full max-w-[440px] rounded-adw-menu p-5 text-adw-label shadow-adw-menu adw-material-menu">
+        <div className="mb-3 flex items-center gap-2.5">
+          <KeyboardIcon className="size-5 text-adw-accent" />
+          <div>
+            <h3 className="text-[14px] font-bold">Global Shortcuts</h3>
+            <p className="text-[11px] text-adw-label-secondary">
+              {request.appId || "Application"} requests global shortcuts
+            </p>
+          </div>
+        </div>
+        <div className="max-h-60 space-y-2 overflow-y-auto">
+          {request.body.shortcuts.map((sc) => (
+            <div
+              key={sc.id}
+              className="flex items-center justify-between gap-2 rounded-lg border border-adw-separator/60 px-3 py-2"
+            >
+              <span className="truncate text-xs">{sc.description || sc.id}</span>
+              <input
+                type="text"
+                value={triggers[sc.id] ?? ""}
+                placeholder="None"
+                onChange={(e) =>
+                  setTriggers((prev) => ({
+                    ...prev,
+                    [sc.id]: e.target.value || undefined,
+                  }))
+                }
+                className="h-6 w-28 rounded border border-adw-separator bg-black/5 px-2 text-center font-mono text-[11px] outline-none focus:border-adw-accent dark:bg-white/10"
+              />
+            </div>
+          ))}
+        </div>
+        <div className="mt-4 flex justify-end gap-2">
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => onAnswer(PortalAnswer.Canceled())}
+          >
+            Cancel
+          </Button>
+          <Button
+            size="sm"
+            onClick={() =>
+              onAnswer(
+                PortalAnswer.GlobalShortcuts(
+                  request.body.shortcuts.map((s) => ({
+                    id: s.id,
+                    trigger: triggers[s.id],
+                  }))
+                )
+              )
+            }
+          >
+            Save
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function RemoteDesktopPortalDialog({
+  request,
+  onAnswer,
+}: {
+  request: Extract<PortalRequest, { kind: PortalKind.RemoteDesktop }>;
+  onAnswer: (ans: PortalAnswer) => void;
+}) {
+  const [keyboard, setKeyboard] = React.useState(request.body.devices.keyboard);
+  const [pointer, setPointer] = React.useState(request.body.devices.pointer);
+  const [touchscreen, setTouchscreen] = React.useState(
+    request.body.devices.touchscreen
+  );
+  const [clipboard, setClipboard] = React.useState(request.body.clipboard);
+
+  return (
+    <div className="fixed inset-0 z-[800] flex items-center justify-center bg-black/45 p-4">
+      <div className="w-full max-w-[380px] rounded-adw-menu p-5 text-adw-label shadow-adw-menu adw-material-menu">
+        <div className="mb-3 flex items-center gap-2.5">
+          <MonitorIcon className="size-5 text-adw-accent" />
+          <div>
+            <h3 className="text-[14px] font-bold">Remote Desktop Access</h3>
+            <p className="text-[11px] text-adw-label-secondary">
+              {request.appId || "Application"} requests remote control
+            </p>
+          </div>
+        </div>
+        <div className="space-y-1.5 text-xs">
+          {request.body.devices.keyboard && (
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={keyboard}
+                onChange={(e) => setKeyboard(e.target.checked)}
+              />
+              <span>Keyboard input</span>
+            </label>
+          )}
+          {request.body.devices.pointer && (
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={pointer}
+                onChange={(e) => setPointer(e.target.checked)}
+              />
+              <span>Pointer control</span>
+            </label>
+          )}
+          {request.body.devices.touchscreen && (
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={touchscreen}
+                onChange={(e) => setTouchscreen(e.target.checked)}
+              />
+              <span>Touchscreen input</span>
+            </label>
+          )}
+          {request.body.clipboard && (
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={clipboard}
+                onChange={(e) => setClipboard(e.target.checked)}
+              />
+              <span>Shared clipboard</span>
+            </label>
+          )}
+        </div>
+        <div className="mt-4 flex justify-end gap-2">
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => onAnswer(PortalAnswer.Canceled())}
+          >
+            Deny
+          </Button>
+          <Button
+            size="sm"
+            onClick={() =>
+              onAnswer(
+                PortalAnswer.RemoteDesktop(
+                  { keyboard, pointer, touchscreen },
+                  clipboard
+                )
+              )
+            }
+          >
+            Allow
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PrintPortalDialog({
+  request,
+  onAnswer,
+}: {
+  request: Extract<PortalRequest, { kind: PortalKind.Print }>;
+  onAnswer: (ans: PortalAnswer) => void;
+}) {
+  const printers = request.body.printers;
+  const pdfTarget = request.body.pdf;
+  const [selectedPrinter, setSelectedPrinter] = React.useState(
+    request.body.printer ?? printers[0]?.name ?? pdfTarget.name
+  );
+  const [copies, setCopies] = React.useState(1);
+  const [pdfPath, setPdfPath] = React.useState(
+    `${request.body.home.replace(/\/$/, "")}/output.pdf`
+  );
+  const isPdf = selectedPrinter === pdfTarget.name;
+
+  return (
+    <div className="fixed inset-0 z-[800] flex items-center justify-center bg-black/45 p-4">
+      <div className="w-full max-w-[400px] rounded-adw-menu p-5 text-adw-label shadow-adw-menu adw-material-menu">
+        <div className="mb-3 flex items-center gap-2.5">
+          <PrinterIcon className="size-5 text-adw-accent" />
+          <h3 className="text-[14px] font-bold">{request.body.title || "Print"}</h3>
+        </div>
+        <div className="space-y-2.5 text-xs">
+          <label className="block">
+            <span className="text-adw-label-secondary">Printer</span>
+            <select
+              value={selectedPrinter}
+              onChange={(e) => setSelectedPrinter(e.target.value)}
+              className="mt-1 h-8 w-full rounded border border-adw-separator bg-adw-window px-2"
+            >
+              {printers.map((p) => (
+                <option key={p.name} value={p.name}>
+                  {p.name}
+                </option>
+              ))}
+              <option value={pdfTarget.name}>Save to PDF</option>
+            </select>
+          </label>
+          {isPdf ? (
+            <label className="block">
+              <span className="text-adw-label-secondary">PDF Path</span>
+              <input
+                type="text"
+                value={pdfPath}
+                onChange={(e) => setPdfPath(e.target.value)}
+                className="mt-1 h-8 w-full rounded border border-adw-separator bg-black/5 px-2 font-mono dark:bg-white/10"
+              />
+            </label>
+          ) : (
+            <label className="block">
+              <span className="text-adw-label-secondary">Copies</span>
+              <input
+                type="number"
+                min={1}
+                max={99}
+                value={copies}
+                onChange={(e) => setCopies(Math.max(1, Number(e.target.value) || 1))}
+                className="mt-1 h-8 w-24 rounded border border-adw-separator bg-black/5 px-2 dark:bg-white/10"
+              />
+            </label>
+          )}
+        </div>
+        <div className="mt-4 flex justify-end gap-2">
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => onAnswer(PortalAnswer.Canceled())}
+          >
+            Cancel
+          </Button>
+          <Button
+            size="sm"
+            onClick={() => {
+              const opts = {
+                colorMode: undefined,
+                copies,
+                media: undefined,
+                orientation: undefined,
+                pages: [],
+                quality: undefined,
+                sides: undefined,
+              };
+              onAnswer(
+                isPdf
+                  ? PortalAnswer.SaveToPdf(pdfPath, opts)
+                  : PortalAnswer.Print(selectedPrinter, opts)
+              );
+            }}
+          >
+            {request.body.acceptLabel || "Print"}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function PortalDialogs() {
   const domicile = useDomicile();
   const requests = usePortalRequests();
@@ -331,6 +1069,30 @@ export function PortalDialogs() {
 
   if (current.kind === PortalKind.ScreenCast) {
     return <ScreenCastPortalDialog request={current} onAnswer={answer} />;
+  }
+
+  if (current.kind === PortalKind.FileChooser) {
+    return <FileChooserPortalDialog request={current} onAnswer={answer} />;
+  }
+
+  if (current.kind === PortalKind.AppChooser) {
+    return <AppChooserPortalDialog request={current} onAnswer={answer} />;
+  }
+
+  if (current.kind === PortalKind.DynamicLauncher) {
+    return <DynamicLauncherPortalDialog request={current} onAnswer={answer} />;
+  }
+
+  if (current.kind === PortalKind.GlobalShortcuts) {
+    return <GlobalShortcutsPortalDialog request={current} onAnswer={answer} />;
+  }
+
+  if (current.kind === PortalKind.RemoteDesktop) {
+    return <RemoteDesktopPortalDialog request={current} onAnswer={answer} />;
+  }
+
+  if (current.kind === PortalKind.Print) {
+    return <PrintPortalDialog request={current} onAnswer={answer} />;
   }
 
   if (current.kind === PortalKind.PickColor) {

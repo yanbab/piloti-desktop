@@ -1,0 +1,30 @@
+Piloti Wayland WM & Toolkit Matrix Report
+Screen: 1280x683 | WAYLAND_DISPLAY=wayland-1
+========================================================================
+
+[pcmanfm] (GTK2) — PASS
+  Decorations : PASS | expected=SSD, observed=SSD (kde_req=1, kde_mode=2, xdg_conf=None)
+  Drag        : PASS | start=(316,218,838x464) -> after=(350,276) delta=(+34,+58) (wl_move=0, unset_fs=0)
+  Close       : PASS | clicked (1248,298) -> closed
+
+[gnome-disks] (GTK3) — FAIL
+  Decorations : PASS | expected=CSD, observed=CSD (loop: req=1, srv=2) (kde_req=44628, kde_mode=2, xdg_conf=None)
+  Drag        : FAIL | start=(316,210,782x472) -> after=(348,210) delta=(+32,+0) (wl_move=0, unset_fs=0)
+  Close       : PASS | clicked (1076,232) -> closed
+
+[firefox] (GTK3) — FAIL
+  Decorations : PASS | expected=CSD, observed=CSD (loop: req=1, srv=2) (kde_req=639, kde_mode=2, xdg_conf=None)
+  Drag        : FAIL | start=(316,248,612x434) -> after=(350,248) delta=(+34,+0) (wl_move=0, unset_fs=0)
+  Close       : FAIL | clicked (906,270) -> still visible at (26, 256, 928, 682)
+
+[chromium] (GTK3/Ozone) — FAIL
+  Decorations : FAIL | expected=CSD, observed=SSD (kde_req=0, kde_mode=None, xdg_conf=2)
+  Drag        : FAIL | start=(26,300,794x382) -> after=(26,300) delta=(+0,+0) (wl_move=0, unset_fs=0)
+  Close       : PASS | clicked (798,322) -> closed
+
+[nautilus] (GTK4) — FAIL
+  Decorations : PASS | expected=CSD, observed=CSD (no SSD protocol) (kde_req=0, kde_mode=None, xdg_conf=None)
+  Drag        : FAIL | start=(26,60,1028x620) -> after=(26,60) delta=(+0,+0) (wl_move=0, unset_fs=0)
+  Close       : PASS | clicked (1032,82) -> closed
+
+OVERALL: FAIL (see details above)

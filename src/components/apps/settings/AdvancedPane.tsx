@@ -35,6 +35,13 @@ import {
 } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { useSettings } from "@/context/DesktopStateContext";
+import {
+  buildAutostartOverrideDesktopContent,
+  mergeAutostartEntries,
+  parseAutostartDesktopFile,
+  type XdgAutostartEntry,
+} from "@/lib/xdg-autostart";
+import { listVfsDir, WEB_VFS_HOME, writeVfsTextFile } from "@/lib/web-vfs";
 
 export function AdvancedPane() {
   const domicile = useDomicile();
@@ -58,6 +65,65 @@ export function AdvancedPane() {
     [];
 
   const [unpackedPaths, setUnpackedPaths] = React.useState<string[]>([]);
+  const [autostartEntries, setAutostartEntries] = React.useState<XdgAutostartEntry[]>([]);
+
+  const loadAutostart = React.useCallback(async () => {
+    const userDir = `${WEB_VFS_HOME}/.config/autostart`;
+    if (isBrowserRuntime) {
+      const userFiles = listVfsDir(userDir).filter(
+        (e) => e.kind === "file" && e.name.endsWith(".desktop")
+      );
+      const parsed = userFiles
+        .map((e) =>
+          parseAutostartDesktopFile(e.name, e.path, e.content ?? "", "user")
+        )
+        .filter((x): x is XdgAutostartEntry => Boolean(x));
+      setAutostartEntries(mergeAutostartEntries([], parsed));
+      return;
+    }
+    const readDirEntries = async (dir: string, source: "user" | "system") => {
+      const list = await domicile.files.readDir(dir).then((r) =>
+        r.match({ Ok: (items) => items, Err: () => [] })
+      );
+      const out: XdgAutostartEntry[] = [];
+      for (const item of list) {
+        if (!item.name.endsWith(".desktop")) continue;
+        const full = `${dir}/${item.name}`;
+        const raw = await domicile.files.readText(full).then((r) =>
+          r.match({ Ok: (txt) => txt, Err: () => "" })
+        );
+        const parsed = parseAutostartDesktopFile(item.name, full, raw, source);
+        if (parsed) out.push(parsed);
+      }
+      return out;
+    };
+    const [sys, usr] = await Promise.all([
+      readDirEntries("/etc/xdg/autostart", "system"),
+      readDirEntries(".config/autostart", "user"),
+    ]);
+    setAutostartEntries(mergeAutostartEntries(sys, usr));
+  }, [domicile.files, isBrowserRuntime]);
+
+  React.useEffect(() => {
+    void loadAutostart();
+  }, [loadAutostart]);
+
+  const toggleAutostart = React.useCallback(
+    async (entry: XdgAutostartEntry, enabled: boolean) => {
+      const content = buildAutostartOverrideDesktopContent(entry, enabled);
+      if (isBrowserRuntime) {
+        writeVfsTextFile(`${WEB_VFS_HOME}/.config/autostart/${entry.id}`, content);
+      } else {
+        await domicile.files.createDir(".config/autostart");
+        await domicile.files.write(
+          `.config/autostart/${entry.id}`,
+          new TextEncoder().encode(content)
+        );
+      }
+      await loadAutostart();
+    },
+    [domicile.files, isBrowserRuntime, loadAutostart]
+  );
   const [webStoreIds, setWebStoreIds] = React.useState<string[]>([]);
   const [newExtInput, setNewExtInput] = React.useState("");
   const [extConfigNote, setExtConfigNote] = React.useState<string | null>(null);
@@ -586,6 +652,41 @@ export function AdvancedPane() {
                 </GroupedFormRow>
               );
             })
+          )}
+        </GroupedFormGroup>
+      </GroupedFormSection>
+
+      <GroupedFormSection>
+        <GroupedFormSectionTitle>{_("Startup Applications")}</GroupedFormSectionTitle>
+        <GroupedFormGroup>
+          {autostartEntries.length === 0 ? (
+            <GroupedFormRow>
+              <GroupedFormRowLabel>
+                <GroupedFormRowTitle>{_("No XDG autostart entries")}</GroupedFormRowTitle>
+                <GroupedFormRowDescription>
+                  {_("Entries in ~/.config/autostart/*.desktop and /etc/xdg/autostart appear here.")}
+                </GroupedFormRowDescription>
+              </GroupedFormRowLabel>
+            </GroupedFormRow>
+          ) : (
+            autostartEntries.map((entry) => (
+              <GroupedFormRow key={entry.id}>
+                <GroupedFormRowLabel>
+                  <GroupedFormRowTitle>{entry.name}</GroupedFormRowTitle>
+                  <GroupedFormRowDescription>
+                    {entry.comment || entry.exec || entry.id}
+                  </GroupedFormRowDescription>
+                </GroupedFormRowLabel>
+                <GroupedFormRowControl>
+                  <Switch
+                    checked={entry.enabled}
+                    onCheckedChange={(checked) =>
+                      void toggleAutostart(entry, Boolean(checked))
+                    }
+                  />
+                </GroupedFormRowControl>
+              </GroupedFormRow>
+            ))
           )}
         </GroupedFormGroup>
       </GroupedFormSection>

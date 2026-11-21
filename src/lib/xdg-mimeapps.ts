@@ -161,3 +161,97 @@ export async function setDefaultMimeApp(
   }
   writeFsTextFile(domicile, isBrowserRuntime, MIMEAPPS_PATH, `${lines.join("\n")}\n`);
 }
+
+export interface SharedMimeGlob {
+  weight: number;
+  mimeType: string;
+  pattern: string;
+}
+
+/**
+ * Parses FreeDesktop Shared MIME-info `globs2` lines (`weight:mime:glob`).
+ */
+export function parseGlobs2(content: string): SharedMimeGlob[] {
+  const globs: SharedMimeGlob[] = [];
+  for (const rawLine of content.split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith("#")) continue;
+    const parts = line.split(":");
+    if (parts.length < 3) continue;
+    const weight = Number.parseInt(parts[0], 10);
+    const mimeType = parts[1]?.trim();
+    const pattern = parts.slice(2).join(":").trim();
+    if (!Number.isFinite(weight) || !mimeType || !pattern) continue;
+    globs.push({ weight, mimeType, pattern });
+  }
+  return globs.sort((a, b) => b.weight - a.weight);
+}
+
+/**
+ * Infers MIME type via magic header bytes first, then `globs2` patterns,
+ * then extension fallback (`inferMimeType`).
+ */
+export function sniffMimeType(
+  filename: string,
+  bytes?: Uint8Array,
+  globs?: readonly SharedMimeGlob[]
+): string {
+  if (bytes && bytes.length >= 4) {
+    if (
+      bytes[0] === 0x89 &&
+      bytes[1] === 0x50 &&
+      bytes[2] === 0x4e &&
+      bytes[3] === 0x47
+    ) {
+      return "image/png";
+    }
+    if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) {
+      return "image/jpeg";
+    }
+    if (
+      bytes[0] === 0x47 &&
+      bytes[1] === 0x49 &&
+      bytes[2] === 0x46 &&
+      bytes[3] === 0x38
+    ) {
+      return "image/gif";
+    }
+    if (
+      bytes[0] === 0x25 &&
+      bytes[1] === 0x50 &&
+      bytes[2] === 0x44 &&
+      bytes[3] === 0x46
+    ) {
+      return "application/pdf";
+    }
+    if (
+      bytes[0] === 0x50 &&
+      bytes[1] === 0x4b &&
+      (bytes[2] === 0x03 || bytes[2] === 0x05)
+    ) {
+      return "application/zip";
+    }
+    if (
+      bytes[0] === 0x1a &&
+      bytes[1] === 0x45 &&
+      bytes[2] === 0xdf &&
+      bytes[3] === 0xa3
+    ) {
+      return filename.toLowerCase().endsWith(".webm")
+        ? "video/webm"
+        : "video/x-matroska";
+    }
+  }
+  if (globs && globs.length > 0) {
+    const lower = filename.toLowerCase();
+    for (const g of globs) {
+      if (g.pattern.startsWith("*.") && lower.endsWith(g.pattern.slice(1).toLowerCase())) {
+        return g.mimeType;
+      }
+      if (g.pattern.toLowerCase() === lower) {
+        return g.mimeType;
+      }
+    }
+  }
+  return inferMimeType(filename, "file");
+}

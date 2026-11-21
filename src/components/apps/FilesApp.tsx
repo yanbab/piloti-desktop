@@ -36,6 +36,7 @@ import {
   type FileItemContextMenuState,
 } from "@/components/apps/FileItemContextMenu";
 import { Button } from "@/components/ui/button";
+import { Slider } from "@/components/ui/slider";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -1524,28 +1525,6 @@ export function FilesApp({
                     <LayoutGridIcon className="size-4" />
                   )}
                 </button>
-
-                {/* Zoom Out / Zoom In Icon Buttons */}
-                <button
-                  type="button"
-                  aria-label={_("Zoom out")}
-                  title={_("Zoom out")}
-                  disabled={activeZoomIndex <= 0}
-                  onClick={() => stepZoom(-1)}
-                  className="flex size-7 items-center justify-center rounded-md text-adw-label-secondary transition-colors hover:bg-black/8 hover:text-adw-label disabled:pointer-events-none disabled:opacity-35 dark:hover:bg-white/10"
-                >
-                  <ZoomOutIcon className="size-4" />
-                </button>
-                <button
-                  type="button"
-                  aria-label={_("Zoom in")}
-                  title={_("Zoom in")}
-                  disabled={activeZoomIndex >= maxZoomIndex}
-                  onClick={() => stepZoom(1)}
-                  className="flex size-7 items-center justify-center rounded-md text-adw-label-secondary transition-colors hover:bg-black/8 hover:text-adw-label disabled:pointer-events-none disabled:opacity-35 dark:hover:bg-white/10"
-                >
-                  <ZoomInIcon className="size-4" />
-                </button>
               </>
             )}
 
@@ -1596,6 +1575,53 @@ export function FilesApp({
         </WindowTitlebar>
       )}
       rightPane={infoPaneNode}
+      footer={
+        <div className="flex h-7 shrink-0 items-center justify-between border-t border-adw-separator bg-adw-titlebar/70 px-3 text-[11px] text-adw-label-secondary select-none">
+          <span>
+            {items.length} {items.length === 1 ? _("item") : _("items")}
+            {selectedIds.length > 0 ? ` · ${selectedIds.length} ${_("selected")}` : ""}
+          </span>
+          <div className="flex items-center gap-1.5" data-window-no-drag>
+            <button
+              type="button"
+              aria-label={_("Zoom out")}
+              title={_("Zoom out")}
+              disabled={activeZoomIndex <= 0}
+              onClick={() => stepZoom(-1)}
+              className="flex size-5 items-center justify-center rounded text-adw-label-secondary transition-colors hover:bg-black/8 hover:text-adw-label disabled:pointer-events-none disabled:opacity-35 dark:hover:bg-white/10"
+            >
+              <ZoomOutIcon className="size-3" />
+            </button>
+            <Slider
+              aria-label={_("Zoom")}
+              min={0}
+              max={maxZoomIndex}
+              step={1}
+              value={[activeZoomIndex]}
+              onValueChange={(val) => {
+                const next = Array.isArray(val) ? val[0] : val;
+                if (typeof next !== "number") return;
+                if (viewMode === "list") {
+                  setListZoomIndex(Math.max(0, Math.min(maxZoomIndex, next)));
+                } else {
+                  setGridZoomIndex(Math.max(0, Math.min(maxZoomIndex, next)));
+                }
+              }}
+              className="w-20"
+            />
+            <button
+              type="button"
+              aria-label={_("Zoom in")}
+              title={_("Zoom in")}
+              disabled={activeZoomIndex >= maxZoomIndex}
+              onClick={() => stepZoom(1)}
+              className="flex size-5 items-center justify-center rounded text-adw-label-secondary transition-colors hover:bg-black/8 hover:text-adw-label disabled:pointer-events-none disabled:opacity-35 dark:hover:bg-white/10"
+            >
+              <ZoomInIcon className="size-3" />
+            </button>
+          </div>
+        </div>
+      }
     >
       <div
         ref={mainViewRef}

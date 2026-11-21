@@ -12,26 +12,16 @@ It allows nice experiments when boundaries between web and native apps are not s
 ## Features
 
 ### Shell
-- Wayland window management
-- Unified menu bar & system tray
-- Application launcher
-- Window overview & workspaces
-- Dock & Trash
-- Desktop icons
-- Notifications & Control Panel
-- Alt+Tab window switcher
-- Lock screen & power actions
-- GNOME Adwaita light/dark/high-contrast themes & wallpapers
-- User CSS/JS plugins (`~/.config/piloti/plugins/`) & Chrome extensions in Web windows
+- Wayland window management (SSD/CSD, snapping, Overview, workspaces, Alt+Tab)
+- Unified menu bar, system tray, movable Launcher & Control Panel
+- Magnifying Dock, Desktop Icons spatial grid & Lock Screen
+- Piloti & Adwaita light/dark/high-contrast themes, Papirus mini-theme, plugins & Chrome extensions
+- FreeDesktop standards specs: Recents (XBEL), Trash, MimeApps & Globs2, Desktop Entries, Icon Themes, Autostart, Desktop Portals, Notifications, BaseDirs, UserDirs
 
 ### Apps
-- Files (Web) (`metadata::emblems` & `mimeapps.list` XDG support)
-- Web Terminal (pipes, redirects, history, `piloti` CLI)
-- Notepad (Markdown & JSON preview, `.config/Piloti/notepad.ini` prefs)
-- Calculator & Image Viewer
-- App Store (Web & Flatpak)
-- Desktop Settings
-- DevTools (Console, Logs, State & VFS Inspector, Storage)
+- Files (Grid/List views, Sort & Emblem filtering, bottom zoom slider, GIO/GVfs metadata)
+- Web Terminal (pipes, redirects, `Ctrl+R` history, `piloti` CLI) & DevTools (REPL, Logs, Infos, VFS & Events, Storage)
+- Notepad (Markdown & JSON preview), Calculator (Standard & Scientific), Image Viewer, App Store, Settings
 
 ## Quick Start
 
