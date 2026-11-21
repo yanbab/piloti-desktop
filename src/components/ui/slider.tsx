@@ -94,7 +94,7 @@ function Slider<Value extends number | readonly number[]>({
               isCapsule
                 ? "size-5 bg-white shadow-[0_0_2px_rgba(0,0,0,0.22),0_1px_3px_rgba(0,0,0,0.18)]"
                 : isSmall
-                  ? "h-3 w-3.5 bg-white shadow-[0_0_0_0.5px_rgb(0_0_0/0.08),0_1px_2px_rgb(0_0_0/0.25)] has-focus-visible:outline-2 has-focus-visible:outline-solid has-focus-visible:outline-adw-accent/50 active:bg-[#f2f2f2] dark:bg-[#dedede] dark:shadow-none"
+                  ? "size-4 bg-white shadow-[0_0_0_0.5px_rgb(0_0_0/0.08),0_1px_2px_rgb(0_0_0/0.25)] has-focus-visible:outline-2 has-focus-visible:outline-solid has-focus-visible:outline-adw-accent/50 active:bg-[#f2f2f2] dark:bg-[#dedede] dark:shadow-none"
                   : "h-4 w-5 bg-white shadow-[0_0_0_0.5px_rgb(0_0_0/0.08),0_1px_3px_rgb(0_0_0/0.25)] has-focus-visible:outline-3 has-focus-visible:outline-solid has-focus-visible:outline-adw-accent/50 active:bg-[#f2f2f2] dark:bg-[#dedede] dark:shadow-none"
             )}
           />

@@ -1842,9 +1842,10 @@ export function FilesApp({
             >
               <ZoomOutIcon className="size-3" />
             </button>
-            <div className="w-28 shrink-0">
+            <div className="w-[100px] shrink-0">
               <Slider
                 aria-label={_("Zoom")}
+                size="sm"
                 min={0}
                 max={maxZoomIndex}
                 step={1}
