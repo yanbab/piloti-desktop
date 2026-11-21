@@ -1,4 +1,6 @@
 import * as React from "react";
+import { consumeLegacyLocalStorageValue, getVfsEntry, writeVfsTextFile } from "@/lib/web-vfs";
+import { VFS_STATE_PATHS } from "@/lib/vfs-state";
 
 export type ConsoleLogLevel = "log" | "info" | "warn" | "error";
 
@@ -42,12 +44,14 @@ async function flushConsoleLogToDisk(): Promise<void> {
       })
       .join("\n") + "\n";
 
-  if (typeof localStorage !== "undefined") {
-    try {
-      localStorage.setItem(CONSOLE_LOG_STORAGE_KEY, payload);
-    } catch {
-      // ignore storage quota errors
+  try {
+    consumeLegacyLocalStorageValue(CONSOLE_LOG_STORAGE_KEY);
+    const existing = getVfsEntry(VFS_STATE_PATHS.consoleLog);
+    if (!existing || existing.content !== payload) {
+      writeVfsTextFile(VFS_STATE_PATHS.consoleLog, payload);
     }
+  } catch {
+    // ignore storage quota errors
   }
 
   const domicile = diskSink;

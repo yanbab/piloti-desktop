@@ -4,6 +4,11 @@
  */
 
 import {
+  readVfsStateText,
+  VFS_STATE_PATHS,
+  writeVfsStateText,
+} from "./vfs-state";
+import {
   XDG_ICON_BASE_DIRS,
   XDG_PIXMAPS_DIRS,
   type XdgFileReader,
@@ -722,9 +727,11 @@ function deserializeXdgIconThemeIndex(
 function loadCachedXdgIconThemeIndex(
   preferredThemes: readonly string[]
 ): XdgIconThemeIndex | null {
-  if (typeof localStorage === "undefined") return null;
   try {
-    const raw = localStorage.getItem(ICON_INDEX_CACHE_KEY);
+    const raw = readVfsStateText(
+      VFS_STATE_PATHS.iconIndexCache,
+      ICON_INDEX_CACHE_KEY,
+    );
     if (!raw) return null;
     return deserializeXdgIconThemeIndex(preferredThemes.join("|"), raw);
   } catch {
@@ -736,11 +743,10 @@ function saveCachedXdgIconThemeIndex(
   preferredThemes: readonly string[],
   index: XdgIconThemeIndex
 ): void {
-  if (typeof localStorage === "undefined") return;
   try {
-    localStorage.setItem(
-      ICON_INDEX_CACHE_KEY,
-      serializeXdgIconThemeIndex(preferredThemes.join("|"), index)
+    writeVfsStateText(
+      VFS_STATE_PATHS.iconIndexCache,
+      serializeXdgIconThemeIndex(preferredThemes.join("|"), index),
     );
   } catch {
     // ignore storage quota errors

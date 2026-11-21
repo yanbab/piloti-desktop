@@ -46,26 +46,104 @@ import {
   saveWorkspaceSnapshot,
   type WorkspaceSnapshot,
 } from "@/lib/workspace-snapshots";
+import { consumeLegacyLocalStorageValue } from "@/lib/web-vfs";
+import {
+  readVfsStateJson,
+  VFS_STATE_PATHS,
+  writeVfsStateJson,
+} from "@/lib/vfs-state";
 import { AppSquircleIcon } from "./AppSymbol";
 
 const RECENT_LAUNCHES_KEY = "piloti.launcher.recent.v1";
 const LEGACY_RECENT_LAUNCHES_KEY = "piloti.command-palette.recent.v1";
 const MAX_RECENT_LAUNCHES = 6;
 const QUERY_HISTORY_KEY = "piloti.launcher.query-history.v1";
+const LAUNCHER_HEIGHT_KEY = "piloti.launcher.height.v1";
+const LAUNCHER_OFFSET_KEY = "piloti.launcher.offset.v1";
 const MAX_QUERY_HISTORY = 20;
 
-function loadQueryHistory(): string[] {
-  if (typeof localStorage === "undefined") return [];
-  try {
-    const raw = localStorage.getItem(QUERY_HISTORY_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed)
-      ? parsed.filter((x): x is string => typeof x === "string" && x.trim().length > 0)
-      : [];
-  } catch {
-    return [];
+interface LauncherPersistedState {
+  queryHistory?: string[];
+  recentLaunches?: string[];
+  height?: number;
+  offset?: { x: number; y: number };
+}
+
+function readLauncherState(): LauncherPersistedState {
+  const fromVfs = readVfsStateJson<LauncherPersistedState>(
+    VFS_STATE_PATHS.launcher
+  );
+  if (fromVfs && typeof fromVfs === "object") {
+    return fromVfs;
   }
+  // One-time migration from legacy localStorage keys
+  const migrated: LauncherPersistedState = {};
+  let hasLegacy = false;
+  try {
+    const rawHist = consumeLegacyLocalStorageValue(QUERY_HISTORY_KEY);
+    if (rawHist) {
+      const parsed = JSON.parse(rawHist);
+      if (Array.isArray(parsed)) {
+        migrated.queryHistory = parsed.filter(
+          (x): x is string => typeof x === "string" && x.trim().length > 0
+        );
+        hasLegacy = true;
+      }
+    }
+    const rawRecent =
+      consumeLegacyLocalStorageValue(RECENT_LAUNCHES_KEY) ??
+      consumeLegacyLocalStorageValue(LEGACY_RECENT_LAUNCHES_KEY);
+    if (rawRecent) {
+      const parsed = JSON.parse(rawRecent);
+      if (Array.isArray(parsed)) {
+        migrated.recentLaunches = parsed.filter(
+          (x): x is string => typeof x === "string"
+        );
+        hasLegacy = true;
+      }
+    }
+    const rawHeight = consumeLegacyLocalStorageValue(LAUNCHER_HEIGHT_KEY);
+    const savedH = Number(rawHeight);
+    if (rawHeight && Number.isFinite(savedH) && savedH >= 180) {
+      migrated.height = savedH;
+      hasLegacy = true;
+    }
+    const rawOffset = consumeLegacyLocalStorageValue(LAUNCHER_OFFSET_KEY);
+    if (rawOffset) {
+      const parsed = JSON.parse(rawOffset) as { x?: unknown; y?: unknown };
+      if (
+        typeof parsed?.x === "number" &&
+        Number.isFinite(parsed.x) &&
+        typeof parsed?.y === "number" &&
+        Number.isFinite(parsed.y)
+      ) {
+        migrated.offset = { x: parsed.x, y: parsed.y };
+        hasLegacy = true;
+      }
+    }
+    if (hasLegacy) {
+      writeVfsStateJson(VFS_STATE_PATHS.launcher, migrated);
+    }
+  } catch {
+    // ignore storage errors
+  }
+  return migrated;
+}
+
+function writeLauncherStatePatch(patch: Partial<LauncherPersistedState>): void {
+  try {
+    const current = readLauncherState();
+    writeVfsStateJson(VFS_STATE_PATHS.launcher, { ...current, ...patch });
+  } catch {
+    // ignore storage errors
+  }
+}
+
+function loadQueryHistory(): string[] {
+  const list = readLauncherState().queryHistory;
+  return Array.isArray(list)
+    ? list.filter((x): x is string => typeof x === "string" && x.trim().length > 0)
+    : [];
 }
 
 function saveQueryHistory(query: string, prev: readonly string[]): string[] {
@@ -75,30 +153,15 @@ function saveQueryHistory(query: string, prev: readonly string[]): string[] {
     0,
     MAX_QUERY_HISTORY
   );
-  if (typeof localStorage !== "undefined") {
-    try {
-      localStorage.setItem(QUERY_HISTORY_KEY, JSON.stringify(next));
-    } catch {
-      // ignore storage errors
-    }
-  }
+  writeLauncherStatePatch({ queryHistory: next });
   return next;
 }
 
 function loadRecentLaunches(): string[] {
-  if (typeof localStorage === "undefined") return [];
-  try {
-    const raw =
-      localStorage.getItem(RECENT_LAUNCHES_KEY) ??
-      localStorage.getItem(LEGACY_RECENT_LAUNCHES_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed)
-      ? parsed.filter((x): x is string => typeof x === "string")
-      : [];
-  } catch {
-    return [];
-  }
+  const list = readLauncherState().recentLaunches;
+  return Array.isArray(list)
+    ? list.filter((x): x is string => typeof x === "string")
+    : [];
 }
 
 function saveRecentLaunch(key: string, prev: readonly string[]): string[] {
@@ -106,13 +169,7 @@ function saveRecentLaunch(key: string, prev: readonly string[]): string[] {
     0,
     MAX_RECENT_LAUNCHES
   );
-  if (typeof localStorage !== "undefined") {
-    try {
-      localStorage.setItem(RECENT_LAUNCHES_KEY, JSON.stringify(next));
-    } catch {
-      // ignore storage errors
-    }
-  }
+  writeLauncherStatePatch({ recentLaunches: next });
   return next;
 }
 
@@ -857,33 +914,24 @@ export function Launcher() {
   }, [allValues, firstItemValue, searchQuery, selectedValue]);
 
   const [listHeight, setListHeight] = React.useState<number>(() => {
-    try {
-      const saved = Number(localStorage.getItem("piloti.launcher.height.v1"));
-      if (Number.isFinite(saved) && saved >= 180) return saved;
-    } catch {
-      // ignore storage errors
+    const saved = readLauncherState().height;
+    if (typeof saved === "number" && Number.isFinite(saved) && saved >= 180) {
+      return saved;
     }
     return 360;
   });
 
-  const LAUNCHER_OFFSET_KEY = "piloti.launcher.offset.v1";
   const [popupOffset, setPopupOffset] = React.useState<{ x: number; y: number }>(
     () => {
-      try {
-        const raw = localStorage.getItem(LAUNCHER_OFFSET_KEY);
-        if (raw) {
-          const parsed = JSON.parse(raw) as { x?: unknown; y?: unknown };
-          if (
-            typeof parsed?.x === "number" &&
-            Number.isFinite(parsed.x) &&
-            typeof parsed?.y === "number" &&
-            Number.isFinite(parsed.y)
-          ) {
-            return { x: parsed.x, y: parsed.y };
-          }
-        }
-      } catch {
-        // ignore storage errors
+      const saved = readLauncherState().offset;
+      if (
+        saved &&
+        typeof saved.x === "number" &&
+        Number.isFinite(saved.x) &&
+        typeof saved.y === "number" &&
+        Number.isFinite(saved.y)
+      ) {
+        return { x: saved.x, y: saved.y };
       }
       return { x: 0, y: 0 };
     }
@@ -969,11 +1017,7 @@ export function Launcher() {
       window.removeEventListener("pointercancel", onPointerUp, true);
       if (!dragging) return;
       setPopupOffset(latest);
-      try {
-        localStorage.setItem(LAUNCHER_OFFSET_KEY, JSON.stringify(latest));
-      } catch {
-        // ignore storage errors
-      }
+      writeLauncherStatePatch({ offset: latest });
     };
 
     window.addEventListener("pointermove", onPointerMove, true);
@@ -1006,11 +1050,7 @@ export function Launcher() {
         maxAllowed,
         Math.max(180, Math.round(startHeight + (upEvent.clientY - startY)))
       );
-      try {
-        localStorage.setItem("piloti.launcher.height.v1", String(finalHeight));
-      } catch {
-        // ignore storage errors
-      }
+      writeLauncherStatePatch({ height: finalHeight });
     };
 
     window.addEventListener("pointermove", onPointerMove);

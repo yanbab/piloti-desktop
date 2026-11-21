@@ -26,6 +26,11 @@ import {
   WindowTitlebar,
 } from "@/components/ui/window";
 import { useSidebarKeyboardNav } from "@/hooks/use-sidebar-keyboard-nav";
+import {
+  readVfsStateJson,
+  VFS_STATE_PATHS,
+  writeVfsStateJson,
+} from "@/lib/vfs-state";
 import { Button } from "@/components/ui/button";
 import {
   ContextMenu,
@@ -114,9 +119,11 @@ const CORE_BUILTIN_IDS = new Set([
 
 function loadStoreMeta(): StoreMetaState {
   try {
-    const raw = localStorage.getItem(STORE_META_STORAGE_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw) as Partial<StoreMetaState>;
+    const parsed = readVfsStateJson<Partial<StoreMetaState>>(
+      VFS_STATE_PATHS.appStoreMeta,
+      STORE_META_STORAGE_KEY,
+    );
+    if (parsed && typeof parsed === "object") {
       return {
         fakeInstalledAppIds: Array.isArray(parsed.fakeInstalledAppIds)
           ? parsed.fakeInstalledAppIds
@@ -134,7 +141,7 @@ function loadStoreMeta(): StoreMetaState {
 
 function saveStoreMeta(meta: StoreMetaState) {
   try {
-    localStorage.setItem(STORE_META_STORAGE_KEY, JSON.stringify(meta));
+    writeVfsStateJson(VFS_STATE_PATHS.appStoreMeta, meta);
   } catch {
     // ignore storage errors
   }

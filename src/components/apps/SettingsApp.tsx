@@ -21,9 +21,17 @@ import type { GnomeSettingsPanel } from "@/lib/gnome-bridge";
 import { _ } from "@/lib/i18n";
 import {
   getCachedPilotiAppIni,
+  getPilotiAppIniVfsPath,
+  parseIniText,
   readPilotiAppIni,
   writePilotiAppIni,
 } from "@/lib/piloti-ini";
+import {
+  readVfsStateText,
+  subscribeVfsPath,
+  VFS_STATE_PATHS,
+  writeVfsStateText,
+} from "@/lib/vfs-state";
 import { cn } from "@/lib/utils";
 import { AdvancedPane } from "./settings/AdvancedPane";
 import { AppearancePane } from "./settings/AppearancePane";
@@ -118,7 +126,10 @@ export function SettingsApp({
     const iniPane = getCachedPilotiAppIni("settings").General?.lastPane;
     if (isSettingsPaneId(iniPane)) return iniPane;
     try {
-      const saved = localStorage.getItem(SETTINGS_ACTIVE_PANE_KEY);
+      const saved = readVfsStateText(
+        VFS_STATE_PATHS.settingsPane,
+        SETTINGS_ACTIVE_PANE_KEY
+      )?.trim();
       if (isSettingsPaneId(saved)) return saved;
     } catch {
       // ignore storage errors
@@ -139,14 +150,32 @@ export function SettingsApp({
         setActivePane(pane);
       }
     });
+    const unsubIni = subscribeVfsPath(
+      getPilotiAppIniVfsPath("settings"),
+      (raw) => {
+        if (!raw) return;
+        const pane = parseIniText(raw).General?.lastPane;
+        if (isSettingsPaneId(pane)) {
+          setActivePane(pane);
+        }
+      }
+    );
+    const unsubPane = subscribeVfsPath(VFS_STATE_PATHS.settingsPane, (raw) => {
+      const pane = raw?.trim();
+      if (isSettingsPaneId(pane)) {
+        setActivePane(pane);
+      }
+    });
     return () => {
       cancelled = true;
+      unsubIni();
+      unsubPane();
     };
   }, [domicile, initialPane]);
 
   React.useEffect(() => {
     try {
-      localStorage.setItem(SETTINGS_ACTIVE_PANE_KEY, activePane);
+      writeVfsStateText(VFS_STATE_PATHS.settingsPane, `${activePane}\n`);
     } catch {
       // ignore storage errors
     }

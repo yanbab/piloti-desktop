@@ -13,6 +13,11 @@ import {
   removePluginCss,
   syncManagedGtkCssFile,
 } from "@/lib/plugins/loader";
+import { consumeLegacyLocalStorageValue } from "@/lib/web-vfs";
+import {
+  readVfsStateJson,
+  writeVfsStateJson,
+} from "@/lib/vfs-state";
 import type {
   DiscoveredPlugin,
   LauncherProvider,
@@ -269,20 +274,31 @@ export function PluginsProvider({
         storage: {
           get: <T = unknown,>(key: string) => {
             try {
-              const raw = localStorage.getItem(
+              const pluginFile = `/home/user/.config/piloti/plugins/${pluginId}.state.json`;
+              const stateObj =
+                readVfsStateJson<Record<string, unknown>>(pluginFile) ?? {};
+              if (key in stateObj) {
+                return stateObj[key] as T;
+              }
+              const legacyRaw = consumeLegacyLocalStorageValue(
                 `${PLUGIN_STORAGE_PREFIX}${pluginId}.${key}`
               );
-              return raw ? (JSON.parse(raw) as T) : undefined;
+              if (legacyRaw !== null) {
+                const parsed = JSON.parse(legacyRaw) as T;
+                writeVfsStateJson(pluginFile, { ...stateObj, [key]: parsed });
+                return parsed;
+              }
+              return undefined;
             } catch {
               return undefined;
             }
           },
           set: (key, value) => {
             try {
-              localStorage.setItem(
-                `${PLUGIN_STORAGE_PREFIX}${pluginId}.${key}`,
-                JSON.stringify(value)
-              );
+              const pluginFile = `/home/user/.config/piloti/plugins/${pluginId}.state.json`;
+              const stateObj =
+                readVfsStateJson<Record<string, unknown>>(pluginFile) ?? {};
+              writeVfsStateJson(pluginFile, { ...stateObj, [key]: value });
             } catch {
               // ignore storage quota errors
             }

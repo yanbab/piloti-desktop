@@ -34,6 +34,12 @@ import {
   trashVfsEntry,
   writeVfsTextFile,
 } from "@/lib/web-vfs";
+import {
+  readVfsStateText,
+  subscribeVfsPath,
+  VFS_STATE_PATHS,
+  writeVfsStateText,
+} from "@/lib/vfs-state";
 
 interface TerminalAppProps {
   initialPath?: string;
@@ -201,18 +207,39 @@ export const TerminalApp: React.FC<TerminalAppProps> = ({ initialPath }) => {
   });
   const TERMINAL_HISTORY_KEY = "piloti.web.terminal.history.v1";
   const [input, setInput] = React.useState("");
-  const [history, setHistory] = React.useState<string[]>(() => {
-    if (typeof localStorage === "undefined") return [];
-    try {
-      const raw = localStorage.getItem(TERMINAL_HISTORY_KEY);
-      const parsed = raw ? JSON.parse(raw) : [];
-      return Array.isArray(parsed)
-        ? parsed.filter((x): x is string => typeof x === "string").slice(-500)
-        : [];
-    } catch {
-      return [];
+  const parseTerminalHistory = React.useCallback((raw: string | null): string[] => {
+    if (!raw) return [];
+    const trimmed = raw.trim();
+    if (!trimmed) return [];
+    if (trimmed.startsWith("[")) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (Array.isArray(parsed)) {
+          return parsed
+            .filter((x): x is string => typeof x === "string" && x.length > 0)
+            .slice(-500);
+        }
+      } catch {
+        // fall through to line-based history
+      }
     }
-  });
+    return raw
+      .split(/\r?\n/)
+      .filter((line) => line.length > 0)
+      .slice(-500);
+  }, []);
+  const [history, setHistory] = React.useState<string[]>(() =>
+    parseTerminalHistory(
+      readVfsStateText(VFS_STATE_PATHS.terminalHistory, TERMINAL_HISTORY_KEY)
+    )
+  );
+  React.useEffect(
+    () =>
+      subscribeVfsPath(VFS_STATE_PATHS.terminalHistory, (raw) => {
+        setHistory(parseTerminalHistory(raw));
+      }),
+    [parseTerminalHistory]
+  );
   const [historyIndex, setHistoryIndex] = React.useState<number>(-1);
   const [reverseSearch, setReverseSearch] = React.useState<{
     active: boolean;
@@ -418,7 +445,10 @@ export const TerminalApp: React.FC<TerminalAppProps> = ({ initialPath }) => {
     setHistory((prev) => {
       const next = [...prev, trimmed].slice(-500);
       try {
-        localStorage.setItem(TERMINAL_HISTORY_KEY, JSON.stringify(next));
+        writeVfsStateText(
+          VFS_STATE_PATHS.terminalHistory,
+          next.length > 0 ? `${next.join("\n")}\n` : ""
+        );
       } catch {
         // ignore storage quota
       }

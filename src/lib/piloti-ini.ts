@@ -1,8 +1,12 @@
 import type { Domicile } from "@domicile-desktop/sdk/desktop/desktop";
-import { getVfsEntry, writeVfsTextFile } from "@/lib/web-vfs";
+import { readVfsStateText, writeVfsStateText } from "@/lib/vfs-state";
 
 const PILOTI_INI_DIR = ".config/Piloti";
 const LOCAL_CACHE_PREFIX = "piloti.app-ini.v1.";
+
+export function getPilotiAppIniVfsPath(appName: string): string {
+  return `/home/user/${PILOTI_INI_DIR}/${appName}.ini`;
+}
 
 export type IniRecord = Record<string, Record<string, string>>;
 
@@ -38,9 +42,11 @@ export function serializeIniText(data: IniRecord): string {
 }
 
 export function getCachedPilotiAppIni(appName: string): IniRecord {
-  if (typeof localStorage === "undefined") return {};
   try {
-    const raw = localStorage.getItem(`${LOCAL_CACHE_PREFIX}${appName}`);
+    const raw = readVfsStateText(
+      getPilotiAppIniVfsPath(appName),
+      `${LOCAL_CACHE_PREFIX}${appName}`,
+    );
     return raw ? parseIniText(raw) : {};
   } catch {
     return {};
@@ -60,14 +66,15 @@ export async function readPilotiAppIni(
   domicile: Domicile | null | undefined,
   appName: string
 ): Promise<IniRecord> {
-  const path = `${PILOTI_INI_DIR}/${appName}.ini`;
+  const relPath = `${PILOTI_INI_DIR}/${appName}.ini`;
+  const vfsPath = getPilotiAppIniVfsPath(appName);
   if (domicile && !isBrowserHostRuntime()) {
     try {
-      const res = await domicile.files.readText(path);
+      const res = await domicile.files.readText(relPath);
       return res.match({
         Ok: (text) => {
           try {
-            localStorage.setItem(`${LOCAL_CACHE_PREFIX}${appName}`, text);
+            writeVfsStateText(vfsPath, text);
           } catch {
             // ignore
           }
@@ -78,10 +85,6 @@ export async function readPilotiAppIni(
     } catch {
       return getCachedPilotiAppIni(appName);
     }
-  }
-  const vfs = getVfsEntry(`/home/user/${path}`);
-  if (vfs?.kind === "file" && typeof vfs.content === "string") {
-    return parseIniText(vfs.content);
   }
   return getCachedPilotiAppIni(appName);
 }
@@ -108,7 +111,7 @@ export async function writePilotiAppIni(
   };
   const serialized = serializeIniText(next);
   try {
-    localStorage.setItem(`${LOCAL_CACHE_PREFIX}${appName}`, serialized);
+    writeVfsStateText(getPilotiAppIniVfsPath(appName), serialized);
   } catch {
     // ignore
   }
@@ -120,15 +123,8 @@ export async function writePilotiAppIni(
         ensuredIniDirs.add(PILOTI_INI_DIR);
       }
       await domicile.files.write(`${PILOTI_INI_DIR}/${appName}.ini`, serialized);
-      return;
     } catch {
       ensuredIniDirs.delete(PILOTI_INI_DIR);
-      // fallback below
     }
-  }
-  try {
-    writeVfsTextFile(`/home/user/${PILOTI_INI_DIR}/${appName}.ini`, serialized);
-  } catch {
-    // ignore
   }
 }

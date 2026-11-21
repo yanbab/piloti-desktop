@@ -43,9 +43,16 @@ import { _ } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import {
   WEB_VFS_CHANGED_EVENT,
-  WEB_VFS_STORAGE_KEY,
+  getVfsSnapshotEntries,
+  listWebVfsBackingStorageEntries,
   type WebVfsEntry,
 } from "@/lib/web-vfs";
+import {
+  readVfsStateText,
+  subscribeVfsPath,
+  VFS_STATE_PATHS,
+  writeVfsStateText,
+} from "@/lib/vfs-state";
 
 export type ConsoleModuleId =
   | "repl"
@@ -880,14 +887,12 @@ function formatByteSize(bytes: number): string {
 }
 
 function readLocalStorageEntries(): StorageEntry[] {
-  if (typeof localStorage === "undefined") return [];
+  const rawEntries = listWebVfsBackingStorageEntries();
   const encoder =
     typeof TextEncoder !== "undefined" ? new TextEncoder() : null;
   const entries: StorageEntry[] = [];
-  for (let i = 0; i < localStorage.length; i += 1) {
-    const key = localStorage.key(i);
-    if (!key) continue;
-    const rawValue = localStorage.getItem(key) ?? "";
+  for (const item of rawEntries) {
+    const { key, value: rawValue } = item;
     const byteSize = encoder ? encoder.encode(rawValue).length : rawValue.length;
     let isJson = false;
     let formattedJson: string | null = null;
@@ -926,18 +931,8 @@ interface VfsDiffItem {
 
 function readVfsSnapshotMap(): Map<string, WebVfsEntry> {
   const map = new Map<string, WebVfsEntry>();
-  if (typeof localStorage === "undefined") return map;
-  try {
-    const raw = localStorage.getItem(WEB_VFS_STORAGE_KEY);
-    if (!raw) return map;
-    const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed)) {
-      for (const entry of parsed as WebVfsEntry[]) {
-        if (entry?.path) map.set(entry.path, entry);
-      }
-    }
-  } catch {
-    // ignore
+  for (const entry of getVfsSnapshotEntries()) {
+    if (entry?.path) map.set(entry.path, entry);
   }
   return map;
 }
@@ -1412,7 +1407,10 @@ export function ConsoleApp({
     () => {
       if (isModuleId(initialModule)) return initialModule;
       try {
-        const saved = localStorage.getItem(DEVTOOLS_ACTIVE_MODULE_KEY);
+        const saved = readVfsStateText(
+          VFS_STATE_PATHS.devtoolsModule,
+          DEVTOOLS_ACTIVE_MODULE_KEY
+        )?.trim();
         if (isModuleId(saved)) return saved;
       } catch {
         // ignore storage errors
@@ -1428,8 +1426,17 @@ export function ConsoleApp({
   }, [initialModule]);
 
   React.useEffect(() => {
+    return subscribeVfsPath(VFS_STATE_PATHS.devtoolsModule, (raw) => {
+      const mod = raw?.trim();
+      if (isModuleId(mod)) {
+        setActiveModule(mod);
+      }
+    });
+  }, []);
+
+  React.useEffect(() => {
     try {
-      localStorage.setItem(DEVTOOLS_ACTIVE_MODULE_KEY, activeModule);
+      writeVfsStateText(VFS_STATE_PATHS.devtoolsModule, `${activeModule}\n`);
     } catch {
       // ignore storage errors
     }

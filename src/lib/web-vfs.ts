@@ -67,6 +67,10 @@ const DEFAULT_DIRS = [
   "/home/user/.local/share",
   "/home/user/.local/share/applications",
   "/home/user/.local/share/Trash",
+  "/home/user/.local/state",
+  "/home/user/.local/state/piloti",
+  "/home/user/.cache",
+  "/home/user/.cache/piloti",
   WEB_VFS_TRASH,
 ];
 
@@ -448,6 +452,8 @@ function postVfsBroadcast(msg: VfsBroadcastMessage): void {
   }
 }
 
+const inProcessVfsListeners = new Set<() => void>();
+
 function saveVfs(entries: WebVfsEntry[]): void {
   let json: string | null = null;
   if (typeof localStorage !== "undefined") {
@@ -461,6 +467,10 @@ function saveVfs(entries: WebVfsEntry[]): void {
   setVfsCache(entries, json);
   if (typeof window !== "undefined") {
     window.dispatchEvent(new CustomEvent(WEB_VFS_CHANGED_EVENT));
+  } else {
+    for (const listener of inProcessVfsListeners) {
+      listener();
+    }
   }
   postVfsBroadcast({ type: "vfs-changed" });
 }
@@ -1186,7 +1196,12 @@ export function moveVfsEntry(
 }
 
 export function subscribeWebVfs(listener: () => void): () => void {
-  if (typeof window === "undefined") return () => {};
+  if (typeof window === "undefined") {
+    inProcessVfsListeners.add(listener);
+    return () => {
+      inProcessVfsListeners.delete(listener);
+    };
+  }
   const onStorage = (e: StorageEvent) => {
     if (
       e.key === WEB_VFS_STORAGE_KEY ||
@@ -1742,4 +1757,71 @@ export async function extractVfsZip(zipPath: string): Promise<WebVfsEntry | null
   saveVfs(entries);
   return rootFolder;
 }
+
+export interface WebVfsBackingStorageEntry {
+  key: string;
+  bytes: number;
+  value: string;
+}
+
+/**
+ * Returns a snapshot array of all current entries in `web-vfs`.
+ */
+export function getVfsSnapshotEntries(): WebVfsEntry[] {
+  return [...loadVfs()];
+}
+
+/**
+ * Reads and deletes a legacy `localStorage` key during one-time migration into VFS.
+ * Keeps `localStorage` encapsulated inside `web-vfs.ts`.
+ */
+export function consumeLegacyLocalStorageValue(key: string): string | null {
+  if (typeof localStorage === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(key);
+    if (raw !== null) {
+      localStorage.removeItem(key);
+    }
+    return raw;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Lists raw `localStorage` backing entries for the DevTools Storage inspector.
+ */
+export function listWebVfsBackingStorageEntries(): WebVfsBackingStorageEntry[] {
+  if (typeof localStorage === "undefined") return [];
+  const entries: WebVfsBackingStorageEntry[] = [];
+  for (let i = 0; i < localStorage.length; i += 1) {
+    const key = localStorage.key(i);
+    if (!key) continue;
+    const value = localStorage.getItem(key) ?? "";
+    const bytes = new Blob([value]).size;
+    entries.push({ key, bytes, value });
+  }
+  entries.sort((a, b) => b.bytes - a.bytes || a.key.localeCompare(b.key));
+  return entries;
+}
+
+/**
+ * Resets all browser VFS backing storage keys and invalidates the in-memory VFS cache.
+ */
+export function clearAllWebVfsBackingStorage(): void {
+  vfsCacheRaw = null;
+  vfsCacheEntries = null;
+  vfsCacheByPath = null;
+  if (typeof localStorage === "undefined") return;
+  try {
+    for (const key of Object.keys(localStorage)) {
+      if (key.startsWith("piloti.") || key.startsWith("vfs_")) {
+        localStorage.removeItem(key);
+      }
+    }
+  } catch {
+    // ignore storage errors
+  }
+}
+
 

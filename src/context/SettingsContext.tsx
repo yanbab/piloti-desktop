@@ -14,7 +14,16 @@ import {
   DEFAULT_LAUNCHER_WEB_APPS,
   type InstalledWebApp,
 } from "@/data/web-apps";
-import { WEB_VFS_CHANGED_EVENT } from "@/lib/web-vfs";
+import { WEB_VFS_CHANGED_EVENT, getVfsEntry } from "@/lib/web-vfs";
+import { toDomicilePath } from "@/lib/fs-bridge";
+import {
+  readVfsStateJson,
+  readVfsStateText,
+  registerVfsHostSync,
+  subscribeVfsPath,
+  VFS_STATE_PATHS,
+  writeVfsStateJson,
+} from "@/lib/vfs-state";
 import {
   installWebAppDesktopEntry,
   loadWebAppsFromDesktopEntries,
@@ -232,14 +241,24 @@ const STORAGE_KEY = "piloti.desktop.settings.v1";
 const WINDOW_BOUNDS_STORAGE_KEY = "piloti.window-bounds.v1";
 const DESKTOP_ICONS_STORAGE_KEY = "piloti.desktop-icon-positions.v1";
 
-function loadSeparatedRecord<T>(key: string): Record<string, T> | null {
-  if (typeof localStorage === "undefined") return null;
+function serializeDesktopSettings(next: DesktopSettings): Record<string, unknown> {
+  const {
+    installedWebApps: _ignoredWebApps,
+    savedWindowBounds: _ignoredBounds,
+    desktopIconPositions: _ignoredIcons,
+    ...serializable
+  } = next;
+  return serializable;
+}
+
+function loadSeparatedRecord<T>(
+  vfsPath: string,
+  legacyKey: string,
+): Record<string, T> | null {
   try {
-    const raw = localStorage.getItem(key);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
+    const parsed = readVfsStateJson<Record<string, T>>(vfsPath, legacyKey);
     return parsed && typeof parsed === "object" && !Array.isArray(parsed)
-      ? (parsed as Record<string, T>)
+      ? parsed
       : null;
   } catch {
     return null;
@@ -434,13 +453,15 @@ export function useSettingsValue(options?: {
     if (typeof window === "undefined") return DEFAULT_SETTINGS;
     try {
       const base = resolveInitialSettings(
-        localStorage.getItem(STORAGE_KEY),
+        readVfsStateText(VFS_STATE_PATHS.settings, STORAGE_KEY),
         isBrowserRuntime
       );
       const separatedBounds = loadSeparatedRecord<SavedWindowBounds>(
+        VFS_STATE_PATHS.windowBounds,
         WINDOW_BOUNDS_STORAGE_KEY
       );
       const separatedIcons = loadSeparatedRecord<{ col: number; row: number }>(
+        VFS_STATE_PATHS.desktopIcons,
         DESKTOP_ICONS_STORAGE_KEY
       );
       return {
@@ -467,8 +488,138 @@ export function useSettingsValue(options?: {
     iconsStorage?: ReturnType<typeof setTimeout>;
   }>({});
 
+  React.useEffect(() => {
+    if (isBrowserRuntime) {
+      registerVfsHostSync(null);
+      return;
+    }
+    const ensuredDirs = new Set<string>();
+    const ensureParentDir = async (vfsPath: string) => {
+      const idx = vfsPath.lastIndexOf("/");
+      if (idx <= 0) return;
+      const relDir = toDomicilePath(vfsPath.slice(0, idx));
+      if (!relDir || relDir === "." || ensuredDirs.has(relDir)) return;
+      ensuredDirs.add(relDir);
+      await domicile.processes.run(["mkdir", "-p", "--", relDir]).catch(() => {
+        ensuredDirs.delete(relDir);
+      });
+    };
+    registerVfsHostSync({
+      writeText: (vfsPath, content) => {
+        void (async () => {
+          await ensureParentDir(vfsPath);
+          const bytes = new TextEncoder().encode(content);
+          await domicile.files.write(toDomicilePath(vfsPath), bytes);
+        })().catch(() => undefined);
+      },
+      removeFile: (vfsPath) => {
+        void domicile.processes
+          .run(["rm", "-f", "--", toDomicilePath(vfsPath)])
+          .catch(() => undefined);
+      },
+    });
+    return () => registerVfsHostSync(null);
+  }, [domicile, isBrowserRuntime]);
+
+  // Seed settings.json in VFS on first run so users can inspect/edit it in Files or Text Editor,
+  // and subscribe to live VFS edits on settings.json, window-bounds.json, and desktop-icons.json.
+  React.useEffect(() => {
+    try {
+      if (!getVfsEntry(VFS_STATE_PATHS.settings)) {
+        writeVfsStateJson(
+          VFS_STATE_PATHS.settings,
+          serializeDesktopSettings(settingsRef.current)
+        );
+      }
+      if (!getVfsEntry(VFS_STATE_PATHS.windowBounds)) {
+        writeVfsStateJson(
+          VFS_STATE_PATHS.windowBounds,
+          settingsRef.current.savedWindowBounds
+        );
+      }
+      if (!getVfsEntry(VFS_STATE_PATHS.desktopIcons)) {
+        writeVfsStateJson(
+          VFS_STATE_PATHS.desktopIcons,
+          settingsRef.current.desktopIconPositions
+        );
+      }
+    } catch {
+      // ignore initial VFS seed errors
+    }
+
+    const unsubSettings = subscribeVfsPath(VFS_STATE_PATHS.settings, (raw) => {
+      if (!raw || !raw.trim()) return;
+      try {
+        JSON.parse(raw);
+      } catch {
+        // Ignore transient invalid JSON while the user is editing in Text Editor
+        return;
+      }
+      const nextBase = resolveInitialSettings(raw, isBrowserRuntime);
+      setSettings((prev) => {
+        const currentSerialized = JSON.stringify(serializeDesktopSettings(prev));
+        const incomingSerialized = JSON.stringify(
+          serializeDesktopSettings({
+            ...nextBase,
+            installedWebApps: prev.installedWebApps,
+            savedWindowBounds: prev.savedWindowBounds,
+            desktopIconPositions: prev.desktopIconPositions,
+          })
+        );
+        if (currentSerialized === incomingSerialized) return prev;
+        return {
+          ...nextBase,
+          installedWebApps: prev.installedWebApps,
+          savedWindowBounds: prev.savedWindowBounds,
+          desktopIconPositions: prev.desktopIconPositions,
+        };
+      });
+    });
+
+    const unsubBounds = subscribeVfsPath(VFS_STATE_PATHS.windowBounds, (raw) => {
+      if (!raw || !raw.trim()) return;
+      try {
+        const parsed: unknown = JSON.parse(raw);
+        if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return;
+        const incoming = parsed as Record<string, SavedWindowBounds>;
+        setSettings((prev) => {
+          if (JSON.stringify(prev.savedWindowBounds) === JSON.stringify(incoming)) {
+            return prev;
+          }
+          return { ...prev, savedWindowBounds: incoming };
+        });
+      } catch {
+        // ignore invalid JSON while editing
+      }
+    });
+
+    const unsubIcons = subscribeVfsPath(VFS_STATE_PATHS.desktopIcons, (raw) => {
+      if (!raw || !raw.trim()) return;
+      try {
+        const parsed: unknown = JSON.parse(raw);
+        if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return;
+        const incoming = parsed as Record<string, { col: number; row: number }>;
+        setSettings((prev) => {
+          if (
+            JSON.stringify(prev.desktopIconPositions) === JSON.stringify(incoming)
+          ) {
+            return prev;
+          }
+          return { ...prev, desktopIconPositions: incoming };
+        });
+      } catch {
+        // ignore invalid JSON while editing
+      }
+    });
+
+    return () => {
+      unsubSettings();
+      unsubBounds();
+      unsubIcons();
+    };
+  }, [isBrowserRuntime]);
+
   const persist = (next: DesktopSettings, patch?: Partial<DesktopSettings>) => {
-    if (typeof localStorage === "undefined") return;
     try {
       const patchKeys = patch ? Object.keys(patch) : null;
       const onlyBounds =
@@ -484,10 +635,7 @@ export function useSettingsValue(options?: {
         clearTimeout(sliderTimersRef.current.boundsStorage);
         sliderTimersRef.current.boundsStorage = setTimeout(() => {
           try {
-            localStorage.setItem(
-              WINDOW_BOUNDS_STORAGE_KEY,
-              JSON.stringify(next.savedWindowBounds)
-            );
+            writeVfsStateJson(VFS_STATE_PATHS.windowBounds, next.savedWindowBounds);
           } catch {
             // ignore
           }
@@ -499,9 +647,9 @@ export function useSettingsValue(options?: {
         clearTimeout(sliderTimersRef.current.iconsStorage);
         sliderTimersRef.current.iconsStorage = setTimeout(() => {
           try {
-            localStorage.setItem(
-              DESKTOP_ICONS_STORAGE_KEY,
-              JSON.stringify(next.desktopIconPositions)
+            writeVfsStateJson(
+              VFS_STATE_PATHS.desktopIcons,
+              next.desktopIconPositions
             );
           } catch {
             // ignore
@@ -511,19 +659,15 @@ export function useSettingsValue(options?: {
       }
 
       if (patch?.savedWindowBounds !== undefined) {
-        localStorage.setItem(
-          WINDOW_BOUNDS_STORAGE_KEY,
-          JSON.stringify(next.savedWindowBounds)
-        );
+        writeVfsStateJson(VFS_STATE_PATHS.windowBounds, next.savedWindowBounds);
       }
       if (patch?.desktopIconPositions !== undefined) {
-        localStorage.setItem(
-          DESKTOP_ICONS_STORAGE_KEY,
-          JSON.stringify(next.desktopIconPositions)
-        );
+        writeVfsStateJson(VFS_STATE_PATHS.desktopIcons, next.desktopIconPositions);
       }
-      const { installedWebApps: _ignoredWebApps, ...serializable } = next;
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(serializable));
+      writeVfsStateJson(
+        VFS_STATE_PATHS.settings,
+        serializeDesktopSettings(next)
+      );
     } catch {
       // ignore storage errors
     }

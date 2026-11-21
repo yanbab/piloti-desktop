@@ -1,4 +1,9 @@
 import { createToastManager } from "@/components/ui/toast";
+import {
+  readVfsStateJson,
+  VFS_STATE_PATHS,
+  writeVfsStateJson,
+} from "@/lib/vfs-state";
 
 export interface NotificationActionItem {
   key: string;
@@ -110,11 +115,11 @@ export function clampHistoryLimit(limit: number | undefined): number {
 export function loadLocalNotificationHistory(
   limit = 50
 ): ShellNotification[] {
-  if (typeof localStorage === "undefined") return [];
   try {
-    const raw = localStorage.getItem(NOTIFICATIONS_HISTORY_STORAGE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw) as unknown;
+    const parsed = readVfsStateJson<unknown>(
+      VFS_STATE_PATHS.notificationsHistory,
+      NOTIFICATIONS_HISTORY_STORAGE_KEY,
+    );
     if (!Array.isArray(parsed)) return [];
     const normalized = parsed
       .filter(
@@ -144,24 +149,20 @@ export function saveLocalNotificationHistory(
   notifications: readonly ShellNotification[],
   limit = 50
 ): void {
-  if (typeof localStorage === "undefined") return;
   try {
     const trimmed = notifications.slice(0, clampHistoryLimit(limit));
-    localStorage.setItem(
-      NOTIFICATIONS_HISTORY_STORAGE_KEY,
-      JSON.stringify(trimmed)
-    );
+    writeVfsStateJson(VFS_STATE_PATHS.notificationsHistory, trimmed);
   } catch {
     // ignore storage errors
   }
 }
 
 export function loadReadNotificationIds(): Set<number> {
-  if (typeof localStorage === "undefined") return new Set();
   try {
-    const raw = localStorage.getItem(NOTIFICATIONS_READ_IDS_STORAGE_KEY);
-    if (!raw) return new Set();
-    const parsed = JSON.parse(raw) as unknown;
+    const parsed = readVfsStateJson<unknown>(
+      VFS_STATE_PATHS.notificationsReadIds,
+      NOTIFICATIONS_READ_IDS_STORAGE_KEY,
+    );
     if (!Array.isArray(parsed)) return new Set();
     return new Set(
       parsed.filter((id): id is number => typeof id === "number")
@@ -172,10 +173,9 @@ export function loadReadNotificationIds(): Set<number> {
 }
 
 export function saveReadNotificationIds(ids: ReadonlySet<number>): void {
-  if (typeof localStorage === "undefined") return;
   try {
     const arr = Array.from(ids).slice(-250);
-    localStorage.setItem(NOTIFICATIONS_READ_IDS_STORAGE_KEY, JSON.stringify(arr));
+    writeVfsStateJson(VFS_STATE_PATHS.notificationsReadIds, arr, false);
   } catch {
     // ignore storage errors
   }

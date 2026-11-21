@@ -1,4 +1,5 @@
 import * as React from "react";
+import { removeVfsStateFile, VFS_STATE_PATHS } from "@/lib/vfs-state";
 
 interface ShellErrorBoundaryState {
   error: Error | null;
@@ -49,11 +50,8 @@ export class ShellErrorBoundary extends React.Component<
 
   private handleResetAndReload = () => {
     try {
-      for (const key of Object.keys(localStorage)) {
-        if (key.startsWith("piloti.dock-icons")) {
-          localStorage.removeItem(key);
-        }
-      }
+      removeVfsStateFile(VFS_STATE_PATHS.dockIconsCache);
+      removeVfsStateFile(VFS_STATE_PATHS.iconIndexCache);
       sessionStorage.clear();
     } catch {
       // ignore storage errors

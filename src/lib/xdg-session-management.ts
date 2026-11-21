@@ -1,7 +1,13 @@
 /**
  * xdg-session-management-v1 — Client/Shell window session persistence
- * storing an array of session window records in localStorage.
+ * storing an array of session window records in VFS (`~/.local/state/piloti/session.json`).
  */
+import {
+  readVfsStateJson,
+  removeVfsStateFile,
+  VFS_STATE_PATHS,
+  writeVfsStateJson,
+} from "@/lib/vfs-state";
 
 const XDG_SESSION_STORAGE_KEY = "piloti.xdg-session-management-v1";
 
@@ -85,15 +91,18 @@ function serializeWindowToXdgSession(
 }
 
 function loadXdgSession(
-  storage: Pick<Storage, "getItem"> | undefined = typeof localStorage !== "undefined"
-    ? localStorage
-    : undefined
+  storage?: Pick<Storage, "getItem">,
 ): XdgSessionWindow[] | null {
-  if (!storage) return null;
   try {
-    const raw = storage.getItem(XDG_SESSION_STORAGE_KEY);
-    if (raw === null) return null;
-    const parsed = JSON.parse(raw);
+    const parsed: unknown = storage
+      ? (() => {
+          const raw = storage.getItem(XDG_SESSION_STORAGE_KEY);
+          return raw === null ? null : JSON.parse(raw);
+        })()
+      : readVfsStateJson<unknown>(
+          VFS_STATE_PATHS.session,
+          XDG_SESSION_STORAGE_KEY,
+        );
     if (!Array.isArray(parsed)) return null;
     return parsed
       .map(parseSessionWindow)
@@ -105,27 +114,28 @@ function loadXdgSession(
 
 function saveXdgSession(
   windows: readonly XdgSessionWindow[],
-  storage: Pick<Storage, "setItem"> | undefined = typeof localStorage !== "undefined"
-    ? localStorage
-    : undefined
+  storage?: Pick<Storage, "setItem">,
 ): void {
-  if (!storage) return;
   try {
-    storage.setItem(XDG_SESSION_STORAGE_KEY, JSON.stringify(windows));
+    if (storage) {
+      storage.setItem(XDG_SESSION_STORAGE_KEY, JSON.stringify(windows));
+    } else {
+      writeVfsStateJson(VFS_STATE_PATHS.session, windows);
+    }
   } catch {
     // ignore storage errors
   }
 }
 
 function clearXdgSession(
-  storage: Pick<Storage, "removeItem"> | undefined = typeof localStorage !==
-  "undefined"
-    ? localStorage
-    : undefined
+  storage?: Pick<Storage, "removeItem">,
 ): void {
-  if (!storage) return;
   try {
-    storage.removeItem(XDG_SESSION_STORAGE_KEY);
+    if (storage) {
+      storage.removeItem(XDG_SESSION_STORAGE_KEY);
+    } else {
+      removeVfsStateFile(VFS_STATE_PATHS.session);
+    }
   } catch {
     // ignore storage errors
   }

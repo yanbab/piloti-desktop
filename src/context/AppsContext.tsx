@@ -8,6 +8,11 @@ import {
 import { launchDesktopCommand } from "@/lib/gnome-bridge";
 import { PAPIRUS_VIRTUAL_ICONS } from "@/lib/papirus-virtual-icons";
 import { PILOTI_VIRTUAL_ICONS } from "@/lib/piloti-virtual-icons";
+import {
+  readVfsStateJson,
+  VFS_STATE_PATHS,
+  writeVfsStateJson,
+} from "@/lib/vfs-state";
 import { logBootEvent, startBootPhase } from "@/lib/perf-log";
 import {
   discoverInstalledXdgApps,
@@ -321,12 +326,13 @@ interface DockIconsCachePayload {
 }
 
 function loadCachedDockIcons(theme: string): DockIconsCachePayload | null {
-  if (typeof localStorage === "undefined") return null;
   try {
-    const raw = localStorage.getItem(DOCK_ICONS_CACHE_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as Partial<DockIconsCachePayload>;
+    const parsed = readVfsStateJson<Partial<DockIconsCachePayload>>(
+      VFS_STATE_PATHS.dockIconsCache,
+      DOCK_ICONS_CACHE_KEY,
+    );
     if (
+      !parsed ||
       parsed.theme !== theme ||
       !parsed.icons ||
       typeof parsed.icons !== "object"
@@ -344,9 +350,8 @@ function loadCachedDockIcons(theme: string): DockIconsCachePayload | null {
 }
 
 function saveCachedDockIcons(payload: DockIconsCachePayload): void {
-  if (typeof localStorage === "undefined") return;
   try {
-    localStorage.setItem(DOCK_ICONS_CACHE_KEY, JSON.stringify(payload));
+    writeVfsStateJson(VFS_STATE_PATHS.dockIconsCache, payload, false);
   } catch {
     // ignore storage quota errors
   }

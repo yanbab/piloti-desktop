@@ -1,3 +1,9 @@
+import {
+  readVfsStateText,
+  subscribeVfsPath,
+  VFS_STATE_PATHS,
+  writeVfsStateText,
+} from "@/lib/vfs-state";
 import en from "../locales/en.json";
 import es from "../locales/es.json";
 import fr from "../locales/fr.json";
@@ -47,19 +53,20 @@ function detectInitialState(): {
   preference: LocalePreference;
   locale: SupportedLocale;
 } {
-  if (typeof localStorage !== "undefined") {
-    try {
-      const saved = localStorage.getItem(LOCALE_STORAGE_KEY);
-      if (saved === "en" || saved === "fr" || saved === "es") {
-        return { preference: saved, locale: saved };
-      }
-      if (saved && saved !== "default") {
-        const norm = normalizeLocale(saved);
-        return { preference: norm, locale: norm };
-      }
-    } catch {
-      // ignore storage errors
+  try {
+    const saved = readVfsStateText(
+      VFS_STATE_PATHS.locale,
+      LOCALE_STORAGE_KEY,
+    )?.trim();
+    if (saved === "en" || saved === "fr" || saved === "es") {
+      return { preference: saved, locale: saved };
     }
+    if (saved && saved !== "default") {
+      const norm = normalizeLocale(saved);
+      return { preference: norm, locale: norm };
+    }
+  } catch {
+    // ignore VFS read errors
   }
   return { preference: "default", locale: getSystemLocale() };
 }
@@ -67,6 +74,29 @@ function detectInitialState(): {
 const initialState = detectInitialState();
 let activePreference: LocalePreference = initialState.preference;
 let activeLocale: SupportedLocale = initialState.locale;
+
+function applyLocaleString(locale: string): {
+  changed: boolean;
+  preference: LocalePreference;
+  locale: SupportedLocale;
+} {
+  const trimmed = locale.trim().toLowerCase();
+  let nextPreference: LocalePreference;
+  let nextLocale: SupportedLocale;
+  if (trimmed === "default" || trimmed === "system" || trimmed === "auto" || !trimmed) {
+    nextPreference = "default";
+    nextLocale = getSystemLocale();
+  } else {
+    const norm = normalizeLocale(trimmed);
+    nextPreference = norm;
+    nextLocale = norm;
+  }
+  const changed =
+    nextPreference !== activePreference || nextLocale !== activeLocale;
+  activePreference = nextPreference;
+  activeLocale = nextLocale;
+  return { changed, preference: nextPreference, locale: nextLocale };
+}
 
 export function getLocale(): SupportedLocale {
   return activeLocale;
@@ -77,21 +107,11 @@ export function getLocalePreference(): LocalePreference {
 }
 
 export function setLocale(locale: string): SupportedLocale {
-  const trimmed = locale.trim().toLowerCase();
-  if (trimmed === "default" || trimmed === "system" || trimmed === "auto") {
-    activePreference = "default";
-    activeLocale = getSystemLocale();
-  } else {
-    const norm = normalizeLocale(trimmed);
-    activePreference = norm;
-    activeLocale = norm;
-  }
-  if (typeof localStorage !== "undefined") {
-    try {
-      localStorage.setItem(LOCALE_STORAGE_KEY, activePreference);
-    } catch {
-      // ignore storage errors
-    }
+  applyLocaleString(locale);
+  try {
+    writeVfsStateText(VFS_STATE_PATHS.locale, `${activePreference}\n`);
+  } catch {
+    // ignore VFS write errors
   }
   if (typeof window !== "undefined") {
     window.dispatchEvent(
@@ -101,6 +121,19 @@ export function setLocale(locale: string): SupportedLocale {
     );
   }
   return activeLocale;
+}
+
+if (typeof window !== "undefined") {
+  subscribeVfsPath(VFS_STATE_PATHS.locale, (content) => {
+    const { changed } = applyLocaleString(content ?? "default");
+    if (changed) {
+      window.dispatchEvent(
+        new CustomEvent(LOCALE_CHANGED_EVENT, {
+          detail: { locale: activeLocale, preference: activePreference },
+        }),
+      );
+    }
+  });
 }
 
 export function subscribeLocale(listener: () => void): () => void {

@@ -1,3 +1,9 @@
+import {
+  readVfsStateJson,
+  VFS_STATE_PATHS,
+  writeVfsStateJson,
+} from "@/lib/vfs-state";
+
 export interface WorkspaceSnapshotWindow {
   appId: string;
   payload?: string;
@@ -15,11 +21,11 @@ export interface WorkspaceSnapshot {
 const SNAPSHOTS_STORAGE_KEY = "piloti.workspace-snapshots.v1";
 
 export function loadWorkspaceSnapshots(): WorkspaceSnapshot[] {
-  if (typeof localStorage === "undefined") return [];
   try {
-    const raw = localStorage.getItem(SNAPSHOTS_STORAGE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
+    const parsed = readVfsStateJson<unknown>(
+      VFS_STATE_PATHS.workspaceSnapshots,
+      SNAPSHOTS_STORAGE_KEY,
+    );
     return Array.isArray(parsed) ? (parsed as WorkspaceSnapshot[]) : [];
   } catch {
     return [];
@@ -39,24 +45,20 @@ export function saveWorkspaceSnapshot(
     windows,
   };
   const next = [entry, ...prev.filter((s) => s.name !== cleanName)].slice(0, 8);
-  if (typeof localStorage !== "undefined") {
-    try {
-      localStorage.setItem(SNAPSHOTS_STORAGE_KEY, JSON.stringify(next));
-    } catch {
-      // ignore storage errors
-    }
+  try {
+    writeVfsStateJson(VFS_STATE_PATHS.workspaceSnapshots, next);
+  } catch {
+    // ignore storage errors
   }
   return next;
 }
 
 export function deleteWorkspaceSnapshot(id: string): WorkspaceSnapshot[] {
   const next = loadWorkspaceSnapshots().filter((s) => s.id !== id);
-  if (typeof localStorage !== "undefined") {
-    try {
-      localStorage.setItem(SNAPSHOTS_STORAGE_KEY, JSON.stringify(next));
-    } catch {
-      // ignore storage errors
-    }
+  try {
+    writeVfsStateJson(VFS_STATE_PATHS.workspaceSnapshots, next);
+  } catch {
+    // ignore storage errors
   }
   return next;
 }

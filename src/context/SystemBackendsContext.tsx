@@ -7,6 +7,11 @@ import { ScreenshotKeptKind, UnlockRefusal, type UnlockRefused } from "@domicile
 import { SAMPLE_WIFI_NETWORKS, type WifiNetwork } from "@/data/catalog";
 import { listVfsDir, WEB_VFS_HOME, writeVfsTextFile } from "@/lib/web-vfs";
 import {
+  readVfsStateText,
+  VFS_STATE_PATHS,
+  writeVfsStateText,
+} from "@/lib/vfs-state";
+import {
   type GnomeBackgroundSettings,
   isGnomeBackgroundConfigured,
 } from "@/lib/gnome-background";
@@ -425,13 +430,13 @@ export function useSystemBackendsValue(
     if (typeof window === "undefined") return;
     const key = "piloti.firstRunNotif.v1";
     try {
-      if (window.localStorage.getItem(key) === "1") return;
+      if (readVfsStateText(VFS_STATE_PATHS.welcomeShown, key) === "1") return;
     } catch {
       // ignore storage errors
     }
     const timer = window.setTimeout(() => {
       try {
-        window.localStorage.setItem(key, "1");
+        writeVfsStateText(VFS_STATE_PATHS.welcomeShown, "1");
       } catch {
         // ignore storage errors
       }

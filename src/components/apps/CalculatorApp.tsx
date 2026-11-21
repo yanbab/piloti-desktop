@@ -10,6 +10,11 @@ import {
 import { useWindowManager } from "@/context/DesktopStateContext";
 import { _ } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
+import {
+  readVfsStateJson,
+  VFS_STATE_PATHS,
+  writeVfsStateJson,
+} from "@/lib/vfs-state";
 
 type Operator = "+" | "-" | "*" | "/";
 
@@ -64,11 +69,11 @@ interface SavedCalculatorState {
 }
 
 function loadSavedCalculatorState(): SavedCalculatorState {
-  if (typeof localStorage === "undefined") return {};
   try {
-    const raw = localStorage.getItem(CALCULATOR_STATE_KEY);
-    if (!raw) return {};
-    const parsed = JSON.parse(raw) as SavedCalculatorState;
+    const parsed = readVfsStateJson<SavedCalculatorState>(
+      VFS_STATE_PATHS.calculator,
+      CALCULATOR_STATE_KEY,
+    );
     return parsed && typeof parsed === "object" ? parsed : {};
   } catch {
     return {};
@@ -122,19 +127,15 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
   const [copied, setCopied] = React.useState(false);
 
   React.useEffect(() => {
-    if (typeof localStorage === "undefined") return;
     try {
-      localStorage.setItem(
-        CALCULATOR_STATE_KEY,
-        JSON.stringify({
-          display,
-          storedValue,
-          pendingOp,
-          waitingForOperand,
-          expressionLine,
-          scientific,
-        } satisfies SavedCalculatorState)
-      );
+      writeVfsStateJson(VFS_STATE_PATHS.calculator, {
+        display,
+        storedValue,
+        pendingOp,
+        waitingForOperand,
+        expressionLine,
+        scientific,
+      } satisfies SavedCalculatorState);
     } catch {
       // ignore storage errors
     }

@@ -326,5 +326,65 @@ test.describe("Piloti Desktop E2E", () => {
     await expect(filesWindow.getByTestId("files-status-pill")).toBeVisible();
     await expect(filesWindow.getByRole("slider", { name: "Zoom" })).toBeVisible();
   });
+
+  test("live-editing /home/user/.config/piloti/settings.json in Text Editor updates shell settings immediately", async ({
+    page,
+  }) => {
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+
+    // Open Files and navigate directly to /home/user/.config/piloti
+    const filesDockIcon = page.locator('[data-dock-app-id="nautilus"]');
+    await expect(filesDockIcon).toBeVisible({ timeout: 20_000 });
+    await filesDockIcon.click();
+
+    const filesWindow = page
+      .locator('[data-slot="window"][data-app-id="nautilus"]')
+      .first();
+    await expect(filesWindow).toBeVisible();
+    await page.waitForTimeout(250);
+    const filesGrid = filesWindow.getByRole("grid").first();
+    await expect(filesGrid).toBeVisible();
+    await filesGrid.click();
+    await page.keyboard.press("Control+l");
+    const locInput = filesWindow.locator("input").first();
+    await expect(locInput).toBeVisible();
+    await locInput.fill("/home/user/.config/piloti");
+    await locInput.press("Enter");
+
+    const settingsJsonItem = filesWindow.getByText("settings.json").first();
+    await expect(settingsJsonItem).toBeVisible();
+    await settingsJsonItem.dblclick();
+
+    const editorWindow = page
+      .locator('[data-slot="window"][data-app-id="text-editor"]')
+      .first();
+    await expect(editorWindow).toBeVisible();
+
+    const editorTextbox = editorWindow.getByRole("textbox").first();
+    await expect(editorWindow).toContainText('"interfaceTheme": "piloti"');
+
+    // Edit interfaceTheme line live in Text Editor (CodeMirror) and press Ctrl/Cmd+S
+    const themeLine = editorTextbox
+      .locator(".cm-line", { hasText: '"interfaceTheme"' })
+      .first();
+    await themeLine.click();
+    await page.keyboard.press("Home");
+    await page.keyboard.press("Shift+End");
+    await page.keyboard.insertText('  "interfaceTheme": "adwaita",');
+    await editorTextbox.press("Control+s");
+
+    // Live shell reflects the VFS edit without reload
+    await expect(page.locator("html")).toHaveAttribute(
+      "data-interface-theme",
+      "adwaita"
+    );
+
+    // Persists via VFS across full page reload
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await expect(page.locator("html")).toHaveAttribute(
+      "data-interface-theme",
+      "adwaita"
+    );
+  });
 });
 
