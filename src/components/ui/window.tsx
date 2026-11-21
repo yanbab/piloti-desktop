@@ -166,8 +166,8 @@ function minimizeAnimation(
     const origin = `${x}px ${y}px`
     return {
       keyframes: [
-        { transformOrigin: origin, transform: "scale(1)", opacity: 1 },
-        { transformOrigin: origin, transform: `scale(${fit})`, opacity: 0 },
+        { transformOrigin: origin, transform: "scale(1)" },
+        { transformOrigin: origin, transform: `scale(${fit})` },
       ],
       options: { duration: 360, easing: "cubic-bezier(0.45, 0, 0.75, 0.6)" },
     }
@@ -204,7 +204,6 @@ function minimizeAnimation(
       offset: progress,
       transformOrigin: "0 0",
       transform: quadToMatrix(width, height, [...top, ...bottom]),
-      opacity: progress < 0.8 ? 1 : 1 - (progress - 0.8) / 0.2,
     }
   })
 

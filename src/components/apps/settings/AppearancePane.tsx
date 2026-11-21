@@ -138,7 +138,7 @@ export function AppearancePane() {
               <GroupedFormRowTitle>{_("Accent Color")}</GroupedFormRowTitle>
             </GroupedFormRowLabel>
             <GroupedFormRowControl className="w-full sm:w-auto">
-              <div className="flex max-w-full flex-wrap items-center justify-start gap-2 sm:max-w-[280px] sm:justify-end">
+              <div className="flex max-w-full flex-wrap items-center justify-start gap-1.5 sm:max-w-[230px] sm:justify-end">
                 {ACCENT_COLORS.map((color) => {
                   const selected =
                     !settings.customAccentHex &&
@@ -157,14 +157,14 @@ export function AppearancePane() {
                       }
                       style={{ backgroundColor: color.hex }}
                       className={cn(
-                        "flex size-5 items-center justify-center rounded-full shadow-inner transition-transform hover:scale-110",
+                        "flex size-4 items-center justify-center rounded-full shadow-inner transition-transform hover:scale-110",
                         selected &&
-                          "scale-110 ring-2 ring-white ring-offset-2 ring-offset-zinc-900"
+                          "scale-110 ring-[1.5px] ring-white ring-offset-[1.5px] ring-offset-zinc-900"
                       )}
                     >
                       {selected && (
                         <CheckIcon
-                          className="size-3 text-white drop-shadow-xs"
+                          className="size-2.5 text-white drop-shadow-xs"
                           strokeWidth={3}
                         />
                       )}
@@ -180,9 +180,9 @@ export function AppearancePane() {
                       : "conic-gradient(#ef4444, #eab308, #22c55e, #3b82f6, #a855f7, #ef4444)",
                   }}
                   className={cn(
-                    "relative flex size-5 cursor-pointer items-center justify-center overflow-hidden rounded-full shadow-inner transition-transform hover:scale-110",
+                    "relative flex size-4 cursor-pointer items-center justify-center overflow-hidden rounded-full shadow-inner transition-transform hover:scale-110",
                     Boolean(settings.customAccentHex) &&
-                      "scale-110 ring-2 ring-white ring-offset-2 ring-offset-zinc-900"
+                      "scale-110 ring-[1.5px] ring-white ring-offset-[1.5px] ring-offset-zinc-900"
                   )}
                 >
                   <input
@@ -195,7 +195,7 @@ export function AppearancePane() {
                   />
                   {settings.customAccentHex && (
                     <CheckIcon
-                      className="pointer-events-none size-3 text-white drop-shadow-xs"
+                      className="pointer-events-none size-2.5 text-white drop-shadow-xs"
                       strokeWidth={3}
                     />
                   )}
@@ -246,6 +246,20 @@ export function AppearancePane() {
                 checked={hasMaximize}
                 onCheckedChange={(checked) =>
                   updateButtonLayout({ maximize: Boolean(checked) })
+                }
+              />
+            </GroupedFormRowControl>
+          </GroupedFormRow>
+
+          <GroupedFormRow>
+            <GroupedFormRowLabel>
+              <GroupedFormRowTitle>{_("Window Menu")}</GroupedFormRowTitle>
+            </GroupedFormRowLabel>
+            <GroupedFormRowControl>
+              <Switch
+                checked={settings.showWindowMenu}
+                onCheckedChange={(checked) =>
+                  updateSettings({ showWindowMenu: Boolean(checked) })
                 }
               />
             </GroupedFormRowControl>

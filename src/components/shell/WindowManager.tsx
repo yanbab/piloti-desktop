@@ -389,7 +389,7 @@ function WebViewSurface({
   const isInstalled = currentUrl !== "" && Boolean(matchedInstalledApp);
 
   const titleHandlerRef = React.useRef<(discoveredTitle: string) => void>(
-    () => {}
+    () => { }
   );
   titleHandlerRef.current = (discoveredTitle: string) => {
     const clean = discoveredTitle.trim();
@@ -540,10 +540,10 @@ function WebViewSurface({
         style={
           themeColor
             ? {
-                backgroundColor: themeColor,
-                color: contrastFg ?? undefined,
-                borderBottomColor: "rgba(128,128,128,0.22)",
-              }
+              backgroundColor: themeColor,
+              color: contrastFg ?? undefined,
+              borderBottomColor: "rgba(128,128,128,0.22)",
+            }
             : undefined
         }
         className={cn(
@@ -704,6 +704,23 @@ function WebViewSurface({
                 )}
               </button>
             ))}
+          <WindowMenuButton
+            side="right"
+            windowId={win.id}
+            appId={win.appId}
+            iconUrl={win.iconUrl}
+            iconName={win.iconName}
+            gradient={win.gradient}
+            isWebApp
+            extraItems={
+              <DropdownMenuItem
+                disabled={!currentUrl}
+                onClick={toggleInstallApp}
+              >
+                {isInstalled ? "Remove App" : "Install App"}
+              </DropdownMenuItem>
+            }
+          />
           {isCsd ? (
             <WindowControls
               side="right"
@@ -1048,12 +1065,9 @@ export function WindowManager() {
       el.style.transition = "none";
       el.style.transformOrigin = "center center";
       el.style.transform = `translate3d(${dx}px, ${dy}px, 0) scale(${scale})`;
-      el.style.opacity = "0.75";
       void el.offsetWidth;
-      el.style.transition =
-        "transform 240ms cubic-bezier(0.22, 1, 0.36, 1), opacity 140ms ease-out";
+      el.style.transition = "transform 240ms cubic-bezier(0.22, 1, 0.36, 1)";
       el.style.transform = "translate3d(0px, 0px, 0px) scale(1)";
-      el.style.opacity = "1";
       window.setTimeout(() => {
         if (windowElementsRef.current.get(win.id) === el) {
           el.style.transformOrigin = "top left";
@@ -1091,10 +1105,8 @@ export function WindowManager() {
         : 0.85;
 
       el.style.transformOrigin = "center center";
-      el.style.transition =
-        "transform 190ms cubic-bezier(0.4, 0, 1, 1), opacity 200ms cubic-bezier(0.8, 0, 1, 1)";
+      el.style.transition = "transform 190ms cubic-bezier(0.4, 0, 1, 1)";
       el.style.transform = `translate3d(${dx}px, ${dy}px, 0) scale(${scale})`;
-      el.style.opacity = "0";
       window.setTimeout(() => {
         setClosingWindowIds((prev) => {
           const next = new Set(prev);
@@ -1275,17 +1287,14 @@ export function WindowManager() {
       // Because `held` guarantees a live pointer press on this window, accepting
       // Unfullscreen when not fullscreen enables GTK4 headerbar moves while still
       // ignoring startup/no-press unset_fullscreen events.
-      // Omit `pointerId` so Wayland `<app>` drags use `window` capture listeners;
-      // calling `setPointerCapture` from an async IPC callback after an `<app>`
-      // pointerdown immediately triggers `lostpointercapture` in Chromium.
       if (
         rawReq.kind === 5 ||
         (req.kind === WindowRequestKind.Unfullscreen && !targetWin.fullscreen)
       ) {
-        handle.startMove(held.clientX, held.clientY);
+        handle.startMove(held.clientX, held.clientY, held.pointerId);
       } else if (rawReq.kind === 6 && typeof rawReq.edges === "number") {
         const edge = DOMICILE_RESIZE_EDGE_MAP[rawReq.edges];
-        if (edge) handle.startResize(edge, held.clientX, held.clientY);
+        if (edge) handle.startResize(edge, held.clientX, held.clientY, held.pointerId);
       }
     });
   }, [subscribeClientWindowRequest]);
@@ -1486,164 +1495,164 @@ export function WindowManager() {
         ref={workspaceStageRef}
         className="pointer-events-none absolute inset-0 z-[1] [&>*]:pointer-events-auto"
       >
-      {windows.map((win) => {
-        const isActiveWorkspace = win.workspace === settings.activeWorkspace;
-        const isFocused = isActiveWorkspace && focusedWindowId === win.id;
-        const isCsd =
-          settings.windowDecorationMode === "csd" ||
-          (settings.windowDecorationMode === "auto" && Boolean(win.clientFrame));
-        const isWaylandSurface = Boolean(win.waylandAppId) && !isBrowserRuntime;
-        const ovLayout =
-          overviewOpen && isActiveWorkspace
-            ? overviewLayouts?.get(win.id)
-            : undefined;
+        {windows.map((win) => {
+          const isActiveWorkspace = win.workspace === settings.activeWorkspace;
+          const isFocused = isActiveWorkspace && focusedWindowId === win.id;
+          const isCsd =
+            settings.windowDecorationMode === "csd" ||
+            (settings.windowDecorationMode === "auto" && Boolean(win.clientFrame));
+          const isWaylandSurface = Boolean(win.waylandAppId) && !isBrowserRuntime;
+          const ovLayout =
+            overviewOpen && isActiveWorkspace
+              ? overviewLayouts?.get(win.id)
+              : undefined;
 
-        return (
-          <Window
-            key={win.id}
-            data-app-id={win.appId}
-            data-window-id={win.id}
-            ref={(node) => {
-              if (node) {
-                windowElementsRef.current.set(win.id, node);
-              } else {
-                windowElementsRef.current.delete(win.id);
+          return (
+            <Window
+              key={win.id}
+              data-app-id={win.appId}
+              data-window-id={win.id}
+              ref={(node) => {
+                if (node) {
+                  windowElementsRef.current.set(win.id, node);
+                } else {
+                  windowElementsRef.current.delete(win.id);
+                }
+              }}
+              tabIndex={-1}
+              windowRef={(handle) => {
+                if (handle) {
+                  windowHandlesRef.current.set(win.id, handle);
+                } else {
+                  windowHandlesRef.current.delete(win.id);
+                }
+              }}
+              position={win.position}
+              onPositionChange={(pos) =>
+                updateWindowGeometry(win.id, { position: pos })
               }
-            }}
-            tabIndex={-1}
-            windowRef={(handle) => {
-              if (handle) {
-                windowHandlesRef.current.set(win.id, handle);
-              } else {
-                windowHandlesRef.current.delete(win.id);
+              size={win.size}
+              onSizeChange={(sz) => updateWindowGeometry(win.id, { size: sz })}
+              minSize={win.minSize}
+              maxSize={win.maxSize}
+              draggable
+              resizable={win.appId !== "calculator"}
+              bounds="parent"
+              inactive={!isFocused}
+              minimized={overviewOpen ? false : win.minimized}
+              minimizeTo={getDockRef(win.appId)}
+              minimizeEffect="scale"
+              maximized={win.maximized}
+              buttonLayout={settings.windowButtonLayout}
+              maximizeInsets={{
+                top: 0,
+                right: rightDockClearance,
+                bottom: bottomDockClearance,
+                left: leftDockClearance,
+              }}
+              onSnapPreviewChange={
+                win.appId === "calculator" ? undefined : setSnapPreview
               }
-            }}
-            position={win.position}
-            onPositionChange={(pos) =>
-              updateWindowGeometry(win.id, { position: pos })
-            }
-            size={win.size}
-            onSizeChange={(sz) => updateWindowGeometry(win.id, { size: sz })}
-            minSize={win.minSize}
-            maxSize={win.maxSize}
-            draggable
-            resizable={win.appId !== "calculator"}
-            bounds="parent"
-            inactive={!isFocused}
-            minimized={overviewOpen ? false : win.minimized}
-            minimizeTo={getDockRef(win.appId)}
-            minimizeEffect="scale"
-            maximized={win.maximized}
-            buttonLayout={settings.windowButtonLayout}
-            maximizeInsets={{
-              top: 0,
-              right: rightDockClearance,
-              bottom: bottomDockClearance,
-              left: leftDockClearance,
-            }}
-            onSnapPreviewChange={
-              win.appId === "calculator" ? undefined : setSnapPreview
-            }
-            onSnapCommit={
-              win.appId === "calculator"
-                ? undefined
-                : (zone) => tileWindow(win.id, zone)
-            }
-            onClose={() => handleAnimatedClose(win)}
-            onMinimize={() => minimizeWindow(win.id)}
-            onZoom={
-              win.appId === "calculator"
-                ? undefined
-                : () => toggleMaximizeWindow(win.id)
-            }
-            onContextMenu={(e) => {
-              e.stopPropagation();
-              const target = e.target as HTMLElement | null;
-              const isSidebarBody = Boolean(
-                target?.closest('[data-slot="adw-sidebar"], aside') &&
+              onSnapCommit={
+                win.appId === "calculator"
+                  ? undefined
+                  : (zone) => tileWindow(win.id, zone)
+              }
+              onClose={() => handleAnimatedClose(win)}
+              onMinimize={() => minimizeWindow(win.id)}
+              onZoom={
+                win.appId === "calculator"
+                  ? undefined
+                  : () => toggleMaximizeWindow(win.id)
+              }
+              onContextMenu={(e) => {
+                e.stopPropagation();
+                const target = e.target as HTMLElement | null;
+                const isSidebarBody = Boolean(
+                  target?.closest('[data-slot="adw-sidebar"], aside') &&
                   !target?.closest('[data-slot="window-titlebar"]'),
-              );
-              if (
-                !isSidebarBody &&
-                target?.closest(
-                  '[data-slot="window-titlebar"], [data-window-drag-region], [data-slot="adw-sidebar-header"]',
-                )
-              ) {
-                e.preventDefault();
-                focusWindow(win.id);
-                setWindowContextMenu({
-                  windowId: win.id,
-                  x: e.clientX,
-                  y: e.clientY,
-                });
-              }
-            }}
-            onWheel={(e) => e.stopPropagation()}
-            onPointerDown={() => {
-              if (!isFocused) {
-                focusWindow(win.id);
-              }
-            }}
-            style={{
-              position: "absolute",
-              top: 0,
-              left: 0,
-              zIndex: win.zIndex,
-              transformOrigin: "top left",
-              transform: ovLayout
-                ? `translate(${ovLayout.dx}px, ${ovLayout.dy}px) scale(${ovLayout.scale})`
-                : "translate3d(0px, 0px, 0px) scale(1)",
-              transition:
-                "transform 350ms cubic-bezier(0.22, 1, 0.36, 1), opacity 350ms cubic-bezier(0.22, 1, 0.36, 1)",
-            }}
-            className={cn(
-              "contain-[layout_style] outline-none",
-              (isWaylandSurface || win.appId === "calculator") && "bg-transparent",
-              win.ready === false && "opacity-0 pointer-events-none",
-              overviewOpen && "pointer-events-none",
-              closingWindowIds.has(win.id) && "pointer-events-none",
-              !isActiveWorkspace && "invisible pointer-events-none",
-            )}
-            aria-hidden={!isActiveWorkspace || undefined}
-          >
-            <WindowMain
+                );
+                if (
+                  !isSidebarBody &&
+                  target?.closest(
+                    '[data-slot="window-titlebar"], [data-window-drag-region], [data-slot="adw-sidebar-header"]',
+                  )
+                ) {
+                  e.preventDefault();
+                  focusWindow(win.id);
+                  setWindowContextMenu({
+                    windowId: win.id,
+                    x: e.clientX,
+                    y: e.clientY,
+                  });
+                }
+              }}
+              onWheel={(e) => e.stopPropagation()}
+              onPointerDown={() => {
+                if (!isFocused) {
+                  focusWindow(win.id);
+                }
+              }}
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                zIndex: win.zIndex,
+                transformOrigin: "top left",
+                transform: ovLayout
+                  ? `translate(${ovLayout.dx}px, ${ovLayout.dy}px) scale(${ovLayout.scale})`
+                  : "translate3d(0px, 0px, 0px) scale(1)",
+                transition:
+                  "transform 350ms cubic-bezier(0.22, 1, 0.36, 1), opacity 350ms cubic-bezier(0.22, 1, 0.36, 1)",
+              }}
               className={cn(
-                "relative",
-                (isWaylandSurface || win.appId === "calculator") && "bg-transparent"
+                "contain-[layout_style] outline-none",
+                (isWaylandSurface || win.appId === "calculator") && "bg-transparent",
+                win.ready === false && "opacity-0 pointer-events-none",
+                overviewOpen && "pointer-events-none",
+                closingWindowIds.has(win.id) && "pointer-events-none",
+                !isActiveWorkspace && "invisible pointer-events-none",
               )}
+              aria-hidden={!isActiveWorkspace || undefined}
             >
-              {/* Server-Side Titlebar (SSD) */}
-              {!isCsd && (
-                <WindowTitlebar className="justify-between">
-                  <div className="flex shrink-0 items-center gap-1.5" data-window-no-drag>
-                    <WindowControls side="left" />
-                    <WindowMenuButton side="left" windowId={win.id} />
-                  </div>
-                  <WindowTitle className="flex items-center justify-center gap-1.5">
-                    <span className="truncate">{win.title}</span>
-                  </WindowTitle>
-                  <div className="flex shrink-0 items-center gap-1.5" data-window-no-drag>
-                    <WindowMenuButton side="right" windowId={win.id} />
-                    <WindowControls side="right" />
-                  </div>
-                </WindowTitlebar>
-              )}
+              <WindowMain
+                className={cn(
+                  "relative",
+                  (isWaylandSurface || win.appId === "calculator") && "bg-transparent"
+                )}
+              >
+                {/* Server-Side Titlebar (SSD) */}
+                {!isCsd && (
+                  <WindowTitlebar className="justify-between">
+                    <div className="flex shrink-0 items-center gap-1.5" data-window-no-drag>
+                      <WindowControls side="left" />
+                      <WindowMenuButton side="left" windowId={win.id} />
+                    </div>
+                    <WindowTitle className="flex items-center justify-center gap-1.5">
+                      <span className="truncate">{win.title}</span>
+                    </WindowTitle>
+                    <div className="flex shrink-0 items-center gap-1.5" data-window-no-drag>
+                      <WindowMenuButton side="right" windowId={win.id} />
+                      <WindowControls side="right" />
+                    </div>
+                  </WindowTitlebar>
+                )}
 
-              {/* Silent Alt / Super + Drag Full-Window Grab Overlay */}
-              {modifierGrabActive && !altTabOpen && (
-                <div
-                  data-window-drag-region
-                  className="absolute inset-0 z-40"
-                />
-              )}
+                {/* Silent Alt / Super + Drag Full-Window Grab Overlay */}
+                {modifierGrabActive && !altTabOpen && (
+                  <div
+                    data-window-drag-region
+                    className="absolute inset-0 z-40"
+                  />
+                )}
 
-              <WindowContent className="flex flex-col overflow-hidden">
-                <WindowBody win={win} isCsd={isCsd} />
-              </WindowContent>
-            </WindowMain>
-          </Window>
-        );
-      })}
+                <WindowContent className="flex flex-col overflow-hidden">
+                  <WindowBody win={win} isCsd={isCsd} />
+                </WindowContent>
+              </WindowMain>
+            </Window>
+          );
+        })}
       </div>
 
       {/* Wayland Child Popups */}

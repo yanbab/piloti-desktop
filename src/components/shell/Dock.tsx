@@ -800,6 +800,7 @@ export function Dock() {
             <>
               <ContextMenuCheckboxItem
                 checked={settings.dockAutoHide}
+                closeOnClick
                 onClick={() =>
                   updateSettings({ dockAutoHide: !settings.dockAutoHide })
                 }
@@ -808,6 +809,7 @@ export function Dock() {
               </ContextMenuCheckboxItem>
               <ContextMenuCheckboxItem
                 checked={settings.dockMagnification}
+                closeOnClick
                 onClick={() =>
                   updateSettings({
                     dockMagnification: !settings.dockMagnification,

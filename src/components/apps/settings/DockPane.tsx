@@ -76,6 +76,20 @@ export function DockPane() {
 
           <GroupedFormRow>
             <GroupedFormRowLabel>
+              <GroupedFormRowTitle>{_("Hide")}</GroupedFormRowTitle>
+            </GroupedFormRowLabel>
+            <GroupedFormRowControl>
+              <Switch
+                checked={settings.dockAutoHide}
+                onCheckedChange={(checked) =>
+                  updateSettings({ dockAutoHide: Boolean(checked) })
+                }
+              />
+            </GroupedFormRowControl>
+          </GroupedFormRow>
+
+          <GroupedFormRow>
+            <GroupedFormRowLabel>
               <GroupedFormRowTitle>{_("Zoom")}</GroupedFormRowTitle>
             </GroupedFormRowLabel>
             <GroupedFormRowControl>
@@ -108,22 +122,6 @@ export function DockPane() {
               </GroupedFormRowControl>
             </GroupedFormRow>
           )}
-
-          <GroupedFormRow>
-            <GroupedFormRowLabel>
-              <GroupedFormRowTitle>
-                {_("Automatically Hide and Show")}
-              </GroupedFormRowTitle>
-            </GroupedFormRowLabel>
-            <GroupedFormRowControl>
-              <Switch
-                checked={settings.dockAutoHide}
-                onCheckedChange={(checked) =>
-                  updateSettings({ dockAutoHide: Boolean(checked) })
-                }
-              />
-            </GroupedFormRowControl>
-          </GroupedFormRow>
         </GroupedFormGroup>
       </GroupedFormSection>
     </GroupedForm>

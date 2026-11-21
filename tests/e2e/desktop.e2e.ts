@@ -212,7 +212,7 @@ test.describe("Piloti Desktop E2E", () => {
     await settingsWindow.getByRole("button", { name: "Dock" }).click();
     const autoHideRow = settingsWindow
       .locator('[data-slot="grouped-form-row"]')
-      .filter({ hasText: "Automatically Hide and Show" });
+      .filter({ hasText: "Hide" });
     await autoHideRow.locator('[data-slot="switch"]').click();
     await settingsWindow
       .locator('[data-slot="window-controls"] button')
