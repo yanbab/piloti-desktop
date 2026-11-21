@@ -1116,6 +1116,36 @@ export function useSystemBackendsValue(
         }
         const id = Date.now();
         const chunks: BlobPart[] = [];
+        let firstFrameThumb: string | undefined;
+        if (typeof document !== "undefined") {
+          try {
+            const video = document.createElement("video");
+            video.muted = true;
+            video.playsInline = true;
+            video.srcObject = stream;
+            const grab = () => {
+              if (firstFrameThumb || video.videoWidth <= 0 || video.videoHeight <= 0) return;
+              const maxSide = 256;
+              const scale = Math.min(1, maxSide / Math.max(video.videoWidth, video.videoHeight));
+              const w = Math.max(1, Math.round(video.videoWidth * scale));
+              const h = Math.max(1, Math.round(video.videoHeight * scale));
+              const canvas = document.createElement("canvas");
+              canvas.width = w;
+              canvas.height = h;
+              const ctx = canvas.getContext("2d");
+              if (ctx) {
+                ctx.drawImage(video, 0, 0, w, h);
+                firstFrameThumb = canvas.toDataURL("image/jpeg", 0.78);
+              }
+              video.pause();
+              video.srcObject = null;
+            };
+            video.addEventListener("loadeddata", grab, { once: true });
+            void video.play().then(grab).catch(() => {});
+          } catch {
+            // ignore thumbnail capture errors
+          }
+        }
         const mimeType = MediaRecorder.isTypeSupported("video/webm;codecs=vp9")
           ? "video/webm;codecs=vp9"
           : "video/webm";
@@ -1154,7 +1184,12 @@ export function useSystemBackendsValue(
                 return;
               }
               try {
-                writeVfsTextFile(`${WEB_VFS_HOME}/Desktop/${filename}`, dataUrl);
+                writeVfsTextFile(`${WEB_VFS_HOME}/Desktop/${filename}`, dataUrl, {
+                  metadata: {
+                    "standard::content-type": "video/webm",
+                    ...(firstFrameThumb ? { "metadata::thumbnail": firstFrameThumb } : {}),
+                  },
+                });
                 pushNotification({
                   appName: "Screen Recorder",
                   summary: "Screen Recording Saved",
@@ -1262,7 +1297,13 @@ export function useSystemBackendsValue(
               return;
             }
             try {
-              writeVfsTextFile(`${WEB_VFS_HOME}/Desktop/${filename}`, dataUrl);
+              const contentType =
+                (mimeType || "audio/webm").split(";")[0]?.trim() || "audio/webm";
+              writeVfsTextFile(`${WEB_VFS_HOME}/Desktop/${filename}`, dataUrl, {
+                metadata: {
+                  "standard::content-type": contentType,
+                },
+              });
               pushNotification({
                 appName: "Audio Recorder",
                 summary: "Audio Note Saved",

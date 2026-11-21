@@ -1065,7 +1065,7 @@ export function Launcher() {
         ref={searchHeaderRef}
         data-launcher-drag-header=""
         onPointerDown={handleHeaderDragPointerDown}
-        className="cursor-grab active:cursor-grabbing [&_[data-slot=command-input-wrapper]]:cursor-grab [&_[data-slot=command-input-wrapper]]:active:cursor-grabbing"
+        className="cursor-default [&_[data-slot=command-input-wrapper]]:cursor-default"
       >
         <CommandInput
           ref={inputRef}

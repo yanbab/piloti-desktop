@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from "bun:test";
+import { inferFileVisual } from "@/lib/desktop-icons";
 import {
   copyVfsEntry,
   createVfsFolder,
@@ -6,8 +7,10 @@ import {
   duplicateVfsEntry,
   emptyVfsTrash,
   getVfsClipboard,
+  getVfsContentType,
   getVfsEmblems,
   getVfsEntry,
+  getVfsImageThumbnailUrl,
   hasVfsEmblem,
   isVfsFavorite,
   listVfsDir,
@@ -163,6 +166,37 @@ describe("web-vfs", () => {
     });
     setVfsClipboard(null);
     expect(getVfsClipboard()).toBeNull();
+  });
+
+  it("stores standard::content-type and metadata::thumbnail for webm audio/video", () => {
+    const audio = writeVfsTextFile(
+      `${WEB_VFS_HOME}/Desktop/Record.webm`,
+      "data:audio/webm;codecs=opus;base64,GkXf",
+      { metadata: { "standard::content-type": "audio/webm" } }
+    );
+    expect(audio.metadata?.["standard::content-type"]).toBe("audio/webm");
+    expect(getVfsContentType(audio)).toBe("audio/webm");
+    expect(inferFileVisual(audio.name, audio.kind, getVfsContentType(audio)).iconCandidates[0]).toBe(
+      "audio-x-generic"
+    );
+
+    const video = writeVfsTextFile(
+      `${WEB_VFS_HOME}/Desktop/Screencast.webm`,
+      "data:video/webm;base64,GkXf",
+      {
+        metadata: {
+          "standard::content-type": "video/webm",
+          "metadata::thumbnail": "data:image/jpeg;base64,/9j/4AAQ",
+        },
+      }
+    );
+    expect(getVfsContentType(video)).toBe("video/webm");
+    expect(getVfsImageThumbnailUrl(video.name, video.content, video.metadata)).toBe(
+      "data:image/jpeg;base64,/9j/4AAQ"
+    );
+    expect(inferFileVisual(video.name, video.kind, getVfsContentType(video)).iconCandidates[0]).toBe(
+      "video-x-generic"
+    );
   });
 });
 

@@ -9,7 +9,9 @@ export interface WebVfsEntry {
   content?: string;
   trashedFromPath?: string;
   metadata?: {
+    "standard::content-type"?: string;
     "metadata::emblems"?: string[];
+    "metadata::thumbnail"?: string;
     [key: string]: unknown;
   };
   updatedAt: number;
@@ -616,17 +618,38 @@ export function ensureVfsDir(rawPath: string): WebVfsEntry {
   );
 }
 
-export function writeVfsTextFile(path: string, content: string): WebVfsEntry {
+export function writeVfsTextFile(
+  path: string,
+  content: string,
+  options?: { metadata?: Record<string, unknown> }
+): WebVfsEntry {
   const normalized = normalizeVfsPath(path);
   ensureVfsDir(dirname(normalized));
   const entries = loadVfs();
   const existing = entries.find((e) => e.path === normalized);
+  const nextMeta =
+    options?.metadata || existing?.metadata
+      ? { ...(existing?.metadata ?? {}), ...(options?.metadata ?? {}) }
+      : undefined;
   if (existing) {
+    const now = Date.now();
     const updated = entries.map((e) =>
-      e.path === normalized ? { ...e, content, updatedAt: Date.now() } : e
+      e.path === normalized
+        ? {
+            ...e,
+            content,
+            ...(nextMeta ? { metadata: nextMeta } : {}),
+            updatedAt: now,
+          }
+        : e
     );
     saveVfs(updated);
-    return { ...existing, content, updatedAt: Date.now() };
+    return {
+      ...existing,
+      content,
+      ...(nextMeta ? { metadata: nextMeta } : {}),
+      updatedAt: now,
+    };
   }
   const created: WebVfsEntry = {
     id: normalized,
@@ -635,6 +658,7 @@ export function writeVfsTextFile(path: string, content: string): WebVfsEntry {
     path: normalized,
     parentPath: dirname(normalized),
     content,
+    ...(nextMeta ? { metadata: nextMeta } : {}),
     updatedAt: Date.now(),
   };
   saveVfs([...entries, created]);
@@ -1491,10 +1515,31 @@ export function isImageVfsFile(name: string, content?: string): boolean {
   return Boolean(content && content.startsWith("data:image/"));
 }
 
+export function getVfsContentType(
+  entry?: Pick<WebVfsEntry, "content" | "metadata">
+): string | undefined {
+  if (!entry) return undefined;
+  const metaType = entry.metadata?.["standard::content-type"];
+  if (typeof metaType === "string" && metaType.trim()) {
+    return metaType.split(";")[0]?.trim().toLowerCase();
+  }
+  if (entry.content?.startsWith("data:")) {
+    const header = entry.content.slice(5, entry.content.indexOf(","));
+    const mime = header.split(";")[0]?.trim().toLowerCase();
+    if (mime) return mime;
+  }
+  return undefined;
+}
+
 export function getVfsImageThumbnailUrl(
   name: string,
   content?: string,
+  metadata?: WebVfsEntry["metadata"],
 ): string | undefined {
+  const metaThumb = metadata?.["metadata::thumbnail"];
+  if (typeof metaThumb === "string" && metaThumb.startsWith("data:image/")) {
+    return metaThumb;
+  }
   if (!content) return undefined;
   if (content.startsWith("data:image/")) return content;
   if (name.toLowerCase().endsWith(".svg") && content.includes("<svg")) {

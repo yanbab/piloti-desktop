@@ -995,7 +995,11 @@ export function IconGrid({
                     ? getVfsEntry(item.path)
                     : undefined;
                 const thumbUrl = vfsEntry
-                  ? getVfsImageThumbnailUrl(item.name, vfsEntry.content)
+                  ? getVfsImageThumbnailUrl(
+                      item.name,
+                      vfsEntry.content,
+                      vfsEntry.metadata
+                    )
                   : undefined;
                 if (thumbUrl) {
                   return (

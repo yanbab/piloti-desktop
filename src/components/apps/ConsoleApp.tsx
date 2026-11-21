@@ -66,8 +66,10 @@ let nextReplId = 1;
 
 function ReplModule({
   scope,
+  active,
 }: {
   scope: Record<string, unknown>;
+  active: boolean;
 }) {
   const [input, setInput] = React.useState("");
   const [history, setHistory] = React.useState<string[]>([]);
@@ -78,6 +80,12 @@ function ReplModule({
   const lastResultRef = React.useRef<unknown>(undefined);
   const scrollRef = React.useRef<HTMLDivElement | null>(null);
   const inputRef = React.useRef<HTMLTextAreaElement | null>(null);
+
+  React.useEffect(() => {
+    if (active) {
+      requestAnimationFrame(() => inputRef.current?.focus());
+    }
+  }, [active]);
 
   React.useEffect(() => {
     const el = scrollRef.current;
@@ -266,9 +274,9 @@ function ReplModule({
           e.preventDefault();
           void execute();
         }}
-        className="flex min-h-[46px] shrink-0 items-center gap-2 border-t border-adw-separator bg-adw-titlebar px-3 py-1.5"
+        className="flex h-12 min-h-12 shrink-0 items-center gap-2 border-t border-adw-separator bg-adw-titlebar px-3"
       >
-        <ChevronRightIcon className="mb-1.5 size-4 shrink-0 text-adw-label dark:text-white" />
+        <ChevronRightIcon className="size-4 shrink-0 text-adw-label dark:text-white" />
         <textarea
           ref={inputRef}
           autoFocus
@@ -276,7 +284,7 @@ function ReplModule({
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={onKeyDown}
-          className="max-h-32 min-h-[28px] flex-1 resize-none bg-transparent py-1 font-mono text-[12px] text-adw-label outline-none placeholder:text-adw-label-tertiary"
+          className="h-full max-h-32 min-h-12 flex-1 resize-none bg-transparent py-[15px] font-mono text-[12px] leading-[18px] text-adw-label outline-none placeholder:text-adw-label-tertiary"
         />
       </form>
     </div>
@@ -1564,18 +1572,25 @@ export function ConsoleApp({
         </div>
       </WindowTitlebar>
 
-      {/* Active Module (keep REPL mounted so console state persists across tab switches) */}
+      {/* Active Module (keep REPL and VFS & Events mounted so state/logs persist across tab switches) */}
       <div
         className={cn(
           "min-h-0 flex-1 overflow-hidden",
           activeModule === "repl" ? "flex" : "hidden"
         )}
       >
-        <ReplModule scope={replScope} />
+        <ReplModule scope={replScope} active={activeModule === "repl"} />
       </div>
       {activeModule === "logs" && <LogsModule />}
       {activeModule === "inspector" && <InspectorModule />}
-      {activeModule === "vfs-events" && <VfsEventsModule />}
+      <div
+        className={cn(
+          "min-h-0 flex-1 overflow-hidden",
+          activeModule === "vfs-events" ? "flex" : "hidden"
+        )}
+      >
+        <VfsEventsModule />
+      </div>
       {activeModule === "storage" && <StorageModule />}
     </div>
   );

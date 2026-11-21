@@ -67,6 +67,7 @@ import {
   duplicateVfsEntry,
   extractVfsZip,
   getVfsClipboard,
+  getVfsContentType,
   getVfsEmblems,
   getVfsEntry,
   importExternalFilesToVfs,
@@ -199,7 +200,7 @@ function vfsEntryToGridItem(
   entry: WebVfsEntry,
   getAppIconUrl: (id?: string) => string | undefined
 ): IconGridItem {
-  const visual = inferFileVisual(entry.name, entry.kind);
+  const visual = inferFileVisual(entry.name, entry.kind, getVfsContentType(entry));
   return {
     id: entry.path,
     name: entry.name,
@@ -623,7 +624,11 @@ export function FilesApp({
   React.useEffect(() => {
     const candidates = new Set<string>();
     for (const entry of vfsEntries) {
-      const visual = inferFileVisual(entry.name, entry.kind);
+      const visual = inferFileVisual(
+        entry.name,
+        entry.kind,
+        getVfsContentType(entry)
+      );
       for (const candidate of visual.iconCandidates) {
         candidates.add(candidate);
       }

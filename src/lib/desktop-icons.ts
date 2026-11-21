@@ -293,7 +293,8 @@ export function sortDesktopItems<
 
 export function inferFileVisual(
   name: string,
-  fileType: "file" | "directory"
+  fileType: "file" | "directory",
+  contentType?: string
 ): {
   iconName: AppSymbolName;
   gradient: string;
@@ -305,6 +306,45 @@ export function inferFileVisual(
       gradient: "from-sky-400 via-blue-500 to-blue-600",
       iconCandidates: ["folder", "inode-directory"],
     };
+  }
+
+  const normalizedMime = contentType?.split(";")[0]?.trim().toLowerCase();
+  if (normalizedMime) {
+    if (normalizedMime.startsWith("audio/")) {
+      return {
+        iconName: "sparkles",
+        gradient: "from-orange-400 via-amber-500 to-rose-500",
+        iconCandidates: ["audio-x-generic", "gnome-mime-audio", "text-x-generic"],
+      };
+    }
+    if (normalizedMime.startsWith("video/")) {
+      return {
+        iconName: "sparkles",
+        gradient: "from-purple-500 via-violet-500 to-indigo-600",
+        iconCandidates: ["video-x-generic", "gnome-mime-video", "text-x-generic"],
+      };
+    }
+    if (normalizedMime.startsWith("image/")) {
+      return {
+        iconName: "sparkles",
+        gradient: "from-fuchsia-500 via-pink-500 to-rose-500",
+        iconCandidates: ["image-x-generic", "gnome-mime-image", "text-x-generic"],
+      };
+    }
+    if (normalizedMime === "text/html") {
+      return {
+        iconName: "globe",
+        gradient: "from-sky-500 via-blue-500 to-indigo-600",
+        iconCandidates: ["text-html", "text-x-generic"],
+      };
+    }
+    if (normalizedMime === "application/pdf") {
+      return {
+        iconName: "notes",
+        gradient: "from-rose-500 via-red-500 to-red-600",
+        iconCandidates: ["application-pdf", "x-office-document", "text-x-generic"],
+      };
+    }
   }
 
   const lower = name.toLowerCase();

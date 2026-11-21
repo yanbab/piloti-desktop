@@ -35,6 +35,7 @@ import {
   createVfsTextFile,
   duplicateVfsEntry,
   getVfsClipboard,
+  getVfsContentType,
   getVfsEmblems,
   getVfsEntry,
   importExternalFilesToVfs,
@@ -114,7 +115,11 @@ export function DesktopIconsApp({
         const vfsEntries = listVfsDir(desktopDirPath);
         const iconCandidatesToEnsure = new Set<string>();
         const built: IconGridItem[] = vfsEntries.map((entry) => {
-          const visual = inferFileVisual(entry.name, entry.kind);
+          const visual = inferFileVisual(
+            entry.name,
+            entry.kind,
+            getVfsContentType(entry)
+          );
           for (const candidate of visual.iconCandidates) {
             iconCandidatesToEnsure.add(candidate);
           }
