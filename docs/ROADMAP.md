@@ -1,6 +1,6 @@
 # Piloti Desktop Roadmap
 
-Actionable delivery plan organized into six milestones covering window management, filesystem & desktop interaction, built-in apps, Adwaita UI parity, system backends, and engineering quality.
+Actionable delivery plan organized into seven milestones covering window management, filesystem & desktop interaction, built-in apps, UI themes, system backends, code quality, and the native Linux/Wayland engine. See [docs/native.md](./native.md) for architectural notes, toolkit behavior, DRM findings, and XDG/Portal specifications.
 
 ---
 
@@ -57,4 +57,26 @@ Actionable delivery plan organized into six milestones covering window managemen
 - [ ] **Component & hook unit test expansion**: Add DOM/Testing-Library tests for `AdwSplitView`, `FileItemContextMenu`, `useSidebarKeyboardNav`, and `WindowsContext` spatial bounds lifecycle.
 - [ ] **Bundle size & lazy chunk optimization**: Audit `vite.shell.config.ts` and `vite.config.ts` chunk splitting (especially CodeMirror languages in `TextEditorApp` and SVG icon atlases).
 - [ ] **Static lint & CI gate**: Configure automated `bun run typecheck && bun test && bun run build` checks in CI on every commit.
+
+---
+
+## M7 — Native Engine, XDG Completeness, Wayland WM & Portals
+- [ ] **Upstream Domicile compositor & engine parity**:
+  - Upgrade VM/packaging past `cprussin/domicile#2049` so `xdg_toplevel.move` (`kind=5`) and `xdg_toplevel.resize` (`kind=6`) work natively on GTK3, Firefox, Chromium, and Qt CSD windows without `Alt/Meta + drag`.
+  - Fix `org_kde_kwin_server_decoration` / `zxdg_toplevel_decoration_v1` negotiation in `domicile-compositor` (`decorations.rs`) so GTK3/Chromium client-side decoration requests do not trigger tight `request_mode(1)` <-> `mode(2)` loops.
+  - Fix DRM cursor hotspot (`drmModeSetCursor2` / `HOTSPOT_X` & `HOTSPOT_Y`) in `domicile-engine` so VMware `vmwgfx` and para-virtualized GPUs do not offset click targets down-right by `(+6, +4)`.
+- [ ] **Cross-toolkit Wayland WM test matrix**: Verify SSD/CSD detection, interactive move/resize, keyboard/pointer grabs, `waylandPopups` geometry, fractional scaling, and multi-monitor positioning across GTK2 (`pcmanfm`), GTK3 (`gnome-connections`, `gnome-disks`), GTK4/Libadwaita (`nautilus`), Chromium, Firefox, Electron, and Qt apps.
+- [ ] **Full XDG Desktop Portal UI implementation (`PortalDialogs.tsx`)**:
+  - Build native-feeling `FileChooser` (`Open`, `Save`, `SaveFiles`, filters, custom `FileChoice` controls) backed by `domicile.files` / `FilesApp` components.
+  - Build `AppChooser` using `xdg-desktop-entry.ts` + `xdg-mimeapps.ts` and MIME association persistence.
+  - Complete `DynamicLauncher`, `GlobalShortcuts` chord binder, `RemoteDesktop`, and `Print` portal dialogs instead of falling back to the generic dismissal prompt.
+  - Add Power / Session inhibitor visibility (`PortalKind.Inhibit`) inside `PowerActionDialog` so apps blocking logout/restart/suspend explain why and offer override/wait.
+- [ ] **Host Portals, Secret Service & D-Bus Bridges**:
+  - Wire Secret / Password unlock prompts (`org.freedesktop.secrets` / GNOME Keyring / `pam` unlock handoff) cleanly into login and session startup.
+  - Wire OpenURI / Notifications action callbacks / Documents portal paths / Contacts & Location permissions through `xdg-desktop-portal` + Domicile.
+- [ ] **Missing useful XDG Specifications**:
+  - **XDG Autostart**: Parse and manage `~/.config/autostart/*.desktop` and `/etc/xdg/autostart/` with enable/disable UI in Settings.
+  - **Global Menu `dbusmenu` / Canonical Registrar**: Wire `@domicile-desktop/sdk/dbusmenu` alongside `xdg-app-menu.ts` (`org.gtk.Menus`) so Electron, Qt, and LibreOffice export menus to `MenuBar`.
+  - **Shared MIME-info & Thumbnails**: Add `globs2` / magic header sniffing in `xdg-mimeapps.ts` and XDG Thumbnail Managing Standard (`~/.cache/thumbnails/`) support in `FilesApp` / `DesktopIconsApp`.
+  - **XDG Recent Files & Sound Theme**: Support `~/.local/share/recently-used.xbel` in Files/Launcher and FreeDesktop Sound Theme alert cues in `sound-effects.ts`.
 
