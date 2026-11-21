@@ -73,6 +73,7 @@ function DesktopSurface() {
     locked,
     idleWarningMs,
     pendingPowerAction,
+    sessionExiting,
   } = useSystemBackends();
   const {
     aboutOpen,
@@ -254,6 +255,15 @@ function DesktopSurface() {
       {/* Notification Toast Banners */}
       <NotificationToasts />
       <ShellFocusAndContextGuard />
+      {/* Fast fade-to-black curtain when quitting/restarting/powering off the Shell */}
+      <div
+        aria-hidden="true"
+        className={`fixed inset-0 z-[9999] bg-black transition-opacity duration-150 ease-out ${
+          sessionExiting
+            ? "pointer-events-auto opacity-100"
+            : "pointer-events-none opacity-0"
+        }`}
+      />
     </div>
   );
 }

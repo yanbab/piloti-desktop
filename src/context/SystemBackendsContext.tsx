@@ -101,6 +101,7 @@ export interface SystemBackendsContextValue {
   unlockRefusal: UnlockRefused | null;
   idleWarningMs: number | undefined;
   // Session & power actions (Piloti menu)
+  sessionExiting: boolean;
   pendingPowerAction: PowerAction | null;
   requestPowerAction: (action: PowerAction) => void;
   cancelPowerAction: () => void;
@@ -634,6 +635,7 @@ export function useSystemBackendsValue(
 
   const [pendingPowerAction, setPendingPowerAction] =
     React.useState<PowerAction | null>(null);
+  const [sessionExiting, setSessionExiting] = React.useState(false);
 
   const requestPowerAction = React.useCallback((action: PowerAction) => {
     console.info("[Piloti] power-dialog: open", action);
@@ -668,6 +670,8 @@ export function useSystemBackendsValue(
       };
 
       if (isBrowserRuntime) {
+        setSessionExiting(true);
+        await new Promise((resolve) => window.setTimeout(resolve, 180));
         pushNotification({
           appName: "Piloti Session",
           summary: `${labels[action]} (Browser Preview)`,
@@ -681,8 +685,12 @@ export function useSystemBackendsValue(
         if (action === "logout") {
           lockSession();
         }
+        setSessionExiting(false);
         return;
       }
+
+      setSessionExiting(true);
+      await new Promise((resolve) => window.setTimeout(resolve, 180));
 
       const argv =
         action === "logout"
@@ -700,6 +708,7 @@ export function useSystemBackendsValue(
         res.match({
           Ok: (ran) => {
             if (ran.code !== 0) {
+              setSessionExiting(false);
               pushNotification({
                 appName: "Piloti Session",
                 summary: `${labels[action]} Failed`,
@@ -709,6 +718,7 @@ export function useSystemBackendsValue(
             }
           },
           Err: (err) => {
+            setSessionExiting(false);
             pushNotification({
               appName: "Piloti Session",
               summary: `${labels[action]} Failed`,
@@ -718,6 +728,7 @@ export function useSystemBackendsValue(
           },
         });
       } catch (err) {
+        setSessionExiting(false);
         pushNotification({
           appName: "Piloti Session",
           summary: `${labels[action]} Failed`,
@@ -1316,6 +1327,7 @@ export function useSystemBackendsValue(
       unlockError,
       unlockRefusal,
       idleWarningMs,
+      sessionExiting,
       pendingPowerAction,
       requestPowerAction,
       cancelPowerAction,
@@ -1405,6 +1417,7 @@ export function useSystemBackendsValue(
       replyToNotification,
       requestPowerAction,
       selectAudioSink,
+      sessionExiting,
       startAudioRecording,
       startScreenRecording,
       takeScreenshot,

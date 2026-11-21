@@ -410,17 +410,19 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
             <span>{copied ? _("Copied") : ""}</span>
             <span className="truncate">{expressionLine}</span>
           </div>
-          <div
-            className={cn(
-              "w-full truncate text-right font-extralight tracking-tight tabular-nums",
-              formatted.length > 11
-                ? "text-[20px] leading-[1.15]"
-                : formatted.length > 8
-                  ? "text-[26px] leading-[1.1]"
-                  : "text-[34px] leading-[1.05]",
-            )}
-          >
-            {formatted}
+          <div className="flex h-[36px] w-full items-end justify-end">
+            <div
+              className={cn(
+                "w-full truncate text-right font-extralight tracking-tight tabular-nums",
+                formatted.length > 11
+                  ? "text-[20px] leading-[1.15]"
+                  : formatted.length > 8
+                    ? "text-[26px] leading-[1.1]"
+                    : "text-[34px] leading-[1.05]",
+              )}
+            >
+              {formatted}
+            </div>
           </div>
         </div>
       </div>

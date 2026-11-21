@@ -1,7 +1,7 @@
 import { desktop, type Domicile } from "@domicile-desktop/sdk/desktop/desktop";
 import type { DomicileHost, DomicileNotification } from "@domicile-desktop/sdk/domicile-host";
 import { FakeDomicileHost } from "@domicile-desktop/sdk/fake-host";
-import { ADWAITA_VIRTUAL_ICONS } from "./adwaita-virtual-icons";
+import { PAPIRUS_VIRTUAL_ICONS } from "./papirus-virtual-icons";
 import {
   ensureVfsDir,
   getVfsEntry,
@@ -85,7 +85,7 @@ MinSize=8
 MaxSize=512
 Type=Scalable
 `,
-  ...ADWAITA_VIRTUAL_ICONS,
+  ...PAPIRUS_VIRTUAL_ICONS,
 };
 
 const VIRTUAL_XDG_CONFIG_FILES: Record<string, string> = {
@@ -109,7 +109,7 @@ const VIRTUAL_DESKTOP_FOLDER_FILES: Record<string, string> = {
 Name=Files
 Comment=Browse local folders
 Exec=nautilus
-Icon=org.gnome.Nautilus
+Icon=system-file-manager
 Type=Application
 `,
 };
@@ -332,9 +332,9 @@ export function createBrowserDomicile(): Domicile {
               const entries =
                 vfsEntries.length > 0
                   ? vfsEntries.map((item) => ({
-                      name: item.name,
-                      file_type: item.kind,
-                    }))
+                    name: item.name,
+                    file_type: item.kind,
+                  }))
                   : virtualEntries;
               if (entries) {
                 dispatchSystemLine({

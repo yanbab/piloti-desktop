@@ -182,9 +182,10 @@ export function Dock() {
     : viewportSize.width - 48;
   const maxDockSizeForSpace = Math.max(
     32,
-    Math.min(128, Math.floor(availableSpan / totalSlots) - 10),
+    Math.min(64, Math.floor(availableSpan / totalSlots) - 10),
   );
   const activeDockSize = Math.min(
+    64,
     dragDockSize ?? settings.dockSize,
     maxDockSizeForSpace,
   );

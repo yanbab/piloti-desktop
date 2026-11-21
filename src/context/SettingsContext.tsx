@@ -164,7 +164,7 @@ const DEFAULT_SETTINGS: DesktopSettings = {
   moreTransparency: true,
   windowDecorationMode: "auto",
   windowButtonLayout: ":close",
-  iconTheme: "Adwaita",
+  iconTheme: "Papirus",
   syncGnomeSettings: true,
   preferGnomeControlCenter: false,
   hiddenGnomePanels: [...DEFAULT_HIDDEN_GNOME_PANELS],

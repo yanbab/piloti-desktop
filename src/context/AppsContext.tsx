@@ -6,6 +6,7 @@ import {
   type AppDefinition,
 } from "@/data/catalog";
 import { launchDesktopCommand } from "@/lib/gnome-bridge";
+import { PAPIRUS_VIRTUAL_ICONS } from "@/lib/papirus-virtual-icons";
 import { logBootEvent, startBootPhase } from "@/lib/perf-log";
 import {
   discoverInstalledXdgApps,
@@ -221,61 +222,65 @@ const SHELL_XDG_ICON_GROUPS: Record<string, readonly string[]> = {
   "text-x-script": ["text-x-script"],
   "package-x-generic": ["package-x-generic", "application-x-archive"],
   "text-x-generic": ["text-x-generic"],
+  "text-x-markdown": ["text-x-markdown", "text-markdown"],
   "text-html": ["text-html"],
 };
 
-const ADWAITA_DIRECT_ICON_FALLBACKS: Record<string, readonly string[]> = {
+const PAPIRUS_DIRECT_ICON_FALLBACKS: Record<string, readonly string[]> = {
   nautilus: [
-    "/usr/share/icons/Adwaita/scalable/places/folder.svg",
-    "/usr/share/icons/hicolor/scalable/apps/org.gnome.Nautilus.svg",
+    "/usr/share/icons/Papirus/64x64/apps/system-file-manager.svg",
+    "/usr/share/icons/Papirus/64x64/places/folder.svg",
   ],
-  settings: ["/usr/share/icons/hicolor/scalable/apps/piloti-settings.svg"],
-  console: ["/usr/share/icons/hicolor/scalable/apps/org.gnome.DevTools.svg"],
-  terminal: ["/usr/share/icons/hicolor/scalable/apps/piloti-terminal.svg"],
-  browser: ["/usr/share/icons/Adwaita/scalable/mimetypes/text-html.svg"],
-  "web-view": ["/usr/share/icons/Adwaita/scalable/mimetypes/text-html.svg"],
+  settings: ["/usr/share/icons/Papirus/64x64/apps/preferences-system.svg"],
+  console: ["/usr/share/icons/Papirus/64x64/apps/applications-development.svg"],
+  terminal: ["/usr/share/icons/Papirus/64x64/apps/utilities-terminal.svg"],
+  browser: ["/usr/share/icons/Papirus/64x64/apps/internet-web-browser.svg"],
+  "web-view": ["/usr/share/icons/Papirus/64x64/apps/internet-web-browser.svg"],
   "text-editor": [
-    "/usr/share/icons/hicolor/scalable/apps/piloti-text-editor.svg",
+    "/usr/share/icons/Papirus/64x64/apps/accessories-text-editor.svg",
   ],
   "app-store": [
-    "/usr/share/icons/hicolor/scalable/apps/org.gnome.Software.svg",
+    "/usr/share/icons/Papirus/64x64/apps/system-software-install.svg",
   ],
   calculator: [
-    "/usr/share/icons/hicolor/scalable/apps/piloti-calculator.svg",
+    "/usr/share/icons/Papirus/64x64/apps/accessories-calculator.svg",
   ],
   "image-viewer": [
-    "/usr/share/icons/hicolor/scalable/apps/piloti-image-viewer.svg",
+    "/usr/share/icons/Papirus/64x64/apps/multimedia-photo-viewer.svg",
   ],
   "image-x-generic": [
-    "/usr/share/icons/Adwaita/scalable/mimetypes/image-x-generic.svg",
+    "/usr/share/icons/Papirus/64x64/mimetypes/image-x-generic.svg",
   ],
   "video-x-generic": [
-    "/usr/share/icons/Adwaita/scalable/mimetypes/video-x-generic.svg",
+    "/usr/share/icons/Papirus/64x64/mimetypes/video-x-generic.svg",
   ],
   "audio-x-generic": [
-    "/usr/share/icons/Adwaita/scalable/mimetypes/audio-x-generic.svg",
+    "/usr/share/icons/Papirus/64x64/mimetypes/audio-x-generic.svg",
   ],
   "application-pdf": [
-    "/usr/share/icons/Adwaita/scalable/mimetypes/application-pdf.svg",
+    "/usr/share/icons/Papirus/64x64/mimetypes/application-pdf.svg",
   ],
   "text-x-script": [
-    "/usr/share/icons/Adwaita/scalable/mimetypes/text-x-script.svg",
+    "/usr/share/icons/Papirus/64x64/mimetypes/text-x-script.svg",
+  ],
+  "text-x-markdown": [
+    "/usr/share/icons/Papirus/64x64/mimetypes/text-x-markdown.svg",
   ],
   "package-x-generic": [
-    "/usr/share/icons/Adwaita/scalable/mimetypes/package-x-generic.svg",
+    "/usr/share/icons/Papirus/64x64/mimetypes/package-x-generic.svg",
   ],
   "text-x-generic": [
-    "/usr/share/icons/Adwaita/scalable/mimetypes/text-x-generic.svg",
+    "/usr/share/icons/Papirus/64x64/mimetypes/text-x-generic.svg",
   ],
-  "text-html": ["/usr/share/icons/Adwaita/scalable/mimetypes/text-html.svg"],
+  "text-html": ["/usr/share/icons/Papirus/64x64/mimetypes/text-html.svg"],
   __user_trash__: [
-    "/usr/share/icons/Adwaita/scalable/places/user-trash.svg",
+    "/usr/share/icons/Papirus/64x64/places/user-trash.svg",
   ],
   __user_trash_full__: [
-    "/usr/share/icons/Adwaita/scalable/status/user-trash-full.svg",
+    "/usr/share/icons/Papirus/64x64/status/user-trash-full.svg",
   ],
   __fallback_app__: [
-    "/usr/share/icons/Adwaita/scalable/mimetypes/application-x-executable.svg",
+    "/usr/share/icons/Papirus/64x64/mimetypes/application-x-executable.svg",
   ],
 };
 
@@ -288,16 +293,20 @@ async function resolveWithDirectAdwaitaFallback(
   const fromIndex = await resolveXdgIconUrl(files, iconIndex, candidates, 64, 1);
   if (fromIndex) return fromIndex;
 
-  const directPaths = ADWAITA_DIRECT_ICON_FALLBACKS[key];
+  const directPaths = PAPIRUS_DIRECT_ICON_FALLBACKS[key];
   if (!directPaths) return undefined;
   for (const directPath of directPaths) {
     const url = await loadXdgIconDataUrl(files, directPath);
     if (url) return url;
+    const bundledSvg = PAPIRUS_VIRTUAL_ICONS[directPath];
+    if (bundledSvg) {
+      return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(bundledSvg)}`;
+    }
   }
   return undefined;
 }
 
-const DOCK_ICONS_CACHE_KEY = "piloti.dock-icons.v9";
+const DOCK_ICONS_CACHE_KEY = "piloti.dock-icons.v10";
 
 interface DockIconsCachePayload {
   theme: string;
@@ -348,7 +357,7 @@ export function useAppsValue(
   const onEssentialIconsReadyRef = React.useRef(onEssentialIconsReady);
   onEssentialIconsReadyRef.current = onEssentialIconsReady;
 
-  const [portalIconTheme, setPortalIconTheme] = React.useState<string>("Adwaita");
+  const [portalIconTheme, setPortalIconTheme] = React.useState<string>("Papirus");
   const activeIconTheme =
     settings.iconTheme || gnomeIconThemeOverride || portalIconTheme;
 
@@ -381,7 +390,7 @@ export function useAppsValue(
               Some: (themeName) => {
                 if (themeName) setPortalIconTheme(themeName);
               },
-              None: () => setPortalIconTheme("Adwaita"),
+              None: () => setPortalIconTheme("Papirus"),
             });
           },
           Err: () => { },
@@ -395,7 +404,7 @@ export function useAppsValue(
   React.useEffect(() => {
     void refreshNonce;
     let cancelled = false;
-    const preferredThemes = [activeIconTheme, "Adwaita", "hicolor"];
+    const preferredThemes = [activeIconTheme, "Papirus", "hicolor"];
     const cachedIndex = loadCachedXdgIconThemeIndex(preferredThemes);
     iconThemeIndexRef.current = cachedIndex;
 

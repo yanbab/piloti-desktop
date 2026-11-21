@@ -1023,6 +1023,16 @@ export function IconGrid({
                   );
                 }
                 if (item.kind === "file") {
+                  if (item.iconUrl) {
+                    return (
+                      <img
+                        src={item.iconUrl}
+                        alt=""
+                        draggable={false}
+                        className="size-full object-contain drop-shadow-[0_1px_2px_rgba(0,0,0,0.22)]"
+                      />
+                    );
+                  }
                   return (
                     <DynamicFileIcon
                       accentColor={settings.accentColor}

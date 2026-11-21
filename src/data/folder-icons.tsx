@@ -4,18 +4,19 @@ import type { AccentColorId } from "./catalog";
 export interface FolderShadePair {
   back: string;
   front: string;
+  emblem: string;
 }
 
 export const ACCENT_FOLDER_SHADES: Record<AccentColorId, FolderShadePair> = {
-  blue: { back: "#438de6", front: "#a4caee" },
-  teal: { back: "#129eb0", front: "#9edae6" },
-  green: { back: "#3d9e4f", front: "#8ee697" },
-  yellow: { back: "#cb931a", front: "#f3d796" },
-  orange: { back: "#f17738", front: "#ffc994" },
-  red: { back: "#e84053", front: "#f2a1a5" },
-  pink: { back: "#e64392", front: "#eea4c8" },
-  purple: { back: "#954ab5", front: "#d099d6" },
-  graphite: { back: "#637692", front: "#b1cae1" },
+  blue: { back: "#4877b1", front: "#5294e2", emblem: "#1d344f" },
+  teal: { back: "#16808c", front: "#1aa3b2", emblem: "#0c3d43" },
+  green: { back: "#4d9143", front: "#63b357", emblem: "#22421d" },
+  yellow: { back: "#b58b25", front: "#e0ae32", emblem: "#4d390b" },
+  orange: { back: "#c4632b", front: "#f27c38", emblem: "#54270d" },
+  red: { back: "#b83539", front: "#df4a4f", emblem: "#4e1315" },
+  pink: { back: "#b8407a", front: "#e05598", emblem: "#4d1732" },
+  purple: { back: "#7b4899", front: "#9b5ec0", emblem: "#331b42" },
+  graphite: { back: "#4f5866", front: "#697587", emblem: "#21262e" },
 };
 
 export type FolderBadgeKind =
@@ -39,19 +40,26 @@ export type FileBadgeKind =
   | "video"
   | "archive";
 
-const FOLDER_BACK_PATH =
-  "M22 12C16.45 12 12 16.46 12 22v86c0 5.54 4.45 10 10 10h84c5.53 0 10-4.46 10-10V36c0-6.63-5.36-12-12-12H58c-2.45 0-4.7-1.39-5.8-3.58l-1.5-2.99C49.04 14.08 45.68 12 42 12Z";
+const PAPIRUS_FOLDER_BACK_PATH =
+  "M 4,46.2 C 4,47.751 5.2488,49 6.8,49 H 57.2 C 58.751,49 60,47.751 60,46.2 V 15.8 C 60,14.249 58.751,13 57.2,13 H 32 C 27.8,13 26.4,7 22.2,7 H 6.8 C 5.2488,7 4,8.2488 4,9.8";
 
-const FOLDER_FRONT_CLOSED_PATH =
-  "M66 32c-2.75 0-5.23 1.1-7.03 2.89C56.68 37.14 53.57 40 50.32 40H22c-5.55 0-10 4.46-10 10v58c0 5.54 4.45 10 10 10h84c5.53 0 10-4.46 10-10V42c0-5.54-4.47-10-10-10Z";
+const PAPIRUS_FOLDER_HIGHLIGHT_PATH =
+  "M 6.8008,7 C 5.2496,7 4,8.2496 4,9.8008 V 10.801 C 4,9.2496 5.2496,8 6.8008,8 H 22.199 C 26.399,8 27.8,14 32,14 H 57.199 C 58.75,14 60,15.25 60,16.801 V 15.801 C 60,14.25 58.75,13 57.199,13 H 32 C 27.8,13 26.399,7 22.199,7 Z";
 
-const FOLDER_FRONT_OPENED_PATH =
-  "M66 50c-2.75 0-5.23 1.1-7.03 2.89C56.68 55.14 53.57 58 50.32 58H15c-5.55 0-9.6 4.46-8.8 9.95l6 40.05c.8 5.49 4.45 10 10 10h83.6c5.53 0 9.2-4.51 10-10l6.8-48.05C123.4 54.46 119.33 50 113.8 50Z";
+const PAPIRUS_FILE_SHADOW_PATH =
+  "M 12.75,5 C 11.2265,5 10,6.2488 10,7.8 v 50.4 c 0,1.55008 1.2265,2.8 2.75,2.8 h 38.5 C 52.7724,61 54,59.75008 54,58.2 V 23 L 40,19 36,5 Z";
 
-const FILE_SHEET_PATH =
-  "M28 8h50l30 30v74c0 4.43-3.57 8-8 8H28c-4.43 0-8-3.57-8-8V16c0-4.43 3.57-8 8-8Z";
+const PAPIRUS_FILE_SHEET_PATH =
+  "M 12.75,4 C 11.2265,4 10,5.2488 10,6.8 v 50.4 c 0,1.55008 1.2265,2.8 2.75,2.8 h 38.5 C 52.7724,60 54,58.75008 54,57.2 V 22 L 40,18 36,4 Z";
 
-const FILE_CORNER_PATH = "M78 8v22c0 4.43 3.57 8 8 8h22Z";
+const PAPIRUS_FILE_FLAP_SHADOW_PATH =
+  "M 54,23 36,5 V 20.1875 C 36,21.74675 37.2555,23 38.8125,23 Z";
+
+const PAPIRUS_FILE_FLAP_PATH =
+  "M 54,22 36,4 V 19.1875 C 36,20.74675 37.2555,22 38.8125,22 Z";
+
+const PAPIRUS_FILE_HIGHLIGHT_PATH =
+  "M 12.75 4 C 11.2265 4 10 5.2495812 10 6.8007812 L 10 7.8007812 C 10 6.2495813 11.2265 5 12.75 5 L 36 5 L 36 4 L 12.75 4 z";
 
 export function getFolderShades(accentColor?: AccentColorId): FolderShadePair {
   if (accentColor && accentColor in ACCENT_FOLDER_SHADES) {
@@ -130,48 +138,39 @@ function renderFolderBadgeGlyph(badge?: FolderBadgeKind) {
   switch (badge) {
     case "documents":
       return (
-        <path d="M58 60c-3.289 0-6 2.711-6 6v20c0 3.289 2.711 6 6 6h12c3.289 0 6-2.711 6-6V69c0-.531-.211-1.039-.586-1.414l-7-7C68.039 60.211 67.531 60 67 60zm0 4h8v3q0 3 3 3h3v16c0 1.141-.859 2-2 2H58c-1.141 0-2-.859-2-2V66c0-1.141.859-2 2-2z" />
+        <path d="M 25.5 29 C 24.669 29 24 29.669 24 30.5 L 24 47.5 C 24 48.331 24.669 49 25.5 49 L 38.5 49 C 39.331 49 40 48.331 40 47.5 L 40 34 L 35 29 L 25.5 29 z" />
       );
     case "downloads":
       return (
-        <path d="M64 60c-1.102 0-2 .898-2 2v17.172l-4.586-4.586C57.039 74.211 56.531 74 56 74s-1.039.211-1.414.586c-.781.781-.781 2.047 0 2.828l8 8c.781.781 2.047.781 2.828 0l8-8c.781-.781.781-2.047 0-2.828s-2.047-.781-2.828 0L66 79.172V62c0-1.102-.898-2-2-2M52 88v4h24v-4z" />
+        <path d="M 30,29 V 37 H 26 L 32,45 38,37 H 34 V 29 Z M 24,45 V 49 H 40 V 45 Z" />
       );
     case "music":
       return (
-        <path d="M66 64c-3.289 0-6 2.711-6 6v8.68C59.086 78.25 58.07 78 57 78c-3.844 0-7 3.156-7 7s3.156 7 7 7c3.828 0 6.984-3.141 7-6.969V70c0-1.125.875-2 2-2h8c1.125 0 2 .875 2 2v8.68C75.086 78.25 74.07 78 73 78c-3.844 0-7 3.156-7 7s3.156 7 7 7 7-3.156 7-7V70c0-3.289-2.711-6-6-6zm-9 18c1.68 0 3 1.32 3 3v.031C59.984 86.695 58.672 88 57 88c-1.68 0-3-1.32-3-3s1.32-3 3-3m16 0c1.68 0 3 1.32 3 3s-1.32 3-3 3-3-1.32-3-3 1.32-3 3-3z" />
+        <path d="M 29,40.54 C 28.4,40.18 27.7,40 27,40 24.8,40 23,41.8 23,44 23,46.2 24.8,48 27,48 29.2,48 31,46.2 31,44 V 34 H 39 V 40.54 C 38.4,40.18 37.7,40 37,40 34.8,40 33,41.8 33,44 33,46.2 34.8,48 37,48 39.2,48 41,46.2 41,44 V 30 H 29" />
       );
     case "pictures":
       return (
-        <>
-          <path d="M60 72c-1.102 0-2 .898-2 2s.898 2 2 2 2-.898 2-2-.898-2-2-2m7 6-4 4-3-2-4 4v1c0 1 1 1 1 1h14s.945-.07 1-1v-2z" />
-          <path d="M56 64c-3.289 0-6 2.711-6 6v16c0 3.289 2.711 6 6 6h16c3.289 0 6-2.711 6-6V70c0-3.289-2.711-6-6-6zm0 4h16c1.141 0 2 .859 2 2v16c0 1.141-.859 2-2 2H56c-1.141 0-2-.859-2-2V70c0-1.141.859-2 2-2z" />
-        </>
+        <path d="M 23.4 31 C 22.625 31 22 31.625 22 32.4 L 22 45.6 C 22 46.375 22.625 47 23.4 47 L 40.6 47 C 41.375 47 42 46.375 42 45.6 L 42 32.4 C 42 31.625 41.375 31 40.6 31 L 23.4 31 z M 28 37 L 34 43 L 37 39 L 40 43 L 40 45 L 24 45 L 24 41 L 28 37 z" />
       );
     case "videos":
       return (
-        <>
-          <path d="M49.09 71.961H48v16.062h1.035L59.238 80z" />
-          <path d="M62 68c-3.289 0-6 2.711-6 6v12c0 3.289 2.711 6 6 6h12c3.289 0 6-2.711 6-6V74c0-3.289-2.711-6-6-6zm0 4h12c1.141 0 2 .859 2 2v12c0 1.141-.859 2-2 2H62c-1.141 0-2-.859-2-2V74c0-1.141.859-2 2-2z" />
-        </>
+        <path d="M 22.5 31 C 21.669 31 21 31.669 21 32.5 L 21 45.5 C 21 46.331 21.669 47 22.5 47 L 37.5 47 C 38.331 47 39 46.331 39 45.5 L 39 39 L 39 32.5 C 39 31.669 38.331 31 37.5 31 L 22.5 31 z M 39 39 L 45 45 L 45 33 L 39 39 z" />
       );
     case "desktop":
       return (
-        <>
-          <path d="M50 70v2h16v-2z" />
-          <path d="M54 64c-3.289 0-6 2.711-6 6v16c0 3.289 2.711 6 6 6h20c3.289 0 6-2.711 6-6V74c0-3.289-2.711-6-6-6h-7.172l-3.414-3.414C63.039 64.211 62.531 64 62 64zm0 4h7.172l3.414 3.414C64.961 71.789 65.469 72 66 72h8c1.125 0 2 .875 2 2v12c0 1.133-.875 2-2 2H54c-1.125 0-2-.867-2-2V70c0-1.125.875-2 2-2z" />
-        </>
+        <path d="M 24 31 C 22.892 31 22 31.892 22 33 V 43 C 22 44.108 22.892 45 24 45 H 40 C 41.108 45 42 44.108 42 43 V 33 C 42 31.892 41.108 31 40 31 Z M 24 34 H 40 V 42 H 24 Z M 27 46 H 37 V 48 H 27 Z" />
       );
     case "public":
       return (
-        <path d="M74 60c-3.312 0-6 2.68-6 6 0 .242.023.492.055.734l-9.891 4.946C57.047 70.602 55.555 70 54 70c-3.312 0-6 2.68-6 6 0 3.312 2.688 6 6 6 1.547-.008 3.039-.617 4.148-1.688l9.906 4.946c-.031.242-.054.492-.054.742 0 3.312 2.688 6 6 6s6-2.688 6-6c0-3.32-2.688-6-6-6-1.547 0-3.039.609-4.148 1.688l-9.906-4.954c.031-.242.054-.492.054-.742 0-.25-.016-.5-.047-.742l9.891-4.945C70.961 71.383 72.453 71.992 74 72c3.312 0 6-2.688 6-6 0-3.32-2.688-6-6-6z" />
+        <path d="M 26.82,34.602 C 26.751,34.617 26.682,34.642 26.617,34.672 25.972,34.975 25.805,35.919 26.246,36.793 26.601,37.496 27.232,37.932 27.805,37.918 28.235,40.255 29.952,42 31.992,42 H 32.008 C 34.048,42 35.765,40.255 36.195,37.918 36.767,37.931 37.399,37.496 37.754,36.793 38.195,35.919 38.028,34.975 37.383,34.672 37.318,34.642 37.249,34.617 37.18,34.602 37.097,32.046 34.812,30 32,30 29.188,30 26.903,32.046 26.82,34.602 Z M 35.137,42.433 C 34.889,42.777 34.562,43.087 34.121,43.32 L 34.117,43.324 C 33.494,43.753 32.773,44 32.008,44 H 31.992 C 30.826,44 29.774,43.419 29,42.496 25.737,42.978 22.251,43.676 22.031,44.472 22.027,44.483 22.034,44.497 22.031,44.507 22.021,44.548 22.02,44.584 22.016,44.625 22.014,44.643 22,44.656 22,44.675 V 44.691 47.464 C 22,47.761 22.223,48 22.5,48 H 41.5 C 41.777,48 42,47.761 42,47.464 V 44.691 44.656 C 41.997,44.591 41.971,44.536 41.953,44.472 41.723,43.644 38.341,42.917 35.137,42.433 Z" />
       );
     case "templates":
       return (
-        <path d="M58 60c-3.289 0-6 2.711-6 6v16h4V66c0-1.141.859-2 2-2h8v3q0 3 3 3h3v16h4V69c0-.531-.211-1.039-.586-1.414l-7-7C68.039 60.211 67.531 60 67 60zm-6 26v4h24v-4z" />
+        <path d="M 25.5 29 C 24.669 29 24 29.669 24 30.5 L 24 42 L 25 42 L 25 41 L 26 41 L 26 31 L 34 31 L 34 35 L 38 35 L 38 47 L 38 48 L 39 48 L 39 47 L 40 47 L 40 34 L 35 29 L 25.5 29 z M 39 48 L 39 49 L 40 49 L 40 48 L 39 48 z M 38 48 L 37 48 L 37 49 L 38 49 L 38 48 z M 37 48 L 37 47 L 36 47 L 36 48 L 37 48 z M 36 48 L 35 48 L 35 49 L 36 49 L 36 48 z M 35 48 L 35 47 L 34 47 L 34 48 L 35 48 z M 34 48 L 33 48 L 33 49 L 34 49 L 34 48 z M 33 48 L 33 47 L 32 47 L 32 48 L 33 48 z M 32 48 L 31 48 L 31 49 L 32 49 L 32 48 z M 31 48 L 31 47 L 30 47 L 30 48 L 31 48 z M 30 48 L 29 48 L 29 49 L 30 49 L 30 48 z M 29 48 L 29 47 L 28 47 L 28 48 L 29 48 z M 28 48 L 27 48 L 27 49 L 28 49 L 28 48 z M 27 48 L 27 47 L 26 47 L 26 48 L 27 48 z M 26 48 L 25 48 L 25 49 L 26 49 L 26 48 z M 25 48 L 25 47 L 24 47 L 24 48 L 25 48 z M 25 47 L 26 47 L 26 46 L 25 46 L 25 47 z M 25 46 L 25 45 L 24 45 L 24 46 L 25 46 z M 25 45 L 26 45 L 26 44 L 25 44 L 25 45 z M 25 44 L 25 43 L 24 43 L 24 44 L 25 44 z M 25 43 L 26 43 L 26 42 L 25 42 L 25 43 z" />
       );
     case "code":
       return (
-        <path d="M56 66 46 76l10 10 2.83-2.83L51.66 76l7.17-7.17zm16 0-2.83 2.83L76.34 76l-7.17 7.17L72 86l10-10z" />
+        <path d="M 33.176,28 28,47.225716 30.898,48 36.074,28.774283 Z M 37,28.09554 v 3.980892 l 5,4.976114 -5,4.976115 v 3.980892 l 10,-8.957007 z m -10,1.990446 -10,8.957006 10,8.957007 v -3.980891 l -5,-4.976115 5,-4.976114 z" />
       );
     default:
       return null;
@@ -182,65 +181,65 @@ function renderFileBadgeGlyph(badge: FileBadgeKind, shades: FolderShadePair) {
   switch (badge) {
     case "html":
       return (
-        <g>
-          <circle cx="64" cy="73" r="24" fill={shades.front} />
+        <g fill={shades.front}>
+          <circle cx="32" cy="40" r="11" fill={shades.front} opacity="0.22" />
           <path
-            d="M64 49c-13.25 0-24 10.75-24 24s10.75 24 24 24 24-10.75 24-24-10.75-24-24-24zm0 4c3.5 0 6.8 3.9 8.4 10H55.6c1.6-6.1 4.9-10 8.4-10zm-12.6 2.3c-1.8 2.9-3.1 6.6-3.7 10.7h-6.8c2-5 5.8-8.9 10.5-10.7zM40.9 77h6.8c.6 4.1 1.9 7.8 3.7 10.7-4.7-1.8-8.5-5.7-10.5-10.7zm14.7 0h16.8c-1.6 6.1-4.9 10-8.4 10s-6.8-3.9-8.4-10zm0-6c.3-3.5 1-6.9 2-10h12.8c1 3.1 1.7 6.5 2 10H55.6zm21-15.7c4.7 1.8 8.5 5.7 10.5 10.7h-6.8c-.6-4.1-1.9-7.8-3.7-10.7zM76.6 87.7c1.8-2.9 3.1-6.6 3.7-10.7h6.8c-2 5-5.8 8.9-10.5 10.7z"
             fill={shades.back}
+            d="M 32,29 A 11,11 0 0 0 21,40 11,11 0 0 0 32,51 11,11 0 0 0 43,40 11,11 0 0 0 32,29 Z m 0,2 c 1.5,0 3,1.8 3.7,4.5 H 28.3 C 29,32.8 30.5,31 32,31 Z m -5.6,1.1 C 25.5,33.5 24.9,35.2 24.6,37 h -3 c 0.9,-2.2 2.6,-4 4.8,-4.9 z M 21.6,43 h 3 c 0.3,1.8 0.9,3.5 1.8,4.9 -2.2,-0.9 -3.9,-2.7 -4.8,-4.9 z m 6.7,0 h 7.4 c -0.7,2.7 -2.2,4.5 -3.7,4.5 -1.5,0 -3,-1.8 -3.7,-4.5 z m 0,-2 c 0.1,-1.5 0.4,-3 0.9,-4.5 h 5.6 c 0.5,1.5 0.8,3 0.9,4.5 z m 9.3,-8.9 C 39.8,33 41.5,34.8 42.4,37 h -3 c -0.3,-1.8 -0.9,-3.5 -1.8,-4.9 z M 37.6,47.9 C 38.5,46.5 39.1,44.8 39.4,43 h 3 c -0.9,2.2 -2.6,4 -4.8,4.9 z"
           />
         </g>
       );
     case "code":
       return (
         <path
-          d="M54 60 40 74l14 14 3.5-3.5L47 74l10.5-10.5zm20 0-3.5 3.5L81 74 70.5 84.5 74 88l14-14z"
+          d="M 27,32 19,40 l 8,8 2,-2 -6,-6 6,-6 z m 10,0 -2,2 6,6 -6,6 2,2 8,-8 z"
           fill={shades.back}
         />
       );
     case "markdown":
       return (
-        <path
-          d="M40 58c-2.2 0-4 1.8-4 4v24c0 2.2 1.8 4 4 4h48c2.2 0 4-1.8 4-4V62c0-2.2-1.8-4-4-4zm2 6h6l6 8 6-8h6v20h-6V72l-6 8-6-8v12h-6zm32 0h6v10h5l-8 10-8-10h5z"
-          fill={shades.back}
-        />
+        <g fill={shades.back}>
+          <path d="m 22,46 h 3 v -5.7 l 2.5,2.85 2.5,-2.85 V 46 h 3 V 36 H 30 l -2.5,2.85 L 25,36 h -3 z" />
+          <path d="m 37,36 v 6 h -2.5 l 3.5,4 h 1 l 3.5,-4 H 40 v -6 z" />
+          <path d="M 19.04,32 C 17.94,32 17,32.95 17,34.08 v 13.84 C 17,49.05 17.94,50 19.04,50 H 44.96 C 46.06,50 47,49.05 47,47.92 V 34.08 C 47,32.95 46.06,32 44.96,32 Z M 20,35 H 44 V 47 H 20 Z" />
+        </g>
       );
     case "image":
       return (
         <g fill={shades.back}>
-          <circle cx="54" cy="64" r="4" />
-          <path d="M44 52c-3.3 0-6 2.7-6 6v30c0 3.3 2.7 6 6 6h40c3.3 0 6-2.7 6-6V58c0-3.3-2.7-6-6-6zm0 4h40c1.1 0 2 .9 2 2v20l-10-10-12 12-8-6-14 12V58c0-1.1.9-2 2-2z" />
+          <circle cx="25" cy="34" r="2.2" />
+          <path d="M 21.4,30 C 20.625,30 20,30.625 20,31.4 V 46.6 C 20,47.375 20.625,48 21.4,48 H 42.6 C 43.375,48 44,47.375 44,46.6 V 31.4 C 44,30.625 43.375,30 42.6,30 Z M 27,37 33,43 37,39 42,44 V 46 H 22 V 42 Z" />
         </g>
       );
     case "audio":
       return (
         <path
-          d="M66 52c-3.3 0-6 2.7-6 6v14.7c-1-.4-2-.7-3-.7-4.4 0-8 3.6-8 8s3.6 8 8 8 8-3.6 8-8V60h12v12.7c-1-.4-2-.7-3-.7-4.4 0-8 3.6-8 8s3.6 8 8 8 8-3.6 8-8V58c0-3.3-2.7-6-6-6z"
+          d="m 26,29 v 14 c -0.3,0 -0.5,0 -1,0 -2.76,0 -5,2.24 -5,5 0,2.76 2.24,5 5,5 2.72,0 4.95,-2.18 5,-4.91 V 35 h 10 v 8 c -0.3,0 -0.5,0 -1,0 -2.76,0 -5,2.24 -5,5 0,2.76 2.24,5 5,5 2.66,0 4.86,-2.09 5,-4.75 V 29 Z"
           fill={shades.back}
         />
       );
     case "video":
       return (
         <path
-          d="M44 56c-3.3 0-6 2.7-6 6v24c0 3.3 2.7 6 6 6h28c3.3 0 6-2.7 6-6v-6l12 8V60l-12 8v-6c0-3.3-2.7-6-6-6z"
+          d="M 21.5,32 C 20.67,32 20,32.67 20,33.5 v 13 c 0,0.83 0.67,1.5 1.5,1.5 h 15 c 0.83,0 1.5,-0.67 1.5,-1.5 V 40 33.5 C 38,32.67 37.33,32 36.5,32 Z M 38,40 44,46 V 34 Z"
           fill={shades.back}
         />
       );
     case "archive":
       return (
         <path
-          d="M58 48v6h6v-6zm6 6v6h6v-6zm-6 6v6h6v-6zm6 6v6h6v-6zm-6 8c-2.2 0-4 1.8-4 4v14c0 2.2 1.8 4 4 4h12c2.2 0 4-1.8 4-4V78c0-2.2-1.8-4-4-4zm2 6h8v10h-8z"
+          d="m 29,26 v 3 h 3 v -3 z m 3,3 v 3 h 3 v -3 z m -3,3 v 3 h 3 v -3 z m 3,3 v 3 h 3 v -3 z m -3,5 c -1.1,0 -2,0.9 -2,2 v 8 c 0,1.1 0.9,2 2,2 h 6 c 1.1,0 2,-0.9 2,-2 v -8 c 0,-1.1 -0.9,-2 -2,-2 z m 1,3 h 4 v 6 h -4 z"
           fill={shades.back}
         />
       );
     case "text":
     default:
       return (
-        <g fill="#9a9996">
-          <rect x="40" y="54" width="48" height="4" rx="2" />
-          <rect x="40" y="66" width="48" height="4" rx="2" />
-          <rect x="40" y="78" width="48" height="4" rx="2" />
-          <rect x="40" y="90" width="30" height="4" rx="2" />
-        </g>
+        <path
+          opacity="0.5"
+          fill="#222222"
+          d="m 20,31 v 3 h 24 v -3 z m 0,6 v 3 h 24 v -3 z m 0,6 v 3 h 24 v -3 z m 0,6 v 3 h 15 v -3 z"
+        />
       );
   }
 }
@@ -265,21 +264,37 @@ export const DynamicFolderIcon: React.FC<DynamicFolderIconProps> = ({
 
   return (
     <svg
-      viewBox="0 0 128 128"
+      viewBox="0 0 64 64"
       xmlns="http://www.w3.org/2000/svg"
       aria-hidden="true"
       className={className}
     >
-      <path d={FOLDER_BACK_PATH} fill={shades.back} />
-      <path
-        d={opened ? FOLDER_FRONT_OPENED_PATH : FOLDER_FRONT_CLOSED_PATH}
-        fill={shades.front}
-        className="transition-[d] duration-150"
+      <rect opacity="0.2" width="56" height="36" x="4" y="22" rx="2.8" ry="2.8" />
+      <path d={PAPIRUS_FOLDER_BACK_PATH} fill={shades.back} />
+      <rect
+        opacity="0.2"
+        width="56"
+        height={opened ? 30 : 36}
+        x="4"
+        y={opened ? 26 : 20}
+        rx="2.8"
+        ry="2.8"
       />
+      <rect fill="#e4e4e4" width="48" height="22" x="8" y="16" rx="2.8" ry="2.8" />
+      <rect
+        fill={shades.front}
+        width="56"
+        height={opened ? 30 : 36}
+        x="4"
+        y={opened ? 27 : 21}
+        rx="2.8"
+        ry="2.8"
+      />
+      <path opacity="0.1" fill="#ffffff" d={PAPIRUS_FOLDER_HIGHLIGHT_PATH} />
       {resolvedBadge && (
         <g
-          fill={shades.back}
-          transform={opened ? "translate(0, 10)" : undefined}
+          fill={shades.emblem}
+          transform={opened ? "translate(0, 3)" : undefined}
         >
           {renderFolderBadgeGlyph(resolvedBadge)}
         </g>
@@ -308,13 +323,16 @@ export const DynamicFileIcon: React.FC<DynamicFileIconProps> = ({
 
   return (
     <svg
-      viewBox="0 0 128 128"
+      viewBox="0 0 64 64"
       xmlns="http://www.w3.org/2000/svg"
       aria-hidden="true"
       className={className}
     >
-      <path d={FILE_SHEET_PATH} fill="#f6f5f4" />
-      <path d={FILE_CORNER_PATH} fill="#deddda" />
+      <path d={PAPIRUS_FILE_SHADOW_PATH} opacity="0.2" />
+      <path d={PAPIRUS_FILE_SHEET_PATH} fill="#e4e4e4" />
+      <path d={PAPIRUS_FILE_FLAP_SHADOW_PATH} opacity="0.2" />
+      <path d={PAPIRUS_FILE_FLAP_PATH} fill="#fafafa" />
+      <path d={PAPIRUS_FILE_HIGHLIGHT_PATH} opacity="0.2" fill="#ffffff" />
       {renderFileBadgeGlyph(resolvedBadge, shades)}
     </svg>
   );
@@ -329,16 +347,17 @@ export function getAccentFolderIconUrl(
   options?: { opened?: boolean; badge?: FolderBadgeKind },
 ): string {
   const shades = getFolderShades(accentColor);
-  const frontPath = options?.opened
-    ? FOLDER_FRONT_OPENED_PATH
-    : FOLDER_FRONT_CLOSED_PATH;
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128"><path d="${FOLDER_BACK_PATH}" fill="${shades.back}"/><path d="${frontPath}" fill="${shades.front}"/></svg>`;
+  const opened = Boolean(options?.opened);
+  const frontY = opened ? 27 : 21;
+  const frontH = opened ? 30 : 36;
+  const frontShadowY = opened ? 26 : 20;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect opacity="0.2" width="56" height="36" x="4" y="22" rx="2.8" ry="2.8"/><path d="${PAPIRUS_FOLDER_BACK_PATH}" fill="${shades.back}"/><rect opacity="0.2" width="56" height="${frontH}" x="4" y="${frontShadowY}" rx="2.8" ry="2.8"/><rect fill="#e4e4e4" width="48" height="22" x="8" y="16" rx="2.8" ry="2.8"/><rect fill="${shades.front}" width="56" height="${frontH}" x="4" y="${frontY}" rx="2.8" ry="2.8"/><path opacity="0.1" fill="#ffffff" d="${PAPIRUS_FOLDER_HIGHLIGHT_PATH}"/></svg>`;
   return toSvgDataUrl(svg);
 }
 
 export function getAccentHtmlIconUrl(accentColor?: AccentColorId): string {
   const shades = getFolderShades(accentColor);
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128"><path d="${FILE_SHEET_PATH}" fill="#f6f5f4"/><path d="${FILE_CORNER_PATH}" fill="#deddda"/><circle cx="64" cy="73" r="24" fill="${shades.front}"/><circle cx="64" cy="73" r="12" fill="${shades.back}"/></svg>`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><path d="${PAPIRUS_FILE_SHADOW_PATH}" opacity="0.2"/><path d="${PAPIRUS_FILE_SHEET_PATH}" fill="#e4e4e4"/><path d="${PAPIRUS_FILE_FLAP_SHADOW_PATH}" opacity="0.2"/><path d="${PAPIRUS_FILE_FLAP_PATH}" fill="#fafafa"/><path d="${PAPIRUS_FILE_HIGHLIGHT_PATH}" opacity="0.2" fill="#ffffff"/><circle cx="32" cy="40" r="11" fill="${shades.front}" opacity="0.22"/><path fill="${shades.back}" d="M 32,29 A 11,11 0 0 0 21,40 11,11 0 0 0 32,51 11,11 0 0 0 43,40 11,11 0 0 0 32,29 Z m 0,2 c 1.5,0 3,1.8 3.7,4.5 H 28.3 C 29,32.8 30.5,31 32,31 Z m -5.6,1.1 C 25.5,33.5 24.9,35.2 24.6,37 h -3 c 0.9,-2.2 2.6,-4 4.8,-4.9 z M 21.6,43 h 3 c 0.3,1.8 0.9,3.5 1.8,4.9 -2.2,-0.9 -3.9,-2.7 -4.8,-4.9 z m 6.7,0 h 7.4 c -0.7,2.7 -2.2,4.5 -3.7,4.5 -1.5,0 -3,-1.8 -3.7,-4.5 z m 0,-2 c 0.1,-1.5 0.4,-3 0.9,-4.5 h 5.6 c 0.5,1.5 0.8,3 0.9,4.5 z m 9.3,-8.9 C 39.8,33 41.5,34.8 42.4,37 h -3 c -0.3,-1.8 -0.9,-3.5 -1.8,-4.9 z M 37.6,47.9 C 38.5,46.5 39.1,44.8 39.4,43 h 3 c -0.9,2.2 -2.6,4 -4.8,4.9 z"/></svg>`;
   return toSvgDataUrl(svg);
 }
 
