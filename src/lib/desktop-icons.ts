@@ -232,7 +232,8 @@ export function findClosestFreeCell(
 
 /**
  * Moves one or more items so `primaryId` lands at `targetCell` (or swaps if single)
- * and any additional dragged items land in the closest unoccupied cells around `targetCell`.
+ * and any additional dragged items preserve their relative grid offsets around `targetCell`
+ * (falling back to the closest unoccupied cell when out of bounds or occupied).
  */
 export function moveItemsToCells(
   positions: Readonly<Record<string, GridCoord>>,
@@ -255,12 +256,25 @@ export function moveItemsToCells(
     }
   }
 
-  const orderedIds = [
-    primaryId,
-    ...itemIds.filter((id) => id !== primaryId),
-  ];
-  for (const id of orderedIds) {
-    const cell = findClosestFreeCell(occupied, clamped, cols, rows);
+  const primaryOrigin = positions[primaryId] ?? clamped;
+  const deltaCol = clamped.col - primaryOrigin.col;
+  const deltaRow = clamped.row - primaryOrigin.row;
+
+  const primaryCell = findClosestFreeCell(occupied, clamped, cols, rows);
+  next[primaryId] = primaryCell;
+  occupied.add(coordKey(primaryCell));
+
+  for (const id of itemIds) {
+    if (id === primaryId) continue;
+    const orig = positions[id];
+    const desired = orig
+      ? clampCoord(
+          { col: orig.col + deltaCol, row: orig.row + deltaRow },
+          cols,
+          rows
+        )
+      : clamped;
+    const cell = findClosestFreeCell(occupied, desired, cols, rows);
     next[id] = cell;
     occupied.add(coordKey(cell));
   }

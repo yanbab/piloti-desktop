@@ -4,6 +4,7 @@ import { useDomicile } from "@domicile-desktop/react/domicile-provider";
 import {
   AlertCircleIcon,
   ArrowLeftIcon,
+  ArrowUpDownIcon,
   BriefcaseIcon,
   ClockIcon,
   DownloadIcon,
@@ -35,6 +36,16 @@ import {
   type FileItemContextMenuState,
 } from "@/components/apps/FileItemContextMenu";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   MENU_ITEM_CLASS,
   MENU_POPUP_CLASS,
@@ -234,6 +245,9 @@ export function FilesApp({
   } = useWindowManager();
 
   const [viewMode, setViewMode] = React.useState<"grid" | "list">("grid");
+  const [sortBy, setSortBy] = React.useState<"name" | "kind" | "modified" | "size">("name");
+  const [sortDir, setSortDir] = React.useState<"asc" | "desc">("asc");
+  const [emblemFilter, setEmblemFilter] = React.useState<VfsEmblemId | null>(null);
   const [editingLocation, setEditingLocation] = React.useState(false);
   const [draftLocation, setDraftLocation] = React.useState("");
   const [searchOpen, setSearchOpen] = React.useState(false);
@@ -728,19 +742,48 @@ export function FilesApp({
     const visible = showHidden
       ? vfsEntries
       : vfsEntries.filter((entry) => !entry.name.startsWith("."));
-    const filtered = q
+    const searched = q
       ? visible.filter((entry) => entry.name.toLowerCase().includes(q))
       : visible;
-    return sortDesktopItems(
-      filtered.map((entry) => vfsEntryToGridItem(entry, getAppIconUrl))
-    );
+    const emblemFiltered = emblemFilter
+      ? searched.filter((entry) => getVfsEmblems(entry.path).includes(emblemFilter))
+      : searched;
+    const dirFactor = sortDir === "asc" ? 1 : -1;
+    const sorted = [...emblemFiltered].sort((a, b) => {
+      const rankA = a.kind === "directory" ? 0 : 1;
+      const rankB = b.kind === "directory" ? 0 : 1;
+      if (rankA !== rankB) return rankA - rankB;
+      if (sortBy === "modified") {
+        const diff = a.updatedAt - b.updatedAt;
+        if (diff !== 0) return diff * dirFactor;
+      } else if (sortBy === "size") {
+        const sizeA = a.content?.length ?? 0;
+        const sizeB = b.content?.length ?? 0;
+        if (sizeA !== sizeB) return (sizeA - sizeB) * dirFactor;
+      } else if (sortBy === "kind") {
+        const extA = a.kind === "directory" ? "" : a.name.split(".").pop()?.toLowerCase() ?? "";
+        const extB = b.kind === "directory" ? "" : b.name.split(".").pop()?.toLowerCase() ?? "";
+        const extCmp = extA.localeCompare(extB);
+        if (extCmp !== 0) return extCmp * dirFactor;
+      }
+      return (
+        a.name.localeCompare(b.name, undefined, {
+          sensitivity: "base",
+          numeric: true,
+        }) * dirFactor
+      );
+    });
+    return sorted.map((entry) => vfsEntryToGridItem(entry, getAppIconUrl));
   }, [
+    emblemFilter,
     getAppIconUrl,
     installedXdgApps,
     isAppsView,
     searchQuery,
     settings.installedWebApps,
     showHidden,
+    sortBy,
+    sortDir,
     vfsEntries,
   ]);
 
@@ -1416,6 +1459,58 @@ export function FilesApp({
               </div>
             ) : (
               <>
+                {!isAppsView && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger
+                      aria-label={_("Sort & Filter")}
+                      title={_("Sort & Filter")}
+                      className={cn(
+                        "relative flex size-7 items-center justify-center rounded-md transition-colors",
+                        emblemFilter || sortBy !== "name" || sortDir !== "asc"
+                          ? "bg-black/10 text-adw-accent dark:bg-white/15"
+                          : "text-adw-label-secondary hover:bg-black/8 hover:text-adw-label dark:hover:bg-white/10"
+                      )}
+                    >
+                      <ArrowUpDownIcon className="size-4" />
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuLabel>{_("Sort By")}</DropdownMenuLabel>
+                      <DropdownMenuRadioGroup
+                        value={sortBy}
+                        onValueChange={(v) =>
+                          setSortBy(v as "name" | "kind" | "modified" | "size")
+                        }
+                      >
+                        <DropdownMenuRadioItem value="name">{_("Name")}</DropdownMenuRadioItem>
+                        <DropdownMenuRadioItem value="kind">{_("Kind")}</DropdownMenuRadioItem>
+                        <DropdownMenuRadioItem value="modified">{_("Date Modified")}</DropdownMenuRadioItem>
+                        <DropdownMenuRadioItem value="size">{_("Size")}</DropdownMenuRadioItem>
+                      </DropdownMenuRadioGroup>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuRadioGroup
+                        value={sortDir}
+                        onValueChange={(v) => setSortDir(v as "asc" | "desc")}
+                      >
+                        <DropdownMenuRadioItem value="asc">{_("Ascending")}</DropdownMenuRadioItem>
+                        <DropdownMenuRadioItem value="desc">{_("Descending")}</DropdownMenuRadioItem>
+                      </DropdownMenuRadioGroup>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuLabel>{_("Filter by Emblem")}</DropdownMenuLabel>
+                      {(Object.keys(VFS_EMBLEM_META) as VfsEmblemId[]).map((emblemId) => (
+                        <DropdownMenuCheckboxItem
+                          key={emblemId}
+                          checked={emblemFilter === emblemId}
+                          onCheckedChange={(checked) =>
+                            setEmblemFilter(checked ? emblemId : null)
+                          }
+                        >
+                          {_(VFS_EMBLEM_META[emblemId].label)}
+                        </DropdownMenuCheckboxItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
+
                 <button
                   type="button"
                   aria-label={viewMode === "grid" ? "List view" : "Grid view"}

@@ -7,6 +7,7 @@ import {
   findNextKeyboardItemId,
   findTypeAheadItemId,
   inferFileVisual,
+  moveItemsToCells,
   moveItemToCell,
   normalizeRect,
   sortDesktopItems,
@@ -55,6 +56,22 @@ describe("desktop-icons spatial grid helpers", () => {
     const swapped = moveItemToCell(moved, "a", { col: 0, row: 1 }, 4, 3);
     expect(swapped.a).toEqual({ col: 0, row: 1 });
     expect(swapped.b).toEqual({ col: 2, row: 1 });
+
+    const multi = moveItemsToCells(
+      {
+        a: { col: 0, row: 0 },
+        b: { col: 1, row: 2 },
+        c: { col: 3, row: 0 },
+      },
+      ["a", "b"],
+      "a",
+      { col: 2, row: 1 },
+      5,
+      4
+    );
+    expect(multi.a).toEqual({ col: 2, row: 1 });
+    expect(multi.b).toEqual({ col: 3, row: 3 });
+    expect(multi.c).toEqual({ col: 3, row: 0 });
   });
 
   test("converts pointer coordinates to clamped grid cells", () => {

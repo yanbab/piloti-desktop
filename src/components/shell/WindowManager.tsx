@@ -987,7 +987,7 @@ const DOMICILE_RESIZE_EDGE_MAP: Record<number, WindowResizeEdge> = {
 
 export function WindowManager() {
   const domicile = useDomicile();
-  const { isBrowserRuntime, settings } = useSettings();
+  const { isBrowserRuntime, settings, reducedMotion } = useSettings();
   const {
     windows,
     workspaceWindows,
@@ -1033,7 +1033,7 @@ export function WindowManager() {
     for (const win of windows) {
       if (animatedOpenedRef.current.has(win.id)) continue;
       animatedOpenedRef.current.add(win.id);
-      if (win.minimized) continue;
+      if (win.minimized || reducedMotion) continue;
 
       let origin =
         windowOriginsRef.current.get(win.id) ?? consumeLaunchOriginRect();
@@ -1090,7 +1090,7 @@ export function WindowManager() {
         }
       }
       const el = windowElementsRef.current.get(win.id);
-      if (!el) {
+      if (!el || reducedMotion) {
         closeWindow(win.id);
         return;
       }
@@ -1116,7 +1116,7 @@ export function WindowManager() {
         closeWindow(win.id);
       }, 190);
     },
-    [closeWindow, closingWindowIds, getDockRef]
+    [closeWindow, closingWindowIds, getDockRef, reducedMotion]
   );
 
   React.useEffect(() => {
