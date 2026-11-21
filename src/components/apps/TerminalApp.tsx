@@ -1047,11 +1047,13 @@ export const TerminalApp: React.FC<TerminalAppProps> = ({ initialPath }) => {
         ]);
         void installWebAppDesktopEntry(domicile, isBrowserRuntime, app).then(
           () => {
-            void fetchWebPageMetadata(canonical).then(({ title }) => {
-              if (title) {
+            void fetchWebPageMetadata(canonical).then(({ title, iconUrl, startUrl }) => {
+              if (title || iconUrl || startUrl) {
                 void installWebAppDesktopEntry(domicile, isBrowserRuntime, {
                   ...app,
-                  title,
+                  ...(title ? { title } : {}),
+                  ...(iconUrl ? { iconUrl } : {}),
+                  ...(startUrl ? { url: startUrl } : {}),
                 });
               }
             });

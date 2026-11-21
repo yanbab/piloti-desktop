@@ -86,8 +86,66 @@ function webMetaProxyPlugin(): Plugin {
             }
           }
           if (!themeColor && metas.length > 0) themeColor = metas[0].content;
+          let iconUrl: string | null = null;
+          let startUrl: string | null = null;
+          let manifestTitle: string | null = null;
+          const mLink =
+            html.match(
+              /<link\b[^>]*\brel\s*=\s*["']manifest["'][^>]*\bhref\s*=\s*["']([^"']+)["'][^>]*>/i
+            ) ??
+            html.match(
+              /<link\b[^>]*\bhref\s*=\s*["']([^"']+)["'][^>]*\brel\s*=\s*["']manifest["'][^>]*>/i
+            );
+          if (mLink?.[1]) {
+            try {
+              const mUrl = new URL(mLink[1].trim(), target.href).href;
+              const mRes = await fetch(mUrl, {
+                signal: AbortSignal.timeout(2500),
+                headers: { "user-agent": "ResidenceDesktop/1.0" },
+              });
+              if (mRes.ok) {
+                const mJson = (await mRes.json()) as {
+                  short_name?: string;
+                  name?: string;
+                  start_url?: string;
+                  icons?: Array<{ src?: string; sizes?: string }>;
+                };
+                manifestTitle =
+                  mJson.short_name?.trim() || mJson.name?.trim() || null;
+                if (mJson.start_url) {
+                  startUrl = new URL(mJson.start_url, mUrl).href;
+                }
+                if (Array.isArray(mJson.icons)) {
+                  let best = -1;
+                  for (const ic of mJson.icons) {
+                    if (!ic?.src) continue;
+                    const resolved = new URL(ic.src, mUrl).href;
+                    const dim = (ic.sizes ?? "")
+                      .split(/\s+/)
+                      .map((s) => Number.parseInt(s.split("x")[0] ?? "0", 10))
+                      .reduce((a, b) => (Number.isFinite(b) ? Math.max(a, b) : a), 0);
+                    const score = Math.max(dim, resolved.endsWith(".svg") ? 512 : 0);
+                    if (score > best) {
+                      best = score;
+                      iconUrl = resolved;
+                    }
+                  }
+                }
+              }
+            } catch {
+              // ignore manifest fetch errors
+            }
+          }
           res.setHeader("content-type", "application/json");
-          res.end(JSON.stringify({ title, themeColor, description }));
+          res.end(
+            JSON.stringify({
+              title: manifestTitle ?? title,
+              themeColor,
+              description,
+              iconUrl,
+              startUrl,
+            })
+          );
         } catch {
           res.setHeader("content-type", "application/json");
           res.end(
@@ -161,6 +219,25 @@ export default defineConfig({
   build: {
     outDir: "docs/demo",
     emptyOutDir: true,
+    rolldownOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes("@codemirror/") || id.includes("@lezer/")) {
+            return "vendor-codemirror";
+          }
+          if (id.includes("@base-ui/react")) {
+            return "vendor-baseui";
+          }
+          if (id.includes("jszip")) {
+            return "vendor-jszip";
+          }
+          if (id.includes("react-obj-view")) {
+            return "vendor-objview";
+          }
+          return undefined;
+        },
+      },
+    },
   },
 });
 

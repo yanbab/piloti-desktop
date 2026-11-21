@@ -310,6 +310,21 @@ test.describe("Piloti Desktop E2E", () => {
     await consoleWindow.getByRole("button", { name: /Logs/ }).click();
     await consoleWindow.getByRole("button", { name: /^Console$/ }).click();
     await expect(consoleWindow).toContainText("42");
+
+    // Keyboard shortcut Alt+Space opens Launcher and Escape closes it
+    await page.keyboard.press("Alt+Space");
+    await expect(popup).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(popup).toBeHidden();
+
+    // Files floating left status pill and right zoom slider pill
+    await page.locator('[data-dock-app-id="nautilus"]').click();
+    const filesWindow = page
+      .locator('[data-slot="window"][data-app-id="nautilus"]')
+      .first();
+    await expect(filesWindow).toBeVisible();
+    await expect(filesWindow.getByTestId("files-status-pill")).toBeVisible();
+    await expect(filesWindow.getByRole("slider", { name: "Zoom" })).toBeVisible();
   });
 });
 

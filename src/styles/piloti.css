@@ -1,78 +1,49 @@
 /*
  * Piloti Interface Theme (Default)
  *
- * Forked from GNOME Adwaita with translucent vibrant materials for menus,
- * popovers, sidebars, dock, and top bar, plus translucent selection states on
- * vibrant surfaces (never opaque).
+ * Inherits all base tokens, typography, accent colors, and high-contrast
+ * rules from `adwaita.css`, adding vibrant translucent surfaces for menus,
+ * popovers, sidebars, dock, and HUD overlays plus translucent selection pills.
  *
- * When `[data-interface-theme="adwaita"]` is active, surfaces switch back to
- * solid opaque Libadwaita surfaces with zero backdrop blur or translucency.
+ * When `[data-interface-theme="adwaita"]` or `[data-more-transparency="false"]`
+ * is active, surfaces remain pure opaque Adwaita from `adwaita.css`.
  */
 
-/* --- Piloti Theme (Default & [data-interface-theme="piloti"]) --- */
-:root:not([data-interface-theme="adwaita"]).dark,
-:root[data-interface-theme="piloti"].dark {
+:root:not([data-interface-theme="adwaita"])[data-more-transparency="true"]:not([data-high-contrast="true"]) {
+  --adw-material-menu: rgb(255 255 255 / 0.72);
+  --adw-material-popover: rgb(255 255 255 / 0.72);
+  --adw-material-hud: rgb(250 250 252 / 0.78);
+  --adw-material-tooltip: rgb(0 0 0 / 0.85);
+  --adw-material-dock: rgb(255 255 255 / 0.6);
+  --adw-material-blur: 22px;
+}
+
+:root:not([data-interface-theme="adwaita"]).dark[data-more-transparency="true"]:not([data-high-contrast="true"]) {
+  --adw-material-menu: rgb(42 42 46 / 0.72);
+  --adw-material-popover: rgb(42 42 46 / 0.72);
+  --adw-material-hud: rgb(36 36 40 / 0.78);
+  --adw-material-tooltip: rgb(0 0 0 / 0.88);
+  --adw-material-dock: rgb(0 0 0 / 0.42);
+  --adw-material-blur: 22px;
   --adw-sidebar-selection: rgb(255 255 255 / 0.14);
   --adw-menu-highlight: rgb(255 255 255 / 0.1);
   --adw-glass-selected: rgb(255 255 255 / 0.16);
 }
 
-/* Vibrant sidebars & header/selection pills in Piloti should remain translucent */
-:root:not([data-interface-theme="adwaita"])[data-more-transparency="true"] .bg-adw-sidebar {
+:root:not([data-interface-theme="adwaita"])[data-more-transparency="true"]:not([data-high-contrast="true"]) .adw-material-menu,
+:root:not([data-interface-theme="adwaita"])[data-more-transparency="true"]:not([data-high-contrast="true"]) .adw-material-popover {
+  -webkit-backdrop-filter: blur(22px) saturate(180%);
+  backdrop-filter: blur(22px) saturate(180%);
+}
+
+:root:not([data-interface-theme="adwaita"])[data-more-transparency="true"]:not([data-high-contrast="true"]) .bg-adw-sidebar {
   background-color: rgb(235 235 238 / 0.68);
   -webkit-backdrop-filter: blur(22px) saturate(160%);
   backdrop-filter: blur(22px) saturate(160%);
 }
 
-:root:not([data-interface-theme="adwaita"]).dark[data-more-transparency="true"] .bg-adw-sidebar {
+:root:not([data-interface-theme="adwaita"]).dark[data-more-transparency="true"]:not([data-high-contrast="true"]) .bg-adw-sidebar {
   background-color: rgb(36 36 40 / 0.65);
   -webkit-backdrop-filter: blur(22px) saturate(160%);
   backdrop-filter: blur(22px) saturate(160%);
 }
-
-/* --- Adwaita Theme ([data-interface-theme="adwaita"]) — Opaque Surfaces Only --- */
-:root[data-interface-theme="adwaita"] {
-  --adw-material-menu: #ffffff;
-  --adw-material-popover: #ffffff;
-  --adw-material-hud: #fafafa;
-  --adw-material-tooltip: #202024;
-  --adw-material-dock: #ebebee;
-  --adw-dock-label: #ffffff;
-  --adw-material-blur: 0px;
-  --adw-overlay: rgb(0 0 0 / 0.45);
-}
-
-:root[data-interface-theme="adwaita"].dark {
-  --adw-material-menu: #353538;
-  --adw-material-popover: #353538;
-  --adw-material-hud: #28282c;
-  --adw-material-tooltip: #141416;
-  --adw-material-dock: #242428;
-  --adw-dock-label: #343437;
-  --adw-sidebar-selection: #3e3e41;
-  --adw-material-blur: 0px;
-  --adw-overlay: rgb(0 0 0 / 0.55);
-}
-
-:root[data-interface-theme="adwaita"] .adw-material-menu,
-:root[data-interface-theme="adwaita"] .adw-material-popover,
-:root[data-interface-theme="adwaita"] .adw-material-hud,
-:root[data-interface-theme="adwaita"] .adw-material-tooltip,
-:root[data-interface-theme="adwaita"] .adw-material-dock,
-:root[data-interface-theme="adwaita"] .adw-material-dock-label,
-:root[data-interface-theme="adwaita"] .adw-material-sidebar,
-:root[data-interface-theme="adwaita"] .bg-adw-sidebar,
-:root[data-interface-theme="adwaita"] .adw-material-titlebar {
-  -webkit-backdrop-filter: none !important;
-  backdrop-filter: none !important;
-}
-
-:root[data-interface-theme="adwaita"] .adw-material-sidebar,
-:root[data-interface-theme="adwaita"] .bg-adw-sidebar {
-  background-color: var(--adw-sidebar) !important;
-}
-
-:root[data-interface-theme="adwaita"] .adw-material-dock {
-  background-color: var(--adw-material-dock) !important;
-}
-

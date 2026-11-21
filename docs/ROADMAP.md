@@ -35,17 +35,17 @@ Actionable delivery plan organized into seven milestones covering window managem
 ---
 
 ## M4 — Adwaita Design System & Accessibility
-- [ ] **Full Adwaita primitive adoption**: Audit `ControlPanel`, `PortalDialogs`, and `AboutComputerDialog` to reuse shared grouped rows, search fields, and close-button tokens cleanly.
-- [ ] **ARIA & Keyboard-only audit**: Ensure roving `tabIndex`, `aria-activedescendant`, and focus return work across `MenuBar`, `Launcher`, `Overview`, `AltTabSwitcher`, `Dock`, and `AdwSplitView`.
+- [x] **Full Adwaita primitive adoption**: Audit `ControlPanel`, `PortalDialogs`, and `AboutComputerDialog` to reuse shared grouped rows, search fields, and close-button tokens cleanly.
+- [x] **ARIA & Keyboard-only audit**: Ensure roving `tabIndex`, `aria-activedescendant`, and focus return work across `MenuBar`, `Launcher`, `Overview`, `AltTabSwitcher`, `Dock`, and `AdwSplitView`.
 - [x] **Reduced motion parity**: Ensure `settings.reduceMotion` disables non-essential spring/scale transitions cleanly across `Overview`, `Launcher`, `Dock`, and `Window` reveal fades.
-- [ ] **High-contrast & custom accent refinements**: Add Adwaita high-contrast theme variant in `adwaita.css` and `AppearancePane`.
-- [ ] **Localization completeness**: Extract remaining hardcoded English UI strings into `src/locales/en.json` and `fr.json` via `_()`, and audit pluralization/date formatting.
+- [x] **High-contrast & custom accent refinements**: Add Adwaita high-contrast theme variant in `adwaita.css` and `AppearancePane`.
+- [x] **Localization completeness**: Extract remaining hardcoded English UI strings into `src/locales/en.json` and `fr.json` via `_()`, and audit pluralization/date formatting.
 
 ---
 
 ## M5 — System Services, Web Apps & Portals
 - [ ] **App Store real Flatpak stream**: Stream live install/remove progress, update badges, and permissions summary from `src/lib/gnome/flatpak.ts` in Domicile sessions.
-- [ ] **Web app manifest metadata**: Extract PWA manifest icons, display title, and start URL automatically when pinning custom web apps.
+- [x] **Web app manifest metadata**: Extract PWA manifest icons, display title, and start URL automatically when pinning custom web apps.
 - [ ] **Network & Bluetooth inline diagnostics**: Add signal details, saved-network forget/disconnect actions, and device pairing state in `ControlPanel` & `Settings`.
 - [ ] **Portal & ScreenCast polish**: Add window vs display source thumbnails in `PortalDialogs` and one-click annotate/copy-to-Desktop for screenshots.
 - [ ] **Session power & lock screen resilience**: Handle DPMS wake, PAM retry lockouts, and suspend/hibernate feedback cleanly in `LockScreen` and `PowerActionDialog`.
@@ -53,9 +53,9 @@ Actionable delivery plan organized into seven milestones covering window managem
 ---
 
 ## M6 — Code Health, Testing & Packaging
-- [ ] **Browser E2E Playwright harness**: Add automated end-to-end checks for Desktop ↔ Files drag-and-drop, outer-shadow resize edges, ready-to-show web app reveals, and keyboard shortcuts.
-- [ ] **Component & hook unit test expansion**: Add DOM/Testing-Library tests for `AdwSplitView`, `FileItemContextMenu`, `useSidebarKeyboardNav`, and `WindowsContext` spatial bounds lifecycle.
-- [ ] **Bundle size & lazy chunk optimization**: Audit `vite.shell.config.ts` and `vite.config.ts` chunk splitting (especially CodeMirror languages in `TextEditorApp` and SVG icon atlases).
+- [x] **Browser E2E Playwright harness**: Add automated end-to-end checks for Desktop ↔ Files drag-and-drop, outer-shadow resize edges, ready-to-show web app reveals, and keyboard shortcuts.
+- [x] **Component & hook unit test expansion**: Add DOM/Testing-Library tests for `AdwSplitView`, `FileItemContextMenu`, `useSidebarKeyboardNav`, and `WindowsContext` spatial bounds lifecycle.
+- [x] **Bundle size & lazy chunk optimization**: Audit `vite.shell.config.ts` and `vite.config.ts` chunk splitting (especially CodeMirror languages in `TextEditorApp` and SVG icon atlases).
 - [x] **Static lint & CI gate**: Configure automated `bun run typecheck && bun test && bun run build` checks in CI on every commit.
 
 ---

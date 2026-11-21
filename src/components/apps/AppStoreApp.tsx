@@ -384,11 +384,13 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
         category: "Internet",
       };
       void installWebAppDesktopEntry(domicile, isBrowserRuntime, initialApp);
-      void fetchWebPageMetadata(canonical).then(({ title }) => {
-        if (title) {
+      void fetchWebPageMetadata(canonical).then(({ title, iconUrl, startUrl }) => {
+        if (title || iconUrl || startUrl) {
           void installWebAppDesktopEntry(domicile, isBrowserRuntime, {
             ...initialApp,
-            title,
+            ...(title ? { title } : {}),
+            ...(iconUrl ? { iconUrl } : {}),
+            ...(startUrl ? { url: startUrl } : {}),
           });
         }
         setDescriptionTick((n) => n + 1);

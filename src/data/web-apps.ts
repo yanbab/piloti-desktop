@@ -399,6 +399,83 @@ export function setCachedWebDescription(
  * `<meta name="theme-color">`, and `<meta name="description">` when running in
  * the browser backend.
  */
+export interface ParsedWebManifest {
+  title: string | null;
+  iconUrl: string | null;
+  startUrl: string | null;
+}
+
+export function parseHtmlManifestHref(html: string, baseUrl: string): string | null {
+  const match =
+    html.match(
+      /<link\b[^>]*\brel\s*=\s*["']manifest["'][^>]*\bhref\s*=\s*["']([^"']+)["'][^>]*>/i
+    ) ??
+    html.match(
+      /<link\b[^>]*\bhref\s*=\s*["']([^"']+)["'][^>]*\brel\s*=\s*["']manifest["'][^>]*>/i
+    );
+  const raw = match?.[1]?.trim();
+  if (!raw) return null;
+  try {
+    return new URL(raw, baseUrl).href;
+  } catch {
+    return null;
+  }
+}
+
+export function parseWebAppManifest(
+  rawJson: unknown,
+  manifestUrl: string
+): ParsedWebManifest {
+  if (!rawJson || typeof rawJson !== "object") {
+    return { title: null, iconUrl: null, startUrl: null };
+  }
+  const obj = rawJson as {
+    name?: unknown;
+    short_name?: unknown;
+    start_url?: unknown;
+    icons?: Array<{ src?: unknown; sizes?: unknown; type?: unknown }>;
+  };
+  const title =
+    typeof obj.short_name === "string" && obj.short_name.trim()
+      ? obj.short_name.trim()
+      : typeof obj.name === "string" && obj.name.trim()
+        ? obj.name.trim()
+        : null;
+  let startUrl: string | null = null;
+  if (typeof obj.start_url === "string" && obj.start_url.trim()) {
+    try {
+      startUrl = new URL(obj.start_url.trim(), manifestUrl).href;
+    } catch {
+      startUrl = null;
+    }
+  }
+  let iconUrl: string | null = null;
+  if (Array.isArray(obj.icons)) {
+    let bestScore = -1;
+    for (const icon of obj.icons) {
+      if (!icon || typeof icon.src !== "string" || !icon.src.trim()) continue;
+      let resolved: string;
+      try {
+        resolved = new URL(icon.src.trim(), manifestUrl).href;
+      } catch {
+        continue;
+      }
+      const sizesStr = typeof icon.sizes === "string" ? icon.sizes : "";
+      const maxDim = sizesStr
+        .split(/\s+/)
+        .map((s) => Number.parseInt(s.split("x")[0] ?? "0", 10))
+        .reduce((a, b) => (Number.isFinite(b) ? Math.max(a, b) : a), 0);
+      const svgBonus = resolved.toLowerCase().endsWith(".svg") ? 512 : 0;
+      const score = Math.max(maxDim, svgBonus);
+      if (score > bestScore) {
+        bestScore = score;
+        iconUrl = resolved;
+      }
+    }
+  }
+  return { title, iconUrl, startUrl };
+}
+
 export async function fetchWebPageMetadata(
   rawUrl: string,
   signal?: AbortSignal,
@@ -407,6 +484,8 @@ export async function fetchWebPageMetadata(
   title: string | null;
   themeColor: string | null;
   description: string | null;
+  iconUrl?: string | null;
+  startUrl?: string | null;
 }> {
   const parsed = parseHttpUrl(rawUrl);
   if (!parsed || !isPublicHttpUrl(parsed)) {
@@ -432,8 +511,10 @@ export async function fetchWebPageMetadata(
           title?: string | null;
           themeColor?: string | null;
           description?: string | null;
+          iconUrl?: string | null;
+          startUrl?: string | null;
         };
-        if (data.title || data.themeColor || data.description) {
+        if (data.title || data.themeColor || data.description || data.iconUrl) {
           const resolvedColor = data.themeColor ?? null;
           const resolvedDescription = data.description
             ? decodeHtmlEntities(data.description).replace(/\s+/g, " ").trim() ||
@@ -447,6 +528,8 @@ export async function fetchWebPageMetadata(
             title: data.title ?? null,
             themeColor: resolvedColor,
             description: resolvedDescription ?? cachedDescription ?? null,
+            iconUrl: data.iconUrl ?? null,
+            startUrl: data.startUrl ?? null,
           };
         }
       }
@@ -483,14 +566,28 @@ export async function fetchWebPageMetadata(
     const html = (await res.text()).slice(0, 131072);
     const resolvedColor = parseHtmlThemeColor(html, prefersDark);
     const resolvedDescription = parseHtmlDescription(html);
+    let manifestMeta: ParsedWebManifest = { title: null, iconUrl: null, startUrl: null };
+    const manifestHref = parseHtmlManifestHref(html, parsed.href);
+    if (manifestHref) {
+      try {
+        const mRes = await fetch(manifestHref, { mode: "cors", credentials: "omit", signal });
+        if (mRes.ok) {
+          manifestMeta = parseWebAppManifest(await mRes.json(), manifestHref);
+        }
+      } catch {
+        // ignore CORS/fetch errors on manifest
+      }
+    }
     setCachedWebThemeColor(parsed.href, resolvedColor, prefersDark);
     if (resolvedDescription !== null) {
       setCachedWebDescription(parsed.href, resolvedDescription);
     }
     return {
-      title: parseHtmlTitle(html),
+      title: manifestMeta.title ?? parseHtmlTitle(html),
       themeColor: resolvedColor,
       description: resolvedDescription ?? cachedDescription ?? null,
+      iconUrl: manifestMeta.iconUrl,
+      startUrl: manifestMeta.startUrl,
     };
   } catch {
     return {

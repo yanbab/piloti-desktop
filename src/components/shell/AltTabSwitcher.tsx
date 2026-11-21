@@ -139,7 +139,12 @@ export function AltTabSwitcher() {
             </p>
           </div>
         ) : (
-          <div className="flex max-w-full items-start gap-3 overflow-x-auto px-4 pt-1 pb-8">
+          <div
+            role="listbox"
+            aria-label="Window switcher"
+            aria-activedescendant={mruWindows[altTabIndex]?.id ? `alttab-${mruWindows[altTabIndex].id}` : undefined}
+            className="flex max-w-full items-start gap-3 overflow-x-auto px-4 pt-1 pb-8"
+          >
             {mruWindows.map((win, index) => {
               const selected = index === altTabIndex;
               const resolvedIconUrl =
@@ -147,6 +152,9 @@ export function AltTabSwitcher() {
               return (
                 <button
                   key={win.id}
+                  id={`alttab-${win.id}`}
+                  role="option"
+                  aria-selected={selected}
                   type="button"
                   onPointerEnter={() => setAltTabIndex(index)}
                   onClick={() => commitAltTab(win.id)}
