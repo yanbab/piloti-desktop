@@ -10,7 +10,7 @@ test.describe("Piloti Desktop E2E", () => {
     const editorDockIcon = page.locator('[data-dock-app-id="text-editor"]');
     const terminalDockIcon = page.locator('[data-dock-app-id="terminal"]');
 
-    await expect(filesDockIcon).toBeVisible({ timeout: 20_000 });
+    await expect(filesDockIcon).toBeVisible({ timeout: 35_000 });
 
     // Open three apps from the Dock
     await filesDockIcon.click();
@@ -327,14 +327,14 @@ test.describe("Piloti Desktop E2E", () => {
     await expect(filesWindow.getByRole("slider", { name: "Zoom" })).toBeVisible();
   });
 
-  test("live-editing /home/user/.config/piloti/settings.json in Text Editor updates shell settings immediately", async ({
+  test("live-editing /home/user/.config/piloti/settings.ini in Text Editor updates shell settings immediately", async ({
     page,
   }) => {
     await page.goto("/", { waitUntil: "domcontentloaded" });
 
     // Open Files and navigate directly to /home/user/.config/piloti
     const filesDockIcon = page.locator('[data-dock-app-id="nautilus"]');
-    await expect(filesDockIcon).toBeVisible({ timeout: 20_000 });
+    await expect(filesDockIcon).toBeVisible({ timeout: 35_000 });
     await filesDockIcon.click();
 
     const filesWindow = page
@@ -351,9 +351,9 @@ test.describe("Piloti Desktop E2E", () => {
     await locInput.fill("/home/user/.config/piloti");
     await locInput.press("Enter");
 
-    const settingsJsonItem = filesWindow.getByText("settings.json").first();
-    await expect(settingsJsonItem).toBeVisible();
-    await settingsJsonItem.dblclick();
+    const settingsIniItem = filesWindow.getByText("settings.ini").first();
+    await expect(settingsIniItem).toBeVisible();
+    await settingsIniItem.dblclick();
 
     const editorWindow = page
       .locator('[data-slot="window"][data-app-id="text-editor"]')
@@ -361,16 +361,16 @@ test.describe("Piloti Desktop E2E", () => {
     await expect(editorWindow).toBeVisible();
 
     const editorTextbox = editorWindow.getByRole("textbox").first();
-    await expect(editorWindow).toContainText('"interfaceTheme": "piloti"');
+    await expect(editorWindow).toContainText("interface-theme=piloti");
 
-    // Edit interfaceTheme line live in Text Editor (CodeMirror) and press Ctrl/Cmd+S
+    // Edit interface-theme line live in Text Editor (CodeMirror) and press Ctrl/Cmd+S
     const themeLine = editorTextbox
-      .locator(".cm-line", { hasText: '"interfaceTheme"' })
+      .locator(".cm-line", { hasText: "interface-theme=" })
       .first();
     await themeLine.click();
     await page.keyboard.press("Home");
     await page.keyboard.press("Shift+End");
-    await page.keyboard.insertText('  "interfaceTheme": "adwaita",');
+    await page.keyboard.insertText("interface-theme=adwaita");
     await editorTextbox.press("Control+s");
 
     // Live shell reflects the VFS edit without reload

@@ -54,7 +54,7 @@ import {
   probeFlatpakCapabilities,
   searchFlatpaks,
   uninstallFlatpakApp,
-} from "@/lib/gnome/flatpak";
+} from "@/lib/engine-system/flatpak";
 import { APP_CATALOG, type AppDefinition } from "@/data/catalog";
 import {
   canonicalizeWebUrl,

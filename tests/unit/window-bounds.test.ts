@@ -1,5 +1,10 @@
 import { describe, expect, test } from "bun:test";
-import { clampWindowBounds, clampWorkspace } from "@/lib/window-bounds";
+import {
+  clampWindowBounds,
+  clampWorkspace,
+  resolveWaylandOuterConstraints,
+  SSD_TITLEBAR_HEIGHT,
+} from "@/lib/window-bounds";
 
 describe("window-bounds", () => {
   test("clamps offscreen negative and bottom-right positions inside viewport", () => {
@@ -92,6 +97,48 @@ describe("window-bounds", () => {
     expect(clampWorkspace(5, 3)).toBe(3);
     expect(clampWorkspace(2, 3)).toBe(2);
     expect(clampWorkspace(2, 0)).toBe(1);
+  });
+
+  test("adds SSD titlebar height to Wayland client constraints for SSD dialogs", () => {
+    // qterminal About dialog requests fixed 383x232 client size
+    const ssdAbout = resolveWaylandOuterConstraints(
+      {
+        width: 383,
+        height: 232,
+        minWidth: 383,
+        minHeight: 232,
+        maxWidth: 383,
+        maxHeight: 232,
+      },
+      false
+    );
+    expect(ssdAbout.defaultSize).toEqual({
+      width: 383,
+      height: 232 + SSD_TITLEBAR_HEIGHT,
+    });
+    expect(ssdAbout.minSize).toEqual({
+      width: 383,
+      height: 232 + SSD_TITLEBAR_HEIGHT,
+    });
+    expect(ssdAbout.maxHeight).toBe(232 + SSD_TITLEBAR_HEIGHT);
+
+    // Small dialog with maxSize < generic default minimum (265x114) shouldn't be stretched
+    const smallSsdDialog = resolveWaylandOuterConstraints(
+      { width: 285, height: 134, maxWidth: 265, maxHeight: 114 },
+      false
+    );
+    expect(smallSsdDialog.minSize).toEqual({
+      width: 265,
+      height: 114 + SSD_TITLEBAR_HEIGHT,
+    });
+
+    // CSD dialogs keep 1:1 client dimensions without extra titlebar padding
+    const csdDialog = resolveWaylandOuterConstraints(
+      { width: 444, height: 395, minWidth: 444, minHeight: 395, maxWidth: 444, maxHeight: 395 },
+      true
+    );
+    expect(csdDialog.defaultSize).toEqual({ width: 444, height: 395 });
+    expect(csdDialog.maxHeight).toBe(395);
   });
 });
 

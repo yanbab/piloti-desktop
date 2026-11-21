@@ -6,6 +6,10 @@ import {
   writeVfsTextFile,
 } from "../../src/lib/web-vfs";
 import {
+  parseDesktopSettingsRaw,
+  serializeDesktopSettingsIni,
+} from "../../src/lib/piloti-settings-ini";
+import {
   getVfsCacheFilePath,
   readVfsStateJson,
   readVfsStateText,
@@ -121,6 +125,104 @@ describe("vfs-state", () => {
       `write:${cachePath}:{"ok":true}`,
       `rm:${cachePath}`,
     ]);
+  });
+
+  it("serializes and parses desktop settings in GSettings-style .ini format", () => {
+    const iniText = serializeDesktopSettingsIni({
+      interfaceTheme: "adwaita",
+      themeMode: "light",
+      accentColor: "purple",
+      customAccentHex: "",
+      highContrast: false,
+      wallpaperId: "piloti-aurora",
+      customWallpaperUrl: "",
+      gnomeBackground: {
+        pictureUri: "",
+        pictureUriDark: "",
+        pictureOptions: "zoom",
+        colorShadingType: "solid",
+        primaryColor: "#000000",
+        secondaryColor: "#000000",
+        pictureOpacity: 100,
+      },
+      dockSize: 48,
+      dockPosition: "left",
+      dockMagnification: true,
+      dockMagnificationSize: 72,
+      dockAutoHide: false,
+      clock24Hour: false,
+      clockShowSeconds: true,
+      clockShowDay: false,
+      clockShowDate: true,
+      showBatteryPercentage: true,
+      reduceMotion: false,
+      moreTransparency: true,
+      windowDecorationMode: "auto",
+      windowButtonLayout: ":close",
+      showWindowMenu: true,
+      iconTheme: "Piloti",
+      syncGnomeSettings: true,
+      preferGnomeControlCenter: false,
+      hiddenGnomePanels: ["gnome-display-panel.desktop"],
+      fontSansFamily: "Cantarell",
+      fontMonoFamily: "Adwaita Mono",
+      fontScale: 1,
+      fontSansStyle: "regular",
+      cssFontSmoothing: "antialiased",
+      cssTextRendering: "auto",
+      cssFontOpticalSizing: "auto",
+      cssFontKerning: "auto",
+      cssFontSynthesis: "auto",
+      cssLetterSpacingEm: 0,
+      cssTextStrokePx: 0,
+      gtkFontName: "Adwaita Sans 11",
+      gtkDocumentFontName: "Sans 11",
+      gtkMonospaceFontName: "Adwaita Mono 11",
+      gtkTextScalingFactor: 1,
+      gtkFontAntialiasing: "grayscale",
+      gtkFontHinting: "slight",
+      gtkFontRgbaOrder: "rgb",
+      volume: 80,
+      muted: false,
+      brightness: 95,
+      nightLight: false,
+      wifiEnabled: true,
+      connectedWifi: "Test",
+      bluetoothEnabled: true,
+      doNotDisturb: false,
+      notificationsEnabled: true,
+      notificationBannersEnabled: true,
+      notificationShowOnLockScreen: true,
+      notificationShowPreviews: true,
+      notificationAllowCriticalInDnd: true,
+      notificationBannerTimeoutMs: 5000,
+      notificationHistoryLimit: 50,
+      powerMode: "balanced",
+      activeWorkspace: 1,
+      workspaceCount: 2,
+      restoreWindowsOnLogin: true,
+      desktopIconsEnabled: true,
+      desktopIconAlign: "left",
+      fileActivationMode: "double",
+      showFileExtensionBadges: true,
+      demoExtensionEnabled: true,
+      enabledPluginIds: [],
+      computerModel: "mac",
+      desktopIconPositions: {},
+      pinnedAppIds: ["nautilus", "terminal"],
+      installedWebApps: [],
+      savedWindowBounds: {},
+    });
+
+    expect(iniText).toContain("[org.piloti.desktop.interface]");
+    expect(iniText).toContain("interface-theme=adwaita");
+    expect(iniText).toContain("[org.piloti.desktop.dock]");
+    expect(iniText).toContain("pinned-apps=nautilus;terminal");
+
+    const reparsed = parseDesktopSettingsRaw(iniText);
+    expect(reparsed?.interfaceTheme).toBe("adwaita");
+    expect(reparsed?.dockPosition).toBe("left");
+    expect(reparsed?.pinnedAppIds).toEqual(["nautilus", "terminal"]);
   });
 });
 

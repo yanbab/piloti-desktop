@@ -13,10 +13,13 @@ import {
   removePluginCss,
   syncManagedGtkCssFile,
 } from "@/lib/plugins/loader";
+import { parseIniText, serializeIniText } from "@/lib/ini";
 import { consumeLegacyLocalStorageValue } from "@/lib/web-vfs";
 import {
   readVfsStateJson,
-  writeVfsStateJson,
+  readVfsStateText,
+  removeVfsStateFile,
+  writeVfsStateText,
 } from "@/lib/vfs-state";
 import type {
   DiscoveredPlugin,
@@ -274,18 +277,51 @@ export function PluginsProvider({
         storage: {
           get: <T = unknown,>(key: string) => {
             try {
-              const pluginFile = `/home/user/.config/piloti/plugins/${pluginId}.state.json`;
-              const stateObj =
-                readVfsStateJson<Record<string, unknown>>(pluginFile) ?? {};
-              if (key in stateObj) {
-                return stateObj[key] as T;
+              const pluginIniFile = `/home/user/.config/piloti/plugins/${pluginId}.ini`;
+              const legacyJsonFile = `/home/user/.config/piloti/plugins/${pluginId}.state.json`;
+              const rawIni = readVfsStateText(pluginIniFile);
+              let entries: Record<string, string> =
+                rawIni !== null
+                  ? (parseIniText(rawIni)["org.piloti.plugin"] ?? {})
+                  : {};
+              if (rawIni === null) {
+                const legacyObj =
+                  readVfsStateJson<Record<string, unknown>>(legacyJsonFile);
+                if (legacyObj && typeof legacyObj === "object") {
+                  entries = Object.fromEntries(
+                    Object.entries(legacyObj).map(([k, v]) => [
+                      k,
+                      JSON.stringify(v),
+                    ])
+                  );
+                  writeVfsStateText(
+                    pluginIniFile,
+                    serializeIniText({ "org.piloti.plugin": entries })
+                  );
+                  removeVfsStateFile(legacyJsonFile);
+                }
+              }
+              if (key in entries) {
+                try {
+                  return JSON.parse(entries[key]) as T;
+                } catch {
+                  return entries[key] as unknown as T;
+                }
               }
               const legacyRaw = consumeLegacyLocalStorageValue(
                 `${PLUGIN_STORAGE_PREFIX}${pluginId}.${key}`
               );
               if (legacyRaw !== null) {
                 const parsed = JSON.parse(legacyRaw) as T;
-                writeVfsStateJson(pluginFile, { ...stateObj, [key]: parsed });
+                writeVfsStateText(
+                  pluginIniFile,
+                  serializeIniText({
+                    "org.piloti.plugin": {
+                      ...entries,
+                      [key]: JSON.stringify(parsed),
+                    },
+                  })
+                );
                 return parsed;
               }
               return undefined;
@@ -295,10 +331,21 @@ export function PluginsProvider({
           },
           set: (key, value) => {
             try {
-              const pluginFile = `/home/user/.config/piloti/plugins/${pluginId}.state.json`;
-              const stateObj =
-                readVfsStateJson<Record<string, unknown>>(pluginFile) ?? {};
-              writeVfsStateJson(pluginFile, { ...stateObj, [key]: value });
+              const pluginIniFile = `/home/user/.config/piloti/plugins/${pluginId}.ini`;
+              const rawIni = readVfsStateText(pluginIniFile);
+              const existing =
+                rawIni !== null
+                  ? (parseIniText(rawIni)["org.piloti.plugin"] ?? {})
+                  : {};
+              writeVfsStateText(
+                pluginIniFile,
+                serializeIniText({
+                  "org.piloti.plugin": {
+                    ...existing,
+                    [key]: JSON.stringify(value),
+                  },
+                })
+              );
             } catch {
               // ignore storage quota errors
             }

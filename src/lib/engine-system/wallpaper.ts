@@ -2,7 +2,7 @@ import type { Domicile } from "@domicile-desktop/sdk/desktop/desktop";
 import {
   fileUriToLocalPath,
   parseGnomeBackgroundXml,
-} from "../gnome-background";
+} from "./background";
 import { hashPathKey, runText } from "./exec";
 
 const IMAGE_MIME_BY_EXT: Record<string, string> = {

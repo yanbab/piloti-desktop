@@ -178,6 +178,10 @@ export function IconGrid({
     const url = getAppIconUrl("folder");
     return isLottieIconUrl(url) ? url : undefined;
   }, [getAppIconUrl]);
+  const folderOpenLottieUrl = React.useMemo(() => {
+    const url = getAppIconUrl("folder-open");
+    return isLottieIconUrl(url) ? url : undefined;
+  }, [getAppIconUrl]);
   const openFolderPaths = useOpenFolderPaths();
   const openFilePaths = React.useMemo(() => {
     const set = new Set<string>();
@@ -1020,14 +1024,16 @@ export function IconGrid({
                   );
                 }
                 if (item.kind === "directory") {
-                  if (folderLottieUrl) {
+                  const isOpened =
+                    openFolderPaths.has(item.path) || hoveredDropPath === item.path;
+                  const activeFolderLottie = isOpened
+                    ? folderOpenLottieUrl ?? folderLottieUrl
+                    : folderLottieUrl;
+                  if (activeFolderLottie) {
                     return (
                       <LottieIcon
-                        src={folderLottieUrl}
-                        playing={
-                          openFolderPaths.has(item.path) ||
-                          hoveredDropPath === item.path
-                        }
+                        src={activeFolderLottie}
+                        playing={isOpened}
                         className="size-full drop-shadow-[0_1px_2px_rgba(0,0,0,0.22)]"
                       />
                     );
@@ -1035,10 +1041,7 @@ export function IconGrid({
                   return (
                     <DynamicFolderIcon
                       accentColor={settings.accentColor}
-                      opened={
-                        openFolderPaths.has(item.path) ||
-                        hoveredDropPath === item.path
-                      }
+                      opened={isOpened}
                       pathOrName={item.path || item.name}
                       className="size-full"
                     />
@@ -1068,6 +1071,7 @@ export function IconGrid({
                       accentColor={settings.accentColor}
                       name={item.name}
                       iconCandidates={item.iconCandidates}
+                      isEmpty={item.isEmpty}
                       className="size-full"
                     />
                   );
@@ -1264,6 +1268,7 @@ export function IconGrid({
                     accentColor={settings.accentColor}
                     name={draggedItem.name}
                     iconCandidates={draggedItem.iconCandidates}
+                    isEmpty={draggedItem.isEmpty}
                     className="size-full"
                   />
                 ) : (

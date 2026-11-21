@@ -77,6 +77,71 @@ export function clampWindowBounds(
   };
 }
 
+export const SSD_TITLEBAR_HEIGHT = 46;
+
+export interface WaylandSurfaceSizeHints {
+  width?: number | null;
+  height?: number | null;
+  minWidth?: number | null;
+  minHeight?: number | null;
+  maxWidth?: number | null;
+  maxHeight?: number | null;
+  dialog?: boolean;
+}
+
+/**
+ * Converts Wayland client surface size constraints into outer Piloti shell window
+ * dimensions, adding the `46px` SSD titlebar height when server-side decorations apply.
+ */
+export function resolveWaylandOuterConstraints(
+  hints: WaylandSurfaceSizeHints,
+  isCsd: boolean,
+  fallbackSize: WindowDimensions = { width: 760, height: 500 }
+): {
+  defaultSize: WindowDimensions;
+  minSize: WindowDimensions;
+  maxWidth?: number;
+  maxHeight?: number;
+} {
+  const extraH = isCsd ? 0 : SSD_TITLEBAR_HEIGHT;
+  const maxWidth =
+    hints.maxWidth && hints.maxWidth > 0 ? Math.round(hints.maxWidth) : undefined;
+  const maxHeight =
+    hints.maxHeight && hints.maxHeight > 0
+      ? Math.round(hints.maxHeight) + extraH
+      : undefined;
+
+  const baseMinW =
+    hints.minWidth && hints.minWidth > 0
+      ? Math.round(hints.minWidth)
+      : hints.dialog
+        ? 180
+        : 320;
+  const baseMinH =
+    (hints.minHeight && hints.minHeight > 0
+      ? Math.round(hints.minHeight)
+      : hints.dialog
+        ? 140
+        : 220) + extraH;
+
+  const minWidth = maxWidth !== undefined ? Math.min(baseMinW, maxWidth) : baseMinW;
+  const minHeight = maxHeight !== undefined ? Math.min(baseMinH, maxHeight) : baseMinH;
+
+  const defaultWidth =
+    hints.width && hints.width > 0 ? Math.round(hints.width) : fallbackSize.width;
+  const defaultHeight =
+    hints.height && hints.height > 0
+      ? Math.round(hints.height) + extraH
+      : fallbackSize.height;
+
+  return {
+    defaultSize: { width: defaultWidth, height: defaultHeight },
+    minSize: { width: minWidth, height: minHeight },
+    maxWidth,
+    maxHeight,
+  };
+}
+
 /**
  * Clamps a 1-based workspace index into `[1, workspaceCount]`.
  */

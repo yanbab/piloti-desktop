@@ -42,7 +42,11 @@ import {
   serializeWindowToXdgSession,
   type XdgSessionWindow,
 } from "@/lib/xdg-session-management";
-import { clampWindowBounds, clampWorkspace } from "@/lib/window-bounds";
+import {
+  clampWindowBounds,
+  clampWorkspace,
+  resolveWaylandOuterConstraints,
+} from "@/lib/window-bounds";
 import { type AppsContextValue, matchAppFromWayland } from "./AppsContext";
 import { type SettingsContextValue } from "./SettingsContext";
 import { type SystemBackendsContextValue } from "./SystemBackendsContext";
@@ -692,16 +696,24 @@ function pruneBrowserRecord(
               desktopId: w.desktopId,
               shortId,
             });
-        const minW = w.minWidth ?? (w.dialog ? 180 : 320);
-        const minH = w.minHeight ?? (w.dialog ? 140 : 220);
+        const matched = matchAppFromWayland(w.desktopId, w.title);
+        const xdgMatch = matchXdgEntryForWaylandWindow(
+          installedXdgApps,
+          w.desktopId
+        );
+        const isCsdWindow =
+          settings.windowDecorationMode === "csd" ||
+          (settings.windowDecorationMode === "auto" &&
+            resolveWaylandClientFrame(w, xdgMatch));
+        const constraints = resolveWaylandOuterConstraints(w, isCsdWindow, {
+          width: 760,
+          height: 500,
+        });
         const rawSize = restored
           ? { width: restored.width, height: restored.height }
-          : remembered?.size ?? {
-            width: w.width && w.width > 0 ? w.width : 760,
-            height: w.height && w.height > 0 ? w.height : 500,
-          };
+          : remembered?.size ?? constraints.defaultSize;
         const parentMeta = w.transientFor
-          ? newEntries.get(w.transientFor)
+          ? (newEntries.get(w.transientFor) ?? waylandMeta[w.transientFor])
           : undefined;
         const sameAppPositions: Array<{ x: number; y: number }> = [];
         for (const prevW of toplevels) {
@@ -741,10 +753,10 @@ function pruneBrowserRecord(
           screenWidth,
           screenHeight,
           {
-            minWidth: minW,
-            minHeight: minH,
-            maxWidth: w.maxWidth ?? undefined,
-            maxHeight: w.maxHeight ?? undefined,
+            minWidth: constraints.minSize.width,
+            minHeight: constraints.minSize.height,
+            maxWidth: constraints.maxWidth,
+            maxHeight: constraints.maxHeight,
           }
         );
         const workspace = restored
@@ -971,6 +983,11 @@ function pruneBrowserRecord(
           getAppIconUrl(w.desktopId) ??
           getAppIconUrl(w.appId) ??
           getAppIconUrl(matched.id);
+        const clientFrame = resolveWaylandClientFrame(w, xdgMatch);
+        const isCsdWindow =
+          settings.windowDecorationMode === "csd" ||
+          (settings.windowDecorationMode === "auto" && clientFrame);
+        const constraints = resolveWaylandOuterConstraints(w, isCsdWindow);
         return [{
           id: `wayland:${w.appId}`,
           appId: xdgMatch?.appId ?? matched.id,
@@ -980,7 +997,7 @@ function pruneBrowserRecord(
           gradient: matched.gradient,
           waylandAppId: w.appId,
           waylandDesktopId: w.desktopId,
-          clientFrame: resolveWaylandClientFrame(w, xdgMatch),
+          clientFrame,
           cursor: w.cursor,
           syncedFrame: syncedParentFrames.get(w.appId),
           tiled: meta.tiled ?? null,
@@ -988,14 +1005,14 @@ function pruneBrowserRecord(
           position: meta.position,
           size: meta.size,
           minSize: {
-            width: w.minWidth ?? matched.minSize?.width ?? (w.dialog ? 180 : 320),
-            height: w.minHeight ?? matched.minSize?.height ?? (w.dialog ? 140 : 220),
+            width: w.minWidth ? constraints.minSize.width : (matched.minSize?.width ?? constraints.minSize.width),
+            height: w.minHeight ? constraints.minSize.height : (matched.minSize?.height ?? constraints.minSize.height),
           },
           maxSize:
-            w.maxWidth || w.maxHeight
+            constraints.maxWidth || constraints.maxHeight
               ? {
-                  width: w.maxWidth ?? screenWidth,
-                  height: w.maxHeight ?? screenHeight,
+                  width: constraints.maxWidth ?? screenWidth,
+                  height: constraints.maxHeight ?? screenHeight,
                 }
               : undefined,
           minimized: meta.minimized,

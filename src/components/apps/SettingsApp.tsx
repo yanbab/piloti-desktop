@@ -1,8 +1,10 @@
 import * as React from "react";
 import { useDomicile } from "@domicile-desktop/react/domicile-provider";
 import {
+  BellIcon,
   DockIcon as LucideDockIcon,
   ImageIcon,
+  MonitorIcon,
   PaletteIcon,
   SlidersHorizontalIcon,
   TypeIcon,
@@ -35,8 +37,10 @@ import {
 import { cn } from "@/lib/utils";
 import { AdvancedPane } from "./settings/AdvancedPane";
 import { AppearancePane } from "./settings/AppearancePane";
+import { DisplaysPane } from "./settings/DisplaysPane";
 import { DockPane } from "./settings/DockPane";
 import { FontsPane } from "./settings/FontsPane";
+import { NotificationsPane } from "./settings/NotificationsPane";
 import { TopBarPane } from "./settings/TopBarPane";
 import { WallpaperPane } from "./settings/WallpaperPane";
 
@@ -45,6 +49,8 @@ type SettingsPaneId =
   | "fonts"
   | "dock"
   | "topbar"
+  | "displays"
+  | "notifications"
   | "wallpaper"
   | "advanced";
 
@@ -77,6 +83,18 @@ const PANES: {
     label: "Control Panel",
     subtitle: "Clock, date, seconds, battery",
     icon: <SlidersHorizontalIcon />,
+  },
+  {
+    id: "displays",
+    label: "Displays",
+    subtitle: "Monitors, virtual cast & workspaces",
+    icon: <MonitorIcon />,
+  },
+  {
+    id: "notifications",
+    label: "Notifications",
+    subtitle: "Banners, previews & history",
+    icon: <BellIcon />,
   },
   {
     id: "wallpaper",
@@ -295,6 +313,8 @@ export function SettingsApp({
           {activePane === "fonts" && <FontsPane />}
           {activePane === "dock" && <DockPane />}
           {activePane === "topbar" && <TopBarPane />}
+          {activePane === "displays" && <DisplaysPane />}
+          {activePane === "notifications" && <NotificationsPane />}
           {activePane === "wallpaper" && <WallpaperPane />}
           {activePane === "advanced" && <AdvancedPane />}
         </div>

@@ -424,7 +424,7 @@ export const APP_CATALOG: AppDefinition[] = [
     description: "Fast image viewer and crop/rotate editor (Isolated App)",
     category: "Utilities",
     iconName: "sparkles",
-    xdgIcons: ["multimedia-photo-viewer", "image-viewer"],
+    xdgIcons: ["org.gnome.Loupe", "loupe", "multimedia-photo-viewer", "image-viewer"],
     gradient: "from-sky-500 via-indigo-500 to-purple-600",
     pinnedByDefault: true,
     builtinComponent: "image-viewer",

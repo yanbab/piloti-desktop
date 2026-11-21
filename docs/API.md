@@ -61,8 +61,9 @@ Brief one-line-per-function reference for Piloti shell APIs, the Domicile SDK (`
 - `buildVfsEntryWebAppUrl(entry)` — Creates a `blob:` or `data:` URL to preview HTML, SVG, image, audio, video, PDF, or text files.
 - `importExternalFilesToVfs(targetDir, files)` — Virtually copies dropped host `File`s into `targetDir`.
 
-### GNOME & Hardware Bridge (`src/lib/gnome/`)
-- `launchDesktopCommand(domicile, argv)` — Spawns a command via Domicile (or simulates in browser mode).
+### System Engine & Hardware Bridge (`src/lib/engine-system/`)
+- `launchDesktopCommand(domicile, argv, env?)` — Spawns a command via Domicile, auto-detecting/launching `xwayland-satellite` and injecting `DISPLAY` when needed (or simulates in browser mode via `src/lib/engine-web/`).
+- `ensureXwaylandSatellite(domicile)` / `detectXwaylandSatelliteBinary(domicile)` — Detects `xwayland-satellite` in `PATH` or `~/.local/bin` / `~/Projets/xwayland-satellite/target/{release,debug}` and ensures a live X11 `DISPLAY` socket.
 - `launchWithGnomeEnv(domicile, argv)` — Spawns a command with `XDG_CURRENT_DESKTOP=GNOME`.
 - `runText(domicile, argv)` / `commandExists(domicile, bin)` — Runs a command and captures stdout or checks binary availability.
 - `readGnomeInterfaceSettings(domicile)` / `monitorGnomeInterfaceSettings(domicile, cb)` — Reads or watches `org.gnome.desktop.interface` keys.

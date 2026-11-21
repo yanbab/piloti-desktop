@@ -208,11 +208,20 @@ const ICON_ZOOM_LEVELS = [
 
 const LIST_ZOOM_LEVELS = [16, 24, 32, 48, 64, 80, 96] as const;
 
+function isVfsEntryEmpty(entry: WebVfsEntry): boolean {
+  if (entry.kind !== "file") return false;
+  if (typeof entry.size === "number") return entry.size === 0;
+  return !entry.content || entry.content.length === 0;
+}
+
 function vfsEntryToGridItem(
   entry: WebVfsEntry,
   getAppIconUrl: (id?: string) => string | undefined
 ): IconGridItem {
-  const visual = inferFileVisual(entry.name, entry.kind, getVfsContentType(entry));
+  const isEmpty = isVfsEntryEmpty(entry);
+  const visual = inferFileVisual(entry.name, entry.kind, getVfsContentType(entry), {
+    isEmpty,
+  });
   return {
     id: entry.path,
     name: entry.name,
@@ -221,6 +230,7 @@ function vfsEntryToGridItem(
     iconName: visual.iconName,
     iconCandidates: visual.iconCandidates,
     gradient: visual.gradient,
+    isEmpty,
     iconUrl: visual.iconCandidates.map((c) => getAppIconUrl(c)).find(Boolean),
   };
 }
@@ -642,7 +652,8 @@ export function FilesApp({
       const visual = inferFileVisual(
         entry.name,
         entry.kind,
-        getVfsContentType(entry)
+        getVfsContentType(entry),
+        { isEmpty: isVfsEntryEmpty(entry) }
       );
       for (const candidate of visual.iconCandidates) {
         candidates.add(candidate);
@@ -758,8 +769,8 @@ export function FilesApp({
         const diff = a.updatedAt - b.updatedAt;
         if (diff !== 0) return diff * dirFactor;
       } else if (sortBy === "size") {
-        const sizeA = a.content?.length ?? 0;
-        const sizeB = b.content?.length ?? 0;
+        const sizeA = a.size ?? a.content?.length ?? 0;
+        const sizeB = b.size ?? b.content?.length ?? 0;
         if (sizeA !== sizeB) return (sizeA - sizeB) * dirFactor;
       } else if (sortBy === "kind") {
         const extA = a.kind === "directory" ? "" : a.name.split(".").pop()?.toLowerCase() ?? "";
@@ -1251,6 +1262,7 @@ export function FilesApp({
                     accentColor={settings.accentColor}
                     name={inspectedItem.name}
                     iconCandidates={inspectedItem.iconCandidates}
+                    isEmpty={inspectedItem.isEmpty}
                     className="size-full"
                   />
                 )}
@@ -1747,6 +1759,7 @@ export function FilesApp({
                                 accentColor={settings.accentColor}
                                 name={item.name}
                                 iconCandidates={item.iconCandidates}
+                                isEmpty={item.isEmpty}
                                 className="size-full"
                               />
                             )}

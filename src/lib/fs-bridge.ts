@@ -69,19 +69,42 @@ export async function listFsDir(
       return listVfsDir(normDir);
     }
     const now = Date.now();
-    return rawEntries.map((item) => {
-      const entryPath = `${normDir === "/" ? "" : normDir}/${item.name}`;
-      const cached = getVfsEntry(entryPath);
-      return {
-        id: entryPath,
-        name: item.name,
-        kind: item.fileType === 1 ? "directory" : "file",
-        path: entryPath,
-        parentPath: normDir,
-        content: cached?.content,
-        updatedAt: cached?.updatedAt ?? now,
-      };
-    });
+    const canStat = typeof domicile.files.stat === "function";
+    return await Promise.all(
+      rawEntries.map(async (item): Promise<WebVfsEntry> => {
+        const entryPath = `${normDir === "/" ? "" : normDir}/${item.name}`;
+        const cached = getVfsEntry(entryPath);
+        const kind = item.fileType === 1 ? "directory" : "file";
+        let size = cached?.size;
+        let updatedAt = cached?.updatedAt ?? now;
+        if (kind === "file" && canStat) {
+          try {
+            const statRes = await domicile.files.stat(toDomicilePath(entryPath));
+            statRes.match({
+              Ok: (st) => {
+                size = st.size;
+                if (typeof st.modifiedMs === "number") {
+                  updatedAt = st.modifiedMs;
+                }
+              },
+              Err: () => {},
+            });
+          } catch {
+            // Ignore stat errors for broken symlinks or restricted nodes
+          }
+        }
+        return {
+          id: entryPath,
+          name: item.name,
+          kind,
+          path: entryPath,
+          parentPath: normDir,
+          content: cached?.content,
+          size,
+          updatedAt,
+        };
+      }),
+    );
   } catch {
     return listVfsDir(normDir);
   }

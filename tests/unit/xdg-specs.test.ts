@@ -97,8 +97,28 @@ describe("XDG specifications (Autostart, Recents XBEL, Globs2/Magic)", () => {
     const index = await buildXdgIconThemeIndex(reader as never, ["Piloti", "Papirus", "hicolor"]);
     const folderPath = lookupXdgIconPath(index, "folder", 64, 1);
     expect(folderPath).toBe("/usr/share/icons/Piloti/animated/places/folder.json");
+    expect(lookupXdgIconPath(index, "folder-open", 64, 1)).toBe(
+      "/usr/share/icons/Piloti/animated/places/folder-open.json"
+    );
+    expect(lookupXdgIconPath(index, "application-x-zerosize", 64, 1)).toBe(
+      "/usr/share/icons/Piloti/animated/mimetypes/application-x-zerosize.json"
+    );
+    expect(lookupXdgIconPath(index, "org.gnome.Loupe", 64, 1)).toBe(
+      "/usr/share/icons/Piloti/animated/apps/org.gnome.Loupe.json"
+    );
     const dataUrl = await loadXdgIconDataUrl(reader as never, folderPath!);
     expect(dataUrl?.startsWith("data:application/json;base64,")).toBe(true);
+
+    const papirusOnlyIndex = await buildXdgIconThemeIndex(reader as never, ["Papirus", "hicolor"]);
+    expect(lookupXdgIconPath(papirusOnlyIndex, "org.gnome.Loupe", 64, 1)).toBe(
+      "/usr/share/icons/Papirus/64x64/apps/org.gnome.Loupe.svg"
+    );
+    expect(
+      PAPIRUS_VIRTUAL_ICONS["/usr/share/icons/Papirus/64x64/mimetypes/application-x-zerosize.svg"]
+    ).toContain("<svg");
+    expect(
+      PILOTI_VIRTUAL_ICONS["/usr/share/icons/Piloti/scalable/mimetypes/application-x-zerosize.svg"]
+    ).toContain("<svg");
   });
 });
 

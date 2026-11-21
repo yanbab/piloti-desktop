@@ -8,9 +8,10 @@ import {
 } from "@/lib/web-vfs";
 
 export const VFS_STATE_PATHS = {
-  settings: "/home/user/.config/piloti/settings.json",
-  locale: "/home/user/.config/piloti/locale",
-  pluginsState: "/home/user/.config/piloti/plugins-state.json",
+  settings: "/home/user/.config/piloti/settings.ini",
+  legacySettingsJson: "/home/user/.config/piloti/settings.json",
+  locale: "/home/user/.config/piloti/locale.ini",
+  legacyLocale: "/home/user/.config/piloti/locale",
   welcomeShown: "/home/user/.local/state/piloti/welcome-shown",
   windowBounds: "/home/user/.local/state/piloti/window-bounds.json",
   desktopIcons: "/home/user/.local/state/piloti/desktop-icons.json",

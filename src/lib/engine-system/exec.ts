@@ -1,5 +1,9 @@
 import type { Domicile } from "@domicile-desktop/sdk/desktop/desktop";
 import { GNOME_ENV_PREFIX, GNOME_SESSION_ENV } from "./types";
+import {
+  ensureXwaylandSatellite,
+  getCachedXwaylandDisplay,
+} from "./xwayland";
 
 export async function runText(
   domicile: Domicile,
@@ -42,6 +46,7 @@ export function hashPathKey(input: string): string {
 /**
  * Launches a Linux / XDG command using the compositor's native environment
  * (matching CLI launches), optionally overriding `cwd` or `extraEnv`.
+ * Automatically provides `DISPLAY` via `xwayland-satellite` on Linux when needed.
  */
 export function launchDesktopCommand(
   domicile: Domicile,
@@ -50,30 +55,60 @@ export function launchDesktopCommand(
 ): void {
   if (argv.length === 0) return;
 
-  if (options?.cwd || options?.extraEnv) {
-    domicile.processes
-      .spawn(argv, {
-        cwd: options.cwd,
-        env: options.extraEnv,
-      })
-      .then((res) => {
-        res.match({
-          Ok: (sub) => {
-            void sub.stdout.cancel().catch(() => {});
-            void sub.stderr.cancel().catch(() => {});
-          },
-          Err: () => {
-            domicile.processes.launch(argv);
-          },
+  const isBrowserMock =
+    typeof window !== "undefined" &&
+    Boolean((window as { __PILOTI_BROWSER_HOST__?: boolean }).__PILOTI_BROWSER_HOST__);
+
+  const spawnWithEnv = (resolvedEnv?: Record<string, string>) => {
+    const mergedEnv =
+      resolvedEnv || options?.extraEnv
+        ? { ...resolvedEnv, ...options?.extraEnv }
+        : undefined;
+
+    if (options?.cwd || (mergedEnv && Object.keys(mergedEnv).length > 0)) {
+      domicile.processes
+        .spawn(argv, {
+          cwd: options?.cwd,
+          env: mergedEnv,
+        })
+        .then((res) => {
+          res.match({
+            Ok: (sub) => {
+              void sub.stdout.cancel().catch(() => {});
+              void sub.stderr.cancel().catch(() => {});
+            },
+            Err: () => {
+              domicile.processes.launch(argv);
+            },
+          });
+        })
+        .catch(() => {
+          domicile.processes.launch(argv);
         });
-      })
-      .catch(() => {
-        domicile.processes.launch(argv);
-      });
+      return;
+    }
+
+    domicile.processes.launch(argv);
+  };
+
+  if (isBrowserMock || options?.extraEnv?.DISPLAY) {
+    spawnWithEnv();
     return;
   }
 
-  domicile.processes.launch(argv);
+  const cachedDisplay = getCachedXwaylandDisplay();
+  if (cachedDisplay) {
+    spawnWithEnv({ DISPLAY: cachedDisplay });
+    return;
+  }
+
+  void ensureXwaylandSatellite(domicile)
+    .then((display) => {
+      spawnWithEnv(display ? { DISPLAY: display } : undefined);
+    })
+    .catch(() => {
+      spawnWithEnv();
+    });
 }
 
 /**

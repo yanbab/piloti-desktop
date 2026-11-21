@@ -35,17 +35,24 @@ export function AppSquircleIcon({
 
   if (resolvedUrl) {
     if (isLottieIconUrl(resolvedUrl)) {
-      return (
+      const lottieNode = (
         <LottieIcon
           src={resolvedUrl}
           className={cn(
             "pointer-events-none shrink-0 drop-shadow-[0_1px_2px_rgba(0,0,0,0.2)] select-none",
-            className
+            squircle ? "size-[87.5%] overflow-hidden rounded-[14%]" : className
           )}
         />
       );
+      return squircle ? (
+        <span className={cn("flex size-full items-center justify-center", className)}>
+          {lottieNode}
+        </span>
+      ) : (
+        lottieNode
+      );
     }
-    return (
+    const imgEl = (
       <img
         src={resolvedUrl}
         alt=""
@@ -56,9 +63,16 @@ export function AppSquircleIcon({
         }}
         className={cn(
           "pointer-events-none shrink-0 object-contain drop-shadow-[0_1px_2px_rgba(0,0,0,0.2)] select-none",
-          className
+          squircle ? "size-[87.5%] overflow-hidden rounded-[14%]" : className
         )}
       />
+    );
+    return squircle ? (
+      <span className={cn("flex size-full items-center justify-center", className)}>
+        {imgEl}
+      </span>
+    ) : (
+      imgEl
     );
   }
 

@@ -108,6 +108,7 @@ import {
   setCachedWebThemeColor,
 } from "@/data/web-apps";
 import { cn } from "@/lib/utils";
+import { toggleWebAppInstall } from "@/lib/xdg-web-apps";
 
 /**
  * Wraps the native Domicile `<app>` element and reports its exact viewport CSS
@@ -502,32 +503,15 @@ function WebViewSurface({
   }, [resolvedTheme]);
 
   const toggleInstallApp = () => {
-    if (!currentUrl) return;
-    if (isInstalled) {
-      updateSettings({
-        installedWebApps: installedApps.filter(
-          (a) =>
-            a.url !== currentUrl &&
-            canonicalizeWebUrl(a.url) !== canonicalUrl
-        ),
-      });
-      return;
-    }
-    const fallbackTitle = getHostnameFallbackTitle(currentUrl) || currentUrl;
-    const appTitle =
-      win.title && win.title !== "Web" && win.title !== "Web View"
-        ? win.title
-        : fallbackTitle;
-    updateSettings({
-      installedWebApps: [
-        ...installedApps,
-        {
-          id: `web:${canonicalUrl}`,
-          title: appTitle,
-          url: canonicalUrl,
-          ...(latestFavicon ? { iconUrl: latestFavicon } : {}),
-        },
-      ],
+    toggleWebAppInstall({
+      domicile,
+      isBrowserRuntime,
+      installedWebApps: installedApps,
+      pinnedAppIds: settings.pinnedAppIds,
+      updateSettings,
+      url: currentUrl,
+      title: win.title,
+      iconUrl: latestFavicon,
     });
   };
 
@@ -571,7 +555,7 @@ function WebViewSurface({
                 disabled={!currentUrl}
                 onClick={toggleInstallApp}
               >
-                {isInstalled ? "Remove App" : "Install App"}
+                {isInstalled ? _("Remove Web App") : _("Install Web App")}
               </DropdownMenuItem>
             }
           />
@@ -717,7 +701,7 @@ function WebViewSurface({
                 disabled={!currentUrl}
                 onClick={toggleInstallApp}
               >
-                {isInstalled ? "Remove App" : "Install App"}
+                {isInstalled ? _("Remove Web App") : _("Install Web App")}
               </DropdownMenuItem>
             }
           />

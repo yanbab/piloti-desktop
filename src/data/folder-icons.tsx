@@ -35,6 +35,7 @@ export type FileBadgeKind =
   | "code"
   | "markdown"
   | "text"
+  | "empty-text"
   | "image"
   | "audio"
   | "video"
@@ -91,7 +92,15 @@ export function inferFolderBadge(
 export function inferFileBadge(
   name?: string,
   iconCandidates?: readonly string[],
+  isEmpty?: boolean,
 ): FileBadgeKind {
+  if (
+    isEmpty ||
+    iconCandidates?.includes("application-x-zerosize") ||
+    iconCandidates?.includes("text-x-generic-empty")
+  ) {
+    return "empty-text";
+  }
   const ext = name?.split(".").pop()?.toLowerCase() ?? "";
   if (
     ext === "html" ||
@@ -232,14 +241,57 @@ function renderFileBadgeGlyph(badge: FileBadgeKind, shades: FolderShadePair) {
           fill={shades.back}
         />
       );
+    case "empty-text":
+      return (
+        <g>
+          <rect
+            x="19"
+            y="29.5"
+            width="2.6"
+            height="9"
+            rx="1.3"
+            fill={shades.front}
+          />
+          <line
+            x1="25"
+            y1="34"
+            x2="43"
+            y2="34"
+            stroke="#5a606d"
+            strokeWidth="2.2"
+            strokeLinecap="round"
+            strokeDasharray="3.2 4"
+            opacity="0.38"
+          />
+          <line
+            x1="20"
+            y1="42"
+            x2="39"
+            y2="42"
+            stroke="#5a606d"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeDasharray="3.2 4"
+            opacity="0.22"
+          />
+        </g>
+      );
     case "text":
     default:
       return (
-        <path
-          opacity="0.5"
-          fill="#222222"
-          d="m 20,31 v 3 h 24 v -3 z m 0,6 v 3 h 24 v -3 z m 0,6 v 3 h 24 v -3 z m 0,6 v 3 h 15 v -3 z"
-        />
+        <g>
+          <rect
+            x="20"
+            y="30.5"
+            width="24"
+            height="3.2"
+            rx="1.5"
+            fill={shades.front}
+          />
+          <rect x="20" y="37" width="24" height="3" rx="1.4" fill="#222222" opacity="0.5" />
+          <rect x="20" y="43" width="24" height="3" rx="1.4" fill="#222222" opacity="0.5" />
+          <rect x="20" y="49" width="15" height="3" rx="1.4" fill="#222222" opacity="0.5" />
+        </g>
       );
   }
 }
@@ -308,6 +360,7 @@ export interface DynamicFileIconProps {
   badge?: FileBadgeKind;
   name?: string;
   iconCandidates?: readonly string[];
+  isEmpty?: boolean;
   className?: string;
 }
 
@@ -316,10 +369,11 @@ export const DynamicFileIcon: React.FC<DynamicFileIconProps> = ({
   badge,
   name,
   iconCandidates,
+  isEmpty,
   className,
 }) => {
   const shades = getFolderShades(accentColor);
-  const resolvedBadge = badge ?? inferFileBadge(name, iconCandidates);
+  const resolvedBadge = badge ?? inferFileBadge(name, iconCandidates, isEmpty);
 
   return (
     <svg

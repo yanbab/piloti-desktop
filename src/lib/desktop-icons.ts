@@ -38,6 +38,7 @@ export interface IconGridItem {
   iconCandidates?: readonly string[];
   iconUrl?: string;
   gradient?: string;
+  isEmpty?: boolean;
   desktopEntry?: XdgDesktopEntry;
 }
 
@@ -308,7 +309,8 @@ export function sortDesktopItems<
 export function inferFileVisual(
   name: string,
   fileType: "file" | "directory",
-  contentType?: string
+  contentType?: string,
+  options?: { isEmpty?: boolean }
 ): {
   iconName: AppSymbolName;
   gradient: string;
@@ -322,8 +324,29 @@ export function inferFileVisual(
     };
   }
 
+  const isEmpty = Boolean(options?.isEmpty);
+  const emptyTextCandidates = [
+    "application-x-zerosize",
+    "text-x-generic-empty",
+    "text-x-generic",
+  ] as const;
+
   const normalizedMime = contentType?.split(";")[0]?.trim().toLowerCase();
   if (normalizedMime) {
+    if (normalizedMime === "application/x-zerosize") {
+      return {
+        iconName: "notes",
+        gradient: "from-slate-400 via-slate-500 to-zinc-600",
+        iconCandidates: [...emptyTextCandidates],
+      };
+    }
+    if (normalizedMime === "text/plain" && isEmpty) {
+      return {
+        iconName: "notes",
+        gradient: "from-slate-400 via-slate-500 to-zinc-600",
+        iconCandidates: [...emptyTextCandidates],
+      };
+    }
     if (normalizedMime.startsWith("audio/")) {
       return {
         iconName: "sparkles",
@@ -415,17 +438,25 @@ export function inferFileVisual(
       iconCandidates: ["text-x-script", "application-x-executable", "text-x-generic"],
     };
   }
-  if (/\.(md|txt|doc|docx|odt|rtf|log|csv)$/.test(lower)) {
+  if (/\.(md|txt|doc|docx|odt|rtf|log|csv|ini|conf|cfg)$/.test(lower)) {
     return {
       iconName: "notes",
-      gradient: "from-amber-400 via-orange-500 to-amber-600",
-      iconCandidates: ["text-x-generic", "x-office-document"],
+      gradient: isEmpty
+        ? "from-slate-400 via-slate-500 to-zinc-600"
+        : "from-amber-400 via-orange-500 to-amber-600",
+      iconCandidates: isEmpty
+        ? [...emptyTextCandidates]
+        : ["text-x-generic", "x-office-document"],
     };
   }
   return {
     iconName: "notes",
-    gradient: "from-slate-500 via-slate-600 to-zinc-700",
-    iconCandidates: ["text-x-generic", "application-octet-stream"],
+    gradient: isEmpty
+      ? "from-slate-400 via-slate-500 to-zinc-600"
+      : "from-slate-500 via-slate-600 to-zinc-700",
+    iconCandidates: isEmpty
+      ? [...emptyTextCandidates]
+      : ["text-x-generic", "application-octet-stream"],
   };
 }
 

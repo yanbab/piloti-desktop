@@ -162,5 +162,17 @@ describe("desktop-icons spatial grid helpers", () => {
     expect(positions.b).toEqual({ col: 3, row: 1 });
     expect(positions.c).toEqual({ col: 2, row: 0 });
   });
+
+  test("distinguishes empty text files from populated text files", () => {
+    const emptyTxt = inferFileVisual("draft.txt", "file", "text/plain", { isEmpty: true });
+    expect(emptyTxt.iconCandidates[0]).toBe("application-x-zerosize");
+    expect(emptyTxt.iconCandidates).toContain("text-x-generic");
+
+    const nonEmptyTxt = inferFileVisual("notes.txt", "file", "text/plain", { isEmpty: false });
+    expect(nonEmptyTxt.iconCandidates[0]).toBe("text-x-generic");
+
+    const zeroMime = inferFileVisual("README", "file", "application/x-zerosize");
+    expect(zeroMime.iconCandidates[0]).toBe("application-x-zerosize");
+  });
 });
 

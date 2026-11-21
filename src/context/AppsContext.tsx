@@ -209,6 +209,7 @@ const APP_GRID_ICON_CANDIDATES: readonly string[] = [
 
 const SHELL_XDG_ICON_GROUPS: Record<string, readonly string[]> = {
   folder: ["folder", "inode-directory"],
+  "folder-open": ["folder-open", "folder"],
   __user_trash__: ["user-trash", "trash-empty", "gnome-fs-trash-empty"],
   __user_trash_full__: [
     "user-trash-full",
@@ -229,6 +230,11 @@ const SHELL_XDG_ICON_GROUPS: Record<string, readonly string[]> = {
   "text-x-script": ["text-x-script"],
   "package-x-generic": ["package-x-generic", "application-x-archive"],
   "text-x-generic": ["text-x-generic"],
+  "application-x-zerosize": [
+    "application-x-zerosize",
+    "text-x-generic-empty",
+    "text-x-generic",
+  ],
   "text-x-markdown": ["text-x-markdown", "text-markdown"],
   "text-html": ["text-html"],
 };
@@ -236,6 +242,10 @@ const SHELL_XDG_ICON_GROUPS: Record<string, readonly string[]> = {
 const PAPIRUS_DIRECT_ICON_FALLBACKS: Record<string, readonly string[]> = {
   nautilus: [
     "/usr/share/icons/Papirus/64x64/apps/system-file-manager.svg",
+    "/usr/share/icons/Papirus/64x64/places/folder.svg",
+  ],
+  "folder-open": [
+    "/usr/share/icons/Papirus/64x64/places/folder-open.svg",
     "/usr/share/icons/Papirus/64x64/places/folder.svg",
   ],
   settings: ["/usr/share/icons/Papirus/64x64/apps/preferences-system.svg"],
@@ -253,6 +263,7 @@ const PAPIRUS_DIRECT_ICON_FALLBACKS: Record<string, readonly string[]> = {
     "/usr/share/icons/Papirus/64x64/apps/accessories-calculator.svg",
   ],
   "image-viewer": [
+    "/usr/share/icons/Papirus/64x64/apps/org.gnome.Loupe.svg",
     "/usr/share/icons/Papirus/64x64/apps/multimedia-photo-viewer.svg",
   ],
   "image-x-generic": [
@@ -277,6 +288,10 @@ const PAPIRUS_DIRECT_ICON_FALLBACKS: Record<string, readonly string[]> = {
     "/usr/share/icons/Papirus/64x64/mimetypes/package-x-generic.svg",
   ],
   "text-x-generic": [
+    "/usr/share/icons/Papirus/64x64/mimetypes/text-x-generic.svg",
+  ],
+  "application-x-zerosize": [
+    "/usr/share/icons/Papirus/64x64/mimetypes/application-x-zerosize.svg",
     "/usr/share/icons/Papirus/64x64/mimetypes/text-x-generic.svg",
   ],
   "text-html": ["/usr/share/icons/Papirus/64x64/mimetypes/text-html.svg"],
@@ -317,7 +332,7 @@ async function resolveWithDirectAdwaitaFallback(
   return undefined;
 }
 
-const DOCK_ICONS_CACHE_KEY = "piloti.dock-icons.v11";
+const DOCK_ICONS_CACHE_KEY = "piloti.dock-icons.v12";
 
 interface DockIconsCachePayload {
   theme: string;
@@ -710,12 +725,11 @@ export function useAppsValue(
       void Promise.all(
         pending.map(async ({ baseId, raw }) => {
           try {
-            const url = await resolveXdgIconUrl(
+            const url = await resolveWithDirectAdwaitaFallback(
               domicile.files,
               iconIndex,
-              [baseId, raw],
-              64,
-              1
+              baseId,
+              [baseId, raw]
             );
             return url ? { baseId, raw, url } : null;
           } catch {

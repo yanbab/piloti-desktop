@@ -28,6 +28,8 @@ import {
   WindowTitlebar,
 } from "@/components/ui/window";
 import { AppSquircleIcon } from "./AppSymbol";
+import { findMatchingWebApp } from "@/data/web-apps";
+import { toggleWebAppInstall } from "@/lib/xdg-web-apps";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -907,6 +909,32 @@ export function MenuBar() {
                     {formatMenuShortcut("Alt+]", settings.computerModel)}
                   </MenubarShortcut>
                 </MenubarItem>
+                {focusedWindow?.browserUrl && (
+                  <>
+                    <MenubarSeparator />
+                    <MenubarItem
+                      onClick={() =>
+                        toggleWebAppInstall({
+                          domicile,
+                          isBrowserRuntime,
+                          installedWebApps: settings.installedWebApps ?? [],
+                          pinnedAppIds: settings.pinnedAppIds,
+                          updateSettings,
+                          url: focusedWindow.browserUrl ?? "",
+                          title: focusedWindow.title,
+                          iconUrl: focusedWindow.iconUrl,
+                        })
+                      }
+                    >
+                      {findMatchingWebApp(
+                        focusedWindow.browserUrl,
+                        settings.installedWebApps ?? []
+                      )
+                        ? _("Remove Web App")
+                        : _("Install Web App")}
+                    </MenubarItem>
+                  </>
+                )}
                 <MenubarSeparator />
                 <MenubarItem
                   disabled={!focusedWindowId}

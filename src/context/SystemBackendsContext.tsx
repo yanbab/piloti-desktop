@@ -42,8 +42,9 @@ import {
   readSystemWifi,
   setDefaultAudioSink,
   syncGnomePanelOverrides,
-} from "@/lib/gnome-bridge";
-import { syncGtkIconTheme } from "@/lib/gnome/gsettings";
+  syncGtkIconTheme,
+  ensureXwaylandSatellite,
+} from "@/lib/engine-system";
 import {
   type NotificationActionItem,
   type ShellNotification,
@@ -798,6 +799,7 @@ export function useSystemBackendsValue(
         discoverGnomeControlCenterPanels(domicile),
         listSystemAudioSinks(domicile),
         readSystemWifi(domicile, { scan: Boolean(options?.scanWifi) }),
+        ensureXwaylandSatellite(domicile),
       ]);
       finishBackends();
 

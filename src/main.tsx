@@ -61,7 +61,7 @@ if (root) {
   } else {
     void Promise.all([
       import("../desktop"),
-      import("./lib/browser-domicile"),
+      import("./lib/engine-web"),
     ]).then(([{ Shell }, { createBrowserDomicile }]) => {
       const domicile = createBrowserDomicile();
       Shell(root, domicile);

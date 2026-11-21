@@ -2,6 +2,8 @@ import type { Domicile } from "@domicile-desktop/sdk/desktop/desktop";
 import {
   canonicalizeWebUrl,
   DEFAULT_BROWSER_WEB_APPS,
+  findMatchingWebApp,
+  getHostnameFallbackTitle,
   getWebAppFaviconUrl,
   type InstalledWebApp,
 } from "@/data/web-apps";
@@ -232,4 +234,65 @@ export async function loadWebAppsFromDesktopEntries(
     apps.push(parsed);
   }
   return apps;
+}
+
+/**
+ * Installs or removes a Web App both in settings state and as a persistent FreeDesktop `.desktop` entry.
+ */
+export function toggleWebAppInstall(params: {
+  domicile: Domicile;
+  isBrowserRuntime: boolean;
+  installedWebApps: readonly InstalledWebApp[];
+  pinnedAppIds: readonly string[];
+  updateSettings: (patch: {
+    installedWebApps?: InstalledWebApp[];
+    pinnedAppIds?: string[];
+  }) => void;
+  url: string;
+  title?: string;
+  iconUrl?: string;
+}): "installed" | "removed" | null {
+  const canonicalUrl = canonicalizeWebUrl(params.url) ?? params.url;
+  if (!canonicalUrl) return null;
+
+  const existing = findMatchingWebApp(canonicalUrl, params.installedWebApps);
+  if (existing) {
+    params.updateSettings({
+      installedWebApps: params.installedWebApps.filter(
+        (a) =>
+          a.url !== params.url &&
+          a.url !== canonicalUrl &&
+          canonicalizeWebUrl(a.url) !== canonicalUrl
+      ),
+      pinnedAppIds: params.pinnedAppIds.filter((id) => id !== existing.id),
+    });
+    void removeWebAppDesktopEntry(
+      params.domicile,
+      params.isBrowserRuntime,
+      existing
+    );
+    return "removed";
+  }
+
+  const fallbackTitle = getHostnameFallbackTitle(canonicalUrl) || canonicalUrl;
+  const cleanTitle = params.title?.trim();
+  const appTitle =
+    cleanTitle && cleanTitle !== "Web" && cleanTitle !== "Web View"
+      ? cleanTitle
+      : fallbackTitle;
+  const newApp: InstalledWebApp = {
+    id: `web:${canonicalUrl}`,
+    title: appTitle,
+    url: canonicalUrl,
+    ...(params.iconUrl ? { iconUrl: params.iconUrl } : {}),
+  };
+  params.updateSettings({
+    installedWebApps: [...params.installedWebApps, newApp],
+  });
+  void installWebAppDesktopEntry(
+    params.domicile,
+    params.isBrowserRuntime,
+    newApp
+  );
+  return "installed";
 }

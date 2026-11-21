@@ -3,7 +3,7 @@ import type { AccentColorId } from "@/data/catalog";
 import {
   type GnomeBackgroundSettings,
   parseGnomeBackgroundKeyVal,
-} from "../gnome-background";
+} from "./background";
 import { runText } from "./exec";
 import type {
   GnomeInterfaceSnapshot,

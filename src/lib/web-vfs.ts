@@ -7,6 +7,7 @@ export interface WebVfsEntry {
   path: string;
   parentPath: string;
   content?: string;
+  size?: number;
   trashedFromPath?: string;
   metadata?: {
     "standard::content-type"?: string;

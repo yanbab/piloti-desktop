@@ -14,16 +14,26 @@ import {
   DEFAULT_LAUNCHER_WEB_APPS,
   type InstalledWebApp,
 } from "@/data/web-apps";
-import { WEB_VFS_CHANGED_EVENT, getVfsEntry } from "@/lib/web-vfs";
+import {
+  WEB_VFS_CHANGED_EVENT,
+  getVfsEntry,
+  writeVfsTextFile,
+} from "@/lib/web-vfs";
 import { toDomicilePath } from "@/lib/fs-bridge";
 import {
   readVfsStateJson,
   readVfsStateText,
   registerVfsHostSync,
+  removeVfsStateFile,
   subscribeVfsPath,
   VFS_STATE_PATHS,
   writeVfsStateJson,
+  writeVfsStateText,
 } from "@/lib/vfs-state";
+import {
+  parseDesktopSettingsRaw,
+  serializeDesktopSettingsIni,
+} from "@/lib/piloti-settings-ini";
 import {
   installWebAppDesktopEntry,
   loadWebAppsFromDesktopEntries,
@@ -37,7 +47,7 @@ import {
   localPathToFileUri,
   resolveBackgroundRenderSpec,
   selectGnomePictureUri,
-} from "@/lib/gnome-background";
+} from "@/lib/engine-system/background";
 import { clampHistoryLimit } from "@/lib/notifications";
 import {
   readGnomeBackgroundBlob,
@@ -53,7 +63,7 @@ import {
   type GtkFontAntialiasing,
   type GtkFontHinting,
   type GtkFontRgbaOrder,
-} from "@/lib/gnome-bridge";
+} from "@/lib/engine-system";
 import { startBootPhase } from "@/lib/perf-log";
 import { subscribeLocale } from "@/lib/i18n";
 import type { DesktopIconAlign } from "@/lib/desktop-icons";
@@ -241,16 +251,6 @@ const STORAGE_KEY = "piloti.desktop.settings.v1";
 const WINDOW_BOUNDS_STORAGE_KEY = "piloti.window-bounds.v1";
 const DESKTOP_ICONS_STORAGE_KEY = "piloti.desktop-icon-positions.v1";
 
-function serializeDesktopSettings(next: DesktopSettings): Record<string, unknown> {
-  const {
-    installedWebApps: _ignoredWebApps,
-    savedWindowBounds: _ignoredBounds,
-    desktopIconPositions: _ignoredIcons,
-    ...serializable
-  } = next;
-  return serializable;
-}
-
 function loadSeparatedRecord<T>(
   vfsPath: string,
   legacyKey: string,
@@ -330,74 +330,76 @@ function mergeDefaultBrowserWebApps(
  * version without overriding subsequent user edits.
  */
 export function resolveInitialSettings(
-  savedJson: string | null,
+  savedRaw: string | null,
   isBrowserBackend: boolean
 ): DesktopSettings {
-  if (savedJson) {
+  if (savedRaw) {
     try {
-      const parsed = JSON.parse(savedJson) as Partial<DesktopSettings>;
-      const workspaceCount =
-        typeof parsed.workspaceCount === "number" && parsed.workspaceCount >= 1
-          ? parsed.workspaceCount
-          : DEFAULT_SETTINGS.workspaceCount;
-      const activeWorkspace = Math.max(
-        1,
-        Math.min(workspaceCount, parsed.activeWorkspace ?? 1)
-      );
-      const rawWebApps = Array.isArray(parsed.installedWebApps)
-        ? parsed.installedWebApps
-        : [];
-      const needsWebDefaults =
-        isBrowserBackend && parsed.webDefaultsVersion !== WEB_DEFAULTS_VERSION;
+      const parsed = parseDesktopSettingsRaw(savedRaw);
+      if (parsed) {
+        const workspaceCount =
+          typeof parsed.workspaceCount === "number" && parsed.workspaceCount >= 1
+            ? parsed.workspaceCount
+            : DEFAULT_SETTINGS.workspaceCount;
+        const activeWorkspace = Math.max(
+          1,
+          Math.min(workspaceCount, parsed.activeWorkspace ?? 1)
+        );
+        const rawWebApps = Array.isArray(parsed.installedWebApps)
+          ? parsed.installedWebApps
+          : [];
+        const needsWebDefaults =
+          isBrowserBackend && parsed.webDefaultsVersion !== WEB_DEFAULTS_VERSION;
 
-      const installedWebApps = needsWebDefaults
-        ? parsed.webAppsSeeded === true
-          ? [...DEFAULT_LAUNCHER_WEB_APPS]
-          : mergeDefaultBrowserWebApps(rawWebApps)
-        : rawWebApps;
+        const installedWebApps = needsWebDefaults
+          ? parsed.webAppsSeeded === true
+            ? [...DEFAULT_LAUNCHER_WEB_APPS]
+            : mergeDefaultBrowserWebApps(rawWebApps)
+          : rawWebApps;
 
-      const pinnedAppIds = needsWebDefaults
-        ? normalizeWebPinnedApps(parsed.pinnedAppIds)
-        : Array.isArray(parsed.pinnedAppIds)
-          ? parsed.pinnedAppIds
-          : DEFAULT_SETTINGS.pinnedAppIds;
+        const pinnedAppIds = needsWebDefaults
+          ? normalizeWebPinnedApps(parsed.pinnedAppIds)
+          : Array.isArray(parsed.pinnedAppIds)
+            ? parsed.pinnedAppIds
+            : DEFAULT_SETTINGS.pinnedAppIds;
 
-      const rawGnomeBg =
-        parsed.gnomeBackground && typeof parsed.gnomeBackground === "object"
-          ? parsed.gnomeBackground
-          : {};
-      const gnomeBackground: GnomeBackgroundSettings = {
-        ...DEFAULT_GNOME_BACKGROUND,
-        ...rawGnomeBg,
-      };
-      if (parsed.customWallpaperUrl && !gnomeBackground.pictureUri) {
-        gnomeBackground.pictureUri = parsed.customWallpaperUrl;
+        const rawGnomeBg =
+          parsed.gnomeBackground && typeof parsed.gnomeBackground === "object"
+            ? parsed.gnomeBackground
+            : {};
+        const gnomeBackground: GnomeBackgroundSettings = {
+          ...DEFAULT_GNOME_BACKGROUND,
+          ...rawGnomeBg,
+        };
+        if (parsed.customWallpaperUrl && !gnomeBackground.pictureUri) {
+          gnomeBackground.pictureUri = parsed.customWallpaperUrl;
+        }
+
+        const notificationBannerTimeoutMs =
+          typeof parsed.notificationBannerTimeoutMs === "number" &&
+          Number.isFinite(parsed.notificationBannerTimeoutMs)
+            ? Math.max(0, parsed.notificationBannerTimeoutMs)
+            : DEFAULT_SETTINGS.notificationBannerTimeoutMs;
+        const notificationHistoryLimit = clampHistoryLimit(
+          parsed.notificationHistoryLimit
+        );
+
+        return {
+          ...DEFAULT_SETTINGS,
+          ...parsed,
+          gnomeBackground,
+          notificationBannerTimeoutMs,
+          notificationHistoryLimit,
+          workspaceCount,
+          activeWorkspace,
+          pinnedAppIds,
+          installedWebApps,
+          ...(isBrowserBackend
+            ? { webAppsSeeded: true, webDefaultsVersion: WEB_DEFAULTS_VERSION }
+            : {}),
+          savedWindowBounds: parsed.savedWindowBounds ?? {},
+        };
       }
-
-      const notificationBannerTimeoutMs =
-        typeof parsed.notificationBannerTimeoutMs === "number" &&
-        Number.isFinite(parsed.notificationBannerTimeoutMs)
-          ? Math.max(0, parsed.notificationBannerTimeoutMs)
-          : DEFAULT_SETTINGS.notificationBannerTimeoutMs;
-      const notificationHistoryLimit = clampHistoryLimit(
-        parsed.notificationHistoryLimit
-      );
-
-      return {
-        ...DEFAULT_SETTINGS,
-        ...parsed,
-        gnomeBackground,
-        notificationBannerTimeoutMs,
-        notificationHistoryLimit,
-        workspaceCount,
-        activeWorkspace,
-        pinnedAppIds,
-        installedWebApps,
-        ...(isBrowserBackend
-          ? { webAppsSeeded: true, webDefaultsVersion: WEB_DEFAULTS_VERSION }
-          : {}),
-        savedWindowBounds: parsed.savedWindowBounds ?? {},
-      };
     } catch {
       // ignore storage errors
     }
@@ -452,10 +454,21 @@ export function useSettingsValue(options?: {
   const [settings, setSettings] = React.useState<DesktopSettings>(() => {
     if (typeof window === "undefined") return DEFAULT_SETTINGS;
     try {
-      const base = resolveInitialSettings(
-        readVfsStateText(VFS_STATE_PATHS.settings, STORAGE_KEY),
-        isBrowserRuntime
-      );
+      let savedRaw = readVfsStateText(VFS_STATE_PATHS.settings, STORAGE_KEY);
+      if (savedRaw === null) {
+        const legacyJson = readVfsStateText(VFS_STATE_PATHS.legacySettingsJson);
+        if (legacyJson !== null) {
+          savedRaw = legacyJson;
+          removeVfsStateFile(VFS_STATE_PATHS.legacySettingsJson);
+        }
+      }
+      const base = resolveInitialSettings(savedRaw, isBrowserRuntime);
+      if (savedRaw !== null && savedRaw.trim().startsWith("{")) {
+        writeVfsStateText(
+          VFS_STATE_PATHS.settings,
+          serializeDesktopSettingsIni(base)
+        );
+      }
       const separatedBounds = loadSeparatedRecord<SavedWindowBounds>(
         VFS_STATE_PATHS.windowBounds,
         WINDOW_BOUNDS_STORAGE_KEY
@@ -504,13 +517,15 @@ export function useSettingsValue(options?: {
         ensuredDirs.delete(relDir);
       });
     };
+    let cancelled = false;
+    const writeHostFile = async (vfsPath: string, content: string) => {
+      await ensureParentDir(vfsPath);
+      const bytes = new TextEncoder().encode(content);
+      await domicile.files.write(toDomicilePath(vfsPath), bytes);
+    };
     registerVfsHostSync({
       writeText: (vfsPath, content) => {
-        void (async () => {
-          await ensureParentDir(vfsPath);
-          const bytes = new TextEncoder().encode(content);
-          await domicile.files.write(toDomicilePath(vfsPath), bytes);
-        })().catch(() => undefined);
+        void writeHostFile(vfsPath, content).catch(() => undefined);
       },
       removeFile: (vfsPath) => {
         void domicile.processes
@@ -518,17 +533,43 @@ export function useSettingsValue(options?: {
           .catch(() => undefined);
       },
     });
-    return () => registerVfsHostSync(null);
+
+    // Hydrate settings.ini from the real Linux $HOME if present, or seed it on
+    // disk when migrated during initial render before hostSync was registered.
+    void (async () => {
+      const relSettings = toDomicilePath(VFS_STATE_PATHS.settings);
+      const res = await domicile.files.readText(relSettings);
+      if (cancelled) return;
+      const hostRaw = res.match({
+        Ok: (text) => (text.trim().length > 0 ? text : null),
+        Err: () => null,
+      });
+      if (hostRaw !== null) {
+        if ((getVfsEntry(VFS_STATE_PATHS.settings)?.content ?? "") !== hostRaw) {
+          writeVfsTextFile(VFS_STATE_PATHS.settings, hostRaw);
+        }
+      } else {
+        const currentIni =
+          getVfsEntry(VFS_STATE_PATHS.settings)?.content ||
+          serializeDesktopSettingsIni(settingsRef.current);
+        await writeHostFile(VFS_STATE_PATHS.settings, currentIni);
+      }
+    })().catch(() => undefined);
+
+    return () => {
+      cancelled = true;
+      registerVfsHostSync(null);
+    };
   }, [domicile, isBrowserRuntime]);
 
-  // Seed settings.json in VFS on first run so users can inspect/edit it in Files or Text Editor,
-  // and subscribe to live VFS edits on settings.json, window-bounds.json, and desktop-icons.json.
+  // Seed settings.ini in VFS on first run so users can inspect/edit it in Files or Text Editor,
+  // and subscribe to live VFS edits on settings.ini, window-bounds.json, and desktop-icons.json.
   React.useEffect(() => {
     try {
       if (!getVfsEntry(VFS_STATE_PATHS.settings)) {
-        writeVfsStateJson(
+        writeVfsStateText(
           VFS_STATE_PATHS.settings,
-          serializeDesktopSettings(settingsRef.current)
+          serializeDesktopSettingsIni(settingsRef.current)
         );
       }
       if (!getVfsEntry(VFS_STATE_PATHS.windowBounds)) {
@@ -549,30 +590,21 @@ export function useSettingsValue(options?: {
 
     const unsubSettings = subscribeVfsPath(VFS_STATE_PATHS.settings, (raw) => {
       if (!raw || !raw.trim()) return;
-      try {
-        JSON.parse(raw);
-      } catch {
-        // Ignore transient invalid JSON while the user is editing in Text Editor
-        return;
-      }
+      const parsedPatch = parseDesktopSettingsRaw(raw);
+      if (!parsedPatch) return;
       const nextBase = resolveInitialSettings(raw, isBrowserRuntime);
       setSettings((prev) => {
-        const currentSerialized = JSON.stringify(serializeDesktopSettings(prev));
-        const incomingSerialized = JSON.stringify(
-          serializeDesktopSettings({
-            ...nextBase,
-            installedWebApps: prev.installedWebApps,
-            savedWindowBounds: prev.savedWindowBounds,
-            desktopIconPositions: prev.desktopIconPositions,
-          })
-        );
-        if (currentSerialized === incomingSerialized) return prev;
-        return {
+        const currentSerialized = serializeDesktopSettingsIni(prev);
+        const mergedNext: DesktopSettings = {
           ...nextBase,
           installedWebApps: prev.installedWebApps,
           savedWindowBounds: prev.savedWindowBounds,
           desktopIconPositions: prev.desktopIconPositions,
         };
+        if (currentSerialized === serializeDesktopSettingsIni(mergedNext)) {
+          return prev;
+        }
+        return mergedNext;
       });
     });
 
@@ -664,9 +696,9 @@ export function useSettingsValue(options?: {
       if (patch?.desktopIconPositions !== undefined) {
         writeVfsStateJson(VFS_STATE_PATHS.desktopIcons, next.desktopIconPositions);
       }
-      writeVfsStateJson(
+      writeVfsStateText(
         VFS_STATE_PATHS.settings,
-        serializeDesktopSettings(next)
+        serializeDesktopSettingsIni(next)
       );
     } catch {
       // ignore storage errors

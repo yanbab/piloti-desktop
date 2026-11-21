@@ -1,5 +1,7 @@
+import { parseIniText, serializeIniText } from "@/lib/ini";
 import {
   readVfsStateText,
+  removeVfsStateFile,
   subscribeVfsPath,
   VFS_STATE_PATHS,
   writeVfsStateText,
@@ -49,15 +51,48 @@ export function getSystemLocale(): SupportedLocale {
   return "en";
 }
 
+const LOCALE_INI_SECTION = "org.piloti.desktop.locale";
+
+function parseLocaleIniValue(raw: string | null): string | null {
+  if (!raw) return null;
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+  if (trimmed.includes("[") || trimmed.includes("=")) {
+    const parsed = parseIniText(trimmed);
+    return (
+      parsed[LOCALE_INI_SECTION]?.locale ??
+      parsed.General?.locale ??
+      null
+    );
+  }
+  return trimmed;
+}
+
+function serializeLocaleIniValue(pref: LocalePreference): string {
+  return serializeIniText({
+    [LOCALE_INI_SECTION]: { locale: pref },
+  });
+}
+
 function detectInitialState(): {
   preference: LocalePreference;
   locale: SupportedLocale;
 } {
   try {
-    const saved = readVfsStateText(
-      VFS_STATE_PATHS.locale,
-      LOCALE_STORAGE_KEY,
-    )?.trim();
+    let raw = readVfsStateText(VFS_STATE_PATHS.locale, LOCALE_STORAGE_KEY);
+    if (raw === null) {
+      const legacyText = readVfsStateText(VFS_STATE_PATHS.legacyLocale);
+      if (legacyText !== null) {
+        raw = legacyText;
+        removeVfsStateFile(VFS_STATE_PATHS.legacyLocale);
+        const migrated = normalizeLocalePrefValue(parseLocaleIniValue(legacyText));
+        writeVfsStateText(
+          VFS_STATE_PATHS.locale,
+          serializeLocaleIniValue(migrated),
+        );
+      }
+    }
+    const saved = parseLocaleIniValue(raw)?.trim();
     if (saved === "en" || saved === "fr" || saved === "es") {
       return { preference: saved, locale: saved };
     }
@@ -71,6 +106,14 @@ function detectInitialState(): {
   return { preference: "default", locale: getSystemLocale() };
 }
 
+function normalizeLocalePrefValue(raw: string | null | undefined): LocalePreference {
+  const trimmed = raw?.trim().toLowerCase();
+  if (!trimmed || trimmed === "default" || trimmed === "system" || trimmed === "auto") {
+    return "default";
+  }
+  return normalizeLocale(trimmed);
+}
+
 const initialState = detectInitialState();
 let activePreference: LocalePreference = initialState.preference;
 let activeLocale: SupportedLocale = initialState.locale;
@@ -80,7 +123,8 @@ function applyLocaleString(locale: string): {
   preference: LocalePreference;
   locale: SupportedLocale;
 } {
-  const trimmed = locale.trim().toLowerCase();
+  const extracted = parseLocaleIniValue(locale) ?? locale;
+  const trimmed = extracted.trim().toLowerCase();
   let nextPreference: LocalePreference;
   let nextLocale: SupportedLocale;
   if (trimmed === "default" || trimmed === "system" || trimmed === "auto" || !trimmed) {
@@ -109,7 +153,10 @@ export function getLocalePreference(): LocalePreference {
 export function setLocale(locale: string): SupportedLocale {
   applyLocaleString(locale);
   try {
-    writeVfsStateText(VFS_STATE_PATHS.locale, `${activePreference}\n`);
+    writeVfsStateText(
+      VFS_STATE_PATHS.locale,
+      serializeLocaleIniValue(activePreference),
+    );
   } catch {
     // ignore VFS write errors
   }

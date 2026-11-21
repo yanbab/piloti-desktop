@@ -2,8 +2,8 @@
 
 Piloti runs the same React tree across two runtimes:
 
-1. **Domicile Runtime (`desktop.tsx`)**: Mounted inside Domicile's Chromium Wayland compositor via `mount PilotiShell`. Renders real Wayland surfaces in `<app app-id="…" />` and talks to Linux subsystems over Domicile APIs.
-2. **Browser Dev Runtime (`src/main.tsx`)**: Mounted via [`createBrowserDomicile()`](../src/lib/browser-domicile.ts), providing a `FakeDomicileHost`, virtual `.desktop` entries, Indexed VFS/Trash storage, and mock hardware/theme backends for local browser development.
+1. **Domicile Runtime (`desktop.tsx`)**: Mounted inside Domicile's Chromium Wayland compositor via `mount PilotiShell`. Renders real Wayland surfaces in `<app app-id="…" />` and talks to Linux subsystems over Domicile APIs (`src/lib/engine-system/`).
+2. **Browser Dev Runtime (`src/main.tsx`)**: Mounted via [`createBrowserDomicile()`](../src/lib/engine-web/domicile.ts), providing a `FakeDomicileHost`, virtual `.desktop` entries, Indexed VFS/Trash storage, and mock hardware/theme backends for local browser development.
 
 Built-in web apps (**Settings**, **Files**, **Terminal**, **Text Editor**, **Image Viewer**, **Calculator**, **App Store**, **Piloti Console / DevTools**, and **Desktop Icons**) run inside the shell alongside native Wayland/XDG processes and browser `<webview>` / `<iframe>` windows.
 
@@ -37,8 +37,9 @@ Built-in web apps (**Settings**, **Files**, **Terminal**, **Text Editor**, **Ima
     ├── components/
     │   ├── shell/                       # MenuBar, Dock, WindowManager, IsolatedAppFrame, Launcher,
     │   │                                # ControlPanel, Overview, OsdOverlay, AltTabSwitcher, LockScreen, Portals
-    │   ├── apps/                        # SettingsApp (+ settings/*), FilesApp, FileItemContextMenu, DesktopIconsApp,
-    │   │                                # TerminalApp, TextEditorApp, ImageViewerApp, CalculatorApp, AppStoreApp, ConsoleApp
+    │   ├── apps/                        # SettingsApp (+ settings/*: DisplaysPane, NotificationsPane, ...),
+    │   │                                # FilesApp, FileItemContextMenu, DesktopIconsApp, TerminalApp,
+    │   │                                # TextEditorApp, ImageViewerApp, CalculatorApp, AppStoreApp, ConsoleApp
     │   └── ui/                          # Adwaita-styled primitives: adw-split-view, window, icon-grid, dock, grouped-form, etc.
     ├── lib/
     │   ├── spatial-window-bounds.ts     # Spatial bounds key resolution & specificity lookup (per app/doc/URL)
@@ -46,14 +47,14 @@ Built-in web apps (**Settings**, **Files**, **Terminal**, **Text Editor**, **Ima
     │   ├── web-vfs.ts                   # Browser-backed POSIX VFS, Trash, generalized emblems & shared clipboard
     │   ├── fs-bridge.ts                 # Unified VFS / Domicile host filesystem operations
     │   ├── app-bridge.ts                # Typed postMessage RPC & theme sync bridge for isolated iframe apps
-    │   ├── window-bounds.ts             # Viewport bounds clamping & workspace index safety
+    │   ├── window-bounds.ts             # Viewport bounds clamping, SSD constraints & workspace index safety
     │   ├── overview-layout.ts           # Window spread placement math for Overview
-    │   ├── gnome/                       # Modular GNOME/Linux bridges (gsettings, audio, network, power, flatpak, wallpaper, gcc)
+    │   ├── engine-system/               # Host Linux/GNOME bridges (gsettings, audio, network, power, flatpak, wallpaper, xwayland)
+    │   ├── engine-web/                  # Browser dev runtime (`FakeDomicileHost` + Indexed VFS/settings bridge)
     │   ├── xdg-*.ts                     # XDG basedir, desktop entries, icon themes, app menus, session, trash
     │   ├── notifications.ts             # Pure notification policy, DND, timeout & persistence helpers
-    │   ├── storage-cache.ts             # In-memory cached & debounced localStorage persistence
-    │   ├── console-store.ts & csp-repl-eval.ts # Captured shell logs & CSP-safe DevTools REPL evaluator
-    │   └── browser-domicile.ts          # Browser mock Domicile host
+    │   ├── vfs-state.ts                 # VFS-backed `.ini` state & GSettings-style schema persistence
+    │   └── console-store.ts & csp-repl-eval.ts # Captured shell logs & CSP-safe DevTools REPL evaluator
     └── styles/                          # Tailwind v4 + GNOME Adwaita design tokens (adwaita.css, globals.css)
 ```
 

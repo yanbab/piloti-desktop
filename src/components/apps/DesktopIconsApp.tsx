@@ -115,10 +115,16 @@ export function DesktopIconsApp({
         const vfsEntries = listVfsDir(desktopDirPath);
         const iconCandidatesToEnsure = new Set<string>();
         const built: IconGridItem[] = vfsEntries.map((entry) => {
+          const isEmpty =
+            entry.kind === "file" &&
+            (typeof entry.size === "number"
+              ? entry.size === 0
+              : !entry.content || entry.content.length === 0);
           const visual = inferFileVisual(
             entry.name,
             entry.kind,
-            getVfsContentType(entry)
+            getVfsContentType(entry),
+            { isEmpty }
           );
           for (const candidate of visual.iconCandidates) {
             iconCandidatesToEnsure.add(candidate);
@@ -131,6 +137,7 @@ export function DesktopIconsApp({
             iconName: visual.iconName,
             iconCandidates: visual.iconCandidates,
             gradient: visual.gradient,
+            isEmpty,
             iconUrl: visual.iconCandidates
               .map((c) => getAppIconUrl(c))
               .find(Boolean),
@@ -204,7 +211,23 @@ export function DesktopIconsApp({
             }
           }
 
-          const visual = inferFileVisual(entry.name, entryFileType);
+          let isEmpty = false;
+          if (entryFileType === "file" && typeof domicile.files.stat === "function") {
+            try {
+              const statRes = await domicile.files.stat(fullPath);
+              statRes.match({
+                Ok: (st) => {
+                  isEmpty = st.size === 0;
+                },
+                Err: () => {},
+              });
+            } catch {
+              // ignore stat failure
+            }
+          }
+          const visual = inferFileVisual(entry.name, entryFileType, undefined, {
+            isEmpty,
+          });
           for (const candidate of visual.iconCandidates) {
             iconCandidatesToEnsure.add(candidate);
           }
@@ -217,6 +240,7 @@ export function DesktopIconsApp({
             iconName: visual.iconName,
             iconCandidates: visual.iconCandidates,
             gradient: visual.gradient,
+            isEmpty,
             iconUrl: visual.iconCandidates
               .map((c) => getAppIconUrl(c))
               .find(Boolean),
@@ -426,11 +450,13 @@ export function DesktopIconsApp({
   const enrichedItems = React.useMemo(
     () =>
       items.map((item) => {
-        if (item.iconUrl || !item.iconCandidates) return item;
+        if (!item.iconCandidates) return item;
         const resolved = item.iconCandidates
           .map((c) => getAppIconUrl(c))
           .find(Boolean);
-        return resolved ? { ...item, iconUrl: resolved } : item;
+        return resolved && resolved !== item.iconUrl
+          ? { ...item, iconUrl: resolved }
+          : item;
       }),
     [getAppIconUrl, items]
   );
