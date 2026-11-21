@@ -1183,16 +1183,22 @@ export function WindowManager() {
     button: number;
     clientX: number;
     clientY: number;
+    targetAppId: string | null;
   } | null>(null);
 
   React.useEffect(() => {
     const onPointerDown = (e: PointerEvent) => {
       lastPointerRef.current = { x: e.clientX, y: e.clientY };
+      const targetAppId =
+        e.target instanceof Element
+          ? (e.target.closest("app")?.getAttribute("app-id") ?? null)
+          : null;
       heldPressRef.current = {
         pointerId: e.pointerId,
         button: e.button,
         clientX: e.clientX,
         clientY: e.clientY,
+        targetAppId,
       };
     };
     const onPointerMove = (e: PointerEvent) => {
@@ -1259,7 +1265,20 @@ export function WindowManager() {
         // so the window does not get stuck following the cursor.
         return;
       }
-      if (rawReq.kind === 5) {
+      if (held.targetAppId && held.targetAppId !== req.appId) {
+        // Ignore stray startup/background requests (e.g. unset_fullscreen on launch)
+        // when the active press belongs to a different window.
+        return;
+      }
+      // On domicile 1.2.0-1 (pre-#2049), GTK4 apps (e.g. Nautilus) emit
+      // xdg_toplevel.unset_fullscreen (kind 3) right when a headerbar drag begins.
+      // Because `held` guarantees a live pointer press on this window, accepting
+      // Unfullscreen when not fullscreen enables GTK4 headerbar moves while still
+      // ignoring startup/no-press unset_fullscreen events.
+      if (
+        rawReq.kind === 5 ||
+        (req.kind === WindowRequestKind.Unfullscreen && !targetWin.fullscreen)
+      ) {
         handle.startMove(held.clientX, held.clientY, held.pointerId);
       } else if (rawReq.kind === 6 && typeof rawReq.edges === "number") {
         const edge = DOMICILE_RESIZE_EDGE_MAP[rawReq.edges];
