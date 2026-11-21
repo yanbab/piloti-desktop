@@ -1575,59 +1575,13 @@ export function FilesApp({
         </WindowTitlebar>
       )}
       rightPane={infoPaneNode}
-      footer={
-        <div className="flex h-7 shrink-0 items-center justify-between border-t border-adw-separator bg-adw-titlebar/70 px-3 text-[11px] text-adw-label-secondary select-none">
-          <span>
-            {items.length} {items.length === 1 ? _("item") : _("items")}
-            {selectedIds.length > 0 ? ` · ${selectedIds.length} ${_("selected")}` : ""}
-          </span>
-          <div className="flex items-center gap-1.5" data-window-no-drag>
-            <button
-              type="button"
-              aria-label={_("Zoom out")}
-              title={_("Zoom out")}
-              disabled={activeZoomIndex <= 0}
-              onClick={() => stepZoom(-1)}
-              className="flex size-5 items-center justify-center rounded text-adw-label-secondary transition-colors hover:bg-black/8 hover:text-adw-label disabled:pointer-events-none disabled:opacity-35 dark:hover:bg-white/10"
-            >
-              <ZoomOutIcon className="size-3" />
-            </button>
-            <Slider
-              aria-label={_("Zoom")}
-              min={0}
-              max={maxZoomIndex}
-              step={1}
-              value={[activeZoomIndex]}
-              onValueChange={(val) => {
-                const next = Array.isArray(val) ? val[0] : val;
-                if (typeof next !== "number") return;
-                if (viewMode === "list") {
-                  setListZoomIndex(Math.max(0, Math.min(maxZoomIndex, next)));
-                } else {
-                  setGridZoomIndex(Math.max(0, Math.min(maxZoomIndex, next)));
-                }
-              }}
-              className="w-20"
-            />
-            <button
-              type="button"
-              aria-label={_("Zoom in")}
-              title={_("Zoom in")}
-              disabled={activeZoomIndex >= maxZoomIndex}
-              onClick={() => stepZoom(1)}
-              className="flex size-5 items-center justify-center rounded text-adw-label-secondary transition-colors hover:bg-black/8 hover:text-adw-label disabled:pointer-events-none disabled:opacity-35 dark:hover:bg-white/10"
-            >
-              <ZoomInIcon className="size-3" />
-            </button>
-          </div>
-        </div>
-      }
     >
-      <div
-        ref={mainViewRef}
-        data-vfs-drop-path={isVirtualView ? undefined : currentPath}
-        onKeyDown={onContentKeyDown}
-        className="relative min-h-0 flex-1 overflow-auto bg-adw-content"
+      <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden bg-adw-content">
+        <div
+          ref={mainViewRef}
+          data-vfs-drop-path={isVirtualView ? undefined : currentPath}
+          onKeyDown={onContentKeyDown}
+          className="relative min-h-0 flex-1 overflow-auto bg-adw-content pb-10"
         onDragOver={(e) => {
           if (isTrashView || isVirtualView || !e.dataTransfer?.types?.includes("Files")) return;
           e.preventDefault();
@@ -1862,9 +1816,10 @@ export function FilesApp({
             className="[&_button[aria-selected=false]_span]:text-adw-label [&_button_span]:drop-shadow-none"
           />
         )}
+        </div>
         <div
           data-testid="files-status-pill"
-          className="pointer-events-none absolute right-2.5 bottom-2 z-10 rounded-full border border-adw-border/60 bg-adw-card/90 px-2.5 py-0.5 text-[11px] font-medium text-adw-dim shadow-xs backdrop-blur-md"
+          className="pointer-events-none absolute bottom-2 left-2.5 z-10 rounded-full border border-adw-border/60 bg-adw-card/90 px-2.5 py-0.5 text-[11px] font-medium text-adw-dim shadow-xs backdrop-blur-md"
         >
           {selectedIds.length > 0
             ? _("%d selected", selectedIds.length)
@@ -1872,6 +1827,51 @@ export function FilesApp({
               ? _("%d item", items.length)
               : _("%d items", items.length)}
         </div>
+        {!isAppsView && (
+          <div
+            data-window-no-drag
+            className="absolute right-2.5 bottom-2 z-10 flex items-center gap-1 rounded-full border border-adw-border/60 bg-adw-card/90 px-2 py-0.5 shadow-xs backdrop-blur-md"
+          >
+            <button
+              type="button"
+              aria-label={_("Zoom out")}
+              title={_("Zoom out")}
+              disabled={activeZoomIndex <= 0}
+              onClick={() => stepZoom(-1)}
+              className="flex size-4 items-center justify-center rounded-full text-adw-label-secondary transition-colors hover:bg-black/8 hover:text-adw-label disabled:pointer-events-none disabled:opacity-35 dark:hover:bg-white/10"
+            >
+              <ZoomOutIcon className="size-2.5" />
+            </button>
+            <Slider
+              aria-label={_("Zoom")}
+              size="sm"
+              min={0}
+              max={maxZoomIndex}
+              step={1}
+              value={[activeZoomIndex]}
+              onValueChange={(val) => {
+                const next = Array.isArray(val) ? val[0] : val;
+                if (typeof next !== "number") return;
+                if (viewMode === "list") {
+                  setListZoomIndex(Math.max(0, Math.min(maxZoomIndex, next)));
+                } else {
+                  setGridZoomIndex(Math.max(0, Math.min(maxZoomIndex, next)));
+                }
+              }}
+              className="w-24"
+            />
+            <button
+              type="button"
+              aria-label={_("Zoom in")}
+              title={_("Zoom in")}
+              disabled={activeZoomIndex >= maxZoomIndex}
+              onClick={() => stepZoom(1)}
+              className="flex size-4 items-center justify-center rounded-full text-adw-label-secondary transition-colors hover:bg-black/8 hover:text-adw-label disabled:pointer-events-none disabled:opacity-35 dark:hover:bg-white/10"
+            >
+              <ZoomInIcon className="size-2.5" />
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Shared Icon Right-Click Menu */}

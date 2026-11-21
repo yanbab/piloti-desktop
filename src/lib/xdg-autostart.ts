@@ -129,4 +129,3 @@ export function buildAutostartOverrideDesktopContent(
   ];
   return `${lines.join("\n")}\n`;
 }
-
