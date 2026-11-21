@@ -1830,7 +1830,7 @@ export function FilesApp({
         {!isAppsView && (
           <div
             data-window-no-drag
-            className="absolute right-2.5 bottom-2 z-10 flex items-center gap-1 rounded-full border border-adw-border/60 bg-adw-card/90 px-2 py-0.5 shadow-xs backdrop-blur-md"
+            className="absolute right-2.5 bottom-2 z-10 flex items-center gap-1.5 rounded-full border border-adw-border/60 bg-adw-card/90 px-2.5 py-1 shadow-xs backdrop-blur-md"
           >
             <button
               type="button"
@@ -1838,37 +1838,37 @@ export function FilesApp({
               title={_("Zoom out")}
               disabled={activeZoomIndex <= 0}
               onClick={() => stepZoom(-1)}
-              className="flex size-4 items-center justify-center rounded-full text-adw-label-secondary transition-colors hover:bg-black/8 hover:text-adw-label disabled:pointer-events-none disabled:opacity-35 dark:hover:bg-white/10"
+              className="flex size-4 shrink-0 items-center justify-center rounded-full text-adw-label-secondary transition-colors hover:bg-black/8 hover:text-adw-label disabled:pointer-events-none disabled:opacity-35 dark:hover:bg-white/10"
             >
-              <ZoomOutIcon className="size-2.5" />
+              <ZoomOutIcon className="size-3" />
             </button>
-            <Slider
-              aria-label={_("Zoom")}
-              size="sm"
-              min={0}
-              max={maxZoomIndex}
-              step={1}
-              value={[activeZoomIndex]}
-              onValueChange={(val) => {
-                const next = Array.isArray(val) ? val[0] : val;
-                if (typeof next !== "number") return;
-                if (viewMode === "list") {
-                  setListZoomIndex(Math.max(0, Math.min(maxZoomIndex, next)));
-                } else {
-                  setGridZoomIndex(Math.max(0, Math.min(maxZoomIndex, next)));
-                }
-              }}
-              className="w-24"
-            />
+            <div className="w-28 shrink-0">
+              <Slider
+                aria-label={_("Zoom")}
+                min={0}
+                max={maxZoomIndex}
+                step={1}
+                value={[activeZoomIndex]}
+                onValueChange={(val) => {
+                  const next = Array.isArray(val) ? val[0] : val;
+                  if (typeof next !== "number") return;
+                  if (viewMode === "list") {
+                    setListZoomIndex(Math.max(0, Math.min(maxZoomIndex, next)));
+                  } else {
+                    setGridZoomIndex(Math.max(0, Math.min(maxZoomIndex, next)));
+                  }
+                }}
+              />
+            </div>
             <button
               type="button"
               aria-label={_("Zoom in")}
               title={_("Zoom in")}
               disabled={activeZoomIndex >= maxZoomIndex}
               onClick={() => stepZoom(1)}
-              className="flex size-4 items-center justify-center rounded-full text-adw-label-secondary transition-colors hover:bg-black/8 hover:text-adw-label disabled:pointer-events-none disabled:opacity-35 dark:hover:bg-white/10"
+              className="flex size-4 shrink-0 items-center justify-center rounded-full text-adw-label-secondary transition-colors hover:bg-black/8 hover:text-adw-label disabled:pointer-events-none disabled:opacity-35 dark:hover:bg-white/10"
             >
-              <ZoomInIcon className="size-2.5" />
+              <ZoomInIcon className="size-3" />
             </button>
           </div>
         )}
