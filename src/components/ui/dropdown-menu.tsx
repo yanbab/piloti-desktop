@@ -37,12 +37,13 @@ function DropdownMenuContent({
   side = "bottom",
   sideOffset = 4,
   anchor,
+  collisionAvoidance,
   initialFocus,
   ...props
 }: MenuPrimitive.Popup.Props &
   Pick<
     MenuPrimitive.Positioner.Props,
-    "align" | "alignOffset" | "side" | "sideOffset" | "anchor"
+    "align" | "alignOffset" | "side" | "sideOffset" | "anchor" | "collisionAvoidance"
   > & {
     initialFocus?: boolean | React.RefObject<HTMLElement | null>;
   }) {
@@ -54,6 +55,7 @@ function DropdownMenuContent({
         side={side}
         sideOffset={sideOffset}
         anchor={anchor}
+        collisionAvoidance={collisionAvoidance}
         className="isolate z-[610] outline-none"
       >
         <MenuPrimitive.Popup

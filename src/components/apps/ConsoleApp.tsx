@@ -1564,8 +1564,15 @@ export function ConsoleApp({
         </div>
       </WindowTitlebar>
 
-      {/* Active Module */}
-      {activeModule === "repl" && <ReplModule scope={replScope} />}
+      {/* Active Module (keep REPL mounted so console state persists across tab switches) */}
+      <div
+        className={cn(
+          "min-h-0 flex-1 overflow-hidden",
+          activeModule === "repl" ? "flex" : "hidden"
+        )}
+      >
+        <ReplModule scope={replScope} />
+      </div>
       {activeModule === "logs" && <LogsModule />}
       {activeModule === "inspector" && <InspectorModule />}
       {activeModule === "vfs-events" && <VfsEventsModule />}

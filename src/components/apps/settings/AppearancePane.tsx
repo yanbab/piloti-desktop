@@ -12,12 +12,19 @@ import {
 } from "@/components/ui/grouped-form";
 import { Switch } from "@/components/ui/switch";
 import { useSettings } from "@/context/DesktopStateContext";
+import { useOptionalPlugins } from "@/context/PluginsContext";
 import { ACCENT_COLORS } from "@/data/catalog";
 import { _ } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 export function AppearancePane() {
   const { settings, updateSettings } = useSettings();
+  const pluginsCtx = useOptionalPlugins();
+  const themePlugins = React.useMemo(
+    () => (pluginsCtx?.plugins ?? []).filter((p) => p.kind === "theme"),
+    [pluginsCtx?.plugins]
+  );
+  const activeInterfaceTheme = settings.interfaceTheme || "piloti";
 
   const layoutRaw = (settings.windowButtonLayout ?? ":close").trim();
   const isLeftPlacement =
@@ -47,6 +54,38 @@ export function AppearancePane() {
       <GroupedFormSection>
         <GroupedFormSectionTitle>{_("Appearance")}</GroupedFormSectionTitle>
         <GroupedFormGroup>
+          <GroupedFormRow>
+            <GroupedFormRowLabel>
+              <GroupedFormRowTitle>{_("Interface Theme")}</GroupedFormRowTitle>
+            </GroupedFormRowLabel>
+            <GroupedFormRowControl>
+              <div className="inline-flex flex-wrap items-center gap-1 rounded-[9px] bg-black/8 p-1 dark:bg-white/8">
+                {[
+                  { id: "piloti", label: "Piloti" },
+                  { id: "adwaita", label: "Adwaita" },
+                  ...themePlugins.map((p) => ({ id: p.id, label: p.name })),
+                ].map((theme) => {
+                  const active = activeInterfaceTheme === theme.id;
+                  return (
+                    <button
+                      key={theme.id}
+                      type="button"
+                      onClick={() => updateSettings({ interfaceTheme: theme.id })}
+                      className={cn(
+                        "rounded-[6px] px-2.5 py-1 text-[13px] font-medium transition-all",
+                        active
+                          ? "bg-white text-black dark:bg-white/18 dark:text-white"
+                          : "text-adw-label-secondary hover:text-adw-label"
+                      )}
+                    >
+                      {theme.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </GroupedFormRowControl>
+          </GroupedFormRow>
+
           <GroupedFormRow>
             <GroupedFormRowLabel>
               <GroupedFormRowTitle>{_("Style")}</GroupedFormRowTitle>

@@ -12,9 +12,12 @@ export interface PluginCommandManifest {
 export interface PluginManifest {
   id?: string;
   name?: string;
+  type?: "plugin" | "theme";
   version?: string;
   description?: string;
   style?: string;
+  gtk4Style?: string;
+  gtk3Style?: string;
   script?: string;
   main?: string;
   commands?: PluginCommandManifest[];
@@ -23,11 +26,14 @@ export interface PluginManifest {
 export interface DiscoveredPlugin {
   id: string;
   name: string;
+  kind?: "plugin" | "theme";
   version?: string;
   description?: string;
   sourceType: "css" | "js" | "folder";
   entryPath: string;
   stylePath?: string;
+  gtk4StylePath?: string;
+  gtk3StylePath?: string;
   scriptPath?: string;
   hasManifest: boolean;
   commands: PluginCommandManifest[];

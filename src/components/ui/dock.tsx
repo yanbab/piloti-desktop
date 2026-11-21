@@ -25,6 +25,7 @@ function Dock({
   hidden = false,
   resizing = false,
   children,
+  onClick,
   onPointerMove,
   onPointerLeave,
   ...props
@@ -43,41 +44,67 @@ function Dock({
   const shown = !hidden && (!autoHide || revealed || nearEdge || resizing)
   const isVertical = position === "left" || position === "right"
 
-  // Auto-hide: show the Dock when the pointer touches its screen edge,
+  // Auto-hide: show the Dock when the pointer touches anywhere on its screen border,
   // hide it again when the pointer moves well away from it.
   React.useEffect(() => {
-    if (!autoHide) return
+    if (!autoHide) {
+      setNearEdge(false)
+      return
+    }
     function onMove(event: PointerEvent) {
       const node = element.current
       if (!node) return
-      const area = (node.offsetParent ?? document.documentElement).getBoundingClientRect()
+      const vw = window.innerWidth
+      const vh = window.innerHeight
       const dock = node.getBoundingClientRect()
       if (position === "left") {
-        const insideY = event.clientY >= area.top && event.clientY <= area.bottom
-        if (insideY && event.clientX <= area.left + 6 && event.clientX >= area.left) {
+        const insideY = event.clientY >= 0 && event.clientY <= vh
+        if (insideY && event.clientX <= 6 && event.clientX >= 0) {
           setNearEdge(true)
-        } else if (event.clientX > area.left + dock.width + 48 || !insideY) {
+        } else if (event.clientX > dock.width + 48 || !insideY) {
           setNearEdge(false)
         }
       } else if (position === "right") {
-        const insideY = event.clientY >= area.top && event.clientY <= area.bottom
-        if (insideY && event.clientX >= area.right - 6 && event.clientX <= area.right) {
+        const insideY = event.clientY >= 0 && event.clientY <= vh
+        if (insideY && event.clientX >= vw - 6 && event.clientX <= vw) {
           setNearEdge(true)
-        } else if (event.clientX < area.right - dock.width - 48 || !insideY) {
+        } else if (event.clientX < vw - dock.width - 48 || !insideY) {
           setNearEdge(false)
         }
       } else {
-        const insideX = event.clientX >= area.left && event.clientX <= area.right
-        if (insideX && event.clientY >= area.bottom - 6 && event.clientY <= area.bottom) {
+        const insideX = event.clientX >= 0 && event.clientX <= vw
+        if (insideX && event.clientY >= vh - 6 && event.clientY <= vh) {
           setNearEdge(true)
-        } else if (event.clientY < area.bottom - dock.height - 48 || !insideX) {
+        } else if (event.clientY < vh - dock.height - 48 || !insideX) {
           setNearEdge(false)
         }
       }
     }
-    window.addEventListener("pointermove", onMove)
-    return () => window.removeEventListener("pointermove", onMove)
+    window.addEventListener("pointermove", onMove, true)
+    return () => window.removeEventListener("pointermove", onMove, true)
   }, [autoHide, position])
+
+  function activateClosestDockItem(clientX: number, clientY: number) {
+    const node = element.current
+    if (!node) return
+    const buttons = Array.from(
+      node.querySelectorAll<HTMLButtonElement>('[data-slot="dock-item"] > button:not(:disabled)')
+    )
+    if (buttons.length === 0) return
+    let bestBtn: HTMLButtonElement | null = null
+    let bestDist = Number.POSITIVE_INFINITY
+    const pointerCoord = isVertical ? clientY : clientX
+    for (const btn of buttons) {
+      const rect = btn.getBoundingClientRect()
+      const center = isVertical ? rect.top + rect.height / 2 : rect.left + rect.width / 2
+      const dist = Math.abs(pointerCoord - center)
+      if (dist < bestDist) {
+        bestDist = dist
+        bestBtn = btn
+      }
+    }
+    bestBtn?.click()
+  }
 
   // Magnification: icons grow with their distance to the pointer. Centers are
   // measured once when the pointer enters, so growing icons don't feed back.
@@ -128,10 +155,31 @@ function Dock({
         ? "flex-col w-[calc(var(--dock-size)+14px)] h-fit items-end rounded-l-[18px] rounded-r-none border border-r-0 px-[7px] py-[10px] data-[state=hidden]:translate-x-[calc(100%+24px)]"
         : "flex-row h-[calc(var(--dock-size)+14px)] w-fit items-end rounded-t-[18px] rounded-b-none border border-b-0 px-[10px] py-[7px] data-[state=hidden]:translate-y-[calc(100%+24px)]"
 
+  const edgeSensorClass =
+    position === "left"
+      ? "fixed inset-y-0 left-0 z-[99] w-[4px]"
+      : position === "right"
+        ? "fixed inset-y-0 right-0 z-[99] w-[4px]"
+        : "fixed inset-x-0 bottom-0 z-[99] h-[4px]"
+
   return (
     <DockPositionContext.Provider value={position}>
       <TooltipPrimitive.Provider delay={0}>
+        {autoHide && !hidden && !resizing && (
+          <div
+            aria-hidden="true"
+            data-slot="dock-edge-sensor"
+            className={cn("pointer-events-auto", edgeSensorClass)}
+            onPointerEnter={() => setNearEdge(true)}
+            onPointerMove={() => setNearEdge(true)}
+            onClick={(event) => {
+              setNearEdge(true)
+              activateClosestDockItem(event.clientX, event.clientY)
+            }}
+          />
+        )}
         <div
+          {...props}
           ref={(node) => {
             element.current = node
             if (typeof ref === "function") return ref(node)
@@ -157,7 +205,15 @@ function Dock({
             onPointerLeave?.(event)
             reset()
           }}
-          {...props}
+          onClick={(event) => {
+            onClick?.(event)
+            if (event.defaultPrevented) return
+            const target = event.target as Element | null
+            if (target?.closest('[data-slot="dock-item"] button, [data-slot="dock-separator"]')) {
+              return
+            }
+            activateClosestDockItem(event.clientX, event.clientY)
+          }}
         >
           {children}
         </div>
@@ -194,11 +250,21 @@ function DockItem({
   const resolvedCount = runningCount ?? (running ? 1 : 0)
   const dotCount = Math.min(Math.max(0, resolvedCount), 5)
 
+  const buttonBorderHitbox =
+    position === "left"
+      ? "-inset-y-1 -left-[8px] -right-1"
+      : position === "right"
+        ? "-inset-y-1 -left-1 -right-[8px]"
+        : "-inset-x-1 -top-1 -bottom-[8px]"
+
   const button = (
     <button
       type="button"
       aria-label={typeof label === "string" ? label : undefined}
-      className="absolute inset-0 cursor-default rounded-[22%] outline-none focus-visible:adw-focus-ring"
+      className={cn(
+        "absolute cursor-default rounded-[22%] outline-none focus-visible:adw-focus-ring",
+        buttonBorderHitbox
+      )}
       {...props}
     />
   )

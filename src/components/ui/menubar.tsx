@@ -23,7 +23,7 @@ function Menubar({ className, ...props }: MenubarPrimitive.Props) {
     <MenubarPrimitive
       data-slot="menubar"
       className={cn(
-        "flex items-center gap-0.5 text-adw-body text-adw-label select-none",
+        "flex h-full items-center gap-0.5 text-adw-body text-adw-label select-none",
         className
       )}
       {...props}
@@ -49,7 +49,7 @@ function MenubarTrigger({
       data-slot="menubar-trigger"
       data-app={app || undefined}
       className={cn(
-        "flex h-[22px] shrink-0 cursor-default items-center rounded-full px-2 outline-none select-none data-[app]:font-bold active:bg-black/14 data-popup-open:bg-black/12 focus-visible:bg-black/10 dark:active:bg-white/18 dark:data-popup-open:bg-white/15 dark:focus-visible:bg-white/12 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        "flex h-full shrink-0 cursor-default items-center rounded-md px-2 outline-none select-none data-[app]:font-bold active:bg-black/14 data-popup-open:bg-black/12 focus-visible:bg-black/10 dark:active:bg-white/18 dark:data-popup-open:bg-white/15 dark:focus-visible:bg-white/12 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
         className
       )}
       {...props}

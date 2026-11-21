@@ -129,6 +129,26 @@ export async function discoverPlugins(
       stylePath = `${entryPath}/style.css`;
     }
 
+    let gtk4StylePath: string | undefined;
+    if (manifest?.gtk4Style) {
+      const candidate = normalizeRelativeChild(entryPath, manifest.gtk4Style);
+      if (await fileExists(files, candidate)) gtk4StylePath = candidate;
+    } else if (await fileExists(files, `${entryPath}/gtk4.css`)) {
+      gtk4StylePath = `${entryPath}/gtk4.css`;
+    } else if (await fileExists(files, `${entryPath}/gtk-4.0/gtk.css`)) {
+      gtk4StylePath = `${entryPath}/gtk-4.0/gtk.css`;
+    }
+
+    let gtk3StylePath: string | undefined;
+    if (manifest?.gtk3Style) {
+      const candidate = normalizeRelativeChild(entryPath, manifest.gtk3Style);
+      if (await fileExists(files, candidate)) gtk3StylePath = candidate;
+    } else if (await fileExists(files, `${entryPath}/gtk3.css`)) {
+      gtk3StylePath = `${entryPath}/gtk3.css`;
+    } else if (await fileExists(files, `${entryPath}/gtk-3.0/gtk.css`)) {
+      gtk3StylePath = `${entryPath}/gtk-3.0/gtk.css`;
+    }
+
     let scriptPath: string | undefined;
     const declaredScript = manifest?.script || manifest?.main;
     if (declaredScript) {
@@ -147,7 +167,7 @@ export async function discoverPlugins(
         )
       : [];
 
-    if (!manifest && !stylePath && !scriptPath && !parseError) {
+    if (!manifest && !stylePath && !gtk4StylePath && !gtk3StylePath && !scriptPath && !parseError) {
       continue;
     }
 
@@ -155,11 +175,14 @@ export async function discoverPlugins(
     discovered.push({
       id,
       name: manifest?.name?.trim() || id,
+      kind: manifest?.type === "theme" ? "theme" : "plugin",
       version: manifest?.version,
       description: manifest?.description,
       sourceType: "folder",
       entryPath,
       stylePath,
+      gtk4StylePath,
+      gtk3StylePath,
       scriptPath,
       hasManifest: manifest !== null,
       commands,
@@ -190,6 +213,54 @@ export function removePluginCss(pluginId: string): void {
     `style[data-piloti-plugin="${CSS.escape(pluginId)}"]`
   );
   el?.remove();
+}
+
+const MANAGED_GTK_CSS_START = "/* BEGIN PILOTI MANAGED GTK CSS */";
+const MANAGED_GTK_CSS_END = "/* END PILOTI MANAGED GTK CSS */";
+
+export function mergeManagedGtkCss(
+  existingText: string,
+  blocks: ReadonlyArray<{ id: string; css: string }>
+): string {
+  const startIdx = existingText.indexOf(MANAGED_GTK_CSS_START);
+  const endIdx = existingText.indexOf(MANAGED_GTK_CSS_END);
+  const preserved =
+    startIdx !== -1 && endIdx !== -1 && endIdx >= startIdx
+      ? (
+          existingText.slice(0, startIdx) +
+          existingText.slice(endIdx + MANAGED_GTK_CSS_END.length)
+        ).trimEnd()
+      : existingText.trimEnd();
+
+  const nonEmptyBlocks = blocks
+    .map((b) => ({ id: b.id, css: b.css.trim() }))
+    .filter((b) => b.css.length > 0);
+  if (nonEmptyBlocks.length === 0) {
+    return preserved ? `${preserved}\n` : "";
+  }
+
+  const managedBody = nonEmptyBlocks
+    .map((b) => `/* Theme/Plugin: ${b.id} */\n${b.css}`)
+    .join("\n\n");
+  const managedSection = `${MANAGED_GTK_CSS_START}\n${managedBody}\n${MANAGED_GTK_CSS_END}\n`;
+  return preserved ? `${preserved}\n\n${managedSection}` : managedSection;
+}
+
+export async function syncManagedGtkCssFile(
+  files: Files,
+  relDir: string,
+  blocks: ReadonlyArray<{ id: string; css: string }>
+): Promise<void> {
+  const filePath = `${relDir}/gtk.css`;
+  const existing = (await readOptionalText(files, filePath)) ?? "";
+  const next = mergeManagedGtkCss(existing, blocks);
+  if (next === existing) return;
+  if (!next && !existing) return;
+  if (next) {
+    await files.createDir(".config").catch(() => undefined);
+    await files.createDir(relDir).catch(() => undefined);
+  }
+  await files.write(filePath, next);
 }
 
 export async function loadPluginScript(

@@ -1,14 +1,14 @@
 import en from "../locales/en.json";
+import es from "../locales/es.json";
 import fr from "../locales/fr.json";
-import ja from "../locales/ja.json";
 
-export type SupportedLocale = "en" | "fr" | "ja";
+export type SupportedLocale = "en" | "fr" | "es";
 export type LocalePreference = "default" | SupportedLocale;
 
 const DICTIONARIES: Record<string, Record<string, string>> = {
   en,
+  es,
   fr,
-  ja,
 };
 
 export const LOCALE_STORAGE_KEY = "piloti.locale.v1";
@@ -18,7 +18,7 @@ function normalizeLocale(raw: string | null | undefined): SupportedLocale {
   if (!raw) return "en";
   const base = raw.trim().toLowerCase().split(/[-_]/)[0];
   if (base === "fr") return "fr";
-  if (base === "ja") return "ja";
+  if (base === "es") return "es";
   return "en";
 }
 
@@ -33,7 +33,7 @@ export function getSystemLocale(): SupportedLocale {
     for (const lang of langs) {
       const base = lang.trim().toLowerCase().split(/[-_]/)[0];
       if (base === "fr") return "fr";
-      if (base === "ja") return "ja";
+      if (base === "es") return "es";
       if (base === "en") return "en";
     }
     if (navigator.language) {
@@ -50,7 +50,7 @@ function detectInitialState(): {
   if (typeof localStorage !== "undefined") {
     try {
       const saved = localStorage.getItem(LOCALE_STORAGE_KEY);
-      if (saved === "en" || saved === "fr" || saved === "ja") {
+      if (saved === "en" || saved === "fr" || saved === "es") {
         return { preference: saved, locale: saved };
       }
       if (saved && saved !== "default") {

@@ -84,10 +84,10 @@ function formatMenuShortcut(shortcut: string, model: "mac" | "pc"): string {
       .join(" + ");
     return pc;
   }
-  // Mac style with Apple key symbols and a space before the key
+  // Mac style with Apple key symbols (no spaces)
   if (/[⌘⌥⇧⌃]/.test(shortcut)) {
     const match = shortcut.match(/^([⌃⌥⇧⌘]+)\s*(.+)$/);
-    return match ? `${match[1]} ${match[2]}` : shortcut;
+    return match ? `${match[1]}${match[2].replace(/\s+/g, "")}` : shortcut.replace(/\s+/g, "");
   }
   const normalized = shortcut.replace(/\+\+/g, "+PLUS");
   const parts = normalized.split("+").filter(Boolean);
@@ -122,7 +122,7 @@ function formatMenuShortcut(shortcut: string, model: "mac" | "pc"): string {
     hasShift ? "⇧" : "",
     hasCmd ? "⌘" : "",
   ].join("");
-  return mods ? `${mods} ${keys.join(" ")}` : keys.join(" ");
+  return mods ? `${mods}${keys.join("")}` : keys.join("");
 }
 
 function RemoteSubmenuGroup({
@@ -548,21 +548,21 @@ export function MenuBar() {
     <header
       ref={headerRef}
       className={cn(
-        "z-[200] flex h-[30px] w-full shrink-0 items-center justify-between gap-2 px-2 text-adw-body text-adw-label select-none dark:text-white",
-        settings.moreTransparency
+        "relative z-[200] flex h-[30px] w-full shrink-0 items-stretch justify-between gap-2 px-0 text-adw-body text-adw-label select-none dark:text-white",
+        settings.moreTransparency && settings.interfaceTheme !== "adwaita"
           ? "bg-white/60 backdrop-blur-md dark:bg-black/40"
           : "bg-[#f3f3f5] dark:bg-[#1e1e22]",
       )}
     >
       {/* Left: System, Active App & Application Menus */}
-      <div className="flex min-w-0 flex-1 items-center overflow-hidden">
+      <div className="flex h-full min-w-0 flex-1 items-stretch overflow-hidden">
         <Menubar modal={false}>
-          {/* System / Piloti Logo Menu */}
+          {/* System / Piloti Logo Menu — flush to top-left screen corner for Fitt's law */}
           <MenubarMenu>
             <MenubarTrigger
               ref={pilotiTriggerRef}
               aria-label="Piloti Menu"
-              className="gap-1.5 px-2 font-semibold tracking-tight"
+              className="gap-1.5 rounded-none rounded-r-md pl-2.5 pr-2 font-semibold tracking-tight"
             >
               <PilotiLogo className="size-4.5" />
             </MenubarTrigger>
@@ -997,7 +997,7 @@ export function MenuBar() {
         </Menubar>
       </div>
 
-      {/* Center: Workspace Indicators (click pill to toggle Overview) */}
+      {/* Center: Workspace Indicators (flush to top border & centered on screen for Fitt's law) */}
       <button
         type="button"
         data-menubar-nav="workspace"
@@ -1006,7 +1006,7 @@ export function MenuBar() {
         aria-pressed={overviewOpen}
         onClick={() => toggleOverview()}
         className={cn(
-          "hidden h-[22px] shrink-0 cursor-default items-center gap-[5px] rounded-full px-2 outline-none transition-colors focus-visible:bg-black/10 dark:focus-visible:bg-white/12 md:flex",
+          "hidden h-full shrink-0 cursor-default items-center gap-[5px] rounded-md px-5 outline-none transition-colors focus-visible:bg-black/10 dark:focus-visible:bg-white/12 md:flex",
           overviewOpen
             ? "bg-black/8 dark:bg-white/12"
             : "hover:bg-black/8 dark:hover:bg-white/12"
@@ -1034,10 +1034,10 @@ export function MenuBar() {
         })}
       </button>
 
-      {/* Right: System Tray, Launcher & Control panel */}
+      {/* Right: System Tray, Launcher & Control panel (flush to top-right screen corner) */}
       <div
         ref={rightClusterRef}
-        className="flex shrink-0 items-center justify-end gap-0.5 md:flex-1 [&_svg]:pointer-events-none [&_svg]:shrink-0"
+        className="flex h-full shrink-0 items-stretch justify-end gap-0.5 md:flex-1 [&_svg]:pointer-events-none [&_svg]:shrink-0"
       >
         {capturingSessions.map((cap) => {
           const isRec = cap.kind === CapturingKind.Recording;
@@ -1111,14 +1111,16 @@ export function MenuBar() {
           <DropdownMenuTrigger
             data-menubar-nav="launcher"
             aria-label="Launcher (Alt+Space)"
-            className="flex h-[22px] shrink-0 cursor-default items-center rounded-full px-2 outline-none select-none active:bg-black/14 data-popup-open:bg-black/12 focus-visible:bg-black/10 dark:active:bg-white/18 dark:data-popup-open:bg-white/15 dark:focus-visible:bg-white/12"
+            className="flex h-full shrink-0 cursor-default items-center rounded-md px-2 outline-none select-none active:bg-black/14 data-popup-open:bg-black/12 focus-visible:bg-black/10 dark:active:bg-white/18 dark:data-popup-open:bg-white/15 dark:focus-visible:bg-white/12"
           >
             <SearchIcon className="size-4 text-adw-label/90 dark:text-white/90" />
           </DropdownMenuTrigger>
           <DropdownMenuContent
             anchor={rightClusterRef}
             align="end"
+            alignOffset={-8}
             sideOffset={6}
+            collisionAvoidance={{ side: "flip", align: "shift" }}
             className="w-[312px] max-w-[calc(100vw-16px)] overflow-hidden p-0"
           >
             {launcherOpen && <Launcher />}
@@ -1145,7 +1147,7 @@ export function MenuBar() {
               const next = Math.max(0, Math.min(100, settings.volume + step));
               updateSettings({ volume: next, muted: next === 0 });
             }}
-            className="flex h-[22px] shrink-0 cursor-default items-center gap-2 rounded-full px-2.5 text-adw-body font-normal outline-none select-none active:bg-black/14 data-popup-open:bg-black/12 focus-visible:bg-black/10 dark:active:bg-white/18 dark:data-popup-open:bg-white/15 dark:focus-visible:bg-white/12"
+            className="flex h-full shrink-0 cursor-default items-center gap-2 rounded-none rounded-l-md pl-2.5 pr-3 text-adw-body font-normal outline-none select-none active:bg-black/14 data-popup-open:bg-black/12 focus-visible:bg-black/10 dark:active:bg-white/18 dark:data-popup-open:bg-white/15 dark:focus-visible:bg-white/12"
           >
             <span className="flex items-center gap-1.5 text-adw-label/90 dark:text-white/90">
               {settings.doNotDisturb ? (

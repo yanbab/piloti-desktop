@@ -64,7 +64,10 @@ export type CssFontStyle = "regular" | "light" | "medium" | "semibold" | "italic
 
 export type { InstalledWebApp, SavedWindowBounds };
 
+export type InterfaceThemeId = "piloti" | "adwaita" | (string & {});
+
 export interface DesktopSettings {
+  interfaceTheme: InterfaceThemeId;
   themeMode: "dark" | "light" | "system";
   accentColor: AccentColorId;
   wallpaperId: string;
@@ -143,6 +146,7 @@ export interface DesktopSettings {
 }
 
 const DEFAULT_SETTINGS: DesktopSettings = {
+  interfaceTheme: "piloti",
   themeMode: "system",
   accentColor: "teal",
   customAccentHex: "",
@@ -753,11 +757,13 @@ export function useSettingsValue(options?: {
   );
 
   React.useLayoutEffect(() => {
+    document.documentElement.dataset.interfaceTheme =
+      settings.interfaceTheme || "piloti";
     document.documentElement.dataset.reducedMotion = reducedMotion ? "true" : "false";
     document.documentElement.dataset.moreTransparency = settings.moreTransparency
       ? "true"
       : "false";
-  }, [reducedMotion, settings.moreTransparency]);
+  }, [reducedMotion, settings.interfaceTheme, settings.moreTransparency]);
 
   React.useLayoutEffect(() => {
     const root = document.documentElement;

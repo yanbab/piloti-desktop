@@ -11,6 +11,7 @@ import {
   loadPluginScript,
   PLUGINS_REL_DIR,
   removePluginCss,
+  syncManagedGtkCssFile,
 } from "@/lib/plugins/loader";
 import type {
   DiscoveredPlugin,
@@ -363,15 +364,18 @@ export function PluginsProvider({
 
         // Dispose plugins that were disabled or removed
         const discoveredIds = new Set(list.map((p) => p.id));
+        const isThemeActive = (p: DiscoveredPlugin) =>
+          p.kind === "theme" && settings.interfaceTheme === p.id;
         for (const activeId of Array.from(disposablesRef.current.keys())) {
-          if (!discoveredIds.has(activeId) || !enabledSet.has(activeId)) {
+          const item = list.find((p) => p.id === activeId);
+          if (!discoveredIds.has(activeId) || (!enabledSet.has(activeId) && !(item && isThemeActive(item)))) {
             disposePlugin(activeId);
           }
         }
 
         const withErrors: DiscoveredPlugin[] = [];
         for (const plugin of list) {
-          if (!plugin.enabled) {
+          if (!plugin.enabled && !isThemeActive(plugin)) {
             withErrors.push(plugin);
             continue;
           }
@@ -388,16 +392,49 @@ export function PluginsProvider({
         }
 
         setPlugins(withErrors);
+
+        // Sync GTK4/GTK3 CSS shipped by active themes/plugins
+        const readBlocks = async (
+          key: "gtk4StylePath" | "gtk3StylePath"
+        ): Promise<Array<{ id: string; css: string }>> => {
+          const blocks: Array<{ id: string; css: string }> = [];
+          for (const plugin of withErrors) {
+            const relPath = plugin[key];
+            if (!relPath) continue;
+            const activeBySetting =
+              plugin.kind === "theme" && settings.interfaceTheme === plugin.id;
+            if (!plugin.enabled && !activeBySetting) continue;
+            try {
+              const res = await domicile.files.readText(relPath);
+              const css = res.match({ Ok: (t) => t, Err: () => "" });
+              if (css.trim()) blocks.push({ id: plugin.id, css });
+            } catch {
+              // ignore unreadable CSS
+            }
+          }
+          return blocks;
+        };
+
+        const [gtk4Blocks, gtk3Blocks] = await Promise.all([
+          readBlocks("gtk4StylePath"),
+          readBlocks("gtk3StylePath"),
+        ]);
+        await syncManagedGtkCssFile(domicile.files, ".config/gtk-4.0", gtk4Blocks).catch(
+          () => undefined
+        );
+        await syncManagedGtkCssFile(domicile.files, ".config/gtk-3.0", gtk3Blocks).catch(
+          () => undefined
+        );
       } finally {
         setLoading(false);
       }
     },
-    [activateDiscoveredPlugin, disposePlugin, domicile.files]
+    [activateDiscoveredPlugin, disposePlugin, domicile.files, settings.interfaceTheme]
   );
 
   React.useEffect(() => {
     void syncPlugins(settings.enabledPluginIds ?? []);
-  }, [settings.enabledPluginIds, syncPlugins]);
+  }, [settings.enabledPluginIds, settings.interfaceTheme, syncPlugins]);
 
   React.useEffect(() => {
     return () => {
@@ -492,6 +529,10 @@ export function PluginsProvider({
   return (
     <PluginsContext.Provider value={value}>{children}</PluginsContext.Provider>
   );
+}
+
+export function useOptionalPlugins(): PluginsContextValue | null {
+  return React.useContext(PluginsContext);
 }
 
 export function usePlugins(): PluginsContextValue {

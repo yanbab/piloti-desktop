@@ -175,5 +175,141 @@ test.describe("Piloti Desktop E2E", () => {
     await calcWindow.getByRole("button", { name: "Close window" }).click();
     await expect(calcWindow).toBeHidden();
   });
+
+  test("Fitt's law: screen borders activate menubar, overview, control panel, and auto-hidden dock", async ({
+    page,
+  }) => {
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+
+    const dock = page.locator('[data-slot="dock"]');
+    await expect(dock).toBeVisible({ timeout: 20_000 });
+    const vp = page.viewportSize()!;
+
+    // 1. Clicking top-left corner (0, 0) opens the Piloti Menu
+    await page.mouse.click(0, 0);
+    await expect(page.getByRole("menuitem", { name: "About Computer" })).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("menuitem", { name: "About Computer" })).toBeHidden();
+
+    // 2. Clicking top-right corner (width - 1, 0) opens Control Panel
+    await page.mouse.click(vp.width - 1, 0);
+    await expect(page.getByText("Night Light")).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(page.getByText("Night Light")).toBeHidden();
+
+    // 3. Clicking middle-top border (width / 2, 0) opens Windows Overview
+    await page.mouse.click(Math.round(vp.width / 2), 0);
+    const overviewDialog = page.getByRole("dialog", { name: "Overview" });
+    await expect(overviewDialog).toBeVisible();
+    await page.mouse.click(Math.round(vp.width / 2), 0);
+    await expect(overviewDialog).toBeHidden();
+
+    // 4. Enable Dock Auto-Hide in Settings
+    const settingsWindow = page
+      .locator('[data-slot="window"][data-app-id="settings"]')
+      .first();
+    await expect(settingsWindow).toBeVisible();
+    await settingsWindow.getByRole("button", { name: "Dock" }).click();
+    const autoHideRow = settingsWindow
+      .locator('[data-slot="grouped-form-row"]')
+      .filter({ hasText: "Automatically Hide and Show" });
+    await autoHideRow.locator('[data-slot="switch"]').click();
+    await settingsWindow
+      .locator('[data-slot="window-controls"] button')
+      .last()
+      .click();
+    await expect(settingsWindow).toBeHidden();
+
+    // Move cursor away to center so auto-hidden dock hides
+    await page.mouse.move(Math.round(vp.width / 2), Math.round(vp.height / 2));
+    await expect(dock).toHaveAttribute("data-state", "hidden");
+
+    // 5. Moving mouse anywhere on bottom border shows the auto-hidden Dock
+    await page.mouse.move(24, vp.height - 1);
+    await expect(dock).toHaveAttribute("data-state", "visible");
+    await page.waitForTimeout(350);
+
+    // 6. Clicking in the middle of the bottom border activates the closest Dock icon
+    const midX = Math.round(vp.width / 2);
+    const closestAppId = await page.evaluate((x) => {
+      const tiles = Array.from(
+        document.querySelectorAll<HTMLElement>('[data-slot="dock-item"][data-dock-app-id]')
+      );
+      let bestId = "";
+      let bestDist = Infinity;
+      for (const tile of tiles) {
+        const r = tile.getBoundingClientRect();
+        const dist = Math.abs(x - (r.left + r.width / 2));
+        if (dist < bestDist) {
+          bestDist = dist;
+          bestId = tile.getAttribute("data-dock-app-id") ?? "";
+        }
+      }
+      return bestId;
+    }, midX);
+    expect(closestAppId).not.toBe("");
+
+    await page.mouse.click(midX, vp.height - 1);
+    await expect(
+      page.locator(`[data-slot="window"][data-app-id="${closestAppId}"]`).first()
+    ).toBeVisible();
+  });
+
+  test("Launcher header drag moves popup in-screen and DevTools console persists across tabs", async ({
+    page,
+  }) => {
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+
+    // Open Launcher via top-bar button
+    await page.locator('[data-menubar-nav="launcher"]').click();
+    const dragHeader = page.locator("[data-launcher-drag-header]");
+    await expect(dragHeader).toBeVisible();
+    const popup = page.locator('[data-slot="dropdown-menu-content"]').first();
+    const initialBox = await popup.boundingBox();
+    expect(initialBox).not.toBeNull();
+
+    // Drag header search field down and left
+    const hx = initialBox!.x + initialBox!.width / 2;
+    const hy = initialBox!.y + 20;
+    await page.mouse.move(hx, hy);
+    await page.mouse.down();
+    await page.mouse.move(hx - 220, hy + 140, { steps: 10 });
+    await page.mouse.up();
+
+    const movedBox = await popup.boundingBox();
+    expect(movedBox).not.toBeNull();
+    expect(movedBox!.x).toBeLessThan(initialBox!.x - 150);
+    expect(movedBox!.y).toBeGreaterThan(initialBox!.y + 90);
+
+    // Drag back to top-right corner -> clamped neatly back to original top-right spot
+    const mx = movedBox!.x + movedBox!.width / 2;
+    const my = movedBox!.y + 20;
+    await page.mouse.move(mx, my);
+    await page.mouse.down();
+    await page.mouse.move(initialBox!.x + initialBox!.width / 2 + 120, 20, { steps: 10 });
+    await page.mouse.up();
+
+    const cornerBox = await popup.boundingBox();
+    expect(cornerBox).not.toBeNull();
+    expect(Math.abs(cornerBox!.x - initialBox!.x)).toBeLessThanOrEqual(4);
+    expect(Math.abs(cornerBox!.y - initialBox!.y)).toBeLessThanOrEqual(4);
+    await page.keyboard.press("Escape");
+
+    // DevTools console persistence across tab switches
+    await page.locator('[data-dock-app-id="console"]').click();
+    const consoleWindow = page
+      .locator('[data-slot="window"][data-app-id="console"]')
+      .first();
+    await expect(consoleWindow).toBeVisible();
+
+    const replInput = consoleWindow.locator("textarea").first();
+    await replInput.fill("40 + 2");
+    await replInput.press("Enter");
+    await expect(consoleWindow).toContainText("42");
+
+    await consoleWindow.getByRole("button", { name: /Logs/ }).click();
+    await consoleWindow.getByRole("button", { name: /^Console$/ }).click();
+    await expect(consoleWindow).toContainText("42");
+  });
 });
 

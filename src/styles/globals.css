@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "./adwaita.css";
+@import "./piloti.css";
 
 @layer base {
   html,

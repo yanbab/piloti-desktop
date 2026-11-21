@@ -866,6 +866,121 @@ export function Launcher() {
     return 360;
   });
 
+  const LAUNCHER_OFFSET_KEY = "piloti.launcher.offset.v1";
+  const [popupOffset, setPopupOffset] = React.useState<{ x: number; y: number }>(
+    () => {
+      try {
+        const raw = localStorage.getItem(LAUNCHER_OFFSET_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw) as { x?: unknown; y?: unknown };
+          if (
+            typeof parsed?.x === "number" &&
+            Number.isFinite(parsed.x) &&
+            typeof parsed?.y === "number" &&
+            Number.isFinite(parsed.y)
+          ) {
+            return { x: parsed.x, y: parsed.y };
+          }
+        }
+      } catch {
+        // ignore storage errors
+      }
+      return { x: 0, y: 0 };
+    }
+  );
+  const searchHeaderRef = React.useRef<HTMLDivElement | null>(null);
+  const popupOffsetRef = React.useRef(popupOffset);
+  popupOffsetRef.current = popupOffset;
+
+  const clampPopupOffset = React.useCallback(
+    (popup: HTMLElement, desiredX: number, desiredY: number) => {
+      const prevTranslate = popup.style.translate;
+      popup.style.translate = "none";
+      const base = popup.getBoundingClientRect();
+      popup.style.translate = prevTranslate;
+
+      const vw = typeof window !== "undefined" ? window.innerWidth : 1280;
+      const vh = typeof window !== "undefined" ? window.innerHeight : 800;
+      const margin = 8;
+      const topLimit = 34;
+
+      const minX = margin - base.left;
+      const maxX = Math.max(minX, vw - margin - base.right);
+      const minY = topLimit - base.top;
+      const maxY = Math.max(minY, vh - margin - base.bottom);
+
+      let nextX = Math.round(Math.min(maxX, Math.max(minX, desiredX)));
+      let nextY = Math.round(Math.min(maxY, Math.max(minY, desiredY)));
+      // Easy magnetic snap back to default top-right corner when dragged near it
+      if (Math.abs(nextX) <= 10 && Math.abs(nextY) <= 10) {
+        nextX = 0;
+        nextY = 0;
+      }
+      return { x: nextX, y: nextY };
+    },
+    []
+  );
+
+  React.useLayoutEffect(() => {
+    const popup = searchHeaderRef.current?.closest<HTMLElement>(
+      '[data-slot="dropdown-menu-content"]'
+    );
+    if (!popup) return;
+    if (popupOffset.x === 0 && popupOffset.y === 0) {
+      popup.style.translate = "";
+      return;
+    }
+    const clamped = clampPopupOffset(popup, popupOffset.x, popupOffset.y);
+    popup.style.translate =
+      clamped.x || clamped.y ? `${clamped.x}px ${clamped.y}px` : "";
+  }, [clampPopupOffset, launcherOpen, listHeight, popupOffset.x, popupOffset.y]);
+
+  const handleHeaderDragPointerDown = (
+    e: React.PointerEvent<HTMLDivElement>
+  ) => {
+    if (e.button !== 0) return;
+    const popup = searchHeaderRef.current?.closest<HTMLElement>(
+      '[data-slot="dropdown-menu-content"]'
+    );
+    if (!popup) return;
+
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const baseOffset = popupOffsetRef.current;
+    let dragging = false;
+    let latest = baseOffset;
+
+    const onPointerMove = (moveEvent: PointerEvent) => {
+      const dx = moveEvent.clientX - startX;
+      const dy = moveEvent.clientY - startY;
+      if (!dragging && Math.hypot(dx, dy) < 5) return;
+      if (!dragging) {
+        dragging = true;
+        window.getSelection()?.removeAllRanges();
+      }
+      latest = clampPopupOffset(popup, baseOffset.x + dx, baseOffset.y + dy);
+      popup.style.translate =
+        latest.x || latest.y ? `${latest.x}px ${latest.y}px` : "";
+    };
+
+    const onPointerUp = () => {
+      window.removeEventListener("pointermove", onPointerMove, true);
+      window.removeEventListener("pointerup", onPointerUp, true);
+      window.removeEventListener("pointercancel", onPointerUp, true);
+      if (!dragging) return;
+      setPopupOffset(latest);
+      try {
+        localStorage.setItem(LAUNCHER_OFFSET_KEY, JSON.stringify(latest));
+      } catch {
+        // ignore storage errors
+      }
+    };
+
+    window.addEventListener("pointermove", onPointerMove, true);
+    window.addEventListener("pointerup", onPointerUp, true);
+    window.addEventListener("pointercancel", onPointerUp, true);
+  };
+
   const handleResizePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
@@ -946,18 +1061,25 @@ export function Launcher() {
       }}
       className="relative w-full"
     >
-      <CommandInput
-        ref={inputRef}
-        autoFocus
-        placeholder="Search or URL"
-        value={searchQuery}
-        onValueChange={(val) => {
-          setHistoryIndex(-1);
-          setSearchQuery(val);
-        }}
-        completion={activeCompletionItem?.label}
-        onAcceptCompletion={setSearchQuery}
-      />
+      <div
+        ref={searchHeaderRef}
+        data-launcher-drag-header=""
+        onPointerDown={handleHeaderDragPointerDown}
+        className="cursor-grab active:cursor-grabbing [&_[data-slot=command-input-wrapper]]:cursor-grab [&_[data-slot=command-input-wrapper]]:active:cursor-grabbing"
+      >
+        <CommandInput
+          ref={inputRef}
+          autoFocus
+          placeholder="Search or URL"
+          value={searchQuery}
+          onValueChange={(val) => {
+            setHistoryIndex(-1);
+            setSearchQuery(val);
+          }}
+          completion={activeCompletionItem?.label}
+          onAcceptCompletion={setSearchQuery}
+        />
+      </div>
       <CommandList style={{ maxHeight: `${listHeight}px` }}>
         {sections.length === 0 ? (
           <div className="py-6 text-center text-adw-body text-adw-label-secondary">

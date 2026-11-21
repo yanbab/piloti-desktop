@@ -156,8 +156,8 @@ export function AdvancedPane() {
   const systemLanguageName =
     systemLocale === "fr"
       ? "Français"
-      : systemLocale === "ja"
-        ? "日本語"
+      : systemLocale === "es"
+        ? "Español"
         : "English";
   const defaultLabel = `${_("Default")} (${systemLanguageName})`;
 
@@ -165,7 +165,7 @@ export function AdvancedPane() {
     { value: "default" as const, label: defaultLabel },
     { value: "en" as const, label: _("English") },
     { value: "fr" as const, label: _("French") },
-    { value: "ja" as const, label: "日本語" },
+    { value: "es" as const, label: _("Spanish") },
   ];
 
   return (
@@ -182,7 +182,7 @@ export function AdvancedPane() {
                 value={preference}
                 items={languageItems}
                 onValueChange={(val) => {
-                  if (val === "default" || val === "en" || val === "fr" || val === "ja") {
+                  if (val === "default" || val === "en" || val === "fr" || val === "es") {
                     setLocale(val);
                     setPreference(getLocalePreference());
                   }
@@ -196,14 +196,14 @@ export function AdvancedPane() {
                   <SelectSeparator />
                   <SelectItem value="en">{_("English")}</SelectItem>
                   <SelectItem value="fr">{_("French")}</SelectItem>
-                  <SelectItem value="ja">日本語</SelectItem>
+                  <SelectItem value="es">{_("Spanish")}</SelectItem>
                 </SelectContent>
               </Select>
             </GroupedFormRowControl>
           </GroupedFormRow>
           <GroupedFormRow>
             <GroupedFormRowLabel>
-              <GroupedFormRowTitle>{_("Computer Model")}</GroupedFormRowTitle>
+              <GroupedFormRowTitle>{_("Keyboard")}</GroupedFormRowTitle>
             </GroupedFormRowLabel>
             <GroupedFormRowControl>
               <div className="inline-flex rounded-lg bg-black/8 p-0.5 dark:bg-white/10">
