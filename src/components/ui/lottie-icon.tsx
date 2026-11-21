@@ -120,7 +120,7 @@ export function LottieIcon({
           setLoadedData(data as Record<string, unknown>);
         }
       })
-      .catch(() => { });
+      .catch(() => {});
     return () => {
       cancelled = true;
     };

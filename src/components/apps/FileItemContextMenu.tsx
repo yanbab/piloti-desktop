@@ -155,8 +155,8 @@ export function FileItemContextMenu({
   const effectiveContext: FileContextMenuKind = isTrash ? "trash" : context;
   const targetItems =
     selectedItems &&
-      selectedItems.length > 0 &&
-      selectedItems.some((i) => i.id === menu.item.id)
+    selectedItems.length > 0 &&
+    selectedItems.some((i) => i.id === menu.item.id)
       ? selectedItems
       : [menu.item];
   const multiCount = targetItems.length;
@@ -165,12 +165,12 @@ export function FileItemContextMenu({
   const openWithApps: MimeAppOption[] =
     isSingle && mimeConfig
       ? resolveAppsForMime(
-        inferMimeType(
-          menu.item.name,
-          menu.item.kind === "directory" ? "directory" : "file",
-        ),
-        mimeConfig,
-      )
+          inferMimeType(
+            menu.item.name,
+            menu.item.kind === "directory" ? "directory" : "file",
+          ),
+          mimeConfig,
+        )
       : [];
   const isVirtualView =
     effectiveContext === "favorites" || effectiveContext === "recents";

@@ -1142,8 +1142,8 @@ export const TerminalApp: React.FC<TerminalAppProps> = ({ initialPath }) => {
           ...(settings.installedWebApps.length === 0
             ? [{ text: "No web apps installed.", tone: "muted" as const }]
             : settings.installedWebApps.map((w) => ({
-              text: `${w.id.padEnd(20)} ${w.title} (${w.url})`,
-            }))),
+                text: `${w.id.padEnd(20)} ${w.title} (${w.url})`,
+              }))),
         ]);
         return;
       }
@@ -1326,12 +1326,12 @@ export const TerminalApp: React.FC<TerminalAppProps> = ({ initialPath }) => {
       setReverseSearch((prev) =>
         prev.active
           ? {
-            ...prev,
-            matchOffset:
-              reverseMatches.length > 0
-                ? (prev.matchOffset + 1) % reverseMatches.length
-                : 0,
-          }
+              ...prev,
+              matchOffset:
+                reverseMatches.length > 0
+                  ? (prev.matchOffset + 1) % reverseMatches.length
+                  : 0,
+            }
           : { active: true, query: "", matchOffset: 0 },
       );
       return;

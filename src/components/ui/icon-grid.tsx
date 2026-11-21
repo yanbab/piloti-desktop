@@ -430,8 +430,8 @@ export function IconGrid({
       }
       const draggedPaths = detail.items?.length
         ? detail.items
-          .map((d) => d.path)
-          .filter((p): p is string => Boolean(p))
+            .map((d) => d.path)
+            .filter((p): p is string => Boolean(p))
         : detail.item?.path
           ? [detail.item.path]
           : [];
@@ -514,10 +514,10 @@ export function IconGrid({
         const rect = containerRef.current?.getBoundingClientRect();
         const dropCell = rect
           ? clientPointToGridCell(
-            e.clientX - rect.left,
-            e.clientY - rect.top,
-            metrics,
-          )
+              e.clientX - rect.left,
+              e.clientY - rect.top,
+              metrics,
+            )
           : cur.targetCell;
         const draggedItems = items.filter((i) =>
           cur.draggedIds.includes(i.id),
@@ -752,11 +752,11 @@ export function IconGrid({
         setMarquee((prev) =>
           prev
             ? {
-              ...prev,
-              currentX,
-              currentY,
-              active: true,
-            }
+                ...prev,
+                currentX,
+                currentY,
+                active: true,
+              }
             : null,
         );
       }
@@ -858,11 +858,11 @@ export function IconGrid({
   const firstVisibleId = items[0]?.id ?? null;
   const marqueeRect = marquee?.active
     ? normalizeRect(
-      marquee.startX,
-      marquee.startY,
-      marquee.currentX,
-      marquee.currentY,
-    )
+        marquee.startX,
+        marquee.startY,
+        marquee.currentX,
+        marquee.currentY,
+      )
     : null;
 
   return (
@@ -910,9 +910,9 @@ export function IconGrid({
       className={cn(
         "relative h-full w-full overflow-hidden bg-transparent outline-none",
         mode === "flow" &&
-        (compactHorizontal
-          ? "flex flex-wrap content-start gap-0.5 overflow-y-auto p-3"
-          : "flex flex-wrap content-start gap-2 overflow-y-auto p-4"),
+          (compactHorizontal
+            ? "flex flex-wrap content-start gap-0.5 overflow-y-auto p-3"
+            : "flex flex-wrap content-start gap-2 overflow-y-auto p-4"),
         className,
       )}
     >
@@ -939,19 +939,19 @@ export function IconGrid({
         const spatialStyle: React.CSSProperties =
           mode === "spatial"
             ? {
-              position: "absolute",
-              left: `${padding + coord.col * effectiveCellWidth}px`,
-              top: `${padding + coord.row * effectiveCellHeight}px`,
-              width: `${effectiveCellWidth}px`,
-              height: `${effectiveCellHeight}px`,
-              zIndex: isDragging ? 9999 : selected ? 20 : 1,
-              opacity: isDragging ? 0.25 : isHiddenFile ? 0.55 : undefined,
-            }
+                position: "absolute",
+                left: `${padding + coord.col * effectiveCellWidth}px`,
+                top: `${padding + coord.row * effectiveCellHeight}px`,
+                width: `${effectiveCellWidth}px`,
+                height: `${effectiveCellHeight}px`,
+                zIndex: isDragging ? 9999 : selected ? 20 : 1,
+                opacity: isDragging ? 0.25 : isHiddenFile ? 0.55 : undefined,
+              }
             : {
-              width: `${effectiveCellWidth}px`,
-              height: `${effectiveCellHeight}px`,
-              opacity: isDragging ? 0.25 : isHiddenFile ? 0.55 : undefined,
-            };
+                width: `${effectiveCellWidth}px`,
+                height: `${effectiveCellHeight}px`,
+                opacity: isDragging ? 0.25 : isHiddenFile ? 0.55 : undefined,
+              };
 
         return (
           <button
@@ -971,7 +971,7 @@ export function IconGrid({
             }
             tabIndex={
               item.id === primarySelectedId ||
-                (!primarySelectedId && item.id === firstVisibleId)
+              (!primarySelectedId && item.id === firstVisibleId)
                 ? 0
                 : -1
             }
@@ -1100,7 +1100,7 @@ export function IconGrid({
                 ? "flex-row items-center justify-start gap-1 px-1.5 py-0.5 text-left"
                 : "flex-col items-center justify-start gap-1 px-1 py-1.5 text-center",
               !isDragging &&
-              "transition-[left,top,width,height,background-color,opacity] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)]",
+                "transition-[left,top,width,height,background-color,opacity] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)]",
               isDragging && "opacity-25",
             )}
           >
@@ -1109,9 +1109,9 @@ export function IconGrid({
               className={cn(
                 "relative shrink-0 drop-shadow-[0_1px_2px_rgba(0,0,0,0.2)] transition-[width,height,opacity,filter] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)]",
                 item.kind === "file" &&
-                item.path &&
-                openFilePaths.has(item.path.replace(/\/+$/, "") || "/") &&
-                "opacity-55 grayscale-[0.45] brightness-90"
+                  item.path &&
+                  openFilePaths.has(item.path.replace(/\/+$/, "") || "/") &&
+                  "opacity-55 grayscale-[0.45] brightness-90"
               )}
             >
               {(() => {
@@ -1121,10 +1121,10 @@ export function IconGrid({
                     : undefined;
                 const thumbUrl = vfsEntry
                   ? getVfsImageThumbnailUrl(
-                    item.name,
-                    vfsEntry.content,
-                    vfsEntry.metadata
-                  )
+                      item.name,
+                      vfsEntry.content,
+                      vfsEntry.metadata
+                    )
                   : undefined;
                 if (thumbUrl) {
                   return (
@@ -1328,7 +1328,7 @@ export function IconGrid({
                 <span
                   className={cn(
                     !compactHorizontal &&
-                    "block line-clamp-2 break-words pb-[1px]",
+                      "block line-clamp-2 break-words pb-[1px]",
                   )}
                 >
                   {item.name}
