@@ -4,7 +4,7 @@ import { useOptionalPlugins } from "@/context/PluginsContext";
 import {
   resolveBackgroundRenderSpec,
   type BackgroundRenderSpec,
-} from "@/lib/gnome-background";
+} from "@/lib/engine-native/gnome-background";
 import type { WallpaperOption } from "@/data/catalog";
 
 /**

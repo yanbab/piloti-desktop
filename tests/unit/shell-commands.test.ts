@@ -3,7 +3,7 @@ import {
   dispatchPilotiShellCommand,
   resolvePilotiCommandAppId,
   type PilotiShellCommandHandlers,
-} from "@/lib/shell-commands";
+} from "@/lib/shell/shell-commands";
 
 function createRecorder() {
   const calls: Array<{ fn: string; args: unknown[] }> = [];

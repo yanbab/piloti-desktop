@@ -1,6 +1,6 @@
 import * as React from "react";
 import type { Domicile } from "@domicile-desktop/sdk/desktop/desktop";
-import { launchDesktopCommand } from "@/lib/gnome-bridge";
+import { launchDesktopCommand } from "@/lib/engine-native";
 
 export interface UseGlobalShortcutsParams {
   domicile: Domicile;

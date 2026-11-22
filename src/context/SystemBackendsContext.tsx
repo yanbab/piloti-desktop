@@ -5,17 +5,17 @@ import { useWatch } from "@domicile-desktop/react/use-watch";
 import { type Capturing, CapturingKind } from "@domicile-desktop/sdk/portal";
 import { ScreenshotKeptKind, UnlockRefusal, type UnlockRefused } from "@domicile-desktop/sdk/system";
 import { SAMPLE_WIFI_NETWORKS, type WifiNetwork } from "@/data/catalog";
-import { listVfsDir, WEB_VFS_HOME, writeVfsTextFile } from "@/lib/web-vfs";
+import { listVfsDir, WEB_VFS_HOME, writeVfsTextFile } from "@/lib/engine-web/web-vfs";
 import {
   readVfsStateText,
   VFS_STATE_PATHS,
   writeVfsStateText,
-} from "@/lib/vfs-state";
+} from "@/lib/engine/vfs-state";
 import {
   type GnomeBackgroundSettings,
   isGnomeBackgroundConfigured,
-} from "@/lib/gnome-background";
-import { startBootPhase } from "@/lib/perf-log";
+} from "@/lib/engine-native/gnome-background";
+import { startBootPhase } from "@/lib/core/perf-log";
 import {
   type AudioSinkInfo,
   type BatteryInfo,
@@ -45,8 +45,8 @@ import {
   syncGtkIconTheme,
   ensureXwaylandSatellite,
   runXdgAutostartOnce,
-} from "@/lib/engine-desktop";
-import { playSoundThemeEvent } from "@/lib/sound-effects";
+} from "@/lib/engine-native";
+import { playSoundThemeEvent } from "@/lib/shell/sound-effects";
 import {
   type NotificationActionItem,
   type ShellNotification,
@@ -59,8 +59,8 @@ import {
   saveReadNotificationIds,
   shouldShowNotificationBanner,
   toToastId,
-} from "@/lib/notifications";
-import { subscribeWebBattery } from "@/lib/web-battery";
+} from "@/lib/shell/notifications";
+import { subscribeWebBattery } from "@/lib/engine-web/web-battery";
 import { clearXdgSession } from "@/lib/xdg/xdg-session-management";
 import {
   type DesktopSettings,

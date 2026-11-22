@@ -1,7 +1,7 @@
 import * as React from "react";
 import { useDomicile } from "@domicile-desktop/react/domicile-provider";
 import { PluginsProvider } from "@/context/PluginsContext";
-import { attachConsoleDiskSink } from "@/lib/console-store";
+import { attachConsoleDiskSink } from "@/lib/core/console-store";
 import { AppsContext, useApps, useAppsValue } from "./AppsContext";
 import {
   type DesktopSettings,

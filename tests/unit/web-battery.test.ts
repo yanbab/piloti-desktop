@@ -1,10 +1,10 @@
 import { describe, expect, it } from "bun:test";
-import type { BatteryInfo } from "@/lib/gnome-bridge";
+import type { BatteryInfo } from "@/lib/engine-native";
 import {
   type BatteryManagerLike,
   batteryFromManager,
   subscribeWebBattery,
-} from "@/lib/web-battery";
+} from "@/lib/engine-web/web-battery";
 
 class FakeBatteryManager extends EventTarget implements BatteryManagerLike {
   level: number;

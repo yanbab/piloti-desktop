@@ -16,7 +16,7 @@ import {
   useSettings,
   useSystemBackends,
 } from "@/context/DesktopStateContext";
-import { _ } from "@/lib/i18n";
+import { _ } from "@/lib/core/i18n";
 
 export function DisplaysPane() {
   const domicile = useDomicile();

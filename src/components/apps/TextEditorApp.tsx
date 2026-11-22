@@ -31,17 +31,17 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { WindowControls, WindowTitlebar } from "@/components/ui/window";
-import { publishWindowMenuState, useIsolatedAppBridge } from "@/lib/app-bridge";
-import { _ } from "@/lib/i18n";
-import { getCachedPilotiAppIni, writePilotiAppIni } from "@/lib/piloti-ini";
-import { cn } from "@/lib/utils";
+import { publishWindowMenuState, useIsolatedAppBridge } from "@/lib/engine/app-bridge";
+import { _ } from "@/lib/core/i18n";
+import { getCachedPilotiAppIni, writePilotiAppIni } from "@/lib/config/piloti-ini";
+import { cn } from "@/lib/core/utils";
 import {
   getVfsEntry,
   normalizeVfsPath,
   renameVfsEntry,
   subscribeWebVfs,
   subscribeVfsRenamed,
-} from "@/lib/web-vfs";
+} from "@/lib/engine-web/web-vfs";
 
 interface TextEditorAppProps {
   initialPath?: string;

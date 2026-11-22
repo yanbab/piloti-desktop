@@ -5,7 +5,7 @@ import {
   removeVfsEntry,
   subscribeWebVfs,
   writeVfsTextFile,
-} from "@/lib/web-vfs";
+} from "@/lib/engine-web/web-vfs";
 
 export const VFS_STATE_PATHS = {
   settings: "/home/user/.config/piloti/settings.ini",

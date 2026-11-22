@@ -14,7 +14,7 @@ import {
   executeTextPipeline,
   parseCommandPipeline,
   runGrepFilter,
-} from "@/lib/terminal-pipeline";
+} from "@/lib/shell/terminal-pipeline";
 import {
   installWebAppDesktopEntry,
   removeWebAppDesktopEntry,
@@ -33,13 +33,13 @@ import {
   resolveVfsPath,
   trashVfsEntry,
   writeVfsTextFile,
-} from "@/lib/web-vfs";
+} from "@/lib/engine-web/web-vfs";
 import {
   readVfsStateText,
   subscribeVfsPath,
   VFS_STATE_PATHS,
   writeVfsStateText,
-} from "@/lib/vfs-state";
+} from "@/lib/engine/vfs-state";
 
 interface TerminalAppProps {
   initialPath?: string;

@@ -23,9 +23,9 @@ import {
 import { Slider } from "@/components/ui/slider";
 import { useSettings } from "@/context/DesktopStateContext";
 import type { CssFontStyle } from "@/context/SettingsContext";
-import { listInstalledFontFamilies } from "@/lib/gnome-bridge";
-import { _ } from "@/lib/i18n";
-import { cn } from "@/lib/utils";
+import { listInstalledFontFamilies } from "@/lib/engine-native";
+import { _ } from "@/lib/core/i18n";
+import { cn } from "@/lib/core/utils";
 
 const SANS_PRESETS = [
   "Adwaita Sans",

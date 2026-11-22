@@ -32,8 +32,8 @@ import {
   type LocalePreference,
   setLocale,
   subscribeLocale,
-} from "@/lib/i18n";
-import { cn } from "@/lib/utils";
+} from "@/lib/core/i18n";
+import { cn } from "@/lib/core/utils";
 import { useSettings } from "@/context/DesktopStateContext";
 import {
   buildAutostartOverrideDesktopContent,
@@ -41,17 +41,17 @@ import {
   parseAutostartDesktopFile,
   type XdgAutostartEntry,
 } from "@/lib/xdg/xdg-autostart";
-import { listVfsDir, WEB_VFS_HOME, writeVfsTextFile } from "@/lib/web-vfs";
+import { listVfsDir, WEB_VFS_HOME, writeVfsTextFile } from "@/lib/engine-web/web-vfs";
 import {
   hasNativeSystemHost,
   setEngineOverride,
   useEngineOverride,
-} from "@/lib/engine-override";
+} from "@/lib/engine/engine-override";
 import {
   SIMULATED_USB_PATH,
   toggleSimulatedUsb,
   useSimulatedUsbMounted,
-} from "@/lib/usb-drive";
+} from "@/lib/engine-web/usb-drive";
 
 export function AdvancedPane() {
   const domicile = useDomicile();

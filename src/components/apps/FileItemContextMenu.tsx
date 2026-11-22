@@ -11,10 +11,10 @@ import {
 import { useApps } from "@/context/AppsContext";
 import { useSettings } from "@/context/DesktopStateContext";
 import { APP_CATALOG } from "@/data/catalog";
-import type { IconGridItem } from "@/lib/desktop-icons";
-import { _ } from "@/lib/i18n";
-import { cn } from "@/lib/utils";
-import type { VfsEmblemId } from "@/lib/web-vfs";
+import type { IconGridItem } from "@/lib/shell/desktop-icons";
+import { _ } from "@/lib/core/i18n";
+import { cn } from "@/lib/core/utils";
+import type { VfsEmblemId } from "@/lib/engine-web/web-vfs";
 import {
   inferMimeType,
   loadMimeAppsConfig,

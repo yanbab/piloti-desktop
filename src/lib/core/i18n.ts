@@ -1,14 +1,14 @@
-import { parseIniText, serializeIniText } from "@/lib/ini";
+import { parseIniText, serializeIniText } from "@/lib/config/ini";
 import {
   readVfsStateText,
   removeVfsStateFile,
   subscribeVfsPath,
   VFS_STATE_PATHS,
   writeVfsStateText,
-} from "@/lib/vfs-state";
-import en from "../locales/en.json";
-import es from "../locales/es.json";
-import fr from "../locales/fr.json";
+} from "@/lib/engine/vfs-state";
+import en from "@/locales/en.json";
+import es from "@/locales/es.json";
+import fr from "@/locales/fr.json";
 
 export type SupportedLocale = "en" | "fr" | "es";
 export type LocalePreference = "default" | SupportedLocale;

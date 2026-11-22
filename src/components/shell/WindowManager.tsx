@@ -24,12 +24,12 @@ import {
 } from "lucide-react";
 import { IsolatedAppFrame } from "@/components/shell/IsolatedAppFrame";
 import { WindowMenuButton } from "@/components/shell/WindowMenuButton";
-import { _ } from "@/lib/i18n";
+import { _ } from "@/lib/core/i18n";
 import {
   consumeLaunchOriginRect,
   type LaunchOriginRect,
-} from "@/lib/launch-origin";
-import { computeOverviewWindowLayouts } from "@/lib/overview-layout";
+} from "@/lib/shell/launch-origin";
+import { computeOverviewWindowLayouts } from "@/lib/shell/overview-layout";
 const CalculatorApp = React.lazy(() =>
   import("@/components/apps/CalculatorApp").then((m) => ({
     default: m.CalculatorApp,
@@ -112,7 +112,7 @@ import {
   setCachedWebDescription,
   setCachedWebThemeColor,
 } from "@/data/web-apps";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/core/utils";
 import { toggleWebAppInstall } from "@/lib/xdg/xdg-web-apps";
 
 /**

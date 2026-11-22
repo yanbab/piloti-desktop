@@ -53,17 +53,17 @@ import {
   useWindowManager,
 } from "@/context/DesktopStateContext";
 import { matchXdgEntryForWaylandWindow } from "xdg-desktop-entry";
-import { _, getLocale } from "@/lib/i18n";
-import { useWindowMenuState } from "@/lib/app-bridge";
+import { _, getLocale } from "@/lib/core/i18n";
+import { useWindowMenuState } from "@/lib/engine/app-bridge";
 import { useAltKey } from "@/hooks/use-alt-key";
 import {
   discoverRemoteGlobalMenu,
   type RemoteGlobalMenu,
   type RemoteMenuEntry,
 } from "@/lib/xdg/xdg-app-menu";
-import { cn } from "@/lib/utils";
-import { captureLaunchOriginFromElement } from "@/lib/launch-origin";
-import { buildVfsEntryWebAppUrl, getVfsEntry } from "@/lib/web-vfs";
+import { cn } from "@/lib/core/utils";
+import { captureLaunchOriginFromElement } from "@/lib/shell/launch-origin";
+import { buildVfsEntryWebAppUrl, getVfsEntry } from "@/lib/engine-web/web-vfs";
 import { ControlPanel } from "./ControlPanel";
 import { Launcher } from "./Launcher";
 import { PilotiLogo } from "./PilotiLogo";

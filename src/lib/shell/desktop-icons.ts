@@ -1,4 +1,4 @@
-import type { XdgDesktopEntry } from "./xdg/xdg-desktop-entry";
+import type { XdgDesktopEntry } from "@/lib/xdg/xdg-desktop-entry";
 
 export type IconGridMode = "spatial" | "flow";
 

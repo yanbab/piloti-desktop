@@ -11,8 +11,8 @@ import {
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { useSettings } from "@/context/DesktopStateContext";
-import { _ } from "@/lib/i18n";
-import { cn } from "@/lib/utils";
+import { _ } from "@/lib/core/i18n";
+import { cn } from "@/lib/core/utils";
 
 export function DockPane() {
   const { settings, updateSettings } = useSettings();

@@ -721,7 +721,7 @@ const papirusTs = `// Auto-generated from data/files/usr/share/icons/Papirus.\ne
   null,
   2
 )};\n`;
-fs.writeFileSync(path.join(ROOT, "src", "lib", "papirus-virtual-icons.ts"), papirusTs, "utf8");
+fs.writeFileSync(path.join(ROOT, "src", "lib", "engine-web", "papirus-virtual-icons.ts"), papirusTs, "utf8");
 
 const pilotiEntries = collectFiles(ICONS_PILOTI_DIR, "/usr/share/icons/Piloti", [".json", ".svg", ".theme"]);
 const pilotiTs = `// Auto-generated from data/files/usr/share/icons/Piloti.\nexport const PILOTI_VIRTUAL_ICONS: Record<string, string> = ${JSON.stringify(
@@ -729,7 +729,7 @@ const pilotiTs = `// Auto-generated from data/files/usr/share/icons/Piloti.\nexp
   null,
   2
 )};\n`;
-fs.writeFileSync(path.join(ROOT, "src", "lib", "piloti-virtual-icons.ts"), pilotiTs, "utf8");
+fs.writeFileSync(path.join(ROOT, "src", "lib", "engine-web", "piloti-virtual-icons.ts"), pilotiTs, "utf8");
 
 const homeTree = collectHomeTree(path.join(DATA_FILES_DIR, "home", "user"));
 const staticDirIndex = collectStaticDirIndex(DATA_FILES_DIR);
@@ -746,7 +746,7 @@ const defaultTreeTs = `// Auto-generated from data/files/.\nexport const DEFAULT
   null,
   2
 )};\n`;
-fs.writeFileSync(path.join(ROOT, "src", "lib", "default-vfs-tree.ts"), defaultTreeTs, "utf8");
+fs.writeFileSync(path.join(ROOT, "src", "lib", "engine-web", "default-vfs-tree.ts"), defaultTreeTs, "utf8");
 
 console.log(
   `Generated ${Object.keys(ICONS).length} animated icons, ${Object.keys(pilotiEntries).length} Piloti entries, ${Object.keys(papirusEntries).length} Papirus entries, ${Object.keys(homeTree.files).length} home starter files, ${Object.keys(staticDirIndex).length} static dirs.`

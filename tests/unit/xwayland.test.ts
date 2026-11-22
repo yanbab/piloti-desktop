@@ -4,7 +4,7 @@ import {
   parseX11DisplaySockets,
   pickAvailableXDisplay,
   XWAYLAND_SATELLITE_FALLBACK_PATHS,
-} from "../../src/lib/engine-desktop/xwayland";
+} from "@/lib/engine-native/xwayland";
 
 describe("xwayland-satellite helpers", () => {
   it("parses X11 Unix socket listings and picks lowest available display", () => {

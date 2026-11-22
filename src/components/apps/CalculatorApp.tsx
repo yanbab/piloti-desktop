@@ -8,13 +8,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useWindowManager } from "@/context/DesktopStateContext";
-import { _ } from "@/lib/i18n";
-import { cn } from "@/lib/utils";
+import { _ } from "@/lib/core/i18n";
+import { cn } from "@/lib/core/utils";
 import {
   readVfsStateJson,
   VFS_STATE_PATHS,
   writeVfsStateJson,
-} from "@/lib/vfs-state";
+} from "@/lib/engine/vfs-state";
 
 type Operator = "+" | "-" | "*" | "/";
 

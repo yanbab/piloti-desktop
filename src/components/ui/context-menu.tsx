@@ -4,7 +4,7 @@ import * as React from "react"
 import { CheckIcon, ChevronRightIcon, CircleIcon } from "lucide-react"
 import { ContextMenu as ContextMenuPrimitive } from "@base-ui/react/context-menu"
 
-import { cn } from "@/lib/utils"
+import { cn } from "@/lib/core/utils"
 import {
   MENU_BADGE_CLASS,
   MENU_CHECK_ITEM_CLASS,

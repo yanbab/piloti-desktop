@@ -33,7 +33,7 @@ import {
   SIMULATED_USB_PATH,
   unmountSimulatedUsb,
   useSimulatedUsbMounted,
-} from "@/lib/usb-drive";
+} from "@/lib/engine-web/usb-drive";
 import { AdwSplitView, type AdwSplitSidebarItem } from "@/components/ui/adw-split-view";
 import { IconGrid } from "@/components/ui/icon-grid";
 import { AppSquircleIcon } from "@/components/shell/AppSymbol";
@@ -61,15 +61,15 @@ import {
   MENU_SEPARATOR_CLASS,
 } from "@/components/ui/menu-styles";
 import { useApps, useSettings, useWindowManager } from "@/context/DesktopStateContext";
-import { publishWindowMenuState } from "@/lib/app-bridge";
+import { publishWindowMenuState } from "@/lib/engine/app-bridge";
 import {
   type AppSymbolName,
   type IconGridItem,
   inferFileVisual,
   sortDesktopItems,
-} from "@/lib/desktop-icons";
-import { _ } from "@/lib/i18n";
-import { captureLaunchOriginFromElement } from "@/lib/launch-origin";
+} from "@/lib/shell/desktop-icons";
+import { _ } from "@/lib/core/i18n";
+import { captureLaunchOriginFromElement } from "@/lib/shell/launch-origin";
 import { APP_CATALOG } from "@/data/catalog";
 import { getWebAppFaviconUrl, resolveWebAppTitle } from "@/data/web-apps";
 import {
@@ -78,7 +78,7 @@ import {
   registerOpenFolderPath,
   useOpenFolderPaths,
 } from "@/data/folder-icons";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/core/utils";
 import {
   buildVfsEntryWebAppUrl,
   compressVfsEntries,
@@ -110,7 +110,7 @@ import {
   WEB_VFS_RECENTS_URI,
   WEB_VFS_TRASH,
   type WebVfsEntry,
-} from "@/lib/web-vfs";
+} from "@/lib/engine-web/web-vfs";
 import {
   createFsFolder,
   createFsTextFile,
@@ -122,8 +122,8 @@ import {
   renameFsEntry,
   restoreFsEntry,
   trashFsEntry,
-} from "@/lib/fs-bridge";
-import { playSoundThemeEvent } from "@/lib/sound-effects";
+} from "@/lib/engine/fs-bridge";
+import { playSoundThemeEvent } from "@/lib/shell/sound-effects";
 import { inferMimeType } from "@/lib/xdg/xdg-mimeapps";
 
 interface XdgPlaceItem {

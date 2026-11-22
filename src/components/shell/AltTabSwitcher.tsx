@@ -8,7 +8,7 @@ import {
   useWindowManager,
   type DesktopWindowInstance,
 } from "@/context/DesktopStateContext";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/core/utils";
 import { AppSquircleIcon } from "./AppSymbol";
 
 function WindowMiniPreview({

@@ -38,21 +38,21 @@ import {
   evaluateReplCode,
   formatInspectValue,
   useConsoleEntries,
-} from "@/lib/console-store";
-import { _ } from "@/lib/i18n";
-import { cn } from "@/lib/utils";
+} from "@/lib/core/console-store";
+import { _ } from "@/lib/core/i18n";
+import { cn } from "@/lib/core/utils";
 import {
   WEB_VFS_CHANGED_EVENT,
   getVfsSnapshotEntries,
   listWebVfsBackingStorageEntries,
   type WebVfsEntry,
-} from "@/lib/web-vfs";
+} from "@/lib/engine-web/web-vfs";
 import {
   readVfsStateText,
   subscribeVfsPath,
   VFS_STATE_PATHS,
   writeVfsStateText,
-} from "@/lib/vfs-state";
+} from "@/lib/engine/vfs-state";
 
 export type ConsoleModuleId =
   | "repl"

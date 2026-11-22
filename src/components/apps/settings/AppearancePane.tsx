@@ -14,8 +14,8 @@ import { Switch } from "@/components/ui/switch";
 import { useSettings } from "@/context/DesktopStateContext";
 import { useOptionalPlugins } from "@/context/PluginsContext";
 import { ACCENT_COLORS } from "@/data/catalog";
-import { _ } from "@/lib/i18n";
-import { cn } from "@/lib/utils";
+import { _ } from "@/lib/core/i18n";
+import { cn } from "@/lib/core/utils";
 import { useThrottledColor } from "./use-throttled-color";
 
 export function AppearancePane() {

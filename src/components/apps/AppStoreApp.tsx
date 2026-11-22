@@ -30,7 +30,7 @@ import {
   readVfsStateJson,
   VFS_STATE_PATHS,
   writeVfsStateJson,
-} from "@/lib/vfs-state";
+} from "@/lib/engine/vfs-state";
 import { Button } from "@/components/ui/button";
 import {
   ContextMenu,
@@ -54,7 +54,7 @@ import {
   probeFlatpakCapabilities,
   searchFlatpaks,
   uninstallFlatpakApp,
-} from "@/lib/engine-desktop/flatpak";
+} from "@/lib/engine-native/flatpak";
 import { APP_CATALOG, type AppDefinition } from "@/data/catalog";
 import {
   canonicalizeWebUrl,
@@ -64,8 +64,8 @@ import {
   getWebAppFaviconUrl,
   type InstalledWebApp,
 } from "@/data/web-apps";
-import { _ } from "@/lib/i18n";
-import { cn } from "@/lib/utils";
+import { _ } from "@/lib/core/i18n";
+import { cn } from "@/lib/core/utils";
 import {
   installWebAppDesktopEntry,
   removeWebAppDesktopEntry,

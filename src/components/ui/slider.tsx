@@ -2,7 +2,7 @@
 
 import { Slider as SliderPrimitive } from "@base-ui/react/slider"
 
-import { cn } from "@/lib/utils"
+import { cn } from "@/lib/core/utils"
 
 // A pill-knob slider with a thin capsule track, or a Control Center capsule slider with an embedded icon.
 function Slider<Value extends number | readonly number[]>({

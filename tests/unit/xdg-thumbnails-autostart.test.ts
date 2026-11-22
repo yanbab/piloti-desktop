@@ -3,7 +3,7 @@ import {
   buildAutostartArgv,
   parseAutostartCondition,
   shouldLaunchAutostartEntry,
-} from "@/lib/engine-desktop/autostart";
+} from "@/lib/engine-native/autostart";
 import { parseAutostartDesktopFile } from "@/lib/xdg/xdg-autostart";
 import {
   getXdgThumbnailRelativePath,

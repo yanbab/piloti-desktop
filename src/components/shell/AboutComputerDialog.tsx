@@ -9,8 +9,8 @@ import {
 } from "@/components/ui/window";
 import pkg from "../../../package.json";
 import { useSettings, useWindowManager } from "@/context/DesktopStateContext";
-import { _ } from "@/lib/i18n";
-import { type ComputerInfo, probeComputerInfo } from "@/lib/system-info";
+import { _ } from "@/lib/core/i18n";
+import { type ComputerInfo, probeComputerInfo } from "@/lib/core/system-info";
 
 function ComputerHardwareIllustration({ className }: { className?: string }) {
   return (

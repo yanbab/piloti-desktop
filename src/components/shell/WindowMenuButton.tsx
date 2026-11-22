@@ -8,7 +8,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useSettings, useWindowManager } from "@/context/DesktopStateContext";
-import { _ } from "@/lib/i18n";
+import { _ } from "@/lib/core/i18n";
 
 export function isWindowControlsLeft(layout?: string): boolean {
   const raw = (layout ?? ":close").trim();

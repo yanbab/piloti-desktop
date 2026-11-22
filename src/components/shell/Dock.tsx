@@ -38,16 +38,16 @@ import {
   listVfsDir,
   subscribeWebVfs,
   WEB_VFS_TRASH,
-} from "@/lib/web-vfs";
+} from "@/lib/engine-web/web-vfs";
 import {
   SIMULATED_USB_LABEL,
   SIMULATED_USB_PATH,
   unmountSimulatedUsb,
   useSimulatedUsbMounted,
-} from "@/lib/usb-drive";
-import { _ } from "@/lib/i18n";
-import { captureLaunchOriginFromElement } from "@/lib/launch-origin";
-import { cn } from "@/lib/utils";
+} from "@/lib/engine-web/usb-drive";
+import { _ } from "@/lib/core/i18n";
+import { captureLaunchOriginFromElement } from "@/lib/shell/launch-origin";
+import { cn } from "@/lib/core/utils";
 import { AppSquircleIcon } from "./AppSymbol";
 
 export function Dock() {

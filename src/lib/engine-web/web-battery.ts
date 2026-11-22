@@ -1,4 +1,4 @@
-import type { BatteryInfo } from "./gnome-bridge";
+import type { BatteryInfo } from "@/lib/engine-native";
 
 export interface BatteryManagerLike extends EventTarget {
   level: number;

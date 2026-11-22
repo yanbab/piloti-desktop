@@ -14,7 +14,7 @@ import {
   parseGnomeBackgroundXml,
   resolveBackgroundRenderSpec,
   selectGnomePictureUri,
-} from "@/lib/gnome-background";
+} from "@/lib/engine-native/gnome-background";
 
 describe("GNOME background spec helpers", () => {
   test("parses all org.gnome.desktop.background GVariant keys", () => {

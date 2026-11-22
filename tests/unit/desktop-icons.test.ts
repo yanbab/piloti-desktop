@@ -11,7 +11,7 @@ import {
   moveItemToCell,
   normalizeRect,
   sortDesktopItems,
-} from "@/lib/desktop-icons";
+} from "@/lib/shell/desktop-icons";
 
 describe("desktop-icons spatial grid helpers", () => {
   test("computes grid metrics with sensible minimums", () => {

@@ -2,7 +2,7 @@ import * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
 import { ListFilterIcon, SearchIcon } from "lucide-react"
 
-import { cn } from "@/lib/utils"
+import { cn } from "@/lib/core/utils"
 
 // A search entry field with a magnifying glass icon.
 // `default` sits in content, `glass` matches toolbar capsules and `filled`

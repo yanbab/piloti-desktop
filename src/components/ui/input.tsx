@@ -1,6 +1,6 @@
 import * as React from "react"
 
-import { cn } from "@/lib/utils"
+import { cn } from "@/lib/core/utils"
 
 // A text entry field with 6px corners and a subtle surface fill.
 function Input({ className, type, ...props }: React.ComponentProps<"input">) {

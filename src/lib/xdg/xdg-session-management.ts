@@ -7,7 +7,7 @@ import {
   removeVfsStateFile,
   VFS_STATE_PATHS,
   writeVfsStateJson,
-} from "@/lib/vfs-state";
+} from "@/lib/engine/vfs-state";
 
 const XDG_SESSION_STORAGE_KEY = "piloti.xdg-session-management-v1";
 

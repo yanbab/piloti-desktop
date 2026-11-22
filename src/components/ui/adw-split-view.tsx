@@ -7,8 +7,8 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { WindowControls, WindowTitlebar } from "@/components/ui/window";
-import type { AppSymbolName } from "@/lib/desktop-icons";
-import { cn } from "@/lib/utils";
+import type { AppSymbolName } from "@/lib/shell/desktop-icons";
+import { cn } from "@/lib/core/utils";
 
 export interface AdwSplitSidebarItem {
   id: string;

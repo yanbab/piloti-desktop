@@ -48,10 +48,10 @@ import {
   switchGreeterKeymap,
   type GreeterSessionOption,
   type GreeterUserAccount,
-} from "@/lib/engine-desktop";
-import { _, getLocale } from "@/lib/i18n";
-import { cn } from "@/lib/utils";
-import { readVfsStateJson, writeVfsStateJson } from "@/lib/vfs-state";
+} from "@/lib/engine-native";
+import { _, getLocale } from "@/lib/core/i18n";
+import { cn } from "@/lib/core/utils";
+import { readVfsStateJson, writeVfsStateJson } from "@/lib/engine/vfs-state";
 
 export interface LoginScreenAppProps {
   windowId?: string;

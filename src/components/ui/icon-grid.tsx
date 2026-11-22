@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import { AppSquircleIcon } from "@/components/shell/AppSymbol";
 import { isLottieIconUrl, LottieIcon } from "@/components/ui/lottie-icon";
-import { captureLaunchOriginFromElement } from "@/lib/launch-origin";
+import { captureLaunchOriginFromElement } from "@/lib/shell/launch-origin";
 import { useApps, useSettings, useWindowManager } from "@/context/DesktopStateContext";
 import {
   DynamicFileIcon,
@@ -33,8 +33,8 @@ import {
   type IconGridItem,
   type IconGridMode,
   normalizeRect,
-} from "@/lib/desktop-icons";
-import { cn } from "@/lib/utils";
+} from "@/lib/shell/desktop-icons";
+import { cn } from "@/lib/core/utils";
 import {
   getVfsEntry,
   getVfsImageThumbnailUrl,
@@ -43,7 +43,7 @@ import {
   subscribeWebVfs,
   VFS_EMBLEM_META,
   type VfsEmblemId,
-} from "@/lib/web-vfs";
+} from "@/lib/engine-web/web-vfs";
 
 function splitFileNameExt(name: string, kind: IconGridItem["kind"]): [string, string] {
   if (kind !== "file") return [name, ""];

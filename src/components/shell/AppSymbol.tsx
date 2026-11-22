@@ -2,7 +2,7 @@ import * as React from "react";
 import { AppWindowIcon, GlobeIcon } from "lucide-react";
 import { isLottieIconUrl, LottieIcon } from "@/components/ui/lottie-icon";
 import { useOptionalApps } from "@/context/AppsContext";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/core/utils";
 
 /**
  * Renders an XDG-themed icon or raw web app favicon (`<img>`) with graceful

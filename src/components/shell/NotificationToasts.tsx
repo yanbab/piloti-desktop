@@ -16,8 +16,8 @@ import {
 import {
   type NotificationToastData,
   pilotiToastManager,
-} from "@/lib/notifications";
-import { cn } from "@/lib/utils";
+} from "@/lib/shell/notifications";
+import { cn } from "@/lib/core/utils";
 import {
   NotificationActionControls,
   NotificationAppIcon,

@@ -19,22 +19,22 @@ import {
   useSystemBackends,
   useWindowActions,
 } from "@/context/DesktopStateContext";
-import type { GnomeSettingsPanel } from "@/lib/gnome-bridge";
-import { _ } from "@/lib/i18n";
+import type { GnomeSettingsPanel } from "@/lib/engine-native";
+import { _ } from "@/lib/core/i18n";
 import {
   getCachedPilotiAppIni,
   getPilotiAppIniVfsPath,
   parseIniText,
   readPilotiAppIni,
   writePilotiAppIni,
-} from "@/lib/piloti-ini";
+} from "@/lib/config/piloti-ini";
 import {
   readVfsStateText,
   subscribeVfsPath,
   VFS_STATE_PATHS,
   writeVfsStateText,
-} from "@/lib/vfs-state";
-import { cn } from "@/lib/utils";
+} from "@/lib/engine/vfs-state";
+import { cn } from "@/lib/core/utils";
 import { AdvancedPane } from "./settings/AdvancedPane";
 import { AppearancePane } from "./settings/AppearancePane";
 import { DisplaysPane } from "./settings/DisplaysPane";

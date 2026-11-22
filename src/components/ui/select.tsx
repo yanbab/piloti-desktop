@@ -9,7 +9,7 @@ import {
 } from "lucide-react"
 import { Select as SelectPrimitive } from "@base-ui/react/select"
 
-import { cn } from "@/lib/utils"
+import { cn } from "@/lib/core/utils"
 import {
   MENU_CHECK_ITEM_CLASS,
   MENU_LABEL_CLASS,

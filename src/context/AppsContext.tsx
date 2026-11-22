@@ -6,16 +6,16 @@ import {
   APP_CATALOG,
   type AppDefinition,
 } from "@/data/catalog";
-import { launchDesktopCommand } from "@/lib/gnome-bridge";
-import { shouldTintIconKey, tintIconDataUrl } from "@/lib/icon-accent-tint";
-import { PAPIRUS_VIRTUAL_ICONS } from "@/lib/papirus-virtual-icons";
-import { PILOTI_VIRTUAL_ICONS } from "@/lib/piloti-virtual-icons";
+import { launchDesktopCommand } from "@/lib/engine-native";
+import { shouldTintIconKey, tintIconDataUrl } from "@/lib/shell/icon-accent-tint";
+import { PAPIRUS_VIRTUAL_ICONS } from "@/lib/engine-web/papirus-virtual-icons";
+import { PILOTI_VIRTUAL_ICONS } from "@/lib/engine-web/piloti-virtual-icons";
 import {
   readVfsStateJson,
   VFS_STATE_PATHS,
   writeVfsStateJson,
-} from "@/lib/vfs-state";
-import { logBootEvent, startBootPhase } from "@/lib/perf-log";
+} from "@/lib/engine/vfs-state";
+import { logBootEvent, startBootPhase } from "@/lib/core/perf-log";
 import {
   discoverInstalledXdgApps,
   type XdgDesktopEntry,

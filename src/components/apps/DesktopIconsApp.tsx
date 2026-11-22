@@ -23,10 +23,10 @@ import {
   inferFileVisual,
   moveItemsToCells,
   sortDesktopItems,
-} from "@/lib/desktop-icons";
-import { launchDesktopCommand } from "@/lib/gnome-bridge";
-import { _ } from "@/lib/i18n";
-import { startBootPhase } from "@/lib/perf-log";
+} from "@/lib/shell/desktop-icons";
+import { launchDesktopCommand } from "@/lib/engine-native";
+import { _ } from "@/lib/core/i18n";
+import { startBootPhase } from "@/lib/core/perf-log";
 import { parseDesktopEntry } from "@/lib/xdg/xdg-desktop-entry";
 import {
   buildVfsEntryWebAppUrl,
@@ -56,7 +56,7 @@ import {
   compressVfsEntries,
   downloadVfsFile,
   extractVfsZip,
-} from "@/lib/web-vfs";
+} from "@/lib/engine-web/web-vfs";
 
 import { IconGrid, type IconGridProps } from "@/components/ui/icon-grid";
 export { IconGrid, type IconGridProps };

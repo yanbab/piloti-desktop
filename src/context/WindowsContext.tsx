@@ -24,12 +24,12 @@ import {
   DOCUMENT_SCOPED_APP_IDS,
   lookupSpatialWindowBounds,
   resolveSpatialBoundsKey,
-} from "@/lib/spatial-window-bounds";
+} from "@/lib/shell/spatial-window-bounds";
 import {
   type GnomeSettingsPanel,
   launchDesktopCommand,
   openGnomeControlCenter,
-} from "@/lib/gnome-bridge";
+} from "@/lib/engine-native";
 import {
   matchXdgEntryForWaylandWindow,
   resolveWaylandClientFrame,
@@ -46,7 +46,7 @@ import {
   clampWindowBounds,
   clampWorkspace,
   resolveWaylandOuterConstraints,
-} from "@/lib/window-bounds";
+} from "@/lib/shell/window-bounds";
 import { type AppsContextValue, matchAppFromWayland } from "./AppsContext";
 import { type SettingsContextValue } from "./SettingsContext";
 import { type SystemBackendsContextValue } from "./SystemBackendsContext";

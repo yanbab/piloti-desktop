@@ -10,9 +10,9 @@ import {
   applyThemeToDocument,
   type IsolatedFsEntry,
   type ShellToAppMessage,
-} from "@/lib/app-bridge";
-import { getVfsEntry, listVfsDir, writeVfsTextFile } from "@/lib/web-vfs";
-import { cn } from "@/lib/utils";
+} from "@/lib/engine/app-bridge";
+import { getVfsEntry, listVfsDir, writeVfsTextFile } from "@/lib/engine-web/web-vfs";
+import { cn } from "@/lib/core/utils";
 
 export interface IsolatedAppFrameProps {
   appId: string;

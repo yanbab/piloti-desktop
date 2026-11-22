@@ -12,8 +12,8 @@ import {
   readFsTextFile,
   removeFsFile,
   writeFsTextFile,
-} from "../fs-bridge";
-import { WEB_VFS_HOME } from "../web-vfs";
+} from "@/lib/engine/fs-bridge";
+import { WEB_VFS_HOME } from "@/lib/engine-web/web-vfs";
 import { parseDesktopEntry } from "./xdg-desktop-entry";
 
 export const WEB_APPS_XDG_DIR = `${WEB_VFS_HOME}/.local/share/applications`;

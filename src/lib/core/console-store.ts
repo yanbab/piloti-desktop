@@ -1,6 +1,6 @@
 import * as React from "react";
-import { consumeLegacyLocalStorageValue, getVfsEntry, writeVfsTextFile } from "@/lib/web-vfs";
-import { VFS_STATE_PATHS } from "@/lib/vfs-state";
+import { consumeLegacyLocalStorageValue, getVfsEntry, writeVfsTextFile } from "@/lib/engine-web/web-vfs";
+import { VFS_STATE_PATHS } from "@/lib/engine/vfs-state";
 
 export type ConsoleLogLevel = "log" | "info" | "warn" | "error";
 
@@ -301,14 +301,14 @@ export async function evaluateReplCode(
     fn = new AsyncFunction(...keys, `"use strict";\nreturn (${trimmed});`);
   } catch (err) {
     if (err instanceof EvalError) {
-      const { evaluateCspSafe } = await import("./csp-repl-eval");
+      const { evaluateCspSafe } = await import("@/lib/shell/csp-repl-eval");
       return evaluateCspSafe(trimmed, scope);
     }
     try {
       fn = new AsyncFunction(...keys, `"use strict";\n${trimmed}`);
     } catch (innerErr) {
       if (innerErr instanceof EvalError) {
-        const { evaluateCspSafe } = await import("./csp-repl-eval");
+        const { evaluateCspSafe } = await import("@/lib/shell/csp-repl-eval");
         return evaluateCspSafe(trimmed, scope);
       }
       throw innerErr;

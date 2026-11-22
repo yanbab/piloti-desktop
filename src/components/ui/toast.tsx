@@ -4,7 +4,7 @@ import * as React from "react"
 import { XIcon } from "lucide-react"
 import { Toast as ToastPrimitive } from "@base-ui/react/toast"
 
-import { cn } from "@/lib/utils"
+import { cn } from "@/lib/core/utils"
 
 export type ToastViewportPosition = "top-right"
 

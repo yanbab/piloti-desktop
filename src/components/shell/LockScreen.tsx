@@ -3,8 +3,8 @@ import { BellIcon, LockIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useSettings, useSystemBackends } from "@/context/DesktopStateContext";
-import { _, getLocale } from "@/lib/i18n";
-import { formatRelativeNotificationTime } from "@/lib/notifications";
+import { _, getLocale } from "@/lib/core/i18n";
+import { formatRelativeNotificationTime } from "@/lib/shell/notifications";
 import { DesktopBackgroundLayers } from "./DesktopBackgroundLayers";
 
 export function LockScreen() {

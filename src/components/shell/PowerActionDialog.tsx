@@ -13,7 +13,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useSettings, useSystemBackends } from "@/context/DesktopStateContext";
-import { _ } from "@/lib/i18n";
+import { _ } from "@/lib/core/i18n";
 
 const AUTO_CONFIRM_SECONDS = 60;
 

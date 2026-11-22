@@ -11,8 +11,8 @@ import { APP_CATALOG } from "@/data/catalog";
 import {
   INLINE_REPLY_NOTIFICATION_ACTION,
 } from "@domicile-desktop/sdk/notification";
-import type { NotificationActionItem } from "@/lib/notifications";
-import { cn } from "@/lib/utils";
+import type { NotificationActionItem } from "@/lib/shell/notifications";
+import { cn } from "@/lib/core/utils";
 
 export function NotificationAppIcon({
   appName,

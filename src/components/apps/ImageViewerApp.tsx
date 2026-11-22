@@ -12,15 +12,15 @@ import {
 } from "lucide-react";
 import { WindowMenuButton } from "@/components/shell/WindowMenuButton";
 import { WindowControls } from "@/components/ui/window";
-import { useIsolatedAppBridge } from "@/lib/app-bridge";
-import { _ } from "@/lib/i18n";
-import { cn } from "@/lib/utils";
+import { useIsolatedAppBridge } from "@/lib/engine/app-bridge";
+import { _ } from "@/lib/core/i18n";
+import { cn } from "@/lib/core/utils";
 import {
   getVfsEntry,
   normalizeVfsPath,
   renameVfsEntry,
   subscribeVfsRenamed,
-} from "@/lib/web-vfs";
+} from "@/lib/engine-web/web-vfs";
 
 export interface ImageViewerAppProps {
   initialPath?: string;

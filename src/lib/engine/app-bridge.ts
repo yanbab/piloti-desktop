@@ -1,7 +1,7 @@
 import * as React from "react";
 import { ACCENT_COLORS, type AccentColorId } from "@/data/catalog";
-import { subscribeLocale } from "@/lib/i18n";
-import { getVfsEntry, listVfsDir, writeVfsTextFile } from "@/lib/web-vfs";
+import { subscribeLocale } from "@/lib/core/i18n";
+import { getVfsEntry, listVfsDir, writeVfsTextFile } from "@/lib/engine-web/web-vfs";
 
 export type ShellToAppMessage =
   | {

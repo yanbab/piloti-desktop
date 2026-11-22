@@ -1,6 +1,6 @@
 import * as React from "react";
 import lottie, { type AnimationItem } from "lottie-web/build/player/lottie_light";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/core/utils";
 
 const parsedAnimationCache = new Map<string, Record<string, unknown>>();
 

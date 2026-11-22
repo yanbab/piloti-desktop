@@ -13,7 +13,7 @@ import {
   hasNativeSystemHost,
   markNativeSystemHostAvailable,
   useEngineOverride,
-} from "./lib/engine-override";
+} from "@/lib/engine/engine-override";
 
 export function Desktop() {
   const initialDomicile = useDomicile();

@@ -6,14 +6,14 @@ import {
   useWindowManager,
   type DesktopWindowInstance,
 } from "@/context/DesktopStateContext";
-import { computeOverviewWindowLayouts } from "@/lib/overview-layout";
-import { _ } from "@/lib/i18n";
-import { cn } from "@/lib/utils";
+import { computeOverviewWindowLayouts } from "@/lib/shell/overview-layout";
+import { _ } from "@/lib/core/i18n";
+import { cn } from "@/lib/core/utils";
 import { AppSquircleIcon } from "./AppSymbol";
 import { DesktopBackgroundLayers } from "./DesktopBackgroundLayers";
 import { WindowControlButton } from "@/components/ui/window";
 
-export { computeOverviewColumns } from "@/lib/overview-layout";
+export { computeOverviewColumns } from "@/lib/shell/overview-layout";
 
 function OverviewWorkspacesBar({
   windows,

@@ -3,7 +3,7 @@ import { resolveInitialSettings } from "@/context/SettingsContext";
 import {
   lookupSpatialWindowBounds,
   resolveSpatialBoundsKey,
-} from "@/lib/spatial-window-bounds";
+} from "@/lib/shell/spatial-window-bounds";
 import {
   clearXdgSession,
   loadXdgSession,

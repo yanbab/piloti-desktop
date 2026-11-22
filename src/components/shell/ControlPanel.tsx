@@ -35,10 +35,10 @@ import {
   useSystemBackends,
   useWindowManager,
 } from "@/context/DesktopStateContext";
-import { _, getLocale } from "@/lib/i18n";
-import { formatRelativeNotificationTime } from "@/lib/notifications";
-import { captureLaunchOriginFromElement } from "@/lib/launch-origin";
-import { cn } from "@/lib/utils";
+import { _, getLocale } from "@/lib/core/i18n";
+import { formatRelativeNotificationTime } from "@/lib/shell/notifications";
+import { captureLaunchOriginFromElement } from "@/lib/shell/launch-origin";
+import { cn } from "@/lib/core/utils";
 import {
   NotificationActionControls,
   NotificationAppIcon,

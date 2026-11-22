@@ -2,7 +2,7 @@ import {
   readVfsStateJson,
   VFS_STATE_PATHS,
   writeVfsStateJson,
-} from "@/lib/vfs-state";
+} from "@/lib/engine/vfs-state";
 
 export interface WorkspaceSnapshotWindow {
   appId: string;

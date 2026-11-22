@@ -21,7 +21,7 @@ import {
 import {
   dispatchPilotiShellCommand,
   type PilotiShellCommandHandlers,
-} from "@/lib/shell-commands";
+} from "@/lib/shell/shell-commands";
 import {
   installWebAppDesktopEntry,
   removeWebAppDesktopEntry,
@@ -62,9 +62,9 @@ const PowerActionDialog = React.lazy(() =>
   }))
 );
 import { WindowManager } from "./WindowManager";
-import { installConsoleCapture } from "@/lib/console-store";
-import { _ } from "@/lib/i18n";
-import { bootElapsedMs, logBootEvent } from "@/lib/perf-log";
+import { installConsoleCapture } from "@/lib/core/console-store";
+import { _ } from "@/lib/core/i18n";
+import { bootElapsedMs, logBootEvent } from "@/lib/core/perf-log";
 import {
   copyVfsEntry,
   getVfsClipboard,
@@ -72,7 +72,7 @@ import {
   setVfsClipboard,
   subscribeVfsClipboard,
   WEB_VFS_HOME,
-} from "@/lib/web-vfs";
+} from "@/lib/engine-web/web-vfs";
 
 installConsoleCapture();
 logBootEvent("starting shell");

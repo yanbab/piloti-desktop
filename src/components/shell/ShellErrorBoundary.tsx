@@ -1,5 +1,5 @@
 import * as React from "react";
-import { removeVfsStateFile, VFS_STATE_PATHS } from "@/lib/vfs-state";
+import { removeVfsStateFile, VFS_STATE_PATHS } from "@/lib/engine/vfs-state";
 
 interface ShellErrorBoundaryState {
   error: Error | null;

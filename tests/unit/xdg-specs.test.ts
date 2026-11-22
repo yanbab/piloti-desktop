@@ -4,8 +4,8 @@ import {
   loadXdgIconDataUrl,
   lookupXdgIconPath,
 } from "@/lib/xdg/xdg-icon-theme";
-import { PILOTI_VIRTUAL_ICONS } from "@/lib/piloti-virtual-icons";
-import { PAPIRUS_VIRTUAL_ICONS } from "@/lib/papirus-virtual-icons";
+import { PILOTI_VIRTUAL_ICONS } from "@/lib/engine-web/piloti-virtual-icons";
+import { PAPIRUS_VIRTUAL_ICONS } from "@/lib/engine-web/papirus-virtual-icons";
 
 const mkOk = <T>(v: T) => ({ match: ({ Ok }: { Ok: (x: T) => unknown }) => Ok(v) });
 const mkErr = () => ({ match: ({ Err }: { Err: (e: string) => unknown }) => Err("ENOENT") });

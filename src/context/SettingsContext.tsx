@@ -18,8 +18,8 @@ import {
   WEB_VFS_CHANGED_EVENT,
   getVfsEntry,
   writeVfsTextFile,
-} from "@/lib/web-vfs";
-import { toDomicilePath } from "@/lib/fs-bridge";
+} from "@/lib/engine-web/web-vfs";
+import { toDomicilePath } from "@/lib/engine/fs-bridge";
 import {
   readVfsStateJson,
   readVfsStateText,
@@ -29,11 +29,11 @@ import {
   VFS_STATE_PATHS,
   writeVfsStateJson,
   writeVfsStateText,
-} from "@/lib/vfs-state";
+} from "@/lib/engine/vfs-state";
 import {
   parseDesktopSettingsRaw,
   serializeDesktopSettingsIni,
-} from "@/lib/piloti-settings-ini";
+} from "@/lib/config/piloti-settings-ini";
 import {
   installWebAppDesktopEntry,
   loadWebAppsFromDesktopEntries,
@@ -48,8 +48,8 @@ import {
   parseGnomeBackgroundXml,
   resolveBackgroundRenderSpec,
   selectGnomePictureUri,
-} from "@/lib/engine-desktop/background";
-import { clampHistoryLimit } from "@/lib/notifications";
+} from "@/lib/engine-native/background";
+import { clampHistoryLimit } from "@/lib/shell/notifications";
 import {
   readGnomeBackgroundBlob,
   setSystemAudio,
@@ -64,11 +64,11 @@ import {
   type GtkFontAntialiasing,
   type GtkFontHinting,
   type GtkFontRgbaOrder,
-} from "@/lib/engine-desktop";
-import { startBootPhase } from "@/lib/perf-log";
-import { subscribeLocale } from "@/lib/i18n";
-import type { DesktopIconAlign } from "@/lib/desktop-icons";
-import type { SavedWindowBounds } from "@/lib/spatial-window-bounds";
+} from "@/lib/engine-native";
+import { startBootPhase } from "@/lib/core/perf-log";
+import { subscribeLocale } from "@/lib/core/i18n";
+import type { DesktopIconAlign } from "@/lib/shell/desktop-icons";
+import type { SavedWindowBounds } from "@/lib/shell/spatial-window-bounds";
 
 export type WindowDecorationMode = "auto" | "csd" | "ssd";
 export type CssFontSmoothing = "antialiased" | "subpixel-antialiased" | "auto";

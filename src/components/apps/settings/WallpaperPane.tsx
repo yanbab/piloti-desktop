@@ -51,9 +51,9 @@ import {
   resolveBackgroundRenderSpec,
   selectGnomePictureUri,
   toHexColorInputValue,
-} from "@/lib/gnome-background";
-import { _ } from "@/lib/i18n";
-import { cn } from "@/lib/utils";
+} from "@/lib/engine-native/gnome-background";
+import { _ } from "@/lib/core/i18n";
+import { cn } from "@/lib/core/utils";
 import { useThrottledColor } from "./use-throttled-color";
 
 function WallpaperThumbnail({

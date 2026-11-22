@@ -4,7 +4,7 @@ import {
   clampWorkspace,
   resolveWaylandOuterConstraints,
   SSD_TITLEBAR_HEIGHT,
-} from "@/lib/window-bounds";
+} from "@/lib/shell/window-bounds";
 
 describe("window-bounds", () => {
   test("clamps offscreen negative and bottom-right positions inside viewport", () => {

@@ -1,15 +1,15 @@
 import { desktop, type Domicile } from "@domicile-desktop/sdk/desktop/desktop";
 import type { DomicileHost, DomicileNotification } from "@domicile-desktop/sdk/domicile-host";
 import { FakeDomicileHost } from "@domicile-desktop/sdk/fake-host";
-import { DEFAULT_STATIC_DIR_INDEX } from "../default-vfs-tree";
-import { PILOTI_VIRTUAL_ICONS } from "../piloti-virtual-icons";
+import { DEFAULT_STATIC_DIR_INDEX } from "./default-vfs-tree";
+import { PILOTI_VIRTUAL_ICONS } from "./piloti-virtual-icons";
 import {
   ensureVfsDir,
   getVfsEntry,
   listVfsDir,
   normalizeVfsPath,
   writeVfsTextFile,
-} from "../web-vfs";
+} from "./web-vfs";
 
 declare global {
   interface Window {

@@ -4,7 +4,7 @@ import {
   resolveVfsPath,
   WEB_VFS_HOME,
   writeVfsTextFile,
-} from "./web-vfs";
+} from "@/lib/engine-web/web-vfs";
 
 export interface ParsedRedirect {
   mode: "overwrite" | "append";

@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/grouped-form";
 import { Switch } from "@/components/ui/switch";
 import { useSettings } from "@/context/DesktopStateContext";
-import { _ } from "@/lib/i18n";
+import { _ } from "@/lib/core/i18n";
 
 export function TopBarPane() {
   const { settings, updateSettings } = useSettings();

@@ -7,7 +7,7 @@ import {
   hasNativeSystemHost,
   markNativeSystemHostAvailable,
   setEngineOverride,
-} from "@/lib/engine-override";
+} from "@/lib/engine/engine-override";
 import {
   isSimulatedUsbMounted,
   isSimulatedUsbPath,
@@ -15,8 +15,8 @@ import {
   SIMULATED_USB_PATH,
   toggleSimulatedUsb,
   unmountSimulatedUsb,
-} from "@/lib/usb-drive";
-import { getVfsEntry, listVfsDir } from "@/lib/web-vfs";
+} from "@/lib/engine-web/usb-drive";
+import { getVfsEntry, listVfsDir } from "@/lib/engine-web/web-vfs";
 
 function createMemoryStorage(): Storage {
   const store = new Map<string, string>();

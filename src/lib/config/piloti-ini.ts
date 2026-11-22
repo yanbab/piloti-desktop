@@ -1,6 +1,6 @@
 import type { Domicile } from "@domicile-desktop/sdk/desktop/desktop";
-import { type IniRecord, parseIniText, serializeIniText } from "@/lib/ini";
-import { readVfsStateText, writeVfsStateText } from "@/lib/vfs-state";
+import { type IniRecord, parseIniText, serializeIniText } from "@/lib/config/ini";
+import { readVfsStateText, writeVfsStateText } from "@/lib/engine/vfs-state";
 
 export { type IniRecord, parseIniText, serializeIniText };
 

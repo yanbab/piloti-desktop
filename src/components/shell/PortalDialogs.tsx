@@ -32,11 +32,11 @@ import {
   XIcon,
 } from "lucide-react";
 import { useApps, useSettings } from "@/context/DesktopStateContext";
-import { _ } from "@/lib/i18n";
-import { listVfsDir } from "@/lib/web-vfs";
+import { _ } from "@/lib/core/i18n";
+import { listVfsDir } from "@/lib/engine-web/web-vfs";
 import { setDefaultMimeApp } from "@/lib/xdg/xdg-mimeapps";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/core/utils";
 
 function ScreenshotPortalOverlay({
   request,

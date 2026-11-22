@@ -339,7 +339,7 @@ export function getContrastForeground(cssColor?: string | null): string | null {
   return luminance > 0.58 ? "#1d1d20" : "#ffffff";
 }
 
-import { createLocalStorageCache } from "@/lib/storage-cache";
+import { createLocalStorageCache } from "@/lib/config/storage-cache";
 
 const THEME_COLOR_CACHE_KEY = "piloti.web-theme-colors.v1";
 const themeColorCache = createLocalStorageCache<string | null>(

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "bun:test";
-import { inferFileVisual } from "@/lib/desktop-icons";
+import { inferFileVisual } from "@/lib/shell/desktop-icons";
 import {
   copyVfsEntry,
   createVfsFolder,
@@ -31,7 +31,7 @@ import {
   WEB_VFS_STORAGE_KEY,
   WEB_VFS_TRASH,
   writeVfsTextFile,
-} from "@/lib/web-vfs";
+} from "@/lib/engine-web/web-vfs";
 
 function installMemoryLocalStorage() {
   const store = new Map<string, string>();

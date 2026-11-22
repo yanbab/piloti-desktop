@@ -16,15 +16,15 @@ import {
   WEB_VFS_TRASH,
   type WebVfsEntry,
   writeVfsTextFile,
-} from "./web-vfs";
-import { emptyXdgTrash, resolveXdgTrashPaths } from "./xdg/xdg-trash";
+} from "@/lib/engine-web/web-vfs";
+import { emptyXdgTrash, resolveXdgTrashPaths } from "@/lib/xdg/xdg-trash";
 import {
   parseRecentlyUsedXbel,
   serializeRecentlyUsedXbel,
   upsertRecentXbelItem,
-} from "./xdg/xdg-recents";
-import { lookupXdgThumbnailDataUrl } from "./xdg/xdg-thumbnails";
-import { isSimulatedUsbPath } from "./usb-drive";
+} from "@/lib/xdg/xdg-recents";
+import { lookupXdgThumbnailDataUrl } from "@/lib/xdg/xdg-thumbnails";
+import { isSimulatedUsbPath } from "@/lib/engine-web/usb-drive";
 
 const RECENTLY_USED_XBEL_PATH = `${WEB_VFS_HOME}/.local/share/recently-used.xbel`;
 const THUMBNAIL_EXT_RE = /\.(png|jpe?g|webp|gif|bmp|avif|pdf|mp4|mkv|webm|mov)$/i;
@@ -41,7 +41,7 @@ export {
   WEB_VFS_HOME,
   WEB_VFS_TRASH,
   type WebVfsEntry,
-} from "./web-vfs";
+} from "@/lib/engine-web/web-vfs";
 
 /**
  * Converts a normalized `/home/user/...` VFS path into a `$HOME`-relative path

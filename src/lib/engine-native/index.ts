@@ -6,6 +6,7 @@ export * from "./wallpaper";
 export * from "./hardware";
 export * from "./flatpak";
 export * from "./background";
+export * from "./gnome-background";
 export * from "./xwayland";
 export * from "./autostart";
 export * from "./greeter";

@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { useSettings, useSystemBackends } from "@/context/DesktopStateContext";
-import { _ } from "@/lib/i18n";
+import { _ } from "@/lib/core/i18n";
 
 const TIMEOUT_ITEMS: { value: string; label: string }[] = [
   { value: "3000", label: "3 seconds" },

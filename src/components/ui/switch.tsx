@@ -2,7 +2,7 @@
 
 import { Switch as SwitchPrimitive } from "@base-ui/react/switch"
 
-import { cn } from "@/lib/utils"
+import { cn } from "@/lib/core/utils"
 
 // A toggle switch: a pill track with a circular thumb following Adwaita
 // proportions (`mini` / `small` / `medium`).

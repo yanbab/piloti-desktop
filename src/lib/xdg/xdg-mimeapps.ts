@@ -1,6 +1,6 @@
 import type { Domicile } from "@domicile-desktop/sdk/desktop/desktop";
-import { readFsTextFile, writeFsTextFile } from "../fs-bridge";
-import { DEFAULT_MIMEAPPS_INI, WEB_VFS_HOME } from "../web-vfs";
+import { readFsTextFile, writeFsTextFile } from "@/lib/engine/fs-bridge";
+import { DEFAULT_MIMEAPPS_INI, WEB_VFS_HOME } from "@/lib/engine-web/web-vfs";
 
 export { DEFAULT_MIMEAPPS_INI };
 export const MIMEAPPS_PATH = `${WEB_VFS_HOME}/.config/mimeapps.list`;

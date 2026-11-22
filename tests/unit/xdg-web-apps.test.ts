@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import type { Domicile } from "@domicile-desktop/sdk/desktop/desktop";
 import type { InstalledWebApp } from "@/data/web-apps";
-import { getVfsEntry, WEB_VFS_STORAGE_KEY } from "@/lib/web-vfs";
+import { getVfsEntry, WEB_VFS_STORAGE_KEY } from "@/lib/engine-web/web-vfs";
 import {
   installWebAppDesktopEntry,
   loadWebAppsFromDesktopEntries,

@@ -13,14 +13,14 @@ import {
   removePluginCss,
   syncManagedGtkCssFile,
 } from "@/lib/plugins/loader";
-import { parseIniText, serializeIniText } from "@/lib/ini";
-import { consumeLegacyLocalStorageValue } from "@/lib/web-vfs";
+import { parseIniText, serializeIniText } from "@/lib/config/ini";
+import { consumeLegacyLocalStorageValue } from "@/lib/engine-web/web-vfs";
 import {
   readVfsStateJson,
   readVfsStateText,
   removeVfsStateFile,
   writeVfsStateText,
-} from "@/lib/vfs-state";
+} from "@/lib/engine/vfs-state";
 import type {
   DiscoveredPlugin,
   LauncherProvider,

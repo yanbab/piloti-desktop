@@ -39,19 +39,19 @@ import {
   getWebAppFaviconUrl,
   resolveWebAppTitle,
 } from "@/data/web-apps";
-import { evaluateLauncherMath } from "@/lib/launcher-math";
-import { captureLaunchOriginFromElement } from "@/lib/launch-origin";
+import { evaluateLauncherMath } from "@/lib/shell/launcher-math";
+import { captureLaunchOriginFromElement } from "@/lib/shell/launch-origin";
 import {
   loadWorkspaceSnapshots,
   saveWorkspaceSnapshot,
   type WorkspaceSnapshot,
-} from "@/lib/workspace-snapshots";
-import { consumeLegacyLocalStorageValue } from "@/lib/web-vfs";
+} from "@/lib/shell/workspace-snapshots";
+import { consumeLegacyLocalStorageValue } from "@/lib/engine-web/web-vfs";
 import {
   readVfsStateJson,
   VFS_STATE_PATHS,
   writeVfsStateJson,
-} from "@/lib/vfs-state";
+} from "@/lib/engine/vfs-state";
 import { AppSquircleIcon } from "./AppSymbol";
 
 const RECENT_LAUNCHES_KEY = "piloti.launcher.recent.v1";
