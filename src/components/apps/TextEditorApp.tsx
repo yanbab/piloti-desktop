@@ -243,6 +243,7 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
   const isDirty = content !== savedContent;
   const isDirtyRef = React.useRef(isDirty);
   isDirtyRef.current = isDirty;
+  const forceCloseRef = React.useRef(false);
   const [previewMarkdown, setPreviewMarkdown] = React.useState(false);
   const [findOpen, setFindOpen] = React.useState(false);
   const [findQuery, setFindQuery] = React.useState("");
@@ -504,7 +505,7 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
   }, [bridge.fs]);
 
   const requestClose = React.useCallback(() => {
-    if (isDirtyRef.current) {
+    if (isDirtyRef.current && !forceCloseRef.current) {
       setConfirmCloseOpen(true);
       return;
     }
@@ -516,7 +517,7 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
     const onBeforeClose = (e: Event) => {
       const detail = (e as CustomEvent<{ windowId?: string }>).detail;
       if (detail?.windowId !== windowId) return;
-      if (isDirtyRef.current) {
+      if (isDirtyRef.current && !forceCloseRef.current) {
         e.preventDefault();
         setConfirmCloseOpen(true);
       }
@@ -919,7 +920,7 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
                   type="button"
                   onClick={() => {
                     setConfirmCloseOpen(false);
-                    isDirtyRef.current = false;
+                    forceCloseRef.current = true;
                     bridge.closeWindow();
                   }}
                   className="rounded-lg bg-red-500/12 px-3 py-1.5 text-xs font-medium text-red-500 transition-colors hover:bg-red-500/20"
@@ -939,7 +940,7 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
                     const ok = await handleSave();
                     if (ok) {
                       setConfirmCloseOpen(false);
-                      isDirtyRef.current = false;
+                      forceCloseRef.current = true;
                       bridge.closeWindow();
                     }
                   }}

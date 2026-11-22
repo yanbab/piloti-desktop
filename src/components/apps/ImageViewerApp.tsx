@@ -339,9 +339,9 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
         <div
           data-window-drag-region=""
           className={cn(
-            "flex h-9 items-center justify-between border-b px-2.5 transition-colors duration-150 group-hover/header:border-adw-separator/60 group-hover/header:bg-adw-titlebar/95 group-hover/header:backdrop-blur-md group-data-[dragging]/window:border-adw-separator/60 group-data-[dragging]/window:bg-adw-titlebar/95 group-data-[dragging]/window:backdrop-blur-md",
+            "flex h-9 items-center justify-between border-b px-2.5 transition-colors duration-150 group-hover/header:border-adw-separator/60 group-hover/header:bg-adw-titlebar group-data-[dragging]/window:border-adw-separator/60 group-data-[dragging]/window:bg-adw-titlebar",
             dragRegionHovered || editingTitle
-              ? "border-adw-separator/60 bg-adw-titlebar/95 backdrop-blur-md"
+              ? "border-adw-separator/60 bg-adw-titlebar"
               : "border-transparent bg-transparent",
           )}
         >
@@ -534,7 +534,11 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
         {/* Bottom Floating RoundRect Overlay Controls */}
         <div
           data-window-no-drag
-          className="absolute bottom-3 left-1/2 z-20 flex -translate-x-1/2 items-center gap-1 rounded-xl border border-white/15 bg-zinc-900/80 p-1 text-white shadow-xl backdrop-blur-md"
+          onPointerDown={(e) => e.stopPropagation()}
+          onPointerMove={(e) => e.stopPropagation()}
+          onPointerUp={(e) => e.stopPropagation()}
+          onWheel={(e) => e.stopPropagation()}
+          className="absolute bottom-3 left-1/2 z-20 cursor-default flex -translate-x-1/2 items-center gap-1 rounded-xl border border-white/15 bg-zinc-900/80 p-1 text-white shadow-xl backdrop-blur-md"
         >
           <button
             type="button"

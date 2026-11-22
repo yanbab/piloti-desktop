@@ -300,6 +300,13 @@ export const IsolatedAppFrame: React.FC<IsolatedAppFrameProps> = ({
           )}
         </>
       )}
+      {/* Focus shield: while unfocused, capture pointer events above the iframe so click-to-focus and edge resize work */}
+      <div
+        aria-hidden="true"
+        data-window-focus-shield=""
+        onPointerDown={() => focusWindow(windowId)}
+        className="absolute inset-0 z-20 hidden group-data-[inactive]/window:block"
+      />
       <iframe
         ref={iframeRef}
         src={iframeSrc}
