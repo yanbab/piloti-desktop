@@ -206,12 +206,12 @@ export function AdwSplitView({
                     data-vfs-drop-path={item.dropPath}
                     onClick={item.onClick}
                     className={cn(
-                      "flex min-w-0 flex-1 items-center rounded-[9px] text-left transition-colors outline-none",
+                      "flex items-center rounded-[9px] text-left transition-colors outline-none",
                       isCompact
-                        ? "w-full justify-center px-0"
+                        ? "w-full shrink-0 justify-center px-0"
                         : item.trailingAction
-                          ? "px-2.5 pr-8"
-                          : "w-full px-2.5",
+                          ? "min-w-0 flex-1 px-2.5 pr-8"
+                          : "w-full shrink-0 px-2.5",
                       tall
                         ? isCompact
                           ? "gap-0 py-2 text-[14px]"
