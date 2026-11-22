@@ -7,6 +7,8 @@ export interface WebVfsEntry {
   path: string;
   parentPath: string;
   content?: string;
+  /** True when `content` is stored in IndexedDB instead of the localStorage JSON. */
+  externalContent?: boolean;
   size?: number;
   accessCount?: number;
   trashedFromPath?: string;
@@ -161,6 +163,107 @@ let vfsCacheEntries: WebVfsEntry[] | null = null;
 let vfsCacheByPath: Map<string, WebVfsEntry> | null = null;
 let vfsCacheInMemoryOnly = false;
 
+// --- Large content (media) is stored in IndexedDB so it never hits the localStorage quota ---
+const VFS_BLOB_THRESHOLD = 256 * 1024;
+const VFS_BLOB_DB_NAME = "piloti.web.vfs.blobs.v1";
+const VFS_BLOB_STORE = "contents";
+const persistedBlobs = new Map<string, string>();
+const hydratingBlobs = new Set<string>();
+let blobDbPromise: Promise<IDBDatabase | null> | null = null;
+
+function openBlobDb(): Promise<IDBDatabase | null> {
+  if (blobDbPromise) return blobDbPromise;
+  blobDbPromise = new Promise((resolve) => {
+    if (typeof indexedDB === "undefined") {
+      resolve(null);
+      return;
+    }
+    try {
+      const req = indexedDB.open(VFS_BLOB_DB_NAME, 1);
+      req.onupgradeneeded = () => req.result.createObjectStore(VFS_BLOB_STORE);
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => resolve(null);
+    } catch {
+      resolve(null);
+    }
+  });
+  return blobDbPromise;
+}
+
+async function idbRun<T>(
+  mode: IDBTransactionMode,
+  fn: (store: IDBObjectStore) => IDBRequest<T>,
+): Promise<T | undefined> {
+  const db = await openBlobDb();
+  if (!db) return undefined;
+  return new Promise((resolve) => {
+    try {
+      const req = fn(db.transaction(VFS_BLOB_STORE, mode).objectStore(VFS_BLOB_STORE));
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => resolve(undefined);
+    } catch {
+      resolve(undefined);
+    }
+  });
+}
+
+function isExternalizable(entry: WebVfsEntry): boolean {
+  return (
+    entry.kind === "file" &&
+    typeof entry.content === "string" &&
+    entry.content.length > VFS_BLOB_THRESHOLD
+  );
+}
+
+function syncBlobStore(entries: readonly WebVfsEntry[]): void {
+  const live = new Set<string>();
+  for (const entry of entries) {
+    if (!isExternalizable(entry)) continue;
+    live.add(entry.path);
+    if (persistedBlobs.get(entry.path) !== entry.content) {
+      persistedBlobs.set(entry.path, entry.content as string);
+      void idbRun("readwrite", (store) => store.put(entry.content, entry.path));
+    }
+  }
+  for (const path of [...persistedBlobs.keys()]) {
+    if (!live.has(path)) {
+      persistedBlobs.delete(path);
+      void idbRun("readwrite", (store) => store.delete(path));
+    }
+  }
+}
+
+function hydrateExternalContent(entries: readonly WebVfsEntry[]): void {
+  for (const entry of entries) {
+    if (!entry.externalContent || entry.content !== undefined) continue;
+    const path = entry.path;
+    if (hydratingBlobs.has(path)) continue;
+    hydratingBlobs.add(path);
+    void idbRun("readonly", (store) => store.get(path)).then((value) => {
+      hydratingBlobs.delete(path);
+      const target = vfsCacheByPath?.get(path);
+      if (typeof value === "string" && target && target.content === undefined) {
+        target.content = value;
+        persistedBlobs.set(path, value);
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent(WEB_VFS_CHANGED_EVENT));
+        }
+      }
+    });
+  }
+}
+
+/** Serializes entries for localStorage, omitting large contents stored in IndexedDB. */
+function serializeVfsEntries(entries: readonly WebVfsEntry[]): string {
+  return JSON.stringify(
+    entries.map((entry) => {
+      if (!isExternalizable(entry)) return entry;
+      const { content: _content, ...rest } = entry;
+      return { ...rest, externalContent: true };
+    }),
+  );
+}
+
 function setVfsCache(entries: WebVfsEntry[], raw: string | null): WebVfsEntry[] {
   vfsCacheRaw = raw;
   vfsCacheEntries = entries;
@@ -189,6 +292,12 @@ function loadVfs(): WebVfsEntry[] {
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed)) {
       const entries = parsed as WebVfsEntry[];
+      for (const entry of entries) {
+        if (entry.externalContent && entry.content === undefined) {
+          const previous = vfsCacheByPath?.get(entry.path)?.content;
+          if (previous !== undefined) entry.content = previous;
+        }
+      }
       const welcomeFlagKey = "piloti.web.vfs.welcome.v1";
       if (!localStorage.getItem(welcomeFlagKey)) {
         localStorage.setItem(welcomeFlagKey, "1");
@@ -307,7 +416,9 @@ function loadVfs(): WebVfsEntry[] {
         localStorage.setItem(WEB_VFS_STORAGE_KEY, json);
         return setVfsCache(entries, json);
       }
-      return setVfsCache(entries, raw);
+      setVfsCache(entries, raw);
+      hydrateExternalContent(entries);
+      return entries;
     }
   } catch {
     // ignore corrupted storage and re-seed
@@ -356,7 +467,8 @@ function saveVfs(entries: WebVfsEntry[]): void {
   let json: string | null = null;
   if (typeof localStorage !== "undefined") {
     try {
-      json = JSON.stringify(entries);
+      syncBlobStore(entries);
+      json = serializeVfsEntries(entries);
       localStorage.setItem(WEB_VFS_STORAGE_KEY, json);
       vfsCacheInMemoryOnly = false;
     } catch {

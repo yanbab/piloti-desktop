@@ -467,5 +467,7 @@
   "Discard": "Descartar",
   "Unsaved changes": "Cambios sin guardar",
   "Save Changes?": "¿Guardar cambios?",
-  "This document has unsaved changes. Save before closing?": "Este documento tiene cambios sin guardar. ¿Guardar antes de cerrar?"
+  "This document has unsaved changes. Save before closing?": "Este documento tiene cambios sin guardar. ¿Guardar antes de cerrar?",
+  "Computer Model": "Modelo del equipo",
+  "My english sentence is: %s": "Mi frase en inglés es: %s"
 }

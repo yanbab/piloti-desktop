@@ -465,5 +465,9 @@
   "Discard": "Abandonner",
   "Unsaved changes": "Modifications non enregistrées",
   "Save Changes?": "Enregistrer les modifications ?",
-  "This document has unsaved changes. Save before closing?": "Ce document contient des modifications non enregistrées. Enregistrer avant de fermer ?"
+  "This document has unsaved changes. Save before closing?": "Ce document contient des modifications non enregistrées. Enregistrer avant de fermer ?",
+  "Auto": "Auto",
+  "Browser Extensions": "Extensions du navigateur",
+  "Find": "Rechercher",
+  "Info Page": "Page d’informations"
 }

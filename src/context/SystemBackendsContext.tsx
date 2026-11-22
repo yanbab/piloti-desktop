@@ -17,6 +17,11 @@ import {
 } from "@/lib/engine-native/gnome-background";
 import { startBootPhase } from "@/lib/core/perf-log";
 import { _ } from "@/lib/core/i18n";
+import {
+  captureOpenAction,
+  nextCaptureFilename,
+  parseOpenAction,
+} from "@/lib/shell/capture-files";
 import { toDomicilePath } from "@/lib/engine/fs-bridge";
 import {
   type AudioSinkInfo,
@@ -495,8 +500,8 @@ export function useSystemBackendsValue(
       const isDomicile = domicileNotifs.some((n) => n.id === id);
       if (action === "launcher" && typeof window !== "undefined") {
         window.dispatchEvent(new CustomEvent("piloti:open-launcher"));
-      } else if (action.startsWith("open:") && typeof window !== "undefined") {
-        const path = action.slice("open:".length).trim();
+      } else if (typeof window !== "undefined") {
+        const path = parseOpenAction(action);
         if (path) {
           window.dispatchEvent(
             new CustomEvent("piloti:open-path", { detail: { path } })
@@ -1030,16 +1035,12 @@ export function useSystemBackendsValue(
     : nativeCapturingSessions;
 
   const nextDesktopCaptureFilename = React.useCallback(
-    (prefix: string, ext: string) => {
-      const existing = new Set(
-        listVfsDir(`${WEB_VFS_HOME}/Desktop`).map((e) => e.name)
-      );
-      let n = 1;
-      while (existing.has(`${prefix} ${n}.${ext}`)) {
-        n += 1;
-      }
-      return `${prefix} ${n}.${ext}`;
-    },
+    (prefix: string, ext: string) =>
+      nextCaptureFilename(
+        listVfsDir(`${WEB_VFS_HOME}/Desktop`).map((e) => e.name),
+        prefix,
+        ext,
+      ),
     []
   );
 
@@ -1080,7 +1081,7 @@ export function useSystemBackendsValue(
             appName: "Screenshot",
             summary: "Screenshot Captured",
             body: `Saved to Desktop/${filename}`,
-            actions: [{ key: `open:${savedPath}`, label: _("Open") }],
+            actions: [captureOpenAction(savedPath)],
           });
         } catch {
           const link = document.createElement("a");
@@ -1231,7 +1232,7 @@ export function useSystemBackendsValue(
                   appName: "Screen Recorder",
                   summary: "Screen Recording Saved",
                   body: `Saved to Desktop/${filename}`,
-                  actions: [{ key: `open:${savedPath}`, label: _("Open") }],
+                  actions: [captureOpenAction(savedPath)],
                 });
               } catch {
                 fallbackDownload();
@@ -1273,7 +1274,7 @@ export function useSystemBackendsValue(
           appName: "Screen Recorder",
           summary: "Screen Recording Saved",
           body: filePath,
-          actions: [{ key: `open:${filePath}`, label: _("Open") }],
+          actions: [captureOpenAction(filePath)],
         });
       },
       Err: () => {},
@@ -1340,7 +1341,7 @@ export function useSystemBackendsValue(
                   appName: "Audio Recorder",
                   summary: "Audio Note Saved",
                   body: `Saved to Desktop/${filename}`,
-                  actions: [{ key: `open:${savedPath}`, label: _("Open") }],
+                  actions: [captureOpenAction(savedPath)],
                 });
               })
               .catch(fallbackDownload);
@@ -1365,7 +1366,7 @@ export function useSystemBackendsValue(
                 appName: "Audio Recorder",
                 summary: "Audio Note Saved",
                 body: `Saved to Desktop/${filename}`,
-                actions: [{ key: `open:${savedPath}`, label: _("Open") }],
+                actions: [captureOpenAction(savedPath)],
               });
             } catch {
               fallbackDownload();

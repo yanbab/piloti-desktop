@@ -31,6 +31,7 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { UnsavedChangesDialog } from "@/components/ui/unsaved-changes-dialog";
 import { WindowControls, WindowTitlebar } from "@/components/ui/window";
 import { publishWindowMenuState, useIsolatedAppBridge } from "@/lib/engine/app-bridge";
 import { readFsMetadata, writeFsMetadata } from "@/lib/engine/fs-bridge";
@@ -909,58 +910,22 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
         )}
 
         {confirmCloseOpen && (
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="text-editor-unsaved-title"
-            className="absolute inset-0 z-30 flex items-center justify-center bg-black/45 p-4 backdrop-blur-xs"
-          >
-            <div className="w-full max-w-xs rounded-2xl border border-adw-border bg-adw-card p-5 shadow-2xl">
-              <h2
-                id="text-editor-unsaved-title"
-                className="text-base font-semibold text-adw-label"
-              >
-                {_("Save Changes?")}
-              </h2>
-              <p className="mt-1.5 text-sm text-adw-label-secondary">
-                {_("This document has unsaved changes. Save before closing?")}
-              </p>
-              <div className="mt-5 flex items-center justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setConfirmCloseOpen(false);
-                    forceCloseRef.current = true;
-                    performClose();
-                  }}
-                  className="rounded-lg bg-red-500/12 px-3 py-1.5 text-xs font-medium text-red-500 transition-colors hover:bg-red-500/20"
-                >
-                  {_("Discard")}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setConfirmCloseOpen(false)}
-                  className="rounded-lg bg-black/8 px-3 py-1.5 text-xs font-medium text-adw-label transition-colors hover:bg-black/14 dark:bg-white/10 dark:hover:bg-white/16"
-                >
-                  {_("Cancel")}
-                </button>
-                <button
-                  type="button"
-                  onClick={async () => {
-                    const ok = await handleSave();
-                    if (ok) {
-                      setConfirmCloseOpen(false);
-                      forceCloseRef.current = true;
-                      performClose();
-                    }
-                  }}
-                  className="rounded-lg bg-adw-accent px-3 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-90"
-                >
-                  {_("Save")}
-                </button>
-              </div>
-            </div>
-          </div>
+          <UnsavedChangesDialog
+            onCancel={() => setConfirmCloseOpen(false)}
+            onDiscard={() => {
+              setConfirmCloseOpen(false);
+              forceCloseRef.current = true;
+              performClose();
+            }}
+            onSave={async () => {
+              const ok = await handleSave();
+              if (ok) {
+                setConfirmCloseOpen(false);
+                forceCloseRef.current = true;
+                performClose();
+              }
+            }}
+          />
         )}
       </div>
     </div>

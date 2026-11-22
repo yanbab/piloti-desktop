@@ -243,5 +243,36 @@ describe("web-vfs", () => {
       "metadata::emblems": "[favorite]",
     });
   });
+
+  it("keeps large file content out of the localStorage JSON but readable in memory", () => {
+    const big = "data:video/webm;base64," + "A".repeat(300 * 1024);
+    writeVfsTextFile(`${WEB_VFS_HOME}/Desktop/Big.webm`, big);
+    expect(getVfsEntry(`${WEB_VFS_HOME}/Desktop/Big.webm`)?.content).toBe(big);
+    const raw = localStorage.getItem(WEB_VFS_STORAGE_KEY) ?? "";
+    expect(raw.length).toBeLessThan(big.length);
+    expect(raw).toContain("externalContent");
+  });
+
+  it("keeps the VFS usable in memory when localStorage rejects writes", () => {
+    const original = Object.getOwnPropertyDescriptor(globalThis, "localStorage");
+    const store = new Map<string, string>();
+    Object.defineProperty(globalThis, "localStorage", {
+      configurable: true,
+      value: {
+        getItem: (k: string) => store.get(k) ?? null,
+        setItem: () => {
+          throw new Error("QuotaExceededError");
+        },
+        removeItem: (k: string) => store.delete(k),
+        clear: () => store.clear(),
+      },
+    });
+    try {
+      writeVfsTextFile(`${WEB_VFS_HOME}/Desktop/Quota.txt`, "still here");
+      expect(getVfsEntry(`${WEB_VFS_HOME}/Desktop/Quota.txt`)?.content).toBe("still here");
+    } finally {
+      if (original) Object.defineProperty(globalThis, "localStorage", original);
+    }
+  });
 });
 

@@ -11,6 +11,7 @@ import {
   ZoomOutIcon,
 } from "lucide-react";
 import { WindowMenuButton } from "@/components/shell/WindowMenuButton";
+import { UnsavedChangesDialog } from "@/components/ui/unsaved-changes-dialog";
 import { WindowControls } from "@/components/ui/window";
 import { useIsolatedAppBridge } from "@/lib/engine/app-bridge";
 import { toDomicilePath } from "@/lib/engine/fs-bridge";
@@ -126,6 +127,48 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
       return;
     }
     let cancelled = false;
+    let objectUrl: string | null = null;
+    type NativeFiles = {
+      read: (p: string) => Promise<{
+        match: <R>(h: { Ok: (v: Uint8Array) => R; Err: () => R }) => R;
+      }>;
+    };
+    const nativeFiles =
+      window.parent === window && !isBrowserDevRuntime()
+        ? (window as unknown as {
+            __PILOTI__?: { domicile?: { files?: NativeFiles } };
+          }).__PILOTI__?.domicile?.files
+        : undefined;
+    if (nativeFiles && !activePath.toLowerCase().endsWith(".svg")) {
+      // Native Linux: images are real binary files, so load bytes into a Blob URL.
+      void nativeFiles
+        .read(toDomicilePath(activePath))
+        .then((res) => {
+          const bytes = res.match({
+            Ok: (b) => (b.length > 0 ? b : null),
+            Err: () => null,
+          });
+          if (cancelled || !bytes) return;
+          const ext = activePath.split(".").pop()?.toLowerCase() ?? "png";
+          const mime =
+            ext === "jpg" || ext === "jpeg"
+              ? "image/jpeg"
+              : ext === "gif"
+                ? "image/gif"
+                : ext === "webp"
+                  ? "image/webp"
+                  : "image/png";
+          objectUrl = URL.createObjectURL(
+            new Blob([new Uint8Array(bytes)], { type: mime }),
+          );
+          setImageSrc(objectUrl);
+        })
+        .catch(() => undefined);
+      return () => {
+        cancelled = true;
+        if (objectUrl) URL.revokeObjectURL(objectUrl);
+      };
+    }
     void bridge.fs.readText(activePath).then((content) => {
       if (cancelled || !content) return;
       if (content.startsWith("data:image/")) {
@@ -247,6 +290,42 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
     }
   }, [activePath, bridge.fs, rotation]);
 
+  const [confirmCloseOpen, setConfirmCloseOpen] = React.useState(false);
+  const dirtyRef = React.useRef(false);
+  dirtyRef.current = canSave;
+  const forceCloseRef = React.useRef(false);
+  const performClose = React.useCallback(() => {
+    if (window.parent === window) {
+      window.dispatchEvent(
+        new CustomEvent("piloti:request-animated-close", { detail: { windowId } }),
+      );
+    } else {
+      bridge.closeWindow();
+    }
+  }, [bridge, windowId]);
+  const requestClose = React.useCallback(() => {
+    if (dirtyRef.current && !forceCloseRef.current) {
+      setConfirmCloseOpen(true);
+      return;
+    }
+    performClose();
+  }, [performClose]);
+
+  React.useEffect(() => {
+    if (!windowId) return;
+    const onBeforeClose = (e: Event) => {
+      const detail = (e as CustomEvent<{ windowId?: string }>).detail;
+      if (detail?.windowId !== windowId) return;
+      if (dirtyRef.current && !forceCloseRef.current) {
+        e.preventDefault();
+        setConfirmCloseOpen(true);
+      }
+    };
+    window.addEventListener("piloti:before-close-window", onBeforeClose);
+    return () =>
+      window.removeEventListener("piloti:before-close-window", onBeforeClose);
+  }, [windowId]);
+
   React.useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
@@ -346,7 +425,9 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
           )}
         >
           <div className="flex shrink-0 items-center gap-1.5" data-window-no-drag>
-            {windowId && bridge.isCsd && <WindowControls side="left" />}
+            {windowId && bridge.isCsd && (
+              <WindowControls side="left" onClose={requestClose} />
+            )}
             {windowId && (
               <WindowMenuButton
                 side="left"
@@ -403,7 +484,9 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
                 iconName="sparkles"
               />
             )}
-            {windowId && bridge.isCsd && <WindowControls side="right" />}
+            {windowId && bridge.isCsd && (
+              <WindowControls side="right" onClose={requestClose} />
+            )}
           </div>
         </div>
       </div>
@@ -646,6 +729,22 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
           )}
         </div>
       </div>
+      {confirmCloseOpen && (
+        <UnsavedChangesDialog
+          onCancel={() => setConfirmCloseOpen(false)}
+          onDiscard={() => {
+            setConfirmCloseOpen(false);
+            forceCloseRef.current = true;
+            performClose();
+          }}
+          onSave={async () => {
+            await handleSave();
+            setConfirmCloseOpen(false);
+            forceCloseRef.current = true;
+            performClose();
+          }}
+        />
+      )}
     </div>
   );
 };
