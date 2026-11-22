@@ -5,6 +5,7 @@
 
 override_dh_auto_build:
 	if [ ! -f dist/shell.js ]; then npm run build:shell; fi
+	if [ ! -f dist/greeter.js ]; then npm run build:greeter; fi
 
 override_dh_auto_install:
 	node scripts/build-deb.mjs --stage-only --stage-dir debian/piloti-desktop --skip-build

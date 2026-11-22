@@ -79,6 +79,10 @@ export const DEFAULT_STATIC_DIR_INDEX: Record<string, readonly { name: string; f
       "fileType": 0
     },
     {
+      "name": "piloti-greeter",
+      "fileType": 0
+    },
+    {
       "name": "piloti-image-viewer",
       "fileType": 0
     },
@@ -105,6 +109,18 @@ export const DEFAULT_STATIC_DIR_INDEX: Record<string, readonly { name: string; f
     {
       "name": "piloti-webapp",
       "fileType": 0
+    }
+  ],
+  "/usr/libexec/piloti-desktop": [
+    {
+      "name": "piloti-greetd-client",
+      "fileType": 0
+    }
+  ],
+  "/usr/libexec": [
+    {
+      "name": "piloti-desktop",
+      "fileType": 1
     }
   ],
   "/usr/share/applications": [
@@ -683,6 +699,14 @@ export const DEFAULT_STATIC_DIR_INDEX: Record<string, readonly { name: string; f
     {
       "name": "domicile.json",
       "fileType": 0
+    },
+    {
+      "name": "greetd.toml",
+      "fileType": 0
+    },
+    {
+      "name": "greeter-domicile.json",
+      "fileType": 0
     }
   ],
   "/usr/share/wayland-sessions": [
@@ -720,6 +744,10 @@ export const DEFAULT_STATIC_DIR_INDEX: Record<string, readonly { name: string; f
   "/usr": [
     {
       "name": "bin",
+      "fileType": 1
+    },
+    {
+      "name": "libexec",
       "fileType": 1
     },
     {

@@ -2,7 +2,7 @@
 # piloti — Piloti Desktop CLI & Wayland session launcher
 set -eu
 
-PILOTI_VERSION="0.9.0"
+PILOTI_VERSION="0.10.0"
 PILOTI_SHARE_DIR="${PILOTI_SHARE_DIR:-/usr/share/piloti-desktop}"
 PILOTI_SHELL_BUNDLE="${PILOTI_SHELL_BUNDLE:-${PILOTI_SHARE_DIR}/shell.js}"
 PILOTI_DEFAULT_CONFIG="${PILOTI_DEFAULT_CONFIG:-${PILOTI_SHARE_DIR}/domicile.json}"
@@ -43,6 +43,7 @@ piloti ${PILOTI_VERSION} — Piloti Desktop CLI & Wayland session launcher
 
 Usage:
   piloti [session|start] [domicile args...]   Start Piloti Desktop via Domicile
+  piloti greeter [domicile args...]           Start Piloti Display Manager greeter
   piloti reload [shell.js]                    Hot-reload shell into running session
   piloti which-shell                          Print active Domicile shell path
   piloti open [--app] <app|url|file> [arg]    Open built-in app, URL, or file
@@ -118,6 +119,9 @@ case "${sub}" in
     ;;
   session|start)
     start_session "$@"
+    ;;
+  greeter)
+    exec /usr/bin/piloti-greeter "$@"
     ;;
   reload)
     require_domicile

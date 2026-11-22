@@ -182,7 +182,7 @@ function parseIniGroups(content: string): Record<string, Record<string, string>>
   return groups;
 }
 
-function tokenizeExec(execLine: string): string[] {
+export function tokenizeExec(execLine: string): string[] {
   const unescaped = unescapeXdgValue(execLine.trim());
   const tokens: string[] = [];
   let current = "";

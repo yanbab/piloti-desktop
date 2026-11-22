@@ -9,28 +9,48 @@ import { DesktopBackgroundLayers } from "./DesktopBackgroundLayers";
 
 export function LockScreen() {
   const { isBrowserRuntime, settings } = useSettings();
-  const { locked, notifications, unlockSession, unlockError } =
+  const { locked, notifications, unlockSession, unlockError, unlockRefusal } =
     useSystemBackends();
   const [passphrase, setPassphrase] = React.useState("");
   const [now, setNow] = React.useState(() => new Date());
+  const [retrySeconds, setRetrySeconds] = React.useState(0);
 
   React.useEffect(() => {
     if (!locked) {
       setPassphrase("");
+      setRetrySeconds(0);
       return;
     }
     const timer = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(timer);
   }, [locked]);
 
+  React.useEffect(() => {
+    const ms = unlockRefusal?.retryInMs ?? 0;
+    if (!locked || ms <= 0) {
+      setRetrySeconds(0);
+      return;
+    }
+    const endAt = Date.now() + ms;
+    setRetrySeconds(Math.ceil(ms / 1000));
+    const timer = window.setInterval(() => {
+      const rem = Math.max(0, Math.ceil((endAt - Date.now()) / 1000));
+      setRetrySeconds(rem);
+      if (rem <= 0) window.clearInterval(timer);
+    }, 250);
+    return () => window.clearInterval(timer);
+  }, [locked, unlockRefusal]);
+
   if (!locked) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (retrySeconds > 0) return;
     unlockSession(passphrase);
   };
 
-  const localeTag = getLocale() === "fr" ? "fr-FR" : "en-US";
+  const localeTag =
+    getLocale() === "fr" ? "fr-FR" : getLocale() === "es" ? "es-ES" : "en-US";
 
   return (
     <div className="fixed inset-0 z-[900] flex flex-col items-center justify-center text-white animate-in fade-in-0">
@@ -76,12 +96,16 @@ export function LockScreen() {
 
         {unlockError && (
           <div className="w-full rounded-lg bg-rose-500/20 px-2.5 py-1.5 text-center text-xs text-rose-200 ring-1 ring-rose-400/30">
-            {unlockError}
+            {retrySeconds > 0
+              ? _("%s (try again in %ds)", unlockError, retrySeconds)
+              : unlockError}
           </div>
         )}
 
-        <Button type="submit" className="mt-1 w-full">
-          {_("Unlock")}
+        <Button type="submit" disabled={retrySeconds > 0} className="mt-1 w-full">
+          {retrySeconds > 0
+            ? _("Wait %ds…", retrySeconds)
+            : _("Unlock")}
         </Button>
       </form>
 

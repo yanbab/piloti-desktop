@@ -7,24 +7,34 @@ import {
   FileChooserMode,
   PortalAnswer,
   PortalKind,
+  WallpaperTarget,
   type PortalRequest,
 } from "@domicile-desktop/sdk/portal";
 import { FileType } from "@domicile-desktop/sdk/system";
 import {
+  AlertTriangleIcon,
   AppWindowIcon,
   CameraIcon,
+  EyeIcon,
+  EyeOffIcon,
   FolderIcon,
   FileIcon,
+  ImageIcon,
   KeyboardIcon,
   MonitorIcon,
   PipetteIcon,
   PrinterIcon,
   ShieldCheckIcon,
   SparklesIcon,
+  UsbIcon,
+  UserIcon,
   VideoIcon,
+  XIcon,
 } from "lucide-react";
 import { useApps, useSettings } from "@/context/DesktopStateContext";
+import { _ } from "@/lib/i18n";
 import { listVfsDir } from "@/lib/web-vfs";
+import { setDefaultMimeApp } from "@/lib/xdg/xdg-mimeapps";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -200,24 +210,39 @@ function ScreenCastPortalDialog({
         <div className="mb-3 flex items-center gap-2.5">
           <VideoIcon className="size-5 text-adw-accent" />
           <div>
-            <h3 className="text-[14px] font-bold">Share Screen or Window</h3>
+            <h3 className="text-[14px] font-bold">{_("Share Screen or Window")}</h3>
             <p className="text-[11px] text-adw-label-secondary">
-              Requested by {request.appId || "Application"}
+              {_("Requested by %s", request.appId || _("Application"))}
             </p>
           </div>
         </div>
+
+        {request.body.desk && (
+          <div className="mb-3 overflow-hidden rounded-lg border border-adw-separator/70 bg-black/30">
+            <img
+              src={request.body.desk.frame}
+              alt={_("Desktop preview")}
+              className="max-h-32 w-full object-contain"
+              draggable={false}
+            />
+          </div>
+        )}
 
         <div className="max-h-64 space-y-1.5 overflow-y-auto py-1">
           {request.body.sources.map((src, idx) => {
             const active = selected.has(idx);
             const label =
               src.kind === CastSourceKind.Monitor
-                ? `Display: ${src.description || src.name}`
+                ? `${_("Display")}: ${src.description || src.name}`
                 : src.kind === CastSourceKind.Window
-                  ? `Window: ${src.title || src.appId || src.id}`
+                  ? `${_("Window")}: ${src.title || src.appId || src.id}`
                   : src.kind === CastSourceKind.BrowserWindow
-                    ? `Browser: ${src.title}`
-                    : "Selected Region";
+                    ? `${_("Browser")}: ${src.title}`
+                    : _("Selected Region");
+            const meta =
+              src.kind === CastSourceKind.Monitor
+                ? `${src.size[0]}×${src.size[1]}`
+                : undefined;
 
             return (
               <button
@@ -232,7 +257,12 @@ function ScreenCastPortalDialog({
                 )}
               >
                 <MonitorIcon className="size-4 shrink-0" />
-                <span className="truncate font-medium">{label}</span>
+                <span className="min-w-0 flex-1 truncate font-medium">{label}</span>
+                {meta && (
+                  <span className="shrink-0 font-mono text-[10.5px] opacity-75">
+                    {meta}
+                  </span>
+                )}
               </button>
             );
           })}
@@ -311,6 +341,7 @@ function FileChooserPortalDialog({
   >([]);
   const [selectedPaths, setSelectedPaths] = React.useState<string[]>([]);
   const [saveName, setSaveName] = React.useState(body.currentName ?? "");
+  const [showHidden, setShowHidden] = React.useState(false);
   const [filterIdx, setFilterIdx] = React.useState<number>(
     body.currentFilter ?? 0
   );
@@ -324,7 +355,7 @@ function FileChooserPortalDialog({
     const load = async () => {
       if (isBrowserRuntime) {
         const list = listVfsDir(cwd)
-          .filter((e) => !e.name.startsWith("."))
+          .filter((e) => showHidden || !e.name.startsWith("."))
           .map((e) => ({
             name: e.name,
             path: e.path,
@@ -337,7 +368,7 @@ function FileChooserPortalDialog({
       const list = res.match({
         Ok: (items) =>
           items
-            .filter((i) => i.name && !i.name.startsWith("."))
+            .filter((i) => i.name && (showHidden || !i.name.startsWith(".")))
             .map((i) => ({
               name: i.name,
               path: `${cwd.replace(/\/$/, "")}/${i.name}`,
@@ -351,7 +382,7 @@ function FileChooserPortalDialog({
     return () => {
       active = false;
     };
-  }, [cwd, domicile.files, isBrowserRuntime]);
+  }, [cwd, domicile.files, isBrowserRuntime, showHidden]);
 
   const activeFilter = body.filters[filterIdx];
   const visibleEntries = React.useMemo(() => {
@@ -396,39 +427,63 @@ function FileChooserPortalDialog({
     );
   };
 
+  const homeBase = (body.home || "/home/user").replace(/\/$/, "");
   const places = [
-    { label: "Home", path: body.home },
-    { label: "Desktop", path: `${body.home}/Desktop` },
-    { label: "Documents", path: `${body.home}/Documents` },
-    { label: "Downloads", path: `${body.home}/Downloads` },
+    { label: _("Home"), path: homeBase },
+    { label: _("Desktop"), path: `${homeBase}/Desktop` },
+    { label: _("Documents"), path: `${homeBase}/Documents` },
+    { label: _("Downloads"), path: `${homeBase}/Downloads` },
+    { label: _("Pictures"), path: `${homeBase}/Pictures` },
+    { label: _("Music"), path: `${homeBase}/Music` },
+    { label: _("Videos"), path: `${homeBase}/Videos` },
   ];
 
   return (
     <div className="fixed inset-0 z-[800] flex items-center justify-center bg-black/45 p-4">
-      <div className="flex max-h-[82vh] w-full max-w-[580px] flex-col overflow-hidden rounded-adw-menu text-adw-label shadow-adw-menu adw-material-menu">
-        <div className="flex items-center justify-between border-b border-adw-separator px-4 py-3">
-          <div>
+      <div className="flex max-h-[82vh] w-full max-w-[600px] flex-col overflow-hidden rounded-adw-menu text-adw-label shadow-adw-menu adw-material-menu">
+        <div className="flex items-center justify-between gap-2 border-b border-adw-separator px-4 py-3">
+          <div className="min-w-0">
             <h3 className="text-[14px] font-bold">
               {body.title ||
-                (body.mode === FileChooserMode.Save ? "Save File" : "Open File")}
+                (body.mode === FileChooserMode.Save
+                  ? _("Save File")
+                  : body.mode === FileChooserMode.SaveFiles
+                    ? _("Save Files")
+                    : body.directory
+                      ? _("Select Folder")
+                      : _("Open File"))}
             </h3>
             <p className="truncate font-mono text-[11px] text-adw-label-secondary">
               {cwd}
             </p>
           </div>
-          {cwd !== "/" && (
+          <div className="flex shrink-0 items-center gap-1.5">
             <Button
               size="sm"
-              variant="secondary"
-              onClick={() => {
-                const parent = cwd.slice(0, cwd.lastIndexOf("/")) || "/";
-                setCwd(parent);
-                setSelectedPaths([]);
-              }}
+              variant={showHidden ? "default" : "secondary"}
+              onClick={() => setShowHidden((v) => !v)}
+              title={_("Toggle hidden files")}
             >
-              Up
+              {showHidden ? (
+                <EyeIcon className="size-3.5" />
+              ) : (
+                <EyeOffIcon className="size-3.5" />
+              )}
             </Button>
-          )}
+            {cwd !== "/" && (
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => {
+                  const parent = cwd.slice(0, cwd.lastIndexOf("/")) || "/";
+                  setCwd(parent);
+                  setSelectedPaths([]);
+                }}
+              >
+                {_("Up")}
+              </Button>
+            )}
+          </div>
         </div>
 
         <div className="flex min-h-[260px] flex-1 overflow-hidden">
@@ -524,15 +579,30 @@ function FileChooserPortalDialog({
         </div>
 
         <div className="space-y-2 border-t border-adw-separator px-4 py-3">
+          {body.mode === FileChooserMode.SaveFiles && body.files.length > 0 && (
+            <div className="rounded-md bg-black/5 px-2.5 py-1.5 text-[11px] text-adw-label-secondary dark:bg-white/8">
+              {_("Files to save (%d):", body.files.length)}{" "}
+              <span className="font-mono text-adw-label">
+                {body.files.slice(0, 4).join(", ")}
+                {body.files.length > 4 ? ` +${body.files.length - 4}` : ""}
+              </span>
+            </div>
+          )}
           {body.mode === FileChooserMode.Save && (
             <div className="flex items-center gap-2">
               <span className="text-xs font-medium text-adw-label-secondary">
-                Name
+                {_("Name")}
               </span>
               <input
                 type="text"
                 value={saveName}
                 onChange={(e) => setSaveName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && canConfirm) {
+                    e.preventDefault();
+                    confirm();
+                  }
+                }}
                 className="h-7 flex-1 rounded-md border border-adw-separator bg-black/5 px-2 text-xs text-adw-label outline-none focus:border-adw-accent dark:bg-white/10"
               />
             </div>
@@ -626,18 +696,37 @@ function AppChooserPortalDialog({
   request: Extract<PortalRequest, { kind: PortalKind.AppChooser }>;
   onAnswer: (ans: PortalAnswer) => void;
 }) {
+  const domicile = useDomicile();
+  const { isBrowserRuntime } = useSettings();
   const { installedXdgApps } = useApps();
   const [selected, setSelected] = React.useState(
     request.body.lastChoice ?? request.body.choices[0] ?? ""
   );
+  const [rememberDefault, setRememberDefault] = React.useState(false);
+
+  const confirmChoice = (choice: string) => {
+    if (!choice) return;
+    if (rememberDefault && request.body.contentType) {
+      const desktopId = choice.endsWith(".desktop")
+        ? choice
+        : `${choice}.desktop`;
+      void setDefaultMimeApp(
+        domicile,
+        isBrowserRuntime,
+        request.body.contentType,
+        desktopId
+      ).catch(() => undefined);
+    }
+    onAnswer(PortalAnswer.AppChooser(choice));
+  };
 
   return (
     <div className="fixed inset-0 z-[800] flex items-center justify-center bg-black/45 p-4">
       <div className="w-full max-w-[380px] rounded-adw-menu p-5 text-adw-label shadow-adw-menu adw-material-menu">
         <div className="mb-3 flex items-center gap-2.5">
           <AppWindowIcon className="size-5 text-adw-accent" />
-          <div>
-            <h3 className="text-[14px] font-bold">Open With</h3>
+          <div className="min-w-0">
+            <h3 className="text-[14px] font-bold">{_("Open With")}</h3>
             <p className="truncate text-[11px] text-adw-label-secondary">
               {request.body.filename || request.body.contentType || request.body.uri}
             </p>
@@ -653,7 +742,7 @@ function AppChooserPortalDialog({
                 key={choice}
                 type="button"
                 onClick={() => setSelected(choice)}
-                onDoubleClick={() => onAnswer(PortalAnswer.AppChooser(choice))}
+                onDoubleClick={() => confirmChoice(choice)}
                 className={cn(
                   "flex w-full items-center gap-2.5 rounded-lg border px-3 py-2 text-left text-xs transition-colors",
                   selected === choice
@@ -671,20 +760,30 @@ function AppChooserPortalDialog({
             );
           })}
         </div>
+        {request.body.contentType && (
+          <label className="mt-3 flex items-center gap-2 text-xs text-adw-label-secondary">
+            <input
+              type="checkbox"
+              checked={rememberDefault}
+              onChange={(e) => setRememberDefault(e.target.checked)}
+            />
+            <span>{_("Always use for %s", request.body.contentType)}</span>
+          </label>
+        )}
         <div className="mt-4 flex justify-end gap-2">
           <Button
             size="sm"
             variant="secondary"
             onClick={() => onAnswer(PortalAnswer.Canceled())}
           >
-            Cancel
+            {_("Cancel")}
           </Button>
           <Button
             size="sm"
             disabled={!selected}
-            onClick={() => onAnswer(PortalAnswer.AppChooser(selected))}
+            onClick={() => confirmChoice(selected)}
           >
-            Open
+            {_("Open")}
           </Button>
         </div>
       </div>
@@ -750,6 +849,29 @@ function DynamicLauncherPortalDialog({
   );
 }
 
+function formatKeyboardEventChord(e: React.KeyboardEvent): string | null {
+  const key = e.key;
+  if (
+    key === "Control" ||
+    key === "Alt" ||
+    key === "Shift" ||
+    key === "Meta" ||
+    key === "OS" ||
+    key === "Super"
+  ) {
+    return null;
+  }
+  const parts: string[] = [];
+  if (e.metaKey) parts.push("Super");
+  if (e.ctrlKey) parts.push("Ctrl");
+  if (e.altKey) parts.push("Alt");
+  if (e.shiftKey) parts.push("Shift");
+  const normalizedKey =
+    key === " " ? "Space" : key.length === 1 ? key.toUpperCase() : key;
+  parts.push(normalizedKey);
+  return parts.join("+");
+}
+
 function GlobalShortcutsPortalDialog({
   request,
   onAnswer,
@@ -763,40 +885,111 @@ function GlobalShortcutsPortalDialog({
         request.body.shortcuts.map((s) => [s.id, s.trigger])
       )
   );
+  const [recordingId, setRecordingId] = React.useState<string | null>(null);
+
+  const takenMap = React.useMemo(() => {
+    const map = new Map<string, string>();
+    for (const t of request.body.taken) {
+      map.set(t.chord.toLowerCase(), t.appId);
+    }
+    return map;
+  }, [request.body.taken]);
 
   return (
     <div className="fixed inset-0 z-[800] flex items-center justify-center bg-black/45 p-4">
-      <div className="w-full max-w-[440px] rounded-adw-menu p-5 text-adw-label shadow-adw-menu adw-material-menu">
+      <div className="w-full max-w-[460px] rounded-adw-menu p-5 text-adw-label shadow-adw-menu adw-material-menu">
         <div className="mb-3 flex items-center gap-2.5">
           <KeyboardIcon className="size-5 text-adw-accent" />
           <div>
-            <h3 className="text-[14px] font-bold">Global Shortcuts</h3>
+            <h3 className="text-[14px] font-bold">{_("Global Shortcuts")}</h3>
             <p className="text-[11px] text-adw-label-secondary">
-              {request.appId || "Application"} requests global shortcuts
+              {_("%s requests global shortcuts", request.appId || _("Application"))}
             </p>
           </div>
         </div>
-        <div className="max-h-60 space-y-2 overflow-y-auto">
-          {request.body.shortcuts.map((sc) => (
-            <div
-              key={sc.id}
-              className="flex items-center justify-between gap-2 rounded-lg border border-adw-separator/60 px-3 py-2"
-            >
-              <span className="truncate text-xs">{sc.description || sc.id}</span>
-              <input
-                type="text"
-                value={triggers[sc.id] ?? ""}
-                placeholder="None"
-                onChange={(e) =>
-                  setTriggers((prev) => ({
-                    ...prev,
-                    [sc.id]: e.target.value || undefined,
-                  }))
-                }
-                className="h-6 w-28 rounded border border-adw-separator bg-black/5 px-2 text-center font-mono text-[11px] outline-none focus:border-adw-accent dark:bg-white/10"
-              />
-            </div>
-          ))}
+        <div className="max-h-64 space-y-2 overflow-y-auto">
+          {request.body.shortcuts.map((sc) => {
+            const currentChord = triggers[sc.id];
+            const conflictApp = currentChord
+              ? takenMap.get(currentChord.toLowerCase())
+              : undefined;
+            const isRecording = recordingId === sc.id;
+            return (
+              <div
+                key={sc.id}
+                className="flex flex-col gap-1 rounded-lg border border-adw-separator/60 px-3 py-2"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="truncate text-xs font-medium">
+                    {sc.description || sc.id}
+                  </span>
+                  <div className="flex shrink-0 items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setRecordingId(isRecording ? null : sc.id)
+                      }
+                      onKeyDown={(e) => {
+                        if (!isRecording) return;
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (e.key === "Escape") {
+                          setRecordingId(null);
+                          return;
+                        }
+                        if (e.key === "Backspace" || e.key === "Delete") {
+                          setTriggers((prev) => ({
+                            ...prev,
+                            [sc.id]: undefined,
+                          }));
+                          setRecordingId(null);
+                          return;
+                        }
+                        const chord = formatKeyboardEventChord(e);
+                        if (chord) {
+                          setTriggers((prev) => ({ ...prev, [sc.id]: chord }));
+                          setRecordingId(null);
+                        }
+                      }}
+                      className={cn(
+                        "h-6 min-w-[96px] rounded border px-2 text-center font-mono text-[11px] outline-none transition-colors",
+                        isRecording
+                          ? "border-adw-accent bg-adw-accent/15 text-adw-accent"
+                          : "border-adw-separator bg-black/5 hover:bg-black/10 dark:bg-white/10 dark:hover:bg-white/15"
+                      )}
+                    >
+                      {isRecording
+                        ? _("Press keys…")
+                        : currentChord || _("Unassigned")}
+                    </button>
+                    {currentChord && (
+                      <button
+                        type="button"
+                        aria-label={_("Clear shortcut")}
+                        onClick={() =>
+                          setTriggers((prev) => ({
+                            ...prev,
+                            [sc.id]: undefined,
+                          }))
+                        }
+                        className="flex size-6 items-center justify-center rounded text-adw-label-secondary hover:bg-black/10 dark:hover:bg-white/15"
+                      >
+                        <XIcon className="size-3" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+                {conflictApp && (
+                  <div className="flex items-center gap-1 text-[10.5px] text-amber-600 dark:text-amber-400">
+                    <AlertTriangleIcon className="size-3 shrink-0" />
+                    <span>
+                      {_("Already used by %s", conflictApp)}
+                    </span>
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
         <div className="mt-4 flex justify-end gap-2">
           <Button
@@ -804,7 +997,7 @@ function GlobalShortcutsPortalDialog({
             variant="secondary"
             onClick={() => onAnswer(PortalAnswer.Canceled())}
           >
-            Cancel
+            {_("Cancel")}
           </Button>
           <Button
             size="sm"
@@ -819,7 +1012,7 @@ function GlobalShortcutsPortalDialog({
               )
             }
           >
-            Save
+            {_("Save")}
           </Button>
         </div>
       </div>
@@ -1022,6 +1215,293 @@ function PrintPortalDialog({
   );
 }
 
+function PickColorPortalOverlay({
+  onAnswer,
+}: {
+  onAnswer: (ans: PortalAnswer) => void;
+}) {
+  const [cursor, setCursor] = React.useState<{ x: number; y: number } | null>(
+    null
+  );
+
+  return (
+    <div
+      className="fixed inset-0 z-[800] flex cursor-crosshair items-center justify-center bg-black/15 select-none"
+      onPointerMove={(e) =>
+        setCursor({
+          x: Math.max(0, Math.round(e.clientX)),
+          y: Math.max(0, Math.round(e.clientY)),
+        })
+      }
+      onClick={(e) => {
+        onAnswer(
+          PortalAnswer.PickColor({
+            x: Math.max(0, Math.round(e.clientX)),
+            y: Math.max(0, Math.round(e.clientY)),
+          })
+        );
+      }}
+    >
+      <div className="pointer-events-none flex items-center gap-2 rounded-full bg-zinc-900/90 px-4 py-2 text-xs font-medium text-white shadow-xl ring-1 ring-white/15">
+        <PipetteIcon className="size-4 text-sky-400" />
+        <span>
+          {_("Click anywhere to sample pixel color (Esc to cancel)")}
+        </span>
+      </div>
+      {cursor && (
+        <div
+          style={{
+            left: `${Math.min(window.innerWidth - 110, cursor.x + 16)}px`,
+            top: `${Math.min(window.innerHeight - 36, cursor.y + 16)}px`,
+          }}
+          className="pointer-events-none fixed flex items-center gap-1.5 rounded-full bg-zinc-900/92 px-2.5 py-1 font-mono text-[11px] text-white shadow-lg ring-1 ring-white/20"
+        >
+          <PipetteIcon className="size-3 text-sky-400" />
+          <span>
+            {cursor.x}, {cursor.y}
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+type PermissionPortalRequest = Extract<
+  PortalRequest,
+  {
+    kind:
+      | PortalKind.Access
+      | PortalKind.Account
+      | PortalKind.Wallpaper
+      | PortalKind.InputCapture
+      | PortalKind.Usb;
+  }
+>;
+
+function PermissionPortalDialog({
+  request,
+  onAnswer,
+}: {
+  request: PermissionPortalRequest;
+  onAnswer: (ans: PortalAnswer) => void;
+}) {
+  const domicile = useDomicile();
+  const { isBrowserRuntime } = useSettings();
+  const [wallpaperPreviewUrl, setWallpaperPreviewUrl] = React.useState<
+    string | null
+  >(null);
+
+  React.useEffect(() => {
+    if (request.kind !== PortalKind.Wallpaper || isBrowserRuntime) {
+      setWallpaperPreviewUrl(null);
+      return;
+    }
+    let active = true;
+    void domicile.files
+      .read(request.body.path)
+      .then((res) => {
+        if (!active) return;
+        const bytes = res.match({ Ok: (b) => b, Err: () => null });
+        if (!bytes || bytes.length === 0) return;
+        const ext = request.body.path.toLowerCase();
+        const mime = ext.endsWith(".png")
+          ? "image/png"
+          : ext.endsWith(".webp")
+            ? "image/webp"
+            : ext.endsWith(".svg")
+              ? "image/svg+xml"
+              : "image/jpeg";
+        const copy = new Uint8Array(bytes.byteLength);
+        copy.set(bytes);
+        const url = URL.createObjectURL(new Blob([copy], { type: mime }));
+        setWallpaperPreviewUrl(url);
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [domicile.files, isBrowserRuntime, request]);
+
+  React.useEffect(() => {
+    return () => {
+      if (wallpaperPreviewUrl) URL.revokeObjectURL(wallpaperPreviewUrl);
+    };
+  }, [wallpaperPreviewUrl]);
+
+  let title = _("Permission Request");
+  let subtitle = request.appId || _("System Application");
+  let bodyText: string | undefined;
+  let grantLabel = _("Allow");
+  let denyLabel = _("Deny");
+  let destructive = false;
+  let icon: React.ReactNode = (
+    <ShieldCheckIcon className="size-5 shrink-0 text-adw-accent" />
+  );
+
+  if (request.kind === PortalKind.Access) {
+    title = request.body.title || title;
+    subtitle = request.body.subtitle || subtitle;
+    bodyText = request.body.body || undefined;
+    grantLabel = request.body.grantLabel || grantLabel;
+    denyLabel = request.body.denyLabel || denyLabel;
+    destructive = Boolean(request.body.destructive);
+    if (destructive) {
+      icon = <AlertTriangleIcon className="size-5 shrink-0 text-rose-500" />;
+    }
+  } else if (request.kind === PortalKind.Account) {
+    title = _("Share Account Information?");
+    bodyText =
+      request.body.reason ||
+      _("Allow %s to access your user name and profile picture.", subtitle);
+    icon = <UserIcon className="size-5 shrink-0 text-adw-accent" />;
+  } else if (request.kind === PortalKind.Wallpaper) {
+    title = _("Set Desktop Wallpaper?");
+    const targetLabel =
+      request.body.setOn === WallpaperTarget.Lockscreen
+        ? _("Lock Screen")
+        : request.body.setOn === WallpaperTarget.Both
+          ? _("Desktop & Lock Screen")
+          : _("Desktop Background");
+    bodyText = _("Apply image to %s.", targetLabel);
+    grantLabel = _("Set Wallpaper");
+    icon = <ImageIcon className="size-5 shrink-0 text-adw-accent" />;
+  } else if (request.kind === PortalKind.Usb) {
+    title = _("Allow USB Device Access?");
+    bodyText = _(
+      "%s wants to access the following USB devices:",
+      subtitle
+    );
+    icon = <UsbIcon className="size-5 shrink-0 text-adw-accent" />;
+  } else if (request.kind === PortalKind.InputCapture) {
+    title = _("Allow Input Capture?");
+    bodyText = _(
+      "%s requests permission to capture pointer or keyboard input across screen edges.",
+      subtitle
+    );
+  }
+
+  return (
+    <div className="fixed inset-0 z-[800] flex items-center justify-center bg-black/45 p-4">
+      <div className="w-full max-w-[400px] rounded-adw-menu p-5 text-adw-label shadow-adw-menu adw-material-menu">
+        <div className="mb-3 flex items-center gap-2.5">
+          {icon}
+          <div className="min-w-0">
+            <h3 className="text-[14px] font-bold">{title}</h3>
+            <p className="truncate text-[11px] text-adw-label-secondary">
+              {subtitle}
+            </p>
+          </div>
+        </div>
+
+        {bodyText && (
+          <p className="mb-3 text-xs leading-relaxed text-adw-label-secondary">
+            {bodyText}
+          </p>
+        )}
+
+        {request.kind === PortalKind.Account && request.body.name && (
+          <div className="mb-3 flex items-center gap-2.5 rounded-lg bg-black/5 px-3 py-2 text-xs dark:bg-white/8">
+            <UserIcon className="size-4 text-adw-accent" />
+            <span className="font-medium">{request.body.name}</span>
+          </div>
+        )}
+
+        {request.kind === PortalKind.Wallpaper && (
+          <div className="mb-3 space-y-1.5">
+            {wallpaperPreviewUrl && (
+              <div className="overflow-hidden rounded-lg border border-adw-separator/70 bg-black/25">
+                <img
+                  src={wallpaperPreviewUrl}
+                  alt={_("Wallpaper preview")}
+                  className="max-h-36 w-full object-cover"
+                />
+              </div>
+            )}
+            <p className="truncate font-mono text-[11px] text-adw-label-secondary">
+              {request.body.path}
+            </p>
+          </div>
+        )}
+
+        {request.kind === PortalKind.Usb && request.body.devices.length > 0 && (
+          <div className="mb-3 max-h-40 space-y-1 overflow-y-auto">
+            {request.body.devices.map((dev) => (
+              <div
+                key={dev.id}
+                className="flex items-center justify-between gap-2 rounded-lg bg-black/5 px-2.5 py-1.5 text-xs dark:bg-white/8"
+              >
+                <div className="min-w-0">
+                  <div className="truncate font-medium">
+                    {dev.product || dev.id}
+                  </div>
+                  {dev.vendor && (
+                    <div className="truncate text-[10.5px] text-adw-label-secondary">
+                      {dev.vendor}
+                    </div>
+                  )}
+                </div>
+                <span
+                  className={cn(
+                    "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium",
+                    dev.writable
+                      ? "bg-amber-500/20 text-amber-700 dark:text-amber-300"
+                      : "bg-black/8 text-adw-label-secondary dark:bg-white/10"
+                  )}
+                >
+                  {dev.writable ? _("Read/Write") : _("Read-Only")}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {request.kind === PortalKind.InputCapture && (
+          <div className="mb-3 flex flex-wrap gap-1.5">
+            {request.body.devices.keyboard && (
+              <span className="rounded-full bg-black/8 px-2.5 py-0.5 text-[11px] font-medium dark:bg-white/10">
+                {_("Keyboard")}
+              </span>
+            )}
+            {request.body.devices.pointer && (
+              <span className="rounded-full bg-black/8 px-2.5 py-0.5 text-[11px] font-medium dark:bg-white/10">
+                {_("Pointer")}
+              </span>
+            )}
+            {request.body.devices.touchscreen && (
+              <span className="rounded-full bg-black/8 px-2.5 py-0.5 text-[11px] font-medium dark:bg-white/10">
+                {_("Touchscreen")}
+              </span>
+            )}
+          </div>
+        )}
+
+        <div className="mt-4 flex justify-end gap-2">
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => onAnswer(PortalAnswer.Canceled())}
+          >
+            {denyLabel}
+          </Button>
+          <Button
+            size="sm"
+            variant={destructive ? "destructive" : "default"}
+            onClick={() =>
+              onAnswer(
+                request.kind === PortalKind.InputCapture
+                  ? PortalAnswer.InputCapture()
+                  : PortalAnswer.Access()
+              )
+            }
+          >
+            {grantLabel}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function PortalDialogs() {
   const domicile = useDomicile();
   const requests = usePortalRequests();
@@ -1047,6 +1527,22 @@ export function PortalDialogs() {
   const current = requests?.find(
     (r) => r.kind !== PortalKind.Inhibit && !dismissedIds.has(r.id)
   );
+
+  React.useEffect(() => {
+    if (!current) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== "Escape" || e.defaultPrevented) return;
+      e.preventDefault();
+      domicile.portals.answer(
+        current.id,
+        current.kind === PortalKind.Unknown
+          ? PortalAnswer.Refused()
+          : PortalAnswer.Canceled()
+      );
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [current, domicile.portals]);
 
   if (!current) return null;
 
@@ -1096,24 +1592,7 @@ export function PortalDialogs() {
   }
 
   if (current.kind === PortalKind.PickColor) {
-    return (
-      <div
-        className="fixed inset-0 z-[800] flex cursor-crosshair items-center justify-center bg-black/20"
-        onClick={(e) => {
-          answer(
-            PortalAnswer.PickColor({
-              x: Math.max(0, Math.round(e.clientX)),
-              y: Math.max(0, Math.round(e.clientY)),
-            })
-          );
-        }}
-      >
-        <div className="pointer-events-none flex items-center gap-2 rounded-full bg-zinc-900/90 px-4 py-2 text-xs font-medium text-white shadow-xl">
-          <PipetteIcon className="size-4 text-sky-400" />
-          <span>Click anywhere to sample pixel color (Esc to cancel)</span>
-        </div>
-      </div>
-    );
+    return <PickColorPortalOverlay onAnswer={answer} />;
   }
 
   if (
@@ -1123,52 +1602,7 @@ export function PortalDialogs() {
     current.kind === PortalKind.InputCapture ||
     current.kind === PortalKind.Usb
   ) {
-    const title =
-      current.kind === PortalKind.Wallpaper
-        ? "Set Desktop Wallpaper?"
-        : current.kind === PortalKind.Account
-          ? "Share Account Information?"
-          : current.kind === PortalKind.Usb
-            ? "Allow USB Device Access?"
-            : "Permission Request";
-
-    return (
-      <div className="fixed inset-0 z-[800] flex items-center justify-center bg-black/45 p-4">
-        <div className="w-full max-w-[380px] rounded-adw-menu p-5 text-adw-label shadow-adw-menu adw-material-menu">
-          <div className="mb-3 flex items-center gap-2.5">
-            <ShieldCheckIcon className="size-5 text-adw-accent" />
-            <div>
-              <h3 className="text-[14px] font-bold">{title}</h3>
-              <p className="text-[11px] text-adw-label-secondary">
-                {current.appId || "System Application"}
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-4 flex justify-end gap-2">
-            <Button
-              size="sm"
-              variant="secondary"
-              onClick={() => answer(PortalAnswer.Canceled())}
-            >
-              Deny
-            </Button>
-            <Button
-              size="sm"
-              onClick={() =>
-                answer(
-                  current.kind === PortalKind.InputCapture
-                    ? PortalAnswer.InputCapture()
-                    : PortalAnswer.Access()
-                )
-              }
-            >
-              Allow
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
+    return <PermissionPortalDialog request={current} onAnswer={answer} />;
   }
 
   // Fallback for unhandled portal request kinds (e.g. AppChooser / FileChooser / Print)

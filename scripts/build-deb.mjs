@@ -50,7 +50,11 @@ export function shouldIncludeDataFile(relPath) {
 
 function getDesiredFileMode(relPath, srcStat) {
   const norm = relPath.replace(/\\/g, "/").replace(/^\/+/, "");
-  if (norm.startsWith("usr/bin/") || norm.startsWith("usr/sbin/")) {
+  if (
+    norm.startsWith("usr/bin/") ||
+    norm.startsWith("usr/sbin/") ||
+    norm.startsWith("usr/libexec/")
+  ) {
     return 0o755;
   }
   return srcStat && (srcStat.mode & 0o111) ? 0o755 : 0o644;
@@ -87,6 +91,7 @@ export function stagePackageRoot({
   repoRoot = REPO_ROOT,
   stageDir,
   shellBundlePath = path.join(repoRoot, "dist", "shell.js"),
+  greeterBundlePath = path.join(repoRoot, "dist", "greeter.js"),
   version,
 } = {}) {
   if (!stageDir) {
@@ -132,6 +137,21 @@ export function stagePackageRoot({
   fs.writeFileSync(shellDst, shellBytes, { mode: 0o644 });
   fs.chmodSync(shellDst, 0o644);
   stagedFiles.push({ rel: shellDstRel, mode: 0o644, size: shellBytes.length });
+
+  // Install standalone Display Manager greeter bundle when built
+  if (greeterBundlePath && fs.existsSync(greeterBundlePath)) {
+    const greeterDstRel = "usr/share/piloti-desktop/greeter.js";
+    const greeterDst = path.join(stageDir, greeterDstRel);
+    fs.mkdirSync(path.dirname(greeterDst), { recursive: true });
+    const greeterBytes = fs.readFileSync(greeterBundlePath);
+    fs.writeFileSync(greeterDst, greeterBytes, { mode: 0o644 });
+    fs.chmodSync(greeterDst, 0o644);
+    stagedFiles.push({
+      rel: greeterDstRel,
+      mode: 0o644,
+      size: greeterBytes.length,
+    });
+  }
 
   // Install Debian docs (copyright + compressed changelog)
   const docDirRel = "usr/share/doc/piloti-desktop";
@@ -182,7 +202,7 @@ function generateDebianControl({ version, installedSizeKiB, repoRoot }) {
     "Architecture: all",
     "Depends: domicile",
     "Recommends: xwayland-satellite, papirus-icon-theme, adwaita-icon-theme, hicolor-icon-theme, xdg-utils, dbus-user-session",
-    "Suggests: gnome-control-center, flatpak, network-manager, pipewire",
+    "Suggests: greetd, gnome-control-center, flatpak, network-manager, pipewire",
     "Provides: wayland-session",
     `Installed-Size: ${installedSizeKiB}`,
     `Maintainer: ${maintainer}`,
@@ -403,12 +423,17 @@ export function buildDebPackage({
   stageDir,
   outPath,
   shellBundlePath = path.join(repoRoot, "dist", "shell.js"),
+  greeterBundlePath = path.join(repoRoot, "dist", "greeter.js"),
 } = {}) {
   const pkg = readPackageJson(repoRoot);
   const version = pkg.version || "0.9.0";
 
   if (!skipBuild) {
     execFileSync("npm", ["run", "build:shell"], {
+      cwd: repoRoot,
+      stdio: "inherit",
+    });
+    execFileSync("npm", ["run", "build:greeter"], {
       cwd: repoRoot,
       stdio: "inherit",
     });
@@ -423,6 +448,7 @@ export function buildDebPackage({
       repoRoot,
       stageDir: resolvedStageDir,
       shellBundlePath,
+      greeterBundlePath,
       version,
     });
 

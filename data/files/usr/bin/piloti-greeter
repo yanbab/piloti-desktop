@@ -1,0 +1,23 @@
+#!/bin/sh
+# piloti-greeter — Standalone Display Manager greeter launcher for greetd
+set -eu
+
+PILOTI_SHARE_DIR="${PILOTI_SHARE_DIR:-/usr/share/piloti-desktop}"
+PILOTI_GREETER_BUNDLE="${PILOTI_GREETER_BUNDLE:-${PILOTI_SHARE_DIR}/greeter.js}"
+PILOTI_GREETER_CONFIG="${PILOTI_GREETER_CONFIG:-${PILOTI_SHARE_DIR}/greeter-domicile.json}"
+
+if ! command -v domicile >/dev/null 2>&1; then
+  echo "piloti-greeter: 'domicile' executable not found in PATH" >&2
+  exit 127
+fi
+
+export XDG_CURRENT_DESKTOP="Piloti:GNOME"
+export XDG_SESSION_TYPE="wayland"
+
+if [ "$#" -gt 0 ]; then
+  exec domicile "${PILOTI_GREETER_BUNDLE}" "$@"
+elif [ -f "${PILOTI_GREETER_CONFIG}" ]; then
+  exec domicile "${PILOTI_GREETER_BUNDLE}" --config "${PILOTI_GREETER_CONFIG}"
+else
+  exec domicile "${PILOTI_GREETER_BUNDLE}"
+fi

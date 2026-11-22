@@ -14,10 +14,13 @@ describe("Debian packaging (data/files -> .deb)", () => {
   test("includes Piloti system files and excludes Web-VFS / conflicting Debian package files", () => {
     expect(shouldIncludeDataFile("usr/bin/piloti")).toBe(true);
     expect(shouldIncludeDataFile("usr/bin/piloti-session")).toBe(true);
+    expect(shouldIncludeDataFile("usr/bin/piloti-greeter")).toBe(true);
     expect(shouldIncludeDataFile("usr/bin/piloti-settings")).toBe(true);
+    expect(shouldIncludeDataFile("usr/libexec/piloti-desktop/piloti-greetd-client")).toBe(true);
     expect(shouldIncludeDataFile("usr/share/wayland-sessions/piloti.desktop")).toBe(true);
     expect(shouldIncludeDataFile("usr/share/applications/piloti-settings.desktop")).toBe(true);
     expect(shouldIncludeDataFile("usr/share/piloti-desktop/domicile.json")).toBe(true);
+    expect(shouldIncludeDataFile("usr/share/piloti-desktop/greetd.toml")).toBe(true);
     expect(shouldIncludeDataFile("usr/share/icons/Piloti/index.theme")).toBe(true);
     expect(shouldIncludeDataFile("usr/share/icons/Piloti/animated/places/folder.json")).toBe(true);
     expect(shouldIncludeDataFile("usr/share/icons/hicolor/scalable/apps/piloti-desktop.svg")).toBe(true);
@@ -36,25 +39,33 @@ describe("Debian packaging (data/files -> .deb)", () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "piloti-deb-test-"));
     try {
       const dummyShell = path.join(tmpDir, "shell.js");
+      const dummyGreeter = path.join(tmpDir, "greeter.js");
       fs.writeFileSync(dummyShell, "export const Shell = {};\n", "utf8");
+      fs.writeFileSync(dummyGreeter, "export const Shell = {};\n", "utf8");
 
       const stageDir = path.join(tmpDir, "stage");
       const staged = stagePackageRoot({
         repoRoot: REPO_ROOT,
         stageDir,
         shellBundlePath: dummyShell,
+        greeterBundlePath: dummyGreeter,
       });
 
       const rels = new Set(staged.files.map((f) => f.rel));
       expect(rels.has("usr/bin/piloti")).toBe(true);
       expect(rels.has("usr/bin/piloti-session")).toBe(true);
+      expect(rels.has("usr/bin/piloti-greeter")).toBe(true);
       expect(rels.has("usr/bin/piloti-webapp")).toBe(true);
       expect(rels.has("usr/bin/piloti-settings")).toBe(true);
       expect(rels.has("usr/bin/piloti-files")).toBe(true);
+      expect(rels.has("usr/libexec/piloti-desktop/piloti-greetd-client")).toBe(true);
       expect(rels.has("usr/share/wayland-sessions/piloti.desktop")).toBe(true);
       expect(rels.has("usr/share/applications/piloti-settings.desktop")).toBe(true);
       expect(rels.has("usr/share/piloti-desktop/domicile.json")).toBe(true);
+      expect(rels.has("usr/share/piloti-desktop/greeter-domicile.json")).toBe(true);
+      expect(rels.has("usr/share/piloti-desktop/greetd.toml")).toBe(true);
       expect(rels.has("usr/share/piloti-desktop/shell.js")).toBe(true);
+      expect(rels.has("usr/share/piloti-desktop/greeter.js")).toBe(true);
       expect(rels.has("usr/share/icons/Piloti/index.theme")).toBe(true);
       expect(rels.has("usr/share/icons/hicolor/scalable/apps/piloti-desktop.svg")).toBe(true);
 
@@ -64,19 +75,20 @@ describe("Debian packaging (data/files -> .deb)", () => {
       expect(rels.has("usr/share/icons/Papirus/index.theme")).toBe(false);
       expect(rels.has("usr/share/icons/hicolor/index.theme")).toBe(false);
 
-      // /usr/bin/* must be executable (0755)
+      // /usr/bin/* and /usr/libexec/* must be executable (0755)
       for (const f of staged.files) {
-        if (f.rel.startsWith("usr/bin/")) {
+        if (f.rel.startsWith("usr/bin/") || f.rel.startsWith("usr/libexec/")) {
           expect(f.mode).toBe(0o755);
         }
       }
 
-      // Build an actual .deb archive using the dummy shell bundle and inspect its ar + tar members
+      // Build an actual .deb archive using the dummy shell & greeter bundles
       const outDeb = path.join(tmpDir, "piloti-desktop.deb");
       const res = buildDebPackage({
         repoRoot: REPO_ROOT,
         skipBuild: true,
         shellBundlePath: dummyShell,
+        greeterBundlePath: dummyGreeter,
         outPath: outDeb,
       });
       expect(fs.existsSync(res.debPath!)).toBe(true);

@@ -1,3 +1,11 @@
+piloti-desktop (0.10.0-1) unstable; urgency=medium
+
+  * Release v0.10.0: Full XDG Desktop Portals, XDG Autostart/Recents/Thumbnails/Sound
+    cues, standalone greetd Display Manager greeter (`piloti-greeter`, `greeter.js`,
+    `piloti-greetd-client`, `greetd.toml`), LockScreen polish, and updated Roadmap.
+
+ -- Piloti Desktop Maintainers <maintainers@piloti-desktop.org>  Sun, 22 Nov 2026 03:46:00 +0100
+
 piloti-desktop (0.9.0-1) unstable; urgency=medium
 
   * Initial Debian package release of Piloti Desktop.

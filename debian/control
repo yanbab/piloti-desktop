@@ -18,6 +18,7 @@ Recommends:
  xdg-utils,
  dbus-user-session
 Suggests:
+ greetd,
  gnome-control-center,
  flatpak,
  network-manager,

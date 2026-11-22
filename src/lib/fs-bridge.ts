@@ -5,6 +5,7 @@ import {
   emptyVfsTrash,
   getVfsEntry,
   listVfsDir,
+  listVfsRecentEntries,
   moveVfsEntry,
   normalizeVfsPath,
   removeVfsEntry,
@@ -17,7 +18,16 @@ import {
   writeVfsTextFile,
 } from "./web-vfs";
 import { emptyXdgTrash, resolveXdgTrashPaths } from "./xdg/xdg-trash";
+import {
+  parseRecentlyUsedXbel,
+  serializeRecentlyUsedXbel,
+  upsertRecentXbelItem,
+} from "./xdg/xdg-recents";
+import { lookupXdgThumbnailDataUrl } from "./xdg/xdg-thumbnails";
 import { isSimulatedUsbPath } from "./usb-drive";
+
+const RECENTLY_USED_XBEL_PATH = `${WEB_VFS_HOME}/.local/share/recently-used.xbel`;
+const THUMBNAIL_EXT_RE = /\.(png|jpe?g|webp|gif|bmp|avif|pdf|mp4|mkv|webm|mov)$/i;
 
 export {
   buildVfsEntryWebAppUrl,
@@ -78,6 +88,7 @@ export async function listFsDir(
         const kind = item.fileType === 1 ? "directory" : "file";
         let size = cached?.size;
         let updatedAt = cached?.updatedAt ?? now;
+        let realPath: string | undefined;
         if (kind === "file" && canStat) {
           try {
             const statRes = await domicile.files.stat(toDomicilePath(entryPath));
@@ -87,11 +98,26 @@ export async function listFsDir(
                 if (typeof st.modifiedMs === "number") {
                   updatedAt = st.modifiedMs;
                 }
+                if (typeof st.realPath === "string" && st.realPath.startsWith("/")) {
+                  realPath = st.realPath;
+                }
               },
               Err: () => {},
             });
           } catch {
             // Ignore stat errors for broken symlinks or restricted nodes
+          }
+        }
+        let metadata = cached?.metadata;
+        if (
+          kind === "file" &&
+          realPath &&
+          !metadata?.["metadata::thumbnail"] &&
+          THUMBNAIL_EXT_RE.test(item.name)
+        ) {
+          const thumb = await lookupXdgThumbnailDataUrl(domicile, realPath);
+          if (thumb) {
+            metadata = { ...(metadata ?? {}), "metadata::thumbnail": thumb };
           }
         }
         return {
@@ -103,6 +129,7 @@ export async function listFsDir(
           content: cached?.content,
           size,
           updatedAt,
+          metadata,
         };
       }),
     );
@@ -308,5 +335,88 @@ export async function removeFsFile(
   removeVfsEntry(norm);
   if (!isBrowserRuntime && !isSimulatedUsbPath(norm)) {
     await domicile.processes.run(["rm", "-f", "--", toDomicilePath(norm)]).catch(() => undefined);
+  }
+}
+
+/**
+ * Lists recent files from FreeDesktop `~/.local/share/recently-used.xbel`
+ * merged with Piloti's local VFS recent access history.
+ */
+export async function listFsRecentEntries(
+  domicile: Domicile,
+  isBrowserRuntime: boolean,
+): Promise<WebVfsEntry[]> {
+  const vfsRecents = listVfsRecentEntries();
+  const byPath = new Map<string, WebVfsEntry>();
+
+  try {
+    const xml = await readFsTextFile(
+      domicile,
+      isBrowserRuntime,
+      RECENTLY_USED_XBEL_PATH,
+    );
+    if (xml) {
+      const parsed = parseRecentlyUsedXbel(xml);
+      for (const item of parsed) {
+        if (!item.path || item.path === "/") continue;
+        const norm = item.path.replace(/\/+$/, "");
+        const idx = norm.lastIndexOf("/");
+        const name = idx >= 0 ? norm.slice(idx + 1) : norm;
+        const parentPath = idx > 0 ? norm.slice(0, idx) : "/";
+        const ts = Date.parse(item.visited || item.modified || item.added);
+        const existing = getVfsEntry(norm);
+        byPath.set(norm, {
+          id: norm,
+          name: existing?.name || name,
+          kind: existing?.kind || "file",
+          path: norm,
+          parentPath: existing?.parentPath || parentPath,
+          content: existing?.content,
+          size: existing?.size,
+          updatedAt: Number.isFinite(ts) ? ts : (existing?.updatedAt ?? Date.now()),
+          metadata: {
+            ...(existing?.metadata ?? {}),
+            "standard::content-type": item.mimeType,
+          },
+        });
+      }
+    }
+  } catch {
+    // ignore malformed or missing XBEL
+  }
+
+  for (const entry of vfsRecents) {
+    if (!byPath.has(entry.path)) {
+      byPath.set(entry.path, entry);
+    }
+  }
+
+  return Array.from(byPath.values()).sort(
+    (a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0),
+  );
+}
+
+/**
+ * Records an opened file into FreeDesktop `~/.local/share/recently-used.xbel`.
+ */
+export async function recordFsRecentFile(
+  domicile: Domicile,
+  isBrowserRuntime: boolean,
+  filePath: string,
+  mimeType = "application/octet-stream",
+): Promise<void> {
+  if (!filePath || !filePath.startsWith("/")) return;
+  try {
+    const xml = await readFsTextFile(
+      domicile,
+      isBrowserRuntime,
+      RECENTLY_USED_XBEL_PATH,
+    );
+    const current = xml ? parseRecentlyUsedXbel(xml) : [];
+    const next = upsertRecentXbelItem(current, filePath, mimeType);
+    const serialized = serializeRecentlyUsedXbel(next);
+    writeFsTextFile(domicile, isBrowserRuntime, RECENTLY_USED_XBEL_PATH, serialized);
+  } catch {
+    // non-fatal recents write failure
   }
 }

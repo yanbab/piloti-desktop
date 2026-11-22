@@ -1,5 +1,8 @@
 import * as React from "react";
+import { usePortalRequests } from "@domicile-desktop/react/portals";
+import { PortalKind, type PortalRequest } from "@domicile-desktop/sdk/portal";
 import {
+  AlertTriangleIcon,
   BellIcon,
   BellOffIcon,
   BluetoothIcon,
@@ -42,6 +45,15 @@ import {
 } from "./NotificationParts";
 
 export function ControlPanel() {
+  const portalRequests = usePortalRequests() ?? [];
+  const activeInhibitors = React.useMemo(
+    () =>
+      portalRequests.filter(
+        (r): r is Extract<PortalRequest, { kind: PortalKind.Inhibit }> =>
+          r.kind === PortalKind.Inhibit
+      ),
+    [portalRequests]
+  );
   const { isBrowserRuntime, settings, updateSettings } = useSettings();
   const {
     gnomeCapabilities,
@@ -691,6 +703,26 @@ export function ControlPanel() {
             )}
           </div>
         </div>
+
+        {activeInhibitors.length > 0 && (
+          <div className="mb-2 flex items-start gap-2 rounded-[10px] border border-amber-500/30 bg-amber-500/12 px-2.5 py-1.5 text-[11px] text-amber-900 dark:text-amber-200">
+            <AlertTriangleIcon className="mt-0.5 size-3.5 shrink-0 text-amber-600 dark:text-amber-400" />
+            <div className="min-w-0 flex-1">
+              <div className="font-medium">
+                {_("Sleep or logout inhibited")}
+              </div>
+              <div className="truncate text-[10.5px] opacity-85">
+                {activeInhibitors
+                  .map((i) =>
+                    i.body.reason
+                      ? `${i.appId || _("Application")}: ${i.body.reason}`
+                      : i.appId || _("Application")
+                  )
+                  .join(" · ")}
+              </div>
+            </div>
+          </div>
+        )}
 
         {(settings.doNotDisturb || !settings.notificationsEnabled) && (
           <div className="mb-2 flex items-center justify-between gap-2 rounded-[10px] bg-black/5 px-2.5 py-1.5 text-[11px] text-adw-label-secondary dark:bg-white/6">

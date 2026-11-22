@@ -63,7 +63,7 @@ npm run build:deb
 dpkg-buildpackage -us -uc -b
 
 # Install on Debian / Ubuntu
-sudo apt install ./dist/piloti-desktop_0.9.0-1_all.deb
+sudo apt install ./dist/piloti-desktop_0.10.0-1_all.deb
 ```
 
 This installs `/usr/bin/piloti`, `/usr/bin/piloti-session`, `/usr/bin/piloti-*` app commands, `/usr/share/wayland-sessions/piloti.desktop`, `/usr/share/applications/piloti-*.desktop`, `/usr/share/icons/Piloti/`, and `/usr/share/piloti-desktop/shell.js`.

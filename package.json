@@ -1,6 +1,6 @@
 {
   "name": "piloti-desktop",
-  "version": "0.9.0",
+  "version": "0.10.0",
   "private": true,
   "description": "Piloti Desktop — A Linux Wayland desktop shell built on Domicile",
   "type": "module",
@@ -9,6 +9,7 @@
     "build": "vite build && vite build --config vite.shell.config.ts",
     "build:web": "vite build",
     "build:shell": "vite build --config vite.shell.config.ts",
+    "build:greeter": "vite build --config vite.greeter.config.ts",
     "build:deb": "node scripts/build-deb.mjs",
     "preview": "vite preview",
     "test": "bun test tests/unit tests/functional",

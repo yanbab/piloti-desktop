@@ -117,11 +117,15 @@ import {
   createFsTextFile,
   emptyFsTrash,
   listFsDir as bridgeListFsDir,
+  listFsRecentEntries,
   moveFsEntry,
+  recordFsRecentFile,
   renameFsEntry,
   restoreFsEntry,
   trashFsEntry,
 } from "@/lib/fs-bridge";
+import { playSoundThemeEvent } from "@/lib/sound-effects";
+import { inferMimeType } from "@/lib/xdg/xdg-mimeapps";
 
 interface XdgPlaceItem {
   id: string;
@@ -350,6 +354,9 @@ export function FilesApp({
     }
     if (currentPath === WEB_VFS_RECENTS_URI) {
       setVfsEntries(listVfsRecentEntries());
+      void listFsRecentEntries(domicile, isBrowserRuntime).then((entries) => {
+        setVfsEntries(entries);
+      });
       return;
     }
     if (isBrowserRuntime) {
@@ -1028,6 +1035,12 @@ export function FilesApp({
     const entry = getVfsEntry(item.path);
     if (entry && entry.kind === "file") {
       incrementVfsAccessCount(entry.path);
+      void recordFsRecentFile(
+        domicile,
+        isBrowserRuntime,
+        entry.path,
+        inferMimeType(entry.name, "file")
+      );
       if (isImageVfsFile(entry.name, entry.content)) {
         launchApp("image-viewer", { payload: entry.path });
         return;
@@ -1658,9 +1671,14 @@ export function FilesApp({
                 variant="secondary"
                 disabled={items.length === 0}
                 onClick={() => {
-                  void emptyFsTrash(domicile, isBrowserRuntime).then(() =>
-                    reloadDir()
-                  );
+                  void emptyFsTrash(domicile, isBrowserRuntime).then(() => {
+                    void playSoundThemeEvent(
+                      "trash-empty",
+                      settings.volume,
+                      settings.muted
+                    );
+                    reloadDir();
+                  });
                 }}
               >
                 {_("Empty Trash")}

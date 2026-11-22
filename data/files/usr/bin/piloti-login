@@ -1,4 +1,9 @@
 #!/bin/sh
-# Piloti Desktop built-in Login Screen (GDM alternative) launcher
-exec domicile send-shell open login-screen "$@"
+# piloti-login — Open Piloti Login Screen preview (or launch greeter under greetd)
+set -eu
 
+if [ -n "${GREETD_SOCK:-}" ]; then
+  exec /usr/bin/piloti-greeter "$@"
+fi
+
+exec /usr/bin/piloti open login-screen "$@"

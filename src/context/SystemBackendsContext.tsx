@@ -44,7 +44,9 @@ import {
   syncGnomePanelOverrides,
   syncGtkIconTheme,
   ensureXwaylandSatellite,
+  runXdgAutostartOnce,
 } from "@/lib/engine-desktop";
+import { playSoundThemeEvent } from "@/lib/sound-effects";
 import {
   type NotificationActionItem,
   type ShellNotification,
@@ -800,6 +802,7 @@ export function useSystemBackendsValue(
         listSystemAudioSinks(domicile),
         readSystemWifi(domicile, { scan: Boolean(options?.scanWifi) }),
         ensureXwaylandSatellite(domicile),
+        runXdgAutostartOnce(domicile),
       ]);
       finishBackends();
 
@@ -1078,6 +1081,7 @@ export function useSystemBackendsValue(
     const res = await domicile.capture.screenshot();
     res.match({
       Ok: (kept) => {
+        void playSoundThemeEvent("screenshot", settings.volume, settings.muted);
         if (kept.kind === ScreenshotKeptKind.Saved) {
           pushNotification({
             appName: "Screenshot",
@@ -1094,7 +1098,7 @@ export function useSystemBackendsValue(
       },
       Err: () => {},
     });
-  }, [domicile.capture, isBrowserRuntime, nextDesktopCaptureFilename, pushNotification]);
+  }, [domicile.capture, isBrowserRuntime, nextDesktopCaptureFilename, pushNotification, settings.muted, settings.volume]);
 
   const startScreenRecording = React.useCallback(async () => {
     console.info("[Piloti] control-panel: screen recording");
@@ -1244,7 +1248,7 @@ export function useSystemBackendsValue(
       },
       Err: () => {},
     });
-  }, [domicile.capture, isBrowserRuntime, nextDesktopCaptureFilename, pushNotification]);
+  }, [domicile.capture, isBrowserRuntime, nextDesktopCaptureFilename, pushNotification, settings.muted, settings.volume]);
 
   const startAudioRecording = React.useCallback(async () => {
     console.info("[Piloti] control-panel: audio recording");

@@ -795,7 +795,9 @@ export function useAppsValue(
     if (custom && /^#[0-9a-fA-F]{6}$/.test(custom)) {
       return custom;
     }
-    return ACCENT_COLORS[settings.accentColor]?.hex ?? "#2190a4";
+    return (
+      ACCENT_COLORS.find((c) => c.id === settings.accentColor)?.hex ?? "#2190a4"
+    );
   }, [settings.accentColor, settings.customAccentHex]);
 
   const tintedAppIconsMap = React.useMemo(() => {
