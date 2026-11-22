@@ -185,22 +185,22 @@ export function AdwSplitView({
                 : "border-b border-transparent",
             )}
           >
-            <div className="flex min-w-0 items-center gap-1.5" data-window-no-drag>
-              {windowId && <WindowControls side="left" />}
-              <WindowMenuButton
-                side="left"
-                windowId={windowId}
-                appId={appId}
-                iconName={iconName}
-              />
+            <div className="relative flex w-full items-center justify-between gap-1.5">
+              <div className="relative z-10 flex shrink-0 items-center gap-1.5" data-window-no-drag>
+                {windowId && <WindowControls side="left" />}
+                <WindowMenuButton
+                  side="left"
+                  windowId={windowId}
+                  appId={appId}
+                  iconName={iconName}
+                />
+              </div>
               {!isCompact && (
-                <span className="truncate px-1 text-[13.5px] font-medium tracking-tight whitespace-nowrap text-adw-label">
+                <span className="pointer-events-none absolute inset-x-10 truncate text-center text-[13.5px] font-medium tracking-tight whitespace-nowrap text-adw-label">
                   {title}
                 </span>
               )}
-            </div>
-            {!isCompact && (
-              <div className="flex items-center justify-end" data-window-no-drag>
+              <div className="relative z-10 flex shrink-0 items-center justify-end" data-window-no-drag>
                 <WindowMenuButton
                   side="right"
                   windowId={windowId}
@@ -208,7 +208,7 @@ export function AdwSplitView({
                   iconName={iconName}
                 />
               </div>
-            )}
+            </div>
           </WindowTitlebar>
         )}
 
@@ -216,7 +216,10 @@ export function AdwSplitView({
           <nav
             onScroll={(e) => setSidebarScrolled(e.currentTarget.scrollTop > 2)}
             className={cn(
-              "flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto pb-2 px-[9px]",
+              "flex min-h-0 flex-1 flex-col gap-0.5 pb-2 px-[9px]",
+              isCompact
+                ? "overflow-hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                : "overflow-y-auto",
               isCsd ? "pt-0.5" : tall ? "pt-2.5" : "pt-2",
             )}
           >

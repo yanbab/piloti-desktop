@@ -5,6 +5,7 @@ import {
   PipetteIcon,
   SunMoonIcon,
 } from "lucide-react";
+import { ComputerHardwareIllustration } from "@/components/shell/AboutComputerDialog";
 import {
   DesktopBackgroundLayers,
   useResolvedDesktopBackgroundSpec,
@@ -348,9 +349,10 @@ export function WallpaperPane() {
         <GroupedFormSectionTitle>{_("Current Wallpaper")}</GroupedFormSectionTitle>
         <GroupedFormGroup>
           <div className="flex flex-col items-center gap-2 p-3.5">
-            <div className="relative aspect-[16/10] h-28 w-auto max-w-full overflow-hidden rounded-[10px] border border-black/10 shadow-xs dark:border-white/15">
-              <DesktopBackgroundLayers spec={previewSpec} />
-            </div>
+            <ComputerHardwareIllustration
+              className="mx-auto h-28 w-44 drop-shadow-md"
+              screenContent={<DesktopBackgroundLayers spec={previewSpec} />}
+            />
             {activeEntry && (
               <div className="text-center">
                 <div className="text-[12.5px] font-semibold text-adw-label">

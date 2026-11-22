@@ -1,5 +1,6 @@
 import * as React from "react";
 import { useDomicile } from "@domicile-desktop/react/domicile-provider";
+import { Button } from "@/components/ui/button";
 import {
   Window,
   WindowContent,
@@ -12,7 +13,13 @@ import { useSettings, useWindowManager } from "@/context/DesktopStateContext";
 import { _ } from "@/lib/core/i18n";
 import { type ComputerInfo, probeComputerInfo } from "@/lib/core/system-info";
 
-function ComputerHardwareIllustration({ className }: { className?: string }) {
+export function ComputerHardwareIllustration({
+  className,
+  screenContent,
+}: {
+  className?: string;
+  screenContent?: React.ReactNode;
+}) {
   return (
     <svg
       viewBox="0 0 160 112"
@@ -54,14 +61,22 @@ function ComputerHardwareIllustration({ className }: { className?: string }) {
         strokeWidth="1.5"
       />
       {/* Active Wallpaper Viewport */}
-      <rect
-        x="29"
-        y="17"
-        width="102"
-        height="62"
-        rx="2"
-        fill="url(#piloti-computer-screen)"
-      />
+      {screenContent ? (
+        <foreignObject x="29" y="17" width="102" height="62">
+          <div className="relative h-full w-full overflow-hidden rounded-[2px]">
+            {screenContent}
+          </div>
+        </foreignObject>
+      ) : (
+        <rect
+          x="29"
+          y="17"
+          width="102"
+          height="62"
+          rx="2"
+          fill="url(#piloti-computer-screen)"
+        />
+      )}
       {/* Subtle Topbar Hint inside illustration */}
       <rect
         x="29"
@@ -94,7 +109,7 @@ function ComputerHardwareIllustration({ className }: { className?: string }) {
 export function AboutComputerDialog() {
   const domicile = useDomicile();
   const { isBrowserRuntime } = useSettings();
-  const { aboutOpen, setAboutOpen } = useWindowManager();
+  const { aboutOpen, setAboutOpen, launchApp } = useWindowManager();
   const [info, setInfo] = React.useState<ComputerInfo>({
     computerName: "Piloti Desktop",
     modelSubtitle: isBrowserRuntime
@@ -153,7 +168,7 @@ export function AboutComputerDialog() {
     <Window
       position={pos}
       onPositionChange={setPos}
-      size={{ width: 300, height: 340 }}
+      size={{ width: 300, height: 376 }}
       draggable
       resizable={false}
       bounds="parent"
@@ -185,6 +200,20 @@ export function AboutComputerDialog() {
               </React.Fragment>
             ))}
           </dl>
+
+          <div className="flex justify-center pt-0.5">
+            <Button
+              type="button"
+              size="sm"
+              variant="secondary"
+              onClick={() => {
+                setAboutOpen(false);
+                launchApp("console", { payload: "inspector" });
+              }}
+            >
+              {_("More info…")}
+            </Button>
+          </div>
         </WindowContent>
       </WindowMain>
     </Window>

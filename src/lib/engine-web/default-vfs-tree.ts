@@ -614,6 +614,18 @@ export const DEFAULT_STATIC_DIR_INDEX: Record<string, readonly { name: string; f
       "fileType": 1
     }
   ],
+  "/usr/share/icons/Piloti/animated/apps": [
+    {
+      "name": "accessories-text-editor.json",
+      "fileType": 0
+    }
+  ],
+  "/usr/share/icons/Piloti/animated/devices": [
+    {
+      "name": "drive-removable-media-usb.json",
+      "fileType": 0
+    }
+  ],
   "/usr/share/icons/Piloti/animated/mimetypes": [
     {
       "name": "application-x-zerosize.json",
@@ -643,6 +655,14 @@ export const DEFAULT_STATIC_DIR_INDEX: Record<string, readonly { name: string; f
     }
   ],
   "/usr/share/icons/Piloti/animated": [
+    {
+      "name": "apps",
+      "fileType": 1
+    },
+    {
+      "name": "devices",
+      "fileType": 1
+    },
     {
       "name": "mimetypes",
       "fileType": 1

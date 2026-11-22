@@ -638,6 +638,111 @@ const ICONS = {
     ]),
     op: 44,
   },
+
+  "devices/drive-removable-media-usb": {
+    ...lottieDoc(
+      "piloti-usb-pendrive",
+      [
+        layer(1, "Body", [
+          rectGroup("BodyShadow", { x: 18, y: 23, w: 28, h: 35, r: 5, fill: "#000000", opacity: 18 }),
+          rectGroup("BodyMain", { x: 18, y: 21, w: 28, h: 35, r: 5, fill: "#3b82f6" }),
+          rectGroup("BodyBand", { x: 18, y: 21, w: 28, h: 7, r: 2, fill: "#2563eb" }),
+          rectGroup("Led", {
+            x: 29,
+            y: 36,
+            w: 6,
+            h: 6,
+            r: 3,
+            fill: "#bae6fd",
+            opacity: kFrames([[0, 60], [18, 100], [36, 50], [44, 60]]),
+          }),
+        ]),
+        layer(
+          2,
+          "Plug",
+          [
+            rectGroup("Metal", { x: 22, y: 8, w: 20, h: 15, r: 2, fill: "#d1d5db" }),
+            rectGroup("PinLeft", { x: 26, y: 12, w: 4, h: 6, r: 1, fill: "#374151" }),
+            rectGroup("PinRight", { x: 34, y: 12, w: 4, h: 6, r: 1, fill: "#374151" }),
+          ],
+          {
+            a: kStatic([32, 22]),
+            p: kFrames([[0, [32, 22]], [16, [32, 18]], [32, [32, 22]], [44, [32, 22]]]),
+          }
+        ),
+      ],
+      44
+    ),
+  },
+
+  "apps/accessories-text-editor": {
+    ...lottieDoc(
+      "piloti-text-editor",
+      [
+        layer(
+          1,
+          "Pencil",
+          [
+            pathGroup("PencilShadow", {
+              d: "M 40,51.4 L 40,55 L 43.6,55 L 52.6,46 L 49,42.4 Z",
+              fill: "#000000",
+              opacity: 18,
+            }),
+            pathGroup("PencilBadge", {
+              d: "M 32,47 A 15,15 0 1 0 62,47 A 15,15 0 1 0 32,47 Z",
+              fill: "#f34235",
+            }),
+            pathGroup("PencilTip", {
+              d: "M 40,50.4 L 40,54 L 43.6,54 L 52.6,45 L 49,41.4 Z M 55.7,41.9 C 56.1,41.5 56.1,40.9 55.7,40.5 L 53.5,38.3 C 53.1,37.9 52.5,37.9 52.1,38.3 L 50.3,40.1 L 53.8,43.7 Z",
+              fill: "#ffffff",
+            }),
+          ],
+          {
+            a: kStatic([47, 47]),
+            p: kFrames([[0, [47, 47]], [12, [44, 44]], [26, [48, 46]], [40, [47, 47]]]),
+            r: kFrames([[0, [0]], [12, [-10]], [26, [6]], [40, [0]]]),
+          }
+        ),
+        layer(2, "Lines", [
+          rectGroup("Line1", {
+            x: 15,
+            y: 10,
+            w: 34,
+            h: 4,
+            r: 1.5,
+            fill: "#3b82f6",
+            opacity: 85,
+            s: kFrames([[0, [20, 100]], [16, [100, 100]], [40, [100, 100]]]),
+          }),
+          rectGroup("Line2", {
+            x: 15,
+            y: 19,
+            w: 34,
+            h: 4,
+            r: 1.5,
+            fill: "#000000",
+            opacity: 25,
+            s: kFrames([[0, [20, 100]], [22, [100, 100]], [40, [100, 100]]]),
+          }),
+          rectGroup("Line3", {
+            x: 15,
+            y: 28,
+            w: 22,
+            h: 4,
+            r: 1.5,
+            fill: "#000000",
+            opacity: 25,
+            s: kFrames([[0, [20, 100]], [28, [100, 100]], [40, [100, 100]]]),
+          }),
+        ]),
+        layer(3, "Page", [
+          rectGroup("PageShadow", { x: 10, y: 6, w: 44, h: 55, r: 4, fill: "#000000", opacity: 20 }),
+          rectGroup("PageBody", { x: 10, y: 4, w: 44, h: 56, r: 4, fill: "#e4e4e4" }),
+        ]),
+      ],
+      40
+    ),
+  },
 };
 
 // Keep animated/ directory cleanly synced to the generated set only (remove old redrawn app animations)

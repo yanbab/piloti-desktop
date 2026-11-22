@@ -502,5 +502,7 @@
   "Chrome Web Store extensions install natively under Domicile Linux.": "Las extensiones de Chrome Web Store se instalan de forma nativa en Domicile Linux.",
   "Added Extension (%s)": "Extensión añadida (%s)",
   "Removed Extension (%s)": "Extensión eliminada (%s)",
-  "Could not update extensions config": "No se pudo actualizar la configuración de extensiones"
+  "Could not update extensions config": "No se pudo actualizar la configuración de extensiones",
+  "More info…": "Más información…",
+  "Animated Accent Color Mesh": "Malla animada del color de énfasis"
 }

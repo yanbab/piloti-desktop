@@ -83,9 +83,10 @@ export const WALLPAPERS: WallpaperOption[] = [
   {
     id: "dynamic-accent",
     name: "Accent Mesh",
-    subtitle: "Matches Active System Accent Color",
+    subtitle: "Animated Accent Color Mesh",
     category: "Dynamic",
     backgroundCss: resolveDynamicWallpaperCss("dynamic-accent")!,
+    cssAnimation: "piloti-accent-mesh-drift 18s ease-in-out infinite",
   },
   {
     id: "piloti-aurora",
@@ -103,17 +104,7 @@ export const WALLPAPERS: WallpaperOption[] = [
     backgroundCss:
       "radial-gradient(90% 85% at 84% 86%, rgba(255,255,255,0.08) 0%, transparent 60%), linear-gradient(175deg, #09090b 0%, #121215 65%, #18181b 100%)",
   },
-  {
-    id: "piloti-waves",
-    name: "Piloti Waves",
-    subtitle: "Light & Dark Adaptive",
-    category: "Pictures",
-    backgroundCss: "#cde4fa",
-    backgroundCssDark: "#0b1526",
-    imageUrl: "file:///usr/share/backgrounds/piloti/piloti-waves-l.svg",
-    imageUrlDark: "file:///usr/share/backgrounds/piloti/piloti-waves-d.svg",
-  },
-  // Curated Unsplash Pictures
+  // Curated Nature Pictures
   {
     id: "unsplash-alpine-mist",
     name: "Alpine Mist",
@@ -131,15 +122,6 @@ export const WALLPAPERS: WallpaperOption[] = [
     backgroundCss: "#0c192c",
     imageUrl:
       "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=2400&q=80",
-  },
-  {
-    id: "unsplash-desert-dunes",
-    name: "Desert Dunes",
-    subtitle: "Unsplash · Warm Minimalism",
-    category: "Pictures",
-    backgroundCss: "#2c1d11",
-    imageUrl:
-      "https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?auto=format&fit=crop&w=2400&q=80",
   },
   {
     id: "unsplash-dark-forest",

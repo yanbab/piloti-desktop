@@ -452,9 +452,11 @@ export function Dock() {
     window.addEventListener("pointercancel", onEnd);
   };
 
+  const [launchNonces, setLaunchNonces] = React.useState<Record<string, number>>({});
   const handleDockAppClick = (appId: string) => {
     const appWins = windows.filter((w) => w.appId === appId);
     if (appWins.length === 0) {
+      setLaunchNonces((prev) => ({ ...prev, [appId]: (prev[appId] ?? 0) + 1 }));
       const xdgEntry = installedXdgApps.find(
         (e) => e.appId === appId || e.desktopId === appId
       );
@@ -675,6 +677,7 @@ export function Dock() {
                   }
                   squircle={app.isWebApp}
                   gradient={app.gradient}
+                  playNonce={launchNonces[app.id]}
                   className="size-full"
                   glyphClassName="size-[56%]"
                 />
@@ -713,6 +716,8 @@ export function Dock() {
             >
               <AppSquircleIcon
                 iconUrl={getAppIconUrl("__usb_drive__")}
+                animateOnHover
+                playNonce={usbMounted ? 1 : 0}
                 className="size-full"
               />
             </DockItem>
