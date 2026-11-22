@@ -7,10 +7,7 @@ import {
   BatteryIcon,
   CheckIcon,
   ChevronDownIcon,
-  EyeIcon,
-  EyeOffIcon,
   KeyboardIcon,
-  Loader2Icon,
   MonitorIcon,
   PowerIcon,
   UserIcon,
@@ -20,6 +17,7 @@ import {
   WifiIcon,
   WifiOffIcon,
 } from "lucide-react";
+import { AuthPasswordCard } from "@/components/shell/AuthPasswordCard";
 import { DesktopBackgroundLayers } from "@/components/shell/DesktopBackgroundLayers";
 import { WindowMenuButton } from "@/components/shell/WindowMenuButton";
 import {
@@ -195,7 +193,6 @@ export const LoginScreenApp: React.FC<LoginScreenAppProps> = ({
   );
   const [sessionId, setSessionId] = React.useState(initialState.sessionId);
   const [password, setPassword] = React.useState("");
-  const [showPassword, setShowPassword] = React.useState(false);
   const [authenticating, setAuthenticating] = React.useState(false);
   const [authError, setAuthError] = React.useState<string | null>(null);
   const [shakeTick, setShakeTick] = React.useState(0);
@@ -679,121 +676,38 @@ export const LoginScreenApp: React.FC<LoginScreenAppProps> = ({
         )}
 
         {view === "password" && (
-          <div
+          <AuthPasswordCard
             key={`pw-${selectedUser.id}-${shakeTick}`}
-            style={
-              shakeTick > 0
-                ? {
-                    animation:
-                      "piloti-gdm-shake 420ms cubic-bezier(0.36, 0.07, 0.19, 0.97)",
-                  }
-                : undefined
-            }
-            className="relative flex w-[320px] max-w-[calc(100vw-32px)] flex-col items-center gap-3.5 rounded-[22px] bg-white/10 p-6 text-white shadow-2xl ring-1 ring-white/20"
-          >
-            <button
-              type="button"
-              disabled={authenticating}
-              aria-label={_("Switch User")}
-              title={_("Switch User")}
-              onClick={() => {
-                setAuthError(null);
-                setPassword("");
-                setView("users");
-              }}
-              className="absolute top-3.5 left-3.5 flex size-7 items-center justify-center rounded-full text-white/75 transition-colors hover:bg-white/14 hover:text-white disabled:opacity-40"
-            >
-              <ArrowLeftIcon className="size-4" />
-            </button>
-
-            <div
-              className={cn(
-                "flex size-14 items-center justify-center rounded-full bg-gradient-to-br text-lg font-medium text-white shadow-md",
-                selectedUser.gradient,
-              )}
-            >
-              {selectedUser.initials}
-            </div>
-
-            <div className="max-w-full truncate text-sm font-medium">
-              {selectedUser.name?.trim()
+            avatar={selectedUser.initials}
+            avatarClassName={selectedUser.gradient}
+            title={
+              selectedUser.name?.trim()
                 ? _(selectedUser.name)
-                : selectedUser.username}
-            </div>
-
-            <form
-              onSubmit={(e) => void handleSignIn(e)}
-              className="flex w-full flex-col gap-2.5"
-            >
-              <div className="relative flex w-full items-center">
-                <input
-                  ref={passwordInputRef}
-                  type={showPassword ? "text" : "password"}
-                  disabled={authenticating}
-                  value={password}
-                  onChange={(e) => {
-                    setPassword(e.target.value);
-                    if (authError) setAuthError(null);
-                  }}
-                  placeholder={
-                    selectedUser.isGuest
-                      ? _("Press Enter to start guest session…")
-                      : _("Password")
-                  }
-                  aria-label={_("Password")}
-                  className={cn(
-                    "h-9 w-full rounded-[10px] border bg-black/30 pr-16 pl-3 text-[13px] text-white placeholder:text-white/45 focus:outline-none disabled:opacity-60",
-                    authError
-                      ? "border-rose-400/80 ring-1 ring-rose-400/40"
-                      : "border-white/20 focus:border-white/45",
-                  )}
-                />
-                <div className="absolute right-1.5 flex items-center gap-1">
-                  <button
-                    type="button"
-                    tabIndex={-1}
-                    aria-label={
-                      showPassword ? _("Hide password") : _("Show password")
-                    }
-                    onPointerDown={(e) => e.preventDefault()}
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => {
-                      setShowPassword((v) => !v);
-                      passwordInputRef.current?.focus();
-                    }}
-                    className="flex size-6 items-center justify-center rounded-md text-white/70 transition-colors hover:bg-white/14 hover:text-white"
-                  >
-                    {showPassword ? (
-                      <EyeOffIcon className="size-3.5" />
-                    ) : (
-                      <EyeIcon className="size-3.5" />
-                    )}
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={authenticating}
-                    aria-label={_("Sign In")}
-                    className="flex size-6 items-center justify-center rounded-md bg-adw-accent text-white transition-all hover:brightness-110 active:scale-95 disabled:opacity-60"
-                  >
-                    {authenticating ? (
-                      <Loader2Icon className="size-3.5 animate-spin" />
-                    ) : (
-                      <ArrowRightIcon className="size-3.5" />
-                    )}
-                  </button>
-                </div>
-              </div>
-
-              {authError && (
-                <div
-                  role="alert"
-                  className="w-full rounded-lg bg-rose-500/20 px-2.5 py-1.5 text-center text-xs text-rose-200 ring-1 ring-rose-400/30"
-                >
-                  {authError}
-                </div>
-              )}
-            </form>
-          </div>
+                : selectedUser.username
+            }
+            password={password}
+            onPasswordChange={(next) => {
+              setPassword(next);
+              if (authError) setAuthError(null);
+            }}
+            onSubmit={(e) => void handleSignIn(e)}
+            placeholder={
+              selectedUser.isGuest
+                ? _("Press Enter to start guest session…")
+                : _("Password")
+            }
+            submitLabel={_("Sign In")}
+            loading={authenticating}
+            error={authError}
+            shakeTick={shakeTick}
+            onBack={() => {
+              setAuthError(null);
+              setPassword("");
+              setView("users");
+            }}
+            backLabel={_("Switch User")}
+            inputRef={passwordInputRef}
+          />
         )}
 
         {view === "authenticated" && (

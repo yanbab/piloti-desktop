@@ -1,10 +1,9 @@
 import * as React from "react";
 import { BellIcon, LockIcon } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { useSettings, useSystemBackends } from "@/context/DesktopStateContext";
 import { _, getLocale } from "@/lib/core/i18n";
 import { formatRelativeNotificationTime } from "@/lib/shell/notifications";
+import { AuthPasswordCard } from "./AuthPasswordCard";
 import { DesktopBackgroundLayers } from "./DesktopBackgroundLayers";
 
 export function LockScreen() {
@@ -74,40 +73,25 @@ export function LockScreen() {
         </div>
       </div>
 
-      <form
+      <AuthPasswordCard
+        avatar={<LockIcon className="size-6" />}
+        title={_("Piloti Session Locked")}
+        password={passphrase}
+        onPasswordChange={setPassphrase}
         onSubmit={handleSubmit}
-        className="relative z-10 flex w-[320px] max-w-[calc(100vw-32px)] flex-col items-center gap-3 rounded-[22px] bg-white/10 p-6 shadow-2xl ring-1 ring-white/20 backdrop-blur-xl"
-      >
-        <div className="flex size-14 items-center justify-center rounded-full bg-gradient-to-br from-sky-400 to-indigo-600 text-lg font-medium shadow-md">
-          <LockIcon className="size-6" />
-        </div>
-        <div className="text-sm font-medium">{_("Piloti Session Locked")}</div>
-
-        {!isBrowserRuntime && (
-          <Input
-            type="password"
-            autoFocus
-            value={passphrase}
-            onChange={(e) => setPassphrase(e.target.value)}
-            placeholder={_("Enter password…")}
-            className="w-full border-white/20 bg-black/30 text-center text-white placeholder:text-white/45"
-          />
-        )}
-
-        {unlockError && (
-          <div className="w-full rounded-lg bg-rose-500/20 px-2.5 py-1.5 text-center text-xs text-rose-200 ring-1 ring-rose-400/30">
-            {retrySeconds > 0
+        placeholder={_("Enter password…")}
+        submitLabel={retrySeconds > 0 ? _("Wait %ds…", retrySeconds) : _("Unlock")}
+        disabled={retrySeconds > 0}
+        showPasswordInput={!isBrowserRuntime}
+        autoFocus
+        error={
+          unlockError
+            ? retrySeconds > 0
               ? _("%s (try again in %ds)", unlockError, retrySeconds)
-              : unlockError}
-          </div>
-        )}
-
-        <Button type="submit" disabled={retrySeconds > 0} className="mt-1 w-full">
-          {retrySeconds > 0
-            ? _("Wait %ds…", retrySeconds)
-            : _("Unlock")}
-        </Button>
-      </form>
+              : unlockError
+            : null
+        }
+      />
 
       {settings.notificationsEnabled &&
         settings.notificationShowOnLockScreen &&
