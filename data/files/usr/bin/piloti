@@ -2,7 +2,7 @@
 # piloti — Piloti Desktop CLI & Wayland session launcher
 set -eu
 
-PILOTI_VERSION="0.10.0"
+PILOTI_VERSION="0.10.1"
 PILOTI_SHARE_DIR="${PILOTI_SHARE_DIR:-/usr/share/piloti-desktop}"
 PILOTI_SHELL_BUNDLE="${PILOTI_SHELL_BUNDLE:-${PILOTI_SHARE_DIR}/shell.js}"
 PILOTI_DEFAULT_CONFIG="${PILOTI_DEFAULT_CONFIG:-${PILOTI_SHARE_DIR}/domicile.json}"

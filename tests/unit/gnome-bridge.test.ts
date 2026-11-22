@@ -1,7 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import {
+  parseDconfWatchEvent,
   parseFlatpakListOutput,
   parseFlatpakSearchOutput,
+  parseGnomeSettingsBatchOutput,
   parseGSettingsKeyVal,
   parseGtk4HintFontMetrics,
   parseNmcliWifiOutput,
@@ -131,6 +133,53 @@ org.videolan.VLC\tVLC\tMedia player\t3.0.21\tflathub,fedora
         installed: false,
       },
     ]);
+  });
+
+  test("parses batched GNOME GSettings output and dconf watch events", () => {
+    const batch = parseGnomeSettingsBatchOutput(`
+org.gnome.desktop.interface color-scheme 'prefer-dark'
+org.gnome.desktop.interface accent-color 'orange'
+org.gnome.desktop.background picture-options 'zoom'
+org.gnome.desktop.wm.preferences button-layout 'appmenu:minimize,maximize,close'
+org.gnome.desktop.notifications show-banners false
+org.gnome.desktop.notifications show-in-lock-screen true
+`);
+    expect(batch.interface).toEqual({
+      themeMode: "dark",
+      accentColor: "orange",
+    });
+    expect(batch.background).toEqual({
+      pictureOptions: "zoom",
+    });
+    expect(batch.wm).toEqual({
+      buttonLayout: "appmenu:minimize,maximize,close",
+    });
+    expect(batch.notifications).toEqual({
+      doNotDisturb: true,
+      showInLockScreen: true,
+    });
+
+    expect(
+      parseDconfWatchEvent("/org/gnome/desktop/interface/clock-format", "'24h'")
+    ).toEqual({
+      schema: "interface",
+      patch: { clock24Hour: true },
+    });
+    expect(
+      parseDconfWatchEvent(
+        "/org/gnome/desktop/wm/preferences/button-layout",
+        "'close,minimize,maximize:'"
+      )
+    ).toEqual({
+      schema: "wm",
+      patch: { buttonLayout: "close,minimize,maximize:" },
+    });
+    expect(
+      parseDconfWatchEvent("/org/gnome/desktop/notifications/show-banners", "true")
+    ).toEqual({
+      schema: "notifications",
+      patch: { doNotDisturb: false },
+    });
   });
 });
 

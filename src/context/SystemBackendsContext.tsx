@@ -27,14 +27,9 @@ import {
   controlMprisMedia,
   discoverGnomeControlCenterPanels,
   listSystemAudioSinks,
-  monitorGnomeBackgroundSettings,
-  monitorGnomeInterfaceSettings,
-  monitorGnomeWmPreferences,
+  monitorGnomeDesktopSettings,
   probeGnomeCapabilities,
-  readGnomeBackgroundSettings,
-  readGnomeInterfaceSettings,
-  readGnomeNotificationSettings,
-  readGnomeWmPreferences,
+  readGnomeDesktopSettingsBatch,
   readMprisMediaInfo,
   readSystemAudio,
   readSystemBattery,
@@ -927,15 +922,10 @@ export function useSystemBackendsValue(
       applyingGnomeSyncRef.current = false;
     };
 
-    void readGnomeInterfaceSettings(domicile).then(applyGnomeSnapshot);
-    const stopInterfaceMonitor = monitorGnomeInterfaceSettings(
-      domicile,
-      applyGnomeSnapshot
-    );
-    void readGnomeBackgroundSettings(domicile).then((snap) =>
-      applyGnomeBackgroundSnapshot(snap, false)
-    );
-    void readGnomeNotificationSettings(domicile).then((snap) => {
+    const applyGnomeNotificationSnapshot = (snap: {
+      doNotDisturb?: boolean;
+      showInLockScreen?: boolean;
+    }) => {
       if (cancelled || !settings.syncGnomeSettings) return;
       const patch: Partial<DesktopSettings> = {};
       if (snap.doNotDisturb !== undefined) {
@@ -949,11 +939,7 @@ export function useSystemBackendsValue(
         applySettingsState(patch);
         applyingGnomeSyncRef.current = false;
       }
-    });
-    const stopBackgroundMonitor = monitorGnomeBackgroundSettings(
-      domicile,
-      (snap) => applyGnomeBackgroundSnapshot(snap, true)
-    );
+    };
 
     const applyGnomeWmSnapshot = (snap: { buttonLayout?: string }) => {
       if (cancelled || !settings.syncGnomeSettings || !snap.buttonLayout) return;
@@ -961,18 +947,25 @@ export function useSystemBackendsValue(
       applySettingsState({ windowButtonLayout: snap.buttonLayout });
       applyingGnomeSyncRef.current = false;
     };
-    void readGnomeWmPreferences(domicile).then(applyGnomeWmSnapshot);
-    const stopWmMonitor = monitorGnomeWmPreferences(
-      domicile,
-      applyGnomeWmSnapshot
-    );
+
+    void readGnomeDesktopSettingsBatch(domicile).then((batch) => {
+      applyGnomeSnapshot(batch.interface);
+      applyGnomeBackgroundSnapshot(batch.background, false);
+      applyGnomeNotificationSnapshot(batch.notifications);
+      applyGnomeWmSnapshot(batch.wm);
+    });
+
+    const stopDesktopSettingsMonitor = monitorGnomeDesktopSettings(domicile, {
+      onInterface: applyGnomeSnapshot,
+      onBackground: (snap) => applyGnomeBackgroundSnapshot(snap, true),
+      onWm: applyGnomeWmSnapshot,
+      onNotifications: applyGnomeNotificationSnapshot,
+    });
 
     return () => {
       cancelled = true;
       window.clearTimeout(deferTimer);
-      stopInterfaceMonitor();
-      stopBackgroundMonitor();
-      stopWmMonitor();
+      stopDesktopSettingsMonitor();
     };
   }, [
     applySettingsState,

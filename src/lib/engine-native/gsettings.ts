@@ -590,6 +590,230 @@ export async function readGnomeNotificationSettings(
   return result;
 }
 
+export interface GnomeDesktopSettingsBatch {
+  interface: GnomeInterfaceSnapshot;
+  background: Partial<GnomeBackgroundSettings>;
+  wm: GnomeWmPreferencesSnapshot;
+  notifications: GnomeNotificationSettings;
+}
+
+export function parseGnomeNotificationKeyVal(
+  key: string,
+  rawVal: string
+): GnomeNotificationSettings {
+  const trimmed = stripGVariantQuotes(rawVal).trim();
+  if (trimmed !== "true" && trimmed !== "false") return {};
+  if (key === "show-banners") {
+    return { doNotDisturb: trimmed !== "true" };
+  }
+  if (key === "show-in-lock-screen") {
+    return { showInLockScreen: trimmed === "true" };
+  }
+  return {};
+}
+
+/**
+ * Parses combined `gsettings list-recursively` output across all four GNOME
+ * desktop schemas into a single typed batch snapshot.
+ */
+export function parseGnomeSettingsBatchOutput(
+  stdout: string
+): GnomeDesktopSettingsBatch {
+  const result: GnomeDesktopSettingsBatch = {
+    interface: {},
+    background: {},
+    wm: {},
+    notifications: {},
+  };
+
+  for (const rawLine of stdout.split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (!line) continue;
+    const firstSpace = line.search(/\s/);
+    if (firstSpace <= 0) continue;
+    const schema = line.slice(0, firstSpace);
+    const rest = line.slice(firstSpace).trim();
+    const secondSpace = rest.search(/\s/);
+    if (secondSpace <= 0) continue;
+    const key = rest.slice(0, secondSpace);
+    const rawVal = rest.slice(secondSpace).trim();
+
+    if (schema === "org.gnome.desktop.interface") {
+      Object.assign(result.interface, parseGSettingsKeyVal(key, rawVal));
+    } else if (schema === "org.gnome.desktop.background") {
+      Object.assign(result.background, parseGnomeBackgroundKeyVal(key, rawVal));
+    } else if (schema === "org.gnome.desktop.wm.preferences") {
+      Object.assign(result.wm, parseGnomeWmKeyVal(key, rawVal));
+    } else if (schema === "org.gnome.desktop.notifications") {
+      Object.assign(result.notifications, parseGnomeNotificationKeyVal(key, rawVal));
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Reads interface, background, WM, and notification GNOME GSettings in a single
+ * shell invocation instead of 5 separate startup subprocesses.
+ */
+export async function readGnomeDesktopSettingsBatch(
+  domicile: Domicile
+): Promise<GnomeDesktopSettingsBatch> {
+  const stdout = await runText(domicile, [
+    "sh",
+    "-c",
+    [
+      "gsettings list-recursively org.gnome.desktop.interface 2>/dev/null || true",
+      "gsettings list-recursively org.gnome.desktop.background 2>/dev/null || true",
+      "gsettings list-recursively org.gnome.desktop.wm.preferences 2>/dev/null || true",
+      "gsettings list-recursively org.gnome.desktop.notifications 2>/dev/null || true",
+    ].join("; "),
+  ]);
+  if (!stdout) {
+    return { interface: {}, background: {}, wm: {}, notifications: {} };
+  }
+  return parseGnomeSettingsBatchOutput(stdout);
+}
+
+export type ParsedDconfDesktopEvent =
+  | { schema: "interface"; patch: GnomeInterfaceSnapshot }
+  | { schema: "background"; patch: Partial<GnomeBackgroundSettings> }
+  | { schema: "wm"; patch: GnomeWmPreferencesSnapshot }
+  | { schema: "notifications"; patch: GnomeNotificationSettings };
+
+/**
+ * Parses a `(path, value)` event emitted by `dconf watch /org/gnome/desktop/`.
+ */
+export function parseDconfWatchEvent(
+  dconfPath: string,
+  rawVal: string
+): ParsedDconfDesktopEvent | null {
+  if (dconfPath.startsWith("/org/gnome/desktop/interface/")) {
+    const key = dconfPath.slice("/org/gnome/desktop/interface/".length);
+    const patch = parseGSettingsKeyVal(key, rawVal);
+    return Object.keys(patch).length > 0 ? { schema: "interface", patch } : null;
+  }
+  if (dconfPath.startsWith("/org/gnome/desktop/background/")) {
+    const key = dconfPath.slice("/org/gnome/desktop/background/".length);
+    const patch = parseGnomeBackgroundKeyVal(key, rawVal);
+    return Object.keys(patch).length > 0 ? { schema: "background", patch } : null;
+  }
+  if (dconfPath.startsWith("/org/gnome/desktop/wm/preferences/")) {
+    const key = dconfPath.slice("/org/gnome/desktop/wm/preferences/".length);
+    const patch = parseGnomeWmKeyVal(key, rawVal);
+    return Object.keys(patch).length > 0 ? { schema: "wm", patch } : null;
+  }
+  if (dconfPath.startsWith("/org/gnome/desktop/notifications/")) {
+    const key = dconfPath.slice("/org/gnome/desktop/notifications/".length);
+    const patch = parseGnomeNotificationKeyVal(key, rawVal);
+    return Object.keys(patch).length > 0
+      ? { schema: "notifications", patch }
+      : null;
+  }
+  return null;
+}
+
+export interface GnomeDesktopSettingsHandlers {
+  onInterface?: (patch: GnomeInterfaceSnapshot) => void;
+  onBackground?: (patch: Partial<GnomeBackgroundSettings>) => void;
+  onWm?: (patch: GnomeWmPreferencesSnapshot) => void;
+  onNotifications?: (patch: GnomeNotificationSettings) => void;
+}
+
+/**
+ * Watches all GNOME desktop schemas via a single `dconf watch /org/gnome/desktop/`
+ * process (replacing 3 separate `gsettings monitor` daemons), with automatic
+ * fallback to `gsettings monitor` if `dconf` is not installed.
+ */
+export function monitorGnomeDesktopSettings(
+  domicile: Domicile,
+  handlers: GnomeDesktopSettingsHandlers
+): () => void {
+  let stopped = false;
+  let cleanupFn: (() => void) | undefined;
+
+  (async () => {
+    try {
+      const res = await domicile.processes.spawn([
+        "dconf",
+        "watch",
+        "/org/gnome/desktop/",
+      ]);
+      const proc = res.match({
+        Ok: (p) => p,
+        Err: () => undefined,
+      });
+
+      if (!proc) {
+        if (stopped) return;
+        const stops: Array<() => void> = [];
+        if (handlers.onInterface) {
+          stops.push(monitorGnomeInterfaceSettings(domicile, handlers.onInterface));
+        }
+        if (handlers.onBackground) {
+          stops.push(monitorGnomeBackgroundSettings(domicile, handlers.onBackground));
+        }
+        if (handlers.onWm) {
+          stops.push(monitorGnomeWmPreferences(domicile, handlers.onWm));
+        }
+        cleanupFn = () => {
+          for (const stop of stops) stop();
+        };
+        return;
+      }
+
+      if (stopped) {
+        proc.kill();
+        return;
+      }
+      cleanupFn = () => proc.kill();
+
+      const reader = proc.stdout.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let pendingPath: string | null = null;
+
+      while (!stopped) {
+        const { done, value } = await reader.read();
+        if (done || stopped) break;
+        if (!value) continue;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split(/\r?\n/);
+        buffer = lines.pop() ?? "";
+
+        for (const line of lines) {
+          if (!line.trim()) {
+            pendingPath = null;
+            continue;
+          }
+          if (line.startsWith("/")) {
+            pendingPath = line.trim();
+            continue;
+          }
+          if (pendingPath && /^\s+/.test(line)) {
+            const event = parseDconfWatchEvent(pendingPath, line.trim());
+            pendingPath = null;
+            if (!event) continue;
+            if (event.schema === "interface") handlers.onInterface?.(event.patch);
+            else if (event.schema === "background") handlers.onBackground?.(event.patch);
+            else if (event.schema === "wm") handlers.onWm?.(event.patch);
+            else if (event.schema === "notifications") {
+              handlers.onNotifications?.(event.patch);
+            }
+          }
+        }
+      }
+    } catch {
+      // ignore if dconf watch is unavailable
+    }
+  })();
+
+  return () => {
+    stopped = true;
+    cleanupFn?.();
+  };
+}
+
 export async function syncGnomeNotificationSettings(
   domicile: Domicile,
   patch: GnomeNotificationSettings

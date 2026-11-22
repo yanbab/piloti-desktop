@@ -52,6 +52,7 @@ export class ShellErrorBoundary extends React.Component<
     try {
       removeVfsStateFile(VFS_STATE_PATHS.dockIconsCache);
       removeVfsStateFile(VFS_STATE_PATHS.iconIndexCache);
+      removeVfsStateFile(VFS_STATE_PATHS.xdgAppsCache);
       sessionStorage.clear();
     } catch {
       // ignore storage errors

@@ -1,3 +1,21 @@
+piloti-desktop (0.10.1-1) unstable; urgency=medium
+
+  * Release v0.10.1:
+    - Refactor src/lib/ into clean domain layers (engine-native, engine-web,
+      engine, xdg, config, shell, plugins, core).
+    - Linux performance optimizations: pre-warm Domicile shell/greeter cache in
+      postinst, compact deduplicated XDG icon index (~13x smaller) + SWR warm
+      boot for icon index and XDG desktop apps, batch GSettings startup reads
+      and consolidate 3 gsettings monitors into one `dconf watch`, lazy Xwayland,
+      and skip heavy/looping GNOME autostart daemons (`user-dirs-update-gtk`,
+      `org.gnome.Software`, conditional `orca`).
+    - Display Manager (`greetd`) fixes: terminate greeter compositor on session
+      handoff, use `vt = 7` on Debian, honor `/etc/default/keyboard` layout +
+      live keymaps, skip desktop session daemons in greeter mode, and clean up
+      orphaned Chromium engine processes before session launch.
+
+ -- Piloti Desktop Maintainers <maintainers@piloti-desktop.org>  Sun, 22 Nov 2026 06:06:00 +0100
+
 piloti-desktop (0.10.0-1) unstable; urgency=medium
 
   * Release v0.10.0: Full XDG Desktop Portals, XDG Autostart/Recents/Thumbnails/Sound

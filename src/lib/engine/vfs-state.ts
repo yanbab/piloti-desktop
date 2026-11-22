@@ -28,6 +28,7 @@ export const VFS_STATE_PATHS = {
   appStoreMeta: "/home/user/.cache/piloti/app-store-meta.json",
   iconIndexCache: "/home/user/.cache/piloti/icon-index.json",
   dockIconsCache: "/home/user/.cache/piloti/dock-icons.json",
+  xdgAppsCache: "/home/user/.cache/piloti/xdg-apps.json",
   cacheDir: "/home/user/.cache/piloti",
 } as const;
 

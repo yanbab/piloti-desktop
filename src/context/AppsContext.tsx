@@ -393,6 +393,50 @@ function saveCachedDockIcons(payload: DockIconsCachePayload): void {
   }
 }
 
+interface XdgAppsCachePayload {
+  v: 1;
+  theme: string;
+  entries: XdgDesktopEntry[];
+}
+
+function loadCachedXdgApps(theme: string): XdgDesktopEntry[] | null {
+  try {
+    const parsed = readVfsStateJson<Partial<XdgAppsCachePayload>>(
+      VFS_STATE_PATHS.xdgAppsCache,
+    );
+    if (
+      !parsed ||
+      parsed.v !== 1 ||
+      parsed.theme !== theme ||
+      !Array.isArray(parsed.entries) ||
+      parsed.entries.length === 0
+    ) {
+      return null;
+    }
+    return parsed.entries;
+  } catch {
+    return null;
+  }
+}
+
+function saveCachedXdgApps(theme: string, entries: XdgDesktopEntry[]): void {
+  try {
+    // Strip data-URL icon blobs from the persistent apps cache so it stays small (~35 KB)
+    const compactEntries = entries.map((entry) => {
+      if (!entry.iconUrl) return entry;
+      const { iconUrl: _omit, ...rest } = entry;
+      return rest as XdgDesktopEntry;
+    });
+    writeVfsStateJson(
+      VFS_STATE_PATHS.xdgAppsCache,
+      { v: 1, theme, entries: compactEntries } satisfies XdgAppsCachePayload,
+      false,
+    );
+  } catch {
+    // ignore storage quota errors
+  }
+}
+
 export function useAppsValue(
   settingsCtx: SettingsContextValue,
   backendsCtx: SystemBackendsContextValue,
@@ -498,6 +542,7 @@ export function useAppsValue(
     }
 
     let bgIndexTimer: ReturnType<typeof setTimeout> | null = null;
+    let bgAppsTimer: ReturnType<typeof setTimeout> | null = null;
 
     (async () => {
       const finishDock = startBootPhase("dock");
@@ -626,66 +671,100 @@ export function useAppsValue(
         signalEssentialReady();
 
         const finishXdgApps = startBootPhase("xdg apps");
-        const apps = await discoverInstalledXdgApps(
-          domicile.files,
-          { iconThemes: preferredThemes, deferIconDataLoad: true },
-          Promise.resolve(iconIndex)
-        );
+        const cachedApps =
+          refreshNonce === 0 ? loadCachedXdgApps(activeIconTheme) : null;
+        const useWarmCachedApps = Boolean(cachedApps && cachedApps.length > 0);
+        const apps = useWarmCachedApps
+          ? cachedApps!
+          : await discoverInstalledXdgApps(
+              domicile.files,
+              { iconThemes: preferredThemes, deferIconDataLoad: true },
+              Promise.resolve(iconIndex)
+            );
         if (cancelled) return;
-        finishXdgApps(`${apps.length} entries`);
+        finishXdgApps(
+          useWarmCachedApps ? `${apps.length} entries (cached)` : `${apps.length} entries`
+        );
         setInstalledXdgApps(apps);
-
-        // Prioritize pinned dock apps, then batch-load remaining app icons.
-        const orderedApps = [
-          ...apps.filter(
-            (e) => pinnedSet.has(e.desktopId) || pinnedSet.has(e.appId)
-          ),
-          ...apps.filter(
-            (e) => !pinnedSet.has(e.desktopId) && !pinnedSet.has(e.appId)
-          ),
-        ];
-
-        const BATCH_SIZE = 16;
-        const resolvedUrls = new Map<string, string>();
-        for (let i = 0; i < orderedApps.length; i += BATCH_SIZE) {
-          if (cancelled) return;
-          const chunk = orderedApps.slice(i, i + BATCH_SIZE);
-          const batchIcons: Record<string, string> = {};
-          await Promise.all(
-            chunk.map(async (entry) => {
-              if (!entry.iconPath) {
-                if (entry.icon && /^https?:\/\//i.test(entry.icon)) {
-                  resolvedUrls.set(entry.desktopId, entry.icon);
-                  batchIcons[entry.desktopId] = entry.icon;
-                  batchIcons[entry.appId] = entry.icon;
-                  batchIcons[entry.appId.toLowerCase()] = entry.icon;
-                }
-                return;
-              }
-              const url = await loadXdgIconDataUrl(domicile.files, entry.iconPath);
-              if (!url) return;
-              resolvedUrls.set(entry.desktopId, url);
-              batchIcons[entry.desktopId] = url;
-              batchIcons[entry.appId] = url;
-              batchIcons[entry.appId.toLowerCase()] = url;
-              if (entry.icon) {
-                batchIcons[entry.icon] = url;
-              }
-            })
-          );
-          if (cancelled) return;
-          if (Object.keys(batchIcons).length > 0) {
-            setAppIconsMap((prev) => ({ ...prev, ...batchIcons }));
-          }
+        if (!useWarmCachedApps) {
+          saveCachedXdgApps(activeIconTheme, apps);
         }
 
-        if (!cancelled && resolvedUrls.size > 0) {
-          setInstalledXdgApps((prev) =>
-            prev.map((entry) => {
-              const url = resolvedUrls.get(entry.desktopId);
-              return url ? { ...entry, iconUrl: url } : entry;
-            })
-          );
+        const loadIconsForApps = async (targetApps: XdgDesktopEntry[]) => {
+          // Prioritize pinned dock apps, then batch-load remaining app icons.
+          const orderedApps = [
+            ...targetApps.filter(
+              (e) => pinnedSet.has(e.desktopId) || pinnedSet.has(e.appId)
+            ),
+            ...targetApps.filter(
+              (e) => !pinnedSet.has(e.desktopId) && !pinnedSet.has(e.appId)
+            ),
+          ];
+
+          const BATCH_SIZE = 16;
+          const resolvedUrls = new Map<string, string>();
+          for (let i = 0; i < orderedApps.length; i += BATCH_SIZE) {
+            if (cancelled) return;
+            const chunk = orderedApps.slice(i, i + BATCH_SIZE);
+            const batchIcons: Record<string, string> = {};
+            await Promise.all(
+              chunk.map(async (entry) => {
+                if (!entry.iconPath) {
+                  if (entry.icon && /^https?:\/\//i.test(entry.icon)) {
+                    resolvedUrls.set(entry.desktopId, entry.icon);
+                    batchIcons[entry.desktopId] = entry.icon;
+                    batchIcons[entry.appId] = entry.icon;
+                    batchIcons[entry.appId.toLowerCase()] = entry.icon;
+                  }
+                  return;
+                }
+                const url = await loadXdgIconDataUrl(domicile.files, entry.iconPath);
+                if (!url) return;
+                resolvedUrls.set(entry.desktopId, url);
+                batchIcons[entry.desktopId] = url;
+                batchIcons[entry.appId] = url;
+                batchIcons[entry.appId.toLowerCase()] = url;
+                if (entry.icon) {
+                  batchIcons[entry.icon] = url;
+                }
+              })
+            );
+            if (cancelled) return;
+            if (Object.keys(batchIcons).length > 0) {
+              setAppIconsMap((prev) => ({ ...prev, ...batchIcons }));
+            }
+          }
+
+          if (!cancelled && resolvedUrls.size > 0) {
+            setInstalledXdgApps((prev) =>
+              prev.map((entry) => {
+                const url = resolvedUrls.get(entry.desktopId);
+                return url ? { ...entry, iconUrl: url } : entry;
+              })
+            );
+          }
+        };
+
+        await loadIconsForApps(apps);
+
+        // Background SWR refresh when hydrated from cached XDG apps
+        if (useWarmCachedApps && !cancelled) {
+          bgAppsTimer = setTimeout(() => {
+            if (cancelled) return;
+            const activeIdx = iconThemeIndexRef.current ?? iconIndex;
+            void discoverInstalledXdgApps(
+              domicile.files,
+              { iconThemes: preferredThemes, deferIconDataLoad: true },
+              Promise.resolve(activeIdx)
+            )
+              .then(async (freshApps) => {
+                if (cancelled) return;
+                saveCachedXdgApps(activeIconTheme, freshApps);
+                setInstalledXdgApps(freshApps);
+                await loadIconsForApps(freshApps);
+              })
+              .catch(() => undefined);
+          }, 4500);
         }
       } catch (err) {
         logBootEvent(
@@ -699,6 +778,7 @@ export function useAppsValue(
     return () => {
       cancelled = true;
       if (bgIndexTimer) clearTimeout(bgIndexTimer);
+      if (bgAppsTimer) clearTimeout(bgAppsTimer);
     };
     // pinnedAppIds only affects icon batch ordering, not discovery
     // eslint-disable-next-line react-hooks/exhaustive-deps
