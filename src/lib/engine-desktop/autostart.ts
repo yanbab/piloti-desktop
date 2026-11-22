@@ -13,6 +13,7 @@ const SKIP_SYSTEM_AUTOSTART_PREFIXES = [
   "gnome-initial-setup",
   "gnome-keyring-pkcs11",
   "xdg-user-dirs",
+  "user-dirs-update-gtk",
   "at-spi-dbus-bus",
   "localsearch-",
   "tracker-miner-",
