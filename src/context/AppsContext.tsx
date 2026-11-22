@@ -7,7 +7,7 @@ import {
   type AppDefinition,
 } from "@/data/catalog";
 import { launchDesktopCommand } from "@/lib/gnome-bridge";
-import { tintIconDataUrl } from "@/lib/icon-accent-tint";
+import { shouldTintIconKey, tintIconDataUrl } from "@/lib/icon-accent-tint";
 import { PAPIRUS_VIRTUAL_ICONS } from "@/lib/papirus-virtual-icons";
 import { PILOTI_VIRTUAL_ICONS } from "@/lib/piloti-virtual-icons";
 import {
@@ -803,7 +803,9 @@ export function useAppsValue(
   const tintedAppIconsMap = React.useMemo(() => {
     const out: Record<string, string> = {};
     for (const [k, url] of Object.entries(appIconsMap)) {
-      out[k] = tintIconDataUrl(url, activeAccentHex) ?? url;
+      out[k] = shouldTintIconKey(k)
+        ? (tintIconDataUrl(url, activeAccentHex) ?? url)
+        : url;
     }
     return out;
   }, [activeAccentHex, appIconsMap]);
@@ -811,7 +813,10 @@ export function useAppsValue(
   const tintedInstalledXdgApps = React.useMemo(
     () =>
       installedXdgApps.map((entry) =>
-        entry.iconUrl
+        entry.iconUrl &&
+        (shouldTintIconKey(entry.appId) ||
+          shouldTintIconKey(entry.desktopId) ||
+          shouldTintIconKey(entry.icon))
           ? {
               ...entry,
               iconUrl: tintIconDataUrl(entry.iconUrl, activeAccentHex) ?? entry.iconUrl,

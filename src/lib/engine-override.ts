@@ -1,6 +1,6 @@
 import * as React from "react";
 
-export type RuntimeEngineMode = "web" | "system";
+export type RuntimeEngineMode = "web" | "native";
 
 export const ENGINE_OVERRIDE_STORAGE_KEY = "piloti.engine-override";
 export const ENGINE_OVERRIDE_CHANGED_EVENT = "piloti:engine-override-changed";
@@ -13,7 +13,7 @@ declare global {
 
 /**
  * Records whether the session originally booted with a native Domicile Linux host
- * (so switching `engine:system -> engine:web -> engine:system` knows system mode is available).
+ * (so switching `engine:native -> engine:web -> engine:native` knows native mode is available).
  */
 export function markNativeSystemHostAvailable(): void {
   if (typeof window !== "undefined") {
@@ -32,7 +32,8 @@ export function getEngineOverride(): RuntimeEngineMode | null {
   if (typeof window === "undefined") return null;
   try {
     const raw = window.localStorage.getItem(ENGINE_OVERRIDE_STORAGE_KEY);
-    return raw === "web" || raw === "system" ? raw : null;
+    if (raw === "system") return "native";
+    return raw === "web" || raw === "native" ? raw : null;
   } catch {
     return null;
   }

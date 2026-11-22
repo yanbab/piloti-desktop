@@ -49,7 +49,7 @@ export function Desktop() {
     initialNativeRef.current && useWebEngine && webDomicile
       ? webDomicile
       : initialDomicile;
-  const engineKey = useWebEngine ? "web" : "system";
+  const engineKey = useWebEngine ? "web" : "native";
 
   return (
     <ShellErrorBoundary>

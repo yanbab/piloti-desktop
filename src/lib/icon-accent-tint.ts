@@ -63,6 +63,46 @@ function decodeDataUrlPayload(dataUrl: string): {
   }
 }
 
+const ACCENT_TINTED_ICON_KEYS = new Set([
+  // Folders & file detail icons
+  "nautilus",
+  "piloti-files",
+  "system-file-manager",
+  "org.gnome.nautilus",
+  "folder",
+  "folder-open",
+  "inode-directory",
+  "text-x-generic",
+  "application-x-zerosize",
+  // Desktop Settings
+  "settings",
+  "piloti-settings",
+  "preferences-desktop",
+  "preferences-system",
+  "org.gnome.settings",
+  // Desktop Console
+  "console",
+  "piloti-console",
+  "piloti-desktop",
+  // Desktop Shell & Terminal
+  "terminal",
+  "piloti-shell",
+  "utilities-terminal",
+  "org.gnome.terminal",
+  "org.gnome.console",
+  "kgx",
+  "kitty",
+]);
+
+export function shouldTintIconKey(keyOrId: string | undefined): boolean {
+  if (!keyOrId) return false;
+  const clean = keyOrId
+    .trim()
+    .replace(/\.desktop$/i, "")
+    .toLowerCase();
+  return ACCENT_TINTED_ICON_KEYS.has(clean);
+}
+
 export function tintIconDataUrl(
   dataUrl: string | undefined,
   accentHex: string

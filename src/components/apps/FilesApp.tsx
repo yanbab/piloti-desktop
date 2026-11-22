@@ -14,11 +14,11 @@ import {
   HeartIcon,
   HomeIcon,
   ImageIcon,
+  InfoIcon,
   LayoutGridIcon,
   ListIcon,
   MonitorIcon,
   MusicIcon,
-  PanelRightIcon,
   SearchIcon,
   TagIcon,
   Trash2Icon,
@@ -48,7 +48,6 @@ import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import {
   DropdownMenu,
-  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuLabel,
   DropdownMenuRadioGroup,
@@ -274,7 +273,6 @@ export function FilesApp({
   const [viewMode, setViewMode] = React.useState<"grid" | "list">("grid");
   const [sortBy, setSortBy] = React.useState<"name" | "kind" | "modified" | "size">("name");
   const [sortDir, setSortDir] = React.useState<"asc" | "desc">("asc");
-  const [emblemFilter, setEmblemFilter] = React.useState<VfsEmblemId | null>(null);
   const [editingLocation, setEditingLocation] = React.useState(false);
   const [draftLocation, setDraftLocation] = React.useState("");
   const [searchOpen, setSearchOpen] = React.useState(false);
@@ -809,11 +807,8 @@ export function FilesApp({
     const searched = q
       ? visible.filter((entry) => entry.name.toLowerCase().includes(q))
       : visible;
-    const emblemFiltered = emblemFilter
-      ? searched.filter((entry) => getVfsEmblems(entry.path).includes(emblemFilter))
-      : searched;
     const dirFactor = sortDir === "asc" ? 1 : -1;
-    const sorted = [...emblemFiltered].sort((a, b) => {
+    const sorted = [...searched].sort((a, b) => {
       const rankA = a.kind === "directory" ? 0 : 1;
       const rankB = b.kind === "directory" ? 0 : 1;
       if (rankA !== rankB) return rankA - rankB;
@@ -839,7 +834,6 @@ export function FilesApp({
     });
     return sorted.map((entry) => vfsEntryToGridItem(entry, getAppIconUrl));
   }, [
-    emblemFilter,
     getAppIconUrl,
     installedXdgApps,
     isAppsView,
@@ -1444,7 +1438,7 @@ export function FilesApp({
             : _("%d bytes", (inspectedVfs?.content ?? "").length)
           : _("%d items", items.length);
         const modifiedLabel = inspectedVfs?.updatedAt
-          ? new Date(inspectedVfs.updatedAt).toLocaleString()
+          ? new Date(inspectedVfs.updatedAt).toLocaleDateString()
           : "—";
         const emblemOrder: readonly VfsEmblemId[] = [
           "favorite",
@@ -1484,13 +1478,15 @@ export function FilesApp({
               </div>
             </div>
             <dl className="space-y-2 text-[11.5px]">
-              <div>
-                <dt className="text-adw-dim">{_("Size")}</dt>
-                <dd className="font-medium">{displaySize}</dd>
-              </div>
-              <div>
-                <dt className="text-adw-dim">{_("Modified")}</dt>
-                <dd className="font-medium">{modifiedLabel}</dd>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="min-w-0">
+                  <dt className="text-adw-dim">{_("Size")}</dt>
+                  <dd className="truncate font-medium">{displaySize}</dd>
+                </div>
+                <div className="min-w-0">
+                  <dt className="text-adw-dim">{_("Modified")}</dt>
+                  <dd className="truncate font-medium">{modifiedLabel}</dd>
+                </div>
               </div>
               <div>
                 <dt className="text-adw-dim">{_("Where")}</dt>
@@ -1711,7 +1707,7 @@ export function FilesApp({
                       title={_("Sort & Filter")}
                       className={cn(
                         "relative flex size-7 items-center justify-center rounded-md transition-colors",
-                        emblemFilter || sortBy !== "name" || sortDir !== "asc"
+                        sortBy !== "name" || sortDir !== "asc"
                           ? "bg-black/10 text-adw-accent dark:bg-white/15"
                           : "text-adw-label-secondary hover:bg-black/8 hover:text-adw-label dark:hover:bg-white/10"
                       )}
@@ -1739,19 +1735,6 @@ export function FilesApp({
                         <DropdownMenuRadioItem value="asc">{_("Ascending")}</DropdownMenuRadioItem>
                         <DropdownMenuRadioItem value="desc">{_("Descending")}</DropdownMenuRadioItem>
                       </DropdownMenuRadioGroup>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuLabel>{_("Filter by Tag")}</DropdownMenuLabel>
-                      {(Object.keys(VFS_EMBLEM_META) as VfsEmblemId[]).map((emblemId) => (
-                        <DropdownMenuCheckboxItem
-                          key={emblemId}
-                          checked={emblemFilter === emblemId}
-                          onCheckedChange={(checked) =>
-                            setEmblemFilter(checked ? emblemId : null)
-                          }
-                        >
-                          {_(VFS_EMBLEM_META[emblemId].label)}
-                        </DropdownMenuCheckboxItem>
-                      ))}
                     </DropdownMenuContent>
                   </DropdownMenu>
                 )}
@@ -1810,7 +1793,7 @@ export function FilesApp({
                   : "text-adw-label-secondary hover:bg-black/8 hover:text-adw-label dark:hover:bg-white/10"
               )}
             >
-              <PanelRightIcon className="size-4" />
+              <InfoIcon className="size-4" />
             </button>
 
             {/* CSD Window Controls */}
@@ -1829,7 +1812,7 @@ export function FilesApp({
           ref={mainViewRef}
           data-vfs-drop-path={isVirtualView ? undefined : currentPath}
           onKeyDown={onContentKeyDown}
-          className="relative min-h-0 flex-1 overflow-auto bg-adw-content pb-10"
+          className="relative min-h-0 flex-1 overflow-auto bg-adw-content"
         onDragOver={(e) => {
           if (isTrashView || isVirtualView || !e.dataTransfer?.types?.includes("Files")) return;
           e.preventDefault();
@@ -1883,7 +1866,7 @@ export function FilesApp({
             </span>
           </div>
         ) : viewMode === "list" ? (
-          <div className="p-2">
+          <div className="p-2 pb-10">
             <table className="w-full border-collapse text-left text-[12.5px]">
               <thead>
                 <tr className="border-b border-adw-separator text-[11px] font-semibold text-adw-label-secondary uppercase">
@@ -2103,7 +2086,7 @@ export function FilesApp({
             selectedIds={selectedIds}
             onSelectIds={setSelectedIds}
             ariaLabel={currentTitle}
-            className="[&_button[aria-selected=false]_span]:text-adw-label [&_button_span]:drop-shadow-none"
+            className="pb-10 [&_button[aria-selected=false]_span]:text-adw-label [&_button_span]:drop-shadow-none"
           />
         )}
         </div>
@@ -2224,13 +2207,6 @@ export function FilesApp({
         }
         canPaste={Boolean(clipboard && clipboard.paths.length > 0)}
         onPaste={handlePasteItems}
-        activeEmblems={itemMenu ? getVfsEmblems(itemMenu.item.path) : []}
-        onToggleEmblem={(list, emblem) => {
-          for (const target of list) {
-            toggleVfsEmblem(target.path, emblem);
-          }
-          reloadDir();
-        }}
         onRename={(target) => setRenamingId(target.id)}
         onTrash={handleTrashItem}
         onTrashItems={handleTrashItems}

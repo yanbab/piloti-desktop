@@ -61,10 +61,10 @@ export function AdvancedPane() {
   const nativeSystemAvailable = hasNativeSystemHost();
   const effectiveEngine =
     nativeSystemAvailable && engineOverride !== "web"
-      ? "system"
+      ? "native"
       : isBrowserRuntime
         ? "web"
-        : "system";
+        : "native";
   const { launchApp } = useWindowActions();
   const {
     plugins: userPlugins,
@@ -342,7 +342,7 @@ export function AdvancedPane() {
                       `engine:${effectiveEngine}`
                     )
                   : _(
-                      "Active engine: engine:web. Switching to engine:system requires the Domicile Linux Wayland host."
+                      "Active engine: engine:web. Switching to engine:native requires the Domicile Linux Wayland host."
                     )}
               </GroupedFormRowDescription>
             </GroupedFormRowLabel>
@@ -353,7 +353,7 @@ export function AdvancedPane() {
                 checked={effectiveEngine === "web"}
                 onCheckedChange={(checked) => {
                   if (!nativeSystemAvailable) return;
-                  setEngineOverride(checked ? "web" : "system");
+                  setEngineOverride(checked ? "web" : "native");
                 }}
               />
             </GroupedFormRowControl>

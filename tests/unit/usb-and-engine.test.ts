@@ -95,8 +95,8 @@ describe("Simulated USB pen drive, Engine override & Folders rename", () => {
     expect(getEngineOverride()).toBeNull();
     setEngineOverride("web");
     expect(getEngineOverride()).toBe("web");
-    setEngineOverride("system");
-    expect(getEngineOverride()).toBe("system");
+    setEngineOverride("native");
+    expect(getEngineOverride()).toBe("native");
 
     expect(hasNativeSystemHost()).toBe(false);
     markNativeSystemHostAvailable();
