@@ -144,13 +144,17 @@ function AppsLayer({
 
 function SystemBackendsLayer({
   onEssentialIconsReady,
+  greeterMode,
   children,
 }: {
   onEssentialIconsReady: () => void;
+  greeterMode?: boolean;
   children: React.ReactNode;
 }) {
   const settingsValue = useSettings();
-  const systemBackendsValue = useSystemBackendsValue(settingsValue);
+  const systemBackendsValue = useSystemBackendsValue(settingsValue, {
+    greeterMode,
+  });
   return (
     <SystemBackendsContext.Provider value={systemBackendsValue}>
       <AppsLayer onEssentialIconsReady={onEssentialIconsReady}>
@@ -161,8 +165,10 @@ function SystemBackendsLayer({
 }
 
 export function DesktopStateProvider({
+  greeterMode = false,
   children,
 }: {
+  greeterMode?: boolean;
   children: React.ReactNode;
 }) {
   const domicile = useDomicile();
@@ -181,7 +187,10 @@ export function DesktopStateProvider({
 
   return (
     <SettingsContext.Provider value={settingsValue}>
-      <SystemBackendsLayer onEssentialIconsReady={handleEssentialIconsReady}>
+      <SystemBackendsLayer
+        onEssentialIconsReady={handleEssentialIconsReady}
+        greeterMode={greeterMode}
+      >
         {children}
       </SystemBackendsLayer>
     </SettingsContext.Provider>

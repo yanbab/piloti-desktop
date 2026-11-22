@@ -155,11 +155,11 @@ export async function runXdgAutostartOnce(domicile: Domicile): Promise<string[]>
   if (autostartTriggeredInPage) return [];
   autostartTriggeredInPage = true;
 
-  // Guard across shell hot-reloads in the same Wayland session.
+  // Guard across shell hot-reloads in the same Wayland session, and never run in greeter mode.
   const markerCheck = await runText(domicile, [
     "sh",
     "-c",
-    'dir="${XDG_RUNTIME_DIR:-/tmp}"; disp="${WAYLAND_DISPLAY:-default}"; f="$dir/piloti-autostart.$disp.done"; if [ -f "$f" ]; then echo SKIP; else touch "$f" && echo RUN; fi',
+    'if [ "${PILOTI_GREETER:-0}" = "1" ] || [ -n "${GREETD_SOCK:-}" ]; then echo SKIP; exit 0; fi; dir="${XDG_RUNTIME_DIR:-/tmp}"; disp="${WAYLAND_DISPLAY:-default}"; f="$dir/piloti-autostart.$disp.done"; if [ -f "$f" ]; then echo SKIP; else touch "$f" && echo RUN; fi',
   ]);
   if (markerCheck?.trim() !== "RUN") {
     return [];

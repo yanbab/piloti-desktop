@@ -44,6 +44,7 @@ import {
   detectGreeterRuntime,
   discoverGreeterSessions,
   discoverGreeterUsers,
+  finishGreetdGreeter,
   runGreeterPowerAction,
   switchGreeterKeymap,
   type GreeterSessionOption,
@@ -374,6 +375,10 @@ export const LoginScreenApp: React.FC<LoginScreenAppProps> = ({
       setPassword("");
       setLastLoggedUserId(selectedUser.id);
       setView("authenticated");
+      // Per greetd-ipc(7), the user session starts once the greeter exits.
+      window.setTimeout(() => {
+        void finishGreetdGreeter(domicile);
+      }, 120);
       return;
     }
 

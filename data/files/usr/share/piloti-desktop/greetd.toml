@@ -1,10 +1,12 @@
 # Example /etc/greetd/config.toml to use Piloti Display Manager as a GDM/SDDM replacement.
-# Copy to /etc/greetd/config.toml, then enable greetd:
+# Install with:
+#   sudo cp /usr/share/piloti-desktop/greetd.toml /etc/greetd/config.toml
 #   sudo systemctl disable --now gdm3 sddm lightdm 2>/dev/null || true
 #   sudo systemctl enable --now greetd
 
 [terminal]
-vt = 1
+# Matches Debian's greetd.service (Conflicts=getty@tty7.service)
+vt = 7
 
 [default_session]
 command = "/usr/bin/piloti-greeter"

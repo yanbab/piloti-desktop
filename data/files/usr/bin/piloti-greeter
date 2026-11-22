@@ -23,6 +23,7 @@ fi
 
 export XDG_CURRENT_DESKTOP="Piloti:GNOME"
 export XDG_SESSION_TYPE="wayland"
+export PILOTI_GREETER="1"
 
 if [ "$#" -gt 0 ]; then
   exec domicile "${PILOTI_GREETER_BUNDLE}" "$@"

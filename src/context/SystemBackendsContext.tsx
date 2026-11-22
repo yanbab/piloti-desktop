@@ -136,8 +136,10 @@ export const SystemBackendsContext = React.createContext<SystemBackendsContextVa
 let nextNotifCounter = 5000;
 
 export function useSystemBackendsValue(
-  settingsCtx: SettingsContextValue
+  settingsCtx: SettingsContextValue,
+  options?: { greeterMode?: boolean }
 ): SystemBackendsContextValue {
+  const greeterMode = Boolean(options?.greeterMode);
   const domicile = useDomicile();
   const {
     isBrowserRuntime,
@@ -766,12 +768,12 @@ export function useSystemBackendsValue(
 
   // Sync GNOME Control Center panel overrides whenever hiddenGnomePanels changes
   React.useEffect(() => {
-    if (isBrowserRuntime) return;
+    if (isBrowserRuntime || greeterMode) return;
     const timer = window.setTimeout(() => {
       void syncGnomePanelOverrides(domicile, settings.hiddenGnomePanels);
     }, 600);
     return () => window.clearTimeout(timer);
-  }, [domicile, isBrowserRuntime, settings.hiddenGnomePanels]);
+  }, [domicile, greeterMode, isBrowserRuntime, settings.hiddenGnomePanels]);
 
   // Backends probing + GSettings monitor
   const refreshSystemBackends = React.useCallback(
@@ -781,8 +783,8 @@ export function useSystemBackendsValue(
       const [audio, battery, powerProfile, mpris] = await Promise.all([
         readSystemAudio(domicile),
         readSystemBattery(domicile),
-        readSystemPowerProfile(domicile),
-        readMprisMediaInfo(domicile),
+        greeterMode ? Promise.resolve(null) : readSystemPowerProfile(domicile),
+        greeterMode ? Promise.resolve(null) : readMprisMediaInfo(domicile),
       ]);
 
       setMprisMedia(mpris);
@@ -794,6 +796,21 @@ export function useSystemBackendsValue(
       }
       if (powerProfile) {
         applySettingsState({ powerMode: powerProfile });
+      }
+
+      if (greeterMode) {
+        const wifi = await readSystemWifi(domicile, {
+          scan: Boolean(options?.scanWifi),
+        });
+        finishBackends();
+        if (wifi) {
+          if (wifi.networks.length > 0) setLiveWifiNetworks(wifi.networks);
+          applySettingsState({
+            wifiEnabled: wifi.enabled,
+            ...(wifi.connectedSsid ? { connectedWifi: wifi.connectedSsid } : {}),
+          });
+        }
+        return;
       }
 
       const [caps, panels, sinks, wifi] = await Promise.all([
@@ -818,7 +835,7 @@ export function useSystemBackendsValue(
         });
       }
     },
-    [applySettingsState, domicile, isBrowserRuntime]
+    [applySettingsState, domicile, greeterMode, isBrowserRuntime]
   );
 
   const controlMpris = React.useCallback(
@@ -842,6 +859,13 @@ export function useSystemBackendsValue(
     const deferTimer = window.setTimeout(() => {
       if (!cancelled) void refreshSystemBackends();
     }, 250);
+
+    if (greeterMode) {
+      return () => {
+        cancelled = true;
+        window.clearTimeout(deferTimer);
+      };
+    }
 
     const applyGnomeSnapshot = (
       snap: Awaited<ReturnType<typeof readGnomeInterfaceSettings>>
@@ -956,6 +980,7 @@ export function useSystemBackendsValue(
     applySettingsState,
     applyingGnomeSyncRef,
     domicile,
+    greeterMode,
     isBrowserRuntime,
     refreshSystemBackends,
     settings.syncGnomeSettings,

@@ -12,7 +12,7 @@ import { DesktopStateProvider } from "./context/DesktopStateContext";
 export function Greeter() {
   return (
     <ShellErrorBoundary>
-      <DesktopStateProvider>
+      <DesktopStateProvider greeterMode>
         <div className="h-screen w-screen overflow-hidden">
           <LoginScreenApp mode="greeter" isCsd={false} />
         </div>

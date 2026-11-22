@@ -363,6 +363,29 @@ export async function authenticateAndStartGreetdSession(
 }
 
 /**
+ * Cleanly terminates the greeter's Domicile compositor after `greetd` accepts
+ * `start_session`, handing the VT over to the authenticated user session.
+ * Per `greetd-ipc(7)`, the user session starts once the greeter exits.
+ */
+export async function finishGreetdGreeter(domicile: Domicile): Promise<void> {
+  try {
+    await domicile.processes.run([
+      "sh",
+      "-c",
+      [
+        'sock="${DOMICILE_SOCK:-}"',
+        'pid=""',
+        'case "$sock" in *domicile-ipc.*.sock) pid="${sock##*domicile-ipc.}"; pid="${pid%.sock}" ;; esac',
+        'case "$pid" in ""|*[!0-9]*) pid="$(pgrep -u "$(id -u)" -x domicile 2>/dev/null | head -n 1 || true)" ;; esac',
+        'if [ -n "$pid" ]; then kill -TERM "$pid" 2>/dev/null || true; fi',
+      ].join("; "),
+    ]);
+  } catch {
+    // Expected if the compositor terminates while the command is in flight
+  }
+}
+
+/**
  * Triggers a real system power action from Display Manager / Greeter mode via `systemctl`.
  */
 export async function runGreeterPowerAction(
