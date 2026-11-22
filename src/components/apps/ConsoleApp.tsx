@@ -18,7 +18,9 @@ import {
 } from "lucide-react";
 import { ObjectView, themeGitHubLight, themeOneDark } from "react-obj-view";
 import "react-obj-view/dist/react-obj-view.css";
+import { AppSquircleIcon } from "@/components/shell/AppSymbol";
 import { WindowMenuButton } from "@/components/shell/WindowMenuButton";
+import { InlineCompletionInput } from "@/components/ui/inline-completion-input";
 import {
   Tooltip,
   TooltipContent,
@@ -26,6 +28,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { WindowControls, WindowTitlebar } from "@/components/ui/window";
+import { getWebAppFaviconUrl } from "@/data/web-apps";
 import { useSidebarKeyboardNav } from "@/hooks/use-sidebar-keyboard-nav";
 import {
   useApps,
@@ -86,7 +89,7 @@ function ReplModule({
 
   const lastResultRef = React.useRef<unknown>(undefined);
   const scrollRef = React.useRef<HTMLDivElement | null>(null);
-  const inputRef = React.useRef<HTMLTextAreaElement | null>(null);
+  const inputRef = React.useRef<HTMLInputElement | null>(null);
 
   React.useEffect(() => {
     if (active) {
@@ -159,7 +162,7 @@ function ReplModule({
               "  Console                       Interactive JS REPL (state persists across tabs)",
               "  Logs                          Live captured console & error stream",
               "  Infos                         Compositor, window, display & backend diagnostics",
-              "  VFS & Events                  Live VFS diff & window/shell events (records in background)",
+              "  Events                        Live VFS diff & window/shell events (records in background)",
               "  Storage                       Inspect localStorage keys & embedded images",
               "",
               "Examples:",
@@ -209,7 +212,76 @@ function ReplModule({
     [input, running, scope]
   );
 
-  const onKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+  const replCompletion = React.useMemo(() => {
+    if (!input) return undefined;
+
+    const tokenMatch = input.match(/([A-Za-z_$][A-Za-z0-9_$.]*)$/);
+    if (tokenMatch) {
+      const token = tokenMatch[1];
+      const head = input.slice(0, input.length - token.length);
+      const parts = token.split(".");
+      const propPrefix = parts.pop() ?? "";
+      const rootScope: Record<string, unknown> = {
+        ...scope,
+        $_: lastResultRef.current,
+        clear: () => {},
+        help: () => {},
+        console,
+        JSON,
+        Object,
+        Math,
+      };
+
+      if (parts.length === 0) {
+        const keys = Object.keys(rootScope);
+        const match =
+          keys.find((k) => k.startsWith(propPrefix) && k.length > propPrefix.length) ??
+          keys.find(
+            (k) =>
+              k.toLowerCase().startsWith(propPrefix.toLowerCase()) &&
+              k.length > propPrefix.length
+          );
+        if (match) {
+          return `${head}${match}`;
+        }
+      } else {
+        let target: unknown = rootScope;
+        for (const part of parts) {
+          if (target !== null && (typeof target === "object" || typeof target === "function")) {
+            target = (target as Record<string, unknown>)[part];
+          } else {
+            target = undefined;
+            break;
+          }
+        }
+        if (target !== null && (typeof target === "object" || typeof target === "function")) {
+          const keys = [
+            ...new Set([
+              ...Object.keys(target as Record<string, unknown>),
+              ...Object.getOwnPropertyNames(target),
+            ]),
+          ].filter((k) => k !== "prototype" && k !== "constructor" && k !== "__proto__");
+          const match =
+            keys.find((k) => k.startsWith(propPrefix) && k.length > propPrefix.length) ??
+            keys.find(
+              (k) =>
+                k.toLowerCase().startsWith(propPrefix.toLowerCase()) &&
+                k.length > propPrefix.length
+            );
+          if (match) {
+            return `${head}${parts.join(".")}.${match}`;
+          }
+        }
+      }
+    }
+
+    const lower = input.toLowerCase();
+    return history.find(
+      (h) => h.toLowerCase().startsWith(lower) && h.length > input.length
+    );
+  }, [history, input, scope]);
+
+  const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       void execute();
@@ -291,14 +363,20 @@ function ReplModule({
         className="flex h-12 min-h-12 shrink-0 items-center gap-2 border-t border-adw-separator bg-adw-titlebar px-3"
       >
         <ChevronRightIcon className="size-4 shrink-0 text-adw-label dark:text-white" />
-        <textarea
+        <InlineCompletionInput
           ref={inputRef}
           autoFocus
-          rows={1}
+          type="text"
           value={input}
+          completion={replCompletion}
+          onAcceptCompletion={(completed) => setInput(completed)}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={onKeyDown}
-          className="h-full max-h-32 min-h-12 flex-1 resize-none bg-transparent py-[15px] font-mono text-[12px] leading-[18px] text-adw-label outline-none placeholder:text-adw-label-tertiary"
+          spellCheck={false}
+          autoCapitalize="off"
+          autoComplete="off"
+          aria-label="Console REPL input"
+          className="h-full flex-1 font-mono text-[12px] leading-[18px] text-adw-label"
         />
       </form>
     </div>
@@ -315,19 +393,19 @@ function LogsModule() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-white dark:bg-black">
-      <div className="min-h-0 flex-1 overflow-y-auto px-3 py-2 font-mono text-[11.5px]">
+      <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4 font-mono text-[11.5px]">
         {entries.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center gap-1 text-center font-sans text-adw-label-secondary">
             <ScrollTextIcon className="size-6 opacity-60" />
             <div className="text-xs font-medium">{_("No console messages")}</div>
           </div>
         ) : (
-          <div>
+          <div className="space-y-1.5">
             {entries.map((entry) => (
               <div
                 key={entry.id}
                 className={cn(
-                  "flex items-start gap-2 select-text",
+                  "flex items-start gap-2.5 rounded-md px-2.5 py-1.5 select-text",
                   entry.level === "error" &&
                     "text-rose-600 dark:text-rose-400",
                   entry.level === "warn" &&
@@ -483,6 +561,54 @@ type InspectorSectionId =
   | "settings"
   | "notifications";
 
+function InspectorJsonCard({
+  title,
+  data,
+  themeMode,
+  expandLevel = 1,
+  count,
+}: {
+  title: string;
+  data: unknown;
+  themeMode: string;
+  expandLevel?: number;
+  count?: number;
+}) {
+  const isObject = typeof data === "object" && data !== null;
+  return (
+    <div className="overflow-hidden rounded-xl border border-adw-separator bg-adw-card">
+      <div className="flex items-center justify-between border-b border-adw-separator px-3.5 py-2">
+        <span className="text-[12px] font-semibold text-adw-label">{title}</span>
+        {count !== undefined && (
+          <span className="rounded-full bg-black/6 px-2 py-0.5 text-[10.5px] font-medium text-adw-label-secondary dark:bg-white/10">
+            {count}
+          </span>
+        )}
+      </div>
+      <div className="p-3">
+        {isObject ? (
+          <ObjectView
+            valueGetter={() => data}
+            name={title}
+            expandLevel={expandLevel}
+            style={
+              {
+                ...(themeMode === "light" ? themeGitHubLight : themeOneDark),
+                backgroundColor: "transparent",
+                fontSize: "12px",
+              } as React.CSSProperties
+            }
+          />
+        ) : (
+          <pre className="font-mono text-[12px] text-adw-label-secondary select-text">
+            {String(data ?? "null")}
+          </pre>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function InspectorModule() {
   const domicile = useDomicile();
   const displays = useDisplays() ?? [];
@@ -492,6 +618,7 @@ function InspectorModule() {
     xdgUserDirs,
     activeIconTheme,
     dockIconsReady,
+    getAppIconUrl,
   } = useApps();
   const {
     availableGnomePanels,
@@ -535,81 +662,113 @@ function InspectorModule() {
   const renderSectionTables = () => {
     switch (activeSection) {
       case "windows": {
-        const windowRows = windows.map((w) => {
-          const flags = [
-            w.id === focusedWindowId ? "focused" : null,
-            w.minimized ? "minimized" : null,
-            w.maximized ? "maximized" : null,
-            w.fullscreen ? "fullscreen" : null,
-            w.tiled ? `tiled:${w.tiled}` : null,
-          ]
-            .filter(Boolean)
-            .join(", ");
-          return {
-            id: w.id,
-            title: w.title,
-            appId: w.appId,
-            workspace: w.workspace,
-            position: `${w.position.x}, ${w.position.y}`,
-            size: `${w.size.width}×${w.size.height}`,
-            state: flags || "normal",
-            zIndex: w.zIndex,
-          };
-        });
         return (
           <div className="space-y-4">
-            <StateKeyValueTable
-              title="Summary"
-              data={{
-                focusedWindowId: focusedWindowId ?? null,
-                windows: windows.length,
-                waylandPopups: waylandPopups.length,
-                browserWindows: browserWindows.length,
-              }}
-            />
-            <StateSectionTable
-              title="Windows"
-              columns={[
-                { key: "id", label: "ID" },
-                { key: "title", label: "Title" },
-                { key: "appId", label: "App" },
-                { key: "workspace", label: "WS", align: "right" },
-                { key: "position", label: "Pos" },
-                { key: "size", label: "Size" },
-                { key: "state", label: "State" },
-                { key: "zIndex", label: "Z", align: "right" },
-              ]}
-              rows={windowRows}
-              emptyLabel="No open windows."
-            />
+            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+              {[
+                { label: _("Focused"), value: focusedWindowId ?? "—" },
+                { label: _("Windows"), value: windows.length },
+                { label: _("Wayland Popups"), value: waylandPopups.length },
+                { label: _("Browser Windows"), value: browserWindows.length },
+              ].map((stat) => (
+                <div
+                  key={stat.label}
+                  className="rounded-xl border border-adw-separator bg-adw-card px-3.5 py-2.5"
+                >
+                  <div className="text-[11px] font-medium text-adw-label-secondary">
+                    {stat.label}
+                  </div>
+                  <div className="mt-0.5 truncate font-mono text-[14px] font-semibold text-adw-label">
+                    {stat.value}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="overflow-hidden rounded-xl border border-adw-separator bg-adw-card">
+              <div className="flex items-center justify-between border-b border-adw-separator px-3.5 py-2">
+                <span className="text-[12px] font-semibold text-adw-label">
+                  {_("Windows")}
+                </span>
+                <span className="rounded-full bg-black/6 px-2 py-0.5 text-[10.5px] font-medium text-adw-label-secondary dark:bg-white/10">
+                  {windows.length}
+                </span>
+              </div>
+              {windows.length === 0 ? (
+                <div className="px-3.5 py-6 text-center text-[12px] text-adw-label-tertiary">
+                  {_("No open windows.")}
+                </div>
+              ) : (
+                <div className="divide-y divide-adw-separator/60">
+                  {windows.map((w) => {
+                    const flags = [
+                      w.id === focusedWindowId ? "focused" : null,
+                      w.minimized ? "minimized" : null,
+                      w.maximized ? "maximized" : null,
+                      w.fullscreen ? "fullscreen" : null,
+                      w.tiled ? `tiled:${w.tiled}` : null,
+                    ].filter((f): f is string => Boolean(f));
+                    return (
+                      <div
+                        key={w.id}
+                        className="flex items-center gap-3 px-3.5 py-2.5 transition-colors hover:bg-black/3 dark:hover:bg-white/4"
+                      >
+                        <AppSquircleIcon
+                          iconUrl={w.iconUrl ?? getAppIconUrl(w.appId)}
+                          className="size-7 shrink-0"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="truncate text-[12.5px] font-semibold text-adw-label">
+                              {w.title || w.appId}
+                            </span>
+                            <span className="rounded bg-black/6 px-1.5 py-0.5 font-mono text-[10px] text-adw-label-secondary dark:bg-white/10">
+                              {w.appId}
+                            </span>
+                            {flags.map((flag) => (
+                              <span
+                                key={flag}
+                                className={cn(
+                                  "rounded-full px-1.5 py-0.5 text-[10px] font-medium",
+                                  flag === "focused"
+                                    ? "bg-adw-accent/15 text-adw-accent"
+                                    : "bg-black/6 text-adw-label-secondary dark:bg-white/10"
+                                )}
+                              >
+                                {flag}
+                              </span>
+                            ))}
+                          </div>
+                          <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 font-mono text-[11px] text-adw-label-tertiary">
+                            <span>id: {w.id}</span>
+                            <span>ws: {w.workspace}</span>
+                            <span>
+                              {w.size.width}×{w.size.height} @ {w.position.x},{w.position.y}
+                            </span>
+                            <span>z: {w.zIndex}</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
             {waylandPopups.length > 0 && (
-              <StateSectionTable
-                title="Wayland Popups"
-                columns={[
-                  { key: "appId", label: "App ID" },
-                  { key: "x", label: "X", align: "right" },
-                  { key: "y", label: "Y", align: "right" },
-                  { key: "width", label: "Width", align: "right" },
-                  { key: "height", label: "Height", align: "right" },
-                ]}
-                rows={waylandPopups.map((p) => ({ ...p }))}
+              <InspectorJsonCard
+                title={_("Wayland Popups")}
+                data={waylandPopups}
+                themeMode={settings.themeMode}
+                count={waylandPopups.length}
               />
             )}
             {browserWindows.length > 0 && (
-              <StateSectionTable
-                title="Browser Windows"
-                columns={[
-                  { key: "id", label: "ID" },
-                  { key: "appId", label: "App ID" },
-                  { key: "title", label: "Title" },
-                  { key: "url", label: "URL" },
-                ]}
-                rows={browserWindows.map((bw) => ({
-                  id: bw.id,
-                  appId: bw.appId,
-                  title: bw.title,
-                  url: bw.url,
-                }))}
+              <InspectorJsonCard
+                title={_("Browser Windows")}
+                data={browserWindows}
+                themeMode={settings.themeMode}
+                count={browserWindows.length}
               />
             )}
           </div>
@@ -617,138 +776,351 @@ function InspectorModule() {
       }
       case "displays":
         return (
-          <StateSectionTable
-            title="Displays"
-            columns={[
-              { key: "id", label: "ID" },
-              { key: "name", label: "Name" },
-              { key: "geometry", label: "Geometry" },
-              { key: "scale", label: "Scale", align: "right" },
-              { key: "primary", label: "Primary" },
-            ]}
-            rows={displays.map((d) => {
-              const rec = d as unknown as Record<string, unknown>;
-              const x = rec.x ?? 0;
-              const y = rec.y ?? 0;
-              const w = rec.width ?? "—";
-              const h = rec.height ?? "—";
-              return {
-                id: rec.id ?? "—",
-                name: rec.name ?? rec.model ?? "—",
-                geometry: `${w}×${h} @ ${x},${y}`,
-                scale: rec.scale ?? 1,
-                primary: rec.primary ?? false,
-              };
-            })}
-            emptyLabel="No displays reported."
-          />
+          <div className="space-y-4">
+            <div className="overflow-hidden rounded-xl border border-adw-separator bg-adw-card">
+              <div className="flex items-center justify-between border-b border-adw-separator px-3.5 py-2">
+                <span className="text-[12px] font-semibold text-adw-label">
+                  {_("Displays")}
+                </span>
+                <span className="rounded-full bg-black/6 px-2 py-0.5 text-[10.5px] font-medium text-adw-label-secondary dark:bg-white/10">
+                  {displays.length}
+                </span>
+              </div>
+              {displays.length === 0 ? (
+                <div className="px-3.5 py-6 text-center text-[12px] text-adw-label-tertiary">
+                  {_("No displays reported.")}
+                </div>
+              ) : (
+                <div className="divide-y divide-adw-separator/60">
+                  {displays.map((d, idx) => {
+                    const rec = d as unknown as Record<string, unknown>;
+                    const x = rec.x ?? 0;
+                    const y = rec.y ?? 0;
+                    const w = rec.width ?? "—";
+                    const h = rec.height ?? "—";
+                    const name = String(rec.name ?? rec.model ?? rec.id ?? `Display ${idx + 1}`);
+                    return (
+                      <div
+                        key={String(rec.id ?? idx)}
+                        className="flex items-center justify-between gap-3 px-3.5 py-2.5"
+                      >
+                        <div className="flex min-w-0 items-center gap-2.5">
+                          <MonitorIcon className="size-4 shrink-0 text-adw-label-secondary" />
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="truncate text-[12.5px] font-semibold text-adw-label">
+                                {name}
+                              </span>
+                              {Boolean(rec.primary) && (
+                                <span className="rounded-full bg-adw-accent/15 px-1.5 py-0.5 text-[10px] font-medium text-adw-accent">
+                                  {_("Primary")}
+                                </span>
+                              )}
+                            </div>
+                            <div className="font-mono text-[11px] text-adw-label-tertiary">
+                              {String(w)}×{String(h)} @ {String(x)},{String(y)} · {String(rec.scale ?? 1)}×
+                            </div>
+                          </div>
+                        </div>
+                        <span className="shrink-0 font-mono text-[11px] text-adw-label-tertiary">
+                          {String(rec.id ?? "—")}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+            {displays.length > 0 && (
+              <InspectorJsonCard
+                title={_("Display Descriptors")}
+                data={displays}
+                themeMode={settings.themeMode}
+              />
+            )}
+          </div>
         );
       case "system":
         return (
           <div className="space-y-4">
-            <StateKeyValueTable
-              title="System Backends"
-              data={{
-                runtime: isBrowserRuntime ? "Browser Harness" : "Domicile Wayland",
-                activeIconTheme,
-                dockIconsReady,
-                wifiEnabled: settings.wifiEnabled,
-                connectedWifi: settings.connectedWifi,
-                batteryInfo,
-                mprisMedia,
-              }}
-            />
+            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
+              {[
+                {
+                  label: _("Runtime"),
+                  value: isBrowserRuntime ? "Browser Harness" : "Domicile Wayland",
+                },
+                { label: _("Icon Theme"), value: activeIconTheme },
+                {
+                  label: _("Dock Icons"),
+                  value: dockIconsReady ? _("Ready") : _("Loading"),
+                },
+                {
+                  label: _("Wi-Fi"),
+                  value: settings.wifiEnabled
+                    ? settings.connectedWifi || _("Enabled")
+                    : _("Disabled"),
+                },
+                { label: _("Audio Sinks"), value: audioSinks.length },
+              ].map((item) => (
+                <div
+                  key={item.label}
+                  className="rounded-xl border border-adw-separator bg-adw-card px-3.5 py-2.5"
+                >
+                  <div className="text-[11px] font-medium text-adw-label-secondary">
+                    {item.label}
+                  </div>
+                  <div className="mt-0.5 truncate font-mono text-[12.5px] font-semibold text-adw-label">
+                    {String(item.value)}
+                  </div>
+                </div>
+              ))}
+            </div>
             {gnomeCapabilities && (
-              <StateKeyValueTable
-                title="GNOME Capabilities"
-                data={gnomeCapabilities as unknown as Record<string, unknown>}
+              <InspectorJsonCard
+                title={_("GNOME Capabilities")}
+                data={gnomeCapabilities}
+                themeMode={settings.themeMode}
+                expandLevel={2}
               />
             )}
-            <StateSectionTable
-              title="Audio Sinks"
-              columns={[
-                { key: "id", label: "ID" },
-                { key: "name", label: "Name" },
-                { key: "description", label: "Description" },
-                { key: "volume", label: "Volume", align: "right" },
-                { key: "muted", label: "Muted" },
-              ]}
-              rows={audioSinks.map((s) => ({
-                ...(s as unknown as Record<string, unknown>),
-              }))}
-              emptyLabel="No audio sinks."
+            <InspectorJsonCard
+              title={_("Battery & Power")}
+              data={batteryInfo}
+              themeMode={settings.themeMode}
+              expandLevel={2}
+            />
+            <InspectorJsonCard
+              title={_("MPRIS Media")}
+              data={mprisMedia}
+              themeMode={settings.themeMode}
+              expandLevel={2}
+            />
+            <InspectorJsonCard
+              title={_("Audio Sinks")}
+              data={audioSinks}
+              themeMode={settings.themeMode}
+              count={audioSinks.length}
             />
           </div>
         );
       case "apps":
         return (
           <div className="space-y-4">
-            <StateKeyValueTable
-              title="XDG User Dirs"
-              data={xdgUserDirs as unknown as Record<string, unknown>}
+            <div className="overflow-hidden rounded-xl border border-adw-separator bg-adw-card">
+              <div className="flex items-center justify-between border-b border-adw-separator px-3.5 py-2">
+                <span className="text-[12px] font-semibold text-adw-label">
+                  {_("Installed XDG Apps")}
+                </span>
+                <span className="rounded-full bg-black/6 px-2 py-0.5 text-[10.5px] font-medium text-adw-label-secondary dark:bg-white/10">
+                  {installedXdgApps.length}
+                </span>
+              </div>
+              {installedXdgApps.length === 0 ? (
+                <div className="px-3.5 py-6 text-center text-[12px] text-adw-label-tertiary">
+                  {_("No XDG apps indexed.")}
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 divide-y divide-adw-separator/60 sm:grid-cols-2 sm:divide-y-0">
+                  {installedXdgApps.map((a) => (
+                    <div
+                      key={a.desktopId}
+                      className="flex items-center gap-3 border-b border-adw-separator/50 px-3.5 py-2.5 transition-colors hover:bg-black/3 dark:hover:bg-white/4"
+                    >
+                      <AppSquircleIcon
+                        iconUrl={getAppIconUrl(a.desktopId)}
+                        className="size-7 shrink-0"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-[12.5px] font-semibold text-adw-label">
+                          {a.name}
+                        </div>
+                        <div className="truncate font-mono text-[10.5px] text-adw-label-tertiary">
+                          {a.desktopId}
+                        </div>
+                        {a.exec && (
+                          <div className="truncate font-mono text-[10px] text-adw-label-secondary">
+                            {a.exec}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="overflow-hidden rounded-xl border border-adw-separator bg-adw-card">
+              <div className="flex items-center justify-between border-b border-adw-separator px-3.5 py-2">
+                <span className="text-[12px] font-semibold text-adw-label">
+                  {_("Installed Web Apps")}
+                </span>
+                <span className="rounded-full bg-black/6 px-2 py-0.5 text-[10.5px] font-medium text-adw-label-secondary dark:bg-white/10">
+                  {settings.installedWebApps.length}
+                </span>
+              </div>
+              {settings.installedWebApps.length === 0 ? (
+                <div className="px-3.5 py-6 text-center text-[12px] text-adw-label-tertiary">
+                  {_("No installed web apps.")}
+                </div>
+              ) : (
+                <div className="divide-y divide-adw-separator/60">
+                  {settings.installedWebApps.map((a) => {
+                    const iconUrl =
+                      (a.iconUrl && /^(https?:|data:|blob:|\/)/i.test(a.iconUrl)
+                        ? a.iconUrl
+                        : undefined) || getWebAppFaviconUrl(a.url);
+                    return (
+                      <div
+                        key={a.id}
+                        className="flex items-center gap-3 px-3.5 py-2.5 transition-colors hover:bg-black/3 dark:hover:bg-white/4"
+                      >
+                        <AppSquircleIcon
+                          iconUrl={iconUrl}
+                          fallbackIconUrl={getAppIconUrl("browser")}
+                          className="size-7 shrink-0"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="truncate text-[12.5px] font-semibold text-adw-label">
+                              {a.title}
+                            </span>
+                            <span className="rounded bg-black/6 px-1.5 py-0.5 font-mono text-[10px] text-adw-label-secondary dark:bg-white/10">
+                              {a.id}
+                            </span>
+                          </div>
+                          <div className="truncate font-mono text-[11px] text-adw-label-tertiary">
+                            {a.url}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            <InspectorJsonCard
+              title={_("XDG User Dirs")}
+              data={xdgUserDirs}
+              themeMode={settings.themeMode}
+              expandLevel={2}
             />
-            <StateSectionTable
-              title="Installed Web Apps"
-              columns={[
-                { key: "id", label: "ID" },
-                { key: "title", label: "Title" },
-                { key: "url", label: "URL" },
-              ]}
-              rows={settings.installedWebApps.map((a) => ({
-                id: a.id,
-                title: a.title,
-                url: a.url,
-              }))}
-              emptyLabel="No installed web apps."
-            />
-            <StateSectionTable
-              title="Available GNOME Panels"
-              columns={[{ key: "panel", label: "Panel" }]}
-              rows={availableGnomePanels.map((panel) => ({ panel }))}
-              emptyLabel="No GNOME panels detected."
-            />
-            <StateSectionTable
-              title="Installed XDG Apps"
-              columns={[
-                { key: "desktopId", label: "Desktop ID" },
-                { key: "name", label: "Name" },
-                { key: "exec", label: "Exec" },
-                { key: "icon", label: "Icon" },
-              ]}
-              rows={installedXdgApps.map((a) => ({
-                desktopId: a.desktopId,
-                name: a.name,
-                exec: a.exec,
-                icon: a.icon,
-              }))}
-              emptyLabel="No XDG apps indexed."
-            />
+
+            <div className="overflow-hidden rounded-xl border border-adw-separator bg-adw-card">
+              <div className="flex items-center justify-between border-b border-adw-separator px-3.5 py-2">
+                <span className="text-[12px] font-semibold text-adw-label">
+                  {_("Available GNOME Panels")}
+                </span>
+                <span className="rounded-full bg-black/6 px-2 py-0.5 text-[10.5px] font-medium text-adw-label-secondary dark:bg-white/10">
+                  {availableGnomePanels.length}
+                </span>
+              </div>
+              {availableGnomePanels.length === 0 ? (
+                <div className="px-3.5 py-4 text-[12px] text-adw-label-tertiary">
+                  {_("No GNOME panels detected.")}
+                </div>
+              ) : (
+                <div className="flex flex-wrap gap-1.5 p-3">
+                  {availableGnomePanels.map((panel) => (
+                    <span
+                      key={panel.desktopId || panel.panelId}
+                      className="rounded-md bg-black/6 px-2 py-0.5 font-mono text-[11px] text-adw-label dark:bg-white/10"
+                    >
+                      {panel.name || panel.panelId}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         );
       case "settings":
         return (
-          <StateKeyValueTable
-            title="Settings"
-            data={settings as unknown as Record<string, unknown>}
+          <InspectorJsonCard
+            title={_("Settings")}
+            data={settings}
+            themeMode={settings.themeMode}
+            expandLevel={2}
           />
         );
       case "notifications":
         return (
-          <StateSectionTable
-            title="Notifications"
-            columns={[
-              { key: "id", label: "ID" },
-              { key: "appName", label: "App" },
-              { key: "summary", label: "Summary" },
-              { key: "body", label: "Body" },
-              { key: "urgency", label: "Urgency" },
-              { key: "timestamp", label: "Timestamp" },
-            ]}
-            rows={notifications.map((n) => ({
-              ...(n as unknown as Record<string, unknown>),
-            }))}
-            emptyLabel="No notifications."
-          />
+          <div className="space-y-4">
+            <div className="overflow-hidden rounded-xl border border-adw-separator bg-adw-card">
+              <div className="flex items-center justify-between border-b border-adw-separator px-3.5 py-2">
+                <span className="text-[12px] font-semibold text-adw-label">
+                  {_("Notifications")}
+                </span>
+                <span className="rounded-full bg-black/6 px-2 py-0.5 text-[10.5px] font-medium text-adw-label-secondary dark:bg-white/10">
+                  {notifications.length}
+                </span>
+              </div>
+              {notifications.length === 0 ? (
+                <div className="px-3.5 py-6 text-center text-[12px] text-adw-label-tertiary">
+                  {_("No notifications.")}
+                </div>
+              ) : (
+                <div className="divide-y divide-adw-separator/60">
+                  {notifications.map((n) => (
+                    <div
+                      key={n.id}
+                      className="flex items-start gap-3 px-3.5 py-2.5"
+                    >
+                      <AppSquircleIcon
+                        iconUrl={
+                          n.icon ||
+                          (n.appName ? getAppIconUrl(n.appName.toLowerCase()) : undefined)
+                        }
+                        className="size-7 shrink-0"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex min-w-0 items-center gap-2">
+                            <span className="truncate text-[12.5px] font-semibold text-adw-label">
+                              {n.summary}
+                            </span>
+                            {n.appName && (
+                              <span className="rounded bg-black/6 px-1.5 py-0.5 text-[10px] text-adw-label-secondary dark:bg-white/10">
+                                {n.appName}
+                              </span>
+                            )}
+                            {n.urgency && (
+                              <span
+                                className={cn(
+                                  "rounded-full px-1.5 py-0.5 text-[10px] font-medium",
+                                  n.urgency === "critical"
+                                    ? "bg-rose-500/15 text-rose-500"
+                                    : "bg-black/6 text-adw-label-secondary dark:bg-white/10"
+                                )}
+                              >
+                                {n.urgency}
+                              </span>
+                            )}
+                          </div>
+                          <span className="shrink-0 font-mono text-[10.5px] text-adw-label-tertiary">
+                            {new Date(n.time).toLocaleTimeString()}
+                          </span>
+                        </div>
+                        {n.body && (
+                          <div className="mt-0.5 text-[12px] text-adw-label-secondary">
+                            {n.body}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            {notifications.length > 0 && (
+              <InspectorJsonCard
+                title={_("Raw Notifications")}
+                data={notifications}
+                themeMode={settings.themeMode}
+                count={notifications.length}
+              />
+            )}
+          </div>
         );
     }
   };
@@ -937,7 +1309,7 @@ function readVfsSnapshotMap(): Map<string, WebVfsEntry> {
   return map;
 }
 
-function VfsEventsModule() {
+function VfsEventsModule({ active }: { active: boolean }) {
   const { windows, focusedWindowId } = useWindowManager();
   const [baseline, setBaseline] = React.useState<Map<string, WebVfsEntry>>(() =>
     readVfsSnapshotMap()
@@ -948,14 +1320,22 @@ function VfsEventsModule() {
   const [events, setEvents] = React.useState<InspectorEventLog[]>([]);
   const nextEventIdRef = React.useRef(1);
   const prevWinSummaryRef = React.useRef<string>("");
+  const eventsScrollRef = React.useRef<HTMLDivElement | null>(null);
 
   const pushEvent = React.useCallback((type: string, detail: string) => {
     const time = new Date().toLocaleTimeString();
     setEvents((prev) => [
+      ...prev.slice(-149),
       { id: nextEventIdRef.current++, time, type, detail },
-      ...prev.slice(0, 149),
     ]);
   }, []);
+
+  React.useEffect(() => {
+    const el = eventsScrollRef.current;
+    if (el) {
+      el.scrollTop = el.scrollHeight;
+    }
+  }, [events.length, active]);
 
   React.useEffect(() => {
     const summary = JSON.stringify({
@@ -1049,14 +1429,24 @@ function VfsEventsModule() {
     return items.sort((a, b) => a.path.localeCompare(b.path));
   }, [baseline, currentMap]);
 
+  const vfsEventsCount = React.useMemo(
+    () => events.filter((ev) => ev.type === WEB_VFS_CHANGED_EVENT).length,
+    [events]
+  );
+
   return (
     <div className="grid min-h-0 flex-1 grid-cols-1 divide-y divide-adw-separator overflow-hidden bg-adw-content md:grid-cols-2 md:divide-x md:divide-y-0">
       {/* Left: Live VFS Diff Viewer */}
       <div className="flex min-h-0 flex-col overflow-hidden">
         <div className="flex items-center justify-between border-b border-adw-separator px-3 py-2">
-          <span className="text-[12px] font-semibold text-adw-label">
-            VFS Diff ({diffs.length})
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-[12px] font-semibold text-adw-label">
+              {_("VFS Diff")} ({diffs.length})
+            </span>
+            <span className="rounded-full bg-black/8 px-2 py-0.5 text-[11px] font-medium text-adw-label-secondary dark:bg-white/10">
+              {_("VFS Events")} ({vfsEventsCount})
+            </span>
+          </div>
           <button
             type="button"
             onClick={() => {
@@ -1116,7 +1506,10 @@ function VfsEventsModule() {
             Clear
           </button>
         </div>
-        <div className="min-h-0 flex-1 overflow-y-auto p-2 font-mono text-[11px]">
+        <div
+          ref={eventsScrollRef}
+          className="min-h-0 flex-1 overflow-y-auto p-2 font-mono text-[11px]"
+        >
           {events.length === 0 ? (
             <div className="px-2 py-4 text-adw-dim">
               Listening for WindowEvent, VFS, and Shell events...
@@ -1519,8 +1912,8 @@ export function ConsoleApp({
       label: "Logs",
       badge: errorCount > 0 ? errorCount : undefined,
     },
-    { id: "inspector", label: "Infos" },
-    { id: "vfs-events", label: "VFS & Events" },
+    { id: "inspector", label: _("Infos") },
+    { id: "vfs-events", label: _("Events") },
     { id: "storage", label: "Storage" },
   ];
 
@@ -1603,7 +1996,7 @@ export function ConsoleApp({
           activeModule === "vfs-events" ? "flex" : "hidden"
         )}
       >
-        <VfsEventsModule />
+        <VfsEventsModule active={activeModule === "vfs-events"} />
       </div>
       {activeModule === "storage" && <StorageModule />}
     </div>

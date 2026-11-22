@@ -1,5 +1,6 @@
 import React from "react";
 import { useDomicile } from "@domicile-desktop/react/domicile-provider";
+import { InlineCompletionInput } from "@/components/ui/inline-completion-input";
 import {
   useSettings,
   useSystemBackends,
@@ -1305,6 +1306,53 @@ export const TerminalApp: React.FC<TerminalAppProps> = ({ initialPath }) => {
     }
   };
 
+  const inlineCompletion = React.useMemo(() => {
+    if (!input || reverseSearch.active) return undefined;
+    const lower = input.toLowerCase();
+    if (!/\s/.test(input)) {
+      const cmdMatch = TERMINAL_COMMANDS.find(
+        (c) => c.startsWith(input) && c.length > input.length
+      );
+      if (cmdMatch) return cmdMatch;
+      for (let i = history.length - 1; i >= 0; i -= 1) {
+        const item = history[i];
+        if (item.toLowerCase().startsWith(lower) && item.length > input.length) {
+          return item;
+        }
+      }
+      return undefined;
+    }
+
+    const lastSpaceIdx = input.search(/\S+$/);
+    const prefixStart = lastSpaceIdx === -1 ? input.length : lastSpaceIdx;
+    const head = input.slice(0, prefixStart);
+    const token = input.slice(prefixStart);
+    if (token.length > 0) {
+      const slashIdx = token.lastIndexOf("/");
+      const dirPart = slashIdx >= 0 ? token.slice(0, slashIdx + 1) : "";
+      const namePart = slashIdx >= 0 ? token.slice(slashIdx + 1) : token;
+      const searchDir = dirPart ? resolveVfsPath(cwd, dirPart) : cwd;
+      const entries = listVfsDir(searchDir, {
+        includeHidden: namePart.startsWith("."),
+      });
+      const match = entries.find((item) => item.name.startsWith(namePart));
+      if (match) {
+        const candidate = `${head}${dirPart}${match.name}${match.kind === "directory" ? "/" : ""}`;
+        if (candidate.length > input.length) {
+          return candidate;
+        }
+      }
+    }
+
+    for (let i = history.length - 1; i >= 0; i -= 1) {
+      const item = history[i];
+      if (item.toLowerCase().startsWith(lower) && item.length > input.length) {
+        return item;
+      }
+    }
+    return undefined;
+  }, [cwd, history, input, reverseSearch.active]);
+
   const reverseMatches = React.useMemo(() => {
     if (!reverseSearch.active) return [];
     const q = reverseSearch.query.toLowerCase();
@@ -1538,10 +1586,20 @@ export const TerminalApp: React.FC<TerminalAppProps> = ({ initialPath }) => {
         <span className="shrink-0 whitespace-pre text-emerald-400">
           {formatPromptPath(cwd)}&gt;{" "}
         </span>
-        <input
+        <InlineCompletionInput
           ref={inputRef}
           type="text"
           value={input}
+          completion={inlineCompletion}
+          onAcceptCompletion={(completed) => {
+            const next =
+              !/\s/.test(completed) &&
+              (TERMINAL_COMMANDS as readonly string[]).includes(completed)
+                ? `${completed} `
+                : completed;
+            setInput(next);
+            moveCursorToEnd();
+          }}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleInputKeyDown}
           autoFocus
@@ -1549,7 +1607,8 @@ export const TerminalApp: React.FC<TerminalAppProps> = ({ initialPath }) => {
           autoCapitalize="off"
           autoComplete="off"
           aria-label="Terminal input"
-          className="min-w-0 flex-1 bg-transparent text-zinc-100 outline-none"
+          ghostClassName="text-zinc-500"
+          className="font-mono text-[13px] leading-relaxed text-zinc-100"
         />
       </div>
     </div>

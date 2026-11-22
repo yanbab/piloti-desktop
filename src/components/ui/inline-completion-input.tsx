@@ -20,6 +20,7 @@ export interface InlineCompletionInputProps
   value: string;
   completion?: string;
   completionHint?: string;
+  ghostClassName?: string;
   onAcceptCompletion?: (completed: string) => void;
   renderInput?: (
     inputProps: React.InputHTMLAttributes<HTMLInputElement> & {
@@ -41,6 +42,7 @@ export const InlineCompletionInput = React.forwardRef<
     value,
     completion,
     completionHint,
+    ghostClassName,
     onAcceptCompletion,
     renderInput,
     className,
@@ -110,8 +112,8 @@ export const InlineCompletionInput = React.forwardRef<
     onKeyDown: handleKeyDown,
     onScroll: handleScroll,
     className: cn(
-      sharedTypographyClass,
-      "relative z-10 text-adw-label outline-hidden placeholder:text-adw-label-tertiary disabled:cursor-not-allowed disabled:opacity-50"
+      "relative z-10 text-adw-label outline-hidden placeholder:text-adw-label-tertiary disabled:cursor-not-allowed disabled:opacity-50",
+      sharedTypographyClass
     ),
   };
 
@@ -127,7 +129,7 @@ export const InlineCompletionInput = React.forwardRef<
       >
         <span className="text-transparent">{value}</span>
         {suffix && (
-          <span className="text-adw-label-tertiary">
+          <span className={cn("text-adw-label-tertiary", ghostClassName)}>
             <span>{suffix}</span>
             {completionHint && (
               <span className="ml-1 text-[0.78em] opacity-80">
