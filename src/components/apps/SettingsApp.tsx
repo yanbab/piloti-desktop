@@ -306,7 +306,10 @@ export function SettingsApp({
           ref={detailContentRef}
           onKeyDown={onContentKeyDown}
           onScroll={onContentScroll}
-          className="flex min-h-0 flex-1 flex-col overflow-y-auto"
+          className={cn(
+            "flex min-h-0 flex-1 flex-col",
+            activePane === "wallpaper" ? "overflow-hidden" : "overflow-y-auto",
+          )}
         >
           {activePane === "appearance" && <AppearancePane />}
           {activePane === "fonts" && <FontsPane />}

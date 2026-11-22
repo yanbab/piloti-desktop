@@ -508,5 +508,6 @@
   "Crash Screen (BSOD) on Chunk Errors": "Pantalla de error (BSOD) en fallos de carga",
   "Show full-screen BSOD on Vite preload/chunk errors during development.": "Mostrar BSOD a pantalla completa ante errores de carga de Vite en desarrollo.",
   "%s encountered an error": "%s encontró un error",
-  "Retry": "Reintentar"
+  "Retry": "Reintentar",
+  "Built-in Display": "Pantalla integrada"
 }

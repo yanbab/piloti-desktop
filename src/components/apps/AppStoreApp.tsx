@@ -217,14 +217,9 @@ const SIDEBAR_ITEMS: Array<{
 ];
 
 function classifyFlatpakCategory(
-  mainCategories?: string[] | string,
+  mainCategories?: string[],
 ): Exclude<StoreCategory, "all" | "installed"> {
-  const list = Array.isArray(mainCategories)
-    ? mainCategories
-    : typeof mainCategories === "string" && mainCategories
-      ? [mainCategories]
-      : [];
-  const cats = list.map((c) => c.toLowerCase());
+  const cats = (mainCategories ?? []).map((c) => c.toLowerCase());
   if (cats.includes("game")) return "Games";
   if (cats.includes("graphics")) return "Graphics";
   if (cats.includes("development")) return "Development";

@@ -787,7 +787,7 @@ export function ControlPanel() {
                   }}
                   className={cn(
                     "group relative flex items-start gap-2.5 rounded-[14px] bg-black/6 p-3 dark:bg-white/8",
-                    isCritical && "ring-1 ring-rose-500/35",
+                    isCritical && "ring-1 ring-adw-accent/45",
                     n.fromDomicile && n.clickable && "cursor-default"
                   )}
                 >
@@ -804,7 +804,10 @@ export function ControlPanel() {
                         {isNew && (
                           <span
                             title="New"
-                            className="size-1.5 shrink-0 rounded-full bg-adw-accent"
+                            className={cn(
+                              "size-1.5 shrink-0 rounded-full",
+                              isCritical ? "bg-adw-accent" : "bg-adw-label-secondary"
+                            )}
                           />
                         )}
                         <span className="truncate text-[12.5px] font-medium leading-snug">

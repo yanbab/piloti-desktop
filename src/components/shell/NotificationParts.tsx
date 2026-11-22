@@ -79,8 +79,8 @@ export function NotificationAppIcon({
       className={cn(
         "flex size-5 shrink-0 items-center justify-center rounded-[5px]",
         urgency === "critical"
-          ? "bg-rose-500/20 text-rose-500"
-          : "bg-adw-accent/15 text-adw-accent",
+          ? "bg-adw-accent/15 text-adw-accent"
+          : "bg-black/8 text-adw-label-secondary dark:bg-white/10",
         className
       )}
     >

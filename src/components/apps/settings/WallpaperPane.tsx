@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useDisplays } from "@domicile-desktop/react/displays";
 import { useDomicile } from "@domicile-desktop/react/domicile-provider";
 import {
   FilmIcon,
@@ -159,6 +160,9 @@ function WallpaperThumbnail({
 }
 
 export function WallpaperPane() {
+  const displays = useDisplays() ?? [];
+  const primaryDisplayName =
+    displays[0]?.name?.trim() || _("Built-in Display");
   const { settings, updateSettings, resolvedTheme } = useSettings();
   const baseSpec = useResolvedDesktopBackgroundSpec();
   const pluginsCtx = useOptionalPlugins();
@@ -313,64 +317,24 @@ export function WallpaperPane() {
   const accentHex =
     ACCENT_COLORS.find((c) => c.id === settings.accentColor)?.hex ?? "#3584e4";
 
-  const activeEntry = React.useMemo(() => {
-    const match = galleryWallpapers.find(
-      (w) =>
-        w.id === settings.wallpaperId ||
-        (w.id.includes(":") && w.id.split(":").slice(1).join(":") === settings.wallpaperId)
-    );
-    if (match) return match;
-    if (settings.wallpaperId.startsWith("#")) {
-      return { name: _("Custom Color"), subtitle: settings.wallpaperId };
-    }
-    const solid = solidWallpapers.find(
-      (w) => w.id.toLowerCase() === settings.wallpaperId.toLowerCase()
-    );
-    if (solid) return solid;
-    if (activePictureUri) {
-      const fileName = activePictureUri.split("/").pop() || activePictureUri;
-      return {
-        name: fileName,
-        subtitle: gnomeBg.pictureUriDark ? _("Light & Dark Adaptive") : _("Custom Wallpaper"),
-      };
-    }
-    return galleryWallpapers[0];
-  }, [
-    activePictureUri,
-    galleryWallpapers,
-    gnomeBg.pictureUriDark,
-    settings.wallpaperId,
-    solidWallpapers,
-  ]);
-
   return (
-    <GroupedForm>
-      <GroupedFormSection>
-        <GroupedFormSectionTitle>{_("Current Wallpaper")}</GroupedFormSectionTitle>
-        <GroupedFormGroup>
-          <div className="flex flex-col items-center gap-2 p-3.5">
-            <ComputerHardwareIllustration
-              className="mx-auto h-28 w-44 drop-shadow-md"
-              screenContent={<DesktopBackgroundLayers spec={previewSpec} />}
-            />
-            {activeEntry && (
-              <div className="text-center">
-                <div className="text-[12.5px] font-semibold text-adw-label">
-                  {activeEntry.name}
-                </div>
-                {activeEntry.subtitle && (
-                  <div className="text-[11px] text-adw-label-secondary">
-                    {activeEntry.subtitle}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        </GroupedFormGroup>
-      </GroupedFormSection>
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+      {/* Fixed macOS-style headerbar-like preview strip */}
+      <div className="flex shrink-0 items-center justify-center gap-4 border-b border-adw-separator bg-adw-window/60 px-6 pt-3 pb-4">
+        <ComputerHardwareIllustration
+          className="h-24 w-38 shrink-0 drop-shadow-md"
+          screenContent={<DesktopBackgroundLayers spec={previewSpec} />}
+        />
+        <div className="text-[13px] font-semibold text-adw-label">
+          {primaryDisplayName}
+        </div>
+      </div>
 
-      <GroupedFormSection>
-        <GroupedFormSectionTitle>{_("Wallpapers")}</GroupedFormSectionTitle>
+      {/* Scrollable wallpaper pickers below */}
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        <GroupedForm>
+          <GroupedFormSection>
+            <GroupedFormSectionTitle>{_("Wallpapers")}</GroupedFormSectionTitle>
         <GroupedFormGroup>
           <div className="grid grid-cols-2 gap-3 p-3.5 sm:grid-cols-3">
             {galleryWallpapers.map((wp) => {
@@ -691,6 +655,8 @@ export function WallpaperPane() {
           )}
         </GroupedFormGroup>
       </GroupedFormSection>
-    </GroupedForm>
+        </GroupedForm>
+      </div>
+    </div>
   );
 }

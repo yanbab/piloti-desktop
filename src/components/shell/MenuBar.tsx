@@ -1040,10 +1040,8 @@ export function MenuBar() {
                     notifications.some(
                       (n) => !n.read && n.urgency === "critical"
                     )
-                      ? "text-rose-500"
-                      : unreadNotificationCount > 0
-                        ? "text-adw-accent"
-                        : "text-adw-label/90 dark:text-white/90"
+                      ? "text-adw-accent"
+                      : "text-adw-label/90 dark:text-white/90"
                   )}
                 />
               ) : null}

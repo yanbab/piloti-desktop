@@ -1,29 +1,6 @@
 import * as React from "react";
 import { removeVfsStateFile, VFS_STATE_PATHS } from "@/lib/engine/vfs-state";
 
-export const BSOD_ON_PRELOAD_STORAGE_KEY = "piloti.debug.bsodOnPreload.v1";
-
-export function isBsodOnPreloadEnabled(): boolean {
-  try {
-    return (
-      typeof localStorage !== "undefined" &&
-      localStorage.getItem(BSOD_ON_PRELOAD_STORAGE_KEY) === "1"
-    );
-  } catch {
-    return false;
-  }
-}
-
-export function setBsodOnPreloadEnabled(enabled: boolean): void {
-  try {
-    if (typeof localStorage === "undefined") return;
-    if (enabled) localStorage.setItem(BSOD_ON_PRELOAD_STORAGE_KEY, "1");
-    else localStorage.removeItem(BSOD_ON_PRELOAD_STORAGE_KEY);
-  } catch {
-    // ignore storage errors
-  }
-}
-
 interface ShellErrorBoundaryState {
   error: Error | null;
 }
@@ -50,33 +27,20 @@ export class ShellErrorBoundary extends React.Component<
 
   componentDidMount() {
     window.addEventListener("vite:preloadError", this.handlePreloadError);
-    window.addEventListener("residence:bsod", this.handleManualBsod);
+    window.addEventListener("residence:bsod", this.handlePreloadError);
   }
 
   componentWillUnmount() {
     window.removeEventListener("vite:preloadError", this.handlePreloadError);
-    window.removeEventListener("residence:bsod", this.handleManualBsod);
+    window.removeEventListener("residence:bsod", this.handlePreloadError);
   }
 
   private handlePreloadError = (event: Event) => {
-    if (!isBsodOnPreloadEnabled()) {
-      console.warn("[Piloti] Ignored vite:preloadError (BSOD debug toggle is off)", event);
-      return;
-    }
     const custom = event as CustomEvent<Error>;
     const err =
       custom.detail instanceof Error
         ? custom.detail
         : new Error("Failed to load a dynamically imported shell module.");
-    this.setState({ error: err });
-  };
-
-  private handleManualBsod = (event: Event) => {
-    const custom = event as CustomEvent<Error>;
-    const err =
-      custom.detail instanceof Error
-        ? custom.detail
-        : new Error("Manual BSOD triggered.");
     this.setState({ error: err });
   };
 

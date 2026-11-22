@@ -508,5 +508,6 @@
   "Crash Screen (BSOD) on Chunk Errors": "Écran de plantage (BSOD) sur erreur de module",
   "Show full-screen BSOD on Vite preload/chunk errors during development.": "Afficher l’écran bleu plein écran lors des erreurs de chargement Vite en développement.",
   "%s encountered an error": "%s a rencontré une erreur",
-  "Retry": "Réessayer"
+  "Retry": "Réessayer",
+  "Built-in Display": "Écran intégré"
 }
