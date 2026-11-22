@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from "bun:test";
+import { parseGioMetadataInfo } from "@/lib/engine/fs-bridge";
 import { inferFileVisual } from "@/lib/shell/desktop-icons";
 import {
   copyVfsEntry,
@@ -228,6 +229,19 @@ describe("web-vfs", () => {
     );
     expect(created?.name).toBe("Markdown Document.md");
     expect(created?.content).toContain("# Untitled");
+  });
+
+  it("parses gio info metadata::* output for gvfsd-metadata persistence", () => {
+    const sample = `attributes:
+  metadata::piloti-cursor: 142
+  metadata::piloti-scroll: 320
+  metadata::emblems: [favorite]
+`;
+    expect(parseGioMetadataInfo(sample)).toEqual({
+      "metadata::piloti-cursor": "142",
+      "metadata::piloti-scroll": "320",
+      "metadata::emblems": "[favorite]",
+    });
   });
 });
 

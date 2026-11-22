@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useDomicile } from "@domicile-desktop/react/domicile-provider";
 import {
   defaultKeymap,
   history,
@@ -32,6 +33,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { WindowControls, WindowTitlebar } from "@/components/ui/window";
 import { publishWindowMenuState, useIsolatedAppBridge } from "@/lib/engine/app-bridge";
+import { readFsMetadata, writeFsMetadata } from "@/lib/engine/fs-bridge";
+import { isBrowserDevRuntime } from "@/context/SettingsContext";
 import { _ } from "@/lib/core/i18n";
 import { getCachedPilotiAppIni, writePilotiAppIni } from "@/lib/config/piloti-ini";
 import { cn } from "@/lib/core/utils";
@@ -39,7 +42,6 @@ import {
   getVfsEntry,
   normalizeVfsPath,
   renameVfsEntry,
-  setVfsEntryMetadata,
   subscribeWebVfs,
   subscribeVfsRenamed,
 } from "@/lib/engine-web/web-vfs";
@@ -196,6 +198,8 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
   windowId = "",
   isCsd: propIsCsd = true,
 }) => {
+  const domicile = useDomicile();
+  const isBrowserRuntime = isBrowserDevRuntime();
   const handleMenuAction = React.useCallback((actionId: string) => {
     if (actionId === "text-editor:toggle-line-numbers") {
       setShowLineNumbers((v) => !v);
@@ -379,38 +383,55 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
 
   const restoreEditorViewState = React.useCallback(
     (view: EditorView, targetPath: string | null) => {
-      const meta = targetPath ? getVfsEntry(targetPath)?.metadata : undefined;
-      const savedCursor =
-        typeof meta?.["metadata::piloti-cursor"] === "number"
-          ? meta["metadata::piloti-cursor"]
-          : 0;
-      const savedScroll =
-        typeof meta?.["metadata::piloti-scroll"] === "number"
-          ? meta["metadata::piloti-scroll"]
-          : 0;
-      const clampedCursor = Math.max(
-        0,
-        Math.min(savedCursor, view.state.doc.length),
-      );
-      if (view.state.selection.main.head !== clampedCursor) {
-        view.dispatch({
-          selection: { anchor: clampedCursor },
+      const applyPosition = (savedCursor: number, savedScroll: number) => {
+        if (viewRef.current !== view) return;
+        const clampedCursor = Math.max(
+          0,
+          Math.min(savedCursor, view.state.doc.length),
+        );
+        if (view.state.selection.main.head !== clampedCursor) {
+          view.dispatch({
+            selection: { anchor: clampedCursor },
+          });
+        }
+        const line = view.state.doc.lineAt(clampedCursor);
+        setCursorPos({
+          ln: line.number,
+          col: clampedCursor - line.from + 1,
+        });
+        requestAnimationFrame(() => {
+          if (viewRef.current !== view) return;
+          if (savedScroll > 0) {
+            view.scrollDOM.scrollTop = savedScroll;
+          }
+          view.focus();
+        });
+      };
+
+      if (!targetPath) {
+        applyPosition(0, 0);
+        return;
+      }
+
+      const cachedMeta = getVfsEntry(targetPath)?.metadata;
+      const cachedCursor = Number(cachedMeta?.["metadata::piloti-cursor"] ?? 0) || 0;
+      const cachedScroll = Number(cachedMeta?.["metadata::piloti-scroll"] ?? 0) || 0;
+      applyPosition(cachedCursor, cachedScroll);
+
+      if (!isBrowserRuntime) {
+        void readFsMetadata(domicile, false, targetPath, [
+          "metadata::piloti-cursor",
+          "metadata::piloti-scroll",
+        ]).then((meta) => {
+          const cursor = Number(meta["metadata::piloti-cursor"] ?? cachedCursor) || 0;
+          const scroll = Number(meta["metadata::piloti-scroll"] ?? cachedScroll) || 0;
+          if (cursor !== cachedCursor || scroll !== cachedScroll) {
+            applyPosition(cursor, scroll);
+          }
         });
       }
-      const line = view.state.doc.lineAt(clampedCursor);
-      setCursorPos({
-        ln: line.number,
-        col: clampedCursor - line.from + 1,
-      });
-      requestAnimationFrame(() => {
-        if (viewRef.current !== view) return;
-        if (savedScroll > 0) {
-          view.scrollDOM.scrollTop = savedScroll;
-        }
-        view.focus();
-      });
     },
-    [],
+    [domicile, isBrowserRuntime],
   );
 
   const saveEditorViewState = React.useCallback(
@@ -418,12 +439,12 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
       if (!view || !targetPath) return;
       const cursor = view.state.selection.main.head;
       const scrollTop = Math.round(view.scrollDOM.scrollTop);
-      setVfsEntryMetadata(targetPath, {
+      writeFsMetadata(domicile, isBrowserRuntime, targetPath, {
         "metadata::piloti-cursor": cursor,
         "metadata::piloti-scroll": scrollTop,
       });
     },
-    [],
+    [domicile, isBrowserRuntime],
   );
 
   React.useEffect(() => {

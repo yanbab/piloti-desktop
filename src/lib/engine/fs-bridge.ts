@@ -16,6 +16,7 @@ import {
   renameVfsEntry,
   resolveVfsTemplatesDir,
   restoreVfsEntry,
+  setVfsEntryMetadata,
   trashVfsEntry,
   WEB_VFS_HOME,
   WEB_VFS_TEMPLATES,
@@ -48,6 +49,7 @@ export {
   parseDotHiddenFile,
   resolveVfsPath,
   resolveVfsTemplatesDir,
+  setVfsEntryMetadata,
   subscribeWebVfs,
   WEB_VFS_HOME,
   WEB_VFS_TEMPLATES,
@@ -498,5 +500,93 @@ export async function recordFsRecentFile(
     writeFsTextFile(domicile, isBrowserRuntime, RECENTLY_USED_XBEL_PATH, serialized);
   } catch {
     // non-fatal recents write failure
+  }
+}
+
+/**
+ * Parses `gio info -a metadata::*` stdout lines into a key/value map.
+ */
+export function parseGioMetadataInfo(stdout: string): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const rawLine of stdout.split(/\r?\n/)) {
+    const match = /^\s*(metadata::[A-Za-z0-9_.:-]+)\s*:\s*(.*)$/.exec(rawLine);
+    if (!match) continue;
+    const key = match[1];
+    const val = match[2].trim();
+    if (val) {
+      out[key] = val;
+    }
+  }
+  return out;
+}
+
+/**
+ * Reads `metadata::*` attributes from `web-vfs` and (on Linux) `gio info` (`gvfsd-metadata`).
+ */
+export async function readFsMetadata(
+  domicile: Domicile | undefined,
+  isBrowserRuntime: boolean,
+  filePath: string,
+  keys: readonly string[],
+): Promise<Record<string, string>> {
+  const norm = normalizeVfsPath(filePath);
+  const out: Record<string, string> = {};
+  const cached = getVfsEntry(norm)?.metadata;
+  if (cached) {
+    for (const key of keys) {
+      const val = cached[key];
+      if (val !== undefined && val !== null && String(val) !== "") {
+        out[key] = String(val);
+      }
+    }
+  }
+  if (isBrowserRuntime || !domicile || isSimulatedUsbPath(norm) || keys.length === 0) {
+    return out;
+  }
+  try {
+    const res = await domicile.processes.run([
+      "gio",
+      "info",
+      "-a",
+      keys.join(","),
+      "--",
+      toDomicilePath(norm),
+    ]);
+    const stdout = res.match({
+      Ok: (ran) => (ran.code === 0 ? ran.stdout : ""),
+      Err: () => "",
+    });
+    if (stdout) {
+      const parsed = parseGioMetadataInfo(stdout);
+      if (Object.keys(parsed).length > 0) {
+        Object.assign(out, parsed);
+        setVfsEntryMetadata(norm, parsed);
+      }
+    }
+  } catch {
+    // ignore missing gio / gvfsd-metadata
+  }
+  return out;
+}
+
+/**
+ * Persists `metadata::*` attributes to `web-vfs` and (on Linux) `gio set` (`gvfsd-metadata`).
+ */
+export function writeFsMetadata(
+  domicile: Domicile | undefined,
+  isBrowserRuntime: boolean,
+  filePath: string,
+  patch: Record<string, string | number>,
+): void {
+  const norm = normalizeVfsPath(filePath);
+  setVfsEntryMetadata(norm, patch);
+  if (isBrowserRuntime || !domicile || isSimulatedUsbPath(norm)) {
+    return;
+  }
+  const rel = toDomicilePath(norm);
+  for (const [key, val] of Object.entries(patch)) {
+    void domicile.processes
+      .run(["gio", "set", "-t", "string", "--", rel, key, String(val)])
+      .catch(() => undefined);
   }
 }
