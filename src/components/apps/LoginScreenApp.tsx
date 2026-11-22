@@ -11,7 +11,6 @@ import {
   EyeOffIcon,
   KeyboardIcon,
   Loader2Icon,
-  LockIcon,
   MonitorIcon,
   PowerIcon,
   UserIcon,
@@ -177,7 +176,6 @@ export const LoginScreenApp: React.FC<LoginScreenAppProps> = ({
     DEMO_SESSION_OPTIONS,
   );
   const [greetdAvailable, setGreetdAvailable] = React.useState(false);
-  const [hostname, setHostname] = React.useState<string | null>(null);
 
   const isLiveDm = mode === "greeter" || greetdAvailable;
   const showWindowChrome = !isLiveDm && isCsd && Boolean(windowId);
@@ -218,7 +216,6 @@ export const LoginScreenApp: React.FC<LoginScreenAppProps> = ({
       .then(([runtime, realUsers, realSessions]) => {
         if (!active) return;
         setGreetdAvailable(runtime.greetdAvailable);
-        setHostname(runtime.hostname);
         if (runtime.defaultKeymap) {
           setKeyboardLayout(runtime.defaultKeymap);
         }
@@ -450,9 +447,9 @@ export const LoginScreenApp: React.FC<LoginScreenAppProps> = ({
         }
       `}</style>
 
-      {/* Desktop Wallpaper + Soft GDM Blur Veil */}
+      {/* Desktop Wallpaper + LockScreen-style Blur Veil */}
       <DesktopBackgroundLayers />
-      <div className="pointer-events-none absolute inset-0 bg-black/32 backdrop-blur-lg" />
+      <div className="pointer-events-none absolute inset-0 bg-black/55 backdrop-blur-2xl" />
 
       {/* Top Greeter Menu Bar (same material & height as Piloti Desktop MenuBar) */}
       <header
@@ -597,91 +594,69 @@ export const LoginScreenApp: React.FC<LoginScreenAppProps> = ({
       {/* Main GDM Greeter Stage */}
       <div className="relative z-10 flex min-h-0 flex-1 flex-col items-center justify-center p-6">
         {view === "users" && (
-          <div className="flex w-[320px] max-w-full flex-col items-center gap-3 animate-in fade-in-0 zoom-in-95 duration-150">
-            <div className="mb-1 text-center">
-              <h2 className="text-[16px] font-medium tracking-tight text-white">
-                {_("Select User")}
-              </h2>
-            </div>
-
-            <div className="flex max-h-[60vh] w-full flex-col gap-2 overflow-y-auto">
-              {users.map((user) => {
-                const isLast = user.id === lastLoggedUserId;
-                return (
-                  <button
-                    key={user.id}
-                    type="button"
-                    onClick={() => handleSelectUser(user.id)}
+          <div className="flex w-[320px] max-w-[calc(100vw-32px)] flex-col gap-2 animate-in fade-in-0 zoom-in-95 duration-150">
+            {users.map((user) => {
+              const displayName = user.name?.trim()
+                ? _(user.name)
+                : user.username;
+              return (
+                <button
+                  key={user.id}
+                  type="button"
+                  onClick={() => handleSelectUser(user.id)}
+                  className="flex w-full items-center gap-3 rounded-[16px] bg-white/10 px-3.5 py-2.5 text-left text-white shadow-lg ring-1 ring-white/20 transition-colors outline-none hover:bg-white/16 active:bg-white/20"
+                >
+                  <div
                     className={cn(
-                      "flex w-full items-center gap-3 rounded-[16px] p-3 text-left text-adw-label shadow-adw-menu adw-material-menu transition-all outline-none hover:brightness-105 active:scale-[0.99] dark:text-white",
-                      isLast && "ring-1 ring-adw-accent/70",
+                      "flex size-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br text-[12.5px] font-medium text-white shadow-sm",
+                      user.gradient,
                     )}
                   >
-                    <div
-                      className={cn(
-                        "flex size-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br text-[14px] font-medium text-white shadow-sm",
-                        user.gradient,
-                      )}
-                    >
-                      {user.initials}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5">
-                        <span className="truncate text-[14px] font-medium">
-                          {_(user.name)}
-                        </span>
-                        {isLast && (
-                          <span className="rounded-full bg-adw-accent/20 px-2 py-0.5 text-[10px] font-medium text-adw-accent">
-                            {_("Last used")}
-                          </span>
-                        )}
-                      </div>
-                      <div className="truncate text-[11.5px] text-adw-label-secondary">
-                        @{user.username} · {_(user.role)}
-                      </div>
-                    </div>
-                    <ArrowRightIcon className="size-4 shrink-0 opacity-60" />
-                  </button>
-                );
-              })}
+                    {user.initials}
+                  </div>
+                  <span className="min-w-0 flex-1 truncate text-[14px] font-medium">
+                    {displayName}
+                  </span>
+                  <ArrowRightIcon className="size-4 shrink-0 text-white/60" />
+                </button>
+              );
+            })}
 
-              <button
-                type="button"
-                onClick={() => {
-                  setAuthError(null);
-                  setManualUsername("");
-                  setView("other-user");
-                }}
-                className="flex w-full items-center justify-center gap-2 rounded-[14px] bg-black/25 px-3 py-2.5 text-[12.5px] font-medium text-white/90 ring-1 ring-white/15 backdrop-blur-md transition-colors hover:bg-black/35"
-              >
-                <UserPlusIcon className="size-3.5" />
-                <span>{_("Not listed?")}</span>
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setAuthError(null);
+                setManualUsername("");
+                setView("other-user");
+              }}
+              className="flex w-full items-center justify-center gap-2 rounded-[14px] bg-white/8 px-3 py-2 text-[12.5px] font-medium text-white/85 ring-1 ring-white/15 transition-colors hover:bg-white/14"
+            >
+              <UserPlusIcon className="size-3.5" />
+              <span>{_("Not listed?")}</span>
+            </button>
           </div>
         )}
 
         {view === "other-user" && (
           <form
             onSubmit={handleSubmitOtherUser}
-            className="flex w-[320px] max-w-full flex-col items-center gap-4 rounded-[22px] p-6 text-adw-label shadow-adw-menu adw-material-menu animate-in fade-in-0 zoom-in-95 duration-150 dark:text-white"
+            className="relative flex w-[320px] max-w-[calc(100vw-32px)] flex-col items-center gap-3.5 rounded-[22px] bg-white/10 p-6 text-white shadow-2xl ring-1 ring-white/20 animate-in fade-in-0 zoom-in-95 duration-150"
           >
-            <div className="flex w-full items-center justify-between">
-              <button
-                type="button"
-                onClick={() => setView("users")}
-                className="inline-flex items-center gap-1 rounded-full bg-black/8 px-2.5 py-1 text-[11.5px] font-medium text-adw-label-secondary transition-colors hover:bg-black/14 hover:text-adw-label dark:bg-white/10 dark:hover:bg-white/18 dark:hover:text-white"
-              >
-                <ArrowLeftIcon className="size-3" />
-                <span>{_("Back")}</span>
-              </button>
+            <button
+              type="button"
+              aria-label={_("Switch User")}
+              title={_("Switch User")}
+              onClick={() => setView("users")}
+              className="absolute top-3.5 left-3.5 flex size-7 items-center justify-center rounded-full text-white/75 transition-colors hover:bg-white/14 hover:text-white"
+            >
+              <ArrowLeftIcon className="size-4" />
+            </button>
+
+            <div className="flex size-14 items-center justify-center rounded-full bg-white/12 text-white/85 shadow-md">
+              <UserIcon className="size-6" />
             </div>
 
-            <div className="flex size-16 items-center justify-center rounded-full bg-black/10 text-adw-label-secondary dark:bg-white/12 dark:text-white/80">
-              <UserIcon className="size-7" />
-            </div>
-
-            <div className="w-full space-y-2">
+            <div className="relative flex w-full items-center">
               <input
                 ref={usernameInputRef}
                 type="text"
@@ -689,14 +664,15 @@ export const LoginScreenApp: React.FC<LoginScreenAppProps> = ({
                 onChange={(e) => setManualUsername(e.target.value)}
                 placeholder={_("Username")}
                 aria-label={_("Username")}
-                className="h-9 w-full rounded-[10px] border border-adw-separator bg-black/8 px-3 text-[13px] text-adw-label placeholder:text-adw-label-secondary focus:border-adw-accent focus:ring-2 focus:ring-adw-accent/35 focus:outline-none dark:bg-white/10 dark:text-white"
+                className="h-9 w-full rounded-[10px] border border-white/20 bg-black/30 pr-9 pl-3 text-[13px] text-white placeholder:text-white/45 focus:border-white/40 focus:outline-none"
               />
               <button
                 type="submit"
                 disabled={!manualUsername.trim()}
-                className="w-full rounded-lg bg-adw-accent px-3.5 py-1.5 text-[12.5px] font-medium text-white shadow-xs transition-all hover:brightness-110 disabled:opacity-50"
+                aria-label={_("Next")}
+                className="absolute right-1.5 flex size-6 items-center justify-center rounded-md bg-adw-accent text-white transition-all hover:brightness-110 active:scale-95 disabled:opacity-40"
               >
-                {_("Next")}
+                <ArrowRightIcon className="size-3.5" />
               </button>
             </div>
           </form>
@@ -713,58 +689,43 @@ export const LoginScreenApp: React.FC<LoginScreenAppProps> = ({
                   }
                 : undefined
             }
-            className="flex w-[320px] max-w-full flex-col items-center gap-4 rounded-[22px] p-6 text-adw-label shadow-adw-menu adw-material-menu dark:text-white"
+            className="relative flex w-[320px] max-w-[calc(100vw-32px)] flex-col items-center gap-3.5 rounded-[22px] bg-white/10 p-6 text-white shadow-2xl ring-1 ring-white/20"
           >
-            {/* Top row: Switch user button & Last logged badge */}
-            <div className="flex w-full items-center justify-between">
-              <button
-                type="button"
-                disabled={authenticating}
-                onClick={() => {
-                  setAuthError(null);
-                  setPassword("");
-                  setView("users");
-                }}
-                className="inline-flex items-center gap-1 rounded-full bg-black/8 px-2.5 py-1 text-[11.5px] font-medium text-adw-label-secondary transition-colors hover:bg-black/14 hover:text-adw-label disabled:opacity-50 dark:bg-white/10 dark:hover:bg-white/18 dark:hover:text-white"
-              >
-                <ArrowLeftIcon className="size-3" />
-                <span>{_("Switch User")}</span>
-              </button>
+            <button
+              type="button"
+              disabled={authenticating}
+              aria-label={_("Switch User")}
+              title={_("Switch User")}
+              onClick={() => {
+                setAuthError(null);
+                setPassword("");
+                setView("users");
+              }}
+              className="absolute top-3.5 left-3.5 flex size-7 items-center justify-center rounded-full text-white/75 transition-colors hover:bg-white/14 hover:text-white disabled:opacity-40"
+            >
+              <ArrowLeftIcon className="size-4" />
+            </button>
 
-              {selectedUser.id === lastLoggedUserId && (
-                <span className="rounded-full bg-black/8 px-2.5 py-1 text-[10.5px] font-medium text-adw-label-secondary dark:bg-white/10">
-                  {_("Last logged in")}
-                </span>
+            <div
+              className={cn(
+                "flex size-14 items-center justify-center rounded-full bg-gradient-to-br text-lg font-medium text-white shadow-md",
+                selectedUser.gradient,
               )}
+            >
+              {selectedUser.initials}
             </div>
 
-            {/* User Avatar & Name */}
-            <div className="flex flex-col items-center gap-2 text-center">
-              <div
-                className={cn(
-                  "flex size-20 items-center justify-center rounded-full bg-gradient-to-br text-2xl font-medium text-white shadow-lg ring-2 ring-white/25",
-                  selectedUser.gradient,
-                )}
-              >
-                {selectedUser.initials}
-              </div>
-              <div>
-                <div className="text-[17px] font-medium tracking-tight">
-                  {_(selectedUser.name)}
-                </div>
-                <div className="text-[12px] text-adw-label-secondary">
-                  @{selectedUser.username} · {_(activeSession.label)}
-                </div>
-              </div>
+            <div className="max-w-full truncate text-sm font-medium">
+              {selectedUser.name?.trim()
+                ? _(selectedUser.name)
+                : selectedUser.username}
             </div>
 
-            {/* Password Input Form */}
             <form
               onSubmit={(e) => void handleSignIn(e)}
               className="flex w-full flex-col gap-2.5"
             >
               <div className="relative flex w-full items-center">
-                <LockIcon className="pointer-events-none absolute left-3 size-3.5 text-adw-label-secondary" />
                 <input
                   ref={passwordInputRef}
                   type={showPassword ? "text" : "password"}
@@ -781,20 +742,26 @@ export const LoginScreenApp: React.FC<LoginScreenAppProps> = ({
                   }
                   aria-label={_("Password")}
                   className={cn(
-                    "h-9 w-full rounded-[10px] border bg-black/8 pr-16 pl-9 text-[13px] text-adw-label placeholder:text-adw-label-secondary focus:outline-none disabled:opacity-60 dark:bg-white/10 dark:text-white",
+                    "h-9 w-full rounded-[10px] border bg-black/30 pr-16 pl-3 text-[13px] text-white placeholder:text-white/45 focus:outline-none disabled:opacity-60",
                     authError
-                      ? "border-rose-500/80 ring-2 ring-rose-500/30"
-                      : "border-adw-separator focus:border-adw-accent focus:ring-2 focus:ring-adw-accent/35",
+                      ? "border-rose-400/80 ring-1 ring-rose-400/40"
+                      : "border-white/20 focus:border-white/45",
                   )}
                 />
                 <div className="absolute right-1.5 flex items-center gap-1">
                   <button
                     type="button"
+                    tabIndex={-1}
                     aria-label={
                       showPassword ? _("Hide password") : _("Show password")
                     }
-                    onClick={() => setShowPassword((v) => !v)}
-                    className="flex size-6 items-center justify-center rounded-md text-adw-label-secondary transition-colors hover:bg-black/10 hover:text-adw-label dark:hover:bg-white/14 dark:hover:text-white"
+                    onPointerDown={(e) => e.preventDefault()}
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => {
+                      setShowPassword((v) => !v);
+                      passwordInputRef.current?.focus();
+                    }}
+                    className="flex size-6 items-center justify-center rounded-md text-white/70 transition-colors hover:bg-white/14 hover:text-white"
                   >
                     {showPassword ? (
                       <EyeOffIcon className="size-3.5" />
@@ -820,82 +787,49 @@ export const LoginScreenApp: React.FC<LoginScreenAppProps> = ({
               {authError && (
                 <div
                   role="alert"
-                  className="rounded-lg bg-rose-500/18 px-2.5 py-1.5 text-center text-[11.5px] font-medium text-rose-600 ring-1 ring-rose-500/30 dark:text-rose-200"
+                  className="w-full rounded-lg bg-rose-500/20 px-2.5 py-1.5 text-center text-xs text-rose-200 ring-1 ring-rose-400/30"
                 >
                   {authError}
                 </div>
               )}
-
-              <div className="mt-0.5 flex items-center justify-between gap-2">
-                {!isLiveDm ? (
-                  <button
-                    type="button"
-                    onClick={() => triggerBadPassword()}
-                    className="rounded-md px-2 py-1 text-[11px] font-medium text-adw-label-secondary transition-colors hover:bg-black/8 hover:text-adw-label dark:hover:bg-white/10 dark:hover:text-white"
-                  >
-                    {_("Test Wrong Password")}
-                  </button>
-                ) : (
-                  <span className="text-[11px] text-adw-label-secondary">
-                    {activeSession.sessionType === "wayland"
-                      ? "Wayland"
-                      : "X11"}
-                  </span>
-                )}
-                <button
-                  type="submit"
-                  disabled={authenticating}
-                  className="rounded-lg bg-adw-accent px-3.5 py-1.5 text-[12px] font-medium text-white shadow-xs transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-60"
-                >
-                  {authenticating ? _("Signing in…") : _("Sign In")}
-                </button>
-              </div>
             </form>
           </div>
         )}
 
         {view === "authenticated" && (
-          <div className="flex w-[320px] max-w-full flex-col items-center gap-4 rounded-[22px] p-6 text-center text-adw-label shadow-adw-menu adw-material-menu animate-in fade-in-0 zoom-in-95 duration-150 dark:text-white">
-            <div className="flex size-16 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-500 ring-1 ring-emerald-500/40">
-              <CheckIcon className="size-8" />
+          <div className="flex w-[320px] max-w-[calc(100vw-32px)] flex-col items-center gap-3.5 rounded-[22px] bg-white/10 p-6 text-center text-white shadow-2xl ring-1 ring-white/20 animate-in fade-in-0 zoom-in-95 duration-150">
+            <div className="flex size-14 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-300 ring-1 ring-emerald-400/40">
+              <CheckIcon className="size-7" />
             </div>
-            <div>
-              <div className="text-[16px] font-medium">
-                {greetdAvailable
-                  ? _("Starting session for %s…", _(selectedUser.name))
-                  : _("Signed in as %s", _(selectedUser.name))}
-              </div>
-              <div className="mt-1 text-[12px] text-adw-label-secondary">
-                {_(activeSession.label)} · {activeKeyboard.label}
-              </div>
+            <div className="text-sm font-medium">
+              {greetdAvailable
+                ? _(
+                    "Starting session for %s…",
+                    selectedUser.name?.trim()
+                      ? _(selectedUser.name)
+                      : selectedUser.username,
+                  )
+                : _(
+                    "Signed in as %s",
+                    selectedUser.name?.trim()
+                      ? _(selectedUser.name)
+                      : selectedUser.username,
+                  )}
             </div>
             {!greetdAvailable && (
               <button
                 type="button"
+                aria-label={_("Return to Greeter")}
+                title={_("Return to Greeter")}
                 onClick={() => setView("password")}
-                className="mt-1 inline-flex items-center gap-1.5 rounded-lg bg-black/10 px-4 py-1.5 text-[12.5px] font-medium transition-colors hover:bg-black/16 dark:bg-white/12 dark:hover:bg-white/20"
+                className="flex size-8 items-center justify-center rounded-full bg-white/12 text-white transition-colors hover:bg-white/20"
               >
-                <UserIcon className="size-3.5" />
-                <span>{_("Return to Greeter")}</span>
+                <ArrowLeftIcon className="size-4" />
               </button>
             )}
           </div>
         )}
       </div>
-
-      {/* Bottom GDM Branding / Hostname Footer */}
-      <footer className="relative z-10 flex shrink-0 items-center justify-between px-4 py-2 text-[11px] text-white/75">
-        <span>
-          {hostname ? `Piloti Display Manager · ${hostname}` : "Piloti Display Manager"}
-        </span>
-        <span>
-          {isLiveDm
-            ? greetdAvailable
-              ? "greetd · PAM"
-              : "Wayland Greeter"
-            : _('Password: "piloti"')}
-        </span>
-      </footer>
     </div>
   );
 };
