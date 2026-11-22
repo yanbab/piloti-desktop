@@ -562,13 +562,13 @@ function pruneBrowserRecord(
           remembered?.size.width ??
           (bw.width > 200
             ? bw.width
-            : Math.min(1040, Math.max(640, screenWidth - 120)));
+            : Math.min(720, Math.max(520, screenWidth - 220)));
         const defaultH =
           restored?.height ??
           remembered?.size.height ??
           (bw.height > 150
             ? bw.height
-            : Math.min(720, Math.max(460, screenHeight - 140)));
+            : Math.min(520, Math.max(380, screenHeight - 180)));
         const sameAppPositions: Array<{ x: number; y: number }> = [];
         for (const prevBw of browserWindows) {
           if (prevBw.id === bw.id) continue;
@@ -706,8 +706,8 @@ function pruneBrowserRecord(
           (settings.windowDecorationMode === "auto" &&
             resolveWaylandClientFrame(w, xdgMatch));
         const constraints = resolveWaylandOuterConstraints(w, isCsdWindow, {
-          width: 760,
-          height: 500,
+          width: 640,
+          height: 440,
         });
         const rawSize = restored
           ? { width: restored.width, height: restored.height }
@@ -2064,6 +2064,7 @@ function pruneBrowserRecord(
         "piloti-notepad": "text-editor",
         "piloti-calculator": "calculator",
         "piloti-image-viewer": "image-viewer",
+        "piloti-login": "login-screen",
         "piloti-applications": "app-store",
         "piloti-app-store": "app-store",
         "piloti-console": "console",

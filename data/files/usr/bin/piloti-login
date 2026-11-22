@@ -1,0 +1,4 @@
+#!/bin/sh
+# Piloti Desktop built-in Login Screen (GDM alternative) launcher
+exec domicile send-shell open login-screen "$@"
+

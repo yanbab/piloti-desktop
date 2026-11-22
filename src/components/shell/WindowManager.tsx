@@ -71,6 +71,11 @@ const SettingsApp = React.lazy(() =>
     default: m.SettingsApp,
   }))
 );
+const LoginScreenApp = React.lazy(() =>
+  import("@/components/apps/LoginScreenApp").then((m) => ({
+    default: m.LoginScreenApp,
+  }))
+);
 import { DesktopIconsApp } from "@/components/apps/DesktopIconsApp";
 import { Button } from "@/components/ui/button";
 import {
@@ -923,6 +928,13 @@ const WindowBody = React.memo(
       return (
         <React.Suspense fallback={null}>
           <CalculatorApp windowId={win.id} isCsd={isCsd} />
+        </React.Suspense>
+      );
+    }
+    if (win.builtinComponent === "login-screen") {
+      return (
+        <React.Suspense fallback={null}>
+          <LoginScreenApp windowId={win.id} isCsd={isCsd} />
         </React.Suspense>
       );
     }

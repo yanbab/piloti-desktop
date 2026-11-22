@@ -122,6 +122,29 @@ export function AdwSplitView({
     setContentScrolled(e.currentTarget.scrollTop > 2);
   }, []);
 
+  React.useEffect(() => {
+    if (!onKeyDown) return;
+    const handleWindowKeyDown = (e: KeyboardEvent) => {
+      if (e.defaultPrevented) return;
+      const el = containerRef.current;
+      if (!el) return;
+      const target = e.target as Node | null;
+      if (target && el.contains(target)) return;
+      const winEl = el.closest('[data-slot="window"]');
+      if (winEl && winEl.hasAttribute("data-inactive")) return;
+      if (
+        document.querySelector(
+          '[data-slot="menubar-content"], [data-slot="dropdown-menu-content"], [data-slot="context-menu-content"], [role="dialog"]',
+        )
+      ) {
+        return;
+      }
+      onKeyDown(e as unknown as React.KeyboardEvent<HTMLDivElement>);
+    };
+    window.addEventListener("keydown", handleWindowKeyDown);
+    return () => window.removeEventListener("keydown", handleWindowKeyDown);
+  }, [onKeyDown]);
+
   const renderCtx: AdwSplitRenderContext = {
     isCompact,
     contentScrolled,
@@ -162,7 +185,7 @@ export function AdwSplitView({
                 : "border-b border-transparent",
             )}
           >
-            <div className="flex items-center gap-1.5" data-window-no-drag>
+            <div className="flex min-w-0 items-center gap-1.5" data-window-no-drag>
               {windowId && <WindowControls side="left" />}
               <WindowMenuButton
                 side="left"
@@ -170,12 +193,12 @@ export function AdwSplitView({
                 appId={appId}
                 iconName={iconName}
               />
+              {!isCompact && (
+                <span className="truncate px-1 text-[13.5px] font-medium tracking-tight whitespace-nowrap text-adw-label">
+                  {title}
+                </span>
+              )}
             </div>
-            {!isCompact && (
-              <span className="truncate text-[14px] font-bold tracking-tight whitespace-nowrap text-adw-label">
-                {title}
-              </span>
-            )}
             {!isCompact && (
               <div className="flex items-center justify-end" data-window-no-drag>
                 <WindowMenuButton

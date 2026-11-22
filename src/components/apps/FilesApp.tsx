@@ -1558,6 +1558,17 @@ export function FilesApp({
       onSidebarKeyUp={onSidebarKeyUp}
       onKeyDown={(e) => {
         if (
+          (e.ctrlKey || e.metaKey) &&
+          !e.altKey &&
+          e.key.toLowerCase() === "f"
+        ) {
+          e.preventDefault();
+          setEditingLocation(false);
+          setSearchOpen(true);
+          requestAnimationFrame(() => searchInputRef.current?.focus());
+          return;
+        }
+        if (
           editingLocation ||
           renamingId ||
           e.target instanceof HTMLInputElement ||
@@ -1751,7 +1762,11 @@ export function FilesApp({
                 setEditingLocation(false);
                 setSearchOpen((prev) => {
                   const next = !prev;
-                  if (!next) setSearchQuery("");
+                  if (next) {
+                    requestAnimationFrame(() => searchInputRef.current?.focus());
+                  } else {
+                    setSearchQuery("");
+                  }
                   return next;
                 });
               }}

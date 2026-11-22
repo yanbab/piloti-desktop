@@ -98,6 +98,7 @@ const TERMINAL_COMMANDS = [
   "piloti-notepad",
   "piloti-calculator",
   "piloti-image-viewer",
+  "piloti-login",
 ] as const;
 
 function longestCommonPrefix(values: string[]): string {
@@ -551,6 +552,7 @@ export const TerminalApp: React.FC<TerminalAppProps> = ({ initialPath }) => {
         { text: "  piloti-console      Open Desktop Console" },
         { text: "  piloti-shell        Open Desktop Shell" },
         { text: "  piloti-applications Open Applications" },
+        { text: "  piloti-login        Open Login Screen" },
         { text: "" },
         { text: "System & Process:", tone: "muted" },
         { text: "  ps / top            Show running daemons & windows" },
@@ -1211,6 +1213,7 @@ export const TerminalApp: React.FC<TerminalAppProps> = ({ initialPath }) => {
       "piloti-notepad": "text-editor",
       "piloti-calculator": "calculator",
       "piloti-image-viewer": "image-viewer",
+      "piloti-login": "login-screen",
     };
 
     if (builtinCmdMap[cmd]) {

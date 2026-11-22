@@ -41,6 +41,7 @@ export const DEFAULT_HOME_FILES: Record<string, string> = {
   "/home/user/.local/share/applications/piloti-console.desktop": "[Desktop Entry]\nType=Application\nName=Desktop Console\nComment=Desktop Console, live logs, inspector, and JS REPL\nExec=piloti-console\nIcon=piloti-console\nCategories=Development;Debugger;\n",
   "/home/user/.local/share/applications/piloti-files.desktop": "[Desktop Entry]\nType=Application\nName=Folders\nComment=Browse local virtual files and folders\nExec=piloti-files %U\nIcon=system-file-manager\nCategories=System;FileManager;\nMimeType=inode/directory;\n",
   "/home/user/.local/share/applications/piloti-image-viewer.desktop": "[Desktop Entry]\nType=Application\nName=Image Viewer\nComment=Fast image viewer and crop/rotate editor\nExec=piloti-image-viewer %F\nIcon=org.gnome.Loupe\nCategories=Graphics;Viewer;\nMimeType=image/png;image/jpeg;image/webp;image/gif;image/svg+xml;\n",
+  "/home/user/.local/share/applications/piloti-login.desktop": "[Desktop Entry]\nType=Application\nName=Login Screen\nComment=Piloti Display Manager (GDM alternative preview)\nExec=piloti-login\nIcon=system-users\nCategories=System;Settings;\n",
   "/home/user/.local/share/applications/piloti-notepad.desktop": "[Desktop Entry]\nType=Application\nName=Notepad\nComment=Minimal plain-text notepad with instant VFS save\nExec=piloti-notepad %F\nIcon=accessories-text-editor\nCategories=Utility;TextEditor;\nMimeType=text/plain;text/markdown;application/json;\n",
   "/home/user/.local/share/applications/piloti-settings.desktop": "[Desktop Entry]\nType=Application\nName=Desktop Settings\nComment=Configure appearance, fonts, dock, and wallpaper\nExec=piloti-settings\nIcon=preferences-desktop\nCategories=Settings;DesktopSettings;\n",
   "/home/user/.local/share/applications/piloti-shell.desktop": "[Desktop Entry]\nType=Application\nName=Desktop Shell\nComment=Desktop shell with VFS commands\nExec=piloti-shell\nIcon=utilities-terminal\nCategories=System;TerminalEmulator;Development;\n",
@@ -79,6 +80,10 @@ export const DEFAULT_STATIC_DIR_INDEX: Record<string, readonly { name: string; f
     },
     {
       "name": "piloti-image-viewer",
+      "fileType": 0
+    },
+    {
+      "name": "piloti-login",
       "fileType": 0
     },
     {
@@ -121,6 +126,10 @@ export const DEFAULT_STATIC_DIR_INDEX: Record<string, readonly { name: string; f
     },
     {
       "name": "piloti-image-viewer.desktop",
+      "fileType": 0
+    },
+    {
+      "name": "piloti-login.desktop",
       "fileType": 0
     },
     {
@@ -397,6 +406,10 @@ export const DEFAULT_STATIC_DIR_INDEX: Record<string, readonly { name: string; f
     },
     {
       "name": "system-software-install.svg",
+      "fileType": 0
+    },
+    {
+      "name": "system-users.svg",
       "fileType": 0
     },
     {

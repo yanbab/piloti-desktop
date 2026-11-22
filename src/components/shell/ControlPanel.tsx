@@ -143,7 +143,7 @@ export function ControlPanel() {
           >
             <SlidersVerticalIcon className="size-3.5" />
           </button>
-          <span className="text-[12px] font-semibold text-adw-label-secondary">
+          <span className="text-[12px] font-medium text-adw-label-secondary">
             {new Date().toLocaleDateString(
               getLocale() === "fr" ? "fr-FR" : "en-US",
               {
@@ -258,7 +258,7 @@ export function ControlPanel() {
         {expandedPicker === "audio" && (
           <div className="flex flex-col gap-1 border-t border-adw-separator pt-2">
             <div className="flex items-center justify-between px-0.5">
-              <span className="text-[11px] font-semibold text-adw-label-secondary">
+              <span className="text-[11px] font-medium text-adw-label-secondary">
                 {_("Output Device")}
               </span>
               {!isBrowserRuntime && gnomeCapabilities.gnomeControlCenter && (
@@ -288,7 +288,7 @@ export function ControlPanel() {
                     className={cn(
                       "flex items-center justify-between gap-2 rounded-[9px] px-2 py-1.5 text-left text-[11.5px]",
                       sink.active
-                        ? "bg-adw-accent/18 font-semibold text-adw-label"
+                        ? "bg-adw-accent/18 font-medium text-adw-label"
                         : "active:bg-black/10 dark:active:bg-white/12"
                     )}
                   >
@@ -354,7 +354,7 @@ export function ControlPanel() {
             )}
           >
             <WifiIcon className="size-[18px] shrink-0" />
-            <span className="truncate text-[12.5px] font-semibold">Wi-Fi</span>
+            <span className="truncate text-[12.5px] font-medium">Wi-Fi</span>
           </button>
           <button
             type="button"
@@ -404,7 +404,7 @@ export function ControlPanel() {
             )}
           >
             <BluetoothIcon className="size-[18px] shrink-0" />
-            <span className="truncate text-[12.5px] font-semibold">
+            <span className="truncate text-[12.5px] font-medium">
               Bluetooth
             </span>
           </button>
@@ -433,7 +433,7 @@ export function ControlPanel() {
         {expandedPicker === "wifi" && (
           <div className="col-span-2 flex flex-col gap-1 rounded-[14px] bg-black/6 p-2.5 dark:bg-white/8">
             <div className="mb-1 flex items-center justify-between px-1">
-              <span className="text-[11px] font-semibold text-adw-label-secondary">
+              <span className="text-[11px] font-medium text-adw-label-secondary">
                 {_("Wi-Fi Networks")}
               </span>
               {!isBrowserRuntime && gnomeCapabilities.gnomeControlCenter && (
@@ -469,7 +469,7 @@ export function ControlPanel() {
                       className={cn(
                         "flex items-center justify-between gap-2 rounded-[9px] px-2.5 py-1.5 text-left text-[11.5px]",
                         connected
-                          ? "bg-adw-accent/18 font-semibold text-adw-label"
+                          ? "bg-adw-accent/18 font-medium text-adw-label"
                           : "active:bg-black/10 dark:active:bg-white/12"
                       )}
                     >
@@ -496,7 +496,7 @@ export function ControlPanel() {
         {expandedPicker === "bluetooth" && (
           <div className="col-span-2 flex flex-col gap-1 rounded-[14px] bg-black/6 p-2.5 dark:bg-white/8">
             <div className="mb-1 flex items-center justify-between px-1">
-              <span className="text-[11px] font-semibold text-adw-label-secondary">
+              <span className="text-[11px] font-medium text-adw-label-secondary">
                 {_("Bluetooth Devices")}
               </span>
               {!isBrowserRuntime && gnomeCapabilities.gnomeControlCenter && (
@@ -542,7 +542,7 @@ export function ControlPanel() {
           )}
         >
           <MoonIcon className="size-[18px] shrink-0" />
-          <span className="truncate text-[12.5px] font-semibold">
+          <span className="truncate text-[12.5px] font-medium">
             {_("Dark Mode")}
           </span>
         </button>
@@ -566,7 +566,7 @@ export function ControlPanel() {
           )}
         >
           <BellOffIcon className="size-[18px] shrink-0" />
-          <span className="truncate text-[12.5px] font-semibold">
+          <span className="truncate text-[12.5px] font-medium">
             {_("Silent")}
           </span>
         </button>
@@ -590,7 +590,7 @@ export function ControlPanel() {
           )}
         >
           <FlameIcon className="size-[18px] shrink-0" />
-          <span className="truncate text-[12.5px] font-semibold">
+          <span className="truncate text-[12.5px] font-medium">
             {_("Night Light")}
           </span>
         </button>
@@ -607,7 +607,7 @@ export function ControlPanel() {
           )}
         >
           <GaugeIcon className="size-[18px] shrink-0" />
-          <span className="truncate text-[12.5px] font-semibold">
+          <span className="truncate text-[12.5px] font-medium">
             {_("Power Saver")}
           </span>
         </button>
@@ -621,7 +621,7 @@ export function ControlPanel() {
               <Music2Icon className="size-4" />
             </span>
             <div className="min-w-0 flex-1">
-              <div className="truncate text-[12px] font-semibold text-adw-label">
+              <div className="truncate text-[12px] font-medium text-adw-label">
                 {mprisMedia.title}
               </div>
               <div className="truncate text-[10.5px] text-adw-label-secondary">
@@ -667,11 +667,11 @@ export function ControlPanel() {
         <div className="flex min-h-0 flex-1 flex-col">
         <div className="mb-2 flex items-center justify-between px-1">
           <div className="flex items-center gap-1.5">
-            <span className="text-[12px] font-semibold text-adw-label-secondary">
+            <span className="text-[12px] font-medium text-adw-label-secondary">
               {_("Notifications")}
             </span>
             {notifications.length > 0 && (
-              <span className="rounded-full bg-adw-accent/20 px-1.5 py-0.2 text-[10px] font-bold text-adw-accent tabular-nums">
+              <span className="rounded-full bg-adw-accent/20 px-1.5 py-0.2 text-[10px] font-medium text-adw-accent tabular-nums">
                 {notifications.length}
               </span>
             )}
@@ -711,7 +711,7 @@ export function ControlPanel() {
                     : { doNotDisturb: false }
                 )
               }
-              className="shrink-0 font-semibold text-adw-accent active:opacity-70"
+              className="shrink-0 font-medium text-adw-accent active:opacity-70"
             >
               {_("Resume")}
             </button>
@@ -763,7 +763,7 @@ export function ControlPanel() {
                             className="size-1.5 shrink-0 rounded-full bg-adw-accent"
                           />
                         )}
-                        <span className="truncate text-[12.5px] font-semibold leading-snug">
+                        <span className="truncate text-[12.5px] font-medium leading-snug">
                           {n.summary}
                         </span>
                       </div>

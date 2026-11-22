@@ -39,6 +39,7 @@
   * {
     scrollbar-width: thin;
     scrollbar-color: rgb(140 140 150 / 0.35) transparent;
+    font-style: var(--piloti-font-style, normal);
     -webkit-font-smoothing: inherit;
     text-rendering: inherit;
     font-optical-sizing: inherit;
@@ -46,6 +47,19 @@
     font-synthesis: inherit;
     -webkit-text-stroke-width: inherit;
     -webkit-text-stroke-color: currentColor;
+  }
+
+  .font-normal {
+    font-weight: var(--piloti-font-weight, 400);
+  }
+
+  .font-medium {
+    font-weight: var(--piloti-font-weight-medium, 500);
+  }
+
+  .font-semibold,
+  .font-bold {
+    font-weight: var(--piloti-font-weight-semibold, 500);
   }
 
   [data-piloti-window-dragging] iframe,

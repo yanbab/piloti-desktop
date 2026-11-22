@@ -252,9 +252,8 @@ export function SettingsApp({
                 : "border-b border-transparent",
             )}
           >
-            <div className="flex items-center gap-1.5" data-window-no-drag />
-            <div className="pointer-events-none absolute inset-x-28 flex items-center justify-center">
-              <h2 className="truncate text-[13px] font-semibold text-adw-label">
+            <div className="flex min-w-0 items-center gap-1.5" data-window-no-drag>
+              <h2 className="truncate px-2 text-[13.5px] font-medium text-adw-label">
                 {currentPaneMeta ? _(currentPaneMeta.label) : ""}
               </h2>
             </div>

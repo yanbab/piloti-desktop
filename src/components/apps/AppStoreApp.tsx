@@ -330,6 +330,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
 
   const [category, setCategory] = React.useState<StoreCategory>("all");
   const [query, setQuery] = React.useState("");
+  const [searchOpen, setSearchOpen] = React.useState(false);
   const searchInputRef = React.useRef<HTMLInputElement | null>(null);
   const sidebarRef = React.useRef<HTMLElement | null>(null);
   const mainRef = React.useRef<HTMLElement | null>(null);
@@ -856,6 +857,16 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
       onSidebarKeyUp={onSidebarKeyUp}
       onKeyDown={(e) => {
         if (
+          (e.ctrlKey || e.metaKey) &&
+          !e.altKey &&
+          e.key.toLowerCase() === "f"
+        ) {
+          e.preventDefault();
+          setSearchOpen(true);
+          requestAnimationFrame(() => searchInputRef.current?.focus());
+          return;
+        }
+        if (
           e.target instanceof HTMLInputElement ||
           e.target instanceof HTMLTextAreaElement
         ) {
@@ -869,7 +880,8 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
           /^[a-z0-9._-]$/i.test(e.key)
         ) {
           e.preventDefault();
-          setQuery((prev) => prev + e.key);
+          setSearchOpen(true);
+          setQuery((prev) => (searchOpen ? prev + e.key : e.key));
           requestAnimationFrame(() => searchInputRef.current?.focus());
         }
       }}
@@ -885,50 +897,77 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
               : "border-b border-transparent",
           )}
         >
-          <div className="flex items-center gap-2" data-window-no-drag>
+          <div className="flex min-w-0 items-center gap-1.5" data-window-no-drag>
             {!isCsd && (
               <WindowMenuButton windowId={windowId} appId="app-store" />
             )}
+            <span className="truncate px-2 text-[13.5px] font-medium text-adw-label">
+              {_(
+                [...SIDEBAR_ITEMS, ...CATEGORY_ITEMS].find((i) => i.id === category)
+                  ?.label ?? "Explore"
+              )}
+            </span>
           </div>
 
-          <span className="pointer-events-none truncate text-[13px] font-semibold">
-            {_(
-              [...SIDEBAR_ITEMS, ...CATEGORY_ITEMS].find((i) => i.id === category)
-                ?.label ?? "Explore"
+          <div className="flex shrink-0 items-center gap-1.5" data-window-no-drag>
+            {searchOpen && (
+              <div className="relative flex items-center">
+                <SearchIcon className="pointer-events-none absolute left-2 size-3.5 text-adw-label-secondary" />
+                <input
+                  ref={searchInputRef}
+                  type="search"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Escape") {
+                      e.preventDefault();
+                      setQuery("");
+                      setSearchOpen(false);
+                    }
+                  }}
+                  placeholder={_("Search")}
+                  aria-label={_("Search")}
+                  className="h-7 w-44 rounded-md border border-adw-separator bg-black/6 pr-6 pl-7 text-[12px] text-adw-label placeholder:text-adw-label-secondary focus:border-adw-accent focus:outline-none dark:bg-white/10 [&::-webkit-search-cancel-button]:hidden"
+                />
+                {query && (
+                  <WindowControlButton
+                    aria-label={_("Clear search")}
+                    onClick={() => {
+                      setQuery("");
+                      searchInputRef.current?.focus();
+                    }}
+                    className="absolute right-1 size-4.5 [&_svg]:size-2.5"
+                  >
+                    <XIcon strokeWidth={2.25} />
+                  </WindowControlButton>
+                )}
+              </div>
             )}
-          </span>
-
-          <div className="flex items-center gap-1.5" data-window-no-drag>
-            <div className="relative flex items-center">
-              <SearchIcon className="pointer-events-none absolute left-2 size-3.5 text-adw-label-secondary" />
-              <input
-                ref={searchInputRef}
-                type="search"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Escape" && query) {
-                    e.preventDefault();
+            <button
+              type="button"
+              aria-label={_("Search")}
+              title="Search (Ctrl+F)"
+              aria-pressed={searchOpen}
+              onClick={() => {
+                setSearchOpen((prev) => {
+                  const next = !prev;
+                  if (next) {
+                    requestAnimationFrame(() => searchInputRef.current?.focus());
+                  } else {
                     setQuery("");
                   }
-                }}
-                placeholder={_("Search")}
-                aria-label={_("Search")}
-                className="h-7 w-40 rounded-md border border-adw-separator bg-black/5 pr-6 pl-7 text-[12px] text-adw-label placeholder:text-adw-label-secondary focus:border-adw-accent focus:outline-none dark:bg-white/8 [&::-webkit-search-cancel-button]:hidden"
-              />
-              {query && (
-                <WindowControlButton
-                  aria-label={_("Clear search")}
-                  onClick={() => {
-                    setQuery("");
-                    searchInputRef.current?.focus();
-                  }}
-                  className="absolute right-1 size-4.5 [&_svg]:size-2.5"
-                >
-                  <XIcon strokeWidth={2.25} />
-                </WindowControlButton>
+                  return next;
+                });
+              }}
+              className={cn(
+                "flex size-7 items-center justify-center rounded-md transition-colors",
+                searchOpen
+                  ? "bg-black/10 text-adw-label dark:bg-white/15"
+                  : "text-adw-label-secondary hover:bg-black/8 hover:text-adw-label dark:hover:bg-white/10"
               )}
-            </div>
+            >
+              <SearchIcon className="size-4" />
+            </button>
             {isCsd && windowId && <WindowControls side="right" />}
           </div>
         </WindowTitlebar>

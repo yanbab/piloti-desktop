@@ -612,7 +612,7 @@ aside [data-slot="window-titlebar"],
 [data-slot="grouped-form-section-title"] {
   padding-inline: 2px;
   font-size: calc(14px * var(--piloti-font-scale, 1));
-  font-weight: 700;
+  font-weight: var(--piloti-font-weight-semibold, 500);
   letter-spacing: -0.005em;
   color: var(--adw-label);
 }
@@ -638,7 +638,7 @@ aside [data-slot="window-titlebar"],
 
 [data-slot="grouped-form-row-title"] {
   font-size: calc(14px * var(--piloti-font-scale, 1));
-  font-weight: 400;
+  font-weight: var(--piloti-font-weight, 400);
   line-height: 1.3;
 }
 

@@ -28,6 +28,8 @@ const APP_ID_ALIASES: Record<string, string> = {
   files: "nautilus",
   folders: "nautilus",
   "piloti-image-viewer": "image-viewer",
+  "piloti-login": "login-screen",
+  "login-screen": "login-screen",
   "piloti-notepad": "text-editor",
   notepad: "text-editor",
   "piloti-settings": "settings",

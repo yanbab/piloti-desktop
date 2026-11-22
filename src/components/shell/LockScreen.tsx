@@ -1,5 +1,5 @@
 import * as React from "react";
-import { BellIcon, LockIcon, UnlockIcon } from "lucide-react";
+import { BellIcon, LockIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useSettings, useSystemBackends } from "@/context/DesktopStateContext";
@@ -56,14 +56,14 @@ export function LockScreen() {
 
       <form
         onSubmit={handleSubmit}
-        className="relative z-10 flex w-[300px] flex-col items-center gap-3 rounded-[22px] bg-white/10 p-6 shadow-2xl ring-1 ring-white/20 backdrop-blur-xl"
+        className="relative z-10 flex w-[320px] max-w-[calc(100vw-32px)] flex-col items-center gap-3 rounded-[22px] bg-white/10 p-6 shadow-2xl ring-1 ring-white/20 backdrop-blur-xl"
       >
-        <div className="flex size-14 items-center justify-center rounded-full bg-gradient-to-br from-sky-400 to-indigo-600 text-lg font-bold shadow-md">
+        <div className="flex size-14 items-center justify-center rounded-full bg-gradient-to-br from-sky-400 to-indigo-600 text-lg font-medium shadow-md">
           <LockIcon className="size-6" />
         </div>
-        <div className="text-sm font-semibold">{_("Piloti Session Locked")}</div>
+        <div className="text-sm font-medium">{_("Piloti Session Locked")}</div>
 
-        {!isBrowserRuntime ? (
+        {!isBrowserRuntime && (
           <Input
             type="password"
             autoFocus
@@ -72,10 +72,6 @@ export function LockScreen() {
             placeholder={_("Enter password…")}
             className="w-full border-white/20 bg-black/30 text-center text-white placeholder:text-white/45"
           />
-        ) : (
-          <p className="text-center text-xs text-white/65">
-            {_("Browser harness lock preview (on Domicile Linux, authenticates via PAM)")}
-          </p>
         )}
 
         {unlockError && (
@@ -84,16 +80,15 @@ export function LockScreen() {
           </div>
         )}
 
-        <Button type="submit" className="mt-1 w-full gap-1.5">
-          <UnlockIcon className="size-3.5" />
-          {_("Unlock Session")}
+        <Button type="submit" className="mt-1 w-full">
+          {_("Unlock")}
         </Button>
       </form>
 
       {settings.notificationsEnabled &&
         settings.notificationShowOnLockScreen &&
         notifications.length > 0 && (
-          <div className="relative z-10 mt-5 flex w-[340px] max-w-[calc(100vw-32px)] flex-col gap-2">
+          <div className="relative z-10 mt-5 flex w-[320px] max-w-[calc(100vw-32px)] flex-col gap-2">
             {notifications.slice(0, 3).map((n) => (
               <div
                 key={n.id}

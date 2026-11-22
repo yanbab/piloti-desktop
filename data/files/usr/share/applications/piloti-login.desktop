@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Login Screen
+Comment=Piloti Display Manager (GDM alternative preview)
+Exec=piloti-login
+Icon=system-users
+Categories=System;Settings;
+OnlyShowIn=Piloti;
+

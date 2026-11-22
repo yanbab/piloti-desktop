@@ -1042,16 +1042,25 @@ export function useSettingsValue(options?: {
       "--piloti-text-stroke-width",
       `${settings.cssTextStrokePx}px`
     );
-    const fontStyleMap: Record<CssFontStyle, { weight: string; style: string }> = {
-      light: { weight: "300", style: "normal" },
-      regular: { weight: "400", style: "normal" },
-      medium: { weight: "500", style: "normal" },
-      semibold: { weight: "600", style: "normal" },
-      italic: { weight: "400", style: "italic" },
+    const fontStyleMap: Record<
+      CssFontStyle,
+      { weight: string; medium: string; bold: string; style: string }
+    > = {
+      light: { weight: "300", medium: "400", bold: "500", style: "normal" },
+      regular: { weight: "400", medium: "500", bold: "500", style: "normal" },
+      medium: { weight: "500", medium: "600", bold: "600", style: "normal" },
+      semibold: { weight: "600", medium: "600", bold: "700", style: "normal" },
+      italic: { weight: "400", medium: "500", bold: "500", style: "italic" },
     };
     const styleSpec = fontStyleMap[settings.fontSansStyle] ?? fontStyleMap.regular;
     root.style.setProperty("--piloti-font-weight", styleSpec.weight);
+    root.style.setProperty("--piloti-font-weight-medium", styleSpec.medium);
+    root.style.setProperty("--piloti-font-weight-semibold", styleSpec.bold);
     root.style.setProperty("--piloti-font-style", styleSpec.style);
+    root.style.setProperty("--font-weight-normal", styleSpec.weight);
+    root.style.setProperty("--font-weight-medium", styleSpec.medium);
+    root.style.setProperty("--font-weight-semibold", styleSpec.bold);
+    root.style.setProperty("--font-weight-bold", styleSpec.bold);
 
     const scale = Math.max(0.8, Math.min(1.5, settings.fontScale || 1));
     root.style.setProperty("--piloti-font-scale", String(scale));

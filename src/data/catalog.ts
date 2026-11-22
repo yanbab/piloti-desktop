@@ -218,7 +218,8 @@ export type BuiltinAppId =
   | "terminal"
   | "app-store"
   | "calculator"
-  | "image-viewer";
+  | "image-viewer"
+  | "login-screen";
 
 export interface AppMenuSection {
   title: string;
@@ -473,6 +474,22 @@ export const APP_CATALOG: AppDefinition[] = [
     menus: [],
   },
   {
+    id: "login-screen",
+    name: "Login Screen",
+    shortName: "Login",
+    description: "Piloti Display Manager (GDM alternative preview)",
+    category: "System",
+    iconName: "settings",
+    xdgIcons: ["system-users", "preferences-system-login", "system-lock-screen"],
+    gradient: "from-sky-500 via-blue-600 to-indigo-700",
+    pinnedByDefault: false,
+    builtinComponent: "login-screen",
+    command: "piloti-login",
+    defaultSize: { width: 760, height: 500 },
+    minSize: { width: 420, height: 360 },
+    menus: [],
+  },
+  {
     id: "browser",
     name: "Web Browser",
     shortName: "Browser",
@@ -483,7 +500,7 @@ export const APP_CATALOG: AppDefinition[] = [
     gradient: "from-cyan-400 via-blue-500 to-indigo-600",
     pinnedByDefault: false,
     linuxCommand: ["firefox"],
-    defaultSize: { width: 880, height: 560 },
+    defaultSize: { width: 720, height: 500 },
     menus: [],
   },
 ];

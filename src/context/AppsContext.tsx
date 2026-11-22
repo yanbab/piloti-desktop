@@ -276,6 +276,9 @@ const PAPIRUS_DIRECT_ICON_FALLBACKS: Record<string, readonly string[]> = {
     "/usr/share/icons/Papirus/64x64/apps/org.gnome.Loupe.svg",
     "/usr/share/icons/Papirus/64x64/apps/multimedia-photo-viewer.svg",
   ],
+  "login-screen": [
+    "/usr/share/icons/Papirus/64x64/apps/system-users.svg",
+  ],
   "image-x-generic": [
     "/usr/share/icons/Papirus/64x64/mimetypes/image-x-generic.svg",
   ],
@@ -348,7 +351,7 @@ async function resolveWithDirectAdwaitaFallback(
   return undefined;
 }
 
-const DOCK_ICONS_CACHE_KEY = "piloti.dock-icons.v17";
+const DOCK_ICONS_CACHE_KEY = "piloti.dock-icons.v18";
 
 interface DockIconsCachePayload {
   theme: string;

@@ -96,7 +96,7 @@ export interface WaylandSurfaceSizeHints {
 export function resolveWaylandOuterConstraints(
   hints: WaylandSurfaceSizeHints,
   isCsd: boolean,
-  fallbackSize: WindowDimensions = { width: 760, height: 500 }
+  fallbackSize: WindowDimensions = { width: 640, height: 440 }
 ): {
   defaultSize: WindowDimensions;
   minSize: WindowDimensions;
