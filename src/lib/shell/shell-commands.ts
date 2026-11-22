@@ -17,6 +17,7 @@ export interface PilotiShellCommandHandlers {
 }
 
 const APP_ID_ALIASES: Record<string, string> = {
+  "piloti-appstore": "app-store",
   "piloti-applications": "app-store",
   "piloti-app-store": "app-store",
   applications: "app-store",

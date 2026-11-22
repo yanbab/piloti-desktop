@@ -648,5 +648,22 @@
   "Tap to focus": "Toucher pour focaliser",
   "Next Window": "Fenêtre suivante",
   "Click to edit URL": "Cliquer pour modifier l’URL",
-  "Send Bug Report": "Envoyer un rapport de bogue"
+  "Send Bug Report": "Envoyer un rapport de bogue",
+  "1 more notification": "1 autre notification",
+  "%d more notifications": "%d autres notifications",
+  "Show less": "Afficher moins",
+  "Linear": "Linéaire",
+  "Circular": "Circulaire",
+  "Add image": "Ajouter une image",
+  "+ Add image": "+ Ajouter une image",
+  "Choose Image": "Choisir une image",
+  "Upload": "Importer",
+  "Web Extensions": "Extensions web",
+  "Desktop Plugins": "Extensions du bureau",
+  "Web Extension": "Extension web",
+  "Desktop Plugin": "Extension du bureau",
+  "Font": "Police",
+  "Apply Font": "Appliquer la police",
+  "Enable": "Activer",
+  "Disable": "Désactiver"
 }

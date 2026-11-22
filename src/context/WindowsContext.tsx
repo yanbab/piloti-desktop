@@ -69,6 +69,7 @@ export interface DesktopWindowInstance {
   builtinComponent?: BuiltinAppId;
   waylandAppId?: string;
   waylandDesktopId?: string;
+  pid?: number | null;
   browserWindowId?: string;
   browserUrl?: string;
   browserIsApp?: boolean;
@@ -1004,6 +1005,7 @@ function pruneBrowserRecord(
           gradient: matched.gradient,
           waylandAppId: w.appId,
           waylandDesktopId: w.desktopId,
+          pid: w.pid,
           clientFrame,
           cursor: w.cursor,
           syncedFrame: syncedParentFrames.get(w.appId),
@@ -1790,27 +1792,58 @@ function pruneBrowserRecord(
     (appId: string) => {
       console.info("[Piloti] forceQuitApp", appId);
       const appWins = combinedWindows.filter((w) => w.appId === appId);
-      for (const win of appWins) {
-        if (win.id.startsWith("wayland:")) {
-          const rawId = win.waylandAppId ?? win.id.slice("wayland:".length);
-          domicile.windows.close(rawId);
-          if (!isBrowserRuntime) {
-            // Best-effort forceful termination for hung Wayland clients
-            const procName = (win.waylandAppId || appId)
-              .replace(/\.desktop$/, "")
-              .split(".")
-              .pop();
-            if (procName) {
-              domicile.processes.run(["pkill", "-KILL", "-i", procName]).catch(() => { });
-            }
+      const killNativeAppProcess = (desktopId?: string, waylandAppId?: string, pid?: number | null) => {
+        if (isBrowserRuntime) return;
+        if (typeof pid === "number" && pid > 0) {
+          domicile.processes.run(["kill", "-9", String(pid)]).catch(() => {});
+        }
+        const flatpakId = (desktopId ?? appId).replace(/\.desktop$/i, "");
+        if (flatpakId.includes(".")) {
+          domicile.processes.run(["flatpak", "kill", flatpakId]).catch(() => {});
+        }
+        const xdgMatch = matchXdgEntryForWaylandWindow(
+          installedXdgApps,
+          desktopId ?? appId
+        );
+        const execBin = xdgMatch?.execArgv?.[0]?.split("/").pop();
+        if (execBin && execBin !== "flatpak") {
+          domicile.processes.run(["pkill", "-9", "-x", execBin]).catch(() => {});
+        }
+        const procName = (waylandAppId || appId)
+          .replace(/\.desktop$/i, "")
+          .split(".")
+          .pop();
+        if (procName) {
+          domicile.processes.run(["pkill", "-9", "-i", procName]).catch(() => {});
+        }
+        if (appId) {
+          domicile.processes.run(["pkill", "-9", "-f", appId]).catch(() => {});
+        }
+      };
+
+      if (appWins.length === 0) {
+        killNativeAppProcess(appId);
+      } else {
+        for (const win of appWins) {
+          if (win.id.startsWith("wayland:")) {
+            const rawId = win.waylandAppId ?? win.id.slice("wayland:".length);
+            domicile.windows.close(rawId);
+            killNativeAppProcess(win.waylandDesktopId, win.waylandAppId, win.pid);
+          } else {
+            closeWindow(win.id);
           }
-        } else {
-          closeWindow(win.id);
         }
       }
       setLaunchingApps((prev) => prev.filter((id) => id !== appId));
     },
-    [closeWindow, combinedWindows, domicile.processes, domicile.windows, isBrowserRuntime]
+    [
+      closeWindow,
+      combinedWindows,
+      domicile.processes,
+      domicile.windows,
+      installedXdgApps,
+      isBrowserRuntime,
+    ]
   );
 
   const combinedWindowsRef = React.useRef<DesktopWindowInstance[]>(combinedWindows);

@@ -2,7 +2,6 @@
 Type=Application
 Name=App Store
 Comment=Browse and install apps and web apps
-Exec=piloti-applications
+Exec=piloti-appstore
 Icon=system-software-install
 Categories=System;PackageManager;
-OnlyShowIn=Piloti;

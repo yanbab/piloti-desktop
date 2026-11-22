@@ -44,6 +44,7 @@ import {
   DEFAULT_GNOME_BACKGROUND,
   type BackgroundRenderSpec,
   type GnomeBackgroundSettings,
+  type WallpaperColorMode,
   fileUriToLocalPath,
   localPathToFileUri,
   parseGnomeBackgroundXml,
@@ -83,7 +84,7 @@ export type CssFontKerning = "auto" | "normal" | "none";
 export type CssFontSynthesis = "auto" | "none";
 export type CssFontStyle = "regular" | "light" | "medium" | "semibold" | "italic";
 
-export type { InstalledWebApp, SavedWindowBounds };
+export type { InstalledWebApp, SavedWindowBounds, WallpaperColorMode };
 
 export type InterfaceThemeId = "piloti" | "adwaita" | (string & {});
 
@@ -93,6 +94,8 @@ export interface DesktopSettings {
   accentColor: AccentColorId;
   wallpaperId: string;
   customWallpaperUrl: string;
+  customWallpaperColors?: string[];
+  wallpaperColorMode?: WallpaperColorMode;
   gnomeBackground: GnomeBackgroundSettings;
   dockSize: number;
   dockPosition: "bottom" | "left" | "right";
@@ -179,6 +182,8 @@ const DEFAULT_SETTINGS: DesktopSettings = {
   highContrast: false,
   wallpaperId: "piloti-aurora",
   customWallpaperUrl: "",
+  customWallpaperColors: [],
+  wallpaperColorMode: "solid",
   gnomeBackground: { ...DEFAULT_GNOME_BACKGROUND },
   dockSize: 52,
   dockPosition: "bottom",
@@ -403,9 +408,22 @@ export function resolveInitialSettings(
               ? "Piloti"
               : parsed.iconTheme;
 
+        const wallpaperColorMode: WallpaperColorMode =
+          parsed.wallpaperColorMode === "linear" ||
+          parsed.wallpaperColorMode === "circular"
+            ? parsed.wallpaperColorMode
+            : "solid";
+        const customWallpaperColors = Array.isArray(parsed.customWallpaperColors)
+          ? parsed.customWallpaperColors.filter(
+              (c): c is string => typeof c === "string" && c.trim().length > 0
+            )
+          : [];
+
         return {
           ...DEFAULT_SETTINGS,
           ...parsed,
+          customWallpaperColors,
+          wallpaperColorMode,
           interfaceTheme,
           iconTheme,
           gnomeBackground,
@@ -1392,6 +1410,7 @@ export function useSettingsValue(options?: {
         wallpaperId: settings.wallpaperId,
         customWallpaperUrl:
           settings.customWallpaperUrl || resolvedActiveWallpaper?.imageUrl || "",
+        wallpaperColorMode: settings.wallpaperColorMode ?? "solid",
         gnomeBackground: settings.gnomeBackground,
         activeWallpaper: resolvedActiveWallpaper,
         resolvedTheme,
@@ -1412,6 +1431,7 @@ export function useSettingsValue(options?: {
       resolvedTheme,
       settings.customWallpaperUrl,
       settings.gnomeBackground,
+      settings.wallpaperColorMode,
       settings.wallpaperId,
     ]
   );

@@ -2,6 +2,7 @@ import * as React from "react";
 import { useDomicile } from "@domicile-desktop/react/domicile-provider";
 import {
   ArrowUpCircleIcon,
+  BlocksIcon,
   BriefcaseIcon,
   CheckCircle2Icon,
   ChevronDownIcon,
@@ -16,6 +17,7 @@ import {
   MusicIcon,
   PackageIcon,
   PaletteIcon,
+  PuzzleIcon,
   ArrowDownUpIcon,
   LayoutGridIcon,
   ListIcon,
@@ -25,6 +27,7 @@ import {
   SlidersHorizontalIcon,
   SparklesIcon,
   Trash2Icon,
+  TypeIcon,
   WrenchIcon,
   XIcon,
 } from "lucide-react";
@@ -57,6 +60,8 @@ import {
   useSystemBackends,
   useWindowActions,
 } from "@/context/DesktopStateContext";
+import { usePlugins } from "@/context/PluginsContext";
+import type { DiscoveredPlugin } from "@/lib/plugins/types";
 import {
   type AptUpdatePackage,
   ensureFlathubRemote,
@@ -115,6 +120,9 @@ type StoreCategory =
   | "circle-apps"
   | "kde-apps"
   | "web-apps"
+  | "web-extensions"
+  | "desktop-plugins"
+  | "fonts"
   | "Games"
   | "Graphics"
   | "Development"
@@ -136,13 +144,187 @@ interface SoftwareSourcesState {
   webApps: boolean;
   flatpak: boolean;
   system: boolean;
+  webExtensions: boolean;
+  desktopPlugins: boolean;
+  fonts: boolean;
 }
 
 const DEFAULT_SOFTWARE_SOURCES: SoftwareSourcesState = {
   webApps: true,
   flatpak: true,
   system: true,
+  webExtensions: true,
+  desktopPlugins: true,
+  fonts: true,
 };
+
+export interface ChromeExtensionEntry {
+  id: string;
+  name: string;
+  description?: string;
+  version?: string;
+  enabled?: boolean;
+  iconUrl?: string;
+  storeUrl?: string;
+  category?: AppGenreCategory;
+}
+
+interface CuratedFontEntry {
+  family: string;
+  category: "Sans" | "Serif" | "Monospace" | "Display";
+  subtitle: string;
+  defaultInstalled?: boolean;
+}
+
+const CURATED_WEB_EXTENSIONS: ChromeExtensionEntry[] = [
+  {
+    id: "cjpalhdlnbpafiamejdnhcphjbkeiagm",
+    name: "uBlock Origin",
+    description: "Efficient wide-spectrum content and ad blocker",
+    version: "1.60.0",
+    category: "Utilities",
+    storeUrl: "https://chromewebstore.google.com/detail/ublock-origin/cjpalhdlnbpafiamejdnhcphjbkeiagm",
+  },
+  {
+    id: "nngceckbapebfimnlniiiahkandclblb",
+    name: "Bitwarden",
+    description: "Secure and free open-source password manager",
+    version: "2024.11.0",
+    category: "Utilities",
+    storeUrl: "https://chromewebstore.google.com/detail/bitwarden-password-manage/nngceckbapebfimnlniiiahkandclblb",
+  },
+  {
+    id: "eimadpbcbfnmbkopoojfekhnkhdbieeh",
+    name: "Dark Reader",
+    description: "Dark mode for every website with custom contrast",
+    version: "4.9.92",
+    category: "Utilities",
+    storeUrl: "https://chromewebstore.google.com/detail/dark-reader/eimadpbcbfnmbkopoojfekhnkhdbieeh",
+  },
+  {
+    id: "fmkadmapgofadopljbjfkapdkoienihi",
+    name: "React Developer Tools",
+    description: "Inspect React component hierarchies in DevTools",
+    version: "6.0.1",
+    category: "Development",
+    storeUrl: "https://chromewebstore.google.com/detail/react-developer-tools/fmkadmapgofadopljbjfkapdkoienihi",
+  },
+  {
+    id: "dbepggeogbaibhgnhhndojpepiihcmeb",
+    name: "Vimium",
+    description: "The hacker's browser: keyboard-driven navigation",
+    version: "2.1.2",
+    category: "Productivity",
+    storeUrl: "https://chromewebstore.google.com/detail/vimium/dbepggeogbaibhgnhhndojpepiihcmeb",
+  },
+  {
+    id: "clngdbkpkpeebahjckkjfobafhncgmne",
+    name: "Stylus",
+    description: "Redesign the web with custom userstyles",
+    version: "2.2.0",
+    category: "Graphics",
+    storeUrl: "https://chromewebstore.google.com/detail/stylus/clngdbkpkpeebahjckkjfobafhncgmne",
+  },
+  {
+    id: "hlepfoohegkhhmjieoechaddaejaokhf",
+    name: "Refined GitHub",
+    description: "Simplifies the GitHub interface and adds useful features",
+    version: "24.11.1",
+    category: "Development",
+    storeUrl: "https://chromewebstore.google.com/detail/refined-github/hlepfoohegkhhmjieoechaddaejaokhf",
+  },
+  {
+    id: "mnjggcdmjocbbbhaepdhchncahnbgone",
+    name: "SponsorBlock",
+    description: "Skip sponsorships, intros, and outros on YouTube",
+    version: "5.9.5",
+    category: "Multimedia",
+    storeUrl: "https://chromewebstore.google.com/detail/sponsorblock-for-youtube/mnjggcdmjocbbbhaepdhchncahnbgone",
+  },
+  {
+    id: "aeblfdkhhhdcdjpifhhbdiojplfjncoa",
+    name: "1Password",
+    description: "Password manager and passkey autofill extension",
+    version: "8.10.50",
+    category: "Utilities",
+    storeUrl: "https://chromewebstore.google.com/detail/1password-%E2%80%93-password-mana/aeblfdkhhhdcdjpifhhbdiojplfjncoa",
+  },
+];
+
+interface CuratedPluginEntry {
+  id: string;
+  name: string;
+  description: string;
+  version: string;
+  kind: "plugin" | "theme";
+  sourceType: "css" | "js" | "folder";
+  category: AppGenreCategory;
+}
+
+const CURATED_DESKTOP_PLUGINS: CuratedPluginEntry[] = [
+  {
+    id: "aurora-drift",
+    name: "Aurora Drift",
+    description: "Animated aurora borealis desktop wallpaper & panel glow",
+    version: "1.0.0",
+    kind: "theme",
+    sourceType: "css",
+    category: "Graphics",
+  },
+  {
+    id: "app-indicator",
+    name: "AppIndicator Tray",
+    description: "Menu bar status indicators for background desktop apps",
+    version: "1.0.0",
+    kind: "plugin",
+    sourceType: "js",
+    category: "Utilities",
+  },
+  {
+    id: "pomodoro-pill",
+    name: "Pomodoro Focus Pill",
+    description: "Minimalist focus timer in the top menu bar",
+    version: "0.4.2",
+    kind: "plugin",
+    sourceType: "js",
+    category: "Productivity",
+  },
+  {
+    id: "catppuccin-mocha",
+    name: "Catppuccin Mocha",
+    description: "Soothing pastel dark theme for Piloti shell & GTK",
+    version: "1.2.0",
+    kind: "theme",
+    sourceType: "css",
+    category: "Graphics",
+  },
+  {
+    id: "window-tiling-snap",
+    name: "Quarter Tiling Snap",
+    description: "Keyboard shortcuts for quarter-screen window snapping",
+    version: "0.9.1",
+    kind: "plugin",
+    sourceType: "js",
+    category: "Utilities",
+  },
+];
+
+const CURATED_FONTS: CuratedFontEntry[] = [
+  { family: "Inter", category: "Sans", subtitle: "Clean UI sans-serif designed for computer screens", defaultInstalled: true },
+  { family: "Cantarell", category: "Sans", subtitle: "GNOME & Adwaita classic humanist sans-serif", defaultInstalled: true },
+  { family: "Adwaita Sans", category: "Sans", subtitle: "Modern GNOME desktop interface sans-serif", defaultInstalled: true },
+  { family: "Roboto", category: "Sans", subtitle: "Neo-grotesque geometric sans-serif by Google", defaultInstalled: true },
+  { family: "Noto Sans", category: "Sans", subtitle: "Universal multi-script humanist sans-serif", defaultInstalled: true },
+  { family: "Ubuntu", category: "Sans", subtitle: "Humanist sans-serif with distinctive warmth", defaultInstalled: false },
+  { family: "JetBrains Mono", category: "Monospace", subtitle: "Developer monospace font with code ligatures", defaultInstalled: true },
+  { family: "Fira Code", category: "Monospace", subtitle: "Free monospaced font with programming ligatures", defaultInstalled: false },
+  { family: "Source Code Pro", category: "Monospace", subtitle: "Monospaced coding font family by Adobe", defaultInstalled: false },
+  { family: "Adwaita Mono", category: "Monospace", subtitle: "GNOME default monospace terminal font", defaultInstalled: true },
+  { family: "Noto Serif", category: "Serif", subtitle: "Balanced editorial serif for long-form reading", defaultInstalled: true },
+  { family: "Playfair Display", category: "Display", subtitle: "High-contrast transitional serif for headings", defaultInstalled: false },
+  { family: "Merriweather", category: "Serif", subtitle: "Readable screen serif with sturdy letterforms", defaultInstalled: false },
+  { family: "Space Grotesk", category: "Display", subtitle: "Proportional geometric display sans-serif", defaultInstalled: false },
+];
 
 const WEB_SIMULATED_APT_UPDATES: AptUpdatePackage[] = [
   {
@@ -180,9 +362,28 @@ const WEB_SIMULATED_FLATPAK_UPDATES: FlatpakUpdateEntry[] = [
   },
 ];
 
+interface DesktopPluginStoreData {
+  id: string;
+  name: string;
+  description: string;
+  version?: string;
+  kind?: "plugin" | "theme";
+  sourceType: "css" | "js" | "folder";
+  enabled: boolean;
+  installed: boolean;
+  discovered?: DiscoveredPlugin;
+}
+
+interface FontStoreData {
+  family: string;
+  fontCategory: "Sans" | "Serif" | "Monospace" | "Display";
+  source: "System" | "Web" | "Document";
+  sampleText: string;
+}
+
 interface StoreItem {
   id: string;
-  kind: "app" | "web" | "flatpak";
+  kind: "app" | "web" | "flatpak" | "extension" | "plugin" | "font";
   title: string;
   subtitle: string;
   category: AppGenreCategory;
@@ -191,6 +392,9 @@ interface StoreItem {
   appDef?: AppDefinition;
   webApp?: InstalledWebApp;
   flatpak?: FlatpakAppEntry;
+  extension?: ChromeExtensionEntry;
+  plugin?: DesktopPluginStoreData;
+  font?: FontStoreData;
   faviconUrl?: string;
 }
 
@@ -315,7 +519,7 @@ const SIDEBAR_ITEMS: Array<{
 ];
 
 const COLLECTION_ITEMS: Array<{
-  id: CollectionId | "web-apps";
+  id: CollectionId | "web-apps" | "web-extensions" | "desktop-plugins" | "fonts";
   label: string;
   icon: React.ReactNode;
 }> = [
@@ -338,6 +542,21 @@ const COLLECTION_ITEMS: Array<{
     id: "web-apps",
     label: "Web Apps",
     icon: <GlobeIcon className="size-4" />,
+  },
+  {
+    id: "web-extensions",
+    label: "Web Extensions",
+    icon: <PuzzleIcon className="size-4" />,
+  },
+  {
+    id: "desktop-plugins",
+    label: "Desktop Plugins",
+    icon: <BlocksIcon className="size-4" />,
+  },
+  {
+    id: "fonts",
+    label: "Fonts",
+    icon: <TypeIcon className="size-4" />,
   },
 ];
 
@@ -440,6 +659,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
   const { isBrowserRuntime, settings, updateSettings } = useSettings();
   const { pushNotification } = useSystemBackends();
   const { launchApp, openWebUrl } = useWindowActions();
+  const { plugins: discoveredPlugins, togglePlugin } = usePlugins();
 
   const [flatpakCaps, setFlatpakCaps] = React.useState<FlatpakCapabilities>({
     available: false,
@@ -470,8 +690,108 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
       webApps: saved?.webApps ?? DEFAULT_SOFTWARE_SOURCES.webApps,
       flatpak: saved?.flatpak ?? DEFAULT_SOFTWARE_SOURCES.flatpak,
       system: saved?.system ?? DEFAULT_SOFTWARE_SOURCES.system,
+      webExtensions:
+        saved?.webExtensions ?? DEFAULT_SOFTWARE_SOURCES.webExtensions,
+      desktopPlugins:
+        saved?.desktopPlugins ?? DEFAULT_SOFTWARE_SOURCES.desktopPlugins,
+      fonts: saved?.fonts ?? DEFAULT_SOFTWARE_SOURCES.fonts,
     };
   });
+
+  const [detectedFontFamilies, setDetectedFontFamilies] = React.useState<
+    Array<{ family: string; source: "Document" | "System" }>
+  >([]);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    const found = new Map<string, "Document" | "System">();
+
+    if (typeof document !== "undefined" && "fonts" in document) {
+      try {
+        for (const face of document.fonts) {
+          const family = face.family.replace(/^["']|["']$/g, "").trim();
+          if (family && !found.has(family.toLowerCase())) {
+            found.set(family.toLowerCase(), "Document");
+            // Keep original casing by storing in a second pass or array
+          }
+        }
+      } catch {
+        // ignore document.fonts errors
+      }
+    }
+
+    const collectDocumentFonts = (): Array<{
+      family: string;
+      source: "Document" | "System";
+    }> => {
+      const byLower = new Map<
+        string,
+        { family: string; source: "Document" | "System" }
+      >();
+      if (typeof document !== "undefined" && "fonts" in document) {
+        try {
+          for (const face of document.fonts) {
+            const family = face.family.replace(/^["']|["']$/g, "").trim();
+            if (family && !byLower.has(family.toLowerCase())) {
+              byLower.set(family.toLowerCase(), { family, source: "Document" });
+            }
+          }
+        } catch {
+          // ignore
+        }
+      }
+      return Array.from(byLower.values());
+    };
+
+    const initial = collectDocumentFonts();
+    if (!cancelled) {
+      setDetectedFontFamilies(initial);
+    }
+
+    if (!isBrowserRuntime) {
+      void (async () => {
+        try {
+          const res = await domicile.processes.run([
+            "fc-list",
+            ":",
+            "family",
+          ]);
+          if (cancelled) return;
+          const stdout = res.match({
+            Ok: (ran) => (ran.code === 0 ? ran.stdout : ""),
+            Err: () => "",
+          });
+          if (!stdout) return;
+          const byLower = new Map<
+            string,
+            { family: string; source: "Document" | "System" }
+          >();
+          for (const item of collectDocumentFonts()) {
+            byLower.set(item.family.toLowerCase(), item);
+          }
+          for (const line of stdout.split(/\r?\n/)) {
+            for (const part of line.split(",")) {
+              const family = part.trim();
+              if (!family) continue;
+              const key = family.toLowerCase();
+              if (!byLower.has(key)) {
+                byLower.set(key, { family, source: "System" });
+              }
+            }
+          }
+          if (!cancelled) {
+            setDetectedFontFamilies(Array.from(byLower.values()));
+          }
+        } catch {
+          // ignore fc-list failures
+        }
+      })();
+    }
+
+    return () => {
+      cancelled = true;
+    };
+  }, [domicile, isBrowserRuntime]);
   const updateSources = React.useCallback(
     (patch: Partial<SoftwareSourcesState>) => {
       setSources((prev) => {
@@ -800,6 +1120,13 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
     }));
   }, [flathubEntries, getAppIconUrl, installedFlatpakIds, installedFlatpaks]);
 
+  const installedChromeExtensions = React.useMemo<ChromeExtensionEntry[]>(() => {
+    const raw = (
+      settings as unknown as { chromeExtensions?: ChromeExtensionEntry[] }
+    ).chromeExtensions;
+    return Array.isArray(raw) ? raw : [];
+  }, [settings]);
+
   const items = React.useMemo<StoreItem[]>(() => {
     void descriptionTick;
     const fakeInstalledSet = new Set(meta.fakeInstalledAppIds);
@@ -842,19 +1169,180 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
       };
     });
 
+    const installedExtById = new Map(
+      installedChromeExtensions.map((ext) => [ext.id, ext]),
+    );
+    const extMerged = new Map<string, ChromeExtensionEntry>();
+    for (const curated of CURATED_WEB_EXTENSIONS) {
+      extMerged.set(curated.id, curated);
+    }
+    for (const installed of installedChromeExtensions) {
+      const existing = extMerged.get(installed.id);
+      extMerged.set(
+        installed.id,
+        existing ? { ...existing, ...installed } : installed,
+      );
+    }
+    const extensionItems: StoreItem[] = Array.from(extMerged.values()).map(
+      (ext) => {
+        const installed = installedExtById.has(ext.id);
+        return {
+          id: `ext:${ext.id}`,
+          kind: "extension",
+          title: ext.name,
+          subtitle:
+            ext.description ||
+            _("Chrome Web Store extension") + (ext.version ? ` · v${ext.version}` : ""),
+          category: ext.category ?? "Utilities",
+          installed,
+          removable: installed,
+          extension: ext,
+          faviconUrl: ext.iconUrl,
+        };
+      },
+    );
+
+    const discoveredById = new Map(
+      discoveredPlugins.map((p) => [p.id, p]),
+    );
+    const pluginItems: StoreItem[] = [];
+    const seenPluginIds = new Set<string>();
+    for (const p of discoveredPlugins) {
+      seenPluginIds.add(p.id);
+      const curated = CURATED_DESKTOP_PLUGINS.find((c) => c.id === p.id);
+      pluginItems.push({
+        id: `plugin:${p.id}`,
+        kind: "plugin",
+        title: p.name,
+        subtitle:
+          p.description ||
+          curated?.description ||
+          `${p.kind === "theme" ? _("Theme") : _("Plugin")} · ${p.sourceType.toUpperCase()}`,
+        category: curated?.category ?? (p.kind === "theme" ? "Graphics" : "Utilities"),
+        installed: true,
+        removable: false,
+        plugin: {
+          id: p.id,
+          name: p.name,
+          description: p.description || curated?.description || "",
+          version: p.version,
+          kind: p.kind,
+          sourceType: p.sourceType,
+          enabled: p.enabled,
+          installed: true,
+          discovered: p,
+        },
+      });
+    }
+    for (const curated of CURATED_DESKTOP_PLUGINS) {
+      if (seenPluginIds.has(curated.id)) continue;
+      const isInstalled =
+        fakeInstalledSet.has(`plugin:${curated.id}`) &&
+        !fakeRemovedSet.has(`plugin:${curated.id}`);
+      const isEnabled =
+        isInstalled && settings.enabledPluginIds.includes(curated.id);
+      pluginItems.push({
+        id: `plugin:${curated.id}`,
+        kind: "plugin",
+        title: curated.name,
+        subtitle: curated.description,
+        category: curated.category,
+        installed: isInstalled,
+        removable: isInstalled,
+        plugin: {
+          id: curated.id,
+          name: curated.name,
+          description: curated.description,
+          version: curated.version,
+          kind: curated.kind,
+          sourceType: curated.sourceType,
+          enabled: isEnabled,
+          installed: isInstalled,
+          discovered: discoveredById.get(curated.id),
+        },
+      });
+    }
+
+    const fontMap = new Map<string, StoreItem>();
+    const detectedLower = new Map(
+      detectedFontFamilies.map((f) => [f.family.toLowerCase(), f]),
+    );
+    for (const curated of CURATED_FONTS) {
+      const key = curated.family.toLowerCase();
+      const detected = detectedLower.get(key);
+      const fontId = `font:${key}`;
+      const installed =
+        Boolean(detected) ||
+        (curated.defaultInstalled
+          ? !fakeRemovedSet.has(fontId)
+          : fakeInstalledSet.has(fontId));
+      fontMap.set(key, {
+        id: fontId,
+        kind: "font",
+        title: curated.family,
+        subtitle: curated.subtitle,
+        category: "Graphics",
+        installed,
+        removable: !detected && !curated.defaultInstalled && installed,
+        font: {
+          family: curated.family,
+          fontCategory: curated.category,
+          source: detected ? detected.source : "Web",
+          sampleText: "Aa Bb Cc 123 — The quick brown fox jumps",
+        },
+      });
+    }
+    for (const det of detectedFontFamilies) {
+      const key = det.family.toLowerCase();
+      if (fontMap.has(key)) continue;
+      const isMono = /mono|code|courier|console|terminal|fira/i.test(det.family);
+      const isSerif = /serif|garamond|georgia|times|palatino|merriweather|playfair/i.test(
+        det.family,
+      );
+      fontMap.set(key, {
+        id: `font:${key}`,
+        kind: "font",
+        title: det.family,
+        subtitle:
+          det.source === "System"
+            ? _("System font (fc-list)")
+            : _("Loaded document font"),
+        category: "Graphics",
+        installed: true,
+        removable: false,
+        font: {
+          family: det.family,
+          fontCategory: isMono ? "Monospace" : isSerif ? "Serif" : "Sans",
+          source: det.source,
+          sampleText: "Aa Bb Cc 123 — The quick brown fox jumps",
+        },
+      });
+    }
+    const fontItems = Array.from(fontMap.values());
+
     return [
       ...(sources.system ? appItems : []),
       ...(sources.webApps ? webItems : []),
       ...(sources.flatpak ? flatpakItems : []),
+      ...(sources.webExtensions ? extensionItems : []),
+      ...(sources.desktopPlugins ? pluginItems : []),
+      ...(sources.fonts ? fontItems : []),
     ];
   }, [
     installedWebUrls,
+    installedChromeExtensions,
+    discoveredPlugins,
+    detectedFontFamilies,
+    settings.enabledPluginIds,
     meta,
     descriptionTick,
     flatpakItems,
     sources.flatpak,
     sources.system,
     sources.webApps,
+    sources.webExtensions,
+    sources.desktopPlugins,
+    sources.fonts,
   ]);
 
   const filteredItems = React.useMemo(() => {
@@ -862,7 +1350,15 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
     return items.filter((item) => {
       if (category === "updates") return false;
       if (category === "installed" && !item.installed) return false;
-      if (
+      if (category === "web-apps") {
+        if (item.kind !== "web") return false;
+      } else if (category === "web-extensions") {
+        if (item.kind !== "extension") return false;
+      } else if (category === "desktop-plugins") {
+        if (item.kind !== "plugin") return false;
+      } else if (category === "fonts") {
+        if (item.kind !== "font") return false;
+      } else if (
         category === "core-apps" ||
         category === "circle-apps" ||
         category === "kde-apps"
@@ -884,7 +1380,10 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
         item.subtitle.toLowerCase().includes(q) ||
         item.category.toLowerCase().includes(q) ||
         (item.flatpak?.appId.toLowerCase().includes(q) ?? false) ||
-        (item.webApp?.keywords?.toLowerCase().includes(q) ?? false)
+        (item.webApp?.keywords?.toLowerCase().includes(q) ?? false) ||
+        (item.extension?.id.toLowerCase().includes(q) ?? false) ||
+        (item.plugin?.id.toLowerCase().includes(q) ?? false) ||
+        (item.font?.fontCategory.toLowerCase().includes(q) ?? false)
       );
     });
   }, [items, category, query]);
@@ -935,6 +1434,9 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
       if (id === "all") return items.length;
       if (id === "installed") return items.filter((i) => i.installed).length;
       if (id === "web-apps") return items.filter((i) => i.kind === "web").length;
+      if (id === "web-extensions") return items.filter((i) => i.kind === "extension").length;
+      if (id === "desktop-plugins") return items.filter((i) => i.kind === "plugin").length;
+      if (id === "fonts") return items.filter((i) => i.kind === "font").length;
       if (id === "core-apps" || id === "circle-apps" || id === "kde-apps") {
         const ids = COLLECTION_APP_IDS_BY_COLLECTION[id];
         return items.filter(
@@ -959,12 +1461,30 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
   }, [highlightedCategory, items, totalUpdatesCount]);
 
   const webAndAppItems = React.useMemo(
-    () => sortedItems.filter((item) => item.kind !== "flatpak"),
+    () =>
+      sortedItems.filter(
+        (item) => item.kind === "app" || item.kind === "web",
+      ),
     [sortedItems],
   );
 
   const flatpakStoreItems = React.useMemo(
     () => sortedItems.filter((item) => item.kind === "flatpak"),
+    [sortedItems],
+  );
+
+  const extensionStoreItems = React.useMemo(
+    () => sortedItems.filter((item) => item.kind === "extension"),
+    [sortedItems],
+  );
+
+  const pluginStoreItems = React.useMemo(
+    () => sortedItems.filter((item) => item.kind === "plugin"),
+    [sortedItems],
+  );
+
+  const fontStoreItems = React.useMemo(
+    () => sortedItems.filter((item) => item.kind === "font"),
     [sortedItems],
   );
 
@@ -1038,6 +1558,56 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
         }
         return;
       }
+      if (item.kind === "extension" && item.extension) {
+        const ext = item.extension;
+        if (!installedChromeExtensions.some((e) => e.id === ext.id)) {
+          updateSettings({
+            chromeExtensions: [
+              ...installedChromeExtensions,
+              { ...ext, enabled: true },
+            ],
+          } as Partial<typeof settings>);
+          pushNotification({
+            appName: "App Store",
+            summary: _("Installed %s", ext.name),
+            body: _("Web extension enabled in browser"),
+          });
+        }
+        return;
+      }
+      if (item.kind === "plugin" && item.plugin) {
+        const pluginId = item.plugin.id;
+        updateMeta((prev) => ({
+          ...prev,
+          fakeInstalledAppIds: prev.fakeInstalledAppIds.includes(
+            `plugin:${pluginId}`,
+          )
+            ? prev.fakeInstalledAppIds
+            : [...prev.fakeInstalledAppIds, `plugin:${pluginId}`],
+          fakeRemovedAppIds: prev.fakeRemovedAppIds.filter(
+            (id) => id !== `plugin:${pluginId}`,
+          ),
+        }));
+        if (!settings.enabledPluginIds.includes(pluginId)) {
+          updateSettings({
+            enabledPluginIds: [...settings.enabledPluginIds, pluginId],
+          });
+        }
+        return;
+      }
+      if (item.kind === "font" && item.font) {
+        const fontId = item.id;
+        updateMeta((prev) => ({
+          ...prev,
+          fakeInstalledAppIds: prev.fakeInstalledAppIds.includes(fontId)
+            ? prev.fakeInstalledAppIds
+            : [...prev.fakeInstalledAppIds, fontId],
+          fakeRemovedAppIds: prev.fakeRemovedAppIds.filter(
+            (id) => id !== fontId,
+          ),
+        }));
+        return;
+      }
       if (item.kind === "app" && item.appDef) {
         const appId = item.appDef.id;
         updateMeta((prev) => ({
@@ -1049,7 +1619,16 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
         }));
       }
     },
-    [domicile, isBrowserRuntime, settings.installedWebApps, updateMeta],
+    [
+      domicile,
+      installedChromeExtensions,
+      isBrowserRuntime,
+      pushNotification,
+      settings.enabledPluginIds,
+      settings.installedWebApps,
+      updateMeta,
+      updateSettings,
+    ],
   );
 
   const commitUninstall = React.useCallback(
@@ -1070,6 +1649,53 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
         }
         return;
       }
+      if (item.kind === "extension" && item.extension) {
+        const ext = item.extension;
+        updateSettings({
+          chromeExtensions: installedChromeExtensions.filter(
+            (e) => e.id !== ext.id,
+          ),
+        } as Partial<typeof settings>);
+        pushNotification({
+          appName: "App Store",
+          summary: _("Uninstalled %s", ext.name),
+          body: ext.id,
+        });
+        return;
+      }
+      if (item.kind === "plugin" && item.plugin) {
+        const pluginId = item.plugin.id;
+        updateMeta((prev) => ({
+          ...prev,
+          fakeInstalledAppIds: prev.fakeInstalledAppIds.filter(
+            (id) => id !== `plugin:${pluginId}`,
+          ),
+          fakeRemovedAppIds: prev.fakeRemovedAppIds.includes(`plugin:${pluginId}`)
+            ? prev.fakeRemovedAppIds
+            : [...prev.fakeRemovedAppIds, `plugin:${pluginId}`],
+        }));
+        if (settings.enabledPluginIds.includes(pluginId)) {
+          updateSettings({
+            enabledPluginIds: settings.enabledPluginIds.filter(
+              (id) => id !== pluginId,
+            ),
+          });
+        }
+        return;
+      }
+      if (item.kind === "font" && item.font) {
+        const fontId = item.id;
+        updateMeta((prev) => ({
+          ...prev,
+          fakeInstalledAppIds: prev.fakeInstalledAppIds.filter(
+            (id) => id !== fontId,
+          ),
+          fakeRemovedAppIds: prev.fakeRemovedAppIds.includes(fontId)
+            ? prev.fakeRemovedAppIds
+            : [...prev.fakeRemovedAppIds, fontId],
+        }));
+        return;
+      }
       if (item.kind === "app" && item.appDef) {
         const appId = item.appDef.id;
         updateMeta((prev) => ({
@@ -1085,7 +1711,10 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
     },
     [
       domicile,
+      installedChromeExtensions,
       isBrowserRuntime,
+      pushNotification,
+      settings.enabledPluginIds,
       settings.pinnedAppIds,
       updateMeta,
       updateSettings,
@@ -1289,11 +1918,38 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
         launchApp(item.flatpak.appId);
         return;
       }
+      if (item.kind === "extension" && item.extension) {
+        const url =
+          item.extension.storeUrl ||
+          `https://chromewebstore.google.com/detail/${item.extension.id}`;
+        openWebUrl(url, { title: item.extension.name });
+        return;
+      }
+      if (item.kind === "plugin" && item.plugin) {
+        launchApp("settings", { payload: "advanced" });
+        return;
+      }
+      if (item.kind === "font" && item.font) {
+        if (item.font.fontCategory === "Monospace") {
+          updateSettings({ fontMonoFamily: item.font.family });
+        } else {
+          updateSettings({ fontSansFamily: item.font.family });
+        }
+        pushNotification({
+          appName: "App Store",
+          summary: _("Applied font %s", item.font.family),
+          body:
+            item.font.fontCategory === "Monospace"
+              ? _("Set as monospace font")
+              : _("Set as interface sans font"),
+        });
+        return;
+      }
       if (item.kind === "app" && item.appDef) {
         launchApp(item.appDef.id);
       }
     },
-    [isBrowserRuntime, launchApp, openWebUrl, pushNotification],
+    [isBrowserRuntime, launchApp, openWebUrl, pushNotification, updateSettings],
   );
 
   const handleReloadUpdates = React.useCallback(async () => {
@@ -1727,6 +2383,39 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                         }
                       />
                     </div>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[12.5px] font-medium text-adw-label">
+                        {_("Web Extensions")}
+                      </span>
+                      <Switch
+                        checked={sources.webExtensions}
+                        onCheckedChange={(checked) =>
+                          updateSources({ webExtensions: Boolean(checked) })
+                        }
+                      />
+                    </div>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[12.5px] font-medium text-adw-label">
+                        {_("Desktop Plugins")}
+                      </span>
+                      <Switch
+                        checked={sources.desktopPlugins}
+                        onCheckedChange={(checked) =>
+                          updateSources({ desktopPlugins: Boolean(checked) })
+                        }
+                      />
+                    </div>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[12.5px] font-medium text-adw-label">
+                        {_("Fonts")}
+                      </span>
+                      <Switch
+                        checked={sources.fonts}
+                        onCheckedChange={(checked) =>
+                          updateSources({ fonts: Boolean(checked) })
+                        }
+                      />
+                    </div>
                   </div>
                 </div>
               )}
@@ -2116,6 +2805,9 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                   : [
                       { id: "web", title: _("Web Apps"), list: webAndAppItems },
                       { id: "flatpak", title: _("Flatpaks"), list: flatpakStoreItems },
+                      { id: "extension", title: _("Web Extensions"), list: extensionStoreItems },
+                      { id: "plugin", title: _("Desktop Plugins"), list: pluginStoreItems },
+                      { id: "font", title: _("Fonts"), list: fontStoreItems },
                     ]
                 )
                   .filter((group) => group.list.length > 0)
@@ -2185,6 +2877,31 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                                       gradient={item.appDef.gradient}
                                       className="size-10"
                                     />
+                                  ) : item.kind === "extension" ? (
+                                    item.faviconUrl ? (
+                                      <WebAppFavicon
+                                        url={item.faviconUrl}
+                                        title={item.title}
+                                        className="size-10"
+                                      />
+                                    ) : (
+                                      <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-violet-500/12 text-violet-500">
+                                        <PuzzleIcon className="size-5" />
+                                      </div>
+                                    )
+                                  ) : item.kind === "plugin" ? (
+                                    <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/12 text-emerald-500">
+                                      <BlocksIcon className="size-5" />
+                                    </div>
+                                  ) : item.kind === "font" && item.font ? (
+                                    <div
+                                      style={{
+                                        fontFamily: `"${item.font.family}", ${item.font.fontCategory === "Monospace" ? "monospace" : item.font.fontCategory === "Serif" ? "serif" : "sans-serif"}`,
+                                      }}
+                                      className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/12 text-[17px] font-semibold text-amber-600 dark:text-amber-400"
+                                    >
+                                      Aa
+                                    </div>
                                   ) : (
                                     <WebAppFavicon
                                       url={item.faviconUrl}
@@ -2194,11 +2911,31 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                                   )}
 
                                   <div className="min-w-0 flex-1">
-                                    <div className="truncate text-[13px] font-semibold">
+                                    <div
+                                      style={
+                                        item.kind === "font" && item.font
+                                          ? {
+                                              fontFamily: `"${item.font.family}", ${item.font.fontCategory === "Monospace" ? "monospace" : item.font.fontCategory === "Serif" ? "serif" : "sans-serif"}`,
+                                            }
+                                          : undefined
+                                      }
+                                      className="truncate text-[13px] font-semibold"
+                                    >
                                       {item.title}
                                     </div>
-                                    <p className="truncate text-[11.5px] text-adw-label-secondary">
-                                      {item.subtitle}
+                                    <p
+                                      style={
+                                        item.kind === "font" && item.font
+                                          ? {
+                                              fontFamily: `"${item.font.family}", ${item.font.fontCategory === "Monospace" ? "monospace" : item.font.fontCategory === "Serif" ? "serif" : "sans-serif"}`,
+                                            }
+                                          : undefined
+                                      }
+                                      className="truncate text-[11.5px] text-adw-label-secondary"
+                                    >
+                                      {item.kind === "font" && item.font
+                                        ? item.font.sampleText
+                                        : item.subtitle}
                                     </p>
                                   </div>
 
@@ -2223,6 +2960,26 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                                       )}
                                       {item.installed ? (
                                         <>
+                                          {item.kind === "plugin" && item.plugin && (
+                                            <Switch
+                                              checked={item.plugin.enabled}
+                                              onCheckedChange={(checked) => {
+                                                const p = item.plugin!;
+                                                if (p.discovered) {
+                                                  togglePlugin(p.id, Boolean(checked));
+                                                } else {
+                                                  const next = Boolean(checked)
+                                                    ? settings.enabledPluginIds.includes(p.id)
+                                                      ? settings.enabledPluginIds
+                                                      : [...settings.enabledPluginIds, p.id]
+                                                    : settings.enabledPluginIds.filter(
+                                                        (id) => id !== p.id,
+                                                      );
+                                                  updateSettings({ enabledPluginIds: next });
+                                                }
+                                              }}
+                                            />
+                                          )}
                                           {item.removable && (
                                             <button
                                               type="button"
@@ -2243,7 +3000,9 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                                             onClick={() => handleOpen(item)}
                                             className="h-7 px-3 text-[11.5px]"
                                           >
-                                            {_("Open")}
+                                            {item.kind === "font"
+                                              ? _("Apply")
+                                              : _("Open")}
                                           </Button>
                                         </>
                                       ) : (
@@ -2348,6 +3107,31 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                       gradient={selectedItem.appDef.gradient}
                       className="size-16"
                     />
+                  ) : selectedItem.kind === "extension" ? (
+                    selectedItem.faviconUrl ? (
+                      <WebAppFavicon
+                        url={selectedItem.faviconUrl}
+                        title={selectedItem.title}
+                        className="size-16"
+                      />
+                    ) : (
+                      <div className="flex size-16 items-center justify-center rounded-2xl bg-violet-500/12 text-violet-500">
+                        <PuzzleIcon className="size-8" />
+                      </div>
+                    )
+                  ) : selectedItem.kind === "plugin" ? (
+                    <div className="flex size-16 items-center justify-center rounded-2xl bg-emerald-500/12 text-emerald-500">
+                      <BlocksIcon className="size-8" />
+                    </div>
+                  ) : selectedItem.kind === "font" && selectedItem.font ? (
+                    <div
+                      style={{
+                        fontFamily: `"${selectedItem.font.family}", ${selectedItem.font.fontCategory === "Monospace" ? "monospace" : selectedItem.font.fontCategory === "Serif" ? "serif" : "sans-serif"}`,
+                      }}
+                      className="flex size-16 items-center justify-center rounded-2xl bg-amber-500/12 text-[26px] font-semibold text-amber-600 dark:text-amber-400"
+                    >
+                      Aa
+                    </div>
                   ) : (
                     <WebAppFavicon
                       url={selectedItem.faviconUrl}
@@ -2355,12 +3139,39 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                       className="size-16"
                     />
                   )}
-                  <h3 className="mt-3 text-[15px] font-bold text-adw-label">
+                  <h3
+                    style={
+                      selectedItem.kind === "font" && selectedItem.font
+                        ? {
+                            fontFamily: `"${selectedItem.font.family}", ${selectedItem.font.fontCategory === "Monospace" ? "monospace" : selectedItem.font.fontCategory === "Serif" ? "serif" : "sans-serif"}`,
+                          }
+                        : undefined
+                    }
+                    className="mt-3 text-[15px] font-bold text-adw-label"
+                  >
                     {selectedItem.title}
                   </h3>
                   <p className="mt-1 text-[12px] leading-snug text-adw-label-secondary">
                     {selectedItem.subtitle}
                   </p>
+                  {selectedItem.kind === "font" && selectedItem.font && (
+                    <div
+                      style={{
+                        fontFamily: `"${selectedItem.font.family}", ${selectedItem.font.fontCategory === "Monospace" ? "monospace" : selectedItem.font.fontCategory === "Serif" ? "serif" : "sans-serif"}`,
+                      }}
+                      className="mt-3 w-full rounded-xl border border-adw-separator bg-adw-card p-3 text-left text-[13px] leading-relaxed text-adw-label"
+                    >
+                      <div className="text-[16px] font-semibold">
+                        ABCDEFGHIJKLM
+                      </div>
+                      <div className="text-[13px] text-adw-label-secondary">
+                        abcdefghijklm 0123456789
+                      </div>
+                      <div className="mt-1 text-[12px] text-adw-label-secondary">
+                        {_("The quick brown fox jumps over the lazy dog.")}
+                      </div>
+                    </div>
+                  )}
                   {(() => {
                     const upd =
                       selectedItem.kind === "flatpak" && selectedItem.flatpak
@@ -2409,9 +3220,37 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                           className="flex-1"
                           onClick={() => handleOpen(selectedItem)}
                         >
-                          {_("Open")}
+                          {selectedItem.kind === "font" ? _("Apply") : _("Open")}
                         </Button>
                       )}
+                      {selectedItem.kind === "plugin" &&
+                        selectedItem.plugin && (
+                          <Button
+                            type="button"
+                            variant={selectedItem.plugin.enabled ? "outline" : "default"}
+                            className="flex-1"
+                            onClick={() => {
+                              const p = selectedItem.plugin!;
+                              const nextEnabled = !p.enabled;
+                              if (p.discovered) {
+                                togglePlugin(p.id, nextEnabled);
+                              } else {
+                                const next = nextEnabled
+                                  ? settings.enabledPluginIds.includes(p.id)
+                                    ? settings.enabledPluginIds
+                                    : [...settings.enabledPluginIds, p.id]
+                                  : settings.enabledPluginIds.filter(
+                                      (id) => id !== p.id,
+                                    );
+                                updateSettings({ enabledPluginIds: next });
+                              }
+                            }}
+                          >
+                            {selectedItem.plugin.enabled
+                              ? _("Disable")
+                              : _("Enable")}
+                          </Button>
+                        )}
                       {selectedItem.removable && (
                         <Button
                           type="button"
@@ -2441,7 +3280,17 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                         ? selectedItem.flatpak?.origin || "Flathub"
                         : selectedItem.kind === "web"
                           ? _("Web App")
-                          : _("System")}
+                          : selectedItem.kind === "extension"
+                            ? _("Web Extension")
+                            : selectedItem.kind === "plugin"
+                              ? _("Desktop Plugin")
+                              : selectedItem.kind === "font"
+                                ? selectedItem.font?.source === "System"
+                                  ? _("System Font")
+                                  : selectedItem.font?.source === "Document"
+                                    ? _("Document Font")
+                                    : _("Web Font")
+                                : _("System")}
                     </span>
                   </div>
                   <div className="flex items-center justify-between gap-2 px-3 py-2">
@@ -2449,6 +3298,9 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                     <span className="max-w-[150px] truncate font-mono text-[11px] text-adw-label">
                       {selectedItem.flatpak?.appId ||
                         selectedItem.appDef?.id ||
+                        selectedItem.extension?.id ||
+                        selectedItem.plugin?.id ||
+                        selectedItem.font?.family ||
                         selectedItem.id}
                     </span>
                   </div>

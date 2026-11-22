@@ -10,6 +10,7 @@ export type GnomePictureOptions =
   | "spanned";
 
 export type GnomeColorShadingType = "solid" | "horizontal" | "vertical";
+export type WallpaperColorMode = "solid" | "linear" | "circular";
 
 export interface GnomeBackgroundSettings {
   pictureUri: string;
@@ -381,6 +382,47 @@ export function buildGnomeShadingCss(bg: GnomeBackgroundSettings): string {
   }
 }
 
+function mixHexChannel(a: number, b: number, t: number): number {
+  return Math.max(0, Math.min(255, Math.round(a + (b - a) * t)));
+}
+
+function mixHexColor(
+  r: number,
+  g: number,
+  b: number,
+  targetR: number,
+  targetG: number,
+  targetB: number,
+  t: number
+): string {
+  const nr = mixHexChannel(r, targetR, t).toString(16).padStart(2, "0");
+  const ng = mixHexChannel(g, targetG, t).toString(16).padStart(2, "0");
+  const nb = mixHexChannel(b, targetB, t).toString(16).padStart(2, "0");
+  return `#${nr}${ng}${nb}`;
+}
+
+/**
+ * Builds a flat, angled linear gradient, or radial/circular gradient CSS
+ * background derived from a single base color.
+ */
+export function buildWallpaperColorCss(
+  color: string,
+  mode: WallpaperColorMode = "solid"
+): string {
+  if (mode === "solid") return color;
+  const hex = toHexColorInputValue(color, "");
+  if (!/^#[\da-f]{6}$/i.test(hex)) return color;
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  const lighter = mixHexColor(r, g, b, 255, 255, 255, 0.22);
+  const darker = mixHexColor(r, g, b, 0, 0, 0, 0.26);
+  if (mode === "linear") {
+    return `linear-gradient(145deg, ${lighter} 0%, ${hex} 52%, ${darker} 100%)`;
+  }
+  return `radial-gradient(circle at 50% 45%, ${lighter} 0%, ${hex} 58%, ${darker} 100%)`;
+}
+
 export interface BackgroundRenderSpec {
   baseCss: string;
   overlayCss?: string;
@@ -409,6 +451,7 @@ export interface BackgroundRenderSpec {
 export function resolveBackgroundRenderSpec(options: {
   wallpaperId: string;
   customWallpaperUrl?: string;
+  wallpaperColorMode?: WallpaperColorMode;
   gnomeBackground: GnomeBackgroundSettings;
   activeWallpaper: WallpaperOption;
   resolvedTheme: "dark" | "light";
@@ -419,6 +462,7 @@ export function resolveBackgroundRenderSpec(options: {
   const {
     wallpaperId,
     customWallpaperUrl,
+    wallpaperColorMode = "solid",
     gnomeBackground,
     activeWallpaper,
     resolvedTheme,
@@ -457,10 +501,17 @@ export function resolveBackgroundRenderSpec(options: {
   const baseCss = hasPicture && (isUntouchedSolidDefault || isOpaqueFullBleedPicture)
     ? "transparent"
     : isGnomeOrCustom
-      ? wallpaperId.startsWith("#") && isUntouchedSolidDefault
-        ? wallpaperId
+      ? gnomeBackground.colorShadingType === "solid"
+        ? buildWallpaperColorCss(
+            wallpaperId.startsWith("#") && isUntouchedSolidDefault
+              ? wallpaperId
+              : gnomeBackground.primaryColor || DEFAULT_GNOME_BACKGROUND.primaryColor,
+            wallpaperColorMode
+          )
         : buildGnomeShadingCss(gnomeBackground)
-      : presetBaseCss;
+      : activeWallpaper.category === "Solid"
+        ? buildWallpaperColorCss(presetBaseCss, wallpaperColorMode)
+        : presetBaseCss;
 
   const overlayCss = isGnomeOrCustom ? undefined : activeWallpaper.overlayCss;
 

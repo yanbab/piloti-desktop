@@ -48,6 +48,8 @@ const SETTINGS_INI_SCHEMA: readonly SchemaEntry[] = [
 
   ["org.piloti.desktop.background", "wallpaper-id", "wallpaperId", "string"],
   ["org.piloti.desktop.background", "custom-wallpaper-url", "customWallpaperUrl", "string"],
+  ["org.piloti.desktop.background", "custom-wallpaper-colors", "customWallpaperColors", "string[]"],
+  ["org.piloti.desktop.background", "wallpaper-color-mode", "wallpaperColorMode", "string"],
 
   ["org.piloti.desktop.dock", "icon-size", "dockSize", "number"],
   ["org.piloti.desktop.dock", "position", "dockPosition", "string"],

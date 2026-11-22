@@ -38,7 +38,7 @@ export const DEFAULT_HOME_FILES: Record<string, string> = {
   "/home/user/.config/piloti/plugins/piloti-showcase/wallpaper.html": "<!doctype html>\n<html lang=\"en\">\n  <head>\n    <meta charset=\"UTF-8\" />\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" />\n    <style>\n      html, body {\n        margin: 0;\n        width: 100%;\n        height: 100%;\n        overflow: hidden;\n        background: radial-gradient(80% 70% at 70% 80%, rgba(33, 144, 164, 0.25), transparent 65%),\n                    linear-gradient(175deg, #050811 0%, #0b1426 68%, #0e1c33 100%);\n      }\n      canvas {\n        display: block;\n        width: 100%;\n        height: 100%;\n      }\n    </style>\n  </head>\n  <body>\n    <canvas id=\"c\"></canvas>\n    <script>\n      const canvas = document.getElementById(\"c\");\n      const ctx = canvas.getContext(\"2d\");\n      const reduced = window.matchMedia(\"(prefers-reduced-motion: reduce)\").matches;\n      const dots = Array.from({ length: 36 }, (_, i) => ({\n        x: (i * 0.6180339887) % 1,\n        y: (i * 0.3819660113) % 1,\n        r: 1 + (i % 3) * 0.65,\n        speed: 0.008 + (i % 5) * 0.004,\n        phase: i * 0.7,\n      }));\n      function resize() {\n        const dpr = Math.min(window.devicePixelRatio || 1, 2);\n        canvas.width = Math.max(1, Math.floor(window.innerWidth * dpr));\n        canvas.height = Math.max(1, Math.floor(window.innerHeight * dpr));\n        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);\n      }\n      resize();\n      window.addEventListener(\"resize\", resize);\n      function draw(ts) {\n        const t = ts * 0.001;\n        const w = window.innerWidth;\n        const h = window.innerHeight;\n        ctx.clearRect(0, 0, w, h);\n        for (const d of dots) {\n          const px = ((d.x + (reduced ? 0 : t * d.speed * 0.2)) % 1) * w;\n          const py = ((d.y - (reduced ? 0 : t * d.speed * 0.12) + 1) % 1) * h;\n          const alpha = 0.2 + 0.28 * Math.sin(d.phase + (reduced ? 0 : t * 0.9));\n          ctx.fillStyle = `rgba(186, 230, 253, ${alpha.toFixed(3)})`;\n          ctx.beginPath();\n          ctx.arc(px, py, d.r, 0, Math.PI * 2);\n          ctx.fill();\n        }\n        if (!reduced) requestAnimationFrame(draw);\n      }\n      requestAnimationFrame(draw);\n    </script>\n  </body>\n</html>\n\n",
   "/home/user/.config/user-dirs.dirs": "# Written by xdg-user-dirs-update\nXDG_DESKTOP_DIR=\"$HOME/Desktop\"\nXDG_DOCUMENTS_DIR=\"$HOME/Documents\"\nXDG_DOWNLOAD_DIR=\"$HOME/Downloads\"\nXDG_MUSIC_DIR=\"$HOME/Music\"\nXDG_PICTURES_DIR=\"$HOME/Pictures\"\nXDG_VIDEOS_DIR=\"$HOME/Videos\"\nXDG_PUBLICSHARE_DIR=\"$HOME/Public\"\nXDG_TEMPLATES_DIR=\"$HOME/Templates\"\n",
   "/home/user/.hidden": "Templates\n\n",
-  "/home/user/.local/share/applications/piloti-applications.desktop": "[Desktop Entry]\nType=Application\nName=App Store\nComment=Browse and install apps and web apps\nExec=piloti-applications\nIcon=system-software-install\nCategories=System;PackageManager;\n",
+  "/home/user/.local/share/applications/piloti-appstore.desktop": "[Desktop Entry]\nType=Application\nName=App Store\nComment=Browse and install apps and web apps\nExec=piloti-appstore\nIcon=system-software-install\nCategories=System;PackageManager;\n",
   "/home/user/.local/share/applications/piloti-calculator.desktop": "[Desktop Entry]\nType=Application\nName=Calculator\nComment=Basic & Scientific Calculator\nExec=piloti-calculator\nIcon=accessories-calculator\nCategories=Utility;Calculator;\n",
   "/home/user/.local/share/applications/piloti-console.desktop": "[Desktop Entry]\nType=Application\nName=Desktop Console\nComment=Desktop Console, live logs, inspector, and JS REPL\nExec=piloti-console\nIcon=piloti-console\nCategories=Development;Debugger;\n",
   "/home/user/.local/share/applications/piloti-files.desktop": "[Desktop Entry]\nType=Application\nName=Folders\nComment=Browse local virtual files and folders\nExec=piloti-files %U\nIcon=system-file-manager\nCategories=System;FileManager;\nMimeType=inode/directory;\n",
@@ -68,7 +68,7 @@ export const DEFAULT_STATIC_DIR_INDEX: Record<string, readonly { name: string; f
       "fileType": 0
     },
     {
-      "name": "piloti-applications",
+      "name": "piloti-appstore",
       "fileType": 0
     },
     {
@@ -130,7 +130,7 @@ export const DEFAULT_STATIC_DIR_INDEX: Record<string, readonly { name: string; f
   ],
   "/usr/share/applications": [
     {
-      "name": "piloti-applications.desktop",
+      "name": "piloti-appstore.desktop",
       "fileType": 0
     },
     {

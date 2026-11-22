@@ -42,6 +42,7 @@ export function useResolvedDesktopBackgroundSpec(): BackgroundRenderSpec {
 
     return resolveBackgroundRenderSpec({
       wallpaperId: option.id,
+      wallpaperColorMode: settings.wallpaperColorMode ?? "solid",
       gnomeBackground: settings.gnomeBackground,
       activeWallpaper: option,
       resolvedTheme,
@@ -51,6 +52,7 @@ export function useResolvedDesktopBackgroundSpec(): BackgroundRenderSpec {
     pluginsCtx?.pluginWallpapers,
     resolvedTheme,
     settings.gnomeBackground,
+    settings.wallpaperColorMode,
     settings.wallpaperId,
   ]);
 }

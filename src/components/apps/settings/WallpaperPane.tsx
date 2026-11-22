@@ -2,9 +2,13 @@ import * as React from "react";
 import { useDisplays } from "@domicile-desktop/react/displays";
 import { useDomicile } from "@domicile-desktop/react/domicile-provider";
 import {
+  ArrowUpIcon,
   FilmIcon,
-  PipetteIcon,
+  FolderIcon,
+  ImageIcon,
+  PlusIcon,
   SunMoonIcon,
+  UploadIcon,
 } from "lucide-react";
 import { ComputerHardwareIllustration } from "@/components/shell/AboutComputerDialog";
 import {
@@ -12,6 +16,13 @@ import {
   useResolvedDesktopBackgroundSpec,
 } from "@/components/shell/DesktopBackgroundLayers";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   GroupedForm,
   GroupedFormExpanderRow,
@@ -33,7 +44,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
-import { useSettings } from "@/context/DesktopStateContext";
+import { useApps, useSettings } from "@/context/DesktopStateContext";
 import { useOptionalPlugins } from "@/context/PluginsContext";
 import {
   ACCENT_COLORS,
@@ -42,17 +53,51 @@ import {
   type WallpaperOption,
 } from "@/data/catalog";
 import {
+  WEB_VFS_HOME,
+  importExternalFilesToVfs,
+  listFsDir,
+  toDomicilePath,
+  type WebVfsEntry,
+} from "@/lib/engine/fs-bridge";
+import {
   GNOME_PICTURE_OPTIONS,
   GNOME_SHADING_TYPES,
   type GnomeBackgroundSettings,
   type GnomeColorShadingType,
   type GnomePictureOptions,
+  type WallpaperColorMode,
+  buildWallpaperColorCss,
   fileUriToLocalPath,
+  localPathToFileUri,
   normalizeBackgroundPictureUri,
   resolveBackgroundRenderSpec,
   selectGnomePictureUri,
   toHexColorInputValue,
 } from "@/lib/engine-native/gnome-background";
+
+const MACOS_COLOR_SWATCHES = [
+  "#000000",
+  "#6a67ab",
+  "#1ca9c9",
+  "#e0666e",
+  "#3b5bdb",
+  "#fbd5bc",
+  "#ebd6b5",
+  "#cca04a",
+  "#bc4184",
+  "#e03c1f",
+  "#efcbc5",
+  "#e5e5e7",
+  "#f6dce2",
+  "#74767d",
+  "#bdbec2",
+  "#545456",
+  "#007a78",
+  "#6ecea3",
+  "#f5b800",
+] as const;
+
+const IMAGE_FILE_EXT_RE = /\.(png|jpe?g|webp|svg|avif|gif|bmp)$/i;
 import { _ } from "@/lib/core/i18n";
 import { cn } from "@/lib/core/utils";
 import { useThrottledColor } from "./use-throttled-color";
@@ -160,19 +205,49 @@ function WallpaperThumbnail({
 }
 
 export function WallpaperPane() {
+  const domicile = useDomicile();
   const displays = useDisplays() ?? [];
   const primaryDisplayName =
     displays[0]?.name?.trim() || _("Built-in Display");
-  const { settings, updateSettings, resolvedTheme } = useSettings();
+  const { isBrowserRuntime, settings, updateSettings, resolvedTheme } =
+    useSettings();
+  const { xdgUserDirs } = useApps();
   const baseSpec = useResolvedDesktopBackgroundSpec();
   const pluginsCtx = useOptionalPlugins();
   const gnomeBg = settings.gnomeBackground;
+  const colorMode: WallpaperColorMode = settings.wallpaperColorMode ?? "solid";
 
   const [showAdvanced, setShowAdvanced] = React.useState(false);
   const [lightUriDraft, setLightUriDraft] = React.useState(
     gnomeBg.pictureUri || settings.customWallpaperUrl
   );
   const [darkUriDraft, setDarkUriDraft] = React.useState(gnomeBg.pictureUriDark);
+
+  const homeDir = React.useMemo(() => {
+    const dir = xdgUserDirs.find((d) => d.key === "HOME");
+    if (dir?.absolutePath) return dir.absolutePath;
+    if (dir?.relativeHomePath) {
+      return `${WEB_VFS_HOME}/${dir.relativeHomePath.replace(/^\/+/, "")}`;
+    }
+    return WEB_VFS_HOME;
+  }, [xdgUserDirs]);
+
+  const picturesDir = React.useMemo(() => {
+    const dir = xdgUserDirs.find((d) => d.key === "PICTURES");
+    if (dir?.absolutePath) return dir.absolutePath;
+    if (dir?.relativeHomePath) {
+      return `${homeDir}/${dir.relativeHomePath.replace(/^\/+/, "")}`;
+    }
+    return `${homeDir}/Pictures`;
+  }, [homeDir, xdgUserDirs]);
+
+  const [imagePickerOpen, setImagePickerOpen] = React.useState(false);
+  const [pickerCwd, setPickerCwd] = React.useState(picturesDir);
+  const [pickerEntries, setPickerEntries] = React.useState<WebVfsEntry[]>([]);
+  const [pickerLoading, setPickerLoading] = React.useState(false);
+  const [selectedPickerPath, setSelectedPickerPath] = React.useState<string>("");
+  const hostFileInputRef = React.useRef<HTMLInputElement | null>(null);
+  const customColorInputRef = React.useRef<HTMLInputElement | null>(null);
 
   React.useEffect(() => {
     setLightUriDraft(gnomeBg.pictureUri || settings.customWallpaperUrl);
@@ -181,6 +256,84 @@ export function WallpaperPane() {
   React.useEffect(() => {
     setDarkUriDraft(gnomeBg.pictureUriDark);
   }, [gnomeBg.pictureUriDark]);
+
+  React.useEffect(() => {
+    if (!imagePickerOpen) return;
+    let active = true;
+    setPickerLoading(true);
+    void listFsDir(domicile, isBrowserRuntime, pickerCwd)
+      .then((entries) => {
+        if (!active) return;
+        const filtered = entries
+          .filter(
+            (e) =>
+              !e.name.startsWith(".") &&
+              (e.kind === "directory" || IMAGE_FILE_EXT_RE.test(e.name))
+          )
+          .sort((a, b) =>
+            a.kind !== b.kind
+              ? a.kind === "directory"
+                ? -1
+                : 1
+              : a.name.localeCompare(b.name)
+          );
+        setPickerEntries(filtered);
+      })
+      .finally(() => {
+        if (active) setPickerLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [domicile, imagePickerOpen, isBrowserRuntime, pickerCwd]);
+
+  const applyPictureUri = React.useCallback(
+    (uri: string) => {
+      updateSettings({
+        wallpaperId: "gnome",
+        customWallpaperUrl: uri,
+        gnomeBackground: {
+          ...settings.gnomeBackground,
+          pictureUri: uri,
+          pictureUriDark: uri,
+          pictureOptions:
+            settings.gnomeBackground.pictureOptions === "none"
+              ? "zoom"
+              : settings.gnomeBackground.pictureOptions,
+        },
+      });
+    },
+    [settings.gnomeBackground, updateSettings]
+  );
+
+  const openImagePicker = React.useCallback(() => {
+    setPickerCwd(picturesDir);
+    setSelectedPickerPath("");
+    setImagePickerOpen(true);
+  }, [picturesDir]);
+
+  const handleHostImageUpload = React.useCallback(
+    async (files: FileList | null) => {
+      if (!files || files.length === 0) return;
+      if (isBrowserRuntime) {
+        const imported = await importExternalFilesToVfs(picturesDir, files);
+        const firstImage = imported.find((e) => IMAGE_FILE_EXT_RE.test(e.name)) ?? imported[0];
+        if (firstImage) {
+          applyPictureUri(localPathToFileUri(firstImage.path));
+          setImagePickerOpen(false);
+        }
+        return;
+      }
+      const file = files[0];
+      const safeName = file.name.replace(/[/\\]/g, "_") || `wallpaper-${Date.now()}.png`;
+      const targetPath = `${picturesDir.replace(/\/+$/, "")}/${safeName}`;
+      const buf = new Uint8Array(await file.arrayBuffer());
+      await domicile.files.write(toDomicilePath(targetPath), buf);
+      applyPictureUri(localPathToFileUri(targetPath));
+      setImagePickerOpen(false);
+    },
+    [applyPictureUri, domicile.files, isBrowserRuntime, picturesDir]
+  );
 
   const applySolidColor = React.useCallback(
     (hex: string) => {
@@ -200,10 +353,47 @@ export function WallpaperPane() {
     [settings.gnomeBackground, updateSettings]
   );
 
-  const solidWallpapers = React.useMemo(
-    () => WALLPAPERS.filter((wp) => wp.category === "Solid"),
-    []
+  const commitCustomColor = React.useCallback(
+    (rawHex: string) => {
+      const normalized = toHexColorInputValue(rawHex, "").toLowerCase();
+      if (!normalized) return;
+      const existing = settings.customWallpaperColors ?? [];
+      const alreadyExists =
+        MACOS_COLOR_SWATCHES.some((c) => c.toLowerCase() === normalized) ||
+        existing.some((c) => c.toLowerCase() === normalized);
+      updateSettings({
+        ...(alreadyExists
+          ? {}
+          : { customWallpaperColors: [...existing, normalized] }),
+        wallpaperId: normalized,
+        customWallpaperUrl: "",
+        gnomeBackground: {
+          ...settings.gnomeBackground,
+          pictureUri: "",
+          pictureUriDark: "",
+          pictureOptions: "none",
+          colorShadingType: "solid",
+          primaryColor: normalized,
+        },
+      });
+    },
+    [settings.customWallpaperColors, settings.gnomeBackground, updateSettings]
   );
+
+  const allColorSwatches = React.useMemo(() => {
+    const seen = new Set<string>();
+    const out: string[] = [];
+    for (const hex of [
+      ...MACOS_COLOR_SWATCHES,
+      ...(settings.customWallpaperColors ?? []),
+    ]) {
+      const norm = hex.trim().toLowerCase();
+      if (!norm || seen.has(norm)) continue;
+      seen.add(norm);
+      out.push(norm);
+    }
+    return out;
+  }, [settings.customWallpaperColors]);
 
   const galleryWallpapers = React.useMemo<WallpaperOption[]>(() => {
     const builtin = WALLPAPERS.filter((wp) => wp.category !== "Solid");
@@ -230,8 +420,44 @@ export function WallpaperPane() {
     return [...fromPlugins, ...builtin];
   }, [pluginsCtx?.pluginWallpapers]);
 
+  const dynamicWallpapers = React.useMemo(
+    () =>
+      galleryWallpapers.filter(
+        (wp) => wp.category !== "Pictures" && !(Boolean(wp.imageUrl) && !wp.kind)
+      ),
+    [galleryWallpapers]
+  );
+
+  const pictureWallpapers = React.useMemo(
+    () =>
+      galleryWallpapers.filter(
+        (wp) => wp.category === "Pictures" || (Boolean(wp.imageUrl) && !wp.kind)
+      ),
+    [galleryWallpapers]
+  );
+
   const activePictureUri =
     selectGnomePictureUri(gnomeBg, resolvedTheme) || settings.customWallpaperUrl;
+
+  const customSelectedPictureOption = React.useMemo<WallpaperOption | null>(() => {
+    if (!activePictureUri) return null;
+    const matchesGallery = pictureWallpapers.some(
+      (wp) =>
+        wp.imageUrl === activePictureUri ||
+        (Boolean(wp.imageUrlDark) && wp.imageUrlDark === activePictureUri)
+    );
+    if (matchesGallery) return null;
+    const fileName =
+      activePictureUri.split("/").pop()?.split("?")[0] || _("Custom Picture");
+    return {
+      id: `custom-picture:${activePictureUri}`,
+      name: decodeURIComponent(fileName),
+      subtitle: _("Custom Image"),
+      category: "Pictures",
+      backgroundCss: "#0f172a",
+      imageUrl: activePictureUri,
+    };
+  }, [activePictureUri, pictureWallpapers]);
 
   const updateGnomeBg = React.useCallback(
     (patch: Partial<GnomeBackgroundSettings>) => {
@@ -249,9 +475,9 @@ export function WallpaperPane() {
     (settings.wallpaperId.startsWith("#") ||
       (settings.wallpaperId === "gnome" &&
         gnomeBg.colorShadingType === "solid")) &&
-    !solidWallpapers.some(
-      (w) =>
-        w.id.toLowerCase() ===
+    !allColorSwatches.some(
+      (hex) =>
+        hex.toLowerCase() ===
         (settings.wallpaperId.startsWith("#")
           ? settings.wallpaperId
           : gnomeBg.primaryColor
@@ -265,6 +491,19 @@ export function WallpaperPane() {
     "#4f46e5"
   );
   const customColorPicker = useThrottledColor(committedCustomHex, applySolidColor);
+
+  React.useEffect(() => {
+    const el = customColorInputRef.current;
+    if (!el) return;
+    const handleNativeChange = () => {
+      commitCustomColor(el.value);
+    };
+    el.addEventListener("change", handleNativeChange);
+    return () => {
+      el.removeEventListener("change", handleNativeChange);
+    };
+  }, [commitCustomColor]);
+
   const primaryColorPicker = useThrottledColor(
     toHexColorInputValue(gnomeBg.primaryColor, "#023c88"),
     (hex) => updateGnomeBg({ primaryColor: hex })
@@ -283,7 +522,7 @@ export function WallpaperPane() {
     ) {
       return {
         ...baseSpec,
-        baseCss: customHexValue,
+        baseCss: buildWallpaperColorCss(customHexValue, colorMode),
         overlayCss: undefined,
         animatedCss: undefined,
         htmlLayer: undefined,
@@ -299,12 +538,13 @@ export function WallpaperPane() {
           ? `linear-gradient(to right, ${p}, ${s})`
           : gnomeBg.colorShadingType === "vertical"
             ? `linear-gradient(to bottom, ${p}, ${s})`
-            : p;
+            : buildWallpaperColorCss(p, colorMode);
       return { ...baseSpec, baseCss };
     }
     return baseSpec;
   }, [
     baseSpec,
+    colorMode,
     committedCustomHex,
     customHexValue,
     gnomeBg.colorShadingType,
@@ -335,133 +575,247 @@ export function WallpaperPane() {
         <GroupedForm>
           <GroupedFormSection>
             <GroupedFormSectionTitle>{_("Wallpapers")}</GroupedFormSectionTitle>
-        <GroupedFormGroup>
-          <div className="grid grid-cols-2 gap-3 p-3.5 sm:grid-cols-3">
-            {galleryWallpapers.map((wp) => {
-              const bareId = wp.id.includes(":")
-                ? wp.id.split(":").slice(1).join(":")
-                : wp.id;
-              const selected =
-                wp.imageUrl && !wp.kind
-                  ? settings.wallpaperId === wp.id ||
+            <GroupedFormGroup>
+              <div className="grid grid-cols-2 gap-3 p-3.5 sm:grid-cols-3">
+                {dynamicWallpapers.map((wp) => {
+                  const bareId = wp.id.includes(":")
+                    ? wp.id.split(":").slice(1).join(":")
+                    : wp.id;
+                  const selected =
+                    !activePictureUri &&
+                    (settings.wallpaperId === wp.id ||
+                      settings.wallpaperId === bareId);
+
+                  const isAnimated = wp.kind === "css" || wp.kind === "html";
+                  const isAdaptive = Boolean(
+                    wp.imageUrlDark || wp.cssAnimationDark || wp.htmlSrcDocDark
+                  );
+
+                  return (
+                    <button
+                      key={wp.id}
+                      type="button"
+                      title={`${wp.name}${wp.subtitle ? ` — ${wp.subtitle}` : ""}`}
+                      aria-label={wp.name}
+                      onClick={() => {
+                        updateSettings({
+                          wallpaperId: wp.id,
+                          customWallpaperUrl: wp.imageUrl ?? "",
+                          gnomeBackground: {
+                            ...gnomeBg,
+                            pictureUri: wp.imageUrl ?? "",
+                            pictureUriDark: wp.imageUrlDark ?? wp.imageUrl ?? "",
+                            pictureOptions: wp.imageUrl ? "zoom" : "none",
+                          },
+                        });
+                      }}
+                      className={cn(
+                        "group relative overflow-hidden rounded-[8px] transition-all outline-none",
+                        selected
+                          ? "ring-2 ring-adw-accent ring-offset-2 ring-offset-adw-group"
+                          : "opacity-90 hover:opacity-100"
+                      )}
+                    >
+                      <WallpaperThumbnail
+                        wp={wp}
+                        resolvedTheme={resolvedTheme}
+                        accentHex={accentHex}
+                      />
+                      {(isAnimated || isAdaptive) && (
+                        <span className="pointer-events-none absolute right-1.5 bottom-1.5 flex items-center gap-1.5 rounded-full bg-black/55 px-2 py-1 text-[11px] font-medium text-white backdrop-blur-xs">
+                          {isAnimated && <FilmIcon className="size-4" />}
+                          {isAdaptive && <SunMoonIcon className="size-4" />}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </GroupedFormGroup>
+          </GroupedFormSection>
+
+          <GroupedFormSection>
+            <div className="flex items-center justify-between gap-2">
+              <GroupedFormSectionTitle>{_("Pictures")}</GroupedFormSectionTitle>
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                onClick={openImagePicker}
+              >
+                {_("+ Add image")}
+              </Button>
+            </div>
+            <GroupedFormGroup>
+              <div className="grid grid-cols-2 gap-3 p-3.5 sm:grid-cols-3">
+                {[
+                  ...(customSelectedPictureOption
+                    ? [customSelectedPictureOption]
+                    : []),
+                  ...pictureWallpapers,
+                ].map((wp) => {
+                  const selected =
+                    settings.wallpaperId === wp.id ||
                     activePictureUri === wp.imageUrl ||
-                    (Boolean(wp.imageUrlDark) && activePictureUri === wp.imageUrlDark)
-                  : !activePictureUri &&
-                    (settings.wallpaperId === wp.id || settings.wallpaperId === bareId);
+                    (Boolean(wp.imageUrlDark) &&
+                      activePictureUri === wp.imageUrlDark);
+                  const isAdaptive = Boolean(wp.imageUrlDark);
 
-              const isAnimated = wp.kind === "css" || wp.kind === "html";
-              const isAdaptive = Boolean(
-                wp.imageUrlDark || wp.cssAnimationDark || wp.htmlSrcDocDark
-              );
+                  return (
+                    <button
+                      key={wp.id}
+                      type="button"
+                      title={`${wp.name}${wp.subtitle ? ` — ${wp.subtitle}` : ""}`}
+                      aria-label={wp.name}
+                      onClick={() => {
+                        updateSettings({
+                          wallpaperId: wp.id.startsWith("custom-picture:")
+                            ? "gnome"
+                            : wp.id,
+                          customWallpaperUrl: wp.imageUrl ?? "",
+                          gnomeBackground: {
+                            ...gnomeBg,
+                            pictureUri: wp.imageUrl ?? "",
+                            pictureUriDark: wp.imageUrlDark ?? wp.imageUrl ?? "",
+                            pictureOptions: wp.imageUrl ? "zoom" : "none",
+                          },
+                        });
+                      }}
+                      className={cn(
+                        "group relative overflow-hidden rounded-[8px] transition-all outline-none",
+                        selected
+                          ? "ring-2 ring-adw-accent ring-offset-2 ring-offset-adw-group"
+                          : "opacity-90 hover:opacity-100"
+                      )}
+                    >
+                      <WallpaperThumbnail
+                        wp={wp}
+                        resolvedTheme={resolvedTheme}
+                        accentHex={accentHex}
+                      />
+                      {isAdaptive && (
+                        <span className="pointer-events-none absolute right-1.5 bottom-1.5 flex items-center gap-1.5 rounded-full bg-black/55 px-2 py-1 text-[11px] font-medium text-white backdrop-blur-xs">
+                          <SunMoonIcon className="size-4" />
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </GroupedFormGroup>
+          </GroupedFormSection>
 
-              return (
-                <button
-                  key={wp.id}
-                  type="button"
-                  title={`${wp.name}${wp.subtitle ? ` — ${wp.subtitle}` : ""}`}
-                  aria-label={wp.name}
-                  onClick={() => {
-                    updateSettings({
-                      wallpaperId: wp.id,
-                      customWallpaperUrl: wp.imageUrl ?? "",
-                      gnomeBackground: {
-                        ...gnomeBg,
-                        pictureUri: wp.imageUrl ?? "",
-                        pictureUriDark: wp.imageUrlDark ?? wp.imageUrl ?? "",
-                        pictureOptions: wp.imageUrl ? "zoom" : "none",
-                      },
-                    });
-                  }}
+          <GroupedFormSection>
+            <div className="flex items-center justify-between gap-2">
+              <GroupedFormSectionTitle>{_("Colors")}</GroupedFormSectionTitle>
+              <div
+                role="radiogroup"
+                aria-label={_("Color Mode")}
+                className="inline-flex rounded-lg bg-black/8 p-0.5 dark:bg-white/10"
+              >
+                {(["solid", "linear", "circular"] as const).map((mode) => {
+                  const selected = colorMode === mode;
+                  const label =
+                    mode === "solid"
+                      ? _("Solid")
+                      : mode === "linear"
+                        ? _("Linear")
+                        : _("Circular");
+                  return (
+                    <button
+                      key={mode}
+                      type="button"
+                      role="radio"
+                      aria-checked={selected}
+                      onClick={() =>
+                        updateSettings({ wallpaperColorMode: mode })
+                      }
+                      className={cn(
+                        "rounded-md px-3 py-1 text-[12px] font-medium transition-all",
+                        selected
+                          ? "bg-white text-black shadow-xs dark:bg-white/16 dark:text-white"
+                          : "text-adw-label-secondary hover:text-adw-label"
+                      )}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            <GroupedFormGroup>
+              <div className="flex flex-wrap gap-3 p-3.5">
+                <div
                   className={cn(
-                    "group relative overflow-hidden rounded-[8px] transition-all outline-none",
-                    selected
-                      ? "ring-2 ring-adw-accent ring-offset-2 ring-offset-adw-group"
-                      : "opacity-90 hover:opacity-100"
-                  )}
-                >
-                  <WallpaperThumbnail
-                    wp={wp}
-                    resolvedTheme={resolvedTheme}
-                    accentHex={accentHex}
-                  />
-                  {(isAnimated || isAdaptive) && (
-                    <span className="pointer-events-none absolute right-1.5 bottom-1.5 flex items-center gap-1.5 rounded-full bg-black/55 px-2 py-1 text-[11px] font-medium text-white backdrop-blur-xs">
-                      {isAnimated && <FilmIcon className="size-4" />}
-                      {isAdaptive && <SunMoonIcon className="size-4" />}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </GroupedFormGroup>
-      </GroupedFormSection>
-
-      <GroupedFormSection>
-        <GroupedFormSectionTitle>{_("Colors")}</GroupedFormSectionTitle>
-        <GroupedFormGroup>
-          <div className="grid grid-cols-3 gap-3 p-3.5 sm:grid-cols-4 lg:grid-cols-6">
-            {solidWallpapers.map((wp) => {
-              const selected =
-                !activePictureUri &&
-                (settings.wallpaperId.toLowerCase() === wp.id.toLowerCase() ||
-                  (settings.wallpaperId === "gnome" &&
-                    gnomeBg.colorShadingType === "solid" &&
-                    gnomeBg.primaryColor.toLowerCase() === wp.id.toLowerCase()));
-              return (
-                <button
-                  key={wp.id}
-                  type="button"
-                  title={wp.name}
-                  aria-label={wp.name}
-                  onClick={() => applySolidColor(wp.id)}
-                  className={cn(
-                    "group relative overflow-hidden rounded-[8px] transition-all outline-none",
-                    selected
+                    "group relative size-10 shrink-0 overflow-hidden rounded-full transition-all",
+                    isCustomSelected
                       ? "ring-2 ring-adw-accent ring-offset-2 ring-offset-adw-group"
                       : "opacity-90 hover:opacity-100"
                   )}
                 >
                   <div
-                    className="h-12 w-full rounded-[8px] transition-transform duration-200 group-hover:scale-[1.02]"
-                    style={{ background: wp.backgroundCss }}
-                  />
-                </button>
-              );
-            })}
-
-            <div
-              className={cn(
-                "group relative overflow-hidden rounded-[8px] transition-all",
-                isCustomSelected
-                  ? "ring-2 ring-adw-accent ring-offset-2 ring-offset-adw-group"
-                  : "opacity-90 hover:opacity-100"
-              )}
-            >
-              <div
-                className="relative flex h-12 w-full items-center justify-center overflow-hidden rounded-[8px] transition-transform duration-200 group-hover:scale-[1.02]"
-                style={{
-                  background: isCustomSelected
-                    ? customHexValue
-                    : "conic-gradient(from 180deg at 50% 50%, #ff3b30, #ff9500, #ffcc00, #34c759, #00c7be, #32ade6, #007aff, #5856d6, #af52de, #ff2d55, #ff3b30)",
-                }}
-              >
-                <div className="pointer-events-none flex size-7 items-center justify-center rounded-full bg-black/35 text-white shadow-xs backdrop-blur-xs">
-                  <PipetteIcon className="size-3.5" />
+                    className="relative flex size-full items-center justify-center overflow-hidden rounded-full bg-black/10 transition-transform duration-200 group-hover:scale-[1.04] dark:bg-white/12"
+                    style={
+                      isCustomSelected
+                        ? {
+                            background: buildWallpaperColorCss(
+                              customHexValue,
+                              colorMode
+                            ),
+                          }
+                        : undefined
+                    }
+                  >
+                    <PlusIcon className="pointer-events-none size-5 text-adw-label" />
+                    <input
+                      ref={customColorInputRef}
+                      type="color"
+                      aria-label={_("Custom Color Picker")}
+                      value={customHexValue}
+                      onChange={(e) => customColorPicker.onChange(e.target.value)}
+                      onBlur={() => {
+                        customColorPicker.flush();
+                        commitCustomColor(customColorPicker.draft);
+                      }}
+                      className="absolute inset-0 size-full cursor-pointer opacity-0"
+                    />
+                  </div>
                 </div>
-                <input
-                  type="color"
-                  aria-label={_("Custom Color Picker")}
-                  value={customHexValue}
-                  onChange={(e) => customColorPicker.onChange(e.target.value)}
-                  onBlur={customColorPicker.flush}
-                  className="absolute inset-0 size-full cursor-pointer opacity-0"
-                />
+
+                {allColorSwatches.map((hex) => {
+                  const selected =
+                    !activePictureUri &&
+                    (settings.wallpaperId.toLowerCase() === hex.toLowerCase() ||
+                      (settings.wallpaperId === "gnome" &&
+                        gnomeBg.colorShadingType === "solid" &&
+                        gnomeBg.primaryColor.toLowerCase() ===
+                          hex.toLowerCase()));
+                  return (
+                    <button
+                      key={hex}
+                      type="button"
+                      title={hex.toUpperCase()}
+                      aria-label={hex.toUpperCase()}
+                      onClick={() => applySolidColor(hex)}
+                      className={cn(
+                        "group relative size-10 shrink-0 overflow-hidden rounded-full transition-all outline-none",
+                        selected
+                          ? "ring-2 ring-adw-accent ring-offset-2 ring-offset-adw-group"
+                          : "opacity-90 hover:opacity-100"
+                      )}
+                    >
+                      <div
+                        className="size-full rounded-full border border-black/10 transition-transform duration-200 group-hover:scale-[1.04] dark:border-white/10"
+                        style={{
+                          background: buildWallpaperColorCss(hex, colorMode),
+                        }}
+                      />
+                    </button>
+                  );
+                })}
               </div>
-            </div>
-          </div>
-        </GroupedFormGroup>
-      </GroupedFormSection>
+            </GroupedFormGroup>
+          </GroupedFormSection>
 
       <GroupedFormSection>
         <GroupedFormGroup>
@@ -657,6 +1011,142 @@ export function WallpaperPane() {
       </GroupedFormSection>
         </GroupedForm>
       </div>
+
+      <Dialog open={imagePickerOpen} onOpenChange={setImagePickerOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{_("Choose Wallpaper Image")}</DialogTitle>
+          </DialogHeader>
+
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex min-w-0 items-center gap-1.5">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="secondary"
+                  disabled={pickerCwd === "/" || pickerCwd === homeDir}
+                  onClick={() => {
+                    const parent =
+                      pickerCwd.split("/").slice(0, -1).join("/") || "/";
+                    setPickerCwd(parent);
+                    setSelectedPickerPath("");
+                  }}
+                >
+                  <ArrowUpIcon className="size-3.5" />
+                </Button>
+                <span className="truncate text-[12px] text-adw-label-secondary">
+                  {pickerCwd}
+                </span>
+              </div>
+              <div className="flex shrink-0 items-center gap-1.5">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={pickerCwd === picturesDir ? "default" : "secondary"}
+                  onClick={() => {
+                    setPickerCwd(picturesDir);
+                    setSelectedPickerPath("");
+                  }}
+                >
+                  {_("Pictures")}
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => hostFileInputRef.current?.click()}
+                >
+                  <UploadIcon className="size-3.5" />
+                  {_("Upload")}
+                </Button>
+                <input
+                  ref={hostFileInputRef}
+                  type="file"
+                  accept="image/*,.png,.jpg,.jpeg,.webp,.svg,.avif"
+                  className="hidden"
+                  onChange={(e) => {
+                    void handleHostImageUpload(e.target.files);
+                    e.target.value = "";
+                  }}
+                />
+              </div>
+            </div>
+
+            <div className="max-h-64 min-h-40 overflow-y-auto rounded-lg border border-adw-separator bg-adw-group p-1.5">
+              {pickerLoading ? (
+                <div className="flex h-36 items-center justify-center text-[13px] text-adw-label-secondary">
+                  {_("Loading...")}
+                </div>
+              ) : pickerEntries.length === 0 ? (
+                <div className="flex h-36 items-center justify-center text-[13px] text-adw-label-secondary">
+                  {_("No images found in this folder")}
+                </div>
+              ) : (
+                <div className="flex flex-col gap-0.5">
+                  {pickerEntries.map((entry) => {
+                    const isSelected = selectedPickerPath === entry.path;
+                    return (
+                      <button
+                        key={entry.path}
+                        type="button"
+                        onClick={() => {
+                          if (entry.kind === "directory") {
+                            setPickerCwd(entry.path);
+                            setSelectedPickerPath("");
+                          } else {
+                            setSelectedPickerPath(entry.path);
+                          }
+                        }}
+                        onDoubleClick={() => {
+                          if (entry.kind === "file") {
+                            applyPictureUri(localPathToFileUri(entry.path));
+                            setImagePickerOpen(false);
+                          }
+                        }}
+                        className={cn(
+                          "flex w-full items-center gap-2.5 rounded-md px-2.5 py-1.5 text-left text-[13px] transition-colors",
+                          isSelected
+                            ? "bg-adw-accent text-white"
+                            : "text-adw-label hover:bg-black/5 dark:hover:bg-white/8"
+                        )}
+                      >
+                        {entry.kind === "directory" ? (
+                          <FolderIcon className="size-4 shrink-0 opacity-80" />
+                        ) : (
+                          <ImageIcon className="size-4 shrink-0 opacity-80" />
+                        )}
+                        <span className="truncate">{entry.name}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setImagePickerOpen(false)}
+            >
+              {_("Cancel")}
+            </Button>
+            <Button
+              type="button"
+              disabled={!selectedPickerPath}
+              onClick={() => {
+                if (!selectedPickerPath) return;
+                applyPictureUri(localPathToFileUri(selectedPickerPath));
+                setImagePickerOpen(false);
+              }}
+            >
+              {_("Choose")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

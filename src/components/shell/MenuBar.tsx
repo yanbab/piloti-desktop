@@ -69,7 +69,8 @@ import { ShortcutsDialog } from "./ShortcutsDialog";
 import { buildAppHelpLinks } from "@/lib/shell/app-help-links";
 import { captureLaunchOriginFromElement } from "@/lib/shell/launch-origin";
 import { buildVfsEntryWebAppUrl, getVfsEntry } from "@/lib/engine-web/web-vfs";
-import { ControlPanel } from "./ControlPanel";
+import { ControlPanel, FloatingNotifications } from "./ControlPanel";
+import { KeyboardLayoutSwitcher } from "./KeyboardLayoutSwitcher";
 import { Launcher } from "./Launcher";
 import { PilotiLogo } from "./PilotiLogo";
 import { usePlugins } from "@/context/PluginsContext";
@@ -1047,6 +1048,9 @@ export function MenuBar() {
             <SystemTrayItem key={item.id} item={item} />
           ))}
 
+        {/* Keyboard Layout Switcher (shown when > 1 layout is available) */}
+        <KeyboardLayoutSwitcher sideOffset={0} />
+
         {/* Launcher Trigger & Popover (or full-screen under apps in Touch Mode) */}
         {settings.touchMode ? (
           <>
@@ -1197,9 +1201,12 @@ export function MenuBar() {
                 >
                   <div
                     onClick={(e) => e.stopPropagation()}
-                    className="w-full max-w-md rounded-adw-popover border border-adw-separator/40 bg-adw-popover/85 p-4 shadow-adw-popover"
+                    className="flex w-full max-w-md flex-col"
                   >
-                    <ControlPanel />
+                    <div className="rounded-adw-popover border border-adw-separator/40 bg-adw-popover/85 p-4 shadow-adw-popover">
+                      <ControlPanel />
+                    </div>
+                    <FloatingNotifications />
                   </div>
                 </div>,
                 document.body
@@ -1278,9 +1285,16 @@ export function MenuBar() {
               initialFocus={controlPanelPopupRef}
               align="end"
               sideOffset={0}
-              className="w-[312px] max-w-[calc(100vw-16px)] rounded-adw-popover p-3 shadow-adw-popover"
+              className="w-[312px] max-w-[calc(100vw-16px)] overflow-x-hidden overflow-y-auto rounded-none border-0 bg-transparent! p-0 shadow-none! [backdrop-filter:none]! [-webkit-backdrop-filter:none]!"
             >
-              {controlPanelOpen && <ControlPanel />}
+              {controlPanelOpen && (
+                <>
+                  <div className="rounded-adw-popover p-3 shadow-adw-popover adw-material-menu">
+                    <ControlPanel />
+                  </div>
+                  <FloatingNotifications />
+                </>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         )}

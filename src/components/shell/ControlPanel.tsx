@@ -3,7 +3,6 @@ import { usePortalRequests } from "@domicile-desktop/react/portals";
 import { PortalKind, type PortalRequest } from "@domicile-desktop/sdk/portal";
 import {
   AlertTriangleIcon,
-  BellIcon,
   BellOffIcon,
   BluetoothIcon,
   CameraIcon,
@@ -28,7 +27,6 @@ import {
   WifiIcon,
   XIcon,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import {
   useSettings,
@@ -64,12 +62,8 @@ export function ControlPanel() {
     mprisMedia,
     controlMpris,
     refreshSystemBackends,
-    notifications,
     unreadNotificationCount,
-    dismissNotification,
-    clearAllNotifications,
     markAllNotificationsRead,
-    invokeNotificationAction,
     takeScreenshot,
     startScreenRecording,
     startAudioRecording,
@@ -79,10 +73,6 @@ export function ControlPanel() {
   const [expandedPicker, setExpandedPicker] = React.useState<
     "wifi" | "bluetooth" | "audio" | null
   >(null);
-
-  const [unreadSnapshot] = React.useState<Set<number>>(
-    () => new Set(notifications.filter((n) => !n.read).map((n) => n.id))
-  );
 
   React.useEffect(() => {
     if (unreadNotificationCount > 0) {
@@ -686,172 +676,189 @@ export function ControlPanel() {
         </div>
       )}
 
-      {/* Notifications History Section */}
-      {notifications.length > 0 && (
-        <div className="flex min-h-0 flex-1 flex-col">
-        <div className="mb-2 flex items-center justify-between px-1">
-          <div className="flex items-center gap-1.5">
-            <span className="text-[12px] font-medium text-adw-label-secondary">
-              {_("Notifications")}
-            </span>
-            {notifications.length > 0 && (
-              <span className="rounded-full bg-adw-accent/20 px-1.5 py-0.2 text-[10px] font-medium text-adw-accent tabular-nums">
-                {notifications.length}
-              </span>
-            )}
-          </div>
-          <div className="flex items-center gap-1">
-            {notifications.length > 0 && (
-              <Button
-                size="icon"
-                variant="secondary"
-                aria-label={_("Clear")}
-                title={_("Clear")}
-                className="rounded-full"
-                onClick={clearAllNotifications}
-              >
-                <XIcon className="size-3.5" />
-              </Button>
-            )}
-          </div>
-        </div>
-
-        {activeInhibitors.length > 0 && (
-          <div className="mb-2 flex items-start gap-2 rounded-[10px] border border-amber-500/30 bg-amber-500/12 px-2.5 py-1.5 text-[11px] text-amber-900 dark:text-amber-200">
-            <AlertTriangleIcon className="mt-0.5 size-3.5 shrink-0 text-amber-600 dark:text-amber-400" />
-            <div className="min-w-0 flex-1">
-              <div className="font-medium">
-                {_("Sleep or logout inhibited")}
-              </div>
-              <div className="truncate text-[10.5px] opacity-85">
-                {activeInhibitors
-                  .map((i) =>
-                    i.body.reason
-                      ? `${i.appId || _("Application")}: ${i.body.reason}`
-                      : i.appId || _("Application")
-                  )
-                  .join(" · ")}
-              </div>
+      {activeInhibitors.length > 0 && (
+        <div className="flex items-start gap-2 rounded-[10px] border border-amber-500/30 bg-amber-500/12 px-2.5 py-1.5 text-[11px] text-amber-900 dark:text-amber-200">
+          <AlertTriangleIcon className="mt-0.5 size-3.5 shrink-0 text-amber-600 dark:text-amber-400" />
+          <div className="min-w-0 flex-1">
+            <div className="font-medium">
+              {_("Sleep or logout inhibited")}
             </div>
-          </div>
-        )}
-
-        {(settings.doNotDisturb || !settings.notificationsEnabled) && (
-          <div className="mb-2 flex items-center justify-between gap-2 rounded-[10px] bg-black/5 px-2.5 py-1.5 text-[11px] text-adw-label-secondary dark:bg-white/6">
-            <span className="flex min-w-0 items-center gap-1.5 truncate">
-              <BellOffIcon className="size-3 shrink-0 text-adw-accent" />
-              <span className="truncate">
-                {!settings.notificationsEnabled
-                  ? _("Notifications paused in Settings")
-                  : _("Silent · Banners silenced")}
-              </span>
-            </span>
-            <button
-              type="button"
-              onClick={() =>
-                updateSettings(
-                  !settings.notificationsEnabled
-                    ? { notificationsEnabled: true }
-                    : { doNotDisturb: false }
+            <div className="truncate text-[10.5px] opacity-85">
+              {activeInhibitors
+                .map((i) =>
+                  i.body.reason
+                    ? `${i.appId || _("Application")}: ${i.body.reason}`
+                    : i.appId || _("Application")
                 )
-              }
-              className="shrink-0 font-medium text-adw-accent active:opacity-70"
-            >
-              {_("Resume")}
-            </button>
-          </div>
-        )}
-
-        <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pr-0.5">
-          {notifications.length === 0 ? (
-            <div className="flex flex-col items-center justify-center rounded-[14px] bg-black/4 py-4 text-center dark:bg-white/5">
-              <BellIcon className="mb-1 size-5 text-adw-label-tertiary" />
-              <div className="text-[12px] font-medium text-adw-label-secondary">
-                {_("No notifications")}
-              </div>
-              <div className="mt-0.5 text-[10.5px] text-adw-label-tertiary">
-                {_("Recent alerts appear here")}
-              </div>
+                .join(" · ")}
             </div>
-          ) : (
-            notifications.map((n) => {
-              const isNew = unreadSnapshot.has(n.id);
-              const isCritical = n.urgency === "critical";
-              return (
-                <div
-                  key={n.id}
-                  onClick={() => {
-                    if (n.fromDomicile && n.clickable) {
-                      invokeNotificationAction(n.id, "default");
-                    }
-                  }}
-                  className={cn(
-                    "group relative flex items-start gap-2.5 rounded-[14px] bg-black/6 p-3 dark:bg-white/8",
-                    isCritical && "ring-1 ring-adw-accent/45",
-                    n.fromDomicile && n.clickable && "cursor-default"
-                  )}
-                >
-                  <NotificationAppIcon
-                    appName={n.appName}
-                    icon={n.icon}
-                    urgency={n.urgency}
-                    className="mt-0.5 size-8 rounded-[7px]"
-                  />
-
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex min-w-0 flex-1 items-center gap-1.5">
-                        {isNew && (
-                          <span
-                            title="New"
-                            className={cn(
-                              "size-1.5 shrink-0 rounded-full",
-                              isCritical ? "bg-adw-accent" : "bg-adw-label-secondary"
-                            )}
-                          />
-                        )}
-                        <span className="truncate text-[12.5px] font-medium leading-snug">
-                          {n.summary}
-                        </span>
-                      </div>
-                      <div className="flex shrink-0 items-center gap-1.5">
-                        <span className="text-[10px] text-adw-label-tertiary tabular-nums">
-                          {formatRelativeNotificationTime(n.time)}
-                        </span>
-                        <button
-                          type="button"
-                          aria-label="Dismiss notification"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            dismissNotification(n.id);
-                          }}
-                          className="flex size-4 items-center justify-center rounded-full bg-black/10 text-adw-label-secondary opacity-70 active:bg-black/20 active:opacity-100 dark:bg-white/15 dark:active:bg-white/25"
-                        >
-                          <XIcon className="size-2.5" />
-                        </button>
-                      </div>
-                    </div>
-
-                    {n.body && (
-                      <div className="mt-0.5 text-[11.5px] leading-relaxed text-adw-label-secondary">
-                        {n.body}
-                      </div>
-                    )}
-
-                    <NotificationActionControls
-                      notificationId={n.id}
-                      actions={n.actions}
-                      fromDomicile={n.fromDomicile}
-                      onAfterAction={() => setControlPanelOpen(false)}
-                    />
-                  </div>
-                </div>
-              );
-            })
-          )}
-        </div>
+          </div>
         </div>
       )}
+    </div>
+  );
+}
+
+const MAX_COLLAPSED_NOTIFICATIONS = 3;
+
+export function FloatingNotifications() {
+  const { settings, updateSettings } = useSettings();
+  const {
+    notifications,
+    dismissNotification,
+    clearAllNotifications,
+    invokeNotificationAction,
+  } = useSystemBackends();
+  const { setControlPanelOpen } = useWindowManager();
+  const [expanded, setExpanded] = React.useState(false);
+
+  const [unreadSnapshot] = React.useState<Set<number>>(
+    () => new Set(notifications.filter((n) => !n.read).map((n) => n.id))
+  );
+
+  if (notifications.length === 0) {
+    return null;
+  }
+
+  const visibleNotifications = expanded
+    ? notifications
+    : notifications.slice(0, MAX_COLLAPSED_NOTIFICATIONS);
+  const hiddenCount = Math.max(
+    0,
+    notifications.length - MAX_COLLAPSED_NOTIFICATIONS
+  );
+
+  return (
+    <div
+      aria-label={_("Notifications")}
+      className="group/notifs mt-2.5 flex w-full flex-col gap-2"
+    >
+      {(settings.doNotDisturb || !settings.notificationsEnabled) && (
+        <div className="flex items-center justify-between gap-2 rounded-2xl border border-black/8 px-3 py-2 text-[11px] text-adw-label-secondary shadow-adw-popover backdrop-blur-xl adw-material-popover dark:border-white/10">
+          <span className="flex min-w-0 items-center gap-1.5 truncate">
+            <BellOffIcon className="size-3 shrink-0 text-adw-accent" />
+            <span className="truncate">
+              {!settings.notificationsEnabled
+                ? _("Notifications paused in Settings")
+                : _("Silent · Banners silenced")}
+            </span>
+          </span>
+          <button
+            type="button"
+            onClick={() =>
+              updateSettings(
+                !settings.notificationsEnabled
+                  ? { notificationsEnabled: true }
+                  : { doNotDisturb: false }
+              )
+            }
+            className="shrink-0 font-medium text-adw-accent active:opacity-70"
+          >
+            {_("Resume")}
+          </button>
+        </div>
+      )}
+
+      {visibleNotifications.map((n) => {
+        const isNew = unreadSnapshot.has(n.id);
+        const isCritical = n.urgency === "critical";
+        return (
+          <div
+            key={n.id}
+            onClick={() => {
+              if (n.fromDomicile && n.clickable) {
+                invokeNotificationAction(n.id, "default");
+              }
+            }}
+            className={cn(
+              "group/card relative flex items-start gap-2.5 rounded-2xl border border-black/8 p-3 shadow-adw-popover backdrop-blur-xl adw-material-popover dark:border-white/10",
+              isCritical && "ring-1 ring-adw-accent/45",
+              n.fromDomicile && n.clickable && "cursor-default"
+            )}
+          >
+            <NotificationAppIcon
+              appName={n.appName}
+              icon={n.icon}
+              urgency={n.urgency}
+              className="mt-0.5 size-9 rounded-[9px]"
+            />
+
+            <div className="min-w-0 flex-1">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex min-w-0 flex-1 items-center gap-1.5">
+                  {isNew && (
+                    <span
+                      title="New"
+                      className={cn(
+                        "size-1.5 shrink-0 rounded-full",
+                        isCritical ? "bg-adw-accent" : "bg-adw-label-secondary"
+                      )}
+                    />
+                  )}
+                  <span className="truncate text-[13px] font-semibold leading-snug text-adw-label">
+                    {n.summary}
+                  </span>
+                </div>
+                <div className="flex shrink-0 items-center gap-1.5">
+                  <span className="text-[11px] text-adw-label-tertiary tabular-nums">
+                    {formatRelativeNotificationTime(n.time)}
+                  </span>
+                  <button
+                    type="button"
+                    aria-label={_("Dismiss notification")}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      dismissNotification(n.id);
+                    }}
+                    className="flex size-4 items-center justify-center rounded-full bg-black/10 text-adw-label-secondary opacity-0 transition-opacity group-hover/card:opacity-80 hover:opacity-100 focus-visible:opacity-100 active:bg-black/20 dark:bg-white/15 dark:active:bg-white/25"
+                  >
+                    <XIcon className="size-2.5" />
+                  </button>
+                </div>
+              </div>
+
+              {n.body && (
+                <div className="mt-0.5 line-clamp-3 text-[12px] leading-snug text-adw-label-secondary">
+                  {n.body}
+                </div>
+              )}
+
+              <NotificationActionControls
+                notificationId={n.id}
+                actions={n.actions}
+                fromDomicile={n.fromDomicile}
+                onAfterAction={() => setControlPanelOpen(false)}
+              />
+            </div>
+          </div>
+        );
+      })}
+
+      <div className="flex items-center justify-center gap-2 pt-0.5">
+        {(hiddenCount > 0 || expanded) && (
+          <button
+            type="button"
+            onClick={() => setExpanded((prev) => !prev)}
+            className="rounded-full border border-black/8 px-3.5 py-1 text-[11.5px] font-medium text-adw-label shadow-adw-popover backdrop-blur-xl transition-colors adw-material-popover hover:bg-black/6 dark:border-white/10 dark:hover:bg-white/10"
+          >
+            {expanded
+              ? _("Show less")
+              : hiddenCount === 1
+                ? _("1 more notification")
+                : _("%d more notifications", hiddenCount)}
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={clearAllNotifications}
+          className={cn(
+            "rounded-full border border-black/8 px-3 py-1 text-[11.5px] font-medium text-adw-label-secondary shadow-adw-popover backdrop-blur-xl transition-opacity adw-material-popover hover:text-adw-label focus-visible:opacity-100 dark:border-white/10",
+            expanded ? "opacity-100" : "opacity-0 group-hover/notifs:opacity-100"
+          )}
+        >
+          {_("Clear All")}
+        </button>
+      </div>
     </div>
   );
 }

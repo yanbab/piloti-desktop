@@ -7,7 +7,6 @@ import {
   BatteryIcon,
   CheckIcon,
   ChevronDownIcon,
-  KeyboardIcon,
   MonitorIcon,
   PowerIcon,
   UserIcon,
@@ -19,6 +18,7 @@ import {
 } from "lucide-react";
 import { AuthPasswordCard } from "@/components/shell/AuthPasswordCard";
 import { DesktopBackgroundLayers } from "@/components/shell/DesktopBackgroundLayers";
+import { KeyboardLayoutSwitcher } from "@/components/shell/KeyboardLayoutSwitcher";
 import { WindowMenuButton } from "@/components/shell/WindowMenuButton";
 import {
   DropdownMenu,
@@ -43,7 +43,6 @@ import {
   discoverGreeterUsers,
   finishGreetdGreeter,
   runGreeterPowerAction,
-  switchGreeterKeymap,
   type GreeterSessionOption,
   type GreeterUserAccount,
 } from "@/lib/engine-native";
@@ -299,8 +298,6 @@ export const LoginScreenApp: React.FC<LoginScreenAppProps> = ({
     ];
   }, [keyboardLayout]);
 
-  const activeKeyboard =
-    keyboardLayouts.find((k) => k.id === keyboardLayout) ?? keyboardLayouts[0];
   const activeSession =
     sessions.find((s) => s.id === sessionId) ??
     sessions[0] ??
@@ -331,9 +328,6 @@ export const LoginScreenApp: React.FC<LoginScreenAppProps> = ({
 
   const handleKeyboardChange = (nextLayout: string) => {
     setKeyboardLayout(nextLayout);
-    if (!isBrowserRuntime) {
-      void switchGreeterKeymap(domicile, nextLayout);
-    }
   };
 
   const handlePowerAction = async (action: "suspend" | "reboot" | "poweroff") => {
@@ -500,28 +494,13 @@ export const LoginScreenApp: React.FC<LoginScreenAppProps> = ({
           </DropdownMenu>
 
           {/* Keyboard Layout Picker */}
-          <DropdownMenu>
-            <DropdownMenuTrigger
-              aria-label={_("Keyboard Layout")}
-              className="flex h-[24px] items-center gap-1 rounded-md px-2 text-[12px] font-medium uppercase outline-none transition-colors hover:bg-black/8 active:bg-black/14 data-popup-open:bg-black/12 dark:hover:bg-white/10 dark:active:bg-white/18 dark:data-popup-open:bg-white/15"
-            >
-              <KeyboardIcon className="size-3.5 opacity-85" />
-              <span>{activeKeyboard.short}</span>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-48">
-              <DropdownMenuLabel>{_("Keyboard Layout")}</DropdownMenuLabel>
-              <DropdownMenuRadioGroup
-                value={keyboardLayout}
-                onValueChange={handleKeyboardChange}
-              >
-                {keyboardLayouts.map((kb) => (
-                  <DropdownMenuRadioItem key={kb.id} value={kb.id}>
-                    {kb.label}
-                  </DropdownMenuRadioItem>
-                ))}
-              </DropdownMenuRadioGroup>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <KeyboardLayoutSwitcher
+            fallbackLayouts={isBrowserRuntime ? keyboardLayouts : undefined}
+            value={keyboardLayout}
+            onValueChange={handleKeyboardChange}
+            align="start"
+            triggerClassName="h-[24px]"
+          />
         </div>
 
         {/* Center: Live Clock */}
