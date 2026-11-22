@@ -1123,6 +1123,13 @@ export function WindowManager() {
   const handleAnimatedClose = React.useCallback(
     (win: DesktopWindowInstance) => {
       if (closingWindowIds.has(win.id)) return;
+      const beforeCloseEvent = new CustomEvent("piloti:before-close-window", {
+        cancelable: true,
+        detail: { windowId: win.id },
+      });
+      if (!window.dispatchEvent(beforeCloseEvent)) {
+        return;
+      }
       const el = windowElementsRef.current.get(win.id);
       if (!el || reducedMotion) {
         closeWindow(win.id);
@@ -1307,19 +1314,22 @@ export function WindowManager() {
         // when the active press belongs to a different window.
         return;
       }
-      // On domicile 1.2.0-1 (pre-#2049), GTK4 apps (e.g. Nautilus) emit
+      // On domicile 1.2.0-1 (pre-#2049), GTK4 apps (e.g. Nautilus, GNOME Flatpaks) emit
       // xdg_toplevel.unset_fullscreen (kind 3) right when a headerbar drag begins.
       // Because `held` guarantees a live pointer press on this window, accepting
       // Unfullscreen when not fullscreen enables GTK4 headerbar moves while still
       // ignoring startup/no-press unset_fullscreen events.
+      // Omit `pointerId` so Wayland `<app>` drags use `window` capture listeners;
+      // calling `setPointerCapture` from an async IPC callback after an `<app>`
+      // pointerdown immediately triggers `lostpointercapture` in Chromium.
       if (
         rawReq.kind === 5 ||
         (req.kind === WindowRequestKind.Unfullscreen && !targetWin.fullscreen)
       ) {
-        handle.startMove(held.clientX, held.clientY, held.pointerId);
+        handle.startMove(held.clientX, held.clientY);
       } else if (rawReq.kind === 6 && typeof rawReq.edges === "number") {
         const edge = DOMICILE_RESIZE_EDGE_MAP[rawReq.edges];
-        if (edge) handle.startResize(edge, held.clientX, held.clientY, held.pointerId);
+        if (edge) handle.startResize(edge, held.clientX, held.clientY);
       }
     });
   }, [subscribeClientWindowRequest]);

@@ -1,6 +1,6 @@
 import type { Domicile } from "@domicile-desktop/sdk/desktop/desktop";
 import flathubPopularJson from "@/data/flathub-popular.json";
-import { commandExists, runText } from "./exec";
+import { commandExists, launchDesktopCommand, runText } from "./exec";
 
 export interface FlatpakAppEntry {
   appId: string;
@@ -17,6 +17,34 @@ export interface FlatpakAppEntry {
 export interface FlatpakCapabilities {
   available: boolean;
   hasFlathub: boolean;
+  hasUserFlathub: boolean;
+}
+
+export interface FlatpakStreamUpdate {
+  line: string;
+  progress: number | null;
+}
+
+const ANSI_ESCAPE_RE = /\x1b\[[0-9;?]*[ -/]*[@-~]/g;
+
+/**
+ * Cleans a raw terminal chunk/line from `flatpak` stdout/stderr by stripping
+ * ANSI escape sequences and collapsing excess whitespace.
+ */
+export function cleanFlatpakOutputLine(raw: string): string {
+  return raw.replace(ANSI_ESCAPE_RE, "").replace(/\s+/g, " ").trim();
+}
+
+/**
+ * Extracts an explicit percentage (`0..100`) from a `flatpak` output line, or
+ * returns `null` when no progress percentage is present (indeterminate).
+ */
+export function parseFlatpakProgressPercent(line: string): number | null {
+  const match = line.match(/\b(\d{1,3})%/);
+  if (!match) return null;
+  const value = Number(match[1]);
+  if (!Number.isFinite(value) || value < 0 || value > 100) return null;
+  return value;
 }
 
 /**
@@ -77,19 +105,21 @@ export async function probeFlatpakCapabilities(
   domicile: Domicile
 ): Promise<FlatpakCapabilities> {
   const available = await commandExists(domicile, "flatpak");
-  if (!available) return { available: false, hasFlathub: false };
-  const remotes = await runText(domicile, [
-    "flatpak",
-    "remotes",
-    "--columns=name",
+  if (!available) return { available: false, hasFlathub: false, hasUserFlathub: false };
+  const [allRemotes, userRemotes] = await Promise.all([
+    runText(domicile, ["flatpak", "remotes", "--columns=name"]),
+    runText(domicile, ["flatpak", "remotes", "--user", "--columns=name"]),
   ]);
-  const hasFlathub = Boolean(
-    remotes &&
-      remotes
-        .split(/\r?\n/)
-        .some((line) => line.trim().toLowerCase() === "flathub")
-  );
-  return { available: true, hasFlathub };
+  const containsFlathub = (raw: string | null) =>
+    Boolean(
+      raw &&
+        raw
+          .split(/\r?\n/)
+          .some((line) => line.trim().toLowerCase() === "flathub")
+    );
+  const hasUserFlathub = containsFlathub(userRemotes);
+  const hasFlathub = hasUserFlathub || containsFlathub(allRemotes);
+  return { available: true, hasFlathub, hasUserFlathub };
 }
 
 export async function ensureFlathubRemote(
@@ -258,65 +288,98 @@ export async function searchFlatpaks(
   return localMatches;
 }
 
-export async function installFlatpakApp(
+async function runStreamingFlatpakCommand(
   domicile: Domicile,
-  appId: string,
-  remote = "flathub",
-  onProgress?: (pct: number) => void
+  argv: string[],
+  onUpdate?: (update: FlatpakStreamUpdate) => void
 ): Promise<{ ok: boolean; error?: string }> {
   try {
-    onProgress?.(10);
-    const launchRes = await domicile.processes.spawn([
-      "flatpak",
-      "install",
-      "--user",
-      "-y",
-      "--noninteractive",
-      remote,
-      appId,
-    ]);
+    const launchRes = await domicile.processes.spawn(argv);
     const proc = launchRes.match({
       Ok: (p) => p,
       Err: () => null,
     });
     if (proc) {
-      let pct = 15;
-      const reader = proc.stdout.getReader();
-      const decoder = new TextDecoder();
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        const text = value ? decoder.decode(value, { stream: true }) : "";
-        const match = text.match(/(\d{1,3})%/);
-        if (match) {
-          pct = Math.max(pct, Math.min(98, Number(match[1])));
-        } else {
-          pct = Math.min(95, pct + 5);
+      let lastStdoutLine = "";
+      let lastStderrLine = "";
+
+      const pumpStream = async (
+        stream: ReadableStream<Uint8Array>,
+        isStderr: boolean
+      ) => {
+        const reader = stream.getReader();
+        const decoder = new TextDecoder();
+        let carry = "";
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            if (!value) continue;
+            carry += decoder.decode(value, { stream: true });
+            const parts = carry.split(/[\r\n]+/);
+            carry = parts.pop() ?? "";
+            for (const part of parts) {
+              const cleaned = cleanFlatpakOutputLine(part);
+              if (!cleaned) continue;
+              if (isStderr) lastStderrLine = cleaned;
+              else lastStdoutLine = cleaned;
+              onUpdate?.({
+                line: cleaned,
+                progress: parseFlatpakProgressPercent(cleaned),
+              });
+            }
+          }
+          const trailing = cleanFlatpakOutputLine(carry + decoder.decode());
+          if (trailing) {
+            if (isStderr) lastStderrLine = trailing;
+            else lastStdoutLine = trailing;
+            onUpdate?.({
+              line: trailing,
+              progress: parseFlatpakProgressPercent(trailing),
+            });
+          }
+        } catch {
+          // stream closed
         }
-        onProgress?.(pct);
+      };
+
+      const [, , exitRes] = await Promise.all([
+        pumpStream(proc.stdout, false),
+        pumpStream(proc.stderr, true),
+        proc.exited,
+      ]);
+
+      const exitCode = exitRes.match({
+        Ok: (e) => e.code ?? 1,
+        Err: () => 1,
+      });
+
+      if (exitCode === 0) {
+        return { ok: true };
       }
-      onProgress?.(100);
-      return { ok: true };
+      return {
+        ok: false,
+        error: lastStderrLine || lastStdoutLine || `Exit ${exitCode}`,
+      };
     }
   } catch {
     // Fallback to processes.run below
   }
 
   try {
-    const res = await domicile.processes.run([
-      "flatpak",
-      "install",
-      "--user",
-      "-y",
-      "--noninteractive",
-      remote,
-      appId,
-    ]);
+    const res = await domicile.processes.run(argv);
     return res.match({
-      Ok: (ran) =>
-        ran.code === 0
+      Ok: (ran) => {
+        const tail = cleanFlatpakOutputLine(
+          (ran.stderr || ran.stdout || "").split(/[\r\n]+/).filter(Boolean).pop() ?? ""
+        );
+        if (tail) {
+          onUpdate?.({ line: tail, progress: parseFlatpakProgressPercent(tail) });
+        }
+        return ran.code === 0
           ? { ok: true }
-          : { ok: false, error: ran.stderr || ran.stdout || `Exit ${ran.code}` },
+          : { ok: false, error: tail || `Exit ${ran.code}` };
+      },
       Err: (err) => ({ ok: false, error: String(err) }),
     });
   } catch (err) {
@@ -324,27 +387,50 @@ export async function installFlatpakApp(
   }
 }
 
+export async function installFlatpakApp(
+  domicile: Domicile,
+  appId: string,
+  remote = "flathub",
+  onUpdate?: (update: FlatpakStreamUpdate) => void
+): Promise<{ ok: boolean; error?: string }> {
+  const args = [
+    "flatpak",
+    "install",
+    "--user",
+    "-y",
+    "--noninteractive",
+    remote,
+    appId,
+  ];
+  return runStreamingFlatpakCommand(domicile, args, onUpdate);
+}
+
 export async function uninstallFlatpakApp(
   domicile: Domicile,
-  appId: string
-): Promise<{ ok: boolean; error?: string }> {
-  try {
-    const res = await domicile.processes.run([
-      "flatpak",
-      "uninstall",
-      "--user",
-      "-y",
-      "--noninteractive",
-      appId,
-    ]);
-    return res.match({
-      Ok: (ran) =>
-        ran.code === 0
-          ? { ok: true }
-          : { ok: false, error: ran.stderr || ran.stdout || `Exit ${ran.code}` },
-      Err: (err) => ({ ok: false, error: String(err) }),
-    });
-  } catch (err) {
-    return { ok: false, error: String(err) };
+  appId: string,
+  options?: {
+    installation?: string;
+    onUpdate?: (update: FlatpakStreamUpdate) => void;
   }
+): Promise<{ ok: boolean; error?: string }> {
+  const scopeFlag =
+    options?.installation?.toLowerCase() === "system" ? "--system" : "--user";
+  const args = [
+    "flatpak",
+    "uninstall",
+    scopeFlag,
+    "-y",
+    "--noninteractive",
+    appId,
+  ];
+  return runStreamingFlatpakCommand(domicile, args, options?.onUpdate);
+}
+
+/**
+ * Launches an installed Flatpak application under Domicile's Wayland/Xwayland session.
+ */
+export function launchFlatpakApp(domicile: Domicile, appId: string): void {
+  const cleanId = appId.trim();
+  if (!cleanId) return;
+  launchDesktopCommand(domicile, ["flatpak", "run", cleanId]);
 }

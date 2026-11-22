@@ -13,6 +13,8 @@ import {
 import { WindowMenuButton } from "@/components/shell/WindowMenuButton";
 import { WindowControls } from "@/components/ui/window";
 import { useIsolatedAppBridge } from "@/lib/engine/app-bridge";
+import { toDomicilePath } from "@/lib/engine/fs-bridge";
+import { isBrowserDevRuntime } from "@/context/SettingsContext";
 import { _ } from "@/lib/core/i18n";
 import { cn } from "@/lib/core/utils";
 import {
@@ -174,6 +176,7 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
     }
     setCropping(false);
     setZoom(1);
+    setPan({ x: 0, y: 0 });
   };
 
   const resetView = React.useCallback(() => {
@@ -209,7 +212,29 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
     ctx.drawImage(img, -natW / 2, -natH / 2, natW, natH);
     try {
       const nextDataUrl = canvas.toDataURL("image/png");
-      const ok = await bridge.fs.writeText(activePath, nextDataUrl);
+      let ok = false;
+      const isBrowser = isBrowserDevRuntime();
+      const domicileFiles = !isBrowser
+        ? (window as unknown as {
+            __PILOTI__?: {
+              domicile?: {
+                files?: { write: (p: string, d: Uint8Array | string) => Promise<unknown> };
+              };
+            };
+          }).__PILOTI__?.domicile?.files
+        : undefined;
+      if (domicileFiles) {
+        const b64 = nextDataUrl.split(",")[1] ?? "";
+        const bin = atob(b64);
+        const bytes = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i += 1) {
+          bytes[i] = bin.charCodeAt(i);
+        }
+        await domicileFiles.write(toDomicilePath(activePath), bytes);
+        ok = true;
+      } else {
+        ok = await bridge.fs.writeText(activePath, nextDataUrl);
+      }
       if (ok) {
         setImageSrc(nextDataUrl);
         setCroppedDataUrl(null);
@@ -309,13 +334,15 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
       data-drop-window-id={windowId}
       className="relative flex h-full w-full flex-col overflow-hidden bg-adw-window text-adw-label select-none"
     >
-      {/* Translucent Headerbar revealed when hovering the top headerbar zone or dragging the window */}
+      {/* Headerbar: always visible title & controls, transparent bg until hovered/dragged */}
       <div className="group/header absolute inset-x-0 top-0 z-20 h-10">
         <div
           data-window-drag-region=""
           className={cn(
-            "flex h-9 items-center justify-between border-b border-adw-separator/60 bg-adw-titlebar/85 px-2.5 backdrop-blur-md transition-opacity duration-150 group-hover/header:opacity-100 group-data-[dragging]/window:opacity-100",
-            dragRegionHovered || editingTitle ? "opacity-100" : "opacity-0",
+            "flex h-9 items-center justify-between border-b px-2.5 transition-colors duration-150 group-hover/header:border-adw-separator/60 group-hover/header:bg-adw-titlebar/95 group-hover/header:backdrop-blur-md group-data-[dragging]/window:border-adw-separator/60 group-data-[dragging]/window:bg-adw-titlebar/95 group-data-[dragging]/window:backdrop-blur-md",
+            dragRegionHovered || editingTitle
+              ? "border-adw-separator/60 bg-adw-titlebar/95 backdrop-blur-md"
+              : "border-transparent bg-transparent",
           )}
         >
           <div className="flex shrink-0 items-center gap-1.5" data-window-no-drag>
@@ -535,7 +562,10 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
           <button
             type="button"
             title={_("Fit to Window")}
-            onClick={() => setZoom(1)}
+            onClick={() => {
+              setZoom(1);
+              setPan({ x: 0, y: 0 });
+            }}
             className="flex size-8 items-center justify-center rounded-lg hover:bg-white/15 active:bg-white/25"
           >
             <Maximize2Icon className="size-3.5" />

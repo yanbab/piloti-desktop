@@ -16,6 +16,8 @@ import {
   isGnomeBackgroundConfigured,
 } from "@/lib/engine-native/gnome-background";
 import { startBootPhase } from "@/lib/core/perf-log";
+import { _ } from "@/lib/core/i18n";
+import { toDomicilePath } from "@/lib/engine/fs-bridge";
 import {
   type AudioSinkInfo,
   type BatteryInfo,
@@ -493,6 +495,13 @@ export function useSystemBackendsValue(
       const isDomicile = domicileNotifs.some((n) => n.id === id);
       if (action === "launcher" && typeof window !== "undefined") {
         window.dispatchEvent(new CustomEvent("piloti:open-launcher"));
+      } else if (action.startsWith("open:") && typeof window !== "undefined") {
+        const path = action.slice("open:".length).trim();
+        if (path) {
+          window.dispatchEvent(
+            new CustomEvent("piloti:open-path", { detail: { path } })
+          );
+        }
       }
       if (isDomicile) {
         try {
@@ -1064,12 +1073,14 @@ export function useSystemBackendsValue(
         for (const track of stream.getTracks()) track.stop();
         const dataUrl = canvas.toDataURL("image/png");
         const filename = nextDesktopCaptureFilename("Screenshot", "png");
+        const savedPath = `${WEB_VFS_HOME}/Desktop/${filename}`;
         try {
-          writeVfsTextFile(`${WEB_VFS_HOME}/Desktop/${filename}`, dataUrl);
+          writeVfsTextFile(savedPath, dataUrl);
           pushNotification({
             appName: "Screenshot",
             summary: "Screenshot Captured",
             body: `Saved to Desktop/${filename}`,
+            actions: [{ key: `open:${savedPath}`, label: _("Open") }],
           });
         } catch {
           const link = document.createElement("a");
@@ -1102,6 +1113,7 @@ export function useSystemBackendsValue(
             appName: "Screenshot",
             summary: "Screenshot Saved",
             body: kept.path,
+            actions: [{ key: `open:${kept.path}`, label: _("Open") }],
           });
         } else {
           pushNotification({
@@ -1208,7 +1220,8 @@ export function useSystemBackendsValue(
                 return;
               }
               try {
-                writeVfsTextFile(`${WEB_VFS_HOME}/Desktop/${filename}`, dataUrl, {
+                const savedPath = `${WEB_VFS_HOME}/Desktop/${filename}`;
+                writeVfsTextFile(savedPath, dataUrl, {
                   metadata: {
                     "standard::content-type": "video/webm",
                     ...(firstFrameThumb ? { "metadata::thumbnail": firstFrameThumb } : {}),
@@ -1218,6 +1231,7 @@ export function useSystemBackendsValue(
                   appName: "Screen Recorder",
                   summary: "Screen Recording Saved",
                   body: `Saved to Desktop/${filename}`,
+                  actions: [{ key: `open:${savedPath}`, label: _("Open") }],
                 });
               } catch {
                 fallbackDownload();
@@ -1259,6 +1273,7 @@ export function useSystemBackendsValue(
           appName: "Screen Recorder",
           summary: "Screen Recording Saved",
           body: filePath,
+          actions: [{ key: `open:${filePath}`, label: _("Open") }],
         });
       },
       Err: () => {},
@@ -1300,6 +1315,7 @@ export function useSystemBackendsValue(
         if (!entry.discarded && chunks.length > 0) {
           const blob = new Blob(chunks, { type: mimeType || "audio/webm" });
           const filename = nextDesktopCaptureFilename("Record", "webm");
+          const savedPath = `${WEB_VFS_HOME}/Desktop/${filename}`;
           const fallbackDownload = () => {
             const url = URL.createObjectURL(blob);
             const link = document.createElement("a");
@@ -1313,6 +1329,23 @@ export function useSystemBackendsValue(
               body: `Downloaded ${filename} (Desktop storage full)`,
             });
           };
+          if (!isBrowserRuntime) {
+            void blob
+              .arrayBuffer()
+              .then((buf) =>
+                domicile.files.write(toDomicilePath(savedPath), new Uint8Array(buf))
+              )
+              .then(() => {
+                pushNotification({
+                  appName: "Audio Recorder",
+                  summary: "Audio Note Saved",
+                  body: `Saved to Desktop/${filename}`,
+                  actions: [{ key: `open:${savedPath}`, label: _("Open") }],
+                });
+              })
+              .catch(fallbackDownload);
+            return;
+          }
           const reader = new FileReader();
           reader.onload = () => {
             const dataUrl = typeof reader.result === "string" ? reader.result : null;
@@ -1323,7 +1356,7 @@ export function useSystemBackendsValue(
             try {
               const contentType =
                 (mimeType || "audio/webm").split(";")[0]?.trim() || "audio/webm";
-              writeVfsTextFile(`${WEB_VFS_HOME}/Desktop/${filename}`, dataUrl, {
+              writeVfsTextFile(savedPath, dataUrl, {
                 metadata: {
                   "standard::content-type": contentType,
                 },
@@ -1332,6 +1365,7 @@ export function useSystemBackendsValue(
                 appName: "Audio Recorder",
                 summary: "Audio Note Saved",
                 body: `Saved to Desktop/${filename}`,
+                actions: [{ key: `open:${savedPath}`, label: _("Open") }],
               });
             } catch {
               fallbackDownload();
@@ -1362,7 +1396,7 @@ export function useSystemBackendsValue(
         });
       }
     }
-  }, [nextDesktopCaptureFilename, pushNotification]);
+  }, [domicile.files, isBrowserRuntime, nextDesktopCaptureFilename, pushNotification]);
 
   return React.useMemo<SystemBackendsContextValue>(
     () => ({

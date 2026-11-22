@@ -159,6 +159,7 @@ function createInitialVfs(): WebVfsEntry[] {
 let vfsCacheRaw: string | null = null;
 let vfsCacheEntries: WebVfsEntry[] | null = null;
 let vfsCacheByPath: Map<string, WebVfsEntry> | null = null;
+let vfsCacheInMemoryOnly = false;
 
 function setVfsCache(entries: WebVfsEntry[], raw: string | null): WebVfsEntry[] {
   vfsCacheRaw = raw;
@@ -170,6 +171,9 @@ function setVfsCache(entries: WebVfsEntry[], raw: string | null): WebVfsEntry[] 
 function loadVfs(): WebVfsEntry[] {
   if (typeof localStorage === "undefined") {
     return vfsCacheEntries ?? setVfsCache(createInitialVfs(), null);
+  }
+  if (vfsCacheInMemoryOnly && vfsCacheEntries) {
+    return vfsCacheEntries;
   }
   try {
     const raw = localStorage.getItem(WEB_VFS_STORAGE_KEY);
@@ -354,8 +358,11 @@ function saveVfs(entries: WebVfsEntry[]): void {
     try {
       json = JSON.stringify(entries);
       localStorage.setItem(WEB_VFS_STORAGE_KEY, json);
+      vfsCacheInMemoryOnly = false;
     } catch {
-      // ignore quota errors
+      // Quota exceeded: keep the updated VFS in memory for this session
+      json = null;
+      vfsCacheInMemoryOnly = true;
     }
   }
   setVfsCache(entries, json);

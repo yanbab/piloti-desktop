@@ -319,6 +319,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
   const [flatpakCaps, setFlatpakCaps] = React.useState<FlatpakCapabilities>({
     available: false,
     hasFlathub: false,
+    hasUserFlathub: false,
   });
   const [installedFlatpaks, setInstalledFlatpaks] = React.useState<
     FlatpakAppEntry[]
@@ -362,7 +363,9 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
   const [pendingOp, setPendingOp] = React.useState<{
     id: string;
     kind: "installing" | "removing";
-    progress: number;
+    /** `null` renders an indeterminate progress bar (no `aria-valuenow`). */
+    progress: number | null;
+    statusLine?: string;
   } | null>(null);
   const opRafRef = React.useRef<number | null>(null);
 
@@ -732,21 +735,43 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
           pushNotification({
             appName: "Applications",
             summary: `Flatpak: ${fp.name}`,
-            body: `Run on Domicile Linux: flatpak install --user flathub ${fp.appId}`,
+            body: `Run on Domicile Linux: flatpak install --user -y flathub ${fp.appId}`,
           });
           return;
         }
         if (pendingOp) return;
-        setPendingOp({ id: item.id, kind: "installing", progress: 8 });
+        setSelectedId(item.id);
+        setPendingOp({
+          id: item.id,
+          kind: "installing",
+          progress: null,
+          statusLine: `flatpak install --user -y ${fp.origin || "flathub"} ${fp.appId}`,
+        });
         void (async () => {
-          if (!flatpakCaps.hasFlathub) {
+          const targetRemote = fp.origin || "flathub";
+          if (targetRemote === "flathub" && !flatpakCaps.hasUserFlathub) {
+            setPendingOp({
+              id: item.id,
+              kind: "installing",
+              progress: null,
+              statusLine: "flatpak remote-add --user flathub…",
+            });
             await ensureFlathubRemote(domicile);
           }
           const res = await installFlatpakApp(
             domicile,
             fp.appId,
-            fp.origin || "flathub",
-            (pct) => setPendingOp({ id: item.id, kind: "installing", progress: pct }),
+            targetRemote,
+            ({ line, progress }) =>
+              setPendingOp((prev) =>
+                prev && prev.id === item.id
+                  ? {
+                      ...prev,
+                      progress: progress !== null ? progress : prev.progress,
+                      statusLine: line,
+                    }
+                  : prev,
+              ),
           );
           setPendingOp(null);
           if (res.ok) {
@@ -773,7 +798,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
     [
       commitInstall,
       domicile,
-      flatpakCaps.hasFlathub,
+      flatpakCaps.hasUserFlathub,
       isBrowserRuntime,
       pendingOp,
       pushNotification,
@@ -789,9 +814,27 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
       if (item.kind === "flatpak" && item.flatpak) {
         if (isBrowserRuntime || pendingOp) return;
         const fp = item.flatpak;
-        setPendingOp({ id: item.id, kind: "removing", progress: 25 });
+        setSelectedId(item.id);
+        setPendingOp({
+          id: item.id,
+          kind: "removing",
+          progress: null,
+          statusLine: `flatpak uninstall -y ${fp.appId}`,
+        });
         void (async () => {
-          const res = await uninstallFlatpakApp(domicile, fp.appId);
+          const res = await uninstallFlatpakApp(domicile, fp.appId, {
+            installation: fp.installation,
+            onUpdate: ({ line, progress }) =>
+              setPendingOp((prev) =>
+                prev && prev.id === item.id
+                  ? {
+                      ...prev,
+                      progress: progress !== null ? progress : prev.progress,
+                      statusLine: line,
+                    }
+                  : prev,
+              ),
+          });
           setPendingOp(null);
           if (res.ok) {
             await refreshFlatpakList();
@@ -833,6 +876,14 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
         return;
       }
       if (item.kind === "flatpak" && item.flatpak) {
+        if (isBrowserRuntime) {
+          pushNotification({
+            appName: "Applications",
+            summary: `Flatpak: ${item.flatpak.name}`,
+            body: `Run on Domicile Linux: flatpak run ${item.flatpak.appId}`,
+          });
+          return;
+        }
         launchApp(item.flatpak.appId);
         return;
       }
@@ -840,7 +891,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
         launchApp(item.appDef.id);
       }
     },
-    [launchApp, openWebUrl],
+    [isBrowserRuntime, launchApp, openWebUrl, pushNotification],
   );
 
   return (
@@ -998,8 +1049,22 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                 <div className="truncate text-[13.5px] font-semibold">
                   {selectedItem.title}
                 </div>
-                <div className="truncate text-[12px] text-adw-label-secondary">
-                  {selectedItem.subtitle}
+                <div
+                  title={
+                    pendingOp?.id === selectedItem.id && pendingOp.statusLine
+                      ? pendingOp.statusLine
+                      : selectedItem.subtitle
+                  }
+                  className={cn(
+                    "truncate text-[12px] text-adw-label-secondary",
+                    pendingOp?.id === selectedItem.id &&
+                      pendingOp.statusLine &&
+                      "font-mono text-[11.5px]",
+                  )}
+                >
+                  {pendingOp?.id === selectedItem.id && pendingOp.statusLine
+                    ? pendingOp.statusLine
+                    : selectedItem.subtitle}
                 </div>
               </div>
             </div>
@@ -1014,20 +1079,33 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                   </span>
                   <div
                     role="progressbar"
-                    aria-valuenow={pendingOp.progress}
                     aria-valuemin={0}
                     aria-valuemax={100}
-                    className="h-2 w-36 overflow-hidden rounded-full bg-black/10 dark:bg-white/12"
+                    {...(pendingOp.progress !== null
+                      ? { "aria-valuenow": pendingOp.progress }
+                      : {})}
+                    className="relative h-2 w-36 overflow-hidden rounded-full bg-black/10 dark:bg-white/12"
                   >
-                    <div
-                      style={{ width: `${pendingOp.progress}%` }}
-                      className={cn(
-                        "h-full rounded-full transition-[width] duration-75",
-                        pendingOp.kind === "removing"
-                          ? "bg-adw-red"
-                          : "bg-adw-accent",
-                      )}
-                    />
+                    {pendingOp.progress === null ? (
+                      <div
+                        className={cn(
+                          "h-full w-2/5 rounded-full animate-[piloti-indeterminate_1.3s_ease-in-out_infinite]",
+                          pendingOp.kind === "removing"
+                            ? "bg-adw-red"
+                            : "bg-adw-accent",
+                        )}
+                      />
+                    ) : (
+                      <div
+                        style={{ width: `${pendingOp.progress}%` }}
+                        className={cn(
+                          "h-full rounded-full transition-[width] duration-75",
+                          pendingOp.kind === "removing"
+                            ? "bg-adw-red"
+                            : "bg-adw-accent",
+                        )}
+                      />
+                    )}
                   </div>
                 </div>
               ) : !selectedItem.installed ? (
@@ -1258,16 +1336,27 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                                   </div>
 
                                   {pendingOp?.id === item.id && (
-                                    <div className="absolute inset-x-0 bottom-0 h-1 bg-black/10 dark:bg-white/10">
-                                      <div
-                                        style={{ width: `${pendingOp.progress}%` }}
-                                        className={cn(
-                                          "h-full transition-[width] duration-75",
-                                          pendingOp.kind === "removing"
-                                            ? "bg-adw-red"
-                                            : "bg-adw-accent",
-                                        )}
-                                      />
+                                    <div className="absolute inset-x-0 bottom-0 h-1 overflow-hidden bg-black/10 dark:bg-white/10">
+                                      {pendingOp.progress === null ? (
+                                        <div
+                                          className={cn(
+                                            "h-full w-2/5 animate-[piloti-indeterminate_1.3s_ease-in-out_infinite]",
+                                            pendingOp.kind === "removing"
+                                              ? "bg-adw-red"
+                                              : "bg-adw-accent",
+                                          )}
+                                        />
+                                      ) : (
+                                        <div
+                                          style={{ width: `${pendingOp.progress}%` }}
+                                          className={cn(
+                                            "h-full transition-[width] duration-75",
+                                            pendingOp.kind === "removing"
+                                              ? "bg-adw-red"
+                                              : "bg-adw-accent",
+                                          )}
+                                        />
+                                      )}
                                     </div>
                                   )}
                                 </div>

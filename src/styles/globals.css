@@ -95,6 +95,15 @@ app {
   height: 100%;
 }
 
+@keyframes piloti-indeterminate {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(350%);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

@@ -47,6 +47,12 @@ import {
   clampWorkspace,
   resolveWaylandOuterConstraints,
 } from "@/lib/shell/window-bounds";
+import {
+  buildVfsEntryWebAppUrl,
+  getVfsEntry,
+  isImageVfsFile,
+  isTextEditableVfsFile,
+} from "@/lib/engine-web/web-vfs";
 import { type AppsContextValue, matchAppFromWayland } from "./AppsContext";
 import { type SettingsContextValue } from "./SettingsContext";
 import { type SystemBackendsContextValue } from "./SystemBackendsContext";
@@ -1818,11 +1824,17 @@ function pruneBrowserRecord(
 
       // Focus existing window unless forceNew (for document-scoped apps with a payload, only reuse matching document/folder)
       if (!options?.forceNew) {
-        const existing = combinedWindows.find((w) =>
-          DOCUMENT_SCOPED_APP_IDS.has(appId) && options?.payload
-            ? w.appId === appId && w.payload === options.payload
-            : w.appId === appId,
-        );
+        const lowerAppId = appId.toLowerCase();
+        const existing = combinedWindows.find((w) => {
+          const idMatches =
+            w.appId === appId ||
+            w.appId.toLowerCase() === lowerAppId ||
+            w.waylandDesktopId?.toLowerCase() === lowerAppId ||
+            w.waylandDesktopId?.replace(/\.desktop$/i, "").toLowerCase() === lowerAppId;
+          return DOCUMENT_SCOPED_APP_IDS.has(appId) && options?.payload
+            ? idMatches && w.payload === options.payload
+            : idMatches;
+        });
         if (existing) {
           if (
             (options?.payload || options?.forceCsd !== undefined) &&
@@ -1941,7 +1953,28 @@ function pruneBrowserRecord(
 
       // All other applications run as native Wayland / Linux processes (with XDG Startup Notification)
       beginStartupNotification(appId);
-      launchDesktopCommand(domicile, def?.linuxCommand ?? [appId]);
+      if (def?.linuxCommand) {
+        launchDesktopCommand(domicile, def.linuxCommand);
+        return;
+      }
+      const lowerAppId = appId.toLowerCase();
+      const matchedXdg = installedXdgApps.find(
+        (entry) =>
+          entry.appId.toLowerCase() === lowerAppId ||
+          entry.desktopId.toLowerCase() === lowerAppId ||
+          entry.desktopId.toLowerCase() === `${lowerAppId}.desktop`
+      );
+      if (matchedXdg && matchedXdg.execArgv.length > 0) {
+        launchDesktopCommand(domicile, matchedXdg.execArgv);
+        return;
+      }
+      // Reverse-DNS IDs (e.g. `org.gnome.Calculator`, `com.github.tchx84.Flatseal`)
+      // launch via `flatpak run <appId>` when not already matched to an XDG entry.
+      if (/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_.-]+$/.test(appId)) {
+        launchDesktopCommand(domicile, ["flatpak", "run", appId]);
+        return;
+      }
+      launchDesktopCommand(domicile, [appId]);
     },
     [
       beginStartupNotification,
@@ -1950,6 +1983,7 @@ function pruneBrowserRecord(
       domicile,
       focusWindow,
       gnomeCapabilities.gnomeControlCenter,
+      installedXdgApps,
       isBrowserRuntime,
       markWindowUnready,
       screenHeight,
@@ -2391,6 +2425,35 @@ function pruneBrowserRecord(
       ),
     [combinedWindows, settings.activeWorkspace]
   );
+
+  React.useEffect(() => {
+    const onOpenPath = (e: Event) => {
+      const filePath = (e as CustomEvent<{ path?: string }>).detail?.path;
+      if (!filePath) return;
+      if (isBrowserRuntime) {
+        const entry = getVfsEntry(filePath);
+        if (entry && entry.kind === "file") {
+          if (isImageVfsFile(entry.name, entry.content)) {
+            launchApp("image-viewer", { payload: entry.path });
+            return;
+          }
+          if (isTextEditableVfsFile(entry.name)) {
+            launchApp("text-editor", { payload: entry.path });
+            return;
+          }
+          openWebUrl(buildVfsEntryWebAppUrl(entry), {
+            asApp: true,
+            appId: `file:${entry.path}`,
+            title: entry.name,
+          });
+        }
+        return;
+      }
+      launchDesktopCommand(domicile, ["xdg-open", filePath]);
+    };
+    window.addEventListener("piloti:open-path", onOpenPath);
+    return () => window.removeEventListener("piloti:open-path", onOpenPath);
+  }, [domicile, isBrowserRuntime, launchApp, openWebUrl]);
 
   const value = React.useMemo<WindowsContextValue>(
     () => ({

@@ -21,7 +21,7 @@ import {
   lineNumbers,
 } from "@codemirror/view";
 import { tags } from "@lezer/highlight";
-import { EyeIcon, SlidersHorizontalIcon, XIcon } from "lucide-react";
+import { EyeIcon, SaveIcon, SlidersHorizontalIcon, XIcon } from "lucide-react";
 import { ObjectView, themeGitHubLight, themeOneDark } from "react-obj-view";
 import "react-obj-view/dist/react-obj-view.css";
 import { WindowMenuButton } from "@/components/shell/WindowMenuButton";
@@ -36,6 +36,7 @@ import { publishWindowMenuState, useIsolatedAppBridge } from "@/lib/engine/app-b
 import { readFsMetadata, writeFsMetadata } from "@/lib/engine/fs-bridge";
 import { isBrowserDevRuntime } from "@/context/SettingsContext";
 import { _ } from "@/lib/core/i18n";
+import { parseIniText } from "@/lib/config/ini";
 import { getCachedPilotiAppIni, writePilotiAppIni } from "@/lib/config/piloti-ini";
 import { cn } from "@/lib/core/utils";
 import {
@@ -237,6 +238,11 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
     }
     return "";
   });
+  const [savedContent, setSavedContent] = React.useState<string>(content);
+  const [confirmCloseOpen, setConfirmCloseOpen] = React.useState(false);
+  const isDirty = content !== savedContent;
+  const isDirtyRef = React.useRef(isDirty);
+  isDirtyRef.current = isDirty;
   const [previewMarkdown, setPreviewMarkdown] = React.useState(false);
   const [findOpen, setFindOpen] = React.useState(false);
   const [findQuery, setFindQuery] = React.useState("");
@@ -290,7 +296,7 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
     () =>
       Boolean(
         filePath &&
-          (/\.(md|markdown|json)$/i.test(filePath)),
+          (/\.(md|markdown|json|ini)$/i.test(filePath)),
       ),
     [filePath],
   );
@@ -450,10 +456,13 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
   React.useEffect(() => {
     if (!filePath) return;
     let cancelled = false;
-    const syncFromDisk = () => {
+    const syncFromDisk = (force = false) => {
+      if (!force && isDirtyRef.current) return;
       void bridge.fs.readText(filePath).then((next) => {
         if (cancelled || next === null) return;
+        if (!force && isDirtyRef.current) return;
         setContent(next);
+        setSavedContent(next);
         bridge.setTitle(getBaseName(filePath));
         const view = viewRef.current;
         if (view && view.state.doc.toString() !== next) {
@@ -467,11 +476,9 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
         }
       });
     };
-    syncFromDisk();
+    syncFromDisk(true);
     const unsub = subscribeWebVfs(() => {
-      if (!persistTimerRef.current) {
-        syncFromDisk();
-      }
+      syncFromDisk(false);
     });
     return () => {
       cancelled = true;
@@ -479,27 +486,49 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
     };
   }, [bridge, filePath, restoreEditorViewState]);
 
-  const persistTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(
-    null,
-  );
+  const handleSave = React.useCallback(async () => {
+    const targetPath =
+      filePathRef.current ?? "/home/user/Desktop/Untitled.txt";
+    if (!filePathRef.current) {
+      filePathRef.current = targetPath;
+      setFilePath(targetPath);
+    }
+    const textToSave = contentRef.current;
+    const ok = await bridge.fs.writeText(targetPath, textToSave);
+    if (ok !== false) {
+      setSavedContent(textToSave);
+      setSavedFlash(true);
+      window.setTimeout(() => setSavedFlash(false), 1500);
+    }
+    return ok !== false;
+  }, [bridge.fs]);
 
-  const persistText = React.useCallback(
-    (next: string) => {
-      setContent(next);
-      if (persistTimerRef.current) clearTimeout(persistTimerRef.current);
-      persistTimerRef.current = setTimeout(() => {
-        persistTimerRef.current = null;
-        const targetPath =
-          filePathRef.current ?? "/home/user/Desktop/Untitled.txt";
-        if (!filePathRef.current) {
-          filePathRef.current = targetPath;
-          setFilePath(targetPath);
-        }
-        void bridge.fs.writeText(targetPath, next);
-      }, 120);
-    },
-    [bridge.fs],
-  );
+  const requestClose = React.useCallback(() => {
+    if (isDirtyRef.current) {
+      setConfirmCloseOpen(true);
+      return;
+    }
+    bridge.closeWindow();
+  }, [bridge]);
+
+  React.useEffect(() => {
+    if (!windowId) return;
+    const onBeforeClose = (e: Event) => {
+      const detail = (e as CustomEvent<{ windowId?: string }>).detail;
+      if (detail?.windowId !== windowId) return;
+      if (isDirtyRef.current) {
+        e.preventDefault();
+        setConfirmCloseOpen(true);
+      }
+    };
+    window.addEventListener("piloti:before-close-window", onBeforeClose);
+    return () =>
+      window.removeEventListener("piloti:before-close-window", onBeforeClose);
+  }, [windowId]);
+
+  const persistText = React.useCallback((next: string) => {
+    setContent(next);
+  }, []);
 
   React.useEffect(() => {
     if (previewMarkdown) {
@@ -604,17 +633,7 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
       e.preventDefault();
       e.stopPropagation();
-      if (persistTimerRef.current) clearTimeout(persistTimerRef.current);
-      const targetPath =
-        filePathRef.current ?? "/home/user/Desktop/Untitled.txt";
-      if (!filePathRef.current) {
-        filePathRef.current = targetPath;
-        setFilePath(targetPath);
-      }
-      void bridge.fs.writeText(targetPath, contentRef.current).then(() => {
-        setSavedFlash(true);
-        window.setTimeout(() => setSavedFlash(false), 1500);
-      });
+      void handleSave();
     } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "f") {
       e.preventDefault();
       e.stopPropagation();
@@ -652,7 +671,9 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
         )}
       >
         <div className="flex shrink-0 items-center gap-1.5" data-window-no-drag>
-          {windowId && bridge.isCsd && <WindowControls side="left" />}
+          {windowId && bridge.isCsd && (
+            <WindowControls side="left" onClose={requestClose} />
+          )}
           {windowId && (
             <WindowMenuButton
               side="left"
@@ -701,6 +722,13 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
               )}
             >
               {filePath ? getBaseName(filePath) : _("Untitled")}
+              {isDirty && (
+                <span
+                  aria-label={_("Unsaved changes")}
+                  title={_("Unsaved changes")}
+                  className="ml-1 inline-block size-1.5 rounded-full bg-adw-accent align-middle"
+                />
+              )}
             </button>
           )}
           {savedFlash && (
@@ -710,6 +738,21 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
           )}
         </div>
         <div className="flex items-center gap-1" data-window-no-drag>
+          <button
+            type="button"
+            disabled={!isDirty}
+            aria-label={_("Save")}
+            title={_("Save")}
+            onClick={() => void handleSave()}
+            className={cn(
+              "flex size-7 items-center justify-center rounded-md transition-colors",
+              isDirty
+                ? "text-adw-accent hover:bg-adw-accent/12"
+                : "text-adw-label-secondary/40",
+            )}
+          >
+            <SaveIcon className="size-4" />
+          </button>
           {isPreviewable && (
             <button
               type="button"
@@ -775,7 +818,9 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
               iconName="file-text"
             />
           )}
-          {windowId && bridge.isCsd && <WindowControls side="right" />}
+          {windowId && bridge.isCsd && (
+            <WindowControls side="right" onClose={requestClose} />
+          )}
         </div>
       </WindowTitlebar>
 
@@ -811,11 +856,13 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
         )}
 
         {previewMarkdown ? (
-          /\.json$/i.test(filePath ?? "") ? (
+          /\.(json|ini)$/i.test(filePath ?? "") ? (
             <div className="h-full w-full overflow-auto bg-adw-content p-4 font-mono text-[12px] select-text">
               {(() => {
                 try {
-                  const parsed = JSON.parse(content || "null");
+                  const parsed = /\.ini$/i.test(filePath ?? "")
+                    ? parseIniText(content || "")
+                    : JSON.parse(content || "null");
                   return (
                     <ObjectView
                       valueGetter={() => parsed}
@@ -847,6 +894,61 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
             className="pointer-events-none absolute right-2.5 bottom-2 z-10 rounded-full border border-adw-border/60 bg-adw-card/90 px-2.5 py-0.5 font-mono text-[10.5px] text-adw-dim shadow-xs backdrop-blur-md"
           >
             Ln {cursorPos.ln}, Col {cursorPos.col}
+          </div>
+        )}
+
+        {confirmCloseOpen && (
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="text-editor-unsaved-title"
+            className="absolute inset-0 z-30 flex items-center justify-center bg-black/45 p-4 backdrop-blur-xs"
+          >
+            <div className="w-full max-w-xs rounded-2xl border border-adw-border bg-adw-card p-5 shadow-2xl">
+              <h2
+                id="text-editor-unsaved-title"
+                className="text-base font-semibold text-adw-label"
+              >
+                {_("Save Changes?")}
+              </h2>
+              <p className="mt-1.5 text-sm text-adw-label-secondary">
+                {_("This document has unsaved changes. Save before closing?")}
+              </p>
+              <div className="mt-5 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setConfirmCloseOpen(false);
+                    isDirtyRef.current = false;
+                    bridge.closeWindow();
+                  }}
+                  className="rounded-lg bg-red-500/12 px-3 py-1.5 text-xs font-medium text-red-500 transition-colors hover:bg-red-500/20"
+                >
+                  {_("Discard")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirmCloseOpen(false)}
+                  className="rounded-lg bg-black/8 px-3 py-1.5 text-xs font-medium text-adw-label transition-colors hover:bg-black/14 dark:bg-white/10 dark:hover:bg-white/16"
+                >
+                  {_("Cancel")}
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const ok = await handleSave();
+                    if (ok) {
+                      setConfirmCloseOpen(false);
+                      isDirtyRef.current = false;
+                      bridge.closeWindow();
+                    }
+                  }}
+                  className="rounded-lg bg-adw-accent px-3 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-90"
+                >
+                  {_("Save")}
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>

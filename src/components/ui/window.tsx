@@ -901,7 +901,13 @@ function Window({
   React.useImperativeHandle(windowRef, () => ({
     startMove: (clientX: number, clientY: number, pointerId?: number) => {
       const node = element.current
-      if (!node || maximized || !draggable) return
+      if (!node || !draggable) return
+      if (maximized) {
+        if (!onZoom) return
+        pendingResumeDrag.current = { clientX, clientY }
+        onZoom()
+        return
+      }
       beginDrag(node, clientX, clientY, pointerId)
     },
     startResize: (edge: ResizeEdge, clientX: number, clientY: number, pointerId?: number) => {

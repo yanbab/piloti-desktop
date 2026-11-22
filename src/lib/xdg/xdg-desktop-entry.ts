@@ -333,6 +333,40 @@ const CSD_HINT_TOKENS = [
   "nm-connection-editor",
   "simple-scan",
   "file-roller",
+  // Popular Flathub GTK4 / Libadwaita CSD apps
+  "flatseal",
+  "amberol",
+  "dialect",
+  "extensionmanager",
+  "missioncenter",
+  "resources",
+  "celluloid",
+  "shortwave",
+  "fragments",
+  "foliate",
+  "apostrophe",
+  "eartag",
+  "bottles",
+  "cartridges",
+  "refine",
+  "impression",
+  "upscaler",
+  "curtail",
+  "warp",
+  "decoder",
+  "obfuscate",
+  "eyedropper",
+  "wike",
+  "newsflash",
+  "errands",
+  "planify",
+  "kooha",
+  "mousai",
+  "footage",
+  "switcheroo",
+  "warehouse",
+  "gearlever",
+  "bazaar",
 ] as const;
 
 function hasCsdMetadataHint(text: string): boolean {
@@ -386,12 +420,17 @@ function parseDesktopEntry(
   }
 
   const onlyShowIn = splitXdgList(main["OnlyShowIn"]);
-  // Do not inspect `categories` here: GTK2/SSD apps (e.g. pcmanfm) include `GTK;`
-  // in Categories despite drawing no client-side decorations.
+  // Do not match bare `GTK;` in Categories: GTK2/SSD apps (e.g. pcmanfm) include
+  // `GTK;` despite drawing no client-side decorations. `GNOME;` in Categories or
+  // `X-Purism-FormFactor` reliably identifies GTK3/GTK4/Libadwaita CSD apps
+  // (including Flatpaks).
   const lowerMeta = `${desktopId} ${exec ?? ""} ${onlyShowIn.join(" ")}`;
+  const hasGnomeCategory = categories.some((c) => c.toLowerCase() === "gnome");
   const prefersCsd =
     hasCsdMetadataHint(lowerMeta) ||
-    Boolean(main["X-GNOME-UsesNotifications"]);
+    hasGnomeCategory ||
+    Boolean(main["X-GNOME-UsesNotifications"]) ||
+    Boolean(main["X-Purism-FormFactor"]);
 
   return {
     desktopId,
@@ -585,8 +624,18 @@ function matchXdgEntryForWaylandWindow(
     ) ??
     entries.find((e) => e.startupWMClass?.toLowerCase() === cleanLower) ??
     entries.find((e) => {
+      const flatpakId = e.rawGroups?.["Desktop Entry"]?.["X-Flatpak"];
+      return flatpakId !== undefined && flatpakId.trim().toLowerCase() === cleanLower;
+    }) ??
+    entries.find((e) => {
       const bin = e.execArgv[0]?.split("/").pop()?.toLowerCase();
       return bin !== undefined && bin === cleanLower;
+    }) ??
+    entries.find((e) => {
+      // Flatpak apps often emit only the trailing segment or reverse-DNS app ID
+      if (!e.appId.includes(".")) return false;
+      const tail = e.appId.split(".").pop()?.toLowerCase();
+      return tail !== undefined && tail === cleanLower;
     })
   );
 }
