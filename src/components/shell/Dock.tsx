@@ -733,6 +733,7 @@ export function Dock() {
               iconUrl={getAppIconUrl(
                 trashEmpty ? "__user_trash__" : "__user_trash_full__"
               )}
+              open={false}
               className="size-full"
             />
           </DockItem>

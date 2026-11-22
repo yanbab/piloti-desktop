@@ -113,10 +113,10 @@ describe("XDG specifications (Autostart, Recents XBEL, Globs2/Magic)", () => {
       "/usr/share/icons/Papirus/64x64/apps/preferences-desktop.svg"
     );
     expect(lookupXdgIconPath(index, "user-trash", 64, 1)).toBe(
-      "/usr/share/icons/Papirus/64x64/places/user-trash.svg"
+      "/usr/share/icons/Piloti/animated/places/user-trash.json"
     );
     expect(lookupXdgIconPath(index, "user-trash-full", 64, 1)).toBe(
-      "/usr/share/icons/Papirus/64x64/places/user-trash-full.svg"
+      "/usr/share/icons/Piloti/animated/places/user-trash-full.json"
     );
     expect(lookupXdgIconPath(index, "view-app-grid", 64, 1)).toBe(
       "/usr/share/icons/Papirus/64x64/apps/view-app-grid.svg"

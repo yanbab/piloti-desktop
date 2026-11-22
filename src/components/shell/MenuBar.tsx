@@ -1009,7 +1009,7 @@ export function MenuBar() {
                 console.error(`[Plugin:${item.pluginId}] status click error:`, err);
               }
             }}
-            className="flex h-[22px] shrink-0 cursor-default items-center rounded-full px-2 text-[12px] font-medium outline-none select-none hover:bg-black/8 active:bg-black/14 dark:hover:bg-white/10 dark:active:bg-white/18"
+            className="flex h-full shrink-0 cursor-default items-center rounded-md px-2 text-[12px] font-medium outline-none select-none hover:bg-black/8 active:bg-black/14 focus-visible:bg-black/10 dark:hover:bg-white/10 dark:active:bg-white/18 dark:focus-visible:bg-white/12"
           >
             {item.label}
           </button>

@@ -550,6 +550,94 @@ const ICONS = {
       pathGroup("TopHighlight", { d: PAPIRUS_FILE_HIGHLIGHT_D, fill: "#ffffff", opacity: 20 }),
     ]),
   ]),
+
+  // 7. Modern Tapered Trash Bin (Empty) — Lid hinges open smoothly on hover/drag-over, bounces on drop
+  "places/user-trash": {
+    ...lottieDoc("piloti-user-trash", [
+      layer(
+        1,
+        "Lid",
+        [
+          rectGroup("Handle", { x: 24, y: 5, w: 16, h: 5, r: 2, fill: "#949da8" }),
+          rectGroup("LidShadow", { x: 7, y: 10, w: 50, h: 8, r: 3, fill: "#000000", opacity: 20 }),
+          rectGroup("LidBar", { x: 7, y: 9, w: 50, h: 8, r: 3, fill: "#98a1ac" }),
+          rectGroup("LidHighlight", { x: 9, y: 9.5, w: 46, h: 1.5, r: 0.75, fill: "#ffffff", opacity: 24 }),
+        ],
+        {
+          a: kStatic([10, 14]),
+          p: kFrames([[0, [10, 14]], [24, [9, 11.5]], [34, [10, 15]], [44, [9, 11.5]]]),
+          r: kFrames([[0, [0]], [24, [-17]], [34, [3]], [44, [-17]]]),
+        }
+      ),
+      layer(2, "Basket", [
+        pathGroup("BodyShadow", {
+          d: "M 11,17 L 15,57.5 C 15.22,59.48 16.9,61 18.9,61 H 45.1 C 47.1,61 48.78,59.48 49,57.5 L 53,17 Z",
+          fill: "#000000",
+          opacity: 20,
+        }),
+        pathGroup("Body", {
+          d: "M 11,16 L 15,56.5 C 15.22,58.48 16.9,60 18.9,60 H 45.1 C 47.1,60 48.78,58.48 49,56.5 L 53,16 Z",
+          fill: "#7c8590",
+        }),
+        pathGroup("RimBand", { d: "M 11,16 L 11.4,20 H 52.6 L 53,16 Z", fill: "#656e78" }),
+        rectGroup("Slot1", { x: 21, y: 24, w: 4, h: 28, r: 2, fill: "#000000", opacity: 28 }),
+        rectGroup("Slot2", { x: 30, y: 24, w: 4, h: 28, r: 2, fill: "#000000", opacity: 28 }),
+        rectGroup("Slot3", { x: 39, y: 24, w: 4, h: 28, r: 2, fill: "#000000", opacity: 28 }),
+      ]),
+    ]),
+    op: 44,
+  },
+
+  // 8. Modern Tapered Trash Bin (Full) — Tilted lid lifts higher while crumpled papers & accent note bob inside
+  "places/user-trash-full": {
+    ...lottieDoc("piloti-user-trash-full", [
+      layer(
+        1,
+        "Lid",
+        [
+          rectGroup("Handle", { x: 24, y: 5, w: 16, h: 5, r: 2, fill: "#949da8" }),
+          rectGroup("LidShadow", { x: 7, y: 10, w: 50, h: 8, r: 3, fill: "#000000", opacity: 20 }),
+          rectGroup("LidBar", { x: 7, y: 9, w: 50, h: 8, r: 3, fill: "#98a1ac" }),
+          rectGroup("LidHighlight", { x: 9, y: 9.5, w: 46, h: 1.5, r: 0.75, fill: "#ffffff", opacity: 24 }),
+        ],
+        {
+          a: kStatic([10, 14]),
+          p: kFrames([[0, [9.5, 12.5]], [24, [8.5, 9.5]], [34, [9.5, 13.5]], [44, [8.5, 9.5]]]),
+          r: kFrames([[0, [-11]], [24, [-24]], [34, [-6]], [44, [-24]]]),
+        }
+      ),
+      layer(2, "Basket", [
+        pathGroup("BodyShadow", {
+          d: "M 11,17 L 15,57.5 C 15.22,59.48 16.9,61 18.9,61 H 45.1 C 47.1,61 48.78,59.48 49,57.5 L 53,17 Z",
+          fill: "#000000",
+          opacity: 20,
+        }),
+        pathGroup("Body", {
+          d: "M 11,16 L 15,56.5 C 15.22,58.48 16.9,60 18.9,60 H 45.1 C 47.1,60 48.78,58.48 49,56.5 L 53,16 Z",
+          fill: "#7c8590",
+        }),
+        pathGroup("RimBand", { d: "M 11,16 L 11.4,20 H 52.6 L 53,16 Z", fill: "#656e78" }),
+        rectGroup("Slot1", { x: 21, y: 24, w: 4, h: 28, r: 2, fill: "#000000", opacity: 28 }),
+        rectGroup("Slot2", { x: 30, y: 24, w: 4, h: 28, r: 2, fill: "#000000", opacity: 28 }),
+        rectGroup("Slot3", { x: 39, y: 24, w: 4, h: 28, r: 2, fill: "#000000", opacity: 28 }),
+      ]),
+      layer(
+        3,
+        "TrashPapers",
+        [
+          pathGroup("PaperRight", { d: "M 35,19 L 43,10 L 51,15 L 48,22 Z", fill: "#f2f4f7" }),
+          pathGroup("PaperCenterAccent", { d: "M 25,18 L 33,8 L 42,13 L 38,22 Z", fill: "#5294e2" }),
+          pathGroup("PaperLeft", { d: "M 14,19 L 21,10 L 29,14 L 27,22 Z", fill: "#dfe3e8" }),
+        ],
+        {
+          a: kStatic([32, 16]),
+          p: kFrames([[0, [32, 16]], [24, [32, 13]], [34, [32, 17.5]], [44, [32, 13]]]),
+          r: kFrames([[0, [0]], [24, [3]], [34, [-2]], [44, [3]]]),
+        }
+      ),
+    ]),
+    op: 44,
+  },
 };
 
 // Keep animated/ directory cleanly synced to the generated set only (remove old redrawn app animations)

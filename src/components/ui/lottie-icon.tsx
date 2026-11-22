@@ -197,8 +197,9 @@ export function LottieIcon({
     anim.addEventListener("complete", onComplete);
 
     const triggerTarget =
-      container.closest("button, [role='button'], [data-dock-tile], [role='option']") ??
-      container;
+      container.closest(
+        "button, [role='button'], [data-dock-tile], [data-slot='dock-item'], [role='option']"
+      ) ?? container;
     const handleEnter = () => {
       hoveredRef.current = true;
       if (openPropRef.current !== undefined) {

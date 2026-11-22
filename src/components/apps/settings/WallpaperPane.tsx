@@ -3,8 +3,8 @@ import { useDomicile } from "@domicile-desktop/react/domicile-provider";
 import {
   ChevronDownIcon,
   ChevronRightIcon,
+  FilmIcon,
   PipetteIcon,
-  SparklesIcon,
   SunMoonIcon,
 } from "lucide-react";
 import {
@@ -420,9 +420,9 @@ export function WallpaperPane() {
                     accentHex={accentHex}
                   />
                   {(isAnimated || isAdaptive) && (
-                    <span className="pointer-events-none absolute right-1.5 bottom-1.5 flex items-center gap-1 rounded-full bg-black/50 px-1.5 py-0.5 text-[10px] font-medium text-white backdrop-blur-xs">
-                      {isAnimated && <SparklesIcon className="size-2.5" />}
-                      {isAdaptive && <SunMoonIcon className="size-2.5" />}
+                    <span className="pointer-events-none absolute right-1.5 bottom-1.5 flex items-center gap-1.5 rounded-full bg-black/55 px-2 py-1 text-[11px] font-medium text-white backdrop-blur-xs">
+                      {isAnimated && <FilmIcon className="size-4" />}
+                      {isAdaptive && <SunMoonIcon className="size-4" />}
                     </span>
                   )}
                 </button>

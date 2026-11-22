@@ -2,10 +2,12 @@ import * as React from "react";
 import { useDomicile } from "@domicile-desktop/react/domicile-provider";
 import { watchIconTheme } from "@domicile-desktop/sdk/icon-theme";
 import {
+  ACCENT_COLORS,
   APP_CATALOG,
   type AppDefinition,
 } from "@/data/catalog";
 import { launchDesktopCommand } from "@/lib/gnome-bridge";
+import { tintIconDataUrl } from "@/lib/icon-accent-tint";
 import { PAPIRUS_VIRTUAL_ICONS } from "@/lib/papirus-virtual-icons";
 import { PILOTI_VIRTUAL_ICONS } from "@/lib/piloti-virtual-icons";
 import {
@@ -351,7 +353,7 @@ async function resolveWithDirectAdwaitaFallback(
   return undefined;
 }
 
-const DOCK_ICONS_CACHE_KEY = "piloti.dock-icons.v18";
+const DOCK_ICONS_CACHE_KEY = "piloti.dock-icons.v19";
 
 interface DockIconsCachePayload {
   theme: string;
@@ -788,17 +790,46 @@ export function useAppsValue(
     [activeIconTheme, appIconsMap, domicile.files]
   );
 
+  const activeAccentHex = React.useMemo(() => {
+    const custom = settings.customAccentHex?.trim();
+    if (custom && /^#[0-9a-fA-F]{6}$/.test(custom)) {
+      return custom;
+    }
+    return ACCENT_COLORS[settings.accentColor]?.hex ?? "#2190a4";
+  }, [settings.accentColor, settings.customAccentHex]);
+
+  const tintedAppIconsMap = React.useMemo(() => {
+    const out: Record<string, string> = {};
+    for (const [k, url] of Object.entries(appIconsMap)) {
+      out[k] = tintIconDataUrl(url, activeAccentHex) ?? url;
+    }
+    return out;
+  }, [activeAccentHex, appIconsMap]);
+
+  const tintedInstalledXdgApps = React.useMemo(
+    () =>
+      installedXdgApps.map((entry) =>
+        entry.iconUrl
+          ? {
+              ...entry,
+              iconUrl: tintIconDataUrl(entry.iconUrl, activeAccentHex) ?? entry.iconUrl,
+            }
+          : entry
+      ),
+    [activeAccentHex, installedXdgApps]
+  );
+
   const getAppIconUrl = React.useCallback(
     (appIdOrName: string | undefined): string | undefined => {
       if (!appIdOrName) return undefined;
       const clean = appIdOrName.replace(/\.desktop$/i, "");
       return (
-        appIconsMap[appIdOrName] ??
-        appIconsMap[clean] ??
-        appIconsMap[clean.toLowerCase()]
+        tintedAppIconsMap[appIdOrName] ??
+        tintedAppIconsMap[clean] ??
+        tintedAppIconsMap[clean.toLowerCase()]
       );
     },
-    [appIconsMap]
+    [tintedAppIconsMap]
   );
 
   const launchXdgEntry = React.useCallback(
@@ -829,11 +860,11 @@ export function useAppsValue(
     [domicile, isBrowserRuntime]
   );
 
-  const fallbackAppIconUrl = appIconsMap.__fallback_app__;
+  const fallbackAppIconUrl = tintedAppIconsMap.__fallback_app__;
 
   return React.useMemo<AppsContextValue>(
     () => ({
-      installedXdgApps,
+      installedXdgApps: tintedInstalledXdgApps,
       xdgUserDirs,
       activeIconTheme,
       fallbackAppIconUrl,
@@ -852,7 +883,7 @@ export function useAppsValue(
       ensureWaylandIcons,
       fallbackAppIconUrl,
       getAppIconUrl,
-      installedXdgApps,
+      tintedInstalledXdgApps,
       launchXdgEntry,
       openXdgFolder,
       refreshXdgApps,

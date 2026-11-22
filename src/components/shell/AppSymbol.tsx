@@ -12,12 +12,18 @@ export function AppSquircleIcon({
   iconUrl,
   fallbackIconUrl,
   squircle = false,
+  open,
+  animateOnHover,
+  playNonce,
   className,
 }: {
   iconName?: string;
   iconUrl?: string;
   fallbackIconUrl?: string;
   squircle?: boolean;
+  open?: boolean;
+  animateOnHover?: boolean;
+  playNonce?: number;
   gradient?: string;
   className?: string;
   glyphClassName?: string;
@@ -38,6 +44,9 @@ export function AppSquircleIcon({
       const lottieNode = (
         <LottieIcon
           src={resolvedUrl}
+          open={open}
+          animateOnHover={animateOnHover}
+          playNonce={playNonce}
           className={cn(
             "pointer-events-none shrink-0 drop-shadow-[0_1px_2px_rgba(0,0,0,0.2)] select-none",
             squircle ? "size-[87.5%] overflow-hidden rounded-[14%]" : className

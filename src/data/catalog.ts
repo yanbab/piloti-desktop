@@ -239,14 +239,14 @@ export interface AppDefinition {
   description: string;
   category: "System" | "Utilities" | "Productivity" | "Development" | "Internet";
   iconName:
-    | "settings"
-    | "folder"
-    | "terminal"
-    | "file-text"
-    | "activity"
-    | "globe"
-    | "code"
-    | "sparkles";
+  | "settings"
+  | "folder"
+  | "terminal"
+  | "file-text"
+  | "activity"
+  | "globe"
+  | "code"
+  | "sparkles";
   xdgIcons?: string[];
   iconUrl?: string;
   isWebApp?: boolean;

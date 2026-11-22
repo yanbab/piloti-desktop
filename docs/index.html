@@ -224,18 +224,28 @@
         box-shadow: var(--adw-shadow);
       }
 
-      /* Interactive Adwaita Window Mockup */
+      /* Real Representative Desktop Screenshot Frame */
       .desktop-stage {
         position: relative;
-        border-radius: 20px;
-        padding: 18px 18px 20px;
-        background:
-          radial-gradient(95% 90% at 15% 15%, color-mix(in srgb, var(--adw-accent) 42%, transparent), transparent 60%),
-          radial-gradient(90% 90% at 85% 20%, rgba(145, 65, 172, 0.35), transparent 55%),
-          radial-gradient(90% 90% at 50% 95%, rgba(33, 144, 164, 0.35), transparent 60%),
-          linear-gradient(145deg, #12151f 0%, #191a24 100%);
+        display: block;
+        border-radius: 18px;
+        overflow: hidden;
+        background: var(--adw-card);
         box-shadow: var(--adw-window-shadow);
-        text-align: left;
+        border: 1px solid var(--adw-border);
+        transition: transform 180ms ease, box-shadow 180ms ease;
+      }
+
+      .desktop-stage:hover {
+        transform: translateY(-2px);
+      }
+
+      .desktop-screenshot {
+        display: block;
+        width: 100%;
+        height: auto;
+        aspect-ratio: 16 / 10;
+        object-fit: cover;
       }
 
       .mock-menubar {
@@ -647,76 +657,19 @@
           </a>
         </div>
 
-        <!-- Interactive Adwaita Window Mockup -->
-        <div class="desktop-stage">
-          <div class="mock-menubar">
-            <span><strong>Piloti</strong> · Settings</span>
-            <span class="mock-workspaces" aria-hidden="true">
-              <span class="mock-ws-dot active">1</span>
-              <span class="mock-ws-dot"></span>
-              <span class="mock-ws-dot"></span>
-              <span class="mock-ws-dot"></span>
-            </span>
-            <span>Wi-Fi · 78% · 12:06</span>
-          </div>
-
-          <div class="mock-window">
-            <aside class="mock-sidebar">
-              <div class="mock-sidebar-title">Settings</div>
-              <div class="mock-nav-item active">Appearance</div>
-              <div class="mock-nav-item">Dock &amp; Menu Bar</div>
-              <div class="mock-nav-item">Wallpaper</div>
-              <div class="mock-nav-item">Wi-Fi &amp; Network</div>
-              <div class="mock-nav-item">Sound</div>
-              <div class="mock-nav-item">Displays</div>
-              <div class="mock-nav-item">About Piloti</div>
-            </aside>
-
-            <div class="mock-pane">
-              <div class="mock-headerbar">
-                <span>Appearance</span>
-                <div class="mock-controls" aria-hidden="true">
-                  <span class="mock-circle">−</span>
-                  <span class="mock-circle">□</span>
-                  <span class="mock-circle">×</span>
-                </div>
-              </div>
-
-              <div>
-                <div class="adw-group-title">GNOME Adwaita 1.6 Calibration</div>
-                <div class="adw-boxed-list">
-                  <div class="adw-row">
-                    <div>
-                      <div>Dark Appearance</div>
-                      <div class="adw-row-sub">
-                        Syncs live with GSettings &amp; Domicile
-                      </div>
-                    </div>
-                    <button
-                      id="mock-dark-switch"
-                      type="button"
-                      class="adw-switch"
-                      data-checked="true"
-                      aria-label="Toggle preview dark mode"
-                    >
-                      <span class="adw-switch-knob"></span>
-                    </button>
-                  </div>
-
-                  <div class="adw-row">
-                    <div>
-                      <div>Adwaita Accent Color</div>
-                      <div class="adw-row-sub">
-                        Click a swatch to preview the page accent
-                      </div>
-                    </div>
-                    <div class="swatches" id="accent-swatches"></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        <!-- Representative Live Desktop Screenshot (Swaps automatically with Light/Dark theme) -->
+        <a href="./demo/" class="desktop-stage" title="Click to launch Live Web Demo">
+          <img
+            id="hero-screenshot"
+            class="desktop-screenshot"
+            src="./assets/screenshot-dark.png"
+            data-light-src="./assets/screenshot-light.png"
+            data-dark-src="./assets/screenshot-dark.png"
+            alt="Piloti Desktop Environment Screenshot"
+            width="1360"
+            height="850"
+          />
+        </a>
       </section>
 
       <section id="features">
@@ -798,50 +751,38 @@ domicile ./dist/shell.js</code></pre>
     <script>
       const root = document.documentElement;
       const themeBtn = document.getElementById("theme-toggle");
-      const mockSwitch = document.getElementById("mock-dark-switch");
+      const heroScreenshot = document.getElementById("hero-screenshot");
+      const systemDarkQuery =
+        typeof window.matchMedia === "function"
+          ? window.matchMedia("(prefers-color-scheme: dark)")
+          : null;
 
       function syncThemeUi() {
         const dark = root.classList.contains("dark");
-        themeBtn.textContent = dark ? "☀" : "☾";
-        mockSwitch.dataset.checked = String(dark);
+        if (themeBtn) {
+          themeBtn.textContent = dark ? "☀" : "☾";
+        }
+        if (heroScreenshot) {
+          const targetSrc = dark
+            ? heroScreenshot.getAttribute("data-dark-src")
+            : heroScreenshot.getAttribute("data-light-src");
+          if (targetSrc && heroScreenshot.getAttribute("src") !== targetSrc) {
+            heroScreenshot.setAttribute("src", targetSrc);
+          }
+        }
+      }
+
+      if (systemDarkQuery) {
+        root.classList.toggle("dark", systemDarkQuery.matches);
+        systemDarkQuery.addEventListener("change", (e) => {
+          root.classList.toggle("dark", e.matches);
+          syncThemeUi();
+        });
       }
 
       themeBtn.addEventListener("click", () => {
         root.classList.toggle("dark");
         syncThemeUi();
-      });
-
-      mockSwitch.addEventListener("click", () => {
-        root.classList.toggle("dark");
-        syncThemeUi();
-      });
-
-      const accents = [
-        { name: "Blue", hex: "#3584e4" },
-        { name: "Teal", hex: "#2190a4" },
-        { name: "Green", hex: "#3a944a" },
-        { name: "Yellow", hex: "#c88800" },
-        { name: "Orange", hex: "#ed5b00" },
-        { name: "Red", hex: "#e62d42" },
-        { name: "Pink", hex: "#d56199" },
-        { name: "Purple", hex: "#9141ac" },
-        { name: "Slate", hex: "#6f8396" },
-      ];
-
-      const swatchesEl = document.getElementById("accent-swatches");
-      accents.forEach((acc, i) => {
-        const btn = document.createElement("button");
-        btn.type = "button";
-        btn.className = "swatch" + (i === 0 ? " active" : "");
-        btn.title = acc.name;
-        btn.ariaLabel = acc.name;
-        btn.style.backgroundColor = acc.hex;
-        btn.addEventListener("click", () => {
-          root.style.setProperty("--adw-accent", acc.hex);
-          document.querySelectorAll(".swatch").forEach((s) => s.classList.remove("active"));
-          btn.classList.add("active");
-        });
-        swatchesEl.appendChild(btn);
       });
 
       document.getElementById("copy-code").addEventListener("click", async (e) => {
