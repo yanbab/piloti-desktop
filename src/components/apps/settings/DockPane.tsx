@@ -102,26 +102,29 @@ export function DockPane() {
             </GroupedFormRowControl>
           </GroupedFormRow>
 
-          {settings.dockMagnification && (
-            <GroupedFormRow>
-              <GroupedFormRowLabel>
-                <GroupedFormRowTitle>{_("Zoom Size")}</GroupedFormRowTitle>
-              </GroupedFormRowLabel>
-              <GroupedFormRowControl className="w-44">
-                <Slider
-                  min={56}
-                  max={96}
-                  value={[settings.dockMagnificationSize]}
-                  onValueChange={(val) => {
-                    const next = Array.isArray(val) ? val[0] : val;
-                    if (typeof next === "number") {
-                      updateSettings({ dockMagnificationSize: next });
-                    }
-                  }}
-                />
-              </GroupedFormRowControl>
-            </GroupedFormRow>
-          )}
+          <GroupedFormRow>
+            <GroupedFormRowLabel>
+              <GroupedFormRowTitle
+                className={cn(!settings.dockMagnification && "opacity-45")}
+              >
+                {_("Zoom Size")}
+              </GroupedFormRowTitle>
+            </GroupedFormRowLabel>
+            <GroupedFormRowControl className="w-44">
+              <Slider
+                disabled={!settings.dockMagnification}
+                min={56}
+                max={96}
+                value={[settings.dockMagnificationSize]}
+                onValueChange={(val) => {
+                  const next = Array.isArray(val) ? val[0] : val;
+                  if (typeof next === "number") {
+                    updateSettings({ dockMagnificationSize: next });
+                  }
+                }}
+              />
+            </GroupedFormRowControl>
+          </GroupedFormRow>
         </GroupedFormGroup>
       </GroupedFormSection>
     </GroupedForm>

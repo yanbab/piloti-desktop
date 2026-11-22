@@ -45,6 +45,7 @@ import {
   type GnomeBackgroundSettings,
   fileUriToLocalPath,
   localPathToFileUri,
+  parseGnomeBackgroundXml,
   resolveBackgroundRenderSpec,
   selectGnomePictureUri,
 } from "@/lib/engine-desktop/background";
@@ -235,7 +236,7 @@ const DEFAULT_SETTINGS: DesktopSettings = {
   fileActivationMode: "single",
   showFileExtensionBadges: true,
   demoExtensionEnabled: true,
-  enabledPluginIds: [],
+  enabledPluginIds: ["aurora-drift"],
   computerModel:
     typeof navigator !== "undefined" &&
       /mac/i.test(navigator.platform || navigator.userAgent || "")
@@ -1198,15 +1199,18 @@ export function useSettingsValue(options?: {
     selectGnomePictureUri(settings.gnomeBackground, resolvedTheme) ||
     settings.customWallpaperUrl ||
     "";
-  const isLocalPictureUri = Boolean(fileUriToLocalPath(activePictureUri));
+  const localPicturePath = fileUriToLocalPath(activePictureUri);
+  const isLocalPictureUri = Boolean(localPicturePath);
   const [resolvedLocalPicture, setResolvedLocalPicture] = React.useState<{
     raw: string;
     blobUrl: string;
+    cssText?: string;
+    htmlText?: string;
   }>({ raw: "", blobUrl: "" });
   const activeBlobUrlRef = React.useRef("");
 
   React.useEffect(() => {
-    if (!activePictureUri || !isLocalPictureUri || isBrowserRuntime) {
+    if (!activePictureUri || !localPicturePath) {
       if (activeBlobUrlRef.current) {
         URL.revokeObjectURL(activeBlobUrlRef.current);
         activeBlobUrlRef.current = "";
@@ -1214,11 +1218,76 @@ export function useSettingsValue(options?: {
       setResolvedLocalPicture({ raw: "", blobUrl: "" });
       return;
     }
-    if (!allowLocalWallpaper) return;
+    if (!allowLocalWallpaper && !isBrowserRuntime) return;
 
     let cancelled = false;
     const finishBg = startBootPhase("bg");
-    void readGnomeBackgroundBlob(domicile, activePictureUri).then((blob) => {
+
+    const loadLocal = async () => {
+      let targetPath = localPicturePath;
+      const lower = targetPath.toLowerCase();
+
+      if (lower.endsWith(".html") || lower.endsWith(".htm")) {
+        const res = await domicile.files.readText(targetPath);
+        const htmlText = res.match({ Ok: (t) => t, Err: () => "" });
+        if (cancelled) return;
+        if (activeBlobUrlRef.current) {
+          URL.revokeObjectURL(activeBlobUrlRef.current);
+          activeBlobUrlRef.current = "";
+        }
+        setResolvedLocalPicture({ raw: activePictureUri, blobUrl: "", htmlText });
+        finishBg(htmlText ? `${Math.round(htmlText.length / 1024)} KB html` : "empty");
+        return;
+      }
+
+      if (lower.endsWith(".css")) {
+        const res = await domicile.files.readText(targetPath);
+        const cssText = res.match({ Ok: (t) => t, Err: () => "" });
+        if (cancelled) return;
+        if (activeBlobUrlRef.current) {
+          URL.revokeObjectURL(activeBlobUrlRef.current);
+          activeBlobUrlRef.current = "";
+        }
+        setResolvedLocalPicture({ raw: activePictureUri, blobUrl: "", cssText });
+        finishBg(cssText ? `${Math.round(cssText.length / 1024)} KB css` : "empty");
+        return;
+      }
+
+      let blob: Blob | null = null;
+      if (!isBrowserRuntime) {
+        blob = await readGnomeBackgroundBlob(domicile, activePictureUri);
+      } else {
+        if (lower.endsWith(".xml")) {
+          const xmlRes = await domicile.files.readText(targetPath);
+          const xml = xmlRes.match({ Ok: (t) => t, Err: () => "" });
+          const lastSlash = targetPath.lastIndexOf("/");
+          const baseDir = lastSlash > 0 ? targetPath.slice(0, lastSlash) : "/";
+          const extracted = parseGnomeBackgroundXml(xml, baseDir);
+          if (extracted) targetPath = extracted;
+        }
+        const bytesRes = await domicile.files.read(targetPath);
+        const bytes = bytesRes.match({
+          Ok: (b) => (b.length > 0 ? b : null),
+          Err: () => null,
+        });
+        if (bytes) {
+          const ext = targetPath.split(".").pop()?.toLowerCase() ?? "";
+          const mime =
+            ext === "svg"
+              ? "image/svg+xml"
+              : ext === "png"
+                ? "image/png"
+                : ext === "webp"
+                  ? "image/webp"
+                  : ext === "gif"
+                    ? "image/gif"
+                    : ext === "avif"
+                      ? "image/avif"
+                      : "image/jpeg";
+          blob = new Blob([new Uint8Array(bytes)], { type: mime });
+        }
+      }
+
       if (cancelled || !blob) {
         if (!cancelled) finishBg("empty");
         return;
@@ -1230,7 +1299,9 @@ export function useSettingsValue(options?: {
       activeBlobUrlRef.current = nextUrl;
       setResolvedLocalPicture({ raw: activePictureUri, blobUrl: nextUrl });
       finishBg(`${Math.round(blob.size / 1024)} KB`);
-    });
+    };
+
+    void loadLocal();
 
     return () => {
       cancelled = true;
@@ -1240,7 +1311,7 @@ export function useSettingsValue(options?: {
     allowLocalWallpaper,
     domicile,
     isBrowserRuntime,
-    isLocalPictureUri,
+    localPicturePath,
   ]);
 
   React.useEffect(() => {
@@ -1257,6 +1328,16 @@ export function useSettingsValue(options?: {
       ? resolvedLocalPicture.blobUrl
       : ""
     : activePictureUri;
+
+  const resolvedAnimatedCssText =
+    isLocalPictureUri && resolvedLocalPicture.raw === activePictureUri
+      ? resolvedLocalPicture.cssText
+      : undefined;
+
+  const resolvedHtmlSrcDoc =
+    isLocalPictureUri && resolvedLocalPicture.raw === activePictureUri
+      ? resolvedLocalPicture.htmlText
+      : undefined;
 
   const resolvedActiveWallpaper = React.useMemo(() => {
     const accentHex =
@@ -1277,10 +1358,18 @@ export function useSettingsValue(options?: {
         activeWallpaper: resolvedActiveWallpaper,
         resolvedTheme,
         resolvedPictureSrc:
-          resolvedPictureSrc || resolvedActiveWallpaper?.imageUrl || "",
+          resolvedPictureSrc ||
+          (resolvedTheme === "dark" && resolvedActiveWallpaper?.imageUrlDark
+            ? resolvedActiveWallpaper.imageUrlDark
+            : resolvedActiveWallpaper?.imageUrl) ||
+          "",
+        resolvedAnimatedCssText,
+        resolvedHtmlSrcDoc,
       }),
     [
       resolvedActiveWallpaper,
+      resolvedAnimatedCssText,
+      resolvedHtmlSrcDoc,
       resolvedPictureSrc,
       resolvedTheme,
       settings.customWallpaperUrl,

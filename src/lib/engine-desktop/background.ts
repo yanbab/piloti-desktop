@@ -277,6 +277,52 @@ export function parseGnomeBackgroundXml(
   return bestPath;
 }
 
+export interface GnomeBackgroundPropertyEntry {
+  name: string;
+  filename: string;
+  filenameDark?: string;
+  options?: GnomePictureOptions;
+  shadeType?: GnomeColorShadingType;
+  primaryColor?: string;
+  secondaryColor?: string;
+}
+
+/**
+ * Parses `/usr/share/gnome-background-properties/*.xml` entries, including
+ * GNOME 42+ `<filename-dark>` light/dark adaptive wallpaper pairs.
+ */
+export function parseGnomeBackgroundPropertiesXml(
+  xml: string
+): GnomeBackgroundPropertyEntry[] {
+  if (!xml) return [];
+  const entries: GnomeBackgroundPropertyEntry[] = [];
+  const blocks = xml.matchAll(/<wallpaper\b([^>]*)>([\s\S]*?)<\/wallpaper>/gi);
+  for (const m of blocks) {
+    if (/\bdeleted\s*=\s*["']true["']/i.test(m[1] ?? "")) continue;
+    const body = m[2] ?? "";
+    const tag = (name: string) =>
+      body.match(new RegExp(`<${name}\\b[^>]*>([\\s\\S]*?)<\\/${name}>`, "i"))?.[1]?.trim() ?? "";
+    const filename = tag("filename");
+    if (!filename) continue;
+    const name = tag("name") || filename.split("/").pop() || "Wallpaper";
+    const filenameDark = tag("filename-dark") || undefined;
+    const rawOpts = tag("options") as GnomePictureOptions;
+    const rawShade = tag("shade_type") as GnomeColorShadingType;
+    const pcolor = normalizeGnomeColor(tag("pcolor")) ?? undefined;
+    const scolor = normalizeGnomeColor(tag("scolor")) ?? undefined;
+    entries.push({
+      name,
+      filename,
+      ...(filenameDark ? { filenameDark } : {}),
+      ...(VALID_PICTURE_OPTIONS.has(rawOpts) ? { options: rawOpts } : {}),
+      ...(VALID_SHADING_TYPES.has(rawShade) ? { shadeType: rawShade } : {}),
+      ...(pcolor ? { primaryColor: pcolor } : {}),
+      ...(scolor ? { secondaryColor: scolor } : {}),
+    });
+  }
+  return entries;
+}
+
 /**
  * Returns true if an initial `org.gnome.desktop.background` snapshot explicitly
  * sets a wallpaper image, solid/gradient shading mode, or non-default colors.
@@ -338,6 +384,14 @@ export function buildGnomeShadingCss(bg: GnomeBackgroundSettings): string {
 export interface BackgroundRenderSpec {
   baseCss: string;
   overlayCss?: string;
+  animatedCss?: {
+    id: string;
+    cssText: string;
+  };
+  htmlLayer?: {
+    srcDoc?: string;
+    src?: string;
+  };
   pictureLayer?: {
     backgroundImage: string;
     backgroundSize: string;
@@ -348,8 +402,9 @@ export interface BackgroundRenderSpec {
 }
 
 /**
- * Computes the layered CSS background representation used across desktop, lock
- * screen, workspace thumbnails, and wallpaper preview per the GNOME spec.
+ * Computes the layered CSS/HTML/animated background representation used across
+ * desktop, lock screen, workspace thumbnails, and wallpaper preview per GNOME &
+ * Piloti animated wallpaper specs.
  */
 export function resolveBackgroundRenderSpec(options: {
   wallpaperId: string;
@@ -358,6 +413,8 @@ export function resolveBackgroundRenderSpec(options: {
   activeWallpaper: WallpaperOption;
   resolvedTheme: "dark" | "light";
   resolvedPictureSrc?: string;
+  resolvedAnimatedCssText?: string;
+  resolvedHtmlSrcDoc?: string;
 }): BackgroundRenderSpec {
   const {
     wallpaperId,
@@ -366,6 +423,8 @@ export function resolveBackgroundRenderSpec(options: {
     activeWallpaper,
     resolvedTheme,
     resolvedPictureSrc,
+    resolvedAnimatedCssText,
+    resolvedHtmlSrcDoc,
   } = options;
 
   const activePicture = selectGnomePictureUri(gnomeBackground, resolvedTheme);
@@ -390,15 +449,64 @@ export function resolveBackgroundRenderSpec(options: {
     gnomeBackground.primaryColor.toLowerCase() ===
       DEFAULT_GNOME_BACKGROUND.primaryColor;
 
+  const presetBaseCss =
+    resolvedTheme === "dark" && activeWallpaper.backgroundCssDark
+      ? activeWallpaper.backgroundCssDark
+      : activeWallpaper.backgroundCss;
+
   const baseCss = hasPicture && (isUntouchedSolidDefault || isOpaqueFullBleedPicture)
     ? "transparent"
     : isGnomeOrCustom
       ? wallpaperId.startsWith("#") && isUntouchedSolidDefault
         ? wallpaperId
         : buildGnomeShadingCss(gnomeBackground)
-      : activeWallpaper.backgroundCss;
+      : presetBaseCss;
 
   const overlayCss = isGnomeOrCustom ? undefined : activeWallpaper.overlayCss;
+
+  if (resolvedAnimatedCssText) {
+    return {
+      baseCss,
+      overlayCss,
+      animatedCss: { id: wallpaperId || "custom", cssText: resolvedAnimatedCssText },
+    };
+  }
+
+  if (resolvedHtmlSrcDoc) {
+    return {
+      baseCss,
+      overlayCss,
+      htmlLayer: { srcDoc: resolvedHtmlSrcDoc },
+    };
+  }
+
+  if (!isGnomeOrCustom && activeWallpaper.kind === "css") {
+    const cssText =
+      resolvedTheme === "dark" && activeWallpaper.cssAnimationDark
+        ? activeWallpaper.cssAnimationDark
+        : activeWallpaper.cssAnimation;
+    if (cssText) {
+      return {
+        baseCss,
+        overlayCss,
+        animatedCss: { id: activeWallpaper.id, cssText },
+      };
+    }
+  }
+
+  if (!isGnomeOrCustom && activeWallpaper.kind === "html") {
+    const srcDoc =
+      resolvedTheme === "dark" && activeWallpaper.htmlSrcDocDark
+        ? activeWallpaper.htmlSrcDocDark
+        : activeWallpaper.htmlSrcDoc;
+    if (srcDoc) {
+      return {
+        baseCss,
+        overlayCss,
+        htmlLayer: { srcDoc },
+      };
+    }
+  }
 
   const styleKey = gnomeBackground.pictureOptions;
   const effectiveSrc =
@@ -409,6 +517,14 @@ export function resolveBackgroundRenderSpec(options: {
 
   if (styleKey === "none" || !effectiveSrc) {
     return { baseCss, overlayCss };
+  }
+
+  if (/\.html?(?:$|[?#])/i.test(activePicture || effectiveSrc)) {
+    return {
+      baseCss,
+      overlayCss,
+      htmlLayer: { src: effectiveSrc },
+    };
   }
 
   const styleCss = PICTURE_STYLE_CSS[styleKey] ?? PICTURE_STYLE_CSS.zoom;

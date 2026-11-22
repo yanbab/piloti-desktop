@@ -120,9 +120,29 @@ export function ControlPanel() {
       }}
       className="flex max-h-[calc(100vh-52px)] w-full flex-col gap-3 overflow-hidden"
     >
-      {/* Top Header: Date & Settings Shortcut */}
+      {/* Top Header: Settings Shortcut + Date & Quick Actions */}
       <div className="flex items-center justify-between px-1">
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            title={_("Open System Settings (Shift+Click) or Desktop Settings")}
+            onClick={(e) => {
+              console.info(
+                "[Piloti] control-panel: open settings",
+                e.shiftKey ? "gnome" : "desktop"
+              );
+              captureLaunchOriginFromElement(e.currentTarget);
+              setControlPanelOpen(false);
+              if (e.shiftKey) {
+                openGnomeSettings();
+              } else {
+                launchApp("settings");
+              }
+            }}
+            className="flex size-7 items-center justify-center rounded-full bg-black/8 text-adw-label active:bg-black/16 dark:bg-white/10 dark:active:bg-white/22"
+          >
+            <SettingsIcon className="size-3.5" />
+          </button>
           <span className="text-[12px] font-semibold text-adw-label-secondary">
             {new Date().toLocaleDateString(
               getLocale() === "fr" ? "fr-FR" : "en-US",
@@ -167,26 +187,6 @@ export function ControlPanel() {
             className="flex size-7 items-center justify-center rounded-full bg-black/8 text-adw-label active:bg-black/16 dark:bg-white/10 dark:active:bg-white/22"
           >
             <MicIcon className="size-3.5" />
-          </button>
-          <button
-            type="button"
-            title={_("Open System Settings (Shift+Click) or Desktop Settings")}
-            onClick={(e) => {
-              console.info(
-                "[Piloti] control-panel: open settings",
-                e.shiftKey ? "gnome" : "desktop"
-              );
-              captureLaunchOriginFromElement(e.currentTarget);
-              setControlPanelOpen(false);
-              if (e.shiftKey) {
-                openGnomeSettings();
-              } else {
-                launchApp("settings");
-              }
-            }}
-            className="flex size-7 items-center justify-center rounded-full bg-black/8 text-adw-label active:bg-black/16 dark:bg-white/10 dark:active:bg-white/22"
-          >
-            <SettingsIcon className="size-3.5" />
           </button>
         </div>
       </div>
@@ -679,12 +679,14 @@ export function ControlPanel() {
           <div className="flex items-center gap-1">
             {notifications.length > 0 && (
               <Button
-                size="sm"
+                size="icon"
                 variant="secondary"
-                className="h-5 px-2 text-[10px]"
+                aria-label={_("Clear")}
+                title={_("Clear")}
+                className="rounded-full"
                 onClick={clearAllNotifications}
               >
-                {_("Clear")}
+                <XIcon className="size-3.5" />
               </Button>
             )}
           </div>

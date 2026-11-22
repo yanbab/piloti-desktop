@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <style>
+      html, body {
+        margin: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: radial-gradient(80% 70% at 70% 80%, rgba(33, 144, 164, 0.25), transparent 65%),
+                    linear-gradient(175deg, #050811 0%, #0b1426 68%, #0e1c33 100%);
+      }
+      canvas {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="c"></canvas>
+    <script>
+      const canvas = document.getElementById("c");
+      const ctx = canvas.getContext("2d");
+      const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      const dots = Array.from({ length: 36 }, (_, i) => ({
+        x: (i * 0.6180339887) % 1,
+        y: (i * 0.3819660113) % 1,
+        r: 1 + (i % 3) * 0.65,
+        speed: 0.008 + (i % 5) * 0.004,
+        phase: i * 0.7,
+      }));
+      function resize() {
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        canvas.width = Math.max(1, Math.floor(window.innerWidth * dpr));
+        canvas.height = Math.max(1, Math.floor(window.innerHeight * dpr));
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
+      resize();
+      window.addEventListener("resize", resize);
+      function draw(ts) {
+        const t = ts * 0.001;
+        const w = window.innerWidth;
+        const h = window.innerHeight;
+        ctx.clearRect(0, 0, w, h);
+        for (const d of dots) {
+          const px = ((d.x + (reduced ? 0 : t * d.speed * 0.2)) % 1) * w;
+          const py = ((d.y - (reduced ? 0 : t * d.speed * 0.12) + 1) % 1) * h;
+          const alpha = 0.2 + 0.28 * Math.sin(d.phase + (reduced ? 0 : t * 0.9));
+          ctx.fillStyle = `rgba(186, 230, 253, ${alpha.toFixed(3)})`;
+          ctx.beginPath();
+          ctx.arc(px, py, d.r, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        if (!reduced) requestAnimationFrame(draw);
+      }
+      requestAnimationFrame(draw);
+    </script>
+  </body>
+</html>
+

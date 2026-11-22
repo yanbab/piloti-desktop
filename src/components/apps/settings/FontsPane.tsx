@@ -300,11 +300,6 @@ export function FontsPane() {
       "Regular"
   );
 
-  const translatedStyleOptions = FONT_STYLE_OPTIONS.map((opt) => ({
-    value: opt.value,
-    label: _(opt.label),
-  }));
-
   const translatedRenderingOptions = RENDERING_STYLE_OPTIONS.map((opt) => ({
     value: opt.value,
     label: _(opt.label),
@@ -355,33 +350,6 @@ export function FontsPane() {
             </GroupedFormRowControl>
           </GroupedFormRow>
 
-          <GroupedFormRow>
-            <GroupedFormRowLabel>
-              <GroupedFormRowTitle>{_("Style")}</GroupedFormRowTitle>
-            </GroupedFormRowLabel>
-            <GroupedFormRowControl>
-              <Select
-                value={settings.fontSansStyle}
-                items={translatedStyleOptions}
-                onValueChange={(val) => {
-                  if (val) {
-                    updateSettings({ fontSansStyle: val as CssFontStyle });
-                  }
-                }}
-              >
-                <SelectTrigger variant="borderless">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {translatedStyleOptions.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </GroupedFormRowControl>
-          </GroupedFormRow>
           <GroupedFormRow>
             <GroupedFormRowLabel>
               <GroupedFormRowTitle>{_("Rendering")}</GroupedFormRowTitle>

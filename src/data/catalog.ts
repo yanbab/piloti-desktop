@@ -34,8 +34,16 @@ export interface WallpaperOption {
   subtitle: string;
   category: "Dynamic" | "Pictures" | "Minimal" | "Solid";
   backgroundCss: string;
+  backgroundCssDark?: string;
   overlayCss?: string;
   imageUrl?: string;
+  imageUrlDark?: string;
+  kind?: "static" | "css" | "html";
+  cssAnimation?: string;
+  cssAnimationDark?: string;
+  htmlSrcDoc?: string;
+  htmlSrcDocDark?: string;
+  pluginId?: string;
 }
 
 export function resolveDynamicWallpaperCss(
@@ -95,6 +103,16 @@ export const WALLPAPERS: WallpaperOption[] = [
     category: "Minimal",
     backgroundCss:
       "radial-gradient(90% 85% at 84% 86%, rgba(255,255,255,0.08) 0%, transparent 60%), linear-gradient(175deg, #09090b 0%, #121215 65%, #18181b 100%)",
+  },
+  {
+    id: "piloti-waves",
+    name: "Piloti Waves",
+    subtitle: "Light & Dark Adaptive",
+    category: "Pictures",
+    backgroundCss: "#cde4fa",
+    backgroundCssDark: "#0b1526",
+    imageUrl: "file:///usr/share/backgrounds/piloti/piloti-waves-l.svg",
+    imageUrlDark: "file:///usr/share/backgrounds/piloti/piloti-waves-d.svg",
   },
   // Curated Unsplash Pictures
   {

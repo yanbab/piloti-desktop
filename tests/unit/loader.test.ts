@@ -99,5 +99,37 @@ describe("discoverPlugins", () => {
     expect(custom?.commands.length).toBe(1);
     expect(custom?.enabled).toBe(true);
   });
+
+  test("discovers declarative animated wallpapers in plugin manifests", async () => {
+    const files = createMockFiles({
+      ".config/piloti/plugins/aurora/manifest.json": JSON.stringify({
+        id: "aurora",
+        name: "Aurora",
+        wallpapers: [
+          {
+            id: "aurora-wp",
+            name: "Aurora",
+            type: "css",
+            style: "wallpaper.css",
+            darkStyle: "wallpaper-dark.css",
+          },
+        ],
+      }),
+      ".config/piloti/plugins/aurora/wallpaper.css": ".piloti-wp-anim {}",
+      ".config/piloti/plugins/aurora/wallpaper-dark.css": ".piloti-wp-anim {}",
+    });
+
+    const list = await discoverPlugins(files, ["aurora"]);
+    expect(list).toHaveLength(1);
+    expect(list[0]?.wallpapers).toEqual([
+      {
+        id: "aurora-wp",
+        name: "Aurora",
+        type: "css",
+        style: ".config/piloti/plugins/aurora/wallpaper.css",
+        darkStyle: ".config/piloti/plugins/aurora/wallpaper-dark.css",
+      },
+    ]);
+  });
 });
 

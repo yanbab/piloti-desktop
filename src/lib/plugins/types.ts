@@ -9,6 +9,20 @@ export interface PluginCommandManifest {
   appId?: string;
 }
 
+export interface PluginWallpaperManifest {
+  id: string;
+  name: string;
+  subtitle?: string;
+  type?: "css" | "html" | "image";
+  style?: string;
+  darkStyle?: string;
+  html?: string;
+  darkHtml?: string;
+  image?: string;
+  darkImage?: string;
+  backgroundCss?: string;
+}
+
 export interface PluginManifest {
   id?: string;
   name?: string;
@@ -21,6 +35,7 @@ export interface PluginManifest {
   script?: string;
   main?: string;
   commands?: PluginCommandManifest[];
+  wallpapers?: PluginWallpaperManifest[];
 }
 
 export interface DiscoveredPlugin {
@@ -37,8 +52,29 @@ export interface DiscoveredPlugin {
   scriptPath?: string;
   hasManifest: boolean;
   commands: PluginCommandManifest[];
+  wallpapers?: PluginWallpaperManifest[];
   enabled: boolean;
   error?: string;
+}
+
+export interface PluginWallpaperInput {
+  id: string;
+  name: string;
+  subtitle?: string;
+  kind?: "static" | "css" | "html";
+  backgroundCss?: string;
+  backgroundCssDark?: string;
+  cssAnimation?: string;
+  cssAnimationDark?: string;
+  htmlSrcDoc?: string;
+  htmlSrcDocDark?: string;
+  imageUrl?: string;
+  imageUrlDark?: string;
+}
+
+export interface PluginWallpaperEntry extends PluginWallpaperInput {
+  pluginId: string;
+  fullId: string;
 }
 
 export interface MenuBarStatusItemInput {
@@ -90,6 +126,9 @@ export interface PilotiPluginContext {
   };
   commands: {
     register: (cmd: Omit<PluginCommandEntry, "pluginId">) => () => void;
+  };
+  wallpapers: {
+    register: (wallpaper: PluginWallpaperInput) => () => void;
   };
   windows: {
     openWebUrl: (url: string, title?: string) => void;

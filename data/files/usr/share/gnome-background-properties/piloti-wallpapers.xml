@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE wallpapers SYSTEM "gnome-wp-list.dtd">
+<wallpapers>
+  <wallpaper deleted="false">
+    <name>Piloti Waves</name>
+    <filename>/usr/share/backgrounds/piloti/piloti-waves-l.svg</filename>
+    <filename-dark>/usr/share/backgrounds/piloti/piloti-waves-d.svg</filename-dark>
+    <options>zoom</options>
+    <shade_type>solid</shade_type>
+    <pcolor>#1a5fb4</pcolor>
+    <scolor>#0c1424</scolor>
+  </wallpaper>
+</wallpapers>
+

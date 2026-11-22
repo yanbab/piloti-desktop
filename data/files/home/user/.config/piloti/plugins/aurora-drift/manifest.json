@@ -1,0 +1,18 @@
+{
+  "id": "aurora-drift",
+  "name": "Aurora Drift Wallpaper",
+  "version": "1.0.0",
+  "description": "Subtle CSS-animated gradient wallpaper plugin for Settings → Wallpaper",
+  "wallpapers": [
+    {
+      "id": "aurora-drift",
+      "name": "Aurora Drift",
+      "subtitle": "Subtle CSS animated glow",
+      "type": "css",
+      "style": "wallpaper.css",
+      "darkStyle": "wallpaper-dark.css",
+      "backgroundCss": "linear-gradient(160deg, #dbeafe 0%, #e0f2fe 55%, #ccfbf1 100%)"
+    }
+  ]
+}
+

@@ -28,6 +28,7 @@ import type {
   MenuBarStatusItemInput,
   PilotiPluginContext,
   PluginCommandEntry,
+  PluginWallpaperEntry,
 } from "@/lib/plugins/types";
 
 interface PluginsContextValue {
@@ -35,6 +36,7 @@ interface PluginsContextValue {
   statusItems: MenuBarStatusItem[];
   pluginCommands: PluginCommandEntry[];
   launcherProviders: LauncherProvider[];
+  pluginWallpapers: PluginWallpaperEntry[];
   safeMode: boolean;
   loading: boolean;
   togglePlugin: (id: string, enabled?: boolean) => void;
@@ -83,6 +85,9 @@ export function PluginsProvider({
   >([]);
   const [launcherProviders, setLauncherProviders] = React.useState<
     LauncherProvider[]
+  >([]);
+  const [pluginWallpapers, setPluginWallpapers] = React.useState<
+    PluginWallpaperEntry[]
   >([]);
   const [loading, setLoading] = React.useState(false);
 
@@ -185,6 +190,9 @@ export function PluginsProvider({
     setLauncherProviders((prev) =>
       prev.filter((prov) => prov.pluginId !== pluginId)
     );
+    setPluginWallpapers((prev) =>
+      prev.filter((wp) => wp.pluginId !== pluginId)
+    );
     activeSignatureRef.current.delete(pluginId);
   }, []);
 
@@ -254,6 +262,27 @@ export function PluginsProvider({
                 prev.filter(
                   (c) => !(c.pluginId === pluginId && c.id === cmd.id)
                 )
+              );
+            };
+            disposables.push(remove);
+            return remove;
+          },
+        },
+        wallpapers: {
+          register: (wp) => {
+            const fullId = wp.id.includes(":") ? wp.id : `${pluginId}:${wp.id}`;
+            const entry: PluginWallpaperEntry = {
+              ...wp,
+              pluginId,
+              fullId,
+            };
+            setPluginWallpapers((prev) => [
+              ...prev.filter((w) => w.fullId !== fullId),
+              entry,
+            ]);
+            const remove = () => {
+              setPluginWallpapers((prev) =>
+                prev.filter((w) => w.fullId !== fullId)
               );
             };
             disposables.push(remove);
@@ -394,6 +423,50 @@ export function PluginsProvider({
           });
         }
 
+        if (plugin.wallpapers && plugin.wallpapers.length > 0) {
+          const readOpt = async (rel?: string) => {
+            if (!rel) return undefined;
+            const res = await domicile.files.readText(rel);
+            return res.match({ Ok: (t) => t, Err: () => undefined });
+          };
+          for (const wp of plugin.wallpapers) {
+            const [cssAnimation, cssAnimationDark, htmlSrcDoc, htmlSrcDocDark] =
+              await Promise.all([
+                readOpt(wp.style),
+                readOpt(wp.darkStyle),
+                readOpt(wp.html),
+                readOpt(wp.darkHtml),
+              ]);
+            const kind =
+              wp.type === "html" || htmlSrcDoc || htmlSrcDocDark
+                ? "html"
+                : wp.type === "css" || cssAnimation || cssAnimationDark
+                  ? "css"
+                  : "static";
+            ctx.wallpapers.register({
+              id: wp.id,
+              name: wp.name,
+              subtitle: wp.subtitle,
+              kind,
+              backgroundCss:
+                wp.backgroundCss ??
+                "linear-gradient(175deg, #050811 0%, #0c1424 100%)",
+              ...(cssAnimation ? { cssAnimation } : {}),
+              ...(cssAnimationDark ? { cssAnimationDark } : {}),
+              ...(htmlSrcDoc ? { htmlSrcDoc } : {}),
+              ...(htmlSrcDocDark ? { htmlSrcDocDark } : {}),
+              ...(wp.image
+                ? { imageUrl: `file:///home/user/${wp.image.replace(/^\/+/, "")}` }
+                : {}),
+              ...(wp.darkImage
+                ? {
+                    imageUrlDark: `file:///home/user/${wp.darkImage.replace(/^\/+/, "")}`,
+                  }
+                : {}),
+            });
+          }
+        }
+
         if (plugin.scriptPath && !safeMode) {
           const res = await domicile.files.readText(plugin.scriptPath);
           const scriptText = res.match({
@@ -407,7 +480,7 @@ export function PluginsProvider({
 
         activeSignatureRef.current.set(
           plugin.id,
-          `${plugin.stylePath ?? ""}|${plugin.scriptPath ?? ""}|${plugin.commands.length}`
+          `${plugin.stylePath ?? ""}|${plugin.scriptPath ?? ""}|${plugin.commands.length}|${plugin.wallpapers?.length ?? 0}`
         );
         return undefined;
       } catch (err) {
@@ -442,7 +515,7 @@ export function PluginsProvider({
             withErrors.push(plugin);
             continue;
           }
-          const sig = `${plugin.stylePath ?? ""}|${plugin.scriptPath ?? ""}|${plugin.commands.length}`;
+          const sig = `${plugin.stylePath ?? ""}|${plugin.scriptPath ?? ""}|${plugin.commands.length}|${plugin.wallpapers?.length ?? 0}`;
           const alreadyLoaded =
             activeSignatureRef.current.get(plugin.id) === sig &&
             forceReloadId !== plugin.id;
@@ -568,6 +641,7 @@ export function PluginsProvider({
       statusItems,
       pluginCommands,
       launcherProviders,
+      pluginWallpapers,
       safeMode,
       loading,
       togglePlugin,
@@ -580,6 +654,7 @@ export function PluginsProvider({
       launcherProviders,
       loading,
       pluginCommands,
+      pluginWallpapers,
       plugins,
       refreshPlugins,
       reloadPlugin,

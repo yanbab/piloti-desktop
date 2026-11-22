@@ -1,0 +1,29 @@
+{
+  "id": "piloti-showcase",
+  "name": "Piloti Showcase Plugin",
+  "version": "1.0.0",
+  "description": "Complete example: menubar indicator, launcher provider, commands, HTML/CSS wallpapers, and shell/GTK styles",
+  "style": "style.css",
+  "gtk4Style": "gtk4.css",
+  "gtk3Style": "gtk3.css",
+  "script": "index.js",
+  "commands": [
+    {
+      "id": "open-wallpaper-settings",
+      "title": "Showcase: Open Desktop Settings",
+      "keywords": "showcase settings wallpaper theme",
+      "appId": "settings"
+    }
+  ],
+  "wallpapers": [
+    {
+      "id": "showcase-starlight-html",
+      "name": "Starlight Drift (HTML)",
+      "subtitle": "Subtle HTML canvas live wallpaper",
+      "type": "html",
+      "html": "wallpaper.html",
+      "backgroundCss": "linear-gradient(175deg, #060913 0%, #0d172a 100%)"
+    }
+  ]
+}
+

@@ -10,6 +10,7 @@ import {
   normalizeBackgroundPictureUri,
   normalizeGnomeColor,
   parseGnomeBackgroundKeyVal,
+  parseGnomeBackgroundPropertiesXml,
   parseGnomeBackgroundXml,
   resolveBackgroundRenderSpec,
   selectGnomePictureUri,
@@ -199,6 +200,64 @@ describe("GNOME background spec helpers", () => {
     expect(legacyCustom.gnomeBackground.pictureUri).toBe(
       "https://example.com/bg.webp"
     );
+  });
+
+  test("parses gnome-background-properties XML and resolves CSS/HTML animated wallpapers", () => {
+    const propsXml = `<?xml version="1.0" encoding="UTF-8"?>
+<wallpapers>
+  <wallpaper deleted="false">
+    <name>Piloti Waves</name>
+    <filename>/usr/share/backgrounds/piloti/piloti-waves-l.svg</filename>
+    <filename-dark>/usr/share/backgrounds/piloti/piloti-waves-d.svg</filename-dark>
+    <options>zoom</options>
+  </wallpaper>
+</wallpapers>`;
+    expect(parseGnomeBackgroundPropertiesXml(propsXml)).toEqual([
+      {
+        name: "Piloti Waves",
+        filename: "/usr/share/backgrounds/piloti/piloti-waves-l.svg",
+        filenameDark: "/usr/share/backgrounds/piloti/piloti-waves-d.svg",
+        options: "zoom",
+      },
+    ]);
+
+    const cssSpec = resolveBackgroundRenderSpec({
+      wallpaperId: "aurora-drift",
+      gnomeBackground: DEFAULT_GNOME_BACKGROUND,
+      activeWallpaper: {
+        id: "aurora-drift",
+        name: "Aurora Drift",
+        subtitle: "Animated",
+        category: "Dynamic",
+        backgroundCss: "#dbeafe",
+        kind: "css",
+        cssAnimation: ".piloti-wp-anim { opacity: 0.9; }",
+        cssAnimationDark: ".piloti-wp-anim { opacity: 0.7; }",
+      },
+      resolvedTheme: "dark",
+    });
+    expect(cssSpec.animatedCss).toEqual({
+      id: "aurora-drift",
+      cssText: ".piloti-wp-anim { opacity: 0.7; }",
+    });
+
+    const htmlSpec = resolveBackgroundRenderSpec({
+      wallpaperId: "showcase-starlight",
+      gnomeBackground: DEFAULT_GNOME_BACKGROUND,
+      activeWallpaper: {
+        id: "showcase-starlight",
+        name: "Starlight",
+        subtitle: "HTML",
+        category: "Dynamic",
+        backgroundCss: "#050811",
+        kind: "html",
+        htmlSrcDoc: "<html><body>stars</body></html>",
+      },
+      resolvedTheme: "light",
+    });
+    expect(htmlSpec.htmlLayer).toEqual({
+      srcDoc: "<html><body>stars</body></html>",
+    });
   });
 });
 

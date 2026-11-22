@@ -7,6 +7,8 @@ export const DEFAULT_HOME_DIRS: readonly string[] = [
   "/home/user/.config/domicile",
   "/home/user/.config/piloti",
   "/home/user/.config/piloti/plugins",
+  "/home/user/.config/piloti/plugins/aurora-drift",
+  "/home/user/.config/piloti/plugins/piloti-showcase",
   "/home/user/.local",
   "/home/user/.local/share",
   "/home/user/.local/share/applications",
@@ -24,6 +26,15 @@ export const DEFAULT_HOME_DIRS: readonly string[] = [
 
 export const DEFAULT_HOME_FILES: Record<string, string> = {
   "/home/user/.config/mimeapps.list": "[Default Applications]\ninode/directory=nautilus.desktop\ntext/plain=text-editor.desktop\ntext/markdown=text-editor.desktop\ntext/html=browser.desktop\napplication/json=text-editor.desktop\nimage/png=image-viewer.desktop\nimage/jpeg=image-viewer.desktop\nimage/webp=image-viewer.desktop\nimage/gif=image-viewer.desktop\nimage/svg+xml=image-viewer.desktop\n\n[Added Associations]\ninode/directory=nautilus.desktop;terminal.desktop;\ntext/plain=text-editor.desktop;terminal.desktop;\ntext/markdown=text-editor.desktop;browser.desktop;\ntext/html=browser.desktop;text-editor.desktop;\ntext/*=text-editor.desktop;terminal.desktop;\napplication/json=text-editor.desktop;console.desktop;\nimage/*=image-viewer.desktop;browser.desktop;\n",
+  "/home/user/.config/piloti/plugins/aurora-drift/manifest.json": "{\n  \"id\": \"aurora-drift\",\n  \"name\": \"Aurora Drift Wallpaper\",\n  \"version\": \"1.0.0\",\n  \"description\": \"Subtle CSS-animated gradient wallpaper plugin for Settings → Wallpaper\",\n  \"wallpapers\": [\n    {\n      \"id\": \"aurora-drift\",\n      \"name\": \"Aurora Drift\",\n      \"subtitle\": \"Subtle CSS animated glow\",\n      \"type\": \"css\",\n      \"style\": \"wallpaper.css\",\n      \"darkStyle\": \"wallpaper-dark.css\",\n      \"backgroundCss\": \"linear-gradient(160deg, #dbeafe 0%, #e0f2fe 55%, #ccfbf1 100%)\"\n    }\n  ]\n}\n",
+  "/home/user/.config/piloti/plugins/aurora-drift/wallpaper-dark.css": "@keyframes piloti-aurora-drift-dark {\n  0%, 100% {\n    background-position: 10% 30%, 90% 70%;\n    filter: hue-rotate(0deg);\n  }\n  50% {\n    background-position: 45% 65%, 55% 35%;\n    filter: hue-rotate(14deg);\n  }\n}\n\n.piloti-wp-anim {\n  background-color: #050811;\n  background-image:\n    radial-gradient(66% 58% at 25% 35%, rgba(33, 144, 164, 0.44) 0%, transparent 64%),\n    radial-gradient(62% 56% at 76% 74%, rgba(59, 130, 246, 0.36) 0%, transparent 66%);\n  background-size: 145% 145%, 145% 145%;\n  animation: piloti-aurora-drift-dark 22s ease-in-out infinite;\n}\n",
+  "/home/user/.config/piloti/plugins/aurora-drift/wallpaper.css": "@keyframes piloti-aurora-drift-light {\n  0%, 100% {\n    background-position: 0% 40%, 100% 60%;\n    filter: hue-rotate(0deg);\n  }\n  50% {\n    background-position: 35% 65%, 65% 30%;\n    filter: hue-rotate(12deg);\n  }\n}\n\n.piloti-wp-anim {\n  background-color: #dbeafe;\n  background-image:\n    radial-gradient(68% 62% at 24% 32%, rgba(56, 189, 248, 0.42) 0%, transparent 65%),\n    radial-gradient(62% 58% at 78% 72%, rgba(45, 212, 191, 0.36) 0%, transparent 68%);\n  background-size: 140% 140%, 140% 140%;\n  animation: piloti-aurora-drift-light 22s ease-in-out infinite;\n}\n",
+  "/home/user/.config/piloti/plugins/piloti-showcase/gtk3.css": "/* Piloti Showcase GTK 3 style snippet */\nheaderbar {\n  border-bottom: 1px solid alpha(#2190a4, 0.25);\n}\n",
+  "/home/user/.config/piloti/plugins/piloti-showcase/gtk4.css": "/* Piloti Showcase GTK 4 style snippet */\nheaderbar {\n  box-shadow: inset 0 -1px 0 alpha(@accent_color, 0.25);\n}\n",
+  "/home/user/.config/piloti/plugins/piloti-showcase/index.js": "// Piloti Showcase Plugin — demonstrates the full PilotiPluginContext API\nexport function activate(ctx) {\n  let notesCount = Number(ctx.storage.get(\"focusCount\") ?? 0);\n\n  // 1. Menubar Status Item with persisted click counter & notification\n  const status = ctx.menubar.addStatusItem({\n    id: \"focus-counter\",\n    label: `✦ ${notesCount}`,\n    tooltip: \"Piloti Showcase Plugin — click to increment focus check-in\",\n    onClick() {\n      notesCount += 1;\n      ctx.storage.set(\"focusCount\", notesCount);\n      status.update({ label: `✦ ${notesCount}` });\n      ctx.notifications.push({\n        summary: \"Showcase Check-in\",\n        body: `Recorded ${notesCount} focus session(s).`,\n      });\n    },\n  });\n\n  // 2. Programmatic CSS Animated Wallpaper registration\n  ctx.wallpapers.register({\n    id: \"showcase-teal-pulse\",\n    name: \"Teal Pulse (JS Plugin)\",\n    subtitle: \"Programmatic CSS animated wallpaper\",\n    kind: \"css\",\n    backgroundCss: \"linear-gradient(160deg, #07131a 0%, #0d2b36 100%)\",\n    cssAnimation: `\n      @keyframes piloti-showcase-pulse {\n        0%, 100% { transform: scale(1) translate3d(0, 0, 0); opacity: 0.72; }\n        50% { transform: scale(1.08) translate3d(2%, -2%, 0); opacity: 1; }\n      }\n      .piloti-wp-anim {\n        background:\n          radial-gradient(65% 60% at 30% 35%, rgba(33, 144, 164, 0.45) 0%, transparent 65%),\n          radial-gradient(60% 55% at 75% 75%, rgba(53, 132, 228, 0.35) 0%, transparent 70%),\n          linear-gradient(170deg, #050b14 0%, #091c28 100%);\n        animation: piloti-showcase-pulse 16s ease-in-out infinite;\n      }\n    `,\n  });\n\n  // 3. Custom Launcher Search Provider\n  ctx.launcher.registerProvider({\n    id: \"showcase-tools\",\n    search(query) {\n      const q = query.trim().toLowerCase();\n      if (!q) return [];\n      const items = [\n        {\n          id: \"inc\",\n          title: `Showcase: Check-in (${notesCount})`,\n          subtitle: \"Increment showcase counter and notify\",\n          keywords: \"showcase check-in focus counter plugin\",\n        },\n        {\n          id: \"files\",\n          title: \"Showcase: Browse Plugins Folder\",\n          subtitle: \"~/.config/piloti/plugins\",\n          keywords: \"showcase plugins folder browse\",\n        },\n      ];\n      return items.filter(\n        (item) =>\n          item.title.toLowerCase().includes(q) ||\n          item.keywords.toLowerCase().includes(q)\n      );\n    },\n    onSelect(item) {\n      if (item.id === \"inc\") {\n        notesCount += 1;\n        ctx.storage.set(\"focusCount\", notesCount);\n        status.update({ label: `✦ ${notesCount}` });\n        ctx.notifications.push({\n          summary: \"Showcase Check-in\",\n          body: `Total check-ins: ${notesCount}`,\n        });\n      } else if (item.id === \"files\") {\n        ctx.windows.launchApp(\"nautilus\");\n      }\n    },\n  });\n\n  // 4. Command Palette Entry\n  ctx.commands.register({\n    id: \"reset-counter\",\n    title: \"Showcase: Reset Check-in Counter\",\n    keywords: \"showcase reset counter plugin\",\n    run() {\n      notesCount = 0;\n      ctx.storage.set(\"focusCount\", 0);\n      status.update({ label: \"✦ 0\" });\n      ctx.notifications.push({\n        summary: \"Showcase Reset\",\n        body: \"Focus check-in counter reset to 0.\",\n      });\n    },\n  });\n\n  // 5. Periodic subtle clock/heartbeat timer cleaned up automatically\n  const timer = setInterval(() => {\n    status.update({\n      tooltip: `Piloti Showcase (${notesCount} check-ins) · ${new Date().toLocaleTimeString()}`,\n    });\n  }, 60_000);\n\n  ctx.onCleanup(() => {\n    clearInterval(timer);\n  });\n}\n\nexport function deactivate() {\n  // Optional teardown hook when disabled or reloaded\n}\n",
+  "/home/user/.config/piloti/plugins/piloti-showcase/manifest.json": "{\n  \"id\": \"piloti-showcase\",\n  \"name\": \"Piloti Showcase Plugin\",\n  \"version\": \"1.0.0\",\n  \"description\": \"Complete example: menubar indicator, launcher provider, commands, HTML/CSS wallpapers, and shell/GTK styles\",\n  \"style\": \"style.css\",\n  \"gtk4Style\": \"gtk4.css\",\n  \"gtk3Style\": \"gtk3.css\",\n  \"script\": \"index.js\",\n  \"commands\": [\n    {\n      \"id\": \"open-wallpaper-settings\",\n      \"title\": \"Showcase: Open Desktop Settings\",\n      \"keywords\": \"showcase settings wallpaper theme\",\n      \"appId\": \"settings\"\n    }\n  ],\n  \"wallpapers\": [\n    {\n      \"id\": \"showcase-starlight-html\",\n      \"name\": \"Starlight Drift (HTML)\",\n      \"subtitle\": \"Subtle HTML canvas live wallpaper\",\n      \"type\": \"html\",\n      \"html\": \"wallpaper.html\",\n      \"backgroundCss\": \"linear-gradient(175deg, #060913 0%, #0d172a 100%)\"\n    }\n  ]\n}\n",
+  "/home/user/.config/piloti/plugins/piloti-showcase/style.css": "/* Piloti Showcase CSS — subtle accent highlight on active menubar triggers */\n:root {\n  --piloti-showcase-badge-color: #2190a4;\n}\n\n[data-slot=\"menubar-trigger\"][data-popup-open] {\n  box-shadow: inset 0 -2px 0 var(--piloti-showcase-badge-color);\n}\n",
+  "/home/user/.config/piloti/plugins/piloti-showcase/wallpaper.html": "<!doctype html>\n<html lang=\"en\">\n  <head>\n    <meta charset=\"UTF-8\" />\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" />\n    <style>\n      html, body {\n        margin: 0;\n        width: 100%;\n        height: 100%;\n        overflow: hidden;\n        background: radial-gradient(80% 70% at 70% 80%, rgba(33, 144, 164, 0.25), transparent 65%),\n                    linear-gradient(175deg, #050811 0%, #0b1426 68%, #0e1c33 100%);\n      }\n      canvas {\n        display: block;\n        width: 100%;\n        height: 100%;\n      }\n    </style>\n  </head>\n  <body>\n    <canvas id=\"c\"></canvas>\n    <script>\n      const canvas = document.getElementById(\"c\");\n      const ctx = canvas.getContext(\"2d\");\n      const reduced = window.matchMedia(\"(prefers-reduced-motion: reduce)\").matches;\n      const dots = Array.from({ length: 36 }, (_, i) => ({\n        x: (i * 0.6180339887) % 1,\n        y: (i * 0.3819660113) % 1,\n        r: 1 + (i % 3) * 0.65,\n        speed: 0.008 + (i % 5) * 0.004,\n        phase: i * 0.7,\n      }));\n      function resize() {\n        const dpr = Math.min(window.devicePixelRatio || 1, 2);\n        canvas.width = Math.max(1, Math.floor(window.innerWidth * dpr));\n        canvas.height = Math.max(1, Math.floor(window.innerHeight * dpr));\n        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);\n      }\n      resize();\n      window.addEventListener(\"resize\", resize);\n      function draw(ts) {\n        const t = ts * 0.001;\n        const w = window.innerWidth;\n        const h = window.innerHeight;\n        ctx.clearRect(0, 0, w, h);\n        for (const d of dots) {\n          const px = ((d.x + (reduced ? 0 : t * d.speed * 0.2)) % 1) * w;\n          const py = ((d.y - (reduced ? 0 : t * d.speed * 0.12) + 1) % 1) * h;\n          const alpha = 0.2 + 0.28 * Math.sin(d.phase + (reduced ? 0 : t * 0.9));\n          ctx.fillStyle = `rgba(186, 230, 253, ${alpha.toFixed(3)})`;\n          ctx.beginPath();\n          ctx.arc(px, py, d.r, 0, Math.PI * 2);\n          ctx.fill();\n        }\n        if (!reduced) requestAnimationFrame(draw);\n      }\n      requestAnimationFrame(draw);\n    </script>\n  </body>\n</html>\n",
   "/home/user/.config/user-dirs.dirs": "# Written by xdg-user-dirs-update\nXDG_DESKTOP_DIR=\"$HOME/Desktop\"\nXDG_DOCUMENTS_DIR=\"$HOME/Documents\"\nXDG_DOWNLOAD_DIR=\"$HOME/Downloads\"\nXDG_MUSIC_DIR=\"$HOME/Music\"\nXDG_PICTURES_DIR=\"$HOME/Pictures\"\nXDG_VIDEOS_DIR=\"$HOME/Videos\"\nXDG_PUBLICSHARE_DIR=\"$HOME/Public\"\nXDG_TEMPLATES_DIR=\"$HOME/Templates\"\n",
   "/home/user/.local/share/applications/piloti-applications.desktop": "[Desktop Entry]\nType=Application\nName=Applications\nComment=Browse and install apps and web apps\nExec=piloti-applications\nIcon=system-software-install\nCategories=System;PackageManager;\n",
   "/home/user/.local/share/applications/piloti-calculator.desktop": "[Desktop Entry]\nType=Application\nName=Calculator\nComment=Basic & Scientific Calculator\nExec=piloti-calculator\nIcon=piloti-calculator\nCategories=Utility;Calculator;\n",
@@ -122,6 +133,28 @@ export const DEFAULT_STATIC_DIR_INDEX: Record<string, readonly { name: string; f
     },
     {
       "name": "piloti-shell.desktop",
+      "fileType": 0
+    }
+  ],
+  "/usr/share/backgrounds/piloti": [
+    {
+      "name": "piloti-waves-d.svg",
+      "fileType": 0
+    },
+    {
+      "name": "piloti-waves-l.svg",
+      "fileType": 0
+    }
+  ],
+  "/usr/share/backgrounds": [
+    {
+      "name": "piloti",
+      "fileType": 1
+    }
+  ],
+  "/usr/share/gnome-background-properties": [
+    {
+      "name": "piloti-wallpapers.xml",
       "fileType": 0
     }
   ],
@@ -401,6 +434,10 @@ export const DEFAULT_STATIC_DIR_INDEX: Record<string, readonly { name: string; f
     {
       "name": "utilities-terminal.svg",
       "fileType": 0
+    },
+    {
+      "name": "view-app-grid.svg",
+      "fileType": 0
     }
   ],
   "/usr/share/icons/Papirus/64x64/devices": [
@@ -637,6 +674,10 @@ export const DEFAULT_STATIC_DIR_INDEX: Record<string, readonly { name: string; f
     {
       "name": "piloti-shell.svg",
       "fileType": 0
+    },
+    {
+      "name": "view-app-grid.svg",
+      "fileType": 0
     }
   ],
   "/usr/share/icons/Piloti/scalable/mimetypes": [
@@ -706,6 +747,14 @@ export const DEFAULT_STATIC_DIR_INDEX: Record<string, readonly { name: string; f
   "/usr/share": [
     {
       "name": "applications",
+      "fileType": 1
+    },
+    {
+      "name": "backgrounds",
+      "fileType": 1
+    },
+    {
+      "name": "gnome-background-properties",
       "fileType": 1
     },
     {

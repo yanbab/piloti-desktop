@@ -4,6 +4,7 @@ import type {
   PilotiPluginContext,
   PluginCommandManifest,
   PluginManifest,
+  PluginWallpaperManifest,
 } from "./types";
 
 export const PLUGINS_REL_DIR = ".config/piloti/plugins";
@@ -167,7 +168,48 @@ export async function discoverPlugins(
         )
       : [];
 
-    if (!manifest && !stylePath && !gtk4StylePath && !gtk3StylePath && !scriptPath && !parseError) {
+    const wallpapers: PluginWallpaperManifest[] = Array.isArray(
+      manifest?.wallpapers
+    )
+      ? manifest.wallpapers
+          .filter(
+            (w): w is PluginWallpaperManifest =>
+              Boolean(
+                w && typeof w.id === "string" && typeof w.name === "string"
+              )
+          )
+          .map((w) => ({
+            ...w,
+            ...(w.style
+              ? { style: normalizeRelativeChild(entryPath, w.style) }
+              : {}),
+            ...(w.darkStyle
+              ? { darkStyle: normalizeRelativeChild(entryPath, w.darkStyle) }
+              : {}),
+            ...(w.html
+              ? { html: normalizeRelativeChild(entryPath, w.html) }
+              : {}),
+            ...(w.darkHtml
+              ? { darkHtml: normalizeRelativeChild(entryPath, w.darkHtml) }
+              : {}),
+            ...(w.image
+              ? { image: normalizeRelativeChild(entryPath, w.image) }
+              : {}),
+            ...(w.darkImage
+              ? { darkImage: normalizeRelativeChild(entryPath, w.darkImage) }
+              : {}),
+          }))
+      : [];
+
+    if (
+      !manifest &&
+      !stylePath &&
+      !gtk4StylePath &&
+      !gtk3StylePath &&
+      !scriptPath &&
+      wallpapers.length === 0 &&
+      !parseError
+    ) {
       continue;
     }
 
@@ -186,6 +228,7 @@ export async function discoverPlugins(
       scriptPath,
       hasManifest: manifest !== null,
       commands,
+      ...(wallpapers.length > 0 ? { wallpapers } : {}),
       enabled: enabledSet.has(id),
       error: parseError,
     });

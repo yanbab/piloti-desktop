@@ -1,0 +1,20 @@
+@keyframes piloti-aurora-drift-dark {
+  0%, 100% {
+    background-position: 10% 30%, 90% 70%;
+    filter: hue-rotate(0deg);
+  }
+  50% {
+    background-position: 45% 65%, 55% 35%;
+    filter: hue-rotate(14deg);
+  }
+}
+
+.piloti-wp-anim {
+  background-color: #050811;
+  background-image:
+    radial-gradient(66% 58% at 25% 35%, rgba(33, 144, 164, 0.44) 0%, transparent 64%),
+    radial-gradient(62% 56% at 76% 74%, rgba(59, 130, 246, 0.36) 0%, transparent 66%);
+  background-size: 145% 145%, 145% 145%;
+  animation: piloti-aurora-drift-dark 22s ease-in-out infinite;
+}
+

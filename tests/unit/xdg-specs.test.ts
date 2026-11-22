@@ -118,6 +118,9 @@ describe("XDG specifications (Autostart, Recents XBEL, Globs2/Magic)", () => {
     expect(lookupXdgIconPath(index, "user-trash-full", 64, 1)).toBe(
       "/usr/share/icons/Papirus/64x64/places/user-trash-full.svg"
     );
+    expect(lookupXdgIconPath(index, "view-app-grid", 64, 1)).toBe(
+      "/usr/share/icons/Piloti/scalable/apps/view-app-grid.svg"
+    );
     const dataUrl = await loadXdgIconDataUrl(reader as never, folderPath!);
     expect(dataUrl?.startsWith("data:application/json;base64,")).toBe(true);
 

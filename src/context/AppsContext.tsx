@@ -199,12 +199,12 @@ export interface AppsContextValue {
 export const AppsContext = React.createContext<AppsContextValue | null>(null);
 
 const APP_GRID_ICON_CANDIDATES: readonly string[] = [
-  "view-app-grid-symbolic",
   "view-app-grid",
-  "view-grid-symbolic",
-  "view-grid",
   "show-applications",
   "applications-all",
+  "view-app-grid-symbolic",
+  "view-grid-symbolic",
+  "view-grid",
 ];
 
 const SHELL_XDG_ICON_GROUPS: Record<string, readonly string[]> = {
@@ -348,7 +348,7 @@ async function resolveWithDirectAdwaitaFallback(
   return undefined;
 }
 
-const DOCK_ICONS_CACHE_KEY = "piloti.dock-icons.v15";
+const DOCK_ICONS_CACHE_KEY = "piloti.dock-icons.v16";
 
 interface DockIconsCachePayload {
   theme: string;
