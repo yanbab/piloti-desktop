@@ -162,6 +162,13 @@ let vfsCacheRaw: string | null = null;
 let vfsCacheEntries: WebVfsEntry[] | null = null;
 let vfsCacheByPath: Map<string, WebVfsEntry> | null = null;
 let vfsCacheInMemoryOnly = false;
+/** Cache freshness: false once another window/iframe wrote the VFS key. */
+let vfsCacheFresh = false;
+let vfsFlushTimer: ReturnType<typeof setTimeout> | null = null;
+let vfsFlushFirstPendingAt = 0;
+/** Paths changed since the last flush (null = unknown / everything). */
+let vfsPendingPaths: Set<string> | null = new Set();
+let vfsFlushPending = false;
 
 // --- Large content (media) is stored in IndexedDB so it never hits the localStorage quota ---
 const VFS_BLOB_THRESHOLD = 256 * 1024;
@@ -278,11 +285,18 @@ function loadVfs(): WebVfsEntry[] {
   if (vfsCacheInMemoryOnly && vfsCacheEntries) {
     return vfsCacheEntries;
   }
+  // Hot path: no other window has written since our last read/write, and our own
+  // pending changes live only in memory until the next flush.
+  if (vfsCacheEntries && (vfsCacheFresh || vfsFlushPending)) {
+    return vfsCacheEntries;
+  }
   try {
     const raw = localStorage.getItem(WEB_VFS_STORAGE_KEY);
+    vfsCacheFresh = true;
     if (raw !== null && raw === vfsCacheRaw && vfsCacheEntries) {
       return vfsCacheEntries;
     }
+    if (vfsCacheEntries) vfsPerf.reloads += 1;
     if (!raw) {
       const seeded = createInitialVfs();
       const json = JSON.stringify(seeded);
@@ -435,8 +449,101 @@ function loadVfs(): WebVfsEntry[] {
 }
 
 type VfsBroadcastMessage =
-  | { type: "vfs-changed" }
+  | { type: "vfs-changed"; paths?: readonly string[] }
   | { type: "vfs-renamed"; oldPath: string; newPath: string };
+
+/** Detail of `WEB_VFS_CHANGED_EVENT`; `paths` is absent when the change is unknown/global. */
+export interface WebVfsChangeDetail {
+  paths?: readonly string[];
+}
+
+/**
+ * How a subscriber watches the VFS:
+ * - `exact`: the path itself (or an ancestor being moved/removed).
+ * - `children`: the directory, its direct children, or an ancestor.
+ * - `subtree`: anything at or below the path, or an ancestor.
+ */
+export type VfsWatchMode = "exact" | "children" | "subtree";
+
+export interface VfsWatch {
+  path: string;
+  mode?: VfsWatchMode;
+}
+
+/**
+ * True when a change to `changedPaths` can affect `watch`. Unknown changes
+ * (`changedPaths` undefined) always match.
+ */
+export function vfsChangeAffects(
+  changedPaths: readonly string[] | undefined,
+  watches: VfsWatch | readonly VfsWatch[],
+): boolean {
+  if (!changedPaths) return true;
+  const list = Array.isArray(watches) ? watches : [watches as VfsWatch];
+  for (const watch of list) {
+    const target = normalizeVfsPath(watch.path);
+    const mode = watch.mode ?? "exact";
+    for (const raw of changedPaths) {
+      const changed = normalizeVfsPath(raw);
+      if (changed === target) return true;
+      // An ancestor of the watched path changed (moved, removed, renamed).
+      if (changed === "/" || target.startsWith(`${changed}/`)) return true;
+      if (mode === "children" && dirname(changed) === target) return true;
+      if (mode === "subtree" && (target === "/" || changed.startsWith(`${target}/`))) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+// --- Perf counters (shown in Console ▸ Infos) ---
+export interface WebVfsPerfStats {
+  /** In-memory VFS mutations (each `saveVfs`). */
+  writes: number;
+  /** Coalesced localStorage serializations. */
+  flushes: number;
+  lastFlushMs: number;
+  totalFlushMs: number;
+  /** Size of the last serialized VFS JSON (characters). */
+  lastJsonChars: number;
+  /** Listener invocations (delivered) vs. skipped by path filters. */
+  listenerCalls: number;
+  listenerSkips: number;
+  /** Full re-parses of localStorage after another window changed it. */
+  reloads: number;
+  startedAt: number;
+}
+
+const vfsPerf: WebVfsPerfStats = {
+  writes: 0,
+  flushes: 0,
+  lastFlushMs: 0,
+  totalFlushMs: 0,
+  lastJsonChars: 0,
+  listenerCalls: 0,
+  listenerSkips: 0,
+  reloads: 0,
+  startedAt: Date.now(),
+};
+
+export function getWebVfsPerfStats(): Readonly<WebVfsPerfStats> {
+  return { ...vfsPerf };
+}
+
+export function resetWebVfsPerfStats(): void {
+  Object.assign(vfsPerf, {
+    writes: 0,
+    flushes: 0,
+    lastFlushMs: 0,
+    totalFlushMs: 0,
+    lastJsonChars: 0,
+    listenerCalls: 0,
+    listenerSkips: 0,
+    reloads: 0,
+    startedAt: Date.now(),
+  });
+}
 
 let vfsBroadcastChannel: BroadcastChannel | null | undefined;
 function getVfsBroadcastChannel(): BroadcastChannel | null {
@@ -461,31 +568,103 @@ function postVfsBroadcast(msg: VfsBroadcastMessage): void {
   }
 }
 
-const inProcessVfsListeners = new Set<() => void>();
+const inProcessVfsListeners = new Set<(detail: WebVfsChangeDetail) => void>();
 
-function saveVfs(entries: WebVfsEntry[]): void {
-  let json: string | null = null;
-  if (typeof localStorage !== "undefined") {
-    try {
-      syncBlobStore(entries);
-      json = serializeVfsEntries(entries);
-      localStorage.setItem(WEB_VFS_STORAGE_KEY, json);
-      vfsCacheInMemoryOnly = false;
-    } catch {
-      // Quota exceeded: keep the updated VFS in memory for this session
-      json = null;
-      vfsCacheInMemoryOnly = true;
-    }
-  }
-  setVfsCache(entries, json);
+/** Notifies in-document subscribers immediately (reads already see the new cache). */
+function emitVfsChanged(paths: readonly string[] | undefined): void {
+  const detail: WebVfsChangeDetail = paths ? { paths: [...paths] } : {};
   if (typeof window !== "undefined") {
-    window.dispatchEvent(new CustomEvent(WEB_VFS_CHANGED_EVENT));
+    window.dispatchEvent(new CustomEvent<WebVfsChangeDetail>(WEB_VFS_CHANGED_EVENT, { detail }));
   } else {
     for (const listener of inProcessVfsListeners) {
-      listener();
+      listener(detail);
     }
   }
-  postVfsBroadcast({ type: "vfs-changed" });
+}
+
+// --- Coalesced persistence: memory first, localStorage on a trailing debounce ---
+const VFS_FLUSH_DELAY_MS = 250;
+const VFS_FLUSH_MAX_WAIT_MS = 1000;
+
+/** Writes pending in-memory VFS changes to localStorage now and tells other windows. */
+export function flushWebVfs(): void {
+  if (vfsFlushTimer !== null) {
+    clearTimeout(vfsFlushTimer);
+    vfsFlushTimer = null;
+  }
+  if (!vfsFlushPending) return;
+  vfsFlushPending = false;
+  const entries = vfsCacheEntries;
+  const paths = vfsPendingPaths ? [...vfsPendingPaths] : undefined;
+  vfsPendingPaths = new Set();
+  if (!entries || typeof localStorage === "undefined") return;
+  const started = typeof performance !== "undefined" ? performance.now() : Date.now();
+  try {
+    syncBlobStore(entries);
+    const json = serializeVfsEntries(entries);
+    localStorage.setItem(WEB_VFS_STORAGE_KEY, json);
+    vfsCacheRaw = json;
+    vfsCacheInMemoryOnly = false;
+    vfsPerf.lastJsonChars = json.length;
+  } catch {
+    // Quota exceeded: keep the updated VFS in memory for this session
+    vfsCacheRaw = null;
+    vfsCacheInMemoryOnly = true;
+  }
+  const elapsed = (typeof performance !== "undefined" ? performance.now() : Date.now()) - started;
+  vfsPerf.flushes += 1;
+  vfsPerf.lastFlushMs = elapsed;
+  vfsPerf.totalFlushMs += elapsed;
+  // Other windows/iframes re-read localStorage, so only announce once it is written.
+  postVfsBroadcast(paths ? { type: "vfs-changed", paths } : { type: "vfs-changed" });
+}
+
+function scheduleVfsFlush(): void {
+  const now = Date.now();
+  if (!vfsFlushPending) vfsFlushFirstPendingAt = now;
+  vfsFlushPending = true;
+  if (typeof setTimeout === "undefined" || typeof window === "undefined") {
+    flushWebVfs();
+    return;
+  }
+  if (vfsFlushTimer !== null) clearTimeout(vfsFlushTimer);
+  const waited = now - vfsFlushFirstPendingAt;
+  const delay = Math.max(0, Math.min(VFS_FLUSH_DELAY_MS, VFS_FLUSH_MAX_WAIT_MS - waited));
+  vfsFlushTimer = setTimeout(flushWebVfs, delay);
+}
+
+if (typeof window !== "undefined") {
+  window.addEventListener("pagehide", flushWebVfs);
+  window.addEventListener("beforeunload", flushWebVfs);
+  if (typeof document !== "undefined") {
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "hidden") flushWebVfs();
+    });
+  }
+  window.addEventListener("storage", (e) => {
+    if (e.key === null || e.key === WEB_VFS_STORAGE_KEY) vfsCacheFresh = false;
+  });
+  getVfsBroadcastChannel()?.addEventListener("message", (e: MessageEvent<VfsBroadcastMessage>) => {
+    if (e.data?.type === "vfs-changed" || e.data?.type === "vfs-renamed") vfsCacheFresh = false;
+  });
+}
+
+/**
+ * Commits a new VFS snapshot: memory cache now, subscribers now, localStorage
+ * shortly after (coalesced). `changedPaths` lets subscribers skip unrelated
+ * changes; omit it only for bulk/unknown changes.
+ */
+function saveVfs(entries: WebVfsEntry[], changedPaths?: readonly string[]): void {
+  vfsPerf.writes += 1;
+  setVfsCache(entries, vfsCacheRaw);
+  vfsCacheFresh = true;
+  if (changedPaths && vfsPendingPaths) {
+    for (const p of changedPaths) vfsPendingPaths.add(normalizeVfsPath(p));
+  } else {
+    vfsPendingPaths = null;
+  }
+  scheduleVfsFlush();
+  emitVfsChanged(changedPaths);
 }
 
 function uniqueChildName(
@@ -910,6 +1089,7 @@ export function loadVfsEmblemsMap(): Record<string, VfsEmblemId[]> {
 }
 
 function saveVfsEmblemsMap(map: Record<string, VfsEmblemId[]>, emit = true): void {
+  const emblemChangedPaths: string[] = [];
   if (typeof localStorage !== "undefined") {
     try {
       const cleaned: Record<string, VfsEmblemId[]> = {};
@@ -935,6 +1115,7 @@ function saveVfsEmblemsMap(map: Record<string, VfsEmblemId[]>, emit = true): voi
           JSON.stringify(gnomeEmblems ?? null);
         if (same) return entry;
         entriesChanged = true;
+        emblemChangedPaths.push(entry.path);
         if (!gnomeEmblems || gnomeEmblems.length === 0) {
           if (!entry.metadata) return entry;
           const restMeta = { ...entry.metadata };
@@ -953,7 +1134,11 @@ function saveVfsEmblemsMap(map: Record<string, VfsEmblemId[]>, emit = true): voi
         };
       });
       if (entriesChanged) {
-        localStorage.setItem(WEB_VFS_STORAGE_KEY, JSON.stringify(nextEntries));
+        // Memory first; the coalesced flush persists the VFS key.
+        setVfsCache(nextEntries, vfsCacheRaw);
+        vfsCacheFresh = true;
+        if (vfsPendingPaths) emblemChangedPaths.forEach((p) => vfsPendingPaths?.add(p));
+        scheduleVfsFlush();
       }
       localStorage.setItem(VFS_EMBLEMS_STORAGE_KEY, JSON.stringify(cleaned));
       localStorage.setItem(
@@ -964,8 +1149,8 @@ function saveVfsEmblemsMap(map: Record<string, VfsEmblemId[]>, emit = true): voi
       // ignore storage errors
     }
   }
-  if (emit && typeof window !== "undefined") {
-    window.dispatchEvent(new CustomEvent(WEB_VFS_CHANGED_EVENT));
+  if (emit) {
+    emitVfsChanged(emblemChangedPaths.length > 0 ? emblemChangedPaths : undefined);
   }
 }
 
