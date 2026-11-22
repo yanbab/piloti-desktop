@@ -16,6 +16,7 @@ import {
   isGnomeBackgroundConfigured,
 } from "@/lib/engine-native/gnome-background";
 import { startBootPhase } from "@/lib/core/perf-log";
+import { isAppNotificationAllowed } from "@/lib/core/app-permissions";
 import { _ } from "@/lib/core/i18n";
 import {
   captureOpenAction,
@@ -112,6 +113,8 @@ export interface SystemBackendsContextValue {
   idleWarningMs: number | undefined;
   // Session & power actions (Piloti menu)
   sessionExiting: boolean;
+  webPowerPhase: "active" | "restarting" | "powered-off";
+  powerOnSimulatedMachine: () => void;
   pendingPowerAction: PowerAction | null;
   requestPowerAction: (action: PowerAction) => void;
   cancelPowerAction: () => void;
@@ -408,6 +411,7 @@ export function useSystemBackendsValue(
       timeoutMs?: number;
     }) => {
       if (!settingsRef.current.notificationsEnabled) return;
+      if (!isAppNotificationAllowed(n.appName)) return;
       const item: ShellNotification = {
         id: ++nextNotifCounter,
         appName: n.appName,
@@ -644,6 +648,10 @@ export function useSystemBackendsValue(
       console.info("[Piloti] session: unlock attempt");
       setUnlockError(null);
       if (isBrowserRuntime) {
+        if (!passphrase.trim()) {
+          setUnlockError("Please enter your password.");
+          return;
+        }
         setBrowserLocked(false);
         return;
       }
@@ -655,6 +663,17 @@ export function useSystemBackendsValue(
   const [pendingPowerAction, setPendingPowerAction] =
     React.useState<PowerAction | null>(null);
   const [sessionExiting, setSessionExiting] = React.useState(false);
+  const [webPowerPhase, setWebPowerPhase] = React.useState<
+    "active" | "restarting" | "powered-off"
+  >("active");
+
+  const powerOnSimulatedMachine = React.useCallback(() => {
+    setWebPowerPhase("restarting");
+    window.setTimeout(() => {
+      setWebPowerPhase("active");
+      setBrowserLocked(true);
+    }, 850);
+  }, []);
 
   const requestPowerAction = React.useCallback((action: PowerAction) => {
     console.info("[Piloti] power-dialog: open", action);
@@ -691,20 +710,19 @@ export function useSystemBackendsValue(
       if (isBrowserRuntime) {
         setSessionExiting(true);
         await new Promise((resolve) => window.setTimeout(resolve, 180));
-        pushNotification({
-          appName: "Piloti Session",
-          summary: `${labels[action]} (Browser Preview)`,
-          body:
-            action === "logout"
-              ? "On Linux under Domicile, this terminates the current user session."
-              : action === "restart"
-                ? "On Linux under Domicile, this restarts the computer."
-                : "On Linux under Domicile, this powers off the computer.",
-        });
         if (action === "logout") {
           lockSession();
+          setSessionExiting(false);
+        } else if (action === "restart") {
+          setWebPowerPhase("restarting");
+          setSessionExiting(false);
+          await new Promise((resolve) => window.setTimeout(resolve, 950));
+          setWebPowerPhase("active");
+          lockSession();
+        } else {
+          setWebPowerPhase("powered-off");
+          setSessionExiting(false);
         }
-        setSessionExiting(false);
         return;
       }
 
@@ -1428,6 +1446,8 @@ export function useSystemBackendsValue(
       unlockRefusal,
       idleWarningMs,
       sessionExiting,
+      webPowerPhase,
+      powerOnSimulatedMachine,
       pendingPowerAction,
       requestPowerAction,
       cancelPowerAction,

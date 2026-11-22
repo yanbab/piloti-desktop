@@ -26,6 +26,8 @@ export const VFS_STATE_PATHS = {
   workspaceSnapshots: "/home/user/.cache/piloti/workspace-snapshots.json",
   consoleLog: "/home/user/.cache/piloti/piloti.log",
   appStoreMeta: "/home/user/.cache/piloti/app-store-meta.json",
+  appStoreSources: "/home/user/.config/piloti/app-store-sources.json",
+  appPermissions: "/home/user/.config/piloti/app-permissions.json",
   iconIndexCache: "/home/user/.cache/piloti/icon-index.json",
   dockIconsCache: "/home/user/.cache/piloti/dock-icons.json",
   xdgAppsCache: "/home/user/.cache/piloti/xdg-apps.json",

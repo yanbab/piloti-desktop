@@ -1085,7 +1085,7 @@ function WindowTitle({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="window-title"
       className={cn(
-        "pointer-events-none absolute inset-x-24 truncate whitespace-nowrap text-center text-adw-body font-semibold text-adw-label group-data-[inactive]/window:text-adw-label-tertiary",
+        "pointer-events-none absolute inset-x-24 truncate whitespace-nowrap text-center text-adw-body font-bold text-adw-label group-data-[inactive]/window:text-adw-label-tertiary",
         className
       )}
       {...props}

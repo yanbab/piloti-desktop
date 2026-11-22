@@ -7,7 +7,7 @@ import { AuthPasswordCard } from "./AuthPasswordCard";
 import { DesktopBackgroundLayers } from "./DesktopBackgroundLayers";
 
 export function LockScreen() {
-  const { isBrowserRuntime, settings } = useSettings();
+  const { settings } = useSettings();
   const { locked, notifications, unlockSession, unlockError, unlockRefusal } =
     useSystemBackends();
   const [passphrase, setPassphrase] = React.useState("");
@@ -82,7 +82,6 @@ export function LockScreen() {
         placeholder={_("Enter password…")}
         submitLabel={retrySeconds > 0 ? _("Wait %ds…", retrySeconds) : _("Unlock")}
         disabled={retrySeconds > 0}
-        showPasswordInput={!isBrowserRuntime}
         autoFocus
         error={
           unlockError

@@ -39,6 +39,7 @@ import {
   getWebAppFaviconUrl,
   resolveWebAppTitle,
 } from "@/data/web-apps";
+import { isAppSearchEnabled } from "@/lib/core/app-permissions";
 import { evaluateLauncherMath } from "@/lib/shell/launcher-math";
 import { captureLaunchOriginFromElement } from "@/lib/shell/launch-origin";
 import {
@@ -399,7 +400,9 @@ export function Launcher() {
     }
 
     const nativeAppEntries: PaletteEntry[] = [
-      ...APP_CATALOG.filter((app) => Boolean(app.builtinComponent)).map(
+      ...APP_CATALOG.filter(
+        (app) => Boolean(app.builtinComponent) && isAppSearchEnabled(app.id)
+      ).map(
         (app) => ({
           value: `builtin:${app.id}`,
           score: scoreMatch(
@@ -423,6 +426,7 @@ export function Launcher() {
       ...installedXdgApps
         .filter(
           (entry) =>
+            isAppSearchEnabled(entry.desktopId) &&
             !entry.desktopId.startsWith("piloti-webapp-") &&
             !entry.exec?.startsWith("piloti-webapp ")
         )

@@ -1,18 +1,25 @@
 import * as React from "react";
 import { useDomicile } from "@domicile-desktop/react/domicile-provider";
 import {
+  ArrowUpCircleIcon,
   BriefcaseIcon,
   CheckCircle2Icon,
+  ChevronDownIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
   Code2Icon,
   FlaskConicalIcon,
   Gamepad2Icon,
   GlobeIcon,
+  HeartIcon,
+  LayersIcon,
   MusicIcon,
   PackageIcon,
   PaletteIcon,
+  RefreshCwIcon,
   SearchIcon,
+  ServerIcon,
+  SettingsIcon,
   SparklesIcon,
   WrenchIcon,
   XIcon,
@@ -25,6 +32,7 @@ import {
   WindowControls,
   WindowTitlebar,
 } from "@/components/ui/window";
+import { Switch } from "@/components/ui/switch";
 import { useSidebarKeyboardNav } from "@/hooks/use-sidebar-keyboard-nav";
 import {
   readVfsStateJson,
@@ -45,16 +53,30 @@ import {
   useWindowActions,
 } from "@/context/DesktopStateContext";
 import {
+  type AptUpdatePackage,
   ensureFlathubRemote,
   type FlatpakAppEntry,
   type FlatpakCapabilities,
+  type FlatpakUpdateEntry,
   getPopularFlathubApps,
   installFlatpakApp,
+  listAptUpdates,
+  listFlatpakUpdates,
   listInstalledFlatpaks,
   probeFlatpakCapabilities,
+  runAptUpdateAndFlatpakRefresh,
+  runAptUpgrade,
   searchFlatpaks,
   uninstallFlatpakApp,
+  updateAllFlatpaks,
+  updateFlatpakApp,
 } from "@/lib/engine-native/flatpak";
+import {
+  COLLECTION_APPS,
+  COLLECTION_APP_IDS_BY_COLLECTION,
+  type CollectionId,
+} from "@/data/app-store-collections";
+import { setXdgAppBadgeCount } from "@/lib/xdg/xdg-badge-count";
 import { APP_CATALOG, type AppDefinition } from "@/data/catalog";
 import {
   canonicalizeWebUrl,
@@ -79,6 +101,10 @@ interface AppStoreAppProps {
 type StoreCategory =
   | "all"
   | "installed"
+  | "updates"
+  | "core-apps"
+  | "circle-apps"
+  | "kde-apps"
   | "Games"
   | "Graphics"
   | "Development"
@@ -87,12 +113,69 @@ type StoreCategory =
   | "Science"
   | "Utilities";
 
+type AppGenreCategory =
+  | "Games"
+  | "Graphics"
+  | "Development"
+  | "Productivity"
+  | "Multimedia"
+  | "Science"
+  | "Utilities";
+
+interface SoftwareSourcesState {
+  webApps: boolean;
+  flatpak: boolean;
+  system: boolean;
+}
+
+const DEFAULT_SOFTWARE_SOURCES: SoftwareSourcesState = {
+  webApps: true,
+  flatpak: true,
+  system: true,
+};
+
+const WEB_SIMULATED_APT_UPDATES: AptUpdatePackage[] = [
+  {
+    name: "libgtk-4-1",
+    currentVersion: "4.14.2+ds-1",
+    newVersion: "4.14.4+ds-1",
+    architecture: "amd64",
+  },
+  {
+    name: "pipewire",
+    currentVersion: "1.0.5-1",
+    newVersion: "1.0.7-1",
+    architecture: "amd64",
+  },
+  {
+    name: "mesa-vulkan-drivers",
+    currentVersion: "24.0.6-1",
+    newVersion: "24.1.1-1",
+    architecture: "amd64",
+  },
+];
+
+const WEB_SIMULATED_FLATPAK_UPDATES: FlatpakUpdateEntry[] = [
+  {
+    appId: "org.gnome.Calendar",
+    name: "Calendar",
+    version: "46.1",
+    branch: "stable",
+  },
+  {
+    appId: "org.kde.kdenlive",
+    name: "Kdenlive",
+    version: "24.08.2",
+    branch: "stable",
+  },
+];
+
 interface StoreItem {
   id: string;
   kind: "app" | "web" | "flatpak";
   title: string;
   subtitle: string;
-  category: Exclude<StoreCategory, "all" | "installed">;
+  category: AppGenreCategory;
   installed: boolean;
   removable: boolean;
   appDef?: AppDefinition;
@@ -149,7 +232,7 @@ function saveStoreMeta(meta: StoreMetaState) {
 
 function classifyWebAppCategory(
   app: InstalledWebApp,
-): Exclude<StoreCategory, "all" | "installed"> {
+): AppGenreCategory {
   const hay = `${app.title} ${app.keywords ?? ""}`.toLowerCase();
   if (
     /whiteboard|drawing|paint|photo|svg|3d|sculpt|sketch|diagram|image|vector/.test(
@@ -178,7 +261,7 @@ function classifyWebAppCategory(
 function normalizeStoreCategory(
   raw: string | undefined,
   app: InstalledWebApp,
-): Exclude<StoreCategory, "all" | "installed"> {
+): AppGenreCategory {
   if (raw === "Multimedia" || raw === "Audio & Media") return "Multimedia";
   if (raw === "Science" || raw === "Science & Math") return "Science";
   if (
@@ -195,7 +278,7 @@ function normalizeStoreCategory(
 
 function classifyCatalogCategory(
   cat: string,
-): Exclude<StoreCategory, "all" | "installed"> {
+): AppGenreCategory {
   if (cat === "Graphics") return "Graphics";
   if (cat === "Development") return "Development";
   if (cat === "Office" || cat === "Internet") return "Productivity";
@@ -214,11 +297,38 @@ const SIDEBAR_ITEMS: Array<{
     label: "Installed",
     icon: <CheckCircle2Icon className="size-4" />,
   },
+  {
+    id: "updates",
+    label: "Updates",
+    icon: <ArrowUpCircleIcon className="size-4" />,
+  },
+];
+
+const COLLECTION_ITEMS: Array<{
+  id: CollectionId;
+  label: string;
+  icon: React.ReactNode;
+}> = [
+  {
+    id: "core-apps",
+    label: "Core Apps",
+    icon: <LayersIcon className="size-4" />,
+  },
+  {
+    id: "circle-apps",
+    label: "Circle Apps",
+    icon: <HeartIcon className="size-4" />,
+  },
+  {
+    id: "kde-apps",
+    label: "KDE Apps",
+    icon: <Code2Icon className="size-4" />,
+  },
 ];
 
 function classifyFlatpakCategory(
   mainCategories?: string[],
-): Exclude<StoreCategory, "all" | "installed"> {
+): AppGenreCategory {
   const cats = (mainCategories ?? []).map((c) => c.toLowerCase());
   if (cats.includes("game")) return "Games";
   if (cats.includes("graphics")) return "Graphics";
@@ -232,7 +342,7 @@ function classifyFlatpakCategory(
 }
 
 const CATEGORY_ITEMS: Array<{
-  id: Exclude<StoreCategory, "all" | "installed">;
+  id: AppGenreCategory;
   label: string;
   icon: React.ReactNode;
 }> = [
@@ -335,13 +445,92 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
   const searchInputRef = React.useRef<HTMLInputElement | null>(null);
   const sidebarRef = React.useRef<HTMLElement | null>(null);
   const mainRef = React.useRef<HTMLElement | null>(null);
+
+  const [sources, setSources] = React.useState<SoftwareSourcesState>(() => {
+    const saved = readVfsStateJson<Partial<SoftwareSourcesState>>(
+      VFS_STATE_PATHS.appStoreSources,
+      "piloti.appstore.sources.v1",
+    );
+    return {
+      webApps: saved?.webApps ?? DEFAULT_SOFTWARE_SOURCES.webApps,
+      flatpak: saved?.flatpak ?? DEFAULT_SOFTWARE_SOURCES.flatpak,
+      system: saved?.system ?? DEFAULT_SOFTWARE_SOURCES.system,
+    };
+  });
+  const updateSources = React.useCallback(
+    (patch: Partial<SoftwareSourcesState>) => {
+      setSources((prev) => {
+        const next = { ...prev, ...patch };
+        writeVfsStateJson(
+          VFS_STATE_PATHS.appStoreSources,
+          next,
+        );
+        return next;
+      });
+    },
+    [],
+  );
+
+  const [settingsPopoverOpen, setSettingsPopoverOpen] = React.useState(false);
+  const settingsPopoverRef = React.useRef<HTMLDivElement | null>(null);
+  React.useEffect(() => {
+    if (!settingsPopoverOpen) return;
+    const onPointerDown = (e: PointerEvent) => {
+      if (
+        settingsPopoverRef.current &&
+        !settingsPopoverRef.current.contains(e.target as Node)
+      ) {
+        setSettingsPopoverOpen(false);
+      }
+    };
+    window.addEventListener("pointerdown", onPointerDown);
+    return () => window.removeEventListener("pointerdown", onPointerDown);
+  }, [settingsPopoverOpen]);
+
+  const [aptUpdates, setAptUpdates] = React.useState<AptUpdatePackage[]>(() =>
+    isBrowserRuntime ? WEB_SIMULATED_APT_UPDATES : [],
+  );
+  const [flatpakUpdates, setFlatpakUpdates] = React.useState<
+    FlatpakUpdateEntry[]
+  >(() => (isBrowserRuntime ? WEB_SIMULATED_FLATPAK_UPDATES : []));
+  const [systemUpdatesExpanded, setSystemUpdatesExpanded] =
+    React.useState(false);
+  const [reloadingUpdates, setReloadingUpdates] = React.useState(false);
+  const [updatingTarget, setUpdatingTarget] = React.useState<string | null>(
+    null,
+  );
+
+  const totalUpdatesCount =
+    (sources.system && aptUpdates.length > 0 ? 1 : 0) +
+    (sources.flatpak ? flatpakUpdates.length : 0);
+
+  React.useEffect(() => {
+    setXdgAppBadgeCount("app-store", totalUpdatesCount);
+  }, [totalUpdatesCount]);
+
+  const refreshUpdates = React.useCallback(async () => {
+    if (isBrowserRuntime) return;
+    const [aptList, fpList] = await Promise.all([
+      sources.system ? listAptUpdates(domicile) : Promise.resolve([]),
+      sources.flatpak ? listFlatpakUpdates(domicile) : Promise.resolve([]),
+    ]);
+    setAptUpdates(aptList);
+    setFlatpakUpdates(fpList);
+  }, [domicile, isBrowserRuntime, sources.flatpak, sources.system]);
+
+  React.useEffect(() => {
+    void refreshUpdates();
+  }, [refreshUpdates]);
+
   const {
     highlightedId: highlightedCategory,
     onSidebarKeyDown,
     onSidebarKeyUp,
     onContentKeyDown,
   } = useSidebarKeyboardNav({
-    itemIds: [...SIDEBAR_ITEMS, ...CATEGORY_ITEMS].map((e) => e.id),
+    itemIds: [...SIDEBAR_ITEMS, ...COLLECTION_ITEMS, ...CATEGORY_ITEMS].map(
+      (e) => e.id,
+    ),
     activeId: category,
     onActivate: (id) => setCategory(id),
     sidebarRef,
@@ -349,6 +538,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
   });
   const sidebarItems: AdwSplitSidebarItem[] = [
     ...SIDEBAR_ITEMS,
+    ...COLLECTION_ITEMS,
     ...CATEGORY_ITEMS,
   ].map((entry, idx) => ({
     id: entry.id,
@@ -356,7 +546,13 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
     icon: entry.icon,
     selected: highlightedCategory === entry.id,
     onClick: () => setCategory(entry.id),
-    separatorAfter: idx === SIDEBAR_ITEMS.length - 1,
+    badge:
+      entry.id === "updates" && totalUpdatesCount > 0
+        ? totalUpdatesCount
+        : undefined,
+    separatorAfter:
+      idx === SIDEBAR_ITEMS.length - 1 ||
+      idx === SIDEBAR_ITEMS.length + COLLECTION_ITEMS.length - 1,
   }));
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
   const [meta, setMeta] = React.useState<StoreMetaState>(loadStoreMeta);
@@ -511,6 +707,21 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
         installed: true,
       });
     }
+    for (const entry of COLLECTION_APPS) {
+      const existing = byId.get(entry.appId);
+      byId.set(
+        entry.appId,
+        existing
+          ? {
+              ...entry,
+              ...existing,
+              description: existing.description || entry.description,
+              iconUrl: existing.iconUrl || entry.iconUrl,
+              mainCategories: existing.mainCategories ?? entry.mainCategories,
+            }
+          : { ...entry, installed: installedFlatpakIds.has(entry.appId) },
+      );
+    }
     for (const entry of flathubEntries) {
       const existing = byId.get(entry.appId);
       byId.set(
@@ -582,14 +793,36 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
       };
     });
 
-    return [...appItems, ...webItems, ...flatpakItems];
-  }, [installedWebUrls, meta, descriptionTick, flatpakItems]);
+    return [
+      ...(sources.system ? appItems : []),
+      ...(sources.webApps ? webItems : []),
+      ...(sources.flatpak ? flatpakItems : []),
+    ];
+  }, [
+    installedWebUrls,
+    meta,
+    descriptionTick,
+    flatpakItems,
+    sources.flatpak,
+    sources.system,
+    sources.webApps,
+  ]);
 
   const filteredItems = React.useMemo(() => {
     const q = query.trim().toLowerCase();
     return items.filter((item) => {
+      if (category === "updates") return false;
       if (category === "installed" && !item.installed) return false;
       if (
+        category === "core-apps" ||
+        category === "circle-apps" ||
+        category === "kde-apps"
+      ) {
+        const ids = COLLECTION_APP_IDS_BY_COLLECTION[category];
+        if (item.kind !== "flatpak" || !item.flatpak || !ids.has(item.flatpak.appId)) {
+          return false;
+        }
+      } else if (
         category !== "all" &&
         category !== "installed" &&
         item.category !== category
@@ -601,6 +834,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
         item.title.toLowerCase().includes(q) ||
         item.subtitle.toLowerCase().includes(q) ||
         item.category.toLowerCase().includes(q) ||
+        (item.flatpak?.appId.toLowerCase().includes(q) ?? false) ||
         (item.webApp?.keywords?.toLowerCase().includes(q) ?? false)
       );
     });
@@ -931,6 +1165,133 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
     [isBrowserRuntime, launchApp, openWebUrl, pushNotification],
   );
 
+  const handleReloadUpdates = React.useCallback(async () => {
+    if (reloadingUpdates) return;
+    setReloadingUpdates(true);
+    try {
+      if (isBrowserRuntime) {
+        await new Promise((resolve) => window.setTimeout(resolve, 650));
+        setAptUpdates(WEB_SIMULATED_APT_UPDATES);
+        setFlatpakUpdates(WEB_SIMULATED_FLATPAK_UPDATES);
+      } else {
+        await runAptUpdateAndFlatpakRefresh(domicile);
+        await refreshUpdates();
+      }
+      pushNotification({
+        appName: "App Store",
+        summary: _("Software catalog refreshed"),
+        body: "apt update && flatpak update",
+      });
+    } finally {
+      setReloadingUpdates(false);
+    }
+  }, [domicile, isBrowserRuntime, pushNotification, refreshUpdates, reloadingUpdates]);
+
+  const handleUpgradeSystem = React.useCallback(async () => {
+    if (updatingTarget) return;
+    setUpdatingTarget("__system__");
+    try {
+      if (isBrowserRuntime) {
+        await new Promise((resolve) => window.setTimeout(resolve, 800));
+        setAptUpdates([]);
+        pushNotification({
+          appName: "App Store",
+          summary: _("System updates installed"),
+          body: "apt upgrade -y",
+        });
+      } else {
+        const res = await runAptUpgrade(domicile);
+        if (res.ok) {
+          setAptUpdates([]);
+          pushNotification({
+            appName: "App Store",
+            summary: _("System updates installed"),
+            body: "apt upgrade -y",
+          });
+        } else {
+          pushNotification({
+            appName: "App Store",
+            summary: _("System update failed"),
+            body: res.error || "apt upgrade -y",
+            urgency: "critical",
+          });
+        }
+        await refreshUpdates();
+      }
+    } finally {
+      setUpdatingTarget(null);
+    }
+  }, [domicile, isBrowserRuntime, pushNotification, refreshUpdates, updatingTarget]);
+
+  const handleUpgradeFlatpak = React.useCallback(
+    async (appId: string) => {
+      if (updatingTarget) return;
+      setUpdatingTarget(appId);
+      try {
+        if (isBrowserRuntime) {
+          await new Promise((resolve) => window.setTimeout(resolve, 550));
+          setFlatpakUpdates((prev) => prev.filter((u) => u.appId !== appId));
+        } else {
+          const res = await updateFlatpakApp(domicile, appId);
+          if (!res.ok) {
+            pushNotification({
+              appName: "App Store",
+              summary: _("Failed to update %s", appId),
+              body: res.error || "",
+              urgency: "critical",
+            });
+          }
+          await refreshUpdates();
+        }
+      } finally {
+        setUpdatingTarget(null);
+      }
+    },
+    [domicile, isBrowserRuntime, pushNotification, refreshUpdates, updatingTarget],
+  );
+
+  const handleUpgradeAll = React.useCallback(async () => {
+    if (updatingTarget) return;
+    setUpdatingTarget("__all__");
+    try {
+      if (isBrowserRuntime) {
+        await new Promise((resolve) => window.setTimeout(resolve, 900));
+        if (sources.system) setAptUpdates([]);
+        if (sources.flatpak) setFlatpakUpdates([]);
+        pushNotification({
+          appName: "App Store",
+          summary: _("All updates installed"),
+          body: _("Your system and applications are up to date."),
+        });
+      } else {
+        if (sources.system && aptUpdates.length > 0) {
+          await runAptUpgrade(domicile);
+        }
+        if (sources.flatpak && flatpakUpdates.length > 0) {
+          await updateAllFlatpaks(domicile);
+        }
+        await refreshUpdates();
+        pushNotification({
+          appName: "App Store",
+          summary: _("All updates installed"),
+          body: _("Your system and applications are up to date."),
+        });
+      }
+    } finally {
+      setUpdatingTarget(null);
+    }
+  }, [
+    aptUpdates.length,
+    domicile,
+    flatpakUpdates.length,
+    isBrowserRuntime,
+    pushNotification,
+    refreshUpdates,
+    sources.flatpak,
+    sources.system,
+    updatingTarget,
+  ]);
+
   return (
     <AdwSplitView
       title={_("App Store")}
@@ -991,14 +1352,15 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
             )}
             <span className="truncate px-2 text-[13.5px] font-medium text-adw-label">
               {_(
-                [...SIDEBAR_ITEMS, ...CATEGORY_ITEMS].find((i) => i.id === category)
-                  ?.label ?? "Explore"
+                [...SIDEBAR_ITEMS, ...COLLECTION_ITEMS, ...CATEGORY_ITEMS].find(
+                  (i) => i.id === category,
+                )?.label ?? "Explore"
               )}
             </span>
           </div>
 
           <div className="flex shrink-0 items-center gap-1.5" data-window-no-drag>
-            {searchOpen && (
+            {category !== "updates" && searchOpen && (
               <div className="relative flex items-center">
                 <SearchIcon className="pointer-events-none absolute left-2 size-3.5 text-adw-label-secondary" />
                 <input
@@ -1060,6 +1422,77 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
             >
               <SearchIcon className="size-4" />
             </button>
+            <button
+              type="button"
+              aria-label={_("Reload")}
+              title={_("Reload (apt update && flatpak update)")}
+              disabled={reloadingUpdates}
+              onClick={() => void handleReloadUpdates()}
+              className="flex size-7 items-center justify-center rounded-md text-adw-label-secondary transition-colors hover:bg-black/8 hover:text-adw-label disabled:opacity-50 dark:hover:bg-white/10"
+            >
+              <RefreshCwIcon
+                className={cn("size-4", reloadingUpdates && "animate-spin")}
+              />
+            </button>
+            <div ref={settingsPopoverRef} className="relative">
+              <button
+                type="button"
+                aria-label={_("Software Sources")}
+                aria-expanded={settingsPopoverOpen}
+                title={_("Software Sources")}
+                onClick={() => setSettingsPopoverOpen((prev) => !prev)}
+                className={cn(
+                  "flex size-7 items-center justify-center rounded-md transition-colors",
+                  settingsPopoverOpen
+                    ? "bg-black/10 text-adw-label dark:bg-white/15"
+                    : "text-adw-label-secondary hover:bg-black/8 hover:text-adw-label dark:hover:bg-white/10",
+                )}
+              >
+                <SettingsIcon className="size-4" />
+              </button>
+              {settingsPopoverOpen && (
+                <div className="absolute top-9 right-0 z-50 w-60 rounded-xl border border-adw-separator bg-adw-popover p-3 shadow-xl backdrop-blur-xl">
+                  <div className="mb-2 text-[11px] font-semibold tracking-wider text-adw-label-tertiary uppercase">
+                    {_("Software Sources")}
+                  </div>
+                  <div className="space-y-2.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[12.5px] font-medium text-adw-label">
+                        {_("Web Apps")}
+                      </span>
+                      <Switch
+                        checked={sources.webApps}
+                        onCheckedChange={(checked) =>
+                          updateSources({ webApps: Boolean(checked) })
+                        }
+                      />
+                    </div>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[12.5px] font-medium text-adw-label">
+                        {_("Flatpak")}
+                      </span>
+                      <Switch
+                        checked={sources.flatpak}
+                        onCheckedChange={(checked) =>
+                          updateSources({ flatpak: Boolean(checked) })
+                        }
+                      />
+                    </div>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[12.5px] font-medium text-adw-label">
+                        {_("System")}
+                      </span>
+                      <Switch
+                        checked={sources.system}
+                        onCheckedChange={(checked) =>
+                          updateSources({ system: Boolean(checked) })
+                        }
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
             {isCsd && windowId && <WindowControls side="right" />}
           </div>
         </WindowTitlebar>
@@ -1205,6 +1638,149 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
           className="flex-1 overflow-y-auto p-4"
           onClick={() => setSelectedId(null)}
         >
+            {category === "updates" ? (
+              <div className="mx-auto max-w-3xl space-y-4" onClick={(e) => e.stopPropagation()}>
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <h2 className="text-[15px] font-bold text-adw-label">
+                      {_("Available Updates")}
+                    </h2>
+                    <p className="text-[12px] text-adw-label-secondary">
+                      {totalUpdatesCount === 0
+                        ? _("Your system and applications are up to date.")
+                        : _("%d updates available", totalUpdatesCount)}
+                    </p>
+                  </div>
+                  {totalUpdatesCount > 0 && (
+                    <Button
+                      type="button"
+                      size="sm"
+                      disabled={updatingTarget !== null}
+                      onClick={() => void handleUpgradeAll()}
+                    >
+                      {updatingTarget === "__all__"
+                        ? _("Upgrading…")
+                        : _("Upgrade All")}
+                    </Button>
+                  )}
+                </div>
+
+                {totalUpdatesCount === 0 ? (
+                  <div className="flex flex-col items-center justify-center gap-2 rounded-2xl border border-adw-separator bg-adw-card py-12 text-center text-adw-label-secondary">
+                    <CheckCircle2Icon className="size-10 text-emerald-500 opacity-80" />
+                    <p className="text-sm font-medium text-adw-label">
+                      {_("Software is up to date")}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {sources.system && aptUpdates.length > 0 && (
+                      <div className="overflow-hidden rounded-xl border border-adw-separator bg-adw-card">
+                        <div className="flex items-center justify-between gap-3 px-4 py-3">
+                          <button
+                            type="button"
+                            onClick={() => setSystemUpdatesExpanded((prev) => !prev)}
+                            aria-expanded={systemUpdatesExpanded}
+                            className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                          >
+                            <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-adw-accent/15 text-adw-accent">
+                              <ServerIcon className="size-5" />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2">
+                                <span className="truncate text-[13.5px] font-semibold text-adw-label">
+                                  {_("System Updates")}
+                                </span>
+                                <span className="rounded-full bg-black/6 px-2 py-0.5 text-[10.5px] font-medium text-adw-label-secondary dark:bg-white/10">
+                                  {_("%d packages", aptUpdates.length)}
+                                </span>
+                              </div>
+                              <div className="truncate text-[11.5px] text-adw-label-secondary">
+                                apt upgrade -y
+                              </div>
+                            </div>
+                            <ChevronDownIcon
+                              className={cn(
+                                "size-4 shrink-0 text-adw-label-tertiary transition-transform duration-150",
+                                systemUpdatesExpanded && "rotate-180",
+                              )}
+                            />
+                          </button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="secondary"
+                            disabled={updatingTarget !== null}
+                            onClick={() => void handleUpgradeSystem()}
+                          >
+                            {updatingTarget === "__system__"
+                              ? _("Updating…")
+                              : _("Update")}
+                          </Button>
+                        </div>
+
+                        {systemUpdatesExpanded && (
+                          <div className="divide-y divide-adw-separator/60 border-t border-adw-separator/60 bg-black/[0.02] dark:bg-white/[0.02]">
+                            {aptUpdates.map((pkg) => (
+                              <div
+                                key={pkg.name}
+                                className="flex items-center justify-between gap-3 px-4 py-2 font-mono text-[11.5px]"
+                              >
+                                <span className="truncate font-medium text-adw-label">
+                                  {pkg.name}
+                                </span>
+                                <span className="shrink-0 text-adw-label-tertiary">
+                                  {pkg.currentVersion
+                                    ? `${pkg.currentVersion} → ${pkg.newVersion ?? ""}`
+                                    : (pkg.newVersion ?? "")}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {sources.flatpak &&
+                      flatpakUpdates.map((upd) => (
+                        <div
+                          key={upd.appId}
+                          className="flex items-center justify-between gap-3 rounded-xl border border-adw-separator bg-adw-card px-4 py-3"
+                        >
+                          <div className="flex min-w-0 items-center gap-3">
+                            <WebAppFavicon
+                              url={`https://dl.flathub.org/repo/appstream/x86_64/icons/128x128/${upd.appId}.png`}
+                              title={upd.name}
+                              className="size-10"
+                            />
+                            <div className="min-w-0">
+                              <div className="truncate text-[13.5px] font-semibold text-adw-label">
+                                {upd.name}
+                              </div>
+                              <div className="truncate font-mono text-[11px] text-adw-label-tertiary">
+                                {upd.appId}
+                                {upd.version ? ` · ${upd.version}` : ""}
+                              </div>
+                            </div>
+                          </div>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="secondary"
+                            disabled={updatingTarget !== null}
+                            onClick={() => void handleUpgradeFlatpak(upd.appId)}
+                          >
+                            {updatingTarget === upd.appId
+                              ? _("Updating…")
+                              : _("Update")}
+                          </Button>
+                        </div>
+                      ))}
+                  </div>
+                )}
+              </div>
+            ) : (
+            <>
             {category === "all" && !query.trim() && activeFeaturedItem && (
               <section
                 aria-label="Featured applications"
@@ -1438,6 +2014,8 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                     </section>
                   ))}
               </div>
+            )}
+            </>
             )}
           </main>
         )}

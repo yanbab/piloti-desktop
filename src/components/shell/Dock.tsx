@@ -48,6 +48,7 @@ import {
 import { _ } from "@/lib/core/i18n";
 import { captureLaunchOriginFromElement } from "@/lib/shell/launch-origin";
 import { cn } from "@/lib/core/utils";
+import { useXdgAppBadgeCounts } from "@/lib/xdg/xdg-badge-count";
 import { AppSquircleIcon } from "./AppSymbol";
 
 export function Dock() {
@@ -168,6 +169,39 @@ export function Dock() {
     { kind: "dock" } | { kind: "trash" } | { kind: "usb" } | { kind: "app"; appId: string }
   >({ kind: "dock" });
   const usbMounted = useSimulatedUsbMounted();
+  const xdgBadgeCounts = useXdgAppBadgeCounts();
+  const [usbRenderMounted, setUsbRenderMounted] = React.useState(usbMounted);
+  const [usbAnimState, setUsbAnimState] = React.useState<
+    "entering" | "idle" | "exiting"
+  >("idle");
+  const [usbPlayNonce, setUsbPlayNonce] = React.useState(0);
+  const prevUsbMountedRef = React.useRef(usbMounted);
+
+  React.useEffect(() => {
+    if (prevUsbMountedRef.current === usbMounted) return;
+    prevUsbMountedRef.current = usbMounted;
+    let timer = 0;
+    let raf = 0;
+    if (usbMounted) {
+      setUsbRenderMounted(true);
+      setUsbAnimState("entering");
+      setUsbPlayNonce((n) => n + 1);
+      raf = window.requestAnimationFrame(() => {
+        setUsbAnimState("idle");
+      });
+    } else {
+      setUsbAnimState("exiting");
+      setUsbPlayNonce((n) => n + 1);
+      timer = window.setTimeout(() => {
+        setUsbRenderMounted(false);
+        setUsbAnimState("idle");
+      }, 480);
+    }
+    return () => {
+      if (timer) window.clearTimeout(timer);
+      if (raf) window.cancelAnimationFrame(raf);
+    };
+  }, [usbMounted]);
   const didReorderRef = React.useRef(false);
   const dockTilesRef = React.useRef<Map<string, HTMLElement>>(new Map());
   const dockPosition = settings.dockPosition ?? "bottom";
@@ -669,18 +703,36 @@ export function Dock() {
                   handleDockAppClick(app.id);
                 }}
               >
-                <AppSquircleIcon
-                  iconName={app.iconName}
-                  iconUrl={app.iconUrl ?? getAppIconUrl(app.id)}
-                  fallbackIconUrl={
-                    app.isWebApp ? getAppIconUrl("browser") : undefined
-                  }
-                  squircle={app.isWebApp}
-                  gradient={app.gradient}
-                  playNonce={launchNonces[app.id]}
-                  className="size-full"
-                  glyphClassName="size-[56%]"
-                />
+                <div className="relative size-full">
+                  <AppSquircleIcon
+                    iconName={app.iconName}
+                    iconUrl={app.iconUrl ?? getAppIconUrl(app.id)}
+                    fallbackIconUrl={
+                      app.isWebApp ? getAppIconUrl("browser") : undefined
+                    }
+                    squircle={app.isWebApp}
+                    gradient={app.gradient}
+                    playNonce={launchNonces[app.id]}
+                    className="size-full"
+                    glyphClassName="size-[56%]"
+                  />
+                  {(() => {
+                    const badge =
+                      xdgBadgeCounts[app.id.toLowerCase()] ??
+                      (app.command
+                        ? xdgBadgeCounts[app.command.toLowerCase()]
+                        : undefined);
+                    if (!badge || !badge.visible || badge.count <= 0) return null;
+                    return (
+                      <span
+                        aria-label={`${badge.count} updates`}
+                        className="pointer-events-none absolute -top-1 -right-1 z-20 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] leading-none font-bold text-white shadow-sm ring-1 ring-black/15 tabular-nums"
+                      >
+                        {badge.count > 99 ? "99+" : badge.count}
+                      </span>
+                    );
+                  })()}
+                </div>
               </DockItem>
             );
           })}
@@ -702,12 +754,18 @@ export function Dock() {
             }}
           />
 
-          {usbMounted && (
+          {usbRenderMounted && (
             <DockItem
               label={SIMULATED_USB_LABEL}
               tileProps={{
                 "data-dock-context": "usb",
                 "data-vfs-drop-path": SIMULATED_USB_PATH,
+                className: cn(
+                  "transition-all duration-300 ease-out",
+                  usbAnimState === "entering" && "scale-75 opacity-0",
+                  usbAnimState === "idle" && "scale-100 opacity-100",
+                  usbAnimState === "exiting" && "scale-75 -translate-y-1 opacity-0"
+                ),
               }}
               onClick={(e) => {
                 captureLaunchOriginFromElement(e.currentTarget);
@@ -717,7 +775,7 @@ export function Dock() {
               <AppSquircleIcon
                 iconUrl={getAppIconUrl("__usb_drive__")}
                 animateOnHover
-                playNonce={usbMounted ? 1 : 0}
+                playNonce={usbPlayNonce}
                 className="size-full"
               />
             </DockItem>

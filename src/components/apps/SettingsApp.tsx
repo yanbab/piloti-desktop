@@ -6,6 +6,7 @@ import {
   ImageIcon,
   MonitorIcon,
   PaletteIcon,
+  ShieldCheckIcon,
   SlidersHorizontalIcon,
   TypeIcon,
   WrenchIcon,
@@ -41,6 +42,7 @@ import { DisplaysPane } from "./settings/DisplaysPane";
 import { DockPane } from "./settings/DockPane";
 import { FontsPane } from "./settings/FontsPane";
 import { NotificationsPane } from "./settings/NotificationsPane";
+import { SecurityPane } from "./settings/SecurityPane";
 import { TopBarPane } from "./settings/TopBarPane";
 import { WallpaperPane } from "./settings/WallpaperPane";
 
@@ -51,6 +53,7 @@ type SettingsPaneId =
   | "topbar"
   | "displays"
   | "notifications"
+  | "security"
   | "wallpaper"
   | "advanced";
 
@@ -95,6 +98,12 @@ const PANES: {
     label: "Notifications",
     subtitle: "Banners, previews & history",
     icon: <BellIcon />,
+  },
+  {
+    id: "security",
+    label: "Security",
+    subtitle: "Flatpak permissions, notifications & search",
+    icon: <ShieldCheckIcon />,
   },
   {
     id: "wallpaper",
@@ -317,6 +326,7 @@ export function SettingsApp({
           {activePane === "topbar" && <TopBarPane />}
           {activePane === "displays" && <DisplaysPane />}
           {activePane === "notifications" && <NotificationsPane />}
+          {activePane === "security" && <SecurityPane />}
           {activePane === "wallpaper" && <WallpaperPane />}
           {activePane === "advanced" && <AdvancedPane />}
         </div>

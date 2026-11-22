@@ -100,6 +100,8 @@ function DesktopSurface() {
     idleWarningMs,
     pendingPowerAction,
     sessionExiting,
+    webPowerPhase,
+    powerOnSimulatedMachine,
   } = useSystemBackends();
   const {
     aboutOpen,
@@ -321,6 +323,31 @@ function DesktopSurface() {
             : "pointer-events-none opacity-0"
         }`}
       />
+      {webPowerPhase !== "active" && (
+        <div className="fixed inset-0 z-[9998] flex flex-col items-center justify-center gap-4 bg-black text-white select-none">
+          {webPowerPhase === "restarting" ? (
+            <>
+              <div className="size-7 animate-spin rounded-full border-2 border-white/25 border-t-white" />
+              <div className="text-sm font-medium text-white/80">
+                {_("Restarting Piloti Desktop…")}
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="text-sm font-medium text-white/70">
+                {_("Computer is turned off")}
+              </div>
+              <button
+                type="button"
+                onClick={powerOnSimulatedMachine}
+                className="rounded-full border border-white/20 bg-white/10 px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-white/20 active:bg-white/25"
+              >
+                {_("Power On")}
+              </button>
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }

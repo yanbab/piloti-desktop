@@ -159,13 +159,13 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
     const chromeHeight = ssdTitlebar ? ssdTitlebar.offsetHeight : 0;
 
     const headerHeight = headerEl.offsetHeight;
-    const keypadWidth = keypadEl.offsetWidth;
-    const keypadHeight = keypadEl.offsetHeight;
+    const idealKeypadWidth = scientific ? 92 + 6 + 184 : 184;
+    const idealKeypadHeight = 5 * 34 + 4 * 4;
     const topBarMinW = topBarRef.current
       ? topBarRef.current.scrollWidth + 20
       : 0;
-    const nextWidth = Math.max(topBarMinW, keypadWidth + 12);
-    const nextHeight = chromeHeight + headerHeight + keypadHeight + 12;
+    const nextWidth = Math.max(topBarMinW, idealKeypadWidth + 12);
+    const nextHeight = chromeHeight + headerHeight + idealKeypadHeight + 12;
     if (nextWidth <= 0 || nextHeight <= 0) return;
 
     const last = lastMeasuredSizeRef.current;
@@ -176,7 +176,7 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
     updateWindowGeometry(windowId, {
       size: { width: nextWidth, height: nextHeight },
     });
-  }, [isCsd, updateWindowGeometry, windowId]);
+  }, [isCsd, scientific, updateWindowGeometry, windowId]);
 
   React.useLayoutEffect(() => {
     syncWindowToDom();
@@ -475,10 +475,10 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
       </div>
 
       {/* Keypad */}
-      <div className="flex min-h-0 flex-1 items-start justify-end overflow-hidden bg-adw-window p-1.5">
-        <div ref={keypadContentRef} className="inline-flex shrink-0 items-start gap-1.5">
+      <div className="flex min-h-0 flex-1 overflow-hidden bg-adw-window p-1.5">
+        <div ref={keypadContentRef} className="flex h-full w-full items-stretch gap-1.5">
         {scientific && (
-          <div className="grid shrink-0 grid-cols-[repeat(2,44px)] grid-rows-[repeat(5,34px)] gap-1">
+          <div className="grid h-full min-w-[92px] flex-[2] grid-cols-2 grid-rows-5 gap-1">
             <button
               type="button"
               onClick={() => applyUnary("sq", (x) => x * x)}
@@ -558,7 +558,7 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
           </div>
         )}
 
-        <div className="grid shrink-0 grid-cols-[repeat(4,43px)] grid-rows-[repeat(5,34px)] gap-1">
+        <div className="grid h-full min-w-0 flex-[4] grid-cols-4 grid-rows-5 gap-1">
           {/* Row 1 */}
           <button
             type="button"

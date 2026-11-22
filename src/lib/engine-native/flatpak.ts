@@ -478,3 +478,282 @@ export function launchFlatpakApp(domicile: Domicile, appId: string): void {
   if (!cleanId) return;
   launchDesktopCommand(domicile, ["flatpak", "run", cleanId]);
 }
+
+export interface FlatpakPermissionsState {
+  network: boolean;
+  homeFiles: boolean;
+  hostFiles: boolean;
+  wayland: boolean;
+  audio: boolean;
+  devices: boolean;
+}
+
+export const DEFAULT_FLATPAK_PERMISSIONS: FlatpakPermissionsState = {
+  network: true,
+  homeFiles: false,
+  hostFiles: false,
+  wayland: true,
+  audio: true,
+  devices: false,
+};
+
+function parseFlatpakPermissionLines(raw: string): Partial<FlatpakPermissionsState> {
+  const result: Partial<FlatpakPermissionsState> = {};
+  for (const line of raw.split(/\r?\n/)) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("[") || trimmed.startsWith("#")) continue;
+    const eqIdx = trimmed.indexOf("=");
+    if (eqIdx <= 0) continue;
+    const key = trimmed.slice(0, eqIdx).trim();
+    const tokens = trimmed
+      .slice(eqIdx + 1)
+      .split(";")
+      .map((t) => t.trim())
+      .filter(Boolean);
+    if (key === "shared") {
+      if (tokens.includes("network")) result.network = true;
+      if (tokens.includes("!network")) result.network = false;
+    } else if (key === "sockets") {
+      if (tokens.includes("wayland") || tokens.includes("fallback-x11")) result.wayland = true;
+      if (tokens.includes("!wayland")) result.wayland = false;
+      if (tokens.includes("pulseaudio")) result.audio = true;
+      if (tokens.includes("!pulseaudio")) result.audio = false;
+    } else if (key === "filesystems") {
+      if (tokens.includes("home")) result.homeFiles = true;
+      if (tokens.includes("!home")) result.homeFiles = false;
+      if (tokens.includes("host")) result.hostFiles = true;
+      if (tokens.includes("!host")) result.hostFiles = false;
+    } else if (key === "devices") {
+      if (tokens.includes("all")) result.devices = true;
+      if (tokens.includes("!all")) result.devices = false;
+    }
+  }
+  return result;
+}
+
+export async function getFlatpakPermissions(
+  domicile: Domicile,
+  appId: string
+): Promise<FlatpakPermissionsState> {
+  const merged: FlatpakPermissionsState = { ...DEFAULT_FLATPAK_PERMISSIONS };
+  try {
+    const [infoRes, overrideRes] = await Promise.all([
+      domicile.processes.run(["flatpak", "info", "--show-permissions", appId]),
+      domicile.processes.run(["flatpak", "override", "--user", "--show", appId]),
+    ]);
+    infoRes.match({
+      Ok: (ran) => {
+        if (ran.code === 0 && ran.stdout) {
+          Object.assign(merged, parseFlatpakPermissionLines(ran.stdout));
+        }
+      },
+      Err: () => {},
+    });
+    overrideRes.match({
+      Ok: (ran) => {
+        if (ran.code === 0 && ran.stdout) {
+          Object.assign(merged, parseFlatpakPermissionLines(ran.stdout));
+        }
+      },
+      Err: () => {},
+    });
+  } catch {
+    // ignore in non-native environments
+  }
+  return merged;
+}
+
+export async function setFlatpakPermissionOverride(
+  domicile: Domicile,
+  appId: string,
+  permission: keyof FlatpakPermissionsState,
+  enabled: boolean
+): Promise<{ ok: boolean; error?: string }> {
+  const flagMap: Record<keyof FlatpakPermissionsState, [string, string]> = {
+    network: ["--share=network", "--unshare=network"],
+    homeFiles: ["--filesystem=home", "--nofilesystem=home"],
+    hostFiles: ["--filesystem=host", "--nofilesystem=host"],
+    wayland: ["--socket=wayland", "--nosocket=wayland"],
+    audio: ["--socket=pulseaudio", "--nosocket=pulseaudio"],
+    devices: ["--device=all", "--nodevice=all"],
+  };
+  const flag = flagMap[permission][enabled ? 0 : 1];
+  try {
+    const res = await domicile.processes.run([
+      "flatpak",
+      "override",
+      "--user",
+      flag,
+      appId,
+    ]);
+    return res.match({
+      Ok: (ran) =>
+        ran.code === 0
+          ? { ok: true }
+          : { ok: false, error: ran.stderr?.trim() || `Exited ${ran.code}` },
+      Err: (err) => ({ ok: false, error: String(err) }),
+    });
+  } catch (err) {
+    return { ok: false, error: String(err) };
+  }
+}
+
+export interface FlatpakUpdateEntry {
+  appId: string;
+  name: string;
+  version?: string;
+  branch?: string;
+}
+
+export interface AptUpdatePackage {
+  name: string;
+  currentVersion?: string;
+  newVersion?: string;
+  architecture?: string;
+}
+
+export async function listFlatpakUpdates(
+  domicile: Domicile
+): Promise<FlatpakUpdateEntry[]> {
+  try {
+    const res = await domicile.processes.run([
+      "flatpak",
+      "remote-ls",
+      "--updates",
+      "--columns=application,name,version,branch",
+    ]);
+    return res.match({
+      Ok: (ran) => {
+        if (ran.code !== 0 || !ran.stdout) return [];
+        const entries: FlatpakUpdateEntry[] = [];
+        for (const line of ran.stdout.split(/\r?\n/)) {
+          const trimmed = line.trim();
+          if (!trimmed) continue;
+          const cols = trimmed.split("\t").map((c) => c.trim());
+          const appId = cols[0];
+          if (!appId || appId.toLowerCase() === "application") continue;
+          entries.push({
+            appId,
+            name: cols[1] || appId,
+            version: cols[2] || undefined,
+            branch: cols[3] || undefined,
+          });
+        }
+        return entries;
+      },
+      Err: () => [],
+    });
+  } catch {
+    return [];
+  }
+}
+
+export async function updateFlatpakApp(
+  domicile: Domicile,
+  appId: string,
+  options?: {
+    onUpdate?: (update: FlatpakStreamUpdate) => void;
+    signal?: AbortSignal;
+  }
+): Promise<{ ok: boolean; canceled?: boolean; error?: string }> {
+  return runStreamingFlatpakCommand(
+    domicile,
+    ["flatpak", "update", "-y", "--noninteractive", appId],
+    options?.onUpdate,
+    options?.signal
+  );
+}
+
+export async function updateAllFlatpaks(
+  domicile: Domicile,
+  options?: {
+    onUpdate?: (update: FlatpakStreamUpdate) => void;
+    signal?: AbortSignal;
+  }
+): Promise<{ ok: boolean; canceled?: boolean; error?: string }> {
+  return runStreamingFlatpakCommand(
+    domicile,
+    ["flatpak", "update", "-y", "--noninteractive"],
+    options?.onUpdate,
+    options?.signal
+  );
+}
+
+export function parseAptUpgradableOutput(stdout: string): AptUpdatePackage[] {
+  const items: AptUpdatePackage[] = [];
+  for (const line of stdout.split(/\r?\n/)) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("Listing")) continue;
+    // Example: libgtk-4-1/stable 4.14.4+ds-1 amd64 [upgradable from: 4.14.2+ds-1]
+    const match = trimmed.match(
+      /^([^\s/]+)\/[^\s]+\s+(\S+)\s+(\S+)(?:\s+\[upgradable from:\s*([^\]]+)\])?/i
+    );
+    if (match) {
+      items.push({
+        name: match[1],
+        newVersion: match[2],
+        architecture: match[3],
+        currentVersion: match[4]?.trim(),
+      });
+    }
+  }
+  return items;
+}
+
+export async function listAptUpdates(
+  domicile: Domicile
+): Promise<AptUpdatePackage[]> {
+  try {
+    const res = await domicile.processes.run(["apt", "list", "--upgradable"]);
+    return res.match({
+      Ok: (ran) =>
+        ran.code === 0 && ran.stdout ? parseAptUpgradableOutput(ran.stdout) : [],
+      Err: () => [],
+    });
+  } catch {
+    return [];
+  }
+}
+
+export async function runAptUpdateAndFlatpakRefresh(
+  domicile: Domicile
+): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const res = await domicile.processes.run([
+      "sh",
+      "-c",
+      "pkexec apt update && flatpak update --appstream -y",
+    ]);
+    return res.match({
+      Ok: (ran) =>
+        ran.code === 0
+          ? { ok: true }
+          : { ok: false, error: ran.stderr?.trim() || `Exited ${ran.code}` },
+      Err: (err) => ({ ok: false, error: String(err) }),
+    });
+  } catch (err) {
+    return { ok: false, error: String(err) };
+  }
+}
+
+export async function runAptUpgrade(
+  domicile: Domicile
+): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const res = await domicile.processes.run([
+      "pkexec",
+      "apt",
+      "upgrade",
+      "-y",
+    ]);
+    return res.match({
+      Ok: (ran) =>
+        ran.code === 0
+          ? { ok: true }
+          : { ok: false, error: ran.stderr?.trim() || `Exited ${ran.code}` },
+      Err: (err) => ({ ok: false, error: String(err) }),
+    });
+  } catch (err) {
+    return { ok: false, error: String(err) };
+  }
+}

@@ -20,6 +20,7 @@ export interface AdwSplitSidebarItem {
   dropPath?: string;
   separatorAfter?: boolean;
   pinnedBottom?: boolean;
+  badge?: string | number;
   trailingAction?: {
     icon: React.ReactNode;
     label: string;
@@ -257,7 +258,14 @@ export function AdwSplitView({
                       {item.icon}
                     </span>
                     {!isCompact && (
-                      <span className="truncate">{item.label}</span>
+                      <>
+                        <span className="min-w-0 flex-1 truncate">{item.label}</span>
+                        {item.badge !== undefined && item.badge !== "" && (
+                          <span className="ml-auto shrink-0 rounded-full bg-adw-accent px-1.5 py-0.5 text-[10px] leading-none font-bold text-white tabular-nums">
+                            {item.badge}
+                          </span>
+                        )}
+                      </>
                     )}
                   </button>
                 );
