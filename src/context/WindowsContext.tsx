@@ -396,6 +396,7 @@ export function useWindowsValue(
           iconName: settingsDef.iconName,
           gradient: settingsDef.gradient,
           builtinComponent: "settings",
+          clientFrame: true,
           workspace: saved?.workspace ?? 1,
           position: clamped.position,
           size: clamped.size,

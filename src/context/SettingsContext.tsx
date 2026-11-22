@@ -1207,6 +1207,9 @@ export function useSettingsValue(options?: {
   const activePictureUri =
     selectGnomePictureUri(settings.gnomeBackground, resolvedTheme) ||
     settings.customWallpaperUrl ||
+    (resolvedTheme === "dark" && activeWallpaper?.imageUrlDark
+      ? activeWallpaper.imageUrlDark
+      : activeWallpaper?.imageUrl) ||
     "";
   const localPicturePath = fileUriToLocalPath(activePictureUri);
   const isLocalPictureUri = Boolean(localPicturePath);
