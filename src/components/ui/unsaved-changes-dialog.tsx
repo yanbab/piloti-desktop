@@ -21,7 +21,7 @@ export function UnsavedChangesDialog({
       aria-labelledby="unsaved-changes-title"
       className="absolute inset-0 z-30 flex items-center justify-center bg-black/45 p-4 backdrop-blur-xs"
     >
-      <div className="w-full max-w-xs rounded-2xl border border-adw-border bg-adw-card p-5 shadow-2xl">
+      <div className="w-full max-w-xs rounded-2xl border border-adw-border bg-white/95 p-5 shadow-2xl backdrop-blur-2xl dark:bg-zinc-900/95">
         <h2
           id="unsaved-changes-title"
           className="text-base font-semibold text-adw-label"

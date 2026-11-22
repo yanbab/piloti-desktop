@@ -1,4 +1,5 @@
 import * as React from "react";
+import { getConsoleEntries } from "@/lib/core/console-store";
 import { removeVfsStateFile, VFS_STATE_PATHS } from "@/lib/engine/vfs-state";
 
 interface ShellErrorBoundaryState {
@@ -60,6 +61,45 @@ export class ShellErrorBoundary extends React.Component<
     window.location.reload();
   };
 
+  private handleSendBugReport = () => {
+    const { error } = this.state;
+    if (!error) return;
+    const title = `[BSOD] ${error.message || "Unexpected shell error"}`.slice(0, 120);
+    const recentLogs = getConsoleEntries()
+      .slice(-30)
+      .map((entry) => {
+        const ts = new Date(entry.timestamp).toISOString();
+        const repeat = entry.count > 1 ? ` (x${entry.count})` : "";
+        return `[${ts}] [${entry.level.toUpperCase()}] ${entry.message}${repeat}`;
+      })
+      .join("\n")
+      .slice(-2500);
+    const runtimeInfo = [
+      `User-Agent: ${typeof navigator !== "undefined" ? navigator.userAgent : "unknown"}`,
+      `Platform: ${typeof navigator !== "undefined" ? navigator.platform : "unknown"}`,
+      `URL: ${typeof window !== "undefined" ? window.location.href : "unknown"}`,
+      `Timestamp: ${new Date().toISOString()}`,
+    ].join("\n");
+    const body = [
+      "## Error",
+      "```",
+      formatErrorDetails(error).slice(0, 1800),
+      "```",
+      "",
+      "## Runtime Info",
+      "```",
+      runtimeInfo,
+      "```",
+      "",
+      "## Recent Console Logs",
+      "```",
+      recentLogs || "(none)",
+      "```",
+    ].join("\n");
+    const url = `https://github.com/yanbab/piloti-desktop/issues/new?title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}`;
+    window.open(url, "_blank", "noopener");
+  };
+
   render() {
     const { error } = this.state;
     if (!error) return this.props.children;
@@ -107,6 +147,13 @@ export class ShellErrorBoundary extends React.Component<
               className="rounded-md border border-white/35 bg-white/10 px-4 py-2.5 text-sm font-medium text-white active:bg-white/20"
             >
               Clear Cache &amp; Reload
+            </button>
+            <button
+              type="button"
+              onClick={this.handleSendBugReport}
+              className="rounded-md border border-white/35 bg-white/10 px-4 py-2.5 text-sm font-medium text-white active:bg-white/20"
+            >
+              Send Bug Report
             </button>
             <button
               type="button"

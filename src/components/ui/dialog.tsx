@@ -74,7 +74,7 @@ function DialogContent({
           "fixed top-[50%] left-[50%] z-[450] grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] text-adw-label outline-none sm:max-w-md",
           variant === "menu"
             ? "gap-0 overflow-hidden rounded-adw-menu p-0 shadow-adw-menu adw-material-menu duration-150 data-open:animate-in data-open:fade-in-0 motion-reduce:animate-none"
-            : "gap-4 rounded-adw-window bg-adw-window p-5 shadow-adw-window duration-150 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-[0.97] dark:shadow-[0_0_0_1px_rgb(0_0_0/0.92),inset_0_0_0_1px_var(--adw-window-rim),0_18px_54px_rgb(0_0_0/0.57)]",
+            : "gap-4 rounded-adw-window bg-white/95 dark:bg-zinc-900/95 backdrop-blur-2xl p-5 shadow-adw-window duration-150 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-[0.97] dark:shadow-[0_0_0_1px_rgb(0_0_0/0.92),inset_0_0_0_1px_var(--adw-window-rim),0_18px_54px_rgb(0_0_0/0.57)]",
           showCloseButton && "pt-12",
           className
         )}

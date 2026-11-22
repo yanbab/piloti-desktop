@@ -688,13 +688,15 @@ const ICONS = {
               fill: "#000000",
               opacity: 18,
             }),
-            pathGroup("PencilBadge", {
-              d: "M 32,47 A 15,15 0 1 0 62,47 A 15,15 0 1 0 32,47 Z",
-              fill: "#f34235",
+            circleGroup("PencilBadge", {
+              cx: 47,
+              cy: 47,
+              r: 15,
+              fill: "#5a5a60",
             }),
             pathGroup("PencilTip", {
               d: "M 40,50.4 L 40,54 L 43.6,54 L 52.6,45 L 49,41.4 Z M 55.7,41.9 C 56.1,41.5 56.1,40.9 55.7,40.5 L 53.5,38.3 C 53.1,37.9 52.5,37.9 52.1,38.3 L 50.3,40.1 L 53.8,43.7 Z",
-              fill: "#ffffff",
+              fill: "#5294e2",
             }),
           ],
           {
@@ -710,7 +712,7 @@ const ICONS = {
             w: 34,
             h: 4,
             r: 1.5,
-            fill: "#3b82f6",
+            fill: "#5294e2",
             opacity: 85,
             s: kFrames([[0, [20, 100]], [16, [100, 100]], [40, [100, 100]]]),
           }),

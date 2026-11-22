@@ -107,8 +107,23 @@ function DesktopSurface() {
     aboutOpen,
     altTabOpen,
     overviewOpen,
+    setOverviewOpen,
+    setLauncherOpen,
+    setControlPanelOpen,
     launchApp,
   } = useWindowManager();
+
+  React.useEffect(() => {
+    const onDismissPopups = () => {
+      setLauncherOpen(false);
+      setControlPanelOpen(false);
+      setOverviewOpen(false);
+    };
+    window.addEventListener("piloti:dismiss-popups", onDismissPopups);
+    return () => {
+      window.removeEventListener("piloti:dismiss-popups", onDismissPopups);
+    };
+  }, [setControlPanelOpen, setLauncherOpen, setOverviewOpen]);
 
   const [clipboard, setLocalClipboard] = React.useState(() =>
     getVfsClipboard()

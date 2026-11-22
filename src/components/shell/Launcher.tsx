@@ -40,6 +40,8 @@ import {
   resolveWebAppTitle,
 } from "@/data/web-apps";
 import { isAppSearchEnabled } from "@/lib/core/app-permissions";
+import { _ } from "@/lib/core/i18n";
+import { cn } from "@/lib/core/utils";
 import { evaluateLauncherMath } from "@/lib/shell/launcher-math";
 import { captureLaunchOriginFromElement } from "@/lib/shell/launch-origin";
 import {
@@ -402,13 +404,17 @@ export function Launcher() {
     const nativeAppEntries: PaletteEntry[] = [
       ...APP_CATALOG.filter(
         (app) => Boolean(app.builtinComponent) && isAppSearchEnabled(app.id)
-      ).map(
-        (app) => ({
+      ).map((app) => {
+        const localizedName = _(app.name);
+        const localizedShort = _(app.shortName);
+        const localizedDesc = _(app.description);
+        const englishMeta = `${app.name} ${app.shortName} ${app.command ?? ""} ${app.description}`;
+        const localizedMeta = `${localizedName} ${localizedShort} ${localizedDesc}`;
+        return {
           value: `builtin:${app.id}`,
-          score: scoreMatch(
-            tokens,
-            app.name,
-            `${app.shortName} ${app.command ?? ""} ${app.description}`
+          score: Math.max(
+            scoreMatch(tokens, localizedName, `${localizedMeta} ${englishMeta}`),
+            scoreMatch(tokens, app.name, `${englishMeta} ${localizedMeta}`)
           ),
           icon: (
             <AppSquircleIcon
@@ -416,13 +422,13 @@ export function Launcher() {
               className="size-5 rounded-[5px]"
             />
           ),
-          label: app.name,
+          label: localizedName,
           onSelect: () => {
             recordLaunch(`builtin:${app.id}`);
             runAndClose(() => launchApp(app.id));
           },
-        })
-      ),
+        };
+      }),
       ...installedXdgApps
         .filter(
           (entry) =>
@@ -430,31 +436,43 @@ export function Launcher() {
             !entry.desktopId.startsWith("piloti-webapp-") &&
             !entry.exec?.startsWith("piloti-webapp ")
         )
-        .map((entry) => ({
-          value: `app:${entry.desktopId}`,
-          score: scoreMatch(
-            tokens,
-            entry.name,
-            `${entry.genericName ?? ""} ${entry.keywords.join(" ")}`
-          ),
-          icon: (
-            <AppSquircleIcon
-              iconUrl={
-                entry.iconUrl ??
-                getAppIconUrl(entry.desktopId) ??
-                (entry.icon && /^https?:\/\//i.test(entry.icon)
-                  ? entry.icon
-                  : undefined)
-              }
-              className="size-5 shrink-0 rounded-[5px]"
-            />
-          ),
-          label: entry.name,
-          onSelect: () => {
-            recordLaunch(`app:${entry.desktopId}`);
-            runAndClose(() => launchXdgApp(entry));
-          },
-        })),
+        .map((entry) => {
+          const localizedName = _(entry.name);
+          const localizedGeneric = entry.genericName ? _(entry.genericName) : "";
+          const keywords = entry.keywords.join(" ");
+          return {
+            value: `app:${entry.desktopId}`,
+            score: Math.max(
+              scoreMatch(
+                tokens,
+                localizedName,
+                `${localizedGeneric} ${entry.name} ${entry.genericName ?? ""} ${keywords}`
+              ),
+              scoreMatch(
+                tokens,
+                entry.name,
+                `${entry.genericName ?? ""} ${keywords} ${localizedName} ${localizedGeneric}`
+              )
+            ),
+            icon: (
+              <AppSquircleIcon
+                iconUrl={
+                  entry.iconUrl ??
+                  getAppIconUrl(entry.desktopId) ??
+                  (entry.icon && /^https?:\/\//i.test(entry.icon)
+                    ? entry.icon
+                    : undefined)
+                }
+                className="size-5 shrink-0 rounded-[5px]"
+              />
+            ),
+            label: localizedName,
+            onSelect: () => {
+              recordLaunch(`app:${entry.desktopId}`);
+              runAndClose(() => launchXdgApp(entry));
+            },
+          };
+        }),
     ];
 
     const webAppEntries: PaletteEntry[] = settings.installedWebApps.map((webApp) => {
@@ -590,23 +608,26 @@ export function Launcher() {
     }
 
     const folderItems = filterAndSort(
-      xdgUserDirs.map((dir) => ({
-        value: `folder:${dir.key}`,
-        score: scoreMatch(
-          tokens,
-          dir.name,
-          `folder directory ${dir.displayPath} ${dir.keywords.join(" ")}`
-        ),
-        icon: (
-          <AppSquircleIcon
-            iconUrl={getAppIconUrl(`folder:${dir.key}`)}
-            className="size-5 shrink-0 rounded-[5px]"
-          />
-        ),
-        label: dir.name,
-        hint: dir.displayPath,
-        onSelect: () => runAndClose(() => openXdgFolder(dir)),
-      }))
+      xdgUserDirs.map((dir) => {
+        const localizedDir = _(dir.name);
+        const dirKeywords = `folder directory ${dir.key} ${dir.displayPath} ${dir.keywords.join(" ")}`;
+        return {
+          value: `folder:${dir.key}`,
+          score: Math.max(
+            scoreMatch(tokens, localizedDir, `${dir.name} ${dirKeywords}`),
+            scoreMatch(tokens, dir.name, `${localizedDir} ${dirKeywords}`)
+          ),
+          icon: (
+            <AppSquircleIcon
+              iconUrl={getAppIconUrl(`folder:${dir.key}`)}
+              className="size-5 shrink-0 rounded-[5px]"
+            />
+          ),
+          label: localizedDir,
+          hint: dir.displayPath,
+          onSelect: () => runAndClose(() => openXdgFolder(dir)),
+        };
+      })
     );
     if (folderItems.length > 0) {
       out.push({ heading: "Folders", items: folderItems });
@@ -1089,6 +1110,10 @@ export function Launcher() {
             e.stopPropagation();
             setHistoryIndex(-1);
             setSearchQuery("");
+          } else if (settings.touchMode) {
+            e.preventDefault();
+            e.stopPropagation();
+            setLauncherOpen(false);
           }
           return;
         }
@@ -1127,18 +1152,22 @@ export function Launcher() {
         }
         e.stopPropagation();
       }}
-      className="relative w-full"
+      className={cn(
+        "relative w-full",
+        settings.touchMode &&
+          "mx-auto flex h-full max-w-3xl flex-col rounded-none bg-transparent"
+      )}
     >
       <div
         ref={searchHeaderRef}
         data-launcher-drag-header=""
-        onPointerDown={handleHeaderDragPointerDown}
+        onPointerDown={settings.touchMode ? undefined : handleHeaderDragPointerDown}
         className="cursor-default [&_[data-slot=command-input-wrapper]]:cursor-default"
       >
         <CommandInput
           ref={inputRef}
           autoFocus
-          placeholder="Search or URL"
+          placeholder={_("Search or URL")}
           value={searchQuery}
           onValueChange={(val) => {
             setHistoryIndex(-1);
@@ -1148,21 +1177,25 @@ export function Launcher() {
           onAcceptCompletion={setSearchQuery}
         />
       </div>
-      <CommandList style={{ maxHeight: `${listHeight}px` }}>
+      <CommandList
+        className={settings.touchMode ? "min-h-0 flex-1 max-h-none" : undefined}
+        style={settings.touchMode ? undefined : { maxHeight: `${listHeight}px` }}
+      >
         {sections.length === 0 ? (
           <div className="py-6 text-center text-adw-body text-adw-label-secondary">
-            No matching apps, folders, settings, or commands.
+            {_("No matching apps, folders, settings, or commands.")}
           </div>
         ) : (
           sections.map((section, idx) => (
             <React.Fragment key={section.heading}>
               {idx > 0 && <CommandSeparator />}
-              <CommandGroup heading={section.heading}>
+              <CommandGroup heading={_(section.heading)}>
                 {section.items.map((item) => (
                   <CommandItem
                     key={item.value}
                     value={item.value}
                     data-launcher-item={item.value}
+                    className={settings.touchMode ? "min-h-11 py-2.5 text-[14px]" : undefined}
                     onSelect={() => {
                       const el = document.querySelector(
                         `[data-launcher-item="${CSS.escape(item.value)}"]`
@@ -1187,13 +1220,15 @@ export function Launcher() {
           ))
         )}
       </CommandList>
-      <div
-        role="separator"
-        aria-orientation="horizontal"
-        aria-label="Resize launcher height"
-        onPointerDown={handleResizePointerDown}
-        className="absolute inset-x-0 bottom-0 h-1.5 cursor-ns-resize select-none"
-      />
+      {!settings.touchMode && (
+        <div
+          role="separator"
+          aria-orientation="horizontal"
+          aria-label="Resize launcher height"
+          onPointerDown={handleResizePointerDown}
+          className="absolute inset-x-0 bottom-0 h-1.5 cursor-ns-resize select-none"
+        />
+      )}
     </Command>
   );
 }

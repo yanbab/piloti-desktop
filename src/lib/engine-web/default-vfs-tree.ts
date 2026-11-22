@@ -672,6 +672,12 @@ export const DEFAULT_STATIC_DIR_INDEX: Record<string, readonly { name: string; f
       "fileType": 1
     }
   ],
+  "/usr/share/icons/Piloti/scalable/apps": [
+    {
+      "name": "accessories-calculator.svg",
+      "fileType": 0
+    }
+  ],
   "/usr/share/icons/Piloti/scalable/mimetypes": [
     {
       "name": "application-x-zerosize.svg",
@@ -687,6 +693,10 @@ export const DEFAULT_STATIC_DIR_INDEX: Record<string, readonly { name: string; f
     }
   ],
   "/usr/share/icons/Piloti/scalable": [
+    {
+      "name": "apps",
+      "fileType": 1
+    },
     {
       "name": "mimetypes",
       "fileType": 1

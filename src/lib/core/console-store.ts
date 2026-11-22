@@ -262,6 +262,10 @@ export function installConsoleCapture(): void {
   });
 }
 
+export function getConsoleEntries(): readonly ConsoleLogEntry[] {
+  return entries;
+}
+
 export function clearConsoleEntries(): void {
   entries = [];
   notifyListeners();

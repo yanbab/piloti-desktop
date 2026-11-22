@@ -266,12 +266,14 @@ const PAPIRUS_DIRECT_ICON_FALLBACKS: Record<string, readonly string[]> = {
   browser: ["/usr/share/icons/Papirus/64x64/apps/internet-web-browser.svg"],
   "web-view": ["/usr/share/icons/Papirus/64x64/apps/internet-web-browser.svg"],
   "text-editor": [
+    "/usr/share/icons/Piloti/animated/apps/accessories-text-editor.json",
     "/usr/share/icons/Papirus/64x64/apps/accessories-text-editor.svg",
   ],
   "app-store": [
     "/usr/share/icons/Papirus/64x64/apps/system-software-install.svg",
   ],
   calculator: [
+    "/usr/share/icons/Piloti/scalable/apps/accessories-calculator.svg",
     "/usr/share/icons/Papirus/64x64/apps/accessories-calculator.svg",
   ],
   "image-viewer": [
@@ -356,7 +358,7 @@ async function resolveWithDirectAdwaitaFallback(
   return undefined;
 }
 
-const DOCK_ICONS_CACHE_KEY = "piloti.dock-icons.v19";
+const DOCK_ICONS_CACHE_KEY = "piloti.dock-icons.v20";
 
 interface DockIconsCachePayload {
   theme: string;
@@ -901,30 +903,49 @@ export function useAppsValue(
     );
   }, [settings.accentColor, settings.customAccentHex]);
 
+  const shouldTintAppOrMimeIcon = React.useCallback(
+    (keyOrId: string | undefined): boolean => {
+      if (shouldTintIconKey(keyOrId)) return true;
+      if (!keyOrId) return false;
+      const clean = keyOrId.trim().replace(/\.desktop$/i, "").toLowerCase();
+      return (
+        clean === "calculator" ||
+        clean === "piloti-calculator" ||
+        clean === "accessories-calculator" ||
+        clean === "org.gnome.calculator" ||
+        clean === "text-editor" ||
+        clean === "piloti-notepad" ||
+        clean === "piloti-text-editor" ||
+        clean === "accessories-text-editor"
+      );
+    },
+    []
+  );
+
   const tintedAppIconsMap = React.useMemo(() => {
     const out: Record<string, string> = {};
     for (const [k, url] of Object.entries(appIconsMap)) {
-      out[k] = shouldTintIconKey(k)
+      out[k] = shouldTintAppOrMimeIcon(k)
         ? (tintIconDataUrl(url, activeAccentHex) ?? url)
         : url;
     }
     return out;
-  }, [activeAccentHex, appIconsMap]);
+  }, [activeAccentHex, appIconsMap, shouldTintAppOrMimeIcon]);
 
   const tintedInstalledXdgApps = React.useMemo(
     () =>
       installedXdgApps.map((entry) =>
         entry.iconUrl &&
-        (shouldTintIconKey(entry.appId) ||
-          shouldTintIconKey(entry.desktopId) ||
-          shouldTintIconKey(entry.icon))
+        (shouldTintAppOrMimeIcon(entry.appId) ||
+          shouldTintAppOrMimeIcon(entry.desktopId) ||
+          shouldTintAppOrMimeIcon(entry.icon))
           ? {
               ...entry,
               iconUrl: tintIconDataUrl(entry.iconUrl, activeAccentHex) ?? entry.iconUrl,
             }
           : entry
       ),
-    [activeAccentHex, installedXdgApps]
+    [activeAccentHex, installedXdgApps, shouldTintAppOrMimeIcon]
   );
 
   const getAppIconUrl = React.useCallback(

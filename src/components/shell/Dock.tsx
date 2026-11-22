@@ -92,7 +92,6 @@ export function Dock() {
   const altPressed = useAltKey();
 
   const [trashEmpty, setTrashEmpty] = React.useState(true);
-  const [trashCount, setTrashCount] = React.useState(0);
   const [entered, setEntered] = React.useState(false);
 
   React.useEffect(() => {
@@ -289,12 +288,10 @@ export function Dock() {
     if (isBrowserRuntime) {
       const items = listVfsDir(WEB_VFS_TRASH);
       setTrashEmpty(items.length === 0);
-      setTrashCount(items.length);
       return;
     }
     const status = await inspectXdgTrash(domicile.files, ".local/share/Trash/files");
     setTrashEmpty(status.empty);
-    setTrashCount(status.itemCount);
   }, [domicile.files, isBrowserRuntime]);
 
   React.useEffect(() => {
@@ -895,7 +892,7 @@ export function Dock() {
           )}
 
           <DockItem
-            label={trashEmpty ? _("Trash (Empty)") : _("Trash (%d)", trashCount)}
+            label={_("Trash")}
             tileProps={{
               "data-dock-context": "trash",
               "data-vfs-drop-path": WEB_VFS_TRASH,

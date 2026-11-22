@@ -523,6 +523,7 @@ function InspectorJsonCard({
               {
                 ...(themeMode === "light" ? themeGitHubLight : themeOneDark),
                 backgroundColor: "transparent",
+                "--bigobjview-bg-color": "transparent",
                 fontSize: "12px",
               } as React.CSSProperties
             }
@@ -1072,6 +1073,7 @@ function InspectorModule() {
                                           ? themeGitHubLight
                                           : themeOneDark),
                                         backgroundColor: "transparent",
+                                        "--bigobjview-bg-color": "transparent",
                                         fontSize: "12px",
                                       } as React.CSSProperties
                                     }
@@ -1869,6 +1871,7 @@ function StorageModule() {
                             ? themeGitHubLight
                             : themeOneDark),
                           backgroundColor: "transparent",
+                          "--bigobjview-bg-color": "transparent",
                           fontSize: "12.5px",
                         } as React.CSSProperties
                       }

@@ -85,10 +85,12 @@ export function DockFolderStack({
     window.addEventListener("pointerdown", onPointerDown, true);
     window.addEventListener("keydown", onKey);
     window.addEventListener("blur", onClose);
+    window.addEventListener("piloti:dismiss-popups", onClose);
     return () => {
       window.removeEventListener("pointerdown", onPointerDown, true);
       window.removeEventListener("keydown", onKey);
       window.removeEventListener("blur", onClose);
+      window.removeEventListener("piloti:dismiss-popups", onClose);
     };
   }, [onClose, path]);
 

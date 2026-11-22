@@ -8,11 +8,13 @@ import {
   WEBVIEW_CONTENT_SIZE_CHANGE_EVENT,
   WEBVIEW_FAVICON_CHANGE_EVENT,
   WEBVIEW_GUEST_FOCUS_EVENT,
+  WEBVIEW_HISTORY_CHANGE_EVENT,
   WEBVIEW_LOADING_CHANGE_EVENT,
   WEBVIEW_PAGE_CHANGE_EVENT,
   WEBVIEW_PAGE_FAILURE_CHANGE_EVENT,
 } from "@domicile-desktop/sdk/webview-element";
 import {
+  ChevronLeftIcon,
   DownloadIcon,
   GlobeIcon,
   Loader2Icon,
@@ -190,12 +192,67 @@ function WaylandAppSurface({ win }: { win: DesktopWindowInstance }) {
   );
 }
 
+function darkenThemeColor(cssColor: string): string {
+  const raw = cssColor.trim();
+  let r: number;
+  let g: number;
+  let b: number;
+  const hex3 = raw.match(/^#([\da-f]{3})$/i);
+  const hex6 = raw.match(/^#([\da-f]{6})$/i);
+  const rgb = raw.match(
+    /^rgba?\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})(?:\s*,\s*([\d.]+))?\s*\)$/i
+  );
+  if (hex3) {
+    r = Number.parseInt(hex3[1][0] + hex3[1][0], 16);
+    g = Number.parseInt(hex3[1][1] + hex3[1][1], 16);
+    b = Number.parseInt(hex3[1][2] + hex3[1][2], 16);
+  } else if (hex6) {
+    r = Number.parseInt(hex6[1].slice(0, 2), 16);
+    g = Number.parseInt(hex6[1].slice(2, 4), 16);
+    b = Number.parseInt(hex6[1].slice(4, 6), 16);
+  } else if (rgb) {
+    r = Math.min(255, Number.parseInt(rgb[1], 10));
+    g = Math.min(255, Number.parseInt(rgb[2], 10));
+    b = Math.min(255, Number.parseInt(rgb[3], 10));
+  } else {
+    return "#1c1c20";
+  }
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  const factor = luminance > 0.5 ? 0.18 : luminance > 0.25 ? 0.38 : 0.75;
+  const base = 18;
+  const dr = Math.round(r * factor + base * (1 - factor));
+  const dg = Math.round(g * factor + base * (1 - factor));
+  const db = Math.round(b * factor + base * (1 - factor));
+  return `rgb(${dr}, ${dg}, ${db})`;
+}
+
+function dismissOpenPopups() {
+  window.dispatchEvent(new CustomEvent("piloti:dismiss-popups"));
+  document.dispatchEvent(
+    new KeyboardEvent("keydown", {
+      key: "Escape",
+      bubbles: true,
+      cancelable: true,
+    })
+  );
+  document.body.dispatchEvent(
+    new PointerEvent("pointerdown", {
+      bubbles: true,
+      cancelable: true,
+    })
+  );
+}
+
 function WebViewSurface({
   win,
   isCsd,
+  darkReaderEnabled,
+  onToggleDarkReader,
 }: {
   win: DesktopWindowInstance;
   isCsd: boolean;
+  darkReaderEnabled: boolean;
+  onToggleDarkReader: () => void;
 }) {
   const domicile = useDomicile();
   const { isBrowserRuntime, resolvedTheme, settings, updateSettings } =
@@ -261,14 +318,22 @@ function WebViewSurface({
     };
   }, [activeExtPopup]);
 
+  const prefersDark = resolvedTheme === "dark" || darkReaderEnabled;
   const [address, setAddress] = React.useState(win.browserUrl ?? "");
+  const [historyState, setHistoryState] = React.useState<{
+    stack: string[];
+    index: number;
+  }>(() => {
+    const init = normalizeWebUrl(win.browserUrl ?? "");
+    return { stack: init ? [init] : [], index: 0 };
+  });
+  const [nativeCanGoBack, setNativeCanGoBack] = React.useState(false);
   const [editingAddress, setEditingAddress] = React.useState(false);
   const [draftAddress, setDraftAddress] = React.useState("");
   const [isLoading, setIsLoading] = React.useState(false);
   const [latestFavicon, setLatestFavicon] = React.useState("");
   const [themeColor, setThemeColor] = React.useState<string | null>(
-    () =>
-      getCachedWebThemeColor(win.browserUrl, resolvedTheme === "dark") ?? null
+    () => getCachedWebThemeColor(win.browserUrl, prefersDark) ?? null
   );
   const [pageFailure, setPageFailure] = React.useState("");
   const [pageFailureError, setPageFailureError] = React.useState("");
@@ -291,6 +356,14 @@ function WebViewSurface({
   React.useEffect(() => {
     if (win.browserUrl) {
       setAddress(win.browserUrl);
+      const normalized = normalizeWebUrl(win.browserUrl);
+      if (normalized) {
+        setHistoryState((prev) => {
+          if (prev.stack[prev.index] === normalized) return prev;
+          const nextStack = [...prev.stack.slice(0, prev.index + 1), normalized];
+          return { stack: nextStack, index: nextStack.length - 1 };
+        });
+      }
     }
   }, [win.browserUrl]);
 
@@ -298,11 +371,13 @@ function WebViewSurface({
     const view = webviewRef.current;
     if (!view || isBrowserRuntime) return;
 
+    const syncHistory = () => setNativeCanGoBack(Boolean(view.canGoBack));
     const syncPage = () => {
       if (view.url) setAddress(view.url);
       if (view.url && !view.loading) {
         markReadyRef.current();
       }
+      syncHistory();
     };
     const syncLoading = () => {
       const loading = Boolean(view.loading);
@@ -333,19 +408,21 @@ function WebViewSurface({
       setCachedWebThemeColor(
         view.url || win.browserUrl,
         next,
-        resolvedTheme === "dark"
+        prefersDark
       );
     };
 
     view.addEventListener(WEBVIEW_GUEST_FOCUS_EVENT, onGuestFocus);
     view.addEventListener(WEBVIEW_LOADING_CHANGE_EVENT, syncLoading);
     view.addEventListener(WEBVIEW_PAGE_CHANGE_EVENT, syncPage);
+    view.addEventListener(WEBVIEW_HISTORY_CHANGE_EVENT, syncHistory);
     view.addEventListener(WEBVIEW_FAVICON_CHANGE_EVENT, syncFavicon);
     view.addEventListener(WEBVIEW_PAGE_FAILURE_CHANGE_EVENT, syncFailure);
     view.addEventListener("did-change-theme-color", onThemeColor);
 
     syncLoading();
     syncPage();
+    syncHistory();
     syncFavicon();
     syncFailure();
 
@@ -353,11 +430,12 @@ function WebViewSurface({
       view.removeEventListener(WEBVIEW_GUEST_FOCUS_EVENT, onGuestFocus);
       view.removeEventListener(WEBVIEW_LOADING_CHANGE_EVENT, syncLoading);
       view.removeEventListener(WEBVIEW_PAGE_CHANGE_EVENT, syncPage);
+      view.removeEventListener(WEBVIEW_HISTORY_CHANGE_EVENT, syncHistory);
       view.removeEventListener(WEBVIEW_FAVICON_CHANGE_EVENT, syncFavicon);
       view.removeEventListener(WEBVIEW_PAGE_FAILURE_CHANGE_EVENT, syncFailure);
       view.removeEventListener("did-change-theme-color", onThemeColor);
     };
-  }, [isBrowserRuntime, win.browserWindowId]);
+  }, [isBrowserRuntime, prefersDark, win.browserWindowId, win.browserUrl]);
 
   const currentUrl = normalizeWebUrl(address) ?? win.browserUrl ?? "";
   const canonicalUrl = canonicalizeWebUrl(currentUrl) ?? currentUrl;
@@ -458,12 +536,76 @@ function WebViewSurface({
     const normalized = normalizeWebUrl(draftAddress);
     if (normalized) {
       setAddress(normalized);
-      if (!isBrowserRuntime && webviewRef.current) {
+      if (isBrowserRuntime) {
+        setHistoryState((prev) => {
+          if (prev.stack[prev.index] === normalized) return prev;
+          const nextStack = [...prev.stack.slice(0, prev.index + 1), normalized];
+          return { stack: nextStack, index: nextStack.length - 1 };
+        });
+      } else if (webviewRef.current) {
         webviewRef.current.src = normalized;
       }
     }
     setEditingAddress(false);
   };
+
+  const canGoBack = isBrowserRuntime ? historyState.index > 0 : nativeCanGoBack;
+  const handleGoBack = React.useCallback(() => {
+    if (isBrowserRuntime) {
+      setHistoryState((prev) => {
+        if (prev.index <= 0) return prev;
+        const nextIndex = prev.index - 1;
+        const prevUrl = prev.stack[nextIndex];
+        if (prevUrl) setAddress(prevUrl);
+        return { ...prev, index: nextIndex };
+      });
+    } else {
+      webviewRef.current?.goBack();
+    }
+  }, [isBrowserRuntime]);
+
+  React.useEffect(() => {
+    const triggerPrint = () => {
+      if (focusedWindowId !== win.id) return;
+      if (isBrowserRuntime) {
+        try {
+          const cw = iframeRef.current?.contentWindow;
+          if (cw) {
+            cw.focus();
+            cw.print();
+            return;
+          }
+        } catch {
+          // Cross-origin iframes throw on contentWindow.print()
+        }
+        window.print();
+      } else {
+        const view = webviewRef.current as
+          | (HTMLWebViewElement & { print?: () => void })
+          | null;
+        if (view && typeof view.print === "function") {
+          view.print();
+        } else {
+          window.print();
+        }
+      }
+    };
+    const onPrintFocused = () => triggerPrint();
+    const onAppAction = (e: Event) => {
+      const detail = (
+        e as CustomEvent<{ windowId?: string; actionId?: string }>
+      ).detail;
+      if (!detail || detail.actionId !== "file:print") return;
+      if (detail.windowId && detail.windowId !== win.id) return;
+      triggerPrint();
+    };
+    window.addEventListener("piloti:print-focused", onPrintFocused);
+    window.addEventListener("piloti:app-action", onAppAction);
+    return () => {
+      window.removeEventListener("piloti:print-focused", onPrintFocused);
+      window.removeEventListener("piloti:app-action", onAppAction);
+    };
+  }, [focusedWindowId, isBrowserRuntime, win.id]);
   const installedApps = settings.installedWebApps ?? [];
   const matchedInstalledApp = findMatchingWebApp(currentUrl, installedApps);
   const isInstalled = currentUrl !== "" && Boolean(matchedInstalledApp);
@@ -491,29 +633,26 @@ function WebViewSurface({
   };
 
   React.useEffect(() => {
-    const cached =
-      getCachedWebThemeColor(currentUrl, resolvedTheme === "dark") ?? null;
+    const cached = getCachedWebThemeColor(currentUrl, prefersDark) ?? null;
     setThemeColor(cached);
     if (!isBrowserRuntime || !currentUrl || !win.browserWindowId) return;
     if (cached !== null) {
       // Still fetch title if needed, or update themeColor in background
     }
     const controller = new AbortController();
-    fetchWebPageMetadata(
-      currentUrl,
-      controller.signal,
-      resolvedTheme === "dark"
-    ).then(({ title, themeColor: fetchedThemeColor }) => {
-      if (controller.signal.aborted) return;
-      if (title) {
-        titleHandlerRef.current(title);
+    fetchWebPageMetadata(currentUrl, controller.signal, prefersDark).then(
+      ({ title, themeColor: fetchedThemeColor }) => {
+        if (controller.signal.aborted) return;
+        if (title) {
+          titleHandlerRef.current(title);
+        }
+        if (fetchedThemeColor) {
+          setThemeColor(fetchedThemeColor);
+        }
       }
-      if (fetchedThemeColor) {
-        setThemeColor(fetchedThemeColor);
-      }
-    });
+    );
     return () => controller.abort();
-  }, [isBrowserRuntime, currentUrl, win.browserWindowId, resolvedTheme]);
+  }, [isBrowserRuntime, currentUrl, win.browserWindowId, prefersDark]);
 
   const iframeSrc = normalizeWebUrl(address) ?? "about:blank";
 
@@ -536,6 +675,15 @@ function WebViewSurface({
     setIsLoading(false);
     markReadyRef.current();
     try {
+      const frameHref = iframeRef.current?.contentWindow?.location?.href;
+      if (frameHref && frameHref !== "about:blank") {
+        setAddress(frameHref);
+        setHistoryState((prev) => {
+          if (prev.stack[prev.index] === frameHref) return prev;
+          const nextStack = [...prev.stack.slice(0, prev.index + 1), frameHref];
+          return { stack: nextStack, index: nextStack.length - 1 };
+        });
+      }
       const doc = iframeRef.current?.contentDocument;
       const docTitle = doc?.title?.trim();
       if (docTitle) {
@@ -556,7 +704,6 @@ function WebViewSurface({
       const metaTags = doc?.querySelectorAll('meta[name="theme-color" i]');
       if (metaTags && metaTags.length > 0) {
         let matched: string | null = null;
-        const prefersDark = resolvedTheme === "dark";
         for (const el of Array.from(metaTags)) {
           const content = el.getAttribute("content")?.trim();
           if (!content) continue;
@@ -579,7 +726,7 @@ function WebViewSurface({
     } catch {
       // Cross-origin iframes restrict contentDocument access.
     }
-  }, [resolvedTheme]);
+  }, [currentUrl, prefersDark]);
 
   const toggleInstallApp = () => {
     toggleWebAppInstall({
@@ -594,16 +741,21 @@ function WebViewSurface({
     });
   };
 
-  const contrastFg = getContrastForeground(themeColor);
+  const effectiveThemeColor = themeColor
+    ? darkReaderEnabled
+      ? darkenThemeColor(themeColor)
+      : themeColor
+    : null;
+  const contrastFg = getContrastForeground(effectiveThemeColor);
 
   return (
     <div className="flex h-full w-full flex-1 flex-col overflow-hidden bg-adw-content">
       <WindowTitlebar
         data-window-drag-region={isCsd ? "" : undefined}
         style={
-          themeColor
+          effectiveThemeColor
             ? {
-              backgroundColor: themeColor,
+              backgroundColor: effectiveThemeColor,
               color: contrastFg ?? undefined,
               borderBottomColor: "rgba(128,128,128,0.22)",
               ...(contrastFg
@@ -641,6 +793,19 @@ function WebViewSurface({
               </DropdownMenuItem>
             }
           />
+          <button
+            type="button"
+            title={_("Back")}
+            aria-label={_("Back")}
+            disabled={!canGoBack}
+            onClick={handleGoBack}
+            className={cn(
+              "flex size-7 items-center justify-center rounded-md transition-colors disabled:pointer-events-none disabled:opacity-35",
+              "hover:bg-black/8 dark:hover:bg-white/10"
+            )}
+          >
+            <ChevronLeftIcon className="size-4" />
+          </button>
         </div>
 
         {editingAddress ? (
@@ -680,14 +845,21 @@ function WebViewSurface({
                 )}
               />
             )}
-            <span
+            <button
+              type="button"
+              data-window-no-drag
+              title={_("Click to edit URL")}
+              onClick={() => {
+                setDraftAddress(currentUrl);
+                setEditingAddress(true);
+              }}
               className={cn(
-                "truncate text-[13px] font-semibold",
+                "pointer-events-auto max-w-full cursor-text truncate rounded-md px-2 py-0.5 text-[13px] font-semibold transition-colors hover:bg-black/6 dark:hover:bg-white/10",
                 !contrastFg && "text-adw-label"
               )}
             >
               {win.title}
-            </span>
+            </button>
           </div>
         )}
 
@@ -710,15 +882,11 @@ function WebViewSurface({
               type="button"
               title="Dark Reader"
               aria-label="Dark Reader"
-              aria-pressed={Boolean(settings.darkReaderWebEnabled)}
-              onClick={() =>
-                updateSettings({
-                  darkReaderWebEnabled: !settings.darkReaderWebEnabled,
-                })
-              }
+              aria-pressed={darkReaderEnabled}
+              onClick={onToggleDarkReader}
               className={cn(
                 "flex size-7 items-center justify-center rounded-md transition-colors",
-                settings.darkReaderWebEnabled
+                darkReaderEnabled
                   ? "bg-black/14 dark:bg-white/18"
                   : "hover:bg-black/8 dark:hover:bg-white/10"
               )}
@@ -839,8 +1007,10 @@ function WebViewSurface({
             title={win.title}
             onLoad={handleIframeLoad}
             onError={() => setIsLoading(false)}
+            onPointerDownCapture={dismissOpenPopups}
+            onFocus={dismissOpenPopups}
             style={
-              settings.darkReaderWebEnabled
+              darkReaderEnabled
                 ? { filter: WEB_DARK_READER_FILTER, colorScheme: "dark" }
                 : undefined
             }
@@ -968,10 +1138,14 @@ const WindowBody = React.memo(
     win,
     isCsd,
     onDomReady,
+    darkReaderEnabled,
+    onToggleDarkReader,
   }: {
     win: DesktopWindowInstance;
     isCsd: boolean;
     onDomReady: (id: string) => void;
+    darkReaderEnabled: boolean;
+    onToggleDarkReader: () => void;
   }) {
     const { isBrowserRuntime } = useSettings();
 
@@ -980,7 +1154,14 @@ const WindowBody = React.memo(
     }
 
     if (win.browserWindowId) {
-      return <WebViewSurface win={win} isCsd={isCsd} />;
+      return (
+        <WebViewSurface
+          win={win}
+          isCsd={isCsd}
+          darkReaderEnabled={darkReaderEnabled}
+          onToggleDarkReader={onToggleDarkReader}
+        />
+      );
     }
 
     if (win.builtinComponent === "settings") {
@@ -1091,6 +1272,7 @@ const WindowBody = React.memo(
   },
   (prev, next) =>
     prev.isCsd === next.isCsd &&
+    prev.darkReaderEnabled === next.darkReaderEnabled &&
     prev.win.id === next.win.id &&
     prev.win.builtinComponent === next.win.builtinComponent &&
     prev.win.payload === next.win.payload &&
@@ -1165,6 +1347,18 @@ export function WindowManager() {
   }, []);
   const [closingWindowIds, setClosingWindowIds] = React.useState<Set<string>>(
     () => new Set()
+  );
+  const [darkReaderByWindowId, setDarkReaderByWindowId] = React.useState<
+    Record<string, boolean>
+  >({});
+  const toggleDarkReaderForWindow = React.useCallback(
+    (windowId: string) => {
+      setDarkReaderByWindowId((prev) => ({
+        ...prev,
+        [windowId]: !(prev[windowId] ?? Boolean(settings.darkReaderWebEnabled)),
+      }));
+    },
+    [settings.darkReaderWebEnabled]
   );
 
   React.useLayoutEffect(() => {
@@ -1599,6 +1793,46 @@ export function WindowManager() {
     };
   }, []);
 
+  React.useEffect(() => {
+    const onWindowBlur = () => {
+      const activeEl = document.activeElement;
+      if (activeEl?.tagName === "IFRAME") {
+        const winId = activeEl
+          .closest("[data-window-id]")
+          ?.getAttribute("data-window-id");
+        if (winId) {
+          focusWindowRef.current(winId);
+        }
+        dismissOpenPopups();
+      }
+    };
+    window.addEventListener("blur", onWindowBlur);
+    return () => window.removeEventListener("blur", onWindowBlur);
+  }, []);
+
+  const isTouchMode = Boolean(
+    (settings as { touchMode?: boolean }).touchMode
+  );
+  const touchActiveWindowId = React.useMemo(() => {
+    if (!isTouchMode) return null;
+    const visibleWorkspaceWins = workspaceWindows.filter((w) => !w.minimized);
+    if (visibleWorkspaceWins.length === 0) return null;
+    if (
+      focusedWindowId &&
+      visibleWorkspaceWins.some((w) => w.id === focusedWindowId)
+    ) {
+      return focusedWindowId;
+    }
+    return visibleWorkspaceWins.reduce((top, w) =>
+      w.zIndex > top.zIndex ? w : top
+    ).id;
+  }, [isTouchMode, workspaceWindows, focusedWindowId]);
+
+  const renderedWindows =
+    isTouchMode && !overviewOpen
+      ? windows.filter((w) => w.id === touchActiveWindowId)
+      : windows;
+
   return (
     <div
       className="relative isolate z-10 min-h-0 flex-1 overflow-clip"
@@ -1649,7 +1883,7 @@ export function WindowManager() {
         ref={workspaceStageRef}
         className="pointer-events-none absolute inset-0 z-[1] [&>*]:pointer-events-auto"
       >
-        {windows.map((win) => {
+        {renderedWindows.map((win) => {
           const isActiveWorkspace = win.workspace === settings.activeWorkspace;
           const isFocused = isActiveWorkspace && focusedWindowId === win.id;
           const isCsd =
@@ -1689,14 +1923,14 @@ export function WindowManager() {
               onSizeChange={(sz) => updateWindowGeometry(win.id, { size: sz })}
               minSize={win.minSize}
               maxSize={win.maxSize}
-              draggable
-              resizable={win.appId !== "calculator"}
+              draggable={!isTouchMode}
+              resizable={isTouchMode ? false : win.appId !== "calculator"}
               bounds="parent"
               inactive={!isFocused}
               minimized={overviewOpen ? false : win.minimized}
               minimizeTo={getDockRef(win.appId)}
               minimizeEffect="scale"
-              maximized={win.maximized}
+              maximized={isTouchMode && !overviewOpen ? true : win.maximized}
               buttonLayout={settings.windowButtonLayout}
               maximizeInsets={{
                 top: 0,
@@ -1807,6 +2041,11 @@ export function WindowManager() {
                     win={win}
                     isCsd={isCsd}
                     onDomReady={handleDomReady}
+                    darkReaderEnabled={Boolean(
+                      darkReaderByWindowId[win.id] ??
+                        settings.darkReaderWebEnabled
+                    )}
+                    onToggleDarkReader={() => toggleDarkReaderForWindow(win.id)}
                   />
                 </WindowContent>
               </WindowMain>

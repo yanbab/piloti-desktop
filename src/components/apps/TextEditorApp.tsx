@@ -11,7 +11,12 @@ import { html } from "@codemirror/lang-html";
 import { javascript } from "@codemirror/lang-javascript";
 import { json } from "@codemirror/lang-json";
 import { markdown } from "@codemirror/lang-markdown";
-import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
+import {
+  bracketMatching,
+  HighlightStyle,
+  StreamLanguage,
+  syntaxHighlighting,
+} from "@codemirror/language";
 import { EditorState, type Extension } from "@codemirror/state";
 import {
   EditorView,
@@ -21,10 +26,18 @@ import {
   lineNumbers,
 } from "@codemirror/view";
 import { tags } from "@lezer/highlight";
-import { EyeIcon, SaveIcon, SlidersHorizontalIcon, XIcon } from "lucide-react";
+import { SaveIcon, SlidersHorizontalIcon } from "lucide-react";
 import { ObjectView, themeGitHubLight, themeOneDark } from "react-obj-view";
 import "react-obj-view/dist/react-obj-view.css";
 import { WindowMenuButton } from "@/components/shell/WindowMenuButton";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -35,6 +48,7 @@ import { UnsavedChangesDialog } from "@/components/ui/unsaved-changes-dialog";
 import { WindowControls, WindowTitlebar } from "@/components/ui/window";
 import { publishWindowMenuState, useIsolatedAppBridge } from "@/lib/engine/app-bridge";
 import { readFsMetadata, writeFsMetadata } from "@/lib/engine/fs-bridge";
+import { readVfsStateJson, writeVfsStateJson } from "@/lib/engine/vfs-state";
 import { isBrowserDevRuntime } from "@/context/SettingsContext";
 import { _ } from "@/lib/core/i18n";
 import { parseIniText } from "@/lib/config/ini";
@@ -60,6 +74,54 @@ function getBaseName(path: string): string {
   return idx >= 0 ? norm.slice(idx + 1) : norm;
 }
 
+type EditorViewMode = "code" | "preview" | "design";
+
+const EDITOR_STATE_PATH = "/home/user/.local/state/piloti/editor-state.json";
+
+interface PersistedFileEditorState {
+  unsavedContent?: string;
+  cursor: number;
+  scrollTop: number;
+  viewMode?: EditorViewMode;
+  updatedAt: number;
+}
+
+type PersistedEditorStateMap = Record<string, PersistedFileEditorState>;
+
+function readPersistedEditorStateMap(): PersistedEditorStateMap {
+  return (
+    readVfsStateJson<PersistedEditorStateMap>(
+      EDITOR_STATE_PATH,
+      undefined,
+      (val): val is PersistedEditorStateMap =>
+        Boolean(val && typeof val === "object" && !Array.isArray(val)),
+    ) ?? {}
+  );
+}
+
+function getFileExtension(name: string): string {
+  const idx = name.lastIndexOf(".");
+  return idx > 0 ? name.slice(idx).toLowerCase() : "";
+}
+
+const iniLanguage = StreamLanguage.define({
+  token(stream) {
+    if (stream.sol()) {
+      stream.eatSpace();
+      if (stream.match(/^[;#].*/)) return "comment";
+      if (stream.match(/^\[[^\]]+\]/)) return "heading";
+      if (stream.match(/^[^=\s;#]+(?=\s*=)/)) return "propertyName";
+    }
+    if (stream.match(/^\s*=\s*/)) return "operator";
+    if (stream.match(/^[;#].*/)) return "comment";
+    if (stream.match(/^(?:true|false)\b/i)) return "bool";
+    if (stream.match(/^-?\d+(?:\.\d+)?\b/)) return "number";
+    if (stream.match(/^"(?:[^"\\]|\\.)*"|^'(?:[^'\\]|\\.)*'/)) return "string";
+    stream.next();
+    return null;
+  },
+});
+
 function resolveLanguageExtension(filePath: string | null): Extension[] {
   const ext = filePath?.split(".").pop()?.toLowerCase() ?? "";
   if (ext === "js" || ext === "mjs" || ext === "cjs") return [javascript()];
@@ -71,13 +133,15 @@ function resolveLanguageExtension(filePath: string | null): Extension[] {
   if (ext === "html" || ext === "htm" || ext === "xml" || ext === "svg")
     return [html()];
   if (ext === "css" || ext === "scss") return [css()];
+  if (ext === "ini" || ext === "conf" || ext === "cfg" || ext === "desktop")
+    return [iniLanguage];
   return [];
 }
 
 const adwLightHighlightStyle = HighlightStyle.define([
-  { tag: tags.keyword, color: "#9333ea", fontWeight: "500" },
+  { tag: tags.keyword, color: "var(--adw-accent)", fontWeight: "600" },
   { tag: [tags.name, tags.deleted, tags.character, tags.macroName], color: "#1f2937" },
-  { tag: [tags.propertyName], color: "#0284c7" },
+  { tag: [tags.propertyName], color: "var(--adw-accent)" },
   { tag: [tags.function(tags.variableName), tags.labelName], color: "#2563eb" },
   { tag: [tags.color, tags.constant(tags.name), tags.standard(tags.name)], color: "#d97706" },
   { tag: [tags.definition(tags.name), tags.separator], color: "#374151" },
@@ -86,17 +150,17 @@ const adwLightHighlightStyle = HighlightStyle.define([
   { tag: [tags.meta, tags.comment], color: "#6b7280", fontStyle: "italic" },
   { tag: tags.strong, fontWeight: "bold" },
   { tag: tags.emphasis, fontStyle: "italic" },
-  { tag: tags.heading, fontWeight: "bold", color: "#0284c7" },
+  { tag: tags.heading, fontWeight: "bold", color: "var(--adw-accent)" },
   { tag: [tags.atom, tags.bool, tags.special(tags.variableName)], color: "#7c3aed" },
   { tag: [tags.processingInstruction, tags.string, tags.inserted], color: "#059669" },
-  { tag: [tags.tagName], color: "#0284c7", fontWeight: "500" },
+  { tag: [tags.tagName], color: "var(--adw-accent)", fontWeight: "500" },
   { tag: [tags.attributeName], color: "#7c3aed" },
 ]);
 
 const adwDarkHighlightStyle = HighlightStyle.define([
-  { tag: tags.keyword, color: "#c084fc", fontWeight: "500" },
+  { tag: tags.keyword, color: "var(--adw-accent)", fontWeight: "600" },
   { tag: [tags.name, tags.deleted, tags.character, tags.macroName], color: "#e5e7eb" },
-  { tag: [tags.propertyName], color: "#38bdf8" },
+  { tag: [tags.propertyName], color: "var(--adw-accent)" },
   { tag: [tags.function(tags.variableName), tags.labelName], color: "#60a5fa" },
   { tag: [tags.color, tags.constant(tags.name), tags.standard(tags.name)], color: "#fbbf24" },
   { tag: [tags.definition(tags.name), tags.separator], color: "#d1d5db" },
@@ -105,10 +169,10 @@ const adwDarkHighlightStyle = HighlightStyle.define([
   { tag: [tags.meta, tags.comment], color: "#9ca3af", fontStyle: "italic" },
   { tag: tags.strong, fontWeight: "bold" },
   { tag: tags.emphasis, fontStyle: "italic" },
-  { tag: tags.heading, fontWeight: "bold", color: "#38bdf8" },
+  { tag: tags.heading, fontWeight: "bold", color: "var(--adw-accent)" },
   { tag: [tags.atom, tags.bool, tags.special(tags.variableName)], color: "#c084fc" },
   { tag: [tags.processingInstruction, tags.string, tags.inserted], color: "#34d399" },
-  { tag: [tags.tagName], color: "#38bdf8", fontWeight: "500" },
+  { tag: [tags.tagName], color: "var(--adw-accent)", fontWeight: "500" },
   { tag: [tags.attributeName], color: "#c084fc" },
 ]);
 
@@ -190,6 +254,14 @@ const adwEditorTheme = EditorView.theme({
   ".cm-selectionBackground, ::selection": {
     backgroundColor: "color-mix(in srgb, var(--adw-accent) 28%, transparent)",
   },
+  ".cm-cursor, .cm-dropCursor": {
+    borderLeftColor: "var(--adw-accent)",
+  },
+  ".cm-matchingBracket, .cm-nonmatchingBracket": {
+    backgroundColor: "color-mix(in srgb, var(--adw-accent) 20%, transparent)",
+    outline: "1px solid color-mix(in srgb, var(--adw-accent) 55%, transparent)",
+    borderRadius: "2px",
+  },
   "&.cm-focused": {
     outline: "none",
   },
@@ -202,6 +274,25 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
 }) => {
   const domicile = useDomicile();
   const isBrowserRuntime = isBrowserDevRuntime();
+  const previewIframeRef = React.useRef<HTMLIFrameElement | null>(null);
+  const designIframeRef = React.useRef<HTMLIFrameElement | null>(null);
+  const viewModeRef = React.useRef<EditorViewMode>("code");
+
+  const handlePrint = React.useCallback(() => {
+    const mode = viewModeRef.current;
+    if (mode === "preview" && previewIframeRef.current?.contentWindow) {
+      previewIframeRef.current.contentWindow.focus();
+      previewIframeRef.current.contentWindow.print();
+      return;
+    }
+    if (mode === "design" && designIframeRef.current?.contentWindow) {
+      designIframeRef.current.contentWindow.focus();
+      designIframeRef.current.contentWindow.print();
+      return;
+    }
+    window.print();
+  }, []);
+
   const handleMenuAction = React.useCallback((actionId: string) => {
     if (actionId === "text-editor:toggle-line-numbers") {
       setShowLineNumbers((v) => !v);
@@ -213,13 +304,25 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
       setHighlightLine((v) => !v);
     } else if (actionId === "text-editor:toggle-cursor-position") {
       setShowCursorPos((v) => !v);
+    } else if (actionId === "file:print" || actionId === "piloti:print-focused") {
+      handlePrint();
     } else if (actionId.startsWith("piloti:open-path:")) {
       const droppedPath = actionId.slice("piloti:open-path:".length).trim();
       if (droppedPath) {
         setFilePath(normalizeVfsPath(droppedPath));
       }
     }
-  }, []);
+  }, [handlePrint]);
+
+  React.useEffect(() => {
+    const onPrintFocused = (e: Event) => {
+      const detail = (e as CustomEvent<{ windowId?: string }>).detail;
+      if (detail?.windowId && windowId && detail.windowId !== windowId) return;
+      handlePrint();
+    };
+    window.addEventListener("piloti:print-focused", onPrintFocused);
+    return () => window.removeEventListener("piloti:print-focused", onPrintFocused);
+  }, [handlePrint, windowId]);
   const bridge = useIsolatedAppBridge(windowId, propIsCsd, handleMenuAction);
   const resolvedPath = React.useMemo(() => {
     if (initialPath) return normalizeVfsPath(initialPath);
@@ -233,19 +336,33 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
   const [filePath, setFilePath] = React.useState<string | null>(resolvedPath);
   const [content, setContent] = React.useState<string>(() => {
     if (!resolvedPath) return "";
+    const persisted = readPersistedEditorStateMap()[resolvedPath];
+    if (persisted?.unsavedContent !== undefined) {
+      return persisted.unsavedContent;
+    }
     if (typeof window !== "undefined" && window.parent === window) {
       const entry = getVfsEntry(resolvedPath);
       if (entry?.kind === "file") return entry.content ?? "";
     }
     return "";
   });
-  const [savedContent, setSavedContent] = React.useState<string>(content);
+  const [savedContent, setSavedContent] = React.useState<string>(() => {
+    if (!resolvedPath) return "";
+    if (typeof window !== "undefined" && window.parent === window) {
+      const entry = getVfsEntry(resolvedPath);
+      if (entry?.kind === "file") return entry.content ?? "";
+    }
+    return "";
+  });
   const [confirmCloseOpen, setConfirmCloseOpen] = React.useState(false);
   const isDirty = content !== savedContent;
   const isDirtyRef = React.useRef(isDirty);
   isDirtyRef.current = isDirty;
+  const savedContentRef = React.useRef(savedContent);
+  savedContentRef.current = savedContent;
   const forceCloseRef = React.useRef(false);
-  const [previewMarkdown, setPreviewMarkdown] = React.useState(false);
+  const [viewMode, setViewMode] = React.useState<EditorViewMode>("code");
+  viewModeRef.current = viewMode;
   const [findOpen, setFindOpen] = React.useState(false);
   const [findQuery, setFindQuery] = React.useState("");
   const [savedFlash, setSavedFlash] = React.useState(false);
@@ -292,22 +409,48 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
   ]);
   const [editingTitle, setEditingTitle] = React.useState(false);
   const [draftTitle, setDraftTitle] = React.useState("");
+  const [pendingRename, setPendingRename] = React.useState<{
+    nextName: string;
+    oldExt: string;
+    newExt: string;
+  } | null>(null);
   const titleInputRef = React.useRef<HTMLInputElement | null>(null);
 
+  const isHtmlFile = React.useMemo(
+    () => Boolean(filePath && /\.(html|htm)$/i.test(filePath)),
+    [filePath],
+  );
+  const isSvgFile = React.useMemo(
+    () => Boolean(filePath && /\.svg$/i.test(filePath)),
+    [filePath],
+  );
   const isPreviewable = React.useMemo(
     () =>
       Boolean(
-        filePath &&
-          (/\.(md|markdown|json|ini)$/i.test(filePath)),
+        filePath && /\.(html|htm|md|markdown|json|svg|ini)$/i.test(filePath),
       ),
     [filePath],
   );
 
   React.useEffect(() => {
-    if (!isPreviewable && previewMarkdown) {
-      setPreviewMarkdown(false);
+    if (!isPreviewable && viewMode !== "code") {
+      setViewMode("code");
+    } else if (!isHtmlFile && viewMode === "design") {
+      setViewMode("preview");
     }
-  }, [isPreviewable, previewMarkdown]);
+  }, [isHtmlFile, isPreviewable, viewMode]);
+
+  React.useEffect(() => {
+    if (!editingTitle) return;
+    requestAnimationFrame(() => {
+      const input = titleInputRef.current;
+      if (!input) return;
+      input.focus();
+      const dotIdx = input.value.lastIndexOf(".");
+      const end = dotIdx > 0 ? dotIdx : input.value.length;
+      input.setSelectionRange(0, end);
+    });
+  }, [editingTitle]);
 
   React.useEffect(() => {
     if (!filePath) return;
@@ -319,17 +462,32 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
     });
   }, [bridge, filePath]);
 
+  const applyTitleRename = React.useCallback(
+    (nextName: string) => {
+      if (!filePath) return;
+      const renamed = renameVfsEntry(filePath, nextName);
+      if (renamed) {
+        setFilePath(renamed.path);
+        bridge.setTitle(renamed.name);
+      }
+    },
+    [bridge, filePath],
+  );
+
   const commitTitleRename = React.useCallback(() => {
     setEditingTitle(false);
     if (!filePath) return;
+    const currentName = getBaseName(filePath);
     const nextName = draftTitle.trim().replace(/[/\\]/g, "");
-    if (!nextName || nextName === getBaseName(filePath)) return;
-    const renamed = renameVfsEntry(filePath, nextName);
-    if (renamed) {
-      setFilePath(renamed.path);
-      bridge.setTitle(renamed.name);
+    if (!nextName || nextName === currentName) return;
+    const oldExt = getFileExtension(currentName);
+    const newExt = getFileExtension(nextName);
+    if (oldExt !== newExt) {
+      setPendingRename({ nextName, oldExt, newExt });
+      return;
     }
-  }, [bridge, draftTitle, filePath]);
+    applyTitleRename(nextName);
+  }, [applyTitleRename, draftTitle, filePath]);
 
   React.useEffect(() => {
     if (!editingTitle) return;
@@ -388,6 +546,59 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
   }, [resolvedPath]);
 
   const restoredFilePathRef = React.useRef<string | null>(null);
+  const saveTimerRef = React.useRef<number | null>(null);
+
+  const persistEditorStateNow = React.useCallback(
+    (
+      targetPath: string | null,
+      options?: { clearUnsaved?: boolean; view?: EditorView | null },
+    ) => {
+      if (!targetPath) return;
+      const normPath = normalizeVfsPath(targetPath);
+      const activeView = options?.view ?? viewRef.current;
+      const cursor = activeView
+        ? activeView.state.selection.main.head
+        : (readPersistedEditorStateMap()[normPath]?.cursor ?? 0);
+      const scrollTop = activeView
+        ? Math.round(activeView.scrollDOM.scrollTop)
+        : (readPersistedEditorStateMap()[normPath]?.scrollTop ?? 0);
+
+      if (activeView) {
+        writeFsMetadata(domicile, isBrowserRuntime, normPath, {
+          "metadata::piloti-cursor": cursor,
+          "metadata::piloti-scroll": scrollTop,
+        });
+      }
+
+      const map = readPersistedEditorStateMap();
+      const currentText = contentRef.current;
+      const dirty =
+        !options?.clearUnsaved && currentText !== savedContentRef.current;
+      map[normPath] = {
+        ...(dirty ? { unsavedContent: currentText } : {}),
+        cursor,
+        scrollTop,
+        viewMode: viewModeRef.current,
+        updatedAt: Date.now(),
+      };
+      writeVfsStateJson(EDITOR_STATE_PATH, map, false);
+    },
+    [domicile, isBrowserRuntime],
+  );
+
+  const schedulePersistEditorState = React.useCallback(
+    (targetPath: string | null) => {
+      if (!targetPath) return;
+      if (saveTimerRef.current !== null) {
+        window.clearTimeout(saveTimerRef.current);
+      }
+      saveTimerRef.current = window.setTimeout(() => {
+        saveTimerRef.current = null;
+        persistEditorStateNow(targetPath);
+      }, 400);
+    },
+    [persistEditorStateNow],
+  );
 
   const restoreEditorViewState = React.useCallback(
     (view: EditorView, targetPath: string | null) => {
@@ -421,13 +632,19 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
         return;
       }
 
-      const cachedMeta = getVfsEntry(targetPath)?.metadata;
-      const cachedCursor = Number(cachedMeta?.["metadata::piloti-cursor"] ?? 0) || 0;
-      const cachedScroll = Number(cachedMeta?.["metadata::piloti-scroll"] ?? 0) || 0;
+      const normPath = normalizeVfsPath(targetPath);
+      const persisted = readPersistedEditorStateMap()[normPath];
+      const cachedMeta = getVfsEntry(normPath)?.metadata;
+      const cachedCursor =
+        persisted?.cursor ??
+        (Number(cachedMeta?.["metadata::piloti-cursor"] ?? 0) || 0);
+      const cachedScroll =
+        persisted?.scrollTop ??
+        (Number(cachedMeta?.["metadata::piloti-scroll"] ?? 0) || 0);
       applyPosition(cachedCursor, cachedScroll);
 
-      if (!isBrowserRuntime) {
-        void readFsMetadata(domicile, false, targetPath, [
+      if (!isBrowserRuntime && persisted === undefined) {
+        void readFsMetadata(domicile, false, normPath, [
           "metadata::piloti-cursor",
           "metadata::piloti-scroll",
         ]).then((meta) => {
@@ -444,15 +661,10 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
 
   const saveEditorViewState = React.useCallback(
     (view: EditorView | null, targetPath: string | null) => {
-      if (!view || !targetPath) return;
-      const cursor = view.state.selection.main.head;
-      const scrollTop = Math.round(view.scrollDOM.scrollTop);
-      writeFsMetadata(domicile, isBrowserRuntime, targetPath, {
-        "metadata::piloti-cursor": cursor,
-        "metadata::piloti-scroll": scrollTop,
-      });
+      if (!targetPath) return;
+      persistEditorStateNow(targetPath, { view });
     },
-    [domicile, isBrowserRuntime],
+    [persistEditorStateNow],
   );
 
   React.useEffect(() => {
@@ -463,13 +675,24 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
       void bridge.fs.readText(filePath).then((next) => {
         if (cancelled || next === null) return;
         if (!force && isDirtyRef.current) return;
-        setContent(next);
+        const normPath = normalizeVfsPath(filePath);
+        const persisted = force ? readPersistedEditorStateMap()[normPath] : undefined;
+        const restoredText =
+          persisted?.unsavedContent !== undefined && persisted.unsavedContent !== next
+            ? persisted.unsavedContent
+            : next;
         setSavedContent(next);
+        savedContentRef.current = next;
+        setContent(restoredText);
+        contentRef.current = restoredText;
         bridge.setTitle(getBaseName(filePath));
+        if (persisted?.viewMode) {
+          setViewMode(persisted.viewMode);
+        }
         const view = viewRef.current;
-        if (view && view.state.doc.toString() !== next) {
+        if (view && view.state.doc.toString() !== restoredText) {
           view.dispatch({
-            changes: { from: 0, to: view.state.doc.length, insert: next },
+            changes: { from: 0, to: view.state.doc.length, insert: restoredText },
           });
         }
         if (view && restoredFilePathRef.current !== filePath) {
@@ -499,13 +722,20 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
     const ok = await bridge.fs.writeText(targetPath, textToSave);
     if (ok !== false) {
       setSavedContent(textToSave);
+      savedContentRef.current = textToSave;
+      persistEditorStateNow(targetPath, { clearUnsaved: true });
       setSavedFlash(true);
       window.setTimeout(() => setSavedFlash(false), 1500);
     }
     return ok !== false;
-  }, [bridge.fs]);
+  }, [bridge.fs, persistEditorStateNow]);
 
   const performClose = React.useCallback(() => {
+    if (saveTimerRef.current !== null) {
+      window.clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = null;
+    }
+    persistEditorStateNow(filePathRef.current);
     if (typeof window !== "undefined" && window.parent === window) {
       window.dispatchEvent(
         new CustomEvent("piloti:request-animated-close", { detail: { windowId } }),
@@ -513,7 +743,7 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
     } else {
       bridge.closeWindow();
     }
-  }, [bridge, windowId]);
+  }, [bridge, persistEditorStateNow, windowId]);
 
   const requestClose = React.useCallback(() => {
     if (isDirtyRef.current && !forceCloseRef.current) {
@@ -538,12 +768,17 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
       window.removeEventListener("piloti:before-close-window", onBeforeClose);
   }, [windowId]);
 
-  const persistText = React.useCallback((next: string) => {
-    setContent(next);
-  }, []);
+  const persistText = React.useCallback(
+    (next: string) => {
+      contentRef.current = next;
+      setContent(next);
+      schedulePersistEditorState(filePathRef.current);
+    },
+    [schedulePersistEditorState],
+  );
 
   React.useEffect(() => {
-    if (previewMarkdown) {
+    if (viewMode !== "code") {
       viewRef.current?.destroy();
       viewRef.current = null;
       return;
@@ -553,6 +788,7 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
 
     const extensions: Extension[] = [
       history(),
+      bracketMatching(),
       keymap.of([indentWithTab, ...defaultKeymap, ...historyKeymap]),
       adwEditorTheme,
       EditorView.updateListener.of((update) => {
@@ -566,6 +802,7 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
             ln: line.number,
             col: head - line.from + 1,
           });
+          schedulePersistEditorState(filePathRef.current);
         }
       }),
     ];
@@ -601,12 +838,21 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
     } else {
       requestAnimationFrame(() => view.focus());
     }
+    const onScroll = () => {
+      schedulePersistEditorState(filePathRef.current);
+    };
+    view.scrollDOM.addEventListener("scroll", onScroll, { passive: true });
     const handleBeforeUnload = () => {
       saveEditorViewState(view, filePathRef.current);
     };
     window.addEventListener("beforeunload", handleBeforeUnload);
     return () => {
       window.removeEventListener("beforeunload", handleBeforeUnload);
+      view.scrollDOM.removeEventListener("scroll", onScroll);
+      if (saveTimerRef.current !== null) {
+        window.clearTimeout(saveTimerRef.current);
+        saveTimerRef.current = null;
+      }
       saveEditorViewState(view, filePath);
       view.destroy();
       viewRef.current = null;
@@ -617,10 +863,11 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
     highlightLine,
     isDark,
     persistText,
-    previewMarkdown,
     restoreEditorViewState,
     saveEditorViewState,
+    schedulePersistEditorState,
     showLineNumbers,
+    viewMode,
     wordWrap,
   ]);
 
@@ -637,9 +884,54 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
     return count;
   }, [content, findQuery]);
 
-  const isMarkdownFile = Boolean(
-    filePath && /\.(md|markdown)$/i.test(filePath),
-  );
+  const availableModes = React.useMemo<
+    readonly { id: EditorViewMode; label: string }[]
+  >(() => {
+    if (!isPreviewable) return [];
+    if (isHtmlFile) {
+      return [
+        { id: "code", label: _("Code") },
+        { id: "preview", label: _("Preview") },
+        { id: "design", label: _("Design") },
+      ];
+    }
+    return [
+      { id: "code", label: _("Code") },
+      { id: "preview", label: _("Preview") },
+    ];
+  }, [isHtmlFile, isPreviewable]);
+
+  const designInternalSyncRef = React.useRef<string | null>(null);
+  React.useEffect(() => {
+    if (viewMode !== "design" || !isHtmlFile) return;
+    const iframe = designIframeRef.current;
+    if (!iframe) return;
+    if (designInternalSyncRef.current === content) return;
+
+    const doc = iframe.contentDocument;
+    if (!doc) return;
+    const hasDoctype = /^\s*<!doctype\s+html/i.test(content);
+    const initialHtml = content.trim()
+      ? content
+      : "<!DOCTYPE html><html><body><p></p></body></html>";
+    doc.open();
+    doc.write(initialHtml);
+    doc.close();
+
+    if (doc.body) {
+      doc.body.contentEditable = "true";
+      doc.body.style.outline = "none";
+      const onInput = () => {
+        const serialized = `${hasDoctype ? "<!DOCTYPE html>\n" : ""}${doc.documentElement.outerHTML}`;
+        designInternalSyncRef.current = serialized;
+        persistText(serialized);
+      };
+      doc.body.addEventListener("input", onInput);
+      return () => {
+        doc.body?.removeEventListener("input", onInput);
+      };
+    }
+  }, [content, isHtmlFile, persistText, viewMode]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
@@ -728,19 +1020,21 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
                 setEditingTitle(true);
               }}
               className={cn(
-                "truncate rounded-md px-2 py-0.5 text-adw-body font-semibold text-adw-label transition-colors",
+                "flex items-center truncate rounded-md px-2 py-0.5 text-adw-body font-semibold text-adw-label transition-colors",
                 filePath &&
                   "hover:bg-black/8 dark:hover:bg-white/10",
               )}
             >
-              {filePath ? getBaseName(filePath) : _("Untitled")}
               {isDirty && (
                 <span
                   aria-label={_("Unsaved changes")}
                   title={_("Unsaved changes")}
-                  className="ml-1 inline-block size-1.5 rounded-full bg-adw-accent align-middle"
+                  className="mr-1.5 inline-block size-1.5 shrink-0 rounded-full bg-adw-label"
                 />
               )}
+              <span className="truncate">
+                {filePath ? getBaseName(filePath) : _("Untitled")}
+              </span>
             </button>
           )}
           {savedFlash && (
@@ -759,27 +1053,33 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
             className={cn(
               "flex size-7 items-center justify-center rounded-md transition-colors",
               isDirty
-                ? "text-adw-accent hover:bg-adw-accent/12"
+                ? "text-adw-label hover:bg-black/8 dark:hover:bg-white/10"
                 : "text-adw-label-secondary/40",
             )}
           >
             <SaveIcon className="size-4" />
           </button>
-          {isPreviewable && (
-            <button
-              type="button"
-              aria-label={previewMarkdown ? _("Edit") : _("Preview")}
-              title={previewMarkdown ? _("Edit") : _("Preview")}
-              onClick={() => setPreviewMarkdown((v) => !v)}
-              className={cn(
-                "flex size-7 items-center justify-center rounded-md transition-colors",
-                previewMarkdown
-                  ? "bg-black/10 text-adw-label dark:bg-white/15"
-                  : "text-adw-label-secondary hover:bg-black/8 hover:text-adw-label dark:hover:bg-white/10",
-              )}
-            >
-              <EyeIcon className="size-4" />
-            </button>
+          {availableModes.length > 0 && (
+            <div className="inline-flex items-center gap-0.5 rounded-[9px] bg-black/8 p-0.5 dark:bg-white/8">
+              {availableModes.map((mode) => {
+                const active = viewMode === mode.id;
+                return (
+                  <button
+                    key={mode.id}
+                    type="button"
+                    onClick={() => setViewMode(mode.id)}
+                    className={cn(
+                      "rounded-[6px] px-2 py-0.5 text-[11.5px] font-medium transition-all",
+                      active
+                        ? "bg-white text-black shadow-2xs dark:bg-white/18 dark:text-white"
+                        : "text-adw-label-secondary hover:text-adw-label",
+                    )}
+                  >
+                    {mode.label}
+                  </button>
+                );
+              })}
+            </div>
           )}
           <DropdownMenu>
             <DropdownMenuTrigger
@@ -867,8 +1167,31 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
           </div>
         )}
 
-        {previewMarkdown ? (
-          /\.(json|ini)$/i.test(filePath ?? "") ? (
+        {viewMode === "design" && isHtmlFile ? (
+          <iframe
+            ref={designIframeRef}
+            sandbox="allow-same-origin"
+            title={filePath ? getBaseName(filePath) : _("Design")}
+            className="h-full w-full border-0 bg-white"
+          />
+        ) : viewMode === "preview" ? (
+          isHtmlFile ? (
+            <iframe
+              ref={previewIframeRef}
+              sandbox="allow-same-origin allow-scripts"
+              srcDoc={content}
+              title={filePath ? getBaseName(filePath) : _("Preview")}
+              className="h-full w-full border-0 bg-white"
+            />
+          ) : isSvgFile ? (
+            <div className="flex h-full w-full items-center justify-center overflow-auto bg-adw-content p-6">
+              <img
+                src={`data:image/svg+xml;charset=utf-8,${encodeURIComponent(content)}`}
+                alt={filePath ? getBaseName(filePath) : "SVG"}
+                className="max-h-full max-w-full object-contain"
+              />
+            </div>
+          ) : /\.(json|ini)$/i.test(filePath ?? "") ? (
             <div className="h-full w-full overflow-auto bg-adw-content p-4 font-mono text-[12px] select-text">
               {(() => {
                 try {
@@ -878,7 +1201,20 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
                   return (
                     <ObjectView
                       valueGetter={() => parsed}
-                      style={isDark ? themeOneDark : themeGitHubLight}
+                      name={filePath ? getBaseName(filePath) : ""}
+                      showLineNumbers={false}
+                      actionRenders={() => null}
+                      style={
+                        {
+                          ...(isDark ? themeOneDark : themeGitHubLight),
+                          backgroundColor: "transparent",
+                          "--bigobjview-bg-color": "transparent",
+                          "--bigobjview-type-boolean-color": "var(--adw-accent)",
+                          "--bigobjview-type-object-object-color": "var(--adw-accent)",
+                          "--bigobjview-type-object-array-color": "var(--adw-accent)",
+                          fontSize: "12px",
+                        } as React.CSSProperties
+                      }
                       expandLevel={2}
                     />
                   );
@@ -914,6 +1250,7 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
             onCancel={() => setConfirmCloseOpen(false)}
             onDiscard={() => {
               setConfirmCloseOpen(false);
+              persistEditorStateNow(filePathRef.current, { clearUnsaved: true });
               forceCloseRef.current = true;
               performClose();
             }}
@@ -927,6 +1264,49 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
             }}
           />
         )}
+
+        <Dialog
+          open={Boolean(pendingRename)}
+          onOpenChange={(open) => {
+            if (!open) setPendingRename(null);
+          }}
+        >
+          <DialogContent showCloseButton={false} className="sm:max-w-sm">
+            <DialogHeader>
+              <DialogTitle>{_("Change File Extension?")}</DialogTitle>
+              <DialogDescription>
+                {pendingRename
+                  ? _(
+                      "Are you sure you want to change the extension from \"%s\" to \"%s\"?",
+                      pendingRename.oldExt || _("none"),
+                      pendingRename.newExt || _("none"),
+                    )
+                  : ""}
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <button
+                type="button"
+                onClick={() => setPendingRename(null)}
+                className="rounded-lg bg-black/8 px-3 py-1.5 text-xs font-medium text-adw-label transition-colors hover:bg-black/14 dark:bg-white/10 dark:hover:bg-white/16"
+              >
+                {_("Cancel")}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (pendingRename) {
+                    applyTitleRename(pendingRename.nextName);
+                    setPendingRename(null);
+                  }
+                }}
+                className="rounded-lg bg-adw-accent px-3 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-90"
+              >
+                {_("Rename")}
+              </button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

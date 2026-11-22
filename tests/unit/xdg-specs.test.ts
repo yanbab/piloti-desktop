@@ -128,10 +128,10 @@ describe("XDG specifications (Autostart, Recents XBEL, Globs2/Magic)", () => {
       "/usr/share/icons/Papirus/64x64/apps/system-software-install.svg"
     );
     expect(lookupXdgIconPath(index, "accessories-calculator", 64, 1)).toBe(
-      "/usr/share/icons/Papirus/64x64/apps/accessories-calculator.svg"
+      "/usr/share/icons/Piloti/scalable/apps/accessories-calculator.svg"
     );
     expect(lookupXdgIconPath(index, "accessories-text-editor", 64, 1)).toBe(
-      "/usr/share/icons/Papirus/64x64/apps/accessories-text-editor.svg"
+      "/usr/share/icons/Piloti/animated/apps/accessories-text-editor.json"
     );
     expect(lookupXdgIconPath(index, "utilities-terminal", 64, 1)).toBe(
       "/usr/share/icons/Papirus/64x64/apps/utilities-terminal.svg"

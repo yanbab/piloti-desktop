@@ -353,6 +353,22 @@ export function AdvancedPane() {
               />
             </GroupedFormRowControl>
           </GroupedFormRow>
+          <GroupedFormRow>
+            <GroupedFormRowLabel>
+              <GroupedFormRowTitle>{_("Touch Mode")}</GroupedFormRowTitle>
+              <GroupedFormRowDescription>
+                {_("Use full-screen launcher, control panel, and gallery window switcher")}
+              </GroupedFormRowDescription>
+            </GroupedFormRowLabel>
+            <GroupedFormRowControl>
+              <Switch
+                checked={Boolean(settings.touchMode)}
+                onCheckedChange={(checked) =>
+                  updateSettings({ touchMode: checked })
+                }
+              />
+            </GroupedFormRowControl>
+          </GroupedFormRow>
         </GroupedFormGroup>
       </GroupedFormSection>
 

@@ -114,7 +114,7 @@ describe("Simulated USB pen drive, Engine override & Folders rename", () => {
     );
     const themeIni = readFileSync(pilotiThemePath, "utf-8");
     expect(themeIni).toContain("Inherits=Papirus,Adwaita,hicolor");
-    expect(themeIni).not.toContain("animated/apps");
+    expect(themeIni).toContain("animated/apps");
     expect(
       existsSync(
         join(

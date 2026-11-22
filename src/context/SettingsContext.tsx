@@ -106,6 +106,7 @@ export interface DesktopSettings {
   showBatteryPercentage: boolean;
   reduceMotion: boolean;
   moreTransparency: boolean;
+  touchMode?: boolean;
   customAccentHex?: string;
   highContrast: boolean;
   windowDecorationMode: WindowDecorationMode;
@@ -191,6 +192,7 @@ const DEFAULT_SETTINGS: DesktopSettings = {
   showBatteryPercentage: false,
   reduceMotion: false,
   moreTransparency: true,
+  touchMode: false,
   windowDecorationMode: "auto",
   windowButtonLayout: ":close",
   showWindowMenu: true,

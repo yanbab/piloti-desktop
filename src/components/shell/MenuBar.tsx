@@ -1,4 +1,5 @@
 import * as React from "react";
+import { createPortal } from "react-dom";
 import { useDomicile } from "@domicile-desktop/react/domicile-provider";
 import { useWatch } from "@domicile-desktop/react/use-watch";
 import { CapturingKind } from "@domicile-desktop/sdk/portal";
@@ -10,6 +11,7 @@ import {
   BellOffIcon,
   ChevronDownIcon,
   ChevronRightIcon,
+  LayersIcon,
   PauseIcon,
   PlayIcon,
   SearchIcon,
@@ -391,6 +393,22 @@ export function MenuBar() {
     return () => window.removeEventListener("keydown", onKeyDown, true);
   }, [setControlPanelOpen, setLauncherOpen]);
 
+  React.useEffect(() => {
+    const onDismissPopups = () => {
+      setLauncherOpen(false);
+      setControlPanelOpen(false);
+      setShortcutsOpen(false);
+      setAppAboutOpen(false);
+      document.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "Escape", bubbles: true })
+      );
+    };
+    window.addEventListener("piloti:dismiss-popups", onDismissPopups);
+    return () => {
+      window.removeEventListener("piloti:dismiss-popups", onDismissPopups);
+    };
+  }, [setControlPanelOpen, setLauncherOpen]);
+
   const handlePowerMenuClick = (
     action: "logout" | "restart" | "poweroff",
     event: React.MouseEvent
@@ -497,15 +515,7 @@ export function MenuBar() {
               </span>
             </MenubarTrigger>
             <MenubarContent>
-              <MenubarItem
-                onClick={() => {
-                  if (focusedWindowId) {
-                    setAppAboutOpen(true);
-                  } else {
-                    setAboutOpen(true);
-                  }
-                }}
-              >
+              <MenubarItem onClick={() => setAppAboutOpen(true)}>
                 {_("About %s", _(activeAppDef.name))}
               </MenubarItem>
               {remoteMenu && remoteMenu.appActions.length > 0 && (
@@ -620,10 +630,54 @@ export function MenuBar() {
                           </React.Fragment>
                         );
                       })}
+                      {section.title === "File" &&
+                        !section.items.some((i) => i.actionId === "file:print") && (
+                          <>
+                            <MenubarSeparator />
+                            <MenubarItem
+                              onClick={() => {
+                                window.dispatchEvent(
+                                  new CustomEvent("piloti:print-focused")
+                                );
+                                handleMenuAction("file:print");
+                              }}
+                            >
+                              {_("Print…")}
+                              <MenuShortcutLabel
+                                shortcut="Ctrl+P"
+                                model={settings.computerModel}
+                              />
+                            </MenubarItem>
+                          </>
+                        )}
                     </MenubarContent>
                   </MenubarMenu>
                 );
               })}
+
+          {!(remoteMenu && remoteMenu.sections.length > 0) &&
+            focusedWindowId &&
+            !activeAppDef.menus.some((section) => section.title === "File") && (
+              <MenubarMenu>
+                <MenubarTrigger>{_("File")}</MenubarTrigger>
+                <MenubarContent>
+                  <MenubarItem
+                    onClick={() => {
+                      window.dispatchEvent(
+                        new CustomEvent("piloti:print-focused")
+                      );
+                      handleMenuAction("file:print");
+                    }}
+                  >
+                    {_("Print…")}
+                    <MenuShortcutLabel
+                      shortcut="Ctrl+P"
+                      model={settings.computerModel}
+                    />
+                  </MenubarItem>
+                </MenubarContent>
+              </MenubarMenu>
+            )}
 
           {/* Edit Menu */}
           <MenubarMenu>
@@ -877,41 +931,54 @@ export function MenuBar() {
         />
       </div>
 
-      {/* Center: Workspace Indicators (flush to top border & centered on screen for Fitt's law) */}
+      {/* Center: Workspace Indicators or Touch Window Switcher */}
       <button
         type="button"
         data-menubar-nav="workspace"
-        aria-label="Toggle Overview"
-        title="Overview (Meta+↑ / F3)"
+        aria-label={settings.touchMode ? _("Window Switcher") : "Toggle Overview"}
+        title={settings.touchMode ? _("Window Switcher") : "Overview (Meta+↑ / F3)"}
         aria-pressed={overviewOpen}
         onClick={() => toggleOverview()}
         className={cn(
-          "hidden h-full shrink-0 cursor-default items-center gap-[5px] rounded-md px-2 outline-none transition-colors focus-visible:bg-black/10 dark:focus-visible:bg-white/12 md:flex",
+          settings.touchMode ? "flex" : "hidden md:flex",
+          "h-full shrink-0 cursor-default items-center gap-[5px] rounded-md px-2 outline-none transition-colors focus-visible:bg-black/10 dark:focus-visible:bg-white/12",
           overviewOpen
             ? "bg-black/8 dark:bg-white/12"
             : "hover:bg-black/8 dark:hover:bg-white/12"
         )}
       >
-        {Array.from(
-          { length: settings.workspaceCount },
-          (_, idx) => idx + 1
-        ).map((ws) => {
-          const active = settings.activeWorkspace === ws;
-          const hasWins = windows.some((w) => w.workspace === ws);
-          return (
-            <span
-              key={ws}
-              className={cn(
-                "h-[6px] rounded-full transition-all duration-200 motion-reduce:transition-none",
-                active
-                  ? "w-[12px] bg-adw-label shadow-xs dark:bg-white"
-                  : hasWins
-                    ? "w-[6px] bg-adw-label/55 dark:bg-white/55"
-                    : "w-[6px] bg-adw-label/28 dark:bg-white/28"
-              )}
-            />
-          );
-        })}
+        {settings.touchMode ? (
+          <>
+            <LayersIcon className="size-3.5 text-adw-label/80 dark:text-white/80" />
+            <span className="max-w-[140px] truncate text-[12px] font-medium">
+              {focusedWindow ? focusedWindow.title : _("Windows")}
+            </span>
+            <span className="rounded-full bg-adw-label/12 px-1.5 py-0.5 text-[10.5px] font-medium tabular-nums dark:bg-white/15">
+              {windows.length}
+            </span>
+          </>
+        ) : (
+          Array.from(
+            { length: settings.workspaceCount },
+            (_, idx) => idx + 1
+          ).map((ws) => {
+            const active = settings.activeWorkspace === ws;
+            const hasWins = windows.some((w) => w.workspace === ws);
+            return (
+              <span
+                key={ws}
+                className={cn(
+                  "h-[6px] rounded-full transition-all duration-200 motion-reduce:transition-none",
+                  active
+                    ? "w-[12px] bg-adw-label shadow-xs dark:bg-white"
+                    : hasWins
+                      ? "w-[6px] bg-adw-label/55 dark:bg-white/55"
+                      : "w-[6px] bg-adw-label/28 dark:bg-white/28"
+                )}
+              />
+            );
+          })
+        )}
       </button>
 
       {/* Right: System Tray, Launcher & Control panel (flush to top-right screen corner) */}
@@ -980,112 +1047,243 @@ export function MenuBar() {
             <SystemTrayItem key={item.id} item={item} />
           ))}
 
-        {/* Launcher Trigger & Popover */}
-        <DropdownMenu
-          modal={false}
-          open={launcherOpen}
-          onOpenChange={(open) => {
-            setLauncherOpen(open);
-            if (open) setControlPanelOpen(false);
-          }}
-        >
-          <DropdownMenuTrigger
-            data-menubar-nav="launcher"
-            aria-label="Launcher (Alt+Space)"
-            className="flex h-full shrink-0 cursor-default items-center rounded-md px-2 outline-none select-none active:bg-black/14 data-popup-open:bg-black/12 focus-visible:bg-black/10 dark:active:bg-white/18 dark:data-popup-open:bg-white/15 dark:focus-visible:bg-white/12"
-          >
-            <SearchIcon className="size-4 text-adw-label/90 dark:text-white/90" />
-          </DropdownMenuTrigger>
-          <DropdownMenuContent
-            anchor={rightClusterRef}
-            align="end"
-            alignOffset={-8}
-            sideOffset={0}
-            collisionAvoidance={{ side: "flip", align: "shift" }}
-            className="w-[312px] max-w-[calc(100vw-16px)] overflow-hidden p-0"
-          >
-            {launcherOpen && <Launcher />}
-          </DropdownMenuContent>
-        </DropdownMenu>
-
-        {/* Control panel & Clock Trigger */}
-        <DropdownMenu
-          modal={false}
-          open={controlPanelOpen}
-          onOpenChange={(open) => {
-            setControlPanelOpen(open);
-            if (open) setLauncherOpen(false);
-          }}
-        >
-          <DropdownMenuTrigger
-            data-menubar-nav="control-panel"
-            aria-label="Control panel and Notifications"
-            data-control-panel-trigger
-            onWheel={(e) => {
-              if (e.deltaY === 0) return;
-              e.preventDefault();
-              const step = e.deltaY < 0 ? 5 : -5;
-              const next = Math.max(0, Math.min(100, settings.volume + step));
-              updateSettings({ volume: next, muted: next === 0 });
+        {/* Launcher Trigger & Popover (or full-screen under apps in Touch Mode) */}
+        {settings.touchMode ? (
+          <>
+            <button
+              type="button"
+              data-menubar-nav="launcher"
+              aria-label="Launcher (Alt+Space)"
+              aria-expanded={launcherOpen}
+              onClick={() => {
+                const next = !launcherOpen;
+                setLauncherOpen(next);
+                if (next) setControlPanelOpen(false);
+              }}
+              className={cn(
+                "flex h-full shrink-0 cursor-default items-center rounded-md px-2 outline-none select-none active:bg-black/14 focus-visible:bg-black/10 dark:active:bg-white/18 dark:focus-visible:bg-white/12",
+                launcherOpen && "bg-black/12 dark:bg-white/15"
+              )}
+            >
+              <SearchIcon className="size-4 text-adw-label/90 dark:text-white/90" />
+            </button>
+            {launcherOpen &&
+              typeof document !== "undefined" &&
+              createPortal(
+                <div
+                  role="dialog"
+                  aria-label={_("Launcher")}
+                  className="fixed inset-0 top-[30px] z-[0] flex flex-col bg-adw-window/85 p-4 backdrop-blur-2xl sm:p-8"
+                >
+                  <Launcher />
+                </div>,
+                document.body
+              )}
+          </>
+        ) : (
+          <DropdownMenu
+            modal={false}
+            open={launcherOpen}
+            onOpenChange={(open) => {
+              setLauncherOpen(open);
+              if (open) setControlPanelOpen(false);
             }}
-            className="flex h-full shrink-0 cursor-default items-center gap-2 rounded-none rounded-l-md pl-2.5 pr-3 text-adw-body font-normal outline-none select-none active:bg-black/14 data-popup-open:bg-black/12 focus-visible:bg-black/10 dark:active:bg-white/18 dark:data-popup-open:bg-white/15 dark:focus-visible:bg-white/12"
           >
-            <span className="flex items-center gap-1.5 text-adw-label/90 dark:text-white/90">
-              {settings.doNotDisturb ? (
-                <BellOffIcon className="size-4 text-adw-label/45 dark:text-white/45" />
-              ) : notifications.length > 0 ? (
-                <BellIcon
-                  className={cn(
-                    "size-4",
-                    notifications.some(
-                      (n) => !n.read && n.urgency === "critical"
-                    )
-                      ? "text-adw-accent"
-                      : "text-adw-label/90 dark:text-white/90"
-                  )}
-                />
-              ) : null}
-              {settings.wifiEnabled ? (
-                <WifiIcon className="size-4" />
-              ) : (
-                <WifiOffIcon className="size-4 text-adw-label/45 dark:text-white/45" />
-              )}
-              {settings.muted || settings.volume === 0 ? (
-                <VolumeXIcon className="size-4 text-adw-label/60 dark:text-white/60" />
-              ) : (
-                <Volume2Icon className="size-4" />
-              )}
-              {batteryInfo.present && (
-                <span className="inline-flex items-center gap-1 text-adw-body tabular-nums">
-                  {batteryInfo.charging ? (
-                    <BatteryChargingIcon className="size-4" />
-                  ) : batteryInfo.percentage <= 20 ? (
-                    <BatteryLowIcon className="size-4 text-amber-500" />
-                  ) : (
-                    <BatteryIcon className="size-4" />
-                  )}
-                  {settings.showBatteryPercentage && (
-                    <span>{batteryInfo.percentage}%</span>
-                  )}
-                </span>
-              )}
-            </span>
+            <DropdownMenuTrigger
+              data-menubar-nav="launcher"
+              aria-label="Launcher (Alt+Space)"
+              className="flex h-full shrink-0 cursor-default items-center rounded-md px-2 outline-none select-none active:bg-black/14 data-popup-open:bg-black/12 focus-visible:bg-black/10 dark:active:bg-white/18 dark:data-popup-open:bg-white/15 dark:focus-visible:bg-white/12"
+            >
+              <SearchIcon className="size-4 text-adw-label/90 dark:text-white/90" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              anchor={rightClusterRef}
+              align="end"
+              alignOffset={-8}
+              sideOffset={0}
+              collisionAvoidance={{ side: "flip", align: "shift" }}
+              className="w-[312px] max-w-[calc(100vw-16px)] overflow-hidden p-0"
+            >
+              {launcherOpen && <Launcher />}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
 
-            <span className="flex items-center tracking-tight tabular-nums whitespace-nowrap">
-              {formattedClock}
-            </span>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent
-            ref={controlPanelPopupRef}
-            tabIndex={-1}
-            initialFocus={controlPanelPopupRef}
-            align="end"
-            sideOffset={0}
-            className="w-[312px] max-w-[calc(100vw-16px)] rounded-adw-popover p-3 shadow-adw-popover"
+        {/* Control panel & Clock Trigger (or full-screen over apps in Touch Mode) */}
+        {settings.touchMode ? (
+          <>
+            <button
+              type="button"
+              data-menubar-nav="control-panel"
+              aria-label="Control panel and Notifications"
+              aria-expanded={controlPanelOpen}
+              data-control-panel-trigger
+              onClick={() => {
+                const next = !controlPanelOpen;
+                setControlPanelOpen(next);
+                if (next) setLauncherOpen(false);
+              }}
+              onWheel={(e) => {
+                if (e.deltaY === 0) return;
+                e.preventDefault();
+                const step = e.deltaY < 0 ? 5 : -5;
+                const next = Math.max(0, Math.min(100, settings.volume + step));
+                updateSettings({ volume: next, muted: next === 0 });
+              }}
+              className={cn(
+                "flex h-full shrink-0 cursor-default items-center gap-2 rounded-none rounded-l-md pl-2.5 pr-3 text-adw-body font-normal outline-none select-none active:bg-black/14 focus-visible:bg-black/10 dark:active:bg-white/18 dark:focus-visible:bg-white/12",
+                controlPanelOpen && "bg-black/12 dark:bg-white/15"
+              )}
+            >
+              <span className="flex items-center gap-1.5 text-adw-label/90 dark:text-white/90">
+                {settings.doNotDisturb ? (
+                  <BellOffIcon className="size-4 text-adw-label/45 dark:text-white/45" />
+                ) : notifications.length > 0 ? (
+                  <BellIcon
+                    className={cn(
+                      "size-4",
+                      notifications.some(
+                        (n) => !n.read && n.urgency === "critical"
+                      )
+                        ? "text-adw-accent"
+                        : "text-adw-label/90 dark:text-white/90"
+                    )}
+                  />
+                ) : null}
+                {settings.wifiEnabled ? (
+                  <WifiIcon className="size-4" />
+                ) : (
+                  <WifiOffIcon className="size-4 text-adw-label/45 dark:text-white/45" />
+                )}
+                {settings.muted || settings.volume === 0 ? (
+                  <VolumeXIcon className="size-4 text-adw-label/60 dark:text-white/60" />
+                ) : (
+                  <Volume2Icon className="size-4" />
+                )}
+                {batteryInfo.present && (
+                  <span className="inline-flex items-center gap-1 text-adw-body tabular-nums">
+                    {batteryInfo.charging ? (
+                      <BatteryChargingIcon className="size-4" />
+                    ) : batteryInfo.percentage <= 20 ? (
+                      <BatteryLowIcon className="size-4 text-amber-500" />
+                    ) : (
+                      <BatteryIcon className="size-4" />
+                    )}
+                    {settings.showBatteryPercentage && (
+                      <span>{batteryInfo.percentage}%</span>
+                    )}
+                  </span>
+                )}
+              </span>
+
+              <span className="flex items-center tracking-tight tabular-nums whitespace-nowrap">
+                {formattedClock}
+              </span>
+            </button>
+            {controlPanelOpen &&
+              typeof document !== "undefined" &&
+              createPortal(
+                <div
+                  role="dialog"
+                  aria-label={_("Control Panel")}
+                  onClick={() => setControlPanelOpen(false)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Escape") {
+                      e.stopPropagation();
+                      setControlPanelOpen(false);
+                    }
+                  }}
+                  className="fixed inset-0 top-[30px] z-[250] flex items-start justify-center overflow-y-auto bg-adw-window/90 p-4 backdrop-blur-2xl sm:p-8"
+                >
+                  <div
+                    onClick={(e) => e.stopPropagation()}
+                    className="w-full max-w-md rounded-adw-popover border border-adw-separator/40 bg-adw-popover/85 p-4 shadow-adw-popover"
+                  >
+                    <ControlPanel />
+                  </div>
+                </div>,
+                document.body
+              )}
+          </>
+        ) : (
+          <DropdownMenu
+            modal={false}
+            open={controlPanelOpen}
+            onOpenChange={(open) => {
+              setControlPanelOpen(open);
+              if (open) setLauncherOpen(false);
+            }}
           >
-            {controlPanelOpen && <ControlPanel />}
-          </DropdownMenuContent>
-        </DropdownMenu>
+            <DropdownMenuTrigger
+              data-menubar-nav="control-panel"
+              aria-label="Control panel and Notifications"
+              data-control-panel-trigger
+              onWheel={(e) => {
+                if (e.deltaY === 0) return;
+                e.preventDefault();
+                const step = e.deltaY < 0 ? 5 : -5;
+                const next = Math.max(0, Math.min(100, settings.volume + step));
+                updateSettings({ volume: next, muted: next === 0 });
+              }}
+              className="flex h-full shrink-0 cursor-default items-center gap-2 rounded-none rounded-l-md pl-2.5 pr-3 text-adw-body font-normal outline-none select-none active:bg-black/14 data-popup-open:bg-black/12 focus-visible:bg-black/10 dark:active:bg-white/18 dark:data-popup-open:bg-white/15 dark:focus-visible:bg-white/12"
+            >
+              <span className="flex items-center gap-1.5 text-adw-label/90 dark:text-white/90">
+                {settings.doNotDisturb ? (
+                  <BellOffIcon className="size-4 text-adw-label/45 dark:text-white/45" />
+                ) : notifications.length > 0 ? (
+                  <BellIcon
+                    className={cn(
+                      "size-4",
+                      notifications.some(
+                        (n) => !n.read && n.urgency === "critical"
+                      )
+                        ? "text-adw-accent"
+                        : "text-adw-label/90 dark:text-white/90"
+                    )}
+                  />
+                ) : null}
+                {settings.wifiEnabled ? (
+                  <WifiIcon className="size-4" />
+                ) : (
+                  <WifiOffIcon className="size-4 text-adw-label/45 dark:text-white/45" />
+                )}
+                {settings.muted || settings.volume === 0 ? (
+                  <VolumeXIcon className="size-4 text-adw-label/60 dark:text-white/60" />
+                ) : (
+                  <Volume2Icon className="size-4" />
+                )}
+                {batteryInfo.present && (
+                  <span className="inline-flex items-center gap-1 text-adw-body tabular-nums">
+                    {batteryInfo.charging ? (
+                      <BatteryChargingIcon className="size-4" />
+                    ) : batteryInfo.percentage <= 20 ? (
+                      <BatteryLowIcon className="size-4 text-amber-500" />
+                    ) : (
+                      <BatteryIcon className="size-4" />
+                    )}
+                    {settings.showBatteryPercentage && (
+                      <span>{batteryInfo.percentage}%</span>
+                    )}
+                  </span>
+                )}
+              </span>
+
+              <span className="flex items-center tracking-tight tabular-nums whitespace-nowrap">
+                {formattedClock}
+              </span>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              ref={controlPanelPopupRef}
+              tabIndex={-1}
+              initialFocus={controlPanelPopupRef}
+              align="end"
+              sideOffset={0}
+              className="w-[312px] max-w-[calc(100vw-16px)] rounded-adw-popover p-3 shadow-adw-popover"
+            >
+              {controlPanelOpen && <ControlPanel />}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
       </div>
 
       {/* About Focused App Window */}

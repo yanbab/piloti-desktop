@@ -25,6 +25,7 @@ const SETTINGS_INI_SCHEMA: readonly SchemaEntry[] = [
   ["org.piloti.desktop.interface", "icon-theme", "iconTheme", "string"],
   ["org.piloti.desktop.interface", "reduce-motion", "reduceMotion", "boolean"],
   ["org.piloti.desktop.interface", "more-transparency", "moreTransparency", "boolean"],
+  ["org.piloti.desktop.interface", "touch-mode", "touchMode", "boolean"],
 
   ["org.piloti.desktop.fonts", "font-name", "fontSansFamily", "string"],
   ["org.piloti.desktop.fonts", "monospace-font-name", "fontMonoFamily", "string"],

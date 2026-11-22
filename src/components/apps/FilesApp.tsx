@@ -1104,7 +1104,14 @@ export function FilesApp({
         launchApp("text-editor", { payload: entry.path });
         return;
       }
-      openWebUrl(buildVfsEntryWebAppUrl(entry), {
+      const webUrl =
+        entry.name.toLowerCase().endsWith(".pdf") &&
+        entry.content?.trimStart().startsWith("%PDF-")
+          ? URL.createObjectURL(
+              new Blob([entry.content], { type: "application/pdf" })
+            )
+          : buildVfsEntryWebAppUrl(entry);
+      openWebUrl(webUrl, {
         asApp: true,
         appId: `file:${entry.path}`,
         title: entry.name,

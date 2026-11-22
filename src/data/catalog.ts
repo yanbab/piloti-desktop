@@ -317,6 +317,7 @@ export const APP_CATALOG: AppDefinition[] = [
           { label: "Back", shortcut: "Alt+Left", actionId: "files:go-up" },
           { label: "Edit Location", shortcut: "Ctrl+L", actionId: "files:edit-location" },
           { label: "Search", shortcut: "Ctrl+F", actionId: "files:find", separatorAfter: true },
+          { label: "Print…", shortcut: "Ctrl+P", actionId: "file:print", separatorAfter: true },
           { label: "Empty Trash", actionId: "files:empty-trash" },
         ],
       },
@@ -374,6 +375,12 @@ export const APP_CATALOG: AppDefinition[] = [
     command: "piloti-notepad",
     defaultSize: { width: 520, height: 380 },
     menus: [
+      {
+        title: "File",
+        items: [
+          { label: "Print…", shortcut: "Ctrl+P", actionId: "file:print" },
+        ],
+      },
       {
         title: "View",
         items: [
@@ -460,7 +467,14 @@ export const APP_CATALOG: AppDefinition[] = [
     command: "piloti-image-viewer",
     defaultSize: { width: 640, height: 480 },
     minSize: { width: 320, height: 300 },
-    menus: [],
+    menus: [
+      {
+        title: "File",
+        items: [
+          { label: "Print…", shortcut: "Ctrl+P", actionId: "file:print" },
+        ],
+      },
+    ],
   },
   {
     id: "login-screen",
@@ -490,7 +504,14 @@ export const APP_CATALOG: AppDefinition[] = [
     pinnedByDefault: false,
     linuxCommand: ["firefox"],
     defaultSize: { width: 720, height: 500 },
-    menus: [],
+    menus: [
+      {
+        title: "File",
+        items: [
+          { label: "Print…", shortcut: "Ctrl+P", actionId: "file:print" },
+        ],
+      },
+    ],
   },
 ];
 
