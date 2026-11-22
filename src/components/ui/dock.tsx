@@ -1,7 +1,12 @@
 "use client"
 
 import * as React from "react"
-import { Tooltip as TooltipPrimitive } from "@base-ui/react/tooltip"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 
 import { cn } from "@/lib/core/utils"
 
@@ -164,7 +169,7 @@ function Dock({
 
   return (
     <DockPositionContext.Provider value={position}>
-      <TooltipPrimitive.Provider delay={0}>
+      <TooltipProvider delay={0}>
         {autoHide && !hidden && !resizing && (
           <div
             aria-hidden="true"
@@ -217,7 +222,7 @@ function Dock({
         >
           {children}
         </div>
-      </TooltipPrimitive.Provider>
+      </TooltipProvider>
     </DockPositionContext.Provider>
   )
 }
@@ -327,20 +332,12 @@ function DockItem({
         </span>
       ) : null}
       {label ? (
-        <TooltipPrimitive.Root disableHoverablePopup>
-          <TooltipPrimitive.Trigger render={button} />
-          <TooltipPrimitive.Portal>
-            <TooltipPrimitive.Positioner
-              side={tooltipSide}
-              sideOffset={9}
-              className="z-[400]"
-            >
-              <TooltipPrimitive.Popup className="flex h-[26px] items-center rounded-[9px] px-3 text-[12.5px] font-medium text-adw-label shadow-adw-dock-label adw-material-dock-label dark:text-white/95">
-                {label}
-              </TooltipPrimitive.Popup>
-            </TooltipPrimitive.Positioner>
-          </TooltipPrimitive.Portal>
-        </TooltipPrimitive.Root>
+        <Tooltip>
+          <TooltipTrigger render={button} />
+          <TooltipContent side={tooltipSide} sideOffset={9} className="z-[400]">
+            {label}
+          </TooltipContent>
+        </Tooltip>
       ) : (
         button
       )}

@@ -11,6 +11,10 @@ import {
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
 import {
+  GlobalTitleTooltip,
+  TooltipProvider,
+} from "@/components/ui/tooltip";
+import {
   DesktopStateProvider,
   useSettings,
   useSystemBackends,
@@ -468,7 +472,10 @@ function ShellFocusAndContextGuard() {
 export function Desktop() {
   return (
     <DesktopStateProvider>
-      <DesktopSurface />
+      <TooltipProvider delay={320}>
+        <DesktopSurface />
+        <GlobalTitleTooltip />
+      </TooltipProvider>
     </DesktopStateProvider>
   );
 }

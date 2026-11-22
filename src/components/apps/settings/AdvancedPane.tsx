@@ -1,8 +1,19 @@
 import * as React from "react";
 import { useDomicile } from "@domicile-desktop/react/domicile-provider";
 import { useWatch } from "@domicile-desktop/react/use-watch";
-import { FolderOpenIcon, PlusIcon, PuzzleIcon, RefreshCwIcon, SparklesIcon, Trash2Icon, UsbIcon } from "lucide-react";
-import { useWindowActions } from "@/context/DesktopStateContext";
+import {
+  BellRingIcon,
+  FolderOpenIcon,
+  PlusIcon,
+  PuzzleIcon,
+  RefreshCwIcon,
+  SparklesIcon,
+  StoreIcon,
+  Trash2Icon,
+  TriangleAlertIcon,
+  UsbIcon,
+} from "lucide-react";
+import { useSystemBackends, useWindowActions } from "@/context/DesktopStateContext";
 import { usePlugins } from "@/context/PluginsContext";
 import { Button } from "@/components/ui/button";
 import {
@@ -44,6 +55,7 @@ import {
 } from "@/lib/xdg/xdg-autostart";
 import { listVfsDir, WEB_VFS_HOME, writeVfsTextFile } from "@/lib/engine-web/web-vfs";
 import {
+  CHROME_WEB_STORE_URL,
   RECOMMENDED_EXTENSIONS,
   SAMPLE_LOCAL_EXTENSION,
   isExtensionEnabled,
@@ -73,7 +85,8 @@ export function AdvancedPane() {
       : isBrowserRuntime
         ? "web"
         : "native";
-  const { launchApp } = useWindowActions();
+  const { launchApp, openWebUrl } = useWindowActions();
+  const { pushNotification } = useSystemBackends();
   const {
     plugins: userPlugins,
     safeMode: pluginsSafeMode,
@@ -341,6 +354,30 @@ export function AdvancedPane() {
       <GroupedFormSection>
         <GroupedFormSectionTitle>{_("Web extensions")}</GroupedFormSectionTitle>
         <GroupedFormGroup>
+          <GroupedFormRow>
+            <GroupedFormRowLabel>
+              <GroupedFormRowTitle>{_("Chrome Web Store")}</GroupedFormRowTitle>
+              <GroupedFormRowDescription>
+                {_("Browse and install Chrome extensions directly from the store.")}
+              </GroupedFormRowDescription>
+            </GroupedFormRowLabel>
+            <GroupedFormRowControl>
+              <Button
+                size="sm"
+                variant="secondary"
+                className="h-7 gap-1.5 px-2.5 text-xs"
+                onClick={() =>
+                  openWebUrl(CHROME_WEB_STORE_URL, {
+                    asApp: true,
+                    title: "Chrome Web Store",
+                  })
+                }
+              >
+                <StoreIcon className="size-3.5" />
+                {_("Open Chrome Web Store")}
+              </Button>
+            </GroupedFormRowControl>
+          </GroupedFormRow>
           {RECOMMENDED_EXTENSIONS.map((rec) => {
             const nativeEnabled = isExtensionEnabled(
               { unpacked: unpackedPaths, web_store: webStoreIds },
@@ -413,7 +450,9 @@ export function AdvancedPane() {
               <Button
                 size="sm"
                 variant="secondary"
-                className="h-7 px-2 text-xs"
+                aria-label={_("Open Folder")}
+                title={_("Open Folder")}
+                className="size-7 p-0"
                 onClick={() =>
                   launchApp("nautilus", {
                     payload: SAMPLE_LOCAL_EXTENSION.path,
@@ -421,8 +460,7 @@ export function AdvancedPane() {
                   })
                 }
               >
-                <FolderOpenIcon className="mr-1 size-3.5" />
-                {_("Open Folder")}
+                <FolderOpenIcon className="size-3.5" />
               </Button>
               <Switch
                 checked={
@@ -471,7 +509,9 @@ export function AdvancedPane() {
                   <Button
                     size="sm"
                     variant="secondary"
-                    className="h-7 px-2 text-xs"
+                    aria-label={_("Open Folder")}
+                    title={_("Open Folder")}
+                    className="size-7 p-0"
                     onClick={() =>
                       launchApp("nautilus", {
                         payload: "/home/user/.config/domicile",
@@ -479,8 +519,7 @@ export function AdvancedPane() {
                       })
                     }
                   >
-                    <FolderOpenIcon className="mr-1 size-3.5" />
-                    {_("Open Folder")}
+                    <FolderOpenIcon className="size-3.5" />
                   </Button>
                   <input
                     type="text"
@@ -625,7 +664,9 @@ export function AdvancedPane() {
               <Button
                 size="sm"
                 variant="secondary"
-                className="h-7 px-2 text-xs"
+                aria-label={_("Open Folder")}
+                title={_("Open Folder")}
+                className="size-7 p-0"
                 onClick={() =>
                   launchApp("nautilus", {
                     payload: "/home/user/.config/piloti/plugins",
@@ -633,8 +674,7 @@ export function AdvancedPane() {
                   })
                 }
               >
-                <FolderOpenIcon className="mr-1 size-3.5" />
-                {_("Open Folder")}
+                <FolderOpenIcon className="size-3.5" />
               </Button>
               <Button
                 size="sm"
@@ -851,6 +891,50 @@ export function AdvancedPane() {
               >
                 <UsbIcon className="size-3.5" />
                 {usbMounted ? _("Eject USB Drive") : _("Mount USB Drive")}
+              </Button>
+            </GroupedFormRowControl>
+          </GroupedFormRow>
+          <GroupedFormRow>
+            <GroupedFormRowLabel>
+              <GroupedFormRowTitle>{_("Send Test Notification")}</GroupedFormRowTitle>
+            </GroupedFormRowLabel>
+            <GroupedFormRowControl className="flex items-center gap-1.5">
+              <Button
+                size="sm"
+                variant="secondary"
+                disabled={!settings.notificationsEnabled}
+                onClick={() =>
+                  pushNotification({
+                    appName: "Piloti System",
+                    summary: "Wayland Compositor Synced",
+                    body: `Workspace ${settings.activeWorkspace} active · Volume ${settings.volume}%`,
+                    actions: [
+                      {
+                        key: "notifications-settings",
+                        label: "Notification Settings",
+                      },
+                    ],
+                  })
+                }
+              >
+                <BellRingIcon className="size-3.5" />
+                {_("Normal")}
+              </Button>
+              <Button
+                size="sm"
+                variant="secondary"
+                disabled={!settings.notificationsEnabled}
+                onClick={() =>
+                  pushNotification({
+                    appName: "System Monitor",
+                    summary: "Critical Battery / Alert Preview",
+                    body: "Urgent notifications stay pinned until you dismiss them.",
+                    urgency: "critical",
+                  })
+                }
+              >
+                <TriangleAlertIcon className="size-3.5 text-rose-500" />
+                {_("Urgent")}
               </Button>
             </GroupedFormRowControl>
           </GroupedFormRow>

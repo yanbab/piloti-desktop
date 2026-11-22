@@ -1,8 +1,6 @@
 import * as React from "react";
 import { useDomicile } from "@domicile-desktop/react/domicile-provider";
 import {
-  ChevronDownIcon,
-  ChevronRightIcon,
   FilmIcon,
   PipetteIcon,
   SunMoonIcon,
@@ -14,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import {
   GroupedForm,
+  GroupedFormExpanderRow,
   GroupedFormGroup,
   GroupedFormRow,
   GroupedFormRowControl,
@@ -500,35 +499,12 @@ export function WallpaperPane() {
 
       <GroupedFormSection>
         <GroupedFormGroup>
-          <GroupedFormRow>
-            <GroupedFormRowLabel>
-              <GroupedFormRowTitle>{_("Custom & Advanced")}</GroupedFormRowTitle>
-              <GroupedFormRowDescription>
-                {_("Custom light/dark image, HTML/CSS file URI, fit, and shading")}
-              </GroupedFormRowDescription>
-            </GroupedFormRowLabel>
-            <GroupedFormRowControl>
-              <Button
-                type="button"
-                size="sm"
-                variant="secondary"
-                className="gap-1"
-                onClick={() => setShowAdvanced((v) => !v)}
-              >
-                {showAdvanced ? (
-                  <>
-                    <ChevronDownIcon className="size-3.5" />
-                    {_("Hide")}
-                  </>
-                ) : (
-                  <>
-                    <ChevronRightIcon className="size-3.5" />
-                    {_("Configure")}
-                  </>
-                )}
-              </Button>
-            </GroupedFormRowControl>
-          </GroupedFormRow>
+          <GroupedFormExpanderRow
+            title={_("Custom & Advanced")}
+            description={_("Custom light/dark image, HTML/CSS file URI, fit, and shading")}
+            expanded={showAdvanced}
+            onToggle={() => setShowAdvanced((v) => !v)}
+          />
 
           {showAdvanced && (
             <>

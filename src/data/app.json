@@ -1,6 +1,14 @@
 {
   "webApps": [
     {
+      "id": "web:https://chromewebstore.google.com/",
+      "title": "Chrome Web Store",
+      "url": "https://chromewebstore.google.com/",
+      "category": "Utilities",
+      "keywords": "chrome web store extensions addons ublock dark reader",
+      "launcherDefault": true
+    },
+    {
       "id": "web:https://excalidraw.com/",
       "title": "Excalidraw",
       "url": "https://excalidraw.com/",

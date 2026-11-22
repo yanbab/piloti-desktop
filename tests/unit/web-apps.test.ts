@@ -19,8 +19,8 @@ import {
 } from "@/context/SettingsContext";
 
 describe("DEFAULT_BROWSER_WEB_APPS", () => {
-  it("contains 49 unique, valid https entries (including Games) excluding iframe-blocked origins", () => {
-    expect(DEFAULT_BROWSER_WEB_APPS).toHaveLength(49);
+  it("contains 50 unique, valid https entries (including Games) excluding iframe-blocked origins", () => {
+    expect(DEFAULT_BROWSER_WEB_APPS).toHaveLength(50);
     expect(
       DEFAULT_BROWSER_WEB_APPS.filter((a) => a.category === "Games").length
     ).toBeGreaterThanOrEqual(9);
@@ -83,8 +83,8 @@ describe("resolveInitialSettings web defaults and seeding", () => {
     expect(nativeSaved.webDefaultsVersion).toBeUndefined();
   });
 
-  it("pins Files, Desktop Shell, Applications, and Desktop Console and populates 10 launcher web apps on fresh web startup", () => {
-    expect(DEFAULT_LAUNCHER_WEB_APPS).toHaveLength(10);
+  it("pins Files, Desktop Shell, App Store, and Desktop Console and populates 11 launcher web apps on fresh web startup", () => {
+    expect(DEFAULT_LAUNCHER_WEB_APPS).toHaveLength(11);
     const webFresh = resolveInitialSettings(null, true);
     expect(webFresh.pinnedAppIds).toEqual([
       "nautilus",

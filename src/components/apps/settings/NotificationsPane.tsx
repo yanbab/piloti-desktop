@@ -1,4 +1,4 @@
-import { BellRingIcon, Trash2Icon, TriangleAlertIcon } from "lucide-react";
+import { Trash2Icon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   GroupedForm,
@@ -38,7 +38,7 @@ const HISTORY_LIMIT_ITEMS: { value: string; label: string }[] = [
 
 export function NotificationsPane() {
   const { settings, updateSettings } = useSettings();
-  const { notifications, pushNotification, clearAllNotifications } =
+  const { notifications, clearAllNotifications } =
     useSystemBackends();
 
   return (
@@ -203,51 +203,6 @@ export function NotificationsPane() {
                   ))}
                 </SelectContent>
               </Select>
-            </GroupedFormRowControl>
-          </GroupedFormRow>
-
-          <GroupedFormRow>
-            <GroupedFormRowLabel>
-              <GroupedFormRowTitle>{_("Send Test Notification")}</GroupedFormRowTitle>
-            </GroupedFormRowLabel>
-            <GroupedFormRowControl className="flex items-center gap-1.5">
-              <Button
-                size="sm"
-                variant="secondary"
-                disabled={!settings.notificationsEnabled}
-                onClick={() =>
-                  pushNotification({
-                    appName: "Piloti System",
-                    summary: "Wayland Compositor Synced",
-                    body: `Workspace ${settings.activeWorkspace} active · Volume ${settings.volume}%`,
-                    actions: [
-                      {
-                        key: "notifications-settings",
-                        label: "Notification Settings",
-                      },
-                    ],
-                  })
-                }
-              >
-                <BellRingIcon className="size-3.5" />
-                {_("Normal")}
-              </Button>
-              <Button
-                size="sm"
-                variant="secondary"
-                disabled={!settings.notificationsEnabled}
-                onClick={() =>
-                  pushNotification({
-                    appName: "System Monitor",
-                    summary: "Critical Battery / Alert Preview",
-                    body: "Urgent notifications stay pinned until you dismiss them.",
-                    urgency: "critical",
-                  })
-                }
-              >
-                <TriangleAlertIcon className="size-3.5 text-rose-500" />
-                {_("Urgent")}
-              </Button>
             </GroupedFormRowControl>
           </GroupedFormRow>
 

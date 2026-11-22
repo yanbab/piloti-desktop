@@ -95,6 +95,7 @@ import {
 import {
   normalizeWebUrl,
   useSettings,
+  useSystemBackends,
   useWindowManager,
   type DesktopWindowInstance,
 } from "@/context/DesktopStateContext";
@@ -110,7 +111,12 @@ import {
   setCachedWebThemeColor,
 } from "@/data/web-apps";
 import { cn } from "@/lib/core/utils";
-import { WEB_DARK_READER_FILTER } from "@/lib/engine/browser-extensions";
+import {
+  WEB_DARK_READER_FILTER,
+  normalizeExtensionsConfig,
+  parseChromeWebStoreExtensionId,
+  setExtensionEnabled,
+} from "@/lib/engine/browser-extensions";
 import { toggleWebAppInstall } from "@/lib/xdg/xdg-web-apps";
 
 /**
@@ -194,6 +200,7 @@ function WebViewSurface({
   const domicile = useDomicile();
   const { isBrowserRuntime, resolvedTheme, settings, updateSettings } =
     useSettings();
+  const { pushNotification } = useSystemBackends();
   const {
     focusedWindowId,
     focusWindow,
@@ -354,6 +361,75 @@ function WebViewSurface({
 
   const currentUrl = normalizeWebUrl(address) ?? win.browserUrl ?? "";
   const canonicalUrl = canonicalizeWebUrl(currentUrl) ?? currentUrl;
+  const storeExtId = React.useMemo(
+    () => parseChromeWebStoreExtensionId(currentUrl),
+    [currentUrl]
+  );
+  const storeExtInstalled = React.useMemo(
+    () => Boolean(storeExtId && extensions.some((e) => e.id === storeExtId)),
+    [extensions, storeExtId]
+  );
+
+  const handleToggleStoreExtension = React.useCallback(async () => {
+    if (!storeExtId) return;
+    if (isBrowserRuntime) {
+      pushNotification({
+        appName: "Chrome Web Store",
+        summary: _("Extension ID: %s", storeExtId),
+        body: _(
+          "Chrome Web Store extensions install natively under Domicile Linux."
+        ),
+      });
+      return;
+    }
+    try {
+      await domicile.files.createDir(".config/domicile").catch(() => undefined);
+      let existing: Record<string, unknown> = {};
+      const readRes = await domicile.files
+        .readText(".config/domicile/domicile.json")
+        .catch(() => null);
+      if (readRes) {
+        readRes.match({
+          Ok: (text) => {
+            try {
+              existing = JSON.parse(text) as Record<string, unknown>;
+            } catch {
+              existing = {};
+            }
+          },
+          Err: () => undefined,
+        });
+      }
+      const prevExt = normalizeExtensionsConfig(existing.extensions);
+      const nextInstalled = !prevExt.web_store.includes(storeExtId);
+      const nextExt = setExtensionEnabled(
+        prevExt,
+        "web_store",
+        storeExtId,
+        nextInstalled
+      );
+      await domicile.files.write(
+        ".config/domicile/domicile.json",
+        JSON.stringify({ ...existing, extensions: nextExt }, null, 2) + "\n"
+      );
+      pushNotification({
+        appName: "Chrome Web Store",
+        summary: nextInstalled
+          ? _("Added Extension (%s)", storeExtId)
+          : _("Removed Extension (%s)", storeExtId),
+        body: _(
+          "Saved to ~/.config/domicile/domicile.json. Restart Domicile to apply."
+        ),
+      });
+    } catch {
+      pushNotification({
+        appName: "Chrome Web Store",
+        summary: _("Could not update extensions config"),
+        body: storeExtId,
+        urgency: "critical",
+      });
+    }
+  }, [domicile.files, isBrowserRuntime, pushNotification, storeExtId]);
 
   React.useEffect(() => {
     if (focusedWindowId !== win.id) return;
@@ -616,6 +692,19 @@ function WebViewSurface({
         )}
 
         <div className="flex shrink-0 items-center gap-1" data-window-no-drag>
+          {storeExtId && (
+            <Button
+              size="sm"
+              variant={storeExtInstalled ? "secondary" : "default"}
+              onClick={() => void handleToggleStoreExtension()}
+              className="mr-1 h-6 gap-1 px-2 text-[11px]"
+            >
+              <DownloadIcon className="size-3" />
+              {storeExtInstalled
+                ? _("Remove Extension")
+                : _("Install Extension")}
+            </Button>
+          )}
           {isBrowserRuntime && (
             <button
               type="button"

@@ -4,6 +4,7 @@ import {
   SAMPLE_LOCAL_EXTENSION,
   isExtensionEnabled,
   normalizeExtensionsConfig,
+  parseChromeWebStoreExtensionId,
   setExtensionEnabled,
 } from "@/lib/engine/browser-extensions";
 
@@ -38,5 +39,26 @@ describe("browser extensions catalog", () => {
     cfg = setExtensionEnabled(cfg, "web_store", "abc", false);
     expect(isExtensionEnabled(cfg, "web_store", "abc")).toBe(false);
     expect(cfg.unpacked).toEqual([]);
+  });
+
+  it("extracts Chrome Web Store extension IDs from detail URLs", () => {
+    expect(
+      parseChromeWebStoreExtensionId(
+        "https://chromewebstore.google.com/detail/ublock-origin-lite/ddkjiahejlhfcafbddmgiahcphecmpfh",
+      ),
+    ).toBe("ddkjiahejlhfcafbddmgiahcphecmpfh");
+    expect(
+      parseChromeWebStoreExtensionId(
+        "https://chrome.google.com/webstore/detail/dark-reader/eimadpbcbfnmbkopoojfekhnkhdbieeh",
+      ),
+    ).toBe("eimadpbcbfnmbkopoojfekhnkhdbieeh");
+    expect(
+      parseChromeWebStoreExtensionId("https://chromewebstore.google.com/"),
+    ).toBeNull();
+    expect(
+      parseChromeWebStoreExtensionId(
+        "https://example.com/detail/foo/ddkjiahejlhfcafbddmgiahcphecmpfh",
+      ),
+    ).toBeNull();
   });
 });

@@ -492,5 +492,15 @@
   "Testing": "Pruebas",
   "Full GNOME Settings": "Configuración completa de GNOME",
   "Show all GNOME Control Center panels instead of hiding panels already managed by Piloti Settings.": "Mostrar todos los paneles del Centro de control de GNOME en lugar de ocultar los ya gestionados por la configuración de Piloti.",
-  "Language, extensions, plugins & testing": "Idioma, extensiones, complementos y pruebas"
+  "Language, extensions, plugins & testing": "Idioma, extensiones, complementos y pruebas",
+  "Chrome Web Store": "Chrome Web Store",
+  "Browse and install Chrome extensions directly from the store.": "Explora e instala extensiones de Chrome directamente desde la tienda.",
+  "Open Chrome Web Store": "Abrir Chrome Web Store",
+  "Install Extension": "Instalar extensión",
+  "Remove Extension": "Eliminar extensión",
+  "Extension ID: %s": "ID de extensión: %s",
+  "Chrome Web Store extensions install natively under Domicile Linux.": "Las extensiones de Chrome Web Store se instalan de forma nativa en Domicile Linux.",
+  "Added Extension (%s)": "Extensión añadida (%s)",
+  "Removed Extension (%s)": "Extensión eliminada (%s)",
+  "Could not update extensions config": "No se pudo actualizar la configuración de extensiones"
 }

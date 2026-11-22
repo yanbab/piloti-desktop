@@ -104,7 +104,7 @@ const PANES: {
   },
   {
     id: "advanced",
-    label: "System",
+    label: "Advanced",
     subtitle: "Language, extensions, plugins & testing",
     icon: <WrenchIcon />,
   },

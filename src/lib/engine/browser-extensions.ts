@@ -80,3 +80,26 @@ export function setExtensionEnabled(
 /** CSS `filter` used to simulate Dark Reader on web (iframe) app frames. */
 export const WEB_DARK_READER_FILTER =
   "invert(1) hue-rotate(180deg) contrast(0.92) brightness(0.95)";
+
+export const CHROME_WEB_STORE_URL = "https://chromewebstore.google.com/";
+
+/**
+ * Extracts a 32-character Chrome Web Store extension ID from a detail URL
+ * (`https://chromewebstore.google.com/detail/.../<id>` or legacy `chrome.google.com/webstore/detail/.../<id>`).
+ */
+export function parseChromeWebStoreExtensionId(rawUrl?: string): string | null {
+  if (!rawUrl) return null;
+  try {
+    const u = new URL(rawUrl);
+    if (
+      u.hostname !== "chromewebstore.google.com" &&
+      u.hostname !== "chrome.google.com"
+    ) {
+      return null;
+    }
+    const match = u.pathname.match(/\/detail\/(?:[^/]+\/)?([a-p]{32})(?:\/|$)/i);
+    return match ? match[1].toLowerCase() : null;
+  } catch {
+    return null;
+  }
+}

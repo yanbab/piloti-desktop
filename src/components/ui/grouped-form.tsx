@@ -1,4 +1,5 @@
 import * as React from "react"
+import { ChevronDownIcon, ChevronRightIcon } from "lucide-react"
 
 import { cn } from "@/lib/core/utils"
 
@@ -133,8 +134,52 @@ function GroupedFormRowControl({
   )
 }
 
+// A full-row clickable expander row (Adwaita/macOS style) with only a chevron on the right.
+function GroupedFormExpanderRow({
+  title,
+  description,
+  expanded,
+  onToggle,
+  className,
+}: {
+  title: React.ReactNode
+  description?: React.ReactNode
+  expanded: boolean
+  onToggle: () => void
+  className?: string
+}) {
+  return (
+    <button
+      type="button"
+      aria-expanded={expanded}
+      onClick={onToggle}
+      data-slot="grouped-form-row"
+      className={cn(
+        "flex w-full min-h-9 cursor-default items-center justify-between gap-4 py-2 text-left transition-colors outline-none hover:bg-black/3 active:bg-black/5 not-first:min-h-[37px] not-first:border-t not-first:border-adw-separator dark:hover:bg-white/4 dark:active:bg-white/7",
+        description && "py-2.5",
+        className
+      )}
+    >
+      <GroupedFormRowLabel>
+        <GroupedFormRowTitle>{title}</GroupedFormRowTitle>
+        {description && (
+          <GroupedFormRowDescription>{description}</GroupedFormRowDescription>
+        )}
+      </GroupedFormRowLabel>
+      <GroupedFormRowControl>
+        {expanded ? (
+          <ChevronDownIcon className="size-4 text-adw-label-secondary" />
+        ) : (
+          <ChevronRightIcon className="size-4 text-adw-label-secondary" />
+        )}
+      </GroupedFormRowControl>
+    </button>
+  )
+}
+
 export {
   GroupedForm,
+  GroupedFormExpanderRow,
   GroupedFormGroup,
   GroupedFormRow,
   GroupedFormRowControl,
