@@ -297,9 +297,12 @@ export function Dock() {
   React.useEffect(() => {
     void refreshTrashStatus();
     if (isBrowserRuntime) {
-      return subscribeWebVfs(() => {
-        void refreshTrashStatus();
-      });
+      return subscribeWebVfs(
+        () => {
+          void refreshTrashStatus();
+        },
+        { path: WEB_VFS_TRASH, mode: "children" },
+      );
     }
     let active = true;
     const onFocus = () => {

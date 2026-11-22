@@ -729,9 +729,14 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
       });
     };
     syncFromDisk(true);
-    const unsub = subscribeWebVfs(() => {
-      syncFromDisk(false);
-    });
+    // Only this file: the editor's own state writes (cursor, scroll) must not
+    // trigger a re-read of the document.
+    const unsub = subscribeWebVfs(
+      () => {
+        syncFromDisk(false);
+      },
+      { path: filePath, mode: "exact" },
+    );
     return () => {
       cancelled = true;
       unsub();

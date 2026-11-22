@@ -253,7 +253,9 @@ function hydrateExternalContent(entries: readonly WebVfsEntry[]): void {
         target.content = value;
         persistedBlobs.set(path, value);
         if (typeof window !== "undefined") {
-          window.dispatchEvent(new CustomEvent(WEB_VFS_CHANGED_EVENT));
+          window.dispatchEvent(
+            new CustomEvent<WebVfsChangeDetail>(WEB_VFS_CHANGED_EVENT, { detail: { paths: [path] } }),
+          );
         }
       }
     });
@@ -773,7 +775,7 @@ export function createVfsFolder(
     parentPath: parent,
     updatedAt: Date.now(),
   };
-  saveVfs([...entries, created]);
+  saveVfs([...entries, created], [fullPath]);
   return created;
 }
 
@@ -798,7 +800,7 @@ export function createVfsTextFile(
     content,
     updatedAt: Date.now(),
   };
-  saveVfs([...entries, created]);
+  saveVfs([...entries, created], [fullPath]);
   return created;
 }
 
@@ -853,6 +855,7 @@ export function ensureVfsDir(rawPath: string): WebVfsEntry {
   const now = Date.now();
   let last: WebVfsEntry | undefined;
   let changed = false;
+  const createdPaths: string[] = [];
   for (const seg of segments) {
     const parent = curr || "/";
     curr = `${curr}/${seg}`;
@@ -871,9 +874,10 @@ export function ensureVfsDir(rawPath: string): WebVfsEntry {
       entries = [...entries, created];
       last = created;
       changed = true;
+      createdPaths.push(curr);
     }
   }
-  if (changed) saveVfs(entries);
+  if (changed) saveVfs(entries, createdPaths);
   return (
     last ?? {
       id: normalized,
@@ -911,7 +915,7 @@ export function writeVfsTextFile(
           }
         : e
     );
-    saveVfs(updated);
+    saveVfs(updated, [normalized]);
     return {
       ...existing,
       content,
@@ -929,7 +933,7 @@ export function writeVfsTextFile(
     ...(nextMeta ? { metadata: nextMeta } : {}),
     updatedAt: Date.now(),
   };
-  saveVfs([...entries, created]);
+  saveVfs([...entries, created], [normalized]);
   return created;
 }
 
@@ -947,7 +951,8 @@ export function incrementVfsAccessCount(rawPath: string): number {
   saveVfs(
     entries.map((e) =>
       e.path === normalized ? { ...e, accessCount: nextCount } : e
-    )
+    ),
+    [normalized],
   );
   return nextCount;
 }
@@ -1088,8 +1093,12 @@ export function loadVfsEmblemsMap(): Record<string, VfsEmblemId[]> {
   return result;
 }
 
-function saveVfsEmblemsMap(map: Record<string, VfsEmblemId[]>, emit = true): void {
-  const emblemChangedPaths: string[] = [];
+function saveVfsEmblemsMap(
+  map: Record<string, VfsEmblemId[]>,
+  emit = true,
+  hintPaths: readonly string[] = [],
+): void {
+  const emblemChangedPaths: string[] = [...hintPaths];
   if (typeof localStorage !== "undefined") {
     try {
       const cleaned: Record<string, VfsEmblemId[]> = {};
@@ -1219,7 +1228,7 @@ export function setVfsEmblem(
   } else {
     delete map[norm];
   }
-  saveVfsEmblemsMap(map, true);
+  saveVfsEmblemsMap(map, true, [norm]);
   return nextForPath;
 }
 
@@ -1270,7 +1279,7 @@ export function renameVfsEntry(
   });
 
   migrateVfsEmblemsPrefix(oldPath, newPath);
-  saveVfs(updated);
+  saveVfs(updated, [oldPath, newPath]);
   if (typeof window !== "undefined") {
     window.dispatchEvent(
       new CustomEvent("piloti:vfs-renamed", {
@@ -1296,6 +1305,7 @@ export function removeVfsEntry(rawPath: string): boolean {
     entries.filter(
       (e) => e.path !== targetPath && !e.path.startsWith(targetPrefix),
     ),
+    [targetPath],
   );
   return true;
 }
@@ -1315,7 +1325,8 @@ export function trashVfsEntry(rawPath: string): void {
     saveVfs(
       entries.filter(
         (e) => e.path !== targetPath && !e.path.startsWith(targetPrefix)
-      )
+      ),
+      [targetPath],
     );
     return;
   }
@@ -1354,7 +1365,7 @@ export function trashVfsEntry(rawPath: string): void {
   });
 
   migrateVfsEmblemsPrefix(targetPath, newPath);
-  saveVfs(updated);
+  saveVfs(updated, [targetPath, newPath]);
 }
 
 export function restoreVfsEntry(rawTrashPath: string): WebVfsEntry | null {
@@ -1408,7 +1419,7 @@ export function restoreVfsEntry(rawTrashPath: string): WebVfsEntry | null {
   });
 
   migrateVfsEmblemsPrefix(trashPath, newPath);
-  saveVfs(updated);
+  saveVfs(updated, [trashPath, newPath]);
   return restoredEntry;
 }
 
@@ -1420,7 +1431,7 @@ export function emptyVfsTrash(): void {
       migrateVfsEmblemsPrefix(entry.path, null);
     }
   }
-  saveVfs(entries.filter((e) => !e.path.startsWith(trashPrefix)));
+  saveVfs(entries.filter((e) => !e.path.startsWith(trashPrefix)), [WEB_VFS_TRASH]);
 }
 
 export function moveVfsEntry(
@@ -1474,37 +1485,62 @@ export function moveVfsEntry(
   });
 
   migrateVfsEmblemsPrefix(srcPath, newPath);
-  saveVfs(updated);
+  saveVfs(updated, [srcPath, newPath]);
   return updated.find((e) => e.path === newPath) ?? null;
 }
 
-export function subscribeWebVfs(listener: () => void): () => void {
+/**
+ * Subscribes to VFS changes. Pass `watch` to only be woken for changes that can
+ * affect those paths (see `vfsChangeAffects`); without it every change notifies.
+ * Changes from other windows/iframes carry paths when the sender knew them.
+ */
+export function subscribeWebVfs(
+  listener: (detail: WebVfsChangeDetail) => void,
+  watch?: VfsWatch | readonly VfsWatch[],
+): () => void {
+  const deliver = (paths: readonly string[] | undefined) => {
+    if (watch && !vfsChangeAffects(paths, watch)) {
+      vfsPerf.listenerSkips += 1;
+      return;
+    }
+    vfsPerf.listenerCalls += 1;
+    listener(paths ? { paths } : {});
+  };
   if (typeof window === "undefined") {
-    inProcessVfsListeners.add(listener);
+    const inProcess = (detail: WebVfsChangeDetail) => deliver(detail.paths);
+    inProcessVfsListeners.add(inProcess);
     return () => {
-      inProcessVfsListeners.delete(listener);
+      inProcessVfsListeners.delete(inProcess);
     };
   }
+  const onChanged = (e: Event) => {
+    deliver((e as CustomEvent<WebVfsChangeDetail | undefined>).detail?.paths);
+  };
   const onStorage = (e: StorageEvent) => {
     if (
       e.key === WEB_VFS_STORAGE_KEY ||
       e.key === VFS_EMBLEMS_STORAGE_KEY ||
       e.key === WEB_VFS_FAVORITES_STORAGE_KEY
     ) {
-      listener();
+      // The broadcast below carries paths for VFS writes; storage events are a
+      // fallback for emblems/favorites and windows without BroadcastChannel.
+      if (e.key === WEB_VFS_STORAGE_KEY && getVfsBroadcastChannel()) return;
+      deliver(undefined);
     }
   };
-  window.addEventListener(WEB_VFS_CHANGED_EVENT, listener);
+  window.addEventListener(WEB_VFS_CHANGED_EVENT, onChanged);
   window.addEventListener("storage", onStorage);
   const channel = getVfsBroadcastChannel();
   const onMessage = (e: MessageEvent<VfsBroadcastMessage>) => {
-    if (e.data?.type === "vfs-changed" || e.data?.type === "vfs-renamed") {
-      listener();
+    if (e.data?.type === "vfs-changed") {
+      deliver(e.data.paths);
+    } else if (e.data?.type === "vfs-renamed") {
+      deliver([e.data.oldPath, e.data.newPath]);
     }
   };
   channel?.addEventListener("message", onMessage);
   return () => {
-    window.removeEventListener(WEB_VFS_CHANGED_EVENT, listener);
+    window.removeEventListener(WEB_VFS_CHANGED_EVENT, onChanged);
     window.removeEventListener("storage", onStorage);
     channel?.removeEventListener("message", onMessage);
   };
@@ -1712,7 +1748,7 @@ export function copyVfsEntry(
       content: src.content ?? "",
       updatedAt: Date.now(),
     };
-    saveVfs([...entries, created]);
+    saveVfs([...entries, created], [created.path]);
     return created;
   }
   if (targetDir === srcPath || targetDir.startsWith(`${srcPath}/`)) return null;
@@ -1746,7 +1782,7 @@ export function duplicateVfsEntry(rawPath: string): WebVfsEntry | null {
       content: src.content ?? "",
       updatedAt: Date.now(),
     };
-    saveVfs([...entries, created]);
+    saveVfs([...entries, created], [created.path]);
     return created;
   }
 
@@ -1760,7 +1796,7 @@ export function duplicateVfsEntry(rawPath: string): WebVfsEntry | null {
     parentPath: parentDir,
     updatedAt: Date.now(),
   };
-  saveVfs([...entries, folder]);
+  saveVfs([...entries, folder], [folder.path]);
   for (const child of listVfsDir(src.path)) {
     copyVfsEntry(child.path, folder.path);
   }
@@ -1945,7 +1981,7 @@ export async function compressVfsEntries(
     updatedAt: Date.now(),
   };
   entries.push(created);
-  saveVfs(entries);
+  saveVfs(entries, [zipPath]);
   return created;
 }
 
@@ -2037,7 +2073,7 @@ export async function extractVfsZip(zipPath: string): Promise<WebVfsEntry | null
     });
   }
 
-  saveVfs(entries);
+  saveVfs(entries, [rootFolderPath]);
   return rootFolder;
 }
 
@@ -2070,7 +2106,7 @@ export function setVfsEntryMetadata(
   const nextMeta = { ...(current.metadata ?? {}), ...patch };
   const nextEntries = [...entries];
   nextEntries[idx] = { ...current, metadata: nextMeta };
-  saveVfs(nextEntries);
+  saveVfs(nextEntries, [normalized]);
 }
 
 /**
@@ -2095,6 +2131,7 @@ export function consumeLegacyLocalStorageValue(key: string): string | null {
  */
 export function listWebVfsBackingStorageEntries(): WebVfsBackingStorageEntry[] {
   if (typeof localStorage === "undefined") return [];
+  flushWebVfs();
   const entries: WebVfsBackingStorageEntry[] = [];
   for (let i = 0; i < localStorage.length; i += 1) {
     const key = localStorage.key(i);
@@ -2111,6 +2148,14 @@ export function listWebVfsBackingStorageEntries(): WebVfsBackingStorageEntry[] {
  * Resets all browser VFS backing storage keys and invalidates the in-memory VFS cache.
  */
 export function clearAllWebVfsBackingStorage(): void {
+  // Drop pending writes so a scheduled flush can't resurrect the old VFS.
+  if (vfsFlushTimer !== null) {
+    clearTimeout(vfsFlushTimer);
+    vfsFlushTimer = null;
+  }
+  vfsFlushPending = false;
+  vfsPendingPaths = new Set();
+  vfsCacheFresh = false;
   vfsCacheRaw = null;
   vfsCacheEntries = null;
   vfsCacheByPath = null;

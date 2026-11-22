@@ -5,6 +5,7 @@ import { useWatch } from "@domicile-desktop/react/use-watch";
 import {
   AppWindowIcon,
   BellIcon,
+  GaugeIcon,
   ChevronRightIcon,
   CpuIcon,
   DatabaseIcon,
@@ -48,8 +49,11 @@ import { cn } from "@/lib/core/utils";
 import {
   WEB_VFS_CHANGED_EVENT,
   getVfsSnapshotEntries,
+  getWebVfsPerfStats,
   listWebVfsBackingStorageEntries,
+  resetWebVfsPerfStats,
   type WebVfsEntry,
+  type WebVfsPerfStats,
 } from "@/lib/engine-web/web-vfs";
 import {
   parseVfsStateString,
@@ -487,7 +491,69 @@ type InspectorSectionId =
   | "apps"
   | "settings"
   | "state"
-  | "notifications";
+  | "notifications"
+  | "performance";
+
+/** Live web-VFS persistence counters (writes, coalesced flushes, listener fan-out). */
+function VfsPerformanceSection() {
+  const [stats, setStats] = React.useState<WebVfsPerfStats>(() => getWebVfsPerfStats());
+  React.useEffect(() => {
+    const timer = window.setInterval(() => setStats(getWebVfsPerfStats()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+  const minutes = Math.max(1 / 60, (Date.now() - stats.startedAt) / 60_000);
+  const avgFlush = stats.flushes > 0 ? stats.totalFlushMs / stats.flushes : 0;
+  const delivered = stats.listenerCalls + stats.listenerSkips;
+  const tiles = [
+    { label: _("VFS writes / min"), value: (stats.writes / minutes).toFixed(1) },
+    { label: _("Storage flushes / min"), value: (stats.flushes / minutes).toFixed(1) },
+    {
+      label: _("Writes per flush"),
+      value: stats.flushes > 0 ? (stats.writes / stats.flushes).toFixed(1) : "—",
+    },
+    { label: _("Last flush"), value: `${stats.lastFlushMs.toFixed(1)} ms` },
+    { label: _("Average flush"), value: `${avgFlush.toFixed(1)} ms` },
+    { label: _("VFS JSON size"), value: `${(stats.lastJsonChars / 1024).toFixed(0)} KB` },
+    { label: _("Listener wake-ups"), value: stats.listenerCalls },
+    {
+      label: _("Skipped by path filter"),
+      value: delivered > 0 ? `${stats.listenerSkips} (${Math.round((stats.listenerSkips / delivered) * 100)}%)` : "0",
+    },
+    { label: _("Reloads from other windows"), value: stats.reloads },
+  ];
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <span className="text-[12px] text-adw-label-secondary">
+          {_("Since %s", new Date(stats.startedAt).toLocaleTimeString())}
+        </span>
+        <button
+          type="button"
+          onClick={() => {
+            resetWebVfsPerfStats();
+            setStats(getWebVfsPerfStats());
+          }}
+          className="rounded-md bg-black/6 px-2.5 py-1 text-[11.5px] font-medium text-adw-label hover:bg-black/10 dark:bg-white/10 dark:hover:bg-white/15"
+        >
+          {_("Reset")}
+        </button>
+      </div>
+      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
+        {tiles.map((stat) => (
+          <div
+            key={stat.label}
+            className="rounded-xl border border-adw-separator bg-adw-card px-3.5 py-2.5"
+          >
+            <div className="text-[11px] font-medium text-adw-label-secondary">{stat.label}</div>
+            <div className="mt-0.5 truncate font-mono text-[14px] font-semibold text-adw-label">
+              {stat.value}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 function InspectorJsonCard({
   title,
@@ -577,6 +643,7 @@ function InspectorModule() {
     { id: "settings", label: "Settings", icon: <SettingsIcon className="size-4 shrink-0" /> },
     { id: "state", label: "State", icon: <DatabaseIcon className="size-4 shrink-0" /> },
     { id: "notifications", label: "Notifications", icon: <BellIcon className="size-4 shrink-0" /> },
+    { id: "performance", label: _("Performance"), icon: <GaugeIcon className="size-4 shrink-0" /> },
   ];
 
   const {
@@ -1096,6 +1163,8 @@ function InspectorModule() {
           </div>
         );
       }
+      case "performance":
+        return <VfsPerformanceSection />;
       case "notifications":
         return (
           <div className="space-y-4">

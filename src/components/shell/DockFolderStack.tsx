@@ -63,7 +63,7 @@ export function DockFolderStack({
       setEntries(visible);
     };
     void load();
-    const unsub = isBrowserRuntime ? subscribeWebVfs(() => void load()) : undefined;
+    const unsub = isBrowserRuntime ? subscribeWebVfs(() => void load(), { path, mode: "children" }) : undefined;
     return () => {
       cancelled = true;
       unsub?.();

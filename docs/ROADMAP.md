@@ -33,13 +33,17 @@ Remaining:
 
 ## 0.10.4 — VFS performance (stabilization 1)
 
-- [ ] Include changed paths in VFS change events and BroadcastChannel messages **[§1.1]**.
-- [ ] `subscribeWebVfs(listener, { under })` and migrate Folders, Desktop icons, Dock, Dock stacks, Text Editor, `subscribeVfsPath` **[§1.1, §1.3]**.
-- [ ] Debounce `saveVfs` serialization to idle time, flush on `pagehide` **[§1.1]**.
-- [ ] Perf counters (`measure()`): VFS size, writes/min, listener wake-ups, `reloadDir` time — shown in Console ▸ Infos **[§1.7]**.
-- [ ] Unit test: one state write wakes only listeners under that path.
+- [x] Changed paths in VFS change events and BroadcastChannel messages **[§1.1]**.
+- [x] `subscribeWebVfs(listener, watch)` with `exact` / `children` / `subtree` watches; migrated Folders, Desktop icons, Dock Trash, Dock stacks, Desktop templates, Text Editor, `subscribeVfsPath`, and web-app `.desktop` sync in Settings **[§1.1, §1.3]**.
+- [x] `saveVfs` updates memory immediately and writes `localStorage` on a 250 ms trailing debounce (1 s max wait); flushed on `pagehide` / `beforeunload` / hidden tab **[§1.1]**.
+- [x] Reads no longer fetch and compare the whole VFS string from `localStorage`; the cache stays valid until another window/iframe writes (storage event / broadcast).
+- [x] Emblem changes go through the cache instead of writing the VFS key directly.
+- [x] Console ▸ Infos ▸ Performance: writes/min, flushes/min, flush time, JSON size, listener wake-ups vs skipped, cross-window reloads **[§1.7]**.
+- [x] Unit test: state writes don't wake folder listeners (`tests/unit/web-vfs-change-paths.test.ts`).
 
-**Exit:** typing + moving the cursor in Text Editor with Folders open causes **0** `reloadDir` calls; VFS writes/min reported before/after in the release notes.
+**Measured (Chrome, 259 KB VFS):** 50 rapid state writes → 1 `localStorage` flush (was 50 × ~4 ms) and 400 listener wake-ups skipped; cross-tab sync and write-then-reload persistence verified.
+
+Follow-ups moved to later releases: split `~/.local/state` / `~/.config/piloti` into separate storage records **[§1.1, L]**; generic `measure()` around `.desktop` scans and icon-theme resolution **[§1.7]**.
 
 ---
 

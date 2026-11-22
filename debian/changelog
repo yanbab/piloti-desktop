@@ -1,3 +1,23 @@
+piloti-desktop (0.10.4-1) unstable; urgency=medium
+
+  * Release v0.10.4 (includes unreleased 0.10.3):
+    - VFS performance: in-memory writes with coalesced localStorage flushes
+      (250 ms debounce, flushed on pagehide/beforeunload), path-aware change
+      events, and path-filtered subscribers (Folders, Desktop, Dock, Text
+      Editor, Settings web-app sync); reads no longer re-fetch the whole VFS.
+    - Console > Infos > Performance: VFS writes/flushes, flush time, JSON
+      size and listener wake-up counters.
+    - Nice file paths ("Desktop > Screenshot.png", "USB > Doc.pdf") with
+      SSD/HDD, USB, CD-ROM and SD Card device icons in notifications and the
+      Folders info pane.
+    - Help > Search menus (Cmd/Ctrl+K): search and run any menu command with
+      its shortcut; the Launcher stays on Alt+Space.
+    - Spatial Image Viewer: zoom, pan, rotation and unsaved crop restored per
+      file; no Save/Discard prompt on close for spatial apps (opt-in via
+      ~/.config/piloti/general.ini); Text Editor code folding.
+
+ -- Piloti Desktop Maintainers <maintainers@piloti-desktop.org>  Sun, 22 Nov 2026 18:00:00 +0100
+
 piloti-desktop (0.10.2-1) unstable; urgency=medium
 
   * Release v0.10.2:

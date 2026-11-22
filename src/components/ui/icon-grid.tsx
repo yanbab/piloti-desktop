@@ -278,7 +278,11 @@ export function IconGrid({
   >(() => loadVfsEmblemsMap());
   React.useEffect(() => {
     return subscribeWebVfs(() => {
-      setEmblemsMap(loadVfsEmblemsMap());
+      const next = loadVfsEmblemsMap();
+      // Keep the same object when unchanged so the whole grid doesn't re-render.
+      setEmblemsMap((prev) =>
+        JSON.stringify(prev) === JSON.stringify(next) ? prev : next,
+      );
     });
   }, []);
   const useAccentIcons = isBrowserRuntime || mode === "flow";

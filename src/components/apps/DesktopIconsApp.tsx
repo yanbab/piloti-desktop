@@ -306,9 +306,12 @@ export function DesktopIconsApp({
     if (!settings.desktopIconsEnabled || !dockIconsReady) return;
     void loadDesktopFolder();
     if (isBrowserRuntime) {
-      const unsubVfs = subscribeWebVfs(() => {
-        void loadDesktopFolder();
-      });
+      const unsubVfs = subscribeWebVfs(
+        () => {
+          void loadDesktopFolder();
+        },
+        { path: desktopDirPath, mode: "children" },
+      );
       const unsubRenamed = subscribeVfsRenamed(({ oldPath, newPath }) => {
         const prefix = `${desktopDirPath.replace(/\/+$/, "")}/`;
         if (!oldPath.startsWith(prefix) || !newPath.startsWith(prefix)) return;

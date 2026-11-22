@@ -15,8 +15,9 @@ import {
   type InstalledWebApp,
 } from "@/data/web-apps";
 import {
-  WEB_VFS_CHANGED_EVENT,
+  WEB_VFS_HOME,
   getVfsEntry,
+  subscribeWebVfs,
   writeVfsTextFile,
 } from "@/lib/engine-web/web-vfs";
 import { toDomicilePath } from "@/lib/engine/fs-bridge";
@@ -821,16 +822,18 @@ export function useSettingsValue(options?: {
       }, 150);
     };
     window.addEventListener(XDG_WEBAPPS_CHANGED_EVENT, onXdgChanged);
-    if (isBrowserRuntime) {
-      window.addEventListener(WEB_VFS_CHANGED_EVENT, onXdgChanged);
-    }
+    // Web app .desktop files only live here; ignore unrelated VFS writes.
+    const unsubVfs = isBrowserRuntime
+      ? subscribeWebVfs(() => onXdgChanged(), {
+          path: `${WEB_VFS_HOME}/.local/share/applications`,
+          mode: "children",
+        })
+      : undefined;
     return () => {
       cancelled = true;
       clearTimeout(sliderTimersRef.current.xdgWebApps);
       window.removeEventListener(XDG_WEBAPPS_CHANGED_EVENT, onXdgChanged);
-      if (isBrowserRuntime) {
-        window.removeEventListener(WEB_VFS_CHANGED_EVENT, onXdgChanged);
-      }
+      unsubVfs?.();
     };
   }, [domicile, isBrowserRuntime]);
 

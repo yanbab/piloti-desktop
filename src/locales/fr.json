@@ -670,5 +670,17 @@
   "Menu Items": "Éléments de menu",
   "No matching commands": "Aucune commande correspondante",
   "SD Card": "Carte SD",
-  "CD-ROM": "CD-ROM"
+  "CD-ROM": "CD-ROM",
+  "VFS writes / min": "Écritures VFS / min",
+  "Storage flushes / min": "Enregistrements / min",
+  "Writes per flush": "Écritures par enregistrement",
+  "Last flush": "Dernier enregistrement",
+  "Average flush": "Enregistrement moyen",
+  "VFS JSON size": "Taille JSON du VFS",
+  "Listener wake-ups": "Réveils d’écouteurs",
+  "Skipped by path filter": "Ignorés par filtre de chemin",
+  "Reloads from other windows": "Rechargements depuis d’autres fenêtres",
+  "Since %s": "Depuis %s",
+  "Reset": "Réinitialiser",
+  "Performance": "Performances"
 }

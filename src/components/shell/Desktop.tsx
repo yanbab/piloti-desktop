@@ -82,6 +82,7 @@ import {
   subscribeWebVfs,
   WEB_VFS_HOME,
   type WebVfsEntry,
+  resolveVfsTemplatesDir,
 } from "@/lib/engine-web/web-vfs";
 import { listFsTemplates } from "@/lib/engine/fs-bridge";
 
@@ -148,7 +149,10 @@ function DesktopSurface() {
       }
     };
     syncTemplates();
-    return subscribeWebVfs(syncTemplates);
+    return subscribeWebVfs(() => syncTemplates(), {
+      path: resolveVfsTemplatesDir(),
+      mode: "children",
+    });
   }, [domicile, isBrowserRuntime]);
 
   const handlePasteToDesktop = () => {

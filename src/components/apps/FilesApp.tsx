@@ -116,6 +116,7 @@ import {
   WEB_VFS_RECENTS_URI,
   WEB_VFS_TRASH,
   type WebVfsEntry,
+  resolveVfsTemplatesDir,
 } from "@/lib/engine-web/web-vfs";
 import {
   createFsFileFromTemplate,
@@ -711,8 +712,22 @@ export function FilesApp({
 
   React.useEffect(() => {
     reloadDir();
-    return subscribeWebVfs(reloadDir);
-  }, [reloadDir]);
+    // Virtual views (Favorites, Recents, Apps) depend on emblems/access counts
+    // anywhere, so they listen to everything; real folders only to their children.
+    const isVirtualView =
+      currentPath === WEB_VFS_FAVORITES_URI ||
+      currentPath === WEB_VFS_RECENTS_URI ||
+      currentPath === WEB_VFS_APPS_URI;
+    return subscribeWebVfs(
+      () => reloadDir(),
+      isVirtualView
+        ? undefined
+        : [
+            { path: currentPath, mode: "children" },
+            { path: resolveVfsTemplatesDir(), mode: "children" },
+          ],
+    );
+  }, [currentPath, reloadDir]);
 
   React.useEffect(() => {
     if (!initialPath) return;

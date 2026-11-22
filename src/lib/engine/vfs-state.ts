@@ -170,12 +170,15 @@ export function subscribeVfsPath(
     return entry?.kind === "file" ? (entry.content ?? "") : null;
   };
   let lastContent = readCurrent();
-  return subscribeWebVfs(() => {
-    const nextContent = readCurrent();
-    if (nextContent === lastContent) return;
-    lastContent = nextContent;
-    onChange(nextContent);
-  });
+  return subscribeWebVfs(
+    () => {
+      const nextContent = readCurrent();
+      if (nextContent === lastContent) return;
+      lastContent = nextContent;
+      onChange(nextContent);
+    },
+    { path: norm, mode: "exact" },
+  );
 }
 
 /** Legacy `.txt` / extensionless state files that are rewritten as JSON. */
