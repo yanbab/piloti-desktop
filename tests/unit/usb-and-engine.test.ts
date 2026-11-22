@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { APP_CATALOG } from "@/data/catalog";
@@ -43,16 +43,31 @@ function createMemoryStorage(): Storage {
 }
 
 describe("Simulated USB pen drive, Engine override & Folders rename", () => {
+  const globals = globalThis as Record<string, unknown>;
+  let prevWindow: unknown;
+  let hasPrevWindow = false;
+
   beforeEach(() => {
+    hasPrevWindow = "window" in globals;
+    prevWindow = globals.window;
     const storage = createMemoryStorage();
-    (globalThis as Record<string, unknown>).window = {
+    globals.window = {
       localStorage: storage,
+      location: { hostname: "example.test" },
       dispatchEvent: () => true,
       addEventListener: () => {},
       removeEventListener: () => {},
     };
-    (globalThis as Record<string, unknown>).Event =
+    globals.Event =
       Event ?? class SimpleEvent { constructor(public type: string) {} };
+  });
+
+  afterEach(() => {
+    if (hasPrevWindow) {
+      globals.window = prevWindow;
+    } else {
+      delete globals.window;
+    }
   });
 
   test("mounts and unmounts simulated USB drive cleanly in VFS", () => {

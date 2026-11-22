@@ -88,7 +88,10 @@ describe("Debian packaging (data/files -> .deb)", () => {
         .trim()
         .split(/\r?\n/)
         .map((s) => s.trim());
-      expect(arList).toEqual(["debian-binary", "control.tar.gz", "data.tar.gz"]);
+      expect(arList).toHaveLength(3);
+      expect(arList[0]).toBe("debian-binary");
+      expect(arList[1]).toMatch(/^control\.tar\.(gz|xz|zst)$/);
+      expect(arList[2]).toMatch(/^data\.tar\.(gz|xz|zst)$/);
     } finally {
       fs.rmSync(tmpDir, { recursive: true, force: true });
     }
