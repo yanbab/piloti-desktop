@@ -1813,6 +1813,10 @@ function pruneBrowserRecord(
     [closeWindow, combinedWindows, domicile.processes, domicile.windows, isBrowserRuntime]
   );
 
+  const combinedWindowsRef = React.useRef<DesktopWindowInstance[]>(combinedWindows);
+  combinedWindowsRef.current = combinedWindows;
+  const recentLaunchGuardRef = React.useRef<Map<string, number>>(new Map());
+
   const launchApp = React.useCallback(
     (
       appId: string,
@@ -1825,7 +1829,7 @@ function pruneBrowserRecord(
       // Focus existing window unless forceNew (for document-scoped apps with a payload, only reuse matching document/folder)
       if (!options?.forceNew) {
         const lowerAppId = appId.toLowerCase();
-        const existing = combinedWindows.find((w) => {
+        const existing = combinedWindowsRef.current.find((w) => {
           const idMatches =
             w.appId === appId ||
             w.appId.toLowerCase() === lowerAppId ||
@@ -1944,7 +1948,16 @@ function pruneBrowserRecord(
         if (targetWorkspace !== settings.activeWorkspace) {
           updateSettings({ activeWorkspace: targetWorkspace });
         }
-        setShellWindows((prev) => [...prev, newWin]);
+        combinedWindowsRef.current = [...combinedWindowsRef.current, newWin];
+        setShellWindows((prev) => {
+          if (
+            !options?.forceNew &&
+            prev.some((w) => w.appId === resolvedAppId && (!DOCUMENT_SCOPED_APP_IDS.has(appId) || !options?.payload || w.payload === options.payload))
+          ) {
+            return prev;
+          }
+          return [...prev, newWin];
+        });
         setFocusedWindowId(newWin.id);
         setMruIds((prev) => [newWin.id, ...prev]);
         domicile.windows.focusShell();
@@ -1952,6 +1965,15 @@ function pruneBrowserRecord(
       }
 
       // All other applications run as native Wayland / Linux processes (with XDG Startup Notification)
+      if (!options?.forceNew) {
+        const now = Date.now();
+        const launchKey = `${appId.toLowerCase()}::${options?.payload ?? ""}`;
+        const lastAt = recentLaunchGuardRef.current.get(launchKey) ?? 0;
+        if (now - lastAt < 500) {
+          return;
+        }
+        recentLaunchGuardRef.current.set(launchKey, now);
+      }
       beginStartupNotification(appId);
       if (def?.linuxCommand) {
         launchDesktopCommand(domicile, def.linuxCommand);

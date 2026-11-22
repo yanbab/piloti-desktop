@@ -707,3 +707,12 @@ aside [data-slot="window-titlebar"],
 [data-slot="window-titlebar"][style*="--window-controls-fg"] button:not([data-slot="window-controls"] > button) {
   color: var(--window-controls-fg);
 }
+
+@keyframes dock-progress-indeterminate {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(250%);
+  }
+}

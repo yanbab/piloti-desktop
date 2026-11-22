@@ -48,15 +48,34 @@ import {
 import { _ } from "@/lib/core/i18n";
 import { captureLaunchOriginFromElement } from "@/lib/shell/launch-origin";
 import { cn } from "@/lib/core/utils";
-import { useXdgAppBadgeCounts } from "@/lib/xdg/xdg-badge-count";
+import {
+  setXdgAppUrgent,
+  useXdgAppBadgeCounts,
+  useXdgAppProgress,
+  useXdgAppUrgent,
+} from "@/lib/xdg/xdg-badge-count";
+import {
+  addDockFolder,
+  dockFolderLabel,
+  effectiveDockFolders,
+  normalizeDockFolderPath,
+  removeDockFolder,
+  resolveDefaultDockFolders,
+} from "@/lib/shell/dock-folders";
+import { DockFolderStack } from "./DockFolderStack";
 import { AppSquircleIcon } from "./AppSymbol";
 
 export function Dock() {
   const domicile = useDomicile();
   const { isBrowserRuntime, settings, updateSettings } = useSettings();
   const { pushNotification } = useSystemBackends();
-  const { installedXdgApps, getAppIconUrl, appGridIsSymbolic, dockIconsReady } =
-    useApps();
+  const {
+    installedXdgApps,
+    getAppIconUrl,
+    appGridIsSymbolic,
+    dockIconsReady,
+    xdgUserDirs,
+  } = useApps();
   const {
     windows,
     focusedWindowId,
@@ -95,6 +114,36 @@ export function Dock() {
   const [draggingAppId, setDraggingAppId] = React.useState<string | null>(null);
   const [dropTargetAppId, setDropTargetAppId] = React.useState<string | null>(
     null
+  );
+
+  const [openStack, setOpenStack] = React.useState<{
+    path: string;
+    anchor: DOMRect;
+  } | null>(null);
+  const dockFolders = React.useMemo(
+    () =>
+      effectiveDockFolders(
+        settings.dockFolders,
+        resolveDefaultDockFolders(xdgUserDirs, isBrowserRuntime)
+      ),
+    [settings.dockFolders, xdgUserDirs, isBrowserRuntime]
+  );
+  const dockFoldersRef = React.useRef(dockFolders);
+  dockFoldersRef.current = dockFolders;
+  const addFolderToDock = React.useCallback(
+    (path: string) => {
+      updateSettings({ dockFolders: addDockFolder(dockFoldersRef.current, path) });
+    },
+    [updateSettings]
+  );
+  const removeFolderFromDock = React.useCallback(
+    (path: string) => {
+      setOpenStack((cur) => (cur?.path === path ? null : cur));
+      updateSettings({
+        dockFolders: removeDockFolder(dockFoldersRef.current, path),
+      });
+    },
+    [updateSettings]
   );
 
   React.useEffect(() => {
@@ -154,6 +203,8 @@ export function Dock() {
           launchApp("image-viewer", { payload: item.path });
         } else if (detail?.appId === "nautilus" && item.kind === "directory") {
           launchApp("nautilus", { payload: item.path, forceNew: true });
+        } else if (detail?.appId === "__dock__" && item.kind === "directory") {
+          addFolderToDock(item.path);
         }
       }
     };
@@ -164,12 +215,14 @@ export function Dock() {
       window.removeEventListener("residence:file-drag", handleFileDrag);
       window.removeEventListener("residence:file-drop-dock", handleFileDrop);
     };
-  }, [launchApp]);
+  }, [addFolderToDock, launchApp]);
   const [contextTarget, setContextTarget] = React.useState<
-    { kind: "dock" } | { kind: "trash" } | { kind: "usb" } | { kind: "app"; appId: string }
+    { kind: "dock" } | { kind: "trash" } | { kind: "usb" } | { kind: "app"; appId: string } | { kind: "folder"; path: string }
   >({ kind: "dock" });
   const usbMounted = useSimulatedUsbMounted();
   const xdgBadgeCounts = useXdgAppBadgeCounts();
+  const xdgProgress = useXdgAppProgress();
+  const xdgUrgent = useXdgAppUrgent();
   const [usbRenderMounted, setUsbRenderMounted] = React.useState(usbMounted);
   const [usbAnimState, setUsbAnimState] = React.useState<
     "entering" | "idle" | "exiting"
@@ -217,7 +270,7 @@ export function Dock() {
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   }, []);
-  const totalSlots = Math.max(1, effectivePinnedIds.length + 3);
+  const totalSlots = Math.max(1, effectivePinnedIds.length + dockFolders.length + 3);
   const availableSpan = isVerticalDock
     ? viewportSize.height - 96
     : viewportSize.width - 48;
@@ -486,8 +539,16 @@ export function Dock() {
     window.addEventListener("pointercancel", onEnd);
   };
 
+  const focusedAppId = windows.find((w) => w.id === focusedWindowId)?.appId;
+  React.useEffect(() => {
+    if (focusedAppId && xdgUrgent[focusedAppId.toLowerCase()]) {
+      setXdgAppUrgent(focusedAppId, false);
+    }
+  }, [focusedAppId, xdgUrgent]);
+
   const [launchNonces, setLaunchNonces] = React.useState<Record<string, number>>({});
   const handleDockAppClick = (appId: string) => {
+    setXdgAppUrgent(appId, false);
     const appWins = windows.filter((w) => w.appId === appId);
     if (appWins.length === 0) {
       setLaunchNonces((prev) => ({ ...prev, [appId]: (prev[appId] ?? 0) + 1 }));
@@ -569,6 +630,8 @@ export function Dock() {
       setContextTarget({ kind: "trash" });
     } else if (raw === "usb") {
       setContextTarget({ kind: "usb" });
+    } else if (raw?.startsWith("folder:")) {
+      setContextTarget({ kind: "folder", path: raw.slice(7) });
     } else if (raw?.startsWith("app:")) {
       setContextTarget({ kind: "app", appId: raw.slice(4) });
     } else {
@@ -601,6 +664,7 @@ export function Dock() {
               hidden={!entered}
               resizing={resizingDock || draggingAppId !== null}
               className="pointer-events-auto"
+              data-dock-app-id="__dock__"
             />
           }
         >
@@ -659,6 +723,17 @@ export function Dock() {
                 running={isRunning}
                 runningCount={readyWins.length}
                 launching={isLaunching}
+                urgent={Boolean(
+                  xdgUrgent[app.id.toLowerCase()] ||
+                    (app.command && xdgUrgent[app.command.toLowerCase()])
+                )}
+                progress={(() => {
+                  const key = app.id.toLowerCase();
+                  if (key in xdgProgress) return xdgProgress[key];
+                  const cmd = app.command?.toLowerCase();
+                  if (cmd && cmd in xdgProgress) return xdgProgress[cmd];
+                  return undefined;
+                })()}
                 tileRef={(node) => {
                   registerDockRef(app.id, node);
                   if (node) {
@@ -754,6 +829,44 @@ export function Dock() {
             }}
           />
 
+          {dockFolders.map((folderPath) => {
+            const label = dockFolderLabel(folderPath);
+            const stackOpen = openStack?.path === folderPath;
+            const folderKey = `folder:${folderPath}`;
+            const progressKey = folderKey.toLowerCase();
+            return (
+              <DockItem
+                key={folderKey}
+                label={stackOpen ? undefined : label}
+                tileProps={{
+                  "data-dock-context": folderKey,
+                  "data-dock-folder-path": folderPath,
+                  "data-vfs-drop-path": folderPath,
+                }}
+                progress={
+                  progressKey in xdgProgress ? xdgProgress[progressKey] : undefined
+                }
+                urgent={Boolean(xdgUrgent[progressKey])}
+                onClick={(e) => {
+                  const tile = e.currentTarget.parentElement ?? e.currentTarget;
+                  setXdgAppUrgent(folderKey, false);
+                  setOpenStack(
+                    stackOpen
+                      ? null
+                      : { path: folderPath, anchor: tile.getBoundingClientRect() }
+                  );
+                }}
+              >
+                <AppSquircleIcon
+                  iconUrl={getAppIconUrl("folder")}
+                  iconName="folder"
+                  open={stackOpen}
+                  className="size-full"
+                />
+              </DockItem>
+            );
+          })}
+
           {usbRenderMounted && (
             <DockItem
               label={SIMULATED_USB_LABEL}
@@ -812,7 +925,26 @@ export function Dock() {
                 : "min-w-56"
           )}
         >
-          {contextApp ? (
+          {contextTarget.kind === "folder" ? (
+            <>
+              <ContextMenuItem
+                onClick={() =>
+                  launchApp("nautilus", {
+                    payload: contextTarget.path,
+                    forceNew: true,
+                  })
+                }
+              >
+                {_("Open in Folders")}
+              </ContextMenuItem>
+              <ContextMenuSeparator />
+              <ContextMenuItem
+                onClick={() => removeFolderFromDock(contextTarget.path)}
+              >
+                {_("Remove from Dock")}
+              </ContextMenuItem>
+            </>
+          ) : contextApp ? (
             <>
               <ContextMenuItem onClick={() => handleDockAppClick(contextApp.id)}>
                 {contextAppRunning
@@ -937,6 +1069,14 @@ export function Dock() {
           )}
         </ContextMenuContent>
       </ContextMenu>
+      {openStack && (
+        <DockFolderStack
+          path={openStack.path}
+          anchor={openStack.anchor}
+          dockPosition={dockPosition}
+          onClose={() => setOpenStack(null)}
+        />
+      )}
     </div>
   );
 }

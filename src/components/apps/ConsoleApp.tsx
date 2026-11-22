@@ -42,6 +42,7 @@ import {
   formatInspectValue,
   useConsoleEntries,
 } from "@/lib/core/console-store";
+import { parseIniText } from "@/lib/config/piloti-ini";
 import { _ } from "@/lib/core/i18n";
 import { cn } from "@/lib/core/utils";
 import {
@@ -51,10 +52,11 @@ import {
   type WebVfsEntry,
 } from "@/lib/engine-web/web-vfs";
 import {
-  readVfsStateText,
+  parseVfsStateString,
+  readVfsStateString,
   subscribeVfsPath,
   VFS_STATE_PATHS,
-  writeVfsStateText,
+  writeVfsStateString,
 } from "@/lib/engine/vfs-state";
 
 export type ConsoleModuleId =
@@ -484,6 +486,7 @@ type InspectorSectionId =
   | "system"
   | "apps"
   | "settings"
+  | "state"
   | "notifications";
 
 function InspectorJsonCard({
@@ -559,6 +562,9 @@ function InspectorModule() {
 
   const [activeSection, setActiveSection] =
     React.useState<InspectorSectionId>("windows");
+  const [expandedStatePath, setExpandedStatePath] = React.useState<string | null>(
+    null
+  );
   const inspectorSidebarRef = React.useRef<HTMLElement | null>(null);
   const inspectorContentRef = React.useRef<HTMLDivElement | null>(null);
 
@@ -568,6 +574,7 @@ function InspectorModule() {
     { id: "system", label: "System Backends", icon: <CpuIcon className="size-4 shrink-0" /> },
     { id: "apps", label: "Installed Apps", icon: <LayoutGridIcon className="size-4 shrink-0" /> },
     { id: "settings", label: "Settings", icon: <SettingsIcon className="size-4 shrink-0" /> },
+    { id: "state", label: "State", icon: <DatabaseIcon className="size-4 shrink-0" /> },
     { id: "notifications", label: "Notifications", icon: <BellIcon className="size-4 shrink-0" /> },
   ];
 
@@ -968,6 +975,125 @@ function InspectorModule() {
             expandLevel={2}
           />
         );
+      case "state": {
+        const stateRoots = [
+          { label: "~/.config/piloti", prefix: "/home/user/.config/piloti" },
+          { label: "~/.local/state/piloti", prefix: "/home/user/.local/state/piloti" },
+          { label: "~/.local/share", prefix: "/home/user/.local/share" },
+          { label: "~/.cache/piloti", prefix: "/home/user/.cache/piloti" },
+        ];
+        const allFiles = getVfsSnapshotEntries()
+          .filter((entry) => entry.kind === "file")
+          .sort((a, b) => a.path.localeCompare(b.path));
+        return (
+          <div className="space-y-4">
+            {stateRoots.map((group) => {
+              const groupFiles = allFiles.filter(
+                (f) =>
+                  f.path === group.prefix ||
+                  f.path.startsWith(`${group.prefix}/`)
+              );
+              return (
+                <div
+                  key={group.prefix}
+                  className="overflow-hidden rounded-xl border border-adw-separator bg-adw-card"
+                >
+                  <div className="flex items-center justify-between border-b border-adw-separator px-3.5 py-2">
+                    <span className="font-mono text-[12px] font-semibold text-adw-label">
+                      {group.label}
+                    </span>
+                    <span className="rounded-full bg-black/6 px-2 py-0.5 text-[10.5px] font-medium text-adw-label-secondary dark:bg-white/10">
+                      {groupFiles.length}
+                    </span>
+                  </div>
+                  {groupFiles.length === 0 ? (
+                    <div className="px-3.5 py-4 text-[12px] text-adw-label-tertiary">
+                      {_("No files found.")}
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-adw-separator/60">
+                      {groupFiles.map((file) => {
+                        const isOpen = expandedStatePath === file.path;
+                        const content = file.content ?? "";
+                        let parsedObj: Record<string, unknown> | unknown[] | null =
+                          null;
+                        if (file.path.endsWith(".json")) {
+                          try {
+                            const parsed = JSON.parse(content);
+                            if (typeof parsed === "object" && parsed !== null) {
+                              parsedObj = parsed as Record<string, unknown>;
+                            }
+                          } catch {
+                            // fallback to plain text
+                          }
+                        } else if (file.path.endsWith(".ini")) {
+                          try {
+                            parsedObj = parseIniText(content);
+                          } catch {
+                            // fallback
+                          }
+                        }
+                        return (
+                          <div key={file.path}>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setExpandedStatePath(isOpen ? null : file.path)
+                              }
+                              className={cn(
+                                "flex w-full items-center justify-between gap-3 px-3.5 py-2 text-left transition-colors",
+                                isOpen
+                                  ? "bg-black/4 dark:bg-white/6"
+                                  : "hover:bg-black/3 dark:hover:bg-white/4"
+                              )}
+                            >
+                              <div className="min-w-0 flex-1">
+                                <div className="truncate font-mono text-[11.5px] font-medium text-adw-label">
+                                  {file.path.slice(group.prefix.length + 1) || file.name}
+                                </div>
+                                <div className="font-mono text-[10.5px] text-adw-label-tertiary">
+                                  {formatByteSize(content.length)} ·{" "}
+                                  {file.updatedAt
+                                    ? new Date(file.updatedAt).toLocaleString()
+                                    : "—"}
+                                </div>
+                              </div>
+                            </button>
+                            {isOpen && (
+                              <div className="border-t border-adw-separator/60 bg-black/[0.02] p-3 dark:bg-white/[0.02]">
+                                {parsedObj ? (
+                                  <ObjectView
+                                    valueGetter={() => parsedObj}
+                                    name={file.name}
+                                    expandLevel={2}
+                                    style={
+                                      {
+                                        ...(settings.themeMode === "light"
+                                          ? themeGitHubLight
+                                          : themeOneDark),
+                                        backgroundColor: "transparent",
+                                        fontSize: "12px",
+                                      } as React.CSSProperties
+                                    }
+                                  />
+                                ) : (
+                                  <pre className="max-h-64 overflow-auto font-mono text-[11.5px] break-words whitespace-pre-wrap text-adw-label select-text">
+                                    {content || "—"}
+                                  </pre>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        );
+      }
       case "notifications":
         return (
           <div className="space-y-4">
@@ -1809,7 +1935,7 @@ export function ConsoleApp({
     () => {
       if (isModuleId(initialModule)) return initialModule;
       try {
-        const saved = readVfsStateText(
+        const saved = readVfsStateString(
           VFS_STATE_PATHS.devtoolsModule,
           DEVTOOLS_ACTIVE_MODULE_KEY
         )?.trim();
@@ -1829,7 +1955,7 @@ export function ConsoleApp({
 
   React.useEffect(() => {
     return subscribeVfsPath(VFS_STATE_PATHS.devtoolsModule, (raw) => {
-      const mod = raw?.trim();
+      const mod = parseVfsStateString(raw);
       if (isModuleId(mod)) {
         setActiveModule(mod);
       }
@@ -1838,7 +1964,7 @@ export function ConsoleApp({
 
   React.useEffect(() => {
     try {
-      writeVfsStateText(VFS_STATE_PATHS.devtoolsModule, `${activeModule}\n`);
+      writeVfsStateString(VFS_STATE_PATHS.devtoolsModule, activeModule);
     } catch {
       // ignore storage errors
     }

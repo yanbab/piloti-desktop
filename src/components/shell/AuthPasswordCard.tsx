@@ -51,12 +51,33 @@ export function AuthPasswordCard({
   onBack,
   backLabel,
   inputRef: externalInputRef,
-  autoFocus = false,
+  autoFocus = true,
   className,
 }: AuthPasswordCardProps) {
   const [showPassword, setShowPassword] = React.useState(false);
   const internalInputRef = React.useRef<HTMLInputElement | null>(null);
   const inputRef = externalInputRef ?? internalInputRef;
+  const inputBusy = disabled || loading;
+
+  // Root cause of the lost focus: the native `autoFocus` only runs on the very
+  // first mount (before entry transitions settle), and a disabled input drops
+  // focus without ever regaining it (loading / retry countdown / failed
+  // attempt). Re-focus on mount, whenever the input becomes enabled again and
+  // after a failed attempt (`error` / `shakeTick`).
+  React.useEffect(() => {
+    if (!autoFocus || !showPasswordInput || inputBusy) return;
+    const focus = () => {
+      const el = inputRef.current;
+      if (el && !el.disabled && document.activeElement !== el) el.focus();
+    };
+    focus();
+    const raf = requestAnimationFrame(focus);
+    const timer = window.setTimeout(focus, 180);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.clearTimeout(timer);
+    };
+  }, [autoFocus, showPasswordInput, inputBusy, error, shakeTick, inputRef]);
 
   return (
     <div
@@ -104,6 +125,22 @@ export function AuthPasswordCard({
               ref={inputRef}
               type={showPassword ? "text" : "password"}
               autoFocus={autoFocus}
+              onBlur={(e) => {
+                // Keep focus while the card is shown unless the user moved to
+                // another focusable element (e.g. the back button).
+                if (!autoFocus || e.relatedTarget) return;
+                const el = e.currentTarget;
+                window.setTimeout(() => {
+                  if (
+                    el.isConnected &&
+                    !el.disabled &&
+                    (document.activeElement === document.body ||
+                      document.activeElement === null)
+                  ) {
+                    el.focus();
+                  }
+                }, 0);
+              }}
               disabled={disabled || loading}
               value={password}
               onChange={(e) => onPasswordChange(e.target.value)}

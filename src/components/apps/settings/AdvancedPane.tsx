@@ -15,6 +15,11 @@ import {
 } from "lucide-react";
 import { useSystemBackends, useWindowActions } from "@/context/DesktopStateContext";
 import { usePlugins } from "@/context/PluginsContext";
+import {
+  setXdgAppBadgeCount,
+  setXdgAppProgress,
+  setXdgAppUrgent,
+} from "@/lib/xdg/xdg-badge-count";
 import { Button } from "@/components/ui/button";
 import {
   GroupedForm,
@@ -935,6 +940,79 @@ export function AdvancedPane() {
               >
                 <TriangleAlertIcon className="size-3.5 text-rose-500" />
                 {_("Urgent")}
+              </Button>
+            </GroupedFormRowControl>
+          </GroupedFormRow>
+          <GroupedFormRow>
+            <GroupedFormRowLabel>
+              <GroupedFormRowTitle>{_("Dock Badge & Progress")}</GroupedFormRowTitle>
+            </GroupedFormRowLabel>
+            <GroupedFormRowControl className="flex flex-wrap items-center gap-1.5">
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => {
+                  const count = Math.floor(Math.random() * 9) + 1;
+                  setXdgAppBadgeCount("app-store", count);
+                }}
+              >
+                {_("Badge")}
+              </Button>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => {
+                  let p = 0;
+                  const timer = window.setInterval(() => {
+                    p += 0.1;
+                    if (p >= 1) {
+                      window.clearInterval(timer);
+                      setXdgAppProgress("app-store", undefined);
+                    } else {
+                      setXdgAppProgress("app-store", p);
+                    }
+                  }, 120);
+                }}
+              >
+                {_("Progress")}
+              </Button>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => {
+                  setXdgAppProgress("app-store", null);
+                  window.setTimeout(() => setXdgAppProgress("app-store", undefined), 2200);
+                }}
+              >
+                {_("Indeterminate")}
+              </Button>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => setXdgAppUrgent("app-store", true)}
+              >
+                {_("Attention")}
+              </Button>
+            </GroupedFormRowControl>
+          </GroupedFormRow>
+          <GroupedFormRow>
+            <GroupedFormRowLabel>
+              <GroupedFormRowTitle>{_("Dock Folder Stack")}</GroupedFormRowTitle>
+            </GroupedFormRowLabel>
+            <GroupedFormRowControl>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => {
+                  const current = settings.dockFolders ?? [];
+                  const testFolder = "/home/user/Documents";
+                  if (!current.includes(testFolder)) {
+                    updateSettings({ dockFolders: [...current, testFolder] });
+                  }
+                }}
+              >
+                <FolderOpenIcon className="size-3.5" />
+                {_("Dock Documents")}
               </Button>
             </GroupedFormRowControl>
           </GroupedFormRow>

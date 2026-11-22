@@ -101,10 +101,10 @@ test.describe("Piloti Desktop E2E", () => {
       .first();
     await expect(settingsWindow).toBeVisible({ timeout: 20_000 });
 
-    // Switch to Dock pane so /home/user/.config/Piloti/settings.ini is written
+    // Switch to Dock pane so /home/user/.config/piloti/settings.ini is written
     await settingsWindow.getByRole("button", { name: "Dock" }).click();
 
-    // Open Files and navigate to /home/user/.config/Piloti to open settings.ini
+    // Open Files and navigate to /home/user/.config/piloti to open settings.ini
     const filesDockIcon = page.locator('[data-dock-app-id="nautilus"]');
     await filesDockIcon.click();
 
@@ -115,7 +115,7 @@ test.describe("Piloti Desktop E2E", () => {
     await filesWindow.click();
     await page.keyboard.press("Control+l");
     const locInput = filesWindow.locator("input").first();
-    await locInput.fill("/home/user/.config/Piloti");
+    await locInput.fill("/home/user/.config/piloti");
     await locInput.press("Enter");
 
     const iniItem = filesWindow.getByText("settings.ini").first();

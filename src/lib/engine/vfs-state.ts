@@ -1,6 +1,9 @@
 import {
   consumeLegacyLocalStorageValue,
+  ensureVfsDir,
   getVfsEntry,
+  getVfsSnapshotEntries,
+  moveVfsEntry,
   normalizeVfsPath,
   removeVfsEntry,
   subscribeWebVfs,
@@ -12,7 +15,8 @@ export const VFS_STATE_PATHS = {
   legacySettingsJson: "/home/user/.config/piloti/settings.json",
   locale: "/home/user/.config/piloti/locale.ini",
   legacyLocale: "/home/user/.config/piloti/locale",
-  welcomeShown: "/home/user/.local/state/piloti/welcome-shown",
+  welcomeShown: "/home/user/.local/state/piloti/welcome-shown.json",
+  legacyWelcomeShown: "/home/user/.local/state/piloti/welcome-shown",
   windowBounds: "/home/user/.local/state/piloti/window-bounds.json",
   desktopIcons: "/home/user/.local/state/piloti/desktop-icons.json",
   notificationsHistory: "/home/user/.local/state/piloti/notifications.json",
@@ -20,8 +24,10 @@ export const VFS_STATE_PATHS = {
   session: "/home/user/.local/state/piloti/session.json",
   launcher: "/home/user/.local/state/piloti/launcher.json",
   calculator: "/home/user/.local/state/piloti/calculator.json",
-  settingsPane: "/home/user/.local/state/piloti/settings-pane.txt",
-  devtoolsModule: "/home/user/.local/state/piloti/devtools-module.txt",
+  settingsPane: "/home/user/.local/state/piloti/settings-pane.json",
+  legacySettingsPaneTxt: "/home/user/.local/state/piloti/settings-pane.txt",
+  devtoolsModule: "/home/user/.local/state/piloti/devtools-module.json",
+  legacyDevtoolsModuleTxt: "/home/user/.local/state/piloti/devtools-module.txt",
   terminalHistory: "/home/user/.piloti_history",
   workspaceSnapshots: "/home/user/.cache/piloti/workspace-snapshots.json",
   consoleLog: "/home/user/.cache/piloti/piloti.log",
@@ -170,4 +176,126 @@ export function subscribeVfsPath(
     lastContent = nextContent;
     onChange(nextContent);
   });
+}
+
+/** Legacy `.txt` / extensionless state files that are rewritten as JSON. */
+const LEGACY_STATE_FILE_MIGRATIONS: ReadonlyArray<{
+  from: string;
+  to: string;
+  convert: (text: string) => unknown;
+}> = [
+  {
+    from: VFS_STATE_PATHS.legacySettingsPaneTxt,
+    to: VFS_STATE_PATHS.settingsPane,
+    convert: (text) => text.trim(),
+  },
+  {
+    from: VFS_STATE_PATHS.legacyDevtoolsModuleTxt,
+    to: VFS_STATE_PATHS.devtoolsModule,
+    convert: (text) => text.trim(),
+  },
+  {
+    from: VFS_STATE_PATHS.legacyWelcomeShown,
+    to: VFS_STATE_PATHS.welcomeShown,
+    convert: (text) => ({ shown: text.trim() === "1" || text.trim() === "true" }),
+  },
+];
+
+/**
+ * One-time migration of legacy `.txt` state files to `.json`. Keeps an existing
+ * `.json` untouched, then deletes the old file.
+ */
+export function migrateLegacyStateFilesToJson(): void {
+  for (const m of LEGACY_STATE_FILE_MIGRATIONS) {
+    const old = getVfsEntry(normalizeVfsPath(m.from));
+    if (old?.kind !== "file") continue;
+    try {
+      if (getVfsEntry(normalizeVfsPath(m.to))?.kind !== "file") {
+        writeVfsStateJson(m.to, m.convert(old.content ?? ""));
+      }
+    } catch {
+      // ignore write failures; keep legacy file for the next attempt
+      continue;
+    }
+    removeVfsStateFile(m.from);
+  }
+}
+
+const LEGACY_CONFIG_DIR = "/home/user/.config/Piloti";
+const CONFIG_DIR = "/home/user/.config/piloti";
+
+/**
+ * Moves any files remaining in `~/.config/Piloti` (capital P) to
+ * `~/.config/piloti` without overwriting, then removes the old directory.
+ */
+export function migrateLegacyConfigDir(): void {
+  const prefix = `${LEGACY_CONFIG_DIR}/`;
+  const entries = getVfsSnapshotEntries()
+    .filter((e) => e.kind === "file" && e.path.startsWith(prefix))
+    .sort((a, b) => a.path.localeCompare(b.path));
+  if (entries.length === 0 && !getVfsEntry(LEGACY_CONFIG_DIR)) return;
+  for (const entry of entries) {
+    const rel = entry.path.slice(prefix.length);
+    const dest = `${CONFIG_DIR}/${rel}`;
+    if (getVfsEntry(dest)) continue;
+    const slash = dest.lastIndexOf("/");
+    const destDir = dest.slice(0, slash);
+    try {
+      ensureVfsDir(destDir);
+      const moved = moveVfsEntry(entry.path, destDir);
+      if (moved) {
+        hostSync?.writeText(dest, moved.content ?? "");
+      }
+    } catch {
+      // ignore; leave the file in place
+    }
+  }
+  removeVfsEntry(LEGACY_CONFIG_DIR);
+}
+
+/**
+ * Runs every startup VFS state migration (idempotent).
+ */
+export function runVfsStateMigrations(): void {
+  migrateLegacyStateFilesToJson();
+  migrateLegacyConfigDir();
+}
+
+/**
+ * Reads a JSON string value (e.g. `"appearance"`) from VFS. Also accepts a
+ * bare legacy value and migrates legacy files on demand.
+ */
+export function readVfsStateString(
+  vfsPath: string,
+  legacyStorageKeys?: string | readonly string[],
+): string | null {
+  migrateLegacyStateFilesToJson();
+  const raw = readVfsStateText(vfsPath, legacyStorageKeys);
+  if (raw === null) return null;
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+  try {
+    const parsed: unknown = JSON.parse(trimmed);
+    return typeof parsed === "string" ? parsed : null;
+  } catch {
+    return trimmed;
+  }
+}
+
+/** Writes a JSON string value to VFS when changed. */
+export function writeVfsStateString(vfsPath: string, value: string): boolean {
+  return writeVfsStateJson(vfsPath, value);
+}
+
+/** Parses a JSON-string (or bare) VFS file content as emitted by `subscribeVfsPath`. */
+export function parseVfsStateString(raw: string | null): string | null {
+  if (raw === null) return null;
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+  try {
+    const parsed: unknown = JSON.parse(trimmed);
+    return typeof parsed === "string" ? parsed : null;
+  } catch {
+    return trimmed;
+  }
 }

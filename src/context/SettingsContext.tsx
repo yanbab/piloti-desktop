@@ -24,6 +24,7 @@ import {
   readVfsStateJson,
   readVfsStateText,
   registerVfsHostSync,
+  runVfsStateMigrations,
   removeVfsStateFile,
   subscribeVfsPath,
   VFS_STATE_PATHS,
@@ -161,6 +162,8 @@ export interface DesktopSettings {
   computerModel: "mac" | "pc";
   desktopIconPositions: Record<string, { col: number; row: number }>;
   pinnedAppIds: string[];
+  /** Folders docked next to Trash; `undefined` = default (Downloads). */
+  dockFolders?: string[];
   installedWebApps: InstalledWebApp[];
   webAppsSeeded?: boolean;
   webDefaultsVersion?: number;
@@ -553,6 +556,24 @@ export function useSettingsValue(options?: {
       },
     });
 
+    // Move leftovers of the legacy ~/.config/Piloti directory to ~/.config/piloti.
+    void domicile.processes
+      .run([
+        "sh",
+        "-c",
+        'd="$HOME/.config/Piloti"; n="$HOME/.config/piloti"; if [ -d "$d" ]; then mkdir -p "$n" && cp -rn "$d"/. "$n"/ && rm -rf "$d"; fi',
+      ])
+      .catch(() => undefined);
+
+    // Move leftovers of the legacy ~/.config/Piloti directory to ~/.config/piloti.
+    void domicile.processes
+      .run([
+        "sh",
+        "-c",
+        'd="$HOME/.config/Piloti"; n="$HOME/.config/piloti"; if [ -d "$d" ]; then mkdir -p "$n" && cp -rn "$d"/. "$n"/ && rm -rf "$d"; fi',
+      ])
+      .catch(() => undefined);
+
     // Hydrate settings.ini from the real Linux $HOME if present, or seed it on
     // disk when migrated during initial render before hostSync was registered.
     void (async () => {
@@ -585,6 +606,7 @@ export function useSettingsValue(options?: {
   // and subscribe to live VFS edits on settings.ini, window-bounds.json, and desktop-icons.json.
   React.useEffect(() => {
     try {
+      runVfsStateMigrations();
       if (!getVfsEntry(VFS_STATE_PATHS.settings)) {
         writeVfsStateText(
           VFS_STATE_PATHS.settings,

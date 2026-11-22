@@ -4,7 +4,7 @@ import { readVfsStateText, writeVfsStateText } from "@/lib/engine/vfs-state";
 
 export { type IniRecord, parseIniText, serializeIniText };
 
-const PILOTI_INI_DIR = ".config/Piloti";
+const PILOTI_INI_DIR = ".config/piloti";
 const LOCAL_CACHE_PREFIX = "piloti.app-ini.v1.";
 
 export function getPilotiAppIniVfsPath(appName: string): string {

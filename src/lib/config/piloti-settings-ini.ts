@@ -54,6 +54,7 @@ const SETTINGS_INI_SCHEMA: readonly SchemaEntry[] = [
   ["org.piloti.desktop.dock", "magnification-size", "dockMagnificationSize", "number"],
   ["org.piloti.desktop.dock", "auto-hide", "dockAutoHide", "boolean"],
   ["org.piloti.desktop.dock", "pinned-apps", "pinnedAppIds", "string[]"],
+  ["org.piloti.desktop.dock", "docked-folders", "dockFolders", "string[]"],
 
   ["org.piloti.desktop.topbar", "clock-24-hour", "clock24Hour", "boolean"],
   ["org.piloti.desktop.topbar", "clock-show-seconds", "clockShowSeconds", "boolean"],

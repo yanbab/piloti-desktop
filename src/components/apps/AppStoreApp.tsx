@@ -16,14 +16,19 @@ import {
   MusicIcon,
   PackageIcon,
   PaletteIcon,
+  ArrowDownUpIcon,
+  LayoutGridIcon,
+  ListIcon,
   RefreshCwIcon,
   SearchIcon,
   ServerIcon,
-  SettingsIcon,
+  SlidersHorizontalIcon,
   SparklesIcon,
+  Trash2Icon,
   WrenchIcon,
   XIcon,
 } from "lucide-react";
+import { createPortal } from "react-dom";
 import { AdwSplitView, type AdwSplitSidebarItem } from "@/components/ui/adw-split-view";
 import { AppSquircleIcon } from "@/components/shell/AppSymbol";
 import { WindowMenuButton } from "@/components/shell/WindowMenuButton";
@@ -76,7 +81,11 @@ import {
   COLLECTION_APP_IDS_BY_COLLECTION,
   type CollectionId,
 } from "@/data/app-store-collections";
-import { setXdgAppBadgeCount } from "@/lib/xdg/xdg-badge-count";
+import {
+  setXdgAppBadgeCount,
+  setXdgAppProgress,
+  setXdgAppUrgent,
+} from "@/lib/xdg/xdg-badge-count";
 import { APP_CATALOG, type AppDefinition } from "@/data/catalog";
 import {
   canonicalizeWebUrl,
@@ -105,6 +114,7 @@ type StoreCategory =
   | "core-apps"
   | "circle-apps"
   | "kde-apps"
+  | "web-apps"
   | "Games"
   | "Graphics"
   | "Development"
@@ -305,7 +315,7 @@ const SIDEBAR_ITEMS: Array<{
 ];
 
 const COLLECTION_ITEMS: Array<{
-  id: CollectionId;
+  id: CollectionId | "web-apps";
   label: string;
   icon: React.ReactNode;
 }> = [
@@ -323,6 +333,11 @@ const COLLECTION_ITEMS: Array<{
     id: "kde-apps",
     label: "KDE Apps",
     icon: <Code2Icon className="size-4" />,
+  },
+  {
+    id: "web-apps",
+    label: "Web Apps",
+    icon: <GlobeIcon className="size-4" />,
   },
 ];
 
@@ -473,12 +488,19 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
 
   const [settingsPopoverOpen, setSettingsPopoverOpen] = React.useState(false);
   const settingsPopoverRef = React.useRef<HTMLDivElement | null>(null);
+  const settingsPopoverPanelRef = React.useRef<HTMLDivElement | null>(null);
+  const [settingsPopoverPos, setSettingsPopoverPos] = React.useState<{
+    top: number;
+    right: number;
+  }>({ top: 0, right: 0 });
   React.useEffect(() => {
     if (!settingsPopoverOpen) return;
     const onPointerDown = (e: PointerEvent) => {
+      const target = e.target as Node;
       if (
         settingsPopoverRef.current &&
-        !settingsPopoverRef.current.contains(e.target as Node)
+        !settingsPopoverRef.current.contains(target) &&
+        !settingsPopoverPanelRef.current?.contains(target)
       ) {
         setSettingsPopoverOpen(false);
       }
@@ -499,6 +521,24 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
   const [updatingTarget, setUpdatingTarget] = React.useState<string | null>(
     null,
   );
+  const [opStatus, setOpStatus] = React.useState<{
+    progress: number | null;
+    statusLine?: string;
+  } | null>(null);
+  const [viewMode, setViewMode] = React.useState<"list" | "grid">("list");
+  const [sortMode, setSortMode] = React.useState<
+    "default" | "name" | "category" | "installed"
+  >("default");
+  const busyRef = React.useRef(false);
+  const beginOp = React.useCallback((): boolean => {
+    if (busyRef.current) return false;
+    busyRef.current = true;
+    setXdgAppUrgent("app-store", false);
+    return true;
+  }, []);
+  const endOp = React.useCallback(() => {
+    busyRef.current = false;
+  }, []);
 
   const totalUpdatesCount =
     (sources.system && aptUpdates.length > 0 ? 1 : 0) +
@@ -536,24 +576,6 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
     sidebarRef,
     contentRef: mainRef,
   });
-  const sidebarItems: AdwSplitSidebarItem[] = [
-    ...SIDEBAR_ITEMS,
-    ...COLLECTION_ITEMS,
-    ...CATEGORY_ITEMS,
-  ].map((entry, idx) => ({
-    id: entry.id,
-    label: _(entry.label),
-    icon: entry.icon,
-    selected: highlightedCategory === entry.id,
-    onClick: () => setCategory(entry.id),
-    badge:
-      entry.id === "updates" && totalUpdatesCount > 0
-        ? totalUpdatesCount
-        : undefined,
-    separatorAfter:
-      idx === SIDEBAR_ITEMS.length - 1 ||
-      idx === SIDEBAR_ITEMS.length + COLLECTION_ITEMS.length - 1,
-  }));
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
   const [meta, setMeta] = React.useState<StoreMetaState>(loadStoreMeta);
   const [pendingOp, setPendingOp] = React.useState<{
@@ -564,6 +586,33 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
     statusLine?: string;
   } | null>(null);
   const opRafRef = React.useRef<number | null>(null);
+
+  const isBusy =
+    pendingOp !== null ||
+    opStatus !== null ||
+    reloadingUpdates ||
+    updatingTarget !== null;
+
+  React.useEffect(() => {
+    if (pendingOp) {
+      setXdgAppProgress(
+        "app-store",
+        pendingOp.progress === null ? null : pendingOp.progress / 100,
+      );
+    } else if (opStatus) {
+      setXdgAppProgress(
+        "app-store",
+        opStatus.progress === null ? null : opStatus.progress / 100,
+      );
+    } else if (reloadingUpdates || updatingTarget !== null) {
+      setXdgAppProgress("app-store", null);
+    } else {
+      setXdgAppProgress("app-store", undefined);
+    }
+    return () => {
+      setXdgAppProgress("app-store", undefined);
+    };
+  }, [opStatus, pendingOp, reloadingUpdates, updatingTarget]);
 
   React.useEffect(() => {
     return () => {
@@ -840,14 +889,83 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
     });
   }, [items, category, query]);
 
+  const sortedItems = React.useMemo(() => {
+    if (sortMode === "default") return filteredItems;
+    const copy = [...filteredItems];
+    if (sortMode === "name") {
+      copy.sort((a, b) => a.title.localeCompare(b.title));
+    } else if (sortMode === "category") {
+      copy.sort(
+        (a, b) =>
+          a.category.localeCompare(b.category) || a.title.localeCompare(b.title),
+      );
+    } else if (sortMode === "installed") {
+      copy.sort(
+        (a, b) =>
+          Number(b.installed) - Number(a.installed) ||
+          a.title.localeCompare(b.title),
+      );
+    }
+    return copy;
+  }, [filteredItems, sortMode]);
+
+  const webAppsByCategory = React.useMemo(() => {
+    if (category !== "web-apps") return [];
+    const groups = new Map<AppGenreCategory, StoreItem[]>();
+    for (const item of sortedItems) {
+      const list = groups.get(item.category) ?? [];
+      list.push(item);
+      groups.set(item.category, list);
+    }
+    return CATEGORY_ITEMS.map((cat) => ({
+      id: cat.id,
+      title: _(cat.label),
+      list: groups.get(cat.id) ?? [],
+    })).filter((g) => g.list.length > 0);
+  }, [category, sortedItems]);
+
+  const flatpakUpdateById = React.useMemo(
+    () => new Map(flatpakUpdates.map((u) => [u.appId, u])),
+    [flatpakUpdates],
+  );
+
+  const sidebarItems = React.useMemo<AdwSplitSidebarItem[]>(() => {
+    const countFor = (id: StoreCategory): number | undefined => {
+      if (id === "updates") return totalUpdatesCount > 0 ? totalUpdatesCount : undefined;
+      if (id === "all") return items.length;
+      if (id === "installed") return items.filter((i) => i.installed).length;
+      if (id === "web-apps") return items.filter((i) => i.kind === "web").length;
+      if (id === "core-apps" || id === "circle-apps" || id === "kde-apps") {
+        const ids = COLLECTION_APP_IDS_BY_COLLECTION[id];
+        return items.filter(
+          (i) => i.kind === "flatpak" && i.flatpak && ids.has(i.flatpak.appId),
+        ).length;
+      }
+      return items.filter((i) => i.category === id).length;
+    };
+    return [...SIDEBAR_ITEMS, ...COLLECTION_ITEMS, ...CATEGORY_ITEMS].map(
+      (entry, idx) => ({
+        id: entry.id,
+        label: _(entry.label),
+        icon: entry.icon,
+        selected: highlightedCategory === entry.id,
+        onClick: () => setCategory(entry.id),
+        badge: countFor(entry.id),
+        separatorAfter:
+          idx === SIDEBAR_ITEMS.length - 1 ||
+          idx === SIDEBAR_ITEMS.length + COLLECTION_ITEMS.length - 1,
+      }),
+    );
+  }, [highlightedCategory, items, totalUpdatesCount]);
+
   const webAndAppItems = React.useMemo(
-    () => filteredItems.filter((item) => item.kind !== "flatpak"),
-    [filteredItems],
+    () => sortedItems.filter((item) => item.kind !== "flatpak"),
+    [sortedItems],
   );
 
   const flatpakStoreItems = React.useMemo(
-    () => filteredItems.filter((item) => item.kind === "flatpak"),
-    [filteredItems],
+    () => sortedItems.filter((item) => item.kind === "flatpak"),
+    [sortedItems],
   );
 
   const featuredItems = React.useMemo(() => {
@@ -874,7 +992,8 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
     pendingAbortRef.current?.abort();
     pendingAbortRef.current = null;
     setPendingOp(null);
-  }, []);
+    endOp();
+  }, [endOp]);
 
   const runFakeProgress = React.useCallback(
     (id: string, kind: "installing" | "removing", onComplete: () => void) => {
@@ -976,6 +1095,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
   const handleInstall = React.useCallback(
     (item: StoreItem) => {
       if (item.kind === "flatpak" && item.flatpak) {
+        if (!beginOp()) return;
         const fp = item.flatpak;
         if (isBrowserRuntime) {
           pushNotification({
@@ -1052,10 +1172,15 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
               urgency: "critical",
             });
           }
+          endOp();
         })();
         return;
       }
-      runFakeProgress(item.id, "installing", () => commitInstall(item));
+      if (!beginOp()) return;
+      runFakeProgress(item.id, "installing", () => {
+        commitInstall(item);
+        endOp();
+      });
     },
     [
       commitInstall,
@@ -1074,7 +1199,8 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
     (item: StoreItem) => {
       if (!item.removable) return;
       if (item.kind === "flatpak" && item.flatpak) {
-        if (isBrowserRuntime || pendingOp) return;
+        if (isBrowserRuntime || !beginOp()) return;
+        if (!beginOp()) return;
         const fp = item.flatpak;
         const controller = new AbortController();
         pendingAbortRef.current = controller;
@@ -1123,10 +1249,15 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
               urgency: "critical",
             });
           }
+          endOp();
         })();
         return;
       }
-      runFakeProgress(item.id, "removing", () => commitUninstall(item));
+      if (!beginOp()) return;
+      runFakeProgress(item.id, "removing", () => {
+        commitUninstall(item);
+        endOp();
+      });
     },
     [
       commitUninstall,
@@ -1166,8 +1297,9 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
   );
 
   const handleReloadUpdates = React.useCallback(async () => {
-    if (reloadingUpdates) return;
+    if (!beginOp()) return;
     setReloadingUpdates(true);
+    setOpStatus({ progress: null, statusLine: "apt update && flatpak update" });
     try {
       if (isBrowserRuntime) {
         await new Promise((resolve) => window.setTimeout(resolve, 650));
@@ -1184,19 +1316,22 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
       });
     } finally {
       setReloadingUpdates(false);
+      setOpStatus(null);
+      endOp();
     }
-  }, [domicile, isBrowserRuntime, pushNotification, refreshUpdates, reloadingUpdates]);
+  }, [beginOp, domicile, endOp, isBrowserRuntime, pushNotification, refreshUpdates]);
 
   const handleUpgradeSystem = React.useCallback(async () => {
-    if (updatingTarget) return;
+    if (!beginOp()) return;
     setUpdatingTarget("__system__");
+    setOpStatus({ progress: null, statusLine: "apt upgrade -y" });
     try {
       if (isBrowserRuntime) {
         await new Promise((resolve) => window.setTimeout(resolve, 800));
         setAptUpdates([]);
         pushNotification({
           appName: "App Store",
-          summary: _("System updates installed"),
+          summary: _("System upgrades installed"),
           body: "apt upgrade -y",
         });
       } else {
@@ -1205,13 +1340,13 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
           setAptUpdates([]);
           pushNotification({
             appName: "App Store",
-            summary: _("System updates installed"),
+            summary: _("System upgrades installed"),
             body: "apt upgrade -y",
           });
         } else {
           pushNotification({
             appName: "App Store",
-            summary: _("System update failed"),
+            summary: _("System upgrade failed"),
             body: res.error || "apt upgrade -y",
             urgency: "critical",
           });
@@ -1220,23 +1355,29 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
       }
     } finally {
       setUpdatingTarget(null);
+      setOpStatus(null);
+      endOp();
     }
-  }, [domicile, isBrowserRuntime, pushNotification, refreshUpdates, updatingTarget]);
+  }, [beginOp, domicile, endOp, isBrowserRuntime, pushNotification, refreshUpdates]);
 
   const handleUpgradeFlatpak = React.useCallback(
     async (appId: string) => {
-      if (updatingTarget) return;
+      if (!beginOp()) return;
       setUpdatingTarget(appId);
+      setOpStatus({ progress: null, statusLine: `flatpak update -y ${appId}` });
       try {
         if (isBrowserRuntime) {
           await new Promise((resolve) => window.setTimeout(resolve, 550));
           setFlatpakUpdates((prev) => prev.filter((u) => u.appId !== appId));
         } else {
-          const res = await updateFlatpakApp(domicile, appId);
+          const res = await updateFlatpakApp(domicile, appId, {
+            onUpdate: ({ line, progress }) =>
+              setOpStatus({ progress, statusLine: line }),
+          });
           if (!res.ok) {
             pushNotification({
               appName: "App Store",
-              summary: _("Failed to update %s", appId),
+              summary: _("Failed to upgrade %s", appId),
               body: res.error || "",
               urgency: "critical",
             });
@@ -1245,14 +1386,17 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
         }
       } finally {
         setUpdatingTarget(null);
+        setOpStatus(null);
+        endOp();
       }
     },
-    [domicile, isBrowserRuntime, pushNotification, refreshUpdates, updatingTarget],
+    [beginOp, domicile, endOp, isBrowserRuntime, pushNotification, refreshUpdates],
   );
 
   const handleUpgradeAll = React.useCallback(async () => {
-    if (updatingTarget) return;
+    if (!beginOp()) return;
     setUpdatingTarget("__all__");
+    setOpStatus({ progress: null, statusLine: _("Upgrading all packages and apps…") });
     try {
       if (isBrowserRuntime) {
         await new Promise((resolve) => window.setTimeout(resolve, 900));
@@ -1260,37 +1404,76 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
         if (sources.flatpak) setFlatpakUpdates([]);
         pushNotification({
           appName: "App Store",
-          summary: _("All updates installed"),
+          summary: _("All upgrades installed"),
           body: _("Your system and applications are up to date."),
         });
       } else {
         if (sources.system && aptUpdates.length > 0) {
+          setOpStatus({ progress: null, statusLine: "apt upgrade -y" });
           await runAptUpgrade(domicile);
         }
         if (sources.flatpak && flatpakUpdates.length > 0) {
-          await updateAllFlatpaks(domicile);
+          await updateAllFlatpaks(domicile, {
+            onUpdate: ({ line, progress }) =>
+              setOpStatus({ progress, statusLine: line }),
+          });
         }
         await refreshUpdates();
         pushNotification({
           appName: "App Store",
-          summary: _("All updates installed"),
+          summary: _("All upgrades installed"),
           body: _("Your system and applications are up to date."),
         });
       }
     } finally {
       setUpdatingTarget(null);
+      setOpStatus(null);
+      endOp();
     }
   }, [
     aptUpdates.length,
+    beginOp,
     domicile,
+    endOp,
     flatpakUpdates.length,
     isBrowserRuntime,
     pushNotification,
     refreshUpdates,
     sources.flatpak,
     sources.system,
-    updatingTarget,
   ]);
+
+  React.useEffect(() => {
+    const onWinKeyDown = (e: KeyboardEvent) => {
+      if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey) return;
+      const target = e.target as HTMLElement | null;
+      if (
+        target &&
+        (target instanceof HTMLInputElement ||
+          target instanceof HTMLTextAreaElement ||
+          target instanceof HTMLSelectElement ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+      if (category === "updates") return;
+      const winEl = mainRef.current?.closest('[data-slot="window"]');
+      const isFocusedWin =
+        (winEl && !winEl.hasAttribute("data-inactive")) ||
+        (mainRef.current &&
+          document.activeElement &&
+          winEl?.contains(document.activeElement));
+      if (!isFocusedWin) return;
+      if (e.key.length === 1 && /^[a-z0-9._-]$/i.test(e.key)) {
+        e.preventDefault();
+        setSearchOpen(true);
+        setQuery((prev) => (searchOpen ? prev + e.key : e.key));
+        requestAnimationFrame(() => searchInputRef.current?.focus());
+      }
+    };
+    window.addEventListener("keydown", onWinKeyDown);
+    return () => window.removeEventListener("keydown", onWinKeyDown);
+  }, [category, searchOpen]);
 
   return (
     <AdwSplitView
@@ -1422,11 +1605,60 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
             >
               <SearchIcon className="size-4" />
             </button>
+            {category !== "updates" && (
+              <>
+                <div className="flex items-center rounded-md bg-black/6 p-0.5 dark:bg-white/8">
+                  <button
+                    type="button"
+                    aria-label={_("List view")}
+                    title={_("List view")}
+                    onClick={() => setViewMode("list")}
+                    className={cn(
+                      "rounded px-1.5 py-0.5 text-[11px] font-medium transition-colors",
+                      viewMode === "list"
+                        ? "bg-adw-window text-adw-label shadow-xs"
+                        : "text-adw-label-secondary hover:text-adw-label",
+                    )}
+                  >
+                    {_("List")}
+                  </button>
+                  <button
+                    type="button"
+                    aria-label={_("Grid view")}
+                    title={_("Grid view")}
+                    onClick={() => setViewMode("grid")}
+                    className={cn(
+                      "rounded px-1.5 py-0.5 text-[11px] font-medium transition-colors",
+                      viewMode === "grid"
+                        ? "bg-adw-window text-adw-label shadow-xs"
+                        : "text-adw-label-secondary hover:text-adw-label",
+                    )}
+                  >
+                    {_("Grid")}
+                  </button>
+                </div>
+                <select
+                  aria-label={_("Sort")}
+                  value={sortMode}
+                  onChange={(e) =>
+                    setSortMode(
+                      e.target.value as "default" | "name" | "category" | "installed",
+                    )
+                  }
+                  className="h-7 rounded-md border border-adw-separator bg-black/6 px-2 text-[11.5px] font-medium text-adw-label outline-none dark:bg-white/10"
+                >
+                  <option value="default">{_("Default")}</option>
+                  <option value="name">{_("Name")}</option>
+                  <option value="category">{_("Category")}</option>
+                  <option value="installed">{_("Installed")}</option>
+                </select>
+              </>
+            )}
             <button
               type="button"
-              aria-label={_("Reload")}
-              title={_("Reload (apt update && flatpak update)")}
-              disabled={reloadingUpdates}
+              aria-label={_("Refresh")}
+              title={_("Refresh (apt update && flatpak update)")}
+              disabled={isBusy}
               onClick={() => void handleReloadUpdates()}
               className="flex size-7 items-center justify-center rounded-md text-adw-label-secondary transition-colors hover:bg-black/8 hover:text-adw-label disabled:opacity-50 dark:hover:bg-white/10"
             >
@@ -1434,13 +1666,16 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                 className={cn("size-4", reloadingUpdates && "animate-spin")}
               />
             </button>
-            <div ref={settingsPopoverRef} className="relative">
+            <div ref={settingsPopoverRef} className="relative z-40">
               <button
                 type="button"
                 aria-label={_("Software Sources")}
                 aria-expanded={settingsPopoverOpen}
                 title={_("Software Sources")}
-                onClick={() => setSettingsPopoverOpen((prev) => !prev)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSettingsPopoverOpen((prev) => !prev);
+                }}
                 className={cn(
                   "flex size-7 items-center justify-center rounded-md transition-colors",
                   settingsPopoverOpen
@@ -1448,10 +1683,13 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                     : "text-adw-label-secondary hover:bg-black/8 hover:text-adw-label dark:hover:bg-white/10",
                 )}
               >
-                <SettingsIcon className="size-4" />
+                <SlidersHorizontalIcon className="size-4" />
               </button>
               {settingsPopoverOpen && (
-                <div className="absolute top-9 right-0 z-50 w-60 rounded-xl border border-adw-separator bg-adw-popover p-3 shadow-xl backdrop-blur-xl">
+                <div
+                  onClick={(e) => e.stopPropagation()}
+                  className="pointer-events-auto absolute top-9 right-0 z-[200] w-60 rounded-xl border border-adw-separator bg-white/95 p-3 shadow-2xl ring-1 ring-black/10 backdrop-blur-2xl dark:bg-zinc-900/95 dark:ring-white/15"
+                >
                   <div className="mb-2 text-[11px] font-semibold tracking-wider text-adw-label-tertiary uppercase">
                     {_("Software Sources")}
                   </div>
@@ -1498,132 +1736,68 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
         </WindowTitlebar>
       )}
       footer={
-        selectedItem ? (
-          <div className="flex h-[46px] shrink-0 items-center justify-between gap-4 border-t border-adw-separator bg-adw-titlebar px-4">
-            <div className="flex min-w-0 items-center gap-3">
-              {selectedItem.kind === "app" && selectedItem.appDef ? (
-                <AppSquircleIcon
-                  iconUrl={getAppIconUrl(selectedItem.appDef.id)}
-                  iconName={selectedItem.appDef.iconName}
-                  gradient={selectedItem.appDef.gradient}
-                  className="size-9"
-                />
-              ) : (
-                <WebAppFavicon
-                  url={selectedItem.faviconUrl}
-                  title={selectedItem.title}
-                  className="size-9"
-                />
+        pendingOp || opStatus ? (
+          <div className="flex h-9 shrink-0 items-center justify-between gap-3 border-t border-adw-separator bg-adw-titlebar px-4">
+            <div className="flex min-w-0 flex-1 items-center gap-2.5">
+              <span className="shrink-0 text-[11.5px] font-medium text-adw-label">
+                {pendingOp
+                  ? pendingOp.kind === "removing"
+                    ? _("Removing…")
+                    : _("Installing…")
+                  : reloadingUpdates
+                    ? _("Refreshing…")
+                    : _("Upgrading…")}
+              </span>
+              {(pendingOp?.statusLine || opStatus?.statusLine) && (
+                <span className="min-w-0 truncate font-mono text-[11px] text-adw-label-secondary">
+                  {pendingOp?.statusLine ?? opStatus?.statusLine}
+                </span>
               )}
-              <div className="min-w-0">
-                <div className="truncate text-[13.5px] font-semibold">
-                  {selectedItem.title}
-                </div>
-                <div
-                  title={
-                    pendingOp?.id === selectedItem.id && pendingOp.statusLine
-                      ? pendingOp.statusLine
-                      : selectedItem.subtitle
-                  }
-                  className={cn(
-                    "truncate text-[12px] text-adw-label-secondary",
-                    pendingOp?.id === selectedItem.id &&
-                      pendingOp.statusLine &&
-                      "font-mono text-[11.5px]",
-                  )}
-                >
-                  {pendingOp?.id === selectedItem.id && pendingOp.statusLine
-                    ? pendingOp.statusLine
-                    : selectedItem.subtitle}
-                </div>
-              </div>
             </div>
-
-            <div className="flex shrink-0 items-center gap-2">
-              {pendingOp?.id === selectedItem.id ? (
-                <div className="flex items-center gap-3">
-                  <span className="text-[12.5px] font-medium text-adw-label-secondary">
-                    {pendingOp.kind === "removing"
-                      ? _("Removing…")
-                      : _("Installing…")}
-                  </span>
+            <div className="flex shrink-0 items-center gap-2.5">
+              {(() => {
+                const prog = pendingOp ? pendingOp.progress : (opStatus?.progress ?? null);
+                const isRemoving = pendingOp?.kind === "removing";
+                return (
                   <div
                     role="progressbar"
                     aria-valuemin={0}
                     aria-valuemax={100}
-                    {...(pendingOp.progress !== null
-                      ? { "aria-valuenow": pendingOp.progress }
-                      : {})}
-                    className="relative h-2 w-36 overflow-hidden rounded-full bg-black/10 dark:bg-white/12"
+                    {...(prog !== null ? { "aria-valuenow": prog } : {})}
+                    className="relative h-1.5 w-36 overflow-hidden rounded-full bg-black/10 dark:bg-white/12"
                   >
-                    {pendingOp.progress === null ? (
+                    {prog === null ? (
                       <div
                         className={cn(
-                          "h-full w-2/5 rounded-full animate-[piloti-indeterminate_1.3s_ease-in-out_infinite]",
-                          pendingOp.kind === "removing"
-                            ? "bg-adw-red"
-                            : "bg-adw-accent",
+                          "h-full w-2/5 animate-[piloti-indeterminate_1.3s_ease-in-out_infinite]",
+                          isRemoving ? "bg-adw-red" : "bg-adw-accent",
                         )}
                       />
                     ) : (
                       <div
-                        style={{ width: `${pendingOp.progress}%` }}
+                        style={{ width: `${prog}%` }}
                         className={cn(
-                          "h-full rounded-full transition-[width] duration-75",
-                          pendingOp.kind === "removing"
-                            ? "bg-adw-red"
-                            : "bg-adw-accent",
+                          "h-full transition-[width] duration-75",
+                          isRemoving ? "bg-adw-red" : "bg-adw-accent",
                         )}
                       />
                     )}
                   </div>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="secondary"
-                    aria-label={_("Cancel")}
-                    title={_("Cancel")}
-                    onClick={handleCancelPendingOp}
-                    className="h-7 px-2.5 text-xs"
-                  >
-                    <XIcon className="mr-1 size-3.5" />
-                    {_("Cancel")}
-                  </Button>
-                </div>
-              ) : !selectedItem.installed ? (
+                );
+              })()}
+              {pendingOp && (
                 <Button
                   type="button"
-                  size="lg"
-                  className="px-5"
-                  disabled={pendingOp !== null}
-                  onClick={() => handleInstall(selectedItem)}
+                  size="sm"
+                  variant="ghost"
+                  aria-label={_("Cancel")}
+                  title={_("Cancel")}
+                  onClick={handleCancelPendingOp}
+                  className="h-6 px-2 text-[11px]"
                 >
-                  {_("Install")}
+                  <XIcon className="mr-1 size-3" />
+                  {_("Cancel")}
                 </Button>
-              ) : (
-                <>
-                  <Button
-                    type="button"
-                    size="lg"
-                    variant="secondary"
-                    className="px-5"
-                    onClick={() => handleOpen(selectedItem)}
-                  >
-                    {_("Open")}
-                  </Button>
-                  {selectedItem.removable && (
-                    <Button
-                      type="button"
-                      size="lg"
-                      variant="destructive"
-                      className="px-5"
-                      disabled={pendingOp !== null}
-                      onClick={() => handleUninstall(selectedItem)}
-                    >
-                      {_("Uninstall")}
-                    </Button>
-                  )}
-                </>
               )}
             </div>
           </div>
@@ -1631,6 +1805,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
       }
     >
       {({ onContentScroll }) => (
+        <div className="flex min-h-0 flex-1 overflow-hidden">
         <main
           ref={mainRef}
           onKeyDown={onContentKeyDown}
@@ -1648,21 +1823,35 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                     <p className="text-[12px] text-adw-label-secondary">
                       {totalUpdatesCount === 0
                         ? _("Your system and applications are up to date.")
-                        : _("%d updates available", totalUpdatesCount)}
+                        : _("%d upgrades available", totalUpdatesCount)}
                     </p>
                   </div>
-                  {totalUpdatesCount > 0 && (
+                  <div className="flex shrink-0 items-center gap-2">
+                    {totalUpdatesCount > 1 && (
+                      <Button
+                        type="button"
+                        size="sm"
+                        disabled={isBusy}
+                        onClick={() => void handleUpgradeAll()}
+                      >
+                        {updatingTarget === "__all__"
+                          ? _("Upgrading…")
+                          : _("Upgrade All")}
+                      </Button>
+                    )}
                     <Button
                       type="button"
                       size="sm"
-                      disabled={updatingTarget !== null}
-                      onClick={() => void handleUpgradeAll()}
+                      variant="secondary"
+                      disabled={isBusy}
+                      onClick={() => void handleReloadUpdates()}
                     >
-                      {updatingTarget === "__all__"
-                        ? _("Upgrading…")
-                        : _("Upgrade All")}
+                      <RefreshCwIcon
+                        className={cn("mr-1.5 size-3.5", reloadingUpdates && "animate-spin")}
+                      />
+                      {reloadingUpdates ? _("Refreshing…") : _("Refresh")}
                     </Button>
-                  )}
+                  </div>
                 </div>
 
                 {totalUpdatesCount === 0 ? (
@@ -1710,12 +1899,12 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                             type="button"
                             size="sm"
                             variant="secondary"
-                            disabled={updatingTarget !== null}
+                            disabled={isBusy}
                             onClick={() => void handleUpgradeSystem()}
                           >
                             {updatingTarget === "__system__"
-                              ? _("Updating…")
-                              : _("Update")}
+                              ? _("Upgrading…")
+                              : _("Upgrade")}
                           </Button>
                         </div>
 
@@ -1741,41 +1930,70 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                       </div>
                     )}
 
-                    {sources.flatpak &&
-                      flatpakUpdates.map((upd) => (
-                        <div
-                          key={upd.appId}
-                          className="flex items-center justify-between gap-3 rounded-xl border border-adw-separator bg-adw-card px-4 py-3"
-                        >
-                          <div className="flex min-w-0 items-center gap-3">
-                            <WebAppFavicon
-                              url={`https://dl.flathub.org/repo/appstream/x86_64/icons/128x128/${upd.appId}.png`}
-                              title={upd.name}
-                              className="size-10"
-                            />
-                            <div className="min-w-0">
-                              <div className="truncate text-[13.5px] font-semibold text-adw-label">
-                                {upd.name}
+                    {sources.flatpak && flatpakUpdates.length > 0 && (
+                      <div className="divide-y divide-adw-separator/60 overflow-hidden rounded-xl border border-adw-separator bg-adw-card">
+                        {flatpakUpdates.map((upd) => {
+                          const storeItem = items.find(
+                            (i) => i.kind === "flatpak" && i.flatpak?.appId === upd.appId,
+                          );
+                          const isSelected = storeItem && selectedId === storeItem.id;
+                          return (
+                            <div
+                              key={upd.appId}
+                              role="button"
+                              tabIndex={0}
+                              onClick={() => {
+                                if (storeItem) setSelectedId(storeItem.id);
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter" && storeItem) setSelectedId(storeItem.id);
+                              }}
+                              className={cn(
+                                "flex cursor-default items-center justify-between gap-3 px-3.5 py-2.5 transition-colors outline-none",
+                                isSelected
+                                  ? "bg-adw-accent/15"
+                                  : "hover:bg-black/[0.03] dark:hover:bg-white/[0.04]",
+                              )}
+                            >
+                              <div className="flex min-w-0 items-center gap-3">
+                                <WebAppFavicon
+                                  url={
+                                    storeItem?.faviconUrl ??
+                                    `https://dl.flathub.org/repo/appstream/x86_64/icons/128x128/${upd.appId}.png`
+                                  }
+                                  title={upd.name}
+                                  className="size-10"
+                                />
+                                <div className="min-w-0">
+                                  <div className="truncate text-[13px] font-semibold text-adw-label">
+                                    {upd.name}
+                                  </div>
+                                  <div className="truncate text-[11.5px] text-adw-label-secondary">
+                                    {storeItem?.subtitle || upd.appId}
+                                    {upd.version ? ` · v${upd.version}` : ""}
+                                  </div>
+                                </div>
                               </div>
-                              <div className="truncate font-mono text-[11px] text-adw-label-tertiary">
-                                {upd.appId}
-                                {upd.version ? ` · ${upd.version}` : ""}
-                              </div>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="secondary"
+                                disabled={isBusy}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  void handleUpgradeFlatpak(upd.appId);
+                                }}
+                                className="h-7 px-3 text-[11.5px]"
+                              >
+                                {updatingTarget === upd.appId
+                                  ? _("Upgrading…")
+                                  : _("Upgrade")}
+                              </Button>
                             </div>
-                          </div>
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="secondary"
-                            disabled={updatingTarget !== null}
-                            onClick={() => void handleUpgradeFlatpak(upd.appId)}
-                          >
-                            {updatingTarget === upd.appId
-                              ? _("Updating…")
-                              : _("Update")}
-                          </Button>
-                        </div>
-                      ))}
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -1893,19 +2111,32 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
               </div>
             ) : (
               <div className="space-y-5">
-                {[
-                  { id: "web", title: _("Web Apps"), list: webAndAppItems },
-                  { id: "flatpak", title: _("Flatpaks"), list: flatpakStoreItems },
-                ]
+                {(category === "web-apps"
+                  ? webAppsByCategory
+                  : [
+                      { id: "web", title: _("Web Apps"), list: webAndAppItems },
+                      { id: "flatpak", title: _("Flatpaks"), list: flatpakStoreItems },
+                    ]
+                )
                   .filter((group) => group.list.length > 0)
                   .map((group) => (
                     <section key={group.id} className="space-y-2.5">
                       <h2 className="px-0.5 text-[12px] font-semibold tracking-wider text-adw-label-tertiary uppercase">
                         {group.title}
                       </h2>
-                      <div className="grid grid-cols-[repeat(auto-fill,minmax(min(220px,100%),1fr))] gap-2.5">
+                      <div
+                        className={cn(
+                          viewMode === "list"
+                            ? "divide-y divide-adw-separator/60 overflow-hidden rounded-xl border border-adw-separator bg-adw-card"
+                            : "grid grid-cols-[repeat(auto-fill,minmax(min(220px,100%),1fr))] gap-2.5",
+                        )}
+                      >
                         {group.list.map((item) => {
                           const isSelected = selectedId === item.id;
+                          const upgradable =
+                            item.kind === "flatpak" && item.flatpak
+                              ? flatpakUpdateById.get(item.flatpak.appId)
+                              : undefined;
                           return (
                             <ContextMenu key={item.id}>
                               <ContextMenuTrigger>
@@ -1931,10 +2162,20 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                                     }
                                   }}
                                   className={cn(
-                                    "relative flex cursor-default items-center gap-3 overflow-hidden rounded-xl p-3 transition-colors outline-none",
-                                    isSelected
-                                      ? "bg-adw-accent/15 ring-1 ring-adw-accent/60"
-                                      : "bg-black/[0.03] hover:bg-black/[0.06] dark:bg-white/[0.04] dark:hover:bg-white/[0.07]",
+                                    "relative flex cursor-default items-center gap-3 overflow-hidden transition-colors outline-none",
+                                    viewMode === "list"
+                                      ? cn(
+                                          "px-3.5 py-2.5",
+                                          isSelected
+                                            ? "bg-adw-accent/15"
+                                            : "hover:bg-black/[0.03] dark:hover:bg-white/[0.04]",
+                                        )
+                                      : cn(
+                                          "rounded-xl p-3",
+                                          isSelected
+                                            ? "bg-adw-accent/15 ring-1 ring-adw-accent/60"
+                                            : "bg-black/[0.03] hover:bg-black/[0.06] dark:bg-white/[0.04] dark:hover:bg-white/[0.07]",
+                                        ),
                                   )}
                                 >
                                   {item.kind === "app" && item.appDef ? (
@@ -1942,12 +2183,13 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                                       iconUrl={getAppIconUrl(item.appDef.id)}
                                       iconName={item.appDef.iconName}
                                       gradient={item.appDef.gradient}
-                                      className="size-11"
+                                      className="size-10"
                                     />
                                   ) : (
                                     <WebAppFavicon
                                       url={item.faviconUrl}
                                       title={item.title}
+                                      className="size-10"
                                     />
                                   )}
 
@@ -1959,6 +2201,64 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                                       {item.subtitle}
                                     </p>
                                   </div>
+
+                                  {viewMode === "list" && (
+                                    <div
+                                      className="flex shrink-0 items-center gap-1.5"
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      {upgradable && item.flatpak && (
+                                        <button
+                                          type="button"
+                                          title={_("Upgrade")}
+                                          aria-label={_("Upgrade")}
+                                          disabled={isBusy}
+                                          onClick={() =>
+                                            void handleUpgradeFlatpak(item.flatpak!.appId)
+                                          }
+                                          className="flex size-7 items-center justify-center rounded-md text-adw-accent transition-colors hover:bg-adw-accent/15 disabled:opacity-40"
+                                        >
+                                          <RefreshCwIcon className="size-3.5" />
+                                        </button>
+                                      )}
+                                      {item.installed ? (
+                                        <>
+                                          {item.removable && (
+                                            <button
+                                              type="button"
+                                              title={_("Uninstall")}
+                                              aria-label={_("Uninstall")}
+                                              disabled={isBusy}
+                                              onClick={() => handleUninstall(item)}
+                                              className="flex size-7 items-center justify-center rounded-md text-adw-label-tertiary transition-colors hover:bg-rose-500/12 hover:text-rose-500 disabled:opacity-40"
+                                            >
+                                              <XIcon className="size-3.5" />
+                                            </button>
+                                          )}
+                                          <Button
+                                            type="button"
+                                            size="sm"
+                                            variant="secondary"
+                                            disabled={isBusy}
+                                            onClick={() => handleOpen(item)}
+                                            className="h-7 px-3 text-[11.5px]"
+                                          >
+                                            {_("Open")}
+                                          </Button>
+                                        </>
+                                      ) : (
+                                        <Button
+                                          type="button"
+                                          size="sm"
+                                          disabled={isBusy}
+                                          onClick={() => handleInstall(item)}
+                                          className="h-7 px-3 text-[11.5px]"
+                                        >
+                                          {_("Install")}
+                                        </Button>
+                                      )}
+                                    </div>
+                                  )}
 
                                   {pendingOp?.id === item.id && (
                                     <div className="absolute inset-x-0 bottom-0 h-1 overflow-hidden bg-black/10 dark:bg-white/10">
@@ -2018,6 +2318,159 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
             </>
             )}
           </main>
+
+          {/* Right-side Infos Inspector Panel (AppFinder / Files style) */}
+          {selectedItem && (
+            <aside
+              onClick={(e) => e.stopPropagation()}
+              className="flex w-72 shrink-0 flex-col border-l border-adw-separator bg-adw-sidebar"
+            >
+              <div className="flex h-10 shrink-0 items-center gap-2 border-b border-adw-separator px-3">
+                <button
+                  type="button"
+                  aria-label={_("Close")}
+                  onClick={() => setSelectedId(null)}
+                  className="flex size-6 items-center justify-center rounded-md text-adw-label-secondary transition-colors hover:bg-black/8 hover:text-adw-label dark:hover:bg-white/10"
+                >
+                  <XIcon className="size-3.5" />
+                </button>
+                <span className="text-[12.5px] font-semibold text-adw-label">
+                  {_("Infos")}
+                </span>
+              </div>
+
+              <div className="flex-1 space-y-4 overflow-y-auto p-4">
+                <div className="flex flex-col items-center text-center">
+                  {selectedItem.kind === "app" && selectedItem.appDef ? (
+                    <AppSquircleIcon
+                      iconUrl={getAppIconUrl(selectedItem.appDef.id)}
+                      iconName={selectedItem.appDef.iconName}
+                      gradient={selectedItem.appDef.gradient}
+                      className="size-16"
+                    />
+                  ) : (
+                    <WebAppFavicon
+                      url={selectedItem.faviconUrl}
+                      title={selectedItem.title}
+                      className="size-16"
+                    />
+                  )}
+                  <h3 className="mt-3 text-[15px] font-bold text-adw-label">
+                    {selectedItem.title}
+                  </h3>
+                  <p className="mt-1 text-[12px] leading-snug text-adw-label-secondary">
+                    {selectedItem.subtitle}
+                  </p>
+                  {(() => {
+                    const upd =
+                      selectedItem.kind === "flatpak" && selectedItem.flatpak
+                        ? flatpakUpdateById.get(selectedItem.flatpak.appId)
+                        : undefined;
+                    if (!upd?.version) return null;
+                    return (
+                      <div className="mt-1.5 text-[11px] font-medium text-adw-accent">
+                        {_("Upgrade available: %s", upd.version)}
+                      </div>
+                    );
+                  })()}
+                </div>
+
+                <div className="flex items-center gap-2">
+                  {!selectedItem.installed ? (
+                    <Button
+                      type="button"
+                      className="w-full"
+                      disabled={isBusy}
+                      onClick={() => handleInstall(selectedItem)}
+                    >
+                      {_("Install")}
+                    </Button>
+                  ) : (
+                    <>
+                      {selectedItem.kind === "flatpak" &&
+                      selectedItem.flatpak &&
+                      flatpakUpdateById.has(selectedItem.flatpak.appId) ? (
+                        <Button
+                          type="button"
+                          className="flex-1"
+                          disabled={isBusy}
+                          onClick={() =>
+                            void handleUpgradeFlatpak(selectedItem.flatpak!.appId)
+                          }
+                        >
+                          {updatingTarget === selectedItem.flatpak.appId
+                            ? _("Upgrading…")
+                            : _("Upgrade")}
+                        </Button>
+                      ) : (
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          className="flex-1"
+                          onClick={() => handleOpen(selectedItem)}
+                        >
+                          {_("Open")}
+                        </Button>
+                      )}
+                      {selectedItem.removable && (
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          className="flex-1"
+                          disabled={isBusy}
+                          onClick={() => handleUninstall(selectedItem)}
+                        >
+                          {_("Uninstall")}
+                        </Button>
+                      )}
+                    </>
+                  )}
+                </div>
+
+                <div className="divide-y divide-adw-separator/60 overflow-hidden rounded-xl border border-adw-separator bg-adw-card text-[12px]">
+                  <div className="flex items-center justify-between gap-2 px-3 py-2">
+                    <span className="text-adw-label-secondary">{_("Category")}</span>
+                    <span className="font-medium text-adw-label">
+                      {_(selectedItem.category)}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between gap-2 px-3 py-2">
+                    <span className="text-adw-label-secondary">{_("Source")}</span>
+                    <span className="font-medium text-adw-label">
+                      {selectedItem.kind === "flatpak"
+                        ? selectedItem.flatpak?.origin || "Flathub"
+                        : selectedItem.kind === "web"
+                          ? _("Web App")
+                          : _("System")}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between gap-2 px-3 py-2">
+                    <span className="text-adw-label-secondary">{_("ID")}</span>
+                    <span className="max-w-[150px] truncate font-mono text-[11px] text-adw-label">
+                      {selectedItem.flatpak?.appId ||
+                        selectedItem.appDef?.id ||
+                        selectedItem.id}
+                    </span>
+                  </div>
+                  {selectedItem.webApp?.url && (
+                    <div className="flex items-center justify-between gap-2 px-3 py-2">
+                      <span className="text-adw-label-secondary">{_("URL")}</span>
+                      <span className="max-w-[150px] truncate font-mono text-[11px] text-adw-accent">
+                        {selectedItem.webApp.url}
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between gap-2 px-3 py-2">
+                    <span className="text-adw-label-secondary">{_("Status")}</span>
+                    <span className="font-medium text-adw-label">
+                      {selectedItem.installed ? _("Installed") : _("Available")}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </aside>
+          )}
+        </div>
         )}
       </AdwSplitView>
     );

@@ -11,7 +11,10 @@ import {
 } from "@/lib/config/piloti-settings-ini";
 import {
   getVfsCacheFilePath,
+  migrateLegacyConfigDir,
+  migrateLegacyStateFilesToJson,
   readVfsStateJson,
+  readVfsStateString,
   readVfsStateText,
   registerVfsHostSync,
   removeVfsStateFile,
@@ -82,6 +85,41 @@ describe("vfs-state", () => {
     expect(migrated).toBe("fr");
     expect(store.has("piloti.locale.v1")).toBe(false);
     expect(getVfsEntry(VFS_STATE_PATHS.locale)?.content).toBe("fr");
+  });
+
+  it("migrates legacy .txt state files to .json once", () => {
+    writeVfsTextFile(VFS_STATE_PATHS.legacySettingsPaneTxt, "dock\n");
+    writeVfsTextFile(VFS_STATE_PATHS.legacyDevtoolsModuleTxt, "logs\n");
+    writeVfsTextFile(VFS_STATE_PATHS.legacyWelcomeShown, "1");
+    // Existing .json wins over the legacy .txt
+    writeVfsTextFile(VFS_STATE_PATHS.devtoolsModule, '"storage"\n');
+
+    migrateLegacyStateFilesToJson();
+
+    expect(readVfsStateString(VFS_STATE_PATHS.settingsPane)).toBe("dock");
+    expect(getVfsEntry(VFS_STATE_PATHS.settingsPane)?.content).toBe('"dock"\n');
+    expect(readVfsStateString(VFS_STATE_PATHS.devtoolsModule)).toBe("storage");
+    expect(
+      readVfsStateJson<{ shown: boolean }>(VFS_STATE_PATHS.welcomeShown),
+    ).toEqual({ shown: true });
+    expect(getVfsEntry(VFS_STATE_PATHS.legacySettingsPaneTxt)).toBeUndefined();
+    expect(getVfsEntry(VFS_STATE_PATHS.legacyDevtoolsModuleTxt)).toBeUndefined();
+    expect(getVfsEntry(VFS_STATE_PATHS.legacyWelcomeShown)).toBeUndefined();
+  });
+
+  it("moves ~/.config/Piloti leftovers into ~/.config/piloti without overwriting", () => {
+    writeVfsTextFile("/home/user/.config/Piloti/notepad.ini", "[General]\na=1\n");
+    writeVfsTextFile("/home/user/.config/Piloti/settings.ini", "OLD");
+    writeVfsTextFile("/home/user/.config/piloti/settings.ini", "NEW");
+
+    migrateLegacyConfigDir();
+
+    expect(getVfsEntry("/home/user/.config/piloti/notepad.ini")?.content).toBe(
+      "[General]\na=1\n",
+    );
+    expect(getVfsEntry("/home/user/.config/piloti/settings.ini")?.content).toBe("NEW");
+    expect(getVfsEntry("/home/user/.config/Piloti")).toBeUndefined();
+    expect(getVfsEntry("/home/user/.config/Piloti/notepad.ini")).toBeUndefined();
   });
 
   it("fires subscribeVfsPath only on real content changes to the subscribed file", () => {

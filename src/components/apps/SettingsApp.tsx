@@ -30,10 +30,11 @@ import {
   writePilotiAppIni,
 } from "@/lib/config/piloti-ini";
 import {
-  readVfsStateText,
+  parseVfsStateString,
+  readVfsStateString,
   subscribeVfsPath,
   VFS_STATE_PATHS,
-  writeVfsStateText,
+  writeVfsStateString,
 } from "@/lib/engine/vfs-state";
 import { cn } from "@/lib/core/utils";
 import { AdvancedPane } from "./settings/AdvancedPane";
@@ -153,7 +154,7 @@ export function SettingsApp({
     const iniPane = getCachedPilotiAppIni("settings").General?.lastPane;
     if (isSettingsPaneId(iniPane)) return iniPane;
     try {
-      const saved = readVfsStateText(
+      const saved = readVfsStateString(
         VFS_STATE_PATHS.settingsPane,
         SETTINGS_ACTIVE_PANE_KEY
       )?.trim();
@@ -188,7 +189,7 @@ export function SettingsApp({
       }
     );
     const unsubPane = subscribeVfsPath(VFS_STATE_PATHS.settingsPane, (raw) => {
-      const pane = raw?.trim();
+      const pane = parseVfsStateString(raw);
       if (isSettingsPaneId(pane)) {
         setActivePane(pane);
       }
@@ -202,7 +203,7 @@ export function SettingsApp({
 
   React.useEffect(() => {
     try {
-      writeVfsStateText(VFS_STATE_PATHS.settingsPane, `${activePane}\n`);
+      writeVfsStateString(VFS_STATE_PATHS.settingsPane, activePane);
     } catch {
       // ignore storage errors
     }

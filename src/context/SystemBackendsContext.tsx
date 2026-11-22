@@ -7,8 +7,11 @@ import { ScreenshotKeptKind, UnlockRefusal, type UnlockRefused } from "@domicile
 import { SAMPLE_WIFI_NETWORKS, type WifiNetwork } from "@/data/catalog";
 import { listVfsDir, WEB_VFS_HOME, writeVfsTextFile } from "@/lib/engine-web/web-vfs";
 import {
+  migrateLegacyStateFilesToJson,
+  readVfsStateJson,
   readVfsStateText,
   VFS_STATE_PATHS,
+  writeVfsStateJson,
   writeVfsStateText,
 } from "@/lib/engine/vfs-state";
 import {
@@ -437,17 +440,27 @@ export function useSystemBackendsValue(
     [maybeShowBanner]
   );
 
+  const welcomeFiredRef = React.useRef(false);
+
   React.useEffect(() => {
     if (typeof window === "undefined") return;
+    if (welcomeFiredRef.current) return;
     const key = "piloti.firstRunNotif.v1";
     try {
+      migrateLegacyStateFilesToJson();
+      const welcome = readVfsStateJson<{ shown?: boolean }>(
+        VFS_STATE_PATHS.welcomeShown,
+      );
+      if (welcome?.shown === true) return;
       if (readVfsStateText(VFS_STATE_PATHS.welcomeShown, key) === "1") return;
     } catch {
       // ignore storage errors
     }
     const timer = window.setTimeout(() => {
+      if (welcomeFiredRef.current) return;
+      welcomeFiredRef.current = true;
       try {
-        writeVfsStateText(VFS_STATE_PATHS.welcomeShown, "1");
+        writeVfsStateJson(VFS_STATE_PATHS.welcomeShown, { shown: true });
       } catch {
         // ignore storage errors
       }

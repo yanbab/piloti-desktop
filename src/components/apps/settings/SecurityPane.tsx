@@ -84,7 +84,11 @@ export function SecurityPane() {
   const { installedXdgApps, getAppIconUrl } = useApps();
 
   const [query, setQuery] = React.useState("");
+  const [groupBy, setGroupBy] = React.useState<"apps" | "permissions">("apps");
   const [expandedId, setExpandedId] = React.useState<string | null>(null);
+  const [expandedPermKey, setExpandedPermKey] = React.useState<string | null>(
+    "notifications"
+  );
   const [permsMap, setPermsMap] = React.useState<AppPermissionsMap>(() =>
     readAppPermissionsMap()
   );
@@ -244,15 +248,37 @@ export function SecurityPane() {
   return (
     <GroupedForm>
       <GroupedFormSection>
-        <div className="flex items-center gap-2 rounded-xl border border-adw-separator bg-adw-card px-3 py-2">
-          <SearchIcon className="size-4 shrink-0 text-adw-label-tertiary" />
-          <input
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder={_("Search apps…")}
-            className="min-w-0 flex-1 bg-transparent text-[13px] text-adw-label outline-none placeholder:text-adw-label-tertiary"
-          />
+        <div className="flex items-center gap-3">
+          <div className="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-adw-separator bg-adw-card px-3 py-2">
+            <SearchIcon className="size-4 shrink-0 text-adw-label-tertiary" />
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={_("Search apps…")}
+              className="min-w-0 flex-1 bg-transparent text-[13px] text-adw-label outline-none placeholder:text-adw-label-tertiary"
+            />
+          </div>
+          <div className="inline-flex shrink-0 rounded-lg bg-black/8 p-0.5 dark:bg-white/10">
+            {(["apps", "permissions"] as const).map((mode) => {
+              const selected = groupBy === mode;
+              return (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => setGroupBy(mode)}
+                  className={cn(
+                    "rounded-md px-3 py-1 text-[12px] font-medium transition-all",
+                    selected
+                      ? "bg-white text-black shadow-xs dark:bg-white/16 dark:text-white"
+                      : "text-adw-label-secondary hover:text-adw-label"
+                  )}
+                >
+                  {mode === "apps" ? _("Apps") : _("Permissions")}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </GroupedFormSection>
 
@@ -269,6 +295,132 @@ export function SecurityPane() {
               </div>
             </div>
           </GroupedFormGroup>
+        ) : groupBy === "permissions" ? (
+          <div className="space-y-2.5">
+            {(
+              [
+                {
+                  key: "notifications",
+                  label: "Notifications",
+                  description: "Allow apps to post desktop notifications",
+                  flatpakOnly: false,
+                },
+                {
+                  key: "search",
+                  label: "Show in Search",
+                  description: "Include apps in Launcher search results",
+                  flatpakOnly: false,
+                },
+                ...FLATPAK_PERMISSION_ITEMS.map((item) => ({
+                  ...item,
+                  flatpakOnly: true,
+                })),
+              ] as const
+            ).map((perm) => {
+              const isOpen = expandedPermKey === perm.key;
+              const targetApps = perm.flatpakOnly
+                ? filteredApps.filter((a) => a.isFlatpak)
+                : filteredApps;
+              return (
+                <GroupedFormGroup key={perm.key}>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setExpandedPermKey(isOpen ? null : perm.key)
+                    }
+                    aria-expanded={isOpen}
+                    className={cn(
+                      "flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors",
+                      isOpen
+                        ? "bg-black/4 dark:bg-white/6"
+                        : "hover:bg-black/3 dark:hover:bg-white/4"
+                    )}
+                  >
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[13px] font-semibold text-adw-label">
+                          {_(perm.label)}
+                        </span>
+                        <span className="rounded-full bg-black/6 px-2 py-0.5 text-[10px] font-medium text-adw-label-secondary dark:bg-white/10">
+                          {targetApps.length}
+                        </span>
+                      </div>
+                      <div className="truncate text-[11px] text-adw-label-tertiary">
+                        {_(perm.description)}
+                      </div>
+                    </div>
+                    <ChevronDownIcon
+                      className={cn(
+                        "size-4 shrink-0 text-adw-label-tertiary transition-transform duration-150",
+                        isOpen && "rotate-180"
+                      )}
+                    />
+                  </button>
+                  {isOpen && (
+                    <div className="divide-y divide-adw-separator/70 border-t border-adw-separator/70">
+                      {targetApps.length === 0 ? (
+                        <div className="px-4 py-3 text-[12px] text-adw-label-tertiary">
+                          {_("No Flatpak apps installed")}
+                        </div>
+                      ) : (
+                        targetApps.map((app) => {
+                          const prefs = getAppSecurityPrefs(app.id, permsMap);
+                          const fpState: FlatpakPermissionsState = {
+                            ...DEFAULT_FLATPAK_PERMISSIONS,
+                            ...(prefs.flatpak ?? {}),
+                            ...(liveFlatpakPerms[app.id] ?? {}),
+                          };
+                          const checked =
+                            perm.key === "notifications"
+                              ? prefs.notifications
+                              : perm.key === "search"
+                                ? prefs.search
+                                : fpState[perm.key];
+                          return (
+                            <GroupedFormRow key={app.id}>
+                              <GroupedFormRowLabel>
+                                <div className="flex items-center gap-2.5">
+                                  <AppSquircleIcon
+                                    iconUrl={app.iconUrl}
+                                    className="size-6 shrink-0"
+                                  />
+                                  <GroupedFormRowTitle>
+                                    {app.name}
+                                  </GroupedFormRowTitle>
+                                </div>
+                              </GroupedFormRowLabel>
+                              <GroupedFormRowControl>
+                                <Switch
+                                  checked={checked}
+                                  onCheckedChange={(next) => {
+                                    if (perm.key === "notifications") {
+                                      updateAppPref(app.id, {
+                                        notifications: Boolean(next),
+                                      });
+                                    } else if (perm.key === "search") {
+                                      updateAppPref(app.id, {
+                                        search: Boolean(next),
+                                      });
+                                    } else {
+                                      updateFlatpakPerm(
+                                        app.id,
+                                        perm.key,
+                                        Boolean(next)
+                                      );
+                                    }
+                                  }}
+                                />
+                              </GroupedFormRowControl>
+                            </GroupedFormRow>
+                          );
+                        })
+                      )}
+                    </div>
+                  )}
+                </GroupedFormGroup>
+              );
+            })}
+          </div>
         ) : (
           <div className="space-y-2.5">
             {filteredApps.map((app) => {

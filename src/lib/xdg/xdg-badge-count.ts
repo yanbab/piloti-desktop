@@ -83,3 +83,69 @@ export function useXdgAppBadgeCounts(): Record<string, XdgBadgeEntry> {
   return React.useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 }
 
+
+/* ---------- Progress (0..1 determinate, null indeterminate, undefined clear) ---------- */
+const progressMap = new Map<string, number | null>();
+const progressListeners = new Set<() => void>();
+let progressSnapshot: Record<string, number | null> = {};
+
+export function setXdgAppProgress(
+  appId: string,
+  progress: number | null | undefined
+): void {
+  const key = normalizeBadgeAppId(appId);
+  if (!key) return;
+  const prev = progressMap.get(key);
+  const has = progressMap.has(key);
+  if (progress === undefined) {
+    if (!has) return;
+    progressMap.delete(key);
+  } else {
+    const next = progress === null ? null : Math.min(1, Math.max(0, progress));
+    if (has && prev === next) return;
+    progressMap.set(key, next);
+  }
+  progressSnapshot = Object.fromEntries(progressMap.entries());
+  for (const l of progressListeners) l();
+}
+
+export function useXdgAppProgress(): Record<string, number | null> {
+  return React.useSyncExternalStore(
+    (l) => {
+      progressListeners.add(l);
+      return () => {
+        progressListeners.delete(l);
+      };
+    },
+    () => progressSnapshot,
+    () => progressSnapshot
+  );
+}
+
+/* ---------- Urgent ---------- */
+const urgentSet = new Set<string>();
+const urgentListeners = new Set<() => void>();
+let urgentSnapshot: Record<string, boolean> = {};
+
+export function setXdgAppUrgent(appId: string, urgent: boolean): void {
+  const key = normalizeBadgeAppId(appId);
+  if (!key) return;
+  if (urgent === urgentSet.has(key)) return;
+  if (urgent) urgentSet.add(key);
+  else urgentSet.delete(key);
+  urgentSnapshot = Object.fromEntries([...urgentSet].map((k) => [k, true]));
+  for (const l of urgentListeners) l();
+}
+
+export function useXdgAppUrgent(): Record<string, boolean> {
+  return React.useSyncExternalStore(
+    (l) => {
+      urgentListeners.add(l);
+      return () => {
+        urgentListeners.delete(l);
+      };
+    },
+    () => urgentSnapshot,
+    () => urgentSnapshot
+  );
+}

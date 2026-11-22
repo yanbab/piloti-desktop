@@ -1091,7 +1091,7 @@ export function MenuBar() {
       {/* About Focused App Window */}
       {appAboutOpen && (
         <Window
-          position={{
+          defaultPosition={{
             x:
               typeof window !== "undefined"
                 ? Math.max(24, Math.round((window.innerWidth - 300) / 2))

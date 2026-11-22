@@ -254,7 +254,7 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
     col: 1,
   });
 
-  // Editor preferences (only syntax highlighting enabled by default; persisted to .config/Piloti/notepad.ini)
+  // Editor preferences (only syntax highlighting enabled by default; persisted to .config/piloti/notepad.ini)
   const initialEditorPrefs = React.useMemo(
     () => getCachedPilotiAppIni("notepad").Editor ?? {},
     []
