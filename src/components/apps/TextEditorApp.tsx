@@ -504,13 +504,23 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
     return ok !== false;
   }, [bridge.fs]);
 
+  const performClose = React.useCallback(() => {
+    if (typeof window !== "undefined" && window.parent === window) {
+      window.dispatchEvent(
+        new CustomEvent("piloti:request-animated-close", { detail: { windowId } }),
+      );
+    } else {
+      bridge.closeWindow();
+    }
+  }, [bridge, windowId]);
+
   const requestClose = React.useCallback(() => {
     if (isDirtyRef.current && !forceCloseRef.current) {
       setConfirmCloseOpen(true);
       return;
     }
-    bridge.closeWindow();
-  }, [bridge]);
+    performClose();
+  }, [performClose]);
 
   React.useEffect(() => {
     if (!windowId) return;
@@ -921,7 +931,7 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
                   onClick={() => {
                     setConfirmCloseOpen(false);
                     forceCloseRef.current = true;
-                    bridge.closeWindow();
+                    performClose();
                   }}
                   className="rounded-lg bg-red-500/12 px-3 py-1.5 text-xs font-medium text-red-500 transition-colors hover:bg-red-500/20"
                 >
@@ -941,7 +951,7 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
                     if (ok) {
                       setConfirmCloseOpen(false);
                       forceCloseRef.current = true;
-                      bridge.closeWindow();
+                      performClose();
                     }
                   }}
                   className="rounded-lg bg-adw-accent px-3 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-90"
