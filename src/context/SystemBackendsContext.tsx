@@ -43,7 +43,6 @@ import {
   setDefaultAudioSink,
   syncGnomePanelOverrides,
   syncGtkIconTheme,
-  ensureXwaylandSatellite,
   runXdgAutostartOnce,
 } from "@/lib/engine-native";
 import { playSoundThemeEvent } from "@/lib/shell/sound-effects";
@@ -818,7 +817,6 @@ export function useSystemBackendsValue(
         discoverGnomeControlCenterPanels(domicile),
         listSystemAudioSinks(domicile),
         readSystemWifi(domicile, { scan: Boolean(options?.scanWifi) }),
-        ensureXwaylandSatellite(domicile),
         runXdgAutostartOnce(domicile),
       ]);
       finishBackends();

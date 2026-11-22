@@ -497,16 +497,20 @@ export function useAppsValue(
       signalEssentialReady();
     }
 
+    let bgIndexTimer: ReturnType<typeof setTimeout> | null = null;
+
     (async () => {
       const finishDock = startBootPhase("dock");
       try {
         // Resolve icon theme index + user-dirs first without contending with
         // full /usr/share/applications scanning or large wallpaper transfers.
+        // On repeat boots (refreshNonce === 0) with a valid cached index, use
+        // it immediately and refresh the index lazily in the background.
         const finishIndex = startBootPhase("icon index + user-dirs");
-        const iconIndexPromise = buildXdgIconThemeIndex(
-          domicile.files,
-          preferredThemes
-        );
+        const useWarmCachedIndex = Boolean(cachedIndex) && refreshNonce === 0;
+        const iconIndexPromise = useWarmCachedIndex
+          ? Promise.resolve(cachedIndex!)
+          : buildXdgIconThemeIndex(domicile.files, preferredThemes);
         const userDirsPromise = discoverXdgUserDirs(domicile.files);
 
         const [iconIndex, userDirs] = await Promise.all([
@@ -514,9 +518,22 @@ export function useAppsValue(
           userDirsPromise,
         ]);
         if (cancelled) return;
-        finishIndex(activeIconTheme);
+        finishIndex(useWarmCachedIndex ? `${activeIconTheme} (cached)` : activeIconTheme);
         iconThemeIndexRef.current = iconIndex;
-        saveCachedXdgIconThemeIndex(preferredThemes, iconIndex);
+        if (!useWarmCachedIndex) {
+          saveCachedXdgIconThemeIndex(preferredThemes, iconIndex);
+        } else {
+          bgIndexTimer = setTimeout(() => {
+            if (cancelled) return;
+            void buildXdgIconThemeIndex(domicile.files, preferredThemes)
+              .then((fresh) => {
+                if (cancelled) return;
+                iconThemeIndexRef.current = fresh;
+                saveCachedXdgIconThemeIndex(preferredThemes, fresh);
+              })
+              .catch(() => undefined);
+          }, 4000);
+        }
         setXdgUserDirs(userDirs);
 
         // Resolve all Dock, launcher, trash, fallback, and folder icons together
@@ -681,6 +698,7 @@ export function useAppsValue(
 
     return () => {
       cancelled = true;
+      if (bgIndexTimer) clearTimeout(bgIndexTimer);
     };
     // pinnedAppIds only affects icon batch ordering, not discovery
     // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -274,6 +274,12 @@ function isRelevantIconSubdir(subdir: XdgIconSubdirDescriptor): boolean {
     );
   }
 
+  // Skip HiDPI @2x/@3x duplicate subdirectories (SVGs scale cleanly at scale=1,
+  // and themes like Papirus symlink @2x directories to @1x).
+  if (subdir.scale > 1 || /@[23]x\b/i.test(subdir.path)) {
+    return false;
+  }
+
   // Skip small bitmap sizes (< 32px) so shell/dock icons only scan crisp assets.
   if (subdir.type !== "Scalable" && subdir.size < 32) {
     return false;
@@ -293,6 +299,60 @@ function isRelevantIconSubdir(subdir: XdgIconSubdirDescriptor): boolean {
     lowerCtx.includes("category") ||
     lowerCtx.includes("device")
   );
+}
+
+/**
+ * Deduplicates redundant fixed-size subdirectories within a theme (for example,
+ * Papirus ships identical SVGs across 32x32, 48x48, 64x64, 96x96, and 128x128).
+ * Keeps all `hicolor` sizes, all `animated/` and `Scalable` directories, and
+ * picks the single crispest canonical size (closest to 48px) per context for
+ * full themes.
+ */
+function selectSubdirsToIndex(
+  themeId: string,
+  directories: readonly XdgIconSubdirDescriptor[]
+): XdgIconSubdirDescriptor[] {
+  const relevant = directories.filter(isRelevantIconSubdir);
+  if (themeId === "hicolor" || relevant.length <= 8) {
+    return relevant;
+  }
+
+  const kept: XdgIconSubdirDescriptor[] = [];
+  const fixedGroups = new Map<string, XdgIconSubdirDescriptor[]>();
+
+  for (const subdir of relevant) {
+    const lowerPath = subdir.path.toLowerCase();
+    const isAnimated = lowerPath.startsWith("animated/");
+    const isSymbolic = lowerPath.includes("symbolic");
+    if (isAnimated || subdir.type === "Scalable" || isSymbolic) {
+      kept.push(subdir);
+      continue;
+    }
+
+    const ctxKey =
+      (subdir.context ?? "").trim().toLowerCase() ||
+      lowerPath.split("/").pop() ||
+      lowerPath;
+    const list = fixedGroups.get(ctxKey) ?? [];
+    list.push(subdir);
+    fixedGroups.set(ctxKey, list);
+  }
+
+  const preferredSizeRank = (size: number): number => {
+    if (size === 64) return 0;
+    if (size === 48) return 1;
+    if (size === 128) return 2;
+    if (size === 96) return 3;
+    if (size === 256) return 4;
+    return 10 + Math.abs(size - 64);
+  };
+
+  for (const group of fixedGroups.values()) {
+    group.sort((a, b) => preferredSizeRank(a.size) - preferredSizeRank(b.size));
+    if (group[0]) kept.push(group[0]);
+  }
+
+  return kept;
 }
 
 function iconExtensionPriority(filename: string, allowAnimated = false): number {
@@ -422,7 +482,7 @@ async function buildXdgIconThemeIndex(
     );
     if (matchingBaseDirs.length === 0) continue;
 
-    for (const subdir of descriptor.directories.filter(isRelevantIconSubdir)) {
+    for (const subdir of selectSubdirsToIndex(themeId, descriptor.directories)) {
       const mapKey = `${themeId}::${subdir.path}`;
       let targetMap = subdirFiles.get(mapKey);
       if (!targetMap) {
@@ -669,13 +729,16 @@ async function resolveXdgIconUrl(
   return loadXdgIconDataUrl(files, path);
 }
 
-const ICON_INDEX_CACHE_KEY = "piloti.xdg-icon-index.v3";
+const ICON_INDEX_CACHE_KEY = "piloti.xdg-icon-index.v4";
 
-interface SerializedIconThemeIndex {
+type CompactSubdirGroup = [string, (string | [string, string])[]];
+
+interface SerializedIconThemeIndexV4 {
+  v: 4;
   key: string;
   themeOrder: string[];
   themes: [string, XdgIconThemeDescriptor][];
-  subdirFiles: [string, [string, string][]][];
+  subdirFiles: [string, CompactSubdirGroup[]][];
   fallbackFiles: [string, string][];
 }
 
@@ -683,14 +746,50 @@ function serializeXdgIconThemeIndex(
   key: string,
   index: XdgIconThemeIndex
 ): string {
-  const payload: SerializedIconThemeIndex = {
+  // Trim theme directory descriptors to only those actually indexed, and group
+  // files by directory prefix so long `/usr/share/icons/.../` prefixes are
+  // stored once instead of repeated tens of thousands of times.
+  const indexedSubdirKeys = new Set(index.subdirFiles.keys());
+  const compactThemes: [string, XdgIconThemeDescriptor][] = Array.from(
+    index.themes.entries()
+  ).map(([themeId, desc]) => [
+    themeId,
+    {
+      ...desc,
+      directories: desc.directories.filter((d) =>
+        indexedSubdirKeys.has(`${themeId}::${d.path}`)
+      ),
+    },
+  ]);
+
+  const compactSubdirs: [string, CompactSubdirGroup[]][] = [];
+  for (const [k, map] of index.subdirFiles.entries()) {
+    if (map.size === 0) continue;
+    const byDir = new Map<string, (string | [string, string])[]>();
+    for (const [baseName, fullPath] of map.entries()) {
+      const slashIdx = fullPath.lastIndexOf("/");
+      const dirPrefix = slashIdx >= 0 ? fullPath.slice(0, slashIdx) : "";
+      const filename = slashIdx >= 0 ? fullPath.slice(slashIdx + 1) : fullPath;
+      let bucket = byDir.get(dirPrefix);
+      if (!bucket) {
+        bucket = [];
+        byDir.set(dirPrefix, bucket);
+      }
+      if (stripIconExtension(filename) === baseName) {
+        bucket.push(filename);
+      } else {
+        bucket.push([baseName, filename]);
+      }
+    }
+    compactSubdirs.push([k, Array.from(byDir.entries())]);
+  }
+
+  const payload: SerializedIconThemeIndexV4 = {
+    v: 4,
     key,
     themeOrder: index.themeOrder,
-    themes: Array.from(index.themes.entries()),
-    subdirFiles: Array.from(index.subdirFiles.entries()).map(([k, map]) => [
-      k,
-      Array.from(map.entries()),
-    ]),
+    themes: compactThemes,
+    subdirFiles: compactSubdirs,
     fallbackFiles: Array.from(index.fallbackFiles.entries()),
   };
   return JSON.stringify(payload);
@@ -701,8 +800,9 @@ function deserializeXdgIconThemeIndex(
   raw: string
 ): XdgIconThemeIndex | null {
   try {
-    const parsed = JSON.parse(raw) as Partial<SerializedIconThemeIndex>;
+    const parsed = JSON.parse(raw) as Partial<SerializedIconThemeIndexV4>;
     if (
+      parsed.v !== 4 ||
       parsed.key !== key ||
       !Array.isArray(parsed.themeOrder) ||
       !Array.isArray(parsed.themes) ||
@@ -711,12 +811,27 @@ function deserializeXdgIconThemeIndex(
     ) {
       return null;
     }
+    const subdirFiles = new Map<string, Map<string, string>>();
+    for (const [k, groups] of parsed.subdirFiles) {
+      const map = new Map<string, string>();
+      for (const [dirPrefix, items] of groups) {
+        for (const item of items) {
+          if (typeof item === "string") {
+            const fullPath = dirPrefix ? `${dirPrefix}/${item}` : item;
+            map.set(stripIconExtension(item), fullPath);
+          } else if (Array.isArray(item) && item.length === 2) {
+            const [baseName, filename] = item;
+            const fullPath = dirPrefix ? `${dirPrefix}/${filename}` : filename;
+            map.set(baseName, fullPath);
+          }
+        }
+      }
+      subdirFiles.set(k, map);
+    }
     return {
       themeOrder: parsed.themeOrder,
       themes: new Map(parsed.themes),
-      subdirFiles: new Map(
-        parsed.subdirFiles.map(([k, entries]) => [k, new Map(entries)])
-      ),
+      subdirFiles,
       fallbackFiles: new Map(parsed.fallbackFiles),
     };
   } catch {
