@@ -25,6 +25,82 @@ export XDG_CURRENT_DESKTOP="Piloti:GNOME"
 export XDG_SESSION_TYPE="wayland"
 export PILOTI_GREETER="1"
 
+# Clear any orphaned greeter engine/compositor holding SingletonLock
+uid="$(id -u)"
+if command -v pgrep >/dev/null 2>&1 && ! pgrep -u "${uid}" -x domicile >/dev/null 2>&1; then
+  if pgrep -u "${uid}" -f "[/]usr/libexec/domicile/engine/chrome|[/]usr/bin/domicile-compositor" >/dev/null 2>&1; then
+    pkill -TERM -u "${uid}" -f "[/]usr/libexec/domicile/engine/chrome" 2>/dev/null || true
+    pkill -TERM -u "${uid}" -f "[/]usr/bin/domicile-compositor" 2>/dev/null || true
+    sleep 0.2
+  fi
+fi
+
+# Build a runtime greeter config that honors the system keyboard layout from
+# /etc/default/keyboard (first keymap = default) and exposes named layouts so
+# the top-bar selector can switch live via domicile.keyboard.selectKeymap().
+RUNTIME_GREETER_CONFIG="${XDG_RUNTIME_DIR:-/tmp}/piloti-greeter-domicile.json"
+if command -v python3 >/dev/null 2>&1; then
+  if python3 - "${PILOTI_GREETER_BUNDLE}" "${RUNTIME_GREETER_CONFIG}" <<'PY' 2>/dev/null
+import json, os, re, sys
+
+bundle, out_path = sys.argv[1], sys.argv[2]
+kb = {}
+for cfg_path in ("/etc/default/keyboard",):
+    if os.path.isfile(cfg_path):
+        with open(cfg_path, "r", encoding="utf-8", errors="ignore") as f:
+            for line in f:
+                m = re.match(r'^\s*(XKB\w+)\s*=\s*"?([^"#\n]*)"?', line)
+                if m:
+                    kb[m.group(1)] = m.group(2).strip()
+
+raw_layouts = [x.strip() for x in kb.get("XKBLAYOUT", "").split(",") if x.strip()]
+raw_variants = [x.strip() for x in kb.get("XKBVARIANT", "").split(",")]
+xkb_model = kb.get("XKBMODEL", "").strip()
+xkb_options = [x.strip() for x in kb.get("XKBOPTIONS", "").split(",") if x.strip()]
+
+primary_layout = raw_layouts[0] if raw_layouts else "us"
+primary_variant = raw_variants[0] if raw_variants and raw_variants[0] else ""
+
+keymaps = []
+seen = set()
+
+def add_keymap(layout, variant="", include_sys_opts=False):
+    if not layout or layout in seen:
+        return
+    seen.add(layout)
+    entry = {"name": layout, "xkb_layout": layout}
+    if variant:
+        entry["xkb_variant"] = variant
+    if include_sys_opts:
+        if xkb_model:
+            entry["xkb_model"] = xkb_model
+        if xkb_options:
+            entry["xkb_options"] = xkb_options
+    keymaps.append(entry)
+
+add_keymap(primary_layout, primary_variant, include_sys_opts=True)
+for idx, lay in enumerate(raw_layouts[1:], start=1):
+    var = raw_variants[idx] if idx < len(raw_variants) else ""
+    add_keymap(lay, var, include_sys_opts=True)
+for fallback in ("us", "fr", "es", "de"):
+    add_keymap(fallback)
+
+cfg = {
+    "shell": bundle,
+    "input": {
+        "keyboard": {
+            "keymaps": keymaps,
+        }
+    },
+}
+with open(out_path, "w", encoding="utf-8") as f:
+    json.dump(cfg, f, indent=2)
+PY
+  then
+    PILOTI_GREETER_CONFIG="${RUNTIME_GREETER_CONFIG}"
+  fi
+fi
+
 if [ "$#" -gt 0 ]; then
   exec domicile "${PILOTI_GREETER_BUNDLE}" "$@"
 elif [ -f "${PILOTI_GREETER_CONFIG}" ]; then

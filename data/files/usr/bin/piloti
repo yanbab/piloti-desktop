@@ -89,9 +89,32 @@ link_prebuilt_cache() {
   done
 }
 
+cleanup_orphaned_engine() {
+  # If no live `domicile` supervisor is running for this user, terminate any
+  # orphaned engine/compositor left behind by a killed previous session so
+  # Chromium's profile SingletonLock cannot block login ("Opening in existing
+  # browser session.").
+  uid="$(id -u)"
+  if command -v pgrep >/dev/null 2>&1 && ! pgrep -u "${uid}" -x domicile >/dev/null 2>&1; then
+    if pgrep -u "${uid}" -f "[/]usr/libexec/domicile/engine/chrome|[/]usr/bin/domicile-compositor" >/dev/null 2>&1; then
+      pkill -TERM -u "${uid}" -f "[/]usr/libexec/domicile/engine/chrome" 2>/dev/null || true
+      pkill -TERM -u "${uid}" -f "[/]usr/bin/domicile-compositor" 2>/dev/null || true
+      i=0
+      while [ "${i}" -lt 10 ]; do
+        pgrep -u "${uid}" -f "[/]usr/libexec/domicile/engine/chrome|[/]usr/bin/domicile-compositor" >/dev/null 2>&1 || break
+        sleep 0.1
+        i=$((i + 1))
+      done
+      pkill -KILL -u "${uid}" -f "[/]usr/libexec/domicile/engine/chrome" 2>/dev/null || true
+      pkill -KILL -u "${uid}" -f "[/]usr/bin/domicile-compositor" 2>/dev/null || true
+    fi
+  fi
+}
+
 start_session() {
   require_domicile
   link_prebuilt_cache
+  cleanup_orphaned_engine
   export XDG_CURRENT_DESKTOP="${XDG_CURRENT_DESKTOP:-Piloti:GNOME}"
   export XDG_SESSION_DESKTOP="${XDG_SESSION_DESKTOP:-piloti}"
   export DESKTOP_SESSION="${DESKTOP_SESSION:-piloti}"

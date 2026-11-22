@@ -219,6 +219,9 @@ export const LoginScreenApp: React.FC<LoginScreenAppProps> = ({
         if (!active) return;
         setGreetdAvailable(runtime.greetdAvailable);
         setHostname(runtime.hostname);
+        if (runtime.defaultKeymap) {
+          setKeyboardLayout(runtime.defaultKeymap);
+        }
 
         if (realUsers.length > 0) {
           setUsers(realUsers);
@@ -288,8 +291,22 @@ export const LoginScreenApp: React.FC<LoginScreenAppProps> = ({
     return users[0] ?? DEMO_GREETER_USERS[0];
   }, [manualUsername, selectedUserId, users]);
 
+  const keyboardLayouts = React.useMemo(() => {
+    if (KEYBOARD_LAYOUTS.some((k) => k.id === keyboardLayout)) {
+      return KEYBOARD_LAYOUTS;
+    }
+    return [
+      {
+        id: keyboardLayout,
+        short: keyboardLayout.slice(0, 2).toLowerCase(),
+        label: keyboardLayout.toUpperCase(),
+      },
+      ...KEYBOARD_LAYOUTS,
+    ];
+  }, [keyboardLayout]);
+
   const activeKeyboard =
-    KEYBOARD_LAYOUTS.find((k) => k.id === keyboardLayout) ?? KEYBOARD_LAYOUTS[0];
+    keyboardLayouts.find((k) => k.id === keyboardLayout) ?? keyboardLayouts[0];
   const activeSession =
     sessions.find((s) => s.id === sessionId) ??
     sessions[0] ??
@@ -503,7 +520,7 @@ export const LoginScreenApp: React.FC<LoginScreenAppProps> = ({
                 value={keyboardLayout}
                 onValueChange={handleKeyboardChange}
               >
-                {KEYBOARD_LAYOUTS.map((kb) => (
+                {keyboardLayouts.map((kb) => (
                   <DropdownMenuRadioItem key={kb.id} value={kb.id}>
                     {kb.label}
                   </DropdownMenuRadioItem>

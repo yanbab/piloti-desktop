@@ -29,6 +29,7 @@ export interface GreeterRuntimeInfo {
   greetdAvailable: boolean;
   greetdSocket: string | null;
   hostname: string | null;
+  defaultKeymap: string | null;
 }
 
 export interface GreetdAuthResult {
@@ -205,22 +206,30 @@ export function buildGreetdStartSessionPayload(
 
 /**
  * Detects whether the greeter is running inside a live `greetd` DM session
- * (`GREETD_SOCK` set and socket accessible) and reads the machine hostname.
+ * (`GREETD_SOCK` set and socket accessible), reads the machine hostname, and
+ * reads the system default XKB layout from `/etc/default/keyboard`.
  */
 export async function detectGreeterRuntime(
   domicile: Domicile
 ): Promise<GreeterRuntimeInfo> {
-  const out = await runText(domicile, [
-    "sh",
-    "-c",
-    'printf "SOCK=%s\\nHOST=%s\\n" "${GREETD_SOCK:-}" "$(hostname 2>/dev/null || cat /etc/hostname 2>/dev/null || true)"',
+  const [out, kbRes] = await Promise.all([
+    runText(domicile, [
+      "sh",
+      "-c",
+      'printf "SOCK=%s\\nHOST=%s\\n" "${GREETD_SOCK:-}" "$(hostname 2>/dev/null || cat /etc/hostname 2>/dev/null || true)"',
+    ]),
+    domicile.files.readText("/etc/default/keyboard").catch(() => null),
   ]);
   const sock = out?.match(/^SOCK=(.*)$/m)?.[1]?.trim() || null;
   const hostname = out?.match(/^HOST=(.*)$/m)?.[1]?.trim() || null;
+  const kbText = kbRes ? kbRes.match({ Ok: (t) => t, Err: () => "" }) : "";
+  const kbMatch = kbText.match(/^\s*XKBLAYOUT\s*=\s*["']?([^,"'#\s]+)/m);
+  const defaultKeymap = kbMatch?.[1]?.trim() || null;
   return {
     greetdAvailable: Boolean(sock),
     greetdSocket: sock,
     hostname,
+    defaultKeymap,
   };
 }
 
