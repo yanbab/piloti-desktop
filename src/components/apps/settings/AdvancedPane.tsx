@@ -79,6 +79,8 @@ import {
 } from "@/lib/engine-web/usb-drive";
 
 export function AdvancedPane() {
+  const progressDemoTimerRef = React.useRef<number | undefined>(undefined);
+  React.useEffect(() => () => window.clearInterval(progressDemoTimerRef.current), []);
   const domicile = useDomicile();
   const { isBrowserRuntime, settings, updateSettings } = useSettings();
   const usbMounted = useSimulatedUsbMounted();
@@ -978,11 +980,13 @@ export function AdvancedPane() {
                 size="sm"
                 variant="secondary"
                 onClick={() => {
+                  // One demo run at a time; cleared on unmount.
+                  window.clearInterval(progressDemoTimerRef.current);
                   let p = 0;
-                  const timer = window.setInterval(() => {
+                  progressDemoTimerRef.current = window.setInterval(() => {
                     p += 0.1;
                     if (p >= 1) {
-                      window.clearInterval(timer);
+                      window.clearInterval(progressDemoTimerRef.current);
                       setXdgAppProgress("app-store", undefined);
                     } else {
                       setXdgAppProgress("app-store", p);

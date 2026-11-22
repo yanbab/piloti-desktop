@@ -63,7 +63,12 @@ import {
   MENU_SEPARATOR_CLASS,
   MENU_SUB_TRIGGER_CLASS,
 } from "@/components/ui/menu-styles";
-import { useApps, useSettings, useWindowManager } from "@/context/DesktopStateContext";
+import {
+  useApps,
+  useSettings,
+  useWindowActions,
+  useWindowManagerSelector,
+} from "@/context/DesktopStateContext";
 import { publishWindowMenuState } from "@/lib/engine/app-bridge";
 import {
   type AppSymbolName,
@@ -134,6 +139,8 @@ import {
 } from "@/lib/engine/fs-bridge";
 import { playSoundThemeEvent } from "@/lib/shell/sound-effects";
 import { inferMimeType } from "@/lib/xdg/xdg-mimeapps";
+import { useOpenPath } from "@/hooks/use-open-path";
+import { buildLinkFile, isLinkFile, linkFileNameFor, pathToFileUrl } from "@/lib/shell/link-files";
 
 interface XdgPlaceItem {
   id: string;
@@ -244,6 +251,7 @@ function vfsEntryToGridItem(
   const isEmpty = isVfsEntryEmpty(entry);
   const visual = inferFileVisual(entry.name, entry.kind, getVfsContentType(entry), {
     isEmpty,
+    isLink: entry.kind === "file" && isLinkFile(entry.name, entry.content),
   });
   return {
     id: entry.path,
@@ -273,13 +281,12 @@ export function FilesApp({
   const { installedXdgApps, getAppIconUrl, ensureWaylandIcons } = useApps();
   const { isBrowserRuntime, settings } = useSettings();
   const usbMounted = useSimulatedUsbMounted();
-  const {
-    windows,
-    focusedWindowId,
-    launchApp,
-    launchXdgApp,
-    openWebUrl,
-  } = useWindowManager();
+  const { windows, focusedWindowId } = useWindowManagerSelector((wm) => ({
+    windows: wm.windows.map((w) => ({ appId: w.appId, payload: w.payload })),
+    focusedWindowId: wm.focusedWindowId,
+  }));
+  const { launchApp, launchXdgApp, openWebUrl } = useWindowActions();
+  const { openPath, openPathWith } = useOpenPath();
 
   const [viewMode, setViewMode] = React.useState<"grid" | "list">("grid");
   const [sortBy, setSortBy] = React.useState<"name" | "kind" | "modified" | "size">("name");
@@ -1097,42 +1104,11 @@ export function FilesApp({
       setSelectedIds([]);
       return;
     }
-    const entry = getVfsEntry(item.path);
-    if (entry && entry.kind === "file") {
-      incrementVfsAccessCount(entry.path);
-      void recordFsRecentFile(
-        domicile,
-        isBrowserRuntime,
-        entry.path,
-        inferMimeType(entry.name, "file")
-      );
-      if (isImageVfsFile(entry.name, entry.content)) {
-        launchApp("image-viewer", { payload: entry.path });
-        return;
-      }
-      if (isZipVfsFile(entry.name, entry.content)) {
-        void extractVfsZip(entry.path).then((folder) => {
-          if (folder) reloadDir();
-        });
-        return;
-      }
-      if (isTextEditableVfsFile(entry.name)) {
-        launchApp("text-editor", { payload: entry.path });
-        return;
-      }
-      const webUrl =
-        entry.name.toLowerCase().endsWith(".pdf") &&
-        entry.content?.trimStart().startsWith("%PDF-")
-          ? URL.createObjectURL(
-              new Blob([entry.content], { type: "application/pdf" })
-            )
-          : buildVfsEntryWebAppUrl(entry);
-      openWebUrl(webUrl, {
-        asApp: true,
-        appId: `file:${entry.path}`,
-        title: entry.name,
-      });
-    }
+    void openPath(item.path, {
+      kind: "file",
+      name: item.name,
+      onExtracted: () => reloadDir(),
+    });
   };
 
   const handleOpenContainingFolder = (item: IconGridItem) => {
@@ -1275,6 +1251,12 @@ export function FilesApp({
       "files:empty-trash": { disabled: !isTrashView || items.length === 0 },
       "files:view-grid": { checked: viewMode === "grid" },
       "files:view-list": { checked: viewMode === "list" },
+      "files:sort-name": { checked: sortBy === "name", disabled: isAppsView },
+      "files:sort-kind": { checked: sortBy === "kind", disabled: isAppsView },
+      "files:sort-modified": { checked: sortBy === "modified", disabled: isAppsView },
+      "files:sort-size": { checked: sortBy === "size", disabled: isAppsView },
+      "files:sort-asc": { checked: sortDir === "asc", disabled: isAppsView },
+      "files:sort-desc": { checked: sortDir === "desc", disabled: isAppsView },
       "files:zoom-in": { disabled: activeZoomIndex >= maxZoomIndex },
       "files:zoom-out": { disabled: activeZoomIndex <= 0 },
       "files:toggle-hidden": { checked: showHidden },
@@ -1292,6 +1274,9 @@ export function FilesApp({
     maxZoomIndex,
     selectedItems.length,
     showHidden,
+    sortBy,
+    sortDir,
+    isAppsView,
     viewMode,
     windowId,
   ]);
@@ -1366,6 +1351,24 @@ export function FilesApp({
           break;
         case "files:view-list":
           setViewMode("list");
+          break;
+        case "files:sort-name":
+          setSortBy("name");
+          break;
+        case "files:sort-kind":
+          setSortBy("kind");
+          break;
+        case "files:sort-modified":
+          setSortBy("modified");
+          break;
+        case "files:sort-size":
+          setSortBy("size");
+          break;
+        case "files:sort-asc":
+          setSortDir("asc");
+          break;
+        case "files:sort-desc":
+          setSortDir("desc");
           break;
         case "files:zoom-in":
           latestActionsRef.current.stepZoom(1);
@@ -1842,62 +1845,7 @@ export function FilesApp({
                   className="h-7 w-44 rounded-md border border-adw-separator bg-black/6 px-2 text-[12px] text-adw-label outline-none focus:border-adw-accent dark:bg-white/10"
                 />
               </div>
-            ) : (
-              <>
-                {!isAppsView && (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger
-                      aria-label={_("Sort & Filter")}
-                      title={_("Sort & Filter")}
-                      className={cn(
-                        "relative flex size-7 items-center justify-center rounded-md transition-colors",
-                        sortBy !== "name" || sortDir !== "asc"
-                          ? "bg-black/10 text-adw-accent dark:bg-white/15"
-                          : "text-adw-label-secondary hover:bg-black/8 hover:text-adw-label dark:hover:bg-white/10"
-                      )}
-                    >
-                      <ArrowUpDownIcon className="size-4" />
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuLabel>{_("Sort By")}</DropdownMenuLabel>
-                      <DropdownMenuRadioGroup
-                        value={sortBy}
-                        onValueChange={(v) =>
-                          setSortBy(v as "name" | "kind" | "modified" | "size")
-                        }
-                      >
-                        <DropdownMenuRadioItem value="name">{_("Name")}</DropdownMenuRadioItem>
-                        <DropdownMenuRadioItem value="kind">{_("Kind")}</DropdownMenuRadioItem>
-                        <DropdownMenuRadioItem value="modified">{_("Date Modified")}</DropdownMenuRadioItem>
-                        <DropdownMenuRadioItem value="size">{_("Size")}</DropdownMenuRadioItem>
-                      </DropdownMenuRadioGroup>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuRadioGroup
-                        value={sortDir}
-                        onValueChange={(v) => setSortDir(v as "asc" | "desc")}
-                      >
-                        <DropdownMenuRadioItem value="asc">{_("Ascending")}</DropdownMenuRadioItem>
-                        <DropdownMenuRadioItem value="desc">{_("Descending")}</DropdownMenuRadioItem>
-                      </DropdownMenuRadioGroup>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                )}
-
-                <button
-                  type="button"
-                  aria-label={viewMode === "grid" ? "List view" : "Grid view"}
-                  title={viewMode === "grid" ? "List view" : "Grid view"}
-                  onClick={() => setViewMode((m) => (m === "grid" ? "list" : "grid"))}
-                  className="flex size-7 items-center justify-center rounded-md text-adw-label-secondary transition-colors hover:bg-black/8 hover:text-adw-label dark:hover:bg-white/10"
-                >
-                  {viewMode === "grid" ? (
-                    <ListIcon className="size-4" />
-                  ) : (
-                    <LayoutGridIcon className="size-4" />
-                  )}
-                </button>
-              </>
-            )}
+            ) : null}
 
             <button
               type="button"
@@ -2310,11 +2258,26 @@ export function FilesApp({
         selectedItems={selectedItems}
         onClose={() => setItemMenu(null)}
         onOpen={handleActivateItem}
-        onOpenWithApp={(target, appId) => {
-          if (target.kind === "file" && target.path) {
-            incrementVfsAccessCount(target.path);
+        onOpenWithApp={(target, app) => {
+          void openPathWith(target.path, app, { kind: target.kind === "directory" ? "directory" : "file" });
+        }}
+        onMakeLink={(list) => {
+          const created: string[] = [];
+          for (const target of list) {
+            const link = createFsTextFile(
+              domicile,
+              isBrowserRuntime,
+              currentPath,
+              linkFileNameFor(target.name),
+              buildLinkFile({
+                name: target.name,
+                url: pathToFileUrl(target.path),
+              }),
+            );
+            created.push(link.path);
           }
-          launchApp(appId, { payload: target.path, forceNew: true });
+          reloadDir();
+          if (created.length > 0) setSelectedIds(created);
         }}
         onOpenInNewWindow={(target) =>
           launchApp("nautilus", { payload: target.path, forceNew: true })

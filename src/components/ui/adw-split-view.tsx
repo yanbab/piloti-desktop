@@ -250,18 +250,28 @@ export function AdwSplitView({
                           : "gap-2.5 py-1.5 text-[13px]",
                       !item.trailingAction &&
                         (item.selected
-                          ? "bg-adw-sidebar-selection font-medium text-adw-label"
+                          ? "bg-adw-accent font-medium text-white shadow-xs"
                           : "font-normal text-adw-label/85 hover:bg-black/5 dark:hover:bg-white/6"),
                     )}
                   >
-                    <span className="flex size-4 shrink-0 items-center justify-center opacity-85 [&_svg]:size-4">
+                    <span
+                      className={cn(
+                        "flex size-4 shrink-0 items-center justify-center [&_svg]:size-4",
+                        item.selected ? "opacity-100" : "opacity-85",
+                      )}
+                    >
                       {item.icon}
                     </span>
                     {!isCompact && (
                       <>
                         <span className="min-w-0 flex-1 truncate">{item.label}</span>
                         {item.badge !== undefined && item.badge !== "" && (
-                          <span className="ml-auto shrink-0 rounded-full bg-adw-accent px-1.5 py-0.5 text-[10px] leading-none font-bold text-white tabular-nums">
+                          <span
+                            className={cn(
+                              "ml-auto shrink-0 rounded-full px-1.5 py-0.5 text-[10px] leading-none font-bold text-white tabular-nums",
+                              item.selected ? "bg-white/25" : "bg-adw-accent",
+                            )}
+                          >
                             {item.badge}
                           </span>
                         )}
@@ -275,7 +285,7 @@ export function AdwSplitView({
                     className={cn(
                       "relative flex w-full shrink-0 items-center rounded-[9px] transition-colors",
                       item.selected
-                        ? "bg-adw-sidebar-selection font-medium text-adw-label"
+                        ? "bg-adw-accent font-medium text-white shadow-xs"
                         : "font-normal text-adw-label/85 hover:bg-black/5 dark:hover:bg-white/6",
                     )}
                   >
@@ -322,7 +332,7 @@ export function AdwSplitView({
                             ? "h-[37px] gap-3 py-2 text-[14px]"
                             : "h-[32px] gap-2.5 py-1.5 text-[13px]",
                           item.selected
-                            ? "bg-adw-sidebar-selection font-medium text-adw-label"
+                            ? "bg-adw-accent font-medium text-white shadow-xs"
                             : "bg-adw-sidebar font-normal text-adw-label",
                         )}
                       >

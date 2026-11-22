@@ -40,6 +40,21 @@ import {
   WindowControls,
   WindowTitlebar,
 } from "@/components/ui/window";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Switch } from "@/components/ui/switch";
 import { useSidebarKeyboardNav } from "@/hooks/use-sidebar-keyboard-nav";
 import {
@@ -76,6 +91,8 @@ import {
   probeFlatpakCapabilities,
   runAptUpdateAndFlatpakRefresh,
   runAptUpgrade,
+  installDebPackage,
+  installFlatpakFile,
   searchFlatpaks,
   uninstallFlatpakApp,
   updateAllFlatpaks,
@@ -101,6 +118,7 @@ import {
   type InstalledWebApp,
 } from "@/data/web-apps";
 import { _ } from "@/lib/core/i18n";
+import { publishWindowMenuState } from "@/lib/engine/app-bridge";
 import { cn } from "@/lib/core/utils";
 import {
   installWebAppDesktopEntry,
@@ -110,6 +128,8 @@ import {
 interface AppStoreAppProps {
   isCsd?: boolean;
   windowId?: string;
+  /** `install:deb:<path>` / `install:flatpak:<path>` when a package file was opened. */
+  initialPayload?: string;
 }
 
 type StoreCategory =
@@ -650,9 +670,29 @@ const WebAppFavicon: React.FC<{
   );
 };
 
+function parsePackagePayload(
+  payload: string | undefined,
+): { format: "deb" | "flatpak"; path: string } | null {
+  const match = payload?.match(/^install:(deb|flatpak):(.+)$/);
+  return match ? { format: match[1] as "deb" | "flatpak", path: match[2] ?? "" } : null;
+}
+
+const SOURCE_TOGGLES: ReadonlyArray<{
+  key: keyof SoftwareSourcesState;
+  label: () => string;
+}> = [
+  { key: "webApps", label: () => _("Web Apps") },
+  { key: "flatpak", label: () => _("Flatpak") },
+  { key: "system", label: () => _("System (Debian)") },
+  { key: "webExtensions", label: () => _("Web Extensions") },
+  { key: "desktopPlugins", label: () => _("Desktop Plugins") },
+  { key: "fonts", label: () => _("Fonts") },
+];
+
 export const AppStoreApp: React.FC<AppStoreAppProps> = ({
   isCsd = false,
   windowId,
+  initialPayload,
 }) => {
   const domicile = useDomicile();
   const { getAppIconUrl, refreshXdgApps } = useApps();
@@ -806,29 +846,6 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
     [],
   );
 
-  const [settingsPopoverOpen, setSettingsPopoverOpen] = React.useState(false);
-  const settingsPopoverRef = React.useRef<HTMLDivElement | null>(null);
-  const settingsPopoverPanelRef = React.useRef<HTMLDivElement | null>(null);
-  const [settingsPopoverPos, setSettingsPopoverPos] = React.useState<{
-    top: number;
-    right: number;
-  }>({ top: 0, right: 0 });
-  React.useEffect(() => {
-    if (!settingsPopoverOpen) return;
-    const onPointerDown = (e: PointerEvent) => {
-      const target = e.target as Node;
-      if (
-        settingsPopoverRef.current &&
-        !settingsPopoverRef.current.contains(target) &&
-        !settingsPopoverPanelRef.current?.contains(target)
-      ) {
-        setSettingsPopoverOpen(false);
-      }
-    };
-    window.addEventListener("pointerdown", onPointerDown);
-    return () => window.removeEventListener("pointerdown", onPointerDown);
-  }, [settingsPopoverOpen]);
-
   const [aptUpdates, setAptUpdates] = React.useState<AptUpdatePackage[]>(() =>
     isBrowserRuntime ? WEB_SIMULATED_APT_UPDATES : [],
   );
@@ -845,7 +862,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
     progress: number | null;
     statusLine?: string;
   } | null>(null);
-  const [viewMode, setViewMode] = React.useState<"list" | "grid">("list");
+  const viewMode: "list" | "grid" = "list";
   const [sortMode, setSortMode] = React.useState<
     "default" | "name" | "category" | "installed"
   >("default");
@@ -1977,6 +1994,96 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
     }
   }, [beginOp, domicile, endOp, isBrowserRuntime, pushNotification, refreshUpdates]);
 
+  // A .deb / .flatpakref opened from Folders or the Desktop asks to be installed here.
+  const [packageRequest, setPackageRequest] = React.useState<{
+    format: "deb" | "flatpak";
+    path: string;
+  } | null>(() => parsePackagePayload(initialPayload));
+  React.useEffect(() => {
+    const next = parsePackagePayload(initialPayload);
+    if (next) setPackageRequest(next);
+  }, [initialPayload]);
+
+  const handleInstallPackage = React.useCallback(async () => {
+    const req = packageRequest;
+    if (!req || !beginOp()) return;
+    setPackageRequest(null);
+    const label = req.path.split("/").pop() ?? req.path;
+    const command =
+      req.format === "deb" ? `apt install -y ${label}` : `flatpak install -y ${label}`;
+    setUpdatingTarget("__package__");
+    setOpStatus({ progress: null, statusLine: command });
+    try {
+      if (isBrowserRuntime) {
+        await new Promise((resolve) => window.setTimeout(resolve, 900));
+        pushNotification({
+          appName: "App Store",
+          summary: _("Package installed"),
+          body: _("%s was installed (simulated in the browser demo).", label),
+        });
+      } else {
+        const res =
+          req.format === "deb"
+            ? await installDebPackage(domicile, req.path)
+            : await installFlatpakFile(domicile, req.path);
+        pushNotification({
+          appName: "App Store",
+          summary: res.ok ? _("Package installed") : _("Installation failed"),
+          body: res.ok ? label : res.error || command,
+          ...(res.ok ? {} : { urgency: "critical" as const }),
+        });
+        if (res.ok) {
+          refreshXdgApps();
+          await refreshUpdates();
+        }
+      }
+    } finally {
+      setUpdatingTarget(null);
+      setOpStatus(null);
+      endOp();
+    }
+  }, [beginOp, domicile, endOp, isBrowserRuntime, packageRequest, pushNotification, refreshUpdates, refreshXdgApps]);
+
+  // View menu (sort order, refresh) lives in the menu bar, not the toolbar.
+  React.useEffect(() => {
+    if (!windowId) return;
+    publishWindowMenuState(windowId, {
+      "app-store:sort-default": { checked: sortMode === "default" },
+      "app-store:sort-name": { checked: sortMode === "name" },
+      "app-store:sort-category": { checked: sortMode === "category" },
+      "app-store:sort-installed": { checked: sortMode === "installed" },
+      "app-store:refresh": { disabled: isBusy },
+    });
+  }, [isBusy, sortMode, windowId]);
+
+  React.useEffect(() => {
+    if (!windowId) return;
+    const onAppAction = (e: Event) => {
+      const detail = (e as CustomEvent<{ windowId?: string; actionId?: string }>).detail;
+      if (!detail?.actionId) return;
+      if (detail.windowId && detail.windowId !== windowId) return;
+      switch (detail.actionId) {
+        case "app-store:sort-default":
+          setSortMode("default");
+          break;
+        case "app-store:sort-name":
+          setSortMode("name");
+          break;
+        case "app-store:sort-category":
+          setSortMode("category");
+          break;
+        case "app-store:sort-installed":
+          setSortMode("installed");
+          break;
+        case "app-store:refresh":
+          void handleReloadUpdates();
+          break;
+      }
+    };
+    window.addEventListener("piloti:app-action", onAppAction);
+    return () => window.removeEventListener("piloti:app-action", onAppAction);
+  }, [handleReloadUpdates, windowId]);
+
   const handleUpgradeSystem = React.useCallback(async () => {
     if (!beginOp()) return;
     setUpdatingTarget("__system__");
@@ -2132,6 +2239,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
   }, [category, searchOpen]);
 
   return (
+    <>
     <AdwSplitView
       title={_("App Store")}
       appId="app-store"
@@ -2261,165 +2369,30 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
             >
               <SearchIcon className="size-4" />
             </button>
-            {category !== "updates" && (
-              <>
-                <div className="flex items-center rounded-md bg-black/6 p-0.5 dark:bg-white/8">
-                  <button
-                    type="button"
-                    aria-label={_("List view")}
-                    title={_("List view")}
-                    onClick={() => setViewMode("list")}
-                    className={cn(
-                      "rounded px-1.5 py-0.5 text-[11px] font-medium transition-colors",
-                      viewMode === "list"
-                        ? "bg-adw-window text-adw-label shadow-xs"
-                        : "text-adw-label-secondary hover:text-adw-label",
-                    )}
-                  >
-                    {_("List")}
-                  </button>
-                  <button
-                    type="button"
-                    aria-label={_("Grid view")}
-                    title={_("Grid view")}
-                    onClick={() => setViewMode("grid")}
-                    className={cn(
-                      "rounded px-1.5 py-0.5 text-[11px] font-medium transition-colors",
-                      viewMode === "grid"
-                        ? "bg-adw-window text-adw-label shadow-xs"
-                        : "text-adw-label-secondary hover:text-adw-label",
-                    )}
-                  >
-                    {_("Grid")}
-                  </button>
-                </div>
-                <select
-                  aria-label={_("Sort")}
-                  value={sortMode}
-                  onChange={(e) =>
-                    setSortMode(
-                      e.target.value as "default" | "name" | "category" | "installed",
-                    )
-                  }
-                  className="h-7 rounded-md border border-adw-separator bg-black/6 px-2 text-[11.5px] font-medium text-adw-label outline-none dark:bg-white/10"
-                >
-                  <option value="default">{_("Default")}</option>
-                  <option value="name">{_("Name")}</option>
-                  <option value="category">{_("Category")}</option>
-                  <option value="installed">{_("Installed")}</option>
-                </select>
-              </>
-            )}
-            <button
-              type="button"
-              aria-label={_("Refresh")}
-              title={_("Refresh (apt update && flatpak update)")}
-              disabled={isBusy}
-              onClick={() => void handleReloadUpdates()}
-              className="flex size-7 items-center justify-center rounded-md text-adw-label-secondary transition-colors hover:bg-black/8 hover:text-adw-label disabled:opacity-50 dark:hover:bg-white/10"
-            >
-              <RefreshCwIcon
-                className={cn("size-4", reloadingUpdates && "animate-spin")}
-              />
-            </button>
-            <div ref={settingsPopoverRef} className="relative z-40">
-              <button
-                type="button"
+            <DropdownMenu>
+              <DropdownMenuTrigger
                 aria-label={_("Software Sources")}
-                aria-expanded={settingsPopoverOpen}
                 title={_("Software Sources")}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setSettingsPopoverOpen((prev) => !prev);
-                }}
-                className={cn(
-                  "flex size-7 items-center justify-center rounded-md transition-colors",
-                  settingsPopoverOpen
-                    ? "bg-black/10 text-adw-label dark:bg-white/15"
-                    : "text-adw-label-secondary hover:bg-black/8 hover:text-adw-label dark:hover:bg-white/10",
-                )}
+                className="flex size-7 items-center justify-center rounded-md text-adw-label-secondary transition-colors outline-none hover:bg-black/8 hover:text-adw-label data-popup-open:bg-black/10 data-popup-open:text-adw-label dark:hover:bg-white/10 dark:data-popup-open:bg-white/15"
               >
                 <SlidersHorizontalIcon className="size-4" />
-              </button>
-              {settingsPopoverOpen && (
-                <div
-                  onClick={(e) => e.stopPropagation()}
-                  className="pointer-events-auto absolute top-9 right-0 z-[200] w-60 rounded-xl border border-adw-separator bg-white/95 p-3 shadow-2xl ring-1 ring-black/10 backdrop-blur-2xl dark:bg-zinc-900/95 dark:ring-white/15"
-                >
-                  <div className="mb-2 text-[11px] font-semibold tracking-wider text-adw-label-tertiary uppercase">
-                    {_("Software Sources")}
-                  </div>
-                  <div className="space-y-2.5">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-[12.5px] font-medium text-adw-label">
-                        {_("Web Apps")}
-                      </span>
-                      <Switch
-                        checked={sources.webApps}
-                        onCheckedChange={(checked) =>
-                          updateSources({ webApps: Boolean(checked) })
-                        }
-                      />
-                    </div>
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-[12.5px] font-medium text-adw-label">
-                        {_("Flatpak")}
-                      </span>
-                      <Switch
-                        checked={sources.flatpak}
-                        onCheckedChange={(checked) =>
-                          updateSources({ flatpak: Boolean(checked) })
-                        }
-                      />
-                    </div>
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-[12.5px] font-medium text-adw-label">
-                        {_("System")}
-                      </span>
-                      <Switch
-                        checked={sources.system}
-                        onCheckedChange={(checked) =>
-                          updateSources({ system: Boolean(checked) })
-                        }
-                      />
-                    </div>
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-[12.5px] font-medium text-adw-label">
-                        {_("Web Extensions")}
-                      </span>
-                      <Switch
-                        checked={sources.webExtensions}
-                        onCheckedChange={(checked) =>
-                          updateSources({ webExtensions: Boolean(checked) })
-                        }
-                      />
-                    </div>
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-[12.5px] font-medium text-adw-label">
-                        {_("Desktop Plugins")}
-                      </span>
-                      <Switch
-                        checked={sources.desktopPlugins}
-                        onCheckedChange={(checked) =>
-                          updateSources({ desktopPlugins: Boolean(checked) })
-                        }
-                      />
-                    </div>
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-[12.5px] font-medium text-adw-label">
-                        {_("Fonts")}
-                      </span>
-                      <Switch
-                        checked={sources.fonts}
-                        onCheckedChange={(checked) =>
-                          updateSources({ fonts: Boolean(checked) })
-                        }
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>{_("Software Sources")}</DropdownMenuLabel>
+                {SOURCE_TOGGLES.map(({ key, label }) => (
+                  <DropdownMenuCheckboxItem
+                    key={key}
+                    checked={sources[key]}
+                    closeOnClick={false}
+                    onCheckedChange={(checked) =>
+                      updateSources({ [key]: Boolean(checked) } as Partial<SoftwareSourcesState>)
+                    }
+                  >
+                    {label()}
+                  </DropdownMenuCheckboxItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
             {isCsd && windowId && <WindowControls side="right" />}
           </div>
         </WindowTitlebar>
@@ -3290,7 +3263,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                                   : selectedItem.font?.source === "Document"
                                     ? _("Document Font")
                                     : _("Web Font")
-                                : _("System")}
+                                : _("System (Debian)")}
                     </span>
                   </div>
                   <div className="flex items-center justify-between gap-2 px-3 py-2">
@@ -3325,5 +3298,46 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
         </div>
         )}
       </AdwSplitView>
+        <Dialog
+          open={Boolean(packageRequest)}
+          onOpenChange={(open) => {
+            if (!open) setPackageRequest(null);
+          }}
+        >
+          <DialogContent showCloseButton={false} className="sm:max-w-sm">
+            <DialogHeader>
+              <DialogTitle>
+                {packageRequest?.format === "flatpak"
+                  ? _("Install Flatpak Bundle?")
+                  : _("Install Debian Package?")}
+              </DialogTitle>
+              <DialogDescription>
+                {packageRequest
+                  ? _(
+                      "%s will be installed on this system. Administrator permission may be requested.",
+                      packageRequest.path.split("/").pop() ?? packageRequest.path,
+                    )
+                  : ""}
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <button
+                type="button"
+                onClick={() => setPackageRequest(null)}
+                className="rounded-lg bg-black/8 px-3 py-1.5 text-xs font-medium text-adw-label transition-colors hover:bg-black/14 dark:bg-white/10 dark:hover:bg-white/16"
+              >
+                {_("Cancel")}
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleInstallPackage()}
+                className="rounded-lg bg-adw-accent px-3 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-90"
+              >
+                {_("Install")}
+              </button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+    </>
     );
   };

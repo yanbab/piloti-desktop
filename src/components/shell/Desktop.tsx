@@ -1,4 +1,6 @@
 import * as React from "react";
+import { emitShellEvent, onShellEvent } from "@/lib/shell/shell-events";
+import { countRender } from "@/lib/core/render-stats";
 import { useDomicile } from "@domicile-desktop/react/domicile-provider";
 import {
   ContextMenu,
@@ -16,9 +18,11 @@ import {
 } from "@/components/ui/tooltip";
 import {
   DesktopStateProvider,
+  useChromeSettings,
   useSettings,
   useSystemBackends,
-  useWindowManager,
+  useWindowActions,
+  useWindowManagerSelector,
 } from "@/context/DesktopStateContext";
 import {
   canonicalizeWebUrl,
@@ -91,7 +95,8 @@ logBootEvent("starting shell");
 
 function DesktopSurface() {
   const domicile = useDomicile();
-  const { isBrowserRuntime, settings, updateSettings } = useSettings();
+  // Chrome view of settings: window drags (saved bounds) don't re-render the surface.
+  const { isBrowserRuntime, settings, updateSettings } = useChromeSettings();
 
   React.useEffect(() => {
     logBootEvent(`finish load shell in ${bootElapsedMs()}ms`);
@@ -104,15 +109,13 @@ function DesktopSurface() {
     webPowerPhase,
     powerOnSimulatedMachine,
   } = useSystemBackends();
-  const {
-    aboutOpen,
-    altTabOpen,
-    overviewOpen,
-    setOverviewOpen,
-    setLauncherOpen,
-    setControlPanelOpen,
-    launchApp,
-  } = useWindowManager();
+  const { aboutOpen, altTabOpen, overviewOpen } = useWindowManagerSelector((wm) => ({
+    aboutOpen: wm.aboutOpen,
+    altTabOpen: wm.altTabOpen,
+    overviewOpen: wm.overviewOpen,
+  }));
+  const { setOverviewOpen, setLauncherOpen, setControlPanelOpen, launchApp } =
+    useWindowActions();
 
   React.useEffect(() => {
     const onDismissPopups = () => {
@@ -120,9 +123,9 @@ function DesktopSurface() {
       setControlPanelOpen(false);
       setOverviewOpen(false);
     };
-    window.addEventListener("piloti:dismiss-popups", onDismissPopups);
+    const offDismissPopups = onShellEvent("piloti:dismiss-popups", onDismissPopups);
     return () => {
-      window.removeEventListener("piloti:dismiss-popups", onDismissPopups);
+      offDismissPopups();
     };
   }, [setControlPanelOpen, setLauncherOpen, setOverviewOpen]);
 
@@ -381,7 +384,7 @@ function DomicileShellCommandBridge() {
     startScreenRecording,
   } = useSystemBackends();
   const { launchApp, openWebUrl, setLauncherOpen, toggleOverview } =
-    useWindowManager();
+    useWindowActions();
 
   const handlersRef = React.useRef<PilotiShellCommandHandlers>({
     launchApp,
@@ -468,7 +471,10 @@ function DomicileShellCommandBridge() {
 }
 
 function ShellFocusAndContextGuard() {
-  const { launcherOpen, controlPanelOpen } = useWindowManager();
+  const { launcherOpen, controlPanelOpen } = useWindowManagerSelector((wm) => ({
+    launcherOpen: wm.launcherOpen,
+    controlPanelOpen: wm.controlPanelOpen,
+  }));
   const previousFocusRef = React.useRef<HTMLElement | null>(null);
   const wasPopoverOpenRef = React.useRef(false);
 
@@ -516,6 +522,7 @@ function ShellFocusAndContextGuard() {
 }
 
 export function Desktop() {
+  countRender("Desktop");
   return (
     <DesktopStateProvider>
       <TooltipProvider delay={320}>

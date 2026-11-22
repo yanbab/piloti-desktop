@@ -39,7 +39,10 @@ export type FileBadgeKind =
   | "image"
   | "audio"
   | "video"
-  | "archive";
+  | "archive"
+  | "pdf"
+  | "link"
+  | "app";
 
 const PAPIRUS_FOLDER_BACK_PATH =
   "M 4,46.2 C 4,47.751 5.2488,49 6.8,49 H 57.2 C 58.751,49 60,47.751 60,46.2 V 15.8 C 60,14.249 58.751,13 57.2,13 H 32 C 27.8,13 26.4,7 22.2,7 H 6.8 C 5.2488,7 4,8.2488 4,9.8";
@@ -102,6 +105,11 @@ export function inferFileBadge(
     return "empty-text";
   }
   const ext = name?.split(".").pop()?.toLowerCase() ?? "";
+  if (ext === "url" || ext === "webloc" || iconCandidates?.includes("emblem-symbolic-link")) {
+    return "link";
+  }
+  if (ext === "pdf" || iconCandidates?.includes("application-pdf")) return "pdf";
+  if (ext === "desktop") return "app";
   if (
     ext === "html" ||
     ext === "htm" ||
@@ -240,6 +248,40 @@ function renderFileBadgeGlyph(badge: FileBadgeKind, shades: FolderShadePair) {
           d="m 29,26 v 3 h 3 v -3 z m 3,3 v 3 h 3 v -3 z m -3,3 v 3 h 3 v -3 z m 3,3 v 3 h 3 v -3 z m -3,5 c -1.1,0 -2,0.9 -2,2 v 8 c 0,1.1 0.9,2 2,2 h 6 c 1.1,0 2,-0.9 2,-2 v -8 c 0,-1.1 -0.9,-2 -2,-2 z m 1,3 h 4 v 6 h -4 z"
           fill={shades.back}
         />
+      );
+    case "link":
+      return (
+        <g fill={shades.back}>
+          <path d="M 28.5,34 C 25.5,34 23,36.5 23,39.5 23,42.5 25.5,45 28.5,45 H 31 v -2.5 h -2.5 c -1.6,0 -3,-1.4 -3,-3 0,-1.6 1.4,-3 3,-3 H 31 V 34 Z" />
+          <path d="M 35.5,34 H 33 v 2.5 h 2.5 c 1.6,0 3,1.4 3,3 0,1.6 -1.4,3 -3,3 H 33 V 45 h 2.5 c 3,0 5.5,-2.5 5.5,-5.5 0,-3 -2.5,-5.5 -5.5,-5.5 z" />
+          <rect x="28" y="38.3" width="8" height="2.4" rx="1.2" />
+        </g>
+      );
+    case "app":
+      return (
+        <g fill={shades.back}>
+          <rect x="21" y="30" width="9" height="9" rx="2.2" />
+          <rect x="34" y="30" width="9" height="9" rx="2.2" opacity="0.7" />
+          <rect x="21" y="43" width="9" height="9" rx="2.2" opacity="0.7" />
+          <rect x="34" y="43" width="9" height="9" rx="2.2" />
+        </g>
+      );
+    case "pdf":
+      return (
+        <g>
+          <rect x="18" y="33" width="28" height="15" rx="3" fill="#e5484d" opacity="0.92" />
+          <text
+            x="32"
+            y="44.2"
+            textAnchor="middle"
+            fontSize="10.5"
+            fontWeight="700"
+            fontFamily="system-ui, sans-serif"
+            fill="#ffffff"
+          >
+            PDF
+          </text>
+        </g>
       );
     case "empty-text":
       return (

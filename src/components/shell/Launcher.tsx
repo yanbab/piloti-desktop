@@ -1,4 +1,5 @@
 import * as React from "react";
+import { countRender } from "@/lib/core/render-stats";
 import {
   BellRingIcon,
   CalculatorIcon,
@@ -28,9 +29,11 @@ import {
 } from "@/components/ui/command";
 import {
   useApps,
-  useSettings,
+  useChromeSettings,
   useSystemBackends,
-  useWindowManager,
+  type DesktopWindowInstance,
+  useWindowActions,
+  useWindowManagerSelector,
 } from "@/context/DesktopStateContext";
 import { usePlugins } from "@/context/PluginsContext";
 import { APP_CATALOG } from "@/data/catalog";
@@ -244,8 +247,28 @@ function filterAndSort(entries: PaletteEntry[]): PaletteEntry[] {
 
 let persistedLauncherQuery = "";
 
-export function Launcher() {
-  const { isBrowserRuntime, settings, updateSettings } = useSettings();
+
+type LauncherWindow = Pick<
+  DesktopWindowInstance,
+  "id" | "appId" | "title" | "minimized" | "payload" | "browserUrl" | "browserWindowId" | "iconUrl"
+>;
+const NO_LAUNCHER_WINDOWS: LauncherWindow[] = [];
+function pickLauncherWindow(w: DesktopWindowInstance): LauncherWindow {
+  return {
+    id: w.id,
+    appId: w.appId,
+    title: w.title,
+    minimized: w.minimized,
+    payload: w.payload,
+    browserUrl: w.browserUrl,
+    browserWindowId: w.browserWindowId,
+    iconUrl: w.iconUrl,
+  };
+}
+
+export const Launcher = React.memo(function Launcher() {
+  countRender("Launcher");
+  const { isBrowserRuntime, settings, updateSettings } = useChromeSettings();
   const { pluginCommands } = usePlugins();
   const {
     pushNotification,
@@ -261,12 +284,27 @@ export function Launcher() {
     getAppIconUrl,
     refreshXdgApps,
   } = useApps();
+  // While closed the Launcher only needs `launcherOpen`; window data is
+  // selected only when open so window changes don't re-render it.
+  const { launcherOpen, windows, mruWindows, focusedWindowId } =
+    useWindowManagerSelector((wm) => {
+      if (!wm.launcherOpen) {
+        return {
+          launcherOpen: false,
+          windows: NO_LAUNCHER_WINDOWS,
+          mruWindows: NO_LAUNCHER_WINDOWS,
+          focusedWindowId: null,
+        };
+      }
+      return {
+        launcherOpen: true,
+        windows: wm.windows.map(pickLauncherWindow),
+        mruWindows: wm.mruWindows.map(pickLauncherWindow),
+        focusedWindowId: wm.focusedWindowId,
+      };
+    });
   const {
-    launcherOpen,
     setLauncherOpen,
-    windows,
-    mruWindows,
-    focusedWindowId,
     launchApp,
     launchXdgApp,
     openWebUrl,
@@ -275,7 +313,7 @@ export function Launcher() {
     tileWindow,
     toggleMaximizeWindow,
     openAltTab,
-  } = useWindowManager();
+  } = useWindowActions();
 
   const [searchQuery, setSearchQueryState] = React.useState(
     () => persistedLauncherQuery
@@ -1231,4 +1269,4 @@ export function Launcher() {
       )}
     </Command>
   );
-}
+});

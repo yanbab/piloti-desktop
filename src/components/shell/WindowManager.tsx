@@ -1,5 +1,6 @@
 /// <reference types="@domicile-desktop/react/elements" />
 import * as React from "react";
+import { emitShellEvent, onShellEvent } from "@/lib/shell/shell-events";
 import { useDomicile } from "@domicile-desktop/react/domicile-provider";
 import { useWatch } from "@domicile-desktop/react/use-watch";
 import { WindowRequestKind } from "@domicile-desktop/sdk/window-state";
@@ -227,7 +228,7 @@ function darkenThemeColor(cssColor: string): string {
 }
 
 function dismissOpenPopups() {
-  window.dispatchEvent(new CustomEvent("piloti:dismiss-popups"));
+  emitShellEvent("piloti:dismiss-popups");
   document.dispatchEvent(
     new KeyboardEvent("keydown", {
       key: "Escape",
@@ -599,10 +600,10 @@ function WebViewSurface({
       if (detail.windowId && detail.windowId !== win.id) return;
       triggerPrint();
     };
-    window.addEventListener("piloti:print-focused", onPrintFocused);
+    const offPrintFocused = onShellEvent("piloti:print-focused", onPrintFocused);
     window.addEventListener("piloti:app-action", onAppAction);
     return () => {
-      window.removeEventListener("piloti:print-focused", onPrintFocused);
+      offPrintFocused();
       window.removeEventListener("piloti:app-action", onAppAction);
     };
   }, [focusedWindowId, isBrowserRuntime, win.id]);
@@ -1238,7 +1239,7 @@ const WindowBody = React.memo(
       return (
         <React.Suspense fallback={null}>
           <WindowDomReadySignal windowId={win.id} onReady={onDomReady} />
-          <AppStoreApp isCsd={isCsd} windowId={win.id} />
+          <AppStoreApp isCsd={isCsd} windowId={win.id} initialPayload={win.payload} />
         </React.Suspense>
       );
     }
@@ -1436,13 +1437,12 @@ export function WindowManager() {
   const handleAnimatedClose = React.useCallback(
     (win: DesktopWindowInstance) => {
       if (closingWindowIds.has(win.id)) return;
-      const beforeCloseEvent = new CustomEvent("piloti:before-close-window", {
-        cancelable: true,
-        detail: { windowId: win.id },
-      });
-      if (!window.dispatchEvent(beforeCloseEvent)) {
-        return;
-      }
+      const allowed = emitShellEvent(
+        "piloti:before-close-window",
+        { windowId: win.id },
+        { cancelable: true },
+      );
+      if (!allowed) return;
       const el = windowElementsRef.current.get(win.id);
       if (!el || reducedMotion) {
         closeWindow(win.id);
@@ -1465,8 +1465,8 @@ export function WindowManager() {
   );
 
   React.useEffect(() => {
-    const onRequestAnimatedClose = (e: Event) => {
-      const windowId = (e as CustomEvent<{ windowId?: string }>).detail?.windowId;
+    const onRequestAnimatedClose = (detail: { windowId: string }) => {
+      const windowId = detail?.windowId;
       if (!windowId) return;
       const win = windows.find((w) => w.id === windowId);
       if (win) {
@@ -1475,8 +1475,7 @@ export function WindowManager() {
         closeWindow(windowId);
       }
     };
-    window.addEventListener("piloti:request-animated-close", onRequestAnimatedClose);
-    return () => window.removeEventListener("piloti:request-animated-close", onRequestAnimatedClose);
+    return onShellEvent("piloti:request-animated-close", onRequestAnimatedClose);
   }, [closeWindow, handleAnimatedClose, windows]);
   const [windowContextMenu, setWindowContextMenu] = React.useState<{
     windowId: string;

@@ -9,6 +9,14 @@ image/jpeg=image-viewer.desktop
 image/webp=image-viewer.desktop
 image/gif=image-viewer.desktop
 image/svg+xml=image-viewer.desktop
+image/bmp=image-viewer.desktop
+image/avif=image-viewer.desktop
+application/pdf=browser.desktop
+application/x-desktop=text-editor.desktop
+application/vnd.debian.binary-package=piloti-appstore.desktop
+application/vnd.flatpak.ref=piloti-appstore.desktop
+x-scheme-handler/http=browser.desktop
+x-scheme-handler/https=browser.desktop
 
 [Added Associations]
 inode/directory=nautilus.desktop;terminal.desktop;
@@ -18,3 +26,6 @@ text/html=browser.desktop;text-editor.desktop;
 text/*=text-editor.desktop;terminal.desktop;
 application/json=text-editor.desktop;console.desktop;
 image/*=image-viewer.desktop;browser.desktop;
+audio/*=browser.desktop;
+video/*=browser.desktop;
+application/pdf=browser.desktop;

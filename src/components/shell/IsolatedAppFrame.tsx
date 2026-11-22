@@ -1,4 +1,5 @@
 import * as React from "react";
+import { emitShellEvent, onShellEvent } from "@/lib/shell/shell-events";
 import { createRoot, type Root } from "react-dom/client";
 import {
   useSettings,
@@ -155,9 +156,7 @@ export const IsolatedAppFrame: React.FC<IsolatedAppFrameProps> = ({
         focusWindow(windowId);
       } else if (data.type === "piloti:window-control") {
         if (data.action === "close") {
-          window.dispatchEvent(
-            new CustomEvent("piloti:request-animated-close", { detail: { windowId } })
-          );
+          emitShellEvent("piloti:request-animated-close", { windowId: windowId });
         } else if (data.action === "minimize") minimizeWindow(windowId);
         else if (data.action === "maximize") toggleMaximizeWindow(windowId);
       } else if (data.type === "piloti:resize-window") {

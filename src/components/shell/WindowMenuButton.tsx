@@ -1,4 +1,5 @@
 import * as React from "react";
+import { countRender } from "@/lib/core/render-stats";
 import { MoreVerticalIcon } from "lucide-react";
 import {
   DropdownMenu,
@@ -7,7 +8,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useSettings, useWindowManager } from "@/context/DesktopStateContext";
+import {
+  useChromeSettings,
+  useWindowActions,
+  useWindowManagerSelector,
+} from "@/context/DesktopStateContext";
 import { _ } from "@/lib/core/i18n";
 
 export function isWindowControlsLeft(layout?: string): boolean {
@@ -15,7 +20,7 @@ export function isWindowControlsLeft(layout?: string): boolean {
   return raw.indexOf(":") > 0 && !raw.startsWith(":");
 }
 
-export function WindowMenuButton({
+export const WindowMenuButton = React.memo(function WindowMenuButton({
   windowId,
   side,
   extraItems,
@@ -29,16 +34,16 @@ export function WindowMenuButton({
   isWebApp?: boolean;
   extraItems?: React.ReactNode;
 }) {
-  const { settings } = useSettings();
-  const {
-    windows,
-    minimizeWindow,
-    toggleMaximizeWindow,
-    tileWindow,
-    closeWindow,
-  } = useWindowManager();
-
-  const win = windowId ? windows.find((w) => w.id === windowId) : undefined;
+  countRender("WindowMenuButton");
+  const { settings } = useChromeSettings();
+  const { minimizeWindow, toggleMaximizeWindow, tileWindow, closeWindow } =
+    useWindowActions();
+  // Rendered in every app titlebar: only re-render when *this* window's
+  // maximized state changes.
+  const win = useWindowManagerSelector((wm) => {
+    const found = windowId ? wm.windows.find((w) => w.id === windowId) : undefined;
+    return found ? { maximized: found.maximized } : undefined;
+  });
   const [open, setOpen] = React.useState(false);
 
   if (!settings.showWindowMenu) {
@@ -95,4 +100,4 @@ export function WindowMenuButton({
       </DropdownMenuContent>
     </DropdownMenu>
   );
-}
+});

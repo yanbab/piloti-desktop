@@ -9,7 +9,11 @@ import {
 import { AppSquircleIcon } from "@/components/shell/AppSymbol";
 import { isLottieIconUrl, LottieIcon } from "@/components/ui/lottie-icon";
 import { captureLaunchOriginFromElement } from "@/lib/shell/launch-origin";
-import { useApps, useSettings, useWindowManager } from "@/context/DesktopStateContext";
+import {
+  useApps,
+  useSettings,
+  useWindowManagerSelector,
+} from "@/context/DesktopStateContext";
 import {
   DynamicFileIcon,
   DynamicFolderIcon,
@@ -176,7 +180,9 @@ export function IconGrid({
 }: IconGridProps) {
   const { settings, isBrowserRuntime } = useSettings();
   const { getAppIconUrl } = useApps();
-  const { windows } = useWindowManager();
+  const windows = useWindowManagerSelector((wm) =>
+    wm.windows.map((w) => ({ appId: w.appId, payload: w.payload })),
+  );
   const folderLottieUrl = React.useMemo(() => {
     const url = getAppIconUrl("folder");
     return isLottieIconUrl(url) ? url : undefined;

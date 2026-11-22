@@ -1,4 +1,5 @@
 import * as React from "react";
+import { emitShellEvent, onShellEvent } from "@/lib/shell/shell-events";
 import { useDomicile } from "@domicile-desktop/react/domicile-provider";
 import {
   defaultKeymap,
@@ -20,7 +21,7 @@ import {
   StreamLanguage,
   syntaxHighlighting,
 } from "@codemirror/language";
-import { EditorState, type Extension } from "@codemirror/state";
+import { Compartment, EditorState, type Extension } from "@codemirror/state";
 import {
   EditorView,
   highlightActiveLine,
@@ -340,13 +341,11 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
   }, [handlePrint]);
 
   React.useEffect(() => {
-    const onPrintFocused = (e: Event) => {
-      const detail = (e as CustomEvent<{ windowId?: string }>).detail;
+    const onPrintFocused = (detail: { windowId?: string } | undefined) => {
       if (detail?.windowId && windowId && detail.windowId !== windowId) return;
       handlePrint();
     };
-    window.addEventListener("piloti:print-focused", onPrintFocused);
-    return () => window.removeEventListener("piloti:print-focused", onPrintFocused);
+    return onShellEvent("piloti:print-focused", onPrintFocused);
   }, [handlePrint, windowId]);
   const bridge = useIsolatedAppBridge(windowId, propIsCsd, handleMenuAction);
   const resolvedPath = React.useMemo(() => {
@@ -767,9 +766,7 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
     }
     persistEditorStateNow(filePathRef.current);
     if (typeof window !== "undefined" && window.parent === window) {
-      window.dispatchEvent(
-        new CustomEvent("piloti:request-animated-close", { detail: { windowId } }),
-      );
+      emitShellEvent("piloti:request-animated-close", { windowId: windowId });
     } else {
       bridge.closeWindow();
     }
@@ -785,8 +782,10 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
 
   React.useEffect(() => {
     if (!windowId) return;
-    const onBeforeClose = (e: Event) => {
-      const detail = (e as CustomEvent<{ windowId?: string }>).detail;
+    const onBeforeClose = (
+      detail: { windowId: string },
+      e: CustomEvent<{ windowId: string }>,
+    ) => {
       if (detail?.windowId !== windowId) return;
       if (isDirtyRef.current && !forceCloseRef.current && shouldConfirmUnsavedOnClose()) {
         e.preventDefault();
@@ -796,9 +795,7 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
       // Spatial: unsaved text is kept in editor-state.json and restored on reopen.
       persistEditorStateNow(filePathRef.current);
     };
-    window.addEventListener("piloti:before-close-window", onBeforeClose);
-    return () =>
-      window.removeEventListener("piloti:before-close-window", onBeforeClose);
+    return onShellEvent("piloti:before-close-window", onBeforeClose);
   }, [persistEditorStateNow, windowId]);
 
   const persistText = React.useCallback(
@@ -810,6 +807,63 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
     [schedulePersistEditorState],
   );
 
+  // Preferences live in CodeMirror compartments so toggling them (or the theme)
+  // reconfigures the existing view instead of rebuilding it — undo history,
+  // selection and folds survive.
+  const compartmentsRef = React.useRef<{
+    gutter: Compartment;
+    activeLine: Compartment;
+    wrap: Compartment;
+    highlight: Compartment;
+  } | null>(null);
+  if (!compartmentsRef.current) {
+    compartmentsRef.current = {
+      gutter: new Compartment(),
+      activeLine: new Compartment(),
+      wrap: new Compartment(),
+      highlight: new Compartment(),
+    };
+  }
+  const editorPrefs = {
+    showLineNumbers,
+    showCodeFolding,
+    highlightLine,
+    wordWrap,
+    enableHighlight,
+    isDark,
+    filePath,
+  };
+  const editorPrefsRef = React.useRef(editorPrefs);
+  editorPrefsRef.current = editorPrefs;
+
+  const buildPrefExtensions = React.useCallback((prefs: typeof editorPrefs) => {
+    const gutter: Extension[] = [];
+    if (prefs.showLineNumbers) {
+      gutter.push(lineNumbers(), highlightActiveLineGutter());
+      if (prefs.showCodeFolding) {
+        gutter.push(
+          codeFolding({ placeholderText: "…" }),
+          foldGutter({ openText: "⌄", closedText: "›" }),
+        );
+      }
+    }
+    return {
+      gutter,
+      activeLine: prefs.highlightLine ? [highlightActiveLine()] : [],
+      wrap: prefs.wordWrap ? [EditorView.lineWrapping] : [],
+      highlight: prefs.enableHighlight
+        ? [
+            syntaxHighlighting(
+              prefs.isDark ? adwDarkHighlightStyle : adwLightHighlightStyle,
+              { fallback: true },
+            ),
+            ...resolveLanguageExtension(prefs.filePath),
+          ]
+        : [],
+    };
+  }, []);
+
+  // Create the view once per file (and when returning to Code mode).
   React.useEffect(() => {
     if (viewMode !== "code") {
       viewRef.current?.destroy();
@@ -817,13 +871,19 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
       return;
     }
     const host = editorHostRef.current;
-    if (!host) return;
+    const compartments = compartmentsRef.current;
+    if (!host || !compartments) return;
 
+    const prefExts = buildPrefExtensions(editorPrefsRef.current);
     const extensions: Extension[] = [
       history(),
       bracketMatching(),
       keymap.of([indentWithTab, ...defaultKeymap, ...historyKeymap, ...foldKeymap]),
       adwEditorTheme,
+      compartments.gutter.of(prefExts.gutter),
+      compartments.activeLine.of(prefExts.activeLine),
+      compartments.wrap.of(prefExts.wrap),
+      compartments.highlight.of(prefExts.highlight),
       EditorView.updateListener.of((update) => {
         if (update.docChanged) {
           persistText(update.state.doc.toString());
@@ -839,30 +899,6 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
         }
       }),
     ];
-    if (showLineNumbers) {
-      extensions.push(lineNumbers(), highlightActiveLineGutter());
-      if (showCodeFolding) {
-        extensions.push(
-          codeFolding({ placeholderText: "…" }),
-          foldGutter({ openText: "⌄", closedText: "›" }),
-        );
-      }
-    }
-    if (highlightLine) {
-      extensions.push(highlightActiveLine());
-    }
-    if (wordWrap) {
-      extensions.push(EditorView.lineWrapping);
-    }
-    if (enableHighlight) {
-      extensions.push(
-        syntaxHighlighting(
-          isDark ? adwDarkHighlightStyle : adwLightHighlightStyle,
-          { fallback: true },
-        ),
-        ...resolveLanguageExtension(filePath),
-      );
-    }
 
     const state = EditorState.create({
       doc: contentRef.current,
@@ -897,17 +933,36 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
       viewRef.current = null;
     };
   }, [
-    enableHighlight,
+    buildPrefExtensions,
     filePath,
-    highlightLine,
-    isDark,
     persistText,
     restoreEditorViewState,
     saveEditorViewState,
     schedulePersistEditorState,
+    viewMode,
+  ]);
+
+  // Live-reconfigure preferences / theme on the existing view.
+  React.useEffect(() => {
+    const view = viewRef.current;
+    const compartments = compartmentsRef.current;
+    if (!view || !compartments) return;
+    const prefExts = buildPrefExtensions(editorPrefsRef.current);
+    view.dispatch({
+      effects: [
+        compartments.gutter.reconfigure(prefExts.gutter),
+        compartments.activeLine.reconfigure(prefExts.activeLine),
+        compartments.wrap.reconfigure(prefExts.wrap),
+        compartments.highlight.reconfigure(prefExts.highlight),
+      ],
+    });
+  }, [
+    buildPrefExtensions,
+    enableHighlight,
+    highlightLine,
+    isDark,
     showCodeFolding,
     showLineNumbers,
-    viewMode,
     wordWrap,
   ]);
 

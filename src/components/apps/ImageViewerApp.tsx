@@ -1,4 +1,5 @@
 import * as React from "react";
+import { emitShellEvent, onShellEvent } from "@/lib/shell/shell-events";
 import {
   CheckIcon,
   CropIcon,
@@ -387,9 +388,7 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
   const performClose = React.useCallback(() => {
     persistViewStateNow();
     if (window.parent === window) {
-      window.dispatchEvent(
-        new CustomEvent("piloti:request-animated-close", { detail: { windowId } }),
-      );
+      emitShellEvent("piloti:request-animated-close", { windowId: windowId });
     } else {
       bridge.closeWindow();
     }
@@ -404,8 +403,10 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
 
   React.useEffect(() => {
     if (!windowId) return;
-    const onBeforeClose = (e: Event) => {
-      const detail = (e as CustomEvent<{ windowId?: string }>).detail;
+    const onBeforeClose = (
+      detail: { windowId: string },
+      e: CustomEvent<{ windowId: string }>,
+    ) => {
       if (detail?.windowId !== windowId) return;
       if (dirtyRef.current && !forceCloseRef.current && shouldConfirmUnsavedOnClose()) {
         e.preventDefault();
@@ -414,9 +415,7 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
       }
       persistViewStateNow();
     };
-    window.addEventListener("piloti:before-close-window", onBeforeClose);
-    return () =>
-      window.removeEventListener("piloti:before-close-window", onBeforeClose);
+    return onShellEvent("piloti:before-close-window", onBeforeClose);
   }, [persistViewStateNow, windowId]);
 
   React.useEffect(() => {

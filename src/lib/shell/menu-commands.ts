@@ -12,7 +12,7 @@ export interface MenuCommand {
   run: () => void;
 }
 
-/** Window-level event that opens the Help menu with its search field focused. */
+/** Shell event that opens the Help menu with its search field focused (see `shell-events.ts`). */
 export const OPEN_COMMAND_HUD_EVENT = "piloti:open-command-hud";
 
 export function cleanMenuLabel(label: string): string {

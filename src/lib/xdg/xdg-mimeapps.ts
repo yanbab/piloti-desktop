@@ -1,4 +1,5 @@
 import type { Domicile } from "@domicile-desktop/sdk/desktop/desktop";
+import type { XdgDesktopEntry } from "./xdg-desktop-entry";
 import { readFsTextFile, writeFsTextFile } from "@/lib/engine/fs-bridge";
 import { DEFAULT_MIMEAPPS_INI, WEB_VFS_HOME } from "@/lib/engine-web/web-vfs";
 
@@ -14,16 +15,99 @@ export interface MimeAppOption {
   desktopId: string;
   appId: string;
   label: string;
+  /** Installed `.desktop` entry backing this option (absent for built-in shell apps). */
+  entry?: XdgDesktopEntry;
+  /** Built-in shell app id (`launchApp`) when this option is one of ours. */
+  builtinAppId?: string;
 }
 
+/** Built-in shell apps, addressable by several desktop ids (legacy + `piloti-*.desktop`). */
 const KNOWN_MIME_APPS: Record<string, { appId: string; label: string }> = {
   "nautilus.desktop": { appId: "nautilus", label: "Folders" },
   "org.gnome.Nautilus.desktop": { appId: "nautilus", label: "Folders" },
+  "piloti-files.desktop": { appId: "nautilus", label: "Folders" },
   "text-editor.desktop": { appId: "text-editor", label: "Notepad" },
+  "piloti-notepad.desktop": { appId: "text-editor", label: "Notepad" },
   "terminal.desktop": { appId: "terminal", label: "Desktop Shell" },
+  "piloti-shell.desktop": { appId: "terminal", label: "Desktop Shell" },
   "image-viewer.desktop": { appId: "image-viewer", label: "Image Viewer" },
+  "piloti-image-viewer.desktop": { appId: "image-viewer", label: "Image Viewer" },
   "browser.desktop": { appId: "browser", label: "Web Browser" },
   "console.desktop": { appId: "console", label: "Desktop Console" },
+  "piloti-console.desktop": { appId: "console", label: "Desktop Console" },
+  "app-store.desktop": { appId: "app-store", label: "App Store" },
+  "piloti-appstore.desktop": { appId: "app-store", label: "App Store" },
+  "piloti-calculator.desktop": { appId: "calculator", label: "Calculator" },
+};
+
+/**
+ * Used when `mimeapps.list` has nothing for a type, so every common file kind
+ * still has a sensible default (first match wins; patterns end in `/*` for a family).
+ */
+const BUILTIN_MIME_DEFAULTS: ReadonlyArray<readonly [pattern: string, desktopIds: readonly string[]]> = [
+  ["inode/directory", ["nautilus.desktop"]],
+  ["image/*", ["image-viewer.desktop", "browser.desktop"]],
+  ["text/html", ["browser.desktop", "text-editor.desktop"]],
+  ["application/pdf", ["browser.desktop"]],
+  ["audio/*", ["browser.desktop"]],
+  ["video/*", ["browser.desktop"]],
+  ["text/*", ["text-editor.desktop"]],
+  ["application/json", ["text-editor.desktop"]],
+  ["application/xml", ["text-editor.desktop"]],
+  ["application/x-shellscript", ["text-editor.desktop", "terminal.desktop"]],
+  ["application/vnd.debian.binary-package", ["piloti-appstore.desktop"]],
+  ["application/vnd.flatpak.ref", ["piloti-appstore.desktop"]],
+  ["application/vnd.flatpak", ["piloti-appstore.desktop"]],
+  ["x-scheme-handler/http", ["browser.desktop"]],
+  ["x-scheme-handler/https", ["browser.desktop"]],
+];
+
+/** XDG `sub-class-of`: a type also inherits the apps of its parent types. */
+function mimeParents(mime: string): string[] {
+  const parents: string[] = [];
+  if (/^(text\/.+|application\/(json|xml|javascript|x-shellscript|x-yaml|toml|sql|x-desktop))$/.test(mime) && mime !== "text/plain") {
+    parents.push("text/plain");
+  }
+  if (mime === "image/svg+xml") parents.push("application/xml", "text/xml");
+  return parents;
+}
+
+/** True when `pattern` (`text/plain`, `image/*`) covers `mime`. */
+export function mimeMatchesPattern(pattern: string, mime: string): boolean {
+  if (pattern === mime) return true;
+  if (pattern.endsWith("/*")) return mime.startsWith(pattern.slice(0, -1));
+  return false;
+}
+
+const EXT_MIME: Record<string, string> = {
+  md: "text/markdown", markdown: "text/markdown",
+  html: "text/html", htm: "text/html",
+  css: "text/css", csv: "text/csv", tsv: "text/tab-separated-values",
+  xml: "application/xml", json: "application/json",
+  js: "text/javascript", mjs: "text/javascript", cjs: "text/javascript",
+  ts: "text/x-typescript", tsx: "text/x-typescript", jsx: "text/jsx",
+  sh: "application/x-shellscript", bash: "application/x-shellscript", zsh: "application/x-shellscript",
+  py: "text/x-python", rs: "text/rust", go: "text/x-go", c: "text/x-csrc", h: "text/x-chdr",
+  cpp: "text/x-c++src", hpp: "text/x-c++hdr", java: "text/x-java", sql: "application/sql",
+  yml: "application/x-yaml", yaml: "application/x-yaml", toml: "application/toml",
+  png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg", webp: "image/webp", gif: "image/gif",
+  svg: "image/svg+xml", bmp: "image/bmp", ico: "image/vnd.microsoft.icon", avif: "image/avif",
+  tif: "image/tiff", tiff: "image/tiff",
+  pdf: "application/pdf",
+  mp3: "audio/mpeg", wav: "audio/x-wav", ogg: "audio/ogg", oga: "audio/ogg", flac: "audio/flac",
+  m4a: "audio/mp4", aac: "audio/aac", opus: "audio/opus",
+  mp4: "video/mp4", m4v: "video/mp4", webm: "video/webm", mkv: "video/x-matroska",
+  mov: "video/quicktime", avi: "video/x-msvideo", ogv: "video/ogg",
+  zip: "application/zip", tar: "application/x-tar", gz: "application/gzip", tgz: "application/gzip",
+  bz2: "application/x-bzip2", xz: "application/x-xz", zst: "application/zstd",
+  "7z": "application/x-7z-compressed", rar: "application/vnd.rar",
+  deb: "application/vnd.debian.binary-package", rpm: "application/x-rpm",
+  flatpakref: "application/vnd.flatpak.ref", flatpak: "application/vnd.flatpak",
+  appimage: "application/vnd.appimage",
+  url: "application/x-mswinurl", webloc: "application/x-apple-webloc",
+  desktop: "application/x-desktop",
+  txt: "text/plain", ini: "text/plain", list: "text/plain", conf: "text/plain",
+  cfg: "text/plain", log: "text/plain",
 };
 
 export function inferMimeType(
@@ -32,28 +116,12 @@ export function inferMimeType(
 ): string {
   if (kind === "directory") return "inode/directory";
   const lower = name.toLowerCase();
-  if (lower.endsWith(".md") || lower.endsWith(".markdown")) return "text/markdown";
-  if (lower.endsWith(".html") || lower.endsWith(".htm")) return "text/html";
-  if (lower.endsWith(".json")) return "application/json";
-  if (lower.endsWith(".png")) return "image/png";
-  if (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) return "image/jpeg";
-  if (lower.endsWith(".webp")) return "image/webp";
-  if (lower.endsWith(".gif")) return "image/gif";
-  if (lower.endsWith(".svg")) return "image/svg+xml";
-  if (
-    lower.endsWith(".txt") ||
-    lower.endsWith(".ts") ||
-    lower.endsWith(".tsx") ||
-    lower.endsWith(".js") ||
-    lower.endsWith(".css") ||
-    lower.endsWith(".sh") ||
-    lower.endsWith(".ini") ||
-    lower.endsWith(".desktop") ||
-    lower.endsWith(".list") ||
-    !lower.includes(".")
-  ) {
-    return "text/plain";
+  const dot = lower.lastIndexOf(".");
+  if (dot > 0 && dot < lower.length - 1) {
+    const mapped = EXT_MIME[lower.slice(dot + 1)];
+    if (mapped) return mapped;
   }
+  if (dot <= 0 || dot === lower.length - 1) return "text/plain";
   return "application/octet-stream";
 }
 
@@ -94,38 +162,71 @@ export function parseMimeAppsList(content: string): MimeAppsConfig {
   return { defaults, added };
 }
 
+function toOption(desktopId: string, installed?: readonly XdgDesktopEntry[]): MimeAppOption {
+  const known = KNOWN_MIME_APPS[desktopId];
+  const entry = installed?.find(
+    (e) => e.desktopId === desktopId || e.desktopId.toLowerCase() === desktopId.toLowerCase(),
+  );
+  return {
+    desktopId,
+    appId: known?.appId ?? entry?.appId ?? desktopId.replace(/\.desktop$/i, ""),
+    label: entry?.name ?? known?.label ?? desktopId.replace(/\.desktop$/i, ""),
+    ...(known ? { builtinAppId: known.appId } : {}),
+    ...(entry ? { entry } : {}),
+  };
+}
+
+/**
+ * Applications able to open `mimeType`, best first:
+ * `mimeapps.list` defaults → added associations (exact, parent types, family) →
+ * installed `.desktop` entries declaring the type (our apps, web apps, .deb apps) →
+ * built-in fallbacks. Apps that aren't installed or are hidden are dropped when
+ * an `installed` list is given.
+ */
 export function resolveAppsForMime(
   mimeType: string,
   config: MimeAppsConfig,
+  installed?: readonly XdgDesktopEntry[],
 ): MimeAppOption[] {
+  const types = [mimeType, ...mimeParents(mimeType)];
   const [category] = mimeType.split("/");
   const genericMime = category ? `${category}/*` : "";
+  if (genericMime) types.push(genericMime);
 
-  const orderedDesktopIds: string[] = [];
-  const pushAll = (ids?: string[]) => {
-    if (!ids) return;
-    for (const id of ids) {
-      if (!orderedDesktopIds.includes(id)) {
-        orderedDesktopIds.push(id);
-      }
-    }
+  const ordered: string[] = [];
+  const pushAll = (ids?: readonly string[]) => {
+    for (const id of ids ?? []) if (!ordered.includes(id)) ordered.push(id);
   };
 
-  pushAll(config.defaults[mimeType]);
-  pushAll(config.added[mimeType]);
-  if (genericMime) {
-    pushAll(config.defaults[genericMime]);
-    pushAll(config.added[genericMime]);
+  for (const t of types) pushAll(config.defaults[t]);
+  for (const t of types) pushAll(config.added[t]);
+
+  if (installed) {
+    for (const entry of installed) {
+      if (entry.hidden || entry.noDisplay) continue;
+      if (entry.mimeTypes.some((p) => types.some((t) => mimeMatchesPattern(p, t) || mimeMatchesPattern(t, p)))) {
+        pushAll([entry.desktopId]);
+      }
+    }
   }
 
-  return orderedDesktopIds.map((desktopId) => {
-    const known = KNOWN_MIME_APPS[desktopId];
-    return {
-      desktopId,
-      appId: known?.appId ?? desktopId.replace(/\.desktop$/i, ""),
-      label: known?.label ?? desktopId.replace(/\.desktop$/i, ""),
-    };
-  });
+  for (const [pattern, ids] of BUILTIN_MIME_DEFAULTS) {
+    if (types.some((t) => mimeMatchesPattern(pattern, t))) pushAll(ids);
+  }
+
+  // One option per application: `text-editor.desktop` and `piloti-notepad.desktop` are the same app.
+  const seen = new Set<string>();
+  const options = ordered
+    .map((id) => toOption(id, installed))
+    .filter((o) => {
+      const key = o.builtinAppId ?? o.desktopId;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  if (!installed) return options;
+  // Keep our built-in apps and anything actually installed; drop dangling ids.
+  return options.filter((o) => o.builtinAppId || o.entry);
 }
 
 export async function loadMimeAppsConfig(

@@ -4,7 +4,8 @@ import { InlineCompletionInput } from "@/components/ui/inline-completion-input";
 import {
   useSettings,
   useSystemBackends,
-  useWindowManager,
+  useWindowActions,
+  useWindowManagerSelector,
 } from "@/context/DesktopStateContext";
 import {
   canonicalizeWebUrl,
@@ -189,13 +190,17 @@ export const TerminalApp: React.FC<TerminalAppProps> = ({ initialPath }) => {
     takeScreenshot,
     startScreenRecording,
   } = useSystemBackends();
-  const {
-    windows,
-    launchApp,
-    openWebUrl,
-    setLauncherOpen,
-    toggleOverview,
-  } = useWindowManager();
+  // Only the fields `ps`/`top` print, so window drags don't re-render the terminal.
+  const windows = useWindowManagerSelector((wm) =>
+    wm.windows.map((w) => ({
+      id: w.id,
+      appId: w.appId,
+      title: w.title,
+      builtinComponent: w.builtinComponent,
+      minimized: w.minimized,
+    })),
+  );
+  const { launchApp, openWebUrl, setLauncherOpen, toggleOverview } = useWindowActions();
   const [cwd, setCwd] = React.useState<string>(() => {
     if (initialPath) {
       const entry = getVfsEntry(initialPath);

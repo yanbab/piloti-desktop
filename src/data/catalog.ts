@@ -338,6 +338,12 @@ export const APP_CATALOG: AppDefinition[] = [
         items: [
           { label: "As Icons", shortcut: "Ctrl+1", actionId: "files:view-grid", checked: true },
           { label: "As List", shortcut: "Ctrl+2", actionId: "files:view-list", checked: false, separatorAfter: true },
+          { label: "Sort by Name", actionId: "files:sort-name", checked: true },
+          { label: "Sort by Kind", actionId: "files:sort-kind", checked: false },
+          { label: "Sort by Date Modified", actionId: "files:sort-modified", checked: false },
+          { label: "Sort by Size", actionId: "files:sort-size", checked: false, separatorAfter: true },
+          { label: "Ascending", actionId: "files:sort-asc", checked: true },
+          { label: "Descending", actionId: "files:sort-desc", checked: false, separatorAfter: true },
           { label: "Zoom In", shortcut: "Ctrl++", actionId: "files:zoom-in" },
           { label: "Zoom Out", shortcut: "Ctrl+-", actionId: "files:zoom-out", separatorAfter: true },
           { label: "Show Hidden Files", shortcut: "Ctrl+H", actionId: "files:toggle-hidden", checked: false },
@@ -427,7 +433,18 @@ export const APP_CATALOG: AppDefinition[] = [
     command: "piloti-appstore",
     defaultSize: { width: 880, height: 580 },
     minSize: { width: 320, height: 400 },
-    menus: [],
+    menus: [
+      {
+        title: "View",
+        items: [
+          { label: "Sort by Default", actionId: "app-store:sort-default", checked: true },
+          { label: "Sort by Name", actionId: "app-store:sort-name", checked: false },
+          { label: "Sort by Category", actionId: "app-store:sort-category", checked: false },
+          { label: "Sort by Installed", actionId: "app-store:sort-installed", checked: false, separatorAfter: true },
+          { label: "Refresh Software Catalog", actionId: "app-store:refresh" },
+        ],
+      },
+    ],
   },
   {
     id: "calculator",

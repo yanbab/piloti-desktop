@@ -1,4 +1,5 @@
 import * as React from "react";
+import { countRender } from "@/lib/core/render-stats";
 import { usePortalRequests } from "@domicile-desktop/react/portals";
 import { PortalKind, type PortalRequest } from "@domicile-desktop/sdk/portal";
 import {
@@ -31,7 +32,7 @@ import { Slider } from "@/components/ui/slider";
 import {
   useSettings,
   useSystemBackends,
-  useWindowManager,
+  useWindowActions,
 } from "@/context/DesktopStateContext";
 import { _, getLocale } from "@/lib/core/i18n";
 import { formatRelativeNotificationTime } from "@/lib/shell/notifications";
@@ -44,6 +45,7 @@ import {
 } from "./NotificationParts";
 
 export function ControlPanel() {
+  countRender("ControlPanel");
   const portalRequests = usePortalRequests() ?? [];
   const activeInhibitors = React.useMemo(
     () =>
@@ -70,7 +72,7 @@ export function ControlPanel() {
     startAudioRecording,
   } = useSystemBackends();
   const { setControlPanelOpen, launchApp, openGnomeSettings } =
-    useWindowManager();
+    useWindowActions();
   const [expandedPicker, setExpandedPicker] = React.useState<
     "wifi" | "bluetooth" | "audio" | null
   >(null);
@@ -710,7 +712,7 @@ export function FloatingNotifications() {
     clearAllNotifications,
     invokeNotificationAction,
   } = useSystemBackends();
-  const { setControlPanelOpen } = useWindowManager();
+  const { setControlPanelOpen } = useWindowActions();
   const [expanded, setExpanded] = React.useState(false);
 
   const [unreadSnapshot] = React.useState<Set<number>>(

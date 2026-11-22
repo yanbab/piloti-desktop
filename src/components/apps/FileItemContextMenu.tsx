@@ -44,6 +44,7 @@ export function FileItemContextMenu({
   onClose,
   onOpen,
   onOpenWithApp,
+  onMakeLink,
   onOpenInNewWindow,
   onOpenContainingFolder,
   onRestore,
@@ -69,7 +70,9 @@ export function FileItemContextMenu({
   selectedItems?: IconGridItem[];
   onClose: () => void;
   onOpen: (item: IconGridItem) => void;
-  onOpenWithApp?: (item: IconGridItem, appId: string) => void;
+  onOpenWithApp?: (item: IconGridItem, app: MimeAppOption) => void;
+  /** Create a link file (`.desktop`, Type=Link) pointing at the items. */
+  onMakeLink?: (items: IconGridItem[]) => void;
   onOpenInNewWindow?: (item: IconGridItem) => void;
   onOpenContainingFolder?: (item: IconGridItem) => void;
   onRestore?: (item: IconGridItem) => void;
@@ -127,6 +130,7 @@ export function FileItemContextMenu({
       ? resolveAppsForMime(
           inferMimeType(menu.item.name, "file"),
           mimeConfig,
+          installedXdgApps,
         )
       : [];
   const isVirtualView =
@@ -289,12 +293,10 @@ export function FileItemContextMenu({
                   {_("Open With")}
                 </div>
                 {openWithApps.map((appOpt) => {
-                  const catApp = APP_CATALOG.find((a) => a.id === appOpt.appId);
-                  const xdgApp = installedXdgApps.find(
-                    (a) =>
-                      a.appId === appOpt.appId ||
-                      a.desktopId === appOpt.desktopId,
+                  const catApp = APP_CATALOG.find(
+                    (a) => a.id === (appOpt.builtinAppId ?? appOpt.appId),
                   );
+                  const xdgApp = appOpt.entry;
                   const iconUrl = getAppIconUrl(
                     catApp?.id ?? xdgApp?.appId ?? appOpt.appId,
                   );
@@ -306,7 +308,7 @@ export function FileItemContextMenu({
                       onClick={() => {
                         const target = menu.item;
                         onClose();
-                        onOpenWithApp(target, appOpt.appId);
+                        onOpenWithApp(target, appOpt);
                       }}
                       className={itemBtnClass}
                     >
@@ -383,6 +385,19 @@ export function FileItemContextMenu({
                 ? `${_("Duplicate")} (${multiCount})`
                 : _("Duplicate")}
             </button>
+            {onMakeLink && !isVirtualView && !isTrash && (
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  onClose();
+                  onMakeLink(targetItems);
+                }}
+                className={itemBtnClass}
+              >
+                {multiCount > 1 ? `${_("Make Link")} (${multiCount})` : _("Make Link")}
+              </button>
+            )}
 
             <div className={MENU_SEPARATOR_CLASS} />
             <button

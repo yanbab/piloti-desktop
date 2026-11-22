@@ -1,6 +1,9 @@
 import * as React from "react";
 import { SunIcon, Volume2Icon, VolumeXIcon } from "lucide-react";
-import { useSettings, useWindowManager } from "@/context/DesktopStateContext";
+import {
+  useSettings,
+  useWindowManagerSelector,
+} from "@/context/DesktopStateContext";
 
 interface OsdPayload {
   kind: "volume" | "brightness";
@@ -14,7 +17,7 @@ interface OsdPayload {
  */
 export function OsdOverlay() {
   const { settings, updateSettings } = useSettings();
-  const { controlPanelOpen } = useWindowManager();
+  const controlPanelOpen = useWindowManagerSelector((wm) => wm.controlPanelOpen);
   const [osd, setOsd] = React.useState<OsdPayload | null>(null);
   const timerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const prevRef = React.useRef({

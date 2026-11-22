@@ -5,5 +5,5 @@ Comment=Minimal plain-text notepad with instant VFS save
 Exec=piloti-notepad %F
 Icon=accessories-text-editor
 Categories=Utility;TextEditor;
-MimeType=text/plain;text/markdown;application/json;
+MimeType=text/plain;text/markdown;text/css;text/csv;application/json;application/xml;application/x-shellscript;application/x-yaml;application/x-desktop;
 OnlyShowIn=Piloti;

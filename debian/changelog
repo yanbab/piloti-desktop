@@ -1,3 +1,25 @@
+piloti-desktop (0.10.5-1) unstable; urgency=medium
+
+  * Release v0.10.5:
+    - Render performance: window-manager selector store and stable actions,
+      chrome settings without drag-churned fields, memoized shell chrome,
+      CodeMirror compartments in the Text Editor (undo survives theme and
+      preference changes), debounced settings.ini, inotify watches for Trash
+      and Desktop, typed shell events.
+    - Link files (.desktop Type=Link, .url, .webloc) and "Make Link".
+    - One shared opener for Folders, Desktop and dock stacks: mimeapps.list,
+      installed apps, launcher files, packages; .deb and .flatpakref open in
+      the App Store with an install confirmation.
+    - Wider XDG mime inference and Open With from installed apps; fix App
+      Store launcher mapping (piloti-appstore).
+    - Dock folder stacks always show icons.
+    - App Store: simpler toolbar, sort in the View menu, Sources menu fixed,
+      "System (Debian)".
+    - Folders: sort order and view mode in the View menu.
+    - Accent-colored selected sidebar items; duplicate Edit menu removed.
+
+ -- yanbab <yanbab@gmail.com>  Mon, 23 Nov 2026 09:00:00 +0100
+
 piloti-desktop (0.10.4-1) unstable; urgency=medium
 
   * Release v0.10.4 (includes unreleased 0.10.3):

@@ -1,4 +1,8 @@
 import * as React from "react";
+import { useOpenPath } from "@/hooks/use-open-path";
+import { createFsTextFile } from "@/lib/engine/fs-bridge";
+import { buildLinkFile, isLinkFile, linkFileNameFor, pathToFileUrl } from "@/lib/shell/link-files";
+import { watchNativeDir } from "@/lib/engine-native/file-watch";
 import { useDomicile } from "@domicile-desktop/react/domicile-provider";
 import { FileType } from "@domicile-desktop/sdk/system";
 import {
@@ -83,6 +87,7 @@ export function DesktopIconsApp({
     launchXdgEntry,
   } = useApps();
   const { launchApp, openWebUrl } = useWindowActions();
+  const { openPath, openPathWith } = useOpenPath();
 
   const [items, setItems] = React.useState<IconGridItem[]>([]);
   const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
@@ -126,7 +131,7 @@ export function DesktopIconsApp({
             entry.name,
             entry.kind,
             getVfsContentType(entry),
-            { isEmpty }
+            { isEmpty, isLink: entry.kind === "file" && isLinkFile(entry.name, entry.content) }
           );
           for (const candidate of visual.iconCandidates) {
             iconCandidatesToEnsure.add(candidate);
@@ -334,26 +339,21 @@ export function DesktopIconsApp({
         unsubRenamed();
       };
     }
-    const timer = window.setInterval(() => {
-      if (
-        typeof document !== "undefined" &&
-        document.visibilityState === "hidden"
-      ) {
-        return;
-      }
-      if (!locked) {
-        void loadDesktopFolder();
-      }
-    }, 6000);
+    // inotify via Domicile instead of polling every 6 s (polls only as fallback).
+    const stopWatch = watchNativeDir(domicile.files, desktopDirPath, () => {
+      if (!locked) void loadDesktopFolder();
+    });
     const onFocus = () => {
       void loadDesktopFolder();
     };
     window.addEventListener("focus", onFocus);
     return () => {
-      window.clearInterval(timer);
+      stopWatch();
       window.removeEventListener("focus", onFocus);
     };
   }, [
+    desktopDirPath,
+    domicile.files,
     dockIconsReady,
     isBrowserRuntime,
     loadDesktopFolder,
@@ -686,38 +686,13 @@ export function DesktopIconsApp({
         return;
       }
 
-      if (item.kind === "directory") {
-        if (isBrowserRuntime) {
-          launchApp("nautilus", { payload: item.path, forceNew: true });
-          return;
-        }
-        launchDesktopCommand(domicile, ["nautilus", item.path]);
-        return;
-      }
-
-      if (isBrowserRuntime) {
-        const entry = getVfsEntry(item.path);
-        if (entry && entry.kind === "file") {
-          incrementVfsAccessCount(entry.path);
-          if (isImageVfsFile(entry.name, entry.content)) {
-            launchApp("image-viewer", { payload: entry.path });
-            return;
-          }
-          if (isTextEditableVfsFile(entry.name)) {
-            launchApp("text-editor", { payload: entry.path });
-            return;
-          }
-          openWebUrl(buildVfsEntryWebAppUrl(entry), {
-            asApp: true,
-            appId: `file:${entry.path}`,
-            title: entry.name,
-          });
-        }
-        return;
-      }
-      launchDesktopCommand(domicile, ["xdg-open", item.path]);
+      void openPath(item.path, {
+        kind: item.kind === "directory" ? "directory" : "file",
+        name: item.name,
+        onExtracted: () => void loadDesktopFolder(),
+      });
     },
-    [domicile, isBrowserRuntime, launchApp, launchXdgEntry, openWebUrl]
+    [isBrowserRuntime, launchApp, launchXdgEntry, loadDesktopFolder, openPath]
   );
 
   const handlePasteToDesktop = React.useCallback(async () => {
@@ -914,11 +889,25 @@ export function DesktopIconsApp({
         selectedItems={selectedItems}
         onClose={() => setContextMenu(null)}
         onOpen={handleActivateItem}
-        onOpenWithApp={(target, appId) => {
-          if (target.kind === "file" && target.path) {
-            incrementVfsAccessCount(target.path);
+        onOpenWithApp={(target, app) => {
+          void openPathWith(target.path, app, {
+            kind: target.kind === "directory" ? "directory" : "file",
+          });
+        }}
+        onMakeLink={(list) => {
+          const created: string[] = [];
+          for (const target of list) {
+            const link = createFsTextFile(
+              domicile,
+              isBrowserRuntime,
+              desktopDirPath,
+              linkFileNameFor(target.name),
+              buildLinkFile({ name: target.name, url: pathToFileUrl(target.path) }),
+            );
+            created.push(link.name);
           }
-          launchApp(appId, { payload: target.path, forceNew: true });
+          void loadDesktopFolder();
+          if (created.length > 0) setSelectedIds(created);
         }}
         onOpenInNewWindow={(target) =>
           launchApp("nautilus", { payload: target.path, forceNew: true })

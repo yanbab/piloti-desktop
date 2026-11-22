@@ -189,6 +189,7 @@ export type WindowActionsValue = Pick<
   | "toggleOverview"
   | "moveWindowToWorkspace"
   | "removeWorkspace"
+  | "openAltTab"
 >;
 
 export const WindowsContext = React.createContext<WindowsContextValue | null>(null);
@@ -2155,6 +2156,7 @@ function pruneBrowserRecord(
         "piloti-calculator": "calculator",
         "piloti-image-viewer": "image-viewer",
         "piloti-login": "login-screen",
+        "piloti-appstore": "app-store",
         "piloti-applications": "app-store",
         "piloti-app-store": "app-store",
         "piloti-console": "console",

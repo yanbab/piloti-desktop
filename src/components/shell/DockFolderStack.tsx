@@ -1,4 +1,5 @@
 import * as React from "react";
+import { emitShellEvent, onShellEvent } from "@/lib/shell/shell-events";
 import { createPortal } from "react-dom";
 import { useDomicile } from "@domicile-desktop/react/domicile-provider";
 import {
@@ -6,18 +7,14 @@ import {
   MENU_POPUP_CLASS,
   MENU_SEPARATOR_CLASS,
 } from "@/components/ui/menu-styles";
-import { useApps } from "@/context/AppsContext";
+import { DynamicFileIcon, DynamicFolderIcon } from "@/data/folder-icons";
+import { useOpenPath } from "@/hooks/use-open-path";
+import { isLinkFile } from "@/lib/shell/link-files";
 import { useSettings, useWindowActions } from "@/context/DesktopStateContext";
 import { _ } from "@/lib/core/i18n";
 import { cn } from "@/lib/core/utils";
-import { launchDesktopCommand } from "@/lib/engine-native";
 import { listFsDir } from "@/lib/engine/fs-bridge";
 import {
-  buildVfsEntryWebAppUrl,
-  getVfsEntry,
-  incrementVfsAccessCount,
-  isImageVfsFile,
-  isTextEditableVfsFile,
   subscribeWebVfs,
   type WebVfsEntry,
 } from "@/lib/engine-web/web-vfs";
@@ -41,9 +38,9 @@ export function DockFolderStack({
   onClose,
 }: DockFolderStackProps) {
   const domicile = useDomicile();
-  const { isBrowserRuntime } = useSettings();
-  const { launchApp, openWebUrl } = useWindowActions();
-  const { getAppIconUrl } = useApps();
+  const { isBrowserRuntime, settings } = useSettings();
+  const { launchApp } = useWindowActions();
+  const { openPath } = useOpenPath();
   const [entries, setEntries] = React.useState<WebVfsEntry[] | null>(null);
   const panelRef = React.useRef<HTMLDivElement | null>(null);
 
@@ -85,12 +82,12 @@ export function DockFolderStack({
     window.addEventListener("pointerdown", onPointerDown, true);
     window.addEventListener("keydown", onKey);
     window.addEventListener("blur", onClose);
-    window.addEventListener("piloti:dismiss-popups", onClose);
+    const offDismissPopups = onShellEvent("piloti:dismiss-popups", onClose);
     return () => {
       window.removeEventListener("pointerdown", onPointerDown, true);
       window.removeEventListener("keydown", onKey);
       window.removeEventListener("blur", onClose);
-      window.removeEventListener("piloti:dismiss-popups", onClose);
+      offDismissPopups();
     };
   }, [onClose, path]);
 
@@ -105,29 +102,9 @@ export function DockFolderStack({
   const openEntry = React.useCallback(
     (entry: WebVfsEntry) => {
       onClose();
-      if (entry.kind === "directory") {
-        launchApp("nautilus", { payload: entry.path, forceNew: true });
-        return;
-      }
-      if (isBrowserRuntime) {
-        const vfsEntry = getVfsEntry(entry.path) ?? entry;
-        incrementVfsAccessCount(vfsEntry.path);
-        if (isImageVfsFile(vfsEntry.name, vfsEntry.content)) {
-          launchApp("image-viewer", { payload: vfsEntry.path });
-        } else if (isTextEditableVfsFile(vfsEntry.name)) {
-          launchApp("text-editor", { payload: vfsEntry.path });
-        } else {
-          openWebUrl(buildVfsEntryWebAppUrl(vfsEntry), {
-            asApp: true,
-            appId: `file:${vfsEntry.path}`,
-            title: vfsEntry.name,
-          });
-        }
-        return;
-      }
-      launchDesktopCommand(domicile, ["xdg-open", entry.path]);
+      void openPath(entry.path, { kind: entry.kind, name: entry.name });
     },
-    [domicile, isBrowserRuntime, launchApp, onClose, openWebUrl]
+    [onClose, openPath]
   );
 
   const style: React.CSSProperties = { position: "fixed", zIndex: 300 };
@@ -151,11 +128,30 @@ export function DockFolderStack({
 
   const shown = (entries ?? []).slice(0, MAX_STACK_ITEMS);
 
-  const iconFor = (entry: WebVfsEntry): string | undefined => {
-    const visual = inferFileVisual(entry.name, entry.kind);
-    return visual.iconCandidates
-      .map((c) => getAppIconUrl(c))
-      .find((u): u is string => Boolean(u));
+  // Same accent-tinted folder/file drawings as Folders and the Desktop, so every
+  // entry has an icon (the icon-theme lookup misses most mime icons).
+  const renderIcon = (entry: WebVfsEntry) => {
+    if (entry.kind === "directory") {
+      return (
+        <DynamicFolderIcon
+          accentColor={settings.accentColor}
+          pathOrName={entry.path}
+          className="size-6 shrink-0"
+        />
+      );
+    }
+    const visual = inferFileVisual(entry.name, entry.kind, undefined, {
+      isEmpty: typeof entry.size === "number" ? entry.size === 0 : undefined,
+      isLink: isLinkFile(entry.name, entry.content),
+    });
+    return (
+      <DynamicFileIcon
+        accentColor={settings.accentColor}
+        name={entry.name}
+        iconCandidates={visual.iconCandidates}
+        className="size-6 shrink-0"
+      />
+    );
   };
 
   return createPortal(
@@ -177,7 +173,6 @@ export function DockFolderStack({
           </div>
         ) : (
           shown.map((entry) => {
-            const icon = iconFor(entry);
             return (
               <button
                 key={entry.path}
@@ -186,16 +181,7 @@ export function DockFolderStack({
                 onClick={() => openEntry(entry)}
                 className={cn(MENU_ITEM_CLASS, "w-full text-left hover:bg-adw-menu-highlight")}
               >
-                {icon ? (
-                  <img
-                    src={icon}
-                    alt=""
-                    draggable={false}
-                    className="size-6 shrink-0 object-contain"
-                  />
-                ) : (
-                  <span className="size-6 shrink-0" />
-                )}
+                {renderIcon(entry)}
                 <span className="min-w-0 flex-1 truncate">{entry.name}</span>
               </button>
             );

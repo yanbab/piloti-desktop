@@ -757,3 +757,48 @@ export async function runAptUpgrade(
     return { ok: false, error: String(err) };
   }
 }
+
+/** Installs a local `.deb` file through apt (resolves its dependencies). Needs polkit (`pkexec`). */
+export async function installDebPackage(
+  domicile: Domicile,
+  debPath: string
+): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const res = await domicile.processes.run(["pkexec", "apt", "install", "-y", debPath]);
+    return res.match({
+      Ok: (ran) =>
+        ran.code === 0
+          ? { ok: true }
+          : { ok: false, error: ran.stderr?.trim() || `Exited ${ran.code}` },
+      Err: (err) => ({ ok: false, error: String(err) }),
+    });
+  } catch (err) {
+    return { ok: false, error: String(err) };
+  }
+}
+
+/** Installs a `.flatpakref` / `.flatpak` file for the current user. */
+export async function installFlatpakFile(
+  domicile: Domicile,
+  filePath: string
+): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const res = await domicile.processes.run([
+      "flatpak",
+      "install",
+      "--user",
+      "-y",
+      "--noninteractive",
+      filePath,
+    ]);
+    return res.match({
+      Ok: (ran) =>
+        ran.code === 0
+          ? { ok: true }
+          : { ok: false, error: ran.stderr?.trim() || `Exited ${ran.code}` },
+      Err: (err) => ({ ok: false, error: String(err) }),
+    });
+  } catch (err) {
+    return { ok: false, error: String(err) };
+  }
+}

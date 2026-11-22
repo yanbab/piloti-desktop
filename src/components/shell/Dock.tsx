@@ -1,4 +1,6 @@
 import * as React from "react";
+import { watchNativeDir } from "@/lib/engine-native/file-watch";
+import { countRender } from "@/lib/core/render-stats";
 import { useDomicile } from "@domicile-desktop/react/domicile-provider";
 import {
   ContextMenu,
@@ -18,9 +20,10 @@ import {
   useApps,
 } from "@/context/AppsContext";
 import {
-  useSettings,
+  useChromeSettings,
   useSystemBackends,
-  useWindowManager,
+  useWindowActions,
+  useWindowManagerSelector,
 } from "@/context/DesktopStateContext";
 import { APP_CATALOG, type AppDefinition } from "@/data/catalog";
 import {
@@ -65,9 +68,10 @@ import {
 import { DockFolderStack } from "./DockFolderStack";
 import { AppSquircleIcon } from "./AppSymbol";
 
-export function Dock() {
+export const Dock = React.memo(function Dock() {
+  countRender("Dock");
   const domicile = useDomicile();
-  const { isBrowserRuntime, settings, updateSettings } = useSettings();
+  const { isBrowserRuntime, settings, updateSettings } = useChromeSettings();
   const { pushNotification } = useSystemBackends();
   const {
     installedXdgApps,
@@ -76,10 +80,26 @@ export function Dock() {
     dockIconsReady,
     xdgUserDirs,
   } = useApps();
+  // Only what the Dock draws: moving/resizing a window must not re-render it.
+  const { windows, focusedWindowId, launchingApps, registerDockRef } =
+    useWindowManagerSelector((wm) => ({
+      windows: wm.windows.map((w) => ({
+        id: w.id,
+        appId: w.appId,
+        title: w.title,
+        minimized: w.minimized,
+        ready: w.ready,
+        zIndex: w.zIndex,
+        browserWindowId: w.browserWindowId,
+        iconName: w.iconName,
+        iconUrl: w.iconUrl,
+        gradient: w.gradient,
+      })),
+      focusedWindowId: wm.focusedWindowId,
+      launchingApps: wm.launchingApps,
+      registerDockRef: wm.registerDockRef,
+    }));
   const {
-    windows,
-    focusedWindowId,
-    launchingApps,
     launchApp,
     launchXdgApp,
     focusWindow,
@@ -87,8 +107,7 @@ export function Dock() {
     forceQuitApp,
     toggleMinimizeWindow,
     setLauncherOpen,
-    registerDockRef,
-  } = useWindowManager();
+  } = useWindowActions();
   const altPressed = useAltKey();
 
   const [trashEmpty, setTrashEmpty] = React.useState(true);
@@ -309,15 +328,16 @@ export function Dock() {
       if (active) void refreshTrashStatus();
     };
     window.addEventListener("focus", onFocus);
-    const timer = setInterval(() => {
+    // inotify via Domicile instead of polling every 5 s (polls only as fallback).
+    const stopWatch = watchNativeDir(domicile.files, ".local/share/Trash/files", () => {
       if (active) void refreshTrashStatus();
-    }, 5000);
+    });
     return () => {
       active = false;
-      clearInterval(timer);
+      stopWatch();
       window.removeEventListener("focus", onFocus);
     };
-  }, [isBrowserRuntime, refreshTrashStatus]);
+  }, [domicile.files, isBrowserRuntime, refreshTrashStatus]);
 
   const resolveAppDefinition = React.useCallback(
     (appId: string): AppDefinition | null => {
@@ -1079,4 +1099,4 @@ export function Dock() {
       )}
     </div>
   );
-}
+});

@@ -202,7 +202,12 @@ function decodeUtf8Base64(b64: string): string {
  * for developing and running Piloti inside any web browser (or toggling
  * to `engine:web` inside Domicile Linux for testing).
  */
+/** Listener teardown of the previous browser Domicile (engine switches create a new one). */
+let disposePreviousBrowserDomicile: (() => void) | null = null;
+
 export function createBrowserDomicile(hostFallbackFiles?: Domicile["files"]): Domicile {
+  disposePreviousBrowserDomicile?.();
+  disposePreviousBrowserDomicile = null;
   const fake = new FakeDomicileHost();
   window.__PILOTI_BROWSER_HOST__ = fake;
 
@@ -241,6 +246,7 @@ export function createBrowserDomicile(hostFallbackFiles?: Domicile["files"]): Do
 
   if (typeof window !== "undefined") {
     window.addEventListener("resize", updateDisplays);
+    disposePreviousBrowserDomicile = () => window.removeEventListener("resize", updateDisplays);
   }
 
   const dispatchSystemLine = (payload: unknown) => {

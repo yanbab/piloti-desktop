@@ -49,15 +49,35 @@ Follow-ups moved to later releases: split `~/.local/state` / `~/.config/piloti` 
 
 ## 0.10.5 — Render & lifecycle (stabilization 2)
 
-- [ ] Text Editor on CodeMirror `Compartment`s — no view rebuild on theme/prefs, undo history survives **[§1.2, §2.1]**.
-- [ ] Split `WindowsContext` consumers: actions-only users → `useWindowActions()`; add `useFocusedWindow()` / `useWindowList()` **[§1.4]**.
-- [ ] `React.memo` on Dock items, notification cards, Launcher tiles **[§1.4]**.
-- [ ] Settings: single serialization per update **[§1.5]**.
-- [ ] Event-driven Trash / Desktop refresh on native; minute-aligned clock **[§1.6]**.
-- [ ] Listener hygiene: console-store guard, browser Domicile disposer, AdvancedPane timer **[§2.4, §2.5, §2.7]**.
-- [ ] Typed `shell-events.ts` for `piloti:*` window events **[§2.9]**.
+- [x] Text Editor on CodeMirror `Compartment`s — theme/preference changes reconfigure the live view; undo history, selection and folds survive **[§1.2, §2.1]**.
+- [x] Window manager selector store: `useWindowManagerSelector()` + permanently stable `useWindowActions()` (latest-ref wrappers); MenuBar, Dock, Launcher, window menu buttons, Desktop, Control Panel, OSD, About, Files, Terminal, Calculator and icon grids subscribe to the slices they draw **[§1.4]**.
+- [x] `useChromeSettings()` — settings without `savedWindowBounds` / `desktopIconPositions`, so drag commits don't re-render shell chrome; `React.memo` on MenuBar, Dock, Launcher, WindowMenuButton **[§1.4]**.
+- [x] `settings.ini` serialized once per burst (150 ms debounce, flushed on page hide) instead of on every slider tick **[§1.5]**.
+- [x] Native Trash (Dock) and Desktop folder refresh via Domicile `files.watch` (inotify) instead of 5–6 s polling; polling kept only as fallback (`engine-native/file-watch.ts`) **[§1.6]**.
+- [x] MenuBar clock wakes once per minute (aligned, resyncs on tab visibility) instead of every second **[§1.6]**.
+- [x] Listener hygiene: browser Domicile `resize` listener disposed on engine switch; Advanced ▸ Testing progress timer cleared on unmount **[§2.5, §2.7]**. (Console capture was already guarded — §2.4 not needed.)
+- [x] Typed `shell-events.ts` (`emitShellEvent` / `onShellEvent`) for close negotiation, animated close, print, dismiss popups and Cmd+K **[§2.9]**.
+- [x] Render counters (`render-stats.ts`) shown in Console ▸ Infos ▸ Performance.
 
-**Exit:** React Profiler shows that dragging a window does not re-render MenuBar/Dock/Launcher; no listener count growth after opening/closing 20 windows.
+**Measured (Chrome):** dragging a window by 180×90 px → **0** renders of MenuBar, Dock, Launcher, WindowMenuButton, Desktop and Control Panel (was ~2 commits' worth each, plus one per VFS/settings write). Focus switches still update the menu bar. Text Editor keeps the same view and undo across a theme switch.
+
+Follow-ups: memoize notification cards / Launcher tiles once profiled; migrate the remaining `piloti:*` window events (`folder-drop-anim`, `workspace-zoom-from-thumb`, desktop actions) to `shell-events.ts`; menu bar clock ignores `clockShowSeconds` (pre-existing).
+
+---
+
+## 0.10.5 follow-up — Files, links & App Store polish *(landed after the render work)*
+
+- [x] **Link files**: open `.desktop` (`Type=Link`), `.url` and `.webloc` (web pages, files or folders); **Make Link** in the Folders/Desktop context menu; link badge icon (`link-files.ts`).
+- [x] **One opener for everything** (`useOpenPath` + `open-file.ts`): Folders, Desktop and dock stacks honour `mimeapps.list`, installed `.desktop` entries (our apps, web apps, .deb apps), launcher files, zip extraction and package files. Native files now open through it too.
+- [x] **XDG mime**: far wider type inference (pdf, audio, video, archives, packages, links…), `sub-class-of` inheritance, built-in defaults when `mimeapps.list` is silent, **Open With** lists installed apps declaring the type, `.deb` / `.flatpakref` → App Store with an install confirmation (`pkexec apt install -y`).
+- [x] **Fix**: launching the App Store from its `.desktop` entry (`Exec=piloti-appstore`) was not mapped to the built-in app.
+- [x] Dock **folder stacks**: every entry has an icon (accent folders, file badges incl. link / PDF / launcher).
+- [x] **App Store**: toolbar reduced to search + sources; List/Grid switcher and refresh button removed; sort order moved to View ▸ Sort by…; Software Sources is now a proper menu (no transparency / z-index bug); "System" → **System (Debian)**.
+- [x] **Folders**: sort order and view mode moved out of the toolbar into the View menu (Sort by Name/Kind/Date/Size, Ascending/Descending).
+- [x] **Consistency**: selected sidebar items use the accent colour in every app; duplicate "Edit" menu removed.
+- [x] File management verified end-to-end in Chrome: Ctrl+C/X/V across folders, drag to sidebar places, into folders and onto the Desktop.
+
+Still open from this pass: install/remove of Debian packages from the catalog (only upgrades and local `.deb` files are wired); `.desktop` launcher icons from their `Icon=`; link target names from `Name=`.
 
 ---
 

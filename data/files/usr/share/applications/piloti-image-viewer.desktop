@@ -5,5 +5,5 @@ Comment=Fast image viewer and crop/rotate editor
 Exec=piloti-image-viewer %F
 Icon=org.gnome.Loupe
 Categories=Graphics;Viewer;
-MimeType=image/png;image/jpeg;image/webp;image/gif;image/svg+xml;
+MimeType=image/png;image/jpeg;image/webp;image/gif;image/svg+xml;image/bmp;image/avif;image/vnd.microsoft.icon;
 OnlyShowIn=Piloti;

@@ -45,6 +45,7 @@ import {
 } from "@/lib/core/console-store";
 import { parseIniText } from "@/lib/config/piloti-ini";
 import { _ } from "@/lib/core/i18n";
+import { getRenderCounts, resetRenderCounts } from "@/lib/core/render-stats";
 import { cn } from "@/lib/core/utils";
 import {
   WEB_VFS_CHANGED_EVENT,
@@ -497,8 +498,12 @@ type InspectorSectionId =
 /** Live web-VFS persistence counters (writes, coalesced flushes, listener fan-out). */
 function VfsPerformanceSection() {
   const [stats, setStats] = React.useState<WebVfsPerfStats>(() => getWebVfsPerfStats());
+  const [renders, setRenders] = React.useState(() => getRenderCounts());
   React.useEffect(() => {
-    const timer = window.setInterval(() => setStats(getWebVfsPerfStats()), 1000);
+    const timer = window.setInterval(() => {
+      setStats(getWebVfsPerfStats());
+      setRenders(getRenderCounts());
+    }, 1000);
     return () => window.clearInterval(timer);
   }, []);
   const minutes = Math.max(1 / 60, (Date.now() - stats.startedAt) / 60_000);
@@ -531,7 +536,9 @@ function VfsPerformanceSection() {
           type="button"
           onClick={() => {
             resetWebVfsPerfStats();
+            resetRenderCounts();
             setStats(getWebVfsPerfStats());
+            setRenders(getRenderCounts());
           }}
           className="rounded-md bg-black/6 px-2.5 py-1 text-[11.5px] font-medium text-adw-label hover:bg-black/10 dark:bg-white/10 dark:hover:bg-white/15"
         >
@@ -551,6 +558,12 @@ function VfsPerformanceSection() {
           </div>
         ))}
       </div>
+      <InspectorJsonCard
+        title={_("Component renders")}
+        data={renders}
+        themeMode={document.documentElement.classList.contains("dark") ? "dark" : "light"}
+        count={Object.keys(renders).length}
+      />
     </div>
   );
 }
@@ -1269,7 +1282,7 @@ function InspectorModule() {
                 className={cn(
                   "flex w-full shrink-0 items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-[12.5px] transition-colors",
                   active
-                    ? "bg-adw-sidebar-selection font-medium text-adw-label"
+                    ? "bg-adw-accent font-medium text-white shadow-xs"
                     : "font-normal text-adw-label/85 hover:bg-black/5 dark:hover:bg-white/6"
                 )}
               >
@@ -1288,7 +1301,7 @@ function InspectorModule() {
                   className={cn(
                     "pointer-events-none h-[34px] gap-2.5 rounded-lg border border-adw-separator px-2.5 py-2 text-[12.5px] shadow-md sm:hidden",
                     active
-                      ? "bg-adw-sidebar-selection font-medium text-adw-label"
+                      ? "bg-adw-accent font-medium text-white shadow-xs"
                       : "bg-adw-sidebar font-normal text-adw-label"
                   )}
                 >
@@ -1876,7 +1889,7 @@ function StorageModule() {
                       className={cn(
                         "flex w-full items-center rounded-lg px-3 py-1.5 text-left transition-colors",
                         isSelected
-                          ? "bg-adw-sidebar-selection font-medium text-adw-label"
+                          ? "bg-adw-accent font-medium text-white shadow-xs"
                           : "font-normal text-adw-label/85 hover:bg-black/5 dark:hover:bg-white/6"
                       )}
                     >

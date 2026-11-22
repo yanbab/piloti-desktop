@@ -312,7 +312,7 @@ export function inferFileVisual(
   name: string,
   fileType: "file" | "directory",
   contentType?: string,
-  options?: { isEmpty?: boolean }
+  options?: { isEmpty?: boolean; isLink?: boolean }
 ): {
   iconName: AppSymbolName;
   gradient: string;
@@ -327,6 +327,32 @@ export function inferFileVisual(
   }
 
   const isEmpty = Boolean(options?.isEmpty);
+  const nameLower = name.toLowerCase();
+  if (
+    options?.isLink ||
+    /\.(url|webloc)$/.test(nameLower) ||
+    (nameLower.endsWith(".desktop") && nameLower.startsWith("link to "))
+  ) {
+    return {
+      iconName: "globe",
+      gradient: "from-sky-500 via-cyan-500 to-teal-600",
+      iconCandidates: ["emblem-symbolic-link"],
+    };
+  }
+  if (nameLower.endsWith(".desktop")) {
+    return {
+      iconName: "sparkles",
+      gradient: "from-slate-500 via-slate-600 to-zinc-700",
+      iconCandidates: ["application-x-desktop"],
+    };
+  }
+  if (/\.(deb|rpm|flatpakref|flatpak)$/.test(nameLower)) {
+    return {
+      iconName: "folder",
+      gradient: "from-amber-500 via-yellow-600 to-orange-600",
+      iconCandidates: ["package-x-generic", "text-x-generic"],
+    };
+  }
   const emptyTextCandidates = [
     "application-x-zerosize",
     "text-x-generic-empty",
@@ -422,7 +448,7 @@ export function inferFileVisual(
       iconCandidates: ["application-pdf", "x-office-document", "text-x-generic"],
     };
   }
-  if (/\.(zip|tar|gz|bz2|xz|7z|rar)$/.test(lower)) {
+  if (/\.(zip|tar|gz|tgz|bz2|xz|zst|7z|rar)$/.test(lower)) {
     return {
       iconName: "folder",
       gradient: "from-amber-500 via-yellow-600 to-orange-600",

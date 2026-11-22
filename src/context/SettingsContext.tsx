@@ -542,7 +542,33 @@ export function useSettingsValue(options?: {
     gnomeBg?: ReturnType<typeof setTimeout>;
     gnomeBgPending?: Partial<GnomeBackgroundSettings>;
     xdgWebApps?: ReturnType<typeof setTimeout>;
+    settingsIni?: ReturnType<typeof setTimeout>;
   }>({});
+
+  // settings.ini is serialized once per burst (sliders, color pickers) instead
+  // of on every update; flushed on page hide so the last change isn't lost.
+  const pendingSettingsIniRef = React.useRef<DesktopSettings | null>(null);
+  const flushSettingsIni = React.useCallback(() => {
+    clearTimeout(sliderTimersRef.current.settingsIni);
+    sliderTimersRef.current.settingsIni = undefined;
+    const pending = pendingSettingsIniRef.current;
+    if (!pending) return;
+    pendingSettingsIniRef.current = null;
+    try {
+      writeVfsStateText(VFS_STATE_PATHS.settings, serializeDesktopSettingsIni(pending));
+    } catch {
+      // ignore storage errors
+    }
+  }, []);
+  React.useEffect(() => {
+    window.addEventListener("pagehide", flushSettingsIni);
+    window.addEventListener("beforeunload", flushSettingsIni);
+    return () => {
+      window.removeEventListener("pagehide", flushSettingsIni);
+      window.removeEventListener("beforeunload", flushSettingsIni);
+      flushSettingsIni();
+    };
+  }, [flushSettingsIni]);
 
   React.useEffect(() => {
     if (isBrowserRuntime) {
@@ -758,10 +784,9 @@ export function useSettingsValue(options?: {
       if (patch?.desktopIconPositions !== undefined) {
         writeVfsStateJson(VFS_STATE_PATHS.desktopIcons, next.desktopIconPositions);
       }
-      writeVfsStateText(
-        VFS_STATE_PATHS.settings,
-        serializeDesktopSettingsIni(next)
-      );
+      pendingSettingsIniRef.current = next;
+      clearTimeout(sliderTimersRef.current.settingsIni);
+      sliderTimersRef.current.settingsIni = setTimeout(flushSettingsIni, 150);
     } catch {
       // ignore storage errors
     }

@@ -9,7 +9,11 @@ import {
   WindowTitlebar,
 } from "@/components/ui/window";
 import pkg from "../../../package.json";
-import { useSettings, useWindowManager } from "@/context/DesktopStateContext";
+import {
+  useSettings,
+  useWindowActions,
+  useWindowManagerSelector,
+} from "@/context/DesktopStateContext";
 import { _ } from "@/lib/core/i18n";
 import { type ComputerInfo, probeComputerInfo } from "@/lib/core/system-info";
 
@@ -109,7 +113,8 @@ export function ComputerHardwareIllustration({
 export function AboutComputerDialog() {
   const domicile = useDomicile();
   const { isBrowserRuntime } = useSettings();
-  const { aboutOpen, setAboutOpen, launchApp } = useWindowManager();
+  const aboutOpen = useWindowManagerSelector((wm) => wm.aboutOpen);
+  const { setAboutOpen, launchApp } = useWindowActions();
   const [info, setInfo] = React.useState<ComputerInfo>({
     computerName: "Piloti Desktop",
     modelSubtitle: isBrowserRuntime

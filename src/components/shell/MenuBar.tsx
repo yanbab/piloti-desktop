@@ -1,4 +1,6 @@
 import * as React from "react";
+import { emitShellEvent, onShellEvent } from "@/lib/shell/shell-events";
+import { countRender } from "@/lib/core/render-stats";
 import { createPortal } from "react-dom";
 import { useDomicile } from "@domicile-desktop/react/domicile-provider";
 import { useWatch } from "@domicile-desktop/react/use-watch";
@@ -50,9 +52,10 @@ import {
 } from "@/components/ui/menubar";
 import {
   useApps,
-  useSettings,
+  useChromeSettings,
   useSystemBackends,
-  useWindowManager,
+  useWindowActions,
+  useWindowManagerSelector,
 } from "@/context/DesktopStateContext";
 import { matchXdgEntryForWaylandWindow } from "xdg-desktop-entry";
 import { _, getLocale } from "@/lib/core/i18n";
@@ -66,12 +69,13 @@ import {
 import { cn } from "@/lib/core/utils";
 import { collectMenuShortcuts, formatMenuShortcut } from "@/lib/shell/menu-shortcuts";
 import { ShortcutsDialog } from "./ShortcutsDialog";
+import type { WindowsContextValue } from "@/context/WindowsContext";
+import { selectionEqual } from "@/context/windows/window-manager-store";
 import { HelpMenuSearch } from "./HelpMenuSearch";
 import {
   cleanMenuLabel,
   collectRemoteMenuCommands,
   type MenuCommand,
-  OPEN_COMMAND_HUD_EVENT,
 } from "@/lib/shell/menu-commands";
 import { buildAppHelpLinks } from "@/lib/shell/app-help-links";
 import { captureLaunchOriginFromElement } from "@/lib/shell/launch-origin";
@@ -189,10 +193,57 @@ function renderRemoteMenuItems(
   });
 }
 
-export function MenuBar() {
+function selectMenuBarState(wm: WindowsContextValue) {
+  const fw = wm.focusedWindow;
+  return {
+    activeAppDef: wm.activeAppDef,
+    activeAppKey: JSON.stringify({
+      id: wm.activeAppDef.id,
+      name: wm.activeAppDef.name,
+      shortName: wm.activeAppDef.shortName,
+      menus: wm.activeAppDef.menus,
+    }),
+    windows: wm.windows.map((w) => ({
+      id: w.id,
+      appId: w.appId,
+      title: w.title,
+      minimized: w.minimized,
+      workspace: w.workspace,
+    })),
+    focusedWindow: fw
+      ? {
+          id: fw.id,
+          appId: fw.appId,
+          title: fw.title,
+          maximized: fw.maximized,
+          browserUrl: fw.browserUrl,
+          iconUrl: fw.iconUrl,
+          waylandAppId: fw.waylandAppId,
+        }
+      : undefined,
+    focusedWindowId: wm.focusedWindowId,
+    launcherOpen: wm.launcherOpen,
+    controlPanelOpen: wm.controlPanelOpen,
+    overviewOpen: wm.overviewOpen,
+  };
+}
+
+type MenuBarState = ReturnType<typeof selectMenuBarState>;
+
+/** `activeAppDef` is rebuilt with fresh arrays on window changes; compare it by content. */
+function menuBarStateEqual(a: MenuBarState, b: MenuBarState): boolean {
+  if (a.activeAppKey !== b.activeAppKey) return false;
+  return selectionEqual(
+    { ...a, activeAppDef: null },
+    { ...b, activeAppDef: null },
+  );
+}
+
+export const MenuBar = React.memo(function MenuBar() {
+  countRender("MenuBar");
   const domicile = useDomicile();
   const { statusItems } = usePlugins();
-  const { isBrowserRuntime, settings, updateSettings } = useSettings();
+  const { isBrowserRuntime, settings, updateSettings } = useChromeSettings();
   const { installedXdgApps, launchXdgEntry } = useApps();
   const {
     batteryInfo,
@@ -209,11 +260,17 @@ export function MenuBar() {
     startScreenRecording,
   } = useSystemBackends();
   const altHeld = useAltKey();
+  // Narrow slice: window drags/resizes don't change any of these fields.
   const {
     activeAppDef,
     windows,
     focusedWindow,
     focusedWindowId,
+    launcherOpen,
+    controlPanelOpen,
+    overviewOpen,
+  } = useWindowManagerSelector(selectMenuBarState, menuBarStateEqual);
+  const {
     focusWindow,
     closeWindow,
     toggleMinimizeWindow,
@@ -223,15 +280,12 @@ export function MenuBar() {
     openGnomeSettings,
     openWebUrl,
     handleMenuAction,
-    launcherOpen,
     setLauncherOpen,
-    controlPanelOpen,
     setControlPanelOpen,
     setAboutOpen,
     openAltTab,
-    overviewOpen,
     toggleOverview,
-  } = useWindowManager();
+  } = useWindowActions();
 
   const trayItems = useWatch(domicile.tray, "change", () => domicile.tray.items) ?? [];
   const waylandClients =
@@ -341,12 +395,31 @@ export function MenuBar() {
   );
 
   React.useEffect(() => {
+    // The label has minute precision: wake once per minute, aligned to :00.
     setFormattedClock(formatTime(new Date()));
-    const interval = setInterval(() => {
-      const next = formatTime(new Date());
-      setFormattedClock((prev) => (prev === next ? prev : next));
-    }, 1000);
-    return () => clearInterval(interval);
+    let timer: ReturnType<typeof setTimeout>;
+    const schedule = () => {
+      const now = new Date();
+      const msToNextMinute = 60_000 - (now.getSeconds() * 1000 + now.getMilliseconds()) + 50;
+      timer = setTimeout(() => {
+        const next = formatTime(new Date());
+        setFormattedClock((prev) => (prev === next ? prev : next));
+        schedule();
+      }, msToNextMinute);
+    };
+    schedule();
+    // Resync after sleep/resume or a hidden tab (timers drift or pause).
+    const onVisible = () => {
+      if (document.visibilityState !== "visible") return;
+      clearTimeout(timer);
+      setFormattedClock(formatTime(new Date()));
+      schedule();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, [formatTime]);
 
   const headerRef = React.useRef<HTMLElement | null>(null);
@@ -410,7 +483,7 @@ export function MenuBar() {
       }
       if (focusedWindowId) {
         add([_("File")], _("Print…"), () => {
-          window.dispatchEvent(new CustomEvent("piloti:print-focused"));
+          emitShellEvent("piloti:print-focused");
           handleMenuAction("file:print");
         }, { shortcut: "Ctrl+P" });
       }
@@ -431,7 +504,7 @@ export function MenuBar() {
       add([win], _("Tile Left"), () => tileWindow(id, "left"), { shortcut: "Alt+[" });
       add([win], _("Tile Right"), () => tileWindow(id, "right"), { shortcut: "Alt+]" });
       add([win], _("Close"), () =>
-        window.dispatchEvent(new CustomEvent("piloti:request-animated-close", { detail: { windowId: id } })),
+        emitShellEvent("piloti:request-animated-close", { windowId: id }),
         { shortcut: "Alt+W" });
     }
 
@@ -476,8 +549,7 @@ export function MenuBar() {
       setHelpMenuOpen(true);
       requestAnimationFrame(() => helpSearchInputRef.current?.focus());
     };
-    window.addEventListener(OPEN_COMMAND_HUD_EVENT, onOpenHud);
-    return () => window.removeEventListener(OPEN_COMMAND_HUD_EVENT, onOpenHud);
+    return onShellEvent("piloti:open-command-hud", onOpenHud);
   }, [setControlPanelOpen, setLauncherOpen]);
 
   const pilotiTriggerRef = React.useRef<HTMLButtonElement | null>(null);
@@ -513,9 +585,9 @@ export function MenuBar() {
         new KeyboardEvent("keydown", { key: "Escape", bubbles: true })
       );
     };
-    window.addEventListener("piloti:dismiss-popups", onDismissPopups);
+    const offDismissPopups = onShellEvent("piloti:dismiss-popups", onDismissPopups);
     return () => {
-      window.removeEventListener("piloti:dismiss-popups", onDismissPopups);
+      offDismissPopups();
     };
   }, [setControlPanelOpen, setLauncherOpen]);
 
@@ -656,11 +728,7 @@ export function MenuBar() {
                   <MenubarSeparator />
                   <MenubarItem
                     onClick={() =>
-                      window.dispatchEvent(
-                        new CustomEvent("piloti:request-animated-close", {
-                          detail: { windowId: focusedWindowId },
-                        })
-                      )
+                      emitShellEvent("piloti:request-animated-close", { windowId: focusedWindowId })
                     }
                   >
                     {_("Quit %s", _(activeAppDef.shortName))}
@@ -746,9 +814,7 @@ export function MenuBar() {
                             <MenubarSeparator />
                             <MenubarItem
                               onClick={() => {
-                                window.dispatchEvent(
-                                  new CustomEvent("piloti:print-focused")
-                                );
+                                emitShellEvent("piloti:print-focused");
                                 handleMenuAction("file:print");
                               }}
                             >
@@ -773,9 +839,7 @@ export function MenuBar() {
                 <MenubarContent>
                   <MenubarItem
                     onClick={() => {
-                      window.dispatchEvent(
-                        new CustomEvent("piloti:print-focused")
-                      );
+                      emitShellEvent("piloti:print-focused");
                       handleMenuAction("file:print");
                     }}
                   >
@@ -789,7 +853,8 @@ export function MenuBar() {
               </MenubarMenu>
             )}
 
-          {/* Edit Menu */}
+          {/* Edit Menu (generic one only when the app has no Edit menu of its own) */}
+          {(hasRemoteSections || !activeAppDef.menus.some((m) => m.title === "Edit")) && (
           <MenubarMenu>
             <MenubarTrigger>{_("Edit")}</MenubarTrigger>
             <MenubarContent>
@@ -831,6 +896,7 @@ export function MenuBar() {
               </MenubarItem>
             </MenubarContent>
           </MenubarMenu>
+          )}
 
           {/* View Menu (always after Edit) */}
           {!(remoteMenu && remoteMenu.sections.length > 0) &&
@@ -969,11 +1035,7 @@ export function MenuBar() {
                   disabled={!focusedWindowId}
                   onClick={() =>
                     focusedWindowId &&
-                    window.dispatchEvent(
-                      new CustomEvent("piloti:request-animated-close", {
-                        detail: { windowId: focusedWindowId },
-                      })
-                    )
+                    emitShellEvent("piloti:request-animated-close", { windowId: focusedWindowId })
                   }
                 >
                   {_("Close")}
@@ -1471,5 +1533,5 @@ export function MenuBar() {
       )}
     </header>
   );
-}
+});
 

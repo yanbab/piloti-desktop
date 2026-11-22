@@ -1,4 +1,5 @@
 import * as React from "react";
+import { emitShellEvent, onShellEvent } from "@/lib/shell/shell-events";
 import { ChevronDownIcon, XIcon } from "lucide-react";
 import {
   DropdownMenu,
@@ -7,7 +8,9 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useWindowManager } from "@/context/DesktopStateContext";
+import {
+  useWindowActions,
+} from "@/context/DesktopStateContext";
 import { _ } from "@/lib/core/i18n";
 import { cn } from "@/lib/core/utils";
 import { publishWindowMenuState } from "@/lib/engine/app-bridge";
@@ -86,7 +89,7 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
   isCsd = true,
   onCloseWindow,
 }) => {
-  const { updateWindowGeometry } = useWindowManager();
+  const { updateWindowGeometry } = useWindowActions();
 
   const initialStateRef = React.useRef<SavedCalculatorState | null>(null);
   if (initialStateRef.current === null) {
@@ -233,11 +236,7 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
     if (onCloseWindow) {
       onCloseWindow();
     } else if (windowId) {
-      window.dispatchEvent(
-        new CustomEvent("piloti:request-animated-close", {
-          detail: { windowId },
-        }),
-      );
+      emitShellEvent("piloti:request-animated-close", { windowId: windowId });
     }
   };
 

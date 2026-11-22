@@ -1,7 +1,7 @@
 import * as React from "react";
 import type { Domicile } from "@domicile-desktop/sdk/desktop/desktop";
 import { launchDesktopCommand } from "@/lib/engine-native";
-import { OPEN_COMMAND_HUD_EVENT } from "@/lib/shell/menu-commands";
+import { emitShellEvent } from "@/lib/shell/shell-events";
 
 export interface UseGlobalShortcutsParams {
   domicile: Domicile;
@@ -74,7 +74,7 @@ export function useGlobalShortcuts({
     const unlisten = domicile.keyboard.on("shortcut", ({ chord }) => {
       if (chord === "Meta+k" || chord === "Meta+K") {
         domicile.windows.focusShell();
-        window.dispatchEvent(new Event(OPEN_COMMAND_HUD_EVENT));
+        emitShellEvent("piloti:open-command-hud");
       } else if (chord === "Alt+Space" || chord === "Alt+space") {
         domicile.windows.focusShell();
         setLauncherOpen((v) => !v);
@@ -167,7 +167,7 @@ export function useGlobalShortcuts({
         // Cmd+K: Help ▸ search menus (application HUD).
         e.preventDefault();
         setOverviewOpen(false);
-        window.dispatchEvent(new Event(OPEN_COMMAND_HUD_EVENT));
+        emitShellEvent("piloti:open-command-hud");
         return;
       }
       if (isBrowserRuntime && e.altKey && e.key === "Tab") {
