@@ -20,6 +20,7 @@ import {
   type AudioSinkInfo,
   type BatteryInfo,
   type GnomeControlCenterPanelInfo,
+  type GnomeInterfaceSnapshot,
   type GnomeSystemCapabilities,
   type MprisMediaInfo,
   DEFAULT_GNOME_PANELS,
@@ -860,9 +861,7 @@ export function useSystemBackendsValue(
       };
     }
 
-    const applyGnomeSnapshot = (
-      snap: Awaited<ReturnType<typeof readGnomeInterfaceSettings>>
-    ) => {
+    const applyGnomeSnapshot = (snap: GnomeInterfaceSnapshot) => {
       if (cancelled || !settings.syncGnomeSettings) return;
       const patch: Partial<DesktopSettings> = {};
       if (snap.themeMode) patch.themeMode = snap.themeMode;
