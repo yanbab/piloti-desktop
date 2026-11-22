@@ -142,7 +142,7 @@ export function SystemTrayItem({ item }: { item: TrayItem }) {
   }, [domicile.tray, hasMenu, item.bus, item.menu]);
 
   const iconEl = item.icon ? (
-    <img src={item.icon} alt={item.title} className="size-4" />
+    <img src={item.icon} alt={item.title} className="size-4 shrink-0 object-contain" />
   ) : (
     <span className="size-1.5 rounded-full bg-current/60" />
   );
@@ -153,7 +153,7 @@ export function SystemTrayItem({ item }: { item: TrayItem }) {
         type="button"
         aria-label={item.title}
         onClick={() => domicile.tray.activate(item.id, "primary")}
-        className="flex h-[22px] shrink-0 cursor-default items-center justify-center rounded-full px-2 outline-none select-none hover:bg-black/8 focus-visible:bg-black/8 dark:hover:bg-white/12 dark:focus-visible:bg-white/12"
+        className="flex h-full shrink-0 cursor-default items-center justify-center rounded-md px-1.5 outline-none select-none hover:bg-black/8 active:bg-black/14 focus-visible:bg-black/10 dark:hover:bg-white/10 dark:active:bg-white/18 dark:focus-visible:bg-white/12"
       >
         {iconEl}
       </button>
@@ -183,7 +183,7 @@ export function SystemTrayItem({ item }: { item: TrayItem }) {
           setOpen(true);
           void watchedRef.current?.aboutToShow(0);
         }}
-        className="flex h-[22px] shrink-0 cursor-default items-center rounded-full px-2 outline-none select-none hover:bg-black/8 data-popup-open:bg-black/8 dark:hover:bg-white/12 dark:data-popup-open:bg-white/12"
+        className="flex h-full shrink-0 cursor-default items-center justify-center rounded-md px-1.5 outline-none select-none hover:bg-black/8 active:bg-black/14 data-popup-open:bg-black/12 focus-visible:bg-black/10 dark:hover:bg-white/10 dark:active:bg-white/18 dark:data-popup-open:bg-white/15 dark:focus-visible:bg-white/12"
       >
         {iconEl}
       </DropdownMenuTrigger>

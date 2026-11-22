@@ -148,7 +148,31 @@ export function AppearancePane() {
               <GroupedFormRowTitle>{_("Accent Color")}</GroupedFormRowTitle>
             </GroupedFormRowLabel>
             <GroupedFormRowControl className="w-full sm:w-auto">
-              <div className="flex max-w-full flex-wrap items-center justify-start gap-1.5 sm:max-w-[230px] sm:justify-end">
+              <div className="flex max-w-full flex-wrap items-center justify-start gap-2 sm:max-w-[260px] sm:justify-end">
+                <label
+                  title={_("Custom Accent Color")}
+                  aria-label={_("Custom Accent Color")}
+                  style={{
+                    background: settings.customAccentHex
+                      ? settings.customAccentHex
+                      : "conic-gradient(#ff3b30, #ff9500, #ffcc00, #28cd41, #007aff, #af52de, #ff2d55, #ff3b30)",
+                  }}
+                  className={cn(
+                    "relative flex size-[18px] cursor-pointer items-center justify-center overflow-hidden rounded-full ring-1 ring-white/25 transition-transform hover:scale-110",
+                    Boolean(settings.customAccentHex) && "scale-110 ring-white/60"
+                  )}
+                >
+                  <input
+                    type="color"
+                    value={accentColorPicker.draft}
+                    onChange={(e) => accentColorPicker.onChange(e.target.value)}
+                    onBlur={accentColorPicker.flush}
+                    className="absolute inset-0 cursor-pointer opacity-0"
+                  />
+                  {settings.customAccentHex && (
+                    <span className="pointer-events-none size-1.5 rounded-full bg-white shadow-xs" />
+                  )}
+                </label>
                 {ACCENT_COLORS.map((color) => {
                   const selected =
                     !settings.customAccentHex &&
@@ -167,48 +191,16 @@ export function AppearancePane() {
                       }
                       style={{ backgroundColor: color.hex }}
                       className={cn(
-                        "flex size-4 items-center justify-center rounded-full shadow-inner transition-transform hover:scale-110",
-                        selected &&
-                          "scale-110 ring-[1.5px] ring-white ring-offset-[1.5px] ring-offset-zinc-900"
+                        "flex size-[18px] items-center justify-center rounded-full ring-1 ring-white/25 transition-transform hover:scale-110",
+                        selected && "scale-110 ring-white/60"
                       )}
                     >
                       {selected && (
-                        <CheckIcon
-                          className="size-2.5 text-white drop-shadow-xs"
-                          strokeWidth={3}
-                        />
+                        <span className="size-1.5 rounded-full bg-white shadow-xs" />
                       )}
                     </button>
                   );
                 })}
-                <label
-                  title={_("Custom Accent Color")}
-                  aria-label={_("Custom Accent Color")}
-                  style={{
-                    background: settings.customAccentHex
-                      ? settings.customAccentHex
-                      : "conic-gradient(#ef4444, #eab308, #22c55e, #3b82f6, #a855f7, #ef4444)",
-                  }}
-                  className={cn(
-                    "relative flex size-4 cursor-pointer items-center justify-center overflow-hidden rounded-full shadow-inner transition-transform hover:scale-110",
-                    Boolean(settings.customAccentHex) &&
-                      "scale-110 ring-[1.5px] ring-white ring-offset-[1.5px] ring-offset-zinc-900"
-                  )}
-                >
-                  <input
-                    type="color"
-                    value={accentColorPicker.draft}
-                    onChange={(e) => accentColorPicker.onChange(e.target.value)}
-                    onBlur={accentColorPicker.flush}
-                    className="absolute inset-0 cursor-pointer opacity-0"
-                  />
-                  {settings.customAccentHex && (
-                    <CheckIcon
-                      className="pointer-events-none size-2.5 text-white drop-shadow-xs"
-                      strokeWidth={3}
-                    />
-                  )}
-                </label>
               </div>
             </GroupedFormRowControl>
           </GroupedFormRow>

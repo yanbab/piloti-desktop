@@ -35,6 +35,7 @@ import {
 } from "@/lib/core/i18n";
 import { cn } from "@/lib/core/utils";
 import { useSettings } from "@/context/DesktopStateContext";
+import { DEFAULT_HIDDEN_GNOME_PANELS } from "@/lib/engine-native";
 import {
   buildAutostartOverrideDesktopContent,
   mergeAutostartEntries,
@@ -264,7 +265,7 @@ export function AdvancedPane() {
   return (
     <GroupedForm>
       <GroupedFormSection>
-        <GroupedFormSectionTitle>{_("Advanced")}</GroupedFormSectionTitle>
+        <GroupedFormSectionTitle>{_("System")}</GroupedFormSectionTitle>
         <GroupedFormGroup>
           <GroupedFormRow>
             <GroupedFormRowLabel>
@@ -338,61 +339,7 @@ export function AdvancedPane() {
       </GroupedFormSection>
 
       <GroupedFormSection>
-        <GroupedFormSectionTitle>{_("Developer & Testing")}</GroupedFormSectionTitle>
-        <GroupedFormGroup>
-          <GroupedFormRow>
-            <GroupedFormRowLabel>
-              <GroupedFormRowTitle>{_("Runtime Engine (engine:web)")}</GroupedFormRowTitle>
-              <GroupedFormRowDescription>
-                {nativeSystemAvailable
-                  ? _(
-                      "Active engine: %s. Toggle to switch between simulated web engine and native Linux system engine.",
-                      `engine:${effectiveEngine}`
-                    )
-                  : _(
-                      "Active engine: engine:web. Switching to engine:native requires the Domicile Linux Wayland host."
-                    )}
-              </GroupedFormRowDescription>
-            </GroupedFormRowLabel>
-            <GroupedFormRowControl>
-              <Switch
-                aria-label={_("Use engine:web")}
-                disabled={!nativeSystemAvailable}
-                checked={effectiveEngine === "web"}
-                onCheckedChange={(checked) => {
-                  if (!nativeSystemAvailable) return;
-                  setEngineOverride(checked ? "web" : "native");
-                }}
-              />
-            </GroupedFormRowControl>
-          </GroupedFormRow>
-          <GroupedFormRow>
-            <GroupedFormRowLabel>
-              <GroupedFormRowTitle>{_("Simulated USB Pen Drive")}</GroupedFormRowTitle>
-              <GroupedFormRowDescription>
-                {usbMounted
-                  ? _("Mounted at %s", SIMULATED_USB_PATH)
-                  : _("Simulate plugging in a removable USB flash drive")}
-              </GroupedFormRowDescription>
-            </GroupedFormRowLabel>
-            <GroupedFormRowControl>
-              <Button
-                type="button"
-                size="sm"
-                variant={usbMounted ? "outline" : "default"}
-                className="gap-1.5"
-                onClick={toggleSimulatedUsb}
-              >
-                <UsbIcon className="size-3.5" />
-                {usbMounted ? _("Eject USB Drive") : _("Mount USB Drive")}
-              </Button>
-            </GroupedFormRowControl>
-          </GroupedFormRow>
-        </GroupedFormGroup>
-      </GroupedFormSection>
-
-      <GroupedFormSection>
-        <GroupedFormSectionTitle>{_("Browser Extensions")}</GroupedFormSectionTitle>
+        <GroupedFormSectionTitle>{_("Web extensions")}</GroupedFormSectionTitle>
         <GroupedFormGroup>
           {RECOMMENDED_EXTENSIONS.map((rec) => {
             const nativeEnabled = isExtensionEnabled(
@@ -659,7 +606,7 @@ export function AdvancedPane() {
       </GroupedFormSection>
 
       <GroupedFormSection>
-        <GroupedFormSectionTitle>{_("User Plugins")}</GroupedFormSectionTitle>
+        <GroupedFormSectionTitle>{_("Desktop plugins")}</GroupedFormSectionTitle>
         <GroupedFormGroup>
           <GroupedFormRow>
             <GroupedFormRowLabel>
@@ -750,6 +697,11 @@ export function AdvancedPane() {
                   <GroupedFormRowLabel>
                     <div className="flex items-center gap-2">
                       <GroupedFormRowTitle>{plugin.name}</GroupedFormRowTitle>
+                      {plugin.scope === "system" && (
+                        <span className="rounded-md bg-adw-accent/15 px-1.5 py-0.5 text-[10px] font-medium text-adw-accent">
+                          {_("System")}
+                        </span>
+                      )}
                       <span className="rounded-md bg-black/6 px-1.5 py-0.5 text-[10px] font-medium text-adw-label-secondary dark:bg-white/10">
                         {kindLabel}
                       </span>
@@ -794,7 +746,7 @@ export function AdvancedPane() {
       </GroupedFormSection>
 
       <GroupedFormSection>
-        <GroupedFormSectionTitle>{_("Startup Applications")}</GroupedFormSectionTitle>
+        <GroupedFormSectionTitle>{_("Startup services")}</GroupedFormSectionTitle>
         <GroupedFormGroup>
           {autostartEntries.length === 0 ? (
             <GroupedFormRow>
@@ -825,6 +777,83 @@ export function AdvancedPane() {
               </GroupedFormRow>
             ))
           )}
+        </GroupedFormGroup>
+      </GroupedFormSection>
+
+      <GroupedFormSection>
+        <GroupedFormSectionTitle>{_("Testing")}</GroupedFormSectionTitle>
+        <GroupedFormGroup>
+          <GroupedFormRow>
+            <GroupedFormRowLabel>
+              <GroupedFormRowTitle>{_("Full GNOME Settings")}</GroupedFormRowTitle>
+              <GroupedFormRowDescription>
+                {_(
+                  "Show all GNOME Control Center panels instead of hiding panels already managed by Piloti Settings."
+                )}
+              </GroupedFormRowDescription>
+            </GroupedFormRowLabel>
+            <GroupedFormRowControl>
+              <Switch
+                aria-label={_("Full GNOME Settings")}
+                checked={settings.hiddenGnomePanels.length === 0}
+                onCheckedChange={(checked) =>
+                  updateSettings({
+                    hiddenGnomePanels: checked
+                      ? []
+                      : [...DEFAULT_HIDDEN_GNOME_PANELS],
+                  })
+                }
+              />
+            </GroupedFormRowControl>
+          </GroupedFormRow>
+          <GroupedFormRow>
+            <GroupedFormRowLabel>
+              <GroupedFormRowTitle>{_("Runtime Engine (engine:web)")}</GroupedFormRowTitle>
+              <GroupedFormRowDescription>
+                {nativeSystemAvailable
+                  ? _(
+                      "Active engine: %s. Toggle to switch between simulated web engine and native Linux system engine.",
+                      `engine:${effectiveEngine}`
+                    )
+                  : _(
+                      "Active engine: engine:web. Switching to engine:native requires the Domicile Linux Wayland host."
+                    )}
+              </GroupedFormRowDescription>
+            </GroupedFormRowLabel>
+            <GroupedFormRowControl>
+              <Switch
+                aria-label={_("Use engine:web")}
+                disabled={!nativeSystemAvailable}
+                checked={effectiveEngine === "web"}
+                onCheckedChange={(checked) => {
+                  if (!nativeSystemAvailable) return;
+                  setEngineOverride(checked ? "web" : "native");
+                }}
+              />
+            </GroupedFormRowControl>
+          </GroupedFormRow>
+          <GroupedFormRow>
+            <GroupedFormRowLabel>
+              <GroupedFormRowTitle>{_("Simulated USB Pen Drive")}</GroupedFormRowTitle>
+              <GroupedFormRowDescription>
+                {usbMounted
+                  ? _("Mounted at %s", SIMULATED_USB_PATH)
+                  : _("Simulate plugging in a removable USB flash drive")}
+              </GroupedFormRowDescription>
+            </GroupedFormRowLabel>
+            <GroupedFormRowControl>
+              <Button
+                type="button"
+                size="sm"
+                variant={usbMounted ? "outline" : "default"}
+                className="gap-1.5"
+                onClick={toggleSimulatedUsb}
+              >
+                <UsbIcon className="size-3.5" />
+                {usbMounted ? _("Eject USB Drive") : _("Mount USB Drive")}
+              </Button>
+            </GroupedFormRowControl>
+          </GroupedFormRow>
         </GroupedFormGroup>
       </GroupedFormSection>
     </GroupedForm>

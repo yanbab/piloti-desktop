@@ -728,9 +728,25 @@ export const DEFAULT_STATIC_DIR_INDEX: Record<string, readonly { name: string; f
       "fileType": 1
     }
   ],
+  "/usr/share/piloti/plugins/app-indicator": [
+    {
+      "name": "manifest.json",
+      "fileType": 0
+    }
+  ],
+  "/usr/share/piloti/plugins": [
+    {
+      "name": "app-indicator",
+      "fileType": 1
+    }
+  ],
   "/usr/share/piloti": [
     {
       "name": "extensions",
+      "fileType": 1
+    },
+    {
+      "name": "plugins",
       "fileType": 1
     }
   ],

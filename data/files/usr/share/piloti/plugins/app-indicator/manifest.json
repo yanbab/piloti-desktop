@@ -1,0 +1,8 @@
+{
+  "id": "app-indicator",
+  "name": "AppIndicator",
+  "type": "plugin",
+  "version": "1.0.0",
+  "description": "System tray and StatusNotifierItem app indicators in the menu bar"
+}
+

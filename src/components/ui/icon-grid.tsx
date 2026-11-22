@@ -15,6 +15,7 @@ import {
   DynamicFolderIcon,
   getAccentFolderIconUrl,
   getAccentHtmlIconUrl,
+  inferFolderBadge,
   useOpenFolderPaths,
 } from "@/data/folder-icons";
 import {
@@ -1142,8 +1143,11 @@ export function IconGrid({
                   const normDir = item.path?.replace(/\/+$/, "") || "/";
                   const isOpened =
                     openFolderPaths.has(item.path) || hoveredDropPath === item.path;
+                  const hasSpecialBadge = Boolean(
+                    inferFolderBadge(item.path || item.name),
+                  );
                   const activeFolderLottie = folderLottieUrl ?? folderOpenLottieUrl;
-                  if (activeFolderLottie) {
+                  if (activeFolderLottie && !hasSpecialBadge) {
                     return (
                       <LottieIcon
                         src={activeFolderLottie}

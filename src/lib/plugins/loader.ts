@@ -8,6 +8,7 @@ import type {
 } from "./types";
 
 export const PLUGINS_REL_DIR = ".config/piloti/plugins";
+export const SYSTEM_PLUGINS_DIR = "/usr/share/piloti/plugins";
 
 async function readOptionalText(
   files: Files,
@@ -50,188 +51,198 @@ export async function discoverPlugins(
   enabledIds: readonly string[]
 ): Promise<DiscoveredPlugin[]> {
   const enabledSet = new Set(enabledIds);
-  let entries: Array<{ name: string; fileType: number }> = [];
-  try {
-    const res = await files.readDir(PLUGINS_REL_DIR);
-    entries = res.match({
-      Ok: (list) => list,
-      Err: () => [],
-    });
-  } catch {
-    return [];
-  }
+  const roots: Array<{ dir: string; scope: "user" | "system" }> = [
+    { dir: PLUGINS_REL_DIR, scope: "user" },
+    { dir: SYSTEM_PLUGINS_DIR, scope: "system" },
+  ];
 
   const discovered: DiscoveredPlugin[] = [];
   const seenIds = new Set<string>();
 
-  for (const entry of entries) {
-    if (!entry.name || entry.name === "." || entry.name === "..") continue;
-    const entryPath = `${PLUGINS_REL_DIR}/${entry.name}`;
-
-    // Single-file plugin: foo.css or foo.js / foo.mjs (no manifest required)
-    if (entry.fileType !== 1) {
-      const lower = entry.name.toLowerCase();
-      if (lower.endsWith(".css")) {
-        const id = stripExt(entry.name);
-        if (seenIds.has(id)) continue;
-        seenIds.add(id);
-        discovered.push({
-          id,
-          name: id,
-          sourceType: "css",
-          entryPath,
-          stylePath: entryPath,
-          hasManifest: false,
-          commands: [],
-          enabled: enabledSet.has(id),
-        });
-      } else if (lower.endsWith(".js") || lower.endsWith(".mjs")) {
-        const id = stripExt(entry.name);
-        if (seenIds.has(id)) continue;
-        seenIds.add(id);
-        discovered.push({
-          id,
-          name: id,
-          sourceType: "js",
-          entryPath,
-          scriptPath: entryPath,
-          hasManifest: false,
-          commands: [],
-          enabled: enabledSet.has(id),
-        });
-      }
+  for (const { dir: rootDir, scope } of roots) {
+    let entries: Array<{ name: string; fileType: number }> = [];
+    try {
+      const res = await files.readDir(rootDir);
+      entries = res.match({
+        Ok: (list) => list,
+        Err: () => [],
+      });
+    } catch {
       continue;
     }
 
-    // Folder plugin: optional manifest.json, auto-detects style.css and index.js
-    const manifestPath = `${entryPath}/manifest.json`;
-    const manifestText = await readOptionalText(files, manifestPath);
-    let manifest: PluginManifest | null = null;
-    let parseError: string | undefined;
+    for (const entry of entries) {
+      if (!entry.name || entry.name === "." || entry.name === "..") continue;
+      const entryPath = `${rootDir}/${entry.name}`;
 
-    if (manifestText !== null) {
-      try {
-        manifest = JSON.parse(manifestText) as PluginManifest;
-      } catch (err) {
-        parseError = `Invalid manifest.json: ${
-          err instanceof Error ? err.message : String(err)
-        }`;
+      // Single-file plugin: foo.css or foo.js / foo.mjs (no manifest required)
+      if (entry.fileType !== 1) {
+        const lower = entry.name.toLowerCase();
+        if (lower.endsWith(".css")) {
+          const id = stripExt(entry.name);
+          if (seenIds.has(id)) continue;
+          seenIds.add(id);
+          discovered.push({
+            id,
+            name: id,
+            scope,
+            sourceType: "css",
+            entryPath,
+            stylePath: entryPath,
+            hasManifest: false,
+            commands: [],
+            enabled: enabledSet.has(id),
+          });
+        } else if (lower.endsWith(".js") || lower.endsWith(".mjs")) {
+          const id = stripExt(entry.name);
+          if (seenIds.has(id)) continue;
+          seenIds.add(id);
+          discovered.push({
+            id,
+            name: id,
+            scope,
+            sourceType: "js",
+            entryPath,
+            scriptPath: entryPath,
+            hasManifest: false,
+            commands: [],
+            enabled: enabledSet.has(id),
+          });
+        }
+        continue;
       }
-    }
 
-    const id = manifest?.id?.trim() || entry.name;
-    if (seenIds.has(id)) continue;
+      // Folder plugin: optional manifest.json, auto-detects style.css and index.js
+      const manifestPath = `${entryPath}/manifest.json`;
+      const manifestText = await readOptionalText(files, manifestPath);
+      let manifest: PluginManifest | null = null;
+      let parseError: string | undefined;
 
-    let stylePath: string | undefined;
-    if (manifest?.style) {
-      const candidate = normalizeRelativeChild(entryPath, manifest.style);
-      if (await fileExists(files, candidate)) stylePath = candidate;
-    } else if (await fileExists(files, `${entryPath}/style.css`)) {
-      stylePath = `${entryPath}/style.css`;
-    }
+      if (manifestText !== null) {
+        try {
+          manifest = JSON.parse(manifestText) as PluginManifest;
+        } catch (err) {
+          parseError = `Invalid manifest.json: ${
+            err instanceof Error ? err.message : String(err)
+          }`;
+        }
+      }
 
-    let gtk4StylePath: string | undefined;
-    if (manifest?.gtk4Style) {
-      const candidate = normalizeRelativeChild(entryPath, manifest.gtk4Style);
-      if (await fileExists(files, candidate)) gtk4StylePath = candidate;
-    } else if (await fileExists(files, `${entryPath}/gtk4.css`)) {
-      gtk4StylePath = `${entryPath}/gtk4.css`;
-    } else if (await fileExists(files, `${entryPath}/gtk-4.0/gtk.css`)) {
-      gtk4StylePath = `${entryPath}/gtk-4.0/gtk.css`;
-    }
+      const id = manifest?.id?.trim() || entry.name;
+      if (seenIds.has(id)) continue;
 
-    let gtk3StylePath: string | undefined;
-    if (manifest?.gtk3Style) {
-      const candidate = normalizeRelativeChild(entryPath, manifest.gtk3Style);
-      if (await fileExists(files, candidate)) gtk3StylePath = candidate;
-    } else if (await fileExists(files, `${entryPath}/gtk3.css`)) {
-      gtk3StylePath = `${entryPath}/gtk3.css`;
-    } else if (await fileExists(files, `${entryPath}/gtk-3.0/gtk.css`)) {
-      gtk3StylePath = `${entryPath}/gtk-3.0/gtk.css`;
-    }
+      let stylePath: string | undefined;
+      if (manifest?.style) {
+        const candidate = normalizeRelativeChild(entryPath, manifest.style);
+        if (await fileExists(files, candidate)) stylePath = candidate;
+      } else if (await fileExists(files, `${entryPath}/style.css`)) {
+        stylePath = `${entryPath}/style.css`;
+      }
 
-    let scriptPath: string | undefined;
-    const declaredScript = manifest?.script || manifest?.main;
-    if (declaredScript) {
-      const candidate = normalizeRelativeChild(entryPath, declaredScript);
-      if (await fileExists(files, candidate)) scriptPath = candidate;
-    } else if (await fileExists(files, `${entryPath}/index.js`)) {
-      scriptPath = `${entryPath}/index.js`;
-    } else if (await fileExists(files, `${entryPath}/index.mjs`)) {
-      scriptPath = `${entryPath}/index.mjs`;
-    }
+      let gtk4StylePath: string | undefined;
+      if (manifest?.gtk4Style) {
+        const candidate = normalizeRelativeChild(entryPath, manifest.gtk4Style);
+        if (await fileExists(files, candidate)) gtk4StylePath = candidate;
+      } else if (await fileExists(files, `${entryPath}/gtk4.css`)) {
+        gtk4StylePath = `${entryPath}/gtk4.css`;
+      } else if (await fileExists(files, `${entryPath}/gtk-4.0/gtk.css`)) {
+        gtk4StylePath = `${entryPath}/gtk-4.0/gtk.css`;
+      }
 
-    const commands: PluginCommandManifest[] = Array.isArray(manifest?.commands)
-      ? manifest.commands.filter(
-          (c): c is PluginCommandManifest =>
-            Boolean(c && typeof c.id === "string" && typeof c.title === "string")
-        )
-      : [];
+      let gtk3StylePath: string | undefined;
+      if (manifest?.gtk3Style) {
+        const candidate = normalizeRelativeChild(entryPath, manifest.gtk3Style);
+        if (await fileExists(files, candidate)) gtk3StylePath = candidate;
+      } else if (await fileExists(files, `${entryPath}/gtk3.css`)) {
+        gtk3StylePath = `${entryPath}/gtk3.css`;
+      } else if (await fileExists(files, `${entryPath}/gtk-3.0/gtk.css`)) {
+        gtk3StylePath = `${entryPath}/gtk-3.0/gtk.css`;
+      }
 
-    const wallpapers: PluginWallpaperManifest[] = Array.isArray(
-      manifest?.wallpapers
-    )
-      ? manifest.wallpapers
-          .filter(
-            (w): w is PluginWallpaperManifest =>
-              Boolean(
-                w && typeof w.id === "string" && typeof w.name === "string"
-              )
+      let scriptPath: string | undefined;
+      const declaredScript = manifest?.script || manifest?.main;
+      if (declaredScript) {
+        const candidate = normalizeRelativeChild(entryPath, declaredScript);
+        if (await fileExists(files, candidate)) scriptPath = candidate;
+      } else if (await fileExists(files, `${entryPath}/index.js`)) {
+        scriptPath = `${entryPath}/index.js`;
+      } else if (await fileExists(files, `${entryPath}/index.mjs`)) {
+        scriptPath = `${entryPath}/index.mjs`;
+      }
+
+      const commands: PluginCommandManifest[] = Array.isArray(manifest?.commands)
+        ? manifest.commands.filter(
+            (c): c is PluginCommandManifest =>
+              Boolean(c && typeof c.id === "string" && typeof c.title === "string")
           )
-          .map((w) => ({
-            ...w,
-            ...(w.style
-              ? { style: normalizeRelativeChild(entryPath, w.style) }
-              : {}),
-            ...(w.darkStyle
-              ? { darkStyle: normalizeRelativeChild(entryPath, w.darkStyle) }
-              : {}),
-            ...(w.html
-              ? { html: normalizeRelativeChild(entryPath, w.html) }
-              : {}),
-            ...(w.darkHtml
-              ? { darkHtml: normalizeRelativeChild(entryPath, w.darkHtml) }
-              : {}),
-            ...(w.image
-              ? { image: normalizeRelativeChild(entryPath, w.image) }
-              : {}),
-            ...(w.darkImage
-              ? { darkImage: normalizeRelativeChild(entryPath, w.darkImage) }
-              : {}),
-          }))
-      : [];
+        : [];
 
-    if (
-      !manifest &&
-      !stylePath &&
-      !gtk4StylePath &&
-      !gtk3StylePath &&
-      !scriptPath &&
-      wallpapers.length === 0 &&
-      !parseError
-    ) {
-      continue;
+      const wallpapers: PluginWallpaperManifest[] = Array.isArray(
+        manifest?.wallpapers
+      )
+        ? manifest.wallpapers
+            .filter(
+              (w): w is PluginWallpaperManifest =>
+                Boolean(
+                  w && typeof w.id === "string" && typeof w.name === "string"
+                )
+            )
+            .map((w) => ({
+              ...w,
+              ...(w.style
+                ? { style: normalizeRelativeChild(entryPath, w.style) }
+                : {}),
+              ...(w.darkStyle
+                ? { darkStyle: normalizeRelativeChild(entryPath, w.darkStyle) }
+                : {}),
+              ...(w.html
+                ? { html: normalizeRelativeChild(entryPath, w.html) }
+                : {}),
+              ...(w.darkHtml
+                ? { darkHtml: normalizeRelativeChild(entryPath, w.darkHtml) }
+                : {}),
+              ...(w.image
+                ? { image: normalizeRelativeChild(entryPath, w.image) }
+                : {}),
+              ...(w.darkImage
+                ? { darkImage: normalizeRelativeChild(entryPath, w.darkImage) }
+                : {}),
+            }))
+        : [];
+
+      if (
+        !manifest &&
+        !stylePath &&
+        !gtk4StylePath &&
+        !gtk3StylePath &&
+        !scriptPath &&
+        wallpapers.length === 0 &&
+        !parseError
+      ) {
+        continue;
+      }
+
+      seenIds.add(id);
+      discovered.push({
+        id,
+        name: manifest?.name?.trim() || id,
+        kind: manifest?.type === "theme" ? "theme" : "plugin",
+        scope,
+        version: manifest?.version,
+        description: manifest?.description,
+        sourceType: "folder",
+        entryPath,
+        stylePath,
+        gtk4StylePath,
+        gtk3StylePath,
+        scriptPath,
+        hasManifest: manifest !== null,
+        commands,
+        ...(wallpapers.length > 0 ? { wallpapers } : {}),
+        enabled: enabledSet.has(id),
+        error: parseError,
+      });
     }
-
-    seenIds.add(id);
-    discovered.push({
-      id,
-      name: manifest?.name?.trim() || id,
-      kind: manifest?.type === "theme" ? "theme" : "plugin",
-      version: manifest?.version,
-      description: manifest?.description,
-      sourceType: "folder",
-      entryPath,
-      stylePath,
-      gtk4StylePath,
-      gtk3StylePath,
-      scriptPath,
-      hasManifest: manifest !== null,
-      commands,
-      ...(wallpapers.length > 0 ? { wallpapers } : {}),
-      enabled: enabledSet.has(id),
-      error: parseError,
-    });
   }
 
   return discovered.sort((a, b) => a.name.localeCompare(b.name));

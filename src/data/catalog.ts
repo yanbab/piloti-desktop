@@ -17,15 +17,14 @@ export interface AccentColorOption {
 }
 
 export const ACCENT_COLORS: AccentColorOption[] = [
-  { id: "blue", label: "Blue", cssVar: "var(--adw-blue)", hex: "#3584e4" },
-  { id: "teal", label: "Teal", cssVar: "var(--adw-teal)", hex: "#2190a4" },
-  { id: "green", label: "Green", cssVar: "var(--adw-green)", hex: "#3a944a" },
-  { id: "yellow", label: "Yellow", cssVar: "var(--adw-yellow)", hex: "#c88800" },
-  { id: "orange", label: "Orange", cssVar: "var(--adw-orange)", hex: "#ed5b00" },
-  { id: "red", label: "Red", cssVar: "var(--adw-red)", hex: "#e62d42" },
-  { id: "pink", label: "Pink", cssVar: "var(--adw-pink)", hex: "#d56199" },
-  { id: "purple", label: "Purple", cssVar: "var(--adw-purple)", hex: "#9141ac" },
-  { id: "graphite", label: "Slate", cssVar: "var(--adw-gray)", hex: "#6f8396" },
+  { id: "blue", label: "Blue", cssVar: "var(--adw-blue)", hex: "#007aff" },
+  { id: "purple", label: "Purple", cssVar: "var(--adw-purple)", hex: "#af52de" },
+  { id: "pink", label: "Pink", cssVar: "var(--adw-pink)", hex: "#ff2d55" },
+  { id: "red", label: "Red", cssVar: "var(--adw-red)", hex: "#ff3b30" },
+  { id: "orange", label: "Orange", cssVar: "var(--adw-orange)", hex: "#ff9500" },
+  { id: "yellow", label: "Yellow", cssVar: "var(--adw-yellow)", hex: "#ffcc00" },
+  { id: "green", label: "Green", cssVar: "var(--adw-green)", hex: "#28cd41" },
+  { id: "graphite", label: "Graphite", cssVar: "var(--adw-gray)", hex: "#8e8e93" },
 ];
 
 export interface WallpaperOption {

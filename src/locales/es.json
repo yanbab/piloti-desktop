@@ -484,5 +484,13 @@
   "Configure extensions.unpacked or extensions.web_store in ~/.config/domicile/domicile.json": "Configure extensions.unpacked o extensions.web_store en ~/.config/domicile/domicile.json",
   "Add a Chrome Web Store ID or unpacked path (e.g. /usr/share/piloti/extensions/piloti-demo) above.": "Añada un ID de Chrome Web Store o una ruta descomprimida (p. ej. /usr/share/piloti/extensions/piloti-demo) arriba.",
   "App Store": "App Store",
-  "Canceled installing %s": "Instalación de %s cancelada"
+  "Canceled installing %s": "Instalación de %s cancelada",
+  "Graphite": "Grafito",
+  "Web extensions": "Extensiones web",
+  "Desktop plugins": "Complementos del escritorio",
+  "Startup services": "Servicios de inicio",
+  "Testing": "Pruebas",
+  "Full GNOME Settings": "Configuración completa de GNOME",
+  "Show all GNOME Control Center panels instead of hiding panels already managed by Piloti Settings.": "Mostrar todos los paneles del Centro de control de GNOME en lugar de ocultar los ya gestionados por la configuración de Piloti.",
+  "Language, extensions, plugins & testing": "Idioma, extensiones, complementos y pruebas"
 }

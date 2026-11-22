@@ -975,9 +975,10 @@ export function MenuBar() {
           </button>
         ))}
 
-        {trayItems.map((item) => (
-          <SystemTrayItem key={item.id} item={item} />
-        ))}
+        {(settings.enabledPluginIds ?? ["app-indicator"]).includes("app-indicator") &&
+          trayItems.map((item) => (
+            <SystemTrayItem key={item.id} item={item} />
+          ))}
 
         {/* Launcher Trigger & Popover */}
         <DropdownMenu

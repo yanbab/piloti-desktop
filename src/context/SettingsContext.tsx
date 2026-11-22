@@ -238,7 +238,7 @@ const DEFAULT_SETTINGS: DesktopSettings = {
   showFileExtensionBadges: true,
   demoExtensionEnabled: true,
   darkReaderWebEnabled: false,
-  enabledPluginIds: ["aurora-drift"],
+  enabledPluginIds: ["aurora-drift", "app-indicator"],
   computerModel:
     typeof navigator !== "undefined" &&
       /mac/i.test(navigator.platform || navigator.userAgent || "")

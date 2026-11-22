@@ -44,10 +44,8 @@ export function WindowMenuButton({
   if (!settings.showWindowMenu) {
     return null;
   }
-  if (side) {
-    const controlsLeft = isWindowControlsLeft(settings.windowButtonLayout);
-    if (side === "left" && controlsLeft) return null;
-    if (side === "right" && !controlsLeft) return null;
+  if (side === "right") {
+    return null;
   }
 
   return (
@@ -67,7 +65,7 @@ export function WindowMenuButton({
       >
         <MoreVerticalIcon className="size-4 opacity-75 group-hover/wmenu:opacity-100 group-active/wmenu:opacity-100 group-data-popup-open/wmenu:opacity-100" />
       </DropdownMenuTrigger>
-      <DropdownMenuContent align={side === "right" ? "end" : "start"}>
+      <DropdownMenuContent align="start">
         {extraItems && (
           <>
             {extraItems}

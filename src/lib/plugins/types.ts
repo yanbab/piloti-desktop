@@ -42,6 +42,7 @@ export interface DiscoveredPlugin {
   id: string;
   name: string;
   kind?: "plugin" | "theme";
+  scope?: "system" | "user";
   version?: string;
   description?: string;
   sourceType: "css" | "js" | "folder";

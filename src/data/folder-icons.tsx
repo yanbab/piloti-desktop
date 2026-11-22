@@ -8,15 +8,15 @@ export interface FolderShadePair {
 }
 
 export const ACCENT_FOLDER_SHADES: Record<AccentColorId, FolderShadePair> = {
-  blue: { back: "#4877b1", front: "#5294e2", emblem: "#1d344f" },
+  blue: { back: "#005ec4", front: "#007aff", emblem: "#003570" },
   teal: { back: "#16808c", front: "#1aa3b2", emblem: "#0c3d43" },
-  green: { back: "#4d9143", front: "#63b357", emblem: "#22421d" },
-  yellow: { back: "#b58b25", front: "#e0ae32", emblem: "#4d390b" },
-  orange: { back: "#c4632b", front: "#f27c38", emblem: "#54270d" },
-  red: { back: "#b83539", front: "#df4a4f", emblem: "#4e1315" },
-  pink: { back: "#b8407a", front: "#e05598", emblem: "#4d1732" },
-  purple: { back: "#7b4899", front: "#9b5ec0", emblem: "#331b42" },
-  graphite: { back: "#4f5866", front: "#697587", emblem: "#21262e" },
+  green: { back: "#1ea634", front: "#28cd41", emblem: "#0f561a" },
+  yellow: { back: "#cca300", front: "#ffcc00", emblem: "#5c4900" },
+  orange: { back: "#cc7700", front: "#ff9500", emblem: "#5c3600" },
+  red: { back: "#cc2f26", front: "#ff3b30", emblem: "#5c1410" },
+  pink: { back: "#cc2444", front: "#ff2d55", emblem: "#5c101e" },
+  purple: { back: "#8b3db3", front: "#af52de", emblem: "#3f1b52" },
+  graphite: { back: "#6c6c70", front: "#8e8e93", emblem: "#303033" },
 };
 
 export type FolderBadgeKind =
