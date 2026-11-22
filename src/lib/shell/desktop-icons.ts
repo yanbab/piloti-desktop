@@ -39,6 +39,7 @@ export interface IconGridItem {
   iconUrl?: string;
   gradient?: string;
   isEmpty?: boolean;
+  isHidden?: boolean;
   accessCount?: number;
   desktopEntry?: XdgDesktopEntry;
 }

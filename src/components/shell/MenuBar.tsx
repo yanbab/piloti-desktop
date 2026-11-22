@@ -459,12 +459,11 @@ export function MenuBar() {
                 {_("About Computer")}
               </MenubarItem>
               <MenubarSeparator />
-              <MenubarItem
-                disabled={isBrowserRuntime}
-                onClick={() => openGnomeSettings()}
-              >
-                {_("System Settings")}
-              </MenubarItem>
+              {!isBrowserRuntime && (
+                <MenubarItem onClick={() => openGnomeSettings()}>
+                  {_("System Settings")}
+                </MenubarItem>
+              )}
               <MenubarItem
                 onClick={(e) => {
                   captureLaunchOriginFromElement(e.currentTarget);

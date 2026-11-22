@@ -5,6 +5,9 @@ import {
   ContextMenuContent,
   ContextMenuItem,
   ContextMenuSeparator,
+  ContextMenuSub,
+  ContextMenuSubContent,
+  ContextMenuSubTrigger,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
 import {
@@ -68,16 +71,21 @@ import { bootElapsedMs, logBootEvent } from "@/lib/core/perf-log";
 import {
   copyVfsEntry,
   getVfsClipboard,
+  listVfsTemplates,
   moveVfsEntry,
   setVfsClipboard,
   subscribeVfsClipboard,
+  subscribeWebVfs,
   WEB_VFS_HOME,
+  type WebVfsEntry,
 } from "@/lib/engine-web/web-vfs";
+import { listFsTemplates } from "@/lib/engine/fs-bridge";
 
 installConsoleCapture();
 logBootEvent("starting shell");
 
 function DesktopSurface() {
+  const domicile = useDomicile();
   const { isBrowserRuntime, settings, updateSettings } = useSettings();
 
   React.useEffect(() => {
@@ -104,6 +112,23 @@ function DesktopSurface() {
       setLocalClipboard(getVfsClipboard());
     });
   }, []);
+
+  const [templates, setTemplates] = React.useState<WebVfsEntry[]>(() =>
+    listVfsTemplates()
+  );
+  React.useEffect(() => {
+    const syncTemplates = () => {
+      if (isBrowserRuntime) {
+        setTemplates(listVfsTemplates());
+      } else {
+        void listFsTemplates(domicile, isBrowserRuntime).then((list) =>
+          setTemplates(list)
+        );
+      }
+    };
+    syncTemplates();
+    return subscribeWebVfs(syncTemplates);
+  }, [domicile, isBrowserRuntime]);
 
   const handlePasteToDesktop = () => {
     const clip = getVfsClipboard();
@@ -176,15 +201,44 @@ function DesktopSurface() {
           >
             {_("New Folder")}
           </ContextMenuItem>
-          <ContextMenuItem
-            onClick={() =>
-              window.dispatchEvent(
-                new CustomEvent("piloti:desktop-new-file")
-              )
-            }
-          >
-            {_("New Text File")}
-          </ContextMenuItem>
+          <ContextMenuSub>
+            <ContextMenuSubTrigger>{_("New…")}</ContextMenuSubTrigger>
+            <ContextMenuSubContent className="min-w-44">
+              <ContextMenuItem
+                onClick={() =>
+                  window.dispatchEvent(
+                    new CustomEvent("piloti:desktop-new-file")
+                  )
+                }
+              >
+                {_("New Text File")}
+              </ContextMenuItem>
+              {templates.length > 0 && (
+                <>
+                  <ContextMenuSeparator />
+                  {templates.map((tmpl) => {
+                    const label =
+                      tmpl.name.replace(/\.[a-z0-9]+$/i, "") || tmpl.name;
+                    return (
+                      <ContextMenuItem
+                        key={tmpl.path}
+                        onClick={() =>
+                          window.dispatchEvent(
+                            new CustomEvent(
+                              "piloti:desktop-new-from-template",
+                              { detail: tmpl }
+                            )
+                          )
+                        }
+                      >
+                        {_(label)}
+                      </ContextMenuItem>
+                    );
+                  })}
+                </>
+              )}
+            </ContextMenuSubContent>
+          </ContextMenuSub>
           {isBrowserRuntime && clipboard && clipboard.paths.length > 0 && (
             <ContextMenuItem onClick={handlePasteToDesktop}>
               {_("Paste")}

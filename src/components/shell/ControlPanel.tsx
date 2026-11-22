@@ -112,9 +112,17 @@ export function ControlPanel() {
     });
   };
 
+  const bottomDockClearance =
+    settings.dockPosition === "bottom" && !settings.dockAutoHide
+      ? settings.dockSize + 38
+      : 16;
+
   return (
     <div
       aria-label="Notifications and Quick Settings"
+      style={{
+        maxHeight: `calc(100vh - ${44 + bottomDockClearance}px)`,
+      }}
       onKeyDown={(e) => {
         if (e.key === "Escape") return;
         if (
@@ -130,22 +138,26 @@ export function ControlPanel() {
         }
         e.stopPropagation();
       }}
-      className="flex max-h-[calc(100vh-52px)] w-full flex-col gap-3 overflow-hidden"
+      className="flex w-full flex-col gap-3 overflow-hidden"
     >
       {/* Top Header: Settings Shortcut + Date & Quick Actions */}
-      <div className="flex items-center justify-between px-1">
+      <div className="flex shrink-0 items-center justify-between px-1">
         <div className="flex items-center gap-2">
           <button
             type="button"
-            title={_("Open System Settings (Shift+Click) or Desktop Settings")}
+            title={
+              isBrowserRuntime
+                ? _("Desktop Settings")
+                : _("Open System Settings (Shift+Click) or Desktop Settings")
+            }
             onClick={(e) => {
               console.info(
                 "[Piloti] control-panel: open settings",
-                e.shiftKey ? "gnome" : "desktop"
+                !isBrowserRuntime && e.shiftKey ? "gnome" : "desktop"
               );
               captureLaunchOriginFromElement(e.currentTarget);
               setControlPanelOpen(false);
-              if (e.shiftKey) {
+              if (!isBrowserRuntime && e.shiftKey) {
                 openGnomeSettings();
               } else {
                 launchApp("settings");
@@ -750,7 +762,7 @@ export function ControlPanel() {
           </div>
         )}
 
-        <div className="flex max-h-[min(460px,calc(100vh-310px))] flex-col gap-2 overflow-y-auto pr-0.5">
+        <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pr-0.5">
           {notifications.length === 0 ? (
             <div className="flex flex-col items-center justify-center rounded-[14px] bg-black/4 py-4 text-center dark:bg-white/5">
               <BellIcon className="mb-1 size-5 text-adw-label-tertiary" />

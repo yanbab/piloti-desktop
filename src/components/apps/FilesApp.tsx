@@ -6,6 +6,7 @@ import {
   ArrowLeftIcon,
   ArrowUpDownIcon,
   BriefcaseIcon,
+  ChevronRightIcon,
   ClockIcon,
   DownloadIcon,
   EjectIcon,
@@ -59,6 +60,7 @@ import {
   MENU_ITEM_CLASS,
   MENU_POPUP_CLASS,
   MENU_SEPARATOR_CLASS,
+  MENU_SUB_TRIGGER_CLASS,
 } from "@/components/ui/menu-styles";
 import { useApps, useSettings, useWindowManager } from "@/context/DesktopStateContext";
 import { publishWindowMenuState } from "@/lib/engine/app-bridge";
@@ -88,6 +90,7 @@ import {
   extractVfsZip,
   getVfsClipboard,
   getVfsContentType,
+  getVfsDirHiddenNames,
   getVfsEmblems,
   getVfsEntry,
   importExternalFilesToVfs,
@@ -98,7 +101,9 @@ import {
   listVfsDir,
   listVfsFavoriteEntries,
   listVfsRecentEntries,
+  listVfsTemplates,
   normalizeVfsPath,
+  parseDotHiddenFile,
   setVfsClipboard,
   subscribeVfsClipboard,
   subscribeWebVfs,
@@ -112,11 +117,13 @@ import {
   type WebVfsEntry,
 } from "@/lib/engine-web/web-vfs";
 import {
+  createFsFileFromTemplate,
   createFsFolder,
   createFsTextFile,
   emptyFsTrash,
   listFsDir as bridgeListFsDir,
   listFsRecentEntries,
+  listFsTemplates,
   moveFsEntry,
   recordFsRecentFile,
   renameFsEntry,
@@ -229,7 +236,8 @@ function isVfsEntryEmpty(entry: WebVfsEntry): boolean {
 
 function vfsEntryToGridItem(
   entry: WebVfsEntry,
-  getAppIconUrl: (id?: string) => string | undefined
+  getAppIconUrl: (id?: string) => string | undefined,
+  isHidden?: boolean
 ): IconGridItem {
   const isEmpty = isVfsEntryEmpty(entry);
   const visual = inferFileVisual(entry.name, entry.kind, getVfsContentType(entry), {
@@ -244,6 +252,7 @@ function vfsEntryToGridItem(
     iconCandidates: visual.iconCandidates,
     gradient: visual.gradient,
     isEmpty,
+    isHidden,
     accessCount: entry.kind === "file" ? (entry.accessCount ?? 0) : undefined,
     iconUrl: visual.iconCandidates.map((c) => getAppIconUrl(c)).find(Boolean),
   };
@@ -312,6 +321,14 @@ export function FilesApp({
   const [bgMenu, setBgMenu] = React.useState<{ x: number; y: number } | null>(
     null
   );
+  const [bgNewSubOpen, setBgNewSubOpen] = React.useState(false);
+  const [templates, setTemplates] = React.useState<WebVfsEntry[]>(() =>
+    listVfsTemplates()
+  );
+
+  React.useEffect(() => {
+    if (!bgMenu) setBgNewSubOpen(false);
+  }, [bgMenu]);
 
   const [clipboard, setLocalClipboard] = React.useState(() =>
     getVfsClipboard()
@@ -342,6 +359,13 @@ export function FilesApp({
   }, [windows]);
 
   const reloadDir = React.useCallback(() => {
+    if (isBrowserRuntime) {
+      setTemplates(listVfsTemplates());
+    } else {
+      void listFsTemplates(domicile, isBrowserRuntime).then((list) => {
+        setTemplates(list);
+      });
+    }
     if (currentPath === WEB_VFS_APPS_URI) {
       setVfsEntries([]);
       return;
@@ -801,9 +825,15 @@ export function FilesApp({
         : appItems;
       return filtered.sort((a, b) => a.name.localeCompare(b.name));
     }
+    const dotHiddenEntry = vfsEntries.find((e) => e.name === ".hidden");
+    const hiddenNames = dotHiddenEntry
+      ? parseDotHiddenFile(dotHiddenEntry.content)
+      : getVfsDirHiddenNames(currentPath);
     const visible = showHidden
       ? vfsEntries
-      : vfsEntries.filter((entry) => !entry.name.startsWith("."));
+      : vfsEntries.filter(
+          (entry) => !entry.name.startsWith(".") && !hiddenNames.has(entry.name)
+        );
     const searched = q
       ? visible.filter((entry) => entry.name.toLowerCase().includes(q))
       : visible;
@@ -832,8 +862,15 @@ export function FilesApp({
         }) * dirFactor
       );
     });
-    return sorted.map((entry) => vfsEntryToGridItem(entry, getAppIconUrl));
+    return sorted.map((entry) =>
+      vfsEntryToGridItem(
+        entry,
+        getAppIconUrl,
+        entry.name.startsWith(".") || hiddenNames.has(entry.name)
+      )
+    );
   }, [
+    currentPath,
     getAppIconUrl,
     installedXdgApps,
     isAppsView,
@@ -969,6 +1006,20 @@ export function FilesApp({
     reloadDir();
     setSelectedIds([created.path]);
     setRenamingId(created.path);
+  };
+
+  const handleNewFromTemplate = (template: WebVfsEntry) => {
+    if (isTrashView || isVirtualView) return;
+    void createFsFileFromTemplate(
+      domicile,
+      isBrowserRuntime,
+      currentPath,
+      template
+    ).then((created) => {
+      reloadDir();
+      setSelectedIds([created.path]);
+      setRenamingId(created.path);
+    });
   };
 
   const newItemActionsRef = React.useRef({
@@ -1332,11 +1383,12 @@ export function FilesApp({
           top: `${Math.min(window.innerHeight - 160, bgMenu.y)}px`,
         }}
         onClick={(e) => e.stopPropagation()}
-        className={cn(MENU_POPUP_CLASS, "fixed min-w-44")}
+        className={cn(MENU_POPUP_CLASS, "fixed min-w-44 overflow-visible")}
       >
         <button
           type="button"
           role="menuitem"
+          onPointerEnter={() => setBgNewSubOpen(false)}
           onClick={() => {
             setBgMenu(null);
             handleNewFolder();
@@ -1348,24 +1400,84 @@ export function FilesApp({
         >
           {_("New Folder")}
         </button>
-        <button
-          type="button"
-          role="menuitem"
-          onClick={() => {
-            setBgMenu(null);
-            handleNewTextFile();
-          }}
-          className={cn(
-            MENU_ITEM_CLASS,
-            "w-full text-left hover:bg-adw-menu-highlight"
-          )}
+        <div
+          className="relative"
+          onPointerEnter={() => setBgNewSubOpen(true)}
+          onPointerLeave={() => setBgNewSubOpen(false)}
         >
-          {_("New Text File")}
-        </button>
+          <button
+            type="button"
+            role="menuitem"
+            aria-haspopup="menu"
+            aria-expanded={bgNewSubOpen}
+            onClick={() => setBgNewSubOpen((v) => !v)}
+            className={cn(
+              MENU_SUB_TRIGGER_CLASS,
+              "w-full text-left hover:bg-adw-menu-highlight",
+              bgNewSubOpen && "bg-adw-menu-highlight"
+            )}
+          >
+            <span>{_("New…")}</span>
+            <ChevronRightIcon className="ml-auto size-3.5" strokeWidth={2.25} />
+          </button>
+          {bgNewSubOpen && (
+            <div
+              role="menu"
+              className={cn(
+                MENU_POPUP_CLASS,
+                "absolute top-0 z-10 min-w-44",
+                bgMenu.x + 380 > window.innerWidth
+                  ? "right-full mr-1"
+                  : "left-full ml-1"
+              )}
+            >
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  setBgMenu(null);
+                  handleNewTextFile();
+                }}
+                className={cn(
+                  MENU_ITEM_CLASS,
+                  "w-full text-left hover:bg-adw-menu-highlight"
+                )}
+              >
+                {_("New Text File")}
+              </button>
+              {templates.length > 0 && (
+                <>
+                  <div className={MENU_SEPARATOR_CLASS} />
+                  {templates.map((tmpl) => {
+                    const label = tmpl.name.replace(/\.[a-z0-9]+$/i, "") || tmpl.name;
+                    return (
+                      <button
+                        key={tmpl.path}
+                        type="button"
+                        role="menuitem"
+                        onClick={() => {
+                          setBgMenu(null);
+                          handleNewFromTemplate(tmpl);
+                        }}
+                        className={cn(
+                          MENU_ITEM_CLASS,
+                          "w-full text-left hover:bg-adw-menu-highlight"
+                        )}
+                      >
+                        <span className="truncate">{_(label)}</span>
+                      </button>
+                    );
+                  })}
+                </>
+              )}
+            </div>
+          )}
+        </div>
         {clipboard && clipboard.paths.length > 0 ? (
           <button
             type="button"
             role="menuitem"
+            onPointerEnter={() => setBgNewSubOpen(false)}
             onClick={() => {
               setBgMenu(null);
               handlePasteItems();
@@ -1394,6 +1506,7 @@ export function FilesApp({
         <button
           type="button"
           role="menuitem"
+          onPointerEnter={() => setBgNewSubOpen(false)}
           onClick={() => {
             setBgMenu(null);
             launchApp("terminal", { payload: currentPath, forceNew: true });
@@ -1943,7 +2056,10 @@ export function FilesApp({
                         setItemMenu({ item, x: e.clientX, y: e.clientY });
                       }}
                       style={{
-                        opacity: item.name.startsWith(".") ? 0.55 : undefined,
+                        opacity:
+                          item.isHidden || item.name.startsWith(".")
+                            ? 0.55
+                            : undefined,
                       }}
                       className={cn(
                         "cursor-default border-b border-adw-separator/40 transition-colors",

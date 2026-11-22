@@ -240,7 +240,7 @@ function filterAndSort(entries: PaletteEntry[]): PaletteEntry[] {
 }
 
 export function Launcher() {
-  const { settings, updateSettings } = useSettings();
+  const { isBrowserRuntime, settings, updateSettings } = useSettings();
   const { pluginCommands } = usePlugins();
   const {
     pushNotification,
@@ -592,7 +592,7 @@ export function Launcher() {
       out.push({ heading: "Folders", items: folderItems });
     }
 
-    if (tokens.length > 0) {
+    if (!isBrowserRuntime && tokens.length > 0) {
       const hiddenSet = new Set(settings.hiddenGnomePanels);
       const settingsIconUrl = getAppIconUrl("settings");
       const settingsItems = filterAndSort([

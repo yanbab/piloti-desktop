@@ -1,18 +1,24 @@
 import type { Domicile } from "@domicile-desktop/sdk/desktop/desktop";
 import {
+  createVfsFileFromTemplate,
   createVfsFolder,
   createVfsTextFile,
   emptyVfsTrash,
+  getVfsDirHiddenNames,
   getVfsEntry,
   listVfsDir,
   listVfsRecentEntries,
+  listVfsTemplates,
   moveVfsEntry,
   normalizeVfsPath,
+  parseDotHiddenFile,
   removeVfsEntry,
   renameVfsEntry,
+  resolveVfsTemplatesDir,
   restoreVfsEntry,
   trashVfsEntry,
   WEB_VFS_HOME,
+  WEB_VFS_TEMPLATES,
   WEB_VFS_TRASH,
   type WebVfsEntry,
   writeVfsTextFile,
@@ -31,14 +37,20 @@ const THUMBNAIL_EXT_RE = /\.(png|jpe?g|webp|gif|bmp|avif|pdf|mp4|mkv|webm|mov)$/
 
 export {
   buildVfsEntryWebAppUrl,
+  createVfsFileFromTemplate,
+  getVfsDirHiddenNames,
   getVfsEntry,
   importExternalFilesToVfs,
   isTextEditableVfsFile,
   listVfsDir,
+  listVfsTemplates,
   normalizeVfsPath,
+  parseDotHiddenFile,
   resolveVfsPath,
+  resolveVfsTemplatesDir,
   subscribeWebVfs,
   WEB_VFS_HOME,
+  WEB_VFS_TEMPLATES,
   WEB_VFS_TRASH,
   type WebVfsEntry,
 } from "@/lib/engine-web/web-vfs";
@@ -120,13 +132,28 @@ export async function listFsDir(
             metadata = { ...(metadata ?? {}), "metadata::thumbnail": thumb };
           }
         }
+        let content = cached?.content;
+        if (kind === "file" && item.name === ".hidden") {
+          try {
+            const textRes = await domicile.files.readText(toDomicilePath(entryPath));
+            textRes.match({
+              Ok: (t) => {
+                content = t;
+                writeVfsTextFile(entryPath, t);
+              },
+              Err: () => {},
+            });
+          } catch {
+            // ignore .hidden read errors
+          }
+        }
         return {
           id: entryPath,
           name: item.name,
           kind,
           path: entryPath,
           parentPath: normDir,
-          content: cached?.content,
+          content,
           size,
           updatedAt,
           metadata,
@@ -218,6 +245,59 @@ export function createFsTextFile(
     void domicile.files.write(toDomicilePath(created.path), bytes);
   }
   return created;
+}
+
+/**
+ * Lists document templates from `$XDG_TEMPLATES_DIR` (`~/Templates`).
+ */
+export async function listFsTemplates(
+  domicile: Domicile,
+  isBrowserRuntime: boolean,
+  templatesDirPath?: string,
+): Promise<WebVfsEntry[]> {
+  if (isBrowserRuntime) {
+    return listVfsTemplates();
+  }
+  const dir = normalizeVfsPath(templatesDirPath || resolveVfsTemplatesDir());
+  const entries = await listFsDir(domicile, isBrowserRuntime, dir);
+  const dotHidden = entries.find((e) => e.name === ".hidden");
+  const hiddenNames = parseDotHiddenFile(dotHidden?.content);
+  return entries
+    .filter(
+      (e) =>
+        e.kind === "file" &&
+        !e.name.startsWith(".") &&
+        !hiddenNames.has(e.name),
+    )
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/**
+ * Creates a new file in `dirPath` cloned from an XDG template entry.
+ */
+export async function createFsFileFromTemplate(
+  domicile: Domicile,
+  isBrowserRuntime: boolean,
+  dirPath: string,
+  template: { name: string; path: string; content?: string },
+): Promise<WebVfsEntry> {
+  if (isBrowserRuntime || isSimulatedUsbPath(dirPath)) {
+    return (
+      createVfsFileFromTemplate(dirPath, template.path) ??
+      createVfsTextFile(dirPath, template.name, template.content ?? "")
+    );
+  }
+  const content =
+    template.content !== undefined
+      ? template.content
+      : await readFsTextFile(domicile, isBrowserRuntime, template.path);
+  return createFsTextFile(
+    domicile,
+    isBrowserRuntime,
+    dirPath,
+    template.name,
+    content,
+  );
 }
 
 /**

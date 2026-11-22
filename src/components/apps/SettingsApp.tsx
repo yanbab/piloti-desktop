@@ -259,11 +259,11 @@ export function SettingsApp({
             </div>
             <div className="flex items-center gap-2" data-window-no-drag>
               {matchingGnomePanel &&
-                (gnomeCapabilities.gnomeControlCenter || isBrowserRuntime) && (
+                !isBrowserRuntime &&
+                gnomeCapabilities.gnomeControlCenter && (
                   <Button
                     size="sm"
                     variant="secondary"
-                    disabled={isBrowserRuntime}
                     onClick={() => openGnomeSettings(matchingGnomePanel)}
                     className="h-6 text-[11px]"
                   >
@@ -286,11 +286,11 @@ export function SettingsApp({
               </div>
             </div>
             {matchingGnomePanel &&
-              (gnomeCapabilities.gnomeControlCenter || isBrowserRuntime) && (
+              !isBrowserRuntime &&
+              gnomeCapabilities.gnomeControlCenter && (
                 <Button
                   size="sm"
                   variant="secondary"
-                  disabled={isBrowserRuntime}
                   onClick={() => openGnomeSettings(matchingGnomePanel)}
                   className="text-[11px]"
                 >

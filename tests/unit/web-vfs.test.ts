@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from "bun:test";
 import { inferFileVisual } from "@/lib/shell/desktop-icons";
 import {
   copyVfsEntry,
+  createVfsFileFromTemplate,
   createVfsFolder,
   createVfsTextFile,
   duplicateVfsEntry,
@@ -16,6 +17,7 @@ import {
   incrementVfsAccessCount,
   isVfsFavorite,
   listVfsDir,
+  listVfsTemplates,
   moveVfsEntry,
   renameVfsEntry,
   resolveVfsPath,
@@ -207,6 +209,25 @@ describe("web-vfs", () => {
     expect(incrementVfsAccessCount(notePath)).toBe(2);
     expect(getVfsEntry(notePath)?.accessCount).toBe(2);
     expect(incrementVfsAccessCount(`${WEB_VFS_HOME}/Missing.txt`)).toBe(0);
+  });
+
+  it("supports .hidden file filtering and XDG Templates file creation", () => {
+    // /home/user/.hidden hides Templates by default unless includeHidden is true
+    const homeVisible = listVfsDir(WEB_VFS_HOME).map((e) => e.name);
+    expect(homeVisible).not.toContain("Templates");
+    const homeAll = listVfsDir(WEB_VFS_HOME, { includeHidden: true }).map(
+      (e) => e.name
+    );
+    expect(homeAll).toContain("Templates");
+
+    const templates = listVfsTemplates();
+    expect(templates.map((t) => t.name)).toContain("Markdown Document.md");
+    const created = createVfsFileFromTemplate(
+      `${WEB_VFS_HOME}/Documents`,
+      "Markdown Document.md"
+    );
+    expect(created?.name).toBe("Markdown Document.md");
+    expect(created?.content).toContain("# Untitled");
   });
 });
 

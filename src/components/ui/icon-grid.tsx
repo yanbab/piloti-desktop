@@ -931,7 +931,7 @@ export function IconGrid({
 
       {items.map((item) => {
         const selected = selectedSet.has(item.id);
-        const isHiddenFile = item.name.startsWith(".");
+        const isHiddenFile = Boolean(item.isHidden || item.name.startsWith("."));
         const isDragging =
           Boolean(drag?.active) && Boolean(drag?.draggedIds.includes(item.id));
         const coord = resolvedPositions[item.id] ?? { col: 0, row: 0 };

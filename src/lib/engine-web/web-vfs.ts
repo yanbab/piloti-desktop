@@ -23,6 +23,7 @@ export const WEB_VFS_STORAGE_KEY = "piloti.web.vfs.v1";
 export const WEB_VFS_CHANGED_EVENT = "piloti:web-vfs-changed";
 
 export const WEB_VFS_HOME = "/home/user";
+export const WEB_VFS_TEMPLATES = "/home/user/Templates";
 export const WEB_VFS_TRASH = "/home/user/.local/share/Trash/files";
 
 export const DEFAULT_ETC_ISSUE = `Piloti Desktop Web VFS (localStorage)
@@ -279,6 +280,24 @@ function loadVfs(): WebVfsEntry[] {
           addedDefaults = true;
         }
       }
+      for (const [fullPath, content] of Object.entries(DEFAULT_HOME_FILES)) {
+        if (
+          (fullPath === "/home/user/.hidden" ||
+            fullPath.startsWith("/home/user/Templates/")) &&
+          !entries.some((e) => e.path === fullPath)
+        ) {
+          entries.push({
+            id: fullPath,
+            name: basename(fullPath),
+            kind: "file",
+            path: fullPath,
+            parentPath: dirname(fullPath),
+            content,
+            updatedAt: now,
+          });
+          addedDefaults = true;
+        }
+      }
       if (addedDefaults) {
         const json = JSON.stringify(entries);
         localStorage.setItem(WEB_VFS_STORAGE_KEY, json);
@@ -371,6 +390,30 @@ function uniqueChildName(
   return `${baseName} ${index}${extension}`;
 }
 
+/**
+ * Parses a FreeDesktop / GNOME Nautilus `.hidden` file (newline-separated
+ * basenames in the same directory that should be treated as hidden).
+ */
+export function parseDotHiddenFile(content: string | undefined): Set<string> {
+  const out = new Set<string>();
+  if (!content) return out;
+  for (const rawLine of content.split(/\r?\n/)) {
+    const name = rawLine.trim();
+    if (name && !name.includes("/")) {
+      out.add(name);
+    }
+  }
+  return out;
+}
+
+export function getVfsDirHiddenNames(dirPath: string): Set<string> {
+  const normalized = normalizeVfsPath(dirPath);
+  loadVfs();
+  const dotHiddenPath = `${normalized === "/" ? "" : normalized}/.hidden`;
+  const entry = vfsCacheByPath?.get(dotHiddenPath);
+  return entry?.kind === "file" ? parseDotHiddenFile(entry.content) : new Set();
+}
+
 export function listVfsDir(
   dirPath: string,
   options?: { includeHidden?: boolean }
@@ -378,10 +421,12 @@ export function listVfsDir(
   const normalized = normalizeVfsPath(dirPath);
   const entries = loadVfs();
   const includeHidden = Boolean(options?.includeHidden);
+  const hiddenNames = includeHidden ? undefined : getVfsDirHiddenNames(normalized);
   const direct = entries.filter(
     (entry) =>
       entry.parentPath === normalized &&
-      (includeHidden || !entry.name.startsWith("."))
+      (includeHidden ||
+        (!entry.name.startsWith(".") && !hiddenNames?.has(entry.name)))
   );
   if (normalized === "/" && !direct.some((e) => e.path === "/home")) {
     direct.unshift({
@@ -457,6 +502,46 @@ export function createVfsTextFile(
   };
   saveVfs([...entries, created]);
   return created;
+}
+
+export function resolveVfsTemplatesDir(): string {
+  const userDirsEntry = getVfsEntry(`${WEB_VFS_HOME}/.config/user-dirs.dirs`);
+  if (userDirsEntry?.kind === "file" && userDirsEntry.content) {
+    for (const rawLine of userDirsEntry.content.split(/\r?\n/)) {
+      const line = rawLine.trim();
+      if (!line.startsWith("XDG_TEMPLATES_DIR=")) continue;
+      const val = line
+        .slice("XDG_TEMPLATES_DIR=".length)
+        .trim()
+        .replace(/^["']|["']$/g, "");
+      if (!val) break;
+      const expanded = val
+        .replace(/^\$HOME(?=\/|$)/, WEB_VFS_HOME)
+        .replace(/^\$\{HOME\}(?=\/|$)/, WEB_VFS_HOME);
+      return normalizeVfsPath(expanded);
+    }
+  }
+  return WEB_VFS_TEMPLATES;
+}
+
+export function listVfsTemplates(): WebVfsEntry[] {
+  const dir = resolveVfsTemplatesDir();
+  return listVfsDir(dir, { includeHidden: false })
+    .filter((e) => e.kind === "file")
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+export function createVfsFileFromTemplate(
+  parentPath: string,
+  templatePathOrName: string
+): WebVfsEntry | null {
+  const tmplDir = resolveVfsTemplatesDir();
+  const resolvedPath = templatePathOrName.startsWith("/")
+    ? normalizeVfsPath(templatePathOrName)
+    : `${tmplDir}/${templatePathOrName}`;
+  const tmpl = getVfsEntry(resolvedPath);
+  if (!tmpl || tmpl.kind !== "file") return null;
+  return createVfsTextFile(parentPath, tmpl.name, tmpl.content ?? "");
 }
 
 export function ensureVfsDir(rawPath: string): WebVfsEntry {

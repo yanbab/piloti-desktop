@@ -31,12 +31,12 @@ import { parseDesktopEntry } from "@/lib/xdg/xdg-desktop-entry";
 import {
   buildVfsEntryWebAppUrl,
   copyVfsEntry,
+  createVfsFileFromTemplate,
   createVfsFolder,
   createVfsTextFile,
   duplicateVfsEntry,
   getVfsClipboard,
   getVfsContentType,
-  getVfsEmblems,
   getVfsEntry,
   importExternalFilesToVfs,
   incrementVfsAccessCount,
@@ -44,15 +44,16 @@ import {
   isTextEditableVfsFile,
   listVfsDir,
   moveVfsEntry,
+  parseDotHiddenFile,
   renameVfsEntry,
   setVfsClipboard,
   subscribeVfsClipboard,
   subscribeVfsRenamed,
   subscribeWebVfs,
-  toggleVfsEmblem,
   trashVfsEntry,
   WEB_VFS_HOME,
   WEB_VFS_TRASH,
+  type WebVfsEntry,
   compressVfsEntries,
   downloadVfsFile,
   extractVfsZip,
@@ -163,8 +164,28 @@ export function DesktopIconsApp({
         Err: () => [],
       });
 
+      let hiddenNames = new Set<string>();
+      if (entries.some((e) => e.name === ".hidden")) {
+        try {
+          const dotHiddenRes = await domicile.files.readText(
+            `${desktopDirPath.replace(/\/+$/, "")}/.hidden`
+          );
+          dotHiddenRes.match({
+            Ok: (t) => {
+              hiddenNames = parseDotHiddenFile(t);
+            },
+            Err: () => {},
+          });
+        } catch {
+          // ignore .hidden read failure
+        }
+      }
+
       const visible = entries.filter(
-        (entry) => entry.name && !entry.name.startsWith(".")
+        (entry) =>
+          entry.name &&
+          !entry.name.startsWith(".") &&
+          !hiddenNames.has(entry.name)
       );
 
       const iconCandidatesToEnsure = new Set<string>();
@@ -379,20 +400,79 @@ export function DesktopIconsApp({
     setRenamingId(fileName);
   }, [desktopDirPath, domicile.files, isBrowserRuntime, items, loadDesktopFolder]);
 
-  // Listen for "New Folder", "New Text File", and "Arrange Icons" triggered from Desktop menus
+  const createDesktopFromTemplate = React.useCallback(
+    async (template: WebVfsEntry) => {
+      if (isBrowserRuntime) {
+        const created =
+          createVfsFileFromTemplate(desktopDirPath, template.path) ??
+          createVfsTextFile(desktopDirPath, template.name, template.content ?? "");
+        await loadDesktopFolder();
+        setSelectedIds([created.name]);
+        setRenamingId(created.name);
+        return;
+      }
+      const existingNames = new Set(items.map((i) => i.name));
+      const hasExt = /\.[a-z0-9]+$/i.test(template.name);
+      const stem = hasExt
+        ? template.name.replace(/\.[a-z0-9]+$/i, "")
+        : template.name;
+      const ext = hasExt ? template.name.slice(stem.length) : "";
+      let fileName = `${stem}${ext}`;
+      let n = 2;
+      while (existingNames.has(fileName)) {
+        fileName = `${stem} ${n++}${ext}`;
+      }
+      let content = template.content ?? "";
+      if (!content && template.path) {
+        const res = await domicile.files.readText(
+          template.path.startsWith(`${WEB_VFS_HOME}/`)
+            ? template.path.slice(WEB_VFS_HOME.length + 1)
+            : template.path
+        );
+        res.match({
+          Ok: (t) => {
+            content = t;
+          },
+          Err: () => {},
+        });
+      }
+      const fullPath = `${desktopDirPath.replace(/\/+$/, "")}/${fileName}`;
+      await domicile.files.write(fullPath, content).catch(() => undefined);
+      await loadDesktopFolder();
+      setSelectedIds([fileName]);
+      setRenamingId(fileName);
+    },
+    [desktopDirPath, domicile.files, isBrowserRuntime, items, loadDesktopFolder]
+  );
+
+  // Listen for "New Folder", "New Text File", "New from Template", and "Arrange Icons" triggered from Desktop menus
   React.useEffect(() => {
     const onNewFolder = () => void createDesktopFolder();
     const onNewFile = () => void createDesktopTextFile();
+    const onNewFromTemplate = (e: Event) => {
+      const tmpl = (e as CustomEvent<WebVfsEntry | undefined>).detail;
+      if (tmpl) void createDesktopFromTemplate(tmpl);
+    };
     const onAlignIcons = () => updateSettings({ desktopIconPositions: {} });
     window.addEventListener("piloti:desktop-new-folder", onNewFolder);
     window.addEventListener("piloti:desktop-new-file", onNewFile);
+    window.addEventListener("piloti:desktop-new-from-template", onNewFromTemplate);
     window.addEventListener("piloti:desktop-align-icons", onAlignIcons);
     return () => {
       window.removeEventListener("piloti:desktop-new-folder", onNewFolder);
       window.removeEventListener("piloti:desktop-new-file", onNewFile);
+      window.removeEventListener(
+        "piloti:desktop-new-from-template",
+        onNewFromTemplate
+      );
       window.removeEventListener("piloti:desktop-align-icons", onAlignIcons);
     };
-  }, [createDesktopFolder, createDesktopTextFile, updateSettings]);
+  }, [
+    createDesktopFolder,
+    createDesktopFromTemplate,
+    createDesktopTextFile,
+    updateSettings,
+  ]);
 
   const handleCommitRename = React.useCallback(
     async (item: IconGridItem, rawNextName: string) => {
@@ -873,13 +953,6 @@ export function DesktopIconsApp({
         }
         canPaste={Boolean(clipboard && clipboard.paths.length > 0)}
         onPaste={() => void handlePasteToDesktop()}
-        activeEmblems={contextMenu ? getVfsEmblems(contextMenu.item.path) : []}
-        onToggleEmblem={(list, emblem) => {
-          for (const target of list) {
-            toggleVfsEmblem(target.path, emblem);
-          }
-          void loadDesktopFolder();
-        }}
         onRename={(target) => setRenamingId(target.id)}
         onTrash={(target) => void handleMoveToTrash(target)}
         onTrashItems={(list) => void handleMoveItemsToTrash(list)}
