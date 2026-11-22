@@ -5,7 +5,7 @@ import {
   type XdgAutostartEntry,
 } from "@/lib/xdg/xdg-autostart";
 import { tokenizeExec } from "@/lib/xdg/xdg-desktop-entry";
-import { launchDesktopCommand, runText } from "./exec";
+import { commandExists, launchDesktopCommand, runText } from "./exec";
 
 const SKIP_SYSTEM_AUTOSTART_PREFIXES = [
   "gnome-shell",
@@ -13,6 +13,10 @@ const SKIP_SYSTEM_AUTOSTART_PREFIXES = [
   "gnome-initial-setup",
   "gnome-keyring-pkcs11",
   "xdg-user-dirs",
+  "at-spi-dbus-bus",
+  "localsearch-",
+  "tracker-miner-",
+  "org.gnome.Calls-daemon",
 ];
 
 /**
@@ -32,8 +36,32 @@ export function buildAutostartArgv(execLine: string | undefined): string[] {
 }
 
 /**
+ * Parses a FreeDesktop/GNOME `AutostartCondition=` expression into a structured check.
+ */
+export type ParsedAutostartCondition =
+  | { kind: "gsettings"; schema: string; key: string }
+  | { kind: "if-exists"; relPath: string }
+  | { kind: "unless-exists"; relPath: string }
+  | { kind: "unknown"; raw: string };
+
+export function parseAutostartCondition(
+  raw: string | undefined
+): ParsedAutostartCondition | null {
+  if (!raw || !raw.trim()) return null;
+  const parts = raw.trim().split(/\s+/);
+  const kind = parts[0];
+  if (kind === "GSettings" && parts.length >= 3) {
+    return { kind: "gsettings", schema: parts[1], key: parts[2] };
+  }
+  if ((kind === "if-exists" || kind === "unless-exists") && parts.length >= 2) {
+    return { kind, relPath: parts.slice(1).join(" ") };
+  }
+  return { kind: "unknown", raw: raw.trim() };
+}
+
+/**
  * Returns true if a merged XDG autostart entry is safe and eligible to launch
- * automatically on Piloti/Domicile session startup.
+ * automatically on Piloti/Domicile session startup (before async condition checks).
  */
 export function shouldLaunchAutostartEntry(entry: XdgAutostartEntry): boolean {
   if (!entry.enabled || entry.hidden || !entry.exec) return false;
@@ -46,6 +74,40 @@ export function shouldLaunchAutostartEntry(entry: XdgAutostartEntry): boolean {
     }
   }
   return buildAutostartArgv(entry.exec).length > 0;
+}
+
+async function evaluateAutostartCondition(
+  domicile: Domicile,
+  rawCondition: string | undefined
+): Promise<boolean> {
+  const cond = parseAutostartCondition(rawCondition);
+  if (!cond) return true;
+
+  if (cond.kind === "gsettings") {
+    const out = await runText(domicile, [
+      "gsettings",
+      "get",
+      cond.schema,
+      cond.key,
+    ]);
+    return out?.trim().toLowerCase() === "true";
+  }
+
+  if (cond.kind === "if-exists" || cond.kind === "unless-exists") {
+    const check = await runText(domicile, [
+      "sh",
+      "-c",
+      'p="$1"; case "$p" in /*) ;; *) p="${XDG_CONFIG_HOME:-$HOME/.config}/$p" ;; esac; [ -e "$p" ] && echo YES || echo NO',
+      "sh",
+      cond.relPath,
+    ]);
+    const exists = check?.trim() === "YES";
+    return cond.kind === "if-exists" ? exists : !exists;
+  }
+
+  // Unknown condition types fail closed so conditional daemons (e.g. screen readers)
+  // are never accidentally launched.
+  return false;
 }
 
 async function readAutostartDir(
@@ -66,9 +128,13 @@ async function readAutostartDir(
       const textRes = await domicile.files.readText(fullPath);
       const text = textRes.match({ Ok: (s) => s, Err: () => null });
       if (!text) continue;
-      const parsed =
-        parseAutostartDesktopFile(item.name, fullPath, text, source, "Piloti") ??
-        parseAutostartDesktopFile(item.name, fullPath, text, source, "GNOME");
+      const parsed = parseAutostartDesktopFile(
+        item.name,
+        fullPath,
+        text,
+        source,
+        ["Piloti", "GNOME"]
+      );
       if (parsed) entries.push(parsed);
     }
   } catch {
@@ -81,8 +147,9 @@ let autostartTriggeredInPage = false;
 
 /**
  * Discovers merged XDG Autostart entries (`/etc/xdg/autostart` + `~/.config/autostart`)
- * and launches eligible entries once per Wayland session (using a runtime marker under
- * `$XDG_RUNTIME_DIR` so shell hot-reloads do not duplicate autostart processes).
+ * and launches eligible entries once per Wayland session (honoring `NotShowIn`,
+ * `OnlyShowIn`, `TryExec`, and `AutostartCondition`, and guarded by a runtime
+ * marker under `$XDG_RUNTIME_DIR` so shell reloads do not duplicate processes).
  */
 export async function runXdgAutostartOnce(domicile: Domicile): Promise<string[]> {
   if (autostartTriggeredInPage) return [];
@@ -108,6 +175,15 @@ export async function runXdgAutostartOnce(domicile: Domicile): Promise<string[]>
 
   for (const entry of merged) {
     if (!shouldLaunchAutostartEntry(entry)) continue;
+    if (entry.tryExec && !(await commandExists(domicile, entry.tryExec))) {
+      continue;
+    }
+    if (
+      entry.autostartCondition &&
+      !(await evaluateAutostartCondition(domicile, entry.autostartCondition))
+    ) {
+      continue;
+    }
     const argv = buildAutostartArgv(entry.exec);
     if (argv.length === 0) continue;
     try {

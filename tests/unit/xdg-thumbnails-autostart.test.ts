@@ -1,8 +1,10 @@
 import { describe, expect, test } from "bun:test";
 import {
   buildAutostartArgv,
+  parseAutostartCondition,
   shouldLaunchAutostartEntry,
 } from "@/lib/engine-desktop/autostart";
+import { parseAutostartDesktopFile } from "@/lib/xdg/xdg-autostart";
 import {
   getXdgThumbnailRelativePath,
   md5Hex,
@@ -64,5 +66,49 @@ describe("XDG Thumbnail Managing Standard & Autostart runtime helpers", () => {
         terminal: false,
       })
     ).toBe(false);
+  });
+
+  test("honors NotShowIn=GNOME across Piloti:GNOME and parses AutostartCondition (e.g. Orca)", () => {
+    const orcaDesktop = [
+      "[Desktop Entry]",
+      "Type=Application",
+      "Name=Orca screen reader",
+      "Exec=orca",
+      "OnlyShowIn=GNOME;MATE;",
+      "AutostartCondition=GSettings org.gnome.desktop.a11y.applications screen-reader-enabled",
+    ].join("\n");
+
+    const parsedOrca = parseAutostartDesktopFile(
+      "orca-autostart.desktop",
+      "/etc/xdg/autostart/orca-autostart.desktop",
+      orcaDesktop,
+      "system",
+      ["Piloti", "GNOME"]
+    );
+    expect(parsedOrca?.autostartCondition).toBe(
+      "GSettings org.gnome.desktop.a11y.applications screen-reader-enabled"
+    );
+    expect(parseAutostartCondition(parsedOrca?.autostartCondition)).toEqual({
+      kind: "gsettings",
+      schema: "org.gnome.desktop.a11y.applications",
+      key: "screen-reader-enabled",
+    });
+
+    const geoclueDesktop = [
+      "[Desktop Entry]",
+      "Type=Application",
+      "Name=Geoclue Demo agent",
+      "Exec=/usr/libexec/geoclue-2.0/demos/agent",
+      "NotShowIn=GNOME;",
+    ].join("\n");
+    expect(
+      parseAutostartDesktopFile(
+        "geoclue-demo-agent.desktop",
+        "/etc/xdg/autostart/geoclue-demo-agent.desktop",
+        geoclueDesktop,
+        "system",
+        ["Piloti", "GNOME"]
+      )
+    ).toBeNull();
   });
 });

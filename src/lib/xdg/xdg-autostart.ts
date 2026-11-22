@@ -8,17 +8,32 @@ export interface XdgAutostartEntry {
   comment?: string;
   icon?: string;
   exec?: string;
+  tryExec?: string;
+  autostartCondition?: string;
   enabled: boolean;
   hidden: boolean;
   terminal: boolean;
 }
 
-const DEFAULT_CURRENT_DESKTOP = "GNOME";
+const DEFAULT_CURRENT_DESKTOPS: readonly string[] = ["Piloti", "GNOME"];
 
-function matchesDesktopFilter(list: string[], currentDesktop: string): boolean {
-  if (list.length === 0) return true;
-  const target = currentDesktop.toLowerCase();
-  return list.some((d) => d.trim().toLowerCase() === target);
+function normalizeCurrentDesktops(
+  currentDesktop: string | readonly string[]
+): string[] {
+  const list =
+    typeof currentDesktop === "string"
+      ? currentDesktop.split(":")
+      : [...currentDesktop];
+  return list.map((d) => d.trim().toLowerCase()).filter(Boolean);
+}
+
+function matchesAnyDesktop(
+  entryList: readonly string[],
+  currentDesktops: readonly string[]
+): boolean {
+  return entryList.some((d) =>
+    currentDesktops.includes(d.trim().toLowerCase())
+  );
 }
 
 /**
@@ -30,7 +45,7 @@ export function parseAutostartDesktopFile(
   path: string,
   content: string,
   source: "user" | "system",
-  currentDesktop = DEFAULT_CURRENT_DESKTOP
+  currentDesktop: string | readonly string[] = DEFAULT_CURRENT_DESKTOPS
 ): XdgAutostartEntry | null {
   const parsed = parseDesktopEntry(content);
   if (!parsed) return null;
@@ -39,6 +54,8 @@ export function parseAutostartDesktopFile(
   let inDesktopEntry = false;
   let hidden = false;
   let gnomeEnabled: boolean | undefined;
+  let tryExec: string | undefined;
+  let autostartCondition: string | undefined;
   let onlyShowIn: string[] = [];
   let notShowIn: string[] = [];
 
@@ -58,6 +75,10 @@ export function parseAutostartDesktopFile(
       hidden = val.toLowerCase() === "true";
     } else if (key === "X-GNOME-Autostart-enabled") {
       gnomeEnabled = val.toLowerCase() !== "false";
+    } else if (key === "TryExec") {
+      tryExec = val || undefined;
+    } else if (key === "AutostartCondition") {
+      autostartCondition = val || undefined;
     } else if (key === "OnlyShowIn") {
       onlyShowIn = val.split(";").filter(Boolean);
     } else if (key === "NotShowIn") {
@@ -65,13 +86,11 @@ export function parseAutostartDesktopFile(
     }
   }
 
-  if (onlyShowIn.length > 0 && !matchesDesktopFilter(onlyShowIn, currentDesktop)) {
+  const desktops = normalizeCurrentDesktops(currentDesktop);
+  if (onlyShowIn.length > 0 && !matchesAnyDesktop(onlyShowIn, desktops)) {
     return null;
   }
-  if (
-    notShowIn.length > 0 &&
-    notShowIn.some((d) => d.trim().toLowerCase() === currentDesktop.toLowerCase())
-  ) {
+  if (notShowIn.length > 0 && matchesAnyDesktop(notShowIn, desktops)) {
     return null;
   }
 
@@ -83,6 +102,8 @@ export function parseAutostartDesktopFile(
     comment: parsed.comment,
     icon: parsed.icon,
     exec: parsed.exec,
+    tryExec,
+    autostartCondition,
     hidden,
     enabled: !hidden && (gnomeEnabled ?? true),
     terminal: Boolean(parsed.terminal),
