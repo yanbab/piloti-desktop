@@ -10,20 +10,20 @@
  */
 
 :root:not([data-interface-theme="adwaita"])[data-more-transparency="true"]:not([data-high-contrast="true"]) {
-  --adw-material-menu: rgb(255 255 255 / 0.72);
-  --adw-material-popover: rgb(255 255 255 / 0.72);
-  --adw-material-hud: rgb(250 250 252 / 0.78);
+  --adw-material-menu: rgb(235 235 238 / 0.68);
+  --adw-material-popover: rgb(235 235 238 / 0.68);
+  --adw-material-hud: rgb(235 235 238 / 0.68);
   --adw-material-tooltip: rgb(0 0 0 / 0.85);
-  --adw-material-dock: rgb(255 255 255 / 0.6);
+  --adw-material-dock: rgb(235 235 238 / 0.68);
   --adw-material-blur: 22px;
 }
 
 :root:not([data-interface-theme="adwaita"]).dark[data-more-transparency="true"]:not([data-high-contrast="true"]) {
-  --adw-material-menu: rgb(42 42 46 / 0.72);
-  --adw-material-popover: rgb(42 42 46 / 0.72);
-  --adw-material-hud: rgb(36 36 40 / 0.78);
+  --adw-material-menu: rgb(36 36 40 / 0.65);
+  --adw-material-popover: rgb(36 36 40 / 0.65);
+  --adw-material-hud: rgb(36 36 40 / 0.65);
   --adw-material-tooltip: rgb(0 0 0 / 0.88);
-  --adw-material-dock: rgb(0 0 0 / 0.42);
+  --adw-material-dock: rgb(36 36 40 / 0.65);
   --adw-material-blur: 22px;
   --adw-sidebar-selection: rgb(255 255 255 / 0.14);
   --adw-menu-highlight: rgb(255 255 255 / 0.1);
@@ -31,9 +31,11 @@
 }
 
 :root:not([data-interface-theme="adwaita"])[data-more-transparency="true"]:not([data-high-contrast="true"]) .adw-material-menu,
-:root:not([data-interface-theme="adwaita"])[data-more-transparency="true"]:not([data-high-contrast="true"]) .adw-material-popover {
-  -webkit-backdrop-filter: blur(22px) saturate(180%);
-  backdrop-filter: blur(22px) saturate(180%);
+:root:not([data-interface-theme="adwaita"])[data-more-transparency="true"]:not([data-high-contrast="true"]) .adw-material-popover,
+:root:not([data-interface-theme="adwaita"])[data-more-transparency="true"]:not([data-high-contrast="true"]) .adw-material-hud,
+:root:not([data-interface-theme="adwaita"])[data-more-transparency="true"]:not([data-high-contrast="true"]) .adw-material-dock {
+  -webkit-backdrop-filter: blur(22px) saturate(160%);
+  backdrop-filter: blur(22px) saturate(160%);
 }
 
 :root:not([data-interface-theme="adwaita"])[data-more-transparency="true"]:not([data-high-contrast="true"]) .bg-adw-sidebar {

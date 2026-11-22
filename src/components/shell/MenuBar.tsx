@@ -127,6 +127,20 @@ function formatMenuShortcut(shortcut: string, model: "mac" | "pc"): string {
   return mods ? `${mods}${keys.join("")}` : keys.join("");
 }
 
+function MenuShortcutLabel({
+  shortcut,
+  model,
+}: {
+  shortcut: string;
+  model: "mac" | "pc";
+}) {
+  return (
+    <MenubarShortcut className={model === "pc" ? "tracking-normal" : undefined}>
+      {formatMenuShortcut(shortcut, model)}
+    </MenubarShortcut>
+  );
+}
+
 function RemoteSubmenuGroup({
   entry,
   hasCheckable,
@@ -197,9 +211,7 @@ function renderRemoteMenuItems(
         >
           {entry.label}
           {entry.shortcut && (
-            <MenubarShortcut>
-              {formatMenuShortcut(entry.shortcut, computerModel)}
-            </MenubarShortcut>
+            <MenuShortcutLabel shortcut={entry.shortcut} model={computerModel} />
           )}
         </MenubarCheckboxItem>
       );
@@ -214,9 +226,7 @@ function renderRemoteMenuItems(
       >
         {entry.label}
         {entry.shortcut && (
-          <MenubarShortcut>
-            {formatMenuShortcut(entry.shortcut, computerModel)}
-          </MenubarShortcut>
+          <MenuShortcutLabel shortcut={entry.shortcut} model={computerModel} />
         )}
       </MenubarItem>
     );
@@ -549,12 +559,7 @@ export function MenuBar() {
   return (
     <header
       ref={headerRef}
-      className={cn(
-        "relative z-[200] flex h-[30px] w-full shrink-0 items-stretch justify-between gap-2 px-0 text-adw-body text-adw-label select-none dark:text-white",
-        settings.moreTransparency && settings.interfaceTheme !== "adwaita"
-          ? "bg-white/60 backdrop-blur-md dark:bg-black/40"
-          : "bg-[#f3f3f5] dark:bg-[#1e1e22]",
-      )}
+      className="relative z-[200] flex h-[30px] w-full shrink-0 items-stretch justify-between gap-2 px-0 text-adw-body text-adw-label select-none adw-material-hud dark:text-white"
     >
       {/* Left: System, Active App & Application Menus */}
       <div className="flex h-full min-w-0 flex-1 items-stretch overflow-hidden">
@@ -586,9 +591,10 @@ export function MenuBar() {
                 }}
               >
                 {_("Desktop Settings")}
-                <MenubarShortcut>
-                  {formatMenuShortcut("Alt+,", settings.computerModel)}
-                </MenubarShortcut>
+                <MenuShortcutLabel
+                  shortcut="Alt+,"
+                  model={settings.computerModel}
+                />
               </MenubarItem>
               <MenubarItem
                 onClick={(e) => {
@@ -620,9 +626,10 @@ export function MenuBar() {
               <MenubarSeparator />
               <MenubarItem onClick={() => lockSession()}>
                 {_("Lock Screen")}
-                <MenubarShortcut>
-                  {formatMenuShortcut("⌃⌘Q", settings.computerModel)}
-                </MenubarShortcut>
+                <MenuShortcutLabel
+                  shortcut="⌃⌘Q"
+                  model={settings.computerModel}
+                />
               </MenubarItem>
               <MenubarItem onClick={(e) => handlePowerMenuClick("logout", e)}>
                 {altHeld ? _("Log Out") : _("Log Out…")}
@@ -665,9 +672,10 @@ export function MenuBar() {
                     }}
                   >
                     {_("Desktop Settings")}
-                    <MenubarShortcut>
-                      {formatMenuShortcut("Alt+,", settings.computerModel)}
-                    </MenubarShortcut>
+                    <MenuShortcutLabel
+                      shortcut="Alt+,"
+                      model={settings.computerModel}
+                    />
                   </MenubarItem>
                 </>
               )}
@@ -684,9 +692,10 @@ export function MenuBar() {
                     }
                   >
                     {_("Quit %s", _(activeAppDef.shortName))}
-                    <MenubarShortcut>
-                      {formatMenuShortcut("Alt+W", settings.computerModel)}
-                    </MenubarShortcut>
+                    <MenuShortcutLabel
+                      shortcut="Alt+W"
+                      model={settings.computerModel}
+                    />
                   </MenubarItem>
                 </>
               )}
@@ -734,12 +743,10 @@ export function MenuBar() {
                               >
                                 {_(item.label)}
                                 {item.shortcut && (
-                                  <MenubarShortcut>
-                                    {formatMenuShortcut(
-                                      item.shortcut,
-                                      settings.computerModel,
-                                    )}
-                                  </MenubarShortcut>
+                                  <MenuShortcutLabel
+                                    shortcut={item.shortcut}
+                                    model={settings.computerModel}
+                                  />
                                 )}
                               </MenubarCheckboxItem>
                             ) : (
@@ -750,12 +757,10 @@ export function MenuBar() {
                               >
                                 {_(item.label)}
                                 {item.shortcut && (
-                                  <MenubarShortcut>
-                                    {formatMenuShortcut(
-                                      item.shortcut,
-                                      settings.computerModel,
-                                    )}
-                                  </MenubarShortcut>
+                                  <MenuShortcutLabel
+                                    shortcut={item.shortcut}
+                                    model={settings.computerModel}
+                                  />
                                 )}
                               </MenubarItem>
                             )}
@@ -774,34 +779,39 @@ export function MenuBar() {
             <MenubarContent>
               <MenubarItem onClick={() => document.execCommand?.("undo")}>
                 {_("Undo")}
-                <MenubarShortcut>
-                  {formatMenuShortcut("Ctrl+Z", settings.computerModel)}
-                </MenubarShortcut>
+                <MenuShortcutLabel
+                  shortcut="Ctrl+Z"
+                  model={settings.computerModel}
+                />
               </MenubarItem>
               <MenubarItem onClick={() => document.execCommand?.("redo")}>
                 {_("Redo")}
-                <MenubarShortcut>
-                  {formatMenuShortcut("Ctrl+Shift+Z", settings.computerModel)}
-                </MenubarShortcut>
+                <MenuShortcutLabel
+                  shortcut="Ctrl+Shift+Z"
+                  model={settings.computerModel}
+                />
               </MenubarItem>
               <MenubarSeparator />
               <MenubarItem onClick={() => document.execCommand?.("cut")}>
                 {_("Cut")}
-                <MenubarShortcut>
-                  {formatMenuShortcut("Ctrl+X", settings.computerModel)}
-                </MenubarShortcut>
+                <MenuShortcutLabel
+                  shortcut="Ctrl+X"
+                  model={settings.computerModel}
+                />
               </MenubarItem>
               <MenubarItem onClick={() => document.execCommand?.("copy")}>
                 {_("Copy")}
-                <MenubarShortcut>
-                  {formatMenuShortcut("Ctrl+C", settings.computerModel)}
-                </MenubarShortcut>
+                <MenuShortcutLabel
+                  shortcut="Ctrl+C"
+                  model={settings.computerModel}
+                />
               </MenubarItem>
               <MenubarItem onClick={() => document.execCommand?.("paste")}>
                 {_("Paste")}
-                <MenubarShortcut>
-                  {formatMenuShortcut("Ctrl+V", settings.computerModel)}
-                </MenubarShortcut>
+                <MenuShortcutLabel
+                  shortcut="Ctrl+V"
+                  model={settings.computerModel}
+                />
               </MenubarItem>
             </MenubarContent>
           </MenubarMenu>
@@ -834,12 +844,10 @@ export function MenuBar() {
                               >
                                 {_(item.label)}
                                 {item.shortcut && (
-                                  <MenubarShortcut>
-                                    {formatMenuShortcut(
-                                      item.shortcut,
-                                      settings.computerModel,
-                                    )}
-                                  </MenubarShortcut>
+                                  <MenuShortcutLabel
+                                    shortcut={item.shortcut}
+                                    model={settings.computerModel}
+                                  />
                                 )}
                               </MenubarCheckboxItem>
                             ) : (
@@ -850,12 +858,10 @@ export function MenuBar() {
                               >
                                 {_(item.label)}
                                 {item.shortcut && (
-                                  <MenubarShortcut>
-                                    {formatMenuShortcut(
-                                      item.shortcut,
-                                      settings.computerModel,
-                                    )}
-                                  </MenubarShortcut>
+                                  <MenuShortcutLabel
+                                    shortcut={item.shortcut}
+                                    model={settings.computerModel}
+                                  />
                                 )}
                               </MenubarItem>
                             )}
@@ -878,36 +884,40 @@ export function MenuBar() {
                   onClick={() => focusedWindowId && toggleMinimizeWindow(focusedWindowId)}
                 >
                   {_("Minimize")}
-                  <MenubarShortcut>
-                    {formatMenuShortcut("Alt+M", settings.computerModel)}
-                  </MenubarShortcut>
+                  <MenuShortcutLabel
+                    shortcut="Alt+M"
+                    model={settings.computerModel}
+                  />
                 </MenubarItem>
                 <MenubarItem
                   disabled={!focusedWindowId}
                   onClick={() => focusedWindowId && toggleMaximizeWindow(focusedWindowId)}
                 >
                   {focusedWindow?.maximized ? _("Restore") : _("Maximize")}
-                  <MenubarShortcut>
-                    {formatMenuShortcut("Alt+F", settings.computerModel)}
-                  </MenubarShortcut>
+                  <MenuShortcutLabel
+                    shortcut="Alt+F"
+                    model={settings.computerModel}
+                  />
                 </MenubarItem>
                 <MenubarItem
                   disabled={!focusedWindowId}
                   onClick={() => focusedWindowId && tileWindow(focusedWindowId, "left")}
                 >
                   {_("Tile Left")}
-                  <MenubarShortcut>
-                    {formatMenuShortcut("Alt+[", settings.computerModel)}
-                  </MenubarShortcut>
+                  <MenuShortcutLabel
+                    shortcut="Alt+["
+                    model={settings.computerModel}
+                  />
                 </MenubarItem>
                 <MenubarItem
                   disabled={!focusedWindowId}
                   onClick={() => focusedWindowId && tileWindow(focusedWindowId, "right")}
                 >
                   {_("Tile Right")}
-                  <MenubarShortcut>
-                    {formatMenuShortcut("Alt+]", settings.computerModel)}
-                  </MenubarShortcut>
+                  <MenuShortcutLabel
+                    shortcut="Alt+]"
+                    model={settings.computerModel}
+                  />
                 </MenubarItem>
                 {focusedWindow?.browserUrl && (
                   <>
@@ -948,9 +958,10 @@ export function MenuBar() {
                   }
                 >
                   {_("Close")}
-                  <MenubarShortcut>
-                    {formatMenuShortcut("Alt+W", settings.computerModel)}
-                  </MenubarShortcut>
+                  <MenuShortcutLabel
+                    shortcut="Alt+W"
+                    model={settings.computerModel}
+                  />
                 </MenubarItem>
                 {(() => {
                   const appWindows = focusedWindowId
@@ -1147,7 +1158,7 @@ export function MenuBar() {
             anchor={rightClusterRef}
             align="end"
             alignOffset={-8}
-            sideOffset={6}
+            sideOffset={0}
             collisionAvoidance={{ side: "flip", align: "shift" }}
             className="w-[312px] max-w-[calc(100vw-16px)] overflow-hidden p-0"
           >
@@ -1227,7 +1238,7 @@ export function MenuBar() {
             tabIndex={-1}
             initialFocus={controlPanelPopupRef}
             align="end"
-            sideOffset={6}
+            sideOffset={0}
             className="w-[312px] max-w-[calc(100vw-16px)] rounded-adw-popover p-3 shadow-adw-popover"
           >
             {controlPanelOpen && <ControlPanel />}

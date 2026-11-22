@@ -15,7 +15,6 @@ export const DEFAULT_HOME_DIRS: readonly string[] = [
   "/home/user/.local/state",
   "/home/user/.local/state/piloti",
   "/home/user/Desktop",
-  "/home/user/Desktop/Projects",
   "/home/user/Documents",
   "/home/user/Downloads",
   "/home/user/Music",
@@ -282,7 +281,15 @@ export const DEFAULT_STATIC_DIR_INDEX: Record<string, readonly { name: string; f
       "fileType": 0
     },
     {
+      "name": "piloti-applications.svg",
+      "fileType": 0
+    },
+    {
       "name": "piloti-calculator.svg",
+      "fileType": 0
+    },
+    {
+      "name": "piloti-console.svg",
       "fileType": 0
     },
     {
@@ -290,11 +297,23 @@ export const DEFAULT_STATIC_DIR_INDEX: Record<string, readonly { name: string; f
       "fileType": 0
     },
     {
+      "name": "piloti-files.svg",
+      "fileType": 0
+    },
+    {
       "name": "piloti-image-viewer.svg",
       "fileType": 0
     },
     {
+      "name": "piloti-notepad.svg",
+      "fileType": 0
+    },
+    {
       "name": "piloti-settings.svg",
+      "fileType": 0
+    },
+    {
+      "name": "piloti-shell.svg",
       "fileType": 0
     },
     {
@@ -574,16 +593,6 @@ export const DEFAULT_STATIC_DIR_INDEX: Record<string, readonly { name: string; f
     {
       "name": "folder.json",
       "fileType": 0
-    },
-    {
-      "name": "user-trash.json",
-      "fileType": 0
-    }
-  ],
-  "/usr/share/icons/Piloti/animated/status": [
-    {
-      "name": "user-trash-full.json",
-      "fileType": 0
     }
   ],
   "/usr/share/icons/Piloti/animated": [
@@ -594,13 +603,42 @@ export const DEFAULT_STATIC_DIR_INDEX: Record<string, readonly { name: string; f
     {
       "name": "places",
       "fileType": 1
-    },
-    {
-      "name": "status",
-      "fileType": 1
     }
   ],
-  "/usr/share/icons/Piloti/scalable/apps": [],
+  "/usr/share/icons/Piloti/scalable/apps": [
+    {
+      "name": "piloti-applications.svg",
+      "fileType": 0
+    },
+    {
+      "name": "piloti-calculator.svg",
+      "fileType": 0
+    },
+    {
+      "name": "piloti-desktop.svg",
+      "fileType": 0
+    },
+    {
+      "name": "piloti-files.svg",
+      "fileType": 0
+    },
+    {
+      "name": "piloti-image-viewer.svg",
+      "fileType": 0
+    },
+    {
+      "name": "piloti-notepad.svg",
+      "fileType": 0
+    },
+    {
+      "name": "piloti-settings.svg",
+      "fileType": 0
+    },
+    {
+      "name": "piloti-shell.svg",
+      "fileType": 0
+    }
+  ],
   "/usr/share/icons/Piloti/scalable/mimetypes": [
     {
       "name": "application-x-zerosize.svg",

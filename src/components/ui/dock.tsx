@@ -192,7 +192,7 @@ function Dock({
           role="toolbar"
           aria-label="Dock"
           className={cn(
-            "group/dock flex gap-2 border-black/10 bg-white/60 text-adw-label shadow-[0_6px_20px_rgb(0_0_0/0.16)] backdrop-blur-md transition-[translate,opacity] duration-300 ease-out data-[state=hidden]:pointer-events-none data-[state=hidden]:opacity-0 dark:border-white/10 dark:bg-black/40 dark:shadow-[0_8px_24px_rgb(0_0_0/0.38)]",
+            "group/dock flex gap-2 border-black/10 text-adw-label shadow-adw-dock adw-material-dock transition-[translate,opacity] duration-300 ease-out data-[state=hidden]:pointer-events-none data-[state=hidden]:opacity-0 dark:border-white/10",
             positionClass,
             className
           )}

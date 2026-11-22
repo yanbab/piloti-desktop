@@ -115,24 +115,24 @@ export function OsdOverlay() {
     <div
       role="status"
       aria-live="polite"
-      className="pointer-events-none fixed bottom-24 left-1/2 z-[450] flex w-56 -translate-x-1/2 items-center gap-3 rounded-full bg-zinc-900/88 px-4 py-2.5 text-white shadow-xl ring-1 ring-white/15 backdrop-blur-md animate-in fade-in zoom-in-95 duration-150"
+      className="pointer-events-none fixed bottom-24 left-1/2 z-[450] flex w-56 -translate-x-1/2 items-center gap-3 rounded-full px-4 py-2.5 text-adw-label shadow-adw-menu ring-1 ring-adw-border adw-material-hud animate-in fade-in zoom-in-95 duration-150"
     >
       {osd.kind === "volume" ? (
         osd.muted || osd.value === 0 ? (
-          <VolumeXIcon className="size-4.5 shrink-0 text-white/80" />
+          <VolumeXIcon className="size-4.5 shrink-0 text-adw-label-secondary" />
         ) : (
-          <Volume2Icon className="size-4.5 shrink-0 text-white" />
+          <Volume2Icon className="size-4.5 shrink-0 text-adw-label" />
         )
       ) : (
-        <SunIcon className="size-4.5 shrink-0 text-white" />
+        <SunIcon className="size-4.5 shrink-0 text-adw-label" />
       )}
-      <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/20">
+      <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-black/15 dark:bg-white/20">
         <div
           style={{ width: `${Math.max(0, Math.min(100, osd.value))}%` }}
           className="h-full rounded-full bg-adw-accent transition-[width] duration-100"
         />
       </div>
-      <span className="w-8 text-right text-[11px] font-semibold tabular-nums text-white/90">
+      <span className="w-8 text-right text-[11px] font-semibold tabular-nums text-adw-label-secondary">
         {osd.muted ? "Mute" : `${osd.value}%`}
       </span>
     </div>

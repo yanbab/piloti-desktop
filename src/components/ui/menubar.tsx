@@ -67,7 +67,7 @@ function MenubarContent({
   alignOffset = 0,
   anchor,
   side = "bottom",
-  sideOffset = 6,
+  sideOffset = 0,
   initialFocus,
   ...props
 }: MenuPrimitive.Popup.Props &

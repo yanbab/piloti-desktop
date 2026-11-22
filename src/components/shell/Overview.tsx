@@ -43,7 +43,7 @@ function OverviewWorkspacesBar({
         transition: "transform 350ms cubic-bezier(0.22, 1, 0.36, 1)",
       }}
       className={cn(
-        "relative flex w-full shrink-0 items-center justify-center bg-white/60 px-6 py-3 backdrop-blur-md animate-in slide-in-from-top-full duration-[350ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:animate-none dark:bg-black/40",
+        "relative flex w-full shrink-0 items-center justify-center px-6 py-3 adw-material-hud animate-in slide-in-from-top-full duration-[350ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:animate-none",
         !overviewOpen && "-translate-y-full",
       )}
     >

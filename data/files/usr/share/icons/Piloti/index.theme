@@ -2,7 +2,7 @@
 Name=Piloti
 Comment=Piloti Animated Icon Theme (Folder & Text Animations; Inherits Papirus & Adwaita)
 Inherits=Papirus,Adwaita,hicolor
-Directories=animated/places,animated/mimetypes,animated/status,scalable/mimetypes
+Directories=animated/places,animated/mimetypes,scalable/apps,scalable/mimetypes
 
 [animated/places]
 Context=Places
@@ -18,9 +18,9 @@ MinSize=16
 MaxSize=512
 Type=Scalable
 
-[animated/status]
-Context=Status
-Size=64
+[scalable/apps]
+Context=Applications
+Size=128
 MinSize=16
 MaxSize=512
 Type=Scalable

@@ -232,7 +232,7 @@ const DEFAULT_SETTINGS: DesktopSettings = {
   restoreWindowsOnLogin: true,
   desktopIconsEnabled: true,
   desktopIconAlign: "left",
-  fileActivationMode: "double",
+  fileActivationMode: "single",
   showFileExtensionBadges: true,
   demoExtensionEnabled: true,
   enabledPluginIds: [],
@@ -384,9 +384,22 @@ export function resolveInitialSettings(
           parsed.notificationHistoryLimit
         );
 
+        const interfaceTheme =
+          parsed.interfaceTheme || DEFAULT_SETTINGS.interfaceTheme;
+        const iconTheme =
+          interfaceTheme === "adwaita"
+            ? "Adwaita"
+            : !parsed.iconTheme ||
+                parsed.iconTheme === "Papirus" ||
+                interfaceTheme === "piloti"
+              ? "Piloti"
+              : parsed.iconTheme;
+
         return {
           ...DEFAULT_SETTINGS,
           ...parsed,
+          interfaceTheme,
+          iconTheme,
           gnomeBackground,
           notificationBannerTimeoutMs,
           notificationHistoryLimit,
@@ -779,54 +792,62 @@ export function useSettingsValue(options?: {
   const updateSettings = React.useCallback(
     (patch: Partial<DesktopSettings>) => {
       setSettings((prev) => {
-        const next = { ...prev, ...patch };
-        persist(next, patch);
+        const mergedPatch: Partial<DesktopSettings> = { ...patch };
+        if (
+          patch.interfaceTheme !== undefined &&
+          patch.iconTheme === undefined
+        ) {
+          mergedPatch.iconTheme =
+            patch.interfaceTheme === "adwaita" ? "Adwaita" : "Piloti";
+        }
+        const next = { ...prev, ...mergedPatch };
+        persist(next, mergedPatch);
 
         if (!isBrowserRuntime && !applyingGnomeSyncRef.current) {
           if (
             next.syncGnomeSettings &&
-            (patch.themeMode !== undefined ||
-              patch.accentColor !== undefined ||
-              patch.iconTheme !== undefined ||
-              patch.clock24Hour !== undefined ||
-              patch.clockShowSeconds !== undefined ||
-              patch.gtkFontName !== undefined ||
-              patch.gtkDocumentFontName !== undefined ||
-              patch.gtkMonospaceFontName !== undefined ||
-              patch.gtkTextScalingFactor !== undefined ||
-              patch.gtkFontAntialiasing !== undefined ||
-              patch.gtkFontHinting !== undefined ||
-              patch.gtkFontRgbaOrder !== undefined)
+            (mergedPatch.themeMode !== undefined ||
+              mergedPatch.accentColor !== undefined ||
+              mergedPatch.iconTheme !== undefined ||
+              mergedPatch.clock24Hour !== undefined ||
+              mergedPatch.clockShowSeconds !== undefined ||
+              mergedPatch.gtkFontName !== undefined ||
+              mergedPatch.gtkDocumentFontName !== undefined ||
+              mergedPatch.gtkMonospaceFontName !== undefined ||
+              mergedPatch.gtkTextScalingFactor !== undefined ||
+              mergedPatch.gtkFontAntialiasing !== undefined ||
+              mergedPatch.gtkFontHinting !== undefined ||
+              mergedPatch.gtkFontRgbaOrder !== undefined)
           ) {
             void syncGnomeInterfaceKey(domicile, {
-              ...(patch.themeMode !== undefined ? { themeMode: next.themeMode } : {}),
-              ...(patch.accentColor !== undefined ? { accentColor: next.accentColor } : {}),
-              ...(patch.iconTheme !== undefined ? { iconTheme: next.iconTheme } : {}),
-              ...(patch.clock24Hour !== undefined ? { clock24Hour: next.clock24Hour } : {}),
-              ...(patch.clockShowSeconds !== undefined
+              ...(mergedPatch.themeMode !== undefined ? { themeMode: next.themeMode } : {}),
+              ...(mergedPatch.accentColor !== undefined ? { accentColor: next.accentColor } : {}),
+              ...(mergedPatch.iconTheme !== undefined ? { iconTheme: next.iconTheme } : {}),
+              ...(mergedPatch.clock24Hour !== undefined ? { clock24Hour: next.clock24Hour } : {}),
+              ...(mergedPatch.clockShowSeconds !== undefined
                 ? { clockShowSeconds: next.clockShowSeconds }
                 : {}),
-              ...(patch.gtkFontName !== undefined ? { gtkFontName: next.gtkFontName } : {}),
-              ...(patch.gtkDocumentFontName !== undefined
+              ...(mergedPatch.gtkFontName !== undefined ? { gtkFontName: next.gtkFontName } : {}),
+              ...(mergedPatch.gtkDocumentFontName !== undefined
                 ? { gtkDocumentFontName: next.gtkDocumentFontName }
                 : {}),
-              ...(patch.gtkMonospaceFontName !== undefined
+              ...(mergedPatch.gtkMonospaceFontName !== undefined
                 ? { gtkMonospaceFontName: next.gtkMonospaceFontName }
                 : {}),
-              ...(patch.gtkTextScalingFactor !== undefined
+              ...(mergedPatch.gtkTextScalingFactor !== undefined
                 ? { gtkTextScalingFactor: next.gtkTextScalingFactor }
                 : {}),
-              ...(patch.gtkFontAntialiasing !== undefined
+              ...(mergedPatch.gtkFontAntialiasing !== undefined
                 ? { gtkFontAntialiasing: next.gtkFontAntialiasing }
                 : {}),
-              ...(patch.gtkFontHinting !== undefined
+              ...(mergedPatch.gtkFontHinting !== undefined
                 ? { gtkFontHinting: next.gtkFontHinting }
                 : {}),
-              ...(patch.gtkFontRgbaOrder !== undefined
+              ...(mergedPatch.gtkFontRgbaOrder !== undefined
                 ? { gtkFontRgbaOrder: next.gtkFontRgbaOrder }
                 : {}),
             });
-            if (patch.iconTheme !== undefined) {
+            if (mergedPatch.iconTheme !== undefined) {
               void syncGtkIconTheme(domicile, next.iconTheme);
             }
           }

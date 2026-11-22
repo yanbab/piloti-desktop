@@ -324,10 +324,12 @@ async function resolveWithDirectAdwaitaFallback(
   files: Parameters<typeof resolveXdgIconUrl>[0],
   iconIndex: XdgIconThemeIndex,
   key: string,
-  candidates: readonly string[]
+  candidates: readonly string[],
+  allowPapirusFallback = true
 ): Promise<string | undefined> {
   const fromIndex = await resolveXdgIconUrl(files, iconIndex, candidates, 64, 1);
   if (fromIndex) return fromIndex;
+  if (!allowPapirusFallback) return undefined;
 
   const directPaths = PAPIRUS_DIRECT_ICON_FALLBACKS[key];
   if (!directPaths) return undefined;
@@ -346,7 +348,7 @@ async function resolveWithDirectAdwaitaFallback(
   return undefined;
 }
 
-const DOCK_ICONS_CACHE_KEY = "piloti.dock-icons.v14";
+const DOCK_ICONS_CACHE_KEY = "piloti.dock-icons.v15";
 
 interface DockIconsCachePayload {
   theme: string;
@@ -399,7 +401,19 @@ export function useAppsValue(
 
   const [portalIconTheme, setPortalIconTheme] = React.useState<string>("Piloti");
   const activeIconTheme =
-    settings.iconTheme || gnomeIconThemeOverride || portalIconTheme;
+    settings.interfaceTheme === "adwaita"
+      ? "Adwaita"
+      : settings.iconTheme &&
+          settings.iconTheme !== "Papirus" &&
+          settings.iconTheme !== "Adwaita"
+        ? settings.iconTheme
+        : gnomeIconThemeOverride &&
+            gnomeIconThemeOverride !== "Papirus" &&
+            gnomeIconThemeOverride !== "Adwaita"
+          ? gnomeIconThemeOverride
+          : portalIconTheme !== "Papirus" && portalIconTheme !== "Adwaita"
+            ? portalIconTheme
+            : "Piloti";
 
   const [installedXdgApps, setInstalledXdgApps] = React.useState<
     XdgDesktopEntry[]
@@ -430,7 +444,7 @@ export function useAppsValue(
               Some: (themeName) => {
                 if (themeName) setPortalIconTheme(themeName);
               },
-              None: () => setPortalIconTheme("Papirus"),
+              None: () => setPortalIconTheme("Piloti"),
             });
           },
           Err: () => { },
@@ -444,7 +458,10 @@ export function useAppsValue(
   React.useEffect(() => {
     void refreshNonce;
     let cancelled = false;
-    const preferredThemes = [activeIconTheme, "Papirus", "Adwaita", "hicolor"];
+    const preferredThemes =
+      activeIconTheme === "Adwaita"
+        ? ["Adwaita", "hicolor"]
+        : [activeIconTheme, "Adwaita", "hicolor"];
     const cachedIndex = loadCachedXdgIconThemeIndex(preferredThemes);
     iconThemeIndexRef.current = cachedIndex;
 
@@ -518,7 +535,8 @@ export function useAppsValue(
               domicile.files,
               iconIndex,
               app.id,
-              app.xdgIcons ?? [app.id]
+              app.xdgIcons ?? [app.id],
+              activeIconTheme !== "Adwaita"
             );
             if (url) essentialIcons[app.id] = url;
           }),
@@ -542,7 +560,8 @@ export function useAppsValue(
                 domicile.files,
                 iconIndex,
                 key,
-                candidates
+                candidates,
+                activeIconTheme !== "Adwaita"
               );
               if (url) essentialIcons[key] = url;
             }
@@ -743,7 +762,8 @@ export function useAppsValue(
               domicile.files,
               iconIndex,
               baseId,
-              [baseId, raw]
+              [baseId, raw],
+              activeIconTheme !== "Adwaita"
             );
             return url ? { baseId, raw, url } : null;
           } catch {
@@ -762,7 +782,7 @@ export function useAppsValue(
         }
       });
     },
-    [appIconsMap, domicile.files]
+    [activeIconTheme, appIconsMap, domicile.files]
   );
 
   const getAppIconUrl = React.useCallback(

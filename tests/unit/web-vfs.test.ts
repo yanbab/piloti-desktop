@@ -57,8 +57,7 @@ describe("web-vfs", () => {
 
   it("seeds XDG folders and starter Desktop files", () => {
     const desktopItems = listVfsDir(`${WEB_VFS_HOME}/Desktop`);
-    expect(desktopItems.some((e) => e.name === "Welcome.html")).toBe(true);
-    expect(desktopItems.some((e) => e.name === "Projects")).toBe(true);
+    expect(desktopItems.map((e) => e.name)).toEqual(["Welcome.html"]);
   });
 
   it("creates unique folders and text files, renames recursively, and trashes", () => {

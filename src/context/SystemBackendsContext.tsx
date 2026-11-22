@@ -867,9 +867,7 @@ export function useSystemBackendsValue(
       if (snap.fontHinting) patch.gtkFontHinting = snap.fontHinting;
       if (snap.fontRgbaOrder) patch.gtkFontRgbaOrder = snap.fontRgbaOrder;
       if (snap.iconTheme) {
-        patch.iconTheme = snap.iconTheme;
         setGnomeIconThemeOverride(snap.iconTheme);
-        void syncGtkIconTheme(domicile, snap.iconTheme);
       }
       if (Object.keys(patch).length > 0) {
         applyingGnomeSyncRef.current = true;

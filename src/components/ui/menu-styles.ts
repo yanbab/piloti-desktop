@@ -18,7 +18,7 @@ export const MENU_LABEL_CLASS =
 export const MENU_SEPARATOR_CLASS = "mx-0 my-[5px] h-px bg-adw-separator"
 
 export const MENU_SHORTCUT_CLASS =
-  "ml-auto shrink-0 pl-6 text-[13px] font-normal tracking-normal whitespace-nowrap text-adw-label-secondary in-data-disabled:text-adw-label-tertiary"
+  "ml-auto shrink-0 pl-6 text-[13px] font-normal tracking-[0.16em] whitespace-nowrap text-adw-label-secondary in-data-disabled:text-adw-label-tertiary"
 
 export const MENU_BADGE_CLASS =
   "-mr-[2px] ml-auto flex h-[17px] shrink-0 items-center rounded-full bg-black/6 px-2 text-[10.5px] font-semibold text-adw-label dark:bg-white/10"
