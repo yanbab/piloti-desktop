@@ -119,7 +119,22 @@ describe("XDG specifications (Autostart, Recents XBEL, Globs2/Magic)", () => {
       "/usr/share/icons/Papirus/64x64/places/user-trash-full.svg"
     );
     expect(lookupXdgIconPath(index, "view-app-grid", 64, 1)).toBe(
-      "/usr/share/icons/Piloti/scalable/apps/view-app-grid.svg"
+      "/usr/share/icons/Papirus/64x64/apps/view-app-grid.svg"
+    );
+    expect(lookupXdgIconPath(index, "system-file-manager", 64, 1)).toBe(
+      "/usr/share/icons/Papirus/64x64/apps/system-file-manager.svg"
+    );
+    expect(lookupXdgIconPath(index, "system-software-install", 64, 1)).toBe(
+      "/usr/share/icons/Papirus/64x64/apps/system-software-install.svg"
+    );
+    expect(lookupXdgIconPath(index, "accessories-calculator", 64, 1)).toBe(
+      "/usr/share/icons/Papirus/64x64/apps/accessories-calculator.svg"
+    );
+    expect(lookupXdgIconPath(index, "accessories-text-editor", 64, 1)).toBe(
+      "/usr/share/icons/Papirus/64x64/apps/accessories-text-editor.svg"
+    );
+    expect(lookupXdgIconPath(index, "utilities-terminal", 64, 1)).toBe(
+      "/usr/share/icons/Papirus/64x64/apps/utilities-terminal.svg"
     );
     const dataUrl = await loadXdgIconDataUrl(reader as never, folderPath!);
     expect(dataUrl?.startsWith("data:application/json;base64,")).toBe(true);
@@ -142,14 +157,11 @@ describe("XDG specifications (Autostart, Recents XBEL, Globs2/Magic)", () => {
         PILOTI_VIRTUAL_ICONS[filePath] ? mkOk(PILOTI_VIRTUAL_ICONS[filePath]) : mkErr(),
     };
     const pilotiOnlyIndex = await buildXdgIconThemeIndex(pilotiOnlyReader as never, ["Piloti", "Adwaita", "hicolor"]);
-    expect(lookupXdgIconPath(pilotiOnlyIndex, "piloti-files", 64, 1)).toBe(
-      "/usr/share/icons/Piloti/scalable/apps/piloti-files.svg"
+    expect(lookupXdgIconPath(pilotiOnlyIndex, "folder", 64, 1)).toBe(
+      "/usr/share/icons/Piloti/animated/places/folder.json"
     );
-    expect(lookupXdgIconPath(pilotiOnlyIndex, "piloti-settings", 64, 1)).toBe(
-      "/usr/share/icons/Piloti/scalable/apps/piloti-settings.svg"
-    );
-    expect(lookupXdgIconPath(pilotiOnlyIndex, "piloti-applications", 64, 1)).toBe(
-      "/usr/share/icons/Piloti/scalable/apps/piloti-applications.svg"
+    expect(lookupXdgIconPath(pilotiOnlyIndex, "application-x-zerosize", 64, 1)).toBe(
+      "/usr/share/icons/Piloti/animated/mimetypes/application-x-zerosize.json"
     );
 
     const papirusOnlyIndex = await buildXdgIconThemeIndex(reader as never, ["Papirus", "Adwaita", "hicolor"]);

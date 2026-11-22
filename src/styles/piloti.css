@@ -10,20 +10,28 @@
  */
 
 :root:not([data-interface-theme="adwaita"])[data-more-transparency="true"]:not([data-high-contrast="true"]) {
-  --adw-material-menu: rgb(235 235 238 / 0.68);
-  --adw-material-popover: rgb(235 235 238 / 0.68);
-  --adw-material-hud: rgb(235 235 238 / 0.68);
+  --piloti-surface: rgb(235 235 238 / 0.68);
+  --piloti-backdrop: blur(22px) saturate(160%);
+  --adw-sidebar: var(--piloti-surface);
+  --adw-material-menu: var(--piloti-surface);
+  --adw-material-popover: var(--piloti-surface);
+  --adw-material-hud: var(--piloti-surface);
   --adw-material-tooltip: rgb(0 0 0 / 0.85);
-  --adw-material-dock: rgb(235 235 238 / 0.68);
+  --adw-material-dock: var(--piloti-surface);
+  --adw-material-dock-saturation: 160%;
   --adw-material-blur: 22px;
 }
 
 :root:not([data-interface-theme="adwaita"]).dark[data-more-transparency="true"]:not([data-high-contrast="true"]) {
-  --adw-material-menu: rgb(36 36 40 / 0.65);
-  --adw-material-popover: rgb(36 36 40 / 0.65);
-  --adw-material-hud: rgb(36 36 40 / 0.65);
+  --piloti-surface: rgb(36 36 40 / 0.65);
+  --piloti-backdrop: blur(22px) saturate(160%);
+  --adw-sidebar: var(--piloti-surface);
+  --adw-material-menu: var(--piloti-surface);
+  --adw-material-popover: var(--piloti-surface);
+  --adw-material-hud: var(--piloti-surface);
   --adw-material-tooltip: rgb(0 0 0 / 0.88);
-  --adw-material-dock: rgb(36 36 40 / 0.65);
+  --adw-material-dock: var(--piloti-surface);
+  --adw-material-dock-saturation: 160%;
   --adw-material-blur: 22px;
   --adw-sidebar-selection: rgb(255 255 255 / 0.14);
   --adw-menu-highlight: rgb(255 255 255 / 0.1);
@@ -33,19 +41,10 @@
 :root:not([data-interface-theme="adwaita"])[data-more-transparency="true"]:not([data-high-contrast="true"]) .adw-material-menu,
 :root:not([data-interface-theme="adwaita"])[data-more-transparency="true"]:not([data-high-contrast="true"]) .adw-material-popover,
 :root:not([data-interface-theme="adwaita"])[data-more-transparency="true"]:not([data-high-contrast="true"]) .adw-material-hud,
-:root:not([data-interface-theme="adwaita"])[data-more-transparency="true"]:not([data-high-contrast="true"]) .adw-material-dock {
-  -webkit-backdrop-filter: blur(22px) saturate(160%);
-  backdrop-filter: blur(22px) saturate(160%);
-}
-
+:root:not([data-interface-theme="adwaita"])[data-more-transparency="true"]:not([data-high-contrast="true"]) .adw-material-dock,
+:root:not([data-interface-theme="adwaita"])[data-more-transparency="true"]:not([data-high-contrast="true"]) .adw-material-sidebar,
 :root:not([data-interface-theme="adwaita"])[data-more-transparency="true"]:not([data-high-contrast="true"]) .bg-adw-sidebar {
-  background-color: rgb(235 235 238 / 0.68);
-  -webkit-backdrop-filter: blur(22px) saturate(160%);
-  backdrop-filter: blur(22px) saturate(160%);
-}
-
-:root:not([data-interface-theme="adwaita"]).dark[data-more-transparency="true"]:not([data-high-contrast="true"]) .bg-adw-sidebar {
-  background-color: rgb(36 36 40 / 0.65);
-  -webkit-backdrop-filter: blur(22px) saturate(160%);
-  backdrop-filter: blur(22px) saturate(160%);
+  background-color: var(--piloti-surface);
+  -webkit-backdrop-filter: var(--piloti-backdrop);
+  backdrop-filter: var(--piloti-backdrop);
 }

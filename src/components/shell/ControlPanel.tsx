@@ -14,7 +14,7 @@ import {
   Music2Icon,
   PauseIcon,
   PlayIcon,
-  SettingsIcon,
+  SlidersVerticalIcon,
   SkipBackIcon,
   SkipForwardIcon,
   SpeakerIcon,
@@ -141,7 +141,7 @@ export function ControlPanel() {
             }}
             className="flex size-7 items-center justify-center rounded-full bg-black/8 text-adw-label active:bg-black/16 dark:bg-white/10 dark:active:bg-white/22"
           >
-            <SettingsIcon className="size-3.5" />
+            <SlidersVerticalIcon className="size-3.5" />
           </button>
           <span className="text-[12px] font-semibold text-adw-label-secondary">
             {new Date().toLocaleDateString(

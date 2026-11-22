@@ -148,7 +148,7 @@ export function AdwSplitView({
         onKeyUp={onSidebarKeyUp}
         className={cn(
           "flex min-h-0 shrink-0 flex-col overflow-hidden border-r border-adw-separator bg-adw-sidebar",
-          isCompact ? "w-[48px]" : sidebarWidthClass,
+          isCompact ? "w-[47px]" : sidebarWidthClass,
         )}
       >
         {isCsd && (
@@ -156,6 +156,7 @@ export function AdwSplitView({
             data-window-drag-region
             className={cn(
               "bg-transparent transition-colors",
+              isCompact && "justify-center px-[9px]",
               sidebarScrolled
                 ? "border-b border-adw-separator/70"
                 : "border-b border-transparent",
@@ -175,14 +176,16 @@ export function AdwSplitView({
                 {title}
               </span>
             )}
-            <div className="flex items-center justify-end" data-window-no-drag>
-              <WindowMenuButton
-                side="right"
-                windowId={windowId}
-                appId={appId}
-                iconName={iconName}
-              />
-            </div>
+            {!isCompact && (
+              <div className="flex items-center justify-end" data-window-no-drag>
+                <WindowMenuButton
+                  side="right"
+                  windowId={windowId}
+                  appId={appId}
+                  iconName={iconName}
+                />
+              </div>
+            )}
           </WindowTitlebar>
         )}
 
@@ -190,8 +193,7 @@ export function AdwSplitView({
           <nav
             onScroll={(e) => setSidebarScrolled(e.currentTarget.scrollTop > 2)}
             className={cn(
-              "flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto pb-2",
-              isCompact ? "px-1.5" : "px-2",
+              "flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto pb-2 px-[9px]",
               isCsd ? "pt-0.5" : tall ? "pt-2.5" : "pt-2",
             )}
           >
@@ -210,8 +212,8 @@ export function AdwSplitView({
                       isCompact
                         ? "w-full shrink-0 justify-center px-0"
                         : item.trailingAction
-                          ? "min-w-0 flex-1 px-2.5 pr-8"
-                          : "w-full shrink-0 px-2.5",
+                          ? "min-w-0 flex-1 px-1.5 pr-7"
+                          : "w-full shrink-0 px-1.5",
                       tall
                         ? isCompact
                           ? "gap-0 py-2 text-[14px]"

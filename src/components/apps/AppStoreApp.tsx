@@ -83,8 +83,8 @@ type StoreCategory =
   | "Graphics"
   | "Development"
   | "Productivity"
-  | "Audio & Media"
-  | "Science & Math"
+  | "Multimedia"
+  | "Science"
   | "Utilities";
 
 interface StoreItem {
@@ -164,15 +164,33 @@ function classifyWebAppCategory(
     return "Development";
   }
   if (/audio|music|sound|radio|midi|video|stream|webrtc/.test(hay)) {
-    return "Audio & Media";
+    return "Multimedia";
   }
   if (/math|graph|geometry|calculator|weather|astronomy|globe/.test(hay)) {
-    return "Science & Math";
+    return "Science";
   }
   if (/markdown|notes|pomodoro|clock|meeting/.test(hay)) {
     return "Productivity";
   }
   return "Utilities";
+}
+
+function normalizeStoreCategory(
+  raw: string | undefined,
+  app: InstalledWebApp,
+): Exclude<StoreCategory, "all" | "installed"> {
+  if (raw === "Multimedia" || raw === "Audio & Media") return "Multimedia";
+  if (raw === "Science" || raw === "Science & Math") return "Science";
+  if (
+    raw === "Games" ||
+    raw === "Graphics" ||
+    raw === "Development" ||
+    raw === "Productivity" ||
+    raw === "Utilities"
+  ) {
+    return raw;
+  }
+  return classifyWebAppCategory(app);
 }
 
 function classifyCatalogCategory(
@@ -181,7 +199,7 @@ function classifyCatalogCategory(
   if (cat === "Graphics") return "Graphics";
   if (cat === "Development") return "Development";
   if (cat === "Office" || cat === "Internet") return "Productivity";
-  if (cat === "AudioVideo" || cat === "Media") return "Audio & Media";
+  if (cat === "AudioVideo" || cat === "Media") return "Multimedia";
   return "Utilities";
 }
 
@@ -206,9 +224,9 @@ function classifyFlatpakCategory(
   if (cats.includes("graphics")) return "Graphics";
   if (cats.includes("development")) return "Development";
   if (cats.includes("office")) return "Productivity";
-  if (cats.includes("audiovideo")) return "Audio & Media";
+  if (cats.includes("audiovideo")) return "Multimedia";
   if (cats.includes("science") || cats.includes("education")) {
-    return "Science & Math";
+    return "Science";
   }
   return "Utilities";
 }
@@ -221,12 +239,12 @@ const CATEGORY_ITEMS: Array<{
   { id: "Games", label: "Games", icon: <Gamepad2Icon className="size-4" /> },
   {
     id: "Graphics",
-    label: "Graphics & Design",
+    label: "Graphics",
     icon: <PaletteIcon className="size-4" />,
   },
   {
     id: "Development",
-    label: "Developer Tools",
+    label: "Development",
     icon: <Code2Icon className="size-4" />,
   },
   {
@@ -235,13 +253,13 @@ const CATEGORY_ITEMS: Array<{
     icon: <BriefcaseIcon className="size-4" />,
   },
   {
-    id: "Audio & Media",
-    label: "Audio & Media",
+    id: "Multimedia",
+    label: "Multimedia",
     icon: <MusicIcon className="size-4" />,
   },
   {
-    id: "Science & Math",
-    label: "Science & Math",
+    id: "Science",
+    label: "Science",
     icon: <FlaskConicalIcon className="size-4" />,
   },
   {
@@ -533,9 +551,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
         title: webApp.title,
         subtitle:
           cachedDesc || new URL(webApp.url).hostname.replace(/^www\./, ""),
-        category:
-          (webApp.category as StoreItem["category"]) ??
-          classifyWebAppCategory(webApp),
+        category: normalizeStoreCategory(webApp.category, webApp),
         installed,
         removable: true,
         webApp,
@@ -1141,7 +1157,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                       <h2 className="px-0.5 text-[12px] font-semibold tracking-wider text-adw-label-tertiary uppercase">
                         {group.title}
                       </h2>
-                      <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
+                      <div className="grid grid-cols-[repeat(auto-fill,minmax(min(220px,100%),1fr))] gap-2.5">
                         {group.list.map((item) => {
                           const isSelected = selectedId === item.id;
                           return (

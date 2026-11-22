@@ -3,6 +3,6 @@ Type=Application
 Name=Notepad
 Comment=Minimal plain-text notepad with instant VFS save
 Exec=piloti-notepad %F
-Icon=piloti-text-editor
+Icon=accessories-text-editor
 Categories=Utility;TextEditor;
 MimeType=text/plain;text/markdown;application/json;

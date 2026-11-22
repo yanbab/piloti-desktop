@@ -413,137 +413,11 @@ export function MenuBar() {
             pilotiTriggerRef.current?.click();
           }
         });
-        return;
-      }
-
-      if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
-      const header = headerRef.current;
-      if (!header) return;
-
-      const target = e.target as HTMLElement | null;
-      if (
-        target &&
-        ((target.tagName === "INPUT" || target.tagName === "TEXTAREA") &&
-          (target as HTMLInputElement).value.length > 0)
-      ) {
-        return;
-      }
-      if (target?.closest('[role="slider"]')) {
-        return;
-      }
-
-      const allNavItems = Array.from(
-        header.querySelectorAll<HTMLElement>(
-          '[role="menubar"] > [role="menuitem"], [data-menubar-nav]'
-        )
-      ).filter((el) => el.offsetParent !== null);
-      if (allNavItems.length === 0) return;
-
-      const openMenubarTrigger = allNavItems.find(
-        (el) =>
-          el.getAttribute("role") === "menuitem" &&
-          el.getAttribute("aria-expanded") === "true"
-      );
-      const wasOpen =
-        launcherOpen || controlPanelOpen || Boolean(openMenubarTrigger);
-
-      // When a menu or panel is open, cycle directly across menus and panels
-      // (skipping the non-panel workspace Overview toggle button).
-      const navItems = wasOpen
-        ? allNavItems.filter((el) => el.dataset.menubarNav !== "workspace")
-        : allNavItems;
-      if (navItems.length === 0) return;
-
-      const menubarItems = navItems.filter(
-        (el) => el.getAttribute("role") === "menuitem"
-      );
-      const openMenubarIdx = openMenubarTrigger
-        ? navItems.indexOf(openMenubarTrigger)
-        : -1;
-      const active = document.activeElement as HTMLElement | null;
-
-      // Let Base UI handle submenu open (ArrowRight on sub-trigger) / close (ArrowLeft inside sub-content)
-      if (
-        openMenubarIdx !== -1 &&
-        active &&
-        ((e.key === "ArrowRight" &&
-          active.getAttribute("aria-haspopup") === "menu" &&
-          !active.closest('[role="menubar"]')) ||
-          (e.key === "ArrowLeft" &&
-            Boolean(active.closest('[data-slot="menubar-sub-content"]'))))
-      ) {
-        return;
-      }
-
-      let idx = -1;
-      if (launcherOpen) {
-        idx = navItems.findIndex((el) => el.dataset.menubarNav === "launcher");
-      } else if (controlPanelOpen) {
-        idx = navItems.findIndex(
-          (el) => el.dataset.menubarNav === "control-panel"
-        );
-      } else if (openMenubarIdx !== -1) {
-        idx = openMenubarIdx;
-      } else {
-        idx = navItems.findIndex((el) => el === active || el.contains(active));
-      }
-      if (idx === -1) return;
-
-      const currentEl = navItems[idx];
-      const inMenubar = currentEl?.getAttribute("role") === "menuitem";
-      const isFirstMenubar = inMenubar && currentEl === menubarItems[0];
-      const isLastMenubar =
-        inMenubar && currentEl === menubarItems[menubarItems.length - 1];
-
-      // Let Base UI handle intra-menubar Left/Right except at the outer edges
-      if (
-        inMenubar &&
-        !(
-          (e.key === "ArrowLeft" && isFirstMenubar) ||
-          (e.key === "ArrowRight" && isLastMenubar)
-        )
-      ) {
-        return;
-      }
-
-      e.preventDefault();
-      e.stopPropagation();
-
-      const delta = e.key === "ArrowRight" ? 1 : -1;
-      const nextEl =
-        navItems[(idx + delta + navItems.length) % navItems.length];
-      if (!nextEl) return;
-
-      if (openMenubarIdx !== -1) {
-        navItems[openMenubarIdx].click();
-      }
-      if (launcherOpen) setLauncherOpen(false);
-      if (controlPanelOpen) setControlPanelOpen(false);
-
-      const navKind = nextEl.dataset.menubarNav;
-      if (navKind === "launcher") {
-        setLauncherOpen(true);
-      } else if (navKind === "control-panel") {
-        setControlPanelOpen(true);
-      } else if (navKind === "workspace") {
-        requestAnimationFrame(() => nextEl.focus());
-      } else {
-        requestAnimationFrame(() => {
-          nextEl.focus();
-          if (wasOpen && nextEl.getAttribute("aria-expanded") !== "true") {
-            nextEl.click();
-          }
-        });
       }
     };
     window.addEventListener("keydown", onKeyDown, true);
     return () => window.removeEventListener("keydown", onKeyDown, true);
-  }, [
-    controlPanelOpen,
-    launcherOpen,
-    setControlPanelOpen,
-    setLauncherOpen,
-  ]);
+  }, [setControlPanelOpen, setLauncherOpen]);
 
   const handlePowerMenuClick = (
     action: "logout" | "restart" | "poweroff",
@@ -559,8 +433,15 @@ export function MenuBar() {
   return (
     <header
       ref={headerRef}
-      className="relative z-[200] flex h-[30px] w-full shrink-0 items-stretch justify-between gap-2 px-0 text-adw-body text-adw-label select-none adw-material-hud dark:text-white"
+      className="relative z-[200] flex h-[30px] w-full shrink-0 items-stretch justify-between gap-2 px-0 text-adw-body text-adw-label select-none dark:text-white"
     >
+      <div
+        aria-hidden="true"
+        className={cn(
+          "pointer-events-none absolute inset-0 -z-10 adw-material-hud transition-opacity duration-200",
+          overviewOpen && "opacity-0",
+        )}
+      />
       {/* Left: System, Active App & Application Menus */}
       <div className="flex h-full min-w-0 flex-1 items-stretch overflow-hidden">
         <Menubar modal={false}>
@@ -1045,7 +926,7 @@ export function MenuBar() {
         aria-pressed={overviewOpen}
         onClick={() => toggleOverview()}
         className={cn(
-          "hidden h-full shrink-0 cursor-default items-center gap-[5px] rounded-md px-5 outline-none transition-colors focus-visible:bg-black/10 dark:focus-visible:bg-white/12 md:flex",
+          "hidden h-full shrink-0 cursor-default items-center gap-[5px] rounded-md px-2 outline-none transition-colors focus-visible:bg-black/10 dark:focus-visible:bg-white/12 md:flex",
           overviewOpen
             ? "bg-black/8 dark:bg-white/12"
             : "hover:bg-black/8 dark:hover:bg-white/12"

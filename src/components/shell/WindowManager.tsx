@@ -1063,16 +1063,6 @@ export function WindowManager() {
   const handleAnimatedClose = React.useCallback(
     (win: DesktopWindowInstance) => {
       if (closingWindowIds.has(win.id)) return;
-      let origin = windowOriginsRef.current.get(win.id);
-      if (!origin) {
-        const dockEl = getDockRef(win.appId)?.current;
-        if (dockEl) {
-          const r = dockEl.getBoundingClientRect();
-          if (r.width > 0 && r.height > 0) {
-            origin = { left: r.left, top: r.top, width: r.width, height: r.height };
-          }
-        }
-      }
       const el = windowElementsRef.current.get(win.id);
       if (!el || reducedMotion) {
         closeWindow(win.id);
@@ -1080,17 +1070,8 @@ export function WindowManager() {
       }
 
       setClosingWindowIds((prev) => new Set(prev).add(win.id));
-      const winCx = win.position.x + win.size.width / 2;
-      const winCy = win.position.y + win.size.height / 2;
-      const dx = origin ? Math.round(origin.left + origin.width / 2 - winCx) : 0;
-      const dy = origin ? Math.round(origin.top + origin.height / 2 - winCy) : 0;
-      const scale = origin
-        ? Math.max(0.12, Math.min(0.45, origin.width / Math.max(120, win.size.width)))
-        : 0.85;
-
-      el.style.transformOrigin = "center center";
-      el.style.transition = "transform 190ms cubic-bezier(0.4, 0, 1, 1)";
-      el.style.transform = `translate3d(${dx}px, ${dy}px, 0) scale(${scale})`;
+      el.style.transition = "opacity 160ms ease-out";
+      el.style.opacity = "0";
       window.setTimeout(() => {
         setClosingWindowIds((prev) => {
           const next = new Set(prev);
@@ -1098,9 +1079,9 @@ export function WindowManager() {
           return next;
         });
         closeWindow(win.id);
-      }, 190);
+      }, 160);
     },
-    [closeWindow, closingWindowIds, getDockRef, reducedMotion]
+    [closeWindow, closingWindowIds, reducedMotion]
   );
 
   React.useEffect(() => {
@@ -1686,7 +1667,7 @@ export function WindowManager() {
                 e.preventDefault();
                 e.stopPropagation();
               }}
-              className="adw-material-menu fixed min-w-44 rounded-xl border border-adw-border/60 p-1 shadow-xl backdrop-blur-md"
+              className="adw-material-menu fixed min-w-44 rounded-adw-menu p-[6px] text-adw-label shadow-adw-menu outline-none"
             >
               <button
                 type="button"

@@ -104,8 +104,8 @@
   --adw-traffic-edge: none;
 
   /* Adwaita Shadows */
-  --adw-shadow-menu: 0 1px 5px 1px rgb(0 0 0 / 0.09), 0 2px 14px 3px rgb(0 0 0 / 0.05);
-  --adw-shadow-popover: 0 1px 5px 1px rgb(0 0 0 / 0.09), 0 2px 14px 3px rgb(0 0 0 / 0.05);
+  --adw-shadow-menu: 0 0 0 1px rgb(0 0 0 / 0.14), inset 0 0 0 1px rgb(255 255 255 / 0.45), 0 4px 16px 1px rgb(0 0 0 / 0.12), 0 1px 4px rgb(0 0 0 / 0.08);
+  --adw-shadow-popover: 0 0 0 1px rgb(0 0 0 / 0.14), inset 0 0 0 1px rgb(255 255 255 / 0.45), 0 4px 16px 1px rgb(0 0 0 / 0.12), 0 1px 4px rgb(0 0 0 / 0.08);
   --adw-shadow-tooltip: 0 0 0 1px rgb(0 0 0 / 0.14), 0 2px 6px rgb(0 0 0 / 0.14);
   --adw-shadow-dock-label: 0 0 0 1px rgb(0 0 0 / 0.12), 0 2px 8px rgb(0 0 0 / 0.14);
   --adw-shadow-dock: 0 0 0 1px rgb(0 0 0 / 0.12), 0 6px 20px rgb(0 0 0 / 0.16);
@@ -251,8 +251,8 @@
   --adw-traffic-inactive: rgb(255 255 255 / 0.06);
   --adw-traffic-edge: none;
 
-  --adw-shadow-menu: 0 2px 8px rgb(0 0 0 / 0.34), 0 8px 24px rgb(0 0 0 / 0.36);
-  --adw-shadow-popover: 0 2px 8px rgb(0 0 0 / 0.34), 0 8px 24px rgb(0 0 0 / 0.36);
+  --adw-shadow-menu: 0 0 0 1px rgb(0 0 0 / 0.78), inset 0 0 0 1px rgb(255 255 255 / 0.11), 0 8px 24px rgb(0 0 0 / 0.44), 0 2px 8px rgb(0 0 0 / 0.34);
+  --adw-shadow-popover: 0 0 0 1px rgb(0 0 0 / 0.78), inset 0 0 0 1px rgb(255 255 255 / 0.11), 0 8px 24px rgb(0 0 0 / 0.44), 0 2px 8px rgb(0 0 0 / 0.34);
   --adw-shadow-tooltip: 0 0 0 1px rgb(255 255 255 / 0.1), 0 2px 8px rgb(0 0 0 / 0.35);
   --adw-shadow-dock-label: 0 0 0 1px rgb(255 255 255 / 0.1), 0 2px 8px rgb(0 0 0 / 0.35);
   --adw-shadow-dock: 0 0 0 1px rgb(255 255 255 / 0.1), 0 8px 24px rgb(0 0 0 / 0.48);
@@ -663,12 +663,13 @@ aside [data-slot="window-titlebar"],
 [data-slot="window-titlebar"] {
   height: 46px;
   min-height: 46px;
-  padding-inline: 12px;
+  padding-inline: 9px;
   border-bottom-color: transparent;
 }
 
 [data-slot="window-controls"] {
   gap: 8px;
+  margin-inline: 2px;
 }
 
 [data-slot="window-controls"]>button {

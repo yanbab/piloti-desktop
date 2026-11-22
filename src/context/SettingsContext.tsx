@@ -184,7 +184,7 @@ const DEFAULT_SETTINGS: DesktopSettings = {
   clockShowSeconds: false,
   clockShowDay: false,
   clockShowDate: false,
-  showBatteryPercentage: true,
+  showBatteryPercentage: false,
   reduceMotion: false,
   moreTransparency: true,
   windowDecorationMode: "auto",

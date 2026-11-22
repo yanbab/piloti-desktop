@@ -1064,7 +1064,7 @@ function WindowTitlebar({
         context?.onZoom?.()
       }}
       className={cn(
-        "relative flex h-[46px] min-h-[46px] shrink-0 items-center justify-between gap-2 rounded-t-[inherit] border-b border-adw-separator px-3 select-none adw-material-titlebar in-data-[inactive]:[&>*]:opacity-65",
+        "relative flex h-[46px] min-h-[46px] shrink-0 items-center justify-between gap-2 rounded-t-[inherit] border-b border-adw-separator px-[9px] select-none adw-material-titlebar in-data-[inactive]:[&>*]:opacity-65",
         className
       )}
       {...props}

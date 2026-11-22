@@ -1,5 +1,5 @@
 import * as React from "react";
-import { ChevronDownIcon, PanelLeftIcon, XIcon } from "lucide-react";
+import { ChevronDownIcon, XIcon } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -125,6 +125,10 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
     return Boolean(initialSaved.scientific);
   });
   const [copied, setCopied] = React.useState(false);
+  const headerRef = React.useRef<HTMLDivElement | null>(null);
+  const topBarRef = React.useRef<HTMLDivElement | null>(null);
+  const keypadContentRef = React.useRef<HTMLDivElement | null>(null);
+  const lastMeasuredSizeRef = React.useRef<{ width: number; height: number } | null>(null);
 
   React.useEffect(() => {
     try {
@@ -141,51 +145,55 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
     }
   }, [display, expressionLine, pendingOp, scientific, storedValue, waitingForOperand]);
 
-  const resizeCalculator = React.useCallback(
-    (nextScientific: boolean) => {
-      if (!windowId) return;
-      updateWindowGeometry(windowId, {
-        size: { width: nextScientific ? 298 : 196, height: 294 },
-      });
-    },
-    [updateWindowGeometry, windowId],
-  );
+  const syncWindowToDom = React.useCallback(() => {
+    if (!windowId) return;
+    const headerEl = headerRef.current;
+    const keypadEl = keypadContentRef.current;
+    if (!headerEl || !keypadEl) return;
 
-  React.useEffect(() => {
-    if (initialSaved.scientific) {
-      resizeCalculator(true);
+    const headerHeight = Math.ceil(headerEl.getBoundingClientRect().height);
+    const keypadRect = keypadEl.getBoundingClientRect();
+    const topBarMinW = topBarRef.current
+      ? Math.ceil(topBarRef.current.scrollWidth) + 20
+      : 0;
+    const nextWidth = Math.max(topBarMinW, Math.ceil(keypadRect.width) + 12);
+    const nextHeight = headerHeight + Math.ceil(keypadRect.height) + 12;
+    if (nextWidth <= 0 || nextHeight <= 0) return;
+
+    const last = lastMeasuredSizeRef.current;
+    if (last && last.width === nextWidth && last.height === nextHeight) {
+      return;
     }
-    // only resize on mount if restored in scientific mode
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    lastMeasuredSizeRef.current = { width: nextWidth, height: nextHeight };
+    updateWindowGeometry(windowId, {
+      size: { width: nextWidth, height: nextHeight },
+    });
+  }, [updateWindowGeometry, windowId]);
 
-  const setMode = React.useCallback(
-    (nextScientific: boolean) => {
-      if (typeof window !== "undefined") {
-        const nextHash = nextScientific ? "#scientific" : "#basic";
-        if (window.location.hash !== nextHash) {
-          window.history.replaceState(null, "", nextHash);
-        }
+  React.useLayoutEffect(() => {
+    syncWindowToDom();
+    const raf = requestAnimationFrame(syncWindowToDom);
+    return () => cancelAnimationFrame(raf);
+  }, [scientific, syncWindowToDom]);
+
+  const setMode = React.useCallback((nextScientific: boolean) => {
+    if (typeof window !== "undefined") {
+      const nextHash = nextScientific ? "#scientific" : "#basic";
+      if (window.location.hash !== nextHash) {
+        window.history.replaceState(null, "", nextHash);
       }
-      resizeCalculator(nextScientific);
-      if (nextScientific) {
-        requestAnimationFrame(() => setScientific(true));
-      } else {
-        setScientific(false);
-      }
-    },
-    [resizeCalculator],
-  );
+    }
+    setScientific(nextScientific);
+  }, []);
 
   React.useEffect(() => {
     const onHashChange = () => {
       const next = window.location.hash === "#scientific";
       setScientific(next);
-      resizeCalculator(next);
     };
     window.addEventListener("hashchange", onHashChange);
     return () => window.removeEventListener("hashchange", onHashChange);
-  }, [resizeCalculator]);
+  }, []);
 
   const handleClose = () => {
     if (onCloseWindow) {
@@ -366,24 +374,28 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
     <div className="flex h-full w-full flex-col overflow-hidden bg-transparent text-adw-label select-none">
       {/* Combined Vibrant Headerbar + Result Display */}
       <div
+        ref={headerRef}
         data-window-drag-region={isCsd ? "" : undefined}
-        className="bg-adw-sidebar adw-material-sidebar flex shrink-0 flex-col justify-between border-b border-adw-separator/60 px-2.5 pt-1.5 pb-2"
+        className="bg-adw-sidebar adw-material-sidebar flex shrink-0 flex-col justify-between border-b border-adw-separator/60 px-2.5 pt-2 pb-2"
       >
-        <div className="flex h-6 items-center justify-between">
+        <div
+          ref={topBarRef}
+          className="flex h-5 w-max min-w-full items-center justify-between gap-2"
+        >
           <button
             type="button"
             data-window-no-drag
-            title={scientific ? _("Basic Mode") : _("Scientific Mode")}
-            aria-label={scientific ? _("Basic Mode") : _("Scientific Mode")}
+            aria-pressed={scientific}
+            aria-label={_("Scientific")}
             onClick={() => setMode(!scientific)}
             className={cn(
-              "flex size-6 items-center justify-center rounded-md transition-colors",
+              "inline-flex h-5 shrink-0 cursor-default items-center justify-center rounded-full px-2 text-[11px] font-medium leading-none transition-colors outline-none select-none",
               scientific
-                ? "bg-black/12 text-adw-label dark:bg-white/16"
-                : "text-adw-label-secondary hover:bg-black/8 hover:text-adw-label dark:hover:bg-white/12",
+                ? "bg-adw-accent text-white hover:brightness-110 active:brightness-95"
+                : "bg-black/8 text-adw-label-secondary hover:bg-black/15 hover:text-adw-label active:bg-black/22 dark:bg-white/10 dark:hover:bg-white/18 dark:hover:text-adw-label dark:active:bg-white/24",
             )}
           >
-            <PanelLeftIcon className="size-3.5" />
+            {_("Scientific")}
           </button>
           {isCsd && (
             <button
@@ -391,7 +403,7 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
               data-window-no-drag
               aria-label={_("Close window")}
               onClick={handleClose}
-              className="flex size-5 items-center justify-center rounded-full bg-black/10 text-adw-label-secondary transition-colors hover:bg-black/18 hover:text-adw-label dark:bg-white/12 dark:hover:bg-white/22"
+              className="flex size-5 shrink-0 items-center justify-center rounded-full bg-black/8 text-adw-label-secondary transition-colors outline-none hover:bg-black/15 hover:text-adw-label active:bg-black/22 dark:bg-white/10 dark:hover:bg-white/18 dark:hover:text-adw-label dark:active:bg-white/24"
             >
               <XIcon className="size-3" strokeWidth={2.5} />
             </button>
@@ -429,7 +441,8 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
       </div>
 
       {/* Keypad */}
-      <div className="flex min-h-0 flex-1 items-start justify-end gap-1.5 overflow-hidden bg-adw-window p-1.5">
+      <div className="flex min-h-0 flex-1 items-start justify-end overflow-hidden bg-adw-window p-1.5">
+        <div ref={keypadContentRef} className="inline-flex shrink-0 items-start gap-1.5">
         {scientific && (
           <div className="grid shrink-0 grid-cols-[repeat(2,44px)] grid-rows-[repeat(5,34px)] gap-1">
             <button
@@ -621,6 +634,7 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
           >
             =
           </button>
+        </div>
         </div>
       </div>
     </div>

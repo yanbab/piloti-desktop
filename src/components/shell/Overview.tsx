@@ -43,7 +43,7 @@ function OverviewWorkspacesBar({
         transition: "transform 350ms cubic-bezier(0.22, 1, 0.36, 1)",
       }}
       className={cn(
-        "relative flex w-full shrink-0 items-center justify-center px-6 py-3 adw-material-hud animate-in slide-in-from-top-full duration-[350ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:animate-none",
+        "relative flex w-full shrink-0 items-center justify-center px-6 pt-[42px] pb-3 adw-material-hud animate-in fade-in-0 duration-200 motion-reduce:animate-none",
         !overviewOpen && "-translate-y-full",
       )}
     >
@@ -234,7 +234,7 @@ export function Overview() {
       aria-label="Overview"
       onClick={() => setOverviewOpen(false)}
       className={cn(
-        "fixed inset-x-0 top-[30px] bottom-0 z-[90] flex flex-col overflow-hidden transition-opacity duration-[350ms] ease-[cubic-bezier(0.22,1,0.36,1)] animate-in fade-in motion-reduce:animate-none",
+        "fixed inset-0 z-[90] flex flex-col overflow-hidden transition-opacity duration-[350ms] ease-[cubic-bezier(0.22,1,0.36,1)] animate-in fade-in motion-reduce:animate-none",
         !overviewOpen && "pointer-events-none opacity-0",
       )}
     >
