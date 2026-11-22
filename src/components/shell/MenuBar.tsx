@@ -62,6 +62,9 @@ import {
   type RemoteMenuEntry,
 } from "@/lib/xdg/xdg-app-menu";
 import { cn } from "@/lib/core/utils";
+import { collectMenuShortcuts, formatMenuShortcut } from "@/lib/shell/menu-shortcuts";
+import { ShortcutsDialog } from "./ShortcutsDialog";
+import { buildAppHelpLinks } from "@/lib/shell/app-help-links";
 import { captureLaunchOriginFromElement } from "@/lib/shell/launch-origin";
 import { buildVfsEntryWebAppUrl, getVfsEntry } from "@/lib/engine-web/web-vfs";
 import { ControlPanel } from "./ControlPanel";
@@ -69,63 +72,6 @@ import { Launcher } from "./Launcher";
 import { PilotiLogo } from "./PilotiLogo";
 import { usePlugins } from "@/context/PluginsContext";
 import { SystemTrayItem } from "./SystemTray";
-
-function formatMenuShortcut(shortcut: string, model: "mac" | "pc"): string {
-  if (!shortcut) return shortcut;
-  if (model === "pc") {
-    const pc = shortcut
-      .replace(/⌃/g, "Ctrl+")
-      .replace(/⌥/g, "Alt+")
-      .replace(/⇧/g, "Shift+")
-      .replace(/⌘/g, "Super+")
-      .replace(/\+\+/g, "+PLUS")
-      .replace(/\+$/g, "")
-      .split("+")
-      .filter(Boolean)
-      .map((p) => (p === "PLUS" ? "+" : p))
-      .join(" + ");
-    return pc;
-  }
-  // Mac style with Apple key symbols (no spaces)
-  if (/[⌘⌥⇧⌃]/.test(shortcut)) {
-    const match = shortcut.match(/^([⌃⌥⇧⌘]+)\s*(.+)$/);
-    return match ? `${match[1]}${match[2].replace(/\s+/g, "")}` : shortcut.replace(/\s+/g, "");
-  }
-  const normalized = shortcut.replace(/\+\+/g, "+PLUS");
-  const parts = normalized.split("+").filter(Boolean);
-  let hasCtrl = false;
-  let hasAlt = false;
-  let hasShift = false;
-  let hasCmd = false;
-  const keys: string[] = [];
-  for (const part of parts) {
-    const lower = part.toLowerCase();
-    if (lower === "ctrl" || lower === "control") hasCtrl = true;
-    else if (lower === "alt" || lower === "option") hasAlt = true;
-    else if (lower === "shift") hasShift = true;
-    else if (lower === "cmd" || lower === "meta" || lower === "super") hasCmd = true;
-    else if (lower === "plus") keys.push("+");
-    else if (lower === "left") keys.push("←");
-    else if (lower === "right") keys.push("→");
-    else if (lower === "up") keys.push("↑");
-    else if (lower === "down") keys.push("↓");
-    else if (lower === "return" || lower === "enter") keys.push("↩");
-    else if (lower === "esc" || lower === "escape") keys.push("⎋");
-    else if (lower === "tab") keys.push("⇥");
-    else keys.push(part);
-  }
-  if (hasCtrl && !hasCmd) {
-    hasCmd = true;
-    hasCtrl = false;
-  }
-  const mods = [
-    hasCtrl ? "⌃" : "",
-    hasAlt ? "⌥" : "",
-    hasShift ? "⇧" : "",
-    hasCmd ? "⌘" : "",
-  ].join("");
-  return mods ? `${mods}${keys.join("")}` : keys.join("");
-}
 
 function MenuShortcutLabel({
   shortcut,
@@ -396,6 +342,32 @@ export function MenuBar() {
   const headerRef = React.useRef<HTMLElement | null>(null);
 
   const [appAboutOpen, setAppAboutOpen] = React.useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = React.useState(false);
+  const appDisplayName = _(activeAppDef.name);
+  const helpLinks = React.useMemo(
+    () => buildAppHelpLinks(activeAppDef.id === "desktop" ? "Piloti Desktop" : activeAppDef.name),
+    [activeAppDef.id, activeAppDef.name],
+  );
+  const shortcutGroups = React.useMemo(
+    () =>
+      collectMenuShortcuts({
+        menus: activeAppDef.menus,
+        remoteSections: remoteMenu?.sections,
+        remoteAppActions: remoteMenu?.appActions,
+        extraGroups: [
+          {
+            title: "Window",
+            entries: [
+              { label: "Minimize", shortcut: "Alt+M" },
+              { label: "Maximize", shortcut: "Alt+F" },
+              { label: "Tile Left", shortcut: "Alt+[" },
+              { label: "Tile Right", shortcut: "Alt+]" },
+            ],
+          },
+        ],
+      }),
+    [activeAppDef.menus, remoteMenu],
+  );
   const pilotiTriggerRef = React.useRef<HTMLButtonElement | null>(null);
   const controlPanelPopupRef = React.useRef<HTMLDivElement | null>(null);
   const rightClusterRef = React.useRef<HTMLDivElement | null>(null);
@@ -869,51 +841,37 @@ export function MenuBar() {
           <MenubarMenu>
             <MenubarTrigger>{_("Help")}</MenubarTrigger>
             <MenubarContent>
-              <MenubarItem
-                onClick={() => {
-                  const welcomeEntry = getVfsEntry(
-                    "/home/user/Desktop/Welcome.html"
-                  );
-                  const url = welcomeEntry
-                    ? buildVfsEntryWebAppUrl(welcomeEntry)
-                    : null;
-                  if (url) {
-                    openWebUrl(`${url}#shortcuts`, { title: "Welcome.html" });
-                  } else {
-                    openWebUrl(
-                      "https://yanbab.github.io/piloti-desktop/WELCOME.html#shortcuts",
-                      { title: _("Shortcuts") }
-                    );
-                  }
-                }}
-              >
+              <MenubarItem onClick={() => setShortcutsOpen(true)}>
                 {_("Shortcuts…")}
               </MenubarItem>
               <MenubarItem
                 onClick={() => {
-                  openWebUrl("https://yanbab.github.io/piloti-desktop/", {
-                    title: "Piloti Desktop",
-                  });
+                  openWebUrl(helpLinks.websiteUrl, { title: appDisplayName });
                 }}
               >
-                {_("Piloti Website…")}
+                {_("%s website", appDisplayName)}
               </MenubarItem>
               <MenubarItem
                 onClick={() => {
-                  const issueUrl =
-                    "https://github.com/yanbab/piloti-desktop/issues/new";
                   if (isBrowserRuntime) {
-                    window.open(issueUrl, "_blank", "noopener,noreferrer");
+                    window.open(helpLinks.issueUrl, "_blank", "noopener,noreferrer");
                   } else {
-                    openWebUrl(issueUrl, { title: _("Report Issue") });
+                    openWebUrl(helpLinks.issueUrl, { title: _("Report Issue") });
                   }
                 }}
               >
-                {_("Report Issue…")}
+                {_("Report issue…")}
               </MenubarItem>
             </MenubarContent>
           </MenubarMenu>
         </Menubar>
+        <ShortcutsDialog
+          open={shortcutsOpen}
+          onOpenChange={setShortcutsOpen}
+          appName={appDisplayName}
+          groups={shortcutGroups}
+          model={settings.computerModel}
+        />
       </div>
 
       {/* Center: Workspace Indicators (flush to top border & centered on screen for Fitt's law) */}

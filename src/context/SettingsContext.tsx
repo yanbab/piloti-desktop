@@ -156,6 +156,7 @@ export interface DesktopSettings {
   fileActivationMode: "single" | "double";
   showFileExtensionBadges: boolean;
   demoExtensionEnabled: boolean;
+  darkReaderWebEnabled: boolean;
   enabledPluginIds: string[];
   computerModel: "mac" | "pc";
   desktopIconPositions: Record<string, { col: number; row: number }>;
@@ -236,6 +237,7 @@ const DEFAULT_SETTINGS: DesktopSettings = {
   fileActivationMode: "single",
   showFileExtensionBadges: true,
   demoExtensionEnabled: true,
+  darkReaderWebEnabled: false,
   enabledPluginIds: ["aurora-drift"],
   computerModel:
     typeof navigator !== "undefined" &&

@@ -2224,7 +2224,7 @@ export function FilesApp({
               ? _("%d item", items.length)
               : _("%d items", items.length)}
         </div>
-        {!isAppsView && (
+        {(
           <div
             data-window-no-drag
             className="absolute right-2.5 bottom-2 z-10 flex items-center gap-1.5 px-1 py-0.5"

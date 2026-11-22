@@ -469,5 +469,18 @@
   "Save Changes?": "¿Guardar cambios?",
   "This document has unsaved changes. Save before closing?": "Este documento tiene cambios sin guardar. ¿Guardar antes de cerrar?",
   "Computer Model": "Modelo del equipo",
-  "My english sentence is: %s": "Mi frase en inglés es: %s"
+  "My english sentence is: %s": "Mi frase en inglés es: %s",
+  "%s website": "Sitio web de %s",
+  "Report issue…": "Informar de un problema…",
+  "Keyboard Shortcuts": "Atajos de teclado",
+  "This application does not declare any keyboard shortcuts.": "Esta aplicación no declara ningún atajo de teclado.",
+  "Efficient content blocker (Manifest V3).": "Bloqueador de contenido eficiente (Manifest V3).",
+  "Dark mode for every website.": "Modo oscuro para todos los sitios web.",
+  "%s (Simulated in Web mode via dark filter)": "%s (simulado en modo Web mediante filtro oscuro)",
+  "%s (Requires native Domicile; Web Store ID: %s)": "%s (requiere Domicile nativo; ID de Web Store: %s)",
+  "Sample local Manifest V3 extension (%s)": "Extensión local de ejemplo Manifest V3 (%s)",
+  "Saved to ~/.config/domicile/domicile.json. Restart Domicile to apply.": "Guardado en ~/.config/domicile/domicile.json. Reinicie Domicile para aplicar.",
+  "Could not write ~/.config/domicile/domicile.json.": "No se pudo escribir en ~/.config/domicile/domicile.json.",
+  "Configure extensions.unpacked or extensions.web_store in ~/.config/domicile/domicile.json": "Configure extensions.unpacked o extensions.web_store en ~/.config/domicile/domicile.json",
+  "Add a Chrome Web Store ID or unpacked path (e.g. /usr/share/piloti/extensions/piloti-demo) above.": "Añada un ID de Chrome Web Store o una ruta descomprimida (p. ej. /usr/share/piloti/extensions/piloti-demo) arriba."
 }

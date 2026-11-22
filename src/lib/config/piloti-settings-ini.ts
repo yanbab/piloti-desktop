@@ -95,6 +95,7 @@ const SETTINGS_INI_SCHEMA: readonly SchemaEntry[] = [
   ["org.piloti.desktop.system", "prefer-gnome-control-center", "preferGnomeControlCenter", "boolean"],
   ["org.piloti.desktop.system", "hidden-gnome-panels", "hiddenGnomePanels", "string[]"],
   ["org.piloti.desktop.system", "demo-extension-enabled", "demoExtensionEnabled", "boolean"],
+  ["org.piloti.desktop.system", "dark-reader-web-enabled", "darkReaderWebEnabled", "boolean"],
   ["org.piloti.desktop.system", "enabled-plugins", "enabledPluginIds", "string[]"],
   ["org.piloti.desktop.system", "web-apps-seeded", "webAppsSeeded", "boolean"],
   ["org.piloti.desktop.system", "web-defaults-version", "webDefaultsVersion", "number"],

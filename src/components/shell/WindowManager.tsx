@@ -18,6 +18,7 @@ import {
   Loader2Icon,
   Maximize2Icon,
   MinusIcon,
+  MoonIcon,
   PuzzleIcon,
   Trash2Icon,
   XIcon,
@@ -109,6 +110,7 @@ import {
   setCachedWebThemeColor,
 } from "@/data/web-apps";
 import { cn } from "@/lib/core/utils";
+import { WEB_DARK_READER_FILTER } from "@/lib/engine/browser-extensions";
 import { toggleWebAppInstall } from "@/lib/xdg/xdg-web-apps";
 
 /**
@@ -528,6 +530,9 @@ function WebViewSurface({
               backgroundColor: themeColor,
               color: contrastFg ?? undefined,
               borderBottomColor: "rgba(128,128,128,0.22)",
+              ...(contrastFg
+                ? ({ "--window-controls-fg": contrastFg } as React.CSSProperties)
+                : {}),
             }
             : undefined
         }
@@ -540,7 +545,7 @@ function WebViewSurface({
           {isCsd && (
             <WindowControls
               side="left"
-              className="[&_button]:text-current [&_button:hover]:bg-black/10 dark:[&_button:hover]:bg-white/12"
+              className="[&_button]:bg-[color-mix(in_srgb,currentColor_10%,transparent)] [&_button]:text-current [&_button:hover]:bg-[color-mix(in_srgb,currentColor_18%,transparent)]"
             />
           )}
           <WindowMenuButton
@@ -611,6 +616,27 @@ function WebViewSurface({
         )}
 
         <div className="flex shrink-0 items-center gap-1" data-window-no-drag>
+          {isBrowserRuntime && (
+            <button
+              type="button"
+              title="Dark Reader"
+              aria-label="Dark Reader"
+              aria-pressed={Boolean(settings.darkReaderWebEnabled)}
+              onClick={() =>
+                updateSettings({
+                  darkReaderWebEnabled: !settings.darkReaderWebEnabled,
+                })
+              }
+              className={cn(
+                "flex size-7 items-center justify-center rounded-md transition-colors",
+                settings.darkReaderWebEnabled
+                  ? "bg-black/14 dark:bg-white/18"
+                  : "hover:bg-black/8 dark:hover:bg-white/10"
+              )}
+            >
+              <MoonIcon className="size-3.5" />
+            </button>
+          )}
           {isBrowserRuntime && settings.demoExtensionEnabled !== false && (
             <button
               type="button"
@@ -644,17 +670,16 @@ function WebViewSurface({
                 title={ext.title || ext.name}
                 aria-label={ext.title || ext.name}
                 onClick={() => {
+                  const closing = activeExtPopup?.id === ext.id;
+                  if (!closing) {
+                    domicile.extensions.activate(ext.id);
+                  }
                   if (ext.popup) {
                     const popupUrl = ext.popup;
                     setExtPopupSize({ width: 360, height: 440 });
-                    setActiveExtPopup((prev) =>
-                      prev?.id === ext.id
-                        ? null
-                        : { id: ext.id, popup: popupUrl }
-                    );
+                    setActiveExtPopup(closing ? null : { id: ext.id, popup: popupUrl });
                   } else {
                     setActiveExtPopup(null);
-                    domicile.extensions.activate(ext.id);
                   }
                 }}
                 className={cn(
@@ -709,7 +734,7 @@ function WebViewSurface({
           {isCsd ? (
             <WindowControls
               side="right"
-              className="[&_button]:text-current [&_button:hover]:bg-black/10 dark:[&_button:hover]:bg-white/12"
+              className="[&_button]:bg-[color-mix(in_srgb,currentColor_10%,transparent)] [&_button]:text-current [&_button:hover]:bg-[color-mix(in_srgb,currentColor_18%,transparent)]"
             />
           ) : (
             <div className="w-7" />
@@ -725,6 +750,11 @@ function WebViewSurface({
             title={win.title}
             onLoad={handleIframeLoad}
             onError={() => setIsLoading(false)}
+            style={
+              settings.darkReaderWebEnabled
+                ? { filter: WEB_DARK_READER_FILTER, colorScheme: "dark" }
+                : undefined
+            }
             className="h-full w-full border-0 bg-adw-window"
           />
         ) : (

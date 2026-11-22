@@ -1,3 +1,23 @@
+piloti-desktop (0.10.2-1) unstable; urgency=medium
+
+  * Release v0.10.2:
+    - Files (`piloti://apps`): hide icon zoom slider on Applications view while
+      keeping zoom controls active in directory views.
+    - Web Apps: contrast-aware tinted headerbar colors (dark title and window
+      controls on light `theme-color` websites) and focus shield for unfocused
+      iframe windows.
+    - Help Menu: dynamic Keyboard Shortcuts popup reading live built-in and
+      GTK/D-Bus menus, plus per-app website (`#<app>`) and GitHub Issue links.
+    - Chrome Extensions: uBlock Origin Lite and Dark Reader support (native Web
+      Store config + Web-mode Dark Reader preview), popup `activeTab` activation,
+      correct `~/.config/domicile/domicile.json` persistence, and managed local
+      sample extension (`/usr/share/piloti/extensions/piloti-demo`).
+    - Text Editor & Image Viewer: explicit Save, shared Unsaved Changes dialog,
+      INI preview via JSON viewer, Image Viewer toolbar fixes, white/blue-globe
+      HTML mimetype icon, and capture Open notifications + IndexedDB VFS store.
+
+ -- Piloti Desktop Maintainers <maintainers@piloti-desktop.org>  Sun, 22 Nov 2026 08:30:00 +0100
+
 piloti-desktop (0.10.1-1) unstable; urgency=medium
 
   * Release v0.10.1:

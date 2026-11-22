@@ -43,6 +43,13 @@ import {
 } from "@/lib/xdg/xdg-autostart";
 import { listVfsDir, WEB_VFS_HOME, writeVfsTextFile } from "@/lib/engine-web/web-vfs";
 import {
+  RECOMMENDED_EXTENSIONS,
+  SAMPLE_LOCAL_EXTENSION,
+  isExtensionEnabled,
+  normalizeExtensionsConfig,
+  setExtensionEnabled,
+} from "@/lib/engine/browser-extensions";
+import {
   hasNativeSystemHost,
   setEngineOverride,
   useEngineOverride,
@@ -151,7 +158,7 @@ export function AdvancedPane() {
     if (isBrowserRuntime) return;
     let cancelled = false;
     domicile.files
-      .readText(".config/domicile/config.json")
+      .readText(".config/domicile/domicile.json")
       .then((res) => {
         if (cancelled) return;
         res.match({
@@ -159,8 +166,9 @@ export function AdvancedPane() {
             const parsed = JSON.parse(text) as {
               extensions?: { unpacked?: string[]; web_store?: string[] };
             };
-            setUnpackedPaths(parsed.extensions?.unpacked ?? []);
-            setWebStoreIds(parsed.extensions?.web_store ?? []);
+            const normalized = normalizeExtensionsConfig(parsed.extensions);
+            setUnpackedPaths(normalized.unpacked);
+            setWebStoreIds(normalized.web_store);
           },
           Err: () => undefined,
         });
@@ -179,7 +187,7 @@ export function AdvancedPane() {
       await domicile.files.createDir(".config/domicile").catch(() => undefined);
       let existing: Record<string, unknown> = {};
       const readRes = await domicile.files
-        .readText(".config/domicile/config.json")
+        .readText(".config/domicile/domicile.json")
         .catch(() => null);
       if (readRes) {
         readRes.match({
@@ -204,16 +212,16 @@ export function AdvancedPane() {
         },
       };
       await domicile.files.write(
-        ".config/domicile/config.json",
+        ".config/domicile/domicile.json",
         JSON.stringify(updated, null, 2) + "\n"
       );
       setUnpackedPaths(nextUnpacked);
       setWebStoreIds(nextWebStore);
       setExtConfigNote(
-        _("Saved to ~/.config/domicile/config.json. Restart Domicile to apply.")
+        _("Saved to ~/.config/domicile/domicile.json. Restart Domicile to apply.")
       );
     } catch {
-      setExtConfigNote(_("Could not write ~/.config/domicile/config.json."));
+      setExtConfigNote(_("Could not write ~/.config/domicile/domicile.json."));
     }
   };
 
@@ -386,64 +394,120 @@ export function AdvancedPane() {
       <GroupedFormSection>
         <GroupedFormSectionTitle>{_("Browser Extensions")}</GroupedFormSectionTitle>
         <GroupedFormGroup>
-          {isBrowserRuntime ? (
-            <>
-              <GroupedFormRow>
+          {RECOMMENDED_EXTENSIONS.map((rec) => {
+            const nativeEnabled = isExtensionEnabled(
+              { unpacked: unpackedPaths, web_store: webStoreIds },
+              "web_store",
+              rec.webStoreId
+            );
+            const checked = isBrowserRuntime
+              ? rec.id === "dark-reader" && Boolean(settings.darkReaderWebEnabled)
+              : nativeEnabled;
+            const disabled = isBrowserRuntime && rec.webMode === "unavailable";
+            return (
+              <GroupedFormRow key={rec.id}>
                 <GroupedFormRowLabel>
-                  <GroupedFormRowTitle>
-                    {_("Demo Extension (Web Preview)")}
-                  </GroupedFormRowTitle>
+                  <div className="flex items-center gap-2">
+                    <PuzzleIcon className="size-4 text-adw-accent" />
+                    <GroupedFormRowTitle>{rec.name}</GroupedFormRowTitle>
+                  </div>
                   <GroupedFormRowDescription>
-                    {_(
-                      "Simulates a toolbar extension in Web windows. Real Chrome extensions run in native Domicile."
-                    )}
+                    {isBrowserRuntime
+                      ? rec.webMode === "simulated"
+                        ? _("%s (Simulated in Web mode via dark filter)", _(rec.description))
+                        : _("%s (Requires native Domicile; Web Store ID: %s)", _(rec.description), rec.webStoreId)
+                      : `${_(rec.description)} (${rec.webStoreId})`}
                   </GroupedFormRowDescription>
                 </GroupedFormRowLabel>
                 <GroupedFormRowControl>
                   <Switch
-                    checked={settings.demoExtensionEnabled !== false}
-                    onCheckedChange={(checked) =>
-                      updateSettings({ demoExtensionEnabled: checked })
-                    }
+                    disabled={disabled}
+                    checked={checked}
+                    onCheckedChange={(next) => {
+                      if (isBrowserRuntime) {
+                        if (rec.id === "dark-reader") {
+                          updateSettings({ darkReaderWebEnabled: next });
+                        }
+                        return;
+                      }
+                      const updated = setExtensionEnabled(
+                        { unpacked: unpackedPaths, web_store: webStoreIds },
+                        "web_store",
+                        rec.webStoreId,
+                        next
+                      );
+                      void saveDomicileExtensionsConfig(
+                        updated.unpacked,
+                        updated.web_store
+                      );
+                    }}
                   />
                 </GroupedFormRowControl>
               </GroupedFormRow>
-              {settings.demoExtensionEnabled !== false && (
-                <GroupedFormRow>
-                  <GroupedFormRowLabel>
-                    <div className="flex items-center gap-2">
-                      <PuzzleIcon className="size-4 text-adw-accent" />
-                      <GroupedFormRowTitle>
-                        Piloti Demo Extension
-                      </GroupedFormRowTitle>
-                    </div>
-                    <GroupedFormRowDescription>
-                      {_("Manifest V3 sample also available in extensions/piloti-demo/")}
-                    </GroupedFormRowDescription>
-                  </GroupedFormRowLabel>
-                  <GroupedFormRowControl className="flex items-center gap-2">
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      className="h-7 px-2 text-xs"
-                      onClick={() =>
-                        launchApp("nautilus", {
-                          payload: "/home/user/.config/domicile",
-                          forceNew: true,
-                        })
-                      }
-                    >
-                      <FolderOpenIcon className="mr-1 size-3.5" />
-                      {_("Open Folder")}
-                    </Button>
-                    <span className="rounded-full bg-black/6 px-2 py-0.5 text-[11px] font-medium text-adw-label-secondary dark:bg-white/10">
-                      {_("Active")}
-                    </span>
-                  </GroupedFormRowControl>
-                </GroupedFormRow>
-              )}
-            </>
-          ) : (
+            );
+          })}
+
+          <GroupedFormRow>
+            <GroupedFormRowLabel>
+              <div className="flex items-center gap-2">
+                <PuzzleIcon className="size-4 text-adw-accent" />
+                <GroupedFormRowTitle>
+                  {SAMPLE_LOCAL_EXTENSION.name}
+                </GroupedFormRowTitle>
+              </div>
+              <GroupedFormRowDescription>
+                {_(
+                  "Sample local Manifest V3 extension (%s)",
+                  SAMPLE_LOCAL_EXTENSION.path
+                )}
+              </GroupedFormRowDescription>
+            </GroupedFormRowLabel>
+            <GroupedFormRowControl className="flex items-center gap-2">
+              <Button
+                size="sm"
+                variant="secondary"
+                className="h-7 px-2 text-xs"
+                onClick={() =>
+                  launchApp("nautilus", {
+                    payload: SAMPLE_LOCAL_EXTENSION.path,
+                    forceNew: true,
+                  })
+                }
+              >
+                <FolderOpenIcon className="mr-1 size-3.5" />
+                {_("Open Folder")}
+              </Button>
+              <Switch
+                checked={
+                  isBrowserRuntime
+                    ? settings.demoExtensionEnabled !== false
+                    : isExtensionEnabled(
+                        { unpacked: unpackedPaths, web_store: webStoreIds },
+                        "unpacked",
+                        SAMPLE_LOCAL_EXTENSION.path
+                      )
+                }
+                onCheckedChange={(next) => {
+                  if (isBrowserRuntime) {
+                    updateSettings({ demoExtensionEnabled: next });
+                    return;
+                  }
+                  const updated = setExtensionEnabled(
+                    { unpacked: unpackedPaths, web_store: webStoreIds },
+                    "unpacked",
+                    SAMPLE_LOCAL_EXTENSION.path,
+                    next
+                  );
+                  void saveDomicileExtensionsConfig(
+                    updated.unpacked,
+                    updated.web_store
+                  );
+                }}
+              />
+            </GroupedFormRowControl>
+          </GroupedFormRow>
+
+          {!isBrowserRuntime && (
             <>
               <GroupedFormRow>
                 <GroupedFormRowLabel>
@@ -452,7 +516,7 @@ export function AdvancedPane() {
                   </GroupedFormRowTitle>
                   <GroupedFormRowDescription>
                     {_(
-                      "Configure extensions.unpacked or extensions.web_store in ~/.config/domicile/config.json"
+                      "Configure extensions.unpacked or extensions.web_store in ~/.config/domicile/domicile.json"
                     )}
                   </GroupedFormRowDescription>
                 </GroupedFormRowLabel>
@@ -501,7 +565,7 @@ export function AdvancedPane() {
                     </GroupedFormRowTitle>
                     <GroupedFormRowDescription>
                       {_(
-                        "Add a Chrome Web Store ID or unpacked path (e.g. extensions/piloti-demo/) above."
+                        "Add a Chrome Web Store ID or unpacked path (e.g. /usr/share/piloti/extensions/piloti-demo) above."
                       )}
                     </GroupedFormRowDescription>
                   </GroupedFormRowLabel>

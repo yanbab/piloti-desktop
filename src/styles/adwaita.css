@@ -679,7 +679,7 @@ aside [data-slot="window-titlebar"],
 
 [data-slot="window-controls"]>button svg {
   opacity: 0.85 !important;
-  color: var(--adw-label) !important;
+  color: var(--window-controls-fg, var(--adw-label)) !important;
   width: 12px;
   height: 12px;
 }
@@ -702,4 +702,8 @@ aside [data-slot="window-titlebar"],
   75% {
     transform: translateY(-6px) scale(1.02, 1.02);
   }
+}
+/* Tinted headerbars (website theme-color): keep every titlebar button readable. */
+[data-slot="window-titlebar"][style*="--window-controls-fg"] button:not([data-slot="window-controls"] > button) {
+  color: var(--window-controls-fg);
 }

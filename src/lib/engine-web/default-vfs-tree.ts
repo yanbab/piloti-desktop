@@ -704,6 +704,36 @@ export const DEFAULT_STATIC_DIR_INDEX: Record<string, readonly { name: string; f
       "fileType": 1
     }
   ],
+  "/usr/share/piloti/extensions/piloti-demo": [
+    {
+      "name": "background.js",
+      "fileType": 0
+    },
+    {
+      "name": "manifest.json",
+      "fileType": 0
+    },
+    {
+      "name": "popup.html",
+      "fileType": 0
+    },
+    {
+      "name": "popup.js",
+      "fileType": 0
+    }
+  ],
+  "/usr/share/piloti/extensions": [
+    {
+      "name": "piloti-demo",
+      "fileType": 1
+    }
+  ],
+  "/usr/share/piloti": [
+    {
+      "name": "extensions",
+      "fileType": 1
+    }
+  ],
   "/usr/share/piloti-desktop": [
     {
       "name": "domicile.json",
@@ -739,6 +769,10 @@ export const DEFAULT_STATIC_DIR_INDEX: Record<string, readonly { name: string; f
     },
     {
       "name": "icons",
+      "fileType": 1
+    },
+    {
+      "name": "piloti",
       "fileType": 1
     },
     {

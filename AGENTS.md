@@ -2,6 +2,8 @@
 
 Guidelines for LLM coding agents working in `residence-desktop-environment`.
 
+Do not go over 0.10 version, always use 0.10.x.
+
 ## Architecture & Directory Layout
 
 Piloti Desktop is a Linux Wayland desktop shell built on `@domicile-desktop/react` and React/Tailwind/Adwaita primitives, sharing one UI tree across two runtime engines:
