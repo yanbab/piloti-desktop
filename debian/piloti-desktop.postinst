@@ -9,6 +9,24 @@ if [ "$1" = "configure" ]; then
     gtk-update-icon-cache -q -t -f /usr/share/icons/Piloti 2>/dev/null || true
     gtk-update-icon-cache -q -t -f /usr/share/icons/hicolor 2>/dev/null || true
   fi
+
+  # Pre-warm Domicile's shell cache system-wide so first login hits cache (~0.2s)
+  # instead of running Vite re-bundling and showing the build splash screen.
+  if [ -x /usr/libexec/domicile/builder ]; then
+    rm -rf /var/cache/piloti-desktop/shells
+    mkdir -p /var/cache/piloti-desktop/shells
+    if [ -f /usr/share/piloti-desktop/shell.js ]; then
+      /usr/libexec/domicile/builder \
+        --entry /usr/share/piloti-desktop/shell.js \
+        --cache /var/cache/piloti-desktop/shells >/dev/null 2>&1 || true
+    fi
+    if [ -f /usr/share/piloti-desktop/greeter.js ]; then
+      /usr/libexec/domicile/builder \
+        --entry /usr/share/piloti-desktop/greeter.js \
+        --cache /var/cache/piloti-desktop/shells >/dev/null 2>&1 || true
+    fi
+    chmod -R a+rX /var/cache/piloti-desktop/shells 2>/dev/null || true
+  fi
 fi
 
 #DEBHELPER#

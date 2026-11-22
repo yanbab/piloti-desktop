@@ -77,8 +77,21 @@ list_webapps() {
   fi
 }
 
+link_prebuilt_cache() {
+  sys_cache="/var/cache/piloti-desktop/shells"
+  [ -d "${sys_cache}" ] || return 0
+  user_cache="${XDG_CACHE_HOME:-${HOME}/.cache}/domicile/shells"
+  mkdir -p "${user_cache}" 2>/dev/null || return 0
+  for entry in "${sys_cache}"/*; do
+    [ -d "${entry}" ] || continue
+    base="$(basename "${entry}")"
+    [ -e "${user_cache}/${base}" ] || ln -s "${entry}" "${user_cache}/${base}" 2>/dev/null || true
+  done
+}
+
 start_session() {
   require_domicile
+  link_prebuilt_cache
   export XDG_CURRENT_DESKTOP="${XDG_CURRENT_DESKTOP:-Piloti:GNOME}"
   export XDG_SESSION_DESKTOP="${XDG_SESSION_DESKTOP:-piloti}"
   export DESKTOP_SESSION="${DESKTOP_SESSION:-piloti}"

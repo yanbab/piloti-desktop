@@ -11,6 +11,16 @@ if ! command -v domicile >/dev/null 2>&1; then
   exit 127
 fi
 
+if [ -d /var/cache/piloti-desktop/shells ]; then
+  user_cache="${XDG_CACHE_HOME:-${HOME}/.cache}/domicile/shells"
+  mkdir -p "${user_cache}" 2>/dev/null || true
+  for entry in /var/cache/piloti-desktop/shells/*; do
+    [ -d "${entry}" ] || continue
+    base="$(basename "${entry}")"
+    [ -e "${user_cache}/${base}" ] || ln -s "${entry}" "${user_cache}/${base}" 2>/dev/null || true
+  done
+fi
+
 export XDG_CURRENT_DESKTOP="Piloti:GNOME"
 export XDG_SESSION_TYPE="wayland"
 
