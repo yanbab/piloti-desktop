@@ -385,36 +385,81 @@ function ReplModule({
 
 function LogsModule() {
   const entries = useConsoleEntries();
+  const [levelFilter, setLevelFilter] = React.useState<
+    "all" | "error" | "warn" | "info"
+  >("all");
   const endRef = React.useRef<HTMLDivElement | null>(null);
+
+  const filteredEntries = React.useMemo(() => {
+    if (levelFilter === "all") return entries;
+    if (levelFilter === "info") {
+      return entries.filter((e) => e.level === "info" || e.level === "log");
+    }
+    return entries.filter((e) => e.level === levelFilter);
+  }, [entries, levelFilter]);
 
   React.useEffect(() => {
     endRef.current?.scrollIntoView({ block: "end" });
-  }, [entries.length]);
+  }, [filteredEntries.length, levelFilter]);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col bg-white dark:bg-black">
+    <div className="flex min-h-0 flex-1 flex-col bg-adw-content">
+      <div className="flex h-10 shrink-0 items-center justify-between gap-2 border-b border-adw-separator bg-adw-window/60 px-4">
+        <div className="flex items-center gap-1">
+          {(
+            [
+              { id: "all", label: _("All") },
+              { id: "error", label: _("Errors") },
+              { id: "warn", label: _("Warnings") },
+              { id: "info", label: _("Info") },
+            ] as const
+          ).map((pill) => (
+            <button
+              key={pill.id}
+              type="button"
+              onClick={() => setLevelFilter(pill.id)}
+              className={cn(
+                "rounded-full px-2.5 py-0.5 text-[11px] font-medium transition-colors",
+                levelFilter === pill.id
+                  ? "bg-adw-accent text-white"
+                  : "bg-black/6 text-adw-label-secondary hover:bg-black/10 hover:text-adw-label dark:bg-white/8 dark:hover:bg-white/14"
+              )}
+            >
+              {pill.label}
+            </button>
+          ))}
+        </div>
+        <span className="font-mono text-[11px] text-adw-label-tertiary tabular-nums">
+          {filteredEntries.length}
+        </span>
+      </div>
       <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4 font-mono text-[11.5px]">
-        {entries.length === 0 ? (
+        {filteredEntries.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center gap-1 text-center font-sans text-adw-label-secondary">
             <ScrollTextIcon className="size-6 opacity-60" />
             <div className="text-xs font-medium">{_("No console messages")}</div>
           </div>
         ) : (
           <div className="space-y-1.5">
-            {entries.map((entry) => (
+            {filteredEntries.map((entry) => (
               <div
                 key={entry.id}
                 className={cn(
                   "flex items-start gap-2.5 rounded-md px-2.5 py-1.5 select-text",
                   entry.level === "error" &&
-                    "text-rose-600 dark:text-rose-400",
+                    "bg-rose-500/8 text-rose-600 dark:text-rose-400",
                   entry.level === "warn" &&
-                    "text-amber-700 dark:text-amber-300",
+                    "bg-amber-500/8 text-amber-700 dark:text-amber-300",
                   (entry.level === "log" || entry.level === "info") &&
-                    "text-adw-label"
+                    "text-adw-label hover:bg-black/3 dark:hover:bg-white/4"
                 )}
               >
-                <span className="shrink-0 text-[10px] text-adw-label-tertiary">
+                {entry.count > 1 && (
+                  <span className="mt-0.5 inline-flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full bg-adw-accent px-1.5 text-[10px] font-bold text-white tabular-nums">
+                    {entry.count}
+                  </span>
+                )}
+                <span className="shrink-0 text-[10px] text-adw-label-tertiary tabular-nums">
                   {new Date(entry.timestamp).toLocaleTimeString()}
                 </span>
                 <span className="w-10 shrink-0 font-semibold uppercase">
@@ -423,11 +468,6 @@ function LogsModule() {
                 <pre className="min-w-0 flex-1 whitespace-pre-wrap break-words">
                   {entry.message}
                 </pre>
-                {entry.count > 1 && (
-                  <span className="shrink-0 rounded-full bg-black/10 px-1.5 text-[10px] font-semibold dark:bg-white/15">
-                    {entry.count}
-                  </span>
-                )}
               </div>
             ))}
             <div ref={endRef} />
@@ -435,121 +475,6 @@ function LogsModule() {
         )}
       </div>
     </div>
-  );
-}
-
-function formatCellValue(val: unknown): string {
-  if (val === null) return "null";
-  if (val === undefined) return "—";
-  if (typeof val === "string") return abbreviateDataImageUri(val);
-  if (typeof val === "number" || typeof val === "boolean") return String(val);
-  try {
-    return (
-      JSON.stringify(val, (_k, v) =>
-        typeof v === "string" ? abbreviateDataImageUri(v) : v
-      ) ?? "—"
-    );
-  } catch {
-    return String(val);
-  }
-}
-
-interface StateTableColumn {
-  key: string;
-  label: string;
-  align?: "left" | "right";
-}
-
-function StateSectionTable({
-  title,
-  columns,
-  rows,
-  emptyLabel = "No entries.",
-}: {
-  title?: string;
-  columns: StateTableColumn[];
-  rows: Record<string, unknown>[];
-  emptyLabel?: string;
-}) {
-  return (
-    <div className="space-y-1.5">
-      {title && (
-        <div className="flex items-center justify-between px-0.5 text-[11.5px] font-semibold tracking-wide text-adw-label-secondary uppercase">
-          <span>{title}</span>
-          <span className="font-mono text-[11px] font-normal">
-            {rows.length}
-          </span>
-        </div>
-      )}
-      <div className="overflow-x-auto rounded-lg border border-adw-separator bg-adw-window">
-        {rows.length === 0 ? (
-          <div className="px-3 py-2.5 text-[12px] text-adw-label-tertiary">
-            {emptyLabel}
-          </div>
-        ) : (
-          <table className="w-full border-collapse text-left text-[12px]">
-            <thead>
-              <tr className="border-b border-adw-separator bg-black/4 text-[11px] font-semibold text-adw-label-secondary dark:bg-white/5">
-                {columns.map((col) => (
-                  <th
-                    key={col.key}
-                    className={cn(
-                      "px-3 py-2 whitespace-nowrap",
-                      col.align === "right" && "text-right"
-                    )}
-                  >
-                    {col.label}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row, idx) => (
-                <tr
-                  key={idx}
-                  className="border-t border-adw-separator/60 first:border-t-0 hover:bg-black/3 dark:hover:bg-white/4"
-                >
-                  {columns.map((col) => (
-                    <td
-                      key={col.key}
-                      className={cn(
-                        "max-w-[360px] px-3 py-1.5 align-top font-mono text-[11.5px] break-words text-adw-label select-text",
-                        col.align === "right" && "text-right"
-                      )}
-                    >
-                      {formatCellValue(row[col.key])}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function StateKeyValueTable({
-  title,
-  data,
-}: {
-  title?: string;
-  data: Record<string, unknown>;
-}) {
-  const rows = Object.entries(data).map(([key, value]) => ({
-    key,
-    value,
-  }));
-  return (
-    <StateSectionTable
-      title={title}
-      columns={[
-        { key: "key", label: "Key" },
-        { key: "value", label: "Value" },
-      ]}
-      rows={rows}
-    />
   );
 }
 
@@ -1287,11 +1212,15 @@ function readLocalStorageEntries(): StorageEntry[] {
   return entries;
 }
 
+type EventCategoryFilter = "all" | "vfs" | "shell" | "window";
+
 interface InspectorEventLog {
   id: number;
   time: string;
   type: string;
   detail: string;
+  category: Exclude<EventCategoryFilter, "all">;
+  count: number;
 }
 
 interface VfsDiffItem {
@@ -1318,24 +1247,49 @@ function VfsEventsModule({ active }: { active: boolean }) {
     () => readVfsSnapshotMap()
   );
   const [events, setEvents] = React.useState<InspectorEventLog[]>([]);
+  const [filter, setFilter] = React.useState<EventCategoryFilter>("all");
+  const [showDiffDrawer, setShowDiffDrawer] = React.useState(false);
   const nextEventIdRef = React.useRef(1);
   const prevWinSummaryRef = React.useRef<string>("");
   const eventsScrollRef = React.useRef<HTMLDivElement | null>(null);
 
-  const pushEvent = React.useCallback((type: string, detail: string) => {
-    const time = new Date().toLocaleTimeString();
-    setEvents((prev) => [
-      ...prev.slice(-149),
-      { id: nextEventIdRef.current++, time, type, detail },
-    ]);
-  }, []);
+  const pushEvent = React.useCallback(
+    (
+      type: string,
+      detail: string,
+      category: Exclude<EventCategoryFilter, "all">
+    ) => {
+      const time = new Date().toLocaleTimeString();
+      setEvents((prev) => {
+        const last = prev[prev.length - 1];
+        if (last && last.type === type && last.detail === detail) {
+          return [
+            ...prev.slice(0, -1),
+            { ...last, count: last.count + 1, time },
+          ];
+        }
+        return [
+          ...prev.slice(-199),
+          { id: nextEventIdRef.current++, time, type, detail, category, count: 1 },
+        ];
+      });
+    },
+    []
+  );
+
+  const filteredEvents = React.useMemo(() => {
+    if (filter === "all") return events;
+    return events.filter((ev) => ev.category === filter);
+  }, [events, filter]);
+
+  const lastFilteredCount = filteredEvents[filteredEvents.length - 1]?.count ?? 0;
 
   React.useEffect(() => {
     const el = eventsScrollRef.current;
     if (el) {
       el.scrollTop = el.scrollHeight;
     }
-  }, [events.length, active]);
+  }, [filteredEvents.length, lastFilteredCount, filter, active]);
 
   React.useEffect(() => {
     const summary = JSON.stringify({
@@ -1351,7 +1305,8 @@ function VfsEventsModule({ active }: { active: boolean }) {
     if (prevWinSummaryRef.current && prevWinSummaryRef.current !== summary) {
       pushEvent(
         "WindowEvent",
-        `focused=${focusedWindowId ?? "none"} count=${windows.length}`
+        `focused=${focusedWindowId ?? "none"} count=${windows.length}`,
+        "window"
       );
     }
     prevWinSummaryRef.current = summary;
@@ -1381,7 +1336,11 @@ function VfsEventsModule({ active }: { active: boolean }) {
         } catch {
           detailStr = String(detail);
         }
-        pushEvent(name, detailStr.slice(0, 180));
+        pushEvent(
+          name,
+          detailStr.slice(0, 180),
+          name === WEB_VFS_CHANGED_EVENT ? "vfs" : "shell"
+        );
       };
       window.addEventListener(name, fn);
       return { name, fn };
@@ -1430,23 +1389,55 @@ function VfsEventsModule({ active }: { active: boolean }) {
   }, [baseline, currentMap]);
 
   const vfsEventsCount = React.useMemo(
-    () => events.filter((ev) => ev.type === WEB_VFS_CHANGED_EVENT).length,
+    () =>
+      events
+        .filter((ev) => ev.category === "vfs")
+        .reduce((sum, ev) => sum + ev.count, 0),
     [events]
   );
 
   return (
-    <div className="grid min-h-0 flex-1 grid-cols-1 divide-y divide-adw-separator overflow-hidden bg-adw-content md:grid-cols-2 md:divide-x md:divide-y-0">
-      {/* Left: Live VFS Diff Viewer */}
-      <div className="flex min-h-0 flex-col overflow-hidden">
-        <div className="flex items-center justify-between border-b border-adw-separator px-3 py-2">
-          <div className="flex items-center gap-2">
-            <span className="text-[12px] font-semibold text-adw-label">
-              {_("VFS Diff")} ({diffs.length})
-            </span>
-            <span className="rounded-full bg-black/8 px-2 py-0.5 text-[11px] font-medium text-adw-label-secondary dark:bg-white/10">
-              {_("VFS Events")} ({vfsEventsCount})
-            </span>
-          </div>
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-adw-content">
+      {/* Unified Header Toolbar with Filter Pills */}
+      <div className="flex h-10 shrink-0 items-center justify-between gap-2 border-b border-adw-separator bg-adw-window/60 px-4">
+        <div className="flex items-center gap-1">
+          {(
+            [
+              { id: "all", label: _("All") },
+              { id: "vfs", label: "VFS" },
+              { id: "shell", label: _("Shell") },
+              { id: "window", label: _("Window") },
+            ] as const
+          ).map((pill) => (
+            <button
+              key={pill.id}
+              type="button"
+              onClick={() => setFilter(pill.id)}
+              className={cn(
+                "rounded-full px-2.5 py-0.5 text-[11px] font-medium transition-colors",
+                filter === pill.id
+                  ? "bg-adw-accent text-white"
+                  : "bg-black/6 text-adw-label-secondary hover:bg-black/10 hover:text-adw-label dark:bg-white/8 dark:hover:bg-white/14"
+              )}
+            >
+              {pill.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => setShowDiffDrawer((prev) => !prev)}
+            className={cn(
+              "rounded-full px-2.5 py-0.5 text-[11px] font-medium transition-colors",
+              showDiffDrawer
+                ? "bg-adw-accent/15 text-adw-accent"
+                : "bg-black/6 text-adw-label-secondary hover:bg-black/10 hover:text-adw-label dark:bg-white/8 dark:hover:bg-white/14"
+            )}
+          >
+            {_("VFS Diff")} ({diffs.length}) · {_("VFS Events")} ({vfsEventsCount})
+          </button>
           <button
             type="button"
             onClick={() => {
@@ -1454,21 +1445,31 @@ function VfsEventsModule({ active }: { active: boolean }) {
               setBaseline(snap);
               setCurrentMap(snap);
             }}
-            className="rounded-md bg-black/8 px-2 py-0.5 text-[11px] font-medium text-adw-label transition-colors hover:bg-black/14 dark:bg-white/10 dark:hover:bg-white/16"
+            className="rounded-md bg-black/6 px-2 py-0.5 text-[11px] font-medium text-adw-label transition-colors hover:bg-black/12 dark:bg-white/8 dark:hover:bg-white/14"
           >
-            Snapshot Baseline
+            {_("Snapshot")}
+          </button>
+          <button
+            type="button"
+            onClick={() => setEvents([])}
+            className="rounded-md bg-black/6 px-2 py-0.5 text-[11px] font-medium text-adw-label transition-colors hover:bg-black/12 dark:bg-white/8 dark:hover:bg-white/14"
+          >
+            {_("Clear")}
           </button>
         </div>
-        <div className="min-h-0 flex-1 overflow-y-auto p-2 font-mono text-[11.5px]">
+      </div>
+
+      {showDiffDrawer && (
+        <div className="max-h-44 shrink-0 overflow-y-auto border-b border-adw-separator bg-black/2 px-4 py-2 font-mono text-[11.5px] dark:bg-white/2">
           {diffs.length === 0 ? (
-            <div className="px-2 py-4 text-adw-dim">
-              No VFS changes since baseline ({currentMap.size} entries tracked).
+            <div className="py-1 text-adw-dim">
+              {_("No VFS changes since baseline (%d entries tracked).", currentMap.size)}
             </div>
           ) : (
             diffs.map((d) => (
               <div
                 key={`${d.kind}:${d.path}`}
-                className="flex items-center justify-between gap-2 rounded px-2 py-1 hover:bg-black/5 dark:hover:bg-white/5"
+                className="flex items-center justify-between gap-2 rounded px-2 py-0.5 hover:bg-black/5 dark:hover:bg-white/5"
               >
                 <span
                   className={cn(
@@ -1490,51 +1491,57 @@ function VfsEventsModule({ active }: { active: boolean }) {
             ))
           )}
         </div>
-      </div>
+      )}
 
-      {/* Right: Live WindowEvent & Shell Event Stream */}
-      <div className="flex min-h-0 flex-col overflow-hidden">
-        <div className="flex items-center justify-between border-b border-adw-separator px-3 py-2">
-          <span className="text-[12px] font-semibold text-adw-label">
-            Window & Shell Events ({events.length})
-          </span>
-          <button
-            type="button"
-            onClick={() => setEvents([])}
-            className="rounded-md bg-black/8 px-2 py-0.5 text-[11px] font-medium text-adw-label transition-colors hover:bg-black/14 dark:bg-white/10 dark:hover:bg-white/16"
-          >
-            Clear
-          </button>
-        </div>
-        <div
-          ref={eventsScrollRef}
-          className="min-h-0 flex-1 overflow-y-auto p-2 font-mono text-[11px]"
-        >
-          {events.length === 0 ? (
-            <div className="px-2 py-4 text-adw-dim">
-              Listening for WindowEvent, VFS, and Shell events...
-            </div>
-          ) : (
-            events.map((ev) => (
+      {/* Chronological Event Stream */}
+      <div
+        ref={eventsScrollRef}
+        className="min-h-0 flex-1 overflow-y-auto px-5 py-4 font-mono text-[11.5px]"
+      >
+        {filteredEvents.length === 0 ? (
+          <div className="flex h-full items-center justify-center text-center font-sans text-xs text-adw-label-tertiary">
+            {_("Listening for VFS, Shell, and Window events…")}
+          </div>
+        ) : (
+          <div className="space-y-1.5">
+            {filteredEvents.map((ev) => (
               <div
                 key={ev.id}
-                className="border-b border-adw-separator/40 px-2 py-1.5 last:border-none"
+                className="flex items-start gap-2.5 rounded-md px-2.5 py-1.5 hover:bg-black/3 dark:hover:bg-white/4"
               >
-                <div className="flex items-center justify-between gap-2">
-                  <span className="font-semibold text-adw-accent">
-                    {ev.type}
+                {ev.count > 1 && (
+                  <span className="mt-0.5 inline-flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full bg-adw-accent px-1.5 text-[10px] font-bold text-white tabular-nums">
+                    {ev.count}
                   </span>
-                  <span className="text-[10px] text-adw-dim">{ev.time}</span>
-                </div>
+                )}
+                <span className="shrink-0 text-[10px] text-adw-label-tertiary tabular-nums">
+                  {ev.time}
+                </span>
+                <span
+                  className={cn(
+                    "shrink-0 rounded px-1.5 py-0.5 text-[9.5px] font-semibold uppercase",
+                    ev.category === "vfs" &&
+                      "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400",
+                    ev.category === "window" &&
+                      "bg-sky-500/15 text-sky-600 dark:text-sky-400",
+                    ev.category === "shell" &&
+                      "bg-adw-accent/15 text-adw-accent"
+                  )}
+                >
+                  {ev.category}
+                </span>
+                <span className="shrink-0 font-semibold text-adw-label">
+                  {ev.type}
+                </span>
                 {ev.detail && (
-                  <div className="mt-0.5 truncate text-adw-label-secondary">
+                  <span className="min-w-0 flex-1 truncate text-adw-label-secondary select-text">
                     {ev.detail}
-                  </div>
+                  </span>
                 )}
               </div>
-            ))
-          )}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -1724,23 +1731,25 @@ function StorageModule() {
                 {activeEntry.isJson &&
                 typeof activeEntry.parsedJson === "object" &&
                 activeEntry.parsedJson !== null ? (
-                  <ObjectView
-                    key={activeEntry.key}
-                    valueGetter={() => activeEntry.parsedJson}
-                    name={formatStorageKeyLabel(activeEntry.key)}
-                    expandLevel={2}
-                    style={
-                      {
-                        ...(settings.themeMode === "light"
-                          ? themeGitHubLight
-                          : themeOneDark),
-                        backgroundColor: "transparent",
-                        fontSize: "12.5px",
-                      } as React.CSSProperties
-                    }
-                  />
+                  <div className="rounded-xl border border-adw-separator bg-adw-card p-3.5">
+                    <ObjectView
+                      key={activeEntry.key}
+                      valueGetter={() => activeEntry.parsedJson}
+                      name={formatStorageKeyLabel(activeEntry.key)}
+                      expandLevel={2}
+                      style={
+                        {
+                          ...(settings.themeMode === "light"
+                            ? themeGitHubLight
+                            : themeOneDark),
+                          backgroundColor: "transparent",
+                          fontSize: "12.5px",
+                        } as React.CSSProperties
+                      }
+                    />
+                  </div>
                 ) : (
-                  <pre className="font-mono text-[12.5px] leading-relaxed break-words whitespace-pre-wrap text-adw-label select-text">
+                  <pre className="rounded-xl border border-adw-separator bg-adw-card p-3.5 font-mono text-[12.5px] leading-relaxed break-words whitespace-pre-wrap text-adw-label select-text">
                     {activeDisplayValue}
                   </pre>
                 )}

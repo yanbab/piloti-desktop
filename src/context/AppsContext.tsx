@@ -309,7 +309,10 @@ const PAPIRUS_DIRECT_ICON_FALLBACKS: Record<string, readonly string[]> = {
     "/usr/share/icons/Papirus/64x64/mimetypes/application-x-zerosize.svg",
     "/usr/share/icons/Papirus/64x64/mimetypes/text-x-generic.svg",
   ],
-  "text-html": ["/usr/share/icons/Papirus/64x64/mimetypes/text-html.svg"],
+  "text-html": [
+    "/usr/share/icons/Piloti/scalable/mimetypes/text-html.svg",
+    "/usr/share/icons/Papirus/64x64/mimetypes/text-html.svg",
+  ],
   __user_trash__: [
     "/usr/share/icons/Papirus/64x64/places/user-trash.svg",
   ],

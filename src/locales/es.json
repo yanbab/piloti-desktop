@@ -587,5 +587,13 @@
   "System updates installed": "Actualizaciones del sistema instaladas",
   "System update failed": "Error al actualizar el sistema",
   "Failed to update %s": "Error al actualizar %s",
-  "All updates installed": "Todas las actualizaciones instaladas"
+  "All updates installed": "Todas las actualizaciones instaladas",
+  "All": "Todo",
+  "Errors": "Errores",
+  "Warnings": "Advertencias",
+  "Info": "Info",
+  "Shell": "Shell",
+  "Snapshot": "Instantánea",
+  "No VFS changes since baseline (%d entries tracked).": "Sin cambios de VFS desde la línea base (%d entradas).",
+  "Listening for VFS, Shell, and Window events…": "Escuchando eventos de VFS, Shell y Ventanas…"
 }
