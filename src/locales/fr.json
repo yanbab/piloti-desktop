@@ -504,5 +504,9 @@
   "Removed Extension (%s)": "Extension supprimée (%s)",
   "Could not update extensions config": "Impossible de mettre à jour la configuration des extensions",
   "More info…": "Plus d’infos…",
-  "Animated Accent Color Mesh": "Dégradé animé selon la couleur d’accentuation"
+  "Animated Accent Color Mesh": "Dégradé animé selon la couleur d’accentuation",
+  "Crash Screen (BSOD) on Chunk Errors": "Écran de plantage (BSOD) sur erreur de module",
+  "Show full-screen BSOD on Vite preload/chunk errors during development.": "Afficher l’écran bleu plein écran lors des erreurs de chargement Vite en développement.",
+  "%s encountered an error": "%s a rencontré une erreur",
+  "Retry": "Réessayer"
 }

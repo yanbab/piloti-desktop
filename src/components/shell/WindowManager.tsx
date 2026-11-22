@@ -1120,6 +1120,55 @@ const DOMICILE_RESIZE_EDGE_MAP: Record<number, WindowResizeEdge> = {
   10: "se",
 };
 
+class WindowAppErrorBoundary extends React.Component<
+  {
+    winId: string;
+    title: string;
+    onReady: (id: string) => void;
+    onClose: () => void;
+    children: React.ReactNode;
+  },
+  { error: Error | null }
+> {
+  state: { error: Error | null } = { error: null };
+
+  static getDerivedStateFromError(error: unknown) {
+    return {
+      error: error instanceof Error ? error : new Error(String(error)),
+    };
+  }
+
+  componentDidCatch() {
+    this.props.onReady(this.props.winId);
+  }
+
+  render() {
+    if (!this.state.error) return this.props.children;
+    return (
+      <div className="flex h-full w-full flex-col items-center justify-center gap-3 bg-adw-content p-6 text-center text-adw-label">
+        <div className="text-sm font-semibold">
+          {_("%s encountered an error", this.props.title)}
+        </div>
+        <pre className="max-h-32 max-w-full overflow-auto rounded-lg bg-black/8 px-3 py-2 text-left font-mono text-[11px] text-rose-400 dark:bg-white/6">
+          {this.state.error.message}
+        </pre>
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => this.setState({ error: null })}
+          >
+            {_("Retry")}
+          </Button>
+          <Button size="sm" variant="destructive" onClick={this.props.onClose}>
+            {_("Close")}
+          </Button>
+        </div>
+      </div>
+    );
+  }
+}
+
 export function WindowManager() {
   const domicile = useDomicile();
   const { isBrowserRuntime, settings, reducedMotion } = useSettings();
@@ -1803,11 +1852,18 @@ export function WindowManager() {
                 )}
 
                 <WindowContent className="flex flex-col overflow-hidden">
-                  <WindowBody
-                    win={win}
-                    isCsd={isCsd}
-                    onDomReady={handleDomReady}
-                  />
+                  <WindowAppErrorBoundary
+                    winId={win.id}
+                    title={win.title}
+                    onReady={handleDomReady}
+                    onClose={() => handleAnimatedClose(win)}
+                  >
+                    <WindowBody
+                      win={win}
+                      isCsd={isCsd}
+                      onDomReady={handleDomReady}
+                    />
+                  </WindowAppErrorBoundary>
                 </WindowContent>
               </WindowMain>
             </Window>

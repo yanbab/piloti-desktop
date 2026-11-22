@@ -72,6 +72,10 @@ import {
   toggleSimulatedUsb,
   useSimulatedUsbMounted,
 } from "@/lib/engine-web/usb-drive";
+import {
+  isBsodOnPreloadEnabled,
+  setBsodOnPreloadEnabled,
+} from "@/components/shell/ShellErrorBoundary";
 
 export function AdvancedPane() {
   const domicile = useDomicile();
@@ -106,6 +110,9 @@ export function AdvancedPane() {
 
   const [unpackedPaths, setUnpackedPaths] = React.useState<string[]>([]);
   const [autostartEntries, setAutostartEntries] = React.useState<XdgAutostartEntry[]>([]);
+  const [bsodOnPreload, setBsodOnPreload] = React.useState<boolean>(() =>
+    isBsodOnPreloadEnabled()
+  );
 
   const loadAutostart = React.useCallback(async () => {
     const userDir = `${WEB_VFS_HOME}/.config/autostart`;
@@ -892,6 +899,26 @@ export function AdvancedPane() {
                 <UsbIcon className="size-3.5" />
                 {usbMounted ? _("Eject USB Drive") : _("Mount USB Drive")}
               </Button>
+            </GroupedFormRowControl>
+          </GroupedFormRow>
+          <GroupedFormRow>
+            <GroupedFormRowLabel>
+              <GroupedFormRowTitle>{_("Crash Screen (BSOD) on Chunk Errors")}</GroupedFormRowTitle>
+              <GroupedFormRowDescription>
+                {_(
+                  "Show full-screen BSOD on Vite preload/chunk errors during development."
+                )}
+              </GroupedFormRowDescription>
+            </GroupedFormRowLabel>
+            <GroupedFormRowControl>
+              <Switch
+                aria-label={_("Crash Screen (BSOD) on Chunk Errors")}
+                checked={bsodOnPreload}
+                onCheckedChange={(checked) => {
+                  setBsodOnPreloadEnabled(checked);
+                  setBsodOnPreload(checked);
+                }}
+              />
             </GroupedFormRowControl>
           </GroupedFormRow>
           <GroupedFormRow>

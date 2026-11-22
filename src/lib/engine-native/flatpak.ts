@@ -174,15 +174,23 @@ const FLATHUB_POPULAR_HITS: readonly FlathubPopularHit[] = Array.isArray(
 export function getPopularFlathubApps(
   installedIds?: ReadonlySet<string>
 ): FlatpakAppEntry[] {
-  return FLATHUB_POPULAR_HITS.filter((h) => h.app_id && h.name).map((hit) => ({
-    appId: hit.app_id,
-    name: hit.name,
-    description: hit.summary,
-    iconUrl: hit.icon,
-    mainCategories: hit.main_categories,
-    origin: "flathub",
-    installed: installedIds?.has(hit.app_id) ?? false,
-  }));
+  return FLATHUB_POPULAR_HITS.filter((h) => h.app_id && h.name).map((hit) => {
+    const rawCats = hit.main_categories as unknown;
+    const mainCategories = Array.isArray(rawCats)
+      ? rawCats.filter((c): c is string => typeof c === "string")
+      : typeof rawCats === "string" && rawCats
+        ? [rawCats]
+        : undefined;
+    return {
+      appId: hit.app_id,
+      name: hit.name,
+      description: hit.summary,
+      iconUrl: hit.icon,
+      mainCategories,
+      origin: "flathub",
+      installed: installedIds?.has(hit.app_id) ?? false,
+    };
+  });
 }
 
 async function fetchFlathubJson<T>(
