@@ -482,5 +482,7 @@
   "Saved to ~/.config/domicile/domicile.json. Restart Domicile to apply.": "Enregistré dans ~/.config/domicile/domicile.json. Redémarrez Domicile pour appliquer.",
   "Could not write ~/.config/domicile/domicile.json.": "Impossible d'écrire dans ~/.config/domicile/domicile.json.",
   "Configure extensions.unpacked or extensions.web_store in ~/.config/domicile/domicile.json": "Configurez extensions.unpacked ou extensions.web_store dans ~/.config/domicile/domicile.json",
-  "Add a Chrome Web Store ID or unpacked path (e.g. /usr/share/piloti/extensions/piloti-demo) above.": "Ajoutez un ID Chrome Web Store ou un chemin décompressé (ex. /usr/share/piloti/extensions/piloti-demo) ci-dessus."
+  "Add a Chrome Web Store ID or unpacked path (e.g. /usr/share/piloti/extensions/piloti-demo) above.": "Ajoutez un ID Chrome Web Store ou un chemin décompressé (ex. /usr/share/piloti/extensions/piloti-demo) ci-dessus.",
+  "App Store": "App Store",
+  "Canceled installing %s": "Installation de %s annulée"
 }

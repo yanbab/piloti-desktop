@@ -630,6 +630,18 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
     [items, selectedId],
   );
 
+  const pendingAbortRef = React.useRef<AbortController | null>(null);
+
+  const handleCancelPendingOp = React.useCallback(() => {
+    if (opRafRef.current !== null) {
+      cancelAnimationFrame(opRafRef.current);
+      opRafRef.current = null;
+    }
+    pendingAbortRef.current?.abort();
+    pendingAbortRef.current = null;
+    setPendingOp(null);
+  }, []);
+
   const runFakeProgress = React.useCallback(
     (id: string, kind: "installing" | "removing", onComplete: () => void) => {
       if (pendingOp) return;
@@ -733,13 +745,15 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
         const fp = item.flatpak;
         if (isBrowserRuntime) {
           pushNotification({
-            appName: "Applications",
+            appName: "App Store",
             summary: `Flatpak: ${fp.name}`,
             body: `Run on Domicile Linux: flatpak install --user -y flathub ${fp.appId}`,
           });
           return;
         }
         if (pendingOp) return;
+        const controller = new AbortController();
+        pendingAbortRef.current = controller;
         setSelectedId(item.id);
         setPendingOp({
           id: item.id,
@@ -758,6 +772,10 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
             });
             await ensureFlathubRemote(domicile);
           }
+          if (controller.signal.aborted) {
+            setPendingOp(null);
+            return;
+          }
           const res = await installFlatpakApp(
             domicile,
             fp.appId,
@@ -772,19 +790,29 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                     }
                   : prev,
               ),
+            controller.signal,
           );
+          if (pendingAbortRef.current === controller) {
+            pendingAbortRef.current = null;
+          }
           setPendingOp(null);
-          if (res.ok) {
+          if (res.canceled) {
+            pushNotification({
+              appName: "App Store",
+              summary: _("Canceled installing %s", fp.name),
+              body: fp.appId,
+            });
+          } else if (res.ok) {
             await refreshFlatpakList();
             await refreshXdgApps();
             pushNotification({
-              appName: "Applications",
+              appName: "App Store",
               summary: `Installed ${fp.name}`,
               body: fp.appId,
             });
           } else {
             pushNotification({
-              appName: "Applications",
+              appName: "App Store",
               summary: `Failed to install ${fp.name}`,
               body: res.error || "Flatpak install failed",
               urgency: "critical",
@@ -814,6 +842,8 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
       if (item.kind === "flatpak" && item.flatpak) {
         if (isBrowserRuntime || pendingOp) return;
         const fp = item.flatpak;
+        const controller = new AbortController();
+        pendingAbortRef.current = controller;
         setSelectedId(item.id);
         setPendingOp({
           id: item.id,
@@ -824,6 +854,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
         void (async () => {
           const res = await uninstallFlatpakApp(domicile, fp.appId, {
             installation: fp.installation,
+            signal: controller.signal,
             onUpdate: ({ line, progress }) =>
               setPendingOp((prev) =>
                 prev && prev.id === item.id
@@ -835,18 +866,24 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                   : prev,
               ),
           });
+          if (pendingAbortRef.current === controller) {
+            pendingAbortRef.current = null;
+          }
           setPendingOp(null);
+          if (res.canceled) {
+            return;
+          }
           if (res.ok) {
             await refreshFlatpakList();
             await refreshXdgApps();
             pushNotification({
-              appName: "Applications",
+              appName: "App Store",
               summary: `Uninstalled ${fp.name}`,
               body: fp.appId,
             });
           } else {
             pushNotification({
-              appName: "Applications",
+              appName: "App Store",
               summary: `Failed to uninstall ${fp.name}`,
               body: res.error || "Flatpak uninstall failed",
               urgency: "critical",
@@ -878,7 +915,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
       if (item.kind === "flatpak" && item.flatpak) {
         if (isBrowserRuntime) {
           pushNotification({
-            appName: "Applications",
+            appName: "App Store",
             summary: `Flatpak: ${item.flatpak.name}`,
             body: `Run on Domicile Linux: flatpak run ${item.flatpak.appId}`,
           });
@@ -896,7 +933,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
 
   return (
     <AdwSplitView
-      title={_("Applications")}
+      title={_("App Store")}
       appId="app-store"
       windowId={windowId}
       isCsd={isCsd}
@@ -1107,6 +1144,18 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                       />
                     )}
                   </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="secondary"
+                    aria-label={_("Cancel")}
+                    title={_("Cancel")}
+                    onClick={handleCancelPendingOp}
+                    className="h-7 px-2.5 text-xs"
+                  >
+                    <XIcon className="mr-1 size-3.5" />
+                    {_("Cancel")}
+                  </Button>
                 </div>
               ) : !selectedItem.installed ? (
                 <Button

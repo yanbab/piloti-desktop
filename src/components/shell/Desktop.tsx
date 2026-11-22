@@ -251,22 +251,6 @@ function DesktopSurface() {
             {_("Align Icons")}
           </ContextMenuItem>
           <ContextMenuItem
-            onClick={() => {
-              const nextAlign =
-                (settings.desktopIconAlign ?? "left") === "right"
-                  ? "left"
-                  : "right";
-              updateSettings({
-                desktopIconAlign: nextAlign,
-                desktopIconPositions: {},
-              });
-            }}
-          >
-            {(settings.desktopIconAlign ?? "left") === "right"
-              ? _("Align Icons Left")
-              : _("Align Icons Right")}
-          </ContextMenuItem>
-          <ContextMenuItem
             onClick={() => launchApp("settings", { payload: "wallpaper" })}
           >
             {_("Change Wallpaper")}

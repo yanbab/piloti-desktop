@@ -551,7 +551,7 @@ export const TerminalApp: React.FC<TerminalAppProps> = ({ initialPath }) => {
         { text: "  piloti-settings     Open Desktop Settings" },
         { text: "  piloti-console      Open Desktop Console" },
         { text: "  piloti-shell        Open Desktop Shell" },
-        { text: "  piloti-applications Open Applications" },
+        { text: "  piloti-applications Open App Store" },
         { text: "  piloti-login        Open Login Screen" },
         { text: "" },
         { text: "System & Process:", tone: "muted" },

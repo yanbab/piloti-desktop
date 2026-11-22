@@ -1,4 +1,5 @@
 import type { Domicile } from "@domicile-desktop/sdk/desktop/desktop";
+import { Signal } from "@domicile-desktop/sdk/system";
 import flathubPopularJson from "@/data/flathub-popular.json";
 import { commandExists, launchDesktopCommand, runText } from "./exec";
 
@@ -291,8 +292,12 @@ export async function searchFlatpaks(
 async function runStreamingFlatpakCommand(
   domicile: Domicile,
   argv: string[],
-  onUpdate?: (update: FlatpakStreamUpdate) => void
-): Promise<{ ok: boolean; error?: string }> {
+  onUpdate?: (update: FlatpakStreamUpdate) => void,
+  signal?: AbortSignal
+): Promise<{ ok: boolean; canceled?: boolean; error?: string }> {
+  if (signal?.aborted) {
+    return { ok: false, canceled: true, error: "Canceled" };
+  }
   try {
     const launchRes = await domicile.processes.spawn(argv);
     const proc = launchRes.match({
@@ -300,6 +305,30 @@ async function runStreamingFlatpakCommand(
       Err: () => null,
     });
     if (proc) {
+      let canceled = false;
+      let killTimer: ReturnType<typeof setTimeout> | undefined;
+      const onAbort = () => {
+        canceled = true;
+        try {
+          proc.kill(Signal.Term);
+        } catch {
+          // ignore
+        }
+        killTimer = setTimeout(() => {
+          try {
+            proc.kill(Signal.Kill);
+          } catch {
+            // ignore
+          }
+        }, 1500);
+      };
+      if (signal) {
+        if (signal.aborted) {
+          onAbort();
+        } else {
+          signal.addEventListener("abort", onAbort, { once: true });
+        }
+      }
       let lastStdoutLine = "";
       let lastStderrLine = "";
 
@@ -343,24 +372,32 @@ async function runStreamingFlatpakCommand(
         }
       };
 
-      const [, , exitRes] = await Promise.all([
-        pumpStream(proc.stdout, false),
-        pumpStream(proc.stderr, true),
-        proc.exited,
-      ]);
+      try {
+        const [, , exitRes] = await Promise.all([
+          pumpStream(proc.stdout, false),
+          pumpStream(proc.stderr, true),
+          proc.exited,
+        ]);
 
-      const exitCode = exitRes.match({
-        Ok: (e) => e.code ?? 1,
-        Err: () => 1,
-      });
+        const exitCode = exitRes.match({
+          Ok: (e) => e.code ?? 1,
+          Err: () => 1,
+        });
 
-      if (exitCode === 0) {
-        return { ok: true };
+        if (canceled) {
+          return { ok: false, canceled: true, error: "Canceled" };
+        }
+        if (exitCode === 0) {
+          return { ok: true };
+        }
+        return {
+          ok: false,
+          error: lastStderrLine || lastStdoutLine || `Exit ${exitCode}`,
+        };
+      } finally {
+        signal?.removeEventListener("abort", onAbort);
+        if (killTimer) clearTimeout(killTimer);
       }
-      return {
-        ok: false,
-        error: lastStderrLine || lastStdoutLine || `Exit ${exitCode}`,
-      };
     }
   } catch {
     // Fallback to processes.run below
@@ -391,8 +428,9 @@ export async function installFlatpakApp(
   domicile: Domicile,
   appId: string,
   remote = "flathub",
-  onUpdate?: (update: FlatpakStreamUpdate) => void
-): Promise<{ ok: boolean; error?: string }> {
+  onUpdate?: (update: FlatpakStreamUpdate) => void,
+  signal?: AbortSignal
+): Promise<{ ok: boolean; canceled?: boolean; error?: string }> {
   const args = [
     "flatpak",
     "install",
@@ -402,7 +440,7 @@ export async function installFlatpakApp(
     remote,
     appId,
   ];
-  return runStreamingFlatpakCommand(domicile, args, onUpdate);
+  return runStreamingFlatpakCommand(domicile, args, onUpdate, signal);
 }
 
 export async function uninstallFlatpakApp(
@@ -411,8 +449,9 @@ export async function uninstallFlatpakApp(
   options?: {
     installation?: string;
     onUpdate?: (update: FlatpakStreamUpdate) => void;
+    signal?: AbortSignal;
   }
-): Promise<{ ok: boolean; error?: string }> {
+): Promise<{ ok: boolean; canceled?: boolean; error?: string }> {
   const scopeFlag =
     options?.installation?.toLowerCase() === "system" ? "--system" : "--user";
   const args = [
@@ -423,7 +462,12 @@ export async function uninstallFlatpakApp(
     "--noninteractive",
     appId,
   ];
-  return runStreamingFlatpakCommand(domicile, args, options?.onUpdate);
+  return runStreamingFlatpakCommand(
+    domicile,
+    args,
+    options?.onUpdate,
+    options?.signal
+  );
 }
 
 /**

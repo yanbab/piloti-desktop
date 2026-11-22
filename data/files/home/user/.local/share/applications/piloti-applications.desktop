@@ -1,6 +1,6 @@
 [Desktop Entry]
 Type=Application
-Name=Applications
+Name=App Store
 Comment=Browse and install apps and web apps
 Exec=piloti-applications
 Icon=system-software-install

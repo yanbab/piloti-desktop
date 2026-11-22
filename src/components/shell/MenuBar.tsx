@@ -454,7 +454,7 @@ export function MenuBar() {
                   launchApp("app-store");
                 }}
               >
-                {_("Applications")}
+                {_("App Store")}
               </MenubarItem>
               <MenubarItem
                 onClick={(e) => {
@@ -673,7 +673,10 @@ export function MenuBar() {
             activeAppDef.menus
               .filter((section) => section.title === "View")
               .map((section) => {
-                const hasCheckable = section.items.some(
+                const visibleItems = section.items.filter(
+                  (i) => i.actionId !== "shell:fullscreen" || isBrowserRuntime,
+                );
+                const hasCheckable = visibleItems.some(
                   (i) =>
                     (windowMenuState[i.actionId]?.checked ?? i.checked) !==
                     undefined,
@@ -682,7 +685,7 @@ export function MenuBar() {
                   <MenubarMenu key={section.title}>
                     <MenubarTrigger>{_(section.title)}</MenubarTrigger>
                     <MenubarContent>
-                      {section.items.map((item) => {
+                      {visibleItems.map((item) => {
                         const itemState = windowMenuState[item.actionId];
                         const checked = itemState?.checked ?? item.checked;
                         const disabled = itemState?.disabled ?? false;

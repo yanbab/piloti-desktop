@@ -2,6 +2,7 @@ import * as React from "react";
 import { APP_CATALOG, type AppDefinition } from "@/data/catalog";
 import { type InstalledWebApp, resolveWebAppTitle } from "@/data/web-apps";
 import type { XdgDesktopEntry } from "xdg-desktop-entry";
+import { isBrowserDevRuntime } from "../SettingsContext";
 import { matchAppFromWayland } from "../AppsContext";
 import type { SystemBackendsContextValue } from "../SystemBackendsContext";
 import type { DesktopWindowInstance } from "../WindowsContext";
@@ -115,11 +116,15 @@ export function useGlobalAppMenu({
         {
           title: "View",
           items: [
-            {
-              label: "Full Screen",
-              actionId: "shell:fullscreen",
-              separatorAfter: true,
-            },
+            ...(isBrowserDevRuntime()
+              ? [
+                  {
+                    label: "Full Screen",
+                    actionId: "shell:fullscreen",
+                    separatorAfter: true,
+                  },
+                ]
+              : []),
             {
               label: "Arrange Icons",
               actionId: "desktop:align-icons",

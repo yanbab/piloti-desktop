@@ -427,8 +427,8 @@ export const APP_CATALOG: AppDefinition[] = [
   },
   {
     id: "app-store",
-    name: "Applications",
-    shortName: "Applications",
+    name: "App Store",
+    shortName: "App Store",
     description: "Browse and install apps and web apps",
     category: "System",
     iconName: "sparkles",
