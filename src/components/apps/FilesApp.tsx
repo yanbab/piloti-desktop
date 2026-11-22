@@ -35,6 +35,7 @@ import {
   unmountSimulatedUsb,
   useSimulatedUsbMounted,
 } from "@/lib/engine-web/usb-drive";
+import { NicePathLabel } from "@/components/shell/NicePathLabel";
 import { AdwSplitView, type AdwSplitSidebarItem } from "@/components/ui/adw-split-view";
 import { IconGrid } from "@/components/ui/icon-grid";
 import { AppSquircleIcon } from "@/components/shell/AppSymbol";
@@ -1614,8 +1615,8 @@ export function FilesApp({
               </div>
               <div>
                 <dt className="text-adw-dim">{_("Where")}</dt>
-                <dd className="truncate font-mono text-[11px] text-adw-label-secondary">
-                  {inspectedItem?.path ?? currentPath}
+                <dd className="flex min-w-0 text-[11px] text-adw-label-secondary">
+                  <NicePathLabel path={inspectedItem?.path ?? currentPath} />
                 </dd>
               </div>
               {inspectedItem?.kind === "file" &&

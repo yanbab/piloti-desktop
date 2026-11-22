@@ -66,6 +66,13 @@ import {
 import { cn } from "@/lib/core/utils";
 import { collectMenuShortcuts, formatMenuShortcut } from "@/lib/shell/menu-shortcuts";
 import { ShortcutsDialog } from "./ShortcutsDialog";
+import { HelpMenuSearch } from "./HelpMenuSearch";
+import {
+  cleanMenuLabel,
+  collectRemoteMenuCommands,
+  type MenuCommand,
+  OPEN_COMMAND_HUD_EVENT,
+} from "@/lib/shell/menu-commands";
 import { buildAppHelpLinks } from "@/lib/shell/app-help-links";
 import { captureLaunchOriginFromElement } from "@/lib/shell/launch-origin";
 import { buildVfsEntryWebAppUrl, getVfsEntry } from "@/lib/engine-web/web-vfs";
@@ -371,6 +378,108 @@ export function MenuBar() {
       }),
     [activeAppDef.menus, remoteMenu],
   );
+  const [helpMenuOpen, setHelpMenuOpen] = React.useState(false);
+  const helpSearchInputRef = React.useRef<HTMLInputElement | null>(null);
+  const hasRemoteSections = Boolean(remoteMenu && remoteMenu.sections.length > 0);
+
+  // Every runnable menu item, for Help ▸ search (Cmd+K).
+  const menuCommands = React.useMemo<MenuCommand[]>(() => {
+    const out: MenuCommand[] = [];
+    const add = (path: string[], label: string, run: () => void, extra?: Partial<MenuCommand>) =>
+      out.push({ id: `${path.join("/")}:${label}`, label, path, run, ...extra });
+    const appName = _(activeAppDef.shortName);
+
+    if (remoteMenu) {
+      collectRemoteMenuCommands(remoteMenu.appActions, [appName], out);
+      remoteMenu.sections.forEach((section) =>
+        collectRemoteMenuCommands(section.items, [cleanMenuLabel(section.title)], out),
+      );
+    }
+    if (!hasRemoteSections) {
+      for (const section of activeAppDef.menus) {
+        for (const item of section.items) {
+          if (item.actionId === "shell:fullscreen" && !isBrowserRuntime) continue;
+          const state = windowMenuState[item.actionId];
+          add([_(section.title)], _(item.label), () => handleMenuAction(item.actionId), {
+            id: `app:${item.actionId}`,
+            shortcut: item.shortcut,
+            checked: state?.checked ?? item.checked,
+            disabled: state?.disabled ?? false,
+          });
+        }
+      }
+      if (focusedWindowId) {
+        add([_("File")], _("Print…"), () => {
+          window.dispatchEvent(new CustomEvent("piloti:print-focused"));
+          handleMenuAction("file:print");
+        }, { shortcut: "Ctrl+P" });
+      }
+    }
+
+    const edit = _("Edit");
+    add([edit], _("Undo"), () => document.execCommand?.("undo"), { shortcut: "Ctrl+Z" });
+    add([edit], _("Redo"), () => document.execCommand?.("redo"), { shortcut: "Ctrl+Shift+Z" });
+    add([edit], _("Cut"), () => document.execCommand?.("cut"), { shortcut: "Ctrl+X" });
+    add([edit], _("Copy"), () => document.execCommand?.("copy"), { shortcut: "Ctrl+C" });
+    add([edit], _("Paste"), () => document.execCommand?.("paste"), { shortcut: "Ctrl+V" });
+
+    if (focusedWindowId) {
+      const win = _("Window");
+      const id = focusedWindowId;
+      add([win], _("Minimize"), () => toggleMinimizeWindow(id), { shortcut: "Alt+M" });
+      add([win], focusedWindow?.maximized ? _("Restore") : _("Maximize"), () => toggleMaximizeWindow(id), { shortcut: "Alt+F" });
+      add([win], _("Tile Left"), () => tileWindow(id, "left"), { shortcut: "Alt+[" });
+      add([win], _("Tile Right"), () => tileWindow(id, "right"), { shortcut: "Alt+]" });
+      add([win], _("Close"), () =>
+        window.dispatchEvent(new CustomEvent("piloti:request-animated-close", { detail: { windowId: id } })),
+        { shortcut: "Alt+W" });
+    }
+
+    const piloti = "Piloti";
+    add([piloti], _("About Computer"), () => setAboutOpen(true));
+    add([piloti], _("Desktop Settings"), () => launchApp("settings"), { shortcut: "Alt+," });
+    add([piloti], _("App Store"), () => launchApp("app-store"));
+    add([piloti], _("Desktop Console"), () => launchApp("console"));
+    add([piloti], _("Lock Screen"), () => lockSession(), { shortcut: "⌃⌘Q" });
+    add([piloti], _("Restart…"), () => requestPowerAction("restart"));
+    add([piloti], _("Turn Off…"), () => requestPowerAction("poweroff"));
+    add([piloti], _("Log Out…"), () => requestPowerAction("logout"));
+
+    const help = _("Help");
+    add([help], _("Shortcuts…"), () => setShortcutsOpen(true));
+    add([help], _("About %s", _(activeAppDef.name)), () => setAppAboutOpen(true));
+    return out;
+  }, [
+    activeAppDef.menus,
+    activeAppDef.name,
+    activeAppDef.shortName,
+    focusedWindow?.maximized,
+    focusedWindowId,
+    handleMenuAction,
+    hasRemoteSections,
+    isBrowserRuntime,
+    launchApp,
+    lockSession,
+    remoteMenu,
+    requestPowerAction,
+    setAboutOpen,
+    tileWindow,
+    toggleMaximizeWindow,
+    toggleMinimizeWindow,
+    windowMenuState,
+  ]);
+
+  React.useEffect(() => {
+    const onOpenHud = () => {
+      setLauncherOpen(false);
+      setControlPanelOpen(false);
+      setHelpMenuOpen(true);
+      requestAnimationFrame(() => helpSearchInputRef.current?.focus());
+    };
+    window.addEventListener(OPEN_COMMAND_HUD_EVENT, onOpenHud);
+    return () => window.removeEventListener(OPEN_COMMAND_HUD_EVENT, onOpenHud);
+  }, [setControlPanelOpen, setLauncherOpen]);
+
   const pilotiTriggerRef = React.useRef<HTMLButtonElement | null>(null);
   const controlPanelPopupRef = React.useRef<HTMLDivElement | null>(null);
   const rightClusterRef = React.useRef<HTMLDivElement | null>(null);
@@ -896,9 +1005,19 @@ export function MenuBar() {
           )}
 
           {/* Help Menu */}
-          <MenubarMenu>
+          <MenubarMenu open={helpMenuOpen} onOpenChange={setHelpMenuOpen}>
             <MenubarTrigger>{_("Help")}</MenubarTrigger>
-            <MenubarContent>
+            <MenubarContent className="w-[22rem]" initialFocus={helpSearchInputRef}>
+              <HelpMenuSearch
+                commands={menuCommands}
+                model={settings.computerModel}
+                inputRef={helpSearchInputRef}
+                onRun={(command) => {
+                  setHelpMenuOpen(false);
+                  // Let the menu close (and focus return) before running the command.
+                  requestAnimationFrame(() => command.run());
+                }}
+              />
               <MenubarItem onClick={() => setShortcutsOpen(true)}>
                 {_("Shortcuts…")}
               </MenubarItem>

@@ -3,6 +3,7 @@ import { BellIcon, LockIcon } from "lucide-react";
 import { useSettings, useSystemBackends } from "@/context/DesktopStateContext";
 import { _, getLocale } from "@/lib/core/i18n";
 import { formatRelativeNotificationTime } from "@/lib/shell/notifications";
+import { NotificationBodyText } from "@/components/shell/NicePathLabel";
 import { AuthPasswordCard } from "./AuthPasswordCard";
 import { DesktopBackgroundLayers } from "./DesktopBackgroundLayers";
 
@@ -116,7 +117,7 @@ export function LockScreen() {
                 {settings.notificationShowPreviews ? (
                   n.body && (
                     <div className="line-clamp-2 text-[11.5px] text-white/80">
-                      {n.body}
+                      <NotificationBodyText body={n.body} />
                     </div>
                   )
                 ) : (

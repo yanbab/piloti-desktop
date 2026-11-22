@@ -98,3 +98,17 @@ export async function writePilotiAppIni(
     }
   }
 }
+
+/**
+ * Hidden general preferences (`~/.config/piloti/general.ini`, no Settings UI).
+ *
+ *   [Windows]
+ *   confirm-unsaved-on-close=false
+ *
+ * Spatial apps (Text Editor, Image Viewer) persist unsaved state across
+ * close/reopen, so the Save / Discard / Cancel prompt is off by default.
+ */
+export function shouldConfirmUnsavedOnClose(): boolean {
+  const value = getCachedPilotiAppIni("general").Windows?.["confirm-unsaved-on-close"];
+  return value === "true" || value === "1";
+}

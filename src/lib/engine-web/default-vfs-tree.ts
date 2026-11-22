@@ -444,11 +444,35 @@ export const DEFAULT_STATIC_DIR_INDEX: Record<string, readonly { name: string; f
   ],
   "/usr/share/icons/Papirus/64x64/devices": [
     {
+      "name": "drive-harddisk-solidstate.svg",
+      "fileType": 0
+    },
+    {
+      "name": "drive-harddisk.svg",
+      "fileType": 0
+    },
+    {
+      "name": "drive-optical.svg",
+      "fileType": 0
+    },
+    {
       "name": "drive-removable-media-usb.svg",
       "fileType": 0
     },
     {
       "name": "drive-removable-media.svg",
+      "fileType": 0
+    },
+    {
+      "name": "media-flash-sd-mmc.svg",
+      "fileType": 0
+    },
+    {
+      "name": "media-flash.svg",
+      "fileType": 0
+    },
+    {
+      "name": "media-optical.svg",
       "fileType": 0
     }
   ],

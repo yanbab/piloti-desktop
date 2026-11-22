@@ -1111,7 +1111,7 @@ export function useSystemBackendsValue(
           pushNotification({
             appName: "Screenshot",
             summary: "Screenshot Captured",
-            body: `Saved to Desktop/${filename}`,
+            body: `${WEB_VFS_HOME}/Desktop/${filename}`,
             actions: [captureOpenAction(savedPath)],
           });
         } catch {
@@ -1262,7 +1262,7 @@ export function useSystemBackendsValue(
                 pushNotification({
                   appName: "Screen Recorder",
                   summary: "Screen Recording Saved",
-                  body: `Saved to Desktop/${filename}`,
+                  body: `${WEB_VFS_HOME}/Desktop/${filename}`,
                   actions: [captureOpenAction(savedPath)],
                 });
               } catch {
@@ -1371,7 +1371,7 @@ export function useSystemBackendsValue(
                 pushNotification({
                   appName: "Audio Recorder",
                   summary: "Audio Note Saved",
-                  body: `Saved to Desktop/${filename}`,
+                  body: `${WEB_VFS_HOME}/Desktop/${filename}`,
                   actions: [captureOpenAction(savedPath)],
                 });
               })
@@ -1396,7 +1396,7 @@ export function useSystemBackendsValue(
               pushNotification({
                 appName: "Audio Recorder",
                 summary: "Audio Note Saved",
-                body: `Saved to Desktop/${filename}`,
+                body: `${WEB_VFS_HOME}/Desktop/${filename}`,
                 actions: [captureOpenAction(savedPath)],
               });
             } catch {

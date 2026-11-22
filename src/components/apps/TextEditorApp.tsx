@@ -13,6 +13,9 @@ import { json } from "@codemirror/lang-json";
 import { markdown } from "@codemirror/lang-markdown";
 import {
   bracketMatching,
+  codeFolding,
+  foldGutter,
+  foldKeymap,
   HighlightStyle,
   StreamLanguage,
   syntaxHighlighting,
@@ -52,7 +55,11 @@ import { readVfsStateJson, writeVfsStateJson } from "@/lib/engine/vfs-state";
 import { isBrowserDevRuntime } from "@/context/SettingsContext";
 import { _ } from "@/lib/core/i18n";
 import { parseIniText } from "@/lib/config/ini";
-import { getCachedPilotiAppIni, writePilotiAppIni } from "@/lib/config/piloti-ini";
+import {
+  getCachedPilotiAppIni,
+  shouldConfirmUnsavedOnClose,
+  writePilotiAppIni,
+} from "@/lib/config/piloti-ini";
 import { cn } from "@/lib/core/utils";
 import {
   getVfsEntry,
@@ -265,6 +272,24 @@ const adwEditorTheme = EditorView.theme({
   "&.cm-focused": {
     outline: "none",
   },
+  ".cm-foldGutter .cm-gutterElement": {
+    padding: "0 4px 0 2px",
+    cursor: "pointer",
+    color: "var(--adw-dim)",
+    opacity: "0.55",
+    transition: "opacity 120ms",
+  },
+  ".cm-gutters:hover .cm-foldGutter .cm-gutterElement": {
+    opacity: "1",
+  },
+  ".cm-foldPlaceholder": {
+    backgroundColor: "color-mix(in srgb, var(--adw-accent) 18%, transparent)",
+    border: "none",
+    color: "var(--adw-accent)",
+    borderRadius: "4px",
+    padding: "0 4px",
+    margin: "0 2px",
+  },
 });
 
 export const TextEditorApp: React.FC<TextEditorAppProps> = ({
@@ -365,7 +390,6 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
   viewModeRef.current = viewMode;
   const [findOpen, setFindOpen] = React.useState(false);
   const [findQuery, setFindQuery] = React.useState("");
-  const [savedFlash, setSavedFlash] = React.useState(false);
   const [cursorPos, setCursorPos] = React.useState<{ ln: number; col: number }>({
     ln: 1,
     col: 1,
@@ -391,6 +415,8 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
   const [showCursorPos, setShowCursorPos] = React.useState(
     () => initialEditorPrefs.cursorPosition === "true"
   );
+  // No UI: fold markers sit next to line numbers unless `codeFolding=false`.
+  const showCodeFolding = initialEditorPrefs.codeFolding !== "false";
 
   React.useEffect(() => {
     void writePilotiAppIni(null, "notepad", "Editor", {
@@ -399,6 +425,7 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
       wordWrap,
       activeLine: highlightLine,
       cursorPosition: showCursorPos,
+      codeFolding: showCodeFolding,
     });
   }, [
     showLineNumbers,
@@ -724,8 +751,6 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
       setSavedContent(textToSave);
       savedContentRef.current = textToSave;
       persistEditorStateNow(targetPath, { clearUnsaved: true });
-      setSavedFlash(true);
-      window.setTimeout(() => setSavedFlash(false), 1500);
     }
     return ok !== false;
   }, [bridge.fs, persistEditorStateNow]);
@@ -746,7 +771,7 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
   }, [bridge, persistEditorStateNow, windowId]);
 
   const requestClose = React.useCallback(() => {
-    if (isDirtyRef.current && !forceCloseRef.current) {
+    if (isDirtyRef.current && !forceCloseRef.current && shouldConfirmUnsavedOnClose()) {
       setConfirmCloseOpen(true);
       return;
     }
@@ -758,15 +783,18 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
     const onBeforeClose = (e: Event) => {
       const detail = (e as CustomEvent<{ windowId?: string }>).detail;
       if (detail?.windowId !== windowId) return;
-      if (isDirtyRef.current && !forceCloseRef.current) {
+      if (isDirtyRef.current && !forceCloseRef.current && shouldConfirmUnsavedOnClose()) {
         e.preventDefault();
         setConfirmCloseOpen(true);
+        return;
       }
+      // Spatial: unsaved text is kept in editor-state.json and restored on reopen.
+      persistEditorStateNow(filePathRef.current);
     };
     window.addEventListener("piloti:before-close-window", onBeforeClose);
     return () =>
       window.removeEventListener("piloti:before-close-window", onBeforeClose);
-  }, [windowId]);
+  }, [persistEditorStateNow, windowId]);
 
   const persistText = React.useCallback(
     (next: string) => {
@@ -789,7 +817,7 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
     const extensions: Extension[] = [
       history(),
       bracketMatching(),
-      keymap.of([indentWithTab, ...defaultKeymap, ...historyKeymap]),
+      keymap.of([indentWithTab, ...defaultKeymap, ...historyKeymap, ...foldKeymap]),
       adwEditorTheme,
       EditorView.updateListener.of((update) => {
         if (update.docChanged) {
@@ -808,6 +836,12 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
     ];
     if (showLineNumbers) {
       extensions.push(lineNumbers(), highlightActiveLineGutter());
+      if (showCodeFolding) {
+        extensions.push(
+          codeFolding({ placeholderText: "…" }),
+          foldGutter({ openText: "⌄", closedText: "›" }),
+        );
+      }
     }
     if (highlightLine) {
       extensions.push(highlightActiveLine());
@@ -866,6 +900,7 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
     restoreEditorViewState,
     saveEditorViewState,
     schedulePersistEditorState,
+    showCodeFolding,
     showLineNumbers,
     viewMode,
     wordWrap,
@@ -1036,11 +1071,6 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
                 {filePath ? getBaseName(filePath) : _("Untitled")}
               </span>
             </button>
-          )}
-          {savedFlash && (
-            <span className="shrink-0 rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-medium text-emerald-500">
-              {_("Saved")}
-            </span>
           )}
         </div>
         <div className="flex items-center gap-1" data-window-no-drag>

@@ -15,6 +15,8 @@ import { UnsavedChangesDialog } from "@/components/ui/unsaved-changes-dialog";
 import { WindowControls } from "@/components/ui/window";
 import { useIsolatedAppBridge } from "@/lib/engine/app-bridge";
 import { toDomicilePath } from "@/lib/engine/fs-bridge";
+import { readVfsStateJson, writeVfsStateJson } from "@/lib/engine/vfs-state";
+import { shouldConfirmUnsavedOnClose } from "@/lib/config/piloti-ini";
 import { isBrowserDevRuntime } from "@/context/SettingsContext";
 import { _ } from "@/lib/core/i18n";
 import { cn } from "@/lib/core/utils";
@@ -29,6 +31,38 @@ export interface ImageViewerAppProps {
   initialPath?: string;
   windowId?: string;
   isCsd?: boolean;
+}
+
+const IMAGE_VIEWER_STATE_PATH = "/home/user/.local/state/piloti/image-viewer-state.json";
+/** Skip persisting unsaved crops larger than this (data URL chars) to keep state files small. */
+const MAX_PERSISTED_CROP_CHARS = 3_000_000;
+const MAX_PERSISTED_FILES = 200;
+
+interface PersistedImageViewState {
+  zoom: number;
+  panX: number;
+  panY: number;
+  rotation: number;
+  /** Unsaved cropped version (PNG data URL). */
+  unsavedCrop?: string;
+  updatedAt: number;
+}
+
+type PersistedImageViewStateMap = Record<string, PersistedImageViewState>;
+
+function readImageViewStateMap(): PersistedImageViewStateMap {
+  return (
+    readVfsStateJson<PersistedImageViewStateMap>(
+      IMAGE_VIEWER_STATE_PATH,
+      undefined,
+      (val): val is PersistedImageViewStateMap =>
+        Boolean(val && typeof val === "object" && !Array.isArray(val)),
+    ) ?? {}
+  );
+}
+
+function isLocalImagePath(path: string): boolean {
+  return path.startsWith("/");
 }
 
 export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
@@ -94,7 +128,6 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
   const [croppedDataUrl, setCroppedDataUrl] = React.useState<string | null>(
     null,
   );
-  const [savedFlash, setSavedFlash] = React.useState(false);
   const [editingTitle, setEditingTitle] = React.useState(false);
   const [draftTitle, setDraftTitle] = React.useState("");
   const titleInputRef = React.useRef<HTMLInputElement | null>(null);
@@ -111,11 +144,20 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
     rect: DOMRect;
   } | null>(null);
 
+  // Spatial state: restore zoom / pan / rotation / unsaved crop for this file.
+  const restoredPathRef = React.useRef<string | null>(null);
   React.useEffect(() => {
-    setPan({ x: 0, y: 0 });
-    setZoom(1);
-    setRotation(0);
-    setCroppedDataUrl(null);
+    const persisted = isLocalImagePath(activePath)
+      ? readImageViewStateMap()[normalizeVfsPath(activePath)]
+      : undefined;
+    setPan({ x: persisted?.panX ?? 0, y: persisted?.panY ?? 0 });
+    setZoom(persisted?.zoom ?? 1);
+    setRotation(persisted?.rotation ?? 0);
+    setCroppedDataUrl(persisted?.unsavedCrop ?? null);
+    restoredPathRef.current = activePath;
+  }, [activePath]);
+
+  React.useEffect(() => {
     if (!activePath) return;
     if (
       activePath.startsWith("data:") ||
@@ -282,19 +324,68 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
         setImageSrc(nextDataUrl);
         setCroppedDataUrl(null);
         setRotation(0);
-        setSavedFlash(true);
-        window.setTimeout(() => setSavedFlash(false), 1800);
       }
     } catch {
       // ignore tainted canvas
     }
   }, [activePath, bridge.fs, rotation]);
 
+  const viewStateRef = React.useRef({ activePath, zoom, pan, rotation, croppedDataUrl });
+  viewStateRef.current = { activePath, zoom, pan, rotation, croppedDataUrl };
+
+  const persistViewStateNow = React.useCallback(() => {
+    const cur = viewStateRef.current;
+    if (!isLocalImagePath(cur.activePath) || restoredPathRef.current !== cur.activePath) return;
+    const key = normalizeVfsPath(cur.activePath);
+    const map = readImageViewStateMap();
+    const isDefault =
+      cur.zoom === 1 && cur.pan.x === 0 && cur.pan.y === 0 && cur.rotation === 0 && !cur.croppedDataUrl;
+    if (isDefault) {
+      if (!map[key]) return;
+      delete map[key];
+    } else {
+      map[key] = {
+        zoom: cur.zoom,
+        panX: Math.round(cur.pan.x),
+        panY: Math.round(cur.pan.y),
+        rotation: cur.rotation,
+        ...(cur.croppedDataUrl && cur.croppedDataUrl.length <= MAX_PERSISTED_CROP_CHARS
+          ? { unsavedCrop: cur.croppedDataUrl }
+          : {}),
+        updatedAt: Date.now(),
+      };
+    }
+    const keys = Object.keys(map);
+    if (keys.length > MAX_PERSISTED_FILES) {
+      keys
+        .sort((a, b) => (map[a]?.updatedAt ?? 0) - (map[b]?.updatedAt ?? 0))
+        .slice(0, keys.length - MAX_PERSISTED_FILES)
+        .forEach((k) => delete map[k]);
+    }
+    writeVfsStateJson(IMAGE_VIEWER_STATE_PATH, map, false);
+  }, []);
+
+  // Debounced: pan/zoom change at pointer/wheel rate.
+  React.useEffect(() => {
+    if (restoredPathRef.current !== activePath) return;
+    const timer = window.setTimeout(persistViewStateNow, 400);
+    return () => window.clearTimeout(timer);
+  }, [activePath, croppedDataUrl, pan, persistViewStateNow, rotation, zoom]);
+
+  React.useEffect(() => {
+    window.addEventListener("beforeunload", persistViewStateNow);
+    return () => {
+      window.removeEventListener("beforeunload", persistViewStateNow);
+      persistViewStateNow();
+    };
+  }, [persistViewStateNow]);
+
   const [confirmCloseOpen, setConfirmCloseOpen] = React.useState(false);
   const dirtyRef = React.useRef(false);
   dirtyRef.current = canSave;
   const forceCloseRef = React.useRef(false);
   const performClose = React.useCallback(() => {
+    persistViewStateNow();
     if (window.parent === window) {
       window.dispatchEvent(
         new CustomEvent("piloti:request-animated-close", { detail: { windowId } }),
@@ -302,9 +393,9 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
     } else {
       bridge.closeWindow();
     }
-  }, [bridge, windowId]);
+  }, [bridge, persistViewStateNow, windowId]);
   const requestClose = React.useCallback(() => {
-    if (dirtyRef.current && !forceCloseRef.current) {
+    if (dirtyRef.current && !forceCloseRef.current && shouldConfirmUnsavedOnClose()) {
       setConfirmCloseOpen(true);
       return;
     }
@@ -316,15 +407,17 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
     const onBeforeClose = (e: Event) => {
       const detail = (e as CustomEvent<{ windowId?: string }>).detail;
       if (detail?.windowId !== windowId) return;
-      if (dirtyRef.current && !forceCloseRef.current) {
+      if (dirtyRef.current && !forceCloseRef.current && shouldConfirmUnsavedOnClose()) {
         e.preventDefault();
         setConfirmCloseOpen(true);
+        return;
       }
+      persistViewStateNow();
     };
     window.addEventListener("piloti:before-close-window", onBeforeClose);
     return () =>
       window.removeEventListener("piloti:before-close-window", onBeforeClose);
-  }, [windowId]);
+  }, [persistViewStateNow, windowId]);
 
   React.useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -379,6 +472,13 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
     if (!isRenameableVfsFile) return;
     return subscribeVfsRenamed(({ oldPath, newPath }) => {
       if (normalizeVfsPath(activePath) === normalizeVfsPath(oldPath)) {
+        const map = readImageViewStateMap();
+        const prev = map[normalizeVfsPath(oldPath)];
+        if (prev) {
+          delete map[normalizeVfsPath(oldPath)];
+          map[normalizeVfsPath(newPath)] = prev;
+          writeVfsStateJson(IMAGE_VIEWER_STATE_PATH, map, false);
+        }
         setActivePath(newPath);
         const nextName = newPath.split("/").filter(Boolean).pop();
         if (nextName) bridge.setTitle(nextName);
@@ -721,11 +821,6 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
                 <SaveIcon className="size-3.5" />
               </button>
             </>
-          )}
-          {savedFlash && (
-            <span className="px-2 text-[11px] font-medium text-emerald-400">
-              {_("Saved")}
-            </span>
           )}
         </div>
       </div>

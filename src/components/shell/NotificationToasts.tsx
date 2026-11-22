@@ -18,6 +18,7 @@ import {
   pilotiToastManager,
 } from "@/lib/shell/notifications";
 import { cn } from "@/lib/core/utils";
+import { NotificationBodyText } from "@/components/shell/NicePathLabel";
 import {
   NotificationActionControls,
   NotificationAppIcon,
@@ -78,7 +79,11 @@ function ToastBannerStack() {
                   </div>
                   {toast.description && (
                     <ToastDescription className="mt-0.5 line-clamp-3">
-                      {toast.description}
+                      {typeof toast.description === "string" ? (
+                        <NotificationBodyText body={toast.description} />
+                      ) : (
+                        toast.description
+                      )}
                     </ToastDescription>
                   )}
 

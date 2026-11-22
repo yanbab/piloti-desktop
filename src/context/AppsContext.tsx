@@ -222,6 +222,9 @@ const SHELL_XDG_ICON_GROUPS: Record<string, readonly string[]> = {
     "drive-removable-media-usb",
     "drive-removable-media",
   ],
+  __harddisk__: ["drive-harddisk-solidstate", "drive-harddisk"],
+  __optical_drive__: ["media-optical", "drive-optical"],
+  __sd_card__: ["media-flash-sd-mmc", "media-flash"],
   __fallback_app__: [
     "application-x-executable",
     "system-run",
@@ -324,6 +327,18 @@ const PAPIRUS_DIRECT_ICON_FALLBACKS: Record<string, readonly string[]> = {
   __usb_drive__: [
     "/usr/share/icons/Papirus/64x64/devices/drive-removable-media-usb.svg",
     "/usr/share/icons/Papirus/64x64/devices/drive-removable-media.svg",
+  ],
+  __harddisk__: [
+    "/usr/share/icons/Papirus/64x64/devices/drive-harddisk-solidstate.svg",
+    "/usr/share/icons/Papirus/64x64/devices/drive-harddisk.svg",
+  ],
+  __optical_drive__: [
+    "/usr/share/icons/Papirus/64x64/devices/media-optical.svg",
+    "/usr/share/icons/Papirus/64x64/devices/drive-optical.svg",
+  ],
+  __sd_card__: [
+    "/usr/share/icons/Papirus/64x64/devices/media-flash-sd-mmc.svg",
+    "/usr/share/icons/Papirus/64x64/devices/media-flash.svg",
   ],
   __fallback_app__: [
     "/usr/share/icons/Papirus/64x64/mimetypes/application-x-executable.svg",

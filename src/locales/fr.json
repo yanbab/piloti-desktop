@@ -665,5 +665,10 @@
   "Font": "Police",
   "Apply Font": "Appliquer la police",
   "Enable": "Activer",
-  "Disable": "Désactiver"
+  "Disable": "Désactiver",
+  "Search menus": "Rechercher dans les menus",
+  "Menu Items": "Éléments de menu",
+  "No matching commands": "Aucune commande correspondante",
+  "SD Card": "Carte SD",
+  "CD-ROM": "CD-ROM"
 }

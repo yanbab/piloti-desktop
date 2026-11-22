@@ -665,5 +665,10 @@
   "Font": "Fuente",
   "Apply Font": "Aplicar fuente",
   "Enable": "Activar",
-  "Disable": "Desactivar"
+  "Disable": "Desactivar",
+  "Search menus": "Buscar en los menús",
+  "Menu Items": "Elementos de menú",
+  "No matching commands": "No hay comandos coincidentes",
+  "SD Card": "Tarjeta SD",
+  "CD-ROM": "CD-ROM"
 }

@@ -35,6 +35,7 @@ import {
 } from "@/context/DesktopStateContext";
 import { _, getLocale } from "@/lib/core/i18n";
 import { formatRelativeNotificationTime } from "@/lib/shell/notifications";
+import { NotificationBodyText } from "@/components/shell/NicePathLabel";
 import { captureLaunchOriginFromElement } from "@/lib/shell/launch-origin";
 import { cn } from "@/lib/core/utils";
 import {
@@ -819,7 +820,7 @@ export function FloatingNotifications() {
 
               {n.body && (
                 <div className="mt-0.5 line-clamp-3 text-[12px] leading-snug text-adw-label-secondary">
-                  {n.body}
+                  <NotificationBodyText body={n.body} />
                 </div>
               )}
 

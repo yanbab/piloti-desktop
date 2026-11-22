@@ -1,6 +1,7 @@
 import * as React from "react";
 import type { Domicile } from "@domicile-desktop/sdk/desktop/desktop";
 import { launchDesktopCommand } from "@/lib/engine-native";
+import { OPEN_COMMAND_HUD_EVENT } from "@/lib/shell/menu-commands";
 
 export interface UseGlobalShortcutsParams {
   domicile: Domicile;
@@ -61,6 +62,7 @@ export function useGlobalShortcuts({
       "Meta+Up",
       "F3",
       "Print",
+      "Meta+k",
     ];
     for (const c of chords) {
       try {
@@ -70,7 +72,10 @@ export function useGlobalShortcuts({
       }
     }
     const unlisten = domicile.keyboard.on("shortcut", ({ chord }) => {
-      if (chord === "Alt+Space" || chord === "Alt+space") {
+      if (chord === "Meta+k" || chord === "Meta+K") {
+        domicile.windows.focusShell();
+        window.dispatchEvent(new Event(OPEN_COMMAND_HUD_EVENT));
+      } else if (chord === "Alt+Space" || chord === "Alt+space") {
         domicile.windows.focusShell();
         setLauncherOpen((v) => !v);
       } else if (chord === "Alt+Tab") {
@@ -147,13 +152,22 @@ export function useGlobalShortcuts({
         toggleOverview();
         return;
       }
-      if (
-        (isBrowserRuntime && e.altKey && e.code === "Space") ||
-        ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k")
-      ) {
+      if (isBrowserRuntime && e.altKey && e.code === "Space") {
         e.preventDefault();
         setOverviewOpen(false);
         setLauncherOpen((v) => !v);
+        return;
+      }
+      if (
+        (e.metaKey || e.ctrlKey) &&
+        !e.altKey &&
+        !e.shiftKey &&
+        e.key.toLowerCase() === "k"
+      ) {
+        // Cmd+K: Help ▸ search menus (application HUD).
+        e.preventDefault();
+        setOverviewOpen(false);
+        window.dispatchEvent(new Event(OPEN_COMMAND_HUD_EVENT));
         return;
       }
       if (isBrowserRuntime && e.altKey && e.key === "Tab") {
