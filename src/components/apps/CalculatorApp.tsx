@@ -10,6 +10,7 @@ import {
 import { useWindowManager } from "@/context/DesktopStateContext";
 import { _ } from "@/lib/core/i18n";
 import { cn } from "@/lib/core/utils";
+import { publishWindowMenuState } from "@/lib/engine/app-bridge";
 import {
   readVfsStateJson,
   VFS_STATE_PATHS,
@@ -151,13 +152,20 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
     const keypadEl = keypadContentRef.current;
     if (!headerEl || !keypadEl) return;
 
-    const headerHeight = Math.ceil(headerEl.getBoundingClientRect().height);
-    const keypadRect = keypadEl.getBoundingClientRect();
+    const winEl = headerEl.closest<HTMLElement>('[data-slot="window"]');
+    const ssdTitlebar = !isCsd
+      ? winEl?.querySelector<HTMLElement>('[data-slot="window-titlebar"]')
+      : null;
+    const chromeHeight = ssdTitlebar ? ssdTitlebar.offsetHeight : 0;
+
+    const headerHeight = headerEl.offsetHeight;
+    const keypadWidth = keypadEl.offsetWidth;
+    const keypadHeight = keypadEl.offsetHeight;
     const topBarMinW = topBarRef.current
-      ? Math.ceil(topBarRef.current.scrollWidth) + 20
+      ? topBarRef.current.scrollWidth + 20
       : 0;
-    const nextWidth = Math.max(topBarMinW, Math.ceil(keypadRect.width) + 12);
-    const nextHeight = headerHeight + Math.ceil(keypadRect.height) + 12;
+    const nextWidth = Math.max(topBarMinW, keypadWidth + 12);
+    const nextHeight = chromeHeight + headerHeight + keypadHeight + 12;
     if (nextWidth <= 0 || nextHeight <= 0) return;
 
     const last = lastMeasuredSizeRef.current;
@@ -168,13 +176,13 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
     updateWindowGeometry(windowId, {
       size: { width: nextWidth, height: nextHeight },
     });
-  }, [updateWindowGeometry, windowId]);
+  }, [isCsd, updateWindowGeometry, windowId]);
 
   React.useLayoutEffect(() => {
     syncWindowToDom();
     const raf = requestAnimationFrame(syncWindowToDom);
     return () => cancelAnimationFrame(raf);
-  }, [scientific, syncWindowToDom]);
+  }, [isCsd, scientific, syncWindowToDom]);
 
   const setMode = React.useCallback((nextScientific: boolean) => {
     if (typeof window !== "undefined") {
@@ -185,6 +193,32 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
     }
     setScientific(nextScientific);
   }, []);
+
+  React.useEffect(() => {
+    if (!windowId) return;
+    publishWindowMenuState(windowId, {
+      "calculator:basic": { checked: !scientific },
+      "calculator:scientific": { checked: scientific },
+    });
+  }, [scientific, windowId]);
+
+  React.useEffect(() => {
+    if (!windowId) return;
+    const onAppAction = (e: Event) => {
+      const detail = (
+        e as CustomEvent<{ windowId?: string; actionId?: string }>
+      ).detail;
+      if (!detail?.actionId) return;
+      if (detail.windowId && detail.windowId !== windowId) return;
+      if (detail.actionId === "calculator:basic") {
+        setMode(false);
+      } else if (detail.actionId === "calculator:scientific") {
+        setMode(true);
+      }
+    };
+    window.addEventListener("piloti:app-action", onAppAction);
+    return () => window.removeEventListener("piloti:app-action", onAppAction);
+  }, [setMode, windowId]);
 
   React.useEffect(() => {
     const onHashChange = () => {

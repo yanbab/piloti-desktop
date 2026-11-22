@@ -455,7 +455,15 @@ export const APP_CATALOG: AppDefinition[] = [
     command: "piloti-calculator",
     defaultSize: { width: 196, height: 292 },
     minSize: { width: 184, height: 276 },
-    menus: [],
+    menus: [
+      {
+        title: "View",
+        items: [
+          { label: "Basic", actionId: "calculator:basic", checked: true },
+          { label: "Scientific", actionId: "calculator:scientific", checked: false },
+        ],
+      },
+    ],
   },
   {
     id: "image-viewer",

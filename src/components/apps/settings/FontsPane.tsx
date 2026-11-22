@@ -134,6 +134,13 @@ function FontPopoverSelector({
               <Input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Escape" && search.length > 0) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setSearch("");
+                  }
+                }}
                 placeholder={_("Search fonts…")}
                 className="h-7 pl-8 text-[12px]"
               />

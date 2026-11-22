@@ -1071,7 +1071,7 @@ export function MenuBar() {
             <span className="flex items-center gap-1.5 text-adw-label/90 dark:text-white/90">
               {settings.doNotDisturb ? (
                 <BellOffIcon className="size-4 text-adw-label/45 dark:text-white/45" />
-              ) : unreadNotificationCount > 0 ? (
+              ) : notifications.length > 0 ? (
                 <BellIcon
                   className={cn(
                     "size-4",
@@ -1079,7 +1079,9 @@ export function MenuBar() {
                       (n) => !n.read && n.urgency === "critical"
                     )
                       ? "text-rose-500"
-                      : "text-adw-label/90 dark:text-white/90"
+                      : unreadNotificationCount > 0
+                        ? "text-adw-accent"
+                        : "text-adw-label/90 dark:text-white/90"
                   )}
                 />
               ) : null}

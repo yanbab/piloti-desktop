@@ -239,6 +239,8 @@ function filterAndSort(entries: PaletteEntry[]): PaletteEntry[] {
     .sort((a, b) => b.score - a.score);
 }
 
+let persistedLauncherQuery = "";
+
 export function Launcher() {
   const { isBrowserRuntime, settings, updateSettings } = useSettings();
   const { pluginCommands } = usePlugins();
@@ -272,7 +274,19 @@ export function Launcher() {
     openAltTab,
   } = useWindowManager();
 
-  const [searchQuery, setSearchQuery] = React.useState("");
+  const [searchQuery, setSearchQueryState] = React.useState(
+    () => persistedLauncherQuery
+  );
+  const setSearchQuery = React.useCallback(
+    (next: string | ((prev: string) => string)) => {
+      setSearchQueryState((prev) => {
+        const resolved = typeof next === "function" ? next(prev) : next;
+        persistedLauncherQuery = resolved;
+        return resolved;
+      });
+    },
+    []
+  );
   const [selectedValue, setSelectedValue] = React.useState("");
   const [recentLaunches, setRecentLaunches] = React.useState<string[]>(
     loadRecentLaunches
@@ -295,11 +309,13 @@ export function Launcher() {
         lastXdgRefreshRef.current = now;
         refreshXdgApps();
       }
-      setSearchQuery("");
-      setSelectedValue("");
       setHistoryIndex(-1);
       const frame = requestAnimationFrame(() => {
-        inputRef.current?.focus();
+        const el = inputRef.current;
+        if (el) {
+          el.focus();
+          el.select();
+        }
       });
       return () => cancelAnimationFrame(frame);
     }
@@ -1063,7 +1079,15 @@ export function Launcher() {
       value={selectedValue}
       onValueChange={setSelectedValue}
       onKeyDown={(e) => {
-        if (e.key === "Escape") return;
+        if (e.key === "Escape") {
+          if (searchQuery.length > 0) {
+            e.preventDefault();
+            e.stopPropagation();
+            setHistoryIndex(-1);
+            setSearchQuery("");
+          }
+          return;
+        }
         if (
           (e.key === "ArrowLeft" || e.key === "ArrowRight") &&
           searchQuery === ""

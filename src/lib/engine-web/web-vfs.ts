@@ -1751,6 +1751,25 @@ export function getVfsSnapshotEntries(): WebVfsEntry[] {
 }
 
 /**
+ * Merges arbitrary metadata keys (e.g. GVFS-compatible `metadata::piloti-cursor`)
+ * onto an existing VFS entry without altering its content or updatedAt timestamp.
+ */
+export function setVfsEntryMetadata(
+  path: string,
+  patch: Record<string, unknown>
+): void {
+  const normalized = normalizeVfsPath(path);
+  const entries = loadVfs();
+  const idx = entries.findIndex((e) => e.path === normalized);
+  if (idx < 0) return;
+  const current = entries[idx];
+  const nextMeta = { ...(current.metadata ?? {}), ...patch };
+  const nextEntries = [...entries];
+  nextEntries[idx] = { ...current, metadata: nextMeta };
+  saveVfs(nextEntries);
+}
+
+/**
  * Reads and deletes a legacy `localStorage` key during one-time migration into VFS.
  * Keeps `localStorage` encapsulated inside `web-vfs.ts`.
  */

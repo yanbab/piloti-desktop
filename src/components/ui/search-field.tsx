@@ -40,6 +40,7 @@ function Field({
   variant = "default",
   size = "default",
   icon: Icon,
+  onKeyDown,
   ...props
 }: SearchFieldProps & { icon: typeof SearchIcon }) {
   return (
@@ -57,6 +58,20 @@ function Field({
       <input
         type="search"
         data-slot="search-field-input"
+        onKeyDown={(e) => {
+          if (e.key === "Escape" && e.currentTarget.value.length > 0) {
+            e.preventDefault();
+            e.stopPropagation();
+            const setter = Object.getOwnPropertyDescriptor(
+              HTMLInputElement.prototype,
+              "value"
+            )?.set;
+            setter?.call(e.currentTarget, "");
+            e.currentTarget.dispatchEvent(new Event("input", { bubbles: true }));
+            return;
+          }
+          onKeyDown?.(e);
+        }}
         className="h-full w-full min-w-0 bg-transparent pr-2 pl-1 text-[1em] font-medium text-adw-label outline-none placeholder:text-adw-label-secondary dark:placeholder:text-white/50 [&::-webkit-search-cancel-button]:hidden"
         {...props}
       />

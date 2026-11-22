@@ -30,11 +30,7 @@ import {
   type LaunchOriginRect,
 } from "@/lib/shell/launch-origin";
 import { computeOverviewWindowLayouts } from "@/lib/shell/overview-layout";
-const CalculatorApp = React.lazy(() =>
-  import("@/components/apps/CalculatorApp").then((m) => ({
-    default: m.CalculatorApp,
-  }))
-);
+import { CalculatorApp } from "@/components/apps/CalculatorApp";
 const ConsoleApp = React.lazy(() =>
   import("@/components/apps/ConsoleApp").then((m) => ({
     default: m.ConsoleApp,
@@ -835,13 +831,28 @@ function WebViewSurface({
   );
 }
 
+function WindowDomReadySignal({
+  windowId,
+  onReady,
+}: {
+  windowId: string;
+  onReady: (id: string) => void;
+}) {
+  React.useLayoutEffect(() => {
+    onReady(windowId);
+  }, [onReady, windowId]);
+  return null;
+}
+
 const WindowBody = React.memo(
   function WindowBody({
     win,
     isCsd,
+    onDomReady,
   }: {
     win: DesktopWindowInstance;
     isCsd: boolean;
+    onDomReady: (id: string) => void;
   }) {
     const { isBrowserRuntime } = useSettings();
 
@@ -856,6 +867,7 @@ const WindowBody = React.memo(
     if (win.builtinComponent === "settings") {
       return (
         <React.Suspense fallback={null}>
+          <WindowDomReadySignal windowId={win.id} onReady={onDomReady} />
           <SettingsApp
             initialPane={win.payload}
             isCsd={isCsd}
@@ -868,6 +880,7 @@ const WindowBody = React.memo(
     if (win.builtinComponent === "console") {
       return (
         <React.Suspense fallback={null}>
+          <WindowDomReadySignal windowId={win.id} onReady={onDomReady} />
           <ConsoleApp
             initialModule={win.payload}
             isCsd={isCsd}
@@ -880,6 +893,7 @@ const WindowBody = React.memo(
     if (win.builtinComponent === "files") {
       return (
         <React.Suspense fallback={null}>
+          <WindowDomReadySignal windowId={win.id} onReady={onDomReady} />
           <FilesApp
             initialPath={win.payload}
             isCsd={isCsd}
@@ -891,6 +905,7 @@ const WindowBody = React.memo(
     if (win.builtinComponent === "text-editor") {
       return (
         <React.Suspense fallback={null}>
+          <WindowDomReadySignal windowId={win.id} onReady={onDomReady} />
           <TextEditorApp
             initialPath={win.payload}
             windowId={win.id}
@@ -902,6 +917,7 @@ const WindowBody = React.memo(
     if (win.builtinComponent === "image-viewer") {
       return (
         <React.Suspense fallback={null}>
+          <WindowDomReadySignal windowId={win.id} onReady={onDomReady} />
           <ImageViewerApp
             initialPath={win.payload}
             windowId={win.id}
@@ -913,6 +929,7 @@ const WindowBody = React.memo(
     if (win.builtinComponent === "terminal") {
       return (
         <React.Suspense fallback={null}>
+          <WindowDomReadySignal windowId={win.id} onReady={onDomReady} />
           <TerminalApp initialPath={win.payload} windowId={win.id} />
         </React.Suspense>
       );
@@ -920,6 +937,7 @@ const WindowBody = React.memo(
     if (win.builtinComponent === "app-store") {
       return (
         <React.Suspense fallback={null}>
+          <WindowDomReadySignal windowId={win.id} onReady={onDomReady} />
           <AppStoreApp isCsd={isCsd} windowId={win.id} />
         </React.Suspense>
       );
@@ -927,6 +945,7 @@ const WindowBody = React.memo(
     if (win.builtinComponent === "calculator") {
       return (
         <React.Suspense fallback={null}>
+          <WindowDomReadySignal windowId={win.id} onReady={onDomReady} />
           <CalculatorApp windowId={win.id} isCsd={isCsd} />
         </React.Suspense>
       );
@@ -934,6 +953,7 @@ const WindowBody = React.memo(
     if (win.builtinComponent === "login-screen") {
       return (
         <React.Suspense fallback={null}>
+          <WindowDomReadySignal windowId={win.id} onReady={onDomReady} />
           <LoginScreenApp windowId={win.id} isCsd={isCsd} />
         </React.Suspense>
       );
@@ -1013,6 +1033,17 @@ export function WindowManager() {
     new Map()
   );
   const animatedOpenedRef = React.useRef<Set<string>>(new Set());
+  const [domReadyIds, setDomReadyIds] = React.useState<Set<string>>(
+    () => new Set()
+  );
+  const handleDomReady = React.useCallback((id: string) => {
+    setDomReadyIds((prev) => {
+      if (prev.has(id)) return prev;
+      const next = new Set(prev);
+      next.add(id);
+      return next;
+    });
+  }, []);
   const [closingWindowIds, setClosingWindowIds] = React.useState<Set<string>>(
     () => new Set()
   );
@@ -1025,8 +1056,25 @@ export function WindowManager() {
         windowOriginsRef.current.delete(id);
       }
     }
+    setDomReadyIds((prev) => {
+      let changed = false;
+      for (const id of prev) {
+        if (!activeIds.has(id)) {
+          changed = true;
+          break;
+        }
+      }
+      if (!changed) return prev;
+      const next = new Set<string>();
+      for (const id of prev) {
+        if (activeIds.has(id)) next.add(id);
+      }
+      return next;
+    });
 
     for (const win of windows) {
+      if (win.ready === false) continue;
+      if (win.builtinComponent && !domReadyIds.has(win.id)) continue;
       if (animatedOpenedRef.current.has(win.id)) continue;
       animatedOpenedRef.current.add(win.id);
       if (win.minimized || reducedMotion) continue;
@@ -1070,7 +1118,7 @@ export function WindowManager() {
         }
       }, 250);
     }
-  }, [getDockRef, windows]);
+  }, [domReadyIds, getDockRef, reducedMotion, windows]);
 
   const handleAnimatedClose = React.useCallback(
     (win: DesktopWindowInstance) => {
@@ -1584,8 +1632,10 @@ export function WindowManager() {
               }}
               className={cn(
                 "contain-[layout_style] outline-none",
-                (isWaylandSurface || win.appId === "calculator") && "bg-transparent",
-                win.ready === false && "opacity-0 pointer-events-none",
+                isWaylandSurface && "bg-transparent",
+                (win.ready === false ||
+                  (win.builtinComponent && !domReadyIds.has(win.id))) &&
+                  "opacity-0 pointer-events-none",
                 overviewOpen && "pointer-events-none",
                 closingWindowIds.has(win.id) && "pointer-events-none",
                 !isActiveWorkspace && "invisible pointer-events-none",
@@ -1595,7 +1645,7 @@ export function WindowManager() {
               <WindowMain
                 className={cn(
                   "relative",
-                  (isWaylandSurface || win.appId === "calculator") && "bg-transparent"
+                  isWaylandSurface && "bg-transparent"
                 )}
               >
                 {/* Server-Side Titlebar (SSD) */}
@@ -1624,7 +1674,11 @@ export function WindowManager() {
                 )}
 
                 <WindowContent className="flex flex-col overflow-hidden">
-                  <WindowBody win={win} isCsd={isCsd} />
+                  <WindowBody
+                    win={win}
+                    isCsd={isCsd}
+                    onDomReady={handleDomReady}
+                  />
                 </WindowContent>
               </WindowMain>
             </Window>

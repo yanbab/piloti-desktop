@@ -663,7 +663,11 @@ export function FilesApp({
   React.useEffect(() => {
     if (!searchOpen) return;
     const frame = requestAnimationFrame(() => {
-      searchInputRef.current?.focus();
+      const el = searchInputRef.current;
+      if (el) {
+        el.focus();
+        el.select();
+      }
     });
     return () => cancelAnimationFrame(frame);
   }, [searchOpen]);
@@ -1803,8 +1807,12 @@ export function FilesApp({
                   onKeyDown={(e) => {
                     if (e.key === "Escape") {
                       e.preventDefault();
-                      setSearchOpen(false);
-                      setSearchQuery("");
+                      e.stopPropagation();
+                      if (searchQuery.length > 0) {
+                        setSearchQuery("");
+                      } else {
+                        setSearchOpen(false);
+                      }
                     }
                   }}
                   aria-label="Filter files"

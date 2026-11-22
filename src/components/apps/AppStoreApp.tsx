@@ -921,8 +921,12 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                   onKeyDown={(e) => {
                     if (e.key === "Escape") {
                       e.preventDefault();
-                      setQuery("");
-                      setSearchOpen(false);
+                      e.stopPropagation();
+                      if (query.length > 0) {
+                        setQuery("");
+                      } else {
+                        setSearchOpen(false);
+                      }
                     }
                   }}
                   placeholder={_("Search")}

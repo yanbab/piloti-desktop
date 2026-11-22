@@ -39,6 +39,7 @@ import {
   getVfsEntry,
   normalizeVfsPath,
   renameVfsEntry,
+  setVfsEntryMetadata,
   subscribeWebVfs,
   subscribeVfsRenamed,
 } from "@/lib/engine-web/web-vfs";
@@ -374,6 +375,57 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
     setFilePath(resolvedPath);
   }, [resolvedPath]);
 
+  const restoredFilePathRef = React.useRef<string | null>(null);
+
+  const restoreEditorViewState = React.useCallback(
+    (view: EditorView, targetPath: string | null) => {
+      const meta = targetPath ? getVfsEntry(targetPath)?.metadata : undefined;
+      const savedCursor =
+        typeof meta?.["metadata::piloti-cursor"] === "number"
+          ? meta["metadata::piloti-cursor"]
+          : 0;
+      const savedScroll =
+        typeof meta?.["metadata::piloti-scroll"] === "number"
+          ? meta["metadata::piloti-scroll"]
+          : 0;
+      const clampedCursor = Math.max(
+        0,
+        Math.min(savedCursor, view.state.doc.length),
+      );
+      if (view.state.selection.main.head !== clampedCursor) {
+        view.dispatch({
+          selection: { anchor: clampedCursor },
+        });
+      }
+      const line = view.state.doc.lineAt(clampedCursor);
+      setCursorPos({
+        ln: line.number,
+        col: clampedCursor - line.from + 1,
+      });
+      requestAnimationFrame(() => {
+        if (viewRef.current !== view) return;
+        if (savedScroll > 0) {
+          view.scrollDOM.scrollTop = savedScroll;
+        }
+        view.focus();
+      });
+    },
+    [],
+  );
+
+  const saveEditorViewState = React.useCallback(
+    (view: EditorView | null, targetPath: string | null) => {
+      if (!view || !targetPath) return;
+      const cursor = view.state.selection.main.head;
+      const scrollTop = Math.round(view.scrollDOM.scrollTop);
+      setVfsEntryMetadata(targetPath, {
+        "metadata::piloti-cursor": cursor,
+        "metadata::piloti-scroll": scrollTop,
+      });
+    },
+    [],
+  );
+
   React.useEffect(() => {
     if (!filePath) return;
     let cancelled = false;
@@ -388,6 +440,10 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
             changes: { from: 0, to: view.state.doc.length, insert: next },
           });
         }
+        if (view && restoredFilePathRef.current !== filePath) {
+          restoredFilePathRef.current = filePath;
+          restoreEditorViewState(view, filePath);
+        }
       });
     };
     syncFromDisk();
@@ -400,7 +456,7 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
       cancelled = true;
       unsub();
     };
-  }, [bridge, filePath]);
+  }, [bridge, filePath, restoreEditorViewState]);
 
   const persistTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(
     null,
@@ -477,7 +533,19 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
 
     const view = new EditorView({ state, parent: host });
     viewRef.current = view;
+    if (!filePath || contentRef.current.length > 0 || getVfsEntry(filePath)?.content !== undefined) {
+      restoredFilePathRef.current = filePath;
+      restoreEditorViewState(view, filePath);
+    } else {
+      requestAnimationFrame(() => view.focus());
+    }
+    const handleBeforeUnload = () => {
+      saveEditorViewState(view, filePathRef.current);
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
     return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      saveEditorViewState(view, filePath);
       view.destroy();
       viewRef.current = null;
     };
@@ -488,6 +556,8 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
     isDark,
     persistText,
     previewMarkdown,
+    restoreEditorViewState,
+    saveEditorViewState,
     showLineNumbers,
     wordWrap,
   ]);
@@ -536,8 +606,13 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
       });
     } else if (e.key === "Escape" && findOpen) {
       e.preventDefault();
-      setFindOpen(false);
-      viewRef.current?.focus();
+      e.stopPropagation();
+      if (findQuery.length > 0) {
+        setFindQuery("");
+      } else {
+        setFindOpen(false);
+        viewRef.current?.focus();
+      }
     }
   };
 
