@@ -2,7 +2,7 @@ import * as React from "react";
 import { useDomicile } from "@domicile-desktop/react/domicile-provider";
 import { watchIconTheme } from "@domicile-desktop/sdk/icon-theme";
 import {
-  ACCENT_COLORS,
+  resolveUiAccentHex,
   APP_CATALOG,
   type AppDefinition,
 } from "@/data/catalog";
@@ -912,15 +912,12 @@ export function useAppsValue(
     [activeIconTheme, appIconsMap, domicile.files]
   );
 
-  const activeAccentHex = React.useMemo(() => {
-    const custom = settings.customAccentHex?.trim();
-    if (custom && /^#[0-9a-fA-F]{6}$/.test(custom)) {
-      return custom;
-    }
-    return (
-      ACCENT_COLORS.find((c) => c.id === settings.accentColor)?.hex ?? "#2190a4"
-    );
-  }, [settings.accentColor, settings.customAccentHex]);
+  // Icons use the UI accent (same shade as selections and sidebar items),
+  // not the brighter swatch hex.
+  const activeAccentHex = React.useMemo(
+    () => resolveUiAccentHex(settings.accentColor, settings.customAccentHex),
+    [settings.accentColor, settings.customAccentHex]
+  );
 
   const shouldTintAppOrMimeIcon = React.useCallback(
     (keyOrId: string | undefined): boolean => {

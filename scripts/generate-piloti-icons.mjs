@@ -692,11 +692,12 @@ const ICONS = {
               cx: 47,
               cy: 47,
               r: 15,
-              fill: "#5a5a60",
+              // Accent placeholder: follows the desktop accent color.
+              fill: "#5294e2",
             }),
             pathGroup("PencilTip", {
               d: "M 40,50.4 L 40,54 L 43.6,54 L 52.6,45 L 49,41.4 Z M 55.7,41.9 C 56.1,41.5 56.1,40.9 55.7,40.5 L 53.5,38.3 C 53.1,37.9 52.5,37.9 52.1,38.3 L 50.3,40.1 L 53.8,43.7 Z",
-              fill: "#5294e2",
+              fill: "#ffffff",
             }),
           ],
           {

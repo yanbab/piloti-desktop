@@ -76,6 +76,10 @@ export const DEFAULT_STATIC_DIR_INDEX: Record<string, readonly { name: string; f
       "fileType": 0
     },
     {
+      "name": "piloti-camera",
+      "fileType": 0
+    },
+    {
       "name": "piloti-console",
       "fileType": 0
     },
@@ -135,6 +139,10 @@ export const DEFAULT_STATIC_DIR_INDEX: Record<string, readonly { name: string; f
     },
     {
       "name": "piloti-calculator.desktop",
+      "fileType": 0
+    },
+    {
+      "name": "piloti-camera.desktop",
       "fileType": 0
     },
     {
@@ -699,6 +707,10 @@ export const DEFAULT_STATIC_DIR_INDEX: Record<string, readonly { name: string; f
   "/usr/share/icons/Piloti/scalable/apps": [
     {
       "name": "accessories-calculator.svg",
+      "fileType": 0
+    },
+    {
+      "name": "system-software-install.svg",
       "fileType": 0
     }
   ],

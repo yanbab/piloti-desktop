@@ -13,19 +13,34 @@ export interface AccentColorOption {
   id: AccentColorId;
   label: string;
   cssVar: string;
+  /** The bright macOS swatch value (sent to apps, dynamic wallpapers). */
   hex: string;
+  /** The value `cssVar` resolves to (`--adw-*` in adwaita.css): the UI accent
+   *  of selections and sidebar items. Accent-tinted icons use this one. */
+  uiHex: string;
 }
 
 export const ACCENT_COLORS: AccentColorOption[] = [
-  { id: "blue", label: "Blue", cssVar: "var(--adw-blue)", hex: "#007aff" },
-  { id: "purple", label: "Purple", cssVar: "var(--adw-purple)", hex: "#af52de" },
-  { id: "pink", label: "Pink", cssVar: "var(--adw-pink)", hex: "#ff2d55" },
-  { id: "red", label: "Red", cssVar: "var(--adw-red)", hex: "#ff3b30" },
-  { id: "orange", label: "Orange", cssVar: "var(--adw-orange)", hex: "#ff9500" },
-  { id: "yellow", label: "Yellow", cssVar: "var(--adw-yellow)", hex: "#ffcc00" },
-  { id: "green", label: "Green", cssVar: "var(--adw-green)", hex: "#28cd41" },
-  { id: "graphite", label: "Graphite", cssVar: "var(--adw-gray)", hex: "#8e8e93" },
+  { id: "blue", label: "Blue", cssVar: "var(--adw-blue)", hex: "#007aff", uiHex: "#3584e4" },
+  { id: "purple", label: "Purple", cssVar: "var(--adw-purple)", hex: "#af52de", uiHex: "#9141ac" },
+  { id: "pink", label: "Pink", cssVar: "var(--adw-pink)", hex: "#ff2d55", uiHex: "#d56199" },
+  { id: "red", label: "Red", cssVar: "var(--adw-red)", hex: "#ff3b30", uiHex: "#e62d42" },
+  { id: "orange", label: "Orange", cssVar: "var(--adw-orange)", hex: "#ff9500", uiHex: "#ed5b00" },
+  { id: "yellow", label: "Yellow", cssVar: "var(--adw-yellow)", hex: "#ffcc00", uiHex: "#c88800" },
+  { id: "green", label: "Green", cssVar: "var(--adw-green)", hex: "#28cd41", uiHex: "#3a944a" },
+  { id: "graphite", label: "Graphite", cssVar: "var(--adw-gray)", hex: "#8e8e93", uiHex: "#6f8396" },
 ];
+
+/** The UI accent hex for the current settings: a custom hex as is, otherwise
+ *  the preset's Adwaita value (what `--adw-accent` resolves to). */
+export function resolveUiAccentHex(
+  accentColor: string | undefined,
+  customAccentHex?: string
+): string {
+  const custom = customAccentHex?.trim();
+  if (custom && /^#[0-9a-fA-F]{6}$/.test(custom)) return custom;
+  return ACCENT_COLORS.find((c) => c.id === accentColor)?.uiHex ?? "#3584e4";
+}
 
 export interface WallpaperOption {
   id: string;

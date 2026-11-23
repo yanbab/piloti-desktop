@@ -80,6 +80,13 @@ const ACCENT_TINTED_ICON_KEYS = new Set([
   "preferences-desktop",
   "preferences-system",
   "org.gnome.settings",
+  // Applications (App Store): the download arrow
+  "app-store",
+  "piloti-appstore",
+  "piloti-applications",
+  "software-store",
+  "system-software-install",
+  "org.gnome.software",
   // Desktop Console
   "console",
   "piloti-console",
