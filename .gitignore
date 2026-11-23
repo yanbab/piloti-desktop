@@ -34,3 +34,8 @@ test-results/
 playwright-report/
 
 _*
+# Root dot files (keep CI config and this file)
+/.*
+!/.gitignore
+!/.github/
+!/.env.example
