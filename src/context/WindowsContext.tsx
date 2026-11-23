@@ -2154,6 +2154,7 @@ function pruneBrowserRecord(
         "piloti-terminal": "terminal",
         "piloti-notepad": "text-editor",
         "piloti-calculator": "calculator",
+        "piloti-camera": "camera",
         "piloti-image-viewer": "image-viewer",
         "piloti-login": "login-screen",
         "piloti-appstore": "app-store",

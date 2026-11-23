@@ -10,7 +10,6 @@ import {
 } from "@/lib/engine-web/web-vfs";
 import { launchDesktopCommand } from "@/lib/engine-native";
 import { recordFsRecentFile } from "@/lib/engine/fs-bridge";
-import { linkTargetToPath } from "@/lib/shell/link-files";
 import {
   type OpenAction,
   actionForApp,
@@ -37,8 +36,6 @@ export interface OpenPathOptions {
   onExtracted?: (folder: WebVfsEntry) => void;
 }
 
-const MAX_LINK_DEPTH = 3;
-
 /**
  * One place that knows how to open a file or folder: honours `mimeapps.list`,
  * installed `.desktop` entries (our apps, web apps, .deb apps), link files,
@@ -50,9 +47,6 @@ export function useOpenPath() {
   const { installedXdgApps } = useApps();
   const { launchApp, launchXdgApp, openWebUrl } = useWindowActions();
   const configRef = React.useRef<MimeAppsConfig | null>(null);
-  const openRef = React.useRef<
-    ((path: string, options: OpenPathOptions, depth: number) => Promise<void>) | null
-  >(null);
 
   React.useEffect(() => {
     configRef.current = null;
@@ -82,7 +76,7 @@ export function useOpenPath() {
   );
 
   const perform = React.useCallback(
-    async (action: OpenAction, options: OpenPathOptions, depth: number): Promise<void> => {
+    async (action: OpenAction, options: OpenPathOptions): Promise<void> => {
       switch (action.type) {
         case "folder":
           launchApp("nautilus", { payload: action.path, forceNew: true });
@@ -90,7 +84,7 @@ export function useOpenPath() {
         case "app": {
           const entry = isBrowserRuntime ? getVfsEntry(action.path) : undefined;
           if (action.appId === "browser" || action.appId === "web-browser") {
-            return perform({ type: "web-file", path: action.path }, options, depth);
+            return perform({ type: "web-file", path: action.path }, options);
           }
           if (action.appId === "nautilus") {
             launchApp("nautilus", { payload: action.path, forceNew: true });
@@ -114,21 +108,6 @@ export function useOpenPath() {
         case "launch-entry":
           launchXdgApp(action.entry);
           return;
-        case "url":
-          openWebUrl(action.url);
-          return;
-        case "path": {
-          if (depth >= MAX_LINK_DEPTH) return;
-          const target = linkTargetToPath(action.path);
-          if (!target) return;
-          const entry = isBrowserRuntime ? getVfsEntry(target) : undefined;
-          const kind = entry?.kind ?? (target.endsWith("/") ? "directory" : "file");
-          return openRef.current?.(
-            target,
-            { kind: kind === "directory" ? "directory" : "file" },
-            depth + 1,
-          );
-        }
         case "extract":
           if (isBrowserRuntime) {
             const folder = await extractVfsZip(action.path);
@@ -161,8 +140,12 @@ export function useOpenPath() {
   );
 
   const openPathInternal = React.useCallback(
-    async (path: string, options: OpenPathOptions, depth: number): Promise<void> => {
+    async (path: string, options: OpenPathOptions): Promise<void> => {
       const vfsEntry = isBrowserRuntime ? getVfsEntry(path) : undefined;
+      // Browser VFS symlinks have no children of their own: open what they point to.
+      if (vfsEntry?.isSymlink && vfsEntry.symlinkTarget && vfsEntry.symlinkTarget !== path) {
+        return openPathInternal(vfsEntry.symlinkTarget, { ...options, kind: undefined, name: undefined });
+      }
       const kind = options.kind ?? (vfsEntry?.kind === "directory" ? "directory" : "file");
       const name = options.name ?? vfsEntry?.name ?? path.split("/").filter(Boolean).pop() ?? path;
       const config = await getConfig();
@@ -179,15 +162,13 @@ export function useOpenPath() {
         installed: installedXdgApps,
         preferApp: options.preferApp,
       });
-      await perform(action, options, depth);
+      await perform(action, options);
     },
     [domicile, getConfig, installedXdgApps, isBrowserRuntime, perform],
   );
 
-  openRef.current = openPathInternal;
-
   const openPath = React.useCallback(
-    (path: string, options: OpenPathOptions = {}) => openPathInternal(path, options, 0),
+    (path: string, options: OpenPathOptions = {}) => openPathInternal(path, options),
     [openPathInternal],
   );
 
@@ -197,7 +178,7 @@ export function useOpenPath() {
       const action = actionForApp(app, path);
       const entry = isBrowserRuntime ? getVfsEntry(path) : undefined;
       if (entry?.kind === "file" && action.type !== "xdg") incrementVfsAccessCount(path);
-      return perform(action, options, 0);
+      return perform(action, options);
     },
     [isBrowserRuntime, perform],
   );

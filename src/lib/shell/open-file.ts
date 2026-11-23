@@ -1,5 +1,4 @@
 import { isTextEditableVfsFile } from "@/lib/engine-web/web-vfs";
-import { parseLinkFile } from "@/lib/shell/link-files";
 import {
   inferMimeType,
   type MimeAppOption,
@@ -15,10 +14,6 @@ export type OpenAction =
   | { type: "app"; appId: string; path: string }
   /** An installed application (.deb, Flatpak, web app, …) launched with the file. */
   | { type: "xdg"; entry: XdgDesktopEntry; path: string }
-  /** A web page. */
-  | { type: "url"; url: string }
-  /** A link file whose target is a local path or `file://` URL: open that instead. */
-  | { type: "path"; path: string }
   /** An `.desktop` application launcher file: run the application it describes. */
   | { type: "launch-entry"; entry: XdgDesktopEntry }
   | { type: "extract"; path: string }
@@ -58,12 +53,6 @@ export function resolveOpenAction(input: ResolveOpenInput): OpenAction {
     return preferApp ? actionForApp(preferApp, path) : { type: "folder", path };
   }
   if (preferApp) return actionForApp(preferApp, path);
-
-  const link = parseLinkFile(name, content);
-  if (link) {
-    if (/^(https?|ftp):\/\//i.test(link.url)) return { type: "url", url: link.url };
-    return { type: "path", path: link.url };
-  }
 
   if (/\.desktop$/i.test(name) && content) {
     const entry = parseDesktopEntry(content, { filePath: path });

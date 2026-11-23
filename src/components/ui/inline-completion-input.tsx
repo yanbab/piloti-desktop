@@ -124,7 +124,7 @@ export const InlineCompletionInput = React.forwardRef<
         aria-hidden="true"
         className={cn(
           sharedTypographyClass,
-          "pointer-events-none absolute inset-x-0 top-1/2 -translate-y-1/2 overflow-hidden whitespace-pre select-none"
+          "pointer-events-none absolute inset-x-0 top-1/2 h-auto -translate-y-1/2 overflow-hidden whitespace-pre select-none"
         )}
       >
         <span className="text-transparent">{value}</span>

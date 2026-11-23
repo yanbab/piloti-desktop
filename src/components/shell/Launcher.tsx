@@ -923,6 +923,25 @@ export const Launcher = React.memo(function Launcher() {
       }
     }
 
+    const webQuery = searchQuery.trim();
+    if (webQuery && !detectedUrl && !mathResult) {
+      out.push({
+        heading: "Web Search",
+        items: [
+          {
+            value: "web-search",
+            score: -1,
+            icon: <GlobeIcon className="size-4" />,
+            label: `Search the web for “${webQuery}”`,
+            onSelect: () =>
+              runAndClose(() =>
+                openWebUrl(`https://duckduckgo.com/?q=${encodeURIComponent(webQuery)}`),
+              ),
+          },
+        ],
+      });
+    }
+
     return out;
   }, [
     availableGnomePanels,
@@ -1148,10 +1167,6 @@ export const Launcher = React.memo(function Launcher() {
             e.stopPropagation();
             setHistoryIndex(-1);
             setSearchQuery("");
-          } else if (settings.touchMode) {
-            e.preventDefault();
-            e.stopPropagation();
-            setLauncherOpen(false);
           }
           return;
         }
@@ -1190,16 +1205,12 @@ export const Launcher = React.memo(function Launcher() {
         }
         e.stopPropagation();
       }}
-      className={cn(
-        "relative w-full",
-        settings.touchMode &&
-          "mx-auto flex h-full max-w-3xl flex-col rounded-none bg-transparent"
-      )}
+      className="relative w-full"
     >
       <div
         ref={searchHeaderRef}
         data-launcher-drag-header=""
-        onPointerDown={settings.touchMode ? undefined : handleHeaderDragPointerDown}
+        onPointerDown={handleHeaderDragPointerDown}
         className="cursor-default [&_[data-slot=command-input-wrapper]]:cursor-default"
       >
         <CommandInput
@@ -1216,8 +1227,7 @@ export const Launcher = React.memo(function Launcher() {
         />
       </div>
       <CommandList
-        className={settings.touchMode ? "min-h-0 flex-1 max-h-none" : undefined}
-        style={settings.touchMode ? undefined : { maxHeight: `${listHeight}px` }}
+        style={{ maxHeight: `${listHeight}px` }}
       >
         {sections.length === 0 ? (
           <div className="py-6 text-center text-adw-body text-adw-label-secondary">
@@ -1233,7 +1243,6 @@ export const Launcher = React.memo(function Launcher() {
                     key={item.value}
                     value={item.value}
                     data-launcher-item={item.value}
-                    className={settings.touchMode ? "min-h-11 py-2.5 text-[14px]" : undefined}
                     onSelect={() => {
                       const el = document.querySelector(
                         `[data-launcher-item="${CSS.escape(item.value)}"]`
@@ -1258,15 +1267,13 @@ export const Launcher = React.memo(function Launcher() {
           ))
         )}
       </CommandList>
-      {!settings.touchMode && (
-        <div
-          role="separator"
-          aria-orientation="horizontal"
-          aria-label="Resize launcher height"
-          onPointerDown={handleResizePointerDown}
-          className="absolute inset-x-0 bottom-0 h-1.5 cursor-ns-resize select-none"
-        />
-      )}
+      <div
+        role="separator"
+        aria-orientation="horizontal"
+        aria-label="Resize launcher height"
+        onPointerDown={handleResizePointerDown}
+        className="absolute inset-x-0 bottom-0 h-1.5 cursor-ns-resize select-none"
+      />
     </Command>
   );
 });

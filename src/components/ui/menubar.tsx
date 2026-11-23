@@ -67,7 +67,8 @@ function MenubarContent({
   alignOffset = 0,
   anchor,
   side = "bottom",
-  sideOffset = 0,
+  // Popups float clear of the bar by the same gap the first one keeps from the screen edge.
+  sideOffset = 6,
   initialFocus,
   ...props
 }: MenuPrimitive.Popup.Props &

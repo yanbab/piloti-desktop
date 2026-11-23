@@ -36,6 +36,7 @@ import {
   useSimulatedUsbMounted,
 } from "@/lib/engine-web/usb-drive";
 import { NicePathLabel } from "@/components/shell/NicePathLabel";
+import { PanelResizeHandle, usePanelWidth } from "@/components/ui/resizable-panel";
 import { AdwSplitView, type AdwSplitSidebarItem } from "@/components/ui/adw-split-view";
 import { IconGrid } from "@/components/ui/icon-grid";
 import { AppSquircleIcon } from "@/components/shell/AppSymbol";
@@ -50,6 +51,7 @@ import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import {
   DropdownMenu,
+  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuLabel,
   DropdownMenuRadioGroup,
@@ -90,7 +92,6 @@ import { cn } from "@/lib/core/utils";
 import {
   buildVfsEntryWebAppUrl,
   compressVfsEntries,
-  copyVfsEntry,
   downloadVfsFile,
   duplicateVfsEntry,
   extractVfsZip,
@@ -124,6 +125,7 @@ import {
   resolveVfsTemplatesDir,
 } from "@/lib/engine-web/web-vfs";
 import {
+  copyFsEntry,
   createFsFileFromTemplate,
   createFsFolder,
   createFsTextFile,
@@ -137,10 +139,20 @@ import {
   restoreFsEntry,
   trashFsEntry,
 } from "@/lib/engine/fs-bridge";
+import {
+  moveWithUndo,
+  onFileUndoApplied,
+  recordCreated,
+  redoFileOperation,
+  renameWithUndo,
+  restoreWithUndo,
+  trashWithUndo,
+  undoFileOperation,
+  useFileUndoState,
+} from "@/lib/engine/fs-undo";
 import { playSoundThemeEvent } from "@/lib/shell/sound-effects";
 import { inferMimeType } from "@/lib/xdg/xdg-mimeapps";
 import { useOpenPath } from "@/hooks/use-open-path";
-import { buildLinkFile, isLinkFile, linkFileNameFor, pathToFileUrl } from "@/lib/shell/link-files";
 
 interface XdgPlaceItem {
   id: string;
@@ -251,7 +263,6 @@ function vfsEntryToGridItem(
   const isEmpty = isVfsEntryEmpty(entry);
   const visual = inferFileVisual(entry.name, entry.kind, getVfsContentType(entry), {
     isEmpty,
-    isLink: entry.kind === "file" && isLinkFile(entry.name, entry.content),
   });
   return {
     id: entry.path,
@@ -263,6 +274,8 @@ function vfsEntryToGridItem(
     gradient: visual.gradient,
     isEmpty,
     isHidden,
+    isSymlink: entry.isSymlink,
+    symlinkTarget: entry.symlinkTarget,
     accessCount: entry.kind === "file" ? (entry.accessCount ?? 0) : undefined,
     iconUrl: visual.iconCandidates.map((c) => getAppIconUrl(c)).find(Boolean),
   };
@@ -278,8 +291,13 @@ export function FilesApp({
   windowId?: string;
 }) {
   const domicile = useDomicile();
-  const { installedXdgApps, getAppIconUrl, ensureWaylandIcons } = useApps();
   const { isBrowserRuntime, settings } = useSettings();
+  const { installedXdgApps, getAppIconUrl, ensureWaylandIcons, xdgUserDirs } = useApps();
+  const desktopDirPath = React.useMemo(() => {
+    if (isBrowserRuntime) return `${WEB_VFS_HOME}/Desktop`;
+    const dir = xdgUserDirs.find((d) => d.key === "DESKTOP");
+    return normalizeVfsPath(dir?.absolutePath ?? dir?.relativeHomePath ?? "Desktop");
+  }, [isBrowserRuntime, xdgUserDirs]);
   const usbMounted = useSimulatedUsbMounted();
   const { windows, focusedWindowId } = useWindowManagerSelector((wm) => ({
     windows: wm.windows.map((w) => ({ appId: w.appId, payload: w.payload })),
@@ -318,6 +336,21 @@ export function FilesApp({
   const [gridZoomIndex, setGridZoomIndex] = React.useState(4);
   const [listZoomIndex, setListZoomIndex] = React.useState(1);
   const [infoPaneOpen, setInfoPaneOpen] = React.useState(false);
+  const infoPanel = usePanelWidth({
+    id: "files-info",
+    side: "left",
+    defaultWidth: 240,
+    min: 200,
+    max: 420,
+    collapseBelow: 150,
+    onCollapsedChange: (collapsed) => {
+      if (collapsed) setInfoPaneOpen(false);
+    },
+  });
+  const { setCollapsed: setInfoCollapsed } = infoPanel;
+  React.useEffect(() => {
+    if (infoPaneOpen) setInfoCollapsed(false);
+  }, [infoPaneOpen, setInfoCollapsed]);
   const [showHidden, setShowHidden] = React.useState(false);
   const [vfsEntries, setVfsEntries] = React.useState<WebVfsEntry[]>(() =>
     listVfsDir(currentPath)
@@ -399,62 +432,81 @@ export function FilesApp({
     });
   }, [currentPath, domicile, isBrowserRuntime, showHidden]);
 
+  React.useEffect(() => onFileUndoApplied(reloadDir), [reloadDir]);
+
+  const undoCtx = React.useMemo(() => ({ domicile, isBrowserRuntime }), [domicile, isBrowserRuntime]);
+  const { undoLabel, redoLabel } = useFileUndoState();
+
   const handlePasteItems = React.useCallback(() => {
     const clip = getVfsClipboard();
     if (!clip || clip.paths.length === 0 || isTrashView || isVirtualView) return;
-    for (const srcPath of clip.paths) {
+    void (async () => {
       if (clip.mode === "cut") {
-        moveFsEntry(domicile, isBrowserRuntime, srcPath, currentPath);
+        moveWithUndo(undoCtx, clip.paths, currentPath);
+        setVfsClipboard(null);
       } else {
-        copyVfsEntry(srcPath, currentPath);
+        const created: string[] = [];
+        for (const srcPath of clip.paths) {
+          const path = await copyFsEntry(domicile, isBrowserRuntime, srcPath, currentPath);
+          if (path) created.push(path);
+        }
+        recordCreated(undoCtx, created, "Paste");
       }
-    }
-    if (clip.mode === "cut") {
-      setVfsClipboard(null);
-    }
-    reloadDir();
-  }, [currentPath, domicile, isBrowserRuntime, isTrashView, isVirtualView, reloadDir]);
+      reloadDir();
+    })();
+  }, [currentPath, domicile, isBrowserRuntime, isTrashView, isVirtualView, reloadDir, undoCtx]);
 
   const handleDuplicateItems = React.useCallback(
     (list: readonly { path: string; id: string }[]) => {
       if (isTrashView || isVirtualView) return;
-      const createdIds: string[] = [];
-      for (const target of list) {
-        const dup = duplicateVfsEntry(target.path);
-        if (dup) createdIds.push(dup.path);
-      }
-      reloadDir();
-      if (createdIds.length > 0) {
-        setSelectedIds(createdIds);
-      }
+      void (async () => {
+        const createdIds: string[] = [];
+        for (const target of list) {
+          const base = target.path.split("/").filter(Boolean).pop() ?? "item";
+          const dot = base.lastIndexOf(".");
+          const copyName =
+            dot > 0 ? `${base.slice(0, dot)} Copy${base.slice(dot)}` : `${base} Copy`;
+          const path = await copyFsEntry(domicile, isBrowserRuntime, target.path, currentPath, {
+            name: copyName,
+          });
+          if (path) createdIds.push(path);
+        }
+        recordCreated(undoCtx, createdIds, "Duplicate");
+        reloadDir();
+        if (createdIds.length > 0) setSelectedIds(createdIds);
+      })();
     },
-    [isTrashView, isVirtualView, reloadDir]
+    [currentPath, domicile, isBrowserRuntime, isTrashView, isVirtualView, reloadDir, undoCtx]
   );
 
   const handleTrashItems = React.useCallback(
     (list: readonly { path: string; id: string }[]) => {
       const removedIds = new Set<string>();
-      for (const target of list) {
-        trashFsEntry(domicile, isBrowserRuntime, target.path);
-        removedIds.add(target.id);
+      if (isTrashView) {
+        // Deleting from the Trash is permanent: nothing to undo.
+        for (const target of list) {
+          trashFsEntry(domicile, isBrowserRuntime, target.path);
+          removedIds.add(target.id);
+        }
+      } else {
+        trashWithUndo(undoCtx, list.map((t) => t.path));
+        for (const target of list) removedIds.add(target.id);
       }
       reloadDir();
       setSelectedIds((prev) => prev.filter((id) => !removedIds.has(id)));
     },
-    [domicile, isBrowserRuntime, reloadDir]
+    [domicile, isBrowserRuntime, isTrashView, reloadDir, undoCtx]
   );
 
   const handleRestoreItems = React.useCallback(
     (list: readonly { path: string; id: string }[]) => {
       const restoredIds = new Set<string>();
-      for (const target of list) {
-        restoreFsEntry(domicile, isBrowserRuntime, target.path);
-        restoredIds.add(target.id);
-      }
+      restoreWithUndo(undoCtx, list.map((t) => t.path));
+      for (const target of list) restoredIds.add(target.id);
       reloadDir();
       setSelectedIds((prev) => prev.filter((id) => !restoredIds.has(id)));
     },
-    [domicile, isBrowserRuntime, reloadDir]
+    [reloadDir, undoCtx]
   );
 
   const latestActionsRef = React.useRef<{
@@ -546,6 +598,15 @@ export function FilesApp({
       ) {
         e.preventDefault();
         setVfsClipboard({ mode: "copy", paths: selectedIds });
+      } else if (
+        (e.ctrlKey || e.metaKey) &&
+        !e.altKey &&
+        (e.key.toLowerCase() === "z" || e.key.toLowerCase() === "y") &&
+        !(e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement)
+      ) {
+        e.preventDefault();
+        if (e.key.toLowerCase() === "y" || e.shiftKey) void redoFileOperation();
+        else void undoFileOperation();
       } else if (
         (e.ctrlKey || e.metaKey) &&
         !e.altKey &&
@@ -1022,6 +1083,7 @@ export function FilesApp({
   const handleNewFolder = () => {
     if (isTrashView || isVirtualView) return;
     const created = createFsFolder(domicile, isBrowserRuntime, currentPath);
+    recordCreated(undoCtx, [created.path], "New Folder");
     reloadDir();
     setSelectedIds([created.path]);
     setRenamingId(created.path);
@@ -1030,6 +1092,7 @@ export function FilesApp({
   const handleNewTextFile = () => {
     if (isTrashView || isVirtualView) return;
     const created = createFsTextFile(domicile, isBrowserRuntime, currentPath);
+    recordCreated(undoCtx, [created.path], "New Text File");
     reloadDir();
     setSelectedIds([created.path]);
     setRenamingId(created.path);
@@ -1120,10 +1183,10 @@ export function FilesApp({
 
   const handleCommitRename = (item: IconGridItem, nextName: string) => {
     setRenamingId(null);
-    const renamed = renameFsEntry(domicile, isBrowserRuntime, item.path, nextName);
-    if (renamed) {
+    const renamedPath = renameWithUndo(undoCtx, item.path, nextName);
+    if (renamedPath) {
       reloadDir();
-      setSelectedIds([renamed.path]);
+      setSelectedIds([renamedPath]);
     }
   };
 
@@ -1131,19 +1194,38 @@ export function FilesApp({
     handleTrashItems([item]);
   };
 
-  const handleDropItems = (droppedItems: IconGridItem[], destPath: string) => {
+  const handleDropItems = (
+    droppedItems: IconGridItem[],
+    destPath: string,
+    opts?: { copy?: boolean },
+  ) => {
     if (destPath === WEB_VFS_TRASH) {
       handleTrashItems(droppedItems);
       return;
     }
+    if (opts?.copy) {
+      void (async () => {
+        const created: string[] = [];
+        for (const item of droppedItems) {
+          if (destPath === item.path || destPath.startsWith(`${item.path}/`)) continue;
+          const path = await copyFsEntry(domicile, isBrowserRuntime, item.path, destPath);
+          if (path) created.push(path);
+        }
+        recordCreated(undoCtx, created, "Copy");
+        reloadDir();
+      })();
+      return;
+    }
     const movedIds = new Set<string>();
+    const toMove: string[] = [];
     for (const item of droppedItems) {
       if (item.path === destPath || destPath.startsWith(`${item.path}/`)) {
         continue;
       }
-      moveFsEntry(domicile, isBrowserRuntime, item.path, destPath);
+      toMove.push(item.path);
       movedIds.add(item.id);
     }
+    moveWithUndo(undoCtx, toMove, destPath);
     if (movedIds.size > 0) {
       reloadDir();
       setSelectedIds((prev) => prev.filter((id) => !movedIds.has(id)));
@@ -1240,6 +1322,8 @@ export function FilesApp({
       "files:new-folder": { disabled: !canModifyDir },
       "files:new-text-file": { disabled: !canModifyDir },
       "files:open": { disabled: !hasSingleSel },
+      "files:undo": { disabled: !undoLabel },
+      "files:redo": { disabled: !redoLabel },
       "files:cut": { disabled: !hasSel || !canModifyDir },
       "files:copy": { disabled: !hasSel || isTrashView },
       "files:paste": { disabled: !hasClip || !canModifyDir },
@@ -1274,6 +1358,8 @@ export function FilesApp({
     maxZoomIndex,
     selectedItems.length,
     showHidden,
+    undoLabel,
+    redoLabel,
     sortBy,
     sortDir,
     isAppsView,
@@ -1319,6 +1405,12 @@ export function FilesApp({
           break;
         case "files:trash":
           latestActionsRef.current.trashSelected();
+          break;
+        case "files:undo":
+          void undoFileOperation();
+          break;
+        case "files:redo":
+          void redoFileOperation();
           break;
         case "files:go-up":
           if (latestActionsRef.current.canGoUp) {
@@ -1590,9 +1682,23 @@ export function FilesApp({
           "personal",
         ];
         return (
+          <div
+            className={cn(
+              "relative flex shrink-0",
+              !infoPanel.dragging && "transition-[width] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)]",
+            )}
+            style={{ width: infoPanel.width }}
+          >
+          <PanelResizeHandle
+            side="left"
+            dragging={infoPanel.dragging}
+            handleProps={infoPanel.handleProps}
+            label={_("Resize info pane")}
+            style={{ left: -4 }}
+          />
           <aside
             aria-label={_("Info Pane")}
-            className="flex w-56 shrink-0 flex-col gap-3 overflow-y-auto border-l border-adw-separator bg-adw-sidebar/70 p-3 text-adw-label"
+            className="flex min-w-0 flex-1 flex-col gap-3 overflow-y-auto border-l border-adw-separator bg-adw-sidebar/70 p-3 text-adw-label"
           >
             <div className="flex flex-col items-center gap-2 border-b border-adw-separator pb-3 text-center">
               <div className="size-16 shrink-0">
@@ -1691,6 +1797,7 @@ export function FilesApp({
               )}
             </dl>
           </aside>
+          </div>
         );
       })()
     : null;
@@ -1704,6 +1811,8 @@ export function FilesApp({
       isCsd={isCsd}
       sidebarItems={sidebarItems}
       sidebarWidthClass="w-40"
+      sidebarId="files-sidebar"
+      sidebarDefaultWidth={160}
       compactBreakpoint={580}
       sidebarRef={sidebarRef}
       onSidebarKeyDown={onSidebarKeyDown}
@@ -1823,6 +1932,58 @@ export function FilesApp({
                 {_("Empty Trash")}
               </Button>
             )}
+            {!isAppsView && (
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  aria-label={_("Sort & Filter")}
+                  title={_("Sort & Filter")}
+                  className={cn(
+                    "flex size-7 items-center justify-center rounded-md transition-colors",
+                    sortBy !== "name" || sortDir !== "asc" || showHidden
+                      ? "bg-black/10 text-adw-accent dark:bg-white/15"
+                      : "text-adw-label-secondary hover:bg-black/8 hover:text-adw-label dark:hover:bg-white/10"
+                  )}
+                >
+                  <ArrowUpDownIcon className="size-4" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuLabel>{_("Sort By")}</DropdownMenuLabel>
+                  <DropdownMenuRadioGroup
+                    value={sortBy}
+                    onValueChange={(v) => setSortBy(v as "name" | "kind" | "modified" | "size")}
+                  >
+                    <DropdownMenuRadioItem value="name">{_("Name")}</DropdownMenuRadioItem>
+                    <DropdownMenuRadioItem value="kind">{_("Kind")}</DropdownMenuRadioItem>
+                    <DropdownMenuRadioItem value="modified">{_("Date Modified")}</DropdownMenuRadioItem>
+                    <DropdownMenuRadioItem value="size">{_("Size")}</DropdownMenuRadioItem>
+                  </DropdownMenuRadioGroup>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuRadioGroup
+                    value={sortDir}
+                    onValueChange={(v) => setSortDir(v as "asc" | "desc")}
+                  >
+                    <DropdownMenuRadioItem value="asc">{_("Ascending")}</DropdownMenuRadioItem>
+                    <DropdownMenuRadioItem value="desc">{_("Descending")}</DropdownMenuRadioItem>
+                  </DropdownMenuRadioGroup>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuCheckboxItem
+                    checked={showHidden}
+                    onCheckedChange={(checked) => setShowHidden(Boolean(checked))}
+                  >
+                    {_("Show Hidden Files")}
+                  </DropdownMenuCheckboxItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+            <button
+              type="button"
+              aria-label={viewMode === "grid" ? _("List view") : _("Grid view")}
+              title={viewMode === "grid" ? _("List view") : _("Grid view")}
+              onClick={() => setViewMode((m) => (m === "grid" ? "list" : "grid"))}
+              className="flex size-7 items-center justify-center rounded-md text-adw-label-secondary transition-colors hover:bg-black/8 hover:text-adw-label dark:hover:bg-white/10"
+            >
+              {viewMode === "grid" ? <ListIcon className="size-4" /> : <LayoutGridIcon className="size-4" />}
+            </button>
             {searchOpen ? (
               <div className="relative flex items-center">
                 <input
@@ -2262,27 +2423,30 @@ export function FilesApp({
           void openPathWith(target.path, app, { kind: target.kind === "directory" ? "directory" : "file" });
         }}
         onMakeLink={(list) => {
-          const created: string[] = [];
-          for (const target of list) {
-            const link = createFsTextFile(
-              domicile,
-              isBrowserRuntime,
-              currentPath,
-              linkFileNameFor(target.name),
-              buildLinkFile({
-                name: target.name,
-                url: pathToFileUrl(target.path),
+          void Promise.all(
+            list.map((target) =>
+              copyFsEntry(domicile, isBrowserRuntime, target.path, currentPath, {
+                symlink: true,
+                name: _("Link to {name}").replace("{name}", target.name),
               }),
-            );
-            created.push(link.path);
-          }
-          reloadDir();
-          if (created.length > 0) setSelectedIds(created);
+            ),
+          ).then((created) => {
+            reloadDir();
+            const paths = created.filter((p): p is string => Boolean(p));
+            recordCreated(undoCtx, paths, "Make Link");
+            if (paths.length > 0) setSelectedIds(paths);
+          });
         }}
         onOpenInNewWindow={(target) =>
           launchApp("nautilus", { payload: target.path, forceNew: true })
         }
         onOpenContainingFolder={handleOpenContainingFolder}
+        onShowOriginal={(target) => {
+          const dest = target.symlinkTarget;
+          if (!dest) return;
+          const parent = dest.replace(/\/[^/]*$/, "") || "/";
+          launchApp("nautilus", { payload: parent, forceNew: true });
+        }}
         onRestoreItems={handleRestoreItems}
         onOpenInTerminal={(target) =>
           launchApp("terminal", { payload: target.path, forceNew: true })

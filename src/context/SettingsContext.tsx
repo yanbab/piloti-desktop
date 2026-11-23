@@ -110,7 +110,6 @@ export interface DesktopSettings {
   showBatteryPercentage: boolean;
   reduceMotion: boolean;
   moreTransparency: boolean;
-  touchMode?: boolean;
   customAccentHex?: string;
   highContrast: boolean;
   windowDecorationMode: WindowDecorationMode;
@@ -162,6 +161,8 @@ export interface DesktopSettings {
   fileActivationMode: "single" | "double";
   showFileExtensionBadges: boolean;
   demoExtensionEnabled: boolean;
+  /** Extension ids pinned to the browser toolbar. */
+  pinnedExtensionIds: string[];
   darkReaderWebEnabled: boolean;
   enabledPluginIds: string[];
   computerModel: "mac" | "pc";
@@ -198,7 +199,6 @@ const DEFAULT_SETTINGS: DesktopSettings = {
   showBatteryPercentage: false,
   reduceMotion: false,
   moreTransparency: true,
-  touchMode: false,
   windowDecorationMode: "auto",
   windowButtonLayout: ":close",
   showWindowMenu: true,
@@ -248,6 +248,7 @@ const DEFAULT_SETTINGS: DesktopSettings = {
   fileActivationMode: "single",
   showFileExtensionBadges: true,
   demoExtensionEnabled: true,
+  pinnedExtensionIds: [],
   darkReaderWebEnabled: false,
   enabledPluginIds: ["aurora-drift", "app-indicator"],
   computerModel:

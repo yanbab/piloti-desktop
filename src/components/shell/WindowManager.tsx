@@ -28,6 +28,10 @@ import {
 } from "lucide-react";
 import { IsolatedAppFrame } from "@/components/shell/IsolatedAppFrame";
 import { WindowMenuButton } from "@/components/shell/WindowMenuButton";
+import {
+  BrowserExtensionsMenu,
+  type BrowserExtensionItem,
+} from "@/components/shell/BrowserExtensionsMenu";
 import { _ } from "@/lib/core/i18n";
 import {
   consumeLaunchOriginRect,
@@ -35,6 +39,7 @@ import {
 } from "@/lib/shell/launch-origin";
 import { computeOverviewWindowLayouts } from "@/lib/shell/overview-layout";
 import { CalculatorApp } from "@/components/apps/CalculatorApp";
+import { CameraApp } from "@/components/apps/CameraApp";
 const ConsoleApp = React.lazy(() =>
   import("@/components/apps/ConsoleApp").then((m) => ({
     default: m.ConsoleApp,
@@ -261,6 +266,7 @@ function WebViewSurface({
   const { pushNotification } = useSystemBackends();
   const {
     focusedWindowId,
+    launchApp,
     focusWindow,
     clearFocusedWindow,
     closeWindow,
@@ -729,6 +735,55 @@ function WebViewSurface({
     }
   }, [currentUrl, prefersDark]);
 
+  const toggleExtensionPin = (id: string) => {
+    const current = settings.pinnedExtensionIds ?? [];
+    updateSettings({
+      pinnedExtensionIds: current.includes(id)
+        ? current.filter((x) => x !== id)
+        : [...current, id],
+    });
+  };
+
+  const extensionMenuItems: BrowserExtensionItem[] = isBrowserRuntime
+    ? [
+        {
+          id: "dark-reader",
+          name: "Dark Reader",
+          pressed: darkReaderEnabled,
+          onActivate: onToggleDarkReader,
+        },
+        ...(settings.demoExtensionEnabled !== false
+          ? [
+              {
+                id: "piloti-demo",
+                name: "Piloti Demo Extension",
+                badgeText: demoBadgeCount > 0 ? String(demoBadgeCount) : undefined,
+                active: demoPopupOpen,
+                onActivate: () => setDemoPopupOpen((v) => !v),
+              },
+            ]
+          : []),
+      ]
+    : extensions.map((ext) => ({
+        id: ext.id,
+        name: ext.title || ext.name,
+        icon: ext.icon || undefined,
+        badgeText: ext.badgeText || undefined,
+        badgeColor: ext.badgeColor,
+        enabled: ext.enabled,
+        active: activeExtPopup?.id === ext.id,
+        onActivate: () => {
+          const closing = activeExtPopup?.id === ext.id;
+          if (!closing) domicile.extensions.activate(ext.id);
+          if (ext.popup) {
+            setExtPopupSize({ width: 360, height: 440 });
+            setActiveExtPopup(closing ? null : { id: ext.id, popup: ext.popup });
+          } else {
+            setActiveExtPopup(null);
+          }
+        },
+      }));
+
   const toggleInstallApp = () => {
     toggleWebAppInstall({
       domicile,
@@ -849,7 +904,7 @@ function WebViewSurface({
             <button
               type="button"
               data-window-no-drag
-              title={_("Click to edit URL")}
+              aria-label={_("Edit address")}
               onClick={() => {
                 setDraftAddress(currentUrl);
                 setEditingAddress(true);
@@ -878,100 +933,12 @@ function WebViewSurface({
                 : _("Install Extension")}
             </Button>
           )}
-          {isBrowserRuntime && (
-            <button
-              type="button"
-              title="Dark Reader"
-              aria-label="Dark Reader"
-              aria-pressed={darkReaderEnabled}
-              onClick={onToggleDarkReader}
-              className={cn(
-                "flex size-7 items-center justify-center rounded-md transition-colors",
-                darkReaderEnabled
-                  ? "bg-black/14 dark:bg-white/18"
-                  : "hover:bg-black/8 dark:hover:bg-white/10"
-              )}
-            >
-              <MoonIcon className="size-3.5" />
-            </button>
-          )}
-          {isBrowserRuntime && settings.demoExtensionEnabled !== false && (
-            <button
-              type="button"
-              title="Piloti Demo Extension"
-              aria-label="Piloti Demo Extension"
-              onClick={() => setDemoPopupOpen((v) => !v)}
-              className={cn(
-                "relative flex size-7 items-center justify-center rounded-md transition-colors",
-                demoPopupOpen
-                  ? "bg-black/14 dark:bg-white/18"
-                  : "hover:bg-black/8 dark:hover:bg-white/10"
-              )}
-            >
-              <PuzzleIcon className="size-3.5" />
-              {demoBadgeCount > 0 && (
-                <span
-                  style={{ backgroundColor: "var(--adw-accent)" }}
-                  className="pointer-events-none absolute right-0.5 bottom-0.5 min-w-3 rounded-full px-0.5 text-center text-[8.5px] leading-tight font-bold text-white shadow-xs"
-                >
-                  {demoBadgeCount}
-                </span>
-              )}
-            </button>
-          )}
-          {!isBrowserRuntime &&
-            extensions.map((ext) => (
-              <button
-                key={ext.id}
-                type="button"
-                disabled={!ext.enabled}
-                title={ext.title || ext.name}
-                aria-label={ext.title || ext.name}
-                onClick={() => {
-                  const closing = activeExtPopup?.id === ext.id;
-                  if (!closing) {
-                    domicile.extensions.activate(ext.id);
-                  }
-                  if (ext.popup) {
-                    const popupUrl = ext.popup;
-                    setExtPopupSize({ width: 360, height: 440 });
-                    setActiveExtPopup(closing ? null : { id: ext.id, popup: popupUrl });
-                  } else {
-                    setActiveExtPopup(null);
-                  }
-                }}
-                className={cn(
-                  "relative flex size-7 items-center justify-center rounded-md transition-colors disabled:pointer-events-none disabled:opacity-40",
-                  activeExtPopup?.id === ext.id
-                    ? "bg-black/14 dark:bg-white/18"
-                    : "hover:bg-black/8 dark:hover:bg-white/10"
-                )}
-              >
-                {ext.icon ? (
-                  <img
-                    src={ext.icon}
-                    alt=""
-                    draggable={false}
-                    className="size-4 rounded-[3px] object-contain"
-                  />
-                ) : (
-                  <PuzzleIcon className="size-3.5" />
-                )}
-                {ext.badgeText && (
-                  <span
-                    style={{
-                      backgroundColor:
-                        ext.badgeColor && ext.badgeColor !== "#00000000"
-                          ? ext.badgeColor
-                          : "var(--adw-accent)",
-                    }}
-                    className="pointer-events-none absolute right-0.5 bottom-0.5 min-w-3 rounded-full px-0.5 text-center text-[8.5px] leading-tight font-bold text-white shadow-xs"
-                  >
-                    {ext.badgeText}
-                  </span>
-                )}
-              </button>
-            ))}
+          <BrowserExtensionsMenu
+            items={extensionMenuItems}
+            pinnedIds={settings.pinnedExtensionIds ?? []}
+            onTogglePin={toggleExtensionPin}
+            onManage={() => launchApp("settings", { payload: "advanced" })}
+          />
           <WindowMenuButton
             side="right"
             windowId={win.id}
@@ -1248,6 +1215,14 @@ const WindowBody = React.memo(
         <React.Suspense fallback={null}>
           <WindowDomReadySignal windowId={win.id} onReady={onDomReady} />
           <CalculatorApp windowId={win.id} isCsd={isCsd} />
+        </React.Suspense>
+      );
+    }
+    if (win.builtinComponent === "camera") {
+      return (
+        <React.Suspense fallback={null}>
+          <WindowDomReadySignal windowId={win.id} onReady={onDomReady} />
+          <CameraApp windowId={win.id} isCsd={isCsd} />
         </React.Suspense>
       );
     }
@@ -1809,28 +1784,7 @@ export function WindowManager() {
     return () => window.removeEventListener("blur", onWindowBlur);
   }, []);
 
-  const isTouchMode = Boolean(
-    (settings as { touchMode?: boolean }).touchMode
-  );
-  const touchActiveWindowId = React.useMemo(() => {
-    if (!isTouchMode) return null;
-    const visibleWorkspaceWins = workspaceWindows.filter((w) => !w.minimized);
-    if (visibleWorkspaceWins.length === 0) return null;
-    if (
-      focusedWindowId &&
-      visibleWorkspaceWins.some((w) => w.id === focusedWindowId)
-    ) {
-      return focusedWindowId;
-    }
-    return visibleWorkspaceWins.reduce((top, w) =>
-      w.zIndex > top.zIndex ? w : top
-    ).id;
-  }, [isTouchMode, workspaceWindows, focusedWindowId]);
-
-  const renderedWindows =
-    isTouchMode && !overviewOpen
-      ? windows.filter((w) => w.id === touchActiveWindowId)
-      : windows;
+  const renderedWindows = windows;
 
   return (
     <div
@@ -1922,14 +1876,14 @@ export function WindowManager() {
               onSizeChange={(sz) => updateWindowGeometry(win.id, { size: sz })}
               minSize={win.minSize}
               maxSize={win.maxSize}
-              draggable={!isTouchMode}
-              resizable={isTouchMode ? false : win.appId !== "calculator"}
+              draggable
+              resizable={win.appId !== "calculator"}
               bounds="parent"
               inactive={!isFocused}
               minimized={overviewOpen ? false : win.minimized}
               minimizeTo={getDockRef(win.appId)}
               minimizeEffect="scale"
-              maximized={isTouchMode && !overviewOpen ? true : win.maximized}
+              maximized={win.maximized}
               buttonLayout={settings.windowButtonLayout}
               maximizeInsets={{
                 top: 0,

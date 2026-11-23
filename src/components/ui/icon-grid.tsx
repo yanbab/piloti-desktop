@@ -112,7 +112,8 @@ export interface IconGridProps {
     metrics: GridMetrics,
   ) => void;
   onDropItem?: (item: IconGridItem, clientX: number, clientY: number) => void;
-  onDropItems?: (items: IconGridItem[], destPath: string) => void;
+  /** `copy` is set when Ctrl / Alt / ⌘-Option was held on drop. */
+  onDropItems?: (items: IconGridItem[], destPath: string, opts?: { copy?: boolean }) => void;
   onActivateItem: (item: IconGridItem) => void;
   onContextMenuItem?: (item: IconGridItem, event: React.MouseEvent) => void;
   renamingId?: string | null;
@@ -480,6 +481,8 @@ export function IconGrid({
       if (dragGhostRef.current) {
         dragGhostRef.current.style.transform = `translate3d(${dx}px, ${dy}px, 0)`;
       }
+      // Ctrl / Alt while dragging means "copy": show it with the cursor.
+      document.body.style.cursor = e.altKey || e.ctrlKey ? "copy" : "";
 
       const draggedItems = items.filter((i) => cur.draggedIds.includes(i.id));
       const draggedItem =
@@ -598,7 +601,7 @@ export function IconGrid({
                 }),
               );
               if (onDropItems) {
-                onDropItems(draggedItems, topTarget.destPath);
+                onDropItems(draggedItems, topTarget.destPath, { copy: e.altKey || e.ctrlKey });
               } else if (onDropItem) {
                 onDropItem(draggedItem, e.clientX, e.clientY);
               }
@@ -674,6 +677,7 @@ export function IconGrid({
       window.removeEventListener("pointerup", handlePointerUp);
       window.removeEventListener("pointercancel", handlePointerUp);
       window.removeEventListener("keydown", handleKeyDown, true);
+      document.body.style.cursor = "";
     };
   }, [
     currentDirPath,
@@ -1218,6 +1222,17 @@ export function IconGrid({
                   />
                 );
               })()}
+              {item.isSymlink && (
+                <span
+                  aria-hidden
+                  title="Symbolic link"
+                  className="pointer-events-none absolute -bottom-0.5 -left-0.5 z-10 flex size-[1.1em] min-h-4 min-w-4 items-center justify-center rounded-full bg-white text-zinc-800 shadow ring-1 ring-black/25"
+                >
+                  <svg viewBox="0 0 16 16" className="size-[70%]" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M4 12 12 4M6 4h6v6" />
+                  </svg>
+                </span>
+              )}
               {item.path && (emblemsMap[item.path]?.length ?? 0) > 0 && (
                 <div className="pointer-events-none absolute -top-1 -right-1 z-10 flex flex-col items-center">
                   {(emblemsMap[item.path] ?? []).map((emblemId, emblemIdx) => {
@@ -1363,83 +1378,69 @@ export function IconGrid({
 
       {drag?.active &&
         typeof document !== "undefined" &&
-        (() => {
-          const draggedItem = items.find((i) => i.id === drag.itemId);
-          if (!draggedItem) return null;
-          const dragCount = drag.draggedIds.length;
-          return createPortal(
-            <div
-              ref={(el) => {
-                dragGhostRef.current = el;
-                const latest = dragRef.current;
-                if (el && latest && !latest.canceling) {
-                  el.style.transform = `translate3d(${latest.currentX - latest.startX}px, ${latest.currentY - latest.startY}px, 0)`;
-                }
-              }}
-              style={{
-                left: `${drag.originLeft}px`,
-                top: `${drag.originTop}px`,
-                width: `${effectiveCellWidth}px`,
-                height: `${effectiveCellHeight}px`,
-                willChange: "transform",
-                transition: drag.canceling
-                  ? "transform 240ms cubic-bezier(0.22, 1, 0.36, 1)"
-                  : "none",
-                ...(drag.canceling ? { transform: "translate3d(0px, 0px, 0)" } : {}),
-                animation: "none",
-              }}
-              className={cn(
-                "pointer-events-none fixed z-[9999] flex rounded-xl opacity-90 select-none",
-                compactHorizontal
-                  ? "flex-row items-center justify-start gap-1 px-1.5 py-0.5 text-left"
-                  : "flex-col items-center justify-start gap-1 px-1 py-1.5 text-center",
-              )}
-            >
-              <div
-                style={{ width: `${iconSize}px`, height: `${iconSize}px` }}
-                className="relative shrink-0"
-              >
-                {draggedItem.kind === "directory" ? (
-                  <DynamicFolderIcon
-                    accentColor={settings.accentColor}
-                    pathOrName={draggedItem.path || draggedItem.name}
-                    className="size-full"
-                  />
-                ) : draggedItem.kind === "file" ? (
-                  <DynamicFileIcon
-                    accentColor={settings.accentColor}
-                    name={draggedItem.name}
-                    iconCandidates={draggedItem.iconCandidates}
-                    isEmpty={draggedItem.isEmpty}
-                    className="size-full"
-                  />
-                ) : (
-                  <AppSquircleIcon
-                    iconName={draggedItem.iconName}
-                    iconUrl={resolveItemIconUrl(draggedItem)}
-                    gradient={draggedItem.gradient}
-                    squircle={false}
-                    className="size-full"
-                    glyphClassName="size-7"
-                  />
-                )}
-                {dragCount > 1 && (
-                  <span className="absolute -top-1.5 -right-1.5 flex min-w-5 items-center justify-center rounded-full bg-adw-accent px-1.5 py-0.5 text-[10px] font-bold text-white shadow-md">
-                    {dragCount}
-                  </span>
-                )}
-              </div>
-              <span className="w-fit max-w-full shrink-0 rounded bg-adw-accent px-1.5 py-0.5 text-[11.5px] leading-[1.3] font-medium text-white shadow-md">
-                <span className="block line-clamp-2 break-words pb-[1px]">
-                  {dragCount > 1
-                    ? `${draggedItem.name} (+${dragCount - 1})`
-                    : draggedItem.name}
-                </span>
-              </span>
-            </div>,
-            document.body,
-          );
-        })()}
+        createPortal(
+          <div
+            data-drag-ghost
+            ref={(el) => {
+              dragGhostRef.current = el;
+              const latest = dragRef.current;
+              if (!el || !latest) return;
+              if (!latest.canceling) {
+                el.style.transform = `translate3d(${latest.currentX - latest.startX}px, ${latest.currentY - latest.startY}px, 0)`;
+              }
+              // Build the ghost once: exact clones of the dragged items, kept where they
+              // are on screen, so what you drag is what you see (thumbnails included).
+              if (el.childElementCount === 0) {
+                latest.draggedIds.forEach((id) => {
+                  const node = itemRefs.current.get(id);
+                  if (!node) return;
+                  const rect = node.getBoundingClientRect();
+                  const clone = node.cloneNode(true) as HTMLElement;
+                  clone.removeAttribute("id");
+                  clone.removeAttribute("data-vfs-drop-path");
+                  clone.removeAttribute("role");
+                  clone.tabIndex = -1;
+                  clone.style.cssText = [
+                    "position:fixed",
+                    `left:${rect.left}px`,
+                    `top:${rect.top}px`,
+                    `width:${rect.width}px`,
+                    `height:${rect.height}px`,
+                    "margin:0",
+                    "opacity:0.78",
+                    "transform:scale(1)",
+                    "transition:transform 160ms cubic-bezier(0.22,1,0.36,1), filter 160ms ease",
+                    "filter:drop-shadow(0 1px 2px rgba(0,0,0,0.25))",
+                    "transform-origin:50% 40%",
+                  ].join(";");
+                  el.appendChild(clone);
+                  if (id === latest.itemId && latest.draggedIds.length > 1) {
+                    const badge = document.createElement("span");
+                    badge.textContent = String(latest.draggedIds.length);
+                    badge.style.cssText =
+                      "position:absolute;top:2px;right:6px;min-width:20px;height:20px;padding:0 6px;border-radius:10px;background:var(--adw-accent,#3584e4);color:#fff;font:700 11px/20px system-ui;text-align:center;box-shadow:0 2px 6px rgba(0,0,0,.35)";
+                    clone.appendChild(badge);
+                  }
+                  requestAnimationFrame(() => {
+                    clone.style.transform = "scale(1.05)";
+                    clone.style.filter = "drop-shadow(0 8px 12px rgba(0,0,0,0.35))";
+                  });
+                });
+              }
+            }}
+            style={{
+              left: 0,
+              top: 0,
+              willChange: "transform",
+              transition: drag.canceling
+                ? "transform 240ms cubic-bezier(0.22, 1, 0.36, 1)"
+                : "none",
+              ...(drag.canceling ? { transform: "translate3d(0px, 0px, 0)" } : {}),
+            }}
+            className="pointer-events-none fixed z-[9999] select-none"
+          />,
+          document.body,
+        )}
     </div>
   );
 }

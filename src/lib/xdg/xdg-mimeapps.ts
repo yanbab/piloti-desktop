@@ -38,6 +38,7 @@ const KNOWN_MIME_APPS: Record<string, { appId: string; label: string }> = {
   "app-store.desktop": { appId: "app-store", label: "App Store" },
   "piloti-appstore.desktop": { appId: "app-store", label: "App Store" },
   "piloti-calculator.desktop": { appId: "calculator", label: "Calculator" },
+  "piloti-camera.desktop": { appId: "camera", label: "Camera" },
 };
 
 /**

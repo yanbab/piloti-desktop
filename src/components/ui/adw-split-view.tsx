@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/tooltip";
 import { WindowControls, WindowTitlebar } from "@/components/ui/window";
 import type { AppSymbolName } from "@/lib/shell/desktop-icons";
+import { PanelResizeHandle, usePanelWidth } from "@/components/ui/resizable-panel";
 import { cn } from "@/lib/core/utils";
 
 export interface AdwSplitSidebarItem {
@@ -45,6 +46,9 @@ export interface AdwSplitViewProps {
   /** Sidebar configuration */
   sidebarItems: readonly AdwSplitSidebarItem[];
   sidebarWidthClass?: string;
+  /** Makes the sidebar resizable (width remembered under this id). */
+  sidebarId?: string;
+  sidebarDefaultWidth?: number;
   sidebarDensity?: "default" | "tall";
   compactBreakpoint?: number;
   sidebarRef?: React.RefObject<HTMLElement | null>;
@@ -78,6 +82,8 @@ export function AdwSplitView({
   isCsd = false,
   sidebarItems,
   sidebarWidthClass = "w-44",
+  sidebarId,
+  sidebarDefaultWidth = 176,
   sidebarDensity = "default",
   compactBreakpoint = 640,
   sidebarRef,
@@ -93,6 +99,16 @@ export function AdwSplitView({
   onKeyDown,
 }: AdwSplitViewProps) {
   const containerRef = React.useRef<HTMLDivElement | null>(null);
+  const panel = usePanelWidth({
+    id: sidebarId ?? "unused-sidebar",
+    side: "right",
+    defaultWidth: sidebarDefaultWidth,
+    min: 136,
+    max: 320,
+    collapseBelow: 104,
+    collapsedWidth: 47,
+  });
+  const resizable = Boolean(sidebarId);
   const [isCompact, setIsCompact] = React.useState(false);
   const [sidebarScrolled, setSidebarScrolled] = React.useState(false);
   const [contentScrolled, setContentScrolled] = React.useState(false);
@@ -154,6 +170,7 @@ export function AdwSplitView({
   };
 
   const tall = sidebarDensity === "tall";
+  const showCompact = isCompact || (resizable && panel.collapsed);
 
   return (
     <div
@@ -172,15 +189,19 @@ export function AdwSplitView({
         onKeyUp={onSidebarKeyUp}
         className={cn(
           "flex min-h-0 shrink-0 flex-col overflow-hidden border-r border-adw-separator bg-adw-sidebar",
-          isCompact ? "w-[47px]" : sidebarWidthClass,
+          resizable ? undefined : isCompact ? "w-[47px]" : sidebarWidthClass,
+          resizable && !panel.dragging && "transition-[width] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)]",
         )}
+        style={
+          resizable ? { width: showCompact ? 47 : panel.width } : undefined
+        }
       >
         {isCsd && (
           <WindowTitlebar
             data-window-drag-region
             className={cn(
               "bg-transparent transition-colors",
-              isCompact && "justify-center px-[9px]",
+              showCompact && "justify-center px-[9px]",
               sidebarScrolled
                 ? "border-b border-adw-separator/70"
                 : "border-b border-transparent",
@@ -196,7 +217,7 @@ export function AdwSplitView({
                   iconName={iconName}
                 />
               </div>
-              {!isCompact && (
+              {!showCompact && (
                 <span className="pointer-events-none absolute inset-x-10 truncate text-center text-[13.5px] font-medium tracking-tight whitespace-nowrap text-adw-label">
                   {title}
                 </span>
@@ -218,7 +239,7 @@ export function AdwSplitView({
             onScroll={(e) => setSidebarScrolled(e.currentTarget.scrollTop > 2)}
             className={cn(
               "flex min-h-0 flex-1 flex-col gap-0.5 pb-2 px-[9px]",
-              isCompact
+              showCompact
                 ? "overflow-hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
                 : "overflow-y-auto",
               isCsd ? "pt-0.5" : tall ? "pt-2.5" : "pt-2",
@@ -236,16 +257,16 @@ export function AdwSplitView({
                     onClick={item.onClick}
                     className={cn(
                       "flex items-center rounded-[9px] text-left transition-colors outline-none",
-                      isCompact
+                      showCompact
                         ? "w-full shrink-0 justify-center px-0"
                         : item.trailingAction
                           ? "min-w-0 flex-1 px-1.5 pr-7"
                           : "w-full shrink-0 px-1.5",
                       tall
-                        ? isCompact
+                        ? showCompact
                           ? "gap-0 py-2 text-[14px]"
                           : "gap-3 py-2 text-[14px]"
-                        : isCompact
+                        : showCompact
                           ? "gap-0 py-1.5 text-[13px]"
                           : "gap-2.5 py-1.5 text-[13px]",
                       !item.trailingAction &&
@@ -262,14 +283,16 @@ export function AdwSplitView({
                     >
                       {item.icon}
                     </span>
-                    {!isCompact && (
+                    {!showCompact && (
                       <>
                         <span className="min-w-0 flex-1 truncate">{item.label}</span>
                         {item.badge !== undefined && item.badge !== "" && (
                           <span
                             className={cn(
-                              "ml-auto shrink-0 rounded-full px-1.5 py-0.5 text-[10px] leading-none font-bold text-white tabular-nums",
-                              item.selected ? "bg-white/25" : "bg-adw-accent",
+                              "ml-auto shrink-0 rounded-full text-[10px] leading-none font-semibold tabular-nums",
+                              item.selected
+                                ? "px-0.5 text-white/90"
+                                : "bg-black/8 px-1.5 py-0.5 text-adw-label/60 dark:bg-white/10",
                             )}
                           >
                             {item.badge}
@@ -280,7 +303,7 @@ export function AdwSplitView({
                   </button>
                 );
 
-                const itemNode = item.trailingAction && !isCompact ? (
+                const itemNode = item.trailingAction && !showCompact ? (
                   <div
                     className={cn(
                       "relative flex w-full shrink-0 items-center rounded-[9px] transition-colors",
@@ -311,7 +334,7 @@ export function AdwSplitView({
                   <div className="my-1 h-px shrink-0 bg-adw-separator" />
                 ) : null;
 
-                if (!isCompact) {
+                if (!showCompact) {
                   return (
                     <React.Fragment key={item.id}>
                       {itemNode}
@@ -363,6 +386,15 @@ export function AdwSplitView({
           </nav>
         </TooltipProvider>
       </aside>
+      {resizable && !isCompact && (
+        <PanelResizeHandle
+          side="right"
+          dragging={panel.dragging}
+          handleProps={panel.handleProps}
+          label="Resize sidebar"
+          style={{ left: panel.width - 4 }}
+        />
+      )}
 
       {/* Right Main Column */}
       <div

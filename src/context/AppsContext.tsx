@@ -283,6 +283,10 @@ const PAPIRUS_DIRECT_ICON_FALLBACKS: Record<string, readonly string[]> = {
     "/usr/share/icons/Papirus/64x64/apps/org.gnome.Loupe.svg",
     "/usr/share/icons/Papirus/64x64/apps/multimedia-photo-viewer.svg",
   ],
+  camera: [
+    "/usr/share/icons/Papirus/64x64/apps/org.gnome.Snapshot.svg",
+    "/usr/share/icons/Papirus/64x64/apps/camera-photo.svg",
+  ],
   "login-screen": [
     "/usr/share/icons/Papirus/64x64/apps/system-users.svg",
   ],

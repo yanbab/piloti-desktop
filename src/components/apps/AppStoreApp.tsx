@@ -136,8 +136,7 @@ type StoreCategory =
   | "all"
   | "installed"
   | "updates"
-  | "core-apps"
-  | "circle-apps"
+  | "gnome-apps"
   | "kde-apps"
   | "web-apps"
   | "web-extensions"
@@ -539,23 +538,18 @@ const SIDEBAR_ITEMS: Array<{
 ];
 
 const COLLECTION_ITEMS: Array<{
-  id: CollectionId | "web-apps" | "web-extensions" | "desktop-plugins" | "fonts";
+  id: "gnome-apps" | "kde-apps" | "web-apps" | "web-extensions" | "desktop-plugins" | "fonts";
   label: string;
   icon: React.ReactNode;
 }> = [
   {
-    id: "core-apps",
-    label: "Core Apps",
+    id: "gnome-apps",
+    label: "GNOME",
     icon: <LayersIcon className="size-4" />,
   },
   {
-    id: "circle-apps",
-    label: "Circle Apps",
-    icon: <HeartIcon className="size-4" />,
-  },
-  {
     id: "kde-apps",
-    label: "KDE Apps",
+    label: "KDE",
     icon: <Code2Icon className="size-4" />,
   },
   {
@@ -1362,48 +1356,43 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
     sources.fonts,
   ]);
 
+  const matchesCategory = React.useCallback((item: StoreItem, cat: StoreCategory): boolean => {
+    if (cat === "updates") return false;
+    if (cat === "installed") return item.installed;
+    if (cat === "all") return true;
+    if (cat === "web-apps") return item.kind === "web";
+    if (cat === "web-extensions") return item.kind === "extension";
+    if (cat === "desktop-plugins") return item.kind === "plugin";
+    if (cat === "fonts") return item.kind === "font";
+    if (cat === "gnome-apps" || cat === "kde-apps") {
+      const appId = item.kind === "flatpak" ? item.flatpak?.appId : undefined;
+      if (!appId) return false;
+      return cat === "kde-apps"
+        ? COLLECTION_APP_IDS_BY_COLLECTION["kde-apps"].has(appId)
+        : COLLECTION_APP_IDS_BY_COLLECTION["core-apps"].has(appId) ||
+            COLLECTION_APP_IDS_BY_COLLECTION["circle-apps"].has(appId);
+    }
+    return item.category === cat;
+  }, []);
+
+  const matchesQuery = React.useCallback((item: StoreItem, q: string): boolean => {
+    if (!q) return true;
+    return (
+      item.title.toLowerCase().includes(q) ||
+      item.subtitle.toLowerCase().includes(q) ||
+      item.category.toLowerCase().includes(q) ||
+      (item.flatpak?.appId.toLowerCase().includes(q) ?? false) ||
+      (item.webApp?.keywords?.toLowerCase().includes(q) ?? false) ||
+      (item.extension?.id.toLowerCase().includes(q) ?? false) ||
+      (item.plugin?.id.toLowerCase().includes(q) ?? false) ||
+      (item.font?.fontCategory.toLowerCase().includes(q) ?? false)
+    );
+  }, []);
+
   const filteredItems = React.useMemo(() => {
     const q = query.trim().toLowerCase();
-    return items.filter((item) => {
-      if (category === "updates") return false;
-      if (category === "installed" && !item.installed) return false;
-      if (category === "web-apps") {
-        if (item.kind !== "web") return false;
-      } else if (category === "web-extensions") {
-        if (item.kind !== "extension") return false;
-      } else if (category === "desktop-plugins") {
-        if (item.kind !== "plugin") return false;
-      } else if (category === "fonts") {
-        if (item.kind !== "font") return false;
-      } else if (
-        category === "core-apps" ||
-        category === "circle-apps" ||
-        category === "kde-apps"
-      ) {
-        const ids = COLLECTION_APP_IDS_BY_COLLECTION[category];
-        if (item.kind !== "flatpak" || !item.flatpak || !ids.has(item.flatpak.appId)) {
-          return false;
-        }
-      } else if (
-        category !== "all" &&
-        category !== "installed" &&
-        item.category !== category
-      ) {
-        return false;
-      }
-      if (!q) return true;
-      return (
-        item.title.toLowerCase().includes(q) ||
-        item.subtitle.toLowerCase().includes(q) ||
-        item.category.toLowerCase().includes(q) ||
-        (item.flatpak?.appId.toLowerCase().includes(q) ?? false) ||
-        (item.webApp?.keywords?.toLowerCase().includes(q) ?? false) ||
-        (item.extension?.id.toLowerCase().includes(q) ?? false) ||
-        (item.plugin?.id.toLowerCase().includes(q) ?? false) ||
-        (item.font?.fontCategory.toLowerCase().includes(q) ?? false)
-      );
-    });
-  }, [items, category, query]);
+    return items.filter((item) => matchesCategory(item, category) && matchesQuery(item, q));
+  }, [items, category, query, matchesCategory, matchesQuery]);
 
   const sortedItems = React.useMemo(() => {
     if (sortMode === "default") return filteredItems;
@@ -1446,21 +1435,11 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
   );
 
   const sidebarItems = React.useMemo<AdwSplitSidebarItem[]>(() => {
+    // Counts follow the search; only the three top entries and the current one show one.
+    const q = query.trim().toLowerCase();
     const countFor = (id: StoreCategory): number | undefined => {
       if (id === "updates") return totalUpdatesCount > 0 ? totalUpdatesCount : undefined;
-      if (id === "all") return items.length;
-      if (id === "installed") return items.filter((i) => i.installed).length;
-      if (id === "web-apps") return items.filter((i) => i.kind === "web").length;
-      if (id === "web-extensions") return items.filter((i) => i.kind === "extension").length;
-      if (id === "desktop-plugins") return items.filter((i) => i.kind === "plugin").length;
-      if (id === "fonts") return items.filter((i) => i.kind === "font").length;
-      if (id === "core-apps" || id === "circle-apps" || id === "kde-apps") {
-        const ids = COLLECTION_APP_IDS_BY_COLLECTION[id];
-        return items.filter(
-          (i) => i.kind === "flatpak" && i.flatpak && ids.has(i.flatpak.appId),
-        ).length;
-      }
-      return items.filter((i) => i.category === id).length;
+      return items.filter((i) => matchesCategory(i, id) && matchesQuery(i, q)).length;
     };
     return [...SIDEBAR_ITEMS, ...COLLECTION_ITEMS, ...CATEGORY_ITEMS].map(
       (entry, idx) => ({
@@ -1469,13 +1448,13 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
         icon: entry.icon,
         selected: highlightedCategory === entry.id,
         onClick: () => setCategory(entry.id),
-        badge: countFor(entry.id),
+        badge: idx < SIDEBAR_ITEMS.length || highlightedCategory === entry.id ? countFor(entry.id) : undefined,
         separatorAfter:
           idx === SIDEBAR_ITEMS.length - 1 ||
           idx === SIDEBAR_ITEMS.length + COLLECTION_ITEMS.length - 1,
       }),
     );
-  }, [highlightedCategory, items, totalUpdatesCount]);
+  }, [highlightedCategory, items, matchesCategory, matchesQuery, query, totalUpdatesCount]);
 
   const webAndAppItems = React.useMemo(
     () =>
@@ -2247,6 +2226,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
       isCsd={isCsd}
       sidebarItems={sidebarItems}
       sidebarWidthClass="w-44"
+      sidebarId="app-store-sidebar"
       compactBreakpoint={580}
       sidebarRef={sidebarRef}
       onSidebarKeyDown={onSidebarKeyDown}

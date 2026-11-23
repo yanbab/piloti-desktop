@@ -12,6 +12,10 @@ export interface WebVfsEntry {
   size?: number;
   accessCount?: number;
   trashedFromPath?: string;
+  /** True for a symbolic link; `kind` is then the kind of the link target. */
+  isSymlink?: boolean;
+  /** Absolute path a symbolic link points to. */
+  symlinkTarget?: string;
   metadata?: {
     "standard::content-type"?: string;
     "metadata::emblems"?: string[];
@@ -1758,6 +1762,38 @@ export function copyVfsEntry(
     copyVfsEntry(child.path, folder.path);
   }
   return folder;
+}
+
+/** Creates a symbolic link to `rawSourcePath` inside `rawTargetDir` (browser VFS only). */
+export function createVfsSymlink(
+  rawSourcePath: string,
+  rawTargetDir: string,
+  linkName?: string,
+): WebVfsEntry | null {
+  const srcPath = normalizeVfsPath(rawSourcePath);
+  const targetDir = normalizeVfsPath(rawTargetDir);
+  const src = getVfsEntry(srcPath);
+  if (!src) return null;
+  const entries = loadVfs();
+  const baseName = linkName ?? src.name;
+  const hasExt = src.kind === "file" && /\.[a-z0-9]+$/i.test(baseName);
+  const stem = hasExt ? baseName.replace(/\.[a-z0-9]+$/i, "") : baseName;
+  const ext = hasExt ? baseName.slice(stem.length) : "";
+  const name = uniqueChildName(entries, targetDir, stem, ext);
+  const fullPath = `${targetDir === "/" ? "" : targetDir}/${name}`;
+  const created: WebVfsEntry = {
+    id: fullPath,
+    name,
+    kind: src.kind,
+    path: fullPath,
+    parentPath: targetDir,
+    isSymlink: true,
+    symlinkTarget: srcPath,
+    content: src.kind === "file" ? (src.content ?? "") : undefined,
+    updatedAt: Date.now(),
+  };
+  saveVfs([...entries, created], [created.path]);
+  return created;
 }
 
 export function duplicateVfsEntry(rawPath: string): WebVfsEntry | null {

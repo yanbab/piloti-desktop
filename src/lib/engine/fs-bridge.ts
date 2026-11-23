@@ -1,7 +1,9 @@
 import type { Domicile } from "@domicile-desktop/sdk/desktop/desktop";
 import {
   createVfsFileFromTemplate,
+  copyVfsEntry,
   createVfsFolder,
+  createVfsSymlink,
   createVfsTextFile,
   emptyVfsTrash,
   getVfsDirHiddenNames,
@@ -99,15 +101,23 @@ export async function listFsDir(
       rawEntries.map(async (item): Promise<WebVfsEntry> => {
         const entryPath = `${normDir === "/" ? "" : normDir}/${item.name}`;
         const cached = getVfsEntry(entryPath);
-        const kind = item.fileType === 1 ? "directory" : "file";
+        const isSymlink = item.fileType === 2;
+        let kind: "directory" | "file" = item.fileType === 1 ? "directory" : "file";
+        let symlinkTarget: string | undefined;
         let size = cached?.size;
         let updatedAt = cached?.updatedAt ?? now;
         let realPath: string | undefined;
-        if (kind === "file" && canStat) {
+        if ((kind === "file" || isSymlink) && canStat) {
           try {
             const statRes = await domicile.files.stat(toDomicilePath(entryPath));
             statRes.match({
               Ok: (st) => {
+                if (isSymlink) {
+                  if (st.fileType === 1) kind = "directory";
+                  if (typeof st.realPath === "string" && st.realPath.startsWith("/")) {
+                    symlinkTarget = st.realPath;
+                  }
+                }
                 size = st.size;
                 if (typeof st.modifiedMs === "number") {
                   updatedAt = st.modifiedMs;
@@ -159,6 +169,7 @@ export async function listFsDir(
           size,
           updatedAt,
           metadata,
+          ...(isSymlink ? { isSymlink: true, symlinkTarget } : {}),
         };
       }),
     );
@@ -333,6 +344,16 @@ export function moveFsEntry(
 ): WebVfsEntry | null {
   const oldRel = toDomicilePath(path);
   const moved = moveVfsEntry(path, targetDirPath);
+  if (!moved && !isBrowserRuntime && !isSimulatedUsbPath(path) && !isSimulatedUsbPath(targetDirPath)) {
+    // Native files are not always mirrored in the VFS cache: move on disk anyway.
+    const base = normalizeVfsPath(path).split("/").filter(Boolean).pop();
+    if (base) {
+      const dir = normalizeVfsPath(targetDirPath);
+      const newRel = toDomicilePath(`${dir === "/" ? "" : dir}/${base}`);
+      if (oldRel !== newRel) void domicile.processes.run(["mv", "-n", "--", oldRel, newRel]);
+    }
+    return null;
+  }
   if (
     moved &&
     !isBrowserRuntime &&
@@ -345,6 +366,62 @@ export function moveFsEntry(
     }
   }
   return moved;
+}
+
+/** First name in `dir` not already used, "Name.ext" → "Name 2.ext" (reads the real directory). */
+async function uniqueNativeName(
+  domicile: Domicile,
+  dir: string,
+  name: string,
+): Promise<string> {
+  const res = await domicile.files.readDir(toDomicilePath(dir)).catch(() => undefined);
+  const existing = new Set(
+    res?.match({ Ok: (list) => list.map((e) => e.name.toLowerCase()), Err: () => [] as string[] }) ?? [],
+  );
+  if (!existing.has(name.toLowerCase())) return name;
+  const dot = name.lastIndexOf(".");
+  const hasExt = dot > 0;
+  const stem = hasExt ? name.slice(0, dot) : name;
+  const ext = hasExt ? name.slice(dot) : "";
+  let index = 2;
+  while (existing.has(`${stem} ${index}${ext}`.toLowerCase())) index += 1;
+  return `${stem} ${index}${ext}`;
+}
+
+/**
+ * Copies `srcPath` into `targetDirPath`, or with `symlink` creates a symbolic
+ * link to it there. Returns the created path (null when nothing was created).
+ * In the browser the copy / link lives in the web VFS.
+ */
+export async function copyFsEntry(
+  domicile: Domicile,
+  isBrowserRuntime: boolean,
+  srcPath: string,
+  targetDirPath: string,
+  options: { symlink?: boolean; name?: string } = {},
+): Promise<string | null> {
+  const src = normalizeVfsPath(srcPath);
+  const dir = normalizeVfsPath(targetDirPath);
+  if (isBrowserRuntime || isSimulatedUsbPath(src) || isSimulatedUsbPath(dir)) {
+    const created = options.symlink ? createVfsSymlink(src, dir, options.name) : copyVfsEntry(src, dir);
+    return created?.path ?? null;
+  }
+  const baseName = options.name ?? src.split("/").filter(Boolean).pop() ?? "item";
+  if (!options.symlink && (dir === src || dir.startsWith(`${src}/`))) return null;
+  const name = await uniqueNativeName(domicile, dir, baseName);
+  const dest = `${dir === "/" ? "" : dir}/${name}`;
+  if (options.symlink) {
+    let absTarget = src;
+    const st = await domicile.files.stat(toDomicilePath(src)).catch(() => undefined);
+    const real = st?.match({ Ok: (s) => s.realPath, Err: () => undefined });
+    if (real && real.startsWith("/")) absTarget = real;
+    await domicile.processes.run(["ln", "-s", "--", absTarget, toDomicilePath(dest)]).catch(() => undefined);
+  } else {
+    await domicile.processes
+      .run(["cp", "-a", "--", toDomicilePath(src), toDomicilePath(dest)])
+      .catch(() => undefined);
+  }
+  return dest;
 }
 
 /**

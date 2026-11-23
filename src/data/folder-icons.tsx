@@ -105,7 +105,7 @@ export function inferFileBadge(
     return "empty-text";
   }
   const ext = name?.split(".").pop()?.toLowerCase() ?? "";
-  if (ext === "url" || ext === "webloc" || iconCandidates?.includes("emblem-symbolic-link")) {
+  if (iconCandidates?.includes("emblem-symbolic-link")) {
     return "link";
   }
   if (ext === "pdf" || iconCandidates?.includes("application-pdf")) return "pdf";

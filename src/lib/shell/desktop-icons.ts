@@ -40,6 +40,10 @@ export interface IconGridItem {
   gradient?: string;
   isEmpty?: boolean;
   isHidden?: boolean;
+  /** Symbolic link (shown with an arrow emblem). */
+  isSymlink?: boolean;
+  /** Absolute path a symbolic link points to. */
+  symlinkTarget?: string;
   accessCount?: number;
   desktopEntry?: XdgDesktopEntry;
 }
@@ -312,7 +316,7 @@ export function inferFileVisual(
   name: string,
   fileType: "file" | "directory",
   contentType?: string,
-  options?: { isEmpty?: boolean; isLink?: boolean }
+  options?: { isEmpty?: boolean }
 ): {
   iconName: AppSymbolName;
   gradient: string;
@@ -328,17 +332,6 @@ export function inferFileVisual(
 
   const isEmpty = Boolean(options?.isEmpty);
   const nameLower = name.toLowerCase();
-  if (
-    options?.isLink ||
-    /\.(url|webloc)$/.test(nameLower) ||
-    (nameLower.endsWith(".desktop") && nameLower.startsWith("link to "))
-  ) {
-    return {
-      iconName: "globe",
-      gradient: "from-sky-500 via-cyan-500 to-teal-600",
-      iconCandidates: ["emblem-symbolic-link"],
-    };
-  }
   if (nameLower.endsWith(".desktop")) {
     return {
       iconName: "sparkles",

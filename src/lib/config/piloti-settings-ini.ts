@@ -25,7 +25,6 @@ const SETTINGS_INI_SCHEMA: readonly SchemaEntry[] = [
   ["org.piloti.desktop.interface", "icon-theme", "iconTheme", "string"],
   ["org.piloti.desktop.interface", "reduce-motion", "reduceMotion", "boolean"],
   ["org.piloti.desktop.interface", "more-transparency", "moreTransparency", "boolean"],
-  ["org.piloti.desktop.interface", "touch-mode", "touchMode", "boolean"],
 
   ["org.piloti.desktop.fonts", "font-name", "fontSansFamily", "string"],
   ["org.piloti.desktop.fonts", "monospace-font-name", "fontMonoFamily", "string"],
@@ -99,6 +98,7 @@ const SETTINGS_INI_SCHEMA: readonly SchemaEntry[] = [
   ["org.piloti.desktop.system", "prefer-gnome-control-center", "preferGnomeControlCenter", "boolean"],
   ["org.piloti.desktop.system", "hidden-gnome-panels", "hiddenGnomePanels", "string[]"],
   ["org.piloti.desktop.system", "demo-extension-enabled", "demoExtensionEnabled", "boolean"],
+  ["org.piloti.desktop.system", "pinned-extensions", "pinnedExtensionIds", "string[]"],
   ["org.piloti.desktop.system", "dark-reader-web-enabled", "darkReaderWebEnabled", "boolean"],
   ["org.piloti.desktop.system", "enabled-plugins", "enabledPluginIds", "string[]"],
   ["org.piloti.desktop.system", "web-apps-seeded", "webAppsSeeded", "boolean"],

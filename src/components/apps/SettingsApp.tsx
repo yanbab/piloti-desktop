@@ -246,6 +246,7 @@ export function SettingsApp({
       isCsd={isCsd}
       sidebarItems={sidebarItems}
       sidebarWidthClass="w-[176px]"
+      sidebarId="settings-sidebar"
       sidebarDensity="tall"
       sidebarRef={sidebarNavRef}
       onSidebarKeyDown={onSidebarKeyDown}

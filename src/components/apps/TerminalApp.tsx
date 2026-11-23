@@ -100,6 +100,7 @@ const TERMINAL_COMMANDS = [
   "piloti-files",
   "piloti-notepad",
   "piloti-calculator",
+  "piloti-camera",
   "piloti-image-viewer",
   "piloti-login",
 ] as const;

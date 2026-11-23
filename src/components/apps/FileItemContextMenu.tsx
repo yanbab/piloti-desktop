@@ -47,6 +47,7 @@ export function FileItemContextMenu({
   onMakeLink,
   onOpenInNewWindow,
   onOpenContainingFolder,
+  onShowOriginal,
   onRestore,
   onRestoreItems,
   onOpenInTerminal,
@@ -75,6 +76,8 @@ export function FileItemContextMenu({
   onMakeLink?: (items: IconGridItem[]) => void;
   onOpenInNewWindow?: (item: IconGridItem) => void;
   onOpenContainingFolder?: (item: IconGridItem) => void;
+  /** Symbolic links: reveal the target in Folders. */
+  onShowOriginal?: (item: IconGridItem) => void;
   onRestore?: (item: IconGridItem) => void;
   onRestoreItems?: (items: IconGridItem[]) => void;
   onOpenInTerminal?: (item: IconGridItem) => void;
@@ -136,10 +139,11 @@ export function FileItemContextMenu({
   const isVirtualView =
     effectiveContext === "favorites" || effectiveContext === "recents";
 
-  const canCut = hasSelection && (onCutItems || onCut) && !isVirtualView;
+  const inTrash = effectiveContext === "trash";
+  const canCut = hasSelection && (onCutItems || onCut) && !isVirtualView && !inTrash;
   const canCopy = hasSelection && (onCopyItems || onCopy);
-  const canDoDuplicate = hasSelection && Boolean(onDuplicate) && !isVirtualView;
-  const canDoCompress = hasSelection && Boolean(onCompress) && !isVirtualView;
+  const canDoDuplicate = hasSelection && Boolean(onDuplicate) && !isVirtualView && !inTrash;
+  const canDoCompress = hasSelection && Boolean(onCompress) && !isVirtualView && !inTrash;
   const showCompress = Boolean(onCompress);
   const showExtract = Boolean(
     onExtract &&
@@ -153,7 +157,7 @@ export function FileItemContextMenu({
     isBrowserRuntime &&
     isSingle &&
     menu.item.kind === "file";
-  const canDoRename = isSingle && !isVirtualView;
+  const canDoRename = isSingle && !isVirtualView && !inTrash;
   const canDoPaste = Boolean(onPaste) && canPaste && !isVirtualView;
   const canDoTrash = hasSelection;
 
@@ -269,6 +273,20 @@ export function FileItemContextMenu({
                 className={itemBtnClass}
               >
                 {_("Open Containing Folder")}
+              </button>
+            )}
+            {isSingle && onShowOriginal && menu.item.isSymlink && menu.item.symlinkTarget && (
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  const target = menu.item;
+                  onClose();
+                  onShowOriginal(target);
+                }}
+                className={itemBtnClass}
+              >
+                {_("Show Original")}
               </button>
             )}
             {isSingle && onOpenInTerminal && menu.item.kind === "directory" && (

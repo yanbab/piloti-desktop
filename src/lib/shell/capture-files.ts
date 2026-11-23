@@ -26,3 +26,43 @@ export function parseOpenAction(action: string): string | null {
   const path = action.slice(OPEN_ACTION_PREFIX.length).trim();
   return path || null;
 }
+
+/** Local "YYYY-MM-DD HH:mm" stamp used in capture file names ("/" is not allowed in file names). */
+export function captureStamp(date = new Date()): string {
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${p(date.getMonth() + 1)}-${p(date.getDate())} ${p(date.getHours())}:${p(date.getMinutes())}`;
+}
+
+/** "2 min. 23s" / "45s" / "1 h 02 min. 03s". */
+export function formatCaptureDuration(ms: number): string {
+  const total = Math.max(0, Math.round(ms / 1000));
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const sec = total % 60;
+  if (h > 0) return `${h} h ${String(m).padStart(2, "0")} min. ${String(sec).padStart(2, "0")}s`;
+  if (m > 0) return `${m} min. ${String(sec).padStart(2, "0")}s`;
+  return `${sec}s`;
+}
+
+/** `"<base>.<ext>"`, or `"<base> (2).<ext>"`… when the name is taken. */
+export function uniqueCaptureName(existingNames: Iterable<string>, base: string, ext: string): string {
+  const existing = new Set(existingNames);
+  let name = `${base}.${ext}`;
+  for (let n = 2; existing.has(name); n += 1) name = `${base} (${n}).${ext}`;
+  return name;
+}
+
+/** "Screenshot 320x200 2026-11-23 15:34" */
+export function screenshotBaseName(width: number, height: number, date = new Date()): string {
+  return `Screenshot ${width}x${height} ${captureStamp(date)}`;
+}
+
+/** "Video recording - 2 min. 23s - 2026-11-23 15:34" */
+export function videoBaseName(durationMs: number, date = new Date()): string {
+  return `Video recording - ${formatCaptureDuration(durationMs)} - ${captureStamp(date)}`;
+}
+
+/** "Audio recording - 45s - 2026-11-23 15:34" */
+export function audioBaseName(durationMs: number, date = new Date()): string {
+  return `Audio recording - ${formatCaptureDuration(durationMs)} - ${captureStamp(date)}`;
+}

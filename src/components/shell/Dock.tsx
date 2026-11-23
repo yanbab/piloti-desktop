@@ -1,5 +1,6 @@
 import * as React from "react";
 import { watchNativeDir } from "@/lib/engine-native/file-watch";
+import Sortable from "sortablejs";
 import { countRender } from "@/lib/core/render-stats";
 import { useDomicile } from "@domicile-desktop/react/domicile-provider";
 import {
@@ -126,9 +127,6 @@ export const Dock = React.memo(function Dock() {
   }, [dockIconsReady, entered]);
   const [dragDockSize, setDragDockSize] = React.useState<number | null>(null);
   const [resizingDock, setResizingDock] = React.useState(false);
-  const [dragPinnedOrder, setDragPinnedOrder] = React.useState<string[] | null>(
-    null
-  );
   const [draggingAppId, setDraggingAppId] = React.useState<string | null>(null);
   const [dropTargetAppId, setDropTargetAppId] = React.useState<string | null>(
     null
@@ -277,7 +275,7 @@ export const Dock = React.memo(function Dock() {
   const dockTilesRef = React.useRef<Map<string, HTMLElement>>(new Map());
   const dockPosition = settings.dockPosition ?? "bottom";
   const isVerticalDock = dockPosition === "left" || dockPosition === "right";
-  const effectivePinnedIds = dragPinnedOrder ?? settings.pinnedAppIds;
+  const effectivePinnedIds = settings.pinnedAppIds;
   const [viewportSize, setViewportSize] = React.useState(() => ({
     width: typeof window !== "undefined" ? window.innerWidth : 1280,
     height: typeof window !== "undefined" ? window.innerHeight : 800,
@@ -485,79 +483,56 @@ export const Dock = React.memo(function Dock() {
     return [...pinnedDefs, ...extras];
   }, [effectivePinnedIds, isBrowserRuntime, launchingApps, resolveAppDefinition, windows]);
 
-  const startPinnedReorder = (
-    appId: string,
-    event: React.PointerEvent<HTMLElement>
-  ) => {
-    if (event.button !== 0 || !settings.pinnedAppIds.includes(appId)) return;
-    const startCoord = isVerticalDock ? event.clientY : event.clientX;
-    let engaged = false;
-    let latestOrder = [...settings.pinnedAppIds];
-
-    const onMove = (moveEvent: PointerEvent) => {
-      const pointerCoord = isVerticalDock ? moveEvent.clientY : moveEvent.clientX;
-      if (!engaged) {
-        if (Math.abs(pointerCoord - startCoord) < 6) return;
-        engaged = true;
+  // Reordering pinned apps: SortableJS moves the tiles for a smooth FLIP animation, then we
+  // put the DOM back and let React render the new order from settings (React owns the DOM).
+  const pinnedKey = settings.pinnedAppIds.join("\u0000");
+  const updateSettingsRef = React.useRef(updateSettings);
+  updateSettingsRef.current = updateSettings;
+  const pinnedIdsRef = React.useRef(settings.pinnedAppIds);
+  pinnedIdsRef.current = settings.pinnedAppIds;
+  React.useEffect(() => {
+    const firstTile = dockTilesRef.current.values().next().value as HTMLElement | undefined;
+    const host = firstTile?.parentElement;
+    if (!host) return;
+    let snapshot: Element[] = [];
+    const sortable = Sortable.create(host, {
+      draggable: "[data-dock-pinned-id]",
+      animation: 180,
+      easing: "cubic-bezier(0.22, 1, 0.36, 1)",
+      forceFallback: true,
+      fallbackOnBody: true,
+      fallbackTolerance: 6,
+      direction: isVerticalDock ? "vertical" : "horizontal",
+      ghostClass: "dock-sortable-ghost",
+      chosenClass: "dock-sortable-chosen",
+      dragClass: "dock-sortable-drag",
+      swapThreshold: 0.6,
+      // Only pinned apps can swap places with each other.
+      onMove: (evt) => evt.related.hasAttribute("data-dock-pinned-id"),
+      onStart: (evt) => {
+        snapshot = Array.from(evt.from.children);
         didReorderRef.current = true;
-        setDraggingAppId(appId);
-        setDragPinnedOrder(latestOrder);
-      }
-
-      const slots: { id: string; mid: number }[] = [];
-      for (const id of latestOrder) {
-        const tileEl = dockTilesRef.current.get(id);
-        if (!tileEl) continue;
-        const rect = tileEl.getBoundingClientRect();
-        if (rect.width <= 0) continue;
-        slots.push({
-          id,
-          mid: isVerticalDock
-            ? rect.top + rect.height / 2
-            : rect.left + rect.width / 2,
-        });
-      }
-      if (slots.length < 2) return;
-
-      const others = slots.filter((s) => s.id !== appId);
-      let targetIdx = others.length;
-      for (let i = 0; i < others.length; i++) {
-        if (pointerCoord < others[i].mid) {
-          targetIdx = i;
-          break;
-        }
-      }
-
-      const nextOrder = others.map((s) => s.id);
-      nextOrder.splice(targetIdx, 0, appId);
-      if (nextOrder.some((id, idx) => id !== latestOrder[idx])) {
-        latestOrder = nextOrder;
-        setDragPinnedOrder(nextOrder);
-      }
-    };
-
-    const cleanup = () => {
-      window.removeEventListener("pointermove", onMove);
-      window.removeEventListener("pointerup", onEnd);
-      window.removeEventListener("pointercancel", onEnd);
-    };
-
-    const onEnd = () => {
-      cleanup();
-      if (engaged) {
+        setDraggingAppId(evt.item.getAttribute("data-dock-pinned-id"));
+      },
+      onEnd: (evt) => {
+        const order = Array.from(evt.from.querySelectorAll("[data-dock-pinned-id]"))
+          .map((el) => el.getAttribute("data-dock-pinned-id"))
+          .filter((id): id is string => Boolean(id));
+        // Hand the DOM back to React before it re-renders.
+        for (const node of snapshot) evt.from.appendChild(node);
         setDraggingAppId(null);
-        setDragPinnedOrder(null);
-        updateSettings({ pinnedAppIds: latestOrder });
+        const current = pinnedIdsRef.current;
+        const changed =
+          order.length === current.length && order.some((id, i) => id !== current[i]);
+        if (changed) updateSettingsRef.current({ pinnedAppIds: order });
         requestAnimationFrame(() => {
           didReorderRef.current = false;
         });
-      }
-    };
-
-    window.addEventListener("pointermove", onMove);
-    window.addEventListener("pointerup", onEnd);
-    window.addEventListener("pointercancel", onEnd);
-  };
+      },
+    });
+    return () => sortable.destroy();
+    // Re-bind when tiles appear / disappear (pinned set or dock direction changes).
+  }, [isVerticalDock, pinnedKey, dockApps.length]);
 
   const focusedAppId = windows.find((w) => w.id === focusedWindowId)?.appId;
   React.useEffect(() => {
@@ -766,9 +741,6 @@ export const Dock = React.memo(function Dock() {
                   "data-dock-context": `app:${app.id}`,
                   "data-dock-pinned-id": isPinned ? app.id : undefined,
                   "data-dock-app-id": app.id,
-                  onPointerDown: (e) => {
-                    if (isPinned) startPinnedReorder(app.id, e);
-                  },
                   onAuxClick: (e) => {
                     if (e.button === 1 && isRunning) {
                       e.preventDefault();

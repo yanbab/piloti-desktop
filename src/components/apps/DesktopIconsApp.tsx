@@ -1,7 +1,14 @@
 import * as React from "react";
 import { useOpenPath } from "@/hooks/use-open-path";
-import { createFsTextFile } from "@/lib/engine/fs-bridge";
-import { buildLinkFile, isLinkFile, linkFileNameFor, pathToFileUrl } from "@/lib/shell/link-files";
+import { copyFsEntry, createFsFolder, createFsTextFile, moveFsEntry } from "@/lib/engine/fs-bridge";
+import {
+  moveWithUndo,
+  onFileUndoApplied,
+  recordCreated,
+  redoFileOperation,
+  trashWithUndo,
+  undoFileOperation,
+} from "@/lib/engine/fs-undo";
 import { watchNativeDir } from "@/lib/engine-native/file-watch";
 import { useDomicile } from "@domicile-desktop/react/domicile-provider";
 import { FileType } from "@domicile-desktop/sdk/system";
@@ -30,11 +37,12 @@ import {
 } from "@/lib/shell/desktop-icons";
 import { launchDesktopCommand } from "@/lib/engine-native";
 import { _ } from "@/lib/core/i18n";
+import { cn } from "@/lib/core/utils";
+import { MENU_ITEM_CLASS, MENU_POPUP_CLASS } from "@/components/ui/menu-styles";
 import { startBootPhase } from "@/lib/core/perf-log";
 import { parseDesktopEntry } from "@/lib/xdg/xdg-desktop-entry";
 import {
   buildVfsEntryWebAppUrl,
-  copyVfsEntry,
   createVfsFileFromTemplate,
   createVfsFolder,
   createVfsTextFile,
@@ -47,7 +55,7 @@ import {
   isImageVfsFile,
   isTextEditableVfsFile,
   listVfsDir,
-  moveVfsEntry,
+  normalizeVfsPath,
   parseDotHiddenFile,
   renameVfsEntry,
   setVfsClipboard,
@@ -98,6 +106,7 @@ export function DesktopIconsApp({
   );
   const [contextMenu, setContextMenu] =
     React.useState<FileItemContextMenuState | null>(null);
+  const [bgMenu, setBgMenu] = React.useState<{ x: number; y: number } | null>(null);
   const initialDesktopLoadLoggedRef = React.useRef(false);
 
   React.useEffect(() => {
@@ -131,7 +140,7 @@ export function DesktopIconsApp({
             entry.name,
             entry.kind,
             getVfsContentType(entry),
-            { isEmpty, isLink: entry.kind === "file" && isLinkFile(entry.name, entry.content) }
+            { isEmpty }
           );
           for (const candidate of visual.iconCandidates) {
             iconCandidatesToEnsure.add(candidate);
@@ -145,6 +154,8 @@ export function DesktopIconsApp({
             iconCandidates: visual.iconCandidates,
             gradient: visual.gradient,
             isEmpty,
+            isSymlink: entry.isSymlink,
+            symlinkTarget: entry.symlinkTarget,
             accessCount:
               entry.kind === "file" ? (entry.accessCount ?? 0) : undefined,
             iconUrl: visual.iconCandidates
@@ -197,8 +208,16 @@ export function DesktopIconsApp({
       const built: IconGridItem[] = await Promise.all(
         visible.map(async (entry): Promise<IconGridItem> => {
           const fullPath = `${desktopDirPath.replace(/\/+$/, "")}/${entry.name}`;
-          const entryFileType: "file" | "directory" =
+          const isSymlink = entry.fileType === FileType.Symlink;
+          let entryFileType: "file" | "directory" =
             entry.fileType === FileType.Directory ? "directory" : "file";
+          if (isSymlink && typeof domicile.files.stat === "function") {
+            // Follow the link to know whether it points at a folder.
+            const linkStat = await domicile.files.stat(fullPath).catch(() => undefined);
+            if (linkStat?.match({ Ok: (st) => st.fileType === FileType.Directory, Err: () => false })) {
+              entryFileType = "directory";
+            }
+          }
 
           if (entryFileType === "file" && entry.name.endsWith(".desktop")) {
             try {
@@ -270,6 +289,7 @@ export function DesktopIconsApp({
             iconCandidates: visual.iconCandidates,
             gradient: visual.gradient,
             isEmpty,
+            isSymlink: isSymlink || undefined,
             accessCount:
               entryFileType === "file"
                 ? (getVfsEntry(fullPath)?.accessCount ?? 0)
@@ -306,6 +326,8 @@ export function DesktopIconsApp({
     isBrowserRuntime,
     settings.desktopIconsEnabled,
   ]);
+
+  React.useEffect(() => onFileUndoApplied(() => void loadDesktopFolder()), [loadDesktopFolder]);
 
   React.useEffect(() => {
     if (!settings.desktopIconsEnabled || !dockIconsReady) return;
@@ -516,24 +538,11 @@ export function DesktopIconsApp({
   const handleMoveToTrash = React.useCallback(
     async (item: IconGridItem) => {
       setContextMenu(null);
-      if (!isBrowserRuntime) {
-        await domicile.processes
-          .run([
-            "sh",
-            "-c",
-            'if command -v gio >/dev/null 2>&1; then gio trash "$1"; else mkdir -p "$HOME/.local/share/Trash/files" "$HOME/.local/share/Trash/info" && base=$(basename "$1") && mv -f "$1" "$HOME/.local/share/Trash/files/$base"; fi',
-            "sh",
-            item.path,
-          ])
-          .catch(() => undefined);
-        await loadDesktopFolder();
-      } else {
-        trashVfsEntry(item.path);
-        await loadDesktopFolder();
-      }
+      trashWithUndo({ domicile, isBrowserRuntime }, [item.path]);
+      await loadDesktopFolder();
       setSelectedIds((prev) => prev.filter((id) => id !== item.id));
     },
-    [domicile.processes, isBrowserRuntime, loadDesktopFolder]
+    [domicile, isBrowserRuntime, loadDesktopFolder]
   );
 
   // Re-attach resolved XDG icon URLs once asynchronous icon loading completes
@@ -697,34 +706,43 @@ export function DesktopIconsApp({
 
   const handlePasteToDesktop = React.useCallback(async () => {
     const clip = getVfsClipboard();
-    if (!clip || clip.paths.length === 0 || !isBrowserRuntime) return;
-    for (const srcPath of clip.paths) {
-      if (clip.mode === "cut") {
-        moveVfsEntry(srcPath, desktopDirPath);
-      } else {
-        copyVfsEntry(srcPath, desktopDirPath);
+    if (!clip || clip.paths.length === 0) return;
+    const ctx = { domicile, isBrowserRuntime };
+    if (clip.mode === "cut") {
+      moveWithUndo(ctx, clip.paths, desktopDirPath);
+    } else {
+      const created: string[] = [];
+      for (const srcPath of clip.paths) {
+        const path = await copyFsEntry(domicile, isBrowserRuntime, srcPath, desktopDirPath);
+        if (path) created.push(path);
       }
+      recordCreated(ctx, created, "Paste");
     }
     if (clip.mode === "cut") {
       setVfsClipboard(null);
     }
     await loadDesktopFolder();
-  }, [desktopDirPath, isBrowserRuntime, loadDesktopFolder]);
+  }, [desktopDirPath, domicile, isBrowserRuntime, loadDesktopFolder]);
 
   const handleDuplicateItems = React.useCallback(
     async (list: IconGridItem[]) => {
-      if (!isBrowserRuntime) return;
-      const createdNames: string[] = [];
+      const createdPaths: string[] = [];
       for (const item of list) {
-        const dup = duplicateVfsEntry(item.path);
-        if (dup) createdNames.push(dup.name);
+        const dot = item.name.lastIndexOf(".");
+        const name =
+          dot > 0 && item.kind !== "directory"
+            ? `${item.name.slice(0, dot)} Copy${item.name.slice(dot)}`
+            : `${item.name} Copy`;
+        const path = await copyFsEntry(domicile, isBrowserRuntime, item.path, desktopDirPath, { name });
+        if (path) createdPaths.push(path);
       }
+      recordCreated({ domicile, isBrowserRuntime }, createdPaths, "Duplicate");
       await loadDesktopFolder();
-      if (createdNames.length > 0) {
-        setSelectedIds(createdNames);
+      if (createdPaths.length > 0) {
+        setSelectedIds(createdPaths.map((p) => p.split("/").pop() ?? p));
       }
     },
-    [isBrowserRuntime, loadDesktopFolder]
+    [desktopDirPath, domicile, isBrowserRuntime, loadDesktopFolder]
   );
 
   const handleMoveItemsToTrash = React.useCallback(
@@ -737,26 +755,37 @@ export function DesktopIconsApp({
   );
 
   const handleDropDesktopItems = React.useCallback(
-    async (droppedItems: IconGridItem[], destPath: string) => {
+    async (droppedItems: IconGridItem[], destPath: string, opts?: { copy?: boolean }) => {
       if (destPath === WEB_VFS_TRASH) {
         await handleMoveItemsToTrash(droppedItems);
         return;
       }
-      if (!isBrowserRuntime) return;
+      if (opts?.copy) {
+        const created: string[] = [];
+        for (const item of droppedItems) {
+          const path = await copyFsEntry(domicile, isBrowserRuntime, item.path, destPath);
+          if (path) created.push(path);
+        }
+        recordCreated({ domicile, isBrowserRuntime }, created, "Copy");
+        await loadDesktopFolder();
+        return;
+      }
       const movedIds = new Set<string>();
+      const toMove: string[] = [];
       for (const item of droppedItems) {
         if (item.path === destPath || destPath.startsWith(`${item.path}/`)) {
           continue;
         }
-        moveVfsEntry(item.path, destPath);
+        toMove.push(item.path);
         movedIds.add(item.id);
       }
+      moveWithUndo({ domicile, isBrowserRuntime }, toMove, destPath);
       if (movedIds.size > 0) {
         await loadDesktopFolder();
         setSelectedIds((prev) => prev.filter((id) => !movedIds.has(id)));
       }
     },
-    [handleMoveItemsToTrash, isBrowserRuntime, loadDesktopFolder]
+    [domicile, handleMoveItemsToTrash, isBrowserRuntime, loadDesktopFolder]
   );
 
   if (!settings.desktopIconsEnabled) return null;
@@ -770,6 +799,12 @@ export function DesktopIconsApp({
       data-vfs-drop-path={desktopDirPath}
       style={{ bottom: `${bottomInset}px` }}
       className="pointer-events-auto absolute inset-x-0 top-0 z-0"
+      onContextMenu={(e) => {
+        if (e.defaultPrevented) return;
+        e.preventDefault();
+        setContextMenu(null);
+        setBgMenu({ x: e.clientX, y: e.clientY });
+      }}
       onKeyDown={(e) => {
         if (renamingId || e.target instanceof HTMLInputElement) return;
         const mod = e.ctrlKey || e.metaKey;
@@ -786,6 +821,10 @@ export function DesktopIconsApp({
             mode: "cut",
             paths: selectedItems.map((i) => i.path),
           });
+        } else if (mod && (key === "z" || key === "y")) {
+          e.preventDefault();
+          if (key === "y" || e.shiftKey) void redoFileOperation();
+          else void undoFileOperation();
         } else if (mod && key === "v") {
           e.preventDefault();
           void handlePasteToDesktop();
@@ -856,8 +895,8 @@ export function DesktopIconsApp({
         currentDirPath={desktopDirPath}
         positions={settings.desktopIconPositions}
         onMoveItems={handleMoveItems}
-        onDropItems={(dropped, destPath) =>
-          void handleDropDesktopItems(dropped, destPath)
+        onDropItems={(dropped, destPath, opts) =>
+          void handleDropDesktopItems(dropped, destPath, opts)
         }
         onActivateItem={handleActivateItem}
         onContextMenuItem={(item, e) => {
@@ -883,6 +922,71 @@ export function DesktopIconsApp({
         </div>
       )}
 
+      {bgMenu && (
+        <div
+          className="fixed inset-0 z-[500]"
+          onClick={() => setBgMenu(null)}
+          onContextMenu={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setBgMenu(null);
+          }}
+        >
+          <div
+            role="menu"
+            style={{
+              left: `${Math.min(window.innerWidth - 200, bgMenu.x)}px`,
+              top: `${Math.min(window.innerHeight - 200, bgMenu.y)}px`,
+            }}
+            onClick={(e) => e.stopPropagation()}
+            className={cn(MENU_POPUP_CLASS, "fixed min-w-48")}
+          >
+            {(
+              [
+                [
+                  _("New Folder"),
+                  () => {
+                    const created = createFsFolder(domicile, isBrowserRuntime, desktopDirPath);
+                    recordCreated({ domicile, isBrowserRuntime }, [created.path], "New Folder");
+                    void loadDesktopFolder();
+                  },
+                  false,
+                ],
+                [
+                  _("New Text File"),
+                  () => {
+                    const created = createFsTextFile(domicile, isBrowserRuntime, desktopDirPath);
+                    recordCreated({ domicile, isBrowserRuntime }, [created.path], "New Text File");
+                    void loadDesktopFolder();
+                  },
+                  false,
+                ],
+                [_("Paste"), () => void handlePasteToDesktop(), !clipboard || clipboard.paths.length === 0],
+                [_("Open in Terminal"), () => launchApp("terminal", { payload: desktopDirPath, forceNew: true }), false],
+                [_("Change Wallpaper…"), () => launchApp("settings", { payload: "wallpaper" }), false],
+              ] as Array<[string, () => void, boolean]>
+            ).map(([label, run, disabled]) => (
+              <button
+                key={label}
+                type="button"
+                role="menuitem"
+                disabled={disabled}
+                onClick={() => {
+                  setBgMenu(null);
+                  run();
+                }}
+                className={cn(
+                  MENU_ITEM_CLASS,
+                  "w-full text-left hover:bg-adw-menu-highlight disabled:pointer-events-none disabled:opacity-40",
+                )}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       <FileItemContextMenu
         menu={contextMenu}
         context="desktop"
@@ -895,19 +999,19 @@ export function DesktopIconsApp({
           });
         }}
         onMakeLink={(list) => {
-          const created: string[] = [];
-          for (const target of list) {
-            const link = createFsTextFile(
-              domicile,
-              isBrowserRuntime,
-              desktopDirPath,
-              linkFileNameFor(target.name),
-              buildLinkFile({ name: target.name, url: pathToFileUrl(target.path) }),
-            );
-            created.push(link.name);
-          }
-          void loadDesktopFolder();
-          if (created.length > 0) setSelectedIds(created);
+          void Promise.all(
+            list.map((target) =>
+              copyFsEntry(domicile, isBrowserRuntime, target.path, desktopDirPath, {
+                symlink: true,
+                name: _("Link to {name}").replace("{name}", target.name),
+              }),
+            ),
+          ).then(() => loadDesktopFolder());
+        }}
+        onShowOriginal={(target) => {
+          const dest = target.symlinkTarget;
+          if (!dest) return;
+          launchApp("nautilus", { payload: dest.replace(/\/[^/]*$/, "") || "/", forceNew: true });
         }}
         onOpenInNewWindow={(target) =>
           launchApp("nautilus", { payload: target.path, forceNew: true })

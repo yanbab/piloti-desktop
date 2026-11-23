@@ -12,7 +12,6 @@ import {
   FlameIcon,
   GaugeIcon,
   LockIcon,
-  MicIcon,
   MoonIcon,
   Music2Icon,
   PauseIcon,
@@ -69,7 +68,6 @@ export function ControlPanel() {
     markAllNotificationsRead,
     takeScreenshot,
     startScreenRecording,
-    startAudioRecording,
   } = useSystemBackends();
   const { setControlPanelOpen, launchApp, openGnomeSettings } =
     useWindowActions();
@@ -193,17 +191,6 @@ export function ControlPanel() {
             className="flex size-7 items-center justify-center rounded-full bg-black/8 text-adw-label active:bg-black/16 dark:bg-white/10 dark:active:bg-white/22"
           >
             <VideoIcon className="size-3.5" />
-          </button>
-          <button
-            type="button"
-            title={_("Record Audio")}
-            onClick={() => {
-              setControlPanelOpen(false);
-              void startAudioRecording();
-            }}
-            className="flex size-7 items-center justify-center rounded-full bg-black/8 text-adw-label active:bg-black/16 dark:bg-white/10 dark:active:bg-white/22"
-          >
-            <MicIcon className="size-3.5" />
           </button>
         </div>
       </div>

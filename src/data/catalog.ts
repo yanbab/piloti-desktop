@@ -200,6 +200,7 @@ export type BuiltinAppId =
   | "app-store"
   | "calculator"
   | "image-viewer"
+  | "camera"
   | "login-screen";
 
 export interface AppMenuSection {
@@ -324,6 +325,8 @@ export const APP_CATALOG: AppDefinition[] = [
       {
         title: "Edit",
         items: [
+          { label: "Undo", shortcut: "Ctrl+Z", actionId: "files:undo" },
+          { label: "Redo", shortcut: "Ctrl+Shift+Z", actionId: "files:redo", separatorAfter: true },
           { label: "Cut", shortcut: "Ctrl+X", actionId: "files:cut" },
           { label: "Copy", shortcut: "Ctrl+C", actionId: "files:copy" },
           { label: "Paste", shortcut: "Ctrl+V", actionId: "files:paste" },
@@ -469,6 +472,22 @@ export const APP_CATALOG: AppDefinition[] = [
         ],
       },
     ],
+  },
+  {
+    id: "camera",
+    name: "Camera",
+    shortName: "Camera",
+    description: "Take photos, record video and audio with the camera and microphone",
+    category: "Utilities",
+    iconName: "sparkles",
+    xdgIcons: ["org.gnome.Snapshot", "camera-photo", "piloti-camera"],
+    gradient: "from-rose-500 via-red-500 to-orange-500",
+    pinnedByDefault: false,
+    builtinComponent: "camera",
+    command: "piloti-camera",
+    defaultSize: { width: 560, height: 420 },
+    minSize: { width: 320, height: 260 },
+    menus: [],
   },
   {
     id: "image-viewer",

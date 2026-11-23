@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Camera
+Comment=Take photos, record video and audio
+Exec=piloti-camera
+Icon=org.gnome.Snapshot
+Categories=AudioVideo;Video;Recorder;
+OnlyShowIn=Piloti;

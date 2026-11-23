@@ -4,6 +4,7 @@ import { countRender } from "@/lib/core/render-stats";
 import { createPortal } from "react-dom";
 import { useDomicile } from "@domicile-desktop/react/domicile-provider";
 import { useWatch } from "@domicile-desktop/react/use-watch";
+import { useCaptureActivity } from "@/lib/shell/capture-activity";
 import { CapturingKind } from "@domicile-desktop/sdk/portal";
 import {
   BatteryChargingIcon,
@@ -242,6 +243,7 @@ function menuBarStateEqual(a: MenuBarState, b: MenuBarState): boolean {
 export const MenuBar = React.memo(function MenuBar() {
   countRender("MenuBar");
   const domicile = useDomicile();
+  const captureActivity = useCaptureActivity();
   const { statusItems } = usePlugins();
   const { isBrowserRuntime, settings, updateSettings } = useChromeSettings();
   const { installedXdgApps, launchXdgEntry } = useApps();
@@ -377,6 +379,7 @@ export const MenuBar = React.memo(function MenuBar() {
         hour12: !settings.clock24Hour,
         hour: settings.clock24Hour ? "2-digit" : "numeric",
         minute: "2-digit",
+        ...(settings.clockShowSeconds ? { second: "2-digit" as const } : {}),
       });
       return dateParts.length > 0
         ? `${dateParts.join(" ")},\u00A0 ${timeStr}`
@@ -385,6 +388,7 @@ export const MenuBar = React.memo(function MenuBar() {
     [
       localeTag,
       settings.clock24Hour,
+      settings.clockShowSeconds,
       settings.clockShowDate,
       settings.clockShowDay,
     ],
@@ -400,7 +404,9 @@ export const MenuBar = React.memo(function MenuBar() {
     let timer: ReturnType<typeof setTimeout>;
     const schedule = () => {
       const now = new Date();
-      const msToNextMinute = 60_000 - (now.getSeconds() * 1000 + now.getMilliseconds()) + 50;
+      const msToNextMinute = settings.clockShowSeconds
+        ? 1000 - now.getMilliseconds() + 20
+        : 60_000 - (now.getSeconds() * 1000 + now.getMilliseconds()) + 50;
       timer = setTimeout(() => {
         const next = formatTime(new Date());
         setFormattedClock((prev) => (prev === next ? prev : next));
@@ -420,7 +426,7 @@ export const MenuBar = React.memo(function MenuBar() {
       clearTimeout(timer);
       document.removeEventListener("visibilitychange", onVisible);
     };
-  }, [formatTime]);
+  }, [formatTime, settings.clockShowSeconds]);
 
   const headerRef = React.useRef<HTMLElement | null>(null);
 
@@ -626,7 +632,7 @@ export const MenuBar = React.memo(function MenuBar() {
             >
               <PilotiLogo className="size-4.5" />
             </MenubarTrigger>
-            <MenubarContent>
+            <MenubarContent alignOffset={6}>
               <MenubarItem onClick={() => setAboutOpen(true)}>
                 {_("About Computer")}
               </MenubarItem>
@@ -1117,30 +1123,19 @@ export const MenuBar = React.memo(function MenuBar() {
       <button
         type="button"
         data-menubar-nav="workspace"
-        aria-label={settings.touchMode ? _("Window Switcher") : "Toggle Overview"}
-        title={settings.touchMode ? _("Window Switcher") : "Overview (Meta+↑ / F3)"}
+        aria-label="Toggle Overview"
+        title="Overview (Meta+↑ / F3)"
         aria-pressed={overviewOpen}
         onClick={() => toggleOverview()}
         className={cn(
-          settings.touchMode ? "flex" : "hidden md:flex",
+          "hidden md:flex",
           "h-full shrink-0 cursor-default items-center gap-[5px] rounded-md px-2 outline-none transition-colors focus-visible:bg-black/10 dark:focus-visible:bg-white/12",
           overviewOpen
             ? "bg-black/8 dark:bg-white/12"
             : "hover:bg-black/8 dark:hover:bg-white/12"
         )}
       >
-        {settings.touchMode ? (
-          <>
-            <LayersIcon className="size-3.5 text-adw-label/80 dark:text-white/80" />
-            <span className="max-w-[140px] truncate text-[12px] font-medium">
-              {focusedWindow ? focusedWindow.title : _("Windows")}
-            </span>
-            <span className="rounded-full bg-adw-label/12 px-1.5 py-0.5 text-[10.5px] font-medium tabular-nums dark:bg-white/15">
-              {windows.length}
-            </span>
-          </>
-        ) : (
-          Array.from(
+        {Array.from(
             { length: settings.workspaceCount },
             (_, idx) => idx + 1
           ).map((ws) => {
@@ -1159,8 +1154,7 @@ export const MenuBar = React.memo(function MenuBar() {
                 )}
               />
             );
-          })
-        )}
+          })}
       </button>
 
       {/* Right: System Tray, Launcher & Control panel (flush to top-right screen corner) */}
@@ -1168,6 +1162,23 @@ export const MenuBar = React.memo(function MenuBar() {
         ref={rightClusterRef}
         className="flex h-full shrink-0 items-stretch justify-end gap-0.5 md:flex-1 [&_svg]:pointer-events-none [&_svg]:shrink-0"
       >
+        {captureActivity && (
+          <span
+            role="img"
+            aria-label={captureActivity === "camera" ? _("Camera in use") : _("Microphone in use")}
+            title={captureActivity === "camera" ? _("Camera in use") : _("Microphone in use")}
+            className={cn(
+              "mr-1 flex h-full shrink-0 items-center px-1",
+            )}
+          >
+            <span
+              className={cn(
+                "size-2 rounded-full",
+                captureActivity === "camera" ? "bg-red-500" : "bg-orange-500",
+              )}
+            />
+          </span>
+        )}
         {capturingSessions.map((cap) => {
           const isRec = cap.kind === CapturingKind.Recording;
           const paused = isRec && cap.runningSinceMs === undefined;
@@ -1232,40 +1243,7 @@ export const MenuBar = React.memo(function MenuBar() {
         {/* Keyboard Layout Switcher (shown when > 1 layout is available) */}
         <KeyboardLayoutSwitcher sideOffset={0} />
 
-        {/* Launcher Trigger & Popover (or full-screen under apps in Touch Mode) */}
-        {settings.touchMode ? (
-          <>
-            <button
-              type="button"
-              data-menubar-nav="launcher"
-              aria-label="Launcher (Alt+Space)"
-              aria-expanded={launcherOpen}
-              onClick={() => {
-                const next = !launcherOpen;
-                setLauncherOpen(next);
-                if (next) setControlPanelOpen(false);
-              }}
-              className={cn(
-                "flex h-full shrink-0 cursor-default items-center rounded-md px-2 outline-none select-none active:bg-black/14 focus-visible:bg-black/10 dark:active:bg-white/18 dark:focus-visible:bg-white/12",
-                launcherOpen && "bg-black/12 dark:bg-white/15"
-              )}
-            >
-              <SearchIcon className="size-4 text-adw-label/90 dark:text-white/90" />
-            </button>
-            {launcherOpen &&
-              typeof document !== "undefined" &&
-              createPortal(
-                <div
-                  role="dialog"
-                  aria-label={_("Launcher")}
-                  className="fixed inset-0 top-[30px] z-[0] flex flex-col bg-adw-window/85 p-4 backdrop-blur-2xl sm:p-8"
-                >
-                  <Launcher />
-                </div>,
-                document.body
-              )}
-          </>
-        ) : (
+        {/* Launcher Trigger & Popover */}
           <DropdownMenu
             modal={false}
             open={launcherOpen}
@@ -1292,108 +1270,8 @@ export const MenuBar = React.memo(function MenuBar() {
               {launcherOpen && <Launcher />}
             </DropdownMenuContent>
           </DropdownMenu>
-        )}
 
-        {/* Control panel & Clock Trigger (or full-screen over apps in Touch Mode) */}
-        {settings.touchMode ? (
-          <>
-            <button
-              type="button"
-              data-menubar-nav="control-panel"
-              aria-label="Control panel and Notifications"
-              aria-expanded={controlPanelOpen}
-              data-control-panel-trigger
-              onClick={() => {
-                const next = !controlPanelOpen;
-                setControlPanelOpen(next);
-                if (next) setLauncherOpen(false);
-              }}
-              onWheel={(e) => {
-                if (e.deltaY === 0) return;
-                e.preventDefault();
-                const step = e.deltaY < 0 ? 5 : -5;
-                const next = Math.max(0, Math.min(100, settings.volume + step));
-                updateSettings({ volume: next, muted: next === 0 });
-              }}
-              className={cn(
-                "flex h-full shrink-0 cursor-default items-center gap-2 rounded-none rounded-l-md pl-2.5 pr-3 text-adw-body font-normal outline-none select-none active:bg-black/14 focus-visible:bg-black/10 dark:active:bg-white/18 dark:focus-visible:bg-white/12",
-                controlPanelOpen && "bg-black/12 dark:bg-white/15"
-              )}
-            >
-              <span className="flex items-center gap-1.5 text-adw-label/90 dark:text-white/90">
-                {settings.doNotDisturb ? (
-                  <BellOffIcon className="size-4 text-adw-label/45 dark:text-white/45" />
-                ) : notifications.length > 0 ? (
-                  <BellIcon
-                    className={cn(
-                      "size-4",
-                      notifications.some(
-                        (n) => !n.read && n.urgency === "critical"
-                      )
-                        ? "text-adw-accent"
-                        : "text-adw-label/90 dark:text-white/90"
-                    )}
-                  />
-                ) : null}
-                {settings.wifiEnabled ? (
-                  <WifiIcon className="size-4" />
-                ) : (
-                  <WifiOffIcon className="size-4 text-adw-label/45 dark:text-white/45" />
-                )}
-                {settings.muted || settings.volume === 0 ? (
-                  <VolumeXIcon className="size-4 text-adw-label/60 dark:text-white/60" />
-                ) : (
-                  <Volume2Icon className="size-4" />
-                )}
-                {batteryInfo.present && (
-                  <span className="inline-flex items-center gap-1 text-adw-body tabular-nums">
-                    {batteryInfo.charging ? (
-                      <BatteryChargingIcon className="size-4" />
-                    ) : batteryInfo.percentage <= 20 ? (
-                      <BatteryLowIcon className="size-4 text-amber-500" />
-                    ) : (
-                      <BatteryIcon className="size-4" />
-                    )}
-                    {settings.showBatteryPercentage && (
-                      <span>{batteryInfo.percentage}%</span>
-                    )}
-                  </span>
-                )}
-              </span>
-
-              <span className="flex items-center tracking-tight tabular-nums whitespace-nowrap">
-                {formattedClock}
-              </span>
-            </button>
-            {controlPanelOpen &&
-              typeof document !== "undefined" &&
-              createPortal(
-                <div
-                  role="dialog"
-                  aria-label={_("Control Panel")}
-                  onClick={() => setControlPanelOpen(false)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Escape") {
-                      e.stopPropagation();
-                      setControlPanelOpen(false);
-                    }
-                  }}
-                  className="fixed inset-0 top-[30px] z-[250] flex items-start justify-center overflow-y-auto bg-adw-window/90 p-4 backdrop-blur-2xl sm:p-8"
-                >
-                  <div
-                    onClick={(e) => e.stopPropagation()}
-                    className="flex w-full max-w-md flex-col"
-                  >
-                    <div className="rounded-adw-popover border border-adw-separator/40 bg-adw-popover/85 p-4 shadow-adw-popover">
-                      <ControlPanel />
-                    </div>
-                    <FloatingNotifications />
-                  </div>
-                </div>,
-                document.body
-              )}
-          </>
-        ) : (
+        {/* Control panel & Clock Trigger */}
           <DropdownMenu
             modal={false}
             open={controlPanelOpen}
@@ -1478,7 +1356,6 @@ export const MenuBar = React.memo(function MenuBar() {
               )}
             </DropdownMenuContent>
           </DropdownMenu>
-        )}
       </div>
 
       {/* About Focused App Window */}

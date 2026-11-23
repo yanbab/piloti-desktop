@@ -41,6 +41,8 @@ import {
   abbreviateDataImageUri,
   evaluateReplCode,
   formatInspectValue,
+  clearConsoleEntries,
+  type ConsoleLogLevel,
   useConsoleEntries,
 } from "@/lib/core/console-store";
 import { parseIniText } from "@/lib/config/piloti-ini";
@@ -390,101 +392,6 @@ function ReplModule({
   );
 }
 
-function LogsModule() {
-  const entries = useConsoleEntries();
-  const [levelFilter, setLevelFilter] = React.useState<
-    "all" | "error" | "warn" | "info"
-  >("all");
-  const endRef = React.useRef<HTMLDivElement | null>(null);
-
-  const filteredEntries = React.useMemo(() => {
-    if (levelFilter === "all") return entries;
-    if (levelFilter === "info") {
-      return entries.filter((e) => e.level === "info" || e.level === "log");
-    }
-    return entries.filter((e) => e.level === levelFilter);
-  }, [entries, levelFilter]);
-
-  React.useEffect(() => {
-    endRef.current?.scrollIntoView({ block: "end" });
-  }, [filteredEntries.length, levelFilter]);
-
-  return (
-    <div className="flex min-h-0 flex-1 flex-col bg-adw-content">
-      <div className="flex h-10 shrink-0 items-center justify-between gap-2 border-b border-adw-separator bg-adw-window/60 px-4">
-        <div className="flex items-center gap-1">
-          {(
-            [
-              { id: "all", label: _("All") },
-              { id: "error", label: _("Errors") },
-              { id: "warn", label: _("Warnings") },
-              { id: "info", label: _("Info") },
-            ] as const
-          ).map((pill) => (
-            <button
-              key={pill.id}
-              type="button"
-              onClick={() => setLevelFilter(pill.id)}
-              className={cn(
-                "rounded-full px-2.5 py-0.5 text-[11px] font-medium transition-colors",
-                levelFilter === pill.id
-                  ? "bg-adw-accent text-white"
-                  : "bg-black/6 text-adw-label-secondary hover:bg-black/10 hover:text-adw-label dark:bg-white/8 dark:hover:bg-white/14"
-              )}
-            >
-              {pill.label}
-            </button>
-          ))}
-        </div>
-        <span className="font-mono text-[11px] text-adw-label-tertiary tabular-nums">
-          {filteredEntries.length}
-        </span>
-      </div>
-      <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4 font-mono text-[11.5px]">
-        {filteredEntries.length === 0 ? (
-          <div className="flex h-full flex-col items-center justify-center gap-1 text-center font-sans text-adw-label-secondary">
-            <ScrollTextIcon className="size-6 opacity-60" />
-            <div className="text-xs font-medium">{_("No console messages")}</div>
-          </div>
-        ) : (
-          <div className="space-y-1.5">
-            {filteredEntries.map((entry) => (
-              <div
-                key={entry.id}
-                className={cn(
-                  "flex items-start gap-2.5 rounded-md px-2.5 py-1.5 select-text",
-                  entry.level === "error" &&
-                    "bg-rose-500/8 text-rose-600 dark:text-rose-400",
-                  entry.level === "warn" &&
-                    "bg-amber-500/8 text-amber-700 dark:text-amber-300",
-                  (entry.level === "log" || entry.level === "info") &&
-                    "text-adw-label hover:bg-black/3 dark:hover:bg-white/4"
-                )}
-              >
-                {entry.count > 1 && (
-                  <span className="mt-0.5 inline-flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full bg-adw-accent px-1.5 text-[10px] font-bold text-white tabular-nums">
-                    {entry.count}
-                  </span>
-                )}
-                <span className="shrink-0 text-[10px] text-adw-label-tertiary tabular-nums">
-                  {new Date(entry.timestamp).toLocaleTimeString()}
-                </span>
-                <span className="w-10 shrink-0 font-semibold uppercase">
-                  {entry.level}
-                </span>
-                <pre className="min-w-0 flex-1 whitespace-pre-wrap break-words">
-                  {entry.message}
-                </pre>
-              </div>
-            ))}
-            <div ref={endRef} />
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
 type InspectorSectionId =
   | "windows"
   | "displays"
@@ -549,7 +456,7 @@ function VfsPerformanceSection() {
         {tiles.map((stat) => (
           <div
             key={stat.label}
-            className="rounded-xl border border-adw-separator bg-adw-card px-3.5 py-2.5"
+            className="rounded-adw-group bg-adw-group px-3.5 py-2.5"
           >
             <div className="text-[11px] font-medium text-adw-label-secondary">{stat.label}</div>
             <div className="mt-0.5 truncate font-mono text-[14px] font-semibold text-adw-label">
@@ -583,7 +490,7 @@ function InspectorJsonCard({
 }) {
   const isObject = typeof data === "object" && data !== null;
   return (
-    <div className="overflow-hidden rounded-xl border border-adw-separator bg-adw-card">
+    <div className="overflow-hidden rounded-adw-group bg-adw-group">
       <div className="flex items-center justify-between border-b border-adw-separator px-3.5 py-2">
         <span className="text-[12px] font-semibold text-adw-label">{title}</span>
         {count !== undefined && (
@@ -686,7 +593,7 @@ function InspectorModule() {
               ].map((stat) => (
                 <div
                   key={stat.label}
-                  className="rounded-xl border border-adw-separator bg-adw-card px-3.5 py-2.5"
+                  className="rounded-adw-group bg-adw-group px-3.5 py-2.5"
                 >
                   <div className="text-[11px] font-medium text-adw-label-secondary">
                     {stat.label}
@@ -698,7 +605,7 @@ function InspectorModule() {
               ))}
             </div>
 
-            <div className="overflow-hidden rounded-xl border border-adw-separator bg-adw-card">
+            <div className="overflow-hidden rounded-adw-group bg-adw-group">
               <div className="flex items-center justify-between border-b border-adw-separator px-3.5 py-2">
                 <span className="text-[12px] font-semibold text-adw-label">
                   {_("Windows")}
@@ -712,7 +619,7 @@ function InspectorModule() {
                   {_("No open windows.")}
                 </div>
               ) : (
-                <div className="divide-y divide-adw-separator/60">
+                <div className="divide-y divide-adw-separator">
                   {windows.map((w) => {
                     const flags = [
                       w.id === focusedWindowId ? "focused" : null,
@@ -790,7 +697,7 @@ function InspectorModule() {
       case "displays":
         return (
           <div className="space-y-4">
-            <div className="overflow-hidden rounded-xl border border-adw-separator bg-adw-card">
+            <div className="overflow-hidden rounded-adw-group bg-adw-group">
               <div className="flex items-center justify-between border-b border-adw-separator px-3.5 py-2">
                 <span className="text-[12px] font-semibold text-adw-label">
                   {_("Displays")}
@@ -804,7 +711,7 @@ function InspectorModule() {
                   {_("No displays reported.")}
                 </div>
               ) : (
-                <div className="divide-y divide-adw-separator/60">
+                <div className="divide-y divide-adw-separator">
                   {displays.map((d, idx) => {
                     const rec = d as unknown as Record<string, unknown>;
                     const x = rec.x ?? 0;
@@ -877,7 +784,7 @@ function InspectorModule() {
               ].map((item) => (
                 <div
                   key={item.label}
-                  className="rounded-xl border border-adw-separator bg-adw-card px-3.5 py-2.5"
+                  className="rounded-adw-group bg-adw-group px-3.5 py-2.5"
                 >
                   <div className="text-[11px] font-medium text-adw-label-secondary">
                     {item.label}
@@ -919,7 +826,7 @@ function InspectorModule() {
       case "apps":
         return (
           <div className="space-y-4">
-            <div className="overflow-hidden rounded-xl border border-adw-separator bg-adw-card">
+            <div className="overflow-hidden rounded-adw-group bg-adw-group">
               <div className="flex items-center justify-between border-b border-adw-separator px-3.5 py-2">
                 <span className="text-[12px] font-semibold text-adw-label">
                   {_("Installed XDG Apps")}
@@ -933,7 +840,7 @@ function InspectorModule() {
                   {_("No XDG apps indexed.")}
                 </div>
               ) : (
-                <div className="grid grid-cols-1 divide-y divide-adw-separator/60 sm:grid-cols-2 sm:divide-y-0">
+                <div className="grid grid-cols-1 divide-y divide-adw-separator sm:grid-cols-2 sm:divide-y-0">
                   {installedXdgApps.map((a) => (
                     <div
                       key={a.desktopId}
@@ -962,7 +869,7 @@ function InspectorModule() {
               )}
             </div>
 
-            <div className="overflow-hidden rounded-xl border border-adw-separator bg-adw-card">
+            <div className="overflow-hidden rounded-adw-group bg-adw-group">
               <div className="flex items-center justify-between border-b border-adw-separator px-3.5 py-2">
                 <span className="text-[12px] font-semibold text-adw-label">
                   {_("Installed Web Apps")}
@@ -976,7 +883,7 @@ function InspectorModule() {
                   {_("No installed web apps.")}
                 </div>
               ) : (
-                <div className="divide-y divide-adw-separator/60">
+                <div className="divide-y divide-adw-separator">
                   {settings.installedWebApps.map((a) => {
                     const iconUrl =
                       (a.iconUrl && /^(https?:|data:|blob:|\/)/i.test(a.iconUrl)
@@ -1019,7 +926,7 @@ function InspectorModule() {
               expandLevel={2}
             />
 
-            <div className="overflow-hidden rounded-xl border border-adw-separator bg-adw-card">
+            <div className="overflow-hidden rounded-adw-group bg-adw-group">
               <div className="flex items-center justify-between border-b border-adw-separator px-3.5 py-2">
                 <span className="text-[12px] font-semibold text-adw-label">
                   {_("Available GNOME Panels")}
@@ -1077,7 +984,7 @@ function InspectorModule() {
               return (
                 <div
                   key={group.prefix}
-                  className="overflow-hidden rounded-xl border border-adw-separator bg-adw-card"
+                  className="overflow-hidden rounded-adw-group bg-adw-group"
                 >
                   <div className="flex items-center justify-between border-b border-adw-separator px-3.5 py-2">
                     <span className="font-mono text-[12px] font-semibold text-adw-label">
@@ -1092,7 +999,7 @@ function InspectorModule() {
                       {_("No files found.")}
                     </div>
                   ) : (
-                    <div className="divide-y divide-adw-separator/60">
+                    <div className="divide-y divide-adw-separator">
                       {groupFiles.map((file) => {
                         const isOpen = expandedStatePath === file.path;
                         const content = file.content ?? "";
@@ -1181,7 +1088,7 @@ function InspectorModule() {
       case "notifications":
         return (
           <div className="space-y-4">
-            <div className="overflow-hidden rounded-xl border border-adw-separator bg-adw-card">
+            <div className="overflow-hidden rounded-adw-group bg-adw-group">
               <div className="flex items-center justify-between border-b border-adw-separator px-3.5 py-2">
                 <span className="text-[12px] font-semibold text-adw-label">
                   {_("Notifications")}
@@ -1195,7 +1102,7 @@ function InspectorModule() {
                   {_("No notifications.")}
                 </div>
               ) : (
-                <div className="divide-y divide-adw-separator/60">
+                <div className="divide-y divide-adw-separator">
                   {notifications.map((n) => (
                     <div
                       key={n.id}
@@ -1422,14 +1329,18 @@ function readLocalStorageEntries(): StorageEntry[] {
   return entries;
 }
 
-type EventCategoryFilter = "all" | "vfs" | "shell" | "window";
+type EventCategory = "log" | "vfs" | "shell" | "window";
+type EventCategoryFilter = "all" | "issues" | EventCategory;
 
 interface InspectorEventLog {
   id: number;
+  /** Epoch ms of the last occurrence (events are merged with console logs by time). */
+  ts: number;
   time: string;
   type: string;
   detail: string;
-  category: Exclude<EventCategoryFilter, "all">;
+  category: EventCategory;
+  level?: ConsoleLogLevel;
   count: number;
 }
 
@@ -1467,30 +1378,49 @@ function VfsEventsModule({ active }: { active: boolean }) {
     (
       type: string,
       detail: string,
-      category: Exclude<EventCategoryFilter, "all">
+      category: Exclude<EventCategory, "log">
     ) => {
-      const time = new Date().toLocaleTimeString();
+      const ts = Date.now();
+      const time = new Date(ts).toLocaleTimeString();
       setEvents((prev) => {
         const last = prev[prev.length - 1];
         if (last && last.type === type && last.detail === detail) {
           return [
             ...prev.slice(0, -1),
-            { ...last, count: last.count + 1, time },
+            { ...last, count: last.count + 1, time, ts },
           ];
         }
         return [
           ...prev.slice(-199),
-          { id: nextEventIdRef.current++, time, type, detail, category, count: 1 },
+          { id: nextEventIdRef.current++, ts, time, type, detail, category, count: 1 },
         ];
       });
     },
     []
   );
 
+  const logEntries = useConsoleEntries();
+  const rows = React.useMemo(() => {
+    const logRows = logEntries.map((entry) => ({
+      id: -entry.id,
+      ts: entry.timestamp,
+      time: new Date(entry.timestamp).toLocaleTimeString(),
+      type: entry.level,
+      detail: entry.message,
+      category: "log" as const,
+      level: entry.level,
+      count: entry.count,
+    }));
+    return [...events, ...logRows].sort((a, b) => a.ts - b.ts || b.id - a.id);
+  }, [events, logEntries]);
+
   const filteredEvents = React.useMemo(() => {
-    if (filter === "all") return events;
-    return events.filter((ev) => ev.category === filter);
-  }, [events, filter]);
+    if (filter === "all") return rows;
+    if (filter === "issues") {
+      return rows.filter((ev) => ev.level === "error" || ev.level === "warn");
+    }
+    return rows.filter((ev) => ev.category === filter);
+  }, [rows, filter]);
 
   const lastFilteredCount = filteredEvents[filteredEvents.length - 1]?.count ?? 0;
 
@@ -1614,6 +1544,8 @@ function VfsEventsModule({ active }: { active: boolean }) {
           {(
             [
               { id: "all", label: _("All") },
+              { id: "log", label: _("Logs") },
+              { id: "issues", label: _("Issues") },
               { id: "vfs", label: "VFS" },
               { id: "shell", label: _("Shell") },
               { id: "window", label: _("Window") },
@@ -1661,7 +1593,10 @@ function VfsEventsModule({ active }: { active: boolean }) {
           </button>
           <button
             type="button"
-            onClick={() => setEvents([])}
+            onClick={() => {
+              setEvents([]);
+              clearConsoleEntries();
+            }}
             className="rounded-md bg-black/6 px-2 py-0.5 text-[11px] font-medium text-adw-label transition-colors hover:bg-black/12 dark:bg-white/8 dark:hover:bg-white/14"
           >
             {_("Clear")}
@@ -1706,48 +1641,54 @@ function VfsEventsModule({ active }: { active: boolean }) {
       {/* Chronological Event Stream */}
       <div
         ref={eventsScrollRef}
-        className="min-h-0 flex-1 overflow-y-auto px-5 py-4 font-mono text-[11.5px]"
+        className="min-h-0 flex-1 overflow-y-auto font-mono text-[11.5px]"
       >
         {filteredEvents.length === 0 ? (
           <div className="flex h-full items-center justify-center text-center font-sans text-xs text-adw-label-tertiary">
-            {_("Listening for VFS, Shell, and Window events…")}
+            {_("Listening for logs, VFS, Shell and Window events…")}
           </div>
         ) : (
-          <div className="space-y-1.5">
+          <div role="table" aria-label={_("Events")}>
             {filteredEvents.map((ev) => (
               <div
                 key={ev.id}
-                className="flex items-start gap-2.5 rounded-md px-2.5 py-1.5 hover:bg-black/3 dark:hover:bg-white/4"
-              >
-                {ev.count > 1 && (
-                  <span className="mt-0.5 inline-flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full bg-adw-accent px-1.5 text-[10px] font-bold text-white tabular-nums">
-                    {ev.count}
-                  </span>
+                role="row"
+                className={cn(
+                  "grid grid-cols-[4.75rem_3.5rem_minmax(0,9rem)_minmax(0,1fr)_2.25rem] items-baseline gap-x-3 border-b border-adw-separator/50 px-4 py-1 select-text",
+                  ev.level === "error" && "bg-rose-500/8 text-rose-600 dark:text-rose-400",
+                  ev.level === "warn" && "bg-amber-500/8 text-amber-700 dark:text-amber-300",
+                  !ev.level || ev.level === "log" || ev.level === "info"
+                    ? "hover:bg-black/3 dark:hover:bg-white/4"
+                    : ""
                 )}
-                <span className="shrink-0 text-[10px] text-adw-label-tertiary tabular-nums">
-                  {ev.time}
-                </span>
+              >
+                <span className="text-[10px] text-adw-label-tertiary tabular-nums">{ev.time}</span>
                 <span
                   className={cn(
-                    "shrink-0 rounded px-1.5 py-0.5 text-[9.5px] font-semibold uppercase",
+                    "justify-self-start rounded px-1.5 py-0.5 text-[9.5px] leading-none font-semibold uppercase",
+                    ev.category === "log" && "bg-black/8 text-adw-label-secondary dark:bg-white/10",
                     ev.category === "vfs" &&
                       "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400",
-                    ev.category === "window" &&
-                      "bg-sky-500/15 text-sky-600 dark:text-sky-400",
-                    ev.category === "shell" &&
-                      "bg-adw-accent/15 text-adw-accent"
+                    ev.category === "window" && "bg-sky-500/15 text-sky-600 dark:text-sky-400",
+                    ev.category === "shell" && "bg-adw-accent/15 text-adw-accent"
                   )}
                 >
                   {ev.category}
                 </span>
-                <span className="shrink-0 font-semibold text-adw-label">
-                  {ev.type}
+                <span className="truncate font-semibold">{ev.type}</span>
+                <span
+                  className={cn(
+                    "min-w-0",
+                    ev.category === "log"
+                      ? "break-words whitespace-pre-wrap"
+                      : "truncate text-adw-label-secondary"
+                  )}
+                >
+                  {ev.detail}
                 </span>
-                {ev.detail && (
-                  <span className="min-w-0 flex-1 truncate text-adw-label-secondary select-text">
-                    {ev.detail}
-                  </span>
-                )}
+                <span className="justify-self-end text-[10.5px] font-semibold text-adw-label-tertiary tabular-nums">
+                  {ev.count > 1 ? ev.count : ""}
+                </span>
               </div>
             ))}
           </div>
@@ -1817,41 +1758,42 @@ function StorageModule() {
   );
 
   const groupedStorageEntries = React.useMemo(() => {
+    // "piloti.web.vfs.favorites.v1" -> section "VFS", entry "Favorites".
+    const ACRONYMS: Record<string, string> = { vfs: "VFS", xdg: "XDG", usb: "USB", ini: "INI" };
+    const capitalize = (text: string): string => {
+      const words = text.replace(/[-_]+/g, " ").trim();
+      if (!words) return "";
+      const lower = words.toLowerCase();
+      return ACRONYMS[lower] ?? words.charAt(0).toUpperCase() + words.slice(1);
+    };
     const classify = (key: string): { section: string; shortLabel: string } => {
-      const k = key.toLowerCase();
-      if (k.includes("launcher")) {
-        if (k.includes("recent")) return { section: "Launcher", shortLabel: "Recent" };
-        if (k.includes("history")) return { section: "Launcher", shortLabel: "History" };
-        if (k.includes("height")) return { section: "Launcher", shortLabel: "Height" };
-        if (k.includes("snapshot")) return { section: "Launcher", shortLabel: "Snapshots" };
-        return { section: "Launcher", shortLabel: formatStorageKeyLabel(key) };
+      const bare = key
+        .replace(/^(?:piloti|residence)[.-]/i, "")
+        .replace(/^web[.-]/i, "")
+        .replace(/\.v\d+$/i, "");
+      const dot = bare.split(".").filter(Boolean);
+      let head = dot[0] ?? bare;
+      let rest = dot.slice(1).join(" ");
+      if (dot.length <= 1) {
+        const dash = head.indexOf("-");
+        if (dash > 0) {
+          rest = head.slice(dash + 1);
+          head = head.slice(0, dash);
+        }
       }
-      if (k.includes("vfs") || k.includes("files") || k.includes("bookmark") || k.includes("favorite")) {
-        if (k.includes("vfs")) return { section: "Files & VFS", shortLabel: "Filesystem" };
-        if (k.includes("favorite")) return { section: "Files & VFS", shortLabel: "Favorites" };
-        if (k.includes("bookmark")) return { section: "Files & VFS", shortLabel: "Bookmarks" };
-        return { section: "Files & VFS", shortLabel: formatStorageKeyLabel(key) };
-      }
-      if (k.includes("settings") || k.includes("notif") || k.includes("session") || k.includes("piloti")) {
-        if (k.includes("settings")) return { section: "Shell", shortLabel: "Settings" };
-        if (k.includes("notif")) return { section: "Shell", shortLabel: "Notifications" };
-        if (k.includes("session")) return { section: "Shell", shortLabel: "Session" };
-        if (k.includes("activepane")) return { section: "Shell", shortLabel: "Settings Pane" };
-        return { section: "Shell", shortLabel: formatStorageKeyLabel(key) };
-      }
-      return { section: "Other", shortLabel: formatStorageKeyLabel(key) };
+      return { section: capitalize(head) || "Other", shortLabel: capitalize(rest) || _("Default") };
     };
 
-    const order = ["Shell", "Launcher", "Files & VFS", "Other"];
     const map = new Map<string, Array<{ entry: StorageEntry; shortLabel: string }>>();
-    for (const s of order) map.set(s, []);
     for (const entry of entries) {
       const { section, shortLabel } = classify(entry.key);
-      map.get(section)?.push({ entry, shortLabel });
+      const list = map.get(section) ?? [];
+      list.push({ entry, shortLabel });
+      map.set(section, list);
     }
-    return order
-      .map((section) => ({ section, items: map.get(section) ?? [] }))
-      .filter((g) => g.items.length > 0);
+    return [...map.entries()]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([section, items]) => ({ section, items }));
   }, [entries]);
 
   return (
@@ -1941,7 +1883,7 @@ function StorageModule() {
                 {activeEntry.isJson &&
                 typeof activeEntry.parsedJson === "object" &&
                 activeEntry.parsedJson !== null ? (
-                  <div className="rounded-xl border border-adw-separator bg-adw-card p-3.5">
+                  <div className="rounded-adw-group bg-adw-group p-3.5">
                     <ObjectView
                       key={activeEntry.key}
                       valueGetter={() => activeEntry.parsedJson}
@@ -1960,7 +1902,7 @@ function StorageModule() {
                     />
                   </div>
                 ) : (
-                  <pre className="rounded-xl border border-adw-separator bg-adw-card p-3.5 font-mono text-[12.5px] leading-relaxed break-words whitespace-pre-wrap text-adw-label select-text">
+                  <pre className="rounded-adw-group bg-adw-group p-3.5 font-mono text-[12.5px] leading-relaxed break-words whitespace-pre-wrap text-adw-label select-text">
                     {activeDisplayValue}
                   </pre>
                 )}
@@ -2011,20 +1953,20 @@ export function ConsoleApp({
   const DEVTOOLS_ACTIVE_MODULE_KEY = "piloti.devtools.activeModule.v1";
   const isModuleId = (v: string | null | undefined): v is ConsoleModuleId =>
     v === "repl" ||
-    v === "logs" ||
+    v === "logs" || // legacy: merged into Events
     v === "inspector" ||
     v === "storage" ||
     v === "vfs-events";
 
   const [activeModule, setActiveModule] = React.useState<ConsoleModuleId>(
     () => {
-      if (isModuleId(initialModule)) return initialModule;
+      if (isModuleId(initialModule)) return initialModule === "logs" ? "vfs-events" : initialModule;
       try {
         const saved = readVfsStateString(
           VFS_STATE_PATHS.devtoolsModule,
           DEVTOOLS_ACTIVE_MODULE_KEY
         )?.trim();
-        if (isModuleId(saved)) return saved;
+        if (isModuleId(saved)) return saved === "logs" ? "vfs-events" : saved;
       } catch {
         // ignore storage errors
       }
@@ -2127,13 +2069,12 @@ export function ConsoleApp({
 
   const modules: { id: ConsoleModuleId; label: string; badge?: number }[] = [
     { id: "repl", label: "Console" },
+    { id: "inspector", label: _("Infos") },
     {
-      id: "logs",
-      label: "Logs",
+      id: "vfs-events",
+      label: _("Events"),
       badge: errorCount > 0 ? errorCount : undefined,
     },
-    { id: "inspector", label: _("Infos") },
-    { id: "vfs-events", label: _("Events") },
     { id: "storage", label: "Storage" },
   ];
 
@@ -2208,7 +2149,6 @@ export function ConsoleApp({
       >
         <ReplModule scope={replScope} active={activeModule === "repl"} />
       </div>
-      {activeModule === "logs" && <LogsModule />}
       {activeModule === "inspector" && <InspectorModule />}
       <div
         className={cn(

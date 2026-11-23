@@ -9,7 +9,6 @@ import {
 } from "@/components/ui/menu-styles";
 import { DynamicFileIcon, DynamicFolderIcon } from "@/data/folder-icons";
 import { useOpenPath } from "@/hooks/use-open-path";
-import { isLinkFile } from "@/lib/shell/link-files";
 import { useSettings, useWindowActions } from "@/context/DesktopStateContext";
 import { _ } from "@/lib/core/i18n";
 import { cn } from "@/lib/core/utils";
@@ -142,7 +141,6 @@ export function DockFolderStack({
     }
     const visual = inferFileVisual(entry.name, entry.kind, undefined, {
       isEmpty: typeof entry.size === "number" ? entry.size === 0 : undefined,
-      isLink: isLinkFile(entry.name, entry.content),
     });
     return (
       <DynamicFileIcon
