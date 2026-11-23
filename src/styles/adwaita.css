@@ -596,40 +596,57 @@ aside [data-slot="window-titlebar"],
  * Matches `Adwaita Demo -> Boxed Lists` pixel-for-pixel.
  */
 [data-slot="grouped-form"] {
+  /* Compact, left-aligned grouped form (macOS Ventura density, Adwaita look).
+     Groups sit 15px in; the headerbar title and section titles start one
+     group radius (10px) further in, so all titles share one vertical line. */
+  --grouped-form-inset: 15px;
+  --grouped-form-radius: 10px;
   max-width: 660px;
   width: 100%;
-  /* Left-aligned, with the same inset as the headerbar title (9px bar + 8px
-     title padding), so page title, section titles and groups share one edge. */
   margin-inline: 0;
-  padding: 20px 17px 32px;
-  gap: 6px;
+  padding: 12px var(--grouped-form-inset) 24px;
+  gap: 0;
 }
 
 [data-slot="grouped-form-section"] {
-  gap: 8px;
+  gap: 6px;
+}
+
+[data-slot="grouped-form-section"]:not(:first-child) {
+  margin-top: 18px;
+}
+
+/* The page title already names the first section. */
+[data-slot="grouped-form-section"]:first-child > [data-slot="grouped-form-section-title"] {
+  display: none;
 }
 
 [data-slot="grouped-form-section-title"] {
-  padding-inline: 0;
-  font-size: calc(14px * var(--piloti-font-scale, 1));
-  font-weight: var(--piloti-font-weight-semibold, 500);
+  padding-inline: var(--grouped-form-radius);
+  font-size: calc(13px * var(--piloti-font-scale, 1));
+  font-weight: var(--piloti-font-weight-bold, 700);
   letter-spacing: -0.005em;
   color: var(--adw-label);
 }
 
 [data-slot="grouped-form-group"] {
   padding-inline: 0;
-  border-radius: 12px;
+  border-radius: var(--grouped-form-radius);
   overflow: hidden;
   background-color: var(--adw-group);
   box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.08), 0 0 0 1px rgb(0 0 0 / 0.07);
 }
 
 [data-slot="grouped-form-row"] {
-  padding-inline: 16px;
-  min-height: 52px;
-  padding-block: 10px;
+  padding-inline: 10px;
+  min-height: 36px;
+  padding-block: 6px;
+  gap: 12px;
   border-color: rgb(0 0 0 / 0.07);
+}
+
+[data-slot="grouped-form-row"]:has([data-slot="grouped-form-row-description"]) {
+  padding-block: 7px;
 }
 
 .dark [data-slot="grouped-form-row"] {
@@ -637,13 +654,13 @@ aside [data-slot="window-titlebar"],
 }
 
 [data-slot="grouped-form-row-title"] {
-  font-size: calc(14px * var(--piloti-font-scale, 1));
+  font-size: calc(13px * var(--piloti-font-scale, 1));
   font-weight: var(--piloti-font-weight, 400);
   line-height: 1.3;
 }
 
 [data-slot="grouped-form-row-description"] {
-  font-size: calc(12px * var(--piloti-font-scale, 1));
+  font-size: calc(11px * var(--piloti-font-scale, 1));
   line-height: 1.35;
   color: var(--adw-label-secondary);
 }
