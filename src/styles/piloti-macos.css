@@ -1,8 +1,8 @@
 /*
  * Piloti Interface Theme — macOS Ventura look, on top of Adwaita.
  *
- * Plain and compact; solid surfaces (vibrancy only in sidebars, from
- * piloti.css); no hover fills; Cupertino UI tokens and macOS system colors.
+ * Plain and compact; no hover fills; Cupertino UI tokens and macOS system
+ * colors. Translucent menus, panels, dock and sidebars come from piloti.css.
  *
  * Every rule is scoped to `[data-interface-theme="piloti"]`, so the Adwaita
  * interface theme keeps the GNOME look from adwaita.css untouched.
@@ -12,8 +12,8 @@
 /* Piloti's components come from Cupertino UI; these are its `--mac-*` values
    mapped onto the `--adw-*` tokens. Redefining the named palette makes the
    accent (`--adw-active-accent: var(--adw-green)` …), selections and status
-   colors follow macOS. Translucent materials are made solid here; only the
-   sidebar keeps the vibrant material. */
+   colors follow macOS. Materials (menus, popovers, dock, sidebar) keep
+   Piloti's vibrant translucency from piloti.css. */
 
 :root[data-interface-theme="piloti"] {
   /* System colors */
@@ -111,51 +111,6 @@
   --adw-content-alternate: rgb(255 255 255 / 0.05);
   --adw-group: #252627;
   --adw-titlebar: #232528;
-}
-
-/* ── Solid surfaces: only sidebars keep the vibrant material ───────────── */
-
-:root[data-interface-theme="piloti"][data-more-transparency="true"]:not([data-high-contrast="true"]) {
-  /* Cupertino UI sidebar material (vibrant, used by piloti.css). */
-  --piloti-surface: rgb(233 239 245 / 0.86);
-  --adw-material-menu: #f4f4f6;
-  --adw-material-popover: #f6f6f6;
-  --adw-material-hud: #f6f6f6;
-  --adw-material-dock: #f4f4f6;
-  --adw-material-tooltip: #f6f6f6;
-}
-
-:root[data-interface-theme="piloti"].dark[data-more-transparency="true"]:not([data-high-contrast="true"]) {
-  --piloti-surface: rgb(41 44 50 / 0.9);
-  --adw-material-menu: #2b2e34;
-  --adw-material-popover: #242424;
-  --adw-material-hud: #1e1e1e;
-  --adw-material-dock: #2b2e34;
-  --adw-material-tooltip: #1c1c1e;
-}
-
-:root[data-interface-theme="piloti"][data-more-transparency="true"]:not([data-high-contrast="true"]) .adw-material-menu,
-:root[data-interface-theme="piloti"][data-more-transparency="true"]:not([data-high-contrast="true"]) .adw-material-popover,
-:root[data-interface-theme="piloti"][data-more-transparency="true"]:not([data-high-contrast="true"]) .adw-material-hud,
-:root[data-interface-theme="piloti"][data-more-transparency="true"]:not([data-high-contrast="true"]) .adw-material-dock {
-  -webkit-backdrop-filter: none;
-  backdrop-filter: none;
-}
-
-:root[data-interface-theme="piloti"][data-more-transparency="true"]:not([data-high-contrast="true"]) .adw-material-menu {
-  background-color: var(--adw-material-menu);
-}
-
-:root[data-interface-theme="piloti"][data-more-transparency="true"]:not([data-high-contrast="true"]) .adw-material-popover {
-  background-color: var(--adw-material-popover);
-}
-
-:root[data-interface-theme="piloti"][data-more-transparency="true"]:not([data-high-contrast="true"]) .adw-material-hud {
-  background-color: var(--adw-material-hud);
-}
-
-:root[data-interface-theme="piloti"][data-more-transparency="true"]:not([data-high-contrast="true"]) .adw-material-dock {
-  background-color: var(--adw-material-dock);
 }
 
 /* ── Settings grouped form (measured on macOS Ventura System Settings) ─── */
