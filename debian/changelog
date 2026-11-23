@@ -1,3 +1,23 @@
+piloti-desktop (0.10.6-1) unstable; urgency=medium
+
+  * Release v0.10.6:
+    - Camera app (piloti-camera): Photo / Cam / Mic with a red record button,
+      saves to Desktop with metadata in the file name; screen captures use the
+      same naming. Menubar dot: red when a camera is live, orange for mic only.
+      Sound recorder removed from the menubar and control panel.
+    - Dock and desktop reordering rebuilt on dnd-kit: icons slide aside to make
+      room for the dragged item (spring animation).
+    - Image Viewer uses the standard title bar, Save icon in the header bar.
+    - Files: Sort & Filter menu and grid/list toggle back in the toolbar;
+      Launcher web search restored; no hover highlight on sidebar resize handle.
+    - Touch Mode and its settings removed.
+    - Piloti theme: translucent menus, popovers, panel and dock.
+    - New: test Domicile app module (App Module Test) and build:apps, to
+      evaluate running heavy apps in their own document.
+    - Fix test-order leak in the web VFS unit tests.
+
+ -- yanbab <yanbab@gmail.com>  Mon, 23 Nov 2026 18:00:00 +0100
+
 piloti-desktop (0.10.5-1) unstable; urgency=medium
 
   * Release v0.10.5:
