@@ -26,6 +26,7 @@ import {
   Trash2Icon,
   XIcon,
 } from "lucide-react";
+import { initAppModules, resolveAppModuleByUrl } from "@/data/app-modules";
 import { IsolatedAppFrame } from "@/components/shell/IsolatedAppFrame";
 import { WindowMenuButton } from "@/components/shell/WindowMenuButton";
 import {
@@ -52,8 +53,8 @@ const FilesApp = React.lazy(() =>
   }))
 );
 const TextEditorApp = React.lazy(() =>
-  import("@/components/apps/TextEditorApp").then((m) => ({
-    default: m.TextEditorApp,
+  import("@/lib/engine/text-editor-host-shell").then((m) => ({
+    default: m.ShellTextEditorApp,
   }))
 );
 const ImageViewerApp = React.lazy(() =>
@@ -249,6 +250,8 @@ function dismissOpenPopups() {
   );
 }
 
+void initAppModules();
+
 /** A Domicile app module window (`domicile open --app <entry.js>`). */
 function isAppModuleWindow(win: DesktopWindowInstance) {
   return Boolean(win.browserIsApp && win.browserUrl?.startsWith("domicile://app-"));
@@ -285,6 +288,36 @@ function AppModuleSurface({
       view.removeEventListener(WEBVIEW_LOADING_CHANGE_EVENT, sync);
     };
   }, [win.browserWindowId, win.id, setBrowserTitle, markWindowReady]);
+  const mod = resolveAppModuleByUrl(win.browserUrl);
+  if (mod?.csd) {
+    // The module draws its own header. The webview swallows pointer events, so
+    // the shell lays window controls and a drag strip over the header area.
+    const drag = mod.drag ?? { left: 96, right: 96, height: 36 };
+    return (
+      <div className="relative h-full w-full flex-1 overflow-hidden bg-adw-content">
+        <webview
+          ref={viewRef}
+          window={win.browserWindowId}
+          resizing={windowCtx?.resizing ? "" : undefined}
+          className="block h-full w-full bg-adw-window"
+        />
+        {isCsd && (
+          <div
+            className="absolute top-0 left-0 z-10 flex items-center gap-1.5 pl-2.5"
+            style={{ height: drag.height }}
+            data-window-no-drag
+          >
+            <WindowControls side="left" />
+          </div>
+        )}
+        <div
+          data-window-drag-region=""
+          className="absolute top-0 z-10"
+          style={{ left: drag.left, right: drag.right, height: drag.height }}
+        />
+      </div>
+    );
+  }
   return (
     <div className="flex h-full w-full flex-1 flex-col overflow-hidden bg-adw-content">
       <WindowTitlebar

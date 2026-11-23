@@ -1,22 +1,5 @@
 import * as React from "react";
-import type { Domicile } from "@domicile-desktop/sdk/desktop/desktop";
-import { useDomicile } from "@domicile-desktop/react/domicile-provider";
-import { isBrowserDevRuntime } from "@/context/SettingsContext";
-import {
-  getCachedPilotiAppIni,
-  shouldConfirmUnsavedOnClose,
-  writePilotiAppIni,
-} from "@/lib/config/piloti-ini";
-import { readFsMetadata, writeFsMetadata } from "@/lib/engine/fs-bridge";
-import { readVfsStateJson, writeVfsStateJson } from "@/lib/engine/vfs-state";
-import {
-  getVfsEntry,
-  normalizeVfsPath,
-  renameVfsEntry,
-  subscribeVfsRenamed,
-  subscribeWebVfs,
-} from "@/lib/engine-web/web-vfs";
-import { emitShellEvent, onShellEvent } from "@/lib/shell/shell-events";
+import type { IsolatedAppBridge } from "@/lib/engine/app-bridge";
 
 /**
  * Everything the Text Editor needs from the host it runs in. The in-shell host
@@ -49,58 +32,19 @@ export interface TextEditorHost {
   /** Close through the shell's animated close when running in-shell. */
   requestAnimatedClose(windowId: string): void;
   onPrintFocused(listener: (detail: { windowId?: string } | undefined) => void): () => void;
+  /** Overrides for the window bridge (file RPC, title, close) when the host has no shell to message. */
+  bridge?: Partial<Pick<IsolatedAppBridge, "fs" | "setTitle" | "closeWindow">>;
   onBeforeClose(
     listener: (detail: { windowId: string }, e: { preventDefault: () => void }) => void,
   ): () => void;
 }
 
-export function createInShellEditorHost(
-  domicile: Domicile | undefined,
-  isBrowserRuntime: boolean,
-): TextEditorHost {
-  return {
-    nativeFs: !isBrowserRuntime,
-    normalizePath: normalizeVfsPath,
-    peekFile: (path) => getVfsEntry(path),
-    watchFile: (path, listener) =>
-      subscribeWebVfs(() => listener(), { path, mode: "exact" }),
-    onRenamed: subscribeVfsRenamed,
-    renameFile: (path, newName) => {
-      const r = renameVfsEntry(path, newName);
-      return r ? { path: r.path, name: r.name } : null;
-    },
-    readMetadata: (path, keys) => readFsMetadata(domicile, false, path, keys),
-    writeMetadata: (path, patch) =>
-      writeFsMetadata(domicile, isBrowserRuntime, path, patch),
-    readState: (path, isValid) =>
-      readVfsStateJson(path, undefined, isValid),
-    writeState: (path, value) => {
-      writeVfsStateJson(path, value, false);
-    },
-    readEditorPrefs: () => getCachedPilotiAppIni("notepad").Editor ?? {},
-    writeEditorPrefs: (values) => {
-      void writePilotiAppIni(null, "notepad", "Editor", values);
-    },
-    confirmUnsavedOnClose: shouldConfirmUnsavedOnClose,
-    requestAnimatedClose: (windowId) =>
-      emitShellEvent("piloti:request-animated-close", { windowId }),
-    onPrintFocused: (listener) => onShellEvent("piloti:print-focused", listener),
-    onBeforeClose: (listener) =>
-      onShellEvent("piloti:before-close-window", listener),
-  };
-}
-
 const TextEditorHostContext = React.createContext<TextEditorHost | null>(null);
 export const TextEditorHostProvider = TextEditorHostContext.Provider;
 
-/** The host the editor runs in; defaults to the in-shell host. */
+/** The host the editor runs in (provided by whoever mounts it). */
 export function useTextEditorHost(): TextEditorHost {
-  const provided = React.useContext(TextEditorHostContext);
-  const domicile = useDomicile();
-  const isBrowserRuntime = isBrowserDevRuntime();
-  const inShell = React.useMemo(
-    () => createInShellEditorHost(domicile, isBrowserRuntime),
-    [domicile, isBrowserRuntime],
-  );
-  return provided ?? inShell;
+  const host = React.useContext(TextEditorHostContext);
+  if (!host) throw new Error("TextEditorApp needs a TextEditorHostProvider");
+  return host;
 }

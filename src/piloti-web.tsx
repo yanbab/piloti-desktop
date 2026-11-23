@@ -9,8 +9,8 @@ const CalculatorApp = React.lazy(() =>
   })),
 );
 const TextEditorApp = React.lazy(() =>
-  import("./components/apps/TextEditorApp").then((m) => ({
-    default: m.TextEditorApp,
+  import("./lib/engine/text-editor-host-shell").then((m) => ({
+    default: m.ShellTextEditorApp,
   })),
 );
 const ImageViewerApp = React.lazy(() =>

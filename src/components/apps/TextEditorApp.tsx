@@ -54,7 +54,9 @@ import { _ } from "@/lib/core/i18n";
 import { parseIniText } from "@/lib/config/ini";
 import { cn } from "@/lib/core/utils";
 
-interface TextEditorAppProps {
+export interface TextEditorAppProps {
+  /** Left padding (px) for the header, to leave room for shell-drawn window controls. */
+  leadingInset?: number;
   initialPath?: string;
   windowId?: string;
   isCsd?: boolean;
@@ -277,6 +279,7 @@ const adwEditorTheme = EditorView.theme({
 });
 
 export const TextEditorApp: React.FC<TextEditorAppProps> = ({
+  leadingInset = 0,
   initialPath,
   windowId = "",
   isCsd: propIsCsd = true,
@@ -329,7 +332,11 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
     };
     return host.onPrintFocused(onPrintFocused);
   }, [handlePrint, windowId]);
-  const bridge = useIsolatedAppBridge(windowId, propIsCsd, handleMenuAction);
+  const baseBridge = useIsolatedAppBridge(windowId, propIsCsd, handleMenuAction);
+  const bridge = React.useMemo(
+    () => (host.bridge ? { ...baseBridge, ...host.bridge } : baseBridge),
+    [baseBridge, host],
+  );
   const resolvedPath = React.useMemo(() => {
     if (initialPath) return host.normalizePath(initialPath);
     if (typeof window !== "undefined") {
@@ -1043,6 +1050,7 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
       {/* Headerbar */}
       <WindowTitlebar
         data-window-drag-region={bridge.isCsd ? "" : undefined}
+        style={leadingInset ? { paddingLeft: leadingInset } : undefined}
         className={cn(
           "h-9 shrink-0 justify-between border-b border-adw-separator bg-adw-titlebar px-2.5 select-none",
           !bridge.isCsd && "rounded-t-none",
