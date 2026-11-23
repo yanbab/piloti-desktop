@@ -1,859 +1,544 @@
 <!doctype html>
 <html lang="en">
-
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Piloti — Wayland Desktop Shell for Domicile</title>
-  <link rel="icon" type="image/svg+xml" href="./assets/piloti-icon.svg" />
-  <meta name="description" content="Web based Wayland desktop" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Piloti Desktop</title>
+  <meta name="description" content="A Wayland desktop for Linux, built with web technology. Animated icons, live wallpapers, GNOME and XDG compatible." />
+  <link rel="icon" href="./assets/piloti-icon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <script>
+    (function () {
+      var t = null;
+      try { t = localStorage.getItem("piloti-theme"); } catch (e) {}
+      if (t === "dark" || t === "light") document.documentElement.setAttribute("data-theme", t);
+    })();
+  </script>
   <style>
     :root {
-      --adw-accent: #3584e4;
-      --adw-bg: #fafafa;
-      --adw-sidebar: #ebebee;
-      --adw-card: #ffffff;
-      --adw-card-alt: rgba(0, 0, 0, 0.04);
-      --adw-field: rgba(0, 0, 0, 0.065);
-      --adw-text: rgba(0, 0, 0, 0.85);
-      --adw-text-muted: rgba(0, 0, 0, 0.56);
-      --adw-border: rgba(0, 0, 0, 0.1);
-      --adw-shadow: 0 1px 2px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.08);
-      --adw-window-shadow: 0 12px 36px rgba(0, 0, 0, 0.16), 0 0 0 1px rgba(0, 0, 0, 0.12);
-      --adw-switch-off: rgba(0, 0, 0, 0.18);
-      --adw-switch-knob: #ffffff;
-      --font-sans: "Cantarell", "Inter", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-      --font-mono: "Adwaita Mono", "JetBrains Mono", ui-monospace, monospace;
+      --bg: #fafafb;
+      --bg-alt: #f0f0f3;
+      --card: #ffffff;
+      --fg: #1f1f23;
+      --fg-dim: #5e5c64;
+      --border: rgba(0, 0, 0, 0.08);
+      --accent: #3584e4;
+      --accent-fg: #ffffff;
+      --accent-soft: rgba(53, 132, 228, 0.12);
+      --code-bg: #1e1e22;
+      --code-fg: #e8e8ec;
+      --shadow: 0 1px 2px rgba(0,0,0,.05), 0 4px 16px rgba(0,0,0,.05);
+      --shadow-lg: 0 2px 6px rgba(0,0,0,.08), 0 24px 60px rgba(0,0,0,.18);
+      --radius: 14px;
+      --font: "Cantarell", "Inter", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      --mono: "Adwaita Mono", "JetBrains Mono", ui-monospace, monospace;
+      --wall: url("./demo/__fs/usr/share/backgrounds/piloti/piloti-waves-l.svg");
+      color-scheme: light;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --bg: #1d1d20; --bg-alt: #242428; --card: #2e2e32; --fg: #f4f4f6; --fg-dim: #a6a6ae;
+        --border: rgba(255,255,255,.09); --accent: #78aeed; --accent-fg: #0f1a2a; --accent-soft: rgba(120,174,237,.14);
+        --code-bg: #141416; --shadow: 0 1px 2px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.2);
+        --shadow-lg: 0 2px 6px rgba(0,0,0,.3), 0 24px 60px rgba(0,0,0,.5);
+        --wall: url("./demo/__fs/usr/share/backgrounds/piloti/piloti-waves-d.svg");
+        color-scheme: dark;
+      }
+    }
+    :root[data-theme="dark"] {
+      --bg: #1d1d20; --bg-alt: #242428; --card: #2e2e32; --fg: #f4f4f6; --fg-dim: #a6a6ae;
+      --border: rgba(255,255,255,.09); --accent: #78aeed; --accent-fg: #0f1a2a; --accent-soft: rgba(120,174,237,.14);
+      --code-bg: #141416; --shadow: 0 1px 2px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.2);
+      --shadow-lg: 0 2px 6px rgba(0,0,0,.3), 0 24px 60px rgba(0,0,0,.5);
+      --wall: url("./demo/__fs/usr/share/backgrounds/piloti/piloti-waves-d.svg");
+      color-scheme: dark;
     }
 
-    html.dark {
-      --adw-bg: #202024;
-      --adw-sidebar: #28282c;
-      --adw-card: #343437;
-      --adw-card-alt: rgba(255, 255, 255, 0.06);
-      --adw-field: #333336;
-      --adw-text: #ffffff;
-      --adw-text-muted: rgba(255, 255, 255, 0.6);
-      --adw-border: rgba(255, 255, 255, 0.08);
-      --adw-shadow: 0 1px 2px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.06);
-      --adw-window-shadow: 0 20px 54px rgba(0, 0, 0, 0.52), 0 0 0 1px rgba(255, 255, 255, 0.08);
-      --adw-switch-off: #4e4e52;
-      --adw-switch-knob: #d2d2d5;
-    }
-
-    * {
-      box-sizing: border-box;
-    }
-
-    html {
-      scroll-behavior: smooth;
-    }
-
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
     body {
-      margin: 0;
-      font-family: var(--font-sans);
-      background: var(--adw-bg);
-      color: var(--adw-text);
-      line-height: 1.55;
-      -webkit-font-smoothing: antialiased;
-      transition: background-color 180ms ease, color 180ms ease;
+      margin: 0; background: var(--bg); color: var(--fg); font-family: var(--font);
+      font-size: 16px; line-height: 1.5; -webkit-font-smoothing: antialiased;
     }
+    img { display: block; max-width: 100%; }
+    a { color: inherit; text-decoration: none; }
+    .wrap { max-width: 1120px; margin: 0 auto; padding: 0 16px; }
+    @media (min-width: 720px) { .wrap { padding: 0 32px; } }
 
-    a {
-      color: inherit;
-      text-decoration: none;
+    /* Header */
+    header {
+      position: sticky; top: 0; z-index: 10;
+      background: color-mix(in srgb, var(--bg) 80%, transparent);
+      backdrop-filter: saturate(180%) blur(16px); -webkit-backdrop-filter: saturate(180%) blur(16px);
+      border-bottom: 1px solid var(--border);
     }
-
-    .container {
-      max-width: 1080px;
-      margin: 0 auto;
-      padding: 0 24px;
-    }
-
-    /* Adwaita HeaderBar Navigation (Flathub/GNOME style) */
-    .topbar {
-      position: sticky;
-      top: 0;
-      z-index: 50;
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      background: color-mix(in srgb, var(--adw-bg) 84%, transparent);
-      border-bottom: 1px solid var(--adw-border);
-    }
-
-    .topbar-inner {
-      height: 60px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 16px;
-    }
-
-    .brand {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-weight: 700;
-      font-size: 16px;
-      letter-spacing: -0.01em;
-    }
-
-    .brand-mark {
-      width: 30px;
-      height: 30px;
-      border-radius: 9px;
-      background: linear-gradient(135deg, var(--adw-accent), color-mix(in srgb, var(--adw-accent) 65%, #9141ac));
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      color: #fff;
-      box-shadow: 0 2px 8px color-mix(in srgb, var(--adw-accent) 45%, transparent);
-    }
-
-    .nav-links {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .nav-link {
-      padding: 6px 12px;
-      border-radius: 9999px;
-      font-size: 14px;
-      font-weight: 500;
-      color: var(--adw-text-muted);
-      transition: background-color 140ms ease, color 140ms ease;
-    }
-
-    .nav-link:hover {
-      background: var(--adw-card-alt);
-      color: var(--adw-text);
-    }
-
+    .bar { display: flex; align-items: center; gap: 8px; height: 56px; }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 17px; margin-right: auto; }
+    .brand img { width: 28px; height: 28px; }
+    .nav a { padding: 6px 12px; border-radius: 8px; font-size: 14px; font-weight: 500; color: var(--fg-dim); }
+    .nav a:hover { background: var(--bg-alt); color: var(--fg); }
     .icon-btn {
-      width: 34px;
-      height: 34px;
-      border-radius: 9999px;
-      border: none;
-      background: var(--adw-field);
-      color: var(--adw-text);
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      transition: filter 140ms ease, transform 140ms ease;
+      width: 34px; height: 34px; border-radius: 8px; border: 0; background: transparent; color: var(--fg-dim);
+      display: grid; place-items: center; cursor: pointer;
     }
+    .icon-btn:hover { background: var(--bg-alt); color: var(--fg); }
+    @media (max-width: 640px) { .nav .opt { display: none; } }
 
-    .icon-btn:hover {
-      filter: brightness(1.12);
+    /* Buttons */
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px; height: 44px; padding: 0 22px; border-radius: 999px;
+      font-weight: 600; font-size: 15px; transition: transform .15s ease, filter .15s ease;
     }
+    .btn:hover { transform: translateY(-1px); filter: brightness(1.05); }
+    .btn-primary { background: var(--accent); color: var(--accent-fg); }
+    .btn-plain { background: var(--card); color: var(--fg); box-shadow: inset 0 0 0 1px var(--border); }
 
     /* Hero */
     .hero {
-      padding: 64px 0 44px;
-      text-align: center;
+      position: relative; overflow: hidden; text-align: center;
+      background: var(--wall) center / cover no-repeat, var(--bg-alt);
+      padding: 72px 0 0;
     }
-
-    .pill-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 5px 14px;
-      border-radius: 9999px;
-      background: color-mix(in srgb, var(--adw-accent) 16%, transparent);
-      color: var(--adw-accent);
-      font-size: 13px;
-      font-weight: 700;
-      margin-bottom: 20px;
+    .hero::after {
+      content: ""; position: absolute; inset: auto 0 0 0; height: 140px;
+      background: linear-gradient(to bottom, transparent, var(--bg)); pointer-events: none;
     }
-
-    h1 {
-      margin: 0 auto 16px;
-      max-width: 780px;
-      font-size: clamp(34px, 5.2vw, 54px);
-      line-height: 1.08;
-      letter-spacing: -0.03em;
-      font-weight: 800;
+    .hero-logo { width: 88px; height: 88px; margin: 0 auto 20px; filter: drop-shadow(0 10px 22px rgba(0,0,0,.25)); }
+    h1 { font-size: clamp(40px, 7vw, 68px); line-height: 1.05; letter-spacing: -0.03em; margin: 0 0 14px; font-weight: 800; }
+    .lead { font-size: clamp(18px, 2.4vw, 22px); color: var(--fg-dim); margin: 0 auto 30px; max-width: 34ch; }
+    .ctas { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-bottom: 56px; }
+    .shot {
+      position: relative; z-index: 1; margin: 0 auto -1px; max-width: 1000px;
+      border-radius: 14px 14px 0 0; overflow: hidden; box-shadow: var(--shadow-lg);
+      border: 1px solid var(--border); border-bottom: 0;
     }
+    .shot img { width: 100%; height: auto; }
 
-    .hero-sub {
-      margin: 0 auto 28px;
-      max-width: 640px;
-      font-size: 17px;
-      color: var(--adw-text-muted);
-    }
-
-    .hero-actions {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 12px;
-      margin-bottom: 44px;
-    }
-
-    .btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      height: 40px;
-      padding: 0 20px;
-      border-radius: 9999px;
-      font-size: 14px;
-      font-weight: 700;
-      border: none;
-      cursor: pointer;
-      transition: transform 120ms ease, filter 140ms ease;
-    }
-
-    .btn:hover {
-      filter: brightness(1.08);
-      transform: translateY(-1px);
-    }
-
-    .btn-primary {
-      background: var(--adw-accent);
-      color: #ffffff;
-      box-shadow: 0 6px 20px color-mix(in srgb, var(--adw-accent) 35%, transparent);
-    }
-
-    .btn-secondary {
-      background: var(--adw-card);
-      color: var(--adw-text);
-      box-shadow: var(--adw-shadow);
-    }
-
-    /* Real Representative Desktop Screenshot Frame */
-    .desktop-stage {
-      position: relative;
-      display: block;
-      border-radius: 18px;
-      overflow: hidden;
-      background: var(--adw-card);
-      box-shadow: var(--adw-window-shadow);
-      border: 1px solid var(--adw-border);
-      transition: transform 180ms ease, box-shadow 180ms ease;
-    }
-
-    .desktop-stage:hover {
-      transform: translateY(-2px);
-    }
-
-    .desktop-screenshot {
-      display: block;
-      width: 100%;
-      height: auto;
-      aspect-ratio: 16 / 10;
-      object-fit: cover;
-    }
-
-    .mock-menubar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      height: 30px;
-      padding: 0 12px;
-      border-radius: 10px;
-      background: rgba(0, 0, 0, 0.38);
-      color: #fff;
-      font-size: 12px;
-      margin-bottom: 14px;
-    }
-
-    .mock-workspaces {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-    }
-
-    .mock-ws-dot {
-      width: 7px;
-      height: 7px;
-      border-radius: 9999px;
-      background: rgba(255, 255, 255, 0.35);
-    }
-
-    .mock-ws-dot.active {
-      width: 22px;
-      height: 14px;
-      background: #fff;
-      color: #111;
-      font-weight: 700;
-      font-size: 9px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .mock-window {
-      display: grid;
-      grid-template-columns: 220px 1fr;
-      min-height: 330px;
-      border-radius: 15px;
-      overflow: hidden;
-      background: var(--adw-bg);
-      color: var(--adw-text);
-      box-shadow: var(--adw-window-shadow);
-    }
-
-    .mock-sidebar {
-      background: var(--adw-sidebar);
-      border-right: 1px solid var(--adw-border);
-      padding: 14px 10px;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-
-    .mock-sidebar-title {
-      font-size: 13px;
-      font-weight: 700;
-      text-align: center;
-      padding: 2px 0 10px;
-    }
-
-    .mock-nav-item {
-      padding: 8px 12px;
-      border-radius: 9px;
-      font-size: 13px;
-      color: var(--adw-text-muted);
-    }
-
-    .mock-nav-item.active {
-      background: var(--adw-card-alt);
-      color: var(--adw-text);
-      font-weight: 600;
-    }
-
-    .mock-pane {
-      padding: 16px 24px 24px;
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-    }
-
-    .mock-headerbar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      font-size: 14px;
-      font-weight: 700;
-    }
-
-    .mock-controls {
-      display: flex;
-      gap: 8px;
-    }
-
-    .mock-circle {
-      width: 22px;
-      height: 22px;
-      border-radius: 9999px;
-      background: var(--adw-field);
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 11px;
-      color: var(--adw-text-muted);
-    }
-
-    .adw-group-title {
-      font-size: 13px;
-      font-weight: 700;
-      margin: 4px 0 6px;
-    }
-
-    .adw-boxed-list {
-      border-radius: 12px;
-      background: var(--adw-card);
-      box-shadow: var(--adw-shadow);
-      overflow: hidden;
-    }
-
-    .adw-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 14px;
-      padding: 12px 16px;
-      border-bottom: 1px solid var(--adw-border);
-      font-size: 13.5px;
-    }
-
-    .adw-row:last-child {
-      border-bottom: none;
-    }
-
-    .adw-row-sub {
-      font-size: 11.5px;
-      color: var(--adw-text-muted);
-    }
-
-    .adw-switch {
-      position: relative;
-      width: 44px;
-      height: 24px;
-      border-radius: 9999px;
-      background: var(--adw-accent);
-      border: none;
-      padding: 3px;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      transition: background-color 140ms ease;
-    }
-
-    .adw-switch[data-checked="false"] {
-      background: var(--adw-switch-off);
-    }
-
-    .adw-switch-knob {
-      width: 18px;
-      height: 18px;
-      border-radius: 9999px;
-      background: #fff;
-      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
-      transform: translateX(20px);
-      transition: transform 140ms ease;
-    }
-
-    .adw-switch[data-checked="false"] .adw-switch-knob {
-      background: var(--adw-switch-knob);
-      transform: translateX(0);
-    }
-
-    .swatches {
-      display: flex;
-      gap: 7px;
-      flex-wrap: wrap;
-    }
-
-    .swatch {
-      width: 18px;
-      height: 18px;
-      border-radius: 9999px;
-      border: none;
-      cursor: pointer;
-      transition: transform 120ms ease;
-    }
-
-    .swatch:hover {
-      transform: scale(1.15);
-    }
-
-    .swatch.active {
-      box-shadow: 0 0 0 2px var(--adw-card), 0 0 0 4px var(--adw-text);
+    /* Pills row */
+    .pills { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; padding: 28px 0 8px; }
+    .pill {
+      font-size: 13px; font-weight: 600; padding: 6px 12px; border-radius: 999px;
+      background: var(--card); box-shadow: inset 0 0 0 1px var(--border); color: var(--fg-dim);
     }
 
     /* Sections */
-    section {
-      padding: 46px 0;
+    section { padding: 72px 0; }
+    .eyebrow { font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); margin: 0 0 8px; }
+    h2 { font-size: clamp(28px, 4vw, 40px); letter-spacing: -0.02em; line-height: 1.1; margin: 0 0 10px; font-weight: 800; }
+    .sub { color: var(--fg-dim); font-size: 18px; margin: 0 0 36px; }
+    h3 { font-size: 17px; margin: 0 0 4px; font-weight: 700; }
+    p { margin: 0; }
+    .muted { color: var(--fg-dim); font-size: 15px; }
+
+    .card { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); border: 1px solid var(--border); }
+
+    /* Design grid */
+    .design { display: grid; gap: 16px; grid-template-columns: 1fr; }
+    @media (min-width: 860px) { .design { grid-template-columns: 1.3fr 1fr; } }
+    .design .card { padding: 28px; }
+    .anim-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 24px; }
+    .anim {
+      width: 88px; display: flex; flex-direction: column; align-items: center; gap: 6px;
+      padding: 12px 4px 10px; border-radius: 12px; cursor: pointer; border: 0; background: transparent; color: var(--fg-dim);
+      font: inherit; font-size: 12px;
     }
+    .anim:hover, .anim:focus-visible { background: var(--accent-soft); color: var(--fg); outline: none; }
+    .anim .ico { width: 56px; height: 56px; }
+    .anim .ico img, .anim .ico svg { width: 56px !important; height: 56px !important; }
+    .hint { font-size: 13px; color: var(--fg-dim); margin-top: 12px; }
+    .accents { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 14px; }
+    .sw { width: 22px; height: 22px; border-radius: 50%; border: 0; padding: 0; cursor: pointer; background: var(--c); box-shadow: inset 0 0 0 1px rgba(0,0,0,.12); }
+    .sw.on { box-shadow: 0 0 0 2px var(--card), 0 0 0 4px var(--c); }
+    #anims .ico { transition: filter .3s ease; }
 
-    .section-head {
-      margin-bottom: 24px;
-    }
+    .xp { display: grid; gap: 12px; grid-template-columns: 1fr; margin-top: 16px; }
+    @media (min-width: 640px) { .xp { grid-template-columns: repeat(2, 1fr); } }
+    @media (min-width: 960px) { .xp { grid-template-columns: repeat(4, 1fr); } }
+    .xp .card { padding: 20px; }
+    .xp-title { margin: 40px 0 0; font-size: 22px; font-weight: 800; letter-spacing: -0.01em; }
 
-    .section-head h2 {
-      margin: 0 0 6px;
-      font-size: 26px;
-      letter-spacing: -0.02em;
-    }
+    .steps { display: grid; gap: 12px; grid-template-columns: 1fr; margin-bottom: 24px; }
+    @media (min-width: 860px) { .steps { grid-template-columns: repeat(3, 1fr); } }
+    .steps .card { padding: 22px; }
+    .num { display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); font-weight: 800; font-size: 14px; margin-bottom: 12px; }
+    .tag { display: inline-block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; padding: 2px 8px; border-radius: 999px; margin-left: 6px; vertical-align: 2px; }
+    .tag-req { background: var(--accent); color: var(--accent-fg); }
+    .tag-opt { background: var(--bg-alt); color: var(--fg-dim); box-shadow: inset 0 0 0 1px var(--border); }
+    .steps code { font-family: var(--mono); font-size: 13px; background: var(--bg-alt); padding: 1px 6px; border-radius: 6px; }
+    .link { color: var(--accent); font-weight: 600; }
+    .link:hover { text-decoration: underline; }
 
-    .section-head p {
-      margin: 0;
-      color: var(--adw-text-muted);
-      font-size: 15px;
-    }
+    .walls { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 24px; }
+    .wall { aspect-ratio: 16 / 10; border-radius: 10px; background-size: cover; background-position: center; box-shadow: inset 0 0 0 1px var(--border); }
+    .wall-l { background-image: url("./demo/__fs/usr/share/backgrounds/piloti/piloti-waves-l.svg"); }
+    .wall-d { background-image: url("./demo/__fs/usr/share/backgrounds/piloti/piloti-waves-d.svg"); }
+    .wall-cap { display: flex; justify-content: space-between; font-size: 12px; color: var(--fg-dim); margin-top: 6px; }
 
-    /* Feature Cards Grid (3x2 on large screens) */
-    .cards {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 16px;
-    }
+    .mini { display: grid; gap: 16px; grid-template-columns: 1fr; margin-top: 16px; }
+    @media (min-width: 640px) { .mini { grid-template-columns: repeat(3, 1fr); } }
+    .mini .card { padding: 22px; display: flex; gap: 14px; align-items: flex-start; }
+    .mini img { width: 40px; height: 40px; flex: none; }
 
-    @media (max-width: 900px) {
-      .cards {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
-    }
+    /* Mix */
+    .mix { display: grid; gap: 16px; grid-template-columns: 1fr; }
+    @media (min-width: 860px) { .mix { grid-template-columns: 1fr auto 1fr; align-items: stretch; } }
+    .mix .card { padding: 28px; }
+    .mix-head { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+    .mix-head img { width: 44px; height: 44px; }
+    .mix ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+    .mix li { display: flex; gap: 10px; font-size: 15px; }
+    .mix li::before { content: ""; flex: none; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); margin-top: 9px; }
+    .plus { display: grid; place-items: center; font-size: 28px; font-weight: 800; color: var(--accent); }
 
-    @media (max-width: 580px) {
-      .cards {
-        grid-template-columns: 1fr;
-      }
-    }
+    /* Standards */
+    .std { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
+    .std .card { padding: 16px; display: flex; gap: 12px; align-items: center; }
+    .std img { width: 36px; height: 36px; flex: none; }
+    .std b { display: block; font-size: 15px; }
+    .std span { font-size: 13px; color: var(--fg-dim); }
+    .alt { background: var(--bg-alt); }
 
-    .card {
-      background: var(--adw-card);
-      border-radius: 14px;
-      padding: 20px;
-      box-shadow: var(--adw-shadow);
-    }
+    /* Apps */
+    .apps { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+    .app { padding: 20px 12px; text-align: center; }
+    .app img { width: 56px; height: 56px; margin: 0 auto 10px; }
+    .app b { font-size: 14px; display: block; }
+    .app span { font-size: 12px; color: var(--fg-dim); font-family: var(--mono); }
 
-    .card-icon {
-      width: 38px;
-      height: 38px;
-      border-radius: 10px;
-      background: color-mix(in srgb, var(--adw-accent) 16%, transparent);
-      color: var(--adw-accent);
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      margin-bottom: 12px;
-    }
+    /* Code */
+    .term { background: var(--code-bg); color: var(--code-fg); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow-lg); max-width: 760px; }
+    .term-bar { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 1px solid rgba(255,255,255,.08); font-size: 13px; color: #a6a6ae; }
+    .dot { width: 12px; height: 12px; border-radius: 50%; background: #4a4a50; }
+    .term-bar .copy { margin-left: auto; background: rgba(255,255,255,.08); color: #e8e8ec; border: 0; border-radius: 6px; padding: 4px 10px; font: inherit; font-size: 12px; cursor: pointer; }
+    pre { margin: 0; padding: 18px 20px; font-family: var(--mono); font-size: 14px; line-height: 1.7; overflow-x: auto; }
+    .c { color: #8a8a94; }
 
-    .card h3 {
-      margin: 0 0 6px;
-      font-size: 16px;
-      font-weight: 700;
-    }
+    .final { text-align: center; }
+    .final .ctas { margin: 28px 0 0; }
 
-    .card p {
-      margin: 0;
-      font-size: 13.5px;
-      color: var(--adw-text-muted);
-    }
-
-    /* Code & Docs */
-    .code-box {
-      background: var(--adw-card);
-      border-radius: 14px;
-      box-shadow: var(--adw-shadow);
-      overflow: hidden;
-    }
-
-    .code-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 10px 16px;
-      border-bottom: 1px solid var(--adw-border);
-      font-size: 12.5px;
-      font-weight: 700;
-      color: var(--adw-text-muted);
-    }
-
-    pre {
-      margin: 0;
-      padding: 16px;
-      overflow-x: auto;
-      font-family: var(--font-mono);
-      font-size: 13px;
-      line-height: 1.65;
-    }
-
-    .copy-btn {
-      padding: 4px 10px;
-      border-radius: 6px;
-      border: none;
-      background: var(--adw-field);
-      color: var(--adw-text);
-      font-size: 12px;
-      font-weight: 600;
-      cursor: pointer;
-    }
-
-    .doc-link-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 14px 18px;
-      border-bottom: 1px solid var(--adw-border);
-      transition: background-color 140ms ease;
-    }
-
-    .doc-link-row:last-child {
-      border-bottom: none;
-    }
-
-    .doc-link-row:hover {
-      background: var(--adw-card-alt);
-    }
-
-    .doc-title {
-      font-size: 14.5px;
-      font-weight: 600;
-    }
-
-    .doc-arrow {
-      color: var(--adw-text-muted);
-      font-size: 14px;
-    }
-
-    footer {
-      padding: 36px 0 48px;
-      border-top: 1px solid var(--adw-border);
-      color: var(--adw-text-muted);
-      font-size: 13px;
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: space-between;
-      gap: 12px;
-    }
-
-    @media (max-width: 720px) {
-      .mock-window {
-        grid-template-columns: 1fr;
-      }
-
-      .mock-sidebar {
-        display: none;
-      }
-
-      .nav-links .hide-sm {
-        display: none;
-      }
-    }
+    footer { border-top: 1px solid var(--border); padding: 28px 0; font-size: 14px; color: var(--fg-dim); }
+    footer .wrap { display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; }
+    footer a:hover { color: var(--fg); }
   </style>
 </head>
-
 <body>
-  <header class="topbar">
-    <div class="container topbar-inner">
-      <a href="#" class="brand">
-        <img src="./assets/piloti-icon.svg" alt="Piloti Icon" width="32" height="32" />
-        <span>Piloti</span>
-      </a>
-
-      <nav class="nav-links" aria-label="Primary">
-        <a href="#features" class="nav-link hide-sm">Features</a>
-        <a href="#quickstart" class="nav-link hide-sm">Quick Start</a>
-        <a href="./demo/" class="nav-link">Live Demo</a>
-        <a href="https://github.com/yanbab/piloti-desktop" target="_blank" rel="noopener" class="nav-link">
-          GitHub
-        </a>
-        <button id="theme-toggle" type="button" class="icon-btn" aria-label="Toggle Light/Dark theme"
-          title="Toggle Light / Dark theme">
-          <svg id="icon-sun" xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-            style="display: none;">
-            <circle cx="12" cy="12" r="4" />
-            <path d="M12 2v2" />
-            <path d="M12 20v2" />
-            <path d="m4.93 4.93 1.41 1.41" />
-            <path d="m17.66 17.66 1.41 1.41" />
-            <path d="M2 12h2" />
-            <path d="M20 12h2" />
-            <path d="m6.34 17.66-1.41 1.41" />
-            <path d="m19.07 4.93-1.41 1.41" />
-          </svg>
-          <svg id="icon-moon" xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
-          </svg>
-        </button>
+  <header>
+    <div class="wrap bar">
+      <a class="brand" href="#"><img src="./assets/piloti-icon.svg" alt="" />Piloti</a>
+      <nav class="nav">
+        <a class="opt" href="#design">Design</a>
+        <a class="opt" href="#tech">Tech</a>
+        <a class="opt" href="#standards">Standards</a>
+        <a href="./demo/">Live Demo</a>
+        <a href="https://github.com/yanbab/piloti-desktop" target="_blank" rel="noopener">GitHub</a>
       </nav>
+      <button id="theme" class="icon-btn" type="button" aria-label="Toggle theme" title="Toggle theme">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 0 0 18z" fill="currentColor"/></svg>
+      </button>
     </div>
   </header>
 
-  <main class="container">
-    <section class="hero">
-      <img src="./assets/piloti-icon.svg" alt="Piloti Desktop Icon" width="96" height="96"
-        style="display: block; margin: 0 auto 14px; filter: drop-shadow(0 10px 24px rgba(0, 0, 0, 0.32));" />
-      <div class="pill-badge">Web based Wayland desktop
-
+  <main>
+    <div class="hero">
+      <div class="wrap">
+        <img class="hero-logo" src="./assets/piloti-icon.svg" alt="Piloti Desktop icon" width="88" height="88" />
+        <h1>Piloti Desktop</h1>
+        <p class="lead">A Linux desktop. Built with the web. Runs on Wayland.</p>
+        <div class="ctas">
+          <a class="btn btn-primary" href="./demo/">Live Demo</a>
+          <a class="btn btn-plain" href="#start">Install</a>
+        </div>
+        <div class="shot">
+          <img id="shot" src="./assets/screenshot-light.png" data-light="./assets/screenshot-light.png" data-dark="./assets/screenshot-dark.png" alt="Piloti Desktop with Dock, menu bar and windows" width="1360" height="850" />
+        </div>
       </div>
-      <h1>Piloti Desktop</h1>
-      <p class="hero-sub">
-        A modern desktop for linux, featuring animated icons and wallpapers and spatial file and window managemnt
-      </p>
+    </div>
 
-      <div class="hero-actions">
-        <a href="./demo/" class="btn btn-primary">Live Demo</a>
-        <a href="#quickstart" class="btn btn-secondary">Quick start</a>
-        <a href="https://github.com/yanbab/piloti-desktop" target="_blank" rel="noopener" class="btn btn-secondary">
-          GitHub
-        </a>
-      </div>
+    <div class="wrap pills">
+      <span class="pill">Wayland</span>
+      <span class="pill">GNOME &amp; Adwaita friendly</span>
+      <span class="pill">FreeDesktop / XDG</span>
+      <span class="pill">Debian &amp; Ubuntu</span>
+      <span class="pill">Flatpak</span>
+      <span class="pill">Powered by Domicile</span>
+    </div>
 
-      <!-- Representative Live Desktop Screenshot (Swaps automatically with Light/Dark theme) -->
-      <a href="./demo/" class="desktop-stage" title="Click to launch Live Web Demo">
-        <img id="hero-screenshot" class="desktop-screenshot" src="./assets/screenshot-dark.png"
-          data-light-src="./assets/screenshot-light.png" data-dark-src="./assets/screenshot-dark.png"
-          alt="Piloti Desktop Environment Screenshot" width="1360" height="850" />
-      </a>
-    </section>
+    <!-- DESIGN -->
+    <section id="design">
+      <div class="wrap">
+        <p class="eyebrow">Design</p>
+        <h2>Alive, not busy.</h2>
+        <p class="sub">Icons move. Wallpapers breathe. Nothing gets in the way.</p>
 
-    <section id="features">
-      <div class="section-head">
-        <h2>Features</h2>
-        <p>Everything built into the Piloti desktop shell.</p>
-      </div>
-
-      <div class="cards">
-        <div class="card">
-          <div class="card-icon" aria-hidden="true">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect width="18" height="14" x="3" y="5" rx="2" />
-              <path d="M3 9h18" />
-            </svg>
+        <div class="design">
+          <div class="card">
+            <h3>Animated icons</h3>
+            <p class="muted">Folders open. Trash fills up. Every icon takes your accent color.</p>
+            <div class="anim-row" id="anims">
+              <button class="anim" data-src="places/folder.json" data-fallback="places/folder.svg"><span class="ico"></span>Folder</button>
+              <button class="anim" data-src="places/folder-open.json" data-fallback="places/folder-open.svg"><span class="ico"></span>Open</button>
+              <button class="anim" data-src="places/user-trash.json" data-fallback="places/user-trash.svg"><span class="ico"></span>Trash</button>
+              <button class="anim" data-src="places/user-trash-full.json" data-fallback="places/user-trash-full.svg"><span class="ico"></span>Full</button>
+              <button class="anim" data-src="mimetypes/text-x-generic.json" data-fallback="mimetypes/text-x-generic.svg"><span class="ico"></span>Text</button>
+            </div>
+            <div class="accents" role="group" aria-label="Accent color">
+              <span class="hint" style="margin:0">Hover to play. Pick a color:</span>
+              <button class="sw on" style="--c:#3584e4" data-hue="0" aria-label="Blue"></button>
+              <button class="sw" style="--c:#9141ac" data-hue="65" aria-label="Purple"></button>
+              <button class="sw" style="--c:#d56199" data-hue="115" aria-label="Pink"></button>
+              <button class="sw" style="--c:#e62d42" data-hue="150" aria-label="Red"></button>
+              <button class="sw" style="--c:#ed5b00" data-hue="175" aria-label="Orange"></button>
+              <button class="sw" style="--c:#3a944a" data-hue="-95" aria-label="Green"></button>
+              <button class="sw" style="--c:#2190a4" data-hue="-25" aria-label="Teal"></button>
+            </div>
           </div>
-          <h3>Wayland Windows &amp; CSD</h3>
-          <p>Native <code>&lt;app&gt;</code> surfaces, edge snapping, spatial per-app bounds, and live
-            <code>Alt+Tab</code> / Overview workspace previews.</p>
+
+          <div class="card">
+            <h3>Live wallpapers</h3>
+            <p class="muted">One wallpaper. Two moods. Follows your theme.</p>
+            <div class="walls">
+              <div><div class="wall wall-l"></div><div class="wall-cap"><span>Light</span><span>Waves</span></div></div>
+              <div><div class="wall wall-d"></div><div class="wall-cap"><span>Dark</span><span>Waves</span></div></div>
+            </div>
+            <p class="hint">Static, CSS or HTML. Animated if you want.</p>
+          </div>
         </div>
 
-        <div class="card">
-          <div class="card-icon" aria-hidden="true">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="21" x2="14" y1="4" y2="4" />
-              <line x1="10" x2="3" y1="4" y2="4" />
-              <line x1="21" x2="12" y1="12" y2="12" />
-              <line x1="8" x2="3" y1="12" y2="12" />
-              <line x1="21" x2="16" y1="20" y2="20" />
-              <line x1="12" x2="3" y1="20" y2="20" />
-              <line x1="14" x2="14" y1="2" y2="6" />
-              <line x1="8" x2="8" y1="10" y2="14" />
-              <line x1="16" x2="16" y1="18" y2="22" />
-            </svg>
+        <div class="mini">
+          <div class="card">
+            <img src="./demo/__fs/usr/share/icons/Papirus/64x64/apps/view-app-grid.svg" alt="" />
+            <div><h3>Magnifying Dock</h3><p class="muted">Badges, progress, stacks.</p></div>
           </div>
-          <h3>Menu Bar, Launcher &amp; Control Panel</h3>
-          <p>Global app menus, DBusMenu System Tray, instant Launcher search &amp; calculator, quick settings, and
-            notification history.</p>
-        </div>
-
-        <div class="card">
-          <div class="card-icon" aria-hidden="true">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path
-                d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z" />
-            </svg>
+          <div class="card">
+            <img src="./demo/__fs/usr/share/icons/Papirus/64x64/places/user-desktop.svg" alt="" />
+            <div><h3>Spatial desktop</h3><p class="muted">Windows and icons remember their place.</p></div>
           </div>
-          <h3>Animated Icons, Dock &amp; Spatial Desktop</h3>
-          <p>Accent-tinted Papirus &amp; Lottie animated folders, files, and Trash with a magnifying Dock and spatial
-            <code>~/Desktop</code> grid.</p>
-        </div>
-
-        <div class="card">
-          <div class="card-icon" aria-hidden="true">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="10" />
-              <path d="M12 2a7 7 0 1 0 10 10" />
-            </svg>
+          <div class="card">
+            <img src="./demo/__fs/usr/share/icons/Papirus/64x64/apps/preferences-desktop.svg" alt="" />
+            <div><h3>Your accent</h3><p class="muted">Icons, folders and controls follow it.</p></div>
           </div>
-          <h3>Dynamic Wallpapers &amp; Plugins</h3>
-          <p>Adaptive light/dark wallpapers, live CSS &amp; HTML animated backgrounds, and hot-reloadable JS/CSS shell
-            and GTK plugins.</p>
-        </div>
-
-        <div class="card">
-          <div class="card-icon" aria-hidden="true">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" />
-            </svg>
-          </div>
-          <h3>GNOME &amp; FreeDesktop Integration</h3>
-          <p>Two-way <code>GSettings</code> sync, PipeWire, NetworkManager, UPower, Flatpak, XDG Portals, Trash,
-            Recents (XBEL), and MimeApps.</p>
-        </div>
-
-        <div class="card">
-          <div class="card-icon" aria-hidden="true">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="4 17 10 11 4 5" />
-              <line x1="12" x2="20" y1="19" y2="19" />
-            </svg>
-          </div>
-          <h3>Built-in Apps, Greeter &amp; Console</h3>
-          <p>Folders, Desktop Shell, Notepad, Calculator, Image Viewer, Applications Store, GDM Login Screen, and
-            Desktop Console.</p>
         </div>
       </div>
     </section>
 
-    <section id="quickstart">
-      <div class="section-head">
-        <h2>Quick Start</h2>
-        <p>Run in a browser harness locally or launch natively inside Domicile.</p>
-      </div>
+    <!-- TECH MIX -->
+    <section id="tech" class="alt">
+      <div class="wrap">
+        <p class="eyebrow">Technology</p>
+        <h2>Web meets Wayland.</h2>
+        <p class="sub">A web UI on top. A native session underneath.</p>
 
-      <div class="code-box">
-        <div class="code-header">
-          <span>Terminal — Local Dev &amp; Linux Launch</span>
-          <button id="copy-code" type="button" class="copy-btn">Copy</button>
+        <div class="mix">
+          <div class="card">
+            <div class="mix-head">
+              <img src="./demo/__fs/usr/share/icons/Papirus/64x64/apps/internet-web-browser.svg" alt="" />
+              <h3>Web</h3>
+            </div>
+            <ul>
+              <li>React, Tailwind and Adwaita primitives.</li>
+              <li>Plugins in JS and CSS. Hot reload.</li>
+              <li>Web apps as first-class windows.</li>
+              <li>Runs in any browser for demos.</li>
+            </ul>
+          </div>
+          <div class="plus" aria-hidden="true">+</div>
+          <div class="card">
+            <div class="mix-head">
+              <img src="./demo/__fs/usr/share/icons/Papirus/64x64/apps/utilities-terminal.svg" alt="" />
+              <h3>Wayland</h3>
+            </div>
+            <ul>
+              <li>Native app windows. CSD and SSD.</li>
+              <li>X11 apps with xwayland-satellite.</li>
+              <li>Login with greetd.</li>
+              <li>Powered by Domicile.</li>
+            </ul>
+          </div>
         </div>
-        <pre><code id="quickstart-code"># 1. Install dependencies &amp; launch browser harness
-bun install
-bun run dev
 
-# 2. Run directly on Linux with Domicile
-domicile ./desktop.tsx
-
-# 3. Or build standalone shell bundle &amp; run tests
-bun test &amp;&amp; bun run typecheck &amp;&amp; bun run build
-domicile ./dist/shell.js</code></pre>
+        <h3 class="xp-title">New experiments, now possible.</h3>
+        <p class="muted" style="margin-top:6px">When the line between web and native blurs, new ideas get easy.</p>
+        <div class="xp">
+          <div class="card"><h3>Live wallpapers</h3><p class="muted">Any web page can be your desktop.</p></div>
+          <div class="card"><h3>Sites as apps</h3><p class="muted">Pin a website. It gets a window, a dock icon and badges.</p></div>
+          <div class="card"><h3>Shell plugins</h3><p class="muted">Change the desktop with a few lines of JS or CSS.</p></div>
+          <div class="card"><h3>Mixed windows</h3><p class="muted">Native apps and web widgets, side by side.</p></div>
+        </div>
       </div>
     </section>
 
-    <footer>
-      <span>Piloti Desktop · Built with Domicile &amp; React</span>
-      <a href="https://github.com/yanbab/piloti-desktop" target="_blank" rel="noopener">
-        GitHub Repository
-      </a>
-    </footer>
+    <!-- STANDARDS -->
+    <section id="standards">
+      <div class="wrap">
+        <p class="eyebrow">Standards</p>
+        <h2>Plays well with Linux.</h2>
+        <p class="sub">GNOME and Adwaita friendly. XDG to the core. Your apps, as they are.</p>
+
+        <div class="std">
+          <div class="card"><img src="./demo/__fs/usr/share/icons/Papirus/64x64/apps/preferences-system.svg" alt="" /><div><b>GSettings</b><span>Two-way sync with GNOME</span></div></div>
+          <div class="card"><img src="./demo/__fs/usr/share/icons/Papirus/64x64/apps/preferences-desktop.svg" alt="" /><div><b>Adwaita</b><span>GTK apps look at home</span></div></div>
+          <div class="card"><img src="./demo/__fs/usr/share/icons/Papirus/64x64/apps/view-app-grid.svg" alt="" /><div><b>Desktop Entries</b><span>.desktop launchers</span></div></div>
+          <div class="card"><img src="./demo/__fs/usr/share/icons/Papirus/64x64/apps/multimedia-photo-viewer.svg" alt="" /><div><b>Icon Themes</b><span>Any XDG theme</span></div></div>
+          <div class="card"><img src="./demo/__fs/usr/share/icons/Papirus/64x64/places/folder-documents.svg" alt="" /><div><b>MIME Apps</b><span>Open with the right app</span></div></div>
+          <div class="card"><img src="./demo/__fs/usr/share/icons/Papirus/64x64/places/user-trash.svg" alt="" /><div><b>Trash</b><span>Shared with every app</span></div></div>
+          <div class="card"><img src="./demo/__fs/usr/share/icons/Papirus/64x64/places/folder-templates.svg" alt="" /><div><b>Recents</b><span>XBEL history</span></div></div>
+          <div class="card"><img src="./demo/__fs/usr/share/icons/Papirus/64x64/places/user-home.svg" alt="" /><div><b>User Dirs</b><span>Documents, Pictures…</span></div></div>
+          <div class="card"><img src="./demo/__fs/usr/share/icons/Papirus/64x64/apps/system-software-install.svg" alt="" /><div><b>Flatpak</b><span>Install from Flathub</span></div></div>
+          <div class="card"><img src="./demo/__fs/usr/share/icons/Papirus/64x64/places/folder-music.svg" alt="" /><div><b>PipeWire</b><span>Volume and devices</span></div></div>
+          <div class="card"><img src="./demo/__fs/usr/share/icons/Papirus/64x64/places/folder-publicshare.svg" alt="" /><div><b>NetworkManager</b><span>Wi-Fi and wired</span></div></div>
+          <div class="card"><img src="./demo/__fs/usr/share/icons/Papirus/64x64/apps/applications-development.svg" alt="" /><div><b>D-Bus Menus</b><span>Global menu and tray</span></div></div>
+          <div class="card"><img src="./demo/__fs/usr/share/icons/Papirus/64x64/apps/system-users.svg" alt="" /><div><b>Autostart &amp; Session</b><span>XDG autostart</span></div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- APPS -->
+    <section class="alt">
+      <div class="wrap">
+        <p class="eyebrow">Built in</p>
+        <h2>The essentials, included.</h2>
+        <p class="sub">Small apps. Ready on first login.</p>
+        <div class="apps">
+          <div class="card app"><img src="./demo/__fs/usr/share/icons/Papirus/64x64/apps/system-file-manager.svg" alt="" /><b>Folders</b><span>piloti-files</span></div>
+          <div class="card app"><img src="./demo/__fs/usr/share/icons/Papirus/64x64/apps/preferences-system.svg" alt="" /><b>Settings</b><span>piloti-settings</span></div>
+          <div class="card app"><img src="./demo/__fs/usr/share/icons/Papirus/64x64/apps/utilities-terminal.svg" alt="" /><b>Shell</b><span>piloti-shell</span></div>
+          <div class="card app"><img src="./demo/__fs/usr/share/icons/Papirus/64x64/apps/system-software-install.svg" alt="" /><b>Applications</b><span>piloti-applications</span></div>
+          <div class="card app"><img src="./demo/__fs/usr/share/icons/Papirus/64x64/apps/piloti-console.svg" alt="" /><b>Console</b><span>piloti-console</span></div>
+          <div class="card app"><img src="./demo/__fs/usr/share/icons/Papirus/64x64/apps/accessories-text-editor.svg" alt="" /><b>Text Editor</b><span>notepad</span></div>
+          <div class="card app"><img src="./demo/__fs/usr/share/icons/Papirus/64x64/apps/accessories-calculator.svg" alt="" /><b>Calculator</b><span>calculator</span></div>
+          <div class="card app"><img src="./demo/__fs/usr/share/icons/Papirus/64x64/apps/org.gnome.Loupe.svg" alt="" /><b>Image Viewer</b><span>loupe</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- START -->
+    <section id="start">
+      <div class="wrap">
+        <p class="eyebrow">Get started</p>
+        <h2>Install on Debian or Ubuntu.</h2>
+        <p class="sub">From a .deb or from source. A new session at login.</p>
+
+        <div class="steps">
+          <div class="card">
+            <span class="num">1</span>
+            <h3>Domicile <span class="tag tag-req">Required</span></h3>
+            <p class="muted">A Wayland compositor built on Chromium. The shell is a web page. Apps are real native windows. Fast, GPU-accelerated, and scriptable.</p>
+            <p style="margin-top:12px"><a class="link" href="https://domicile-desktop.com/" target="_blank" rel="noopener">Get Domicile →</a></p>
+          </div>
+          <div class="card">
+            <span class="num">2</span>
+            <h3>Piloti Desktop</h3>
+            <p class="muted">Install the .deb, or build from source. Pick <b>Piloti</b> at login.</p>
+            <p style="margin-top:12px"><a class="link" href="https://github.com/yanbab/piloti-desktop/releases" target="_blank" rel="noopener">Download from Releases →</a></p>
+          </div>
+          <div class="card">
+            <span class="num">3</span>
+            <h3>X11 apps <span class="tag tag-opt">Optional</span></h3>
+            <p class="muted">Need X Window apps? Install xwayland-satellite.</p>
+            <p style="margin-top:12px"><a class="link" href="https://github.com/Supreeeme/xwayland-satellite" target="_blank" rel="noopener">xwayland-satellite on GitHub →</a></p>
+          </div>
+        </div>
+
+        <div class="term">
+          <div class="term-bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span style="margin-left:6px">Terminal</span><button class="copy" id="copy" type="button">Copy</button></div>
+<pre id="code"><span class="c"># Option A — install the .deb from Releases</span>
+sudo apt install ./piloti-desktop_*_all.deb
+
+<span class="c"># Option B — build from source</span>
+git clone https://github.com/yanbab/piloti-desktop
+cd piloti-desktop
+npm install
+npm run build:deb
+sudo apt install ./dist/piloti-desktop_*_all.deb</pre>
+        </div>
+      </div>
+    </section>
+
+    <section class="final alt">
+      <div class="wrap">
+        <h2>See it move.</h2>
+        <p class="sub" style="margin:0">No install needed.</p>
+        <div class="ctas">
+          <a class="btn btn-primary" href="./demo/">Live Demo</a>
+          <a class="btn btn-plain" href="https://github.com/yanbab/piloti-desktop" target="_blank" rel="noopener">Source on GitHub</a>
+        </div>
+      </div>
+    </section>
   </main>
 
+  <footer>
+    <div class="wrap">
+      <span>Piloti Desktop · Built with Domicile</span>
+      <span><a href="https://github.com/yanbab/piloti-desktop" target="_blank" rel="noopener">GitHub</a></span>
+    </div>
+  </footer>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie_light.min.js"></script>
   <script>
-    const root = document.documentElement;
-    const themeBtn = document.getElementById("theme-toggle");
-    const heroScreenshot = document.getElementById("hero-screenshot");
-    const systemDarkQuery =
-      typeof window.matchMedia === "function"
-        ? window.matchMedia("(prefers-color-scheme: dark)")
-        : null;
+    (function () {
+      var root = document.documentElement;
+      var shot = document.getElementById("shot");
+      var mq = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
 
-    const iconSun = document.getElementById("icon-sun");
-    const iconMoon = document.getElementById("icon-moon");
-
-    function syncThemeUi() {
-      const dark = root.classList.contains("dark");
-      if (iconSun && iconMoon) {
-        iconSun.style.display = dark ? "block" : "none";
-        iconMoon.style.display = dark ? "none" : "block";
+      function isDark() {
+        var t = root.getAttribute("data-theme");
+        if (t) return t === "dark";
+        return !!(mq && mq.matches);
       }
-      if (heroScreenshot) {
-        const targetSrc = dark
-          ? heroScreenshot.getAttribute("data-dark-src")
-          : heroScreenshot.getAttribute("data-light-src");
-        if (targetSrc && heroScreenshot.getAttribute("src") !== targetSrc) {
-          heroScreenshot.setAttribute("src", targetSrc);
-        }
-      }
-    }
+      function sync() { if (shot) shot.src = isDark() ? shot.dataset.dark : shot.dataset.light; }
+      sync();
+      if (mq && mq.addEventListener) mq.addEventListener("change", sync);
 
-    if (systemDarkQuery) {
-      root.classList.toggle("dark", systemDarkQuery.matches);
-      systemDarkQuery.addEventListener("change", (e) => {
-        root.classList.toggle("dark", e.matches);
-        syncThemeUi();
+      document.getElementById("theme").addEventListener("click", function () {
+        var next = isDark() ? "light" : "dark";
+        root.setAttribute("data-theme", next);
+        try { localStorage.setItem("piloti-theme", next); } catch (e) {}
+        sync();
       });
-    }
 
-    themeBtn.addEventListener("click", () => {
-      root.classList.toggle("dark");
-      syncThemeUi();
-    });
+      document.getElementById("copy").addEventListener("click", function (e) {
+        // Copy the build-from-source block (Option B), without comments.
+        var text = document.getElementById("code").innerText.split("Option B")[1].split("\n").slice(1).filter(function (l) { return l && l[0] !== "#"; }).join("\n");
+        var btn = e.currentTarget;
+        try {
+          navigator.clipboard.writeText(text).then(function () { btn.textContent = "Copied"; setTimeout(function () { btn.textContent = "Copy"; }, 1400); });
+        } catch (err) {}
+      });
 
-    document.getElementById("copy-code").addEventListener("click", async (e) => {
-      const text = document.getElementById("quickstart-code").textContent;
-      try {
-        await navigator.clipboard.writeText(text);
-        e.target.textContent = "Copied!";
-        setTimeout(() => (e.target.textContent = "Copy"), 1500);
-      } catch {
-        // ignore
-      }
-    });
+      // Accent preview: recolor the animated icons.
+      document.querySelectorAll(".sw").forEach(function (sw) {
+        sw.addEventListener("click", function () {
+          document.querySelectorAll(".sw").forEach(function (o) { o.classList.toggle("on", o === sw); });
+          var h = sw.dataset.hue;
+          document.querySelectorAll("#anims .ico").forEach(function (i) { i.style.filter = h === "0" ? "" : "hue-rotate(" + h + "deg)"; });
+        });
+      });
 
-    syncThemeUi();
+      // Animated icons: Lottie when available, static SVG otherwise.
+      var ANIM = "./demo/__fs/usr/share/icons/Piloti/animated/";
+      var PAPIRUS = "./demo/__fs/usr/share/icons/Papirus/64x64/";
+      var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      document.querySelectorAll(".anim").forEach(function (el) {
+        var box = el.querySelector(".ico");
+        var fallback = function () {
+          box.innerHTML = "";
+          var img = document.createElement("img");
+          img.src = PAPIRUS + el.dataset.fallback; img.alt = "";
+          box.appendChild(img);
+        };
+        if (!window.lottie || reduce) { fallback(); return; }
+        try {
+          var a = window.lottie.loadAnimation({ container: box, renderer: "svg", loop: false, autoplay: false, path: ANIM + el.dataset.src });
+          a.addEventListener("data_failed", fallback);
+          var play = function () { a.setDirection(1); a.goToAndPlay(0, true); };
+          el.addEventListener("mouseenter", play);
+          el.addEventListener("focus", play);
+          el.addEventListener("click", play);
+        } catch (err) { fallback(); }
+      });
+    })();
   </script>
 </body>
-
 </html>
