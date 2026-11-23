@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { WindowMenuButton } from "@/components/shell/WindowMenuButton";
 import { UnsavedChangesDialog } from "@/components/ui/unsaved-changes-dialog";
-import { WindowControls } from "@/components/ui/window";
+import { WindowControls, WindowTitlebar } from "@/components/ui/window";
 import { useIsolatedAppBridge } from "@/lib/engine/app-bridge";
 import { toDomicilePath } from "@/lib/engine/fs-bridge";
 import { readVfsStateJson, writeVfsStateJson } from "@/lib/engine/vfs-state";
@@ -512,83 +512,79 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
       data-drop-window-id={windowId}
       className="relative flex h-full w-full flex-col overflow-hidden bg-adw-window text-adw-label select-none"
     >
-      {/* Headerbar: always visible title & controls, transparent bg until hovered/dragged */}
-      <div className="group/header absolute inset-x-0 top-0 z-20 h-10">
-        <div
-          data-window-drag-region=""
-          className={cn(
-            "flex h-9 items-center justify-between border-b px-2.5 transition-colors duration-150 group-hover/header:border-adw-separator/60 group-hover/header:bg-adw-titlebar group-data-[dragging]/window:border-adw-separator/60 group-data-[dragging]/window:bg-adw-titlebar",
-            dragRegionHovered || editingTitle
-              ? "border-adw-separator/60 bg-adw-titlebar"
-              : "border-transparent bg-transparent",
+      {/* Headerbar */}
+      <WindowTitlebar
+        data-window-drag-region={bridge.isCsd ? "" : undefined}
+        className={cn(
+          "h-9 shrink-0 justify-between border-b border-adw-separator bg-adw-titlebar px-2.5 select-none",
+          !bridge.isCsd && "rounded-t-none",
+        )}
+      >
+        <div className="flex shrink-0 items-center gap-1.5" data-window-no-drag>
+          {windowId && bridge.isCsd && (
+            <WindowControls side="left" onClose={requestClose} />
           )}
-        >
-          <div className="flex shrink-0 items-center gap-1.5" data-window-no-drag>
-            {windowId && bridge.isCsd && (
-              <WindowControls side="left" onClose={requestClose} />
-            )}
-            {windowId && (
-              <WindowMenuButton
-                side="left"
-                windowId={windowId}
-                appId="image-viewer"
-                iconName="sparkles"
-              />
-            )}
-          </div>
-          {editingTitle && isRenameableVfsFile ? (
-            <input
-              ref={titleInputRef}
-              type="text"
-              autoFocus
-              data-window-no-drag
-              value={draftTitle}
-              onChange={(e) => setDraftTitle(e.target.value)}
-              onBlur={commitTitleRename}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") commitTitleRename();
-                if (e.key === "Escape") setEditingTitle(false);
-              }}
-              onFocus={(e) => {
-                const dot = e.currentTarget.value.lastIndexOf(".");
-                if (dot > 0) e.currentTarget.setSelectionRange(0, dot);
-                else e.currentTarget.select();
-              }}
-              className="h-6 w-48 rounded-md border border-adw-accent bg-adw-content px-2 text-center text-adw-body font-semibold text-adw-label outline-none"
+          {windowId && (
+            <WindowMenuButton
+              side="left"
+              windowId={windowId}
+              appId="image-viewer"
+              iconName="sparkles"
             />
-          ) : isRenameableVfsFile ? (
+          )}
+        </div>
+        <div className="flex min-w-0 items-center justify-center gap-1.5 px-2" data-window-no-drag>
+        {editingTitle && isRenameableVfsFile ? (
+          <input
+            ref={titleInputRef}
+            type="text"
+            autoFocus
+            data-window-no-drag
+            value={draftTitle}
+            onChange={(e) => setDraftTitle(e.target.value)}
+            onBlur={commitTitleRename}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") commitTitleRename();
+              if (e.key === "Escape") setEditingTitle(false);
+            }}
+            onFocus={(e) => {
+              const dot = e.currentTarget.value.lastIndexOf(".");
+              if (dot > 0) e.currentTarget.setSelectionRange(0, dot);
+              else e.currentTarget.select();
+            }}
+            className="h-6 w-48 rounded-md border border-adw-accent bg-adw-content px-2 text-center text-adw-body font-semibold text-adw-label outline-none"
+          />
+        ) : isRenameableVfsFile ? (
+          <button
+            type="button"
+            data-window-no-drag
+            onClick={() => {
+              setDraftTitle(fileName);
+              setEditingTitle(true);
+            }}
+            className="truncate rounded-md px-2 py-0.5 text-adw-body font-semibold whitespace-nowrap text-adw-label transition-colors hover:bg-black/8 dark:hover:bg-white/10"
+          >
+            {fileName}
+          </button>
+        ) : (
+          <span className="pointer-events-none truncate text-adw-body font-semibold whitespace-nowrap text-adw-label">
+            {fileName}
+          </span>
+        )}
+        </div>
+        <div className="flex shrink-0 items-center gap-1" data-window-no-drag>
+          {canSave && (
             <button
               type="button"
-              data-window-no-drag
-              title={_("Click to rename")}
-              onClick={() => {
-                setDraftTitle(fileName);
-                setEditingTitle(true);
-              }}
-              className="truncate rounded-md px-2 py-0.5 text-adw-body font-semibold whitespace-nowrap text-adw-label transition-colors hover:bg-black/8 dark:hover:bg-white/10"
+              aria-label={_("Save Changes")}
+              onClick={() => void handleSave()}
+              className="flex size-7 items-center justify-center rounded-md bg-adw-accent text-white transition-opacity hover:opacity-90"
             >
-              {fileName}
+              <SaveIcon className="size-4" />
             </button>
-          ) : (
-            <span className="pointer-events-none truncate text-adw-body font-semibold whitespace-nowrap text-adw-label">
-              {fileName}
-            </span>
           )}
-          <div className="flex shrink-0 items-center gap-1" data-window-no-drag>
-            {windowId && (
-              <WindowMenuButton
-                side="right"
-                windowId={windowId}
-                appId="image-viewer"
-                iconName="sparkles"
-              />
-            )}
-            {windowId && bridge.isCsd && (
-              <WindowControls side="right" onClose={requestClose} />
-            )}
-          </div>
         </div>
-      </div>
+      </WindowTitlebar>
 
       {/* Canvas */}
       <div
@@ -808,19 +804,6 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
           >
             <RotateCcwIcon className="size-3.5" />
           </button>
-          {canSave && (
-            <>
-              <div className="mx-0.5 h-4 w-px bg-white/15" />
-              <button
-                type="button"
-                title={_("Save Changes (Ctrl+S)")}
-                onClick={() => void handleSave()}
-                className="flex size-8 items-center justify-center rounded-lg bg-adw-accent text-white hover:opacity-90"
-              >
-                <SaveIcon className="size-3.5" />
-              </button>
-            </>
-          )}
         </div>
       </div>
       {confirmCloseOpen && (

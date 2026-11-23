@@ -1,5 +1,7 @@
 import * as React from "react";
 import { useDomicile } from "@domicile-desktop/react/domicile-provider";
+import { CameraIcon, MicIcon, VideoIcon } from "lucide-react";
+import { WindowMenuButton } from "@/components/shell/WindowMenuButton";
 import { emitShellEvent } from "@/lib/shell/shell-events";
 import { useSettings } from "@/context/DesktopStateContext";
 import { WindowControls } from "@/components/ui/window";
@@ -7,7 +9,6 @@ import { _ } from "@/lib/core/i18n";
 import { cn } from "@/lib/core/utils";
 import { toDomicilePath } from "@/lib/engine/fs-bridge";
 import { listVfsDir, WEB_VFS_HOME, writeVfsTextFile } from "@/lib/engine-web/web-vfs";
-import { setCaptureActivity } from "@/lib/shell/capture-activity";
 import {
   audioBaseName,
   captureStamp,
@@ -23,10 +24,10 @@ export interface CameraAppProps {
   isCsd?: boolean;
 }
 
-const MODES: { id: CameraMode; label: string }[] = [
-  { id: "photo", label: "Photo" },
-  { id: "video", label: "Cam" },
-  { id: "audio", label: "Mic" },
+const MODES: { id: CameraMode; label: string; icon: React.ReactNode }[] = [
+  { id: "photo", label: "Photo", icon: <CameraIcon className="size-3.5" /> },
+  { id: "video", label: "Cam", icon: <VideoIcon className="size-3.5" /> },
+  { id: "audio", label: "Mic", icon: <MicIcon className="size-3.5" /> },
 ];
 
 function pickMime(candidates: string[]): string {
@@ -70,7 +71,6 @@ export const CameraApp: React.FC<CameraAppProps> = ({ windowId = "", isCsd = tru
     for (const t of streamRef.current?.getTracks() ?? []) t.stop();
     streamRef.current = null;
     if (videoRef.current) videoRef.current.srcObject = null;
-    setCaptureActivity(ownerId, null);
   }, [ownerId]);
 
   // (Re)open the device whenever the mode changes. Opening a device = "capture is on".
@@ -98,7 +98,6 @@ export const CameraApp: React.FC<CameraAppProps> = ({ windowId = "", isCsd = tru
           videoRef.current.srcObject = stream;
           void videoRef.current.play().catch(() => {});
         }
-        setCaptureActivity(ownerId, stream.getVideoTracks().length > 0 ? "camera" : "mic");
       } catch (err) {
         if (!cancelled) setError(err instanceof Error ? err.message : String(err));
       }
@@ -221,34 +220,12 @@ export const CameraApp: React.FC<CameraAppProps> = ({ windowId = "", isCsd = tru
         data-window-drag-region={isCsd ? "" : undefined}
         className="relative flex h-11 shrink-0 items-center justify-between gap-2 border-b border-white/10 bg-adw-titlebar px-2.5 text-adw-label"
       >
-        <div className="flex min-w-16 items-center" data-window-no-drag>
-          {windowId && isCsd && <WindowControls side="left" onClose={requestClose} />}
+        <div className="flex items-center gap-2" data-window-no-drag>
+          {windowId && (
+            <WindowMenuButton side="left" windowId={windowId} appId="camera" iconName="sparkles" />
+          )}
         </div>
-        <div
-          data-window-no-drag
-          role="tablist"
-          className="flex items-center rounded-full bg-black/8 p-0.5 dark:bg-white/10"
-        >
-          {MODES.map((m) => (
-            <button
-              key={m.id}
-              type="button"
-              role="tab"
-              aria-selected={mode === m.id}
-              disabled={recording}
-              onClick={() => setMode(m.id)}
-              className={cn(
-                "h-6 rounded-full px-3 text-[12px] font-medium transition-colors outline-none disabled:opacity-60",
-                mode === m.id
-                  ? "bg-adw-accent text-white"
-                  : "text-adw-label-secondary hover:text-adw-label",
-              )}
-            >
-              {_(m.label)}
-            </button>
-          ))}
-        </div>
-        <div className="flex min-w-16 items-center justify-end gap-2" data-window-no-drag>
+        <div className="absolute left-1/2 flex -translate-x-1/2 items-center gap-2" data-window-no-drag>
           {recording && (
             <span className="font-mono text-[11px] tabular-nums text-adw-label">
               {formatCaptureDuration(elapsed)}
@@ -269,6 +246,34 @@ export const CameraApp: React.FC<CameraAppProps> = ({ windowId = "", isCsd = tru
               )}
             />
           </button>
+        </div>
+        <div className="flex items-center justify-end gap-2" data-window-no-drag>
+          <div
+            role="tablist"
+            className="inline-flex items-center gap-1 rounded-[9px] bg-black/8 p-1 dark:bg-white/8"
+          >
+            {MODES.map((m) => (
+              <button
+                key={m.id}
+                aria-label={_(m.label)}
+                title={_(m.label)}
+                type="button"
+                role="tab"
+                aria-selected={mode === m.id}
+                disabled={recording}
+                onClick={() => setMode(m.id)}
+                className={cn(
+                  "flex items-center rounded-[6px] px-2 py-1 text-[13px] font-medium transition-all outline-none disabled:opacity-60",
+                  mode === m.id
+                    ? "bg-white text-black dark:bg-white/18 dark:text-white"
+                    : "text-adw-label-secondary hover:text-adw-label",
+                )}
+              >
+                {m.icon}
+              </button>
+            ))}
+          </div>
+          {windowId && isCsd && <WindowControls side="right" onClose={requestClose} />}
         </div>
       </div>
 

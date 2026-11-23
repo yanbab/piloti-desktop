@@ -1,6 +1,24 @@
 import * as React from "react";
 import { watchNativeDir } from "@/lib/engine-native/file-watch";
-import Sortable from "sortablejs";
+import {
+  closestCenter,
+  DndContext,
+  DragOverlay,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+  type DragStartEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  horizontalListSortingStrategy,
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { createPortal } from "react-dom";
 import { countRender } from "@/lib/core/render-stats";
 import { useDomicile } from "@domicile-desktop/react/domicile-provider";
 import {
@@ -483,56 +501,42 @@ export const Dock = React.memo(function Dock() {
     return [...pinnedDefs, ...extras];
   }, [effectivePinnedIds, isBrowserRuntime, launchingApps, resolveAppDefinition, windows]);
 
-  // Reordering pinned apps: SortableJS moves the tiles for a smooth FLIP animation, then we
-  // put the DOM back and let React render the new order from settings (React owns the DOM).
-  const pinnedKey = settings.pinnedAppIds.join("\u0000");
-  const updateSettingsRef = React.useRef(updateSettings);
-  updateSettingsRef.current = updateSettings;
+  // Reordering pinned apps with dnd-kit: neighbours slide aside with a springy transition,
+  // the dragged icon is a DragOverlay that follows the pointer, and drop animates into place.
   const pinnedIdsRef = React.useRef(settings.pinnedAppIds);
   pinnedIdsRef.current = settings.pinnedAppIds;
-  React.useEffect(() => {
-    const firstTile = dockTilesRef.current.values().next().value as HTMLElement | undefined;
-    const host = firstTile?.parentElement;
-    if (!host) return;
-    let snapshot: Element[] = [];
-    const sortable = Sortable.create(host, {
-      draggable: "[data-dock-pinned-id]",
-      animation: 180,
-      easing: "cubic-bezier(0.22, 1, 0.36, 1)",
-      forceFallback: true,
-      fallbackOnBody: true,
-      fallbackTolerance: 6,
-      direction: isVerticalDock ? "vertical" : "horizontal",
-      ghostClass: "dock-sortable-ghost",
-      chosenClass: "dock-sortable-chosen",
-      dragClass: "dock-sortable-drag",
-      swapThreshold: 0.6,
-      // Only pinned apps can swap places with each other.
-      onMove: (evt) => evt.related.hasAttribute("data-dock-pinned-id"),
-      onStart: (evt) => {
-        snapshot = Array.from(evt.from.children);
-        didReorderRef.current = true;
-        setDraggingAppId(evt.item.getAttribute("data-dock-pinned-id"));
-      },
-      onEnd: (evt) => {
-        const order = Array.from(evt.from.querySelectorAll("[data-dock-pinned-id]"))
-          .map((el) => el.getAttribute("data-dock-pinned-id"))
-          .filter((id): id is string => Boolean(id));
-        // Hand the DOM back to React before it re-renders.
-        for (const node of snapshot) evt.from.appendChild(node);
-        setDraggingAppId(null);
-        const current = pinnedIdsRef.current;
-        const changed =
-          order.length === current.length && order.some((id, i) => id !== current[i]);
-        if (changed) updateSettingsRef.current({ pinnedAppIds: order });
-        requestAnimationFrame(() => {
-          didReorderRef.current = false;
-        });
-      },
+  const updateSettingsRef = React.useRef(updateSettings);
+  updateSettingsRef.current = updateSettings;
+  const dndSensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+  );
+  const [dragOverlay, setDragOverlay] = React.useState<{ id: string; size: number } | null>(null);
+  const onDockDragStart = React.useCallback((e: DragStartEvent) => {
+    didReorderRef.current = true;
+    const rect = e.active.rect.current.initial;
+    setDraggingAppId(String(e.active.id));
+    setDragOverlay({ id: String(e.active.id), size: Math.round(rect?.width ?? 48) });
+  }, []);
+  const onDockDragEnd = React.useCallback((e: DragEndEvent) => {
+    setDraggingAppId(null);
+    setDragOverlay(null);
+    const current = pinnedIdsRef.current;
+    const from = current.indexOf(String(e.active.id));
+    const to = e.over ? current.indexOf(String(e.over.id)) : -1;
+    if (from >= 0 && to >= 0 && from !== to) {
+      updateSettingsRef.current({ pinnedAppIds: arrayMove([...current], from, to) });
+    }
+    requestAnimationFrame(() => {
+      didReorderRef.current = false;
     });
-    return () => sortable.destroy();
-    // Re-bind when tiles appear / disappear (pinned set or dock direction changes).
-  }, [isVerticalDock, pinnedKey, dockApps.length]);
+  }, []);
+  const onDockDragCancel = React.useCallback(() => {
+    setDraggingAppId(null);
+    setDragOverlay(null);
+    requestAnimationFrame(() => {
+      didReorderRef.current = false;
+    });
+  }, []);
 
   const focusedAppId = windows.find((w) => w.id === focusedWindowId)?.appId;
   React.useEffect(() => {
@@ -641,7 +645,23 @@ export const Dock = React.memo(function Dock() {
         ? "pointer-events-none fixed inset-y-0 right-0 z-[100] flex flex-row-reverse items-center"
         : "pointer-events-none fixed inset-x-0 bottom-0 z-[100] flex flex-col items-center";
 
+  const sortableIds = dockApps
+    .filter((a) => settings.pinnedAppIds.includes(a.id))
+    .map((a) => a.id);
+  const overlayApp = dragOverlay ? dockApps.find((a) => a.id === dragOverlay.id) : undefined;
+
   return (
+    <DndContext
+      sensors={dndSensors}
+      collisionDetection={closestCenter}
+      onDragStart={onDockDragStart}
+      onDragEnd={onDockDragEnd}
+      onDragCancel={onDockDragCancel}
+    >
+    <SortableContext
+      items={sortableIds}
+      strategy={isVerticalDock ? verticalListSortingStrategy : horizontalListSortingStrategy}
+    >
     <div className={dockWrapperClass}>
       <ContextMenu>
         <ContextMenuTrigger
@@ -711,7 +731,9 @@ export const Dock = React.memo(function Dock() {
             const isLaunching = launchingApps.includes(app.id) || hasUnreadyWin;
             const isPinned = settings.pinnedAppIds.includes(app.id);
 
-            return (
+            const renderTile = (
+              sortable: ReturnType<typeof useSortable> | null,
+            ) => (
               <DockItem
                 key={app.id}
                 label={_(app.name)}
@@ -731,6 +753,7 @@ export const Dock = React.memo(function Dock() {
                 })()}
                 tileRef={(node) => {
                   registerDockRef(app.id, node);
+                  sortable?.setNodeRef(node);
                   if (node) {
                     dockTilesRef.current.set(app.id, node);
                   } else {
@@ -738,6 +761,14 @@ export const Dock = React.memo(function Dock() {
                   }
                 }}
                 tileProps={{
+                  ...(sortable?.listeners ?? {}),
+                  style: sortable
+                    ? {
+                        transform: CSS.Translate.toString(sortable.transform),
+                        transition: sortable.transition,
+                        opacity: sortable.isDragging ? 0 : undefined,
+                      }
+                    : undefined,
                   "data-dock-context": `app:${app.id}`,
                   "data-dock-pinned-id": isPinned ? app.id : undefined,
                   "data-dock-app-id": app.id,
@@ -759,9 +790,7 @@ export const Dock = React.memo(function Dock() {
                   },
                 }}
                 className={
-                  draggingAppId === app.id
-                    ? "z-10 scale-105 opacity-75"
-                    : dropTargetAppId === app.id
+                  dropTargetAppId === app.id
                       ? "scale-110 rounded-xl bg-adw-accent/20 ring-2 ring-adw-accent/80 transition-transform"
                       : undefined
                 }
@@ -801,6 +830,13 @@ export const Dock = React.memo(function Dock() {
                   })()}
                 </div>
               </DockItem>
+            );
+            return isPinned ? (
+              <SortableDockTile key={app.id} id={app.id}>
+                {renderTile}
+              </SortableDockTile>
+            ) : (
+              renderTile(null)
             );
           })}
 
@@ -1070,5 +1106,48 @@ export const Dock = React.memo(function Dock() {
         />
       )}
     </div>
+    </SortableContext>
+    {typeof document !== "undefined" &&
+      createPortal(
+        <DragOverlay
+          zIndex={9999}
+          dropAnimation={{ duration: 320, easing: "cubic-bezier(0.34, 1.35, 0.5, 1)" }}
+        >
+          {overlayApp && dragOverlay ? (
+            <div
+              data-dnd-kit-overlay=""
+              style={{ width: dragOverlay.size, height: dragOverlay.size }}
+              className="origin-center scale-[1.14] cursor-grabbing opacity-95 drop-shadow-[0_10px_18px_rgba(0,0,0,0.45)]"
+            >
+              <AppSquircleIcon
+                iconName={overlayApp.iconName}
+                iconUrl={overlayApp.iconUrl ?? getAppIconUrl(overlayApp.id)}
+                fallbackIconUrl={overlayApp.isWebApp ? getAppIconUrl("browser") : undefined}
+                squircle={overlayApp.isWebApp}
+                gradient={overlayApp.gradient}
+                className="size-full"
+                glyphClassName="size-[56%]"
+              />
+            </div>
+          ) : null}
+        </DragOverlay>,
+        document.body,
+      )}
+    </DndContext>
   );
 });
+
+/** Binds one pinned dock tile to dnd-kit's sortable list (springy neighbour shuffle). */
+function SortableDockTile({
+  id,
+  children,
+}: {
+  id: string;
+  children: (sortable: ReturnType<typeof useSortable>) => React.ReactNode;
+}) {
+  const sortable = useSortable({
+    id,
+    transition: { duration: 320, easing: "cubic-bezier(0.34, 1.45, 0.5, 1)" },
+  });
+  return <>{children(sortable)}</>;
+}

@@ -32,7 +32,7 @@ import {
   type GridMetrics,
   type IconGridItem,
   inferFileVisual,
-  moveItemsToCells,
+  pushItemsToCells,
   sortDesktopItems,
 } from "@/lib/shell/desktop-icons";
 import { launchDesktopCommand } from "@/lib/engine-native";
@@ -659,7 +659,7 @@ export function DesktopIconsApp({
         metrics.rows,
         settings.desktopIconAlign ?? "left"
       );
-      const nextPositions = moveItemsToCells(
+      const nextPositions = pushItemsToCells(
         currentAssigned,
         itemIds,
         primaryId,

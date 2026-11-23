@@ -1,6 +1,16 @@
 import * as React from "react";
 import { createPortal } from "react-dom";
 import {
+  DndContext,
+  DragOverlay,
+  PointerSensor,
+  useDraggable,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+  type DragStartEvent,
+} from "@dnd-kit/core";
+import {
   AlertCircleIcon,
   BriefcaseIcon,
   HeartIcon,
@@ -38,6 +48,7 @@ import {
   type IconGridItem,
   type IconGridMode,
   normalizeRect,
+  pushItemsToCells,
 } from "@/lib/shell/desktop-icons";
 import { cn } from "@/lib/core/utils";
 import {
@@ -460,236 +471,217 @@ export function IconGrid({
       window.removeEventListener("residence:file-drag", onGlobalFileDrag);
   }, []);
 
+  const dragEnabled =
+    (mode === "spatial" && Boolean(onMoveItem || onMoveItems)) ||
+    Boolean(onDropItem || onDropItems);
+  const pendingDragIdsRef = React.useRef<string[] | null>(null);
+  const lastPointerRef = React.useRef({ x: 0, y: 0, alt: false });
+  const [preview, setPreview] = React.useState<Record<string, GridCoord> | null>(null);
+  const previewKeyRef = React.useRef("");
+  const [dropAnimOff, setDropAnimOff] = React.useState(false);
+  const dndSensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+  );
+
   const isDragStarted = Boolean(drag);
+  // While dragging: broadcast the pointer (so Dock / windows can highlight drop targets) and,
+  // on the spatial grid, preview where everything lands so neighbours slide out of the way.
   React.useEffect(() => {
     if (!isDragStarted) return;
     let rafId = 0;
-
     const handlePointerMove = (e: PointerEvent) => {
       const cur = dragRef.current;
-      if (!cur || cur.canceling || e.pointerId !== cur.pointerId) return;
-      const dx = e.clientX - cur.startX;
-      const dy = e.clientY - cur.startY;
-      const movedEnough = cur.active || Math.hypot(dx, dy) >= 6;
-      if (!movedEnough) return;
-
-      const wasActive = cur.active;
-      cur.active = true;
+      if (!cur) return;
+      lastPointerRef.current = { x: e.clientX, y: e.clientY, alt: e.altKey || e.ctrlKey };
       cur.currentX = e.clientX;
       cur.currentY = e.clientY;
-
-      if (dragGhostRef.current) {
-        dragGhostRef.current.style.transform = `translate3d(${dx}px, ${dy}px, 0)`;
-      }
       // Ctrl / Alt while dragging means "copy": show it with the cursor.
       document.body.style.cursor = e.altKey || e.ctrlKey ? "copy" : "";
-
-      const draggedItems = items.filter((i) => cur.draggedIds.includes(i.id));
-      const draggedItem =
-        items.find((i) => i.id === cur.itemId) ?? draggedItems[0];
-      if (draggedItem && !rafId) {
-        rafId = requestAnimationFrame(() => {
-          rafId = 0;
-          const latest = dragRef.current;
-          if (!latest?.active) return;
-          window.dispatchEvent(
-            new CustomEvent("residence:file-drag", {
-              detail: {
-                active: true,
-                item: draggedItem,
-                items: draggedItems,
-                clientX: latest.currentX,
-                clientY: latest.currentY,
-              },
-            }),
-          );
-        });
-      }
-
-      if (!wasActive) {
-        setDrag({ ...cur });
-      }
-    };
-
-    const handlePointerUp = (e: PointerEvent) => {
-      const cur = dragRef.current;
-      if (!cur || cur.canceling || e.pointerId !== cur.pointerId) return;
-      if (rafId) {
-        cancelAnimationFrame(rafId);
+      if (rafId) return;
+      rafId = requestAnimationFrame(() => {
         rafId = 0;
-      }
-      if (cur.active) {
+        const latest = dragRef.current;
+        if (!latest) return;
+        const draggedItems = items.filter((i) => latest.draggedIds.includes(i.id));
+        const draggedItem = items.find((i) => i.id === latest.itemId) ?? draggedItems[0];
+        if (!draggedItem) return;
         window.dispatchEvent(
           new CustomEvent("residence:file-drag", {
-            detail: { active: false },
+            detail: {
+              active: true,
+              item: draggedItem,
+              items: draggedItems,
+              clientX: latest.currentX,
+              clientY: latest.currentY,
+            },
           }),
         );
-        suppressClickRef.current = cur.itemId;
+        if (mode !== "spatial") return;
         const rect = containerRef.current?.getBoundingClientRect();
-        const dropCell = rect
-          ? clientPointToGridCell(
-              e.clientX - rect.left,
-              e.clientY - rect.top,
-              metrics,
-            )
-          : cur.targetCell;
-        const draggedItems = items.filter((i) =>
-          cur.draggedIds.includes(i.id),
+        const top = resolveTopDropTarget(
+          latest.currentX,
+          latest.currentY,
+          draggedItems.map((d) => d.path),
         );
-        const draggedItem =
-          items.find((i) => i.id === cur.itemId) ?? draggedItems[0];
-        if (draggedItem) {
-          const topTarget = resolveTopDropTarget(
-            e.clientX,
-            e.clientY,
-            draggedItems.map((d) => d.path),
-          );
-          if (topTarget?.kind === "dock") {
-            window.dispatchEvent(
-              new CustomEvent("residence:file-drop-dock", {
-                detail: {
-                  appId: topTarget.appId,
-                  item: draggedItem,
-                  items: draggedItems,
-                },
-              }),
-            );
-          } else if (topTarget?.kind === "window") {
-            window.dispatchEvent(
-              new CustomEvent("residence:file-drop-window", {
-                detail: {
-                  windowId: topTarget.windowId,
-                  item: draggedItem,
-                  items: draggedItems,
-                },
-              }),
-            );
-          } else if (topTarget?.kind === "vfs") {
-            const isSameDir =
-              (currentDirPath !== undefined &&
-                topTarget.destPath === currentDirPath) ||
-              draggedItems.every(
-                (d) =>
-                  d.path.startsWith(`${topTarget.destPath}/`) &&
-                  !d.path
-                    .slice(topTarget.destPath.length + 1)
-                    .includes("/"),
-              );
-            if (isSameDir) {
-              if (mode === "spatial" && dropCell) {
-                pendingSettleRef.current = {
-                  ids: new Set(cur.draggedIds),
-                  oldCoords: { ...resolvedPositionsRef.current },
-                  dropDx: e.clientX - cur.startX,
-                  dropDy: e.clientY - cur.startY,
-                };
-                if (onMoveItems) {
-                  onMoveItems(cur.draggedIds, cur.itemId, dropCell, metrics);
-                } else {
-                  onMoveItem?.(cur.itemId, dropCell, metrics);
-                }
-              }
-            } else {
-              window.dispatchEvent(
-                new CustomEvent("residence:desktop-drop-position", {
-                  detail: {
-                    destPath: topTarget.destPath,
-                    names: draggedItems.map((d) => d.name),
-                    clientX: e.clientX,
-                    clientY: e.clientY,
-                  },
-                }),
-              );
-              if (onDropItems) {
-                onDropItems(draggedItems, topTarget.destPath, { copy: e.altKey || e.ctrlKey });
-              } else if (onDropItem) {
-                onDropItem(draggedItem, e.clientX, e.clientY);
-              }
-              window.dispatchEvent(
-                new CustomEvent("piloti:folder-drop-anim", {
-                  detail: { path: topTarget.destPath },
-                }),
-              );
-            }
-          } else if (!topTarget && mode === "spatial" && dropCell) {
-            pendingSettleRef.current = {
-              ids: new Set(cur.draggedIds),
-              oldCoords: { ...resolvedPositionsRef.current },
-              dropDx: e.clientX - cur.startX,
-              dropDy: e.clientY - cur.startY,
-            };
-            if (onMoveItems) {
-              onMoveItems(cur.draggedIds, cur.itemId, dropCell, metrics);
-            } else {
-              onMoveItem?.(cur.itemId, dropCell, metrics);
-            }
+        const overOwnGrid =
+          Boolean(rect) &&
+          latest.currentX >= rect!.left &&
+          latest.currentX <= rect!.right &&
+          latest.currentY >= rect!.top &&
+          latest.currentY <= rect!.bottom &&
+          (!top || (top.kind === "vfs" && top.destPath === currentDirPath));
+        if (!overOwnGrid || !rect) {
+          if (previewKeyRef.current) {
+            previewKeyRef.current = "";
+            setPreview(null);
           }
-        }
-      }
-      dragRef.current = null;
-      setDrag(null);
-    };
-
-    let cancelTimer = 0;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key !== "Escape") return;
-      const cur = dragRef.current;
-      if (!cur || cur.canceling) return;
-      e.preventDefault();
-      e.stopPropagation();
-      if (rafId) {
-        cancelAnimationFrame(rafId);
-        rafId = 0;
-      }
-      if (cur.active) {
-        cur.canceling = true;
-        setDrag((prev) => (prev ? { ...prev, canceling: true } : null));
-        window.dispatchEvent(
-          new CustomEvent("residence:file-drag", {
-            detail: { active: false },
-          }),
-        );
-        const ghost = dragGhostRef.current;
-        if (ghost) {
-          ghost.getBoundingClientRect();
-          ghost.style.transition =
-            "transform 240ms cubic-bezier(0.22, 1, 0.36, 1)";
-          ghost.style.transform = "translate3d(0px, 0px, 0)";
-          cancelTimer = window.setTimeout(() => {
-            dragRef.current = null;
-            setDrag(null);
-          }, 240);
           return;
         }
-      }
-      dragRef.current = null;
-      setDrag(null);
+        const cell = clientPointToGridCell(
+          latest.currentX - rect.left,
+          latest.currentY - rect.top,
+          metrics,
+        );
+        const key = `${cell.col},${cell.row}`;
+        if (key === previewKeyRef.current) return;
+        previewKeyRef.current = key;
+        setPreview(
+          pushItemsToCells(
+            resolvedPositionsRef.current,
+            latest.draggedIds,
+            latest.itemId,
+            cell,
+            metrics.cols,
+            metrics.rows,
+          ),
+        );
+      });
     };
-
     window.addEventListener("pointermove", handlePointerMove);
-    window.addEventListener("pointerup", handlePointerUp);
-    window.addEventListener("pointercancel", handlePointerUp);
-    window.addEventListener("keydown", handleKeyDown, true);
     return () => {
       if (rafId) cancelAnimationFrame(rafId);
-      if (cancelTimer) window.clearTimeout(cancelTimer);
       window.removeEventListener("pointermove", handlePointerMove);
-      window.removeEventListener("pointerup", handlePointerUp);
-      window.removeEventListener("pointercancel", handlePointerUp);
-      window.removeEventListener("keydown", handleKeyDown, true);
       document.body.style.cursor = "";
     };
-  }, [
-    currentDirPath,
-    isDragStarted,
-    items,
-    metrics,
-    mode,
-    onDropItem,
-    onDropItems,
-    onMoveItem,
-    onMoveItems,
-  ]);
+  }, [currentDirPath, isDragStarted, items, metrics, mode]);
+
+  const onDndStart = (e: DragStartEvent) => {
+    const id = String(e.active.id);
+    const ev = e.activatorEvent as PointerEvent;
+    const pending = pendingDragIdsRef.current;
+    const ids = pending?.includes(id) ? pending : [id];
+    const rect = itemRefs.current.get(id)?.getBoundingClientRect();
+    lastPointerRef.current = { x: ev.clientX, y: ev.clientY, alt: ev.altKey || ev.ctrlKey };
+    previewKeyRef.current = "";
+    setDropAnimOff(false);
+    setDrag({
+      itemId: id,
+      draggedIds: ids,
+      pointerId: ev.pointerId,
+      startX: ev.clientX,
+      startY: ev.clientY,
+      originLeft: rect?.left ?? 0,
+      originTop: rect?.top ?? 0,
+      currentX: ev.clientX,
+      currentY: ev.clientY,
+      active: true,
+      targetCell: resolvedPositionsRef.current[id] ?? { col: 0, row: 0 },
+    });
+  };
+
+  const endDrag = (commit: boolean) => {
+    const cur = dragRef.current;
+    previewKeyRef.current = "";
+    setPreview(null);
+    window.dispatchEvent(
+      new CustomEvent("residence:file-drag", { detail: { active: false } }),
+    );
+    if (cur && commit) {
+      suppressClickRef.current = cur.itemId;
+      const external = commitDrop(cur, lastPointerRef.current);
+      // Dropped on a window / dock / folder: the ghost just disappears there instead of flying back.
+      if (external) setDropAnimOff(true);
+    }
+    dragRef.current = null;
+    setDrag(null);
+  };
+
+  /** Routes a drop to the right place. Returns true when it left this grid. */
+  const commitDrop = (
+    cur: DragState,
+    pt: { x: number; y: number; alt: boolean },
+  ): boolean => {
+    const rect = containerRef.current?.getBoundingClientRect();
+    const dropCell = rect
+      ? clientPointToGridCell(pt.x - rect.left, pt.y - rect.top, metrics)
+      : cur.targetCell;
+    const draggedItems = items.filter((i) => cur.draggedIds.includes(i.id));
+    const draggedItem = items.find((i) => i.id === cur.itemId) ?? draggedItems[0];
+    if (!draggedItem) return false;
+    const moveWithinGrid = () => {
+      if (mode !== "spatial" || !dropCell) return;
+      if (onMoveItems) onMoveItems(cur.draggedIds, cur.itemId, dropCell, metrics);
+      else onMoveItem?.(cur.itemId, dropCell, metrics);
+    };
+    const topTarget = resolveTopDropTarget(
+      pt.x,
+      pt.y,
+      draggedItems.map((d) => d.path),
+    );
+    if (topTarget?.kind === "dock") {
+      window.dispatchEvent(
+        new CustomEvent("residence:file-drop-dock", {
+          detail: { appId: topTarget.appId, item: draggedItem, items: draggedItems },
+        }),
+      );
+      return true;
+    }
+    if (topTarget?.kind === "window") {
+      window.dispatchEvent(
+        new CustomEvent("residence:file-drop-window", {
+          detail: { windowId: topTarget.windowId, item: draggedItem, items: draggedItems },
+        }),
+      );
+      return true;
+    }
+    if (topTarget?.kind === "vfs") {
+      const isSameDir =
+        (currentDirPath !== undefined && topTarget.destPath === currentDirPath) ||
+        draggedItems.every(
+          (d) =>
+            d.path.startsWith(`${topTarget.destPath}/`) &&
+            !d.path.slice(topTarget.destPath.length + 1).includes("/"),
+        );
+      if (isSameDir) {
+        moveWithinGrid();
+        return false;
+      }
+      window.dispatchEvent(
+        new CustomEvent("residence:desktop-drop-position", {
+          detail: {
+            destPath: topTarget.destPath,
+            names: draggedItems.map((d) => d.name),
+            clientX: pt.x,
+            clientY: pt.y,
+          },
+        }),
+      );
+      if (onDropItems) {
+        onDropItems(draggedItems, topTarget.destPath, { copy: pt.alt });
+      } else if (onDropItem) {
+        onDropItem(draggedItem, pt.x, pt.y);
+      }
+      window.dispatchEvent(
+        new CustomEvent("piloti:folder-drop-anim", { detail: { path: topTarget.destPath } }),
+      );
+      return true;
+    }
+    if (!topTarget) moveWithinGrid();
+    return false;
+  };
+
+  const onDndEnd = (_e: DragEndEvent) => endDrag(true);
+
 
   React.useEffect(() => {
     if (!marquee) return;
@@ -881,6 +873,12 @@ export function IconGrid({
     : null;
 
   return (
+    <DndContext
+      sensors={dndSensors}
+      onDragStart={onDndStart}
+      onDragEnd={onDndEnd}
+      onDragCancel={() => endDrag(false)}
+    >
     <div
       ref={containerRef}
       role="grid"
@@ -949,7 +947,9 @@ export function IconGrid({
         const isHiddenFile = Boolean(item.isHidden || item.name.startsWith("."));
         const isDragging =
           Boolean(drag?.active) && Boolean(drag?.draggedIds.includes(item.id));
-        const coord = resolvedPositions[item.id] ?? { col: 0, row: 0 };
+        const coord =
+          (!isDragging && preview ? preview[item.id] : undefined) ??
+          resolvedPositions[item.id] ?? { col: 0, row: 0 };
 
         const spatialStyle: React.CSSProperties =
           mode === "spatial"
@@ -959,19 +959,26 @@ export function IconGrid({
                 top: `${padding + coord.row * effectiveCellHeight}px`,
                 width: `${effectiveCellWidth}px`,
                 height: `${effectiveCellHeight}px`,
-                zIndex: isDragging ? 9999 : selected ? 20 : 1,
-                opacity: isDragging ? 0.25 : isHiddenFile ? 0.55 : undefined,
+                zIndex: isDragging ? 1 : selected ? 20 : 1,
+                opacity: isDragging ? 0 : isHiddenFile ? 0.55 : undefined,
+                // Neighbours glide aside (springy) while a drag previews the drop.
+                transition:
+                  drag && !isDragging
+                    ? "left 320ms cubic-bezier(0.34, 1.45, 0.5, 1), top 320ms cubic-bezier(0.34, 1.45, 0.5, 1)"
+                    : undefined,
               }
             : {
                 width: `${effectiveCellWidth}px`,
                 height: `${effectiveCellHeight}px`,
-                opacity: isDragging ? 0.25 : isHiddenFile ? 0.55 : undefined,
+                opacity: isDragging ? 0 : isHiddenFile ? 0.55 : undefined,
               };
 
         return (
+          <GridDraggable key={item.id} id={item.id} disabled={!dragEnabled}>
+            {(dnd) => (
           <button
-            key={item.id}
             ref={(node) => {
+              dnd.setNodeRef(node);
               if (node) {
                 itemRefs.current.set(item.id, node);
               } else {
@@ -1015,26 +1022,8 @@ export function IconGrid({
               const activeDraggedIds = nextSelectedIds.includes(item.id)
                 ? nextSelectedIds
                 : [item.id];
-              if (
-                (mode === "spatial" && (onMoveItem || onMoveItems)) ||
-                onDropItem ||
-                onDropItems
-              ) {
-                const itemRect = e.currentTarget.getBoundingClientRect();
-                setDrag({
-                  itemId: item.id,
-                  draggedIds: activeDraggedIds,
-                  pointerId: e.pointerId,
-                  startX: e.clientX,
-                  startY: e.clientY,
-                  originLeft: itemRect.left,
-                  originTop: itemRect.top,
-                  currentX: e.clientX,
-                  currentY: e.clientY,
-                  active: false,
-                  targetCell: coord,
-                });
-              }
+              pendingDragIdsRef.current = activeDraggedIds;
+              if (dragEnabled) dnd.listeners?.onPointerDown?.(e);
             }}
             onClick={(e) => {
               e.stopPropagation();
@@ -1373,24 +1362,30 @@ export function IconGrid({
               </span>
             )}
           </button>
+            )}
+          </GridDraggable>
         );
       })}
 
-      {drag?.active &&
-        typeof document !== "undefined" &&
-        createPortal(
-          <div
-            data-drag-ghost
-            ref={(el) => {
-              dragGhostRef.current = el;
-              const latest = dragRef.current;
-              if (!el || !latest) return;
-              if (!latest.canceling) {
-                el.style.transform = `translate3d(${latest.currentX - latest.startX}px, ${latest.currentY - latest.startY}px, 0)`;
-              }
-              // Build the ghost once: exact clones of the dragged items, kept where they
-              // are on screen, so what you drag is what you see (thumbnails included).
-              if (el.childElementCount === 0) {
+    </div>
+    {typeof document !== "undefined" &&
+      createPortal(
+        <DragOverlay
+          zIndex={9999}
+          dropAnimation={
+            dropAnimOff ? null : { duration: 280, easing: "cubic-bezier(0.34, 1.35, 0.5, 1)" }
+          }
+        >
+          {drag?.active ? (
+            <div
+              data-drag-ghost
+              ref={(el) => {
+                const latest = dragRef.current;
+                if (!el || !latest || el.childElementCount > 0) return;
+                // Exact clones of the dragged items, kept where they are relative to the one
+                // in hand, so what you drag is what you see (thumbnails included).
+                const primaryRect = itemRefs.current.get(latest.itemId)?.getBoundingClientRect();
+                if (!primaryRect) return;
                 latest.draggedIds.forEach((id) => {
                   const node = itemRefs.current.get(id);
                   if (!node) return;
@@ -1401,15 +1396,15 @@ export function IconGrid({
                   clone.removeAttribute("role");
                   clone.tabIndex = -1;
                   clone.style.cssText = [
-                    "position:fixed",
-                    `left:${rect.left}px`,
-                    `top:${rect.top}px`,
+                    "position:absolute",
+                    `left:${rect.left - primaryRect.left}px`,
+                    `top:${rect.top - primaryRect.top}px`,
                     `width:${rect.width}px`,
                     `height:${rect.height}px`,
                     "margin:0",
-                    "opacity:0.78",
+                    "opacity:0.8",
                     "transform:scale(1)",
-                    "transition:transform 160ms cubic-bezier(0.22,1,0.36,1), filter 160ms ease",
+                    "transition:transform 200ms cubic-bezier(0.34,1.45,0.5,1), filter 200ms ease",
                     "filter:drop-shadow(0 1px 2px rgba(0,0,0,0.25))",
                     "transform-origin:50% 40%",
                   ].join(";");
@@ -1422,26 +1417,32 @@ export function IconGrid({
                     clone.appendChild(badge);
                   }
                   requestAnimationFrame(() => {
-                    clone.style.transform = "scale(1.05)";
-                    clone.style.filter = "drop-shadow(0 8px 12px rgba(0,0,0,0.35))";
+                    clone.style.transform = "scale(1.08)";
+                    clone.style.filter = "drop-shadow(0 10px 14px rgba(0,0,0,0.35))";
                   });
                 });
-              }
-            }}
-            style={{
-              left: 0,
-              top: 0,
-              willChange: "transform",
-              transition: drag.canceling
-                ? "transform 240ms cubic-bezier(0.22, 1, 0.36, 1)"
-                : "none",
-              ...(drag.canceling ? { transform: "translate3d(0px, 0px, 0)" } : {}),
-            }}
-            className="pointer-events-none fixed z-[9999] select-none"
-          />,
-          document.body,
-        )}
-    </div>
+              }}
+              className="pointer-events-none size-full select-none"
+            />
+          ) : null}
+        </DragOverlay>,
+        document.body,
+      )}
+    </DndContext>
   );
+}
+
+/** Makes one grid icon draggable with dnd-kit (the pointer sensor lives on the DndContext). */
+function GridDraggable({
+  id,
+  disabled,
+  children,
+}: {
+  id: string;
+  disabled: boolean;
+  children: (dnd: ReturnType<typeof useDraggable>) => React.ReactNode;
+}) {
+  const dnd = useDraggable({ id, disabled });
+  return <>{children(dnd)}</>;
 }
 

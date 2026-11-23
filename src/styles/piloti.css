@@ -49,24 +49,7 @@
   backdrop-filter: var(--piloti-backdrop);
 }
 
-/* Dock reordering (SortableJS): the gap left behind and the tile in hand. */
-.dock-sortable-ghost {
-  opacity: 0 !important;
-  /* No size transition while a neighbour swaps in: the slot must not "grow" under the cursor. */
-  transition: none !important;
-}
-.dock-sortable-drag {
-  z-index: 9999;
-  opacity: 0.92 !important;
-  /* `scale` is separate from Sortable's translate3d transform, and must not animate or the tile lags the cursor. */
-  scale: 1.1;
-  transition: none !important;
-  filter: drop-shadow(0 8px 14px rgba(0, 0, 0, 0.4));
-  pointer-events: none;
-}
-.dock-sortable-chosen {
-  cursor: grabbing;
-}
-body:has(.dock-sortable-drag) [data-slot="tooltip-content"] {
+/* Dock reordering (dnd-kit): hide tooltips while a tile is being dragged. */
+body:has([data-dnd-kit-overlay]) [data-slot="tooltip-content"] {
   display: none !important;
 }

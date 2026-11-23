@@ -288,6 +288,62 @@ export function moveItemsToCells(
   return next;
 }
 
+/**
+ * Drops `itemIds` with `primaryId` on `targetCell` (others keep their relative offsets) and
+ * makes room: icons that were sitting on a landing cell move to the nearest free cell, the
+ * way iOS-style grids shuffle. Pure; used for the live preview and for the committed drop.
+ */
+export function pushItemsToCells(
+  positions: Readonly<Record<string, GridCoord>>,
+  itemIds: readonly string[],
+  primaryId: string,
+  targetCell: GridCoord,
+  cols: number,
+  rows: number
+): Record<string, GridCoord> {
+  const moving = new Set(itemIds);
+  const clamped = clampCoord(targetCell, cols, rows);
+  const origin = positions[primaryId] ?? clamped;
+  const dCol = clamped.col - origin.col;
+  const dRow = clamped.row - origin.row;
+
+  const landing = new Map<string, GridCoord>();
+  const taken = new Set<string>();
+  const place = (id: string, desired: GridCoord) => {
+    const cell = findClosestFreeCell(taken, desired, cols, rows);
+    landing.set(id, cell);
+    taken.add(coordKey(cell));
+  };
+  place(primaryId, clamped);
+  for (const id of itemIds) {
+    if (id === primaryId) continue;
+    const orig = positions[id];
+    place(id, orig ? { col: orig.col + dCol, row: orig.row + dRow } : clamped);
+  }
+
+  const next: Record<string, GridCoord> = { ...positions };
+  for (const [id, cell] of landing) next[id] = cell;
+
+  const displaced: string[] = [];
+  const occupied = new Set<string>(taken);
+  for (const [id, pos] of Object.entries(positions)) {
+    if (moving.has(id) || !pos) continue;
+    if (taken.has(coordKey(pos))) displaced.push(id);
+    else occupied.add(coordKey(pos));
+  }
+  displaced.sort((a, b) => {
+    const pa = positions[a]!;
+    const pb = positions[b]!;
+    return pa.col - pb.col || pa.row - pb.row;
+  });
+  for (const id of displaced) {
+    const cell = findClosestFreeCell(occupied, positions[id]!, cols, rows);
+    next[id] = cell;
+    occupied.add(coordKey(cell));
+  }
+  return next;
+}
+
 export function clientPointToGridCell(
   relX: number,
   relY: number,
