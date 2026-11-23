@@ -32,7 +32,7 @@ export interface XdgUserDir {
   keywords: readonly string[];
 }
 
-interface DefaultUserDirSpec {
+export interface DefaultUserDirSpec {
   key: Exclude<XdgUserDirKey, "HOME">;
   defaultName: string;
   defaultRelativePath: string;
@@ -40,7 +40,7 @@ interface DefaultUserDirSpec {
   keywords: readonly string[];
 }
 
-const DEFAULT_USER_DIR_SPECS: readonly DefaultUserDirSpec[] = [
+export const DEFAULT_USER_DIR_SPECS: readonly DefaultUserDirSpec[] = [
   {
     key: "DESKTOP",
     defaultName: "Desktop",

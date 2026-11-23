@@ -4,7 +4,6 @@ import path from "node:path";
 
 const ROOT = path.resolve(import.meta.dirname, "..");
 const DATA_FILES_DIR = path.join(ROOT, "data", "files");
-const ICONS_PAPIRUS_DIR = path.join(DATA_FILES_DIR, "usr", "share", "icons", "Papirus");
 const ICONS_PILOTI_DIR = path.join(DATA_FILES_DIR, "usr", "share", "icons", "Piloti");
 
 function hexRgb(hex) {
@@ -727,7 +726,31 @@ const animatedDir = path.join(ICONS_PILOTI_DIR, "animated");
 if (fs.existsSync(animatedDir)) {
   fs.rmSync(animatedDir, { recursive: true, force: true });
 }
+// Accent markers: fills and strokes painted with a placeholder color get a
+// Lottie class (`cl`), so the shell recolors them by name, not by value.
+const ACCENT_CLASSES = new Map([
+  [JSON.stringify(hexRgb("#5294e2")), "accent"],
+  [JSON.stringify(hexRgb("#4877b1")), "accent-darker"],
+  [JSON.stringify(hexRgb("#8bbcf6")), "accent-lighter"],
+]);
+function markAccentPaints(node) {
+  if (Array.isArray(node)) {
+    node.forEach(markAccentPaints);
+    return;
+  }
+  if (!node || typeof node !== "object") return;
+  if ((node.ty === "fl" || node.ty === "st") && node.c && node.c.a === 0) {
+    const cls = ACCENT_CLASSES.get(JSON.stringify(node.c.k));
+    if (cls) node.cl = node.ty === "st" ? `${cls}-stroke` : cls;
+  }
+  Object.values(node).forEach(markAccentPaints);
+}
+
+// The Files app icon is the animated folder (XDG name used by file managers).
+ICONS["apps/system-file-manager"] = ICONS["places/folder"];
+
 for (const [rel, doc] of Object.entries(ICONS)) {
+  markAccentPaints(doc);
   const outPath = path.join(animatedDir, `${rel}.json`);
   fs.mkdirSync(path.dirname(outPath), { recursive: true });
   fs.writeFileSync(outPath, JSON.stringify(doc), "utf8");
@@ -797,14 +820,6 @@ function collectStaticDirIndex(filesRoot) {
   return index;
 }
 
-const papirusEntries = collectFiles(ICONS_PAPIRUS_DIR, "/usr/share/icons/Papirus", [".svg", ".theme"]);
-const papirusTs = `// Auto-generated from data/files/usr/share/icons/Papirus.\nexport const PAPIRUS_VIRTUAL_ICONS: Record<string, string> = ${JSON.stringify(
-  papirusEntries,
-  null,
-  2
-)};\n`;
-fs.writeFileSync(path.join(ROOT, "src", "lib", "engine-web", "papirus-virtual-icons.ts"), papirusTs, "utf8");
-
 const pilotiEntries = collectFiles(ICONS_PILOTI_DIR, "/usr/share/icons/Piloti", [".json", ".svg", ".theme"]);
 const pilotiTs = `// Auto-generated from data/files/usr/share/icons/Piloti.\nexport const PILOTI_VIRTUAL_ICONS: Record<string, string> = ${JSON.stringify(
   pilotiEntries,
@@ -831,6 +846,6 @@ const defaultTreeTs = `// Auto-generated from data/files/.\nexport const DEFAULT
 fs.writeFileSync(path.join(ROOT, "src", "lib", "engine-web", "default-vfs-tree.ts"), defaultTreeTs, "utf8");
 
 console.log(
-  `Generated ${Object.keys(ICONS).length} animated icons, ${Object.keys(pilotiEntries).length} Piloti entries, ${Object.keys(papirusEntries).length} Papirus entries, ${Object.keys(homeTree.files).length} home starter files, ${Object.keys(staticDirIndex).length} static dirs.`
+  `Generated ${Object.keys(ICONS).length} animated icons, ${Object.keys(pilotiEntries).length} Piloti entries, ${Object.keys(homeTree.files).length} home starter files, ${Object.keys(staticDirIndex).length} static dirs.`
 );
 

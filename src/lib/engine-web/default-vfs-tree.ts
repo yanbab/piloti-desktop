@@ -134,6 +134,10 @@ export const DEFAULT_STATIC_DIR_INDEX: Record<string, readonly { name: string; f
   ],
   "/usr/share/applications": [
     {
+      "name": "piloti-appmodule-test.desktop",
+      "fileType": 0
+    },
+    {
       "name": "piloti-appstore.desktop",
       "fileType": 0
     },
@@ -171,6 +175,10 @@ export const DEFAULT_STATIC_DIR_INDEX: Record<string, readonly { name: string; f
     },
     {
       "name": "piloti-shell.desktop",
+      "fileType": 0
+    },
+    {
+      "name": "piloti-text-editor-module.desktop",
       "fileType": 0
     }
   ],
@@ -328,6 +336,10 @@ export const DEFAULT_STATIC_DIR_INDEX: Record<string, readonly { name: string; f
   ],
   "/usr/share/icons/hicolor/scalable/apps": [
     {
+      "name": "org.gnome.Calculator.svg",
+      "fileType": 0
+    },
+    {
       "name": "org.gnome.Console.svg",
       "fileType": 0
     },
@@ -336,11 +348,23 @@ export const DEFAULT_STATIC_DIR_INDEX: Record<string, readonly { name: string; f
       "fileType": 0
     },
     {
+      "name": "org.gnome.Epiphany.svg",
+      "fileType": 0
+    },
+    {
+      "name": "org.gnome.Loupe.svg",
+      "fileType": 0
+    },
+    {
       "name": "org.gnome.Nautilus.svg",
       "fileType": 0
     },
     {
       "name": "org.gnome.Settings.svg",
+      "fileType": 0
+    },
+    {
+      "name": "org.gnome.Snapshot.svg",
       "fileType": 0
     },
     {
@@ -418,7 +442,7 @@ export const DEFAULT_STATIC_DIR_INDEX: Record<string, readonly { name: string; f
       "fileType": 0
     },
     {
-      "name": "piloti-console.svg",
+      "name": "org.gnome.Snapshot.svg",
       "fileType": 0
     },
     {
@@ -649,6 +673,10 @@ export const DEFAULT_STATIC_DIR_INDEX: Record<string, readonly { name: string; f
   "/usr/share/icons/Piloti/animated/apps": [
     {
       "name": "accessories-text-editor.json",
+      "fileType": 0
+    },
+    {
+      "name": "system-file-manager.json",
       "fileType": 0
     }
   ],

@@ -193,7 +193,7 @@ Type=Scalable
     expect(directorySizeDistance(fixed48, 64, 1)).toBe(16);
   });
 
-  test("skips noisy mimetypes/status/tiny subdirs while indexing apps and places", async () => {
+  test("skips tiny subdirs while indexing apps, places, mimetypes and status", async () => {
     const readDirs: string[] = [];
     const fakeFiles = {
       readDir: async (dir: string) => {
@@ -266,8 +266,9 @@ Type=Scalable
     );
     expect(readDirs).not.toContain("/usr/share/icons/Adwaita/16x16/apps");
     expect(readDirs).not.toContain("/usr/share/icons/Adwaita/16x16/mimetypes");
-    expect(readDirs).not.toContain("/usr/share/icons/Adwaita/48x48/status");
-    expect(readDirs).not.toContain("/usr/share/icons/Adwaita/scalable/mimetypes");
+    // File-type and full-trash icons live in mimetypes/ and status/.
+    expect(readDirs).toContain("/usr/share/icons/Adwaita/48x48/status");
+    expect(readDirs).toContain("/usr/share/icons/Adwaita/scalable/mimetypes");
   });
 
   test("prefers active theme aliases (nautilus / system-file-manager) over hicolor org.gnome.Nautilus", async () => {

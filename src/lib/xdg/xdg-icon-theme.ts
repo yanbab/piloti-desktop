@@ -32,6 +32,8 @@ interface XdgIconThemeDescriptor {
   name: string;
   inherits: string[];
   directories: XdgIconSubdirDescriptor[];
+  /** Raw `[X-Piloti Accent]` group: which icons follow the accent color. */
+  accent?: Record<string, string>;
 }
 
 interface XdgIconThemeIndex {
@@ -195,7 +197,10 @@ function parseIconThemeIndex(
     }
   }
 
-  return { id: themeId, name, inherits, directories };
+  const accent = groups["X-Piloti Accent"];
+  return accent
+    ? { id: themeId, name, inherits, directories, accent }
+    : { id: themeId, name, inherits, directories };
 }
 
 function directoryMatchesSize(
@@ -259,8 +264,9 @@ function isRelevantIconSubdir(subdir: XdgIconSubdirDescriptor): boolean {
     lowerPath.includes("emblems") ||
     lowerPath.includes("intl") ||
     (!isSymbolic && lowerPath.includes("actions")) ||
-    lowerPath.includes("mimetypes") ||
-    lowerPath.includes("status") ||
+    // File-type and trash icons come from mimetypes/ and status/; symbolic
+    // variants of those are not used.
+    (isSymbolic && (lowerPath.includes("mimetypes") || lowerPath.includes("status"))) ||
     lowerPath.includes("panel")
   ) {
     return false;
@@ -294,10 +300,14 @@ function isRelevantIconSubdir(subdir: XdgIconSubdirDescriptor): boolean {
     lowerPath.includes("places") ||
     lowerPath.includes("categories") ||
     lowerPath.includes("devices") ||
+    lowerPath.includes("mimetypes") ||
+    lowerPath.includes("status") ||
     lowerCtx.includes("application") ||
     lowerCtx.includes("place") ||
     lowerCtx.includes("category") ||
-    lowerCtx.includes("device")
+    lowerCtx.includes("device") ||
+    lowerCtx.includes("mimetype") ||
+    lowerCtx.includes("status")
   );
 }
 
@@ -601,12 +611,12 @@ function expandIconCandidateNames(
         push(lastSegment.toLowerCase());
       }
     }
+    // A theme's own file manager icon beats hicolor's org.gnome.Nautilus.
     if (
       baseIcon.toLowerCase() === "org.gnome.nautilus" ||
       baseIcon.toLowerCase() === "nautilus"
     ) {
       push("system-file-manager");
-      push("folder");
     }
   }
   return out;
@@ -729,12 +739,12 @@ async function resolveXdgIconUrl(
   return loadXdgIconDataUrl(files, path);
 }
 
-const ICON_INDEX_CACHE_KEY = "piloti.xdg-icon-index.v4";
+const ICON_INDEX_CACHE_KEY = "piloti.xdg-icon-index.v5";
 
 type CompactSubdirGroup = [string, (string | [string, string])[]];
 
-interface SerializedIconThemeIndexV4 {
-  v: 4;
+interface SerializedIconThemeIndexV5 {
+  v: 5;
   key: string;
   themeOrder: string[];
   themes: [string, XdgIconThemeDescriptor][];
@@ -784,8 +794,8 @@ function serializeXdgIconThemeIndex(
     compactSubdirs.push([k, Array.from(byDir.entries())]);
   }
 
-  const payload: SerializedIconThemeIndexV4 = {
-    v: 4,
+  const payload: SerializedIconThemeIndexV5 = {
+    v: 5,
     key,
     themeOrder: index.themeOrder,
     themes: compactThemes,
@@ -800,9 +810,9 @@ function deserializeXdgIconThemeIndex(
   raw: string
 ): XdgIconThemeIndex | null {
   try {
-    const parsed = JSON.parse(raw) as Partial<SerializedIconThemeIndexV4>;
+    const parsed = JSON.parse(raw) as Partial<SerializedIconThemeIndexV5>;
     if (
-      parsed.v !== 4 ||
+      parsed.v !== 5 ||
       parsed.key !== key ||
       !Array.isArray(parsed.themeOrder) ||
       !Array.isArray(parsed.themes) ||

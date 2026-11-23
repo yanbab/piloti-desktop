@@ -5,7 +5,7 @@ import {
   lookupXdgIconPath,
 } from "@/lib/xdg/xdg-icon-theme";
 import { PILOTI_VIRTUAL_ICONS } from "@/lib/engine-web/piloti-virtual-icons";
-import { PAPIRUS_VIRTUAL_ICONS } from "@/lib/engine-web/papirus-virtual-icons";
+import { diskIconReader, readDataFile } from "../helpers/disk-icon-reader";
 
 const mkOk = <T>(v: T) => ({ match: ({ Ok }: { Ok: (x: T) => unknown }) => Ok(v) });
 const mkErr = () => ({ match: ({ Err }: { Err: (e: string) => unknown }) => Err("ENOENT") });
@@ -72,27 +72,7 @@ describe("XDG specifications (Autostart, Recents XBEL, Globs2/Magic)", () => {
   });
 
   it("indexes and resolves animated/ Lottie .json icons from Piloti icon theme", async () => {
-    const vfs: Record<string, string> = {
-      ...PAPIRUS_VIRTUAL_ICONS,
-      ...PILOTI_VIRTUAL_ICONS,
-    };
-    const reader = {
-      readDir: async (dir: string) => {
-        const prefix = dir.endsWith("/") ? dir : `${dir}/`;
-        const seen = new Map<string, { name: string; fileType: number }>();
-        for (const key of Object.keys(vfs)) {
-          if (!key.startsWith(prefix)) continue;
-          const rest = key.slice(prefix.length);
-          const slash = rest.indexOf("/");
-          const name = slash >= 0 ? rest.slice(0, slash) : rest;
-          const fileType = slash >= 0 ? 1 : 0;
-          if (!seen.has(name)) seen.set(name, { name, fileType });
-        }
-        return seen.size > 0 ? mkOk(Array.from(seen.values())) : mkErr();
-      },
-      readText: async (filePath: string) =>
-        vfs[filePath] ? mkOk(vfs[filePath]) : mkErr(),
-    };
+    const reader = diskIconReader;
 
     const index = await buildXdgIconThemeIndex(reader as never, ["Piloti", "Papirus", "Adwaita", "hicolor"]);
     const folderPath = lookupXdgIconPath(index, "folder", 64, 1);
@@ -107,7 +87,7 @@ describe("XDG specifications (Autostart, Recents XBEL, Globs2/Magic)", () => {
       "/usr/share/icons/Papirus/64x64/apps/org.gnome.Loupe.svg"
     );
     expect(lookupXdgIconPath(index, "piloti-console", 64, 1)).toBe(
-      "/usr/share/icons/Papirus/64x64/apps/piloti-console.svg"
+      "/usr/share/icons/hicolor/scalable/apps/piloti-console.svg"
     );
     expect(lookupXdgIconPath(index, "preferences-desktop", 64, 1)).toBe(
       "/usr/share/icons/Papirus/64x64/apps/preferences-desktop.svg"
@@ -121,8 +101,9 @@ describe("XDG specifications (Autostart, Recents XBEL, Globs2/Magic)", () => {
     expect(lookupXdgIconPath(index, "view-app-grid", 64, 1)).toBe(
       "/usr/share/icons/Papirus/64x64/apps/view-app-grid.svg"
     );
+    // Piloti overrides it: the Files app icon is the animated folder.
     expect(lookupXdgIconPath(index, "system-file-manager", 64, 1)).toBe(
-      "/usr/share/icons/Papirus/64x64/apps/system-file-manager.svg"
+      "/usr/share/icons/Piloti/animated/apps/system-file-manager.json"
     );
     // Piloti overrides it so its download arrow follows the accent color.
     expect(lookupXdgIconPath(index, "system-software-install", 64, 1)).toBe(
@@ -171,19 +152,19 @@ describe("XDG specifications (Autostart, Recents XBEL, Globs2/Magic)", () => {
       "/usr/share/icons/Papirus/64x64/apps/org.gnome.Loupe.svg"
     );
     expect(lookupXdgIconPath(papirusOnlyIndex, "piloti-console", 64, 1)).toBe(
-      "/usr/share/icons/Papirus/64x64/apps/piloti-console.svg"
+      "/usr/share/icons/hicolor/scalable/apps/piloti-console.svg"
     );
     expect(lookupXdgIconPath(papirusOnlyIndex, "preferences-desktop", 64, 1)).toBe(
       "/usr/share/icons/Papirus/64x64/apps/preferences-desktop.svg"
     );
     expect(
-      PAPIRUS_VIRTUAL_ICONS["/usr/share/icons/Papirus/64x64/mimetypes/application-x-zerosize.svg"]
+      readDataFile("/usr/share/icons/Papirus/64x64/mimetypes/application-x-zerosize.svg")
     ).toContain("<svg");
     expect(
       PILOTI_VIRTUAL_ICONS["/usr/share/icons/Piloti/scalable/mimetypes/application-x-zerosize.svg"]
     ).toContain("<svg");
     expect(
-      PAPIRUS_VIRTUAL_ICONS["/usr/share/icons/Papirus/64x64/devices/drive-removable-media-usb.svg"]
+      readDataFile("/usr/share/icons/Papirus/64x64/devices/drive-removable-media-usb.svg")
     ).toContain("<svg");
   });
 });

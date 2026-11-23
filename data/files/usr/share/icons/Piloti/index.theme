@@ -1,8 +1,25 @@
 [Icon Theme]
 Name=Piloti
-Comment=Piloti Animated Icon Theme (Folder & Text Animations; Inherits Papirus & Adwaita)
+Comment=Piloti icon theme: animated folders and documents, accent-colored icons
 Inherits=Papirus,Adwaita,hicolor
-Directories=animated/places,animated/mimetypes,animated/apps,scalable/apps,scalable/mimetypes
+Directories=animated/places,animated/mimetypes,animated/apps,animated/devices,scalable/apps,scalable/mimetypes
+
+# Accent-colored icons (read by Piloti Desktop, ignored by GTK and Qt).
+#
+# Icons that mark shapes with class="accent", "accent-darker" or
+# "accent-lighter" (SVG), or `cl` set to those names (Lottie), follow the
+# desktop accent color, whatever theme they come from.
+#
+# InheritedIcons lists icons from inherited themes that carry no markers but
+# draw the accent with the colors below (stock Papirus blue). They are marked
+# when loaded. `*` matches any suffix.
+[X-Piloti Accent]
+Accent=#5294e2
+Darker=#4877b1
+Lighter=#8bbcf6
+DarkerFactor=0.22
+LighterMix=0.4
+InheritedIcons=folder;folder-*;user-home;user-desktop;user-trash-full;system-file-manager;preferences-desktop;preferences-system;text-x-generic
 
 [animated/places]
 Context=Places
@@ -20,6 +37,13 @@ Type=Scalable
 
 [animated/mimetypes]
 Context=MimeTypes
+Size=64
+MinSize=16
+MaxSize=512
+Type=Scalable
+
+[animated/devices]
+Context=Devices
 Size=64
 MinSize=16
 MaxSize=512

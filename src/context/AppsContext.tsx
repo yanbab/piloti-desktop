@@ -7,9 +7,17 @@ import {
   type AppDefinition,
 } from "@/data/catalog";
 import { launchDesktopCommand } from "@/lib/engine-native";
-import { shouldTintIconKey, tintIconDataUrl } from "@/lib/shell/icon-accent-tint";
-import { PAPIRUS_VIRTUAL_ICONS } from "@/lib/engine-web/papirus-virtual-icons";
-import { PILOTI_VIRTUAL_ICONS } from "@/lib/engine-web/piloti-virtual-icons";
+import {
+  APP_GRID_ICON_CANDIDATES,
+  SHELL_XDG_ICON_GROUPS,
+} from "@/lib/shell/shell-icon-names";
+import {
+  DEFAULT_ICON_ACCENT_CONFIG,
+  iconAccentConfigFromIndex,
+  markInheritedAccentIcon,
+  tintIconDataUrl,
+  type IconAccentConfig,
+} from "@/lib/shell/icon-accent-tint";
 import {
   readVfsStateJson,
   VFS_STATE_PATHS,
@@ -25,7 +33,6 @@ import {
   loadCachedXdgIconThemeIndex,
   loadXdgIconDataUrl,
   lookupXdgIconPath,
-  resolveXdgIconUrl,
   saveCachedXdgIconThemeIndex,
   type XdgIconThemeIndex,
 } from "xdg-icon-theme";
@@ -200,186 +207,34 @@ export interface AppsContextValue {
 
 export const AppsContext = React.createContext<AppsContextValue | null>(null);
 
-const APP_GRID_ICON_CANDIDATES: readonly string[] = [
-  "view-app-grid",
-  "show-applications",
-  "applications-all",
-  "view-app-grid-symbolic",
-  "view-grid-symbolic",
-  "view-grid",
-];
-
-const SHELL_XDG_ICON_GROUPS: Record<string, readonly string[]> = {
-  folder: ["folder", "inode-directory"],
-  "folder-open": ["folder-open", "folder"],
-  __user_trash__: ["user-trash", "trash-empty", "gnome-fs-trash-empty"],
-  __user_trash_full__: [
-    "user-trash-full",
-    "trash-full",
-    "gnome-fs-trash-full",
-  ],
-  __usb_drive__: [
-    "drive-removable-media-usb",
-    "drive-removable-media",
-  ],
-  __harddisk__: ["drive-harddisk-solidstate", "drive-harddisk"],
-  __optical_drive__: ["media-optical", "drive-optical"],
-  __sd_card__: ["media-flash-sd-mmc", "media-flash"],
-  __fallback_app__: [
-    "application-x-executable",
-    "system-run",
-    "applications-other",
-    "package-x-generic",
-    "org.gnome.Console",
-  ],
-  "image-x-generic": ["image-x-generic", "gnome-mime-image"],
-  "video-x-generic": ["video-x-generic", "gnome-mime-video"],
-  "audio-x-generic": ["audio-x-generic", "gnome-mime-audio"],
-  "application-pdf": ["application-pdf", "x-office-document"],
-  "text-x-script": ["text-x-script"],
-  "package-x-generic": ["package-x-generic", "application-x-archive"],
-  "text-x-generic": ["text-x-generic"],
-  "application-x-zerosize": [
-    "application-x-zerosize",
-    "text-x-generic-empty",
-    "text-x-generic",
-  ],
-  "text-x-markdown": ["text-x-markdown", "text-markdown"],
-  "text-html": ["text-html"],
-};
-
-const PAPIRUS_DIRECT_ICON_FALLBACKS: Record<string, readonly string[]> = {
-  nautilus: [
-    "/usr/share/icons/Papirus/64x64/apps/system-file-manager.svg",
-    "/usr/share/icons/Papirus/64x64/places/folder.svg",
-  ],
-  "folder-open": [
-    "/usr/share/icons/Papirus/64x64/places/folder-open.svg",
-    "/usr/share/icons/Papirus/64x64/places/folder.svg",
-  ],
-  settings: [
-    "/usr/share/icons/Papirus/64x64/apps/preferences-desktop.svg",
-    "/usr/share/icons/Papirus/64x64/apps/preferences-system.svg",
-  ],
-  console: ["/usr/share/icons/Papirus/64x64/apps/piloti-console.svg"],
-  terminal: [
-    "/usr/share/icons/Piloti/scalable/apps/utilities-terminal.svg",
-    "/usr/share/icons/Papirus/64x64/apps/utilities-terminal.svg",
-  ],
-  browser: ["/usr/share/icons/Papirus/64x64/apps/internet-web-browser.svg"],
-  "web-view": ["/usr/share/icons/Papirus/64x64/apps/internet-web-browser.svg"],
-  "text-editor": [
-    "/usr/share/icons/Piloti/animated/apps/accessories-text-editor.json",
-    "/usr/share/icons/Papirus/64x64/apps/accessories-text-editor.svg",
-  ],
-  "app-store": [
-    "/usr/share/icons/Papirus/64x64/apps/system-software-install.svg",
-  ],
-  calculator: [
-    "/usr/share/icons/Piloti/scalable/apps/accessories-calculator.svg",
-    "/usr/share/icons/Papirus/64x64/apps/accessories-calculator.svg",
-  ],
-  "image-viewer": [
-    "/usr/share/icons/Papirus/64x64/apps/org.gnome.Loupe.svg",
-    "/usr/share/icons/Papirus/64x64/apps/multimedia-photo-viewer.svg",
-  ],
-  camera: [
-    "/usr/share/icons/Papirus/64x64/apps/org.gnome.Snapshot.svg",
-    "/usr/share/icons/Papirus/64x64/apps/camera-photo.svg",
-  ],
-  "login-screen": [
-    "/usr/share/icons/Papirus/64x64/apps/system-users.svg",
-  ],
-  "image-x-generic": [
-    "/usr/share/icons/Papirus/64x64/mimetypes/image-x-generic.svg",
-  ],
-  "video-x-generic": [
-    "/usr/share/icons/Papirus/64x64/mimetypes/video-x-generic.svg",
-  ],
-  "audio-x-generic": [
-    "/usr/share/icons/Papirus/64x64/mimetypes/audio-x-generic.svg",
-  ],
-  "application-pdf": [
-    "/usr/share/icons/Papirus/64x64/mimetypes/application-pdf.svg",
-  ],
-  "text-x-script": [
-    "/usr/share/icons/Papirus/64x64/mimetypes/text-x-script.svg",
-  ],
-  "text-x-markdown": [
-    "/usr/share/icons/Papirus/64x64/mimetypes/text-x-markdown.svg",
-  ],
-  "package-x-generic": [
-    "/usr/share/icons/Papirus/64x64/mimetypes/package-x-generic.svg",
-  ],
-  "text-x-generic": [
-    "/usr/share/icons/Papirus/64x64/mimetypes/text-x-generic.svg",
-  ],
-  "application-x-zerosize": [
-    "/usr/share/icons/Papirus/64x64/mimetypes/application-x-zerosize.svg",
-    "/usr/share/icons/Papirus/64x64/mimetypes/text-x-generic.svg",
-  ],
-  "text-html": [
-    "/usr/share/icons/Piloti/scalable/mimetypes/text-html.svg",
-    "/usr/share/icons/Papirus/64x64/mimetypes/text-html.svg",
-  ],
-  __user_trash__: [
-    "/usr/share/icons/Papirus/64x64/places/user-trash.svg",
-  ],
-  __user_trash_full__: [
-    "/usr/share/icons/Papirus/64x64/status/user-trash-full.svg",
-  ],
-  __usb_drive__: [
-    "/usr/share/icons/Papirus/64x64/devices/drive-removable-media-usb.svg",
-    "/usr/share/icons/Papirus/64x64/devices/drive-removable-media.svg",
-  ],
-  __harddisk__: [
-    "/usr/share/icons/Papirus/64x64/devices/drive-harddisk-solidstate.svg",
-    "/usr/share/icons/Papirus/64x64/devices/drive-harddisk.svg",
-  ],
-  __optical_drive__: [
-    "/usr/share/icons/Papirus/64x64/devices/media-optical.svg",
-    "/usr/share/icons/Papirus/64x64/devices/drive-optical.svg",
-  ],
-  __sd_card__: [
-    "/usr/share/icons/Papirus/64x64/devices/media-flash-sd-mmc.svg",
-    "/usr/share/icons/Papirus/64x64/devices/media-flash.svg",
-  ],
-  __fallback_app__: [
-    "/usr/share/icons/Papirus/64x64/mimetypes/application-x-executable.svg",
-  ],
-};
-
-async function resolveWithDirectAdwaitaFallback(
-  files: Parameters<typeof resolveXdgIconUrl>[0],
+/** Loads an icon file, marking inherited icons the theme says follow the accent. */
+async function loadThemedIconUrl(
+  files: Parameters<typeof loadXdgIconDataUrl>[0],
   iconIndex: XdgIconThemeIndex,
-  key: string,
-  candidates: readonly string[],
-  allowPapirusFallback = true
+  path: string
 ): Promise<string | undefined> {
-  const fromIndex = await resolveXdgIconUrl(files, iconIndex, candidates, 64, 1);
-  if (fromIndex) return fromIndex;
-  if (!allowPapirusFallback) return undefined;
-
-  const directPaths = PAPIRUS_DIRECT_ICON_FALLBACKS[key];
-  if (!directPaths) return undefined;
-  for (const directPath of directPaths) {
-    const url = await loadXdgIconDataUrl(files, directPath);
-    if (url) return url;
-    const bundledJson = PILOTI_VIRTUAL_ICONS[directPath];
-    if (bundledJson) {
-      return `data:application/json;charset=utf-8,${encodeURIComponent(bundledJson)}`;
-    }
-    const bundledSvg = PAPIRUS_VIRTUAL_ICONS[directPath];
-    if (bundledSvg) {
-      return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(bundledSvg)}`;
-    }
-  }
-  return undefined;
+  const url = await loadXdgIconDataUrl(files, path);
+  return markInheritedAccentIcon(url, path, iconAccentConfigFromIndex(iconIndex));
 }
 
-const DOCK_ICONS_CACHE_KEY = "piloti.dock-icons.v20";
+/** Resolves the first candidate name found in the icon theme chain. */
+async function resolveThemedIconUrl(
+  files: Parameters<typeof loadXdgIconDataUrl>[0],
+  iconIndex: XdgIconThemeIndex,
+  candidates: readonly string[],
+  size = 64
+): Promise<string | undefined> {
+  const path = lookupXdgIconPath(iconIndex, candidates, size, 1);
+  return path ? loadThemedIconUrl(files, iconIndex, path) : undefined;
+}
+
+const DOCK_ICONS_CACHE_KEY = "piloti.dock-icons.v21";
+// Bump when icon resolution or accent marking changes, so cached icons and
+// icon paths from an older build are not reused.
+const ICON_CACHE_VERSION = 2;
 
 interface DockIconsCachePayload {
+  v?: number;
   theme: string;
   appGridIsSymbolic: boolean;
   icons: Record<string, string>;
@@ -393,6 +248,7 @@ function loadCachedDockIcons(theme: string): DockIconsCachePayload | null {
     );
     if (
       !parsed ||
+      parsed.v !== ICON_CACHE_VERSION ||
       parsed.theme !== theme ||
       !parsed.icons ||
       typeof parsed.icons !== "object"
@@ -411,14 +267,18 @@ function loadCachedDockIcons(theme: string): DockIconsCachePayload | null {
 
 function saveCachedDockIcons(payload: DockIconsCachePayload): void {
   try {
-    writeVfsStateJson(VFS_STATE_PATHS.dockIconsCache, payload, false);
+    writeVfsStateJson(
+      VFS_STATE_PATHS.dockIconsCache,
+      { ...payload, v: ICON_CACHE_VERSION },
+      false
+    );
   } catch {
     // ignore storage quota errors
   }
 }
 
 interface XdgAppsCachePayload {
-  v: 1;
+  v: typeof ICON_CACHE_VERSION;
   theme: string;
   entries: XdgDesktopEntry[];
 }
@@ -430,7 +290,7 @@ function loadCachedXdgApps(theme: string): XdgDesktopEntry[] | null {
     );
     if (
       !parsed ||
-      parsed.v !== 1 ||
+      parsed.v !== ICON_CACHE_VERSION ||
       parsed.theme !== theme ||
       !Array.isArray(parsed.entries) ||
       parsed.entries.length === 0
@@ -453,7 +313,7 @@ function saveCachedXdgApps(theme: string, entries: XdgDesktopEntry[]): void {
     });
     writeVfsStateJson(
       VFS_STATE_PATHS.xdgAppsCache,
-      { v: 1, theme, entries: compactEntries } satisfies XdgAppsCachePayload,
+      { v: ICON_CACHE_VERSION, theme, entries: compactEntries } satisfies XdgAppsCachePayload,
       false,
     );
   } catch {
@@ -502,6 +362,10 @@ export function useAppsValue(
     setRefreshNonce((n) => n + 1);
   }, []);
   const iconThemeIndexRef = React.useRef<XdgIconThemeIndex | null>(null);
+  // Shade math from the icon theme's `[X-Piloti Accent]` group.
+  const [iconAccentConfig, setIconAccentConfig] = React.useState<IconAccentConfig>(
+    DEFAULT_ICON_ACCENT_CONFIG
+  );
   const attemptedIconIdsRef = React.useRef<Set<string>>(new Set());
 
   React.useEffect(() => {
@@ -589,6 +453,7 @@ export function useAppsValue(
         if (cancelled) return;
         finishIndex(useWarmCachedIndex ? `${activeIconTheme} (cached)` : activeIconTheme);
         iconThemeIndexRef.current = iconIndex;
+        setIconAccentConfig(iconAccentConfigFromIndex(iconIndex));
         if (!useWarmCachedIndex) {
           saveCachedXdgIconThemeIndex(preferredThemes, iconIndex);
         } else {
@@ -622,23 +487,19 @@ export function useAppsValue(
 
         await Promise.all([
           ...prioritizedCatalog.map(async (app) => {
-            const url = await resolveWithDirectAdwaitaFallback(
+            const url = await resolveThemedIconUrl(
               domicile.files,
               iconIndex,
-              app.id,
-              app.xdgIcons ?? [app.id],
-              activeIconTheme !== "Adwaita"
+              app.xdgIcons ?? [app.id]
             );
             if (url) essentialIcons[app.id] = url;
           }),
           ...customPinnedIds.map(async (pinnedId) => {
             const cleanId = pinnedId.replace(/\.desktop$/i, "");
-            const url = await resolveXdgIconUrl(
+            const url = await resolveThemedIconUrl(
               domicile.files,
               iconIndex,
-              [cleanId, cleanId.toLowerCase()],
-              64,
-              1
+              [cleanId, cleanId.toLowerCase()]
             );
             if (url) {
               essentialIcons[pinnedId] = url;
@@ -647,12 +508,10 @@ export function useAppsValue(
           }),
           ...Object.entries(SHELL_XDG_ICON_GROUPS).map(
             async ([key, candidates]) => {
-              const url = await resolveWithDirectAdwaitaFallback(
+              const url = await resolveThemedIconUrl(
                 domicile.files,
                 iconIndex,
-                key,
-                candidates,
-                activeIconTheme !== "Adwaita"
+                candidates
               );
               if (url) essentialIcons[key] = url;
             }
@@ -672,12 +531,11 @@ export function useAppsValue(
             }
           })(),
           ...userDirs.map(async (dir) => {
-            const url = await resolveXdgIconUrl(
+            const url = await resolveThemedIconUrl(
               domicile.files,
               iconIndex,
               dir.iconCandidates,
-              48,
-              1
+              48
             );
             if (url) essentialIcons[`folder:${dir.key}`] = url;
           }),
@@ -742,7 +600,11 @@ export function useAppsValue(
                   }
                   return;
                 }
-                const url = await loadXdgIconDataUrl(domicile.files, entry.iconPath);
+                const url = await loadThemedIconUrl(
+                  domicile.files,
+                  iconIndex,
+                  entry.iconPath
+                );
                 if (!url) return;
                 resolvedUrls.set(entry.desktopId, url);
                 batchIcons[entry.desktopId] = url;
@@ -885,12 +747,10 @@ export function useAppsValue(
       void Promise.all(
         pending.map(async ({ baseId, raw }) => {
           try {
-            const url = await resolveWithDirectAdwaitaFallback(
+            const url = await resolveThemedIconUrl(
               domicile.files,
               iconIndex,
-              baseId,
-              [baseId, raw],
-              activeIconTheme !== "Adwaita"
+              [baseId, raw]
             );
             return url ? { baseId, raw, url } : null;
           } catch {
@@ -924,49 +784,22 @@ export function useAppsValue(
     [settings.accentColor, settings.customAccentHex, settings.interfaceTheme]
   );
 
-  const shouldTintAppOrMimeIcon = React.useCallback(
-    (keyOrId: string | undefined): boolean => {
-      if (shouldTintIconKey(keyOrId)) return true;
-      if (!keyOrId) return false;
-      const clean = keyOrId.trim().replace(/\.desktop$/i, "").toLowerCase();
-      return (
-        clean === "calculator" ||
-        clean === "piloti-calculator" ||
-        clean === "accessories-calculator" ||
-        clean === "org.gnome.calculator" ||
-        clean === "text-editor" ||
-        clean === "piloti-notepad" ||
-        clean === "piloti-text-editor" ||
-        clean === "accessories-text-editor"
-      );
-    },
-    []
-  );
-
+  // Only icons with accent markers change; the others come back as is.
   const tintedAppIconsMap = React.useMemo(() => {
     const out: Record<string, string> = {};
     for (const [k, url] of Object.entries(appIconsMap)) {
-      out[k] = shouldTintAppOrMimeIcon(k)
-        ? (tintIconDataUrl(url, activeAccentHex) ?? url)
-        : url;
+      out[k] = tintIconDataUrl(url, activeAccentHex, iconAccentConfig) ?? url;
     }
     return out;
-  }, [activeAccentHex, appIconsMap, shouldTintAppOrMimeIcon]);
+  }, [activeAccentHex, appIconsMap, iconAccentConfig]);
 
   const tintedInstalledXdgApps = React.useMemo(
     () =>
-      installedXdgApps.map((entry) =>
-        entry.iconUrl &&
-        (shouldTintAppOrMimeIcon(entry.appId) ||
-          shouldTintAppOrMimeIcon(entry.desktopId) ||
-          shouldTintAppOrMimeIcon(entry.icon))
-          ? {
-              ...entry,
-              iconUrl: tintIconDataUrl(entry.iconUrl, activeAccentHex) ?? entry.iconUrl,
-            }
-          : entry
-      ),
-    [activeAccentHex, installedXdgApps, shouldTintAppOrMimeIcon]
+      installedXdgApps.map((entry) => {
+        const iconUrl = tintIconDataUrl(entry.iconUrl, activeAccentHex, iconAccentConfig);
+        return iconUrl === entry.iconUrl ? entry : { ...entry, iconUrl };
+      }),
+    [activeAccentHex, installedXdgApps, iconAccentConfig]
   );
 
   const getAppIconUrl = React.useCallback(
