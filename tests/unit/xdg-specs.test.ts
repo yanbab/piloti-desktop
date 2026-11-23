@@ -124,8 +124,9 @@ describe("XDG specifications (Autostart, Recents XBEL, Globs2/Magic)", () => {
     expect(lookupXdgIconPath(index, "system-file-manager", 64, 1)).toBe(
       "/usr/share/icons/Papirus/64x64/apps/system-file-manager.svg"
     );
+    // Piloti overrides it so its download arrow follows the accent color.
     expect(lookupXdgIconPath(index, "system-software-install", 64, 1)).toBe(
-      "/usr/share/icons/Papirus/64x64/apps/system-software-install.svg"
+      "/usr/share/icons/Piloti/scalable/apps/system-software-install.svg"
     );
     expect(lookupXdgIconPath(index, "accessories-calculator", 64, 1)).toBe(
       "/usr/share/icons/Piloti/scalable/apps/accessories-calculator.svg"
