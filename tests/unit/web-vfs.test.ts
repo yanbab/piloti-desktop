@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from "bun:test";
 import { parseGioMetadataInfo } from "@/lib/engine/fs-bridge";
 import { inferFileVisual } from "@/lib/shell/desktop-icons";
 import {
+  clearAllWebVfsBackingStorage,
   copyVfsEntry,
   createVfsFileFromTemplate,
   createVfsFolder,
@@ -52,6 +53,8 @@ function installMemoryLocalStorage() {
 describe("web-vfs", () => {
   beforeEach(() => {
     installMemoryLocalStorage();
+    // Drop the in-memory cache/pending flush left by other test files in the same process.
+    clearAllWebVfsBackingStorage();
     localStorage.removeItem(WEB_VFS_STORAGE_KEY);
     localStorage.removeItem(VFS_EMBLEMS_STORAGE_KEY);
     localStorage.removeItem(WEB_VFS_FAVORITES_STORAGE_KEY);
