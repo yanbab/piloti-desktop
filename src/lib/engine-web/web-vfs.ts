@@ -31,6 +31,9 @@ export {
   type WebVfsEntry,
 };
 export { DEFAULT_ETC_ISSUE, DEFAULT_MIMEAPPS_INI };
+export * from "@/lib/core/vfs-clipboard";
+export * from "@/lib/core/vfs-media";
+import { isImageVfsFile, isZipVfsFile, getVfsContentType } from "@/lib/core/vfs-media";
 
 export const WEB_VFS_STORAGE_KEY = "piloti.web.vfs.v1";
 export const WEB_VFS_CHANGED_EVENT = WEB_VFS_CHANGED_DOM_EVENT;
@@ -1507,94 +1510,8 @@ export function duplicateVfsEntry(rawPath: string): WebVfsEntry | null {
   return folder;
 }
 
-export interface VfsClipboardState {
-  mode: "cut" | "copy";
-  paths: string[];
-}
-
-export const WEB_VFS_CLIPBOARD_CHANGED_EVENT = "piloti:vfs-clipboard-changed";
-
-let sharedVfsClipboard: VfsClipboardState | null = null;
-
-export function getVfsClipboard(): VfsClipboardState | null {
-  return sharedVfsClipboard
-    ? { mode: sharedVfsClipboard.mode, paths: [...sharedVfsClipboard.paths] }
-    : null;
-}
-
-export function setVfsClipboard(next: VfsClipboardState | null): void {
-  const cleaned =
-    next && next.paths.length > 0
-      ? {
-          mode: next.mode,
-          paths: Array.from(
-            new Set(next.paths.map((p) => normalizeVfsPath(p))),
-          ),
-        }
-      : null;
-  sharedVfsClipboard = cleaned;
-  if (typeof window !== "undefined") {
-    window.dispatchEvent(new CustomEvent(WEB_VFS_CLIPBOARD_CHANGED_EVENT));
-  }
-}
-
-export function subscribeVfsClipboard(listener: () => void): () => void {
-  if (typeof window === "undefined") return () => {};
-  window.addEventListener(WEB_VFS_CLIPBOARD_CHANGED_EVENT, listener);
-  return () => {
-    window.removeEventListener(WEB_VFS_CLIPBOARD_CHANGED_EVENT, listener);
-  };
-}
-
-const IMAGE_FILE_EXT_RE = /\.(png|jpe?g|gif|webp|bmp|ico|svg)$/i;
-
-export function isImageVfsFile(name: string, content?: string): boolean {
-  if (IMAGE_FILE_EXT_RE.test(name)) return true;
-  return Boolean(content && content.startsWith("data:image/"));
-}
-
-export function getVfsContentType(
-  entry?: Pick<WebVfsEntry, "content" | "metadata">
-): string | undefined {
-  if (!entry) return undefined;
-  const metaType = entry.metadata?.["standard::content-type"];
-  if (typeof metaType === "string" && metaType.trim()) {
-    return metaType.split(";")[0]?.trim().toLowerCase();
-  }
-  if (entry.content?.startsWith("data:")) {
-    const header = entry.content.slice(5, entry.content.indexOf(","));
-    const mime = header.split(";")[0]?.trim().toLowerCase();
-    if (mime) return mime;
-  }
-  return undefined;
-}
-
-export function getVfsImageThumbnailUrl(
-  name: string,
-  content?: string,
-  metadata?: WebVfsEntry["metadata"],
-): string | undefined {
-  const metaThumb = metadata?.["metadata::thumbnail"];
-  if (typeof metaThumb === "string" && metaThumb.startsWith("data:image/")) {
-    return metaThumb;
-  }
-  if (!content) return undefined;
-  if (content.startsWith("data:image/")) return content;
-  if (name.toLowerCase().endsWith(".svg") && content.includes("<svg")) {
-    return `data:image/svg+xml;utf8,${encodeURIComponent(content)}`;
-  }
-  return undefined;
-}
-
 const TEXT_UNZIP_EXT_RE =
   /\.(txt|md|markdown|json|html?|css|scss|js|jsx|ts|tsx|mjs|cjs|sh|bash|zsh|ini|conf|cfg|toml|ya?ml|xml|svg|csv|log|py|rs|go|c|h|cpp|java|rb|php|sql)$/i;
-
-export function isZipVfsFile(name: string, content?: string): boolean {
-  return (
-    name.toLowerCase().endsWith(".zip") ||
-    Boolean(content?.startsWith("data:application/zip;"))
-  );
-}
 
 function dataUrlToBlob(dataUrl: string): Blob | null {
   const commaIdx = dataUrl.indexOf(",");
