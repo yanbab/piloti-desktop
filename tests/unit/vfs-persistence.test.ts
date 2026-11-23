@@ -24,3 +24,20 @@ describe("VFS persistence port", () => {
     expect(getVfsEntry(`${VFS_HOME}/Documents/port.txt`)).toBeUndefined();
   });
 });
+
+describe("VFS sync port", () => {
+  test("subscribers hear local changes through an injected sync", async () => {
+    const { memoryVfsSync } = await import("@/lib/ports/vfs-sync");
+    const { setVfsSync, subscribeWebVfs } = await import("@/lib/engine-web/web-vfs");
+    const { browserVfsSync } = await import("@/lib/engine-web/vfs-sync-browser");
+    setVfsPersistence(memoryPersistence());
+    setVfsSync(memoryVfsSync());
+    const heard: Array<readonly string[] | undefined> = [];
+    const off = subscribeWebVfs((d) => heard.push(d.paths), { path: `${VFS_HOME}/Documents`, mode: "children" });
+    writeVfsTextFile(`${VFS_HOME}/Documents/sync.txt`, "x");
+    off();
+    expect(heard.length).toBeGreaterThan(0);
+    setVfsSync(browserVfsSync());
+    setVfsPersistence(browserPersistence());
+  });
+});

@@ -1,6 +1,8 @@
 import { VFS_HOME, rehome } from "../engine/vfs-home";
 import type { VfsPersistence } from "@/lib/ports/vfs-persistence";
 import { browserPersistence } from "./vfs-persistence-browser";
+import type { VfsSync } from "@/lib/ports/vfs-sync";
+import { browserVfsSync, WEB_VFS_CHANGED_DOM_EVENT } from "./vfs-sync-browser";
 import {
   DEFAULT_HOME_DIRS as GENERATED_HOME_DIRS,
   DEFAULT_HOME_FILES as GENERATED_HOME_FILES,
@@ -37,7 +39,7 @@ const DEFAULT_HOME_FILES: Record<string, string> = Object.fromEntries(
 );
 
 export const WEB_VFS_STORAGE_KEY = "piloti.web.vfs.v1";
-export const WEB_VFS_CHANGED_EVENT = "piloti:web-vfs-changed";
+export const WEB_VFS_CHANGED_EVENT = WEB_VFS_CHANGED_DOM_EVENT;
 
 export const WEB_VFS_HOME = `${VFS_HOME}`;
 export const WEB_VFS_TEMPLATES = `${VFS_HOME}/Templates`;
@@ -239,11 +241,7 @@ function hydrateExternalContent(entries: readonly WebVfsEntry[]): void {
       if (typeof value === "string" && target && target.content === undefined) {
         target.content = value;
         persistedBlobs.set(path, value);
-        if (typeof window !== "undefined") {
-          window.dispatchEvent(
-            new CustomEvent<WebVfsChangeDetail>(WEB_VFS_CHANGED_EVENT, { detail: { paths: [path] } }),
-          );
-        }
+        emitVfsChanged([path]);
       }
     });
   }
@@ -534,41 +532,20 @@ export function resetWebVfsPerfStats(): void {
   });
 }
 
-let vfsBroadcastChannel: BroadcastChannel | null | undefined;
-function getVfsBroadcastChannel(): BroadcastChannel | null {
-  if (vfsBroadcastChannel !== undefined) return vfsBroadcastChannel;
-  if (typeof BroadcastChannel === "undefined") {
-    vfsBroadcastChannel = null;
-    return null;
-  }
-  try {
-    vfsBroadcastChannel = new BroadcastChannel("piloti-vfs");
-  } catch {
-    vfsBroadcastChannel = null;
-  }
-  return vfsBroadcastChannel;
-}
+let sync: VfsSync = browserVfsSync();
+let syncTeardown: Array<() => void> = [];
 
-function postVfsBroadcast(msg: VfsBroadcastMessage): void {
-  try {
-    getVfsBroadcastChannel()?.postMessage(msg);
-  } catch {
-    // ignore broadcast errors
-  }
+/** Swaps how changes propagate (tests, other engines). */
+export function setVfsSync(next: VfsSync): void {
+  for (const off of syncTeardown) off();
+  syncTeardown = [];
+  sync = next;
+  installSyncHooks();
 }
-
-const inProcessVfsListeners = new Set<(detail: WebVfsChangeDetail) => void>();
 
 /** Notifies in-document subscribers immediately (reads already see the new cache). */
 function emitVfsChanged(paths: readonly string[] | undefined): void {
-  const detail: WebVfsChangeDetail = paths ? { paths: [...paths] } : {};
-  if (typeof window !== "undefined") {
-    window.dispatchEvent(new CustomEvent<WebVfsChangeDetail>(WEB_VFS_CHANGED_EVENT, { detail }));
-  } else {
-    for (const listener of inProcessVfsListeners) {
-      listener(detail);
-    }
-  }
+  sync.emit({ type: "changed", paths: paths ? [...paths] : undefined });
 }
 
 // --- Coalesced persistence: memory first, localStorage on a trailing debounce ---
@@ -605,7 +582,7 @@ export function flushWebVfs(): void {
   vfsPerf.lastFlushMs = elapsed;
   vfsPerf.totalFlushMs += elapsed;
   // Other windows/iframes re-read localStorage, so only announce once it is written.
-  postVfsBroadcast(paths ? { type: "vfs-changed", paths } : { type: "vfs-changed" });
+  sync.broadcast(paths ? { type: "changed", paths } : { type: "changed" });
 }
 
 function scheduleVfsFlush(): void {
@@ -622,21 +599,20 @@ function scheduleVfsFlush(): void {
   vfsFlushTimer = setTimeout(flushWebVfs, delay);
 }
 
-if (typeof window !== "undefined") {
-  window.addEventListener("pagehide", flushWebVfs);
-  window.addEventListener("beforeunload", flushWebVfs);
-  if (typeof document !== "undefined") {
-    document.addEventListener("visibilitychange", () => {
-      if (document.visibilityState === "hidden") flushWebVfs();
-    });
-  }
-  window.addEventListener("storage", (e) => {
-    if (e.key === null || e.key === WEB_VFS_STORAGE_KEY) vfsCacheFresh = false;
-  });
-  getVfsBroadcastChannel()?.addEventListener("message", (e: MessageEvent<VfsBroadcastMessage>) => {
-    if (e.data?.type === "vfs-changed" || e.data?.type === "vfs-renamed") vfsCacheFresh = false;
-  });
+function installSyncHooks(): void {
+  syncTeardown.push(sync.onFlushRequested(flushWebVfs));
+  syncTeardown.push(
+    sync.onExternalWrite((key) => {
+      if (key === null || key === WEB_VFS_STORAGE_KEY) vfsCacheFresh = false;
+    }),
+  );
+  syncTeardown.push(
+    sync.subscribe((_msg, remote) => {
+      if (remote) vfsCacheFresh = false;
+    }),
+  );
 }
+installSyncHooks();
 
 /**
  * Commits a new VFS snapshot: memory cache now, subscribers now, localStorage
@@ -1267,14 +1243,8 @@ export function renameVfsEntry(
 
   migrateVfsEmblemsPrefix(oldPath, newPath);
   saveVfs(updated, [oldPath, newPath]);
-  if (typeof window !== "undefined") {
-    window.dispatchEvent(
-      new CustomEvent("piloti:vfs-renamed", {
-        detail: { oldPath, newPath },
-      })
-    );
-  }
-  postVfsBroadcast({ type: "vfs-renamed", oldPath, newPath });
+  sync.emit({ type: "renamed", oldPath, newPath });
+  sync.broadcast({ type: "renamed", oldPath, newPath });
   return updated.find((e) => e.path === newPath) ?? null;
 }
 
@@ -1493,70 +1463,37 @@ export function subscribeWebVfs(
     vfsPerf.listenerCalls += 1;
     listener(paths ? { paths } : {});
   };
-  if (typeof window === "undefined") {
-    const inProcess = (detail: WebVfsChangeDetail) => deliver(detail.paths);
-    inProcessVfsListeners.add(inProcess);
-    return () => {
-      inProcessVfsListeners.delete(inProcess);
-    };
-  }
-  const onChanged = (e: Event) => {
-    deliver((e as CustomEvent<WebVfsChangeDetail | undefined>).detail?.paths);
-  };
-  const onStorage = (e: StorageEvent) => {
+  const offMessages = sync.subscribe((msg, remote) => {
+    if (msg.type === "changed") {
+      deliver(msg.paths);
+    } else if (remote) {
+      deliver([msg.oldPath, msg.newPath]);
+    }
+  });
+  const offStorage = sync.onExternalWrite((key) => {
     if (
-      e.key === WEB_VFS_STORAGE_KEY ||
-      e.key === VFS_EMBLEMS_STORAGE_KEY ||
-      e.key === WEB_VFS_FAVORITES_STORAGE_KEY
+      key === WEB_VFS_STORAGE_KEY ||
+      key === VFS_EMBLEMS_STORAGE_KEY ||
+      key === WEB_VFS_FAVORITES_STORAGE_KEY
     ) {
-      // The broadcast below carries paths for VFS writes; storage events are a
-      // fallback for emblems/favorites and windows without BroadcastChannel.
-      if (e.key === WEB_VFS_STORAGE_KEY && getVfsBroadcastChannel()) return;
+      // Broadcasts carry paths for VFS writes; `storage` events are a fallback
+      // for emblems/favorites and for windows without a broadcast channel.
+      if (key === WEB_VFS_STORAGE_KEY && sync.canBroadcast) return;
       deliver(undefined);
     }
-  };
-  window.addEventListener(WEB_VFS_CHANGED_EVENT, onChanged);
-  window.addEventListener("storage", onStorage);
-  const channel = getVfsBroadcastChannel();
-  const onMessage = (e: MessageEvent<VfsBroadcastMessage>) => {
-    if (e.data?.type === "vfs-changed") {
-      deliver(e.data.paths);
-    } else if (e.data?.type === "vfs-renamed") {
-      deliver([e.data.oldPath, e.data.newPath]);
-    }
-  };
-  channel?.addEventListener("message", onMessage);
+  });
   return () => {
-    window.removeEventListener(WEB_VFS_CHANGED_EVENT, onChanged);
-    window.removeEventListener("storage", onStorage);
-    channel?.removeEventListener("message", onMessage);
+    offMessages();
+    offStorage();
   };
 }
 
 export function subscribeVfsRenamed(
   listener: (detail: { oldPath: string; newPath: string }) => void
 ): () => void {
-  if (typeof window === "undefined") return () => {};
-  const onWindowRenamed = (e: Event) => {
-    const detail = (
-      e as CustomEvent<{ oldPath?: string; newPath?: string }>
-    ).detail;
-    if (detail?.oldPath && detail?.newPath) {
-      listener({ oldPath: detail.oldPath, newPath: detail.newPath });
-    }
-  };
-  const channel = getVfsBroadcastChannel();
-  const onMessage = (e: MessageEvent<VfsBroadcastMessage>) => {
-    if (e.data?.type === "vfs-renamed" && e.data.oldPath && e.data.newPath) {
-      listener({ oldPath: e.data.oldPath, newPath: e.data.newPath });
-    }
-  };
-  window.addEventListener("piloti:vfs-renamed", onWindowRenamed);
-  channel?.addEventListener("message", onMessage);
-  return () => {
-    window.removeEventListener("piloti:vfs-renamed", onWindowRenamed);
-    channel?.removeEventListener("message", onMessage);
-  };
+  return sync.subscribe((msg) => {
+    if (msg.type === "renamed") listener({ oldPath: msg.oldPath, newPath: msg.newPath });
+  });
 }
 
 function escapeHtmlAttr(raw: string): string {
