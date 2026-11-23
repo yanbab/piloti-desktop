@@ -1,6 +1,7 @@
+import { VFS_HOME } from "@/lib/engine/vfs-home";
 /** Pure helpers for folders pinned to the right side of the Dock (macOS-style stacks). */
 
-export const DEFAULT_WEB_DOWNLOADS_PATH = "/home/user/Downloads";
+export const DEFAULT_WEB_DOWNLOADS_PATH = `${VFS_HOME}/Downloads`;
 
 export function normalizeDockFolderPath(raw: string): string {
   const trimmed = (raw ?? "").trim().replace(/\\/g, "/").replace(/\/{2,}/g, "/");
@@ -47,7 +48,7 @@ export function resolveDefaultDockFolders(
     absolutePath?: string;
   }>,
   isBrowserRuntime: boolean,
-  homePath = "/home/user"
+  homePath = `${VFS_HOME}`
 ): string[] {
   if (isBrowserRuntime) return [DEFAULT_WEB_DOWNLOADS_PATH];
   const dl = userDirs.find((d) => d.key === "DOWNLOAD");

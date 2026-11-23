@@ -1,3 +1,4 @@
+import { VFS_HOME } from "@/lib/engine/vfs-home";
 import * as React from "react";
 import { emitShellEvent, onShellEvent } from "@/lib/shell/shell-events";
 import {
@@ -34,7 +35,7 @@ export interface ImageViewerAppProps {
   isCsd?: boolean;
 }
 
-const IMAGE_VIEWER_STATE_PATH = "/home/user/.local/state/piloti/image-viewer-state.json";
+const IMAGE_VIEWER_STATE_PATH = `${VFS_HOME}/.local/state/piloti/image-viewer-state.json`;
 /** Skip persisting unsaved crops larger than this (data URL chars) to keep state files small. */
 const MAX_PERSISTED_CROP_CHARS = 3_000_000;
 const MAX_PERSISTED_FILES = 200;

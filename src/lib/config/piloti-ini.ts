@@ -1,3 +1,4 @@
+import { VFS_HOME } from "@/lib/engine/vfs-home";
 import type { Domicile } from "@domicile-desktop/sdk/desktop/desktop";
 import { type IniRecord, parseIniText, serializeIniText } from "@/lib/config/ini";
 import { readVfsStateText, writeVfsStateText } from "@/lib/engine/vfs-state";
@@ -8,7 +9,7 @@ const PILOTI_INI_DIR = ".config/piloti";
 const LOCAL_CACHE_PREFIX = "piloti.app-ini.v1.";
 
 export function getPilotiAppIniVfsPath(appName: string): string {
-  return `/home/user/${PILOTI_INI_DIR}/${appName}.ini`;
+  return `${VFS_HOME}/${PILOTI_INI_DIR}/${appName}.ini`;
 }
 
 export function getCachedPilotiAppIni(appName: string): IniRecord {

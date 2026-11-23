@@ -1,3 +1,4 @@
+import { VFS_HOME } from "../engine/vfs-home";
 import type { FakeDomicileHost } from "@domicile-desktop/sdk/fake-host";
 
 /**
@@ -33,7 +34,7 @@ declare global {
   }
 }
 
-const HOME = "/home/user";
+const HOME = VFS_HOME;
 
 function printer(name: string, description?: string) {
   return {

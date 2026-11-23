@@ -1,6 +1,7 @@
 import { desktop, type Domicile } from "@domicile-desktop/sdk/desktop/desktop";
 import type { DomicileHost, DomicileNotification } from "@domicile-desktop/sdk/domicile-host";
 import { FakeDomicileHost } from "@domicile-desktop/sdk/fake-host";
+import { VFS_HOME } from "../engine/vfs-home";
 import { DEFAULT_STATIC_DIR_INDEX } from "./default-vfs-tree";
 import { installPortalSimulator } from "./portal-simulator";
 import { PILOTI_VIRTUAL_ICONS } from "./piloti-virtual-icons";
@@ -144,8 +145,8 @@ function readStaticFileBytes(
 function isVfsPath(rawPath: string): boolean {
   if (!rawPath.startsWith("/")) return true;
   return (
-    rawPath === "/home/user" ||
-    rawPath.startsWith("/home/user/") ||
+    rawPath === VFS_HOME ||
+    rawPath.startsWith(`${VFS_HOME}/`) ||
     rawPath === "/media/user" ||
     rawPath.startsWith("/media/user/")
   );
@@ -155,7 +156,7 @@ async function readStaticDirectory(
   dirPath: string,
 ): Promise<StaticDirEntry[] | null> {
   const normalized = dirPath.replace(/\/+$/, "") || "/";
-  if (normalized === "/home/user" || normalized.startsWith("/home/user/")) {
+  if (normalized === VFS_HOME || normalized.startsWith(`${VFS_HOME}/`)) {
     return null;
   }
   const idx = await getStaticDirIndex();

@@ -72,7 +72,7 @@ function getBaseName(path: string): string {
 
 type EditorViewMode = "code" | "preview" | "design";
 
-const EDITOR_STATE_PATH = "/home/user/.local/state/piloti/editor-state.json";
+const EDITOR_STATE_KEY = "editor-state";
 
 interface PersistedFileEditorState {
   unsavedContent?: string;
@@ -87,7 +87,7 @@ type PersistedEditorStateMap = Record<string, PersistedFileEditorState>;
 function readPersistedEditorStateMap(host: TextEditorHost): PersistedEditorStateMap {
   return (
     host.readState<PersistedEditorStateMap>(
-      EDITOR_STATE_PATH,
+      EDITOR_STATE_KEY,
       (val): val is PersistedEditorStateMap =>
         Boolean(val && typeof val === "object" && !Array.isArray(val)),
     ) ?? {}
@@ -599,7 +599,7 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
         viewMode: viewModeRef.current,
         updatedAt: Date.now(),
       };
-      host.writeState(EDITOR_STATE_PATH, map);
+      host.writeState(EDITOR_STATE_KEY, map);
     },
     [host],
   );

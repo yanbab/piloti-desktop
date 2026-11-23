@@ -1,3 +1,4 @@
+import { VFS_HOME } from "@/lib/engine/vfs-home";
 import * as React from "react";
 import { useDisplays } from "@domicile-desktop/react/displays";
 import { useDomicile } from "@domicile-desktop/react/domicile-provider";
@@ -965,10 +966,10 @@ function InspectorModule() {
         );
       case "state": {
         const stateRoots = [
-          { label: "~/.config/piloti", prefix: "/home/user/.config/piloti" },
-          { label: "~/.local/state/piloti", prefix: "/home/user/.local/state/piloti" },
-          { label: "~/.local/share", prefix: "/home/user/.local/share" },
-          { label: "~/.cache/piloti", prefix: "/home/user/.cache/piloti" },
+          { label: "~/.config/piloti", prefix: `${VFS_HOME}/.config/piloti` },
+          { label: "~/.local/state/piloti", prefix: `${VFS_HOME}/.local/state/piloti` },
+          { label: "~/.local/share", prefix: `${VFS_HOME}/.local/share` },
+          { label: "~/.cache/piloti", prefix: `${VFS_HOME}/.cache/piloti` },
         ];
         const allFiles = getVfsSnapshotEntries()
           .filter((entry) => entry.kind === "file")

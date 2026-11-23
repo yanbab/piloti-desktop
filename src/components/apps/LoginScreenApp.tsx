@@ -1,3 +1,4 @@
+import { VFS_HOME } from "@/lib/engine/vfs-home";
 import * as React from "react";
 import { useDomicile } from "@domicile-desktop/react/domicile-provider";
 import {
@@ -68,7 +69,7 @@ interface SavedGreeterState {
   sessionId: string;
 }
 
-const GREETER_STATE_PATH = "/home/user/.config/piloti/login-screen.json";
+const GREETER_STATE_PATH = `${VFS_HOME}/.config/piloti/login-screen.json`;
 
 const DEMO_GREETER_USERS: readonly GreeterUserAccount[] = [
   {

@@ -1,3 +1,4 @@
+import { VFS_HOME } from "@/lib/engine/vfs-home";
 /**
  * "Nice" human-readable file locations, Finder-style:
  *
@@ -84,7 +85,7 @@ export function looksLikeAbsolutePath(text: string): boolean {
  * `homeDir` defaults to the VFS home (`/home/user`); any `/home/<name>` is also
  * treated as home so native (real-user) paths read nicely too.
  */
-export function resolveNicePath(rawPath: string, homeDir = "/home/user"): NicePath {
+export function resolveNicePath(rawPath: string, homeDir = `${VFS_HOME}`): NicePath {
   let path = rawPath.trim();
   if (path.startsWith("file://")) {
     try {

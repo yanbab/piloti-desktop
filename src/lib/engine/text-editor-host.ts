@@ -24,9 +24,9 @@ export interface TextEditorHost {
   renameFile(path: string, newName: string): { path: string; name: string } | null;
   readMetadata(path: string, keys: readonly string[]): Promise<Record<string, string>>;
   writeMetadata(path: string, patch: Record<string, string | number>): void;
-  /** Per-user JSON state (cursor, scroll, unsaved text per file). */
-  readState<T>(path: string, isValid: (v: unknown) => v is T): T | null;
-  writeState(path: string, value: unknown): void;
+  /** Per-user JSON state by key (cursor, scroll, unsaved text per file). */
+  readState<T>(key: string, isValid: (v: unknown) => v is T): T | null;
+  writeState(key: string, value: unknown): void;
   /** Editor preferences (`notepad.ini` [Editor]). */
   readEditorPrefs(): Record<string, string>;
   writeEditorPrefs(values: Record<string, string | number | boolean>): void;

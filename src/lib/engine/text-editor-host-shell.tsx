@@ -16,11 +16,14 @@ import {
   subscribeVfsRenamed,
   subscribeWebVfs,
 } from "@/lib/engine-web/web-vfs";
+import { VFS_HOME } from "@/lib/engine/vfs-home";
 import { emitShellEvent, onShellEvent } from "@/lib/shell/shell-events";
 
 import type { TextEditorHost } from "@/lib/engine/text-editor-host";
 import { TextEditorHostProvider } from "@/lib/engine/text-editor-host";
 import { TextEditorApp, type TextEditorAppProps } from "@/components/apps/TextEditorApp";
+
+const stateFile = (key: string) => `${VFS_HOME}/.local/state/piloti/${key}.json`;
 
 export function createInShellEditorHost(
   domicile: Domicile | undefined,
@@ -29,7 +32,7 @@ export function createInShellEditorHost(
   return {
     nativeFs: !isBrowserRuntime,
     normalizePath: normalizeVfsPath,
-    defaultNewFilePath: (name) => `/home/user/Desktop/${name}`,
+    defaultNewFilePath: (name) => `${VFS_HOME}/Desktop/${name}`,
     peekFile: (path) => getVfsEntry(path),
     watchFile: (path, listener) =>
       subscribeWebVfs(() => listener(), { path, mode: "exact" }),
@@ -41,10 +44,10 @@ export function createInShellEditorHost(
     readMetadata: (path, keys) => readFsMetadata(domicile, false, path, keys),
     writeMetadata: (path, patch) =>
       writeFsMetadata(domicile, isBrowserRuntime, path, patch),
-    readState: (path, isValid) =>
-      readVfsStateJson(path, undefined, isValid),
-    writeState: (path, value) => {
-      writeVfsStateJson(path, value, false);
+    readState: (key, isValid) =>
+      readVfsStateJson(stateFile(key), undefined, isValid),
+    writeState: (key, value) => {
+      writeVfsStateJson(stateFile(key), value, false);
     },
     readEditorPrefs: () => getCachedPilotiAppIni("notepad").Editor ?? {},
     writeEditorPrefs: (values) => {

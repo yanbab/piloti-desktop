@@ -1,3 +1,4 @@
+import { VFS_HOME } from "@/lib/engine/vfs-home";
 import * as React from "react";
 import { useDomicile } from "@domicile-desktop/react/domicile-provider";
 import { usePortalRequests } from "@domicile-desktop/react/portals";
@@ -341,7 +342,7 @@ function FileChooserPortalDialog({
   const domicile = useDomicile();
   const { isBrowserRuntime } = useSettings();
   const body = request.body;
-  const startDir = body.currentFolder || body.home || "/home/user";
+  const startDir = body.currentFolder || body.home || `${VFS_HOME}`;
   const [cwd, setCwd] = React.useState(startDir);
   const [entries, setEntries] = React.useState<
     Array<{ name: string; path: string; isDir: boolean }>
@@ -434,7 +435,7 @@ function FileChooserPortalDialog({
     );
   };
 
-  const homeBase = (body.home || "/home/user").replace(/\/$/, "");
+  const homeBase = (body.home || `${VFS_HOME}`).replace(/\/$/, "");
   const places = [
     { label: _("Home"), path: homeBase },
     { label: _("Desktop"), path: `${homeBase}/Desktop` },

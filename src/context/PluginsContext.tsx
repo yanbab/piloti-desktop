@@ -1,3 +1,4 @@
+import { VFS_HOME } from "@/lib/engine/vfs-home";
 import * as React from "react";
 import { useDomicile } from "@domicile-desktop/react/domicile-provider";
 import {
@@ -306,8 +307,8 @@ export function PluginsProvider({
         storage: {
           get: <T = unknown,>(key: string) => {
             try {
-              const pluginIniFile = `/home/user/.config/piloti/plugins/${pluginId}.ini`;
-              const legacyJsonFile = `/home/user/.config/piloti/plugins/${pluginId}.state.json`;
+              const pluginIniFile = `${VFS_HOME}/.config/piloti/plugins/${pluginId}.ini`;
+              const legacyJsonFile = `${VFS_HOME}/.config/piloti/plugins/${pluginId}.state.json`;
               const rawIni = readVfsStateText(pluginIniFile);
               let entries: Record<string, string> =
                 rawIni !== null
@@ -360,7 +361,7 @@ export function PluginsProvider({
           },
           set: (key, value) => {
             try {
-              const pluginIniFile = `/home/user/.config/piloti/plugins/${pluginId}.ini`;
+              const pluginIniFile = `${VFS_HOME}/.config/piloti/plugins/${pluginId}.ini`;
               const rawIni = readVfsStateText(pluginIniFile);
               const existing =
                 rawIni !== null
@@ -456,11 +457,11 @@ export function PluginsProvider({
               ...(htmlSrcDoc ? { htmlSrcDoc } : {}),
               ...(htmlSrcDocDark ? { htmlSrcDocDark } : {}),
               ...(wp.image
-                ? { imageUrl: `file:///home/user/${wp.image.replace(/^\/+/, "")}` }
+                ? { imageUrl: `file://${VFS_HOME}/${wp.image.replace(/^\/+/, "")}` }
                 : {}),
               ...(wp.darkImage
                 ? {
-                    imageUrlDark: `file:///home/user/${wp.darkImage.replace(/^\/+/, "")}`,
+                    imageUrlDark: `file://${VFS_HOME}/${wp.darkImage.replace(/^\/+/, "")}`,
                   }
                 : {}),
             });

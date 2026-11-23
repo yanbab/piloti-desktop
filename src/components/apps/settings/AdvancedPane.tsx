@@ -1,3 +1,4 @@
+import { VFS_HOME } from "@/lib/engine/vfs-home";
 import * as React from "react";
 import { useDomicile } from "@domicile-desktop/react/domicile-provider";
 import { useWatch } from "@domicile-desktop/react/use-watch";
@@ -521,7 +522,7 @@ export function AdvancedPane() {
                     className="size-7 p-0"
                     onClick={() =>
                       launchApp("nautilus", {
-                        payload: "/home/user/.config/domicile",
+                        payload: `${VFS_HOME}/.config/domicile`,
                         forceNew: true,
                       })
                     }
@@ -676,7 +677,7 @@ export function AdvancedPane() {
                 className="size-7 p-0"
                 onClick={() =>
                   launchApp("nautilus", {
-                    payload: "/home/user/.config/piloti/plugins",
+                    payload: `${VFS_HOME}/.config/piloti/plugins`,
                     forceNew: true,
                   })
                 }
@@ -1009,7 +1010,7 @@ export function AdvancedPane() {
                 variant="secondary"
                 onClick={() => {
                   const current = settings.dockFolders ?? [];
-                  const testFolder = "/home/user/Documents";
+                  const testFolder = `${VFS_HOME}/Documents`;
                   if (!current.includes(testFolder)) {
                     updateSettings({ dockFolders: [...current, testFolder] });
                   }

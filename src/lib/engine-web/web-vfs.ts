@@ -1,4 +1,8 @@
-import { DEFAULT_HOME_DIRS, DEFAULT_HOME_FILES } from "./default-vfs-tree";
+import { VFS_HOME, rehome } from "../engine/vfs-home";
+import {
+  DEFAULT_HOME_DIRS as GENERATED_HOME_DIRS,
+  DEFAULT_HOME_FILES as GENERATED_HOME_FILES,
+} from "./default-vfs-tree";
 
 export interface WebVfsEntry {
   id: string;
@@ -25,19 +29,24 @@ export interface WebVfsEntry {
   updatedAt: number;
 }
 
+const DEFAULT_HOME_DIRS: readonly string[] = GENERATED_HOME_DIRS.map(rehome);
+const DEFAULT_HOME_FILES: Record<string, string> = Object.fromEntries(
+  Object.entries(GENERATED_HOME_FILES).map(([path, content]) => [rehome(path), content]),
+);
+
 export const WEB_VFS_STORAGE_KEY = "piloti.web.vfs.v1";
 export const WEB_VFS_CHANGED_EVENT = "piloti:web-vfs-changed";
 
-export const WEB_VFS_HOME = "/home/user";
-export const WEB_VFS_TEMPLATES = "/home/user/Templates";
-export const WEB_VFS_TRASH = "/home/user/.local/share/Trash/files";
+export const WEB_VFS_HOME = `${VFS_HOME}`;
+export const WEB_VFS_TEMPLATES = `${VFS_HOME}/Templates`;
+export const WEB_VFS_TRASH = `${VFS_HOME}/.local/share/Trash/files`;
 
 export const DEFAULT_ETC_ISSUE = `Piloti Desktop Web VFS (localStorage)
 Type 'help' for shell commands, 'piloti help' for desktop controls, or 'cat ~/Documents/Notes.txt'.
 `;
 
 export const DEFAULT_MIMEAPPS_INI =
-  DEFAULT_HOME_FILES["/home/user/.config/mimeapps.list"] ??
+  DEFAULT_HOME_FILES[`${VFS_HOME}/.config/mimeapps.list`] ??
   `[Default Applications]
 inode/directory=nautilus.desktop
 text/plain=text-editor.desktop
@@ -61,7 +70,7 @@ image/*=image-viewer.desktop;browser.desktop;
 `;
 
 const WELCOME_HTML =
-  DEFAULT_HOME_FILES["/home/user/Desktop/Welcome.html"] ?? "";
+  DEFAULT_HOME_FILES[`${VFS_HOME}/Desktop/Welcome.html`] ?? "";
 
 const DEFAULT_DIRS = Array.from(
   new Set(["/etc", "/home", WEB_VFS_HOME, ...DEFAULT_HOME_DIRS, WEB_VFS_TRASH]),
@@ -69,8 +78,8 @@ const DEFAULT_DIRS = Array.from(
 
 const DEFAULT_LOCAL_DESKTOP_FILES: Record<string, string> = Object.fromEntries(
   Object.entries(DEFAULT_HOME_FILES)
-    .filter(([p]) => p.startsWith("/home/user/.local/share/applications/") && p.endsWith(".desktop"))
-    .map(([p, content]) => [p.slice("/home/user/.local/share/applications/".length), content]),
+    .filter(([p]) => p.startsWith(`${VFS_HOME}/.local/share/applications/`) && p.endsWith(".desktop"))
+    .map(([p, content]) => [p.slice(`${VFS_HOME}/.local/share/applications/`.length), content]),
 );
 
 function basename(path: string): string {
@@ -323,16 +332,16 @@ function loadVfs(): WebVfsEntry[] {
         localStorage.setItem(welcomeFlagKey, "1");
         const hasWelcome = entries.some(
           (e) =>
-            e.path === "/home/user/Desktop/Welcome.html" ||
+            e.path === `${VFS_HOME}/Desktop/Welcome.html` ||
             e.path === `${WEB_VFS_TRASH}/Welcome.html`
         );
         if (!hasWelcome) {
           entries.push({
-            id: "/home/user/Desktop/Welcome.html",
+            id: `${VFS_HOME}/Desktop/Welcome.html`,
             name: "Welcome.html",
             kind: "file",
-            path: "/home/user/Desktop/Welcome.html",
-            parentPath: "/home/user/Desktop",
+            path: `${VFS_HOME}/Desktop/Welcome.html`,
+            parentPath: `${VFS_HOME}/Desktop`,
             content: WELCOME_HTML,
             updatedAt: Date.now(),
           });
@@ -363,23 +372,23 @@ function loadVfs(): WebVfsEntry[] {
         });
         addedDefaults = true;
       }
-      if (!entries.some((e) => e.path === "/home/user/.config/mimeapps.list")) {
-        if (!entries.some((e) => e.path === "/home/user/.config")) {
+      if (!entries.some((e) => e.path === `${VFS_HOME}/.config/mimeapps.list`)) {
+        if (!entries.some((e) => e.path === `${VFS_HOME}/.config`)) {
           entries.push({
-            id: "/home/user/.config",
+            id: `${VFS_HOME}/.config`,
             name: ".config",
             kind: "directory",
-            path: "/home/user/.config",
-            parentPath: "/home/user",
+            path: `${VFS_HOME}/.config`,
+            parentPath: `${VFS_HOME}`,
             updatedAt: now,
           });
         }
         entries.push({
-          id: "/home/user/.config/mimeapps.list",
+          id: `${VFS_HOME}/.config/mimeapps.list`,
           name: "mimeapps.list",
           kind: "file",
-          path: "/home/user/.config/mimeapps.list",
-          parentPath: "/home/user/.config",
+          path: `${VFS_HOME}/.config/mimeapps.list`,
+          parentPath: `${VFS_HOME}/.config`,
           content: DEFAULT_MIMEAPPS_INI,
           updatedAt: now,
         });
@@ -399,14 +408,14 @@ function loadVfs(): WebVfsEntry[] {
         }
       }
       for (const [fileName, content] of Object.entries(DEFAULT_LOCAL_DESKTOP_FILES)) {
-        const fullPath = `/home/user/.local/share/applications/${fileName}`;
+        const fullPath = `${VFS_HOME}/.local/share/applications/${fileName}`;
         if (!entries.some((e) => e.path === fullPath)) {
           entries.push({
             id: fullPath,
             name: fileName,
             kind: "file",
             path: fullPath,
-            parentPath: "/home/user/.local/share/applications",
+            parentPath: `${VFS_HOME}/.local/share/applications`,
             content,
             updatedAt: now,
           });
@@ -415,8 +424,8 @@ function loadVfs(): WebVfsEntry[] {
       }
       for (const [fullPath, content] of Object.entries(DEFAULT_HOME_FILES)) {
         if (
-          (fullPath === "/home/user/.hidden" ||
-            fullPath.startsWith("/home/user/Templates/")) &&
+          (fullPath === `${VFS_HOME}/.hidden` ||
+            fullPath.startsWith(`${VFS_HOME}/Templates/`)) &&
           !entries.some((e) => e.path === fullPath)
         ) {
           entries.push({
@@ -1721,7 +1730,7 @@ export function listVfsRecentEntries(limit = 30): WebVfsEntry[] {
     .filter(
       (e) =>
         e.kind === "file" &&
-        !e.path.startsWith("/home/user/.local/") &&
+        !e.path.startsWith(`${VFS_HOME}/.local/`) &&
         e.updatedAt > 0,
     )
     .sort((a, b) => b.updatedAt - a.updatedAt)

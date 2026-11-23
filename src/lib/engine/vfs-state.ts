@@ -1,3 +1,4 @@
+import { VFS_HOME } from "@/lib/engine/vfs-home";
 import {
   consumeLegacyLocalStorageValue,
   ensureVfsDir,
@@ -11,33 +12,33 @@ import {
 } from "@/lib/engine-web/web-vfs";
 
 export const VFS_STATE_PATHS = {
-  settings: "/home/user/.config/piloti/settings.ini",
-  legacySettingsJson: "/home/user/.config/piloti/settings.json",
-  locale: "/home/user/.config/piloti/locale.ini",
-  legacyLocale: "/home/user/.config/piloti/locale",
-  welcomeShown: "/home/user/.local/state/piloti/welcome-shown.json",
-  legacyWelcomeShown: "/home/user/.local/state/piloti/welcome-shown",
-  windowBounds: "/home/user/.local/state/piloti/window-bounds.json",
-  desktopIcons: "/home/user/.local/state/piloti/desktop-icons.json",
-  notificationsHistory: "/home/user/.local/state/piloti/notifications.json",
-  notificationsReadIds: "/home/user/.local/state/piloti/notifications-read.json",
-  session: "/home/user/.local/state/piloti/session.json",
-  launcher: "/home/user/.local/state/piloti/launcher.json",
-  calculator: "/home/user/.local/state/piloti/calculator.json",
-  settingsPane: "/home/user/.local/state/piloti/settings-pane.json",
-  legacySettingsPaneTxt: "/home/user/.local/state/piloti/settings-pane.txt",
-  devtoolsModule: "/home/user/.local/state/piloti/devtools-module.json",
-  legacyDevtoolsModuleTxt: "/home/user/.local/state/piloti/devtools-module.txt",
-  terminalHistory: "/home/user/.piloti_history",
-  workspaceSnapshots: "/home/user/.cache/piloti/workspace-snapshots.json",
-  consoleLog: "/home/user/.cache/piloti/piloti.log",
-  appStoreMeta: "/home/user/.cache/piloti/app-store-meta.json",
-  appStoreSources: "/home/user/.config/piloti/app-store-sources.json",
-  appPermissions: "/home/user/.config/piloti/app-permissions.json",
-  iconIndexCache: "/home/user/.cache/piloti/icon-index.json",
-  dockIconsCache: "/home/user/.cache/piloti/dock-icons.json",
-  xdgAppsCache: "/home/user/.cache/piloti/xdg-apps.json",
-  cacheDir: "/home/user/.cache/piloti",
+  settings: `${VFS_HOME}/.config/piloti/settings.ini`,
+  legacySettingsJson: `${VFS_HOME}/.config/piloti/settings.json`,
+  locale: `${VFS_HOME}/.config/piloti/locale.ini`,
+  legacyLocale: `${VFS_HOME}/.config/piloti/locale`,
+  welcomeShown: `${VFS_HOME}/.local/state/piloti/welcome-shown.json`,
+  legacyWelcomeShown: `${VFS_HOME}/.local/state/piloti/welcome-shown`,
+  windowBounds: `${VFS_HOME}/.local/state/piloti/window-bounds.json`,
+  desktopIcons: `${VFS_HOME}/.local/state/piloti/desktop-icons.json`,
+  notificationsHistory: `${VFS_HOME}/.local/state/piloti/notifications.json`,
+  notificationsReadIds: `${VFS_HOME}/.local/state/piloti/notifications-read.json`,
+  session: `${VFS_HOME}/.local/state/piloti/session.json`,
+  launcher: `${VFS_HOME}/.local/state/piloti/launcher.json`,
+  calculator: `${VFS_HOME}/.local/state/piloti/calculator.json`,
+  settingsPane: `${VFS_HOME}/.local/state/piloti/settings-pane.json`,
+  legacySettingsPaneTxt: `${VFS_HOME}/.local/state/piloti/settings-pane.txt`,
+  devtoolsModule: `${VFS_HOME}/.local/state/piloti/devtools-module.json`,
+  legacyDevtoolsModuleTxt: `${VFS_HOME}/.local/state/piloti/devtools-module.txt`,
+  terminalHistory: `${VFS_HOME}/.piloti_history`,
+  workspaceSnapshots: `${VFS_HOME}/.cache/piloti/workspace-snapshots.json`,
+  consoleLog: `${VFS_HOME}/.cache/piloti/piloti.log`,
+  appStoreMeta: `${VFS_HOME}/.cache/piloti/app-store-meta.json`,
+  appStoreSources: `${VFS_HOME}/.config/piloti/app-store-sources.json`,
+  appPermissions: `${VFS_HOME}/.config/piloti/app-permissions.json`,
+  iconIndexCache: `${VFS_HOME}/.cache/piloti/icon-index.json`,
+  dockIconsCache: `${VFS_HOME}/.cache/piloti/dock-icons.json`,
+  xdgAppsCache: `${VFS_HOME}/.cache/piloti/xdg-apps.json`,
+  cacheDir: `${VFS_HOME}/.cache/piloti`,
 } as const;
 
 export interface VfsHostSync {
@@ -224,8 +225,8 @@ export function migrateLegacyStateFilesToJson(): void {
   }
 }
 
-const LEGACY_CONFIG_DIR = "/home/user/.config/Piloti";
-const CONFIG_DIR = "/home/user/.config/piloti";
+const LEGACY_CONFIG_DIR = `${VFS_HOME}/.config/Piloti`;
+const CONFIG_DIR = `${VFS_HOME}/.config/piloti`;
 
 /**
  * Moves any files remaining in `~/.config/Piloti` (capital P) to

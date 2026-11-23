@@ -60,7 +60,7 @@ if (root) {
     );
   } else {
     void Promise.all([
-      import("./piloti-desktop"),
+      import("./piloti-desktop-app"),
       import("./lib/engine-web"),
     ]).then(([{ Shell }, { createBrowserDomicile }]) => {
       const domicile = createBrowserDomicile();

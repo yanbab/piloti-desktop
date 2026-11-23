@@ -2,11 +2,8 @@ type Files = Omit<import("@domicile-desktop/sdk/desktop/files").Files, "search">
 import { parseIniText, serializeIniText } from "@/lib/config/ini";
 import type { TextEditorHost } from "@/lib/engine/text-editor-host";
 
-/** The shell's VFS root `/home/user/` is the real home folder; files take home-relative paths. */
-const toReal = (p: string) => {
-  const n = p.replace(/\/+/g, "/");
-  return n.startsWith("/home/user/") ? n.slice("/home/user/".length) : n;
-};
+/** The shell's VFS now uses real paths; `domicile.files` takes absolute or home-relative ones. */
+const toReal = (p: string) => p.replace(/\/+/g, "/");
 
 const SETTINGS_INI = ".config/piloti/settings.ini";
 const NOTEPAD_INI = ".config/piloti/notepad.ini";
@@ -36,7 +33,7 @@ export async function createDomicileEditorHost(files: Files, initialPath: string
   const stateRaw = await readText(files, editorStatePath);
   if (stateRaw) {
     try {
-      stateCache.set(editorStatePath, JSON.parse(stateRaw));
+      stateCache.set("editor-state", JSON.parse(stateRaw));
     } catch {
       /* ignore corrupt state */
     }
@@ -54,7 +51,7 @@ export async function createDomicileEditorHost(files: Files, initialPath: string
   let stateTimer: number | null = null;
   const flushState = () => {
     stateTimer = null;
-    const value = stateCache.get(editorStatePath);
+    const value = stateCache.get("editor-state");
     if (value === undefined) return;
     void files.createDir(".local/state/piloti").catch(() => {});
     void files.write(editorStatePath, JSON.stringify(value)).catch(() => {});
@@ -98,11 +95,11 @@ export async function createDomicileEditorHost(files: Files, initialPath: string
     readMetadata: async () => ({}),
     writeMetadata: () => {},
     readState: <T,>(path: string, isValid: (v: unknown) => v is T) => {
-      const v = stateCache.get(toReal(path));
+      const v = stateCache.get(`${path}`);
       return isValid(v) ? v : null;
     },
     writeState: (path, value) => {
-      stateCache.set(toReal(path), value);
+      stateCache.set(path, value);
       if (stateTimer === null) stateTimer = window.setTimeout(flushState, 400);
     },
     readEditorPrefs: () => notepad.Editor ?? {},
