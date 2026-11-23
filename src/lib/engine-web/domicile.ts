@@ -2,6 +2,7 @@ import { desktop, type Domicile } from "@domicile-desktop/sdk/desktop/desktop";
 import type { DomicileHost, DomicileNotification } from "@domicile-desktop/sdk/domicile-host";
 import { FakeDomicileHost } from "@domicile-desktop/sdk/fake-host";
 import { DEFAULT_STATIC_DIR_INDEX } from "./default-vfs-tree";
+import { installPortalSimulator } from "./portal-simulator";
 import { PILOTI_VIRTUAL_ICONS } from "./piloti-virtual-icons";
 import {
   ensureVfsDir,
@@ -256,8 +257,16 @@ export function createBrowserDomicile(hostFallbackFiles?: Domicile["files"]): Do
   };
 
   // Wrap fake.host so interactive calls update state and fire Domicile events
+  const portalSimulator = installPortalSimulator(fake);
+
   const interactiveHost = new Proxy(fake.host, {
     get(target, prop, receiver) {
+      if (prop === "answerPortalRequest") {
+        return (id: number, answer: string) => {
+          fake.calls.push(["answerPortalRequest", id, answer]);
+          if (portalSimulator.owns(id)) portalSimulator.answer(id, answer);
+        };
+      }
       if (prop === "focusApp") {
         return (appId: string) => {
           fake.calls.push(["focusApp", appId]);

@@ -1,148 +1,219 @@
 "use client"
 
 import * as React from "react"
-import {
-  CheckIcon,
-  ChevronDownIcon,
-  ChevronsUpDownIcon,
-  ChevronUpIcon,
-} from "lucide-react"
-import { Select as SelectPrimitive } from "@base-ui/react/select"
+import { CheckIcon, ChevronsUpDownIcon } from "lucide-react"
+import { Menu as MenuPrimitive } from "@base-ui/react/menu"
 
 import { cn } from "@/lib/core/utils"
 import {
   MENU_CHECK_ITEM_CLASS,
   MENU_LABEL_CLASS,
+  MENU_POPUP_CLASS,
   MENU_SEPARATOR_CLASS,
 } from "./menu-styles"
 
-// Pass `items` (value → label, or a list of { value, label }) so that
-// SelectValue shows the label of the chosen item rather than its value.
-function Select<Value, Multiple extends boolean | undefined = false>({
-  modal = false,
-  ...props
-}: SelectPrimitive.Root.Props<Value, Multiple>) {
-  return <SelectPrimitive.Root modal={modal} {...props} />
+/**
+ * Popup menu button: a text button with up/down chevrons that opens one of
+ * our regular menus below it, with a check on the chosen item. Built on the
+ * same Base UI Menu as DropdownMenu (not a native-select style overlay).
+ *
+ * Pass `items` (value → label, or a list of { value, label }) so that
+ * SelectValue can show the label of the chosen item.
+ */
+
+type SelectItems =
+  | Record<string, React.ReactNode>
+  | ReadonlyArray<{ value: unknown; label: React.ReactNode }>
+
+type SelectContextValue = {
+  value: unknown
+  setValue: (value: unknown) => void
+  items?: SelectItems
+  disabled: boolean
 }
 
-function SelectGroup({ ...props }: SelectPrimitive.Group.Props) {
-  return <SelectPrimitive.Group data-slot="select-group" {...props} />
+const SelectContext = React.createContext<SelectContextValue | null>(null)
+
+function useSelectContext(part: string) {
+  const ctx = React.useContext(SelectContext)
+  if (!ctx) throw new Error(`<${part}> must be used inside <Select>`)
+  return ctx
 }
 
-function SelectValue({ className, ...props }: SelectPrimitive.Value.Props) {
+function labelFor(items: SelectItems | undefined, value: unknown) {
+  if (!items) return undefined
+  if (Array.isArray(items)) {
+    return items.find((item) => Object.is(item.value, value))?.label
+  }
+  return (items as Record<string, React.ReactNode>)[String(value)]
+}
+
+function Select<Value>({
+  value: valueProp,
+  defaultValue,
+  onValueChange,
+  items,
+  disabled = false,
+  open,
+  onOpenChange,
+  children,
+}: {
+  value?: Value
+  defaultValue?: Value
+  onValueChange?: (value: Value) => void
+  items?: SelectItems
+  disabled?: boolean
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+  children?: React.ReactNode
+  /** Accepted for API compatibility; menus are never modal. */
+  modal?: boolean
+}) {
+  const [uncontrolled, setUncontrolled] = React.useState(defaultValue)
+  const value = valueProp !== undefined ? valueProp : uncontrolled
+
+  const ctx = React.useMemo<SelectContextValue>(
+    () => ({
+      value,
+      items,
+      disabled,
+      setValue: (next) => {
+        if (valueProp === undefined) setUncontrolled(next as Value)
+        onValueChange?.(next as Value)
+      },
+    }),
+    [value, items, disabled, valueProp, onValueChange]
+  )
+
   return (
-    <SelectPrimitive.Value
-      data-slot="select-value"
-      className={cn("text-left", className)}
-      {...props}
-    />
+    <SelectContext.Provider value={ctx}>
+      <MenuPrimitive.Root
+        modal={false}
+        disabled={disabled}
+        open={open}
+        onOpenChange={onOpenChange ? (next) => onOpenChange(next) : undefined}
+      >
+        {children}
+      </MenuPrimitive.Root>
+    </SelectContext.Provider>
   )
 }
 
-// A pop-up select button. `default` is a bordered button with up/down
-// chevrons; `borderless` is the compact System Settings style.
+function SelectGroup({ ...props }: MenuPrimitive.Group.Props) {
+  return <MenuPrimitive.Group data-slot="select-group" {...props} />
+}
+
+function SelectValue({
+  className,
+  placeholder,
+  children,
+}: {
+  className?: string
+  placeholder?: React.ReactNode
+  children?: React.ReactNode
+}) {
+  const { value, items } = useSelectContext("SelectValue")
+  const label = children ?? labelFor(items, value) ?? (value != null ? String(value) : null)
+  return (
+    <span
+      data-slot="select-value"
+      data-placeholder={label == null ? "" : undefined}
+      className={cn("min-w-0 truncate text-left", className)}
+    >
+      {label ?? placeholder}
+    </span>
+  )
+}
+
+// Same look as the font pickers in Settings: plain text, up/down chevrons,
+// a soft hover fill. `size` only changes the height.
 function SelectTrigger({
   className,
   size = "default",
   variant = "default",
   children,
   ...props
-}: SelectPrimitive.Trigger.Props & {
+}: MenuPrimitive.Trigger.Props & {
   size?: "sm" | "default" | "lg"
+  /** Kept for API compatibility; both variants share the same look. */
   variant?: "default" | "borderless"
 }) {
   return (
-    <SelectPrimitive.Trigger
+    <MenuPrimitive.Trigger
       data-slot="select-trigger"
       data-size={size}
       data-variant={variant}
       className={cn(
-        "group/select-trigger flex w-fit cursor-default items-center justify-between font-medium whitespace-nowrap text-adw-label outline-none select-none focus-visible:adw-focus-ring data-disabled:cursor-not-allowed data-disabled:text-adw-label-tertiary aria-invalid:adw-focus-ring data-[placeholder]:text-adw-label-secondary *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-1.5 [&_svg]:pointer-events-none [&_svg]:shrink-0",
-        variant === "default" &&
-          "gap-0 bg-adw-control active:bg-adw-control-pressed data-disabled:bg-adw-control-disabled data-[size=default]:h-6 data-[size=default]:rounded-[6px] data-[size=default]:pl-3 data-[size=default]:text-adw-body data-[size=lg]:h-7 data-[size=lg]:rounded-full data-[size=lg]:pl-3.5 data-[size=lg]:text-adw-body data-[size=sm]:h-5 data-[size=sm]:rounded-[5px] data-[size=sm]:pl-2.5 data-[size=sm]:text-adw-subheadline",
-        variant === "borderless" &&
-          "h-5 gap-3 rounded-full bg-transparent pl-1 text-adw-body hover:*:data-[slot=select-chip]:bg-adw-control-pressed",
+        "inline-flex max-w-full min-w-0 cursor-default items-center justify-between gap-1.5 rounded-lg px-2.5 text-[13px] font-medium whitespace-nowrap text-adw-label outline-none select-none transition-colors hover:bg-black/6 focus-visible:adw-focus-ring data-popup-open:bg-black/8 data-disabled:cursor-not-allowed data-disabled:text-adw-label-tertiary data-disabled:hover:bg-transparent dark:hover:bg-white/10 dark:data-popup-open:bg-white/12",
+        size === "sm" && "h-6 px-2 text-adw-subheadline",
+        size === "default" && "h-7",
+        size === "lg" && "h-8",
         className
       )}
       {...props}
     >
       {children}
-      <SelectPrimitive.Icon
-        render={
-          variant === "borderless" ? (
-          <span
-            data-slot="select-chip"
-            className="flex size-5 items-center justify-center rounded-full bg-adw-control text-adw-label"
-          >
-            <ChevronsUpDownIcon className="size-3" strokeWidth={2.25} />
-          </span>
-          ) : (
-          <span
-            data-slot="select-chevrons"
-            className="flex aspect-square h-full items-center justify-center"
-          >
-            <ChevronsUpDownIcon
-              className="size-3 group-data-[size=sm]/select-trigger:size-2.5"
-              strokeWidth={2.5}
-            />
-          </span>
-          )
-        }
+      <ChevronsUpDownIcon
+        aria-hidden
+        className="size-3.5 shrink-0 text-adw-label-secondary"
       />
-    </SelectPrimitive.Trigger>
+    </MenuPrimitive.Trigger>
   )
 }
 
-// The popup menu for a select trigger; opens aligned over the trigger by default
-// (set alignItemWithTrigger={false} to drop it below instead).
+// The menu for a select trigger; drops below the trigger like other menus.
 function SelectContent({
   className,
   children,
   side = "bottom",
-  sideOffset = 4,
-  align = "center",
+  sideOffset = 6,
+  align = "end",
   alignOffset = 0,
-  alignItemWithTrigger = true,
+  alignItemWithTrigger: _alignItemWithTrigger,
   ...props
-}: SelectPrimitive.Popup.Props &
+}: MenuPrimitive.Popup.Props &
   Pick<
-    SelectPrimitive.Positioner.Props,
-    "align" | "alignOffset" | "side" | "sideOffset" | "alignItemWithTrigger"
-  >) {
+    MenuPrimitive.Positioner.Props,
+    "align" | "alignOffset" | "side" | "sideOffset"
+  > & {
+    /** Accepted for API compatibility; the menu always drops below. */
+    alignItemWithTrigger?: boolean
+  }) {
+  const { value, setValue } = useSelectContext("SelectContent")
   return (
-    <SelectPrimitive.Portal>
-      <SelectPrimitive.Positioner
+    <MenuPrimitive.Portal>
+      <MenuPrimitive.Positioner
         side={side}
         sideOffset={sideOffset}
         align={align}
         alignOffset={alignOffset}
-        alignItemWithTrigger={alignItemWithTrigger}
         // Above portal dialogs (z-800) so selects work inside them; below the lock screen.
-        className="isolate z-[850]"
+        className="isolate z-[850] outline-none"
       >
-        <SelectPrimitive.Popup
+        <MenuPrimitive.Popup
           data-slot="select-content"
           className={cn(
-            "relative z-50 max-h-(--available-height) min-w-[max(8rem,var(--anchor-width))] origin-(--transform-origin) overflow-x-hidden overflow-y-auto rounded-adw-menu text-adw-label shadow-adw-menu adw-material-menu outline-none data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0",
+            MENU_POPUP_CLASS,
+            "min-w-[max(10rem,var(--anchor-width))]",
             className
           )}
           {...props}
         >
-          <SelectScrollUpButton />
-          <SelectPrimitive.List className="p-[6px]">{children}</SelectPrimitive.List>
-          <SelectScrollDownButton />
-        </SelectPrimitive.Popup>
-      </SelectPrimitive.Positioner>
-    </SelectPrimitive.Portal>
+          <MenuPrimitive.RadioGroup
+            value={value}
+            onValueChange={(next) => setValue(next)}
+          >
+            {children}
+          </MenuPrimitive.RadioGroup>
+        </MenuPrimitive.Popup>
+      </MenuPrimitive.Positioner>
+    </MenuPrimitive.Portal>
   )
 }
 
-function SelectLabel({
-  className,
-  ...props
-}: SelectPrimitive.GroupLabel.Props) {
+function SelectLabel({ className, ...props }: React.ComponentProps<"div">) {
   return (
-    <SelectPrimitive.GroupLabel
+    <div
       data-slot="select-label"
       className={cn(MENU_LABEL_CLASS, className)}
       {...props}
@@ -153,37 +224,35 @@ function SelectLabel({
 function SelectItem({
   className,
   children,
+  closeOnClick = true,
   ...props
-}: SelectPrimitive.Item.Props) {
+}: MenuPrimitive.RadioItem.Props) {
   return (
-    <SelectPrimitive.Item
+    <MenuPrimitive.RadioItem
       data-slot="select-item"
-      className={cn(
-        MENU_CHECK_ITEM_CLASS,
-        "w-full *:[span]:last:flex *:[span]:last:items-center *:[span]:last:gap-1.5",
-        className
-      )}
+      closeOnClick={closeOnClick}
+      className={cn(MENU_CHECK_ITEM_CLASS, "w-full", className)}
       {...props}
     >
       <span
         data-slot="select-item-indicator"
-        className="absolute left-[10px] flex size-3.5 items-center justify-center"
+        className="pointer-events-none absolute left-[10px] flex size-3.5 items-center justify-center"
       >
-        <SelectPrimitive.ItemIndicator>
+        <MenuPrimitive.RadioItemIndicator>
           <CheckIcon className="size-3.5" strokeWidth={2.5} />
-        </SelectPrimitive.ItemIndicator>
+        </MenuPrimitive.RadioItemIndicator>
       </span>
-      <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>
-    </SelectPrimitive.Item>
+      {children}
+    </MenuPrimitive.RadioItem>
   )
 }
 
 function SelectSeparator({
   className,
   ...props
-}: SelectPrimitive.Separator.Props) {
+}: MenuPrimitive.Separator.Props) {
   return (
-    <SelectPrimitive.Separator
+    <MenuPrimitive.Separator
       data-slot="select-separator"
       className={cn("pointer-events-none", MENU_SEPARATOR_CLASS, className)}
       {...props}
@@ -191,40 +260,13 @@ function SelectSeparator({
   )
 }
 
-function SelectScrollUpButton({
-  className,
-  ...props
-}: SelectPrimitive.ScrollUpArrow.Props) {
-  return (
-    <SelectPrimitive.ScrollUpArrow
-      data-slot="select-scroll-up-button"
-      className={cn(
-        "absolute inset-x-0 z-10 flex h-4 cursor-default items-center justify-center data-[direction=up]:top-0 data-[direction=down]:bottom-0",
-        className
-      )}
-      {...props}
-    >
-      <ChevronUpIcon className="size-3" />
-    </SelectPrimitive.ScrollUpArrow>
-  )
+// Menus scroll natively; these stay exported for API compatibility.
+function SelectScrollUpButton() {
+  return null
 }
 
-function SelectScrollDownButton({
-  className,
-  ...props
-}: SelectPrimitive.ScrollDownArrow.Props) {
-  return (
-    <SelectPrimitive.ScrollDownArrow
-      data-slot="select-scroll-down-button"
-      className={cn(
-        "absolute inset-x-0 z-10 flex h-4 cursor-default items-center justify-center data-[direction=up]:top-0 data-[direction=down]:bottom-0",
-        className
-      )}
-      {...props}
-    >
-      <ChevronDownIcon className="size-3" />
-    </SelectPrimitive.ScrollDownArrow>
-  )
+function SelectScrollDownButton() {
+  return null
 }
 
 export {
