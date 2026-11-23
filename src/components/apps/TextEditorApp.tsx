@@ -1,6 +1,4 @@
 import * as React from "react";
-import { emitShellEvent, onShellEvent } from "@/lib/shell/shell-events";
-import { useDomicile } from "@domicile-desktop/react/domicile-provider";
 import {
   defaultKeymap,
   history,
@@ -51,24 +49,10 @@ import {
 import { UnsavedChangesDialog } from "@/components/ui/unsaved-changes-dialog";
 import { WindowControls, WindowTitlebar } from "@/components/ui/window";
 import { publishWindowMenuState, useIsolatedAppBridge } from "@/lib/engine/app-bridge";
-import { readFsMetadata, writeFsMetadata } from "@/lib/engine/fs-bridge";
-import { readVfsStateJson, writeVfsStateJson } from "@/lib/engine/vfs-state";
-import { isBrowserDevRuntime } from "@/context/SettingsContext";
+import { useTextEditorHost, type TextEditorHost } from "@/lib/engine/text-editor-host";
 import { _ } from "@/lib/core/i18n";
 import { parseIniText } from "@/lib/config/ini";
-import {
-  getCachedPilotiAppIni,
-  shouldConfirmUnsavedOnClose,
-  writePilotiAppIni,
-} from "@/lib/config/piloti-ini";
 import { cn } from "@/lib/core/utils";
-import {
-  getVfsEntry,
-  normalizeVfsPath,
-  renameVfsEntry,
-  subscribeWebVfs,
-  subscribeVfsRenamed,
-} from "@/lib/engine-web/web-vfs";
 
 interface TextEditorAppProps {
   initialPath?: string;
@@ -77,7 +61,7 @@ interface TextEditorAppProps {
 }
 
 function getBaseName(path: string): string {
-  const norm = normalizeVfsPath(path);
+  const norm = path.replace(/\/+/g, "/");
   const idx = norm.lastIndexOf("/");
   return idx >= 0 ? norm.slice(idx + 1) : norm;
 }
@@ -96,11 +80,10 @@ interface PersistedFileEditorState {
 
 type PersistedEditorStateMap = Record<string, PersistedFileEditorState>;
 
-function readPersistedEditorStateMap(): PersistedEditorStateMap {
+function readPersistedEditorStateMap(host: TextEditorHost): PersistedEditorStateMap {
   return (
-    readVfsStateJson<PersistedEditorStateMap>(
+    host.readState<PersistedEditorStateMap>(
       EDITOR_STATE_PATH,
-      undefined,
       (val): val is PersistedEditorStateMap =>
         Boolean(val && typeof val === "object" && !Array.isArray(val)),
     ) ?? {}
@@ -298,8 +281,7 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
   windowId = "",
   isCsd: propIsCsd = true,
 }) => {
-  const domicile = useDomicile();
-  const isBrowserRuntime = isBrowserDevRuntime();
+  const host = useTextEditorHost();
   const previewIframeRef = React.useRef<HTMLIFrameElement | null>(null);
   const designIframeRef = React.useRef<HTMLIFrameElement | null>(null);
   const viewModeRef = React.useRef<EditorViewMode>("code");
@@ -335,7 +317,7 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
     } else if (actionId.startsWith("piloti:open-path:")) {
       const droppedPath = actionId.slice("piloti:open-path:".length).trim();
       if (droppedPath) {
-        setFilePath(normalizeVfsPath(droppedPath));
+        setFilePath(host.normalizePath(droppedPath));
       }
     }
   }, [handlePrint]);
@@ -345,14 +327,14 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
       if (detail?.windowId && windowId && detail.windowId !== windowId) return;
       handlePrint();
     };
-    return onShellEvent("piloti:print-focused", onPrintFocused);
+    return host.onPrintFocused(onPrintFocused);
   }, [handlePrint, windowId]);
   const bridge = useIsolatedAppBridge(windowId, propIsCsd, handleMenuAction);
   const resolvedPath = React.useMemo(() => {
-    if (initialPath) return normalizeVfsPath(initialPath);
+    if (initialPath) return host.normalizePath(initialPath);
     if (typeof window !== "undefined") {
       const p = new URLSearchParams(window.location.search).get("path");
-      if (p) return normalizeVfsPath(p);
+      if (p) return host.normalizePath(p);
     }
     return null;
   }, [initialPath]);
@@ -360,12 +342,12 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
   const [filePath, setFilePath] = React.useState<string | null>(resolvedPath);
   const [content, setContent] = React.useState<string>(() => {
     if (!resolvedPath) return "";
-    const persisted = readPersistedEditorStateMap()[resolvedPath];
+    const persisted = readPersistedEditorStateMap(host)[resolvedPath];
     if (persisted?.unsavedContent !== undefined) {
       return persisted.unsavedContent;
     }
     if (typeof window !== "undefined" && window.parent === window) {
-      const entry = getVfsEntry(resolvedPath);
+      const entry = host.peekFile(resolvedPath);
       if (entry?.kind === "file") return entry.content ?? "";
     }
     return "";
@@ -373,7 +355,7 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
   const [savedContent, setSavedContent] = React.useState<string>(() => {
     if (!resolvedPath) return "";
     if (typeof window !== "undefined" && window.parent === window) {
-      const entry = getVfsEntry(resolvedPath);
+      const entry = host.peekFile(resolvedPath);
       if (entry?.kind === "file") return entry.content ?? "";
     }
     return "";
@@ -396,8 +378,8 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
 
   // Editor preferences (only syntax highlighting enabled by default; persisted to .config/piloti/notepad.ini)
   const initialEditorPrefs = React.useMemo(
-    () => getCachedPilotiAppIni("notepad").Editor ?? {},
-    []
+    () => host.readEditorPrefs(),
+    [host]
   );
   const [showLineNumbers, setShowLineNumbers] = React.useState(
     () => initialEditorPrefs.lineNumbers === "true"
@@ -418,7 +400,7 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
   const showCodeFolding = initialEditorPrefs.codeFolding !== "false";
 
   React.useEffect(() => {
-    void writePilotiAppIni(null, "notepad", "Editor", {
+    host.writeEditorPrefs({
       lineNumbers: showLineNumbers,
       syntaxHighlight: enableHighlight,
       wordWrap,
@@ -480,8 +462,8 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
 
   React.useEffect(() => {
     if (!filePath) return;
-    return subscribeVfsRenamed(({ oldPath, newPath }) => {
-      if (normalizeVfsPath(filePath) === normalizeVfsPath(oldPath)) {
+    return host.onRenamed(({ oldPath, newPath }) => {
+      if (host.normalizePath(filePath) === host.normalizePath(oldPath)) {
         setFilePath(newPath);
         bridge.setTitle(getBaseName(newPath));
       }
@@ -491,7 +473,7 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
   const applyTitleRename = React.useCallback(
     (nextName: string) => {
       if (!filePath) return;
-      const renamed = renameVfsEntry(filePath, nextName);
+      const renamed = host.renameFile(filePath, nextName);
       if (renamed) {
         setFilePath(renamed.path);
         bridge.setTitle(renamed.name);
@@ -580,23 +562,23 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
       options?: { clearUnsaved?: boolean; view?: EditorView | null },
     ) => {
       if (!targetPath) return;
-      const normPath = normalizeVfsPath(targetPath);
+      const normPath = host.normalizePath(targetPath);
       const activeView = options?.view ?? viewRef.current;
       const cursor = activeView
         ? activeView.state.selection.main.head
-        : (readPersistedEditorStateMap()[normPath]?.cursor ?? 0);
+        : (readPersistedEditorStateMap(host)[normPath]?.cursor ?? 0);
       const scrollTop = activeView
         ? Math.round(activeView.scrollDOM.scrollTop)
-        : (readPersistedEditorStateMap()[normPath]?.scrollTop ?? 0);
+        : (readPersistedEditorStateMap(host)[normPath]?.scrollTop ?? 0);
 
       if (activeView) {
-        writeFsMetadata(domicile, isBrowserRuntime, normPath, {
+        host.writeMetadata(normPath, {
           "metadata::piloti-cursor": cursor,
           "metadata::piloti-scroll": scrollTop,
         });
       }
 
-      const map = readPersistedEditorStateMap();
+      const map = readPersistedEditorStateMap(host);
       const currentText = contentRef.current;
       const dirty =
         !options?.clearUnsaved && currentText !== savedContentRef.current;
@@ -607,9 +589,9 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
         viewMode: viewModeRef.current,
         updatedAt: Date.now(),
       };
-      writeVfsStateJson(EDITOR_STATE_PATH, map, false);
+      host.writeState(EDITOR_STATE_PATH, map);
     },
-    [domicile, isBrowserRuntime],
+    [host],
   );
 
   const schedulePersistEditorState = React.useCallback(
@@ -658,9 +640,9 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
         return;
       }
 
-      const normPath = normalizeVfsPath(targetPath);
-      const persisted = readPersistedEditorStateMap()[normPath];
-      const cachedMeta = getVfsEntry(normPath)?.metadata;
+      const normPath = host.normalizePath(targetPath);
+      const persisted = readPersistedEditorStateMap(host)[normPath];
+      const cachedMeta = host.peekFile(normPath)?.metadata;
       const cachedCursor =
         persisted?.cursor ??
         (Number(cachedMeta?.["metadata::piloti-cursor"] ?? 0) || 0);
@@ -669,8 +651,8 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
         (Number(cachedMeta?.["metadata::piloti-scroll"] ?? 0) || 0);
       applyPosition(cachedCursor, cachedScroll);
 
-      if (!isBrowserRuntime && persisted === undefined) {
-        void readFsMetadata(domicile, false, normPath, [
+      if (host.nativeFs && persisted === undefined) {
+        void host.readMetadata(normPath, [
           "metadata::piloti-cursor",
           "metadata::piloti-scroll",
         ]).then((meta) => {
@@ -682,7 +664,7 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
         });
       }
     },
-    [domicile, isBrowserRuntime],
+    [host],
   );
 
   const saveEditorViewState = React.useCallback(
@@ -701,8 +683,8 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
       void bridge.fs.readText(filePath).then((next) => {
         if (cancelled || next === null) return;
         if (!force && isDirtyRef.current) return;
-        const normPath = normalizeVfsPath(filePath);
-        const persisted = force ? readPersistedEditorStateMap()[normPath] : undefined;
+        const normPath = host.normalizePath(filePath);
+        const persisted = force ? readPersistedEditorStateMap(host)[normPath] : undefined;
         const restoredText =
           persisted?.unsavedContent !== undefined && persisted.unsavedContent !== next
             ? persisted.unsavedContent
@@ -730,12 +712,9 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
     syncFromDisk(true);
     // Only this file: the editor's own state writes (cursor, scroll) must not
     // trigger a re-read of the document.
-    const unsub = subscribeWebVfs(
-      () => {
-        syncFromDisk(false);
-      },
-      { path: filePath, mode: "exact" },
-    );
+    const unsub = host.watchFile(filePath, () => {
+      syncFromDisk(false);
+    });
     return () => {
       cancelled = true;
       unsub();
@@ -766,14 +745,14 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
     }
     persistEditorStateNow(filePathRef.current);
     if (typeof window !== "undefined" && window.parent === window) {
-      emitShellEvent("piloti:request-animated-close", { windowId: windowId });
+      host.requestAnimatedClose(windowId);
     } else {
       bridge.closeWindow();
     }
   }, [bridge, persistEditorStateNow, windowId]);
 
   const requestClose = React.useCallback(() => {
-    if (isDirtyRef.current && !forceCloseRef.current && shouldConfirmUnsavedOnClose()) {
+    if (isDirtyRef.current && !forceCloseRef.current && host.confirmUnsavedOnClose()) {
       setConfirmCloseOpen(true);
       return;
     }
@@ -784,10 +763,10 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
     if (!windowId) return;
     const onBeforeClose = (
       detail: { windowId: string },
-      e: CustomEvent<{ windowId: string }>,
+      e: { preventDefault: () => void },
     ) => {
       if (detail?.windowId !== windowId) return;
-      if (isDirtyRef.current && !forceCloseRef.current && shouldConfirmUnsavedOnClose()) {
+      if (isDirtyRef.current && !forceCloseRef.current && host.confirmUnsavedOnClose()) {
         e.preventDefault();
         setConfirmCloseOpen(true);
         return;
@@ -795,7 +774,7 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
       // Spatial: unsaved text is kept in editor-state.json and restored on reopen.
       persistEditorStateNow(filePathRef.current);
     };
-    return onShellEvent("piloti:before-close-window", onBeforeClose);
+    return host.onBeforeClose(onBeforeClose);
   }, [persistEditorStateNow, windowId]);
 
   const persistText = React.useCallback(
@@ -870,9 +849,9 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
       viewRef.current = null;
       return;
     }
-    const host = editorHostRef.current;
+    const mountEl = editorHostRef.current;
     const compartments = compartmentsRef.current;
-    if (!host || !compartments) return;
+    if (!mountEl || !compartments) return;
 
     const prefExts = buildPrefExtensions(editorPrefsRef.current);
     const extensions: Extension[] = [
@@ -905,9 +884,9 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
       extensions,
     });
 
-    const view = new EditorView({ state, parent: host });
+    const view = new EditorView({ state, parent: mountEl });
     viewRef.current = view;
-    if (!filePath || contentRef.current.length > 0 || getVfsEntry(filePath)?.content !== undefined) {
+    if (!filePath || contentRef.current.length > 0 || host.peekFile(filePath)?.content !== undefined) {
       restoredFilePathRef.current = filePath;
       restoreEditorViewState(view, filePath);
     } else {
