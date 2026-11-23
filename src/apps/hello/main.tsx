@@ -11,6 +11,10 @@ const Hello = () => {
   const [lines, setLines] = useState<string[]>([]);
 
   useEffect(() => {
+    document.title = "App Module Test";
+  }, []);
+
+  useEffect(() => {
     const out: Record<string, unknown> = {
       origin: location.origin,
       href: location.href,

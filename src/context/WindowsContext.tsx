@@ -1049,15 +1049,20 @@ function pruneBrowserRecord(
           hostTitle: bw.title,
           installedApps: settings.installedWebApps,
         });
+      // Domicile app modules (`domicile open --app <entry.js>`) are our own
+      // isolated apps: take title and icon from the window / desktop entry.
+      const isAppModule = Boolean(bw.isApp && bw.url.startsWith("domicile://app-"));
       return [{
         id: `browser:${bw.id}`,
         appId: bw.appId || webAppMatch?.id || `webview:${bw.id}`,
-        title: resolvedTitle,
+        title: isAppModule ? bw.title || bw.appId || resolvedTitle : resolvedTitle,
         iconName: "globe",
-        iconUrl:
-          browserFavicons[bw.id] ||
-          webAppMatch?.iconUrl ||
-          getWebAppFaviconUrl(bw.url),
+        iconUrl: isAppModule
+          ? (bw.appId ? getAppIconUrl(bw.appId) : undefined) ||
+            browserFavicons[bw.id]
+          : browserFavicons[bw.id] ||
+            webAppMatch?.iconUrl ||
+            getWebAppFaviconUrl(bw.url),
         gradient: "from-cyan-400 via-blue-500 to-indigo-600",
         browserWindowId: bw.id,
         browserUrl: bw.url,

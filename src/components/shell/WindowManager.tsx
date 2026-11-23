@@ -249,6 +249,56 @@ function dismissOpenPopups() {
   );
 }
 
+/** A Domicile app module window (`domicile open --app <entry.js>`). */
+function isAppModuleWindow(win: DesktopWindowInstance) {
+  return Boolean(win.browserIsApp && win.browserUrl?.startsWith("domicile://app-"));
+}
+
+/**
+ * Our own frame around an isolated app module: standard titlebar (controls,
+ * window menu, title), no address bar; the module's page fills the rest.
+ */
+function AppModuleSurface({
+  win,
+  isCsd,
+}: {
+  win: DesktopWindowInstance;
+  isCsd: boolean;
+}) {
+  const windowCtx = useWindowContext();
+  return (
+    <div className="flex h-full w-full flex-1 flex-col overflow-hidden bg-adw-content">
+      <WindowTitlebar
+        data-window-drag-region={isCsd ? "" : undefined}
+        className={cn(
+          "relative border-b border-adw-separator bg-adw-titlebar",
+          !isCsd && "rounded-t-none"
+        )}
+      >
+        <div className="flex shrink-0 items-center gap-1.5" data-window-no-drag>
+          {isCsd && <WindowControls side="left" />}
+          <WindowMenuButton
+            side="left"
+            windowId={win.id}
+            appId={win.appId}
+            iconUrl={win.iconUrl}
+            iconName={win.iconName}
+            gradient={win.gradient}
+          />
+        </div>
+        <div className="pointer-events-none absolute inset-x-24 truncate text-center text-[13px] font-semibold text-adw-label">
+          {win.title}
+        </div>
+      </WindowTitlebar>
+      <webview
+        window={win.browserWindowId}
+        resizing={windowCtx?.resizing ? "" : undefined}
+        className="block min-h-0 w-full flex-1 bg-adw-window"
+      />
+    </div>
+  );
+}
+
 function WebViewSurface({
   win,
   isCsd,
@@ -1119,6 +1169,10 @@ const WindowBody = React.memo(
 
     if (win.waylandAppId && !isBrowserRuntime) {
       return <WaylandAppSurface win={win} />;
+    }
+
+    if (win.browserWindowId && isAppModuleWindow(win)) {
+      return <AppModuleSurface win={win} isCsd={isCsd} />;
     }
 
     if (win.browserWindowId) {
