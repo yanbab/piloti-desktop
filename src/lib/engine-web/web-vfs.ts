@@ -1,4 +1,6 @@
 import { VFS_HOME, rehome } from "../engine/vfs-home";
+import type { VfsPersistence } from "@/lib/ports/vfs-persistence";
+import { browserPersistence } from "./vfs-persistence-browser";
 import {
   DEFAULT_HOME_DIRS as GENERATED_HOME_DIRS,
   DEFAULT_HOME_FILES as GENERATED_HOME_FILES,
@@ -185,47 +187,19 @@ let vfsFlushPending = false;
 
 // --- Large content (media) is stored in IndexedDB so it never hits the localStorage quota ---
 const VFS_BLOB_THRESHOLD = 256 * 1024;
-const VFS_BLOB_DB_NAME = "piloti.web.vfs.blobs.v1";
-const VFS_BLOB_STORE = "contents";
 const persistedBlobs = new Map<string, string>();
 const hydratingBlobs = new Set<string>();
-let blobDbPromise: Promise<IDBDatabase | null> | null = null;
 
-function openBlobDb(): Promise<IDBDatabase | null> {
-  if (blobDbPromise) return blobDbPromise;
-  blobDbPromise = new Promise((resolve) => {
-    if (typeof indexedDB === "undefined") {
-      resolve(null);
-      return;
-    }
-    try {
-      const req = indexedDB.open(VFS_BLOB_DB_NAME, 1);
-      req.onupgradeneeded = () => req.result.createObjectStore(VFS_BLOB_STORE);
-      req.onsuccess = () => resolve(req.result);
-      req.onerror = () => resolve(null);
-    } catch {
-      resolve(null);
-    }
-  });
-  return blobDbPromise;
+let persistence: VfsPersistence = browserPersistence();
+/** Swaps where the VFS persists (tests, other engines). Drops the in-memory cache. */
+export function setVfsPersistence(next: VfsPersistence): void {
+  persistence = next;
+  persistedBlobs.clear();
+  hydratingBlobs.clear();
+  clearVfsMemoryCache();
 }
-
-async function idbRun<T>(
-  mode: IDBTransactionMode,
-  fn: (store: IDBObjectStore) => IDBRequest<T>,
-): Promise<T | undefined> {
-  const db = await openBlobDb();
-  if (!db) return undefined;
-  return new Promise((resolve) => {
-    try {
-      const req = fn(db.transaction(VFS_BLOB_STORE, mode).objectStore(VFS_BLOB_STORE));
-      req.onsuccess = () => resolve(req.result);
-      req.onerror = () => resolve(undefined);
-    } catch {
-      resolve(undefined);
-    }
-  });
-}
+const hasKv = () => persistence.kv !== null;
+const kv = () => persistence.kv as NonNullable<VfsPersistence["kv"]>;
 
 function isExternalizable(entry: WebVfsEntry): boolean {
   return (
@@ -242,13 +216,13 @@ function syncBlobStore(entries: readonly WebVfsEntry[]): void {
     live.add(entry.path);
     if (persistedBlobs.get(entry.path) !== entry.content) {
       persistedBlobs.set(entry.path, entry.content as string);
-      void idbRun("readwrite", (store) => store.put(entry.content, entry.path));
+      void persistence.blobs?.put(entry.path, entry.content as string);
     }
   }
   for (const path of [...persistedBlobs.keys()]) {
     if (!live.has(path)) {
       persistedBlobs.delete(path);
-      void idbRun("readwrite", (store) => store.delete(path));
+      void persistence.blobs?.delete(path);
     }
   }
 }
@@ -259,7 +233,7 @@ function hydrateExternalContent(entries: readonly WebVfsEntry[]): void {
     const path = entry.path;
     if (hydratingBlobs.has(path)) continue;
     hydratingBlobs.add(path);
-    void idbRun("readonly", (store) => store.get(path)).then((value) => {
+    void (persistence.blobs?.get(path) ?? Promise.resolve(undefined)).then((value) => {
       hydratingBlobs.delete(path);
       const target = vfsCacheByPath?.get(path);
       if (typeof value === "string" && target && target.content === undefined) {
@@ -294,7 +268,7 @@ function setVfsCache(entries: WebVfsEntry[], raw: string | null): WebVfsEntry[] 
 }
 
 function loadVfs(): WebVfsEntry[] {
-  if (typeof localStorage === "undefined") {
+  if (!hasKv()) {
     return vfsCacheEntries ?? setVfsCache(createInitialVfs(), null);
   }
   if (vfsCacheInMemoryOnly && vfsCacheEntries) {
@@ -306,7 +280,7 @@ function loadVfs(): WebVfsEntry[] {
     return vfsCacheEntries;
   }
   try {
-    const raw = localStorage.getItem(WEB_VFS_STORAGE_KEY);
+    const raw = kv().getItem(WEB_VFS_STORAGE_KEY);
     vfsCacheFresh = true;
     if (raw !== null && raw === vfsCacheRaw && vfsCacheEntries) {
       return vfsCacheEntries;
@@ -315,7 +289,7 @@ function loadVfs(): WebVfsEntry[] {
     if (!raw) {
       const seeded = createInitialVfs();
       const json = JSON.stringify(seeded);
-      localStorage.setItem(WEB_VFS_STORAGE_KEY, json);
+      kv().setItem(WEB_VFS_STORAGE_KEY, json);
       return setVfsCache(seeded, json);
     }
     const parsed = JSON.parse(raw);
@@ -328,8 +302,8 @@ function loadVfs(): WebVfsEntry[] {
         }
       }
       const welcomeFlagKey = "piloti.web.vfs.welcome.v1";
-      if (!localStorage.getItem(welcomeFlagKey)) {
-        localStorage.setItem(welcomeFlagKey, "1");
+      if (!kv().getItem(welcomeFlagKey)) {
+        kv().setItem(welcomeFlagKey, "1");
         const hasWelcome = entries.some(
           (e) =>
             e.path === `${VFS_HOME}/Desktop/Welcome.html` ||
@@ -345,7 +319,7 @@ function loadVfs(): WebVfsEntry[] {
             content: WELCOME_HTML,
             updatedAt: Date.now(),
           });
-          localStorage.setItem(WEB_VFS_STORAGE_KEY, JSON.stringify(entries));
+          kv().setItem(WEB_VFS_STORAGE_KEY, JSON.stringify(entries));
         }
       }
       let addedDefaults = false;
@@ -442,7 +416,7 @@ function loadVfs(): WebVfsEntry[] {
       }
       if (addedDefaults) {
         const json = JSON.stringify(entries);
-        localStorage.setItem(WEB_VFS_STORAGE_KEY, json);
+        kv().setItem(WEB_VFS_STORAGE_KEY, json);
         return setVfsCache(entries, json);
       }
       setVfsCache(entries, raw);
@@ -456,7 +430,7 @@ function loadVfs(): WebVfsEntry[] {
   let json: string | null = null;
   try {
     json = JSON.stringify(seeded);
-    localStorage.setItem(WEB_VFS_STORAGE_KEY, json);
+    kv().setItem(WEB_VFS_STORAGE_KEY, json);
   } catch {
     // ignore quota errors
   }
@@ -612,12 +586,12 @@ export function flushWebVfs(): void {
   const entries = vfsCacheEntries;
   const paths = vfsPendingPaths ? [...vfsPendingPaths] : undefined;
   vfsPendingPaths = new Set();
-  if (!entries || typeof localStorage === "undefined") return;
+  if (!entries || !hasKv()) return;
   const started = typeof performance !== "undefined" ? performance.now() : Date.now();
   try {
     syncBlobStore(entries);
     const json = serializeVfsEntries(entries);
-    localStorage.setItem(WEB_VFS_STORAGE_KEY, json);
+    kv().setItem(WEB_VFS_STORAGE_KEY, json);
     vfsCacheRaw = json;
     vfsCacheInMemoryOnly = false;
     vfsPerf.lastJsonChars = json.length;
@@ -1050,7 +1024,7 @@ function normalizeEmblemList(raw: unknown): VfsEmblemId[] {
 }
 
 export function loadVfsEmblemsMap(): Record<string, VfsEmblemId[]> {
-  if (typeof localStorage === "undefined") return {};
+  if (!hasKv()) return {};
   const result: Record<string, VfsEmblemId[]> = {};
 
   // Primary source: GVfs-compatible `metadata::emblems` on WebVfsEntry records
@@ -1068,7 +1042,7 @@ export function loadVfsEmblemsMap(): Record<string, VfsEmblemId[]> {
   }
 
   try {
-    const raw = localStorage.getItem(VFS_EMBLEMS_STORAGE_KEY);
+    const raw = kv().getItem(VFS_EMBLEMS_STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw) as Record<string, unknown>;
       if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
@@ -1085,7 +1059,7 @@ export function loadVfsEmblemsMap(): Record<string, VfsEmblemId[]> {
       }
     }
     // Migrate legacy favorites key if emblem map is not yet populated
-    const legacyRaw = localStorage.getItem(WEB_VFS_FAVORITES_STORAGE_KEY);
+    const legacyRaw = kv().getItem(WEB_VFS_FAVORITES_STORAGE_KEY);
     if (legacyRaw) {
       const parsedLegacy = JSON.parse(legacyRaw);
       if (Array.isArray(parsedLegacy)) {
@@ -1112,7 +1086,7 @@ function saveVfsEmblemsMap(
   hintPaths: readonly string[] = [],
 ): void {
   const emblemChangedPaths: string[] = [...hintPaths];
-  if (typeof localStorage !== "undefined") {
+  if (hasKv()) {
     try {
       const cleaned: Record<string, VfsEmblemId[]> = {};
       const favorites: string[] = [];
@@ -1162,8 +1136,8 @@ function saveVfsEmblemsMap(
         if (vfsPendingPaths) emblemChangedPaths.forEach((p) => vfsPendingPaths?.add(p));
         scheduleVfsFlush();
       }
-      localStorage.setItem(VFS_EMBLEMS_STORAGE_KEY, JSON.stringify(cleaned));
-      localStorage.setItem(
+      kv().setItem(VFS_EMBLEMS_STORAGE_KEY, JSON.stringify(cleaned));
+      kv().setItem(
         WEB_VFS_FAVORITES_STORAGE_KEY,
         JSON.stringify(favorites)
       );
@@ -2159,11 +2133,11 @@ export function setVfsEntryMetadata(
  * Keeps `localStorage` encapsulated inside `web-vfs.ts`.
  */
 export function consumeLegacyLocalStorageValue(key: string): string | null {
-  if (typeof localStorage === "undefined") return null;
+  if (!hasKv()) return null;
   try {
-    const raw = localStorage.getItem(key);
+    const raw = kv().getItem(key);
     if (raw !== null) {
-      localStorage.removeItem(key);
+      kv().removeItem(key);
     }
     return raw;
   } catch {
@@ -2175,13 +2149,12 @@ export function consumeLegacyLocalStorageValue(key: string): string | null {
  * Lists raw `localStorage` backing entries for the DevTools Storage inspector.
  */
 export function listWebVfsBackingStorageEntries(): WebVfsBackingStorageEntry[] {
-  if (typeof localStorage === "undefined") return [];
+  if (!hasKv()) return [];
   flushWebVfs();
   const entries: WebVfsBackingStorageEntry[] = [];
-  for (let i = 0; i < localStorage.length; i += 1) {
-    const key = localStorage.key(i);
+  for (const key of kv().keys()) {
     if (!key) continue;
-    const value = localStorage.getItem(key) ?? "";
+    const value = kv().getItem(key) ?? "";
     const bytes = new Blob([value]).size;
     entries.push({ key, bytes, value });
   }
@@ -2192,7 +2165,7 @@ export function listWebVfsBackingStorageEntries(): WebVfsBackingStorageEntry[] {
 /**
  * Resets all browser VFS backing storage keys and invalidates the in-memory VFS cache.
  */
-export function clearAllWebVfsBackingStorage(): void {
+function clearVfsMemoryCache(): void {
   // Drop pending writes so a scheduled flush can't resurrect the old VFS.
   if (vfsFlushTimer !== null) {
     clearTimeout(vfsFlushTimer);
@@ -2204,11 +2177,15 @@ export function clearAllWebVfsBackingStorage(): void {
   vfsCacheRaw = null;
   vfsCacheEntries = null;
   vfsCacheByPath = null;
-  if (typeof localStorage === "undefined") return;
+}
+
+export function clearAllWebVfsBackingStorage(): void {
+  clearVfsMemoryCache();
+  if (!hasKv()) return;
   try {
-    for (const key of Object.keys(localStorage)) {
+    for (const key of kv().keys()) {
       if (key.startsWith("piloti.") || key.startsWith("vfs_")) {
-        localStorage.removeItem(key);
+        kv().removeItem(key);
       }
     }
   } catch {
