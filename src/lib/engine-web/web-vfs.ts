@@ -1,179 +1,40 @@
-import { VFS_HOME, rehome } from "../engine/vfs-home";
+import { VFS_HOME } from "../engine/vfs-home";
 import type { VfsPersistence } from "@/lib/ports/vfs-persistence";
 import { browserPersistence } from "./vfs-persistence-browser";
 import type { VfsSync } from "@/lib/ports/vfs-sync";
 import { browserVfsSync, WEB_VFS_CHANGED_DOM_EVENT } from "./vfs-sync-browser";
 import {
-  DEFAULT_HOME_DIRS as GENERATED_HOME_DIRS,
-  DEFAULT_HOME_FILES as GENERATED_HOME_FILES,
-} from "./default-vfs-tree";
+  WEB_VFS_HOME,
+  WEB_VFS_TEMPLATES,
+  WEB_VFS_TRASH,
+  basename,
+  dirname,
+  normalizeVfsPath,
+  resolveVfsPath,
+  type WebVfsEntry,
+} from "@/lib/core/vfs-paths";
+import {
+  DEFAULT_ETC_ISSUE,
+  DEFAULT_HOME_FILES,
+  DEFAULT_MIMEAPPS_INI,
+  WELCOME_HTML,
+  createInitialVfs,
+  topUpDefaults,
+} from "./vfs-seed";
 
-export interface WebVfsEntry {
-  id: string;
-  name: string;
-  kind: "directory" | "file";
-  path: string;
-  parentPath: string;
-  content?: string;
-  /** True when `content` is stored in IndexedDB instead of the localStorage JSON. */
-  externalContent?: boolean;
-  size?: number;
-  accessCount?: number;
-  trashedFromPath?: string;
-  /** True for a symbolic link; `kind` is then the kind of the link target. */
-  isSymlink?: boolean;
-  /** Absolute path a symbolic link points to. */
-  symlinkTarget?: string;
-  metadata?: {
-    "standard::content-type"?: string;
-    "metadata::emblems"?: string[];
-    "metadata::thumbnail"?: string;
-    [key: string]: unknown;
-  };
-  updatedAt: number;
-}
-
-const DEFAULT_HOME_DIRS: readonly string[] = GENERATED_HOME_DIRS.map(rehome);
-const DEFAULT_HOME_FILES: Record<string, string> = Object.fromEntries(
-  Object.entries(GENERATED_HOME_FILES).map(([path, content]) => [rehome(path), content]),
-);
+export {
+  WEB_VFS_HOME,
+  WEB_VFS_TEMPLATES,
+  WEB_VFS_TRASH,
+  normalizeVfsPath,
+  resolveVfsPath,
+  type WebVfsEntry,
+};
+export { DEFAULT_ETC_ISSUE, DEFAULT_MIMEAPPS_INI };
 
 export const WEB_VFS_STORAGE_KEY = "piloti.web.vfs.v1";
 export const WEB_VFS_CHANGED_EVENT = WEB_VFS_CHANGED_DOM_EVENT;
 
-export const WEB_VFS_HOME = `${VFS_HOME}`;
-export const WEB_VFS_TEMPLATES = `${VFS_HOME}/Templates`;
-export const WEB_VFS_TRASH = `${VFS_HOME}/.local/share/Trash/files`;
-
-export const DEFAULT_ETC_ISSUE = `Piloti Desktop Web VFS (localStorage)
-Type 'help' for shell commands, 'piloti help' for desktop controls, or 'cat ~/Documents/Notes.txt'.
-`;
-
-export const DEFAULT_MIMEAPPS_INI =
-  DEFAULT_HOME_FILES[`${VFS_HOME}/.config/mimeapps.list`] ??
-  `[Default Applications]
-inode/directory=nautilus.desktop
-text/plain=text-editor.desktop
-text/markdown=text-editor.desktop
-text/html=browser.desktop
-application/json=text-editor.desktop
-image/png=image-viewer.desktop
-image/jpeg=image-viewer.desktop
-image/webp=image-viewer.desktop
-image/gif=image-viewer.desktop
-image/svg+xml=image-viewer.desktop
-
-[Added Associations]
-inode/directory=nautilus.desktop;terminal.desktop;
-text/plain=text-editor.desktop;terminal.desktop;
-text/markdown=text-editor.desktop;browser.desktop;
-text/html=browser.desktop;text-editor.desktop;
-text/*=text-editor.desktop;terminal.desktop;
-application/json=text-editor.desktop;console.desktop;
-image/*=image-viewer.desktop;browser.desktop;
-`;
-
-const WELCOME_HTML =
-  DEFAULT_HOME_FILES[`${VFS_HOME}/Desktop/Welcome.html`] ?? "";
-
-const DEFAULT_DIRS = Array.from(
-  new Set(["/etc", "/home", WEB_VFS_HOME, ...DEFAULT_HOME_DIRS, WEB_VFS_TRASH]),
-);
-
-const DEFAULT_LOCAL_DESKTOP_FILES: Record<string, string> = Object.fromEntries(
-  Object.entries(DEFAULT_HOME_FILES)
-    .filter(([p]) => p.startsWith(`${VFS_HOME}/.local/share/applications/`) && p.endsWith(".desktop"))
-    .map(([p, content]) => [p.slice(`${VFS_HOME}/.local/share/applications/`.length), content]),
-);
-
-function basename(path: string): string {
-  const parts = path.split("/").filter(Boolean);
-  return parts[parts.length - 1] ?? "/";
-}
-
-function dirname(path: string): string {
-  const normalized = normalizeVfsPath(path);
-  if (normalized === "/") return "/";
-  const idx = normalized.lastIndexOf("/");
-  return idx <= 0 ? "/" : normalized.slice(0, idx);
-}
-
-/**
- * Normalizes a VFS path into an absolute `/home/user/...` path.
- */
-export function normalizeVfsPath(rawPath?: string): string {
-  if (!rawPath || rawPath === "~" || rawPath === "~/") return WEB_VFS_HOME;
-  let trimmed = rawPath.trim();
-  if (trimmed.startsWith("~/")) {
-    trimmed = `${WEB_VFS_HOME}/${trimmed.slice(2)}`;
-  } else if (!trimmed.startsWith("/")) {
-    trimmed = `${WEB_VFS_HOME}/${trimmed}`;
-  }
-  const normalized = trimmed.replace(/\/+/g, "/").replace(/\/+$/, "");
-  return normalized || "/";
-}
-
-/**
- * Resolves a relative or `~`-prefixed path against a VFS working directory.
- */
-export function resolveVfsPath(cwd: string, rawTarget?: string): string {
-  const base = normalizeVfsPath(cwd);
-  if (!rawTarget || !rawTarget.trim()) return base;
-  const target = rawTarget.trim();
-  if (target === "~") return WEB_VFS_HOME;
-  const combined = target.startsWith("~/")
-    ? `${WEB_VFS_HOME}/${target.slice(2)}`
-    : target.startsWith("/")
-      ? target
-      : `${base === "/" ? "" : base}/${target}`;
-
-  const parts: string[] = [];
-  for (const seg of combined.split("/")) {
-    if (!seg || seg === ".") continue;
-    if (seg === "..") {
-      parts.pop();
-    } else {
-      parts.push(seg);
-    }
-  }
-  return `/${parts.join("/")}`;
-}
-
-function createInitialVfs(): WebVfsEntry[] {
-  const now = Date.now();
-  const entries: WebVfsEntry[] = DEFAULT_DIRS.map((dirPath) => ({
-    id: dirPath,
-    name: basename(dirPath),
-    kind: "directory",
-    path: dirPath,
-    parentPath: dirname(dirPath),
-    updatedAt: now,
-  }));
-
-  entries.push({
-    id: "/etc/issue",
-    name: "issue",
-    kind: "file",
-    path: "/etc/issue",
-    parentPath: "/etc",
-    content: DEFAULT_ETC_ISSUE,
-    updatedAt: now,
-  });
-
-  for (const [fullPath, content] of Object.entries(DEFAULT_HOME_FILES)) {
-    entries.push({
-      id: fullPath,
-      name: basename(fullPath),
-      kind: "file",
-      path: fullPath,
-      parentPath: dirname(fullPath),
-      content,
-      updatedAt: now,
-    });
-  }
-
-  return entries;
-}
 
 let vfsCacheRaw: string | null = null;
 let vfsCacheEntries: WebVfsEntry[] | null = null;
@@ -299,120 +160,7 @@ function loadVfs(): WebVfsEntry[] {
           if (previous !== undefined) entry.content = previous;
         }
       }
-      const welcomeFlagKey = "piloti.web.vfs.welcome.v1";
-      if (!kv().getItem(welcomeFlagKey)) {
-        kv().setItem(welcomeFlagKey, "1");
-        const hasWelcome = entries.some(
-          (e) =>
-            e.path === `${VFS_HOME}/Desktop/Welcome.html` ||
-            e.path === `${WEB_VFS_TRASH}/Welcome.html`
-        );
-        if (!hasWelcome) {
-          entries.push({
-            id: `${VFS_HOME}/Desktop/Welcome.html`,
-            name: "Welcome.html",
-            kind: "file",
-            path: `${VFS_HOME}/Desktop/Welcome.html`,
-            parentPath: `${VFS_HOME}/Desktop`,
-            content: WELCOME_HTML,
-            updatedAt: Date.now(),
-          });
-          kv().setItem(WEB_VFS_STORAGE_KEY, JSON.stringify(entries));
-        }
-      }
-      let addedDefaults = false;
-      const now = Date.now();
-      if (!entries.some((e) => e.path === "/etc/issue")) {
-        if (!entries.some((e) => e.path === "/etc")) {
-          entries.push({
-            id: "/etc",
-            name: "etc",
-            kind: "directory",
-            path: "/etc",
-            parentPath: "/",
-            updatedAt: now,
-          });
-        }
-        entries.push({
-          id: "/etc/issue",
-          name: "issue",
-          kind: "file",
-          path: "/etc/issue",
-          parentPath: "/etc",
-          content: DEFAULT_ETC_ISSUE,
-          updatedAt: now,
-        });
-        addedDefaults = true;
-      }
-      if (!entries.some((e) => e.path === `${VFS_HOME}/.config/mimeapps.list`)) {
-        if (!entries.some((e) => e.path === `${VFS_HOME}/.config`)) {
-          entries.push({
-            id: `${VFS_HOME}/.config`,
-            name: ".config",
-            kind: "directory",
-            path: `${VFS_HOME}/.config`,
-            parentPath: `${VFS_HOME}`,
-            updatedAt: now,
-          });
-        }
-        entries.push({
-          id: `${VFS_HOME}/.config/mimeapps.list`,
-          name: "mimeapps.list",
-          kind: "file",
-          path: `${VFS_HOME}/.config/mimeapps.list`,
-          parentPath: `${VFS_HOME}/.config`,
-          content: DEFAULT_MIMEAPPS_INI,
-          updatedAt: now,
-        });
-        addedDefaults = true;
-      }
-      for (const dirPath of DEFAULT_DIRS) {
-        if (!entries.some((e) => e.path === dirPath)) {
-          entries.push({
-            id: dirPath,
-            name: basename(dirPath),
-            kind: "directory",
-            path: dirPath,
-            parentPath: dirname(dirPath),
-            updatedAt: now,
-          });
-          addedDefaults = true;
-        }
-      }
-      for (const [fileName, content] of Object.entries(DEFAULT_LOCAL_DESKTOP_FILES)) {
-        const fullPath = `${VFS_HOME}/.local/share/applications/${fileName}`;
-        if (!entries.some((e) => e.path === fullPath)) {
-          entries.push({
-            id: fullPath,
-            name: fileName,
-            kind: "file",
-            path: fullPath,
-            parentPath: `${VFS_HOME}/.local/share/applications`,
-            content,
-            updatedAt: now,
-          });
-          addedDefaults = true;
-        }
-      }
-      for (const [fullPath, content] of Object.entries(DEFAULT_HOME_FILES)) {
-        if (
-          (fullPath === `${VFS_HOME}/.hidden` ||
-            fullPath.startsWith(`${VFS_HOME}/Templates/`)) &&
-          !entries.some((e) => e.path === fullPath)
-        ) {
-          entries.push({
-            id: fullPath,
-            name: basename(fullPath),
-            kind: "file",
-            path: fullPath,
-            parentPath: dirname(fullPath),
-            content,
-            updatedAt: now,
-          });
-          addedDefaults = true;
-        }
-      }
-      if (addedDefaults) {
+      if (topUpDefaults(entries, persistence.kv)) {
         const json = JSON.stringify(entries);
         kv().setItem(WEB_VFS_STORAGE_KEY, json);
         return setVfsCache(entries, json);
