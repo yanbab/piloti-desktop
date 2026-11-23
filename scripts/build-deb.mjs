@@ -138,6 +138,24 @@ export function stagePackageRoot({
   fs.chmodSync(shellDst, 0o644);
   stagedFiles.push({ rel: shellDstRel, mode: 0o644, size: shellBytes.length });
 
+  // Install Domicile app modules (one directory per app = own origin/storage)
+  const appsSrc = path.join(repoRoot, "dist", "apps");
+  if (fs.existsSync(appsSrc)) {
+    for (const appId of fs.readdirSync(appsSrc)) {
+      const appDir = path.join(appsSrc, appId);
+      if (!fs.statSync(appDir).isDirectory()) continue;
+      for (const name of fs.readdirSync(appDir)) {
+        const rel = `usr/share/piloti-desktop/apps/${appId}/${name}`;
+        const dst = path.join(stageDir, rel);
+        fs.mkdirSync(path.dirname(dst), { recursive: true });
+        const bytes = fs.readFileSync(path.join(appDir, name));
+        fs.writeFileSync(dst, bytes, { mode: 0o644 });
+        fs.chmodSync(dst, 0o644);
+        stagedFiles.push({ rel, mode: 0o644, size: bytes.length });
+      }
+    }
+  }
+
   // Install standalone Display Manager greeter bundle when built
   if (greeterBundlePath && fs.existsSync(greeterBundlePath)) {
     const greeterDstRel = "usr/share/piloti-desktop/greeter.js";
@@ -430,6 +448,10 @@ export function buildDebPackage({
 
   if (!skipBuild) {
     execFileSync("npm", ["run", "build:shell"], {
+      cwd: repoRoot,
+      stdio: "inherit",
+    });
+    execFileSync("npm", ["run", "build:apps"], {
       cwd: repoRoot,
       stdio: "inherit",
     });
