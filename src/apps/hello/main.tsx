@@ -27,7 +27,7 @@ const Hello = () => {
       } catch (e) {
         out.localStorageError = String(e);
       }
-      const ini = await files.readText(".config/piloti/piloti.ini");
+      const ini = await files.readText(".config/piloti/settings.ini");
       out.settingsIniReadable = ini.isOk?.() ?? "n/a";
       const entries = await files.readDir?.(".");
       out.homeListing = entries ? "ok" : "no readDir";
@@ -39,7 +39,7 @@ const Hello = () => {
   }, [files]);
 
   return (
-    <div style={{ font: "13px system-ui", padding: 16, background: "Canvas", color: "CanvasText", minBlockSize: "100vh" }}>
+    <div style={{ font: "13px system-ui", padding: 16, colorScheme: "light dark", background: "Canvas", color: "CanvasText", minBlockSize: "100vh" }}>
       <h2 style={{ margin: "0 0 8px" }}>Piloti app module test</h2>
       <pre style={{ whiteSpace: "pre-wrap" }}>{lines.join("\n")}</pre>
     </div>
