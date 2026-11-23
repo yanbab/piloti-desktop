@@ -2,12 +2,13 @@
 // isolated app can see, and writes the report to ~/piloti-appmodule-test.json.
 import { useAppDomicile } from "@domicile-desktop/react/domicile-provider";
 import { mount } from "@domicile-desktop/react/mount";
+import { Bus } from "@domicile-desktop/sdk/system";
 import { useEffect, useState } from "react";
 
 const REPORT = "piloti-appmodule-test.json";
 
 const Hello = () => {
-  const { files } = useAppDomicile();
+  const { files, dbus } = useAppDomicile();
   const [lines, setLines] = useState<string[]>([]);
 
   useEffect(() => {
@@ -31,6 +32,25 @@ const Hello = () => {
       } catch (e) {
         out.localStorageError = String(e);
       }
+      // Settings portal over D-Bus: the standard way to follow dark/light and accent.
+      const read = async (key: string) => {
+        try {
+          const r = await dbus.call({
+            bus: Bus.Session,
+            destination: "org.freedesktop.portal.Desktop",
+            path: "/org/freedesktop/portal/desktop",
+            interface: "org.freedesktop.portal.Settings",
+            member: "Read",
+            signature: "ss",
+            body: ["org.freedesktop.appearance", key],
+          });
+          return r.isOk() ? JSON.stringify(r.unwrapOr(undefined as never)) : `err: ${JSON.stringify(r)}`;
+        } catch (e) {
+          return `throw: ${String(e)}`;
+        }
+      };
+      out.portalColorScheme = await read("color-scheme");
+      out.portalAccent = await read("accent-color");
       const ini = await files.readText(".config/piloti/settings.ini");
       out.settingsIniReadable = ini.isOk?.() ?? "n/a";
       const entries = await files.readDir?.(".");
