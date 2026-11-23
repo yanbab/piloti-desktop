@@ -330,7 +330,7 @@ export function SecurityPane() {
                     }
                     aria-expanded={isOpen}
                     className={cn(
-                      "flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors",
+                      "flex w-full items-center justify-between gap-3 px-2.5 py-1.5 text-left transition-colors",
                       isOpen
                         ? "bg-black/4 dark:bg-white/6"
                         : "hover:bg-black/3 dark:hover:bg-white/4"
@@ -359,7 +359,7 @@ export function SecurityPane() {
                   {isOpen && (
                     <div className="divide-y divide-adw-separator/70 border-t border-adw-separator/70">
                       {targetApps.length === 0 ? (
-                        <div className="px-4 py-3 text-[12px] text-adw-label-tertiary">
+                        <div className="px-2.5 py-2 text-[12px] text-adw-label-tertiary">
                           {_("No Flatpak apps installed")}
                         </div>
                       ) : (
@@ -438,7 +438,7 @@ export function SecurityPane() {
                     onClick={() => handleToggleExpand(app)}
                     aria-expanded={isOpen}
                     className={cn(
-                      "flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors",
+                      "flex w-full items-center justify-between gap-3 px-2.5 py-1.5 text-left transition-colors",
                       isOpen
                         ? "bg-black/4 dark:bg-white/6"
                         : "hover:bg-black/3 dark:hover:bg-white/4"

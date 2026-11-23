@@ -534,13 +534,13 @@ aside [data-slot="window-titlebar"],
 }
 
 /*
- * Adwaita GtkSwitch / AdwSwitchRow Proportions:
- * 44x24px pill track with an 18x18px circular knob and 3px inset.
+ * Compact switch (macOS-like density, Adwaita look):
+ * 36x20px pill track with a 16x16px circular knob and 2px inset.
  */
 [data-slot="switch"] {
-  width: 44px !important;
-  height: 24px !important;
-  padding-inline: 3px !important;
+  width: 36px !important;
+  height: 20px !important;
+  padding-inline: 2px !important;
   border-radius: 9999px !important;
 }
 
@@ -557,8 +557,8 @@ aside [data-slot="window-titlebar"],
 }
 
 [data-slot="switch-thumb"] {
-  width: 18px !important;
-  height: 18px !important;
+  width: 16px !important;
+  height: 16px !important;
   border-radius: 9999px !important;
   box-shadow: 0 1px 2px rgb(0 0 0 / 0.25) !important;
 }
@@ -570,7 +570,7 @@ aside [data-slot="window-titlebar"],
 
 [data-slot="switch-thumb"][data-checked] {
   background-color: #ffffff !important;
-  translate: 20px 0 !important;
+  translate: 16px 0 !important;
 }
 
 /*
@@ -639,14 +639,15 @@ aside [data-slot="window-titlebar"],
 
 [data-slot="grouped-form-row"] {
   padding-inline: 10px;
+  /* 28px controls (the max) + 4px + 4px = 36px, the same as switch rows. */
   min-height: 36px;
-  padding-block: 6px;
+  padding-block: 4px;
   gap: 12px;
   border-color: rgb(0 0 0 / 0.07);
 }
 
 [data-slot="grouped-form-row"]:has([data-slot="grouped-form-row-description"]) {
-  padding-block: 7px;
+  padding-block: 6px;
 }
 
 .dark [data-slot="grouped-form-row"] {
