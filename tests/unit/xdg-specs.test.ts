@@ -134,8 +134,9 @@ describe("XDG specifications (Autostart, Recents XBEL, Globs2/Magic)", () => {
     expect(lookupXdgIconPath(index, "accessories-text-editor", 64, 1)).toBe(
       "/usr/share/icons/Piloti/animated/apps/accessories-text-editor.json"
     );
+    // Piloti overrides it: full 56px square, light accent on the dark base.
     expect(lookupXdgIconPath(index, "utilities-terminal", 64, 1)).toBe(
-      "/usr/share/icons/Papirus/64x64/apps/utilities-terminal.svg"
+      "/usr/share/icons/Piloti/scalable/apps/utilities-terminal.svg"
     );
     const dataUrl = await loadXdgIconDataUrl(reader as never, folderPath!);
     expect(dataUrl?.startsWith("data:application/json;base64,")).toBe(true);

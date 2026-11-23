@@ -1,7 +1,8 @@
 /**
- * Recolors canonical accent placeholders (`#5294e2` primary accent and `#4877b1`
- * shaded accent) inside SVG and Lottie `.json` data URLs so folder, file detail,
- * trash, and built-in app icons follow the active desktop accent color in real time.
+ * Recolors canonical accent placeholders inside SVG and Lottie `.json` data URLs
+ * so folder, file detail, trash, and built-in app icons follow the active desktop
+ * accent color in real time. Three shades:
+ *   `#5294e2` accent · `#4877b1` darker (shading) · `#8bbcf6` lighter (for dark icons).
  */
 
 function parseHexRgb(hex: string): [number, number, number] | null {
@@ -24,6 +25,13 @@ function darkenRgb(
 ): [number, number, number] {
   const k = 1 - factor;
   return [r * k, g * k, b * k];
+}
+
+function lightenRgb(
+  [r, g, b]: [number, number, number],
+  factor = 0.4
+): [number, number, number] {
+  return [r + (255 - r) * factor, g + (255 - g) * factor, b + (255 - b) * factor];
 }
 
 function toLottieRgbArray([r, g, b]: [number, number, number]): string {
@@ -121,34 +129,40 @@ export function tintIconDataUrl(
   const primaryHex = toHex(rgb);
   const darkRgb = darkenRgb(rgb, 0.22);
   const darkHex = toHex(darkRgb);
+  const lightRgb = lightenRgb(rgb, 0.4);
+  const lightHex = toHex(lightRgb);
 
   const decoded = decodeDataUrlPayload(dataUrl);
   if (!decoded) return dataUrl;
 
   if (decoded.mime === "svg") {
     if (
-      !/#5294e2|#4877b1|#3584e4|#1d99f3|#1c71d8/i.test(decoded.text)
+      !/#5294e2|#4877b1|#8bbcf6|#3584e4|#1d99f3|#1c71d8/i.test(decoded.text)
     ) {
       return dataUrl;
     }
     const tinted = decoded.text
       .replace(/#5294e2|#3584e4|#1d99f3|#1c71d8/gi, primaryHex)
-      .replace(/#4877b1/gi, darkHex);
+      .replace(/#4877b1/gi, darkHex)
+      .replace(/#8bbcf6/gi, lightHex);
     return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(tinted)}`;
   }
 
   // Lottie JSON: `[0.3216,0.5804,0.8863,1]` (#5294e2) and `[0.2824,0.4667,0.6941,1]` (#4877b1)
   if (
     !decoded.text.includes("0.3216,0.5804,0.8863") &&
-    !decoded.text.includes("0.2824,0.4667,0.6941")
+    !decoded.text.includes("0.2824,0.4667,0.6941") &&
+    !decoded.text.includes("0.5451,0.7373,0.9647")
   ) {
     return dataUrl;
   }
   const primaryLottie = toLottieRgbArray(rgb);
   const darkLottie = toLottieRgbArray(darkRgb);
+  const lightLottie = toLottieRgbArray(lightRgb);
   const tintedJson = decoded.text
     .replace(/\[0\.3216,\s*0\.5804,\s*0\.8863,\s*1\]/g, primaryLottie)
-    .replace(/\[0\.2824,\s*0\.4667,\s*0\.6941,\s*1\]/g, darkLottie);
+    .replace(/\[0\.2824,\s*0\.4667,\s*0\.6941,\s*1\]/g, darkLottie)
+    .replace(/\[0\.5451,\s*0\.7373,\s*0\.9647,\s*1\]/g, lightLottie);
   return `data:application/json;charset=utf-8,${encodeURIComponent(tintedJson)}`;
 }
 

@@ -363,6 +363,76 @@ const PAPIRUS_FILE_FLAP_D =
 const PAPIRUS_FILE_HIGHLIGHT_D =
   "M 12.75 4 C 11.2265 4 10 5.2495812 10 6.8007812 L 10 7.8007812 C 10 6.2495813 11.2265 5 12.75 5 L 36 5 L 36 4 L 12.75 4 z";
 
+// The text document shared by `text-x-generic` and the Text Editor app icon,
+// so the two always match: accent heading line, three text lines, Papirus page.
+const textDocLines = (ind) =>
+  layer(ind, "Lines", [
+      rectGroup("HeadingBar", {
+        x: 20,
+        y: 30.5,
+        w: 24,
+        h: 3.2,
+        r: 1.5,
+        fill: "#5294e2",
+        tr: shapeTr({
+          p: [20, 32.1],
+          a: [-12, 0],
+          s: kFrames([[0, [100, 100]], [6, [30, 100]], [20, [100, 100]], [48, [100, 100]]]),
+        }),
+      }),
+      rectGroup("Line2", {
+        x: 20,
+        y: 37,
+        w: 24,
+        h: 3,
+        r: 1.4,
+        fill: "#000000",
+        opacity: 50,
+        tr: shapeTr({
+          p: [20, 38.5],
+          a: [-12, 0],
+          s: kFrames([[0, [100, 100]], [10, [40, 100]], [26, [100, 100]], [48, [100, 100]]]),
+        }),
+      }),
+      rectGroup("Line3", {
+        x: 20,
+        y: 43,
+        w: 24,
+        h: 3,
+        r: 1.4,
+        fill: "#000000",
+        opacity: 50,
+        tr: shapeTr({
+          p: [20, 44.5],
+          a: [-12, 0],
+          s: kFrames([[0, [100, 100]], [14, [45, 100]], [32, [100, 100]], [48, [100, 100]]]),
+        }),
+      }),
+      rectGroup("Line4", {
+        x: 20,
+        y: 49,
+        w: 15,
+        h: 3,
+        r: 1.4,
+        fill: "#000000",
+        opacity: 50,
+        tr: shapeTr({
+          p: [20, 50.5],
+          a: [-7.5, 0],
+          s: kFrames([[0, [100, 100]], [18, [35, 100]], [38, [100, 100]], [48, [100, 100]]]),
+        }),
+      }),
+    ]);
+
+const textDocPage = (ind) =>
+  layer(ind, "Page", [
+      pathGroup("Shadow", { d: PAPIRUS_FILE_SHADOW_D, fill: "#000000", opacity: 20 }),
+      pathGroup("Sheet", { d: PAPIRUS_FILE_SHEET_D, fill: "#e4e4e4" }),
+      pathGroup("FlapShadow", { d: PAPIRUS_FILE_FLAP_SHADOW_D, fill: "#000000", opacity: 20 }),
+      pathGroup("Flap", { d: PAPIRUS_FILE_FLAP_D, fill: "#fafafa" }),
+      pathGroup("TopHighlight", { d: PAPIRUS_FILE_HIGHLIGHT_D, fill: "#ffffff", opacity: 20 }),
+    ]);
+
 const ICONS = {
   // 1. Papirus Folder:
   //    Frame 0  = closed (`folder.svg`)
@@ -449,72 +519,7 @@ const ICONS = {
   ]),
 
   // 3. Papirus Text Document (Non-Empty) — typing lines sweep
-  "mimetypes/text-x-generic": lottieDoc("papirus-text-x-generic", [
-    layer(1, "Lines", [
-      rectGroup("HeadingBar", {
-        x: 20,
-        y: 30.5,
-        w: 24,
-        h: 3.2,
-        r: 1.5,
-        fill: "#5294e2",
-        tr: shapeTr({
-          p: [20, 32.1],
-          a: [-12, 0],
-          s: kFrames([[0, [100, 100]], [6, [30, 100]], [20, [100, 100]], [48, [100, 100]]]),
-        }),
-      }),
-      rectGroup("Line2", {
-        x: 20,
-        y: 37,
-        w: 24,
-        h: 3,
-        r: 1.4,
-        fill: "#000000",
-        opacity: 50,
-        tr: shapeTr({
-          p: [20, 38.5],
-          a: [-12, 0],
-          s: kFrames([[0, [100, 100]], [10, [40, 100]], [26, [100, 100]], [48, [100, 100]]]),
-        }),
-      }),
-      rectGroup("Line3", {
-        x: 20,
-        y: 43,
-        w: 24,
-        h: 3,
-        r: 1.4,
-        fill: "#000000",
-        opacity: 50,
-        tr: shapeTr({
-          p: [20, 44.5],
-          a: [-12, 0],
-          s: kFrames([[0, [100, 100]], [14, [45, 100]], [32, [100, 100]], [48, [100, 100]]]),
-        }),
-      }),
-      rectGroup("Line4", {
-        x: 20,
-        y: 49,
-        w: 15,
-        h: 3,
-        r: 1.4,
-        fill: "#000000",
-        opacity: 50,
-        tr: shapeTr({
-          p: [20, 50.5],
-          a: [-7.5, 0],
-          s: kFrames([[0, [100, 100]], [18, [35, 100]], [38, [100, 100]], [48, [100, 100]]]),
-        }),
-      }),
-    ]),
-    layer(2, "Page", [
-      pathGroup("Shadow", { d: PAPIRUS_FILE_SHADOW_D, fill: "#000000", opacity: 20 }),
-      pathGroup("Sheet", { d: PAPIRUS_FILE_SHEET_D, fill: "#e4e4e4" }),
-      pathGroup("FlapShadow", { d: PAPIRUS_FILE_FLAP_SHADOW_D, fill: "#000000", opacity: 20 }),
-      pathGroup("Flap", { d: PAPIRUS_FILE_FLAP_D, fill: "#fafafa" }),
-      pathGroup("TopHighlight", { d: PAPIRUS_FILE_HIGHLIGHT_D, fill: "#ffffff", opacity: 20 }),
-    ]),
-  ]),
+  "mimetypes/text-x-generic": lottieDoc("papirus-text-x-generic", [textDocLines(1), textDocPage(2)]),
 
   // 6. Papirus Empty Text Document (`application-x-zerosize`) — blank sheet + pulsing cursor caret & faint guide dots
   "mimetypes/application-x-zerosize": lottieDoc("papirus-text-empty", [
@@ -679,71 +684,40 @@ const ICONS = {
     ...lottieDoc(
       "piloti-text-editor",
       [
+        // Lottie draws the first shape on top: pencil, then badge, then shadow.
         layer(
           1,
           "Pencil",
           [
-            pathGroup("PencilShadow", {
-              d: "M 40,51.4 L 40,55 L 43.6,55 L 52.6,46 L 49,42.4 Z",
-              fill: "#000000",
-              opacity: 18,
+            pathGroup("PencilTip", {
+              d: "M 41,52.4 L 41,56 L 44.6,56 L 53.6,47 L 50,43.4 Z M 56.7,43.9 C 57.1,43.5 57.1,42.9 56.7,42.5 L 54.5,40.3 C 54.1,39.9 53.5,39.9 53.1,40.3 L 51.3,42.1 L 54.8,45.7 Z",
+              fill: "#ffffff",
             }),
             circleGroup("PencilBadge", {
-              cx: 47,
-              cy: 47,
-              r: 15,
+              cx: 48,
+              cy: 48,
+              r: 13,
               // Accent placeholder: follows the desktop accent color.
               fill: "#5294e2",
             }),
-            pathGroup("PencilTip", {
-              d: "M 40,50.4 L 40,54 L 43.6,54 L 52.6,45 L 49,41.4 Z M 55.7,41.9 C 56.1,41.5 56.1,40.9 55.7,40.5 L 53.5,38.3 C 53.1,37.9 52.5,37.9 52.1,38.3 L 50.3,40.1 L 53.8,43.7 Z",
-              fill: "#ffffff",
+            circleGroup("PencilBadgeShadow", {
+              cx: 48,
+              cy: 49,
+              r: 13,
+              fill: "#000000",
+              opacity: 20,
             }),
           ],
           {
-            a: kStatic([47, 47]),
-            p: kFrames([[0, [47, 47]], [12, [44, 44]], [26, [48, 46]], [40, [47, 47]]]),
-            r: kFrames([[0, [0]], [12, [-10]], [26, [6]], [40, [0]]]),
+            a: kStatic([48, 48]),
+            p: kFrames([[0, [48, 48]], [12, [46, 46]], [26, [49, 47]], [40, [48, 48]]]),
+            r: kFrames([[0, [0]], [12, [-8]], [26, [5]], [40, [0]]]),
           }
         ),
-        layer(2, "Lines", [
-          rectGroup("Line1", {
-            x: 15,
-            y: 10,
-            w: 34,
-            h: 4,
-            r: 1.5,
-            fill: "#5294e2",
-            opacity: 85,
-            s: kFrames([[0, [20, 100]], [16, [100, 100]], [40, [100, 100]]]),
-          }),
-          rectGroup("Line2", {
-            x: 15,
-            y: 19,
-            w: 34,
-            h: 4,
-            r: 1.5,
-            fill: "#000000",
-            opacity: 25,
-            s: kFrames([[0, [20, 100]], [22, [100, 100]], [40, [100, 100]]]),
-          }),
-          rectGroup("Line3", {
-            x: 15,
-            y: 28,
-            w: 22,
-            h: 4,
-            r: 1.5,
-            fill: "#000000",
-            opacity: 25,
-            s: kFrames([[0, [20, 100]], [28, [100, 100]], [40, [100, 100]]]),
-          }),
-        ]),
-        layer(3, "Page", [
-          rectGroup("PageShadow", { x: 10, y: 6, w: 44, h: 55, r: 4, fill: "#000000", opacity: 20 }),
-          rectGroup("PageBody", { x: 10, y: 4, w: 44, h: 56, r: 4, fill: "#e4e4e4" }),
-        ]),
+        textDocLines(2),
+        textDocPage(3),
       ],
-      40
+      48
     ),
   },
 };

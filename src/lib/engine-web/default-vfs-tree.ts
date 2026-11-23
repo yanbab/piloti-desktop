@@ -712,6 +712,10 @@ export const DEFAULT_STATIC_DIR_INDEX: Record<string, readonly { name: string; f
     {
       "name": "system-software-install.svg",
       "fileType": 0
+    },
+    {
+      "name": "utilities-terminal.svg",
+      "fileType": 0
     }
   ],
   "/usr/share/icons/Piloti/scalable/mimetypes": [

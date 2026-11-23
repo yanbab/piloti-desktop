@@ -261,11 +261,11 @@ const PAPIRUS_DIRECT_ICON_FALLBACKS: Record<string, readonly string[]> = {
     "/usr/share/icons/Papirus/64x64/apps/preferences-desktop.svg",
     "/usr/share/icons/Papirus/64x64/apps/preferences-system.svg",
   ],
-  console: [
-    "/usr/share/icons/Papirus/64x64/apps/piloti-console.svg",
+  console: ["/usr/share/icons/Papirus/64x64/apps/piloti-console.svg"],
+  terminal: [
+    "/usr/share/icons/Piloti/scalable/apps/utilities-terminal.svg",
     "/usr/share/icons/Papirus/64x64/apps/utilities-terminal.svg",
   ],
-  terminal: ["/usr/share/icons/Papirus/64x64/apps/utilities-terminal.svg"],
   browser: ["/usr/share/icons/Papirus/64x64/apps/internet-web-browser.svg"],
   "web-view": ["/usr/share/icons/Papirus/64x64/apps/internet-web-browser.svg"],
   "text-editor": [
