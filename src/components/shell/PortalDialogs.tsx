@@ -36,6 +36,13 @@ import { _ } from "@/lib/core/i18n";
 import { listVfsDir } from "@/lib/engine-web/web-vfs";
 import { setDefaultMimeApp } from "@/lib/xdg/xdg-mimeapps";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { cn } from "@/lib/core/utils";
 
 function ScreenshotPortalOverlay({
@@ -629,25 +636,30 @@ function FileChooserPortalDialog({
                     <span>{c.label}</span>
                   </label>
                 ) : (
-                  <label key={c.id} className="flex items-center gap-1.5 text-xs">
+                  <div key={c.id} className="flex items-center gap-1.5 text-xs">
                     <span className="text-adw-label-secondary">{c.label}:</span>
-                    <select
+                    <Select
                       value={choiceValues[c.id]}
-                      onChange={(e) =>
+                      items={c.options.map((o) => ({ value: o.id, label: o.label }))}
+                      onValueChange={(val) =>
                         setChoiceValues((prev) => ({
                           ...prev,
-                          [c.id]: e.target.value,
+                          [c.id]: String(val),
                         }))
                       }
-                      className="rounded border border-adw-separator bg-adw-window px-1.5 py-0.5 text-xs"
                     >
-                      {c.options.map((o) => (
-                        <option key={o.id} value={o.id}>
-                          {o.label}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+                      <SelectTrigger size="sm" aria-label={c.label}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {c.options.map((o) => (
+                          <SelectItem key={o.id} value={o.id}>
+                            {o.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 )
               )}
             </div>
@@ -655,17 +667,22 @@ function FileChooserPortalDialog({
 
           <div className="flex items-center justify-between gap-2">
             {body.filters.length > 0 ? (
-              <select
+              <Select
                 value={filterIdx}
-                onChange={(e) => setFilterIdx(Number(e.target.value))}
-                className="h-7 max-w-[200px] rounded border border-adw-separator bg-adw-window px-2 text-xs"
+                items={body.filters.map((f, idx) => ({ value: idx, label: f.name }))}
+                onValueChange={(val) => setFilterIdx(Number(val))}
               >
-                {body.filters.map((f, idx) => (
-                  <option key={f.name} value={idx}>
-                    {f.name}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger aria-label={_("File type")} className="max-w-[200px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {body.filters.map((f, idx) => (
+                    <SelectItem key={f.name} value={idx}>
+                      {f.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             ) : (
               <span />
             )}
@@ -1141,21 +1158,29 @@ function PrintPortalDialog({
           <h3 className="text-[14px] font-bold">{request.body.title || "Print"}</h3>
         </div>
         <div className="space-y-2.5 text-xs">
-          <label className="block">
+          <div className="block">
             <span className="text-adw-label-secondary">Printer</span>
-            <select
+            <Select
               value={selectedPrinter}
-              onChange={(e) => setSelectedPrinter(e.target.value)}
-              className="mt-1 h-8 w-full rounded border border-adw-separator bg-adw-window px-2"
+              items={[
+                ...printers.map((p) => ({ value: p.name, label: p.name })),
+                { value: pdfTarget.name, label: "Save to PDF" },
+              ]}
+              onValueChange={(val) => setSelectedPrinter(String(val))}
             >
-              {printers.map((p) => (
-                <option key={p.name} value={p.name}>
-                  {p.name}
-                </option>
-              ))}
-              <option value={pdfTarget.name}>Save to PDF</option>
-            </select>
-          </label>
+              <SelectTrigger size="lg" aria-label="Printer" className="mt-1 w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {printers.map((p) => (
+                  <SelectItem key={p.name} value={p.name}>
+                    {p.name}
+                  </SelectItem>
+                ))}
+                <SelectItem value={pdfTarget.name}>Save to PDF</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           {isPdf ? (
             <label className="block">
               <span className="text-adw-label-secondary">PDF Path</span>

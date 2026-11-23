@@ -117,7 +117,8 @@ function SelectContent({
         align={align}
         alignOffset={alignOffset}
         alignItemWithTrigger={alignItemWithTrigger}
-        className="isolate z-[400]"
+        // Above portal dialogs (z-800) so selects work inside them; below the lock screen.
+        className="isolate z-[850]"
       >
         <SelectPrimitive.Popup
           data-slot="select-content"
