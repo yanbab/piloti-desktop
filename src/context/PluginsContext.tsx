@@ -30,7 +30,15 @@ import type {
   PilotiPluginContext,
   PluginCommandEntry,
   PluginWallpaperEntry,
+  PluginWindowInfo,
 } from "@/lib/plugins/types";
+import type { DesktopWindowInstance } from "@/context/WindowsContext";
+import {
+  addWindowMenuItem,
+  getWindowPresentation,
+  getWorkArea,
+  setWindowPresentation,
+} from "@/lib/shell/window-presentation";
 
 interface PluginsContextValue {
   plugins: DiscoveredPlugin[];
@@ -47,6 +55,36 @@ interface PluginsContextValue {
 }
 
 const PluginsContext = React.createContext<PluginsContextValue | null>(null);
+
+function listPluginWindows(raw: unknown[] | undefined): PluginWindowInfo[] {
+  return ((raw ?? []) as DesktopWindowInstance[]).map((w) => ({
+    id: w.id,
+    appId: w.appId,
+    title: w.title,
+    workspace: w.workspace,
+    position: { ...w.position },
+    size: { ...w.size },
+    minimized: w.minimized,
+    maximized: w.maximized,
+  }));
+}
+
+/** Wraps a plugin predicate so a throwing plugin cannot break a menu. */
+function guardPluginCallback(
+  pluginId: string,
+  fn: ((windowId: string) => boolean) | undefined,
+  fallback: boolean
+): ((windowId: string) => boolean) | undefined {
+  if (!fn) return undefined;
+  return (windowId) => {
+    try {
+      return Boolean(fn(windowId));
+    } catch (err) {
+      console.error(`[plugin ${pluginId}] window menu callback failed`, err);
+      return fallback;
+    }
+  };
+}
 
 const PLUGIN_STORAGE_PREFIX = "piloti.plugin.storage.v1.";
 
@@ -199,6 +237,7 @@ export function PluginsProvider({
 
   const buildPluginContext = React.useCallback(
     (pluginId: string, disposables: Array<() => void>): PilotiPluginContext => {
+      const presentedIds = new Set<string>();
       return {
         pluginId,
         menubar: {
@@ -294,6 +333,46 @@ export function PluginsProvider({
           openWebUrl: (url, title) =>
             shellActionsRef.current.openWebUrl(url, title ? { title } : undefined),
           launchApp: (appId) => shellActionsRef.current.launchApp(appId),
+          list: () => listPluginWindows(shellActionsRef.current.getWindows?.()),
+          get: (windowId) =>
+            listPluginWindows(shellActionsRef.current.getWindows?.()).find(
+              (w) => w.id === windowId
+            ),
+          focus: (windowId) => shellActionsRef.current.focusWindow(windowId),
+          getWorkArea,
+          getPresentation: getWindowPresentation,
+          setPresentation: (windowId, presentation) => {
+            if (presentation && !presentedIds.has(windowId)) {
+              presentedIds.add(windowId);
+              if (presentedIds.size === 1) {
+                // Restore every window this plugin presented when it stops.
+                disposables.push(() => {
+                  for (const id of presentedIds) setWindowPresentation(id, null);
+                  presentedIds.clear();
+                });
+              }
+            } else if (!presentation) {
+              presentedIds.delete(windowId);
+            }
+            setWindowPresentation(windowId, presentation);
+          },
+          addMenuItem: (item) => {
+            const remove = addWindowMenuItem({
+              ...item,
+              id: `${pluginId}:${item.id}`,
+              checked: guardPluginCallback(pluginId, item.checked, false),
+              visible: guardPluginCallback(pluginId, item.visible, true),
+              onSelect: (windowId) => {
+                try {
+                  item.onSelect(windowId);
+                } catch (err) {
+                  console.error(`[plugin ${pluginId}] window menu item failed`, err);
+                }
+              },
+            });
+            disposables.push(remove);
+            return remove;
+          },
         },
         notifications: {
           push: (opts) =>

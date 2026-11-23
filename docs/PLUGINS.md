@@ -136,7 +136,8 @@ Keep the surface small and aligned with existing contexts in `src/context/Deskto
 | `ctx.menubar` | `addStatusItem({ id, label, icon?, tooltip?, menu?, onClick? })` -> `{ update, remove }` | `MenuBar.tsx` / `SystemTray.tsx` |
 | `ctx.launcher` | `registerProvider({ id, search(query), onSelect(item) })` | `Launcher.tsx` |
 | `ctx.commands` | `register({ id, title, shortcut?, run })` | `WindowsContext` / `Launcher` |
-| `ctx.windows` | `openWebUrl(url, title?)`, `launchApp(appId)` | `useWindowManager()` |
+| `ctx.windows` | `openWebUrl(url, title?)`, `launchApp(appId)`, `list()`, `get(id)`, `focus(id)` | `useWindowManager()` |
+| `ctx.windows` (window manager) | `getWorkArea()`, `setPresentation(id, { x, y, width, above?, interactive?, animate?, onPointerDown?, onDoubleClick? } \| null)`, `getPresentation(id)`, `addMenuItem({ id, label, checked?, visible?, onSelect })` -> remove | `window-presentation.ts` / `WindowManager.tsx` |
 | `ctx.notifications` | `push({ summary, body?, urgency? })` | `useNotifications()` |
 | `ctx.storage` | `get(key)`, `set(key, value)` (namespaced per plugin ID) | `storage-cache.ts` |
 | `ctx.system` | Optional gated access to `readFile`, `spawn` (declared in `manifest.json` `permissions`) | `domicile.files` / `domicile.process` |
@@ -171,4 +172,14 @@ Keep the surface small and aligned with existing contexts in `src/context/Deskto
    - **`Launcher.tsx`**: Query `launcherProviders` alongside XDG apps, web apps, and files.
 4. **Management UI**:
    - Add a simple **Plugins** section (in `SettingsApp` or `AppStoreApp`) listing discovered plugins with an enable/disable `Switch`, reload button, and any load error message.
+
+---
+
+## Window manager plugins
+
+`ctx.windows.setPresentation` shows a window scaled and moved, the way the overview does, without changing its real geometry: clearing it puts the window back exactly where it was. Coordinates are in the work area (`ctx.windows.getWorkArea()`, the rectangle a maximized window fills). With `interactive: false`, an overlay takes the pointer and forwards `onPointerDown` / `onDoubleClick` to the plugin; `above: true` keeps the window over the others. Presentations a plugin set are cleared when it is disabled, and the shell drops those of closed windows.
+
+`ctx.windows.addMenuItem` adds an entry to the window menus (the ⋮ button and the titlebar right-click menu), with an optional check mark.
+
+The bundled **Picture in Picture** plugin (`~/.config/piloti/plugins/picture-in-picture/`) uses both: its window menu entry shrinks the window into a corner of the work area and keeps it on top; drag it to another corner, double-click to restore.
 

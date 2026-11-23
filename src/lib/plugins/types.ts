@@ -1,4 +1,23 @@
 import type { Domicile } from "@domicile-desktop/sdk/desktop/desktop";
+import type {
+  WindowMenuItem,
+  WindowPresentation,
+  WorkArea,
+} from "@/lib/shell/window-presentation";
+
+export type { WindowMenuItem, WindowPresentation, WorkArea };
+
+/** A window as plugins see it (geometry in work-area coordinates). */
+export interface PluginWindowInfo {
+  id: string;
+  appId: string;
+  title: string;
+  workspace: number;
+  position: { x: number; y: number };
+  size: { width: number; height: number };
+  minimized: boolean;
+  maximized: boolean;
+}
 
 export interface PluginCommandManifest {
   id: string;
@@ -134,6 +153,16 @@ export interface PilotiPluginContext {
   windows: {
     openWebUrl: (url: string, title?: string) => void;
     launchApp: (appId: string) => void;
+    list: () => PluginWindowInfo[];
+    get: (windowId: string) => PluginWindowInfo | undefined;
+    focus: (windowId: string) => void;
+    /** Usable area (what a maximized window fills). */
+    getWorkArea: () => WorkArea;
+    /** Show a window scaled and moved, without changing its geometry. */
+    setPresentation: (windowId: string, presentation: WindowPresentation | null) => void;
+    getPresentation: (windowId: string) => WindowPresentation | undefined;
+    /** Add an entry to the window menus (⋮ button and titlebar right-click). */
+    addMenuItem: (item: WindowMenuItem) => () => void;
   };
   notifications: {
     push: (opts: { summary: string; body?: string; urgency?: "low" | "normal" | "critical" }) => void;

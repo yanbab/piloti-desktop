@@ -39,6 +39,14 @@ import {
   type LaunchOriginRect,
 } from "@/lib/shell/launch-origin";
 import { computeOverviewWindowLayouts } from "@/lib/shell/overview-layout";
+import {
+  getWindowMenuItems,
+  getWindowPresentations,
+  presentationTransform,
+  pruneWindowPresentations,
+  setWorkArea,
+  subscribeWindowPresentation,
+} from "@/lib/shell/window-presentation";
 import { CalculatorApp } from "@/components/apps/CalculatorApp";
 import { CameraApp } from "@/components/apps/CameraApp";
 const ConsoleApp = React.lazy(() =>
@@ -1835,6 +1843,46 @@ export function WindowManager() {
 
   const workspaceStageRef = React.useRef<HTMLDivElement | null>(null);
 
+  // Plugin presentations (Picture-in-Picture…): scaled like the overview,
+  // without changing the window's real geometry.
+  const windowPresentations = React.useSyncExternalStore(
+    subscribeWindowPresentation,
+    getWindowPresentations,
+    getWindowPresentations,
+  );
+  const pluginWindowMenuItems = React.useSyncExternalStore(
+    subscribeWindowPresentation,
+    getWindowMenuItems,
+    getWindowMenuItems,
+  );
+  const [stageSize, setStageSize] = React.useState({ width: 0, height: 0 });
+  React.useEffect(() => {
+    const stage = workspaceStageRef.current;
+    if (!stage) return;
+    const update = () =>
+      setStageSize({ width: stage.clientWidth, height: stage.clientHeight });
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(stage);
+    return () => observer.disconnect();
+  }, []);
+  // Same rectangle a maximized window fills.
+  const workArea = React.useMemo(
+    () => ({
+      x: leftDockClearance,
+      y: 0,
+      width: Math.max(0, stageSize.width - leftDockClearance - rightDockClearance),
+      height: Math.max(0, stageSize.height - bottomDockClearance),
+    }),
+    [stageSize, leftDockClearance, rightDockClearance, bottomDockClearance],
+  );
+  React.useEffect(() => {
+    setWorkArea(workArea);
+  }, [workArea]);
+  React.useEffect(() => {
+    pruneWindowPresentations(new Set(windows.map((w) => w.id)));
+  }, [windows]);
+
   React.useEffect(() => {
     let cleanupTimer = 0;
     const onZoomFromThumb = (e: Event) => {
@@ -1963,6 +2011,17 @@ export function WindowManager() {
             overviewOpen && isActiveWorkspace
               ? overviewLayouts?.get(win.id)
               : undefined;
+          const presentation = ovLayout
+            ? undefined
+            : windowPresentations.get(win.id);
+          const presented = presentation
+            ? presentationTransform(
+                win.maximized
+                  ? { x: workArea.x, y: workArea.y, width: workArea.width }
+                  : { x: win.position.x, y: win.position.y, width: win.size.width },
+                presentation,
+              )
+            : undefined;
 
           return (
             <Window
@@ -1993,7 +2052,7 @@ export function WindowManager() {
               minSize={win.minSize}
               maxSize={win.maxSize}
               draggable
-              resizable={win.appId !== "calculator"}
+              resizable={win.appId !== "calculator" && !presentation}
               bounds="parent"
               inactive={!isFocused}
               minimized={overviewOpen ? false : win.minimized}
@@ -2054,13 +2113,17 @@ export function WindowManager() {
                 position: "absolute",
                 top: 0,
                 left: 0,
-                zIndex: win.zIndex,
+                zIndex: presentation?.above ? 100000 + win.zIndex : win.zIndex,
                 transformOrigin: "top left",
                 transform: ovLayout
                   ? `translate(${ovLayout.dx}px, ${ovLayout.dy}px) scale(${ovLayout.scale})`
-                  : "translate3d(0px, 0px, 0px) scale(1)",
+                  : presented
+                    ? `translate(${presented.dx}px, ${presented.dy}px) scale(${presented.scale})`
+                    : "translate3d(0px, 0px, 0px) scale(1)",
                 transition:
-                  "transform 350ms cubic-bezier(0.22, 1, 0.36, 1), opacity 350ms cubic-bezier(0.22, 1, 0.36, 1)",
+                  presentation?.animate === false
+                    ? "none"
+                    : "transform 350ms cubic-bezier(0.22, 1, 0.36, 1), opacity 350ms cubic-bezier(0.22, 1, 0.36, 1)",
               }}
               className={cn(
                 "contain-[layout_style] outline-none",
@@ -2095,6 +2158,23 @@ export function WindowManager() {
                       <WindowControls side="right" />
                     </div>
                   </WindowTitlebar>
+                )}
+
+                {/* Non-interactive presentation: the presenter gets the pointer */}
+                {presentation && presentation.interactive === false && (
+                  <div
+                    data-slot="window-presentation-overlay"
+                    className="absolute inset-0 z-50 cursor-default"
+                    onPointerDown={(e) => {
+                      e.stopPropagation();
+                      presentation.onPointerDown?.(e.nativeEvent);
+                    }}
+                    onDoubleClick={(e) => {
+                      e.stopPropagation();
+                      presentation.onDoubleClick?.(e.nativeEvent);
+                    }}
+                    onContextMenu={(e) => e.preventDefault()}
+                  />
                 )}
 
                 {/* Silent Alt / Super + Drag Full-Window Grab Overlay */}
@@ -2216,6 +2296,26 @@ export function WindowManager() {
               >
                 {_("Tile Right")}
               </button>
+              {pluginWindowMenuItems
+                .filter((item) => item.visible?.(ctxWin.id) ?? true)
+                .map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    role="menuitemcheckbox"
+                    aria-checked={item.checked?.(ctxWin.id) ?? false}
+                    onClick={() => {
+                      setWindowContextMenu(null);
+                      item.onSelect(ctxWin.id);
+                    }}
+                    className={cn(itemCls, "gap-3")}
+                  >
+                    {item.label}
+                    {item.checked?.(ctxWin.id) && (
+                      <span aria-hidden className="ml-auto">✓</span>
+                    )}
+                  </button>
+                ))}
               <div className="my-1 h-px bg-adw-separator" />
               <button
                 type="button"

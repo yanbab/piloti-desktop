@@ -14,6 +14,10 @@ import {
   useWindowManagerSelector,
 } from "@/context/DesktopStateContext";
 import { _ } from "@/lib/core/i18n";
+import {
+  getWindowMenuItems,
+  subscribeWindowPresentation,
+} from "@/lib/shell/window-presentation";
 
 export function isWindowControlsLeft(layout?: string): boolean {
   const raw = (layout ?? ":close").trim();
@@ -45,6 +49,11 @@ export const WindowMenuButton = React.memo(function WindowMenuButton({
     return found ? { maximized: found.maximized } : undefined;
   });
   const [open, setOpen] = React.useState(false);
+  const pluginItems = React.useSyncExternalStore(
+    subscribeWindowPresentation,
+    getWindowMenuItems,
+    getWindowMenuItems,
+  );
 
   if (!settings.showWindowMenu) {
     return null;
@@ -91,6 +100,25 @@ export const WindowMenuButton = React.memo(function WindowMenuButton({
             <DropdownMenuItem onClick={() => tileWindow(windowId, "right")}>
               {_("Tile Right")}
             </DropdownMenuItem>
+            {pluginItems
+              .filter((item) => item.visible?.(windowId) ?? true)
+              .map((item) => (
+                <DropdownMenuItem
+                  key={item.id}
+                  role="menuitemcheckbox"
+                  aria-checked={item.checked?.(windowId) ?? false}
+                  className="gap-3"
+                  onClick={() => {
+                    setOpen(false);
+                    item.onSelect(windowId);
+                  }}
+                >
+                  {item.label}
+                  {item.checked?.(windowId) && (
+                    <span aria-hidden className="ml-auto">✓</span>
+                  )}
+                </DropdownMenuItem>
+              ))}
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => closeWindow(windowId)}>
               {_("Close")}

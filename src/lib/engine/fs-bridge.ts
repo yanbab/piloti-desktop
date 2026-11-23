@@ -32,11 +32,11 @@ import {
   serializeRecentlyUsedXbel,
   upsertRecentXbelItem,
 } from "@/lib/xdg/xdg-recents";
-import { lookupXdgThumbnailDataUrl } from "@/lib/xdg/xdg-thumbnails";
+import { createFileService, type FileService } from "@/lib/core/file-service";
+import { createNativeFileStore, toDomicilePath } from "@/lib/engine-native/native-file-store";
 import { isSimulatedUsbPath } from "@/lib/engine-web/usb-drive";
 
 const RECENTLY_USED_XBEL_PATH = `${WEB_VFS_HOME}/.local/share/recently-used.xbel`;
-const THUMBNAIL_EXT_RE = /\.(png|jpe?g|webp|gif|bmp|avif|pdf|mp4|mkv|webm|mov)$/i;
 
 export {
   buildVfsEntryWebAppUrl,
@@ -59,17 +59,21 @@ export {
   type WebVfsEntry,
 } from "@/lib/engine-web/web-vfs";
 
-/**
- * Converts a normalized `/home/user/...` VFS path into a `$HOME`-relative path
- * suitable for `domicile.files` (which resolves relative paths against `$HOME`).
- */
-export function toDomicilePath(vfsPath: string): string {
-  const norm = normalizeVfsPath(vfsPath);
-  if (norm === WEB_VFS_HOME) return ".";
-  if (norm.startsWith(`${WEB_VFS_HOME}/`)) {
-    return norm.slice(WEB_VFS_HOME.length + 1);
-  }
-  return norm;
+export { toDomicilePath };
+
+/** The file operations for the current engine: the demo VFS alone, or the VFS cache over `domicile.files`. */
+function fileServiceFor(domicile: Domicile, isBrowserRuntime: boolean): FileService {
+  return createFileService({
+    store: isBrowserRuntime ? null : createNativeFileStore(domicile),
+    cacheOnly: isSimulatedUsbPath,
+    cache: {
+      getVfsEntry,
+      listVfsDir,
+      writeVfsTextFile,
+      createVfsFolder,
+      createVfsTextFile,
+    },
+  });
 }
 
 /**
@@ -81,101 +85,7 @@ export async function listFsDir(
   isBrowserRuntime: boolean,
   dirPath: string,
 ): Promise<WebVfsEntry[]> {
-  const normDir = normalizeVfsPath(dirPath);
-  if (isBrowserRuntime || isSimulatedUsbPath(normDir)) {
-    return listVfsDir(normDir);
-  }
-  try {
-    const target = toDomicilePath(normDir);
-    const res = await domicile.files.readDir(target);
-    const rawEntries = res.match({
-      Ok: (list) => list,
-      Err: () => undefined,
-    });
-    if (!rawEntries) {
-      return listVfsDir(normDir);
-    }
-    const now = Date.now();
-    const canStat = typeof domicile.files.stat === "function";
-    return await Promise.all(
-      rawEntries.map(async (item): Promise<WebVfsEntry> => {
-        const entryPath = `${normDir === "/" ? "" : normDir}/${item.name}`;
-        const cached = getVfsEntry(entryPath);
-        const isSymlink = item.fileType === 2;
-        let kind: "directory" | "file" = item.fileType === 1 ? "directory" : "file";
-        let symlinkTarget: string | undefined;
-        let size = cached?.size;
-        let updatedAt = cached?.updatedAt ?? now;
-        let realPath: string | undefined;
-        if ((kind === "file" || isSymlink) && canStat) {
-          try {
-            const statRes = await domicile.files.stat(toDomicilePath(entryPath));
-            statRes.match({
-              Ok: (st) => {
-                if (isSymlink) {
-                  if (st.fileType === 1) kind = "directory";
-                  if (typeof st.realPath === "string" && st.realPath.startsWith("/")) {
-                    symlinkTarget = st.realPath;
-                  }
-                }
-                size = st.size;
-                if (typeof st.modifiedMs === "number") {
-                  updatedAt = st.modifiedMs;
-                }
-                if (typeof st.realPath === "string" && st.realPath.startsWith("/")) {
-                  realPath = st.realPath;
-                }
-              },
-              Err: () => {},
-            });
-          } catch {
-            // Ignore stat errors for broken symlinks or restricted nodes
-          }
-        }
-        let metadata = cached?.metadata;
-        if (
-          kind === "file" &&
-          realPath &&
-          !metadata?.["metadata::thumbnail"] &&
-          THUMBNAIL_EXT_RE.test(item.name)
-        ) {
-          const thumb = await lookupXdgThumbnailDataUrl(domicile, realPath);
-          if (thumb) {
-            metadata = { ...(metadata ?? {}), "metadata::thumbnail": thumb };
-          }
-        }
-        let content = cached?.content;
-        if (kind === "file" && item.name === ".hidden") {
-          try {
-            const textRes = await domicile.files.readText(toDomicilePath(entryPath));
-            textRes.match({
-              Ok: (t) => {
-                content = t;
-                writeVfsTextFile(entryPath, t);
-              },
-              Err: () => {},
-            });
-          } catch {
-            // ignore .hidden read errors
-          }
-        }
-        return {
-          id: entryPath,
-          name: item.name,
-          kind,
-          path: entryPath,
-          parentPath: normDir,
-          content,
-          size,
-          updatedAt,
-          metadata,
-          ...(isSymlink ? { isSymlink: true, symlinkTarget } : {}),
-        };
-      }),
-    );
-  } catch {
-    return listVfsDir(normDir);
-  }
+  return fileServiceFor(domicile, isBrowserRuntime).listDir(dirPath);
 }
 
 /**
@@ -186,26 +96,7 @@ export async function readFsTextFile(
   isBrowserRuntime: boolean,
   filePath: string,
 ): Promise<string> {
-  const norm = normalizeVfsPath(filePath);
-  if (isBrowserRuntime || isSimulatedUsbPath(norm)) {
-    const entry = getVfsEntry(norm);
-    return entry?.kind === "file" ? (entry.content ?? "") : "";
-  }
-  try {
-    const res = await domicile.files.readText(toDomicilePath(norm));
-    const text = res.match({
-      Ok: (t) => t,
-      Err: () => undefined,
-    });
-    if (text !== undefined) {
-      writeVfsTextFile(norm, text);
-      return text;
-    }
-  } catch {
-    // fall back to VFS cache
-  }
-  const entry = getVfsEntry(norm);
-  return entry?.kind === "file" ? (entry.content ?? "") : "";
+  return fileServiceFor(domicile, isBrowserRuntime).readText(filePath);
 }
 
 /**
@@ -217,13 +108,7 @@ export function writeFsTextFile(
   filePath: string,
   content: string,
 ): WebVfsEntry | null {
-  const norm = normalizeVfsPath(filePath);
-  const updated = writeVfsTextFile(norm, content);
-  if (!isBrowserRuntime && !isSimulatedUsbPath(norm)) {
-    const bytes = new TextEncoder().encode(content);
-    void domicile.files.write(toDomicilePath(norm), bytes);
-  }
-  return updated;
+  return fileServiceFor(domicile, isBrowserRuntime).writeText(filePath, content);
 }
 
 /**
@@ -235,11 +120,7 @@ export function createFsFolder(
   dirPath: string,
   baseName?: string,
 ): WebVfsEntry {
-  const created = createVfsFolder(dirPath, baseName);
-  if (!isBrowserRuntime && !isSimulatedUsbPath(created.path)) {
-    void domicile.files.createDir(toDomicilePath(created.path));
-  }
-  return created;
+  return fileServiceFor(domicile, isBrowserRuntime).createFolder(dirPath, baseName);
 }
 
 /**
@@ -252,12 +133,7 @@ export function createFsTextFile(
   baseName?: string,
   content = "",
 ): WebVfsEntry {
-  const created = createVfsTextFile(dirPath, baseName, content);
-  if (!isBrowserRuntime && !isSimulatedUsbPath(created.path)) {
-    const bytes = new TextEncoder().encode(content);
-    void domicile.files.write(toDomicilePath(created.path), bytes);
-  }
-  return created;
+  return fileServiceFor(domicile, isBrowserRuntime).createTextFile(dirPath, baseName, content);
 }
 
 /**

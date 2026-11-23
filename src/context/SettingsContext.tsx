@@ -250,7 +250,7 @@ const DEFAULT_SETTINGS: DesktopSettings = {
   demoExtensionEnabled: true,
   pinnedExtensionIds: [],
   darkReaderWebEnabled: false,
-  enabledPluginIds: ["aurora-drift", "app-indicator"],
+  enabledPluginIds: ["aurora-drift", "app-indicator", "picture-in-picture"],
   computerModel:
     typeof navigator !== "undefined" &&
       /mac/i.test(navigator.platform || navigator.userAgent || "")

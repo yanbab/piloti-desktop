@@ -1,0 +1,7 @@
+{
+  "id": "picture-in-picture",
+  "name": "Picture in Picture",
+  "version": "1.0.0",
+  "description": "Adds Picture in Picture to the window menu: the window shrinks to a corner and stays on top.",
+  "script": "index.js"
+}
