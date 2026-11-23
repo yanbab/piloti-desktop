@@ -264,9 +264,9 @@ export function SettingsApp({
             )}
           >
             <div className="flex min-w-0 items-center gap-1.5" data-window-no-drag>
-              {/* pl-4: 9px titlebar + 16px = the grouped form's 15px inset + 10px
-                  group radius, so it lines up with the section titles below. */}
-              <h2 className="truncate pr-2 pl-4 text-[13px] font-bold text-adw-label">
+              {/* pl-[21px]: 9px titlebar + 21px = the grouped form's 20px inset +
+                  10px row inset, so it lines up with the section titles below. */}
+              <h2 className="truncate pr-2 pl-[21px] text-[13px] font-bold text-adw-label">
                 {currentPaneMeta ? _(currentPaneMeta.label) : ""}
               </h2>
             </div>

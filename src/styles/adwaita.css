@@ -596,24 +596,30 @@ aside [data-slot="window-titlebar"],
  * Matches `Adwaita Demo -> Boxed Lists` pixel-for-pixel.
  */
 [data-slot="grouped-form"] {
-  /* Compact, left-aligned grouped form (macOS Ventura density, Adwaita look).
-     Groups sit 15px in; the headerbar title and section titles start one
-     group radius (10px) further in, so all titles share one vertical line. */
-  --grouped-form-inset: 15px;
-  --grouped-form-radius: 10px;
-  max-width: 660px;
+  /* Compact, left-aligned grouped form, measured on macOS Ventura Settings:
+     20px page inset, 8px group radius, 10px row inset. The headerbar title,
+     section titles and row labels all start 10px inside the group edge. */
+  --grouped-form-inset: 20px;
+  --grouped-form-radius: 8px;
+  --grouped-form-row-inset: 10px;
+  --grouped-form-separator: rgb(0 0 0 / 0.08);
+  max-width: 680px;
   width: 100%;
   margin-inline: 0;
   padding: 12px var(--grouped-form-inset) 24px;
   gap: 0;
 }
 
+.dark [data-slot="grouped-form"] {
+  --grouped-form-separator: rgb(255 255 255 / 0.08);
+}
+
 [data-slot="grouped-form-section"] {
-  gap: 6px;
+  gap: 8px;
 }
 
 [data-slot="grouped-form-section"]:not(:first-child) {
-  margin-top: 18px;
+  margin-top: 24px;
 }
 
 /* The page title already names the first section. */
@@ -622,7 +628,7 @@ aside [data-slot="window-titlebar"],
 }
 
 [data-slot="grouped-form-section-title"] {
-  padding-inline: var(--grouped-form-radius);
+  padding-inline: var(--grouped-form-row-inset);
   font-size: calc(13px * var(--piloti-font-scale, 1));
   font-weight: var(--piloti-font-weight-bold, 700);
   letter-spacing: -0.005em;
@@ -634,24 +640,37 @@ aside [data-slot="window-titlebar"],
   border-radius: var(--grouped-form-radius);
   overflow: hidden;
   background-color: var(--adw-group);
-  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.08), 0 0 0 1px rgb(0 0 0 / 0.07);
+  box-shadow: 0 1px 1px 0 rgb(0 0 0 / 0.05), 0 0 0 1px rgb(0 0 0 / 0.08);
+}
+
+.dark [data-slot="grouped-form-group"] {
+  box-shadow: 0 0 0 1px rgb(255 255 255 / 0.09);
 }
 
 [data-slot="grouped-form-row"] {
-  padding-inline: 10px;
+  position: relative;
+  padding-inline: var(--grouped-form-row-inset);
   /* 28px controls (the max) + 4px + 4px = 36px, the same as switch rows. */
   min-height: 36px;
   padding-block: 4px;
   gap: 12px;
-  border-color: rgb(0 0 0 / 0.07);
+  border-top-width: 0;
+}
+
+/* Separators stop at the row inset on both sides, like macOS. */
+[data-slot="grouped-form-row"]:not(:first-child)::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: var(--grouped-form-row-inset);
+  right: var(--grouped-form-row-inset);
+  height: 1px;
+  background: var(--grouped-form-separator);
+  pointer-events: none;
 }
 
 [data-slot="grouped-form-row"]:has([data-slot="grouped-form-row-description"]) {
   padding-block: 6px;
-}
-
-.dark [data-slot="grouped-form-row"] {
-  border-color: rgb(255 255 255 / 0.065);
 }
 
 [data-slot="grouped-form-row-title"] {
