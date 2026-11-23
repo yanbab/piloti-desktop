@@ -598,8 +598,10 @@ aside [data-slot="window-titlebar"],
 [data-slot="grouped-form"] {
   max-width: 660px;
   width: 100%;
-  margin-inline: auto;
-  padding: 20px 28px 32px;
+  /* Left-aligned, with the same inset as the headerbar title (9px bar + 8px
+     title padding), so page title, section titles and groups share one edge. */
+  margin-inline: 0;
+  padding: 20px 17px 32px;
   gap: 6px;
 }
 
@@ -608,7 +610,7 @@ aside [data-slot="window-titlebar"],
 }
 
 [data-slot="grouped-form-section-title"] {
-  padding-inline: 2px;
+  padding-inline: 0;
   font-size: calc(14px * var(--piloti-font-scale, 1));
   font-weight: var(--piloti-font-weight-semibold, 500);
   letter-spacing: -0.005em;
