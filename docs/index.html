@@ -108,6 +108,17 @@
     .hero-logo { width: 88px; height: 88px; margin: 0 auto 20px; filter: drop-shadow(0 10px 22px rgba(0,0,0,.25)); }
     h1 { font-size: clamp(40px, 7vw, 68px); line-height: 1.05; letter-spacing: -0.03em; margin: 0 0 14px; font-weight: 800; }
     .lead { font-size: clamp(18px, 2.4vw, 22px); color: var(--fg-dim); margin: 0 auto 30px; max-width: 34ch; }
+    .alpha {
+      display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600;
+      padding: 5px 12px 5px 6px; border-radius: 999px; margin-bottom: 18px;
+      background: color-mix(in srgb, var(--card) 85%, transparent); color: var(--fg);
+      box-shadow: inset 0 0 0 1px var(--border);
+    }
+    .alpha b, .alpha-mini {
+      font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase;
+      padding: 2px 8px; border-radius: 999px; background: #e5a50a; color: #2a1d00;
+    }
+    .alpha-mini { margin-left: 2px; font-size: 10px; padding: 1px 6px; }
     .ctas { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-bottom: 56px; }
     .shot {
       position: relative; z-index: 1; margin: 0 auto -1px; max-width: 1000px;
@@ -226,7 +237,7 @@
 <body>
   <header>
     <div class="wrap bar">
-      <a class="brand" href="#"><img src="./assets/piloti-icon.svg" alt="" />Piloti</a>
+      <a class="brand" href="#"><img src="./assets/piloti-icon.svg" alt="" />Piloti<span class="alpha-mini">Alpha</span></a>
       <nav class="nav">
         <a class="opt" href="#design">Design</a>
         <a class="opt" href="#tech">Tech</a>
@@ -244,6 +255,7 @@
     <div class="hero">
       <div class="wrap">
         <img class="hero-logo" src="./assets/piloti-icon.svg" alt="Piloti Desktop icon" width="88" height="88" />
+        <div class="alpha"><b>Alpha</b>Early preview. Not ready for daily use.</div>
         <h1>Piloti Desktop</h1>
         <p class="lead">A Linux desktop. Built with the web. Runs on Wayland.</p>
         <div class="ctas">
@@ -470,7 +482,7 @@ sudo apt install ./dist/piloti-desktop_*_all.deb</pre>
 
   <footer>
     <div class="wrap">
-      <span>Piloti Desktop · Built with Domicile</span>
+      <span>Piloti Desktop 0.10 · Alpha · Built with Domicile</span>
       <span><a href="https://github.com/yanbab/piloti-desktop" target="_blank" rel="noopener">GitHub</a></span>
     </div>
   </footer>
