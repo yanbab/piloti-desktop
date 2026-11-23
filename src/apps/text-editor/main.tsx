@@ -15,7 +15,7 @@ const OPEN_FILE = ".cache/piloti/text-editor-open";
 
 const App = ({ host, path }: { host: TextEditorHost; path: string | null }) => (
   <TextEditorHostProvider value={host}>
-    <TextEditorApp initialPath={path ?? undefined} windowId="" isCsd={false} leadingInset={96} />
+    <TextEditorApp initialPath={path ?? undefined} windowId="" isCsd={false} leadingInset={96} trailingInset={110} />
   </TextEditorHostProvider>
 );
 

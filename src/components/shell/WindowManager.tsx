@@ -302,13 +302,22 @@ function AppModuleSurface({
           className="block h-full w-full bg-adw-window"
         />
         {isCsd && (
-          <div
-            className="absolute top-0 left-0 z-10 flex items-center gap-1.5 pl-2.5"
-            style={{ height: drag.height }}
-            data-window-no-drag
-          >
-            <WindowControls side="left" />
-          </div>
+          <>
+            <div
+              className="absolute top-0 left-0 z-10 flex items-center gap-1.5 pl-2.5"
+              style={{ height: drag.height }}
+              data-window-no-drag
+            >
+              <WindowControls side="left" />
+            </div>
+            <div
+              className="absolute top-0 right-0 z-10 flex items-center gap-1.5 pr-2.5"
+              style={{ height: drag.height }}
+              data-window-no-drag
+            >
+              <WindowControls side="right" />
+            </div>
+          </>
         )}
         <div
           data-window-drag-region=""

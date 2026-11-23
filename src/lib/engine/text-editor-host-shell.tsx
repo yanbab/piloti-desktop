@@ -29,6 +29,7 @@ export function createInShellEditorHost(
   return {
     nativeFs: !isBrowserRuntime,
     normalizePath: normalizeVfsPath,
+    defaultNewFilePath: (name) => `/home/user/Desktop/${name}`,
     peekFile: (path) => getVfsEntry(path),
     watchFile: (path, listener) =>
       subscribeWebVfs(() => listener(), { path, mode: "exact" }),

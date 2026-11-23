@@ -9,7 +9,7 @@ export interface AppModuleDef {
   dir: string;
   /** The module draws its own header; the shell adds only controls + drag strip. */
   csd: boolean;
-  /** Pixels reserved by the module's header: shell controls on the left, module buttons on the right. */
+  /** Pixels reserved by the module's header: shell controls at the edges (whichever side the button layout uses), module buttons next to them. */
   drag?: { left: number; right: number; height: number };
 }
 
@@ -21,7 +21,7 @@ export const APP_MODULES: readonly AppModuleDef[] = [
     id: "text-editor",
     dir: `${APPS_ROOT}/text-editor`,
     csd: true,
-    drag: { left: 96, right: 330, height: 36 },
+    drag: { left: 96, right: 200, height: 36 },
   },
 ];
 

@@ -57,6 +57,8 @@ import { cn } from "@/lib/core/utils";
 export interface TextEditorAppProps {
   /** Left padding (px) for the header, to leave room for shell-drawn window controls. */
   leadingInset?: number;
+  /** Right padding (px) for the header, to leave room for shell-drawn window controls. */
+  trailingInset?: number;
   initialPath?: string;
   windowId?: string;
   isCsd?: boolean;
@@ -280,6 +282,7 @@ const adwEditorTheme = EditorView.theme({
 
 export const TextEditorApp: React.FC<TextEditorAppProps> = ({
   leadingInset = 0,
+  trailingInset = 0,
   initialPath,
   windowId = "",
   isCsd: propIsCsd = true,
@@ -730,7 +733,7 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
 
   const handleSave = React.useCallback(async () => {
     const targetPath =
-      filePathRef.current ?? "/home/user/Desktop/Untitled.txt";
+      filePathRef.current ?? host.defaultNewFilePath("Untitled.txt");
     if (!filePathRef.current) {
       filePathRef.current = targetPath;
       setFilePath(targetPath);
@@ -1050,7 +1053,11 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
       {/* Headerbar */}
       <WindowTitlebar
         data-window-drag-region={bridge.isCsd ? "" : undefined}
-        style={leadingInset ? { paddingLeft: leadingInset } : undefined}
+        style={
+          leadingInset || trailingInset
+            ? { paddingLeft: leadingInset || undefined, paddingRight: trailingInset || undefined }
+            : undefined
+        }
         className={cn(
           "h-9 shrink-0 justify-between border-b border-adw-separator bg-adw-titlebar px-2.5 select-none",
           !bridge.isCsd && "rounded-t-none",

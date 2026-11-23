@@ -14,6 +14,8 @@ export interface TextEditorHost {
   /** True when files live on the real filesystem (not the browser demo VFS). */
   nativeFs: boolean;
   normalizePath(path: string): string;
+  /** Where an unsaved document goes on first save (the user's Desktop). */
+  defaultNewFilePath(name: string): string;
   /** Cached file content/metadata, if the host has it locally. */
   peekFile(path: string): { kind?: string; content?: string; metadata?: Record<string, unknown> } | undefined;
   /** Calls `listener` when this one file changes. */

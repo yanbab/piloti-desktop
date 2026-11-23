@@ -42,6 +42,11 @@ export async function createDomicileEditorHost(files: Files, initialPath: string
     }
   }
 
+  // Real Desktop folder from ~/.config/user-dirs.dirs (e.g. "Bureau"), else "Desktop".
+  const userDirs = await readText(files, ".config/user-dirs.dirs");
+  const desktopMatch = userDirs && /^XDG_DESKTOP_DIR="?\$HOME\/([^"\n]+)"?/m.exec(userDirs);
+  const desktopDir = desktopMatch ? desktopMatch[1]!.replace(/\/+$/, "") : "Desktop";
+
   const notepad = notepadRaw ? parseIniText(notepadRaw) : {};
   const general = generalRaw ? parseIniText(generalRaw) : {};
   const settings = settingsRaw ? parseIniText(settingsRaw) : {};
@@ -61,6 +66,7 @@ export async function createDomicileEditorHost(files: Files, initialPath: string
   const host: TextEditorHost = {
     nativeFs: true,
     normalizePath: (p) => p.replace(/\/+/g, "/"),
+    defaultNewFilePath: (name) => `${desktopDir}/${name}`,
     peekFile: (p) => {
       const c = fileCache.get(toReal(p));
       return c === undefined ? undefined : { kind: "file", content: c };
