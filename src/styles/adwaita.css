@@ -534,13 +534,13 @@ aside [data-slot="window-titlebar"],
 }
 
 /*
- * Compact switch (macOS-like density, Adwaita look):
- * 36x20px pill track with a 16x16px circular knob and 2px inset.
+ * Adwaita GtkSwitch / AdwSwitchRow Proportions:
+ * 44x24px pill track with an 18x18px circular knob and 3px inset.
  */
 [data-slot="switch"] {
-  width: 36px !important;
-  height: 20px !important;
-  padding-inline: 2px !important;
+  width: 44px !important;
+  height: 24px !important;
+  padding-inline: 3px !important;
   border-radius: 9999px !important;
 }
 
@@ -557,8 +557,8 @@ aside [data-slot="window-titlebar"],
 }
 
 [data-slot="switch-thumb"] {
-  width: 16px !important;
-  height: 16px !important;
+  width: 18px !important;
+  height: 18px !important;
   border-radius: 9999px !important;
   box-shadow: 0 1px 2px rgb(0 0 0 / 0.25) !important;
 }
@@ -570,7 +570,7 @@ aside [data-slot="window-titlebar"],
 
 [data-slot="switch-thumb"][data-checked] {
   background-color: #ffffff !important;
-  translate: 16px 0 !important;
+  translate: 20px 0 !important;
 }
 
 /*
@@ -596,93 +596,63 @@ aside [data-slot="window-titlebar"],
  * Matches `Adwaita Demo -> Boxed Lists` pixel-for-pixel.
  */
 [data-slot="grouped-form"] {
-  /* Compact, left-aligned grouped form, measured on macOS Ventura Settings:
-     20px page inset, 8px group radius, 10px row inset. The headerbar title,
-     section titles and row labels all start 10px inside the group edge. */
-  --grouped-form-inset: 20px;
-  --grouped-form-radius: 8px;
-  --grouped-form-row-inset: 10px;
-  --grouped-form-separator: rgb(0 0 0 / 0.08);
-  max-width: 680px;
+  max-width: 660px;
   width: 100%;
-  margin-inline: 0;
-  padding: 12px var(--grouped-form-inset) 24px;
-  gap: 0;
-}
-
-.dark [data-slot="grouped-form"] {
-  --grouped-form-separator: rgb(255 255 255 / 0.08);
+  margin-inline: auto;
+  padding: 20px 28px 32px;
+  gap: 6px;
 }
 
 [data-slot="grouped-form-section"] {
   gap: 8px;
 }
 
-[data-slot="grouped-form-section"]:not(:first-child) {
-  margin-top: 24px;
-}
-
-/* The page title already names the first section. */
-[data-slot="grouped-form-section"]:first-child > [data-slot="grouped-form-section-title"] {
-  display: none;
-}
-
 [data-slot="grouped-form-section-title"] {
-  padding-inline: var(--grouped-form-row-inset);
-  font-size: calc(13px * var(--piloti-font-scale, 1));
-  font-weight: var(--piloti-font-weight-bold, 700);
+  padding-inline: 2px;
+  font-size: calc(14px * var(--piloti-font-scale, 1));
+  font-weight: var(--piloti-font-weight-semibold, 500);
   letter-spacing: -0.005em;
   color: var(--adw-label);
 }
 
 [data-slot="grouped-form-group"] {
   padding-inline: 0;
-  border-radius: var(--grouped-form-radius);
+  border-radius: 12px;
   overflow: hidden;
   background-color: var(--adw-group);
-  box-shadow: 0 1px 1px 0 rgb(0 0 0 / 0.05), 0 0 0 1px rgb(0 0 0 / 0.08);
-}
-
-.dark [data-slot="grouped-form-group"] {
-  box-shadow: 0 0 0 1px rgb(255 255 255 / 0.09);
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.08), 0 0 0 1px rgb(0 0 0 / 0.07);
 }
 
 [data-slot="grouped-form-row"] {
-  position: relative;
-  padding-inline: var(--grouped-form-row-inset);
-  /* 28px controls (the max) + 4px + 4px = 36px, the same as switch rows. */
-  min-height: 36px;
-  padding-block: 4px;
-  gap: 12px;
-  border-top-width: 0;
+  padding-inline: 16px;
+  min-height: 52px;
+  padding-block: 10px;
+  border-color: rgb(0 0 0 / 0.07);
 }
 
-/* Separators stop at the row inset on both sides, like macOS. */
-[data-slot="grouped-form-row"]:not(:first-child)::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: var(--grouped-form-row-inset);
-  right: var(--grouped-form-row-inset);
-  height: 1px;
-  background: var(--grouped-form-separator);
-  pointer-events: none;
-}
-
-[data-slot="grouped-form-row"]:has([data-slot="grouped-form-row-description"]) {
-  padding-block: 6px;
+.dark [data-slot="grouped-form-row"] {
+  border-color: rgb(255 255 255 / 0.065);
 }
 
 [data-slot="grouped-form-row-title"] {
-  font-size: calc(13px * var(--piloti-font-scale, 1));
+  font-size: calc(14px * var(--piloti-font-scale, 1));
   font-weight: var(--piloti-font-weight, 400);
   line-height: 1.3;
 }
 
 [data-slot="grouped-form-row-description"] {
-  font-size: calc(11px * var(--piloti-font-scale, 1));
+  font-size: calc(12px * var(--piloti-font-scale, 1));
   line-height: 1.35;
   color: var(--adw-label-secondary);
+}
+
+/* Adwaita Select / ComboRow Trigger */
+[data-slot="select-trigger"] {
+  height: 32px !important;
+  border-radius: 8px !important;
+  padding-inline: 10px 8px !important;
+  font-size: calc(13.5px * var(--piloti-font-scale, 1)) !important;
+  background-color: var(--adw-control) !important;
 }
 
 /*

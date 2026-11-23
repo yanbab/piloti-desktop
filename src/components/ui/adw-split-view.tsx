@@ -236,9 +236,10 @@ export function AdwSplitView({
 
         <TooltipProvider delay={450}>
           <nav
+            data-slot="sidebar-nav"
             onScroll={(e) => setSidebarScrolled(e.currentTarget.scrollTop > 2)}
             className={cn(
-              "flex min-h-0 flex-1 flex-col gap-0 pb-2 px-2.5",
+              "flex min-h-0 flex-1 flex-col gap-0.5 pb-2 px-[9px]",
               showCompact
                 ? "overflow-hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
                 : "overflow-y-auto",
@@ -253,16 +254,24 @@ export function AdwSplitView({
                     type="button"
                     aria-label={item.ariaLabel ?? item.label}
                     data-sidebar-item={item.id}
+                    data-slot="sidebar-item"
+                    data-selected={item.selected ? "" : undefined}
                     data-vfs-drop-path={item.dropPath}
                     onClick={item.onClick}
                     className={cn(
-                      // macOS sidebar metrics: 28px rows, 6px radius, 8px icon gap.
-                      "flex h-7 items-center rounded-[6px] text-left text-[13px] transition-colors outline-none",
+                      "flex items-center rounded-[9px] text-left transition-colors outline-none",
                       showCompact
-                        ? "w-full shrink-0 justify-center gap-0 px-0"
+                        ? "w-full shrink-0 justify-center px-0"
                         : item.trailingAction
-                          ? "min-w-0 flex-1 gap-2 px-2 pr-7"
-                          : "w-full shrink-0 gap-2 px-2",
+                          ? "min-w-0 flex-1 px-1.5 pr-7"
+                          : "w-full shrink-0 px-1.5",
+                      tall
+                        ? showCompact
+                          ? "gap-0 py-2 text-[14px]"
+                          : "gap-3 py-2 text-[14px]"
+                        : showCompact
+                          ? "gap-0 py-1.5 text-[13px]"
+                          : "gap-2.5 py-1.5 text-[13px]",
                       !item.trailingAction &&
                         (item.selected
                           ? "bg-adw-accent font-medium text-white shadow-xs"
@@ -299,8 +308,10 @@ export function AdwSplitView({
 
                 const itemNode = item.trailingAction && !showCompact ? (
                   <div
+                    data-slot="sidebar-item-group"
+                    data-selected={item.selected ? "" : undefined}
                     className={cn(
-                      "relative flex w-full shrink-0 items-center rounded-[6px] transition-colors",
+                      "relative flex w-full shrink-0 items-center rounded-[9px] transition-colors",
                       item.selected
                         ? "bg-adw-accent font-medium text-white shadow-xs"
                         : "font-normal text-adw-label/85 hover:bg-black/5 dark:hover:bg-white/6",
@@ -344,7 +355,10 @@ export function AdwSplitView({
                         side="right"
                         sideOffset={-36}
                         className={cn(
-                          "pointer-events-none h-7 gap-2 rounded-[6px] border border-adw-separator px-2 text-[13px] shadow-md",
+                          "pointer-events-none rounded-[9px] border border-adw-separator px-2.5 shadow-md",
+                          tall
+                            ? "h-[37px] gap-3 py-2 text-[14px]"
+                            : "h-[32px] gap-2.5 py-1.5 text-[13px]",
                           item.selected
                             ? "bg-adw-accent font-medium text-white shadow-xs"
                             : "bg-adw-sidebar font-normal text-adw-label",
@@ -367,7 +381,7 @@ export function AdwSplitView({
                 <>
                   {regularItems.map(renderItem)}
                   {bottomItems.length > 0 && (
-                    <div className="mt-auto flex flex-col gap-0 border-t border-adw-separator/60 pt-1.5">
+                    <div className="mt-auto flex flex-col gap-0.5 border-t border-adw-separator/60 pt-1.5">
                       {bottomItems.map(renderItem)}
                     </div>
                   )}

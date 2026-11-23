@@ -2,6 +2,7 @@
 @import "tw-animate-css";
 @import "./adwaita.css";
 @import "./piloti.css";
+@import "./piloti-macos.css";
 
 @layer base {
   html,

@@ -13,33 +13,36 @@ export interface AccentColorOption {
   id: AccentColorId;
   label: string;
   cssVar: string;
-  /** The bright macOS swatch value (sent to apps, dynamic wallpapers). */
+  /** The Piloti (Cupertino UI / macOS) light value of `cssVar`, from
+   *  piloti-macos.css. Sent to apps and dynamic wallpapers. */
   hex: string;
-  /** The value `cssVar` resolves to (`--adw-*` in adwaita.css): the UI accent
-   *  of selections and sidebar items. Accent-tinted icons use this one. */
-  uiHex: string;
+  /** The Adwaita (GNOME) value of `cssVar`, from adwaita.css. */
+  adwaitaHex: string;
 }
 
 export const ACCENT_COLORS: AccentColorOption[] = [
-  { id: "blue", label: "Blue", cssVar: "var(--adw-blue)", hex: "#007aff", uiHex: "#3584e4" },
-  { id: "purple", label: "Purple", cssVar: "var(--adw-purple)", hex: "#af52de", uiHex: "#9141ac" },
-  { id: "pink", label: "Pink", cssVar: "var(--adw-pink)", hex: "#ff2d55", uiHex: "#d56199" },
-  { id: "red", label: "Red", cssVar: "var(--adw-red)", hex: "#ff3b30", uiHex: "#e62d42" },
-  { id: "orange", label: "Orange", cssVar: "var(--adw-orange)", hex: "#ff9500", uiHex: "#ed5b00" },
-  { id: "yellow", label: "Yellow", cssVar: "var(--adw-yellow)", hex: "#ffcc00", uiHex: "#c88800" },
-  { id: "green", label: "Green", cssVar: "var(--adw-green)", hex: "#28cd41", uiHex: "#3a944a" },
-  { id: "graphite", label: "Graphite", cssVar: "var(--adw-gray)", hex: "#8e8e93", uiHex: "#6f8396" },
+  { id: "blue", label: "Blue", cssVar: "var(--adw-blue)", hex: "#0088ff", adwaitaHex: "#3584e4" },
+  { id: "purple", label: "Purple", cssVar: "var(--adw-purple)", hex: "#cb30e0", adwaitaHex: "#9141ac" },
+  { id: "pink", label: "Pink", cssVar: "var(--adw-pink)", hex: "#ff2d55", adwaitaHex: "#d56199" },
+  { id: "red", label: "Red", cssVar: "var(--adw-red)", hex: "#ff383c", adwaitaHex: "#e62d42" },
+  { id: "orange", label: "Orange", cssVar: "var(--adw-orange)", hex: "#ff8d28", adwaitaHex: "#ed5b00" },
+  { id: "yellow", label: "Yellow", cssVar: "var(--adw-yellow)", hex: "#ffcc00", adwaitaHex: "#c88800" },
+  { id: "green", label: "Green", cssVar: "var(--adw-green)", hex: "#34c759", adwaitaHex: "#3a944a" },
+  { id: "graphite", label: "Graphite", cssVar: "var(--adw-gray)", hex: "#8e8e93", adwaitaHex: "#6f8396" },
 ];
 
-/** The UI accent hex for the current settings: a custom hex as is, otherwise
- *  the preset's Adwaita value (what `--adw-accent` resolves to). */
+/** The accent hex the UI uses (selections, sidebar items, tinted icons):
+ *  a custom hex as is, otherwise the preset's value for the interface theme
+ *  (what `--adw-accent` resolves to: Cupertino UI for Piloti, GNOME for Adwaita). */
 export function resolveUiAccentHex(
   accentColor: string | undefined,
-  customAccentHex?: string
+  customAccentHex?: string,
+  interfaceTheme?: string
 ): string {
   const custom = customAccentHex?.trim();
   if (custom && /^#[0-9a-fA-F]{6}$/.test(custom)) return custom;
-  return ACCENT_COLORS.find((c) => c.id === accentColor)?.uiHex ?? "#3584e4";
+  const accent = ACCENT_COLORS.find((c) => c.id === accentColor) ?? ACCENT_COLORS[0];
+  return interfaceTheme === "adwaita" ? accent.adwaitaHex : accent.hex;
 }
 
 export interface WallpaperOption {
@@ -291,7 +294,7 @@ export const APP_CATALOG: AppDefinition[] = [
     description: "Desktop Console, live logs, inspector, and JS REPL",
     category: "Development",
     iconName: "code",
-    xdgIcons: ["piloti-console", "piloti-desktop", "utilities-terminal"],
+    xdgIcons: ["piloti-console", "piloti-desktop"],
     gradient: "from-indigo-700 via-slate-800 to-zinc-950",
     pinnedByDefault: true,
     builtinComponent: "console",

@@ -915,8 +915,13 @@ export function useAppsValue(
   // Icons use the UI accent (same shade as selections and sidebar items),
   // not the brighter swatch hex.
   const activeAccentHex = React.useMemo(
-    () => resolveUiAccentHex(settings.accentColor, settings.customAccentHex),
-    [settings.accentColor, settings.customAccentHex]
+    () =>
+      resolveUiAccentHex(
+        settings.accentColor,
+        settings.customAccentHex,
+        settings.interfaceTheme
+      ),
+    [settings.accentColor, settings.customAccentHex, settings.interfaceTheme]
   );
 
   const shouldTintAppOrMimeIcon = React.useCallback(

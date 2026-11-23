@@ -1,0 +1,336 @@
+/*
+ * Piloti Interface Theme — macOS Ventura look, on top of Adwaita.
+ *
+ * Plain and compact; solid surfaces (vibrancy only in sidebars, from
+ * piloti.css); no hover fills; Cupertino UI tokens and macOS system colors.
+ *
+ * Every rule is scoped to `[data-interface-theme="piloti"]`, so the Adwaita
+ * interface theme keeps the GNOME look from adwaita.css untouched.
+ */
+
+/* ── Tokens from Cupertino UI (cupertino-ui.com/themes, macos.css) ───────── */
+/* Piloti's components come from Cupertino UI; these are its `--mac-*` values
+   mapped onto the `--adw-*` tokens. Redefining the named palette makes the
+   accent (`--adw-active-accent: var(--adw-green)` …), selections and status
+   colors follow macOS. Translucent materials are made solid here; only the
+   sidebar keeps the vibrant material. */
+
+:root[data-interface-theme="piloti"] {
+  /* System colors */
+  --adw-blue: #0088ff;
+  --adw-indigo: #6155f5;
+  --adw-purple: #cb30e0;
+  --adw-pink: #ff2d55;
+  --adw-red: #ff383c;
+  --adw-orange: #ff8d28;
+  --adw-yellow: #ffcc00;
+  --adw-green: #34c759;
+  --adw-mint: #00c8b3;
+  --adw-teal: #00c3d0;
+  --adw-cyan: #00c0e8;
+  --adw-gray: #8e8e93;
+  --adw-brown: #ac7f5e;
+  --adw-link: #0068da;
+
+  /* Labels and fills */
+  --adw-label: rgb(0 0 0 / 0.85);
+  --adw-label-secondary: rgb(0 0 0 / 0.5);
+  --adw-label-tertiary: rgb(0 0 0 / 0.26);
+  --adw-label-quaternary: rgb(0 0 0 / 0.1);
+  --adw-label-quinary: rgb(0 0 0 / 0.05);
+  --adw-fill-primary: rgb(0 0 0 / 0.1);
+  --adw-fill-secondary: rgb(0 0 0 / 0.08);
+  --adw-fill-tertiary: rgb(0 0 0 / 0.05);
+  --adw-fill-quaternary: rgb(0 0 0 / 0.03);
+  --adw-fill-quinary: rgb(0 0 0 / 0.008);
+  --adw-control: rgb(0 0 0 / 0.08);
+  --adw-control-pressed: rgb(0 0 0 / 0.16);
+  --adw-control-disabled: rgb(0 0 0 / 0.04);
+  --adw-field: #ffffff;
+  --adw-field-border: rgb(0 0 0 / 0.08);
+  --adw-separator: rgb(0 0 0 / 0.05);
+  --adw-grid: rgb(0 0 0 / 0.1);
+  --adw-border: rgb(0 0 0 / 0.1);
+  --adw-material-border: rgb(0 0 0 / 0.1);
+
+  /* Surfaces (solid) */
+  --adw-window: #ffffff;
+  --adw-content: #ffffff;
+  --adw-content-alternate: rgb(0 0 0 / 0.05);
+  --adw-group: #f8f8f8;
+  --adw-titlebar: #ffffff;
+
+  /* Radii */
+  --adw-radius-control: 6px;
+  --adw-radius-menu: 13px;
+  --adw-radius-item: 8px;
+  --adw-radius-group: 12px;
+  --adw-radius-popover: 20px;
+  --adw-radius-alert: 34px;
+  --adw-radius-window: 16px;
+}
+
+:root[data-interface-theme="piloti"].dark {
+  --adw-blue: #0091ff;
+  --adw-indigo: #6d7cff;
+  --adw-purple: #db34f2;
+  --adw-pink: #ff375f;
+  --adw-red: #ff4245;
+  --adw-orange: #ff9230;
+  --adw-yellow: #ffd600;
+  --adw-green: #30d158;
+  --adw-mint: #00dac3;
+  --adw-teal: #00d2e0;
+  --adw-cyan: #3cd3fe;
+  --adw-gray: #98989d;
+  --adw-brown: #b78a66;
+  --adw-link: #419cff;
+
+  --adw-label: rgb(255 255 255 / 0.85);
+  --adw-label-secondary: rgb(255 255 255 / 0.55);
+  --adw-label-tertiary: rgb(255 255 255 / 0.25);
+  --adw-label-quaternary: rgb(255 255 255 / 0.1);
+  --adw-label-quinary: rgb(255 255 255 / 0.05);
+  --adw-fill-primary: rgb(255 255 255 / 0.1);
+  --adw-fill-secondary: rgb(255 255 255 / 0.08);
+  --adw-fill-tertiary: rgb(255 255 255 / 0.05);
+  --adw-fill-quaternary: rgb(255 255 255 / 0.03);
+  --adw-fill-quinary: rgb(255 255 255 / 0.008);
+  --adw-control: rgb(255 255 255 / 0.08);
+  --adw-control-pressed: rgb(255 255 255 / 0.16);
+  --adw-control-disabled: rgb(255 255 255 / 0.04);
+  --adw-field: #1e1e1e;
+  --adw-field-border: rgb(255 255 255 / 0.04);
+  --adw-separator: rgb(255 255 255 / 0.05);
+  --adw-grid: rgb(255 255 255 / 0.1);
+  --adw-border: rgb(255 255 255 / 0.1);
+  --adw-material-border: rgb(255 255 255 / 0.15);
+
+  --adw-window: #1e1f20;
+  --adw-content: #1e2023;
+  --adw-content-alternate: rgb(255 255 255 / 0.05);
+  --adw-group: #252627;
+  --adw-titlebar: #232528;
+}
+
+/* ── Solid surfaces: only sidebars keep the vibrant material ───────────── */
+
+:root[data-interface-theme="piloti"][data-more-transparency="true"]:not([data-high-contrast="true"]) {
+  /* Cupertino UI sidebar material (vibrant, used by piloti.css). */
+  --piloti-surface: rgb(233 239 245 / 0.86);
+  --adw-material-menu: #f4f4f6;
+  --adw-material-popover: #f6f6f6;
+  --adw-material-hud: #f6f6f6;
+  --adw-material-dock: #f4f4f6;
+  --adw-material-tooltip: #f6f6f6;
+}
+
+:root[data-interface-theme="piloti"].dark[data-more-transparency="true"]:not([data-high-contrast="true"]) {
+  --piloti-surface: rgb(41 44 50 / 0.9);
+  --adw-material-menu: #2b2e34;
+  --adw-material-popover: #242424;
+  --adw-material-hud: #1e1e1e;
+  --adw-material-dock: #2b2e34;
+  --adw-material-tooltip: #1c1c1e;
+}
+
+:root[data-interface-theme="piloti"][data-more-transparency="true"]:not([data-high-contrast="true"]) .adw-material-menu,
+:root[data-interface-theme="piloti"][data-more-transparency="true"]:not([data-high-contrast="true"]) .adw-material-popover,
+:root[data-interface-theme="piloti"][data-more-transparency="true"]:not([data-high-contrast="true"]) .adw-material-hud,
+:root[data-interface-theme="piloti"][data-more-transparency="true"]:not([data-high-contrast="true"]) .adw-material-dock {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+:root[data-interface-theme="piloti"][data-more-transparency="true"]:not([data-high-contrast="true"]) .adw-material-menu {
+  background-color: var(--adw-material-menu);
+}
+
+:root[data-interface-theme="piloti"][data-more-transparency="true"]:not([data-high-contrast="true"]) .adw-material-popover {
+  background-color: var(--adw-material-popover);
+}
+
+:root[data-interface-theme="piloti"][data-more-transparency="true"]:not([data-high-contrast="true"]) .adw-material-hud {
+  background-color: var(--adw-material-hud);
+}
+
+:root[data-interface-theme="piloti"][data-more-transparency="true"]:not([data-high-contrast="true"]) .adw-material-dock {
+  background-color: var(--adw-material-dock);
+}
+
+/* ── Settings grouped form (measured on macOS Ventura System Settings) ─── */
+/* 20px page inset, 8px group radius, 10px row inset, 36px rows; the page
+   title, section titles and row labels start 10px inside the group edge. */
+
+:root[data-interface-theme="piloti"] [data-slot="grouped-form"] {
+  --grouped-form-inset: 20px;
+  --grouped-form-radius: var(--adw-radius-group);
+  --grouped-form-row-inset: 10px;
+  --grouped-form-separator: rgb(0 0 0 / 0.08);
+  max-width: 680px;
+  margin-inline: 0;
+  padding: 12px var(--grouped-form-inset) 24px;
+  gap: 0;
+}
+
+:root[data-interface-theme="piloti"].dark [data-slot="grouped-form"] {
+  --grouped-form-separator: rgb(255 255 255 / 0.08);
+}
+
+:root[data-interface-theme="piloti"] [data-slot="grouped-form-section"] {
+  gap: 8px;
+}
+
+:root[data-interface-theme="piloti"] [data-slot="grouped-form-section"]:not(:first-child) {
+  margin-top: 24px;
+}
+
+/* The page title already names the first section. */
+:root[data-interface-theme="piloti"] [data-slot="grouped-form-section"]:first-child > [data-slot="grouped-form-section-title"] {
+  display: none;
+}
+
+:root[data-interface-theme="piloti"] [data-slot="grouped-form-section-title"] {
+  padding-inline: var(--grouped-form-row-inset);
+  font-size: calc(13px * var(--piloti-font-scale, 1));
+  font-weight: var(--piloti-font-weight-bold, 700);
+}
+
+:root[data-interface-theme="piloti"] [data-slot="grouped-form-group"] {
+  border-radius: var(--grouped-form-radius);
+  box-shadow: 0 1px 1px 0 rgb(0 0 0 / 0.05), 0 0 0 1px rgb(0 0 0 / 0.08);
+}
+
+:root[data-interface-theme="piloti"].dark [data-slot="grouped-form-group"] {
+  box-shadow: 0 0 0 1px rgb(255 255 255 / 0.09);
+}
+
+:root[data-interface-theme="piloti"] [data-slot="grouped-form-row"] {
+  position: relative;
+  padding-inline: var(--grouped-form-row-inset);
+  /* 28px controls (the max) + 4px + 4px. */
+  min-height: 36px;
+  padding-block: 4px;
+  gap: 12px;
+  border-top-width: 0;
+}
+
+/* Separators stop at the row inset on both sides, like macOS. */
+:root[data-interface-theme="piloti"] [data-slot="grouped-form-row"]:not(:first-child)::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: var(--grouped-form-row-inset);
+  right: var(--grouped-form-row-inset);
+  height: 1px;
+  background: var(--grouped-form-separator);
+  pointer-events: none;
+}
+
+:root[data-interface-theme="piloti"] [data-slot="grouped-form-row"]:has([data-slot="grouped-form-row-description"]) {
+  padding-block: 6px;
+}
+
+:root[data-interface-theme="piloti"] [data-slot="grouped-form-row-title"] {
+  font-size: calc(13px * var(--piloti-font-scale, 1));
+}
+
+:root[data-interface-theme="piloti"] [data-slot="grouped-form-row-description"] {
+  font-size: calc(11px * var(--piloti-font-scale, 1));
+}
+
+/* Headerbar page title in Settings: on the same line as the section titles
+   (9px bar + 21px = 20px form inset + 10px row inset). */
+:root[data-interface-theme="piloti"] [data-slot="settings-page-title"] {
+  padding-left: 21px;
+  font-size: calc(13px * var(--piloti-font-scale, 1));
+  font-weight: var(--piloti-font-weight-bold, 700);
+}
+
+/* Settings › Security app list rows. */
+:root[data-interface-theme="piloti"] [data-slot="settings-list-row"] {
+  padding: 6px 10px;
+}
+
+/* ── Controls: nothing taller than 28px ─────────────────────────────────── */
+
+/* Switch: 36x20 track, 16px knob. */
+:root[data-interface-theme="piloti"] [data-slot="switch"] {
+  width: 36px !important;
+  height: 20px !important;
+  padding-inline: 2px !important;
+}
+
+:root[data-interface-theme="piloti"] [data-slot="switch-thumb"] {
+  width: 16px !important;
+  height: 16px !important;
+}
+
+:root[data-interface-theme="piloti"] [data-slot="switch-thumb"][data-checked] {
+  translate: 16px 0 !important;
+}
+
+/* Popup button: plain text + chevrons, like the font pickers. */
+:root[data-interface-theme="piloti"] [data-slot="select-trigger"] {
+  height: 28px !important;
+  padding-inline: 10px !important;
+  border-radius: 8px !important;
+  font-size: calc(13px * var(--piloti-font-scale, 1)) !important;
+  background-color: transparent !important;
+}
+
+:root[data-interface-theme="piloti"] [data-slot="select-trigger"][data-popup-open] {
+  background-color: rgb(0 0 0 / 0.08) !important;
+}
+
+:root[data-interface-theme="piloti"].dark [data-slot="select-trigger"][data-popup-open] {
+  background-color: rgb(255 255 255 / 0.12) !important;
+}
+
+/* Segmented control: 28px total (2px + 24px items + 2px). */
+:root[data-interface-theme="piloti"] [data-slot="segmented"] {
+  gap: 2px;
+  padding: 2px;
+  border-radius: 8px;
+}
+
+:root[data-interface-theme="piloti"] [data-slot="segmented-item"] {
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding-block: 0;
+}
+
+/* ── Sidebar (28px items, item radius, 8px icon gap, 10px inset) ────────── */
+
+:root[data-interface-theme="piloti"] [data-slot="sidebar-nav"] {
+  gap: 0;
+  padding-inline: 10px;
+}
+
+:root[data-interface-theme="piloti"] [data-slot="sidebar-item"] {
+  height: 28px;
+  padding-block: 0;
+  padding-inline: 8px;
+  gap: 8px;
+  border-radius: var(--adw-radius-item);
+  font-size: calc(13px * var(--piloti-font-scale, 1));
+}
+
+:root[data-interface-theme="piloti"] [data-slot="sidebar-item-group"] {
+  border-radius: var(--adw-radius-item);
+}
+
+/* ── No hover fills (macOS highlights only on press and selection) ──────── */
+
+:root[data-interface-theme="piloti"] [data-slot="sidebar-item"]:not([data-selected]):hover,
+:root[data-interface-theme="piloti"] [data-slot="sidebar-item-group"]:not([data-selected]):hover,
+:root[data-interface-theme="piloti"] [data-slot="sidebar-item-group"] [data-slot="sidebar-item"]:hover,
+:root[data-interface-theme="piloti"] button[data-slot="grouped-form-row"]:not([aria-expanded="true"]):hover,
+:root[data-interface-theme="piloti"] [data-slot="settings-list-row"]:not([aria-expanded="true"]):hover {
+  background-color: transparent;
+}
+
+:root[data-interface-theme="piloti"] [data-slot="select-trigger"]:not([data-popup-open]):hover {
+  background-color: transparent !important;
+}
