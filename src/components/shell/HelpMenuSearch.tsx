@@ -47,7 +47,7 @@ export function HelpMenuSearch({
       className="flex flex-col"
       onPointerMove={(e) => e.stopPropagation()}
     >
-      <label className="mx-[2px] mb-1 flex h-[30px] items-center gap-2 rounded-[8px] bg-black/6 px-2.5 focus-within:ring-2 focus-within:ring-adw-accent/50 dark:bg-white/10">
+      <label className="mx-[2px] mb-1 flex h-[30px] items-center gap-2 rounded-[8px] bg-black/6 px-2.5 dark:bg-white/10">
         <SearchIcon className="size-3.5 shrink-0 text-adw-label-secondary" />
         <input
           ref={inputRef}
@@ -55,8 +55,8 @@ export function HelpMenuSearch({
           value={query}
           spellCheck={false}
           autoComplete="off"
-          aria-label={_("Search menus")}
-          placeholder={_("Search menus")}
+          aria-label={_("Search commands")}
+          placeholder={_("Search commands")}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Escape" && query) {
