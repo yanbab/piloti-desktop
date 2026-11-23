@@ -12,9 +12,12 @@ import {
   BatteryLowIcon,
   BellIcon,
   BellOffIcon,
+  BluetoothIcon,
+  BluetoothOffIcon,
   ChevronDownIcon,
   ChevronRightIcon,
   LayersIcon,
+  LeafIcon,
   PauseIcon,
   PlayIcon,
   SearchIcon,
@@ -1313,10 +1316,21 @@ export const MenuBar = React.memo(function MenuBar() {
                 ) : (
                   <WifiOffIcon className="size-4 text-adw-label/45 dark:text-white/45" />
                 )}
+                {settings.bluetoothEnabled ? (
+                  <BluetoothIcon className="size-4" />
+                ) : (
+                  <BluetoothOffIcon className="size-4 text-adw-label/45 dark:text-white/45" />
+                )}
                 {settings.muted || settings.volume === 0 ? (
                   <VolumeXIcon className="size-4 text-adw-label/60 dark:text-white/60" />
                 ) : (
                   <Volume2Icon className="size-4" />
+                )}
+                {settings.powerMode === "power-saver" && (
+                  <LeafIcon
+                    className="size-4"
+                    aria-label={_("Power Saver")}
+                  />
                 )}
                 {batteryInfo.present && (
                   <span className="inline-flex items-center gap-1 text-adw-body tabular-nums">
