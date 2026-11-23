@@ -266,6 +266,25 @@ function AppModuleSurface({
   isCsd: boolean;
 }) {
   const windowCtx = useWindowContext();
+  const { setBrowserTitle, markWindowReady } = useWindowManager();
+  const viewRef = React.useRef<HTMLWebViewElement | null>(null);
+  React.useEffect(() => {
+    const view = viewRef.current;
+    if (!view || !win.browserWindowId) return;
+    const id = win.browserWindowId;
+    const sync = () => {
+      const t = view.title?.trim();
+      if (t && !t.startsWith("domicile://")) setBrowserTitle(id, t);
+      if (view.url && !view.loading) markWindowReady(win.id);
+    };
+    view.addEventListener(WEBVIEW_PAGE_CHANGE_EVENT, sync);
+    view.addEventListener(WEBVIEW_LOADING_CHANGE_EVENT, sync);
+    sync();
+    return () => {
+      view.removeEventListener(WEBVIEW_PAGE_CHANGE_EVENT, sync);
+      view.removeEventListener(WEBVIEW_LOADING_CHANGE_EVENT, sync);
+    };
+  }, [win.browserWindowId, win.id, setBrowserTitle, markWindowReady]);
   return (
     <div className="flex h-full w-full flex-1 flex-col overflow-hidden bg-adw-content">
       <WindowTitlebar
@@ -291,6 +310,7 @@ function AppModuleSurface({
         </div>
       </WindowTitlebar>
       <webview
+        ref={viewRef}
         window={win.browserWindowId}
         resizing={windowCtx?.resizing ? "" : undefined}
         className="block min-h-0 w-full flex-1 bg-adw-window"

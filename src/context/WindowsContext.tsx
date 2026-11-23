@@ -1055,7 +1055,9 @@ function pruneBrowserRecord(
       return [{
         id: `browser:${bw.id}`,
         appId: bw.appId || webAppMatch?.id || `webview:${bw.id}`,
-        title: isAppModule ? bw.title || bw.appId || resolvedTitle : resolvedTitle,
+        title: isAppModule
+          ? browserTitles[bw.id] || bw.title || bw.appId || resolvedTitle
+          : resolvedTitle,
         iconName: "globe",
         iconUrl: isAppModule
           ? (bw.appId ? getAppIconUrl(bw.appId) : undefined) ||

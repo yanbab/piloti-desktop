@@ -2,7 +2,7 @@
 Type=Application
 Name=App Module Test
 Comment=Spike: a Domicile app module running in its own document
-Exec=domicile open --app /usr/share/piloti-desktop/apps/hello/hello.js --id piloti-appmodule-test
+Exec=domicile open --app /usr/share/piloti-desktop/apps/hello/hello.js
 Icon=utilities-terminal
 Categories=Development;
 OnlyShowIn=Piloti;
