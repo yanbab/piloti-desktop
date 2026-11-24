@@ -371,6 +371,11 @@ function Window({
   // Zooming in and out morphs the window from its old frame to the new one.
   const lastRect = React.useRef<DOMRect | null>(null)
   const previousMaximized = React.useRef(maximized)
+  // Measure the old frame only when the zoom state flips (the DOM still shows it during this
+  // render). Reading it after every render forced a layout on each focus change.
+  if (element.current && previousMaximized.current !== maximized) {
+    lastRect.current = element.current.getBoundingClientRect()
+  }
   const maxDragPending = React.useRef<{
     pointerId: number
     startX: number
@@ -423,9 +428,6 @@ function Window({
       { duration: 380, easing: "cubic-bezier(0.25, 0.8, 0.3, 1)" }
     )
   }, [maximized])
-  React.useLayoutEffect(() => {
-    if (element.current) lastRect.current = element.current.getBoundingClientRect()
-  })
 
   const isResizing = resizing !== null
   const context = React.useMemo(
