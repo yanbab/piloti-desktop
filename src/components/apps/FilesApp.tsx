@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useCapabilities } from "@/hooks/use-capabilities";
 import { usePopupSurface } from "@/lib/shell/popup-layer";
 import { createPortal } from "react-dom";
 import { useDomicile } from "@domicile-desktop/react/domicile-provider";
@@ -317,12 +318,13 @@ export function FilesApp({
   windowId?: string;
 }) {
   const domicile = useDomicile();
-  const { isBrowserRuntime, settings } = useSettings();
+  const { settings } = useSettings();
+  const { realFilesystem } = useCapabilities();
   const { installedXdgApps, getAppIconUrl, ensureWaylandIcons, xdgUserDirs } = useApps();
   const desktopDirPath = React.useMemo(() => {
-    if (isBrowserRuntime) return `${WEB_VFS_HOME}/Desktop`;
+    if (!realFilesystem) return `${WEB_VFS_HOME}/Desktop`;
     return normalizeVfsPath(resolveUserDirPath("DESKTOP", xdgUserDirs, WEB_VFS_HOME));
-  }, [isBrowserRuntime, xdgUserDirs]);
+  }, [realFilesystem, xdgUserDirs]);
   const usbMounted = useSimulatedUsbMounted();
   const { windows, focusedWindowId } = useWindowManagerSelector((wm) => ({
     windows: wm.windows.map((w) => ({ appId: w.appId, payload: w.payload })),
@@ -439,7 +441,7 @@ export function FilesApp({
   }, [windows]);
 
   const reloadDir = React.useCallback(() => {
-    if (isBrowserRuntime) {
+    if (!realFilesystem) {
       setTemplates(listVfsTemplates());
     } else {
       void listFsTemplates(domicile).then((list) => {
@@ -452,7 +454,7 @@ export function FilesApp({
     }
     if (currentPath === WEB_VFS_FAVORITES_URI) {
       setVfsEntries(listVfsFavoriteEntries());
-      if (!isBrowserRuntime) {
+      if (realFilesystem) {
         void listFsFavoriteEntries(domicile).then((entries) => setVfsEntries(entries));
       }
       return;
@@ -464,18 +466,18 @@ export function FilesApp({
       });
       return;
     }
-    if (isBrowserRuntime) {
+    if (!realFilesystem) {
       setVfsEntries(listVfsDir(currentPath, { includeHidden: showHidden }));
       return;
     }
     void bridgeListFsDir(domicile, currentPath).then((entries) => {
       setVfsEntries(entries);
     });
-  }, [currentPath, domicile, isBrowserRuntime, showHidden]);
+  }, [currentPath, domicile, realFilesystem, showHidden]);
 
   React.useEffect(() => onFileUndoApplied(reloadDir), [reloadDir]);
 
-  const undoCtx = React.useMemo(() => ({ domicile }), [domicile, isBrowserRuntime]);
+  const undoCtx = React.useMemo(() => ({ domicile }), [domicile, realFilesystem]);
   const { undoLabel, redoLabel } = useFileUndoState();
 
   const handlePasteItems = React.useCallback(() => {
@@ -495,7 +497,7 @@ export function FilesApp({
       }
       reloadDir();
     })();
-  }, [currentPath, domicile, isBrowserRuntime, isTrashView, isVirtualView, reloadDir, undoCtx]);
+  }, [currentPath, domicile, realFilesystem, isTrashView, isVirtualView, reloadDir, undoCtx]);
 
   const handleDuplicateItems = React.useCallback(
     (list: readonly { path: string; id: string }[]) => {
@@ -517,7 +519,7 @@ export function FilesApp({
         if (createdIds.length > 0) setSelectedIds(createdIds);
       })();
     },
-    [currentPath, domicile, isBrowserRuntime, isTrashView, isVirtualView, reloadDir, undoCtx]
+    [currentPath, domicile, realFilesystem, isTrashView, isVirtualView, reloadDir, undoCtx]
   );
 
   const handleTrashItems = React.useCallback(
@@ -536,7 +538,7 @@ export function FilesApp({
       reloadDir();
       setSelectedIds((prev) => prev.filter((id) => !removedIds.has(id)));
     },
-    [domicile, isBrowserRuntime, isTrashView, reloadDir, undoCtx]
+    [domicile, realFilesystem, isTrashView, reloadDir, undoCtx]
   );
 
   const handleRestoreItems = React.useCallback(
@@ -1021,11 +1023,11 @@ export function FilesApp({
   const xdgPlaces = React.useMemo(
     () =>
       buildXdgPlaces((key) =>
-        isBrowserRuntime
+        !realFilesystem
           ? resolveUserDirPath(key, [], WEB_VFS_HOME)
           : resolveUserDirPath(key, xdgUserDirs, WEB_VFS_HOME)
       ),
-    [isBrowserRuntime, xdgUserDirs]
+    [realFilesystem, xdgUserDirs]
   );
 
   // Sidebar bookmarks: the same GTK file Nautilus and file choosers use.
@@ -1035,19 +1037,19 @@ export function FilesApp({
     void readFsTextFile(domicile, bookmarksFile).then((text) =>
       setBookmarks(parseGtkBookmarks(text)),
     );
-  }, [bookmarksFile, domicile, isBrowserRuntime]);
+  }, [bookmarksFile, domicile, realFilesystem]);
   React.useEffect(() => {
     loadBookmarks();
-    if (isBrowserRuntime) return subscribeVfsPath(bookmarksFile, loadBookmarks);
+    if (!realFilesystem) return subscribeVfsPath(bookmarksFile, loadBookmarks);
     return watchNativeDir(domicile.files, ".config/gtk-3.0", loadBookmarks);
-  }, [bookmarksFile, domicile, isBrowserRuntime, loadBookmarks]);
+  }, [bookmarksFile, domicile, realFilesystem, loadBookmarks]);
   const saveBookmarks = React.useCallback(
     async (next: GtkBookmark[]) => {
       setBookmarks(next);
-      if (!isBrowserRuntime) await domicile.files.createDir(".config/gtk-3.0").catch(() => undefined);
+      if (realFilesystem) await domicile.files.createDir(".config/gtk-3.0").catch(() => undefined);
       writeFsTextFile(domicile, bookmarksFile, serializeGtkBookmarks(next));
     },
-    [bookmarksFile, domicile, isBrowserRuntime],
+    [bookmarksFile, domicile, realFilesystem],
   );
   const bookmarkedPaths = React.useMemo(() => new Set(bookmarks.map((b) => b.path)), [bookmarks]);
   const toggleBookmark = React.useCallback(
@@ -1386,7 +1388,7 @@ export function FilesApp({
     },
     compressSelected: () => {
       if (
-        isBrowserRuntime &&
+        !realFilesystem &&
         selectedItems.length > 0 &&
         !isTrashView &&
         !isVirtualView
@@ -1424,7 +1426,7 @@ export function FilesApp({
       "files:copy": { disabled: !hasSel || isTrashView },
       "files:paste": { disabled: !hasClip || !canModifyDir },
       "files:duplicate": { disabled: !hasSel || !canModifyDir },
-      "files:compress": { disabled: !isBrowserRuntime || !hasSel || !canModifyDir },
+      "files:compress": { disabled: realFilesystem || !hasSel || !canModifyDir },
       "files:rename": { disabled: !hasSingleSel || !canModifyDir },
       "files:trash": { disabled: !hasSel },
       "files:go-up": { disabled: !canGoUp },
@@ -1448,7 +1450,7 @@ export function FilesApp({
     canGoUp,
     clipboard,
     infoPaneOpen,
-    isBrowserRuntime,
+    realFilesystem,
     isTrashView,
     isVirtualView,
     items.length,
@@ -1582,7 +1584,7 @@ export function FilesApp({
   }, [
     currentPath,
     domicile,
-    isBrowserRuntime,
+    realFilesystem,
     isTrashView,
     items.length,
     reloadDir,
@@ -2565,7 +2567,7 @@ export function FilesApp({
         }
         onDuplicate={handleDuplicateItems}
         onCompress={
-          isBrowserRuntime
+          !realFilesystem
             ? (list) => {
                 void compressVfsEntries(list.map((i) => i.path)).then((created) => {
                   if (created) reloadDir();
@@ -2574,7 +2576,7 @@ export function FilesApp({
             : undefined
         }
         onExtract={
-          isBrowserRuntime
+          !realFilesystem
             ? (target) => {
                 void extractVfsZip(target.path).then((folder) => {
                   if (folder) reloadDir();
@@ -2583,7 +2585,7 @@ export function FilesApp({
             : undefined
         }
         onDownload={
-          isBrowserRuntime ? (target) => downloadVfsFile(target.path) : undefined
+          !realFilesystem ? (target) => downloadVfsFile(target.path) : undefined
         }
         canPaste={Boolean(clipboard && clipboard.paths.length > 0)}
         onPaste={handlePasteItems}

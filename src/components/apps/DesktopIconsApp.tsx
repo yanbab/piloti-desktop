@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useCapabilities } from "@/hooks/use-capabilities";
 import { useOpenPath } from "@/hooks/use-open-path";
 import { copyFsEntry, moveFsEntry } from "@/lib/engine/fs-bridge";
 import {
@@ -83,7 +84,8 @@ export function DesktopIconsApp({
   bottomInset?: number;
 }) {
   const domicile = useDomicile();
-  const { isBrowserRuntime, settings, updateSettings } = useSettings();
+  const { settings, updateSettings } = useSettings();
+  const { realFilesystem } = useCapabilities();
   const { locked } = useSystemBackends();
   const {
     xdgUserDirs,
@@ -114,10 +116,10 @@ export function DesktopIconsApp({
   }, []);
 
   const desktopDirPath = React.useMemo(() => {
-    if (isBrowserRuntime) return `${WEB_VFS_HOME}/Desktop`;
+    if (!realFilesystem) return `${WEB_VFS_HOME}/Desktop`;
     const dir = xdgUserDirs.find((d) => d.key === "DESKTOP");
     return dir?.absolutePath ?? dir?.relativeHomePath ?? "Desktop";
-  }, [isBrowserRuntime, xdgUserDirs]);
+  }, [realFilesystem, xdgUserDirs]);
 
   const loadDesktopFolder = React.useCallback(async () => {
     if (!settings.desktopIconsEnabled) return;
@@ -125,7 +127,7 @@ export function DesktopIconsApp({
       ? startBootPhase("desktop icons")
       : null;
     try {
-      if (isBrowserRuntime) {
+      if (!realFilesystem) {
         const vfsEntries = listVfsDir(desktopDirPath);
         const iconCandidatesToEnsure = new Set<string>();
         const built: IconGridItem[] = vfsEntries.map((entry) => {
@@ -321,7 +323,7 @@ export function DesktopIconsApp({
     ensureWaylandIcons,
     getAppIconUrl,
     installedXdgApps,
-    isBrowserRuntime,
+    realFilesystem,
     settings.desktopIconsEnabled,
   ]);
 
@@ -330,7 +332,7 @@ export function DesktopIconsApp({
   React.useEffect(() => {
     if (!settings.desktopIconsEnabled || !dockIconsReady) return;
     void loadDesktopFolder();
-    if (isBrowserRuntime) {
+    if (!realFilesystem) {
       const unsubVfs = subscribeWebVfs(
         () => {
           void loadDesktopFolder();
@@ -375,14 +377,14 @@ export function DesktopIconsApp({
     desktopDirPath,
     domicile.files,
     dockIconsReady,
-    isBrowserRuntime,
+    realFilesystem,
     loadDesktopFolder,
     locked,
     settings.desktopIconsEnabled,
   ]);
 
   const createDesktopFolder = React.useCallback(async () => {
-    if (isBrowserRuntime) {
+    if (!realFilesystem) {
       const created = createVfsFolder(desktopDirPath);
       await loadDesktopFolder();
       setSelectedIds([created.name]);
@@ -400,10 +402,10 @@ export function DesktopIconsApp({
     await loadDesktopFolder();
     setSelectedIds([folderName]);
     setRenamingId(folderName);
-  }, [desktopDirPath, domicile.files, isBrowserRuntime, items, loadDesktopFolder]);
+  }, [desktopDirPath, domicile.files, realFilesystem, items, loadDesktopFolder]);
 
   const createDesktopTextFile = React.useCallback(async () => {
-    if (isBrowserRuntime) {
+    if (!realFilesystem) {
       const created = createVfsTextFile(desktopDirPath);
       await loadDesktopFolder();
       setSelectedIds([created.name]);
@@ -421,11 +423,11 @@ export function DesktopIconsApp({
     await loadDesktopFolder();
     setSelectedIds([fileName]);
     setRenamingId(fileName);
-  }, [desktopDirPath, domicile.files, isBrowserRuntime, items, loadDesktopFolder]);
+  }, [desktopDirPath, domicile.files, realFilesystem, items, loadDesktopFolder]);
 
   const createDesktopFromTemplate = React.useCallback(
     async (template: WebVfsEntry) => {
-      if (isBrowserRuntime) {
+      if (!realFilesystem) {
         const created =
           createVfsFileFromTemplate(desktopDirPath, template.path) ??
           createVfsTextFile(desktopDirPath, template.name, template.content ?? "");
@@ -465,7 +467,7 @@ export function DesktopIconsApp({
       setSelectedIds([fileName]);
       setRenamingId(fileName);
     },
-    [desktopDirPath, domicile.files, isBrowserRuntime, items, loadDesktopFolder]
+    [desktopDirPath, domicile.files, realFilesystem, items, loadDesktopFolder]
   );
 
   // Listen for "New Folder", "New Text File", "New from Template", and "Arrange Icons" triggered from Desktop menus
@@ -504,7 +506,7 @@ export function DesktopIconsApp({
       if (!nextName || nextName === item.name) return;
 
       const nextPath = `${desktopDirPath.replace(/\/+$/, "")}/${nextName}`;
-      if (!isBrowserRuntime) {
+      if (realFilesystem) {
         await domicile.processes
           .run(["mv", "-n", "--", item.path, nextPath])
           .catch(() => undefined);
@@ -526,7 +528,7 @@ export function DesktopIconsApp({
     [
       desktopDirPath,
       domicile.processes,
-      isBrowserRuntime,
+      realFilesystem,
       loadDesktopFolder,
       settings.desktopIconPositions,
       updateSettings,
@@ -540,7 +542,7 @@ export function DesktopIconsApp({
       await loadDesktopFolder();
       setSelectedIds((prev) => prev.filter((id) => id !== item.id));
     },
-    [domicile, isBrowserRuntime, loadDesktopFolder]
+    [domicile, realFilesystem, loadDesktopFolder]
   );
 
   // Re-attach resolved XDG icon URLs once asynchronous icon loading completes
@@ -674,7 +676,7 @@ export function DesktopIconsApp({
     (item: IconGridItem) => {
       if (item.kind === "desktop-entry" && item.desktopEntry) {
         const lower = `${item.desktopEntry.desktopId} ${item.desktopEntry.exec}`.toLowerCase();
-        if (isBrowserRuntime) {
+        if (!realFilesystem) {
           if (lower.includes("nautilus")) {
             launchApp("nautilus");
             return;
@@ -694,7 +696,7 @@ export function DesktopIconsApp({
         onExtracted: () => void loadDesktopFolder(),
       });
     },
-    [isBrowserRuntime, launchApp, launchXdgEntry, loadDesktopFolder, openPath]
+    [realFilesystem, launchApp, launchXdgEntry, loadDesktopFolder, openPath]
   );
 
   // Paste and Open in Terminal from the shell's desktop menu.
@@ -728,7 +730,7 @@ export function DesktopIconsApp({
       setVfsClipboard(null);
     }
     await loadDesktopFolder();
-  }, [desktopDirPath, domicile, isBrowserRuntime, loadDesktopFolder]);
+  }, [desktopDirPath, domicile, realFilesystem, loadDesktopFolder]);
   const handlePasteToDesktopRef = React.useRef(handlePasteToDesktop);
   handlePasteToDesktopRef.current = handlePasteToDesktop;
 
@@ -750,7 +752,7 @@ export function DesktopIconsApp({
         setSelectedIds(createdPaths.map((p) => p.split("/").pop() ?? p));
       }
     },
-    [desktopDirPath, domicile, isBrowserRuntime, loadDesktopFolder]
+    [desktopDirPath, domicile, realFilesystem, loadDesktopFolder]
   );
 
   const handleMoveItemsToTrash = React.useCallback(
@@ -793,7 +795,7 @@ export function DesktopIconsApp({
         setSelectedIds((prev) => prev.filter((id) => !movedIds.has(id)));
       }
     },
-    [domicile, handleMoveItemsToTrash, isBrowserRuntime, loadDesktopFolder]
+    [domicile, handleMoveItemsToTrash, realFilesystem, loadDesktopFolder]
   );
 
   if (!settings.desktopIconsEnabled) return null;
@@ -865,7 +867,7 @@ export function DesktopIconsApp({
         }
       }}
       onDragOver={(e) => {
-        if (!isBrowserRuntime || !e.dataTransfer?.types?.includes("Files")) {
+        if (realFilesystem || !e.dataTransfer?.types?.includes("Files")) {
           return;
         }
         e.preventDefault();
@@ -878,7 +880,7 @@ export function DesktopIconsApp({
         }
       }}
       onDrop={(e) => {
-        if (!isBrowserRuntime || !e.dataTransfer?.files?.length) return;
+        if (realFilesystem || !e.dataTransfer?.files?.length) return;
         e.preventDefault();
         setExternalDropActive(false);
         const names = Array.from(e.dataTransfer.files).map((f) => f.name);
@@ -975,7 +977,7 @@ export function DesktopIconsApp({
         }
         onDuplicate={(list) => void handleDuplicateItems(list)}
         onCompress={
-          isBrowserRuntime
+          !realFilesystem
             ? (list) => {
               void compressVfsEntries(list.map((i) => i.path)).then((created) => {
                 if (created) void loadDesktopFolder();
@@ -984,7 +986,7 @@ export function DesktopIconsApp({
             : undefined
         }
         onExtract={
-          isBrowserRuntime
+          !realFilesystem
             ? (target) => {
               void extractVfsZip(target.path).then((folder) => {
                 if (folder) void loadDesktopFolder();
@@ -993,7 +995,7 @@ export function DesktopIconsApp({
             : undefined
         }
         onDownload={
-          isBrowserRuntime ? (target) => downloadVfsFile(target.path) : undefined
+          !realFilesystem ? (target) => downloadVfsFile(target.path) : undefined
         }
         canPaste={Boolean(clipboard && clipboard.paths.length > 0)}
         onPaste={() => void handlePasteToDesktop()}
