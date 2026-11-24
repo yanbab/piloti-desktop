@@ -34,6 +34,7 @@
     "@dnd-kit/utilities": "^3.2.2",
     "@domicile-desktop/react": "next",
     "@domicile-desktop/sdk": "next",
+    "@domicile-desktop/system-audio": "^1.1.2",
     "@domicile-desktop/system-backlight": "^1.1.2",
     "@domicile-desktop/system-battery": "^1.1.2",
     "@domicile-desktop/system-network": "^1.1.2",

@@ -40,12 +40,11 @@ import {
   connectSystemWifi,
   controlMprisMedia,
   discoverGnomeControlCenterPanels,
-  listSystemAudioSinks,
   monitorGnomeDesktopSettings,
   probeGnomeCapabilities,
   readGnomeDesktopSettingsBatch,
   readMprisMediaInfo,
-  readSystemAudio,
+  watchSystemAudio,
   readSystemBattery,
   watchSystemBattery,
   watchSystemBrightness,
@@ -823,6 +822,10 @@ export function useSystemBackendsValue(
   React.useEffect(() => {
     if (isBrowserRuntime) return;
     const stopBattery = watchSystemBattery(domicile, setBatteryInfo);
+    const stopAudio = watchSystemAudio(domicile, (audio) => {
+      applySettingsState({ volume: audio.volume, muted: audio.muted });
+      if (audio.sinks.length > 0) setAudioSinks(audio.sinks);
+    });
     const stopWifi = watchSystemWifi(domicile, (wifi) => {
       if (!wifi) return;
       if (wifi.networks.length > 0) setLiveWifiNetworks(wifi.networks);
@@ -837,6 +840,7 @@ export function useSystemBackendsValue(
     return () => {
       stopBattery();
       stopWifi();
+      stopAudio();
       stopBrightness();
     };
   }, [applySettingsState, domicile, greeterMode, isBrowserRuntime]);
@@ -846,8 +850,7 @@ export function useSystemBackendsValue(
     async (options?: { scanWifi?: boolean }) => {
       if (isBrowserRuntime) return;
       const finishBackends = startBootPhase("system backends");
-      const [audio, battery, powerProfile, mpris] = await Promise.all([
-        readSystemAudio(domicile),
+      const [battery, powerProfile, mpris] = await Promise.all([
         readSystemBattery(domicile),
         greeterMode ? Promise.resolve(null) : readSystemPowerProfile(domicile),
         greeterMode ? Promise.resolve(null) : readMprisMediaInfo(domicile),
@@ -857,9 +860,6 @@ export function useSystemBackendsValue(
       setBatteryInfo(
         battery ?? { present: false, percentage: 100, charging: true }
       );
-      if (audio) {
-        applySettingsState({ volume: audio.volume, muted: audio.muted });
-      }
       if (powerProfile) {
         applySettingsState({ powerMode: powerProfile });
       }
@@ -871,17 +871,15 @@ export function useSystemBackendsValue(
         return;
       }
 
-      const [caps, panels, sinks] = await Promise.all([
+      const [caps, panels] = await Promise.all([
         probeGnomeCapabilities(domicile),
         discoverGnomeControlCenterPanels(domicile),
-        listSystemAudioSinks(domicile),
         runXdgAutostartOnce(domicile),
       ]);
       finishBackends();
 
       setGnomeCapabilities(caps);
       setAvailableGnomePanels(panels);
-      if (sinks.length > 0) setAudioSinks(sinks);
 
     },
     [applySettingsState, domicile, greeterMode, isBrowserRuntime]

@@ -6,7 +6,6 @@ import {
   parseGnomeSettingsBatchOutput,
   parseGSettingsKeyVal,
   parseGtk4HintFontMetrics,
-  parseWpctlVolumeOutput,
   upsertGtkSettingsIni,
 } from "@/lib/engine-native";
 
@@ -51,18 +50,6 @@ describe("gnome-bridge parsers", () => {
     expect(disabled).toContain("gtk-hint-font-metrics=false");
     expect(disabled.match(/gtk-hint-font-metrics=/g)).toHaveLength(1);
     expect(parseGtk4HintFontMetrics(disabled)).toBe(false);
-  });
-
-  test("parses wpctl audio volume and mute flag", () => {
-    expect(parseWpctlVolumeOutput("Volume: 0.78")).toEqual({
-      volume: 78,
-      muted: false,
-    });
-    expect(parseWpctlVolumeOutput("Volume: 0.42 [MUTED]")).toEqual({
-      volume: 42,
-      muted: true,
-    });
-    expect(parseWpctlVolumeOutput("invalid")).toBeNull();
   });
 
   test("parses flatpak list and search TSV output", () => {

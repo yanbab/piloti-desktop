@@ -11,126 +11,71 @@ import {
   type WifiDevice,
   type WifiNetwork as LibWifiNetwork,
 } from "@domicile-desktop/system-network/wifi";
+import { soundServer, type SoundServer } from "@domicile-desktop/system-audio/sound-server";
 import { runText } from "./exec";
 import type { AudioSinkInfo, BatteryInfo, MprisMediaInfo } from "./types";
 
-export function parseWpctlVolumeOutput(
-  wpOut: string
-): { volume: number; muted: boolean } | null {
-  const m = wpOut.match(/Volume:\s*([0-9]+(?:\.[0-9]+)?)/i);
-  if (!m) return null;
-  const vol = Math.max(0, Math.min(100, Math.round(Number(m[1]) * 100)));
-  const muted = /\[MUTED\]/i.test(wpOut);
-  return { volume: vol, muted };
+const sound = new WeakMap<object, { server: SoundServer; defaultId?: string }>();
+
+function soundFor(domicile: Domicile) {
+  let entry = sound.get(domicile);
+  if (!entry) {
+    entry = { server: soundServer(domicile) };
+    sound.set(domicile, entry);
+  }
+  return entry;
 }
 
-export async function readSystemAudio(
-  domicile: Domicile
-): Promise<{ volume: number; muted: boolean } | null> {
-  const wpOut = await runText(domicile, [
-    "wpctl",
-    "get-volume",
-    "@DEFAULT_AUDIO_SINK@",
-  ]);
-  if (wpOut) {
-    const parsed = parseWpctlVolumeOutput(wpOut);
-    if (parsed) return parsed;
-  }
-
-  const [paVolOut, paMuteOut] = await Promise.all([
-    runText(domicile, ["pactl", "get-sink-volume", "@DEFAULT_SINK@"]),
-    runText(domicile, ["pactl", "get-sink-mute", "@DEFAULT_SINK@"]),
-  ]);
-  if (paVolOut) {
-    const m = paVolOut.match(/(\d+)%/);
-    if (m) {
-      const vol = Math.max(0, Math.min(100, Number(m[1])));
-      const muted = paMuteOut ? /yes/i.test(paMuteOut) : false;
-      return { volume: vol, muted };
-    }
-  }
-
-  return null;
+export interface SystemAudioState {
+  /** Default output, 0 to 100. */
+  volume: number;
+  muted: boolean;
+  sinks: AudioSinkInfo[];
 }
 
+/**
+ * Calls `onAudio` now and after each change of the sound server (PulseAudio or
+ * PipeWire, through Domicile's `system-audio`); returns a stop function.
+ */
+export function watchSystemAudio(
+  domicile: Domicile,
+  onAudio: (audio: SystemAudioState) => void,
+): () => void {
+  const entry = soundFor(domicile);
+  return entry.server.watch((audio) => {
+    const outputs = audio.outputs.filter((d) => !d.monitor);
+    const def = outputs.find((d) => d.default) ?? outputs[0];
+    entry.defaultId = def?.id;
+    onAudio({
+      volume: Math.max(0, Math.min(100, Math.round((def?.volume ?? 1) * 100))),
+      muted: def?.muted ?? false,
+      sinks: outputs.map((d) => ({
+        id: d.id,
+        name: d.id,
+        description: d.description,
+        active: d === def,
+      })),
+    });
+  });
+}
+
+/** Sets the default output's volume (0 to 100) and mute. */
 export async function setSystemAudio(
   domicile: Domicile,
   volume: number,
-  muted: boolean
+  muted: boolean,
 ): Promise<void> {
-  const clamped = Math.max(0, Math.min(100, Math.round(volume)));
-  const wpRes = await runText(domicile, [
-    "wpctl",
-    "set-volume",
-    "@DEFAULT_AUDIO_SINK@",
-    (clamped / 100).toFixed(2),
-  ]);
-  if (wpRes !== null) {
-    await runText(domicile, [
-      "wpctl",
-      "set-mute",
-      "@DEFAULT_AUDIO_SINK@",
-      muted ? "1" : "0",
-    ]);
-    return;
-  }
-
+  const { server, defaultId } = soundFor(domicile);
+  if (!defaultId) return;
   await Promise.allSettled([
-    runText(domicile, [
-      "pactl",
-      "set-sink-volume",
-      "@DEFAULT_SINK@",
-      `${clamped}%`,
-    ]),
-    runText(domicile, [
-      "pactl",
-      "set-sink-mute",
-      "@DEFAULT_SINK@",
-      muted ? "1" : "0",
-    ]),
+    server.setVolume(defaultId, Math.max(0, Math.min(100, volume)) / 100),
+    server.setMuted(defaultId, muted),
   ]);
 }
 
-export async function listSystemAudioSinks(
-  domicile: Domicile
-): Promise<AudioSinkInfo[]> {
-  const [defaultSinkOut, shortOut] = await Promise.all([
-    runText(domicile, ["pactl", "get-default-sink"]),
-    runText(domicile, ["pactl", "list", "short", "sinks"]),
-  ]);
-  if (!shortOut) return [];
-
-  const defaultName = defaultSinkOut?.trim() ?? "";
-  const sinks: AudioSinkInfo[] = [];
-
-  for (const line of shortOut.split(/\r?\n/)) {
-    const cols = line.split(/\t+/);
-    if (cols.length < 2) continue;
-    const id = cols[0].trim();
-    const name = cols[1].trim();
-    if (!name) continue;
-    const friendly = name
-      .replace(/^alsa_output\./, "")
-      .replace(/^bluez_output\./, "Bluetooth · ")
-      .replace(/\.analog-stereo$/, " (Analog Stereo)")
-      .replace(/\.hdmi-stereo.*$/, " (HDMI / DisplayPort)")
-      .replace(/_/g, " ");
-    sinks.push({
-      id,
-      name,
-      description: friendly,
-      active: name === defaultName,
-    });
-  }
-
-  return sinks;
-}
-
-export async function setDefaultAudioSink(
-  domicile: Domicile,
-  sinkName: string
-): Promise<void> {
-  await runText(domicile, ["pactl", "set-default-sink", sinkName]);
+/** Makes an output (an `AudioSinkInfo.name`) the default for new streams. */
+export async function setDefaultAudioSink(domicile: Domicile, sinkId: string): Promise<void> {
+  await soundFor(domicile).server.setDefault(sinkId).catch(() => undefined);
 }
 
 type WifiSnapshot = {
