@@ -69,6 +69,11 @@ function parseWindowButtonLayout(layout?: string): {
   }
 }
 
+/** True when the button layout puts Close on the left (`close,…:`). */
+function isCloseOnLeft(layout?: string): boolean {
+  return parseWindowButtonLayout(layout).left.includes("close")
+}
+
 type WindowContextValue = {
   onClose?: () => void
   onMinimize?: () => void
@@ -1196,6 +1201,7 @@ function WindowControls({
 
 export type { WindowHandle, WindowInsets, WindowPosition, WindowSize, ResizeEdge as WindowResizeEdge }
 export {
+  isCloseOnLeft,
   useWindowContext,
   Window,
   WindowContent,

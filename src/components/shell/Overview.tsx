@@ -4,7 +4,6 @@ import {
   ChevronRightIcon,
   LayersIcon,
   PlusIcon,
-  XIcon,
 } from "lucide-react";
 import {
   useApps,
@@ -17,7 +16,8 @@ import { _ } from "@/lib/core/i18n";
 import { cn } from "@/lib/core/utils";
 import { AppSquircleIcon } from "./AppSymbol";
 import { DesktopBackgroundLayers } from "./DesktopBackgroundLayers";
-import { WindowControlButton } from "@/components/ui/window";
+import { isCloseOnLeft } from "@/components/ui/window";
+import { HoverCloseButton } from "./HoverCloseButton";
 
 export { computeOverviewColumns } from "@/lib/shell/overview-layout";
 
@@ -33,6 +33,7 @@ function OverviewWorkspacesBar({
   overviewOpen: boolean;
 }) {
   const { settings, updateSettings } = useSettings();
+  const closeOnLeft = isCloseOnLeft(settings.windowButtonLayout);
   const { moveWindowToWorkspace, removeWorkspace, setOverviewOpen } =
     useWindowManager();
   const [hoveredTarget, setHoveredTarget] = React.useState<number | "new" | null>(
@@ -137,16 +138,14 @@ function OverviewWorkspacesBar({
                 </button>
 
                 {settings.workspaceCount > 1 && (
-                  <WindowControlButton
+                  <HoverCloseButton
+                    closeOnLeft={closeOnLeft}
                     aria-label={_("Close Desktop %d", ws)}
                     onClick={(e) => {
                       e.stopPropagation();
                       removeWorkspace(ws);
                     }}
-                    className="absolute -top-2 -left-2 bg-adw-window/85 opacity-0 shadow-md backdrop-blur-md transition-opacity group-hover:opacity-100"
-                  >
-                    <XIcon strokeWidth={2.25} />
-                  </WindowControlButton>
+                  />
                 )}
               </div>
             );
@@ -211,6 +210,7 @@ export function Overview() {
 
 function WorkspaceOverview() {
   const { settings } = useSettings();
+  const closeOnLeft = isCloseOnLeft(settings.windowButtonLayout);
   const { getAppIconUrl } = useApps();
   const {
     windows,
@@ -291,16 +291,14 @@ function WorkspaceOverview() {
               }}
               className="group absolute flex cursor-default flex-col items-center rounded-[10px] ring-2 ring-transparent hover-fill:ring-white/85 select-none"
             >
-              <WindowControlButton
+              <HoverCloseButton
+                closeOnLeft={closeOnLeft}
                 aria-label={`Close ${win.title}`}
                 onClick={(e) => {
                   e.stopPropagation();
                   closeWindow(win.id);
                 }}
-                className="absolute -top-2 -left-2 bg-adw-window/85 opacity-0 shadow-md backdrop-blur-md transition-opacity group-hover:opacity-100"
-              >
-                <XIcon strokeWidth={2.25} />
-              </WindowControlButton>
+              />
 
               <div className="pointer-events-none absolute -bottom-11 flex flex-col items-center">
                 <AppSquircleIcon

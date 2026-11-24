@@ -18,7 +18,10 @@ import {
 import {
   ChevronLeftIcon,
   DownloadIcon,
+  ChevronDownIcon,
+  FolderIcon,
   GlobeIcon,
+  TerminalIcon,
   HeartIcon,
   Loader2Icon,
   Maximize2Icon,
@@ -1107,15 +1110,43 @@ function WebViewSurface({
             </button>
           )}
           {isBrowserApp && (
-            <button
-              type="button"
-              title={_("New Tab")}
-              aria-label={_("New Tab")}
-              onClick={() => openBrowserTab(win.id)}
-              className="flex size-7 items-center justify-center rounded-adw-control transition-colors hover-fill:bg-black/8 dark:hover-fill:bg-white/10"
-            >
-              <PlusIcon className="size-4" />
-            </button>
+            // Split button: + opens a web page tab; the chevron lists apps
+            // that can open in a tab. Placeholder: those apps will declare
+            // tab support in their .desktop entry (e.g. `X-Piloti-Tabs=true`).
+            <div data-slot="new-tab-split" className="flex items-center">
+              <button
+                type="button"
+                title={_("New Tab")}
+                aria-label={_("New Tab")}
+                onClick={() => openBrowserTab(win.id)}
+                className="flex size-7 items-center justify-center rounded-l-adw-control transition-colors hover-fill:bg-black/8 dark:hover-fill:bg-white/10"
+              >
+                <PlusIcon className="size-4" />
+              </button>
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  aria-label={_("New Tab With…")}
+                  title={_("New Tab With…")}
+                  className="flex h-7 w-4 items-center justify-center rounded-r-adw-control outline-none transition-colors hover-fill:bg-black/8 data-[popup-open]:bg-black/12 dark:hover-fill:bg-white/10 dark:data-[popup-open]:bg-white/15"
+                >
+                  <ChevronDownIcon className="size-3" strokeWidth={2.5} />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="min-w-48">
+                  <DropdownMenuItem onClick={() => openBrowserTab(win.id)}>
+                    <GlobeIcon className="size-4" />
+                    {_("Web Page")}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem disabled>
+                    <FolderIcon className="size-4" />
+                    {_("Folders")}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem disabled>
+                    <TerminalIcon className="size-4" />
+                    {_("Terminal")}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           )}
           <BrowserExtensionsMenu
             items={extensionMenuItems}

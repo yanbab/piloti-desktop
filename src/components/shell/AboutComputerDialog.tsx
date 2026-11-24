@@ -180,7 +180,7 @@ export function AboutComputerDialog() {
       onClose={() => setAboutOpen(false)}
       style={{ position: "fixed", top: 0, left: 0, zIndex: 420 }}
     >
-      <WindowMain>
+      <WindowMain className="bg-adw-sidebar">
         <WindowTitlebar className="justify-end">
           <WindowControls side="right" />
         </WindowTitlebar>

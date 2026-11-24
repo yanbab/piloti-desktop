@@ -11,6 +11,10 @@ import {
 } from "@/lib/shell/floating-window";
 import { startPointerDrag } from "@/lib/shell/pointer-drag";
 import { useSettings } from "@/context/DesktopStateContext";
+import { useWindowActions } from "@/context/WindowsContext";
+import { isCloseOnLeft } from "@/components/ui/window";
+import { _ } from "@/lib/core/i18n";
+import { HoverCloseButton } from "./HoverCloseButton";
 import {
   setWindowPresentation,
   type WindowPresentation,
@@ -39,6 +43,7 @@ export function PresentationOverlay({
   const floating = presentation.floating;
   const { settings } = useSettings();
   const singleClickActivates = settings.fileActivationMode !== "double";
+  const { closeWindow } = useWindowActions();
 
   const presentedRect = (p: WindowPresentation): FloatingRect => ({
     x: p.x,
@@ -123,7 +128,7 @@ export function PresentationOverlay({
   return (
     <div
       data-slot="window-presentation-overlay"
-      className="absolute inset-0 z-50 cursor-default"
+      className="group absolute inset-0 z-50 cursor-default"
       onPointerDown={onPointerDown}
       onPointerMove={(e) => {
         if (!floating?.resizable || e.buttons) return;
@@ -136,6 +141,20 @@ export function PresentationOverlay({
         if (!singleClickActivates) presentation.onActivate?.();
       }}
       onContextMenu={(e) => e.preventDefault()}
-    />
+    >
+      {floating && (
+        <HoverCloseButton
+          inset
+          closeOnLeft={isCloseOnLeft(settings.windowButtonLayout)}
+          aria-label={_("Close")}
+          onPointerDown={(e) => e.stopPropagation()}
+          onDoubleClick={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation();
+            closeWindow(windowId);
+          }}
+        />
+      )}
+    </div>
   );
 }
