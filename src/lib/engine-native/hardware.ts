@@ -1,5 +1,8 @@
 import type { Domicile } from "@domicile-desktop/sdk/desktop/desktop";
 import type { WifiNetwork } from "@/data/catalog";
+import { brightnessSetter } from "@domicile-desktop/system-backlight/set-brightness";
+import { watchBrightness } from "@domicile-desktop/system-backlight/watch-brightness";
+import { readBattery, watchBattery, type Battery } from "@domicile-desktop/system-battery/battery";
 import { runText } from "./exec";
 import type { AudioSinkInfo, BatteryInfo, MprisMediaInfo } from "./types";
 
@@ -263,44 +266,85 @@ export async function setSystemPowerProfile(
   await runText(domicile, ["powerprofilesctl", "set", profile]);
 }
 
-export async function readSystemBattery(
-  domicile: Domicile
-): Promise<BatteryInfo | null> {
-  try {
-    const dirRes = await domicile.files.readDir("/sys/class/power_supply");
-    const entries = dirRes.match({
-      Ok: (list) => list,
-      Err: () => [],
-    });
-    const bat = entries.find((e) => /^BAT\d+$/i.test(e.name));
-    if (bat) {
-      const [capRes, statusRes] = await Promise.all([
-        domicile.files.readText(`/sys/class/power_supply/${bat.name}/capacity`),
-        domicile.files.readText(`/sys/class/power_supply/${bat.name}/status`),
-      ]);
-      const capStr = capRes.match({ Ok: (t) => t, Err: () => "" });
-      const statusStr = statusRes.match({ Ok: (t) => t, Err: () => "" });
-      const pct = Number.parseInt(capStr.trim(), 10);
-      if (Number.isFinite(pct)) {
-        return {
-          present: true,
-          percentage: Math.max(0, Math.min(100, pct)),
-          charging: /charging|full/i.test(statusStr),
-        };
-      }
-    }
-  } catch {
-    // ignore
-  }
-  return null;
+const toBatteryInfo = (battery: Battery | undefined): BatteryInfo =>
+  battery
+    ? { present: true, percentage: Math.round(battery.charge * 100), charging: battery.charging }
+    : { present: false, percentage: 100, charging: true };
+
+/** The battery from UPower (Domicile's `system-battery`); `null` if UPower isn't running. */
+export async function readSystemBattery(domicile: Domicile): Promise<BatteryInfo | null> {
+  const res = await readBattery(domicile).catch(() => null);
+  return res?.match({ Ok: (battery) => toBatteryInfo(battery.unwrapOr(undefined as never)), Err: () => null }) ?? null;
 }
 
-export async function setSystemBrightness(
+/** Calls `onChange` now and on each UPower change; returns a stop function. */
+export function watchSystemBattery(
   domicile: Domicile,
-  percentage: number
-): Promise<void> {
-  const clamped = Math.max(10, Math.min(100, Math.round(percentage)));
-  await runText(domicile, ["brightnessctl", "set", `${clamped}%`]);
+  onChange: (info: BatteryInfo) => void,
+): () => void {
+  let stopped = false;
+  let stopWatch: (() => void) | null = null;
+  void watchBattery(domicile)
+    .then((res) =>
+      res.match({
+        Err: () => undefined,
+        Ok: async ({ items, stop }) => {
+          if (stopped) return stop();
+          stopWatch = stop;
+          const reader = items.getReader();
+          try {
+            while (!stopped) {
+              const next = await reader.read();
+              if (next.done) break;
+              onChange(toBatteryInfo(next.value.unwrapOr(undefined as never)));
+            }
+          } catch {
+            // the watch ended
+          }
+        },
+      }),
+    )
+    .catch(() => undefined);
+  return () => {
+    stopped = true;
+    stopWatch?.();
+  };
+}
+
+const brightnessSetters = new WeakMap<object, ReturnType<typeof brightnessSetter>>();
+
+/** Sets the backlight through logind (Domicile's `system-backlight`); `percentage` is 0 to 100. */
+export async function setSystemBrightness(domicile: Domicile, percentage: number): Promise<void> {
+  let set = brightnessSetters.get(domicile);
+  if (!set) {
+    set = brightnessSetter(domicile);
+    brightnessSetters.set(domicile, set);
+  }
+  await set(Math.max(0.1, Math.min(1, percentage / 100))).catch(() => undefined);
+}
+
+/** Calls `onLevel` (0 to 100) now and when the backlight changes, whoever changed it; returns a stop function. */
+export function watchSystemBrightness(
+  domicile: Domicile,
+  onLevel: (percentage: number) => void,
+): () => void {
+  let stopped = false;
+  let stopWatch: (() => void) | null = null;
+  void watchBrightness(domicile, (level) => onLevel(Math.round(level * 100)))
+    .then((res) =>
+      res.match({
+        Err: () => undefined,
+        Ok: (watch) => {
+          if (stopped) return watch.stop();
+          stopWatch = watch.stop;
+        },
+      }),
+    )
+    .catch(() => undefined);
+  return () => {
+    stopped = true;
+    stopWatch?.();
+  };
 }
 
 export async function readMprisMediaInfo(

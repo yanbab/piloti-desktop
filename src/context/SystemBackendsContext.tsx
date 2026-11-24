@@ -47,6 +47,8 @@ import {
   readMprisMediaInfo,
   readSystemAudio,
   readSystemBattery,
+  watchSystemBattery,
+  watchSystemBrightness,
   readSystemPowerProfile,
   readSystemWifi,
   setDefaultAudioSink,
@@ -815,6 +817,19 @@ export function useSystemBackendsValue(
     }, 600);
     return () => window.clearTimeout(timer);
   }, [domicile, greeterMode, isBrowserRuntime, settings.hiddenGnomePanels]);
+
+  // Battery and brightness follow the system (UPower, backlight), whoever changes them.
+  React.useEffect(() => {
+    if (isBrowserRuntime) return;
+    const stopBattery = watchSystemBattery(domicile, setBatteryInfo);
+    const stopBrightness = greeterMode
+      ? () => undefined
+      : watchSystemBrightness(domicile, (brightness) => applySettingsState({ brightness }));
+    return () => {
+      stopBattery();
+      stopBrightness();
+    };
+  }, [applySettingsState, domicile, greeterMode, isBrowserRuntime]);
 
   // Backends probing + GSettings monitor
   const refreshSystemBackends = React.useCallback(
