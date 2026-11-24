@@ -73,17 +73,39 @@ export interface BashSession {
  * Starts the user's shell on a pseudo-terminal. `onOutput` gets its bytes;
  * `onExit` fires once when it ends (or could not start).
  */
-/** Login shells from `/etc/shells` (absolute paths, no `nologin`/`false`), first occurrence of each. */
-export async function readLoginShells(domicile: Domicile): Promise<string[]> {
+export interface LoginShell {
+  path: string;
+  /** Whether the program is installed. */
+  available: boolean;
+}
+
+const baseName = (path: string) => path.slice(path.lastIndexOf("/") + 1);
+
+/**
+ * The shells of `/etc/shells` that exist (no `nologin`/`false`), one per real
+ * program (`/bin` and `/usr/bin` are often the same directory), sorted by
+ * name. `bash` is always listed, marked unavailable when it is not installed.
+ */
+export async function readLoginShells(domicile: Domicile): Promise<LoginShell[]> {
   const res = await domicile.files.readText("/etc/shells").catch(() => null);
   const text = res?.match({ Ok: (t) => t, Err: () => "" }) ?? "";
-  const out: string[] = [];
-  for (const raw of text.split("\n")) {
-    const line = raw.trim();
-    if (!line.startsWith("/") || /\/(nologin|false)$/.test(line) || out.includes(line)) continue;
-    out.push(line);
+  const candidates = text
+    .split("\n")
+    .map((l) => l.trim())
+    .filter((l) => l.startsWith("/") && !/\/(nologin|false)$/.test(l));
+  const seen = new Set<string>();
+  const found: LoginShell[] = [];
+  for (const path of candidates) {
+    const stat = await domicile.files.stat(path).catch(() => null);
+    const info = stat?.match({ Ok: (st) => st, Err: () => null });
+    if (!info) continue; // listed but not installed
+    const real = info.realPath && info.realPath.startsWith("/") ? info.realPath : path;
+    if (seen.has(real)) continue;
+    seen.add(real);
+    found.push({ path, available: true });
   }
-  return out;
+  if (!found.some((s) => baseName(s.path) === "bash")) found.push({ path: "/bin/bash", available: false });
+  return found.sort((a, b) => baseName(a.path).localeCompare(baseName(b.path)));
 }
 
 export async function startShell(

@@ -10,7 +10,7 @@ import {
   useWindowManagerSelector,
 } from "@/context/DesktopStateContext";
 import { getEngine } from "@/lib/engine/engine";
-import { readLoginShells, startShell, type BashSession } from "@/lib/engine-native/pty-bridge";
+import { readLoginShells, startShell, type BashSession, type LoginShell } from "@/lib/engine-native/pty-bridge";
 import { ChevronDownIcon } from "lucide-react";
 import {
   DropdownMenu,
@@ -42,7 +42,7 @@ export function XtermTerminalApp({ initialPath: _initialPath }: { initialPath?: 
     wm.windows.map((w) => ({ id: w.id, appId: w.appId, title: w.title })),
   );
   const bashAvailable = getEngine().capabilities.systemServices;
-  const [shells, setShells] = React.useState<string[]>([]);
+  const [shells, setShells] = React.useState<LoginShell[]>([]);
   const [mode, setMode] = React.useState<string>(bashAvailable ? "" : PILOTI);
   React.useEffect(() => {
     if (!bashAvailable) return;
@@ -50,8 +50,8 @@ export function XtermTerminalApp({ initialPath: _initialPath }: { initialPath?: 
     void readLoginShells(domicile).then((list) => {
       if (cancelled) return;
       setShells(list);
-      const preferred = list.find((p) => p.endsWith("/bash")) ?? list[0];
-      setMode(preferred ?? PILOTI);
+      const preferred = list.find((s) => s.available && s.path.endsWith("/bash")) ?? list.find((s) => s.available);
+      setMode(preferred?.path ?? PILOTI);
     });
     return () => {
       cancelled = true;
@@ -190,8 +190,8 @@ export function XtermTerminalApp({ initialPath: _initialPath }: { initialPath?: 
           <DropdownMenuContent align="end" className="min-w-[11rem]">
             <DropdownMenuRadioGroup value={mode} onValueChange={(value) => setMode(String(value))}>
               <DropdownMenuRadioItem value={PILOTI}>piloti-shell</DropdownMenuRadioItem>
-              {shells.map((path) => (
-                <DropdownMenuRadioItem key={path} value={path}>
+              {shells.map(({ path, available }) => (
+                <DropdownMenuRadioItem key={path} value={path} disabled={!available}>
                   {path}
                 </DropdownMenuRadioItem>
               ))}
