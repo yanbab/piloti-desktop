@@ -1,3 +1,4 @@
+import { webSearchHome } from "@/lib/shell/web-search";
 import * as React from "react";
 import { useDisplays } from "@domicile-desktop/react/displays";
 import { useDomicile } from "@domicile-desktop/react/domicile-provider";
@@ -253,11 +254,11 @@ function pinnedFirst(tabs: string[], pinned: string[] | undefined): string[] {
   ];
 }
 
-/** Start page of a new Web Browser window. */
-export const BROWSER_HOME_URL = "https://duckduckgo.com/";
+/** Start page of a new Web Browser window or tab: the web search home. */
+export const BROWSER_HOME_URL = webSearchHome();
 /** Web demo start page: pages are shown in an iframe, which most search
- *  engines refuse; the Wikipedia portal allows it. */
-export const BROWSER_DEMO_HOME_URL = "https://www.wikipedia.org/";
+ *  engines refuse; the demo searches Wikipedia, which allows it. */
+export const BROWSER_DEMO_HOME_URL = webSearchHome(true);
 
 /**
  * Normalizes a user-typed URL or host into a navigable URL string.

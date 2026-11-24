@@ -1,3 +1,5 @@
+import { webSearchUrl } from "@/lib/shell/web-search";
+import { isWebEngine } from "@/lib/engine/engine";
 import * as React from "react";
 import { useCapabilities } from "@/hooks/use-capabilities";
 import { countRender } from "@/lib/core/render-stats";
@@ -962,17 +964,15 @@ export const Launcher = React.memo(function Launcher() {
     const webQuery = searchQuery.trim();
     if (webQuery && !detectedUrl && !mathResult) {
       out.push({
-        heading: "Web Search",
+        heading: _("Web Search"),
         items: [
           {
             value: "web-search",
             score: -1,
             icon: <GlobeIcon className="size-4" />,
-            label: `Search the web for “${webQuery}”`,
+            label: _("Search the web for “%s”", webQuery),
             onSelect: () =>
-              runAndClose(() =>
-                openWebUrl(`https://duckduckgo.com/?q=${encodeURIComponent(webQuery)}`),
-              ),
+              runAndClose(() => openWebUrl(webSearchUrl(webQuery, isWebEngine()))),
           },
         ],
       });

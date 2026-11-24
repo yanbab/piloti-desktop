@@ -1,4 +1,5 @@
 /// <reference types="@domicile-desktop/react/elements" />
+import { looksLikeUrl, webSearchUrl } from "@/lib/shell/web-search";
 import * as React from "react";
 import { emitShellEvent, onShellEvent } from "@/lib/shell/shell-events";
 import { useDomicile } from "@domicile-desktop/react/domicile-provider";
@@ -699,7 +700,12 @@ function WebViewSurface({
 
   const submitAddressEdit = (e: React.FormEvent) => {
     e.preventDefault();
-    const normalized = normalizeWebUrl(draftAddress);
+    // An address goes there; anything else is a web search.
+    const normalized = looksLikeUrl(draftAddress)
+      ? normalizeWebUrl(draftAddress)
+      : draftAddress.trim()
+        ? webSearchUrl(draftAddress, isBrowserRuntime)  // FIXME : Capabilities
+        : null;
     if (normalized) {
       setAddress(normalized);
       if (isBrowserRuntime) {  // FIXME : Capabilities
