@@ -46,7 +46,7 @@ export const DEFAULT_HOME_FILES: Record<string, string> = {
   "/home/user/.hidden": "Templates\n\n",
   "/home/user/.local/share/applications/piloti-appstore.desktop": "[Desktop Entry]\nType=Application\nName=App Store\nComment=Browse and install apps and web apps\nExec=piloti-appstore\nIcon=system-software-install\nCategories=System;PackageManager;\nMimeType=application/vnd.debian.binary-package;application/vnd.flatpak.ref;application/vnd.flatpak;\n",
   "/home/user/.local/share/applications/piloti-calculator.desktop": "[Desktop Entry]\nType=Application\nName=Calculator\nComment=Basic & Scientific Calculator\nExec=piloti-calculator\nIcon=accessories-calculator\nCategories=Utility;Calculator;\n",
-  "/home/user/.local/share/applications/piloti-console.desktop": "[Desktop Entry]\nType=Application\nName=Desktop Console\nComment=Desktop Console, live logs, inspector, and JS REPL\nExec=piloti-console\nIcon=piloti-console\nCategories=Development;Debugger;\n",
+  "/home/user/.local/share/applications/piloti-console.desktop": "[Desktop Entry]\nType=Application\nName=Piloti Devtools\nComment=Live logs, inspector and storage for Piloti\nExec=piloti-console\nIcon=piloti-devtools\nCategories=Development;Debugger;\n",
   "/home/user/.local/share/applications/piloti-files.desktop": "[Desktop Entry]\nType=Application\nName=Folders\nComment=Browse local virtual files and folders\nExec=piloti-files %U\nIcon=system-file-manager\nCategories=System;FileManager;\nMimeType=inode/directory;\n",
   "/home/user/.local/share/applications/piloti-image-viewer.desktop": "[Desktop Entry]\nType=Application\nName=Image Viewer\nComment=Fast image viewer and crop/rotate editor\nExec=piloti-image-viewer %F\nIcon=org.gnome.Loupe\nCategories=Graphics;Viewer;\nMimeType=image/png;image/jpeg;image/webp;image/gif;image/svg+xml;image/bmp;image/avif;image/vnd.microsoft.icon;\n",
   "/home/user/.local/share/applications/piloti-login.desktop": "[Desktop Entry]\nType=Application\nName=Login Screen\nComment=Piloti Display Manager (GDM alternative preview)\nExec=piloti-login\nIcon=system-users\nCategories=System;Settings;\n\n",
@@ -121,6 +121,10 @@ export const DEFAULT_STATIC_DIR_INDEX: Record<string, readonly { name: string; f
       "fileType": 0
     },
     {
+      "name": "piloti-system-monitor",
+      "fileType": 0
+    },
+    {
       "name": "piloti-terminal",
       "fileType": 0
     },
@@ -184,6 +188,10 @@ export const DEFAULT_STATIC_DIR_INDEX: Record<string, readonly { name: string; f
     },
     {
       "name": "piloti-settings.desktop",
+      "fileType": 0
+    },
+    {
+      "name": "piloti-system-monitor.desktop",
       "fileType": 0
     },
     {
@@ -389,10 +397,6 @@ export const DEFAULT_STATIC_DIR_INDEX: Record<string, readonly { name: string; f
       "fileType": 0
     },
     {
-      "name": "piloti-console.svg",
-      "fileType": 0
-    },
-    {
       "name": "piloti-demo.svg",
       "fileType": 0
     },
@@ -401,7 +405,15 @@ export const DEFAULT_STATIC_DIR_INDEX: Record<string, readonly { name: string; f
       "fileType": 0
     },
     {
+      "name": "piloti-devtools.svg",
+      "fileType": 0
+    },
+    {
       "name": "piloti-settings.svg",
+      "fileType": 0
+    },
+    {
+      "name": "piloti-system-monitor.svg",
       "fileType": 0
     }
   ],

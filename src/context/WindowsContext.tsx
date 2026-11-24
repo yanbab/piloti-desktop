@@ -2470,6 +2470,7 @@ function pruneBrowserRecord(
         "piloti-calculator": "calculator",
         "piloti-demo": "piloti-demo",
         "piloti-camera": "camera",
+        "piloti-system-monitor": "system-monitor",
         "piloti-browser": "browser",
         "piloti-image-viewer": "image-viewer",
         "piloti-login": "login-screen",

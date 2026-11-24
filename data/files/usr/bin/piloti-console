@@ -1,4 +1,4 @@
 #!/bin/sh
-# piloti-console — Open Piloti Desktop Console
+# piloti-console — Open Piloti Devtools
 set -eu
 exec /usr/bin/piloti open console "$@"

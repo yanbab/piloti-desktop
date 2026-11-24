@@ -1,0 +1,4 @@
+#!/bin/sh
+# piloti-system-monitor — Open Piloti System Monitor
+set -eu
+exec /usr/bin/piloti open system-monitor "$@"

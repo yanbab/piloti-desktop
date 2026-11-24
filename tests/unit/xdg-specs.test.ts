@@ -86,8 +86,8 @@ describe("XDG specifications (Autostart, Recents XBEL, Globs2/Magic)", () => {
     expect(lookupXdgIconPath(index, "org.gnome.Loupe", 64, 1)).toBe(
       "/usr/share/icons/Papirus/64x64/apps/org.gnome.Loupe.svg"
     );
-    expect(lookupXdgIconPath(index, "piloti-console", 64, 1)).toBe(
-      "/usr/share/icons/hicolor/scalable/apps/piloti-console.svg"
+    expect(lookupXdgIconPath(index, "piloti-devtools", 64, 1)).toBe(
+      "/usr/share/icons/hicolor/scalable/apps/piloti-devtools.svg"
     );
     expect(lookupXdgIconPath(index, "preferences-desktop", 64, 1)).toBe(
       "/usr/share/icons/Papirus/64x64/apps/preferences-desktop.svg"
@@ -151,8 +151,8 @@ describe("XDG specifications (Autostart, Recents XBEL, Globs2/Magic)", () => {
     expect(lookupXdgIconPath(papirusOnlyIndex, "org.gnome.Loupe", 64, 1)).toBe(
       "/usr/share/icons/Papirus/64x64/apps/org.gnome.Loupe.svg"
     );
-    expect(lookupXdgIconPath(papirusOnlyIndex, "piloti-console", 64, 1)).toBe(
-      "/usr/share/icons/hicolor/scalable/apps/piloti-console.svg"
+    expect(lookupXdgIconPath(papirusOnlyIndex, "piloti-devtools", 64, 1)).toBe(
+      "/usr/share/icons/hicolor/scalable/apps/piloti-devtools.svg"
     );
     expect(lookupXdgIconPath(papirusOnlyIndex, "preferences-desktop", 64, 1)).toBe(
       "/usr/share/icons/Papirus/64x64/apps/preferences-desktop.svg"

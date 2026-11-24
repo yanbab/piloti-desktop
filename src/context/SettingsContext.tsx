@@ -288,7 +288,7 @@ export function isBrowserDevRuntime(): boolean {
 
 export const WEB_DEFAULTS_VERSION = 7;
 
-// All our apps except Desktop Console and Image Viewer (and the Login Screen preview).
+// All our apps except Piloti Devtools and Image Viewer (and the Login Screen preview).
 const DEFAULT_WEB_PINNED_APP_IDS = [
   "nautilus",
   "browser",

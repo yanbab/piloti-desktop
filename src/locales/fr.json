@@ -76,8 +76,6 @@
   "Delete Permanently": "Supprimer définitivement",
   "Desktop": "Bureau",
   "Desktop %d": "Bureau %d",
-  "Desktop Console": "Console du bureau",
-  "Desktop Console, live logs, inspector, and JS REPL": "Console du bureau, journaux en direct, inspecteur et REPL JS",
   "Desktop Settings": "Paramètres du bureau",
   "Desktop shell with VFS commands (ls, cd, mkdir, cat, top)": "Shell du bureau avec commandes VFS (ls, cd, mkdir, cat, top)",
   "Detecting…": "Détection…",
@@ -767,5 +765,15 @@
   "Pin Tab": "Épingler l’onglet",
   "Unpin Tab": "Détacher l’épingle",
   "Move Tab to New Window": "Déplacer l’onglet dans une nouvelle fenêtre",
-  "Reopen Closed Tab": "Rouvrir l’onglet fermé"
+  "Reopen Closed Tab": "Rouvrir l’onglet fermé",
+  "System Monitor": "Moniteur système",
+  "Monitor": "Moniteur",
+  "CPU, memory and running apps": "Processeur, mémoire et applications ouvertes",
+  "GB": "Go",
+  "MB": "Mo",
+  "%s of %s": "%s sur %s",
+  "Move": "Déplacer",
+  "No apps running": "Aucune application ouverte",
+  "CPU": "Processeur",
+  "Simulated values: real system data comes next.": "Valeurs simulées : les vraies données système arrivent bientôt."
 }

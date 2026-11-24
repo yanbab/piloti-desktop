@@ -508,7 +508,7 @@ export const MenuBar = React.memo(function MenuBar() {
     add([piloti], _("About Computer"), () => setAboutOpen(true));
     add([piloti], _("Desktop Settings"), () => launchApp("settings"), { shortcut: "Alt+," });
     add([piloti], _("App Store"), () => launchApp("app-store"));
-    add([piloti], _("Desktop Console"), () => launchApp("console"));
+    add([piloti], "Piloti Devtools", () => launchApp("console"));
     add([piloti], _("Lock Screen"), () => lockSession(), { shortcut: "⌃⌘Q" });
     add([piloti], _("Restart…"), () => requestPowerAction("restart"));
     add([piloti], _("Turn Off…"), () => requestPowerAction("poweroff"));
@@ -664,7 +664,7 @@ export const MenuBar = React.memo(function MenuBar() {
                   }
                 }}
               >
-                {altHeld ? _("Reload Shell") : _("Desktop Console")}
+                {altHeld ? _("Reload Shell") : "Piloti Devtools"}
               </MenubarItem>
               <MenubarSeparator />
               <MenubarItem onClick={(e) => handlePowerMenuClick("restart", e)}>

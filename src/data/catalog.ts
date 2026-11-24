@@ -219,6 +219,7 @@ export type BuiltinAppId =
   | "calculator"
   | "image-viewer"
   | "camera"
+  | "system-monitor"
   | "login-screen"
   | "piloti-demo";
 
@@ -290,12 +291,13 @@ export const APP_CATALOG: AppDefinition[] = [
   },
   {
     id: "console",
-    name: "Desktop Console",
-    shortName: "Desktop Console",
-    description: "Desktop Console: live logs, inspector and storage",
+    // A product name: the same in every language (no translation keys).
+    name: "Piloti Devtools",
+    shortName: "Devtools",
+    description: "Live logs, inspector and storage for Piloti",
     category: "Development",
     iconName: "code",
-    xdgIcons: ["piloti-console", "piloti-desktop"],
+    xdgIcons: ["piloti-devtools"],
     gradient: "from-indigo-700 via-slate-800 to-zinc-950",
     pinnedByDefault: false,
     builtinComponent: "console",
@@ -522,6 +524,22 @@ export const APP_CATALOG: AppDefinition[] = [
     command: "piloti-camera",
     defaultSize: { width: 560, height: 420 },
     minSize: { width: 320, height: 260 },
+    menus: [],
+  },
+  {
+    id: "system-monitor",
+    name: "System Monitor",
+    shortName: "Monitor",
+    description: "CPU, memory and running apps",
+    category: "System",
+    iconName: "code",
+    xdgIcons: ["piloti-system-monitor", "utilities-system-monitor"],
+    gradient: "from-indigo-700 via-slate-800 to-zinc-950",
+    pinnedByDefault: false,
+    builtinComponent: "system-monitor",
+    command: "piloti-system-monitor",
+    defaultSize: { width: 560, height: 520 },
+    minSize: { width: 320, height: 320 },
     menus: [],
   },
   {

@@ -60,6 +60,7 @@ import {
 import { CalculatorApp } from "@/components/apps/CalculatorApp";
 import { PilotiDemoApp } from "@/components/apps/PilotiDemoApp";
 import { CameraApp } from "@/components/apps/CameraApp";
+import { SystemMonitorApp } from "@/components/apps/SystemMonitorApp";
 const ConsoleApp = React.lazy(() =>
   import("@/components/apps/ConsoleApp").then((m) => ({
     default: m.ConsoleApp,
@@ -1573,6 +1574,14 @@ const WindowBody = React.memo(
         <React.Suspense fallback={null}>
           <WindowDomReadySignal windowId={win.id} onReady={onDomReady} />
           <CameraApp windowId={win.id} isCsd={isCsd} />
+        </React.Suspense>
+      );
+    }
+    if (win.builtinComponent === "system-monitor") {
+      return (
+        <React.Suspense fallback={null}>
+          <WindowDomReadySignal windowId={win.id} onReady={onDomReady} />
+          <SystemMonitorApp windowId={win.id} isCsd={isCsd} />
         </React.Suspense>
       );
     }

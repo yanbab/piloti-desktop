@@ -55,12 +55,13 @@ const KNOWN_MIME_APPS: Record<string, { appId: string; label: string }> = {
   "piloti-image-viewer.desktop": { appId: "image-viewer", label: "Image Viewer" },
   "browser.desktop": { appId: "browser", label: "Web Browser" },
   "piloti-browser.desktop": { appId: "browser", label: "Web Browser" },
-  "console.desktop": { appId: "console", label: "Desktop Console" },
-  "piloti-console.desktop": { appId: "console", label: "Desktop Console" },
+  "console.desktop": { appId: "console", label: "Piloti Devtools" },
+  "piloti-console.desktop": { appId: "console", label: "Piloti Devtools" },
   "app-store.desktop": { appId: "app-store", label: "App Store" },
   "piloti-appstore.desktop": { appId: "app-store", label: "App Store" },
   "piloti-calculator.desktop": { appId: "calculator", label: "Calculator" },
   "piloti-camera.desktop": { appId: "camera", label: "Camera" },
+  "piloti-system-monitor.desktop": { appId: "system-monitor", label: "System Monitor" },
 };
 
 /**

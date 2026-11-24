@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=System Monitor
+Comment=CPU, memory and running apps
+Exec=piloti-system-monitor
+Icon=piloti-system-monitor
+Categories=System;Monitor;
+OnlyShowIn=Piloti;
