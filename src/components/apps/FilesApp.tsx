@@ -26,6 +26,7 @@ import {
   Trash2Icon,
   UsbIcon,
   VideoIcon,
+  XIcon,
   ZoomInIcon,
   ZoomOutIcon,
 } from "lucide-react";
@@ -135,7 +136,9 @@ import {
   listFsRecentEntries,
   listFsTemplates,
   moveFsEntry,
+  readFsTextFile,
   recordFsRecentFile,
+  writeFsTextFile,
   renameFsEntry,
   restoreFsEntry,
   trashFsEntry,
@@ -154,6 +157,16 @@ import {
 import { playSoundThemeEvent } from "@/lib/shell/sound-effects";
 import { inferMimeType } from "@/lib/xdg/xdg-mimeapps";
 import { resolveUserDirPath } from "@/lib/xdg/xdg-user-dirs";
+import {
+  addGtkBookmark,
+  GTK_BOOKMARKS_RELATIVE_PATH,
+  parseGtkBookmarks,
+  removeGtkBookmark,
+  serializeGtkBookmarks,
+  type GtkBookmark,
+} from "@/lib/xdg/xdg-bookmarks";
+import { watchNativeDir } from "@/lib/engine-native/file-watch";
+import { subscribeVfsPath } from "@/lib/engine/vfs-state";
 import { useOpenPath } from "@/hooks/use-open-path";
 
 interface XdgPlaceItem {
@@ -993,11 +1006,50 @@ export function FilesApp({
     [isBrowserRuntime, xdgUserDirs]
   );
 
+  // Sidebar bookmarks: the same GTK file Nautilus and file choosers use.
+  const bookmarksFile = `${WEB_VFS_HOME}/${GTK_BOOKMARKS_RELATIVE_PATH}`;
+  const [bookmarks, setBookmarks] = React.useState<GtkBookmark[]>([]);
+  const loadBookmarks = React.useCallback(() => {
+    void readFsTextFile(domicile, isBrowserRuntime, bookmarksFile).then((text) =>
+      setBookmarks(parseGtkBookmarks(text)),
+    );
+  }, [bookmarksFile, domicile, isBrowserRuntime]);
+  React.useEffect(() => {
+    loadBookmarks();
+    if (isBrowserRuntime) return subscribeVfsPath(bookmarksFile, loadBookmarks);
+    return watchNativeDir(domicile.files, ".config/gtk-3.0", loadBookmarks);
+  }, [bookmarksFile, domicile, isBrowserRuntime, loadBookmarks]);
+  const saveBookmarks = React.useCallback(
+    async (next: GtkBookmark[]) => {
+      setBookmarks(next);
+      if (!isBrowserRuntime) await domicile.files.createDir(".config/gtk-3.0").catch(() => undefined);
+      writeFsTextFile(domicile, isBrowserRuntime, bookmarksFile, serializeGtkBookmarks(next));
+    },
+    [bookmarksFile, domicile, isBrowserRuntime],
+  );
+  const bookmarkedPaths = React.useMemo(() => new Set(bookmarks.map((b) => b.path)), [bookmarks]);
+  const toggleBookmark = React.useCallback(
+    (path: string) =>
+      void saveBookmarks(
+        bookmarkedPaths.has(path) ? removeGtkBookmark(bookmarks, path) : addGtkBookmark(bookmarks, path),
+      ),
+    [bookmarkedPaths, bookmarks, saveBookmarks],
+  );
+
   const placesList = React.useMemo<XdgPlaceItem[]>(
-    () =>
-      usbMounted
+    () => {
+      const base = [
+        ...xdgPlaces,
+        ...bookmarks.map((b) => ({
+          id: `bookmark:${b.path}`,
+          label: b.label ?? (b.path.slice(b.path.lastIndexOf("/") + 1) || "/"),
+          path: b.path,
+          icon: <FolderIcon className="size-4" />,
+        })),
+      ];
+      return usbMounted
         ? [
-            ...xdgPlaces,
+            ...base,
             {
               id: "usb-drive",
               label: SIMULATED_USB_LABEL,
@@ -1005,8 +1057,9 @@ export function FilesApp({
               icon: <UsbIcon className="size-4" />,
             },
           ]
-        : [...xdgPlaces],
-    [usbMounted, xdgPlaces]
+        : base;
+    },
+    [usbMounted, xdgPlaces, bookmarks]
   );
 
   const activePlace = placesList.find((p) => p.path === currentPath);
@@ -1070,9 +1123,16 @@ export function FilesApp({
             place.path === WEB_VFS_RECENTS_URI
               ? undefined
               : place.path,
-          separatorAfter: place.id === "favorites",
+          separatorAfter:
+            place.id === "favorites" || (place.id === "videos" && bookmarks.length > 0),
           pinnedBottom: isUsb,
-          trailingAction: isUsb
+          trailingAction: place.id.startsWith("bookmark:")
+            ? {
+                icon: <XIcon className="size-3.5" />,
+                label: _("Remove from Bookmarks"),
+                onClick: () => toggleBookmark(place.path),
+              }
+            : isUsb
             ? {
                 icon: <EjectIcon className="size-3.5" />,
                 label: _("Eject USB Drive"),
@@ -1085,7 +1145,7 @@ export function FilesApp({
           },
         };
       }),
-    [activeSidebarPath, placesList]
+    [activeSidebarPath, placesList, bookmarks.length, toggleBookmark]
   );
 
   const handleGoUp = () => {
@@ -2438,6 +2498,8 @@ export function FilesApp({
         onOpenWithApp={(target, app) => {
           void openPathWith(target.path, app, { kind: target.kind === "directory" ? "directory" : "file" });
         }}
+        bookmarkedPaths={bookmarkedPaths}
+        onToggleBookmark={(target) => toggleBookmark(target.path)}
         onMakeLink={(list) => {
           void Promise.all(
             list.map((target) =>

@@ -707,5 +707,7 @@
   "Unpin from toolbar": "Détacher de la barre d’outils",
   "No extensions installed.": "Aucune extension installée.",
   "Edit address": "Modifier l’adresse",
-  "Listening for logs, VFS, Shell and Window events…": "En attente de journaux et d’événements VFS, Shell et fenêtres…"
+  "Listening for logs, VFS, Shell and Window events…": "En attente de journaux et d’événements VFS, Shell et fenêtres…",
+  "Add to Bookmarks": "Ajouter aux signets",
+  "Remove from Bookmarks": "Retirer des signets"
 }

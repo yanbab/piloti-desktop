@@ -707,5 +707,7 @@
   "Unpin from toolbar": "Desfijar de la barra de herramientas",
   "No extensions installed.": "No hay extensiones instaladas.",
   "Edit address": "Editar dirección",
-  "Listening for logs, VFS, Shell and Window events…": "Esperando registros y eventos de VFS, Shell y ventanas…"
+  "Listening for logs, VFS, Shell and Window events…": "Esperando registros y eventos de VFS, Shell y ventanas…",
+  "Add to Bookmarks": "Añadir a marcadores",
+  "Remove from Bookmarks": "Quitar de marcadores"
 }

@@ -49,6 +49,8 @@ export function FileItemContextMenu({
   onOpenInNewWindow,
   onOpenContainingFolder,
   onShowOriginal,
+  onToggleBookmark,
+  bookmarkedPaths,
   onRestore,
   onRestoreItems,
   onOpenInTerminal,
@@ -79,6 +81,9 @@ export function FileItemContextMenu({
   onOpenContainingFolder?: (item: IconGridItem) => void;
   /** Symbolic links: reveal the target in Folders. */
   onShowOriginal?: (item: IconGridItem) => void;
+  /** Folders: add to / remove from the sidebar bookmarks. */
+  onToggleBookmark?: (item: IconGridItem) => void;
+  bookmarkedPaths?: ReadonlySet<string>;
   onRestore?: (item: IconGridItem) => void;
   onRestoreItems?: (items: IconGridItem[]) => void;
   onOpenInTerminal?: (item: IconGridItem) => void;
@@ -289,6 +294,22 @@ export function FileItemContextMenu({
                 className={itemBtnClass}
               >
                 {_("Show Original")}
+              </button>
+            )}
+            {isSingle && onToggleBookmark && menu.item.kind === "directory" && !isTrash && (
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  const target = menu.item;
+                  onClose();
+                  onToggleBookmark(target);
+                }}
+                className={itemBtnClass}
+              >
+                {bookmarkedPaths?.has(menu.item.path ?? menu.item.id)
+                  ? _("Remove from Bookmarks")
+                  : _("Add to Bookmarks")}
               </button>
             )}
             {isSingle && onOpenInTerminal && menu.item.kind === "directory" && (
