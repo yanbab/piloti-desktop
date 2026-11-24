@@ -25,6 +25,8 @@ import {
   WEB_VFS_TRASH,
   type WebVfsEntry,
   writeVfsTextFile,
+  listVfsFavoriteEntries,
+  loadVfsFavorites,
 } from "@/lib/engine-web/web-vfs";
 import {
   parseRecentlyUsedXbel,
@@ -256,6 +258,17 @@ export async function removeFsFile(
   filePath: string,
 ): Promise<void> {
   await fileServiceFor(domicile, isBrowserRuntime).remove(filePath);
+}
+
+/** The favorite (starred) entries, looked up on disk on Linux. */
+export async function listFsFavoriteEntries(
+  domicile: Domicile,
+  isBrowserRuntime: boolean,
+): Promise<WebVfsEntry[]> {
+  if (isBrowserRuntime) return listVfsFavoriteEntries();
+  const service = fileServiceFor(domicile, false);
+  const found = await Promise.all(loadVfsFavorites().map((path) => service.statEntry(path)));
+  return found.filter((e): e is WebVfsEntry => e !== null);
 }
 
 /**

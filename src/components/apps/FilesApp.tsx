@@ -27,8 +27,6 @@ import {
   UsbIcon,
   VideoIcon,
   XIcon,
-  ZoomInIcon,
-  ZoomOutIcon,
 } from "lucide-react";
 import {
   isSimulatedUsbPath,
@@ -133,6 +131,7 @@ import {
   createFsTextFile,
   emptyFsTrash,
   listFsDir as bridgeListFsDir,
+  listFsFavoriteEntries,
   listFsRecentEntries,
   listFsTemplates,
   moveFsEntry,
@@ -433,6 +432,9 @@ export function FilesApp({
     }
     if (currentPath === WEB_VFS_FAVORITES_URI) {
       setVfsEntries(listVfsFavoriteEntries());
+      if (!isBrowserRuntime) {
+        void listFsFavoriteEntries(domicile, false).then((entries) => setVfsEntries(entries));
+      }
       return;
     }
     if (currentPath === WEB_VFS_RECENTS_URI) {
@@ -1039,7 +1041,8 @@ export function FilesApp({
   const placesList = React.useMemo<XdgPlaceItem[]>(
     () => {
       const base = [
-        ...xdgPlaces,
+        // A folder that is the home itself (XDG_DOWNLOAD_DIR="$HOME/") would select twice.
+        ...xdgPlaces.filter((p) => p.id === "home" || p.path !== WEB_VFS_HOME),
         ...bookmarks.map((b) => ({
           id: `bookmark:${b.path}`,
           label: b.label ?? (b.path.slice(b.path.lastIndexOf("/") + 1) || "/"),
@@ -2195,7 +2198,7 @@ export function FilesApp({
             </span>
           </div>
         ) : viewMode === "list" ? (
-          <div className="p-2 pb-10">
+          <div className="p-2">
             <table className="w-full border-collapse text-left text-[12.5px]">
               <thead>
                 <tr className="border-b border-adw-separator text-[11px] font-semibold text-adw-label-secondary uppercase">
@@ -2418,66 +2421,46 @@ export function FilesApp({
             selectedIds={selectedIds}
             onSelectIds={setSelectedIds}
             ariaLabel={currentTitle}
-            className="pb-10 [&_button[aria-selected=false]_span]:text-adw-label [&_button_span]:drop-shadow-none"
+            className="[&_button[aria-selected=false]_span]:text-adw-label [&_button_span]:drop-shadow-none"
           />
         )}
         </div>
+        {/* Bottom bar: item count and zoom (28px controls max, Piloti) */}
         <div
-          data-testid="files-status-pill"
-          className="pointer-events-none absolute bottom-2 left-2.5 z-10 rounded-full border border-adw-border/60 bg-adw-card/90 px-2.5 py-0.5 text-[11px] font-medium text-adw-dim shadow-xs backdrop-blur-md"
+          data-slot="files-bottom-bar"
+          data-window-no-drag
+          className="flex h-[26px] shrink-0 items-center justify-between gap-3 border-t border-adw-separator bg-black/[0.03] px-2.5 dark:bg-white/[0.04]"
         >
-          {selectedIds.length > 0
-            ? _("%d selected", selectedIds.length)
-            : items.length === 1
-              ? _("%d item", items.length)
-              : _("%d items", items.length)}
-        </div>
-        {(
-          <div
-            data-window-no-drag
-            className="absolute right-2.5 bottom-2 z-10 flex items-center gap-1.5 px-1 py-0.5"
+          <span
+            data-testid="files-status-pill"
+            className="min-w-0 truncate text-[11px] text-adw-label-secondary"
           >
-            <button
-              type="button"
-              aria-label={_("Zoom out")}
-              title={_("Zoom out")}
-              disabled={activeZoomIndex <= 0}
-              onClick={() => stepZoom(-1)}
-              className="flex size-4 shrink-0 items-center justify-center rounded-full text-adw-label-secondary transition-colors hover:bg-black/8 hover:text-adw-label disabled:pointer-events-none disabled:opacity-35 dark:hover:bg-white/10"
-            >
-              <ZoomOutIcon className="size-3" />
-            </button>
-            <div className="w-[100px] shrink-0">
-              <Slider
-                aria-label={_("Zoom")}
-                size="sm"
-                min={0}
-                max={maxZoomIndex}
-                step={1}
-                value={[activeZoomIndex]}
-                onValueChange={(val) => {
-                  const next = Array.isArray(val) ? val[0] : val;
-                  if (typeof next !== "number") return;
-                  if (viewMode === "list") {
-                    setListZoomIndex(Math.max(0, Math.min(maxZoomIndex, next)));
-                  } else {
-                    setGridZoomIndex(Math.max(0, Math.min(maxZoomIndex, next)));
-                  }
-                }}
-              />
-            </div>
-            <button
-              type="button"
-              aria-label={_("Zoom in")}
-              title={_("Zoom in")}
-              disabled={activeZoomIndex >= maxZoomIndex}
-              onClick={() => stepZoom(1)}
-              className="flex size-4 shrink-0 items-center justify-center rounded-full text-adw-label-secondary transition-colors hover:bg-black/8 hover:text-adw-label disabled:pointer-events-none disabled:opacity-35 dark:hover:bg-white/10"
-            >
-              <ZoomInIcon className="size-3" />
-            </button>
+            {selectedIds.length > 0
+              ? _("%d selected", selectedIds.length)
+              : items.length === 1
+                ? _("%d item", items.length)
+                : _("%d items", items.length)}
+          </span>
+          <div className="w-[96px] shrink-0">
+            <Slider
+              aria-label={_("Zoom")}
+              size="sm"
+              min={0}
+              max={maxZoomIndex}
+              step={1}
+              value={[activeZoomIndex]}
+              onValueChange={(val) => {
+                const next = Array.isArray(val) ? val[0] : val;
+                if (typeof next !== "number") return;
+                if (viewMode === "list") {
+                  setListZoomIndex(Math.max(0, Math.min(maxZoomIndex, next)));
+                } else {
+                  setGridZoomIndex(Math.max(0, Math.min(maxZoomIndex, next)));
+                }
+              }}
+            />
           </div>
-        )}
+        </div>
       </div>
 
       {/* Shared Icon Right-Click Menu */}

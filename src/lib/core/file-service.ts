@@ -34,6 +34,8 @@ export interface FileServiceDeps {
 export interface FileService {
   listDir(dirPath: string): Promise<WebVfsEntry[]>;
   readText(filePath: string): Promise<string>;
+  /** One entry as the disk has it (or the cache when there is no store); `null` if missing. */
+  statEntry(path: string): Promise<WebVfsEntry | null>;
   writeText(filePath: string, content: string): WebVfsEntry | null;
   createFolder(dirPath: string, baseName?: string): WebVfsEntry;
   createTextFile(dirPath: string, baseName?: string, content?: string): WebVfsEntry;
@@ -128,6 +130,25 @@ export function createFileService({ store, cache, cacheOnly }: FileServiceDeps):
       } catch {
         return cache.listVfsDir(normDir);
       }
+    },
+
+    async statEntry(path) {
+      const norm = normalizeVfsPath(path);
+      const s = backed(norm);
+      if (!s) return cache.getVfsEntry(norm) ?? null;
+      const st = await s.stat(norm).catch(() => null);
+      if (!st) return null;
+      const cached = cache.getVfsEntry(norm);
+      return {
+        ...(cached ?? {}),
+        id: norm,
+        name: basename(norm),
+        kind: st.kind,
+        path: norm,
+        parentPath: dirname(norm),
+        size: st.size ?? cached?.size,
+        updatedAt: st.modifiedMs ?? cached?.updatedAt ?? Date.now(),
+      };
     },
 
     async readText(filePath) {

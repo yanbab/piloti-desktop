@@ -34,14 +34,19 @@ async function boot(root: HTMLElement, domicile: Parameters<ShellModule>[1]) {
           /* storage unavailable */
         }
       }
-      const { memoryPersistence } = await import("@/lib/ports/vfs-persistence");
-      vfs.setVfsPersistence(memoryPersistence());
+      const { memoryBlobStorage } = await import("@/lib/ports/vfs-persistence");
+      const [{ createNativeFileStore }, { preloadNativeState, createNativeKeyValueStorage }] =
+        await Promise.all([
+          import("@/lib/engine-native/native-file-store"),
+          import("@/lib/engine-native/state-preload"),
+        ]);
+      const store = createNativeFileStore(domicile);
+      vfs.setVfsPersistence({
+        kv: await createNativeKeyValueStorage(store, (key) => key === vfs.WEB_VFS_STORAGE_KEY),
+        blobs: memoryBlobStorage(),
+      });
       vfs.setVfsDemoDefaults(false);
-      const [{ createNativeFileStore }, { preloadNativeState }] = await Promise.all([
-        import("@/lib/engine-native/native-file-store"),
-        import("@/lib/engine-native/state-preload"),
-      ]);
-      await preloadNativeState(createNativeFileStore(domicile), {
+      await preloadNativeState(store, {
         ensureDir: (path) => void vfs.ensureVfsDir(path),
         writeText: (path, content) => void vfs.writeVfsTextFile(path, content),
       });
