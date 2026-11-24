@@ -85,7 +85,6 @@
   "Desktop Console": "Consola del escritorio",
   "Desktop Console, live logs, inspector, and JS REPL": "Consola del escritorio, registros en vivo, inspector y REPL JS",
   "Desktop Settings": "Configuración del escritorio",
-  "Desktop Shell": "Shell del escritorio",
   "Desktop shell with VFS commands (ls, cd, mkdir, cat, top)": "Shell del escritorio con comandos VFS (ls, cd, mkdir, cat, top)",
   "Detecting…": "Detectando…",
   "Development": "Desarrollo",
@@ -764,5 +763,9 @@
   "Values": "Valores",
   "Variants": "Variantes",
   "Loading…": "Cargando…",
-  "Could not connect. Check the password.": "No se pudo conectar. Compruebe la contraseña."
+  "Could not connect. Check the password.": "No se pudo conectar. Compruebe la contraseña.",
+  "Pin Tab": "Fijar pestaña",
+  "Unpin Tab": "Desfijar pestaña",
+  "Move Tab to New Window": "Mover pestaña a una ventana nueva",
+  "Reopen Closed Tab": "Reabrir pestaña cerrada"
 }

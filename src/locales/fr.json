@@ -79,7 +79,6 @@
   "Desktop Console": "Console du bureau",
   "Desktop Console, live logs, inspector, and JS REPL": "Console du bureau, journaux en direct, inspecteur et REPL JS",
   "Desktop Settings": "Paramètres du bureau",
-  "Desktop Shell": "Shell du bureau",
   "Desktop shell with VFS commands (ls, cd, mkdir, cat, top)": "Shell du bureau avec commandes VFS (ls, cd, mkdir, cat, top)",
   "Detecting…": "Détection…",
   "Development": "Développement",
@@ -764,5 +763,9 @@
   "Values": "Valeurs",
   "Variants": "Variantes",
   "Loading…": "Chargement…",
-  "Could not connect. Check the password.": "Impossible de se connecter. Vérifiez le mot de passe."
+  "Could not connect. Check the password.": "Impossible de se connecter. Vérifiez le mot de passe.",
+  "Pin Tab": "Épingler l’onglet",
+  "Unpin Tab": "Détacher l’épingle",
+  "Move Tab to New Window": "Déplacer l’onglet dans une nouvelle fenêtre",
+  "Reopen Closed Tab": "Rouvrir l’onglet fermé"
 }

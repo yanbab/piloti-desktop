@@ -420,6 +420,7 @@ function WebViewSurface({
     markWindowReady,
     openBrowserTab,
     closeBrowserTab,
+    reopenClosedBrowserTab,
   } = useWindowManager();
   const isFocusedTab = active && focusedWindowId === win.id;
   const isBrowserApp = win.appId === "browser";
@@ -764,17 +765,27 @@ function WebViewSurface({
       if (!active) return;
       if (detail.actionId === "browser:new-tab") openBrowserTab(win.id);
       if (detail.actionId === "browser:new-window") launchApp("browser", { forceNew: true });
+      if (detail.actionId === "browser:reopen-tab") reopenClosedBrowserTab(win.id);
       if (detail.actionId === "browser:close-tab" && win.browserWindowId) {
         closeBrowserTab(win.id, win.browserWindowId);
       }
     };
     const offPrintFocused = onShellEvent("piloti:print-focused", onPrintFocused);
+    // Ctrl/Cmd+Shift+T brings the last closed tab back.
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (!active || !isFocusedTab || !(e.ctrlKey || e.metaKey) || e.altKey || !e.shiftKey) return;
+      if (e.key.toLowerCase() !== "t") return;
+      e.preventDefault();
+      reopenClosedBrowserTab(win.id);
+    };
+    window.addEventListener("keydown", onKeyDown);
     window.addEventListener("piloti:app-action", onAppAction);
     return () => {
       offPrintFocused();
+      window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("piloti:app-action", onAppAction);
     };
-  }, [isFocusedTab, active, isBrowserRuntime, win.id, win.browserWindowId, openBrowserTab, closeBrowserTab, launchApp]);  // FIXME : Capabilities
+  }, [isFocusedTab, active, isBrowserRuntime, win.id, win.browserWindowId, openBrowserTab, closeBrowserTab, reopenClosedBrowserTab, launchApp]);  // FIXME : Capabilities
   const installedApps = settings.installedWebApps ?? [];
   const matchedInstalledApp = findMatchingWebApp(currentUrl, installedApps);
   const isInstalled = currentUrl !== "" && Boolean(matchedInstalledApp);
@@ -1324,8 +1335,13 @@ function BrowserTabsSurface({
   darkReaderEnabled: boolean;
   onToggleDarkReader: () => void;
 }) {
-  const { selectBrowserTab, closeBrowserTab, reorderBrowserTabs, detachBrowserTab } =
-    useWindowManager();
+  const {
+    selectBrowserTab,
+    closeBrowserTab,
+    reorderBrowserTabs,
+    detachBrowserTab,
+    pinBrowserTab,
+  } = useWindowManager();
   const tabs: BrowserTab[] = win.browserTabs ?? [
     {
       id: win.browserWindowId!,
@@ -1371,6 +1387,7 @@ function BrowserTabsSurface({
         onClose={(id) => closeBrowserTab(win.id, id)}
         onReorder={(ids) => reorderBrowserTabs(win.id, ids)}
         onDetach={(id) => detachBrowserTab(win.id, id)}
+        onPin={(id, pinned) => pinBrowserTab(win.id, id, pinned)}
       />
       {tabs.map((tab) => {
         const active = tab.id === win.browserWindowId;

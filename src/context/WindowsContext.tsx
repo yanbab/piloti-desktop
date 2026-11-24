@@ -95,8 +95,17 @@ export interface DesktopWindowInstance {
   payload?: string;
 }
 
+/** The tabs of one web window; `pinned` ones are always first in `tabs`. */
+interface BrowserTabGroup {
+  tabs: string[];
+  active: string;
+  pinned?: string[];
+}
+
 export interface BrowserTab {
   id: string;
+  /** Pinned tabs sit first, as icons. */
+  pinned?: boolean;
   url: string;
   title: string;
   iconUrl?: string;
@@ -145,6 +154,9 @@ export interface WindowsContextValue {
   reorderBrowserTabs: (windowId: string, tabIds: string[]) => void;
   /** Moves a tab out into a window of its own. */
   detachBrowserTab: (windowId: string, tabId: string) => void;
+  pinBrowserTab: (windowId: string, tabId: string, pinned: boolean) => void;
+  /** Opens the tab closed last again, in this window. */
+  reopenClosedBrowserTab: (windowId: string) => void;
   focusWindow: (windowId: string) => void;
   closeWindow: (windowId: string) => void;
   forceQuitApp: (appId: string) => void;
@@ -230,6 +242,15 @@ interface ExternalWindowMeta {
   workspace: number;
   /** Opened by the Web Browser: grouped under its Dock icon whatever the page. */
   browserApp?: boolean;
+}
+
+/** Pinned tabs first, each side keeping its order. */
+function pinnedFirst(tabs: string[], pinned: string[] | undefined): string[] {
+  if (!pinned?.length) return tabs;
+  return [
+    ...tabs.filter((id) => pinned.includes(id)),
+    ...tabs.filter((id) => !pinned.includes(id)),
+  ];
 }
 
 /** Start page of a new Web Browser window. */
@@ -532,7 +553,7 @@ function pruneBrowserRecord(
   // after that tab closes); only the active tab is shown. A window with a
   // single page has no record.
   const [browserTabGroups, setBrowserTabGroups] = React.useState<
-    Record<string, { tabs: string[]; active: string }>
+    Record<string, BrowserTabGroup>
   >({});
   const browserTabGroupsRef = React.useRef(browserTabGroups);
   browserTabGroupsRef.current = browserTabGroups;
@@ -690,7 +711,7 @@ function pruneBrowserRecord(
 
     // Drop closed tabs; a closed active tab hands over to its neighbour.
     let groupsChanged = tabAdds.length > 0;
-    const nextGroups: Record<string, { tabs: string[]; active: string }> = {};
+    const nextGroups: Record<string, BrowserTabGroup> = {};
     for (const [group, grp] of Object.entries(prevGroups)) {
       const tabs = grp.tabs.filter((id) => activeIds.has(id));
       if (tabs.length !== grp.tabs.length) groupsChanged = true;
@@ -698,11 +719,12 @@ function pruneBrowserRecord(
       const active = tabs.includes(grp.active)
         ? grp.active
         : tabs[Math.min(Math.max(0, grp.tabs.indexOf(grp.active) - 1), tabs.length - 1)];
-      nextGroups[group] = { tabs, active };
+      const pinned = grp.pinned?.filter((id) => tabs.includes(id));
+      nextGroups[group] = { tabs, active, ...(pinned?.length ? { pinned } : {}) };
     }
     for (const [group, tab] of tabAdds) {
       const grp = nextGroups[group] ?? { tabs: [group], active: group };
-      nextGroups[group] = { tabs: [...grp.tabs, tab], active: tab };
+      nextGroups[group] = { ...grp, tabs: [...grp.tabs, tab], active: tab };
     }
     for (const [group, grp] of Object.entries(nextGroups)) {
       if (grp.tabs.length === 1 && grp.tabs[0] === group) {
@@ -1173,7 +1195,15 @@ function pruneBrowserRecord(
         const tab = browserById.get(tabId);
         if (!tab) return [];
         const d = tabId === bw.id ? described : describeBrowserWindow(tab);
-        return [{ id: tabId, url: tab.url, title: d.title, iconUrl: d.iconUrl }];
+        return [
+          {
+            id: tabId,
+            url: tab.url,
+            title: d.title,
+            iconUrl: d.iconUrl,
+            ...(grp.pinned?.includes(tabId) ? { pinned: true } : {}),
+          },
+        ];
       });
       return [{
         id: `browser:${group}`,
@@ -1502,7 +1532,24 @@ function pruneBrowserRecord(
       if (!grp || tabIds.length !== grp.tabs.length) return prev;
       if (!tabIds.every((id) => grp.tabs.includes(id))) return prev;
       if (tabIds.every((id, i) => id === grp.tabs[i])) return prev;
-      return { ...prev, [group]: { ...grp, tabs: tabIds } };
+      return { ...prev, [group]: { ...grp, tabs: pinnedFirst(tabIds, grp.pinned) } };
+    });
+  }, []);
+
+  const pinBrowserTab = React.useCallback((windowId: string, tabId: string, pinned: boolean) => {
+    const group = windowId.slice("browser:".length);
+    setBrowserTabGroups((prev) => {
+      const grp = prev[group];
+      if (!grp || !grp.tabs.includes(tabId)) return prev;
+      const current = grp.pinned ?? [];
+      if (current.includes(tabId) === pinned) return prev;
+      const nextPinned = pinned ? [...current, tabId] : current.filter((id) => id !== tabId);
+      const rest = grp.tabs.filter((id) => id !== tabId);
+      // A tab just pinned goes after the pinned ones; one unpinned goes right after them.
+      const lead = rest.filter((id) => nextPinned.includes(id));
+      const tail = rest.filter((id) => !nextPinned.includes(id));
+      const tabs = pinned ? [...lead, tabId, ...tail] : [...lead, tabId, ...tail];
+      return { ...prev, [group]: { ...grp, tabs, pinned: nextPinned.length ? nextPinned : undefined } };
     });
   }, []);
 
@@ -1521,7 +1568,13 @@ function pruneBrowserRecord(
           : grp.active;
       const next = {
         ...browserTabGroupsRef.current,
-        [group]: { tabs: remaining, active },
+        [group]: {
+          tabs: remaining,
+          active,
+          ...(grp.pinned?.some((id) => id !== tabId)
+            ? { pinned: grp.pinned.filter((id) => id !== tabId) }
+            : {}),
+        },
         [newKey]: { tabs: [tabId], active: tabId },
       };
       browserTabGroupsRef.current = next;
@@ -1552,8 +1605,23 @@ function pruneBrowserRecord(
     [browserMeta, screenWidth, screenHeight]
   );
 
+  /** Pages closed as tabs, newest last, for "Reopen Closed Tab". */
+  const closedTabsRef = React.useRef<string[]>([]);
+  const browserWindowsRef = React.useRef(browserWindows);
+  browserWindowsRef.current = browserWindows;
+
+  const reopenClosedBrowserTab = React.useCallback(
+    (windowId: string) => {
+      const url = closedTabsRef.current.pop();
+      if (url) openBrowserTab(windowId, url);
+    },
+    [openBrowserTab]
+  );
+
   const closeBrowserTab = React.useCallback(
     (windowId: string, tabId: string) => {
+      const closedUrl = browserWindowsRef.current.find((bw) => bw.id === tabId)?.url;
+      if (closedUrl) closedTabsRef.current = [...closedTabsRef.current.slice(-19), closedUrl];
       const grp = browserTabGroupsRef.current[windowId.slice("browser:".length)];
       if (!grp || grp.tabs.length <= 1) closeWindow(windowId);
       else domicile.browser.close(tabId);
@@ -2788,6 +2856,8 @@ function pruneBrowserRecord(
       closeBrowserTab,
       reorderBrowserTabs,
       detachBrowserTab,
+      pinBrowserTab,
+      reopenClosedBrowserTab,
       focusWindow,
       closeWindow,
       forceQuitApp,
@@ -2859,6 +2929,8 @@ function pruneBrowserRecord(
       closeBrowserTab,
       reorderBrowserTabs,
       detachBrowserTab,
+      pinBrowserTab,
+      reopenClosedBrowserTab,
       subscribeClientWindowRequest,
       tileWindow,
       toggleOverview,

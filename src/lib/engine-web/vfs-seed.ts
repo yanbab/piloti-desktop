@@ -194,6 +194,13 @@ export function topUpDefaults(entries: WebVfsEntry[], kv: KeyValueStorage | null
         addedDefaults = true;
       }
     }
+    // Old demos seeded a "Desktop Shell" launcher; Terminal replaced it.
+    const staleShell = `${VFS_HOME}/.local/share/applications/piloti-shell.desktop`;
+    const staleIndex = entries.findIndex((e) => e.path === staleShell);
+    if (staleIndex >= 0) {
+      entries.splice(staleIndex, 1);
+      addedDefaults = true;
+    }
     // Bundled plugins ship with the shell (like /usr/share on native): keep
     // the demo's copies current, so updates and new plugins reach old demos.
     const pluginsPrefix = `${VFS_HOME}/.config/piloti/plugins/`;

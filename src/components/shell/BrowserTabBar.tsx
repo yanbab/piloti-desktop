@@ -19,6 +19,13 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { GlobeIcon, XIcon } from "lucide-react";
 import { createPortal } from "react-dom";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
 import type { BrowserTab } from "@/context/WindowsContext";
 import { _ } from "@/lib/core/i18n";
 import { cn } from "@/lib/core/utils";
@@ -35,17 +42,25 @@ const horizontalOnly: Modifier = ({ transform }) => ({ ...transform, y: 0 });
 /** Dragging this far above or below the bar tears the tab off into its own window. */
 const DETACH_DISTANCE = 48;
 
-const tabClass = (active: boolean) =>
+const tabClass = (active: boolean, pinned = false) =>
   cn(
     // Chrome-style: tabs share the bar up to 240px each, left-aligned, and
     // shrink when there are many; icon, title, then close on the right.
     "group relative flex min-w-8 max-w-60 flex-1 basis-0 items-center gap-1.5 rounded-adw-control pr-1 pl-2 text-adw-subheadline select-none",
+    pinned && "max-w-9 min-w-9 flex-none justify-center px-0",
     active
       ? "bg-adw-window font-medium text-adw-label shadow-2xs"
       : "text-adw-label-secondary"
   );
 
 function TabContents({ tab, active, onClose }: { tab: BrowserTab; active: boolean; onClose?: () => void }) {
+  if (tab.pinned) {
+    return tab.iconUrl ? (
+      <img src={tab.iconUrl} alt="" className="size-4 shrink-0" draggable={false} />
+    ) : (
+      <GlobeIcon className="size-4 shrink-0" />
+    );
+  }
   return (
     <>
       <button
@@ -94,6 +109,7 @@ function SortableTab({
       aria-selected={active}
       data-slot="browser-tab"
       data-tab-id={tab.id}
+      data-tab-pinned={tab.pinned || undefined}
       data-active={active || undefined}
       title={tab.title}
       onPointerDown={(e) => {
@@ -111,7 +127,7 @@ function SortableTab({
         transition: sortable.transition,
         opacity: sortable.isDragging ? 0 : undefined,
       }}
-      className={tabClass(active)}
+      className={tabClass(active, tab.pinned)}
     >
       <TabContents tab={tab} active={active} onClose={() => onClose(tab.id)} />
     </div>
@@ -131,6 +147,7 @@ export function BrowserTabBar({
   onClose,
   onReorder,
   onDetach,
+  onPin,
 }: {
   hidden: boolean;
   top: number;
@@ -140,7 +157,10 @@ export function BrowserTabBar({
   onClose: (id: string) => void;
   onReorder: (ids: string[]) => void;
   onDetach: (id: string) => void;
+  onPin: (id: string, pinned: boolean) => void;
 }) {
+  const [menuTab, setMenuTab] = React.useState<string | null>(null);
+  const menuTabInfo = tabs.find((t) => t.id === menuTab);
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: DRAG_THRESHOLD } })
   );
@@ -199,26 +219,51 @@ export function BrowserTabBar({
       }}
     >
       <SortableContext items={ids} strategy={horizontalListSortingStrategy}>
-        <div
-          role="tablist"
-          data-slot="browser-tab-bar"
-          hidden={hidden}
-          style={{ top }}
-          className={cn(
-            "absolute inset-x-0 z-10 h-adw-control-medium shrink-0 items-stretch gap-px border-b border-adw-separator bg-black/5 px-1 py-0.5 dark:bg-white/4",
-            hidden ? "hidden" : "flex"
+        <ContextMenu>
+          <ContextMenuTrigger
+            onContextMenuCapture={(e: React.MouseEvent) =>
+              setMenuTab(
+                (e.target as HTMLElement).closest<HTMLElement>("[data-tab-id]")?.dataset.tabId ?? null
+              )
+            }
+            render={
+              <div
+                role="tablist"
+                data-slot="browser-tab-bar"
+                hidden={hidden}
+                style={{ top }}
+                className={cn(
+                  "absolute inset-x-0 z-10 h-adw-control-medium shrink-0 items-stretch gap-px border-b border-adw-separator bg-black/5 px-1 py-0.5 dark:bg-white/4",
+                  hidden ? "hidden" : "flex"
+                )}
+              />
+            }
+          >
+            {tabs.map((tab) => (
+              <SortableTab
+                key={tab.id}
+                tab={tab}
+                active={tab.id === activeId}
+                onSelect={onSelect}
+                onClose={onClose}
+              />
+            ))}
+          </ContextMenuTrigger>
+          {menuTabInfo && (
+            <ContextMenuContent className="min-w-48">
+              <ContextMenuItem onClick={() => onPin(menuTabInfo.id, !menuTabInfo.pinned)}>
+                {menuTabInfo.pinned ? _("Unpin Tab") : _("Pin Tab")}
+              </ContextMenuItem>
+              {tabs.length > 1 && (
+                <ContextMenuItem onClick={() => onDetach(menuTabInfo.id)}>
+                  {_("Move Tab to New Window")}
+                </ContextMenuItem>
+              )}
+              <ContextMenuSeparator />
+              <ContextMenuItem onClick={() => onClose(menuTabInfo.id)}>{_("Close Tab")}</ContextMenuItem>
+            </ContextMenuContent>
           )}
-        >
-          {tabs.map((tab) => (
-            <SortableTab
-              key={tab.id}
-              tab={tab}
-              active={tab.id === activeId}
-              onSelect={onSelect}
-              onClose={onClose}
-            />
-          ))}
-        </div>
+        </ContextMenu>
       </SortableContext>
       {typeof document !== "undefined" &&
         createPortal(
@@ -231,7 +276,7 @@ export function BrowserTabBar({
                 ref={liftRef}
                 data-dnd-kit-overlay=""
                 style={{ width: overlay.width, height: overlay.height, opacity: tearing ? 0.6 : 1 }}
-                className={cn(tabClass(overlayTab.id === activeId), "cursor-grabbing")}
+                className={cn(tabClass(overlayTab.id === activeId, overlayTab.pinned), "cursor-grabbing")}
               >
                 <TabContents tab={overlayTab} active={overlayTab.id === activeId} />
               </div>

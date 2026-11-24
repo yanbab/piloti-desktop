@@ -7,6 +7,18 @@ import {
 } from "@/lib/engine-native/gnome-background";
 import type { WallpaperOption } from "@/data/catalog";
 
+/** Plain base shown while a plugin wallpaper loads (Aurora Drift's base tones). */
+const PLUGIN_WALLPAPER_PLACEHOLDER: WallpaperOption = {
+  id: "plugin-loading",
+  name: "",
+  subtitle: "",
+  category: "Dynamic",
+  backgroundCss:
+    "color-mix(in srgb, var(--adw-active-accent, #007aff) 14%, #eef4ff)",
+  backgroundCssDark:
+    "color-mix(in srgb, var(--adw-active-accent, #007aff) 10%, #050811)",
+};
+
 /**
  * Resolves the active `BackgroundRenderSpec`, honoring any CSS/HTML/image
  * wallpaper registered by enabled plugins (`pluginWallpapers`).
@@ -19,7 +31,22 @@ export function useResolvedDesktopBackgroundSpec(): BackgroundRenderSpec {
     const pluginWp = pluginsCtx?.pluginWallpapers.find(
       (w) => w.fullId === settings.wallpaperId || w.id === settings.wallpaperId
     );
-    if (!pluginWp) return backgroundSpec;
+    if (!pluginWp) {
+      // A plugin wallpaper before plugins are loaded: show a plain base
+      // (the shell's own wallpaper would flash first, then switch), and fade
+      // into the plugin's wallpaper once it registers.
+      const isPluginWallpaper = settings.wallpaperId.includes(":");
+      if (isPluginWallpaper && pluginsCtx && !pluginsCtx.ready) {
+        return resolveBackgroundRenderSpec({
+          wallpaperId: settings.wallpaperId,
+          wallpaperColorMode: "solid",
+          gnomeBackground: settings.gnomeBackground,
+          activeWallpaper: PLUGIN_WALLPAPER_PLACEHOLDER,
+          resolvedTheme,
+        });
+      }
+      return backgroundSpec;
+    }
 
     const option: WallpaperOption = {
       id: pluginWp.fullId,

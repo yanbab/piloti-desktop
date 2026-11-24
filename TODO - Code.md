@@ -17,7 +17,7 @@ Focus for now: stabilize, fine-tune, optimise. Features wait.
 
 Checked against the code on 2026-11-24. Priority picks are marked (*).
 
-- Browser: (*) reopen closed tab (Ctrl+Shift+T), (*) pin tab, duplicate tab. None exist.
+- Browser: duplicate tab (not there). Reopen closed tab and pin tab are done.
 - Notifications: (*) schedule for Do Not Disturb. The toggle exists in the Control Panel (`doNotDisturb`); no schedule, no per-app mute, no "clear all" check yet.
 - Windows: (*) Alt+` to cycle the windows of one app (not there). Corner snapping exists (`quad` in `window.tsx`); a keyboard shortcut for it was not checked.
 - Quick settings: airplane mode (not there); night-light schedule (the toggle exists, `nightLight`); rotation lock; battery time remaining.
@@ -39,3 +39,4 @@ Checked against the code on 2026-11-24. Priority picks are marked (*).
 - File metadata (`metadata::*` read/write) goes through `FileService`/`FileStore` (`gio info`/`gio set` now live in `native-file-store.ts`); `fs-bridge.ts` no longer runs any process itself.
 - Text Editor module save test: `tests/unit/text-editor-module-host.test.ts` (writes real path, failed write, read back, preload, localized Desktop, prefs, confirm-on-close).
 - Power profiles and MPRIS now use D-Bus (`src/lib/engine-native/dbus-services.ts`): live signals instead of polling, multi-player pick (playing first), tests in `dbus-services.test.ts`.
+- Browser tabs: Reopen Closed Tab (File menu, Ctrl+Shift+T, last 20 pages) and Pin Tab (tab context menu with Unpin and Move to New Window; pinned tabs sit first as icons). Checked in the web demo.

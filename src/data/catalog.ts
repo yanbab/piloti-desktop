@@ -581,7 +581,8 @@ export const APP_CATALOG: AppDefinition[] = [
         items: [
           { label: "New Window", shortcut: "Ctrl+N", actionId: "browser:new-window" },
           { label: "New Tab", shortcut: "Ctrl+T", actionId: "browser:new-tab" },
-          { label: "Close Tab", shortcut: "Ctrl+W", actionId: "browser:close-tab", separatorAfter: true },
+          { label: "Close Tab", shortcut: "Ctrl+W", actionId: "browser:close-tab" },
+          { label: "Reopen Closed Tab", shortcut: "Ctrl+Shift+T", actionId: "browser:reopen-tab", separatorAfter: true },
           { label: "Print…", shortcut: "Ctrl+P", actionId: "file:print" },
         ],
       },

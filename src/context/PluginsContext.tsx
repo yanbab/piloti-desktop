@@ -49,6 +49,8 @@ interface PluginsContextValue {
   pluginWallpapers: PluginWallpaperEntry[];
   safeMode: boolean;
   loading: boolean;
+  /** True once the enabled plugins were discovered and activated at least once. */
+  ready: boolean;
   togglePlugin: (id: string, enabled?: boolean) => void;
   reloadPlugin: (id: string) => Promise<void>;
   refreshPlugins: () => Promise<void>;
@@ -130,6 +132,7 @@ export function PluginsProvider({
     PluginWallpaperEntry[]
   >([]);
   const [loading, setLoading] = React.useState(false);
+  const [ready, setReady] = React.useState(false);
 
   const disposablesRef = React.useRef<Map<string, Array<() => void>>>(
     new Map()
@@ -648,6 +651,7 @@ export function PluginsProvider({
         );
       } finally {
         setLoading(false);
+        setReady(true);
       }
     },
     [activateDiscoveredPlugin, disposePlugin, domicile.files, settings.interfaceTheme]
@@ -729,6 +733,7 @@ export function PluginsProvider({
       pluginWallpapers,
       safeMode,
       loading,
+      ready,
       togglePlugin,
       reloadPlugin,
       refreshPlugins,
@@ -739,6 +744,7 @@ export function PluginsProvider({
       launcherProviders,
       loading,
       pluginCommands,
+      ready,
       pluginWallpapers,
       plugins,
       refreshPlugins,
