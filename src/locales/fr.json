@@ -776,5 +776,17 @@
   "No apps running": "Aucune application ouverte",
   "CPU": "Processeur",
   "Simulated values: real system data comes next.": "Valeurs simulées : les vraies données système arrivent bientôt.",
-  "Icon sizes": "Tailles d’icônes"
+  "Icon sizes": "Tailles d’icônes",
+  "Restart Piloti Desktop": "Redémarrer Piloti Desktop",
+  "Version %s": "Version %s",
+  "No selection": "Aucune sélection",
+  "Not installed": "Non installé",
+  "Application": "Application",
+  "Extension": "Extension",
+  "Plugin": "Module",
+  "Flatpak": "Flatpak",
+  "Filter files": "Filtrer les fichiers",
+  "Resize info pane": "Redimensionner le panneau d’infos",
+  "Web Search": "Recherche sur le web",
+  "Search the web for “%s”": "Rechercher « %s » sur le web"
 }

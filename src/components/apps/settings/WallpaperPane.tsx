@@ -9,7 +9,6 @@ import {
   ImageIcon,
   PlusIcon,
   SunMoonIcon,
-  UploadIcon,
 } from "lucide-react";
 import { ComputerHardwareIllustration } from "@/components/shell/AboutComputerDialog";
 import {
@@ -1058,7 +1057,6 @@ export function WallpaperPane() {
                   variant="secondary"
                   onClick={() => hostFileInputRef.current?.click()}
                 >
-                  <UploadIcon className="size-3.5" />
                   {_("Upload")}
                 </Button>
                 <input

@@ -1,3 +1,5 @@
+import { InfoPane, InfoPaneToggle, useInfoPane } from "@/components/ui/info-pane";
+import { HeaderSearch } from "@/components/ui/header-search";
 import * as React from "react";
 import { useDomicile } from "@domicile-desktop/react/domicile-provider";
 import {
@@ -1520,6 +1522,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
     () => items.find((item) => item.id === selectedId) ?? null,
     [items, selectedId],
   );
+  const infoPane = useInfoPane("app-store-info");
 
   const pendingAbortRef = React.useRef<AbortController | null>(null);
 
@@ -2278,6 +2281,41 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
           requestAnimationFrame(() => searchInputRef.current?.focus());
         }
       }}
+      rightPane={
+        <InfoPane pane={infoPane}>
+          {selectedItem ? (
+            <div className="flex flex-col items-center gap-2 text-center">
+              {selectedItem.faviconUrl ? (
+                <WebAppFavicon
+                  url={selectedItem.faviconUrl}
+                  title={selectedItem.title}
+                  className="size-16 shrink-0"
+                />
+              ) : (
+                <AppSquircleIcon
+                  iconUrl={getAppIconUrl(selectedItem.appDef?.id ?? selectedItem.id)}
+                  className="size-16"
+                />
+              )}
+              <div className="text-adw-headline font-bold text-adw-label">{selectedItem.title}</div>
+              <p className="text-adw-callout text-adw-label-secondary">{selectedItem.subtitle}</p>
+              <dl className="mt-2 grid w-full grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-left text-adw-callout">
+                <dt className="text-adw-label-secondary">{_("Kind")}</dt>
+                <dd className="truncate text-right">{_(selectedItem.kind === "web" ? "Web App" : selectedItem.kind === "flatpak" ? "Flatpak" : selectedItem.kind === "app" ? "Application" : selectedItem.kind === "extension" ? "Extension" : selectedItem.kind === "plugin" ? "Plugin" : "Font")}</dd>
+                <dt className="text-adw-label-secondary">{_("Status")}</dt>
+                <dd className="truncate text-right">{selectedItem.installed ? _("Installed") : _("Not installed")}</dd>
+              </dl>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center gap-1 py-6 text-center">
+              <div className="text-adw-headline font-bold text-adw-label">{_("No selection")}</div>
+              <p className="text-adw-callout text-adw-label-secondary">
+                {_("%d items", filteredItems.length)}
+              </p>
+            </div>
+          )}
+        </InfoPane>
+      }
       header={({ isCompact, contentScrolled }) => (
         <WindowTitlebar
           data-window-drag-region={isCsd ? "" : undefined}
@@ -2285,9 +2323,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
             "bg-adw-titlebar transition-colors",
             !isCompact && "rounded-tl-none",
             !isCsd && "rounded-t-none",
-            contentScrolled
-              ? "border-b border-adw-separator"
-              : "border-b border-transparent",
+            "border-b border-adw-separator",
           )}
         >
           <div className="flex min-w-0 items-center gap-1.5" data-window-no-drag>
@@ -2304,68 +2340,14 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
           </div>
 
           <div className="flex shrink-0 items-center gap-1.5" data-window-no-drag>
-            {category !== "updates" && searchOpen && (
-              <div className="relative flex items-center">
-                <SearchIcon className="pointer-events-none absolute left-2 size-3.5 text-adw-label-secondary" />
-                <input
-                  ref={searchInputRef}
-                  type="search"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Escape") {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      if (query.length > 0) {
-                        setQuery("");
-                      } else {
-                        setSearchOpen(false);
-                      }
-                    }
-                  }}
-                  placeholder={_("Search")}
-                  aria-label={_("Search")}
-                  className="h-7 w-44 rounded-adw-control border border-adw-separator bg-black/6 pr-6 pl-7 text-adw-callout text-adw-label placeholder:text-adw-label-secondary focus:border-adw-accent focus:outline-none dark:bg-white/10 [&::-webkit-search-cancel-button]:hidden"
-                />
-                {query && (
-                  <WindowControlButton
-                    aria-label={_("Clear search")}
-                    onClick={() => {
-                      setQuery("");
-                      searchInputRef.current?.focus();
-                    }}
-                    className="absolute right-1 size-4.5 [&_svg]:size-2.5"
-                  >
-                    <XIcon strokeWidth={2.25} />
-                  </WindowControlButton>
-                )}
-              </div>
-            )}
-            <button
-              type="button"
-              aria-label={_("Search")}
-              title="Search (Ctrl+F)"
-              aria-pressed={searchOpen}
-              onClick={() => {
-                setSearchOpen((prev) => {
-                  const next = !prev;
-                  if (next) {
-                    requestAnimationFrame(() => searchInputRef.current?.focus());
-                  } else {
-                    setQuery("");
-                  }
-                  return next;
-                });
-              }}
-              className={cn(
-                "flex size-7 items-center justify-center rounded-adw-control transition-colors",
-                searchOpen
-                  ? "bg-black/10 text-adw-label dark:bg-white/15"
-                  : "text-adw-label-secondary hover-fill:bg-black/8 hover-fill:text-adw-label dark:hover-fill:bg-white/10"
-              )}
-            >
-              <SearchIcon className="size-4" />
-            </button>
+            <HeaderSearch
+              open={category !== "updates" && searchOpen}
+              onOpenChange={setSearchOpen}
+              query={query}
+              onQueryChange={setQuery}
+              inputRef={searchInputRef}
+            />
+            <InfoPaneToggle pane={infoPane} />
             <DropdownMenu>
               <DropdownMenuTrigger
                 aria-label={_("Software Sources")}

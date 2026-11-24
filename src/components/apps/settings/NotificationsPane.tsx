@@ -1,4 +1,3 @@
-import { Trash2Icon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   GroupedForm,
@@ -219,7 +218,6 @@ export function NotificationsPane() {
                 disabled={notifications.length === 0}
                 onClick={clearAllNotifications}
               >
-                <Trash2Icon className="size-3.5" />
                 {_("Clear History")}
               </Button>
             </GroupedFormRowControl>

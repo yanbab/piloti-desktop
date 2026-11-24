@@ -4,15 +4,11 @@ import { useCapabilities } from "@/hooks/use-capabilities";
 import { useDomicile } from "@domicile-desktop/react/domicile-provider";
 import { useWatch } from "@domicile-desktop/react/use-watch";
 import {
-  BellRingIcon,
   FolderOpenIcon,
   PlusIcon,
   PuzzleIcon,
   RefreshCwIcon,
-  SparklesIcon,
-  StoreIcon,
   Trash2Icon,
-  TriangleAlertIcon,
   UsbIcon,
 } from "lucide-react";
 import { useSystemBackends, useWindowActions } from "@/context/DesktopStateContext";
@@ -372,7 +368,6 @@ export function AdvancedPane() {
                   })
                 }
               >
-                <StoreIcon className="size-3.5" />
                 {_("Open Chrome Web Store")}
               </Button>
             </GroupedFormRowControl>
@@ -681,7 +676,6 @@ export function AdvancedPane() {
                 className="h-7 px-2 text-xs"
                 onClick={() => void createSamplePlugin("css")}
               >
-                <SparklesIcon className="mr-1 size-3" />
                 {_("Sample CSS")}
               </Button>
               <Button
@@ -690,7 +684,6 @@ export function AdvancedPane() {
                 className="h-7 px-2 text-xs"
                 onClick={() => void createSamplePlugin("js")}
               >
-                <SparklesIcon className="mr-1 size-3" />
                 {_("Sample JS")}
               </Button>
               <Button
@@ -898,7 +891,6 @@ export function AdvancedPane() {
                   })
                 }
               >
-                <BellRingIcon className="size-3.5" />
                 {_("Normal")}
               </Button>
               <Button
@@ -914,7 +906,6 @@ export function AdvancedPane() {
                   })
                 }
               >
-                <TriangleAlertIcon className="size-3.5 text-rose-500" />
                 {_("Urgent")}
               </Button>
             </GroupedFormRowControl>
@@ -989,7 +980,6 @@ export function AdvancedPane() {
                   }
                 }}
               >
-                <FolderOpenIcon className="size-3.5" />
                 {_("Dock Documents")}
               </Button>
             </GroupedFormRowControl>

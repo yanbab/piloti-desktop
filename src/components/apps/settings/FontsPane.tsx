@@ -122,7 +122,7 @@ function FontPopoverSelector({
         if (!next) setSearch("");
       }}
     >
-      <Popover.Trigger className="inline-flex h-7 max-w-[260px] items-center gap-1.5 rounded-adw-item px-2.5 text-adw-body font-medium text-adw-label transition-colors hover-fill:bg-black/6 focus-visible:outline-none dark:hover-fill:bg-white/10">
+      <Popover.Trigger data-slot="select-trigger" className="inline-flex h-7 max-w-[260px] items-center gap-1.5 rounded-adw-item px-2.5 text-adw-body font-medium text-adw-label transition-colors hover-fill:bg-black/6 focus-visible:outline-none dark:hover-fill:bg-white/10">
         <span className="truncate">{summary}</span>
         <ChevronsUpDownIcon className="size-3.5 shrink-0 text-adw-label-secondary" />
       </Popover.Trigger>

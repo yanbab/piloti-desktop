@@ -1,4 +1,5 @@
 import { ICON_SIZES } from "@/lib/shell/icon-sizes";
+import { HeaderSearch } from "@/components/ui/header-search";
 import {
   ListView,
   ListViewHeader,
@@ -44,7 +45,7 @@ import {
   useSimulatedUsbMounted,
 } from "@/lib/engine-web/usb-drive";
 import { NicePathLabel } from "@/components/shell/NicePathLabel";
-import { PanelResizeHandle, usePanelWidth } from "@/components/ui/resizable-panel";
+import { InfoPane, InfoPaneToggle, useInfoPane } from "@/components/ui/info-pane";
 import { AdwSplitView, type AdwSplitSidebarItem } from "@/components/ui/adw-split-view";
 import { IconGrid } from "@/components/ui/icon-grid";
 import { AppSquircleIcon } from "@/components/shell/AppSymbol";
@@ -381,22 +382,8 @@ export function FilesApp({
 
   const [gridZoomIndex, setGridZoomIndex] = React.useState(5);
   const [listZoomIndex, setListZoomIndex] = React.useState(1);
-  const [infoPaneOpen, setInfoPaneOpen] = React.useState(false);
-  const infoPanel = usePanelWidth({
-    id: "files-info",
-    side: "left",
-    defaultWidth: 240,
-    min: 200,
-    max: 420,
-    collapseBelow: 150,
-    onCollapsedChange: (collapsed) => {
-      if (collapsed) setInfoPaneOpen(false);
-    },
-  });
-  const { setCollapsed: setInfoCollapsed } = infoPanel;
-  React.useEffect(() => {
-    if (infoPaneOpen) setInfoCollapsed(false);
-  }, [infoPaneOpen, setInfoCollapsed]);
+  const infoPane = useInfoPane("files-info");
+  const { open: infoPaneOpen, setOpen: setInfoPaneOpen } = infoPane;
   const [showHidden, setShowHidden] = React.useState(false);
   const [vfsEntries, setVfsEntries] = React.useState<WebVfsEntry[]>(() =>
     listVfsDir(currentPath)
@@ -1793,24 +1780,7 @@ export function FilesApp({
           "personal",
         ];
         return (
-          <div
-            className={cn(
-              "relative flex shrink-0",
-              !infoPanel.dragging && "transition-[width] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)]",
-            )}
-            style={{ width: infoPanel.width }}
-          >
-          <PanelResizeHandle
-            side="left"
-            dragging={infoPanel.dragging}
-            handleProps={infoPanel.handleProps}
-            label={_("Resize info pane")}
-            style={{ left: -4 }}
-          />
-          <aside
-            aria-label={_("Info Pane")}
-            className="flex min-w-0 flex-1 flex-col gap-3 overflow-y-auto border-l border-adw-separator bg-adw-sidebar/70 p-3 text-adw-label"
-          >
+          <InfoPane pane={infoPane}>
             <div className="flex flex-col items-center gap-2 border-b border-adw-separator pb-3 text-center">
               <div className="size-16 shrink-0">
                 {!inspectedItem || inspectedItem.kind === "directory" ? (
@@ -1907,8 +1877,7 @@ export function FilesApp({
                 </div>
               )}
             </dl>
-          </aside>
-          </div>
+          </InfoPane>
         );
       })()
     : null;
@@ -2086,70 +2055,19 @@ export function FilesApp({
                 </DropdownMenu>
               </div>
             )}
-            {searchOpen ? (
-              <div className="relative flex items-center">
-                <input
-                  ref={searchInputRef}
-                  type="search"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Escape") {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      if (searchQuery.length > 0) {
-                        setSearchQuery("");
-                      } else {
-                        setSearchOpen(false);
-                      }
-                    }
-                  }}
-                  aria-label="Filter files"
-                  className="h-7 w-44 rounded-adw-control border border-adw-separator bg-black/6 px-2 text-adw-callout text-adw-label outline-none focus:border-adw-accent dark:bg-white/10"
-                />
-              </div>
-            ) : null}
-
-            <button
-              type="button"
-              aria-label={_("Search")}
-              title="Search (Ctrl+F)"
-              onClick={() => {
+            <HeaderSearch
+              open={searchOpen}
+              onOpenChange={(open) => {
                 setEditingLocation(false);
-                setSearchOpen((prev) => {
-                  const next = !prev;
-                  if (next) {
-                    requestAnimationFrame(() => searchInputRef.current?.focus());
-                  } else {
-                    setSearchQuery("");
-                  }
-                  return next;
-                });
+                setSearchOpen(open);
               }}
-              className={cn(
-                "flex size-7 items-center justify-center rounded-adw-control transition-colors",
-                searchOpen
-                  ? "bg-black/10 text-adw-label dark:bg-white/15"
-                  : "text-adw-label-secondary hover-fill:bg-black/8 hover-fill:text-adw-label dark:hover-fill:bg-white/10"
-              )}
-            >
-              <SearchIcon className="size-4" />
-            </button>
+              query={searchQuery}
+              onQueryChange={setSearchQuery}
+              placeholder={_("Filter files")}
+              inputRef={searchInputRef}
+            />
 
-            <button
-              type="button"
-              aria-label={_("Toggle Info Pane")}
-              title={_("Get Info")}
-              onClick={() => setInfoPaneOpen((v) => !v)}
-              className={cn(
-                "flex size-7 items-center justify-center rounded-adw-control transition-colors",
-                infoPaneOpen
-                  ? "bg-black/10 text-adw-label dark:bg-white/15"
-                  : "text-adw-label-secondary hover-fill:bg-black/8 hover-fill:text-adw-label dark:hover-fill:bg-white/10"
-              )}
-            >
-              <InfoIcon className="size-4" />
-            </button>
+            <InfoPaneToggle pane={infoPane} />
 
             {/* CSD Window Controls */}
             {isCsd && windowId && (

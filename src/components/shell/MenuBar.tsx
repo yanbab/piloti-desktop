@@ -1,3 +1,5 @@
+import type { AppDefinition } from "@/data/catalog";
+import { AppAboutWindow } from "./AppAboutWindow";
 import * as React from "react";
 import { emitShellEvent, onShellEvent } from "@/lib/shell/shell-events";
 import { countRender } from "@/lib/core/render-stats";
@@ -420,7 +422,11 @@ export const MenuBar = React.memo(function MenuBar() {
 
   const headerRef = React.useRef<HTMLElement | null>(null);
 
-  const [appAboutOpen, setAppAboutOpen] = React.useState(false);
+  // One About window per app (Help ▸ About <App>).
+  const [aboutApps, setAboutApps] = React.useState<AppDefinition[]>([]);
+  const openAppAbout = React.useCallback((app: AppDefinition) => {
+    setAboutApps((prev) => (prev.some((a) => a.id === app.id) ? prev : [...prev, app]));
+  }, []);
   const [shortcutsOpen, setShortcutsOpen] = React.useState(false);
   const appDisplayName = _(activeAppDef.name);
   const helpLinks = React.useMemo(
@@ -508,7 +514,7 @@ export const MenuBar = React.memo(function MenuBar() {
     add([piloti], _("About Computer"), () => setAboutOpen(true));
     add([piloti], _("Desktop Settings"), () => launchApp("settings"), { shortcut: "Alt+," });
     add([piloti], _("App Store"), () => launchApp("app-store"));
-    add([piloti], "Piloti Devtools", () => launchApp("console"));
+    add([piloti], _("Restart Piloti Desktop"), () => window.location.reload());
     add([piloti], _("Lock Screen"), () => lockSession(), { shortcut: "⌃⌘Q" });
     add([piloti], _("Restart…"), () => requestPowerAction("restart"));
     add([piloti], _("Turn Off…"), () => requestPowerAction("poweroff"));
@@ -516,7 +522,7 @@ export const MenuBar = React.memo(function MenuBar() {
 
     const help = _("Help");
     add([help], _("Shortcuts…"), () => setShortcutsOpen(true));
-    add([help], _("About %s", _(activeAppDef.name)), () => setAppAboutOpen(true));
+    add([help], _("About %s", _(activeAppDef.name)), () => openAppAbout(activeAppDef));
     return out;
   }, [
     activeAppDef.menus,
@@ -576,7 +582,6 @@ export const MenuBar = React.memo(function MenuBar() {
       setLauncherOpen(false);
       setControlPanelOpen(false);
       setShortcutsOpen(false);
-      setAppAboutOpen(false);
       document.dispatchEvent(
         new KeyboardEvent("keydown", { key: "Escape", bubbles: true })
       );
@@ -654,17 +659,10 @@ export const MenuBar = React.memo(function MenuBar() {
               >
                 {_("App Store")}
               </MenubarItem>
-              <MenubarItem
-                onClick={(e) => {
-                  if (altHeld) {
-                    window.location.reload();
-                  } else {
-                    captureLaunchOriginFromElement(e.currentTarget);
-                    launchApp("console");
-                  }
-                }}
-              >
-                {altHeld ? _("Reload Shell") : "Piloti Devtools"}
+              {/* The shell is a web page: reloading it restarts the desktop.
+                  Devtools stays in the Launcher. */}
+              <MenubarItem onClick={() => window.location.reload()}>
+                {_("Restart Piloti Desktop")}
               </MenubarItem>
               <MenubarSeparator />
               <MenubarItem onClick={(e) => handlePowerMenuClick("restart", e)}>
@@ -695,7 +693,7 @@ export const MenuBar = React.memo(function MenuBar() {
               </span>
             </MenubarTrigger>
             <MenubarContent>
-              <MenubarItem onClick={() => setAppAboutOpen(true)}>
+              <MenubarItem onClick={() => openAppAbout(activeAppDef)}>
                 {_("About %s", _(activeAppDef.name))}
               </MenubarItem>
               {remoteMenu && remoteMenu.appActions.length > 0 && (
@@ -1298,55 +1296,14 @@ export const MenuBar = React.memo(function MenuBar() {
       </div>
 
       {/* About Focused App Window */}
-      {appAboutOpen && (
-        <Window
-          defaultPosition={{
-            x:
-              typeof window !== "undefined"
-                ? Math.max(24, Math.round((window.innerWidth - 300) / 2))
-                : 240,
-            y:
-              typeof window !== "undefined"
-                ? Math.max(48, Math.round((window.innerHeight - 260) / 2))
-                : 140,
-          }}
-          size={{ width: 300, height: 260 }}
-          draggable
-          resizable={false}
-          bounds="parent"
-          onClose={() => setAppAboutOpen(false)}
-          style={{ position: "fixed", top: 0, left: 0, zIndex: 420 }}
-        >
-          <WindowMain>
-            <WindowTitlebar className="justify-between">
-              <div className="w-7" />
-              <WindowTitle>{_("About %s", _(activeAppDef.name))}</WindowTitle>
-              <WindowControls side="right" />
-            </WindowTitlebar>
-            <WindowContent className="flex flex-col items-center justify-center gap-1.5 p-5 text-center">
-              <div className="mx-auto mb-1 size-16">
-                <AppSquircleIcon
-                  iconName={activeAppDef.iconName}
-                  iconUrl={activeAppDef.iconUrl}
-                  gradient={activeAppDef.gradient}
-                  squircle={false}
-                  className="size-16"
-                  glyphClassName="size-9"
-                />
-              </div>
-              <h2 className="text-[18px] font-bold tracking-tight text-adw-label">
-                {_(activeAppDef.name)}
-              </h2>
-              <p className="text-adw-callout text-adw-label-secondary">
-                {_(activeAppDef.description)}
-              </p>
-              <span className="mt-1 rounded-full bg-black/6 px-2.5 py-0.5 text-adw-subheadline font-medium text-adw-label-secondary dark:bg-white/10">
-                Version 0.4.0
-              </span>
-            </WindowContent>
-          </WindowMain>
-        </Window>
-      )}
+      {aboutApps.map((app, index) => (
+        <AppAboutWindow
+          key={app.id}
+          app={app}
+          index={index}
+          onClose={() => setAboutApps((prev) => prev.filter((a) => a.id !== app.id))}
+        />
+      ))}
     </header>
   );
 });

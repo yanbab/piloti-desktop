@@ -1,3 +1,5 @@
+import { HeaderSearch } from "@/components/ui/header-search";
+import { SettingsHeaderActions } from "./header-slot";
 import * as React from "react";
 import { useCapabilities } from "@/hooks/use-capabilities";
 import { useDomicile } from "@domicile-desktop/react/domicile-provider";
@@ -85,6 +87,7 @@ export function SecurityPane() {
   const { installedXdgApps, getAppIconUrl } = useApps();
 
   const [query, setQuery] = React.useState("");
+  const [searchOpen, setSearchOpen] = React.useState(false);
   const [groupBy, setGroupBy] = React.useState<"apps" | "permissions">("apps");
   const [expandedId, setExpandedId] = React.useState<string | null>(null);
   const [expandedPermKey, setExpandedPermKey] = React.useState<string | null>(
@@ -248,40 +251,38 @@ export function SecurityPane() {
 
   return (
     <GroupedForm>
-      <GroupedFormSection>
-        <div className="flex items-center gap-3">
-          <div className="flex min-w-0 flex-1 items-center gap-2 rounded-adw-group border border-adw-separator bg-adw-card px-3 py-2">
-            <SearchIcon className="size-4 shrink-0 text-adw-label-tertiary" />
-            <input
-              type="text"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder={_("Search apps…")}
-              className="min-w-0 flex-1 bg-transparent text-adw-body text-adw-label outline-none placeholder:text-adw-label-tertiary"
-            />
-          </div>
-          <div className="inline-flex shrink-0 rounded-adw-item bg-black/8 p-0.5 dark:bg-white/10">
-            {(["apps", "permissions"] as const).map((mode) => {
-              const selected = groupBy === mode;
-              return (
-                <button
-                  key={mode}
-                  type="button"
-                  onClick={() => setGroupBy(mode)}
-                  className={cn(
-                    "rounded-adw-control px-3 py-1 text-adw-callout font-medium transition-all",
-                    selected
-                      ? "bg-white text-black shadow-xs dark:bg-white/16 dark:text-white"
-                      : "text-adw-label-secondary hover-fill:text-adw-label"
-                  )}
-                >
-                  {mode === "apps" ? _("Apps") : _("Permissions")}
-                </button>
-              );
-            })}
-          </div>
+      {/* Switcher and search live in the Settings headerbar. */}
+      <SettingsHeaderActions>
+        <div className="inline-flex shrink-0 rounded-adw-item bg-black/8 p-0.5 dark:bg-white/10" data-slot="segmented">
+          {(["apps", "permissions"] as const).map((mode) => {
+            const selected = groupBy === mode;
+            return (
+              <button
+                key={mode}
+                type="button"
+                data-slot="segmented-item"
+                aria-pressed={selected}
+                onClick={() => setGroupBy(mode)}
+                className={cn(
+                  "rounded-adw-control px-3 py-0.5 text-adw-callout font-medium transition-all",
+                  selected
+                    ? "bg-white text-black shadow-xs dark:bg-white/16 dark:text-white"
+                    : "text-adw-label-secondary"
+                )}
+              >
+                {mode === "apps" ? _("Apps") : _("Permissions")}
+              </button>
+            );
+          })}
         </div>
-      </GroupedFormSection>
+        <HeaderSearch
+          open={searchOpen}
+          onOpenChange={setSearchOpen}
+          query={query}
+          onQueryChange={setQuery}
+          placeholder={_("Search apps…")}
+        />
+      </SettingsHeaderActions>
 
       <GroupedFormSection>
         <GroupedFormSectionTitle>

@@ -36,6 +36,15 @@ const LIGHT = { background: "#fafafa", foreground: "#1e1e1e", cursor: "#1e1e1e",
  * pseudo-terminal, Linux only) and `piloti-shell` (a JavaScript REPL with the
  * desktop in reach).
  */
+/** "Bash", "Zsh", "Piloti Shell": the program name, capitalized, for the menu. */
+function shellDisplayName(mode: string): string {
+  const program = mode === PILOTI ? "piloti-shell" : mode.slice(mode.lastIndexOf("/") + 1);
+  return program
+    .split("-")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+}
+
 export function XtermTerminalApp({
   initialPath: _initialPath,
   windowId = "",
@@ -73,10 +82,10 @@ export function XtermTerminalApp({
   const menuEntries = React.useMemo(
     () =>
       [
-        { value: PILOTI, label: "piloti-shell", available: true },
+        { value: PILOTI, label: shellDisplayName(PILOTI), available: true },
         ...shells.map(({ path, available }) => ({
           value: path,
-          label: path.slice(path.lastIndexOf("/") + 1),
+          label: shellDisplayName(path),
           available,
         })),
       ].sort((a, b) => a.label.localeCompare(b.label)),
@@ -237,7 +246,7 @@ export function XtermTerminalApp({
               className="inline-flex max-w-full items-center gap-1 rounded-[7px] px-2.5 py-1 text-adw-body font-semibold text-adw-label outline-none hover:bg-black/8 data-popup-open:bg-black/12 dark:hover:bg-white/10 dark:data-popup-open:bg-white/15"
             >
               <span className="truncate">
-                {mode === PILOTI ? "piloti-shell" : (mode.split("/").pop() ?? mode)}
+                {shellDisplayName(mode)}
               </span>
               <ChevronDownIcon className="size-3.5 shrink-0 opacity-70" />
             </DropdownMenuTrigger>

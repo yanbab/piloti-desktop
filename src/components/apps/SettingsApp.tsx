@@ -45,6 +45,7 @@ import { DockPane } from "./settings/DockPane";
 import { FontsPane } from "./settings/FontsPane";
 import { NotificationsPane } from "./settings/NotificationsPane";
 import { SecurityPane } from "./settings/SecurityPane";
+import { SettingsHeaderSlot } from "./settings/header-slot";
 import { TopBarPane } from "./settings/TopBarPane";
 import { WallpaperPane } from "./settings/WallpaperPane";
 
@@ -103,7 +104,7 @@ const PANES: {
   },
   {
     id: "security",
-    label: "Security",
+    label: "Permissions",
     subtitle: "Flatpak permissions, notifications & search",
     icon: <ShieldCheckIcon />,
   },
@@ -238,6 +239,9 @@ export function SettingsApp({
     onClick: () => setActivePane(pane.id),
   }));
 
+  // Panes portal headerbar controls here (see header-slot.tsx).
+  const [headerSlot, setHeaderSlot] = React.useState<HTMLDivElement | null>(null);
+
   return (
     <AdwSplitView
       title={_("Settings")}
@@ -264,7 +268,7 @@ export function SettingsApp({
                 : "border-b border-transparent",
             )}
           >
-            <div className="flex min-w-0 items-center gap-1.5" data-window-no-drag>
+            <div className="flex shrink-0 items-center gap-1.5" data-window-no-drag>
               <h2
                 data-slot="settings-page-title"
                 className="truncate pr-2 text-[13.5px] font-medium text-adw-label"
@@ -272,7 +276,8 @@ export function SettingsApp({
                 {currentPaneMeta ? _(currentPaneMeta.label) : ""}
               </h2>
             </div>
-            <div className="flex items-center gap-2" data-window-no-drag>
+            <div className="flex min-w-0 items-center justify-end gap-2" data-window-no-drag>
+              <div ref={setHeaderSlot} data-slot="settings-header-actions" className="flex min-w-0 items-center gap-2 empty:hidden" />
               {matchingGnomePanel &&
                 systemServices &&
                 gnomeCapabilities.gnomeControlCenter && (
@@ -323,9 +328,12 @@ export function SettingsApp({
           onScroll={onContentScroll}
           className={cn(
             "flex min-h-0 flex-1 flex-col",
-            activePane === "wallpaper" ? "overflow-hidden" : "overflow-y-auto",
+            activePane === "wallpaper" || activePane === "displays"
+              ? "overflow-hidden"
+              : "overflow-y-auto",
           )}
         >
+          <SettingsHeaderSlot.Provider value={headerSlot}>
           {activePane === "appearance" && <AppearancePane />}
           {activePane === "fonts" && <FontsPane />}
           {activePane === "dock" && <DockPane />}
@@ -335,6 +343,7 @@ export function SettingsApp({
           {activePane === "security" && <SecurityPane />}
           {activePane === "wallpaper" && <WallpaperPane />}
           {activePane === "advanced" && <AdvancedPane />}
+          </SettingsHeaderSlot.Provider>
         </div>
       )}
     </AdwSplitView>
