@@ -1,3 +1,4 @@
+import { ICON_SIZES } from "@/lib/shell/icon-sizes";
 import * as React from "react";
 import {
   BellIcon,
@@ -431,6 +432,23 @@ function IconsPage() {
   };
   return (
     <GroupedForm>
+      <Section title={_("Icon sizes")}>
+        <GroupedFormRow className="flex-wrap items-end justify-start gap-4 py-3">
+          {ICON_SIZES.map((size) => {
+            const url = getAppIconUrl("piloti-demo");
+            return (
+              <div key={size} className="flex flex-col items-center gap-1.5">
+                {url ? (
+                  <img src={url} alt="" style={{ width: size, height: size }} className="object-contain" draggable={false} />
+                ) : (
+                  <span style={{ width: size, height: size }} className="rounded-adw-item bg-adw-accent" />
+                )}
+                <span className="text-adw-caption tabular-nums text-adw-label-secondary">{size}</span>
+              </div>
+            );
+          })}
+        </GroupedFormRow>
+      </Section>
       <Section title={_("App icons")}>
         <GroupedFormRow className="flex-wrap justify-start gap-2 py-3">
           {APP_CATALOG.map((app) => renderIcon(app.id, _(app.shortName)))}

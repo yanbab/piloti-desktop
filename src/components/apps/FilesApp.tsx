@@ -1,3 +1,10 @@
+import { ICON_SIZES } from "@/lib/shell/icon-sizes";
+import {
+  ListView,
+  ListViewHeader,
+  ListViewRow,
+  nextListViewSort,
+} from "@/components/ui/list-view";
 import * as React from "react";
 import { useCapabilities } from "@/hooks/use-capabilities";
 import { usePopupSurface } from "@/lib/shell/popup-layer";
@@ -255,8 +262,8 @@ const ICON_ZOOM_LEVELS = [
   // Icon views: tight like Finder (64px icons ≈ 112×112 cells).
   { cellWidth: 80, cellHeight: 84, iconSize: 32 },
   { cellWidth: 100, cellHeight: 100, iconSize: 48 },
+  { cellWidth: 104, cellHeight: 104, iconSize: 56 },
   { cellWidth: 112, cellHeight: 112, iconSize: 64 },
-  { cellWidth: 120, cellHeight: 122, iconSize: 72 },
   { cellWidth: 144, cellHeight: 150, iconSize: 96 },
   { cellWidth: 176, cellHeight: 184, iconSize: 128 },
   { cellWidth: 248, cellHeight: 260, iconSize: 192 },
@@ -265,7 +272,8 @@ const ICON_ZOOM_LEVELS = [
   { cellWidth: 440, cellHeight: 452, iconSize: 384 },
 ] as const;
 
-const LIST_ZOOM_LEVELS = [16, 24, 32, 48, 64, 80, 96] as const;
+// List rows step through the shared icon size scale.
+const LIST_ZOOM_LEVELS = ICON_SIZES;
 
 function isVfsEntryEmpty(entry: WebVfsEntry): boolean {
   if (entry.kind !== "file") return false;
@@ -371,7 +379,7 @@ export function FilesApp({
     return registerOpenFolderPath(currentPath);
   }, [currentPath]);
 
-  const [gridZoomIndex, setGridZoomIndex] = React.useState(4);
+  const [gridZoomIndex, setGridZoomIndex] = React.useState(5);
   const [listZoomIndex, setListZoomIndex] = React.useState(1);
   const [infoPaneOpen, setInfoPaneOpen] = React.useState(false);
   const infoPanel = usePanelWidth({
@@ -1335,7 +1343,7 @@ export function FilesApp({
     }
   };
 
-  const zoom = ICON_ZOOM_LEVELS[gridZoomIndex] ?? ICON_ZOOM_LEVELS[4];
+  const zoom = ICON_ZOOM_LEVELS[gridZoomIndex] ?? ICON_ZOOM_LEVELS[5];
   const listIconSize = LIST_ZOOM_LEVELS[listZoomIndex] ?? LIST_ZOOM_LEVELS[1];
   const activeZoomIndex = viewMode === "list" ? listZoomIndex : gridZoomIndex;
   const maxZoomIndex =
@@ -2214,15 +2222,29 @@ export function FilesApp({
           </div>
         ) : viewMode === "list" ? (
           <div className="p-2">
-            <table className="w-full border-collapse text-left text-adw-callout">
-              <thead>
-                <tr className="border-b border-adw-separator text-adw-subheadline font-semibold text-adw-label-secondary uppercase">
-                  <th className="px-3 py-1.5">{_("Name")}</th>
-                  <th className="px-3 py-1.5">{_("Kind")}</th>
-                  <th className="px-3 py-1.5 text-right">{_("Size")}</th>
-                  <th className="w-8 px-1 py-1.5" aria-label={_("Favorites")} />
-                </tr>
-              </thead>
+            <ListView>
+              <ListViewHeader
+                columns={[
+                  { id: "name", label: _("Name") },
+                  { id: "kind", label: _("Kind") },
+                  { id: "size", label: _("Size"), align: "right" },
+                  { id: "favorite", label: "", ariaLabel: _("Favorites"), width: "32px", sortable: false },
+                ]}
+                sort={
+                  sortBy === "name" || sortBy === "kind" || sortBy === "size"
+                    ? { by: sortBy, dir: sortDir }
+                    : undefined
+                }
+                onSort={(column) => {
+                  if (column !== "name" && column !== "kind" && column !== "size") return;
+                  const next = nextListViewSort(
+                    { by: sortBy, dir: sortDir },
+                    column
+                  );
+                  setSortBy(next.by as typeof sortBy);
+                  setSortDir(next.dir);
+                }}
+              />
               <tbody>
                 {items.map((item) => {
                   const vfsEntry =
@@ -2244,8 +2266,9 @@ export function FilesApp({
                         ? _("Folder")
                         : `${(vfsEntry?.content ?? "").length} B`;
                   return (
-                    <tr
+                    <ListViewRow
                       key={item.id}
+                      selected={isSelected}
                       data-vfs-drop-path={
                         item.kind === "directory" ? item.path : undefined
                       }
@@ -2299,12 +2322,6 @@ export function FilesApp({
                             ? 0.55
                             : undefined,
                       }}
-                      className={cn(
-                        "group cursor-default border-b border-adw-separator/40 transition-colors",
-                        isSelected
-                          ? "bg-adw-accent/20 text-adw-label"
-                          : "hover-fill:bg-black/4 dark:hover-fill:bg-white/5"
-                      )}
                     >
                       <td className="px-3 py-1.5 font-medium">
                         <div className="flex items-center gap-2.5">
@@ -2421,11 +2438,11 @@ export function FilesApp({
                           </button>
                         )}
                       </td>
-                    </tr>
+                    </ListViewRow>
                   );
                 })}
               </tbody>
-            </table>
+            </ListView>
           </div>
         ) : (
           <IconGrid

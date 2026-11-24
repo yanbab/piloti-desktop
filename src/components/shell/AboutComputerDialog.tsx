@@ -1,12 +1,11 @@
+import { DesktopBackgroundLayers } from "./DesktopBackgroundLayers";
 import * as React from "react";
 import { useDomicile } from "@domicile-desktop/react/domicile-provider";
 import { Button } from "@/components/ui/button";
 import {
   Window,
-  WindowContent,
   WindowControls,
   WindowMain,
-  WindowTitlebar,
 } from "@/components/ui/window";
 import pkg from "../../../package.json";
 import {
@@ -163,9 +162,22 @@ export function AboutComputerDialog() {
         : 240,
     y:
       typeof window !== "undefined"
-        ? Math.max(48, Math.round((window.innerHeight - 340) / 2))
+        ? Math.max(48, Math.round((window.innerHeight - 420) / 2))
         : 120,
   }));
+
+  // The window fits its content (measured once rendered).
+  const contentRef = React.useRef<HTMLDivElement | null>(null);
+  const [contentHeight, setContentHeight] = React.useState(420);
+  React.useLayoutEffect(() => {
+    const el = contentRef.current;
+    if (!aboutOpen || !el) return;
+    const measure = () => setContentHeight(Math.ceil(el.getBoundingClientRect().height));
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [aboutOpen]);
 
   if (!aboutOpen) return null;
 
@@ -173,28 +185,39 @@ export function AboutComputerDialog() {
     <Window
       position={pos}
       onPositionChange={setPos}
-      size={{ width: 300, height: 376 }}
+      size={{ width: 300, height: contentHeight }}
       draggable
       resizable={false}
       bounds="parent"
       onClose={() => setAboutOpen(false)}
       style={{ position: "fixed", top: 0, left: 0, zIndex: 420 }}
     >
-      <WindowMain className="bg-adw-sidebar">
-        <WindowTitlebar className="justify-end">
-          <WindowControls side="right" />
-        </WindowTitlebar>
-        <WindowContent className="flex flex-col justify-between gap-3 p-4 pt-2">
-          <div className="flex flex-col items-center gap-0.5 text-center">
-            <ComputerHardwareIllustration className="mx-auto mb-1 h-18 w-28 drop-shadow-md" />
-            <h2 className="text-[18px] font-bold tracking-tight text-adw-label">
+      <WindowMain className="relative bg-adw-sidebar">
+        {/* Measured: the window is exactly as tall as its content. */}
+        <div ref={contentRef} className="flex flex-col">
+          {/* Header strip like a headerbar (edge to edge, light bottom border),
+              same look as the Wallpaper settings preview; drag it to move. */}
+          <header
+            data-window-drag-region=""
+            className="relative flex flex-col items-center gap-1 border-b border-adw-separator bg-adw-window/60 px-4 pt-4 pb-4 text-center"
+          >
+            <div className="absolute top-2.5 right-2.5" data-window-no-drag>
+              <WindowControls side="right" />
+            </div>
+            <ComputerHardwareIllustration
+              className="pointer-events-none mb-1 h-24 w-38 shrink-0 drop-shadow-md"
+              screenContent={<DesktopBackgroundLayers />}
+            />
+            {/* font-bold maps to the UI's semibold weight: the title is heavier. */}
+            <h2 className="w-full truncate text-adw-title-2 font-extrabold text-adw-label">
               {info.computerName}
             </h2>
-            <p className="text-adw-callout text-adw-label-secondary">
+            <p className="line-clamp-2 text-adw-body text-adw-label-secondary">
               {info.modelSubtitle}
             </p>
-          </div>
+          </header>
 
+          <div className="flex flex-col gap-4 p-4">
           <dl className="grid grid-cols-[auto_1fr] items-baseline gap-x-4 gap-y-2.5 rounded-adw-group bg-black/4 px-4 py-3.5 text-adw-body dark:bg-white/5">
             {rows.map((row) => (
               <React.Fragment key={row.label}>
@@ -206,7 +229,7 @@ export function AboutComputerDialog() {
             ))}
           </dl>
 
-          <div className="flex justify-center pt-0.5">
+          <div className="flex justify-center">
             <Button
               type="button"
               size="sm"
@@ -219,7 +242,8 @@ export function AboutComputerDialog() {
               {_("More info…")}
             </Button>
           </div>
-        </WindowContent>
+          </div>
+        </div>
       </WindowMain>
     </Window>
   );

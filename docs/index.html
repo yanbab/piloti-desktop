@@ -166,7 +166,7 @@
 
     .xp { display: grid; gap: 12px; grid-template-columns: 1fr; margin-top: 16px; }
     @media (min-width: 640px) { .xp { grid-template-columns: repeat(2, 1fr); } }
-    @media (min-width: 960px) { .xp { grid-template-columns: repeat(4, 1fr); } }
+    @media (min-width: 960px) { .xp { grid-template-columns: repeat(4, 1fr); } .xp.xp-3 { grid-template-columns: repeat(3, 1fr); } }
     .xp .card { padding: 20px; }
     .xp-title { margin: 40px 0 0; font-size: 22px; font-weight: 800; letter-spacing: -0.01em; }
 
@@ -332,6 +332,15 @@
             <div><h3>Your accent</h3><p class="muted">Icons, folders and controls follow it.</p></div>
           </div>
         </div>
+
+        <h3 class="xp-title">Tabs, the desktop way.</h3>
+        <p class="muted" style="margin-top:6px">Every tab is a real window.</p>
+        <div class="xp">
+          <div class="card"><h3>Drag and detach</h3><p class="muted">Reorder tabs, or pull one out into its own window.</p></div>
+          <div class="card"><h3>Pinned tabs</h3><p class="muted">Your favourites stay first, as small icons.</p></div>
+          <div class="card"><h3>Nothing lost</h3><p class="muted">Ctrl+Shift+T reopens the tab you just closed.</p></div>
+          <div class="card"><h3>Apps and documents <span class="tag tag-opt">Soon</span></h3><p class="muted">One tab bar for web pages, folders, terminals and documents.</p></div>
+        </div>
       </div>
     </section>
 
@@ -372,11 +381,13 @@
 
         <h3 class="xp-title">New experiments, now possible.</h3>
         <p class="muted" style="margin-top:6px">When the line between web and native blurs, new ideas get easy.</p>
-        <div class="xp">
+        <div class="xp xp-3">
           <div class="card"><h3>Live wallpapers</h3><p class="muted">Any web page can be your desktop.</p></div>
           <div class="card"><h3>Sites as apps</h3><p class="muted">Pin a website. It gets a window, a dock icon and badges.</p></div>
           <div class="card"><h3>Shell plugins</h3><p class="muted">Change the desktop with a few lines of JS or CSS.</p></div>
           <div class="card"><h3>Mixed windows</h3><p class="muted">Native apps and web widgets, side by side.</p></div>
+          <div class="card"><h3>Picture in Picture</h3><p class="muted">Shrink any window into a floating corner. Written as a plugin.</p></div>
+          <div class="card"><h3>Dark mode per app</h3><p class="muted">Keep one app dark on a light desktop. Also a plugin.</p></div>
         </div>
       </div>
     </section>
@@ -415,9 +426,10 @@
         <div class="apps">
           <div class="card app"><img src="./demo/__fs/usr/share/icons/Papirus/64x64/apps/system-file-manager.svg" alt="" /><b>Folders</b><span>piloti-files</span></div>
           <div class="card app"><img src="./demo/__fs/usr/share/icons/Papirus/64x64/apps/preferences-system.svg" alt="" /><b>Settings</b><span>piloti-settings</span></div>
-          <div class="card app"><img src="./demo/__fs/usr/share/icons/Papirus/64x64/apps/utilities-terminal.svg" alt="" /><b>Shell</b><span>piloti-shell</span></div>
-          <div class="card app"><img src="./demo/__fs/usr/share/icons/Papirus/64x64/apps/system-software-install.svg" alt="" /><b>Applications</b><span>piloti-applications</span></div>
-          <div class="card app"><img src="./demo/__fs/usr/share/icons/Papirus/64x64/apps/piloti-console.svg" alt="" /><b>Console</b><span>piloti-console</span></div>
+          <div class="card app"><img src="./demo/__fs/usr/share/icons/Papirus/64x64/apps/utilities-terminal.svg" alt="" /><b>Terminal</b><span>piloti-terminal</span></div>
+          <div class="card app"><img src="./demo/__fs/usr/share/icons/Papirus/64x64/apps/system-software-install.svg" alt="" /><b>App Store</b><span>piloti-appstore</span></div>
+          <div class="card app"><img src="./demo/__fs/usr/share/icons/Papirus/64x64/apps/internet-web-browser.svg" alt="" /><b>Web Browser</b><span>piloti-browser</span></div>
+          <div class="card app"><img src="./assets/icons/piloti-devtools.svg" alt="" /><b>Piloti Devtools</b><span>piloti-console</span></div>
           <div class="card app"><img src="./demo/__fs/usr/share/icons/Papirus/64x64/apps/accessories-text-editor.svg" alt="" /><b>Text Editor</b><span>notepad</span></div>
           <div class="card app"><img src="./demo/__fs/usr/share/icons/Papirus/64x64/apps/accessories-calculator.svg" alt="" /><b>Calculator</b><span>calculator</span></div>
           <div class="card app"><img src="./demo/__fs/usr/share/icons/Papirus/64x64/apps/org.gnome.Loupe.svg" alt="" /><b>Image Viewer</b><span>loupe</span></div>

@@ -12,13 +12,20 @@ import {
   arrayMove,
   rectSortingStrategy,
   useSortable,
-  verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { GripVerticalIcon } from "lucide-react";
 import { WindowMenuButton } from "@/components/shell/WindowMenuButton";
 import { WindowControls } from "@/components/ui/window";
 import { AppSquircleIcon } from "@/components/shell/AppSymbol";
+import {
+  ListView,
+  ListViewCell,
+  ListViewHeader,
+  ListViewRow,
+  nextListViewSort,
+  type ListViewSort,
+} from "@/components/ui/list-view";
 import { useApps, useWindowManagerSelector } from "@/context/DesktopStateContext";
 import { APP_CATALOG } from "@/data/catalog";
 import { _ } from "@/lib/core/i18n";
@@ -30,8 +37,8 @@ import { DRAG_THRESHOLD, dragShuffleTransition } from "@/lib/shell/drag-feedback
  * System Monitor: one page of widgets the user reorders by dragging.
  *
  * First version: the numbers are simulated (`useSimulatedStats`), the widgets
- * and their layout are real. Widget and app order are app settings
- * (`~/.config/piloti/apps/system-monitor.ini`).
+ * and their layout are real. Widget order and the apps list sort are app
+ * settings (`~/.config/piloti/apps/system-monitor.ini`).
  */
 
 const APP_ID = "system-monitor";
@@ -39,7 +46,8 @@ const TICK_MS = 2000;
 const HISTORY = 30;
 
 type WidgetId = "cpu" | "memory" | "apps";
-const DEFAULT_WIDGETS: WidgetId[] = ["cpu", "memory", "apps"];
+// Memory then CPU: the processor sits on the right.
+const DEFAULT_WIDGETS: WidgetId[] = ["memory", "cpu", "apps"];
 
 interface AppStat {
   appId: string;
@@ -207,66 +215,75 @@ function MemoryWidget({ used, total }: { used: number; total: number }) {
   );
 }
 
-function AppRow({ app, iconUrl }: { app: AppStat; iconUrl?: string }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id: app.appId,
-    transition: dragShuffleTransition,
-  });
-  return (
-    <li
-      ref={setNodeRef}
-      data-slot="monitor-app-row"
-      style={{ transform: CSS.Translate.toString(transform), transition }}
-      className={cn(
-        "grid cursor-grab grid-cols-[16px_1fr_72px_56px] items-center gap-2 rounded-adw-item px-2 py-1 text-adw-body active:cursor-grabbing",
-        isDragging && "relative z-10 bg-adw-window shadow-adw-popover"
-      )}
-      {...attributes}
-      {...listeners}
-    >
-      <AppSquircleIcon iconUrl={iconUrl} squircle={false} className="size-4" glyphClassName="size-3" />
-      <span className="truncate text-adw-label">{_(app.name)}</span>
-      <span className="text-right tabular-nums text-adw-label-secondary">{formatMb(app.memMb)}</span>
-      <span className="text-right tabular-nums text-adw-label-secondary">{app.cpu.toFixed(1)} %</span>
-    </li>
-  );
+type AppSortKey = "name" | "memory" | "cpu";
+const DEFAULT_APP_SORT: ListViewSort<AppSortKey> = { by: "cpu", dir: "desc" };
+
+function readAppSort(): ListViewSort<AppSortKey> {
+  const [by, dir] = (getAppSetting(APP_ID, "sort") ?? "").split(":");
+  return (by === "name" || by === "memory" || by === "cpu") && (dir === "asc" || dir === "desc")
+    ? { by, dir }
+    : DEFAULT_APP_SORT;
 }
 
-function AppsWidget({
-  apps,
-  onReorder,
-}: {
-  apps: AppStat[];
-  onReorder: (ids: string[]) => void;
-}) {
+function AppsWidget({ apps }: { apps: AppStat[] }) {
   const { getAppIconUrl } = useApps();
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: DRAG_THRESHOLD } }));
-  const ids = apps.map((a) => a.appId);
-  const onDragEnd = ({ active, over }: DragEndEvent) => {
-    if (!over || active.id === over.id) return;
-    onReorder(arrayMove(ids, ids.indexOf(String(active.id)), ids.indexOf(String(over.id))));
-  };
+  const [sort, setSort] = React.useState(readAppSort);
+  const sorted = React.useMemo(() => {
+    const factor = sort.dir === "asc" ? 1 : -1;
+    return [...apps].sort((a, b) => {
+      const diff =
+        sort.by === "name"
+          ? _(a.name).localeCompare(_(b.name))
+          : sort.by === "memory"
+            ? a.memMb - b.memMb
+            : a.cpu - b.cpu;
+      return diff * factor || _(a.name).localeCompare(_(b.name));
+    });
+  }, [apps, sort]);
+
   if (apps.length === 0) {
     return <p className="py-2 text-adw-body text-adw-label-tertiary">{_("No apps running")}</p>;
   }
   return (
-    <div className="flex flex-col">
-      <div className="grid grid-cols-[16px_1fr_72px_56px] gap-2 px-2 pb-1 text-adw-footnote text-adw-label-tertiary">
-        <span />
-        <span>{_("Name")}</span>
-        <span className="text-right">{_("Memory")}</span>
-        <span className="text-right">{_("CPU")}</span>
-      </div>
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
-        <SortableContext items={ids} strategy={verticalListSortingStrategy}>
-          <ul className="flex flex-col">
-            {apps.map((app) => (
-              <AppRow key={app.appId} app={app} iconUrl={getAppIconUrl(app.appId)} />
-            ))}
-          </ul>
-        </SortableContext>
-      </DndContext>
-    </div>
+    <ListView>
+      <ListViewHeader<AppSortKey>
+        columns={[
+          { id: "name", label: _("Name") },
+          { id: "memory", label: _("Memory"), align: "right", width: "96px" },
+          { id: "cpu", label: _("CPU"), align: "right", width: "80px" },
+        ]}
+        sort={sort}
+        onSort={(column) => {
+          // Numbers start with the biggest, names with A.
+          const next = nextListViewSort(sort, column, column === "name" ? "asc" : "desc");
+          setSort(next);
+          setAppSetting(APP_ID, "sort", `${next.by}:${next.dir}`);
+        }}
+      />
+      <tbody>
+        {sorted.map((app) => (
+          <ListViewRow key={app.appId}>
+            <ListViewCell>
+              <div className="flex items-center gap-2">
+                <AppSquircleIcon
+                  iconUrl={getAppIconUrl(app.appId)}
+                  squircle={false}
+                  className="size-6 shrink-0"
+                  glyphClassName="size-4"
+                />
+                <span className="truncate text-adw-label">{_(app.name)}</span>
+              </div>
+            </ListViewCell>
+            <ListViewCell align="right" className="tabular-nums text-adw-label-secondary">
+              {formatMb(app.memMb)}
+            </ListViewCell>
+            <ListViewCell align="right" className="tabular-nums text-adw-label-secondary">
+              {app.cpu.toFixed(1)} %
+            </ListViewCell>
+          </ListViewRow>
+        ))}
+      </tbody>
+    </ListView>
   );
 }
 
@@ -286,23 +303,11 @@ export const SystemMonitorApp: React.FC<SystemMonitorAppProps> = ({ windowId = "
       (DEFAULT_WIDGETS as string[]).includes(v)
     )
   );
-  const [appOrder, setAppOrder] = React.useState<string[]>(() =>
-    (getAppSetting(APP_ID, "app-order") ?? "").split(",").filter(Boolean)
+  const runningAppIds = React.useMemo(
+    () => (runningIds ? runningIds.split(",") : []),
+    [runningIds]
   );
-
-  // Running apps, in the order the user arranged them (new ones at the end).
-  const orderedIds = React.useMemo(() => {
-    const running = runningIds ? runningIds.split(",") : [];
-    return [
-      ...appOrder.filter((id) => running.includes(id)),
-      ...running.filter((id) => !appOrder.includes(id)),
-    ];
-  }, [appOrder, runningIds]);
-  const stats = useSimulatedStats(orderedIds);
-  const apps = React.useMemo(() => {
-    const byId = new Map(stats.apps.map((a) => [a.appId, a]));
-    return orderedIds.map((id) => byId.get(id)).filter((a): a is AppStat => Boolean(a));
-  }, [orderedIds, stats.apps]);
+  const stats = useSimulatedStats(runningAppIds);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: DRAG_THRESHOLD } }));
   const onWidgetDragEnd = ({ active, over }: DragEndEvent) => {
@@ -314,10 +319,6 @@ export const SystemMonitorApp: React.FC<SystemMonitorAppProps> = ({ windowId = "
     );
     setWidgetOrder(next);
     setAppSetting(APP_ID, "widget-order", next.join(","));
-  };
-  const onAppReorder = (ids: string[]) => {
-    setAppOrder(ids);
-    setAppSetting(APP_ID, "app-order", ids.join(","));
   };
 
   const renderWidget = (id: WidgetId) => {
@@ -337,7 +338,7 @@ export const SystemMonitorApp: React.FC<SystemMonitorAppProps> = ({ windowId = "
       case "apps":
         return (
           <Widget key={id} id={id} title={_("Apps")} wide>
-            <AppsWidget apps={apps} onReorder={onAppReorder} />
+            <AppsWidget apps={stats.apps} />
           </Widget>
         );
     }

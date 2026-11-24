@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" version="1.1">
+ <!-- Piloti Demo: the Piloti symbol on the accent tile (same family as Piloti Devtools). -->
+ <rect style="opacity:0.2" width="56" height="56" x="4" y="5" rx="4.2" ry="4.2"/>
+ <rect class="accent" style="fill:#5294e2" width="56" height="56" x="4" y="4" rx="4.2" ry="4.2"/>
+ <path class="accent-darker" style="fill:#4877b1" d="M 4 32 L 60 32 L 60 55.8 C 60 58.1 58.1 60 55.8 60 L 8.2 60 C 5.9 60 4 58.1 4 55.8 Z" opacity="0.35"/>
+ <path style="fill:#ffffff;opacity:0.2" d="M 8.1992188 4 C 5.8724189 4 4 5.8724186 4 8.1992188 L 4 9.1992188 C 4 6.8724186 5.8724189 5 8.1992188 5 L 55.800781 5 C 58.127581 5 60 6.8724186 60 9.1992188 L 60 8.1992188 C 60 5.8724186 58.127581 4 55.800781 4 L 8.1992188 4 z"/>
+ <!-- Piloti symbol (house + three windows), as in the menu bar -->
+ <g transform="translate(32 33) scale(2.15) translate(-12 -12.2)">
+  <g style="opacity:0.25" transform="translate(0 0.45)" fill="none" stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+   <path d="M4.5 11L12 5l7.5 6"/><path d="M6 10.5v5h12v-5"/>
+  </g>
+  <g fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+   <path d="M4.5 11L12 5l7.5 6"/><path d="M6 10.5v5h12v-5"/>
+  </g>
+  <g fill="#ffffff">
+   <rect x="6.5" y="17.25" width="2.2" height="2.2" rx="0.4"/>
+   <rect x="10.9" y="17.25" width="2.2" height="2.2" rx="0.4"/>
+   <rect x="15.3" y="17.25" width="2.2" height="2.2" rx="0.4"/>
+  </g>
+ </g>
+</svg>

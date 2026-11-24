@@ -775,5 +775,6 @@
   "Move": "Déplacer",
   "No apps running": "Aucune application ouverte",
   "CPU": "Processeur",
-  "Simulated values: real system data comes next.": "Valeurs simulées : les vraies données système arrivent bientôt."
+  "Simulated values: real system data comes next.": "Valeurs simulées : les vraies données système arrivent bientôt.",
+  "Icon sizes": "Tailles d’icônes"
 }
