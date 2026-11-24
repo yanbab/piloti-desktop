@@ -1,4 +1,5 @@
 import React from "react";
+import { useOpenPath } from "@/hooks/use-open-path";
 import { useDomicile } from "@domicile-desktop/react/domicile-provider";
 import { InlineCompletionInput } from "@/components/ui/inline-completion-input";
 import {
@@ -105,6 +106,30 @@ const TERMINAL_COMMANDS = [
   "piloti-login",
 ] as const;
 
+/** Commands that stay in the terminal on Linux (they drive the desktop, not the disk). */
+const SHELL_BUILTINS = new Set([
+  "help",
+  "clear",
+  "history",
+  "open",
+  "notepad",
+  "edit",
+  "top",
+  "ps",
+  "piloti",
+  "piloti-settings",
+  "piloti-console",
+  "piloti-shell",
+  "piloti-appstore",
+  "piloti-applications",
+  "piloti-files",
+  "piloti-notepad",
+  "piloti-calculator",
+  "piloti-camera",
+  "piloti-image-viewer",
+  "piloti-login",
+]);
+
 function longestCommonPrefix(values: string[]): string {
   if (values.length === 0) return "";
   let prefix = values[0];
@@ -202,6 +227,7 @@ export const TerminalApp: React.FC<TerminalAppProps> = ({ initialPath }) => {
     })),
   );
   const { launchApp, openWebUrl, setLauncherOpen, toggleOverview } = useWindowActions();
+  const { openPath } = useOpenPath();
   const [cwd, setCwd] = React.useState<string>(() => {
     if (initialPath) {
       const entry = getVfsEntry(initialPath);
@@ -445,6 +471,40 @@ export const TerminalApp: React.FC<TerminalAppProps> = ({ initialPath }) => {
     return { nextCwd: curCwd, output: [], ok: true };
   };
 
+  const runNativeCommand = async (
+    command: string,
+    commandLine: Omit<OutputLine, "id">,
+  ) => {
+    const isCd = /^cd(\s|$)/.test(command);
+    const argv = isCd
+      ? ["sh", "-c", 'cd -- "$1" && eval "cd $2" && pwd', "sh", cwd, command.slice(2).trim() || '"$HOME"']
+      : ["sh", "-c", 'cd -- "$1" || exit 1; shift; eval "$1"', "sh", cwd, command];
+    try {
+      const res = await domicile.processes.run(argv);
+      res.match({
+        Ok: (ran) => {
+          const out: Array<Omit<OutputLine, "id">> = [commandLine];
+          if (isCd && ran.code === 0) {
+            setCwd(ran.stdout.trim() || cwd);
+          } else {
+            for (const line of ran.stdout.replace(/\n$/, "").split("\n")) {
+              if (ran.stdout) out.push({ text: line });
+            }
+          }
+          if (ran.stderr) {
+            for (const line of ran.stderr.replace(/\n$/, "").split("\n")) {
+              out.push({ text: line, tone: "error" });
+            }
+          }
+          appendLines(out);
+        },
+        Err: () => appendLines([commandLine, { text: "command failed to start", tone: "error" }]),
+      });
+    } catch {
+      appendLines([commandLine, { text: "command failed to start", tone: "error" }]);
+    }
+  };
+
   const runCommand = (raw: string) => {
     const trimmed = raw.trim();
     const promptPrefix = `${formatPromptPath(cwd)}> `;
@@ -472,6 +532,13 @@ export const TerminalApp: React.FC<TerminalAppProps> = ({ initialPath }) => {
       return next;
     });
     setHistoryIndex(-1);
+
+    // On Linux this is a real shell over the real disk. Only the commands that
+    // talk to the desktop stay built in.
+    if (!isBrowserRuntime && !SHELL_BUILTINS.has(trimmed.split(/\s+/)[0])) {
+      void runNativeCommand(trimmed, commandLine);
+      return;
+    }
 
     const parsedPipe = parseCommandPipeline(trimmed);
     if (parsedPipe.stages.length > 1 || parsedPipe.redirect) {
@@ -933,6 +1000,13 @@ export const TerminalApp: React.FC<TerminalAppProps> = ({ initialPath }) => {
         return;
       }
       const target = resolveVfsPath(cwd, args[0]);
+      if (!isBrowserRuntime) {
+        // Real disk: let the shared "open" path pick the app (mimeapps).
+        if (cmd === "open") void openPath(target);
+        else launchApp("text-editor", { payload: target });
+        appendLines([commandLine]);
+        return;
+      }
       const entry = getVfsEntry(target);
       if (entry?.kind === "directory") {
         launchApp("nautilus", { payload: entry.path });
