@@ -927,7 +927,7 @@ export function DesktopIconsApp({
       />
 
       {externalDropActive && (
-        <div className="pointer-events-none absolute inset-3 z-30 flex items-end justify-center rounded-xl border-2 border-dashed border-adw-accent/70 bg-adw-accent/10 pb-4">
+        <div className="pointer-events-none absolute inset-3 z-30 flex items-end justify-center rounded-adw-group border-2 border-dashed border-adw-accent/70 bg-adw-accent/10 pb-4">
           <span className="rounded-full bg-zinc-900/90 px-3 py-1 text-xs font-medium text-white shadow-sm ring-1 ring-white/10">
             {_("Drop files to copy to Desktop")}
           </span>

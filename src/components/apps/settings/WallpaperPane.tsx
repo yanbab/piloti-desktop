@@ -565,7 +565,7 @@ export function WallpaperPane() {
           className="h-24 w-38 shrink-0 drop-shadow-md"
           screenContent={<DesktopBackgroundLayers spec={previewSpec} />}
         />
-        <div className="text-[13px] font-semibold text-adw-label">
+        <div className="text-adw-body font-semibold text-adw-label">
           {primaryDisplayName}
         </div>
       </div>
@@ -622,7 +622,7 @@ export function WallpaperPane() {
                         accentHex={accentHex}
                       />
                       {(isAnimated || isAdaptive) && (
-                        <span className="pointer-events-none absolute right-1.5 bottom-1.5 flex items-center gap-1.5 rounded-full bg-black/55 px-2 py-1 text-[11px] font-medium text-white backdrop-blur-xs">
+                        <span className="pointer-events-none absolute right-1.5 bottom-1.5 flex items-center gap-1.5 rounded-full bg-black/55 px-2 py-1 text-adw-subheadline font-medium text-white backdrop-blur-xs">
                           {isAnimated && <FilmIcon className="size-4" />}
                           {isAdaptive && <SunMoonIcon className="size-4" />}
                         </span>
@@ -694,7 +694,7 @@ export function WallpaperPane() {
                         accentHex={accentHex}
                       />
                       {isAdaptive && (
-                        <span className="pointer-events-none absolute right-1.5 bottom-1.5 flex items-center gap-1.5 rounded-full bg-black/55 px-2 py-1 text-[11px] font-medium text-white backdrop-blur-xs">
+                        <span className="pointer-events-none absolute right-1.5 bottom-1.5 flex items-center gap-1.5 rounded-full bg-black/55 px-2 py-1 text-adw-subheadline font-medium text-white backdrop-blur-xs">
                           <SunMoonIcon className="size-4" />
                         </span>
                       )}
@@ -711,7 +711,7 @@ export function WallpaperPane() {
               <div
                 role="radiogroup"
                 aria-label={_("Color Mode")}
-                className="inline-flex rounded-lg bg-black/8 p-0.5 dark:bg-white/10"
+                className="inline-flex rounded-adw-item bg-black/8 p-0.5 dark:bg-white/10"
               >
                 {(["solid", "linear", "circular"] as const).map((mode) => {
                   const selected = colorMode === mode;
@@ -731,7 +731,7 @@ export function WallpaperPane() {
                         updateSettings({ wallpaperColorMode: mode })
                       }
                       className={cn(
-                        "rounded-md px-3 py-1 text-[12px] font-medium transition-all",
+                        "rounded-adw-control px-3 py-1 text-adw-callout font-medium transition-all",
                         selected
                           ? "bg-white text-black shadow-xs dark:bg-white/16 dark:text-white"
                           : "text-adw-label-secondary hover:text-adw-label"
@@ -991,7 +991,7 @@ export function WallpaperPane() {
                     value={primaryColorPicker.draft}
                     onChange={(e) => primaryColorPicker.onChange(e.target.value)}
                     onBlur={primaryColorPicker.flush}
-                    className="h-8 w-8 cursor-pointer rounded-md border border-adw-separator bg-transparent p-0.5"
+                    className="h-8 w-8 cursor-pointer rounded-adw-control border border-adw-separator bg-transparent p-0.5"
                   />
                   {gnomeBg.colorShadingType !== "solid" && (
                     <input
@@ -1000,7 +1000,7 @@ export function WallpaperPane() {
                       value={secondaryColorPicker.draft}
                       onChange={(e) => secondaryColorPicker.onChange(e.target.value)}
                       onBlur={secondaryColorPicker.flush}
-                      className="h-8 w-8 cursor-pointer rounded-md border border-adw-separator bg-transparent p-0.5"
+                      className="h-8 w-8 cursor-pointer rounded-adw-control border border-adw-separator bg-transparent p-0.5"
                     />
                   )}
                 </GroupedFormRowControl>
@@ -1035,7 +1035,7 @@ export function WallpaperPane() {
                 >
                   <ArrowUpIcon className="size-3.5" />
                 </Button>
-                <span className="truncate text-[12px] text-adw-label-secondary">
+                <span className="truncate text-adw-callout text-adw-label-secondary">
                   {pickerCwd}
                 </span>
               </div>
@@ -1073,13 +1073,13 @@ export function WallpaperPane() {
               </div>
             </div>
 
-            <div className="max-h-64 min-h-40 overflow-y-auto rounded-lg border border-adw-separator bg-adw-group p-1.5">
+            <div className="max-h-64 min-h-40 overflow-y-auto rounded-adw-item border border-adw-separator bg-adw-group p-1.5">
               {pickerLoading ? (
-                <div className="flex h-36 items-center justify-center text-[13px] text-adw-label-secondary">
+                <div className="flex h-36 items-center justify-center text-adw-body text-adw-label-secondary">
                   {_("Loading...")}
                 </div>
               ) : pickerEntries.length === 0 ? (
-                <div className="flex h-36 items-center justify-center text-[13px] text-adw-label-secondary">
+                <div className="flex h-36 items-center justify-center text-adw-body text-adw-label-secondary">
                   {_("No images found in this folder")}
                 </div>
               ) : (
@@ -1105,10 +1105,10 @@ export function WallpaperPane() {
                           }
                         }}
                         className={cn(
-                          "flex w-full items-center gap-2.5 rounded-md px-2.5 py-1.5 text-left text-[13px] transition-colors",
+                          "flex w-full items-center gap-2.5 rounded-adw-control px-2.5 py-1.5 text-left text-adw-body transition-colors",
                           isSelected
                             ? "bg-adw-accent text-white"
-                            : "text-adw-label hover:bg-black/5 dark:hover:bg-white/8"
+                            : "text-adw-label hover-fill:bg-black/5 dark:hover-fill:bg-white/8"
                         )}
                       >
                         {entry.kind === "directory" ? (

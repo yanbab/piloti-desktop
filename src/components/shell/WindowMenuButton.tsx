@@ -75,7 +75,7 @@ export const WindowMenuButton = React.memo(function WindowMenuButton({
       <DropdownMenuTrigger
         aria-label={_("Window menu")}
         onClick={() => setOpen((v) => !v)}
-        className="group/wmenu flex size-7 shrink-0 cursor-default items-center justify-center rounded-md outline-none select-none active:bg-black/12 data-popup-open:bg-black/10 dark:active:bg-white/16 dark:data-popup-open:bg-white/14"
+        className="group/wmenu flex size-7 shrink-0 cursor-default items-center justify-center rounded-adw-control outline-none select-none active:bg-black/12 data-popup-open:bg-black/10 dark:active:bg-white/16 dark:data-popup-open:bg-white/14"
       >
         <MoreVerticalIcon className="size-4 opacity-75 group-hover/wmenu:opacity-100 group-active/wmenu:opacity-100 group-data-popup-open/wmenu:opacity-100" />
       </DropdownMenuTrigger>

@@ -16,6 +16,9 @@
  */
 
 @custom-variant dark (&:is(.dark *));
+/* Hover fills: Adwaita highlights controls on hover; Piloti (macOS) does not,
+   only menus do. Use `hover-fill:bg-…` instead of `hover:bg-…` on controls. */
+@custom-variant hover-fill (&:hover:where(:root:not([data-interface-theme="piloti"]) *));
 
 :root {
   --font-adw: "Cantarell", "Inter", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
@@ -122,6 +125,18 @@
   --adw-radius-popover: 12px;
   --adw-radius-alert: 15px;
   --adw-radius-window: 15px;
+
+  /* Type roles (size scales with the font scale setting) */
+  --adw-font-large-title: calc(26px * var(--piloti-font-scale, 1));
+  --adw-font-title-1: calc(22px * var(--piloti-font-scale, 1));
+  --adw-font-title-2: calc(17px * var(--piloti-font-scale, 1));
+  --adw-font-title-3: calc(15px * var(--piloti-font-scale, 1));
+  --adw-font-headline: calc(13px * var(--piloti-font-scale, 1));
+  --adw-font-body: calc(13px * var(--piloti-font-scale, 1));
+  --adw-font-callout: calc(12px * var(--piloti-font-scale, 1));
+  --adw-font-subheadline: calc(11px * var(--piloti-font-scale, 1));
+  --adw-font-footnote: calc(10px * var(--piloti-font-scale, 1));
+  --adw-font-caption: calc(10px * var(--piloti-font-scale, 1));
 
   /* Libadwaita Control Heights */
   --adw-control-mini: 20px;
@@ -435,26 +450,32 @@
   --shadow-adw-window-inactive: var(--adw-shadow-window-inactive);
   --shadow-adw-focus: var(--adw-focus-ring);
 
-  /* Adwaita typography scale (size / line-height) */
-  --text-adw-large-title: 26px;
+  /* Control heights: h-adw-control-small, size-adw-control-small… */
+  --spacing-adw-control-mini: var(--adw-control-mini);
+  --spacing-adw-control-small: var(--adw-control-small);
+  --spacing-adw-control-medium: var(--adw-control-medium);
+  --spacing-adw-control-large: var(--adw-control-large);
+
+  /* Typography roles (size / line-height); sizes are per-theme variables */
+  --text-adw-large-title: var(--adw-font-large-title);
   --text-adw-large-title--line-height: 32px;
-  --text-adw-title-1: 22px;
+  --text-adw-title-1: var(--adw-font-title-1);
   --text-adw-title-1--line-height: 26px;
-  --text-adw-title-2: 17px;
+  --text-adw-title-2: var(--adw-font-title-2);
   --text-adw-title-2--line-height: 22px;
-  --text-adw-title-3: 15px;
+  --text-adw-title-3: var(--adw-font-title-3);
   --text-adw-title-3--line-height: 20px;
-  --text-adw-headline: 13px;
+  --text-adw-headline: var(--adw-font-headline);
   --text-adw-headline--line-height: 16px;
-  --text-adw-body: 13px;
+  --text-adw-body: var(--adw-font-body);
   --text-adw-body--line-height: 16px;
-  --text-adw-callout: 12px;
+  --text-adw-callout: var(--adw-font-callout);
   --text-adw-callout--line-height: 15px;
-  --text-adw-subheadline: 11px;
+  --text-adw-subheadline: var(--adw-font-subheadline);
   --text-adw-subheadline--line-height: 14px;
-  --text-adw-footnote: 10px;
+  --text-adw-footnote: var(--adw-font-footnote);
   --text-adw-footnote--line-height: 13px;
-  --text-adw-caption: 10px;
+  --text-adw-caption: var(--adw-font-caption);
   --text-adw-caption--line-height: 13px;
 }
 

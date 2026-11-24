@@ -88,7 +88,7 @@ function ScreenshotPortalOverlay({
 
   return (
     <div className="fixed inset-0 z-[800] flex flex-col items-center justify-center bg-black/85 select-none">
-      <div className="relative flex max-h-[82vh] max-w-[90vw] items-center justify-center overflow-hidden rounded-xl border border-white/20 shadow-2xl">
+      <div className="relative flex max-h-[82vh] max-w-[90vw] items-center justify-center overflow-hidden rounded-adw-group border border-white/20 shadow-2xl">
         <img
           ref={imgRef}
           src={frame}
@@ -219,14 +219,14 @@ function ScreenCastPortalDialog({
           <VideoIcon className="size-5 text-adw-accent" />
           <div>
             <h3 className="text-[14px] font-bold">{_("Share Screen or Window")}</h3>
-            <p className="text-[11px] text-adw-label-secondary">
+            <p className="text-adw-subheadline text-adw-label-secondary">
               {_("Requested by %s", request.appId || _("Application"))}
             </p>
           </div>
         </div>
 
         {request.body.desk && (
-          <div className="mb-3 overflow-hidden rounded-lg border border-adw-separator/70 bg-black/30">
+          <div className="mb-3 overflow-hidden rounded-adw-item border border-adw-separator/70 bg-black/30">
             <img
               src={request.body.desk.frame}
               alt={_("Desktop preview")}
@@ -261,13 +261,13 @@ function ScreenCastPortalDialog({
                   "flex w-full items-center gap-2.5 rounded-adw-item px-3 py-2 text-left text-xs transition-colors",
                   active
                     ? "bg-adw-accent text-white"
-                    : "bg-adw-fill-tertiary hover:bg-adw-fill-secondary"
+                    : "bg-adw-fill-tertiary hover-fill:bg-adw-fill-secondary"
                 )}
               >
                 <MonitorIcon className="size-4 shrink-0" />
                 <span className="min-w-0 flex-1 truncate font-medium">{label}</span>
                 {meta && (
-                  <span className="shrink-0 font-mono text-[10.5px] opacity-75">
+                  <span className="shrink-0 font-mono text-adw-footnote opacity-75">
                     {meta}
                   </span>
                 )}
@@ -461,7 +461,7 @@ function FileChooserPortalDialog({
                       ? _("Select Folder")
                       : _("Open File"))}
             </h3>
-            <p className="truncate font-mono text-[11px] text-adw-label-secondary">
+            <p className="truncate font-mono text-adw-subheadline text-adw-label-secondary">
               {cwd}
             </p>
           </div>
@@ -505,10 +505,10 @@ function FileChooserPortalDialog({
                   setSelectedPaths([]);
                 }}
                 className={cn(
-                  "flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-[12px] transition-colors",
+                  "flex w-full items-center gap-2 rounded-adw-control px-2.5 py-1.5 text-left text-adw-callout transition-colors",
                   cwd === p.path
                     ? "bg-adw-accent text-white"
-                    : "hover:bg-black/6 dark:hover:bg-white/10"
+                    : "hover-fill:bg-black/6 dark:hover-fill:bg-white/10"
                 )}
               >
                 <FolderIcon className="size-3.5 shrink-0" />
@@ -566,10 +566,10 @@ function FileChooserPortalDialog({
                         }
                       }}
                       className={cn(
-                        "flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-[12.5px] transition-colors",
+                        "flex w-full items-center gap-2 rounded-adw-control px-2.5 py-1.5 text-left text-adw-callout transition-colors",
                         selected
                           ? "bg-adw-accent text-white"
-                          : "hover:bg-black/6 dark:hover:bg-white/10"
+                          : "hover-fill:bg-black/6 dark:hover-fill:bg-white/10"
                       )}
                     >
                       {entry.isDir ? (
@@ -588,7 +588,7 @@ function FileChooserPortalDialog({
 
         <div className="space-y-2 border-t border-adw-separator px-4 py-3">
           {body.mode === FileChooserMode.SaveFiles && body.files.length > 0 && (
-            <div className="rounded-md bg-black/5 px-2.5 py-1.5 text-[11px] text-adw-label-secondary dark:bg-white/8">
+            <div className="rounded-adw-control bg-black/5 px-2.5 py-1.5 text-adw-subheadline text-adw-label-secondary dark:bg-white/8">
               {_("Files to save (%d):", body.files.length)}{" "}
               <span className="font-mono text-adw-label">
                 {body.files.slice(0, 4).join(", ")}
@@ -611,7 +611,7 @@ function FileChooserPortalDialog({
                     confirm();
                   }
                 }}
-                className="h-7 flex-1 rounded-md border border-adw-separator bg-black/5 px-2 text-xs text-adw-label outline-none focus:border-adw-accent dark:bg-white/10"
+                className="h-7 flex-1 rounded-adw-control border border-adw-separator bg-black/5 px-2 text-xs text-adw-label outline-none focus:border-adw-accent dark:bg-white/10"
               />
             </div>
           )}
@@ -745,7 +745,7 @@ function AppChooserPortalDialog({
           <AppWindowIcon className="size-5 text-adw-accent" />
           <div className="min-w-0">
             <h3 className="text-[14px] font-bold">{_("Open With")}</h3>
-            <p className="truncate text-[11px] text-adw-label-secondary">
+            <p className="truncate text-adw-subheadline text-adw-label-secondary">
               {request.body.filename || request.body.contentType || request.body.uri}
             </p>
           </div>
@@ -762,10 +762,10 @@ function AppChooserPortalDialog({
                 onClick={() => setSelected(choice)}
                 onDoubleClick={() => confirmChoice(choice)}
                 className={cn(
-                  "flex w-full items-center gap-2.5 rounded-lg border px-3 py-2 text-left text-xs transition-colors",
+                  "flex w-full items-center gap-2.5 rounded-adw-item border px-3 py-2 text-left text-xs transition-colors",
                   selected === choice
                     ? "border-adw-accent bg-adw-accent/15 font-medium"
-                    : "border-transparent hover:bg-black/6 dark:hover:bg-white/10"
+                    : "border-transparent hover-fill:bg-black/6 dark:hover-fill:bg-white/10"
                 )}
               >
                 {xdg?.iconUrl ? (
@@ -825,7 +825,7 @@ function DynamicLauncherPortalDialog({
             <img
               src={request.body.icon}
               alt=""
-              className="size-10 rounded-lg object-contain"
+              className="size-10 rounded-adw-item object-contain"
             />
           ) : (
             <SparklesIcon className="size-6 text-adw-accent" />
@@ -833,7 +833,7 @@ function DynamicLauncherPortalDialog({
           <div className="min-w-0">
             <h3 className="text-[14px] font-bold">Install Application Launcher</h3>
             {request.body.target && (
-              <p className="truncate text-[11px] text-adw-label-secondary">
+              <p className="truncate text-adw-subheadline text-adw-label-secondary">
                 {request.body.target}
               </p>
             )}
@@ -844,7 +844,7 @@ function DynamicLauncherPortalDialog({
           disabled={!request.body.editableName}
           value={name}
           onChange={(e) => setName(e.target.value)}
-          className="h-8 w-full rounded-md border border-adw-separator bg-black/5 px-2.5 text-xs text-adw-label outline-none focus:border-adw-accent disabled:opacity-70 dark:bg-white/10"
+          className="h-8 w-full rounded-adw-control border border-adw-separator bg-black/5 px-2.5 text-xs text-adw-label outline-none focus:border-adw-accent disabled:opacity-70 dark:bg-white/10"
         />
         <div className="mt-4 flex justify-end gap-2">
           <Button
@@ -920,7 +920,7 @@ function GlobalShortcutsPortalDialog({
           <KeyboardIcon className="size-5 text-adw-accent" />
           <div>
             <h3 className="text-[14px] font-bold">{_("Global Shortcuts")}</h3>
-            <p className="text-[11px] text-adw-label-secondary">
+            <p className="text-adw-subheadline text-adw-label-secondary">
               {_("%s requests global shortcuts", request.appId || _("Application"))}
             </p>
           </div>
@@ -935,7 +935,7 @@ function GlobalShortcutsPortalDialog({
             return (
               <div
                 key={sc.id}
-                className="flex flex-col gap-1 rounded-lg border border-adw-separator/60 px-3 py-2"
+                className="flex flex-col gap-1 rounded-adw-item border border-adw-separator/60 px-3 py-2"
               >
                 <div className="flex items-center justify-between gap-2">
                   <span className="truncate text-xs font-medium">
@@ -970,10 +970,10 @@ function GlobalShortcutsPortalDialog({
                         }
                       }}
                       className={cn(
-                        "h-6 min-w-[96px] rounded border px-2 text-center font-mono text-[11px] outline-none transition-colors",
+                        "h-6 min-w-[96px] rounded border px-2 text-center font-mono text-adw-subheadline outline-none transition-colors",
                         isRecording
                           ? "border-adw-accent bg-adw-accent/15 text-adw-accent"
-                          : "border-adw-separator bg-black/5 hover:bg-black/10 dark:bg-white/10 dark:hover:bg-white/15"
+                          : "border-adw-separator bg-black/5 hover-fill:bg-black/10 dark:bg-white/10 dark:hover-fill:bg-white/15"
                       )}
                     >
                       {isRecording
@@ -990,7 +990,7 @@ function GlobalShortcutsPortalDialog({
                             [sc.id]: undefined,
                           }))
                         }
-                        className="flex size-6 items-center justify-center rounded text-adw-label-secondary hover:bg-black/10 dark:hover:bg-white/15"
+                        className="flex size-6 items-center justify-center rounded text-adw-label-secondary hover-fill:bg-black/10 dark:hover-fill:bg-white/15"
                       >
                         <XIcon className="size-3" />
                       </button>
@@ -998,7 +998,7 @@ function GlobalShortcutsPortalDialog({
                   </div>
                 </div>
                 {conflictApp && (
-                  <div className="flex items-center gap-1 text-[10.5px] text-amber-600 dark:text-amber-400">
+                  <div className="flex items-center gap-1 text-adw-footnote text-amber-600 dark:text-amber-400">
                     <AlertTriangleIcon className="size-3 shrink-0" />
                     <span>
                       {_("Already used by %s", conflictApp)}
@@ -1059,7 +1059,7 @@ function RemoteDesktopPortalDialog({
           <MonitorIcon className="size-5 text-adw-accent" />
           <div>
             <h3 className="text-[14px] font-bold">Remote Desktop Access</h3>
-            <p className="text-[11px] text-adw-label-secondary">
+            <p className="text-adw-subheadline text-adw-label-secondary">
               {request.appId || "Application"} requests remote control
             </p>
           </div>
@@ -1280,7 +1280,7 @@ function PickColorPortalOverlay({
             left: `${Math.min(window.innerWidth - 110, cursor.x + 16)}px`,
             top: `${Math.min(window.innerHeight - 36, cursor.y + 16)}px`,
           }}
-          className="pointer-events-none fixed flex items-center gap-1.5 rounded-full bg-zinc-900/92 px-2.5 py-1 font-mono text-[11px] text-white shadow-lg ring-1 ring-white/20"
+          className="pointer-events-none fixed flex items-center gap-1.5 rounded-full bg-zinc-900/92 px-2.5 py-1 font-mono text-adw-subheadline text-white shadow-lg ring-1 ring-white/20"
         >
           <PipetteIcon className="size-3 text-sky-400" />
           <span>
@@ -1413,7 +1413,7 @@ function PermissionPortalDialog({
           {icon}
           <div className="min-w-0">
             <h3 className="text-[14px] font-bold">{title}</h3>
-            <p className="truncate text-[11px] text-adw-label-secondary">
+            <p className="truncate text-adw-subheadline text-adw-label-secondary">
               {subtitle}
             </p>
           </div>
@@ -1426,7 +1426,7 @@ function PermissionPortalDialog({
         )}
 
         {request.kind === PortalKind.Account && request.body.name && (
-          <div className="mb-3 flex items-center gap-2.5 rounded-lg bg-black/5 px-3 py-2 text-xs dark:bg-white/8">
+          <div className="mb-3 flex items-center gap-2.5 rounded-adw-item bg-black/5 px-3 py-2 text-xs dark:bg-white/8">
             <UserIcon className="size-4 text-adw-accent" />
             <span className="font-medium">{request.body.name}</span>
           </div>
@@ -1435,7 +1435,7 @@ function PermissionPortalDialog({
         {request.kind === PortalKind.Wallpaper && (
           <div className="mb-3 space-y-1.5">
             {wallpaperPreviewUrl && (
-              <div className="overflow-hidden rounded-lg border border-adw-separator/70 bg-black/25">
+              <div className="overflow-hidden rounded-adw-item border border-adw-separator/70 bg-black/25">
                 <img
                   src={wallpaperPreviewUrl}
                   alt={_("Wallpaper preview")}
@@ -1443,7 +1443,7 @@ function PermissionPortalDialog({
                 />
               </div>
             )}
-            <p className="truncate font-mono text-[11px] text-adw-label-secondary">
+            <p className="truncate font-mono text-adw-subheadline text-adw-label-secondary">
               {request.body.path}
             </p>
           </div>
@@ -1454,21 +1454,21 @@ function PermissionPortalDialog({
             {request.body.devices.map((dev) => (
               <div
                 key={dev.id}
-                className="flex items-center justify-between gap-2 rounded-lg bg-black/5 px-2.5 py-1.5 text-xs dark:bg-white/8"
+                className="flex items-center justify-between gap-2 rounded-adw-item bg-black/5 px-2.5 py-1.5 text-xs dark:bg-white/8"
               >
                 <div className="min-w-0">
                   <div className="truncate font-medium">
                     {dev.product || dev.id}
                   </div>
                   {dev.vendor && (
-                    <div className="truncate text-[10.5px] text-adw-label-secondary">
+                    <div className="truncate text-adw-footnote text-adw-label-secondary">
                       {dev.vendor}
                     </div>
                   )}
                 </div>
                 <span
                   className={cn(
-                    "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium",
+                    "shrink-0 rounded-full px-2 py-0.5 text-adw-footnote font-medium",
                     dev.writable
                       ? "bg-amber-500/20 text-amber-700 dark:text-amber-300"
                       : "bg-black/8 text-adw-label-secondary dark:bg-white/10"
@@ -1484,17 +1484,17 @@ function PermissionPortalDialog({
         {request.kind === PortalKind.InputCapture && (
           <div className="mb-3 flex flex-wrap gap-1.5">
             {request.body.devices.keyboard && (
-              <span className="rounded-full bg-black/8 px-2.5 py-0.5 text-[11px] font-medium dark:bg-white/10">
+              <span className="rounded-full bg-black/8 px-2.5 py-0.5 text-adw-subheadline font-medium dark:bg-white/10">
                 {_("Keyboard")}
               </span>
             )}
             {request.body.devices.pointer && (
-              <span className="rounded-full bg-black/8 px-2.5 py-0.5 text-[11px] font-medium dark:bg-white/10">
+              <span className="rounded-full bg-black/8 px-2.5 py-0.5 text-adw-subheadline font-medium dark:bg-white/10">
                 {_("Pointer")}
               </span>
             )}
             {request.body.devices.touchscreen && (
-              <span className="rounded-full bg-black/8 px-2.5 py-0.5 text-[11px] font-medium dark:bg-white/10">
+              <span className="rounded-full bg-black/8 px-2.5 py-0.5 text-adw-subheadline font-medium dark:bg-white/10">
                 {_("Touchscreen")}
               </span>
             )}

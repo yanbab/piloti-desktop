@@ -1125,7 +1125,7 @@ export function IconGrid({
               }
             }}
             className={cn(
-              "group relative flex cursor-default rounded-xl outline-none select-none",
+              "group relative flex cursor-default rounded-adw-group outline-none select-none",
               compactHorizontal
                 ? "flex-row items-center justify-start gap-1 px-1.5 py-0.5 text-left"
                 : "flex-col items-center justify-start gap-1 px-1 py-1.5 text-center",

@@ -99,7 +99,7 @@ export const InlineCompletionInput = React.forwardRef<
   };
 
   const sharedTypographyClass = cn(
-    "w-full border-0 bg-transparent p-0 font-sans text-[17px] leading-[1.4] tracking-normal",
+    "w-full border-0 bg-transparent p-0 font-sans text-adw-title-2 leading-[1.4] tracking-normal",
     className
   );
 

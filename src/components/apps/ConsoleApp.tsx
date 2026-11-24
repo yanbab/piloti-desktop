@@ -329,7 +329,7 @@ function ReplModule({
       <div
         ref={scrollRef}
         onClick={() => inputRef.current?.focus()}
-        className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-3 font-mono text-[12px]"
+        className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-3 font-mono text-adw-callout"
       >
         <div className="text-adw-label-tertiary select-none">
           Type &quot;help()&quot; for help.
@@ -337,7 +337,7 @@ function ReplModule({
         {items.map((item) => (
           <div
             key={item.id}
-            className="rounded-lg bg-black/3 px-2.5 py-2 dark:bg-white/4"
+            className="rounded-adw-item bg-black/3 px-2.5 py-2 dark:bg-white/4"
           >
             <div className="flex items-center justify-between gap-2 text-adw-label-secondary">
               <div className="flex min-w-0 items-start gap-1.5 font-semibold text-adw-label">
@@ -346,7 +346,7 @@ function ReplModule({
                   {item.code}
                 </pre>
               </div>
-              <span className="shrink-0 text-[10px] text-adw-label-tertiary">
+              <span className="shrink-0 text-adw-footnote text-adw-label-tertiary">
                 {item.durationMs}ms
               </span>
             </div>
@@ -386,7 +386,7 @@ function ReplModule({
           autoCapitalize="off"
           autoComplete="off"
           aria-label="Console REPL input"
-          className="h-full flex-1 font-mono text-[12px] leading-[18px] text-adw-label"
+          className="h-full flex-1 font-mono text-adw-callout leading-[18px] text-adw-label"
         />
       </form>
     </div>
@@ -437,7 +437,7 @@ function VfsPerformanceSection() {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <span className="text-[12px] text-adw-label-secondary">
+        <span className="text-adw-callout text-adw-label-secondary">
           {_("Since %s", new Date(stats.startedAt).toLocaleTimeString())}
         </span>
         <button
@@ -448,7 +448,7 @@ function VfsPerformanceSection() {
             setStats(getWebVfsPerfStats());
             setRenders(getRenderCounts());
           }}
-          className="rounded-md bg-black/6 px-2.5 py-1 text-[11.5px] font-medium text-adw-label hover:bg-black/10 dark:bg-white/10 dark:hover:bg-white/15"
+          className="rounded-adw-control bg-black/6 px-2.5 py-1 text-adw-subheadline font-medium text-adw-label hover-fill:bg-black/10 dark:bg-white/10 dark:hover-fill:bg-white/15"
         >
           {_("Reset")}
         </button>
@@ -459,7 +459,7 @@ function VfsPerformanceSection() {
             key={stat.label}
             className="rounded-adw-group bg-adw-group px-3.5 py-2.5"
           >
-            <div className="text-[11px] font-medium text-adw-label-secondary">{stat.label}</div>
+            <div className="text-adw-subheadline font-medium text-adw-label-secondary">{stat.label}</div>
             <div className="mt-0.5 truncate font-mono text-[14px] font-semibold text-adw-label">
               {stat.value}
             </div>
@@ -493,9 +493,9 @@ function InspectorJsonCard({
   return (
     <div className="overflow-hidden rounded-adw-group bg-adw-group">
       <div className="flex items-center justify-between border-b border-adw-separator px-3.5 py-2">
-        <span className="text-[12px] font-semibold text-adw-label">{title}</span>
+        <span className="text-adw-callout font-semibold text-adw-label">{title}</span>
         {count !== undefined && (
-          <span className="rounded-full bg-black/6 px-2 py-0.5 text-[10.5px] font-medium text-adw-label-secondary dark:bg-white/10">
+          <span className="rounded-full bg-black/6 px-2 py-0.5 text-adw-footnote font-medium text-adw-label-secondary dark:bg-white/10">
             {count}
           </span>
         )}
@@ -516,7 +516,7 @@ function InspectorJsonCard({
             }
           />
         ) : (
-          <pre className="font-mono text-[12px] text-adw-label-secondary select-text">
+          <pre className="font-mono text-adw-callout text-adw-label-secondary select-text">
             {String(data ?? "null")}
           </pre>
         )}
@@ -596,7 +596,7 @@ function InspectorModule() {
                   key={stat.label}
                   className="rounded-adw-group bg-adw-group px-3.5 py-2.5"
                 >
-                  <div className="text-[11px] font-medium text-adw-label-secondary">
+                  <div className="text-adw-subheadline font-medium text-adw-label-secondary">
                     {stat.label}
                   </div>
                   <div className="mt-0.5 truncate font-mono text-[14px] font-semibold text-adw-label">
@@ -608,15 +608,15 @@ function InspectorModule() {
 
             <div className="overflow-hidden rounded-adw-group bg-adw-group">
               <div className="flex items-center justify-between border-b border-adw-separator px-3.5 py-2">
-                <span className="text-[12px] font-semibold text-adw-label">
+                <span className="text-adw-callout font-semibold text-adw-label">
                   {_("Windows")}
                 </span>
-                <span className="rounded-full bg-black/6 px-2 py-0.5 text-[10.5px] font-medium text-adw-label-secondary dark:bg-white/10">
+                <span className="rounded-full bg-black/6 px-2 py-0.5 text-adw-footnote font-medium text-adw-label-secondary dark:bg-white/10">
                   {windows.length}
                 </span>
               </div>
               {windows.length === 0 ? (
-                <div className="px-3.5 py-6 text-center text-[12px] text-adw-label-tertiary">
+                <div className="px-3.5 py-6 text-center text-adw-callout text-adw-label-tertiary">
                   {_("No open windows.")}
                 </div>
               ) : (
@@ -632,7 +632,7 @@ function InspectorModule() {
                     return (
                       <div
                         key={w.id}
-                        className="flex items-center gap-3 px-3.5 py-2.5 transition-colors hover:bg-black/3 dark:hover:bg-white/4"
+                        className="flex items-center gap-3 px-3.5 py-2.5 transition-colors hover-fill:bg-black/3 dark:hover-fill:bg-white/4"
                       >
                         <AppSquircleIcon
                           iconUrl={w.iconUrl ?? getAppIconUrl(w.appId)}
@@ -640,17 +640,17 @@ function InspectorModule() {
                         />
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2">
-                            <span className="truncate text-[12.5px] font-semibold text-adw-label">
+                            <span className="truncate text-adw-callout font-semibold text-adw-label">
                               {w.title || w.appId}
                             </span>
-                            <span className="rounded bg-black/6 px-1.5 py-0.5 font-mono text-[10px] text-adw-label-secondary dark:bg-white/10">
+                            <span className="rounded bg-black/6 px-1.5 py-0.5 font-mono text-adw-footnote text-adw-label-secondary dark:bg-white/10">
                               {w.appId}
                             </span>
                             {flags.map((flag) => (
                               <span
                                 key={flag}
                                 className={cn(
-                                  "rounded-full px-1.5 py-0.5 text-[10px] font-medium",
+                                  "rounded-full px-1.5 py-0.5 text-adw-footnote font-medium",
                                   flag === "focused"
                                     ? "bg-adw-accent/15 text-adw-accent"
                                     : "bg-black/6 text-adw-label-secondary dark:bg-white/10"
@@ -660,7 +660,7 @@ function InspectorModule() {
                               </span>
                             ))}
                           </div>
-                          <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 font-mono text-[11px] text-adw-label-tertiary">
+                          <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 font-mono text-adw-subheadline text-adw-label-tertiary">
                             <span>id: {w.id}</span>
                             <span>ws: {w.workspace}</span>
                             <span>
@@ -700,15 +700,15 @@ function InspectorModule() {
           <div className="space-y-4">
             <div className="overflow-hidden rounded-adw-group bg-adw-group">
               <div className="flex items-center justify-between border-b border-adw-separator px-3.5 py-2">
-                <span className="text-[12px] font-semibold text-adw-label">
+                <span className="text-adw-callout font-semibold text-adw-label">
                   {_("Displays")}
                 </span>
-                <span className="rounded-full bg-black/6 px-2 py-0.5 text-[10.5px] font-medium text-adw-label-secondary dark:bg-white/10">
+                <span className="rounded-full bg-black/6 px-2 py-0.5 text-adw-footnote font-medium text-adw-label-secondary dark:bg-white/10">
                   {displays.length}
                 </span>
               </div>
               {displays.length === 0 ? (
-                <div className="px-3.5 py-6 text-center text-[12px] text-adw-label-tertiary">
+                <div className="px-3.5 py-6 text-center text-adw-callout text-adw-label-tertiary">
                   {_("No displays reported.")}
                 </div>
               ) : (
@@ -729,21 +729,21 @@ function InspectorModule() {
                           <MonitorIcon className="size-4 shrink-0 text-adw-label-secondary" />
                           <div className="min-w-0">
                             <div className="flex items-center gap-2">
-                              <span className="truncate text-[12.5px] font-semibold text-adw-label">
+                              <span className="truncate text-adw-callout font-semibold text-adw-label">
                                 {name}
                               </span>
                               {Boolean(rec.primary) && (
-                                <span className="rounded-full bg-adw-accent/15 px-1.5 py-0.5 text-[10px] font-medium text-adw-accent">
+                                <span className="rounded-full bg-adw-accent/15 px-1.5 py-0.5 text-adw-footnote font-medium text-adw-accent">
                                   {_("Primary")}
                                 </span>
                               )}
                             </div>
-                            <div className="font-mono text-[11px] text-adw-label-tertiary">
+                            <div className="font-mono text-adw-subheadline text-adw-label-tertiary">
                               {String(w)}×{String(h)} @ {String(x)},{String(y)} · {String(rec.scale ?? 1)}×
                             </div>
                           </div>
                         </div>
-                        <span className="shrink-0 font-mono text-[11px] text-adw-label-tertiary">
+                        <span className="shrink-0 font-mono text-adw-subheadline text-adw-label-tertiary">
                           {String(rec.id ?? "—")}
                         </span>
                       </div>
@@ -787,10 +787,10 @@ function InspectorModule() {
                   key={item.label}
                   className="rounded-adw-group bg-adw-group px-3.5 py-2.5"
                 >
-                  <div className="text-[11px] font-medium text-adw-label-secondary">
+                  <div className="text-adw-subheadline font-medium text-adw-label-secondary">
                     {item.label}
                   </div>
-                  <div className="mt-0.5 truncate font-mono text-[12.5px] font-semibold text-adw-label">
+                  <div className="mt-0.5 truncate font-mono text-adw-callout font-semibold text-adw-label">
                     {String(item.value)}
                   </div>
                 </div>
@@ -829,15 +829,15 @@ function InspectorModule() {
           <div className="space-y-4">
             <div className="overflow-hidden rounded-adw-group bg-adw-group">
               <div className="flex items-center justify-between border-b border-adw-separator px-3.5 py-2">
-                <span className="text-[12px] font-semibold text-adw-label">
+                <span className="text-adw-callout font-semibold text-adw-label">
                   {_("Installed XDG Apps")}
                 </span>
-                <span className="rounded-full bg-black/6 px-2 py-0.5 text-[10.5px] font-medium text-adw-label-secondary dark:bg-white/10">
+                <span className="rounded-full bg-black/6 px-2 py-0.5 text-adw-footnote font-medium text-adw-label-secondary dark:bg-white/10">
                   {installedXdgApps.length}
                 </span>
               </div>
               {installedXdgApps.length === 0 ? (
-                <div className="px-3.5 py-6 text-center text-[12px] text-adw-label-tertiary">
+                <div className="px-3.5 py-6 text-center text-adw-callout text-adw-label-tertiary">
                   {_("No XDG apps indexed.")}
                 </div>
               ) : (
@@ -845,21 +845,21 @@ function InspectorModule() {
                   {installedXdgApps.map((a) => (
                     <div
                       key={a.desktopId}
-                      className="flex items-center gap-3 border-b border-adw-separator/50 px-3.5 py-2.5 transition-colors hover:bg-black/3 dark:hover:bg-white/4"
+                      className="flex items-center gap-3 border-b border-adw-separator/50 px-3.5 py-2.5 transition-colors hover-fill:bg-black/3 dark:hover-fill:bg-white/4"
                     >
                       <AppSquircleIcon
                         iconUrl={getAppIconUrl(a.desktopId)}
                         className="size-7 shrink-0"
                       />
                       <div className="min-w-0 flex-1">
-                        <div className="truncate text-[12.5px] font-semibold text-adw-label">
+                        <div className="truncate text-adw-callout font-semibold text-adw-label">
                           {a.name}
                         </div>
-                        <div className="truncate font-mono text-[10.5px] text-adw-label-tertiary">
+                        <div className="truncate font-mono text-adw-footnote text-adw-label-tertiary">
                           {a.desktopId}
                         </div>
                         {a.exec && (
-                          <div className="truncate font-mono text-[10px] text-adw-label-secondary">
+                          <div className="truncate font-mono text-adw-footnote text-adw-label-secondary">
                             {a.exec}
                           </div>
                         )}
@@ -872,15 +872,15 @@ function InspectorModule() {
 
             <div className="overflow-hidden rounded-adw-group bg-adw-group">
               <div className="flex items-center justify-between border-b border-adw-separator px-3.5 py-2">
-                <span className="text-[12px] font-semibold text-adw-label">
+                <span className="text-adw-callout font-semibold text-adw-label">
                   {_("Installed Web Apps")}
                 </span>
-                <span className="rounded-full bg-black/6 px-2 py-0.5 text-[10.5px] font-medium text-adw-label-secondary dark:bg-white/10">
+                <span className="rounded-full bg-black/6 px-2 py-0.5 text-adw-footnote font-medium text-adw-label-secondary dark:bg-white/10">
                   {settings.installedWebApps.length}
                 </span>
               </div>
               {settings.installedWebApps.length === 0 ? (
-                <div className="px-3.5 py-6 text-center text-[12px] text-adw-label-tertiary">
+                <div className="px-3.5 py-6 text-center text-adw-callout text-adw-label-tertiary">
                   {_("No installed web apps.")}
                 </div>
               ) : (
@@ -893,7 +893,7 @@ function InspectorModule() {
                     return (
                       <div
                         key={a.id}
-                        className="flex items-center gap-3 px-3.5 py-2.5 transition-colors hover:bg-black/3 dark:hover:bg-white/4"
+                        className="flex items-center gap-3 px-3.5 py-2.5 transition-colors hover-fill:bg-black/3 dark:hover-fill:bg-white/4"
                       >
                         <AppSquircleIcon
                           iconUrl={iconUrl}
@@ -902,14 +902,14 @@ function InspectorModule() {
                         />
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2">
-                            <span className="truncate text-[12.5px] font-semibold text-adw-label">
+                            <span className="truncate text-adw-callout font-semibold text-adw-label">
                               {a.title}
                             </span>
-                            <span className="rounded bg-black/6 px-1.5 py-0.5 font-mono text-[10px] text-adw-label-secondary dark:bg-white/10">
+                            <span className="rounded bg-black/6 px-1.5 py-0.5 font-mono text-adw-footnote text-adw-label-secondary dark:bg-white/10">
                               {a.id}
                             </span>
                           </div>
-                          <div className="truncate font-mono text-[11px] text-adw-label-tertiary">
+                          <div className="truncate font-mono text-adw-subheadline text-adw-label-tertiary">
                             {a.url}
                           </div>
                         </div>
@@ -929,15 +929,15 @@ function InspectorModule() {
 
             <div className="overflow-hidden rounded-adw-group bg-adw-group">
               <div className="flex items-center justify-between border-b border-adw-separator px-3.5 py-2">
-                <span className="text-[12px] font-semibold text-adw-label">
+                <span className="text-adw-callout font-semibold text-adw-label">
                   {_("Available GNOME Panels")}
                 </span>
-                <span className="rounded-full bg-black/6 px-2 py-0.5 text-[10.5px] font-medium text-adw-label-secondary dark:bg-white/10">
+                <span className="rounded-full bg-black/6 px-2 py-0.5 text-adw-footnote font-medium text-adw-label-secondary dark:bg-white/10">
                   {availableGnomePanels.length}
                 </span>
               </div>
               {availableGnomePanels.length === 0 ? (
-                <div className="px-3.5 py-4 text-[12px] text-adw-label-tertiary">
+                <div className="px-3.5 py-4 text-adw-callout text-adw-label-tertiary">
                   {_("No GNOME panels detected.")}
                 </div>
               ) : (
@@ -945,7 +945,7 @@ function InspectorModule() {
                   {availableGnomePanels.map((panel) => (
                     <span
                       key={panel.desktopId || panel.panelId}
-                      className="rounded-md bg-black/6 px-2 py-0.5 font-mono text-[11px] text-adw-label dark:bg-white/10"
+                      className="rounded-adw-control bg-black/6 px-2 py-0.5 font-mono text-adw-subheadline text-adw-label dark:bg-white/10"
                     >
                       {panel.name || panel.panelId}
                     </span>
@@ -988,15 +988,15 @@ function InspectorModule() {
                   className="overflow-hidden rounded-adw-group bg-adw-group"
                 >
                   <div className="flex items-center justify-between border-b border-adw-separator px-3.5 py-2">
-                    <span className="font-mono text-[12px] font-semibold text-adw-label">
+                    <span className="font-mono text-adw-callout font-semibold text-adw-label">
                       {group.label}
                     </span>
-                    <span className="rounded-full bg-black/6 px-2 py-0.5 text-[10.5px] font-medium text-adw-label-secondary dark:bg-white/10">
+                    <span className="rounded-full bg-black/6 px-2 py-0.5 text-adw-footnote font-medium text-adw-label-secondary dark:bg-white/10">
                       {groupFiles.length}
                     </span>
                   </div>
                   {groupFiles.length === 0 ? (
-                    <div className="px-3.5 py-4 text-[12px] text-adw-label-tertiary">
+                    <div className="px-3.5 py-4 text-adw-callout text-adw-label-tertiary">
                       {_("No files found.")}
                     </div>
                   ) : (
@@ -1033,14 +1033,14 @@ function InspectorModule() {
                                 "flex w-full items-center justify-between gap-3 px-3.5 py-2 text-left transition-colors",
                                 isOpen
                                   ? "bg-black/4 dark:bg-white/6"
-                                  : "hover:bg-black/3 dark:hover:bg-white/4"
+                                  : "hover-fill:bg-black/3 dark:hover-fill:bg-white/4"
                               )}
                             >
                               <div className="min-w-0 flex-1">
-                                <div className="truncate font-mono text-[11.5px] font-medium text-adw-label">
+                                <div className="truncate font-mono text-adw-subheadline font-medium text-adw-label">
                                   {file.path.slice(group.prefix.length + 1) || file.name}
                                 </div>
-                                <div className="font-mono text-[10.5px] text-adw-label-tertiary">
+                                <div className="font-mono text-adw-footnote text-adw-label-tertiary">
                                   {formatByteSize(content.length)} ·{" "}
                                   {file.updatedAt
                                     ? new Date(file.updatedAt).toLocaleString()
@@ -1067,7 +1067,7 @@ function InspectorModule() {
                                     }
                                   />
                                 ) : (
-                                  <pre className="max-h-64 overflow-auto font-mono text-[11.5px] break-words whitespace-pre-wrap text-adw-label select-text">
+                                  <pre className="max-h-64 overflow-auto font-mono text-adw-subheadline break-words whitespace-pre-wrap text-adw-label select-text">
                                     {content || "—"}
                                   </pre>
                                 )}
@@ -1091,15 +1091,15 @@ function InspectorModule() {
           <div className="space-y-4">
             <div className="overflow-hidden rounded-adw-group bg-adw-group">
               <div className="flex items-center justify-between border-b border-adw-separator px-3.5 py-2">
-                <span className="text-[12px] font-semibold text-adw-label">
+                <span className="text-adw-callout font-semibold text-adw-label">
                   {_("Notifications")}
                 </span>
-                <span className="rounded-full bg-black/6 px-2 py-0.5 text-[10.5px] font-medium text-adw-label-secondary dark:bg-white/10">
+                <span className="rounded-full bg-black/6 px-2 py-0.5 text-adw-footnote font-medium text-adw-label-secondary dark:bg-white/10">
                   {notifications.length}
                 </span>
               </div>
               {notifications.length === 0 ? (
-                <div className="px-3.5 py-6 text-center text-[12px] text-adw-label-tertiary">
+                <div className="px-3.5 py-6 text-center text-adw-callout text-adw-label-tertiary">
                   {_("No notifications.")}
                 </div>
               ) : (
@@ -1119,18 +1119,18 @@ function InspectorModule() {
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center justify-between gap-2">
                           <div className="flex min-w-0 items-center gap-2">
-                            <span className="truncate text-[12.5px] font-semibold text-adw-label">
+                            <span className="truncate text-adw-callout font-semibold text-adw-label">
                               {n.summary}
                             </span>
                             {n.appName && (
-                              <span className="rounded bg-black/6 px-1.5 py-0.5 text-[10px] text-adw-label-secondary dark:bg-white/10">
+                              <span className="rounded bg-black/6 px-1.5 py-0.5 text-adw-footnote text-adw-label-secondary dark:bg-white/10">
                                 {n.appName}
                               </span>
                             )}
                             {n.urgency && (
                               <span
                                 className={cn(
-                                  "rounded-full px-1.5 py-0.5 text-[10px] font-medium",
+                                  "rounded-full px-1.5 py-0.5 text-adw-footnote font-medium",
                                   n.urgency === "critical"
                                     ? "bg-rose-500/15 text-rose-500"
                                     : "bg-black/6 text-adw-label-secondary dark:bg-white/10"
@@ -1140,12 +1140,12 @@ function InspectorModule() {
                               </span>
                             )}
                           </div>
-                          <span className="shrink-0 font-mono text-[10.5px] text-adw-label-tertiary">
+                          <span className="shrink-0 font-mono text-adw-footnote text-adw-label-tertiary">
                             {new Date(n.time).toLocaleTimeString()}
                           </span>
                         </div>
                         {n.body && (
-                          <div className="mt-0.5 text-[12px] text-adw-label-secondary">
+                          <div className="mt-0.5 text-adw-callout text-adw-label-secondary">
                             {n.body}
                           </div>
                         )}
@@ -1188,10 +1188,10 @@ function InspectorModule() {
                 data-sidebar-item={section.id}
                 onClick={() => setActiveSection(section.id)}
                 className={cn(
-                  "flex w-full shrink-0 items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-[12.5px] transition-colors",
+                  "flex w-full shrink-0 items-center gap-2.5 rounded-adw-item px-2.5 py-2 text-left text-adw-callout transition-colors",
                   active
                     ? "bg-adw-accent font-medium text-white shadow-xs"
-                    : "font-normal text-adw-label/85 hover:bg-black/5 dark:hover:bg-white/6"
+                    : "font-normal text-adw-label/85 hover-fill:bg-black/5 dark:hover-fill:bg-white/6"
                 )}
               >
                 <span className="shrink-0 opacity-85">{section.icon}</span>
@@ -1207,7 +1207,7 @@ function InspectorModule() {
                   side="right"
                   sideOffset={-36}
                   className={cn(
-                    "pointer-events-none h-[34px] gap-2.5 rounded-lg border border-adw-separator px-2.5 py-2 text-[12.5px] shadow-md sm:hidden",
+                    "pointer-events-none h-[34px] gap-2.5 rounded-adw-item border border-adw-separator px-2.5 py-2 text-adw-callout shadow-md sm:hidden",
                     active
                       ? "bg-adw-accent font-medium text-white shadow-xs"
                       : "bg-adw-sidebar font-normal text-adw-label"
@@ -1557,10 +1557,10 @@ function VfsEventsModule({ active }: { active: boolean }) {
               type="button"
               onClick={() => setFilter(pill.id)}
               className={cn(
-                "rounded-full px-2.5 py-0.5 text-[11px] font-medium transition-colors",
+                "rounded-full px-2.5 py-0.5 text-adw-subheadline font-medium transition-colors",
                 filter === pill.id
                   ? "bg-adw-accent text-white"
-                  : "bg-black/6 text-adw-label-secondary hover:bg-black/10 hover:text-adw-label dark:bg-white/8 dark:hover:bg-white/14"
+                  : "bg-black/6 text-adw-label-secondary hover-fill:bg-black/10 hover:text-adw-label dark:bg-white/8 dark:hover-fill:bg-white/14"
               )}
             >
               {pill.label}
@@ -1575,10 +1575,10 @@ function VfsEventsModule({ active }: { active: boolean }) {
             onClick={() => setShowDiffDrawer((prev) => !prev)}
             className={cn(
               // One line; ellipsized when the toolbar is narrow.
-              "min-w-0 truncate whitespace-nowrap rounded-full px-2.5 py-0.5 text-[11px] font-medium transition-colors",
+              "min-w-0 truncate whitespace-nowrap rounded-full px-2.5 py-0.5 text-adw-subheadline font-medium transition-colors",
               showDiffDrawer
                 ? "bg-adw-accent/15 text-adw-accent"
-                : "bg-black/6 text-adw-label-secondary hover:bg-black/10 hover:text-adw-label dark:bg-white/8 dark:hover:bg-white/14"
+                : "bg-black/6 text-adw-label-secondary hover-fill:bg-black/10 hover:text-adw-label dark:bg-white/8 dark:hover-fill:bg-white/14"
             )}
           >
             {_("VFS Diff")} ({diffs.length}) · {_("VFS Events")} ({vfsEventsCount})
@@ -1590,7 +1590,7 @@ function VfsEventsModule({ active }: { active: boolean }) {
               setBaseline(snap);
               setCurrentMap(snap);
             }}
-            className="shrink-0 whitespace-nowrap rounded-md bg-black/6 px-2 py-0.5 text-[11px] font-medium text-adw-label transition-colors hover:bg-black/12 dark:bg-white/8 dark:hover:bg-white/14"
+            className="shrink-0 whitespace-nowrap rounded-adw-control bg-black/6 px-2 py-0.5 text-adw-subheadline font-medium text-adw-label transition-colors hover-fill:bg-black/12 dark:bg-white/8 dark:hover-fill:bg-white/14"
           >
             {_("Snapshot")}
           </button>
@@ -1600,7 +1600,7 @@ function VfsEventsModule({ active }: { active: boolean }) {
               setEvents([]);
               clearConsoleEntries();
             }}
-            className="shrink-0 whitespace-nowrap rounded-md bg-black/6 px-2 py-0.5 text-[11px] font-medium text-adw-label transition-colors hover:bg-black/12 dark:bg-white/8 dark:hover:bg-white/14"
+            className="shrink-0 whitespace-nowrap rounded-adw-control bg-black/6 px-2 py-0.5 text-adw-subheadline font-medium text-adw-label transition-colors hover-fill:bg-black/12 dark:bg-white/8 dark:hover-fill:bg-white/14"
           >
             {_("Clear")}
           </button>
@@ -1608,7 +1608,7 @@ function VfsEventsModule({ active }: { active: boolean }) {
       </div>
 
       {showDiffDrawer && (
-        <div className="max-h-44 shrink-0 overflow-y-auto border-b border-adw-separator bg-black/2 px-4 py-2 font-mono text-[11.5px] dark:bg-white/2">
+        <div className="max-h-44 shrink-0 overflow-y-auto border-b border-adw-separator bg-black/2 px-4 py-2 font-mono text-adw-subheadline dark:bg-white/2">
           {diffs.length === 0 ? (
             <div className="py-1 text-adw-dim">
               {_("No VFS changes since baseline (%d entries tracked).", currentMap.size)}
@@ -1617,7 +1617,7 @@ function VfsEventsModule({ active }: { active: boolean }) {
             diffs.map((d) => (
               <div
                 key={`${d.kind}:${d.path}`}
-                className="flex items-center justify-between gap-2 rounded px-2 py-0.5 hover:bg-black/5 dark:hover:bg-white/5"
+                className="flex items-center justify-between gap-2 rounded px-2 py-0.5 hover-fill:bg-black/5 dark:hover-fill:bg-white/5"
               >
                 <span
                   className={cn(
@@ -1631,7 +1631,7 @@ function VfsEventsModule({ active }: { active: boolean }) {
                   {d.path}
                 </span>
                 {typeof d.sizeDelta === "number" && d.entryType === "file" && (
-                  <span className="shrink-0 text-[10.5px] text-adw-dim">
+                  <span className="shrink-0 text-adw-footnote text-adw-dim">
                     {d.sizeDelta >= 0 ? `+${d.sizeDelta}B` : `${d.sizeDelta}B`}
                   </span>
                 )}
@@ -1644,7 +1644,7 @@ function VfsEventsModule({ active }: { active: boolean }) {
       {/* Chronological Event Stream */}
       <div
         ref={eventsScrollRef}
-        className="min-h-0 flex-1 overflow-y-auto font-mono text-[11.5px]"
+        className="min-h-0 flex-1 overflow-y-auto font-mono text-adw-subheadline"
       >
         {filteredEvents.length === 0 ? (
           <div className="flex h-full items-center justify-center text-center font-sans text-xs text-adw-label-tertiary">
@@ -1661,11 +1661,11 @@ function VfsEventsModule({ active }: { active: boolean }) {
                   ev.level === "error" && "bg-rose-500/8 text-rose-600 dark:text-rose-400",
                   ev.level === "warn" && "bg-amber-500/8 text-amber-700 dark:text-amber-300",
                   !ev.level || ev.level === "log" || ev.level === "info"
-                    ? "hover:bg-black/3 dark:hover:bg-white/4"
+                    ? "hover-fill:bg-black/3 dark:hover-fill:bg-white/4"
                     : ""
                 )}
               >
-                <span className="text-[10px] text-adw-label-tertiary tabular-nums">{ev.time}</span>
+                <span className="text-adw-footnote text-adw-label-tertiary tabular-nums">{ev.time}</span>
                 <span
                   className={cn(
                     "justify-self-start rounded px-1.5 py-0.5 text-[9.5px] leading-none font-semibold uppercase",
@@ -1689,7 +1689,7 @@ function VfsEventsModule({ active }: { active: boolean }) {
                 >
                   {ev.detail}
                 </span>
-                <span className="justify-self-end text-[10.5px] font-semibold text-adw-label-tertiary tabular-nums">
+                <span className="justify-self-end text-adw-footnote font-semibold text-adw-label-tertiary tabular-nums">
                   {ev.count > 1 ? ev.count : ""}
                 </span>
               </div>
@@ -1805,7 +1805,7 @@ function StorageModule() {
       {entries.length === 0 ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-2 p-6 text-center text-adw-label-secondary">
           <DatabaseIcon className="size-7 opacity-40" />
-          <div className="text-[12px] font-medium">
+          <div className="text-adw-callout font-medium">
             {_("No keys stored in localStorage.")}
           </div>
         </div>
@@ -1820,7 +1820,7 @@ function StorageModule() {
           >
             {groupedStorageEntries.map((group) => (
               <div key={group.section} className="space-y-0.5">
-                <div className="px-2.5 pb-1 text-[10px] font-semibold tracking-wider text-adw-dim uppercase">
+                <div className="px-2.5 pb-1 text-adw-footnote font-semibold tracking-wider text-adw-dim uppercase">
                   {group.section}
                 </div>
                 {group.items.map(({ entry, shortLabel }) => {
@@ -1832,13 +1832,13 @@ function StorageModule() {
                       data-sidebar-item={entry.key}
                       onClick={() => setSelectedKey(entry.key)}
                       className={cn(
-                        "flex w-full items-center rounded-lg px-3 py-1.5 text-left transition-colors",
+                        "flex w-full items-center rounded-adw-item px-3 py-1.5 text-left transition-colors",
                         isSelected
                           ? "bg-adw-accent font-medium text-white shadow-xs"
-                          : "font-normal text-adw-label/85 hover:bg-black/5 dark:hover:bg-white/6"
+                          : "font-normal text-adw-label/85 hover-fill:bg-black/5 dark:hover-fill:bg-white/6"
                       )}
                     >
-                      <span className="truncate text-[12.5px] font-medium">
+                      <span className="truncate text-adw-callout font-medium">
                         {shortLabel}
                       </span>
                     </button>
@@ -1856,10 +1856,10 @@ function StorageModule() {
               className="flex min-w-0 flex-1 flex-col overflow-hidden bg-black/2 dark:bg-white/2"
             >
               <div className="flex shrink-0 items-center justify-between border-b border-adw-separator bg-adw-window/60 px-4 py-1.5">
-                <span className="truncate font-mono text-[11px] font-medium text-adw-dim select-text">
+                <span className="truncate font-mono text-adw-subheadline font-medium text-adw-dim select-text">
                   {activeEntry.key}
                 </span>
-                <span className="shrink-0 font-mono text-[10.5px] text-adw-dim tabular-nums">
+                <span className="shrink-0 font-mono text-adw-footnote text-adw-dim tabular-nums">
                   {activeEntry.rawValue.length} chars
                 </span>
               </div>
@@ -1869,14 +1869,14 @@ function StorageModule() {
                     {activeImages.map((img) => (
                       <div
                         key={img.label}
-                        className="flex flex-col gap-1.5 rounded-lg bg-black/4 p-2 dark:bg-white/5"
+                        className="flex flex-col gap-1.5 rounded-adw-item bg-black/4 p-2 dark:bg-white/5"
                       >
                         <img
                           src={img.src}
                           alt={img.label}
                           className="max-h-[512px] max-w-[512px] rounded object-contain"
                         />
-                        <span className="max-w-[512px] truncate font-mono text-[10.5px] text-adw-label-secondary">
+                        <span className="max-w-[512px] truncate font-mono text-adw-footnote text-adw-label-secondary">
                           {img.label}
                         </span>
                       </div>
@@ -1905,14 +1905,14 @@ function StorageModule() {
                     />
                   </div>
                 ) : (
-                  <pre className="rounded-adw-group bg-adw-group p-3.5 font-mono text-[12.5px] leading-relaxed break-words whitespace-pre-wrap text-adw-label select-text">
+                  <pre className="rounded-adw-group bg-adw-group p-3.5 font-mono text-adw-callout leading-relaxed break-words whitespace-pre-wrap text-adw-label select-text">
                     {activeDisplayValue}
                   </pre>
                 )}
               </div>
             </div>
           ) : (
-            <div className="flex flex-1 items-center justify-center p-4 text-[12px] text-adw-label-tertiary">
+            <div className="flex flex-1 items-center justify-center p-4 text-adw-callout text-adw-label-tertiary">
               {_("Select a key to inspect its stored state.")}
             </div>
           )}
@@ -2104,7 +2104,7 @@ export function ConsoleApp({
         {/* Module Tabs (text-only, no icons) */}
         <div
           data-window-no-drag
-          className="flex items-center gap-1 rounded-lg bg-black/6 p-0.5 dark:bg-white/8"
+          className="flex items-center gap-1 rounded-adw-item bg-black/6 p-0.5 dark:bg-white/8"
         >
           {modules.map((mod) => {
             const active = activeModule === mod.id;
@@ -2114,7 +2114,7 @@ export function ConsoleApp({
                 type="button"
                 onClick={() => setActiveModule(mod.id)}
                 className={cn(
-                  "flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[11.5px] font-medium transition-colors",
+                  "flex items-center gap-1.5 rounded-adw-control px-2.5 py-1 text-adw-subheadline font-medium transition-colors",
                   active
                     ? "bg-adw-window text-adw-label shadow-xs"
                     : "text-adw-label-secondary hover:text-adw-label"

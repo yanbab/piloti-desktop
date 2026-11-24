@@ -153,7 +153,7 @@ export function SystemTrayItem({ item }: { item: TrayItem }) {
         type="button"
         aria-label={item.title}
         onClick={() => domicile.tray.activate(item.id, "primary")}
-        className="flex h-full shrink-0 cursor-default items-center justify-center rounded-md px-1.5 outline-none select-none hover:bg-black/8 active:bg-black/14 focus-visible:bg-black/10 dark:hover:bg-white/10 dark:active:bg-white/18 dark:focus-visible:bg-white/12"
+        className="flex h-full shrink-0 cursor-default items-center justify-center rounded-adw-control px-1.5 outline-none select-none hover-fill:bg-black/8 active:bg-black/14 focus-visible:bg-black/10 dark:hover-fill:bg-white/10 dark:active:bg-white/18 dark:focus-visible:bg-white/12"
       >
         {iconEl}
       </button>
@@ -183,7 +183,7 @@ export function SystemTrayItem({ item }: { item: TrayItem }) {
           setOpen(true);
           void watchedRef.current?.aboutToShow(0);
         }}
-        className="flex h-full shrink-0 cursor-default items-center justify-center rounded-md px-1.5 outline-none select-none hover:bg-black/8 active:bg-black/14 data-popup-open:bg-black/12 focus-visible:bg-black/10 dark:hover:bg-white/10 dark:active:bg-white/18 dark:data-popup-open:bg-white/15 dark:focus-visible:bg-white/12"
+        className="flex h-full shrink-0 cursor-default items-center justify-center rounded-adw-control px-1.5 outline-none select-none hover-fill:bg-black/8 active:bg-black/14 data-popup-open:bg-black/12 focus-visible:bg-black/10 dark:hover-fill:bg-white/10 dark:active:bg-white/18 dark:data-popup-open:bg-white/15 dark:focus-visible:bg-white/12"
       >
         {iconEl}
       </DropdownMenuTrigger>

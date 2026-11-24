@@ -466,7 +466,7 @@ export const LoginScreenApp: React.FC<LoginScreenAppProps> = ({
           <DropdownMenu>
             <DropdownMenuTrigger
               aria-label={_("Session")}
-              className="flex h-[24px] items-center gap-1.5 rounded-md px-2 text-[12px] font-medium outline-none transition-colors hover:bg-black/8 active:bg-black/14 data-popup-open:bg-black/12 dark:hover:bg-white/10 dark:active:bg-white/18 dark:data-popup-open:bg-white/15"
+              className="flex h-[24px] items-center gap-1.5 rounded-adw-control px-2 text-adw-callout font-medium outline-none transition-colors hover-fill:bg-black/8 active:bg-black/14 data-popup-open:bg-black/12 dark:hover-fill:bg-white/10 dark:active:bg-white/18 dark:data-popup-open:bg-white/15"
             >
               <MonitorIcon className="size-3.5 opacity-85" />
               <span className="max-w-[160px] truncate">
@@ -484,7 +484,7 @@ export const LoginScreenApp: React.FC<LoginScreenAppProps> = ({
                   <DropdownMenuRadioItem key={sess.id} value={sess.id}>
                     <div className="flex min-w-0 flex-col">
                       <span className="truncate">{_(sess.label)}</span>
-                      <span className="truncate text-[11px] text-adw-label-secondary">
+                      <span className="truncate text-adw-subheadline text-adw-label-secondary">
                         {_(sess.subtitle)}
                       </span>
                     </div>
@@ -505,7 +505,7 @@ export const LoginScreenApp: React.FC<LoginScreenAppProps> = ({
         </div>
 
         {/* Center: Live Clock */}
-        <div className="pointer-events-none truncate text-[12.5px] font-medium tracking-tight tabular-nums">
+        <div className="pointer-events-none truncate text-adw-callout font-medium tracking-tight tabular-nums">
           {formattedClock}
         </div>
 
@@ -533,7 +533,7 @@ export const LoginScreenApp: React.FC<LoginScreenAppProps> = ({
           <DropdownMenu>
             <DropdownMenuTrigger
               aria-label={_("Power")}
-              className="flex size-6 items-center justify-center rounded-md outline-none transition-colors hover:bg-black/8 active:bg-black/14 data-popup-open:bg-black/12 dark:hover:bg-white/10 dark:active:bg-white/18 dark:data-popup-open:bg-white/15"
+              className="flex size-6 items-center justify-center rounded-adw-control outline-none transition-colors hover-fill:bg-black/8 active:bg-black/14 data-popup-open:bg-black/12 dark:hover-fill:bg-white/10 dark:active:bg-white/18 dark:data-popup-open:bg-white/15"
             >
               <PowerIcon className="size-3.5" />
             </DropdownMenuTrigger>
@@ -581,11 +581,11 @@ export const LoginScreenApp: React.FC<LoginScreenAppProps> = ({
                   key={user.id}
                   type="button"
                   onClick={() => handleSelectUser(user.id)}
-                  className="flex w-full items-center gap-3 rounded-[16px] bg-white/10 px-3.5 py-2.5 text-left text-white shadow-lg ring-1 ring-white/20 transition-colors outline-none hover:bg-white/16 active:bg-white/20"
+                  className="flex w-full items-center gap-3 rounded-[16px] bg-white/10 px-3.5 py-2.5 text-left text-white shadow-lg ring-1 ring-white/20 transition-colors outline-none hover-fill:bg-white/16 active:bg-white/20"
                 >
                   <div
                     className={cn(
-                      "flex size-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br text-[12.5px] font-medium text-white shadow-sm",
+                      "flex size-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br text-adw-callout font-medium text-white shadow-sm",
                       user.gradient,
                     )}
                   >
@@ -606,7 +606,7 @@ export const LoginScreenApp: React.FC<LoginScreenAppProps> = ({
                 setManualUsername("");
                 setView("other-user");
               }}
-              className="flex w-full items-center justify-center gap-2 rounded-[14px] bg-white/8 px-3 py-2 text-[12.5px] font-medium text-white/85 ring-1 ring-white/15 transition-colors hover:bg-white/14"
+              className="flex w-full items-center justify-center gap-2 rounded-[14px] bg-white/8 px-3 py-2 text-adw-callout font-medium text-white/85 ring-1 ring-white/15 transition-colors hover-fill:bg-white/14"
             >
               <UserPlusIcon className="size-3.5" />
               <span>{_("Not listed?")}</span>
@@ -624,7 +624,7 @@ export const LoginScreenApp: React.FC<LoginScreenAppProps> = ({
               aria-label={_("Switch User")}
               title={_("Switch User")}
               onClick={() => setView("users")}
-              className="absolute top-3.5 left-3.5 flex size-7 items-center justify-center rounded-full text-white/75 transition-colors hover:bg-white/14 hover:text-white"
+              className="absolute top-3.5 left-3.5 flex size-7 items-center justify-center rounded-full text-white/75 transition-colors hover-fill:bg-white/14 hover:text-white"
             >
               <ArrowLeftIcon className="size-4" />
             </button>
@@ -641,13 +641,13 @@ export const LoginScreenApp: React.FC<LoginScreenAppProps> = ({
                 onChange={(e) => setManualUsername(e.target.value)}
                 placeholder={_("Username")}
                 aria-label={_("Username")}
-                className="h-9 w-full rounded-[10px] border border-white/20 bg-black/30 pr-9 pl-3 text-[13px] text-white placeholder:text-white/45 focus:border-white/40 focus:outline-none"
+                className="h-9 w-full rounded-[10px] border border-white/20 bg-black/30 pr-9 pl-3 text-adw-body text-white placeholder:text-white/45 focus:border-white/40 focus:outline-none"
               />
               <button
                 type="submit"
                 disabled={!manualUsername.trim()}
                 aria-label={_("Next")}
-                className="absolute right-1.5 flex size-6 items-center justify-center rounded-md bg-adw-accent text-white transition-all hover:brightness-110 active:scale-95 disabled:opacity-40"
+                className="absolute right-1.5 flex size-6 items-center justify-center rounded-adw-control bg-adw-accent text-white transition-all hover:brightness-110 active:scale-95 disabled:opacity-40"
               >
                 <ArrowRightIcon className="size-3.5" />
               </button>
@@ -716,7 +716,7 @@ export const LoginScreenApp: React.FC<LoginScreenAppProps> = ({
                 aria-label={_("Return to Greeter")}
                 title={_("Return to Greeter")}
                 onClick={() => setView("password")}
-                className="flex size-8 items-center justify-center rounded-full bg-white/12 text-white transition-colors hover:bg-white/20"
+                className="flex size-8 items-center justify-center rounded-full bg-white/12 text-white transition-colors hover-fill:bg-white/20"
               >
                 <ArrowLeftIcon className="size-4" />
               </button>

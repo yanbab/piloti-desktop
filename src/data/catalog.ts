@@ -219,7 +219,8 @@ export type BuiltinAppId =
   | "calculator"
   | "image-viewer"
   | "camera"
-  | "login-screen";
+  | "login-screen"
+  | "piloti-demo";
 
 export interface AppMenuSection {
   title: string;
@@ -491,6 +492,22 @@ export const APP_CATALOG: AppDefinition[] = [
         ],
       },
     ],
+  },
+  {
+    id: "piloti-demo",
+    name: "Piloti demo",
+    shortName: "Piloti demo",
+    description: "Every shell control in both interface themes and colour modes",
+    category: "Development",
+    iconName: "sparkles",
+    xdgIcons: ["piloti-demo"],
+    gradient: "from-zinc-500 via-zinc-600 to-zinc-700",
+    pinnedByDefault: false,
+    builtinComponent: "piloti-demo",
+    command: "piloti-demo",
+    defaultSize: { width: 820, height: 560 },
+    minSize: { width: 560, height: 380 },
+    menus: [],
   },
   {
     id: "camera",

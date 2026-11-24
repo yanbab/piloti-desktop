@@ -279,7 +279,7 @@ export function SettingsApp({
                     size="sm"
                     variant="secondary"
                     onClick={() => openGnomeSettings(matchingGnomePanel)}
-                    className="h-6 text-[11px]"
+                    className="h-6 text-adw-subheadline"
                   >
                     {_("System Settings…")}
                   </Button>
@@ -291,10 +291,10 @@ export function SettingsApp({
           <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-adw-separator bg-adw-window px-6 py-3">
             <div className="flex min-w-0 items-center gap-2.5">
               <div className="min-w-0">
-                <h2 className="truncate text-[15px] font-bold tracking-tight">
+                <h2 className="truncate text-adw-title-3 font-bold tracking-tight">
                   {currentPaneMeta ? _(currentPaneMeta.label) : ""}
                 </h2>
-                <p className="truncate text-[11.5px] text-adw-label-secondary">
+                <p className="truncate text-adw-subheadline text-adw-label-secondary">
                   {currentPaneMeta ? _(currentPaneMeta.subtitle) : ""}
                 </p>
               </div>
@@ -306,7 +306,7 @@ export function SettingsApp({
                   size="sm"
                   variant="secondary"
                   onClick={() => openGnomeSettings(matchingGnomePanel)}
-                  className="text-[11px]"
+                  className="text-adw-subheadline"
                 >
                   {_("Open in System Settings…")}
                 </Button>

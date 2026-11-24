@@ -18,10 +18,10 @@ export const MENU_LABEL_CLASS =
 export const MENU_SEPARATOR_CLASS = "mx-0 my-[5px] h-px bg-adw-separator"
 
 export const MENU_SHORTCUT_CLASS =
-  "ml-auto shrink-0 pl-6 text-[13px] font-normal tracking-[0.16em] whitespace-nowrap text-adw-label-secondary in-data-disabled:text-adw-label-tertiary"
+  "ml-auto shrink-0 pl-6 text-adw-body font-normal tracking-[0.16em] whitespace-nowrap text-adw-label-secondary in-data-disabled:text-adw-label-tertiary"
 
 export const MENU_BADGE_CLASS =
-  "-mr-[2px] ml-auto flex h-[17px] shrink-0 items-center rounded-full bg-black/6 px-2 text-[10.5px] font-semibold text-adw-label dark:bg-white/10"
+  "-mr-[2px] ml-auto flex h-[17px] shrink-0 items-center rounded-full bg-black/6 px-2 text-adw-footnote font-semibold text-adw-label dark:bg-white/10"
 
 export const MENU_SUB_TRIGGER_CLASS =
   "flex min-h-[30px] cursor-default items-center gap-2 whitespace-nowrap rounded-adw-item px-[12px] py-1 text-[13.5px] leading-[18px] font-normal text-adw-label outline-hidden select-none data-highlighted:bg-adw-menu-highlight data-highlighted:text-adw-label data-popup-open:bg-adw-menu-highlight data-popup-open:text-adw-label data-[inset]:pl-[30px] [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 [&_svg:not([class*='text-'])]:text-current"

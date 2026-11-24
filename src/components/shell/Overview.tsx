@@ -316,7 +316,7 @@ function WorkspaceOverview() {
                   className="size-12"
                   glyphClassName="size-7"
                 />
-                <span className="mt-1 max-w-[200px] truncate px-2 text-[12px] font-medium text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.85)]">
+                <span className="mt-1 max-w-[200px] truncate px-2 text-adw-callout font-medium text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.85)]">
                   {win.title}
                 </span>
               </div>

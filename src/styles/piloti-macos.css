@@ -60,6 +60,13 @@
   --adw-group: #f8f8f8;
   --adw-titlebar: #ffffff;
 
+  /* Control heights: nothing taller than 28px */
+  --adw-control-mini: 20px;
+  --adw-control-small: 24px;
+  --adw-control-medium: 28px;
+  --adw-control-large: 28px;
+  --adw-control-xl: 28px;
+
   /* Radii */
   --adw-radius-control: 6px;
   --adw-radius-menu: 13px;
@@ -147,7 +154,7 @@
 
 :root[data-interface-theme="piloti"] [data-slot="grouped-form-section-title"] {
   padding-inline: var(--grouped-form-row-inset);
-  font-size: calc(13px * var(--piloti-font-scale, 1));
+  font-size: var(--adw-font-body);
   font-weight: var(--piloti-font-weight-bold, 700);
 }
 
@@ -187,18 +194,18 @@
 }
 
 :root[data-interface-theme="piloti"] [data-slot="grouped-form-row-title"] {
-  font-size: calc(13px * var(--piloti-font-scale, 1));
+  font-size: var(--adw-font-body);
 }
 
 :root[data-interface-theme="piloti"] [data-slot="grouped-form-row-description"] {
-  font-size: calc(11px * var(--piloti-font-scale, 1));
+  font-size: var(--adw-font-subheadline);
 }
 
 /* Headerbar page title in Settings: on the same line as the section titles
    (9px bar + 21px = 20px form inset + 10px row inset). */
 :root[data-interface-theme="piloti"] [data-slot="settings-page-title"] {
   padding-left: 21px;
-  font-size: calc(13px * var(--piloti-font-scale, 1));
+  font-size: var(--adw-font-body);
   font-weight: var(--piloti-font-weight-bold, 700);
 }
 
@@ -230,7 +237,7 @@
   height: 28px !important;
   padding-inline: 10px !important;
   border-radius: 8px !important;
-  font-size: calc(13px * var(--piloti-font-scale, 1)) !important;
+  font-size: var(--adw-font-body) !important;
   background-color: transparent !important;
 }
 
@@ -269,7 +276,7 @@
   padding-inline: 8px;
   gap: 8px;
   border-radius: var(--adw-radius-item);
-  font-size: calc(13px * var(--piloti-font-scale, 1));
+  font-size: var(--adw-font-body);
 }
 
 :root[data-interface-theme="piloti"] [data-slot="sidebar-item-group"] {

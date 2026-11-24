@@ -612,13 +612,15 @@ export const MenuBar = React.memo(function MenuBar() {
       />
       {/* Left: System, Active App & Application Menus */}
       <div className="flex h-full min-w-0 flex-1 items-stretch overflow-hidden">
-        <Menubar modal={false}>
+        {/* Menus that don't fit wrap onto a hidden second row: they disappear
+            whole (last ones first) instead of being cut mid-word. */}
+        <Menubar modal={false} className="min-w-0 flex-1 flex-wrap content-start overflow-hidden">
           {/* System / Piloti Logo Menu — flush to top-left screen corner for Fitt's law */}
           <MenubarMenu>
             <MenubarTrigger
               ref={pilotiTriggerRef}
               aria-label="Piloti Menu"
-              className="gap-1.5 rounded-none rounded-r-md pl-2.5 pr-2 font-semibold tracking-tight"
+              className="gap-1.5 rounded-none rounded-r-adw-control pl-2.5 pr-2 font-semibold tracking-tight"
             >
               <PilotiLogo className="size-4.5" />
             </MenubarTrigger>
@@ -1042,11 +1044,11 @@ export const MenuBar = React.memo(function MenuBar() {
         aria-pressed={overviewOpen}
         onClick={() => toggleOverview()}
         className={cn(
-          "hidden md:flex",
-          "h-full shrink-0 cursor-default items-center gap-[5px] rounded-md px-2 outline-none transition-colors focus-visible:bg-black/10 dark:focus-visible:bg-white/12",
+          // Always visible: the menus give way first.
+          "flex h-full shrink-0 cursor-default items-center gap-[5px] rounded-adw-control px-2 outline-none transition-colors focus-visible:bg-black/10 dark:focus-visible:bg-white/12",
           overviewOpen
             ? "bg-black/8 dark:bg-white/12"
-            : "hover:bg-black/8 dark:hover:bg-white/12"
+            : "hover-fill:bg-black/8 dark:hover-fill:bg-white/12"
         )}
       >
         {Array.from(
@@ -1099,7 +1101,7 @@ export const MenuBar = React.memo(function MenuBar() {
           return (
             <div
               key={cap.id}
-              className="mr-1 flex h-[22px] shrink-0 items-center gap-1 rounded-full bg-rose-500/85 px-2 text-[10.5px] font-semibold text-white"
+              className="mr-1 flex h-[22px] shrink-0 items-center gap-1 rounded-full bg-rose-500/85 px-2 text-adw-footnote font-semibold text-white"
             >
               <span className="size-1.5 animate-pulse rounded-full bg-white" />
               <span>{isRec ? (paused ? "Paused" : "REC") : "Sharing"}</span>
@@ -1110,7 +1112,7 @@ export const MenuBar = React.memo(function MenuBar() {
                   onClick={() =>
                     paused ? resumeRecording(cap.id) : pauseRecording(cap.id)
                   }
-                  className="rounded-full p-0.5 hover:bg-white/20"
+                  className="rounded-full p-0.5 hover-fill:bg-white/20"
                 >
                   {paused ? (
                     <PlayIcon className="size-2.5" />
@@ -1123,7 +1125,7 @@ export const MenuBar = React.memo(function MenuBar() {
                 type="button"
                 aria-label="Stop Capture"
                 onClick={() => stopCapturing(cap.id)}
-                className="rounded-full p-0.5 hover:bg-white/20"
+                className="rounded-full p-0.5 hover-fill:bg-white/20"
               >
                 <SquareIcon className="size-2.5 fill-current" />
               </button>
@@ -1143,7 +1145,7 @@ export const MenuBar = React.memo(function MenuBar() {
                 console.error(`[Plugin:${item.pluginId}] status click error:`, err);
               }
             }}
-            className="flex h-full shrink-0 cursor-default items-center rounded-md px-2 text-[12px] font-medium outline-none select-none hover:bg-black/8 active:bg-black/14 focus-visible:bg-black/10 dark:hover:bg-white/10 dark:active:bg-white/18 dark:focus-visible:bg-white/12"
+            className="flex h-full shrink-0 cursor-default items-center rounded-adw-control px-2 text-adw-callout font-medium outline-none select-none hover-fill:bg-black/8 active:bg-black/14 focus-visible:bg-black/10 dark:hover-fill:bg-white/10 dark:active:bg-white/18 dark:focus-visible:bg-white/12"
           >
             {item.label}
           </button>
@@ -1181,7 +1183,7 @@ export const MenuBar = React.memo(function MenuBar() {
             <DropdownMenuTrigger
               data-menubar-nav="launcher"
               aria-label="Launcher (Alt+Space)"
-              className="flex h-full shrink-0 cursor-default items-center rounded-md px-2 outline-none select-none active:bg-black/14 data-popup-open:bg-black/12 focus-visible:bg-black/10 dark:active:bg-white/18 dark:data-popup-open:bg-white/15 dark:focus-visible:bg-white/12"
+              className="flex h-full shrink-0 cursor-default items-center rounded-adw-control px-2 outline-none select-none active:bg-black/14 data-popup-open:bg-black/12 focus-visible:bg-black/10 dark:active:bg-white/18 dark:data-popup-open:bg-white/15 dark:focus-visible:bg-white/12"
             >
               <SearchIcon className="size-4 text-adw-label/90 dark:text-white/90" />
             </DropdownMenuTrigger>
@@ -1217,7 +1219,7 @@ export const MenuBar = React.memo(function MenuBar() {
                 const next = Math.max(0, Math.min(100, settings.volume + step));
                 updateSettings({ volume: next, muted: next === 0 });
               }}
-              className="flex h-full shrink-0 cursor-default items-center gap-2 rounded-none rounded-l-md pl-2.5 pr-3 text-adw-body font-normal outline-none select-none active:bg-black/14 data-popup-open:bg-black/12 focus-visible:bg-black/10 dark:active:bg-white/18 dark:data-popup-open:bg-white/15 dark:focus-visible:bg-white/12"
+              className="flex h-full shrink-0 cursor-default items-center gap-2 rounded-none rounded-l-adw-control pl-2.5 pr-3 text-adw-body font-normal outline-none select-none active:bg-black/14 data-popup-open:bg-black/12 focus-visible:bg-black/10 dark:active:bg-white/18 dark:data-popup-open:bg-white/15 dark:focus-visible:bg-white/12"
             >
               <span className="flex items-center gap-1.5 text-adw-label/90 dark:text-white/90">
                 {settings.doNotDisturb ? (
@@ -1337,10 +1339,10 @@ export const MenuBar = React.memo(function MenuBar() {
               <h2 className="text-[18px] font-bold tracking-tight text-adw-label">
                 {_(activeAppDef.name)}
               </h2>
-              <p className="text-[12px] text-adw-label-secondary">
+              <p className="text-adw-callout text-adw-label-secondary">
                 {_(activeAppDef.description)}
               </p>
-              <span className="mt-1 rounded-full bg-black/6 px-2.5 py-0.5 text-[11px] font-medium text-adw-label-secondary dark:bg-white/10">
+              <span className="mt-1 rounded-full bg-black/6 px-2.5 py-0.5 text-adw-subheadline font-medium text-adw-label-secondary dark:bg-white/10">
                 Version 0.4.0
               </span>
             </WindowContent>

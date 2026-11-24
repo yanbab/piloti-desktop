@@ -64,7 +64,7 @@ export function AppearancePane() {
               <GroupedFormRowTitle>{_("Theme")}</GroupedFormRowTitle>
             </GroupedFormRowLabel>
             <GroupedFormRowControl>
-              <div data-slot="segmented" className="inline-flex flex-wrap items-center gap-1 rounded-[9px] bg-black/8 p-1 dark:bg-white/8">
+              <div data-slot="segmented" className="inline-flex flex-wrap items-center gap-1 rounded-adw-item bg-black/8 p-1 dark:bg-white/8">
                 {[
                   { id: "piloti", label: _("Piloti (Animated)") },
                   { id: "adwaita", label: "Adwaita" },
@@ -83,7 +83,7 @@ export function AppearancePane() {
                         })
                       }
                       className={cn(
-                        "rounded-[6px] px-2.5 py-1 text-[13px] font-medium transition-all",
+                        "rounded-adw-control px-2.5 py-1 text-adw-body font-medium transition-all",
                         active
                           ? "bg-white text-black dark:bg-white/18 dark:text-white"
                           : "text-adw-label-secondary hover:text-adw-label"
@@ -102,7 +102,7 @@ export function AppearancePane() {
               <GroupedFormRowTitle>{_("Style")}</GroupedFormRowTitle>
             </GroupedFormRowLabel>
             <GroupedFormRowControl>
-              <div data-slot="segmented" className="inline-flex items-center gap-1 rounded-[9px] bg-black/8 p-1 dark:bg-white/8">
+              <div data-slot="segmented" className="inline-flex items-center gap-1 rounded-adw-item bg-black/8 p-1 dark:bg-white/8">
                 {(
                   [
                     {
@@ -130,7 +130,7 @@ export function AppearancePane() {
                       data-slot="segmented-item"
                       onClick={() => updateSettings({ themeMode: mode.id })}
                       className={cn(
-                        "flex items-center gap-1.5 rounded-[6px] px-2.5 py-1 text-[13px] font-medium transition-all",
+                        "flex items-center gap-1.5 rounded-adw-control px-2.5 py-1 text-adw-body font-medium transition-all",
                         active
                           ? "bg-white text-black dark:bg-white/18 dark:text-white"
                           : "text-adw-label-secondary hover:text-adw-label"
@@ -273,7 +273,7 @@ export function AppearancePane() {
               <GroupedFormRowTitle>{_("Button Placement")}</GroupedFormRowTitle>
             </GroupedFormRowLabel>
             <GroupedFormRowControl>
-              <div data-slot="segmented" className="inline-flex items-center gap-1 rounded-[9px] bg-black/8 p-1 dark:bg-white/8">
+              <div data-slot="segmented" className="inline-flex items-center gap-1 rounded-adw-item bg-black/8 p-1 dark:bg-white/8">
                 {(
                   [
                     { id: "left", label: _("Left"), left: true },
@@ -288,7 +288,7 @@ export function AppearancePane() {
                       data-slot="segmented-item"
                       onClick={() => updateButtonLayout({ left: opt.left })}
                       className={cn(
-                        "rounded-[6px] px-2.5 py-1 text-[13px] font-medium transition-all",
+                        "rounded-adw-control px-2.5 py-1 text-adw-body font-medium transition-all",
                         active
                           ? "bg-white text-black dark:bg-white/18 dark:text-white"
                           : "text-adw-label-secondary hover:text-adw-label"
@@ -326,7 +326,7 @@ export function AppearancePane() {
               <GroupedFormRowTitle>{_("Icon Alignment")}</GroupedFormRowTitle>
             </GroupedFormRowLabel>
             <GroupedFormRowControl>
-              <div data-slot="segmented" className="inline-flex items-center gap-1 rounded-[9px] bg-black/8 p-1 dark:bg-white/8">
+              <div data-slot="segmented" className="inline-flex items-center gap-1 rounded-adw-item bg-black/8 p-1 dark:bg-white/8">
                 {(
                   [
                     { id: "left", label: _("Left") },
@@ -346,7 +346,7 @@ export function AppearancePane() {
                         })
                       }
                       className={cn(
-                        "rounded-[6px] px-2.5 py-1 text-[13px] font-medium transition-all",
+                        "rounded-adw-control px-2.5 py-1 text-adw-body font-medium transition-all",
                         active
                           ? "bg-white text-black dark:bg-white/18 dark:text-white"
                           : "text-adw-label-secondary hover:text-adw-label"
@@ -365,7 +365,7 @@ export function AppearancePane() {
               <GroupedFormRowTitle>{_("Open Files & Folders")}</GroupedFormRowTitle>
             </GroupedFormRowLabel>
             <GroupedFormRowControl>
-              <div data-slot="segmented" className="inline-flex items-center gap-1 rounded-[9px] bg-black/8 p-1 dark:bg-white/8">
+              <div data-slot="segmented" className="inline-flex items-center gap-1 rounded-adw-item bg-black/8 p-1 dark:bg-white/8">
                 {(
                   [
                     { id: "single", label: _("Single Click") },
@@ -380,7 +380,7 @@ export function AppearancePane() {
                       data-slot="segmented-item"
                       onClick={() => updateSettings({ fileActivationMode: opt.id })}
                       className={cn(
-                        "rounded-[6px] px-2.5 py-1 text-[13px] font-medium transition-all",
+                        "rounded-adw-control px-2.5 py-1 text-adw-body font-medium transition-all",
                         active
                           ? "bg-white text-black dark:bg-white/18 dark:text-white"
                           : "text-adw-label-secondary hover:text-adw-label"

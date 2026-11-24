@@ -50,6 +50,7 @@ import {
   subscribeWindowPresentation,
 } from "@/lib/shell/window-presentation";
 import { CalculatorApp } from "@/components/apps/CalculatorApp";
+import { PilotiDemoApp } from "@/components/apps/PilotiDemoApp";
 import { CameraApp } from "@/components/apps/CameraApp";
 const ConsoleApp = React.lazy(() =>
   import("@/components/apps/ConsoleApp").then((m) => ({
@@ -357,7 +358,7 @@ function AppModuleSurface({
             gradient={win.gradient}
           />
         </div>
-        <div className="pointer-events-none absolute inset-x-24 truncate text-center text-[13px] font-semibold text-adw-label">
+        <div className="pointer-events-none absolute inset-x-24 truncate text-center text-adw-body font-semibold text-adw-label">
           {win.title}
         </div>
       </WindowTitlebar>
@@ -978,8 +979,8 @@ function WebViewSurface({
             disabled={!canGoBack}
             onClick={handleGoBack}
             className={cn(
-              "flex size-7 items-center justify-center rounded-md transition-colors disabled:pointer-events-none disabled:opacity-35",
-              "hover:bg-black/8 dark:hover:bg-white/10"
+              "flex size-7 items-center justify-center rounded-adw-control transition-colors disabled:pointer-events-none disabled:opacity-35",
+              "hover-fill:bg-black/8 dark:hover-fill:bg-white/10"
             )}
           >
             <ChevronLeftIcon className="size-4" />
@@ -1007,7 +1008,7 @@ function WebViewSurface({
               aria-label="Address"
               placeholder="https://…"
               className={cn(
-                "h-7 w-full max-w-xl rounded-md border border-adw-accent/70 bg-black/8 px-2.5 text-[12.5px] font-medium outline-none dark:bg-white/12",
+                "h-7 w-full max-w-xl rounded-adw-control border border-adw-accent/70 bg-black/8 px-2.5 text-adw-callout font-medium outline-none dark:bg-white/12",
                 !contrastFg && "text-adw-label"
               )}
             />
@@ -1032,7 +1033,7 @@ function WebViewSurface({
                 setEditingAddress(true);
               }}
               className={cn(
-                "pointer-events-auto max-w-full cursor-text truncate rounded-md px-2 py-0.5 text-[13px] font-semibold transition-colors hover:bg-black/6 dark:hover:bg-white/10",
+                "pointer-events-auto max-w-full cursor-text truncate rounded-adw-control px-2 py-0.5 text-adw-body font-semibold transition-colors hover-fill:bg-black/6 dark:hover-fill:bg-white/10",
                 !contrastFg && "text-adw-label"
               )}
             >
@@ -1047,7 +1048,7 @@ function WebViewSurface({
               size="sm"
               variant={storeExtInstalled ? "secondary" : "default"}
               onClick={() => void handleToggleStoreExtension()}
-              className="mr-1 h-6 gap-1 px-2 text-[11px]"
+              className="mr-1 h-6 gap-1 px-2 text-adw-subheadline"
             >
               <DownloadIcon className="size-3" />
               {storeExtInstalled
@@ -1126,7 +1127,7 @@ function WebViewSurface({
                 width: `${extPopupSize.width}px`,
                 height: `${extPopupSize.height}px`,
               }}
-              className="absolute top-1.5 right-2 z-40 max-h-[calc(100%-12px)] max-w-[calc(100%-16px)] overflow-hidden rounded-xl border border-adw-separator bg-adw-window shadow-2xl"
+              className="absolute top-1.5 right-2 z-40 max-h-[calc(100%-12px)] max-w-[calc(100%-16px)] overflow-hidden rounded-adw-group border border-adw-separator bg-adw-window shadow-2xl"
             >
               <webview
                 ref={extPopupWebviewRef}
@@ -1144,17 +1145,17 @@ function WebViewSurface({
               className="absolute inset-0 z-30"
               onClick={() => setDemoPopupOpen(false)}
             />
-            <div className="absolute top-1.5 right-2 z-40 w-[290px] max-w-[calc(100%-16px)] rounded-xl border border-adw-separator bg-adw-window p-3.5 text-adw-label shadow-2xl">
+            <div className="absolute top-1.5 right-2 z-40 w-[290px] max-w-[calc(100%-16px)] rounded-adw-group border border-adw-separator bg-adw-window p-3.5 text-adw-label shadow-2xl">
               <div className="flex items-center gap-2">
                 <PuzzleIcon className="size-4 text-adw-accent" />
-                <div className="text-[13px] font-semibold">
+                <div className="text-adw-body font-semibold">
                   Piloti Demo Extension
                 </div>
               </div>
-              <p className="mt-1 text-[11.5px] leading-relaxed text-adw-label-secondary">
+              <p className="mt-1 text-adw-subheadline leading-relaxed text-adw-label-secondary">
                 {_("Simulated extension popup in Web mode. On native Domicile, real Chrome extensions load via extensions.unpacked / extensions.web_store.")}
               </p>
-              <div className="mt-2.5 rounded-lg bg-black/5 px-2.5 py-2 text-[11px] break-all text-adw-label-secondary dark:bg-white/6">
+              <div className="mt-2.5 rounded-adw-item bg-black/5 px-2.5 py-2 text-adw-subheadline break-all text-adw-label-secondary dark:bg-white/6">
                 <div className="font-medium text-adw-label">{win.title}</div>
                 <div className="mt-0.5 opacity-80">{win.browserUrl || address}</div>
               </div>
@@ -1341,6 +1342,14 @@ const WindowBody = React.memo(
         <React.Suspense fallback={null}>
           <WindowDomReadySignal windowId={win.id} onReady={onDomReady} />
           <CalculatorApp windowId={win.id} isCsd={isCsd} />
+        </React.Suspense>
+      );
+    }
+    if (win.builtinComponent === "piloti-demo") {
+      return (
+        <React.Suspense fallback={null}>
+          <WindowDomReadySignal windowId={win.id} onReady={onDomReady} />
+          <PilotiDemoApp windowId={win.id} isCsd={isCsd} />
         </React.Suspense>
       );
     }
@@ -2241,7 +2250,7 @@ export function WindowManager() {
               ? Math.min(window.innerHeight - 200, windowContextMenu.y)
               : windowContextMenu.y;
           const itemCls =
-            "flex w-full items-center rounded-lg px-2.5 py-1.5 text-left text-adw-body text-adw-label hover:bg-adw-accent hover:text-white";
+            "flex w-full items-center rounded-adw-item px-2.5 py-1.5 text-left text-adw-body text-adw-label hover:bg-adw-accent hover:text-white";
           return (
             <div
               role="menu"

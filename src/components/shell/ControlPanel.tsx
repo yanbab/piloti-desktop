@@ -160,7 +160,7 @@ export function ControlPanel() {
           >
             <SlidersHorizontalIcon className="size-3.5" />
           </button>
-          <span className="text-[12px] font-medium text-adw-label-secondary">
+          <span className="text-adw-callout font-medium text-adw-label-secondary">
             {new Date().toLocaleDateString(
               getLocale() === "fr" ? "fr-FR" : "en-US",
               {
@@ -264,7 +264,7 @@ export function ControlPanel() {
         {expandedPicker === "audio" && (
           <div className="flex flex-col gap-1 border-t border-adw-separator pt-2">
             <div className="flex items-center justify-between px-0.5">
-              <span className="text-[11px] font-medium text-adw-label-secondary">
+              <span className="text-adw-subheadline font-medium text-adw-label-secondary">
                 {_("Output Device")}
               </span>
               {!isBrowserRuntime && gnomeCapabilities.gnomeControlCenter && (
@@ -274,14 +274,14 @@ export function ControlPanel() {
                     setControlPanelOpen(false);
                     openGnomeSettings("sound");
                   }}
-                  className="text-[10.5px] font-medium text-adw-accent active:opacity-70"
+                  className="text-adw-footnote font-medium text-adw-accent active:opacity-70"
                 >
                   {_("Sound Settings…")}
                 </button>
               )}
             </div>
             {audioSinks.length === 0 ? (
-              <div className="px-1 py-1.5 text-[11px] text-adw-label-secondary">
+              <div className="px-1 py-1.5 text-adw-subheadline text-adw-label-secondary">
                 {_("Using default system output.")}
               </div>
             ) : (
@@ -292,7 +292,7 @@ export function ControlPanel() {
                     type="button"
                     onClick={() => void selectAudioSink(sink.name)}
                     className={cn(
-                      "flex items-center justify-between gap-2 rounded-[9px] px-2 py-1.5 text-left text-[11.5px]",
+                      "flex items-center justify-between gap-2 rounded-adw-item px-2 py-1.5 text-left text-adw-subheadline",
                       sink.active
                         ? "bg-adw-accent/18 font-medium text-adw-label"
                         : "active:bg-black/10 dark:active:bg-white/12"
@@ -360,7 +360,7 @@ export function ControlPanel() {
             )}
           >
             <WifiIcon className="size-[18px] shrink-0" />
-            <span className="truncate text-[12.5px] font-medium">Wi-Fi</span>
+            <span className="truncate text-adw-callout font-medium">Wi-Fi</span>
           </button>
           <button
             type="button"
@@ -410,7 +410,7 @@ export function ControlPanel() {
             )}
           >
             <BluetoothIcon className="size-[18px] shrink-0" />
-            <span className="truncate text-[12.5px] font-medium">
+            <span className="truncate text-adw-callout font-medium">
               Bluetooth
             </span>
           </button>
@@ -439,7 +439,7 @@ export function ControlPanel() {
         {expandedPicker === "wifi" && (
           <div className="col-span-2 flex flex-col gap-1 rounded-[14px] bg-black/6 p-2.5 dark:bg-white/8">
             <div className="mb-1 flex items-center justify-between px-1">
-              <span className="text-[11px] font-medium text-adw-label-secondary">
+              <span className="text-adw-subheadline font-medium text-adw-label-secondary">
                 {_("Wi-Fi Networks")}
               </span>
               {!isBrowserRuntime && gnomeCapabilities.gnomeControlCenter && (
@@ -449,18 +449,18 @@ export function ControlPanel() {
                     setControlPanelOpen(false);
                     openGnomeSettings("wifi");
                   }}
-                  className="text-[10.5px] font-medium text-adw-accent active:opacity-70"
+                  className="text-adw-footnote font-medium text-adw-accent active:opacity-70"
                 >
                   {_("Network Settings…")}
                 </button>
               )}
             </div>
             {!settings.wifiEnabled ? (
-              <div className="px-2 py-2 text-[11px] text-adw-label-secondary">
+              <div className="px-2 py-2 text-adw-subheadline text-adw-label-secondary">
                 {_("Wi-Fi is turned off.")}
               </div>
             ) : liveWifiNetworks.length === 0 ? (
-              <div className="px-2 py-2 text-[11px] text-adw-label-secondary">
+              <div className="px-2 py-2 text-adw-subheadline text-adw-label-secondary">
                 {_("No wireless networks discovered.")}
               </div>
             ) : (
@@ -473,7 +473,7 @@ export function ControlPanel() {
                       type="button"
                       onClick={() => void connectWifiNetwork(net.ssid)}
                       className={cn(
-                        "flex items-center justify-between gap-2 rounded-[9px] px-2.5 py-1.5 text-left text-[11.5px]",
+                        "flex items-center justify-between gap-2 rounded-adw-item px-2.5 py-1.5 text-left text-adw-subheadline",
                         connected
                           ? "bg-adw-accent/18 font-medium text-adw-label"
                           : "active:bg-black/10 dark:active:bg-white/12"
@@ -483,7 +483,7 @@ export function ControlPanel() {
                         <WifiIcon className="size-3.5 shrink-0 opacity-80" />
                         <span className="truncate">{net.ssid}</span>
                       </span>
-                      <span className="flex shrink-0 items-center gap-1.5 text-[10.5px] text-adw-label-secondary tabular-nums">
+                      <span className="flex shrink-0 items-center gap-1.5 text-adw-footnote text-adw-label-secondary tabular-nums">
                         {net.secured && <LockIcon className="size-3 opacity-75" />}
                         <span>{net.signal}%</span>
                         {connected && (
@@ -502,7 +502,7 @@ export function ControlPanel() {
         {expandedPicker === "bluetooth" && (
           <div className="col-span-2 flex flex-col gap-1 rounded-[14px] bg-black/6 p-2.5 dark:bg-white/8">
             <div className="mb-1 flex items-center justify-between px-1">
-              <span className="text-[11px] font-medium text-adw-label-secondary">
+              <span className="text-adw-subheadline font-medium text-adw-label-secondary">
                 {_("Bluetooth Devices")}
               </span>
               {!isBrowserRuntime && gnomeCapabilities.gnomeControlCenter && (
@@ -512,18 +512,18 @@ export function ControlPanel() {
                     setControlPanelOpen(false);
                     openGnomeSettings("bluetooth");
                   }}
-                  className="text-[10.5px] font-medium text-adw-accent active:opacity-70"
+                  className="text-adw-footnote font-medium text-adw-accent active:opacity-70"
                 >
                   {_("Bluetooth Settings…")}
                 </button>
               )}
             </div>
             {!settings.bluetoothEnabled ? (
-              <div className="px-2 py-2 text-[11px] text-adw-label-secondary">
+              <div className="px-2 py-2 text-adw-subheadline text-adw-label-secondary">
                 {_("Bluetooth is turned off.")}
               </div>
             ) : bluetoothDevices.length === 0 ? (
-              <div className="px-2 py-2 text-[11px] text-adw-label-secondary">
+              <div className="px-2 py-2 text-adw-subheadline text-adw-label-secondary">
                 {_("No paired Bluetooth devices nearby.")}
               </div>
             ) : (
@@ -534,7 +534,7 @@ export function ControlPanel() {
                     type="button"
                     onClick={() => void toggleBluetoothDevice(device.path)}
                     className={cn(
-                      "flex items-center justify-between gap-2 rounded-[9px] px-2.5 py-1.5 text-left text-[11.5px]",
+                      "flex items-center justify-between gap-2 rounded-adw-item px-2.5 py-1.5 text-left text-adw-subheadline",
                       device.connected
                         ? "bg-adw-accent/18 font-medium text-adw-label"
                         : "active:bg-black/10 dark:active:bg-white/12"
@@ -544,7 +544,7 @@ export function ControlPanel() {
                       <BluetoothIcon className="size-3.5 shrink-0 opacity-80" />
                       <span className="truncate">{device.name}</span>
                     </span>
-                    <span className="flex shrink-0 items-center gap-1.5 text-[10.5px] text-adw-label-secondary tabular-nums">
+                    <span className="flex shrink-0 items-center gap-1.5 text-adw-footnote text-adw-label-secondary tabular-nums">
                       {device.battery !== undefined && <span>{device.battery}%</span>}
                       {device.connected && <CheckIcon className="size-3.5 text-adw-accent" />}
                     </span>
@@ -573,7 +573,7 @@ export function ControlPanel() {
           )}
         >
           <MoonIcon className="size-[18px] shrink-0" />
-          <span className="truncate text-[12.5px] font-medium">
+          <span className="truncate text-adw-callout font-medium">
             {_("Dark Mode")}
           </span>
         </button>
@@ -597,7 +597,7 @@ export function ControlPanel() {
           )}
         >
           <BellOffIcon className="size-[18px] shrink-0" />
-          <span className="truncate text-[12.5px] font-medium">
+          <span className="truncate text-adw-callout font-medium">
             {_("Silent")}
           </span>
         </button>
@@ -621,7 +621,7 @@ export function ControlPanel() {
           )}
         >
           <FlameIcon className="size-[18px] shrink-0" />
-          <span className="truncate text-[12.5px] font-medium">
+          <span className="truncate text-adw-callout font-medium">
             {_("Night Light")}
           </span>
         </button>
@@ -638,7 +638,7 @@ export function ControlPanel() {
           )}
         >
           <GaugeIcon className="size-[18px] shrink-0" />
-          <span className="truncate text-[12.5px] font-medium">
+          <span className="truncate text-adw-callout font-medium">
             {_("Power Saver")}
           </span>
         </button>
@@ -648,14 +648,14 @@ export function ControlPanel() {
       {mprisMedia && (
         <div className="flex items-center justify-between gap-2.5 rounded-adw-card bg-black/6 px-3 py-2.5 dark:bg-white/8">
           <div className="flex min-w-0 flex-1 items-center gap-2.5">
-            <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-adw-accent/20 text-adw-accent">
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-adw-item bg-adw-accent/20 text-adw-accent">
               <Music2Icon className="size-4" />
             </span>
             <div className="min-w-0 flex-1">
-              <div className="truncate text-[12px] font-medium text-adw-label">
+              <div className="truncate text-adw-callout font-medium text-adw-label">
                 {mprisMedia.title}
               </div>
-              <div className="truncate text-[10.5px] text-adw-label-secondary">
+              <div className="truncate text-adw-footnote text-adw-label-secondary">
                 {mprisMedia.artist}
               </div>
             </div>
@@ -694,13 +694,13 @@ export function ControlPanel() {
       )}
 
       {activeInhibitors.length > 0 && (
-        <div className="flex items-start gap-2 rounded-[10px] border border-amber-500/30 bg-amber-500/12 px-2.5 py-1.5 text-[11px] text-amber-900 dark:text-amber-200">
+        <div className="flex items-start gap-2 rounded-[10px] border border-amber-500/30 bg-amber-500/12 px-2.5 py-1.5 text-adw-subheadline text-amber-900 dark:text-amber-200">
           <AlertTriangleIcon className="mt-0.5 size-3.5 shrink-0 text-amber-600 dark:text-amber-400" />
           <div className="min-w-0 flex-1">
             <div className="font-medium">
               {_("Sleep or logout inhibited")}
             </div>
-            <div className="truncate text-[10.5px] opacity-85">
+            <div className="truncate text-adw-footnote opacity-85">
               {activeInhibitors
                 .map((i) =>
                   i.body.reason
@@ -751,7 +751,7 @@ export function FloatingNotifications() {
       className="group/notifs mt-2.5 flex w-full flex-col gap-2"
     >
       {(settings.doNotDisturb || !settings.notificationsEnabled) && (
-        <div className="flex items-center justify-between gap-2 rounded-2xl border border-black/8 px-3 py-2 text-[11px] text-adw-label-secondary shadow-adw-popover backdrop-blur-xl adw-material-popover dark:border-white/10">
+        <div className="flex items-center justify-between gap-2 rounded-2xl border border-black/8 px-3 py-2 text-adw-subheadline text-adw-label-secondary shadow-adw-popover backdrop-blur-xl adw-material-popover dark:border-white/10">
           <span className="flex min-w-0 items-center gap-1.5 truncate">
             <BellOffIcon className="size-3 shrink-0 text-adw-accent" />
             <span className="truncate">
@@ -797,7 +797,7 @@ export function FloatingNotifications() {
               appName={n.appName}
               icon={n.icon}
               urgency={n.urgency}
-              className="mt-0.5 size-9 rounded-[9px]"
+              className="mt-0.5 size-9 rounded-adw-item"
             />
 
             <div className="min-w-0 flex-1">
@@ -812,12 +812,12 @@ export function FloatingNotifications() {
                       )}
                     />
                   )}
-                  <span className="truncate text-[13px] font-semibold leading-snug text-adw-label">
+                  <span className="truncate text-adw-body font-semibold leading-snug text-adw-label">
                     {n.summary}
                   </span>
                 </div>
                 <div className="flex shrink-0 items-center gap-1.5">
-                  <span className="text-[11px] text-adw-label-tertiary tabular-nums">
+                  <span className="text-adw-subheadline text-adw-label-tertiary tabular-nums">
                     {formatRelativeNotificationTime(n.time)}
                   </span>
                   <button
@@ -835,7 +835,7 @@ export function FloatingNotifications() {
               </div>
 
               {n.body && (
-                <div className="mt-0.5 line-clamp-3 text-[12px] leading-snug text-adw-label-secondary">
+                <div className="mt-0.5 line-clamp-3 text-adw-callout leading-snug text-adw-label-secondary">
                   <NotificationBodyText body={n.body} />
                 </div>
               )}
@@ -856,7 +856,7 @@ export function FloatingNotifications() {
           <button
             type="button"
             onClick={() => setExpanded((prev) => !prev)}
-            className="rounded-full border border-black/8 px-3.5 py-1 text-[11.5px] font-medium text-adw-label shadow-adw-popover backdrop-blur-xl transition-colors adw-material-popover hover:bg-black/6 dark:border-white/10 dark:hover:bg-white/10"
+            className="rounded-full border border-black/8 px-3.5 py-1 text-adw-subheadline font-medium text-adw-label shadow-adw-popover backdrop-blur-xl transition-colors adw-material-popover hover-fill:bg-black/6 dark:border-white/10 dark:hover-fill:bg-white/10"
           >
             {expanded
               ? _("Show less")
@@ -869,7 +869,7 @@ export function FloatingNotifications() {
           type="button"
           onClick={clearAllNotifications}
           className={cn(
-            "rounded-full border border-black/8 px-3 py-1 text-[11.5px] font-medium text-adw-label-secondary shadow-adw-popover backdrop-blur-xl transition-opacity adw-material-popover hover:text-adw-label focus-visible:opacity-100 dark:border-white/10",
+            "rounded-full border border-black/8 px-3 py-1 text-adw-subheadline font-medium text-adw-label-secondary shadow-adw-popover backdrop-blur-xl transition-opacity adw-material-popover hover:text-adw-label focus-visible:opacity-100 dark:border-white/10",
             expanded ? "opacity-100" : "opacity-0 group-hover/notifs:opacity-100"
           )}
         >

@@ -259,7 +259,7 @@ export function AdwSplitView({
                     data-vfs-drop-path={item.dropPath}
                     onClick={item.onClick}
                     className={cn(
-                      "flex items-center rounded-[9px] text-left transition-colors outline-none",
+                      "flex items-center rounded-adw-item text-left transition-colors outline-none",
                       showCompact
                         ? "w-full shrink-0 justify-center px-0"
                         : item.trailingAction
@@ -270,12 +270,12 @@ export function AdwSplitView({
                           ? "gap-0 py-2 text-[14px]"
                           : "gap-3 py-2 text-[14px]"
                         : showCompact
-                          ? "gap-0 py-1.5 text-[13px]"
-                          : "gap-2.5 py-1.5 text-[13px]",
+                          ? "gap-0 py-1.5 text-adw-body"
+                          : "gap-2.5 py-1.5 text-adw-body",
                       !item.trailingAction &&
                         (item.selected
                           ? "bg-adw-accent font-medium text-white shadow-xs"
-                          : "font-normal text-adw-label/85 hover:bg-black/5 dark:hover:bg-white/6"),
+                          : "font-normal text-adw-label/85 hover-fill:bg-black/5 dark:hover-fill:bg-white/6"),
                     )}
                   >
                     <span
@@ -292,7 +292,7 @@ export function AdwSplitView({
                         {item.badge !== undefined && item.badge !== "" && (
                           <span
                             className={cn(
-                              "ml-auto shrink-0 rounded-full text-[10px] leading-none font-semibold tabular-nums",
+                              "ml-auto shrink-0 rounded-full text-adw-footnote leading-none font-semibold tabular-nums",
                               item.selected
                                 ? "px-0.5 text-white/90"
                                 : "bg-black/8 px-1.5 py-0.5 text-adw-label/60 dark:bg-white/10",
@@ -311,10 +311,10 @@ export function AdwSplitView({
                     data-slot="sidebar-item-group"
                     data-selected={item.selected ? "" : undefined}
                     className={cn(
-                      "relative flex w-full shrink-0 items-center rounded-[9px] transition-colors",
+                      "relative flex w-full shrink-0 items-center rounded-adw-item transition-colors",
                       item.selected
                         ? "bg-adw-accent font-medium text-white shadow-xs"
-                        : "font-normal text-adw-label/85 hover:bg-black/5 dark:hover:bg-white/6",
+                        : "font-normal text-adw-label/85 hover-fill:bg-black/5 dark:hover-fill:bg-white/6",
                     )}
                   >
                     {baseBtn}
@@ -326,7 +326,7 @@ export function AdwSplitView({
                         e.stopPropagation();
                         item.trailingAction?.onClick();
                       }}
-                      className="absolute right-1.5 flex size-6 items-center justify-center rounded-md text-adw-label-secondary transition-colors hover:bg-black/10 hover:text-adw-label dark:hover:bg-white/12 [&_svg]:size-3.5"
+                      className="absolute right-1.5 flex size-6 items-center justify-center rounded-adw-control text-adw-label-secondary transition-colors hover-fill:bg-black/10 hover:text-adw-label dark:hover-fill:bg-white/12 [&_svg]:size-3.5"
                     >
                       {item.trailingAction.icon}
                     </button>
@@ -355,10 +355,10 @@ export function AdwSplitView({
                         side="right"
                         sideOffset={-36}
                         className={cn(
-                          "pointer-events-none rounded-[9px] border border-adw-separator px-2.5 shadow-md",
+                          "pointer-events-none rounded-adw-item border border-adw-separator px-2.5 shadow-md",
                           tall
                             ? "h-[37px] gap-3 py-2 text-[14px]"
-                            : "h-[32px] gap-2.5 py-1.5 text-[13px]",
+                            : "h-[32px] gap-2.5 py-1.5 text-adw-body",
                           item.selected
                             ? "bg-adw-accent font-medium text-white shadow-xs"
                             : "bg-adw-sidebar font-normal text-adw-label",

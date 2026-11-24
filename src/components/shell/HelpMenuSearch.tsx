@@ -78,14 +78,14 @@ export function HelpMenuSearch({
               run(results[activeIndex]);
             }
           }}
-          className="h-full min-w-0 flex-1 bg-transparent text-[13px] text-adw-label outline-none placeholder:text-adw-label-tertiary"
+          className="h-full min-w-0 flex-1 bg-transparent text-adw-body text-adw-label outline-none placeholder:text-adw-label-tertiary"
         />
       </label>
       {query.trim() && (
         <div ref={listRef} role="listbox" aria-label={_("Menu Items")} className="max-h-[min(60vh,420px)] overflow-y-auto">
           <div className={MENU_LABEL_CLASS}>{_("Menu Items")}</div>
           {results.length === 0 ? (
-            <div className="px-[12px] py-1.5 text-[12.5px] text-adw-label-tertiary">
+            <div className="px-[12px] py-1.5 text-adw-callout text-adw-label-tertiary">
               {_("No matching commands")}
             </div>
           ) : (
@@ -109,7 +109,7 @@ export function HelpMenuSearch({
                 <span className="flex min-w-0 items-baseline gap-1.5">
                   <span className="truncate">{command.label}</span>
                   {command.path.length > 0 && (
-                    <span className="truncate text-[11.5px] text-adw-label-secondary">
+                    <span className="truncate text-adw-subheadline text-adw-label-secondary">
                       {command.path.join(" ▸ ")}
                     </span>
                   )}

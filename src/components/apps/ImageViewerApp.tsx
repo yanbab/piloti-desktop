@@ -553,7 +553,7 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
               if (dot > 0) e.currentTarget.setSelectionRange(0, dot);
               else e.currentTarget.select();
             }}
-            className="h-6 w-48 rounded-md border border-adw-accent bg-adw-content px-2 text-center text-adw-body font-semibold text-adw-label outline-none"
+            className="h-6 w-48 rounded-adw-control border border-adw-accent bg-adw-content px-2 text-center text-adw-body font-semibold text-adw-label outline-none"
           />
         ) : isRenameableVfsFile ? (
           <button
@@ -563,7 +563,7 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
               setDraftTitle(fileName);
               setEditingTitle(true);
             }}
-            className="truncate rounded-md px-2 py-0.5 text-adw-body font-semibold whitespace-nowrap text-adw-label transition-colors hover:bg-black/8 dark:hover:bg-white/10"
+            className="truncate rounded-adw-control px-2 py-0.5 text-adw-body font-semibold whitespace-nowrap text-adw-label transition-colors hover-fill:bg-black/8 dark:hover-fill:bg-white/10"
           >
             {fileName}
           </button>
@@ -579,7 +579,7 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
               type="button"
               aria-label={_("Save Changes")}
               onClick={() => void handleSave()}
-              className="flex size-7 items-center justify-center rounded-md bg-adw-accent text-white transition-opacity hover:opacity-90"
+              className="flex size-7 items-center justify-center rounded-adw-control bg-adw-accent text-white transition-opacity hover:opacity-90"
             >
               <SaveIcon className="size-4" />
             </button>
@@ -717,7 +717,7 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
           onPointerMove={(e) => e.stopPropagation()}
           onPointerUp={(e) => e.stopPropagation()}
           onWheel={(e) => e.stopPropagation()}
-          className="absolute bottom-3 left-1/2 z-20 cursor-default flex -translate-x-1/2 items-center gap-1 rounded-xl border border-white/15 bg-zinc-900/80 p-1 text-white shadow-xl backdrop-blur-md"
+          className="absolute bottom-3 left-1/2 z-20 cursor-default flex -translate-x-1/2 items-center gap-1 rounded-adw-group border border-white/15 bg-zinc-900/80 p-1 text-white shadow-xl backdrop-blur-md"
         >
           <button
             type="button"
@@ -725,11 +725,11 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
             onClick={() =>
               setZoom((z) => Math.max(0.15, Number((z / 1.25).toFixed(2))))
             }
-            className="flex size-8 items-center justify-center rounded-lg hover:bg-white/15 active:bg-white/25"
+            className="flex size-8 items-center justify-center rounded-adw-item hover-fill:bg-white/15 active:bg-white/25"
           >
             <ZoomOutIcon className="size-4" />
           </button>
-          <span className="min-w-10 text-center font-mono text-[11px] tabular-nums opacity-85">
+          <span className="min-w-10 text-center font-mono text-adw-subheadline tabular-nums opacity-85">
             {Math.round(zoom * 100)}%
           </span>
           <button
@@ -738,7 +738,7 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
             onClick={() =>
               setZoom((z) => Math.min(12, Number((z * 1.25).toFixed(2))))
             }
-            className="flex size-8 items-center justify-center rounded-lg hover:bg-white/15 active:bg-white/25"
+            className="flex size-8 items-center justify-center rounded-adw-item hover-fill:bg-white/15 active:bg-white/25"
           >
             <ZoomInIcon className="size-4" />
           </button>
@@ -749,7 +749,7 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
               setZoom(1);
               setPan({ x: 0, y: 0 });
             }}
-            className="flex size-8 items-center justify-center rounded-lg hover:bg-white/15 active:bg-white/25"
+            className="flex size-8 items-center justify-center rounded-adw-item hover-fill:bg-white/15 active:bg-white/25"
           >
             <Maximize2Icon className="size-3.5" />
           </button>
@@ -758,7 +758,7 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
             type="button"
             title={_("Rotate 90°")}
             onClick={() => setRotation((r) => (r + 90) % 360)}
-            className="flex size-8 items-center justify-center rounded-lg hover:bg-white/15 active:bg-white/25"
+            className="flex size-8 items-center justify-center rounded-adw-item hover-fill:bg-white/15 active:bg-white/25"
           >
             <RotateCwIcon className="size-4" />
           </button>
@@ -767,8 +767,8 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
             title={_("Crop")}
             onClick={() => setCropping((c) => !c)}
             className={cn(
-              "flex size-8 items-center justify-center rounded-lg transition-colors",
-              cropping ? "bg-adw-accent text-white" : "hover:bg-white/15",
+              "flex size-8 items-center justify-center rounded-adw-item transition-colors",
+              cropping ? "bg-adw-accent text-white" : "hover-fill:bg-white/15",
             )}
           >
             <CropIcon className="size-4" />
@@ -779,7 +779,7 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
                 type="button"
                 title={_("Apply Crop")}
                 onClick={applyCrop}
-                className="flex size-8 items-center justify-center rounded-lg bg-emerald-600 text-white hover:bg-emerald-500"
+                className="flex size-8 items-center justify-center rounded-adw-item bg-emerald-600 text-white hover-fill:bg-emerald-500"
               >
                 <CheckIcon className="size-4" />
               </button>
@@ -790,7 +790,7 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
                   setCropRect({ x: 15, y: 15, w: 70, h: 70 });
                   setCropping(false);
                 }}
-                className="flex size-8 items-center justify-center rounded-lg hover:bg-white/15"
+                className="flex size-8 items-center justify-center rounded-adw-item hover-fill:bg-white/15"
               >
                 <XIcon className="size-4" />
               </button>
@@ -801,7 +801,7 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
             type="button"
             title={_("Reset (0)")}
             onClick={resetView}
-            className="flex size-8 items-center justify-center rounded-lg hover:bg-white/15 active:bg-white/25"
+            className="flex size-8 items-center justify-center rounded-adw-item hover-fill:bg-white/15 active:bg-white/25"
           >
             <RotateCcwIcon className="size-3.5" />
           </button>

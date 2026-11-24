@@ -354,7 +354,7 @@ function DesktopSurface() {
               <button
                 type="button"
                 onClick={powerOnSimulatedMachine}
-                className="rounded-full border border-white/20 bg-white/10 px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-white/20 active:bg-white/25"
+                className="rounded-full border border-white/20 bg-white/10 px-5 py-2 text-sm font-semibold text-white transition-colors hover-fill:bg-white/20 active:bg-white/25"
               >
                 {_("Power On")}
               </button>

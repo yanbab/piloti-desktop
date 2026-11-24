@@ -330,7 +330,7 @@ export function FileItemContextMenu({
             {isSingle && onOpenWithApp && openWithApps.length > 0 && (
               <>
                 <div className={MENU_SEPARATOR_CLASS} />
-                <div className={cn(MENU_LABEL_CLASS, "text-[11px] font-medium")}>
+                <div className={cn(MENU_LABEL_CLASS, "text-adw-subheadline font-medium")}>
                   {_("Open With")}
                 </div>
                 {openWithApps.map((appOpt) => {

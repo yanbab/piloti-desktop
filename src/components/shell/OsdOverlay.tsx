@@ -135,7 +135,7 @@ export function OsdOverlay() {
           className="h-full rounded-full bg-adw-accent transition-[width] duration-100"
         />
       </div>
-      <span className="w-8 text-right text-[11px] font-semibold tabular-nums text-adw-label-secondary">
+      <span className="w-8 text-right text-adw-subheadline font-semibold tabular-nums text-adw-label-secondary">
         {osd.muted ? "Mute" : `${osd.value}%`}
       </span>
     </div>

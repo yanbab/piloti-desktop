@@ -27,7 +27,7 @@ export interface BrowserExtensionItem {
 }
 
 const BUTTON_CLASS =
-  "relative flex size-7 items-center justify-center rounded-md transition-colors disabled:pointer-events-none disabled:opacity-40";
+  "relative flex size-7 items-center justify-center rounded-adw-control transition-colors disabled:pointer-events-none disabled:opacity-40";
 
 function ExtensionIcon({ item }: { item: BrowserExtensionItem }) {
   return item.icon ? (
@@ -82,7 +82,7 @@ export function BrowserExtensionsMenu({
             BUTTON_CLASS,
             item.active || item.pressed
               ? "bg-black/14 dark:bg-white/18"
-              : "hover:bg-black/8 dark:hover:bg-white/10",
+              : "hover-fill:bg-black/8 dark:hover-fill:bg-white/10",
           )}
         >
           <ExtensionIcon item={item} />
@@ -92,14 +92,14 @@ export function BrowserExtensionsMenu({
       <DropdownMenu>
         <DropdownMenuTrigger
           aria-label={_("Extensions")}
-          className={cn(BUTTON_CLASS, "hover:bg-black/8 data-[popup-open]:bg-black/14 dark:hover:bg-white/10 dark:data-[popup-open]:bg-white/18")}
+          className={cn(BUTTON_CLASS, "hover-fill:bg-black/8 data-[popup-open]:bg-black/14 dark:hover-fill:bg-white/10 dark:data-[popup-open]:bg-white/18")}
         >
           <PuzzleIcon className="size-3.5" />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-72">
           <DropdownMenuLabel>{_("Extensions")}</DropdownMenuLabel>
           {items.length === 0 && (
-            <div className="px-3 py-3 text-[12px] text-adw-label-secondary">
+            <div className="px-3 py-3 text-adw-callout text-adw-label-secondary">
               {_("No extensions installed.")}
             </div>
           )}
@@ -126,7 +126,7 @@ export function BrowserExtensionsMenu({
                     onTogglePin(item.id);
                   }}
                   className={cn(
-                    "mr-1 flex size-7 shrink-0 items-center justify-center rounded-md transition-colors hover:bg-black/8 dark:hover:bg-white/10",
+                    "mr-1 flex size-7 shrink-0 items-center justify-center rounded-adw-control transition-colors hover-fill:bg-black/8 dark:hover-fill:bg-white/10",
                     isPinned && "text-adw-accent",
                   )}
                 >

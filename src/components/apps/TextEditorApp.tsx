@@ -199,7 +199,7 @@ function renderSimpleMarkdown(md: string): React.ReactNode {
       return (
         <li
           key={i}
-          className="ml-4 list-disc text-[13px] leading-relaxed text-adw-label"
+          className="ml-4 list-disc text-adw-body leading-relaxed text-adw-label"
         >
           {line.slice(2)}
         </li>
@@ -209,7 +209,7 @@ function renderSimpleMarkdown(md: string): React.ReactNode {
       return <div key={i} className="h-2" />;
     }
     return (
-      <p key={i} className="text-[13px] leading-relaxed text-adw-label">
+      <p key={i} className="text-adw-body leading-relaxed text-adw-label">
         {line}
       </p>
     );
@@ -1096,7 +1096,7 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
                 }
               }}
               style={{ width: `${Math.max(8, draftTitle.length + 2)}ch` }}
-              className="h-6 max-w-48 rounded-md border border-adw-accent/70 bg-black/8 px-2 text-center text-adw-body font-semibold text-adw-label outline-none dark:bg-white/12"
+              className="h-6 max-w-48 rounded-adw-control border border-adw-accent/70 bg-black/8 px-2 text-center text-adw-body font-semibold text-adw-label outline-none dark:bg-white/12"
             />
           ) : (
             <button
@@ -1109,9 +1109,9 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
                 setEditingTitle(true);
               }}
               className={cn(
-                "flex items-center truncate rounded-md px-2 py-0.5 text-adw-body font-semibold text-adw-label transition-colors",
+                "flex items-center truncate rounded-adw-control px-2 py-0.5 text-adw-body font-semibold text-adw-label transition-colors",
                 filePath &&
-                  "hover:bg-black/8 dark:hover:bg-white/10",
+                  "hover-fill:bg-black/8 dark:hover-fill:bg-white/10",
               )}
             >
               {isDirty && (
@@ -1135,16 +1135,16 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
             title={_("Save")}
             onClick={() => void handleSave()}
             className={cn(
-              "flex size-7 items-center justify-center rounded-md transition-colors",
+              "flex size-7 items-center justify-center rounded-adw-control transition-colors",
               isDirty
-                ? "text-adw-label hover:bg-black/8 dark:hover:bg-white/10"
+                ? "text-adw-label hover-fill:bg-black/8 dark:hover-fill:bg-white/10"
                 : "text-adw-label-secondary/40",
             )}
           >
             <SaveIcon className="size-4" />
           </button>
           {availableModes.length > 0 && (
-            <div className="inline-flex items-center gap-0.5 rounded-[9px] bg-black/8 p-0.5 dark:bg-white/8">
+            <div className="inline-flex items-center gap-0.5 rounded-adw-item bg-black/8 p-0.5 dark:bg-white/8">
               {availableModes.map((mode) => {
                 const active = viewMode === mode.id;
                 return (
@@ -1153,7 +1153,7 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
                     type="button"
                     onClick={() => setViewMode(mode.id)}
                     className={cn(
-                      "rounded-[6px] px-2 py-0.5 text-[11.5px] font-medium transition-all",
+                      "rounded-adw-control px-2 py-0.5 text-adw-subheadline font-medium transition-all",
                       active
                         ? "bg-white text-black shadow-2xs dark:bg-white/18 dark:text-white"
                         : "text-adw-label-secondary hover:text-adw-label",
@@ -1169,7 +1169,7 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
             <DropdownMenuTrigger
               aria-label={_("Editor Preferences")}
               title={_("Preferences")}
-              className="flex size-7 items-center justify-center rounded-md text-adw-label-secondary transition-colors outline-none hover:bg-black/8 hover:text-adw-label data-popup-open:bg-black/10 dark:hover:bg-white/10 dark:data-popup-open:bg-white/15"
+              className="flex size-7 items-center justify-center rounded-adw-control text-adw-label-secondary transition-colors outline-none hover-fill:bg-black/8 hover:text-adw-label data-popup-open:bg-black/10 dark:hover-fill:bg-white/10 dark:data-popup-open:bg-white/15"
             >
               <SlidersHorizontalIcon className="size-4" />
             </DropdownMenuTrigger>
@@ -1225,7 +1225,7 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
         {findOpen && (
           <div
             data-testid="text-editor-find-bar"
-            className="absolute top-2 right-3 z-20 flex items-center gap-1.5 rounded-lg border border-adw-border bg-adw-card/95 px-2 py-1 shadow-md backdrop-blur-md"
+            className="absolute top-2 right-3 z-20 flex items-center gap-1.5 rounded-adw-item border border-adw-border bg-adw-card/95 px-2 py-1 shadow-md backdrop-blur-md"
           >
             <input
               ref={findInputRef}
@@ -1234,7 +1234,7 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
               onChange={(e) => setFindQuery(e.target.value)}
               className="w-36 bg-transparent text-xs text-adw-label outline-none"
             />
-            <span className="font-mono text-[10.5px] text-adw-dim tabular-nums">
+            <span className="font-mono text-adw-footnote text-adw-dim tabular-nums">
               {findQuery.trim() ? _("%d found", findMatchCount) : ""}
             </span>
             <button
@@ -1244,7 +1244,7 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
                 setFindOpen(false);
                 viewRef.current?.focus();
               }}
-              className="rounded px-1 text-xs text-adw-dim hover:bg-adw-hover hover:text-adw-label"
+              className="rounded px-1 text-xs text-adw-dim hover-fill:bg-adw-hover hover:text-adw-label"
             >
               ×
             </button>
@@ -1276,7 +1276,7 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
               />
             </div>
           ) : /\.(json|ini)$/i.test(filePath ?? "") ? (
-            <div className="h-full w-full overflow-auto bg-adw-content p-4 font-mono text-[12px] select-text">
+            <div className="h-full w-full overflow-auto bg-adw-content p-4 font-mono text-adw-callout select-text">
               {(() => {
                 try {
                   const parsed = /\.ini$/i.test(filePath ?? "")
@@ -1304,7 +1304,7 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
                   );
                 } catch (err) {
                   return (
-                    <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-red-400">
+                    <div className="rounded-adw-item border border-red-500/30 bg-red-500/10 p-3 text-red-400">
                       Invalid JSON: {String(err)}
                     </div>
                   );
@@ -1323,7 +1323,7 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
         {showCursorPos && (
           <div
             data-testid="text-editor-status-pill"
-            className="pointer-events-none absolute right-2.5 bottom-2 z-10 rounded-full border border-adw-border/60 bg-adw-card/90 px-2.5 py-0.5 font-mono text-[10.5px] text-adw-dim shadow-xs backdrop-blur-md"
+            className="pointer-events-none absolute right-2.5 bottom-2 z-10 rounded-full border border-adw-border/60 bg-adw-card/90 px-2.5 py-0.5 font-mono text-adw-footnote text-adw-dim shadow-xs backdrop-blur-md"
           >
             Ln {cursorPos.ln}, Col {cursorPos.col}
           </div>
@@ -1372,7 +1372,7 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
               <button
                 type="button"
                 onClick={() => setPendingRename(null)}
-                className="rounded-lg bg-black/8 px-3 py-1.5 text-xs font-medium text-adw-label transition-colors hover:bg-black/14 dark:bg-white/10 dark:hover:bg-white/16"
+                className="rounded-adw-item bg-black/8 px-3 py-1.5 text-xs font-medium text-adw-label transition-colors hover-fill:bg-black/14 dark:bg-white/10 dark:hover-fill:bg-white/16"
               >
                 {_("Cancel")}
               </button>
@@ -1384,7 +1384,7 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
                     setPendingRename(null);
                   }
                 }}
-                className="rounded-lg bg-adw-accent px-3 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-90"
+                className="rounded-adw-item bg-adw-accent px-3 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-90"
               >
                 {_("Rename")}
               </button>

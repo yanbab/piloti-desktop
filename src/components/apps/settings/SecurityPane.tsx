@@ -249,17 +249,17 @@ export function SecurityPane() {
     <GroupedForm>
       <GroupedFormSection>
         <div className="flex items-center gap-3">
-          <div className="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-adw-separator bg-adw-card px-3 py-2">
+          <div className="flex min-w-0 flex-1 items-center gap-2 rounded-adw-group border border-adw-separator bg-adw-card px-3 py-2">
             <SearchIcon className="size-4 shrink-0 text-adw-label-tertiary" />
             <input
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder={_("Search apps…")}
-              className="min-w-0 flex-1 bg-transparent text-[13px] text-adw-label outline-none placeholder:text-adw-label-tertiary"
+              className="min-w-0 flex-1 bg-transparent text-adw-body text-adw-label outline-none placeholder:text-adw-label-tertiary"
             />
           </div>
-          <div className="inline-flex shrink-0 rounded-lg bg-black/8 p-0.5 dark:bg-white/10">
+          <div className="inline-flex shrink-0 rounded-adw-item bg-black/8 p-0.5 dark:bg-white/10">
             {(["apps", "permissions"] as const).map((mode) => {
               const selected = groupBy === mode;
               return (
@@ -268,7 +268,7 @@ export function SecurityPane() {
                   type="button"
                   onClick={() => setGroupBy(mode)}
                   className={cn(
-                    "rounded-md px-3 py-1 text-[12px] font-medium transition-all",
+                    "rounded-adw-control px-3 py-1 text-adw-callout font-medium transition-all",
                     selected
                       ? "bg-white text-black shadow-xs dark:bg-white/16 dark:text-white"
                       : "text-adw-label-secondary hover:text-adw-label"
@@ -290,7 +290,7 @@ export function SecurityPane() {
           <GroupedFormGroup>
             <div className="flex flex-col items-center justify-center gap-1.5 py-8 text-center text-adw-label-tertiary">
               <ShieldCheckIcon className="size-6 opacity-60" />
-              <div className="text-[12.5px] font-medium">
+              <div className="text-adw-callout font-medium">
                 {_("No matching apps found")}
               </div>
             </div>
@@ -334,19 +334,19 @@ export function SecurityPane() {
                       "flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors",
                       isOpen
                         ? "bg-black/4 dark:bg-white/6"
-                        : "hover:bg-black/3 dark:hover:bg-white/4"
+                        : "hover-fill:bg-black/3 dark:hover-fill:bg-white/4"
                     )}
                   >
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="text-[13px] font-semibold text-adw-label">
+                        <span className="text-adw-body font-semibold text-adw-label">
                           {_(perm.label)}
                         </span>
-                        <span className="rounded-full bg-black/6 px-2 py-0.5 text-[10px] font-medium text-adw-label-secondary dark:bg-white/10">
+                        <span className="rounded-full bg-black/6 px-2 py-0.5 text-adw-footnote font-medium text-adw-label-secondary dark:bg-white/10">
                           {targetApps.length}
                         </span>
                       </div>
-                      <div className="truncate text-[11px] text-adw-label-tertiary">
+                      <div className="truncate text-adw-subheadline text-adw-label-tertiary">
                         {_(perm.description)}
                       </div>
                     </div>
@@ -360,7 +360,7 @@ export function SecurityPane() {
                   {isOpen && (
                     <div className="divide-y divide-adw-separator/70 border-t border-adw-separator/70">
                       {targetApps.length === 0 ? (
-                        <div className="px-4 py-3 text-[12px] text-adw-label-tertiary">
+                        <div className="px-4 py-3 text-adw-callout text-adw-label-tertiary">
                           {_("No Flatpak apps installed")}
                         </div>
                       ) : (
@@ -443,7 +443,7 @@ export function SecurityPane() {
                       "flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors",
                       isOpen
                         ? "bg-black/4 dark:bg-white/6"
-                        : "hover:bg-black/3 dark:hover:bg-white/4"
+                        : "hover-fill:bg-black/3 dark:hover-fill:bg-white/4"
                     )}
                   >
                     <div className="flex min-w-0 items-center gap-3">
@@ -453,16 +453,16 @@ export function SecurityPane() {
                       />
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
-                          <span className="truncate text-[13px] font-semibold text-adw-label">
+                          <span className="truncate text-adw-body font-semibold text-adw-label">
                             {app.name}
                           </span>
                           {app.isFlatpak && (
-                            <span className="rounded-full bg-adw-accent/15 px-1.5 py-0.5 text-[10px] font-medium text-adw-accent">
+                            <span className="rounded-full bg-adw-accent/15 px-1.5 py-0.5 text-adw-footnote font-medium text-adw-accent">
                               Flatpak
                             </span>
                           )}
                         </div>
-                        <div className="truncate text-[11px] text-adw-label-tertiary">
+                        <div className="truncate text-adw-subheadline text-adw-label-tertiary">
                           {app.subtitle}
                         </div>
                       </div>

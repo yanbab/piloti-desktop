@@ -1606,7 +1606,7 @@ export const TerminalApp: React.FC<TerminalAppProps> = ({ initialPath }) => {
         ref={topContainerRef}
         tabIndex={0}
         onKeyDown={handleTopKeyDown}
-        className="flex h-full w-full flex-col bg-zinc-950 p-3 font-mono text-[12px] leading-snug text-zinc-100 outline-none select-none"
+        className="flex h-full w-full flex-col bg-zinc-950 p-3 font-mono text-adw-callout leading-snug text-zinc-100 outline-none select-none"
       >
         <div className="mb-2 flex items-center justify-between text-zinc-400">
           <span>
@@ -1648,7 +1648,7 @@ export const TerminalApp: React.FC<TerminalAppProps> = ({ initialPath }) => {
     <div
       ref={scrollRef}
       onClick={() => inputRef.current?.focus()}
-      className="h-full w-full cursor-text overflow-auto bg-zinc-950 p-3 font-mono text-[13px] leading-relaxed text-zinc-100 select-text"
+      className="h-full w-full cursor-text overflow-auto bg-zinc-950 p-3 font-mono text-adw-body leading-relaxed text-zinc-100 select-text"
     >
       {lines.map((line) => (
         <div
@@ -1678,7 +1678,7 @@ export const TerminalApp: React.FC<TerminalAppProps> = ({ initialPath }) => {
         </div>
       ))}
       {reverseSearch.active && (
-        <div className="mb-1 flex items-center gap-1.5 text-[12px] text-amber-300">
+        <div className="mb-1 flex items-center gap-1.5 text-adw-callout text-amber-300">
           <span>(reverse-i-search)`{reverseSearch.query}`:</span>
           <span className="text-zinc-100">
             {activeReverseMatch || "(no match)"}
@@ -1711,7 +1711,7 @@ export const TerminalApp: React.FC<TerminalAppProps> = ({ initialPath }) => {
           autoComplete="off"
           aria-label="Terminal input"
           ghostClassName="text-zinc-500"
-          className="font-mono text-[13px] leading-relaxed text-zinc-100"
+          className="font-mono text-adw-body leading-relaxed text-zinc-100"
         />
       </div>
     </div>

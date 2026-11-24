@@ -81,7 +81,7 @@ function ToastTitle({ className, ...props }: ToastPrimitive.Title.Props) {
   return (
     <ToastPrimitive.Title
       data-slot="toast-title"
-      className={cn("text-[13px] font-semibold leading-snug text-adw-label", className)}
+      className={cn("text-adw-body font-semibold leading-snug text-adw-label", className)}
       {...props}
     />
   )
@@ -95,7 +95,7 @@ function ToastDescription({
     <ToastPrimitive.Description
       data-slot="toast-description"
       className={cn(
-        "text-[12px] leading-relaxed text-adw-label-secondary",
+        "text-adw-callout leading-relaxed text-adw-label-secondary",
         className
       )}
       {...props}
@@ -108,7 +108,7 @@ function ToastAction({ className, ...props }: ToastPrimitive.Action.Props) {
     <ToastPrimitive.Action
       data-slot="toast-action"
       className={cn(
-        "inline-flex h-6 items-center justify-center rounded-[7px] bg-black/8 px-2.5 text-[11px] font-medium text-adw-label transition-colors hover:bg-black/14 dark:bg-white/10 dark:hover:bg-white/18",
+        "inline-flex h-6 items-center justify-center rounded-[7px] bg-black/8 px-2.5 text-adw-subheadline font-medium text-adw-label transition-colors hover-fill:bg-black/14 dark:bg-white/10 dark:hover-fill:bg-white/18",
         className
       )}
       {...props}
@@ -126,7 +126,7 @@ function ToastClose({
       data-slot="toast-close"
       aria-label="Dismiss notification banner"
       className={cn(
-        "flex size-5 shrink-0 items-center justify-center rounded-full bg-black/8 text-adw-label-secondary transition-colors hover:bg-black/14 hover:text-adw-label dark:bg-white/12 dark:hover:bg-white/20",
+        "flex size-5 shrink-0 items-center justify-center rounded-full bg-black/8 text-adw-label-secondary transition-colors hover-fill:bg-black/14 hover:text-adw-label dark:bg-white/12 dark:hover-fill:bg-white/20",
         className
       )}
       {...props}

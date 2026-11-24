@@ -102,7 +102,7 @@ export function LockScreen() {
                 key={n.id}
                 className="flex flex-col gap-0.5 rounded-[14px] bg-white/12 px-3.5 py-2.5 text-left text-white shadow-lg ring-1 ring-white/15 backdrop-blur-xl"
               >
-                <div className="flex items-center justify-between gap-2 text-[10.5px] text-white/75">
+                <div className="flex items-center justify-between gap-2 text-adw-footnote text-white/75">
                   <span className="flex items-center gap-1 font-semibold uppercase tracking-wide">
                     <BellIcon className="size-3" />
                     {n.appName}
@@ -111,17 +111,17 @@ export function LockScreen() {
                     {formatRelativeNotificationTime(n.time)}
                   </span>
                 </div>
-                <div className="truncate text-[12.5px] font-semibold">
+                <div className="truncate text-adw-callout font-semibold">
                   {n.summary}
                 </div>
                 {settings.notificationShowPreviews ? (
                   n.body && (
-                    <div className="line-clamp-2 text-[11.5px] text-white/80">
+                    <div className="line-clamp-2 text-adw-subheadline text-white/80">
                       <NotificationBodyText body={n.body} />
                     </div>
                   )
                 ) : (
-                  <div className="text-[11px] text-white/60 italic">
+                  <div className="text-adw-subheadline text-white/60 italic">
                     {_("Notification content hidden")}
                   </div>
                 )}

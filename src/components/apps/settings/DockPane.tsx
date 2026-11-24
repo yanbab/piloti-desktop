@@ -27,7 +27,7 @@ export function DockPane() {
               <GroupedFormRowTitle>{_("Position on Screen")}</GroupedFormRowTitle>
             </GroupedFormRowLabel>
             <GroupedFormRowControl>
-              <div className="flex items-center gap-0.5 rounded-lg bg-black/6 p-0.5 dark:bg-white/8">
+              <div className="flex items-center gap-0.5 rounded-adw-item bg-black/6 p-0.5 dark:bg-white/8">
                 {(
                   [
                     { id: "left", label: _("Left") },
@@ -42,7 +42,7 @@ export function DockPane() {
                       type="button"
                       onClick={() => updateSettings({ dockPosition: pos.id })}
                       className={cn(
-                        "rounded-md px-2.5 py-1 text-[12px] capitalize",
+                        "rounded-adw-control px-2.5 py-1 text-adw-callout capitalize",
                         active
                           ? "bg-adw-sidebar-selection font-medium text-adw-label"
                           : "text-adw-label-secondary active:bg-black/10 dark:active:bg-white/12"

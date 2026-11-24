@@ -31,7 +31,7 @@ function WindowMiniPreview({
 
   if (win.appId === "settings") {
     return (
-      <div className="flex h-full bg-zinc-900/90 text-[10px]">
+      <div className="flex h-full bg-zinc-900/90 text-adw-footnote">
         <div className="flex w-1/3 flex-col gap-1.5 border-r border-white/10 bg-white/5 p-2">
           <div className="h-2 w-4/5 rounded-full bg-sky-500/60" />
           <div className="h-2 w-3/4 rounded-full bg-white/20" />
@@ -45,8 +45,8 @@ function WindowMiniPreview({
             <span className="size-3 rounded-full bg-pink-500" />
             <span className="size-3 rounded-full bg-emerald-500" />
           </div>
-          <div className="h-5 rounded-md bg-white/10" />
-          <div className="h-5 rounded-md bg-white/10" />
+          <div className="h-5 rounded-adw-control bg-white/10" />
+          <div className="h-5 rounded-adw-control bg-white/10" />
         </div>
       </div>
     );
@@ -62,7 +62,7 @@ function WindowMiniPreview({
         className="size-9"
         glyphClassName="size-5"
       />
-      <span className="max-w-full truncate text-[10px] text-white/70">
+      <span className="max-w-full truncate text-adw-footnote text-white/70">
         {win.waylandAppId
           ? `Wayland · ${win.waylandAppId}`
           : `${win.size.width}×${win.size.height}`}
@@ -165,7 +165,7 @@ export function AltTabSwitcher() {
                       "flex size-[80px] items-center justify-center rounded-[18px] p-2 transition-all duration-100 motion-reduce:transition-none",
                       selected
                         ? "bg-black/14 ring-2 ring-adw-accent dark:bg-white/16"
-                        : "bg-transparent hover:bg-black/6 dark:hover:bg-white/8",
+                        : "bg-transparent hover-fill:bg-black/6 dark:hover-fill:bg-white/8",
                       win.minimized && "opacity-65"
                     )}
                   >
@@ -182,7 +182,7 @@ export function AltTabSwitcher() {
                     />
                   </div>
                   {selected && (
-                    <span className="pointer-events-none absolute -bottom-7 left-1/2 -translate-x-1/2 whitespace-nowrap text-center text-[12px] font-medium text-adw-label-secondary">
+                    <span className="pointer-events-none absolute -bottom-7 left-1/2 -translate-x-1/2 whitespace-nowrap text-center text-adw-callout font-medium text-adw-label-secondary">
                       {win.title}
                     </span>
                   )}

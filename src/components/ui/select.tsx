@@ -144,10 +144,10 @@ function SelectTrigger({
       data-size={size}
       data-variant={variant}
       className={cn(
-        "inline-flex max-w-full min-w-0 cursor-default items-center justify-between gap-1.5 rounded-lg px-2.5 text-[13px] font-medium whitespace-nowrap text-adw-label outline-none select-none transition-colors hover:bg-black/6 focus-visible:adw-focus-ring data-popup-open:bg-black/8 data-disabled:cursor-not-allowed data-disabled:text-adw-label-tertiary data-disabled:hover:bg-transparent dark:hover:bg-white/10 dark:data-popup-open:bg-white/12",
-        size === "sm" && "h-6 px-2 text-adw-subheadline",
-        size === "default" && "h-7",
-        size === "lg" && "h-8",
+        "inline-flex max-w-full min-w-0 cursor-default items-center justify-between gap-1.5 rounded-adw-item px-2.5 text-adw-body font-medium whitespace-nowrap text-adw-label outline-none select-none transition-colors hover-fill:bg-black/6 focus-visible:adw-focus-ring data-popup-open:bg-black/8 data-disabled:cursor-not-allowed data-disabled:text-adw-label-tertiary data-disabled:hover-fill:bg-transparent dark:hover-fill:bg-white/10 dark:data-popup-open:bg-white/12",
+        size === "sm" && "h-adw-control-small px-2 text-adw-subheadline",
+        size === "default" && "h-adw-control-medium",
+        size === "lg" && "h-adw-control-large",
         className
       )}
       {...props}

@@ -1825,11 +1825,11 @@ export function FilesApp({
               <div className="w-full truncate text-adw-body font-semibold">
                 {displayName}
               </div>
-              <div className="text-[11px] text-adw-label-secondary">
+              <div className="text-adw-subheadline text-adw-label-secondary">
                 {displayKind}
               </div>
             </div>
-            <dl className="space-y-2 text-[11.5px]">
+            <dl className="space-y-2 text-adw-subheadline">
               <div className="grid grid-cols-2 gap-2">
                 <div className="min-w-0">
                   <dt className="text-adw-dim">{_("Size")}</dt>
@@ -1842,7 +1842,7 @@ export function FilesApp({
               </div>
               <div>
                 <dt className="text-adw-dim">{_("Where")}</dt>
-                <dd className="flex min-w-0 text-[11px] text-adw-label-secondary">
+                <dd className="flex min-w-0 text-adw-subheadline text-adw-label-secondary">
                   <NicePathLabel path={inspectedItem?.path ?? currentPath} />
                 </dd>
               </div>
@@ -1878,11 +1878,11 @@ export function FilesApp({
                             reloadDir();
                           }}
                           className={cn(
-                            "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10.5px] font-medium transition-colors active:bg-[color-mix(in_srgb,currentColor_22%,transparent)]",
+                            "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-adw-footnote font-medium transition-colors active:bg-[color-mix(in_srgb,currentColor_22%,transparent)]",
                             meta.colorClass,
                             active
-                              ? "border-current/45 bg-[color-mix(in_srgb,currentColor_14%,transparent)] hover:bg-[color-mix(in_srgb,currentColor_22%,transparent)]"
-                              : "border-adw-separator opacity-75 hover:opacity-100 hover:bg-[color-mix(in_srgb,currentColor_12%,transparent)]"
+                              ? "border-current/45 bg-[color-mix(in_srgb,currentColor_14%,transparent)] hover-fill:bg-[color-mix(in_srgb,currentColor_22%,transparent)]"
+                              : "border-adw-separator opacity-75 hover:opacity-100 hover-fill:bg-[color-mix(in_srgb,currentColor_12%,transparent)]"
                           )}
                         >
                           <Icon
@@ -1976,7 +1976,7 @@ export function FilesApp({
               title={_("Back")}
               disabled={!canGoUp}
               onClick={handleGoUp}
-              className="flex size-7 items-center justify-center rounded-md text-adw-label-secondary transition-colors hover:bg-black/8 hover:text-adw-label disabled:pointer-events-none disabled:opacity-35 dark:hover:bg-white/10"
+              className="flex size-7 items-center justify-center rounded-adw-control text-adw-label-secondary transition-colors hover-fill:bg-black/8 hover:text-adw-label disabled:pointer-events-none disabled:opacity-35 dark:hover-fill:bg-white/10"
             >
               <ArrowLeftIcon className="size-4" />
             </button>
@@ -1995,7 +1995,7 @@ export function FilesApp({
                     }
                   }}
                   aria-label="Folder path"
-                  className="h-7 w-64 max-w-full rounded-md border border-adw-accent/70 bg-black/8 px-2 font-mono text-[12px] text-adw-label outline-none dark:bg-white/12"
+                  className="h-7 w-64 max-w-full rounded-adw-control border border-adw-accent/70 bg-black/8 px-2 font-mono text-adw-callout text-adw-label outline-none dark:bg-white/12"
                 />
               </form>
             ) : (
@@ -2008,7 +2008,7 @@ export function FilesApp({
                   setDraftLocation(currentPath);
                   setEditingLocation(true);
                 }}
-                className="flex h-7 items-center truncate rounded-md px-2 text-[13.5px] font-semibold text-adw-label transition-colors hover:bg-black/8 dark:hover:bg-white/10"
+                className="flex h-7 items-center truncate rounded-adw-control px-2 text-[13.5px] font-semibold text-adw-label transition-colors hover-fill:bg-black/8 dark:hover-fill:bg-white/10"
               >
                 {_(currentTitle)}
               </button>
@@ -2040,14 +2040,14 @@ export function FilesApp({
             {!isAppsView && (
               <div
                 data-slot="files-view-split-button"
-                className="flex h-7 items-center rounded-md text-adw-label-secondary"
+                className="flex h-7 items-center rounded-adw-control text-adw-label-secondary"
               >
                 <button
                   type="button"
                   aria-label={viewMode === "grid" ? _("List view") : _("Grid view")}
                   title={viewMode === "grid" ? _("List view") : _("Grid view")}
                   onClick={() => setViewMode((m) => (m === "grid" ? "list" : "grid"))}
-                  className="flex h-7 w-7 items-center justify-center rounded-l-md transition-colors hover:bg-black/8 hover:text-adw-label active:bg-black/12 dark:hover:bg-white/10 dark:active:bg-white/14"
+                  className="flex h-7 w-7 items-center justify-center rounded-l-adw-control transition-colors hover-fill:bg-black/8 hover:text-adw-label active:bg-black/12 dark:hover-fill:bg-white/10 dark:active:bg-white/14"
                 >
                   {viewMode === "grid" ? <ListIcon className="size-4" /> : <LayoutGridIcon className="size-4" />}
                 </button>
@@ -2056,7 +2056,7 @@ export function FilesApp({
                   <DropdownMenuTrigger
                     aria-label={_("View")}
                     title={_("View")}
-                    className="flex h-7 w-5 items-center justify-center rounded-r-md transition-colors outline-none hover:bg-black/8 hover:text-adw-label active:bg-black/12 data-popup-open:bg-black/10 data-popup-open:text-adw-label dark:hover:bg-white/10 dark:active:bg-white/14 dark:data-popup-open:bg-white/14"
+                    className="flex h-7 w-5 items-center justify-center rounded-r-adw-control transition-colors outline-none hover-fill:bg-black/8 hover:text-adw-label active:bg-black/12 data-popup-open:bg-black/10 data-popup-open:text-adw-label dark:hover-fill:bg-white/10 dark:active:bg-white/14 dark:data-popup-open:bg-white/14"
                   >
                     <ChevronDownIcon className="size-3.5" />
                   </DropdownMenuTrigger>
@@ -2097,7 +2097,7 @@ export function FilesApp({
                     }
                   }}
                   aria-label="Filter files"
-                  className="h-7 w-44 rounded-md border border-adw-separator bg-black/6 px-2 text-[12px] text-adw-label outline-none focus:border-adw-accent dark:bg-white/10"
+                  className="h-7 w-44 rounded-adw-control border border-adw-separator bg-black/6 px-2 text-adw-callout text-adw-label outline-none focus:border-adw-accent dark:bg-white/10"
                 />
               </div>
             ) : null}
@@ -2119,10 +2119,10 @@ export function FilesApp({
                 });
               }}
               className={cn(
-                "flex size-7 items-center justify-center rounded-md transition-colors",
+                "flex size-7 items-center justify-center rounded-adw-control transition-colors",
                 searchOpen
                   ? "bg-black/10 text-adw-label dark:bg-white/15"
-                  : "text-adw-label-secondary hover:bg-black/8 hover:text-adw-label dark:hover:bg-white/10"
+                  : "text-adw-label-secondary hover-fill:bg-black/8 hover:text-adw-label dark:hover-fill:bg-white/10"
               )}
             >
               <SearchIcon className="size-4" />
@@ -2134,10 +2134,10 @@ export function FilesApp({
               title={_("Get Info")}
               onClick={() => setInfoPaneOpen((v) => !v)}
               className={cn(
-                "flex size-7 items-center justify-center rounded-md transition-colors",
+                "flex size-7 items-center justify-center rounded-adw-control transition-colors",
                 infoPaneOpen
                   ? "bg-black/10 text-adw-label dark:bg-white/15"
-                  : "text-adw-label-secondary hover:bg-black/8 hover:text-adw-label dark:hover:bg-white/10"
+                  : "text-adw-label-secondary hover-fill:bg-black/8 hover:text-adw-label dark:hover-fill:bg-white/10"
               )}
             >
               <InfoIcon className="size-4" />
@@ -2195,7 +2195,7 @@ export function FilesApp({
         }}
       >
         {externalDropActive && (
-          <div className="pointer-events-none absolute inset-2 z-20 flex items-end justify-center rounded-xl border-2 border-dashed border-adw-accent/70 bg-adw-accent/10 pb-3">
+          <div className="pointer-events-none absolute inset-2 z-20 flex items-end justify-center rounded-adw-group border-2 border-dashed border-adw-accent/70 bg-adw-accent/10 pb-3">
             <span className="rounded-full bg-zinc-900/90 px-3 py-1 text-xs font-medium text-white shadow-sm ring-1 ring-white/10">
               {_("Drop files to copy here")}
             </span>
@@ -2204,7 +2204,7 @@ export function FilesApp({
         {items.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center gap-1.5 text-center text-adw-label-tertiary">
             <FolderIcon className="size-9 opacity-35" />
-            <span className="text-[12.5px]">
+            <span className="text-adw-callout">
               {isTrashView
                 ? _("Trash is empty")
                 : isFavoritesView
@@ -2214,9 +2214,9 @@ export function FilesApp({
           </div>
         ) : viewMode === "list" ? (
           <div className="p-2">
-            <table className="w-full border-collapse text-left text-[12.5px]">
+            <table className="w-full border-collapse text-left text-adw-callout">
               <thead>
-                <tr className="border-b border-adw-separator text-[11px] font-semibold text-adw-label-secondary uppercase">
+                <tr className="border-b border-adw-separator text-adw-subheadline font-semibold text-adw-label-secondary uppercase">
                   <th className="px-3 py-1.5">{_("Name")}</th>
                   <th className="px-3 py-1.5">{_("Kind")}</th>
                   <th className="px-3 py-1.5 text-right">{_("Size")}</th>
@@ -2303,7 +2303,7 @@ export function FilesApp({
                         "group cursor-default border-b border-adw-separator/40 transition-colors",
                         isSelected
                           ? "bg-adw-accent/20 text-adw-label"
-                          : "hover:bg-black/4 dark:hover:bg-white/5"
+                          : "hover-fill:bg-black/4 dark:hover-fill:bg-white/5"
                       )}
                     >
                       <td className="px-3 py-1.5 font-medium">
@@ -2364,7 +2364,7 @@ export function FilesApp({
                               onBlur={(e) =>
                                 handleCommitRename(item, e.currentTarget.value)
                               }
-                              className="min-w-28 rounded bg-zinc-900/95 px-1.5 py-0.5 text-[12.5px] font-medium text-white ring-1 ring-adw-accent outline-none"
+                              className="min-w-28 rounded bg-zinc-900/95 px-1.5 py-0.5 text-adw-callout font-medium text-white ring-1 ring-adw-accent outline-none"
                             />
                           ) : (
                             <span className="truncate">{item.name}</span>
@@ -2393,7 +2393,7 @@ export function FilesApp({
                       <td className="px-3 py-2 text-adw-label-secondary">
                         {item.kind === "directory" ? _("Directory") : _("File")}
                       </td>
-                      <td className="px-3 py-2 text-right font-mono text-[11.5px] text-adw-label-secondary">
+                      <td className="px-3 py-2 text-right font-mono text-adw-subheadline text-adw-label-secondary">
                         {sizeLabel}
                       </td>
                       <td className="w-8 px-1 py-0 text-center">
@@ -2411,7 +2411,7 @@ export function FilesApp({
                               toggleFavoriteItem(item);
                             }}
                             className={cn(
-                              "inline-flex size-6 items-center justify-center rounded-md transition-opacity duration-150",
+                              "inline-flex size-6 items-center justify-center rounded-adw-control transition-opacity duration-150",
                               isFavorite
                                 ? "text-red-500 opacity-100"
                                 : "text-adw-label-secondary opacity-0 group-hover:opacity-60 hover:!opacity-100 focus-visible:opacity-100"
@@ -2480,7 +2480,7 @@ export function FilesApp({
         >
           <span
             data-testid="files-status-pill"
-            className="min-w-0 truncate text-[11px] text-adw-label-secondary"
+            className="min-w-0 truncate text-adw-subheadline text-adw-label-secondary"
           >
             {selectedIds.length > 0
               ? _("%d selected", selectedIds.length)

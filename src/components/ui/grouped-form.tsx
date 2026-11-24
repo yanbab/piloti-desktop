@@ -157,8 +157,8 @@ function GroupedFormExpanderRow({
       className={cn(
         "flex w-full min-h-9 cursor-default items-center justify-between gap-4 py-2 text-left transition-colors outline-none not-first:min-h-[37px] not-first:border-t not-first:border-adw-separator",
         expanded
-          ? "bg-black/6 hover:bg-black/8 dark:bg-white/8 dark:hover:bg-white/10"
-          : "hover:bg-black/3 active:bg-black/5 dark:hover:bg-white/4 dark:active:bg-white/7",
+          ? "bg-black/6 hover-fill:bg-black/8 dark:bg-white/8 dark:hover-fill:bg-white/10"
+          : "hover-fill:bg-black/3 active:bg-black/5 dark:hover-fill:bg-white/4 dark:active:bg-white/7",
         description && "py-2.5",
         className
       )}

@@ -105,12 +105,12 @@ export function PowerActionDialog() {
         </DialogHeader>
 
         {inhibitors.length > 0 && (
-          <div className="mb-2 rounded-lg border border-amber-500/35 bg-amber-500/12 px-3 py-2 text-left text-[11.5px] text-amber-900 dark:text-amber-200">
+          <div className="mb-2 rounded-adw-item border border-amber-500/35 bg-amber-500/12 px-3 py-2 text-left text-adw-subheadline text-amber-900 dark:text-amber-200">
             <div className="flex items-center gap-1.5 font-semibold">
               <AlertTriangleIcon className="size-3.5 shrink-0 text-amber-600 dark:text-amber-400" />
               <span>{_("Blocked by running applications:")}</span>
             </div>
-            <ul className="mt-1 space-y-0.5 pl-5 text-[11px] opacity-90">
+            <ul className="mt-1 space-y-0.5 pl-5 text-adw-subheadline opacity-90">
               {inhibitors.map((inh) => (
                 <li key={inh.id} className="list-disc">
                   <span className="font-medium">{inh.appId || _("Application")}</span>
@@ -129,7 +129,7 @@ export function PowerActionDialog() {
               updateSettings({ restoreWindowsOnLogin: Boolean(checked) })
             }
           />
-          <span className="text-[13px] font-normal text-adw-label">
+          <span className="text-adw-body font-normal text-adw-label">
             {_("Restore open windows")}
           </span>
         </label>
@@ -139,7 +139,7 @@ export function PowerActionDialog() {
             type="button"
             variant="secondary"
             size="default"
-            className="h-9 w-full rounded-md font-semibold"
+            className="h-9 w-full rounded-adw-control font-semibold"
             onClick={() => cancelPowerAction()}
           >
             {_("Cancel")}
@@ -151,7 +151,7 @@ export function PowerActionDialog() {
             }
             size="default"
             autoFocus
-            className="h-9 w-full rounded-md font-semibold"
+            className="h-9 w-full rounded-adw-control font-semibold"
             onClick={() =>
               void confirmPowerAction(settings.restoreWindowsOnLogin)
             }

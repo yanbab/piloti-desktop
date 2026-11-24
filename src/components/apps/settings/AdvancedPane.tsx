@@ -310,7 +310,7 @@ export function AdvancedPane() {
               <GroupedFormRowTitle>{_("Keyboard")}</GroupedFormRowTitle>
             </GroupedFormRowLabel>
             <GroupedFormRowControl>
-              <div className="inline-flex rounded-lg bg-black/8 p-0.5 dark:bg-white/10">
+              <div className="inline-flex rounded-adw-item bg-black/8 p-0.5 dark:bg-white/10">
                 {(["pc", "mac"] as const).map((model) => {
                   const selected = settings.computerModel === model;
                   return (
@@ -319,7 +319,7 @@ export function AdvancedPane() {
                       type="button"
                       onClick={() => updateSettings({ computerModel: model })}
                       className={cn(
-                        "rounded-md px-3 py-1 text-[12px] font-medium transition-all",
+                        "rounded-adw-control px-3 py-1 text-adw-callout font-medium transition-all",
                         selected
                           ? "bg-white text-black shadow-xs dark:bg-white/16 dark:text-white"
                           : "text-adw-label-secondary hover:text-adw-label"
@@ -526,7 +526,7 @@ export function AdvancedPane() {
                       if (e.key === "Enter") handleAddExtensionEntry();
                     }}
                     placeholder="/path/to/ext or Web Store ID"
-                    className="h-7 w-48 rounded-md border border-adw-separator bg-black/4 px-2 text-xs text-adw-label outline-none focus:border-adw-accent dark:bg-white/6"
+                    className="h-7 w-48 rounded-adw-control border border-adw-separator bg-black/4 px-2 text-xs text-adw-label outline-none focus:border-adw-accent dark:bg-white/6"
                   />
                   <Button
                     size="sm"
@@ -735,15 +735,15 @@ export function AdvancedPane() {
                     <div className="flex items-center gap-2">
                       <GroupedFormRowTitle>{plugin.name}</GroupedFormRowTitle>
                       {plugin.scope === "system" && (
-                        <span className="rounded-md bg-adw-accent/15 px-1.5 py-0.5 text-[10px] font-medium text-adw-accent">
+                        <span className="rounded-adw-control bg-adw-accent/15 px-1.5 py-0.5 text-adw-footnote font-medium text-adw-accent">
                           {_("System")}
                         </span>
                       )}
-                      <span className="rounded-md bg-black/6 px-1.5 py-0.5 text-[10px] font-medium text-adw-label-secondary dark:bg-white/10">
+                      <span className="rounded-adw-control bg-black/6 px-1.5 py-0.5 text-adw-footnote font-medium text-adw-label-secondary dark:bg-white/10">
                         {kindLabel}
                       </span>
                       {plugin.version && (
-                        <span className="text-[11px] text-adw-label-secondary">
+                        <span className="text-adw-subheadline text-adw-label-secondary">
                           v{plugin.version}
                         </span>
                       )}

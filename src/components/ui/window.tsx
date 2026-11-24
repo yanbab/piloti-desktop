@@ -1128,7 +1128,7 @@ function WindowControlButton({
     <button
       type="button"
       className={cn(
-        "flex size-6 items-center justify-center rounded-full bg-black/6 text-adw-label-secondary transition-colors outline-none hover:bg-black/12 hover:text-adw-label active:bg-black/18 focus-visible:outline-3 focus-visible:outline-solid focus-visible:outline-adw-accent/50 group-data-[inactive]/window:opacity-50 dark:bg-white/8 dark:hover:bg-white/15 dark:active:bg-white/22 [&_svg]:size-3",
+        "flex size-6 items-center justify-center rounded-full bg-black/6 text-adw-label-secondary transition-colors outline-none hover-fill:bg-black/12 hover:text-adw-label active:bg-black/18 focus-visible:outline-3 focus-visible:outline-solid focus-visible:outline-adw-accent/50 group-data-[inactive]/window:opacity-50 dark:bg-white/8 dark:hover-fill:bg-white/15 dark:active:bg-white/22 [&_svg]:size-3",
         className
       )}
       {...props}

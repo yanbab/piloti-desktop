@@ -101,7 +101,7 @@ export function AuthPasswordCard({
           aria-label={backLabel ?? _("Switch User")}
           title={backLabel ?? _("Switch User")}
           onClick={onBack}
-          className="absolute top-3.5 left-3.5 flex size-7 items-center justify-center rounded-full text-white/75 transition-colors hover:bg-white/14 hover:text-white disabled:opacity-40"
+          className="absolute top-3.5 left-3.5 flex size-7 items-center justify-center rounded-full text-white/75 transition-colors hover-fill:bg-white/14 hover:text-white disabled:opacity-40"
         >
           <ArrowLeftIcon className="size-4" />
         </button>
@@ -147,7 +147,7 @@ export function AuthPasswordCard({
               placeholder={placeholder ?? _("Password")}
               aria-label={_("Password")}
               className={cn(
-                "h-9 w-full rounded-[10px] border bg-black/30 pr-16 pl-3 text-[13px] text-white placeholder:text-white/45 focus:outline-none disabled:opacity-60",
+                "h-9 w-full rounded-[10px] border bg-black/30 pr-16 pl-3 text-adw-body text-white placeholder:text-white/45 focus:outline-none disabled:opacity-60",
                 error
                   ? "border-rose-400/80 ring-1 ring-rose-400/40"
                   : "border-white/20 focus:border-white/45",
@@ -166,7 +166,7 @@ export function AuthPasswordCard({
                   setShowPassword((v) => !v);
                   inputRef.current?.focus();
                 }}
-                className="flex size-6 items-center justify-center rounded-md text-white/70 transition-colors hover:bg-white/14 hover:text-white"
+                className="flex size-6 items-center justify-center rounded-adw-control text-white/70 transition-colors hover-fill:bg-white/14 hover:text-white"
               >
                 {showPassword ? (
                   <EyeOffIcon className="size-3.5" />
@@ -178,7 +178,7 @@ export function AuthPasswordCard({
                 type="submit"
                 disabled={disabled || loading}
                 aria-label={submitLabel ?? _("Sign In")}
-                className="flex size-6 items-center justify-center rounded-md bg-adw-accent text-white transition-all hover:brightness-110 active:scale-95 disabled:opacity-60"
+                className="flex size-6 items-center justify-center rounded-adw-control bg-adw-accent text-white transition-all hover:brightness-110 active:scale-95 disabled:opacity-60"
               >
                 {loading ? (
                   <Loader2Icon className="size-3.5 animate-spin" />
@@ -197,7 +197,7 @@ export function AuthPasswordCard({
         {error && (
           <div
             role="alert"
-            className="w-full rounded-lg bg-rose-500/20 px-2.5 py-1.5 text-center text-xs text-rose-200 ring-1 ring-rose-400/30"
+            className="w-full rounded-adw-item bg-rose-500/20 px-2.5 py-1.5 text-center text-xs text-rose-200 ring-1 ring-rose-400/30"
           >
             {error}
           </div>

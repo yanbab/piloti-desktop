@@ -121,7 +121,7 @@ function FontPopoverSelector({
         if (!next) setSearch("");
       }}
     >
-      <Popover.Trigger className="inline-flex h-7 max-w-[260px] items-center gap-1.5 rounded-lg px-2.5 text-[13px] font-medium text-adw-label transition-colors hover:bg-black/6 focus-visible:outline-none dark:hover:bg-white/10">
+      <Popover.Trigger className="inline-flex h-7 max-w-[260px] items-center gap-1.5 rounded-adw-item px-2.5 text-adw-body font-medium text-adw-label transition-colors hover-fill:bg-black/6 focus-visible:outline-none dark:hover-fill:bg-white/10">
         <span className="truncate">{summary}</span>
         <ChevronsUpDownIcon className="size-3.5 shrink-0 text-adw-label-secondary" />
       </Popover.Trigger>
@@ -142,13 +142,13 @@ function FontPopoverSelector({
                   }
                 }}
                 placeholder={_("Search fonts…")}
-                className="h-7 pl-8 text-[12px]"
+                className="h-7 pl-8 text-adw-callout"
               />
             </div>
 
             <div className="max-h-52 overflow-y-auto pr-0.5">
               {filteredFonts.length === 0 ? (
-                <div className="px-2 py-4 text-center text-[12px] text-adw-label-secondary">
+                <div className="px-2 py-4 text-center text-adw-callout text-adw-label-secondary">
                   {_("No matching fonts")}
                 </div>
               ) : (
@@ -160,10 +160,10 @@ function FontPopoverSelector({
                       type="button"
                       onClick={() => onSelectFont(family)}
                       className={cn(
-                        "flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-left text-[12.5px] transition-colors",
+                        "flex w-full items-center justify-between gap-2 rounded-adw-item px-2.5 py-1.5 text-left text-adw-callout transition-colors",
                         selected
                           ? "bg-adw-accent/15 font-medium text-adw-label"
-                          : "hover:bg-black/6 dark:hover:bg-white/8",
+                          : "hover-fill:bg-black/6 dark:hover-fill:bg-white/8",
                       )}
                     >
                       <span className="truncate">{family}</span>
@@ -178,7 +178,7 @@ function FontPopoverSelector({
 
             {fontScale !== undefined && onChangeScale && (
               <div className="mt-2 border-t border-adw-separator pt-2">
-                <div className="mb-1 flex items-center justify-between text-[11px] text-adw-label-secondary">
+                <div className="mb-1 flex items-center justify-between text-adw-subheadline text-adw-label-secondary">
                   <span>{_("Size")}</span>
                   <span className="tabular-nums">
                     {Math.round(13 * fontScale)}px ({Math.round(fontScale * 100)}%)
@@ -199,7 +199,7 @@ function FontPopoverSelector({
 
             {fontStyle !== undefined && onChangeStyle && (
               <div className="mt-2 border-t border-adw-separator pt-2">
-                <div className="mb-1.5 text-[11px] text-adw-label-secondary">
+                <div className="mb-1.5 text-adw-subheadline text-adw-label-secondary">
                   {_("Style")}
                 </div>
                 <div className="flex flex-wrap gap-1">
@@ -209,7 +209,7 @@ function FontPopoverSelector({
                       type="button"
                       onClick={() => onChangeStyle(opt.value)}
                       className={cn(
-                        "rounded-md px-2 py-0.5 text-[11px] font-medium transition-colors",
+                        "rounded-adw-control px-2 py-0.5 text-adw-subheadline font-medium transition-colors",
                         fontStyle === opt.value
                           ? "bg-adw-accent text-white"
                           : "bg-black/6 text-adw-label-secondary hover:text-adw-label dark:bg-white/8",
