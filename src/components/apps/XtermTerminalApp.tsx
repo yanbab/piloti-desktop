@@ -53,11 +53,11 @@ export function XtermTerminalApp({
   const [shells, setShells] = React.useState<LoginShell[]>([]);
   const [mode, setMode] = React.useState<string>(bashAvailable ? "" : PILOTI);
   React.useEffect(() => {
-    if (!bashAvailable) return;
     let cancelled = false;
     void readLoginShells(domicile).then((list) => {
       if (cancelled) return;
       setShells(list);
+      if (!bashAvailable) return; // the web demo has no shells: they are listed, disabled
       const preferred = list.find((s) => s.available && s.path.endsWith("/bash")) ?? list.find((s) => s.available);
       setMode(preferred?.path ?? PILOTI);
     });
@@ -208,7 +208,7 @@ export function XtermTerminalApp({
                 <DropdownMenuRadioItem value={PILOTI}>piloti-shell</DropdownMenuRadioItem>
                 {shells.map(({ path, available }) => (
                   <DropdownMenuRadioItem key={path} value={path} disabled={!available}>
-                    {path}
+                    {path.slice(path.lastIndexOf("/") + 1)}
                   </DropdownMenuRadioItem>
                 ))}
               </DropdownMenuRadioGroup>
