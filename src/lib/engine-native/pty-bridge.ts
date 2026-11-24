@@ -9,7 +9,7 @@ import type { Domicile } from "@domicile-desktop/sdk/desktop/desktop";
 export const PTY_BRIDGE_PY = String.raw`
 import fcntl, os, pty, re, select, signal, struct, sys, termios
 cols, rows = int(sys.argv[1]), int(sys.argv[2])
-shell = os.environ.get("SHELL") or "/bin/bash"
+shell = (sys.argv[3] if len(sys.argv) > 3 else "") or os.environ.get("SHELL") or "/bin/bash"
 pid, fd = pty.fork()
 if pid == 0:
     os.environ["TERM"] = "xterm-256color"
@@ -73,14 +73,28 @@ export interface BashSession {
  * Starts the user's shell on a pseudo-terminal. `onOutput` gets its bytes;
  * `onExit` fires once when it ends (or could not start).
  */
-export async function startBash(
+/** Login shells from `/etc/shells` (absolute paths, no `nologin`/`false`), first occurrence of each. */
+export async function readLoginShells(domicile: Domicile): Promise<string[]> {
+  const res = await domicile.files.readText("/etc/shells").catch(() => null);
+  const text = res?.match({ Ok: (t) => t, Err: () => "" }) ?? "";
+  const out: string[] = [];
+  for (const raw of text.split("\n")) {
+    const line = raw.trim();
+    if (!line.startsWith("/") || /\/(nologin|false)$/.test(line) || out.includes(line)) continue;
+    out.push(line);
+  }
+  return out;
+}
+
+export async function startShell(
   domicile: Domicile,
+  shell: string,
   size: { cols: number; rows: number },
   onOutput: (bytes: Uint8Array) => void,
   onExit: (reason: string) => void,
 ): Promise<BashSession | null> {
   const spawned = await domicile.processes.spawn(
-    ["python3", "-c", PTY_BRIDGE_PY, String(size.cols), String(size.rows)],
+    ["python3", "-c", PTY_BRIDGE_PY, String(size.cols), String(size.rows), shell],
     { stdin: true },
   );
   const process = spawned.match({ Ok: (p) => p, Err: () => null });
@@ -100,8 +114,10 @@ export async function startBash(
       /* stream closed */
     }
   };
+  let stopped = false;
   void Promise.all([pump(process.stdout), pump(process.stderr)]).then(async () => {
     const exit = await process.exited;
+    if (stopped) return; // switched away: the new session owns the screen
     onExit(
       exit.match({
         Ok: (e) => (e.code === 0 || e.code === undefined ? "shell exited" : `shell exited (${e.code})`),
@@ -112,6 +128,9 @@ export async function startBash(
   return {
     write: (data) => process.write(data),
     resize: (cols, rows) => process.write(`\x1b]777;resize;${cols};${rows}\x07`),
-    stop: () => process.kill(),
+    stop: () => {
+      stopped = true;
+      process.kill();
+    },
   };
 }

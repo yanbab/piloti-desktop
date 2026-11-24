@@ -10,12 +10,20 @@ import {
   useWindowManagerSelector,
 } from "@/context/DesktopStateContext";
 import { getEngine } from "@/lib/engine/engine";
-import { startBash, type BashSession } from "@/lib/engine-native/pty-bridge";
+import { readLoginShells, startShell, type BashSession } from "@/lib/engine-native/pty-bridge";
+import { ChevronDownIcon } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { createRepl } from "@/lib/shell/piloti-repl";
 import { _ } from "@/lib/core/i18n";
-import { cn } from "@/lib/core/utils";
 
-type Mode = "bash" | "piloti";
+/** `"piloti"` is the JavaScript REPL; anything else is a shell path from /etc/shells. */
+const PILOTI = "piloti";
 
 const DARK = { background: "#1e1e1e", foreground: "#e6e6e6", cursor: "#e6e6e6", selectionBackground: "#4a4a4a" };
 const LIGHT = { background: "#fafafa", foreground: "#1e1e1e", cursor: "#1e1e1e", selectionBackground: "#cfcfcf" };
@@ -34,7 +42,21 @@ export function XtermTerminalApp({ initialPath: _initialPath }: { initialPath?: 
     wm.windows.map((w) => ({ id: w.id, appId: w.appId, title: w.title })),
   );
   const bashAvailable = getEngine().capabilities.systemServices;
-  const [mode, setMode] = React.useState<Mode>(bashAvailable ? "bash" : "piloti");
+  const [shells, setShells] = React.useState<string[]>([]);
+  const [mode, setMode] = React.useState<string>(bashAvailable ? "" : PILOTI);
+  React.useEffect(() => {
+    if (!bashAvailable) return;
+    let cancelled = false;
+    void readLoginShells(domicile).then((list) => {
+      if (cancelled) return;
+      setShells(list);
+      const preferred = list.find((p) => p.endsWith("/bash")) ?? list[0];
+      setMode(preferred ?? PILOTI);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [bashAvailable, domicile]);
 
   const hostRef = React.useRef<HTMLDivElement>(null);
   const termRef = React.useRef<Terminal | null>(null);
@@ -113,19 +135,20 @@ export function XtermTerminalApp({ initialPath: _initialPath }: { initialPath?: 
   // (Re)start the chosen mode when it changes.
   React.useEffect(() => {
     const term = termRef.current;
-    if (!term) return;
+    if (!term || !mode) return;
     term.reset();
     term.options.theme = settings.themeMode === "dark" ? DARK : LIGHT;
     let cancelled = false;
     let input: { dispose(): void } | null = null;
 
-    if (mode === "piloti") {
+    if (mode === PILOTI) {
       const repl = createRepl({ write: (t) => term.write(t), scope: () => scopeRef.current() });
       input = term.onData((d) => repl.onData(d));
       repl.start();
     } else {
-      void startBash(
+      void startShell(
         domicile,
+        mode,
         { cols: term.cols, rows: term.rows },
         (bytes) => term.write(bytes),
         (reason) => term.write(`\r\n\x1b[2m[${reason}]\x1b[0m\r\n`),
@@ -147,37 +170,34 @@ export function XtermTerminalApp({ initialPath: _initialPath }: { initialPath?: 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode, domicile]);
 
-  const option = (value: Mode, label: string, disabled = false) => (
-    <button
-      type="button"
-      role="tab"
-      aria-selected={mode === value}
-      disabled={disabled}
-      onClick={() => setMode(value)}
-      className={cn(
-        "rounded-[7px] px-3 py-1 text-[12px] font-medium transition-colors",
-        mode === value
-          ? "bg-adw-accent text-white"
-          : "text-adw-label-secondary hover:bg-black/8 dark:hover:bg-white/10",
-        disabled && "pointer-events-none opacity-40",
-      )}
-    >
-      {label}
-    </button>
-  );
-
   return (
     <div
       className="flex h-full min-h-0 flex-col"
       style={{ background: (settings.themeMode === "dark" ? DARK : LIGHT).background }}
     >
-      <div
-        role="tablist"
-        aria-label={_("Terminal mode")}
-        className="flex shrink-0 items-center gap-1 border-b border-black/10 bg-adw-headerbar px-2 py-1.5 dark:border-white/10"
-      >
-        {option("bash", "bash", !bashAvailable)}
-        {option("piloti", "piloti-shell")}
+      <div className="flex shrink-0 items-center justify-between gap-2 border-b border-black/10 bg-adw-headerbar px-2 py-1.5 dark:border-white/10">
+        <span className="truncate px-1 text-[12px] text-adw-label-secondary">
+          {mode === PILOTI ? "piloti-shell" : mode}
+        </span>
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            aria-label={_("Choose shell")}
+            className="inline-flex items-center gap-1 rounded-[7px] px-2.5 py-1 text-[12px] font-medium text-adw-label outline-none hover:bg-black/8 data-popup-open:bg-black/12 dark:hover:bg-white/10 dark:data-popup-open:bg-white/15"
+          >
+            {mode === PILOTI ? "piloti-shell" : (mode.split("/").pop() ?? mode)}
+            <ChevronDownIcon className="size-3.5 opacity-70" />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="min-w-[11rem]">
+            <DropdownMenuRadioGroup value={mode} onValueChange={(value) => setMode(String(value))}>
+              <DropdownMenuRadioItem value={PILOTI}>piloti-shell</DropdownMenuRadioItem>
+              {shells.map((path) => (
+                <DropdownMenuRadioItem key={path} value={path}>
+                  {path}
+                </DropdownMenuRadioItem>
+              ))}
+            </DropdownMenuRadioGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
       <div ref={hostRef} className="min-h-0 flex-1 p-2" />
     </div>
