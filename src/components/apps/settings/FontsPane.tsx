@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useCapabilities } from "@/hooks/use-capabilities";
 import { Popover } from "@base-ui/react/popover";
 import { CheckIcon, ChevronsUpDownIcon, SearchIcon } from "lucide-react";
 import { useDomicile } from "@domicile-desktop/react/domicile-provider";
@@ -230,11 +231,12 @@ function FontPopoverSelector({
 
 export function FontsPane() {
   const domicile = useDomicile();
-  const { isBrowserRuntime, settings, updateSettings } = useSettings();
+  const { settings, updateSettings } = useSettings();
+  const { systemServices } = useCapabilities();
   const [installedFonts, setInstalledFonts] = React.useState<string[]>([]);
 
   React.useEffect(() => {
-    if (isBrowserRuntime) return;
+    if (!systemServices) return;
     let cancelled = false;
     void listInstalledFontFamilies(domicile).then((fonts) => {
       if (!cancelled && fonts.length > 0) {
@@ -244,7 +246,7 @@ export function FontsPane() {
     return () => {
       cancelled = true;
     };
-  }, [domicile, isBrowserRuntime]);
+  }, [domicile, systemServices]);
 
   const sansFonts = React.useMemo(() => {
     const set = new Set<string>([...SANS_PRESETS, ...installedFonts]);

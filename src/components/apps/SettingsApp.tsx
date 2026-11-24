@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useCapabilities } from "@/hooks/use-capabilities";
 import { useDomicile } from "@domicile-desktop/react/domicile-provider";
 import {
   BellIcon,
@@ -143,7 +144,7 @@ export function SettingsApp({
   windowId?: string;
 }) {
   const domicile = useDomicile();
-  const { isBrowserRuntime } = useSettings();
+  const { systemServices } = useCapabilities();
   const { gnomeCapabilities } = useSystemBackends();
   const { openGnomeSettings } = useWindowActions();
 
@@ -273,7 +274,7 @@ export function SettingsApp({
             </div>
             <div className="flex items-center gap-2" data-window-no-drag>
               {matchingGnomePanel &&
-                !isBrowserRuntime &&
+                systemServices &&
                 gnomeCapabilities.gnomeControlCenter && (
                   <Button
                     size="sm"
@@ -300,7 +301,7 @@ export function SettingsApp({
               </div>
             </div>
             {matchingGnomePanel &&
-              !isBrowserRuntime &&
+              systemServices &&
               gnomeCapabilities.gnomeControlCenter && (
                 <Button
                   size="sm"

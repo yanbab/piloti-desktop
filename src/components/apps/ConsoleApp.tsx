@@ -1,5 +1,6 @@
 import { VFS_HOME } from "@/lib/engine/vfs-home";
 import * as React from "react";
+import { useCapabilities } from "@/hooks/use-capabilities";
 import { useDisplays } from "@domicile-desktop/react/displays";
 import { useDomicile } from "@domicile-desktop/react/domicile-provider";
 import { useWatch } from "@domicile-desktop/react/use-watch";
@@ -209,7 +210,8 @@ function InspectorJsonCard({
 function InspectorModule() {
   const domicile = useDomicile();
   const displays = useDisplays() ?? [];
-  const { isBrowserRuntime, settings } = useSettings();
+  const { settings } = useSettings();
+  const { systemServices } = useCapabilities();
   const {
     installedXdgApps,
     xdgUserDirs,
@@ -449,7 +451,7 @@ function InspectorModule() {
               {[
                 {
                   label: _("Runtime"),
-                  value: isBrowserRuntime ? "Browser Harness" : "Domicile Wayland",
+                  value: !systemServices ? "Browser Harness" : "Domicile Wayland",
                 },
                 { label: _("Icon Theme"), value: activeIconTheme },
                 {
@@ -1613,7 +1615,8 @@ export function ConsoleApp({
   windowId?: string;
 }) {
   const domicile = useDomicile();
-  const { isBrowserRuntime, settings, updateSettings } = useSettings();
+  const { settings, updateSettings } = useSettings();
+  const { systemServices } = useCapabilities();
   const { installedXdgApps } = useApps();
   const {
     availableGnomePanels,

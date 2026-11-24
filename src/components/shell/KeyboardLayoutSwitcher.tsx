@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useCapabilities } from "@/hooks/use-capabilities";
 import { useDomicile } from "@domicile-desktop/react/domicile-provider";
 import { KeymapChoice } from "@domicile-desktop/sdk/keymap-choice";
 import { KeyboardIcon } from "lucide-react";
@@ -52,12 +53,12 @@ export function KeyboardLayoutSwitcher({
   sideOffset = 4,
 }: KeyboardLayoutSwitcherProps) {
   const domicile = useDomicile();
-  const { isBrowserRuntime } = useSettings();
+  const { systemServices } = useCapabilities();
   const [liveLayouts, setLiveLayouts] = React.useState<KeyboardLayoutOption[]>([]);
   const [liveActive, setLiveActive] = React.useState<string>("");
 
   React.useEffect(() => {
-    if (isBrowserRuntime || typeof domicile.keyboard?.keymaps !== "function") {
+    if (!systemServices || typeof domicile.keyboard?.keymaps !== "function") {
       return;
     }
     let active = true;
@@ -98,7 +99,7 @@ export function KeyboardLayoutSwitcher({
       void reader?.cancel().catch(() => undefined);
       stopListening?.();
     };
-  }, [domicile, isBrowserRuntime]);
+  }, [domicile, systemServices]);
 
   const layouts = React.useMemo(() => {
     if (liveLayouts.length > 0) return liveLayouts;
@@ -118,7 +119,7 @@ export function KeyboardLayoutSwitcher({
     if (liveLayouts.length > 0) {
       setLiveActive(nextId);
     }
-    if (!isBrowserRuntime && typeof domicile.keyboard?.selectKeymap === "function") {
+    if (systemServices && typeof domicile.keyboard?.selectKeymap === "function") {
       void domicile.keyboard
         .selectKeymap(KeymapChoice.Named(nextId))
         .catch(() => undefined);

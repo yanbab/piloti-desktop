@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useCapabilities } from "@/hooks/use-capabilities";
 import { emitShellEvent, onShellEvent } from "@/lib/shell/shell-events";
 import { countRender } from "@/lib/core/render-stats";
 import { useDomicile } from "@domicile-desktop/react/domicile-provider";
@@ -92,7 +93,8 @@ logBootEvent("starting shell");
 function DesktopSurface() {
   const domicile = useDomicile();
   // Chrome view of settings: window drags (saved bounds) don't re-render the surface.
-  const { isBrowserRuntime, settings, updateSettings } = useChromeSettings();
+  const { settings, updateSettings } = useChromeSettings();
+  const { systemServices, simulatedHardware } = useCapabilities();
 
   React.useEffect(() => {
     logBootEvent(`finish load shell in ${bootElapsedMs()}ms`);
@@ -139,7 +141,7 @@ function DesktopSurface() {
   );
   React.useEffect(() => {
     const syncTemplates = () => {
-      if (isBrowserRuntime) {
+      if (!systemServices) {
         setTemplates(listVfsTemplates());
       } else {
         void listFsTemplates(domicile).then((list) =>
@@ -152,7 +154,7 @@ function DesktopSurface() {
       path: resolveVfsTemplatesDir(),
       mode: "children",
     });
-  }, [domicile, isBrowserRuntime]);
+  }, [domicile, systemServices]);
 
   const brightnessFilter =
     settings.brightness < 100
@@ -180,7 +182,7 @@ function DesktopSurface() {
       <DesktopBackgroundLayers />
 
       {/* Subtle Night Light Warmth Filter in Browser Dev Mode (Domicile uses hardware LUT on Linux) */}
-      {settings.nightLight && isBrowserRuntime && (
+      {settings.nightLight && simulatedHardware && (
         <div className="pointer-events-none fixed inset-0 z-[45] bg-amber-500/12 mix-blend-multiply" />
       )}
 
@@ -368,7 +370,8 @@ function DesktopSurface() {
 
 function DomicileShellCommandBridge() {
   const domicile = useDomicile();
-  const { isBrowserRuntime, settings } = useSettings();
+  const { settings } = useSettings();
+  const { systemServices } = useCapabilities();
   const {
     lockSession,
     requestPowerAction,
@@ -424,7 +427,7 @@ function DomicileShellCommandBridge() {
   };
 
   React.useEffect(() => {
-    if (isBrowserRuntime) return;
+    if (!systemServices) return;
     if (typeof domicile.shell?.commands !== "function") return;
     let stopped = false;
     let stopListening: (() => void) | null = null;
@@ -457,7 +460,7 @@ function DomicileShellCommandBridge() {
       stopped = true;
       stopListening?.();
     };
-  }, [domicile, isBrowserRuntime]);
+  }, [domicile, systemServices]);
 
   return null;
 }

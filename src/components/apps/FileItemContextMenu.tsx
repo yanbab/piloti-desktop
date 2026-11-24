@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useCapabilities } from "@/hooks/use-capabilities";
 import { usePopupSurface } from "@/lib/shell/popup-layer";
 import { createPortal } from "react-dom";
 import { useDomicile } from "@domicile-desktop/react/domicile-provider";
@@ -107,7 +108,7 @@ export function FileItemContextMenu({
   onTrashItems?: (items: IconGridItem[]) => void;
 }) {
   const domicile = useDomicile();
-  const { isBrowserRuntime } = useSettings();
+  const { realFilesystem } = useCapabilities();
   const { getAppIconUrl, installedXdgApps } = useApps();
   const [mimeConfig, setMimeConfig] = React.useState<MimeAppsConfig | null>(null);
   usePopupSurface(Boolean(menu), onClose);
@@ -121,7 +122,7 @@ export function FileItemContextMenu({
     return () => {
       cancelled = true;
     };
-  }, [domicile, isBrowserRuntime, menu]);
+  }, [domicile, realFilesystem, menu]);
 
   if (!menu) return null;
 
@@ -161,7 +162,7 @@ export function FileItemContextMenu({
   );
   const showDownload =
     Boolean(onDownload) &&
-    isBrowserRuntime &&
+    !realFilesystem &&
     isSingle &&
     menu.item.kind === "file";
   const canDoRename = isSingle && !isVirtualView && !inTrash;

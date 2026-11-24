@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useCapabilities } from "@/hooks/use-capabilities";
 import { useDisplays } from "@domicile-desktop/react/displays";
 import { useDomicile } from "@domicile-desktop/react/domicile-provider";
 import {
@@ -209,8 +210,8 @@ export function WallpaperPane() {
   const displays = useDisplays() ?? [];
   const primaryDisplayName =
     displays[0]?.name?.trim() || _("Built-in Display");
-  const { isBrowserRuntime, settings, updateSettings, resolvedTheme } =
-    useSettings();
+  const { settings, updateSettings, resolvedTheme } = useSettings();
+  const { realFilesystem } = useCapabilities();
   const { xdgUserDirs } = useApps();
   const baseSpec = useResolvedDesktopBackgroundSpec();
   const pluginsCtx = useOptionalPlugins();
@@ -285,7 +286,7 @@ export function WallpaperPane() {
     return () => {
       active = false;
     };
-  }, [domicile, imagePickerOpen, isBrowserRuntime, pickerCwd]);
+  }, [domicile, imagePickerOpen, realFilesystem, pickerCwd]);
 
   const applyPictureUri = React.useCallback(
     (uri: string) => {
@@ -315,7 +316,7 @@ export function WallpaperPane() {
   const handleHostImageUpload = React.useCallback(
     async (files: FileList | null) => {
       if (!files || files.length === 0) return;
-      if (isBrowserRuntime) {
+      if (!realFilesystem) {
         const imported = await importExternalFilesToVfs(picturesDir, files);
         const firstImage = imported.find((e) => IMAGE_FILE_EXT_RE.test(e.name)) ?? imported[0];
         if (firstImage) {
@@ -332,7 +333,7 @@ export function WallpaperPane() {
       applyPictureUri(localPathToFileUri(targetPath));
       setImagePickerOpen(false);
     },
-    [applyPictureUri, domicile.files, isBrowserRuntime, picturesDir]
+    [applyPictureUri, domicile.files, realFilesystem, picturesDir]
   );
 
   const applySolidColor = React.useCallback(

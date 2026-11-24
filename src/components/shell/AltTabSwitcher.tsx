@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useCapabilities } from "@/hooks/use-capabilities";
 import { useDomicile } from "@domicile-desktop/react/domicile-provider";
 import { PreviewedWindow } from "@domicile-desktop/sdk/previewed-window";
 import { Minimize2Icon, SparklesIcon } from "lucide-react";
@@ -73,7 +74,7 @@ function WindowMiniPreview({
 
 export function AltTabSwitcher() {
   const domicile = useDomicile();
-  const { isBrowserRuntime } = useSettings();
+  const { systemServices } = useCapabilities();
   const { getAppIconUrl } = useApps();
   const {
     altTabOpen,
@@ -88,7 +89,7 @@ export function AltTabSwitcher() {
 
   // Capture live PNG thumbnails for Wayland windows via `domicile.capture.preview`
   React.useEffect(() => {
-    if (!altTabOpen || isBrowserRuntime) return;
+    if (!altTabOpen || !systemServices) return;
     let cancelled = false;
 
     const waylandWins = mruWindows.filter((w) => Boolean(w.waylandAppId));
@@ -118,7 +119,7 @@ export function AltTabSwitcher() {
     return () => {
       cancelled = true;
     };
-  }, [altTabOpen, domicile.capture, isBrowserRuntime, mruWindows]);
+  }, [altTabOpen, domicile.capture, systemServices, mruWindows]);
 
   if (!altTabOpen) return null;
 

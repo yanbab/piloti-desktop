@@ -1,5 +1,6 @@
 import { VFS_HOME } from "@/lib/engine/vfs-home";
 import * as React from "react";
+import { useCapabilities } from "@/hooks/use-capabilities";
 import { useDomicile } from "@domicile-desktop/react/domicile-provider";
 import { useWatch } from "@domicile-desktop/react/use-watch";
 import {
@@ -79,7 +80,8 @@ export function AdvancedPane() {
   const progressDemoTimerRef = React.useRef<number | undefined>(undefined);
   React.useEffect(() => () => window.clearInterval(progressDemoTimerRef.current), []);
   const domicile = useDomicile();
-  const { isBrowserRuntime, settings, updateSettings } = useSettings();
+  const { settings, updateSettings } = useSettings();
+  const { systemServices } = useCapabilities();
   const usbMounted = useSimulatedUsbMounted();
   const effectiveEngine = getEngine().kind;
   const { launchApp, openWebUrl } = useWindowActions();
@@ -106,7 +108,7 @@ export function AdvancedPane() {
 
   const loadAutostart = React.useCallback(async () => {
     const userDir = `${WEB_VFS_HOME}/.config/autostart`;
-    if (isBrowserRuntime) {
+    if (!systemServices) {
       const userFiles = listVfsDir(userDir).filter(
         (e) => e.kind === "file" && e.name.endsWith(".desktop")
       );
@@ -139,7 +141,7 @@ export function AdvancedPane() {
       readDirEntries(".config/autostart", "user"),
     ]);
     setAutostartEntries(mergeAutostartEntries(sys, usr));
-  }, [domicile.files, isBrowserRuntime]);
+  }, [domicile.files, systemServices]);
 
   React.useEffect(() => {
     void loadAutostart();
@@ -148,7 +150,7 @@ export function AdvancedPane() {
   const toggleAutostart = React.useCallback(
     async (entry: XdgAutostartEntry, enabled: boolean) => {
       const content = buildAutostartOverrideDesktopContent(entry, enabled);
-      if (isBrowserRuntime) {
+      if (!systemServices) {
         writeVfsTextFile(`${WEB_VFS_HOME}/.config/autostart/${entry.id}`, content);
       } else {
         await domicile.files.createDir(".config/autostart");
@@ -159,14 +161,14 @@ export function AdvancedPane() {
       }
       await loadAutostart();
     },
-    [domicile.files, isBrowserRuntime, loadAutostart]
+    [domicile.files, systemServices, loadAutostart]
   );
   const [webStoreIds, setWebStoreIds] = React.useState<string[]>([]);
   const [newExtInput, setNewExtInput] = React.useState("");
   const [extConfigNote, setExtConfigNote] = React.useState<string | null>(null);
 
   React.useEffect(() => {
-    if (isBrowserRuntime) return;
+    if (!systemServices) return;
     let cancelled = false;
     domicile.files
       .readText(".config/piloti/domicile.json")
@@ -188,7 +190,7 @@ export function AdvancedPane() {
     return () => {
       cancelled = true;
     };
-  }, [domicile.files, isBrowserRuntime]);
+  }, [domicile.files, systemServices]);
 
   const saveDomicileExtensionsConfig = async (
     nextUnpacked: string[],
@@ -381,10 +383,10 @@ export function AdvancedPane() {
               "web_store",
               rec.webStoreId
             );
-            const checked = isBrowserRuntime
+            const checked = !systemServices
               ? rec.id === "dark-reader" && Boolean(settings.darkReaderWebEnabled)
               : nativeEnabled;
-            const disabled = isBrowserRuntime && rec.webMode === "unavailable";
+            const disabled = !systemServices && rec.webMode === "unavailable";
             return (
               <GroupedFormRow key={rec.id}>
                 <GroupedFormRowLabel>
@@ -393,7 +395,7 @@ export function AdvancedPane() {
                     <GroupedFormRowTitle>{rec.name}</GroupedFormRowTitle>
                   </div>
                   <GroupedFormRowDescription>
-                    {isBrowserRuntime
+                    {!systemServices
                       ? rec.webMode === "simulated"
                         ? _("%s (Simulated in Web mode via dark filter)", _(rec.description))
                         : _("%s (Requires native Domicile; Web Store ID: %s)", _(rec.description), rec.webStoreId)
@@ -405,7 +407,7 @@ export function AdvancedPane() {
                     disabled={disabled}
                     checked={checked}
                     onCheckedChange={(next) => {
-                      if (isBrowserRuntime) {
+                      if (!systemServices) {
                         if (rec.id === "dark-reader") {
                           updateSettings({ darkReaderWebEnabled: next });
                         }
@@ -461,7 +463,7 @@ export function AdvancedPane() {
               </Button>
               <Switch
                 checked={
-                  isBrowserRuntime
+                  !systemServices
                     ? settings.demoExtensionEnabled !== false
                     : isExtensionEnabled(
                         { unpacked: unpackedPaths, web_store: webStoreIds },
@@ -470,7 +472,7 @@ export function AdvancedPane() {
                       )
                 }
                 onCheckedChange={(next) => {
-                  if (isBrowserRuntime) {
+                  if (!systemServices) {
                     updateSettings({ demoExtensionEnabled: next });
                     return;
                   }
@@ -489,7 +491,7 @@ export function AdvancedPane() {
             </GroupedFormRowControl>
           </GroupedFormRow>
 
-          {!isBrowserRuntime && (
+          {systemServices && (
             <>
               <GroupedFormRow>
                 <GroupedFormRowLabel>
