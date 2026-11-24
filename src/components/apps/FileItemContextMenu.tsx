@@ -131,7 +131,7 @@ export function FileItemContextMenu({
   const hasSelection = multiCount > 0;
   const isSingle = multiCount === 1;
   const openWithApps: MimeAppOption[] =
-    isSingle && menu.item.kind !== "directory" && mimeConfig
+    isSingle && mimeConfig
       ? resolveAppsForMime(
           inferMimeType(menu.item.name, menu.item.kind === "directory" ? "directory" : "file"),
           mimeConfig,
