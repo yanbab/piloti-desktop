@@ -120,22 +120,25 @@ start_session() {
   export DESKTOP_SESSION="${DESKTOP_SESSION:-piloti}"
   export XDG_SESSION_TYPE="${XDG_SESSION_TYPE:-wayland}"
 
-  # Prefer an explicit user domicile config when present; otherwise ship Piloti's default config.
-  config_dir="${XDG_CONFIG_HOME:-${HOME}/.config}/domicile"
-  has_user_config=0
-  for ext in ts tsx js mjs json; do
-    if [ -f "${config_dir}/domicile.${ext}" ]; then
-      has_user_config=1
-      break
+  # Piloti keeps its own Domicile config so the plain "Domicile" session
+  # (which reads ~/.config/domicile) keeps launching Domicile's default shell.
+  # First run: seed it from a previous Piloti-era ~/.config/domicile file when
+  # that one names a Piloti shell, otherwise from the packaged defaults.
+  piloti_config="${XDG_CONFIG_HOME:-${HOME}/.config}/piloti/domicile.json"
+  old_config="${XDG_CONFIG_HOME:-${HOME}/.config}/domicile/domicile.json"
+  if [ ! -f "${piloti_config}" ]; then
+    mkdir -p "$(dirname "${piloti_config}")"
+    if [ -f "${old_config}" ] && grep -q 'piloti' "${old_config}" 2>/dev/null; then
+      cp "${old_config}" "${piloti_config}"
+    elif [ -f "${PILOTI_DEFAULT_CONFIG}" ]; then
+      cp "${PILOTI_DEFAULT_CONFIG}" "${piloti_config}"
     fi
-  done
+  fi
 
   if [ "$#" -gt 0 ]; then
     exec domicile "${PILOTI_SHELL_BUNDLE}" "$@"
-  elif [ "${has_user_config}" -eq 1 ]; then
-    exec domicile "${PILOTI_SHELL_BUNDLE}"
-  elif [ -f "${PILOTI_DEFAULT_CONFIG}" ]; then
-    exec domicile "${PILOTI_SHELL_BUNDLE}" --config "${PILOTI_DEFAULT_CONFIG}"
+  elif [ -f "${piloti_config}" ]; then
+    exec domicile "${PILOTI_SHELL_BUNDLE}" --config "${piloti_config}"
   else
     exec domicile "${PILOTI_SHELL_BUNDLE}"
   fi

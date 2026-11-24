@@ -276,3 +276,19 @@ export function buildOpenXdgFolderArgv(
   ];
 }
 
+
+/**
+ * Absolute path of an XDG user folder. Falls back to the English default
+ * (`<home>/Desktop`…) when the folder isn't configured, as on the web demo.
+ */
+export function resolveUserDirPath(
+  key: Exclude<XdgUserDirKey, "HOME">,
+  userDirs: ReadonlyArray<Pick<XdgUserDir, "key" | "relativeHomePath" | "absolutePath">>,
+  homePath: string
+): string {
+  const dir = userDirs.find((d) => d.key === key);
+  if (dir?.absolutePath) return dir.absolutePath;
+  const rel =
+    dir?.relativeHomePath ?? USER_DIR_SPEC_BY_KEY.get(key)?.defaultRelativePath ?? "";
+  return rel ? `${homePath}/${rel}` : homePath;
+}

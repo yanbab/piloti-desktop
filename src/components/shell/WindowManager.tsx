@@ -589,10 +589,10 @@ function WebViewSurface({
       return;
     }
     try {
-      await domicile.files.createDir(".config/domicile").catch(() => undefined);
+      await domicile.files.createDir(".config/piloti").catch(() => undefined);
       let existing: Record<string, unknown> = {};
       const readRes = await domicile.files
-        .readText(".config/domicile/domicile.json")
+        .readText(".config/piloti/domicile.json")
         .catch(() => null);
       if (readRes) {
         readRes.match({
@@ -615,7 +615,7 @@ function WebViewSurface({
         nextInstalled
       );
       await domicile.files.write(
-        ".config/domicile/domicile.json",
+        ".config/piloti/domicile.json",
         JSON.stringify({ ...existing, extensions: nextExt }, null, 2) + "\n"
       );
       pushNotification({
@@ -624,7 +624,7 @@ function WebViewSurface({
           ? _("Added Extension (%s)", storeExtId)
           : _("Removed Extension (%s)", storeExtId),
         body: _(
-          "Saved to ~/.config/domicile/domicile.json. Restart Domicile to apply."
+          "Saved to ~/.config/piloti/domicile.json. Restart Domicile to apply."
         ),
       });
     } catch {

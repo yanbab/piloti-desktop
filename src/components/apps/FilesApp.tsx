@@ -152,6 +152,7 @@ import {
 } from "@/lib/engine/fs-undo";
 import { playSoundThemeEvent } from "@/lib/shell/sound-effects";
 import { inferMimeType } from "@/lib/xdg/xdg-mimeapps";
+import { resolveUserDirPath } from "@/lib/xdg/xdg-user-dirs";
 import { useOpenPath } from "@/hooks/use-open-path";
 
 interface XdgPlaceItem {
@@ -163,7 +164,10 @@ interface XdgPlaceItem {
 
 const WEB_VFS_APPS_URI = "piloti://apps";
 
-const XDG_PLACES: readonly XdgPlaceItem[] = [
+function buildXdgPlaces(
+  dirPath: (key: "DESKTOP" | "DOCUMENTS" | "DOWNLOAD" | "MUSIC" | "PICTURES" | "VIDEOS") => string
+): XdgPlaceItem[] {
+  return [
   {
     id: "home",
     label: "Home",
@@ -191,31 +195,31 @@ const XDG_PLACES: readonly XdgPlaceItem[] = [
   {
     id: "desktop",
     label: "Desktop",
-    path: `${WEB_VFS_HOME}/Desktop`,
+    path: dirPath("DESKTOP"),
     icon: <MonitorIcon className="size-4" />,
   },
   {
     id: "documents",
     label: "Documents",
-    path: `${WEB_VFS_HOME}/Documents`,
+    path: dirPath("DOCUMENTS"),
     icon: <FileTextIcon className="size-4" />,
   },
   {
     id: "downloads",
     label: "Downloads",
-    path: `${WEB_VFS_HOME}/Downloads`,
+    path: dirPath("DOWNLOAD"),
     icon: <DownloadIcon className="size-4" />,
   },
   {
     id: "music",
     label: "Music",
-    path: `${WEB_VFS_HOME}/Music`,
+    path: dirPath("MUSIC"),
     icon: <MusicIcon className="size-4" />,
   },
   {
     id: "pictures",
     label: "Pictures",
-    path: `${WEB_VFS_HOME}/Pictures`,
+    path: dirPath("PICTURES"),
     icon: <ImageIcon className="size-4" />,
   },
   {
@@ -227,10 +231,11 @@ const XDG_PLACES: readonly XdgPlaceItem[] = [
   {
     id: "videos",
     label: "Videos",
-    path: `${WEB_VFS_HOME}/Videos`,
+    path: dirPath("VIDEOS"),
     icon: <VideoIcon className="size-4" />,
   },
-];
+  ];
+}
 
 const ICON_ZOOM_LEVELS = [
   { cellWidth: 148, cellHeight: 24, iconSize: 16 },
@@ -295,8 +300,7 @@ export function FilesApp({
   const { installedXdgApps, getAppIconUrl, ensureWaylandIcons, xdgUserDirs } = useApps();
   const desktopDirPath = React.useMemo(() => {
     if (isBrowserRuntime) return `${WEB_VFS_HOME}/Desktop`;
-    const dir = xdgUserDirs.find((d) => d.key === "DESKTOP");
-    return normalizeVfsPath(dir?.absolutePath ?? dir?.relativeHomePath ?? "Desktop");
+    return normalizeVfsPath(resolveUserDirPath("DESKTOP", xdgUserDirs, WEB_VFS_HOME));
   }, [isBrowserRuntime, xdgUserDirs]);
   const usbMounted = useSimulatedUsbMounted();
   const { windows, focusedWindowId } = useWindowManagerSelector((wm) => ({
@@ -364,6 +368,7 @@ export function FilesApp({
     null
   );
   const [bgNewSubOpen, setBgNewSubOpen] = React.useState(false);
+  usePopupSurface(Boolean(bgMenu), () => setBgMenu(null));
   const [templates, setTemplates] = React.useState<WebVfsEntry[]>(() =>
     listVfsTemplates()
   );
@@ -977,11 +982,21 @@ export function FilesApp({
     }
   }, [currentPath, usbMounted]);
 
+  const xdgPlaces = React.useMemo(
+    () =>
+      buildXdgPlaces((key) =>
+        isBrowserRuntime
+          ? resolveUserDirPath(key, [], WEB_VFS_HOME)
+          : resolveUserDirPath(key, xdgUserDirs, WEB_VFS_HOME)
+      ),
+    [isBrowserRuntime, xdgUserDirs]
+  );
+
   const placesList = React.useMemo<XdgPlaceItem[]>(
     () =>
       usbMounted
         ? [
-            ...XDG_PLACES,
+            ...xdgPlaces,
             {
               id: "usb-drive",
               label: SIMULATED_USB_LABEL,
@@ -989,8 +1004,8 @@ export function FilesApp({
               icon: <UsbIcon className="size-4" />,
             },
           ]
-        : [...XDG_PLACES],
-    [usbMounted]
+        : [...xdgPlaces],
+    [usbMounted, xdgPlaces]
   );
 
   const activePlace = placesList.find((p) => p.path === currentPath);

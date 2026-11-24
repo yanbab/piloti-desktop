@@ -59,6 +59,19 @@ const DEFAULT_LOCAL_DESKTOP_FILES: Record<string, string> = Object.fromEntries(
     .map(([p, content]) => [p.slice(`${VFS_HOME}/.local/share/applications/`.length), content]),
 );
 
+/** What the native engine starts with: only the real home; everything else comes from disk. */
+export function createMinimalVfs(): WebVfsEntry[] {
+  const now = Date.now();
+  return ["/home", WEB_VFS_HOME].map((path) => ({
+    id: path,
+    name: basename(path),
+    kind: "directory" as const,
+    path,
+    parentPath: dirname(path),
+    updatedAt: now,
+  }));
+}
+
 export function createInitialVfs(): WebVfsEntry[] {
   const now = Date.now();
   const entries: WebVfsEntry[] = DEFAULT_DIRS.map((dirPath) => ({

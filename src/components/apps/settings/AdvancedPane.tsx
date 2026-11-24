@@ -180,7 +180,7 @@ export function AdvancedPane() {
     if (isBrowserRuntime) return;
     let cancelled = false;
     domicile.files
-      .readText(".config/domicile/domicile.json")
+      .readText(".config/piloti/domicile.json")
       .then((res) => {
         if (cancelled) return;
         res.match({
@@ -206,10 +206,10 @@ export function AdvancedPane() {
     nextWebStore: string[]
   ) => {
     try {
-      await domicile.files.createDir(".config/domicile").catch(() => undefined);
+      await domicile.files.createDir(".config/piloti").catch(() => undefined);
       let existing: Record<string, unknown> = {};
       const readRes = await domicile.files
-        .readText(".config/domicile/domicile.json")
+        .readText(".config/piloti/domicile.json")
         .catch(() => null);
       if (readRes) {
         readRes.match({
@@ -234,16 +234,16 @@ export function AdvancedPane() {
         },
       };
       await domicile.files.write(
-        ".config/domicile/domicile.json",
+        ".config/piloti/domicile.json",
         JSON.stringify(updated, null, 2) + "\n"
       );
       setUnpackedPaths(nextUnpacked);
       setWebStoreIds(nextWebStore);
       setExtConfigNote(
-        _("Saved to ~/.config/domicile/domicile.json. Restart Domicile to apply.")
+        _("Saved to ~/.config/piloti/domicile.json. Restart Domicile to apply.")
       );
     } catch {
-      setExtConfigNote(_("Could not write ~/.config/domicile/domicile.json."));
+      setExtConfigNote(_("Could not write ~/.config/piloti/domicile.json."));
     }
   };
 
@@ -509,7 +509,7 @@ export function AdvancedPane() {
                   </GroupedFormRowTitle>
                   <GroupedFormRowDescription>
                     {_(
-                      "Configure extensions.unpacked or extensions.web_store in ~/.config/domicile/domicile.json"
+                      "Configure extensions.unpacked or extensions.web_store in ~/.config/piloti/domicile.json"
                     )}
                   </GroupedFormRowDescription>
                 </GroupedFormRowLabel>
@@ -522,7 +522,7 @@ export function AdvancedPane() {
                     className="size-7 p-0"
                     onClick={() =>
                       launchApp("nautilus", {
-                        payload: `${VFS_HOME}/.config/domicile`,
+                        payload: `${VFS_HOME}/.config/piloti`,
                         forceNew: true,
                       })
                     }

@@ -3,7 +3,8 @@ import { useDomicile } from "@domicile-desktop/react/domicile-provider";
 import { CameraIcon, MicIcon, VideoIcon } from "lucide-react";
 import { WindowMenuButton } from "@/components/shell/WindowMenuButton";
 import { emitShellEvent } from "@/lib/shell/shell-events";
-import { useSettings } from "@/context/DesktopStateContext";
+import { useApps, useSettings } from "@/context/DesktopStateContext";
+import { resolveUserDirPath } from "@/lib/xdg/xdg-user-dirs";
 import { WindowControls } from "@/components/ui/window";
 import { _ } from "@/lib/core/i18n";
 import { cn } from "@/lib/core/utils";
@@ -56,6 +57,7 @@ function blobToDataUrl(blob: Blob): Promise<string> {
 export const CameraApp: React.FC<CameraAppProps> = ({ windowId = "", isCsd = true }) => {
   const domicile = useDomicile();
   const { isBrowserRuntime } = useSettings();
+  const { xdgUserDirs } = useApps();
   const [mode, setMode] = React.useState<CameraMode>("photo");
   const [error, setError] = React.useState<string | null>(null);
   const [recording, setRecording] = React.useState(false);
@@ -126,7 +128,9 @@ export const CameraApp: React.FC<CameraAppProps> = ({ windowId = "", isCsd = tru
   /** Saves a capture to ~/Desktop. Metadata is stored on the entry when the engine supports it. */
   const saveToDesktop = React.useCallback(
     async (blob: Blob, base: string, ext: string, mime: string, meta: Record<string, unknown>) => {
-      const dir = `${WEB_VFS_HOME}/Desktop`;
+      const dir = isBrowserRuntime
+        ? `${WEB_VFS_HOME}/Desktop`
+        : resolveUserDirPath("DESKTOP", xdgUserDirs, WEB_VFS_HOME);
       const name = uniqueCaptureName(listVfsDir(dir).map((e) => e.name), base, ext);
       const path = `${dir}/${name}`;
       const metadata = {
@@ -141,7 +145,7 @@ export const CameraApp: React.FC<CameraAppProps> = ({ windowId = "", isCsd = tru
       }
       setStatus(_("Saved to Desktop") + ` — ${name}`);
     },
-    [domicile, isBrowserRuntime],
+    [domicile, isBrowserRuntime, xdgUserDirs],
   );
 
   const takePhoto = React.useCallback(async () => {

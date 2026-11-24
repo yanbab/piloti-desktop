@@ -19,6 +19,7 @@ import {
   DEFAULT_MIMEAPPS_INI,
   WELCOME_HTML,
   createInitialVfs,
+  createMinimalVfs,
   topUpDefaults,
 } from "./vfs-seed";
 
@@ -58,6 +59,17 @@ const hydratingBlobs = new Set<string>();
 
 let persistence: VfsPersistence = browserPersistence();
 /** Swaps where the VFS persists (tests, other engines). Drops the in-memory cache. */
+let demoDefaults = true;
+/**
+ * The browser demo starts from a seeded English tree and tops it up on load.
+ * The native engine turns this off: its cache mirrors the real disk.
+ */
+export function setVfsDemoDefaults(on: boolean): void {
+  demoDefaults = on;
+  clearVfsMemoryCache();
+}
+const seedVfs = () => (demoDefaults ? createInitialVfs() : createMinimalVfs());
+
 export function setVfsPersistence(next: VfsPersistence): void {
   persistence = next;
   persistedBlobs.clear();
@@ -131,7 +143,7 @@ function setVfsCache(entries: WebVfsEntry[], raw: string | null): WebVfsEntry[] 
 
 function loadVfs(): WebVfsEntry[] {
   if (!hasKv()) {
-    return vfsCacheEntries ?? setVfsCache(createInitialVfs(), null);
+    return vfsCacheEntries ?? setVfsCache(seedVfs(), null);
   }
   if (vfsCacheInMemoryOnly && vfsCacheEntries) {
     return vfsCacheEntries;
@@ -149,7 +161,7 @@ function loadVfs(): WebVfsEntry[] {
     }
     if (vfsCacheEntries) vfsPerf.reloads += 1;
     if (!raw) {
-      const seeded = createInitialVfs();
+      const seeded = seedVfs();
       const json = JSON.stringify(seeded);
       kv().setItem(WEB_VFS_STORAGE_KEY, json);
       return setVfsCache(seeded, json);
@@ -163,7 +175,7 @@ function loadVfs(): WebVfsEntry[] {
           if (previous !== undefined) entry.content = previous;
         }
       }
-      if (topUpDefaults(entries, persistence.kv)) {
+      if (demoDefaults && topUpDefaults(entries, persistence.kv)) {
         const json = JSON.stringify(entries);
         kv().setItem(WEB_VFS_STORAGE_KEY, json);
         return setVfsCache(entries, json);
@@ -175,7 +187,7 @@ function loadVfs(): WebVfsEntry[] {
   } catch {
     // ignore corrupted storage and re-seed
   }
-  const seeded = createInitialVfs();
+  const seeded = seedVfs();
   let json: string | null = null;
   try {
     json = JSON.stringify(seeded);
