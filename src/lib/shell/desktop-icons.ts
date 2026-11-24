@@ -72,15 +72,23 @@ export function computeGridMetrics(
   containerHeight: number,
   cellWidth = DESKTOP_ICON_CELL_WIDTH,
   cellHeight = DESKTOP_ICON_CELL_HEIGHT,
-  padding = DESKTOP_GRID_PADDING
+  padding = DESKTOP_GRID_PADDING,
+  /**
+   * Share the leftover space between the cells, so the grid reaches both
+   * edges: icons on the last column sit as far from the right edge as the
+   * first ones from the left (the desktop). Cells stay equal.
+   */
+  stretch = false
 ): GridMetrics {
   const usableWidth = Math.max(cellWidth, containerWidth - padding * 2);
   const usableHeight = Math.max(cellHeight, containerHeight - padding * 2);
+  const cols = Math.max(1, Math.floor(usableWidth / cellWidth));
+  const rows = Math.max(1, Math.floor(usableHeight / cellHeight));
   return {
-    cols: Math.max(1, Math.floor(usableWidth / cellWidth)),
-    rows: Math.max(1, Math.floor(usableHeight / cellHeight)),
-    cellWidth,
-    cellHeight,
+    cols,
+    rows,
+    cellWidth: stretch ? usableWidth / cols : cellWidth,
+    cellHeight: stretch ? usableHeight / rows : cellHeight,
     padding,
   };
 }

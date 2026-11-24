@@ -629,7 +629,8 @@ aside [data-slot="window-titlebar"],
 }
 
 [data-slot="grouped-form-section-title"] {
-  padding-inline: 2px;
+  /* Same left edge as the row titles (rows are inset 16px). */
+  padding-inline: 16px;
   font-size: calc(14px * var(--piloti-font-scale, 1));
   font-weight: var(--piloti-font-weight-semibold, 500);
   letter-spacing: -0.005em;

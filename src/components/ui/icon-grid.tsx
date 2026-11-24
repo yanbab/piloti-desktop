@@ -146,6 +146,8 @@ export interface IconGridProps {
    * the desktop.
    */
   folderOpenDelayMs?: number;
+  /** Spatial grid: equal cells spread to both edges (the desktop). */
+  stretchCells?: boolean;
   renamingId?: string | null;
   onCommitRename?: (item: IconGridItem, nextName: string) => void;
   onCancelRename?: () => void;
@@ -199,6 +201,7 @@ export function IconGrid({
   onContextMenuItem,
   onToggleFavorite,
   folderOpenDelayMs,
+  stretchCells = false,
   renamingId = null,
   onCommitRename,
   onCancelRename,
@@ -398,9 +401,13 @@ export function IconGrid({
         effectiveCellWidth,
         effectiveCellHeight,
         padding,
+        stretchCells && mode === "spatial",
       ),
-    [effectiveCellHeight, effectiveCellWidth, padding, size.height, size.width],
+    [effectiveCellHeight, effectiveCellWidth, mode, padding, size.height, size.width, stretchCells],
   );
+  // Spatial cells use the (possibly stretched) metrics; flow cells keep their size.
+  const spatialCellWidth = metrics.cellWidth;
+  const spatialCellHeight = metrics.cellHeight;
 
   const resolvedPositions = React.useMemo(
     () =>
@@ -427,15 +434,15 @@ export function IconGrid({
       const newCoord = resolvedPositions[id];
       if (!btn || !oldCoord || !newCoord) continue;
       const offsetX =
-        (oldCoord.col - newCoord.col) * effectiveCellWidth + pending.dropDx;
+        (oldCoord.col - newCoord.col) * spatialCellWidth + pending.dropDx;
       const offsetY =
-        (oldCoord.row - newCoord.row) * effectiveCellHeight + pending.dropDy;
+        (oldCoord.row - newCoord.row) * spatialCellHeight + pending.dropDy;
       cancels.push(settleFromOffset(btn, offsetX, offsetY));
     }
     return () => {
       for (const cancel of cancels) cancel();
     };
-  }, [effectiveCellHeight, effectiveCellWidth, mode, resolvedPositions]);
+  }, [spatialCellHeight, spatialCellWidth, mode, resolvedPositions]);
 
   /** Opens an item, with the same feedback everywhere (desktop and Folders). */
   const activateItem = (item: IconGridItem) => {
@@ -989,10 +996,10 @@ export function IconGrid({
           mode === "spatial"
             ? {
                 position: "absolute",
-                left: `${padding + coord.col * effectiveCellWidth}px`,
-                top: `${padding + coord.row * effectiveCellHeight}px`,
-                width: `${effectiveCellWidth}px`,
-                height: `${effectiveCellHeight}px`,
+                left: `${padding + coord.col * spatialCellWidth}px`,
+                top: `${padding + coord.row * spatialCellHeight}px`,
+                width: `${spatialCellWidth}px`,
+                height: `${spatialCellHeight}px`,
                 zIndex: isDragging ? 1 : selected ? 20 : 1,
                 opacity: isDragging ? 0 : isHiddenFile ? 0.55 : undefined,
                 // Neighbours glide aside (springy) while a drag previews the drop.
@@ -1134,6 +1141,15 @@ export function IconGrid({
               isDragging && "opacity-25",
             )}
           >
+            {selected && !compactHorizontal && (
+              // Light square behind the selected icon, as in Finder.
+              <span
+                aria-hidden
+                data-slot="icon-selection-square"
+                style={{ width: `${iconSize + 12}px`, height: `${iconSize + 12}px` }}
+                className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 rounded-adw-item bg-black/10 dark:bg-white/16"
+              />
+            )}
             <div
               style={{ width: `${iconSize}px`, height: `${iconSize}px` }}
               className={cn(

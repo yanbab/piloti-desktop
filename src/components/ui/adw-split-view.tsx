@@ -85,22 +85,42 @@ function usePageTitleAlignment(containerRef: React.RefObject<HTMLDivElement | nu
     const container = containerRef.current;
     if (!container) return;
     let frame = 0;
+    let passes = 0;
     const align = () => {
       frame = 0;
       const title = container.querySelector<HTMLElement>(PAGE_TITLE_SELECTOR);
       if (!title) return;
-      const target = Array.from(
-        container.querySelectorAll<HTMLElement>('[data-slot="grouped-form-row-title"]'),
+      // Where row content starts: the first visible row's padding box edge.
+      const row = Array.from(
+        container.querySelectorAll<HTMLElement>('[data-slot="grouped-form-row"]'),
       ).find((el) => el.getBoundingClientRect().width > 0);
+      const target = row
+        ? {
+            left:
+              row.getBoundingClientRect().left +
+              (Number.parseFloat(getComputedStyle(row).paddingLeft) || 0),
+          }
+        : null;
       if (!target) {
         title.style.paddingLeft = "";
+        passes = 0;
         return;
       }
-      // Padding moves the text, not the box: the inset is box to row title.
-      const inset = Math.round(
-        target.getBoundingClientRect().left - title.getBoundingClientRect().left,
-      );
-      title.style.paddingLeft = inset >= 0 ? `${inset}px` : "";
+      // Compare the title *text* with the row title and correct the padding
+      // by the difference; the header may move the title box too, so repeat
+      // until it settles.
+      const range = document.createRange();
+      range.selectNodeContents(title);
+      const textLeft = range.getBoundingClientRect().left;
+      const delta = target.left - textLeft;
+      if (Math.abs(delta) < 0.5) {
+        passes = 0;
+        return;
+      }
+      const current = Number.parseFloat(getComputedStyle(title).paddingLeft) || 0;
+      title.style.paddingLeft = `${Math.max(0, Math.round(current + delta))}px`;
+      if (++passes < 4) schedule();
+      else passes = 0;
     };
     const schedule = () => {
       if (!frame) frame = requestAnimationFrame(align);
