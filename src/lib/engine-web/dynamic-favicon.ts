@@ -40,9 +40,12 @@ function buildFavicon(bg: string, fg: string): string {
   const svg =
     `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='${fg}' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'>` +
     `<rect width='24' height='24' rx='6' fill='${bg}' fill-opacity='0.25' stroke='none'/>` +
+    // The symbol fills 14×14 of the 16px icon (1px margin on every side,
+    // measured): scaled to 21 units wide, stretched ~6% taller to fill.
+    "<g transform='translate(12 12) scale(1.235 1.31) translate(-12 -11.75)'>" +
     HOUSE_PATHS +
     dots +
-    "</svg>";
+    "</g></svg>";
   return `data:image/svg+xml,${encodeURIComponent(svg)}`;
 }
 
