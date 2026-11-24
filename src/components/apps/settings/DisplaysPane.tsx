@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useCapabilities } from "@/hooks/use-capabilities";
 import { useDisplays } from "@domicile-desktop/react/displays";
 import { useDomicile } from "@domicile-desktop/react/domicile-provider";
 import { Button } from "@/components/ui/button";
@@ -21,12 +22,13 @@ import { _ } from "@/lib/core/i18n";
 export function DisplaysPane() {
   const domicile = useDomicile();
   const displays = useDisplays() ?? [];
-  const { isBrowserRuntime, settings, updateSettings } = useSettings();
+  const { settings, updateSettings } = useSettings();
+  const { systemServices } = useCapabilities();
   const { pushNotification } = useSystemBackends();
   const [addingVirtual, setAddingVirtual] = React.useState(false);
 
   const handleAddVirtualDisplay = async () => {
-    if (isBrowserRuntime) {
+    if (!systemServices) {
       pushNotification({
         appName: _("Displays"),
         summary: _("Virtual Display (Cast Mode)"),

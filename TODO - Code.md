@@ -22,3 +22,4 @@ Focus for now: stabilize, fine-tune, optimise. Features wait.
 - Wi-Fi password: secured networks without a saved profile ask for the password in the Control Panel; wrong password shows an error (untested on hardware: no Wi-Fi in the VM).
 - Window switching: every Window measured its frame after each render (forced layout on each focus); now only when maximize flips. Focus latency in a production web build went from about 55 ms to 38 ms.
 - Browser tabs: reorder with the Dock's dnd-kit feel, horizontal only; pull a tab 48 px away from the bar to detach it into its own window (checked in the web demo; also fixed tab title/icon changes not showing on inactive tabs).
+- Capabilities: `useCapabilities()` hook added (`src/hooks/use-capabilities.ts`); Launcher, DisplaysPane and icon-grid migrated. About 290 uses remain.

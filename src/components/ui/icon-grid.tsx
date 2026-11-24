@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useCapabilities } from "@/hooks/use-capabilities";
 import { createPortal } from "react-dom";
 import {
   DndContext,
@@ -214,7 +215,8 @@ export function IconGrid({
   ariaLabel = "Icon Grid",
   className,
 }: IconGridProps) {
-  const { settings, isBrowserRuntime } = useSettings();
+  const { settings } = useSettings();
+  const { realFilesystem } = useCapabilities();
   const { getAppIconUrl } = useApps();
   const windows = useWindowManagerSelector((wm) =>
     wm.windows.map((w) => ({ appId: w.appId, payload: w.payload })),
@@ -328,7 +330,7 @@ export function IconGrid({
       );
     });
   }, []);
-  const useAccentIcons = isBrowserRuntime || mode === "flow";
+  const useAccentIcons = !realFilesystem || mode === "flow";
   const resolveItemIconUrl = (item: IconGridItem): string | undefined => {
     if (useAccentIcons) {
       if (item.kind === "directory") {

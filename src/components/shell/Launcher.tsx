@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useCapabilities } from "@/hooks/use-capabilities";
 import { countRender } from "@/lib/core/render-stats";
 import {
   BellRingIcon,
@@ -278,7 +279,8 @@ function pickLauncherWindow(w: DesktopWindowInstance): LauncherWindow {
 
 export const Launcher = React.memo(function Launcher() {
   countRender("Launcher");
-  const { isBrowserRuntime, settings, updateSettings } = useChromeSettings();
+  const { settings, updateSettings } = useChromeSettings();
+  const { realFilesystem } = useCapabilities();
   const { pluginCommands } = usePlugins();
   const {
     pushNotification,
@@ -685,7 +687,7 @@ export const Launcher = React.memo(function Launcher() {
       out.push({ heading: "Folders", items: folderItems });
     }
 
-    if (!isBrowserRuntime && tokens.length > 0) {
+    if (realFilesystem && tokens.length > 0) {
       const hiddenSet = new Set(settings.hiddenGnomePanels);
       const settingsIconUrl = getAppIconUrl("settings");
       const settingsItems = filterAndSort([
