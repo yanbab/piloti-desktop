@@ -1,3 +1,21 @@
+piloti-desktop (0.10.8-1) unstable; urgency=medium
+
+  * Release v0.10.8:
+    - Battery, brightness, Wi-Fi, volume and Bluetooth use Domicile's
+      system-battery, system-backlight, system-network, system-audio and
+      system-bluetooth libraries (UPower, logind, NetworkManager/iwd, BlueZ,
+      PulseAudio/PipeWire) and follow changes made elsewhere, e.g. GNOME
+      Settings. Bluetooth lists paired devices in the Control Center.
+    - Folders: sidebar bookmarks shared with Nautilus; favorites and emblems
+      stored as gio metadata::emblems; Open With also for folders; XDG
+      folder names (Bureau, Images...) used everywhere.
+    - Desktop Shell runs a real shell over the real disk on Linux.
+    - Native: state files read back from $HOME at boot; no browser storage.
+    - Rename, move, copy and trash reach the disk even for files the cache
+      has not listed.
+
+ -- yanbab <yanbab@gmail.com>  Tue, 24 Nov 2026 06:00:00 +0100
+
 piloti-desktop (0.10.7-1) unstable; urgency=medium
 
   * Release v0.10.7:
