@@ -6,6 +6,30 @@ import { emptyXdgTrash, resolveXdgTrashPaths } from "@/lib/xdg/xdg-trash";
 
 const THUMBNAIL_EXT_RE = /\.(png|jpe?g|webp|gif|bmp|avif|pdf|mp4|mkv|webm|mov)$/i;
 
+/** Parses `gio list -a metadata::emblems` lines: `name<TAB>size<TAB>(type)<TAB>metadata::emblems=[a, b]`. */
+export function parseGioListEmblems(stdout: string): Record<string, string[]> {
+  const out: Record<string, string[]> = {};
+  for (const line of stdout.split("\n")) {
+    const cols = line.split("\t");
+    const attr = cols.find((c) => c.startsWith("metadata::emblems="));
+    if (cols.length < 2 || !attr) continue;
+    const names = attr
+      .slice("metadata::emblems=".length)
+      .replace(/^\[|\]$/g, "")
+      .split(",")
+      .map((n) => n.trim())
+      .filter(Boolean);
+    if (names.length > 0) out[cols[0]!] = names;
+  }
+  return out;
+}
+
+/** Parses the `metadata::emblems: [a, b]` line of `gio info`. */
+export function parseGioInfoEmblems(stdout: string): string[] {
+  const m = /metadata::emblems:\s*\[(.*)\]/.exec(stdout);
+  return m ? m[1]!.split(",").map((n) => n.trim()).filter(Boolean) : [];
+}
+
 /** `domicile.files` resolves relative paths against `$HOME`. */
 export function toDomicilePath(vfsPath: string): string {
   const norm = normalizeVfsPath(vfsPath);
@@ -48,6 +72,27 @@ export function createNativeFileStore(domicile: Domicile): FileStore {
       return run(["mv", "--", rel, toDomicilePath(WEB_VFS_TRASH)]);
     },
     remove: (path) => run(["rm", "-rf", "--", toDomicilePath(path)]),
+    async emblems(dir) {
+      const res = await domicile.processes
+        .run(["gio", "list", "-a", "metadata::emblems", "--", toDomicilePath(dir)])
+        .catch(() => null);
+      const out = res?.match({ Ok: (r) => (r.code === 0 ? r.stdout : null), Err: () => null });
+      if (out === null || out === undefined) return null;
+      return parseGioListEmblems(out);
+    },
+    async setEmblems(path, names, managed) {
+      const rel = toDomicilePath(path);
+      const info = await domicile.processes
+        .run(["gio", "info", "-a", "metadata::emblems", "--", rel])
+        .catch(() => null);
+      const current = parseGioInfoEmblems(
+        info?.match({ Ok: (r) => r.stdout, Err: () => "" }) ?? "",
+      );
+      const merged = [...current.filter((n) => !managed.includes(n)), ...names];
+      return merged.length === 0
+        ? run(["gio", "set", "-t", "unset", "--", rel, "metadata::emblems"])
+        : run(["gio", "set", "-t", "stringv", "--", rel, "metadata::emblems", ...merged]);
+    },
     async emptyTrash() {
       await emptyXdgTrash(domicile.processes, resolveXdgTrashPaths());
     },

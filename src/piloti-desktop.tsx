@@ -46,6 +46,10 @@ async function boot(root: HTMLElement, domicile: Parameters<ShellModule>[1]) {
         blobs: memoryBlobStorage(),
       });
       vfs.setVfsDemoDefaults(false);
+      // Emblems (favorites included) live in the file's gio `metadata::emblems`, like other file managers.
+      vfs.setVfsEmblemPersist((path, names) =>
+        void store.setEmblems?.(path, names, vfs.MANAGED_GNOME_EMBLEMS),
+      );
       await preloadNativeState(store, {
         ensureDir: (path) => void vfs.ensureVfsDir(path),
         writeText: (path, content) => void vfs.writeVfsTextFile(path, content),

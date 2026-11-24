@@ -26,6 +26,7 @@ import {
   type WebVfsEntry,
   writeVfsTextFile,
   listVfsFavoriteEntries,
+  syncVfsEmblemsFromHost,
   loadVfsFavorites,
 } from "@/lib/engine-web/web-vfs";
 import {
@@ -81,6 +82,7 @@ function fileServiceFor(domicile: Domicile, isBrowserRuntime: boolean): FileServ
       restoreVfsEntry,
       removeVfsEntry,
       emptyVfsTrash,
+      syncVfsEmblemsFromHost,
     },
   });
 }
@@ -267,6 +269,9 @@ export async function listFsFavoriteEntries(
 ): Promise<WebVfsEntry[]> {
   if (isBrowserRuntime) return listVfsFavoriteEntries();
   const service = fileServiceFor(domicile, false);
+  // Another app may have (un)starred files: read the folders' metadata first.
+  const dirs = new Set(loadVfsFavorites().map((p) => p.slice(0, p.lastIndexOf("/")) || "/"));
+  await Promise.all([...dirs].map((dir) => service.syncEmblems(dir)));
   const found = await Promise.all(loadVfsFavorites().map((path) => service.statEntry(path)));
   return found.filter((e): e is WebVfsEntry => e !== null);
 }

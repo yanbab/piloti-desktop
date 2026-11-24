@@ -15,6 +15,8 @@ export interface VfsCacheApi {
   trashVfsEntry(path: string): void;
   restoreVfsEntry(trashPath: string): WebVfsEntry | null;
   removeVfsEntry(path: string): boolean;
+  /** Adopt emblems another app set on a path (`metadata::emblems` names). */
+  syncVfsEmblemsFromHost?(path: string, names: readonly string[]): void;
   emptyVfsTrash(): void;
 }
 
@@ -36,6 +38,8 @@ export interface FileService {
   readText(filePath: string): Promise<string>;
   /** One entry as the disk has it (or the cache when there is no store); `null` if missing. */
   statEntry(path: string): Promise<WebVfsEntry | null>;
+  /** Reads the `metadata::emblems` of a folder's entries from disk into the cache. */
+  syncEmblems(dirPath: string): Promise<void>;
   writeText(filePath: string, content: string): WebVfsEntry | null;
   createFolder(dirPath: string, baseName?: string): WebVfsEntry;
   createTextFile(dirPath: string, baseName?: string, content?: string): WebVfsEntry;
@@ -70,13 +74,23 @@ export function createFileService({ store, cache, cacheOnly }: FileServiceDeps):
   const backed = (path: string): FileStore | null =>
     store && !cacheOnly?.(path) ? store : null;
 
+
+  const syncEmblems = async (dirPath: string): Promise<void> => {
+    const dir = normalizeVfsPath(dirPath);
+    const s = backed(dir);
+    if (!s?.emblems || !cache.syncVfsEmblemsFromHost) return;
+    const [onDisk, listed] = await Promise.all([s.emblems(dir), s.list(dir).catch(() => null)]);
+    if (!onDisk || !listed) return;
+    for (const item of listed) cache.syncVfsEmblemsFromHost(join(dir, item.name), onDisk[item.name] ?? []);
+  };
+
   return {
     async listDir(dirPath) {
       const normDir = normalizeVfsPath(dirPath);
       const s = backed(normDir);
       if (!s) return cache.listVfsDir(normDir);
       try {
-        const items = await s.list(normDir);
+        const [items] = await Promise.all([s.list(normDir), syncEmblems(normDir)]);
         if (!items) return cache.listVfsDir(normDir);
         const now = Date.now();
         return await Promise.all(
@@ -131,6 +145,8 @@ export function createFileService({ store, cache, cacheOnly }: FileServiceDeps):
         return cache.listVfsDir(normDir);
       }
     },
+
+    syncEmblems,
 
     async statEntry(path) {
       const norm = normalizeVfsPath(path);

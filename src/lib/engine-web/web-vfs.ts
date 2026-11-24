@@ -936,6 +936,36 @@ export function hasVfsEmblem(rawPath: string, emblem: VfsEmblemId): boolean {
   return getVfsEmblems(rawPath).includes(emblem);
 }
 
+type EmblemPersist = (path: string, gnomeNames: string[]) => void;
+let emblemPersist: EmblemPersist | null = null;
+const emblemLocalWrites = new Map<string, number>();
+const EMBLEM_LOCAL_GRACE_MS = 5000;
+
+/** Native engine: mirror emblem changes into the file's `metadata::emblems` (shared with other file managers). */
+export function setVfsEmblemPersist(fn: EmblemPersist | null): void {
+  emblemPersist = fn;
+}
+
+/** The GVfs names Piloti manages (others on a file are left alone). */
+export const MANAGED_GNOME_EMBLEMS: readonly string[] = Object.values(GNOME_EMBLEM_MAP);
+
+/**
+ * Adopts the emblems another app set on `path` (read from `metadata::emblems`).
+ * Skipped for paths this app changed a moment ago, so a slow read can't undo them.
+ */
+export function syncVfsEmblemsFromHost(rawPath: string, hostNames: readonly string[]): void {
+  const norm = normalizeVfsPath(rawPath);
+  const wrote = emblemLocalWrites.get(norm);
+  if (wrote && Date.now() - wrote < EMBLEM_LOCAL_GRACE_MS) return;
+  const next = normalizeEmblemList([...hostNames]);
+  const prev = loadVfsEmblemsMap()[norm] ?? [];
+  if (next.length === prev.length && next.every((e) => prev.includes(e))) return;
+  const map = loadVfsEmblemsMap();
+  if (next.length > 0) map[norm] = next;
+  else delete map[norm];
+  saveVfsEmblemsMap(map, true, [norm]);
+}
+
 export function setVfsEmblem(
   rawPath: string,
   emblem: VfsEmblemId,
@@ -955,6 +985,10 @@ export function setVfsEmblem(
     delete map[norm];
   }
   saveVfsEmblemsMap(map, true, [norm]);
+  if (emblemPersist) {
+    emblemLocalWrites.set(norm, Date.now());
+    emblemPersist(norm, nextForPath.map(toGnomeEmblemName));
+  }
   return nextForPath;
 }
 

@@ -33,6 +33,13 @@ export interface FileStore {
   /** Delete for good. */
   remove(path: string): Promise<boolean>;
   emptyTrash(): Promise<void>;
+  /** `metadata::emblems` of every entry in a folder that has some (file name -> emblem names). */
+  emblems?(dir: string): Promise<Record<string, string[]> | null>;
+  /**
+   * Set a file's `metadata::emblems`, keeping names not in `managed` untouched;
+   * an empty result removes the attribute.
+   */
+  setEmblems?(path: string, names: string[], managed: readonly string[]): Promise<boolean>;
   /** A thumbnail data URL for a real file path, if the platform has one. */
   thumbnail?(realPath: string, name: string): Promise<string | undefined>;
 }
