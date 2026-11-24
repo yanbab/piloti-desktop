@@ -4,9 +4,11 @@ import "./styles/globals.css";
 import { setEngine, webEngine } from "./lib/engine/engine";
 import { demoVfsSeed } from "./lib/engine-web/vfs-seed";
 import { setVfsSeed } from "./lib/engine-web/web-vfs";
+import { installDynamicFavicon } from "./lib/engine-web/dynamic-favicon";
 
 setEngine(webEngine);
 setVfsSeed(demoVfsSeed);
+installDynamicFavicon();
 import { ShellErrorBoundary } from "./components/shell/ShellErrorBoundary";
 
 const CalculatorApp = React.lazy(() =>
