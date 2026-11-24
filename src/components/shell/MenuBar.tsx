@@ -90,20 +90,7 @@ import { Launcher } from "./Launcher";
 import { PilotiLogo } from "./PilotiLogo";
 import { usePlugins } from "@/context/PluginsContext";
 import { SystemTrayItem } from "./SystemTray";
-
-function MenuShortcutLabel({
-  shortcut,
-  model,
-}: {
-  shortcut: string;
-  model: "mac" | "pc";
-}) {
-  return (
-    <MenubarShortcut className={model === "pc" ? "tracking-normal" : undefined}>
-      {formatMenuShortcut(shortcut, model)}
-    </MenubarShortcut>
-  );
-}
+import { AppMenuItems, MenuShortcutLabel } from "./AppMenuItems";
 
 function RemoteSubmenuGroup({
   entry,
@@ -769,54 +756,16 @@ export const MenuBar = React.memo(function MenuBar() {
             : activeAppDef.menus
               .filter((section) => section.title !== "View")
               .map((section) => {
-                const hasCheckable = section.items.some(
-                  (i) =>
-                    (windowMenuState[i.actionId]?.checked ?? i.checked) !==
-                    undefined,
-                );
                 return (
                   <MenubarMenu key={section.title}>
                     <MenubarTrigger>{_(section.title)}</MenubarTrigger>
                     <MenubarContent>
-                      {section.items.map((item) => {
-                        const itemState = windowMenuState[item.actionId];
-                        const checked = itemState?.checked ?? item.checked;
-                        const disabled = itemState?.disabled ?? false;
-                        return (
-                          <React.Fragment key={item.actionId}>
-                            {checked !== undefined ? (
-                              <MenubarCheckboxItem
-                                checked={checked}
-                                disabled={disabled}
-                                onClick={() => handleMenuAction(item.actionId)}
-                              >
-                                {_(item.label)}
-                                {item.shortcut && (
-                                  <MenuShortcutLabel
-                                    shortcut={item.shortcut}
-                                    model={settings.computerModel}
-                                  />
-                                )}
-                              </MenubarCheckboxItem>
-                            ) : (
-                              <MenubarItem
-                                disabled={disabled}
-                                className={hasCheckable ? "pl-8" : undefined}
-                                onClick={() => handleMenuAction(item.actionId)}
-                              >
-                                {_(item.label)}
-                                {item.shortcut && (
-                                  <MenuShortcutLabel
-                                    shortcut={item.shortcut}
-                                    model={settings.computerModel}
-                                  />
-                                )}
-                              </MenubarItem>
-                            )}
-                            {item.separatorAfter && <MenubarSeparator />}
-                          </React.Fragment>
-                        );
-                      })}
+                      <AppMenuItems
+                        items={section.items}
+                        menuState={windowMenuState}
+                        onAction={handleMenuAction}
+                        computerModel={settings.computerModel}
+                      />
                       {section.title === "File" &&
                         !section.items.some((i) => i.actionId === "file:print") && (
                           <>
@@ -915,54 +864,16 @@ export const MenuBar = React.memo(function MenuBar() {
                 const visibleItems = section.items.filter(
                   (i) => i.actionId !== "shell:fullscreen" || isBrowserRuntime,
                 );
-                const hasCheckable = visibleItems.some(
-                  (i) =>
-                    (windowMenuState[i.actionId]?.checked ?? i.checked) !==
-                    undefined,
-                );
                 return (
                   <MenubarMenu key={section.title}>
                     <MenubarTrigger>{_(section.title)}</MenubarTrigger>
                     <MenubarContent>
-                      {visibleItems.map((item) => {
-                        const itemState = windowMenuState[item.actionId];
-                        const checked = itemState?.checked ?? item.checked;
-                        const disabled = itemState?.disabled ?? false;
-                        return (
-                          <React.Fragment key={item.actionId}>
-                            {checked !== undefined ? (
-                              <MenubarCheckboxItem
-                                checked={checked}
-                                disabled={disabled}
-                                onClick={() => handleMenuAction(item.actionId)}
-                              >
-                                {_(item.label)}
-                                {item.shortcut && (
-                                  <MenuShortcutLabel
-                                    shortcut={item.shortcut}
-                                    model={settings.computerModel}
-                                  />
-                                )}
-                              </MenubarCheckboxItem>
-                            ) : (
-                              <MenubarItem
-                                disabled={disabled}
-                                className={hasCheckable ? "pl-8" : undefined}
-                                onClick={() => handleMenuAction(item.actionId)}
-                              >
-                                {_(item.label)}
-                                {item.shortcut && (
-                                  <MenuShortcutLabel
-                                    shortcut={item.shortcut}
-                                    model={settings.computerModel}
-                                  />
-                                )}
-                              </MenubarItem>
-                            )}
-                            {item.separatorAfter && <MenubarSeparator />}
-                          </React.Fragment>
-                        );
-                      })}
+                      <AppMenuItems
+                        items={visibleItems}
+                        menuState={windowMenuState}
+                        onAction={handleMenuAction}
+                        computerModel={settings.computerModel}
+                      />
                     </MenubarContent>
                   </MenubarMenu>
                 );

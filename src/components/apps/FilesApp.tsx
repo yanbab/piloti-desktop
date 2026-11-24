@@ -5,8 +5,8 @@ import { useDomicile } from "@domicile-desktop/react/domicile-provider";
 import {
   AlertCircleIcon,
   ArrowLeftIcon,
-  ArrowUpDownIcon,
   BriefcaseIcon,
+  ChevronDownIcon,
   ChevronRightIcon,
   ClockIcon,
   DownloadIcon,
@@ -51,12 +51,7 @@ import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import {
   DropdownMenu,
-  DropdownMenuCheckboxItem,
   DropdownMenuContent,
-  DropdownMenuLabel,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -71,7 +66,7 @@ import {
   useWindowActions,
   useWindowManagerSelector,
 } from "@/context/DesktopStateContext";
-import { publishWindowMenuState } from "@/lib/engine/app-bridge";
+import { publishWindowMenuState, useWindowMenuState } from "@/lib/engine/app-bridge";
 import {
   type AppSymbolName,
   type IconGridItem,
@@ -81,6 +76,7 @@ import {
 import { _ } from "@/lib/core/i18n";
 import { captureLaunchOriginFromElement } from "@/lib/shell/launch-origin";
 import { APP_CATALOG } from "@/data/catalog";
+import { AppMenuItems } from "@/components/shell/AppMenuItems";
 import { getWebAppFaviconUrl, resolveWebAppTitle } from "@/data/web-apps";
 import {
   DynamicFileIcon,
@@ -299,6 +295,12 @@ function vfsEntryToGridItem(
   };
 }
 
+/** The Folders View menu, shared with the menu bar (catalog). */
+const FILES_VIEW_MENU_ITEMS =
+  APP_CATALOG.find((app) => app.id === "nautilus")?.menus.find(
+    (section) => section.title === "View"
+  )?.items ?? [];
+
 export function FilesApp({
   initialPath,
   isCsd = false,
@@ -323,6 +325,7 @@ export function FilesApp({
   const { launchApp, launchXdgApp, openWebUrl } = useWindowActions();
   const { openPath, openPathWith } = useOpenPath();
 
+  const viewMenuState = useWindowMenuState(windowId ?? null);
   const [viewMode, setViewMode] = React.useState<"grid" | "list">("grid");
   const [sortBy, setSortBy] = React.useState<"name" | "kind" | "modified" | "size">("name");
   const [sortDir, setSortDir] = React.useState<"asc" | "desc">("asc");
@@ -2011,58 +2014,49 @@ export function FilesApp({
                 {_("Empty Trash")}
               </Button>
             )}
+            {/* View split button (as in Nautilus): toggle grid/list, and the
+                same View menu as the menu bar. */}
             {!isAppsView && (
-              <DropdownMenu>
-                <DropdownMenuTrigger
-                  aria-label={_("Sort & Filter")}
-                  title={_("Sort & Filter")}
-                  className={cn(
-                    "flex size-7 items-center justify-center rounded-md transition-colors",
-                    sortBy !== "name" || sortDir !== "asc" || showHidden
-                      ? "bg-black/10 text-adw-accent dark:bg-white/15"
-                      : "text-adw-label-secondary hover:bg-black/8 hover:text-adw-label dark:hover:bg-white/10"
-                  )}
+              <div
+                data-slot="files-view-split-button"
+                className="flex h-7 items-center rounded-md text-adw-label-secondary"
+              >
+                <button
+                  type="button"
+                  aria-label={viewMode === "grid" ? _("List view") : _("Grid view")}
+                  title={viewMode === "grid" ? _("List view") : _("Grid view")}
+                  onClick={() => setViewMode((m) => (m === "grid" ? "list" : "grid"))}
+                  className="flex h-7 w-7 items-center justify-center rounded-l-md transition-colors hover:bg-black/8 hover:text-adw-label active:bg-black/12 dark:hover:bg-white/10 dark:active:bg-white/14"
                 >
-                  <ArrowUpDownIcon className="size-4" />
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuLabel>{_("Sort By")}</DropdownMenuLabel>
-                  <DropdownMenuRadioGroup
-                    value={sortBy}
-                    onValueChange={(v) => setSortBy(v as "name" | "kind" | "modified" | "size")}
+                  {viewMode === "grid" ? <ListIcon className="size-4" /> : <LayoutGridIcon className="size-4" />}
+                </button>
+                <span aria-hidden className="h-4 w-px bg-adw-separator" />
+                <DropdownMenu>
+                  <DropdownMenuTrigger
+                    aria-label={_("View")}
+                    title={_("View")}
+                    className="flex h-7 w-5 items-center justify-center rounded-r-md transition-colors outline-none hover:bg-black/8 hover:text-adw-label active:bg-black/12 data-popup-open:bg-black/10 data-popup-open:text-adw-label dark:hover:bg-white/10 dark:active:bg-white/14 dark:data-popup-open:bg-white/14"
                   >
-                    <DropdownMenuRadioItem value="name">{_("Name")}</DropdownMenuRadioItem>
-                    <DropdownMenuRadioItem value="kind">{_("Kind")}</DropdownMenuRadioItem>
-                    <DropdownMenuRadioItem value="modified">{_("Date Modified")}</DropdownMenuRadioItem>
-                    <DropdownMenuRadioItem value="size">{_("Size")}</DropdownMenuRadioItem>
-                  </DropdownMenuRadioGroup>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuRadioGroup
-                    value={sortDir}
-                    onValueChange={(v) => setSortDir(v as "asc" | "desc")}
-                  >
-                    <DropdownMenuRadioItem value="asc">{_("Ascending")}</DropdownMenuRadioItem>
-                    <DropdownMenuRadioItem value="desc">{_("Descending")}</DropdownMenuRadioItem>
-                  </DropdownMenuRadioGroup>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuCheckboxItem
-                    checked={showHidden}
-                    onCheckedChange={(checked) => setShowHidden(Boolean(checked))}
-                  >
-                    {_("Show Hidden Files")}
-                  </DropdownMenuCheckboxItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+                    <ChevronDownIcon className="size-3.5" />
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="min-w-56">
+                    <AppMenuItems
+                      items={FILES_VIEW_MENU_ITEMS}
+                      menuState={viewMenuState}
+                      onAction={(actionId) => {
+                        if (!windowId) return;
+                        window.dispatchEvent(
+                          new CustomEvent("piloti:app-action", {
+                            detail: { windowId, actionId },
+                          })
+                        );
+                      }}
+                      computerModel={settings.computerModel}
+                    />
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             )}
-            <button
-              type="button"
-              aria-label={viewMode === "grid" ? _("List view") : _("Grid view")}
-              title={viewMode === "grid" ? _("List view") : _("Grid view")}
-              onClick={() => setViewMode((m) => (m === "grid" ? "list" : "grid"))}
-              className="flex size-7 items-center justify-center rounded-md text-adw-label-secondary transition-colors hover:bg-black/8 hover:text-adw-label dark:hover:bg-white/10"
-            >
-              {viewMode === "grid" ? <ListIcon className="size-4" /> : <LayoutGridIcon className="size-4" />}
-            </button>
             {searchOpen ? (
               <div className="relative flex items-center">
                 <input
@@ -2350,16 +2344,6 @@ export function FilesApp({
                           ) : (
                             <span className="truncate">{item.name}</span>
                           )}
-                          {item.kind === "file" &&
-                            item.accessCount !== undefined && (
-                              <span
-                                data-testid="vfs-access-count"
-                                title={_("Opens")}
-                                className="shrink-0 rounded bg-black/8 px-1.5 py-0.5 font-mono text-[10px] leading-none text-adw-label-secondary dark:bg-white/10"
-                              >
-                                {item.accessCount}
-                              </span>
-                            )}
                           {rowEmblems.length > 0 && (
                             <span className="inline-flex shrink-0 items-center gap-1">
                               {rowEmblems.map((emblemId) => {

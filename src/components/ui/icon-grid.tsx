@@ -1356,14 +1356,6 @@ export function IconGrid({
                   )}
                 >
                   {item.name}
-                  {item.kind === "file" && item.accessCount !== undefined && (
-                    <span
-                      data-testid="vfs-access-count"
-                      className="ml-1 inline-block rounded bg-black/15 px-1 py-px font-mono text-[9.5px] leading-none opacity-75 dark:bg-white/15"
-                    >
-                      {item.accessCount}
-                    </span>
-                  )}
                 </span>
               </span>
             )}
