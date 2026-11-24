@@ -24,6 +24,7 @@ Piloti Desktop is a Linux Wayland desktop shell built on `@domicile-desktop/reac
     node scripts/generate-piloti-icons.mjs
     ```
 - **VFS-backed `.ini` state**: Persist settings and shell state through VFS (`src/lib/engine/vfs-state.ts`, `src/lib/config/piloti-settings-ini.ts`, `src/lib/engine-web/web-vfs.ts`) using GSettings-style `.ini` files (e.g. `/home/user/.config/piloti/settings.ini`) rather than raw `localStorage` keys so files remain live-editable in Text Editor / Folders.
+- **Drag and drop**: dnd-kit for items (icon grids, dock, sortable lists); `startPointerDrag` (`src/lib/shell/pointer-drag.ts`) for moving/resizing surfaces. Timings, easings, threshold and ghost lift live in `src/lib/shell/drag-feedback.ts`; reuse them instead of new constants.
 - **Performance on rapid controls**: Throttle/debounce rapid UI updates (color pickers via `useThrottledColor`, sliders, window drags) so VFS serialization, `.desktop` scans, and `gsettings` subprocesses do not run at 60-120Hz.
 
 ## UI, Apps & Iconography

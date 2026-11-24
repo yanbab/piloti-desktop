@@ -9,13 +9,13 @@ import {
   type FloatingEdge,
   type FloatingRect,
 } from "@/lib/shell/floating-window";
+import { startPointerDrag } from "@/lib/shell/pointer-drag";
 import {
   setWindowPresentation,
   type WindowPresentation,
   type WorkArea,
 } from "@/lib/shell/window-presentation";
 
-const DRAG_THRESHOLD = 4;
 const DEFAULT_MIN_WIDTH = 160;
 
 /**
@@ -71,8 +71,6 @@ export function PresentationOverlay({
         (bounds.height * start.width) / Math.max(1, start.height)
       ),
     };
-    const origin = { x: e.clientX, y: e.clientY };
-    let active = false;
     let rect = start;
 
     const show = (next: FloatingRect, animate: boolean) => {
@@ -85,31 +83,23 @@ export function PresentationOverlay({
       });
     };
 
-    const onMove = (ev: PointerEvent) => {
-      const dx = ev.clientX - origin.x;
-      const dy = ev.clientY - origin.y;
-      if (!active && Math.hypot(dx, dy) < DRAG_THRESHOLD) return;
-      active = true;
-      if (edge) {
-        rect = resizeFloatingRect(start, edge, dx, dy, limits);
-      } else {
-        const moved = { ...start, x: start.x + dx, y: start.y + dy };
-        rect = { ...moved, ...floatingDragPosition(moved, bounds) };
-      }
-      show(rect, false);
-    };
-    const onUp = () => {
-      window.removeEventListener("pointermove", onMove, true);
-      window.removeEventListener("pointerup", onUp, true);
-      window.removeEventListener("pointercancel", onUp, true);
-      if (!active) return;
-      rect = { ...rect, ...settleFloatingPosition(rect, bounds) };
-      show(rect, true);
-      presentation.onChange?.({ x: rect.x, y: rect.y, width: rect.width });
-    };
-    window.addEventListener("pointermove", onMove, true);
-    window.addEventListener("pointerup", onUp, true);
-    window.addEventListener("pointercancel", onUp, true);
+    startPointerDrag(e, {
+      onMove: (_ev, { dx, dy }) => {
+        if (edge) {
+          rect = resizeFloatingRect(start, edge, dx, dy, limits);
+        } else {
+          const moved = { ...start, x: start.x + dx, y: start.y + dy };
+          rect = { ...moved, ...floatingDragPosition(moved, bounds) };
+        }
+        show(rect, false);
+      },
+      onEnd: (_ev, { moved }) => {
+        if (!moved) return;
+        rect = { ...rect, ...settleFloatingPosition(rect, bounds) };
+        show(rect, true);
+        presentation.onChange?.({ x: rect.x, y: rect.y, width: rect.width });
+      },
+    });
   };
 
   return (

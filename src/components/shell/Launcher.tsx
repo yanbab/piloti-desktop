@@ -57,6 +57,8 @@ import {
   floatingDragPosition,
   settleFloatingPosition,
 } from "@/lib/shell/floating-window";
+import { settleSurface } from "@/lib/shell/drag-feedback";
+import { startPointerDrag } from "@/lib/shell/pointer-drag";
 
 /** Height of the menu bar above the floating area. */
 const MENU_BAR_HEIGHT = 30;
@@ -1122,76 +1124,46 @@ export const Launcher = React.memo(function Launcher() {
     );
     if (!popup) return;
 
-    const startX = e.clientX;
-    const startY = e.clientY;
     const baseOffset = popupOffsetRef.current;
-    let dragging = false;
     let latest = baseOffset;
-
-    const onPointerMove = (moveEvent: PointerEvent) => {
-      const dx = moveEvent.clientX - startX;
-      const dy = moveEvent.clientY - startY;
-      if (!dragging && Math.hypot(dx, dy) < 5) return;
-      if (!dragging) {
-        dragging = true;
-        window.getSelection()?.removeAllRanges();
-      }
-      latest = placePopupOffset(popup, baseOffset.x + dx, baseOffset.y + dy, "drag");
+    const showOffset = () => {
       popup.style.translate =
         latest.x || latest.y ? `${latest.x}px ${latest.y}px` : "";
     };
 
-    const onPointerUp = () => {
-      window.removeEventListener("pointermove", onPointerMove, true);
-      window.removeEventListener("pointerup", onPointerUp, true);
-      window.removeEventListener("pointercancel", onPointerUp, true);
-      if (!dragging) return;
-      latest = placePopupOffset(popup, latest.x, latest.y, "settle");
-      popup.style.transition = "translate 250ms cubic-bezier(0.22, 1, 0.36, 1)";
-      popup.style.translate =
-        latest.x || latest.y ? `${latest.x}px ${latest.y}px` : "";
-      window.setTimeout(() => {
-        popup.style.transition = "";
-      }, 260);
-      setPopupOffset(latest);
-      writeLauncherStatePatch({ offset: latest });
-    };
-
-    window.addEventListener("pointermove", onPointerMove, true);
-    window.addEventListener("pointerup", onPointerUp, true);
-    window.addEventListener("pointercancel", onPointerUp, true);
+    startPointerDrag(e, {
+      onMove: (_ev, { dx, dy }) => {
+        latest = placePopupOffset(popup, baseOffset.x + dx, baseOffset.y + dy, "drag");
+        showOffset();
+      },
+      onEnd: (_ev, { moved }) => {
+        if (!moved) return;
+        latest = placePopupOffset(popup, latest.x, latest.y, "settle");
+        settleSurface(popup, "translate", showOffset);
+        setPopupOffset(latest);
+        writeLauncherStatePatch({ offset: latest });
+      },
+    });
   };
 
   const handleResizePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
-    const startY = e.clientY;
     const startHeight = listHeight;
     const maxAllowed =
       typeof window !== "undefined"
         ? Math.max(240, window.innerHeight - 140)
         : 720;
+    const heightFor = (dy: number) =>
+      Math.min(maxAllowed, Math.max(180, Math.round(startHeight + dy)));
 
-    const onPointerMove = (moveEvent: PointerEvent) => {
-      const next = Math.min(
-        maxAllowed,
-        Math.max(180, Math.round(startHeight + (moveEvent.clientY - startY)))
-      );
-      setListHeight(next);
-    };
-
-    const onPointerUp = (upEvent: PointerEvent) => {
-      window.removeEventListener("pointermove", onPointerMove);
-      window.removeEventListener("pointerup", onPointerUp);
-      const finalHeight = Math.min(
-        maxAllowed,
-        Math.max(180, Math.round(startHeight + (upEvent.clientY - startY)))
-      );
-      writeLauncherStatePatch({ height: finalHeight });
-    };
-
-    window.addEventListener("pointermove", onPointerMove);
-    window.addEventListener("pointerup", onPointerUp);
+    startPointerDrag(e, {
+      threshold: 0,
+      onMove: (_ev, { dy }) => setListHeight(heightFor(dy)),
+      onEnd: (_ev, { dy, moved }) => {
+        if (moved) writeLauncherStatePatch({ height: heightFor(dy) });
+      },
+    });
   };
 
   return (

@@ -1,5 +1,6 @@
 import * as React from "react";
 import { cn } from "@/lib/core/utils";
+import { startPointerDrag } from "@/lib/shell/pointer-drag";
 
 export interface PanelWidthOptions {
   /** Persistence key, e.g. "files-sidebar". */
@@ -72,8 +73,6 @@ export function usePanelWidth(options: PanelWidthOptions) {
     (e: React.PointerEvent<HTMLElement>) => {
       if (e.button !== 0) return;
       e.preventDefault();
-      const target = e.currentTarget;
-      target.setPointerCapture(e.pointerId);
       const startX = e.clientX;
       const start = stateRef.current;
       const startWidth = start.collapsed ? collapsedWidth : start.width;
@@ -92,22 +91,20 @@ export function usePanelWidth(options: PanelWidthOptions) {
         if (Math.abs(width - defaultWidth) <= snap) width = defaultWidth;
         apply({ width, collapsed: false });
       };
-      const onMove = (ev: PointerEvent) => {
-        lastX = ev.clientX;
-        if (!raf) raf = requestAnimationFrame(compute);
-      };
-      const onUp = () => {
-        if (raf) cancelAnimationFrame(raf);
-        compute();
-        target.removeEventListener("pointermove", onMove);
-        target.removeEventListener("pointerup", onUp);
-        target.removeEventListener("pointercancel", onUp);
-        setDragging(false);
-        writeStored(id, stateRef.current);
-      };
-      target.addEventListener("pointermove", onMove);
-      target.addEventListener("pointerup", onUp);
-      target.addEventListener("pointercancel", onUp);
+      startPointerDrag(e, {
+        threshold: 0,
+        captureElement: e.currentTarget,
+        onMove: (ev) => {
+          lastX = ev.clientX;
+          if (!raf) raf = requestAnimationFrame(compute);
+        },
+        onEnd: () => {
+          if (raf) cancelAnimationFrame(raf);
+          compute();
+          setDragging(false);
+          writeStored(id, stateRef.current);
+        },
+      });
     },
     [apply, collapseBelow, collapsedWidth, defaultWidth, id, max, min, side, snap],
   );

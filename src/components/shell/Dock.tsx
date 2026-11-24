@@ -18,6 +18,12 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import {
+  DRAG_THRESHOLD,
+  dragFlyBackAnimation,
+  dragShuffleTransition,
+  liftGhost,
+} from "@/lib/shell/drag-feedback";
 import { createPortal } from "react-dom";
 import { countRender } from "@/lib/core/render-stats";
 import { useDomicile } from "@domicile-desktop/react/domicile-provider";
@@ -508,9 +514,13 @@ export const Dock = React.memo(function Dock() {
   const updateSettingsRef = React.useRef(updateSettings);
   updateSettingsRef.current = updateSettings;
   const dndSensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(PointerSensor, { activationConstraint: { distance: DRAG_THRESHOLD } }),
   );
   const [dragOverlay, setDragOverlay] = React.useState<{ id: string; size: number } | null>(null);
+  // Same lift as icon-grid ghosts (stable ref: runs once per overlay).
+  const liftOverlayRef = React.useCallback((el: HTMLDivElement | null) => {
+    if (el) liftGhost(el);
+  }, []);
   const onDockDragStart = React.useCallback((e: DragStartEvent) => {
     didReorderRef.current = true;
     const rect = e.active.rect.current.initial;
@@ -1111,13 +1121,14 @@ export const Dock = React.memo(function Dock() {
       createPortal(
         <DragOverlay
           zIndex={9999}
-          dropAnimation={{ duration: 320, easing: "cubic-bezier(0.34, 1.35, 0.5, 1)" }}
+          dropAnimation={dragFlyBackAnimation}
         >
           {overlayApp && dragOverlay ? (
             <div
               data-dnd-kit-overlay=""
+              ref={liftOverlayRef}
               style={{ width: dragOverlay.size, height: dragOverlay.size }}
-              className="origin-center scale-[1.14] cursor-grabbing opacity-95 drop-shadow-[0_10px_18px_rgba(0,0,0,0.45)]"
+              className="cursor-grabbing"
             >
               <AppSquircleIcon
                 iconName={overlayApp.iconName}
@@ -1147,7 +1158,7 @@ function SortableDockTile({
 }) {
   const sortable = useSortable({
     id,
-    transition: { duration: 320, easing: "cubic-bezier(0.34, 1.45, 0.5, 1)" },
+    transition: dragShuffleTransition,
   });
   return <>{children(sortable)}</>;
 }

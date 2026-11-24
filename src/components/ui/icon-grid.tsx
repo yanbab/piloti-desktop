@@ -20,6 +20,13 @@ import { AppSquircleIcon } from "@/components/shell/AppSymbol";
 import { isLottieIconUrl, LottieIcon } from "@/components/ui/lottie-icon";
 import { captureLaunchOriginFromElement } from "@/lib/shell/launch-origin";
 import {
+  DRAG_THRESHOLD,
+  dragFlyBackAnimation,
+  dragShuffleCss,
+  liftGhost,
+  settleFromOffset,
+} from "@/lib/shell/drag-feedback";
+import {
   useApps,
   useSettings,
   useWindowManagerSelector,
@@ -398,7 +405,7 @@ export function IconGrid({
     const pending = pendingSettleRef.current;
     if (!pending || mode !== "spatial") return;
     pendingSettleRef.current = null;
-    const timers: number[] = [];
+    const cancels: Array<() => void> = [];
     for (const id of pending.ids) {
       const btn = itemRefs.current.get(id);
       const oldCoord = pending.oldCoords[id];
@@ -408,19 +415,10 @@ export function IconGrid({
         (oldCoord.col - newCoord.col) * effectiveCellWidth + pending.dropDx;
       const offsetY =
         (oldCoord.row - newCoord.row) * effectiveCellHeight + pending.dropDy;
-      btn.style.transition = "none";
-      btn.style.transform = `translate3d(${offsetX}px, ${offsetY}px, 0)`;
-      void btn.offsetWidth;
-      btn.style.transition = "transform 220ms cubic-bezier(0.22, 1, 0.36, 1)";
-      btn.style.transform = "translate3d(0, 0, 0)";
-      const t = window.setTimeout(() => {
-        btn.style.transition = "";
-        btn.style.transform = "";
-      }, 240);
-      timers.push(t);
+      cancels.push(settleFromOffset(btn, offsetX, offsetY));
     }
     return () => {
-      for (const t of timers) window.clearTimeout(t);
+      for (const cancel of cancels) cancel();
     };
   }, [effectiveCellHeight, effectiveCellWidth, mode, resolvedPositions]);
 
@@ -480,7 +478,7 @@ export function IconGrid({
   const previewKeyRef = React.useRef("");
   const [dropAnimOff, setDropAnimOff] = React.useState(false);
   const dndSensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(PointerSensor, { activationConstraint: { distance: DRAG_THRESHOLD } }),
   );
 
   const isDragStarted = Boolean(drag);
@@ -972,7 +970,7 @@ export function IconGrid({
                 // Neighbours glide aside (springy) while a drag previews the drop.
                 transition:
                   drag && !isDragging
-                    ? "left 320ms cubic-bezier(0.34, 1.45, 0.5, 1), top 320ms cubic-bezier(0.34, 1.45, 0.5, 1)"
+                    ? dragShuffleCss("left", "top")
                     : undefined,
               }
             : {
@@ -1381,7 +1379,7 @@ export function IconGrid({
         <DragOverlay
           zIndex={9999}
           dropAnimation={
-            dropAnimOff ? null : { duration: 280, easing: "cubic-bezier(0.34, 1.35, 0.5, 1)" }
+dropAnimOff ? null : dragFlyBackAnimation
           }
         >
           {drag?.active ? (
@@ -1410,12 +1408,8 @@ export function IconGrid({
                     `width:${rect.width}px`,
                     `height:${rect.height}px`,
                     "margin:0",
-                    "opacity:0.8",
-                    "transform:scale(1)",
-                    "transition:transform 200ms cubic-bezier(0.34,1.45,0.5,1), filter 200ms ease",
-                    "filter:drop-shadow(0 1px 2px rgba(0,0,0,0.25))",
-                    "transform-origin:50% 40%",
                   ].join(";");
+                  liftGhost(clone);
                   el.appendChild(clone);
                   if (id === latest.itemId && latest.draggedIds.length > 1) {
                     const badge = document.createElement("span");
@@ -1424,10 +1418,6 @@ export function IconGrid({
                       "position:absolute;top:2px;right:6px;min-width:20px;height:20px;padding:0 6px;border-radius:10px;background:var(--adw-accent,#3584e4);color:#fff;font:700 11px/20px system-ui;text-align:center;box-shadow:0 2px 6px rgba(0,0,0,.35)";
                     clone.appendChild(badge);
                   }
-                  requestAnimationFrame(() => {
-                    clone.style.transform = "scale(1.08)";
-                    clone.style.filter = "drop-shadow(0 10px 14px rgba(0,0,0,0.35))";
-                  });
                 });
               }}
               className="pointer-events-none size-full select-none"

@@ -27,6 +27,8 @@ Piloti Desktop: a Linux Wayland desktop shell (React 19 + Tailwind + Adwaita tok
 
 **UI primitives.** `components/ui/` holds Adwaita-style widgets: `adw-split-view` (sidebar apps; resizable via `resizable-panel.tsx`), `icon-grid` (dnd-kit drag; the DragOverlay ghost is a DOM clone of the dragged items, and on the spatial desktop neighbours slide aside via `pushItemsToCells`), `Dock.tsx` (pinned reordering uses dnd-kit sortable with a springy shuffle), `grouped-form`, menus. Wrap UI text in `_()` and keep `src/locales/fr.json` / `es.json` updated.
 
+**Drag and drop.** Two kinds, one feel. Items (icons, dock tiles, lists, grids) use dnd-kit; moving or resizing surfaces (launcher, floating presentations, split handles) use plain pointer events via `startPointerDrag` (`src/lib/shell/pointer-drag.ts`: threshold, listeners, pointercancel, cleanup) and the geometry in `floating-window.ts`. Every easing, duration, threshold and ghost lift comes from `src/lib/shell/drag-feedback.ts` (`liftGhost`, `settleFromOffset`, `settleSurface`, `dragShuffleCss`…); don't hard-code new curves. A drop never animates back to its start before reaching its new place: the ghost flies back only when nothing moved, and surfaces must not reset `translate` to measure themselves.
+
 **Performance rules.** Throttle/debounce rapid updates (drags, colour pickers, sliders) so VFS writes, `.desktop` scans and subprocesses don't run at frame rate. Verify no re-render regressions with the Console ▸ Infos ▸ Performance panel.
 
 ## Testing notes
