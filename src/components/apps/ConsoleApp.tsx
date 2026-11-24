@@ -1541,7 +1541,7 @@ function VfsEventsModule({ active }: { active: boolean }) {
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-adw-content">
       {/* Unified Header Toolbar with Filter Pills */}
       <div className="flex h-10 shrink-0 items-center justify-between gap-2 border-b border-adw-separator bg-adw-window/60 px-4">
-        <div className="flex items-center gap-1">
+        <div className="flex shrink-0 items-center gap-1">
           {(
             [
               { id: "all", label: _("All") },
@@ -1568,12 +1568,14 @@ function VfsEventsModule({ active }: { active: boolean }) {
           ))}
         </div>
 
-        <div className="flex items-center gap-1.5">
+        <div className="flex min-w-0 items-center gap-1.5">
           <button
             type="button"
+            title={`${_("VFS Diff")} (${diffs.length}) · ${_("VFS Events")} (${vfsEventsCount})`}
             onClick={() => setShowDiffDrawer((prev) => !prev)}
             className={cn(
-              "rounded-full px-2.5 py-0.5 text-[11px] font-medium transition-colors",
+              // One line; ellipsized when the toolbar is narrow.
+              "min-w-0 truncate whitespace-nowrap rounded-full px-2.5 py-0.5 text-[11px] font-medium transition-colors",
               showDiffDrawer
                 ? "bg-adw-accent/15 text-adw-accent"
                 : "bg-black/6 text-adw-label-secondary hover:bg-black/10 hover:text-adw-label dark:bg-white/8 dark:hover:bg-white/14"
@@ -1588,7 +1590,7 @@ function VfsEventsModule({ active }: { active: boolean }) {
               setBaseline(snap);
               setCurrentMap(snap);
             }}
-            className="rounded-md bg-black/6 px-2 py-0.5 text-[11px] font-medium text-adw-label transition-colors hover:bg-black/12 dark:bg-white/8 dark:hover:bg-white/14"
+            className="shrink-0 whitespace-nowrap rounded-md bg-black/6 px-2 py-0.5 text-[11px] font-medium text-adw-label transition-colors hover:bg-black/12 dark:bg-white/8 dark:hover:bg-white/14"
           >
             {_("Snapshot")}
           </button>
@@ -1598,7 +1600,7 @@ function VfsEventsModule({ active }: { active: boolean }) {
               setEvents([]);
               clearConsoleEntries();
             }}
-            className="rounded-md bg-black/6 px-2 py-0.5 text-[11px] font-medium text-adw-label transition-colors hover:bg-black/12 dark:bg-white/8 dark:hover:bg-white/14"
+            className="shrink-0 whitespace-nowrap rounded-md bg-black/6 px-2 py-0.5 text-[11px] font-medium text-adw-label transition-colors hover:bg-black/12 dark:bg-white/8 dark:hover:bg-white/14"
           >
             {_("Clear")}
           </button>
