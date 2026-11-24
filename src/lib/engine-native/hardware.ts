@@ -18,8 +18,7 @@ import {
   setPowered,
   watchBluetooth,
 } from "@domicile-desktop/system-bluetooth/bluetooth";
-import { runText } from "./exec";
-import type { AudioSinkInfo, BatteryInfo, BluetoothDeviceInfo, MprisMediaInfo } from "./types";
+import type { AudioSinkInfo, BatteryInfo, BluetoothDeviceInfo } from "./types";
 
 const sound = new WeakMap<object, { server: SoundServer; defaultId?: string }>();
 
@@ -165,25 +164,6 @@ export async function connectSystemWifi(
   return network.secured && !passphrase ? "needs-passphrase" : "failed";
 }
 
-export async function readSystemPowerProfile(
-  domicile: Domicile
-): Promise<"balanced" | "performance" | "power-saver" | null> {
-  const out = await runText(domicile, ["powerprofilesctl", "get"]);
-  if (!out) return null;
-  const val = out.trim();
-  if (val === "balanced" || val === "performance" || val === "power-saver") {
-    return val;
-  }
-  return null;
-}
-
-export async function setSystemPowerProfile(
-  domicile: Domicile,
-  profile: "balanced" | "performance" | "power-saver"
-): Promise<void> {
-  await runText(domicile, ["powerprofilesctl", "set", profile]);
-}
-
 const toBatteryInfo = (battery: Battery | undefined): BatteryInfo =>
   battery
     ? { present: true, percentage: Math.round(battery.charge * 100), charging: battery.charging }
@@ -264,43 +244,6 @@ export function watchSystemBrightness(
     stopWatch?.();
   };
 }
-
-export async function readMprisMediaInfo(
-  domicile: Domicile
-): Promise<MprisMediaInfo | null> {
-  const out = await runText(domicile, [
-    "playerctl",
-    "metadata",
-    "--format",
-    "{{status}}\t{{title}}\t{{artist}}\t{{playerName}}",
-  ]);
-  if (!out) return null;
-  const line = out.split(/\r?\n/)[0]?.trim();
-  if (!line) return null;
-  const [rawStatus, title, artist, playerName] = line.split("\t");
-  if (!title && !artist) return null;
-  const status: MprisMediaInfo["status"] =
-    rawStatus === "Playing"
-      ? "Playing"
-      : rawStatus === "Paused"
-        ? "Paused"
-        : "Stopped";
-  if (status === "Stopped") return null;
-  return {
-    status,
-    title: title?.trim() || "Unknown Track",
-    artist: artist?.trim() || playerName?.trim() || "Media Player",
-    playerName: playerName?.trim() || undefined,
-  };
-}
-
-export async function controlMprisMedia(
-  domicile: Domicile,
-  action: "play-pause" | "next" | "previous"
-): Promise<void> {
-  await runText(domicile, ["playerctl", action]);
-}
-
 
 const bluetoothAdapters = new WeakMap<object, string>();
 

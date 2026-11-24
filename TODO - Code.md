@@ -9,8 +9,9 @@ Focus for now: stabilize, fine-tune, optimise. Features wait.
 
 ## Features pending
 
-- Power profiles and MPRIS via D-Bus.
-- Decide on an `org.piloti` GSettings schema.
+- Verify in the VM: power profile and MPRIS over D-Bus (`dbus-services.ts`). The profile *set* sends a D-Bus variant; if the daemon refuses it the code falls back to `powerprofilesctl`.
+- On hold: `org.piloti` GSettings schema decision.
+
 
 ## Done
 - Old terminal (`TerminalApp.tsx`, `terminal-pipeline.ts` and its test) removed; the app is now "Terminal" with `piloti-terminal` as desktop file, command and bin script (`piloti-shell` still resolves as an alias).
@@ -23,3 +24,4 @@ Focus for now: stabilize, fine-tune, optimise. Features wait.
 - Capabilities: Folders and Desktop migrated. Remaining `isBrowserRuntime` uses are marked `// FIXME : Capabilities` (grep for it); several sit in files with another session's uncommitted edits (WindowManager, AppStoreApp, Dock, MenuBar, ControlPanel, SettingsContext, DockFolderStack) and get committed with them. Decision: leave the rest unless a third engine needs it.
 - File metadata (`metadata::*` read/write) goes through `FileService`/`FileStore` (`gio info`/`gio set` now live in `native-file-store.ts`); `fs-bridge.ts` no longer runs any process itself.
 - Text Editor module save test: `tests/unit/text-editor-module-host.test.ts` (writes real path, failed write, read back, preload, localized Desktop, prefs, confirm-on-close).
+- Power profiles and MPRIS now use D-Bus (`src/lib/engine-native/dbus-services.ts`): live signals instead of polling, multi-player pick (playing first), tests in `dbus-services.test.ts`.

@@ -4,6 +4,7 @@ export * from "./gsettings";
 export * from "./control-center";
 export * from "./wallpaper";
 export * from "./hardware";
+export * from "./dbus-services";
 export * from "./flatpak";
 export * from "./background";
 export * from "./gnome-background";

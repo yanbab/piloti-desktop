@@ -45,14 +45,14 @@ import {
   monitorGnomeDesktopSettings,
   probeGnomeCapabilities,
   readGnomeDesktopSettingsBatch,
-  readMprisMediaInfo,
   watchSystemAudio,
   watchSystemBluetooth,
   setSystemBluetoothConnected,
   readSystemBattery,
   watchSystemBattery,
   watchSystemBrightness,
-  readSystemPowerProfile,
+  watchMprisMedia,
+  watchSystemPowerProfile,
   scanSystemWifi,
   watchSystemWifi,
   setDefaultAudioSink,
@@ -853,7 +853,14 @@ export function useSystemBackendsValue(
     const stopBrightness = greeterMode
       ? () => undefined
       : watchSystemBrightness(domicile, (brightness) => applySettingsState({ brightness }));
+    // Power profile and media players arrive as D-Bus signals.
+    const stopPowerProfile = greeterMode
+      ? () => undefined
+      : watchSystemPowerProfile(domicile, (powerMode) => applySettingsState({ powerMode }));
+    const stopMpris = greeterMode ? () => undefined : watchMprisMedia(domicile, setMprisMedia);
     return () => {
+      stopPowerProfile();
+      stopMpris();
       stopBattery();
       stopWifi();
       stopBluetooth();
@@ -867,19 +874,10 @@ export function useSystemBackendsValue(
     async (options?: { scanWifi?: boolean }) => {
       if (!systemServices) return;
       const finishBackends = startBootPhase("system backends");
-      const [battery, powerProfile, mpris] = await Promise.all([
-        readSystemBattery(domicile),
-        greeterMode ? Promise.resolve(null) : readSystemPowerProfile(domicile),
-        greeterMode ? Promise.resolve(null) : readMprisMediaInfo(domicile),
-      ]);
-
-      setMprisMedia(mpris);
+      const battery = await readSystemBattery(domicile);
       setBatteryInfo(
         battery ?? { present: false, percentage: 100, charging: true }
       );
-      if (powerProfile) {
-        applySettingsState({ powerMode: powerProfile });
-      }
 
       if (options?.scanWifi) void scanSystemWifi(domicile);
 
@@ -906,9 +904,7 @@ export function useSystemBackendsValue(
     async (action: "play-pause" | "next" | "previous") => {
       console.info("[Piloti] control-panel: mpris", action);
       if (!systemServices) return;
-      await controlMprisMedia(domicile, action);
-      const updated = await readMprisMediaInfo(domicile);
-      setMprisMedia(updated);
+      await controlMprisMedia(domicile, action); // the watcher reports the new state
     },
     [domicile, systemServices]
   );
