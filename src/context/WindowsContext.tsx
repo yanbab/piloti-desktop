@@ -141,6 +141,10 @@ export interface WindowsContextValue {
   openBrowserTab: (windowId: string, url?: string) => void;
   selectBrowserTab: (windowId: string, tabId: string) => void;
   closeBrowserTab: (windowId: string, tabId: string) => void;
+  /** Puts a window's tabs in the given order (same set of ids). */
+  reorderBrowserTabs: (windowId: string, tabIds: string[]) => void;
+  /** Moves a tab out into a window of its own. */
+  detachBrowserTab: (windowId: string, tabId: string) => void;
   focusWindow: (windowId: string) => void;
   closeWindow: (windowId: string) => void;
   forceQuitApp: (appId: string) => void;
@@ -1151,12 +1155,16 @@ function pruneBrowserRecord(
     };
     const browserById = new Map(browserWindows.map((bw) => [bw.id, bw]));
 
+    const listedGroups = new Set<string>();
     const resolvedBrowserWindows = browserWindows.flatMap((first): DesktopWindowInstance[] => {
       const group = tabGroupOf.get(first.id) ?? first.id;
       const grp = browserTabGroups[group];
       // One window per group, listed at its first tab (a stable DOM order,
       // so switching tabs never moves iframes) and drawn from the active one.
-      if (grp && grp.tabs.find((id) => browserById.has(id)) !== first.id) return [];
+      if (grp) {
+        if (listedGroups.has(group)) return [];
+        listedGroups.add(group);
+      }
       const bw = grp ? browserById.get(grp.active) ?? first : first;
       const meta = browserMeta[group];
       if (!meta) return [];
@@ -1486,6 +1494,63 @@ function pruneBrowserRecord(
       return { ...prev, [group]: { ...grp, active: tabId } };
     });
   }, []);
+
+  const reorderBrowserTabs = React.useCallback((windowId: string, tabIds: string[]) => {
+    const group = windowId.slice("browser:".length);
+    setBrowserTabGroups((prev) => {
+      const grp = prev[group];
+      if (!grp || tabIds.length !== grp.tabs.length) return prev;
+      if (!tabIds.every((id) => grp.tabs.includes(id))) return prev;
+      if (tabIds.every((id, i) => id === grp.tabs[i])) return prev;
+      return { ...prev, [group]: { ...grp, tabs: tabIds } };
+    });
+  }, []);
+
+  const detachBrowserTab = React.useCallback(
+    (windowId: string, tabId: string) => {
+      const group = windowId.slice("browser:".length);
+      const grp = browserTabGroupsRef.current[group];
+      const meta = browserMeta[group];
+      if (!grp || !meta || grp.tabs.length < 2 || !grp.tabs.includes(tabId)) return;
+      const newKey = `${tabId}~${Date.now().toString(36)}`;
+      const index = grp.tabs.indexOf(tabId);
+      const remaining = grp.tabs.filter((id) => id !== tabId);
+      const active =
+        grp.active === tabId
+          ? remaining[Math.min(index, remaining.length - 1)]
+          : grp.active;
+      const next = {
+        ...browserTabGroupsRef.current,
+        [group]: { tabs: remaining, active },
+        [newKey]: { tabs: [tabId], active: tabId },
+      };
+      browserTabGroupsRef.current = next;
+      setBrowserTabGroups(next);
+      const clamped = clampWindowBounds(
+        { x: meta.position.x + 36, y: meta.position.y + 36 },
+        meta.size,
+        screenWidth,
+        screenHeight,
+        { minWidth: 420, minHeight: 300 }
+      );
+      setBrowserMeta((prev) => ({
+        ...prev,
+        [newKey]: {
+          ...meta,
+          position: clamped.position,
+          size: clamped.size,
+          minimized: false,
+          maximized: false,
+          fullscreen: false,
+          tiled: null,
+          zIndex: ++nextZIndex,
+        },
+      }));
+      setFocusedWindowId(`browser:${newKey}`);
+      setMruIds((prev) => [`browser:${newKey}`, ...prev]);
+    },
+    [browserMeta, screenWidth, screenHeight]
+  );
 
   const closeBrowserTab = React.useCallback(
     (windowId: string, tabId: string) => {
@@ -2721,6 +2786,8 @@ function pruneBrowserRecord(
       openBrowserTab,
       selectBrowserTab,
       closeBrowserTab,
+      reorderBrowserTabs,
+      detachBrowserTab,
       focusWindow,
       closeWindow,
       forceQuitApp,
@@ -2790,6 +2857,8 @@ function pruneBrowserRecord(
       openBrowserTab,
       selectBrowserTab,
       closeBrowserTab,
+      reorderBrowserTabs,
+      detachBrowserTab,
       subscribeClientWindowRequest,
       tileWindow,
       toggleOverview,

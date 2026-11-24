@@ -125,6 +125,7 @@ import {
   type DesktopWindowInstance,
 } from "@/context/DesktopStateContext";
 import type { BrowserTab } from "@/context/WindowsContext";
+import { BrowserTabBar } from "./BrowserTabBar";
 import {
   isBookmarked,
   toggleBrowserBookmark,
@@ -1320,7 +1321,8 @@ function BrowserTabsSurface({
   darkReaderEnabled: boolean;
   onToggleDarkReader: () => void;
 }) {
-  const { selectBrowserTab, closeBrowserTab } = useWindowManager();
+  const { selectBrowserTab, closeBrowserTab, reorderBrowserTabs, detachBrowserTab } =
+    useWindowManager();
   const tabs: BrowserTab[] = win.browserTabs ?? [
     {
       id: win.browserWindowId!,
@@ -1364,6 +1366,8 @@ function BrowserTabsSurface({
         activeId={win.browserWindowId}
         onSelect={(id) => selectBrowserTab(win.id, id)}
         onClose={(id) => closeBrowserTab(win.id, id)}
+        onReorder={(ids) => reorderBrowserTabs(win.id, ids)}
+        onDetach={(id) => detachBrowserTab(win.id, id)}
       />
       {tabs.map((tab) => {
         const active = tab.id === win.browserWindowId;
@@ -1395,84 +1399,6 @@ function BrowserTabsSurface({
               darkReaderEnabled={darkReaderEnabled}
               onToggleDarkReader={onToggleDarkReader}
             />
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-function BrowserTabBar({
-  hidden,
-  top,
-  tabs,
-  activeId,
-  onSelect,
-  onClose,
-}: {
-  hidden: boolean;
-  top: number;
-  tabs: BrowserTab[];
-  activeId?: string;
-  onSelect: (id: string) => void;
-  onClose: (id: string) => void;
-}) {
-  return (
-    <div
-      role="tablist"
-      data-slot="browser-tab-bar"
-      hidden={hidden}
-      style={{ top }}
-      className={cn(
-        "absolute inset-x-0 z-10 h-adw-control-medium shrink-0 items-stretch gap-px border-b border-adw-separator bg-black/5 px-1 py-0.5 dark:bg-white/4",
-        hidden ? "hidden" : "flex"
-      )}
-    >
-      {tabs.map((tab) => {
-        const active = tab.id === activeId;
-        return (
-          <div
-            key={tab.id}
-            role="tab"
-            aria-selected={active}
-            data-slot="browser-tab"
-            data-active={active || undefined}
-            title={tab.title}
-            onPointerDown={(e) => {
-              if (e.button === 0) onSelect(tab.id);
-            }}
-            onAuxClick={(e) => {
-              if (e.button === 1) {
-                e.preventDefault();
-                onClose(tab.id);
-              }
-            }}
-            className={cn(
-              "group relative flex min-w-0 flex-1 basis-0 items-center justify-center gap-1.5 rounded-adw-control px-6 text-adw-subheadline select-none",
-              active
-                ? "bg-adw-window font-medium text-adw-label shadow-2xs"
-                : "text-adw-label-secondary"
-            )}
-          >
-            <button
-              type="button"
-              aria-label={_("Close Tab")}
-              title={_("Close Tab")}
-              onPointerDown={(e) => e.stopPropagation()}
-              onClick={() => onClose(tab.id)}
-              className={cn(
-                "absolute left-1 flex size-4 items-center justify-center rounded-adw-control text-adw-label-secondary hover-fill:bg-black/10 dark:hover-fill:bg-white/12",
-                active ? "visible" : "invisible group-hover:visible"
-              )}
-            >
-              <XIcon className="size-3" />
-            </button>
-            {tab.iconUrl ? (
-              <img src={tab.iconUrl} alt="" className="size-3.5 shrink-0" draggable={false} />
-            ) : (
-              <GlobeIcon className="size-3.5 shrink-0" />
-            )}
-            <span className="truncate">{tab.title}</span>
           </div>
         );
       })}
@@ -1660,6 +1586,7 @@ const WindowBody = React.memo(
     prev.win.browserWindowId === next.win.browserWindowId &&
     prev.win.browserUrl === next.win.browserUrl &&
     prev.win.browserIsApp === next.win.browserIsApp &&
+    sameBrowserTabs(prev.win.browserTabs, next.win.browserTabs) &&
     prev.win.syncedFrame === next.win.syncedFrame &&
     prev.win.cursor === next.win.cursor &&
     prev.win.title === next.win.title &&
@@ -1670,6 +1597,19 @@ const WindowBody = React.memo(
     prev.win.maximized === next.win.maximized &&
     prev.win.minimized === next.win.minimized
 );
+
+/** Tabs of a web window: same order, titles and icons. */
+function sameBrowserTabs(a?: BrowserTab[], b?: BrowserTab[]): boolean {
+  if (a === b) return true;
+  if (!a || !b || a.length !== b.length) return false;
+  return a.every(
+    (tab, i) =>
+      tab.id === b[i].id &&
+      tab.title === b[i].title &&
+      tab.iconUrl === b[i].iconUrl &&
+      tab.url === b[i].url
+  );
+}
 
 const DOMICILE_RESIZE_EDGE_MAP: Record<number, WindowResizeEdge> = {
   1: "n",

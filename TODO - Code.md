@@ -15,10 +15,10 @@ Focus for now: stabilize, fine-tune, optimise. Features wait.
 - Power profiles and MPRIS via D-Bus.
 - Decide on an `org.piloti` GSettings schema.
 - Text Editor module save test.
-- Browser tabs: reorder with the Dock's dnd-kit behaviour (horizontal only) and detach a tab into its own window.
 
 ## Done
 - Old terminal (`TerminalApp.tsx`, `terminal-pipeline.ts` and its test) removed; the app is now "Terminal" with `piloti-terminal` as desktop file, command and bin script (`piloti-shell` still resolves as an alias).
 - Launcher opens at once and fills its list next frame; no app/icon refresh on open.
 - Wi-Fi password: secured networks without a saved profile ask for the password in the Control Panel; wrong password shows an error (untested on hardware: no Wi-Fi in the VM).
 - Window switching: every Window measured its frame after each render (forced layout on each focus); now only when maximize flips. Focus latency in a production web build went from about 55 ms to 38 ms.
+- Browser tabs: reorder with the Dock's dnd-kit feel, horizontal only; pull a tab 48 px away from the bar to detach it into its own window (checked in the web demo; also fixed tab title/icon changes not showing on inactive tabs).
