@@ -38,7 +38,7 @@ Conventions are in `AGENTS.md`, commands in `CLAUDE.md`.
 | Plugins (bundled) | `data/files/home/user/.config/piloti/plugins/*` |
 | Icon grid (desktop + Folders) | `components/ui/icon-grid.tsx`, geometry `lib/shell/desktop-icons.ts` (`computeGridMetrics`, `moveItemsInSpatialGrid`), drag look `lib/shell/drag-feedback.ts` |
 | Icons & accent tinting | `lib/xdg/xdg-icon-theme.ts`, `lib/shell/icon-accent-tint.ts`, `lib/shell/shell-icon-names.ts`, `Piloti/index.theme [X-Piloti Accent]`; details in `docs/_ICONS.md` (local) |
-| Web pages / Web Browser | `WebViewSurface` + `BrowserTabsSurface` in `WindowManager.tsx`; `openWebUrl` / `launchApp("browser")` / tab groups (`browserTabGroups`, `openBrowserTab`) in `WindowsContext.tsx`. A tab is a Domicile browser window; a window is a group keyed by its first tab |
+| Web pages / Web Browser | `WebViewSurface` + `BrowserTabsSurface` in `WindowManager.tsx`; the tab strip is `BrowserTabBar.tsx` (dnd-kit sortable like the Dock, horizontal only; pulling a tab 48 px off the bar detaches it); `openWebUrl` / `launchApp("browser")` / tab groups (`browserTabGroups`, `openBrowserTab`, `reorderBrowserTabs`, `detachBrowserTab`) in `WindowsContext.tsx`. A tab is a Domicile browser window; a window is a group keyed by its first tab; a detached tab gets its own key (`<tabId>~<n>`) and meta; the window is listed at the first of its tabs in Domicile's list order, so reordering never moves iframes |
 | Settings model | `context/SettingsContext.tsx` (INI-backed, `piloti-settings-ini.ts`) |
 | Split view (sidebar apps) | `components/ui/adw-split-view.tsx` (title aligned to content via `data-slot="page-title"`) |
 
