@@ -14,9 +14,17 @@ Conventions are in `AGENTS.md`, commands in `CLAUDE.md`.
   large}`; colours `--adw-*`. Hover effects use `hover-fill:` (Adwaita only),
   never `hover:` on controls. Check visually in the **Piloti demo** app.
 - Wrap UI text in `_()`, add fr/es keys. No co-author trailer in commits.
-- **Shared checkout:** other sessions may edit the same tree. Commit with
-  explicit paths (`git add <files>`), never `git add -A`, and read `git diff`
-  first.
+- **One session, one worktree.** Several agent sessions run on this repo at
+  once; never write in the main checkout unless you are told to. Start in your
+  own worktree: `git worktree add .claude/worktrees/<name> -b <name> main`
+  (`.claude/` is gitignored), run `npm ci` there (node_modules is not shared),
+  and give the dev server its own port (`npm run dev -- --port <free port>`).
+  Commit on your branch, then merge into `main` from the main checkout (or
+  open a PR) when the user asks; remove the worktree afterwards
+  (`git worktree remove`).
+- **If you must use the main checkout:** commit with explicit paths
+  (`git add <files>`), never `git add -A`, and read `git diff` first: other
+  sessions' uncommitted edits are in the same tree.
 
 ## Map
 | Area | Files |
@@ -30,7 +38,7 @@ Conventions are in `AGENTS.md`, commands in `CLAUDE.md`.
 | Plugins (bundled) | `data/files/home/user/.config/piloti/plugins/*` |
 | Icon grid (desktop + Folders) | `components/ui/icon-grid.tsx`, geometry `lib/shell/desktop-icons.ts` (`computeGridMetrics`, `moveItemsInSpatialGrid`), drag look `lib/shell/drag-feedback.ts` |
 | Icons & accent tinting | `lib/xdg/xdg-icon-theme.ts`, `lib/shell/icon-accent-tint.ts`, `lib/shell/shell-icon-names.ts`, `Piloti/index.theme [X-Piloti Accent]`; details in `docs/_ICONS.md` (local) |
-| Web pages / Web Browser | `WebViewSurface` in `WindowManager.tsx`; `openWebUrl` / `launchApp("browser")` in `WindowsContext.tsx` |
+| Web pages / Web Browser | `WebViewSurface` + `BrowserTabsSurface` in `WindowManager.tsx`; `openWebUrl` / `launchApp("browser")` / tab groups (`browserTabGroups`, `openBrowserTab`) in `WindowsContext.tsx`. A tab is a Domicile browser window; a window is a group keyed by its first tab |
 | Settings model | `context/SettingsContext.tsx` (INI-backed, `piloti-settings-ini.ts`) |
 | Split view (sidebar apps) | `components/ui/adw-split-view.tsx` (title aligned to content via `data-slot="page-title"`) |
 
