@@ -1,5 +1,6 @@
 import { VFS_HOME } from "@/lib/engine/vfs-home";
 import * as React from "react";
+import { useCapabilities } from "@/hooks/use-capabilities";
 import { useDomicile } from "@domicile-desktop/react/domicile-provider";
 import {
   ArrowLeftIcon,
@@ -163,7 +164,8 @@ export const LoginScreenApp: React.FC<LoginScreenAppProps> = ({
   mode = "preview",
 }) => {
   const domicile = useDomicile();
-  const { isBrowserRuntime, settings } = useSettings();
+  const { settings } = useSettings();
+  const { systemServices } = useCapabilities();
   const { batteryInfo, pushNotification } = useSystemBackends();
 
   const initialState = React.useMemo(() => loadGreeterState(), []);
@@ -203,7 +205,7 @@ export const LoginScreenApp: React.FC<LoginScreenAppProps> = ({
 
   // Discover real Linux accounts (/etc/passwd), Wayland/X11 sessions, and GREETD_SOCK
   React.useEffect(() => {
-    if (isBrowserRuntime) return;
+    if (!systemServices) return;
     let active = true;
     void Promise.all([
       detectGreeterRuntime(domicile),
@@ -238,7 +240,7 @@ export const LoginScreenApp: React.FC<LoginScreenAppProps> = ({
     return () => {
       active = false;
     };
-  }, [domicile, isBrowserRuntime]);
+  }, [domicile, systemServices]);
 
   React.useEffect(() => {
     const timer = window.setInterval(() => setNow(new Date()), 1000);
@@ -332,7 +334,7 @@ export const LoginScreenApp: React.FC<LoginScreenAppProps> = ({
   };
 
   const handlePowerAction = async (action: "suspend" | "reboot" | "poweroff") => {
-    if (!isBrowserRuntime && isLiveDm) {
+    if (systemServices && isLiveDm) {
       const ok = await runGreeterPowerAction(domicile, action);
       if (!ok) {
         setAuthError(_("Unable to execute system power action."));
@@ -365,7 +367,7 @@ export const LoginScreenApp: React.FC<LoginScreenAppProps> = ({
     if (authenticating) return;
 
     // Live Display Manager authentication over greetd IPC (GREETD_SOCK)
-    if (!isBrowserRuntime && greetdAvailable) {
+    if (systemServices && greetdAvailable) {
       setAuthenticating(true);
       setAuthError(null);
       const res = await authenticateAndStartGreetdSession(domicile, {
@@ -496,7 +498,7 @@ export const LoginScreenApp: React.FC<LoginScreenAppProps> = ({
 
           {/* Keyboard Layout Picker */}
           <KeyboardLayoutSwitcher
-            fallbackLayouts={isBrowserRuntime ? keyboardLayouts : undefined}
+            fallbackLayouts={!systemServices ? keyboardLayouts : undefined}
             value={keyboardLayout}
             onValueChange={handleKeyboardChange}
             align="start"

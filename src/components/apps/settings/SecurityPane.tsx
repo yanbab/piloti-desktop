@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useCapabilities } from "@/hooks/use-capabilities";
 import { useDomicile } from "@domicile-desktop/react/domicile-provider";
 import { ChevronDownIcon, SearchIcon, ShieldCheckIcon } from "lucide-react";
 import { AppSquircleIcon } from "@/components/shell/AppSymbol";
@@ -80,7 +81,7 @@ const FLATPAK_PERMISSION_ITEMS: {
 
 export function SecurityPane() {
   const domicile = useDomicile();
-  const { isBrowserRuntime } = useSettings();
+  const { systemServices } = useCapabilities();
   const { installedXdgApps, getAppIconUrl } = useApps();
 
   const [query, setQuery] = React.useState("");
@@ -101,7 +102,7 @@ export function SecurityPane() {
 
   React.useEffect(() => {
     let active = true;
-    if (isBrowserRuntime) {
+    if (!systemServices) {
       const meta = readVfsStateJson<{ installedFlatpakIds?: string[] }>(
         VFS_STATE_PATHS.appStoreMeta,
         "piloti.appstore.meta.v1"
@@ -125,7 +126,7 @@ export function SecurityPane() {
     return () => {
       active = false;
     };
-  }, [domicile, isBrowserRuntime]);
+  }, [domicile, systemServices]);
 
   const apps = React.useMemo<SecurityAppEntry[]>(() => {
     const byId = new Map<string, SecurityAppEntry>();
@@ -186,7 +187,7 @@ export function SecurityPane() {
     if (
       nextId &&
       app.isFlatpak &&
-      !isBrowserRuntime &&
+      systemServices &&
       !liveFlatpakPerms[app.id]
     ) {
       void getFlatpakPermissions(domicile, app.id).then((perms) => {
@@ -240,7 +241,7 @@ export function SecurityPane() {
       writeAppPermissionsMap(next);
       return next;
     });
-    if (!isBrowserRuntime) {
+    if (systemServices) {
       void setFlatpakPermissionOverride(domicile, appId, key, enabled);
     }
   };

@@ -1,5 +1,6 @@
 import { VFS_HOME } from "@/lib/engine/vfs-home";
 import * as React from "react";
+import { useCapabilities } from "@/hooks/use-capabilities";
 import { useDomicile } from "@domicile-desktop/react/domicile-provider";
 import { usePortalRequests } from "@domicile-desktop/react/portals";
 import {
@@ -340,7 +341,7 @@ function FileChooserPortalDialog({
   onAnswer: (ans: PortalAnswer) => void;
 }) {
   const domicile = useDomicile();
-  const { isBrowserRuntime } = useSettings();
+  const { realFilesystem } = useCapabilities();
   const body = request.body;
   const startDir = body.currentFolder || body.home || `${VFS_HOME}`;
   const [cwd, setCwd] = React.useState(startDir);
@@ -361,7 +362,7 @@ function FileChooserPortalDialog({
   React.useEffect(() => {
     let active = true;
     const load = async () => {
-      if (isBrowserRuntime) {
+      if (!realFilesystem) {
         const list = listVfsDir(cwd)
           .filter((e) => showHidden || !e.name.startsWith("."))
           .map((e) => ({
@@ -390,7 +391,7 @@ function FileChooserPortalDialog({
     return () => {
       active = false;
     };
-  }, [cwd, domicile.files, isBrowserRuntime, showHidden]);
+  }, [cwd, domicile.files, realFilesystem, showHidden]);
 
   const activeFilter = body.filters[filterIdx];
   const visibleEntries = React.useMemo(() => {
@@ -715,7 +716,7 @@ function AppChooserPortalDialog({
   onAnswer: (ans: PortalAnswer) => void;
 }) {
   const domicile = useDomicile();
-  const { isBrowserRuntime } = useSettings();
+  const { realFilesystem } = useCapabilities();
   const { installedXdgApps } = useApps();
   const [selected, setSelected] = React.useState(
     request.body.lastChoice ?? request.body.choices[0] ?? ""
@@ -1309,13 +1310,13 @@ function PermissionPortalDialog({
   onAnswer: (ans: PortalAnswer) => void;
 }) {
   const domicile = useDomicile();
-  const { isBrowserRuntime } = useSettings();
+  const { realFilesystem } = useCapabilities();
   const [wallpaperPreviewUrl, setWallpaperPreviewUrl] = React.useState<
     string | null
   >(null);
 
   React.useEffect(() => {
-    if (request.kind !== PortalKind.Wallpaper || isBrowserRuntime) {
+    if (request.kind !== PortalKind.Wallpaper || !realFilesystem) {
       setWallpaperPreviewUrl(null);
       return;
     }
@@ -1343,7 +1344,7 @@ function PermissionPortalDialog({
     return () => {
       active = false;
     };
-  }, [domicile.files, isBrowserRuntime, request]);
+  }, [domicile.files, realFilesystem, request]);
 
   React.useEffect(() => {
     return () => {

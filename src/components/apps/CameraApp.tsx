@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useCapabilities } from "@/hooks/use-capabilities";
 import { useDomicile } from "@domicile-desktop/react/domicile-provider";
 import { CameraIcon, MicIcon, VideoIcon } from "lucide-react";
 import { WindowMenuButton } from "@/components/shell/WindowMenuButton";
@@ -56,7 +57,7 @@ function blobToDataUrl(blob: Blob): Promise<string> {
 
 export const CameraApp: React.FC<CameraAppProps> = ({ windowId = "", isCsd = true }) => {
   const domicile = useDomicile();
-  const { isBrowserRuntime } = useSettings();
+  const { realFilesystem } = useCapabilities();
   const { xdgUserDirs } = useApps();
   const [mode, setMode] = React.useState<CameraMode>("photo");
   const [error, setError] = React.useState<string | null>(null);
@@ -128,11 +129,11 @@ export const CameraApp: React.FC<CameraAppProps> = ({ windowId = "", isCsd = tru
   /** Saves a capture to ~/Desktop. Metadata is stored on the entry when the engine supports it. */
   const saveToDesktop = React.useCallback(
     async (blob: Blob, base: string, ext: string, mime: string, meta: Record<string, unknown>) => {
-      const dir = isBrowserRuntime
+      const dir = !realFilesystem
         ? `${WEB_VFS_HOME}/Desktop`
         : resolveUserDirPath("DESKTOP", xdgUserDirs, WEB_VFS_HOME);
       const name = uniqueCaptureName(
-        (isBrowserRuntime ? listVfsDir(dir) : await listFsDir(domicile, dir)).map((e) => e.name),
+        (!realFilesystem ? listVfsDir(dir) : await listFsDir(domicile, dir)).map((e) => e.name),
         base,
         ext,
       );
@@ -142,14 +143,14 @@ export const CameraApp: React.FC<CameraAppProps> = ({ windowId = "", isCsd = tru
         "metadata::created": new Date().toISOString(),
         ...meta,
       };
-      if (isBrowserRuntime) {
+      if (!realFilesystem) {
         writeVfsTextFile(path, await blobToDataUrl(blob), { metadata });
       } else {
         await domicile.files.write(toDomicilePath(path), new Uint8Array(await blob.arrayBuffer()));
       }
       setStatus(_("Saved to Desktop") + ` — ${name}`);
     },
-    [domicile, isBrowserRuntime, xdgUserDirs],
+    [domicile, realFilesystem, xdgUserDirs],
   );
 
   const takePhoto = React.useCallback(async () => {
