@@ -327,7 +327,7 @@ export function useAppsValue(
   onEssentialIconsReady?: () => void
 ): AppsContextValue {
   const domicile = useDomicile();
-  const { isBrowserRuntime, settings } = settingsCtx;
+  const { isBrowserRuntime, settings } = settingsCtx;  // FIXME : Capabilities
   const { gnomeIconThemeOverride } = backendsCtx;
   const onEssentialIconsReadyRef = React.useRef(onEssentialIconsReady);
   onEssentialIconsReadyRef.current = onEssentialIconsReady;
@@ -674,7 +674,7 @@ export function useAppsValue(
 
   // Watch XDG application directories so newly installed apps appear without restarting the shell
   React.useEffect(() => {
-    if (isBrowserRuntime) return;
+    if (isBrowserRuntime) return;  // FIXME : Capabilities
     let stopped = false;
     let debounceTimer: ReturnType<typeof setTimeout> | null = null;
     const stopFns: Array<() => void> = [];
@@ -723,7 +723,7 @@ export function useAppsValue(
       if (debounceTimer) clearTimeout(debounceTimer);
       for (const stop of stopFns) stop();
     };
-  }, [domicile.files, isBrowserRuntime, refreshXdgApps]);
+  }, [domicile.files, isBrowserRuntime, refreshXdgApps]);  // FIXME : Capabilities
 
   const ensureWaylandIcons = React.useCallback(
     (ids: readonly string[]) => {
@@ -828,21 +828,21 @@ export function useAppsValue(
       if (argv.length > 0) {
         const finalArgv = entry.terminal ? ["kitty", "-e", ...argv] : argv;
         launchDesktopCommand(domicile, finalArgv, {
-          cwd: isBrowserRuntime ? undefined : entry.workingDirectory,
+          cwd: isBrowserRuntime ? undefined : entry.workingDirectory,  // FIXME : Capabilities
         });
       }
     },
-    [domicile, isBrowserRuntime]
+    [domicile, isBrowserRuntime]  // FIXME : Capabilities
   );
 
   const openXdgFolder = React.useCallback(
     (folder: XdgUserDir) => {
       launchDesktopCommand(
         domicile,
-        buildOpenXdgFolderArgv(folder, isBrowserRuntime)
+        buildOpenXdgFolderArgv(folder, isBrowserRuntime)  // FIXME : Capabilities
       );
     },
-    [domicile, isBrowserRuntime]
+    [domicile, isBrowserRuntime]  // FIXME : Capabilities
   );
 
   const fallbackAppIconUrl = tintedAppIconsMap.__fallback_app__;

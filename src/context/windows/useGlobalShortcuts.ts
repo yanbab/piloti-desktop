@@ -5,7 +5,7 @@ import { emitShellEvent } from "@/lib/shell/shell-events";
 
 export interface UseGlobalShortcutsParams {
   domicile: Domicile;
-  isBrowserRuntime: boolean;
+  isBrowserRuntime: boolean;  // FIXME : Capabilities
   overviewOpen: boolean;
   setOverviewOpen: React.Dispatch<React.SetStateAction<boolean>>;
   toggleOverview: () => void;
@@ -30,7 +30,7 @@ export interface UseGlobalShortcutsParams {
 
 export function useGlobalShortcuts({
   domicile,
-  isBrowserRuntime,
+  isBrowserRuntime,  // FIXME : Capabilities
   overviewOpen,
   setOverviewOpen,
   toggleOverview,
@@ -152,7 +152,7 @@ export function useGlobalShortcuts({
         toggleOverview();
         return;
       }
-      if (isBrowserRuntime && e.altKey && e.code === "Space") {
+      if (isBrowserRuntime && e.altKey && e.code === "Space") {  // FIXME : Capabilities
         e.preventDefault();
         setOverviewOpen(false);
         setLauncherOpen((v) => !v);
@@ -170,14 +170,14 @@ export function useGlobalShortcuts({
         emitShellEvent("piloti:open-command-hud");
         return;
       }
-      if (isBrowserRuntime && e.altKey && e.key === "Tab") {
+      if (isBrowserRuntime && e.altKey && e.key === "Tab") {  // FIXME : Capabilities
         e.preventDefault();
         setOverviewOpen(false);
         cycleAltTab(e.shiftKey ? -1 : 1);
         return;
       }
       if (altTabOpen) {
-        if (e.key === "ArrowRight" || (isBrowserRuntime && e.key === "Tab")) {
+        if (e.key === "ArrowRight" || (isBrowserRuntime && e.key === "Tab")) {  // FIXME : Capabilities
           e.preventDefault();
           cycleAltTab(e.shiftKey ? -1 : 1);
           return;
@@ -274,7 +274,7 @@ export function useGlobalShortcuts({
     commitAltTab,
     cycleAltTab,
     focusedWindowId,
-    isBrowserRuntime,
+    isBrowserRuntime,  // FIXME : Capabilities
     launchApp,
     overviewOpen,
     setControlPanelOpen,

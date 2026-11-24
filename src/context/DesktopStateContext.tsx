@@ -50,7 +50,7 @@ export type ChromeSettings = Omit<DesktopSettings, "savedWindowBounds" | "deskto
 function selectChromeSettings(v: SettingsContextValue) {
   const { savedWindowBounds: _bounds, desktopIconPositions: _icons, ...settings } = v.settings;
   return {
-    isBrowserRuntime: v.isBrowserRuntime,
+    isBrowserRuntime: v.isBrowserRuntime,  // FIXME : Capabilities
     updateSettings: v.updateSettings,
     settings: settings as ChromeSettings,
   };
@@ -218,8 +218,8 @@ export function DesktopStateProvider({
   });
 
   React.useEffect(() => {
-    attachConsoleDiskSink(domicile, settingsValue.isBrowserRuntime);
-  }, [domicile, settingsValue.isBrowserRuntime]);
+    attachConsoleDiskSink(domicile, settingsValue.isBrowserRuntime);  // FIXME : Capabilities
+  }, [domicile, settingsValue.isBrowserRuntime]);  // FIXME : Capabilities
 
   const latestSettingsRef = React.useRef(settingsValue);
   latestSettingsRef.current = settingsValue;

@@ -84,10 +84,10 @@ function scheduleConsoleDiskFlush(): void {
  */
 export function attachConsoleDiskSink(
   domicile: ConsoleDiskSink,
-  isBrowserRuntime: boolean
+  isBrowserRuntime: boolean  // FIXME : Capabilities
 ): void {
   diskSink = domicile;
-  diskSinkIsBrowser = isBrowserRuntime;
+  diskSinkIsBrowser = isBrowserRuntime;  // FIXME : Capabilities
   scheduleConsoleDiskFlush();
 }
 

@@ -112,12 +112,12 @@ export function ComputerHardwareIllustration({
  */
 export function AboutComputerDialog() {
   const domicile = useDomicile();
-  const { isBrowserRuntime } = useSettings();
+  const { isBrowserRuntime } = useSettings();  // FIXME : Capabilities
   const aboutOpen = useWindowManagerSelector((wm) => wm.aboutOpen);
   const { setAboutOpen, launchApp } = useWindowActions();
   const [info, setInfo] = React.useState<ComputerInfo>({
     computerName: "Piloti Desktop",
-    modelSubtitle: isBrowserRuntime
+    modelSubtitle: isBrowserRuntime  // FIXME : Capabilities
       ? "Wayland Web Shell"
       : "Domicile Wayland Computer",
     processor: "Detecting…",
@@ -129,16 +129,16 @@ export function AboutComputerDialog() {
   React.useEffect(() => {
     if (!aboutOpen) return;
     let cancelled = false;
-    void probeComputerInfo(domicile, isBrowserRuntime).then((next) => {
+    void probeComputerInfo(domicile, isBrowserRuntime).then((next) => {  // FIXME : Capabilities
       if (!cancelled) setInfo(next);
     });
     return () => {
       cancelled = true;
     };
-  }, [aboutOpen, domicile, isBrowserRuntime]);
+  }, [aboutOpen, domicile, isBrowserRuntime]);  // FIXME : Capabilities
 
   const platformLabel = React.useMemo(() => {
-    if (!isBrowserRuntime) {
+    if (!isBrowserRuntime) {  // FIXME : Capabilities
       return info.kernel ? `Linux ${info.kernel}` : info.osName;
     }
     const ua = typeof navigator !== "undefined" ? navigator.userAgent : "";
@@ -146,7 +146,7 @@ export function AboutComputerDialog() {
     if (/Edg\//.test(ua) || /Chrome\//.test(ua)) return "Web Engine (Blink)";
     if (/Safari\//.test(ua)) return "Web Engine (WebKit)";
     return "Web Engine";
-  }, [info.kernel, info.osName, isBrowserRuntime]);
+  }, [info.kernel, info.osName, isBrowserRuntime]);  // FIXME : Capabilities
 
   const rows = [
     { label: _("Desktop"), value: `Piloti v${pkg.version}` },

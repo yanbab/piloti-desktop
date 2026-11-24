@@ -299,7 +299,7 @@ export function useWindowsValue(
   const browserWindows =
     useWatch(domicile.browser, "change", () => domicile.browser.windows) ?? [];
 
-  const { isBrowserRuntime, settings, updateSettings } = settingsCtx;
+  const { isBrowserRuntime, settings, updateSettings } = settingsCtx;  // FIXME : Capabilities
   const { gnomeCapabilities, takeScreenshot } = backendsCtx;
   const {
     installedXdgApps,
@@ -459,12 +459,12 @@ export function useWindowsValue(
       if (rec.id.startsWith("web:")) {
         const url = rec.id.slice(4);
         if (url) domicile.browser.open(url);
-      } else if (!isBrowserRuntime) {
+      } else if (!isBrowserRuntime) {  // FIXME : Capabilities
         const def = APP_CATALOG.find((a) => a.id === rec.id);
         launchDesktopCommand(domicile, def?.linuxCommand ?? [rec.id]);
       }
     }
-  }, [domicile, isBrowserRuntime, settings.restoreWindowsOnLogin]);
+  }, [domicile, isBrowserRuntime, settings.restoreWindowsOnLogin]);  // FIXME : Capabilities
 
   const [waylandMeta, setWaylandMeta] = React.useState<
     Record<string, ExternalWindowMeta>
@@ -1479,11 +1479,11 @@ function pruneBrowserRecord(
       if (!windowId.startsWith("browser:")) return;
       const url =
         normalizeWebUrl(rawUrl ?? "") ??
-        (isBrowserRuntime ? BROWSER_DEMO_HOME_URL : BROWSER_HOME_URL);
+        (isBrowserRuntime ? BROWSER_DEMO_HOME_URL : BROWSER_HOME_URL);  // FIXME : Capabilities
       pendingTabGroupsRef.current.push(windowId.slice("browser:".length));
       domicile.browser.open(url);
     },
-    [domicile.browser, isBrowserRuntime]
+    [domicile.browser, isBrowserRuntime]  // FIXME : Capabilities
   );
 
   const selectBrowserTab = React.useCallback((windowId: string, tabId: string) => {
@@ -2007,7 +2007,7 @@ function pruneBrowserRecord(
       console.info("[Piloti] forceQuitApp", appId);
       const appWins = combinedWindows.filter((w) => w.appId === appId);
       const killNativeAppProcess = (desktopId?: string, waylandAppId?: string, pid?: number | null) => {
-        if (isBrowserRuntime) return;
+        if (isBrowserRuntime) return;  // FIXME : Capabilities
         if (typeof pid === "number" && pid > 0) {
           domicile.processes.run(["kill", "-9", String(pid)]).catch(() => {});
         }
@@ -2056,7 +2056,7 @@ function pruneBrowserRecord(
       domicile.processes,
       domicile.windows,
       installedXdgApps,
-      isBrowserRuntime,
+      isBrowserRuntime,  // FIXME : Capabilities
     ]
   );
 
@@ -2078,7 +2078,7 @@ function pruneBrowserRecord(
       if (appId === "browser") {
         const url =
           normalizeWebUrl(options?.payload ?? "") ??
-          (isBrowserRuntime ? BROWSER_DEMO_HOME_URL : BROWSER_HOME_URL);
+          (isBrowserRuntime ? BROWSER_DEMO_HOME_URL : BROWSER_HOME_URL);  // FIXME : Capabilities
         const existing = options?.forceNew
           ? undefined
           : combinedWindowsRef.current.find((w) => w.appId === "browser" && w.browserWindowId);
@@ -2274,7 +2274,7 @@ function pruneBrowserRecord(
       focusWindow,
       gnomeCapabilities.gnomeControlCenter,
       installedXdgApps,
-      isBrowserRuntime,
+      isBrowserRuntime,  // FIXME : Capabilities
       markWindowUnready,
       openBrowserTab,
       screenHeight,
@@ -2291,7 +2291,7 @@ function pruneBrowserRecord(
 
   const openGnomeSettings = React.useCallback(
     (panel?: GnomeSettingsPanel | (string & {})) => {
-      if (isBrowserRuntime) {
+      if (isBrowserRuntime) {  // FIXME : Capabilities
         const reverseMap: Record<string, string> = {
           wifi: "network",
           network: "network",
@@ -2311,7 +2311,7 @@ function pruneBrowserRecord(
       }
       openGnomeControlCenter(domicile, panel, settings.hiddenGnomePanels);
     },
-    [domicile, isBrowserRuntime, launchApp, settings.hiddenGnomePanels]
+    [domicile, isBrowserRuntime, launchApp, settings.hiddenGnomePanels]  // FIXME : Capabilities
   );
 
   const openWebUrl = React.useCallback(
@@ -2417,7 +2417,7 @@ function pruneBrowserRecord(
         launchApp(builtinExecMap[execCmd]);
         return;
       }
-      if (isBrowserRuntime) {
+      if (isBrowserRuntime) {  // FIXME : Capabilities
         const lower = `${entry.desktopId} ${entry.appId}`.toLowerCase();
         if (lower.includes("settings") || lower.includes("controlcenter")) {
           launchApp("settings", { forceCsd: true });
@@ -2439,7 +2439,7 @@ function pruneBrowserRecord(
       beginStartupNotification,
       clearLaunchOverlays,
       domicile,
-      isBrowserRuntime,
+      isBrowserRuntime,  // FIXME : Capabilities
       launchApp,
       launchXdgEntry,
       openWebUrl,
@@ -2639,7 +2639,7 @@ function pruneBrowserRecord(
 
   useGlobalShortcuts({
     domicile,
-    isBrowserRuntime,
+    isBrowserRuntime,  // FIXME : Capabilities
     overviewOpen,
     setOverviewOpen,
     toggleOverview,
@@ -2740,7 +2740,7 @@ function pruneBrowserRecord(
     const onOpenPath = (e: Event) => {
       const filePath = (e as CustomEvent<{ path?: string }>).detail?.path;
       if (!filePath) return;
-      if (isBrowserRuntime) {
+      if (isBrowserRuntime) {  // FIXME : Capabilities
         const entry = getVfsEntry(filePath);
         if (entry && entry.kind === "file") {
           if (isImageVfsFile(entry.name, entry.content)) {
@@ -2763,7 +2763,7 @@ function pruneBrowserRecord(
     };
     window.addEventListener("piloti:open-path", onOpenPath);
     return () => window.removeEventListener("piloti:open-path", onOpenPath);
-  }, [domicile, isBrowserRuntime, launchApp, openWebUrl]);
+  }, [domicile, isBrowserRuntime, launchApp, openWebUrl]);  // FIXME : Capabilities
 
   const value = React.useMemo<WindowsContextValue>(
     () => ({
