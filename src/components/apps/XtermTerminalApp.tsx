@@ -66,6 +66,20 @@ export function XtermTerminalApp({
     };
   }, [bashAvailable, domicile]);
 
+  // One menu, sorted by name: piloti-shell among the real shells.
+  const menuEntries = React.useMemo(
+    () =>
+      [
+        { value: PILOTI, label: "piloti-shell", available: true },
+        ...shells.map(({ path, available }) => ({
+          value: path,
+          label: path.slice(path.lastIndexOf("/") + 1),
+          available,
+        })),
+      ].sort((a, b) => a.label.localeCompare(b.label)),
+    [shells],
+  );
+
   const hostRef = React.useRef<HTMLDivElement>(null);
   const termRef = React.useRef<Terminal | null>(null);
   const fitRef = React.useRef<FitAddon | null>(null);
@@ -205,10 +219,9 @@ export function XtermTerminalApp({
             </DropdownMenuTrigger>
             <DropdownMenuContent align="center" className="min-w-[11rem]">
               <DropdownMenuRadioGroup value={mode} onValueChange={(value) => setMode(String(value))}>
-                <DropdownMenuRadioItem value={PILOTI}>piloti-shell</DropdownMenuRadioItem>
-                {shells.map(({ path, available }) => (
-                  <DropdownMenuRadioItem key={path} value={path} disabled={!available}>
-                    {path.slice(path.lastIndexOf("/") + 1)}
+                {menuEntries.map(({ value, label, available }) => (
+                  <DropdownMenuRadioItem key={value} value={value} disabled={!available}>
+                    {label}
                   </DropdownMenuRadioItem>
                 ))}
               </DropdownMenuRadioGroup>
