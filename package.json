@@ -36,6 +36,7 @@
     "@domicile-desktop/sdk": "next",
     "@domicile-desktop/system-backlight": "^1.1.2",
     "@domicile-desktop/system-battery": "^1.1.2",
+    "@domicile-desktop/system-network": "^1.1.2",
     "@lezer/highlight": "^1.2.5",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

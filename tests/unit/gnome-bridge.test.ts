@@ -6,7 +6,6 @@ import {
   parseGnomeSettingsBatchOutput,
   parseGSettingsKeyVal,
   parseGtk4HintFontMetrics,
-  parseNmcliWifiOutput,
   parseWpctlVolumeOutput,
   upsertGtkSettingsIni,
 } from "@/lib/engine-native";
@@ -64,23 +63,6 @@ describe("gnome-bridge parsers", () => {
       muted: true,
     });
     expect(parseWpctlVolumeOutput("invalid")).toBeNull();
-  });
-
-  test("parses nmcli terse wifi output including escaped colons", () => {
-    const parsed = parseNmcliWifiOutput(
-      `yes:Studio\\:Mesh:88:WPA2
-no:GuestWifi:45:--
-no:GuestWifi:62:WPA2
-`
-    );
-    expect(parsed.connectedSsid).toBe("Studio:Mesh");
-    expect(parsed.networks).toHaveLength(2);
-    expect(parsed.networks[0].ssid).toBe("Studio:Mesh");
-    expect(parsed.networks[1]).toMatchObject({
-      ssid: "GuestWifi",
-      signal: 62,
-      secured: true,
-    });
   });
 
   test("parses flatpak list and search TSV output", () => {

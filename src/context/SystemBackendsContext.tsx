@@ -50,7 +50,8 @@ import {
   watchSystemBattery,
   watchSystemBrightness,
   readSystemPowerProfile,
-  readSystemWifi,
+  scanSystemWifi,
+  watchSystemWifi,
   setDefaultAudioSink,
   syncGnomePanelOverrides,
   syncGtkIconTheme,
@@ -822,11 +823,20 @@ export function useSystemBackendsValue(
   React.useEffect(() => {
     if (isBrowserRuntime) return;
     const stopBattery = watchSystemBattery(domicile, setBatteryInfo);
+    const stopWifi = watchSystemWifi(domicile, (wifi) => {
+      if (!wifi) return;
+      if (wifi.networks.length > 0) setLiveWifiNetworks(wifi.networks);
+      applySettingsState({
+        wifiEnabled: wifi.enabled,
+        connectedWifi: wifi.connectedSsid ?? "",
+      });
+    });
     const stopBrightness = greeterMode
       ? () => undefined
       : watchSystemBrightness(domicile, (brightness) => applySettingsState({ brightness }));
     return () => {
       stopBattery();
+      stopWifi();
       stopBrightness();
     };
   }, [applySettingsState, domicile, greeterMode, isBrowserRuntime]);
@@ -854,26 +864,17 @@ export function useSystemBackendsValue(
         applySettingsState({ powerMode: powerProfile });
       }
 
+      if (options?.scanWifi) void scanSystemWifi(domicile);
+
       if (greeterMode) {
-        const wifi = await readSystemWifi(domicile, {
-          scan: Boolean(options?.scanWifi),
-        });
         finishBackends();
-        if (wifi) {
-          if (wifi.networks.length > 0) setLiveWifiNetworks(wifi.networks);
-          applySettingsState({
-            wifiEnabled: wifi.enabled,
-            ...(wifi.connectedSsid ? { connectedWifi: wifi.connectedSsid } : {}),
-          });
-        }
         return;
       }
 
-      const [caps, panels, sinks, wifi] = await Promise.all([
+      const [caps, panels, sinks] = await Promise.all([
         probeGnomeCapabilities(domicile),
         discoverGnomeControlCenterPanels(domicile),
         listSystemAudioSinks(domicile),
-        readSystemWifi(domicile, { scan: Boolean(options?.scanWifi) }),
         runXdgAutostartOnce(domicile),
       ]);
       finishBackends();
@@ -882,13 +883,6 @@ export function useSystemBackendsValue(
       setAvailableGnomePanels(panels);
       if (sinks.length > 0) setAudioSinks(sinks);
 
-      if (wifi) {
-        if (wifi.networks.length > 0) setLiveWifiNetworks(wifi.networks);
-        applySettingsState({
-          wifiEnabled: wifi.enabled,
-          ...(wifi.connectedSsid ? { connectedWifi: wifi.connectedSsid } : {}),
-        });
-      }
     },
     [applySettingsState, domicile, greeterMode, isBrowserRuntime]
   );

@@ -3,6 +3,14 @@ import type { WifiNetwork } from "@/data/catalog";
 import { brightnessSetter } from "@domicile-desktop/system-backlight/set-brightness";
 import { watchBrightness } from "@domicile-desktop/system-backlight/watch-brightness";
 import { readBattery, watchBattery, type Battery } from "@domicile-desktop/system-battery/battery";
+import {
+  connectWifi,
+  scanWifi,
+  setWifiEnabled,
+  watchWifi,
+  type WifiDevice,
+  type WifiNetwork as LibWifiNetwork,
+} from "@domicile-desktop/system-network/wifi";
 import { runText } from "./exec";
 import type { AudioSinkInfo, BatteryInfo, MprisMediaInfo } from "./types";
 
@@ -125,126 +133,80 @@ export async function setDefaultAudioSink(
   await runText(domicile, ["pactl", "set-default-sink", sinkName]);
 }
 
-export function parseNmcliWifiOutput(listOut: string): {
-  connectedSsid: string | null;
-  networks: WifiNetwork[];
-} {
-  let connectedSsid: string | null = null;
-  const dedup = new Map<string, WifiNetwork>();
-
-  for (const line of listOut.split(/\r?\n/)) {
-    if (!line.trim()) continue;
-    const parts = line.split(/(?<!\\):/);
-    if (parts.length < 3) continue;
-    const active = parts[0].trim() === "yes";
-    const ssid = parts[1].replace(/\\:/g, ":").trim();
-    if (!ssid) continue;
-    const signal = Number.parseInt(parts[2] ?? "0", 10) || 0;
-    const sec = (parts[3] ?? "").trim();
-
-    if (active) {
-      connectedSsid = ssid;
-    }
-    const prev = dedup.get(ssid);
-    if (!prev || signal > prev.signal) {
-      dedup.set(ssid, {
-        ssid,
-        signal,
-        secured: Boolean(sec && sec !== "--"),
-        band: "5 GHz",
-      });
-    }
-  }
-
-  return {
-    connectedSsid,
-    networks: Array.from(dedup.values()).sort((a, b) => b.signal - a.signal),
-  };
-}
-
-/**
- * Reads Wi-Fi radio state and active SSID; only runs the heavier
- * `nmcli dev wifi list` scan when `options?.scan` is true.
- */
-export async function readSystemWifi(
-  domicile: Domicile,
-  options?: { scan?: boolean }
-): Promise<{
+type WifiSnapshot = {
   enabled: boolean;
   connectedSsid: string | null;
   networks: WifiNetwork[];
-} | null> {
-  const radioOut = await runText(domicile, ["nmcli", "radio", "wifi"]);
-  if (radioOut === null) return null;
+};
 
-  const enabled = radioOut.trim().toLowerCase() === "enabled";
-  if (!enabled) {
-    return { enabled: false, connectedSsid: null, networks: [] };
-  }
+const latestWifiDevice = new WeakMap<object, WifiDevice>();
+const latestWifiNetworks = new WeakMap<object, LibWifiNetwork[]>();
 
-  if (!options?.scan) {
-    const activeOut = await runText(domicile, [
-      "nmcli",
-      "-t",
-      "-f",
-      "NAME,TYPE",
-      "connection",
-      "show",
-      "--active",
-    ]);
-    let connectedSsid: string | null = null;
-    if (activeOut) {
-      for (const line of activeOut.split(/\r?\n/)) {
-        const idx = line.lastIndexOf(":");
-        if (idx <= 0) continue;
-        const connType = line.slice(idx + 1).trim();
-        if (connType === "802-11-wireless" || connType === "wifi") {
-          connectedSsid = line.slice(0, idx).replace(/\\:/g, ":").trim();
-          break;
-        }
-      }
-    }
-    return { enabled, connectedSsid, networks: [] };
-  }
+const bandOf = (frequencyMhz: number | undefined): WifiNetwork["band"] =>
+  frequencyMhz && frequencyMhz >= 5925 ? "6 GHz" : frequencyMhz && frequencyMhz >= 4900 ? "5 GHz" : "2.4 GHz";
 
-  const listOut = await runText(domicile, [
-    "nmcli",
-    "-t",
-    "-f",
-    "ACTIVE,SSID,SIGNAL,SECURITY",
-    "dev",
-    "wifi",
-    "list",
-  ]);
-  if (!listOut) {
-    return { enabled, connectedSsid: null, networks: [] };
-  }
-
-  return {
-    enabled,
-    ...parseNmcliWifiOutput(listOut),
-  };
-}
-
-export async function setSystemWifiEnabled(
+/**
+ * Calls `onWifi` now and after each change of the Wi-Fi device (NetworkManager
+ * or iwd, through Domicile's `system-network`); `null` when there is none.
+ */
+export function watchSystemWifi(
   domicile: Domicile,
-  enabled: boolean
-): Promise<void> {
-  await runText(domicile, ["nmcli", "radio", "wifi", enabled ? "on" : "off"]);
+  onWifi: (wifi: WifiSnapshot | null) => void,
+): () => void {
+  return watchWifi(domicile, (result) =>
+    result.match({
+      Err: () => onWifi(null),
+      Ok: (found) =>
+        found.match({
+          None: () => onWifi(null),
+          Some: (wifi) => {
+            latestWifiDevice.set(domicile, wifi);
+            latestWifiNetworks.set(domicile, wifi.networks);
+            onWifi({
+              enabled: wifi.enabled,
+              connectedSsid: wifi.connection?.ssid ?? null,
+              networks: wifi.networks.map((n) => ({
+                ssid: n.ssid,
+                signal: Math.max(1, Math.round(n.strength * 100)),
+                secured: n.secured,
+                band:
+                  n.connected || n.ssid === wifi.connection?.ssid
+                    ? bandOf(wifi.connection?.frequency)
+                    : "5 GHz",
+              })),
+            });
+          },
+        }),
+    }),
+  );
 }
 
+export async function setSystemWifiEnabled(domicile: Domicile, enabled: boolean): Promise<void> {
+  const device = latestWifiDevice.get(domicile);
+  if (device) await setWifiEnabled(domicile, device, enabled).catch(() => undefined);
+}
+
+/** Asks for a scan; the networks it finds arrive through `watchSystemWifi`. */
+export async function scanSystemWifi(domicile: Domicile): Promise<void> {
+  const device = latestWifiDevice.get(domicile);
+  if (device) await scanWifi(domicile, device).catch(() => undefined);
+}
+
+/** Joins a network by name. Only networks with a saved profile (or open ones) connect without a passphrase. */
 export async function connectSystemWifi(
   domicile: Domicile,
-  ssid: string
+  ssid: string,
+  passphrase?: string,
 ): Promise<boolean> {
-  const res = await runText(domicile, [
-    "nmcli",
-    "dev",
-    "wifi",
-    "connect",
-    ssid,
-  ]);
-  return res !== null;
+  const device = latestWifiDevice.get(domicile);
+  const network = latestWifiNetworks.get(domicile)?.find((n) => n.ssid === ssid);
+  if (!device || !network) return false;
+  try {
+    const res = await connectWifi(domicile, device, network, passphrase);
+    return res.isOk();
+  } catch {
+    return false; // a secured network with no saved profile needs a passphrase
+  }
 }
 
 export async function readSystemPowerProfile(
