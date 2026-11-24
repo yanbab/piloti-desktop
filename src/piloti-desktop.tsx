@@ -47,6 +47,7 @@ async function boot(root: HTMLElement, domicile: Parameters<ShellModule>[1]) {
       vfs.setVfsPersistence({
         kv: await createNativeKeyValueStorage(store, (key) => key === vfs.WEB_VFS_STORAGE_KEY),
         blobs: memoryBlobStorage(),
+        persistEntries: false,
       });
       // Emblems (favorites included) live in the file's gio `metadata::emblems`, like other file managers.
       vfs.setVfsEmblemPersist((path, names) =>

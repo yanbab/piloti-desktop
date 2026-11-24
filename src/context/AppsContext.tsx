@@ -440,7 +440,9 @@ export function useAppsValue(
         // On repeat boots (refreshNonce === 0) with a valid cached index, use
         // it immediately and refresh the index lazily in the background.
         const finishIndex = startBootPhase("icon index + user-dirs");
-        const useWarmCachedIndex = Boolean(cachedIndex) && refreshNonce === 0;
+        // A refresh (the Launcher opening) only rescans applications: the icon index is reused
+        // as cached, and is rebuilt in the background at startup only.
+        const useWarmCachedIndex = Boolean(cachedIndex);
         const iconIndexPromise = useWarmCachedIndex
           ? Promise.resolve(cachedIndex!)
           : buildXdgIconThemeIndex(domicile.files, preferredThemes);
@@ -456,7 +458,7 @@ export function useAppsValue(
         setIconAccentConfig(iconAccentConfigFromIndex(iconIndex));
         if (!useWarmCachedIndex) {
           saveCachedXdgIconThemeIndex(preferredThemes, iconIndex);
-        } else {
+        } else if (refreshNonce === 0) {
           bgIndexTimer = setTimeout(() => {
             if (cancelled) return;
             void buildXdgIconThemeIndex(domicile.files, preferredThemes)

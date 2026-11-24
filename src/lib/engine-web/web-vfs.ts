@@ -86,6 +86,8 @@ export function setVfsPersistence(next: VfsPersistence): void {
   clearVfsMemoryCache();
 }
 const hasKv = () => persistence.kv !== null;
+/** The entry cache itself is saved (browser demo); native keeps it in memory only. */
+const persistsEntries = () => hasKv() && persistence.persistEntries !== false;
 const kv = () => persistence.kv as NonNullable<VfsPersistence["kv"]>;
 
 function isExternalizable(entry: WebVfsEntry): boolean {
@@ -151,7 +153,7 @@ function setVfsCache(entries: WebVfsEntry[], raw: string | null): WebVfsEntry[] 
 }
 
 function loadVfs(): WebVfsEntry[] {
-  if (!hasKv()) {
+  if (!persistsEntries()) {
     return vfsCacheEntries ?? setVfsCache(seedVfs(), null);
   }
   if (vfsCacheInMemoryOnly && vfsCacheEntries) {
@@ -335,7 +337,7 @@ export function flushWebVfs(): void {
   const entries = vfsCacheEntries;
   const paths = vfsPendingPaths ? [...vfsPendingPaths] : undefined;
   vfsPendingPaths = new Set();
-  if (!entries || !hasKv()) return;
+  if (!entries || !persistsEntries()) return;
   const started = typeof performance !== "undefined" ? performance.now() : Date.now();
   try {
     syncBlobStore(entries);

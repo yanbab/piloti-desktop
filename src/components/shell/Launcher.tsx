@@ -356,7 +356,7 @@ export const Launcher = React.memo(function Launcher() {
   React.useEffect(() => {
     if (launcherOpen) {
       const now = Date.now();
-      if (now - lastXdgRefreshRef.current > 3000) {
+      if (now - lastXdgRefreshRef.current > 30_000) {
         lastXdgRefreshRef.current = now;
         refreshXdgApps();
       }
