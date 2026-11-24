@@ -1,3 +1,8 @@
 {
-  "shell": "/usr/share/piloti-desktop/shell.js"
+  "shell": "/usr/share/piloti-desktop/shell.js",
+  "input": {
+    "keyboard": {
+      "keymaps": [{ "name": "fr", "xkb_layout": "fr" }, { "name": "us", "xkb_layout": "us" }]
+    }
+  }
 }
