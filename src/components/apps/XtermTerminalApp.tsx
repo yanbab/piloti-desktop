@@ -4,6 +4,7 @@ import { FitAddon } from "@xterm/addon-fit";
 import "@xterm/xterm/css/xterm.css";
 import { useDomicile } from "@domicile-desktop/react/domicile-provider";
 import {
+  useApps,
   useSettings,
   useSystemBackends,
   useWindowActions,
@@ -49,7 +50,9 @@ export function XtermTerminalApp({
   const windows = useWindowManagerSelector((wm) =>
     wm.windows.map((w) => ({ id: w.id, appId: w.appId, title: w.title })),
   );
-  const bashAvailable = getEngine().capabilities.systemServices;
+  const focused = useWindowManagerSelector((wm) => wm.focusedWindowId === windowId);
+  const { systemServices } = getEngine().capabilities;
+  const bashAvailable = systemServices;
   const [shells, setShells] = React.useState<LoginShell[]>([]);
   const [mode, setMode] = React.useState<string>(bashAvailable ? "" : PILOTI);
   React.useEffect(() => {
@@ -86,8 +89,9 @@ export function XtermTerminalApp({
   const bashRef = React.useRef<BashSession | null>(null);
 
   // What the REPL can reach, kept current without restarting the session.
-  const live = React.useRef({ windows, settings });
-  live.current = { windows, settings };
+  const { installedXdgApps } = useApps();
+  const live = React.useRef({ windows, settings, apps: installedXdgApps });
+  live.current = { windows, settings, apps: installedXdgApps };
   const scope = React.useCallback(
     () => ({
       windows: () => live.current.windows,
@@ -95,6 +99,17 @@ export function XtermTerminalApp({
       set: (patch: Record<string, unknown>) => updateSettings(patch as never),
       launch: (appId: string, payload?: string) => launchApp(appId, { payload }),
       notify: (summary: string, body = "") => pushNotification({ appName: "Piloti shell", summary, body }),
+      apps: () => live.current.apps,
+      run: async (cmd: string) => {
+        if (!systemServices) return { code: 0, stdout: `[web demo] would run: ${cmd}`, stderr: "" };
+        const res = await domicile.processes.run(["sh", "-c", cmd]);
+        return res.match({
+          Ok: (ran) => ran,
+          Err: (err) => {
+            throw new Error(String(err));
+          },
+        });
+      },
       piloti: (globalThis as { __PILOTI__?: unknown }).__PILOTI__,
       files: domicile.files,
       domicile,
@@ -105,6 +120,8 @@ export function XtermTerminalApp({
           "set({ ... })       change settings, e.g. set({ themeMode: 'dark' })",
           "launch(appId, p?)  open an app, e.g. launch('nautilus', '/home')",
           "notify(title, b?)  show a notification",
+          "apps()             installed applications",
+          "run(cmd)           run a Linux command, returns { code, stdout, stderr }",
           "piloti             the plugin API (windows, settings, notifications...)",
           "files, domicile    Domicile's files and the whole desktop API",
         ].join("\n"),
@@ -153,6 +170,11 @@ export function XtermTerminalApp({
     const term = termRef.current;
     if (term) term.options.theme = settings.themeMode === "dark" ? DARK : LIGHT;
   }, [settings.themeMode]);
+
+  // The terminal takes the keyboard whenever its window is focused.
+  React.useEffect(() => {
+    if (focused) termRef.current?.focus();
+  }, [focused, mode]);
 
   // (Re)start the chosen mode when it changes.
   React.useEffect(() => {
@@ -207,7 +229,7 @@ export function XtermTerminalApp({
           <WindowMenuButton side="left" windowId={windowId} appId="terminal" iconName="terminal" />
         </div>
         <div className="flex min-w-0 items-center justify-center" data-window-no-drag>
-          <DropdownMenu>
+          <DropdownMenu onOpenChange={(open) => !open && requestAnimationFrame(() => termRef.current?.focus())}>
             <DropdownMenuTrigger
               aria-label={_("Choose shell")}
               className="inline-flex max-w-full items-center gap-1 rounded-[7px] px-2.5 py-1 text-adw-body font-semibold text-adw-label outline-none hover:bg-black/8 data-popup-open:bg-black/12 dark:hover:bg-white/10 dark:data-popup-open:bg-white/15"
@@ -233,7 +255,7 @@ export function XtermTerminalApp({
           <WindowControls side="right" />
         </div>
       </WindowTitlebar>
-      <div ref={hostRef} className="min-h-0 flex-1 p-2" />
+      <div ref={hostRef} className="min-h-0 flex-1 p-2" onMouseDown={() => requestAnimationFrame(() => termRef.current?.focus())} />
     </div>
   );
 }

@@ -68,330 +68,10 @@ import {
 } from "@/lib/engine/vfs-state";
 
 export type ConsoleModuleId =
-  | "repl"
   | "logs"
   | "inspector"
   | "storage"
   | "vfs-events";
-
-interface ReplItem {
-  id: number;
-  code: string;
-  ok: boolean;
-  output: string;
-  durationMs: number;
-}
-
-let nextReplId = 1;
-
-function ReplModule({
-  scope,
-  active,
-}: {
-  scope: Record<string, unknown>;
-  active: boolean;
-}) {
-  const [input, setInput] = React.useState("");
-  const [history, setHistory] = React.useState<string[]>([]);
-  const [historyIndex, setHistoryIndex] = React.useState<number>(-1);
-  const [items, setItems] = React.useState<ReplItem[]>([]);
-  const [running, setRunning] = React.useState(false);
-
-  const lastResultRef = React.useRef<unknown>(undefined);
-  const scrollRef = React.useRef<HTMLDivElement | null>(null);
-  const inputRef = React.useRef<HTMLInputElement | null>(null);
-
-  React.useEffect(() => {
-    if (active) {
-      requestAnimationFrame(() => inputRef.current?.focus());
-    }
-  }, [active]);
-
-  React.useEffect(() => {
-    const el = scrollRef.current;
-    if (el) {
-      el.scrollTop = el.scrollHeight;
-    }
-  }, [items.length]);
-
-  const execute = React.useCallback(
-    async (rawCode?: string) => {
-      const code = (rawCode ?? input).trim();
-      if (!code || running) return;
-
-      if (!rawCode) {
-        setInput("");
-      }
-      setHistory((prev) =>
-        prev[0] === code ? prev : [code, ...prev.slice(0, 99)]
-      );
-      setHistoryIndex(-1);
-      setRunning(true);
-
-      const t0 = performance.now();
-      try {
-        const evalScope: Record<string, unknown> = {
-          ...scope,
-          $_: lastResultRef.current,
-          clear: () => {
-            setItems([]);
-            return "Cleared";
-          },
-          help: () =>
-            [
-              "Piloti Desktop Console REPL — usage: <command> [args]",
-              "",
-              "Globals:",
-              "  domicile              Domicile host bridge (files, windows, processes)",
-              "  windows               All open shell & Wayland windows",
-              "  focusedWindow         Currently focused window",
-              "  waylandPopups         Active Wayland popup surfaces",
-              "  displays              Connected display descriptors",
-              "  browserWindows        Active webview windows",
-              "  settings              Current DesktopSettings object",
-              "  apps                  Discovered XDG .desktop applications",
-              "  notifications         Notification history items",
-              "  gnomeCapabilities     Available GNOME/systemd backends",
-              "  availableGnomePanels  Supported GNOME Settings panels",
-              "  $_                    Result of the previous evaluation",
-              "",
-              "Commands:",
-              "  launchApp(id, opts?)          Launch an app by ID",
-              "  focusWindow(id)               Focus a window",
-              "  closeWindow(id)               Close a window",
-              "  openWebUrl(url, opts?)        Open a URL in browser/web-app mode",
-              "  openGnomeSettings(panel?)     Open GNOME Settings panel",
-              "  updateSettings(patch)         Patch DesktopSettings",
-              "  pushNotification(input)       Send a desktop notification",
-              "  run(shellCmd)                 Run a shell command (returns Promise)",
-              "  bsod(message?)                Trigger crash screen test",
-              "  clear()                       Clear REPL output",
-              "  help()                        Show this help message",
-              "",
-              "Tabs:",
-              "  Console                       Interactive JS REPL (state persists across tabs)",
-              "  Logs                          Live captured console & error stream",
-              "  Infos                         Compositor, window, display & backend diagnostics",
-              "  Events                        Live VFS diff & window/shell events (records in background)",
-              "  Storage                       Inspect localStorage keys & embedded images",
-              "",
-              "Examples:",
-              '  await run("uname -a")',
-              '  await domicile.files.readDir("/usr/share/applications")',
-              '  updateSettings({ themeMode: "dark" })',
-              '  openWebUrl("https://gnome.org")',
-            ].join("\n"),
-        };
-
-        const result = await evaluateReplCode(code, evalScope);
-        lastResultRef.current = result;
-        const durationMs = Math.round(performance.now() - t0);
-        setItems((prev) => [
-          ...prev,
-          {
-            id: nextReplId++,
-            code,
-            ok: true,
-            output:
-              typeof result === "string" && result.includes("\n")
-                ? result
-                : formatInspectValue(result),
-            durationMs,
-          },
-        ]);
-      } catch (err) {
-        const durationMs = Math.round(performance.now() - t0);
-        setItems((prev) => [
-          ...prev,
-          {
-            id: nextReplId++,
-            code,
-            ok: false,
-            output:
-              err instanceof Error
-                ? err.stack || `${err.name}: ${err.message}`
-                : String(err),
-            durationMs,
-          },
-        ]);
-      } finally {
-        setRunning(false);
-        requestAnimationFrame(() => inputRef.current?.focus());
-      }
-    },
-    [input, running, scope]
-  );
-
-  const replCompletion = React.useMemo(() => {
-    if (!input) return undefined;
-
-    const tokenMatch = input.match(/([A-Za-z_$][A-Za-z0-9_$.]*)$/);
-    if (tokenMatch) {
-      const token = tokenMatch[1];
-      const head = input.slice(0, input.length - token.length);
-      const parts = token.split(".");
-      const propPrefix = parts.pop() ?? "";
-      const rootScope: Record<string, unknown> = {
-        ...scope,
-        $_: lastResultRef.current,
-        clear: () => {},
-        help: () => {},
-        console,
-        JSON,
-        Object,
-        Math,
-      };
-
-      if (parts.length === 0) {
-        const keys = Object.keys(rootScope);
-        const match =
-          keys.find((k) => k.startsWith(propPrefix) && k.length > propPrefix.length) ??
-          keys.find(
-            (k) =>
-              k.toLowerCase().startsWith(propPrefix.toLowerCase()) &&
-              k.length > propPrefix.length
-          );
-        if (match) {
-          return `${head}${match}`;
-        }
-      } else {
-        let target: unknown = rootScope;
-        for (const part of parts) {
-          if (target !== null && (typeof target === "object" || typeof target === "function")) {
-            target = (target as Record<string, unknown>)[part];
-          } else {
-            target = undefined;
-            break;
-          }
-        }
-        if (target !== null && (typeof target === "object" || typeof target === "function")) {
-          const keys = [
-            ...new Set([
-              ...Object.keys(target as Record<string, unknown>),
-              ...Object.getOwnPropertyNames(target),
-            ]),
-          ].filter((k) => k !== "prototype" && k !== "constructor" && k !== "__proto__");
-          const match =
-            keys.find((k) => k.startsWith(propPrefix) && k.length > propPrefix.length) ??
-            keys.find(
-              (k) =>
-                k.toLowerCase().startsWith(propPrefix.toLowerCase()) &&
-                k.length > propPrefix.length
-            );
-          if (match) {
-            return `${head}${parts.join(".")}.${match}`;
-          }
-        }
-      }
-    }
-
-    const lower = input.toLowerCase();
-    return history.find(
-      (h) => h.toLowerCase().startsWith(lower) && h.length > input.length
-    );
-  }, [history, input, scope]);
-
-  const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      void execute();
-      return;
-    }
-    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "l") {
-      e.preventDefault();
-      setItems([]);
-      return;
-    }
-    if (e.key === "ArrowUp" && !input.includes("\n")) {
-      if (history.length === 0) return;
-      e.preventDefault();
-      const nextIdx = Math.min(history.length - 1, historyIndex + 1);
-      setHistoryIndex(nextIdx);
-      setInput(history[nextIdx]);
-      return;
-    }
-    if (e.key === "ArrowDown" && !input.includes("\n")) {
-      if (historyIndex <= 0) {
-        setHistoryIndex(-1);
-        setInput("");
-        return;
-      }
-      e.preventDefault();
-      const nextIdx = historyIndex - 1;
-      setHistoryIndex(nextIdx);
-      setInput(history[nextIdx]);
-    }
-  };
-
-  return (
-    <div className="relative flex min-h-0 flex-1 flex-col bg-white dark:bg-black">
-      {/* Output Transcript */}
-      <div
-        ref={scrollRef}
-        onClick={() => inputRef.current?.focus()}
-        className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-3 font-mono text-adw-callout"
-      >
-        <div className="text-adw-label-tertiary select-none">
-          Type &quot;help()&quot; for help.
-        </div>
-        {items.map((item) => (
-          <div
-            key={item.id}
-            className="rounded-adw-item bg-black/3 px-2.5 py-2 dark:bg-white/4"
-          >
-            <div className="flex items-center justify-between gap-2 text-adw-label-secondary">
-              <div className="flex min-w-0 items-start gap-1.5 font-semibold text-adw-label">
-                <ChevronRightIcon className="mt-0.5 size-3.5 shrink-0 text-adw-label dark:text-white" />
-                <pre className="min-w-0 whitespace-pre-wrap break-all">
-                  {item.code}
-                </pre>
-              </div>
-              <span className="shrink-0 text-adw-footnote text-adw-label-tertiary">
-                {item.durationMs}ms
-              </span>
-            </div>
-            <pre
-              className={cn(
-                "mt-1.5 pl-5 whitespace-pre-wrap break-words select-text",
-                item.ok
-                  ? "text-emerald-700 dark:text-emerald-300"
-                  : "text-rose-600 dark:text-rose-400"
-              )}
-            >
-              {item.output}
-            </pre>
-          </div>
-        ))}
-      </div>
-
-      {/* Input Prompt */}
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          void execute();
-        }}
-        className="flex h-12 min-h-12 shrink-0 items-center gap-2 border-t border-adw-separator bg-adw-titlebar px-3"
-      >
-        <ChevronRightIcon className="size-4 shrink-0 text-adw-label dark:text-white" />
-        <InlineCompletionInput
-          ref={inputRef}
-          autoFocus
-          type="text"
-          value={input}
-          completion={replCompletion}
-          onAcceptCompletion={(completed) => setInput(completed)}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={onKeyDown}
-          spellCheck={false}
-          autoCapitalize="off"
-          autoComplete="off"
-          aria-label="Console REPL input"
-          className="h-full flex-1 font-mono text-adw-callout leading-[18px] text-adw-label"
-        />
-      </form>
-    </div>
-  );
-}
 
 type InspectorSectionId =
   | "windows"
@@ -524,6 +204,7 @@ function InspectorJsonCard({
     </div>
   );
 }
+
 
 function InspectorModule() {
   const domicile = useDomicile();
@@ -1955,7 +1636,6 @@ export function ConsoleApp({
 
   const DEVTOOLS_ACTIVE_MODULE_KEY = "piloti.devtools.activeModule.v1";
   const isModuleId = (v: string | null | undefined): v is ConsoleModuleId =>
-    v === "repl" ||
     v === "logs" || // legacy: merged into Events
     v === "inspector" ||
     v === "storage" ||
@@ -1973,7 +1653,7 @@ export function ConsoleApp({
       } catch {
         // ignore storage errors
       }
-      return "repl";
+      return "inspector";
     }
   );
 
@@ -2006,72 +1686,7 @@ export function ConsoleApp({
     [consoleEntries]
   );
 
-  const replScope = React.useMemo<Record<string, unknown>>(
-    () => ({
-      domicile,
-      displays: domicile.displays.list,
-      browserWindows: domicile.browser.windows ?? [],
-      windows,
-      focusedWindow,
-      waylandPopups,
-      apps: installedXdgApps,
-      settings,
-      updateSettings,
-      notifications,
-      pushNotification,
-      gnomeCapabilities,
-      availableGnomePanels,
-      launchApp,
-      focusWindow,
-      closeWindow,
-      openWebUrl,
-      openGnomeSettings,
-      bsod: (message = "Manual BSOD triggered from Console") => {
-        window.dispatchEvent(
-          new CustomEvent("residence:bsod", { detail: new Error(message) })
-        );
-        return "BSOD triggered";
-      },
-      run: async (cmd: string) => {
-        if (isBrowserRuntime) {
-          return {
-            code: 0,
-            stdout: `[Browser Preview] Simulated command: ${cmd}`,
-            stderr: "",
-          };
-        }
-        const res = await domicile.processes.run(["sh", "-c", cmd]);
-        return res.match({
-          Ok: (ran) => ran,
-          Err: (err) => {
-            throw new Error(String(err));
-          },
-        });
-      },
-    }),
-    [
-      availableGnomePanels,
-      closeWindow,
-      domicile,
-      focusWindow,
-      focusedWindow,
-      gnomeCapabilities,
-      installedXdgApps,
-      isBrowserRuntime,
-      launchApp,
-      notifications,
-      openGnomeSettings,
-      openWebUrl,
-      pushNotification,
-      settings,
-      updateSettings,
-      waylandPopups,
-      windows,
-    ]
-  );
-
   const modules: { id: ConsoleModuleId; label: string; badge?: number }[] = [
-    { id: "repl", label: "Console" },
     { id: "inspector", label: _("Infos") },
     {
       id: "vfs-events",
@@ -2143,15 +1758,7 @@ export function ConsoleApp({
         </div>
       </WindowTitlebar>
 
-      {/* Active Module (keep REPL and VFS & Events mounted so state/logs persist across tab switches) */}
-      <div
-        className={cn(
-          "min-h-0 flex-1 overflow-hidden",
-          activeModule === "repl" ? "flex" : "hidden"
-        )}
-      >
-        <ReplModule scope={replScope} active={activeModule === "repl"} />
-      </div>
+      {/* Active module (Events stays mounted so its log persists across tab switches) */}
       {activeModule === "inspector" && <InspectorModule />}
       <div
         className={cn(

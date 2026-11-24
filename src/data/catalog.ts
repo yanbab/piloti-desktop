@@ -292,7 +292,7 @@ export const APP_CATALOG: AppDefinition[] = [
     id: "console",
     name: "Desktop Console",
     shortName: "Desktop Console",
-    description: "Desktop Console, live logs, inspector, and JS REPL",
+    description: "Desktop Console: live logs, inspector and storage",
     category: "Development",
     iconName: "code",
     xdgIcons: ["piloti-console", "piloti-desktop"],
@@ -306,7 +306,6 @@ export const APP_CATALOG: AppDefinition[] = [
       {
         title: "View",
         items: [
-          { label: "Console", actionId: "console:repl" },
           { label: "Logs", actionId: "console:logs" },
           { label: "State", actionId: "console:inspector" },
           { label: "Storage", actionId: "console:storage" },
