@@ -1,3 +1,23 @@
+piloti-desktop (0.10.9-1) unstable; urgency=medium
+
+  * Release v0.10.9:
+    - Terminal (xterm.js): bash on a real PTY or the piloti-shell, chosen in
+      the header bar; piloti-terminal is its desktop file and command.
+    - Web Browser: tabs as grouped windows; reorder by dragging (horizontal,
+      same feel as the Dock), pull a tab out to detach it, pin tabs, reopen the
+      last closed tab (Ctrl+Shift+T).
+    - Wi-Fi asks for the password of secured networks without a saved profile.
+    - Power profile and media players (MPRIS) follow D-Bus signals.
+    - Faster Launcher and window switching: the VFS cache is never serialized
+      on native, the Launcher opens at once, windows no longer force a layout
+      on every render.
+    - Menus close when a check or radio item is picked; fr/us keyboard
+      switcher; Desktop Console without the JS REPL.
+    - Under the hood: engine split (web and native), capabilities,
+      FileService/FileStore for every file operation.
+
+ -- yanbab <yanbab@gmail.com>  Tue, 24 Nov 2026 19:00:00 +0100
+
 piloti-desktop (0.10.8-1) unstable; urgency=medium
 
   * Release v0.10.8:
