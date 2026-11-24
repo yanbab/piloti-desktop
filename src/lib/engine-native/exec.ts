@@ -4,6 +4,7 @@ import {
   ensureXwaylandSatellite,
   getCachedXwaylandDisplay,
 } from "./xwayland";
+import { isWebEngine } from "@/lib/engine/engine";
 
 export async function runText(
   domicile: Domicile,
@@ -55,9 +56,7 @@ export function launchDesktopCommand(
 ): void {
   if (argv.length === 0) return;
 
-  const isBrowserMock =
-    typeof window !== "undefined" &&
-    Boolean((window as { __PILOTI_BROWSER_HOST__?: boolean }).__PILOTI_BROWSER_HOST__);
+  const isBrowserMock = isWebEngine();
 
   const spawnWithEnv = (resolvedEnv?: Record<string, string>) => {
     const mergedEnv =

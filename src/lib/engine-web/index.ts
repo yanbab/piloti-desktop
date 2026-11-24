@@ -1,3 +1,4 @@
+import { isWebEngine } from "@/lib/engine/engine";
 import { createBrowserDomicile } from "./domicile";
 
 export { createBrowserDomicile } from "./domicile";
@@ -7,10 +8,7 @@ export { createBrowserDomicile } from "./domicile";
  * rather than a live Linux Domicile compositor session.
  */
 export function isBrowserEngineRuntime(): boolean {
-  return (
-    typeof window !== "undefined" &&
-    Boolean((window as { __PILOTI_BROWSER_HOST__?: boolean }).__PILOTI_BROWSER_HOST__)
-  );
+  return isWebEngine();
 }
 
 export const engineWeb = {

@@ -1,6 +1,12 @@
 import * as React from "react";
 import { createRoot } from "react-dom/client";
 import "./styles/globals.css";
+import { setEngine, webEngine } from "./lib/engine/engine";
+import { demoVfsSeed } from "./lib/engine-web/vfs-seed";
+import { setVfsSeed } from "./lib/engine-web/web-vfs";
+
+setEngine(webEngine);
+setVfsSeed(demoVfsSeed);
 import { ShellErrorBoundary } from "./components/shell/ShellErrorBoundary";
 
 const CalculatorApp = React.lazy(() =>

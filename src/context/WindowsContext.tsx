@@ -58,6 +58,7 @@ import { type SettingsContextValue } from "./SettingsContext";
 import { type SystemBackendsContextValue } from "./SystemBackendsContext";
 import { useGlobalAppMenu } from "./windows/useGlobalAppMenu";
 import { useGlobalShortcuts } from "./windows/useGlobalShortcuts";
+import { isWebEngine } from "@/lib/engine/engine";
 
 export interface DesktopWindowInstance {
   id: string;
@@ -382,7 +383,7 @@ export function useWindowsValue(
       }
     }
 
-    if (typeof window !== "undefined" && window.__PILOTI_BROWSER_HOST__) {
+    if (isWebEngine()) {
       const settingsDef = APP_CATALOG.find((a) => a.id === "settings")!;
       const minSize = settingsDef.minSize ?? { width: 620, height: 400 };
       const saved = settings.savedWindowBounds?.settings;
@@ -1171,12 +1172,12 @@ function pruneBrowserRecord(
 
   const [focusedWindowId, setFocusedWindowId] = React.useState<string | null>(
     () =>
-      typeof window !== "undefined" && window.__PILOTI_BROWSER_HOST__
+      isWebEngine()
         ? "shell:settings-1"
         : null
   );
   const [mruIds, setMruIds] = React.useState<string[]>(() =>
-    typeof window !== "undefined" && window.__PILOTI_BROWSER_HOST__
+    isWebEngine()
       ? ["shell:settings-1"]
       : []
   );

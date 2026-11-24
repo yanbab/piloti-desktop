@@ -2,6 +2,7 @@ import { VFS_HOME } from "@/lib/engine/vfs-home";
 import type { Domicile } from "@domicile-desktop/sdk/desktop/desktop";
 import { type IniRecord, parseIniText, serializeIniText } from "@/lib/config/ini";
 import { readVfsStateText, writeVfsStateText } from "@/lib/engine/vfs-state";
+import { isWebEngine } from "@/lib/engine/engine";
 
 export { type IniRecord, parseIniText, serializeIniText };
 
@@ -27,10 +28,7 @@ export function getCachedPilotiAppIni(appName: string): IniRecord {
 const ensuredIniDirs = new Set<string>();
 
 function isBrowserHostRuntime(): boolean {
-  return (
-    typeof window !== "undefined" &&
-    Boolean((window as { __PILOTI_BROWSER_HOST__?: boolean }).__PILOTI_BROWSER_HOST__)
-  );
+  return isWebEngine();
 }
 
 export async function readPilotiAppIni(

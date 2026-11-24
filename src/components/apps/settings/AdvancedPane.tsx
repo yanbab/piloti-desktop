@@ -68,11 +68,7 @@ import {
   normalizeExtensionsConfig,
   setExtensionEnabled,
 } from "@/lib/engine/browser-extensions";
-import {
-  hasNativeSystemHost,
-  setEngineOverride,
-  useEngineOverride,
-} from "@/lib/engine/engine-override";
+import { getEngine } from "@/lib/engine/engine";
 import {
   SIMULATED_USB_PATH,
   toggleSimulatedUsb,
@@ -85,14 +81,7 @@ export function AdvancedPane() {
   const domicile = useDomicile();
   const { isBrowserRuntime, settings, updateSettings } = useSettings();
   const usbMounted = useSimulatedUsbMounted();
-  const engineOverride = useEngineOverride();
-  const nativeSystemAvailable = hasNativeSystemHost();
-  const effectiveEngine =
-    nativeSystemAvailable && engineOverride !== "web"
-      ? "native"
-      : isBrowserRuntime
-        ? "web"
-        : "native";
+  const effectiveEngine = getEngine().kind;
   const { launchApp, openWebUrl } = useWindowActions();
   const { pushNotification } = useSystemBackends();
   const {
@@ -856,29 +845,11 @@ export function AdvancedPane() {
           </GroupedFormRow>
           <GroupedFormRow>
             <GroupedFormRowLabel>
-              <GroupedFormRowTitle>{_("Runtime Engine (engine:web)")}</GroupedFormRowTitle>
+              <GroupedFormRowTitle>{_("Runtime Engine")}</GroupedFormRowTitle>
               <GroupedFormRowDescription>
-                {nativeSystemAvailable
-                  ? _(
-                      "Active engine: %s. Toggle to switch between simulated web engine and native Linux system engine.",
-                      `engine:${effectiveEngine}`
-                    )
-                  : _(
-                      "Active engine: engine:web. Switching to engine:native requires the Domicile Linux Wayland host."
-                    )}
+                {_("Active engine: %s.", `engine:${effectiveEngine}`)}
               </GroupedFormRowDescription>
             </GroupedFormRowLabel>
-            <GroupedFormRowControl>
-              <Switch
-                aria-label={_("Use engine:web")}
-                disabled={!nativeSystemAvailable}
-                checked={effectiveEngine === "web"}
-                onCheckedChange={(checked) => {
-                  if (!nativeSystemAvailable) return;
-                  setEngineOverride(checked ? "web" : "native");
-                }}
-              />
-            </GroupedFormRowControl>
           </GroupedFormRow>
           <GroupedFormRow>
             <GroupedFormRowLabel>

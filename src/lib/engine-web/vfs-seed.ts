@@ -7,6 +7,7 @@ import {
   type WebVfsEntry,
 } from "@/lib/core/vfs-paths";
 import type { KeyValueStorage } from "@/lib/ports/vfs-persistence";
+import { DEFAULT_MIMEAPPS_INI } from "@/lib/xdg/xdg-mimeapps";
 import {
   DEFAULT_HOME_DIRS as GENERATED_HOME_DIRS,
   DEFAULT_HOME_FILES as GENERATED_HOME_FILES,
@@ -22,29 +23,8 @@ export const DEFAULT_ETC_ISSUE = `Piloti Desktop Web VFS (localStorage)
 Type 'help' for shell commands, 'piloti help' for desktop controls, or 'cat ~/Documents/Notes.txt'.
 `;
 
-export const DEFAULT_MIMEAPPS_INI =
-  DEFAULT_HOME_FILES[`${VFS_HOME}/.config/mimeapps.list`] ??
-  `[Default Applications]
-inode/directory=nautilus.desktop
-text/plain=text-editor.desktop
-text/markdown=text-editor.desktop
-text/html=browser.desktop
-application/json=text-editor.desktop
-image/png=image-viewer.desktop
-image/jpeg=image-viewer.desktop
-image/webp=image-viewer.desktop
-image/gif=image-viewer.desktop
-image/svg+xml=image-viewer.desktop
-
-[Added Associations]
-inode/directory=nautilus.desktop;terminal.desktop;
-text/plain=text-editor.desktop;terminal.desktop;
-text/markdown=text-editor.desktop;browser.desktop;
-text/html=browser.desktop;text-editor.desktop;
-text/*=text-editor.desktop;terminal.desktop;
-application/json=text-editor.desktop;console.desktop;
-image/*=image-viewer.desktop;browser.desktop;
-`;
+const DEMO_MIMEAPPS_INI =
+  DEFAULT_HOME_FILES[`${VFS_HOME}/.config/mimeapps.list`] ?? DEFAULT_MIMEAPPS_INI;
 
 export const WELCOME_HTML =
   DEFAULT_HOME_FILES[`${VFS_HOME}/Desktop/Welcome.html`] ?? "";
@@ -58,19 +38,6 @@ const DEFAULT_LOCAL_DESKTOP_FILES: Record<string, string> = Object.fromEntries(
     .filter(([p]) => p.startsWith(`${VFS_HOME}/.local/share/applications/`) && p.endsWith(".desktop"))
     .map(([p, content]) => [p.slice(`${VFS_HOME}/.local/share/applications/`.length), content]),
 );
-
-/** What the native engine starts with: only the real home; everything else comes from disk. */
-export function createMinimalVfs(): WebVfsEntry[] {
-  const now = Date.now();
-  return ["/home", WEB_VFS_HOME].map((path) => ({
-    id: path,
-    name: basename(path),
-    kind: "directory" as const,
-    path,
-    parentPath: dirname(path),
-    updatedAt: now,
-  }));
-}
 
 export function createInitialVfs(): WebVfsEntry[] {
   const now = Date.now();
@@ -176,7 +143,7 @@ export function topUpDefaults(entries: WebVfsEntry[], kv: KeyValueStorage | null
         kind: "file",
         path: `${VFS_HOME}/.config/mimeapps.list`,
         parentPath: `${VFS_HOME}/.config`,
-        content: DEFAULT_MIMEAPPS_INI,
+        content: DEMO_MIMEAPPS_INI,
         updatedAt: now,
       });
       addedDefaults = true;
@@ -229,3 +196,9 @@ export function topUpDefaults(entries: WebVfsEntry[], kv: KeyValueStorage | null
     }
   return addedDefaults;
 }
+
+/** The browser demo's starting tree, for `setVfsSeed` in `piloti-web.tsx`. */
+export const demoVfsSeed = {
+  create: createInitialVfs,
+  topUp: topUpDefaults,
+};

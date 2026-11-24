@@ -73,6 +73,7 @@ import { startBootPhase } from "@/lib/core/perf-log";
 import { subscribeLocale } from "@/lib/core/i18n";
 import type { DesktopIconAlign } from "@/lib/shell/desktop-icons";
 import type { SavedWindowBounds } from "@/lib/shell/spatial-window-bounds";
+import { isWebEngine } from "@/lib/engine/engine";
 
 export type WindowDecorationMode = "auto" | "csd" | "ssd";
 export type CssFontSmoothing = "antialiased" | "subpixel-antialiased" | "auto";
@@ -282,7 +283,7 @@ function loadSeparatedRecord<T>(
 }
 
 export function isBrowserDevRuntime(): boolean {
-  return typeof window !== "undefined" && Boolean(window.__PILOTI_BROWSER_HOST__);
+  return isWebEngine();
 }
 
 export const WEB_DEFAULTS_VERSION = 6;

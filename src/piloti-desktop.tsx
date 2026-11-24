@@ -1,5 +1,8 @@
 import type { Shell as ShellModule } from "@domicile-desktop/sdk/shell";
 import "./styles/globals.css";
+import { nativeEngine, setEngine } from "./lib/engine/engine";
+
+setEngine(nativeEngine);
 
 const CACHE_MARKER_KEY = "piloti.vfs.native-memory.v1";
 
@@ -45,7 +48,6 @@ async function boot(root: HTMLElement, domicile: Parameters<ShellModule>[1]) {
         kv: await createNativeKeyValueStorage(store, (key) => key === vfs.WEB_VFS_STORAGE_KEY),
         blobs: memoryBlobStorage(),
       });
-      vfs.setVfsDemoDefaults(false);
       // Emblems (favorites included) live in the file's gio `metadata::emblems`, like other file managers.
       vfs.setVfsEmblemPersist((path, names) =>
         void store.setEmblems?.(path, names, vfs.MANAGED_GNOME_EMBLEMS),

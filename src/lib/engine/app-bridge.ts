@@ -1,3 +1,4 @@
+import { isWebEngine } from "@/lib/engine/engine";
 import * as React from "react";
 import { ACCENT_COLORS, type AccentColorId } from "@/data/catalog";
 import { subscribeLocale } from "@/lib/core/i18n";
@@ -265,7 +266,7 @@ export function useIsolatedAppBridge(
       fs: {
         readText: async (path: string) => {
           if (typeof window !== "undefined" && window.parent === window) {
-            const isBrowser = Boolean((window as unknown as { __PILOTI_BROWSER_HOST__?: unknown }).__PILOTI_BROWSER_HOST__);
+            const isBrowser = isWebEngine();
             const domicileFiles = !isBrowser
               ? (window as unknown as { __PILOTI__?: { domicile?: { files?: { readText: (p: string) => Promise<{ match: <R>(h: { Ok: (v: string) => R; Err: () => R }) => R }> } } } }).__PILOTI__?.domicile?.files
               : undefined;
@@ -285,7 +286,7 @@ export function useIsolatedAppBridge(
         },
         writeText: async (path: string, content: string) => {
           if (typeof window !== "undefined" && window.parent === window) {
-            const isBrowser = Boolean((window as unknown as { __PILOTI_BROWSER_HOST__?: unknown }).__PILOTI_BROWSER_HOST__);
+            const isBrowser = isWebEngine();
             const domicileFiles = !isBrowser
               ? (window as unknown as { __PILOTI__?: { domicile?: { files?: { write: (p: string, d: string) => Promise<unknown> } } } }).__PILOTI__?.domicile?.files
               : undefined;
@@ -306,7 +307,7 @@ export function useIsolatedAppBridge(
         },
         listDir: async (path: string) => {
           if (typeof window !== "undefined" && window.parent === window) {
-            const isBrowser = Boolean((window as unknown as { __PILOTI_BROWSER_HOST__?: unknown }).__PILOTI_BROWSER_HOST__);
+            const isBrowser = isWebEngine();
             const domicileFiles = !isBrowser
               ? (window as unknown as { __PILOTI__?: { domicile?: { files?: { readDir: (p: string) => Promise<{ match: <R>(h: { Ok: (v: Array<{ name: string; fileType: number }>) => R; Err: () => R }) => R }> } } } }).__PILOTI__?.domicile?.files
               : undefined;

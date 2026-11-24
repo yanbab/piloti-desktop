@@ -1,5 +1,5 @@
 import { VFS_HOME } from "../engine/vfs-home";
-import type { VfsPersistence } from "@/lib/ports/vfs-persistence";
+import type { KeyValueStorage, VfsPersistence } from "@/lib/ports/vfs-persistence";
 import { browserPersistence } from "./vfs-persistence-browser";
 import type { VfsSync } from "@/lib/ports/vfs-sync";
 import { browserVfsSync, WEB_VFS_CHANGED_DOM_EVENT } from "./vfs-sync-browser";
@@ -13,15 +13,6 @@ import {
   resolveVfsPath,
   type WebVfsEntry,
 } from "@/lib/core/vfs-paths";
-import {
-  DEFAULT_ETC_ISSUE,
-  DEFAULT_HOME_FILES,
-  DEFAULT_MIMEAPPS_INI,
-  WELCOME_HTML,
-  createInitialVfs,
-  createMinimalVfs,
-  topUpDefaults,
-} from "./vfs-seed";
 
 export {
   WEB_VFS_HOME,
@@ -31,7 +22,6 @@ export {
   resolveVfsPath,
   type WebVfsEntry,
 };
-export { DEFAULT_ETC_ISSUE, DEFAULT_MIMEAPPS_INI };
 export * from "@/lib/core/vfs-clipboard";
 export * from "@/lib/core/vfs-media";
 import { isImageVfsFile, isZipVfsFile, getVfsContentType } from "@/lib/core/vfs-media";
@@ -59,16 +49,35 @@ const hydratingBlobs = new Set<string>();
 
 let persistence: VfsPersistence = browserPersistence();
 /** Swaps where the VFS persists (tests, other engines). Drops the in-memory cache. */
-let demoDefaults = true;
-/**
- * The browser demo starts from a seeded English tree and tops it up on load.
- * The native engine turns this off: its cache mirrors the real disk.
- */
-export function setVfsDemoDefaults(on: boolean): void {
-  demoDefaults = on;
+/** What a fresh VFS starts with, and how an existing one is topped up on load. */
+export interface VfsSeed {
+  create(): WebVfsEntry[];
+  topUp?(entries: WebVfsEntry[], kv: KeyValueStorage | null): boolean;
+}
+
+/** Only the home folder: the native engine fills the cache from the real disk. */
+const minimalSeed: VfsSeed = {
+  create: () => {
+    const now = Date.now();
+    return ["/home", WEB_VFS_HOME].map((path) => ({
+      id: path,
+      name: basename(path),
+      kind: "directory" as const,
+      path,
+      parentPath: dirname(path),
+      updatedAt: now,
+    }));
+  },
+};
+
+let seed: VfsSeed = minimalSeed;
+
+/** The browser demo installs its seeded tree here (`piloti-web.tsx`); native keeps the minimal one. */
+export function setVfsSeed(next: VfsSeed): void {
+  seed = next;
   clearVfsMemoryCache();
 }
-const seedVfs = () => (demoDefaults ? createInitialVfs() : createMinimalVfs());
+const seedVfs = () => seed.create();
 
 export function setVfsPersistence(next: VfsPersistence): void {
   persistence = next;
@@ -175,7 +184,7 @@ function loadVfs(): WebVfsEntry[] {
           if (previous !== undefined) entry.content = previous;
         }
       }
-      if (demoDefaults && topUpDefaults(entries, persistence.kv)) {
+      if (seed.topUp?.(entries, persistence.kv)) {
         const json = JSON.stringify(entries);
         kv().setItem(WEB_VFS_STORAGE_KEY, json);
         return setVfsCache(entries, json);

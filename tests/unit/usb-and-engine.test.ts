@@ -3,11 +3,12 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { APP_CATALOG } from "@/data/catalog";
 import {
-  getEngineOverride,
-  hasNativeSystemHost,
-  markNativeSystemHostAvailable,
-  setEngineOverride,
-} from "@/lib/engine/engine-override";
+  getEngine,
+  isWebEngine,
+  nativeEngine,
+  setEngine,
+  webEngine,
+} from "@/lib/engine/engine";
 import {
   isSimulatedUsbMounted,
   isSimulatedUsbPath,
@@ -91,16 +92,13 @@ describe("Simulated USB pen drive, Engine override & Folders rename", () => {
     expect(isSimulatedUsbMounted()).toBe(false);
   });
 
-  test("stores runtime engine override and native host availability", () => {
-    expect(getEngineOverride()).toBeNull();
-    setEngineOverride("web");
-    expect(getEngineOverride()).toBe("web");
-    setEngineOverride("native");
-    expect(getEngineOverride()).toBe("native");
-
-    expect(hasNativeSystemHost()).toBe(false);
-    markNativeSystemHostAvailable();
-    expect(hasNativeSystemHost()).toBe(true);
+  test("an entry point picks the engine; capabilities say what it can do", () => {
+    setEngine(webEngine);
+    expect(isWebEngine()).toBe(true);
+    expect(getEngine().capabilities.realFilesystem).toBe(false);
+    setEngine(nativeEngine);
+    expect(isWebEngine()).toBe(false);
+    expect(getEngine().capabilities.systemServices).toBe(true);
   });
 
   test("renames Files catalog app to Folders and keeps Papirus inheritance", () => {
