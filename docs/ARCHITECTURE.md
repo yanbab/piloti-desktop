@@ -1,62 +1,17 @@
-# Architecture & Shell API
+# Architecture
 
-Piloti runs the same React tree across two runtimes:
+One React tree (shell + built-in apps) runs on two engines. For where things are in the code, see the Map in [AGENT-GUIDE.md](./AGENT-GUIDE.md).
 
-1. **Domicile Runtime (`src/piloti-desktop.tsx`)**: Mounted inside Domicile's Chromium Wayland compositor via `mount PilotiShell`. Renders real Wayland surfaces in `<app app-id="…" />` and talks to Linux subsystems over Domicile APIs (`src/lib/engine-desktop/`).
-2. **Browser Dev Runtime (`src/piloti-web.tsx`)**: Mounted via [`createBrowserDomicile()`](../src/lib/engine-web/domicile.ts), providing a `FakeDomicileHost`, virtual `.desktop` entries, Indexed VFS/Trash storage, and mock hardware/theme backends for local browser development.
+## Engines and ports
 
-Built-in web apps (**Desktop Settings** `piloti-settings`, **Folders** `piloti-files`, **Desktop Shell** `piloti-shell`, **Text Editor**, **Image Viewer**, **Calculator**, **Applications** `piloti-applications`, **Desktop Console** `piloti-desktop`, and **Desktop Icons**) run inside the shell alongside native Wayland/XDG processes and browser `<webview>` / `<iframe>` windows.
+- **Native** (`src/piloti-desktop.tsx`, `src/lib/engine-native/`): the Wayland session. Mounted inside Domicile's compositor; real windows are `<app>` surfaces; Linux services come from Domicile's `@domicile-desktop/system-*` libraries, D-Bus, gsettings and `processes.run`.
+- **Web** (`src/piloti-web.tsx`, `src/lib/engine-web/`): the browser demo on `createBrowserDomicile()` (fake host, in-browser VFS, simulated hardware). Builds to `docs/demo/`.
+- Each entry point calls `setEngine()` (`src/lib/engine/engine.ts`) with capability flags `realFilesystem`, `systemServices`, `simulatedHardware`. Shared code asks `useCapabilities()` / `getEngine().capabilities`, not which engine it is on (older code still checks `isBrowserRuntime`; those spots are marked `FIXME : Capabilities`).
+- Files: the VFS (`web-vfs.ts`) is the only copy in the demo and a memory cache of the disk on native. Every operation goes through `FileService` (`src/lib/core/file-service.ts`) over a `FileStore` port (`src/lib/ports/`); on native `engine-native/native-file-store.ts` implements it (`mv`, `cp`, `gio`).
+- The native bundle never imports the web engine or the demo tree (`piloti-web.tsx` injects the seed with `setVfsSeed`).
+- Built-in apps (Settings, Folders, Terminal, Text Editor, Image Viewer, Calculator, App Store, Camera, Desktop Console, spatial Desktop) run in the shell next to Wayland/XDG windows and web view windows. Heavier apps can be separate Domicile modules: see [APP-MODULES.md](./APP-MODULES.md).
 
----
-
-## Directory Structure
-
-```text
-├── index.html                           # Browser dev entry point
-└── src/
-    ├── config/
-    │   ├── vite.config.ts               # Browser build -> docs/demo/
-    │   └── vite.shell.config.ts         # Standalone Domicile bundle -> dist/shell.js
-    ├── piloti-desktop.tsx               # Domicile desktop entry point
-    ├── piloti-web.tsx                   # Browser runtime + isolated app mount bootstrap
-    ├── context/
-    │   ├── SettingsContext.tsx          # Persisted desktop settings, themes, wallpapers, spatial bounds
-    │   ├── SystemBackendsContext.tsx    # Notifications, GSettings, audio, Wi-Fi, battery, portals, lock, capture
-    │   ├── AppsContext.tsx              # XDG .desktop & Icon Theme discovery + launching
-    │   ├── WindowsContext.tsx           # Wayland/shell/browser window state, ready gating, spatial bounds, tiling
-    │   ├── windows/                     # useGlobalAppMenu.ts, useGlobalShortcuts.ts
-    │   └── DesktopStateContext.tsx      # Split provider composition (Settings -> Backends -> Windows -> Apps)
-    ├── hooks/
-    │   ├── use-alt-key.ts               # Global Alt key state tracking for menu bar / shell actions
-    │   └── use-sidebar-keyboard-nav.ts  # Arrow/Tab keyboard navigation for Adwaita sidebars
-    ├── data/
-    │   ├── app.json                     # Curated web apps metadata
-    │   ├── catalog.ts                   # Accent palettes, wallpapers, built-in app definitions
-    │   ├── folder-icons.tsx             # Dynamic accent SVG folder/file glyphs + open-folder state hook
-    │   └── web-apps.ts                  # URL canonicalization, HTML title/theme-color metadata & caching
-    ├── components/
-    │   ├── shell/                       # MenuBar, Dock, WindowManager, IsolatedAppFrame, Launcher,
-    │   │                                # ControlPanel, Overview, OsdOverlay, AltTabSwitcher, LockScreen, Portals
-    │   ├── apps/                        # SettingsApp (+ settings/*: DisplaysPane, NotificationsPane, ...),
-    │   │                                # FilesApp, FileItemContextMenu, DesktopIconsApp, TerminalApp,
-    │   │                                # TextEditorApp, ImageViewerApp, CalculatorApp, AppStoreApp, ConsoleApp
-    │   └── ui/                          # Adwaita-styled primitives: adw-split-view, window, icon-grid, dock, grouped-form, etc.
-    ├── lib/
-    │   ├── spatial-window-bounds.ts     # Spatial bounds key resolution & specificity lookup (per app/doc/URL)
-    │   ├── desktop-icons.ts             # Compact spatial desktop grid math, Left/Right align, marquee & key nav
-    │   ├── web-vfs.ts                   # Browser-backed POSIX VFS, Trash, generalized emblems & shared clipboard
-    │   ├── fs-bridge.ts                 # Unified VFS / Domicile host filesystem operations
-    │   ├── app-bridge.ts                # Typed postMessage RPC & theme sync bridge for isolated iframe apps
-    │   ├── window-bounds.ts             # Viewport bounds clamping, SSD constraints & workspace index safety
-    │   ├── overview-layout.ts           # Window spread placement math for Overview
-    │   ├── engine-desktop/              # Host Linux/GNOME bridges (gsettings, audio, network, power, flatpak, wallpaper, xwayland)
-    │   ├── engine-web/                  # Browser dev runtime (`FakeDomicileHost` + Indexed VFS/settings bridge)
-    │   ├── xdg/                         # XDG basedir, desktop entries, icon themes, app menus, session, trash
-    │   ├── notifications.ts             # Pure notification policy, DND, timeout & persistence helpers
-    │   ├── vfs-state.ts                 # VFS-backed `.ini` state & GSettings-style schema persistence
-    │   └── console-store.ts & csp-repl-eval.ts # Captured shell logs & CSP-safe Desktop Console REPL evaluator
-    └── styles/                          # Tailwind v4 + GNOME Adwaita design tokens (adwaita.css, globals.css)
-```
+Other references: [NATIVE.md](./NATIVE.md) (Wayland toolkits, portals, XDG coverage), [GNOME-REUSE.md](./GNOME-REUSE.md) (GNOME services we reuse), [PLUGINS.md](./PLUGINS.md), [ICONS.md](./ICONS.md), [WEB-APPS.md](./WEB-APPS.md) (web apps that work in the demo).
 
 ---
 
@@ -70,7 +25,7 @@ Built-in web apps (**Desktop Settings** `piloti-settings`, **Folders** `piloti-f
 
 Notice `WindowsContext` is split into **state+actions (`WindowsContext`)** and **action-only (`WindowActionsContext`)** so shell components and isolated frames calling `useWindowActions()` do not re-render on every window focus or geometry tick.
 
-### 2. Spatial Window Management (`src/context/WindowsContext.tsx`, `src/lib/spatial-window-bounds.ts`, `src/components/ui/window.tsx`, `src/components/shell/WindowManager.tsx`)
+### 2. Spatial Window Management (`src/context/WindowsContext.tsx`, `src/lib/shell/spatial-window-bounds.ts`, `src/components/ui/window.tsx`, `src/components/shell/WindowManager.tsx`)
 
 - **Spatial Persistence**: Window position, size, and workspace are persisted in `settings.savedWindowBounds` keyed by `resolveSpatialBoundsKey`:
   - `url:<origin><pathname>` for browser/web-app windows (ignoring ephemeral query strings and hashes),
@@ -85,14 +40,14 @@ Notice `WindowsContext` is split into **state+actions (`WindowsContext`)** and *
 - **Dock Launch Indicators**: `launchApp`, `launchXdgApp`, and `openWebUrl` call `beginStartupNotification(...)` (resolving installed web app IDs and canonical `webview:<url>` entries in `Dock`). `Dock.resolveAppDefinition` recognizes catalog apps, XDG entries, installed web apps, running windows, and pending `webview:` URLs.
 - **Ready-to-Show Gating**: Newly mapped Domicile browser/webview windows and HTTP-isolated shell apps (`calculator`, `text-editor`, `image-viewer`) start with `ready: false` (`unreadyWindowIds`, guarded by a `2500ms` timeout). `<Window>` mounts immediately (`opacity-0 pointer-events-none`) so the guest can load while staying invisible; `markWindowReady(windowId)` reveals the window and transitions the Dock indicator from launching bounce to running dot once `piloti:ready`, `<iframe onLoad>`, or `<webview>` finishes loading.
 
-### 4. Isolated Mini-App Runtime & RPC Bridge (`IsolatedAppFrame.tsx`, `src/lib/app-bridge.ts`)
+### 4. Isolated Mini-App Runtime & RPC Bridge (`IsolatedAppFrame.tsx`, `src/lib/engine/app-bridge.ts`)
 
 `calculator`, `text-editor`, and `image-viewer` run inside `IsolatedAppFrame`:
 - Over HTTP/HTTPS dev servers, an `<iframe>` loads `?piloti_app=<id>&windowId=<id>&csd=<0|1>&path=<...>` as a dedicated entry point in `src/piloti-web.tsx`.
 - Over standalone `file://` Domicile bundles, it falls back cleanly to an isolated iframe DOM mounted via `createRoot`.
 - `useIsolatedAppBridge` receives `piloti:theme-sync` (mode, accent, fonts), `piloti:app-action` (menus, drag-region hover, dropped paths `piloti:open-path:<path>`), and executes bidirectional `piloti:fs-read` / `piloti:fs-write` / `piloti:fs-list` RPC against the shell VFS.
 
-### 5. Virtual Filesystem, Generalized Emblems & Z-Order Drag-and-Drop (`src/lib/web-vfs.ts`, `src/lib/desktop-icons.ts`, `src/components/ui/icon-grid.tsx`, `FilesApp.tsx`, `DesktopIconsApp.tsx`)
+### 5. Virtual Filesystem, Generalized Emblems & Z-Order Drag-and-Drop (`src/lib/engine-web/web-vfs.ts`, `src/lib/shell/desktop-icons.ts`, `src/components/ui/icon-grid.tsx`, `FilesApp.tsx`, `DesktopIconsApp.tsx`)
 
 - **VFS & Shared Clipboard**: `web-vfs.ts` provides `/home/user` POSIX paths, XDG folders, Trash/Restore, `copyVfsEntry`, `duplicateVfsEntry`, external file drop import, and module-shared cross-window clipboard (`getVfsClipboard` / `setVfsClipboard` / `subscribeVfsClipboard`) syncing cut/copy/paste across Desktop and multiple Files windows.
 - **Generalized Emblems**: `VfsEmblemId` (`"favorite" | "important" | "work" | "personal"`) stores badges per normalized VFS path with prefix migration across rename, move, trash, restore, and permanent deletion, keeping legacy Favorites APIs (`loadVfsFavorites`, `toggleVfsFavorite`, `piloti://favorites`) 100% compatible.
@@ -104,32 +59,3 @@ Notice `WindowsContext` is split into **state+actions (`WindowsContext`)** and *
 - Automatic compact icon-rail collapse via `ResizeObserver` + compact hover tooltips,
 - `<aside>` container preserving translucent `adwaita.css` CSD sidebar titlebar styling and scroll-triggered divider borders,
 - Keyboard navigation integration (`useSidebarKeyboardNav`), configurable right headerbar, optional auxiliary `rightPane` (Files Info Inspector), and scoped bottom action/footer bar.
-
----
-
-## Shell & Runtime API Reference
-
-### 1. React Context Hooks (Inside Shell Components)
-
-Import from `@/context/DesktopStateContext`:
-
-- **Apps (`useApps()`)**: `installedXdgApps`, `getAppIconUrl(id)`, `launchXdgEntry(entry, actionId?)`, `refreshXdgApps()`.
-- **Window Actions (`useWindowActions()`)**: `launchApp`, `launchXdgApp`, `openWebUrl`, `openGnomeSettings`, `focusWindow`, `closeWindow`, `forceQuitApp`, `minimizeWindow`, `toggleMinimizeWindow`, `toggleMaximizeWindow`, `tileWindow`, `updateWindowGeometry`, `moveWindowToWorkspace`, `markWindowReady`.
-- **Windows (`useWindowManager()`)**: all of `useWindowActions()` plus `windows`, `workspaceWindows`, `mruWindows`, `waylandPopups`, `focusedWindow`, `focusedWindowId`, `launchingApps`, overview/launcher/alt-tab controls.
-- **Settings (`useSettings()`)**: `settings: DesktopSettings` (`themeMode`, `accentColor`, `wallpaperId`, `desktopIconsEnabled`, `desktopIconAlign`, `savedWindowBounds`, etc.), `updateSettings(patch)`, `isBrowserRuntime`.
-- **System Backends (`useSystemBackends()`)**: `batteryInfo`, `wifiNetworks`, `audioSinks`, `availableGnomePanels`, `gnomeCapabilities`, `notifications`, `capturing`, `locked`, plus `pushNotification`, `dismissNotification`, capture/lock/power actions.
-
-### 2. Domicile SDK (`useDomicile()`)
-
-| Domain | Common Calls / Properties |
-| :--- | :--- |
-| Windows | `domicile.windows.list`, `focused`, `focus(appId)`, `close(appId)`, `setBounds(appId, box)`, `setStates(appId, states)`, `requests()`, `on("change" \| "focuschange" \| "focusrequest", cb)` |
-| Processes & Files | `domicile.processes.launch(argv, env?)`, `domicile.processes.run(argv)`, `domicile.files.readDir(path)`, `readText(path)`, `writeText(path, text)` |
-| Displays & Theme | `domicile.displays.list`, `setBrightness(pct)`, `setColorTemperature(kelvin)`, `domicile.theme.set(mode)` |
-| Session & Portals | `domicile.session.lock()`, `unlock(passphrase)`, `domicile.portals.requests()`, `domicile.capture.preview(target)` |
-
-### 3. Desktop Console REPL
-
-Open **Desktop Console** (`Alt + Space` → `Desktop Console` / `piloti-desktop` or Menu Bar → `Desktop Console`) to inspect state or script the desktop live:
-- **State**: `windows`, `focusedWindow`, `waylandPopups`, `apps`, `displays`, `browserWindows`, `settings`, `notifications`, `gnomeCapabilities`, `domicile`.
-- **Actions**: `launchApp(id)`, `focusWindow(id)`, `closeWindow(id)`, `openWebUrl(url)`, `openGnomeSettings(panel?)`, `updateSettings(patch)`, `pushNotification(...)`, `await run(shellCmd)`, `$_`, `help()`, `clear()`.

@@ -78,8 +78,9 @@ bun run build
 
 ## Documentation
 
-- [Architecture & Shell API](./docs/ARCHITECTURE.md) — Runtime architecture, spatial window manager, VFS/DnD design, and Shell REPL API.
-- [Roadmap](./docs/ROADMAP.md) — Milestones and actionable tasks across shell, apps, design system, and testing.
+- [Agent guide](./docs/AGENT-GUIDE.md) — where things are in the code and how to check changes (start here).
+- [Architecture](./docs/ARCHITECTURE.md) — engines, ports, window manager, VFS and drag-and-drop design.
+- More in `docs/`: native Linux notes, GNOME reuse, plugins, icons, app modules.
 
 ## Keyboard Shortcuts
 

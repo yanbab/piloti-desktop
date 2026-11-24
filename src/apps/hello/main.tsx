@@ -1,4 +1,4 @@
-// Spike: a Domicile app module (see _docs/APP-ARCHITECTURE.md). Reports what an
+// Spike: a Domicile app module (see docs/APP-MODULES.md). Reports what an
 // isolated app can see, and writes the report to ~/piloti-appmodule-test.json.
 import { useAppDomicile } from "@domicile-desktop/react/domicile-provider";
 import { mount } from "@domicile-desktop/react/mount";

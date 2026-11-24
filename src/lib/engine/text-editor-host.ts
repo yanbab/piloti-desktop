@@ -4,7 +4,7 @@ import type { IsolatedAppBridge } from "@/lib/engine/app-bridge";
 /**
  * Everything the Text Editor needs from the host it runs in. The in-shell host
  * below is backed by the shell's VFS and contexts. A Domicile app-module host
- * (see _docs/APP-ARCHITECTURE.md) will implement the same port on top of
+ * (see docs/APP-MODULES.md) will implement the same port on top of
  * `domicile.files`, so TextEditorApp itself never imports shell modules.
  *
  * `peek*` and state/prefs reads are synchronous cache reads: a remote host must
