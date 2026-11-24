@@ -1,0 +1,4 @@
+#!/bin/sh
+# piloti-browser — Open the Piloti Web Browser (optionally at a URL)
+set -eu
+exec /usr/bin/piloti open browser "$@"

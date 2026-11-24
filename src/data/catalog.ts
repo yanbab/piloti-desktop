@@ -572,12 +572,16 @@ export const APP_CATALOG: AppDefinition[] = [
     iconName: "globe",
     xdgIcons: ["internet-web-browser", "web-browser", "org.gnome.Epiphany", "firefox-esr", "firefox", "chromium"],
     gradient: "from-cyan-400 via-blue-500 to-indigo-600",
-    pinnedByDefault: false,
+    pinnedByDefault: true,
+    command: "piloti-browser",
     defaultSize: { width: 960, height: 640 },
     menus: [
       {
         title: "File",
         items: [
+          { label: "New Window", shortcut: "Ctrl+N", actionId: "browser:new-window" },
+          { label: "New Tab", shortcut: "Ctrl+T", actionId: "browser:new-tab" },
+          { label: "Close Tab", shortcut: "Ctrl+W", actionId: "browser:close-tab", separatorAfter: true },
           { label: "Print…", shortcut: "Ctrl+P", actionId: "file:print" },
         ],
       },

@@ -74,6 +74,9 @@ export interface DesktopWindowInstance {
   browserWindowId?: string;
   browserUrl?: string;
   browserIsApp?: boolean;
+  /** Tabs of a Web Browser window (each one a Domicile browser window);
+   *  `browserWindowId` is the active one. Absent for a single page. */
+  browserTabs?: BrowserTab[];
   clientFrame?: boolean;
   cursor?: string;
   syncedFrame?: number;
@@ -90,6 +93,13 @@ export interface DesktopWindowInstance {
   ready?: boolean;
   zIndex: number;
   payload?: string;
+}
+
+export interface BrowserTab {
+  id: string;
+  url: string;
+  title: string;
+  iconUrl?: string;
 }
 
 export interface ResolvedPopupWindow {
@@ -127,6 +137,10 @@ export interface WindowsContextValue {
   ) => void;
   setBrowserFavicon: (browserWindowId: string, favicon: string) => void;
   setBrowserTitle: (browserWindowId: string, title: string) => void;
+  /** Opens `url` (or the start page) in a new tab of Web Browser window `windowId`. */
+  openBrowserTab: (windowId: string, url?: string) => void;
+  selectBrowserTab: (windowId: string, tabId: string) => void;
+  closeBrowserTab: (windowId: string, tabId: string) => void;
   focusWindow: (windowId: string) => void;
   closeWindow: (windowId: string) => void;
   forceQuitApp: (appId: string) => void;
@@ -210,6 +224,8 @@ interface ExternalWindowMeta {
   tiled?: "left" | "right" | null;
   zIndex: number;
   workspace: number;
+  /** Opened by the Web Browser: grouped under its Dock icon whatever the page. */
+  browserApp?: boolean;
 }
 
 /** Start page of a new Web Browser window. */
@@ -507,6 +523,20 @@ function pruneBrowserRecord(
     []
   );
 
+  // Web Browser tabs. A window is a group of Domicile browser windows keyed by
+  // the first one (its geometry lives in browserMeta under that key, even
+  // after that tab closes); only the active tab is shown. A window with a
+  // single page has no record.
+  const [browserTabGroups, setBrowserTabGroups] = React.useState<
+    Record<string, { tabs: string[]; active: string }>
+  >({});
+  const browserTabGroupsRef = React.useRef(browserTabGroups);
+  browserTabGroupsRef.current = browserTabGroups;
+  /** Groups waiting for the browser window they asked for, oldest first. */
+  const pendingTabGroupsRef = React.useRef<string[]>([]);
+  /** Web Browser windows asked for and not yet listed by Domicile. */
+  const pendingBrowserAppRef = React.useRef(0);
+
   const [unreadyWindowIds, setUnreadyWindowIds] = React.useState<Set<string>>(
     () => new Set()
   );
@@ -559,8 +589,19 @@ function pruneBrowserRecord(
       pinned: boolean;
     } | null = null;
 
+    const prevGroups = browserTabGroupsRef.current;
+    const tabAdds: Array<[group: string, tab: string]> = [];
+
     for (const [idx, bw] of browserWindows.entries()) {
       if (!knownBrowserIdsRef.current.has(bw.id)) {
+        // A page asked for as a tab joins its window instead of opening one.
+        if (!bw.isApp && pendingTabGroupsRef.current.length > 0) {
+          const group = pendingTabGroupsRef.current.shift()!;
+          if (activeIds.has(group) || prevGroups[group]) {
+            tabAdds.push([group, bw.id]);
+            continue;
+          }
+        }
         markWindowUnready(`browser:${bw.id}`, 180);
         const sessionKey = bw.url ? `web:${bw.url}` : undefined;
         const restored = sessionKey
@@ -618,7 +659,12 @@ function pruneBrowserRecord(
             ? clampWorkspace(remembered.workspace, settings.workspaceCount)
             : clampWorkspace(settings.activeWorkspace, settings.workspaceCount);
         const pinned = restored?.pinned ?? false;
+        const restoredAsBrowser = restored?.payload === "browser";
+        const browserApp =
+          !bw.isApp && (restoredAsBrowser || pendingBrowserAppRef.current > 0);
+        if (browserApp && !restoredAsBrowser) pendingBrowserAppRef.current -= 1;
         newEntries.set(bw.id, {
+          browserApp,
           position: clamped.position,
           size: clamped.size,
           minimized: false,
@@ -638,6 +684,33 @@ function pruneBrowserRecord(
     }
     knownBrowserIdsRef.current = activeIds;
 
+    // Drop closed tabs; a closed active tab hands over to its neighbour.
+    let groupsChanged = tabAdds.length > 0;
+    const nextGroups: Record<string, { tabs: string[]; active: string }> = {};
+    for (const [group, grp] of Object.entries(prevGroups)) {
+      const tabs = grp.tabs.filter((id) => activeIds.has(id));
+      if (tabs.length !== grp.tabs.length) groupsChanged = true;
+      if (tabs.length === 0) continue;
+      const active = tabs.includes(grp.active)
+        ? grp.active
+        : tabs[Math.min(Math.max(0, grp.tabs.indexOf(grp.active) - 1), tabs.length - 1)];
+      nextGroups[group] = { tabs, active };
+    }
+    for (const [group, tab] of tabAdds) {
+      const grp = nextGroups[group] ?? { tabs: [group], active: group };
+      nextGroups[group] = { tabs: [...grp.tabs, tab], active: tab };
+    }
+    for (const [group, grp] of Object.entries(nextGroups)) {
+      if (grp.tabs.length === 1 && grp.tabs[0] === group) {
+        delete nextGroups[group];
+        groupsChanged = true;
+      }
+    }
+    if (groupsChanged) {
+      browserTabGroupsRef.current = nextGroups;
+      setBrowserTabGroups(nextGroups);
+    }
+
     setBrowserFavicons((prev) => pruneBrowserRecord(prev, activeIds));
     setBrowserTitles((prev) => pruneBrowserRecord(prev, activeIds));
 
@@ -645,7 +718,7 @@ function pruneBrowserRecord(
       let changed = false;
       const next: Record<string, ExternalWindowMeta> = {};
       for (const [id, meta] of Object.entries(prev)) {
-        if (activeIds.has(id)) next[id] = meta;
+        if (activeIds.has(id) || nextGroups[id]) next[id] = meta;
         else changed = true;
       }
       for (const [id, entry] of newEntries) {
@@ -1041,9 +1114,11 @@ function pruneBrowserRecord(
         }];
       });
 
-    const resolvedBrowserWindows = browserWindows.flatMap((bw): DesktopWindowInstance[] => {
-      const meta = browserMeta[bw.id];
-      if (!meta) return [];
+    const tabGroupOf = new Map<string, string>();
+    for (const [group, grp] of Object.entries(browserTabGroups)) {
+      for (const tab of grp.tabs) tabGroupOf.set(tab, group);
+    }
+    const describeBrowserWindow = (bw: (typeof browserWindows)[number]) => {
       const webAppMatch = findMatchingWebApp(bw.url, settings.installedWebApps);
       const pendingTitle =
         pendingWebTitlesRef.current.get(bw.appId) ??
@@ -1059,23 +1134,50 @@ function pruneBrowserRecord(
       // Domicile app modules (`domicile open --app <entry.js>`) are our own
       // isolated apps: take title and icon from the window / desktop entry.
       const isAppModule = Boolean(bw.isApp && bw.url.startsWith("domicile://app-"));
-      return [{
-        id: `browser:${bw.id}`,
-        appId: bw.appId || webAppMatch?.id || `webview:${bw.id}`,
+      return {
+        // Plain pages belong to the Web Browser (one Dock icon); app-mode
+        // windows of sites that are not installed keep a tile of their own.
+        appId: bw.appId || webAppMatch?.id || (bw.isApp ? `webview:${bw.id}` : "browser"),
         title: isAppModule
           ? browserTitles[bw.id] || bw.title || bw.appId || resolvedTitle
           : resolvedTitle,
-        iconName: "globe",
         iconUrl: isAppModule
           ? (bw.appId ? getAppIconUrl(bw.appId) : undefined) ||
             browserFavicons[bw.id]
           : browserFavicons[bw.id] ||
             webAppMatch?.iconUrl ||
             getWebAppFaviconUrl(bw.url),
+      };
+    };
+    const browserById = new Map(browserWindows.map((bw) => [bw.id, bw]));
+
+    const resolvedBrowserWindows = browserWindows.flatMap((first): DesktopWindowInstance[] => {
+      const group = tabGroupOf.get(first.id) ?? first.id;
+      const grp = browserTabGroups[group];
+      // One window per group, listed at its first tab (a stable DOM order,
+      // so switching tabs never moves iframes) and drawn from the active one.
+      if (grp && grp.tabs.find((id) => browserById.has(id)) !== first.id) return [];
+      const bw = grp ? browserById.get(grp.active) ?? first : first;
+      const meta = browserMeta[group];
+      if (!meta) return [];
+      const described = describeBrowserWindow(bw);
+      const browserTabs = grp?.tabs.flatMap((tabId): BrowserTab[] => {
+        const tab = browserById.get(tabId);
+        if (!tab) return [];
+        const d = tabId === bw.id ? described : describeBrowserWindow(tab);
+        return [{ id: tabId, url: tab.url, title: d.title, iconUrl: d.iconUrl }];
+      });
+      return [{
+        id: `browser:${group}`,
+        appId: meta.browserApp ? "browser" : described.appId,
+        title: described.title,
+        iconName: "globe",
+        iconUrl: described.iconUrl,
         gradient: "from-cyan-400 via-blue-500 to-indigo-600",
         browserWindowId: bw.id,
         browserUrl: bw.url,
         browserIsApp: bw.isApp,
+        browserTabs,
         clientFrame: true,
         workspace: meta.workspace,
         position: meta.position,
@@ -1086,7 +1188,7 @@ function pruneBrowserRecord(
         fullscreen: meta.fullscreen,
         pinned: meta.pinned,
         tiled: meta.tiled ?? null,
-        ready: !unreadyWindowIds.has(`browser:${bw.id}`),
+        ready: !unreadyWindowIds.has(`browser:${group}`),
         zIndex: meta.zIndex,
       }];
     });
@@ -1100,6 +1202,7 @@ function pruneBrowserRecord(
     browserFavicons,
     browserTitles,
     browserMeta,
+    browserTabGroups,
     waylandWindows,
     waylandMeta,
     syncedParentFrames,
@@ -1353,13 +1456,44 @@ function pruneBrowserRecord(
         domicile.windows.close(rawId);
       } else if (windowId.startsWith("browser:")) {
         const rawId = windowId.slice("browser:".length);
-        domicile.browser.close(rawId);
+        const tabs = browserTabGroupsRef.current[rawId]?.tabs ?? [rawId];
+        for (const tab of tabs) domicile.browser.close(tab);
       } else {
         setShellWindows((prev) => prev.filter((w) => w.id !== windowId));
       }
       setMruIds((prev) => prev.filter((id) => id !== windowId));
     },
     [domicile.browser, domicile.windows, markWindowReady]
+  );
+
+  const openBrowserTab = React.useCallback(
+    (windowId: string, rawUrl?: string) => {
+      if (!windowId.startsWith("browser:")) return;
+      const url =
+        normalizeWebUrl(rawUrl ?? "") ??
+        (isBrowserRuntime ? BROWSER_DEMO_HOME_URL : BROWSER_HOME_URL);
+      pendingTabGroupsRef.current.push(windowId.slice("browser:".length));
+      domicile.browser.open(url);
+    },
+    [domicile.browser, isBrowserRuntime]
+  );
+
+  const selectBrowserTab = React.useCallback((windowId: string, tabId: string) => {
+    const group = windowId.slice("browser:".length);
+    setBrowserTabGroups((prev) => {
+      const grp = prev[group];
+      if (!grp || grp.active === tabId || !grp.tabs.includes(tabId)) return prev;
+      return { ...prev, [group]: { ...grp, active: tabId } };
+    });
+  }, []);
+
+  const closeBrowserTab = React.useCallback(
+    (windowId: string, tabId: string) => {
+      const grp = browserTabGroupsRef.current[windowId.slice("browser:".length)];
+      if (!grp || grp.tabs.length <= 1) closeWindow(windowId);
+      else domicile.browser.close(tabId);
+    },
+    [closeWindow, domicile.browser]
   );
 
   const minimizeWindow = React.useCallback(
@@ -1880,14 +2014,17 @@ function pruneBrowserRecord(
         const url =
           normalizeWebUrl(options?.payload ?? "") ??
           (isBrowserRuntime ? BROWSER_DEMO_HOME_URL : BROWSER_HOME_URL);
-        const existing = options?.forceNew || options?.payload
+        const existing = options?.forceNew
           ? undefined
-          : combinedWindowsRef.current.find((w) => w.browserWindowId && !w.browserIsApp);
+          : combinedWindowsRef.current.find((w) => w.appId === "browser" && w.browserWindowId);
         if (existing) {
+          // Like other browsers: a link opens as a tab of the open window.
+          if (options?.payload) openBrowserTab(existing.id, url);
           focusWindow(existing.id);
           return;
         }
         beginStartupNotification("browser");
+        pendingBrowserAppRef.current += 1;
         domicile.browser.open(url);
         return;
       }
@@ -2074,6 +2211,7 @@ function pruneBrowserRecord(
       installedXdgApps,
       isBrowserRuntime,
       markWindowUnready,
+      openBrowserTab,
       screenHeight,
       screenWidth,
       settings.activeWorkspace,
@@ -2140,7 +2278,8 @@ function pruneBrowserRecord(
       }
       console.info("[Piloti] openWebUrl", normalized);
       beginStartupNotification(
-        resolvedAppId ?? (canonical ? `webview:${canonical}` : "browser")
+        resolvedAppId ??
+          (options?.asApp && canonical ? `webview:${canonical}` : "browser")
       );
       if (resolvedTitle) {
         pendingWebTitlesRef.current.set(
@@ -2155,10 +2294,20 @@ function pruneBrowserRecord(
           reuse: AppReuse.Focus,
         });
       } else {
-        domicile.browser.open(normalized);
+        const browserWin = resolvedAppId
+          ? undefined
+          : combinedWindows.find((w) => w.appId === "browser" && w.browserWindowId);
+        if (browserWin) {
+          openBrowserTab(browserWin.id, normalized);
+          focusWindow(browserWin.id);
+        } else {
+          if (!resolvedAppId) pendingBrowserAppRef.current += 1;
+          domicile.browser.open(normalized);
+        }
       }
     },
     [
+      openBrowserTab,
       beginStartupNotification,
       clearLaunchOverlays,
       combinedWindows,
@@ -2188,6 +2337,7 @@ function pruneBrowserRecord(
         "piloti-calculator": "calculator",
         "piloti-demo": "piloti-demo",
         "piloti-camera": "camera",
+        "piloti-browser": "browser",
         "piloti-image-viewer": "image-viewer",
         "piloti-login": "login-screen",
         "piloti-appstore": "app-store",
@@ -2496,7 +2646,11 @@ function pruneBrowserRecord(
       return;
     }
     const records = combinedWindows.map((w) =>
-      serializeWindowToXdgSession(w, primaryMonitorName)
+      serializeWindowToXdgSession(
+        // Web Browser windows come back as Browser windows, not web apps.
+        w.browserWindowId && w.appId === "browser" ? { ...w, payload: "browser" } : w,
+        primaryMonitorName
+      )
     );
     const timer = setTimeout(() => {
       saveXdgSession(records);
@@ -2564,6 +2718,9 @@ function pruneBrowserRecord(
       openWebUrl,
       setBrowserFavicon,
       setBrowserTitle,
+      openBrowserTab,
+      selectBrowserTab,
+      closeBrowserTab,
       focusWindow,
       closeWindow,
       forceQuitApp,
@@ -2630,6 +2787,9 @@ function pruneBrowserRecord(
       setAltTabIndex,
       setBrowserFavicon,
       setBrowserTitle,
+      openBrowserTab,
+      selectBrowserTab,
+      closeBrowserTab,
       subscribeClientWindowRequest,
       tileWindow,
       toggleOverview,

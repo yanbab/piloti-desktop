@@ -43,7 +43,8 @@ import {
   NotificationAppIcon,
 } from "./NotificationParts";
 
-export function ControlPanel() {
+/** Stays mounted while closed (built once); `open` says when it is shown. */
+export function ControlPanel({ open = true }: { open?: boolean }) {
   countRender("ControlPanel");
   const portalRequests = usePortalRequests() ?? [];
   const activeInhibitors = React.useMemo(
@@ -77,11 +78,15 @@ export function ControlPanel() {
     "wifi" | "bluetooth" | "audio" | null
   >(null);
 
+  // Opening the panel reads the notifications; pickers start folded.
   React.useEffect(() => {
-    if (unreadNotificationCount > 0) {
+    if (open && unreadNotificationCount > 0) {
       markAllNotificationsRead();
     }
-  }, [markAllNotificationsRead, unreadNotificationCount]);
+  }, [open, markAllNotificationsRead, unreadNotificationCount]);
+  React.useEffect(() => {
+    if (!open) setExpandedPicker(null);
+  }, [open]);
 
   const togglePicker = (picker: "wifi" | "bluetooth" | "audio") => {
     setExpandedPicker((prev) => {
@@ -718,7 +723,7 @@ export function ControlPanel() {
 
 const MAX_COLLAPSED_NOTIFICATIONS = 3;
 
-export function FloatingNotifications() {
+export function FloatingNotifications({ open = true }: { open?: boolean }) {
   const { settings, updateSettings } = useSettings();
   const {
     notifications,
@@ -729,9 +734,21 @@ export function FloatingNotifications() {
   const { setControlPanelOpen } = useWindowActions();
   const [expanded, setExpanded] = React.useState(false);
 
-  const [unreadSnapshot] = React.useState<Set<number>>(
+  // Notifications unread when the panel opens are marked new for this opening.
+  const [unreadSnapshot, setUnreadSnapshot] = React.useState<Set<number>>(
     () => new Set(notifications.filter((n) => !n.read).map((n) => n.id))
   );
+  const notificationsRef = React.useRef(notifications);
+  notificationsRef.current = notifications;
+  React.useLayoutEffect(() => {
+    if (open) {
+      setUnreadSnapshot(
+        new Set(notificationsRef.current.filter((n) => !n.read).map((n) => n.id))
+      );
+    } else {
+      setExpanded(false);
+    }
+  }, [open]);
 
   if (notifications.length === 0) {
     return null;

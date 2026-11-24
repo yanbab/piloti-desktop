@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Web Browser
+Comment=Browse the web
+Exec=piloti-browser %u
+Icon=internet-web-browser
+Categories=Network;WebBrowser;
+MimeType=text/html;x-scheme-handler/http;x-scheme-handler/https;
+OnlyShowIn=Piloti;

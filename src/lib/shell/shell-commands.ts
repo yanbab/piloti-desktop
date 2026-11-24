@@ -23,6 +23,7 @@ const APP_ID_ALIASES: Record<string, string> = {
   applications: "app-store",
   "piloti-calculator": "calculator",
   "piloti-camera": "camera",
+  "piloti-browser": "browser",
   "piloti-console": "console",
   "piloti-desktop": "console",
   "piloti-devtools": "console",

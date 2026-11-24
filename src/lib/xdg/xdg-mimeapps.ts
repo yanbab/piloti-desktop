@@ -54,6 +54,7 @@ const KNOWN_MIME_APPS: Record<string, { appId: string; label: string }> = {
   "image-viewer.desktop": { appId: "image-viewer", label: "Image Viewer" },
   "piloti-image-viewer.desktop": { appId: "image-viewer", label: "Image Viewer" },
   "browser.desktop": { appId: "browser", label: "Web Browser" },
+  "piloti-browser.desktop": { appId: "browser", label: "Web Browser" },
   "console.desktop": { appId: "console", label: "Desktop Console" },
   "piloti-console.desktop": { appId: "console", label: "Desktop Console" },
   "app-store.desktop": { appId: "app-store", label: "App Store" },

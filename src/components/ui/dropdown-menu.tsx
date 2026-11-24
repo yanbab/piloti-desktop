@@ -47,6 +47,7 @@ function DropdownMenuContent({
   anchor,
   collisionAvoidance,
   initialFocus,
+  keepMounted,
   ...props
 }: MenuPrimitive.Popup.Props &
   Pick<
@@ -54,10 +55,13 @@ function DropdownMenuContent({
     "align" | "alignOffset" | "side" | "sideOffset" | "anchor" | "collisionAvoidance"
   > & {
     initialFocus?: boolean | React.RefObject<HTMLElement | null>;
+    /** Keep the content in the DOM while closed (hidden), so heavy panels are
+     *  built once instead of on every open. */
+    keepMounted?: boolean;
   }) {
   return (
     <PopupSurfaceScope>
-    <MenuPrimitive.Portal>
+    <MenuPrimitive.Portal keepMounted={keepMounted}>
       <MenuPrimitive.Positioner
         align={align}
         alignOffset={alignOffset}

@@ -103,6 +103,7 @@ const TERMINAL_COMMANDS = [
   "piloti-notepad",
   "piloti-calculator",
   "piloti-camera",
+  "piloti-browser",
   "piloti-image-viewer",
   "piloti-login",
 ] as const;
@@ -127,6 +128,7 @@ const SHELL_BUILTINS = new Set([
   "piloti-notepad",
   "piloti-calculator",
   "piloti-camera",
+  "piloti-browser",
   "piloti-image-viewer",
   "piloti-login",
 ]);
@@ -1296,6 +1298,7 @@ export const TerminalApp: React.FC<TerminalAppProps> = ({ initialPath }) => {
       "piloti-files": "nautilus",
       "piloti-notepad": "text-editor",
       "piloti-calculator": "calculator",
+      "piloti-browser": "browser",
       "piloti-image-viewer": "image-viewer",
       "piloti-login": "login-screen",
     };

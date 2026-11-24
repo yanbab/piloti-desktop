@@ -75,6 +75,10 @@ export const DEFAULT_STATIC_DIR_INDEX: Record<string, readonly { name: string; f
       "fileType": 0
     },
     {
+      "name": "piloti-browser",
+      "fileType": 0
+    },
+    {
       "name": "piloti-calculator",
       "fileType": 0
     },
@@ -142,6 +146,10 @@ export const DEFAULT_STATIC_DIR_INDEX: Record<string, readonly { name: string; f
     },
     {
       "name": "piloti-appstore.desktop",
+      "fileType": 0
+    },
+    {
+      "name": "piloti-browser.desktop",
       "fileType": 0
     },
     {

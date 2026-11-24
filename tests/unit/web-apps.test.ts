@@ -72,6 +72,7 @@ describe("resolveInitialSettings web defaults and seeding", () => {
       "app-store",
       "calculator",
       "image-viewer",
+      "browser",
     ]);
     expect(nativeFresh.webDefaultsVersion).toBeUndefined();
 

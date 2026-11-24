@@ -1280,20 +1280,18 @@ export const MenuBar = React.memo(function MenuBar() {
               ref={controlPanelPopupRef}
               tabIndex={-1}
               initialFocus={controlPanelPopupRef}
+              // Built once, then shown and hidden.
+              keepMounted
               align="end"
               sideOffset={0}
               // The scroll container is padded so the panel and notification
               // shadows (same as menus) are not clipped by its overflow.
               className="-mr-1 w-[348px] max-w-[calc(100vw-8px)] overflow-x-hidden overflow-y-auto rounded-none border-0 bg-transparent! pt-0 pr-3 pb-8 pl-6 shadow-none! [backdrop-filter:none]! [-webkit-backdrop-filter:none]!"
             >
-              {controlPanelOpen && (
-                <>
-                  <div className="rounded-adw-popover p-3 shadow-adw-popover adw-material-menu">
-                    <ControlPanel />
-                  </div>
-                  <FloatingNotifications />
-                </>
-              )}
+              <div className="rounded-adw-popover p-3 shadow-adw-popover adw-material-menu">
+                <ControlPanel open={controlPanelOpen} />
+              </div>
+              <FloatingNotifications open={controlPanelOpen} />
             </DropdownMenuContent>
           </DropdownMenu>
       </div>

@@ -19,10 +19,12 @@ import {
   ChevronLeftIcon,
   DownloadIcon,
   GlobeIcon,
+  HeartIcon,
   Loader2Icon,
   Maximize2Icon,
   MinusIcon,
   MoonIcon,
+  PlusIcon,
   PuzzleIcon,
   Trash2Icon,
   XIcon,
@@ -119,6 +121,12 @@ import {
   useWindowManager,
   type DesktopWindowInstance,
 } from "@/context/DesktopStateContext";
+import type { BrowserTab } from "@/context/WindowsContext";
+import {
+  isBookmarked,
+  toggleBrowserBookmark,
+  useBrowserBookmarks,
+} from "@/lib/shell/browser-bookmarks";
 import {
   canonicalizeWebUrl,
   fetchWebPageMetadata,
@@ -377,11 +385,16 @@ function WebViewSurface({
   isCsd,
   darkReaderEnabled,
   onToggleDarkReader,
+  active = true,
+  tabBar,
 }: {
   win: DesktopWindowInstance;
   isCsd: boolean;
   darkReaderEnabled: boolean;
   onToggleDarkReader: () => void;
+  /** False for a background tab: it stays mounted but ignores shortcuts. */
+  active?: boolean;
+  tabBar?: React.ReactNode;
 }) {
   const domicile = useDomicile();
   const { isBrowserRuntime, resolvedTheme, settings, updateSettings } =
@@ -398,7 +411,11 @@ function WebViewSurface({
     setBrowserFavicon,
     setBrowserTitle,
     markWindowReady,
+    openBrowserTab,
+    closeBrowserTab,
   } = useWindowManager();
+  const isFocusedTab = active && focusedWindowId === win.id;
+  const isBrowserApp = win.appId === "browser";
   const windowCtx = useWindowContext();
   const webviewRef = React.useRef<HTMLWebViewElement | null>(null);
   const extPopupWebviewRef = React.useRef<HTMLWebViewElement | null>(null);
@@ -422,11 +439,11 @@ function WebViewSurface({
   React.useEffect(() => {
     if (isBrowserRuntime) return;
     return domicile.extensions.on("popup", (req) => {
-      if (focusedWindowId !== win.id) return;
+      if (!isFocusedTab) return;
       setExtPopupSize({ width: 360, height: 440 });
       setActiveExtPopup(req);
     });
-  }, [domicile.extensions, focusedWindowId, isBrowserRuntime, win.id]);
+  }, [domicile.extensions, isFocusedTab, isBrowserRuntime]);
 
   React.useEffect(() => {
     const view = extPopupWebviewRef.current;
@@ -568,6 +585,8 @@ function WebViewSurface({
   }, [isBrowserRuntime, prefersDark, win.browserWindowId, win.browserUrl]);
 
   const currentUrl = normalizeWebUrl(address) ?? win.browserUrl ?? "";
+  const bookmarks = useBrowserBookmarks();
+  const bookmarked = isBrowserApp && Boolean(currentUrl) && isBookmarked(bookmarks, currentUrl);
   const canonicalUrl = canonicalizeWebUrl(currentUrl) ?? currentUrl;
   const storeExtId = React.useMemo(
     () => parseChromeWebStoreExtensionId(currentUrl),
@@ -640,17 +659,25 @@ function WebViewSurface({
   }, [domicile.files, isBrowserRuntime, pushNotification, storeExtId]);
 
   React.useEffect(() => {
-    if (focusedWindowId !== win.id) return;
+    if (!isFocusedTab) return;
     const onKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && !e.altKey && e.key.toLowerCase() === "l") {
+      if (!(e.ctrlKey || e.metaKey) || e.altKey || e.shiftKey) return;
+      const key = e.key.toLowerCase();
+      if (key === "l") {
         e.preventDefault();
         setDraftAddress(currentUrl);
         setEditingAddress(true);
+      } else if (isBrowserApp && key === "t") {
+        e.preventDefault();
+        openBrowserTab(win.id);
+      } else if (isBrowserApp && key === "w" && win.browserWindowId) {
+        e.preventDefault();
+        closeBrowserTab(win.id, win.browserWindowId);
       }
     };
     window.addEventListener("keydown", onKeyDown, true);
     return () => window.removeEventListener("keydown", onKeyDown, true);
-  }, [focusedWindowId, win.id, currentUrl]);
+  }, [isFocusedTab, isBrowserApp, win.id, win.browserWindowId, currentUrl, openBrowserTab, closeBrowserTab]);
 
   React.useEffect(() => {
     if (!editingAddress) return;
@@ -696,7 +723,7 @@ function WebViewSurface({
 
   React.useEffect(() => {
     const triggerPrint = () => {
-      if (focusedWindowId !== win.id) return;
+      if (!isFocusedTab) return;
       if (isBrowserRuntime) {
         try {
           const cw = iframeRef.current?.contentWindow;
@@ -725,9 +752,14 @@ function WebViewSurface({
       const detail = (
         e as CustomEvent<{ windowId?: string; actionId?: string }>
       ).detail;
-      if (!detail || detail.actionId !== "file:print") return;
-      if (detail.windowId && detail.windowId !== win.id) return;
-      triggerPrint();
+      if (!detail || (detail.windowId && detail.windowId !== win.id)) return;
+      if (detail.actionId === "file:print") triggerPrint();
+      if (!active) return;
+      if (detail.actionId === "browser:new-tab") openBrowserTab(win.id);
+      if (detail.actionId === "browser:new-window") launchApp("browser", { forceNew: true });
+      if (detail.actionId === "browser:close-tab" && win.browserWindowId) {
+        closeBrowserTab(win.id, win.browserWindowId);
+      }
     };
     const offPrintFocused = onShellEvent("piloti:print-focused", onPrintFocused);
     window.addEventListener("piloti:app-action", onAppAction);
@@ -735,7 +767,7 @@ function WebViewSurface({
       offPrintFocused();
       window.removeEventListener("piloti:app-action", onAppAction);
     };
-  }, [focusedWindowId, isBrowserRuntime, win.id]);
+  }, [isFocusedTab, active, isBrowserRuntime, win.id, win.browserWindowId, openBrowserTab, closeBrowserTab, launchApp]);
   const installedApps = settings.installedWebApps ?? [];
   const matchedInstalledApp = findMatchingWebApp(currentUrl, installedApps);
   const isInstalled = currentUrl !== "" && Boolean(matchedInstalledApp);
@@ -1055,6 +1087,36 @@ function WebViewSurface({
                 : _("Install Extension")}
             </Button>
           )}
+          {isBrowserApp && (
+            <button
+              type="button"
+              // Same heart, colours and stroke as the favorite emblem.
+              data-slot="browser-bookmark-toggle"
+              aria-pressed={bookmarked}
+              disabled={!currentUrl}
+              title={bookmarked ? _("Remove Bookmark") : _("Add Bookmark")}
+              aria-label={bookmarked ? _("Remove Bookmark") : _("Add Bookmark")}
+              onClick={() => toggleBrowserBookmark(currentUrl, win.title)}
+              style={bookmarked ? { color: "#ef4444" } : undefined}
+              className="flex size-7 items-center justify-center rounded-adw-control transition-colors disabled:opacity-35 hover-fill:bg-black/8 dark:hover-fill:bg-white/10"
+            >
+              <HeartIcon
+                className={cn("size-4", bookmarked && "fill-current")}
+                strokeWidth={bookmarked ? 2 : 2.25}
+              />
+            </button>
+          )}
+          {isBrowserApp && (
+            <button
+              type="button"
+              title={_("New Tab")}
+              aria-label={_("New Tab")}
+              onClick={() => openBrowserTab(win.id)}
+              className="flex size-7 items-center justify-center rounded-adw-control transition-colors hover-fill:bg-black/8 dark:hover-fill:bg-white/10"
+            >
+              <PlusIcon className="size-4" />
+            </button>
+          )}
           <BrowserExtensionsMenu
             items={extensionMenuItems}
             pinnedIds={settings.pinnedExtensionIds ?? []}
@@ -1088,6 +1150,7 @@ function WebViewSurface({
           )}
         </div>
       </WindowTitlebar>
+      {tabBar}
 
       <div className="relative min-h-0 flex-1 overflow-hidden">
         {isBrowserRuntime ? (
@@ -1210,6 +1273,182 @@ function WebViewSurface({
   );
 }
 
+/**
+ * A web window and its tabs. Every tab keeps its page mounted (switching never
+ * reloads it); only the active one is shown. The tab bar appears from two
+ * tabs on, under the toolbar (Safari).
+ */
+function BrowserTabsSurface({
+  win,
+  isCsd,
+  darkReaderEnabled,
+  onToggleDarkReader,
+}: {
+  win: DesktopWindowInstance;
+  isCsd: boolean;
+  darkReaderEnabled: boolean;
+  onToggleDarkReader: () => void;
+}) {
+  const { selectBrowserTab, closeBrowserTab } = useWindowManager();
+  const tabs: BrowserTab[] = win.browserTabs ?? [
+    {
+      id: win.browserWindowId!,
+      url: win.browserUrl ?? "",
+      title: win.title,
+      iconUrl: win.iconUrl,
+    },
+  ];
+  const showTabBar = tabs.length > 1;
+  // One tab bar for the window, always mounted and only shown or hidden. Each
+  // page keeps an empty slot of the bar's height under its toolbar; the bar is
+  // laid over the active page's slot.
+  const containerRef = React.useRef<HTMLDivElement | null>(null);
+  const [tabBarTop, setTabBarTop] = React.useState(0);
+  React.useLayoutEffect(() => {
+    const container = containerRef.current;
+    if (!container || !showTabBar) return;
+    const measure = () => {
+      const slot = container.querySelector<HTMLElement>(
+        '[data-active-tab] [data-slot="browser-tab-slot"]'
+      );
+      if (slot) setTabBarTop(slot.offsetTop);
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, [showTabBar, win.browserWindowId]);
+  const tabSlot = (
+    <div
+      data-slot="browser-tab-slot"
+      className={cn("h-adw-control-medium shrink-0", !showTabBar && "hidden")}
+    />
+  );
+  return (
+    <div ref={containerRef} className="relative flex h-full w-full flex-1 overflow-hidden">
+      <BrowserTabBar
+        hidden={!showTabBar}
+        top={tabBarTop}
+        tabs={tabs}
+        activeId={win.browserWindowId}
+        onSelect={(id) => selectBrowserTab(win.id, id)}
+        onClose={(id) => closeBrowserTab(win.id, id)}
+      />
+      {tabs.map((tab) => {
+        const active = tab.id === win.browserWindowId;
+        return (
+          <div
+            key={tab.id}
+            data-active-tab={active || undefined}
+            aria-hidden={!active || undefined}
+            className={cn(
+              "absolute inset-0 flex",
+              !active && "invisible pointer-events-none"
+            )}
+          >
+            <WebViewSurface
+              win={
+                active
+                  ? win
+                  : {
+                      ...win,
+                      browserWindowId: tab.id,
+                      browserUrl: tab.url,
+                      title: tab.title,
+                      iconUrl: tab.iconUrl,
+                    }
+              }
+              active={active}
+              tabBar={tabSlot}
+              isCsd={isCsd}
+              darkReaderEnabled={darkReaderEnabled}
+              onToggleDarkReader={onToggleDarkReader}
+            />
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function BrowserTabBar({
+  hidden,
+  top,
+  tabs,
+  activeId,
+  onSelect,
+  onClose,
+}: {
+  hidden: boolean;
+  top: number;
+  tabs: BrowserTab[];
+  activeId?: string;
+  onSelect: (id: string) => void;
+  onClose: (id: string) => void;
+}) {
+  return (
+    <div
+      role="tablist"
+      data-slot="browser-tab-bar"
+      hidden={hidden}
+      style={{ top }}
+      className={cn(
+        "absolute inset-x-0 z-10 h-adw-control-medium shrink-0 items-stretch gap-px border-b border-adw-separator bg-black/5 px-1 py-0.5 dark:bg-white/4",
+        hidden ? "hidden" : "flex"
+      )}
+    >
+      {tabs.map((tab) => {
+        const active = tab.id === activeId;
+        return (
+          <div
+            key={tab.id}
+            role="tab"
+            aria-selected={active}
+            data-slot="browser-tab"
+            data-active={active || undefined}
+            title={tab.title}
+            onPointerDown={(e) => {
+              if (e.button === 0) onSelect(tab.id);
+            }}
+            onAuxClick={(e) => {
+              if (e.button === 1) {
+                e.preventDefault();
+                onClose(tab.id);
+              }
+            }}
+            className={cn(
+              "group relative flex min-w-0 flex-1 basis-0 items-center justify-center gap-1.5 rounded-adw-control px-6 text-adw-subheadline select-none",
+              active
+                ? "bg-adw-window font-medium text-adw-label shadow-2xs"
+                : "text-adw-label-secondary"
+            )}
+          >
+            <button
+              type="button"
+              aria-label={_("Close Tab")}
+              title={_("Close Tab")}
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={() => onClose(tab.id)}
+              className={cn(
+                "absolute left-1 flex size-4 items-center justify-center rounded-adw-control text-adw-label-secondary hover-fill:bg-black/10 dark:hover-fill:bg-white/12",
+                active ? "visible" : "invisible group-hover:visible"
+              )}
+            >
+              <XIcon className="size-3" />
+            </button>
+            {tab.iconUrl ? (
+              <img src={tab.iconUrl} alt="" className="size-3.5 shrink-0" draggable={false} />
+            ) : (
+              <GlobeIcon className="size-3.5 shrink-0" />
+            )}
+            <span className="truncate">{tab.title}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function WindowDomReadySignal({
   windowId,
   onReady,
@@ -1249,7 +1488,7 @@ const WindowBody = React.memo(
 
     if (win.browserWindowId) {
       return (
-        <WebViewSurface
+        <BrowserTabsSurface
           win={win}
           isCsd={isCsd}
           darkReaderEnabled={darkReaderEnabled}
