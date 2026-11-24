@@ -2651,7 +2651,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                 onClick={(e) => e.stopPropagation()}
                 onPointerEnter={() => setFeaturedHovered(true)}
                 onPointerLeave={() => setFeaturedHovered(false)}
-                className="group/featured relative mb-5 overflow-hidden rounded-2xl bg-black/5 px-5 py-10 dark:bg-white/5"
+                className="group/featured relative mb-5 overflow-hidden rounded-adw-group bg-black/5 px-5 py-10 dark:bg-white/5"
               >
                 {activeFeaturedItem.faviconUrl && (
                   <>
@@ -2708,10 +2708,12 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                       className="size-24 shrink-0"
                     />
                     <div className="min-w-0 max-w-lg">
-                      <div className="truncate text-adw-title-1 font-bold text-adw-label">
+                      {/* font-bold maps to the UI's semibold weight: the hero title is heavier. */}
+                      <div className="truncate text-adw-title-1 font-extrabold text-adw-label">
                         {activeFeaturedItem.title}
                       </div>
-                      <p className="mt-1 line-clamp-2 text-adw-body text-adw-label-secondary">
+                      {/* Always two lines tall, so the slider keeps its height between apps. */}
+                      <p className="mt-1 line-clamp-2 min-h-[2lh] text-adw-body text-adw-label-secondary">
                         {activeFeaturedItem.subtitle}
                       </p>
                     </div>
