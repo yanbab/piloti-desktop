@@ -1,3 +1,17 @@
+piloti-desktop (0.10.7-1) unstable; urgency=medium
+
+  * Release v0.10.7:
+    - Native: Files sidebar and Camera use the real XDG folders (Bureau,
+      Images...) instead of hardcoded English names.
+    - Native VFS is a memory cache of the disk: no localStorage/IndexedDB, no
+      demo tree; Piloti state files are read back from $HOME at boot.
+    - The Piloti session uses ~/.config/piloti/domicile.json, so the plain
+      Domicile session starts Domicile's default shell.
+    - Text Editor as a Domicile app module (CSD); real $HOME as VFS root.
+    - FileStore port and core FileService; engine/ports refactor under way.
+
+ -- yanbab <yanbab@gmail.com>  Tue, 24 Nov 2026 02:30:00 +0100
+
 piloti-desktop (0.10.6-1) unstable; urgency=medium
 
   * Release v0.10.6:
