@@ -322,7 +322,7 @@ export function AdvancedPane() {
                         "rounded-adw-control px-3 py-1 text-adw-callout font-medium transition-all",
                         selected
                           ? "bg-white text-black shadow-xs dark:bg-white/16 dark:text-white"
-                          : "text-adw-label-secondary hover:text-adw-label"
+                          : "text-adw-label-secondary hover-fill:text-adw-label"
                       )}
                     >
                       {model === "mac" ? "Mac" : "PC"}
@@ -605,7 +605,7 @@ export function AdvancedPane() {
                       <Button
                         size="sm"
                         variant="ghost"
-                        className="size-7 p-0 text-adw-label-secondary hover:text-destructive"
+                        className="size-7 p-0 text-adw-label-secondary hover-fill:text-destructive"
                         onClick={() => {
                           if (entry.kind === "unpacked") {
                             void saveDomicileExtensionsConfig(

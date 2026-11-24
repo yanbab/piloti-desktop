@@ -86,7 +86,7 @@ export function AppearancePane() {
                         "rounded-adw-control px-2.5 py-1 text-adw-body font-medium transition-all",
                         active
                           ? "bg-white text-black dark:bg-white/18 dark:text-white"
-                          : "text-adw-label-secondary hover:text-adw-label"
+                          : "text-adw-label-secondary hover-fill:text-adw-label"
                       )}
                     >
                       {theme.label}
@@ -133,7 +133,7 @@ export function AppearancePane() {
                         "flex items-center gap-1.5 rounded-adw-control px-2.5 py-1 text-adw-body font-medium transition-all",
                         active
                           ? "bg-white text-black dark:bg-white/18 dark:text-white"
-                          : "text-adw-label-secondary hover:text-adw-label"
+                          : "text-adw-label-secondary hover-fill:text-adw-label"
                       )}
                     >
                       {mode.icon}
@@ -291,7 +291,7 @@ export function AppearancePane() {
                         "rounded-adw-control px-2.5 py-1 text-adw-body font-medium transition-all",
                         active
                           ? "bg-white text-black dark:bg-white/18 dark:text-white"
-                          : "text-adw-label-secondary hover:text-adw-label"
+                          : "text-adw-label-secondary hover-fill:text-adw-label"
                       )}
                     >
                       {opt.label}
@@ -349,7 +349,7 @@ export function AppearancePane() {
                         "rounded-adw-control px-2.5 py-1 text-adw-body font-medium transition-all",
                         active
                           ? "bg-white text-black dark:bg-white/18 dark:text-white"
-                          : "text-adw-label-secondary hover:text-adw-label"
+                          : "text-adw-label-secondary hover-fill:text-adw-label"
                       )}
                     >
                       {opt.label}
@@ -383,7 +383,7 @@ export function AppearancePane() {
                         "rounded-adw-control px-2.5 py-1 text-adw-body font-medium transition-all",
                         active
                           ? "bg-white text-black dark:bg-white/18 dark:text-white"
-                          : "text-adw-label-secondary hover:text-adw-label"
+                          : "text-adw-label-secondary hover-fill:text-adw-label"
                       )}
                     >
                       {opt.label}

@@ -461,7 +461,6 @@ export const Dock = React.memo(function Dock() {
   // Build list of Dock apps: pinned apps + launching apps + running apps
   const dockApps = React.useMemo<AppDefinition[]>(() => {
     const pinnedDefs = effectivePinnedIds
-      .filter((id) => !isBrowserRuntime || id !== "browser")
       .map((id) => resolveAppDefinition(id))
       .filter((a): a is AppDefinition => Boolean(a));
 

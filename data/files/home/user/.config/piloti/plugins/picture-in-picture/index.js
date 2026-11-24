@@ -8,7 +8,7 @@
 //
 //   drag             move it
 //   drag a border    resize it
-//   double-click     back to normal
+//   click / double-click (per the click setting)   back to normal
 
 const WIDTH_RATIO = 0.26; // default width, of the work area width
 const MIN_WIDTH = 200;
@@ -60,7 +60,8 @@ export function activate(ctx) {
         maxWidth: area.width * MAX_WIDTH_RATIO,
       },
       onChange: (rect) => ctx.storage.set("rect", rect),
-      onDoubleClick: () => exit(windowId),
+      // Restores like opening an icon: single or double click, per setting.
+      onActivate: () => exit(windowId),
     });
   }
 

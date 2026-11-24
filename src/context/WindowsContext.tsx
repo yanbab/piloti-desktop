@@ -212,6 +212,12 @@ interface ExternalWindowMeta {
   workspace: number;
 }
 
+/** Start page of a new Web Browser window. */
+export const BROWSER_HOME_URL = "https://duckduckgo.com/";
+/** Web demo start page: pages are shown in an iframe, which most search
+ *  engines refuse; the Wikipedia portal allows it. */
+export const BROWSER_DEMO_HOME_URL = "https://www.wikipedia.org/";
+
 /**
  * Normalizes a user-typed URL or host into a navigable URL string.
  */
@@ -1867,6 +1873,24 @@ function pruneBrowserRecord(
       clearLaunchOverlays();
       console.info("[Piloti] launchApp", appId, options ?? {});
       const def = APP_CATALOG.find((a) => a.id === appId);
+
+      // Web Browser: our own browser window (the web view used by web apps,
+      // with its address bar and extensions), not an external browser.
+      if (appId === "browser") {
+        const url =
+          normalizeWebUrl(options?.payload ?? "") ??
+          (isBrowserRuntime ? BROWSER_DEMO_HOME_URL : BROWSER_HOME_URL);
+        const existing = options?.forceNew || options?.payload
+          ? undefined
+          : combinedWindowsRef.current.find((w) => w.browserWindowId && !w.browserIsApp);
+        if (existing) {
+          focusWindow(existing.id);
+          return;
+        }
+        beginStartupNotification("browser");
+        domicile.browser.open(url);
+        return;
+      }
 
       // Focus existing window unless forceNew (for document-scoped apps with a payload, only reuse matching document/folder)
       if (!options?.forceNew) {

@@ -212,7 +212,7 @@ function FontPopoverSelector({
                         "rounded-adw-control px-2 py-0.5 text-adw-subheadline font-medium transition-colors",
                         fontStyle === opt.value
                           ? "bg-adw-accent text-white"
-                          : "bg-black/6 text-adw-label-secondary hover:text-adw-label dark:bg-white/8",
+                          : "bg-black/6 text-adw-label-secondary hover-fill:text-adw-label dark:bg-white/8",
                       )}
                     >
                       {_(opt.label)}

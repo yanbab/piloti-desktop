@@ -296,3 +296,11 @@
 :root[data-interface-theme="piloti"] [data-slot="select-trigger"]:not([data-popup-open]):hover {
   background-color: transparent !important;
 }
+
+/* ── Buttons: no hover effect, no colour transitions (macOS) ────────────────
+   Hover effects use the Adwaita-only `hover-fill:` variant; here buttons also
+   change state instantly instead of fading between colours. Layout and
+   transform transitions (dock, grid, switches) are left alone. */
+:root[data-interface-theme="piloti"] :is(button, [role="button"]):is(.transition-colors, .transition) {
+  transition: none;
+}

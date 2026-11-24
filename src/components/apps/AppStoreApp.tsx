@@ -2338,7 +2338,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                 "flex size-7 items-center justify-center rounded-adw-control transition-colors",
                 searchOpen
                   ? "bg-black/10 text-adw-label dark:bg-white/15"
-                  : "text-adw-label-secondary hover-fill:bg-black/8 hover:text-adw-label dark:hover-fill:bg-white/10"
+                  : "text-adw-label-secondary hover-fill:bg-black/8 hover-fill:text-adw-label dark:hover-fill:bg-white/10"
               )}
             >
               <SearchIcon className="size-4" />
@@ -2347,7 +2347,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
               <DropdownMenuTrigger
                 aria-label={_("Software Sources")}
                 title={_("Software Sources")}
-                className="flex size-7 items-center justify-center rounded-adw-control text-adw-label-secondary transition-colors outline-none hover-fill:bg-black/8 hover:text-adw-label data-popup-open:bg-black/10 data-popup-open:text-adw-label dark:hover-fill:bg-white/10 dark:data-popup-open:bg-white/15"
+                className="flex size-7 items-center justify-center rounded-adw-control text-adw-label-secondary transition-colors outline-none hover-fill:bg-black/8 hover-fill:text-adw-label data-popup-open:bg-black/10 data-popup-open:text-adw-label dark:hover-fill:bg-white/10 dark:data-popup-open:bg-white/15"
               >
                 <SlidersHorizontalIcon className="size-4" />
               </DropdownMenuTrigger>
@@ -2674,7 +2674,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                           featuredItems.length,
                       )
                     }
-                    className="flex size-8 shrink-0 items-center justify-center rounded-full bg-black/5 text-adw-label-secondary transition-colors hover-fill:bg-black/10 hover:text-adw-label dark:bg-white/8 dark:hover-fill:bg-white/15"
+                    className="flex size-8 shrink-0 items-center justify-center rounded-full bg-black/5 text-adw-label-secondary transition-colors hover-fill:bg-black/10 hover-fill:text-adw-label dark:bg-white/8 dark:hover-fill:bg-white/15"
                   >
                     <ChevronLeftIcon className="size-4" />
                   </button>
@@ -2713,7 +2713,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                         (prev) => (prev + 1) % featuredItems.length,
                       )
                     }
-                    className="flex size-8 shrink-0 items-center justify-center rounded-full bg-black/5 text-adw-label-secondary transition-colors hover-fill:bg-black/10 hover:text-adw-label dark:bg-white/8 dark:hover-fill:bg-white/15"
+                    className="flex size-8 shrink-0 items-center justify-center rounded-full bg-black/5 text-adw-label-secondary transition-colors hover-fill:bg-black/10 hover-fill:text-adw-label dark:bg-white/8 dark:hover-fill:bg-white/15"
                   >
                     <ChevronRightIcon className="size-4" />
                   </button>
@@ -2934,7 +2934,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                                               aria-label={_("Uninstall")}
                                               disabled={isBusy}
                                               onClick={() => handleUninstall(item)}
-                                              className="flex size-7 items-center justify-center rounded-adw-control text-adw-label-tertiary transition-colors hover-fill:bg-rose-500/12 hover:text-rose-500 disabled:opacity-40"
+                                              className="flex size-7 items-center justify-center rounded-adw-control text-adw-label-tertiary transition-colors hover-fill:bg-rose-500/12 hover-fill:text-rose-500 disabled:opacity-40"
                                             >
                                               <XIcon className="size-3.5" />
                                             </button>
@@ -3036,7 +3036,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                   type="button"
                   aria-label={_("Close")}
                   onClick={() => setSelectedId(null)}
-                  className="flex size-6 items-center justify-center rounded-adw-control text-adw-label-secondary transition-colors hover-fill:bg-black/8 hover:text-adw-label dark:hover-fill:bg-white/10"
+                  className="flex size-6 items-center justify-center rounded-adw-control text-adw-label-secondary transition-colors hover-fill:bg-black/8 hover-fill:text-adw-label dark:hover-fill:bg-white/10"
                 >
                   <XIcon className="size-3.5" />
                 </button>
@@ -3305,7 +3305,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
               <button
                 type="button"
                 onClick={() => void handleInstallPackage()}
-                className="rounded-adw-item bg-adw-accent px-3 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-90"
+                className="rounded-adw-item bg-adw-accent px-3 py-1.5 text-xs font-medium text-white transition-opacity hover-fill:opacity-90"
               >
                 {_("Install")}
               </button>

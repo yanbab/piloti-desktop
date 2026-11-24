@@ -92,6 +92,8 @@ function GlobalTitleTooltip() {
       if (activeElRef.current === el) return;
       hide();
       if (el.closest("[data-slot='dock-item']")) return;
+      // An iframe's title is its accessible name (the page title), not a tip.
+      if (el.tagName === "IFRAME") return;
       const text = el.getAttribute("title")?.trim();
       if (!text) return;
       el.setAttribute("data-piloti-title", text);

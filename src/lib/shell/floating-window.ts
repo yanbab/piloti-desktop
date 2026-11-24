@@ -19,7 +19,7 @@ export interface FloatingRect {
 /** Gap kept between a floating window and the screen edges (main menu gap). */
 export const FLOATING_EDGE_MARGIN = 6;
 /** Distance under which a floating window snaps to an edge. */
-export const FLOATING_SNAP_DISTANCE = 16;
+export const FLOATING_SNAP_DISTANCE = 28;
 /** Rubber-band stiffness: lower is stiffer. */
 const RUBBER_BAND = 0.55;
 

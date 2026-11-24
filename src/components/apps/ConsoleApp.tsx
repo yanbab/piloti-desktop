@@ -1241,7 +1241,7 @@ function VfsEventsModule({ active }: { active: boolean }) {
                 "rounded-full px-2.5 py-0.5 text-adw-subheadline font-medium transition-colors",
                 filter === pill.id
                   ? "bg-adw-accent text-white"
-                  : "bg-black/6 text-adw-label-secondary hover-fill:bg-black/10 hover:text-adw-label dark:bg-white/8 dark:hover-fill:bg-white/14"
+                  : "bg-black/6 text-adw-label-secondary hover-fill:bg-black/10 hover-fill:text-adw-label dark:bg-white/8 dark:hover-fill:bg-white/14"
               )}
             >
               {pill.label}
@@ -1259,7 +1259,7 @@ function VfsEventsModule({ active }: { active: boolean }) {
               "min-w-0 truncate whitespace-nowrap rounded-full px-2.5 py-0.5 text-adw-subheadline font-medium transition-colors",
               showDiffDrawer
                 ? "bg-adw-accent/15 text-adw-accent"
-                : "bg-black/6 text-adw-label-secondary hover-fill:bg-black/10 hover:text-adw-label dark:bg-white/8 dark:hover-fill:bg-white/14"
+                : "bg-black/6 text-adw-label-secondary hover-fill:bg-black/10 hover-fill:text-adw-label dark:bg-white/8 dark:hover-fill:bg-white/14"
             )}
           >
             {_("VFS Diff")} ({diffs.length}) · {_("VFS Events")} ({vfsEventsCount})
@@ -1732,7 +1732,7 @@ export function ConsoleApp({
                   "flex items-center gap-1.5 rounded-adw-control px-2.5 py-1 text-adw-subheadline font-medium transition-colors",
                   active
                     ? "bg-adw-window text-adw-label shadow-xs"
-                    : "text-adw-label-secondary hover:text-adw-label"
+                    : "text-adw-label-secondary hover-fill:text-adw-label"
                 )}
               >
                 <span>{mod.label}</span>

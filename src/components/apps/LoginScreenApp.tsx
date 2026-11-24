@@ -624,7 +624,7 @@ export const LoginScreenApp: React.FC<LoginScreenAppProps> = ({
               aria-label={_("Switch User")}
               title={_("Switch User")}
               onClick={() => setView("users")}
-              className="absolute top-3.5 left-3.5 flex size-7 items-center justify-center rounded-full text-white/75 transition-colors hover-fill:bg-white/14 hover:text-white"
+              className="absolute top-3.5 left-3.5 flex size-7 items-center justify-center rounded-full text-white/75 transition-colors hover-fill:bg-white/14 hover-fill:text-white"
             >
               <ArrowLeftIcon className="size-4" />
             </button>
@@ -647,7 +647,7 @@ export const LoginScreenApp: React.FC<LoginScreenAppProps> = ({
                 type="submit"
                 disabled={!manualUsername.trim()}
                 aria-label={_("Next")}
-                className="absolute right-1.5 flex size-6 items-center justify-center rounded-adw-control bg-adw-accent text-white transition-all hover:brightness-110 active:scale-95 disabled:opacity-40"
+                className="absolute right-1.5 flex size-6 items-center justify-center rounded-adw-control bg-adw-accent text-white transition-all hover-fill:brightness-110 active:scale-95 disabled:opacity-40"
               >
                 <ArrowRightIcon className="size-3.5" />
               </button>

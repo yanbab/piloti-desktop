@@ -164,8 +164,14 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
     const headerHeight = headerEl.offsetHeight;
     const idealKeypadWidth = scientific ? 92 + 6 + 184 : 184;
     const idealKeypadHeight = 5 * 34 + 4 * 4;
-    const topBarMinW = topBarRef.current
-      ? topBarRef.current.scrollWidth + 20
+    // The top bar stretches to the window (min-w-full), so measure what it
+    // holds, not its width: otherwise the window never shrinks back to basic.
+    const topBar = topBarRef.current;
+    const topBarItems = topBar ? Array.from(topBar.children) as HTMLElement[] : [];
+    const topBarMinW = topBar
+      ? topBarItems.reduce((sum, el) => sum + el.offsetWidth, 0) +
+        8 * Math.max(0, topBarItems.length - 1) +
+        20
       : 0;
     const nextWidth = Math.max(topBarMinW, idealKeypadWidth + 12);
     const nextHeight = chromeHeight + headerHeight + idealKeypadHeight + 12;
@@ -415,6 +421,7 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
           ref={topBarRef}
           className="flex h-5 w-max min-w-full items-center justify-between gap-2"
         >
+          <div className="flex shrink-0 items-center gap-1.5">
           <button
             type="button"
             data-window-no-drag
@@ -424,19 +431,31 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
             className={cn(
               "inline-flex h-5 shrink-0 cursor-default items-center justify-center rounded-full px-2 text-adw-subheadline font-medium leading-none transition-colors outline-none select-none",
               scientific
-                ? "bg-adw-accent text-white hover:brightness-110 active:brightness-95"
-                : "bg-black/8 text-adw-label-secondary hover-fill:bg-black/15 hover:text-adw-label active:bg-black/22 dark:bg-white/10 dark:hover-fill:bg-white/18 dark:hover:text-adw-label dark:active:bg-white/24",
+                ? "bg-adw-accent text-white hover-fill:brightness-110 active:brightness-95"
+                : "bg-black/8 text-adw-label-secondary hover-fill:bg-black/15 hover-fill:text-adw-label active:bg-black/22 dark:bg-white/10 dark:hover-fill:bg-white/18 dark:hover-fill:text-adw-label dark:active:bg-white/24",
             )}
           >
             {_("Scientific")}
           </button>
+          {/* Same size as the mode toggle; shown briefly after a copy. */}
+          <span
+            role="status"
+            aria-live="polite"
+            className={cn(
+              "inline-flex h-5 shrink-0 items-center justify-center rounded-full bg-black/8 px-2 text-adw-subheadline font-medium leading-none text-adw-label-secondary transition-opacity duration-200 select-none dark:bg-white/10",
+              copied ? "opacity-100" : "pointer-events-none opacity-0",
+            )}
+          >
+            {_("Copied")}
+          </span>
+          </div>
           {isCsd && (
             <button
               type="button"
               data-window-no-drag
               aria-label={_("Close window")}
               onClick={handleClose}
-              className="flex size-5 shrink-0 items-center justify-center rounded-full bg-black/8 text-adw-label-secondary transition-colors outline-none hover-fill:bg-black/15 hover:text-adw-label active:bg-black/22 dark:bg-white/10 dark:hover-fill:bg-white/18 dark:hover:text-adw-label dark:active:bg-white/24"
+              className="flex size-5 shrink-0 items-center justify-center rounded-full bg-black/8 text-adw-label-secondary transition-colors outline-none hover-fill:bg-black/15 hover-fill:text-adw-label active:bg-black/22 dark:bg-white/10 dark:hover-fill:bg-white/18 dark:hover-fill:text-adw-label dark:active:bg-white/24"
             >
               <XIcon className="size-3" strokeWidth={2.5} />
             </button>
@@ -451,8 +470,7 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
           }}
           className="mt-1 flex cursor-default flex-col items-end justify-end"
         >
-          <div className="flex h-3.5 w-full items-center justify-between text-adw-footnote text-adw-dim tabular-nums">
-            <span>{copied ? _("Copied") : ""}</span>
+          <div className="flex h-3.5 w-full items-center justify-end text-adw-footnote text-adw-dim tabular-nums">
             <span className="truncate">{expressionLine}</span>
           </div>
           <div className="flex h-[36px] w-full items-end justify-end">
@@ -582,7 +600,7 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
           <button
             type="button"
             onClick={() => performOperation("/")}
-            className="rounded-adw-item bg-adw-accent text-[16px] font-medium text-white outline-none hover:brightness-110 focus:outline-none active:brightness-90"
+            className="rounded-adw-item bg-adw-accent text-[16px] font-medium text-white outline-none hover-fill:brightness-110 focus:outline-none active:brightness-90"
           >
             ÷
           </button>
@@ -601,7 +619,7 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
           <button
             type="button"
             onClick={() => performOperation("*")}
-            className="rounded-adw-item bg-adw-accent text-[16px] font-medium text-white outline-none hover:brightness-110 focus:outline-none active:brightness-90"
+            className="rounded-adw-item bg-adw-accent text-[16px] font-medium text-white outline-none hover-fill:brightness-110 focus:outline-none active:brightness-90"
           >
             ×
           </button>
@@ -620,7 +638,7 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
           <button
             type="button"
             onClick={() => performOperation("-")}
-            className="rounded-adw-item bg-adw-accent text-[16px] font-medium text-white outline-none hover:brightness-110 focus:outline-none active:brightness-90"
+            className="rounded-adw-item bg-adw-accent text-[16px] font-medium text-white outline-none hover-fill:brightness-110 focus:outline-none active:brightness-90"
           >
             −
           </button>
@@ -639,7 +657,7 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
           <button
             type="button"
             onClick={() => performOperation("+")}
-            className="rounded-adw-item bg-adw-accent text-[16px] font-medium text-white outline-none hover:brightness-110 focus:outline-none active:brightness-90"
+            className="rounded-adw-item bg-adw-accent text-[16px] font-medium text-white outline-none hover-fill:brightness-110 focus:outline-none active:brightness-90"
           >
             +
           </button>
@@ -662,7 +680,7 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
           <button
             type="button"
             onClick={performEquals}
-            className="rounded-adw-item bg-adw-accent text-[16px] font-medium text-white outline-none hover:brightness-110 focus:outline-none active:brightness-90"
+            className="rounded-adw-item bg-adw-accent text-[16px] font-medium text-white outline-none hover-fill:brightness-110 focus:outline-none active:brightness-90"
           >
             =
           </button>

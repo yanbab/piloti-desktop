@@ -49,7 +49,7 @@ export function UnsavedChangesDialog({
           <button
             type="button"
             onClick={onSave}
-            className="rounded-adw-item bg-adw-accent px-3 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-90"
+            className="rounded-adw-item bg-adw-accent px-3 py-1.5 text-xs font-medium text-white transition-opacity hover-fill:opacity-90"
           >
             {_("Save")}
           </button>

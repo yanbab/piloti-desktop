@@ -579,7 +579,7 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
               type="button"
               aria-label={_("Save Changes")}
               onClick={() => void handleSave()}
-              className="flex size-7 items-center justify-center rounded-adw-control bg-adw-accent text-white transition-opacity hover:opacity-90"
+              className="flex size-7 items-center justify-center rounded-adw-control bg-adw-accent text-white transition-opacity hover-fill:opacity-90"
             >
               <SaveIcon className="size-4" />
             </button>

@@ -1156,7 +1156,7 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
                       "rounded-adw-control px-2 py-0.5 text-adw-subheadline font-medium transition-all",
                       active
                         ? "bg-white text-black shadow-2xs dark:bg-white/18 dark:text-white"
-                        : "text-adw-label-secondary hover:text-adw-label",
+                        : "text-adw-label-secondary hover-fill:text-adw-label",
                     )}
                   >
                     {mode.label}
@@ -1169,7 +1169,7 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
             <DropdownMenuTrigger
               aria-label={_("Editor Preferences")}
               title={_("Preferences")}
-              className="flex size-7 items-center justify-center rounded-adw-control text-adw-label-secondary transition-colors outline-none hover-fill:bg-black/8 hover:text-adw-label data-popup-open:bg-black/10 dark:hover-fill:bg-white/10 dark:data-popup-open:bg-white/15"
+              className="flex size-7 items-center justify-center rounded-adw-control text-adw-label-secondary transition-colors outline-none hover-fill:bg-black/8 hover-fill:text-adw-label data-popup-open:bg-black/10 dark:hover-fill:bg-white/10 dark:data-popup-open:bg-white/15"
             >
               <SlidersHorizontalIcon className="size-4" />
             </DropdownMenuTrigger>
@@ -1244,7 +1244,7 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
                 setFindOpen(false);
                 viewRef.current?.focus();
               }}
-              className="rounded px-1 text-xs text-adw-dim hover-fill:bg-adw-hover hover:text-adw-label"
+              className="rounded px-1 text-xs text-adw-dim hover-fill:bg-adw-hover hover-fill:text-adw-label"
             >
               ×
             </button>
@@ -1384,7 +1384,7 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
                     setPendingRename(null);
                   }
                 }}
-                className="rounded-adw-item bg-adw-accent px-3 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-90"
+                className="rounded-adw-item bg-adw-accent px-3 py-1.5 text-xs font-medium text-white transition-opacity hover-fill:opacity-90"
               >
                 {_("Rename")}
               </button>

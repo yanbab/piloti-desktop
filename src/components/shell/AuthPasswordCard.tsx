@@ -101,7 +101,7 @@ export function AuthPasswordCard({
           aria-label={backLabel ?? _("Switch User")}
           title={backLabel ?? _("Switch User")}
           onClick={onBack}
-          className="absolute top-3.5 left-3.5 flex size-7 items-center justify-center rounded-full text-white/75 transition-colors hover-fill:bg-white/14 hover:text-white disabled:opacity-40"
+          className="absolute top-3.5 left-3.5 flex size-7 items-center justify-center rounded-full text-white/75 transition-colors hover-fill:bg-white/14 hover-fill:text-white disabled:opacity-40"
         >
           <ArrowLeftIcon className="size-4" />
         </button>
@@ -166,7 +166,7 @@ export function AuthPasswordCard({
                   setShowPassword((v) => !v);
                   inputRef.current?.focus();
                 }}
-                className="flex size-6 items-center justify-center rounded-adw-control text-white/70 transition-colors hover-fill:bg-white/14 hover:text-white"
+                className="flex size-6 items-center justify-center rounded-adw-control text-white/70 transition-colors hover-fill:bg-white/14 hover-fill:text-white"
               >
                 {showPassword ? (
                   <EyeOffIcon className="size-3.5" />
@@ -178,7 +178,7 @@ export function AuthPasswordCard({
                 type="submit"
                 disabled={disabled || loading}
                 aria-label={submitLabel ?? _("Sign In")}
-                className="flex size-6 items-center justify-center rounded-adw-control bg-adw-accent text-white transition-all hover:brightness-110 active:scale-95 disabled:opacity-60"
+                className="flex size-6 items-center justify-center rounded-adw-control bg-adw-accent text-white transition-all hover-fill:brightness-110 active:scale-95 disabled:opacity-60"
               >
                 {loading ? (
                   <Loader2Icon className="size-3.5 animate-spin" />

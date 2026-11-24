@@ -274,7 +274,7 @@ export const CameraApp: React.FC<CameraAppProps> = ({ windowId = "", isCsd = tru
                   "flex items-center rounded-adw-control px-2 py-1 text-adw-body font-medium transition-all outline-none disabled:opacity-60",
                   mode === m.id
                     ? "bg-white text-black dark:bg-white/18 dark:text-white"
-                    : "text-adw-label-secondary hover:text-adw-label",
+                    : "text-adw-label-secondary hover-fill:text-adw-label",
                 )}
               >
                 {m.icon}

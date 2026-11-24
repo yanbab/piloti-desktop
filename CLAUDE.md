@@ -4,6 +4,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Piloti Desktop: a Linux Wayland desktop shell (React 19 + Tailwind + Adwaita tokens + base-ui) on `@domicile-desktop/react`. One UI tree runs on two engines: native Domicile and a browser demo. `AGENTS.md` has the project conventions (read it); the essentials are repeated below.
 
+**Start with `docs/AGENT-GUIDE.md`**: map of the code, theme/token rules and how to check changes in the demo.
+
 ## Commands
 
 - `npm run dev` — browser demo at http://localhost:5173 (fake Domicile host, in-browser VFS). `window.__PILOTI__` exposes `windows`, `settings` for scripted/E2E checks.

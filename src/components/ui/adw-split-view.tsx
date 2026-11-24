@@ -400,7 +400,7 @@ export function AdwSplitView({
                         e.stopPropagation();
                         item.trailingAction?.onClick();
                       }}
-                      className="absolute right-1.5 flex size-6 items-center justify-center rounded-adw-control text-adw-label-secondary transition-colors hover-fill:bg-black/10 hover:text-adw-label dark:hover-fill:bg-white/12 [&_svg]:size-3.5"
+                      className="absolute right-1.5 flex size-6 items-center justify-center rounded-adw-control text-adw-label-secondary transition-colors hover-fill:bg-black/10 hover-fill:text-adw-label dark:hover-fill:bg-white/12 [&_svg]:size-3.5"
                     >
                       {item.trailingAction.icon}
                     </button>

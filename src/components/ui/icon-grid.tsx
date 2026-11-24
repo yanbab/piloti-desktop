@@ -1315,7 +1315,7 @@ export function IconGrid({
                   // The favorite toggle sits on top; the other emblems stack under it.
                   style={
                     onToggleFavorite && item.kind !== "desktop-entry"
-                      ? { marginTop: `${heartSize - emblemStackOverlap}px` }
+                      ? { marginTop: `${heartSize + 2}px` }
                       : undefined
                   }
                 >

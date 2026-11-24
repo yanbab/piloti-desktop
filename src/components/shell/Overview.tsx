@@ -289,7 +289,7 @@ function WorkspaceOverview() {
                 width: `${layout.scaledWidth}px`,
                 height: `${layout.scaledHeight}px`,
               }}
-              className="group absolute flex cursor-default flex-col items-center rounded-[10px] ring-2 ring-transparent hover:ring-white/85 select-none"
+              className="group absolute flex cursor-default flex-col items-center rounded-[10px] ring-2 ring-transparent hover-fill:ring-white/85 select-none"
             >
               <WindowControlButton
                 aria-label={`Close ${win.title}`}

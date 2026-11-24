@@ -10,6 +10,7 @@ import {
   type FloatingRect,
 } from "@/lib/shell/floating-window";
 import { startPointerDrag } from "@/lib/shell/pointer-drag";
+import { useSettings } from "@/context/DesktopStateContext";
 import {
   setWindowPresentation,
   type WindowPresentation,
@@ -36,6 +37,8 @@ export function PresentationOverlay({
   workArea: WorkArea;
 }) {
   const floating = presentation.floating;
+  const { settings } = useSettings();
+  const singleClickActivates = settings.fileActivationMode !== "double";
 
   const presentedRect = (p: WindowPresentation): FloatingRect => ({
     x: p.x,
@@ -58,7 +61,18 @@ export function PresentationOverlay({
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     e.stopPropagation();
     presentation.onPointerDown?.(e.nativeEvent);
-    if (!floating || e.button !== 0) return;
+    if (e.button !== 0) return;
+    if (!floating) {
+      if (singleClickActivates) {
+        startPointerDrag(e, {
+          onMove: () => undefined,
+          onEnd: (_ev, { moved }) => {
+            if (!moved) presentation.onActivate?.();
+          },
+        });
+      }
+      return;
+    }
 
     const edge: FloatingEdge | null = edgeUnder(e);
     const start = presentedRect(presentation);
@@ -94,7 +108,11 @@ export function PresentationOverlay({
         show(rect, false);
       },
       onEnd: (_ev, { moved }) => {
-        if (!moved) return;
+        if (!moved) {
+          // A click, not a drag: "open" it if single click opens.
+          if (singleClickActivates) presentation.onActivate?.();
+          return;
+        }
         rect = { ...rect, ...settleFloatingPosition(rect, bounds) };
         show(rect, true);
         presentation.onChange?.({ x: rect.x, y: rect.y, width: rect.width });
@@ -115,6 +133,7 @@ export function PresentationOverlay({
       onDoubleClick={(e) => {
         e.stopPropagation();
         presentation.onDoubleClick?.(e.nativeEvent);
+        if (!singleClickActivates) presentation.onActivate?.();
       }}
       onContextMenu={(e) => e.preventDefault()}
     />

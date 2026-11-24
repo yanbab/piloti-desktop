@@ -17,7 +17,8 @@
 
 @custom-variant dark (&:is(.dark *));
 /* Hover fills: Adwaita highlights controls on hover; Piloti (macOS) does not,
-   only menus do. Use `hover-fill:bg-…` instead of `hover:bg-…` on controls. */
+   only menus do. Use `hover-fill:…` (bg, text, brightness…) instead of
+   `hover:…` on controls. */
 @custom-variant hover-fill (&:hover:where(:root:not([data-interface-theme="piloti"]) *));
 
 :root {

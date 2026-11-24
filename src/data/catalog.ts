@@ -567,14 +567,13 @@ export const APP_CATALOG: AppDefinition[] = [
     id: "browser",
     name: "Web Browser",
     shortName: "Browser",
-    description: "Launch Web Browser (`firefox`)",
+    description: "Browse the web (same windows and extensions as web apps)",
     category: "Internet",
     iconName: "globe",
     xdgIcons: ["internet-web-browser", "web-browser", "org.gnome.Epiphany", "firefox-esr", "firefox", "chromium"],
     gradient: "from-cyan-400 via-blue-500 to-indigo-600",
     pinnedByDefault: false,
-    linuxCommand: ["firefox"],
-    defaultSize: { width: 720, height: 500 },
+    defaultSize: { width: 960, height: 640 },
     menus: [
       {
         title: "File",

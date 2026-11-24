@@ -1974,7 +1974,7 @@ export function FilesApp({
               title={_("Back")}
               disabled={!canGoUp}
               onClick={handleGoUp}
-              className="flex size-7 items-center justify-center rounded-adw-control text-adw-label-secondary transition-colors hover-fill:bg-black/8 hover:text-adw-label disabled:pointer-events-none disabled:opacity-35 dark:hover-fill:bg-white/10"
+              className="flex size-7 items-center justify-center rounded-adw-control text-adw-label-secondary transition-colors hover-fill:bg-black/8 hover-fill:text-adw-label disabled:pointer-events-none disabled:opacity-35 dark:hover-fill:bg-white/10"
             >
               <ArrowLeftIcon className="size-4" />
             </button>
@@ -2045,7 +2045,7 @@ export function FilesApp({
                   aria-label={viewMode === "grid" ? _("List view") : _("Grid view")}
                   title={viewMode === "grid" ? _("List view") : _("Grid view")}
                   onClick={() => setViewMode((m) => (m === "grid" ? "list" : "grid"))}
-                  className="flex h-7 w-7 items-center justify-center rounded-l-adw-control transition-colors hover-fill:bg-black/8 hover:text-adw-label active:bg-black/12 dark:hover-fill:bg-white/10 dark:active:bg-white/14"
+                  className="flex h-7 w-7 items-center justify-center rounded-l-adw-control transition-colors hover-fill:bg-black/8 hover-fill:text-adw-label active:bg-black/12 dark:hover-fill:bg-white/10 dark:active:bg-white/14"
                 >
                   {viewMode === "grid" ? <ListIcon className="size-4" /> : <LayoutGridIcon className="size-4" />}
                 </button>
@@ -2054,7 +2054,7 @@ export function FilesApp({
                   <DropdownMenuTrigger
                     aria-label={_("View")}
                     title={_("View")}
-                    className="flex h-7 w-5 items-center justify-center rounded-r-adw-control transition-colors outline-none hover-fill:bg-black/8 hover:text-adw-label active:bg-black/12 data-popup-open:bg-black/10 data-popup-open:text-adw-label dark:hover-fill:bg-white/10 dark:active:bg-white/14 dark:data-popup-open:bg-white/14"
+                    className="flex h-7 w-5 items-center justify-center rounded-r-adw-control transition-colors outline-none hover-fill:bg-black/8 hover-fill:text-adw-label active:bg-black/12 data-popup-open:bg-black/10 data-popup-open:text-adw-label dark:hover-fill:bg-white/10 dark:active:bg-white/14 dark:data-popup-open:bg-white/14"
                   >
                     <ChevronDownIcon className="size-3.5" />
                   </DropdownMenuTrigger>
@@ -2120,7 +2120,7 @@ export function FilesApp({
                 "flex size-7 items-center justify-center rounded-adw-control transition-colors",
                 searchOpen
                   ? "bg-black/10 text-adw-label dark:bg-white/15"
-                  : "text-adw-label-secondary hover-fill:bg-black/8 hover:text-adw-label dark:hover-fill:bg-white/10"
+                  : "text-adw-label-secondary hover-fill:bg-black/8 hover-fill:text-adw-label dark:hover-fill:bg-white/10"
               )}
             >
               <SearchIcon className="size-4" />
@@ -2135,7 +2135,7 @@ export function FilesApp({
                 "flex size-7 items-center justify-center rounded-adw-control transition-colors",
                 infoPaneOpen
                   ? "bg-black/10 text-adw-label dark:bg-white/15"
-                  : "text-adw-label-secondary hover-fill:bg-black/8 hover:text-adw-label dark:hover-fill:bg-white/10"
+                  : "text-adw-label-secondary hover-fill:bg-black/8 hover-fill:text-adw-label dark:hover-fill:bg-white/10"
               )}
             >
               <InfoIcon className="size-4" />

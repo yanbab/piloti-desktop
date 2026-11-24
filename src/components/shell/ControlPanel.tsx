@@ -869,7 +869,7 @@ export function FloatingNotifications() {
           type="button"
           onClick={clearAllNotifications}
           className={cn(
-            "rounded-full border border-black/8 px-3 py-1 text-adw-subheadline font-medium text-adw-label-secondary shadow-adw-popover backdrop-blur-xl transition-opacity adw-material-popover hover:text-adw-label focus-visible:opacity-100 dark:border-white/10",
+            "rounded-full border border-black/8 px-3 py-1 text-adw-subheadline font-medium text-adw-label-secondary shadow-adw-popover backdrop-blur-xl transition-opacity adw-material-popover hover-fill:text-adw-label focus-visible:opacity-100 dark:border-white/10",
             expanded ? "opacity-100" : "opacity-0 group-hover/notifs:opacity-100"
           )}
         >

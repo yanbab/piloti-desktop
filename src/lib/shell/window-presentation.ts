@@ -40,6 +40,11 @@ export interface WindowPresentation {
   onChange?: (rect: { x: number; y: number; width: number }) => void;
   onPointerDown?: (event: PointerEvent) => void;
   onDoubleClick?: (event: MouseEvent) => void;
+  /**
+   * "Open" gesture on the presentation, following the user's click setting
+   * (single or double click), like opening an icon. PiP restores on it.
+   */
+  onActivate?: () => void;
 }
 
 export interface WindowMenuItem {

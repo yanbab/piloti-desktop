@@ -126,7 +126,7 @@ function ToastClose({
       data-slot="toast-close"
       aria-label="Dismiss notification banner"
       className={cn(
-        "flex size-5 shrink-0 items-center justify-center rounded-full bg-black/8 text-adw-label-secondary transition-colors hover-fill:bg-black/14 hover:text-adw-label dark:bg-white/12 dark:hover-fill:bg-white/20",
+        "flex size-5 shrink-0 items-center justify-center rounded-full bg-black/8 text-adw-label-secondary transition-colors hover-fill:bg-black/14 hover-fill:text-adw-label dark:bg-white/12 dark:hover-fill:bg-white/20",
         className
       )}
       {...props}
