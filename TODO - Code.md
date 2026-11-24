@@ -12,7 +12,6 @@ Focus for now: stabilize, fine-tune, optimise. Features wait.
 
 ## Features pending
 
-- Password prompt for secured Wi-Fi.
 - Power profiles and MPRIS via D-Bus.
 - Decide on an `org.piloti` GSettings schema.
 - Text Editor module save test.
@@ -21,3 +20,4 @@ Focus for now: stabilize, fine-tune, optimise. Features wait.
 ## Done
 - Old terminal (`TerminalApp.tsx`, `terminal-pipeline.ts` and its test) removed; the app is now "Terminal" with `piloti-terminal` as desktop file, command and bin script (`piloti-shell` still resolves as an alias).
 - Launcher opens at once and fills its list next frame; no app/icon refresh on open.
+- Wi-Fi password: secured networks without a saved profile ask for the password in the Control Panel; wrong password shows an error (untested on hardware: no Wi-Fi in the VM).

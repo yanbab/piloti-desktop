@@ -96,7 +96,11 @@ export interface SystemBackendsContextValue {
   mprisMedia: MprisMediaInfo | null;
   controlMpris: (action: "play-pause" | "next" | "previous") => Promise<void>;
   refreshSystemBackends: (options?: { scanWifi?: boolean }) => Promise<void>;
-  connectWifiNetwork: (ssid: string) => Promise<void>;
+  /** Joins a network; on a real system answers whether it needs a passphrase. */
+  connectWifiNetwork: (
+    ssid: string,
+    passphrase?: string,
+  ) => Promise<"connected" | "needs-passphrase" | "failed">;
   selectAudioSink: (sinkName: string) => Promise<void>;
   gnomeIconThemeOverride: string | undefined;
   // Notifications & History
@@ -1043,13 +1047,16 @@ export function useSystemBackendsValue(
   ]);
 
   const connectWifiNetwork = React.useCallback(
-    async (ssid: string) => {
+    async (ssid: string, passphrase?: string) => {
       console.info("[Piloti] control-panel: wifi connect", ssid);
-      updateSettings({ connectedWifi: ssid, wifiEnabled: true });
-      if (systemServices) {
-        await connectSystemWifi(domicile, ssid);
-        void refreshSystemBackends();
+      if (!systemServices) {
+        updateSettings({ connectedWifi: ssid, wifiEnabled: true });
+        return "connected" as const;
       }
+      const result = await connectSystemWifi(domicile, ssid, passphrase);
+      if (result === "connected") updateSettings({ connectedWifi: ssid, wifiEnabled: true });
+      void refreshSystemBackends();
+      return result;
     },
     [domicile, systemServices, refreshSystemBackends, updateSettings]
   );

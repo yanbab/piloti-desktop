@@ -74,6 +74,22 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
   } = useSystemBackends();
   const { setControlPanelOpen, launchApp, openGnomeSettings } =
     useWindowActions();
+  // Secured network waiting for its passphrase (no saved profile).
+  const [wifiPrompt, setWifiPrompt] = React.useState<{
+    ssid: string;
+    passphrase: string;
+    busy: boolean;
+    failed: boolean;
+  } | null>(null);
+  const joinWifi = async (ssid: string, passphrase?: string) => {
+    const result = await connectWifiNetwork(ssid, passphrase);
+    if (result === "connected") setWifiPrompt(null);
+    else if (result === "needs-passphrase") {
+      setWifiPrompt({ ssid, passphrase: "", busy: false, failed: false });
+    } else if (passphrase) {
+      setWifiPrompt({ ssid, passphrase, busy: false, failed: true });
+    } else setWifiPrompt(null);
+  };
   const [expandedPicker, setExpandedPicker] = React.useState<
     "wifi" | "bluetooth" | "audio" | null
   >(null);
@@ -473,10 +489,10 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
                 {liveWifiNetworks.map((net) => {
                   const connected = net.ssid === settings.connectedWifi;
                   return (
+                    <React.Fragment key={net.ssid}>
                     <button
-                      key={net.ssid}
                       type="button"
-                      onClick={() => void connectWifiNetwork(net.ssid)}
+                      onClick={() => void joinWifi(net.ssid)}
                       className={cn(
                         "flex items-center justify-between gap-2 rounded-adw-item px-2.5 py-1.5 text-left text-adw-subheadline",
                         connected
@@ -496,6 +512,39 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
                         )}
                       </span>
                     </button>
+                    {wifiPrompt?.ssid === net.ssid && (
+                      <form
+                        className="flex flex-col gap-1 px-2.5 pb-1.5"
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          if (!wifiPrompt.passphrase || wifiPrompt.busy) return;
+                          setWifiPrompt({ ...wifiPrompt, busy: true, failed: false });
+                          void joinWifi(net.ssid, wifiPrompt.passphrase);
+                        }}
+                      >
+                        <input
+                          type="password"
+                          autoFocus
+                          value={wifiPrompt.passphrase}
+                          disabled={wifiPrompt.busy}
+                          placeholder={_("Password")}
+                          onChange={(e) =>
+                            setWifiPrompt({ ...wifiPrompt, passphrase: e.target.value, failed: false })
+                          }
+                          onKeyDown={(e) => {
+                            e.stopPropagation();
+                            if (e.key === "Escape") setWifiPrompt(null);
+                          }}
+                          className="h-adw-control-medium rounded-adw-control bg-adw-window px-2 text-adw-subheadline text-adw-label outline-none focus:ring-2 focus:ring-adw-accent"
+                        />
+                        {wifiPrompt.failed && (
+                          <span className="text-adw-footnote text-destructive">
+                            {_("Could not connect. Check the password.")}
+                          </span>
+                        )}
+                      </form>
+                    )}
+                    </React.Fragment>
                   );
                 })}
               </div>

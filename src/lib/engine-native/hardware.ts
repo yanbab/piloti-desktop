@@ -143,21 +143,26 @@ export async function scanSystemWifi(domicile: Domicile): Promise<void> {
   if (device) await scanWifi(domicile, device).catch(() => undefined);
 }
 
-/** Joins a network by name. Only networks with a saved profile (or open ones) connect without a passphrase. */
+/**
+ * Joins a network by name. A secured network with no saved profile and no passphrase
+ * answers "needs-passphrase" so the UI can ask for it.
+ */
 export async function connectSystemWifi(
   domicile: Domicile,
   ssid: string,
   passphrase?: string,
-): Promise<boolean> {
+): Promise<"connected" | "needs-passphrase" | "failed"> {
   const device = latestWifiDevice.get(domicile);
   const network = latestWifiNetworks.get(domicile)?.find((n) => n.ssid === ssid);
-  if (!device || !network) return false;
+  if (!device || !network) return "failed";
+  let ok = false;
   try {
-    const res = await connectWifi(domicile, device, network, passphrase);
-    return res.isOk();
+    ok = (await connectWifi(domicile, device, network, passphrase)).isOk();
   } catch {
-    return false; // a secured network with no saved profile needs a passphrase
+    ok = false;
   }
+  if (ok) return "connected";
+  return network.secured && !passphrase ? "needs-passphrase" : "failed";
 }
 
 export async function readSystemPowerProfile(

@@ -758,5 +758,7 @@
   "Tooltip": "Información sobre herramientas",
   "Type roles": "Roles tipográficos",
   "Values": "Valores",
-  "Variants": "Variantes"
+  "Variants": "Variantes",
+  "Loading…": "Cargando…",
+  "Could not connect. Check the password.": "No se pudo conectar. Compruebe la contraseña."
 }
