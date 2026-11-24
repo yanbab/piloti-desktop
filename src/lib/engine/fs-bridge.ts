@@ -26,7 +26,6 @@ import {
   type WebVfsEntry,
   writeVfsTextFile,
 } from "@/lib/engine-web/web-vfs";
-import { emptyXdgTrash, resolveXdgTrashPaths } from "@/lib/xdg/xdg-trash";
 import {
   parseRecentlyUsedXbel,
   serializeRecentlyUsedXbel,
@@ -72,6 +71,14 @@ function fileServiceFor(domicile: Domicile, isBrowserRuntime: boolean): FileServ
       writeVfsTextFile,
       createVfsFolder,
       createVfsTextFile,
+      renameVfsEntry,
+      moveVfsEntry,
+      copyVfsEntry,
+      createVfsSymlink,
+      trashVfsEntry,
+      restoreVfsEntry,
+      removeVfsEntry,
+      emptyVfsTrash,
     },
   });
 }
@@ -189,85 +196,29 @@ export async function createFsFileFromTemplate(
   );
 }
 
-/**
- * Renames a file or directory on both `web-vfs` and (via `mv`) on Linux.
- */
+/** Renames a file or folder (cache and disk). */
 export function renameFsEntry(
   domicile: Domicile,
   isBrowserRuntime: boolean,
   path: string,
   newName: string,
 ): WebVfsEntry | null {
-  const oldRel = toDomicilePath(path);
-  const renamed = renameVfsEntry(path, newName);
-  if (renamed && !isBrowserRuntime && !isSimulatedUsbPath(path)) {
-    const newRel = toDomicilePath(renamed.path);
-    if (oldRel !== newRel) {
-      void domicile.processes.run(["mv", "--", oldRel, newRel]);
-    }
-  }
-  return renamed;
+  return fileServiceFor(domicile, isBrowserRuntime).rename(path, newName);
 }
 
-/**
- * Moves a file or directory into `targetDirPath` on both `web-vfs` and Linux.
- */
+/** Moves a file or folder into `targetDirPath` (cache and disk). */
 export function moveFsEntry(
   domicile: Domicile,
   isBrowserRuntime: boolean,
   path: string,
   targetDirPath: string,
 ): WebVfsEntry | null {
-  const oldRel = toDomicilePath(path);
-  const moved = moveVfsEntry(path, targetDirPath);
-  if (!moved && !isBrowserRuntime && !isSimulatedUsbPath(path) && !isSimulatedUsbPath(targetDirPath)) {
-    // Native files are not always mirrored in the VFS cache: move on disk anyway.
-    const base = normalizeVfsPath(path).split("/").filter(Boolean).pop();
-    if (base) {
-      const dir = normalizeVfsPath(targetDirPath);
-      const newRel = toDomicilePath(`${dir === "/" ? "" : dir}/${base}`);
-      if (oldRel !== newRel) void domicile.processes.run(["mv", "-n", "--", oldRel, newRel]);
-    }
-    return null;
-  }
-  if (
-    moved &&
-    !isBrowserRuntime &&
-    !isSimulatedUsbPath(path) &&
-    !isSimulatedUsbPath(targetDirPath)
-  ) {
-    const newRel = toDomicilePath(moved.path);
-    if (oldRel !== newRel) {
-      void domicile.processes.run(["mv", "--", oldRel, newRel]);
-    }
-  }
-  return moved;
-}
-
-/** First name in `dir` not already used, "Name.ext" → "Name 2.ext" (reads the real directory). */
-async function uniqueNativeName(
-  domicile: Domicile,
-  dir: string,
-  name: string,
-): Promise<string> {
-  const res = await domicile.files.readDir(toDomicilePath(dir)).catch(() => undefined);
-  const existing = new Set(
-    res?.match({ Ok: (list) => list.map((e) => e.name.toLowerCase()), Err: () => [] as string[] }) ?? [],
-  );
-  if (!existing.has(name.toLowerCase())) return name;
-  const dot = name.lastIndexOf(".");
-  const hasExt = dot > 0;
-  const stem = hasExt ? name.slice(0, dot) : name;
-  const ext = hasExt ? name.slice(dot) : "";
-  let index = 2;
-  while (existing.has(`${stem} ${index}${ext}`.toLowerCase())) index += 1;
-  return `${stem} ${index}${ext}`;
+  return fileServiceFor(domicile, isBrowserRuntime).move(path, targetDirPath);
 }
 
 /**
- * Copies `srcPath` into `targetDirPath`, or with `symlink` creates a symbolic
- * link to it there. Returns the created path (null when nothing was created).
- * In the browser the copy / link lives in the web VFS.
+ * Copies `srcPath` into `targetDirPath`, or with `symlink` links it there.
+ * Returns the created path (null when nothing was created).
  */
 export async function copyFsEntry(
   domicile: Domicile,
@@ -276,101 +227,35 @@ export async function copyFsEntry(
   targetDirPath: string,
   options: { symlink?: boolean; name?: string } = {},
 ): Promise<string | null> {
-  const src = normalizeVfsPath(srcPath);
-  const dir = normalizeVfsPath(targetDirPath);
-  if (isBrowserRuntime || isSimulatedUsbPath(src) || isSimulatedUsbPath(dir)) {
-    const created = options.symlink ? createVfsSymlink(src, dir, options.name) : copyVfsEntry(src, dir);
-    return created?.path ?? null;
-  }
-  const baseName = options.name ?? src.split("/").filter(Boolean).pop() ?? "item";
-  if (!options.symlink && (dir === src || dir.startsWith(`${src}/`))) return null;
-  const name = await uniqueNativeName(domicile, dir, baseName);
-  const dest = `${dir === "/" ? "" : dir}/${name}`;
-  if (options.symlink) {
-    let absTarget = src;
-    const st = await domicile.files.stat(toDomicilePath(src)).catch(() => undefined);
-    const real = st?.match({ Ok: (s) => s.realPath, Err: () => undefined });
-    if (real && real.startsWith("/")) absTarget = real;
-    await domicile.processes.run(["ln", "-s", "--", absTarget, toDomicilePath(dest)]).catch(() => undefined);
-  } else {
-    await domicile.processes
-      .run(["cp", "-a", "--", toDomicilePath(src), toDomicilePath(dest)])
-      .catch(() => undefined);
-  }
-  return dest;
+  return fileServiceFor(domicile, isBrowserRuntime).copy(srcPath, targetDirPath, options);
 }
 
-/**
- * Moves an entry to Trash on both `web-vfs` and Linux (`gio trash` / XDG Trash).
- */
-export function trashFsEntry(
-  domicile: Domicile,
-  isBrowserRuntime: boolean,
-  path: string,
-): void {
-  const rel = toDomicilePath(path);
-  trashVfsEntry(path);
-  if (!isBrowserRuntime && !isSimulatedUsbPath(path)) {
-    void domicile.processes
-      .run(["gio", "trash", "--", rel])
-      .catch(() =>
-        domicile.processes.run([
-          "mv",
-          "--",
-          rel,
-          toDomicilePath(WEB_VFS_TRASH),
-        ]),
-      );
-  }
+/** Moves an entry to Trash (cache and XDG Trash). */
+export function trashFsEntry(domicile: Domicile, isBrowserRuntime: boolean, path: string): void {
+  fileServiceFor(domicile, isBrowserRuntime).trash(path);
 }
 
-/**
- * Restores an entry from Trash back to its original location (`web-vfs` or XDG Trash).
- */
+/** Restores an entry from Trash to its original location. */
 export function restoreFsEntry(
   domicile: Domicile,
   isBrowserRuntime: boolean,
   trashPath: string,
 ): WebVfsEntry | null {
-  const norm = normalizeVfsPath(trashPath);
-  const restored = restoreVfsEntry(norm);
-  if (!isBrowserRuntime && restored && !isSimulatedUsbPath(restored.path)) {
-    void domicile.processes.run([
-      "mv",
-      "--",
-      toDomicilePath(norm),
-      toDomicilePath(restored.path),
-    ]);
-  }
-  return restored;
+  return fileServiceFor(domicile, isBrowserRuntime).restore(trashPath);
 }
 
-/**
- * Empties Trash on both `web-vfs` and Linux XDG Trash.
- */
-export async function emptyFsTrash(
-  domicile: Domicile,
-  isBrowserRuntime: boolean,
-): Promise<void> {
-  emptyVfsTrash();
-  if (!isBrowserRuntime) {
-    await emptyXdgTrash(domicile.processes, resolveXdgTrashPaths());
-  }
+/** Empties Trash. */
+export async function emptyFsTrash(domicile: Domicile, isBrowserRuntime: boolean): Promise<void> {
+  await fileServiceFor(domicile, isBrowserRuntime).emptyTrash();
 }
 
-/**
- * Permanently removes a file on both `web-vfs` and Linux (`rm -f`).
- */
+/** Permanently removes a file or folder. */
 export async function removeFsFile(
   domicile: Domicile,
   isBrowserRuntime: boolean,
   filePath: string,
 ): Promise<void> {
-  const norm = normalizeVfsPath(filePath);
-  removeVfsEntry(norm);
-  if (!isBrowserRuntime && !isSimulatedUsbPath(norm)) {
-    await domicile.processes.run(["rm", "-f", "--", toDomicilePath(norm)]).catch(() => undefined);
-  }
+  await fileServiceFor(domicile, isBrowserRuntime).remove(filePath);
 }
 
 /**

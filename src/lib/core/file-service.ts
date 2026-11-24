@@ -1,4 +1,4 @@
-import { normalizeVfsPath, type WebVfsEntry } from "@/lib/core/vfs-paths";
+import { basename, dirname, normalizeVfsPath, type WebVfsEntry } from "@/lib/core/vfs-paths";
 import type { FileStore } from "@/lib/ports/file-store";
 
 /** The VFS cache operations the service builds on (supplied by the engine wiring). */
@@ -8,6 +8,14 @@ export interface VfsCacheApi {
   writeVfsTextFile(path: string, content: string): WebVfsEntry | null;
   createVfsFolder(dirPath: string, baseName?: string): WebVfsEntry;
   createVfsTextFile(dirPath: string, baseName?: string, content?: string): WebVfsEntry;
+  renameVfsEntry(path: string, newName: string): WebVfsEntry | null;
+  moveVfsEntry(path: string, targetDirPath: string): WebVfsEntry | null;
+  copyVfsEntry(src: string, targetDirPath: string): WebVfsEntry | null;
+  createVfsSymlink(src: string, targetDirPath: string, name?: string): WebVfsEntry | null;
+  trashVfsEntry(path: string): void;
+  restoreVfsEntry(trashPath: string): WebVfsEntry | null;
+  removeVfsEntry(path: string): boolean;
+  emptyVfsTrash(): void;
 }
 
 export interface FileServiceDeps {
@@ -29,6 +37,31 @@ export interface FileService {
   writeText(filePath: string, content: string): WebVfsEntry | null;
   createFolder(dirPath: string, baseName?: string): WebVfsEntry;
   createTextFile(dirPath: string, baseName?: string, content?: string): WebVfsEntry;
+  rename(path: string, newName: string): WebVfsEntry | null;
+  move(path: string, targetDirPath: string): WebVfsEntry | null;
+  /** Copies (or with `symlink` links) into a folder; resolves to the created path. */
+  copy(
+    srcPath: string,
+    targetDirPath: string,
+    options?: { symlink?: boolean; name?: string },
+  ): Promise<string | null>;
+  trash(path: string): void;
+  restore(trashPath: string): WebVfsEntry | null;
+  remove(path: string): Promise<void>;
+  emptyTrash(): Promise<void>;
+}
+
+const join = (dir: string, name: string) => `${dir === "/" ? "" : dir}/${name}`;
+
+/** First name in `names` not used yet: "Name.ext" -> "Name 2.ext". */
+export function uniqueName(existing: ReadonlySet<string>, name: string): string {
+  if (!existing.has(name.toLowerCase())) return name;
+  const dot = name.lastIndexOf(".");
+  const stem = dot > 0 ? name.slice(0, dot) : name;
+  const ext = dot > 0 ? name.slice(dot) : "";
+  let index = 2;
+  while (existing.has(`${stem} ${index}${ext}`.toLowerCase())) index += 1;
+  return `${stem} ${index}${ext}`;
 }
 
 export function createFileService({ store, cache, cacheOnly }: FileServiceDeps): FileService {
@@ -132,6 +165,73 @@ export function createFileService({ store, cache, cacheOnly }: FileServiceDeps):
       const created = cache.createVfsTextFile(dirPath, baseName, content);
       void backed(created.path)?.writeText(created.path, content);
       return created;
+    },
+
+    rename(path, newName) {
+      const from = normalizeVfsPath(path);
+      const renamed = cache.renameVfsEntry(from, newName);
+      // The cache may not know the entry (native files appear in it once listed): still rename on disk.
+      const to = renamed?.path ?? join(dirname(from), newName);
+      if (from !== to) void backed(from)?.move(from, to);
+      return renamed;
+    },
+
+    move(path, targetDirPath) {
+      const from = normalizeVfsPath(path);
+      const dir = normalizeVfsPath(targetDirPath);
+      const moved = cache.moveVfsEntry(from, dir);
+      const to = moved?.path ?? join(dir, basename(from));
+      const s = backed(from);
+      if (s && !cacheOnly?.(dir) && from !== to) void s.move(from, to, { noClobber: !moved });
+      return moved;
+    },
+
+    async copy(srcPath, targetDirPath, options = {}) {
+      const src = normalizeVfsPath(srcPath);
+      const dir = normalizeVfsPath(targetDirPath);
+      const s = backed(src);
+      if (!s || cacheOnly?.(dir)) {
+        const created = options.symlink
+          ? cache.createVfsSymlink(src, dir, options.name)
+          : cache.copyVfsEntry(src, dir);
+        return created?.path ?? null;
+      }
+      if (!options.symlink && (dir === src || dir.startsWith(`${src}/`))) return null;
+      const listed = await s.list(dir).catch(() => null);
+      const existing = new Set((listed ?? []).map((e) => e.name.toLowerCase()));
+      const dest = join(dir, uniqueName(existing, options.name ?? (basename(src) || "item")));
+      if (options.symlink) {
+        const st = await s.stat(src).catch(() => null);
+        await s.symlink(st?.realPath ?? src, dest).catch(() => false);
+      } else {
+        await s.copy(src, dest).catch(() => false);
+      }
+      return dest;
+    },
+
+    trash(path) {
+      const norm = normalizeVfsPath(path);
+      cache.trashVfsEntry(norm);
+      void backed(norm)?.trash(norm);
+    },
+
+    restore(trashPath) {
+      const norm = normalizeVfsPath(trashPath);
+      const restored = cache.restoreVfsEntry(norm);
+      const s = backed(norm);
+      if (s && restored && !cacheOnly?.(restored.path)) void s.move(norm, restored.path);
+      return restored;
+    },
+
+    async remove(path) {
+      const norm = normalizeVfsPath(path);
+      cache.removeVfsEntry(norm);
+      await backed(norm)?.remove(norm);
+    },
+
+    async emptyTrash() {
+      cache.emptyVfsTrash();
+      await store?.emptyTrash();
     },
   };
 }

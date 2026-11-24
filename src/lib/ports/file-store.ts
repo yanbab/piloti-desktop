@@ -23,6 +23,16 @@ export interface FileStore {
   /** Fire and forget from the caller's view; resolves to success. */
   writeText(path: string, content: string): Promise<boolean>;
   createDir(path: string): Promise<boolean>;
+  /** Rename or move to a full destination path. `noClobber` keeps an existing target. */
+  move(from: string, to: string, options?: { noClobber?: boolean }): Promise<boolean>;
+  /** Copy a file or folder (links and modes kept) to a full destination path. */
+  copy(from: string, to: string): Promise<boolean>;
+  symlink(target: string, linkPath: string): Promise<boolean>;
+  /** Move to the user's Trash. */
+  trash(path: string): Promise<boolean>;
+  /** Delete for good. */
+  remove(path: string): Promise<boolean>;
+  emptyTrash(): Promise<void>;
   /** A thumbnail data URL for a real file path, if the platform has one. */
   thumbnail?(realPath: string, name: string): Promise<string | undefined>;
 }
