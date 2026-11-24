@@ -6,6 +6,18 @@ import { emptyXdgTrash, resolveXdgTrashPaths } from "@/lib/xdg/xdg-trash";
 
 const THUMBNAIL_EXT_RE = /\.(png|jpe?g|webp|gif|bmp|avif|pdf|mp4|mkv|webm|mov)$/i;
 
+/** Parses `gio info -a metadata::*` stdout lines into a key/value map. */
+export function parseGioMetadataInfo(stdout: string): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const rawLine of stdout.split(/\r?\n/)) {
+    const match = /^\s*(metadata::[A-Za-z0-9_.:-]+)\s*:\s*(.*)$/.exec(rawLine);
+    if (!match) continue;
+    const val = match[2].trim();
+    if (val) out[match[1]] = val;
+  }
+  return out;
+}
+
 /** Parses `gio list -a metadata::emblems` lines: `name<TAB>size<TAB>(type)<TAB>metadata::emblems=[a, b]`. */
 export function parseGioListEmblems(stdout: string): Record<string, string[]> {
   const out: Record<string, string[]> = {};
@@ -92,6 +104,19 @@ export function createNativeFileStore(domicile: Domicile): FileStore {
       return merged.length === 0
         ? run(["gio", "set", "-t", "unset", "--", rel, "metadata::emblems"])
         : run(["gio", "set", "-t", "stringv", "--", rel, "metadata::emblems", ...merged]);
+    },
+    async metadata(path, keys) {
+      const res = await domicile.processes
+        .run(["gio", "info", "-a", keys.join(","), "--", toDomicilePath(path)])
+        .catch(() => null);
+      const out = res?.match({ Ok: (r) => (r.code === 0 ? r.stdout : ""), Err: () => "" }) ?? "";
+      return out ? parseGioMetadataInfo(out) : {};
+    },
+    async setMetadata(path, patch) {
+      const rel = toDomicilePath(path);
+      for (const [key, val] of Object.entries(patch)) {
+        await run(["gio", "set", "-t", "string", "--", rel, key, String(val)]);
+      }
     },
     async emptyTrash() {
       await emptyXdgTrash(domicile.processes, resolveXdgTrashPaths());

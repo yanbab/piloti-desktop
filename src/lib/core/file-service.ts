@@ -18,6 +18,8 @@ export interface VfsCacheApi {
   /** Adopt emblems another app set on a path (`metadata::emblems` names). */
   syncVfsEmblemsFromHost?(path: string, names: readonly string[]): void;
   emptyVfsTrash(): void;
+  /** Remember `metadata::*` values on a cached entry. */
+  setVfsEntryMetadata(path: string, patch: Record<string, string | number>): void;
 }
 
 export interface FileServiceDeps {
@@ -55,6 +57,10 @@ export interface FileService {
   restore(trashPath: string): WebVfsEntry | null;
   remove(path: string): Promise<void>;
   emptyTrash(): Promise<void>;
+  /** `metadata::*` values: what the cache holds, topped up from the store (and remembered). */
+  readMetadata(path: string, keys: readonly string[]): Promise<Record<string, string>>;
+  /** Sets `metadata::*` values in the cache and on disk. */
+  writeMetadata(path: string, patch: Record<string, string | number>): void;
 }
 
 const join = (dir: string, name: string) => `${dir === "/" ? "" : dir}/${name}`;
@@ -269,6 +275,32 @@ export function createFileService({ store, cache, cacheOnly }: FileServiceDeps):
     async emptyTrash() {
       cache.emptyVfsTrash();
       await store?.emptyTrash();
+    },
+
+    async readMetadata(path, keys) {
+      const norm = normalizeVfsPath(path);
+      const out: Record<string, string> = {};
+      const cached = cache.getVfsEntry(norm)?.metadata;
+      if (cached) {
+        for (const key of keys) {
+          const val = cached[key];
+          if (val !== undefined && val !== null && String(val) !== "") out[key] = String(val);
+        }
+      }
+      const s = backed(norm);
+      if (!s?.metadata || keys.length === 0) return out;
+      const found = await s.metadata(norm, keys).catch(() => ({}) as Record<string, string>);
+      if (Object.keys(found).length > 0) {
+        Object.assign(out, found);
+        cache.setVfsEntryMetadata(norm, found);
+      }
+      return out;
+    },
+
+    writeMetadata(path, patch) {
+      const norm = normalizeVfsPath(path);
+      cache.setVfsEntryMetadata(norm, patch);
+      void backed(norm)?.setMetadata?.(norm, patch).catch(() => undefined);
     },
   };
 }

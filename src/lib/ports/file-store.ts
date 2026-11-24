@@ -40,6 +40,10 @@ export interface FileStore {
    * an empty result removes the attribute.
    */
   setEmblems?(path: string, names: string[], managed: readonly string[]): Promise<boolean>;
+  /** Reads the given `metadata::*` attributes of a file (only the ones that are set). */
+  metadata?(path: string, keys: readonly string[]): Promise<Record<string, string>>;
+  /** Sets `metadata::*` attributes of a file. */
+  setMetadata?(path: string, patch: Record<string, string | number>): Promise<void>;
   /** A thumbnail data URL for a real file path, if the platform has one. */
   thumbnail?(realPath: string, name: string): Promise<string | undefined>;
 }
