@@ -21,6 +21,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { createRepl } from "@/lib/shell/piloti-repl";
 import { _ } from "@/lib/core/i18n";
+import { WindowMenuButton } from "@/components/shell/WindowMenuButton";
+import { WindowControls, WindowTitlebar } from "@/components/ui/window";
 
 /** `"piloti"` is the JavaScript REPL; anything else is a shell path from /etc/shells. */
 const PILOTI = "piloti";
@@ -33,7 +35,13 @@ const LIGHT = { background: "#fafafa", foreground: "#1e1e1e", cursor: "#1e1e1e",
  * pseudo-terminal, Linux only) and `piloti-shell` (a JavaScript REPL with the
  * desktop in reach).
  */
-export function XtermTerminalApp({ initialPath: _initialPath }: { initialPath?: string; windowId?: string }) {
+export function XtermTerminalApp({
+  initialPath: _initialPath,
+  windowId = "",
+}: {
+  initialPath?: string;
+  windowId?: string;
+}) {
   const domicile = useDomicile();
   const { settings, updateSettings } = useSettings();
   const { pushNotification } = useSystemBackends();
@@ -175,30 +183,43 @@ export function XtermTerminalApp({ initialPath: _initialPath }: { initialPath?: 
       className="flex h-full min-h-0 flex-col"
       style={{ background: (settings.themeMode === "dark" ? DARK : LIGHT).background }}
     >
-      <div className="flex shrink-0 items-center justify-between gap-2 border-b border-black/10 bg-adw-headerbar px-2 py-1.5 dark:border-white/10">
-        <span className="truncate px-1 text-[12px] text-adw-label-secondary">
-          {mode === PILOTI ? "piloti-shell" : mode}
-        </span>
-        <DropdownMenu>
-          <DropdownMenuTrigger
-            aria-label={_("Choose shell")}
-            className="inline-flex items-center gap-1 rounded-[7px] px-2.5 py-1 text-[12px] font-medium text-adw-label outline-none hover:bg-black/8 data-popup-open:bg-black/12 dark:hover:bg-white/10 dark:data-popup-open:bg-white/15"
-          >
-            {mode === PILOTI ? "piloti-shell" : (mode.split("/").pop() ?? mode)}
-            <ChevronDownIcon className="size-3.5 opacity-70" />
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="min-w-[11rem]">
-            <DropdownMenuRadioGroup value={mode} onValueChange={(value) => setMode(String(value))}>
-              <DropdownMenuRadioItem value={PILOTI}>piloti-shell</DropdownMenuRadioItem>
-              {shells.map(({ path, available }) => (
-                <DropdownMenuRadioItem key={path} value={path} disabled={!available}>
-                  {path}
-                </DropdownMenuRadioItem>
-              ))}
-            </DropdownMenuRadioGroup>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
+      {/* Header bar, GNOME-style: the shell menu is the title. */}
+      <WindowTitlebar
+        data-window-drag-region=""
+        className="h-9 shrink-0 justify-between border-b border-adw-separator bg-adw-titlebar px-2.5 select-none"
+      >
+        <div className="flex shrink-0 items-center gap-1.5" data-window-no-drag>
+          <WindowControls side="left" />
+          <WindowMenuButton side="left" windowId={windowId} appId="terminal" iconName="terminal" />
+        </div>
+        <div className="flex min-w-0 items-center justify-center" data-window-no-drag>
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              aria-label={_("Choose shell")}
+              className="inline-flex max-w-full items-center gap-1 rounded-[7px] px-2.5 py-1 text-adw-body font-semibold text-adw-label outline-none hover:bg-black/8 data-popup-open:bg-black/12 dark:hover:bg-white/10 dark:data-popup-open:bg-white/15"
+            >
+              <span className="truncate">
+                {mode === PILOTI ? "piloti-shell" : (mode.split("/").pop() ?? mode)}
+              </span>
+              <ChevronDownIcon className="size-3.5 shrink-0 opacity-70" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="center" className="min-w-[11rem]">
+              <DropdownMenuRadioGroup value={mode} onValueChange={(value) => setMode(String(value))}>
+                <DropdownMenuRadioItem value={PILOTI}>piloti-shell</DropdownMenuRadioItem>
+                {shells.map(({ path, available }) => (
+                  <DropdownMenuRadioItem key={path} value={path} disabled={!available}>
+                    {path}
+                  </DropdownMenuRadioItem>
+                ))}
+              </DropdownMenuRadioGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+        <div className="flex shrink-0 items-center gap-1.5" data-window-no-drag>
+          <WindowMenuButton side="right" windowId={windowId} appId="terminal" iconName="terminal" />
+          <WindowControls side="right" />
+        </div>
+      </WindowTitlebar>
       <div ref={hostRef} className="min-h-0 flex-1 p-2" />
     </div>
   );

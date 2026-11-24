@@ -2155,7 +2155,7 @@ export function WindowManager() {
                 )}
               >
                 {/* Server-Side Titlebar (SSD) */}
-                {!isCsd && (
+                {!isCsd && win.builtinComponent !== "terminal" && (
                   <WindowTitlebar className="justify-between">
                     <div className="flex shrink-0 items-center gap-1.5" data-window-no-drag>
                       <WindowControls side="left" />
