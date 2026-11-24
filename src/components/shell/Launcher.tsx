@@ -395,7 +395,19 @@ export const Launcher = React.memo(function Launcher() {
     [searchQuery]
   );
 
+  // Show the panel at once; fill the list on the next frame so opening is not blocked by it.
+  const [listReady, setListReady] = React.useState(false);
+  React.useEffect(() => {
+    if (!launcherOpen) {
+      setListReady(false);
+      return;
+    }
+    const id = window.setTimeout(() => setListReady(true), 0);
+    return () => window.clearTimeout(id);
+  }, [launcherOpen]);
+
   const sections = React.useMemo(() => {
+    if (!listReady) return [];
     const out: { heading: string; items: PaletteEntry[] }[] = [];
 
     if (mathResult) {
@@ -946,6 +958,7 @@ export const Launcher = React.memo(function Launcher() {
 
     return out;
   }, [
+    listReady,
     availableGnomePanels,
     detectedUrl,
     mathResult,
@@ -1250,7 +1263,11 @@ export const Launcher = React.memo(function Launcher() {
       <CommandList
         style={{ maxHeight: `${listHeight}px` }}
       >
-        {sections.length === 0 ? (
+        {!listReady ? (
+          <div className="py-6 text-center text-adw-body text-adw-label-secondary">
+            {_("Loading…")}
+          </div>
+        ) : sections.length === 0 ? (
           <div className="py-6 text-center text-adw-body text-adw-label-secondary">
             {_("No matching apps, folders, settings, or commands.")}
           </div>
