@@ -145,6 +145,7 @@ function MenubarCheckboxItem({
     <MenuPrimitive.CheckboxItem
       data-slot="menubar-checkbox-item"
       className={cn(MENU_CHECK_ITEM_CLASS, className)}
+      closeOnClick
       {...props}
     >
       <span className="pointer-events-none absolute left-[10px] flex size-3.5 items-center justify-center">
@@ -170,6 +171,7 @@ function MenubarRadioItem({
     <MenuPrimitive.RadioItem
       data-slot="menubar-radio-item"
       className={cn(MENU_CHECK_ITEM_CLASS, className)}
+      closeOnClick
       {...props}
     >
       <span className="pointer-events-none absolute left-[10px] flex size-3.5 items-center justify-center">

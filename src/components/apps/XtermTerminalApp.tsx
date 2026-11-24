@@ -222,6 +222,8 @@ export function XtermTerminalApp({
       {/* Header bar, GNOME-style: the shell menu is the title. */}
       <WindowTitlebar
         data-window-drag-region=""
+        // Header clicks must not take the keyboard from the terminal.
+        onMouseDown={(e) => e.preventDefault()}
         className="h-9 shrink-0 justify-between border-b border-adw-separator bg-adw-titlebar px-2.5 select-none"
       >
         <div className="flex shrink-0 items-center gap-1.5" data-window-no-drag>

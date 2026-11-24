@@ -101,6 +101,7 @@ function ContextMenuCheckboxItem({
     <ContextMenuPrimitive.CheckboxItem
       data-slot="context-menu-checkbox-item"
       className={cn(MENU_CHECK_ITEM_CLASS, className)}
+      closeOnClick
       {...props}
     >
       <span className="pointer-events-none absolute left-[10px] flex size-3.5 items-center justify-center">
@@ -126,6 +127,7 @@ function ContextMenuRadioItem({
     <ContextMenuPrimitive.RadioItem
       data-slot="context-menu-radio-item"
       className={cn(MENU_CHECK_ITEM_CLASS, className)}
+      closeOnClick
       {...props}
     >
       <span className="pointer-events-none absolute left-[10px] flex size-3.5 items-center justify-center">
