@@ -1,7 +1,7 @@
+import { getEngine } from "@/lib/engine/engine";
 import * as React from "react";
 import type { Domicile } from "@domicile-desktop/sdk/desktop/desktop";
 import { useDomicile } from "@domicile-desktop/react/domicile-provider";
-import { isBrowserDevRuntime } from "@/context/SettingsContext";
 import {
   getCachedPilotiAppIni,
   shouldConfirmUnsavedOnClose,
@@ -27,10 +27,9 @@ const stateFile = (key: string) => `${VFS_HOME}/.local/state/piloti/${key}.json`
 
 export function createInShellEditorHost(
   domicile: Domicile | undefined,
-  isBrowserRuntime: boolean,
 ): TextEditorHost {
   return {
-    nativeFs: !isBrowserRuntime,
+    nativeFs: getEngine().capabilities.realFilesystem,
     normalizePath: normalizeVfsPath,
     defaultNewFilePath: (name) => `${VFS_HOME}/Desktop/${name}`,
     peekFile: (path) => getVfsEntry(path),
@@ -66,11 +65,7 @@ export function createInShellEditorHost(
 /** TextEditorApp running in the shell (or its web iframe) with the shell's host. */
 export const ShellTextEditorApp: React.FC<TextEditorAppProps> = (props) => {
   const domicile = useDomicile();
-  const isBrowserRuntime = isBrowserDevRuntime();
-  const host = React.useMemo(
-    () => createInShellEditorHost(domicile, isBrowserRuntime),
-    [domicile, isBrowserRuntime],
-  );
+  const host = React.useMemo(() => createInShellEditorHost(domicile), [domicile]);
   return (
     <TextEditorHostProvider value={host}>
       <TextEditorApp {...props} />

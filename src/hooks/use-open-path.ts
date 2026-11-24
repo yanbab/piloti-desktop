@@ -1,6 +1,7 @@
+import { getEngine } from "@/lib/engine/engine";
 import * as React from "react";
 import { useDomicile } from "@domicile-desktop/react/domicile-provider";
-import { useApps, useSettings, useWindowActions } from "@/context/DesktopStateContext";
+import { useApps, useWindowActions } from "@/context/DesktopStateContext";
 import {
   buildVfsEntryWebAppUrl,
   extractVfsZip,
@@ -43,7 +44,7 @@ export interface OpenPathOptions {
  */
 export function useOpenPath() {
   const domicile = useDomicile();
-  const { isBrowserRuntime } = useSettings();
+  const { realFilesystem, systemServices } = getEngine().capabilities;
   const { installedXdgApps } = useApps();
   const { launchApp, launchXdgApp, openWebUrl } = useWindowActions();
   const configRef = React.useRef<MimeAppsConfig | null>(null);
@@ -53,7 +54,7 @@ export function useOpenPath() {
     return subscribeVfsPath(MIMEAPPS_PATH, () => {
       configRef.current = null;
     });
-  }, [isBrowserRuntime]);
+  }, []);
 
   const getConfig = React.useCallback(async (): Promise<MimeAppsConfig> => {
     if (!configRef.current) {
@@ -64,7 +65,7 @@ export function useOpenPath() {
       }
     }
     return configRef.current;
-  }, [domicile, isBrowserRuntime]);
+  }, [domicile]);
 
   /** Applications offered by "Open With" for a file (best first). */
   const getOpenWithApps = React.useCallback(
@@ -82,7 +83,7 @@ export function useOpenPath() {
           launchApp("nautilus", { payload: action.path, forceNew: true });
           return;
         case "app": {
-          const entry = isBrowserRuntime ? getVfsEntry(action.path) : undefined;
+          const entry = realFilesystem ? undefined : getVfsEntry(action.path);
           if (action.appId === "browser" || action.appId === "web-browser") {
             return perform({ type: "web-file", path: action.path }, options);
           }
@@ -96,7 +97,7 @@ export function useOpenPath() {
         }
         case "xdg": {
           const argv0 = action.entry.execArgv[0];
-          if (isBrowserRuntime || argv0 === "piloti-webapp") {
+          if (!systemServices || argv0 === "piloti-webapp") {
             launchXdgApp(action.entry);
             return;
           }
@@ -109,7 +110,7 @@ export function useOpenPath() {
           launchXdgApp(action.entry);
           return;
         case "extract":
-          if (isBrowserRuntime) {
+          if (!systemServices) {
             const folder = await extractVfsZip(action.path);
             if (folder) options.onExtracted?.(folder);
           } else {
@@ -120,7 +121,7 @@ export function useOpenPath() {
           launchApp("app-store", { payload: `install:${action.format}:${action.path}`, forceNew: true });
           return;
         case "web-file": {
-          if (!isBrowserRuntime) {
+          if (systemServices) {
             launchDesktopCommand(domicile, ["xdg-open", action.path]);
             return;
           }
@@ -136,12 +137,12 @@ export function useOpenPath() {
         }
       }
     },
-    [domicile, isBrowserRuntime, launchApp, launchXdgApp, openWebUrl],
+    [domicile, realFilesystem, systemServices, launchApp, launchXdgApp, openWebUrl],
   );
 
   const openPathInternal = React.useCallback(
     async (path: string, options: OpenPathOptions): Promise<void> => {
-      const vfsEntry = isBrowserRuntime ? getVfsEntry(path) : undefined;
+      const vfsEntry = realFilesystem ? undefined : getVfsEntry(path);
       // Browser VFS symlinks have no children of their own: open what they point to.
       if (vfsEntry?.isSymlink && vfsEntry.symlinkTarget && vfsEntry.symlinkTarget !== path) {
         return openPathInternal(vfsEntry.symlinkTarget, { ...options, kind: undefined, name: undefined });
@@ -164,7 +165,7 @@ export function useOpenPath() {
       });
       await perform(action, options);
     },
-    [domicile, getConfig, installedXdgApps, isBrowserRuntime, perform],
+    [domicile, getConfig, installedXdgApps, realFilesystem, perform],
   );
 
   const openPath = React.useCallback(
@@ -176,11 +177,11 @@ export function useOpenPath() {
   const openPathWith = React.useCallback(
     (path: string, app: MimeAppOption, options: OpenPathOptions = {}) => {
       const action = actionForApp(app, path);
-      const entry = isBrowserRuntime ? getVfsEntry(path) : undefined;
+      const entry = realFilesystem ? undefined : getVfsEntry(path);
       if (entry?.kind === "file" && action.type !== "xdg") incrementVfsAccessCount(path);
       return perform(action, options);
     },
-    [isBrowserRuntime, perform],
+    [realFilesystem, perform],
   );
 
   return { openPath, openPathWith, getOpenWithApps };

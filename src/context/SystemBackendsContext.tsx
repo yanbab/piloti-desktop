@@ -1,3 +1,4 @@
+import { getEngine } from "@/lib/engine/engine";
 import * as React from "react";
 import { useDomicile } from "@domicile-desktop/react/domicile-provider";
 import { useCapturing } from "@domicile-desktop/react/portals";
@@ -157,8 +158,8 @@ export function useSystemBackendsValue(
 ): SystemBackendsContextValue {
   const greeterMode = Boolean(options?.greeterMode);
   const domicile = useDomicile();
+  const { systemServices } = getEngine().capabilities;
   const {
-    isBrowserRuntime,
     settings,
     applySettingsState,
     updateSettings,
@@ -216,7 +217,7 @@ export function useSystemBackendsValue(
     useWatch(domicile.session, "lockchange", () => domicile.session.locked) ??
     false;
   const [browserLocked, setBrowserLocked] = React.useState(false);
-  const locked = isBrowserRuntime ? browserLocked : sessionLocked;
+  const locked = !systemServices ? browserLocked : sessionLocked;
 
   const settingsRef = React.useRef(settings);
   settingsRef.current = settings;
@@ -580,12 +581,12 @@ export function useSystemBackendsValue(
   }, [locked]);
 
   React.useEffect(() => {
-    if (!isBrowserRuntime) return;
+    if (systemServices) return;
     return subscribeWebBattery(setBatteryInfo);
-  }, [isBrowserRuntime]);
+  }, [systemServices]);
 
   React.useEffect(() => {
-    if (isBrowserRuntime) return;
+    if (!systemServices) return;
     let cancelled = false;
     let stopWarnings: (() => void) | undefined;
     let stopRefusals: (() => void) | undefined;
@@ -652,24 +653,24 @@ export function useSystemBackendsValue(
       stopWarnings?.();
       stopRefusals?.();
     };
-  }, [domicile.session, isBrowserRuntime]);
+  }, [domicile.session, systemServices]);
 
   const lockSession = React.useCallback(() => {
     console.info("[Piloti] session: lock");
     setUnlockError(null);
     setUnlockRefusal(null);
-    if (isBrowserRuntime) {
+    if (!systemServices) {
       setBrowserLocked(true);
       return;
     }
     domicile.session.lock();
-  }, [domicile.session, isBrowserRuntime]);
+  }, [domicile.session, systemServices]);
 
   const unlockSession = React.useCallback(
     (passphrase: string) => {
       console.info("[Piloti] session: unlock attempt");
       setUnlockError(null);
-      if (isBrowserRuntime) {
+      if (!systemServices) {
         if (!passphrase.trim()) {
           setUnlockError("Please enter your password.");
           return;
@@ -679,7 +680,7 @@ export function useSystemBackendsValue(
       }
       domicile.session.unlock(passphrase);
     },
-    [domicile.session, isBrowserRuntime]
+    [domicile.session, systemServices]
   );
 
   const [pendingPowerAction, setPendingPowerAction] =
@@ -729,7 +730,7 @@ export function useSystemBackendsValue(
         poweroff: "Turn Off",
       };
 
-      if (isBrowserRuntime) {
+      if (!systemServices) {
         setSessionExiting(true);
         await new Promise((resolve) => window.setTimeout(resolve, 180));
         if (action === "logout") {
@@ -798,7 +799,7 @@ export function useSystemBackendsValue(
     },
     [
       domicile.processes,
-      isBrowserRuntime,
+      systemServices,
       lockSession,
       pushNotification,
       settings.restoreWindowsOnLogin,
@@ -817,16 +818,16 @@ export function useSystemBackendsValue(
 
   // Sync GNOME Control Center panel overrides whenever hiddenGnomePanels changes
   React.useEffect(() => {
-    if (isBrowserRuntime || greeterMode) return;
+    if (!systemServices || greeterMode) return;
     const timer = window.setTimeout(() => {
       void syncGnomePanelOverrides(domicile, settings.hiddenGnomePanels);
     }, 600);
     return () => window.clearTimeout(timer);
-  }, [domicile, greeterMode, isBrowserRuntime, settings.hiddenGnomePanels]);
+  }, [domicile, greeterMode, systemServices, settings.hiddenGnomePanels]);
 
   // Battery and brightness follow the system (UPower, backlight), whoever changes them.
   React.useEffect(() => {
-    if (isBrowserRuntime) return;
+    if (!systemServices) return;
     const stopBattery = watchSystemBattery(domicile, setBatteryInfo);
     const stopAudio = watchSystemAudio(domicile, (audio) => {
       applySettingsState({ volume: audio.volume, muted: audio.muted });
@@ -855,12 +856,12 @@ export function useSystemBackendsValue(
       stopAudio();
       stopBrightness();
     };
-  }, [applySettingsState, domicile, greeterMode, isBrowserRuntime]);
+  }, [applySettingsState, domicile, greeterMode, systemServices]);
 
   // Backends probing + GSettings monitor
   const refreshSystemBackends = React.useCallback(
     async (options?: { scanWifi?: boolean }) => {
-      if (isBrowserRuntime) return;
+      if (!systemServices) return;
       const finishBackends = startBootPhase("system backends");
       const [battery, powerProfile, mpris] = await Promise.all([
         readSystemBattery(domicile),
@@ -894,25 +895,25 @@ export function useSystemBackendsValue(
       setAvailableGnomePanels(panels);
 
     },
-    [applySettingsState, domicile, greeterMode, isBrowserRuntime]
+    [applySettingsState, domicile, greeterMode, systemServices]
   );
 
   const controlMpris = React.useCallback(
     async (action: "play-pause" | "next" | "previous") => {
       console.info("[Piloti] control-panel: mpris", action);
-      if (isBrowserRuntime) return;
+      if (!systemServices) return;
       await controlMprisMedia(domicile, action);
       const updated = await readMprisMediaInfo(domicile);
       setMprisMedia(updated);
     },
-    [domicile, isBrowserRuntime]
+    [domicile, systemServices]
   );
 
   const gnomeBackgroundRef = React.useRef(settings.gnomeBackground);
   gnomeBackgroundRef.current = settings.gnomeBackground;
 
   React.useEffect(() => {
-    if (isBrowserRuntime) return;
+    if (!systemServices) return;
     let cancelled = false;
 
     const deferTimer = window.setTimeout(() => {
@@ -1036,7 +1037,7 @@ export function useSystemBackendsValue(
     applyingGnomeSyncRef,
     domicile,
     greeterMode,
-    isBrowserRuntime,
+    systemServices,
     refreshSystemBackends,
     settings.syncGnomeSettings,
   ]);
@@ -1045,21 +1046,21 @@ export function useSystemBackendsValue(
     async (ssid: string) => {
       console.info("[Piloti] control-panel: wifi connect", ssid);
       updateSettings({ connectedWifi: ssid, wifiEnabled: true });
-      if (!isBrowserRuntime) {
+      if (systemServices) {
         await connectSystemWifi(domicile, ssid);
         void refreshSystemBackends();
       }
     },
-    [domicile, isBrowserRuntime, refreshSystemBackends, updateSettings]
+    [domicile, systemServices, refreshSystemBackends, updateSettings]
   );
 
   const toggleBluetoothDevice = React.useCallback(
     async (path: string) => {
-      if (isBrowserRuntime) return;
+      if (!systemServices) return;
       const device = bluetoothDevices.find((d) => d.path === path);
       if (device) await setSystemBluetoothConnected(domicile, path, !device.connected);
     },
-    [bluetoothDevices, domicile, isBrowserRuntime]
+    [bluetoothDevices, domicile, systemServices]
   );
 
   const selectAudioSink = React.useCallback(
@@ -1068,12 +1069,12 @@ export function useSystemBackendsValue(
       setAudioSinks((prev) =>
         prev.map((s) => ({ ...s, active: s.name === sinkName }))
       );
-      if (!isBrowserRuntime) {
+      if (systemServices) {
         await setDefaultAudioSink(domicile, sinkName);
         void refreshSystemBackends();
       }
     },
-    [domicile, isBrowserRuntime, refreshSystemBackends]
+    [domicile, systemServices, refreshSystemBackends]
   );
 
   // Screenshots, Screen Recording, and Capturing sessions
@@ -1090,7 +1091,7 @@ export function useSystemBackendsValue(
       }
     >
   >(new Map());
-  const capturingSessions = isBrowserRuntime
+  const capturingSessions = !systemServices
     ? browserCapturingSessions
     : nativeCapturingSessions;
 
@@ -1106,7 +1107,7 @@ export function useSystemBackendsValue(
 
   const takeScreenshot = React.useCallback(async () => {
     console.info("[Piloti] control-panel: screenshot");
-    if (isBrowserRuntime) {
+    if (!systemServices) {
       if (!navigator.mediaDevices?.getDisplayMedia) {
         pushNotification({
           appName: "Screenshot",
@@ -1186,11 +1187,11 @@ export function useSystemBackendsValue(
       },
       Err: () => {},
     });
-  }, [domicile.capture, isBrowserRuntime, desktopCaptureName, pushNotification, settings.muted, settings.volume]);
+  }, [domicile.capture, systemServices, desktopCaptureName, pushNotification, settings.muted, settings.volume]);
 
   const startScreenRecording = React.useCallback(async () => {
     console.info("[Piloti] control-panel: screen recording");
-    if (isBrowserRuntime) {
+    if (!systemServices) {
       if (!navigator.mediaDevices?.getDisplayMedia) {
         pushNotification({
           appName: "Screen Recorder",
@@ -1339,7 +1340,7 @@ export function useSystemBackendsValue(
       },
       Err: () => {},
     });
-  }, [domicile.capture, isBrowserRuntime, desktopCaptureName, pushNotification, settings.muted, settings.volume]);
+  }, [domicile.capture, systemServices, desktopCaptureName, pushNotification, settings.muted, settings.volume]);
 
   return React.useMemo<SystemBackendsContextValue>(
     () => ({
@@ -1383,7 +1384,7 @@ export function useSystemBackendsValue(
       takeScreenshot,
       startScreenRecording,
       stopCapturing: (id) => {
-        if (isBrowserRuntime) {
+        if (!systemServices) {
           const rec = browserRecordersRef.current.get(id);
           if (rec && rec.recorder.state !== "inactive") rec.recorder.stop();
           return;
@@ -1391,7 +1392,7 @@ export function useSystemBackendsValue(
         domicile.portals.stopCapturing(id);
       },
       pauseRecording: (id) => {
-        if (isBrowserRuntime) {
+        if (!systemServices) {
           const rec = browserRecordersRef.current.get(id);
           if (rec && rec.recorder.state === "recording") {
             rec.recorder.pause();
@@ -1406,7 +1407,7 @@ export function useSystemBackendsValue(
         domicile.portals.pauseRecording(id);
       },
       resumeRecording: (id) => {
-        if (isBrowserRuntime) {
+        if (!systemServices) {
           const rec = browserRecordersRef.current.get(id);
           if (rec && rec.recorder.state === "paused") {
             rec.recorder.resume();
@@ -1421,7 +1422,7 @@ export function useSystemBackendsValue(
         domicile.portals.resumeRecording(id);
       },
       discardRecording: (id) => {
-        if (isBrowserRuntime) {
+        if (!systemServices) {
           const rec = browserRecordersRef.current.get(id);
           if (rec) {
             rec.discarded = true;
