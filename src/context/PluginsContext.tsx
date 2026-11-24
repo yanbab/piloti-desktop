@@ -15,6 +15,7 @@ import {
   syncManagedGtkCssFile,
 } from "@/lib/plugins/loader";
 import { parseIniText, serializeIniText } from "@/lib/config/ini";
+import { getAppSetting, setAppSetting } from "@/lib/shell/app-settings";
 import { consumeLegacyLocalStorageValue } from "@/lib/engine-web/web-vfs";
 import {
   readVfsStateJson,
@@ -373,6 +374,10 @@ export function PluginsProvider({
             disposables.push(remove);
             return remove;
           },
+        },
+        apps: {
+          getSetting: getAppSetting,
+          setSetting: setAppSetting,
         },
         notifications: {
           push: (opts) =>

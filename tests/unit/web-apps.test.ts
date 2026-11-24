@@ -65,13 +65,13 @@ describe("resolveInitialSettings web defaults and seeding", () => {
     expect(nativeFresh.installedWebApps).toEqual([]);
     expect(nativeFresh.pinnedAppIds).toEqual([
       "settings",
-      "console",
       "nautilus",
       "terminal",
       "text-editor",
       "app-store",
       "calculator",
-      "image-viewer",
+      "piloti-demo",
+      "camera",
       "browser",
     ]);
     expect(nativeFresh.webDefaultsVersion).toBeUndefined();
@@ -84,7 +84,7 @@ describe("resolveInitialSettings web defaults and seeding", () => {
     expect(nativeSaved.webDefaultsVersion).toBeUndefined();
   });
 
-  it("pins Files, Desktop Shell, App Store, and Desktop Console and populates 11 launcher web apps on fresh web startup", () => {
+  it("pins our apps (not Console or Image Viewer) and populates 11 launcher web apps on fresh web startup", () => {
     expect(DEFAULT_LAUNCHER_WEB_APPS).toHaveLength(11);
     const webFresh = resolveInitialSettings(null, true);
     expect(webFresh.pinnedAppIds).toEqual([
@@ -92,9 +92,9 @@ describe("resolveInitialSettings web defaults and seeding", () => {
       "terminal",
       "text-editor",
       "calculator",
-      "image-viewer",
+      "camera",
+      "piloti-demo",
       "app-store",
-      "console",
       "settings",
     ]);
     expect(webFresh.installedWebApps).toEqual([...DEFAULT_LAUNCHER_WEB_APPS]);
@@ -125,9 +125,9 @@ describe("resolveInitialSettings web defaults and seeding", () => {
       "nautilus",
       "text-editor",
       "calculator",
-      "image-viewer",
+      "camera",
+      "piloti-demo",
       "app-store",
-      "console",
     ]);
     expect(upgraded.installedWebApps).toHaveLength(
       DEFAULT_LAUNCHER_WEB_APPS.length + 1
@@ -155,9 +155,9 @@ describe("resolveInitialSettings web defaults and seeding", () => {
       "terminal",
       "text-editor",
       "calculator",
-      "image-viewer",
+      "camera",
+      "piloti-demo",
       "app-store",
-      "console",
       "settings",
     ]);
   });

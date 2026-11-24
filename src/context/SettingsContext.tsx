@@ -184,7 +184,7 @@ const DEFAULT_SETTINGS: DesktopSettings = {
   accentColor: "teal",
   customAccentHex: "",
   highContrast: false,
-  wallpaperId: "piloti-aurora",
+  wallpaperId: "aurora-drift:aurora-drift",
   customWallpaperUrl: "",
   customWallpaperColors: [],
   wallpaperColorMode: "solid",
@@ -252,7 +252,7 @@ const DEFAULT_SETTINGS: DesktopSettings = {
   demoExtensionEnabled: true,
   pinnedExtensionIds: [],
   darkReaderWebEnabled: false,
-  enabledPluginIds: ["aurora-drift", "app-indicator", "picture-in-picture"],
+  enabledPluginIds: ["aurora-drift", "app-indicator", "picture-in-picture", "app-dark-mode"],
   computerModel:
     typeof navigator !== "undefined" &&
       /mac/i.test(navigator.platform || navigator.userAgent || "")
@@ -288,14 +288,15 @@ export function isBrowserDevRuntime(): boolean {
 
 export const WEB_DEFAULTS_VERSION = 6;
 
+// All our apps except Desktop Console and Image Viewer (and the Login Screen preview).
 const DEFAULT_WEB_PINNED_APP_IDS = [
   "nautilus",
   "terminal",
   "text-editor",
   "calculator",
-  "image-viewer",
+  "camera",
+  "piloti-demo",
   "app-store",
-  "console",
   "settings",
 ];
 
@@ -323,6 +324,7 @@ function normalizeWebPinnedApps(rawPins: unknown): string[] {
     : [];
   const merged = [...base];
   for (const requiredId of DEFAULT_WEB_PINNED_APP_IDS) {
+    if (WEB_HIDDEN_APP_IDS.has(requiredId)) continue;
     if (!merged.includes(requiredId)) {
       merged.push(requiredId);
     }

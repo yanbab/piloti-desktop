@@ -54,6 +54,9 @@ export const WindowMenuButton = React.memo(function WindowMenuButton({
     getWindowMenuItems,
     getWindowMenuItems,
   );
+  const visiblePluginItems = windowId
+    ? pluginItems.filter((item) => item.visible?.(windowId) ?? true)
+    : [];
 
   if (!settings.showWindowMenu) {
     return null;
@@ -100,9 +103,8 @@ export const WindowMenuButton = React.memo(function WindowMenuButton({
             <DropdownMenuItem onClick={() => tileWindow(windowId, "right")}>
               {_("Tile Right")}
             </DropdownMenuItem>
-            {pluginItems
-              .filter((item) => item.visible?.(windowId) ?? true)
-              .map((item) => (
+            {visiblePluginItems.length > 0 && <DropdownMenuSeparator />}
+            {visiblePluginItems.map((item) => (
                 <DropdownMenuItem
                   key={item.id}
                   role="menuitemcheckbox"
@@ -118,7 +120,7 @@ export const WindowMenuButton = React.memo(function WindowMenuButton({
                     <span aria-hidden className="ml-auto">✓</span>
                   )}
                 </DropdownMenuItem>
-              ))}
+            ))}
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => closeWindow(windowId)}>
               {_("Close")}

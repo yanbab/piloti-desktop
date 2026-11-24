@@ -1,0 +1,7 @@
+{
+  "id": "app-dark-mode",
+  "name": "Dark Mode per App",
+  "version": "1.0.0",
+  "description": "Adds Dark Mode to the window menu: the app's windows stay dark whatever the desktop style. Saved in the app's settings.",
+  "script": "index.js"
+}

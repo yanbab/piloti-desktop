@@ -1192,6 +1192,7 @@ export const MenuBar = React.memo(function MenuBar() {
               alignOffset={-8}
               sideOffset={0}
               collisionAvoidance={{ side: "flip", align: "shift" }}
+              data-menu="launcher"
               className="w-[312px] max-w-[calc(100vw-16px)] overflow-hidden p-0"
             >
               {launcherOpen && <Launcher />}

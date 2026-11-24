@@ -44,6 +44,9 @@ export function PresentationOverlay({
   const { settings } = useSettings();
   const singleClickActivates = settings.fileActivationMode !== "double";
   const { closeWindow } = useWindowActions();
+  const closeOnLeft = isCloseOnLeft(settings.windowButtonLayout);
+  const scale =
+    naturalSize.width > 0 ? Math.max(0.05, presentation.width / naturalSize.width) : 1;
 
   const presentedRect = (p: WindowPresentation): FloatingRect => ({
     x: p.x,
@@ -145,7 +148,15 @@ export function PresentationOverlay({
       {floating && (
         <HoverCloseButton
           inset
-          closeOnLeft={isCloseOnLeft(settings.windowButtonLayout)}
+          closeOnLeft={closeOnLeft}
+          // The window is drawn scaled down: undo it so the button keeps the
+          // Overview size, 6px inside the corner.
+          style={{
+            transform: `scale(${1 / scale})`,
+            transformOrigin: closeOnLeft ? "top left" : "top right",
+            top: 6 / scale,
+            [closeOnLeft ? "left" : "right"]: 6 / scale,
+          }}
           aria-label={_("Close")}
           onPointerDown={(e) => e.stopPropagation()}
           onDoubleClick={(e) => e.stopPropagation()}

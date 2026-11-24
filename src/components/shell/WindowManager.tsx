@@ -35,6 +35,11 @@ import {
 import { initAppModules, resolveAppModuleByUrl } from "@/data/app-modules";
 import { IsolatedAppFrame } from "@/components/shell/IsolatedAppFrame";
 import { WindowMenuButton } from "@/components/shell/WindowMenuButton";
+import {
+  getAppSetting,
+  getAppSettingsVersion,
+  subscribeAppSettings,
+} from "@/lib/shell/app-settings";
 import { PresentationOverlay } from "@/components/shell/PresentationOverlay";
 import {
   BrowserExtensionsMenu,
@@ -983,7 +988,7 @@ function WebViewSurface({
           !isCsd && "rounded-t-none"
         )}
       >
-        <div className="flex shrink-0 items-center gap-1.5" data-window-no-drag>
+        <div className="flex flex-1 basis-0 items-center justify-start gap-1.5" data-window-no-drag>
           {isCsd && (
             <WindowControls
               side="left"
@@ -1049,7 +1054,7 @@ function WebViewSurface({
             />
           </form>
         ) : (
-          <div className="pointer-events-none flex min-w-0 flex-1 items-center justify-center gap-1.5 px-4">
+          <div className="pointer-events-none flex min-w-0 shrink items-center justify-center gap-1.5 px-4">
             {isLoading && (
               <Loader2Icon
                 aria-label="Loading"
@@ -1077,7 +1082,7 @@ function WebViewSurface({
           </div>
         )}
 
-        <div className="flex shrink-0 items-center gap-1" data-window-no-drag>
+        <div className="flex flex-1 basis-0 items-center justify-end gap-1" data-window-no-drag>
           {storeExtId && (
             <Button
               size="sm"
@@ -2076,6 +2081,11 @@ export function WindowManager() {
     getWindowMenuItems,
     getWindowMenuItems,
   );
+  const appSettingsVersion = React.useSyncExternalStore(
+    subscribeAppSettings,
+    getAppSettingsVersion,
+    getAppSettingsVersion,
+  );
   const [stageSize, setStageSize] = React.useState({ width: 0, height: 0 });
   React.useEffect(() => {
     const stage = workspaceStageRef.current;
@@ -2355,6 +2365,10 @@ export function WindowManager() {
                 overviewOpen && "pointer-events-none",
                 closingWindowIds.has(win.id) && "pointer-events-none",
                 !isActiveWorkspace && "invisible pointer-events-none",
+                // Per-app dark mode (`apps/<app-id>.ini` color-scheme=dark).
+                appSettingsVersion >= 0 &&
+                  getAppSetting(win.appId, "color-scheme") === "dark" &&
+                  "dark",
               )}
               aria-hidden={!isActiveWorkspace || undefined}
             >
@@ -2515,9 +2529,14 @@ export function WindowManager() {
               >
                 {_("Tile Right")}
               </button>
-              {pluginWindowMenuItems
-                .filter((item) => item.visible?.(ctxWin.id) ?? true)
-                .map((item) => (
+              {(() => {
+                const items = pluginWindowMenuItems.filter(
+                  (item) => item.visible?.(ctxWin.id) ?? true
+                );
+                if (items.length === 0) return null;
+                return [
+                  <div key="plugins-separator" className="my-1 h-px bg-adw-separator" />,
+                  ...items.map((item) => (
                   <button
                     key={item.id}
                     type="button"
@@ -2534,7 +2553,9 @@ export function WindowManager() {
                       <span aria-hidden className="ml-auto">✓</span>
                     )}
                   </button>
-                ))}
+                  )),
+                ];
+              })()}
               <div className="my-1 h-px bg-adw-separator" />
               <button
                 type="button"

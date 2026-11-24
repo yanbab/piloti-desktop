@@ -190,7 +190,7 @@ describe("GNOME background spec helpers", () => {
 
   test("preserves Piloti preset when initialized fresh and merges saved gnomeBackground", () => {
     const fresh = resolveInitialSettings(null, false);
-    expect(fresh.wallpaperId).toBe("piloti-aurora");
+    expect(fresh.wallpaperId).toBe("aurora-drift:aurora-drift");
     expect(fresh.gnomeBackground).toEqual(DEFAULT_GNOME_BACKGROUND);
 
     const legacyCustom = resolveInitialSettings(

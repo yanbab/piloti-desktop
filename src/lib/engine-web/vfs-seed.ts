@@ -194,6 +194,29 @@ export function topUpDefaults(entries: WebVfsEntry[], kv: KeyValueStorage | null
         addedDefaults = true;
       }
     }
+    // Bundled plugins ship with the shell (like /usr/share on native): keep
+    // the demo's copies current, so updates and new plugins reach old demos.
+    const pluginsPrefix = `${VFS_HOME}/.config/piloti/plugins/`;
+    for (const [fullPath, content] of Object.entries(DEFAULT_HOME_FILES)) {
+      if (!fullPath.startsWith(pluginsPrefix)) continue;
+      const existing = entries.find((e) => e.path === fullPath);
+      if (!existing) {
+        entries.push({
+          id: fullPath,
+          name: basename(fullPath),
+          kind: "file",
+          path: fullPath,
+          parentPath: dirname(fullPath),
+          content,
+          updatedAt: now,
+        });
+        addedDefaults = true;
+      } else if (existing.kind === "file" && existing.content !== content) {
+        existing.content = content;
+        existing.updatedAt = now;
+        addedDefaults = true;
+      }
+    }
   return addedDefaults;
 }
 

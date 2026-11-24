@@ -66,7 +66,7 @@ export function AppearancePane() {
             <GroupedFormRowControl>
               <div data-slot="segmented" className="inline-flex flex-wrap items-center gap-1 rounded-adw-item bg-black/8 p-1 dark:bg-white/8">
                 {[
-                  { id: "piloti", label: _("Piloti (Animated)") },
+                  { id: "piloti", label: _("Piloti") },
                   { id: "adwaita", label: "Adwaita" },
                   ...themePlugins.map((p) => ({ id: p.id, label: p.name })),
                 ].map((theme) => {

@@ -164,6 +164,11 @@ export interface PilotiPluginContext {
     /** Add an entry to the window menus (⋮ button and titlebar right-click). */
     addMenuItem: (item: WindowMenuItem) => () => void;
   };
+  /** Per-app settings (`~/.config/piloti/apps/<app-id>.ini`); `color-scheme=dark` forces an app dark. */
+  apps: {
+    getSetting: (appId: string, key: string) => string | undefined;
+    setSetting: (appId: string, key: string, value: string | null) => void;
+  };
   notifications: {
     push: (opts: { summary: string; body?: string; urgency?: "low" | "normal" | "critical" }) => void;
   };
