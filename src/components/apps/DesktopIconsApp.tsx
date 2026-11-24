@@ -60,6 +60,7 @@ import {
   subscribeVfsClipboard,
   subscribeVfsRenamed,
   subscribeWebVfs,
+  toggleVfsEmblem,
   trashVfsEntry,
   WEB_VFS_HOME,
   WEB_VFS_TRASH,
@@ -910,6 +911,11 @@ export function DesktopIconsApp({
           void handleDropDesktopItems(dropped, destPath, opts)
         }
         onActivateItem={handleActivateItem}
+        onToggleFavorite={(item) => {
+          if (item.path && item.kind !== "desktop-entry") {
+            toggleVfsEmblem(item.path, "favorite");
+          }
+        }}
         onContextMenuItem={(item, e) => {
           e.preventDefault();
           e.stopPropagation();

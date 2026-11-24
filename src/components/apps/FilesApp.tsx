@@ -326,6 +326,11 @@ export function FilesApp({
   const { openPath, openPathWith } = useOpenPath();
 
   const viewMenuState = useWindowMenuState(windowId ?? null);
+  // Direct manipulation: the heart on an icon or list row (de)favorites it.
+  const toggleFavoriteItem = React.useCallback((item: IconGridItem) => {
+    if (!item.path || item.kind === "desktop-entry") return;
+    toggleVfsEmblem(item.path, "favorite");
+  }, []);
   const [viewMode, setViewMode] = React.useState<"grid" | "list">("grid");
   const [sortBy, setSortBy] = React.useState<"name" | "kind" | "modified" | "size">("name");
   const [sortDir, setSortDir] = React.useState<"asc" | "desc">("asc");
@@ -2199,6 +2204,7 @@ export function FilesApp({
                   <th className="px-3 py-1.5">{_("Name")}</th>
                   <th className="px-3 py-1.5">{_("Kind")}</th>
                   <th className="px-3 py-1.5 text-right">{_("Size")}</th>
+                  <th className="w-8 px-1 py-1.5" aria-label={_("Favorites")} />
                 </tr>
               </thead>
               <tbody>
@@ -2210,8 +2216,11 @@ export function FilesApp({
                     item.kind === "file" &&
                     Boolean(item.path) &&
                     openFilePaths.has(item.path.replace(/\/+$/, "") || "/");
-                  const rowEmblems =
+                  const allRowEmblems =
                     item.kind === "desktop-entry" ? [] : getVfsEmblems(item.path);
+                  const isFavorite = allRowEmblems.includes("favorite");
+                  // The favorite heart has its own toggle column.
+                  const rowEmblems = allRowEmblems.filter((id) => id !== "favorite");
                   const sizeLabel =
                     item.kind === "desktop-entry"
                       ? _("Application")
@@ -2275,7 +2284,7 @@ export function FilesApp({
                             : undefined,
                       }}
                       className={cn(
-                        "cursor-default border-b border-adw-separator/40 transition-colors",
+                        "group cursor-default border-b border-adw-separator/40 transition-colors",
                         isSelected
                           ? "bg-adw-accent/20 text-adw-label"
                           : "hover:bg-black/4 dark:hover:bg-white/5"
@@ -2349,21 +2358,15 @@ export function FilesApp({
                               {rowEmblems.map((emblemId) => {
                                 const meta = VFS_EMBLEM_META[emblemId];
                                 const Icon =
-                                  emblemId === "favorite"
-                                    ? HeartIcon
-                                    : emblemId === "important"
-                                      ? AlertCircleIcon
-                                      : emblemId === "work"
-                                        ? BriefcaseIcon
-                                        : TagIcon;
+                                  emblemId === "important"
+                                    ? AlertCircleIcon
+                                    : emblemId === "work"
+                                      ? BriefcaseIcon
+                                      : TagIcon;
                                 return (
                                   <Icon
                                     key={emblemId}
-                                    className={cn(
-                                      "size-3",
-                                      meta.colorClass,
-                                      emblemId === "favorite" && "fill-current !text-red-500"
-                                    )}
+                                    className={cn("size-3", meta.colorClass)}
                                   />
                                 );
                               })}
@@ -2376,6 +2379,31 @@ export function FilesApp({
                       </td>
                       <td className="px-3 py-2 text-right font-mono text-[11.5px] text-adw-label-secondary">
                         {sizeLabel}
+                      </td>
+                      <td className="w-8 px-1 py-0 text-center">
+                        {item.kind !== "desktop-entry" && (
+                          <button
+                            type="button"
+                            data-slot="list-favorite-toggle"
+                            aria-pressed={isFavorite}
+                            aria-label={isFavorite ? _("Remove from Favorites") : _("Add to Favorites")}
+                            title={isFavorite ? _("Remove from Favorites") : _("Add to Favorites")}
+                            onPointerDown={(e) => e.stopPropagation()}
+                            onDoubleClick={(e) => e.stopPropagation()}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleFavoriteItem(item);
+                            }}
+                            className={cn(
+                              "inline-flex size-6 items-center justify-center rounded-md transition-opacity duration-150",
+                              isFavorite
+                                ? "text-red-500 opacity-100"
+                                : "text-adw-label-secondary opacity-0 group-hover:opacity-60 hover:!opacity-100 focus-visible:opacity-100"
+                            )}
+                          >
+                            <HeartIcon className={cn("size-3.5", isFavorite && "fill-current")} />
+                          </button>
+                        )}
                       </td>
                     </tr>
                   );
@@ -2399,6 +2427,7 @@ export function FilesApp({
               setBgMenu(null);
               setItemMenu({ item, x: e.clientX, y: e.clientY });
             }}
+            onToggleFavorite={toggleFavoriteItem}
             renamingId={renamingId}
             onCommitRename={handleCommitRename}
             onCancelRename={() => setRenamingId(null)}

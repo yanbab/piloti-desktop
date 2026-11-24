@@ -57,6 +57,7 @@ import {
   normalizeRect,
   pushItemsToCells,
 } from "@/lib/shell/desktop-icons";
+import { _ } from "@/lib/core/i18n";
 import { cn } from "@/lib/core/utils";
 import {
   getVfsEntry,
@@ -134,6 +135,11 @@ export interface IconGridProps {
   onDropItems?: (items: IconGridItem[], destPath: string, opts?: { copy?: boolean }) => void;
   onActivateItem: (item: IconGridItem) => void;
   onContextMenuItem?: (item: IconGridItem, event: React.MouseEvent) => void;
+  /**
+   * Direct favorite toggle: a heart on each icon, faint on hover, full on the
+   * heart itself, red when the item is a favorite.
+   */
+  onToggleFavorite?: (item: IconGridItem) => void;
   renamingId?: string | null;
   onCommitRename?: (item: IconGridItem, nextName: string) => void;
   onCancelRename?: () => void;
@@ -185,6 +191,7 @@ export function IconGrid({
   onDropItems,
   onActivateItem,
   onContextMenuItem,
+  onToggleFavorite,
   renamingId = null,
   onCommitRename,
   onCancelRename,
@@ -1228,9 +1235,60 @@ export function IconGrid({
                   </svg>
                 </span>
               )}
-              {item.path && (emblemsMap[item.path]?.length ?? 0) > 0 && (
-                <div className="pointer-events-none absolute -top-1 -right-1 z-10 flex flex-col items-center">
-                  {(emblemsMap[item.path] ?? []).map((emblemId, emblemIdx) => {
+              {item.path && onToggleFavorite && item.kind !== "desktop-entry" && (() => {
+                const isFavorite = (emblemsMap[item.path] ?? []).includes("favorite");
+                return (
+                  <span
+                    role="button"
+                    tabIndex={-1}
+                    data-slot="icon-favorite-toggle"
+                    aria-label={isFavorite ? _("Remove from Favorites") : _("Add to Favorites")}
+                    aria-pressed={isFavorite}
+                    title={isFavorite ? _("Remove from Favorites") : _("Add to Favorites")}
+                    // Not a drag handle and not a selection click.
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onDoubleClick={(e) => e.stopPropagation()}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                      onToggleFavorite(item);
+                    }}
+                    style={{
+                      width: `${heartSize}px`,
+                      height: `${heartSize}px`,
+                      // Inline: label colour rules on the grid reach every span.
+                      color: isFavorite ? "#ef4444" : "#ffffff",
+                    }}
+                    className={cn(
+                      "absolute -top-1 -right-1 z-20 flex cursor-default items-center justify-center transition-opacity duration-150",
+                      isFavorite
+                        ? "opacity-100 drop-shadow-[0_1px_2px_rgba(0,0,0,0.65)]"
+                        : "opacity-0 drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)] group-hover:opacity-25 hover:!opacity-100",
+                    )}
+                  >
+                    <HeartIcon
+                      style={{ width: `${heartSize}px`, height: `${heartSize}px` }}
+                      className={cn(isFavorite && "fill-current")}
+                      strokeWidth={isFavorite ? 2 : 2.25}
+                    />
+                  </span>
+                );
+              })()}
+              {item.path && (emblemsMap[item.path] ?? []).some(
+                (emblemId) => !(onToggleFavorite && emblemId === "favorite"),
+              ) && (
+                <div
+                  className="pointer-events-none absolute -top-1 -right-1 z-10 flex flex-col items-center"
+                  // The favorite toggle sits on top; the other emblems stack under it.
+                  style={
+                    onToggleFavorite && item.kind !== "desktop-entry"
+                      ? { marginTop: `${heartSize - emblemStackOverlap}px` }
+                      : undefined
+                  }
+                >
+                  {(emblemsMap[item.path] ?? [])
+                    .filter((emblemId) => !(onToggleFavorite && emblemId === "favorite"))
+                    .map((emblemId, emblemIdx) => {
                     const meta = VFS_EMBLEM_META[emblemId];
                     const overlapStyle =
                       emblemIdx > 0
