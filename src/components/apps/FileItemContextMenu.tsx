@@ -133,7 +133,7 @@ export function FileItemContextMenu({
   const openWithApps: MimeAppOption[] =
     isSingle && menu.item.kind !== "directory" && mimeConfig
       ? resolveAppsForMime(
-          inferMimeType(menu.item.name, "file"),
+          inferMimeType(menu.item.name, menu.item.kind === "directory" ? "directory" : "file"),
           mimeConfig,
           installedXdgApps,
         )
