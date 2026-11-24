@@ -690,7 +690,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
 }) => {
   const domicile = useDomicile();
   const { getAppIconUrl, refreshXdgApps } = useApps();
-  const { isBrowserRuntime, settings, updateSettings } = useSettings();
+  const { isBrowserRuntime, settings, updateSettings } = useSettings();  // FIXME : Capabilities
   const { pushNotification } = useSystemBackends();
   const { launchApp, openWebUrl } = useWindowActions();
   const { plugins: discoveredPlugins, togglePlugin } = usePlugins();
@@ -707,6 +707,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
     () => getPopularFlathubApps(),
   );
   const [featuredSlide, setFeaturedSlide] = React.useState(0);
+  const [featuredHovered, setFeaturedHovered] = React.useState(false);
 
   const [category, setCategory] = React.useState<StoreCategory>("all");
   const [query, setQuery] = React.useState("");
@@ -782,7 +783,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
       setDetectedFontFamilies(initial);
     }
 
-    if (!isBrowserRuntime) {
+    if (!isBrowserRuntime) {  // FIXME : Capabilities
       void (async () => {
         try {
           const res = await domicile.processes.run([
@@ -825,7 +826,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [domicile, isBrowserRuntime]);
+  }, [domicile, isBrowserRuntime]);  // FIXME : Capabilities
   const updateSources = React.useCallback(
     (patch: Partial<SoftwareSourcesState>) => {
       setSources((prev) => {
@@ -841,11 +842,11 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
   );
 
   const [aptUpdates, setAptUpdates] = React.useState<AptUpdatePackage[]>(() =>
-    isBrowserRuntime ? WEB_SIMULATED_APT_UPDATES : [],
+    isBrowserRuntime ? WEB_SIMULATED_APT_UPDATES : [],  // FIXME : Capabilities
   );
   const [flatpakUpdates, setFlatpakUpdates] = React.useState<
     FlatpakUpdateEntry[]
-  >(() => (isBrowserRuntime ? WEB_SIMULATED_FLATPAK_UPDATES : []));
+  >(() => (isBrowserRuntime ? WEB_SIMULATED_FLATPAK_UPDATES : []));  // FIXME : Capabilities
   const [systemUpdatesExpanded, setSystemUpdatesExpanded] =
     React.useState(false);
   const [reloadingUpdates, setReloadingUpdates] = React.useState(false);
@@ -880,14 +881,14 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
   }, [totalUpdatesCount]);
 
   const refreshUpdates = React.useCallback(async () => {
-    if (isBrowserRuntime) return;
+    if (isBrowserRuntime) return;  // FIXME : Capabilities
     const [aptList, fpList] = await Promise.all([
       sources.system ? listAptUpdates(domicile) : Promise.resolve([]),
       sources.flatpak ? listFlatpakUpdates(domicile) : Promise.resolve([]),
     ]);
     setAptUpdates(aptList);
     setFlatpakUpdates(fpList);
-  }, [domicile, isBrowserRuntime, sources.flatpak, sources.system]);
+  }, [domicile, isBrowserRuntime, sources.flatpak, sources.system]);  // FIXME : Capabilities
 
   React.useEffect(() => {
     void refreshUpdates();
@@ -1033,14 +1034,14 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
   );
 
   const refreshFlatpakList = React.useCallback(async () => {
-    if (isBrowserRuntime) return;
+    if (isBrowserRuntime) return;  // FIXME : Capabilities
     const [caps, list] = await Promise.all([
       probeFlatpakCapabilities(domicile),
       listInstalledFlatpaks(domicile),
     ]);
     setFlatpakCaps(caps);
     setInstalledFlatpaks(list);
-  }, [domicile, isBrowserRuntime]);
+  }, [domicile, isBrowserRuntime]);  // FIXME : Capabilities
 
   React.useEffect(() => {
     void refreshFlatpakList();
@@ -1492,6 +1493,15 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
   const activeSlideIndex =
     featuredItems.length > 0 ? featuredSlide % featuredItems.length : 0;
   const activeFeaturedItem = featuredItems[activeSlideIndex] ?? null;
+  // Next featured app every 3 s, paused while the pointer is over it.
+  React.useEffect(() => {
+    if (featuredHovered || featuredItems.length < 2) return;
+    const timer = window.setInterval(
+      () => setFeaturedSlide((prev) => (prev + 1) % featuredItems.length),
+      3000,
+    );
+    return () => window.clearInterval(timer);
+  }, [featuredHovered, featuredItems.length]);
 
   const selectedItem = React.useMemo(
     () => items.find((item) => item.id === selectedId) ?? null,
@@ -1615,7 +1625,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
     [
       domicile,
       installedChromeExtensions,
-      isBrowserRuntime,
+      isBrowserRuntime,  // FIXME : Capabilities
       pushNotification,
       settings.enabledPluginIds,
       settings.installedWebApps,
@@ -1702,7 +1712,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
     [
       domicile,
       installedChromeExtensions,
-      isBrowserRuntime,
+      isBrowserRuntime,  // FIXME : Capabilities
       pushNotification,
       settings.enabledPluginIds,
       settings.pinnedAppIds,
@@ -1716,7 +1726,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
       if (item.kind === "flatpak" && item.flatpak) {
         if (!beginOp()) return;
         const fp = item.flatpak;
-        if (isBrowserRuntime) {
+        if (isBrowserRuntime) {  // FIXME : Capabilities
           pushNotification({
             appName: "App Store",
             summary: `Flatpak: ${fp.name}`,
@@ -1805,7 +1815,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
       commitInstall,
       domicile,
       flatpakCaps.hasUserFlathub,
-      isBrowserRuntime,
+      isBrowserRuntime,  // FIXME : Capabilities
       pendingOp,
       pushNotification,
       refreshFlatpakList,
@@ -1818,7 +1828,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
     (item: StoreItem) => {
       if (!item.removable) return;
       if (item.kind === "flatpak" && item.flatpak) {
-        if (isBrowserRuntime || !beginOp()) return;
+        if (isBrowserRuntime || !beginOp()) return;  // FIXME : Capabilities
         if (!beginOp()) return;
         const fp = item.flatpak;
         const controller = new AbortController();
@@ -1881,7 +1891,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
     [
       commitUninstall,
       domicile,
-      isBrowserRuntime,
+      isBrowserRuntime,  // FIXME : Capabilities
       pendingOp,
       pushNotification,
       refreshFlatpakList,
@@ -1897,7 +1907,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
         return;
       }
       if (item.kind === "flatpak" && item.flatpak) {
-        if (isBrowserRuntime) {
+        if (isBrowserRuntime) {  // FIXME : Capabilities
           pushNotification({
             appName: "App Store",
             summary: `Flatpak: ${item.flatpak.name}`,
@@ -1939,7 +1949,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
         launchApp(item.appDef.id);
       }
     },
-    [isBrowserRuntime, launchApp, openWebUrl, pushNotification, updateSettings],
+    [isBrowserRuntime, launchApp, openWebUrl, pushNotification, updateSettings],  // FIXME : Capabilities
   );
 
   const handleReloadUpdates = React.useCallback(async () => {
@@ -1947,7 +1957,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
     setReloadingUpdates(true);
     setOpStatus({ progress: null, statusLine: "apt update && flatpak update" });
     try {
-      if (isBrowserRuntime) {
+      if (isBrowserRuntime) {  // FIXME : Capabilities
         await new Promise((resolve) => window.setTimeout(resolve, 650));
         setAptUpdates(WEB_SIMULATED_APT_UPDATES);
         setFlatpakUpdates(WEB_SIMULATED_FLATPAK_UPDATES);
@@ -1965,7 +1975,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
       setOpStatus(null);
       endOp();
     }
-  }, [beginOp, domicile, endOp, isBrowserRuntime, pushNotification, refreshUpdates]);
+  }, [beginOp, domicile, endOp, isBrowserRuntime, pushNotification, refreshUpdates]);  // FIXME : Capabilities
 
   // A .deb / .flatpakref opened from Folders or the Desktop asks to be installed here.
   const [packageRequest, setPackageRequest] = React.useState<{
@@ -1987,7 +1997,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
     setUpdatingTarget("__package__");
     setOpStatus({ progress: null, statusLine: command });
     try {
-      if (isBrowserRuntime) {
+      if (isBrowserRuntime) {  // FIXME : Capabilities
         await new Promise((resolve) => window.setTimeout(resolve, 900));
         pushNotification({
           appName: "App Store",
@@ -2015,7 +2025,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
       setOpStatus(null);
       endOp();
     }
-  }, [beginOp, domicile, endOp, isBrowserRuntime, packageRequest, pushNotification, refreshUpdates, refreshXdgApps]);
+  }, [beginOp, domicile, endOp, isBrowserRuntime, packageRequest, pushNotification, refreshUpdates, refreshXdgApps]);  // FIXME : Capabilities
 
   // View menu (sort order, refresh) lives in the menu bar, not the toolbar.
   React.useEffect(() => {
@@ -2062,7 +2072,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
     setUpdatingTarget("__system__");
     setOpStatus({ progress: null, statusLine: "apt upgrade -y" });
     try {
-      if (isBrowserRuntime) {
+      if (isBrowserRuntime) {  // FIXME : Capabilities
         await new Promise((resolve) => window.setTimeout(resolve, 800));
         setAptUpdates([]);
         pushNotification({
@@ -2094,7 +2104,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
       setOpStatus(null);
       endOp();
     }
-  }, [beginOp, domicile, endOp, isBrowserRuntime, pushNotification, refreshUpdates]);
+  }, [beginOp, domicile, endOp, isBrowserRuntime, pushNotification, refreshUpdates]);  // FIXME : Capabilities
 
   const handleUpgradeFlatpak = React.useCallback(
     async (appId: string) => {
@@ -2102,7 +2112,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
       setUpdatingTarget(appId);
       setOpStatus({ progress: null, statusLine: `flatpak update -y ${appId}` });
       try {
-        if (isBrowserRuntime) {
+        if (isBrowserRuntime) {  // FIXME : Capabilities
           await new Promise((resolve) => window.setTimeout(resolve, 550));
           setFlatpakUpdates((prev) => prev.filter((u) => u.appId !== appId));
         } else {
@@ -2126,7 +2136,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
         endOp();
       }
     },
-    [beginOp, domicile, endOp, isBrowserRuntime, pushNotification, refreshUpdates],
+    [beginOp, domicile, endOp, isBrowserRuntime, pushNotification, refreshUpdates],  // FIXME : Capabilities
   );
 
   const handleUpgradeAll = React.useCallback(async () => {
@@ -2134,7 +2144,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
     setUpdatingTarget("__all__");
     setOpStatus({ progress: null, statusLine: _("Upgrading all packages and apps…") });
     try {
-      if (isBrowserRuntime) {
+      if (isBrowserRuntime) {  // FIXME : Capabilities
         await new Promise((resolve) => window.setTimeout(resolve, 900));
         if (sources.system) setAptUpdates([]);
         if (sources.flatpak) setFlatpakUpdates([]);
@@ -2172,7 +2182,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
     domicile,
     endOp,
     flatpakUpdates.length,
-    isBrowserRuntime,
+    isBrowserRuntime,  // FIXME : Capabilities
     pushNotification,
     refreshUpdates,
     sources.flatpak,
@@ -2637,9 +2647,11 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
             <>
             {category === "all" && !query.trim() && activeFeaturedItem && (
               <section
-                aria-label="Featured applications"
+                aria-label={_("Featured applications")}
                 onClick={(e) => e.stopPropagation()}
-                className="relative mb-5 overflow-hidden rounded-2xl border border-adw-separator bg-black/5 px-5 py-8 dark:bg-white/5"
+                onPointerEnter={() => setFeaturedHovered(true)}
+                onPointerLeave={() => setFeaturedHovered(false)}
+                className="group/featured relative mb-5 overflow-hidden rounded-2xl bg-black/5 px-5 py-10 dark:bg-white/5"
               >
                 {activeFeaturedItem.faviconUrl && (
                   <>
@@ -2666,7 +2678,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                 <div className="relative z-10 flex items-center gap-3">
                   <button
                     type="button"
-                    aria-label="Previous featured app"
+                    aria-label={_("Previous")}
                     onClick={() =>
                       setFeaturedSlide(
                         (prev) =>
@@ -2674,7 +2686,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                           featuredItems.length,
                       )
                     }
-                    className="flex size-8 shrink-0 items-center justify-center rounded-full bg-black/5 text-adw-label-secondary transition-colors hover-fill:bg-black/10 hover-fill:text-adw-label dark:bg-white/8 dark:hover-fill:bg-white/15"
+                    className="flex size-8 shrink-0 items-center justify-center rounded-full bg-black/5 text-adw-label-secondary opacity-0 transition-opacity group-hover/featured:opacity-100 focus-visible:opacity-100 dark:bg-white/8"
                   >
                     <ChevronLeftIcon className="size-4" />
                   </button>
@@ -2693,13 +2705,13 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                     <WebAppFavicon
                       url={activeFeaturedItem.faviconUrl}
                       title={activeFeaturedItem.title}
-                      className="size-16 shrink-0"
+                      className="size-24 shrink-0"
                     />
-                    <div className="min-w-0 max-w-md">
-                      <div className="truncate text-base font-bold text-adw-label">
+                    <div className="min-w-0 max-w-lg">
+                      <div className="truncate text-adw-title-1 font-bold text-adw-label">
                         {activeFeaturedItem.title}
                       </div>
-                      <p className="mt-0.5 line-clamp-2 text-adw-callout text-adw-label-secondary">
+                      <p className="mt-1 line-clamp-2 text-adw-body text-adw-label-secondary">
                         {activeFeaturedItem.subtitle}
                       </p>
                     </div>
@@ -2707,36 +2719,18 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
 
                   <button
                     type="button"
-                    aria-label="Next featured app"
+                    aria-label={_("Next")}
                     onClick={() =>
                       setFeaturedSlide(
                         (prev) => (prev + 1) % featuredItems.length,
                       )
                     }
-                    className="flex size-8 shrink-0 items-center justify-center rounded-full bg-black/5 text-adw-label-secondary transition-colors hover-fill:bg-black/10 hover-fill:text-adw-label dark:bg-white/8 dark:hover-fill:bg-white/15"
+                    className="flex size-8 shrink-0 items-center justify-center rounded-full bg-black/5 text-adw-label-secondary opacity-0 transition-opacity group-hover/featured:opacity-100 focus-visible:opacity-100 dark:bg-white/8"
                   >
                     <ChevronRightIcon className="size-4" />
                   </button>
                 </div>
 
-                {featuredItems.length > 1 && (
-                  <div className="mt-3 flex items-center justify-center gap-1.5">
-                    {featuredItems.map((feat, idx) => (
-                      <button
-                        key={feat.id}
-                        type="button"
-                        aria-label={`Show ${feat.title}`}
-                        onClick={() => setFeaturedSlide(idx)}
-                        className={cn(
-                          "h-1.5 rounded-full transition-all",
-                          idx === activeSlideIndex
-                            ? "w-4 bg-adw-accent"
-                            : "w-1.5 bg-black/20 hover-fill:bg-black/35 dark:bg-white/25 dark:hover-fill:bg-white/45",
-                        )}
-                      />
-                    ))}
-                  </div>
-                )}
               </section>
             )}
 

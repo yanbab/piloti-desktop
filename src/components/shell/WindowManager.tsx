@@ -1,6 +1,5 @@
 /// <reference types="@domicile-desktop/react/elements" />
 import * as React from "react";
-import { usePopupSurface } from "@/lib/shell/popup-layer";
 import { emitShellEvent, onShellEvent } from "@/lib/shell/shell-events";
 import { useDomicile } from "@domicile-desktop/react/domicile-provider";
 import { useWatch } from "@domicile-desktop/react/use-watch";
@@ -34,7 +33,7 @@ import {
 } from "lucide-react";
 import { initAppModules, resolveAppModuleByUrl } from "@/data/app-modules";
 import { IsolatedAppFrame } from "@/components/shell/IsolatedAppFrame";
-import { WindowMenuButton } from "@/components/shell/WindowMenuButton";
+import { WindowMenuButton, WindowMenuItems } from "@/components/shell/WindowMenuButton";
 import {
   getAppSetting,
   getAppSettingsVersion,
@@ -52,7 +51,6 @@ import {
 } from "@/lib/shell/launch-origin";
 import { computeOverviewWindowLayouts } from "@/lib/shell/overview-layout";
 import {
-  getWindowMenuItems,
   getWindowPresentations,
   presentationTransform,
   pruneWindowPresentations,
@@ -406,7 +404,7 @@ function WebViewSurface({
   tabBar?: React.ReactNode;
 }) {
   const domicile = useDomicile();
-  const { isBrowserRuntime, resolvedTheme, settings, updateSettings } =
+  const { isBrowserRuntime, resolvedTheme, settings, updateSettings } =  // FIXME : Capabilities
     useSettings();
   const { pushNotification } = useSystemBackends();
   const {
@@ -446,13 +444,13 @@ function WebViewSurface({
   const [demoBadgeCount, setDemoBadgeCount] = React.useState(1);
 
   React.useEffect(() => {
-    if (isBrowserRuntime) return;
+    if (isBrowserRuntime) return;  // FIXME : Capabilities
     return domicile.extensions.on("popup", (req) => {
       if (!isFocusedTab) return;
       setExtPopupSize({ width: 360, height: 440 });
       setActiveExtPopup(req);
     });
-  }, [domicile.extensions, isFocusedTab, isBrowserRuntime]);
+  }, [domicile.extensions, isFocusedTab, isBrowserRuntime]);  // FIXME : Capabilities
 
   React.useEffect(() => {
     const view = extPopupWebviewRef.current;
@@ -525,7 +523,7 @@ function WebViewSurface({
 
   React.useEffect(() => {
     const view = webviewRef.current;
-    if (!view || isBrowserRuntime) return;
+    if (!view || isBrowserRuntime) return;  // FIXME : Capabilities
 
     const syncHistory = () => setNativeCanGoBack(Boolean(view.canGoBack));
     const syncPage = () => {
@@ -591,7 +589,7 @@ function WebViewSurface({
       view.removeEventListener(WEBVIEW_PAGE_FAILURE_CHANGE_EVENT, syncFailure);
       view.removeEventListener("did-change-theme-color", onThemeColor);
     };
-  }, [isBrowserRuntime, prefersDark, win.browserWindowId, win.browserUrl]);
+  }, [isBrowserRuntime, prefersDark, win.browserWindowId, win.browserUrl]);  // FIXME : Capabilities
 
   const currentUrl = normalizeWebUrl(address) ?? win.browserUrl ?? "";
   const bookmarks = useBrowserBookmarks();
@@ -608,7 +606,7 @@ function WebViewSurface({
 
   const handleToggleStoreExtension = React.useCallback(async () => {
     if (!storeExtId) return;
-    if (isBrowserRuntime) {
+    if (isBrowserRuntime) {  // FIXME : Capabilities
       pushNotification({
         appName: "Chrome Web Store",
         summary: _("Extension ID: %s", storeExtId),
@@ -665,7 +663,7 @@ function WebViewSurface({
         urgency: "critical",
       });
     }
-  }, [domicile.files, isBrowserRuntime, pushNotification, storeExtId]);
+  }, [domicile.files, isBrowserRuntime, pushNotification, storeExtId]);  // FIXME : Capabilities
 
   React.useEffect(() => {
     if (!isFocusedTab) return;
@@ -702,7 +700,7 @@ function WebViewSurface({
     const normalized = normalizeWebUrl(draftAddress);
     if (normalized) {
       setAddress(normalized);
-      if (isBrowserRuntime) {
+      if (isBrowserRuntime) {  // FIXME : Capabilities
         setHistoryState((prev) => {
           if (prev.stack[prev.index] === normalized) return prev;
           const nextStack = [...prev.stack.slice(0, prev.index + 1), normalized];
@@ -715,9 +713,9 @@ function WebViewSurface({
     setEditingAddress(false);
   };
 
-  const canGoBack = isBrowserRuntime ? historyState.index > 0 : nativeCanGoBack;
+  const canGoBack = isBrowserRuntime ? historyState.index > 0 : nativeCanGoBack;  // FIXME : Capabilities
   const handleGoBack = React.useCallback(() => {
-    if (isBrowserRuntime) {
+    if (isBrowserRuntime) {  // FIXME : Capabilities
       setHistoryState((prev) => {
         if (prev.index <= 0) return prev;
         const nextIndex = prev.index - 1;
@@ -728,12 +726,12 @@ function WebViewSurface({
     } else {
       webviewRef.current?.goBack();
     }
-  }, [isBrowserRuntime]);
+  }, [isBrowserRuntime]);  // FIXME : Capabilities
 
   React.useEffect(() => {
     const triggerPrint = () => {
       if (!isFocusedTab) return;
-      if (isBrowserRuntime) {
+      if (isBrowserRuntime) {  // FIXME : Capabilities
         try {
           const cw = iframeRef.current?.contentWindow;
           if (cw) {
@@ -776,7 +774,7 @@ function WebViewSurface({
       offPrintFocused();
       window.removeEventListener("piloti:app-action", onAppAction);
     };
-  }, [isFocusedTab, active, isBrowserRuntime, win.id, win.browserWindowId, openBrowserTab, closeBrowserTab, launchApp]);
+  }, [isFocusedTab, active, isBrowserRuntime, win.id, win.browserWindowId, openBrowserTab, closeBrowserTab, launchApp]);  // FIXME : Capabilities
   const installedApps = settings.installedWebApps ?? [];
   const matchedInstalledApp = findMatchingWebApp(currentUrl, installedApps);
   const isInstalled = currentUrl !== "" && Boolean(matchedInstalledApp);
@@ -806,7 +804,7 @@ function WebViewSurface({
   React.useEffect(() => {
     const cached = getCachedWebThemeColor(currentUrl, prefersDark) ?? null;
     setThemeColor(cached);
-    if (!isBrowserRuntime || !currentUrl || !win.browserWindowId) return;
+    if (!isBrowserRuntime || !currentUrl || !win.browserWindowId) return;  // FIXME : Capabilities
     if (cached !== null) {
       // Still fetch title if needed, or update themeColor in background
     }
@@ -823,12 +821,12 @@ function WebViewSurface({
       }
     );
     return () => controller.abort();
-  }, [isBrowserRuntime, currentUrl, win.browserWindowId, prefersDark]);
+  }, [isBrowserRuntime, currentUrl, win.browserWindowId, prefersDark]);  // FIXME : Capabilities
 
   const iframeSrc = normalizeWebUrl(address) ?? "about:blank";
 
   React.useEffect(() => {
-    if (!isBrowserRuntime) return;
+    if (!isBrowserRuntime) return;  // FIXME : Capabilities
     if (iframeSrc === "about:blank") {
       setIsLoading(false);
       markReadyRef.current();
@@ -840,7 +838,7 @@ function WebViewSurface({
       markReadyRef.current();
     }, 15000);
     return () => clearTimeout(timeout);
-  }, [isBrowserRuntime, iframeSrc]);
+  }, [isBrowserRuntime, iframeSrc]);  // FIXME : Capabilities
 
   const handleIframeLoad = React.useCallback(() => {
     setIsLoading(false);
@@ -908,7 +906,7 @@ function WebViewSurface({
     });
   };
 
-  const extensionMenuItems: BrowserExtensionItem[] = isBrowserRuntime
+  const extensionMenuItems: BrowserExtensionItem[] = isBrowserRuntime  // FIXME : Capabilities
     ? [
         {
           id: "dark-reader",
@@ -1190,7 +1188,7 @@ function WebViewSurface({
       {tabBar}
 
       <div className="relative min-h-0 flex-1 overflow-hidden">
-        {isBrowserRuntime ? (
+        {isBrowserRuntime ? (  // FIXME : Capabilities
           <iframe
             ref={iframeRef}
             src={iframeSrc}
@@ -1215,7 +1213,7 @@ function WebViewSurface({
           />
         )}
 
-        {!isBrowserRuntime && activeExtPopup && (
+        {!isBrowserRuntime && activeExtPopup && (  // FIXME : Capabilities
           <>
             <div
               className="absolute inset-0 z-30"
@@ -1238,7 +1236,7 @@ function WebViewSurface({
           </>
         )}
 
-        {demoPopupOpen && isBrowserRuntime && settings.demoExtensionEnabled !== false && (
+        {demoPopupOpen && isBrowserRuntime && settings.demoExtensionEnabled !== false && (  // FIXME : Capabilities
           <>
             <div
               className="absolute inset-0 z-30"
@@ -1279,7 +1277,7 @@ function WebViewSurface({
           </>
         )}
 
-        {pageFailure && !isBrowserRuntime && (
+        {pageFailure && !isBrowserRuntime && (  // FIXME : Capabilities
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-adw-content p-6 text-center text-adw-label">
             <GlobeIcon className="size-7 text-adw-label-secondary" />
             <div className="text-sm font-semibold">Unable to load page</div>
@@ -1438,9 +1436,9 @@ const WindowBody = React.memo(
     darkReaderEnabled: boolean;
     onToggleDarkReader: () => void;
   }) {
-    const { isBrowserRuntime } = useSettings();
+    const { isBrowserRuntime } = useSettings();  // FIXME : Capabilities
 
-    if (win.waylandAppId && !isBrowserRuntime) {
+    if (win.waylandAppId && !isBrowserRuntime) {  // FIXME : Capabilities
       return <WaylandAppSurface win={win} />;
     }
 
@@ -1629,7 +1627,7 @@ const DOMICILE_RESIZE_EDGE_MAP: Record<number, WindowResizeEdge> = {
 
 export function WindowManager() {
   const domicile = useDomicile();
-  const { isBrowserRuntime, settings, reducedMotion } = useSettings();
+  const { isBrowserRuntime, settings, reducedMotion } = useSettings();  // FIXME : Capabilities
   const {
     windows,
     workspaceWindows,
@@ -1806,7 +1804,6 @@ export function WindowManager() {
     x: number;
     y: number;
   } | null>(null);
-  usePopupSurface(Boolean(windowContextMenu), () => setWindowContextMenu(null));
 
   React.useEffect(() => {
     if (typeof window === "undefined") return;
@@ -1838,21 +1835,6 @@ export function WindowManager() {
     return () => globalThis.clearTimeout(timer);
   }, []);
 
-  React.useEffect(() => {
-    if (!windowContextMenu) return;
-    const close = () => setWindowContextMenu(null);
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") close();
-    };
-    window.addEventListener("pointerdown", close);
-    window.addEventListener("keydown", onKey);
-    window.addEventListener("blur", close);
-    return () => {
-      window.removeEventListener("pointerdown", close);
-      window.removeEventListener("keydown", onKey);
-      window.removeEventListener("blur", close);
-    };
-  }, [windowContextMenu]);
   const lastDomFocusedIdRef = React.useRef<string | null>(null);
   const workspaceWindowsRef = React.useRef(workspaceWindows);
   workspaceWindowsRef.current = workspaceWindows;
@@ -2023,7 +2005,7 @@ export function WindowManager() {
     lastDomFocusedIdRef.current = focusedWindowId;
 
     const frame = requestAnimationFrame(() => {
-      if (targetWin.waylandAppId && !isBrowserRuntime) {
+      if (targetWin.waylandAppId && !isBrowserRuntime) {  // FIXME : Capabilities
         if (domicile.windows.focused !== targetWin.waylandAppId) {
           domicile.windows.focus(targetWin.waylandAppId);
         }
@@ -2049,7 +2031,7 @@ export function WindowManager() {
     domicile.windows,
     overviewOpen,
     focusedWindowId,
-    isBrowserRuntime,
+    isBrowserRuntime,  // FIXME : Capabilities
     workspaceWindows.length,
   ]);
 
@@ -2075,11 +2057,6 @@ export function WindowManager() {
     subscribeWindowPresentation,
     getWindowPresentations,
     getWindowPresentations,
-  );
-  const pluginWindowMenuItems = React.useSyncExternalStore(
-    subscribeWindowPresentation,
-    getWindowMenuItems,
-    getWindowMenuItems,
   );
   const appSettingsVersion = React.useSyncExternalStore(
     subscribeAppSettings,
@@ -2237,7 +2214,7 @@ export function WindowManager() {
           const isCsd =
             settings.windowDecorationMode === "csd" ||
             (settings.windowDecorationMode === "auto" && Boolean(win.clientFrame));
-          const isWaylandSurface = Boolean(win.waylandAppId) && !isBrowserRuntime;
+          const isWaylandSurface = Boolean(win.waylandAppId) && !isBrowserRuntime;  // FIXME : Capabilities
           const ovLayout =
             overviewOpen && isActiveWorkspace
               ? overviewLayouts?.get(win.id)
@@ -2459,118 +2436,36 @@ export function WindowManager() {
         </div>
       ))}
 
-      {/* Headerbar Right-Click Window Menu */}
-      {windowContextMenu &&
-        (() => {
-          const ctxWin = windows.find((w) => w.id === windowContextMenu.windowId);
-          if (!ctxWin) return null;
-          const menuLeft =
-            typeof window !== "undefined"
-              ? Math.min(window.innerWidth - 180, windowContextMenu.x)
-              : windowContextMenu.x;
-          const menuTop =
-            typeof window !== "undefined"
-              ? Math.min(window.innerHeight - 200, windowContextMenu.y)
-              : windowContextMenu.y;
-          const itemCls =
-            "flex w-full items-center rounded-adw-item px-2.5 py-1.5 text-left text-adw-body text-adw-label hover:bg-adw-accent hover:text-white";
-          return (
-            <div
-              role="menu"
-              style={{ left: `${menuLeft}px`, top: `${menuTop}px`, zIndex: 9999 }}
-              onPointerDown={(e) => e.stopPropagation()}
-              onContextMenu={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-              }}
-              className="adw-material-menu fixed min-w-44 rounded-adw-menu p-[6px] text-adw-label shadow-adw-menu outline-none"
-            >
-              <button
-                type="button"
-                role="menuitem"
-                onClick={() => {
-                  minimizeWindow(ctxWin.id);
-                  setWindowContextMenu(null);
-                }}
-                className={itemCls}
-              >
-                {_("Minimize")}
-              </button>
-              <button
-                type="button"
-                role="menuitem"
-                onClick={() => {
-                  toggleMaximizeWindow(ctxWin.id);
-                  setWindowContextMenu(null);
-                }}
-                className={itemCls}
-              >
-                {ctxWin.maximized ? _("Restore") : _("Maximize")}
-              </button>
-              <button
-                type="button"
-                role="menuitem"
-                onClick={() => {
-                  tileWindow(ctxWin.id, "left");
-                  setWindowContextMenu(null);
-                }}
-                className={itemCls}
-              >
-                {_("Tile Left")}
-              </button>
-              <button
-                type="button"
-                role="menuitem"
-                onClick={() => {
-                  tileWindow(ctxWin.id, "right");
-                  setWindowContextMenu(null);
-                }}
-                className={itemCls}
-              >
-                {_("Tile Right")}
-              </button>
-              {(() => {
-                const items = pluginWindowMenuItems.filter(
-                  (item) => item.visible?.(ctxWin.id) ?? true
-                );
-                if (items.length === 0) return null;
-                return [
-                  <div key="plugins-separator" className="my-1 h-px bg-adw-separator" />,
-                  ...items.map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    role="menuitemcheckbox"
-                    aria-checked={item.checked?.(ctxWin.id) ?? false}
-                    onClick={() => {
-                      setWindowContextMenu(null);
-                      item.onSelect(ctxWin.id);
-                    }}
-                    className={cn(itemCls, "gap-3")}
-                  >
-                    {item.label}
-                    {item.checked?.(ctxWin.id) && (
-                      <span aria-hidden className="ml-auto">✓</span>
-                    )}
-                  </button>
-                  )),
-                ];
-              })()}
-              <div className="my-1 h-px bg-adw-separator" />
-              <button
-                type="button"
-                role="menuitem"
-                onClick={() => {
-                  closeWindow(ctxWin.id);
-                  setWindowContextMenu(null);
-                }}
-                className={itemCls}
-              >
-                {_("Close")}
-              </button>
-            </div>
-          );
-        })()}
+      {/* Headerbar Right-Click Window Menu (same entries as the ⋮ button) */}
+      {windowContextMenu && (
+        <DropdownMenu
+          open
+          onOpenChange={(open) => {
+            if (!open) setWindowContextMenu(null);
+          }}
+        >
+          <DropdownMenuContent
+            align="start"
+            side="bottom"
+            sideOffset={0}
+            anchor={{
+              getBoundingClientRect: () =>
+                DOMRect.fromRect({
+                  x: windowContextMenu.x,
+                  y: windowContextMenu.y,
+                  width: 0,
+                  height: 0,
+                }),
+            }}
+            className="min-w-44"
+          >
+            <WindowMenuItems
+              windowId={windowContextMenu.windowId}
+              onSelect={() => setWindowContextMenu(null)}
+            />
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
     </div>
   );
 }

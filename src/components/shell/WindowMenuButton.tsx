@@ -3,6 +3,7 @@ import { countRender } from "@/lib/core/render-stats";
 import { MoreVerticalIcon } from "lucide-react";
 import {
   DropdownMenu,
+  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
@@ -40,23 +41,7 @@ export const WindowMenuButton = React.memo(function WindowMenuButton({
 }) {
   countRender("WindowMenuButton");
   const { settings } = useChromeSettings();
-  const { minimizeWindow, toggleMaximizeWindow, tileWindow, closeWindow } =
-    useWindowActions();
-  // Rendered in every app titlebar: only re-render when *this* window's
-  // maximized state changes.
-  const win = useWindowManagerSelector((wm) => {
-    const found = windowId ? wm.windows.find((w) => w.id === windowId) : undefined;
-    return found ? { maximized: found.maximized } : undefined;
-  });
   const [open, setOpen] = React.useState(false);
-  const pluginItems = React.useSyncExternalStore(
-    subscribeWindowPresentation,
-    getWindowMenuItems,
-    getWindowMenuItems,
-  );
-  const visiblePluginItems = windowId
-    ? pluginItems.filter((item) => item.visible?.(windowId) ?? true)
-    : [];
 
   if (!settings.showWindowMenu) {
     return null;
@@ -90,44 +75,73 @@ export const WindowMenuButton = React.memo(function WindowMenuButton({
           </>
         )}
         {windowId && (
-          <>
-            <DropdownMenuItem onClick={() => minimizeWindow(windowId)}>
-              {_("Minimize")}
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => toggleMaximizeWindow(windowId)}>
-              {win?.maximized ? _("Restore") : _("Maximize")}
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => tileWindow(windowId, "left")}>
-              {_("Tile Left")}
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => tileWindow(windowId, "right")}>
-              {_("Tile Right")}
-            </DropdownMenuItem>
-            {visiblePluginItems.length > 0 && <DropdownMenuSeparator />}
-            {visiblePluginItems.map((item) => (
-                <DropdownMenuItem
-                  key={item.id}
-                  role="menuitemcheckbox"
-                  aria-checked={item.checked?.(windowId) ?? false}
-                  className="gap-3"
-                  onClick={() => {
-                    setOpen(false);
-                    item.onSelect(windowId);
-                  }}
-                >
-                  {item.label}
-                  {item.checked?.(windowId) && (
-                    <span aria-hidden className="ml-auto">✓</span>
-                  )}
-                </DropdownMenuItem>
-            ))}
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => closeWindow(windowId)}>
-              {_("Close")}
-            </DropdownMenuItem>
-          </>
+          <WindowMenuItems windowId={windowId} onSelect={() => setOpen(false)} />
         )}
       </DropdownMenuContent>
     </DropdownMenu>
   );
 });
+
+/**
+ * The window's own entries: Minimize, Maximize, Tile, plugin entries (after
+ * a separator), Close. One list for the ⋮ button and the titlebar
+ * right-click menu, so they always match.
+ */
+export function WindowMenuItems({
+  windowId,
+  onSelect,
+}: {
+  windowId: string;
+  /** Called after any entry runs (e.g. to close a controlled menu). */
+  onSelect?: () => void;
+}) {
+  const { minimizeWindow, toggleMaximizeWindow, tileWindow, closeWindow } =
+    useWindowActions();
+  // Only re-render when *this* window's maximized state changes.
+  const maximized = useWindowManagerSelector(
+    (wm) => wm.windows.find((w) => w.id === windowId)?.maximized ?? false
+  );
+  const pluginItems = React.useSyncExternalStore(
+    subscribeWindowPresentation,
+    getWindowMenuItems,
+    getWindowMenuItems,
+  );
+  const visiblePluginItems = pluginItems.filter(
+    (item) => item.visible?.(windowId) ?? true
+  );
+  const run = (fn: () => void) => () => {
+    fn();
+    onSelect?.();
+  };
+
+  return (
+    <>
+      <DropdownMenuItem onClick={run(() => minimizeWindow(windowId))}>
+        {_("Minimize")}
+      </DropdownMenuItem>
+      <DropdownMenuItem onClick={run(() => toggleMaximizeWindow(windowId))}>
+        {maximized ? _("Restore") : _("Maximize")}
+      </DropdownMenuItem>
+      <DropdownMenuItem onClick={run(() => tileWindow(windowId, "left"))}>
+        {_("Tile Left")}
+      </DropdownMenuItem>
+      <DropdownMenuItem onClick={run(() => tileWindow(windowId, "right"))}>
+        {_("Tile Right")}
+      </DropdownMenuItem>
+      {visiblePluginItems.length > 0 && <DropdownMenuSeparator />}
+      {visiblePluginItems.map((item) => (
+        <DropdownMenuCheckboxItem
+          key={item.id}
+          checked={item.checked?.(windowId) ?? false}
+          onCheckedChange={run(() => item.onSelect(windowId))}
+        >
+          {item.label}
+        </DropdownMenuCheckboxItem>
+      ))}
+      <DropdownMenuSeparator />
+      <DropdownMenuItem onClick={run(() => closeWindow(windowId))}>
+        {_("Close")}
+      </DropdownMenuItem>
+    </>
+  );
+}

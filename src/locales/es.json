@@ -427,6 +427,8 @@
   "Not listed?": "¿No aparece en la lista?",
   "Username": "Nombre de usuario",
   "Next": "Siguiente",
+  "Featured applications": "Aplicaciones destacadas",
+  "Previous": "Anterior",
   "Signing in…": "Iniciando sesión…",
   "Starting session for %s…": "Iniciando sesión para %s…",
   "Unable to execute system power action.": "No se pudo ejecutar la acción de energía del sistema.",

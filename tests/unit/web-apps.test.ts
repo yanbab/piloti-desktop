@@ -89,6 +89,7 @@ describe("resolveInitialSettings web defaults and seeding", () => {
     const webFresh = resolveInitialSettings(null, true);
     expect(webFresh.pinnedAppIds).toEqual([
       "nautilus",
+      "browser",
       "terminal",
       "text-editor",
       "calculator",
@@ -122,6 +123,7 @@ describe("resolveInitialSettings web defaults and seeding", () => {
     expect(upgraded.pinnedAppIds).toEqual([
       "settings",
       "terminal",
+      "browser",
       "nautilus",
       "text-editor",
       "calculator",
@@ -152,6 +154,7 @@ describe("resolveInitialSettings web defaults and seeding", () => {
     expect(v1Upgraded.installedWebApps).toEqual([...DEFAULT_LAUNCHER_WEB_APPS]);
     expect(v1Upgraded.pinnedAppIds).toEqual([
       "nautilus",
+      "browser",
       "terminal",
       "text-editor",
       "calculator",

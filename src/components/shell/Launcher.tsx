@@ -256,6 +256,25 @@ function filterAndSort(entries: PaletteEntry[]): PaletteEntry[] {
     .sort((a, b) => b.score - a.score);
 }
 
+/** Best matches first; equal scores (e.g. an empty search) in A–Z order. */
+function filterAndSortByName(entries: PaletteEntry[]): PaletteEntry[] {
+  return entries
+    .filter((e) => e.score >= 0)
+    .sort((a, b) => b.score - a.score || a.label.localeCompare(b.label));
+}
+
+// Built-in apps also ship a .desktop entry running their command
+// (`piloti-settings`, `piloti-files %U`…): list each app once.
+const BUILTIN_APP_COMMANDS = new Set(
+  APP_CATALOG.filter((app) => app.builtinComponent && app.command).map(
+    (app) => app.command as string
+  )
+);
+function isBuiltinAppEntry(exec: string | undefined): boolean {
+  const program = exec?.trim().split(/\s+/)[0];
+  return Boolean(program && BUILTIN_APP_COMMANDS.has(program.split("/").pop()!));
+}
+
 let persistedLauncherQuery = "";
 
 
@@ -487,6 +506,7 @@ export const Launcher = React.memo(function Launcher() {
         .filter(
           (entry) =>
             isAppSearchEnabled(entry.desktopId) &&
+            !isBuiltinAppEntry(entry.exec) &&
             !entry.desktopId.startsWith("piloti-webapp-") &&
             !entry.exec?.startsWith("piloti-webapp ")
         )
@@ -651,12 +671,12 @@ export const Launcher = React.memo(function Launcher() {
       }
     }
 
-    const filteredApps = filterAndSort(nativeAppEntries);
+    const filteredApps = filterAndSortByName(nativeAppEntries);
     if (filteredApps.length > 0) {
       out.push({ heading: "Apps", items: filteredApps });
     }
 
-    const filteredWebApps = filterAndSort(webAppEntries);
+    const filteredWebApps = filterAndSortByName(webAppEntries);
     if (filteredWebApps.length > 0) {
       out.push({ heading: "Web Apps", items: filteredWebApps });
     }

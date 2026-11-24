@@ -286,11 +286,12 @@ export function isBrowserDevRuntime(): boolean {
   return isWebEngine();
 }
 
-export const WEB_DEFAULTS_VERSION = 6;
+export const WEB_DEFAULTS_VERSION = 7;
 
 // All our apps except Desktop Console and Image Viewer (and the Login Screen preview).
 const DEFAULT_WEB_PINNED_APP_IDS = [
   "nautilus",
+  "browser",
   "terminal",
   "text-editor",
   "calculator",
@@ -301,7 +302,6 @@ const DEFAULT_WEB_PINNED_APP_IDS = [
 ];
 
 const WEB_HIDDEN_APP_IDS = new Set([
-  "browser",
   "org.gnome.Console.desktop",
   "org.gnome.TextEditor.desktop",
   "org.gnome.Calculator.desktop",
@@ -463,7 +463,7 @@ export function resolveInitialSettings(
 }
 
 export interface SettingsContextValue {
-  isBrowserRuntime: boolean;
+  isBrowserRuntime: boolean;  // FIXME : Capabilities
   settings: DesktopSettings;
   updateSettings: (patch: Partial<DesktopSettings>) => void;
   applySettingsState: (patch: Partial<DesktopSettings>) => void;
@@ -481,7 +481,7 @@ export function useSettingsValue(options?: {
 }): SettingsContextValue {
   const deferLocalWallpaper = Boolean(options?.deferLocalWallpaper);
   const domicile = useDomicile();
-  const isBrowserRuntime = isBrowserDevRuntime();
+  const isBrowserRuntime = isBrowserDevRuntime();  // FIXME : Capabilities
   const portalWallpaper = usePortalWallpaper();
   const [wallpaperFallbackReady, setWallpaperFallbackReady] =
     React.useState(false);
@@ -507,7 +507,7 @@ export function useSettingsValue(options?: {
           removeVfsStateFile(VFS_STATE_PATHS.legacySettingsJson);
         }
       }
-      const base = resolveInitialSettings(savedRaw, isBrowserRuntime);
+      const base = resolveInitialSettings(savedRaw, isBrowserRuntime);  // FIXME : Capabilities
       if (savedRaw !== null && savedRaw.trim().startsWith("{")) {
         writeVfsStateText(
           VFS_STATE_PATHS.settings,
@@ -532,7 +532,7 @@ export function useSettingsValue(options?: {
           : base.desktopIconPositions,
       };
     } catch {
-      return resolveInitialSettings(null, isBrowserRuntime);
+      return resolveInitialSettings(null, isBrowserRuntime);  // FIXME : Capabilities
     }
   });
 
@@ -576,7 +576,7 @@ export function useSettingsValue(options?: {
   }, [flushSettingsIni]);
 
   React.useEffect(() => {
-    if (isBrowserRuntime) {
+    if (isBrowserRuntime) {  // FIXME : Capabilities
       registerVfsHostSync(null);
       return;
     }
@@ -652,7 +652,7 @@ export function useSettingsValue(options?: {
       cancelled = true;
       registerVfsHostSync(null);
     };
-  }, [domicile, isBrowserRuntime]);
+  }, [domicile, isBrowserRuntime]);  // FIXME : Capabilities
 
   // Seed settings.ini in VFS on first run so users can inspect/edit it in Files or Text Editor,
   // and subscribe to live VFS edits on settings.ini, window-bounds.json, and desktop-icons.json.
@@ -685,7 +685,7 @@ export function useSettingsValue(options?: {
       if (!raw || !raw.trim()) return;
       const parsedPatch = parseDesktopSettingsRaw(raw);
       if (!parsedPatch) return;
-      const nextBase = resolveInitialSettings(raw, isBrowserRuntime);
+      const nextBase = resolveInitialSettings(raw, isBrowserRuntime);  // FIXME : Capabilities
       setSettings((prev) => {
         const currentSerialized = serializeDesktopSettingsIni(prev);
         const mergedNext: DesktopSettings = {
@@ -742,7 +742,7 @@ export function useSettingsValue(options?: {
       unsubBounds();
       unsubIcons();
     };
-  }, [isBrowserRuntime]);
+  }, [isBrowserRuntime]);  // FIXME : Capabilities
 
   const persist = (next: DesktopSettings, patch?: Partial<DesktopSettings>) => {
     try {
@@ -850,7 +850,7 @@ export function useSettingsValue(options?: {
     };
     window.addEventListener(XDG_WEBAPPS_CHANGED_EVENT, onXdgChanged);
     // Web app .desktop files only live here; ignore unrelated VFS writes.
-    const unsubVfs = isBrowserRuntime
+    const unsubVfs = isBrowserRuntime  // FIXME : Capabilities
       ? subscribeWebVfs(() => onXdgChanged(), {
           path: `${WEB_VFS_HOME}/.local/share/applications`,
           mode: "children",
@@ -862,7 +862,7 @@ export function useSettingsValue(options?: {
       window.removeEventListener(XDG_WEBAPPS_CHANGED_EVENT, onXdgChanged);
       unsubVfs?.();
     };
-  }, [domicile, isBrowserRuntime]);
+  }, [domicile, isBrowserRuntime]);  // FIXME : Capabilities
 
   const updateSettings = React.useCallback(
     (patch: Partial<DesktopSettings>) => {
@@ -878,7 +878,7 @@ export function useSettingsValue(options?: {
         const next = { ...prev, ...mergedPatch };
         persist(next, mergedPatch);
 
-        if (!isBrowserRuntime && !applyingGnomeSyncRef.current) {
+        if (!isBrowserRuntime && !applyingGnomeSyncRef.current) {  // FIXME : Capabilities
           if (
             next.syncGnomeSettings &&
             (mergedPatch.themeMode !== undefined ||
@@ -1005,13 +1005,13 @@ export function useSettingsValue(options?: {
         return next;
       });
     },
-    [domicile, isBrowserRuntime]
+    [domicile, isBrowserRuntime]  // FIXME : Capabilities
   );
 
   // Sync portal-requested background wallpaper path into GNOME background spec
   React.useEffect(() => {
     const bgPath = portalWallpaper?.background;
-    if (!bgPath || isBrowserRuntime) return;
+    if (!bgPath || isBrowserRuntime) return;  // FIXME : Capabilities
     const fileUri = localPathToFileUri(bgPath);
     const curBg = settingsRef.current.gnomeBackground;
     updateSettings({
@@ -1024,7 +1024,7 @@ export function useSettingsValue(options?: {
         pictureOptions: curBg.pictureOptions === "none" ? "zoom" : curBg.pictureOptions,
       },
     });
-  }, [isBrowserRuntime, portalWallpaper?.background, updateSettings]);
+  }, [isBrowserRuntime, portalWallpaper?.background, updateSettings]);  // FIXME : Capabilities
 
   const [systemDark, setSystemDark] = React.useState(() =>
     typeof window !== "undefined"
@@ -1208,7 +1208,7 @@ export function useSettingsValue(options?: {
   });
 
   React.useEffect(() => {
-    if (isBrowserRuntime || settings.themeMode !== "system") return;
+    if (isBrowserRuntime || settings.themeMode !== "system") return;  // FIXME : Capabilities
     const updateTime = () => {
       const h = new Date().getHours();
       setIsNightTime(h < 7 || h >= 19);
@@ -1216,11 +1216,11 @@ export function useSettingsValue(options?: {
     updateTime();
     const timer = window.setInterval(updateTime, 60_000);
     return () => window.clearInterval(timer);
-  }, [isBrowserRuntime, settings.themeMode]);
+  }, [isBrowserRuntime, settings.themeMode]);  // FIXME : Capabilities
 
   const resolvedTheme: "dark" | "light" =
     settings.themeMode === "system"
-      ? isBrowserRuntime
+      ? isBrowserRuntime  // FIXME : Capabilities
         ? systemDark
           ? "dark"
           : "light"
@@ -1259,7 +1259,7 @@ export function useSettingsValue(options?: {
   ]);
 
   React.useEffect(() => {
-    if (isBrowserRuntime) return;
+    if (isBrowserRuntime) return;  // FIXME : Capabilities
     const applyTemp = () => {
       domicile.displays
         .setColorTemperature(settings.nightLight ? 4200 : 6500)
@@ -1267,7 +1267,7 @@ export function useSettingsValue(options?: {
     };
     applyTemp();
     return domicile.on("compositorreplaced", applyTemp);
-  }, [domicile, isBrowserRuntime, settings.nightLight]);
+  }, [domicile, isBrowserRuntime, settings.nightLight]);  // FIXME : Capabilities
 
   const activeWallpaper = React.useMemo(() => {
     if (settings.wallpaperId?.startsWith("#")) {
@@ -1308,7 +1308,7 @@ export function useSettingsValue(options?: {
       setResolvedLocalPicture({ raw: "", blobUrl: "" });
       return;
     }
-    if (!allowLocalWallpaper && !isBrowserRuntime) return;
+    if (!allowLocalWallpaper && !isBrowserRuntime) return;  // FIXME : Capabilities
 
     let cancelled = false;
     const finishBg = startBootPhase("bg");
@@ -1344,7 +1344,7 @@ export function useSettingsValue(options?: {
       }
 
       let blob: Blob | null = null;
-      if (!isBrowserRuntime) {
+      if (!isBrowserRuntime) {  // FIXME : Capabilities
         blob = await readGnomeBackgroundBlob(domicile, activePictureUri);
       } else {
         if (lower.endsWith(".xml")) {
@@ -1400,7 +1400,7 @@ export function useSettingsValue(options?: {
     activePictureUri,
     allowLocalWallpaper,
     domicile,
-    isBrowserRuntime,
+    isBrowserRuntime,  // FIXME : Capabilities
     localPicturePath,
   ]);
 
@@ -1478,7 +1478,7 @@ export function useSettingsValue(options?: {
 
   return React.useMemo<SettingsContextValue>(
     () => ({
-      isBrowserRuntime,
+      isBrowserRuntime,  // FIXME : Capabilities
       settings,
       updateSettings,
       applySettingsState,
@@ -1489,7 +1489,7 @@ export function useSettingsValue(options?: {
       backgroundSpec,
     }),
     [
-      isBrowserRuntime,
+      isBrowserRuntime,  // FIXME : Capabilities
       settings,
       updateSettings,
       applySettingsState,

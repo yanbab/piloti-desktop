@@ -235,7 +235,7 @@ export const MenuBar = React.memo(function MenuBar() {
   const domicile = useDomicile();
   const captureActivity = useCaptureActivity();
   const { statusItems } = usePlugins();
-  const { isBrowserRuntime, settings, updateSettings } = useChromeSettings();
+  const { isBrowserRuntime, settings, updateSettings } = useChromeSettings();  // FIXME : Capabilities
   const { installedXdgApps, launchXdgEntry } = useApps();
   const {
     batteryInfo,
@@ -303,7 +303,7 @@ export const MenuBar = React.memo(function MenuBar() {
   }, [focusedWaylandClient?.desktopId, focusedWindow?.appId, installedXdgApps]);
 
   React.useEffect(() => {
-    if (!focusedWindow?.waylandAppId || isBrowserRuntime) {
+    if (!focusedWindow?.waylandAppId || isBrowserRuntime) {  // FIXME : Capabilities
       setRemoteMenu(null);
       return;
     }
@@ -345,7 +345,7 @@ export const MenuBar = React.memo(function MenuBar() {
     focusedWaylandClient?.pid,
     focusedWindow?.appId,
     focusedWindow?.waylandAppId,
-    isBrowserRuntime,
+    isBrowserRuntime,  // FIXME : Capabilities
     launchXdgEntry,
   ]);
 
@@ -467,7 +467,7 @@ export const MenuBar = React.memo(function MenuBar() {
     if (!hasRemoteSections) {
       for (const section of activeAppDef.menus) {
         for (const item of section.items) {
-          if (item.actionId === "shell:fullscreen" && !isBrowserRuntime) continue;
+          if (item.actionId === "shell:fullscreen" && !isBrowserRuntime) continue;  // FIXME : Capabilities
           const state = windowMenuState[item.actionId];
           add([_(section.title)], _(item.label), () => handleMenuAction(item.actionId), {
             id: `app:${item.actionId}`,
@@ -526,7 +526,7 @@ export const MenuBar = React.memo(function MenuBar() {
     focusedWindowId,
     handleMenuAction,
     hasRemoteSections,
-    isBrowserRuntime,
+    isBrowserRuntime,  // FIXME : Capabilities
     launchApp,
     lockSession,
     remoteMenu,
@@ -629,7 +629,7 @@ export const MenuBar = React.memo(function MenuBar() {
                 {_("About Computer")}
               </MenubarItem>
               <MenubarSeparator />
-              {!isBrowserRuntime && (
+              {!isBrowserRuntime && (  // FIXME : Capabilities
                 <MenubarItem onClick={() => openGnomeSettings()}>
                   {_("System Settings")}
                 </MenubarItem>
@@ -864,7 +864,7 @@ export const MenuBar = React.memo(function MenuBar() {
               .filter((section) => section.title === "View")
               .map((section) => {
                 const visibleItems = section.items.filter(
-                  (i) => i.actionId !== "shell:fullscreen" || isBrowserRuntime,
+                  (i) => i.actionId !== "shell:fullscreen" || isBrowserRuntime,  // FIXME : Capabilities
                 );
                 return (
                   <MenubarMenu key={section.title}>
@@ -1013,7 +1013,7 @@ export const MenuBar = React.memo(function MenuBar() {
               </MenubarItem>
               <MenubarItem
                 onClick={() => {
-                  if (isBrowserRuntime) {
+                  if (isBrowserRuntime) {  // FIXME : Capabilities
                     window.open(helpLinks.issueUrl, "_blank", "noopener,noreferrer");
                   } else {
                     openWebUrl(helpLinks.issueUrl, { title: _("Report Issue") });
@@ -1289,7 +1289,7 @@ export const MenuBar = React.memo(function MenuBar() {
               // shadows (same as menus) are not clipped by its overflow.
               className="-mr-1 w-[348px] max-w-[calc(100vw-8px)] overflow-x-hidden overflow-y-auto rounded-none border-0 bg-transparent! pt-0 pr-3 pb-8 pl-6 shadow-none! [backdrop-filter:none]! [-webkit-backdrop-filter:none]!"
             >
-              <div className="rounded-adw-popover p-3 shadow-adw-popover adw-material-menu">
+              <div data-slot="control-panel" className="rounded-adw-popover p-3 shadow-adw-popover adw-material-menu">
                 <ControlPanel open={controlPanelOpen} />
               </div>
               <FloatingNotifications open={controlPanelOpen} />

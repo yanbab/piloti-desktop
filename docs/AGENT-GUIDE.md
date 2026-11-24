@@ -26,6 +26,24 @@ Conventions are in `AGENTS.md`, commands in `CLAUDE.md`.
   (`git add <files>`), never `git add -A`, and read `git diff` first: other
   sessions' uncommitted edits are in the same tree.
 
+## Piloti geometry (radii and margins)
+
+Corners are concentric: an outer radius = the inner radius + the gap between
+them. All in `piloti-macos.css`, computed from tokens, not hard-coded:
+
+- **Items** (menu items, sidebar items, list rows): `--adw-radius-item` (5px).
+- **Menus**: `--adw-radius-menu` = item radius + the 5px menu padding (10px).
+  Items: 22px rows, 13px text, 9px side padding; a 20px check column only in
+  menus with check or radio items. Highlight = accent, white text (same as
+  the sidebar selection).
+- **Control panel**: modules and pills use the menu radius; the panel is
+  menu radius + its 12px padding. Its list rows are menu items.
+- **Dock**: square app icons take 56 of their 64 pixels (4px margin, 4.2px
+  corners). The dock has 7px around its tiles (6px + the 1px border on the
+  sides), so the gap around the first square icon is `7px + size × 4/64`, and
+  the dock corner = icon corner (`size × 4.2/64`) + that gap. Icons of other
+  shapes (e.g. the round Camera) are not taken into account.
+
 ## Map
 | Area | Files |
 |---|---|

@@ -425,6 +425,8 @@
   "Not listed?": "Non listé ?",
   "Username": "Nom d’utilisateur",
   "Next": "Suivant",
+  "Featured applications": "Applications à la une",
+  "Previous": "Précédent",
   "Signing in…": "Connexion…",
   "Starting session for %s…": "Démarrage de la session pour %s…",
   "Unable to execute system power action.": "Impossible d’exécuter l’action d’alimentation.",

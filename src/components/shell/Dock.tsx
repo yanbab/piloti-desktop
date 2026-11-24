@@ -96,7 +96,7 @@ import { AppSquircleIcon } from "./AppSymbol";
 export const Dock = React.memo(function Dock() {
   countRender("Dock");
   const domicile = useDomicile();
-  const { isBrowserRuntime, settings, updateSettings } = useChromeSettings();
+  const { isBrowserRuntime, settings, updateSettings } = useChromeSettings();  // FIXME : Capabilities
   const { pushNotification } = useSystemBackends();
   const {
     installedXdgApps,
@@ -164,9 +164,9 @@ export const Dock = React.memo(function Dock() {
     () =>
       effectiveDockFolders(
         settings.dockFolders,
-        resolveDefaultDockFolders(xdgUserDirs, isBrowserRuntime)
+        resolveDefaultDockFolders(xdgUserDirs, isBrowserRuntime)  // FIXME : Capabilities
       ),
-    [settings.dockFolders, xdgUserDirs, isBrowserRuntime]
+    [settings.dockFolders, xdgUserDirs, isBrowserRuntime]  // FIXME : Capabilities
   );
   const dockFoldersRef = React.useRef(dockFolders);
   dockFoldersRef.current = dockFolders;
@@ -314,9 +314,10 @@ export const Dock = React.memo(function Dock() {
   const availableSpan = isVerticalDock
     ? viewportSize.height - 96
     : viewportSize.width - 48;
+  // Each tile costs its size + the 8px gap; the dock adds ~14px of padding.
   const maxDockSizeForSpace = Math.max(
     18,
-    Math.min(96, Math.floor(availableSpan / totalSlots) - 10),
+    Math.min(96, Math.floor((availableSpan - 14) / totalSlots) - 8),
   );
   const activeDockSize = Math.min(
     96,
@@ -326,18 +327,18 @@ export const Dock = React.memo(function Dock() {
   const trashPaths = React.useMemo(() => resolveXdgTrashPaths(), []);
 
   const refreshTrashStatus = React.useCallback(async () => {
-    if (isBrowserRuntime) {
+    if (isBrowserRuntime) {  // FIXME : Capabilities
       const items = listVfsDir(WEB_VFS_TRASH);
       setTrashEmpty(items.length === 0);
       return;
     }
     const status = await inspectXdgTrash(domicile.files, ".local/share/Trash/files");
     setTrashEmpty(status.empty);
-  }, [domicile.files, isBrowserRuntime]);
+  }, [domicile.files, isBrowserRuntime]);  // FIXME : Capabilities
 
   React.useEffect(() => {
     void refreshTrashStatus();
-    if (isBrowserRuntime) {
+    if (isBrowserRuntime) {  // FIXME : Capabilities
       return subscribeWebVfs(
         () => {
           void refreshTrashStatus();
@@ -359,7 +360,7 @@ export const Dock = React.memo(function Dock() {
       stopWatch();
       window.removeEventListener("focus", onFocus);
     };
-  }, [domicile.files, isBrowserRuntime, refreshTrashStatus]);
+  }, [domicile.files, isBrowserRuntime, refreshTrashStatus]);  // FIXME : Capabilities
 
   const resolveAppDefinition = React.useCallback(
     (appId: string): AppDefinition | null => {
@@ -504,7 +505,7 @@ export const Dock = React.memo(function Dock() {
     );
 
     return [...pinnedDefs, ...extras];
-  }, [effectivePinnedIds, isBrowserRuntime, launchingApps, resolveAppDefinition, windows]);
+  }, [effectivePinnedIds, isBrowserRuntime, launchingApps, resolveAppDefinition, windows]);  // FIXME : Capabilities
 
   // Reordering pinned apps with dnd-kit: neighbours slide aside with a springy transition,
   // the dragged icon is a DragOverlay that follows the pointer, and drop animates into place.
@@ -598,7 +599,7 @@ export const Dock = React.memo(function Dock() {
 
   const handleOpenTrash = () => {
     launchApp("nautilus", {
-      payload: isBrowserRuntime ? WEB_VFS_TRASH : "trash:///",
+      payload: isBrowserRuntime ? WEB_VFS_TRASH : "trash:///",  // FIXME : Capabilities
     });
   };
 
@@ -609,7 +610,7 @@ export const Dock = React.memo(function Dock() {
   };
 
   const handleEmptyTrash = async () => {
-    if (isBrowserRuntime) {
+    if (isBrowserRuntime) {  // FIXME : Capabilities
       emptyVfsTrash();
       await refreshTrashStatus();
       return;

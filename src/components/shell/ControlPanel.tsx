@@ -55,7 +55,7 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
       ),
     [portalRequests]
   );
-  const { isBrowserRuntime, settings, updateSettings } = useSettings();
+  const { isBrowserRuntime, settings, updateSettings } = useSettings();  // FIXME : Capabilities
   const {
     gnomeCapabilities,
     liveWifiNetworks,
@@ -160,18 +160,18 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
           <button
             type="button"
             title={
-              isBrowserRuntime
+              isBrowserRuntime  // FIXME : Capabilities
                 ? _("Desktop Settings")
                 : _("Open System Settings (Shift+Click) or Desktop Settings")
             }
             onClick={(e) => {
               console.info(
                 "[Piloti] control-panel: open settings",
-                !isBrowserRuntime && e.shiftKey ? "gnome" : "desktop"
+                !isBrowserRuntime && e.shiftKey ? "gnome" : "desktop"  // FIXME : Capabilities
               );
               captureLaunchOriginFromElement(e.currentTarget);
               setControlPanelOpen(false);
-              if (!isBrowserRuntime && e.shiftKey) {
+              if (!isBrowserRuntime && e.shiftKey) {  // FIXME : Capabilities
                 openGnomeSettings();
               } else {
                 launchApp("settings");
@@ -219,7 +219,7 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
       </div>
 
       {/* Sound Volume & Display Brightness Sliders */}
-      <div className="flex flex-col gap-2.5 rounded-[16px] bg-black/6 p-3 dark:bg-white/8">
+      <div data-slot="control-card" className="flex flex-col gap-2.5 rounded-[16px] bg-black/6 p-3 dark:bg-white/8">
         {/* Sound Volume + Audio Output Picker Toggle */}
         <div className="flex items-center gap-2 text-adw-label dark:text-white">
           <div className="relative flex flex-1 items-center">
@@ -288,7 +288,7 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
               <span className="text-adw-subheadline font-medium text-adw-label-secondary">
                 {_("Output Device")}
               </span>
-              {!isBrowserRuntime && gnomeCapabilities.gnomeControlCenter && (
+              {!isBrowserRuntime && gnomeCapabilities.gnomeControlCenter && (  // FIXME : Capabilities
                 <button
                   type="button"
                   onClick={() => {
@@ -312,7 +312,7 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
                     key={sink.id}
                     type="button"
                     onClick={() => void selectAudioSink(sink.name)}
-                    className={cn(
+                    data-slot="control-row" className={cn(
                       "flex items-center justify-between gap-2 rounded-adw-item px-2 py-1.5 text-left text-adw-subheadline",
                       sink.active
                         ? "bg-adw-accent/18 font-medium text-adw-label"
@@ -359,7 +359,7 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
       <div className="grid grid-cols-2 gap-2">
         {/* Wi-Fi Split Pill (Toggle + Inline Network Picker) */}
         <div
-          className={cn(
+          data-slot="control-pill" className={cn(
             "flex items-stretch overflow-hidden rounded-[12px]",
             settings.wifiEnabled
               ? "bg-adw-accent text-white"
@@ -406,7 +406,7 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
 
         {/* Bluetooth Split Pill (Toggle + Inline Device Picker) */}
         <div
-          className={cn(
+          data-slot="control-pill" className={cn(
             "flex items-stretch overflow-hidden rounded-[12px]",
             settings.bluetoothEnabled
               ? "bg-adw-accent text-white"
@@ -458,12 +458,12 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
 
         {/* Inline Wi-Fi Network Picker (expands directly under Wi-Fi / Bluetooth) */}
         {expandedPicker === "wifi" && (
-          <div className="col-span-2 flex flex-col gap-1 rounded-[14px] bg-black/6 p-2.5 dark:bg-white/8">
+          <div data-slot="control-card" className="col-span-2 flex flex-col gap-1 rounded-[14px] bg-black/6 p-2.5 dark:bg-white/8">
             <div className="mb-1 flex items-center justify-between px-1">
               <span className="text-adw-subheadline font-medium text-adw-label-secondary">
                 {_("Wi-Fi Networks")}
               </span>
-              {!isBrowserRuntime && gnomeCapabilities.gnomeControlCenter && (
+              {!isBrowserRuntime && gnomeCapabilities.gnomeControlCenter && (  // FIXME : Capabilities
                 <button
                   type="button"
                   onClick={() => {
@@ -493,7 +493,7 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
                     <button
                       type="button"
                       onClick={() => void joinWifi(net.ssid)}
-                      className={cn(
+                      data-slot="control-row" className={cn(
                         "flex items-center justify-between gap-2 rounded-adw-item px-2.5 py-1.5 text-left text-adw-subheadline",
                         connected
                           ? "bg-adw-accent/18 font-medium text-adw-label"
@@ -554,12 +554,12 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
 
         {/* Inline Bluetooth Device Picker (expands directly under Wi-Fi / Bluetooth) */}
         {expandedPicker === "bluetooth" && (
-          <div className="col-span-2 flex flex-col gap-1 rounded-[14px] bg-black/6 p-2.5 dark:bg-white/8">
+          <div data-slot="control-card" className="col-span-2 flex flex-col gap-1 rounded-[14px] bg-black/6 p-2.5 dark:bg-white/8">
             <div className="mb-1 flex items-center justify-between px-1">
               <span className="text-adw-subheadline font-medium text-adw-label-secondary">
                 {_("Bluetooth Devices")}
               </span>
-              {!isBrowserRuntime && gnomeCapabilities.gnomeControlCenter && (
+              {!isBrowserRuntime && gnomeCapabilities.gnomeControlCenter && (  // FIXME : Capabilities
                 <button
                   type="button"
                   onClick={() => {
@@ -587,7 +587,7 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
                     key={device.path}
                     type="button"
                     onClick={() => void toggleBluetoothDevice(device.path)}
-                    className={cn(
+                    data-slot="control-row" className={cn(
                       "flex items-center justify-between gap-2 rounded-adw-item px-2.5 py-1.5 text-left text-adw-subheadline",
                       device.connected
                         ? "bg-adw-accent/18 font-medium text-adw-label"
@@ -619,7 +619,7 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
               themeMode: next,
             });
           }}
-          className={cn(
+          data-slot="control-pill" className={cn(
             "flex items-center gap-2.5 rounded-[12px] px-3 py-2 text-left",
             settings.themeMode === "dark"
               ? "bg-adw-accent text-white active:bg-[color-mix(in_srgb,var(--adw-accent),white_20%)]"
@@ -643,7 +643,7 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
             );
             updateSettings({ doNotDisturb: next });
           }}
-          className={cn(
+          data-slot="control-pill" className={cn(
             "flex items-center gap-2.5 rounded-[12px] px-3 py-2 text-left",
             settings.doNotDisturb
               ? "bg-adw-accent text-white active:bg-[color-mix(in_srgb,var(--adw-accent),white_20%)]"
@@ -667,7 +667,7 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
             );
             updateSettings({ nightLight: next });
           }}
-          className={cn(
+          data-slot="control-pill" className={cn(
             "flex items-center gap-2.5 rounded-[12px] px-3 py-2 text-left",
             settings.nightLight
               ? "bg-adw-accent text-white active:bg-[color-mix(in_srgb,var(--adw-accent),white_20%)]"
@@ -684,7 +684,7 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
         <button
           type="button"
           onClick={togglePowerSaver}
-          className={cn(
+          data-slot="control-pill" className={cn(
             "flex items-center gap-2.5 rounded-[12px] px-3 py-2 text-left",
             settings.powerMode === "power-saver"
               ? "bg-adw-accent text-white active:bg-[color-mix(in_srgb,var(--adw-accent),white_20%)]"
@@ -700,7 +700,7 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
 
       {/* MPRIS Media Player Card */}
       {mprisMedia && (
-        <div className="flex items-center justify-between gap-2.5 rounded-adw-card bg-black/6 px-3 py-2.5 dark:bg-white/8">
+        <div data-slot="control-card" className="flex items-center justify-between gap-2.5 rounded-adw-card bg-black/6 px-3 py-2.5 dark:bg-white/8">
           <div className="flex min-w-0 flex-1 items-center gap-2.5">
             <span className="flex size-8 shrink-0 items-center justify-center rounded-adw-item bg-adw-accent/20 text-adw-accent">
               <Music2Icon className="size-4" />
