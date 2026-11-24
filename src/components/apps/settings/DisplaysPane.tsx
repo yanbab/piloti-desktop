@@ -18,6 +18,25 @@ import {
   useSystemBackends,
 } from "@/context/DesktopStateContext";
 import { _ } from "@/lib/core/i18n";
+import {
+  ComputerHardwareIllustration,
+  MonitorHardwareIllustration,
+} from "@/components/shell/AboutComputerDialog";
+import { DesktopBackgroundLayers } from "@/components/shell/DesktopBackgroundLayers";
+
+/** What the header and list show for one screen. */
+interface ScreenEntry {
+  name: string;
+  resolution: string;
+  kind: "laptop" | "monitor";
+}
+
+/** The web demo adds a pretend external screen, to show a two-screen setup. */
+const DEMO_EXTERNAL_SCREEN: ScreenEntry = {
+  name: "Studio Display",
+  resolution: "2560 × 1440",
+  kind: "monitor",
+};
 
 export function DisplaysPane() {
   const domicile = useDomicile();
@@ -26,6 +45,15 @@ export function DisplaysPane() {
   const { systemServices } = useCapabilities();
   const { pushNotification } = useSystemBackends();
   const [addingVirtual, setAddingVirtual] = React.useState(false);
+
+  const screens: ScreenEntry[] = [
+    ...displays.map((d, idx) => ({
+      name: d.name,
+      resolution: `${d.modeWidth || d.width} × ${d.modeHeight || d.height}`,
+      kind: (idx === 0 ? "laptop" : "monitor") as ScreenEntry["kind"],
+    })),
+    ...(systemServices ? [] : [DEMO_EXTERNAL_SCREEN]),
+  ];
 
   const handleAddVirtualDisplay = async () => {
     if (!systemServices) {
@@ -69,13 +97,42 @@ export function DisplaysPane() {
   };
 
   return (
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+      {/* Same header strip as Wallpaper: each screen with its wallpaper. */}
+      <div
+        data-slot="displays-preview"
+        className="flex shrink-0 items-end justify-center gap-8 border-b border-adw-separator bg-adw-window/60 px-6 pt-3 pb-4"
+      >
+        {screens.map((screen) => {
+          const Illustration =
+            screen.kind === "laptop" ? ComputerHardwareIllustration : MonitorHardwareIllustration;
+          return (
+            <div key={screen.name} className="flex min-w-0 flex-col items-center gap-1.5 text-center">
+              <Illustration
+                className="h-24 w-38 shrink-0 drop-shadow-md"
+                screenContent={<DesktopBackgroundLayers />}
+              />
+              <div className="flex min-w-0 flex-col">
+                <span className="max-w-44 truncate text-adw-body font-semibold text-adw-label">
+                  {screen.name}
+                </span>
+                <span className="text-adw-footnote tabular-nums text-adw-label-secondary">
+                  {screen.resolution}
+                </span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="min-h-0 flex-1 overflow-y-auto">
     <GroupedForm>
       <GroupedFormSection>
         <GroupedFormSectionTitle>
-          {_("Connected & Virtual Displays")} ({displays.length})
+          {_("Connected & Virtual Displays")} ({screens.length})
         </GroupedFormSectionTitle>
         <GroupedFormGroup>
-          {displays.map((d, idx) => (
+          {screens.map((d, idx) => (
             <GroupedFormRow key={d.name}>
               <GroupedFormRowLabel>
                 <GroupedFormRowTitle className="font-semibold">
@@ -151,6 +208,8 @@ export function DisplaysPane() {
         </GroupedFormGroup>
       </GroupedFormSection>
     </GroupedForm>
+      </div>
+    </div>
   );
 }
 

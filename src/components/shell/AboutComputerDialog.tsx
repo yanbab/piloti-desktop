@@ -106,6 +106,41 @@ export function ComputerHardwareIllustration({
   );
 }
 
+/** An external monitor on a stand, same size and style as the laptop. */
+export function MonitorHardwareIllustration({
+  className,
+  screenContent,
+}: {
+  className?: string;
+  screenContent?: React.ReactNode;
+}) {
+  return (
+    <svg viewBox="0 0 160 112" fill="none" aria-hidden="true" className={className}>
+      <defs>
+        <linearGradient id="piloti-monitor-stand" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#dcdce0" />
+          <stop offset="100%" stopColor="#aeaeb4" />
+        </linearGradient>
+      </defs>
+      {/* Stand */}
+      <path d="M70 84h20l3 14H67l3-14Z" fill="url(#piloti-monitor-stand)" />
+      <rect x="52" y="97" width="56" height="4" rx="2" fill="#a2a2a8" />
+      {/* Bezel */}
+      <rect x="10" y="6" width="140" height="80" rx="5" fill="#161618" stroke="#4a4a50" strokeWidth="1.5" />
+      {screenContent ? (
+        <foreignObject x="14" y="10" width="132" height="72">
+          <div className="relative h-full w-full overflow-hidden rounded-[2px]">{screenContent}</div>
+        </foreignObject>
+      ) : (
+        <rect x="14" y="10" width="132" height="72" rx="2" fill="#2a6fd6" />
+      )}
+      <rect x="14" y="10" width="132" height="5" fill="rgb(0 0 0 / 0.25)" />
+      {/* Shadow */}
+      <ellipse cx="80" cy="104" rx="40" ry="3" fill="rgb(0 0 0 / 0.22)" />
+    </svg>
+  );
+}
+
 /**
  * macOS "About This Mac"-inspired About Computer window built with Adwaita grouped rows.
  */
