@@ -119,7 +119,7 @@ export const DEFAULT_STATIC_DIR_INDEX: Record<string, readonly { name: string; f
       "fileType": 0
     },
     {
-      "name": "piloti-shell",
+      "name": "piloti-terminal",
       "fileType": 0
     },
     {
@@ -185,7 +185,7 @@ export const DEFAULT_STATIC_DIR_INDEX: Record<string, readonly { name: string; f
       "fileType": 0
     },
     {
-      "name": "piloti-shell.desktop",
+      "name": "piloti-terminal.desktop",
       "fileType": 0
     },
     {

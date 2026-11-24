@@ -1,8 +1,8 @@
 [Desktop Entry]
 Type=Application
-Name=Desktop Shell
-Comment=Desktop shell with VFS commands
-Exec=piloti-shell
+Name=Terminal
+Comment=Terminal with bash and the piloti-shell
+Exec=piloti-terminal
 Icon=utilities-terminal
 Categories=System;TerminalEmulator;Development;
 OnlyShowIn=Piloti;
