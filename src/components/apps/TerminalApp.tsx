@@ -1,5 +1,6 @@
 import React from "react";
 import { useOpenPath } from "@/hooks/use-open-path";
+import { listFsDir } from "@/lib/engine/fs-bridge";
 import { useDomicile } from "@domicile-desktop/react/domicile-provider";
 import { InlineCompletionInput } from "@/components/ui/inline-completion-input";
 import {
@@ -1388,6 +1389,26 @@ export const TerminalApp: React.FC<TerminalAppProps> = ({ initialPath }) => {
     }
   };
 
+  // On Linux the file cache only holds what was listed, so list the directory
+  // being completed first and recompute when it arrives.
+  const [warmedDirs, setWarmedDirs] = React.useState(0);
+  const completionDir = React.useMemo(() => {
+    const m = /(\S*)$/.exec(input);
+    const token = m?.[1] ?? "";
+    const slash = token.lastIndexOf("/");
+    return slash >= 0 ? resolveVfsPath(cwd, token.slice(0, slash + 1)) : cwd;
+  }, [cwd, input]);
+  React.useEffect(() => {
+    if (isBrowserRuntime) return;
+    let cancelled = false;
+    void listFsDir(domicile, false, completionDir).then(() => {
+      if (!cancelled) setWarmedDirs((n) => n + 1);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [completionDir, domicile, isBrowserRuntime]);
+
   const inlineCompletion = React.useMemo(() => {
     if (!input || reverseSearch.active) return undefined;
     const lower = input.toLowerCase();
@@ -1433,7 +1454,7 @@ export const TerminalApp: React.FC<TerminalAppProps> = ({ initialPath }) => {
       }
     }
     return undefined;
-  }, [cwd, history, input, reverseSearch.active]);
+  }, [cwd, history, input, reverseSearch.active, warmedDirs]);
 
   const reverseMatches = React.useMemo(() => {
     if (!reverseSearch.active) return [];

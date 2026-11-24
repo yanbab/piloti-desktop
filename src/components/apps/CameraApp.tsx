@@ -8,7 +8,7 @@ import { resolveUserDirPath } from "@/lib/xdg/xdg-user-dirs";
 import { WindowControls } from "@/components/ui/window";
 import { _ } from "@/lib/core/i18n";
 import { cn } from "@/lib/core/utils";
-import { toDomicilePath } from "@/lib/engine/fs-bridge";
+import { listFsDir, toDomicilePath } from "@/lib/engine/fs-bridge";
 import { listVfsDir, WEB_VFS_HOME, writeVfsTextFile } from "@/lib/engine-web/web-vfs";
 import {
   audioBaseName,
@@ -131,7 +131,11 @@ export const CameraApp: React.FC<CameraAppProps> = ({ windowId = "", isCsd = tru
       const dir = isBrowserRuntime
         ? `${WEB_VFS_HOME}/Desktop`
         : resolveUserDirPath("DESKTOP", xdgUserDirs, WEB_VFS_HOME);
-      const name = uniqueCaptureName(listVfsDir(dir).map((e) => e.name), base, ext);
+      const name = uniqueCaptureName(
+        (isBrowserRuntime ? listVfsDir(dir) : await listFsDir(domicile, false, dir)).map((e) => e.name),
+        base,
+        ext,
+      );
       const path = `${dir}/${name}`;
       const metadata = {
         "standard::content-type": mime,
