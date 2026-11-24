@@ -274,7 +274,7 @@ export const APP_CATALOG: AppDefinition[] = [
     pinnedByDefault: true,
     builtinComponent: "settings",
     command: "piloti-settings",
-    defaultSize: { width: 820, height: 550 },
+    defaultSize: { width: 860, height: 550 },
     minSize: { width: 320, height: 400 },
     menus: [
       {

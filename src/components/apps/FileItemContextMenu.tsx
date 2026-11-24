@@ -359,7 +359,7 @@ export function FileItemContextMenu({
                         iconUrl={iconUrl}
                         gradient={catApp?.gradient}
                         squircle={false}
-                        className="size-6 shrink-0"
+                        className="size-4 shrink-0"
                         glyphClassName="size-4"
                       />
                       <span className="truncate">

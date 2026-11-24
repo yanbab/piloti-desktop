@@ -1,5 +1,6 @@
 "use client"
 
+import * as React from "react"
 import { Button as ButtonPrimitive } from "@base-ui/react/button"
 import { cva, type VariantProps } from "class-variance-authority"
 
@@ -54,17 +55,30 @@ const buttonVariants = cva(
 // Base UI's Button. To render a link or another element with the button's
 // styles, pass it as `render` (with `nativeButton={false}` when it isn't a
 // <button>).
+//
+// `data-label` marks buttons with a text label: the Piloti theme hides their
+// icons (macOS buttons are text only). `keepIcon` keeps it, e.g. an "Add"
+// button's plus.
 function Button({
   className,
   variant = "default",
   size = "default",
+  keepIcon = false,
   ...props
-}: ButtonPrimitive.Props & VariantProps<typeof buttonVariants>) {
+}: ButtonPrimitive.Props &
+  VariantProps<typeof buttonVariants> & { keepIcon?: boolean }) {
+  const hasLabel = React.Children.toArray(props.children).some(
+    (child) =>
+      (typeof child === "string" || typeof child === "number") &&
+      String(child).trim() !== ""
+  )
   return (
     <ButtonPrimitive
       data-slot="button"
       data-variant={variant}
       data-size={size}
+      data-label={hasLabel || undefined}
+      data-keep-icon={keepIcon || undefined}
       className={cn(buttonVariants({ variant, size, className }))}
       {...props}
     />

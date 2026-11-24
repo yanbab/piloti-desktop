@@ -1493,15 +1493,28 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
   const activeSlideIndex =
     featuredItems.length > 0 ? featuredSlide % featuredItems.length : 0;
   const activeFeaturedItem = featuredItems[activeSlideIndex] ?? null;
-  // Next featured app every 3 s, paused while the pointer is over it.
+  // Next featured app every 5 s, paused while the pointer is over it.
   React.useEffect(() => {
     if (featuredHovered || featuredItems.length < 2) return;
     const timer = window.setInterval(
       () => setFeaturedSlide((prev) => (prev + 1) % featuredItems.length),
-      3000,
+      5000,
     );
     return () => window.clearInterval(timer);
   }, [featuredHovered, featuredItems.length]);
+  // The slide being replaced stays under the new one while it fades in.
+  const lastFeaturedIdRef = React.useRef<string | null>(null);
+  const [underFeaturedId, setUnderFeaturedId] = React.useState<string | null>(null);
+  const activeFeaturedId = activeFeaturedItem?.id ?? null;
+  React.useEffect(() => {
+    const last = lastFeaturedIdRef.current;
+    if (last && last !== activeFeaturedId) setUnderFeaturedId(last);
+    lastFeaturedIdRef.current = activeFeaturedId;
+  }, [activeFeaturedId]);
+  const underFeaturedItem =
+    underFeaturedId && underFeaturedId !== activeFeaturedId
+      ? featuredItems.find((item) => item.id === underFeaturedId) ?? null
+      : null;
 
   const selectedItem = React.useMemo(
     () => items.find((item) => item.id === selectedId) ?? null,
@@ -2653,27 +2666,34 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                 onPointerLeave={() => setFeaturedHovered(false)}
                 className="group/featured relative mb-5 overflow-hidden rounded-adw-group bg-black/5 px-5 py-10 dark:bg-white/5"
               >
-                {activeFeaturedItem.faviconUrl && (
-                  <>
-                    <img
-                      src={activeFeaturedItem.faviconUrl}
-                      alt=""
-                      aria-hidden="true"
-                      draggable={false}
-                      className="pointer-events-none absolute inset-0 size-full scale-[2.2] object-cover opacity-85 blur-[64px] saturate-[2.4] contrast-110 select-none dark:opacity-75"
-                    />
-                    <img
-                      src={activeFeaturedItem.faviconUrl}
-                      alt=""
-                      aria-hidden="true"
-                      draggable={false}
-                      className="pointer-events-none absolute -top-1/2 -left-1/4 size-[960px] object-contain opacity-65 blur-[72px] saturate-[2.6] select-none dark:opacity-55"
-                    />
-                    <div
-                      aria-hidden="true"
-                      className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/35 via-white/15 to-white/25 dark:from-black/25 dark:via-black/15 dark:to-black/35"
-                    />
-                  </>
+                {/* Crossfade: the new backdrop fades in over the previous one. */}
+                {[underFeaturedItem, activeFeaturedItem].map(
+                  (item) =>
+                    item?.faviconUrl && (
+                      <div
+                        key={item.id}
+                        aria-hidden="true"
+                        className={cn(
+                          "pointer-events-none absolute inset-0",
+                          item === activeFeaturedItem &&
+                            "animate-in fade-in-0 duration-700"
+                        )}
+                      >
+                        <img
+                          src={item.faviconUrl}
+                          alt=""
+                          draggable={false}
+                          className="absolute inset-0 size-full scale-[2.2] object-cover opacity-85 blur-[64px] saturate-[2.4] contrast-110 select-none dark:opacity-75"
+                        />
+                        <img
+                          src={item.faviconUrl}
+                          alt=""
+                          draggable={false}
+                          className="absolute -top-1/2 -left-1/4 size-[960px] object-contain opacity-65 blur-[72px] saturate-[2.6] select-none dark:opacity-55"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-b from-white/35 via-white/15 to-white/25 dark:from-black/25 dark:via-black/15 dark:to-black/35" />
+                      </div>
+                    )
                 )}
                 <div className="relative z-10 flex items-center gap-3">
                   <button
@@ -2700,7 +2720,8 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                         setSelectedId(activeFeaturedItem.id);
                       }
                     }}
-                    className="flex min-w-0 flex-1 cursor-default flex-col items-center justify-center gap-2.5 text-center outline-none"
+                    key={activeFeaturedItem.id}
+                    className="flex min-w-0 flex-1 cursor-default flex-col items-center justify-center gap-2.5 text-center outline-none animate-in fade-in-0 duration-700"
                   >
                     <WebAppFavicon
                       url={activeFeaturedItem.faviconUrl}

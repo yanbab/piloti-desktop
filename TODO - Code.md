@@ -5,7 +5,6 @@ Focus for now: stabilize, fine-tune, optimise. Features wait.
 ## Refactoring left
 
 - **Capabilities instead of `isBrowserRuntime`**: about 150 uses left, each marked `// FIXME : Capabilities` (grep it). Low value; only if a third engine needs it. Replace with `useCapabilities()` / `getEngine().capabilities`.
-- **Launcher list**: cap or virtualize rows if "Loading…" shows for long on open.
 - **Window switching**: forced layout fixed; remaining cost is mostly native paint (blur, compositing). Re-test in the VM, then consider a setting to disable backdrop blur.
 
 ## Features pending

@@ -130,8 +130,10 @@
   --grouped-form-radius: var(--adw-radius-item);
   --grouped-form-row-inset: 10px;
   --grouped-form-separator: rgb(0 0 0 / 0.08);
+  /* 680px of rows (Settings opens at sidebar + 680px); wider windows
+     center the view, the headerbar title stays put. */
   max-width: 680px;
-  margin-inline: 0;
+  margin-inline: auto;
   padding: 12px var(--grouped-form-inset) 24px;
   gap: 0;
 }
@@ -421,4 +423,11 @@
 
 :root[data-interface-theme="piloti"] [data-slot="dock"][data-position="right"] {
   border-radius: var(--dock-radius) 0 0 var(--dock-radius) !important;
+}
+
+/* ── Buttons: text only when they have a label (macOS) ─────────────────── */
+/* `data-label` is set by <Button> when it has text; `keepIcon` (Add buttons)
+   sets `data-keep-icon`. */
+:root[data-interface-theme="piloti"] [data-slot="button"][data-label]:not([data-keep-icon]) > svg {
+  display: none;
 }

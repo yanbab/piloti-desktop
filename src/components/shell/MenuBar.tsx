@@ -439,8 +439,8 @@ export const MenuBar = React.memo(function MenuBar() {
             entries: [
               { label: "Minimize", shortcut: "Alt+M" },
               { label: "Maximize", shortcut: "Alt+F" },
-              { label: "Tile Left", shortcut: "Alt+[" },
-              { label: "Tile Right", shortcut: "Alt+]" },
+              { label: "Left Side", shortcut: "Alt+[" },
+              { label: "Right Side", shortcut: "Alt+]" },
             ],
           },
         ],
@@ -497,8 +497,8 @@ export const MenuBar = React.memo(function MenuBar() {
       const id = focusedWindowId;
       add([win], _("Minimize"), () => toggleMinimizeWindow(id), { shortcut: "Alt+M" });
       add([win], focusedWindow?.maximized ? _("Restore") : _("Maximize"), () => toggleMaximizeWindow(id), { shortcut: "Alt+F" });
-      add([win], _("Tile Left"), () => tileWindow(id, "left"), { shortcut: "Alt+[" });
-      add([win], _("Tile Right"), () => tileWindow(id, "right"), { shortcut: "Alt+]" });
+      add([win], _("Left Side"), () => tileWindow(id, "left"), { shortcut: "Alt+[" });
+      add([win], _("Right Side"), () => tileWindow(id, "right"), { shortcut: "Alt+]" });
       add([win], _("Close"), () =>
         emitShellEvent("piloti:request-animated-close", { windowId: id }),
         { shortcut: "Alt+W" });
@@ -910,7 +910,7 @@ export const MenuBar = React.memo(function MenuBar() {
                   disabled={!focusedWindowId}
                   onClick={() => focusedWindowId && tileWindow(focusedWindowId, "left")}
                 >
-                  {_("Tile Left")}
+                  {_("Left Side")}
                   <MenuShortcutLabel
                     shortcut="Alt+["
                     model={settings.computerModel}
@@ -920,7 +920,7 @@ export const MenuBar = React.memo(function MenuBar() {
                   disabled={!focusedWindowId}
                   onClick={() => focusedWindowId && tileWindow(focusedWindowId, "right")}
                 >
-                  {_("Tile Right")}
+                  {_("Right Side")}
                   <MenuShortcutLabel
                     shortcut="Alt+]"
                     model={settings.computerModel}

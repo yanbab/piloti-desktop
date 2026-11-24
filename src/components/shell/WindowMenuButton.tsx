@@ -123,10 +123,10 @@ export function WindowMenuItems({
         {maximized ? _("Restore") : _("Maximize")}
       </DropdownMenuItem>
       <DropdownMenuItem onClick={run(() => tileWindow(windowId, "left"))}>
-        {_("Tile Left")}
+        {_("Left Side")}
       </DropdownMenuItem>
       <DropdownMenuItem onClick={run(() => tileWindow(windowId, "right"))}>
-        {_("Tile Right")}
+        {_("Right Side")}
       </DropdownMenuItem>
       {visiblePluginItems.length > 0 && <DropdownMenuSeparator />}
       {visiblePluginItems.map((item) => (
