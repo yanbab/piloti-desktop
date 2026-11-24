@@ -13,6 +13,20 @@ Focus for now: stabilize, fine-tune, optimise. Features wait.
 - On hold: `org.piloti` GSettings schema decision.
 
 
+## Ideas (small improvements)
+
+Checked against the code on 2026-11-24. Priority picks are marked (*).
+
+- Browser: (*) reopen closed tab (Ctrl+Shift+T), (*) pin tab, duplicate tab. None exist.
+- Notifications: (*) schedule for Do Not Disturb. The toggle exists in the Control Panel (`doNotDisturb`); no schedule, no per-app mute, no "clear all" check yet.
+- Windows: (*) Alt+` to cycle the windows of one app (not there). Corner snapping exists (`quad` in `window.tsx`); a keyboard shortcut for it was not checked.
+- Quick settings: airplane mode (not there); night-light schedule (the toggle exists, `nightLight`); rotation lock; battery time remaining.
+- Terminal: tabs, Ctrl +/- font size, copy on select (not checked in `XtermTerminalApp`).
+- Folders: batch rename (only `renameSelected` for one item exists), properties dialog with permissions (not found), drag out to other windows.
+- Dock: notification count badges (not there), "Quit all windows" in the Dock menu (not there), thumbnails on hover.
+- Launcher: unit and currency conversion, clipboard history (neither there); calculator history.
+- Settings: reset a pane to defaults, search across panes.
+
 ## Done
 - Old terminal (`TerminalApp.tsx`, `terminal-pipeline.ts` and its test) removed; the app is now "Terminal" with `piloti-terminal` as desktop file, command and bin script (`piloti-shell` still resolves as an alias).
 - Launcher opens at once and fills its list next frame; no app/icon refresh on open.
