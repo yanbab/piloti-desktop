@@ -933,7 +933,6 @@ export const MenuBar = React.memo(function MenuBar() {
                       onClick={() =>
                         toggleWebAppInstall({
                           domicile,
-                          isBrowserRuntime,
                           installedWebApps: settings.installedWebApps ?? [],
                           pinnedAppIds: settings.pinnedAppIds,
                           updateSettings,

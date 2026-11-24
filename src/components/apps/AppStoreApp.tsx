@@ -988,10 +988,10 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
         iconUrl: getWebAppFaviconUrl(canonical),
         category: "Internet",
       };
-      void installWebAppDesktopEntry(domicile, isBrowserRuntime, initialApp);
+      void installWebAppDesktopEntry(domicile, initialApp);
       void fetchWebPageMetadata(canonical).then(({ title, iconUrl, startUrl }) => {
         if (title || iconUrl || startUrl) {
-          void installWebAppDesktopEntry(domicile, isBrowserRuntime, {
+          void installWebAppDesktopEntry(domicile, {
             ...initialApp,
             ...(title ? { title } : {}),
             ...(iconUrl ? { iconUrl } : {}),
@@ -1546,10 +1546,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
             (w) => (canonicalizeWebUrl(w.url) ?? w.url) === targetCanonical,
           )
         ) {
-          void installWebAppDesktopEntry(
-            domicile,
-            isBrowserRuntime,
-            item.webApp,
+          void installWebAppDesktopEntry(domicile, item.webApp,
           );
         }
         return;
@@ -1631,10 +1628,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
     (item: StoreItem) => {
       if (!item.removable) return;
       if (item.kind === "web" && item.webApp) {
-        void removeWebAppDesktopEntry(
-          domicile,
-          isBrowserRuntime,
-          item.webApp,
+        void removeWebAppDesktopEntry(domicile, item.webApp,
         );
         if (settings.pinnedAppIds.includes(item.webApp.id)) {
           updateSettings({

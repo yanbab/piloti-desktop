@@ -142,7 +142,7 @@ function DesktopSurface() {
       if (isBrowserRuntime) {
         setTemplates(listVfsTemplates());
       } else {
-        void listFsTemplates(domicile, isBrowserRuntime).then((list) =>
+        void listFsTemplates(domicile).then((list) =>
           setTemplates(list)
         );
       }
@@ -408,7 +408,7 @@ function DomicileShellCommandBridge() {
         iconUrl: getWebAppFaviconUrl(canonical),
         category: "Internet",
       };
-      void installWebAppDesktopEntry(domicile, isBrowserRuntime, app);
+      void installWebAppDesktopEntry(domicile, app);
     },
     removeWebApp: (target) => {
       const canonical = canonicalizeWebUrl(target);
@@ -419,7 +419,7 @@ function DomicileShellCommandBridge() {
             (canonicalizeWebUrl(w.url) ?? w.url) === canonical)
       );
       const toRemove = match ?? { id: target, url: canonical ?? target };
-      void removeWebAppDesktopEntry(domicile, isBrowserRuntime, toRemove);
+      void removeWebAppDesktopEntry(domicile, toRemove);
     },
   };
 

@@ -910,7 +910,6 @@ function WebViewSurface({
   const toggleInstallApp = () => {
     toggleWebAppInstall({
       domicile,
-      isBrowserRuntime,
       installedWebApps: installedApps,
       pinnedAppIds: settings.pinnedAppIds,
       updateSettings,

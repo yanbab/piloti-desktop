@@ -74,6 +74,58 @@ export interface AdwSplitViewProps {
  * with compact icon tooltips, CSD window controls, optional right header/footer,
  * and optional auxiliary right inspector pane).
  */
+/**
+ * Lines the page title in the header (`data-slot="page-title"`) up with the
+ * row titles of the content below, in every theme and at any width (the
+ * Adwaita form is centred, the Piloti one is not). Re-measured on resize,
+ * page changes and theme changes.
+ */
+function usePageTitleAlignment(containerRef: React.RefObject<HTMLDivElement | null>) {
+  React.useLayoutEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    let frame = 0;
+    const align = () => {
+      frame = 0;
+      const title = container.querySelector<HTMLElement>(PAGE_TITLE_SELECTOR);
+      if (!title) return;
+      const target = Array.from(
+        container.querySelectorAll<HTMLElement>('[data-slot="grouped-form-row-title"]'),
+      ).find((el) => el.getBoundingClientRect().width > 0);
+      if (!target) {
+        title.style.paddingLeft = "";
+        return;
+      }
+      // Padding moves the text, not the box: the inset is box to row title.
+      const inset = Math.round(
+        target.getBoundingClientRect().left - title.getBoundingClientRect().left,
+      );
+      title.style.paddingLeft = inset >= 0 ? `${inset}px` : "";
+    };
+    const schedule = () => {
+      if (!frame) frame = requestAnimationFrame(align);
+    };
+    align();
+    const resize = new ResizeObserver(schedule);
+    resize.observe(container);
+    const content = new MutationObserver(schedule);
+    content.observe(container, { childList: true, subtree: true });
+    const theme = new MutationObserver(schedule);
+    theme.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-interface-theme", "class", "style"],
+    });
+    return () => {
+      if (frame) cancelAnimationFrame(frame);
+      resize.disconnect();
+      content.disconnect();
+      theme.disconnect();
+    };
+  }, [containerRef]);
+}
+
+const PAGE_TITLE_SELECTOR = '[data-slot="page-title"], [data-slot="settings-page-title"]';
+
 export function AdwSplitView({
   title,
   appId,
@@ -115,6 +167,8 @@ export function AdwSplitView({
 
   const onCompactChangeRef = React.useRef(onCompactChange);
   onCompactChangeRef.current = onCompactChange;
+
+  usePageTitleAlignment(containerRef);
 
   React.useLayoutEffect(() => {
     const el = containerRef.current;

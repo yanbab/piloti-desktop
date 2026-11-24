@@ -58,7 +58,7 @@ export function useOpenPath() {
   const getConfig = React.useCallback(async (): Promise<MimeAppsConfig> => {
     if (!configRef.current) {
       try {
-        configRef.current = await loadMimeAppsConfig(domicile, isBrowserRuntime);
+        configRef.current = await loadMimeAppsConfig(domicile);
       } catch {
         configRef.current = parseMimeAppsList("");
       }
@@ -151,7 +151,7 @@ export function useOpenPath() {
       const config = await getConfig();
       const mime = inferMimeType(name, kind);
       if (kind === "file") {
-        void recordFsRecentFile(domicile, isBrowserRuntime, path, mime);
+        void recordFsRecentFile(domicile, path, mime);
       }
       const action = resolveOpenAction({
         path,

@@ -808,10 +808,7 @@ export function useSettingsValue(options?: {
     let cancelled = false;
 
     const syncFromXdg = async (seedIfEmpty: boolean) => {
-      const fromXdg = await loadWebAppsFromDesktopEntries(
-        domicile,
-        isBrowserRuntime,
-      );
+      const fromXdg = await loadWebAppsFromDesktopEntries(domicile);
       if (cancelled) return;
       if (
         seedIfEmpty &&
@@ -820,7 +817,7 @@ export function useSettingsValue(options?: {
       ) {
         const toSeed = settingsRef.current.installedWebApps;
         for (const app of toSeed) {
-          await installWebAppDesktopEntry(domicile, isBrowserRuntime, app);
+          await installWebAppDesktopEntry(domicile, app);
         }
         return;
       }

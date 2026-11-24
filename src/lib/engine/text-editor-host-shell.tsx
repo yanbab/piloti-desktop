@@ -41,9 +41,9 @@ export function createInShellEditorHost(
       const r = renameVfsEntry(path, newName);
       return r ? { path: r.path, name: r.name } : null;
     },
-    readMetadata: (path, keys) => readFsMetadata(domicile, false, path, keys),
+    readMetadata: (path, keys) => readFsMetadata(domicile, path, keys),
     writeMetadata: (path, patch) =>
-      writeFsMetadata(domicile, isBrowserRuntime, path, patch),
+      writeFsMetadata(domicile, path, patch),
     readState: (key, isValid) =>
       readVfsStateJson(stateFile(key), undefined, isValid),
     writeState: (key, value) => {

@@ -115,7 +115,7 @@ export function FileItemContextMenu({
   React.useEffect(() => {
     if (!menu) return;
     let cancelled = false;
-    void loadMimeAppsConfig(domicile, isBrowserRuntime).then((cfg) => {
+    void loadMimeAppsConfig(domicile).then((cfg) => {
       if (!cancelled) setMimeConfig(cfg);
     });
     return () => {

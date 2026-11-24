@@ -536,7 +536,7 @@ export function DesktopIconsApp({
   const handleMoveToTrash = React.useCallback(
     async (item: IconGridItem) => {
       setContextMenu(null);
-      trashWithUndo({ domicile, isBrowserRuntime }, [item.path]);
+      trashWithUndo({ domicile }, [item.path]);
       await loadDesktopFolder();
       setSelectedIds((prev) => prev.filter((id) => id !== item.id));
     },
@@ -713,13 +713,13 @@ export function DesktopIconsApp({
   const handlePasteToDesktop = React.useCallback(async () => {
     const clip = getVfsClipboard();
     if (!clip || clip.paths.length === 0) return;
-    const ctx = { domicile, isBrowserRuntime };
+    const ctx = { domicile };
     if (clip.mode === "cut") {
       moveWithUndo(ctx, clip.paths, desktopDirPath);
     } else {
       const created: string[] = [];
       for (const srcPath of clip.paths) {
-        const path = await copyFsEntry(domicile, isBrowserRuntime, srcPath, desktopDirPath);
+        const path = await copyFsEntry(domicile, srcPath, desktopDirPath);
         if (path) created.push(path);
       }
       recordCreated(ctx, created, "Paste");
@@ -741,10 +741,10 @@ export function DesktopIconsApp({
           dot > 0 && item.kind !== "directory"
             ? `${item.name.slice(0, dot)} Copy${item.name.slice(dot)}`
             : `${item.name} Copy`;
-        const path = await copyFsEntry(domicile, isBrowserRuntime, item.path, desktopDirPath, { name });
+        const path = await copyFsEntry(domicile, item.path, desktopDirPath, { name });
         if (path) createdPaths.push(path);
       }
-      recordCreated({ domicile, isBrowserRuntime }, createdPaths, "Duplicate");
+      recordCreated({ domicile }, createdPaths, "Duplicate");
       await loadDesktopFolder();
       if (createdPaths.length > 0) {
         setSelectedIds(createdPaths.map((p) => p.split("/").pop() ?? p));
@@ -771,10 +771,10 @@ export function DesktopIconsApp({
       if (opts?.copy) {
         const created: string[] = [];
         for (const item of droppedItems) {
-          const path = await copyFsEntry(domicile, isBrowserRuntime, item.path, destPath);
+          const path = await copyFsEntry(domicile, item.path, destPath);
           if (path) created.push(path);
         }
-        recordCreated({ domicile, isBrowserRuntime }, created, "Copy");
+        recordCreated({ domicile }, created, "Copy");
         await loadDesktopFolder();
         return;
       }
@@ -787,7 +787,7 @@ export function DesktopIconsApp({
         toMove.push(item.path);
         movedIds.add(item.id);
       }
-      moveWithUndo({ domicile, isBrowserRuntime }, toMove, destPath);
+      moveWithUndo({ domicile }, toMove, destPath);
       if (movedIds.size > 0) {
         await loadDesktopFolder();
         setSelectedIds((prev) => prev.filter((id) => !movedIds.has(id)));
@@ -948,7 +948,7 @@ export function DesktopIconsApp({
         onMakeLink={(list) => {
           void Promise.all(
             list.map((target) =>
-              copyFsEntry(domicile, isBrowserRuntime, target.path, desktopDirPath, {
+              copyFsEntry(domicile, target.path, desktopDirPath, {
                 symlink: true,
                 name: _("Link to {name}").replace("{name}", target.name),
               }),

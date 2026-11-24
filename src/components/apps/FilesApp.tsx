@@ -441,7 +441,7 @@ export function FilesApp({
     if (isBrowserRuntime) {
       setTemplates(listVfsTemplates());
     } else {
-      void listFsTemplates(domicile, isBrowserRuntime).then((list) => {
+      void listFsTemplates(domicile).then((list) => {
         setTemplates(list);
       });
     }
@@ -452,13 +452,13 @@ export function FilesApp({
     if (currentPath === WEB_VFS_FAVORITES_URI) {
       setVfsEntries(listVfsFavoriteEntries());
       if (!isBrowserRuntime) {
-        void listFsFavoriteEntries(domicile, false).then((entries) => setVfsEntries(entries));
+        void listFsFavoriteEntries(domicile).then((entries) => setVfsEntries(entries));
       }
       return;
     }
     if (currentPath === WEB_VFS_RECENTS_URI) {
       setVfsEntries(listVfsRecentEntries());
-      void listFsRecentEntries(domicile, isBrowserRuntime).then((entries) => {
+      void listFsRecentEntries(domicile).then((entries) => {
         setVfsEntries(entries);
       });
       return;
@@ -467,14 +467,14 @@ export function FilesApp({
       setVfsEntries(listVfsDir(currentPath, { includeHidden: showHidden }));
       return;
     }
-    void bridgeListFsDir(domicile, isBrowserRuntime, currentPath).then((entries) => {
+    void bridgeListFsDir(domicile, currentPath).then((entries) => {
       setVfsEntries(entries);
     });
   }, [currentPath, domicile, isBrowserRuntime, showHidden]);
 
   React.useEffect(() => onFileUndoApplied(reloadDir), [reloadDir]);
 
-  const undoCtx = React.useMemo(() => ({ domicile, isBrowserRuntime }), [domicile, isBrowserRuntime]);
+  const undoCtx = React.useMemo(() => ({ domicile }), [domicile, isBrowserRuntime]);
   const { undoLabel, redoLabel } = useFileUndoState();
 
   const handlePasteItems = React.useCallback(() => {
@@ -487,7 +487,7 @@ export function FilesApp({
       } else {
         const created: string[] = [];
         for (const srcPath of clip.paths) {
-          const path = await copyFsEntry(domicile, isBrowserRuntime, srcPath, currentPath);
+          const path = await copyFsEntry(domicile, srcPath, currentPath);
           if (path) created.push(path);
         }
         recordCreated(undoCtx, created, "Paste");
@@ -506,7 +506,7 @@ export function FilesApp({
           const dot = base.lastIndexOf(".");
           const copyName =
             dot > 0 ? `${base.slice(0, dot)} Copy${base.slice(dot)}` : `${base} Copy`;
-          const path = await copyFsEntry(domicile, isBrowserRuntime, target.path, currentPath, {
+          const path = await copyFsEntry(domicile, target.path, currentPath, {
             name: copyName,
           });
           if (path) createdIds.push(path);
@@ -525,7 +525,7 @@ export function FilesApp({
       if (isTrashView) {
         // Deleting from the Trash is permanent: nothing to undo.
         for (const target of list) {
-          trashFsEntry(domicile, isBrowserRuntime, target.path);
+          trashFsEntry(domicile, target.path);
           removedIds.add(target.id);
         }
       } else {
@@ -1031,7 +1031,7 @@ export function FilesApp({
   const bookmarksFile = `${WEB_VFS_HOME}/${GTK_BOOKMARKS_RELATIVE_PATH}`;
   const [bookmarks, setBookmarks] = React.useState<GtkBookmark[]>([]);
   const loadBookmarks = React.useCallback(() => {
-    void readFsTextFile(domicile, isBrowserRuntime, bookmarksFile).then((text) =>
+    void readFsTextFile(domicile, bookmarksFile).then((text) =>
       setBookmarks(parseGtkBookmarks(text)),
     );
   }, [bookmarksFile, domicile, isBrowserRuntime]);
@@ -1044,7 +1044,7 @@ export function FilesApp({
     async (next: GtkBookmark[]) => {
       setBookmarks(next);
       if (!isBrowserRuntime) await domicile.files.createDir(".config/gtk-3.0").catch(() => undefined);
-      writeFsTextFile(domicile, isBrowserRuntime, bookmarksFile, serializeGtkBookmarks(next));
+      writeFsTextFile(domicile, bookmarksFile, serializeGtkBookmarks(next));
     },
     [bookmarksFile, domicile, isBrowserRuntime],
   );
@@ -1180,7 +1180,7 @@ export function FilesApp({
 
   const handleNewFolder = () => {
     if (isTrashView || isVirtualView) return;
-    const created = createFsFolder(domicile, isBrowserRuntime, currentPath);
+    const created = createFsFolder(domicile, currentPath);
     recordCreated(undoCtx, [created.path], "New Folder");
     reloadDir();
     setSelectedIds([created.path]);
@@ -1189,7 +1189,7 @@ export function FilesApp({
 
   const handleNewTextFile = () => {
     if (isTrashView || isVirtualView) return;
-    const created = createFsTextFile(domicile, isBrowserRuntime, currentPath);
+    const created = createFsTextFile(domicile, currentPath);
     recordCreated(undoCtx, [created.path], "New Text File");
     reloadDir();
     setSelectedIds([created.path]);
@@ -1198,10 +1198,7 @@ export function FilesApp({
 
   const handleNewFromTemplate = (template: WebVfsEntry) => {
     if (isTrashView || isVirtualView) return;
-    void createFsFileFromTemplate(
-      domicile,
-      isBrowserRuntime,
-      currentPath,
+    void createFsFileFromTemplate(domicile, currentPath,
       template
     ).then((created) => {
       reloadDir();
@@ -1306,7 +1303,7 @@ export function FilesApp({
         const created: string[] = [];
         for (const item of droppedItems) {
           if (destPath === item.path || destPath.startsWith(`${item.path}/`)) continue;
-          const path = await copyFsEntry(domicile, isBrowserRuntime, item.path, destPath);
+          const path = await copyFsEntry(domicile, item.path, destPath);
           if (path) created.push(path);
         }
         recordCreated(undoCtx, created, "Copy");
@@ -1532,7 +1529,7 @@ export function FilesApp({
           break;
         case "files:empty-trash":
           if (isTrashView && items.length > 0) {
-            void emptyFsTrash(domicile, isBrowserRuntime).then(() =>
+            void emptyFsTrash(domicile).then(() =>
               reloadDir(),
             );
           }
@@ -2022,7 +2019,7 @@ export function FilesApp({
                 variant="secondary"
                 disabled={items.length === 0}
                 onClick={() => {
-                  void emptyFsTrash(domicile, isBrowserRuntime).then(() => {
+                  void emptyFsTrash(domicile).then(() => {
                     void playSoundThemeEvent(
                       "trash-empty",
                       settings.volume,
@@ -2533,7 +2530,7 @@ export function FilesApp({
         onMakeLink={(list) => {
           void Promise.all(
             list.map((target) =>
-              copyFsEntry(domicile, isBrowserRuntime, target.path, currentPath, {
+              copyFsEntry(domicile, target.path, currentPath, {
                 symlink: true,
                 name: _("Link to {name}").replace("{name}", target.name),
               }),

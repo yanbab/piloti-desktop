@@ -34,6 +34,7 @@ import {
   serializeRecentlyUsedXbel,
   upsertRecentXbelItem,
 } from "@/lib/xdg/xdg-recents";
+import { getEngine } from "@/lib/engine/engine";
 import { createFileService, type FileService } from "@/lib/core/file-service";
 import { createNativeFileStore, toDomicilePath } from "@/lib/engine-native/native-file-store";
 import { isSimulatedUsbPath } from "@/lib/engine-web/usb-drive";
@@ -64,9 +65,12 @@ export {
 export { toDomicilePath };
 
 /** The file operations for the current engine: the demo VFS alone, or the VFS cache over `domicile.files`. */
-function fileServiceFor(domicile: Domicile, isBrowserRuntime: boolean): FileService {
+/** Files live on a real disk (the VFS is a cache), as opposed to the browser VFS being the only copy. */
+const hasRealFilesystem = (): boolean => getEngine().capabilities.realFilesystem;
+
+function fileServiceFor(domicile: Domicile): FileService {
   return createFileService({
-    store: isBrowserRuntime ? null : createNativeFileStore(domicile),
+    store: hasRealFilesystem() ? createNativeFileStore(domicile) : null,
     cacheOnly: isSimulatedUsbPath,
     cache: {
       getVfsEntry,
@@ -93,10 +97,9 @@ function fileServiceFor(domicile: Domicile, isBrowserRuntime: boolean): FileServ
  */
 export async function listFsDir(
   domicile: Domicile,
-  isBrowserRuntime: boolean,
   dirPath: string,
 ): Promise<WebVfsEntry[]> {
-  return fileServiceFor(domicile, isBrowserRuntime).listDir(dirPath);
+  return fileServiceFor(domicile).listDir(dirPath);
 }
 
 /**
@@ -104,10 +107,9 @@ export async function listFsDir(
  */
 export async function readFsTextFile(
   domicile: Domicile,
-  isBrowserRuntime: boolean,
   filePath: string,
 ): Promise<string> {
-  return fileServiceFor(domicile, isBrowserRuntime).readText(filePath);
+  return fileServiceFor(domicile).readText(filePath);
 }
 
 /**
@@ -115,11 +117,10 @@ export async function readFsTextFile(
  */
 export function writeFsTextFile(
   domicile: Domicile,
-  isBrowserRuntime: boolean,
   filePath: string,
   content: string,
 ): WebVfsEntry | null {
-  return fileServiceFor(domicile, isBrowserRuntime).writeText(filePath, content);
+  return fileServiceFor(domicile).writeText(filePath, content);
 }
 
 /**
@@ -127,11 +128,10 @@ export function writeFsTextFile(
  */
 export function createFsFolder(
   domicile: Domicile,
-  isBrowserRuntime: boolean,
   dirPath: string,
   baseName?: string,
 ): WebVfsEntry {
-  return fileServiceFor(domicile, isBrowserRuntime).createFolder(dirPath, baseName);
+  return fileServiceFor(domicile).createFolder(dirPath, baseName);
 }
 
 /**
@@ -139,12 +139,11 @@ export function createFsFolder(
  */
 export function createFsTextFile(
   domicile: Domicile,
-  isBrowserRuntime: boolean,
   dirPath: string,
   baseName?: string,
   content = "",
 ): WebVfsEntry {
-  return fileServiceFor(domicile, isBrowserRuntime).createTextFile(dirPath, baseName, content);
+  return fileServiceFor(domicile).createTextFile(dirPath, baseName, content);
 }
 
 /**
@@ -152,14 +151,13 @@ export function createFsTextFile(
  */
 export async function listFsTemplates(
   domicile: Domicile,
-  isBrowserRuntime: boolean,
   templatesDirPath?: string,
 ): Promise<WebVfsEntry[]> {
-  if (isBrowserRuntime) {
+  if (!hasRealFilesystem()) {
     return listVfsTemplates();
   }
   const dir = normalizeVfsPath(templatesDirPath || resolveVfsTemplatesDir());
-  const entries = await listFsDir(domicile, isBrowserRuntime, dir);
+  const entries = await listFsDir(domicile, dir);
   const dotHidden = entries.find((e) => e.name === ".hidden");
   const hiddenNames = parseDotHiddenFile(dotHidden?.content);
   return entries
@@ -177,11 +175,10 @@ export async function listFsTemplates(
  */
 export async function createFsFileFromTemplate(
   domicile: Domicile,
-  isBrowserRuntime: boolean,
   dirPath: string,
   template: { name: string; path: string; content?: string },
 ): Promise<WebVfsEntry> {
-  if (isBrowserRuntime || isSimulatedUsbPath(dirPath)) {
+  if (!hasRealFilesystem() || isSimulatedUsbPath(dirPath)) {
     return (
       createVfsFileFromTemplate(dirPath, template.path) ??
       createVfsTextFile(dirPath, template.name, template.content ?? "")
@@ -190,11 +187,8 @@ export async function createFsFileFromTemplate(
   const content =
     template.content !== undefined
       ? template.content
-      : await readFsTextFile(domicile, isBrowserRuntime, template.path);
-  return createFsTextFile(
-    domicile,
-    isBrowserRuntime,
-    dirPath,
+      : await readFsTextFile(domicile, template.path);
+  return createFsTextFile(domicile, dirPath,
     template.name,
     content,
   );
@@ -203,21 +197,19 @@ export async function createFsFileFromTemplate(
 /** Renames a file or folder (cache and disk). */
 export function renameFsEntry(
   domicile: Domicile,
-  isBrowserRuntime: boolean,
   path: string,
   newName: string,
 ): WebVfsEntry | null {
-  return fileServiceFor(domicile, isBrowserRuntime).rename(path, newName);
+  return fileServiceFor(domicile).rename(path, newName);
 }
 
 /** Moves a file or folder into `targetDirPath` (cache and disk). */
 export function moveFsEntry(
   domicile: Domicile,
-  isBrowserRuntime: boolean,
   path: string,
   targetDirPath: string,
 ): WebVfsEntry | null {
-  return fileServiceFor(domicile, isBrowserRuntime).move(path, targetDirPath);
+  return fileServiceFor(domicile).move(path, targetDirPath);
 }
 
 /**
@@ -226,49 +218,45 @@ export function moveFsEntry(
  */
 export async function copyFsEntry(
   domicile: Domicile,
-  isBrowserRuntime: boolean,
   srcPath: string,
   targetDirPath: string,
   options: { symlink?: boolean; name?: string } = {},
 ): Promise<string | null> {
-  return fileServiceFor(domicile, isBrowserRuntime).copy(srcPath, targetDirPath, options);
+  return fileServiceFor(domicile).copy(srcPath, targetDirPath, options);
 }
 
 /** Moves an entry to Trash (cache and XDG Trash). */
-export function trashFsEntry(domicile: Domicile, isBrowserRuntime: boolean, path: string): void {
-  fileServiceFor(domicile, isBrowserRuntime).trash(path);
+export function trashFsEntry(domicile: Domicile, path: string): void {
+  fileServiceFor(domicile).trash(path);
 }
 
 /** Restores an entry from Trash to its original location. */
 export function restoreFsEntry(
   domicile: Domicile,
-  isBrowserRuntime: boolean,
   trashPath: string,
 ): WebVfsEntry | null {
-  return fileServiceFor(domicile, isBrowserRuntime).restore(trashPath);
+  return fileServiceFor(domicile).restore(trashPath);
 }
 
 /** Empties Trash. */
-export async function emptyFsTrash(domicile: Domicile, isBrowserRuntime: boolean): Promise<void> {
-  await fileServiceFor(domicile, isBrowserRuntime).emptyTrash();
+export async function emptyFsTrash(domicile: Domicile): Promise<void> {
+  await fileServiceFor(domicile).emptyTrash();
 }
 
 /** Permanently removes a file or folder. */
 export async function removeFsFile(
   domicile: Domicile,
-  isBrowserRuntime: boolean,
   filePath: string,
 ): Promise<void> {
-  await fileServiceFor(domicile, isBrowserRuntime).remove(filePath);
+  await fileServiceFor(domicile).remove(filePath);
 }
 
 /** The favorite (starred) entries, looked up on disk on Linux. */
 export async function listFsFavoriteEntries(
   domicile: Domicile,
-  isBrowserRuntime: boolean,
 ): Promise<WebVfsEntry[]> {
-  if (isBrowserRuntime) return listVfsFavoriteEntries();
-  const service = fileServiceFor(domicile, false);
+  if (!hasRealFilesystem()) return listVfsFavoriteEntries();
+  const service = fileServiceFor(domicile);
   // Another app may have (un)starred files: read the folders' metadata first.
   const dirs = new Set(loadVfsFavorites().map((p) => p.slice(0, p.lastIndexOf("/")) || "/"));
   await Promise.all([...dirs].map((dir) => service.syncEmblems(dir)));
@@ -282,16 +270,12 @@ export async function listFsFavoriteEntries(
  */
 export async function listFsRecentEntries(
   domicile: Domicile,
-  isBrowserRuntime: boolean,
 ): Promise<WebVfsEntry[]> {
   const vfsRecents = listVfsRecentEntries();
   const byPath = new Map<string, WebVfsEntry>();
 
   try {
-    const xml = await readFsTextFile(
-      domicile,
-      isBrowserRuntime,
-      RECENTLY_USED_XBEL_PATH,
+    const xml = await readFsTextFile(domicile, RECENTLY_USED_XBEL_PATH,
     );
     if (xml) {
       const parsed = parseRecentlyUsedXbel(xml);
@@ -339,21 +323,17 @@ export async function listFsRecentEntries(
  */
 export async function recordFsRecentFile(
   domicile: Domicile,
-  isBrowserRuntime: boolean,
   filePath: string,
   mimeType = "application/octet-stream",
 ): Promise<void> {
   if (!filePath || !filePath.startsWith("/")) return;
   try {
-    const xml = await readFsTextFile(
-      domicile,
-      isBrowserRuntime,
-      RECENTLY_USED_XBEL_PATH,
+    const xml = await readFsTextFile(domicile, RECENTLY_USED_XBEL_PATH,
     );
     const current = xml ? parseRecentlyUsedXbel(xml) : [];
     const next = upsertRecentXbelItem(current, filePath, mimeType);
     const serialized = serializeRecentlyUsedXbel(next);
-    writeFsTextFile(domicile, isBrowserRuntime, RECENTLY_USED_XBEL_PATH, serialized);
+    writeFsTextFile(domicile, RECENTLY_USED_XBEL_PATH, serialized);
   } catch {
     // non-fatal recents write failure
   }
@@ -381,7 +361,6 @@ export function parseGioMetadataInfo(stdout: string): Record<string, string> {
  */
 export async function readFsMetadata(
   domicile: Domicile | undefined,
-  isBrowserRuntime: boolean,
   filePath: string,
   keys: readonly string[],
 ): Promise<Record<string, string>> {
@@ -396,7 +375,7 @@ export async function readFsMetadata(
       }
     }
   }
-  if (isBrowserRuntime || !domicile || isSimulatedUsbPath(norm) || keys.length === 0) {
+  if (!hasRealFilesystem() || !domicile || isSimulatedUsbPath(norm) || keys.length === 0) {
     return out;
   }
   try {
@@ -430,13 +409,12 @@ export async function readFsMetadata(
  */
 export function writeFsMetadata(
   domicile: Domicile | undefined,
-  isBrowserRuntime: boolean,
   filePath: string,
   patch: Record<string, string | number>,
 ): void {
   const norm = normalizeVfsPath(filePath);
   setVfsEntryMetadata(norm, patch);
-  if (isBrowserRuntime || !domicile || isSimulatedUsbPath(norm)) {
+  if (!hasRealFilesystem() || !domicile || isSimulatedUsbPath(norm)) {
     return;
   }
   const rel = toDomicilePath(norm);

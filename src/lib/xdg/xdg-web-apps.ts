@@ -1,3 +1,4 @@
+import { getEngine } from "@/lib/engine/engine";
 import type { Domicile } from "@domicile-desktop/sdk/desktop/desktop";
 import {
   canonicalizeWebUrl,
@@ -156,9 +157,8 @@ export function parseWebAppDesktopEntry(
 
 export async function ensureXdgApplicationsDir(
   domicile: Domicile,
-  isBrowserRuntime: boolean,
 ): Promise<void> {
-  if (isBrowserRuntime) return;
+  if (!getEngine().capabilities.realFilesystem) return;
   await domicile.files.createDir(".local").catch(() => undefined);
   await domicile.files.createDir(".local/share").catch(() => undefined);
   await domicile.files
@@ -168,15 +168,11 @@ export async function ensureXdgApplicationsDir(
 
 export async function installWebAppDesktopEntry(
   domicile: Domicile,
-  isBrowserRuntime: boolean,
   app: InstalledWebApp,
 ): Promise<void> {
-  await ensureXdgApplicationsDir(domicile, isBrowserRuntime);
+  await ensureXdgApplicationsDir(domicile);
   const filePath = `${WEB_APPS_XDG_DIR}/${webAppDesktopFileName(app)}`;
-  writeFsTextFile(
-    domicile,
-    isBrowserRuntime,
-    filePath,
+  writeFsTextFile(domicile, filePath,
     serializeWebAppDesktopEntry(app),
   );
   notifyWebAppsChanged();
@@ -184,39 +180,37 @@ export async function installWebAppDesktopEntry(
 
 export async function removeWebAppDesktopEntry(
   domicile: Domicile,
-  isBrowserRuntime: boolean,
   app: Pick<InstalledWebApp, "id" | "url">,
 ): Promise<void> {
   const targetCanonical = canonicalizeWebUrl(app.url) ?? app.url;
-  const entries = await listFsDir(domicile, isBrowserRuntime, WEB_APPS_XDG_DIR);
+  const entries = await listFsDir(domicile, WEB_APPS_XDG_DIR);
   const desktopFiles = entries.filter(
     (e) => e.kind === "file" && e.name.endsWith(".desktop"),
   );
 
   const removedPaths = new Set<string>();
   for (const file of desktopFiles) {
-    const content = await readFsTextFile(domicile, isBrowserRuntime, file.path);
+    const content = await readFsTextFile(domicile, file.path);
     const parsed = parseWebAppDesktopEntry(content, file.path);
     if (!parsed) continue;
     const parsedCanonical = canonicalizeWebUrl(parsed.url) ?? parsed.url;
     if (parsed.id === app.id || parsedCanonical === targetCanonical) {
-      await removeFsFile(domicile, isBrowserRuntime, file.path);
+      await removeFsFile(domicile, file.path);
       removedPaths.add(file.path);
     }
   }
 
   const expectedPath = `${WEB_APPS_XDG_DIR}/${webAppDesktopFileName(app)}`;
   if (!removedPaths.has(expectedPath)) {
-    await removeFsFile(domicile, isBrowserRuntime, expectedPath);
+    await removeFsFile(domicile, expectedPath);
   }
   notifyWebAppsChanged();
 }
 
 export async function loadWebAppsFromDesktopEntries(
   domicile: Domicile,
-  isBrowserRuntime: boolean,
 ): Promise<InstalledWebApp[]> {
-  const entries = await listFsDir(domicile, isBrowserRuntime, WEB_APPS_XDG_DIR);
+  const entries = await listFsDir(domicile, WEB_APPS_XDG_DIR);
   const desktopFiles = entries.filter(
     (e) => e.kind === "file" && e.name.endsWith(".desktop"),
   );
@@ -224,7 +218,7 @@ export async function loadWebAppsFromDesktopEntries(
   const apps: InstalledWebApp[] = [];
   const seenUrls = new Set<string>();
   for (const file of desktopFiles) {
-    const content = await readFsTextFile(domicile, isBrowserRuntime, file.path);
+    const content = await readFsTextFile(domicile, file.path);
     if (!content) continue;
     const parsed = parseWebAppDesktopEntry(content, file.path);
     if (!parsed) continue;
@@ -241,7 +235,6 @@ export async function loadWebAppsFromDesktopEntries(
  */
 export function toggleWebAppInstall(params: {
   domicile: Domicile;
-  isBrowserRuntime: boolean;
   installedWebApps: readonly InstalledWebApp[];
   pinnedAppIds: readonly string[];
   updateSettings: (patch: {
@@ -266,10 +259,7 @@ export function toggleWebAppInstall(params: {
       ),
       pinnedAppIds: params.pinnedAppIds.filter((id) => id !== existing.id),
     });
-    void removeWebAppDesktopEntry(
-      params.domicile,
-      params.isBrowserRuntime,
-      existing
+    void removeWebAppDesktopEntry(params.domicile, existing
     );
     return "removed";
   }
@@ -289,10 +279,7 @@ export function toggleWebAppInstall(params: {
   params.updateSettings({
     installedWebApps: [...params.installedWebApps, newApp],
   });
-  void installWebAppDesktopEntry(
-    params.domicile,
-    params.isBrowserRuntime,
-    newApp
+  void installWebAppDesktopEntry(params.domicile, newApp
   );
   return "installed";
 }

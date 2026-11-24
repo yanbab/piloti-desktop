@@ -505,7 +505,7 @@ export function PilotiDemoApp({ windowId, isCsd = false }: { windowId?: string; 
       header={() =>
         isCsd ? (
           <WindowTitlebar data-window-drag-region className="rounded-tl-none border-b border-adw-separator bg-adw-titlebar">
-            <h2 className="truncate px-2 text-adw-body font-bold text-adw-label">
+            <h2 data-slot="page-title" className="truncate pr-2 text-adw-body font-bold text-adw-label">
               {_(PAGES.find((p) => p.id === page)?.label ?? "")}
             </h2>
             <div className="flex items-center gap-2">
@@ -515,7 +515,7 @@ export function PilotiDemoApp({ windowId, isCsd = false }: { windowId?: string; 
           </WindowTitlebar>
         ) : (
           <div className="flex items-center justify-between gap-3 border-b border-adw-separator bg-adw-window px-5 py-2.5">
-            <h2 className="truncate text-adw-title-3 font-bold text-adw-label">
+            <h2 data-slot="page-title" className="truncate text-adw-title-3 font-bold text-adw-label">
               {_(PAGES.find((p) => p.id === page)?.label ?? "")}
             </h2>
             {switches}

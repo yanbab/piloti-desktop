@@ -80,24 +80,21 @@ describe("xdg-web-apps FreeDesktop .desktop persistence", () => {
   });
 
   test("installs, loads, and removes web apps in ~/.local/share/applications on web VFS", async () => {
-    await installWebAppDesktopEntry(DUMMY_DOMICILE, true, SAMPLE_APP);
+    await installWebAppDesktopEntry(DUMMY_DOMICILE, SAMPLE_APP);
 
     const filePath = `${WEB_APPS_XDG_DIR}/${webAppDesktopFileName(SAMPLE_APP)}`;
     const vfsEntry = getVfsEntry(filePath);
     expect(vfsEntry?.kind).toBe("file");
     expect(vfsEntry?.content).toContain("X-Piloti-WebApp-Id=excalidraw");
 
-    const loaded = await loadWebAppsFromDesktopEntries(DUMMY_DOMICILE, true);
+    const loaded = await loadWebAppsFromDesktopEntries(DUMMY_DOMICILE);
     expect(loaded).toHaveLength(1);
     expect(loaded[0]?.id).toBe("excalidraw");
     expect(loaded[0]?.title).toBe("Excalidraw");
 
-    await removeWebAppDesktopEntry(DUMMY_DOMICILE, true, SAMPLE_APP);
+    await removeWebAppDesktopEntry(DUMMY_DOMICILE, SAMPLE_APP);
     expect(getVfsEntry(filePath)).toBeUndefined();
-    const afterRemove = await loadWebAppsFromDesktopEntries(
-      DUMMY_DOMICILE,
-      true,
-    );
+    const afterRemove = await loadWebAppsFromDesktopEntries(DUMMY_DOMICILE, );
     expect(afterRemove).toHaveLength(0);
   });
 });

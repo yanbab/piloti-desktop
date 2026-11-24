@@ -99,6 +99,7 @@ describe("Simulated USB pen drive, Engine override & Folders rename", () => {
     setEngine(nativeEngine);
     expect(isWebEngine()).toBe(false);
     expect(getEngine().capabilities.systemServices).toBe(true);
+    setEngine(webEngine); // the rest of the suite runs as the browser demo
   });
 
   test("renames Files catalog app to Folders and keeps Papirus inheritance", () => {

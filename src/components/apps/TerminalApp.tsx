@@ -1172,11 +1172,11 @@ export const TerminalApp: React.FC<TerminalAppProps> = ({ initialPath }) => {
           commandLine,
           { text: `Installing ${canonical}...`, tone: "muted" },
         ]);
-        void installWebAppDesktopEntry(domicile, isBrowserRuntime, app).then(
+        void installWebAppDesktopEntry(domicile, app).then(
           () => {
             void fetchWebPageMetadata(canonical).then(({ title, iconUrl, startUrl }) => {
               if (title || iconUrl || startUrl) {
-                void installWebAppDesktopEntry(domicile, isBrowserRuntime, {
+                void installWebAppDesktopEntry(domicile, {
                   ...app,
                   ...(title ? { title } : {}),
                   ...(iconUrl ? { iconUrl } : {}),
@@ -1211,7 +1211,7 @@ export const TerminalApp: React.FC<TerminalAppProps> = ({ initialPath }) => {
           id: target,
           url: canonical ?? target,
         };
-        void removeWebAppDesktopEntry(domicile, isBrowserRuntime, toRemove).then(
+        void removeWebAppDesktopEntry(domicile, toRemove).then(
           () => {
             appendLines([
               { text: `Removed ${toRemove.id}`, tone: "accent" },
@@ -1401,7 +1401,7 @@ export const TerminalApp: React.FC<TerminalAppProps> = ({ initialPath }) => {
   React.useEffect(() => {
     if (isBrowserRuntime) return;
     let cancelled = false;
-    void listFsDir(domicile, false, completionDir).then(() => {
+    void listFsDir(domicile, completionDir).then(() => {
       if (!cancelled) setWarmedDirs((n) => n + 1);
     });
     return () => {

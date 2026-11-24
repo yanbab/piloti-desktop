@@ -261,7 +261,7 @@ export function WallpaperPane() {
     if (!imagePickerOpen) return;
     let active = true;
     setPickerLoading(true);
-    void listFsDir(domicile, isBrowserRuntime, pickerCwd)
+    void listFsDir(domicile, pickerCwd)
       .then((entries) => {
         if (!active) return;
         const filtered = entries

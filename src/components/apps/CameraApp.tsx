@@ -132,7 +132,7 @@ export const CameraApp: React.FC<CameraAppProps> = ({ windowId = "", isCsd = tru
         ? `${WEB_VFS_HOME}/Desktop`
         : resolveUserDirPath("DESKTOP", xdgUserDirs, WEB_VFS_HOME);
       const name = uniqueCaptureName(
-        (isBrowserRuntime ? listVfsDir(dir) : await listFsDir(domicile, false, dir)).map((e) => e.name),
+        (isBrowserRuntime ? listVfsDir(dir) : await listFsDir(domicile, dir)).map((e) => e.name),
         base,
         ext,
       );

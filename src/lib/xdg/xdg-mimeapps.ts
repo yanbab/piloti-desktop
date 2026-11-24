@@ -253,20 +253,18 @@ export function resolveAppsForMime(
 
 export async function loadMimeAppsConfig(
   domicile: Domicile,
-  isBrowserRuntime: boolean,
 ): Promise<MimeAppsConfig> {
-  const raw = await readFsTextFile(domicile, isBrowserRuntime, MIMEAPPS_PATH);
+  const raw = await readFsTextFile(domicile, MIMEAPPS_PATH);
   return parseMimeAppsList(raw || DEFAULT_MIMEAPPS_INI);
 }
 
 export async function setDefaultMimeApp(
   domicile: Domicile,
-  isBrowserRuntime: boolean,
   mimeType: string,
   desktopId: string,
 ): Promise<void> {
   const raw =
-    (await readFsTextFile(domicile, isBrowserRuntime, MIMEAPPS_PATH)) ||
+    (await readFsTextFile(domicile, MIMEAPPS_PATH)) ||
     DEFAULT_MIMEAPPS_INI;
   const config = parseMimeAppsList(raw);
   const existing = config.defaults[mimeType] ?? [];
@@ -282,7 +280,7 @@ export async function setDefaultMimeApp(
   for (const [m, ids] of Object.entries(config.added)) {
     lines.push(`${m}=${ids.join(";")};`);
   }
-  writeFsTextFile(domicile, isBrowserRuntime, MIMEAPPS_PATH, `${lines.join("\n")}\n`);
+  writeFsTextFile(domicile, MIMEAPPS_PATH, `${lines.join("\n")}\n`);
 }
 
 export interface SharedMimeGlob {

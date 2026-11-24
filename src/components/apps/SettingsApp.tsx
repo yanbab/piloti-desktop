@@ -266,7 +266,7 @@ export function SettingsApp({
             <div className="flex min-w-0 items-center gap-1.5" data-window-no-drag>
               <h2
                 data-slot="settings-page-title"
-                className="truncate px-2 text-[13.5px] font-medium text-adw-label"
+                className="truncate pr-2 text-[13.5px] font-medium text-adw-label"
               >
                 {currentPaneMeta ? _(currentPaneMeta.label) : ""}
               </h2>

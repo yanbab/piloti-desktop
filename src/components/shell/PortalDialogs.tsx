@@ -728,10 +728,7 @@ function AppChooserPortalDialog({
       const desktopId = choice.endsWith(".desktop")
         ? choice
         : `${choice}.desktop`;
-      void setDefaultMimeApp(
-        domicile,
-        isBrowserRuntime,
-        request.body.contentType,
+      void setDefaultMimeApp(domicile, request.body.contentType,
         desktopId
       ).catch(() => undefined);
     }

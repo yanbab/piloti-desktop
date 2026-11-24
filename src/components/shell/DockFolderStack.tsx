@@ -48,7 +48,7 @@ export function DockFolderStack({
   React.useEffect(() => {
     let cancelled = false;
     const load = async () => {
-      const list = await listFsDir(domicile, isBrowserRuntime, path);
+      const list = await listFsDir(domicile, path);
       if (cancelled) return;
       const visible = list.filter((e) => !e.name.startsWith("."));
       visible.sort((a, b) => {
