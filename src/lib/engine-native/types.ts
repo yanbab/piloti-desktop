@@ -105,3 +105,12 @@ export interface MprisMediaInfo {
   playerName?: string;
 }
 
+
+export interface BluetoothDeviceInfo {
+  /** BlueZ object path; what requests address. */
+  path: string;
+  name: string;
+  connected: boolean;
+  /** 0 to 100, for a device that reports it. */
+  battery?: number;
+}

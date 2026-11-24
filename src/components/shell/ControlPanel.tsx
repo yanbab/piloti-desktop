@@ -59,6 +59,8 @@ export function ControlPanel() {
     gnomeCapabilities,
     liveWifiNetworks,
     connectWifiNetwork,
+    bluetoothDevices,
+    toggleBluetoothDevice,
     audioSinks,
     selectAudioSink,
     mprisMedia,
@@ -520,9 +522,34 @@ export function ControlPanel() {
               <div className="px-2 py-2 text-[11px] text-adw-label-secondary">
                 {_("Bluetooth is turned off.")}
               </div>
-            ) : (
+            ) : bluetoothDevices.length === 0 ? (
               <div className="px-2 py-2 text-[11px] text-adw-label-secondary">
                 {_("No paired Bluetooth devices nearby.")}
+              </div>
+            ) : (
+              <div className="flex max-h-[148px] flex-col gap-0.5 overflow-y-auto">
+                {bluetoothDevices.map((device) => (
+                  <button
+                    key={device.path}
+                    type="button"
+                    onClick={() => void toggleBluetoothDevice(device.path)}
+                    className={cn(
+                      "flex items-center justify-between gap-2 rounded-[9px] px-2.5 py-1.5 text-left text-[11.5px]",
+                      device.connected
+                        ? "bg-adw-accent/18 font-medium text-adw-label"
+                        : "active:bg-black/10 dark:active:bg-white/12"
+                    )}
+                  >
+                    <span className="flex min-w-0 items-center gap-2">
+                      <BluetoothIcon className="size-3.5 shrink-0 opacity-80" />
+                      <span className="truncate">{device.name}</span>
+                    </span>
+                    <span className="flex shrink-0 items-center gap-1.5 text-[10.5px] text-adw-label-secondary tabular-nums">
+                      {device.battery !== undefined && <span>{device.battery}%</span>}
+                      {device.connected && <CheckIcon className="size-3.5 text-adw-accent" />}
+                    </span>
+                  </button>
+                ))}
               </div>
             )}
           </div>

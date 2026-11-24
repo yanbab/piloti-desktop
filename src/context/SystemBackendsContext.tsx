@@ -31,6 +31,7 @@ import {
 import { toDomicilePath } from "@/lib/engine/fs-bridge";
 import {
   type AudioSinkInfo,
+  type BluetoothDeviceInfo,
   type BatteryInfo,
   type GnomeControlCenterPanelInfo,
   type GnomeInterfaceSnapshot,
@@ -45,6 +46,8 @@ import {
   readGnomeDesktopSettingsBatch,
   readMprisMediaInfo,
   watchSystemAudio,
+  watchSystemBluetooth,
+  setSystemBluetoothConnected,
   readSystemBattery,
   watchSystemBattery,
   watchSystemBrightness,
@@ -87,6 +90,8 @@ export interface SystemBackendsContextValue {
   batteryInfo: BatteryInfo;
   audioSinks: AudioSinkInfo[];
   liveWifiNetworks: WifiNetwork[];
+  bluetoothDevices: BluetoothDeviceInfo[];
+  toggleBluetoothDevice: (path: string) => Promise<void>;
   mprisMedia: MprisMediaInfo | null;
   controlMpris: (action: "play-pause" | "next" | "previous") => Promise<void>;
   refreshSystemBackends: (options?: { scanWifi?: boolean }) => Promise<void>;
@@ -175,6 +180,7 @@ export function useSystemBackendsValue(
     charging: true,
   });
   const [audioSinks, setAudioSinks] = React.useState<AudioSinkInfo[]>([]);
+  const [bluetoothDevices, setBluetoothDevices] = React.useState<BluetoothDeviceInfo[]>([]);
   const [availableGnomePanels, setAvailableGnomePanels] = React.useState<
     GnomeControlCenterPanelInfo[]
   >(() => [...DEFAULT_GNOME_PANELS]);
@@ -826,6 +832,11 @@ export function useSystemBackendsValue(
       applySettingsState({ volume: audio.volume, muted: audio.muted });
       if (audio.sinks.length > 0) setAudioSinks(audio.sinks);
     });
+    const stopBluetooth = watchSystemBluetooth(domicile, (bt) => {
+      if (!bt) return;
+      applySettingsState({ bluetoothEnabled: bt.powered });
+      setBluetoothDevices(bt.devices);
+    });
     const stopWifi = watchSystemWifi(domicile, (wifi) => {
       if (!wifi) return;
       if (wifi.networks.length > 0) setLiveWifiNetworks(wifi.networks);
@@ -840,6 +851,7 @@ export function useSystemBackendsValue(
     return () => {
       stopBattery();
       stopWifi();
+      stopBluetooth();
       stopAudio();
       stopBrightness();
     };
@@ -1039,6 +1051,15 @@ export function useSystemBackendsValue(
       }
     },
     [domicile, isBrowserRuntime, refreshSystemBackends, updateSettings]
+  );
+
+  const toggleBluetoothDevice = React.useCallback(
+    async (path: string) => {
+      if (isBrowserRuntime) return;
+      const device = bluetoothDevices.find((d) => d.path === path);
+      if (device) await setSystemBluetoothConnected(domicile, path, !device.connected);
+    },
+    [bluetoothDevices, domicile, isBrowserRuntime]
   );
 
   const selectAudioSink = React.useCallback(
@@ -1327,6 +1348,8 @@ export function useSystemBackendsValue(
       batteryInfo,
       audioSinks,
       liveWifiNetworks,
+      bluetoothDevices,
+      toggleBluetoothDevice,
       mprisMedia,
       controlMpris,
       refreshSystemBackends,
@@ -1427,6 +1450,8 @@ export function useSystemBackendsValue(
       idleWarningMs,
       invokeNotificationAction,
       liveWifiNetworks,
+      bluetoothDevices,
+      toggleBluetoothDevice,
       lockSession,
       locked,
       markAllNotificationsRead,

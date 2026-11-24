@@ -12,8 +12,14 @@ import {
   type WifiNetwork as LibWifiNetwork,
 } from "@domicile-desktop/system-network/wifi";
 import { soundServer, type SoundServer } from "@domicile-desktop/system-audio/sound-server";
+import {
+  connect as connectBluetooth,
+  disconnect as disconnectBluetooth,
+  setPowered,
+  watchBluetooth,
+} from "@domicile-desktop/system-bluetooth/bluetooth";
 import { runText } from "./exec";
-import type { AudioSinkInfo, BatteryInfo, MprisMediaInfo } from "./types";
+import type { AudioSinkInfo, BatteryInfo, BluetoothDeviceInfo, MprisMediaInfo } from "./types";
 
 const sound = new WeakMap<object, { server: SoundServer; defaultId?: string }>();
 
@@ -290,3 +296,52 @@ export async function controlMprisMedia(
   await runText(domicile, ["playerctl", action]);
 }
 
+
+const bluetoothAdapters = new WeakMap<object, string>();
+
+/**
+ * Calls `onBluetooth` now and after each BlueZ change (Domicile's
+ * `system-bluetooth`): whether the first adapter is on, and the paired devices.
+ * `null` when BlueZ or an adapter is missing. Returns a stop function.
+ */
+export function watchSystemBluetooth(
+  domicile: Domicile,
+  onBluetooth: (state: { powered: boolean; devices: BluetoothDeviceInfo[] } | null) => void,
+): () => void {
+  return watchBluetooth(domicile, (result) =>
+    result.match({
+      Err: () => onBluetooth(null),
+      Ok: ({ adapters, devices }) => {
+        const adapter = adapters[0];
+        if (!adapter) return onBluetooth(null);
+        bluetoothAdapters.set(domicile, adapter.path);
+        onBluetooth({
+          powered: adapter.powered,
+          devices: devices
+            .filter((d) => d.adapter === adapter.path && d.paired)
+            .map((d) => ({
+              path: d.path,
+              name: d.name,
+              connected: d.connected,
+              ...(d.battery !== undefined ? { battery: d.battery } : {}),
+            })),
+        });
+      },
+    }),
+  );
+}
+
+export async function setSystemBluetoothPowered(domicile: Domicile, powered: boolean): Promise<void> {
+  const adapter = bluetoothAdapters.get(domicile);
+  if (adapter) await setPowered(domicile, adapter, powered).catch(() => undefined);
+}
+
+export async function setSystemBluetoothConnected(
+  domicile: Domicile,
+  devicePath: string,
+  connected: boolean,
+): Promise<void> {
+  await (connected ? connectBluetooth(domicile, devicePath) : disconnectBluetooth(domicile, devicePath)).catch(
+    () => undefined,
+  );
+}

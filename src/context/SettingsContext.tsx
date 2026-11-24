@@ -58,6 +58,7 @@ import {
   setSystemAudio,
   setSystemBrightness,
   setSystemPowerProfile,
+  setSystemBluetoothPowered,
   setSystemWifiEnabled,
   syncGnomeBackgroundSettings,
   syncGnomeInterfaceKey,
@@ -990,6 +991,10 @@ export function useSettingsValue(options?: {
 
           if (patch.wifiEnabled !== undefined) {
             void setSystemWifiEnabled(domicile, next.wifiEnabled);
+          }
+
+          if (patch.bluetoothEnabled !== undefined) {
+            void setSystemBluetoothPowered(domicile, next.bluetoothEnabled);
           }
 
           if (patch.powerMode !== undefined) {
