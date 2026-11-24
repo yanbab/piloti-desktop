@@ -73,8 +73,8 @@ const ImageViewerApp = React.lazy(() =>
   }))
 );
 const TerminalApp = React.lazy(() =>
-  import("@/components/apps/TerminalApp").then((m) => ({
-    default: m.TerminalApp,
+  import("@/components/apps/XtermTerminalApp").then((m) => ({
+    default: m.XtermTerminalApp,
   }))
 );
 const AppStoreApp = React.lazy(() =>
@@ -1591,7 +1591,7 @@ export function WindowManager() {
       void import("@/components/apps/FilesApp");
       void import("@/components/apps/TextEditorApp");
       void import("@/components/apps/ImageViewerApp");
-      void import("@/components/apps/TerminalApp");
+      void import("@/components/apps/XtermTerminalApp");
       void import("@/components/apps/SettingsApp");
     };
     const ric = (
