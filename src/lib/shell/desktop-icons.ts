@@ -681,3 +681,22 @@ export function findItemsInRect(
   return matched;
 }
 
+
+/**
+ * Positions after dropping `itemIds` (led by `primaryId`) on `cell` in a
+ * spatial grid: the current layout (saved positions, others auto-placed) with
+ * the moved items in place and neighbours pushed aside. Shared by the desktop
+ * and Folders' "Sort Manually" view.
+ */
+export function moveItemsInSpatialGrid(
+  items: readonly Pick<IconGridItem, "id">[],
+  savedPositions: Readonly<Record<string, GridCoord>>,
+  itemIds: readonly string[],
+  primaryId: string,
+  cell: GridCoord,
+  metrics: Pick<GridMetrics, "cols" | "rows">,
+  align: DesktopIconAlign = "left"
+): Record<string, GridCoord> {
+  const current = assignGridPositions(items, savedPositions, metrics.cols, metrics.rows, align);
+  return pushItemsToCells(current, itemIds, primaryId, cell, metrics.cols, metrics.rows);
+}

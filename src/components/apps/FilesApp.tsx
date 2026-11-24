@@ -69,8 +69,10 @@ import {
 import { publishWindowMenuState, useWindowMenuState } from "@/lib/engine/app-bridge";
 import {
   type AppSymbolName,
+  type GridCoord,
   type IconGridItem,
   inferFileVisual,
+  moveItemsInSpatialGrid,
   sortDesktopItems,
 } from "@/lib/shell/desktop-icons";
 import { _ } from "@/lib/core/i18n";
@@ -295,6 +297,9 @@ function vfsEntryToGridItem(
   };
 }
 
+/** A folder shows its opening this long before Folders navigates into it. */
+const FOLDER_OPEN_DELAY_MS = 180;
+
 /** The Folders View menu, shared with the menu bar (catalog). */
 const FILES_VIEW_MENU_ITEMS =
   APP_CATALOG.find((app) => app.id === "nautilus")?.menus.find(
@@ -332,7 +337,12 @@ export function FilesApp({
     toggleVfsEmblem(item.path, "favorite");
   }, []);
   const [viewMode, setViewMode] = React.useState<"grid" | "list">("grid");
-  const [sortBy, setSortBy] = React.useState<"name" | "kind" | "modified" | "size">("name");
+  // "manual": free placement like the desktop (Sort Manually).
+  const [sortBy, setSortBy] = React.useState<"manual" | "name" | "kind" | "modified" | "size">("name");
+  // Manual positions per folder, in memory only for now (not saved).
+  const [manualPositions, setManualPositions] = React.useState<
+    Record<string, Record<string, GridCoord>>
+  >({});
   const [sortDir, setSortDir] = React.useState<"asc" | "desc">("asc");
   const [editingLocation, setEditingLocation] = React.useState(false);
   const [draftLocation, setDraftLocation] = React.useState("");
@@ -412,6 +422,7 @@ export function FilesApp({
   const isRecentsView = currentPath === WEB_VFS_RECENTS_URI;
   const isAppsView = currentPath === WEB_VFS_APPS_URI;
   const isVirtualView = isFavoritesView || isRecentsView || isAppsView;
+  const isManualLayout = sortBy === "manual" && viewMode === "grid" && !isAppsView;
 
   const openFilePaths = React.useMemo(() => {
     const set = new Set<string>();
@@ -1422,6 +1433,7 @@ export function FilesApp({
       "files:empty-trash": { disabled: !isTrashView || items.length === 0 },
       "files:view-grid": { checked: viewMode === "grid" },
       "files:view-list": { checked: viewMode === "list" },
+      "files:sort-manual": { checked: sortBy === "manual", disabled: isAppsView },
       "files:sort-name": { checked: sortBy === "name", disabled: isAppsView },
       "files:sort-kind": { checked: sortBy === "kind", disabled: isAppsView },
       "files:sort-modified": { checked: sortBy === "modified", disabled: isAppsView },
@@ -1530,6 +1542,10 @@ export function FilesApp({
           break;
         case "files:view-list":
           setViewMode("list");
+          break;
+        case "files:sort-manual":
+          setSortBy("manual");
+          setViewMode("grid");
           break;
         case "files:sort-name":
           setSortBy("name");
@@ -2414,7 +2430,25 @@ export function FilesApp({
         ) : (
           <IconGrid
             items={items}
-            mode="flow"
+            mode={isManualLayout ? "spatial" : "flow"}
+            positions={isManualLayout ? manualPositions[currentPath] ?? {} : undefined}
+            onMoveItems={
+              isManualLayout
+                ? (itemIds, primaryId, cell, metrics) =>
+                    setManualPositions((prev) => ({
+                      ...prev,
+                      [currentPath]: moveItemsInSpatialGrid(
+                        items,
+                        prev[currentPath] ?? {},
+                        itemIds,
+                        primaryId,
+                        cell,
+                        metrics
+                      ),
+                    }))
+                : undefined
+            }
+            folderOpenDelayMs={FOLDER_OPEN_DELAY_MS}
             currentDirPath={isVirtualView ? undefined : currentPath}
             cellWidth={zoom.cellWidth}
             cellHeight={zoom.cellHeight}

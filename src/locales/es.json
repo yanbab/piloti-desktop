@@ -689,6 +689,7 @@
   "%s was installed (simulated in the browser demo).": "%s se instaló (simulado en la demo del navegador).",
   "Sort by Default": "Ordenar por defecto",
   "Sort by Name": "Ordenar por nombre",
+  "Sort Manually": "Ordenar manualmente",
   "Sort by Category": "Ordenar por categoría",
   "Sort by Installed": "Ordenar por instalados",
   "Sort by Kind": "Ordenar por tipo",

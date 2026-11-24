@@ -338,6 +338,21 @@ function renderFileBadgeGlyph(badge: FileBadgeKind, shades: FolderShadePair) {
   }
 }
 
+const FOLDER_OPEN_TRANSITION = "transform 220ms cubic-bezier(0.22, 1, 0.36, 1)";
+
+/**
+ * The front flap opening: it drops by `drop` and shortens by the same amount
+ * (anchored at its bottom edge), animated like the Lottie folders.
+ */
+function folderFrontStyle(opened: boolean, drop: number): React.CSSProperties {
+  return {
+    transformBox: "fill-box",
+    transformOrigin: "50% 100%",
+    transform: opened ? `scaleY(${(36 - drop) / 36})` : "none",
+    transition: FOLDER_OPEN_TRANSITION,
+  };
+}
+
 export interface DynamicFolderIconProps {
   accentColor?: AccentColorId;
   opened?: boolean;
@@ -368,27 +383,32 @@ export const DynamicFolderIcon: React.FC<DynamicFolderIconProps> = ({
       <rect
         opacity="0.2"
         width="56"
-        height={opened ? 30 : 36}
+        height="36"
         x="4"
-        y={opened ? 26 : 20}
+        y="20"
         rx="2.8"
         ry="2.8"
+        style={folderFrontStyle(opened, 6)}
       />
       <rect fill="#e4e4e4" width="48" height="22" x="8" y="16" rx="2.8" ry="2.8" />
       <rect
         fill={shades.front}
         width="56"
-        height={opened ? 30 : 36}
+        height="36"
         x="4"
-        y={opened ? 27 : 21}
+        y="21"
         rx="2.8"
         ry="2.8"
+        style={folderFrontStyle(opened, 6)}
       />
       <path opacity="0.1" fill="#ffffff" d={PAPIRUS_FOLDER_HIGHLIGHT_PATH} />
       {resolvedBadge && (
         <g
           fill={shades.emblem}
-          transform={opened ? "translate(0, 3)" : undefined}
+          style={{
+            transform: opened ? "translateY(3px)" : "none",
+            transition: FOLDER_OPEN_TRANSITION,
+          }}
         >
           {renderFolderBadgeGlyph(resolvedBadge)}
         </g>

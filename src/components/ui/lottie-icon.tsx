@@ -201,15 +201,19 @@ export function LottieIcon({
         "button, [role='button'], [data-dock-tile], [data-slot='dock-item'], [role='option']"
       ) ?? container;
     const handleEnter = () => {
+      // `animateOnHover={false}`: hovering does nothing, not even for
+      // stateful icons (folders open on drag-over or when opened, not hover).
+      if (!animateOnHoverRef.current) return;
       hoveredRef.current = true;
       if (openPropRef.current !== undefined) {
         syncStatefulAnimation(true);
         return;
       }
-      if (!animateOnHoverRef.current || isReducedMotionActive()) return;
+      if (isReducedMotionActive()) return;
       anim.goToAndPlay(0, true);
     };
     const handleLeave = () => {
+      if (!hoveredRef.current) return;
       hoveredRef.current = false;
       if (openPropRef.current !== undefined) {
         syncStatefulAnimation(Boolean(openPropRef.current));

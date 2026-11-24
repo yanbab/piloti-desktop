@@ -32,7 +32,7 @@ import {
   type GridMetrics,
   type IconGridItem,
   inferFileVisual,
-  pushItemsToCells,
+  moveItemsInSpatialGrid,
   sortDesktopItems,
 } from "@/lib/shell/desktop-icons";
 import { launchDesktopCommand } from "@/lib/engine-native";
@@ -650,22 +650,17 @@ export function DesktopIconsApp({
       cell: GridCoord,
       metrics: GridMetrics
     ) => {
-      const currentAssigned = assignGridPositions(
-        enrichedItems,
-        settings.desktopIconPositions,
-        metrics.cols,
-        metrics.rows,
-        settings.desktopIconAlign ?? "left"
-      );
-      const nextPositions = pushItemsToCells(
-        currentAssigned,
-        itemIds,
-        primaryId,
-        cell,
-        metrics.cols,
-        metrics.rows
-      );
-      updateSettings({ desktopIconPositions: nextPositions });
+      updateSettings({
+        desktopIconPositions: moveItemsInSpatialGrid(
+          enrichedItems,
+          settings.desktopIconPositions,
+          itemIds,
+          primaryId,
+          cell,
+          metrics,
+          settings.desktopIconAlign ?? "left"
+        ),
+      });
     },
     [
       enrichedItems,

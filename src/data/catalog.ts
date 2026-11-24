@@ -359,6 +359,7 @@ export const APP_CATALOG: AppDefinition[] = [
         items: [
           { label: "As Icons", shortcut: "Ctrl+1", actionId: "files:view-grid", checked: true },
           { label: "As List", shortcut: "Ctrl+2", actionId: "files:view-list", checked: false, separatorAfter: true },
+          { label: "Sort Manually", actionId: "files:sort-manual", checked: false },
           { label: "Sort by Name", actionId: "files:sort-name", checked: true },
           { label: "Sort by Kind", actionId: "files:sort-kind", checked: false },
           { label: "Sort by Date Modified", actionId: "files:sort-modified", checked: false },

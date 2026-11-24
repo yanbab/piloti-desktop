@@ -140,6 +140,12 @@ export interface IconGridProps {
    * heart itself, red when the item is a favorite.
    */
   onToggleFavorite?: (item: IconGridItem) => void;
+  /**
+   * For grids that navigate in place (Folders): a folder shows its opening
+   * for this long before `onActivateItem` runs, as a window opening does on
+   * the desktop.
+   */
+  folderOpenDelayMs?: number;
   renamingId?: string | null;
   onCommitRename?: (item: IconGridItem, nextName: string) => void;
   onCancelRename?: () => void;
@@ -192,6 +198,7 @@ export function IconGrid({
   onActivateItem,
   onContextMenuItem,
   onToggleFavorite,
+  folderOpenDelayMs,
   renamingId = null,
   onCommitRename,
   onCancelRename,
@@ -239,6 +246,7 @@ export function IconGrid({
   const [fileAnimNonces, setFileAnimNonces] = React.useState<
     Record<string, number>
   >({});
+  const [openingDirPath, setOpeningDirPath] = React.useState<string | null>(null);
   const prevEmptyStateRef = React.useRef<Map<string, boolean>>(new Map());
   const prevOpenFilePathsRef = React.useRef<Set<string> | null>(null);
 
@@ -428,6 +436,23 @@ export function IconGrid({
       for (const cancel of cancels) cancel();
     };
   }, [effectiveCellHeight, effectiveCellWidth, mode, resolvedPositions]);
+
+  /** Opens an item, with the same feedback everywhere (desktop and Folders). */
+  const activateItem = (item: IconGridItem) => {
+    const norm = item.path?.replace(/\/+$/, "") || "/";
+    if (item.kind === "file" && item.path) {
+      setFileAnimNonces((prev) => ({ ...prev, [norm]: (prev[norm] ?? 0) + 1 }));
+    }
+    if (item.kind === "directory" && folderOpenDelayMs && item.path) {
+      setOpeningDirPath(norm);
+      window.setTimeout(() => {
+        setOpeningDirPath(null);
+        onActivateItem(item);
+      }, folderOpenDelayMs);
+      return;
+    }
+    onActivateItem(item);
+  };
 
   const focusItemButton = React.useCallback((id: string) => {
     const btn = itemRefs.current.get(id);
@@ -842,11 +867,7 @@ export function IconGrid({
       if (target) {
         e.preventDefault();
         e.stopPropagation();
-        if (target.kind === "file" && target.path) {
-          const norm = target.path.replace(/\/+$/, "") || "/";
-          setFileAnimNonces((prev) => ({ ...prev, [norm]: (prev[norm] ?? 0) + 1 }));
-        }
-        onActivateItem(target);
+        activateItem(target);
       }
       return;
     }
@@ -1052,22 +1073,14 @@ export function IconGrid({
               }
               if (settings.fileActivationMode !== "double" || item.kind === "desktop-entry") {
                 captureLaunchOriginFromElement(e.currentTarget);
-                if (item.kind === "file" && item.path) {
-                  const norm = item.path.replace(/\/+$/, "") || "/";
-                  setFileAnimNonces((prev) => ({ ...prev, [norm]: (prev[norm] ?? 0) + 1 }));
-                }
-                onActivateItem(item);
+                activateItem(item);
               }
             }}
             onDoubleClick={(e) => {
               e.stopPropagation();
               if (settings.fileActivationMode === "double" && item.kind !== "desktop-entry") {
                 captureLaunchOriginFromElement(e.currentTarget);
-                if (item.kind === "file" && item.path) {
-                  const norm = item.path.replace(/\/+$/, "") || "/";
-                  setFileAnimNonces((prev) => ({ ...prev, [norm]: (prev[norm] ?? 0) + 1 }));
-                }
-                onActivateItem(item);
+                activateItem(item);
               }
             }}
             onDragOver={(e) => {
@@ -1158,7 +1171,9 @@ export function IconGrid({
                 if (item.kind === "directory") {
                   const normDir = item.path?.replace(/\/+$/, "") || "/";
                   const isOpened =
-                    openFolderPaths.has(item.path) || hoveredDropPath === item.path;
+                    openFolderPaths.has(item.path) ||
+                    hoveredDropPath === item.path ||
+                    openingDirPath === normDir;
                   const hasSpecialBadge = Boolean(
                     inferFolderBadge(item.path || item.name),
                   );
@@ -1168,6 +1183,8 @@ export function IconGrid({
                       <LottieIcon
                         src={activeFolderLottie}
                         open={isOpened}
+                        // Folders open on drag-over and when opened, not on hover.
+                        animateOnHover={false}
                         playNonce={folderDropNonces[normDir] ?? 0}
                         className="size-full drop-shadow-[0_1px_2px_rgba(0,0,0,0.22)]"
                       />
