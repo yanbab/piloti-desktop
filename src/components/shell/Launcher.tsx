@@ -52,6 +52,14 @@ import {
   saveWorkspaceSnapshot,
   type WorkspaceSnapshot,
 } from "@/lib/shell/workspace-snapshots";
+import {
+  floatingBounds,
+  floatingDragPosition,
+  settleFloatingPosition,
+} from "@/lib/shell/floating-window";
+
+/** Height of the menu bar above the floating area. */
+const MENU_BAR_HEIGHT = 30;
 import { consumeLegacyLocalStorageValue } from "@/lib/engine-web/web-vfs";
 import {
   readVfsStateJson,
@@ -1038,8 +1046,15 @@ export const Launcher = React.memo(function Launcher() {
   const popupOffsetRef = React.useRef(popupOffset);
   popupOffsetRef.current = popupOffset;
 
-  const clampPopupOffset = React.useCallback(
-    (popup: HTMLElement, desiredX: number, desiredY: number) => {
+  // The launcher is a floating window: free to move, snapping to the screen
+  // edges, resisting past them, and settling back inside on release.
+  const placePopupOffset = React.useCallback(
+    (
+      popup: HTMLElement,
+      desiredX: number,
+      desiredY: number,
+      phase: "drag" | "settle"
+    ) => {
       const prevTranslate = popup.style.translate;
       popup.style.translate = "none";
       const base = popup.getBoundingClientRect();
@@ -1047,18 +1062,26 @@ export const Launcher = React.memo(function Launcher() {
 
       const vw = typeof window !== "undefined" ? window.innerWidth : 1280;
       const vh = typeof window !== "undefined" ? window.innerHeight : 800;
-      const margin = 8;
-      const topLimit = 34;
-
-      const minX = margin - base.left;
-      const maxX = Math.max(minX, vw - margin - base.right);
-      const minY = topLimit - base.top;
-      const maxY = Math.max(minY, vh - margin - base.bottom);
-
-      let nextX = Math.round(Math.min(maxX, Math.max(minX, desiredX)));
-      let nextY = Math.round(Math.min(maxY, Math.max(minY, desiredY)));
-      // Easy magnetic snap back to default top-right corner when dragged near it
-      if (Math.abs(nextX) <= 10 && Math.abs(nextY) <= 10) {
+      const bounds = floatingBounds({
+        x: 0,
+        y: MENU_BAR_HEIGHT,
+        width: vw,
+        height: vh - MENU_BAR_HEIGHT,
+      });
+      const rect = {
+        x: base.left + desiredX,
+        y: base.top + desiredY,
+        width: base.width,
+        height: base.height,
+      };
+      const placed =
+        phase === "drag"
+          ? floatingDragPosition(rect, bounds)
+          : settleFloatingPosition(rect, bounds);
+      let nextX = Math.round(placed.x - base.left);
+      let nextY = Math.round(placed.y - base.top);
+      // Magnetic snap back to the default spot when dropped near it.
+      if (phase === "settle" && Math.abs(nextX) <= 10 && Math.abs(nextY) <= 10) {
         nextX = 0;
         nextY = 0;
       }
@@ -1076,10 +1099,10 @@ export const Launcher = React.memo(function Launcher() {
       popup.style.translate = "";
       return;
     }
-    const clamped = clampPopupOffset(popup, popupOffset.x, popupOffset.y);
+    const placed = placePopupOffset(popup, popupOffset.x, popupOffset.y, "settle");
     popup.style.translate =
-      clamped.x || clamped.y ? `${clamped.x}px ${clamped.y}px` : "";
-  }, [clampPopupOffset, launcherOpen, listHeight, popupOffset.x, popupOffset.y]);
+      placed.x || placed.y ? `${placed.x}px ${placed.y}px` : "";
+  }, [placePopupOffset, launcherOpen, listHeight, popupOffset.x, popupOffset.y]);
 
   const handleHeaderDragPointerDown = (
     e: React.PointerEvent<HTMLDivElement>
@@ -1104,7 +1127,7 @@ export const Launcher = React.memo(function Launcher() {
         dragging = true;
         window.getSelection()?.removeAllRanges();
       }
-      latest = clampPopupOffset(popup, baseOffset.x + dx, baseOffset.y + dy);
+      latest = placePopupOffset(popup, baseOffset.x + dx, baseOffset.y + dy, "drag");
       popup.style.translate =
         latest.x || latest.y ? `${latest.x}px ${latest.y}px` : "";
     };
@@ -1114,6 +1137,13 @@ export const Launcher = React.memo(function Launcher() {
       window.removeEventListener("pointerup", onPointerUp, true);
       window.removeEventListener("pointercancel", onPointerUp, true);
       if (!dragging) return;
+      latest = placePopupOffset(popup, latest.x, latest.y, "settle");
+      popup.style.transition = "translate 250ms cubic-bezier(0.22, 1, 0.36, 1)";
+      popup.style.translate =
+        latest.x || latest.y ? `${latest.x}px ${latest.y}px` : "";
+      window.setTimeout(() => {
+        popup.style.transition = "";
+      }, 260);
       setPopupOffset(latest);
       writeLauncherStatePatch({ offset: latest });
     };

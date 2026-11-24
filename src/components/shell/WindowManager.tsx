@@ -29,6 +29,7 @@ import {
 import { initAppModules, resolveAppModuleByUrl } from "@/data/app-modules";
 import { IsolatedAppFrame } from "@/components/shell/IsolatedAppFrame";
 import { WindowMenuButton } from "@/components/shell/WindowMenuButton";
+import { PresentationOverlay } from "@/components/shell/PresentationOverlay";
 import {
   BrowserExtensionsMenu,
   type BrowserExtensionItem,
@@ -2161,21 +2162,19 @@ export function WindowManager() {
                 )}
 
                 {/* Non-interactive presentation: the presenter gets the pointer */}
-                {presentation && presentation.interactive === false && (
-                  <div
-                    data-slot="window-presentation-overlay"
-                    className="absolute inset-0 z-50 cursor-default"
-                    onPointerDown={(e) => {
-                      e.stopPropagation();
-                      presentation.onPointerDown?.(e.nativeEvent);
-                    }}
-                    onDoubleClick={(e) => {
-                      e.stopPropagation();
-                      presentation.onDoubleClick?.(e.nativeEvent);
-                    }}
-                    onContextMenu={(e) => e.preventDefault()}
-                  />
-                )}
+                {presentation &&
+                  (presentation.interactive === false || presentation.floating) && (
+                    <PresentationOverlay
+                      windowId={win.id}
+                      presentation={presentation}
+                      naturalSize={
+                        win.maximized
+                          ? { width: workArea.width, height: workArea.height }
+                          : win.size
+                      }
+                      workArea={workArea}
+                    />
+                  )}
 
                 {/* Silent Alt / Super + Drag Full-Window Grab Overlay */}
                 {modifierGrabActive && !altTabOpen && (

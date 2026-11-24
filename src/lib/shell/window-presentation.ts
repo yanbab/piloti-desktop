@@ -30,6 +30,14 @@ export interface WindowPresentation {
   interactive?: boolean;
   /** Animate the change (default true); turn off while dragging. */
   animate?: boolean;
+  /**
+   * Floating window: the shell moves it (drag anywhere; edges snap and
+   * resist) and, when resizable, scales it from its borders, keeping the
+   * aspect ratio. Implies a non-interactive window.
+   */
+  floating?: { resizable?: boolean; minWidth?: number; maxWidth?: number };
+  /** Called after the user moved or resized a floating presentation. */
+  onChange?: (rect: { x: number; y: number; width: number }) => void;
   onPointerDown?: (event: PointerEvent) => void;
   onDoubleClick?: (event: MouseEvent) => void;
 }
