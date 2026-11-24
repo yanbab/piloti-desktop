@@ -6,6 +6,7 @@ import { Menu as MenuPrimitive } from "@base-ui/react/menu"
 import { Menubar as MenubarPrimitive } from "@base-ui/react/menubar"
 
 import { cn } from "@/lib/core/utils"
+import { PopupSurfaceScope, usePopupSurfaceState } from "@/lib/shell/popup-layer"
 import {
   MENU_BADGE_CLASS,
   MENU_CHECK_ITEM_CLASS,
@@ -32,8 +33,15 @@ function Menubar({ className, ...props }: MenubarPrimitive.Props) {
 }
 
 // One menu in the bar: its title (MenubarTrigger) and its items.
-function MenubarMenu({ ...props }: MenuPrimitive.Root.Props) {
-  return <MenuPrimitive.Root data-slot="menubar-menu" {...props} />
+// One surface on the popup layer at a time (see popup-layer.ts).
+function MenubarMenu({
+  open,
+  defaultOpen,
+  onOpenChange,
+  ...props
+}: MenuPrimitive.Root.Props) {
+  const state = usePopupSurfaceState({ open, defaultOpen, onOpenChange })
+  return <MenuPrimitive.Root data-slot="menubar-menu" {...props} {...state} />
 }
 
 // A menu title. `app` renders the bold application name.
@@ -80,6 +88,7 @@ function MenubarContent({
     initialFocus?: boolean | React.RefObject<HTMLElement | null>;
   }) {
   return (
+    <PopupSurfaceScope>
     <MenuPrimitive.Portal>
       <MenuPrimitive.Positioner
         align={align}
@@ -99,6 +108,7 @@ function MenubarContent({
         />
       </MenuPrimitive.Positioner>
     </MenuPrimitive.Portal>
+    </PopupSurfaceScope>
   )
 }
 

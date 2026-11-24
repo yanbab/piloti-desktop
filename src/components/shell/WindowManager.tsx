@@ -1,5 +1,6 @@
 /// <reference types="@domicile-desktop/react/elements" />
 import * as React from "react";
+import { usePopupSurface } from "@/lib/shell/popup-layer";
 import { emitShellEvent, onShellEvent } from "@/lib/shell/shell-events";
 import { useDomicile } from "@domicile-desktop/react/domicile-provider";
 import { useWatch } from "@domicile-desktop/react/use-watch";
@@ -1582,6 +1583,7 @@ export function WindowManager() {
     x: number;
     y: number;
   } | null>(null);
+  usePopupSurface(Boolean(windowContextMenu), () => setWindowContextMenu(null));
 
   React.useEffect(() => {
     if (typeof window === "undefined") return;

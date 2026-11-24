@@ -1,4 +1,5 @@
 import * as React from "react";
+import { usePopupSurface } from "@/lib/shell/popup-layer";
 import { emitShellEvent, onShellEvent } from "@/lib/shell/shell-events";
 import { createPortal } from "react-dom";
 import { useDomicile } from "@domicile-desktop/react/domicile-provider";
@@ -42,6 +43,7 @@ export function DockFolderStack({
   const { openPath } = useOpenPath();
   const [entries, setEntries] = React.useState<WebVfsEntry[] | null>(null);
   const panelRef = React.useRef<HTMLDivElement | null>(null);
+  usePopupSurface(true, onClose);
 
   React.useEffect(() => {
     let cancelled = false;

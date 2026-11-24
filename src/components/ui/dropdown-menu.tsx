@@ -5,6 +5,7 @@ import { CheckIcon, ChevronRightIcon, CircleIcon } from "lucide-react"
 import { Menu as MenuPrimitive } from "@base-ui/react/menu"
 
 import { cn } from "@/lib/core/utils"
+import { PopupSurfaceScope, usePopupSurfaceState } from "@/lib/shell/popup-layer"
 import {
   MENU_BADGE_CLASS,
   MENU_CHECK_ITEM_CLASS,
@@ -18,8 +19,15 @@ import {
 
 // A pull-down menu using Adwaita popover surface and accent highlight.
 
-function DropdownMenu({ ...props }: MenuPrimitive.Root.Props) {
-  return <MenuPrimitive.Root data-slot="dropdown-menu" {...props} />
+// One surface on the popup layer at a time (see popup-layer.ts).
+function DropdownMenu({
+  open,
+  defaultOpen,
+  onOpenChange,
+  ...props
+}: MenuPrimitive.Root.Props) {
+  const state = usePopupSurfaceState({ open, defaultOpen, onOpenChange })
+  return <MenuPrimitive.Root data-slot="dropdown-menu" {...props} {...state} />
 }
 
 function DropdownMenuPortal({ ...props }: MenuPrimitive.Portal.Props) {
@@ -48,6 +56,7 @@ function DropdownMenuContent({
     initialFocus?: boolean | React.RefObject<HTMLElement | null>;
   }) {
   return (
+    <PopupSurfaceScope>
     <MenuPrimitive.Portal>
       <MenuPrimitive.Positioner
         align={align}
@@ -68,6 +77,7 @@ function DropdownMenuContent({
         />
       </MenuPrimitive.Positioner>
     </MenuPrimitive.Portal>
+    </PopupSurfaceScope>
   )
 }
 

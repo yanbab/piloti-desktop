@@ -598,30 +598,40 @@ export function IconGrid({
     );
     if (cur && commit) {
       suppressClickRef.current = cur.itemId;
-      const external = commitDrop(cur, lastPointerRef.current);
-      // Dropped on a window / dock / folder: the ghost just disappears there instead of flying back.
-      if (external) setDropAnimOff(true);
+      const outcome = commitDrop(cur, lastPointerRef.current);
+      // The ghost only flies back when nothing moved. Dropped elsewhere, it
+      // disappears there; moved in this grid, the items take over from the
+      // drop point (see the settle effect).
+      if (outcome !== "none") setDropAnimOff(true);
     }
     dragRef.current = null;
     setDrag(null);
   };
 
-  /** Routes a drop to the right place. Returns true when it left this grid. */
+  /** Routes a drop to the right place. */
   const commitDrop = (
     cur: DragState,
     pt: { x: number; y: number; alt: boolean },
-  ): boolean => {
+  ): "external" | "moved" | "none" => {
     const rect = containerRef.current?.getBoundingClientRect();
     const dropCell = rect
       ? clientPointToGridCell(pt.x - rect.left, pt.y - rect.top, metrics)
       : cur.targetCell;
     const draggedItems = items.filter((i) => cur.draggedIds.includes(i.id));
     const draggedItem = items.find((i) => i.id === cur.itemId) ?? draggedItems[0];
-    if (!draggedItem) return false;
-    const moveWithinGrid = () => {
-      if (mode !== "spatial" || !dropCell) return;
+    if (!draggedItem) return "none";
+    const moveWithinGrid = (): "moved" | "none" => {
+      if (mode !== "spatial" || !dropCell) return "none";
+      // Items start from where they were dropped, then settle into their cells.
+      pendingSettleRef.current = {
+        ids: new Set(cur.draggedIds),
+        oldCoords: { ...resolvedPositionsRef.current },
+        dropDx: pt.x - cur.startX,
+        dropDy: pt.y - cur.startY,
+      };
       if (onMoveItems) onMoveItems(cur.draggedIds, cur.itemId, dropCell, metrics);
       else onMoveItem?.(cur.itemId, dropCell, metrics);
+      return "moved";
     };
     const topTarget = resolveTopDropTarget(
       pt.x,
@@ -634,7 +644,7 @@ export function IconGrid({
           detail: { appId: topTarget.appId, item: draggedItem, items: draggedItems },
         }),
       );
-      return true;
+      return "external";
     }
     if (topTarget?.kind === "window") {
       window.dispatchEvent(
@@ -642,7 +652,7 @@ export function IconGrid({
           detail: { windowId: topTarget.windowId, item: draggedItem, items: draggedItems },
         }),
       );
-      return true;
+      return "external";
     }
     if (topTarget?.kind === "vfs") {
       const isSameDir =
@@ -653,8 +663,7 @@ export function IconGrid({
             !d.path.slice(topTarget.destPath.length + 1).includes("/"),
         );
       if (isSameDir) {
-        moveWithinGrid();
-        return false;
+        return moveWithinGrid();
       }
       window.dispatchEvent(
         new CustomEvent("residence:desktop-drop-position", {
@@ -674,10 +683,9 @@ export function IconGrid({
       window.dispatchEvent(
         new CustomEvent("piloti:folder-drop-anim", { detail: { path: topTarget.destPath } }),
       );
-      return true;
+      return "external";
     }
-    if (!topTarget) moveWithinGrid();
-    return false;
+    return topTarget ? "none" : moveWithinGrid();
   };
 
   const onDndEnd = (_e: DragEndEvent) => endDrag(true);

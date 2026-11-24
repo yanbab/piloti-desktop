@@ -1055,10 +1055,19 @@ export const Launcher = React.memo(function Launcher() {
       desiredY: number,
       phase: "drag" | "settle"
     ) => {
-      const prevTranslate = popup.style.translate;
-      popup.style.translate = "none";
-      const base = popup.getBoundingClientRect();
-      popup.style.translate = prevTranslate;
+      // Resting rectangle = current rectangle minus the current offset. Never
+      // toggle `translate` to measure it: with a transition running, that
+      // animates the launcher back to its resting spot and out again.
+      const current = popup.getBoundingClientRect();
+      const [tx = 0, ty = 0] = (getComputedStyle(popup).translate || "")
+        .split(/\s+/)
+        .map((v) => Number.parseFloat(v) || 0);
+      const base = {
+        left: current.left - tx,
+        top: current.top - ty,
+        width: current.width,
+        height: current.height,
+      };
 
       const vw = typeof window !== "undefined" ? window.innerWidth : 1280;
       const vh = typeof window !== "undefined" ? window.innerHeight : 800;

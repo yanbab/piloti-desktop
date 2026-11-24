@@ -1,4 +1,5 @@
 import * as React from "react";
+import { usePopupSurface } from "@/lib/shell/popup-layer";
 import { createPortal } from "react-dom";
 import { useDomicile } from "@domicile-desktop/react/domicile-provider";
 import { AppSquircleIcon } from "@/components/shell/AppSymbol";
@@ -104,6 +105,7 @@ export function FileItemContextMenu({
   const { isBrowserRuntime } = useSettings();
   const { getAppIconUrl, installedXdgApps } = useApps();
   const [mimeConfig, setMimeConfig] = React.useState<MimeAppsConfig | null>(null);
+  usePopupSurface(Boolean(menu), onClose);
 
   React.useEffect(() => {
     if (!menu) return;

@@ -5,6 +5,7 @@ import { CheckIcon, ChevronRightIcon, CircleIcon } from "lucide-react"
 import { ContextMenu as ContextMenuPrimitive } from "@base-ui/react/context-menu"
 
 import { cn } from "@/lib/core/utils"
+import { PopupSurfaceScope, usePopupSurfaceState } from "@/lib/shell/popup-layer"
 import {
   MENU_BADGE_CLASS,
   MENU_CHECK_ITEM_CLASS,
@@ -18,8 +19,15 @@ import {
 
 // The menu a right-click opens, where the pointer is.
 
-function ContextMenu({ ...props }: ContextMenuPrimitive.Root.Props) {
-  return <ContextMenuPrimitive.Root data-slot="context-menu" {...props} />
+// One surface on the popup layer at a time (see popup-layer.ts).
+function ContextMenu({
+  open,
+  defaultOpen,
+  onOpenChange,
+  ...props
+}: ContextMenuPrimitive.Root.Props) {
+  const state = usePopupSurfaceState({ open, defaultOpen, onOpenChange })
+  return <ContextMenuPrimitive.Root data-slot="context-menu" {...props} {...state} />
 }
 
 function ContextMenuPortal({ ...props }: ContextMenuPrimitive.Portal.Props) {
@@ -40,6 +48,7 @@ function ContextMenuContent({
 }: ContextMenuPrimitive.Popup.Props &
   Pick<ContextMenuPrimitive.Positioner.Props, "align" | "alignOffset" | "side" | "sideOffset">) {
   return (
+    <PopupSurfaceScope>
     <ContextMenuPrimitive.Portal>
       <ContextMenuPrimitive.Positioner
         align={align}
@@ -55,6 +64,7 @@ function ContextMenuContent({
         />
       </ContextMenuPrimitive.Positioner>
     </ContextMenuPrimitive.Portal>
+    </PopupSurfaceScope>
   )
 }
 

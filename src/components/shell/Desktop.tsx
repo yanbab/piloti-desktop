@@ -77,14 +77,10 @@ import { installConsoleCapture } from "@/lib/core/console-store";
 import { _ } from "@/lib/core/i18n";
 import { bootElapsedMs, logBootEvent } from "@/lib/core/perf-log";
 import {
-  copyVfsEntry,
   getVfsClipboard,
   listVfsTemplates,
-  moveVfsEntry,
-  setVfsClipboard,
   subscribeVfsClipboard,
   subscribeWebVfs,
-  WEB_VFS_HOME,
   type WebVfsEntry,
   resolveVfsTemplatesDir,
 } from "@/lib/engine-web/web-vfs";
@@ -157,22 +153,6 @@ function DesktopSurface() {
       mode: "children",
     });
   }, [domicile, isBrowserRuntime]);
-
-  const handlePasteToDesktop = () => {
-    const clip = getVfsClipboard();
-    if (!clip || clip.paths.length === 0 || !isBrowserRuntime) return;
-    const desktopDir = `${WEB_VFS_HOME}/Desktop`;
-    for (const srcPath of clip.paths) {
-      if (clip.mode === "cut") {
-        moveVfsEntry(srcPath, desktopDir);
-      } else {
-        copyVfsEntry(srcPath, desktopDir);
-      }
-    }
-    if (clip.mode === "cut") {
-      setVfsClipboard(null);
-    }
-  };
 
   const brightnessFilter =
     settings.brightness < 100
@@ -267,12 +247,24 @@ function DesktopSurface() {
               )}
             </ContextMenuSubContent>
           </ContextMenuSub>
-          {isBrowserRuntime && clipboard && clipboard.paths.length > 0 && (
-            <ContextMenuItem onClick={handlePasteToDesktop}>
-              {_("Paste")}
-            </ContextMenuItem>
-          )}
+          <ContextMenuItem
+            disabled={!clipboard || clipboard.paths.length === 0}
+            onClick={() =>
+              window.dispatchEvent(new CustomEvent("piloti:desktop-paste"))
+            }
+          >
+            {_("Paste")}
+          </ContextMenuItem>
           <ContextMenuSeparator />
+          <ContextMenuItem
+            onClick={() =>
+              window.dispatchEvent(
+                new CustomEvent("piloti:desktop-open-terminal")
+              )
+            }
+          >
+            {_("Open in Terminal")}
+          </ContextMenuItem>
           <ContextMenuItem
             onClick={() => updateSettings({ desktopIconPositions: {} })}
           >

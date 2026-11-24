@@ -1,4 +1,5 @@
 import * as React from "react";
+import { usePopupSurface } from "@/lib/shell/popup-layer";
 import { createPortal } from "react-dom";
 import { useDomicile } from "@domicile-desktop/react/domicile-provider";
 import {

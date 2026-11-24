@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useOpenPath } from "@/hooks/use-open-path";
-import { copyFsEntry, createFsFolder, createFsTextFile, moveFsEntry } from "@/lib/engine/fs-bridge";
+import { copyFsEntry, moveFsEntry } from "@/lib/engine/fs-bridge";
 import {
   moveWithUndo,
   onFileUndoApplied,
@@ -37,8 +37,6 @@ import {
 } from "@/lib/shell/desktop-icons";
 import { launchDesktopCommand } from "@/lib/engine-native";
 import { _ } from "@/lib/core/i18n";
-import { cn } from "@/lib/core/utils";
-import { MENU_ITEM_CLASS, MENU_POPUP_CLASS } from "@/components/ui/menu-styles";
 import { startBootPhase } from "@/lib/core/perf-log";
 import { parseDesktopEntry } from "@/lib/xdg/xdg-desktop-entry";
 import {
@@ -106,7 +104,6 @@ export function DesktopIconsApp({
   );
   const [contextMenu, setContextMenu] =
     React.useState<FileItemContextMenuState | null>(null);
-  const [bgMenu, setBgMenu] = React.useState<{ x: number; y: number } | null>(null);
   const initialDesktopLoadLoggedRef = React.useRef(false);
 
   React.useEffect(() => {
@@ -704,6 +701,19 @@ export function DesktopIconsApp({
     [isBrowserRuntime, launchApp, launchXdgEntry, loadDesktopFolder, openPath]
   );
 
+  // Paste and Open in Terminal from the shell's desktop menu.
+  React.useEffect(() => {
+    const onPaste = () => void handlePasteToDesktopRef.current();
+    const onOpenTerminal = () =>
+      launchApp("terminal", { payload: desktopDirPath, forceNew: true });
+    window.addEventListener("piloti:desktop-paste", onPaste);
+    window.addEventListener("piloti:desktop-open-terminal", onOpenTerminal);
+    return () => {
+      window.removeEventListener("piloti:desktop-paste", onPaste);
+      window.removeEventListener("piloti:desktop-open-terminal", onOpenTerminal);
+    };
+  }, [desktopDirPath, launchApp]);
+
   const handlePasteToDesktop = React.useCallback(async () => {
     const clip = getVfsClipboard();
     if (!clip || clip.paths.length === 0) return;
@@ -723,6 +733,8 @@ export function DesktopIconsApp({
     }
     await loadDesktopFolder();
   }, [desktopDirPath, domicile, isBrowserRuntime, loadDesktopFolder]);
+  const handlePasteToDesktopRef = React.useRef(handlePasteToDesktop);
+  handlePasteToDesktopRef.current = handlePasteToDesktop;
 
   const handleDuplicateItems = React.useCallback(
     async (list: IconGridItem[]) => {
@@ -799,11 +811,10 @@ export function DesktopIconsApp({
       data-vfs-drop-path={desktopDirPath}
       style={{ bottom: `${bottomInset}px` }}
       className="pointer-events-auto absolute inset-x-0 top-0 z-0"
-      onContextMenu={(e) => {
-        if (e.defaultPrevented) return;
-        e.preventDefault();
+      onContextMenu={() => {
+        // The desktop background menu is the shell's (Desktop.tsx); it acts
+        // here through `piloti:desktop-*` events.
         setContextMenu(null);
-        setBgMenu({ x: e.clientX, y: e.clientY });
       }}
       onKeyDown={(e) => {
         if (renamingId || e.target instanceof HTMLInputElement) return;
@@ -919,71 +930,6 @@ export function DesktopIconsApp({
           <span className="rounded-full bg-zinc-900/90 px-3 py-1 text-xs font-medium text-white shadow-sm ring-1 ring-white/10">
             {_("Drop files to copy to Desktop")}
           </span>
-        </div>
-      )}
-
-      {bgMenu && (
-        <div
-          className="fixed inset-0 z-[500]"
-          onClick={() => setBgMenu(null)}
-          onContextMenu={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            setBgMenu(null);
-          }}
-        >
-          <div
-            role="menu"
-            style={{
-              left: `${Math.min(window.innerWidth - 200, bgMenu.x)}px`,
-              top: `${Math.min(window.innerHeight - 200, bgMenu.y)}px`,
-            }}
-            onClick={(e) => e.stopPropagation()}
-            className={cn(MENU_POPUP_CLASS, "fixed min-w-48")}
-          >
-            {(
-              [
-                [
-                  _("New Folder"),
-                  () => {
-                    const created = createFsFolder(domicile, isBrowserRuntime, desktopDirPath);
-                    recordCreated({ domicile, isBrowserRuntime }, [created.path], "New Folder");
-                    void loadDesktopFolder();
-                  },
-                  false,
-                ],
-                [
-                  _("New Text File"),
-                  () => {
-                    const created = createFsTextFile(domicile, isBrowserRuntime, desktopDirPath);
-                    recordCreated({ domicile, isBrowserRuntime }, [created.path], "New Text File");
-                    void loadDesktopFolder();
-                  },
-                  false,
-                ],
-                [_("Paste"), () => void handlePasteToDesktop(), !clipboard || clipboard.paths.length === 0],
-                [_("Open in Terminal"), () => launchApp("terminal", { payload: desktopDirPath, forceNew: true }), false],
-                [_("Change Wallpaper…"), () => launchApp("settings", { payload: "wallpaper" }), false],
-              ] as Array<[string, () => void, boolean]>
-            ).map(([label, run, disabled]) => (
-              <button
-                key={label}
-                type="button"
-                role="menuitem"
-                disabled={disabled}
-                onClick={() => {
-                  setBgMenu(null);
-                  run();
-                }}
-                className={cn(
-                  MENU_ITEM_CLASS,
-                  "w-full text-left hover:bg-adw-menu-highlight disabled:pointer-events-none disabled:opacity-40",
-                )}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
         </div>
       )}
 
