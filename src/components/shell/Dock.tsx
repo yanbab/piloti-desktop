@@ -696,7 +696,8 @@ export const Dock = React.memo(function Dock() {
           {/* Launcher Quick Tile (3x3 App Grid from XDG Icon Theme) */}
           <DockItem
             label={_("Launcher (Alt+Space)")}
-            onClick={() => setLauncherOpen(true)}
+            data-launcher-toggle=""
+            onClick={() => setLauncherOpen((open) => !open)}
           >
             {(() => {
               const appGridIconUrl = getAppIconUrl("__app_grid__");

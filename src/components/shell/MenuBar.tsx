@@ -1250,7 +1250,19 @@ export const MenuBar = React.memo(function MenuBar() {
           <DropdownMenu
             modal={false}
             open={launcherOpen}
-            onOpenChange={(open) => {
+            onOpenChange={(open, details) => {
+              // Launcher toggles elsewhere (dock tile) handle their own click:
+              // pressing them must not first close the launcher as an
+              // outside press, then reopen it.
+              // (outside press: the event target; focus moving there: the
+              // related target).
+              const event = details?.event as FocusEvent | undefined;
+              const isToggle = (node: EventTarget | null | undefined) =>
+                node instanceof Element &&
+                Boolean(node.closest("[data-launcher-toggle]"));
+              if (!open && (isToggle(event?.target) || isToggle(event?.relatedTarget))) {
+                return;
+              }
               setLauncherOpen(open);
               if (open) setControlPanelOpen(false);
             }}

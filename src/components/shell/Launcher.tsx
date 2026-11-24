@@ -1172,6 +1172,21 @@ export const Launcher = React.memo(function Launcher() {
       value={selectedValue}
       onValueChange={setSelectedValue}
       onKeyDown={(e) => {
+        // Ctrl+A selects the whole query, as on Linux (in a browser on macOS
+        // it would move the caret to the start of the line).
+        if (
+          e.ctrlKey &&
+          !e.altKey &&
+          !e.metaKey &&
+          !e.shiftKey &&
+          e.key.toLowerCase() === "a" &&
+          e.target instanceof HTMLInputElement
+        ) {
+          e.preventDefault();
+          e.stopPropagation();
+          e.target.select();
+          return;
+        }
         if (e.key === "Escape") {
           if (searchQuery.length > 0) {
             e.preventDefault();
@@ -1214,7 +1229,10 @@ export const Launcher = React.memo(function Launcher() {
           }
           return;
         }
-        e.stopPropagation();
+        // Typing stays in the launcher (the menu must not treat letters as
+        // typeahead), but global shortcuts (Alt+Space, Alt+N, Cmd+K…) still
+        // reach the shell.
+        if (!e.altKey && !e.metaKey && !e.ctrlKey) e.stopPropagation();
       }}
       className="relative w-full"
     >
