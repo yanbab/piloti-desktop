@@ -1,3 +1,5 @@
+import { profileStartup } from "./lib/core/startup-profile";
+import { startBootPhase } from "./lib/core/perf-log";
 import * as React from "react";
 import { createRoot } from "react-dom/client";
 import "./styles/globals.css";
@@ -67,12 +69,16 @@ if (root) {
       </ShellErrorBoundary>,
     );
   } else {
+    const finishImport = startBootPhase("desktop module");
     void Promise.all([
       import("./piloti-desktop-app"),
       import("./lib/engine-web"),
     ]).then(([{ Shell }, { createBrowserDomicile }]) => {
-      const domicile = createBrowserDomicile();
+      finishImport();
+      const domicile = profileStartup(createBrowserDomicile());
+      const finishRender = startBootPhase("first render");
       Shell(root, domicile);
+      finishRender();
     });
   }
 }

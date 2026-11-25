@@ -98,7 +98,15 @@ function DesktopSurface() {
 
   React.useEffect(() => {
     logBootEvent(`finish load shell in ${bootElapsedMs()}ms`);
+    // Two frames: the first one with the desktop on it has been painted.
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => logBootEvent("first desktop frame"))
+    );
   }, []);
+
+  React.useEffect(() => {
+    if (settings.debugMode) logBootEvent("debug mode: ready gates and entrances are off");
+  }, [settings.debugMode]);
   const {
     locked,
     idleWarningMs,

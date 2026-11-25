@@ -686,7 +686,8 @@ export const Dock = React.memo(function Dock() {
                   : undefined
               }
               autoHide={settings.dockAutoHide}
-              hidden={!entered}
+              // Debug mode shows the Dock at once, with whatever icons arrived.
+              hidden={!entered && !settings.debugMode}
               resizing={resizingDock || draggingAppId !== null}
               className="pointer-events-auto"
               data-dock-app-id="__dock__"

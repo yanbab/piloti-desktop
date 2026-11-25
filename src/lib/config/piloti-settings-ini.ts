@@ -100,6 +100,7 @@ const SETTINGS_INI_SCHEMA: readonly SchemaEntry[] = [
   ["org.piloti.desktop.system", "demo-extension-enabled", "demoExtensionEnabled", "boolean"],
   ["org.piloti.desktop.system", "pinned-extensions", "pinnedExtensionIds", "string[]"],
   ["org.piloti.desktop.system", "dark-reader-web-enabled", "darkReaderWebEnabled", "boolean"],
+  ["org.piloti.desktop.system", "debug-mode", "debugMode", "boolean"],
   ["org.piloti.desktop.system", "enabled-plugins", "enabledPluginIds", "string[]"],
   ["org.piloti.desktop.system", "web-apps-seeded", "webAppsSeeded", "boolean"],
   ["org.piloti.desktop.system", "web-defaults-version", "webDefaultsVersion", "number"],

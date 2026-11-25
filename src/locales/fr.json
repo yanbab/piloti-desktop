@@ -791,5 +791,7 @@
   "Search the web for “%s”": "Rechercher « %s » sur le web",
   "Could not compress": "Compression impossible",
   "Could not extract": "Extraction impossible",
-  "Check the file, free space and that libarchive-tools is installed.": "Vérifiez le fichier, l’espace libre et que libarchive-tools est installé."
+  "Check the file, free space and that libarchive-tools is installed.": "Vérifiez le fichier, l’espace libre et que libarchive-tools est installé.",
+  "Debug mode": "Mode débogage",
+  "Show the desktop as it loads, to profile startup": "Afficher le bureau au fil du chargement, pour analyser le démarrage"
 }

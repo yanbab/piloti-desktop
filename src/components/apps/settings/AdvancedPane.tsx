@@ -305,6 +305,20 @@ export function AdvancedPane() {
           </GroupedFormRow>
           <GroupedFormRow>
             <GroupedFormRowLabel>
+              <GroupedFormRowTitle>{_("Debug mode")}</GroupedFormRowTitle>
+              <GroupedFormRowDescription>
+                {_("Show the desktop as it loads, to profile startup")}
+              </GroupedFormRowDescription>
+            </GroupedFormRowLabel>
+            <GroupedFormRowControl>
+              <Switch
+                checked={settings.debugMode}
+                onCheckedChange={(checked) => updateSettings({ debugMode: Boolean(checked) })}
+              />
+            </GroupedFormRowControl>
+          </GroupedFormRow>
+          <GroupedFormRow>
+            <GroupedFormRowLabel>
               <GroupedFormRowTitle>{_("Keyboard")}</GroupedFormRowTitle>
             </GroupedFormRowLabel>
             <GroupedFormRowControl>

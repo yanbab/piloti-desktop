@@ -1,4 +1,5 @@
 /// <reference types="@domicile-desktop/react/elements" />
+import { logAppEvent } from "@/lib/core/perf-log";
 import { looksLikeUrl, webSearchUrl } from "@/lib/shell/web-search";
 import * as React from "react";
 import { emitShellEvent, onShellEvent } from "@/lib/shell/shell-events";
@@ -1692,7 +1693,30 @@ export function WindowManager() {
   const [domReadyIds, setDomReadyIds] = React.useState<Set<string>>(
     () => new Set()
   );
+  // Log each window's life, to see how long apps take to show.
+  const loggedWindowsRef = React.useRef<Map<string, string>>(new Map());
+  const readyLoggedRef = React.useRef<Set<string>>(new Set());
+  React.useEffect(() => {
+    const logged = loggedWindowsRef.current;
+    for (const win of windows) {
+      if (logged.has(win.id)) continue;
+      logged.set(win.id, win.appId);
+      logAppEvent(win.appId, "window created");
+    }
+    const open = new Set(windows.map((w) => w.id));
+    for (const [id, appId] of logged) {
+      if (open.has(id)) continue;
+      logged.delete(id);
+      readyLoggedRef.current.delete(id);
+      logAppEvent(appId, "closed");
+    }
+  }, [windows]);
   const handleDomReady = React.useCallback((id: string) => {
+    const appId = loggedWindowsRef.current.get(id);
+    if (appId && !readyLoggedRef.current.has(id)) {
+      readyLoggedRef.current.add(id);
+      logAppEvent(appId, "ready");
+    }
     setDomReadyIds((prev) => {
       if (prev.has(id)) return prev;
       const next = new Set(prev);
@@ -1745,7 +1769,7 @@ export function WindowManager() {
       if (win.builtinComponent && !domReadyIds.has(win.id)) continue;
       if (animatedOpenedRef.current.has(win.id)) continue;
       animatedOpenedRef.current.add(win.id);
-      if (win.minimized || reducedMotion) continue;
+      if (win.minimized || reducedMotion || settings.debugMode) continue;
 
       let origin =
         windowOriginsRef.current.get(win.id) ?? consumeLaunchOriginRect();
@@ -1786,7 +1810,7 @@ export function WindowManager() {
         }
       }, 250);
     }
-  }, [domReadyIds, getDockRef, reducedMotion, windows]);
+  }, [domReadyIds, getDockRef, reducedMotion, settings.debugMode, windows]);
 
   const handleAnimatedClose = React.useCallback(
     (win: DesktopWindowInstance) => {
@@ -2370,8 +2394,10 @@ export function WindowManager() {
               className={cn(
                 "contain-[layout_style] outline-none",
                 isWaylandSurface && "bg-transparent",
-                (win.ready === false ||
-                  (win.builtinComponent && !domReadyIds.has(win.id))) &&
+                // Debug mode shows a window while it is still loading.
+                !settings.debugMode &&
+                  (win.ready === false ||
+                    (win.builtinComponent && !domReadyIds.has(win.id))) &&
                   "opacity-0 pointer-events-none",
                 overviewOpen && "pointer-events-none",
                 closingWindowIds.has(win.id) && "pointer-events-none",

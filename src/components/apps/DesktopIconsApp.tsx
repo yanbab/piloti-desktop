@@ -330,7 +330,8 @@ export function DesktopIconsApp({
   React.useEffect(() => onFileUndoApplied(() => void loadDesktopFolder()), [loadDesktopFolder]);
 
   React.useEffect(() => {
-    if (!settings.desktopIconsEnabled || !dockIconsReady) return;
+    // Debug mode lists the folder without waiting for the essential icons.
+    if (!settings.desktopIconsEnabled || (!dockIconsReady && !settings.debugMode)) return;
     void loadDesktopFolder();
     if (!realFilesystem) {
       const unsubVfs = subscribeWebVfs(
@@ -377,6 +378,7 @@ export function DesktopIconsApp({
     desktopDirPath,
     domicile.files,
     dockIconsReady,
+    settings.debugMode,
     realFilesystem,
     loadDesktopFolder,
     locked,

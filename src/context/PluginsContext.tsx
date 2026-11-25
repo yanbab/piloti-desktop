@@ -1,3 +1,4 @@
+import { startBootPhase } from "@/lib/core/perf-log";
 import { VFS_HOME } from "@/lib/engine/vfs-home";
 import * as React from "react";
 import { useDomicile } from "@domicile-desktop/react/domicile-provider";
@@ -582,6 +583,7 @@ export function PluginsProvider({
   const syncPlugins = React.useCallback(
     async (enabledIds: readonly string[], forceReloadId?: string) => {
       setLoading(true);
+      const finishPlugins = startBootPhase("plugins");
       try {
         const list = await discoverPlugins(domicile.files, enabledIds);
         const enabledSet = new Set(enabledIds);
@@ -650,6 +652,7 @@ export function PluginsProvider({
           () => undefined
         );
       } finally {
+        finishPlugins(`${enabledIds.length} enabled`);
         setLoading(false);
         setReady(true);
       }

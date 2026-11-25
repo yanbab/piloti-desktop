@@ -166,6 +166,8 @@ export interface DesktopSettings {
   /** Extension ids pinned to the browser toolbar. */
   pinnedExtensionIds: string[];
   darkReaderWebEnabled: boolean;
+  /** Show the desktop as it loads (no ready gates or entrances), to profile startup. */
+  debugMode: boolean;
   enabledPluginIds: string[];
   computerModel: "mac" | "pc";
   desktopIconPositions: Record<string, { col: number; row: number }>;
@@ -252,6 +254,7 @@ const DEFAULT_SETTINGS: DesktopSettings = {
   demoExtensionEnabled: true,
   pinnedExtensionIds: [],
   darkReaderWebEnabled: false,
+  debugMode: false,
   enabledPluginIds: ["aurora-drift", "app-indicator", "picture-in-picture", "app-dark-mode"],
   computerModel:
     typeof navigator !== "undefined" &&

@@ -1,3 +1,4 @@
+import { logAppLaunch } from "@/lib/core/perf-log";
 import { webSearchHome } from "@/lib/shell/web-search";
 import * as React from "react";
 import { useDisplays } from "@domicile-desktop/react/displays";
@@ -2139,7 +2140,7 @@ function pruneBrowserRecord(
       options?: { payload?: string; forceNew?: boolean; forceCsd?: boolean }
     ) => {
       clearLaunchOverlays();
-      console.info("[Piloti] launchApp", appId, options ?? {});
+      logAppLaunch(appId, options?.payload);
       const def = APP_CATALOG.find((a) => a.id === appId);
 
       // Web Browser: our own browser window (the web view used by web apps,
@@ -2454,7 +2455,7 @@ function pruneBrowserRecord(
   const launchXdgApp = React.useCallback(
     (entry: XdgDesktopEntry, actionId?: string) => {
       clearLaunchOverlays();
-      console.info("[Piloti] launchXdgApp", entry.desktopId, actionId ?? null);
+      logAppLaunch(entry.desktopId, actionId);
       const execCmd = entry.execArgv[0];
       if (execCmd === "piloti-webapp" && entry.execArgv[1]) {
         openWebUrl(entry.execArgv[1], {
