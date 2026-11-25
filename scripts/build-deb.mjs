@@ -33,9 +33,8 @@ export function shouldIncludeDataFile(relPath) {
   const base = path.posix.basename(norm);
   if (base === ".DS_Store" || base === "Thumbs.db") return false;
 
-  // Never ship user home seed files or base-files' /etc/issue inside a .deb.
+  // Never ship user home seed files inside a .deb.
   if (norm === "home" || norm.startsWith("home/")) return false;
-  if (norm === "etc/issue") return false;
 
   // Avoid file conflicts with Debian's adwaita-icon-theme, papirus-icon-theme,
   // hicolor-icon-theme, and upstream GNOME app packages.

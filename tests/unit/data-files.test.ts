@@ -11,7 +11,7 @@ describe("shipped files", () => {
   });
 
   it("lists shipped folders", () => {
-    expect(listDataDir("/")?.map((e) => e.name)).toEqual(expect.arrayContaining(["etc", "home", "usr"]));
+    expect(listDataDir("/")?.map((e) => e.name)).toEqual(expect.arrayContaining(["home", "usr"]));
     expect(listDataDir("/usr/share/applications")?.length).toBeGreaterThan(5);
     expect(listDataDir("/nope")).toBeNull();
   });

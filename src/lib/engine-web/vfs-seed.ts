@@ -26,7 +26,6 @@ function shippedDefaults() {
   return {
     homeFiles,
     dirs: Array.from(new Set(["/etc", "/home", WEB_VFS_HOME, ...homeDirs, WEB_VFS_TRASH])),
-    issue: DATA_FILES["/etc/issue"] ?? "",
     mimeApps: homeFiles[`${VFS_HOME}/.config/mimeapps.list`] ?? DEFAULT_MIMEAPPS_INI,
     welcome: homeFiles[`${VFS_HOME}/Desktop/Welcome.html`] ?? "",
     desktopFiles: Object.fromEntries(
@@ -48,16 +47,6 @@ export function createInitialVfs(): WebVfsEntry[] {
     parentPath: dirname(dirPath),
     updatedAt: now,
   }));
-
-  entries.push({
-    id: "/etc/issue",
-    name: "issue",
-    kind: "file",
-    path: "/etc/issue",
-    parentPath: "/etc",
-    content: defaults.issue,
-    updatedAt: now,
-  });
 
   for (const [fullPath, content] of Object.entries(defaults.homeFiles)) {
     entries.push({
@@ -104,28 +93,6 @@ export function topUpDefaults(entries: WebVfsEntry[], kv: KeyValueStorage | null
       }
     }
     const now = Date.now();
-    if (!entries.some((e) => e.path === "/etc/issue")) {
-      if (!entries.some((e) => e.path === "/etc")) {
-        entries.push({
-          id: "/etc",
-          name: "etc",
-          kind: "directory",
-          path: "/etc",
-          parentPath: "/",
-          updatedAt: now,
-        });
-      }
-      entries.push({
-        id: "/etc/issue",
-        name: "issue",
-        kind: "file",
-        path: "/etc/issue",
-        parentPath: "/etc",
-        content: defaults.issue,
-        updatedAt: now,
-      });
-      addedDefaults = true;
-    }
     if (!entries.some((e) => e.path === `${VFS_HOME}/.config/mimeapps.list`)) {
       if (!entries.some((e) => e.path === `${VFS_HOME}/.config`)) {
         entries.push({

@@ -7,7 +7,7 @@ import path from "node:path";
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..");
 export const DATA_FILES_DIR = path.join(ROOT, "data", "files");
 
-/** `{ dirs, files }`: every folder and file, as absolute paths (`/etc/issue`). */
+/** `{ dirs, files }`: every folder and file, as absolute paths (`/usr/bin/piloti`). */
 export function indexDataFiles(root = DATA_FILES_DIR) {
   const dirs = [];
   const files = [];

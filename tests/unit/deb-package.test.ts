@@ -27,7 +27,6 @@ describe("Debian packaging (data/files -> .deb)", () => {
 
     // Must exclude paths owned by other Debian packages or browser-only VFS
     expect(shouldIncludeDataFile("home/user/Documents/Notes.txt")).toBe(false);
-    expect(shouldIncludeDataFile("etc/issue")).toBe(false);
     expect(shouldIncludeDataFile("usr/share/icons/Adwaita/index.theme")).toBe(false);
     expect(shouldIncludeDataFile("usr/share/icons/Papirus/index.theme")).toBe(false);
     expect(shouldIncludeDataFile("usr/share/icons/hicolor/index.theme")).toBe(false);
@@ -70,7 +69,6 @@ describe("Debian packaging (data/files -> .deb)", () => {
       expect(rels.has("usr/share/icons/hicolor/scalable/apps/piloti-desktop.svg")).toBe(true);
 
       // No conflicting files staged
-      expect(rels.has("etc/issue")).toBe(false);
       expect(rels.has("usr/share/icons/Adwaita/index.theme")).toBe(false);
       expect(rels.has("usr/share/icons/Papirus/index.theme")).toBe(false);
       expect(rels.has("usr/share/icons/hicolor/index.theme")).toBe(false);

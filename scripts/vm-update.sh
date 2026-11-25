@@ -1,18 +1,22 @@
 #!/bin/sh
-# Build the .deb inside the Linux VM.
-#
-#   scripts/vm-build.sh       from the shared folder; the .deb lands in its dist/
-#
-# The shared folder's node_modules are the host's (macOS binaries), so
-# `npm run build:deb` fails there. This copies the sources to a folder of its
-# own, installs Linux node_modules in it, builds, and copies the .deb back.
+
 set -eu
 
 SHARED="${PILOTI_SHARED:-$(cd "$(dirname "$0")/.." && pwd)}"
-BUILD="${PILOTI_BUILD:-$HOME/.cache/piloti-deb-build}"
+BUILD="${PILOTI_BUILD:-$HOME/.cache/piloti/deb-build}"
 OUT="${PILOTI_OUT:-$SHARED/dist}"
 
 mkdir -p "$BUILD"
+
+
+
+cd $SHARED
+git pull
+rm dist/*.deb
+./scripts/vm-build
+sudo dpkg -i dist/pilkoti-desktop*.deb
+
+
 # `rsync --delete` below mirrors into BUILD: it must never be the sources.
 if [ "$(cd "$BUILD" && pwd -P)" = "$(cd "$SHARED" && pwd -P)" ]; then
   echo "PILOTI_BUILD must not be the source folder" >&2
