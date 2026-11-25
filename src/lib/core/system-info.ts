@@ -1,5 +1,5 @@
 import { hostFiles } from "@/lib/engine/host-files";
-import type { Domicile } from "@domicile-desktop/sdk/desktop/desktop";
+import type { Piloti } from "@/lib/engine/piloti";
 
 export interface ComputerInfo {
   computerName: string;
@@ -102,11 +102,11 @@ function detectBrowserGraphics(): string {
 }
 
 async function readTextSafe(
-  domicile: Domicile,
+  piloti: Piloti,
   path: string
 ): Promise<string | null> {
   try {
-    const res = await hostFiles(domicile).readText(path);
+    const res = await hostFiles(piloti).readText(path);
     return res.match({
       Ok: (txt) => txt.trim() || null,
       Err: () => null,
@@ -117,11 +117,11 @@ async function readTextSafe(
 }
 
 async function runTextSafe(
-  domicile: Domicile,
+  piloti: Piloti,
   argv: string[]
 ): Promise<string | null> {
   try {
-    const res = await domicile.processes.run(argv);
+    const res = await piloti.processes.run(argv);
     return res.match({
       Ok: (ran) => (ran.code === 0 ? ran.stdout.trim() || null : null),
       Err: () => null,
@@ -154,7 +154,7 @@ function getBrowserFallbackInfo(): ComputerInfo {
  * Probes host computer hardware & OS metadata for the About Computer dialog.
  */
 export async function probeComputerInfo(
-  domicile: Domicile,
+  piloti: Piloti,
   isBrowserRuntime: boolean  // FIXME : Capabilities
 ): Promise<ComputerInfo> {
   const fallback = getBrowserFallbackInfo();
@@ -173,15 +173,15 @@ export async function probeComputerInfo(
     kernelRaw,
     gpuRaw,
   ] = await Promise.all([
-    readTextSafe(domicile, "/etc/hostname"),
-    readTextSafe(domicile, "/sys/devices/virtual/dmi/id/product_name"),
-    readTextSafe(domicile, "/sys/devices/virtual/dmi/id/sys_vendor"),
-    readTextSafe(domicile, "/proc/cpuinfo"),
-    readTextSafe(domicile, "/proc/meminfo"),
-    readTextSafe(domicile, "/etc/os-release"),
-    runTextSafe(domicile, ["uname", "-m"]),
-    runTextSafe(domicile, ["uname", "-r"]),
-    runTextSafe(domicile, [
+    readTextSafe(piloti, "/etc/hostname"),
+    readTextSafe(piloti, "/sys/devices/virtual/dmi/id/product_name"),
+    readTextSafe(piloti, "/sys/devices/virtual/dmi/id/sys_vendor"),
+    readTextSafe(piloti, "/proc/cpuinfo"),
+    readTextSafe(piloti, "/proc/meminfo"),
+    readTextSafe(piloti, "/etc/os-release"),
+    runTextSafe(piloti, ["uname", "-m"]),
+    runTextSafe(piloti, ["uname", "-r"]),
+    runTextSafe(piloti, [
       "sh",
       "-c",
       "lspci 2>/dev/null | grep -iE 'vga|3d|display' | head -n 1 | sed -E 's/^[^:]+:[^:]+:[[:space:]]*//; s/[[:space:]]*\\(rev [^)]+\\)$//'",

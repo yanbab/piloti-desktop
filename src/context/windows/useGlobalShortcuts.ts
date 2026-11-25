@@ -1,10 +1,10 @@
 import * as React from "react";
-import type { Domicile } from "@domicile-desktop/sdk/desktop/desktop";
+import type { Piloti } from "@/lib/engine/piloti";
 import { launchDesktopCommand } from "@/lib/engine-native";
 import { emitShellEvent } from "@/lib/shell/shell-events";
 
 export interface UseGlobalShortcutsParams {
-  domicile: Domicile;
+  piloti: Piloti;
   isBrowserRuntime: boolean;  // FIXME : Capabilities
   overviewOpen: boolean;
   setOverviewOpen: React.Dispatch<React.SetStateAction<boolean>>;
@@ -29,7 +29,7 @@ export interface UseGlobalShortcutsParams {
 }
 
 export function useGlobalShortcuts({
-  domicile,
+  piloti,
   isBrowserRuntime,  // FIXME : Capabilities
   overviewOpen,
   setOverviewOpen,
@@ -66,26 +66,26 @@ export function useGlobalShortcuts({
     ];
     for (const c of chords) {
       try {
-        domicile.keyboard.grab(c);
+        piloti.keyboard.grab(c);
       } catch {
         // ignore invalid keysym warnings in fake host
       }
     }
-    const unlisten = domicile.keyboard.on("shortcut", ({ chord }) => {
+    const unlisten = piloti.keyboard.on("shortcut", ({ chord }) => {
       if (chord === "Meta+k" || chord === "Meta+K") {
-        domicile.windows.focusShell();
+        piloti.windows.focusShell();
         emitShellEvent("piloti:open-command-hud");
       } else if (chord === "Alt+Space" || chord === "Alt+space") {
-        domicile.windows.focusShell();
+        piloti.windows.focusShell();
         setLauncherOpen((v) => !v);
       } else if (chord === "Alt+Tab") {
-        domicile.windows.focusShell();
+        piloti.windows.focusShell();
         cycleAltTab(1);
       } else if (chord === "Alt+Shift+Tab") {
-        domicile.windows.focusShell();
+        piloti.windows.focusShell();
         cycleAltTab(-1);
       } else if (chord === "Meta+Return") {
-        launchDesktopCommand(domicile, ["kitty"]);
+        launchDesktopCommand(piloti, ["kitty"]);
       } else if (chord === "Meta+Left") {
         switchWorkspace(-1);
       } else if (chord === "Meta+Right") {
@@ -96,7 +96,7 @@ export function useGlobalShortcuts({
         void takeScreenshot();
       }
     });
-    const unlistenRelease = domicile.keyboard.on(
+    const unlistenRelease = piloti.keyboard.on(
       "shortcutrelease",
       ({ chord, altKey }) => {
         if ((chord === "Alt+Tab" || chord === "Alt+Shift+Tab") && !altKey) {
@@ -104,11 +104,11 @@ export function useGlobalShortcuts({
         }
       },
     );
-    const unlistenMods = domicile.keyboard.on("modifierschange", () => {
+    const unlistenMods = piloti.keyboard.on("modifierschange", () => {
       if (
         altTabOpen &&
-        domicile.keyboard.modifiers &&
-        !domicile.keyboard.modifiers.alt
+        piloti.keyboard.modifiers &&
+        !piloti.keyboard.modifiers.alt
       ) {
         commitAltTab();
       }
@@ -119,7 +119,7 @@ export function useGlobalShortcuts({
       unlistenMods();
       for (const c of chords) {
         try {
-          domicile.keyboard.ungrab(c);
+          piloti.keyboard.ungrab(c);
         } catch {
           // ignore
         }
@@ -129,7 +129,7 @@ export function useGlobalShortcuts({
     altTabOpen,
     commitAltTab,
     cycleAltTab,
-    domicile,
+    piloti,
     setLauncherOpen,
     switchWorkspace,
     takeScreenshot,

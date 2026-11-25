@@ -1,4 +1,4 @@
-import type { Domicile } from "@domicile-desktop/sdk/desktop/desktop";
+import type { Piloti } from "@/lib/engine/piloti";
 import type { XdgDesktopEntry } from "./xdg-desktop-entry";
 import { readFsTextFile, writeFsTextFile } from "@/lib/engine/fs-bridge";
 import { WEB_VFS_HOME } from "@/lib/core/vfs-paths";
@@ -255,19 +255,19 @@ export function resolveAppsForMime(
 }
 
 export async function loadMimeAppsConfig(
-  domicile: Domicile,
+  piloti: Piloti,
 ): Promise<MimeAppsConfig> {
-  const raw = await readFsTextFile(domicile, MIMEAPPS_PATH);
+  const raw = await readFsTextFile(piloti, MIMEAPPS_PATH);
   return parseMimeAppsList(raw || DEFAULT_MIMEAPPS_INI);
 }
 
 export async function setDefaultMimeApp(
-  domicile: Domicile,
+  piloti: Piloti,
   mimeType: string,
   desktopId: string,
 ): Promise<void> {
   const raw =
-    (await readFsTextFile(domicile, MIMEAPPS_PATH)) ||
+    (await readFsTextFile(piloti, MIMEAPPS_PATH)) ||
     DEFAULT_MIMEAPPS_INI;
   const config = parseMimeAppsList(raw);
   const existing = config.defaults[mimeType] ?? [];
@@ -283,7 +283,7 @@ export async function setDefaultMimeApp(
   for (const [m, ids] of Object.entries(config.added)) {
     lines.push(`${m}=${ids.join(";")};`);
   }
-  writeFsTextFile(domicile, MIMEAPPS_PATH, `${lines.join("\n")}\n`);
+  writeFsTextFile(piloti, MIMEAPPS_PATH, `${lines.join("\n")}\n`);
 }
 
 export interface SharedMimeGlob {

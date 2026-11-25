@@ -9,7 +9,7 @@ This document outlines practical ways to support simple, safe user plugins in Pi
 Piloti implements Tier 1 plugins and manifestless single-file plugins out of the box in `~/.config/piloti/plugins/`:
 
 - **Single `.css` file** (`my-theme.css`) — no `manifest.json` required; injects `<style data-piloti-plugin="my-theme">` into `document.head`.
-- **Single `.js` / `.mjs` file** (`my-script.js`) — no `manifest.json` required; executes as a browser ES module via `Blob` URL (`activate(ctx)` / `deactivate()` or top-level code using `window.__PILOTI__`).
+- **Single `.js` / `.mjs` file** (`my-script.js`) — no `manifest.json` required; executes as a browser ES module via `Blob` URL (`activate(ctx)` / `deactivate()` or top-level code using `window.piloti`).
 - **Folder** (`my-plugin/`) — optional `manifest.json` (including declarative `commands`) or auto-detected `style.css` + `index.js`.
 - **Management UI** — **Settings → Advanced → User Plugins** lists discovered plugins with live enable/disable switches, reload, **Sample CSS** / **Sample JS** generators, and **Open Folder**.
 - **Safe Mode** — append `?safe-mode=1` to skip JS plugin execution while keeping CSS plugins active.
@@ -19,7 +19,7 @@ Piloti implements Tier 1 plugins and manifestless single-file plugins out of the
 ## Design Goals
 
 1. **Simple to author**: A plugin should be a single folder with a `manifest.json` and an optional `style.css` or `index.js` — no build step required for basic extensions.
-2. **Works on Domicile & Web**: Discovery and persistence should use `domicile.files` (backed by `$XDG_CONFIG_HOME/piloti/plugins/` on Linux and `web-vfs` / `localStorage` in the browser).
+2. **Works on Domicile & Web**: Discovery and persistence should use `ctx.piloti.files` (backed by `$XDG_CONFIG_HOME/piloti/plugins/` on Linux and `web-vfs` / `localStorage` in the browser).
 3. **Instant enable/disable**: Plugins register disposables (`onCleanup`) so toggling a plugin off cleanly removes its UI slots, commands, and stylesheets without reloading the compositor.
 4. **Fault-isolated**: Plugin UI slots are wrapped in an error boundary (similar to `ShellErrorBoundary`) so a buggy plugin cannot crash `MenuBar`, `Dock`, or `Launcher`.
 
@@ -59,7 +59,7 @@ Example `manifest.json`:
 }
 ```
 
-- **How it loads**: Piloti reads `style.css` via `domicile.files.readFile(...)` and injects/removes a `<style data-piloti-plugin="nord-tweaks">` element in `document.head`.
+- **How it loads**: Piloti reads `style.css` via `ctx.piloti.files.readFile(...)` and injects/removes a `<style data-piloti-plugin="nord-tweaks">` element in `document.head`.
 - **Why start here**: Completely CSP-safe, instant live reload via file watching, and covers 80% of rice/theming and shortcut requests.
 
 ---
@@ -115,7 +115,7 @@ export function activate(ctx) {
 
 #### Loading ESM Plugins Without a Bundler
 
-- Read `index.js` text with `domicile.files.readFile(...)`, create a `Blob` (`type: "text/javascript"`), and call `import(/* @vite-ignore */ URL.createObjectURL(blob))` (revoking the URL afterward).
+- Read `index.js` text with `ctx.piloti.files.readFile(...)`, create a `Blob` (`type: "text/javascript"`), and call `import(/* @vite-ignore */ URL.createObjectURL(blob))` (revoking the URL afterward).
 - **CSP note**: If Domicile enforces a strict `script-src`, ensure `blob:` is allowed or serve user plugins from a local origin/file handler. Keep Tier 1 (`manifest.json` + `style.css`) always available even under strict CSP.
 - **No React version coupling**: Keep the plugin API imperative/data-driven (`label`, `icon`, `tooltip`, `menuItems`, `onClick`, `update(...)`) instead of requiring plugins to import `react`. That avoids JSX compilation and React instance mismatches.
 
@@ -139,8 +139,9 @@ Keep the surface small and aligned with existing contexts in `src/context/Deskto
 | `ctx.windows` | `openWebUrl(url, title?)`, `launchApp(appId)`, `list()`, `get(id)`, `focus(id)` | `useWindowManager()` |
 | `ctx.windows` (window manager) | `getWorkArea()`, `setPresentation(id, { x, y, width, above?, interactive?, animate?, floating?, onChange?, onPointerDown?, onDoubleClick? } \| null)`, `getPresentation(id)`, `addMenuItem({ id, label, checked?, visible?, onSelect })` -> remove | `window-presentation.ts` / `WindowManager.tsx` |
 | `ctx.notifications` | `push({ summary, body?, urgency? })` | `useNotifications()` |
+| `ctx.piloti` | Domicile's whole desktop API (files, processes, windows...) | `lib/engine/piloti.ts` |
 | `ctx.storage` | `get(key)`, `set(key, value)` (namespaced per plugin ID) | `storage-cache.ts` |
-| `ctx.system` | Optional gated access to `readFile`, `spawn` (declared in `manifest.json` `permissions`) | `domicile.files` / `domicile.process` |
+| `ctx.system` | Optional gated access to `readFile`, `spawn` (declared in `manifest.json` `permissions`) | `ctx.piloti.files` / `ctx.piloti.processes` |
 | `ctx.onCleanup(fn)` | Registers teardown callback run automatically on disable/reload | `PluginsContext` |
 
 ---

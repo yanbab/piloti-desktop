@@ -1,5 +1,5 @@
 import { hostFiles } from "@/lib/engine/host-files";
-import type { Domicile } from "@domicile-desktop/sdk/desktop/desktop";
+import type { Piloti } from "@/lib/engine/piloti";
 import { posixPathToFileUri } from "./xdg-recents";
 
 export type XdgThumbnailSize = "normal" | "large" | "x-large" | "xx-large";
@@ -117,7 +117,7 @@ const thumbnailDataUrlCache = new Map<string, string | null>();
  * on a native Domicile host and returns a `data:image/png;base64,...` URL when present.
  */
 export async function lookupXdgThumbnailDataUrl(
-  domicile: Domicile,
+  piloti: Piloti,
   absolutePath: string,
   preferredSizes: readonly XdgThumbnailSize[] = ["large", "normal"]
 ): Promise<string | null> {
@@ -129,7 +129,7 @@ export async function lookupXdgThumbnailDataUrl(
   for (const size of preferredSizes) {
     const relPath = getXdgThumbnailRelativePath(absolutePath, size);
     try {
-      const res = await hostFiles(domicile).read(relPath);
+      const res = await hostFiles(piloti).read(relPath);
       const bytes = res.match({
         Ok: (b) => (b && b.length > 8 ? b : null),
         Err: () => null,

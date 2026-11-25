@@ -1,4 +1,4 @@
-import type { Domicile } from "@domicile-desktop/sdk/desktop/desktop";
+import type { Piloti } from "@/lib/engine/piloti";
 import { Bus } from "@domicile-desktop/sdk/system";
 import { runText } from "./exec";
 import type { MprisMediaInfo } from "./types";
@@ -40,9 +40,9 @@ export function parsePowerProfileChange(body: unknown[]): PowerProfile | null {
   return asPowerProfile(variantValue(changed?.ActiveProfile));
 }
 
-export async function readSystemPowerProfile(domicile: Domicile): Promise<PowerProfile | null> {
+export async function readSystemPowerProfile(piloti: Piloti): Promise<PowerProfile | null> {
   for (const svc of POWER_SERVICES) {
-    const res = await domicile.dbus
+    const res = await piloti.dbus
       .call({
         bus: Bus.System,
         destination: svc.name,
@@ -60,12 +60,12 @@ export async function readSystemPowerProfile(domicile: Domicile): Promise<PowerP
     if (profile) return profile;
   }
   // No daemon on the bus: the CLI answers the same question where it exists.
-  return asPowerProfile((await runText(domicile, ["powerprofilesctl", "get"]))?.trim());
+  return asPowerProfile((await runText(piloti, ["powerprofilesctl", "get"]))?.trim());
 }
 
-export async function setSystemPowerProfile(domicile: Domicile, profile: PowerProfile): Promise<void> {
+export async function setSystemPowerProfile(piloti: Piloti, profile: PowerProfile): Promise<void> {
   for (const svc of POWER_SERVICES) {
-    const res = await domicile.dbus
+    const res = await piloti.dbus
       .call({
         bus: Bus.System,
         destination: svc.name,
@@ -78,21 +78,21 @@ export async function setSystemPowerProfile(domicile: Domicile, profile: PowerPr
       .catch(() => null);
     if (res?.isOk()) return;
   }
-  await runText(domicile, ["powerprofilesctl", "set", profile]);
+  await runText(piloti, ["powerprofilesctl", "set", profile]);
 }
 
 /** Calls `on` now and whenever the active profile changes; returns a stop function. */
 export function watchSystemPowerProfile(
-  domicile: Domicile,
+  piloti: Piloti,
   on: (profile: PowerProfile) => void,
 ): () => void {
   let stopped = false;
   const stops: Array<() => void> = [];
-  void readSystemPowerProfile(domicile).then((p) => {
+  void readSystemPowerProfile(piloti).then((p) => {
     if (p && !stopped) on(p);
   });
   for (const svc of POWER_SERVICES) {
-    void domicile.dbus
+    void piloti.dbus
       .match({ bus: Bus.System, interface: PROPERTIES, member: "PropertiesChanged", path: svc.path })
       .then((res) =>
         res.match({
@@ -166,8 +166,8 @@ export function pickMprisPlayer(players: readonly MprisPlayerState[]): MprisPlay
 export const mprisPlayerName = (busName: string): string =>
   busName.slice(MPRIS_PREFIX.length).split(".")[0] ?? "";
 
-async function listMprisPlayers(domicile: Domicile): Promise<string[]> {
-  const res = await domicile.dbus
+async function listMprisPlayers(piloti: Piloti): Promise<string[]> {
+  const res = await piloti.dbus
     .call({
       bus: Bus.Session,
       destination: "org.freedesktop.DBus",
@@ -182,8 +182,8 @@ async function listMprisPlayers(domicile: Domicile): Promise<string[]> {
     : [];
 }
 
-async function readMprisPlayer(domicile: Domicile, busName: string): Promise<MprisPlayerState | null> {
-  const res = await domicile.dbus
+async function readMprisPlayer(piloti: Piloti, busName: string): Promise<MprisPlayerState | null> {
+  const res = await piloti.dbus
     .call({
       bus: Bus.Session,
       destination: busName,
@@ -198,9 +198,9 @@ async function readMprisPlayer(domicile: Domicile, busName: string): Promise<Mpr
   return props ? parseMprisPlayer(busName, props) : null;
 }
 
-async function currentMprisPlayer(domicile: Domicile): Promise<MprisPlayerState | null> {
-  const names = await listMprisPlayers(domicile);
-  const states = await Promise.all(names.map((n) => readMprisPlayer(domicile, n)));
+async function currentMprisPlayer(piloti: Piloti): Promise<MprisPlayerState | null> {
+  const names = await listMprisPlayers(piloti);
+  const states = await Promise.all(names.map((n) => readMprisPlayer(piloti, n)));
   return pickMprisPlayer(states.filter((s): s is MprisPlayerState => s !== null));
 }
 
@@ -214,18 +214,18 @@ const toMediaInfo = (p: MprisPlayerState | null): MprisMediaInfo | null =>
       }
     : null;
 
-export async function readMprisMediaInfo(domicile: Domicile): Promise<MprisMediaInfo | null> {
-  return toMediaInfo(await currentMprisPlayer(domicile));
+export async function readMprisMediaInfo(piloti: Piloti): Promise<MprisMediaInfo | null> {
+  return toMediaInfo(await currentMprisPlayer(piloti));
 }
 
 export async function controlMprisMedia(
-  domicile: Domicile,
+  piloti: Piloti,
   action: "play-pause" | "next" | "previous",
 ): Promise<void> {
-  const player = await currentMprisPlayer(domicile);
+  const player = await currentMprisPlayer(piloti);
   if (!player) return;
   const member = action === "play-pause" ? "PlayPause" : action === "next" ? "Next" : "Previous";
-  await domicile.dbus
+  await piloti.dbus
     .call({ bus: Bus.Session, destination: player.busName, path: MPRIS_PATH, interface: PLAYER, member })
     .catch(() => undefined);
 }
@@ -235,14 +235,14 @@ export async function controlMprisMedia(
  * function. Property changes and name changes both just trigger a re-read.
  */
 export function watchMprisMedia(
-  domicile: Domicile,
+  piloti: Piloti,
   on: (info: MprisMediaInfo | null) => void,
 ): () => void {
   let stopped = false;
   let timer: ReturnType<typeof setTimeout> | null = null;
   const stops: Array<() => void> = [];
   const refresh = () => {
-    void readMprisMediaInfo(domicile).then((info) => {
+    void readMprisMediaInfo(piloti).then((info) => {
       if (!stopped) on(info);
     });
   };
@@ -250,8 +250,8 @@ export function watchMprisMedia(
     if (timer) clearTimeout(timer);
     timer = setTimeout(refresh, 150);
   };
-  const listen = (match: Parameters<Domicile["dbus"]["match"]>[0]) =>
-    void domicile.dbus
+  const listen = (match: Parameters<Piloti["dbus"]["match"]>[0]) =>
+    void piloti.dbus
       .match(match)
       .then((res) =>
         res.match({

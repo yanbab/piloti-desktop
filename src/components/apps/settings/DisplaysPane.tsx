@@ -1,7 +1,7 @@
 import * as React from "react";
 import { useCapabilities } from "@/hooks/use-capabilities";
 import { useDisplays } from "@domicile-desktop/react/displays";
-import { useDomicile } from "@domicile-desktop/react/domicile-provider";
+import { usePiloti } from "@/lib/engine/piloti";
 import { Button } from "@/components/ui/button";
 import {
   GroupedForm,
@@ -39,7 +39,7 @@ const DEMO_EXTERNAL_SCREEN: ScreenEntry = {
 };
 
 export function DisplaysPane() {
-  const domicile = useDomicile();
+  const piloti = usePiloti();
   const displays = useDisplays() ?? [];
   const { settings, updateSettings } = useSettings();
   const { systemServices } = useCapabilities();
@@ -68,7 +68,7 @@ export function DisplaysPane() {
     }
     setAddingVirtual(true);
     try {
-      const res = await domicile.displays.addVirtual({
+      const res = await piloti.displays.addVirtual({
         name: "Cast-1080p",
         width: 1920,
         height: 1080,

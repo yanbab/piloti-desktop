@@ -1,4 +1,4 @@
-import type { Domicile } from "@domicile-desktop/sdk/desktop/desktop";
+import type { Piloti } from "@/lib/engine/piloti";
 import {
   MenuEntryKind,
   ToggleKind,
@@ -427,7 +427,7 @@ function mapDbusMenuEntries(
 }
 
 async function dbusCall(
-  domicile: Domicile,
+  piloti: Piloti,
   destination: string,
   path: string,
   iface: string,
@@ -436,7 +436,7 @@ async function dbusCall(
   body: unknown[] = []
 ): Promise<unknown[] | undefined> {
   try {
-    const res = await domicile.dbus.call({
+    const res = await piloti.dbus.call({
       bus: Bus.Session,
       destination,
       path,
@@ -455,14 +455,14 @@ async function dbusCall(
 }
 
 async function resolveAppBusName(
-  domicile: Domicile,
+  piloti: Piloti,
   desktopId?: string,
   pid?: number | null
 ): Promise<string | undefined> {
   const cleanDesktop = desktopId?.replace(/\.desktop$/i, "").trim();
   if (cleanDesktop && cleanDesktop.includes(".")) {
     const hasOwnerBody = await dbusCall(
-      domicile,
+      piloti,
       "org.freedesktop.DBus",
       "/org/freedesktop/DBus",
       "org.freedesktop.DBus",
@@ -477,7 +477,7 @@ async function resolveAppBusName(
 
   if (!pid) return undefined;
   const namesBody = await dbusCall(
-    domicile,
+    piloti,
     "org.freedesktop.DBus",
     "/org/freedesktop/DBus",
     "org.freedesktop.DBus",
@@ -497,7 +497,7 @@ async function resolveAppBusName(
 
   for (const name of wellKnown) {
     const pidBody = await dbusCall(
-      domicile,
+      piloti,
       "org.freedesktop.DBus",
       "/org/freedesktop/DBus",
       "org.freedesktop.DBus",
@@ -514,12 +514,12 @@ async function resolveAppBusName(
 }
 
 async function introspectPath(
-  domicile: Domicile,
+  piloti: Piloti,
   busName: string,
   path: string
 ): Promise<{ interfaces: string[]; childNodes: string[] } | undefined> {
   const body = await dbusCall(
-    domicile,
+    piloti,
     busName,
     path,
     "org.freedesktop.DBus.Introspectable",
@@ -535,7 +535,7 @@ async function introspectPath(
  * the active Wayland window (falling back gracefully when an app exports none).
  */
 export async function discoverRemoteGlobalMenu(
-  domicile: Domicile,
+  piloti: Piloti,
   options: {
     desktopId?: string;
     pid?: number | null;
@@ -569,7 +569,7 @@ export async function discoverRemoteGlobalMenu(
   };
 
   const busName = await resolveAppBusName(
-    domicile,
+    piloti,
     options.desktopId,
     options.pid
   );
@@ -587,7 +587,7 @@ export async function discoverRemoteGlobalMenu(
   let appPath = basePath;
   let rootInfo: { interfaces: string[]; childNodes: string[] } | undefined;
   for (const path of candidatePaths) {
-    const info = await introspectPath(domicile, busName, path);
+    const info = await introspectPath(piloti, busName, path);
     if (isCancelled()) return () => {};
     if (info) {
       appPath = path;
@@ -598,13 +598,13 @@ export async function discoverRemoteGlobalMenu(
 
   // 1. Probe `com.canonical.dbusmenu` on standard paths (Electron/Qt/appmenu-gtk)
   for (const dbusMenuPath of ["/com/canonical/dbusmenu", "/MenuBar", "/MenuBar/1"]) {
-    const dmInfo = await introspectPath(domicile, busName, dbusMenuPath);
+    const dmInfo = await introspectPath(piloti, busName, dbusMenuPath);
     if (isCancelled()) return () => {};
     if (dmInfo?.interfaces.includes("com.canonical.dbusmenu")) {
       let watched: WatchedMenu | null = null;
       let latestEntries: readonly DbusMenuEntry[] = [];
 
-      watched = watchMenu(domicile, { bus: busName, path: dbusMenuPath }, (res) => {
+      watched = watchMenu(piloti, { bus: busName, path: dbusMenuPath }, (res) => {
         if (isCancelled()) return;
         res.match({
           Ok: (entries) => {
@@ -664,7 +664,7 @@ export async function discoverRemoteGlobalMenu(
   const actionsByFullName = new Map<string, GtkActionDescriptor>();
   const collectActions = async (path: string, prefix: "app" | "win") => {
     const body = await dbusCall(
-      domicile,
+      piloti,
       busName,
       path,
       "org.gtk.Actions",
@@ -683,14 +683,14 @@ export async function discoverRemoteGlobalMenu(
   let winPath: string | undefined;
   if (rootInfo?.childNodes.includes("window")) {
     const winListInfo = await introspectPath(
-      domicile,
+      piloti,
       busName,
       `${appPath}/window`
     );
     const firstWin = winListInfo?.childNodes[0];
     if (firstWin) {
       winPath = `${appPath}/window/${firstWin}`;
-      const winInfo = await introspectPath(domicile, busName, winPath);
+      const winInfo = await introspectPath(piloti, busName, winPath);
       if (winInfo?.interfaces.includes("org.gtk.Actions")) {
         await collectActions(winPath, "win");
       }
@@ -706,7 +706,7 @@ export async function discoverRemoteGlobalMenu(
     const encodedTarget =
       target !== undefined ? toVariantSignature(target) : null;
     await dbusCall(
-      domicile,
+      piloti,
       busName,
       targetPath,
       "org.gtk.Actions",
@@ -735,7 +735,7 @@ export async function discoverRemoteGlobalMenu(
   const gtkAppMenuItems: RemoteMenuEntry[] = [];
 
   for (const menuPath of menuPathsToTry) {
-    const menuInfo = await introspectPath(domicile, busName, menuPath);
+    const menuInfo = await introspectPath(piloti, busName, menuPath);
     if (isCancelled()) return () => {};
     if (!menuInfo?.interfaces.includes("org.gtk.Menus")) continue;
 
@@ -749,7 +749,7 @@ export async function discoverRemoteGlobalMenu(
       if (batch.length === 0) break;
 
       const startBody = await dbusCall(
-        domicile,
+        piloti,
         busName,
         menuPath,
         "org.gtk.Menus",
@@ -758,7 +758,7 @@ export async function discoverRemoteGlobalMenu(
         [batch]
       );
       if (isCancelled()) {
-        void dbusCall(domicile, busName, menuPath, "org.gtk.Menus", "End", "au", [
+        void dbusCall(piloti, busName, menuPath, "org.gtk.Menus", "End", "au", [
           Array.from(seenGroups),
         ]);
         return () => {};
@@ -802,7 +802,7 @@ export async function discoverRemoteGlobalMenu(
 
       const subGroupList = Array.from(seenGroups);
       endSubscriptions.push(() => {
-        void dbusCall(domicile, busName, menuPath, "org.gtk.Menus", "End", "au", [
+        void dbusCall(piloti, busName, menuPath, "org.gtk.Menus", "End", "au", [
           subGroupList,
         ]);
       });

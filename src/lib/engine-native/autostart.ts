@@ -1,4 +1,4 @@
-import type { Domicile } from "@domicile-desktop/sdk/desktop/desktop";
+import type { Piloti } from "@/lib/engine/piloti";
 import {
   mergeAutostartEntries,
   parseAutostartDesktopFile,
@@ -79,14 +79,14 @@ export function shouldLaunchAutostartEntry(entry: XdgAutostartEntry): boolean {
 }
 
 async function evaluateAutostartCondition(
-  domicile: Domicile,
+  piloti: Piloti,
   rawCondition: string | undefined
 ): Promise<boolean> {
   const cond = parseAutostartCondition(rawCondition);
   if (!cond) return true;
 
   if (cond.kind === "gsettings") {
-    const out = await runText(domicile, [
+    const out = await runText(piloti, [
       "gsettings",
       "get",
       cond.schema,
@@ -96,7 +96,7 @@ async function evaluateAutostartCondition(
   }
 
   if (cond.kind === "if-exists" || cond.kind === "unless-exists") {
-    const check = await runText(domicile, [
+    const check = await runText(piloti, [
       "sh",
       "-c",
       'p="$1"; case "$p" in /*) ;; *) p="${XDG_CONFIG_HOME:-$HOME/.config}/$p" ;; esac; [ -e "$p" ] && echo YES || echo NO',
@@ -113,13 +113,13 @@ async function evaluateAutostartCondition(
 }
 
 async function readAutostartDir(
-  domicile: Domicile,
+  piloti: Piloti,
   dirPath: string,
   source: "user" | "system"
 ): Promise<XdgAutostartEntry[]> {
   const entries: XdgAutostartEntry[] = [];
   try {
-    const dirRes = await domicile.files.readDir(dirPath);
+    const dirRes = await piloti.files.readDir(dirPath);
     const items = dirRes.match({
       Ok: (list) => list,
       Err: () => [],
@@ -127,7 +127,7 @@ async function readAutostartDir(
     for (const item of items) {
       if (!item.name.endsWith(".desktop")) continue;
       const fullPath = `${dirPath.replace(/\/$/, "")}/${item.name}`;
-      const textRes = await domicile.files.readText(fullPath);
+      const textRes = await piloti.files.readText(fullPath);
       const text = textRes.match({ Ok: (s) => s, Err: () => null });
       if (!text) continue;
       const parsed = parseAutostartDesktopFile(
@@ -153,12 +153,12 @@ let autostartTriggeredInPage = false;
  * `OnlyShowIn`, `TryExec`, and `AutostartCondition`, and guarded by a runtime
  * marker under `$XDG_RUNTIME_DIR` so shell reloads do not duplicate processes).
  */
-export async function runXdgAutostartOnce(domicile: Domicile): Promise<string[]> {
+export async function runXdgAutostartOnce(piloti: Piloti): Promise<string[]> {
   if (autostartTriggeredInPage) return [];
   autostartTriggeredInPage = true;
 
   // Guard across shell hot-reloads in the same Wayland session, and never run in greeter mode.
-  const markerCheck = await runText(domicile, [
+  const markerCheck = await runText(piloti, [
     "sh",
     "-c",
     'if [ "${PILOTI_GREETER:-0}" = "1" ] || [ -n "${GREETD_SOCK:-}" ]; then echo SKIP; exit 0; fi; dir="${XDG_RUNTIME_DIR:-/tmp}"; disp="${WAYLAND_DISPLAY:-default}"; f="$dir/piloti-autostart.$disp.done"; if [ -f "$f" ]; then echo SKIP; else touch "$f" && echo RUN; fi',
@@ -168,8 +168,8 @@ export async function runXdgAutostartOnce(domicile: Domicile): Promise<string[]>
   }
 
   const [systemEntries, userEntries] = await Promise.all([
-    readAutostartDir(domicile, "/etc/xdg/autostart", "system"),
-    readAutostartDir(domicile, ".config/autostart", "user"),
+    readAutostartDir(piloti, "/etc/xdg/autostart", "system"),
+    readAutostartDir(piloti, ".config/autostart", "user"),
   ]);
 
   const merged = mergeAutostartEntries(systemEntries, userEntries);
@@ -177,19 +177,19 @@ export async function runXdgAutostartOnce(domicile: Domicile): Promise<string[]>
 
   for (const entry of merged) {
     if (!shouldLaunchAutostartEntry(entry)) continue;
-    if (entry.tryExec && !(await commandExists(domicile, entry.tryExec))) {
+    if (entry.tryExec && !(await commandExists(piloti, entry.tryExec))) {
       continue;
     }
     if (
       entry.autostartCondition &&
-      !(await evaluateAutostartCondition(domicile, entry.autostartCondition))
+      !(await evaluateAutostartCondition(piloti, entry.autostartCondition))
     ) {
       continue;
     }
     const argv = buildAutostartArgv(entry.exec);
     if (argv.length === 0) continue;
     try {
-      launchDesktopCommand(domicile, argv);
+      launchDesktopCommand(piloti, argv);
       launched.push(entry.id);
     } catch {
       // continue launching remaining entries

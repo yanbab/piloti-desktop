@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useCapabilities } from "@/hooks/use-capabilities";
-import { useDomicile } from "@domicile-desktop/react/domicile-provider";
+import { usePiloti } from "@/lib/engine/piloti";
 import { KeymapChoice } from "@domicile-desktop/sdk/keymap-choice";
 import { KeyboardIcon } from "lucide-react";
 import {
@@ -52,13 +52,13 @@ export function KeyboardLayoutSwitcher({
   align = "end",
   sideOffset = 4,
 }: KeyboardLayoutSwitcherProps) {
-  const domicile = useDomicile();
+  const piloti = usePiloti();
   const { systemServices } = useCapabilities();
   const [liveLayouts, setLiveLayouts] = React.useState<KeyboardLayoutOption[]>([]);
   const [liveActive, setLiveActive] = React.useState<string>("");
 
   React.useEffect(() => {
-    if (!systemServices || typeof domicile.keyboard?.keymaps !== "function") {
+    if (!systemServices || typeof piloti.keyboard?.keymaps !== "function") {
       return;
     }
     let active = true;
@@ -68,7 +68,7 @@ export function KeyboardLayoutSwitcher({
       keymaps: readonly { name: string; description: string | undefined }[];
     }> | null = null;
 
-    void domicile.keyboard
+    void piloti.keyboard
       .keymaps()
       .then(async (res) => {
         if (!active) {
@@ -99,7 +99,7 @@ export function KeyboardLayoutSwitcher({
       void reader?.cancel().catch(() => undefined);
       stopListening?.();
     };
-  }, [domicile, systemServices]);
+  }, [piloti, systemServices]);
 
   const layouts = React.useMemo(() => {
     if (liveLayouts.length > 0) return liveLayouts;
@@ -119,8 +119,8 @@ export function KeyboardLayoutSwitcher({
     if (liveLayouts.length > 0) {
       setLiveActive(nextId);
     }
-    if (systemServices && typeof domicile.keyboard?.selectKeymap === "function") {
-      void domicile.keyboard
+    if (systemServices && typeof piloti.keyboard?.selectKeymap === "function") {
+      void piloti.keyboard
         .selectKeymap(KeymapChoice.Named(nextId))
         .catch(() => undefined);
     }

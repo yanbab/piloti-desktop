@@ -21,11 +21,11 @@ const CACHE_MARKER_KEY = "piloti.vfs.native-memory.v1";
  * tree. Piloti's own state files are read back from `$HOME` before the desktop
  * starts.
  */
-async function boot(root: HTMLElement, domicile: Parameters<ShellModule>[1]) {
+async function boot(root: HTMLElement, piloti: Parameters<ShellModule>[1]) {
   const finishState = startBootPhase("home + saved state");
   try {
     const finishHome = startBootPhase("stat $HOME");
-    const stat = await hostFiles(domicile).stat(".");
+    const stat = await hostFiles(piloti).stat(".");
     finishHome();
     const home = stat.unwrapOr(undefined as never)?.realPath;
     if (home && home.startsWith("/")) {
@@ -52,7 +52,7 @@ async function boot(root: HTMLElement, domicile: Parameters<ShellModule>[1]) {
           import("@/lib/engine-native/native-file-store"),
           import("@/lib/engine-native/state-preload"),
         ]);
-      const store = createNativeFileStore(domicile);
+      const store = createNativeFileStore(piloti);
       const finishKv = startBootPhase("saved key/values");
       const kv = await createNativeKeyValueStorage(store, (key) => key === vfs.WEB_VFS_STORAGE_KEY);
       finishKv();
@@ -77,19 +77,19 @@ async function boot(root: HTMLElement, domicile: Parameters<ShellModule>[1]) {
   }
   finishState();
   const finishApps = startBootPhase("app descriptions");
-  await loadAppCatalog(domicile);
+  await loadAppCatalog(piloti);
   finishApps();
   const finishImport = startBootPhase("desktop module");
   const app = await import("./piloti-desktop-app");
   finishImport();
   const finishRender = startBootPhase("first render");
-  app.Shell(root, domicile);
+  app.Shell(root, piloti);
   finishRender();
 }
 
-export const Shell: ShellModule = (root, domicile) => {
+export const Shell: ShellModule = (root, piloti) => {
   // Log from the first line, so a start that hangs still leaves its trace.
   installConsoleCapture();
-  attachConsoleDiskSink(createShellLogWriter(domicile));
-  void boot(root, profileStartup(domicile));
+  attachConsoleDiskSink(createShellLogWriter(piloti));
+  void boot(root, profileStartup(piloti));
 };

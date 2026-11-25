@@ -1,6 +1,6 @@
 import { getEngine } from "@/lib/engine/engine";
 import * as React from "react";
-import { useDomicile } from "@domicile-desktop/react/domicile-provider";
+import { usePiloti } from "@/lib/engine/piloti";
 import { useCapturing } from "@domicile-desktop/react/portals";
 import { useWatch } from "@domicile-desktop/react/use-watch";
 import { type Capturing, CapturingKind } from "@domicile-desktop/sdk/portal";
@@ -164,7 +164,7 @@ export function useSystemBackendsValue(
   options?: { greeterMode?: boolean }
 ): SystemBackendsContextValue {
   const greeterMode = Boolean(options?.greeterMode);
-  const domicile = useDomicile();
+  const piloti = usePiloti();
   const { systemServices } = getEngine().capabilities;
   const {
     settings,
@@ -206,7 +206,7 @@ export function useSystemBackendsValue(
 
   // Notifications + Persistent History + Toast Banners
   const domicileNotifs =
-    useWatch(domicile.notifications, "change", () => domicile.notifications.list) ??
+    useWatch(piloti.notifications, "change", () => piloti.notifications.list) ??
     [];
   const [localNotifs, setLocalNotifs] = React.useState<ShellNotification[]>(() => {
     const initial = loadLocalNotificationHistory(settings.notificationHistoryLimit);
@@ -223,7 +223,7 @@ export function useSystemBackendsValue(
 
   // Compositor session lock (declared before banner helpers so lockscreen policy applies)
   const sessionLocked =
-    useWatch(domicile.session, "lockchange", () => domicile.session.locked) ??
+    useWatch(piloti.session, "lockchange", () => piloti.session.locked) ??
     false;
   const [browserLocked, setBrowserLocked] = React.useState(false);
   const locked = !systemServices ? browserLocked : sessionLocked;
@@ -505,12 +505,12 @@ export function useSystemBackendsValue(
         return next;
       });
       try {
-        domicile.notifications.dismiss([id]);
+        piloti.notifications.dismiss([id]);
       } catch {
         // ignore
       }
     },
-    [domicile.notifications]
+    [piloti.notifications]
   );
 
   const clearAllNotifications = React.useCallback(() => {
@@ -521,12 +521,12 @@ export function useSystemBackendsValue(
     const ids = domicileNotifs.map((n) => n.id);
     if (ids.length > 0) {
       try {
-        domicile.notifications.dismiss(ids);
+        piloti.notifications.dismiss(ids);
       } catch {
         // ignore
       }
     }
-  }, [domicile.notifications, domicileNotifs]);
+  }, [piloti.notifications, domicileNotifs]);
 
   const invokeNotificationAction = React.useCallback(
     (id: number, action: string) => {
@@ -546,13 +546,13 @@ export function useSystemBackendsValue(
       }
       if (isDomicile) {
         try {
-          domicile.notifications.invoke(id, action);
+          piloti.notifications.invoke(id, action);
         } catch {
           // ignore
         }
       }
     },
-    [domicile.notifications, domicileNotifs, markNotificationRead]
+    [piloti.notifications, domicileNotifs, markNotificationRead]
   );
 
   const replyToNotification = React.useCallback(
@@ -565,13 +565,13 @@ export function useSystemBackendsValue(
       const isDomicile = domicileNotifs.some((n) => n.id === id);
       if (isDomicile) {
         try {
-          domicile.notifications.reply(id, trimmed);
+          piloti.notifications.reply(id, trimmed);
         } catch {
           // ignore
         }
       }
     },
-    [domicile.notifications, domicileNotifs, markNotificationRead]
+    [piloti.notifications, domicileNotifs, markNotificationRead]
   );
 
   const [unlockRefusal, setUnlockRefusal] = React.useState<UnlockRefused | null>(
@@ -602,7 +602,7 @@ export function useSystemBackendsValue(
 
     (async () => {
       try {
-        const res = await domicile.session.idleWarnings();
+        const res = await piloti.session.idleWarnings();
         res.match({
           Ok: async (listening) => {
             if (cancelled) {
@@ -626,7 +626,7 @@ export function useSystemBackendsValue(
 
     (async () => {
       try {
-        const res = await domicile.session.unlockRefusals();
+        const res = await piloti.session.unlockRefusals();
         res.match({
           Ok: async (listening) => {
             if (cancelled) {
@@ -662,7 +662,7 @@ export function useSystemBackendsValue(
       stopWarnings?.();
       stopRefusals?.();
     };
-  }, [domicile.session, systemServices]);
+  }, [piloti.session, systemServices]);
 
   const lockSession = React.useCallback(() => {
     console.info("[Piloti] session: lock");
@@ -672,8 +672,8 @@ export function useSystemBackendsValue(
       setBrowserLocked(true);
       return;
     }
-    domicile.session.lock();
-  }, [domicile.session, systemServices]);
+    piloti.session.lock();
+  }, [piloti.session, systemServices]);
 
   const unlockSession = React.useCallback(
     (passphrase: string) => {
@@ -687,9 +687,9 @@ export function useSystemBackendsValue(
         setBrowserLocked(false);
         return;
       }
-      domicile.session.unlock(passphrase);
+      piloti.session.unlock(passphrase);
     },
-    [domicile.session, systemServices]
+    [piloti.session, systemServices]
   );
 
   const [pendingPowerAction, setPendingPowerAction] =
@@ -773,7 +773,7 @@ export function useSystemBackendsValue(
             : ["systemctl", "poweroff"];
 
       try {
-        const res = await domicile.processes.run(argv);
+        const res = await piloti.processes.run(argv);
         res.match({
           Ok: (ran) => {
             if (ran.code !== 0) {
@@ -807,7 +807,7 @@ export function useSystemBackendsValue(
       }
     },
     [
-      domicile.processes,
+      piloti.processes,
       systemServices,
       lockSession,
       pushNotification,
@@ -829,20 +829,20 @@ export function useSystemBackendsValue(
   React.useEffect(() => {
     if (!systemServices || greeterMode) return;
     const timer = window.setTimeout(() => {
-      void syncGnomePanelOverrides(domicile, settings.hiddenGnomePanels);
+      void syncGnomePanelOverrides(piloti, settings.hiddenGnomePanels);
     }, 600);
     return () => window.clearTimeout(timer);
-  }, [domicile, greeterMode, systemServices, settings.hiddenGnomePanels]);
+  }, [piloti, greeterMode, systemServices, settings.hiddenGnomePanels]);
 
   // Battery and brightness follow the system (UPower, backlight), whoever changes them.
   React.useEffect(() => {
     if (!systemServices) return;
-    const stopBattery = watchSystemBattery(domicile, setBatteryInfo);
-    const stopAudio = watchSystemAudio(domicile, (audio) => {
+    const stopBattery = watchSystemBattery(piloti, setBatteryInfo);
+    const stopAudio = watchSystemAudio(piloti, (audio) => {
       applySettingsState({ volume: audio.volume, muted: audio.muted });
       if (audio.sinks.length > 0) setAudioSinks(audio.sinks);
     });
-    const stopBluetooth = watchSystemBluetooth(domicile, (bt) => {
+    const stopBluetooth = watchSystemBluetooth(piloti, (bt) => {
       setBluetoothPresent(Boolean(bt));
       if (!bt) {
         setBluetoothDevices([]);
@@ -852,7 +852,7 @@ export function useSystemBackendsValue(
       applySettingsState({ bluetoothEnabled: bt.powered });
       setBluetoothDevices(bt.devices);
     });
-    const stopWifi = watchSystemWifi(domicile, (wifi) => {
+    const stopWifi = watchSystemWifi(piloti, (wifi) => {
       setWifiPresent(Boolean(wifi));
       if (!wifi) {
         // No Wi-Fi hardware: show it off and empty.
@@ -868,12 +868,12 @@ export function useSystemBackendsValue(
     });
     const stopBrightness = greeterMode
       ? () => undefined
-      : watchSystemBrightness(domicile, (brightness) => applySettingsState({ brightness }));
+      : watchSystemBrightness(piloti, (brightness) => applySettingsState({ brightness }));
     // Power profile and media players arrive as D-Bus signals.
     const stopPowerProfile = greeterMode
       ? () => undefined
-      : watchSystemPowerProfile(domicile, (powerMode) => applySettingsState({ powerMode }));
-    const stopMpris = greeterMode ? () => undefined : watchMprisMedia(domicile, setMprisMedia);
+      : watchSystemPowerProfile(piloti, (powerMode) => applySettingsState({ powerMode }));
+    const stopMpris = greeterMode ? () => undefined : watchMprisMedia(piloti, setMprisMedia);
     return () => {
       stopPowerProfile();
       stopMpris();
@@ -883,19 +883,19 @@ export function useSystemBackendsValue(
       stopAudio();
       stopBrightness();
     };
-  }, [applySettingsState, domicile, greeterMode, systemServices]);
+  }, [applySettingsState, piloti, greeterMode, systemServices]);
 
   // Backends probing + GSettings monitor
   const refreshSystemBackends = React.useCallback(
     async (options?: { scanWifi?: boolean }) => {
       if (!systemServices) return;
       const finishBackends = startBootPhase("system backends");
-      const battery = await readSystemBattery(domicile);
+      const battery = await readSystemBattery(piloti);
       setBatteryInfo(
         battery ?? { present: false, percentage: 100, charging: true }
       );
 
-      if (options?.scanWifi) void scanSystemWifi(domicile);
+      if (options?.scanWifi) void scanSystemWifi(piloti);
 
       if (greeterMode) {
         finishBackends();
@@ -903,9 +903,9 @@ export function useSystemBackendsValue(
       }
 
       const [caps, panels] = await Promise.all([
-        probeGnomeCapabilities(domicile),
-        discoverGnomeControlCenterPanels(domicile),
-        runXdgAutostartOnce(domicile),
+        probeGnomeCapabilities(piloti),
+        discoverGnomeControlCenterPanels(piloti),
+        runXdgAutostartOnce(piloti),
       ]);
       finishBackends();
 
@@ -913,16 +913,16 @@ export function useSystemBackendsValue(
       setAvailableGnomePanels(panels);
 
     },
-    [applySettingsState, domicile, greeterMode, systemServices]
+    [applySettingsState, piloti, greeterMode, systemServices]
   );
 
   const controlMpris = React.useCallback(
     async (action: "play-pause" | "next" | "previous") => {
       console.info("[Piloti] control-panel: mpris", action);
       if (!systemServices) return;
-      await controlMprisMedia(domicile, action); // the watcher reports the new state
+      await controlMprisMedia(piloti, action); // the watcher reports the new state
     },
-    [domicile, systemServices]
+    [piloti, systemServices]
   );
 
   const gnomeBackgroundRef = React.useRef(settings.gnomeBackground);
@@ -1029,14 +1029,14 @@ export function useSystemBackendsValue(
       applyingGnomeSyncRef.current = false;
     };
 
-    void readGnomeDesktopSettingsBatch(domicile).then((batch) => {
+    void readGnomeDesktopSettingsBatch(piloti).then((batch) => {
       applyGnomeSnapshot(batch.interface);
       applyGnomeBackgroundSnapshot(batch.background, false);
       applyGnomeNotificationSnapshot(batch.notifications);
       applyGnomeWmSnapshot(batch.wm);
     });
 
-    const stopDesktopSettingsMonitor = monitorGnomeDesktopSettings(domicile, {
+    const stopDesktopSettingsMonitor = monitorGnomeDesktopSettings(piloti, {
       onInterface: applyGnomeSnapshot,
       onBackground: (snap) => applyGnomeBackgroundSnapshot(snap, true),
       onWm: applyGnomeWmSnapshot,
@@ -1051,7 +1051,7 @@ export function useSystemBackendsValue(
   }, [
     applySettingsState,
     applyingGnomeSyncRef,
-    domicile,
+    piloti,
     greeterMode,
     systemServices,
     refreshSystemBackends,
@@ -1065,21 +1065,21 @@ export function useSystemBackendsValue(
         updateSettings({ connectedWifi: ssid, wifiEnabled: true });
         return "connected" as const;
       }
-      const result = await connectSystemWifi(domicile, ssid, passphrase);
+      const result = await connectSystemWifi(piloti, ssid, passphrase);
       if (result === "connected") updateSettings({ connectedWifi: ssid, wifiEnabled: true });
       void refreshSystemBackends();
       return result;
     },
-    [domicile, systemServices, refreshSystemBackends, updateSettings]
+    [piloti, systemServices, refreshSystemBackends, updateSettings]
   );
 
   const toggleBluetoothDevice = React.useCallback(
     async (path: string) => {
       if (!systemServices) return;
       const device = bluetoothDevices.find((d) => d.path === path);
-      if (device) await setSystemBluetoothConnected(domicile, path, !device.connected);
+      if (device) await setSystemBluetoothConnected(piloti, path, !device.connected);
     },
-    [bluetoothDevices, domicile, systemServices]
+    [bluetoothDevices, piloti, systemServices]
   );
 
   const selectAudioSink = React.useCallback(
@@ -1089,11 +1089,11 @@ export function useSystemBackendsValue(
         prev.map((s) => ({ ...s, active: s.name === sinkName }))
       );
       if (systemServices) {
-        await setDefaultAudioSink(domicile, sinkName);
+        await setDefaultAudioSink(piloti, sinkName);
         void refreshSystemBackends();
       }
     },
-    [domicile, systemServices, refreshSystemBackends]
+    [piloti, systemServices, refreshSystemBackends]
   );
 
   // Screenshots, Screen Recording, and Capturing sessions
@@ -1185,7 +1185,7 @@ export function useSystemBackendsValue(
       }
       return;
     }
-    const res = await domicile.capture.screenshot();
+    const res = await piloti.capture.screenshot();
     res.match({
       Ok: (kept) => {
         void playSoundThemeEvent("screenshot", settings.volume, settings.muted);
@@ -1206,7 +1206,7 @@ export function useSystemBackendsValue(
       },
       Err: () => {},
     });
-  }, [domicile.capture, systemServices, desktopCaptureName, pushNotification, settings.muted, settings.volume]);
+  }, [piloti.capture, systemServices, desktopCaptureName, pushNotification, settings.muted, settings.volume]);
 
   const startScreenRecording = React.useCallback(async () => {
     console.info("[Piloti] control-panel: screen recording");
@@ -1347,7 +1347,7 @@ export function useSystemBackendsValue(
       }
       return;
     }
-    const res = await domicile.capture.screenRecord();
+    const res = await piloti.capture.screenRecord();
     res.match({
       Ok: (filePath) => {
         pushNotification({
@@ -1359,7 +1359,7 @@ export function useSystemBackendsValue(
       },
       Err: () => {},
     });
-  }, [domicile.capture, systemServices, desktopCaptureName, pushNotification, settings.muted, settings.volume]);
+  }, [piloti.capture, systemServices, desktopCaptureName, pushNotification, settings.muted, settings.volume]);
 
   return React.useMemo<SystemBackendsContextValue>(
     () => ({
@@ -1410,7 +1410,7 @@ export function useSystemBackendsValue(
           if (rec && rec.recorder.state !== "inactive") rec.recorder.stop();
           return;
         }
-        domicile.portals.stopCapturing(id);
+        piloti.portals.stopCapturing(id);
       },
       pauseRecording: (id) => {
         if (!systemServices) {
@@ -1425,7 +1425,7 @@ export function useSystemBackendsValue(
           }
           return;
         }
-        domicile.portals.pauseRecording(id);
+        piloti.portals.pauseRecording(id);
       },
       resumeRecording: (id) => {
         if (!systemServices) {
@@ -1440,7 +1440,7 @@ export function useSystemBackendsValue(
           }
           return;
         }
-        domicile.portals.resumeRecording(id);
+        piloti.portals.resumeRecording(id);
       },
       discardRecording: (id) => {
         if (!systemServices) {
@@ -1451,7 +1451,7 @@ export function useSystemBackendsValue(
           }
           return;
         }
-        domicile.portals.discardRecording(id);
+        piloti.portals.discardRecording(id);
       },
     }),
     [
@@ -1465,7 +1465,7 @@ export function useSystemBackendsValue(
       connectWifiNetwork,
       controlMpris,
       dismissNotification,
-      domicile.portals,
+      piloti.portals,
       executePowerAction,
       gnomeCapabilities,
       gnomeIconThemeOverride,

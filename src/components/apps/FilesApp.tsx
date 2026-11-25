@@ -12,7 +12,7 @@ import * as React from "react";
 import { useCapabilities } from "@/hooks/use-capabilities";
 import { usePopupSurface } from "@/lib/shell/popup-layer";
 import { createPortal } from "react-dom";
-import { useDomicile } from "@domicile-desktop/react/domicile-provider";
+import { usePiloti } from "@/lib/engine/piloti";
 import {
   AlertCircleIcon,
   ArrowLeftIcon,
@@ -327,7 +327,7 @@ export function FilesApp({
   isCsd?: boolean;
   windowId?: string;
 }) {
-  const domicile = useDomicile();
+  const piloti = usePiloti();
   const { settings } = useSettings();
   const { realFilesystem } = useCapabilities();
   const { installedXdgApps, getAppIconUrl, ensureWaylandIcons, xdgUserDirs } = useApps();
@@ -442,7 +442,7 @@ export function FilesApp({
     if (!realFilesystem) {
       setTemplates(listVfsTemplates());
     } else {
-      void listFsTemplates(domicile).then((list) => {
+      void listFsTemplates(piloti).then((list) => {
         setTemplates(list);
       });
     }
@@ -453,13 +453,13 @@ export function FilesApp({
     if (currentPath === WEB_VFS_FAVORITES_URI) {
       setVfsEntries(listVfsFavoriteEntries());
       if (realFilesystem) {
-        void listFsFavoriteEntries(domicile).then((entries) => setVfsEntries(entries));
+        void listFsFavoriteEntries(piloti).then((entries) => setVfsEntries(entries));
       }
       return;
     }
     if (currentPath === WEB_VFS_RECENTS_URI) {
       setVfsEntries(listVfsRecentEntries());
-      void listFsRecentEntries(domicile).then((entries) => {
+      void listFsRecentEntries(piloti).then((entries) => {
         setVfsEntries(entries);
       });
       return;
@@ -470,15 +470,15 @@ export function FilesApp({
     }
     // Only the latest listing counts: an earlier, slower one may be stale.
     const request = ++listRequestRef.current;
-    void bridgeListFsDir(domicile, currentPath).then((entries) => {
+    void bridgeListFsDir(piloti, currentPath).then((entries) => {
       if (request === listRequestRef.current) setVfsEntries(entries);
     });
-  }, [currentPath, domicile, realFilesystem, showHidden]);
+  }, [currentPath, piloti, realFilesystem, showHidden]);
   const archive = useArchiveActions(reloadDir);
 
   React.useEffect(() => onFileUndoApplied(reloadDir), [reloadDir]);
 
-  const undoCtx = React.useMemo(() => ({ domicile }), [domicile, realFilesystem]);
+  const undoCtx = React.useMemo(() => ({ piloti }), [piloti, realFilesystem]);
   const { undoLabel, redoLabel } = useFileUndoState();
 
   const handlePasteItems = React.useCallback(() => {
@@ -491,14 +491,14 @@ export function FilesApp({
       } else {
         const created: string[] = [];
         for (const srcPath of clip.paths) {
-          const path = await copyFsEntry(domicile, srcPath, currentPath);
+          const path = await copyFsEntry(piloti, srcPath, currentPath);
           if (path) created.push(path);
         }
         recordCreated(undoCtx, created, "Paste");
       }
       reloadDir();
     })();
-  }, [currentPath, domicile, realFilesystem, isTrashView, isVirtualView, reloadDir, undoCtx]);
+  }, [currentPath, piloti, realFilesystem, isTrashView, isVirtualView, reloadDir, undoCtx]);
 
   const handleDuplicateItems = React.useCallback(
     (list: readonly { path: string; id: string }[]) => {
@@ -510,7 +510,7 @@ export function FilesApp({
           const dot = base.lastIndexOf(".");
           const copyName =
             dot > 0 ? `${base.slice(0, dot)} Copy${base.slice(dot)}` : `${base} Copy`;
-          const path = await copyFsEntry(domicile, target.path, currentPath, {
+          const path = await copyFsEntry(piloti, target.path, currentPath, {
             name: copyName,
           });
           if (path) createdIds.push(path);
@@ -520,7 +520,7 @@ export function FilesApp({
         if (createdIds.length > 0) setSelectedIds(createdIds);
       })();
     },
-    [currentPath, domicile, realFilesystem, isTrashView, isVirtualView, reloadDir, undoCtx]
+    [currentPath, piloti, realFilesystem, isTrashView, isVirtualView, reloadDir, undoCtx]
   );
 
   const handleTrashItems = React.useCallback(
@@ -529,7 +529,7 @@ export function FilesApp({
       if (isTrashView) {
         // Deleting from the Trash is permanent: nothing to undo.
         for (const target of list) {
-          trashFsEntry(domicile, target.path);
+          trashFsEntry(piloti, target.path);
           removedIds.add(target.id);
         }
       } else {
@@ -539,7 +539,7 @@ export function FilesApp({
       reloadDir();
       setSelectedIds((prev) => prev.filter((id) => !removedIds.has(id)));
     },
-    [domicile, realFilesystem, isTrashView, reloadDir, undoCtx]
+    [piloti, realFilesystem, isTrashView, reloadDir, undoCtx]
   );
 
   const handleRestoreItems = React.useCallback(
@@ -831,7 +831,7 @@ export function FilesApp({
       currentPath === WEB_VFS_RECENTS_URI ||
       currentPath === WEB_VFS_APPS_URI;
     if (isVirtualView) return subscribeWebVfs(() => reloadDir());
-    const stopDir = watchFsDir(domicile, currentPath, reloadDir);
+    const stopDir = watchFsDir(piloti, currentPath, reloadDir);
     const stopTemplates = subscribeWebVfs(() => reloadDir(), [
       { path: resolveVfsTemplatesDir(), mode: "children" },
     ]);
@@ -839,7 +839,7 @@ export function FilesApp({
       stopDir();
       stopTemplates();
     };
-  }, [currentPath, domicile, reloadDir]);
+  }, [currentPath, piloti, reloadDir]);
 
   React.useEffect(() => {
     if (!initialPath) return;
@@ -1035,22 +1035,22 @@ export function FilesApp({
   const bookmarksFile = `${WEB_VFS_HOME}/${GTK_BOOKMARKS_RELATIVE_PATH}`;
   const [bookmarks, setBookmarks] = React.useState<GtkBookmark[]>([]);
   const loadBookmarks = React.useCallback(() => {
-    void readFsTextFile(domicile, bookmarksFile).then((text) =>
+    void readFsTextFile(piloti, bookmarksFile).then((text) =>
       setBookmarks(parseGtkBookmarks(text)),
     );
-  }, [bookmarksFile, domicile, realFilesystem]);
+  }, [bookmarksFile, piloti, realFilesystem]);
   React.useEffect(() => {
     loadBookmarks();
     if (!realFilesystem) return subscribeVfsPath(bookmarksFile, loadBookmarks);
-    return watchNativeDir(hostFiles(domicile), ".config/gtk-3.0", loadBookmarks);
-  }, [bookmarksFile, domicile, realFilesystem, loadBookmarks]);
+    return watchNativeDir(hostFiles(piloti), ".config/gtk-3.0", loadBookmarks);
+  }, [bookmarksFile, piloti, realFilesystem, loadBookmarks]);
   const saveBookmarks = React.useCallback(
     async (next: GtkBookmark[]) => {
       setBookmarks(next);
-      if (realFilesystem) await hostFiles(domicile).createDir(".config/gtk-3.0").catch(() => undefined);
-      writeFsTextFile(domicile, bookmarksFile, serializeGtkBookmarks(next));
+      if (realFilesystem) await hostFiles(piloti).createDir(".config/gtk-3.0").catch(() => undefined);
+      writeFsTextFile(piloti, bookmarksFile, serializeGtkBookmarks(next));
     },
-    [bookmarksFile, domicile, realFilesystem],
+    [bookmarksFile, piloti, realFilesystem],
   );
   const bookmarkedPaths = React.useMemo(() => new Set(bookmarks.map((b) => b.path)), [bookmarks]);
   const toggleBookmark = React.useCallback(
@@ -1184,7 +1184,7 @@ export function FilesApp({
 
   const handleNewFolder = () => {
     if (isTrashView || isVirtualView) return;
-    const created = createFsFolder(domicile, currentPath);
+    const created = createFsFolder(piloti, currentPath);
     recordCreated(undoCtx, [created.path], "New Folder");
     reloadDir();
     setSelectedIds([created.path]);
@@ -1193,7 +1193,7 @@ export function FilesApp({
 
   const handleNewTextFile = () => {
     if (isTrashView || isVirtualView) return;
-    const created = createFsTextFile(domicile, currentPath);
+    const created = createFsTextFile(piloti, currentPath);
     recordCreated(undoCtx, [created.path], "New Text File");
     reloadDir();
     setSelectedIds([created.path]);
@@ -1202,7 +1202,7 @@ export function FilesApp({
 
   const handleNewFromTemplate = (template: WebVfsEntry) => {
     if (isTrashView || isVirtualView) return;
-    void createFsFileFromTemplate(domicile, currentPath,
+    void createFsFileFromTemplate(piloti, currentPath,
       template
     ).then((created) => {
       reloadDir();
@@ -1307,7 +1307,7 @@ export function FilesApp({
         const created: string[] = [];
         for (const item of droppedItems) {
           if (destPath === item.path || destPath.startsWith(`${item.path}/`)) continue;
-          const path = await copyFsEntry(domicile, item.path, destPath);
+          const path = await copyFsEntry(piloti, item.path, destPath);
           if (path) created.push(path);
         }
         recordCreated(undoCtx, created, "Copy");
@@ -1526,7 +1526,7 @@ export function FilesApp({
           break;
         case "files:empty-trash":
           if (isTrashView && items.length > 0) {
-            void emptyFsTrash(domicile).then(() =>
+            void emptyFsTrash(piloti).then(() =>
               reloadDir(),
             );
           }
@@ -1577,7 +1577,7 @@ export function FilesApp({
     return () => window.removeEventListener("piloti:app-action", onAppAction);
   }, [
     currentPath,
-    domicile,
+    piloti,
     realFilesystem,
     isTrashView,
     items.length,
@@ -1999,7 +1999,7 @@ export function FilesApp({
                 variant="secondary"
                 disabled={items.length === 0}
                 onClick={() => {
-                  void emptyFsTrash(domicile).then(() => {
+                  void emptyFsTrash(piloti).then(() => {
                     void playSoundThemeEvent(
                       "trash-empty",
                       settings.volume,
@@ -2468,7 +2468,7 @@ export function FilesApp({
         onMakeLink={(list) => {
           void Promise.all(
             list.map((target) =>
-              copyFsEntry(domicile, target.path, currentPath, {
+              copyFsEntry(piloti, target.path, currentPath, {
                 symlink: true,
                 name: _("Link to {name}").replace("{name}", target.name),
               }),

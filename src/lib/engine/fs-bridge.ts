@@ -1,4 +1,4 @@
-import type { Domicile } from "@domicile-desktop/sdk/desktop/desktop";
+import type { Piloti } from "@/lib/engine/piloti";
 import {
   notifyVfsChanged,
   subscribeWebVfs as subscribeVfs,
@@ -79,10 +79,10 @@ export { toDomicilePath };
 /** Files live on a real disk (the VFS is a cache), as opposed to the browser VFS being the only copy. */
 const hasRealFilesystem = (): boolean => getEngine().capabilities.realFilesystem;
 
-function fileServiceFor(domicile: Domicile): FileService {
+function fileServiceFor(piloti: Piloti): FileService {
   return createFileService({
     onDiskChange: notifyVfsChanged,
-    store: hasRealFilesystem() ? createNativeFileStore(domicile) : null,
+    store: hasRealFilesystem() ? createNativeFileStore(piloti) : null,
     cacheOnly: isSimulatedUsbPath,
     cache: {
       getVfsEntry,
@@ -109,68 +109,68 @@ function fileServiceFor(domicile: Domicile): FileService {
  * or `web-vfs` in browser mode.
  */
 export async function listFsDir(
-  domicile: Domicile,
+  piloti: Piloti,
   dirPath: string,
 ): Promise<WebVfsEntry[]> {
-  return fileServiceFor(domicile).listDir(dirPath);
+  return fileServiceFor(piloti).listDir(dirPath);
 }
 
 /**
  * Reads a UTF-8 text file via `domicile.files` on Linux or `web-vfs` in browser mode.
  */
 export async function readFsTextFile(
-  domicile: Domicile,
+  piloti: Piloti,
   filePath: string,
 ): Promise<string> {
-  return fileServiceFor(domicile).readText(filePath);
+  return fileServiceFor(piloti).readText(filePath);
 }
 
 /**
  * Writes a UTF-8 text file to `web-vfs` and (on Linux) persists via `domicile.files.write`.
  */
 export function writeFsTextFile(
-  domicile: Domicile,
+  piloti: Piloti,
   filePath: string,
   content: string,
 ): WebVfsEntry | null {
-  return fileServiceFor(domicile).writeText(filePath, content);
+  return fileServiceFor(piloti).writeText(filePath, content);
 }
 
 /**
  * Creates a new folder in `dirPath` on both `web-vfs` and `domicile.files`.
  */
 export function createFsFolder(
-  domicile: Domicile,
+  piloti: Piloti,
   dirPath: string,
   baseName?: string,
 ): WebVfsEntry {
-  return fileServiceFor(domicile).createFolder(dirPath, baseName);
+  return fileServiceFor(piloti).createFolder(dirPath, baseName);
 }
 
 /**
  * Creates a new text file in `dirPath` on both `web-vfs` and `domicile.files`.
  */
 export function createFsTextFile(
-  domicile: Domicile,
+  piloti: Piloti,
   dirPath: string,
   baseName?: string,
   content = "",
 ): WebVfsEntry {
-  return fileServiceFor(domicile).createTextFile(dirPath, baseName, content);
+  return fileServiceFor(piloti).createTextFile(dirPath, baseName, content);
 }
 
 /**
  * Lists document templates from `$XDG_TEMPLATES_DIR` (`~/Templates`).
  */
 export async function listFsTemplates(
-  domicile: Domicile,
+  piloti: Piloti,
   templatesDirPath?: string,
 ): Promise<WebVfsEntry[]> {
   if (!hasRealFilesystem()) {
     return listVfsTemplates();
   }
   const dir = normalizeVfsPath(templatesDirPath || resolveVfsTemplatesDir());
-  const entries = await listFsDir(domicile, dir);
+  const entries = await listFsDir(piloti, dir);
   const dotHidden = entries.find((e) => e.name === ".hidden");
   const hiddenNames = parseDotHiddenFile(dotHidden?.content);
   return entries
@@ -187,7 +187,7 @@ export async function listFsTemplates(
  * Creates a new file in `dirPath` cloned from an XDG template entry.
  */
 export async function createFsFileFromTemplate(
-  domicile: Domicile,
+  piloti: Piloti,
   dirPath: string,
   template: { name: string; path: string; content?: string },
 ): Promise<WebVfsEntry> {
@@ -200,8 +200,8 @@ export async function createFsFileFromTemplate(
   const content =
     template.content !== undefined
       ? template.content
-      : await readFsTextFile(domicile, template.path);
-  return createFsTextFile(domicile, dirPath,
+      : await readFsTextFile(piloti, template.path);
+  return createFsTextFile(piloti, dirPath,
     template.name,
     content,
   );
@@ -209,20 +209,20 @@ export async function createFsFileFromTemplate(
 
 /** Renames a file or folder (cache and disk). */
 export function renameFsEntry(
-  domicile: Domicile,
+  piloti: Piloti,
   path: string,
   newName: string,
 ): WebVfsEntry | null {
-  return fileServiceFor(domicile).rename(path, newName);
+  return fileServiceFor(piloti).rename(path, newName);
 }
 
 /** Moves a file or folder into `targetDirPath` (cache and disk). */
 export function moveFsEntry(
-  domicile: Domicile,
+  piloti: Piloti,
   path: string,
   targetDirPath: string,
 ): WebVfsEntry | null {
-  return fileServiceFor(domicile).move(path, targetDirPath);
+  return fileServiceFor(piloti).move(path, targetDirPath);
 }
 
 /**
@@ -230,46 +230,46 @@ export function moveFsEntry(
  * Returns the created path (null when nothing was created).
  */
 export async function copyFsEntry(
-  domicile: Domicile,
+  piloti: Piloti,
   srcPath: string,
   targetDirPath: string,
   options: { symlink?: boolean; name?: string } = {},
 ): Promise<string | null> {
-  return fileServiceFor(domicile).copy(srcPath, targetDirPath, options);
+  return fileServiceFor(piloti).copy(srcPath, targetDirPath, options);
 }
 
 /** Moves an entry to Trash (cache and XDG Trash). */
-export function trashFsEntry(domicile: Domicile, path: string): void {
-  fileServiceFor(domicile).trash(path);
+export function trashFsEntry(piloti: Piloti, path: string): void {
+  fileServiceFor(piloti).trash(path);
 }
 
 /** Restores an entry from Trash to its original location. */
 export function restoreFsEntry(
-  domicile: Domicile,
+  piloti: Piloti,
   trashPath: string,
 ): WebVfsEntry | null {
-  return fileServiceFor(domicile).restore(trashPath);
+  return fileServiceFor(piloti).restore(trashPath);
 }
 
 /** Empties Trash. */
-export async function emptyFsTrash(domicile: Domicile): Promise<void> {
-  await fileServiceFor(domicile).emptyTrash();
+export async function emptyFsTrash(piloti: Piloti): Promise<void> {
+  await fileServiceFor(piloti).emptyTrash();
 }
 
 /** Permanently removes a file or folder. */
 export async function removeFsFile(
-  domicile: Domicile,
+  piloti: Piloti,
   filePath: string,
 ): Promise<void> {
-  await fileServiceFor(domicile).remove(filePath);
+  await fileServiceFor(piloti).remove(filePath);
 }
 
 /** The favorite (starred) entries, looked up on disk on Linux. */
 export async function listFsFavoriteEntries(
-  domicile: Domicile,
+  piloti: Piloti,
 ): Promise<WebVfsEntry[]> {
   if (!hasRealFilesystem()) return listVfsFavoriteEntries();
-  const service = fileServiceFor(domicile);
+  const service = fileServiceFor(piloti);
   // Another app may have (un)starred files: read the folders' metadata first.
   const dirs = new Set(loadVfsFavorites().map((p) => p.slice(0, p.lastIndexOf("/")) || "/"));
   await Promise.all([...dirs].map((dir) => service.syncEmblems(dir)));
@@ -282,13 +282,13 @@ export async function listFsFavoriteEntries(
  * merged with Piloti's local VFS recent access history.
  */
 export async function listFsRecentEntries(
-  domicile: Domicile,
+  piloti: Piloti,
 ): Promise<WebVfsEntry[]> {
   const vfsRecents = listVfsRecentEntries();
   const byPath = new Map<string, WebVfsEntry>();
 
   try {
-    const xml = await readFsTextFile(domicile, RECENTLY_USED_XBEL_PATH,
+    const xml = await readFsTextFile(piloti, RECENTLY_USED_XBEL_PATH,
     );
     if (xml) {
       const parsed = parseRecentlyUsedXbel(xml);
@@ -335,18 +335,18 @@ export async function listFsRecentEntries(
  * Records an opened file into FreeDesktop `~/.local/share/recently-used.xbel`.
  */
 export async function recordFsRecentFile(
-  domicile: Domicile,
+  piloti: Piloti,
   filePath: string,
   mimeType = "application/octet-stream",
 ): Promise<void> {
   if (!filePath || !filePath.startsWith("/")) return;
   try {
-    const xml = await readFsTextFile(domicile, RECENTLY_USED_XBEL_PATH,
+    const xml = await readFsTextFile(piloti, RECENTLY_USED_XBEL_PATH,
     );
     const current = xml ? parseRecentlyUsedXbel(xml) : [];
     const next = upsertRecentXbelItem(current, filePath, mimeType);
     const serialized = serializeRecentlyUsedXbel(next);
-    writeFsTextFile(domicile, RECENTLY_USED_XBEL_PATH, serialized);
+    writeFsTextFile(piloti, RECENTLY_USED_XBEL_PATH, serialized);
   } catch {
     // non-fatal recents write failure
   }
@@ -358,13 +358,13 @@ export { parseGioMetadataInfo };
  * Reads `metadata::*` attributes from `web-vfs` and (on Linux) `gio info` (`gvfsd-metadata`).
  */
 export async function readFsMetadata(
-  domicile: Domicile | undefined,
+  piloti: Piloti | undefined,
   filePath: string,
   keys: readonly string[],
 ): Promise<Record<string, string>> {
   const norm = normalizeVfsPath(filePath);
-  if (!domicile) return metadataFromCache(norm, keys);
-  return fileServiceFor(domicile).readMetadata(norm, keys);
+  if (!piloti) return metadataFromCache(norm, keys);
+  return fileServiceFor(piloti).readMetadata(norm, keys);
 }
 
 function metadataFromCache(norm: string, keys: readonly string[]): Record<string, string> {
@@ -381,16 +381,16 @@ function metadataFromCache(norm: string, keys: readonly string[]): Record<string
  * Persists `metadata::*` attributes to `web-vfs` and (on Linux) `gio set` (`gvfsd-metadata`).
  */
 export function writeFsMetadata(
-  domicile: Domicile | undefined,
+  piloti: Piloti | undefined,
   filePath: string,
   patch: Record<string, string | number>,
 ): void {
   const norm = normalizeVfsPath(filePath);
-  if (!domicile) {
+  if (!piloti) {
     setVfsEntryMetadata(norm, patch);
     return;
   }
-  fileServiceFor(domicile).writeMetadata(norm, patch);
+  fileServiceFor(piloti).writeMetadata(norm, patch);
 }
 
 /** Archives "Extract Here" can open: zip everywhere, more with bsdtar on Linux. */
@@ -402,19 +402,19 @@ export function isExtractableArchive(name: string): boolean {
 
 /** Zips sibling entries next to them; returns the new archive's path, or null. */
 export async function compressFsEntries(
-  domicile: Domicile,
+  piloti: Piloti,
   paths: readonly string[],
 ): Promise<string | null> {
-  if (hasRealFilesystem()) return compressNative(domicile, paths);
+  if (hasRealFilesystem()) return compressNative(piloti, paths);
   return (await compressVfsEntries(paths))?.path ?? null;
 }
 
 /** Extracts an archive into a new folder next to it; returns its path, or null. */
 export async function extractFsArchive(
-  domicile: Domicile,
+  piloti: Piloti,
   path: string,
 ): Promise<string | null> {
-  if (hasRealFilesystem()) return extractNative(domicile, path);
+  if (hasRealFilesystem()) return extractNative(piloti, path);
   return (await extractVfsZip(path))?.path ?? null;
 }
 
@@ -422,9 +422,9 @@ export async function extractFsArchive(
  * Calls `onChange` when a folder's content changes: operations made here, and
  * on a real filesystem also changes made by other programs.
  */
-export function watchFsDir(domicile: Domicile, dirPath: string, onChange: () => void): () => void {
+export function watchFsDir(piloti: Piloti, dirPath: string, onChange: () => void): () => void {
   const unsubscribe = subscribeVfs(onChange, { path: dirPath, mode: "children" });
-  const stop = hasRealFilesystem() ? watchNativeDir(hostFiles(domicile), dirPath, onChange) : null;
+  const stop = hasRealFilesystem() ? watchNativeDir(hostFiles(piloti), dirPath, onChange) : null;
   return () => {
     unsubscribe();
     stop?.();

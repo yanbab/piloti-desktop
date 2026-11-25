@@ -1,6 +1,6 @@
 import { hostFiles } from "@/lib/engine/host-files";
 import { VFS_HOME } from "@/lib/engine/vfs-home";
-import type { Domicile } from "@domicile-desktop/sdk/desktop/desktop";
+import type { Piloti } from "@/lib/engine/piloti";
 import { type IniRecord, parseIniText, serializeIniText } from "@/lib/config/ini";
 import { readVfsStateText, writeVfsStateText } from "@/lib/engine/vfs-state";
 import { isWebEngine } from "@/lib/engine/engine";
@@ -33,14 +33,14 @@ function isBrowserHostRuntime(): boolean {
 }
 
 export async function readPilotiAppIni(
-  domicile: Domicile | null | undefined,
+  piloti: Piloti | null | undefined,
   appName: string
 ): Promise<IniRecord> {
   const relPath = `${PILOTI_INI_DIR}/${appName}.ini`;
   const vfsPath = getPilotiAppIniVfsPath(appName);
-  if (domicile && !isBrowserHostRuntime()) {
+  if (piloti && !isBrowserHostRuntime()) {
     try {
-      const res = await hostFiles(domicile).readText(relPath);
+      const res = await hostFiles(piloti).readText(relPath);
       return res.match({
         Ok: (text) => {
           try {
@@ -60,7 +60,7 @@ export async function readPilotiAppIni(
 }
 
 export async function writePilotiAppIni(
-  domicile: Domicile | null | undefined,
+  piloti: Piloti | null | undefined,
   appName: string,
   section: string,
   values: Record<string, string | number | boolean>
@@ -69,7 +69,7 @@ export async function writePilotiAppIni(
   const current =
     Object.keys(cached).length > 0
       ? cached
-      : await readPilotiAppIni(domicile, appName);
+      : await readPilotiAppIni(piloti, appName);
   const next: IniRecord = {
     ...current,
     [section]: {
@@ -85,14 +85,14 @@ export async function writePilotiAppIni(
   } catch {
     // ignore
   }
-  if (domicile && !isBrowserHostRuntime()) {
+  if (piloti && !isBrowserHostRuntime()) {
     try {
       if (!ensuredIniDirs.has(PILOTI_INI_DIR)) {
-        await hostFiles(domicile).createDir(".config").catch(() => undefined);
-        await hostFiles(domicile).createDir(PILOTI_INI_DIR).catch(() => undefined);
+        await hostFiles(piloti).createDir(".config").catch(() => undefined);
+        await hostFiles(piloti).createDir(PILOTI_INI_DIR).catch(() => undefined);
         ensuredIniDirs.add(PILOTI_INI_DIR);
       }
-      await hostFiles(domicile).write(`${PILOTI_INI_DIR}/${appName}.ini`, serialized);
+      await hostFiles(piloti).write(`${PILOTI_INI_DIR}/${appName}.ini`, serialized);
     } catch {
       ensuredIniDirs.delete(PILOTI_INI_DIR);
     }

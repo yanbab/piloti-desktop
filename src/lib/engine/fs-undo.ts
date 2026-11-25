@@ -1,6 +1,6 @@
 import { getEngine } from "@/lib/engine/engine";
 import * as React from "react";
-import type { Domicile } from "@domicile-desktop/sdk/desktop/desktop";
+import type { Piloti } from "@/lib/engine/piloti";
 import {
   listVfsDir,
   normalizeVfsPath,
@@ -20,7 +20,7 @@ import {
  * replay itself. Listeners (open Folders windows) reload when one is applied.
  */
 export interface FileUndoContext {
-  domicile: Domicile;
+  piloti: Piloti;
 }
 
 interface FileUndoEntry {
@@ -124,10 +124,10 @@ function findTrashedPath(path: string): string {
 }
 
 function restoreFromTrash(ctx: FileUndoContext, trashPath: string, originalPath: string): void {
-  const restored = restoreFsEntry(ctx.domicile, trashPath);
+  const restored = restoreFsEntry(ctx.piloti, trashPath);
   if (!restored && getEngine().capabilities.realFilesystem) {
     // Native trash is not always mirrored in the VFS: put it back on disk.
-    void ctx.domicile.processes.run([
+    void ctx.piloti.processes.run([
       "mv",
       "-n",
       "--",
@@ -139,7 +139,7 @@ function restoreFromTrash(ctx: FileUndoContext, trashPath: string, originalPath:
 
 function trashAll(ctx: FileUndoContext, paths: readonly string[]): string[] {
   return paths.map((path) => {
-    trashFsEntry(ctx.domicile, path);
+    trashFsEntry(ctx.piloti, path);
     return findTrashedPath(path);
   });
 }
@@ -188,7 +188,7 @@ export function moveWithUndo(
 ): string[] {
   const moves: Array<{ from: string; to: string }> = [];
   for (const from of paths) {
-    const moved = moveFsEntry(ctx.domicile, from, destDir);
+    const moved = moveFsEntry(ctx.piloti, from, destDir);
     const dir = normalizeVfsPath(destDir);
     const to = moved?.path ?? `${dir === "/" ? "" : dir}/${baseName(from)}`;
     if (normalizeVfsPath(from) !== to) moves.push({ from: normalizeVfsPath(from), to });
@@ -197,10 +197,10 @@ export function moveWithUndo(
     record({
       label: "Move",
       undo: () => {
-        for (const m of moves) moveFsEntry(ctx.domicile, m.to, parentDir(m.from));
+        for (const m of moves) moveFsEntry(ctx.piloti, m.to, parentDir(m.from));
       },
       redo: () => {
-        for (const m of moves) moveFsEntry(ctx.domicile, m.from, parentDir(m.to));
+        for (const m of moves) moveFsEntry(ctx.piloti, m.from, parentDir(m.to));
       },
     });
   }
@@ -215,16 +215,16 @@ export function renameWithUndo(
 ): string | null {
   const from = normalizeVfsPath(path);
   const oldName = baseName(from);
-  const renamed = renameFsEntry(ctx.domicile, from, newName);
+  const renamed = renameFsEntry(ctx.piloti, from, newName);
   if (!renamed) return null;
   let current = renamed.path;
   record({
     label: "Rename",
     undo: () => {
-      current = renameFsEntry(ctx.domicile, current, oldName)?.path ?? current;
+      current = renameFsEntry(ctx.piloti, current, oldName)?.path ?? current;
     },
     redo: () => {
-      current = renameFsEntry(ctx.domicile, current, newName)?.path ?? current;
+      current = renameFsEntry(ctx.piloti, current, newName)?.path ?? current;
     },
   });
   return renamed.path;
@@ -234,7 +234,7 @@ export function renameWithUndo(
 export function restoreWithUndo(ctx: FileUndoContext, trashPaths: readonly string[]): void {
   if (trashPaths.length === 0) return;
   const items = trashPaths.map((tp) => {
-    const restored = restoreFsEntry(ctx.domicile, tp);
+    const restored = restoreFsEntry(ctx.piloti, tp);
     return { trashPath: tp, restored: restored?.path ?? null };
   });
   const placed = items.filter((i) => i.restored);

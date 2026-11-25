@@ -24,9 +24,9 @@ export function Greeter() {
 
 const mountGreeter = mount(Greeter);
 
-export const Shell: typeof mountGreeter = (root, domicile) => {
+export const Shell: typeof mountGreeter = (root, piloti) => {
   // The greeter is a shell (never an app module): its host has all file calls.
-  void loadAppCatalog(domicile as Parameters<typeof loadAppCatalog>[0]).finally(() =>
-    mountGreeter(root, domicile)
+  void loadAppCatalog(piloti as Parameters<typeof loadAppCatalog>[0]).finally(() =>
+    mountGreeter(root, piloti)
   );
 };

@@ -2,7 +2,7 @@ import { HeaderSearch } from "@/components/ui/header-search";
 import { SettingsHeaderActions } from "./header-slot";
 import * as React from "react";
 import { useCapabilities } from "@/hooks/use-capabilities";
-import { useDomicile } from "@domicile-desktop/react/domicile-provider";
+import { usePiloti } from "@/lib/engine/piloti";
 import { ChevronDownIcon, SearchIcon, ShieldCheckIcon } from "lucide-react";
 import { AppSquircleIcon } from "@/components/shell/AppSymbol";
 import {
@@ -82,7 +82,7 @@ const FLATPAK_PERMISSION_ITEMS: {
 ];
 
 export function SecurityPane() {
-  const domicile = useDomicile();
+  const piloti = usePiloti();
   const { systemServices } = useCapabilities();
   const { installedXdgApps, getAppIconUrl } = useApps();
 
@@ -122,14 +122,14 @@ export function SecurityPane() {
       return;
     }
 
-    void listInstalledFlatpaks(domicile).then((list) => {
+    void listInstalledFlatpaks(piloti).then((list) => {
       if (!active) return;
       setFlatpakApps(list.map((entry) => ({ id: entry.appId, name: entry.name })));
     });
     return () => {
       active = false;
     };
-  }, [domicile, systemServices]);
+  }, [piloti, systemServices]);
 
   const apps = React.useMemo<SecurityAppEntry[]>(() => {
     const byId = new Map<string, SecurityAppEntry>();
@@ -195,7 +195,7 @@ export function SecurityPane() {
       systemServices &&
       !liveFlatpakPerms[app.id]
     ) {
-      void getFlatpakPermissions(domicile, app.id).then((perms) => {
+      void getFlatpakPermissions(piloti, app.id).then((perms) => {
         setLiveFlatpakPerms((prev) => ({ ...prev, [app.id]: perms }));
       });
     }
@@ -247,7 +247,7 @@ export function SecurityPane() {
       return next;
     });
     if (systemServices) {
-      void setFlatpakPermissionOverride(domicile, appId, key, enabled);
+      void setFlatpakPermissionOverride(piloti, appId, key, enabled);
     }
   };
 

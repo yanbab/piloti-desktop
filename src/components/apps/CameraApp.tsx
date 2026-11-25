@@ -1,7 +1,7 @@
 import { hostFiles } from "@/lib/engine/host-files";
 import * as React from "react";
 import { useCapabilities } from "@/hooks/use-capabilities";
-import { useDomicile } from "@domicile-desktop/react/domicile-provider";
+import { usePiloti } from "@/lib/engine/piloti";
 import { CameraIcon, MicIcon, VideoIcon } from "lucide-react";
 import { WindowMenuButton } from "@/components/shell/WindowMenuButton";
 import { emitShellEvent } from "@/lib/shell/shell-events";
@@ -57,7 +57,7 @@ function blobToDataUrl(blob: Blob): Promise<string> {
 }
 
 export const CameraApp: React.FC<CameraAppProps> = ({ windowId = "", isCsd = true }) => {
-  const domicile = useDomicile();
+  const piloti = usePiloti();
   const { realFilesystem } = useCapabilities();
   const { xdgUserDirs } = useApps();
   const [mode, setMode] = React.useState<CameraMode>("photo");
@@ -134,7 +134,7 @@ export const CameraApp: React.FC<CameraAppProps> = ({ windowId = "", isCsd = tru
         ? `${WEB_VFS_HOME}/Desktop`
         : resolveUserDirPath("DESKTOP", xdgUserDirs, WEB_VFS_HOME);
       const name = uniqueCaptureName(
-        (!realFilesystem ? listVfsDir(dir) : await listFsDir(domicile, dir)).map((e) => e.name),
+        (!realFilesystem ? listVfsDir(dir) : await listFsDir(piloti, dir)).map((e) => e.name),
         base,
         ext,
       );
@@ -147,11 +147,11 @@ export const CameraApp: React.FC<CameraAppProps> = ({ windowId = "", isCsd = tru
       if (!realFilesystem) {
         writeVfsTextFile(path, await blobToDataUrl(blob), { metadata });
       } else {
-        await hostFiles(domicile).write(toDomicilePath(path), new Uint8Array(await blob.arrayBuffer()));
+        await hostFiles(piloti).write(toDomicilePath(path), new Uint8Array(await blob.arrayBuffer()));
       }
       setStatus(_("Saved to Desktop") + ` — ${name}`);
     },
-    [domicile, realFilesystem, xdgUserDirs],
+    [piloti, realFilesystem, xdgUserDirs],
   );
 
   const takePhoto = React.useCallback(async () => {

@@ -1,5 +1,5 @@
 import * as React from "react";
-import { useDomicile } from "@domicile-desktop/react/domicile-provider";
+import { usePiloti } from "@/lib/engine/piloti";
 import {
   MenuEntryKind,
   ToggleKind,
@@ -117,7 +117,7 @@ function renderMenuEntries(
  * when the application exports a `bus` and `menu` object path.
  */
 export function SystemTrayItem({ item }: { item: TrayItem }) {
-  const domicile = useDomicile();
+  const piloti = usePiloti();
   const [open, setOpen] = React.useState(false);
   const [entries, setEntries] = React.useState<readonly MenuEntry[]>([]);
   const watchedRef = React.useRef<WatchedMenu | null>(null);
@@ -125,7 +125,7 @@ export function SystemTrayItem({ item }: { item: TrayItem }) {
 
   React.useEffect(() => {
     if (!hasMenu || !item.bus || !item.menu) return;
-    const watched = domicile.tray.menu(
+    const watched = piloti.tray.menu(
       { bus: item.bus, path: item.menu },
       (res) => {
         res.match({
@@ -139,7 +139,7 @@ export function SystemTrayItem({ item }: { item: TrayItem }) {
       watched.stop();
       watchedRef.current = null;
     };
-  }, [domicile.tray, hasMenu, item.bus, item.menu]);
+  }, [piloti.tray, hasMenu, item.bus, item.menu]);
 
   const iconEl = item.icon ? (
     <img src={item.icon} alt={item.title} className="size-4 shrink-0 object-contain" />
@@ -152,7 +152,7 @@ export function SystemTrayItem({ item }: { item: TrayItem }) {
       <button
         type="button"
         aria-label={item.title}
-        onClick={() => domicile.tray.activate(item.id, "primary")}
+        onClick={() => piloti.tray.activate(item.id, "primary")}
         className="flex h-full shrink-0 cursor-default items-center justify-center rounded-adw-control px-1.5 outline-none select-none hover-fill:bg-black/8 active:bg-black/14 focus-visible:bg-black/10 dark:hover-fill:bg-white/10 dark:active:bg-white/18 dark:focus-visible:bg-white/12"
       >
         {iconEl}
@@ -175,7 +175,7 @@ export function SystemTrayItem({ item }: { item: TrayItem }) {
         onClick={(e) => {
           if (!item.itemIsMenu) {
             e.preventDefault();
-            domicile.tray.activate(item.id, "primary");
+            piloti.tray.activate(item.id, "primary");
           }
         }}
         onContextMenu={(e) => {

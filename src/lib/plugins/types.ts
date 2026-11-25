@@ -1,4 +1,4 @@
-import type { Domicile } from "@domicile-desktop/sdk/desktop/desktop";
+import type { Piloti } from "@/lib/engine/piloti";
 import type {
   WindowMenuItem,
   WindowPresentation,
@@ -176,6 +176,6 @@ export interface PilotiPluginContext {
     get: <T = unknown>(key: string) => T | undefined;
     set: (key: string, value: unknown) => void;
   };
-  domicile: Domicile;
+  piloti: Piloti;
   onCleanup: (fn: () => void) => void;
 }

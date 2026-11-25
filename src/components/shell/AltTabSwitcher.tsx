@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useCapabilities } from "@/hooks/use-capabilities";
-import { useDomicile } from "@domicile-desktop/react/domicile-provider";
+import { usePiloti } from "@/lib/engine/piloti";
 import { PreviewedWindow } from "@domicile-desktop/sdk/previewed-window";
 import { Minimize2Icon, SparklesIcon } from "lucide-react";
 import {
@@ -73,7 +73,7 @@ function WindowMiniPreview({
 }
 
 export function AltTabSwitcher() {
-  const domicile = useDomicile();
+  const piloti = usePiloti();
   const { systemServices } = useCapabilities();
   const { getAppIconUrl } = useApps();
   const {
@@ -99,7 +99,7 @@ export function AltTabSwitcher() {
       waylandWins.map(async (w) => {
         if (!w.waylandAppId) return;
         try {
-          const res = await domicile.capture.preview(
+          const res = await piloti.capture.preview(
             PreviewedWindow.App(w.waylandAppId)
           );
           res.match({
@@ -119,7 +119,7 @@ export function AltTabSwitcher() {
     return () => {
       cancelled = true;
     };
-  }, [altTabOpen, domicile.capture, systemServices, mruWindows]);
+  }, [altTabOpen, piloti.capture, systemServices, mruWindows]);
 
   if (!altTabOpen) return null;
 

@@ -2,7 +2,7 @@ import { hostFiles } from "@/lib/engine/host-files";
 import * as React from "react";
 import { useCapabilities } from "@/hooks/use-capabilities";
 import { useDisplays } from "@domicile-desktop/react/displays";
-import { useDomicile } from "@domicile-desktop/react/domicile-provider";
+import { usePiloti } from "@/lib/engine/piloti";
 import {
   ArrowUpIcon,
   FilmIcon,
@@ -112,7 +112,7 @@ function WallpaperThumbnail({
   resolvedTheme: "dark" | "light";
   accentHex: string;
 }) {
-  const domicile = useDomicile();
+  const piloti = usePiloti();
   const rawUri =
     resolvedTheme === "dark" && wp.imageUrlDark
       ? wp.imageUrlDark
@@ -133,7 +133,7 @@ function WallpaperThumbnail({
     }
     let cancelled = false;
     let objectUrl = "";
-    void hostFiles(domicile).read(localPath).then((res) => {
+    void hostFiles(piloti).read(localPath).then((res) => {
       if (cancelled) return;
       res.match({
         Ok: (bytes) => {
@@ -159,7 +159,7 @@ function WallpaperThumbnail({
       cancelled = true;
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [domicile, localPath, rawUri]);
+  }, [piloti, localPath, rawUri]);
 
   const thumbSpec = React.useMemo(() => {
     const resolvedBgCss =
@@ -206,7 +206,7 @@ function WallpaperThumbnail({
 }
 
 export function WallpaperPane() {
-  const domicile = useDomicile();
+  const piloti = usePiloti();
   const displays = useDisplays() ?? [];
   const primaryDisplayName =
     displays[0]?.name?.trim() || _("Built-in Display");
@@ -262,7 +262,7 @@ export function WallpaperPane() {
     if (!imagePickerOpen) return;
     let active = true;
     setPickerLoading(true);
-    void listFsDir(domicile, pickerCwd)
+    void listFsDir(piloti, pickerCwd)
       .then((entries) => {
         if (!active) return;
         const filtered = entries
@@ -286,7 +286,7 @@ export function WallpaperPane() {
     return () => {
       active = false;
     };
-  }, [domicile, imagePickerOpen, realFilesystem, pickerCwd]);
+  }, [piloti, imagePickerOpen, realFilesystem, pickerCwd]);
 
   const applyPictureUri = React.useCallback(
     (uri: string) => {
@@ -329,11 +329,11 @@ export function WallpaperPane() {
       const safeName = file.name.replace(/[/\\]/g, "_") || `wallpaper-${Date.now()}.png`;
       const targetPath = `${picturesDir.replace(/\/+$/, "")}/${safeName}`;
       const buf = new Uint8Array(await file.arrayBuffer());
-      await hostFiles(domicile).write(toDomicilePath(targetPath), buf);
+      await hostFiles(piloti).write(toDomicilePath(targetPath), buf);
       applyPictureUri(localPathToFileUri(targetPath));
       setImagePickerOpen(false);
     },
-    [applyPictureUri, domicile, realFilesystem, picturesDir]
+    [applyPictureUri, piloti, realFilesystem, picturesDir]
   );
 
   const applySolidColor = React.useCallback(

@@ -3,7 +3,7 @@ import * as React from "react";
 import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import "@xterm/xterm/css/xterm.css";
-import { useDomicile } from "@domicile-desktop/react/domicile-provider";
+import { usePiloti } from "@/lib/engine/piloti";
 import {
   useApps,
   useSettings,
@@ -53,7 +53,7 @@ export function XtermTerminalApp({
   initialPath?: string;
   windowId?: string;
 }) {
-  const domicile = useDomicile();
+  const piloti = usePiloti();
   const { settings, updateSettings } = useSettings();
   const { pushNotification } = useSystemBackends();
   const { launchApp } = useWindowActions();
@@ -67,7 +67,7 @@ export function XtermTerminalApp({
   const [mode, setMode] = React.useState<string>(bashAvailable ? "" : PILOTI);
   React.useEffect(() => {
     let cancelled = false;
-    void readLoginShells(domicile).then((list) => {
+    void readLoginShells(piloti).then((list) => {
       if (cancelled) return;
       setShells(list);
       if (!bashAvailable) return; // the web demo has no shells: they are listed, disabled
@@ -77,7 +77,7 @@ export function XtermTerminalApp({
     return () => {
       cancelled = true;
     };
-  }, [bashAvailable, domicile]);
+  }, [bashAvailable, piloti]);
 
   // One menu, sorted by name: piloti-shell among the real shells.
   const menuEntries = React.useMemo(
@@ -112,7 +112,7 @@ export function XtermTerminalApp({
       apps: () => live.current.apps,
       run: async (cmd: string) => {
         if (!systemServices) return { code: 0, stdout: `[web demo] would run: ${cmd}`, stderr: "" };
-        const res = await domicile.processes.run(["sh", "-c", cmd]);
+        const res = await piloti.processes.run(["sh", "-c", cmd]);
         return res.match({
           Ok: (ran) => ran,
           Err: (err) => {
@@ -120,9 +120,8 @@ export function XtermTerminalApp({
           },
         });
       },
-      piloti: (globalThis as { __PILOTI__?: unknown }).__PILOTI__,
-      files: hostFiles(domicile),
-      domicile,
+      files: hostFiles(piloti),
+      piloti: window.piloti ?? piloti,
       help: () =>
         [
           "windows()          open windows",
@@ -132,11 +131,11 @@ export function XtermTerminalApp({
           "notify(title, b?)  show a notification",
           "apps()             installed applications",
           "run(cmd)           run a Linux command, returns { code, stdout, stderr }",
-          "piloti             the plugin API (windows, settings, notifications...)",
-          "files, domicile    Domicile's files and the whole desktop API",
+          "files              Domicile's files",
+          "piloti             Domicile's desktop plus desktop, settings, notifications.push, plugins",
         ].join("\n"),
     }),
-    [domicile, launchApp, pushNotification, updateSettings],
+    [piloti, launchApp, pushNotification, updateSettings],
   );
   const scopeRef = React.useRef(scope);
   scopeRef.current = scope;
@@ -201,7 +200,7 @@ export function XtermTerminalApp({
       repl.start();
     } else {
       void startShell(
-        domicile,
+        piloti,
         mode,
         { cols: term.cols, rows: term.rows },
         (bytes) => term.write(bytes),
@@ -222,7 +221,7 @@ export function XtermTerminalApp({
     };
     // The session restarts on mode change only.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, domicile]);
+  }, [mode, piloti]);
 
   return (
     <div

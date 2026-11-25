@@ -1,6 +1,6 @@
 import { hostFiles } from "@/lib/engine/host-files";
 import * as React from "react";
-import { useDomicile } from "@domicile-desktop/react/domicile-provider";
+import { usePiloti } from "@/lib/engine/piloti";
 import { usePortalWallpaper } from "@domicile-desktop/react/portals";
 import { useWatch } from "@domicile-desktop/react/use-watch";
 import {
@@ -487,7 +487,7 @@ export function useSettingsValue(options?: {
   deferLocalWallpaper?: boolean;
 }): SettingsContextValue {
   const deferLocalWallpaper = Boolean(options?.deferLocalWallpaper);
-  const domicile = useDomicile();
+  const piloti = usePiloti();
   const isBrowserRuntime = isBrowserDevRuntime();  // FIXME : Capabilities
   const portalWallpaper = usePortalWallpaper();
   const [wallpaperFallbackReady, setWallpaperFallbackReady] =
@@ -594,7 +594,7 @@ export function useSettingsValue(options?: {
       const relDir = toDomicilePath(vfsPath.slice(0, idx));
       if (!relDir || relDir === "." || ensuredDirs.has(relDir)) return;
       ensuredDirs.add(relDir);
-      await domicile.processes.run(["mkdir", "-p", "--", relDir]).catch(() => {
+      await piloti.processes.run(["mkdir", "-p", "--", relDir]).catch(() => {
         ensuredDirs.delete(relDir);
       });
     };
@@ -602,21 +602,21 @@ export function useSettingsValue(options?: {
     const writeHostFile = async (vfsPath: string, content: string) => {
       await ensureParentDir(vfsPath);
       const bytes = new TextEncoder().encode(content);
-      await hostFiles(domicile).write(toDomicilePath(vfsPath), bytes);
+      await hostFiles(piloti).write(toDomicilePath(vfsPath), bytes);
     };
     registerVfsHostSync({
       writeText: (vfsPath, content) => {
         void writeHostFile(vfsPath, content).catch(() => undefined);
       },
       removeFile: (vfsPath) => {
-        void domicile.processes
+        void piloti.processes
           .run(["rm", "-f", "--", toDomicilePath(vfsPath)])
           .catch(() => undefined);
       },
     });
 
     // Move leftovers of the legacy ~/.config/Piloti directory to ~/.config/piloti.
-    void domicile.processes
+    void piloti.processes
       .run([
         "sh",
         "-c",
@@ -628,7 +628,7 @@ export function useSettingsValue(options?: {
     // disk when migrated during initial render before hostSync was registered.
     void (async () => {
       const relSettings = toDomicilePath(VFS_STATE_PATHS.settings);
-      const res = await hostFiles(domicile).readText(relSettings);
+      const res = await hostFiles(piloti).readText(relSettings);
       if (cancelled) return;
       const hostRaw = res.match({
         Ok: (text) => (text.trim().length > 0 ? text : null),
@@ -650,7 +650,7 @@ export function useSettingsValue(options?: {
       cancelled = true;
       registerVfsHostSync(null);
     };
-  }, [domicile, isBrowserRuntime]);  // FIXME : Capabilities
+  }, [piloti, isBrowserRuntime]);  // FIXME : Capabilities
 
   // Seed settings.ini in VFS on first run so users can inspect/edit it in Files or Text Editor,
   // and subscribe to live VFS edits on settings.ini, window-bounds.json, and desktop-icons.json.
@@ -808,7 +808,7 @@ export function useSettingsValue(options?: {
     let cancelled = false;
 
     const syncFromXdg = async (seedIfEmpty: boolean) => {
-      const fromXdg = await loadWebAppsFromDesktopEntries(domicile);
+      const fromXdg = await loadWebAppsFromDesktopEntries(piloti);
       if (cancelled) return;
       if (
         seedIfEmpty &&
@@ -817,7 +817,7 @@ export function useSettingsValue(options?: {
       ) {
         const toSeed = settingsRef.current.installedWebApps;
         for (const app of toSeed) {
-          await installWebAppDesktopEntry(domicile, app);
+          await installWebAppDesktopEntry(piloti, app);
         }
         return;
       }
@@ -860,7 +860,7 @@ export function useSettingsValue(options?: {
       window.removeEventListener(XDG_WEBAPPS_CHANGED_EVENT, onXdgChanged);
       unsubVfs?.();
     };
-  }, [domicile, isBrowserRuntime]);  // FIXME : Capabilities
+  }, [piloti, isBrowserRuntime]);  // FIXME : Capabilities
 
   const updateSettings = React.useCallback(
     (patch: Partial<DesktopSettings>) => {
@@ -892,7 +892,7 @@ export function useSettingsValue(options?: {
               mergedPatch.gtkFontHinting !== undefined ||
               mergedPatch.gtkFontRgbaOrder !== undefined)
           ) {
-            void syncGnomeInterfaceKey(domicile, {
+            void syncGnomeInterfaceKey(piloti, {
               ...(mergedPatch.themeMode !== undefined ? { themeMode: next.themeMode } : {}),
               ...(mergedPatch.accentColor !== undefined ? { accentColor: next.accentColor } : {}),
               ...(mergedPatch.iconTheme !== undefined ? { iconTheme: next.iconTheme } : {}),
@@ -921,7 +921,7 @@ export function useSettingsValue(options?: {
                 : {}),
             });
             if (mergedPatch.iconTheme !== undefined) {
-              void syncGtkIconTheme(domicile, next.iconTheme);
+              void syncGtkIconTheme(piloti, next.iconTheme);
             }
           }
 
@@ -946,7 +946,7 @@ export function useSettingsValue(options?: {
                 const pending = sliderTimersRef.current.gnomeBgPending;
                 sliderTimersRef.current.gnomeBgPending = undefined;
                 if (pending && Object.keys(pending).length > 0) {
-                  void syncGnomeBackgroundSettings(domicile, pending);
+                  void syncGnomeBackgroundSettings(piloti, pending);
                 }
               }, 120);
             }
@@ -957,7 +957,7 @@ export function useSettingsValue(options?: {
             (patch.doNotDisturb !== undefined ||
               patch.notificationShowOnLockScreen !== undefined)
           ) {
-            void syncGnomeNotificationSettings(domicile, {
+            void syncGnomeNotificationSettings(piloti, {
               ...(patch.doNotDisturb !== undefined
                 ? { doNotDisturb: next.doNotDisturb }
                 : {}),
@@ -968,7 +968,7 @@ export function useSettingsValue(options?: {
           }
 
           if (patch.nightLight !== undefined) {
-            domicile.displays
+            piloti.displays
               .setColorTemperature(next.nightLight ? 4200 : 6500)
               .catch(() => { });
           }
@@ -976,34 +976,34 @@ export function useSettingsValue(options?: {
           if (patch.volume !== undefined || patch.muted !== undefined) {
             clearTimeout(sliderTimersRef.current.audio);
             sliderTimersRef.current.audio = setTimeout(() => {
-              void setSystemAudio(domicile, next.volume, next.muted);
+              void setSystemAudio(piloti, next.volume, next.muted);
             }, 60);
           }
 
           if (patch.brightness !== undefined) {
             clearTimeout(sliderTimersRef.current.brightness);
             sliderTimersRef.current.brightness = setTimeout(() => {
-              void setSystemBrightness(domicile, next.brightness);
+              void setSystemBrightness(piloti, next.brightness);
             }, 90);
           }
 
           if (patch.wifiEnabled !== undefined) {
-            void setSystemWifiEnabled(domicile, next.wifiEnabled);
+            void setSystemWifiEnabled(piloti, next.wifiEnabled);
           }
 
           if (patch.bluetoothEnabled !== undefined) {
-            void setSystemBluetoothPowered(domicile, next.bluetoothEnabled);
+            void setSystemBluetoothPowered(piloti, next.bluetoothEnabled);
           }
 
           if (patch.powerMode !== undefined) {
-            void setSystemPowerProfile(domicile, next.powerMode);
+            void setSystemPowerProfile(piloti, next.powerMode);
           }
         }
 
         return next;
       });
     },
-    [domicile, isBrowserRuntime]  // FIXME : Capabilities
+    [piloti, isBrowserRuntime]  // FIXME : Capabilities
   );
 
   // Sync portal-requested background wallpaper path into GNOME background spec
@@ -1053,9 +1053,9 @@ export function useSettingsValue(options?: {
   }, []);
 
   const domicileReducedMotion = useWatch(
-    domicile.appearance,
+    piloti.appearance,
     "change",
-    () => domicile.appearance.reducedMotion
+    () => piloti.appearance.reducedMotion
   );
   const reducedMotion = Boolean(
     settings.reduceMotion || domicileReducedMotion || osReducedMotion
@@ -1244,7 +1244,7 @@ export function useSettingsValue(options?: {
       }
     }
     try {
-      domicile.theme.set(resolvedTheme);
+      piloti.theme.set(resolvedTheme);
     } catch {
       // ignore if compositor not ready
     }
@@ -1253,19 +1253,19 @@ export function useSettingsValue(options?: {
     settings.accentColor,
     settings.customAccentHex,
     settings.highContrast,
-    domicile.theme,
+    piloti.theme,
   ]);
 
   React.useEffect(() => {
     if (isBrowserRuntime) return;  // FIXME : Capabilities
     const applyTemp = () => {
-      domicile.displays
+      piloti.displays
         .setColorTemperature(settings.nightLight ? 4200 : 6500)
         .catch(() => { });
     };
     applyTemp();
-    return domicile.on("compositorreplaced", applyTemp);
-  }, [domicile, isBrowserRuntime, settings.nightLight]);  // FIXME : Capabilities
+    return piloti.on("compositorreplaced", applyTemp);
+  }, [piloti, isBrowserRuntime, settings.nightLight]);  // FIXME : Capabilities
 
   const activeWallpaper = React.useMemo(() => {
     if (settings.wallpaperId?.startsWith("#")) {
@@ -1316,7 +1316,7 @@ export function useSettingsValue(options?: {
       const lower = targetPath.toLowerCase();
 
       if (lower.endsWith(".html") || lower.endsWith(".htm")) {
-        const res = await hostFiles(domicile).readText(targetPath);
+        const res = await hostFiles(piloti).readText(targetPath);
         const htmlText = res.match({ Ok: (t) => t, Err: () => "" });
         if (cancelled) return;
         if (activeBlobUrlRef.current) {
@@ -1329,7 +1329,7 @@ export function useSettingsValue(options?: {
       }
 
       if (lower.endsWith(".css")) {
-        const res = await hostFiles(domicile).readText(targetPath);
+        const res = await hostFiles(piloti).readText(targetPath);
         const cssText = res.match({ Ok: (t) => t, Err: () => "" });
         if (cancelled) return;
         if (activeBlobUrlRef.current) {
@@ -1343,17 +1343,17 @@ export function useSettingsValue(options?: {
 
       let blob: Blob | null = null;
       if (!isBrowserRuntime) {  // FIXME : Capabilities
-        blob = await readGnomeBackgroundBlob(domicile, activePictureUri);
+        blob = await readGnomeBackgroundBlob(piloti, activePictureUri);
       } else {
         if (lower.endsWith(".xml")) {
-          const xmlRes = await hostFiles(domicile).readText(targetPath);
+          const xmlRes = await hostFiles(piloti).readText(targetPath);
           const xml = xmlRes.match({ Ok: (t) => t, Err: () => "" });
           const lastSlash = targetPath.lastIndexOf("/");
           const baseDir = lastSlash > 0 ? targetPath.slice(0, lastSlash) : "/";
           const extracted = parseGnomeBackgroundXml(xml, baseDir);
           if (extracted) targetPath = extracted;
         }
-        const bytesRes = await hostFiles(domicile).read(targetPath);
+        const bytesRes = await hostFiles(piloti).read(targetPath);
         const bytes = bytesRes.match({
           Ok: (b) => (b.length > 0 ? b : null),
           Err: () => null,
@@ -1397,7 +1397,7 @@ export function useSettingsValue(options?: {
   }, [
     activePictureUri,
     allowLocalWallpaper,
-    domicile,
+    piloti,
     isBrowserRuntime,  // FIXME : Capabilities
     localPicturePath,
   ]);

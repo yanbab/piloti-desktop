@@ -1,4 +1,4 @@
-import type { Domicile } from "@domicile-desktop/sdk/desktop/desktop";
+import type { Piloti } from "@/lib/engine/piloti";
 import { Signal } from "@domicile-desktop/sdk/system";
 import { hostFiles } from "@/lib/engine/host-files";
 import { commandExists, launchDesktopCommand, runText } from "./exec";
@@ -103,13 +103,13 @@ export function parseFlatpakSearchOutput(
 }
 
 export async function probeFlatpakCapabilities(
-  domicile: Domicile
+  piloti: Piloti
 ): Promise<FlatpakCapabilities> {
-  const available = await commandExists(domicile, "flatpak");
+  const available = await commandExists(piloti, "flatpak");
   if (!available) return { available: false, hasFlathub: false, hasUserFlathub: false };
   const [allRemotes, userRemotes] = await Promise.all([
-    runText(domicile, ["flatpak", "remotes", "--columns=name"]),
-    runText(domicile, ["flatpak", "remotes", "--user", "--columns=name"]),
+    runText(piloti, ["flatpak", "remotes", "--columns=name"]),
+    runText(piloti, ["flatpak", "remotes", "--user", "--columns=name"]),
   ]);
   const containsFlathub = (raw: string | null) =>
     Boolean(
@@ -124,10 +124,10 @@ export async function probeFlatpakCapabilities(
 }
 
 export async function ensureFlathubRemote(
-  domicile: Domicile
+  piloti: Piloti
 ): Promise<boolean> {
   try {
-    const res = await domicile.processes.run([
+    const res = await piloti.processes.run([
       "flatpak",
       "remote-add",
       "--if-not-exists",
@@ -145,9 +145,9 @@ export async function ensureFlathubRemote(
 }
 
 export async function listInstalledFlatpaks(
-  domicile: Domicile
+  piloti: Piloti
 ): Promise<FlatpakAppEntry[]> {
-  const out = await runText(domicile, [
+  const out = await runText(piloti, [
     "flatpak",
     "list",
     "--app",
@@ -169,10 +169,10 @@ const POPULAR_FILE = "/usr/share/piloti/flathub-popular.json";
 let popularHits: readonly FlathubPopularHit[] = [];
 
 /** Reads the shipped list of popular apps (170 KB: only when the App Store opens). */
-export async function loadPopularFlathubHits(domicile: Pick<Domicile, "files">): Promise<void> {
+export async function loadPopularFlathubHits(piloti: Pick<Piloti, "files">): Promise<void> {
   if (popularHits.length > 0) return;
   try {
-    const text = (await hostFiles(domicile).readText(POPULAR_FILE)).match({
+    const text = (await hostFiles(piloti).readText(POPULAR_FILE)).match({
       Ok: (t) => t,
       Err: () => "",
     });
@@ -227,7 +227,7 @@ export async function fetchFlathubPopular(
 }
 
 export async function searchFlatpaks(
-  domicile: Domicile,
+  piloti: Piloti,
   query: string,
   installedIds?: ReadonlySet<string>,
   signal?: AbortSignal
@@ -282,7 +282,7 @@ export async function searchFlatpaks(
     return Array.from(byId.values());
   }
 
-  const out = await runText(domicile, [
+  const out = await runText(piloti, [
     "flatpak",
     "search",
     "--columns=application,name,description,version,remotes",
@@ -302,7 +302,7 @@ export async function searchFlatpaks(
 }
 
 async function runStreamingFlatpakCommand(
-  domicile: Domicile,
+  piloti: Piloti,
   argv: string[],
   onUpdate?: (update: FlatpakStreamUpdate) => void,
   signal?: AbortSignal
@@ -311,7 +311,7 @@ async function runStreamingFlatpakCommand(
     return { ok: false, canceled: true, error: "Canceled" };
   }
   try {
-    const launchRes = await domicile.processes.spawn(argv);
+    const launchRes = await piloti.processes.spawn(argv);
     const proc = launchRes.match({
       Ok: (p) => p,
       Err: () => null,
@@ -416,7 +416,7 @@ async function runStreamingFlatpakCommand(
   }
 
   try {
-    const res = await domicile.processes.run(argv);
+    const res = await piloti.processes.run(argv);
     return res.match({
       Ok: (ran) => {
         const tail = cleanFlatpakOutputLine(
@@ -437,7 +437,7 @@ async function runStreamingFlatpakCommand(
 }
 
 export async function installFlatpakApp(
-  domicile: Domicile,
+  piloti: Piloti,
   appId: string,
   remote = "flathub",
   onUpdate?: (update: FlatpakStreamUpdate) => void,
@@ -452,11 +452,11 @@ export async function installFlatpakApp(
     remote,
     appId,
   ];
-  return runStreamingFlatpakCommand(domicile, args, onUpdate, signal);
+  return runStreamingFlatpakCommand(piloti, args, onUpdate, signal);
 }
 
 export async function uninstallFlatpakApp(
-  domicile: Domicile,
+  piloti: Piloti,
   appId: string,
   options?: {
     installation?: string;
@@ -475,7 +475,7 @@ export async function uninstallFlatpakApp(
     appId,
   ];
   return runStreamingFlatpakCommand(
-    domicile,
+    piloti,
     args,
     options?.onUpdate,
     options?.signal
@@ -485,10 +485,10 @@ export async function uninstallFlatpakApp(
 /**
  * Launches an installed Flatpak application under Domicile's Wayland/Xwayland session.
  */
-export function launchFlatpakApp(domicile: Domicile, appId: string): void {
+export function launchFlatpakApp(piloti: Piloti, appId: string): void {
   const cleanId = appId.trim();
   if (!cleanId) return;
-  launchDesktopCommand(domicile, ["flatpak", "run", cleanId]);
+  launchDesktopCommand(piloti, ["flatpak", "run", cleanId]);
 }
 
 export interface FlatpakPermissionsState {
@@ -544,14 +544,14 @@ function parseFlatpakPermissionLines(raw: string): Partial<FlatpakPermissionsSta
 }
 
 export async function getFlatpakPermissions(
-  domicile: Domicile,
+  piloti: Piloti,
   appId: string
 ): Promise<FlatpakPermissionsState> {
   const merged: FlatpakPermissionsState = { ...DEFAULT_FLATPAK_PERMISSIONS };
   try {
     const [infoRes, overrideRes] = await Promise.all([
-      domicile.processes.run(["flatpak", "info", "--show-permissions", appId]),
-      domicile.processes.run(["flatpak", "override", "--user", "--show", appId]),
+      piloti.processes.run(["flatpak", "info", "--show-permissions", appId]),
+      piloti.processes.run(["flatpak", "override", "--user", "--show", appId]),
     ]);
     infoRes.match({
       Ok: (ran) => {
@@ -576,7 +576,7 @@ export async function getFlatpakPermissions(
 }
 
 export async function setFlatpakPermissionOverride(
-  domicile: Domicile,
+  piloti: Piloti,
   appId: string,
   permission: keyof FlatpakPermissionsState,
   enabled: boolean
@@ -591,7 +591,7 @@ export async function setFlatpakPermissionOverride(
   };
   const flag = flagMap[permission][enabled ? 0 : 1];
   try {
-    const res = await domicile.processes.run([
+    const res = await piloti.processes.run([
       "flatpak",
       "override",
       "--user",
@@ -625,10 +625,10 @@ export interface AptUpdatePackage {
 }
 
 export async function listFlatpakUpdates(
-  domicile: Domicile
+  piloti: Piloti
 ): Promise<FlatpakUpdateEntry[]> {
   try {
-    const res = await domicile.processes.run([
+    const res = await piloti.processes.run([
       "flatpak",
       "remote-ls",
       "--updates",
@@ -661,7 +661,7 @@ export async function listFlatpakUpdates(
 }
 
 export async function updateFlatpakApp(
-  domicile: Domicile,
+  piloti: Piloti,
   appId: string,
   options?: {
     onUpdate?: (update: FlatpakStreamUpdate) => void;
@@ -669,7 +669,7 @@ export async function updateFlatpakApp(
   }
 ): Promise<{ ok: boolean; canceled?: boolean; error?: string }> {
   return runStreamingFlatpakCommand(
-    domicile,
+    piloti,
     ["flatpak", "update", "-y", "--noninteractive", appId],
     options?.onUpdate,
     options?.signal
@@ -677,14 +677,14 @@ export async function updateFlatpakApp(
 }
 
 export async function updateAllFlatpaks(
-  domicile: Domicile,
+  piloti: Piloti,
   options?: {
     onUpdate?: (update: FlatpakStreamUpdate) => void;
     signal?: AbortSignal;
   }
 ): Promise<{ ok: boolean; canceled?: boolean; error?: string }> {
   return runStreamingFlatpakCommand(
-    domicile,
+    piloti,
     ["flatpak", "update", "-y", "--noninteractive"],
     options?.onUpdate,
     options?.signal
@@ -713,10 +713,10 @@ export function parseAptUpgradableOutput(stdout: string): AptUpdatePackage[] {
 }
 
 export async function listAptUpdates(
-  domicile: Domicile
+  piloti: Piloti
 ): Promise<AptUpdatePackage[]> {
   try {
-    const res = await domicile.processes.run(["apt", "list", "--upgradable"]);
+    const res = await piloti.processes.run(["apt", "list", "--upgradable"]);
     return res.match({
       Ok: (ran) =>
         ran.code === 0 && ran.stdout ? parseAptUpgradableOutput(ran.stdout) : [],
@@ -728,10 +728,10 @@ export async function listAptUpdates(
 }
 
 export async function runAptUpdateAndFlatpakRefresh(
-  domicile: Domicile
+  piloti: Piloti
 ): Promise<{ ok: boolean; error?: string }> {
   try {
-    const res = await domicile.processes.run([
+    const res = await piloti.processes.run([
       "sh",
       "-c",
       "pkexec apt update && flatpak update --appstream -y",
@@ -749,10 +749,10 @@ export async function runAptUpdateAndFlatpakRefresh(
 }
 
 export async function runAptUpgrade(
-  domicile: Domicile
+  piloti: Piloti
 ): Promise<{ ok: boolean; error?: string }> {
   try {
-    const res = await domicile.processes.run([
+    const res = await piloti.processes.run([
       "pkexec",
       "apt",
       "upgrade",
@@ -772,11 +772,11 @@ export async function runAptUpgrade(
 
 /** Installs a local `.deb` file through apt (resolves its dependencies). Needs polkit (`pkexec`). */
 export async function installDebPackage(
-  domicile: Domicile,
+  piloti: Piloti,
   debPath: string
 ): Promise<{ ok: boolean; error?: string }> {
   try {
-    const res = await domicile.processes.run(["pkexec", "apt", "install", "-y", debPath]);
+    const res = await piloti.processes.run(["pkexec", "apt", "install", "-y", debPath]);
     return res.match({
       Ok: (ran) =>
         ran.code === 0
@@ -791,11 +791,11 @@ export async function installDebPackage(
 
 /** Installs a `.flatpakref` / `.flatpak` file for the current user. */
 export async function installFlatpakFile(
-  domicile: Domicile,
+  piloti: Piloti,
   filePath: string
 ): Promise<{ ok: boolean; error?: string }> {
   try {
-    const res = await domicile.processes.run([
+    const res = await piloti.processes.run([
       "flatpak",
       "install",
       "--user",

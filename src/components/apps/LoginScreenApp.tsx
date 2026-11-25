@@ -1,7 +1,7 @@
 import { VFS_HOME } from "@/lib/engine/vfs-home";
 import * as React from "react";
 import { useCapabilities } from "@/hooks/use-capabilities";
-import { useDomicile } from "@domicile-desktop/react/domicile-provider";
+import { usePiloti } from "@/lib/engine/piloti";
 import {
   ArrowLeftIcon,
   ArrowRightIcon,
@@ -163,7 +163,7 @@ export const LoginScreenApp: React.FC<LoginScreenAppProps> = ({
   isCsd = true,
   mode = "preview",
 }) => {
-  const domicile = useDomicile();
+  const piloti = usePiloti();
   const { settings } = useSettings();
   const { systemServices } = useCapabilities();
   const { batteryInfo, pushNotification } = useSystemBackends();
@@ -208,9 +208,9 @@ export const LoginScreenApp: React.FC<LoginScreenAppProps> = ({
     if (!systemServices) return;
     let active = true;
     void Promise.all([
-      detectGreeterRuntime(domicile),
-      discoverGreeterUsers(domicile),
-      discoverGreeterSessions(domicile),
+      detectGreeterRuntime(piloti),
+      discoverGreeterUsers(piloti),
+      discoverGreeterSessions(piloti),
     ])
       .then(([runtime, realUsers, realSessions]) => {
         if (!active) return;
@@ -240,7 +240,7 @@ export const LoginScreenApp: React.FC<LoginScreenAppProps> = ({
     return () => {
       active = false;
     };
-  }, [domicile, systemServices]);
+  }, [piloti, systemServices]);
 
   React.useEffect(() => {
     const timer = window.setInterval(() => setNow(new Date()), 1000);
@@ -335,7 +335,7 @@ export const LoginScreenApp: React.FC<LoginScreenAppProps> = ({
 
   const handlePowerAction = async (action: "suspend" | "reboot" | "poweroff") => {
     if (systemServices && isLiveDm) {
-      const ok = await runGreeterPowerAction(domicile, action);
+      const ok = await runGreeterPowerAction(piloti, action);
       if (!ok) {
         setAuthError(_("Unable to execute system power action."));
       }
@@ -370,7 +370,7 @@ export const LoginScreenApp: React.FC<LoginScreenAppProps> = ({
     if (systemServices && greetdAvailable) {
       setAuthenticating(true);
       setAuthError(null);
-      const res = await authenticateAndStartGreetdSession(domicile, {
+      const res = await authenticateAndStartGreetdSession(piloti, {
         username: selectedUser.username,
         password,
         session: activeSession,
@@ -385,7 +385,7 @@ export const LoginScreenApp: React.FC<LoginScreenAppProps> = ({
       setView("authenticated");
       // Per greetd-ipc(7), the user session starts once the greeter exits.
       window.setTimeout(() => {
-        void finishGreetdGreeter(domicile);
+        void finishGreetdGreeter(piloti);
       }, 120);
       return;
     }

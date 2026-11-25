@@ -1,4 +1,4 @@
-import type { Domicile } from "@domicile-desktop/sdk/desktop/desktop";
+import type { Piloti } from "@/lib/engine/piloti";
 import type { WifiNetwork } from "@/data/catalog";
 import { brightnessSetter } from "@domicile-desktop/system-backlight/set-brightness";
 import { watchBrightness } from "@domicile-desktop/system-backlight/watch-brightness";
@@ -22,11 +22,11 @@ import type { AudioSinkInfo, BatteryInfo, BluetoothDeviceInfo } from "./types";
 
 const sound = new WeakMap<object, { server: SoundServer; defaultId?: string }>();
 
-function soundFor(domicile: Domicile) {
-  let entry = sound.get(domicile);
+function soundFor(piloti: Piloti) {
+  let entry = sound.get(piloti);
   if (!entry) {
-    entry = { server: soundServer(domicile) };
-    sound.set(domicile, entry);
+    entry = { server: soundServer(piloti) };
+    sound.set(piloti, entry);
   }
   return entry;
 }
@@ -43,10 +43,10 @@ export interface SystemAudioState {
  * PipeWire, through Domicile's `system-audio`); returns a stop function.
  */
 export function watchSystemAudio(
-  domicile: Domicile,
+  piloti: Piloti,
   onAudio: (audio: SystemAudioState) => void,
 ): () => void {
-  const entry = soundFor(domicile);
+  const entry = soundFor(piloti);
   return entry.server.watch((audio) => {
     const outputs = audio.outputs.filter((d) => !d.monitor);
     const def = outputs.find((d) => d.default) ?? outputs[0];
@@ -66,11 +66,11 @@ export function watchSystemAudio(
 
 /** Sets the default output's volume (0 to 100) and mute. */
 export async function setSystemAudio(
-  domicile: Domicile,
+  piloti: Piloti,
   volume: number,
   muted: boolean,
 ): Promise<void> {
-  const { server, defaultId } = soundFor(domicile);
+  const { server, defaultId } = soundFor(piloti);
   if (!defaultId) return;
   await Promise.allSettled([
     server.setVolume(defaultId, Math.max(0, Math.min(100, volume)) / 100),
@@ -79,8 +79,8 @@ export async function setSystemAudio(
 }
 
 /** Makes an output (an `AudioSinkInfo.name`) the default for new streams. */
-export async function setDefaultAudioSink(domicile: Domicile, sinkId: string): Promise<void> {
-  await soundFor(domicile).server.setDefault(sinkId).catch(() => undefined);
+export async function setDefaultAudioSink(piloti: Piloti, sinkId: string): Promise<void> {
+  await soundFor(piloti).server.setDefault(sinkId).catch(() => undefined);
 }
 
 type WifiSnapshot = {
@@ -100,18 +100,18 @@ const bandOf = (frequencyMhz: number | undefined): WifiNetwork["band"] =>
  * or iwd, through Domicile's `system-network`); `null` when there is none.
  */
 export function watchSystemWifi(
-  domicile: Domicile,
+  piloti: Piloti,
   onWifi: (wifi: WifiSnapshot | null) => void,
 ): () => void {
-  return watchWifi(domicile, (result) =>
+  return watchWifi(piloti, (result) =>
     result.match({
       Err: () => onWifi(null),
       Ok: (found) =>
         found.match({
           None: () => onWifi(null),
           Some: (wifi) => {
-            latestWifiDevice.set(domicile, wifi);
-            latestWifiNetworks.set(domicile, wifi.networks);
+            latestWifiDevice.set(piloti, wifi);
+            latestWifiNetworks.set(piloti, wifi.networks);
             onWifi({
               enabled: wifi.enabled,
               connectedSsid: wifi.connection?.ssid ?? null,
@@ -131,15 +131,15 @@ export function watchSystemWifi(
   );
 }
 
-export async function setSystemWifiEnabled(domicile: Domicile, enabled: boolean): Promise<void> {
-  const device = latestWifiDevice.get(domicile);
-  if (device) await setWifiEnabled(domicile, device, enabled).catch(() => undefined);
+export async function setSystemWifiEnabled(piloti: Piloti, enabled: boolean): Promise<void> {
+  const device = latestWifiDevice.get(piloti);
+  if (device) await setWifiEnabled(piloti, device, enabled).catch(() => undefined);
 }
 
 /** Asks for a scan; the networks it finds arrive through `watchSystemWifi`. */
-export async function scanSystemWifi(domicile: Domicile): Promise<void> {
-  const device = latestWifiDevice.get(domicile);
-  if (device) await scanWifi(domicile, device).catch(() => undefined);
+export async function scanSystemWifi(piloti: Piloti): Promise<void> {
+  const device = latestWifiDevice.get(piloti);
+  if (device) await scanWifi(piloti, device).catch(() => undefined);
 }
 
 /**
@@ -147,16 +147,16 @@ export async function scanSystemWifi(domicile: Domicile): Promise<void> {
  * answers "needs-passphrase" so the UI can ask for it.
  */
 export async function connectSystemWifi(
-  domicile: Domicile,
+  piloti: Piloti,
   ssid: string,
   passphrase?: string,
 ): Promise<"connected" | "needs-passphrase" | "failed"> {
-  const device = latestWifiDevice.get(domicile);
-  const network = latestWifiNetworks.get(domicile)?.find((n) => n.ssid === ssid);
+  const device = latestWifiDevice.get(piloti);
+  const network = latestWifiNetworks.get(piloti)?.find((n) => n.ssid === ssid);
   if (!device || !network) return "failed";
   let ok = false;
   try {
-    ok = (await connectWifi(domicile, device, network, passphrase)).isOk();
+    ok = (await connectWifi(piloti, device, network, passphrase)).isOk();
   } catch {
     ok = false;
   }
@@ -170,19 +170,19 @@ const toBatteryInfo = (battery: Battery | undefined): BatteryInfo =>
     : { present: false, percentage: 100, charging: true };
 
 /** The battery from UPower (Domicile's `system-battery`); `null` if UPower isn't running. */
-export async function readSystemBattery(domicile: Domicile): Promise<BatteryInfo | null> {
-  const res = await readBattery(domicile).catch(() => null);
+export async function readSystemBattery(piloti: Piloti): Promise<BatteryInfo | null> {
+  const res = await readBattery(piloti).catch(() => null);
   return res?.match({ Ok: (battery) => toBatteryInfo(battery.unwrapOr(undefined as never)), Err: () => null }) ?? null;
 }
 
 /** Calls `onChange` now and on each UPower change; returns a stop function. */
 export function watchSystemBattery(
-  domicile: Domicile,
+  piloti: Piloti,
   onChange: (info: BatteryInfo) => void,
 ): () => void {
   let stopped = false;
   let stopWatch: (() => void) | null = null;
-  void watchBattery(domicile)
+  void watchBattery(piloti)
     .then((res) =>
       res.match({
         Err: () => undefined,
@@ -212,23 +212,23 @@ export function watchSystemBattery(
 const brightnessSetters = new WeakMap<object, ReturnType<typeof brightnessSetter>>();
 
 /** Sets the backlight through logind (Domicile's `system-backlight`); `percentage` is 0 to 100. */
-export async function setSystemBrightness(domicile: Domicile, percentage: number): Promise<void> {
-  let set = brightnessSetters.get(domicile);
+export async function setSystemBrightness(piloti: Piloti, percentage: number): Promise<void> {
+  let set = brightnessSetters.get(piloti);
   if (!set) {
-    set = brightnessSetter(domicile);
-    brightnessSetters.set(domicile, set);
+    set = brightnessSetter(piloti);
+    brightnessSetters.set(piloti, set);
   }
   await set(Math.max(0.1, Math.min(1, percentage / 100))).catch(() => undefined);
 }
 
 /** Calls `onLevel` (0 to 100) now and when the backlight changes, whoever changed it; returns a stop function. */
 export function watchSystemBrightness(
-  domicile: Domicile,
+  piloti: Piloti,
   onLevel: (percentage: number) => void,
 ): () => void {
   let stopped = false;
   let stopWatch: (() => void) | null = null;
-  void watchBrightness(domicile, (level) => onLevel(Math.round(level * 100)))
+  void watchBrightness(piloti, (level) => onLevel(Math.round(level * 100)))
     .then((res) =>
       res.match({
         Err: () => undefined,
@@ -253,16 +253,16 @@ const bluetoothAdapters = new WeakMap<object, string>();
  * `null` when BlueZ or an adapter is missing. Returns a stop function.
  */
 export function watchSystemBluetooth(
-  domicile: Domicile,
+  piloti: Piloti,
   onBluetooth: (state: { powered: boolean; devices: BluetoothDeviceInfo[] } | null) => void,
 ): () => void {
-  return watchBluetooth(domicile, (result) =>
+  return watchBluetooth(piloti, (result) =>
     result.match({
       Err: () => onBluetooth(null),
       Ok: ({ adapters, devices }) => {
         const adapter = adapters[0];
         if (!adapter) return onBluetooth(null);
-        bluetoothAdapters.set(domicile, adapter.path);
+        bluetoothAdapters.set(piloti, adapter.path);
         onBluetooth({
           powered: adapter.powered,
           devices: devices
@@ -279,17 +279,17 @@ export function watchSystemBluetooth(
   );
 }
 
-export async function setSystemBluetoothPowered(domicile: Domicile, powered: boolean): Promise<void> {
-  const adapter = bluetoothAdapters.get(domicile);
-  if (adapter) await setPowered(domicile, adapter, powered).catch(() => undefined);
+export async function setSystemBluetoothPowered(piloti: Piloti, powered: boolean): Promise<void> {
+  const adapter = bluetoothAdapters.get(piloti);
+  if (adapter) await setPowered(piloti, adapter, powered).catch(() => undefined);
 }
 
 export async function setSystemBluetoothConnected(
-  domicile: Domicile,
+  piloti: Piloti,
   devicePath: string,
   connected: boolean,
 ): Promise<void> {
-  await (connected ? connectBluetooth(domicile, devicePath) : disconnectBluetooth(domicile, devicePath)).catch(
+  await (connected ? connectBluetooth(piloti, devicePath) : disconnectBluetooth(piloti, devicePath)).catch(
     () => undefined,
   );
 }

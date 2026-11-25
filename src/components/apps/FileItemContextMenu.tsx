@@ -3,7 +3,7 @@ import * as React from "react";
 import { useCapabilities } from "@/hooks/use-capabilities";
 import { usePopupSurface } from "@/lib/shell/popup-layer";
 import { createPortal } from "react-dom";
-import { useDomicile } from "@domicile-desktop/react/domicile-provider";
+import { usePiloti } from "@/lib/engine/piloti";
 import { AppSquircleIcon } from "@/components/shell/AppSymbol";
 import {
   MENU_ITEM_CLASS,
@@ -108,7 +108,7 @@ export function FileItemContextMenu({
   onTrash: (item: IconGridItem) => void;
   onTrashItems?: (items: IconGridItem[]) => void;
 }) {
-  const domicile = useDomicile();
+  const piloti = usePiloti();
   const { realFilesystem } = useCapabilities();
   const { getAppIconUrl, installedXdgApps } = useApps();
   const [mimeConfig, setMimeConfig] = React.useState<MimeAppsConfig | null>(null);
@@ -117,13 +117,13 @@ export function FileItemContextMenu({
   React.useEffect(() => {
     if (!menu) return;
     let cancelled = false;
-    void loadMimeAppsConfig(domicile).then((cfg) => {
+    void loadMimeAppsConfig(piloti).then((cfg) => {
       if (!cancelled) setMimeConfig(cfg);
     });
     return () => {
       cancelled = true;
     };
-  }, [domicile, realFilesystem, menu]);
+  }, [piloti, realFilesystem, menu]);
 
   if (!menu) return null;
 

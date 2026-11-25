@@ -12,7 +12,7 @@ import {
   trashWithUndo,
   undoFileOperation,
 } from "@/lib/engine/fs-undo";
-import { useDomicile } from "@domicile-desktop/react/domicile-provider";
+import { usePiloti } from "@/lib/engine/piloti";
 import { FileType } from "@domicile-desktop/sdk/system";
 import {
   FileItemContextMenu,
@@ -82,7 +82,7 @@ export function DesktopIconsApp({
 }: {
   bottomInset?: number;
 }) {
-  const domicile = useDomicile();
+  const piloti = usePiloti();
   const { settings, updateSettings } = useSettings();
   const { realFilesystem } = useCapabilities();
   const { locked } = useSystemBackends();
@@ -173,7 +173,7 @@ export function DesktopIconsApp({
         return;
       }
 
-      const res = await hostFiles(domicile).readDir(desktopDirPath);
+      const res = await hostFiles(piloti).readDir(desktopDirPath);
       const entries = res.match({
         Ok: (list) => list,
         Err: () => [],
@@ -182,7 +182,7 @@ export function DesktopIconsApp({
       let hiddenNames = new Set<string>();
       if (entries.some((e) => e.name === ".hidden")) {
         try {
-          const dotHiddenRes = await hostFiles(domicile).readText(
+          const dotHiddenRes = await hostFiles(piloti).readText(
             `${desktopDirPath.replace(/\/+$/, "")}/.hidden`
           );
           dotHiddenRes.match({
@@ -210,9 +210,9 @@ export function DesktopIconsApp({
           const isSymlink = entry.fileType === FileType.Symlink;
           let entryFileType: "file" | "directory" =
             entry.fileType === FileType.Directory ? "directory" : "file";
-          if (isSymlink && typeof hostFiles(domicile).stat === "function") {
+          if (isSymlink && typeof hostFiles(piloti).stat === "function") {
             // Follow the link to know whether it points at a folder.
-            const linkStat = await hostFiles(domicile).stat(fullPath).catch(() => undefined);
+            const linkStat = await hostFiles(piloti).stat(fullPath).catch(() => undefined);
             if (linkStat?.match({ Ok: (st) => st.fileType === FileType.Directory, Err: () => false })) {
               entryFileType = "directory";
             }
@@ -220,7 +220,7 @@ export function DesktopIconsApp({
 
           if (entryFileType === "file" && entry.name.endsWith(".desktop")) {
             try {
-              const textRes = await hostFiles(domicile).readText(fullPath);
+              const textRes = await hostFiles(piloti).readText(fullPath);
               const content = textRes.match({
                 Ok: (t) => t,
                 Err: () => "",
@@ -259,9 +259,9 @@ export function DesktopIconsApp({
           }
 
           let isEmpty = false;
-          if (entryFileType === "file" && typeof hostFiles(domicile).stat === "function") {
+          if (entryFileType === "file" && typeof hostFiles(piloti).stat === "function") {
             try {
-              const statRes = await hostFiles(domicile).stat(fullPath);
+              const statRes = await hostFiles(piloti).stat(fullPath);
               statRes.match({
                 Ok: (st) => {
                   isEmpty = st.size === 0;
@@ -318,7 +318,7 @@ export function DesktopIconsApp({
     }
   }, [
     desktopDirPath,
-    domicile,
+    piloti,
     ensureWaylandIcons,
     getAppIconUrl,
     installedXdgApps,
@@ -363,7 +363,7 @@ export function DesktopIconsApp({
       };
     }
     // Our own operations, plus other programs' (inotify via Domicile).
-    const stopWatch = watchFsDir(domicile, desktopDirPath, () => {
+    const stopWatch = watchFsDir(piloti, desktopDirPath, () => {
       if (!locked) void loadDesktopFolder();
     });
     const onFocus = () => {
@@ -376,7 +376,7 @@ export function DesktopIconsApp({
     };
   }, [
     desktopDirPath,
-    domicile,
+    piloti,
     dockIconsReady,
     settings.debugMode,
     realFilesystem,
@@ -400,11 +400,11 @@ export function DesktopIconsApp({
       folderName = `Untitled Folder ${n++}`;
     }
     const fullPath = `${desktopDirPath.replace(/\/+$/, "")}/${folderName}`;
-    await hostFiles(domicile).createDir(fullPath).catch(() => undefined);
+    await hostFiles(piloti).createDir(fullPath).catch(() => undefined);
     await loadDesktopFolder();
     setSelectedIds([folderName]);
     setRenamingId(folderName);
-  }, [desktopDirPath, domicile, realFilesystem, items, loadDesktopFolder]);
+  }, [desktopDirPath, piloti, realFilesystem, items, loadDesktopFolder]);
 
   const createDesktopTextFile = React.useCallback(async () => {
     if (!realFilesystem) {
@@ -421,11 +421,11 @@ export function DesktopIconsApp({
       fileName = `Untitled ${n++}.txt`;
     }
     const fullPath = `${desktopDirPath.replace(/\/+$/, "")}/${fileName}`;
-    await hostFiles(domicile).write(fullPath, "").catch(() => undefined);
+    await hostFiles(piloti).write(fullPath, "").catch(() => undefined);
     await loadDesktopFolder();
     setSelectedIds([fileName]);
     setRenamingId(fileName);
-  }, [desktopDirPath, domicile, realFilesystem, items, loadDesktopFolder]);
+  }, [desktopDirPath, piloti, realFilesystem, items, loadDesktopFolder]);
 
   const createDesktopFromTemplate = React.useCallback(
     async (template: WebVfsEntry) => {
@@ -451,7 +451,7 @@ export function DesktopIconsApp({
       }
       let content = template.content ?? "";
       if (!content && template.path) {
-        const res = await hostFiles(domicile).readText(
+        const res = await hostFiles(piloti).readText(
           template.path.startsWith(`${WEB_VFS_HOME}/`)
             ? template.path.slice(WEB_VFS_HOME.length + 1)
             : template.path
@@ -464,12 +464,12 @@ export function DesktopIconsApp({
         });
       }
       const fullPath = `${desktopDirPath.replace(/\/+$/, "")}/${fileName}`;
-      await hostFiles(domicile).write(fullPath, content).catch(() => undefined);
+      await hostFiles(piloti).write(fullPath, content).catch(() => undefined);
       await loadDesktopFolder();
       setSelectedIds([fileName]);
       setRenamingId(fileName);
     },
-    [desktopDirPath, domicile, realFilesystem, items, loadDesktopFolder]
+    [desktopDirPath, piloti, realFilesystem, items, loadDesktopFolder]
   );
 
   // Listen for "New Folder", "New Text File", "New from Template", and "Arrange Icons" triggered from Desktop menus
@@ -509,7 +509,7 @@ export function DesktopIconsApp({
 
       const nextPath = `${desktopDirPath.replace(/\/+$/, "")}/${nextName}`;
       if (realFilesystem) {
-        await domicile.processes
+        await piloti.processes
           .run(["mv", "-n", "--", item.path, nextPath])
           .catch(() => undefined);
         await loadDesktopFolder();
@@ -529,7 +529,7 @@ export function DesktopIconsApp({
     },
     [
       desktopDirPath,
-      domicile.processes,
+      piloti.processes,
       realFilesystem,
       loadDesktopFolder,
       settings.desktopIconPositions,
@@ -540,11 +540,11 @@ export function DesktopIconsApp({
   const handleMoveToTrash = React.useCallback(
     async (item: IconGridItem) => {
       setContextMenu(null);
-      trashWithUndo({ domicile }, [item.path]);
+      trashWithUndo({ piloti }, [item.path]);
       await loadDesktopFolder();
       setSelectedIds((prev) => prev.filter((id) => id !== item.id));
     },
-    [domicile, realFilesystem, loadDesktopFolder]
+    [piloti, realFilesystem, loadDesktopFolder]
   );
 
   // Re-attach resolved XDG icon URLs once asynchronous icon loading completes
@@ -717,13 +717,13 @@ export function DesktopIconsApp({
   const handlePasteToDesktop = React.useCallback(async () => {
     const clip = getVfsClipboard();
     if (!clip || clip.paths.length === 0) return;
-    const ctx = { domicile };
+    const ctx = { piloti };
     if (clip.mode === "cut") {
       moveWithUndo(ctx, clip.paths, desktopDirPath);
     } else {
       const created: string[] = [];
       for (const srcPath of clip.paths) {
-        const path = await copyFsEntry(domicile, srcPath, desktopDirPath);
+        const path = await copyFsEntry(piloti, srcPath, desktopDirPath);
         if (path) created.push(path);
       }
       recordCreated(ctx, created, "Paste");
@@ -732,7 +732,7 @@ export function DesktopIconsApp({
       setVfsClipboard(null);
     }
     await loadDesktopFolder();
-  }, [desktopDirPath, domicile, realFilesystem, loadDesktopFolder]);
+  }, [desktopDirPath, piloti, realFilesystem, loadDesktopFolder]);
   const handlePasteToDesktopRef = React.useRef(handlePasteToDesktop);
   handlePasteToDesktopRef.current = handlePasteToDesktop;
 
@@ -745,16 +745,16 @@ export function DesktopIconsApp({
           dot > 0 && item.kind !== "directory"
             ? `${item.name.slice(0, dot)} Copy${item.name.slice(dot)}`
             : `${item.name} Copy`;
-        const path = await copyFsEntry(domicile, item.path, desktopDirPath, { name });
+        const path = await copyFsEntry(piloti, item.path, desktopDirPath, { name });
         if (path) createdPaths.push(path);
       }
-      recordCreated({ domicile }, createdPaths, "Duplicate");
+      recordCreated({ piloti }, createdPaths, "Duplicate");
       await loadDesktopFolder();
       if (createdPaths.length > 0) {
         setSelectedIds(createdPaths.map((p) => p.split("/").pop() ?? p));
       }
     },
-    [desktopDirPath, domicile, realFilesystem, loadDesktopFolder]
+    [desktopDirPath, piloti, realFilesystem, loadDesktopFolder]
   );
 
   const handleMoveItemsToTrash = React.useCallback(
@@ -775,10 +775,10 @@ export function DesktopIconsApp({
       if (opts?.copy) {
         const created: string[] = [];
         for (const item of droppedItems) {
-          const path = await copyFsEntry(domicile, item.path, destPath);
+          const path = await copyFsEntry(piloti, item.path, destPath);
           if (path) created.push(path);
         }
-        recordCreated({ domicile }, created, "Copy");
+        recordCreated({ piloti }, created, "Copy");
         await loadDesktopFolder();
         return;
       }
@@ -791,13 +791,13 @@ export function DesktopIconsApp({
         toMove.push(item.path);
         movedIds.add(item.id);
       }
-      moveWithUndo({ domicile }, toMove, destPath);
+      moveWithUndo({ piloti }, toMove, destPath);
       if (movedIds.size > 0) {
         await loadDesktopFolder();
         setSelectedIds((prev) => prev.filter((id) => !movedIds.has(id)));
       }
     },
-    [domicile, handleMoveItemsToTrash, realFilesystem, loadDesktopFolder]
+    [piloti, handleMoveItemsToTrash, realFilesystem, loadDesktopFolder]
   );
 
   if (!settings.desktopIconsEnabled) return null;
@@ -953,7 +953,7 @@ export function DesktopIconsApp({
         onMakeLink={(list) => {
           void Promise.all(
             list.map((target) =>
-              copyFsEntry(domicile, target.path, desktopDirPath, {
+              copyFsEntry(piloti, target.path, desktopDirPath, {
                 symlink: true,
                 name: _("Link to {name}").replace("{name}", target.name),
               }),

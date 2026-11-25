@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useCapabilities } from "@/hooks/use-capabilities";
-import { useDomicile } from "@domicile-desktop/react/domicile-provider";
+import { usePiloti } from "@/lib/engine/piloti";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -35,7 +35,7 @@ export function DockFolderStack({
   dockPosition,
   onClose,
 }: DockFolderStackProps) {
-  const domicile = useDomicile();
+  const piloti = usePiloti();
   const { settings } = useSettings();
   const { realFilesystem } = useCapabilities();
   const { launchApp } = useWindowActions();
@@ -45,7 +45,7 @@ export function DockFolderStack({
   React.useEffect(() => {
     let cancelled = false;
     const load = async () => {
-      const list = await listFsDir(domicile, path);
+      const list = await listFsDir(piloti, path);
       if (cancelled) return;
       const visible = list.filter((e) => !e.name.startsWith("."));
       visible.sort((a, b) => {
@@ -63,7 +63,7 @@ export function DockFolderStack({
       cancelled = true;
       unsub?.();
     };
-  }, [domicile, realFilesystem, path]);
+  }, [piloti, realFilesystem, path]);
 
 
   const openFolder = React.useCallback(

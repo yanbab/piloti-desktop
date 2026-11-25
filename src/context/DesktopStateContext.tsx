@@ -1,5 +1,5 @@
 import * as React from "react";
-import { useDomicile } from "@domicile-desktop/react/domicile-provider";
+import { usePiloti } from "@/lib/engine/piloti";
 import { PluginsProvider } from "@/context/PluginsContext";
 import { AppsContext, useApps, useAppsValue } from "./AppsContext";
 import {
@@ -206,7 +206,7 @@ export function DesktopStateProvider({
   greeterMode?: boolean;
   children: React.ReactNode;
 }) {
-  const domicile = useDomicile();
+  const piloti = usePiloti();
   const [essentialIconsReady, setEssentialIconsReady] = React.useState(false);
   const handleEssentialIconsReady = React.useCallback(() => {
     setEssentialIconsReady(true);

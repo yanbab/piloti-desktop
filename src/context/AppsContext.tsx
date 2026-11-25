@@ -1,6 +1,6 @@
 import { hostFiles } from "@/lib/engine/host-files";
 import * as React from "react";
-import { useDomicile } from "@domicile-desktop/react/domicile-provider";
+import { usePiloti } from "@/lib/engine/piloti";
 import { watchIconTheme } from "@domicile-desktop/sdk/icon-theme";
 import {
   resolveUiAccentHex,
@@ -327,7 +327,7 @@ export function useAppsValue(
   backendsCtx: SystemBackendsContextValue,
   onEssentialIconsReady?: () => void
 ): AppsContextValue {
-  const domicile = useDomicile();
+  const piloti = usePiloti();
   const { isBrowserRuntime, settings } = settingsCtx;  // FIXME : Capabilities
   const { gnomeIconThemeOverride } = backendsCtx;
   const onEssentialIconsReadyRef = React.useRef(onEssentialIconsReady);
@@ -375,7 +375,7 @@ export function useAppsValue(
 
   React.useEffect(() => {
     try {
-      return watchIconTheme(domicile, (res) => {
+      return watchIconTheme(piloti, (res) => {
         res.match({
           Ok: (opt) => {
             opt.match({
@@ -391,7 +391,7 @@ export function useAppsValue(
     } catch {
       return undefined;
     }
-  }, [domicile]);
+  }, [piloti]);
 
   React.useEffect(() => {
     void refreshNonce;
@@ -446,8 +446,8 @@ export function useAppsValue(
         const useWarmCachedIndex = Boolean(cachedIndex);
         const iconIndexPromise = useWarmCachedIndex
           ? Promise.resolve(cachedIndex!)
-          : buildXdgIconThemeIndex(hostFiles(domicile), preferredThemes);
-        const userDirsPromise = discoverXdgUserDirs(hostFiles(domicile));
+          : buildXdgIconThemeIndex(hostFiles(piloti), preferredThemes);
+        const userDirsPromise = discoverXdgUserDirs(hostFiles(piloti));
 
         const [iconIndex, userDirs] = await Promise.all([
           iconIndexPromise,
@@ -462,7 +462,7 @@ export function useAppsValue(
         } else if (refreshNonce === 0) {
           bgIndexTimer = setTimeout(() => {
             if (cancelled) return;
-            void buildXdgIconThemeIndex(hostFiles(domicile), preferredThemes)
+            void buildXdgIconThemeIndex(hostFiles(piloti), preferredThemes)
               .then((fresh) => {
                 if (cancelled) return;
                 iconThemeIndexRef.current = fresh;
@@ -491,7 +491,7 @@ export function useAppsValue(
         await Promise.all([
           ...prioritizedCatalog.map(async (app) => {
             const url = await resolveThemedIconUrl(
-              hostFiles(domicile),
+              hostFiles(piloti),
               iconIndex,
               app.xdgIcons ?? [app.id]
             );
@@ -500,7 +500,7 @@ export function useAppsValue(
           ...customPinnedIds.map(async (pinnedId) => {
             const cleanId = pinnedId.replace(/\.desktop$/i, "");
             const url = await resolveThemedIconUrl(
-              hostFiles(domicile),
+              hostFiles(piloti),
               iconIndex,
               [cleanId, cleanId.toLowerCase()]
             );
@@ -512,7 +512,7 @@ export function useAppsValue(
           ...Object.entries(SHELL_XDG_ICON_GROUPS).map(
             async ([key, candidates]) => {
               const url = await resolveThemedIconUrl(
-                hostFiles(domicile),
+                hostFiles(piloti),
                 iconIndex,
                 candidates
               );
@@ -523,7 +523,7 @@ export function useAppsValue(
             for (const candidate of APP_GRID_ICON_CANDIDATES) {
               const path = lookupXdgIconPath(iconIndex, candidate, 64, 1);
               if (!path) continue;
-              const url = await loadXdgIconDataUrl(hostFiles(domicile), path);
+              const url = await loadXdgIconDataUrl(hostFiles(piloti), path);
               if (url) {
                 essentialIcons.__app_grid__ = url;
                 resolvedAppGridSymbolic =
@@ -535,7 +535,7 @@ export function useAppsValue(
           })(),
           ...userDirs.map(async (dir) => {
             const url = await resolveThemedIconUrl(
-              hostFiles(domicile),
+              hostFiles(piloti),
               iconIndex,
               dir.iconCandidates,
               48
@@ -562,7 +562,7 @@ export function useAppsValue(
         const apps = useWarmCachedApps
           ? cachedApps!
           : await discoverInstalledXdgApps(
-              hostFiles(domicile),
+              hostFiles(piloti),
               { iconThemes: preferredThemes, deferIconDataLoad: true },
               Promise.resolve(iconIndex)
             );
@@ -604,7 +604,7 @@ export function useAppsValue(
                   return;
                 }
                 const url = await loadThemedIconUrl(
-                  hostFiles(domicile),
+                  hostFiles(piloti),
                   iconIndex,
                   entry.iconPath
                 );
@@ -642,7 +642,7 @@ export function useAppsValue(
             if (cancelled) return;
             const activeIdx = iconThemeIndexRef.current ?? iconIndex;
             void discoverInstalledXdgApps(
-              hostFiles(domicile),
+              hostFiles(piloti),
               { iconThemes: preferredThemes, deferIconDataLoad: true },
               Promise.resolve(activeIdx)
             )
@@ -671,7 +671,7 @@ export function useAppsValue(
     };
     // pinnedAppIds only affects icon batch ordering, not discovery
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [domicile, activeIconTheme, refreshNonce]);
+  }, [piloti, activeIconTheme, refreshNonce]);
 
   // Watch XDG application directories so newly installed apps appear without restarting the shell
   React.useEffect(() => {
@@ -696,7 +696,7 @@ export function useAppsValue(
     };
 
     for (const dir of appDirs) {
-      void hostFiles(domicile)
+      void hostFiles(piloti)
         .watch(dir)
         .then((res) => {
           res.match({
@@ -724,7 +724,7 @@ export function useAppsValue(
       if (debounceTimer) clearTimeout(debounceTimer);
       for (const stop of stopFns) stop();
     };
-  }, [domicile, isBrowserRuntime, refreshXdgApps]);  // FIXME : Capabilities
+  }, [piloti, isBrowserRuntime, refreshXdgApps]);  // FIXME : Capabilities
 
   const ensureWaylandIcons = React.useCallback(
     (ids: readonly string[]) => {
@@ -751,7 +751,7 @@ export function useAppsValue(
         pending.map(async ({ baseId, raw }) => {
           try {
             const url = await resolveThemedIconUrl(
-              hostFiles(domicile),
+              hostFiles(piloti),
               iconIndex,
               [baseId, raw]
             );
@@ -772,7 +772,7 @@ export function useAppsValue(
         }
       });
     },
-    [activeIconTheme, appIconsMap, domicile]
+    [activeIconTheme, appIconsMap, piloti]
   );
 
   // Icons use the UI accent (same shade as selections and sidebar items),
@@ -828,22 +828,22 @@ export function useAppsValue(
 
       if (argv.length > 0) {
         const finalArgv = entry.terminal ? ["kitty", "-e", ...argv] : argv;
-        launchDesktopCommand(domicile, finalArgv, {
+        launchDesktopCommand(piloti, finalArgv, {
           cwd: isBrowserRuntime ? undefined : entry.workingDirectory,  // FIXME : Capabilities
         });
       }
     },
-    [domicile, isBrowserRuntime]  // FIXME : Capabilities
+    [piloti, isBrowserRuntime]  // FIXME : Capabilities
   );
 
   const openXdgFolder = React.useCallback(
     (folder: XdgUserDir) => {
       launchDesktopCommand(
-        domicile,
+        piloti,
         buildOpenXdgFolderArgv(folder, isBrowserRuntime)  // FIXME : Capabilities
       );
     },
-    [domicile, isBrowserRuntime]  // FIXME : Capabilities
+    [piloti, isBrowserRuntime]  // FIXME : Capabilities
   );
 
   const fallbackAppIconUrl = tintedAppIconsMap.__fallback_app__;

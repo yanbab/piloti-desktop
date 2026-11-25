@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useCapabilities } from "@/hooks/use-capabilities";
-import { useDomicile } from "@domicile-desktop/react/domicile-provider";
+import { usePiloti } from "@/lib/engine/piloti";
 import {
   BellIcon,
   DockIcon as LucideDockIcon,
@@ -144,7 +144,7 @@ export function SettingsApp({
   isCsd?: boolean;
   windowId?: string;
 }) {
-  const domicile = useDomicile();
+  const piloti = usePiloti();
   const { systemServices } = useCapabilities();
   const { gnomeCapabilities } = useSystemBackends();
   const { openGnomeSettings } = useWindowActions();
@@ -173,7 +173,7 @@ export function SettingsApp({
       return;
     }
     let cancelled = false;
-    readPilotiAppIni(domicile, "settings").then((ini) => {
+    readPilotiAppIni(piloti, "settings").then((ini) => {
       if (cancelled) return;
       const pane = ini.General?.lastPane;
       if (isSettingsPaneId(pane)) {
@@ -201,7 +201,7 @@ export function SettingsApp({
       unsubIni();
       unsubPane();
     };
-  }, [domicile, initialPane]);
+  }, [piloti, initialPane]);
 
   React.useEffect(() => {
     try {
@@ -209,10 +209,10 @@ export function SettingsApp({
     } catch {
       // ignore storage errors
     }
-    void writePilotiAppIni(domicile, "settings", "General", {
+    void writePilotiAppIni(piloti, "settings", "General", {
       lastPane: activePane,
     });
-  }, [activePane, domicile]);
+  }, [activePane, piloti]);
 
   const matchingGnomePanel = PANE_TO_GNOME[activePane];
   const currentPaneMeta = PANES.find((p) => p.id === activePane);

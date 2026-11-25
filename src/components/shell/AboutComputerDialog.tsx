@@ -1,6 +1,6 @@
 import { DesktopBackgroundLayers } from "./DesktopBackgroundLayers";
 import * as React from "react";
-import { useDomicile } from "@domicile-desktop/react/domicile-provider";
+import { usePiloti } from "@/lib/engine/piloti";
 import { Button } from "@/components/ui/button";
 import {
   Window,
@@ -145,7 +145,7 @@ export function MonitorHardwareIllustration({
  * macOS "About This Mac"-inspired About Computer window built with Adwaita grouped rows.
  */
 export function AboutComputerDialog() {
-  const domicile = useDomicile();
+  const piloti = usePiloti();
   const { isBrowserRuntime } = useSettings();  // FIXME : Capabilities
   const aboutOpen = useWindowManagerSelector((wm) => wm.aboutOpen);
   const { setAboutOpen, launchApp } = useWindowActions();
@@ -163,13 +163,13 @@ export function AboutComputerDialog() {
   React.useEffect(() => {
     if (!aboutOpen) return;
     let cancelled = false;
-    void probeComputerInfo(domicile, isBrowserRuntime).then((next) => {  // FIXME : Capabilities
+    void probeComputerInfo(piloti, isBrowserRuntime).then((next) => {  // FIXME : Capabilities
       if (!cancelled) setInfo(next);
     });
     return () => {
       cancelled = true;
     };
-  }, [aboutOpen, domicile, isBrowserRuntime]);  // FIXME : Capabilities
+  }, [aboutOpen, piloti, isBrowserRuntime]);  // FIXME : Capabilities
 
   const platformLabel = React.useMemo(() => {
     if (!isBrowserRuntime) {  // FIXME : Capabilities

@@ -1,4 +1,4 @@
-import type { Domicile } from "@domicile-desktop/sdk/desktop/desktop";
+import type { Piloti } from "@/lib/engine/piloti";
 import type { FileStore, FileStoreEntry } from "@/lib/ports/file-store";
 import { normalizeVfsPath, WEB_VFS_HOME, WEB_VFS_TRASH } from "@/lib/core/vfs-paths";
 import { lookupXdgThumbnailDataUrl } from "@/lib/xdg/xdg-thumbnails";
@@ -51,10 +51,10 @@ export function toDomicilePath(vfsPath: string): string {
 }
 
 /** FileStore over the compositor's file calls (`domicile.files`). */
-export function createNativeFileStore(domicile: Domicile): FileStore {
+export function createNativeFileStore(piloti: Piloti): FileStore {
   const stat = async (path: string): Promise<FileStoreEntry | null> => {
-    if (typeof domicile.files.stat !== "function") return null;
-    const res = await domicile.files.stat(toDomicilePath(path));
+    if (typeof piloti.files.stat !== "function") return null;
+    const res = await piloti.files.stat(toDomicilePath(path));
     return res.match({
       Ok: (st) => ({
         name: path.slice(path.lastIndexOf("/") + 1),
@@ -69,7 +69,7 @@ export function createNativeFileStore(domicile: Domicile): FileStore {
   };
 
   const run = async (argv: string[]): Promise<boolean> => {
-    const res = await domicile.processes.run(argv).catch(() => null);
+    const res = await piloti.processes.run(argv).catch(() => null);
     return res?.match({ Ok: (ran) => ran.code === 0, Err: () => false }) ?? false;
   };
 
@@ -85,7 +85,7 @@ export function createNativeFileStore(domicile: Domicile): FileStore {
     },
     remove: (path) => run(["rm", "-rf", "--", toDomicilePath(path)]),
     async emblems(dir) {
-      const res = await domicile.processes
+      const res = await piloti.processes
         .run(["gio", "list", "-a", "metadata::emblems", "--", toDomicilePath(dir)])
         .catch(() => null);
       const out = res?.match({ Ok: (r) => (r.code === 0 ? r.stdout : null), Err: () => null });
@@ -94,7 +94,7 @@ export function createNativeFileStore(domicile: Domicile): FileStore {
     },
     async setEmblems(path, names, managed) {
       const rel = toDomicilePath(path);
-      const info = await domicile.processes
+      const info = await piloti.processes
         .run(["gio", "info", "-a", "metadata::emblems", "--", rel])
         .catch(() => null);
       const current = parseGioInfoEmblems(
@@ -106,7 +106,7 @@ export function createNativeFileStore(domicile: Domicile): FileStore {
         : run(["gio", "set", "-t", "stringv", "--", rel, "metadata::emblems", ...merged]);
     },
     async metadata(path, keys) {
-      const res = await domicile.processes
+      const res = await piloti.processes
         .run(["gio", "info", "-a", keys.join(","), "--", toDomicilePath(path)])
         .catch(() => null);
       const out = res?.match({ Ok: (r) => (r.code === 0 ? r.stdout : ""), Err: () => "" }) ?? "";
@@ -119,10 +119,10 @@ export function createNativeFileStore(domicile: Domicile): FileStore {
       }
     },
     async emptyTrash() {
-      await emptyXdgTrash(domicile.processes, resolveXdgTrashPaths());
+      await emptyXdgTrash(piloti.processes, resolveXdgTrashPaths());
     },
     async list(path) {
-      const res = await domicile.files.readDir(toDomicilePath(path));
+      const res = await piloti.files.readDir(toDomicilePath(path));
       return res.match({
         Ok: (list) =>
           list.map((item) => ({
@@ -135,20 +135,20 @@ export function createNativeFileStore(domicile: Domicile): FileStore {
     },
     stat: (path) => stat(path).catch(() => null),
     async readText(path) {
-      const res = await domicile.files.readText(toDomicilePath(path));
+      const res = await piloti.files.readText(toDomicilePath(path));
       return res.match({ Ok: (t) => t, Err: () => null });
     },
     async writeText(path, content) {
-      const res = await domicile.files.write(toDomicilePath(path), new TextEncoder().encode(content));
+      const res = await piloti.files.write(toDomicilePath(path), new TextEncoder().encode(content));
       return res.isOk();
     },
     async createDir(path) {
-      const res = await domicile.files.createDir(toDomicilePath(path));
+      const res = await piloti.files.createDir(toDomicilePath(path));
       return res.isOk();
     },
     async thumbnail(realPath, name) {
       if (!THUMBNAIL_EXT_RE.test(name)) return undefined;
-      return (await lookupXdgThumbnailDataUrl(domicile, realPath)) ?? undefined;
+      return (await lookupXdgThumbnailDataUrl(piloti, realPath)) ?? undefined;
     },
   };
 }

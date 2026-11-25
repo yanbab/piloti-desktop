@@ -1,4 +1,4 @@
-import type { Domicile } from "@domicile-desktop/sdk/desktop/desktop";
+import type { Piloti } from "@/lib/engine/piloti";
 import type { AccentColorId } from "@/data/catalog";
 import {
   type GnomeBackgroundSettings,
@@ -116,11 +116,11 @@ export function parseGSettingsKeyVal(
 }
 
 async function readGSettingsSchema<T extends object>(
-  domicile: Domicile,
+  piloti: Piloti,
   schema: string,
   parseEntry: (key: string, rawVal: string) => Partial<T>
 ): Promise<Partial<T>> {
-  const stdout = await runText(domicile, [
+  const stdout = await runText(piloti, [
     "gsettings",
     "list-recursively",
     schema,
@@ -143,7 +143,7 @@ async function readGSettingsSchema<T extends object>(
 }
 
 function monitorGSettingsSchema<T extends object>(
-  domicile: Domicile,
+  piloti: Piloti,
   schema: string,
   parseEntry: (key: string, rawVal: string) => Partial<T>,
   onChange: (patch: Partial<T>) => void
@@ -153,7 +153,7 @@ function monitorGSettingsSchema<T extends object>(
 
   (async () => {
     try {
-      const res = await domicile.processes.spawn([
+      const res = await piloti.processes.spawn([
         "gsettings",
         "monitor",
         schema,
@@ -203,21 +203,21 @@ function monitorGSettingsSchema<T extends object>(
 }
 
 export function readGnomeInterfaceSettings(
-  domicile: Domicile
+  piloti: Piloti
 ): Promise<GnomeInterfaceSnapshot> {
   return readGSettingsSchema<GnomeInterfaceSnapshot>(
-    domicile,
+    piloti,
     "org.gnome.desktop.interface",
     parseGSettingsKeyVal
   );
 }
 
 export function monitorGnomeInterfaceSettings(
-  domicile: Domicile,
+  piloti: Piloti,
   onChange: (patch: GnomeInterfaceSnapshot) => void
 ): () => void {
   return monitorGSettingsSchema<GnomeInterfaceSnapshot>(
-    domicile,
+    piloti,
     "org.gnome.desktop.interface",
     parseGSettingsKeyVal,
     onChange
@@ -225,21 +225,21 @@ export function monitorGnomeInterfaceSettings(
 }
 
 export function readGnomeBackgroundSettings(
-  domicile: Domicile
+  piloti: Piloti
 ): Promise<Partial<GnomeBackgroundSettings>> {
   return readGSettingsSchema<GnomeBackgroundSettings>(
-    domicile,
+    piloti,
     "org.gnome.desktop.background",
     parseGnomeBackgroundKeyVal
   );
 }
 
 export function monitorGnomeBackgroundSettings(
-  domicile: Domicile,
+  piloti: Piloti,
   onChange: (patch: Partial<GnomeBackgroundSettings>) => void
 ): () => void {
   return monitorGSettingsSchema<GnomeBackgroundSettings>(
-    domicile,
+    piloti,
     "org.gnome.desktop.background",
     parseGnomeBackgroundKeyVal,
     onChange
@@ -258,21 +258,21 @@ export function parseGnomeWmKeyVal(
 }
 
 export function readGnomeWmPreferences(
-  domicile: Domicile
+  piloti: Piloti
 ): Promise<GnomeWmPreferencesSnapshot> {
   return readGSettingsSchema<GnomeWmPreferencesSnapshot>(
-    domicile,
+    piloti,
     "org.gnome.desktop.wm.preferences",
     parseGnomeWmKeyVal
   );
 }
 
 export function monitorGnomeWmPreferences(
-  domicile: Domicile,
+  piloti: Piloti,
   onChange: (patch: GnomeWmPreferencesSnapshot) => void
 ): () => void {
   return monitorGSettingsSchema<GnomeWmPreferencesSnapshot>(
-    domicile,
+    piloti,
     "org.gnome.desktop.wm.preferences",
     parseGnomeWmKeyVal,
     onChange
@@ -280,7 +280,7 @@ export function monitorGnomeWmPreferences(
 }
 
 export async function syncGnomeBackgroundSettings(
-  domicile: Domicile,
+  piloti: Piloti,
   patch: Partial<GnomeBackgroundSettings>
 ): Promise<void> {
   const pairs: [string, string][] = [];
@@ -312,7 +312,7 @@ export async function syncGnomeBackgroundSettings(
 
   await Promise.allSettled(
     pairs.map(([key, value]) =>
-      runText(domicile, [
+      runText(piloti, [
         "gsettings",
         "set",
         "org.gnome.desktop.background",
@@ -324,7 +324,7 @@ export async function syncGnomeBackgroundSettings(
 }
 
 export async function syncGnomeInterfaceKey(
-  domicile: Domicile,
+  piloti: Piloti,
   patch: {
     themeMode?: "dark" | "light" | "system";
     accentColor?: AccentColorId;
@@ -391,7 +391,7 @@ export async function syncGnomeInterfaceKey(
 
   await Promise.allSettled(
     pairs.map(([key, value]) =>
-      runText(domicile, [
+      runText(piloti, [
         "gsettings",
         "set",
         "org.gnome.desktop.interface",
@@ -457,10 +457,10 @@ export function upsertGtkSettingsIni(
 }
 
 export async function readGtk4HintFontMetrics(
-  domicile: Domicile
+  piloti: Piloti
 ): Promise<boolean> {
   try {
-    const res = await domicile.files.readText(".config/gtk-4.0/settings.ini");
+    const res = await piloti.files.readText(".config/gtk-4.0/settings.ini");
     return res.match({
       Ok: (text) => parseGtk4HintFontMetrics(text),
       Err: () => false,
@@ -471,7 +471,7 @@ export async function readGtk4HintFontMetrics(
 }
 
 export async function syncGtkIconTheme(
-  domicile: Domicile,
+  piloti: Piloti,
   iconTheme: string
 ): Promise<boolean> {
   const clean = iconTheme.trim();
@@ -480,8 +480,8 @@ export async function syncGtkIconTheme(
     let ok = true;
     for (const dir of [".config/gtk-4.0", ".config/gtk-3.0"]) {
       const iniPath = `${dir}/settings.ini`;
-      await domicile.files.createDir(dir).catch(() => undefined);
-      const readRes = await domicile.files.readText(iniPath);
+      await piloti.files.createDir(dir).catch(() => undefined);
+      const readRes = await piloti.files.readText(iniPath);
       const current = readRes.match({ Ok: (t) => t, Err: () => "" });
       const updated = upsertGtkSettingsIni(
         current,
@@ -489,7 +489,7 @@ export async function syncGtkIconTheme(
         clean
       );
       if (updated === current) continue;
-      const writeRes = await domicile.files.write(iniPath, updated);
+      const writeRes = await piloti.files.write(iniPath, updated);
       ok = ok && writeRes.match({ Ok: () => true, Err: () => false });
     }
     return ok;
@@ -499,19 +499,19 @@ export async function syncGtkIconTheme(
 }
 
 export async function setGtk4HintFontMetrics(
-  domicile: Domicile,
+  piloti: Piloti,
   enabled: boolean
 ): Promise<boolean> {
   try {
-    await domicile.files.createDir(".config/gtk-4.0").catch(() => undefined);
-    const readRes = await domicile.files.readText(".config/gtk-4.0/settings.ini");
+    await piloti.files.createDir(".config/gtk-4.0").catch(() => undefined);
+    const readRes = await piloti.files.readText(".config/gtk-4.0/settings.ini");
     const current = readRes.match({ Ok: (t) => t, Err: () => "" });
     const updated = upsertGtkSettingsIni(
       current,
       "gtk-hint-font-metrics",
       enabled ? "true" : "false"
     );
-    const writeRes = await domicile.files.write(
+    const writeRes = await piloti.files.write(
       ".config/gtk-4.0/settings.ini",
       updated
     );
@@ -522,9 +522,9 @@ export async function setGtk4HintFontMetrics(
 }
 
 export async function listInstalledFontFamilies(
-  domicile: Domicile
+  piloti: Piloti
 ): Promise<string[]> {
-  const out = await runText(domicile, ["fc-list", "--format=%{family[0]}\n"]);
+  const out = await runText(piloti, ["fc-list", "--format=%{family[0]}\n"]);
   if (!out) return [];
   const unique = new Set<string>();
   for (const raw of out.split(/\r?\n/)) {
@@ -534,9 +534,9 @@ export async function listInstalledFontFamilies(
   return Array.from(unique).sort((a, b) => a.localeCompare(b));
 }
 
-export async function readGtk4CustomCss(domicile: Domicile): Promise<string> {
+export async function readGtk4CustomCss(piloti: Piloti): Promise<string> {
   try {
-    const res = await domicile.files.readText(".config/gtk-4.0/gtk.css");
+    const res = await piloti.files.readText(".config/gtk-4.0/gtk.css");
     return res.match({ Ok: (t) => t, Err: () => "" });
   } catch {
     return "";
@@ -544,12 +544,12 @@ export async function readGtk4CustomCss(domicile: Domicile): Promise<string> {
 }
 
 export async function writeGtk4CustomCss(
-  domicile: Domicile,
+  piloti: Piloti,
   css: string
 ): Promise<boolean> {
   try {
-    await domicile.files.createDir(".config/gtk-4.0").catch(() => undefined);
-    const writeRes = await domicile.files.write(".config/gtk-4.0/gtk.css", css);
+    await piloti.files.createDir(".config/gtk-4.0").catch(() => undefined);
+    const writeRes = await piloti.files.write(".config/gtk-4.0/gtk.css", css);
     return writeRes.match({ Ok: () => true, Err: () => false });
   } catch {
     return false;
@@ -557,16 +557,16 @@ export async function writeGtk4CustomCss(
 }
 
 export async function readGnomeNotificationSettings(
-  domicile: Domicile
+  piloti: Piloti
 ): Promise<GnomeNotificationSettings> {
   const [bannersRaw, lockRaw] = await Promise.all([
-    runText(domicile, [
+    runText(piloti, [
       "gsettings",
       "get",
       "org.gnome.desktop.notifications",
       "show-banners",
     ]),
-    runText(domicile, [
+    runText(piloti, [
       "gsettings",
       "get",
       "org.gnome.desktop.notifications",
@@ -657,9 +657,9 @@ export function parseGnomeSettingsBatchOutput(
  * shell invocation instead of 5 separate startup subprocesses.
  */
 export async function readGnomeDesktopSettingsBatch(
-  domicile: Domicile
+  piloti: Piloti
 ): Promise<GnomeDesktopSettingsBatch> {
-  const stdout = await runText(domicile, [
+  const stdout = await runText(piloti, [
     "sh",
     "-c",
     [
@@ -726,7 +726,7 @@ export interface GnomeDesktopSettingsHandlers {
  * fallback to `gsettings monitor` if `dconf` is not installed.
  */
 export function monitorGnomeDesktopSettings(
-  domicile: Domicile,
+  piloti: Piloti,
   handlers: GnomeDesktopSettingsHandlers
 ): () => void {
   let stopped = false;
@@ -734,7 +734,7 @@ export function monitorGnomeDesktopSettings(
 
   (async () => {
     try {
-      const res = await domicile.processes.spawn([
+      const res = await piloti.processes.spawn([
         "dconf",
         "watch",
         "/org/gnome/desktop/",
@@ -748,13 +748,13 @@ export function monitorGnomeDesktopSettings(
         if (stopped) return;
         const stops: Array<() => void> = [];
         if (handlers.onInterface) {
-          stops.push(monitorGnomeInterfaceSettings(domicile, handlers.onInterface));
+          stops.push(monitorGnomeInterfaceSettings(piloti, handlers.onInterface));
         }
         if (handlers.onBackground) {
-          stops.push(monitorGnomeBackgroundSettings(domicile, handlers.onBackground));
+          stops.push(monitorGnomeBackgroundSettings(piloti, handlers.onBackground));
         }
         if (handlers.onWm) {
-          stops.push(monitorGnomeWmPreferences(domicile, handlers.onWm));
+          stops.push(monitorGnomeWmPreferences(piloti, handlers.onWm));
         }
         cleanupFn = () => {
           for (const stop of stops) stop();
@@ -815,7 +815,7 @@ export function monitorGnomeDesktopSettings(
 }
 
 export async function syncGnomeNotificationSettings(
-  domicile: Domicile,
+  piloti: Piloti,
   patch: GnomeNotificationSettings
 ): Promise<void> {
   const pairs: [string, string][] = [];
@@ -830,7 +830,7 @@ export async function syncGnomeNotificationSettings(
   }
   await Promise.allSettled(
     pairs.map(([key, value]) =>
-      runText(domicile, [
+      runText(piloti, [
         "gsettings",
         "set",
         "org.gnome.desktop.notifications",

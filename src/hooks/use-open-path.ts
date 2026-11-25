@@ -1,6 +1,6 @@
 import { getEngine } from "@/lib/engine/engine";
 import * as React from "react";
-import { useDomicile } from "@domicile-desktop/react/domicile-provider";
+import { usePiloti } from "@/lib/engine/piloti";
 import { useApps, useWindowActions } from "@/context/DesktopStateContext";
 import {
   buildVfsEntryWebAppUrl,
@@ -43,7 +43,7 @@ export interface OpenPathOptions {
  * launcher files, archives and packages. Used by Folders, Desktop and dock stacks.
  */
 export function useOpenPath() {
-  const domicile = useDomicile();
+  const piloti = usePiloti();
   const { realFilesystem, systemServices } = getEngine().capabilities;
   const { installedXdgApps } = useApps();
   const { launchApp, launchXdgApp, openWebUrl } = useWindowActions();
@@ -59,13 +59,13 @@ export function useOpenPath() {
   const getConfig = React.useCallback(async (): Promise<MimeAppsConfig> => {
     if (!configRef.current) {
       try {
-        configRef.current = await loadMimeAppsConfig(domicile);
+        configRef.current = await loadMimeAppsConfig(piloti);
       } catch {
         configRef.current = parseMimeAppsList("");
       }
     }
     return configRef.current;
-  }, [domicile]);
+  }, [piloti]);
 
   /** Applications offered by "Open With" for a file (best first). */
   const getOpenWithApps = React.useCallback(
@@ -101,7 +101,7 @@ export function useOpenPath() {
             launchXdgApp(action.entry);
             return;
           }
-          launchDesktopCommand(domicile, [...action.entry.execArgv, action.path], {
+          launchDesktopCommand(piloti, [...action.entry.execArgv, action.path], {
             cwd: action.entry.workingDirectory,
           });
           return;
@@ -114,7 +114,7 @@ export function useOpenPath() {
             const folder = await extractVfsZip(action.path);
             if (folder) options.onExtracted?.(folder);
           } else {
-            launchDesktopCommand(domicile, ["xdg-open", action.path]);
+            launchDesktopCommand(piloti, ["xdg-open", action.path]);
           }
           return;
         case "install-package":
@@ -122,7 +122,7 @@ export function useOpenPath() {
           return;
         case "web-file": {
           if (systemServices) {
-            launchDesktopCommand(domicile, ["xdg-open", action.path]);
+            launchDesktopCommand(piloti, ["xdg-open", action.path]);
             return;
           }
           const entry = getVfsEntry(action.path);
@@ -137,7 +137,7 @@ export function useOpenPath() {
         }
       }
     },
-    [domicile, realFilesystem, systemServices, launchApp, launchXdgApp, openWebUrl],
+    [piloti, realFilesystem, systemServices, launchApp, launchXdgApp, openWebUrl],
   );
 
   const openPathInternal = React.useCallback(
@@ -152,7 +152,7 @@ export function useOpenPath() {
       const config = await getConfig();
       const mime = inferMimeType(name, kind);
       if (kind === "file") {
-        void recordFsRecentFile(domicile, path, mime);
+        void recordFsRecentFile(piloti, path, mime);
       }
       const action = resolveOpenAction({
         path,
@@ -165,7 +165,7 @@ export function useOpenPath() {
       });
       await perform(action, options);
     },
-    [domicile, getConfig, installedXdgApps, realFilesystem, perform],
+    [piloti, getConfig, installedXdgApps, realFilesystem, perform],
   );
 
   const openPath = React.useCallback(

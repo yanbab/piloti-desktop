@@ -61,12 +61,13 @@ them. All in `piloti-macos.css`, computed from tokens, not hard-coded:
 | Split view (sidebar apps) | `components/ui/adw-split-view.tsx` (title aligned to content via `data-slot="page-title"`) |
 
 ## Checking in the web demo (`npm run dev`)
-- `window.__PILOTI__`: `windows.launchApp(id)`, `.list`, `.minimize/close/
+- `window.piloti` (Domicile's desktop plus the shell's calls,
+  `lib/engine/piloti.ts`): `desktop.launchApp(id)`, `.list`, `.minimize/close/
   toggleMaximize(id)`, `settings.get()/update({...})`, `plugins.list`,
-  `domicile.files.write(relPath, text)`.
+  `piloti.files.write(relPath, text)`.
 - The demo VFS (localStorage) is seeded once: new bundled files (plugins…)
   don't appear in an existing profile. Copy them with
-  `import('/data/files/…?raw')` + `domicile.files.write`.
+  `import('/data/files/…?raw')` + `piloti.files.write`.
 - After changing `data/files/` run `node scripts/generate-piloti-icons.mjs`.
 - Drag & drop: dispatch `PointerEvent`s (down on the element, move/up on
   `window`/`document`); automation key presses don't trigger editing commands

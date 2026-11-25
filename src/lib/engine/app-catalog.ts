@@ -3,14 +3,14 @@
  * Linux, the shipped ones in the demo) into the catalog. Both entry points
  * await this before importing the shell.
  */
-import type { Domicile } from "@domicile-desktop/sdk/desktop/desktop";
+import type { Piloti } from "@/lib/engine/piloti";
 import { APP_CATALOG, registerApps } from "@/data/catalog";
 import { hostFiles } from "@/lib/engine/host-files";
 
 const APPLICATIONS_DIR = "/usr/share/applications";
 
-export async function loadAppCatalog(domicile: Pick<Domicile, "files">): Promise<void> {
-  const files = hostFiles(domicile);
+export async function loadAppCatalog(piloti: Pick<Piloti, "files">): Promise<void> {
+  const files = hostFiles(piloti);
   const names = (await files.readDir(APPLICATIONS_DIR)).match({
     Ok: (entries) => entries.map((e) => e.name),
     Err: () => [] as string[],

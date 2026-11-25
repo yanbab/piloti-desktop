@@ -5,7 +5,7 @@
  * ("Archive 2.zip", "photos 2") is picked, and a failed run removes only what
  * it created.
  */
-import type { Domicile } from "@domicile-desktop/sdk/desktop/desktop";
+import type { Piloti } from "@/lib/engine/piloti";
 import { runText } from "./exec";
 
 // $1 = folder, $2 = archive name without ".zip", rest = entries in the folder.
@@ -41,7 +41,7 @@ export function archiveStem(name: string): string {
 
 /** Zips `paths` (siblings) next to them; returns the new archive's path, or null. */
 export async function compressNative(
-  domicile: Domicile,
+  piloti: Piloti,
   paths: readonly string[]
 ): Promise<string | null> {
   if (paths.length === 0) return null;
@@ -49,14 +49,14 @@ export async function compressNative(
   // bsdtar reads "@name" as "include that archive": spell those "./@name".
   const names = paths.map(nameOf).map((n) => (n.startsWith("@") ? `./${n}` : n));
   const base = paths.length === 1 ? nameOf(paths[0]!) : "Archive";
-  const out = await runText(domicile, ["sh", "-c", COMPRESS_SCRIPT, "sh", parent, base, ...names]);
+  const out = await runText(piloti, ["sh", "-c", COMPRESS_SCRIPT, "sh", parent, base, ...names]);
   return out ? join(parent, out) : null;
 }
 
 /** Extracts an archive into a new folder next to it; returns the folder's path, or null. */
-export async function extractNative(domicile: Domicile, path: string): Promise<string | null> {
+export async function extractNative(piloti: Piloti, path: string): Promise<string | null> {
   const parent = dirOf(path);
   const name = nameOf(path);
-  const out = await runText(domicile, ["sh", "-c", EXTRACT_SCRIPT, "sh", parent, name, archiveStem(name)]);
+  const out = await runText(piloti, ["sh", "-c", EXTRACT_SCRIPT, "sh", parent, name, archiveStem(name)]);
   return out ? join(parent, out) : null;
 }

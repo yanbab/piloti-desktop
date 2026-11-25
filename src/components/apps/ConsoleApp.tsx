@@ -2,7 +2,7 @@ import { VFS_HOME } from "@/lib/engine/vfs-home";
 import * as React from "react";
 import { useCapabilities } from "@/hooks/use-capabilities";
 import { useDisplays } from "@domicile-desktop/react/displays";
-import { useDomicile } from "@domicile-desktop/react/domicile-provider";
+import { usePiloti } from "@/lib/engine/piloti";
 import { useWatch } from "@domicile-desktop/react/use-watch";
 import {
   AppWindowIcon,
@@ -208,7 +208,7 @@ function InspectorJsonCard({
 
 
 function InspectorModule() {
-  const domicile = useDomicile();
+  const piloti = usePiloti();
   const displays = useDisplays() ?? [];
   const { settings } = useSettings();
   const { systemServices } = useCapabilities();
@@ -229,7 +229,7 @@ function InspectorModule() {
   } = useSystemBackends();
   const { windows, focusedWindowId, waylandPopups } = useWindowManager();
   const browserWindows =
-    useWatch(domicile.browser, "change", () => domicile.browser.windows) ?? [];
+    useWatch(piloti.browser, "change", () => piloti.browser.windows) ?? [];
 
   const [activeSection, setActiveSection] =
     React.useState<InspectorSectionId>("windows");
@@ -1614,7 +1614,7 @@ export function ConsoleApp({
   isCsd?: boolean;
   windowId?: string;
 }) {
-  const domicile = useDomicile();
+  const piloti = usePiloti();
   const { settings, updateSettings } = useSettings();
   const { systemServices } = useCapabilities();
   const { installedXdgApps } = useApps();

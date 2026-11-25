@@ -4,7 +4,7 @@ import * as React from "react";
 import { emitShellEvent, onShellEvent } from "@/lib/shell/shell-events";
 import { countRender } from "@/lib/core/render-stats";
 import { createPortal } from "react-dom";
-import { useDomicile } from "@domicile-desktop/react/domicile-provider";
+import { usePiloti } from "@/lib/engine/piloti";
 import { useWatch } from "@domicile-desktop/react/use-watch";
 import { useCaptureActivity } from "@/lib/shell/capture-activity";
 import { CapturingKind } from "@domicile-desktop/sdk/portal";
@@ -234,7 +234,7 @@ function menuBarStateEqual(a: MenuBarState, b: MenuBarState): boolean {
 
 export const MenuBar = React.memo(function MenuBar() {
   countRender("MenuBar");
-  const domicile = useDomicile();
+  const piloti = usePiloti();
   const captureActivity = useCaptureActivity();
   const { statusItems } = usePlugins();
   const { isBrowserRuntime, settings, updateSettings } = useChromeSettings();  // FIXME : Capabilities
@@ -282,9 +282,9 @@ export const MenuBar = React.memo(function MenuBar() {
     toggleOverview,
   } = useWindowActions();
 
-  const trayItems = useWatch(domicile.tray, "change", () => domicile.tray.items) ?? [];
+  const trayItems = useWatch(piloti.tray, "change", () => piloti.tray.items) ?? [];
   const waylandClients =
-    useWatch(domicile.windows, "change", () => domicile.windows.list) ?? [];
+    useWatch(piloti.windows, "change", () => piloti.windows.list) ?? [];
   const windowMenuState = useWindowMenuState(focusedWindowId);
   const [remoteMenu, setRemoteMenu] = React.useState<RemoteGlobalMenu | null>(
     null
@@ -315,7 +315,7 @@ export const MenuBar = React.memo(function MenuBar() {
     let cleanupFn: (() => void) | undefined;
 
     void discoverRemoteGlobalMenu(
-      domicile,
+      piloti,
       {
         desktopId: focusedWaylandClient?.desktopId ?? focusedWindow.appId,
         pid: focusedWaylandClient?.pid,
@@ -342,7 +342,7 @@ export const MenuBar = React.memo(function MenuBar() {
       setRemoteMenu(null);
     };
   }, [
-    domicile,
+    piloti,
     focusedDesktopEntry,
     focusedWaylandClient?.desktopId,
     focusedWaylandClient?.pid,
@@ -511,15 +511,15 @@ export const MenuBar = React.memo(function MenuBar() {
         { shortcut: "Alt+W" });
     }
 
-    const piloti = "Piloti";
-    add([piloti], _("About Computer"), () => setAboutOpen(true));
-    add([piloti], _("Desktop Settings"), () => launchApp("settings"), { shortcut: "Alt+," });
-    add([piloti], _("App Store"), () => launchApp("app-store"));
-    add([piloti], _("Restart Piloti Desktop"), () => window.location.reload());
-    add([piloti], _("Lock Screen"), () => lockSession(), { shortcut: "⌃⌘Q" });
-    add([piloti], _("Restart…"), () => requestPowerAction("restart"));
-    add([piloti], _("Turn Off…"), () => requestPowerAction("poweroff"));
-    add([piloti], _("Log Out…"), () => requestPowerAction("logout"));
+    const shellMenu = "Piloti";
+    add([shellMenu], _("About Computer"), () => setAboutOpen(true));
+    add([shellMenu], _("Desktop Settings"), () => launchApp("settings"), { shortcut: "Alt+," });
+    add([shellMenu], _("App Store"), () => launchApp("app-store"));
+    add([shellMenu], _("Restart Piloti Desktop"), () => window.location.reload());
+    add([shellMenu], _("Lock Screen"), () => lockSession(), { shortcut: "⌃⌘Q" });
+    add([shellMenu], _("Restart…"), () => requestPowerAction("restart"));
+    add([shellMenu], _("Turn Off…"), () => requestPowerAction("poweroff"));
+    add([shellMenu], _("Log Out…"), () => requestPowerAction("logout"));
 
     const help = _("Help");
     add([help], _("Shortcuts…"), () => setShortcutsOpen(true));
@@ -926,7 +926,7 @@ export const MenuBar = React.memo(function MenuBar() {
                     <MenubarItem
                       onClick={() =>
                         toggleWebAppInstall({
-                          domicile,
+                          piloti,
                           installedWebApps: settings.installedWebApps ?? [],
                           pinnedAppIds: settings.pinnedAppIds,
                           updateSettings,

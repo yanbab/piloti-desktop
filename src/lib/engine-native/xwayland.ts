@@ -1,4 +1,4 @@
-import type { Domicile } from "@domicile-desktop/sdk/desktop/desktop";
+import type { Piloti } from "@/lib/engine/piloti";
 
 /**
  * Debug and local fallback paths checked when `xwayland-satellite` is built
@@ -58,7 +58,7 @@ export function parseRunningSatelliteDisplay(psOutput: string): string | null {
  * Resolves `xwayland-satellite` from `$PATH` first, then standard debug/release build locations.
  */
 export async function detectXwaylandSatelliteBinary(
-  domicile: Domicile
+  piloti: Piloti
 ): Promise<string | null> {
   if (cachedBinaryPath !== undefined) return cachedBinaryPath;
   const script = [
@@ -70,7 +70,7 @@ export async function detectXwaylandSatelliteBinary(
     "}",
   ].join("\n");
   try {
-    const res = await domicile.processes.run(["sh", "-c", script]);
+    const res = await piloti.processes.run(["sh", "-c", script]);
     const found = res.match({
       Ok: (r) => (r.code === 0 ? r.stdout.trim().split(/\r?\n/)[0] || null : null),
       Err: () => null,
@@ -97,14 +97,14 @@ export function resetXwaylandCacheForTest(): void {
  * free X11 display (`:0`, `:1`, ...) under the active Wayland session.
  */
 export async function ensureXwaylandSatellite(
-  domicile: Domicile
+  piloti: Piloti
 ): Promise<string | null> {
   if (cachedDisplay) return cachedDisplay;
   if (ensurePromise) return ensurePromise;
 
   ensurePromise = (async () => {
     try {
-      const probeRes = await domicile.processes.run([
+      const probeRes = await piloti.processes.run([
         "sh",
         "-c",
         'printf "ENV_DISPLAY=%s\\n" "$DISPLAY"; ls -1 /tmp/.X11-unix 2>/dev/null; echo "---"; ps -eo args 2>/dev/null | grep -i "[x]wayland-satellite" || true',
@@ -132,15 +132,15 @@ export async function ensureXwaylandSatellite(
         }
       }
 
-      const bin = await detectXwaylandSatelliteBinary(domicile);
+      const bin = await detectXwaylandSatelliteBinary(piloti);
       if (!bin) return null;
 
       const display = pickAvailableXDisplay(sockets);
       const sockPath = `/tmp/.X11-unix/X${display.slice(1)}`;
-      domicile.processes.launch([bin, display]);
+      piloti.processes.launch([bin, display]);
 
       // Wait briefly for Xwayland socket creation so first X11 app succeeds immediately
-      await domicile.processes
+      await piloti.processes
         .run([
           "sh",
           "-c",

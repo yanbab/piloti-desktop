@@ -1,4 +1,4 @@
-import type { Domicile } from "@domicile-desktop/sdk/desktop/desktop";
+import type { Piloti } from "@/lib/engine/piloti";
 import { KeymapChoice } from "@domicile-desktop/sdk/keymap-choice";
 import { tokenizeExec } from "@/lib/xdg/xdg-desktop-entry";
 import { runText } from "./exec";
@@ -210,15 +210,15 @@ export function buildGreetdStartSessionPayload(
  * reads the system default XKB layout from `/etc/default/keyboard`.
  */
 export async function detectGreeterRuntime(
-  domicile: Domicile
+  piloti: Piloti
 ): Promise<GreeterRuntimeInfo> {
   const [out, kbRes] = await Promise.all([
-    runText(domicile, [
+    runText(piloti, [
       "sh",
       "-c",
       'printf "SOCK=%s\\nHOST=%s\\n" "${GREETD_SOCK:-}" "$(hostname 2>/dev/null || cat /etc/hostname 2>/dev/null || true)"',
     ]),
-    domicile.files.readText("/etc/default/keyboard").catch(() => null),
+    piloti.files.readText("/etc/default/keyboard").catch(() => null),
   ]);
   const sock = out?.match(/^SOCK=(.*)$/m)?.[1]?.trim() || null;
   const hostname = out?.match(/^HOST=(.*)$/m)?.[1]?.trim() || null;
@@ -237,12 +237,12 @@ export async function detectGreeterRuntime(
  * Discovers real Linux user accounts from `/etc/passwd` + `/etc/group`.
  */
 export async function discoverGreeterUsers(
-  domicile: Domicile
+  piloti: Piloti
 ): Promise<GreeterUserAccount[]> {
   try {
     const [passwdRes, groupRes] = await Promise.all([
-      domicile.files.readText("/etc/passwd"),
-      domicile.files.readText("/etc/group"),
+      piloti.files.readText("/etc/passwd"),
+      piloti.files.readText("/etc/group"),
     ]);
     const passwdText = passwdRes.match({ Ok: (t) => t, Err: () => "" });
     if (!passwdText) return [];
@@ -259,7 +259,7 @@ export async function discoverGreeterUsers(
  * and `/usr/share/xsessions`, prioritizing Piloti Desktop first.
  */
 export async function discoverGreeterSessions(
-  domicile: Domicile
+  piloti: Piloti
 ): Promise<GreeterSessionOption[]> {
   const dirs: Array<{ dir: string; type: "wayland" | "x11" }> = [
     { dir: "/usr/share/wayland-sessions", type: "wayland" },
@@ -269,11 +269,11 @@ export async function discoverGreeterSessions(
   const found: GreeterSessionOption[] = [];
   for (const { dir, type } of dirs) {
     try {
-      const dirRes = await domicile.files.readDir(dir);
+      const dirRes = await piloti.files.readDir(dir);
       const items = dirRes.match({ Ok: (l) => l, Err: () => [] });
       for (const item of items) {
         if (!item.name.endsWith(".desktop")) continue;
-        const textRes = await domicile.files.readText(`${dir}/${item.name}`);
+        const textRes = await piloti.files.readText(`${dir}/${item.name}`);
         const text = textRes.match({ Ok: (t) => t, Err: () => null });
         if (!text) continue;
         const parsed = parseSessionDesktopEntry(item.name, text, type);
@@ -306,7 +306,7 @@ const GREETD_HELPER_PATHS = [
  * password never appears on argv or process listings).
  */
 export async function authenticateAndStartGreetdSession(
-  domicile: Domicile,
+  piloti: Piloti,
   params: {
     username: string;
     password: string;
@@ -328,7 +328,7 @@ export async function authenticateAndStartGreetdSession(
   ];
 
   try {
-    const spawnRes = await domicile.processes.spawn(helperCmd, { stdin: true });
+    const spawnRes = await piloti.processes.spawn(helperCmd, { stdin: true });
     return await spawnRes.match({
       Ok: async (proc) => {
         proc.write(new TextEncoder().encode(payload));
@@ -376,9 +376,9 @@ export async function authenticateAndStartGreetdSession(
  * `start_session`, handing the VT over to the authenticated user session.
  * Per `greetd-ipc(7)`, the user session starts once the greeter exits.
  */
-export async function finishGreetdGreeter(domicile: Domicile): Promise<void> {
+export async function finishGreetdGreeter(piloti: Piloti): Promise<void> {
   try {
-    await domicile.processes.run([
+    await piloti.processes.run([
       "sh",
       "-c",
       [
@@ -398,11 +398,11 @@ export async function finishGreetdGreeter(domicile: Domicile): Promise<void> {
  * Triggers a real system power action from Display Manager / Greeter mode via `systemctl`.
  */
 export async function runGreeterPowerAction(
-  domicile: Domicile,
+  piloti: Piloti,
   action: "suspend" | "reboot" | "poweroff"
 ): Promise<boolean> {
   try {
-    const res = await domicile.processes.run(["systemctl", action]);
+    const res = await piloti.processes.run(["systemctl", action]);
     return res.match({
       Ok: (r) => r.code === 0,
       Err: () => false,
@@ -416,12 +416,12 @@ export async function runGreeterPowerAction(
  * Switches the live Domicile compositor keyboard layout when running on native Linux.
  */
 export async function switchGreeterKeymap(
-  domicile: Domicile,
+  piloti: Piloti,
   layoutId: string
 ): Promise<boolean> {
   try {
-    if (typeof domicile.keyboard?.selectKeymap === "function") {
-      const res = await domicile.keyboard.selectKeymap(
+    if (typeof piloti.keyboard?.selectKeymap === "function") {
+      const res = await piloti.keyboard.selectKeymap(
         KeymapChoice.Named(layoutId)
       );
       return res.match({ Ok: () => true, Err: () => false });

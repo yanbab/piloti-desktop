@@ -2,7 +2,7 @@ import { logAppLaunch } from "@/lib/core/perf-log";
 import { webSearchHome } from "@/lib/shell/web-search";
 import * as React from "react";
 import { useDisplays } from "@domicile-desktop/react/displays";
-import { useDomicile } from "@domicile-desktop/react/domicile-provider";
+import { usePiloti } from "@/lib/engine/piloti";
 import { AppReuse } from "@domicile-desktop/sdk/desktop/browser";
 import { useWatch } from "@domicile-desktop/react/use-watch";
 import { useFocusedWindow, useWindows } from "@domicile-desktop/react/windows";
@@ -315,12 +315,12 @@ export function useWindowsValue(
   backendsCtx: SystemBackendsContextValue,
   appsCtx: AppsContextValue
 ): WindowsContextValue {
-  const domicile = useDomicile();
+  const piloti = usePiloti();
   const displays = useDisplays();
   const waylandWindows = useWindows();
   const waylandFocused = useFocusedWindow();
   const browserWindows =
-    useWatch(domicile.browser, "change", () => domicile.browser.windows) ?? [];
+    useWatch(piloti.browser, "change", () => piloti.browser.windows) ?? [];
 
   const { isBrowserRuntime, settings, updateSettings } = settingsCtx;  // FIXME : Capabilities
   const { gnomeCapabilities, takeScreenshot } = backendsCtx;
@@ -481,13 +481,13 @@ export function useWindowsValue(
     for (const rec of pendingSessionRestoreRef.current.values()) {
       if (rec.id.startsWith("web:")) {
         const url = rec.id.slice(4);
-        if (url) domicile.browser.open(url);
+        if (url) piloti.browser.open(url);
       } else if (!isBrowserRuntime) {  // FIXME : Capabilities
         const def = APP_CATALOG.find((a) => a.id === rec.id);
-        launchDesktopCommand(domicile, def?.linuxCommand ?? [rec.id]);
+        launchDesktopCommand(piloti, def?.linuxCommand ?? [rec.id]);
       }
     }
-  }, [domicile, isBrowserRuntime, settings.restoreWindowsOnLogin]);  // FIXME : Capabilities
+  }, [piloti, isBrowserRuntime, settings.restoreWindowsOnLogin]);  // FIXME : Capabilities
 
   const [waylandMeta, setWaylandMeta] = React.useState<
     Record<string, ExternalWindowMeta>
@@ -766,12 +766,12 @@ function pruneBrowserRecord(
       }
       setFocusedWindowId(target.id);
       setMruIds((prev) => [target.id, ...prev.filter((id) => id !== target.id)]);
-      domicile.windows.focusShell();
+      piloti.windows.focusShell();
     }
   }, [
     browserWindows,
     clearLaunchOverlays,
-    domicile.windows,
+    piloti.windows,
     markWindowUnready,
     screenHeight,
     screenWidth,
@@ -933,13 +933,13 @@ function pruneBrowserRecord(
       setFocusedWindowId(wid);
       setMruIds((prev) => [wid, ...prev.filter((id) => id !== wid)]);
       const frame = requestAnimationFrame(() => {
-        domicile.windows.focus(target.appId);
+        piloti.windows.focus(target.appId);
       });
       return () => cancelAnimationFrame(frame);
     }
   }, [
     clearLaunchOverlays,
-    domicile.windows,
+    piloti.windows,
     ensureWaylandIcons,
     screenHeight,
     screenWidth,
@@ -957,7 +957,7 @@ function pruneBrowserRecord(
 
     (async () => {
       try {
-        const res = await domicile.windows.requests();
+        const res = await piloti.windows.requests();
         const listening = res.match({
           Ok: (v) => v,
           Err: (err) => {
@@ -1040,7 +1040,7 @@ function pruneBrowserRecord(
       cancelled = true;
       stopListening?.();
     };
-  }, [domicile.windows]);
+  }, [piloti.windows]);
 
   // Synchronize xdg_toplevel Tiled states so GTK4/Libadwaita CSD apps drop internal shadow margins
   React.useEffect(() => {
@@ -1057,12 +1057,12 @@ function pruneBrowserRecord(
         states.unshift(WindowState.Maximized);
       }
       try {
-        domicile.windows.setStates(w.appId, states);
+        piloti.windows.setStates(w.appId, states);
       } catch {
         // ignore
       }
     }
-  }, [domicile.windows, waylandMeta, waylandWindows]);
+  }, [piloti.windows, waylandMeta, waylandWindows]);
 
   const syncedParentFrames = React.useMemo(() => {
     const byId = new Map(waylandWindows.map((w) => [w.appId, w]));
@@ -1353,8 +1353,8 @@ function pruneBrowserRecord(
 
   const clearFocusedWindow = React.useCallback(() => {
     setFocusedWindowId(null);
-    domicile.windows.focusShell();
-  }, [domicile.windows]);
+    piloti.windows.focusShell();
+  }, [piloti.windows]);
 
   const focusWindow = React.useCallback(
     (windowId: string) => {
@@ -1410,7 +1410,7 @@ function pruneBrowserRecord(
             zIndex: newZ,
           };
         });
-        domicile.windows.focus(rawId);
+        piloti.windows.focus(rawId);
       } else if (windowId.startsWith("browser:")) {
         const rawId = windowId.slice("browser:".length);
         patchExternalMeta(setBrowserMeta, rawId, (cur) => {
@@ -1431,7 +1431,7 @@ function pruneBrowserRecord(
             zIndex: newZ,
           };
         });
-        domicile.windows.focusShell();
+        piloti.windows.focusShell();
       } else {
         setShellWindows((prev) =>
           prev.map((w) => {
@@ -1457,13 +1457,13 @@ function pruneBrowserRecord(
             };
           })
         );
-        domicile.windows.focusShell();
+        piloti.windows.focusShell();
       }
     },
     [
       clearLaunchOverlays,
       combinedWindows,
-      domicile.windows,
+      piloti.windows,
       screenHeight,
       screenWidth,
       settings.activeWorkspace,
@@ -1476,8 +1476,8 @@ function pruneBrowserRecord(
   focusWindowRef.current = focusWindow;
 
   React.useEffect(() => {
-    return domicile.windows.on("focusrequest", (appId) => {
-      const byId = new Map(domicile.windows.list.map((w) => [w.appId, w]));
+    return piloti.windows.on("focusrequest", (appId) => {
+      const byId = new Map(piloti.windows.list.map((w) => [w.appId, w]));
       let cur = byId.get(appId);
       while (cur?.parent !== undefined) {
         cur = byId.get(cur.parent);
@@ -1485,7 +1485,7 @@ function pruneBrowserRecord(
       const rootAppId = cur?.appId ?? appId;
       focusWindowRef.current(`wayland:${rootAppId}`);
     });
-  }, [domicile.windows]);
+  }, [piloti.windows]);
 
   const closeWindow = React.useCallback(
     (windowId: string) => {
@@ -1493,17 +1493,17 @@ function pruneBrowserRecord(
       markWindowReady(windowId);
       if (windowId.startsWith("wayland:")) {
         const rawId = windowId.slice("wayland:".length);
-        domicile.windows.close(rawId);
+        piloti.windows.close(rawId);
       } else if (windowId.startsWith("browser:")) {
         const rawId = windowId.slice("browser:".length);
         const tabs = browserTabGroupsRef.current[rawId]?.tabs ?? [rawId];
-        for (const tab of tabs) domicile.browser.close(tab);
+        for (const tab of tabs) piloti.browser.close(tab);
       } else {
         setShellWindows((prev) => prev.filter((w) => w.id !== windowId));
       }
       setMruIds((prev) => prev.filter((id) => id !== windowId));
     },
-    [domicile.browser, domicile.windows, markWindowReady]
+    [piloti.browser, piloti.windows, markWindowReady]
   );
 
   const openBrowserTab = React.useCallback(
@@ -1513,9 +1513,9 @@ function pruneBrowserRecord(
         normalizeWebUrl(rawUrl ?? "") ??
         (isBrowserRuntime ? BROWSER_DEMO_HOME_URL : BROWSER_HOME_URL);  // FIXME : Capabilities
       pendingTabGroupsRef.current.push(windowId.slice("browser:".length));
-      domicile.browser.open(url);
+      piloti.browser.open(url);
     },
-    [domicile.browser, isBrowserRuntime]  // FIXME : Capabilities
+    [piloti.browser, isBrowserRuntime]  // FIXME : Capabilities
   );
 
   const selectBrowserTab = React.useCallback((windowId: string, tabId: string) => {
@@ -1626,9 +1626,9 @@ function pruneBrowserRecord(
       if (closedUrl) closedTabsRef.current = [...closedTabsRef.current.slice(-19), closedUrl];
       const grp = browserTabGroupsRef.current[windowId.slice("browser:".length)];
       if (!grp || grp.tabs.length <= 1) closeWindow(windowId);
-      else domicile.browser.close(tabId);
+      else piloti.browser.close(tabId);
     },
-    [closeWindow, domicile.browser]
+    [closeWindow, piloti.browser]
   );
 
   const minimizeWindow = React.useCallback(
@@ -1640,7 +1640,7 @@ function pruneBrowserRecord(
           ...cur,
           minimized: true,
         }));
-        domicile.windows.setBounds(rawId, { x: 0, y: 0, width: 0, height: 0 });
+        piloti.windows.setBounds(rawId, { x: 0, y: 0, width: 0, height: 0 });
       } else if (windowId.startsWith("browser:")) {
         const rawId = windowId.slice("browser:".length);
         patchExternalMeta(setBrowserMeta, rawId, (cur) => ({
@@ -1653,7 +1653,7 @@ function pruneBrowserRecord(
         );
       }
     },
-    [domicile.windows]
+    [piloti.windows]
   );
 
   const toggleMinimizeWindow = React.useCallback(
@@ -1958,15 +1958,15 @@ function pruneBrowserRecord(
       setFocusedWindowId(windowId);
       setMruIds((prev) => [windowId, ...prev.filter((id) => id !== windowId)]);
       if (windowId.startsWith("wayland:")) {
-        domicile.windows.focus(windowId.slice("wayland:".length));
+        piloti.windows.focus(windowId.slice("wayland:".length));
       } else {
-        domicile.windows.focusShell();
+        piloti.windows.focusShell();
       }
     },
     [
       clearLaunchOverlays,
       combinedWindows,
-      domicile.windows,
+      piloti.windows,
       screenHeight,
       screenWidth,
       settings.dockAutoHide,
@@ -2079,11 +2079,11 @@ function pruneBrowserRecord(
       const killNativeAppProcess = (desktopId?: string, waylandAppId?: string, pid?: number | null) => {
         if (isBrowserRuntime) return;  // FIXME : Capabilities
         if (typeof pid === "number" && pid > 0) {
-          domicile.processes.run(["kill", "-9", String(pid)]).catch(() => {});
+          piloti.processes.run(["kill", "-9", String(pid)]).catch(() => {});
         }
         const flatpakId = (desktopId ?? appId).replace(/\.desktop$/i, "");
         if (flatpakId.includes(".")) {
-          domicile.processes.run(["flatpak", "kill", flatpakId]).catch(() => {});
+          piloti.processes.run(["flatpak", "kill", flatpakId]).catch(() => {});
         }
         const xdgMatch = matchXdgEntryForWaylandWindow(
           installedXdgApps,
@@ -2091,17 +2091,17 @@ function pruneBrowserRecord(
         );
         const execBin = xdgMatch?.execArgv?.[0]?.split("/").pop();
         if (execBin && execBin !== "flatpak") {
-          domicile.processes.run(["pkill", "-9", "-x", execBin]).catch(() => {});
+          piloti.processes.run(["pkill", "-9", "-x", execBin]).catch(() => {});
         }
         const procName = (waylandAppId || appId)
           .replace(/\.desktop$/i, "")
           .split(".")
           .pop();
         if (procName) {
-          domicile.processes.run(["pkill", "-9", "-i", procName]).catch(() => {});
+          piloti.processes.run(["pkill", "-9", "-i", procName]).catch(() => {});
         }
         if (appId) {
-          domicile.processes.run(["pkill", "-9", "-f", appId]).catch(() => {});
+          piloti.processes.run(["pkill", "-9", "-f", appId]).catch(() => {});
         }
       };
 
@@ -2111,7 +2111,7 @@ function pruneBrowserRecord(
         for (const win of appWins) {
           if (win.id.startsWith("wayland:")) {
             const rawId = win.waylandAppId ?? win.id.slice("wayland:".length);
-            domicile.windows.close(rawId);
+            piloti.windows.close(rawId);
             killNativeAppProcess(win.waylandDesktopId, win.waylandAppId, win.pid);
           } else {
             closeWindow(win.id);
@@ -2123,8 +2123,8 @@ function pruneBrowserRecord(
     [
       closeWindow,
       combinedWindows,
-      domicile.processes,
-      domicile.windows,
+      piloti.processes,
+      piloti.windows,
       installedXdgApps,
       isBrowserRuntime,  // FIXME : Capabilities
     ]
@@ -2160,7 +2160,7 @@ function pruneBrowserRecord(
         }
         beginStartupNotification("browser");
         pendingBrowserAppRef.current += 1;
-        domicile.browser.open(url);
+        piloti.browser.open(url);
         return;
       }
 
@@ -2298,7 +2298,7 @@ function pruneBrowserRecord(
         });
         setFocusedWindowId(newWin.id);
         setMruIds((prev) => [newWin.id, ...prev]);
-        domicile.windows.focusShell();
+        piloti.windows.focusShell();
         return;
       }
 
@@ -2314,7 +2314,7 @@ function pruneBrowserRecord(
       }
       beginStartupNotification(appId);
       if (def?.linuxCommand) {
-        launchDesktopCommand(domicile, def.linuxCommand);
+        launchDesktopCommand(piloti, def.linuxCommand);
         return;
       }
       const lowerAppId = appId.toLowerCase();
@@ -2325,22 +2325,22 @@ function pruneBrowserRecord(
           entry.desktopId.toLowerCase() === `${lowerAppId}.desktop`
       );
       if (matchedXdg && matchedXdg.execArgv.length > 0) {
-        launchDesktopCommand(domicile, matchedXdg.execArgv);
+        launchDesktopCommand(piloti, matchedXdg.execArgv);
         return;
       }
       // Reverse-DNS IDs (e.g. `org.gnome.Calculator`, `com.github.tchx84.Flatseal`)
       // launch via `flatpak run <appId>` when not already matched to an XDG entry.
       if (/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_.-]+$/.test(appId)) {
-        launchDesktopCommand(domicile, ["flatpak", "run", appId]);
+        launchDesktopCommand(piloti, ["flatpak", "run", appId]);
         return;
       }
-      launchDesktopCommand(domicile, [appId]);
+      launchDesktopCommand(piloti, [appId]);
     },
     [
       beginStartupNotification,
       clearLaunchOverlays,
       combinedWindows,
-      domicile,
+      piloti,
       focusWindow,
       gnomeCapabilities.gnomeControlCenter,
       installedXdgApps,
@@ -2379,9 +2379,9 @@ function pruneBrowserRecord(
         });
         return;
       }
-      openGnomeControlCenter(domicile, panel, settings.hiddenGnomePanels);
+      openGnomeControlCenter(piloti, panel, settings.hiddenGnomePanels);
     },
-    [domicile, isBrowserRuntime, launchApp, settings.hiddenGnomePanels]  // FIXME : Capabilities
+    [piloti, isBrowserRuntime, launchApp, settings.hiddenGnomePanels]  // FIXME : Capabilities
   );
 
   const openWebUrl = React.useCallback(
@@ -2424,7 +2424,7 @@ function pruneBrowserRecord(
         pendingWebTitlesRef.current.set(normalized, resolvedTitle);
       }
       if (options?.asApp) {
-        domicile.browser.openApp(normalized, {
+        piloti.browser.openApp(normalized, {
           id: resolvedAppId ?? normalized,
           reuse: AppReuse.Focus,
         });
@@ -2437,7 +2437,7 @@ function pruneBrowserRecord(
           focusWindow(browserWin.id);
         } else {
           if (!resolvedAppId) pendingBrowserAppRef.current += 1;
-          domicile.browser.open(normalized);
+          piloti.browser.open(normalized);
         }
       }
     },
@@ -2446,7 +2446,7 @@ function pruneBrowserRecord(
       beginStartupNotification,
       clearLaunchOverlays,
       combinedWindows,
-      domicile.browser,
+      piloti.browser,
       focusWindow,
       settings.installedWebApps,
     ]
@@ -2500,7 +2500,7 @@ function pruneBrowserRecord(
           entry.desktopId === "gnome-control-center.desktop" ||
           entry.execArgv[0]?.endsWith("gnome-control-center") === true)
       ) {
-        openGnomeControlCenter(domicile, undefined, settings.hiddenGnomePanels);
+        openGnomeControlCenter(piloti, undefined, settings.hiddenGnomePanels);
         return;
       }
       beginStartupNotification(entry.appId);
@@ -2509,7 +2509,7 @@ function pruneBrowserRecord(
     [
       beginStartupNotification,
       clearLaunchOverlays,
-      domicile,
+      piloti,
       isBrowserRuntime,  // FIXME : Capabilities
       launchApp,
       launchXdgEntry,
@@ -2522,10 +2522,10 @@ function pruneBrowserRecord(
     setAltTabState((prev) => (prev.open ? { ...prev, open: false } : prev));
     setOverviewOpen((prev) => {
       const next = !prev;
-      if (next) domicile.windows.focusShell();
+      if (next) piloti.windows.focusShell();
       return next;
     });
-  }, [domicile.windows]);
+  }, [piloti.windows]);
 
   const moveWindowToWorkspace = React.useCallback(
     (windowId: string, targetWorkspace: number) => {
@@ -2652,17 +2652,17 @@ function pruneBrowserRecord(
 
   const openAltTab = React.useCallback(() => {
     if (mruWindows.length === 0) return;
-    domicile.windows.focusShell();
+    piloti.windows.focusShell();
     setAltTabState({
       open: true,
       index: mruWindows.length > 1 ? 1 : 0,
     });
-  }, [domicile.windows, mruWindows.length]);
+  }, [piloti.windows, mruWindows.length]);
 
   const cycleAltTab = React.useCallback(
     (delta: number) => {
       if (mruWindows.length === 0) return;
-      domicile.windows.focusShell();
+      piloti.windows.focusShell();
       setAltTabState((prev) => {
         if (!prev.open) {
           return {
@@ -2676,7 +2676,7 @@ function pruneBrowserRecord(
         };
       });
     },
-    [domicile.windows, mruWindows.length]
+    [piloti.windows, mruWindows.length]
   );
 
   const commitAltTab = React.useCallback(
@@ -2709,7 +2709,7 @@ function pruneBrowserRecord(
   );
 
   useGlobalShortcuts({
-    domicile,
+    piloti,
     isBrowserRuntime,  // FIXME : Capabilities
     overviewOpen,
     setOverviewOpen,
@@ -2830,11 +2830,11 @@ function pruneBrowserRecord(
         }
         return;
       }
-      launchDesktopCommand(domicile, ["xdg-open", filePath]);
+      launchDesktopCommand(piloti, ["xdg-open", filePath]);
     };
     window.addEventListener("piloti:open-path", onOpenPath);
     return () => window.removeEventListener("piloti:open-path", onOpenPath);
-  }, [domicile, isBrowserRuntime, launchApp, openWebUrl]);  // FIXME : Capabilities
+  }, [piloti, isBrowserRuntime, launchApp, openWebUrl]);  // FIXME : Capabilities
 
   const value = React.useMemo<WindowsContextValue>(
     () => ({

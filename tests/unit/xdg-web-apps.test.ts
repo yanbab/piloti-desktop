@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, test } from "bun:test";
-import type { Domicile } from "@domicile-desktop/sdk/desktop/desktop";
+import type { Piloti } from "@/lib/engine/piloti";
 import type { InstalledWebApp } from "@/data/web-apps";
 import { getVfsEntry, WEB_VFS_STORAGE_KEY } from "@/lib/engine-web/web-vfs";
 import {
@@ -53,7 +53,7 @@ const SAMPLE_APP: InstalledWebApp = {
   keywords: "whiteboard diagram",
 };
 
-const DUMMY_DOMICILE = {} as Domicile;
+const DUMMY_DOMICILE = {} as Piloti;
 
 describe("xdg-web-apps FreeDesktop .desktop persistence", () => {
   beforeEach(() => {

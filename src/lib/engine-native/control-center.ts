@@ -1,4 +1,4 @@
-import type { Domicile } from "@domicile-desktop/sdk/desktop/desktop";
+import type { Piloti } from "@/lib/engine/piloti";
 import { parseDesktopEntry } from "xdg-desktop-entry";
 import { runText } from "./exec";
 import type {
@@ -51,10 +51,10 @@ const GCC_OVERRIDE_ROOT_REL = ".local/share/piloti-gcc";
 const GCC_OVERRIDE_APPS_REL = ".local/share/piloti-gcc/applications";
 
 export async function discoverGnomeControlCenterPanels(
-  domicile: Domicile
+  piloti: Piloti
 ): Promise<GnomeControlCenterPanelInfo[]> {
   try {
-    const dirRes = await domicile.files.readDir("/usr/share/applications");
+    const dirRes = await piloti.files.readDir("/usr/share/applications");
     const entries = dirRes.match({
       Ok: (list) => list,
       Err: () => [],
@@ -69,7 +69,7 @@ export async function discoverGnomeControlCenterPanels(
     const parsed = await Promise.all(
       panelFiles.map(
         async (item): Promise<GnomeControlCenterPanelInfo | null> => {
-          const textRes = await domicile.files.readText(
+          const textRes = await piloti.files.readText(
             `/usr/share/applications/${item.name}`
           );
           const text = textRes.match({
@@ -106,18 +106,18 @@ export async function discoverGnomeControlCenterPanels(
 }
 
 export async function syncGnomePanelOverrides(
-  domicile: Domicile,
+  piloti: Piloti,
   hiddenDesktopIds: readonly string[]
 ): Promise<void> {
   try {
-    await domicile.files.createDir(".local");
-    await domicile.files.createDir(".local/share");
-    await domicile.files.createDir(GCC_OVERRIDE_ROOT_REL);
-    await domicile.files.createDir(GCC_OVERRIDE_APPS_REL);
+    await piloti.files.createDir(".local");
+    await piloti.files.createDir(".local/share");
+    await piloti.files.createDir(GCC_OVERRIDE_ROOT_REL);
+    await piloti.files.createDir(GCC_OVERRIDE_APPS_REL);
 
     const hiddenSet = new Set(hiddenDesktopIds);
 
-    const existingRes = await domicile.files.readDir(GCC_OVERRIDE_APPS_REL);
+    const existingRes = await piloti.files.readDir(GCC_OVERRIDE_APPS_REL);
     const existingFiles = existingRes.match({
       Ok: (list) => list,
       Err: () => [],
@@ -127,7 +127,7 @@ export async function syncGnomePanelOverrides(
       .map((f) => f.name);
 
     if (toRemove.length > 0) {
-      await runText(domicile, [
+      await runText(piloti, [
         "sh",
         "-c",
         'dir="$HOME/.local/share/piloti-gcc/applications"; for f in "$@"; do rm -f "$dir/$f"; done',
@@ -141,7 +141,7 @@ export async function syncGnomePanelOverrides(
         if (!/^gnome-[A-Za-z0-9_.-]+\.desktop$/.test(desktopId)) {
           return Promise.resolve();
         }
-        return domicile.files.write(
+        return piloti.files.write(
           `${GCC_OVERRIDE_APPS_REL}/${desktopId}`,
           `[Desktop Entry]\nType=Application\nName=Hidden Panel\nHidden=true\n`
         );
@@ -153,12 +153,12 @@ export async function syncGnomePanelOverrides(
 }
 
 export async function openGnomeControlCenter(
-  domicile: Domicile,
+  piloti: Piloti,
   panel?: GnomeSettingsPanel | (string & {}),
   hiddenDesktopIds?: readonly string[]
 ): Promise<void> {
   if (hiddenDesktopIds) {
-    await syncGnomePanelOverrides(domicile, hiddenDesktopIds);
+    await syncGnomePanelOverrides(piloti, hiddenDesktopIds);
   }
 
   const launchScript =
@@ -167,7 +167,7 @@ export async function openGnomeControlCenter(
     ? ["sh", "-c", launchScript, "sh", panel]
     : ["sh", "-c", launchScript, "sh"];
 
-  domicile.processes.launch(argv);
+  piloti.processes.launch(argv);
 }
 
 /**
@@ -175,9 +175,9 @@ export async function openGnomeControlCenter(
  * on the Linux host in a single batched shell invocation.
  */
 export async function probeGnomeCapabilities(
-  domicile: Domicile
+  piloti: Piloti
 ): Promise<GnomeSystemCapabilities> {
-  const out = await runText(domicile, [
+  const out = await runText(piloti, [
     "sh",
     "-c",
     'for b in gsettings gnome-control-center wpctl pactl nmcli powerprofilesctl upower; do command -v "$b" >/dev/null 2>&1 && printf "%s\\n" "$b"; done; true',

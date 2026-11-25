@@ -1,7 +1,7 @@
 import { InfoPane, InfoPaneToggle, useInfoPane } from "@/components/ui/info-pane";
 import { HeaderSearch } from "@/components/ui/header-search";
 import * as React from "react";
-import { useDomicile } from "@domicile-desktop/react/domicile-provider";
+import { usePiloti } from "@/lib/engine/piloti";
 import {
   ArrowUpCircleIcon,
   BlocksIcon,
@@ -691,7 +691,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
   windowId,
   initialPayload,
 }) => {
-  const domicile = useDomicile();
+  const piloti = usePiloti();
   const { getAppIconUrl, refreshXdgApps } = useApps();
   const { isBrowserRuntime, settings, updateSettings } = useSettings();  // FIXME : Capabilities
   const { pushNotification } = useSystemBackends();
@@ -711,8 +711,8 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
   );
   const [popularLoaded, setPopularLoaded] = React.useState(false);
   React.useEffect(() => {
-    void loadPopularFlathubHits(domicile).then(() => setPopularLoaded(true));
-  }, [domicile]);
+    void loadPopularFlathubHits(piloti).then(() => setPopularLoaded(true));
+  }, [piloti]);
   const [featuredSlide, setFeaturedSlide] = React.useState(0);
   const [featuredHovered, setFeaturedHovered] = React.useState(false);
 
@@ -793,7 +793,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
     if (!isBrowserRuntime) {  // FIXME : Capabilities
       void (async () => {
         try {
-          const res = await domicile.processes.run([
+          const res = await piloti.processes.run([
             "fc-list",
             ":",
             "family",
@@ -833,7 +833,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [domicile, isBrowserRuntime]);  // FIXME : Capabilities
+  }, [piloti, isBrowserRuntime]);  // FIXME : Capabilities
   const updateSources = React.useCallback(
     (patch: Partial<SoftwareSourcesState>) => {
       setSources((prev) => {
@@ -890,12 +890,12 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
   const refreshUpdates = React.useCallback(async () => {
     if (isBrowserRuntime) return;  // FIXME : Capabilities
     const [aptList, fpList] = await Promise.all([
-      sources.system ? listAptUpdates(domicile) : Promise.resolve([]),
-      sources.flatpak ? listFlatpakUpdates(domicile) : Promise.resolve([]),
+      sources.system ? listAptUpdates(piloti) : Promise.resolve([]),
+      sources.flatpak ? listFlatpakUpdates(piloti) : Promise.resolve([]),
     ]);
     setAptUpdates(aptList);
     setFlatpakUpdates(fpList);
-  }, [domicile, isBrowserRuntime, sources.flatpak, sources.system]);  // FIXME : Capabilities
+  }, [piloti, isBrowserRuntime, sources.flatpak, sources.system]);  // FIXME : Capabilities
 
   React.useEffect(() => {
     void refreshUpdates();
@@ -996,10 +996,10 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
         iconUrl: getWebAppFaviconUrl(canonical),
         category: "Internet",
       };
-      void installWebAppDesktopEntry(domicile, initialApp);
+      void installWebAppDesktopEntry(piloti, initialApp);
       void fetchWebPageMetadata(canonical).then(({ title, iconUrl, startUrl }) => {
         if (title || iconUrl || startUrl) {
-          void installWebAppDesktopEntry(domicile, {
+          void installWebAppDesktopEntry(piloti, {
             ...initialApp,
             ...(title ? { title } : {}),
             ...(iconUrl ? { iconUrl } : {}),
@@ -1043,12 +1043,12 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
   const refreshFlatpakList = React.useCallback(async () => {
     if (isBrowserRuntime) return;  // FIXME : Capabilities
     const [caps, list] = await Promise.all([
-      probeFlatpakCapabilities(domicile),
-      listInstalledFlatpaks(domicile),
+      probeFlatpakCapabilities(piloti),
+      listInstalledFlatpaks(piloti),
     ]);
     setFlatpakCaps(caps);
     setInstalledFlatpaks(list);
-  }, [domicile, isBrowserRuntime]);  // FIXME : Capabilities
+  }, [piloti, isBrowserRuntime]);  // FIXME : Capabilities
 
   React.useEffect(() => {
     void refreshFlatpakList();
@@ -1063,7 +1063,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
     const controller = new AbortController();
     const timer = window.setTimeout(() => {
       void searchFlatpaks(
-        domicile,
+        piloti,
         q,
         installedFlatpakIds,
         controller.signal,
@@ -1077,7 +1077,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
       window.clearTimeout(timer);
       controller.abort();
     };
-  }, [domicile, installedFlatpakIds, popularLoaded, query]);
+  }, [piloti, installedFlatpakIds, popularLoaded, query]);
 
   const flatpakItems = React.useMemo<StoreItem[]>(() => {
     const popularById = new Map(
@@ -1577,7 +1577,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
             (w) => (canonicalizeWebUrl(w.url) ?? w.url) === targetCanonical,
           )
         ) {
-          void installWebAppDesktopEntry(domicile, item.webApp,
+          void installWebAppDesktopEntry(piloti, item.webApp,
           );
         }
         return;
@@ -1644,7 +1644,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
       }
     },
     [
-      domicile,
+      piloti,
       installedChromeExtensions,
       isBrowserRuntime,  // FIXME : Capabilities
       pushNotification,
@@ -1659,7 +1659,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
     (item: StoreItem) => {
       if (!item.removable) return;
       if (item.kind === "web" && item.webApp) {
-        void removeWebAppDesktopEntry(domicile, item.webApp,
+        void removeWebAppDesktopEntry(piloti, item.webApp,
         );
         if (settings.pinnedAppIds.includes(item.webApp.id)) {
           updateSettings({
@@ -1731,7 +1731,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
       }
     },
     [
-      domicile,
+      piloti,
       installedChromeExtensions,
       isBrowserRuntime,  // FIXME : Capabilities
       pushNotification,
@@ -1774,14 +1774,14 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
               progress: null,
               statusLine: "flatpak remote-add --user flathub…",
             });
-            await ensureFlathubRemote(domicile);
+            await ensureFlathubRemote(piloti);
           }
           if (controller.signal.aborted) {
             setPendingOp(null);
             return;
           }
           const res = await installFlatpakApp(
-            domicile,
+            piloti,
             fp.appId,
             targetRemote,
             ({ line, progress }) =>
@@ -1834,7 +1834,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
     },
     [
       commitInstall,
-      domicile,
+      piloti,
       flatpakCaps.hasUserFlathub,
       isBrowserRuntime,  // FIXME : Capabilities
       pendingOp,
@@ -1862,7 +1862,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
           statusLine: `flatpak uninstall -y ${fp.appId}`,
         });
         void (async () => {
-          const res = await uninstallFlatpakApp(domicile, fp.appId, {
+          const res = await uninstallFlatpakApp(piloti, fp.appId, {
             installation: fp.installation,
             signal: controller.signal,
             onUpdate: ({ line, progress }) =>
@@ -1911,7 +1911,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
     },
     [
       commitUninstall,
-      domicile,
+      piloti,
       isBrowserRuntime,  // FIXME : Capabilities
       pendingOp,
       pushNotification,
@@ -1983,7 +1983,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
         setAptUpdates(WEB_SIMULATED_APT_UPDATES);
         setFlatpakUpdates(WEB_SIMULATED_FLATPAK_UPDATES);
       } else {
-        await runAptUpdateAndFlatpakRefresh(domicile);
+        await runAptUpdateAndFlatpakRefresh(piloti);
         await refreshUpdates();
       }
       pushNotification({
@@ -1996,7 +1996,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
       setOpStatus(null);
       endOp();
     }
-  }, [beginOp, domicile, endOp, isBrowserRuntime, pushNotification, refreshUpdates]);  // FIXME : Capabilities
+  }, [beginOp, piloti, endOp, isBrowserRuntime, pushNotification, refreshUpdates]);  // FIXME : Capabilities
 
   // A .deb / .flatpakref opened from Folders or the Desktop asks to be installed here.
   const [packageRequest, setPackageRequest] = React.useState<{
@@ -2028,8 +2028,8 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
       } else {
         const res =
           req.format === "deb"
-            ? await installDebPackage(domicile, req.path)
-            : await installFlatpakFile(domicile, req.path);
+            ? await installDebPackage(piloti, req.path)
+            : await installFlatpakFile(piloti, req.path);
         pushNotification({
           appName: "App Store",
           summary: res.ok ? _("Package installed") : _("Installation failed"),
@@ -2046,7 +2046,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
       setOpStatus(null);
       endOp();
     }
-  }, [beginOp, domicile, endOp, isBrowserRuntime, packageRequest, pushNotification, refreshUpdates, refreshXdgApps]);  // FIXME : Capabilities
+  }, [beginOp, piloti, endOp, isBrowserRuntime, packageRequest, pushNotification, refreshUpdates, refreshXdgApps]);  // FIXME : Capabilities
 
   // View menu (sort order, refresh) lives in the menu bar, not the toolbar.
   React.useEffect(() => {
@@ -2102,7 +2102,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
           body: "apt upgrade -y",
         });
       } else {
-        const res = await runAptUpgrade(domicile);
+        const res = await runAptUpgrade(piloti);
         if (res.ok) {
           setAptUpdates([]);
           pushNotification({
@@ -2125,7 +2125,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
       setOpStatus(null);
       endOp();
     }
-  }, [beginOp, domicile, endOp, isBrowserRuntime, pushNotification, refreshUpdates]);  // FIXME : Capabilities
+  }, [beginOp, piloti, endOp, isBrowserRuntime, pushNotification, refreshUpdates]);  // FIXME : Capabilities
 
   const handleUpgradeFlatpak = React.useCallback(
     async (appId: string) => {
@@ -2137,7 +2137,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
           await new Promise((resolve) => window.setTimeout(resolve, 550));
           setFlatpakUpdates((prev) => prev.filter((u) => u.appId !== appId));
         } else {
-          const res = await updateFlatpakApp(domicile, appId, {
+          const res = await updateFlatpakApp(piloti, appId, {
             onUpdate: ({ line, progress }) =>
               setOpStatus({ progress, statusLine: line }),
           });
@@ -2157,7 +2157,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
         endOp();
       }
     },
-    [beginOp, domicile, endOp, isBrowserRuntime, pushNotification, refreshUpdates],  // FIXME : Capabilities
+    [beginOp, piloti, endOp, isBrowserRuntime, pushNotification, refreshUpdates],  // FIXME : Capabilities
   );
 
   const handleUpgradeAll = React.useCallback(async () => {
@@ -2177,10 +2177,10 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
       } else {
         if (sources.system && aptUpdates.length > 0) {
           setOpStatus({ progress: null, statusLine: "apt upgrade -y" });
-          await runAptUpgrade(domicile);
+          await runAptUpgrade(piloti);
         }
         if (sources.flatpak && flatpakUpdates.length > 0) {
-          await updateAllFlatpaks(domicile, {
+          await updateAllFlatpaks(piloti, {
             onUpdate: ({ line, progress }) =>
               setOpStatus({ progress, statusLine: line }),
           });
@@ -2200,7 +2200,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
   }, [
     aptUpdates.length,
     beginOp,
-    domicile,
+    piloti,
     endOp,
     flatpakUpdates.length,
     isBrowserRuntime,  // FIXME : Capabilities

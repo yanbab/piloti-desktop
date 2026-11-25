@@ -4,7 +4,7 @@ import { logAppEvent } from "@/lib/core/perf-log";
 import { looksLikeUrl, webSearchUrl } from "@/lib/shell/web-search";
 import * as React from "react";
 import { emitShellEvent, onShellEvent } from "@/lib/shell/shell-events";
-import { useDomicile } from "@domicile-desktop/react/domicile-provider";
+import { usePiloti } from "@/lib/engine/piloti";
 import { useWatch } from "@domicile-desktop/react/use-watch";
 import { WindowRequestKind } from "@domicile-desktop/sdk/window-state";
 import {
@@ -164,14 +164,14 @@ import { toggleWebAppInstall } from "@/lib/xdg/xdg-web-apps";
  * Wayland pointer coordinates and surface scaling match 1:1 to the pixel.
  */
 function WaylandAppSurface({ win }: { win: DesktopWindowInstance }) {
-  const domicile = useDomicile();
+  const piloti = usePiloti();
   const windowCtx = useWindowContext();
   const containerRef = React.useRef<HTMLDivElement | null>(null);
 
   const syncBounds = React.useCallback(() => {
     if (!win.waylandAppId) return;
     if (win.minimized) {
-      domicile.windows.setBounds(win.waylandAppId, {
+      piloti.windows.setBounds(win.waylandAppId, {
         x: 0,
         y: 0,
         width: 0,
@@ -183,13 +183,13 @@ function WaylandAppSurface({ win }: { win: DesktopWindowInstance }) {
     if (!el) return;
     const rect = el.getBoundingClientRect();
     if (rect.width <= 0 || rect.height <= 0) return;
-    domicile.windows.setBounds(win.waylandAppId, {
+    piloti.windows.setBounds(win.waylandAppId, {
       x: Math.round(rect.left),
       y: Math.round(rect.top),
       width: Math.round(rect.width),
       height: Math.round(rect.height),
     });
-  }, [domicile.windows, win.minimized, win.waylandAppId]);
+  }, [piloti.windows, win.minimized, win.waylandAppId]);
 
   React.useLayoutEffect(() => {
     syncBounds();
@@ -407,7 +407,7 @@ function WebViewSurface({
   active?: boolean;
   tabBar?: React.ReactNode;
 }) {
-  const domicile = useDomicile();
+  const piloti = usePiloti();
   const { isBrowserRuntime, resolvedTheme, settings, updateSettings } =  // FIXME : Capabilities
     useSettings();
   const { pushNotification } = useSystemBackends();
@@ -435,7 +435,7 @@ function WebViewSurface({
   const addressInputRef = React.useRef<HTMLInputElement | null>(null);
 
   const extensions =
-    useWatch(domicile.extensions, "change", () => domicile.extensions.list) ??
+    useWatch(piloti.extensions, "change", () => piloti.extensions.list) ??
     [];
   const [activeExtPopup, setActiveExtPopup] = React.useState<{
     id: string;
@@ -450,12 +450,12 @@ function WebViewSurface({
 
   React.useEffect(() => {
     if (isBrowserRuntime) return;  // FIXME : Capabilities
-    return domicile.extensions.on("popup", (req) => {
+    return piloti.extensions.on("popup", (req) => {
       if (!isFocusedTab) return;
       setExtPopupSize({ width: 360, height: 440 });
       setActiveExtPopup(req);
     });
-  }, [domicile.extensions, isFocusedTab, isBrowserRuntime]);  // FIXME : Capabilities
+  }, [piloti.extensions, isFocusedTab, isBrowserRuntime]);  // FIXME : Capabilities
 
   React.useEffect(() => {
     const view = extPopupWebviewRef.current;
@@ -622,9 +622,9 @@ function WebViewSurface({
       return;
     }
     try {
-      await hostFiles(domicile).createDir(".config/piloti").catch(() => undefined);
+      await hostFiles(piloti).createDir(".config/piloti").catch(() => undefined);
       let existing: Record<string, unknown> = {};
-      const readRes = await hostFiles(domicile)
+      const readRes = await hostFiles(piloti)
         .readText(".config/piloti/domicile.json")
         .catch(() => null);
       if (readRes) {
@@ -647,7 +647,7 @@ function WebViewSurface({
         storeExtId,
         nextInstalled
       );
-      await hostFiles(domicile).write(
+      await hostFiles(piloti).write(
         ".config/piloti/domicile.json",
         JSON.stringify({ ...existing, extensions: nextExt }, null, 2) + "\n"
       );
@@ -668,7 +668,7 @@ function WebViewSurface({
         urgency: "critical",
       });
     }
-  }, [domicile, isBrowserRuntime, pushNotification, storeExtId]);  // FIXME : Capabilities
+  }, [piloti, isBrowserRuntime, pushNotification, storeExtId]);  // FIXME : Capabilities
 
   React.useEffect(() => {
     if (!isFocusedTab) return;
@@ -956,7 +956,7 @@ function WebViewSurface({
         active: activeExtPopup?.id === ext.id,
         onActivate: () => {
           const closing = activeExtPopup?.id === ext.id;
-          if (!closing) domicile.extensions.activate(ext.id);
+          if (!closing) piloti.extensions.activate(ext.id);
           if (ext.popup) {
             setExtPopupSize({ width: 360, height: 440 });
             setActiveExtPopup(closing ? null : { id: ext.id, popup: ext.popup });
@@ -968,7 +968,7 @@ function WebViewSurface({
 
   const toggleInstallApp = () => {
     toggleWebAppInstall({
-      domicile,
+      piloti,
       installedWebApps: installedApps,
       pinnedAppIds: settings.pinnedAppIds,
       updateSettings,
@@ -1660,7 +1660,7 @@ const DOMICILE_RESIZE_EDGE_MAP: Record<number, WindowResizeEdge> = {
 };
 
 export function WindowManager() {
-  const domicile = useDomicile();
+  const piloti = usePiloti();
   const { isBrowserRuntime, settings, reducedMotion } = useSettings();  // FIXME : Capabilities
   const {
     windows,
@@ -2063,14 +2063,14 @@ export function WindowManager() {
 
     const frame = requestAnimationFrame(() => {
       if (targetWin.waylandAppId && !isBrowserRuntime) {  // FIXME : Capabilities
-        if (domicile.windows.focused !== targetWin.waylandAppId) {
-          domicile.windows.focus(targetWin.waylandAppId);
+        if (piloti.windows.focused !== targetWin.waylandAppId) {
+          piloti.windows.focus(targetWin.waylandAppId);
         }
         return;
       }
 
-      if (domicile.windows.focused !== undefined) {
-        domicile.windows.focusShell();
+      if (piloti.windows.focused !== undefined) {
+        piloti.windows.focusShell();
       }
       const el = windowElementsRef.current.get(targetWin.id);
       if (!el || el.contains(document.activeElement)) return;
@@ -2085,7 +2085,7 @@ export function WindowManager() {
     altTabOpen,
     launcherOpen,
     controlPanelOpen,
-    domicile.windows,
+    piloti.windows,
     overviewOpen,
     focusedWindowId,
     isBrowserRuntime,  // FIXME : Capabilities

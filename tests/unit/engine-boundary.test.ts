@@ -13,13 +13,13 @@ function sources(dir: string): string[] {
 }
 
 describe("engine boundary", () => {
-  it("only engine code touches domicile.files", () => {
+  it("only engine code touches piloti.files", () => {
     const offenders = sources(SRC)
       .filter((file) =>
         fs
           .readFileSync(file, "utf8")
           .split("\n")
-          .some((line) => !/^\s*(\/\/|\*|\/\*)/.test(line) && /\bdomicile\??\.files\b/.test(line))
+          .some((line) => !/^\s*(\/\/|\*|\/\*)/.test(line) && /\b(piloti|domicile)\??\.files\b/.test(line))
       )
       .map((file) => path.relative(SRC, file));
     expect(offenders).toEqual([]);

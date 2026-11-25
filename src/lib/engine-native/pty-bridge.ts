@@ -1,4 +1,4 @@
-import type { Domicile } from "@domicile-desktop/sdk/desktop/desktop";
+import type { Piloti } from "@/lib/engine/piloti";
 
 /**
  * `domicile.processes.spawn` gives a program pipes, not a terminal. This small
@@ -86,8 +86,8 @@ const baseName = (path: string) => path.slice(path.lastIndexOf("/") + 1);
  * program (`/bin` and `/usr/bin` are often the same directory), sorted by
  * name. `bash` is always listed, marked unavailable when it is not installed.
  */
-export async function readLoginShells(domicile: Domicile): Promise<LoginShell[]> {
-  const res = await domicile.files.readText("/etc/shells").catch(() => null);
+export async function readLoginShells(piloti: Piloti): Promise<LoginShell[]> {
+  const res = await piloti.files.readText("/etc/shells").catch(() => null);
   const text = res?.match({ Ok: (t) => t, Err: () => "" }) ?? "";
   const candidates = text
     .split("\n")
@@ -96,7 +96,7 @@ export async function readLoginShells(domicile: Domicile): Promise<LoginShell[]>
   const seen = new Set<string>();
   const found: LoginShell[] = [];
   for (const path of candidates) {
-    const stat = await domicile.files.stat(path).catch(() => null);
+    const stat = await piloti.files.stat(path).catch(() => null);
     const info = stat?.match({ Ok: (st) => st, Err: () => null });
     if (!info) continue; // listed but not installed
     const real = info.realPath && info.realPath.startsWith("/") ? info.realPath : path;
@@ -109,13 +109,13 @@ export async function readLoginShells(domicile: Domicile): Promise<LoginShell[]>
 }
 
 export async function startShell(
-  domicile: Domicile,
+  piloti: Piloti,
   shell: string,
   size: { cols: number; rows: number },
   onOutput: (bytes: Uint8Array) => void,
   onExit: (reason: string) => void,
 ): Promise<BashSession | null> {
-  const spawned = await domicile.processes.spawn(
+  const spawned = await piloti.processes.spawn(
     ["python3", "-c", PTY_BRIDGE_PY, String(size.cols), String(size.rows), shell],
     { stdin: true },
   );

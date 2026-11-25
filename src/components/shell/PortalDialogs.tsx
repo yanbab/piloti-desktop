@@ -2,7 +2,7 @@ import { hostFiles } from "@/lib/engine/host-files";
 import { VFS_HOME } from "@/lib/engine/vfs-home";
 import * as React from "react";
 import { useCapabilities } from "@/hooks/use-capabilities";
-import { useDomicile } from "@domicile-desktop/react/domicile-provider";
+import { usePiloti } from "@/lib/engine/piloti";
 import { usePortalRequests } from "@domicile-desktop/react/portals";
 import {
   CastSource,
@@ -341,7 +341,7 @@ function FileChooserPortalDialog({
   request: Extract<PortalRequest, { kind: PortalKind.FileChooser }>;
   onAnswer: (ans: PortalAnswer) => void;
 }) {
-  const domicile = useDomicile();
+  const piloti = usePiloti();
   const { realFilesystem } = useCapabilities();
   const body = request.body;
   const startDir = body.currentFolder || body.home || `${VFS_HOME}`;
@@ -374,7 +374,7 @@ function FileChooserPortalDialog({
         if (active) setEntries(list);
         return;
       }
-      const res = await hostFiles(domicile).readDir(cwd);
+      const res = await hostFiles(piloti).readDir(cwd);
       const list = res.match({
         Ok: (items) =>
           items
@@ -392,7 +392,7 @@ function FileChooserPortalDialog({
     return () => {
       active = false;
     };
-  }, [cwd, domicile, realFilesystem, showHidden]);
+  }, [cwd, piloti, realFilesystem, showHidden]);
 
   const activeFilter = body.filters[filterIdx];
   const visibleEntries = React.useMemo(() => {
@@ -716,7 +716,7 @@ function AppChooserPortalDialog({
   request: Extract<PortalRequest, { kind: PortalKind.AppChooser }>;
   onAnswer: (ans: PortalAnswer) => void;
 }) {
-  const domicile = useDomicile();
+  const piloti = usePiloti();
   const { realFilesystem } = useCapabilities();
   const { installedXdgApps } = useApps();
   const [selected, setSelected] = React.useState(
@@ -730,7 +730,7 @@ function AppChooserPortalDialog({
       const desktopId = choice.endsWith(".desktop")
         ? choice
         : `${choice}.desktop`;
-      void setDefaultMimeApp(domicile, request.body.contentType,
+      void setDefaultMimeApp(piloti, request.body.contentType,
         desktopId
       ).catch(() => undefined);
     }
@@ -1310,7 +1310,7 @@ function PermissionPortalDialog({
   request: PermissionPortalRequest;
   onAnswer: (ans: PortalAnswer) => void;
 }) {
-  const domicile = useDomicile();
+  const piloti = usePiloti();
   const { realFilesystem } = useCapabilities();
   const [wallpaperPreviewUrl, setWallpaperPreviewUrl] = React.useState<
     string | null
@@ -1322,7 +1322,7 @@ function PermissionPortalDialog({
       return;
     }
     let active = true;
-    void hostFiles(domicile)
+    void hostFiles(piloti)
       .read(request.body.path)
       .then((res) => {
         if (!active) return;
@@ -1345,7 +1345,7 @@ function PermissionPortalDialog({
     return () => {
       active = false;
     };
-  }, [domicile, realFilesystem, request]);
+  }, [piloti, realFilesystem, request]);
 
   React.useEffect(() => {
     return () => {
@@ -1528,7 +1528,7 @@ function PermissionPortalDialog({
 }
 
 export function PortalDialogs() {
-  const domicile = useDomicile();
+  const piloti = usePiloti();
   const requests = usePortalRequests();
   const [dismissedIds, setDismissedIds] = React.useState<Set<number>>(
     () => new Set()
@@ -1558,7 +1558,7 @@ export function PortalDialogs() {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key !== "Escape" || e.defaultPrevented) return;
       e.preventDefault();
-      domicile.portals.answer(
+      piloti.portals.answer(
         current.id,
         current.kind === PortalKind.Unknown
           ? PortalAnswer.Refused()
@@ -1567,12 +1567,12 @@ export function PortalDialogs() {
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [current, domicile.portals]);
+  }, [current, piloti.portals]);
 
   if (!current) return null;
 
   const answer = (ans: PortalAnswer) => {
-    domicile.portals.answer(current.id, ans);
+    piloti.portals.answer(current.id, ans);
   };
 
   const dismissFallback = () => {

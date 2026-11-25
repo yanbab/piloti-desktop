@@ -1,4 +1,5 @@
 import { isWebEngine } from "@/lib/engine/engine";
+import { shellHostFiles } from "@/lib/engine/host-files";
 import * as React from "react";
 import { ACCENT_COLORS, type AccentColorId } from "@/data/catalog";
 import { subscribeLocale } from "@/lib/core/i18n";
@@ -267,11 +268,11 @@ export function useIsolatedAppBridge(
         readText: async (path: string) => {
           if (typeof window !== "undefined" && window.parent === window) {
             const isBrowser = isWebEngine();
-            const domicileFiles = !isBrowser
-              ? (window as unknown as { __PILOTI__?: { domicile?: { files?: { readText: (p: string) => Promise<{ match: <R>(h: { Ok: (v: string) => R; Err: () => R }) => R }> } } } }).__PILOTI__?.domicile?.files
+            const shellFiles = !isBrowser
+              ? shellHostFiles()
               : undefined;
-            if (domicileFiles) {
-              const res = await domicileFiles.readText(path).catch(() => null);
+            if (shellFiles) {
+              const res = await shellFiles.readText(path).catch(() => null);
               if (res) return res.match({ Ok: (t) => t, Err: () => null });
             }
             const entry = getVfsEntry(path);
@@ -287,11 +288,11 @@ export function useIsolatedAppBridge(
         writeText: async (path: string, content: string) => {
           if (typeof window !== "undefined" && window.parent === window) {
             const isBrowser = isWebEngine();
-            const domicileFiles = !isBrowser
-              ? (window as unknown as { __PILOTI__?: { domicile?: { files?: { write: (p: string, d: string) => Promise<unknown> } } } }).__PILOTI__?.domicile?.files
+            const shellFiles = !isBrowser
+              ? shellHostFiles()
               : undefined;
-            if (domicileFiles) {
-              await domicileFiles.write(path, content);
+            if (shellFiles) {
+              await shellFiles.write(path, content);
               return true;
             }
             writeVfsTextFile(path, content);
@@ -308,11 +309,11 @@ export function useIsolatedAppBridge(
         listDir: async (path: string) => {
           if (typeof window !== "undefined" && window.parent === window) {
             const isBrowser = isWebEngine();
-            const domicileFiles = !isBrowser
-              ? (window as unknown as { __PILOTI__?: { domicile?: { files?: { readDir: (p: string) => Promise<{ match: <R>(h: { Ok: (v: Array<{ name: string; fileType: number }>) => R; Err: () => R }) => R }> } } } }).__PILOTI__?.domicile?.files
+            const shellFiles = !isBrowser
+              ? shellHostFiles()
               : undefined;
-            if (domicileFiles) {
-              const res = await domicileFiles.readDir(path).catch(() => null);
+            if (shellFiles) {
+              const res = await shellFiles.readDir(path).catch(() => null);
               if (res) {
                 return res.match({
                   Ok: (list) =>

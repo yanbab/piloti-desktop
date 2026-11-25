@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { archiveStem, compressNative, extractNative } from "@/lib/engine-native/archive";
 
 // Runs the real scripts: the fake `processes.run` is a local spawn.
-const domicile = {
+const piloti = {
   processes: {
     run: async (argv: string[]) => {
       const proc = Bun.spawnSync(argv);
@@ -33,23 +33,23 @@ describe("native archives", () => {
     writeFileSync(join(root, "dir", "inner.txt"), "inner");
 
     const all = [...names, "dir"].map((n) => join(root, n));
-    const zip = await compressNative(domicile, all);
+    const zip = await compressNative(piloti, all);
     expect(zip).toBe(join(root, "Archive.zip"));
-    expect(await compressNative(domicile, all)).toBe(join(root, "Archive 2.zip"));
+    expect(await compressNative(piloti, all)).toBe(join(root, "Archive 2.zip"));
 
-    const out = await extractNative(domicile, zip!);
+    const out = await extractNative(piloti, zip!);
     expect(out).toBe(join(root, "Archive"));
     for (const n of names) expect(readFileSync(join(out!, n), "utf8")).toBe(n);
     expect(readFileSync(join(out!, "dir", "inner.txt"), "utf8")).toBe("inner");
-    expect(await extractNative(domicile, zip!)).toBe(join(root, "Archive 2"));
+    expect(await extractNative(piloti, zip!)).toBe(join(root, "Archive 2"));
     expect(existsSync(join(root, "hacked"))).toBe(false);
   });
 
   it.skipIf(!hasBsdtar)("leaves nothing behind when it fails", async () => {
     writeFileSync(join(root, "broken.zip"), "not a zip");
     const before = readdirSync(root).sort();
-    expect(await extractNative(domicile, join(root, "broken.zip"))).toBeNull();
-    expect(await compressNative(domicile, [join(root, "missing")])).toBeNull();
+    expect(await extractNative(piloti, join(root, "broken.zip"))).toBeNull();
+    expect(await compressNative(piloti, [join(root, "missing")])).toBeNull();
     expect(readdirSync(root).sort()).toEqual(before);
   });
 });

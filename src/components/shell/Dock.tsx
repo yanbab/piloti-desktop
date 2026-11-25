@@ -27,7 +27,7 @@ import {
 } from "@/lib/shell/drag-feedback";
 import { createPortal } from "react-dom";
 import { countRender } from "@/lib/core/render-stats";
-import { useDomicile } from "@domicile-desktop/react/domicile-provider";
+import { usePiloti } from "@/lib/engine/piloti";
 import {
   ContextMenu,
   ContextMenuCheckboxItem,
@@ -96,7 +96,7 @@ import { AppSquircleIcon } from "./AppSymbol";
 
 export const Dock = React.memo(function Dock() {
   countRender("Dock");
-  const domicile = useDomicile();
+  const piloti = usePiloti();
   const { isBrowserRuntime, settings, updateSettings } = useChromeSettings();  // FIXME : Capabilities
   const { pushNotification } = useSystemBackends();
   const {
@@ -333,9 +333,9 @@ export const Dock = React.memo(function Dock() {
       setTrashEmpty(items.length === 0);
       return;
     }
-    const status = await inspectXdgTrash(hostFiles(domicile), ".local/share/Trash/files");
+    const status = await inspectXdgTrash(hostFiles(piloti), ".local/share/Trash/files");
     setTrashEmpty(status.empty);
-  }, [domicile, isBrowserRuntime]);  // FIXME : Capabilities
+  }, [piloti, isBrowserRuntime]);  // FIXME : Capabilities
 
   React.useEffect(() => {
     void refreshTrashStatus();
@@ -353,7 +353,7 @@ export const Dock = React.memo(function Dock() {
     };
     window.addEventListener("focus", onFocus);
     // inotify via Domicile instead of polling every 5 s (polls only as fallback).
-    const stopWatch = watchNativeDir(hostFiles(domicile), ".local/share/Trash/files", () => {
+    const stopWatch = watchNativeDir(hostFiles(piloti), ".local/share/Trash/files", () => {
       if (active) void refreshTrashStatus();
     });
     return () => {
@@ -361,7 +361,7 @@ export const Dock = React.memo(function Dock() {
       stopWatch();
       window.removeEventListener("focus", onFocus);
     };
-  }, [domicile, isBrowserRuntime, refreshTrashStatus]);  // FIXME : Capabilities
+  }, [piloti, isBrowserRuntime, refreshTrashStatus]);  // FIXME : Capabilities
 
   const resolveAppDefinition = React.useCallback(
     (appId: string): AppDefinition | null => {
@@ -616,7 +616,7 @@ export const Dock = React.memo(function Dock() {
       await refreshTrashStatus();
       return;
     }
-    await emptyXdgTrash(domicile.processes, trashPaths);
+    await emptyXdgTrash(piloti.processes, trashPaths);
     await refreshTrashStatus();
   };
 

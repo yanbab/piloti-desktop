@@ -84,13 +84,13 @@ async function start(root: HTMLElement) {
       const host = createBrowserDomicile();
       installConsoleCapture();
       attachConsoleDiskSink(createShellLogWriter(host));
-      const domicile = profileStartup(host);
+      const piloti = profileStartup(host);
       // The apps first: the shell's modules expect the catalog.
-      await loadAppCatalog(domicile);
+      await loadAppCatalog(piloti);
       const { Shell } = await import("./piloti-desktop-app");
       finishImport();
       const finishRender = startBootPhase("first render");
-      Shell(root, domicile);
+      Shell(root, piloti);
       finishRender();
     });
   }

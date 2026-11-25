@@ -1,4 +1,4 @@
-import type { Domicile } from "@domicile-desktop/sdk/desktop/desktop";
+import type { Piloti } from "@/lib/engine/piloti";
 
 /**
  * Watches a directory through Domicile (`files.watch`, inotify on the host) and
@@ -9,7 +9,7 @@ import type { Domicile } from "@domicile-desktop/sdk/desktop/desktop";
  * `dir` is relative to `$HOME` or absolute, as for every `domicile.files` call.
  */
 export function watchNativeDir(
-  files: Domicile["files"],
+  files: Piloti["files"],
   dir: string,
   onChange: () => void,
   options?: { debounceMs?: number; fallbackPollMs?: number },

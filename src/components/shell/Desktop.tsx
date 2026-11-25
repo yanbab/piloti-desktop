@@ -2,7 +2,7 @@ import * as React from "react";
 import { useCapabilities } from "@/hooks/use-capabilities";
 import { emitShellEvent, onShellEvent } from "@/lib/shell/shell-events";
 import { countRender } from "@/lib/core/render-stats";
-import { useDomicile } from "@domicile-desktop/react/domicile-provider";
+import { usePiloti } from "@/lib/engine/piloti";
 import {
   ContextMenu,
   ContextMenuContent,
@@ -91,7 +91,7 @@ installConsoleCapture();
 logBootEvent("starting shell");
 
 function DesktopSurface() {
-  const domicile = useDomicile();
+  const piloti = usePiloti();
   // Chrome view of settings: window drags (saved bounds) don't re-render the surface.
   const { settings, updateSettings } = useChromeSettings();
   const { systemServices, simulatedHardware } = useCapabilities();
@@ -152,7 +152,7 @@ function DesktopSurface() {
       if (!systemServices) {
         setTemplates(listVfsTemplates());
       } else {
-        void listFsTemplates(domicile).then((list) =>
+        void listFsTemplates(piloti).then((list) =>
           setTemplates(list)
         );
       }
@@ -162,7 +162,7 @@ function DesktopSurface() {
       path: resolveVfsTemplatesDir(),
       mode: "children",
     });
-  }, [domicile, systemServices]);
+  }, [piloti, systemServices]);
 
   const brightnessFilter =
     settings.brightness < 100
@@ -377,7 +377,7 @@ function DesktopSurface() {
 }
 
 function DomicileShellCommandBridge() {
-  const domicile = useDomicile();
+  const piloti = usePiloti();
   const { settings } = useSettings();
   const { systemServices } = useCapabilities();
   const {
@@ -419,7 +419,7 @@ function DomicileShellCommandBridge() {
         iconUrl: getWebAppFaviconUrl(canonical),
         category: "Internet",
       };
-      void installWebAppDesktopEntry(domicile, app);
+      void installWebAppDesktopEntry(piloti, app);
     },
     removeWebApp: (target) => {
       const canonical = canonicalizeWebUrl(target);
@@ -430,17 +430,17 @@ function DomicileShellCommandBridge() {
             (canonicalizeWebUrl(w.url) ?? w.url) === canonical)
       );
       const toRemove = match ?? { id: target, url: canonical ?? target };
-      void removeWebAppDesktopEntry(domicile, toRemove);
+      void removeWebAppDesktopEntry(piloti, toRemove);
     },
   };
 
   React.useEffect(() => {
     if (!systemServices) return;
-    if (typeof domicile.shell?.commands !== "function") return;
+    if (typeof piloti.shell?.commands !== "function") return;
     let stopped = false;
     let stopListening: (() => void) | null = null;
 
-    void domicile.shell
+    void piloti.shell
       .commands()
       .then((res) => {
         res.match({
@@ -468,7 +468,7 @@ function DomicileShellCommandBridge() {
       stopped = true;
       stopListening?.();
     };
-  }, [domicile, systemServices]);
+  }, [piloti, systemServices]);
 
   return null;
 }

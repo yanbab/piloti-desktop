@@ -4,7 +4,7 @@
  * their totals overlap and can exceed the startup time: read them as "where
  * the work is". Costs a timestamp per call and stops after the report.
  */
-import type { Domicile } from "@domicile-desktop/sdk/desktop/desktop";
+import type { Piloti } from "@/lib/engine/piloti";
 import { bootElapsedMs, bootPhases } from "./perf-log";
 
 const REPORT_AFTER_MS = 15_000;
@@ -79,7 +79,7 @@ function report(): void {
 }
 
 /** Starts profiling and returns `domicile` with its file and process calls timed. */
-export function profileStartup(domicile: Domicile): Domicile {
+export function profileStartup(piloti: Piloti): Piloti {
   recording = true;
   try {
     new PerformanceObserver((list) => {
@@ -95,7 +95,7 @@ export function profileStartup(domicile: Domicile): Domicile {
   setTimeout(report, REPORT_AFTER_MS);
 
   const wrapped = new Map<PropertyKey, object>();
-  return new Proxy(domicile, {
+  return new Proxy(piloti, {
     get(obj, key) {
       const value = Reflect.get(obj, key, obj) as unknown;
       if ((key !== "files" && key !== "processes") || !value) return value;

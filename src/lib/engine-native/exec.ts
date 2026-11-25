@@ -1,4 +1,4 @@
-import type { Domicile } from "@domicile-desktop/sdk/desktop/desktop";
+import type { Piloti } from "@/lib/engine/piloti";
 import { GNOME_ENV_PREFIX, GNOME_SESSION_ENV } from "./types";
 import {
   ensureXwaylandSatellite,
@@ -7,11 +7,11 @@ import {
 import { isWebEngine } from "@/lib/engine/engine";
 
 export async function runText(
-  domicile: Domicile,
+  piloti: Piloti,
   argv: readonly string[]
 ): Promise<string | null> {
   try {
-    const res = await domicile.processes.run(argv);
+    const res = await piloti.processes.run(argv);
     return res.match({
       Ok: (ran) => (ran.code === 0 ? ran.stdout : null),
       Err: () => null,
@@ -22,10 +22,10 @@ export async function runText(
 }
 
 export async function commandExists(
-  domicile: Domicile,
+  piloti: Piloti,
   bin: string
 ): Promise<boolean> {
-  const out = await runText(domicile, [
+  const out = await runText(piloti, [
     "sh",
     "-c",
     'command -v "$1"',
@@ -50,7 +50,7 @@ export function hashPathKey(input: string): string {
  * Automatically provides `DISPLAY` via `xwayland-satellite` on Linux when needed.
  */
 export function launchDesktopCommand(
-  domicile: Domicile,
+  piloti: Piloti,
   argv: readonly string[],
   options?: { cwd?: string; extraEnv?: Record<string, string> }
 ): void {
@@ -65,7 +65,7 @@ export function launchDesktopCommand(
         : undefined;
 
     if (options?.cwd || (mergedEnv && Object.keys(mergedEnv).length > 0)) {
-      domicile.processes
+      piloti.processes
         .spawn(argv, {
           cwd: options?.cwd,
           env: mergedEnv,
@@ -77,17 +77,17 @@ export function launchDesktopCommand(
               void sub.stderr.cancel().catch(() => {});
             },
             Err: () => {
-              domicile.processes.launch(argv);
+              piloti.processes.launch(argv);
             },
           });
         })
         .catch(() => {
-          domicile.processes.launch(argv);
+          piloti.processes.launch(argv);
         });
       return;
     }
 
-    domicile.processes.launch(argv);
+    piloti.processes.launch(argv);
   };
 
   if (isBrowserMock || options?.extraEnv?.DISPLAY) {
@@ -101,7 +101,7 @@ export function launchDesktopCommand(
     return;
   }
 
-  void ensureXwaylandSatellite(domicile)
+  void ensureXwaylandSatellite(piloti)
     .then((display) => {
       spawnWithEnv(display ? { DISPLAY: display } : undefined);
     })
@@ -115,18 +115,18 @@ export function launchDesktopCommand(
  * (especially `gnome-control-center`) enable full GNOME integration.
  */
 export function launchWithGnomeEnv(
-  domicile: Domicile,
+  piloti: Piloti,
   argv: readonly string[],
   options?: { cwd?: string; extraEnv?: Record<string, string> }
 ): void {
   if (argv.length === 0) return;
 
   if (!options?.cwd && !options?.extraEnv) {
-    domicile.processes.launch([...GNOME_ENV_PREFIX, ...argv]);
+    piloti.processes.launch([...GNOME_ENV_PREFIX, ...argv]);
     return;
   }
 
-  launchDesktopCommand(domicile, argv, {
+  launchDesktopCommand(piloti, argv, {
     cwd: options?.cwd,
     extraEnv: { ...GNOME_SESSION_ENV, ...options?.extraEnv },
   });

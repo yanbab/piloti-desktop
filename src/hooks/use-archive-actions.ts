@@ -1,5 +1,5 @@
 import * as React from "react";
-import { useDomicile } from "@domicile-desktop/react/domicile-provider";
+import { usePiloti } from "@/lib/engine/piloti";
 import { useSystemBackends } from "@/context/DesktopStateContext";
 import { useCapabilities } from "@/hooks/use-capabilities";
 import { compressFsEntries, extractFsArchive } from "@/lib/engine/fs-bridge";
@@ -11,7 +11,7 @@ import { _ } from "@/lib/core/i18n";
  * the listing; the result can be undone, and a failure is notified.
  */
 export function useArchiveActions(onDone: () => unknown) {
-  const domicile = useDomicile();
+  const piloti = usePiloti();
   const { realFilesystem } = useCapabilities();
   const { pushNotification } = useSystemBackends();
 
@@ -29,20 +29,20 @@ export function useArchiveActions(onDone: () => unknown) {
         return;
       }
       await onDone();
-      recordCreated({ domicile }, [created], "Create");
+      recordCreated({ piloti }, [created], "Create");
     },
-    [domicile, onDone, pushNotification, realFilesystem]
+    [piloti, onDone, pushNotification, realFilesystem]
   );
 
   const compress = React.useCallback(
     (paths: readonly string[]) =>
-      void finish(compressFsEntries(domicile, paths), _("Could not compress")),
-    [domicile, finish]
+      void finish(compressFsEntries(piloti, paths), _("Could not compress")),
+    [piloti, finish]
   );
   const extract = React.useCallback(
     (path: string) =>
-      void finish(extractFsArchive(domicile, path), _("Could not extract")),
-    [domicile, finish]
+      void finish(extractFsArchive(piloti, path), _("Could not extract")),
+    [piloti, finish]
   );
 
   return { compress, extract };
