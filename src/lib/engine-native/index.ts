@@ -12,3 +12,4 @@ export * from "./xwayland";
 export * from "./autostart";
 export * from "./greeter";
 
+export * from "./system-stats";

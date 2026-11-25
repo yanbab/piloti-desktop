@@ -30,15 +30,23 @@ import { useApps, useWindowManagerSelector } from "@/context/DesktopStateContext
 import { APP_CATALOG } from "@/data/catalog";
 import { _ } from "@/lib/core/i18n";
 import { cn } from "@/lib/core/utils";
+import { getEngine } from "@/lib/engine/engine";
+import { usePiloti } from "@/lib/engine/piloti";
+import {
+  appUsage,
+  cpuPercent,
+  readSystemSample,
+  type SystemSample,
+} from "@/lib/engine-native/system-stats";
 import { getAppSetting, setAppSetting } from "@/lib/shell/app-settings";
 import { DRAG_THRESHOLD, dragShuffleTransition } from "@/lib/shell/drag-feedback";
 
 /**
  * System Monitor: one page of widgets the user reorders by dragging.
  *
- * First version: the numbers are simulated (`useSimulatedStats`), the widgets
- * and their layout are real. Widget order and the apps list sort are app
- * settings (`~/.config/piloti/apps/system-monitor.ini`).
+ * With system services the numbers come from `/proc` (`useSystemStats`); the
+ * browser demo simulates them (`useSimulatedStats`). Widget order and the apps
+ * list sort are app settings (`~/.config/piloti/apps/system-monitor.ini`).
  */
 
 const APP_ID = "system-monitor";
@@ -75,8 +83,75 @@ const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(mi
 const walk = (v: number, step: number, min: number, max: number) =>
   clamp(v + (Math.random() - 0.5) * 2 * step, min, max);
 
-/** Simulated numbers that drift like real ones; replaced by real sources later. */
-function useSimulatedStats(runningAppIds: string[]): Stats {
+/**
+ * Real numbers, sampled while the window is open. `apps` lists each running app
+ * with the process ids of its windows, as `appId:pid` pairs joined by commas.
+ */
+function useSystemStats(apps: string, enabled: boolean): Stats {
+  const piloti = usePiloti();
+  const { installedXdgApps } = useApps();
+  const [sampled, setSampled] = React.useState<{
+    cpuHistory: number[];
+    prev: SystemSample;
+    next: SystemSample;
+  } | null>(null);
+
+  React.useEffect(() => {
+    if (!enabled) return;
+    let stopped = false;
+    let timer: number | undefined;
+    let prev: SystemSample | null = null;
+    let cpuHistory = Array.from({ length: HISTORY }, () => 0);
+    // A chain rather than an interval, so a slow sample never overlaps the next.
+    const tick = async () => {
+      const next = await readSystemSample(piloti);
+      if (stopped) return;
+      // CPU needs two samples: the second follows the first closely.
+      const delay = next && !prev ? 500 : TICK_MS;
+      if (next && prev) {
+        cpuHistory = [...cpuHistory.slice(1), cpuPercent(prev, next)];
+        setSampled({ cpuHistory, prev, next });
+      }
+      prev = next ?? prev;
+      timer = window.setTimeout(() => void tick(), delay);
+    };
+    void tick();
+    return () => {
+      stopped = true;
+      window.clearTimeout(timer);
+    };
+  }, [piloti, enabled]);
+
+  return React.useMemo(() => {
+    if (!sampled) {
+      return { cpuHistory: Array.from({ length: HISTORY }, () => 0), memUsedMb: 0, memTotalMb: 0, apps: [] };
+    }
+    const { cpuHistory, prev, next } = sampled;
+    const appPids = new Map<string, number[]>();
+    for (const pair of apps ? apps.split(",") : []) {
+      const split = pair.lastIndexOf(":");
+      const appId = pair.slice(0, split);
+      const pid = Number(pair.slice(split + 1));
+      if (pid > 0) appPids.set(appId, [...(appPids.get(appId) ?? []), pid]);
+    }
+    return {
+      cpuHistory,
+      memUsedMb: (next.memTotalKb - next.memAvailableKb) / 1024,
+      memTotalMb: next.memTotalKb / 1024,
+      apps: Array.from(appUsage(prev, next, appPids), ([appId, usage]) => ({
+        appId,
+        name:
+          installedXdgApps.find((entry) => entry.appId === appId)?.name ??
+          APP_CATALOG.find((a) => a.id === appId)?.name ??
+          appId,
+        ...usage,
+      })),
+    };
+  }, [sampled, apps, installedXdgApps]);
+}
+
+/** Numbers that drift like real ones, for the browser demo. */
+function useSimulatedStats(runningAppIds: string[], enabled: boolean): Stats {
   const [stats, setStats] = React.useState<Stats>(() => ({
     cpuHistory: Array.from({ length: HISTORY }, () => 12),
     memUsedMb: 3200,
@@ -86,6 +161,7 @@ function useSimulatedStats(runningAppIds: string[]): Stats {
   const idsKey = runningAppIds.join(",");
 
   React.useEffect(() => {
+    if (!enabled) return;
     const ids = idsKey ? idsKey.split(",") : [];
     const tick = () =>
       setStats((prev) => {
@@ -113,7 +189,7 @@ function useSimulatedStats(runningAppIds: string[]): Stats {
     tick();
     const timer = window.setInterval(tick, TICK_MS);
     return () => window.clearInterval(timer);
-  }, [idsKey]);
+  }, [idsKey, enabled]);
 
   return stats;
 }
@@ -204,12 +280,14 @@ function MemoryWidget({ used, total }: { used: number; total: number }) {
   const ratio = total > 0 ? used / total : 0;
   return (
     <>
-      <div className="text-adw-title-1 font-semibold tabular-nums text-adw-label">{formatMb(used)}</div>
+      <div className="text-adw-title-1 font-semibold tabular-nums text-adw-label">
+        {total > 0 ? formatMb(used) : "—"}
+      </div>
       <div className="h-2 overflow-hidden rounded-full bg-black/8 dark:bg-white/10">
         <div className="h-full rounded-full bg-adw-accent transition-[width] duration-500" style={{ width: `${ratio * 100}%` }} />
       </div>
       <div className="text-adw-footnote tabular-nums text-adw-label-secondary">
-        {_("%s of %s", formatMb(used), formatMb(total))}
+        {total > 0 ? _("%s of %s", formatMb(used), formatMb(total)) : "—"}
       </div>
     </>
   );
@@ -295,8 +373,15 @@ export interface SystemMonitorAppProps {
 }
 
 export const SystemMonitorApp: React.FC<SystemMonitorAppProps> = ({ windowId = "", isCsd = true }) => {
+  const { systemServices } = getEngine().capabilities;
   const runningIds = useWindowManagerSelector(
     (wm) => Array.from(new Set(wm.windows.map((w) => w.appId))).join(","),
+  );
+  // Only Linux client windows have a process of their own.
+  const runningProcesses = useWindowManagerSelector((wm) =>
+    wm.windows
+      .flatMap((w) => (w.pid ? [`${w.appId}:${w.pid}`] : []))
+      .join(","),
   );
   const [widgetOrder, setWidgetOrder] = React.useState<WidgetId[]>(() =>
     readOrder("widget-order", DEFAULT_WIDGETS, (v): v is WidgetId =>
@@ -307,7 +392,9 @@ export const SystemMonitorApp: React.FC<SystemMonitorAppProps> = ({ windowId = "
     () => (runningIds ? runningIds.split(",") : []),
     [runningIds]
   );
-  const stats = useSimulatedStats(runningAppIds);
+  const realStats = useSystemStats(runningProcesses, systemServices);
+  const simulatedStats = useSimulatedStats(runningAppIds, !systemServices);
+  const stats = systemServices ? realStats : simulatedStats;
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: DRAG_THRESHOLD } }));
   const onWidgetDragEnd = ({ active, over }: DragEndEvent) => {
@@ -369,7 +456,9 @@ export const SystemMonitorApp: React.FC<SystemMonitorAppProps> = ({ windowId = "
           </SortableContext>
         </DndContext>
         <p className="mt-3 text-center text-adw-footnote text-adw-label-tertiary">
-          {_("Simulated values: real system data comes next.")}
+          {systemServices
+            ? _("Built-in apps and web pages run inside the desktop and are not listed.")
+            : _("Simulated values in the demo.")}
         </p>
       </div>
     </div>
