@@ -186,6 +186,7 @@ export function FileItemContextMenu({
 
   const content = (
     <div
+      data-popup-backdrop=""
       className="fixed inset-0 z-[500]"
       onClick={onClose}
       onContextMenu={(e) => {

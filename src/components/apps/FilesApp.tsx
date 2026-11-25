@@ -1581,6 +1581,7 @@ export function FilesApp({
 
   const bgMenuPortal = bgMenu ? (
     <div
+      data-popup-backdrop=""
       className="fixed inset-0 z-[500]"
       onClick={() => setBgMenu(null)}
       onContextMenu={(e) => {

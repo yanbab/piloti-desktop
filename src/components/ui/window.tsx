@@ -1,5 +1,6 @@
 "use client"
 
+import { installPopupPressThrough } from "@/lib/shell/popup-layer"
 import * as React from "react"
 import { MinusIcon, XIcon } from "lucide-react"
 
@@ -108,6 +109,11 @@ const INTERACTIVE_DRAG_CONTROL =
 const DOUBLE_CLICK_NO_ZOOM =
   'button, input, textarea, select, a, [role="button"], [role="tab"], [role="switch"], [role="slider"], [role="menuitem"], [contenteditable="true"]'
 const NO_DRAG = `${STRICT_NO_DRAG}, ${INTERACTIVE_DRAG_CONTROL}`
+
+// A drag can start even while a menu is open (it closes the menu).
+if (typeof window !== "undefined") {
+  installPopupPressThrough(DRAG_REGION, `${STRICT_NO_DRAG}, ${INTERACTIVE_DRAG_CONTROL}`)
+}
 
 const reducedMotion = () =>
   typeof window !== "undefined" &&
@@ -1127,6 +1133,10 @@ function WindowMain({ className, ...props }: React.ComponentProps<"div">) {
   )
 }
 
+// The round title-bar button: close, minimize, maximize and the window menu.
+const WINDOW_CONTROL_CLASS =
+  "flex size-6 items-center justify-center rounded-full bg-black/6 text-adw-label-secondary transition-colors outline-none hover-fill:bg-black/12 hover-fill:text-adw-label active:bg-black/18 focus-visible:outline-3 focus-visible:outline-solid focus-visible:outline-adw-accent/50 group-data-[inactive]/window:opacity-50 dark:bg-white/8 dark:hover-fill:bg-white/15 dark:active:bg-white/22"
+
 function WindowControlButton({
   className,
   ...props
@@ -1134,10 +1144,7 @@ function WindowControlButton({
   return (
     <button
       type="button"
-      className={cn(
-        "flex size-6 items-center justify-center rounded-full bg-black/6 text-adw-label-secondary transition-colors outline-none hover-fill:bg-black/12 hover-fill:text-adw-label active:bg-black/18 focus-visible:outline-3 focus-visible:outline-solid focus-visible:outline-adw-accent/50 group-data-[inactive]/window:opacity-50 dark:bg-white/8 dark:hover-fill:bg-white/15 dark:active:bg-white/22 [&_svg]:size-3",
-        className
-      )}
+      className={cn(WINDOW_CONTROL_CLASS, "[&_svg]:size-3", className)}
       {...props}
     />
   )
@@ -1205,6 +1212,7 @@ export type { WindowHandle, WindowInsets, WindowPosition, WindowSize, ResizeEdge
 export {
   isCloseOnLeft,
   useWindowContext,
+  WINDOW_CONTROL_CLASS,
   Window,
   WindowContent,
   WindowControlButton,

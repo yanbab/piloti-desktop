@@ -1,3 +1,5 @@
+import { WINDOW_CONTROL_CLASS } from "@/components/ui/window";
+import { cn } from "@/lib/core/utils";
 import * as React from "react";
 import { countRender } from "@/lib/core/render-stats";
 import { MoreVerticalIcon } from "lucide-react";
@@ -63,9 +65,14 @@ export const WindowMenuButton = React.memo(function WindowMenuButton({
       <DropdownMenuTrigger
         aria-label={_("Window menu")}
         onClick={() => setOpen((v) => !v)}
-        className="group/wmenu flex size-7 shrink-0 cursor-default items-center justify-center rounded-adw-control outline-none select-none active:bg-black/12 data-popup-open:bg-black/10 dark:active:bg-white/16 dark:data-popup-open:bg-white/14"
+        // Same round button as Close; mx-0.5 keeps it centred 23px from the
+        // edge, above the sidebar icons.
+        className={cn(
+          WINDOW_CONTROL_CLASS,
+          "mx-0.5 shrink-0 cursor-default select-none data-popup-open:bg-black/14 dark:data-popup-open:bg-white/18"
+        )}
       >
-        <MoreVerticalIcon className="size-4 opacity-75 group-hover/wmenu:opacity-100 group-active/wmenu:opacity-100 group-data-popup-open/wmenu:opacity-100" />
+        <MoreVerticalIcon className="size-3.5" strokeWidth={2.5} />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start">
         {extraItems && (

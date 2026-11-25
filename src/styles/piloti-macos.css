@@ -273,10 +273,16 @@
 :root[data-interface-theme="piloti"] [data-slot="sidebar-item"] {
   height: 28px;
   padding-block: 0;
-  padding-inline: 8px;
+  /* Icon centre at 23px (10px inset + 5px + 8px): under the header's ⋮. */
+  padding-inline: 5px 8px;
   gap: 8px;
   border-radius: var(--adw-radius-item);
   font-size: var(--adw-font-body);
+}
+
+/* Collapsed: centred in the 26px item, so icons stay where they were. */
+:root[data-interface-theme="piloti"] [data-slot="sidebar-item"][data-compact] {
+  padding-inline: 0;
 }
 
 :root[data-interface-theme="piloti"] [data-slot="sidebar-item-group"] {
@@ -435,4 +441,22 @@
    sets `data-keep-icon`. */
 :root[data-interface-theme="piloti"] [data-slot="button"][data-label]:not([data-keep-icon]) > svg {
   display: none;
+}
+
+/* ── Dark: black hairlines around opaque headerbars, sidebars, side panes ── */
+/* `.dark` is on the root, or on one window (per-app Dark Mode). */
+
+:root[data-interface-theme="piloti"] :is(.dark, .dark *):is(
+    [data-slot="window-titlebar"]:not(.bg-transparent),
+    .bg-adw-titlebar
+  ) {
+  border-bottom: 1px solid #000;
+}
+
+:root[data-interface-theme="piloti"] :is(.dark, .dark *):is(aside.bg-adw-sidebar) {
+  border-right: 1px solid #000;
+}
+
+:root[data-interface-theme="piloti"] :is(.dark, .dark *):is([data-slot="info-pane"] > aside) {
+  border-left: 1px solid #000;
 }

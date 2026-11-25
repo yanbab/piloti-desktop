@@ -77,3 +77,39 @@ export function usePopupSurfaceState<Details>(props: {
   usePopupSurface(open, () => handleOpenChange(false, undefined as Details));
   return { open, onOpenChange: handleOpenChange };
 }
+
+/** Base UI's own backdrop, and the one of hand-made menus. */
+const BACKDROP = "[data-base-ui-inert], [data-popup-backdrop]";
+
+/**
+ * Menus and context menus put an invisible backdrop over the page, which
+ * swallows the press that dismisses them: a window could not be dragged while
+ * one was open. A press over a window's drag region closes the open surface
+ * and is handed on to what is under the backdrop, so the drag starts at once.
+ * Elsewhere the first click still only dismisses.
+ */
+export function installPopupPressThrough(
+  dragRegion: string,
+  keepOut: string
+): () => void {
+  const onPointerDown = (event: PointerEvent) => {
+    if (!current || !event.isTrusted || event.button !== 0) return;
+    const target = event.target;
+    if (!(target instanceof Element) || !target.matches(BACKDROP)) return;
+
+    const backdrops = [...document.querySelectorAll<HTMLElement>(BACKDROP)];
+    const previous = backdrops.map((b) => b.style.pointerEvents);
+    backdrops.forEach((b) => (b.style.pointerEvents = "none"));
+    const under = document.elementFromPoint(event.clientX, event.clientY);
+    const grabs = under?.closest(dragRegion) && !under.closest(keepOut);
+    if (under && grabs) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      current.close();
+      under.dispatchEvent(new PointerEvent("pointerdown", event));
+    }
+    backdrops.forEach((b, i) => (b.style.pointerEvents = previous[i] ?? ""));
+  };
+  window.addEventListener("pointerdown", onPointerDown, true);
+  return () => window.removeEventListener("pointerdown", onPointerDown, true);
+}

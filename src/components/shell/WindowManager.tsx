@@ -2363,7 +2363,9 @@ export function WindowManager() {
                 transition:
                   presentation?.animate === false
                     ? "none"
-                    : "transform 350ms cubic-bezier(0.22, 1, 0.36, 1), opacity 350ms cubic-bezier(0.22, 1, 0.36, 1)",
+                    : // No opacity fade: while a window is part transparent the
+                      // vibrant sidebar cannot blur what is behind the window.
+                      "transform 350ms cubic-bezier(0.22, 1, 0.36, 1)",
               }}
               className={cn(
                 "contain-[layout_style] outline-none",

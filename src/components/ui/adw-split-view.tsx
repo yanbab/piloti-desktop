@@ -329,6 +329,7 @@ export function AdwSplitView({
                     data-sidebar-item={item.id}
                     data-slot="sidebar-item"
                     data-selected={item.selected ? "" : undefined}
+                    data-compact={showCompact ? "" : undefined}
                     data-vfs-drop-path={item.dropPath}
                     onClick={item.onClick}
                     className={cn(
