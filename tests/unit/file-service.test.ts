@@ -167,3 +167,17 @@ describe("FileService", () => {
     expect(store.ops).toEqual(["rm /h/a.txt", "empty"]);
   });
 });
+
+test("announces a change again once the disk operation has ended", async () => {
+  let finish = () => {};
+  const changed: string[][] = [];
+  const store = {
+    createDir: () => new Promise<void>((resolve) => (finish = resolve)),
+  } as unknown as FileStore;
+  const service = createFileService({ store, cache: fakeCache().cache, onDiskChange: (p) => changed.push(p) });
+  service.createFolder("/home/user", "Docs");
+  expect(changed).toEqual([]);
+  finish();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  expect(changed).toEqual([["/home/user/Docs"]]);
+});

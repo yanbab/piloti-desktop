@@ -28,6 +28,8 @@ export interface FileServiceDeps {
   cache: VfsCacheApi;
   /** Paths that exist only in the cache even when a store is present (simulated USB sticks). */
   cacheOnly?: (path: string) => boolean;
+  /** A background disk operation ended: views listing these paths must read again. */
+  onDiskChange?: (paths: string[]) => void;
 }
 
 /**
@@ -76,7 +78,13 @@ export function uniqueName(existing: ReadonlySet<string>, name: string): string 
   return `${stem} ${index}${ext}`;
 }
 
-export function createFileService({ store, cache, cacheOnly }: FileServiceDeps): FileService {
+export function createFileService({ store, cache, cacheOnly, onDiskChange }: FileServiceDeps): FileService {
+  // The cache announces a change before the disk has it; announce again once it does.
+  const persist = (op: Promise<unknown> | undefined, ...paths: string[]) => {
+    void op
+      ?.catch((err) => console.warn("File operation failed", paths, err))
+      .finally(() => onDiskChange?.(paths));
+  };
   const backed = (path: string): FileStore | null =>
     store && !cacheOnly?.(path) ? store : null;
 
@@ -194,19 +202,19 @@ export function createFileService({ store, cache, cacheOnly }: FileServiceDeps):
     writeText(filePath, content) {
       const norm = normalizeVfsPath(filePath);
       const updated = cache.writeVfsTextFile(norm, content);
-      void backed(norm)?.writeText(norm, content);
+      persist(backed(norm)?.writeText(norm, content), norm);
       return updated;
     },
 
     createFolder(dirPath, baseName) {
       const created = cache.createVfsFolder(dirPath, baseName);
-      void backed(created.path)?.createDir(created.path);
+      persist(backed(created.path)?.createDir(created.path), created.path);
       return created;
     },
 
     createTextFile(dirPath, baseName, content = "") {
       const created = cache.createVfsTextFile(dirPath, baseName, content);
-      void backed(created.path)?.writeText(created.path, content);
+      persist(backed(created.path)?.writeText(created.path, content), created.path);
       return created;
     },
 
@@ -215,7 +223,7 @@ export function createFileService({ store, cache, cacheOnly }: FileServiceDeps):
       const renamed = cache.renameVfsEntry(from, newName);
       // The cache may not know the entry (native files appear in it once listed): still rename on disk.
       const to = renamed?.path ?? join(dirname(from), newName);
-      if (from !== to) void backed(from)?.move(from, to);
+      if (from !== to) persist(backed(from)?.move(from, to), from, to);
       return renamed;
     },
 
@@ -225,7 +233,7 @@ export function createFileService({ store, cache, cacheOnly }: FileServiceDeps):
       const moved = cache.moveVfsEntry(from, dir);
       const to = moved?.path ?? join(dir, basename(from));
       const s = backed(from);
-      if (s && !cacheOnly?.(dir) && from !== to) void s.move(from, to, { noClobber: !moved });
+      if (s && !cacheOnly?.(dir) && from !== to) persist(s.move(from, to, { noClobber: !moved }), from, to);
       return moved;
     },
 
@@ -249,27 +257,31 @@ export function createFileService({ store, cache, cacheOnly }: FileServiceDeps):
       } else {
         await s.copy(src, dest).catch(() => false);
       }
+      onDiskChange?.([dest]);
       return dest;
     },
 
     trash(path) {
       const norm = normalizeVfsPath(path);
       cache.trashVfsEntry(norm);
-      void backed(norm)?.trash(norm);
+      persist(backed(norm)?.trash(norm), norm);
     },
 
     restore(trashPath) {
       const norm = normalizeVfsPath(trashPath);
       const restored = cache.restoreVfsEntry(norm);
       const s = backed(norm);
-      if (s && restored && !cacheOnly?.(restored.path)) void s.move(norm, restored.path);
+      if (s && restored && !cacheOnly?.(restored.path)) persist(s.move(norm, restored.path), norm, restored.path);
       return restored;
     },
 
     async remove(path) {
       const norm = normalizeVfsPath(path);
       cache.removeVfsEntry(norm);
-      await backed(norm)?.remove(norm);
+      const s = backed(norm);
+      if (!s) return;
+      await s.remove(norm);
+      onDiskChange?.([norm]);
     },
 
     async emptyTrash() {

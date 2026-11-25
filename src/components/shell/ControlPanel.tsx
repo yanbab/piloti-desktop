@@ -59,6 +59,8 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
   const {
     gnomeCapabilities,
     liveWifiNetworks,
+    wifiPresent,
+    bluetoothPresent,
     connectWifiNetwork,
     bluetoothDevices,
     toggleBluetoothDevice,
@@ -361,6 +363,7 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
         <div
           data-slot="control-pill" className={cn(
             "flex items-stretch overflow-hidden rounded-[12px]",
+            !wifiPresent && "opacity-50",
             settings.wifiEnabled
               ? "bg-adw-accent text-white"
               : "bg-black/6 text-adw-label dark:bg-white/8"
@@ -368,6 +371,8 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
         >
           <button
             type="button"
+            disabled={!wifiPresent}
+            title={wifiPresent ? undefined : _("No Wi-Fi adapter")}
             onClick={() => {
               const next = !settings.wifiEnabled;
               console.info("[Piloti] control-panel: wifi", next ? "on" : "off");
@@ -385,6 +390,8 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
           </button>
           <button
             type="button"
+            disabled={!wifiPresent}
+            title={wifiPresent ? undefined : _("No Wi-Fi adapter")}
             aria-label="Choose Wi-Fi network"
             aria-expanded={expandedPicker === "wifi"}
             onClick={() => togglePicker("wifi")}
@@ -408,6 +415,7 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
         <div
           data-slot="control-pill" className={cn(
             "flex items-stretch overflow-hidden rounded-[12px]",
+            !bluetoothPresent && "opacity-50",
             settings.bluetoothEnabled
               ? "bg-adw-accent text-white"
               : "bg-black/6 text-adw-label dark:bg-white/8"
@@ -415,6 +423,8 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
         >
           <button
             type="button"
+            disabled={!bluetoothPresent}
+            title={bluetoothPresent ? undefined : _("No Bluetooth adapter")}
             onClick={() => {
               const next = !settings.bluetoothEnabled;
               console.info(
@@ -437,6 +447,8 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
           </button>
           <button
             type="button"
+            disabled={!bluetoothPresent}
+            title={bluetoothPresent ? undefined : _("No Bluetooth adapter")}
             aria-label="Choose Bluetooth device"
             aria-expanded={expandedPicker === "bluetooth"}
             onClick={() => togglePicker("bluetooth")}

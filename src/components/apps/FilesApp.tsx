@@ -148,6 +148,7 @@ import {
   renameFsEntry,
   restoreFsEntry,
   trashFsEntry,
+  watchFsDir,
 } from "@/lib/engine/fs-bridge";
 import {
   moveWithUndo,
@@ -436,6 +437,7 @@ export function FilesApp({
     return set;
   }, [windows]);
 
+  const listRequestRef = React.useRef(0);
   const reloadDir = React.useCallback(() => {
     if (!realFilesystem) {
       setTemplates(listVfsTemplates());
@@ -466,8 +468,10 @@ export function FilesApp({
       setVfsEntries(listVfsDir(currentPath, { includeHidden: showHidden }));
       return;
     }
+    // Only the latest listing counts: an earlier, slower one may be stale.
+    const request = ++listRequestRef.current;
     void bridgeListFsDir(domicile, currentPath).then((entries) => {
-      setVfsEntries(entries);
+      if (request === listRequestRef.current) setVfsEntries(entries);
     });
   }, [currentPath, domicile, realFilesystem, showHidden]);
   const archive = useArchiveActions(reloadDir);
@@ -826,16 +830,16 @@ export function FilesApp({
       currentPath === WEB_VFS_FAVORITES_URI ||
       currentPath === WEB_VFS_RECENTS_URI ||
       currentPath === WEB_VFS_APPS_URI;
-    return subscribeWebVfs(
-      () => reloadDir(),
-      isVirtualView
-        ? undefined
-        : [
-            { path: currentPath, mode: "children" },
-            { path: resolveVfsTemplatesDir(), mode: "children" },
-          ],
-    );
-  }, [currentPath, reloadDir]);
+    if (isVirtualView) return subscribeWebVfs(() => reloadDir());
+    const stopDir = watchFsDir(domicile, currentPath, reloadDir);
+    const stopTemplates = subscribeWebVfs(() => reloadDir(), [
+      { path: resolveVfsTemplatesDir(), mode: "children" },
+    ]);
+    return () => {
+      stopDir();
+      stopTemplates();
+    };
+  }, [currentPath, domicile, reloadDir]);
 
   React.useEffect(() => {
     if (!initialPath) return;

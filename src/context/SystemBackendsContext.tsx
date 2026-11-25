@@ -92,6 +92,9 @@ export interface SystemBackendsContextValue {
   audioSinks: AudioSinkInfo[];
   liveWifiNetworks: WifiNetwork[];
   bluetoothDevices: BluetoothDeviceInfo[];
+  /** False when the machine has no such hardware: not "off", absent. */
+  wifiPresent: boolean;
+  bluetoothPresent: boolean;
   toggleBluetoothDevice: (path: string) => Promise<void>;
   mprisMedia: MprisMediaInfo | null;
   controlMpris: (action: "play-pause" | "next" | "previous") => Promise<void>;
@@ -186,6 +189,8 @@ export function useSystemBackendsValue(
   });
   const [audioSinks, setAudioSinks] = React.useState<AudioSinkInfo[]>([]);
   const [bluetoothDevices, setBluetoothDevices] = React.useState<BluetoothDeviceInfo[]>([]);
+  const [wifiPresent, setWifiPresent] = React.useState(true);
+  const [bluetoothPresent, setBluetoothPresent] = React.useState(true);
   const [availableGnomePanels, setAvailableGnomePanels] = React.useState<
     GnomeControlCenterPanelInfo[]
   >(() => [...DEFAULT_GNOME_PANELS]);
@@ -838,6 +843,7 @@ export function useSystemBackendsValue(
       if (audio.sinks.length > 0) setAudioSinks(audio.sinks);
     });
     const stopBluetooth = watchSystemBluetooth(domicile, (bt) => {
+      setBluetoothPresent(Boolean(bt));
       if (!bt) {
         setBluetoothDevices([]);
         applySettingsState({ bluetoothEnabled: false });
@@ -847,6 +853,7 @@ export function useSystemBackendsValue(
       setBluetoothDevices(bt.devices);
     });
     const stopWifi = watchSystemWifi(domicile, (wifi) => {
+      setWifiPresent(Boolean(wifi));
       if (!wifi) {
         // No Wi-Fi hardware: show it off and empty.
         setLiveWifiNetworks([]);
@@ -1362,6 +1369,8 @@ export function useSystemBackendsValue(
       audioSinks,
       liveWifiNetworks,
       bluetoothDevices,
+      wifiPresent,
+      bluetoothPresent,
       toggleBluetoothDevice,
       mprisMedia,
       controlMpris,
@@ -1464,6 +1473,8 @@ export function useSystemBackendsValue(
       invokeNotificationAction,
       liveWifiNetworks,
       bluetoothDevices,
+      wifiPresent,
+      bluetoothPresent,
       toggleBluetoothDevice,
       lockSession,
       locked,

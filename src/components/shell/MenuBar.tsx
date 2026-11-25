@@ -252,6 +252,8 @@ export const MenuBar = React.memo(function MenuBar() {
     resumeRecording,
     takeScreenshot,
     startScreenRecording,
+    wifiPresent,
+    bluetoothPresent,
   } = useSystemBackends();
   const altHeld = useAltKey();
   // Narrow slice: window drags/resizes don't change any of these fields.
@@ -1228,12 +1230,12 @@ export const MenuBar = React.memo(function MenuBar() {
                     )}
                   />
                 ) : null}
-                {settings.wifiEnabled ? (
+                {!wifiPresent ? null : settings.wifiEnabled ? (
                   <WifiIcon className="size-4" />
                 ) : (
                   <WifiOffIcon className="size-4 text-adw-label/45 dark:text-white/45" />
                 )}
-                {settings.bluetoothEnabled ? (
+                {!bluetoothPresent ? null : settings.bluetoothEnabled ? (
                   <BluetoothIcon className="size-4" />
                 ) : (
                   <BluetoothOffIcon className="size-4 text-adw-label/45 dark:text-white/45" />

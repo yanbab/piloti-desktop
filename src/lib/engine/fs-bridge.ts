@@ -1,5 +1,7 @@
 import type { Domicile } from "@domicile-desktop/sdk/desktop/desktop";
 import {
+  notifyVfsChanged,
+  subscribeWebVfs as subscribeVfs,
   compressVfsEntries,
   createVfsFileFromTemplate,
   copyVfsEntry,
@@ -39,6 +41,8 @@ import {
 import { getEngine } from "@/lib/engine/engine";
 import { compressNative, extractNative } from "@/lib/engine-native/archive";
 import { createFileService, type FileService } from "@/lib/core/file-service";
+import { watchNativeDir } from "@/lib/engine-native/file-watch";
+import { hostFiles } from "@/lib/engine/host-files";
 import {
   createNativeFileStore,
   parseGioMetadataInfo,
@@ -77,6 +81,7 @@ const hasRealFilesystem = (): boolean => getEngine().capabilities.realFilesystem
 
 function fileServiceFor(domicile: Domicile): FileService {
   return createFileService({
+    onDiskChange: notifyVfsChanged,
     store: hasRealFilesystem() ? createNativeFileStore(domicile) : null,
     cacheOnly: isSimulatedUsbPath,
     cache: {
@@ -411,4 +416,17 @@ export async function extractFsArchive(
 ): Promise<string | null> {
   if (hasRealFilesystem()) return extractNative(domicile, path);
   return (await extractVfsZip(path))?.path ?? null;
+}
+
+/**
+ * Calls `onChange` when a folder's content changes: operations made here, and
+ * on a real filesystem also changes made by other programs.
+ */
+export function watchFsDir(domicile: Domicile, dirPath: string, onChange: () => void): () => void {
+  const unsubscribe = subscribeVfs(onChange, { path: dirPath, mode: "children" });
+  const stop = hasRealFilesystem() ? watchNativeDir(hostFiles(domicile), dirPath, onChange) : null;
+  return () => {
+    unsubscribe();
+    stop?.();
+  };
 }

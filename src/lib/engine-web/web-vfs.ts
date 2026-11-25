@@ -318,6 +318,11 @@ export function setVfsSync(next: VfsSync): void {
 }
 
 /** Notifies in-document subscribers immediately (reads already see the new cache). */
+/** Tells subscribers to read `paths` again (a disk write has just ended). */
+export function notifyVfsChanged(paths: readonly string[]): void {
+  emitVfsChanged(paths.map(normalizeVfsPath));
+}
+
 function emitVfsChanged(paths: readonly string[] | undefined): void {
   sync.emit({ type: "changed", paths: paths ? [...paths] : undefined });
 }

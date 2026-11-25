@@ -3,7 +3,7 @@ import { useArchiveActions } from "@/hooks/use-archive-actions";
 import * as React from "react";
 import { useCapabilities } from "@/hooks/use-capabilities";
 import { useOpenPath } from "@/hooks/use-open-path";
-import { copyFsEntry, moveFsEntry } from "@/lib/engine/fs-bridge";
+import { copyFsEntry, moveFsEntry, watchFsDir } from "@/lib/engine/fs-bridge";
 import {
   moveWithUndo,
   onFileUndoApplied,
@@ -12,7 +12,6 @@ import {
   trashWithUndo,
   undoFileOperation,
 } from "@/lib/engine/fs-undo";
-import { watchNativeDir } from "@/lib/engine-native/file-watch";
 import { useDomicile } from "@domicile-desktop/react/domicile-provider";
 import { FileType } from "@domicile-desktop/sdk/system";
 import {
@@ -363,8 +362,8 @@ export function DesktopIconsApp({
         unsubRenamed();
       };
     }
-    // inotify via Domicile instead of polling every 6 s (polls only as fallback).
-    const stopWatch = watchNativeDir(hostFiles(domicile), desktopDirPath, () => {
+    // Our own operations, plus other programs' (inotify via Domicile).
+    const stopWatch = watchFsDir(domicile, desktopDirPath, () => {
       if (!locked) void loadDesktopFolder();
     });
     const onFocus = () => {
