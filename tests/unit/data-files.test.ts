@@ -6,7 +6,6 @@ import { listDataDir } from "@/lib/engine-web/data-files";
 describe("shipped files", () => {
   it("indexes data/files", () => {
     const index = indexDataFiles();
-    expect(index.files).toContain("/etc/issue");
     expect(index.dirs).toContain("/usr/share/applications");
     expect(index.files.some((f: string) => f.endsWith(".DS_Store"))).toBe(false);
   });

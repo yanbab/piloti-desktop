@@ -1,11 +1,12 @@
 name: Build, Test & Deploy Website Demo
 
+# Every push to main publishes docs/ (website) with a fresh docs/demo/. Tags and
+# releases don't trigger it: Pages only deploys from main, and a tag run would
+# cancel the main one.
+
 on:
   push:
     branches: [main]
-    tags: ["v*"]
-  release:
-    types: [published]
   workflow_dispatch:
 
 permissions:
@@ -23,6 +24,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          # Tags and history, for the build's release number.
+          fetch-depth: 0
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2

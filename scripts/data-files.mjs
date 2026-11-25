@@ -14,7 +14,8 @@ export function indexDataFiles(root = DATA_FILES_DIR) {
   const walk = (dir, vfsDir) => {
     const entries = fs.readdirSync(dir, { withFileTypes: true });
     for (const entry of entries.sort((a, b) => (a.name < b.name ? -1 : 1))) {
-      if (entry.name === ".DS_Store") continue;
+      // .gitkeep only makes git keep a folder that ships empty.
+      if (entry.name === ".DS_Store" || entry.name === ".gitkeep") continue;
       const vfsPath = `${vfsDir}/${entry.name}`;
       if (entry.isDirectory()) {
         dirs.push(vfsPath);
