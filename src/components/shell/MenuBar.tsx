@@ -22,7 +22,7 @@ import {
   LeafIcon,
   PauseIcon,
   PlayIcon,
-  SearchIcon,
+  LayoutGridIcon,
   SquareIcon,
   Volume2Icon,
   VolumeXIcon,
@@ -1182,7 +1182,7 @@ export const MenuBar = React.memo(function MenuBar() {
               aria-label="Launcher (Alt+Space)"
               className="flex h-full shrink-0 cursor-default items-center rounded-adw-control px-2 outline-none select-none active:bg-black/14 data-popup-open:bg-black/12 focus-visible:bg-black/10 dark:active:bg-white/18 dark:data-popup-open:bg-white/15 dark:focus-visible:bg-white/12"
             >
-              <SearchIcon className="size-4 text-adw-label/90 dark:text-white/90" />
+              <LayoutGridIcon className="size-4 text-adw-label/90 dark:text-white/90" />
             </DropdownMenuTrigger>
             <DropdownMenuContent
               anchor={rightClusterRef}
