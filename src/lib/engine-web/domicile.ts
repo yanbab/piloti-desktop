@@ -2,9 +2,8 @@ import { desktop, type Domicile } from "@domicile-desktop/sdk/desktop/desktop";
 import type { DomicileHost, DomicileNotification } from "@domicile-desktop/sdk/domicile-host";
 import { FakeDomicileHost } from "@domicile-desktop/sdk/fake-host";
 import { VFS_HOME } from "../engine/vfs-home";
-import { DEFAULT_STATIC_DIR_INDEX } from "./default-vfs-tree";
+import { DATA_FILES, listDataDir } from "./data-files";
 import { installPortalSimulator } from "./portal-simulator";
-import { PILOTI_VIRTUAL_ICONS } from "./piloti-virtual-icons";
 import {
   ensureVfsDir,
   getVfsEntry,
@@ -22,124 +21,26 @@ declare global {
 const INITIAL_NOTIFICATIONS: DomicileNotification[] = [];
 
 type StaticDirEntry = { name: string; file_type: "file" | "directory" };
-type StaticTreeIndex = Record<string, readonly { name: string; fileType: 0 | 1 }[]>;
 
-let cachedStaticDirIndexPromise: Promise<StaticTreeIndex> | null = null;
-const cachedStaticFileBytes = new Map<string, Promise<Uint8Array | null>>();
-
-function resolveDemoBaseUrl(): string {
-  if (typeof window === "undefined") return "";
-  const base = document.baseURI || window.location.href;
-  const parsed = new URL(base);
-  // Ensure directory-like routes without trailing slash (e.g. /piloti-desktop/demo)
-  // still resolve __fs assets relative to the demo directory rather than parent.
-  if (!parsed.pathname.endsWith("/") && !/\.[a-z0-9]+$/i.test(parsed.pathname)) {
-    parsed.pathname = `${parsed.pathname}/`;
-  }
-  return parsed.toString();
-}
-
-function getStaticDirIndex(): Promise<StaticTreeIndex> {
-  if (cachedStaticDirIndexPromise) return cachedStaticDirIndexPromise;
-  cachedStaticDirIndexPromise = (async () => {
-    if (
-      typeof window !== "undefined" &&
-      typeof fetch === "function" &&
-      window.location?.protocol?.startsWith("http")
-    ) {
-      try {
-        const res = await fetch(new URL("__fs_tree.json", resolveDemoBaseUrl()));
-        if (res.ok) {
-          return (await res.json()) as StaticTreeIndex;
-        }
-      } catch {
-        // fallback to compiled directory index
-      }
-    }
-    return DEFAULT_STATIC_DIR_INDEX;
-  })();
-  return cachedStaticDirIndexPromise;
-}
-
-function readStaticFileBytes(
+/** System files come from the shipped pack, then from the real host if there is one. */
+async function readStaticFileBytes(
   normalizedPath: string,
   hostFallbackFiles?: Domicile["files"],
 ): Promise<Uint8Array | null> {
-  const existing = cachedStaticFileBytes.get(normalizedPath);
-  if (existing) return existing;
-
-  const task = (async (): Promise<Uint8Array | null> => {
-    const clean = normalizedPath.replace(/^\/+/, "");
-    if (!clean || clean === "home/user" || clean.startsWith("home/user/")) {
-      return null;
-    }
-
-    // 1. Static HTTP asset serving in Vite dev / static docs/demo build
-    if (
-      typeof window !== "undefined" &&
-      typeof fetch === "function" &&
-      window.location?.protocol?.startsWith("http")
-    ) {
-      try {
-        const absPath = `/${clean}`;
-        const slashIdx = absPath.lastIndexOf("/");
-        const parentDir = slashIdx <= 0 ? "/" : absPath.slice(0, slashIdx);
-        const fileName = absPath.slice(slashIdx + 1);
-        const idx = await getStaticDirIndex();
-        const dirEntries = idx[parentDir];
-        const listedInIndex = Boolean(
-          dirEntries?.some((ent) => ent.fileType === 0 && ent.name === fileName),
-        );
-        if (listedInIndex) {
-          const res = await fetch(new URL(`__fs/${clean}`, resolveDemoBaseUrl()));
-          if (res.ok) {
-            return new Uint8Array(await res.arrayBuffer());
-          }
-        }
-      } catch {
-        // try remaining fallbacks
-      }
-    }
-
-    // 2. Host Domicile files fallback (when toggling engine:web inside Domicile Linux)
-    if (hostFallbackFiles) {
-      try {
-        const hostRes = await hostFallbackFiles.read(normalizedPath);
-        const bytes = hostRes.match({ Ok: (b) => b, Err: () => null });
-        if (bytes && bytes.length > 0) return bytes;
-      } catch {
-        // ignore
-      }
-    }
-
-    // 3. Direct data/files disk fallback in Bun / Node test runner
-    if (
-      typeof process !== "undefined" &&
-      Boolean(process.versions?.bun || process.versions?.node)
-    ) {
-      try {
-        const fsMod = await import("node:fs");
-        const pathMod = await import("node:path");
-        const diskPath = pathMod.resolve(process.cwd(), "data/files", clean);
-        if (fsMod.existsSync(diskPath) && fsMod.statSync(diskPath).isFile()) {
-          return new Uint8Array(fsMod.readFileSync(diskPath));
-        }
-      } catch {
-        // ignore
-      }
-    }
-
-    // 4. Compact Piloti fallback assets
-    const pilotiInline = PILOTI_VIRTUAL_ICONS[normalizedPath];
-    if (pilotiInline !== undefined) {
-      return new TextEncoder().encode(pilotiInline);
-    }
-
+  if (normalizedPath === "/home/user" || normalizedPath.startsWith("/home/user/")) {
     return null;
-  })();
-
-  cachedStaticFileBytes.set(normalizedPath, task);
-  return task;
+  }
+  const shipped = DATA_FILES[normalizedPath];
+  if (shipped !== undefined) return new TextEncoder().encode(shipped);
+  // engine:web toggled inside Domicile Linux: the machine's own files.
+  if (!hostFallbackFiles) return null;
+  try {
+    const res = await hostFallbackFiles.read(normalizedPath);
+    const bytes = res.match({ Ok: (b) => b, Err: () => null });
+    return bytes && bytes.length > 0 ? bytes : null;
+  } catch {
+    return null;
+  }
 }
 
 function isVfsPath(rawPath: string): boolean {
@@ -159,13 +60,12 @@ async function readStaticDirectory(
   if (normalized === VFS_HOME || normalized.startsWith(`${VFS_HOME}/`)) {
     return null;
   }
-  const idx = await getStaticDirIndex();
-  const entries = idx[normalized];
+  const entries = listDataDir(normalized);
   if (!entries) return null;
-  const mapped: StaticDirEntry[] = entries.map((e) => ({
-    name: e.name,
-    file_type: e.fileType === 1 ? "directory" : "file",
-  }));
+  const mapped: StaticDirEntry[] = entries
+    // The home folder is the VFS's, not the pack's.
+    .filter((e) => !(normalized === "/home" && e.name === "user") && !(normalized === "/" && e.name === "home"))
+    .map((e) => ({ name: e.name, file_type: e.isDirectory ? "directory" : "file" }));
   if (normalized === "/" && !mapped.some((e) => e.name === "home")) {
     mapped.unshift({ name: "home", file_type: "directory" });
   }

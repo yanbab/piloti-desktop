@@ -17,7 +17,7 @@ one theme, every candidate name is tried before moving to the next theme.
   come from our package. Papirus, Adwaita and hicolor (with the `org.gnome.*`
   app icons) come from the system.
 - **In the web demo:** `data/files/usr/share/icons/` holds a minimal copy of
-  each theme, served from `/__fs/`. It includes the GNOME app icons for
+  each theme, read from the demo's data pack. It includes the GNOME app icons for
   Calculator, Snapshot, Loupe and Epiphany (from GNOME GitLab) and Papirus's
   `org.gnome.Snapshot` icon.
 

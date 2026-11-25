@@ -3,108 +3,43 @@ import path from "node:path";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig, type Plugin } from "vite";
+// @ts-expect-error -- a plain script, shared with the icon generator
+import { DATA_FILES_DIR, writeDataPack } from "./scripts/pack-data-files.mjs";
 
-const DATA_FILES_ROOT = path.resolve(__dirname, "data/files");
-
-function getStaticMimeType(filePath: string): string {
-  const lower = filePath.toLowerCase();
-  if (lower.endsWith(".svg")) return "image/svg+xml; charset=utf-8";
-  if (lower.endsWith(".json")) return "application/json; charset=utf-8";
-  if (lower.endsWith(".png")) return "image/png";
-  if (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) return "image/jpeg";
-  if (lower.endsWith(".webp")) return "image/webp";
-  if (lower.endsWith(".html") || lower.endsWith(".htm")) return "text/html; charset=utf-8";
-  return "text/plain; charset=utf-8";
-}
-
-function buildStaticTreeIndex(rootDir: string): Record<string, { name: string; fileType: 0 | 1 }[]> {
-  const index: Record<string, { name: string; fileType: 0 | 1 }[]> = {};
-  const walk = (cur: string, vfsPath: string) => {
-    if (!fs.existsSync(cur)) return;
-    const list: { name: string; fileType: 0 | 1 }[] = [];
-    for (const ent of fs.readdirSync(cur, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
-      if (ent.name === ".DS_Store") continue;
-      if (vfsPath === "/" && ent.name === "home") continue;
-      if (vfsPath === "/home" && ent.name === "user") continue;
-      const full = path.join(cur, ent.name);
-      const childVfs = vfsPath === "/" ? `/${ent.name}` : `${vfsPath}/${ent.name}`;
-      if (ent.isDirectory()) {
-        list.push({ name: ent.name, fileType: 1 });
-        walk(full, childVfs);
-      } else {
-        list.push({ name: ent.name, fileType: 0 });
-      }
-    }
-    index[vfsPath] = list;
-  };
-  walk(rootDir, "/");
-  return index;
-}
-
-function dataFilesStaticPlugin(): Plugin {
+/**
+ * Keeps the data pack the demo reads in step with `data/files`, and copies the
+ * icons next to the built demo, where the landing page (docs/index.html) links.
+ */
+function dataFilesPlugin(): Plugin {
+  const ICONS_ROOT = path.join(DATA_FILES_DIR, "usr", "share", "icons");
   return {
-    name: "data-files-static",
+    name: "data-files",
+    buildStart() {
+      writeDataPack();
+    },
     configureServer(server) {
-      server.middlewares.use("/__fs_tree.json", (_req, res) => {
-        res.setHeader("content-type", "application/json; charset=utf-8");
-        res.end(JSON.stringify(buildStaticTreeIndex(DATA_FILES_ROOT)));
-      });
-      server.middlewares.use("/__fs", (req, res, next) => {
-        try {
-          const reqPath = decodeURIComponent((req.url ?? "/").split("?")[0]);
-          const relPath = reqPath.replace(/^\/+/, "");
-          if (!relPath || relPath === "home/user" || relPath.startsWith("home/user/")) {
-            next();
-            return;
-          }
-          const resolved = path.resolve(DATA_FILES_ROOT, relPath);
-          if (
-            resolved !== DATA_FILES_ROOT &&
-            !resolved.startsWith(`${DATA_FILES_ROOT}${path.sep}`)
-          ) {
-            res.statusCode = 403;
-            res.end();
-            return;
-          }
-          if (!fs.existsSync(resolved) || !fs.statSync(resolved).isFile()) {
-            next();
-            return;
-          }
-          res.setHeader("content-type", getStaticMimeType(resolved));
-          res.end(fs.readFileSync(resolved));
-        } catch {
-          next();
-        }
+      server.watcher.add(DATA_FILES_DIR);
+      server.watcher.on("all", (_event, file) => {
+        if (file.startsWith(DATA_FILES_DIR)) writeDataPack();
       });
     },
     generateBundle() {
-      if (!fs.existsSync(DATA_FILES_ROOT)) return;
-      const walk = (cur: string, relDir: string) => {
-        for (const ent of fs.readdirSync(cur, { withFileTypes: true })) {
+      const walk = (dir: string) => {
+        for (const ent of fs.readdirSync(dir, { withFileTypes: true })) {
           if (ent.name === ".DS_Store") continue;
-          const rel = relDir ? `${relDir}/${ent.name}` : ent.name;
-          if (rel === "home/user" || rel.startsWith("home/user/")) continue;
-          if (rel === "home" && !fs.readdirSync(path.join(cur, ent.name)).some((n) => n !== "user")) {
+          const full = path.join(dir, ent.name);
+          if (ent.isDirectory()) {
+            walk(full);
             continue;
           }
-          const full = path.join(cur, ent.name);
-          if (ent.isDirectory()) {
-            walk(full, rel);
-          } else {
-            this.emitFile({
-              type: "asset",
-              fileName: `__fs/${rel}`,
-              source: fs.readFileSync(full),
-            });
-          }
+          this.emitFile({
+            type: "asset",
+            fileName: `__fs/${path.relative(DATA_FILES_DIR, full).split(path.sep).join("/")}`,
+            source: fs.readFileSync(full),
+          });
         }
       };
-      walk(DATA_FILES_ROOT, "");
-      this.emitFile({
-        type: "asset",
-        fileName: "__fs_tree.json",
-        source: JSON.stringify(buildStaticTreeIndex(DATA_FILES_ROOT)),
-      });
+      walk(ICONS_ROOT);
     },
   };
 }
@@ -295,7 +230,7 @@ function webMetaProxyPlugin(): Plugin {
 
 export default defineConfig({
   base: "./",
-  plugins: [react(), tailwindcss(), webMetaProxyPlugin(), dataFilesStaticPlugin()],
+  plugins: [react(), tailwindcss(), webMetaProxyPlugin(), dataFilesPlugin()],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "src"),

@@ -8,20 +8,19 @@ import {
 } from "@/lib/core/vfs-paths";
 import type { KeyValueStorage } from "@/lib/ports/vfs-persistence";
 import { DEFAULT_MIMEAPPS_INI } from "@/lib/xdg/xdg-mimeapps";
-import {
-  DEFAULT_HOME_DIRS as GENERATED_HOME_DIRS,
-  DEFAULT_HOME_FILES as GENERATED_HOME_FILES,
-} from "./default-vfs-tree";
+import { DATA_DIRS, DATA_FILES } from "./data-files";
 
 // What the browser demo starts with (and tops up on every load). Native never uses this.
-export const DEFAULT_HOME_DIRS: readonly string[] = GENERATED_HOME_DIRS.map(rehome);
+// The pack spells the home folder `/home/user`.
+const inHome = (path: string) => path === "/home/user" || path.startsWith("/home/user/");
+export const DEFAULT_HOME_DIRS: readonly string[] = DATA_DIRS.filter(inHome).map(rehome);
 export const DEFAULT_HOME_FILES: Record<string, string> = Object.fromEntries(
-  Object.entries(GENERATED_HOME_FILES).map(([path, content]) => [rehome(path), content]),
+  Object.entries(DATA_FILES)
+    .filter(([path]) => inHome(path))
+    .map(([path, content]) => [rehome(path), content]),
 );
 
-export const DEFAULT_ETC_ISSUE = `Piloti Desktop Web VFS (localStorage)
-Type 'help' for shell commands, 'piloti help' for desktop controls, or 'cat ~/Documents/Notes.txt'.
-`;
+export const DEFAULT_ETC_ISSUE = DATA_FILES["/etc/issue"] ?? "";
 
 const DEMO_MIMEAPPS_INI =
   DEFAULT_HOME_FILES[`${VFS_HOME}/.config/mimeapps.list`] ?? DEFAULT_MIMEAPPS_INI;

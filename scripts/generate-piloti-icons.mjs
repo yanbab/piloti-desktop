@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import fs from "node:fs";
 import path from "node:path";
+import { writeDataPack } from "./pack-data-files.mjs";
 
 const ROOT = path.resolve(import.meta.dirname, "..");
 const DATA_FILES_DIR = path.join(ROOT, "data", "files");
@@ -756,96 +757,8 @@ for (const [rel, doc] of Object.entries(ICONS)) {
   fs.writeFileSync(outPath, JSON.stringify(doc), "utf8");
 }
 
-function collectFiles(dir, prefix, exts) {
-  const out = {};
-  if (!fs.existsSync(dir)) return out;
-  const walk = (cur) => {
-    for (const ent of fs.readdirSync(cur, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
-      const full = path.join(cur, ent.name);
-      if (ent.isDirectory()) {
-        walk(full);
-      } else if (!exts || exts.some((ext) => ent.name.endsWith(ext))) {
-        const rel = path.relative(dir, full).split(path.sep).join("/");
-        out[`${prefix}/${rel}`] = fs.readFileSync(full, "utf8");
-      }
-    }
-  };
-  walk(dir);
-  return out;
-}
-
-function collectHomeTree(homeDir) {
-  const dirs = [];
-  const files = {};
-  const walk = (cur, vfsPath) => {
-    dirs.push(vfsPath);
-    for (const ent of fs.readdirSync(cur, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
-      const full = path.join(cur, ent.name);
-      const childVfs = `${vfsPath}/${ent.name}`;
-      if (ent.isDirectory()) {
-        walk(full, childVfs);
-      } else {
-        files[childVfs] = fs.readFileSync(full, "utf8");
-      }
-    }
-  };
-  if (fs.existsSync(homeDir)) {
-    walk(homeDir, "/home/user");
-  }
-  return { dirs, files };
-}
-
-function collectStaticDirIndex(filesRoot) {
-  const index = {};
-  const walk = (cur, vfsPath) => {
-    const list = [];
-    for (const ent of fs.readdirSync(cur, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
-      if (ent.name === ".DS_Store") continue;
-      if (vfsPath === "/" && ent.name === "home") continue;
-      if (vfsPath === "/home" && ent.name === "user") continue;
-      const full = path.join(cur, ent.name);
-      const childVfs = vfsPath === "/" ? `/${ent.name}` : `${vfsPath}/${ent.name}`;
-      if (ent.isDirectory()) {
-        list.push({ name: ent.name, fileType: 1 });
-        walk(full, childVfs);
-      } else {
-        list.push({ name: ent.name, fileType: 0 });
-      }
-    }
-    index[vfsPath] = list;
-  };
-  if (fs.existsSync(filesRoot)) {
-    walk(filesRoot, "/");
-  }
-  return index;
-}
-
-const pilotiEntries = collectFiles(ICONS_PILOTI_DIR, "/usr/share/icons/Piloti", [".json", ".svg", ".theme"]);
-const pilotiTs = `// Auto-generated from data/files/usr/share/icons/Piloti.\nexport const PILOTI_VIRTUAL_ICONS: Record<string, string> = ${JSON.stringify(
-  pilotiEntries,
-  null,
-  2
-)};\n`;
-fs.writeFileSync(path.join(ROOT, "src", "lib", "engine-web", "piloti-virtual-icons.ts"), pilotiTs, "utf8");
-
-const homeTree = collectHomeTree(path.join(DATA_FILES_DIR, "home", "user"));
-const staticDirIndex = collectStaticDirIndex(DATA_FILES_DIR);
-const defaultTreeTs = `// Auto-generated from data/files/.\nexport const DEFAULT_HOME_DIRS: readonly string[] = ${JSON.stringify(
-  homeTree.dirs,
-  null,
-  2
-)};\n\nexport const DEFAULT_HOME_FILES: Record<string, string> = ${JSON.stringify(
-  homeTree.files,
-  null,
-  2
-)};\n\nexport const DEFAULT_STATIC_DIR_INDEX: Record<string, readonly { name: string; fileType: 0 | 1 }[]> = ${JSON.stringify(
-  staticDirIndex,
-  null,
-  2
-)};\n`;
-fs.writeFileSync(path.join(ROOT, "src", "lib", "engine-web", "default-vfs-tree.ts"), defaultTreeTs, "utf8");
+writeDataPack();
 
 console.log(
-  `Generated ${Object.keys(ICONS).length} animated icons, ${Object.keys(pilotiEntries).length} Piloti entries, ${Object.keys(homeTree.files).length} home starter files, ${Object.keys(staticDirIndex).length} static dirs.`
+  `Generated ${Object.keys(ICONS).length} animated icons and packed data/files.`
 );
-

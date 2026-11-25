@@ -4,7 +4,7 @@ import {
   loadXdgIconDataUrl,
   lookupXdgIconPath,
 } from "@/lib/xdg/xdg-icon-theme";
-import { PILOTI_VIRTUAL_ICONS } from "@/lib/engine-web/piloti-virtual-icons";
+import { DATA_FILES } from "@/lib/engine-web/data-files";
 import { diskIconReader, readDataFile } from "../helpers/disk-icon-reader";
 
 const mkOk = <T>(v: T) => ({ match: ({ Ok }: { Ok: (x: T) => unknown }) => Ok(v) });
@@ -20,6 +20,10 @@ import {
   upsertRecentXbelItem,
 } from "@/lib/xdg/xdg-recents";
 import { parseGlobs2, sniffMimeType } from "@/lib/xdg/xdg-mimeapps";
+
+const PILOTI_VIRTUAL_ICONS: Record<string, string> = Object.fromEntries(
+  Object.entries(DATA_FILES).filter(([p]) => p.startsWith("/usr/share/icons/Piloti/"))
+);
 
 describe("XDG specifications (Autostart, Recents XBEL, Globs2/Magic)", () => {
   it("parses and merges XDG autostart entries with user overrides", () => {
