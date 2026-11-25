@@ -176,7 +176,7 @@ function DesktopSurface() {
       style={{
         filter: brightnessFilter,
       }}
-      className="relative flex h-screen w-screen flex-col overflow-hidden select-none"
+      className="relative flex h-dvh w-screen flex-col overflow-hidden select-none"
     >
       {/* GNOME Spec / Curated Background Layers */}
       <DesktopBackgroundLayers />

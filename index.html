@@ -2,7 +2,16 @@
 <html lang="en" class="dark" style="background-color: #222222;">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content" />
+    <!-- Added to a phone's home screen, the demo opens full screen. -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Piloti" />
+    <meta name="theme-color" content="#222222" />
+    <!-- Double tap opens things on a desktop: it must not zoom the page. -->
+    <style>
+      html, body, #root { touch-action: manipulation; }
+    </style>
     <link
       rel="icon"
       type="image/svg+xml"

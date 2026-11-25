@@ -264,7 +264,6 @@ export function AdwSplitView({
         className={cn(
           "flex min-h-0 shrink-0 flex-col overflow-hidden border-r border-adw-separator bg-adw-sidebar",
           resizable ? undefined : isCompact ? "w-[47px]" : sidebarWidthClass,
-          resizable && !panel.dragging && "transition-[width] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)]",
         )}
         style={
           resizable ? { width: showCompact ? 47 : panel.width } : undefined
