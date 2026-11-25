@@ -7,7 +7,7 @@ import {
   WindowControls,
   WindowMain,
 } from "@/components/ui/window";
-import pkg from "../../../package.json";
+import { PILOTI_VERSION } from "@/lib/core/version";
 import {
   useSettings,
   useWindowActions,
@@ -183,7 +183,7 @@ export function AboutComputerDialog() {
   }, [info.kernel, info.osName, isBrowserRuntime]);  // FIXME : Capabilities
 
   const rows = [
-    { label: _("Desktop"), value: `Piloti v${pkg.version}` },
+    { label: _("Desktop"), value: `Piloti v${PILOTI_VERSION}` },
     { label: _("Platform"), value: platformLabel },
     { label: _("Processor"), value: _(info.processor) },
     { label: _("Graphics"), value: _(info.graphics) },

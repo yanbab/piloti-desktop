@@ -271,7 +271,6 @@ export const MenuBar = React.memo(function MenuBar() {
     toggleMaximizeWindow,
     tileWindow,
     launchApp,
-    openGnomeSettings,
     openWebUrl,
     handleMenuAction,
     setLauncherOpen,
@@ -634,11 +633,6 @@ export const MenuBar = React.memo(function MenuBar() {
                 {_("About Computer")}
               </MenubarItem>
               <MenubarSeparator />
-              {!isBrowserRuntime && (  // FIXME : Capabilities
-                <MenubarItem onClick={() => openGnomeSettings()}>
-                  {_("System Settings")}
-                </MenubarItem>
-              )}
               <MenubarItem
                 onClick={(e) => {
                   captureLaunchOriginFromElement(e.currentTarget);

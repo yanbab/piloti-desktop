@@ -18,6 +18,12 @@ if [ "$(cd "$BUILD" && pwd -P)" = "$(cd "$SHARED" && pwd -P)" ]; then
   echo "PILOTI_BUILD must not be the source folder" >&2
   exit 1
 fi
+# The copy has no .git: count the commits since the release here.
+if [ -z "${PILOTI_REVISION:-}" ]; then
+  version="$(sed -n 's/.*"version": *"\([^"]*\)".*/\1/p' "$SHARED/package.json" | head -1)"
+  PILOTI_REVISION="$(git -c safe.directory="$SHARED" -C "$SHARED" rev-list --count "v$version..HEAD" 2>/dev/null || true)"
+fi
+export PILOTI_REVISION
 rsync -a --delete \
   --exclude node_modules --exclude dist --exclude .git --exclude _docs \
   --exclude test-results --exclude docs/demo --exclude '/.*' \

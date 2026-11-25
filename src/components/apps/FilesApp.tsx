@@ -373,7 +373,8 @@ export function FilesApp({
     if (existing?.kind === "file") {
       return existing.parentPath;
     }
-    return existing?.kind === "directory" ? normalized : WEB_VFS_HOME;
+    // On disk, a folder the cache hasn't listed yet (a link, a deep path) exists.
+    return existing?.kind === "directory" || realFilesystem ? normalized : WEB_VFS_HOME;
   });
 
   React.useEffect(() => {
@@ -842,10 +843,10 @@ export function FilesApp({
     const existing = getVfsEntry(normalized);
     if (existing?.kind === "file") {
       setCurrentPath(existing.parentPath);
-    } else if (existing?.kind === "directory") {
+    } else if (existing?.kind === "directory" || realFilesystem) {
       setCurrentPath(normalized);
     }
-  }, [initialPath]);
+  }, [initialPath, realFilesystem]);
 
   React.useEffect(() => {
     const candidates = new Set<string>();

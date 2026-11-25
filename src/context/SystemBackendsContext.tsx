@@ -190,7 +190,7 @@ export function useSystemBackendsValue(
     GnomeControlCenterPanelInfo[]
   >(() => [...DEFAULT_GNOME_PANELS]);
   const [liveWifiNetworks, setLiveWifiNetworks] = React.useState<WifiNetwork[]>(
-    SAMPLE_WIFI_NETWORKS
+    getEngine().capabilities.simulatedHardware ? SAMPLE_WIFI_NETWORKS : []
   );
   const [mprisMedia, setMprisMedia] = React.useState<MprisMediaInfo | null>(
     null
@@ -838,13 +838,22 @@ export function useSystemBackendsValue(
       if (audio.sinks.length > 0) setAudioSinks(audio.sinks);
     });
     const stopBluetooth = watchSystemBluetooth(domicile, (bt) => {
-      if (!bt) return;
+      if (!bt) {
+        setBluetoothDevices([]);
+        applySettingsState({ bluetoothEnabled: false });
+        return;
+      }
       applySettingsState({ bluetoothEnabled: bt.powered });
       setBluetoothDevices(bt.devices);
     });
     const stopWifi = watchSystemWifi(domicile, (wifi) => {
-      if (!wifi) return;
-      if (wifi.networks.length > 0) setLiveWifiNetworks(wifi.networks);
+      if (!wifi) {
+        // No Wi-Fi hardware: show it off and empty.
+        setLiveWifiNetworks([]);
+        applySettingsState({ wifiEnabled: false, connectedWifi: "" });
+        return;
+      }
+      setLiveWifiNetworks(wifi.networks);
       applySettingsState({
         wifiEnabled: wifi.enabled,
         connectedWifi: wifi.connectedSsid ?? "",

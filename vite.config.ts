@@ -1,4 +1,6 @@
 import fs from "node:fs";
+// @ts-expect-error -- a plain script
+import { buildVersion } from "./scripts/version.mjs";
 import path from "node:path";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
@@ -235,6 +237,7 @@ function webMetaProxyPlugin(): Plugin {
 }
 
 export default defineConfig({
+  define: { __PILOTI_VERSION__: JSON.stringify(buildVersion()) },
   base: "./",
   plugins: [react(), tailwindcss(), webMetaProxyPlugin(), dataFilesPlugin()],
   resolve: {

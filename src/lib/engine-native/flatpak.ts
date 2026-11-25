@@ -1,6 +1,6 @@
 import type { Domicile } from "@domicile-desktop/sdk/desktop/desktop";
 import { Signal } from "@domicile-desktop/sdk/system";
-import flathubPopularJson from "@/data/flathub-popular.json";
+import { hostFiles } from "@/lib/engine/host-files";
 import { commandExists, launchDesktopCommand, runText } from "./exec";
 
 export interface FlatpakAppEntry {
@@ -165,16 +165,28 @@ interface FlathubPopularHit {
   main_categories?: string[];
 }
 
-const FLATHUB_POPULAR_HITS: readonly FlathubPopularHit[] = Array.isArray(
-  (flathubPopularJson as { hits?: unknown }).hits
-)
-  ? ((flathubPopularJson as { hits: FlathubPopularHit[] }).hits)
-  : [];
+const POPULAR_FILE = "/usr/share/piloti/flathub-popular.json";
+let popularHits: readonly FlathubPopularHit[] = [];
+
+/** Reads the shipped list of popular apps (170 KB: only when the App Store opens). */
+export async function loadPopularFlathubHits(domicile: Pick<Domicile, "files">): Promise<void> {
+  if (popularHits.length > 0) return;
+  try {
+    const text = (await hostFiles(domicile).readText(POPULAR_FILE)).match({
+      Ok: (t) => t,
+      Err: () => "",
+    });
+    const hits = (JSON.parse(text) as { hits?: unknown }).hits;
+    if (Array.isArray(hits)) popularHits = hits as FlathubPopularHit[];
+  } catch {
+    // no list: the App Store still searches Flathub online
+  }
+}
 
 export function getPopularFlathubApps(
   installedIds?: ReadonlySet<string>
 ): FlatpakAppEntry[] {
-  return FLATHUB_POPULAR_HITS.filter((h) => h.app_id && h.name).map((hit) => ({
+  return popularHits.filter((h) => h.app_id && h.name).map((hit) => ({
     appId: hit.app_id,
     name: hit.name,
     description: hit.summary,

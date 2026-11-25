@@ -5,7 +5,7 @@ import { AppSquircleIcon } from "@/components/shell/AppSymbol";
 import { useApps } from "@/context/DesktopStateContext";
 import type { AppDefinition } from "@/data/catalog";
 import { _ } from "@/lib/core/i18n";
-import pkg from "../../../package.json";
+import { PILOTI_VERSION } from "@/lib/core/version";
 
 const WIDTH = 280;
 
@@ -74,7 +74,7 @@ export function AppAboutWindow({
           <h2 className="text-adw-title-2 font-extrabold text-adw-label">{_(app.name)}</h2>
           <p className="text-adw-callout text-adw-label-secondary">{_(app.description)}</p>
           <span className="mt-1.5 rounded-full bg-black/6 px-2.5 py-0.5 text-adw-subheadline font-medium tabular-nums text-adw-label-secondary dark:bg-white/10">
-            {_("Version %s", pkg.version)}
+            {_("Version %s", PILOTI_VERSION)}
           </span>
         </div>
       </WindowMain>

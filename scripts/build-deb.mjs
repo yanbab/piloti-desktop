@@ -11,6 +11,7 @@
  *   node scripts/build-deb.mjs [--skip-build] [--stage-only] [--stage-dir <dir>] [--out <file.deb>]
  */
 import crypto from "node:crypto";
+import { buildVersion } from "./version.mjs";
 import { execFileSync, spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
@@ -199,6 +200,12 @@ export function stagePackageRoot({
   };
 }
 
+/** The built shell's own version (`0.10.9-3`) when it matches, else release 1. */
+function debVersion(version) {
+  const built = buildVersion();
+  return built.startsWith(`${version}-`) ? built : `${version}-1`;
+}
+
 function generateDebianControl({ version, installedSizeKiB, repoRoot }) {
   const pkg = readPackageJson(repoRoot);
   const srcControl = fs.readFileSync(
@@ -214,7 +221,7 @@ function generateDebianControl({ version, installedSizeKiB, repoRoot }) {
 
   return [
     `Package: ${pkg.name || "piloti-desktop"}`,
-    `Version: ${version}-1`,
+    `Version: ${debVersion(version)}`,
     "Section: x11",
     "Priority: optional",
     "Architecture: all",
@@ -492,7 +499,7 @@ export function buildDebPackage({
 
     const debPath =
       outPath ||
-      path.join(repoRoot, "dist", `${pkg.name || "piloti-desktop"}_${version}-1_all.deb`);
+      path.join(repoRoot, "dist", `${pkg.name || "piloti-desktop"}_${debVersion(version)}_all.deb`);
 
     let method;
     if (hasCommand("dpkg-deb")) {

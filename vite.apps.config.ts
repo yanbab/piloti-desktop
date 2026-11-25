@@ -1,4 +1,6 @@
 import path from "node:path";
+// @ts-expect-error -- a plain script
+import { buildVersion } from "./scripts/version.mjs";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
@@ -9,6 +11,7 @@ import { cssInTheModule } from "./vite.plugins";
 const id = process.env.APP ?? "hello";
 
 export default defineConfig({
+  define: { __PILOTI_VERSION__: JSON.stringify(buildVersion()) },
   base: "./",
   plugins: [react(), tailwindcss(), cssInTheModule()],
   resolve: { alias: { "@": path.resolve(__dirname, "src") } },

@@ -86,6 +86,7 @@ import {
   type FlatpakCapabilities,
   type FlatpakUpdateEntry,
   getPopularFlathubApps,
+  loadPopularFlathubHits,
   installFlatpakApp,
   listAptUpdates,
   listFlatpakUpdates,
@@ -708,6 +709,10 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
   const [flathubEntries, setFlathubEntries] = React.useState<FlatpakAppEntry[]>(
     () => getPopularFlathubApps(),
   );
+  const [popularLoaded, setPopularLoaded] = React.useState(false);
+  React.useEffect(() => {
+    void loadPopularFlathubHits(domicile).then(() => setPopularLoaded(true));
+  }, [domicile]);
   const [featuredSlide, setFeaturedSlide] = React.useState(0);
   const [featuredHovered, setFeaturedHovered] = React.useState(false);
 
@@ -1072,7 +1077,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
       window.clearTimeout(timer);
       controller.abort();
     };
-  }, [domicile, installedFlatpakIds, query]);
+  }, [domicile, installedFlatpakIds, popularLoaded, query]);
 
   const flatpakItems = React.useMemo<StoreItem[]>(() => {
     const popularById = new Map(
@@ -1132,7 +1137,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
       flatpak: fp,
       faviconUrl: fp.iconUrl || getAppIconUrl(fp.appId),
     }));
-  }, [flathubEntries, getAppIconUrl, installedFlatpakIds, installedFlatpaks]);
+  }, [flathubEntries, getAppIconUrl, installedFlatpakIds, installedFlatpaks, popularLoaded]);
 
   const installedChromeExtensions = React.useMemo<ChromeExtensionEntry[]>(() => {
     const raw = (
