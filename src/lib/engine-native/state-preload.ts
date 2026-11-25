@@ -34,6 +34,8 @@ export async function preloadNativeState(store: FileStore, sink: StateSink): Pro
           if (depth < MAX_DEPTH) await walk(path, depth + 1);
           return;
         }
+        // Logs are only ever written: reading them back slows every start.
+        if (entry.name.endsWith(".log")) return;
         const text = await store.readText(path).catch(() => null);
         if (text === null) return;
         sink.writeText(path, text);

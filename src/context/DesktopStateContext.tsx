@@ -1,7 +1,6 @@
 import * as React from "react";
 import { useDomicile } from "@domicile-desktop/react/domicile-provider";
 import { PluginsProvider } from "@/context/PluginsContext";
-import { attachConsoleDiskSink } from "@/lib/core/console-store";
 import { AppsContext, useApps, useAppsValue } from "./AppsContext";
 import {
   type DesktopSettings,
@@ -216,10 +215,6 @@ export function DesktopStateProvider({
   const settingsValue = useSettingsValue({
     deferLocalWallpaper: !essentialIconsReady,
   });
-
-  React.useEffect(() => {
-    attachConsoleDiskSink(domicile, settingsValue.isBrowserRuntime);  // FIXME : Capabilities
-  }, [domicile, settingsValue.isBrowserRuntime]);  // FIXME : Capabilities
 
   const latestSettingsRef = React.useRef(settingsValue);
   latestSettingsRef.current = settingsValue;

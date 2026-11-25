@@ -2,7 +2,6 @@ import { WINDOW_CONTROL_CLASS } from "@/components/ui/window";
 import { cn } from "@/lib/core/utils";
 import * as React from "react";
 import { countRender } from "@/lib/core/render-stats";
-import { MoreVerticalIcon } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -72,7 +71,8 @@ export const WindowMenuButton = React.memo(function WindowMenuButton({
           "mx-0.5 shrink-0 cursor-default select-none data-popup-open:bg-black/14 dark:data-popup-open:bg-white/18"
         )}
       >
-        <MoreVerticalIcon className="size-3.5" strokeWidth={2.5} />
+        {/* One centred dot. */}
+        <span aria-hidden="true" className="size-1.5 rounded-full bg-current" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start">
         {extraItems && (

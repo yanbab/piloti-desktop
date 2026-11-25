@@ -1,3 +1,5 @@
+import { attachConsoleDiskSink, installConsoleCapture } from "./lib/core/console-store";
+import { createShellLogWriter } from "./lib/engine/shell-log";
 import { profileStartup } from "./lib/core/startup-profile";
 import { startBootPhase } from "./lib/core/perf-log";
 import * as React from "react";
@@ -75,7 +77,10 @@ if (root) {
       import("./lib/engine-web"),
     ]).then(([{ Shell }, { createBrowserDomicile }]) => {
       finishImport();
-      const domicile = profileStartup(createBrowserDomicile());
+      const host = createBrowserDomicile();
+      installConsoleCapture();
+      attachConsoleDiskSink(createShellLogWriter(host));
+      const domicile = profileStartup(host);
       const finishRender = startBootPhase("first render");
       Shell(root, domicile);
       finishRender();

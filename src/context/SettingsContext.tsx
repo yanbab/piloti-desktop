@@ -620,15 +620,6 @@ export function useSettingsValue(options?: {
       ])
       .catch(() => undefined);
 
-    // Move leftovers of the legacy ~/.config/Piloti directory to ~/.config/piloti.
-    void domicile.processes
-      .run([
-        "sh",
-        "-c",
-        'd="$HOME/.config/Piloti"; n="$HOME/.config/piloti"; if [ -d "$d" ]; then mkdir -p "$n" && cp -rn "$d"/. "$n"/ && rm -rf "$d"; fi',
-      ])
-      .catch(() => undefined);
-
     // Hydrate settings.ini from the real Linux $HOME if present, or seed it on
     // disk when migrated during initial render before hostSync was registered.
     void (async () => {

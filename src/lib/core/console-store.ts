@@ -1,17 +1,7 @@
 import * as React from "react";
-import { consumeLegacyLocalStorageValue, getVfsEntry, writeVfsTextFile } from "@/lib/engine-web/web-vfs";
-import { VFS_STATE_PATHS } from "@/lib/engine/vfs-state";
+import { consumeLegacyLocalStorageValue } from "@/lib/engine-web/web-vfs";
 
 export type ConsoleLogLevel = "log" | "info" | "warn" | "error";
-
-export interface ConsoleDiskSink {
-  files: {
-    write: (path: string, content: string) => Promise<unknown>;
-  };
-  processes: {
-    run: (argv: string[]) => Promise<unknown>;
-  };
-}
 
 export interface ConsoleLogEntry {
   id: number;
@@ -22,18 +12,24 @@ export interface ConsoleLogEntry {
 }
 
 const MAX_LOG_ENTRIES = 2000;
-const CONSOLE_LOG_FILE = ".cache/piloti/piloti.log";
 const CONSOLE_LOG_STORAGE_KEY = "piloti.console.log.v1";
 let nextEntryId = 1;
 let installed = false;
 let entries: ConsoleLogEntry[] = [];
 const listeners = new Set<() => void>();
-let diskSink: ConsoleDiskSink | null = null;
-let diskSinkIsBrowser = true;
+let writeLog: ((text: string) => Promise<unknown>) | null = null;
+let writing: Promise<unknown> = Promise.resolve();
 let diskFlushTimer: ReturnType<typeof setTimeout> | null = null;
-let ensuredCacheDir = false;
 
-async function flushConsoleLogToDisk(): Promise<void> {
+/** Writes one after the other, so an older log never lands over a newer one. */
+function writeLogFile(text: string): void {
+  const write = writeLog;
+  if (!write) return;
+  // A full disk or a locked file must not break the shell.
+  writing = writing.then(() => write(text)).catch(() => undefined);
+}
+
+function flushConsoleLogToDisk(): void {
   if (entries.length === 0) return;
   const payload =
     entries
@@ -43,51 +39,26 @@ async function flushConsoleLogToDisk(): Promise<void> {
         return `[${ts}] [${entry.level.toUpperCase()}] ${entry.message}${repeat}`;
       })
       .join("\n") + "\n";
-
-  try {
-    consumeLegacyLocalStorageValue(CONSOLE_LOG_STORAGE_KEY);
-    const existing = getVfsEntry(VFS_STATE_PATHS.consoleLog);
-    if (!existing || existing.content !== payload) {
-      writeVfsTextFile(VFS_STATE_PATHS.consoleLog, payload);
-    }
-  } catch {
-    // ignore storage quota errors
-  }
-
-  const domicile = diskSink;
-  if (!domicile || diskSinkIsBrowser) return;
-
-  try {
-    if (!ensuredCacheDir) {
-      ensuredCacheDir = true;
-      await domicile.processes.run(["mkdir", "-p", ".cache/piloti"]);
-    }
-    await domicile.files.write(CONSOLE_LOG_FILE, payload);
-  } catch {
-    // ignore if filesystem is locked or unavailable
-  }
+  consumeLegacyLocalStorageValue(CONSOLE_LOG_STORAGE_KEY);
+  writeLogFile(payload);
 }
 
+// At most one write per second, however chatty the console is.
 function scheduleConsoleDiskFlush(): void {
-  if (diskFlushTimer !== null) {
-    clearTimeout(diskFlushTimer);
-  }
+  if (!writeLog || diskFlushTimer !== null) return;
   diskFlushTimer = setTimeout(() => {
     diskFlushTimer = null;
-    void flushConsoleLogToDisk();
-  }, 350);
+    flushConsoleLogToDisk();
+  }, 1000);
 }
 
 /**
- * Attaches a disk sink (`.cache/piloti/piloti.log` on Linux, `localStorage`
- * in browser dev mode) that persists every console message shown in DevTools.
+ * Starts the log file: emptied now, then kept up to date with everything the
+ * console shows. `write` replaces the whole file (see `engine/shell-log.ts`).
  */
-export function attachConsoleDiskSink(
-  domicile: ConsoleDiskSink,
-  isBrowserRuntime: boolean  // FIXME : Capabilities
-): void {
-  diskSink = domicile;
-  diskSinkIsBrowser = isBrowserRuntime;  // FIXME : Capabilities
+export function attachConsoleDiskSink(write: (text: string) => Promise<unknown>): void {
+  writeLog = write;
+  writeLogFile("");
   scheduleConsoleDiskFlush();
 }
 

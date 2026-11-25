@@ -1,3 +1,5 @@
+import { attachConsoleDiskSink, installConsoleCapture } from "./lib/core/console-store";
+import { createShellLogWriter } from "./lib/engine/shell-log";
 import { profileStartup } from "./lib/core/startup-profile";
 import { startBootPhase } from "./lib/core/perf-log";
 import type { Shell as ShellModule } from "@domicile-desktop/sdk/shell";
@@ -81,5 +83,8 @@ async function boot(root: HTMLElement, domicile: Parameters<ShellModule>[1]) {
 }
 
 export const Shell: ShellModule = (root, domicile) => {
+  // Log from the first line, so a start that hangs still leaves its trace.
+  installConsoleCapture();
+  attachConsoleDiskSink(createShellLogWriter(domicile));
   void boot(root, profileStartup(domicile));
 };

@@ -31,7 +31,7 @@ export const VFS_STATE_PATHS = {
   legacyDevtoolsModuleTxt: `${VFS_HOME}/.local/state/piloti/devtools-module.txt`,
   terminalHistory: `${VFS_HOME}/.piloti_history`,
   workspaceSnapshots: `${VFS_HOME}/.cache/piloti/workspace-snapshots.json`,
-  consoleLog: `${VFS_HOME}/.cache/piloti/piloti.log`,
+  consoleLog: `${VFS_HOME}/.local/state/piloti/piloti.log`,
   appStoreMeta: `${VFS_HOME}/.cache/piloti/app-store-meta.json`,
   appStoreSources: `${VFS_HOME}/.config/piloti/app-store-sources.json`,
   appPermissions: `${VFS_HOME}/.config/piloti/app-permissions.json`,
