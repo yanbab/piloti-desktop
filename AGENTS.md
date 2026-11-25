@@ -9,7 +9,7 @@ Do not go over 0.10 version, always use 0.10.x.
 Piloti Desktop is a Linux Wayland desktop shell built on `@domicile-desktop/react` and React/Tailwind/Adwaita primitives, sharing one UI tree across two runtime engines:
 
 - **`src/piloti-desktop.tsx`** + **`src/lib/engine-native/`**: Native Domicile Wayland session entry (`vite.shell.config.ts` -> `dist/shell.js`, plus `src/piloti-greeter.tsx` -> `dist/greeter.js`). Communicates with Linux subsystems via Domicile APIs (Wayland, GSettings, D-Bus menus, PipeWire/wpctl, nmcli, UPower, Flatpak, `xwayland-satellite`, `greetd`).
-- **`src/piloti-web.tsx`** + **`src/lib/engine-web/`**: Browser dev/demo entry (`index.html` + `vite.config.ts` -> `docs/demo/`). Uses `createBrowserDomicile()`, in-browser `web-vfs.ts`, and reads the shipped files from the data pack.
+- **`src/piloti-web.tsx`** + **`src/lib/engine-web/`**: Browser dev/demo entry (`index.html` + `vite.config.ts` -> `docs/demo/`). Uses `createBrowserDomicile()`, in-browser `web-vfs.ts`, and fetches the shipped files from `__fs/`.
 - **`src/lib/engine/`**: Unified runtime selector & engine-agnostic bridges (`engine-override.ts`, `fs-bridge.ts`, `app-bridge.ts`, `vfs-state.ts`).
 - **`src/lib/xdg/`**: FreeDesktop (`XDG`) specs implementation (basedir, `.desktop` parsing, icon themes, mimeapps, user-dirs, trash, autostart, recents XBEL, global app menus, session management, thumbnails, web app `.desktop` sync). Always keep XDG modules inside `src/lib/xdg/` (keep tsconfig/Vite path aliases `"xdg-basedir"`, `"xdg-desktop-entry"`, `"xdg-icon-theme"` updated if files move).
 - **`src/lib/config/`**, **`src/lib/shell/`**, **`src/lib/plugins/`**, **`src/lib/core/`**: INI/storage config, shell domain logic (window bounds, desktop icons, launcher, notifications, sound, terminal), plugin loader, and core utilities (`utils.ts`, `i18n.ts`, `perf-log.ts`, `console-store.ts`, `system-info.ts`).
@@ -18,8 +18,8 @@ Piloti Desktop is a Linux Wayland desktop shell built on `@domicile-desktop/reac
 ## Data Tree, State & Settings
 
 - **Canonical filesystem (`data/files/`)**: Holds default `/home/user/...` starter files, `.desktop` entries, `/usr/bin/piloti*` launchers, and icon themes (`Piloti`, `Papirus`, `Adwaita`, `hicolor`).
-  - `engine:web` reads them all from one generated pack, `src/lib/engine-web/data-files.json` (text files only): `/home/user` seeds the browser VFS on first start, the rest (`/usr`, `/etc`) is read-only from memory. The build also copies the icons to `__fs/` for the landing page.
-  - After changing files or icons under `data/files/`, regenerate the icons and the pack (the vite build repacks too) with:
+  - `engine:web` gets them over HTTP from `__fs/` (served by the dev server, copied into the web build, with `__fs/index.json`), fetched at start (the shell waits for `/home/user` and `/etc`): `/home/user` seeds the browser VFS on first start, the rest (`/usr`, `/etc`) is read-only from memory. The landing page links there too.
+  - After changing files or icons under `data/files/`, regenerate the animated icons with:
     ```bash
     node scripts/generate-piloti-icons.mjs
     ```

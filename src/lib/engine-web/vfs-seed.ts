@@ -11,36 +11,36 @@ import { DEFAULT_MIMEAPPS_INI } from "@/lib/xdg/xdg-mimeapps";
 import { DATA_DIRS, DATA_FILES } from "./data-files";
 
 // What the browser demo starts with (and tops up on every load). Native never uses this.
-// The pack spells the home folder `/home/user`.
+// The shipped files spell the home folder `/home/user`. Read when needed:
+// they arrive just before the shell starts (`loadDataFiles`).
 const inHome = (path: string) => path === "/home/user" || path.startsWith("/home/user/");
-export const DEFAULT_HOME_DIRS: readonly string[] = DATA_DIRS.filter(inHome).map(rehome);
-export const DEFAULT_HOME_FILES: Record<string, string> = Object.fromEntries(
-  Object.entries(DATA_FILES)
-    .filter(([path]) => inHome(path))
-    .map(([path, content]) => [rehome(path), content]),
-);
 
-export const DEFAULT_ETC_ISSUE = DATA_FILES["/etc/issue"] ?? "";
-
-const DEMO_MIMEAPPS_INI =
-  DEFAULT_HOME_FILES[`${VFS_HOME}/.config/mimeapps.list`] ?? DEFAULT_MIMEAPPS_INI;
-
-export const WELCOME_HTML =
-  DEFAULT_HOME_FILES[`${VFS_HOME}/Desktop/Welcome.html`] ?? "";
-
-const DEFAULT_DIRS = Array.from(
-  new Set(["/etc", "/home", WEB_VFS_HOME, ...DEFAULT_HOME_DIRS, WEB_VFS_TRASH]),
-);
-
-const DEFAULT_LOCAL_DESKTOP_FILES: Record<string, string> = Object.fromEntries(
-  Object.entries(DEFAULT_HOME_FILES)
-    .filter(([p]) => p.startsWith(`${VFS_HOME}/.local/share/applications/`) && p.endsWith(".desktop"))
-    .map(([p, content]) => [p.slice(`${VFS_HOME}/.local/share/applications/`.length), content]),
-);
+function shippedDefaults() {
+  const homeFiles: Record<string, string> = Object.fromEntries(
+    Object.entries(DATA_FILES)
+      .filter(([path]) => inHome(path))
+      .map(([path, content]) => [rehome(path), content])
+  );
+  const homeDirs = ["/home/user", ...DATA_DIRS.filter(inHome)].map(rehome);
+  const applications = `${VFS_HOME}/.local/share/applications/`;
+  return {
+    homeFiles,
+    dirs: Array.from(new Set(["/etc", "/home", WEB_VFS_HOME, ...homeDirs, WEB_VFS_TRASH])),
+    issue: DATA_FILES["/etc/issue"] ?? "",
+    mimeApps: homeFiles[`${VFS_HOME}/.config/mimeapps.list`] ?? DEFAULT_MIMEAPPS_INI,
+    welcome: homeFiles[`${VFS_HOME}/Desktop/Welcome.html`] ?? "",
+    desktopFiles: Object.fromEntries(
+      Object.entries(homeFiles)
+        .filter(([p]) => p.startsWith(applications) && p.endsWith(".desktop"))
+        .map(([p, content]) => [p.slice(applications.length), content])
+    ),
+  };
+}
 
 export function createInitialVfs(): WebVfsEntry[] {
+  const defaults = shippedDefaults();
   const now = Date.now();
-  const entries: WebVfsEntry[] = DEFAULT_DIRS.map((dirPath) => ({
+  const entries: WebVfsEntry[] = defaults.dirs.map((dirPath) => ({
     id: dirPath,
     name: basename(dirPath),
     kind: "directory",
@@ -55,11 +55,11 @@ export function createInitialVfs(): WebVfsEntry[] {
     kind: "file",
     path: "/etc/issue",
     parentPath: "/etc",
-    content: DEFAULT_ETC_ISSUE,
+    content: defaults.issue,
     updatedAt: now,
   });
 
-  for (const [fullPath, content] of Object.entries(DEFAULT_HOME_FILES)) {
+  for (const [fullPath, content] of Object.entries(defaults.homeFiles)) {
     entries.push({
       id: fullPath,
       name: basename(fullPath),
@@ -80,6 +80,7 @@ export function createInitialVfs(): WebVfsEntry[] {
  * `entries` changed and must be persisted.
  */
 export function topUpDefaults(entries: WebVfsEntry[], kv: KeyValueStorage | null): boolean {
+  const defaults = shippedDefaults();
   let addedDefaults = false;
   const welcomeFlagKey = "piloti.web.vfs.welcome.v1";
     if (kv && !kv.getItem(welcomeFlagKey)) {
@@ -96,7 +97,7 @@ export function topUpDefaults(entries: WebVfsEntry[], kv: KeyValueStorage | null
           kind: "file",
           path: `${VFS_HOME}/Desktop/Welcome.html`,
           parentPath: `${VFS_HOME}/Desktop`,
-          content: WELCOME_HTML,
+          content: defaults.welcome,
           updatedAt: Date.now(),
         });
         addedDefaults = true;
@@ -120,7 +121,7 @@ export function topUpDefaults(entries: WebVfsEntry[], kv: KeyValueStorage | null
         kind: "file",
         path: "/etc/issue",
         parentPath: "/etc",
-        content: DEFAULT_ETC_ISSUE,
+        content: defaults.issue,
         updatedAt: now,
       });
       addedDefaults = true;
@@ -142,12 +143,12 @@ export function topUpDefaults(entries: WebVfsEntry[], kv: KeyValueStorage | null
         kind: "file",
         path: `${VFS_HOME}/.config/mimeapps.list`,
         parentPath: `${VFS_HOME}/.config`,
-        content: DEMO_MIMEAPPS_INI,
+        content: defaults.mimeApps,
         updatedAt: now,
       });
       addedDefaults = true;
     }
-    for (const dirPath of DEFAULT_DIRS) {
+    for (const dirPath of defaults.dirs) {
       if (!entries.some((e) => e.path === dirPath)) {
         entries.push({
           id: dirPath,
@@ -160,7 +161,7 @@ export function topUpDefaults(entries: WebVfsEntry[], kv: KeyValueStorage | null
         addedDefaults = true;
       }
     }
-    for (const [fileName, content] of Object.entries(DEFAULT_LOCAL_DESKTOP_FILES)) {
+    for (const [fileName, content] of Object.entries(defaults.desktopFiles)) {
       const fullPath = `${VFS_HOME}/.local/share/applications/${fileName}`;
       if (!entries.some((e) => e.path === fullPath)) {
         entries.push({
@@ -175,7 +176,7 @@ export function topUpDefaults(entries: WebVfsEntry[], kv: KeyValueStorage | null
         addedDefaults = true;
       }
     }
-    for (const [fullPath, content] of Object.entries(DEFAULT_HOME_FILES)) {
+    for (const [fullPath, content] of Object.entries(defaults.homeFiles)) {
       if (
         (fullPath === `${VFS_HOME}/.hidden` ||
           fullPath.startsWith(`${VFS_HOME}/Templates/`)) &&
@@ -203,7 +204,7 @@ export function topUpDefaults(entries: WebVfsEntry[], kv: KeyValueStorage | null
     // Bundled plugins ship with the shell (like /usr/share on native): keep
     // the demo's copies current, so updates and new plugins reach old demos.
     const pluginsPrefix = `${VFS_HOME}/.config/piloti/plugins/`;
-    for (const [fullPath, content] of Object.entries(DEFAULT_HOME_FILES)) {
+    for (const [fullPath, content] of Object.entries(defaults.homeFiles)) {
       if (!fullPath.startsWith(pluginsPrefix)) continue;
       const existing = entries.find((e) => e.path === fullPath);
       if (!existing) {

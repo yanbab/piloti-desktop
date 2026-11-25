@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 import fs from "node:fs";
 import path from "node:path";
-import { writeDataPack } from "./pack-data-files.mjs";
 
 const ROOT = path.resolve(import.meta.dirname, "..");
 const DATA_FILES_DIR = path.join(ROOT, "data", "files");
@@ -757,8 +756,6 @@ for (const [rel, doc] of Object.entries(ICONS)) {
   fs.writeFileSync(outPath, JSON.stringify(doc), "utf8");
 }
 
-writeDataPack();
-
 console.log(
-  `Generated ${Object.keys(ICONS).length} animated icons and packed data/files.`
+  `Generated ${Object.keys(ICONS).length} animated icons.`
 );

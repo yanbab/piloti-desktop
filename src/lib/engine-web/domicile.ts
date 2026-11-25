@@ -2,7 +2,7 @@ import { desktop, type Domicile } from "@domicile-desktop/sdk/desktop/desktop";
 import type { DomicileHost, DomicileNotification } from "@domicile-desktop/sdk/domicile-host";
 import { FakeDomicileHost } from "@domicile-desktop/sdk/fake-host";
 import { VFS_HOME } from "../engine/vfs-home";
-import { DATA_FILES, listDataDir } from "./data-files";
+import { listDataDir, readShippedFile } from "./data-files";
 import { installPortalSimulator } from "./portal-simulator";
 import {
   ensureVfsDir,
@@ -22,7 +22,7 @@ const INITIAL_NOTIFICATIONS: DomicileNotification[] = [];
 
 type StaticDirEntry = { name: string; file_type: "file" | "directory" };
 
-/** System files come from the shipped pack, then from the real host if there is one. */
+/** System files come from the shipped files, then from the real host if there is one. */
 async function readStaticFileBytes(
   normalizedPath: string,
   hostFallbackFiles?: Domicile["files"],
@@ -30,7 +30,7 @@ async function readStaticFileBytes(
   if (normalizedPath === "/home/user" || normalizedPath.startsWith("/home/user/")) {
     return null;
   }
-  const shipped = DATA_FILES[normalizedPath];
+  const shipped = await readShippedFile(normalizedPath);
   if (shipped !== undefined) return new TextEncoder().encode(shipped);
   // engine:web toggled inside Domicile Linux: the machine's own files.
   if (!hostFallbackFiles) return null;

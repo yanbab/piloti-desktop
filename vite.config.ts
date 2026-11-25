@@ -4,42 +4,48 @@ import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig, type Plugin } from "vite";
 // @ts-expect-error -- a plain script, shared with the icon generator
-import { DATA_FILES_DIR, writeDataPack } from "./scripts/pack-data-files.mjs";
+import { DATA_FILES_DIR, indexDataFiles } from "./scripts/data-files.mjs";
 
 /**
- * Keeps the data pack the demo reads in step with `data/files`, and copies the
- * icons next to the built demo, where the landing page (docs/index.html) links.
+ * Serves `data/files` as `__fs/` (with `__fs/index.json`, as HTTP has no
+ * folder listing): live from the dev server, copied into the web build. The
+ * demo reads its files there, and the landing page links to its icons.
  */
 function dataFilesPlugin(): Plugin {
-  const ICONS_ROOT = path.join(DATA_FILES_DIR, "usr", "share", "icons");
+  const indexJson = () => JSON.stringify(indexDataFiles());
   return {
     name: "data-files",
-    buildStart() {
-      writeDataPack();
-    },
     configureServer(server) {
-      server.watcher.add(DATA_FILES_DIR);
-      server.watcher.on("all", (_event, file) => {
-        if (file.startsWith(DATA_FILES_DIR)) writeDataPack();
+      server.middlewares.use("/__fs", (req, res, next) => {
+        try {
+          const rel = decodeURIComponent((req.url ?? "/").split("?")[0]!).replace(/^\/+/, "");
+          if (rel === "index.json") {
+            res.setHeader("content-type", "application/json; charset=utf-8");
+            res.end(indexJson());
+            return;
+          }
+          const file = path.resolve(DATA_FILES_DIR, rel);
+          if (!file.startsWith(`${DATA_FILES_DIR}${path.sep}`) || !fs.statSync(file).isFile()) {
+            next();
+            return;
+          }
+          const type = file.endsWith(".svg") ? "image/svg+xml" : "text/plain";
+          res.setHeader("content-type", `${type}; charset=utf-8`);
+          res.end(fs.readFileSync(file));
+        } catch {
+          next();
+        }
       });
     },
     generateBundle() {
-      const walk = (dir: string) => {
-        for (const ent of fs.readdirSync(dir, { withFileTypes: true })) {
-          if (ent.name === ".DS_Store") continue;
-          const full = path.join(dir, ent.name);
-          if (ent.isDirectory()) {
-            walk(full);
-            continue;
-          }
-          this.emitFile({
-            type: "asset",
-            fileName: `__fs/${path.relative(DATA_FILES_DIR, full).split(path.sep).join("/")}`,
-            source: fs.readFileSync(full),
-          });
-        }
-      };
-      walk(ICONS_ROOT);
+      for (const file of indexDataFiles().files) {
+        this.emitFile({
+          type: "asset",
+          fileName: `__fs${file}`,
+          source: fs.readFileSync(path.join(DATA_FILES_DIR, file)),
+        });
+      }
+      this.emitFile({ type: "asset", fileName: "__fs/index.json", source: indexJson() });
     },
   };
 }

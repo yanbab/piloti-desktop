@@ -7,6 +7,7 @@ import { createRoot } from "react-dom/client";
 import "./styles/globals.css";
 import { setEngine, webEngine } from "./lib/engine/engine";
 import { demoVfsSeed } from "./lib/engine-web/vfs-seed";
+import { loadDataFiles } from "./lib/engine-web/data-files";
 import { setVfsSeed } from "./lib/engine-web/web-vfs";
 import { installDynamicFavicon } from "./lib/engine-web/dynamic-favicon";
 
@@ -32,7 +33,13 @@ const ImageViewerApp = React.lazy(() =>
 );
 
 const root = document.getElementById("root");
-if (root) {
+if (root) void start(root);
+
+async function start(root: HTMLElement) {
+  // The shipped files first: a new demo's home folder is made from them.
+  const finishFiles = startBootPhase("shipped files");
+  await loadDataFiles().catch((error) => console.error("[piloti] no shipped files", error));
+  finishFiles("home and etc");
   const params = new URLSearchParams(window.location.search);
   const isolatedApp = params.get("piloti_app");
   if (isolatedApp === "calculator") {
