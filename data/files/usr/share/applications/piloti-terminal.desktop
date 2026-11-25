@@ -1,8 +1,18 @@
 [Desktop Entry]
 Type=Application
 Name=Terminal
-Comment=Terminal with bash and the piloti-shell
+Comment=Terminal with bash and piloti-shell
 Exec=piloti-terminal
 Icon=utilities-terminal
 Categories=System;TerminalEmulator;Development;
 OnlyShowIn=Piloti;
+X-Piloti-AppId=terminal
+X-Piloti-Component=terminal
+X-Piloti-ShortName=Terminal
+X-Piloti-Category=Development
+X-Piloti-Order=40
+X-Piloti-Pinned=true
+X-Piloti-IconName=terminal
+X-Piloti-XdgIcons=utilities-terminal;org.gnome.Console;piloti-shell;piloti-terminal;
+X-Piloti-Gradient=from-zinc-700 via-zinc-800 to-zinc-950
+X-Piloti-Size=720x460

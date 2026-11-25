@@ -1,0 +1,19 @@
+[Desktop Entry]
+Type=Application
+Name=Piloti demo
+Comment=Every shell control in both interface themes and colour modes
+Exec=piloti-demo
+Icon=piloti-demo
+Categories=Utility;
+OnlyShowIn=Piloti;
+X-Piloti-AppId=piloti-demo
+X-Piloti-Component=piloti-demo
+X-Piloti-ShortName=Piloti demo
+X-Piloti-Category=Development
+X-Piloti-Order=80
+X-Piloti-Pinned=true
+X-Piloti-IconName=sparkles
+X-Piloti-XdgIcons=piloti-demo;
+X-Piloti-Gradient=from-zinc-500 via-zinc-600 to-zinc-700
+X-Piloti-Size=820x560
+X-Piloti-MinSize=560x380

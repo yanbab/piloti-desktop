@@ -1,9 +1,18 @@
 [Desktop Entry]
 Type=Application
 Name=Web Browser
-Comment=Browse the web
+Comment=Browse the web (same windows and extensions as web apps)
 Exec=piloti-browser %u
 Icon=internet-web-browser
 Categories=Network;WebBrowser;
 MimeType=text/html;x-scheme-handler/http;x-scheme-handler/https;
 OnlyShowIn=Piloti;
+X-Piloti-AppId=browser
+X-Piloti-ShortName=Browser
+X-Piloti-Category=Internet
+X-Piloti-Order=130
+X-Piloti-Pinned=true
+X-Piloti-IconName=globe
+X-Piloti-XdgIcons=internet-web-browser;web-browser;org.gnome.Epiphany;firefox-esr;firefox;chromium;
+X-Piloti-Gradient=from-cyan-400 via-blue-500 to-indigo-600
+X-Piloti-Size=960x640

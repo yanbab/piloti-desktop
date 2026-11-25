@@ -1,7 +1,0 @@
-[Desktop Entry]
-Type=Application
-Name=Piloti Devtools
-Comment=Live logs, inspector and storage for Piloti
-Exec=piloti-console
-Icon=piloti-devtools
-Categories=Development;Debugger;

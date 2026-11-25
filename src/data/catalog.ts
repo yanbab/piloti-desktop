@@ -1,3 +1,4 @@
+import { parseIniText } from "@/lib/config/ini";
 export type AccentColorId =
   | "blue"
   | "purple"
@@ -262,351 +263,190 @@ export interface AppDefinition {
   menus: AppMenuSection[];
 }
 
-export const APP_CATALOG: AppDefinition[] = [
-  {
-    id: "settings",
-    name: "Desktop Settings",
-    shortName: "Desktop Settings",
-    description: "Configure appearance, fonts, dock, and wallpaper",
-    category: "System",
-    iconName: "settings",
-    xdgIcons: ["preferences-desktop", "preferences-system", "org.gnome.Settings", "piloti-settings"],
-    gradient: "from-slate-400 via-zinc-500 to-zinc-700",
-    pinnedByDefault: true,
-    builtinComponent: "settings",
-    command: "piloti-settings",
-    defaultSize: { width: 860, height: 550 },
-    minSize: { width: 320, height: 400 },
-    menus: [
-      {
-        title: "View",
-        items: [
-          { label: "Appearance", shortcut: "⌘1", actionId: "settings:appearance" },
-          { label: "Fonts", shortcut: "⌘2", actionId: "settings:fonts" },
-          { label: "Dock & Menu Bar", shortcut: "⌘3", actionId: "settings:dock" },
-          { label: "Wallpaper", shortcut: "⌘4", actionId: "settings:wallpaper" },
-        ],
-      },
-    ],
-  },
-  {
-    id: "console",
-    // A product name: the same in every language (no translation keys).
-    name: "Piloti Devtools",
-    shortName: "Devtools",
-    description: "Live logs, inspector and storage for Piloti",
-    category: "Development",
-    iconName: "code",
-    xdgIcons: ["piloti-devtools"],
-    gradient: "from-indigo-700 via-slate-800 to-zinc-950",
-    pinnedByDefault: false,
-    builtinComponent: "console",
-    command: "piloti-console",
-    defaultSize: { width: 840, height: 540 },
-    minSize: { width: 320, height: 360 },
-    menus: [
-      {
-        title: "View",
-        items: [
-          { label: "Logs", actionId: "console:logs" },
-          { label: "State", actionId: "console:inspector" },
-          { label: "Storage", actionId: "console:storage" },
-        ],
-      },
-    ],
-  },
-  {
-    id: "nautilus",
-    name: "Folders",
-    shortName: "Folders",
-    description: "Browse local virtual files and folders",
-    category: "System",
-    iconName: "folder",
-    xdgIcons: ["system-file-manager", "org.gnome.Nautilus", "piloti-files"],
-    gradient: "from-sky-400 via-blue-500 to-blue-600",
-    pinnedByDefault: true,
-    builtinComponent: "files",
-    command: "piloti-files",
-    defaultSize: { width: 780, height: 500 },
-    menus: [
-      {
-        title: "File",
-        items: [
-          { label: "New Folder", shortcut: "Ctrl+Shift+N", actionId: "files:new-folder" },
-          { label: "New Text File", actionId: "files:new-text-file", separatorAfter: true },
-          { label: "Open", shortcut: "Enter", actionId: "files:open" },
-          { label: "Back", shortcut: "Alt+Left", actionId: "files:go-up" },
-          { label: "Edit Location", shortcut: "Ctrl+L", actionId: "files:edit-location" },
-          { label: "Search", shortcut: "Ctrl+F", actionId: "files:find", separatorAfter: true },
-          { label: "Print…", shortcut: "Ctrl+P", actionId: "file:print", separatorAfter: true },
-          { label: "Empty Trash", actionId: "files:empty-trash" },
-        ],
-      },
-      {
-        title: "Edit",
-        items: [
-          { label: "Undo", shortcut: "Ctrl+Z", actionId: "files:undo" },
-          { label: "Redo", shortcut: "Ctrl+Shift+Z", actionId: "files:redo", separatorAfter: true },
-          { label: "Cut", shortcut: "Ctrl+X", actionId: "files:cut" },
-          { label: "Copy", shortcut: "Ctrl+C", actionId: "files:copy" },
-          { label: "Paste", shortcut: "Ctrl+V", actionId: "files:paste" },
-          { label: "Duplicate", shortcut: "Ctrl+D", actionId: "files:duplicate", separatorAfter: true },
-          { label: "Compress", actionId: "files:compress" },
-          { label: "Rename…", shortcut: "Ctrl+Enter", actionId: "files:rename", separatorAfter: true },
-          { label: "Move to Trash", shortcut: "Del", actionId: "files:trash" },
-        ],
-      },
-      {
-        title: "View",
-        items: [
-          { label: "As Icons", shortcut: "Ctrl+1", actionId: "files:view-grid", checked: true },
-          { label: "As List", shortcut: "Ctrl+2", actionId: "files:view-list", checked: false, separatorAfter: true },
-          { label: "Sort Manually", actionId: "files:sort-manual", checked: false },
-          { label: "Sort by Name", actionId: "files:sort-name", checked: true },
-          { label: "Sort by Kind", actionId: "files:sort-kind", checked: false },
-          { label: "Sort by Date Modified", actionId: "files:sort-modified", checked: false },
-          { label: "Sort by Size", actionId: "files:sort-size", checked: false, separatorAfter: true },
-          { label: "Ascending", actionId: "files:sort-asc", checked: true },
-          { label: "Descending", actionId: "files:sort-desc", checked: false, separatorAfter: true },
-          { label: "Zoom In", shortcut: "Ctrl++", actionId: "files:zoom-in" },
-          { label: "Zoom Out", shortcut: "Ctrl+-", actionId: "files:zoom-out", separatorAfter: true },
-          { label: "Show Hidden Files", shortcut: "Ctrl+H", actionId: "files:toggle-hidden", checked: false },
-          { label: "Info Panel", shortcut: "Ctrl+I", actionId: "files:toggle-info", checked: false },
-        ],
-      },
-    ],
-  },
-  {
-    id: "terminal",
-    name: "Terminal",
-    shortName: "Terminal",
-    description: "Terminal with bash and piloti-shell",
-    category: "Development",
-    iconName: "terminal",
-    xdgIcons: ["utilities-terminal", "org.gnome.Console", "piloti-shell", "piloti-terminal"],
-    gradient: "from-zinc-700 via-zinc-800 to-zinc-950",
-    pinnedByDefault: true,
-    builtinComponent: "terminal",
-    command: "piloti-terminal",
-    defaultSize: { width: 720, height: 460 },
-    menus: [],
-  },
-  {
-    id: "text-editor",
-    name: "Notepad",
-    shortName: "Notepad",
-    description: "Minimal plain-text notepad with instant localStorage VFS save",
-    category: "Utilities",
-    iconName: "file-text",
-    xdgIcons: ["accessories-text-editor", "org.gnome.TextEditor", "piloti-notepad", "piloti-text-editor"],
-    gradient: "from-amber-400 via-orange-500 to-rose-500",
-    pinnedByDefault: true,
-    builtinComponent: "text-editor",
-    command: "piloti-notepad",
-    defaultSize: { width: 520, height: 380 },
-    menus: [
-      {
-        title: "File",
-        items: [
-          { label: "Print…", shortcut: "Ctrl+P", actionId: "file:print" },
-        ],
-      },
-      {
-        title: "View",
-        items: [
-          {
-            label: "Line Numbers",
-            actionId: "text-editor:toggle-line-numbers",
-            checked: false,
-          },
-          {
-            label: "Syntax Highlighting",
-            actionId: "text-editor:toggle-syntax",
-            checked: true,
-          },
-          {
-            label: "Word Wrap",
-            actionId: "text-editor:toggle-word-wrap",
-            checked: false,
-          },
-          {
-            label: "Active Line",
-            actionId: "text-editor:toggle-active-line",
-            checked: false,
-          },
-          {
-            label: "Cursor Position",
-            actionId: "text-editor:toggle-cursor-position",
-            checked: false,
-          },
-        ],
-      },
-    ],
-  },
-  {
-    id: "app-store",
-    name: "App Store",
-    shortName: "App Store",
-    description: "Browse and install apps and web apps",
-    category: "System",
-    iconName: "sparkles",
-    xdgIcons: ["system-software-install", "org.gnome.Software", "software-store", "piloti-appstore", "piloti-applications"],
-    gradient: "from-blue-500 via-indigo-500 to-violet-600",
-    pinnedByDefault: true,
-    builtinComponent: "app-store",
-    command: "piloti-appstore",
-    defaultSize: { width: 880, height: 580 },
-    minSize: { width: 320, height: 400 },
-    menus: [
-      {
-        title: "View",
-        items: [
-          { label: "Sort by Default", actionId: "app-store:sort-default", checked: true },
-          { label: "Sort by Name", actionId: "app-store:sort-name", checked: false },
-          { label: "Sort by Category", actionId: "app-store:sort-category", checked: false },
-          { label: "Sort by Installed", actionId: "app-store:sort-installed", checked: false, separatorAfter: true },
-          { label: "Refresh Software Catalog", actionId: "app-store:refresh" },
-        ],
-      },
-    ],
-  },
-  {
-    id: "calculator",
-    name: "Calculator",
-    shortName: "Calculator",
-    description: "macOS-style Basic & Scientific Calculator (Isolated App)",
-    category: "Utilities",
-    iconName: "activity",
-    xdgIcons: ["accessories-calculator", "org.gnome.Calculator", "piloti-calculator"],
-    gradient: "from-zinc-700 via-zinc-800 to-orange-500",
-    pinnedByDefault: true,
-    builtinComponent: "calculator",
-    command: "piloti-calculator",
-    defaultSize: { width: 196, height: 292 },
-    minSize: { width: 184, height: 276 },
-    menus: [
-      {
-        title: "View",
-        items: [
-          { label: "Basic", actionId: "calculator:basic", checked: true },
-          { label: "Scientific", actionId: "calculator:scientific", checked: false },
-        ],
-      },
-    ],
-  },
-  {
-    id: "piloti-demo",
-    name: "Piloti demo",
-    shortName: "Piloti demo",
-    description: "Every shell control in both interface themes and colour modes",
-    category: "Development",
-    iconName: "sparkles",
-    xdgIcons: ["piloti-demo"],
-    gradient: "from-zinc-500 via-zinc-600 to-zinc-700",
-    pinnedByDefault: true,
-    builtinComponent: "piloti-demo",
-    command: "piloti-demo",
-    defaultSize: { width: 820, height: 560 },
-    minSize: { width: 560, height: 380 },
-    menus: [],
-  },
-  {
-    id: "camera",
-    name: "Camera",
-    shortName: "Camera",
-    description: "Take photos, record video and audio with the camera and microphone",
-    category: "Utilities",
-    iconName: "sparkles",
-    xdgIcons: ["org.gnome.Snapshot", "camera-photo", "piloti-camera"],
-    gradient: "from-rose-500 via-red-500 to-orange-500",
-    pinnedByDefault: true,
-    builtinComponent: "camera",
-    command: "piloti-camera",
-    defaultSize: { width: 560, height: 420 },
-    minSize: { width: 320, height: 260 },
-    menus: [],
-  },
-  {
-    id: "system-monitor",
-    name: "System Monitor",
-    shortName: "Monitor",
-    description: "CPU, memory and running apps",
-    category: "System",
-    iconName: "code",
-    xdgIcons: ["piloti-system-monitor", "utilities-system-monitor"],
-    gradient: "from-indigo-700 via-slate-800 to-zinc-950",
-    pinnedByDefault: false,
-    builtinComponent: "system-monitor",
-    command: "piloti-system-monitor",
-    defaultSize: { width: 560, height: 520 },
-    minSize: { width: 320, height: 320 },
-    menus: [],
-  },
-  {
-    id: "image-viewer",
-    name: "Image Viewer",
-    shortName: "Image Viewer",
-    description: "Fast image viewer and crop/rotate editor (Isolated App)",
-    category: "Utilities",
-    iconName: "sparkles",
-    xdgIcons: ["org.gnome.Loupe", "loupe", "multimedia-photo-viewer", "piloti-image-viewer", "image-viewer"],
-    gradient: "from-sky-500 via-indigo-500 to-purple-600",
-    pinnedByDefault: false,
-    builtinComponent: "image-viewer",
-    command: "piloti-image-viewer",
-    defaultSize: { width: 640, height: 480 },
-    minSize: { width: 320, height: 300 },
-    menus: [
-      {
-        title: "File",
-        items: [
-          { label: "Print…", shortcut: "Ctrl+P", actionId: "file:print" },
-        ],
-      },
-    ],
-  },
-  {
-    id: "login-screen",
-    name: "Login Screen",
-    shortName: "Login",
-    description: "Piloti Display Manager (GDM alternative preview)",
-    category: "System",
-    iconName: "settings",
-    xdgIcons: ["system-users", "preferences-system-login", "system-lock-screen"],
-    gradient: "from-sky-500 via-blue-600 to-indigo-700",
-    pinnedByDefault: false,
-    builtinComponent: "login-screen",
-    command: "piloti-login",
-    defaultSize: { width: 760, height: 500 },
-    minSize: { width: 420, height: 360 },
-    menus: [],
-  },
-  {
-    id: "browser",
-    name: "Web Browser",
-    shortName: "Browser",
-    description: "Browse the web (same windows and extensions as web apps)",
-    category: "Internet",
-    iconName: "globe",
-    xdgIcons: ["internet-web-browser", "web-browser", "org.gnome.Epiphany", "firefox-esr", "firefox", "chromium"],
-    gradient: "from-cyan-400 via-blue-500 to-indigo-600",
-    pinnedByDefault: true,
-    command: "piloti-browser",
-    defaultSize: { width: 960, height: 640 },
-    menus: [
-      {
-        title: "File",
-        items: [
-          { label: "New Window", shortcut: "Ctrl+N", actionId: "browser:new-window" },
-          { label: "New Tab", shortcut: "Ctrl+T", actionId: "browser:new-tab" },
-          { label: "Close Tab", shortcut: "Ctrl+W", actionId: "browser:close-tab" },
-          { label: "Reopen Closed Tab", shortcut: "Ctrl+Shift+T", actionId: "browser:reopen-tab", separatorAfter: true },
-          { label: "Print…", shortcut: "Ctrl+P", actionId: "file:print" },
-        ],
-      },
-    ],
-  },
-];
+/** App menus: structure and actions are code; everything else is in the .desktop files. */
+const APP_MENUS: Record<string, AppMenuSection[]> = {
+  settings: [
+    {
+      title: "View",
+      items: [
+        { label: "Appearance", shortcut: "⌘1", actionId: "settings:appearance" },
+        { label: "Fonts", shortcut: "⌘2", actionId: "settings:fonts" },
+        { label: "Dock & Menu Bar", shortcut: "⌘3", actionId: "settings:dock" },
+        { label: "Wallpaper", shortcut: "⌘4", actionId: "settings:wallpaper" },
+      ],
+    },
+  ],
+  console: [
+    {
+      title: "View",
+      items: [
+        { label: "Logs", actionId: "console:logs" },
+        { label: "State", actionId: "console:inspector" },
+        { label: "Storage", actionId: "console:storage" },
+      ],
+    },
+  ],
+  nautilus: [
+    {
+      title: "File",
+      items: [
+        { label: "New Folder", shortcut: "Ctrl+Shift+N", actionId: "files:new-folder" },
+        { label: "New Text File", actionId: "files:new-text-file", separatorAfter: true },
+        { label: "Open", shortcut: "Enter", actionId: "files:open" },
+        { label: "Back", shortcut: "Alt+Left", actionId: "files:go-up" },
+        { label: "Edit Location", shortcut: "Ctrl+L", actionId: "files:edit-location" },
+        { label: "Search", shortcut: "Ctrl+F", actionId: "files:find", separatorAfter: true },
+        { label: "Print…", shortcut: "Ctrl+P", actionId: "file:print", separatorAfter: true },
+        { label: "Empty Trash", actionId: "files:empty-trash" },
+      ],
+    },
+    {
+      title: "Edit",
+      items: [
+        { label: "Undo", shortcut: "Ctrl+Z", actionId: "files:undo" },
+        { label: "Redo", shortcut: "Ctrl+Shift+Z", actionId: "files:redo", separatorAfter: true },
+        { label: "Cut", shortcut: "Ctrl+X", actionId: "files:cut" },
+        { label: "Copy", shortcut: "Ctrl+C", actionId: "files:copy" },
+        { label: "Paste", shortcut: "Ctrl+V", actionId: "files:paste" },
+        { label: "Duplicate", shortcut: "Ctrl+D", actionId: "files:duplicate", separatorAfter: true },
+        { label: "Compress", actionId: "files:compress" },
+        { label: "Rename…", shortcut: "Ctrl+Enter", actionId: "files:rename", separatorAfter: true },
+        { label: "Move to Trash", shortcut: "Del", actionId: "files:trash" },
+      ],
+    },
+    {
+      title: "View",
+      items: [
+        { label: "As Icons", shortcut: "Ctrl+1", actionId: "files:view-grid", checked: true },
+        { label: "As List", shortcut: "Ctrl+2", actionId: "files:view-list", checked: false, separatorAfter: true },
+        { label: "Sort Manually", actionId: "files:sort-manual", checked: false },
+        { label: "Sort by Name", actionId: "files:sort-name", checked: true },
+        { label: "Sort by Kind", actionId: "files:sort-kind", checked: false },
+        { label: "Sort by Date Modified", actionId: "files:sort-modified", checked: false },
+        { label: "Sort by Size", actionId: "files:sort-size", checked: false, separatorAfter: true },
+        { label: "Ascending", actionId: "files:sort-asc", checked: true },
+        { label: "Descending", actionId: "files:sort-desc", checked: false, separatorAfter: true },
+        { label: "Zoom In", shortcut: "Ctrl++", actionId: "files:zoom-in" },
+        { label: "Zoom Out", shortcut: "Ctrl+-", actionId: "files:zoom-out", separatorAfter: true },
+        { label: "Show Hidden Files", shortcut: "Ctrl+H", actionId: "files:toggle-hidden", checked: false },
+        { label: "Info Panel", shortcut: "Ctrl+I", actionId: "files:toggle-info", checked: false },
+      ],
+    },
+  ],
+  "text-editor": [
+    {
+      title: "File",
+      items: [
+        { label: "Print…", shortcut: "Ctrl+P", actionId: "file:print" },
+      ],
+    },
+    {
+      title: "View",
+      items: [
+        { label: "Line Numbers", actionId: "text-editor:toggle-line-numbers", checked: false },
+        { label: "Syntax Highlighting", actionId: "text-editor:toggle-syntax", checked: true },
+        { label: "Word Wrap", actionId: "text-editor:toggle-word-wrap", checked: false },
+        { label: "Active Line", actionId: "text-editor:toggle-active-line", checked: false },
+        { label: "Cursor Position", actionId: "text-editor:toggle-cursor-position", checked: false },
+      ],
+    },
+  ],
+  "app-store": [
+    {
+      title: "View",
+      items: [
+        { label: "Sort by Default", actionId: "app-store:sort-default", checked: true },
+        { label: "Sort by Name", actionId: "app-store:sort-name", checked: false },
+        { label: "Sort by Category", actionId: "app-store:sort-category", checked: false },
+        { label: "Sort by Installed", actionId: "app-store:sort-installed", checked: false, separatorAfter: true },
+        { label: "Refresh Software Catalog", actionId: "app-store:refresh" },
+      ],
+    },
+  ],
+  calculator: [
+    {
+      title: "View",
+      items: [
+        { label: "Basic", actionId: "calculator:basic", checked: true },
+        { label: "Scientific", actionId: "calculator:scientific", checked: false },
+      ],
+    },
+  ],
+  "image-viewer": [
+    {
+      title: "File",
+      items: [
+        { label: "Print…", shortcut: "Ctrl+P", actionId: "file:print" },
+      ],
+    },
+  ],
+  browser: [
+    {
+      title: "File",
+      items: [
+        { label: "New Window", shortcut: "Ctrl+N", actionId: "browser:new-window" },
+        { label: "New Tab", shortcut: "Ctrl+T", actionId: "browser:new-tab" },
+        { label: "Close Tab", shortcut: "Ctrl+W", actionId: "browser:close-tab" },
+        { label: "Reopen Closed Tab", shortcut: "Ctrl+Shift+T", actionId: "browser:reopen-tab", separatorAfter: true },
+        { label: "Print…", shortcut: "Ctrl+P", actionId: "file:print" },
+      ],
+    },
+  ],
+};
+
+/**
+ * The built-in apps, read at start from `/usr/share/applications/piloti*.desktop`
+ * (`registerApps`, before the shell is imported). Each file's `X-Piloti-*` keys
+ * carry what XDG has no key for.
+ */
+export const APP_CATALOG: AppDefinition[] = [];
+
+/** One app from a desktop file, or null when it isn't a Piloti app. */
+export function appFromDesktopFile(text: string): (AppDefinition & { order: number }) | null {
+  const entry = parseIniText(text)["Desktop Entry"];
+  const id = entry?.["X-Piloti-AppId"];
+  if (!entry || !id) return null;
+  const x = (key: string) => entry[`X-Piloti-${key}`] ?? "";
+  const size = (value: string) => {
+    const [width, height] = value.split("x").map(Number);
+    return width && height ? { width, height } : undefined;
+  };
+  const xdgIcons = x("XdgIcons").split(";").filter(Boolean);
+  return {
+    id,
+    name: entry.Name ?? id,
+    shortName: x("ShortName") || (entry.Name ?? id),
+    description: entry.Comment ?? "",
+    category: (x("Category") || "Utilities") as AppDefinition["category"],
+    iconName: (x("IconName") || "sparkles") as AppDefinition["iconName"],
+    xdgIcons: xdgIcons.length > 0 ? xdgIcons : undefined,
+    gradient: x("Gradient") || "from-zinc-500 to-zinc-700",
+    pinnedByDefault: x("Pinned") === "true",
+    builtinComponent: (x("Component") || undefined) as BuiltinAppId | undefined,
+    command: entry.Exec?.split(/\s+/)[0],
+    defaultSize: size(x("Size")) ?? { width: 720, height: 480 },
+    minSize: size(x("MinSize")),
+    menus: APP_MENUS[id] ?? [],
+    order: Number(x("Order")) || 1000,
+  };
+}
+
+/** Fills the catalog from desktop file contents, in `X-Piloti-Order`. */
+export function registerApps(desktopFiles: readonly string[]): void {
+  const apps = desktopFiles
+    .map(appFromDesktopFile)
+    .filter((app): app is AppDefinition & { order: number } => app !== null)
+    .sort((a, b) => a.order - b.order);
+  APP_CATALOG.splice(0, APP_CATALOG.length, ...apps.map(({ order: _order, ...app }) => app));
+}
+
+/** A desktop entry that launches a built-in app: lists show the app only once. */
+export function isBuiltinAppEntry(exec: string | undefined): boolean {
+  const program = exec?.trim().split(/\s+/)[0]?.split("/").pop();
+  return Boolean(
+    program && APP_CATALOG.some((app) => app.builtinComponent && app.command === program)
+  );
+}
 
 export interface WifiNetwork {
   ssid: string;

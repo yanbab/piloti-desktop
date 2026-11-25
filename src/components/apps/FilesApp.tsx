@@ -312,7 +312,7 @@ function vfsEntryToGridItem(
 const FOLDER_OPEN_DELAY_MS = 180;
 
 /** The Folders View menu, shared with the menu bar (catalog). */
-const FILES_VIEW_MENU_ITEMS =
+const filesViewMenuItems = () =>
   APP_CATALOG.find((app) => app.id === "nautilus")?.menus.find(
     (section) => section.title === "View"
   )?.items ?? [];
@@ -2034,7 +2034,7 @@ export function FilesApp({
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="min-w-56">
                     <AppMenuItems
-                      items={FILES_VIEW_MENU_ITEMS}
+                      items={filesViewMenuItems()}
                       menuState={viewMenuState}
                       onAction={(actionId) => {
                         if (!windowId) return;

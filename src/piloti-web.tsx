@@ -1,3 +1,4 @@
+import { loadAppCatalog } from "./lib/engine/app-catalog";
 import { attachConsoleDiskSink, installConsoleCapture } from "./lib/core/console-store";
 import { createShellLogWriter } from "./lib/engine/shell-log";
 import { profileStartup } from "./lib/core/startup-profile";
@@ -79,15 +80,15 @@ async function start(root: HTMLElement) {
     );
   } else {
     const finishImport = startBootPhase("desktop module");
-    void Promise.all([
-      import("./piloti-desktop-app"),
-      import("./lib/engine-web"),
-    ]).then(([{ Shell }, { createBrowserDomicile }]) => {
-      finishImport();
+    void import("./lib/engine-web").then(async ({ createBrowserDomicile }) => {
       const host = createBrowserDomicile();
       installConsoleCapture();
       attachConsoleDiskSink(createShellLogWriter(host));
       const domicile = profileStartup(host);
+      // The apps first: the shell's modules expect the catalog.
+      await loadAppCatalog(domicile);
+      const { Shell } = await import("./piloti-desktop-app");
+      finishImport();
       const finishRender = startBootPhase("first render");
       Shell(root, domicile);
       finishRender();

@@ -39,7 +39,7 @@ import {
   useWindowManagerSelector,
 } from "@/context/DesktopStateContext";
 import { usePlugins } from "@/context/PluginsContext";
-import { APP_CATALOG } from "@/data/catalog";
+import { APP_CATALOG, isBuiltinAppEntry } from "@/data/catalog";
 import {
   canonicalizeWebUrl,
   getWebAppFaviconUrl,
@@ -265,17 +265,6 @@ function filterAndSortByName(entries: PaletteEntry[]): PaletteEntry[] {
     .sort((a, b) => b.score - a.score || a.label.localeCompare(b.label));
 }
 
-// Built-in apps also ship a .desktop entry running their command
-// (`piloti-settings`, `piloti-files %U`…): list each app once.
-const BUILTIN_APP_COMMANDS = new Set(
-  APP_CATALOG.filter((app) => app.builtinComponent && app.command).map(
-    (app) => app.command as string
-  )
-);
-function isBuiltinAppEntry(exec: string | undefined): boolean {
-  const program = exec?.trim().split(/\s+/)[0];
-  return Boolean(program && BUILTIN_APP_COMMANDS.has(program.split("/").pop()!));
-}
 
 let persistedLauncherQuery = "";
 

@@ -201,6 +201,16 @@ export function topUpDefaults(entries: WebVfsEntry[], kv: KeyValueStorage | null
       entries.splice(staleIndex, 1);
       addedDefaults = true;
     }
+    // Old demos had copies of the system's app launchers in the home folder,
+    // which listed those apps twice.
+    for (const name of ["appstore", "calculator", "console", "files", "image-viewer", "login", "notepad", "settings"]) {
+      const copy = `${VFS_HOME}/.local/share/applications/piloti-${name}.desktop`;
+      const index = entries.findIndex((e) => e.path === copy);
+      if (index >= 0) {
+        entries.splice(index, 1);
+        addedDefaults = true;
+      }
+    }
     // Bundled plugins ship with the shell (like /usr/share on native): keep
     // the demo's copies current, so updates and new plugins reach old demos.
     const pluginsPrefix = `${VFS_HOME}/.config/piloti/plugins/`;

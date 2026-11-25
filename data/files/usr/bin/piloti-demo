@@ -1,0 +1,4 @@
+#!/bin/sh
+# piloti-demo — Open Piloti Demo
+set -eu
+exec /usr/bin/piloti open piloti-demo "$@"

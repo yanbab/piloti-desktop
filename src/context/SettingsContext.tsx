@@ -263,7 +263,10 @@ const DEFAULT_SETTINGS: DesktopSettings = {
       ? "mac"
       : "pc",
   desktopIconPositions: {},
-  pinnedAppIds: APP_CATALOG.filter((a) => a.pinnedByDefault).map((a) => a.id),
+  // A getter: the catalog is read from files before the shell starts.
+  get pinnedAppIds() {
+    return APP_CATALOG.filter((a) => a.pinnedByDefault).map((a) => a.id);
+  },
   installedWebApps: [],
   savedWindowBounds: {},
 };

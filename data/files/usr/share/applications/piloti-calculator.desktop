@@ -1,8 +1,19 @@
 [Desktop Entry]
 Type=Application
 Name=Calculator
-Comment=Basic & Scientific Calculator
+Comment=macOS-style Basic & Scientific Calculator (Isolated App)
 Exec=piloti-calculator
 Icon=accessories-calculator
 Categories=Utility;Calculator;
 OnlyShowIn=Piloti;
+X-Piloti-AppId=calculator
+X-Piloti-Component=calculator
+X-Piloti-ShortName=Calculator
+X-Piloti-Category=Utilities
+X-Piloti-Order=70
+X-Piloti-Pinned=true
+X-Piloti-IconName=activity
+X-Piloti-XdgIcons=accessories-calculator;org.gnome.Calculator;piloti-calculator;
+X-Piloti-Gradient=from-zinc-700 via-zinc-800 to-orange-500
+X-Piloti-Size=196x292
+X-Piloti-MinSize=184x276

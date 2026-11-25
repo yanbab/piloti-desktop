@@ -1,3 +1,4 @@
+import { loadAppCatalog } from "./lib/engine/app-catalog";
 import { hostFiles } from "@/lib/engine/host-files";
 import { attachConsoleDiskSink, installConsoleCapture } from "./lib/core/console-store";
 import { createShellLogWriter } from "./lib/engine/shell-log";
@@ -75,6 +76,9 @@ async function boot(root: HTMLElement, domicile: Parameters<ShellModule>[1]) {
     console.error("Could not resolve $HOME; using the virtual /home/user", error);
   }
   finishState();
+  const finishApps = startBootPhase("app descriptions");
+  await loadAppCatalog(domicile);
+  finishApps();
   const finishImport = startBootPhase("desktop module");
   const app = await import("./piloti-desktop-app");
   finishImport();

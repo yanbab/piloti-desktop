@@ -6,4 +6,14 @@ Exec=piloti-login
 Icon=system-users
 Categories=System;Settings;
 OnlyShowIn=Piloti;
-
+X-Piloti-AppId=login-screen
+X-Piloti-Component=login-screen
+X-Piloti-ShortName=Login
+X-Piloti-Category=System
+X-Piloti-Order=120
+X-Piloti-Pinned=false
+X-Piloti-IconName=settings
+X-Piloti-XdgIcons=system-users;preferences-system-login;system-lock-screen;
+X-Piloti-Gradient=from-sky-500 via-blue-600 to-indigo-700
+X-Piloti-Size=760x500
+X-Piloti-MinSize=420x360

@@ -1,7 +1,0 @@
-[Desktop Entry]
-Type=Application
-Name=Desktop Settings
-Comment=Configure appearance, fonts, dock, and wallpaper
-Exec=piloti-settings
-Icon=preferences-desktop
-Categories=Settings;DesktopSettings;

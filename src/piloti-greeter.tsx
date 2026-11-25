@@ -1,4 +1,5 @@
 /// <reference types="@domicile-desktop/react/elements" />
+import { loadAppCatalog } from "./lib/engine/app-catalog";
 import "./styles/globals.css";
 import { mount } from "@domicile-desktop/react/mount";
 import { LoginScreenApp } from "./components/apps/LoginScreenApp";
@@ -21,4 +22,11 @@ export function Greeter() {
   );
 }
 
-export const Shell = mount(Greeter);
+const mountGreeter = mount(Greeter);
+
+export const Shell: typeof mountGreeter = (root, domicile) => {
+  // The greeter is a shell (never an app module): its host has all file calls.
+  void loadAppCatalog(domicile as Parameters<typeof loadAppCatalog>[0]).finally(() =>
+    mountGreeter(root, domicile)
+  );
+};

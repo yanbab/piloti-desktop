@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/grouped-form";
 import { Switch } from "@/components/ui/switch";
 import { useApps, useSettings } from "@/context/DesktopStateContext";
-import { APP_CATALOG } from "@/data/catalog";
+import { APP_CATALOG, isBuiltinAppEntry } from "@/data/catalog";
 import {
   getAppSecurityPrefs,
   readAppPermissionsMap,
@@ -155,6 +155,8 @@ export function SecurityPane() {
       }
     }
     for (const xdg of installedXdgApps) {
+      // Built-in apps are already listed from the catalog.
+      if (isBuiltinAppEntry(xdg.exec)) continue;
       if (!byId.has(xdg.desktopId)) {
         byId.set(xdg.desktopId, {
           id: xdg.desktopId,

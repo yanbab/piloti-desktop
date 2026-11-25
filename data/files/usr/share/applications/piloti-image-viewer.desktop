@@ -1,9 +1,20 @@
 [Desktop Entry]
 Type=Application
 Name=Image Viewer
-Comment=Fast image viewer and crop/rotate editor
+Comment=Fast image viewer and crop/rotate editor (Isolated App)
 Exec=piloti-image-viewer %F
 Icon=org.gnome.Loupe
 Categories=Graphics;Viewer;
 MimeType=image/png;image/jpeg;image/webp;image/gif;image/svg+xml;image/bmp;image/avif;image/vnd.microsoft.icon;
 OnlyShowIn=Piloti;
+X-Piloti-AppId=image-viewer
+X-Piloti-Component=image-viewer
+X-Piloti-ShortName=Image Viewer
+X-Piloti-Category=Utilities
+X-Piloti-Order=110
+X-Piloti-Pinned=false
+X-Piloti-IconName=sparkles
+X-Piloti-XdgIcons=org.gnome.Loupe;loupe;multimedia-photo-viewer;piloti-image-viewer;image-viewer;
+X-Piloti-Gradient=from-sky-500 via-indigo-500 to-purple-600
+X-Piloti-Size=640x480
+X-Piloti-MinSize=320x300

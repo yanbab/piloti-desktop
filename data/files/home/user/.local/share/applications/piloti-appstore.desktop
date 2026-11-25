@@ -1,8 +1,0 @@
-[Desktop Entry]
-Type=Application
-Name=App Store
-Comment=Browse and install apps and web apps
-Exec=piloti-appstore
-Icon=system-software-install
-Categories=System;PackageManager;
-MimeType=application/vnd.debian.binary-package;application/vnd.flatpak.ref;application/vnd.flatpak;

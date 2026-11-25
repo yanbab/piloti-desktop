@@ -7,6 +7,10 @@
 # SHARED is the host project folder mounted in the VM (its node_modules are the
 # host's, so it can't build here). LOCAL is a clone with Linux node_modules
 # (run `npm install` there after package.json changes).
+#
+# The shell reads the built-in apps from the installed
+# /usr/share/applications/piloti-*.desktop: install a matching .deb
+# (scripts/vm-build.sh) once after those files change.
 set -eu
 
 SHARED="${PILOTI_SHARED:-$HOME/Projets/Piloti}"
