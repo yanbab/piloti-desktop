@@ -788,5 +788,8 @@
   "Filter files": "Filtrer les fichiers",
   "Resize info pane": "Redimensionner le panneau d’infos",
   "Web Search": "Recherche sur le web",
-  "Search the web for “%s”": "Rechercher « %s » sur le web"
+  "Search the web for “%s”": "Rechercher « %s » sur le web",
+  "Could not compress": "Compression impossible",
+  "Could not extract": "Extraction impossible",
+  "Check the file, free space and that libarchive-tools is installed.": "Vérifiez le fichier, l’espace libre et que libarchive-tools est installé."
 }

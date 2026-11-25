@@ -1,3 +1,4 @@
+import { isExtractableArchive } from "@/lib/engine/fs-bridge";
 import * as React from "react";
 import { useCapabilities } from "@/hooks/use-capabilities";
 import { usePopupSurface } from "@/lib/shell/popup-layer";
@@ -158,7 +159,7 @@ export function FileItemContextMenu({
       !isVirtualView &&
       isSingle &&
       menu.item.kind === "file" &&
-      menu.item.name.toLowerCase().endsWith(".zip"),
+      isExtractableArchive(menu.item.name),
   );
   const showDownload =
     Boolean(onDownload) &&

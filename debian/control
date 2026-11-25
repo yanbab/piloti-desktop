@@ -16,6 +16,7 @@ Recommends:
  adwaita-icon-theme,
  hicolor-icon-theme,
  xdg-utils,
+ libarchive-tools,
  dbus-user-session
 Suggests:
  greetd,

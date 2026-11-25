@@ -1,7 +1,9 @@
 import type { Domicile } from "@domicile-desktop/sdk/desktop/desktop";
 import {
+  compressVfsEntries,
   createVfsFileFromTemplate,
   copyVfsEntry,
+  extractVfsZip,
   createVfsFolder,
   createVfsSymlink,
   createVfsTextFile,
@@ -35,6 +37,7 @@ import {
   upsertRecentXbelItem,
 } from "@/lib/xdg/xdg-recents";
 import { getEngine } from "@/lib/engine/engine";
+import { compressNative, extractNative } from "@/lib/engine-native/archive";
 import { createFileService, type FileService } from "@/lib/core/file-service";
 import {
   createNativeFileStore,
@@ -383,4 +386,29 @@ export function writeFsMetadata(
     return;
   }
   fileServiceFor(domicile).writeMetadata(norm, patch);
+}
+
+/** Archives "Extract Here" can open: zip everywhere, more with bsdtar on Linux. */
+export function isExtractableArchive(name: string): boolean {
+  return hasRealFilesystem()
+    ? /\.(zip|tar|tar\.(gz|xz|bz2|zst)|tgz|txz|tbz2?|7z|rar)$/i.test(name)
+    : /\.zip$/i.test(name);
+}
+
+/** Zips sibling entries next to them; returns the new archive's path, or null. */
+export async function compressFsEntries(
+  domicile: Domicile,
+  paths: readonly string[],
+): Promise<string | null> {
+  if (hasRealFilesystem()) return compressNative(domicile, paths);
+  return (await compressVfsEntries(paths))?.path ?? null;
+}
+
+/** Extracts an archive into a new folder next to it; returns its path, or null. */
+export async function extractFsArchive(
+  domicile: Domicile,
+  path: string,
+): Promise<string | null> {
+  if (hasRealFilesystem()) return extractNative(domicile, path);
+  return (await extractVfsZip(path))?.path ?? null;
 }

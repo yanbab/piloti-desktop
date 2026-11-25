@@ -1,3 +1,4 @@
+import { useArchiveActions } from "@/hooks/use-archive-actions";
 import { ICON_SIZES } from "@/lib/shell/icon-sizes";
 import { HeaderSearch } from "@/components/ui/header-search";
 import {
@@ -98,10 +99,8 @@ import {
 import { cn } from "@/lib/core/utils";
 import {
   buildVfsEntryWebAppUrl,
-  compressVfsEntries,
   downloadVfsFile,
   duplicateVfsEntry,
-  extractVfsZip,
   getVfsClipboard,
   getVfsContentType,
   getVfsDirHiddenNames,
@@ -469,6 +468,7 @@ export function FilesApp({
       setVfsEntries(entries);
     });
   }, [currentPath, domicile, realFilesystem, showHidden]);
+  const archive = useArchiveActions(reloadDir);
 
   React.useEffect(() => onFileUndoApplied(reloadDir), [reloadDir]);
 
@@ -1382,15 +1382,8 @@ export function FilesApp({
       }
     },
     compressSelected: () => {
-      if (
-        !realFilesystem &&
-        selectedItems.length > 0 &&
-        !isTrashView &&
-        !isVirtualView
-      ) {
-        void compressVfsEntries(selectedItems.map((i) => i.path)).then((created) => {
-          if (created) reloadDir();
-        });
+      if (selectedItems.length > 0 && !isTrashView && !isVirtualView) {
+        archive.compress(selectedItems.map((i) => i.path));
       }
     },
     renameSelected: () => {
@@ -1421,7 +1414,7 @@ export function FilesApp({
       "files:copy": { disabled: !hasSel || isTrashView },
       "files:paste": { disabled: !hasClip || !canModifyDir },
       "files:duplicate": { disabled: !hasSel || !canModifyDir },
-      "files:compress": { disabled: realFilesystem || !hasSel || !canModifyDir },
+      "files:compress": { disabled: !hasSel || !canModifyDir },
       "files:rename": { disabled: !hasSingleSel || !canModifyDir },
       "files:trash": { disabled: !hasSel },
       "files:go-up": { disabled: !canGoUp },
@@ -2501,24 +2494,8 @@ export function FilesApp({
           setVfsClipboard({ mode: "copy", paths: list.map((i) => i.path) })
         }
         onDuplicate={handleDuplicateItems}
-        onCompress={
-          !realFilesystem
-            ? (list) => {
-                void compressVfsEntries(list.map((i) => i.path)).then((created) => {
-                  if (created) reloadDir();
-                });
-              }
-            : undefined
-        }
-        onExtract={
-          !realFilesystem
-            ? (target) => {
-                void extractVfsZip(target.path).then((folder) => {
-                  if (folder) reloadDir();
-                });
-              }
-            : undefined
-        }
+        onCompress={(list) => archive.compress(list.map((i) => i.path))}
+        onExtract={(target) => archive.extract(target.path)}
         onDownload={
           !realFilesystem ? (target) => downloadVfsFile(target.path) : undefined
         }

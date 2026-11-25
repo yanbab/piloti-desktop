@@ -1,3 +1,4 @@
+import { useArchiveActions } from "@/hooks/use-archive-actions";
 import * as React from "react";
 import { useCapabilities } from "@/hooks/use-capabilities";
 import { useOpenPath } from "@/hooks/use-open-path";
@@ -66,9 +67,7 @@ import {
   WEB_VFS_HOME,
   WEB_VFS_TRASH,
   type WebVfsEntry,
-  compressVfsEntries,
   downloadVfsFile,
-  extractVfsZip,
 } from "@/lib/engine-web/web-vfs";
 
 import { IconGrid, type IconGridProps } from "@/components/ui/icon-grid";
@@ -326,6 +325,7 @@ export function DesktopIconsApp({
     realFilesystem,
     settings.desktopIconsEnabled,
   ]);
+  const archive = useArchiveActions(loadDesktopFolder);
 
   React.useEffect(() => onFileUndoApplied(() => void loadDesktopFolder()), [loadDesktopFolder]);
 
@@ -976,24 +976,8 @@ export function DesktopIconsApp({
           setVfsClipboard({ mode: "copy", paths: list.map((i) => i.path) })
         }
         onDuplicate={(list) => void handleDuplicateItems(list)}
-        onCompress={
-          !realFilesystem
-            ? (list) => {
-              void compressVfsEntries(list.map((i) => i.path)).then((created) => {
-                if (created) void loadDesktopFolder();
-              });
-            }
-            : undefined
-        }
-        onExtract={
-          !realFilesystem
-            ? (target) => {
-              void extractVfsZip(target.path).then((folder) => {
-                if (folder) void loadDesktopFolder();
-              });
-            }
-            : undefined
-        }
+        onCompress={(list) => archive.compress(list.map((i) => i.path))}
+        onExtract={(target) => archive.extract(target.path)}
         onDownload={
           !realFilesystem ? (target) => downloadVfsFile(target.path) : undefined
         }
