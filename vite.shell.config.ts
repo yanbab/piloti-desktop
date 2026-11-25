@@ -2,11 +2,11 @@ import path from "node:path";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
-import { cssInTheModule } from "./vite.plugins";
+import { cssInTheModule, darkFirstPaint } from "./vite.plugins";
 
 export default defineConfig({
   base: "./",
-  plugins: [react(), tailwindcss(), cssInTheModule()],
+  plugins: [react(), tailwindcss(), cssInTheModule(), darkFirstPaint()],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "src"),

@@ -23,3 +23,18 @@ export const cssInTheModule = (): Plugin => ({
   },
 });
 
+
+// Domicile's document is white and the first thing on screen. Darken it with
+// the module's very first statement, before the stylesheet or any boot work;
+// the settings then apply the user's light or dark style. List it after
+// `cssInTheModule`, so its line ends up on top.
+export const darkFirstPaint = (): Plugin => ({
+  name: "dark-first-paint",
+  enforce: "post",
+  generateBundle(_options, bundle) {
+    for (const output of Object.values(bundle)) {
+      if (output.type !== "chunk" || !output.isEntry) continue;
+      output.code = `document.documentElement.classList.add("dark");Object.assign(document.documentElement.style,{backgroundColor:"#222222",colorScheme:"dark"});\n${output.code}`;
+    }
+  },
+});

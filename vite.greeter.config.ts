@@ -3,6 +3,8 @@ import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig, type Plugin } from "vite";
 
+import { darkFirstPaint } from "./vite.plugins";
+
 const cssInTheModule = (): Plugin => ({
   name: "css-in-the-module",
   enforce: "post",
@@ -26,7 +28,7 @@ const cssInTheModule = (): Plugin => ({
 
 export default defineConfig({
   base: "./",
-  plugins: [react(), tailwindcss(), cssInTheModule()],
+  plugins: [react(), tailwindcss(), cssInTheModule(), darkFirstPaint()],
   resolve: {
     alias: {
       "@": path.resolve(import.meta.dirname, "src"),
