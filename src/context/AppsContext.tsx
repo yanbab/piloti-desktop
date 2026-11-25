@@ -1,3 +1,4 @@
+import { hostFiles } from "@/lib/engine/host-files";
 import * as React from "react";
 import { useDomicile } from "@domicile-desktop/react/domicile-provider";
 import { watchIconTheme } from "@domicile-desktop/sdk/icon-theme";
@@ -445,8 +446,8 @@ export function useAppsValue(
         const useWarmCachedIndex = Boolean(cachedIndex);
         const iconIndexPromise = useWarmCachedIndex
           ? Promise.resolve(cachedIndex!)
-          : buildXdgIconThemeIndex(domicile.files, preferredThemes);
-        const userDirsPromise = discoverXdgUserDirs(domicile.files);
+          : buildXdgIconThemeIndex(hostFiles(domicile), preferredThemes);
+        const userDirsPromise = discoverXdgUserDirs(hostFiles(domicile));
 
         const [iconIndex, userDirs] = await Promise.all([
           iconIndexPromise,
@@ -461,7 +462,7 @@ export function useAppsValue(
         } else if (refreshNonce === 0) {
           bgIndexTimer = setTimeout(() => {
             if (cancelled) return;
-            void buildXdgIconThemeIndex(domicile.files, preferredThemes)
+            void buildXdgIconThemeIndex(hostFiles(domicile), preferredThemes)
               .then((fresh) => {
                 if (cancelled) return;
                 iconThemeIndexRef.current = fresh;
@@ -490,7 +491,7 @@ export function useAppsValue(
         await Promise.all([
           ...prioritizedCatalog.map(async (app) => {
             const url = await resolveThemedIconUrl(
-              domicile.files,
+              hostFiles(domicile),
               iconIndex,
               app.xdgIcons ?? [app.id]
             );
@@ -499,7 +500,7 @@ export function useAppsValue(
           ...customPinnedIds.map(async (pinnedId) => {
             const cleanId = pinnedId.replace(/\.desktop$/i, "");
             const url = await resolveThemedIconUrl(
-              domicile.files,
+              hostFiles(domicile),
               iconIndex,
               [cleanId, cleanId.toLowerCase()]
             );
@@ -511,7 +512,7 @@ export function useAppsValue(
           ...Object.entries(SHELL_XDG_ICON_GROUPS).map(
             async ([key, candidates]) => {
               const url = await resolveThemedIconUrl(
-                domicile.files,
+                hostFiles(domicile),
                 iconIndex,
                 candidates
               );
@@ -522,7 +523,7 @@ export function useAppsValue(
             for (const candidate of APP_GRID_ICON_CANDIDATES) {
               const path = lookupXdgIconPath(iconIndex, candidate, 64, 1);
               if (!path) continue;
-              const url = await loadXdgIconDataUrl(domicile.files, path);
+              const url = await loadXdgIconDataUrl(hostFiles(domicile), path);
               if (url) {
                 essentialIcons.__app_grid__ = url;
                 resolvedAppGridSymbolic =
@@ -534,7 +535,7 @@ export function useAppsValue(
           })(),
           ...userDirs.map(async (dir) => {
             const url = await resolveThemedIconUrl(
-              domicile.files,
+              hostFiles(domicile),
               iconIndex,
               dir.iconCandidates,
               48
@@ -561,7 +562,7 @@ export function useAppsValue(
         const apps = useWarmCachedApps
           ? cachedApps!
           : await discoverInstalledXdgApps(
-              domicile.files,
+              hostFiles(domicile),
               { iconThemes: preferredThemes, deferIconDataLoad: true },
               Promise.resolve(iconIndex)
             );
@@ -603,7 +604,7 @@ export function useAppsValue(
                   return;
                 }
                 const url = await loadThemedIconUrl(
-                  domicile.files,
+                  hostFiles(domicile),
                   iconIndex,
                   entry.iconPath
                 );
@@ -641,7 +642,7 @@ export function useAppsValue(
             if (cancelled) return;
             const activeIdx = iconThemeIndexRef.current ?? iconIndex;
             void discoverInstalledXdgApps(
-              domicile.files,
+              hostFiles(domicile),
               { iconThemes: preferredThemes, deferIconDataLoad: true },
               Promise.resolve(activeIdx)
             )
@@ -670,7 +671,7 @@ export function useAppsValue(
     };
     // pinnedAppIds only affects icon batch ordering, not discovery
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [domicile.files, activeIconTheme, refreshNonce]);
+  }, [domicile, activeIconTheme, refreshNonce]);
 
   // Watch XDG application directories so newly installed apps appear without restarting the shell
   React.useEffect(() => {
@@ -695,7 +696,7 @@ export function useAppsValue(
     };
 
     for (const dir of appDirs) {
-      void domicile.files
+      void hostFiles(domicile)
         .watch(dir)
         .then((res) => {
           res.match({
@@ -723,7 +724,7 @@ export function useAppsValue(
       if (debounceTimer) clearTimeout(debounceTimer);
       for (const stop of stopFns) stop();
     };
-  }, [domicile.files, isBrowserRuntime, refreshXdgApps]);  // FIXME : Capabilities
+  }, [domicile, isBrowserRuntime, refreshXdgApps]);  // FIXME : Capabilities
 
   const ensureWaylandIcons = React.useCallback(
     (ids: readonly string[]) => {
@@ -750,7 +751,7 @@ export function useAppsValue(
         pending.map(async ({ baseId, raw }) => {
           try {
             const url = await resolveThemedIconUrl(
-              domicile.files,
+              hostFiles(domicile),
               iconIndex,
               [baseId, raw]
             );
@@ -771,7 +772,7 @@ export function useAppsValue(
         }
       });
     },
-    [activeIconTheme, appIconsMap, domicile.files]
+    [activeIconTheme, appIconsMap, domicile]
   );
 
   // Icons use the UI accent (same shade as selections and sidebar items),

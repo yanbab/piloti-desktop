@@ -1,3 +1,4 @@
+import { shellHostFiles } from "@/lib/engine/host-files";
 import { VFS_HOME } from "@/lib/engine/vfs-home";
 import * as React from "react";
 import { emitShellEvent, onShellEvent } from "@/lib/shell/shell-events";
@@ -172,17 +173,8 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
     }
     let cancelled = false;
     let objectUrl: string | null = null;
-    type NativeFiles = {
-      read: (p: string) => Promise<{
-        match: <R>(h: { Ok: (v: Uint8Array) => R; Err: () => R }) => R;
-      }>;
-    };
     const nativeFiles =
-      window.parent === window && !isBrowserDevRuntime()
-        ? (window as unknown as {
-            __PILOTI__?: { domicile?: { files?: NativeFiles } };
-          }).__PILOTI__?.domicile?.files
-        : undefined;
+      window.parent === window && !isBrowserDevRuntime() ? shellHostFiles() : undefined;
     if (nativeFiles && !activePath.toLowerCase().endsWith(".svg")) {
       // Native Linux: images are real binary files, so load bytes into a Blob URL.
       void nativeFiles
@@ -301,15 +293,7 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
       const nextDataUrl = canvas.toDataURL("image/png");
       let ok = false;
       const isBrowser = isBrowserDevRuntime();
-      const domicileFiles = !isBrowser
-        ? (window as unknown as {
-            __PILOTI__?: {
-              domicile?: {
-                files?: { write: (p: string, d: Uint8Array | string) => Promise<unknown> };
-              };
-            };
-          }).__PILOTI__?.domicile?.files
-        : undefined;
+      const domicileFiles = !isBrowser ? shellHostFiles() : undefined;
       if (domicileFiles) {
         const b64 = nextDataUrl.split(",")[1] ?? "";
         const bin = atob(b64);

@@ -1,4 +1,5 @@
 /// <reference types="@domicile-desktop/react/elements" />
+import { hostFiles } from "@/lib/engine/host-files";
 import { logAppEvent } from "@/lib/core/perf-log";
 import { looksLikeUrl, webSearchUrl } from "@/lib/shell/web-search";
 import * as React from "react";
@@ -621,9 +622,9 @@ function WebViewSurface({
       return;
     }
     try {
-      await domicile.files.createDir(".config/piloti").catch(() => undefined);
+      await hostFiles(domicile).createDir(".config/piloti").catch(() => undefined);
       let existing: Record<string, unknown> = {};
-      const readRes = await domicile.files
+      const readRes = await hostFiles(domicile)
         .readText(".config/piloti/domicile.json")
         .catch(() => null);
       if (readRes) {
@@ -646,7 +647,7 @@ function WebViewSurface({
         storeExtId,
         nextInstalled
       );
-      await domicile.files.write(
+      await hostFiles(domicile).write(
         ".config/piloti/domicile.json",
         JSON.stringify({ ...existing, extensions: nextExt }, null, 2) + "\n"
       );
@@ -667,7 +668,7 @@ function WebViewSurface({
         urgency: "critical",
       });
     }
-  }, [domicile.files, isBrowserRuntime, pushNotification, storeExtId]);  // FIXME : Capabilities
+  }, [domicile, isBrowserRuntime, pushNotification, storeExtId]);  // FIXME : Capabilities
 
   React.useEffect(() => {
     if (!isFocusedTab) return;

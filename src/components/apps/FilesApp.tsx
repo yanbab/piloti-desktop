@@ -1,3 +1,4 @@
+import { hostFiles } from "@/lib/engine/host-files";
 import { useArchiveActions } from "@/hooks/use-archive-actions";
 import { ICON_SIZES } from "@/lib/shell/icon-sizes";
 import { HeaderSearch } from "@/components/ui/header-search";
@@ -1036,12 +1037,12 @@ export function FilesApp({
   React.useEffect(() => {
     loadBookmarks();
     if (!realFilesystem) return subscribeVfsPath(bookmarksFile, loadBookmarks);
-    return watchNativeDir(domicile.files, ".config/gtk-3.0", loadBookmarks);
+    return watchNativeDir(hostFiles(domicile), ".config/gtk-3.0", loadBookmarks);
   }, [bookmarksFile, domicile, realFilesystem, loadBookmarks]);
   const saveBookmarks = React.useCallback(
     async (next: GtkBookmark[]) => {
       setBookmarks(next);
-      if (realFilesystem) await domicile.files.createDir(".config/gtk-3.0").catch(() => undefined);
+      if (realFilesystem) await hostFiles(domicile).createDir(".config/gtk-3.0").catch(() => undefined);
       writeFsTextFile(domicile, bookmarksFile, serializeGtkBookmarks(next));
     },
     [bookmarksFile, domicile, realFilesystem],

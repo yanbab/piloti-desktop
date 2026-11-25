@@ -1,3 +1,4 @@
+import { hostFiles } from "@/lib/engine/host-files";
 import { attachConsoleDiskSink, installConsoleCapture } from "./lib/core/console-store";
 import { createShellLogWriter } from "./lib/engine/shell-log";
 import { profileStartup } from "./lib/core/startup-profile";
@@ -23,7 +24,7 @@ async function boot(root: HTMLElement, domicile: Parameters<ShellModule>[1]) {
   const finishState = startBootPhase("home + saved state");
   try {
     const finishHome = startBootPhase("stat $HOME");
-    const stat = await domicile.files.stat(".");
+    const stat = await hostFiles(domicile).stat(".");
     finishHome();
     const home = stat.unwrapOr(undefined as never)?.realPath;
     if (home && home.startsWith("/")) {

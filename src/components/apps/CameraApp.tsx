@@ -1,3 +1,4 @@
+import { hostFiles } from "@/lib/engine/host-files";
 import * as React from "react";
 import { useCapabilities } from "@/hooks/use-capabilities";
 import { useDomicile } from "@domicile-desktop/react/domicile-provider";
@@ -146,7 +147,7 @@ export const CameraApp: React.FC<CameraAppProps> = ({ windowId = "", isCsd = tru
       if (!realFilesystem) {
         writeVfsTextFile(path, await blobToDataUrl(blob), { metadata });
       } else {
-        await domicile.files.write(toDomicilePath(path), new Uint8Array(await blob.arrayBuffer()));
+        await hostFiles(domicile).write(toDomicilePath(path), new Uint8Array(await blob.arrayBuffer()));
       }
       setStatus(_("Saved to Desktop") + ` — ${name}`);
     },

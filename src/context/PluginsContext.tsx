@@ -1,3 +1,4 @@
+import { hostFiles } from "@/lib/engine/host-files";
 import { startBootPhase } from "@/lib/core/perf-log";
 import { VFS_HOME } from "@/lib/engine/vfs-home";
 import * as React from "react";
@@ -488,7 +489,7 @@ export function PluginsProvider({
 
       try {
         if (plugin.stylePath) {
-          const res = await domicile.files.readText(plugin.stylePath);
+          const res = await hostFiles(domicile).readText(plugin.stylePath);
           res.match({
             Ok: (css) => injectPluginCss(plugin.id, css),
             Err: () => undefined,
@@ -515,7 +516,7 @@ export function PluginsProvider({
         if (plugin.wallpapers && plugin.wallpapers.length > 0) {
           const readOpt = async (rel?: string) => {
             if (!rel) return undefined;
-            const res = await domicile.files.readText(rel);
+            const res = await hostFiles(domicile).readText(rel);
             return res.match({ Ok: (t) => t, Err: () => undefined });
           };
           for (const wp of plugin.wallpapers) {
@@ -557,7 +558,7 @@ export function PluginsProvider({
         }
 
         if (plugin.scriptPath && !safeMode) {
-          const res = await domicile.files.readText(plugin.scriptPath);
+          const res = await hostFiles(domicile).readText(plugin.scriptPath);
           const scriptText = res.match({
             Ok: (text) => text,
             Err: () => null,
@@ -585,7 +586,7 @@ export function PluginsProvider({
       setLoading(true);
       const finishPlugins = startBootPhase("plugins");
       try {
-        const list = await discoverPlugins(domicile.files, enabledIds);
+        const list = await discoverPlugins(hostFiles(domicile), enabledIds);
         const enabledSet = new Set(enabledIds);
 
         // Dispose plugins that were disabled or removed
@@ -631,7 +632,7 @@ export function PluginsProvider({
               plugin.kind === "theme" && settings.interfaceTheme === plugin.id;
             if (!plugin.enabled && !activeBySetting) continue;
             try {
-              const res = await domicile.files.readText(relPath);
+              const res = await hostFiles(domicile).readText(relPath);
               const css = res.match({ Ok: (t) => t, Err: () => "" });
               if (css.trim()) blocks.push({ id: plugin.id, css });
             } catch {
@@ -645,10 +646,10 @@ export function PluginsProvider({
           readBlocks("gtk4StylePath"),
           readBlocks("gtk3StylePath"),
         ]);
-        await syncManagedGtkCssFile(domicile.files, ".config/gtk-4.0", gtk4Blocks).catch(
+        await syncManagedGtkCssFile(hostFiles(domicile), ".config/gtk-4.0", gtk4Blocks).catch(
           () => undefined
         );
-        await syncManagedGtkCssFile(domicile.files, ".config/gtk-3.0", gtk3Blocks).catch(
+        await syncManagedGtkCssFile(hostFiles(domicile), ".config/gtk-3.0", gtk3Blocks).catch(
           () => undefined
         );
       } finally {
@@ -657,7 +658,7 @@ export function PluginsProvider({
         setReady(true);
       }
     },
-    [activateDiscoveredPlugin, disposePlugin, domicile.files, settings.interfaceTheme]
+    [activateDiscoveredPlugin, disposePlugin, domicile, settings.interfaceTheme]
   );
 
   React.useEffect(() => {
@@ -700,9 +701,9 @@ export function PluginsProvider({
   const createSamplePlugin = React.useCallback(
     async (kind: "css" | "js"): Promise<string | null> => {
       try {
-        await domicile.files.createDir(".config").catch(() => undefined);
-        await domicile.files.createDir(".config/piloti").catch(() => undefined);
-        await domicile.files.createDir(PLUGINS_REL_DIR).catch(() => undefined);
+        await hostFiles(domicile).createDir(".config").catch(() => undefined);
+        await hostFiles(domicile).createDir(".config/piloti").catch(() => undefined);
+        await hostFiles(domicile).createDir(PLUGINS_REL_DIR).catch(() => undefined);
 
         const id = kind === "css" ? "sample-accent" : "sample-status";
         const fileName = kind === "css" ? `${id}.css` : `${id}.js`;
@@ -712,7 +713,7 @@ export function PluginsProvider({
             ? `/* Piloti CSS Plugin — edit me in ~/.config/piloti/plugins/${fileName} */\n:root {\n  --adw-accent: #9141ac;\n}\n`
             : `// Piloti JS Plugin — no manifest.json required\nexport function activate(ctx) {\n  let clicks = 0;\n  const item = ctx.menubar.addStatusItem({\n    id: "hello",\n    label: "★ 0",\n    tooltip: "Sample plugin status item",\n    onClick() {\n      clicks += 1;\n      item.update({ label: \`★ \${clicks}\` });\n      ctx.notifications.push({\n        summary: "Sample Plugin",\n        body: \`Clicked \${clicks} time(s)\`,\n      });\n    },\n  });\n}\n`;
 
-        await domicile.files.write(relPath, content);
+        await hostFiles(domicile).write(relPath, content);
         const current = settings.enabledPluginIds ?? [];
         if (!current.includes(id)) {
           updateSettings({ enabledPluginIds: [...current, id] });
@@ -724,7 +725,7 @@ export function PluginsProvider({
         return null;
       }
     },
-    [domicile.files, settings.enabledPluginIds, syncPlugins, updateSettings]
+    [domicile, settings.enabledPluginIds, syncPlugins, updateSettings]
   );
 
   const value = React.useMemo<PluginsContextValue>(

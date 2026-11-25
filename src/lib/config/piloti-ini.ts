@@ -1,3 +1,4 @@
+import { hostFiles } from "@/lib/engine/host-files";
 import { VFS_HOME } from "@/lib/engine/vfs-home";
 import type { Domicile } from "@domicile-desktop/sdk/desktop/desktop";
 import { type IniRecord, parseIniText, serializeIniText } from "@/lib/config/ini";
@@ -39,7 +40,7 @@ export async function readPilotiAppIni(
   const vfsPath = getPilotiAppIniVfsPath(appName);
   if (domicile && !isBrowserHostRuntime()) {
     try {
-      const res = await domicile.files.readText(relPath);
+      const res = await hostFiles(domicile).readText(relPath);
       return res.match({
         Ok: (text) => {
           try {
@@ -87,11 +88,11 @@ export async function writePilotiAppIni(
   if (domicile && !isBrowserHostRuntime()) {
     try {
       if (!ensuredIniDirs.has(PILOTI_INI_DIR)) {
-        await domicile.files.createDir(".config").catch(() => undefined);
-        await domicile.files.createDir(PILOTI_INI_DIR).catch(() => undefined);
+        await hostFiles(domicile).createDir(".config").catch(() => undefined);
+        await hostFiles(domicile).createDir(PILOTI_INI_DIR).catch(() => undefined);
         ensuredIniDirs.add(PILOTI_INI_DIR);
       }
-      await domicile.files.write(`${PILOTI_INI_DIR}/${appName}.ini`, serialized);
+      await hostFiles(domicile).write(`${PILOTI_INI_DIR}/${appName}.ini`, serialized);
     } catch {
       ensuredIniDirs.delete(PILOTI_INI_DIR);
     }

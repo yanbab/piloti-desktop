@@ -1,3 +1,4 @@
+import { hostFiles } from "@/lib/engine/host-files";
 import { VFS_HOME } from "@/lib/engine/vfs-home";
 import * as React from "react";
 import { useCapabilities } from "@/hooks/use-capabilities";
@@ -117,14 +118,14 @@ export function AdvancedPane() {
       return;
     }
     const readDirEntries = async (dir: string, source: "user" | "system") => {
-      const list = await domicile.files.readDir(dir).then((r) =>
+      const list = await hostFiles(domicile).readDir(dir).then((r) =>
         r.match({ Ok: (items) => items, Err: () => [] })
       );
       const out: XdgAutostartEntry[] = [];
       for (const item of list) {
         if (!item.name.endsWith(".desktop")) continue;
         const full = `${dir}/${item.name}`;
-        const raw = await domicile.files.readText(full).then((r) =>
+        const raw = await hostFiles(domicile).readText(full).then((r) =>
           r.match({ Ok: (txt) => txt, Err: () => "" })
         );
         const parsed = parseAutostartDesktopFile(item.name, full, raw, source);
@@ -137,7 +138,7 @@ export function AdvancedPane() {
       readDirEntries(".config/autostart", "user"),
     ]);
     setAutostartEntries(mergeAutostartEntries(sys, usr));
-  }, [domicile.files, systemServices]);
+  }, [domicile, systemServices]);
 
   React.useEffect(() => {
     void loadAutostart();
@@ -149,15 +150,15 @@ export function AdvancedPane() {
       if (!systemServices) {
         writeVfsTextFile(`${WEB_VFS_HOME}/.config/autostart/${entry.id}`, content);
       } else {
-        await domicile.files.createDir(".config/autostart");
-        await domicile.files.write(
+        await hostFiles(domicile).createDir(".config/autostart");
+        await hostFiles(domicile).write(
           `.config/autostart/${entry.id}`,
           new TextEncoder().encode(content)
         );
       }
       await loadAutostart();
     },
-    [domicile.files, systemServices, loadAutostart]
+    [domicile, systemServices, loadAutostart]
   );
   const [webStoreIds, setWebStoreIds] = React.useState<string[]>([]);
   const [newExtInput, setNewExtInput] = React.useState("");
@@ -166,7 +167,7 @@ export function AdvancedPane() {
   React.useEffect(() => {
     if (!systemServices) return;
     let cancelled = false;
-    domicile.files
+    hostFiles(domicile)
       .readText(".config/piloti/domicile.json")
       .then((res) => {
         if (cancelled) return;
@@ -186,16 +187,16 @@ export function AdvancedPane() {
     return () => {
       cancelled = true;
     };
-  }, [domicile.files, systemServices]);
+  }, [domicile, systemServices]);
 
   const saveDomicileExtensionsConfig = async (
     nextUnpacked: string[],
     nextWebStore: string[]
   ) => {
     try {
-      await domicile.files.createDir(".config/piloti").catch(() => undefined);
+      await hostFiles(domicile).createDir(".config/piloti").catch(() => undefined);
       let existing: Record<string, unknown> = {};
-      const readRes = await domicile.files
+      const readRes = await hostFiles(domicile)
         .readText(".config/piloti/domicile.json")
         .catch(() => null);
       if (readRes) {
@@ -220,7 +221,7 @@ export function AdvancedPane() {
           web_store: nextWebStore,
         },
       };
-      await domicile.files.write(
+      await hostFiles(domicile).write(
         ".config/piloti/domicile.json",
         JSON.stringify(updated, null, 2) + "\n"
       );

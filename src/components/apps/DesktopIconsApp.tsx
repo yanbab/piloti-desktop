@@ -1,3 +1,4 @@
+import { hostFiles } from "@/lib/engine/host-files";
 import { useArchiveActions } from "@/hooks/use-archive-actions";
 import * as React from "react";
 import { useCapabilities } from "@/hooks/use-capabilities";
@@ -173,7 +174,7 @@ export function DesktopIconsApp({
         return;
       }
 
-      const res = await domicile.files.readDir(desktopDirPath);
+      const res = await hostFiles(domicile).readDir(desktopDirPath);
       const entries = res.match({
         Ok: (list) => list,
         Err: () => [],
@@ -182,7 +183,7 @@ export function DesktopIconsApp({
       let hiddenNames = new Set<string>();
       if (entries.some((e) => e.name === ".hidden")) {
         try {
-          const dotHiddenRes = await domicile.files.readText(
+          const dotHiddenRes = await hostFiles(domicile).readText(
             `${desktopDirPath.replace(/\/+$/, "")}/.hidden`
           );
           dotHiddenRes.match({
@@ -210,9 +211,9 @@ export function DesktopIconsApp({
           const isSymlink = entry.fileType === FileType.Symlink;
           let entryFileType: "file" | "directory" =
             entry.fileType === FileType.Directory ? "directory" : "file";
-          if (isSymlink && typeof domicile.files.stat === "function") {
+          if (isSymlink && typeof hostFiles(domicile).stat === "function") {
             // Follow the link to know whether it points at a folder.
-            const linkStat = await domicile.files.stat(fullPath).catch(() => undefined);
+            const linkStat = await hostFiles(domicile).stat(fullPath).catch(() => undefined);
             if (linkStat?.match({ Ok: (st) => st.fileType === FileType.Directory, Err: () => false })) {
               entryFileType = "directory";
             }
@@ -220,7 +221,7 @@ export function DesktopIconsApp({
 
           if (entryFileType === "file" && entry.name.endsWith(".desktop")) {
             try {
-              const textRes = await domicile.files.readText(fullPath);
+              const textRes = await hostFiles(domicile).readText(fullPath);
               const content = textRes.match({
                 Ok: (t) => t,
                 Err: () => "",
@@ -259,9 +260,9 @@ export function DesktopIconsApp({
           }
 
           let isEmpty = false;
-          if (entryFileType === "file" && typeof domicile.files.stat === "function") {
+          if (entryFileType === "file" && typeof hostFiles(domicile).stat === "function") {
             try {
-              const statRes = await domicile.files.stat(fullPath);
+              const statRes = await hostFiles(domicile).stat(fullPath);
               statRes.match({
                 Ok: (st) => {
                   isEmpty = st.size === 0;
@@ -318,7 +319,7 @@ export function DesktopIconsApp({
     }
   }, [
     desktopDirPath,
-    domicile.files,
+    domicile,
     ensureWaylandIcons,
     getAppIconUrl,
     installedXdgApps,
@@ -363,7 +364,7 @@ export function DesktopIconsApp({
       };
     }
     // inotify via Domicile instead of polling every 6 s (polls only as fallback).
-    const stopWatch = watchNativeDir(domicile.files, desktopDirPath, () => {
+    const stopWatch = watchNativeDir(hostFiles(domicile), desktopDirPath, () => {
       if (!locked) void loadDesktopFolder();
     });
     const onFocus = () => {
@@ -376,7 +377,7 @@ export function DesktopIconsApp({
     };
   }, [
     desktopDirPath,
-    domicile.files,
+    domicile,
     dockIconsReady,
     settings.debugMode,
     realFilesystem,
@@ -400,11 +401,11 @@ export function DesktopIconsApp({
       folderName = `Untitled Folder ${n++}`;
     }
     const fullPath = `${desktopDirPath.replace(/\/+$/, "")}/${folderName}`;
-    await domicile.files.createDir(fullPath).catch(() => undefined);
+    await hostFiles(domicile).createDir(fullPath).catch(() => undefined);
     await loadDesktopFolder();
     setSelectedIds([folderName]);
     setRenamingId(folderName);
-  }, [desktopDirPath, domicile.files, realFilesystem, items, loadDesktopFolder]);
+  }, [desktopDirPath, domicile, realFilesystem, items, loadDesktopFolder]);
 
   const createDesktopTextFile = React.useCallback(async () => {
     if (!realFilesystem) {
@@ -421,11 +422,11 @@ export function DesktopIconsApp({
       fileName = `Untitled ${n++}.txt`;
     }
     const fullPath = `${desktopDirPath.replace(/\/+$/, "")}/${fileName}`;
-    await domicile.files.write(fullPath, "").catch(() => undefined);
+    await hostFiles(domicile).write(fullPath, "").catch(() => undefined);
     await loadDesktopFolder();
     setSelectedIds([fileName]);
     setRenamingId(fileName);
-  }, [desktopDirPath, domicile.files, realFilesystem, items, loadDesktopFolder]);
+  }, [desktopDirPath, domicile, realFilesystem, items, loadDesktopFolder]);
 
   const createDesktopFromTemplate = React.useCallback(
     async (template: WebVfsEntry) => {
@@ -451,7 +452,7 @@ export function DesktopIconsApp({
       }
       let content = template.content ?? "";
       if (!content && template.path) {
-        const res = await domicile.files.readText(
+        const res = await hostFiles(domicile).readText(
           template.path.startsWith(`${WEB_VFS_HOME}/`)
             ? template.path.slice(WEB_VFS_HOME.length + 1)
             : template.path
@@ -464,12 +465,12 @@ export function DesktopIconsApp({
         });
       }
       const fullPath = `${desktopDirPath.replace(/\/+$/, "")}/${fileName}`;
-      await domicile.files.write(fullPath, content).catch(() => undefined);
+      await hostFiles(domicile).write(fullPath, content).catch(() => undefined);
       await loadDesktopFolder();
       setSelectedIds([fileName]);
       setRenamingId(fileName);
     },
-    [desktopDirPath, domicile.files, realFilesystem, items, loadDesktopFolder]
+    [desktopDirPath, domicile, realFilesystem, items, loadDesktopFolder]
   );
 
   // Listen for "New Folder", "New Text File", "New from Template", and "Arrange Icons" triggered from Desktop menus

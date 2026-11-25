@@ -1,3 +1,4 @@
+import { hostFiles } from "@/lib/engine/host-files";
 import type { Domicile } from "@domicile-desktop/sdk/desktop/desktop";
 
 export interface ComputerInfo {
@@ -105,7 +106,7 @@ async function readTextSafe(
   path: string
 ): Promise<string | null> {
   try {
-    const res = await domicile.files.readText(path);
+    const res = await hostFiles(domicile).readText(path);
     return res.match({
       Ok: (txt) => txt.trim() || null,
       Err: () => null,

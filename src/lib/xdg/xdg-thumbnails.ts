@@ -1,3 +1,4 @@
+import { hostFiles } from "@/lib/engine/host-files";
 import type { Domicile } from "@domicile-desktop/sdk/desktop/desktop";
 import { posixPathToFileUri } from "./xdg-recents";
 
@@ -128,7 +129,7 @@ export async function lookupXdgThumbnailDataUrl(
   for (const size of preferredSizes) {
     const relPath = getXdgThumbnailRelativePath(absolutePath, size);
     try {
-      const res = await domicile.files.read(relPath);
+      const res = await hostFiles(domicile).read(relPath);
       const bytes = res.match({
         Ok: (b) => (b && b.length > 8 ? b : null),
         Err: () => null,

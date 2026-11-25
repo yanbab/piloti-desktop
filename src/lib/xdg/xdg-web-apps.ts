@@ -1,3 +1,4 @@
+import { hostFiles } from "@/lib/engine/host-files";
 import { getEngine } from "@/lib/engine/engine";
 import type { Domicile } from "@domicile-desktop/sdk/desktop/desktop";
 import {
@@ -159,9 +160,9 @@ export async function ensureXdgApplicationsDir(
   domicile: Domicile,
 ): Promise<void> {
   if (!getEngine().capabilities.realFilesystem) return;
-  await domicile.files.createDir(".local").catch(() => undefined);
-  await domicile.files.createDir(".local/share").catch(() => undefined);
-  await domicile.files
+  await hostFiles(domicile).createDir(".local").catch(() => undefined);
+  await hostFiles(domicile).createDir(".local/share").catch(() => undefined);
+  await hostFiles(domicile)
     .createDir(".local/share/applications")
     .catch(() => undefined);
 }

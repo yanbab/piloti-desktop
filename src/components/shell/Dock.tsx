@@ -1,3 +1,4 @@
+import { hostFiles } from "@/lib/engine/host-files";
 import * as React from "react";
 import { watchNativeDir } from "@/lib/engine-native/file-watch";
 import {
@@ -332,9 +333,9 @@ export const Dock = React.memo(function Dock() {
       setTrashEmpty(items.length === 0);
       return;
     }
-    const status = await inspectXdgTrash(domicile.files, ".local/share/Trash/files");
+    const status = await inspectXdgTrash(hostFiles(domicile), ".local/share/Trash/files");
     setTrashEmpty(status.empty);
-  }, [domicile.files, isBrowserRuntime]);  // FIXME : Capabilities
+  }, [domicile, isBrowserRuntime]);  // FIXME : Capabilities
 
   React.useEffect(() => {
     void refreshTrashStatus();
@@ -352,7 +353,7 @@ export const Dock = React.memo(function Dock() {
     };
     window.addEventListener("focus", onFocus);
     // inotify via Domicile instead of polling every 5 s (polls only as fallback).
-    const stopWatch = watchNativeDir(domicile.files, ".local/share/Trash/files", () => {
+    const stopWatch = watchNativeDir(hostFiles(domicile), ".local/share/Trash/files", () => {
       if (active) void refreshTrashStatus();
     });
     return () => {
@@ -360,7 +361,7 @@ export const Dock = React.memo(function Dock() {
       stopWatch();
       window.removeEventListener("focus", onFocus);
     };
-  }, [domicile.files, isBrowserRuntime, refreshTrashStatus]);  // FIXME : Capabilities
+  }, [domicile, isBrowserRuntime, refreshTrashStatus]);  // FIXME : Capabilities
 
   const resolveAppDefinition = React.useCallback(
     (appId: string): AppDefinition | null => {

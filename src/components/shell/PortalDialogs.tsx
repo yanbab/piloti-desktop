@@ -1,3 +1,4 @@
+import { hostFiles } from "@/lib/engine/host-files";
 import { VFS_HOME } from "@/lib/engine/vfs-home";
 import * as React from "react";
 import { useCapabilities } from "@/hooks/use-capabilities";
@@ -373,7 +374,7 @@ function FileChooserPortalDialog({
         if (active) setEntries(list);
         return;
       }
-      const res = await domicile.files.readDir(cwd);
+      const res = await hostFiles(domicile).readDir(cwd);
       const list = res.match({
         Ok: (items) =>
           items
@@ -391,7 +392,7 @@ function FileChooserPortalDialog({
     return () => {
       active = false;
     };
-  }, [cwd, domicile.files, realFilesystem, showHidden]);
+  }, [cwd, domicile, realFilesystem, showHidden]);
 
   const activeFilter = body.filters[filterIdx];
   const visibleEntries = React.useMemo(() => {
@@ -1321,7 +1322,7 @@ function PermissionPortalDialog({
       return;
     }
     let active = true;
-    void domicile.files
+    void hostFiles(domicile)
       .read(request.body.path)
       .then((res) => {
         if (!active) return;
@@ -1344,7 +1345,7 @@ function PermissionPortalDialog({
     return () => {
       active = false;
     };
-  }, [domicile.files, realFilesystem, request]);
+  }, [domicile, realFilesystem, request]);
 
   React.useEffect(() => {
     return () => {

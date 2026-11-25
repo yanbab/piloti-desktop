@@ -1,3 +1,4 @@
+import { hostFiles } from "@/lib/engine/host-files";
 import * as React from "react";
 import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
@@ -120,7 +121,7 @@ export function XtermTerminalApp({
         });
       },
       piloti: (globalThis as { __PILOTI__?: unknown }).__PILOTI__,
-      files: domicile.files,
+      files: hostFiles(domicile),
       domicile,
       help: () =>
         [

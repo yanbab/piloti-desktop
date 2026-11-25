@@ -1,3 +1,4 @@
+import { hostFiles } from "@/lib/engine/host-files";
 import * as React from "react";
 import { useDomicile } from "@domicile-desktop/react/domicile-provider";
 import { usePortalWallpaper } from "@domicile-desktop/react/portals";
@@ -598,7 +599,7 @@ export function useSettingsValue(options?: {
     const writeHostFile = async (vfsPath: string, content: string) => {
       await ensureParentDir(vfsPath);
       const bytes = new TextEncoder().encode(content);
-      await domicile.files.write(toDomicilePath(vfsPath), bytes);
+      await hostFiles(domicile).write(toDomicilePath(vfsPath), bytes);
     };
     registerVfsHostSync({
       writeText: (vfsPath, content) => {
@@ -624,7 +625,7 @@ export function useSettingsValue(options?: {
     // disk when migrated during initial render before hostSync was registered.
     void (async () => {
       const relSettings = toDomicilePath(VFS_STATE_PATHS.settings);
-      const res = await domicile.files.readText(relSettings);
+      const res = await hostFiles(domicile).readText(relSettings);
       if (cancelled) return;
       const hostRaw = res.match({
         Ok: (text) => (text.trim().length > 0 ? text : null),
@@ -1312,7 +1313,7 @@ export function useSettingsValue(options?: {
       const lower = targetPath.toLowerCase();
 
       if (lower.endsWith(".html") || lower.endsWith(".htm")) {
-        const res = await domicile.files.readText(targetPath);
+        const res = await hostFiles(domicile).readText(targetPath);
         const htmlText = res.match({ Ok: (t) => t, Err: () => "" });
         if (cancelled) return;
         if (activeBlobUrlRef.current) {
@@ -1325,7 +1326,7 @@ export function useSettingsValue(options?: {
       }
 
       if (lower.endsWith(".css")) {
-        const res = await domicile.files.readText(targetPath);
+        const res = await hostFiles(domicile).readText(targetPath);
         const cssText = res.match({ Ok: (t) => t, Err: () => "" });
         if (cancelled) return;
         if (activeBlobUrlRef.current) {
@@ -1342,14 +1343,14 @@ export function useSettingsValue(options?: {
         blob = await readGnomeBackgroundBlob(domicile, activePictureUri);
       } else {
         if (lower.endsWith(".xml")) {
-          const xmlRes = await domicile.files.readText(targetPath);
+          const xmlRes = await hostFiles(domicile).readText(targetPath);
           const xml = xmlRes.match({ Ok: (t) => t, Err: () => "" });
           const lastSlash = targetPath.lastIndexOf("/");
           const baseDir = lastSlash > 0 ? targetPath.slice(0, lastSlash) : "/";
           const extracted = parseGnomeBackgroundXml(xml, baseDir);
           if (extracted) targetPath = extracted;
         }
-        const bytesRes = await domicile.files.read(targetPath);
+        const bytesRes = await hostFiles(domicile).read(targetPath);
         const bytes = bytesRes.match({
           Ok: (b) => (b.length > 0 ? b : null),
           Err: () => null,

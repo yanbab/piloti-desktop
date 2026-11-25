@@ -1,3 +1,4 @@
+import { hostFiles } from "@/lib/engine/host-files";
 import * as React from "react";
 import { useCapabilities } from "@/hooks/use-capabilities";
 import { useDisplays } from "@domicile-desktop/react/displays";
@@ -132,7 +133,7 @@ function WallpaperThumbnail({
     }
     let cancelled = false;
     let objectUrl = "";
-    void domicile.files.read(localPath).then((res) => {
+    void hostFiles(domicile).read(localPath).then((res) => {
       if (cancelled) return;
       res.match({
         Ok: (bytes) => {
@@ -158,7 +159,7 @@ function WallpaperThumbnail({
       cancelled = true;
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [domicile.files, localPath, rawUri]);
+  }, [domicile, localPath, rawUri]);
 
   const thumbSpec = React.useMemo(() => {
     const resolvedBgCss =
@@ -328,11 +329,11 @@ export function WallpaperPane() {
       const safeName = file.name.replace(/[/\\]/g, "_") || `wallpaper-${Date.now()}.png`;
       const targetPath = `${picturesDir.replace(/\/+$/, "")}/${safeName}`;
       const buf = new Uint8Array(await file.arrayBuffer());
-      await domicile.files.write(toDomicilePath(targetPath), buf);
+      await hostFiles(domicile).write(toDomicilePath(targetPath), buf);
       applyPictureUri(localPathToFileUri(targetPath));
       setImagePickerOpen(false);
     },
-    [applyPictureUri, domicile.files, realFilesystem, picturesDir]
+    [applyPictureUri, domicile, realFilesystem, picturesDir]
   );
 
   const applySolidColor = React.useCallback(
