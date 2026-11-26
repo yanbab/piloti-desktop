@@ -18,7 +18,7 @@ export function AppWindow({ className, ...props }: React.ComponentProps<"div">) 
   );
 }
 
-/** The scrolling body under a header bar. Not `<main>`: a shell has many windows. */
+/** The scrolling body under a header bar.  */
 export function AppContent({
   className,
   scroll = true,

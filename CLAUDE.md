@@ -15,7 +15,7 @@ Piloti Desktop: a Linux Wayland desktop shell (React 19 + Tailwind + Adwaita tok
 - `npm run build` (web → `docs/demo/`, shell → `dist/shell.js`), `build:greeter`, `build:deb` (→ `dist/piloti-desktop_<ver>-1_all.deb`). Inside the Linux VM use `scripts/vm-build.sh` instead: the shared folder's `node_modules` are macOS ones.
 - After changing anything under `data/files/` (icons, default tree): `node scripts/generate-piloti-icons.mjs`.
 - Release flow: bump `package.json` + add a `debian/changelog` entry, `build:deb`, commit, tag `vX.Y.Z`, `gh release create` with the `.deb`. Stay on 0.10.x. Author is yanbab; no Claude co-author trailer; changelog signed ` -- yanbab <yanbab@gmail.com>  <date>`.
-- `_docs/` (gitignored, local) holds project management only: `TODO.md` (with checkboxes), `ROADMAP.md`, `ISSUES.md`. Reference docs live in `docs/`.
+- `_docs/` (gitignored, local) holds project management only: `TODO.md` (with checkboxes), `ROADMAP.md`, `NOTES.md` (ideas). Reference docs live in `docs/`.
 
 ## Architecture
 

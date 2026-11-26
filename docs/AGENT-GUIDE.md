@@ -71,6 +71,12 @@ them. All in `piloti-macos.css`, computed from tokens, not hard-coded:
   don't appear in an existing profile. Copy them with
   `import('/data/files/…?raw')` + `piloti.files.write`.
 - After changing `data/files/` run `node scripts/generate-piloti-icons.mjs`.
+- The icon index is cached in the profile: a new or changed theme icon may not
+  show in an existing one. Check on a clean origin (`127.0.0.1` instead of
+  `localhost`).
+- If the dev server reports an error the source doesn't have (e.g. "X is not
+  defined" right after quick edits), it may be serving a stale file: `touch` it
+  and reload.
 - Drag & drop: dispatch `PointerEvent`s (down on the element, move/up on
   `window`/`document`); automation key presses don't trigger editing commands
   (Ctrl/Cmd+A), test handlers with synthetic `KeyboardEvent`s.

@@ -9,12 +9,14 @@ Homepage: https://github.com/yanbab/piloti-desktop
 
 Package: piloti-desktop
 Architecture: all
-Depends: domicile, ${misc:Depends}
-Recommends:
- xwayland-satellite,
- papirus-icon-theme,
+Depends:
+ domicile,
  adwaita-icon-theme,
  hicolor-icon-theme,
+ papirus-icon-theme,
+ ${misc:Depends}
+Recommends:
+ xwayland-satellite,
  xdg-utils,
  libarchive-tools,
  dbus-user-session

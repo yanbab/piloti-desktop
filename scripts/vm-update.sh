@@ -1,47 +1,21 @@
 #!/bin/sh
-
+# Update Piloti inside the Linux VM: pull, build the .deb and install it.
+#
+#   scripts/vm-update.sh      from the shared folder
 set -eu
 
-SHARED="${PILOTI_SHARED:-$(cd "$(dirname "$0")/.." && pwd)}"
-BUILD="${PILOTI_BUILD:-$HOME/.cache/piloti/deb-build}"
-OUT="${PILOTI_OUT:-$SHARED/dist}"
+# One block, read whole before it runs: `git pull` may rewrite this file.
+{
+  SHARED="${PILOTI_SHARED:-$(cd "$(dirname "$0")/.." && pwd)}"
+  OUT="${PILOTI_OUT:-$SHARED/dist}"
 
-mkdir -p "$BUILD"
+  git -c safe.directory="$SHARED" -C "$SHARED" pull --ff-only
 
+  # Only the package built now may be left to install.
+  rm -f "$OUT"/piloti-desktop_*.deb
+  PILOTI_SHARED="$SHARED" PILOTI_OUT="$OUT" "$SHARED/scripts/vm-build.sh"
 
-
-cd $SHARED
-git pull
-rm dist/*.deb
-./scripts/vm-build
-sudo dpkg -i dist/pilkoti-desktop*.deb
-
-
-# `rsync --delete` below mirrors into BUILD: it must never be the sources.
-if [ "$(cd "$BUILD" && pwd -P)" = "$(cd "$SHARED" && pwd -P)" ]; then
-  echo "PILOTI_BUILD must not be the source folder" >&2
-  exit 1
-fi
-# The copy has no .git: count the commits since the release here.
-if [ -z "${PILOTI_REVISION:-}" ]; then
-  version="$(sed -n 's/.*"version": *"\([^"]*\)".*/\1/p' "$SHARED/package.json" | head -1)"
-  PILOTI_REVISION="$(git -c safe.directory="$SHARED" -C "$SHARED" rev-list --count "v$version..HEAD" 2>/dev/null || true)"
-fi
-export PILOTI_REVISION
-rsync -a --delete \
-  --exclude node_modules --exclude dist --exclude .git --exclude _docs \
-  --exclude test-results --exclude docs/demo --exclude '/.*' \
-  "$SHARED"/ "$BUILD"/
-
-cd "$BUILD"
-# Reinstall only when the lock file changed.
-if ! cmp -s package-lock.json node_modules/.piloti-lock; then
-  npm ci --no-audit --no-fund
-  cp package-lock.json node_modules/.piloti-lock
-fi
-rm -rf dist
-npm run build:deb
-
-mkdir -p "$OUT"
-cp dist/*.deb "$OUT"/
-echo "Copied to $OUT: $(cd dist && ls *.deb)"
+  # --reinstall: a rebuild can carry the same version as the installed one.
+  sudo apt-get install -y --reinstall "$OUT"/piloti-desktop_*.deb
+  exit
+}
