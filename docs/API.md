@@ -1,6 +1,6 @@
 # Piloti API
 
-`piloti` is Domicile's desktop (SDK 2.2.0) plus what the shell adds.
+`piloti` is Domicile's desktop (SDK 3.0.0) plus what the shell adds.
 
 | Member | What | Where |
 |---|---|---|
