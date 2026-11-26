@@ -25,7 +25,8 @@ const App = ({ host, path, chrome }: { host: TextEditorHost; path: string | null
 );
 
 const Boot = () => {
-  const { files } = useAppDomicile();
+  const domicile = useAppDomicile();
+  const { files } = domicile;
   const [state, setState] = React.useState<
     { host: TextEditorHost; path: string | null; chrome: AppChrome } | undefined
   >();
@@ -34,7 +35,7 @@ const Boot = () => {
       const raw = await files.readText(OPEN_FILE).then((r) => r.unwrapOr(""), () => "");
       const path = raw.trim() || null;
       if (path) void files.write(OPEN_FILE, "").catch(() => {});
-      const { host, settings } = await createDomicileEditorHost(files, path);
+      const { host, settings } = await createDomicileEditorHost(domicile);
       const iface = settings["org.piloti.desktop.interface"] ?? {};
       applyThemeToDocument(document, {
         themeMode: (iface["color-scheme"] as "dark" | "light" | "system") ?? "system",
@@ -51,7 +52,7 @@ const Boot = () => {
       };
       setState({ host, path, chrome });
     })();
-  }, [files]);
+  }, [domicile, files]);
   return state ? <App {...state} /> : null;
 };
 

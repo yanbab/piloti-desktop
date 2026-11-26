@@ -64,6 +64,7 @@ function toContent(data: string | Uint8Array): string {
 
 function toBytes(content: string): Uint8Array {
   const base64 = /^data:[^,]*;base64,/.exec(content);
+  // Anything else is text, `data:…;utf8,` pictures included.
   if (!base64) return new TextEncoder().encode(content);
   return Uint8Array.from(atob(content.slice(base64[0].length)), (c) => c.charCodeAt(0));
 }

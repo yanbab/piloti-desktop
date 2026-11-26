@@ -14,14 +14,19 @@ type Node =
   | { type: "link"; target: string; mtime: number; meta: Record<string, string> };
 
 const ok = <T>(value: T) => ({
+  isOk: () => true,
+  unwrapOr: (_fallback: T) => value,
   match: <R>(on: { Ok: (v: T) => R; Err: (e: never) => R }) => on.Ok(value),
 });
 const err = (kind: number, message: string) => ({
+  isOk: () => false,
+  unwrapOr: <T>(fallback: T) => fallback,
   match: <R>(on: { Ok: (v: never) => R; Err: (e: { kind: number; message: string }) => R }) =>
     on.Err({ kind, message }),
 });
 const notFound = () => err(0, "entity not found");
 
+const HOME = "/home/user";
 const parent = (p: string) => p.slice(0, p.lastIndexOf("/")) || "/";
 const leaf = (p: string) => p.slice(p.lastIndexOf("/") + 1);
 
@@ -30,8 +35,9 @@ export function createFakeDomicile(options: { watchLimit?: number } = {}) {
   const watchers = new Set<{ dir: string; push: (path: string) => void; dead: boolean }>();
   let clock = 1;
 
-  /** `path` with links resolved; every part but the last must exist. */
+  /** `path` with links resolved; relative paths start at the home. */
   const real = (path: string, followLast = true, hops = 0): string => {
+    if (!path.startsWith("/")) return real(path === "." ? HOME : `${HOME}/${path}`, followLast, hops);
     const parts = path.split("/").filter(Boolean);
     let at = "";
     for (let i = 0; i < parts.length; i += 1) {
@@ -207,7 +213,7 @@ export function createFakeDomicile(options: { watchLimit?: number } = {}) {
     },
   };
 
-  mkdirs("/home/user");
+  mkdirs(HOME);
   return {
     domicile: { files, processes },
     watchCount: () => watchers.size,

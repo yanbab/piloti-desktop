@@ -61,18 +61,22 @@ async function start(root: HTMLElement) {
       </ShellErrorBoundary>,
     );
   } else if (isolatedApp === "image-viewer") {
+    const { createBrowserDomicile } = await import("./lib/engine-web");
+    const domicile = createBrowserDomicile();
     const windowId = params.get("windowId") ?? "";
     const isCsd = params.get("csd") !== "0";
     const initialPath = params.get("path") ?? undefined;
     createRoot(root).render(
       <ShellErrorBoundary>
         <AppChromeProvider value={{ appId: "image-viewer", windowId, decorations: isCsd ? "client" : "server" }}>
-          <React.Suspense fallback={null}>
-            <ImageViewerApp
-              initialPath={initialPath}
-              windowId={windowId}
-            />
-          </React.Suspense>
+          <DomicileProvider domicile={withVfs(domicile, createWebVfs(domicile))}>
+            <React.Suspense fallback={null}>
+              <ImageViewerApp
+                initialPath={initialPath}
+                windowId={windowId}
+              />
+            </React.Suspense>
+          </DomicileProvider>
         </AppChromeProvider>
       </ShellErrorBoundary>,
     );

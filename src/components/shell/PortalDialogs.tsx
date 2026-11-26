@@ -1,4 +1,3 @@
-import { hostFiles } from "@/lib/engine/host-files";
 import { VFS_HOME } from "@/lib/engine/vfs-home";
 import * as React from "react";
 import { useCapabilities } from "@/hooks/use-capabilities";
@@ -13,7 +12,6 @@ import {
   WallpaperTarget,
   type PortalRequest,
 } from "@domicile-desktop/sdk/portal";
-import { FileType } from "@domicile-desktop/sdk/system";
 import {
   AlertTriangleIcon,
   AppWindowIcon,
@@ -36,7 +34,6 @@ import {
 } from "lucide-react";
 import { useApps, useSettings } from "@/context/DesktopStateContext";
 import { _ } from "@/lib/core/i18n";
-import { listVfsDir } from "@/lib/engine-web/web-vfs";
 import { setDefaultMimeApp } from "@/lib/xdg/xdg-mimeapps";
 import { Button } from "@/components/ui/button";
 import {
@@ -363,36 +360,22 @@ function FileChooserPortalDialog({
   React.useEffect(() => {
     let active = true;
     const load = async () => {
-      if (!realFilesystem) {
-        const list = listVfsDir(cwd)
-          .filter((e) => showHidden || !e.name.startsWith("."))
-          .map((e) => ({
-            name: e.name,
-            path: e.path,
-            isDir: e.kind === "directory",
-          }));
-        if (active) setEntries(list);
-        return;
-      }
-      const res = await hostFiles(piloti).readDir(cwd);
-      const list = res.match({
-        Ok: (items) =>
-          items
-            .filter((i) => i.name && (showHidden || !i.name.startsWith(".")))
-            .map((i) => ({
-              name: i.name,
-              path: `${cwd.replace(/\/$/, "")}/${i.name}`,
-              isDir: i.fileType === FileType.Directory,
-            })),
-        Err: () => [],
-      });
+      const list = ((await piloti.vfs.list(cwd)) ?? [])
+        .filter((e) => showHidden || !e.name.startsWith("."))
+        .map((e) => ({ name: e.name, path: e.path, isDir: e.kind === "directory" }));
       if (active) setEntries(list);
     };
-    void load();
+    // Calls once when in place, then when the folder changes.
+    const unwatch = piloti.vfs.watch(cwd, () => {
+      void load().catch(() => {
+        if (active) setEntries([]);
+      });
+    });
     return () => {
       active = false;
+      unwatch();
     };
-  }, [cwd, piloti, realFilesystem, showHidden]);
+  }, [cwd, piloti.vfs, showHidden]);
 
   const activeFilter = body.filters[filterIdx];
   const visibleEntries = React.useMemo(() => {
@@ -1322,11 +1305,10 @@ function PermissionPortalDialog({
       return;
     }
     let active = true;
-    void hostFiles(piloti)
+    void piloti.vfs
       .read(request.body.path)
-      .then((res) => {
+      .then((bytes) => {
         if (!active) return;
-        const bytes = res.match({ Ok: (b) => b, Err: () => null });
         if (!bytes || bytes.length === 0) return;
         const ext = request.body.path.toLowerCase();
         const mime = ext.endsWith(".png")

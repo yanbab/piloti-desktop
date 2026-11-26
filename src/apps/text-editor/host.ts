@@ -1,13 +1,15 @@
-type Files = Omit<import("@domicile-desktop/sdk/desktop/files").Files, "search">;
+import { createNativeVfs, type NativeVfsHost } from "@/lib/engine-native/vfs";
 import { parseIniText, serializeIniText } from "@/lib/config/ini";
 import type { TextEditorHost } from "@/lib/engine/text-editor-host";
 
-/** The shell's VFS now uses real paths; `domicile.files` takes absolute or home-relative ones. */
+/** `piloti.vfs` takes absolute paths. */
 const toReal = (p: string) => p.replace(/\/+/g, "/");
 
 const SETTINGS_INI = ".config/piloti/settings.ini";
 const NOTEPAD_INI = ".config/piloti/notepad.ini";
 const GENERAL_INI = ".config/piloti/general.ini";
+
+type Files = NativeVfsHost["files"];
 
 async function readText(files: Files, path: string): Promise<string | null> {
   const r = await files.readText(path).catch(() => null);
@@ -15,20 +17,19 @@ async function readText(files: Files, path: string): Promise<string | null> {
 }
 
 /**
- * TextEditorHost for a Domicile app module: files go straight to
- * `domicile.files` (no shell VFS). Reads that the port wants synchronously are
- * served from a cache filled by `preload` before the app mounts.
+ * TextEditorHost for a Domicile app module: the document goes through the same
+ * `piloti.vfs` as in the shell; the app's prefs and state, which the editor
+ * reads synchronously, are loaded before it mounts.
  */
-export async function createDomicileEditorHost(files: Files, initialPath: string | null) {
+export async function createDomicileEditorHost(domicile: NativeVfsHost) {
+  const { files } = domicile;
   const stateCache = new Map<string, unknown>();
-  const fileCache = new Map<string, string>();
-  const [notepadRaw, generalRaw, settingsRaw, initial] = await Promise.all([
+  const home = (await files.stat(".")).unwrapOr(undefined as never)?.realPath ?? "";
+  const [notepadRaw, generalRaw, settingsRaw] = await Promise.all([
     readText(files, NOTEPAD_INI),
     readText(files, GENERAL_INI),
     readText(files, SETTINGS_INI),
-    initialPath ? readText(files, toReal(initialPath)) : Promise.resolve(null),
   ]);
-  if (initialPath && initial !== null) fileCache.set(toReal(initialPath), initial);
   const editorStatePath = ".local/state/piloti/editor-state.json";
   const stateRaw = await readText(files, editorStatePath);
   if (stateRaw) {
@@ -61,39 +62,10 @@ export async function createDomicileEditorHost(files: Files, initialPath: string
   });
 
   const host: TextEditorHost = {
-    nativeFs: true,
-    normalizePath: (p) => p.replace(/\/+/g, "/"),
-    defaultNewFilePath: (name) => `${desktopDir}/${name}`,
-    peekFile: (p) => {
-      const c = fileCache.get(toReal(p));
-      return c === undefined ? undefined : { kind: "file", content: c };
-    },
-    watchFile: (p, listener) => {
-      let stop: (() => void) | undefined;
-      let dead = false;
-      void files.watch(toReal(p)).then(async (r) => {
-        if (dead) return;
-        const watch = r.unwrapOr(undefined as never) as
-          | { items: ReadableStream<unknown>; stop: () => void }
-          | undefined;
-        if (!watch) return;
-        stop = watch.stop;
-        const reader = watch.items.getReader();
-        for (;;) {
-          const { done } = await reader.read();
-          if (done || dead) break;
-          listener();
-        }
-      });
-      return () => {
-        dead = true;
-        stop?.();
-      };
-    },
+    vfs: createNativeVfs(domicile),
+    normalizePath: toReal,
+    defaultNewFilePath: (name) => `${home}/${desktopDir}/${name}`,
     onRenamed: () => () => {},
-    renameFile: () => null,
-    readMetadata: async () => ({}),
-    writeMetadata: () => {},
     readState: <T,>(path: string, isValid: (v: unknown) => v is T) => {
       const v = stateCache.get(`${path}`);
       return isValid(v) ? v : null;
@@ -118,14 +90,6 @@ export async function createDomicileEditorHost(files: Files, initialPath: string
     onPrintFocused: () => () => {},
     onBeforeClose: () => () => {},
     bridge: {
-      fs: {
-        readText: (p) => readText(files, toReal(p)),
-        writeText: async (p, content) => {
-          const r = await files.write(toReal(p), content).catch(() => null);
-          return Boolean(r?.isOk?.());
-        },
-        listDir: async () => [],
-      },
       setTitle: (title) => {
         document.title = title;
       },

@@ -1,4 +1,3 @@
-import { getEngine } from "@/lib/engine/engine";
 import * as React from "react";
 import { usePiloti, type Piloti } from "@/lib/engine/piloti";
 import {
@@ -6,15 +5,8 @@ import {
   shouldConfirmUnsavedOnClose,
   writePilotiAppIni,
 } from "@/lib/config/piloti-ini";
-import { readFsMetadata, writeFsMetadata } from "@/lib/engine/fs-bridge";
 import { readVfsStateJson, writeVfsStateJson } from "@/lib/engine/vfs-state";
-import {
-  getVfsEntry,
-  normalizeVfsPath,
-  renameVfsEntry,
-  subscribeVfsRenamed,
-  subscribeWebVfs,
-} from "@/lib/engine-web/web-vfs";
+import { normalizeVfsPath, subscribeVfsRenamed } from "@/lib/engine-web/web-vfs";
 import { VFS_HOME } from "@/lib/engine/vfs-home";
 import { emitShellEvent, onShellEvent } from "@/lib/shell/shell-events";
 
@@ -24,24 +16,12 @@ import { TextEditorApp, type TextEditorAppProps } from "@/components/apps/TextEd
 
 const stateFile = (key: string) => `${VFS_HOME}/.local/state/piloti/${key}.json`;
 
-export function createInShellEditorHost(
-  piloti: Piloti | undefined,
-): TextEditorHost {
+export function createInShellEditorHost(piloti: Piloti): TextEditorHost {
   return {
-    nativeFs: getEngine().capabilities.realFilesystem,
+    vfs: piloti.vfs,
     normalizePath: normalizeVfsPath,
     defaultNewFilePath: (name) => `${VFS_HOME}/Desktop/${name}`,
-    peekFile: (path) => getVfsEntry(path),
-    watchFile: (path, listener) =>
-      subscribeWebVfs(() => listener(), { path, mode: "exact" }),
     onRenamed: subscribeVfsRenamed,
-    renameFile: (path, newName) => {
-      const r = renameVfsEntry(path, newName);
-      return r ? { path: r.path, name: r.name } : null;
-    },
-    readMetadata: (path, keys) => readFsMetadata(piloti, path, keys),
-    writeMetadata: (path, patch) =>
-      writeFsMetadata(piloti, path, patch),
     readState: (key, isValid) =>
       readVfsStateJson(stateFile(key), undefined, isValid),
     writeState: (key, value) => {

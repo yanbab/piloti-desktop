@@ -11,7 +11,7 @@ import type { Piloti } from "@/lib/engine/piloti";
 
 export type HostFiles = Piloti["files"];
 
-export function hostFiles(piloti: Pick<Piloti, "files">): HostFiles {
+export function hostFiles<T = HostFiles>(piloti: { files: T }): T {
   return piloti.files;
 }
 

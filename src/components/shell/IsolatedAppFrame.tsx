@@ -9,10 +9,8 @@ import {
 import {
   type AppToShellMessage,
   applyThemeToDocument,
-  type IsolatedFsEntry,
   type ShellToAppMessage,
 } from "@/lib/engine/app-bridge";
-import { getVfsEntry, listVfsDir, writeVfsTextFile } from "@/lib/engine-web/web-vfs";
 
 export interface IsolatedAppFrameProps {
   appId: string;
@@ -168,43 +166,6 @@ export const IsolatedAppFrame: React.FC<IsolatedAppFrameProps> = ({
           summary: data.summary,
           body: data.body ?? "",
         });
-      } else if (data.type === "piloti:fs-read") {
-        const win = iframeRef.current?.contentWindow;
-        if (!win) return;
-        const entry = getVfsEntry(data.path);
-        const resp: ShellToAppMessage = {
-          type: "piloti:fs-response",
-          requestId: data.requestId,
-          ok: true,
-          data: entry?.kind === "file" ? (entry.content ?? "") : null,
-        };
-        win.postMessage(resp, "*");
-      } else if (data.type === "piloti:fs-write") {
-        const win = iframeRef.current?.contentWindow;
-        if (!win) return;
-        writeVfsTextFile(data.path, data.content);
-        const resp: ShellToAppMessage = {
-          type: "piloti:fs-response",
-          requestId: data.requestId,
-          ok: true,
-          data: true,
-        };
-        win.postMessage(resp, "*");
-      } else if (data.type === "piloti:fs-list") {
-        const win = iframeRef.current?.contentWindow;
-        if (!win) return;
-        const entries: IsolatedFsEntry[] = listVfsDir(data.path).map((item) => ({
-          name: item.name,
-          path: item.path,
-          kind: item.kind,
-        }));
-        const resp: ShellToAppMessage = {
-          type: "piloti:fs-response",
-          requestId: data.requestId,
-          ok: true,
-          data: entries,
-        };
-        win.postMessage(resp, "*");
       }
     };
     window.addEventListener("message", onMessage);

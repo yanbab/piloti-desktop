@@ -1,6 +1,7 @@
-import { shellHostFiles } from "@/lib/engine/host-files";
 import { VFS_HOME } from "@/lib/engine/vfs-home";
 import * as React from "react";
+import { usePiloti } from "@/lib/engine/piloti";
+import { getEngine } from "@/lib/engine/engine";
 import { emitShellEvent, onShellEvent } from "@/lib/shell/shell-events";
 import {
   CheckIcon,
@@ -17,16 +18,13 @@ import { UnsavedChangesDialog } from "@/components/ui/unsaved-changes-dialog";
 import { useAppChrome } from "@/components/elements/app-chrome";
 import { HeaderBar } from "@/components/elements/header-bar";
 import { useIsolatedAppBridge } from "@/lib/engine/app-bridge";
-import { toDomicilePath } from "@/lib/engine/fs-bridge";
 import { readVfsStateJson, writeVfsStateJson } from "@/lib/engine/vfs-state";
 import { shouldConfirmUnsavedOnClose } from "@/lib/config/piloti-ini";
 import { isBrowserDevRuntime } from "@/context/SettingsContext";
 import { _ } from "@/lib/core/i18n";
 import { cn } from "@/lib/core/utils";
 import {
-  getVfsEntry,
   normalizeVfsPath,
-  renameVfsEntry,
   subscribeVfsRenamed,
 } from "@/lib/engine-web/web-vfs";
 
@@ -91,6 +89,8 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
       setActivePath(actionId.slice("piloti:open-path:".length));
     }
   }, []);
+  const piloti = usePiloti();
+  const { realFilesystem } = getEngine().capabilities;
   const { decorations } = useAppChrome();
   const bridge = useIsolatedAppBridge(windowId, decorations === "client", handleShellAction);
 
@@ -103,16 +103,6 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
       resolvedPath.startsWith("blob:")
     ) {
       return resolvedPath;
-    }
-    if (typeof window !== "undefined" && window.parent === window) {
-      const entry = getVfsEntry(resolvedPath);
-      const content = entry?.kind === "file" ? (entry.content ?? "") : "";
-      if (!content) return "";
-      if (content.startsWith("data:image/")) return content;
-      if (resolvedPath.toLowerCase().endsWith(".svg")) {
-        return `data:image/svg+xml;utf8,${encodeURIComponent(content)}`;
-      }
-      return content;
     }
     return "";
   });
@@ -172,52 +162,43 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
     }
     let cancelled = false;
     let objectUrl: string | null = null;
-    const nativeFiles =
-      window.parent === window && !isBrowserDevRuntime() ? shellHostFiles() : undefined;
-    if (nativeFiles && !activePath.toLowerCase().endsWith(".svg")) {
-      // Native Linux: images are real binary files, so load bytes into a Blob URL.
-      void nativeFiles
-        .read(toDomicilePath(activePath))
-        .then((res) => {
-          const bytes = res.match({
-            Ok: (b) => (b.length > 0 ? b : null),
-            Err: () => null,
-          });
-          if (cancelled || !bytes) return;
-          const ext = activePath.split(".").pop()?.toLowerCase() ?? "png";
-          const mime =
-            ext === "jpg" || ext === "jpeg"
-              ? "image/jpeg"
-              : ext === "gif"
-                ? "image/gif"
-                : ext === "webp"
-                  ? "image/webp"
-                  : "image/png";
-          objectUrl = URL.createObjectURL(
-            new Blob([new Uint8Array(bytes)], { type: mime }),
-          );
-          setImageSrc(objectUrl);
-        })
-        .catch(() => undefined);
-      return () => {
-        cancelled = true;
-        if (objectUrl) URL.revokeObjectURL(objectUrl);
-      };
-    }
-    void bridge.fs.readText(activePath).then((content) => {
+    const isSvg = activePath.toLowerCase().endsWith(".svg");
+    const showBytes = async () => {
+      // On a real disk images are binary files: load the bytes into a Blob URL.
+      const bytes = await piloti.vfs.read(activePath);
+      if (cancelled || !bytes?.length) return;
+      const ext = activePath.split(".").pop()?.toLowerCase() ?? "png";
+      const mime =
+        ext === "jpg" || ext === "jpeg"
+          ? "image/jpeg"
+          : ext === "gif"
+            ? "image/gif"
+            : ext === "webp"
+              ? "image/webp"
+              : "image/png";
+      const previous = objectUrl;
+      objectUrl = URL.createObjectURL(new Blob([new Uint8Array(bytes)], { type: mime }));
+      setImageSrc(objectUrl);
+      if (previous) URL.revokeObjectURL(previous);
+    };
+    const showText = async () => {
+      // SVG sources, and the demo's pictures (kept as data or asset URLs).
+      const content = await piloti.vfs.readText(activePath);
       if (cancelled || !content) return;
-      if (content.startsWith("data:image/")) {
-        setImageSrc(content);
-      } else if (activePath.toLowerCase().endsWith(".svg")) {
-        setImageSrc(`data:image/svg+xml;utf8,${encodeURIComponent(content)}`);
-      } else {
-        setImageSrc(content);
-      }
+      if (content.startsWith("data:image/")) setImageSrc(content);
+      else if (isSvg) setImageSrc(`data:image/svg+xml;utf8,${encodeURIComponent(content)}`);
+      else setImageSrc(content);
+    };
+    // Calls once when in place, then when the file changes.
+    const unwatch = piloti.vfs.watch(activePath, () => {
+      void (realFilesystem && !isSvg ? showBytes() : showText()).catch(() => undefined);
     });
     return () => {
       cancelled = true;
+      unwatch();
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [activePath, bridge.fs]);
+  }, [activePath, piloti.vfs, realFilesystem]);
 
   const activeSrc = croppedDataUrl ?? imageSrc;
 
@@ -290,30 +271,18 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
     ctx.drawImage(img, -natW / 2, -natH / 2, natW, natH);
     try {
       const nextDataUrl = canvas.toDataURL("image/png");
-      let ok = false;
-      const isBrowser = isBrowserDevRuntime();
-      const domicileFiles = !isBrowser ? shellHostFiles() : undefined;
-      if (domicileFiles) {
-        const b64 = nextDataUrl.split(",")[1] ?? "";
-        const bin = atob(b64);
-        const bytes = new Uint8Array(bin.length);
-        for (let i = 0; i < bin.length; i += 1) {
-          bytes[i] = bin.charCodeAt(i);
-        }
-        await domicileFiles.write(toDomicilePath(activePath), bytes);
-        ok = true;
-      } else {
-        ok = await bridge.fs.writeText(activePath, nextDataUrl);
-      }
-      if (ok) {
-        setImageSrc(nextDataUrl);
-        setCroppedDataUrl(null);
-        setRotation(0);
-      }
+      // A disk gets the picture's bytes; the browser VFS keeps data URLs.
+      const data = realFilesystem
+        ? Uint8Array.from(atob(nextDataUrl.split(",")[1] ?? ""), (c) => c.charCodeAt(0))
+        : nextDataUrl;
+      await piloti.vfs.write(activePath, data);
+      setImageSrc(nextDataUrl);
+      setCroppedDataUrl(null);
+      setRotation(0);
     } catch {
       // ignore tainted canvas
     }
-  }, [activePath, bridge.fs, rotation]);
+  }, [activePath, piloti.vfs, realFilesystem, rotation]);
 
   const viewStateRef = React.useRef({ activePath, zoom, pan, rotation, croppedDataUrl });
   viewStateRef.current = { activePath, zoom, pan, rotation, croppedDataUrl };
@@ -474,12 +443,15 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
     if (!isRenameableVfsFile) return;
     const nextName = draftTitle.trim().replace(/[/\\]/g, "");
     if (!nextName || nextName === fileName) return;
-    const renamed = renameVfsEntry(activePath, nextName);
-    if (renamed) {
-      setActivePath(renamed.path);
-      bridge.setTitle(renamed.name);
-    }
-  }, [activePath, bridge, draftTitle, fileName, isRenameableVfsFile]);
+    const renamed = `${activePath.slice(0, activePath.lastIndexOf("/"))}/${nextName}`;
+    void piloti.vfs.move(activePath, renamed).then(
+      () => {
+        setActivePath(renamed);
+        bridge.setTitle(nextName);
+      },
+      (error) => console.warn("Could not rename", activePath, error),
+    );
+  }, [activePath, bridge, draftTitle, fileName, isRenameableVfsFile, piloti.vfs]);
 
   React.useEffect(() => {
     if (!editingTitle) return;

@@ -1,9 +1,6 @@
-import { isWebEngine } from "@/lib/engine/engine";
-import { shellHostFiles } from "@/lib/engine/host-files";
 import * as React from "react";
 import { ACCENT_COLORS, type AccentColorId } from "@/data/catalog";
 import { subscribeLocale } from "@/lib/core/i18n";
-import { getVfsEntry, listVfsDir, writeVfsTextFile } from "@/lib/engine-web/web-vfs";
 
 export type ShellToAppMessage =
   | {
@@ -20,13 +17,7 @@ export type ShellToAppMessage =
       type: "piloti:app-action";
       actionId: string;
     }
-  | {
-      type: "piloti:fs-response";
-      requestId: string;
-      ok: boolean;
-      data?: unknown;
-      error?: string;
-    };
+;
 
 export type AppToShellMessage =
   | {
@@ -59,25 +50,9 @@ export type AppToShellMessage =
       summary: string;
       body?: string;
     }
-  | {
-      type: "piloti:fs-read";
-      windowId: string;
-      requestId: string;
-      path: string;
-    }
-  | {
-      type: "piloti:fs-write";
-      windowId: string;
-      requestId: string;
-      path: string;
-      content: string;
-    }
-  | {
-      type: "piloti:fs-list";
-      windowId: string;
-      requestId: string;
-      path: string;
-    };
+
+
+;
 
 export function applyThemeToDocument(
   doc: Document,
@@ -119,12 +94,6 @@ export function postToShell(msg: AppToShellMessage) {
   window.parent.postMessage(msg, "*");
 }
 
-export interface IsolatedFsEntry {
-  name: string;
-  path: string;
-  kind: "file" | "directory";
-}
-
 export interface IsolatedAppBridge {
   windowId: string;
   isCsd: boolean;
@@ -134,11 +103,6 @@ export interface IsolatedAppBridge {
   resizeWindow: (width: number, height: number) => void;
   setTitle: (title: string) => void;
   notify: (summary: string, body?: string) => void;
-  fs: {
-    readText: (path: string) => Promise<string | null>;
-    writeText: (path: string, content: string) => Promise<boolean>;
-    listDir: (path: string) => Promise<IsolatedFsEntry[]>;
-  };
 }
 
 export function useIsolatedAppBridge(
@@ -155,13 +119,6 @@ export function useIsolatedAppBridge(
   );
   const onActionRef = React.useRef(onAction);
   onActionRef.current = onAction;
-  const pendingFsRequestsRef = React.useRef(
-    new Map<
-      string,
-      { resolve: (val: unknown) => void; reject: (err: Error) => void }
-    >(),
-  );
-
   React.useEffect(() => {
     if (typeof window === "undefined") return;
 
@@ -174,16 +131,6 @@ export function useIsolatedAppBridge(
         applyThemeToDocument(document, data);
       } else if (data.type === "piloti:app-action") {
         onActionRef.current?.(data.actionId);
-      } else if (data.type === "piloti:fs-response") {
-        const pending = pendingFsRequestsRef.current.get(data.requestId);
-        if (pending) {
-          pendingFsRequestsRef.current.delete(data.requestId);
-          if (data.ok) {
-            pending.resolve(data.data);
-          } else {
-            pending.reject(new Error(data.error ?? "FS request failed"));
-          }
-        }
       }
     };
 
@@ -215,21 +162,6 @@ export function useIsolatedAppBridge(
     };
   }, [windowId]);
 
-  const sendFsRpc = React.useCallback(
-    <T,>(
-      buildMsg: (requestId: string) => AppToShellMessage,
-    ): Promise<T> => {
-      const requestId = `fs-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-      return new Promise<T>((resolve, reject) => {
-        pendingFsRequestsRef.current.set(requestId, {
-          resolve: resolve as (val: unknown) => void,
-          reject,
-        });
-        postToShell(buildMsg(requestId));
-      });
-    },
-    [],
-  );
 
   return React.useMemo<IsolatedAppBridge>(
     () => ({
@@ -264,84 +196,8 @@ export function useIsolatedAppBridge(
         postToShell({ type: "piloti:set-title", windowId, title }),
       notify: (summary: string, body?: string) =>
         postToShell({ type: "piloti:notify", windowId, summary, body }),
-      fs: {
-        readText: async (path: string) => {
-          if (typeof window !== "undefined" && window.parent === window) {
-            const isBrowser = isWebEngine();
-            const shellFiles = !isBrowser
-              ? shellHostFiles()
-              : undefined;
-            if (shellFiles) {
-              const res = await shellFiles.readText(path).catch(() => null);
-              if (res) return res.match({ Ok: (t) => t, Err: () => null });
-            }
-            const entry = getVfsEntry(path);
-            return entry?.kind === "file" ? (entry.content ?? "") : null;
-          }
-          return sendFsRpc<string | null>((requestId) => ({
-            type: "piloti:fs-read",
-            windowId,
-            requestId,
-            path,
-          }));
-        },
-        writeText: async (path: string, content: string) => {
-          if (typeof window !== "undefined" && window.parent === window) {
-            const isBrowser = isWebEngine();
-            const shellFiles = !isBrowser
-              ? shellHostFiles()
-              : undefined;
-            if (shellFiles) {
-              const res = await shellFiles.write(path, content).catch(() => null);
-              return res?.isOk() ?? false;
-            }
-            writeVfsTextFile(path, content);
-            return true;
-          }
-          return sendFsRpc<boolean>((requestId) => ({
-            type: "piloti:fs-write",
-            windowId,
-            requestId,
-            path,
-            content,
-          }));
-        },
-        listDir: async (path: string) => {
-          if (typeof window !== "undefined" && window.parent === window) {
-            const isBrowser = isWebEngine();
-            const shellFiles = !isBrowser
-              ? shellHostFiles()
-              : undefined;
-            if (shellFiles) {
-              const res = await shellFiles.readDir(path).catch(() => null);
-              if (res) {
-                return res.match({
-                  Ok: (list) =>
-                    list.map((e) => ({
-                      name: e.name,
-                      kind: e.fileType === 1 ? ("directory" as const) : ("file" as const),
-                      path: `${path.replace(/\/+$/, "")}/${e.name}`,
-                    })),
-                  Err: () => [],
-                });
-              }
-            }
-            return listVfsDir(path).map((e) => ({
-              name: e.name,
-              kind: e.kind,
-              path: e.path,
-            }));
-          }
-          return sendFsRpc<IsolatedFsEntry[]>((requestId) => ({
-            type: "piloti:fs-list",
-            windowId,
-            requestId,
-            path,
-          }));
-        },
-      },
     }),
-    [isCsd, localeTick, sendFsRpc, windowId],
+    [isCsd, localeTick, windowId],
   );
 }
 

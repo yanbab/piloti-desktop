@@ -1,4 +1,3 @@
-import { hostFiles } from "@/lib/engine/host-files";
 import * as React from "react";
 import { HeaderBar } from "@/components/elements/header-bar";
 import { Segmented } from "@/components/ui/segmented";
@@ -10,8 +9,7 @@ import { useApps, useSettings } from "@/context/DesktopStateContext";
 import { resolveUserDirPath } from "@/lib/xdg/xdg-user-dirs";
 import { _ } from "@/lib/core/i18n";
 import { cn } from "@/lib/core/utils";
-import { listFsDir, toDomicilePath } from "@/lib/engine/fs-bridge";
-import { listVfsDir, WEB_VFS_HOME, writeVfsTextFile } from "@/lib/engine-web/web-vfs";
+import { WEB_VFS_HOME } from "@/lib/core/vfs-paths";
 import {
   audioBaseName,
   captureStamp,
@@ -128,25 +126,27 @@ export const CameraApp: React.FC<CameraAppProps> = ({ windowId = "" }) => {
 
   /** Saves a capture to ~/Desktop. Metadata is stored on the entry when the engine supports it. */
   const saveToDesktop = React.useCallback(
-    async (blob: Blob, base: string, ext: string, mime: string, meta: Record<string, unknown>) => {
+    async (blob: Blob, base: string, ext: string, mime: string, meta: Record<string, string | number>) => {
       const dir = !realFilesystem
         ? `${WEB_VFS_HOME}/Desktop`
         : resolveUserDirPath("DESKTOP", xdgUserDirs, WEB_VFS_HOME);
+      await piloti.vfs.createDir(dir);
       const name = uniqueCaptureName(
-        (!realFilesystem ? listVfsDir(dir) : await listFsDir(piloti, dir)).map((e) => e.name),
+        ((await piloti.vfs.list(dir)) ?? []).map((e) => e.name),
         base,
         ext,
       );
       const path = `${dir}/${name}`;
-      const metadata = {
-        "standard::content-type": mime,
-        "metadata::created": new Date().toISOString(),
-        ...meta,
-      };
-      if (!realFilesystem) {
-        writeVfsTextFile(path, await blobToDataUrl(blob), { metadata });
+      if (realFilesystem) {
+        await piloti.vfs.write(path, new Uint8Array(await blob.arrayBuffer()));
       } else {
-        await hostFiles(piloti).write(toDomicilePath(path), new Uint8Array(await blob.arrayBuffer()));
+        // The browser VFS keeps pictures as data URLs, with their description.
+        await piloti.vfs.write(path, await blobToDataUrl(blob));
+        await piloti.vfs.setMetadata(path, {
+          "standard::content-type": mime,
+          "metadata::created": new Date().toISOString(),
+          ...meta,
+        });
       }
       setStatus(_("Saved to Desktop") + ` — ${name}`);
     },

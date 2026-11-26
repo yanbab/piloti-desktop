@@ -23,7 +23,11 @@ const DIRECTORY = 1;
 const SYMLINK = 2;
 const NOT_FOUND = 0;
 
-export type NativeVfsHost = Pick<Domicile, "files" | "processes">;
+/** What a shell has, and an app module too (no `files.search`, no `processes.launch`). */
+export type NativeVfsHost = {
+  files: Omit<Domicile["files"], "search">;
+  processes: Pick<Domicile["processes"], "run">;
+};
 
 export function createNativeVfs(domicile: NativeVfsHost, watchOptions?: WatchHubOptions): Vfs {
   const { files, processes } = domicile;

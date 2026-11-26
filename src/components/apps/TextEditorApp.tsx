@@ -347,23 +347,9 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
   const [content, setContent] = React.useState<string>(() => {
     if (!resolvedPath) return "";
     const persisted = readPersistedEditorStateMap(host)[resolvedPath];
-    if (persisted?.unsavedContent !== undefined) {
-      return persisted.unsavedContent;
-    }
-    if (typeof window !== "undefined" && window.parent === window) {
-      const entry = host.peekFile(resolvedPath);
-      if (entry?.kind === "file") return entry.content ?? "";
-    }
-    return "";
+    return persisted?.unsavedContent ?? "";
   });
-  const [savedContent, setSavedContent] = React.useState<string>(() => {
-    if (!resolvedPath) return "";
-    if (typeof window !== "undefined" && window.parent === window) {
-      const entry = host.peekFile(resolvedPath);
-      if (entry?.kind === "file") return entry.content ?? "";
-    }
-    return "";
-  });
+  const [savedContent, setSavedContent] = React.useState("");
   const [confirmCloseOpen, setConfirmCloseOpen] = React.useState(false);
   const isDirty = content !== savedContent;
   const isDirtyRef = React.useRef(isDirty);
@@ -477,13 +463,16 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
   const applyTitleRename = React.useCallback(
     (nextName: string) => {
       if (!filePath) return;
-      const renamed = host.renameFile(filePath, nextName);
-      if (renamed) {
-        setFilePath(renamed.path);
-        bridge.setTitle(renamed.name);
-      }
+      const renamed = `${filePath.slice(0, filePath.lastIndexOf("/"))}/${nextName}`;
+      void host.vfs.move(filePath, renamed).then(
+        () => {
+          setFilePath(renamed);
+          bridge.setTitle(nextName);
+        },
+        (error) => console.warn("Could not rename", filePath, error),
+      );
     },
-    [bridge, filePath],
+    [bridge, filePath, host],
   );
 
   const commitTitleRename = React.useCallback(() => {
@@ -576,10 +565,13 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
         : (readPersistedEditorStateMap(host)[normPath]?.scrollTop ?? 0);
 
       if (activeView) {
-        host.writeMetadata(normPath, {
-          "metadata::piloti-cursor": cursor,
-          "metadata::piloti-scroll": scrollTop,
-        });
+        // A file not saved yet has nowhere to keep them.
+        void host.vfs
+          .setMetadata(normPath, {
+            "metadata::piloti-cursor": cursor,
+            "metadata::piloti-scroll": scrollTop,
+          })
+          .catch(() => undefined);
       }
 
       const map = readPersistedEditorStateMap(host);
@@ -646,26 +638,19 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
 
       const normPath = host.normalizePath(targetPath);
       const persisted = readPersistedEditorStateMap(host)[normPath];
-      const cachedMeta = host.peekFile(normPath)?.metadata;
-      const cachedCursor =
-        persisted?.cursor ??
-        (Number(cachedMeta?.["metadata::piloti-cursor"] ?? 0) || 0);
-      const cachedScroll =
-        persisted?.scrollTop ??
-        (Number(cachedMeta?.["metadata::piloti-scroll"] ?? 0) || 0);
+      const cachedCursor = persisted?.cursor ?? 0;
+      const cachedScroll = persisted?.scrollTop ?? 0;
       applyPosition(cachedCursor, cachedScroll);
 
-      if (host.nativeFs && persisted === undefined) {
-        void host.readMetadata(normPath, [
-          "metadata::piloti-cursor",
-          "metadata::piloti-scroll",
-        ]).then((meta) => {
-          const cursor = Number(meta["metadata::piloti-cursor"] ?? cachedCursor) || 0;
-          const scroll = Number(meta["metadata::piloti-scroll"] ?? cachedScroll) || 0;
-          if (cursor !== cachedCursor || scroll !== cachedScroll) {
-            applyPosition(cursor, scroll);
-          }
-        });
+      if (persisted === undefined) {
+        void host.vfs
+          .metadata(normPath, ["metadata::piloti-cursor", "metadata::piloti-scroll"])
+          .then((meta) => {
+            const cursor = Number(meta["metadata::piloti-cursor"] ?? 0) || 0;
+            const scroll = Number(meta["metadata::piloti-scroll"] ?? 0) || 0;
+            if (cursor || scroll) applyPosition(cursor, scroll);
+          })
+          .catch(() => undefined);
       }
     },
     [host],
@@ -682,11 +667,15 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
   React.useEffect(() => {
     if (!filePath) return;
     let cancelled = false;
-    const syncFromDisk = (force = false) => {
+    let first = true;
+    const syncFromDisk = () => {
+      // The first read opens the file; later ones follow outside changes.
+      const force = first;
+      first = false;
       if (!force && isDirtyRef.current) return;
-      void bridge.fs.readText(filePath).then((next) => {
+      void host.vfs.readText(filePath).catch(() => null).then((next) => {
         if (cancelled || next === null) return;
-        if (!force && isDirtyRef.current) return;
+        if (!force && (isDirtyRef.current || next === savedContentRef.current)) return;
         const normPath = host.normalizePath(filePath);
         const persisted = force ? readPersistedEditorStateMap(host)[normPath] : undefined;
         const restoredText =
@@ -713,17 +702,14 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
         }
       });
     };
-    syncFromDisk(true);
     // Only this file: the editor's own state writes (cursor, scroll) must not
-    // trigger a re-read of the document.
-    const unsub = host.watchFile(filePath, () => {
-      syncFromDisk(false);
-    });
+    // trigger a re-read of the document. Calls once when in place.
+    const unsub = host.vfs.watch(filePath, syncFromDisk);
     return () => {
       cancelled = true;
       unsub();
     };
-  }, [bridge, filePath, restoreEditorViewState]);
+  }, [bridge, filePath, host, restoreEditorViewState]);
 
   const handleSave = React.useCallback(async () => {
     const targetPath =
@@ -733,14 +719,20 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
       setFilePath(targetPath);
     }
     const textToSave = contentRef.current;
-    const ok = await bridge.fs.writeText(targetPath, textToSave);
-    if (ok !== false) {
+    const ok = await host.vfs.write(targetPath, textToSave).then(
+      () => true,
+      (error) => {
+        console.warn("Could not save", targetPath, error);
+        return false;
+      },
+    );
+    if (ok) {
       setSavedContent(textToSave);
       savedContentRef.current = textToSave;
       persistEditorStateNow(targetPath, { clearUnsaved: true });
     }
-    return ok !== false;
-  }, [bridge.fs, persistEditorStateNow]);
+    return ok;
+  }, [host, persistEditorStateNow]);
 
   const performClose = React.useCallback(() => {
     if (saveTimerRef.current !== null) {
@@ -890,7 +882,7 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
 
     const view = new EditorView({ state, parent: mountEl });
     viewRef.current = view;
-    if (!filePath || contentRef.current.length > 0 || host.peekFile(filePath)?.content !== undefined) {
+    if (!filePath || contentRef.current.length > 0) {
       restoredFilePathRef.current = filePath;
       restoreEditorViewState(view, filePath);
     } else {
