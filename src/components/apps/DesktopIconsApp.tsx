@@ -42,6 +42,7 @@ import {
   toggleVfsEmblem,
   type WebVfsEntry,
 } from "@/lib/engine-web/web-vfs";
+import { onShellEvent } from "@/lib/shell/shell-events";
 import { type IconGridItem, sortDesktopItems } from "@/lib/shell/desktop-icons";
 import { hiddenNamesOf, vfsEntryToGridItem, entryVisual } from "@/lib/shell/folder-items";
 
@@ -186,6 +187,20 @@ export function DesktopIconsApp({
     window.addEventListener("piloti:desktop-align-icons", onAlignIcons);
     return () => window.removeEventListener("piloti:desktop-align-icons", onAlignIcons);
   }, [updateSettings]);
+
+  React.useEffect(
+    () =>
+      onShellEvent("piloti:select-all", (detail, event) => {
+        if (detail.windowId !== null || items.length === 0) return;
+        event.preventDefault();
+        setSelectedIds(items.map((i) => i.id));
+        // Keys (Delete, Ctrl+C...) then act on the desktop.
+        document
+          .querySelector<HTMLElement>('[data-desktop-icons-root] [role="gridcell"]')
+          ?.focus({ preventScroll: true });
+      }),
+    [items],
+  );
 
   const handleActivateItem = React.useCallback(
     (item: IconGridItem) => {

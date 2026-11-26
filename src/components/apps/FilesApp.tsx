@@ -92,6 +92,7 @@ import {
   sortDesktopItems,
 } from "@/lib/shell/desktop-icons";
 import { _ } from "@/lib/core/i18n";
+import { onShellEvent } from "@/lib/shell/shell-events";
 import { captureLaunchOriginFromElement } from "@/lib/shell/launch-origin";
 import { APP_CATALOG } from "@/data/catalog";
 import { AppMenuItems } from "@/components/shell/AppMenuItems";
@@ -1158,6 +1159,16 @@ export function FilesApp({
     };
   }, [windowId]);
 
+  React.useEffect(
+    () =>
+      onShellEvent("piloti:select-all", (detail, event) => {
+        if (detail.windowId !== (windowId ?? null)) return;
+        event.preventDefault();
+        setSelectedIds(items.map((i) => i.id));
+      }),
+    [items, windowId],
+  );
+
   const handleActivateItem = (item: IconGridItem) => {
     if (item.kind === "desktop-entry") {
       if (item.desktopEntry) {
@@ -1289,6 +1300,7 @@ export function FilesApp({
       "files:compress": { disabled: !hasSel || !canModifyDir },
       "files:rename": { disabled: !hasSingleSel || !canModifyDir },
       "files:trash": { disabled: !hasSel },
+      "files:eject": { disabled: !usbMounted },
       "files:go-up": { disabled: !canGoUp },
       "files:empty-trash": { disabled: !isTrashView || items.length === 0 },
       "files:view-grid": { checked: viewMode === "grid" },
@@ -1327,6 +1339,7 @@ export function FilesApp({
     sortDir,
     isAppsView,
     isDesktopView,
+    usbMounted,
     viewMode,
     windowId,
   ]);
@@ -1366,6 +1379,9 @@ export function FilesApp({
           break;
         case "files:rename":
           latestActionsRef.current.renameSelected();
+          break;
+        case "files:eject":
+          unmountSimulatedUsb();
           break;
         case "files:trash":
           latestActionsRef.current.trashSelected();

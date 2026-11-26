@@ -76,6 +76,7 @@ import {
 } from "@/lib/xdg/xdg-app-menu";
 import { cn } from "@/lib/core/utils";
 import { collectMenuShortcuts, formatMenuShortcut } from "@/lib/shell/menu-shortcuts";
+import { installSelectAll } from "@/lib/shell/select-all";
 import { ShortcutsDialog } from "./ShortcutsDialog";
 import type { WindowsContextValue } from "@/context/WindowsContext";
 import { selectionEqual } from "@/context/windows/window-manager-store";
@@ -507,6 +508,9 @@ export const MenuBar = React.memo(function MenuBar() {
     add([edit], _("Cut"), () => document.execCommand?.("cut"), { shortcut: "Ctrl+X" });
     add([edit], _("Copy"), () => document.execCommand?.("copy"), { shortcut: "Ctrl+C" });
     add([edit], _("Paste"), () => document.execCommand?.("paste"), { shortcut: "Ctrl+V" });
+    if (hasRemoteSections || !activeAppDef.menus.some((m) => m.title === "Edit")) {
+      add([edit], _("Select All"), () => handleMenuAction("edit:select-all"), { shortcut: "Ctrl+A" });
+    }
 
     if (focusedWindowId) {
       const win = _("Window");
@@ -553,6 +557,10 @@ export const MenuBar = React.memo(function MenuBar() {
     toggleMinimizeWindow,
     windowMenuState,
   ]);
+
+  const focusedWindowIdRef = React.useRef(focusedWindowId);
+  focusedWindowIdRef.current = focusedWindowId;
+  React.useEffect(() => installSelectAll(() => focusedWindowIdRef.current), []);
 
   React.useEffect(() => {
     const onOpenHud = () => {
@@ -854,6 +862,14 @@ export const MenuBar = React.memo(function MenuBar() {
                 {_("Paste")}
                 <MenuShortcutLabel
                   shortcut="Ctrl+V"
+                  model={settings.computerModel}
+                />
+              </MenubarItem>
+              <MenubarSeparator />
+              <MenubarItem onClick={() => handleMenuAction("edit:select-all")}>
+                {_("Select All")}
+                <MenuShortcutLabel
+                  shortcut="Ctrl+A"
                   model={settings.computerModel}
                 />
               </MenubarItem>

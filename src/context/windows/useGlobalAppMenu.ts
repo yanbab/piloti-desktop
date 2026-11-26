@@ -1,4 +1,5 @@
 import * as React from "react";
+import { selectAll } from "@/lib/shell/select-all";
 import { APP_CATALOG, type AppDefinition } from "@/data/catalog";
 import { type InstalledWebApp, resolveWebAppTitle } from "@/data/web-apps";
 import type { XdgDesktopEntry } from "xdg-desktop-entry";
@@ -157,6 +158,9 @@ export function useGlobalAppMenu({
         setRunIn(appId, getRunIn(appId) === "isolated" ? "shell" : "isolated");
       } else if (actionId === "app:new-window" && focusedWindow) {
         launchApp(focusedWindow.appId, { forceNew: true });
+      } else if (actionId === "edit:select-all") {
+        // Once the menu has closed and given focus back.
+        window.setTimeout(() => selectAll(focusedWindowId), 0);
       } else if (actionId === "desktop:new-folder") {
         window.dispatchEvent(new CustomEvent("piloti:desktop-new-folder"));
       } else if (actionId === "desktop:new-text-file") {

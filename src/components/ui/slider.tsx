@@ -58,8 +58,10 @@ function Slider<Value extends number | readonly number[]>({
           data-slot="slider-track"
           className={cn(
             "relative grow overflow-hidden rounded-full select-none",
+            // `isolate`: the icon's blend mode must stay in the track, or Chrome
+            // stops the window's vibrant sidebar blurring what is behind it.
             isCapsule
-              ? "h-5 w-full bg-black/12 ring-1 ring-inset ring-black/8 dark:bg-white/14 dark:ring-white/10"
+              ? "isolate h-5 w-full bg-black/12 ring-1 ring-inset ring-black/8 dark:bg-white/14 dark:ring-white/10"
               : isSmall
                 ? "bg-black/8 data-[orientation=horizontal]:h-1 data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-1 dark:bg-white/10"
                 : "bg-black/8 data-[orientation=horizontal]:h-1.5 data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-1.5 dark:bg-white/10"

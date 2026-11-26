@@ -227,14 +227,14 @@ export function AboutComputerDialog() {
       onClose={() => setAboutOpen(false)}
       style={{ position: "fixed", top: 0, left: 0, zIndex: 420 }}
     >
-      <WindowMain className="relative bg-adw-sidebar">
+      <WindowMain className="relative">
         {/* Measured: the window is exactly as tall as its content. */}
-        <div ref={contentRef} className="flex flex-col">
-          {/* Header strip like a headerbar (edge to edge, light bottom border),
-              same look as the Wallpaper settings preview; drag it to move. */}
+        <div ref={contentRef} className="flex flex-col rounded-[inherit]">
+          {/* Vibrant header strip, edge to edge, over a solid body; drag it
+              to move. */}
           <header
             data-window-drag-region=""
-            className="relative flex flex-col items-center gap-1 border-b border-adw-separator bg-adw-window/60 px-4 pt-4 pb-4 text-center"
+            className="relative flex flex-col items-center gap-1 rounded-t-[inherit] border-b border-adw-separator bg-adw-sidebar px-4 pt-4 pb-4 text-center"
           >
             <div className="absolute top-2.5 right-2.5" data-window-no-drag>
               <WindowControls side="right" />
@@ -252,7 +252,7 @@ export function AboutComputerDialog() {
             </p>
           </header>
 
-          <div className="flex flex-col gap-4 p-4">
+          <div className="flex flex-col gap-4 rounded-b-[inherit] bg-adw-window p-4">
           <dl className="grid grid-cols-[auto_1fr] items-baseline gap-x-4 gap-y-2.5 rounded-adw-group bg-black/4 px-4 py-3.5 text-adw-body dark:bg-white/5">
             {rows.map((row) => (
               <React.Fragment key={row.label}>

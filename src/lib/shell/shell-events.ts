@@ -17,6 +17,11 @@ export interface ShellEventMap {
   "piloti:before-close-window": { windowId: string };
   /** Print the focused window (or `windowId`). */
   "piloti:print-focused": { windowId?: string } | undefined;
+  /**
+   * Select every item of the window's view (`windowId` null: the desktop).
+   * Cancelable: the view that handles it calls `preventDefault()`.
+   */
+  "piloti:select-all": { windowId: string | null };
   /** Close every transient popup (menus, launcher, popovers). */
   "piloti:dismiss-popups": undefined;
   /** Open Help ▸ Search menus with the field focused (Cmd/Ctrl+K). */

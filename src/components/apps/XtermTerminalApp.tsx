@@ -1,4 +1,5 @@
 import { hostFiles } from "@/lib/engine/host-files";
+import { onShellEvent } from "@/lib/shell/shell-events";
 import * as React from "react";
 import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
@@ -174,6 +175,16 @@ export function XtermTerminalApp({
       termRef.current = null;
     };
   }, []);
+
+  React.useEffect(
+    () =>
+      onShellEvent("piloti:select-all", (detail, event) => {
+        if (detail.windowId !== (windowId ?? null)) return;
+        event.preventDefault();
+        termRef.current?.selectAll();
+      }),
+    [windowId],
+  );
 
   React.useEffect(() => {
     const term = termRef.current;
