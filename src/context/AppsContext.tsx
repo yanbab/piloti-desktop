@@ -36,6 +36,7 @@ import {
   loadCachedXdgIconThemeIndex,
   loadXdgIconDataUrl,
   lookupXdgIconPath,
+  lookupXdgSymbolicIconPath,
   saveCachedXdgIconThemeIndex,
   type XdgIconThemeIndex,
 } from "xdg-icon-theme";
@@ -203,6 +204,8 @@ export interface AppsContextValue {
   dockIconsReady: boolean;
   getAppIconUrl: (appIdOrName: string | undefined) => string | undefined;
   ensureWaylandIcons: (ids: readonly string[]) => void;
+  /** The app's `<icon>-symbolic` icon from the icon theme, if there is one. */
+  loadSymbolicAppIcon: (appId: string) => Promise<string | undefined>;
   launchXdgEntry: (entry: XdgDesktopEntry, actionId?: string) => void;
   openXdgFolder: (folder: XdgUserDir) => void;
   refreshXdgApps: () => void;
@@ -365,6 +368,8 @@ export function useAppsValue(
     setRefreshNonce((n) => n + 1);
   }, []);
   const iconThemeIndexRef = React.useRef<XdgIconThemeIndex | null>(null);
+  // The same index as state, for lookups that must rerun when it changes.
+  const [iconIndexState, setIconIndexState] = React.useState<XdgIconThemeIndex | null>(null);
   // The session's XDG_DATA_DIRS does not change while the shell runs.
   const appDirsPromiseRef = React.useRef<Promise<readonly string[]> | null>(null);
   const readAppDirs = React.useCallback(
@@ -467,6 +472,7 @@ export function useAppsValue(
         if (cancelled) return;
         finishIndex(useWarmCachedIndex ? `${activeIconTheme} (cached)` : activeIconTheme);
         iconThemeIndexRef.current = iconIndex;
+        setIconIndexState(iconIndex);
         setIconAccentConfig(iconAccentConfigFromIndex(iconIndex));
         if (!useWarmCachedIndex) {
           saveCachedXdgIconThemeIndex(preferredThemes, iconIndex);
@@ -477,6 +483,7 @@ export function useAppsValue(
               .then((fresh) => {
                 if (cancelled) return;
                 iconThemeIndexRef.current = fresh;
+                setIconIndexState(fresh);
                 saveCachedXdgIconThemeIndex(preferredThemes, fresh);
               })
               .catch(() => undefined);
@@ -826,6 +833,21 @@ export function useAppsValue(
     [tintedAppIconsMap]
   );
 
+  const loadSymbolicAppIcon = React.useCallback(
+    async (appId: string) => {
+      if (!iconIndexState) return undefined;
+      const entry = installedXdgApps.find(
+        (e) => e.appId === appId || e.desktopId === appId
+      );
+      const names =
+        APP_CATALOG.find((a) => a.id === appId)?.xdgIcons ??
+        [entry?.icon, appId].filter((n): n is string => Boolean(n));
+      const path = lookupXdgSymbolicIconPath(iconIndexState, names);
+      return path ? loadXdgIconDataUrl(hostFiles(piloti), path) : undefined;
+    },
+    [iconIndexState, installedXdgApps, piloti]
+  );
+
   const launchXdgEntry = React.useCallback(
     (entry: XdgDesktopEntry, actionId?: string) => {
       const action = actionId
@@ -866,6 +888,7 @@ export function useAppsValue(
       dockIconsReady,
       getAppIconUrl,
       ensureWaylandIcons,
+      loadSymbolicAppIcon,
       launchXdgEntry,
       openXdgFolder,
       refreshXdgApps,
@@ -877,6 +900,7 @@ export function useAppsValue(
       ensureWaylandIcons,
       fallbackAppIconUrl,
       getAppIconUrl,
+      loadSymbolicAppIcon,
       tintedInstalledXdgApps,
       launchXdgEntry,
       openXdgFolder,

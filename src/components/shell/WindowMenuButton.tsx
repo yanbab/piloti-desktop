@@ -15,6 +15,7 @@ import {
   useWindowActions,
   useWindowManagerSelector,
 } from "@/context/DesktopStateContext";
+import { useOptionalApps } from "@/context/AppsContext";
 import { _ } from "@/lib/core/i18n";
 import {
   getWindowMenuItems,
@@ -68,8 +69,7 @@ export const WindowMenuButton = React.memo(function WindowMenuButton({
           "mx-0.5 shrink-0 cursor-default select-none data-popup-open:bg-black/14 dark:data-popup-open:bg-white/18"
         )}
       >
-        {/* One centred dot. */}
-        <span aria-hidden="true" className="size-1.5 rounded-full bg-current" />
+        <WindowMenuIcon windowId={windowId} />
       </DropdownMenuTrigger>
       <DropdownMenuContent align={menuSide === "left" ? "start" : "end"}>
         {extraItems && (
@@ -85,6 +85,41 @@ export const WindowMenuButton = React.memo(function WindowMenuButton({
     </DropdownMenu>
   );
 });
+
+/**
+ * The symbolic version of the window's app icon, drawn in the text colour;
+ * a centred dot when the icon theme has none.
+ */
+function WindowMenuIcon({ windowId }: { windowId?: string }) {
+  const appId = useWindowManagerSelector(
+    (wm) => wm.windows.find((w) => w.id === windowId)?.appId
+  );
+  const load = useOptionalApps()?.loadSymbolicAppIcon;
+  const [url, setUrl] = React.useState<string>();
+
+  React.useEffect(() => {
+    let stale = false;
+    void (appId ? load?.(appId) : undefined)?.then((next) => {
+      if (!stale) setUrl(next);
+    });
+    return () => {
+      stale = true;
+    };
+  }, [appId, load]);
+
+  if (!url) {
+    return <span aria-hidden="true" className="size-1.5 rounded-full bg-current" />;
+  }
+  const mask = `url("${url}") center / contain no-repeat`;
+  return (
+    <span
+      aria-hidden="true"
+      data-slot="window-menu-icon"
+      className="size-3.5 bg-current"
+      style={{ mask, WebkitMask: mask }}
+    />
+  );
+}
 
 /**
  * The window's own entries: Minimize, Maximize, Tile, plugin entries (after

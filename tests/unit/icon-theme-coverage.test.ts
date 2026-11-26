@@ -3,6 +3,7 @@ import { APP_CATALOG } from "@/data/catalog";
 import {
   buildXdgIconThemeIndex,
   lookupXdgIconPath,
+  lookupXdgSymbolicIconPath,
   type XdgIconThemeIndex,
 } from "@/lib/xdg/xdg-icon-theme";
 import { DEFAULT_USER_DIR_SPECS } from "@/lib/xdg/xdg-user-dirs";
@@ -46,6 +47,14 @@ describe("bundled icon themes (web demo)", () => {
   it("resolves every shell and app icon with the Piloti theme", async () => {
     const index = await buildXdgIconThemeIndex(diskIconReader as never, ["Piloti", "Adwaita", "hicolor"]);
     expect(missingIcons(index)).toEqual([]);
+  });
+
+  it("has a symbolic icon for every app with the Piloti theme", async () => {
+    const index = await buildXdgIconThemeIndex(diskIconReader as never, ["Piloti", "Adwaita", "hicolor"]);
+    const missing = APP_CATALOG.filter(
+      (app) => !lookupXdgSymbolicIconPath(index, app.xdgIcons ?? [app.id])?.endsWith("-symbolic.svg")
+    ).map((app) => app.id);
+    expect(missing).toEqual([]);
   });
 
   it("resolves every shell and app icon with the Adwaita theme", async () => {

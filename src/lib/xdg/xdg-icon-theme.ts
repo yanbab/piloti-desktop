@@ -672,6 +672,27 @@ function lookupXdgIconPath(
   return undefined;
 }
 
+/**
+ * The `<name>-symbolic` variant of an icon, searched through the theme chain.
+ * Never falls back to a full-colour icon.
+ */
+function lookupXdgSymbolicIconPath(
+  index: XdgIconThemeIndex,
+  rawIconNameOrCandidates: string | readonly string[] | undefined,
+  size = 16
+): string | undefined {
+  const names = expandIconCandidateNames(rawIconNameOrCandidates).map((n) =>
+    n.endsWith("-symbolic") ? n : `${n}-symbolic`
+  );
+  for (const themeId of index.themeOrder) {
+    for (const name of names) {
+      const hit = lookupSingleIconInTheme(index, themeId, name, size, 1);
+      if (hit) return hit;
+    }
+  }
+  return undefined;
+}
+
 const iconDataUrlCache = new Map<string, Promise<string | undefined>>();
 
 function bytesToBase64(bytes: Uint8Array): string {
@@ -739,7 +760,7 @@ async function resolveXdgIconUrl(
   return loadXdgIconDataUrl(files, path);
 }
 
-const ICON_INDEX_CACHE_KEY = "piloti.xdg-icon-index.v5";
+const ICON_INDEX_CACHE_KEY = "piloti.xdg-icon-index.v6";
 
 type CompactSubdirGroup = [string, (string | [string, string])[]];
 
@@ -926,6 +947,7 @@ export {
   loadCachedXdgIconThemeIndex,
   loadXdgIconDataUrl,
   lookupXdgIconPath,
+  lookupXdgSymbolicIconPath,
   parseIconThemeIndex,
   resolveXdgIconUrl,
   saveCachedXdgIconThemeIndex,
