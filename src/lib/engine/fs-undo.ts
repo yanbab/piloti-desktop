@@ -158,23 +158,31 @@ export async function moveWithUndo(
   paths: readonly string[],
   destDir: string,
 ): Promise<string[]> {
+  // `from` and `to` follow where the item really is: a taken name gets a number.
   const moves: Array<{ from: string; to: string }> = [];
   for (const from of paths) {
     const moved = await moveFsEntry(ctx.piloti, from, destDir);
     if (moved) moves.push({ from: normalizeVfsPath(from), to: moved.path });
   }
+  const moved = moves.map((m) => m.to);
   if (moves.length > 0) {
     record({
       label: "Move",
       undo: async () => {
-        for (const m of moves) await moveFsEntry(ctx.piloti, m.to, parentDir(m.from));
+        for (const m of moves) {
+          const back = await moveFsEntry(ctx.piloti, m.to, parentDir(m.from), { name: baseName(m.from) });
+          if (back) m.from = back.path;
+        }
       },
       redo: async () => {
-        for (const m of moves) await moveFsEntry(ctx.piloti, m.from, parentDir(m.to));
+        for (const m of moves) {
+          const again = await moveFsEntry(ctx.piloti, m.from, parentDir(m.to), { name: baseName(m.to) });
+          if (again) m.to = again.path;
+        }
       },
     });
   }
-  return moves.map((m) => m.to);
+  return moved;
 }
 
 /** Renames `path` and records it. Returns the new path (null when it failed). */

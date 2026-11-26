@@ -265,11 +265,15 @@ export async function renameFsEntry(
     .catch(logFailure("rename", from));
 }
 
-/** Moves into `targetDirPath`, numbering the name if taken; `null` if nothing moved. */
+/**
+ * Moves into `targetDirPath` under its own name, or `options.name`, numbered if
+ * taken; `null` if nothing moved.
+ */
 export async function moveFsEntry(
   piloti: Piloti,
   path: string,
   targetDirPath: string,
+  options: { name?: string } = {},
 ): Promise<WebVfsEntry | null> {
   const from = normalizeVfsPath(path);
   const dir = normalizeVfsPath(targetDirPath);
@@ -280,7 +284,7 @@ export async function moveFsEntry(
   if (parentPath(from) === dir || dir === from || dir.startsWith(`${from}/`)) return null;
   try {
     const kind = (await piloti.vfs.stat(from))?.kind ?? "file";
-    const to = joinPath(dir, uniqueName(await namesIn(piloti, dir), baseName(from)));
+    const to = joinPath(dir, uniqueName(await namesIn(piloti, dir), options.name ?? baseName(from)));
     await piloti.vfs.move(from, to);
     return entryFor(to, kind);
   } catch (error) {

@@ -77,6 +77,20 @@ describe("file operations on a real disk", () => {
     expect(await names(`${D}/sub`)).toEqual(["z.txt"]);
   });
 
+  test("undoing a move that had to number the name gives the old name back", async () => {
+    await piloti.vfs.write(`${D}/c.txt`, "mine");
+    await piloti.vfs.write(`${D}/sub/c.txt`, "theirs");
+    await moveWithUndo({ piloti }, [`${D}/c.txt`], `${D}/sub`);
+    await undoFileOperation();
+    expect(await names(D)).toEqual(["c.txt", "sub"]);
+    expect(await read(`${D}/c.txt`)).toBe("mine");
+    await redoFileOperation();
+    expect(await read(`${D}/sub/c 2.txt`)).toBe("mine");
+    expect(await read(`${D}/sub/c.txt`)).toBe("theirs");
+    await undoFileOperation();
+    expect(await names(D)).toEqual(["c.txt", "sub"]);
+  });
+
   test("Move to Trash undoes to the same place, even with namesakes in the Trash", async () => {
     await piloti.vfs.write(`${D}/a.txt`, "older");
     await trashFsEntry(piloti, `${D}/a.txt`);

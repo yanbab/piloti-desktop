@@ -19,7 +19,7 @@ import {
   StreamLanguage,
   syntaxHighlighting,
 } from "@codemirror/language";
-import { Compartment, EditorState, type Extension } from "@codemirror/state";
+import { Compartment, EditorState, Transaction, type Extension } from "@codemirror/state";
 import {
   EditorView,
   highlightActiveLine,
@@ -694,6 +694,8 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
         if (view && view.state.doc.toString() !== restoredText) {
           view.dispatch({
             changes: { from: 0, to: view.state.doc.length, insert: restoredText },
+            // Opening is not an edit: undo must not bring back an empty page.
+            annotations: Transaction.addToHistory.of(!force),
           });
         }
         if (view && restoredFilePathRef.current !== filePath) {
