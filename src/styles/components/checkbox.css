@@ -1,0 +1,56 @@
+/*
+ * Checkbox, in plain CSS.
+ *
+ *   <span class="shell-checkbox" role="checkbox" data-checked>
+ *     <span class="shell-checkbox-indicator"><svg>…</svg></span>
+ *   </span>
+ */
+
+@layer components {
+  .shell-checkbox {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: 1rem;
+    height: 1rem;
+    border: 1px solid rgb(0 0 0 / 0.25);
+    border-radius: 4px;
+    background-color: rgb(255 255 255 / 0.8);
+    color: #fff;
+    box-shadow: 0 1px rgb(0 0 0 / 0.05);
+    cursor: default;
+    outline: none;
+    transition-property: color, background-color, border-color, outline-color, text-decoration-color, fill, stroke;
+    transition-duration: 150ms;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .dark .shell-checkbox {
+    border-color: rgb(255 255 255 / 0.25);
+    background-color: rgb(255 255 255 / 0.1);
+  }
+  .shell-checkbox[data-checked],
+  .dark .shell-checkbox[data-checked] {
+    border-color: var(--shell-accent);
+    background-color: var(--shell-accent);
+  }
+  .shell-checkbox:focus-visible {
+    box-shadow: var(--shell-focus-ring);
+  }
+  .shell-checkbox:disabled,
+  .shell-checkbox[data-disabled] {
+    pointer-events: none;
+    opacity: 0.45;
+  }
+
+  .shell-checkbox-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: currentColor;
+  }
+  .shell-checkbox-indicator svg {
+    width: 0.75rem;
+    height: 0.75rem;
+  }
+}

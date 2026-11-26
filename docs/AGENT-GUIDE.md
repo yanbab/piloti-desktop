@@ -15,7 +15,7 @@ Conventions are in `AGENTS.md`, commands in `CLAUDE.md`.
   never `hover:` on controls. Check visually in the **Piloti demo** app.
 - **Moving off Tailwind, widget by widget.** A converted widget is plain CSS in
   `styles/components/<name>.css` (class `shell-<name>`, `data-variant`,
-  `data-size`, `@layer components`) usable without React. Done: button.
+  `data-size`, `@layer components`) usable without React. Done: button, switch, checkbox, input.
 - Wrap UI text in `_()`, add fr/es keys. No co-author trailer in commits.
 - **One session, one worktree.** Several agent sessions run on this repo at
   once; never write in the main checkout unless you are told to. Start in your

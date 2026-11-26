@@ -217,18 +217,22 @@
 
 /* Switch: 36x20 track, 16px knob. */
 :root[data-interface-theme="piloti"] [data-slot="switch"] {
-  width: 36px !important;
-  height: 20px !important;
-  padding-inline: 2px !important;
+  width: 36px;
+  height: 20px;
+  padding-inline: 2px;
 }
 
 :root[data-interface-theme="piloti"] [data-slot="switch-thumb"] {
-  width: 16px !important;
-  height: 16px !important;
+  width: 16px;
+  height: 16px;
 }
 
 :root[data-interface-theme="piloti"] [data-slot="switch-thumb"][data-checked] {
-  translate: 16px 0 !important;
+  translate: 16px 0;
+}
+
+:root[data-interface-theme="piloti"] [data-slot="switch-thumb"][data-checked]:dir(rtl) {
+  translate: -16px 0;
 }
 
 /* Popup button: plain text + chevrons, like the font pickers. */

@@ -1,0 +1,69 @@
+/*
+ * Switch, in plain CSS.
+ *
+ *   <span class="shell-switch" role="switch" data-unchecked>
+ *     <span class="shell-switch-thumb" data-unchecked></span>
+ *   </span>
+ *
+ * data-checked / data-unchecked on both; data-disabled on the track. Toggling
+ * them is the caller's job (React does it in components/ui/switch.tsx).
+ * Geometry is GtkSwitch's; themes override it.
+ */
+
+@layer components {
+  .shell-switch {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    width: 44px;
+    height: 24px;
+    padding-inline: 3px;
+    border-radius: 9999px;
+    outline: none;
+    transition-property: color, background-color, border-color, outline-color, text-decoration-color, fill, stroke;
+    transition-duration: 150ms;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .shell-switch[data-unchecked] {
+    background-color: rgb(0 0 0 / 0.16);
+  }
+  .dark .shell-switch[data-unchecked] {
+    background-color: #4e4e52;
+  }
+  .shell-switch[data-checked] {
+    background-color: var(--shell-accent);
+  }
+  .shell-switch:focus-visible {
+    box-shadow: var(--shell-focus-ring);
+  }
+  .shell-switch[data-disabled] {
+    cursor: not-allowed;
+    opacity: 0.4;
+  }
+
+  .shell-switch-thumb {
+    display: block;
+    width: 18px;
+    height: 18px;
+    border-radius: 9999px;
+    background-color: #fff;
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.25);
+    pointer-events: none;
+    transition-property: transform, translate, scale, rotate;
+    transition-duration: 200ms;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .shell-switch-thumb[data-unchecked] {
+    translate: 0 0;
+  }
+  .dark .shell-switch-thumb[data-unchecked] {
+    background-color: #d2d2d5;
+  }
+  .shell-switch-thumb[data-checked] {
+    translate: 20px 0;
+  }
+  /* Right to left, the knob moves the other way. */
+  .shell-switch-thumb[data-checked]:dir(rtl) {
+    translate: -20px 0;
+  }
+}

@@ -556,46 +556,6 @@ aside [data-slot="window-titlebar"],
 }
 
 /*
- * Adwaita GtkSwitch / AdwSwitchRow Proportions:
- * 44x24px pill track with an 18x18px circular knob and 3px inset.
- */
-[data-slot="switch"] {
-  width: 44px !important;
-  height: 24px !important;
-  padding-inline: 3px !important;
-  border-radius: 9999px !important;
-}
-
-[data-slot="switch"][data-unchecked] {
-  background-color: rgb(0 0 0 / 0.16) !important;
-}
-
-.dark [data-slot="switch"][data-unchecked] {
-  background-color: #4e4e52 !important;
-}
-
-[data-slot="switch"][data-checked] {
-  background-color: var(--shell-accent) !important;
-}
-
-[data-slot="switch-thumb"] {
-  width: 18px !important;
-  height: 18px !important;
-  border-radius: 9999px !important;
-  box-shadow: 0 1px 2px rgb(0 0 0 / 0.25) !important;
-}
-
-.dark [data-slot="switch-thumb"][data-unchecked] {
-  background-color: #d2d2d5 !important;
-  translate: 0 0 !important;
-}
-
-[data-slot="switch-thumb"][data-checked] {
-  background-color: #ffffff !important;
-  translate: 20px 0 !important;
-}
-
-/*
  * Adwaita GtkSearchEntry:
  * Borderless 34px-tall rounded-rectangle (9px radius) with #333336 fill.
  */

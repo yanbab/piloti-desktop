@@ -11,17 +11,18 @@ function Checkbox({
   return (
     <CheckboxPrimitive.Root
       data-slot="checkbox"
-      className={cn(
-        "inline-flex size-4 shrink-0 cursor-default items-center justify-center rounded-[4px] border border-black/25 bg-white/80 text-white shadow-2xs transition-colors outline-none focus-visible:shell-focus-ring disabled:pointer-events-none disabled:opacity-45 data-checked:border-shell-accent data-checked:bg-shell-accent dark:border-white/25 dark:bg-white/10 dark:data-checked:border-shell-accent dark:data-checked:bg-shell-accent",
-        className
-      )}
+      className={
+        typeof className === "function"
+          ? (state) => cn("shell-checkbox", className(state))
+          : cn("shell-checkbox", className)
+      }
       {...props}
     >
       <CheckboxPrimitive.Indicator
         data-slot="checkbox-indicator"
-        className="flex items-center justify-center text-current"
+        className="shell-checkbox-indicator"
       >
-        <CheckIcon className="size-3" strokeWidth={2.75} />
+        <CheckIcon strokeWidth={2.75} />
       </CheckboxPrimitive.Indicator>
     </CheckboxPrimitive.Root>
   );
