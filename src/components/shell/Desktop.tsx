@@ -20,10 +20,10 @@ import {
 import {
   DesktopStateProvider,
   useChromeSettings,
-  useSettings,
   useSystemBackends,
   useWindowActions,
   useWindowManagerSelector,
+  useDesktopSettings,
 } from "@/context/DesktopStateContext";
 import {
   canonicalizeWebUrl,
@@ -363,7 +363,7 @@ function DesktopSurface() {
 
 function DomicileShellCommandBridge() {
   const piloti = usePiloti();
-  const { settings } = useSettings();
+  const settings = useDesktopSettings(["brightness", "debugMode", "installedWebApps", "nightLight"]);
   const { systemServices } = useCapabilities();
   const {
     lockSession,

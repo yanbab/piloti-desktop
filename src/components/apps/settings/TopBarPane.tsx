@@ -9,12 +9,12 @@ import {
   GroupedFormSectionTitle,
 } from "@/components/ui/grouped-form";
 import { Switch } from "@/components/ui/switch";
-import { useSettings } from "@/context/DesktopStateContext";
+import { useDesktopSettings, useUpdateSettings } from "@/context/DesktopStateContext";
 import { _ } from "@/lib/core/i18n";
 
 export function TopBarPane() {
-  const { settings, updateSettings } = useSettings();
-
+  const settings = useDesktopSettings(["clock24Hour", "clockShowDate", "clockShowDay", "showBatteryPercentage"]);
+  const updateSettings = useUpdateSettings();
   return (
     <GroupedForm>
       <GroupedFormSection>

@@ -7,9 +7,10 @@ import {
 } from "lucide-react";
 import {
   useApps,
-  useSettings,
   useWindowManager,
   type DesktopWindowInstance,
+  useDesktopSettings,
+  useUpdateSettings,
 } from "@/context/DesktopStateContext";
 import { computeOverviewWindowLayouts } from "@/lib/shell/overview-layout";
 import { _ } from "@/lib/core/i18n";
@@ -32,7 +33,8 @@ function OverviewWorkspacesBar({
   onClearDrag: () => void;
   overviewOpen: boolean;
 }) {
-  const { settings, updateSettings } = useSettings();
+  const settings = useDesktopSettings(["activeWorkspace", "windowButtonLayout", "workspaceCount"]);
+  const updateSettings = useUpdateSettings();
   const closeOnLeft = isCloseOnLeft(settings.windowButtonLayout);
   const { moveWindowToWorkspace, removeWorkspace, setOverviewOpen } =
     useWindowManager();
@@ -209,7 +211,7 @@ export function Overview() {
 }
 
 function WorkspaceOverview() {
-  const { settings } = useSettings();
+  const settings = useDesktopSettings(["activeWorkspace", "windowButtonLayout", "workspaceCount"]);
   const closeOnLeft = isCloseOnLeft(settings.windowButtonLayout);
   const { getAppIconUrl } = useApps();
   const {

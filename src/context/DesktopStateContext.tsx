@@ -66,6 +66,53 @@ export function useChromeSettings(): ReturnType<typeof selectChromeSettings> {
   return useStoreSelector(store, selectChromeSettings);
 }
 
+function useSettingsStore(hook: string): SelectorStore<SettingsContextValue> {
+  const store = React.useContext(SettingsStoreContext);
+  if (!store) throw new Error(`${hook} must be used within DesktopStateProvider`);
+  return store;
+}
+
+const sameFields = <T extends object>(a: T, b: T) =>
+  (Object.keys(a) as (keyof T)[]).every((k) => Object.is(a[k], b[k]));
+
+/**
+ * Desktop settings by field, re-rendering only when one of `keys` changes:
+ * `const settings = useDesktopSettings(["dockSize", "accentColor"])`. The same
+ * values as the `org.piloti.desktop.*` schemas in settings.ini (see
+ * `docs/PILOTI-API.md`); shell code names them by field to keep their types.
+ */
+export function useDesktopSettings<K extends keyof DesktopSettings>(
+  keys: readonly K[],
+): Pick<DesktopSettings, K> {
+  const store = useSettingsStore("useDesktopSettings");
+  return useStoreSelector(
+    store,
+    (v) => {
+      const out = {} as Pick<DesktopSettings, K>;
+      for (const key of keys) out[key] = v.settings[key];
+      return out;
+    },
+    sameFields,
+  );
+}
+
+/** One desktop setting; re-renders only when it changes. */
+export function useDesktopSetting<K extends keyof DesktopSettings>(key: K): DesktopSettings[K] {
+  const store = useSettingsStore("useDesktopSetting");
+  return useStoreSelector(store, (v) => v.settings[key], Object.is);
+}
+
+/** A slice of the settings context (derived values such as `resolvedTheme`). */
+export function useSettingsSelector<T>(selector: (v: SettingsContextValue) => T): T {
+  return useStoreSelector(useSettingsStore("useSettingsSelector"), selector, Object.is);
+}
+
+/** `updateSettings(patch)`, without subscribing to any setting. */
+export function useUpdateSettings(): SettingsContextValue["updateSettings"] {
+  const store = useSettingsStore("useUpdateSettings");
+  return useStoreSelector(store, (v) => v.updateSettings, Object.is);
+}
+
 export type {
   DesktopSettings,
   DesktopWindowInstance,

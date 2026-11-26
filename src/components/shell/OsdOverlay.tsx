@@ -1,8 +1,9 @@
 import * as React from "react";
 import { SunIcon, Volume2Icon, VolumeXIcon } from "lucide-react";
 import {
-  useSettings,
   useWindowManagerSelector,
+  useDesktopSettings,
+  useUpdateSettings,
 } from "@/context/DesktopStateContext";
 
 interface OsdPayload {
@@ -16,7 +17,8 @@ interface OsdPayload {
  * display brightness changes via hardware keys or shortcuts.
  */
 export function OsdOverlay() {
-  const { settings, updateSettings } = useSettings();
+  const settings = useDesktopSettings(["brightness", "muted", "volume"]);
+  const updateSettings = useUpdateSettings();
   const controlPanelOpen = useWindowManagerSelector((wm) => wm.controlPanelOpen);
   const [osd, setOsd] = React.useState<OsdPayload | null>(null);
   const timerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);

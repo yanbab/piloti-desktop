@@ -29,9 +29,11 @@ import {
 } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import {
-  useSettings,
   useSystemBackends,
   useWindowActions,
+  useDesktopSettings,
+  useUpdateSettings,
+  useSettingsSelector,
 } from "@/context/DesktopStateContext";
 import { _, getLocale } from "@/lib/core/i18n";
 import { formatRelativeNotificationTime } from "@/lib/shell/notifications";
@@ -55,7 +57,9 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
       ),
     [portalRequests]
   );
-  const { isBrowserRuntime, settings, updateSettings } = useSettings();  // FIXME : Capabilities
+  const isBrowserRuntime = useSettingsSelector((v) => v.isBrowserRuntime); // FIXME : Capabilities
+  const settings = useDesktopSettings(["bluetoothEnabled", "brightness", "connectedWifi", "doNotDisturb", "dockAutoHide", "dockPosition", "dockSize", "muted", "nightLight", "notificationsEnabled", "powerMode", "themeMode", "volume", "wifiEnabled"]);
+  const updateSettings = useUpdateSettings();
   const {
     gnomeCapabilities,
     liveWifiNetworks,
@@ -785,7 +789,8 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
 const MAX_COLLAPSED_NOTIFICATIONS = 3;
 
 export function FloatingNotifications({ open = true }: { open?: boolean }) {
-  const { settings, updateSettings } = useSettings();
+  const settings = useDesktopSettings(["bluetoothEnabled", "brightness", "connectedWifi", "doNotDisturb", "dockAutoHide", "dockPosition", "dockSize", "muted", "nightLight", "notificationsEnabled", "powerMode", "themeMode", "volume", "wifiEnabled"]);
+  const updateSettings = useUpdateSettings();
   const {
     notifications,
     dismissNotification,

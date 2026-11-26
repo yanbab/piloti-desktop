@@ -7,10 +7,11 @@ import "@xterm/xterm/css/xterm.css";
 import { usePiloti } from "@/lib/engine/piloti";
 import {
   useApps,
-  useSettings,
   useSystemBackends,
   useWindowActions,
   useWindowManagerSelector,
+  useDesktopSettings,
+  useUpdateSettings,
 } from "@/context/DesktopStateContext";
 import { getEngine } from "@/lib/engine/engine";
 import { readLoginShells, startShell, type BashSession, type LoginShell } from "@/lib/engine-native/pty-bridge";
@@ -54,7 +55,8 @@ export function XtermTerminalApp({
   windowId?: string;
 }) {
   const piloti = usePiloti();
-  const { settings, updateSettings } = useSettings();
+  const settings = useDesktopSettings(["themeMode"]);
+  const updateSettings = useUpdateSettings();
   const { pushNotification } = useSystemBackends();
   const { launchApp } = useWindowActions();
   const windows = useWindowManagerSelector((wm) =>

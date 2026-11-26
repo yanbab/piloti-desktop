@@ -11,7 +11,7 @@ import {
   GroupedFormSectionTitle,
 } from "@/components/ui/grouped-form";
 import { Switch } from "@/components/ui/switch";
-import { useSettings } from "@/context/DesktopStateContext";
+import { useDesktopSettings, useUpdateSettings } from "@/context/DesktopStateContext";
 import { useOptionalPlugins } from "@/context/PluginsContext";
 import { ACCENT_COLORS } from "@/data/catalog";
 import { _ } from "@/lib/core/i18n";
@@ -19,7 +19,8 @@ import { cn } from "@/lib/core/utils";
 import { useThrottledColor } from "./use-throttled-color";
 
 export function AppearancePane() {
-  const { settings, updateSettings } = useSettings();
+  const settings = useDesktopSettings(["accentColor", "customAccentHex", "desktopIconAlign", "desktopIconsEnabled", "fileActivationMode", "highContrast", "interfaceTheme", "moreTransparency", "reduceMotion", "showWindowMenu", "themeMode", "windowButtonLayout"]);
+  const updateSettings = useUpdateSettings();
   const accentColorPicker = useThrottledColor(
     settings.customAccentHex || "#3584e4",
     (hex) => updateSettings({ customAccentHex: hex })

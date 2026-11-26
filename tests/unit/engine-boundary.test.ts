@@ -27,6 +27,25 @@ describe("engine boundary", () => {
 });
 
 /**
+ * Components ask for the settings they read (`useDesktopSettings`…), so they
+ * don't re-render on every settings change; `useSettings()` is for contexts.
+ */
+describe("settings boundary", () => {
+  it("only contexts call useSettings()", () => {
+    const offenders = sources(SRC)
+      .filter((file) => !file.includes(`${path.sep}context${path.sep}`))
+      .filter((file) =>
+        fs
+          .readFileSync(file, "utf8")
+          .split("\n")
+          .some((line) => !/^\s*(\/\/|\*|\/\*)/.test(line) && /\buseSettings\(\)/.test(line))
+      )
+      .map((file) => path.relative(SRC, file));
+    expect(offenders).toEqual([]);
+  });
+});
+
+/**
  * Views read files with `hooks/use-vfs.ts` (cached, one shared watch per path)
  * or `retainVfsWatch`; a direct `vfs.watch` would open its own inotify watch.
  */

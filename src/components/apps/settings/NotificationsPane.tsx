@@ -17,7 +17,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { useSettings, useSystemBackends } from "@/context/DesktopStateContext";
+import {
+  useSystemBackends,
+  useDesktopSettings,
+  useUpdateSettings,
+} from "@/context/DesktopStateContext";
 import { _ } from "@/lib/core/i18n";
 
 const TIMEOUT_ITEMS: { value: string; label: string }[] = [
@@ -36,7 +40,8 @@ const HISTORY_LIMIT_ITEMS: { value: string; label: string }[] = [
 ];
 
 export function NotificationsPane() {
-  const { settings, updateSettings } = useSettings();
+  const settings = useDesktopSettings(["notificationAllowCriticalInDnd", "notificationBannerTimeoutMs", "notificationBannersEnabled", "notificationHistoryLimit", "notificationShowOnLockScreen", "notificationShowPreviews", "notificationsEnabled"]);
+  const updateSettings = useUpdateSettings();
   const { notifications, clearAllNotifications } =
     useSystemBackends();
 

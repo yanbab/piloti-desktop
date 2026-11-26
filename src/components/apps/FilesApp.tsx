@@ -83,9 +83,9 @@ import {
 } from "@/components/ui/menu-styles";
 import {
   useApps,
-  useSettings,
   useWindowActions,
   useWindowManagerSelector,
+  useDesktopSettings,
 } from "@/context/DesktopStateContext";
 import { publishWindowMenuState, useWindowMenuState } from "@/lib/engine/app-bridge";
 import {
@@ -285,7 +285,7 @@ export function FilesApp({
   windowId?: string;
 }) {
   const piloti = usePiloti();
-  const { settings } = useSettings();
+  const settings = useDesktopSettings(["accentColor", "computerModel", "debugMode", "fileActivationMode", "installedWebApps", "muted", "volume"]);
   const { realFilesystem } = useCapabilities();
   const { installedXdgApps, getAppIconUrl, ensureWaylandIcons, xdgUserDirs } = useApps();
   const usbMounted = useSimulatedUsbMounted();

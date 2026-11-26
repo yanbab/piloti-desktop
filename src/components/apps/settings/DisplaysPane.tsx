@@ -14,8 +14,9 @@ import {
   GroupedFormSectionTitle,
 } from "@/components/ui/grouped-form";
 import {
-  useSettings,
   useSystemBackends,
+  useDesktopSettings,
+  useUpdateSettings,
 } from "@/context/DesktopStateContext";
 import { _ } from "@/lib/core/i18n";
 import {
@@ -41,7 +42,8 @@ const DEMO_EXTERNAL_SCREEN: ScreenEntry = {
 export function DisplaysPane() {
   const piloti = usePiloti();
   const displays = useDisplays() ?? [];
-  const { settings, updateSettings } = useSettings();
+  const settings = useDesktopSettings(["activeWorkspace", "workspaceCount"]);
+  const updateSettings = useUpdateSettings();
   const { systemServices } = useCapabilities();
   const { pushNotification } = useSystemBackends();
   const [addingVirtual, setAddingVirtual] = React.useState(false);

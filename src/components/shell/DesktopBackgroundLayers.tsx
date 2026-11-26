@@ -1,5 +1,5 @@
 import * as React from "react";
-import { useSettings } from "@/context/DesktopStateContext";
+import { useDesktopSettings, useSettingsSelector } from "@/context/DesktopStateContext";
 import { useOptionalPlugins } from "@/context/PluginsContext";
 import {
   resolveBackgroundRenderSpec,
@@ -24,7 +24,9 @@ const PLUGIN_WALLPAPER_PLACEHOLDER: WallpaperOption = {
  * wallpaper registered by enabled plugins (`pluginWallpapers`).
  */
 export function useResolvedDesktopBackgroundSpec(): BackgroundRenderSpec {
-  const { settings, resolvedTheme, backgroundSpec } = useSettings();
+  const settings = useDesktopSettings(["gnomeBackground", "wallpaperColorMode", "wallpaperId"]);
+  const resolvedTheme = useSettingsSelector((v) => v.resolvedTheme);
+  const backgroundSpec = useSettingsSelector((v) => v.backgroundSpec);
   const pluginsCtx = useOptionalPlugins();
 
   return React.useMemo(() => {
@@ -100,7 +102,7 @@ export function DesktopBackgroundLayers({
   spec?: BackgroundRenderSpec;
 }) {
   const effectiveSpec = useResolvedDesktopBackgroundSpec();
-  const { reducedMotion } = useSettings();
+  const reducedMotion = useSettingsSelector((v) => v.reducedMotion);
   const active = spec ?? effectiveSpec;
   const reactId = React.useId();
   const scopeId = `${active.animatedCss?.id ?? "bg"}-${reactId}`.replace(/[^a-zA-Z0-9_-]/g, "_");

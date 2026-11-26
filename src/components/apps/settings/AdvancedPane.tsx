@@ -12,7 +12,12 @@ import {
   Trash2Icon,
   UsbIcon,
 } from "lucide-react";
-import { useSystemBackends, useWindowActions } from "@/context/DesktopStateContext";
+import {
+  useSystemBackends,
+  useWindowActions,
+  useDesktopSettings,
+  useUpdateSettings,
+} from "@/context/DesktopStateContext";
 import { usePlugins } from "@/context/PluginsContext";
 import {
   setXdgAppBadgeCount,
@@ -78,7 +83,8 @@ export function AdvancedPane() {
   const progressDemoTimerRef = React.useRef<number | undefined>(undefined);
   React.useEffect(() => () => window.clearInterval(progressDemoTimerRef.current), []);
   const piloti = usePiloti();
-  const { settings, updateSettings } = useSettings();
+  const settings = useDesktopSettings(["activeWorkspace", "darkReaderWebEnabled", "debugMode", "demoExtensionEnabled", "dockFolders", "hiddenGnomePanels", "notificationsEnabled", "showFileExtensionBadges", "volume"]);
+  const updateSettings = useUpdateSettings();
   const { systemServices } = useCapabilities();
   const usbMounted = useSimulatedUsbMounted();
   const effectiveEngine = getEngine().kind;

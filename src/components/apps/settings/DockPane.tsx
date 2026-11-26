@@ -10,13 +10,13 @@ import {
 } from "@/components/ui/grouped-form";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
-import { useSettings } from "@/context/DesktopStateContext";
+import { useDesktopSettings, useUpdateSettings } from "@/context/DesktopStateContext";
 import { _ } from "@/lib/core/i18n";
 import { cn } from "@/lib/core/utils";
 
 export function DockPane() {
-  const { settings, updateSettings } = useSettings();
-
+  const settings = useDesktopSettings(["dockAutoHide", "dockMagnification", "dockMagnificationSize", "dockPosition", "dockSize"]);
+  const updateSettings = useUpdateSettings();
   return (
     <GroupedForm>
       <GroupedFormSection>

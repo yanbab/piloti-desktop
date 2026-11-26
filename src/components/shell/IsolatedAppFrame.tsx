@@ -2,9 +2,9 @@ import * as React from "react";
 import { emitShellEvent, onShellEvent } from "@/lib/shell/shell-events";
 import { createRoot, type Root } from "react-dom/client";
 import {
-  useSettings,
   useSystemBackends,
   useWindowActions,
+  useDesktopSettings,
 } from "@/context/DesktopStateContext";
 import {
   type AppToShellMessage,
@@ -32,7 +32,7 @@ export const IsolatedAppFrame: React.FC<IsolatedAppFrameProps> = ({
   initialHash,
   fallbackElement,
 }) => {
-  const { settings } = useSettings();
+  const settings = useDesktopSettings(["accentColor", "fontMonoFamily", "fontSansFamily", "fontScale", "themeMode"]);
   const { pushNotification } = useSystemBackends();
   const {
     focusWindow,

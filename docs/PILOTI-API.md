@@ -259,8 +259,22 @@ const { data: text } = useVfsText(path);
 const [scientific, setScientific] = useSetting(calc, "scientific");
 ```
 
-`useSetting` is in `hooks/use-setting.ts`. `useSettings()` and
-`useChromeSettings()` give the older whole-desktop settings.
+`useSetting` is in `hooks/use-setting.ts`.
+
+Desktop settings (the `org.piloti.desktop.*` schemas) are named by their
+`DesktopSettings` field in shell code, which keeps their exact types. A
+component re-renders only when the fields it asks for change:
+
+| Hook (`context/DesktopStateContext.tsx`) | Gives |
+|---|---|
+| `useDesktopSetting("dockSize")` | one value |
+| `useDesktopSettings(["dockSize", "accentColor"])` | an object with those fields |
+| `useUpdateSettings()` | `updateSettings(patch)`, subscribing to nothing |
+| `useSettingsSelector((v) => v.resolvedTheme)` | a derived value (`resolvedTheme`, `reducedMotion`, `backgroundSpec`…) |
+
+`useSettings()` (everything, re-renders on any change) is for the contexts
+only; a unit test checks. `useChromeSettings()` is everything except window
+bounds and icon positions.
 
 ### Shell
 

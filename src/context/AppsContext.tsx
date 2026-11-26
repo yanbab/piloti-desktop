@@ -1,5 +1,6 @@
 import { hostFiles } from "@/lib/engine/host-files";
 import * as React from "react";
+import { retainVfsWatch } from "@/lib/engine/vfs-query";
 import { usePiloti } from "@/lib/engine/piloti";
 import { watchIconTheme } from "@domicile-desktop/sdk/icon-theme";
 import {
@@ -707,30 +708,16 @@ export function useAppsValue(
       }, 400);
     };
 
+    // Shared watches (one per folder for the whole shell); the first call only
+    // says the watch is in place.
     void readAppDirs().then((appDirs) => {
       if (stopped) return;
       for (const dir of appDirs) {
-        void hostFiles(piloti)
-          .watch(dir)
-          .then((res) => {
-            res.match({
-              Ok: async (listening) => {
-                if (stopped) {
-                  listening.stop();
-                  return;
-                }
-                stopFns.push(() => listening.stop());
-                const reader = listening.items.getReader();
-                while (!stopped) {
-                  const next = await reader.read();
-                  if (next.done) break;
-                  scheduleRefresh();
-                }
-              },
-              Err: () => undefined,
-            });
-          })
-          .catch(() => undefined);
+        stopFns.push(
+          retainVfsWatch(piloti.vfs, dir, (initial) => {
+            if (!initial) scheduleRefresh();
+          }),
+        );
       }
     });
 

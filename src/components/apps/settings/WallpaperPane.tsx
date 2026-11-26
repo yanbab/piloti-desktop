@@ -45,7 +45,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
-import { useApps, useSettings } from "@/context/DesktopStateContext";
+import {
+  useApps,
+  useDesktopSettings,
+  useSettingsSelector,
+  useUpdateSettings,
+} from "@/context/DesktopStateContext";
 import { useOptionalPlugins } from "@/context/PluginsContext";
 import {
   ACCENT_COLORS,
@@ -210,7 +215,9 @@ export function WallpaperPane() {
   const displays = useDisplays() ?? [];
   const primaryDisplayName =
     displays[0]?.name?.trim() || _("Built-in Display");
-  const { settings, updateSettings, resolvedTheme } = useSettings();
+  const settings = useDesktopSettings(["accentColor", "customWallpaperColors", "customWallpaperUrl", "gnomeBackground", "wallpaperColorMode", "wallpaperId"]);
+  const updateSettings = useUpdateSettings();
+  const resolvedTheme = useSettingsSelector((v) => v.resolvedTheme);
   const { realFilesystem } = useCapabilities();
   const { xdgUserDirs } = useApps();
   const baseSpec = useResolvedDesktopBackgroundSpec();

@@ -29,8 +29,8 @@ import {
 } from "@/lib/shell/drag-feedback";
 import {
   useApps,
-  useSettings,
   useWindowManagerSelector,
+  useDesktopSettings,
 } from "@/context/DesktopStateContext";
 import {
   DynamicFileIcon,
@@ -215,7 +215,7 @@ export function IconGrid({
   ariaLabel = "Icon Grid",
   className,
 }: IconGridProps) {
-  const { settings } = useSettings();
+  const settings = useDesktopSettings(["accentColor", "fileActivationMode", "showFileExtensionBadges"]);
   const { realFilesystem } = useCapabilities();
   const { getAppIconUrl } = useApps();
   const windows = useWindowManagerSelector((wm) =>

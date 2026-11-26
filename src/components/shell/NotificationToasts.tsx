@@ -9,10 +9,7 @@ import {
   ToastViewport,
   useToastManager,
 } from "@/components/ui/toast";
-import {
-  useSettings,
-  useSystemBackends,
-} from "@/context/DesktopStateContext";
+import { useSystemBackends, useDesktopSettings } from "@/context/DesktopStateContext";
 import {
   type NotificationToastData,
   pilotiToastManager,
@@ -106,8 +103,7 @@ function ToastBannerStack() {
 }
 
 export function NotificationToasts() {
-  const { settings } = useSettings();
-
+  const settings = useDesktopSettings(["notificationBannerTimeoutMs"]);
   return (
     <ToastProvider
       toastManager={pilotiToastManager}

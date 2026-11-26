@@ -10,7 +10,7 @@ import {
   type FloatingRect,
 } from "@/lib/shell/floating-window";
 import { startPointerDrag } from "@/lib/shell/pointer-drag";
-import { useSettings } from "@/context/DesktopStateContext";
+import { useDesktopSettings } from "@/context/DesktopStateContext";
 import { useWindowActions } from "@/context/WindowsContext";
 import { isCloseOnLeft } from "@/components/ui/window";
 import { _ } from "@/lib/core/i18n";
@@ -41,7 +41,7 @@ export function PresentationOverlay({
   workArea: WorkArea;
 }) {
   const floating = presentation.floating;
-  const { settings } = useSettings();
+  const settings = useDesktopSettings(["fileActivationMode", "windowButtonLayout"]);
   const singleClickActivates = settings.fileActivationMode !== "double";
   const { closeWindow } = useWindowActions();
   const closeOnLeft = isCloseOnLeft(settings.windowButtonLayout);

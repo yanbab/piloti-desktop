@@ -35,9 +35,10 @@ import { getWebAppFaviconUrl } from "@/data/web-apps";
 import { useSidebarKeyboardNav } from "@/hooks/use-sidebar-keyboard-nav";
 import {
   useApps,
-  useSettings,
   useSystemBackends,
   useWindowManager,
+  useDesktopSettings,
+  useUpdateSettings,
 } from "@/context/DesktopStateContext";
 import {
   abbreviateDataImageUri,
@@ -211,7 +212,7 @@ function InspectorJsonCard({
 function InspectorModule() {
   const piloti = usePiloti();
   const displays = useDisplays() ?? [];
-  const { settings } = useSettings();
+  const settings = useDesktopSettings(["connectedWifi", "installedWebApps", "themeMode", "wifiEnabled"]);
   const { systemServices } = useCapabilities();
   const {
     installedXdgApps,
@@ -1384,7 +1385,7 @@ function VfsEventsModule({ active }: { active: boolean }) {
 }
 
 function StorageModule() {
-  const { settings } = useSettings();
+  const settings = useDesktopSettings(["connectedWifi", "installedWebApps", "themeMode", "wifiEnabled"]);
   const [entries, setEntries] = React.useState<StorageEntry[]>(() =>
     readLocalStorageEntries()
   );
@@ -1610,7 +1611,8 @@ export function ConsoleApp({
   initialModule?: string;
 }) {
   const piloti = usePiloti();
-  const { settings, updateSettings } = useSettings();
+  const settings = useDesktopSettings(["connectedWifi", "installedWebApps", "themeMode", "wifiEnabled"]);
+  const updateSettings = useUpdateSettings();
   const { systemServices } = useCapabilities();
   const { installedXdgApps } = useApps();
   const {

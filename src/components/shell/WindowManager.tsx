@@ -128,10 +128,12 @@ import {
 } from "@/components/ui/window";
 import {
   normalizeWebUrl,
-  useSettings,
   useSystemBackends,
   useWindowManager,
   type DesktopWindowInstance,
+  useDesktopSettings,
+  useSettingsSelector,
+  useUpdateSettings,
 } from "@/context/DesktopStateContext";
 import type { BrowserTab } from "@/context/WindowsContext";
 import { BrowserTabBar } from "./BrowserTabBar";
@@ -389,8 +391,10 @@ function WebViewSurface({
 }) {
   const isCsd = useAppChrome().decorations === "client";
   const piloti = usePiloti();
-  const { isBrowserRuntime, resolvedTheme, settings, updateSettings } =  // FIXME : Capabilities
-    useSettings();
+  const isBrowserRuntime = useSettingsSelector((v) => v.isBrowserRuntime); // FIXME : Capabilities
+  const resolvedTheme = useSettingsSelector((v) => v.resolvedTheme);
+  const settings = useDesktopSettings(["activeWorkspace", "darkReaderWebEnabled", "debugMode", "demoExtensionEnabled", "dockAutoHide", "dockPosition", "dockSize", "installedWebApps", "pinnedAppIds", "pinnedExtensionIds", "windowButtonLayout", "windowDecorationMode"]);
+  const updateSettings = useUpdateSettings();
   const { pushNotification } = useSystemBackends();
   const {
     focusedWindowId,
@@ -1421,7 +1425,7 @@ const WindowBody = React.memo(
     onToggleDarkReader: () => void;
   }) {
     const isCsd = useAppChrome().decorations === "client";
-    const { isBrowserRuntime } = useSettings();  // FIXME : Capabilities
+    const isBrowserRuntime = useSettingsSelector((v) => v.isBrowserRuntime); // FIXME : Capabilities
 
     if (win.waylandAppId && !isBrowserRuntime) {  // FIXME : Capabilities
       return <WaylandAppSurface win={win} />;
@@ -1630,7 +1634,9 @@ const DOMICILE_RESIZE_EDGE_MAP: Record<number, WindowResizeEdge> = {
 
 export function WindowManager() {
   const piloti = usePiloti();
-  const { isBrowserRuntime, settings, reducedMotion } = useSettings();  // FIXME : Capabilities
+  const isBrowserRuntime = useSettingsSelector((v) => v.isBrowserRuntime); // FIXME : Capabilities
+  const settings = useDesktopSettings(["activeWorkspace", "darkReaderWebEnabled", "debugMode", "demoExtensionEnabled", "dockAutoHide", "dockPosition", "dockSize", "installedWebApps", "pinnedAppIds", "pinnedExtensionIds", "windowButtonLayout", "windowDecorationMode"]);
+  const reducedMotion = useSettingsSelector((v) => v.reducedMotion);
   const {
     windows,
     workspaceWindows,

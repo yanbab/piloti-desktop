@@ -1,6 +1,6 @@
 import * as React from "react";
 import { BellIcon, LockIcon } from "lucide-react";
-import { useSettings, useSystemBackends } from "@/context/DesktopStateContext";
+import { useSystemBackends, useDesktopSettings } from "@/context/DesktopStateContext";
 import { _, getLocale } from "@/lib/core/i18n";
 import { formatRelativeNotificationTime } from "@/lib/shell/notifications";
 import { NotificationBodyText } from "@/components/shell/NicePathLabel";
@@ -8,7 +8,7 @@ import { AuthPasswordCard } from "./AuthPasswordCard";
 import { DesktopBackgroundLayers } from "./DesktopBackgroundLayers";
 
 export function LockScreen() {
-  const { settings } = useSettings();
+  const settings = useDesktopSettings(["clock24Hour", "notificationShowOnLockScreen", "notificationShowPreviews", "notificationsEnabled"]);
   const { locked, notifications, unlockSession, unlockError, unlockRefusal } =
     useSystemBackends();
   const [passphrase, setPassphrase] = React.useState("");

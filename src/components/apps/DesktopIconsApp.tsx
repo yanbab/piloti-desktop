@@ -6,9 +6,10 @@ import {
 import { FolderIconView } from "@/components/ui/folder-icon-view";
 import {
   useApps,
-  useSettings,
   useSystemBackends,
   useWindowActions,
+  useDesktopSettings,
+  useUpdateSettings,
 } from "@/context/DesktopStateContext";
 import { useArchiveActions } from "@/hooks/use-archive-actions";
 import { useCapabilities } from "@/hooks/use-capabilities";
@@ -52,7 +53,7 @@ export function DesktopIconsApp({
   bottomInset?: number;
 }) {
   const piloti = usePiloti();
-  const { settings } = useSettings();
+  const settings = useDesktopSettings(["debugMode", "desktopIconsEnabled"]);
   const { realFilesystem } = useCapabilities();
   const { locked } = useSystemBackends();
   const { dockIconsReady, getAppIconUrl, ensureWaylandIcons, launchXdgEntry } = useApps();
@@ -161,7 +162,7 @@ export function DesktopIconsApp({
     };
   }, [desktopDirPath, editCreated, launchApp, ops, piloti]);
 
-  const { updateSettings } = useSettings();
+  const updateSettings = useUpdateSettings();
   React.useEffect(() => {
     const onAlignIcons = () => updateSettings({ desktopIconPositions: {} });
     window.addEventListener("piloti:desktop-align-icons", onAlignIcons);

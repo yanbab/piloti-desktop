@@ -12,7 +12,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { useSettings, useSystemBackends } from "@/context/DesktopStateContext";
+import {
+  useSystemBackends,
+  useDesktopSettings,
+  useUpdateSettings,
+} from "@/context/DesktopStateContext";
 import { _ } from "@/lib/core/i18n";
 
 const AUTO_CONFIRM_SECONDS = 60;
@@ -31,7 +35,8 @@ export function PowerActionDialog() {
       ),
     [portalRequests]
   );
-  const { settings, updateSettings } = useSettings();
+  const settings = useDesktopSettings(["restoreWindowsOnLogin"]);
+  const updateSettings = useUpdateSettings();
   const { pendingPowerAction, cancelPowerAction, confirmPowerAction } =
     useSystemBackends();
 

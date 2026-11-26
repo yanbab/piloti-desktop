@@ -61,7 +61,11 @@ import { Segmented } from "@/components/ui/segmented";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { useApps, useSettings } from "@/context/DesktopStateContext";
+import {
+  useApps,
+  useDesktopSettings,
+  useUpdateSettings,
+} from "@/context/DesktopStateContext";
 import { APP_CATALOG } from "@/data/catalog";
 import { _ } from "@/lib/core/i18n";
 import { cn } from "@/lib/core/utils";
@@ -438,7 +442,8 @@ function IconsPage() {
 }
 
 export function PilotiDemoApp() {
-  const { settings, updateSettings } = useSettings();
+  const settings = useDesktopSettings(["interfaceTheme", "themeMode"]);
+  const updateSettings = useUpdateSettings();
   const [page, setPage] = React.useState<PageId>("controls");
 
   const sidebarItems: SidebarItem[] = PAGES.map((p) => ({

@@ -22,7 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
-import { useSettings } from "@/context/DesktopStateContext";
+import { useDesktopSettings, useUpdateSettings } from "@/context/DesktopStateContext";
 import type { CssFontStyle } from "@/context/SettingsContext";
 import { listInstalledFontFamilies } from "@/lib/engine-native";
 import { _ } from "@/lib/core/i18n";
@@ -231,7 +231,8 @@ function FontPopoverSelector({
 
 export function FontsPane() {
   const piloti = usePiloti();
-  const { settings, updateSettings } = useSettings();
+  const settings = useDesktopSettings(["cssFontSmoothing", "cssTextRendering", "cssTextStrokePx", "fontMonoFamily", "fontSansFamily", "fontSansStyle", "fontScale"]);
+  const updateSettings = useUpdateSettings();
   const { systemServices } = useCapabilities();
   const [installedFonts, setInstalledFonts] = React.useState<string[]>([]);
 

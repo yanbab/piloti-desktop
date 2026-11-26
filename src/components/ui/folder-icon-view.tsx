@@ -1,6 +1,6 @@
 import * as React from "react";
 import { IconGrid, type IconGridProps } from "@/components/ui/icon-grid";
-import { useSettings } from "@/context/DesktopStateContext";
+import { useDesktopSettings, useUpdateSettings } from "@/context/DesktopStateContext";
 import { useDesktopDirPath } from "@/hooks/use-desktop-dir";
 import { subscribeVfsRenamed } from "@/lib/engine-web/web-vfs";
 import {
@@ -34,7 +34,8 @@ const subscribeLayouts = (listener: () => void) => {
 const NO_POSITIONS: NamedPositions = {};
 
 function useFolderLayout(dirPath: string, arrangement: FolderArrangement) {
-  const { settings, updateSettings } = useSettings();
+  const settings = useDesktopSettings(["desktopIconAlign", "desktopIconPositions"]);
+  const updateSettings = useUpdateSettings();
   const desktopDirPath = useDesktopDirPath();
   const persisted = arrangement === "desktop" && dirPath === desktopDirPath;
   const key = `${arrangement}:${dirPath}`;

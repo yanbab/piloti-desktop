@@ -7,7 +7,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { DynamicFileIcon, DynamicFolderIcon } from "@/data/folder-icons";
 import { useOpenPath } from "@/hooks/use-open-path";
-import { useSettings, useWindowActions } from "@/context/DesktopStateContext";
+import { useWindowActions, useDesktopSettings } from "@/context/DesktopStateContext";
 import { _ } from "@/lib/core/i18n";
 import { useVfsList } from "@/hooks/use-vfs";
 import { type WebVfsEntry } from "@/lib/core/vfs-paths";
@@ -30,7 +30,7 @@ export function DockFolderStack({
   dockPosition,
   onClose,
 }: DockFolderStackProps) {
-  const { settings } = useSettings();
+  const settings = useDesktopSettings(["accentColor"]);
   const { launchApp } = useWindowActions();
   const { openPath } = useOpenPath();
   const listing = useVfsList(path).data;

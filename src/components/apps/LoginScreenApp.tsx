@@ -34,10 +34,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { WindowControls } from "@/components/ui/window";
-import {
-  useSettings,
-  useSystemBackends,
-} from "@/context/DesktopStateContext";
+import { useSystemBackends, useDesktopSettings } from "@/context/DesktopStateContext";
 import {
   authenticateAndStartGreetdSession,
   computeUserInitials,
@@ -164,7 +161,7 @@ export const LoginScreenApp: React.FC<LoginScreenAppProps> = ({
 }) => {
   const isCsd = useAppChrome().decorations === "client";
   const piloti = usePiloti();
-  const { settings } = useSettings();
+  const settings = useDesktopSettings(["clock24Hour", "muted", "volume", "wifiEnabled"]);
   const { systemServices } = useCapabilities();
   const { batteryInfo, pushNotification } = useSystemBackends();
 

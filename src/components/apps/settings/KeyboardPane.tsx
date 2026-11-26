@@ -16,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useSettings } from "@/context/DesktopStateContext";
+import { useDesktopSettings, useUpdateSettings } from "@/context/DesktopStateContext";
 import { _ } from "@/lib/core/i18n";
 import { useKeymaps } from "@/lib/engine/keyboard";
 
@@ -27,7 +27,8 @@ const LAYOUTS = [
 ];
 
 export function KeyboardPane() {
-  const { settings, updateSettings } = useSettings();
+  const settings = useDesktopSettings(["computerModel", "keyboardLayout"]);
+  const updateSettings = useUpdateSettings();
   const { active } = useKeymaps();
   const layout = settings.keyboardLayout || active || "us";
 

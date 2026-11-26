@@ -71,9 +71,11 @@ import {
 } from "@/components/ui/context-menu";
 import {
   useApps,
-  useSettings,
   useSystemBackends,
   useWindowActions,
+  useDesktopSettings,
+  useSettingsSelector,
+  useUpdateSettings,
 } from "@/context/DesktopStateContext";
 import { usePlugins } from "@/context/PluginsContext";
 import type { DiscoveredPlugin } from "@/lib/plugins/types";
@@ -689,7 +691,9 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
 }) => {
   const piloti = usePiloti();
   const { getAppIconUrl, refreshXdgApps } = useApps();
-  const { isBrowserRuntime, settings, updateSettings } = useSettings();  // FIXME : Capabilities
+  const isBrowserRuntime = useSettingsSelector((v) => v.isBrowserRuntime); // FIXME : Capabilities
+  const settings = useDesktopSettings(["enabledPluginIds", "installedWebApps", "pinnedAppIds"]);
+  const updateSettings = useUpdateSettings();
   const { pushNotification } = useSystemBackends();
   const { launchApp, openWebUrl } = useWindowActions();
   const { plugins: discoveredPlugins, togglePlugin } = usePlugins();
