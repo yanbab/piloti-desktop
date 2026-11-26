@@ -709,10 +709,19 @@ export function useAppsValue(
     };
 
     // Shared watches (one per folder for the whole shell); the first call only
-    // says the watch is in place.
-    void readAppDirs().then((appDirs) => {
+    // says the watch is in place. Only folders that exist: a missing one would
+    // watch its parent (one more inotify instance) for a folder that rarely
+    // appears while the session runs.
+    void readAppDirs().then(async (appDirs) => {
+      const existing = (
+        await Promise.all(
+          appDirs.map(async (dir) =>
+            (await piloti.vfs.stat(dir).catch(() => null))?.kind === "directory" ? dir : null,
+          ),
+        )
+      ).filter((dir): dir is string => dir !== null);
       if (stopped) return;
-      for (const dir of appDirs) {
+      for (const dir of existing) {
         stopFns.push(
           retainVfsWatch(piloti.vfs, dir, (initial) => {
             if (!initial) scheduleRefresh();

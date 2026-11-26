@@ -4,7 +4,7 @@ import type { Vfs } from "@/lib/ports/vfs";
 
 /**
  * Everything the Text Editor needs from the host it runs in: the shell, or a
- * Domicile app module (see docs/APP-MODULES.md). Files go through `vfs` on
+ * Domicile app module (see docs/ARCHITECTURE.md). Files go through `vfs` on
  * both, so TextEditorApp itself never imports shell modules.
  *
  * State and prefs reads are synchronous: a host loads them before mounting.

@@ -32,6 +32,10 @@ import {
 } from "@/data/web-apps";
 import {
   dispatchPilotiShellCommand,
+  type IncomingShellCommand,
+  shellCommandAnswer,
+  shellCommandNumber,
+  shellCommandWords,
   type PilotiShellCommandHandlers,
 } from "@/lib/shell/shell-commands";
 import {
@@ -83,6 +87,12 @@ import { type WebVfsEntry } from "@/lib/core/vfs-paths";
 import { listFsTemplates } from "@/lib/engine/fs-bridge";
 import { useVfsQuery } from "@/hooks/use-vfs";
 import { vfsKeys } from "@/lib/engine/vfs-query";
+
+/** `piloti.shell.answer` (Domicile ≥ 1.3, SDK 3; not in the SDK 2.2 types). */
+type AnswerShellCommand = (
+  sent: number,
+  ran: ReturnType<typeof shellCommandAnswer>,
+) => Promise<unknown> | unknown;
 
 const NO_TEMPLATES: WebVfsEntry[] = [];
 
@@ -439,9 +449,18 @@ function DomicileShellCommandBridge() {
             while (!stopped) {
               const next = await reader.read();
               if (next.done) break;
-              const words = next.value;
+              const command = next.value as unknown as IncomingShellCommand;
+              const words = shellCommandWords(command);
               console.info("[Piloti] shellCommand", words);
-              dispatchPilotiShellCommand(words, handlersRef.current);
+              const ran = dispatchPilotiShellCommand(words, handlersRef.current);
+              // Domicile ≥ 1.3 waits for an answer (`domicile send-shell` fails without).
+              const sent = shellCommandNumber(command);
+              const answer = (piloti.shell as { answer?: AnswerShellCommand }).answer;
+              if (sent !== undefined && typeof answer === "function") {
+                void Promise.resolve(
+                  answer(sent, shellCommandAnswer(ran, `Piloti has no command "${words.join(" ")}"`)),
+                ).catch(() => undefined);
+              }
             }
           },
           Err: () => undefined,

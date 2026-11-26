@@ -2,7 +2,7 @@
  * Accent-colored icons.
  *
  * An icon follows the desktop accent color when it marks the shapes to
- * recolor (see docs/ICONS.md):
+ * recolor (see docs/GUIDE.md):
  *   - SVG: `class="accent"`, `"accent-darker"` or `"accent-lighter"` (fill), or
  *     the same names with a `-stroke` suffix (stroke).
  *   - Lottie: a fill or stroke item whose `cl` is one of those names.

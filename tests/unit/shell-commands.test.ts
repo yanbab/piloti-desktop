@@ -1,6 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import {
   dispatchPilotiShellCommand,
+  shellCommandAnswer,
+  shellCommandNumber,
+  shellCommandWords,
   resolvePilotiCommandAppId,
   type PilotiShellCommandHandlers,
 } from "@/lib/shell/shell-commands";
@@ -80,5 +83,20 @@ describe("shell-commands (domicile send-shell dispatcher)", () => {
       { fn: "installWebApp", args: ["https://squoosh.app"] },
       { fn: "removeWebApp", args: ["https://squoosh.app"] },
     ]);
+  });
+});
+
+describe("shell command stream shapes", () => {
+  test("reads words from SDK 2 arrays and Domicile 1.3 objects", () => {
+    expect(shellCommandWords(["open", "nautilus"])).toEqual(["open", "nautilus"]);
+    expect(shellCommandWords({ words: ["launcher"], sent: 7 })).toEqual(["launcher"]);
+    expect(shellCommandNumber(["launcher"])).toBeUndefined();
+    expect(shellCommandNumber({ words: ["launcher"], sent: 7 })).toBe(7);
+  });
+
+  test("answers ran, or why not, through match", () => {
+    const arms = { Ok: (done: string) => `ok:${done}`, Err: (why: string) => `err:${why}` };
+    expect(shellCommandAnswer(true, "no").match(arms)).toBe("ok:ran");
+    expect(shellCommandAnswer(false, "no such command").match(arms)).toBe("err:no such command");
   });
 });

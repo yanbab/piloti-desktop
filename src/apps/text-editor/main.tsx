@@ -1,5 +1,5 @@
 // Domicile app module: the Text Editor in its own document (own origin/process
-// boundary). See docs/APP-MODULES.md. File to open: ~/.cache/piloti/text-editor-open
+// boundary). See docs/ARCHITECTURE.md. File to open: ~/.cache/piloti/text-editor-open
 // (one path, consumed on start), until the shell can pass arguments.
 import "@/styles/globals.css";
 import type { AppMain } from "@domicile-desktop/sdk/app";

@@ -1,5 +1,5 @@
 /**
- * Our Domicile app modules (see docs/APP-MODULES.md). A module's window
+ * Our Domicile app modules (see docs/ARCHITECTURE.md). A module's window
  * arrives as a browser window at `domicile://app-<hash>/`, where hash is the
  * first 32 hex digits of SHA-256 of the module's directory. Hashing the
  * directories of the modules we ship lets the shell recognise them.

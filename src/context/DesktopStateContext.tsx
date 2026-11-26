@@ -79,7 +79,7 @@ const sameFields = <T extends object>(a: T, b: T) =>
  * Desktop settings by field, re-rendering only when one of `keys` changes:
  * `const settings = useDesktopSettings(["dockSize", "accentColor"])`. The same
  * values as the `org.piloti.desktop.*` schemas in settings.ini (see
- * `docs/PILOTI-API.md`); shell code names them by field to keep their types.
+ * `docs/API.md`); shell code names them by field to keep their types.
  */
 export function useDesktopSettings<K extends keyof DesktopSettings>(
   keys: readonly K[],

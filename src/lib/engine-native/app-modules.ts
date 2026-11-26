@@ -1,4 +1,4 @@
-/** Starts one of our apps as a Domicile app module (see docs/APP-MODULES.md). */
+/** Starts one of our apps as a Domicile app module (see docs/ARCHITECTURE.md). */
 import { APP_MODULES } from "@/data/app-modules";
 import { hostFiles } from "@/lib/engine/host-files";
 import type { Piloti } from "@/lib/engine/piloti";

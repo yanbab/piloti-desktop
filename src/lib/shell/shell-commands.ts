@@ -53,6 +53,36 @@ export function resolvePilotiCommandAppId(raw: string): string {
 }
 
 /**
+ * A command from `piloti.shell.commands()`: its words (SDK 2.x), or, from
+ * Domicile 1.3 (SDK 3), `{ words, sent }` that the shell must answer.
+ */
+export type IncomingShellCommand =
+  | readonly string[]
+  | { readonly words: readonly string[]; readonly sent: number };
+
+export function shellCommandWords(command: IncomingShellCommand): readonly string[] {
+  return Array.isArray(command) ? command : ((command as { words?: readonly string[] }).words ?? []);
+}
+
+/** The number `shell.answer` names, when the runtime expects an answer. */
+export function shellCommandNumber(command: IncomingShellCommand): number | undefined {
+  if (Array.isArray(command)) return undefined;
+  const sent = (command as { sent?: unknown }).sent;
+  return typeof sent === "number" ? sent : undefined;
+}
+
+/**
+ * The answer for `shell.answer(sent, …)`: `Ok("ran")`, or `Err(reason)`. Only
+ * `match` is read, so it works whatever SDK the runtime has.
+ */
+export function shellCommandAnswer(ran: boolean, refused: string) {
+  return {
+    match: <T>(arms: { Ok: (done: "ran") => T; Err: (reason: string) => T }): T =>
+      ran ? arms.Ok("ran") : arms.Err(refused),
+  };
+}
+
+/**
  * Dispatches a `domicile send-shell <words...>` command array into Piloti shell actions.
  * Returns `true` when the command was recognized and dispatched.
  */
