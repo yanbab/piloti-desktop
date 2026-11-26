@@ -58,8 +58,8 @@ function Button({
       data-keep-icon={keepIcon || undefined}
       className={
         typeof className === "function"
-          ? (state) => cn("shell-button", className(state))
-          : cn("shell-button", className)
+          ? (state) => cn("ui-button", className(state))
+          : cn("ui-button", className)
       }
       {...props}
     />

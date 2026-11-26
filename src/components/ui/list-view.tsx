@@ -44,7 +44,7 @@ function ListView({ className, ...props }: React.ComponentProps<"table">) {
   return (
     <table
       data-slot="list-view"
-      className={cn("w-full border-collapse text-left text-shell-callout", className)}
+      className={cn("w-full border-collapse text-left text-ui-callout", className)}
       {...props}
     />
   )
@@ -63,7 +63,7 @@ function ListViewHeader<K extends string>({
     <thead>
       <tr
         data-slot="list-view-header"
-        className="border-b border-shell-separator text-shell-subheadline font-semibold text-shell-label-secondary"
+        className="border-b border-ui-separator text-ui-subheadline font-semibold text-ui-label-secondary"
       >
         {columns.map((col) => {
           const active = sort?.by === col.id
@@ -87,7 +87,7 @@ function ListViewHeader<K extends string>({
                   data-active={active || undefined}
                   onClick={() => onSort?.(col.id)}
                   className={cn(
-                    "flex w-full items-center gap-1 px-3 py-1.5 outline-none data-[active]:text-shell-label",
+                    "flex w-full items-center gap-1 px-3 py-1.5 outline-none data-[active]:text-ui-label",
                     col.align === "right" && "flex-row-reverse"
                   )}
                 >
@@ -122,9 +122,9 @@ function ListViewRow({
       data-slot="list-view-row"
       data-selected={selected || undefined}
       className={cn(
-        "group cursor-default border-b border-shell-separator/40 transition-colors",
+        "group cursor-default border-b border-ui-separator/40 transition-colors",
         selected
-          ? "bg-shell-accent/20 text-shell-label"
+          ? "bg-ui-accent/20 text-ui-label"
           : "hover-fill:bg-black/4 dark:hover-fill:bg-white/5",
         className
       )}

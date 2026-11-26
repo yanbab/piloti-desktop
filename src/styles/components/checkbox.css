@@ -1,13 +1,13 @@
 /*
  * Checkbox, in plain CSS.
  *
- *   <span class="shell-checkbox" role="checkbox" data-checked>
- *     <span class="shell-checkbox-indicator"><svg>…</svg></span>
+ *   <span class="ui-checkbox" role="checkbox" data-checked>
+ *     <span class="ui-checkbox-indicator"><svg>…</svg></span>
  *   </span>
  */
 
 @layer components {
-  .shell-checkbox {
+  .ui-checkbox {
     display: inline-flex;
     flex-shrink: 0;
     align-items: center;
@@ -25,31 +25,31 @@
     transition-duration: 150ms;
     transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   }
-  .dark .shell-checkbox {
+  .dark .ui-checkbox {
     border-color: rgb(255 255 255 / 0.25);
     background-color: rgb(255 255 255 / 0.1);
   }
-  .shell-checkbox[data-checked],
-  .dark .shell-checkbox[data-checked] {
-    border-color: var(--shell-accent);
-    background-color: var(--shell-accent);
+  .ui-checkbox[data-checked],
+  .dark .ui-checkbox[data-checked] {
+    border-color: var(--ui-accent);
+    background-color: var(--ui-accent);
   }
-  .shell-checkbox:focus-visible {
-    box-shadow: var(--shell-focus-ring);
+  .ui-checkbox:focus-visible {
+    box-shadow: var(--ui-focus-ring);
   }
-  .shell-checkbox:disabled,
-  .shell-checkbox[data-disabled] {
+  .ui-checkbox:disabled,
+  .ui-checkbox[data-disabled] {
     pointer-events: none;
     opacity: 0.45;
   }
 
-  .shell-checkbox-indicator {
+  .ui-checkbox-indicator {
     display: flex;
     align-items: center;
     justify-content: center;
     color: currentColor;
   }
-  .shell-checkbox-indicator svg {
+  .ui-checkbox-indicator svg {
     width: 0.75rem;
     height: 0.75rem;
   }

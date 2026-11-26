@@ -13,14 +13,14 @@ function Checkbox({
       data-slot="checkbox"
       className={
         typeof className === "function"
-          ? (state) => cn("shell-checkbox", className(state))
-          : cn("shell-checkbox", className)
+          ? (state) => cn("ui-checkbox", className(state))
+          : cn("ui-checkbox", className)
       }
       {...props}
     >
       <CheckboxPrimitive.Indicator
         data-slot="checkbox-indicator"
-        className="shell-checkbox-indicator"
+        className="ui-checkbox-indicator"
       >
         <CheckIcon strokeWidth={2.75} />
       </CheckboxPrimitive.Indicator>

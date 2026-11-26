@@ -77,7 +77,7 @@ const Hello = () => {
           <HeaderBar.Title>Piloti app module test</HeaderBar.Title>
         </HeaderBar>
         <AppContent padded>
-          <pre className="text-shell-body whitespace-pre-wrap">{lines.join("\n")}</pre>
+          <pre className="text-ui-body whitespace-pre-wrap">{lines.join("\n")}</pre>
         </AppContent>
       </AppWindow>
     </AppChromeProvider>

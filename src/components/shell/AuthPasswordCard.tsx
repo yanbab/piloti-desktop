@@ -147,7 +147,7 @@ export function AuthPasswordCard({
               placeholder={placeholder ?? _("Password")}
               aria-label={_("Password")}
               className={cn(
-                "h-9 w-full rounded-[10px] border bg-black/30 pr-16 pl-3 text-shell-body text-white placeholder:text-white/45 focus:outline-none disabled:opacity-60",
+                "h-9 w-full rounded-[10px] border bg-black/30 pr-16 pl-3 text-ui-body text-white placeholder:text-white/45 focus:outline-none disabled:opacity-60",
                 error
                   ? "border-rose-400/80 ring-1 ring-rose-400/40"
                   : "border-white/20 focus:border-white/45",
@@ -166,7 +166,7 @@ export function AuthPasswordCard({
                   setShowPassword((v) => !v);
                   inputRef.current?.focus();
                 }}
-                className="flex size-6 items-center justify-center rounded-shell-control text-white/70 transition-colors hover-fill:bg-white/14 hover-fill:text-white"
+                className="flex size-6 items-center justify-center rounded-ui-control text-white/70 transition-colors hover-fill:bg-white/14 hover-fill:text-white"
               >
                 {showPassword ? (
                   <EyeOffIcon className="size-3.5" />
@@ -178,7 +178,7 @@ export function AuthPasswordCard({
                 type="submit"
                 disabled={disabled || loading}
                 aria-label={submitLabel ?? _("Sign In")}
-                className="flex size-6 items-center justify-center rounded-shell-control bg-shell-accent text-white transition-all hover-fill:brightness-110 active:scale-95 disabled:opacity-60"
+                className="flex size-6 items-center justify-center rounded-ui-control bg-ui-accent text-white transition-all hover-fill:brightness-110 active:scale-95 disabled:opacity-60"
               >
                 {loading ? (
                   <Loader2Icon className="size-3.5 animate-spin" />
@@ -197,7 +197,7 @@ export function AuthPasswordCard({
         {error && (
           <div
             role="alert"
-            className="w-full rounded-shell-item bg-rose-500/20 px-2.5 py-1.5 text-center text-xs text-rose-200 ring-1 ring-rose-400/30"
+            className="w-full rounded-ui-item bg-rose-500/20 px-2.5 py-1.5 text-center text-xs text-rose-200 ring-1 ring-rose-400/30"
           >
             {error}
           </div>

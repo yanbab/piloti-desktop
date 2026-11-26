@@ -127,7 +127,7 @@ function RemoteSubmenuGroup({
         )}
       </MenubarItem>
       {expanded && entry.submenu && (
-        <div className="my-0.5 ml-2.5 max-h-56 overflow-y-auto border-l border-shell-separator/60 pl-1">
+        <div className="my-0.5 ml-2.5 max-h-56 overflow-y-auto border-l border-ui-separator/60 pl-1">
           {renderRemoteMenuItems(entry.submenu, computerModel)}
         </div>
       )}
@@ -630,12 +630,12 @@ export const MenuBar = React.memo(function MenuBar() {
   return (
     <header
       ref={headerRef}
-      className="relative z-[200] flex h-[30px] w-full shrink-0 items-stretch justify-between gap-2 px-0 text-shell-body text-shell-label select-none dark:text-white"
+      className="relative z-[200] flex h-[30px] w-full shrink-0 items-stretch justify-between gap-2 px-0 text-ui-body text-ui-label select-none dark:text-white"
     >
       <div
         aria-hidden="true"
         className={cn(
-          "pointer-events-none absolute inset-0 -z-10 shell-material-hud transition-opacity duration-200",
+          "pointer-events-none absolute inset-0 -z-10 ui-material-hud transition-opacity duration-200",
           overviewOpen && "opacity-0",
         )}
       />
@@ -649,7 +649,7 @@ export const MenuBar = React.memo(function MenuBar() {
             <MenubarTrigger
               ref={pilotiTriggerRef}
               aria-label="Piloti Menu"
-              className="gap-1.5 rounded-none rounded-r-shell-control pl-2.5 pr-2 font-semibold tracking-tight"
+              className="gap-1.5 rounded-none rounded-r-ui-control pl-2.5 pr-2 font-semibold tracking-tight"
             >
               <PilotiLogo className="size-4.5" />
             </MenubarTrigger>
@@ -1069,7 +1069,7 @@ export const MenuBar = React.memo(function MenuBar() {
         onClick={() => toggleOverview()}
         className={cn(
           // Always visible: the menus give way first.
-          "flex h-full shrink-0 cursor-default items-center gap-[5px] rounded-shell-control px-2 outline-none transition-colors focus-visible:bg-black/10 dark:focus-visible:bg-white/12",
+          "flex h-full shrink-0 cursor-default items-center gap-[5px] rounded-ui-control px-2 outline-none transition-colors focus-visible:bg-black/10 dark:focus-visible:bg-white/12",
           overviewOpen
             ? "bg-black/8 dark:bg-white/12"
             : "hover-fill:bg-black/8 dark:hover-fill:bg-white/12"
@@ -1087,10 +1087,10 @@ export const MenuBar = React.memo(function MenuBar() {
                 className={cn(
                   "h-[6px] rounded-full transition-all duration-200 motion-reduce:transition-none",
                   active
-                    ? "w-[12px] bg-shell-label shadow-xs dark:bg-white"
+                    ? "w-[12px] bg-ui-label shadow-xs dark:bg-white"
                     : hasWins
-                      ? "w-[6px] bg-shell-label/55 dark:bg-white/55"
-                      : "w-[6px] bg-shell-label/28 dark:bg-white/28"
+                      ? "w-[6px] bg-ui-label/55 dark:bg-white/55"
+                      : "w-[6px] bg-ui-label/28 dark:bg-white/28"
                 )}
               />
             );
@@ -1125,7 +1125,7 @@ export const MenuBar = React.memo(function MenuBar() {
           return (
             <div
               key={cap.id}
-              className="mr-1 flex h-[22px] shrink-0 items-center gap-1 rounded-full bg-rose-500/85 px-2 text-shell-footnote font-semibold text-white"
+              className="mr-1 flex h-[22px] shrink-0 items-center gap-1 rounded-full bg-rose-500/85 px-2 text-ui-footnote font-semibold text-white"
             >
               <span className="size-1.5 animate-pulse rounded-full bg-white" />
               <span>{isRec ? (paused ? "Paused" : "REC") : "Sharing"}</span>
@@ -1169,7 +1169,7 @@ export const MenuBar = React.memo(function MenuBar() {
                 console.error(`[Plugin:${item.pluginId}] status click error:`, err);
               }
             }}
-            className="flex h-full shrink-0 cursor-default items-center rounded-shell-control px-2 text-shell-callout font-medium outline-none select-none hover-fill:bg-black/8 active:bg-black/14 focus-visible:bg-black/10 dark:hover-fill:bg-white/10 dark:active:bg-white/18 dark:focus-visible:bg-white/12"
+            className="flex h-full shrink-0 cursor-default items-center rounded-ui-control px-2 text-ui-callout font-medium outline-none select-none hover-fill:bg-black/8 active:bg-black/14 focus-visible:bg-black/10 dark:hover-fill:bg-white/10 dark:active:bg-white/18 dark:focus-visible:bg-white/12"
           >
             {item.label}
           </button>
@@ -1210,9 +1210,9 @@ export const MenuBar = React.memo(function MenuBar() {
             <DropdownMenuTrigger
               data-menubar-nav="launcher"
               aria-label="Launcher (Alt+Space)"
-              className="flex h-full shrink-0 cursor-default items-center rounded-shell-control px-2 outline-none select-none active:bg-black/14 data-popup-open:bg-black/12 focus-visible:bg-black/10 dark:active:bg-white/18 dark:data-popup-open:bg-white/15 dark:focus-visible:bg-white/12"
+              className="flex h-full shrink-0 cursor-default items-center rounded-ui-control px-2 outline-none select-none active:bg-black/14 data-popup-open:bg-black/12 focus-visible:bg-black/10 dark:active:bg-white/18 dark:data-popup-open:bg-white/15 dark:focus-visible:bg-white/12"
             >
-              <LayoutGridIcon className="size-4 text-shell-label/90 dark:text-white/90" />
+              <LayoutGridIcon className="size-4 text-ui-label/90 dark:text-white/90" />
             </DropdownMenuTrigger>
             <DropdownMenuContent
               anchor={rightClusterRef}
@@ -1247,11 +1247,11 @@ export const MenuBar = React.memo(function MenuBar() {
                 const next = Math.max(0, Math.min(100, settings.volume + step));
                 updateSettings({ volume: next, muted: next === 0 });
               }}
-              className="flex h-full shrink-0 cursor-default items-center gap-2 rounded-none rounded-l-shell-control pl-2.5 pr-3 text-shell-body font-normal outline-none select-none active:bg-black/14 data-popup-open:bg-black/12 focus-visible:bg-black/10 dark:active:bg-white/18 dark:data-popup-open:bg-white/15 dark:focus-visible:bg-white/12"
+              className="flex h-full shrink-0 cursor-default items-center gap-2 rounded-none rounded-l-ui-control pl-2.5 pr-3 text-ui-body font-normal outline-none select-none active:bg-black/14 data-popup-open:bg-black/12 focus-visible:bg-black/10 dark:active:bg-white/18 dark:data-popup-open:bg-white/15 dark:focus-visible:bg-white/12"
             >
-              <span className="flex items-center gap-1.5 text-shell-label/90 dark:text-white/90">
+              <span className="flex items-center gap-1.5 text-ui-label/90 dark:text-white/90">
                 {settings.doNotDisturb ? (
-                  <BellOffIcon className="size-4 text-shell-label/45 dark:text-white/45" />
+                  <BellOffIcon className="size-4 text-ui-label/45 dark:text-white/45" />
                 ) : notifications.length > 0 ? (
                   <BellIcon
                     className={cn(
@@ -1259,23 +1259,23 @@ export const MenuBar = React.memo(function MenuBar() {
                       notifications.some(
                         (n) => !n.read && n.urgency === "critical"
                       )
-                        ? "text-shell-accent"
-                        : "text-shell-label/90 dark:text-white/90"
+                        ? "text-ui-accent"
+                        : "text-ui-label/90 dark:text-white/90"
                     )}
                   />
                 ) : null}
                 {!wifiPresent ? null : settings.wifiEnabled ? (
                   <WifiIcon className="size-4" />
                 ) : (
-                  <WifiOffIcon className="size-4 text-shell-label/45 dark:text-white/45" />
+                  <WifiOffIcon className="size-4 text-ui-label/45 dark:text-white/45" />
                 )}
                 {!bluetoothPresent ? null : settings.bluetoothEnabled ? (
                   <BluetoothIcon className="size-4" />
                 ) : (
-                  <BluetoothOffIcon className="size-4 text-shell-label/45 dark:text-white/45" />
+                  <BluetoothOffIcon className="size-4 text-ui-label/45 dark:text-white/45" />
                 )}
                 {settings.muted || settings.volume === 0 ? (
-                  <VolumeXIcon className="size-4 text-shell-label/60 dark:text-white/60" />
+                  <VolumeXIcon className="size-4 text-ui-label/60 dark:text-white/60" />
                 ) : (
                   <Volume2Icon className="size-4" />
                 )}
@@ -1286,7 +1286,7 @@ export const MenuBar = React.memo(function MenuBar() {
                   />
                 )}
                 {batteryInfo.present && (
-                  <span className="inline-flex items-center gap-1 text-shell-body tabular-nums">
+                  <span className="inline-flex items-center gap-1 text-ui-body tabular-nums">
                     {batteryInfo.charging ? (
                       <BatteryChargingIcon className="size-4" />
                     ) : batteryInfo.percentage <= 20 ? (
@@ -1318,7 +1318,7 @@ export const MenuBar = React.memo(function MenuBar() {
               // shadows (same as menus) are not clipped by its overflow.
               className="-mr-1 w-[348px] max-w-[calc(100vw-8px)] overflow-x-hidden overflow-y-auto rounded-none border-0 bg-transparent! pt-0 pr-3 pb-8 pl-6 shadow-none! [backdrop-filter:none]! [-webkit-backdrop-filter:none]!"
             >
-              <div data-slot="control-panel" className="rounded-shell-popover p-3 shadow-shell-popover shell-material-menu">
+              <div data-slot="control-panel" className="rounded-ui-popover p-3 shadow-ui-popover ui-material-menu">
                 <ControlPanel open={controlPanelOpen} />
               </div>
               <FloatingNotifications open={controlPanelOpen} />

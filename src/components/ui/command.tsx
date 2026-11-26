@@ -49,7 +49,7 @@ function Command({
     <CommandPrimitive
       data-slot="command"
       className={cn(
-        "flex size-full flex-col overflow-hidden text-shell-body text-shell-label",
+        "flex size-full flex-col overflow-hidden text-ui-body text-ui-label",
         className
       )}
       {...props}
@@ -106,8 +106,8 @@ function CommandInput({
   onAcceptCompletion?: (completed: string) => void
 }) {
   return (
-    <div data-slot="command-input-wrapper" className="flex h-12 shrink-0 items-center gap-2.5 border-b border-shell-grid px-4">
-      <SearchIcon className="size-[18px] shrink-0 text-shell-label-secondary" strokeWidth={2.25} />
+    <div data-slot="command-input-wrapper" className="flex h-12 shrink-0 items-center gap-2.5 border-b border-ui-grid px-4">
+      <SearchIcon className="size-[18px] shrink-0 text-ui-label-secondary" strokeWidth={2.25} />
       <InlineCompletionInput
         // Not with `props`: the completion input's own ref would replace it.
         ref={ref}
@@ -151,7 +151,7 @@ function CommandEmpty({
   return (
     <CommandPrimitive.Empty
       data-slot="command-empty"
-      className={cn("py-6 text-center text-shell-body text-shell-label-secondary", className)}
+      className={cn("py-6 text-center text-ui-body text-ui-label-secondary", className)}
       {...props}
     />
   )
@@ -167,7 +167,7 @@ function CommandGroup({
       ref={listScrollRef(ref, (node) => node.querySelector<HTMLElement>("[cmdk-group-heading]"))}
       data-slot="command-group"
       className={cn(
-        "overflow-hidden text-shell-label **:[[cmdk-group-heading]]:px-2.5 **:[[cmdk-group-heading]]:pt-2 **:[[cmdk-group-heading]]:pb-1 **:[[cmdk-group-heading]]:text-shell-subheadline **:[[cmdk-group-heading]]:font-semibold **:[[cmdk-group-heading]]:text-shell-label-secondary",
+        "overflow-hidden text-ui-label **:[[cmdk-group-heading]]:px-2.5 **:[[cmdk-group-heading]]:pt-2 **:[[cmdk-group-heading]]:pb-1 **:[[cmdk-group-heading]]:text-ui-subheadline **:[[cmdk-group-heading]]:font-semibold **:[[cmdk-group-heading]]:text-ui-label-secondary",
         className
       )}
       {...props}
@@ -183,7 +183,7 @@ function CommandSeparator({
     <CommandPrimitive.Separator
       aria-hidden="true"
       data-slot="command-separator"
-      className={cn("mx-2.5 my-1.5 h-px bg-shell-grid", className)}
+      className={cn("mx-2.5 my-1.5 h-px bg-ui-grid", className)}
       {...props}
     />
   )
@@ -200,7 +200,7 @@ function CommandItem({
       ref={listScrollRef(ref)}
       data-slot="command-item"
       className={cn(
-        "group/command-item relative flex h-8 cursor-default items-center gap-2.5 rounded-shell-item px-2.5 text-shell-body outline-hidden select-none data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 data-[selected=true]:bg-shell-menu-highlight data-[selected=true]:text-shell-label [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 [&_svg:not([class*='text-'])]:text-shell-label-secondary data-[selected=true]:*:[svg]:text-shell-label",
+        "group/command-item relative flex h-8 cursor-default items-center gap-2.5 rounded-ui-item px-2.5 text-ui-body outline-hidden select-none data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 data-[selected=true]:bg-ui-menu-highlight data-[selected=true]:text-ui-label [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 [&_svg:not([class*='text-'])]:text-ui-label-secondary data-[selected=true]:*:[svg]:text-ui-label",
         className
       )}
       {...props}
@@ -220,7 +220,7 @@ function CommandShortcut({
     <span
       data-slot="command-shortcut"
       className={cn(
-        "ml-auto text-shell-body tracking-normal text-shell-label-secondary",
+        "ml-auto text-ui-body tracking-normal text-ui-label-secondary",
         className
       )}
       {...props}

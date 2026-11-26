@@ -22,19 +22,19 @@ export interface AccentColorOption {
 }
 
 export const ACCENT_COLORS: AccentColorOption[] = [
-  { id: "blue", label: "Blue", cssVar: "var(--shell-blue)", hex: "#0088ff", adwaitaHex: "#3584e4" },
-  { id: "purple", label: "Purple", cssVar: "var(--shell-purple)", hex: "#cb30e0", adwaitaHex: "#9141ac" },
-  { id: "pink", label: "Pink", cssVar: "var(--shell-pink)", hex: "#ff2d55", adwaitaHex: "#d56199" },
-  { id: "red", label: "Red", cssVar: "var(--shell-red)", hex: "#ff383c", adwaitaHex: "#e62d42" },
-  { id: "orange", label: "Orange", cssVar: "var(--shell-orange)", hex: "#ff8d28", adwaitaHex: "#ed5b00" },
-  { id: "yellow", label: "Yellow", cssVar: "var(--shell-yellow)", hex: "#ffcc00", adwaitaHex: "#c88800" },
-  { id: "green", label: "Green", cssVar: "var(--shell-green)", hex: "#34c759", adwaitaHex: "#3a944a" },
-  { id: "graphite", label: "Graphite", cssVar: "var(--shell-gray)", hex: "#8e8e93", adwaitaHex: "#6f8396" },
+  { id: "blue", label: "Blue", cssVar: "var(--ui-blue)", hex: "#0088ff", adwaitaHex: "#3584e4" },
+  { id: "purple", label: "Purple", cssVar: "var(--ui-purple)", hex: "#cb30e0", adwaitaHex: "#9141ac" },
+  { id: "pink", label: "Pink", cssVar: "var(--ui-pink)", hex: "#ff2d55", adwaitaHex: "#d56199" },
+  { id: "red", label: "Red", cssVar: "var(--ui-red)", hex: "#ff383c", adwaitaHex: "#e62d42" },
+  { id: "orange", label: "Orange", cssVar: "var(--ui-orange)", hex: "#ff8d28", adwaitaHex: "#ed5b00" },
+  { id: "yellow", label: "Yellow", cssVar: "var(--ui-yellow)", hex: "#ffcc00", adwaitaHex: "#c88800" },
+  { id: "green", label: "Green", cssVar: "var(--ui-green)", hex: "#34c759", adwaitaHex: "#3a944a" },
+  { id: "graphite", label: "Graphite", cssVar: "var(--ui-gray)", hex: "#8e8e93", adwaitaHex: "#6f8396" },
 ];
 
 /** The accent hex the UI uses (selections, sidebar items, tinted icons):
  *  a custom hex as is, otherwise the preset's value for the interface theme
- *  (what `--shell-accent` resolves to: Cupertino UI for Piloti, GNOME for Adwaita). */
+ *  (what `--ui-accent` resolves to: Cupertino UI for Piloti, GNOME for Adwaita). */
 export function resolveUiAccentHex(
   accentColor: string | undefined,
   customAccentHex?: string,

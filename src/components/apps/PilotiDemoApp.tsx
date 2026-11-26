@@ -268,7 +268,7 @@ function MenusPage() {
         </Row>
         <Row title={_("Context menu")} description={_("Right-click the area")}>
           <ContextMenu>
-            <ContextMenuTrigger className="flex h-14 w-48 items-center justify-center rounded-shell-item border border-dashed border-shell-separator text-shell-callout text-shell-label-secondary">
+            <ContextMenuTrigger className="flex h-14 w-48 items-center justify-center rounded-ui-item border border-dashed border-ui-separator text-ui-callout text-ui-label-secondary">
               {_("Right-click here")}
             </ContextMenuTrigger>
             <ContextMenuContent>
@@ -299,13 +299,13 @@ function TextPage() {
         {TYPE_ROLES.map((role) => (
           <GroupedFormRow key={role}>
             <span
-              className="min-w-0 truncate text-shell-label"
-              style={{ fontSize: `var(--shell-font-${role})` }}
+              className="min-w-0 truncate text-ui-label"
+              style={{ fontSize: `var(--ui-font-${role})` }}
             >
               The quick brown fox
             </span>
-            <code className="shrink-0 font-mono text-shell-footnote text-shell-label-secondary">
-              text-shell-{role}
+            <code className="shrink-0 font-mono text-ui-footnote text-ui-label-secondary">
+              text-ui-{role}
             </code>
           </GroupedFormRow>
         ))}
@@ -318,10 +318,10 @@ function Swatch({ cssVar, label, round }: { cssVar: string; label: string; round
   return (
     <div className="flex w-16 flex-col items-center gap-1">
       <span
-        className={cn("size-8 shadow-[inset_0_0_0_1px_var(--shell-border)]", round ? "rounded-full" : "rounded-shell-control")}
+        className={cn("size-8 shadow-[inset_0_0_0_1px_var(--ui-border)]", round ? "rounded-full" : "rounded-ui-control")}
         style={{ background: `var(${cssVar})` }}
       />
-      <span className="w-full truncate text-center text-shell-caption text-shell-label-secondary">{label}</span>
+      <span className="w-full truncate text-center text-ui-caption text-ui-label-secondary">{label}</span>
     </div>
   );
 }
@@ -331,21 +331,21 @@ function TokensPage() {
     <GroupedForm>
       <Section title={_("System colours")}>
         <GroupedFormRow className="flex-wrap justify-start gap-1 py-3">
-          <Swatch cssVar="--shell-accent" label="accent" round />
+          <Swatch cssVar="--ui-accent" label="accent" round />
           {SYSTEM_COLORS.map((c) => (
-            <Swatch key={c} cssVar={`--shell-${c}`} label={c} round />
+            <Swatch key={c} cssVar={`--ui-${c}`} label={c} round />
           ))}
         </GroupedFormRow>
       </Section>
       <Section title={_("Labels & surfaces")}>
         <GroupedFormRow className="flex-wrap justify-start gap-1 py-3">
           {LABEL_TOKENS.map((t) => (
-            <Swatch key={t} cssVar={`--shell-${t}`} label={t.replace("label-", "")} />
+            <Swatch key={t} cssVar={`--ui-${t}`} label={t.replace("label-", "")} />
           ))}
         </GroupedFormRow>
         <GroupedFormRow className="flex-wrap justify-start gap-1 py-3">
           {SURFACE_TOKENS.map((t) => (
-            <Swatch key={t} cssVar={`--shell-${t}`} label={t} />
+            <Swatch key={t} cssVar={`--ui-${t}`} label={t} />
           ))}
         </GroupedFormRow>
       </Section>
@@ -354,10 +354,10 @@ function TokensPage() {
           {RADIUS_TOKENS.map((t) => (
             <div key={t} className="flex flex-col items-center gap-1">
               <span
-                className="size-12 bg-shell-fill-primary shadow-[inset_0_0_0_1px_var(--shell-border)]"
-                style={{ borderRadius: `var(--shell-radius-${t})` }}
+                className="size-12 bg-ui-fill-primary shadow-[inset_0_0_0_1px_var(--ui-border)]"
+                style={{ borderRadius: `var(--ui-radius-${t})` }}
               />
-              <span className="text-shell-caption text-shell-label-secondary">{t}</span>
+              <span className="text-ui-caption text-ui-label-secondary">{t}</span>
             </div>
           ))}
         </GroupedFormRow>
@@ -367,10 +367,10 @@ function TokensPage() {
           {HEIGHT_TOKENS.map((t) => (
             <div key={t} className="flex flex-col items-center gap-1">
               <span
-                className="flex w-16 items-center justify-center rounded-shell-control bg-shell-control text-shell-caption text-shell-label-secondary"
-                style={{ height: `var(--shell-control-${t})` }}
+                className="flex w-16 items-center justify-center rounded-ui-control bg-ui-control text-ui-caption text-ui-label-secondary"
+                style={{ height: `var(--ui-control-${t})` }}
               />
-              <span className="text-shell-caption text-shell-label-secondary">{t}</span>
+              <span className="text-ui-caption text-ui-label-secondary">{t}</span>
             </div>
           ))}
         </GroupedFormRow>
@@ -390,10 +390,10 @@ function IconsPage() {
           {url ? (
             <img src={url} alt="" className="size-12 object-contain" draggable={false} />
           ) : (
-            <BoxesIcon className="size-8 text-shell-label-tertiary" />
+            <BoxesIcon className="size-8 text-ui-label-tertiary" />
           )}
         </span>
-        <span className="w-full truncate text-center text-shell-caption text-shell-label-secondary">{label}</span>
+        <span className="w-full truncate text-center text-ui-caption text-ui-label-secondary">{label}</span>
       </div>
     );
   };
@@ -408,9 +408,9 @@ function IconsPage() {
                 {url ? (
                   <img src={url} alt="" style={{ width: size, height: size }} className="object-contain" draggable={false} />
                 ) : (
-                  <span style={{ width: size, height: size }} className="rounded-shell-item bg-shell-accent" />
+                  <span style={{ width: size, height: size }} className="rounded-ui-item bg-ui-accent" />
                 )}
-                <span className="text-shell-caption tabular-nums text-shell-label-secondary">{size}</span>
+                <span className="text-ui-caption tabular-nums text-ui-label-secondary">{size}</span>
               </div>
             );
           })}
@@ -427,7 +427,7 @@ function IconsPage() {
         </GroupedFormRow>
       </Section>
       <Section title={_("Symbols")}>
-        <GroupedFormRow className="flex-wrap justify-start gap-4 py-3 text-shell-label">
+        <GroupedFormRow className="flex-wrap justify-start gap-4 py-3 text-ui-label">
           {[FolderIcon, BellIcon, SunIcon, MoonIcon, MonitorIcon, Volume2Icon, PaletteIcon, TypeIcon].map((Icon, i) => (
             <Icon key={i} className="size-4" />
           ))}
@@ -483,7 +483,7 @@ export function PilotiDemoApp() {
       sidebarItems={sidebarItems}
       sidebarWidthClass="w-[176px]"
       sidebarId="piloti-demo-sidebar"
-      contentClassName="bg-shell-window"
+      contentClassName="bg-ui-window"
       header={
         <HeaderBar>
           <HeaderBar.Start>

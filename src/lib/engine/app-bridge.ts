@@ -74,16 +74,16 @@ export function applyThemeToDocument(
 
   const accent =
     ACCENT_COLORS.find((c) => c.id === theme.accentColor) ?? ACCENT_COLORS[0];
-  root.style.setProperty("--shell-active-accent", accent.hex);
+  root.style.setProperty("--ui-active-accent", accent.hex);
   if (theme.fontSansFamily) {
     root.style.setProperty(
-      "--font-shell",
+      "--font-ui",
       `"${theme.fontSansFamily}", "Cantarell", system-ui, sans-serif`,
     );
   }
   if (theme.fontMonoFamily) {
     root.style.setProperty(
-      "--font-shell-mono",
+      "--font-ui-mono",
       `"${theme.fontMonoFamily}", "Adwaita Mono", ui-monospace, monospace`,
     );
   }

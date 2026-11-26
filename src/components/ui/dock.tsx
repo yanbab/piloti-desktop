@@ -197,7 +197,7 @@ function Dock({
           role="toolbar"
           aria-label="Dock"
           className={cn(
-            "group/dock flex gap-2 border-black/10 text-shell-label shadow-shell-dock shell-material-dock transition-[translate,opacity] duration-300 ease-out data-[state=hidden]:pointer-events-none data-[state=hidden]:opacity-0 dark:border-white/10",
+            "group/dock flex gap-2 border-black/10 text-ui-label shadow-ui-dock ui-material-dock transition-[translate,opacity] duration-300 ease-out data-[state=hidden]:pointer-events-none data-[state=hidden]:opacity-0 dark:border-white/10",
             positionClass,
             className
           )}
@@ -273,7 +273,7 @@ function DockItem({
       type="button"
       aria-label={typeof label === "string" ? label : undefined}
       className={cn(
-        "absolute cursor-default rounded-[22%] outline-none focus-visible:shell-focus-ring",
+        "absolute cursor-default rounded-[22%] outline-none focus-visible:ui-focus-ring",
         buttonBorderHitbox
       )}
       {...props}
@@ -352,7 +352,7 @@ function DockItem({
       {badge != null && badge !== false ? (
         <span
           data-slot="dock-badge"
-          className="pointer-events-none absolute top-[2cqw] right-[1cqw] flex h-[37cqw] min-w-[37cqw] items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--shell-label)_16%,var(--shell-window))] px-[8cqw] text-[19.6cqw] leading-none font-semibold text-shell-label tabular-nums ring-1 ring-shell-label/20 shadow-[0_0.5px_1.5px_rgb(0_0_0/0.3)]"
+          className="pointer-events-none absolute top-[2cqw] right-[1cqw] flex h-[37cqw] min-w-[37cqw] items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--ui-label)_16%,var(--ui-window))] px-[8cqw] text-[19.6cqw] leading-none font-semibold text-ui-label tabular-nums ring-1 ring-ui-label/20 shadow-[0_0.5px_1.5px_rgb(0_0_0/0.3)]"
         >
           {badge}
         </span>

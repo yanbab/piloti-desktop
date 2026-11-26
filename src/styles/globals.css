@@ -16,7 +16,7 @@
     margin: 0;
     padding: 0;
     overflow: hidden;
-    background-color: var(--shell-window, #fafafa);
+    background-color: var(--ui-window, #fafafa);
     user-select: none;
   }
 
@@ -28,7 +28,7 @@
     overflow: hidden;
     background-color: transparent;
     user-select: none;
-    font-family: var(--font-shell);
+    font-family: var(--font-ui);
     font-weight: var(--piloti-font-weight, 400);
     font-style: var(--piloti-font-style, normal);
     -webkit-font-smoothing: var(--piloti-font-smoothing, antialiased);
@@ -112,11 +112,11 @@
 
   iframe {
     color-scheme: light dark;
-    background-color: var(--shell-window, #fafafa);
+    background-color: var(--ui-window, #fafafa);
   }
 
   :root.dark iframe {
-    background-color: var(--shell-window, #1c1c1e);
+    background-color: var(--ui-window, #1c1c1e);
   }
 }
 

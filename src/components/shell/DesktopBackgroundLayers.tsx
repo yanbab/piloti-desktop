@@ -14,9 +14,9 @@ const PLUGIN_WALLPAPER_PLACEHOLDER: WallpaperOption = {
   subtitle: "",
   category: "Dynamic",
   backgroundCss:
-    "color-mix(in srgb, var(--shell-active-accent, #007aff) 14%, #eef4ff)",
+    "color-mix(in srgb, var(--ui-active-accent, #007aff) 14%, #eef4ff)",
   backgroundCssDark:
-    "color-mix(in srgb, var(--shell-active-accent, #007aff) 10%, #050811)",
+    "color-mix(in srgb, var(--ui-active-accent, #007aff) 10%, #050811)",
 };
 
 /**

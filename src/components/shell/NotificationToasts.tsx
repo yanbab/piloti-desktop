@@ -48,7 +48,7 @@ function ToastBannerStack() {
               }
             }}
             className={cn(
-              isCritical && "border-shell-accent/50 ring-1 ring-shell-accent/35",
+              isCritical && "border-ui-accent/50 ring-1 ring-ui-accent/35",
               isClickable && "cursor-default hover-fill:brightness-105"
             )}
           >

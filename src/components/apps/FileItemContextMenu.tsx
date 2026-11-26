@@ -87,7 +87,7 @@ function ContextSubmenu({
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={show}
-        className={cn(className, open && "bg-shell-menu-highlight")}
+        className={cn(className, open && "bg-ui-menu-highlight")}
       >
         <span className="flex-1">{label}</span>
         <ChevronRightIcon className="size-3.5" />
@@ -234,7 +234,7 @@ export function FileItemContextMenu({
 
   const itemBtnClass = cn(
     MENU_ITEM_CLASS,
-    "w-full text-left hover:bg-shell-menu-highlight disabled:pointer-events-none disabled:opacity-40",
+    "w-full text-left hover:bg-ui-menu-highlight disabled:pointer-events-none disabled:opacity-40",
   );
 
   const left =

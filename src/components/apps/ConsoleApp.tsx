@@ -119,7 +119,7 @@ function VfsPerformanceSection() {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <span className="text-shell-callout text-shell-label-secondary">
+        <span className="text-ui-callout text-ui-label-secondary">
           {_("Since %s", new Date(stats.startedAt).toLocaleTimeString())}
         </span>
         <button
@@ -130,7 +130,7 @@ function VfsPerformanceSection() {
             setStats(getWebVfsPerfStats());
             setRenders(getRenderCounts());
           }}
-          className="rounded-shell-control bg-black/6 px-2.5 py-1 text-shell-subheadline font-medium text-shell-label hover-fill:bg-black/10 dark:bg-white/10 dark:hover-fill:bg-white/15"
+          className="rounded-ui-control bg-black/6 px-2.5 py-1 text-ui-subheadline font-medium text-ui-label hover-fill:bg-black/10 dark:bg-white/10 dark:hover-fill:bg-white/15"
         >
           {_("Reset")}
         </button>
@@ -139,10 +139,10 @@ function VfsPerformanceSection() {
         {tiles.map((stat) => (
           <div
             key={stat.label}
-            className="rounded-shell-group bg-shell-group px-3.5 py-2.5"
+            className="rounded-ui-group bg-ui-group px-3.5 py-2.5"
           >
-            <div className="text-shell-subheadline font-medium text-shell-label-secondary">{stat.label}</div>
-            <div className="mt-0.5 truncate font-mono text-[14px] font-semibold text-shell-label">
+            <div className="text-ui-subheadline font-medium text-ui-label-secondary">{stat.label}</div>
+            <div className="mt-0.5 truncate font-mono text-[14px] font-semibold text-ui-label">
               {stat.value}
             </div>
           </div>
@@ -173,11 +173,11 @@ function InspectorJsonCard({
 }) {
   const isObject = typeof data === "object" && data !== null;
   return (
-    <div className="overflow-hidden rounded-shell-group bg-shell-group">
-      <div className="flex items-center justify-between border-b border-shell-separator px-3.5 py-2">
-        <span className="text-shell-callout font-semibold text-shell-label">{title}</span>
+    <div className="overflow-hidden rounded-ui-group bg-ui-group">
+      <div className="flex items-center justify-between border-b border-ui-separator px-3.5 py-2">
+        <span className="text-ui-callout font-semibold text-ui-label">{title}</span>
         {count !== undefined && (
-          <span className="rounded-full bg-black/6 px-2 py-0.5 text-shell-footnote font-medium text-shell-label-secondary dark:bg-white/10">
+          <span className="rounded-full bg-black/6 px-2 py-0.5 text-ui-footnote font-medium text-ui-label-secondary dark:bg-white/10">
             {count}
           </span>
         )}
@@ -198,7 +198,7 @@ function InspectorJsonCard({
             }
           />
         ) : (
-          <pre className="font-mono text-shell-callout text-shell-label-secondary select-text">
+          <pre className="font-mono text-ui-callout text-ui-label-secondary select-text">
             {String(data ?? "null")}
           </pre>
         )}
@@ -278,33 +278,33 @@ function InspectorModule() {
               ].map((stat) => (
                 <div
                   key={stat.label}
-                  className="rounded-shell-group bg-shell-group px-3.5 py-2.5"
+                  className="rounded-ui-group bg-ui-group px-3.5 py-2.5"
                 >
-                  <div className="text-shell-subheadline font-medium text-shell-label-secondary">
+                  <div className="text-ui-subheadline font-medium text-ui-label-secondary">
                     {stat.label}
                   </div>
-                  <div className="mt-0.5 truncate font-mono text-[14px] font-semibold text-shell-label">
+                  <div className="mt-0.5 truncate font-mono text-[14px] font-semibold text-ui-label">
                     {stat.value}
                   </div>
                 </div>
               ))}
             </div>
 
-            <div className="overflow-hidden rounded-shell-group bg-shell-group">
-              <div className="flex items-center justify-between border-b border-shell-separator px-3.5 py-2">
-                <span className="text-shell-callout font-semibold text-shell-label">
+            <div className="overflow-hidden rounded-ui-group bg-ui-group">
+              <div className="flex items-center justify-between border-b border-ui-separator px-3.5 py-2">
+                <span className="text-ui-callout font-semibold text-ui-label">
                   {_("Windows")}
                 </span>
-                <span className="rounded-full bg-black/6 px-2 py-0.5 text-shell-footnote font-medium text-shell-label-secondary dark:bg-white/10">
+                <span className="rounded-full bg-black/6 px-2 py-0.5 text-ui-footnote font-medium text-ui-label-secondary dark:bg-white/10">
                   {windows.length}
                 </span>
               </div>
               {windows.length === 0 ? (
-                <div className="px-3.5 py-6 text-center text-shell-callout text-shell-label-tertiary">
+                <div className="px-3.5 py-6 text-center text-ui-callout text-ui-label-tertiary">
                   {_("No open windows.")}
                 </div>
               ) : (
-                <div className="divide-y divide-shell-separator">
+                <div className="divide-y divide-ui-separator">
                   {windows.map((w) => {
                     const flags = [
                       w.id === focusedWindowId ? "focused" : null,
@@ -324,27 +324,27 @@ function InspectorModule() {
                         />
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2">
-                            <span className="truncate text-shell-callout font-semibold text-shell-label">
+                            <span className="truncate text-ui-callout font-semibold text-ui-label">
                               {w.title || w.appId}
                             </span>
-                            <span className="rounded bg-black/6 px-1.5 py-0.5 font-mono text-shell-footnote text-shell-label-secondary dark:bg-white/10">
+                            <span className="rounded bg-black/6 px-1.5 py-0.5 font-mono text-ui-footnote text-ui-label-secondary dark:bg-white/10">
                               {w.appId}
                             </span>
                             {flags.map((flag) => (
                               <span
                                 key={flag}
                                 className={cn(
-                                  "rounded-full px-1.5 py-0.5 text-shell-footnote font-medium",
+                                  "rounded-full px-1.5 py-0.5 text-ui-footnote font-medium",
                                   flag === "focused"
-                                    ? "bg-shell-accent/15 text-shell-accent"
-                                    : "bg-black/6 text-shell-label-secondary dark:bg-white/10"
+                                    ? "bg-ui-accent/15 text-ui-accent"
+                                    : "bg-black/6 text-ui-label-secondary dark:bg-white/10"
                                 )}
                               >
                                 {flag}
                               </span>
                             ))}
                           </div>
-                          <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 font-mono text-shell-subheadline text-shell-label-tertiary">
+                          <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 font-mono text-ui-subheadline text-ui-label-tertiary">
                             <span>id: {w.id}</span>
                             <span>ws: {w.workspace}</span>
                             <span>
@@ -382,21 +382,21 @@ function InspectorModule() {
       case "displays":
         return (
           <div className="space-y-4">
-            <div className="overflow-hidden rounded-shell-group bg-shell-group">
-              <div className="flex items-center justify-between border-b border-shell-separator px-3.5 py-2">
-                <span className="text-shell-callout font-semibold text-shell-label">
+            <div className="overflow-hidden rounded-ui-group bg-ui-group">
+              <div className="flex items-center justify-between border-b border-ui-separator px-3.5 py-2">
+                <span className="text-ui-callout font-semibold text-ui-label">
                   {_("Displays")}
                 </span>
-                <span className="rounded-full bg-black/6 px-2 py-0.5 text-shell-footnote font-medium text-shell-label-secondary dark:bg-white/10">
+                <span className="rounded-full bg-black/6 px-2 py-0.5 text-ui-footnote font-medium text-ui-label-secondary dark:bg-white/10">
                   {displays.length}
                 </span>
               </div>
               {displays.length === 0 ? (
-                <div className="px-3.5 py-6 text-center text-shell-callout text-shell-label-tertiary">
+                <div className="px-3.5 py-6 text-center text-ui-callout text-ui-label-tertiary">
                   {_("No displays reported.")}
                 </div>
               ) : (
-                <div className="divide-y divide-shell-separator">
+                <div className="divide-y divide-ui-separator">
                   {displays.map((d, idx) => {
                     const rec = d as unknown as Record<string, unknown>;
                     const x = rec.x ?? 0;
@@ -410,24 +410,24 @@ function InspectorModule() {
                         className="flex items-center justify-between gap-3 px-3.5 py-2.5"
                       >
                         <div className="flex min-w-0 items-center gap-2.5">
-                          <MonitorIcon className="size-4 shrink-0 text-shell-label-secondary" />
+                          <MonitorIcon className="size-4 shrink-0 text-ui-label-secondary" />
                           <div className="min-w-0">
                             <div className="flex items-center gap-2">
-                              <span className="truncate text-shell-callout font-semibold text-shell-label">
+                              <span className="truncate text-ui-callout font-semibold text-ui-label">
                                 {name}
                               </span>
                               {Boolean(rec.primary) && (
-                                <span className="rounded-full bg-shell-accent/15 px-1.5 py-0.5 text-shell-footnote font-medium text-shell-accent">
+                                <span className="rounded-full bg-ui-accent/15 px-1.5 py-0.5 text-ui-footnote font-medium text-ui-accent">
                                   {_("Primary")}
                                 </span>
                               )}
                             </div>
-                            <div className="font-mono text-shell-subheadline text-shell-label-tertiary">
+                            <div className="font-mono text-ui-subheadline text-ui-label-tertiary">
                               {String(w)}×{String(h)} @ {String(x)},{String(y)} · {String(rec.scale ?? 1)}×
                             </div>
                           </div>
                         </div>
-                        <span className="shrink-0 font-mono text-shell-subheadline text-shell-label-tertiary">
+                        <span className="shrink-0 font-mono text-ui-subheadline text-ui-label-tertiary">
                           {String(rec.id ?? "—")}
                         </span>
                       </div>
@@ -469,12 +469,12 @@ function InspectorModule() {
               ].map((item) => (
                 <div
                   key={item.label}
-                  className="rounded-shell-group bg-shell-group px-3.5 py-2.5"
+                  className="rounded-ui-group bg-ui-group px-3.5 py-2.5"
                 >
-                  <div className="text-shell-subheadline font-medium text-shell-label-secondary">
+                  <div className="text-ui-subheadline font-medium text-ui-label-secondary">
                     {item.label}
                   </div>
-                  <div className="mt-0.5 truncate font-mono text-shell-callout font-semibold text-shell-label">
+                  <div className="mt-0.5 truncate font-mono text-ui-callout font-semibold text-ui-label">
                     {String(item.value)}
                   </div>
                 </div>
@@ -511,39 +511,39 @@ function InspectorModule() {
       case "apps":
         return (
           <div className="space-y-4">
-            <div className="overflow-hidden rounded-shell-group bg-shell-group">
-              <div className="flex items-center justify-between border-b border-shell-separator px-3.5 py-2">
-                <span className="text-shell-callout font-semibold text-shell-label">
+            <div className="overflow-hidden rounded-ui-group bg-ui-group">
+              <div className="flex items-center justify-between border-b border-ui-separator px-3.5 py-2">
+                <span className="text-ui-callout font-semibold text-ui-label">
                   {_("Installed XDG Apps")}
                 </span>
-                <span className="rounded-full bg-black/6 px-2 py-0.5 text-shell-footnote font-medium text-shell-label-secondary dark:bg-white/10">
+                <span className="rounded-full bg-black/6 px-2 py-0.5 text-ui-footnote font-medium text-ui-label-secondary dark:bg-white/10">
                   {installedXdgApps.length}
                 </span>
               </div>
               {installedXdgApps.length === 0 ? (
-                <div className="px-3.5 py-6 text-center text-shell-callout text-shell-label-tertiary">
+                <div className="px-3.5 py-6 text-center text-ui-callout text-ui-label-tertiary">
                   {_("No XDG apps indexed.")}
                 </div>
               ) : (
-                <div className="grid grid-cols-1 divide-y divide-shell-separator sm:grid-cols-2 sm:divide-y-0">
+                <div className="grid grid-cols-1 divide-y divide-ui-separator sm:grid-cols-2 sm:divide-y-0">
                   {installedXdgApps.map((a) => (
                     <div
                       key={a.desktopId}
-                      className="flex items-center gap-3 border-b border-shell-separator/50 px-3.5 py-2.5 transition-colors hover-fill:bg-black/3 dark:hover-fill:bg-white/4"
+                      className="flex items-center gap-3 border-b border-ui-separator/50 px-3.5 py-2.5 transition-colors hover-fill:bg-black/3 dark:hover-fill:bg-white/4"
                     >
                       <AppSquircleIcon
                         iconUrl={getAppIconUrl(a.desktopId)}
                         className="size-7 shrink-0"
                       />
                       <div className="min-w-0 flex-1">
-                        <div className="truncate text-shell-callout font-semibold text-shell-label">
+                        <div className="truncate text-ui-callout font-semibold text-ui-label">
                           {a.name}
                         </div>
-                        <div className="truncate font-mono text-shell-footnote text-shell-label-tertiary">
+                        <div className="truncate font-mono text-ui-footnote text-ui-label-tertiary">
                           {a.desktopId}
                         </div>
                         {a.exec && (
-                          <div className="truncate font-mono text-shell-footnote text-shell-label-secondary">
+                          <div className="truncate font-mono text-ui-footnote text-ui-label-secondary">
                             {a.exec}
                           </div>
                         )}
@@ -554,21 +554,21 @@ function InspectorModule() {
               )}
             </div>
 
-            <div className="overflow-hidden rounded-shell-group bg-shell-group">
-              <div className="flex items-center justify-between border-b border-shell-separator px-3.5 py-2">
-                <span className="text-shell-callout font-semibold text-shell-label">
+            <div className="overflow-hidden rounded-ui-group bg-ui-group">
+              <div className="flex items-center justify-between border-b border-ui-separator px-3.5 py-2">
+                <span className="text-ui-callout font-semibold text-ui-label">
                   {_("Installed Web Apps")}
                 </span>
-                <span className="rounded-full bg-black/6 px-2 py-0.5 text-shell-footnote font-medium text-shell-label-secondary dark:bg-white/10">
+                <span className="rounded-full bg-black/6 px-2 py-0.5 text-ui-footnote font-medium text-ui-label-secondary dark:bg-white/10">
                   {settings.installedWebApps.length}
                 </span>
               </div>
               {settings.installedWebApps.length === 0 ? (
-                <div className="px-3.5 py-6 text-center text-shell-callout text-shell-label-tertiary">
+                <div className="px-3.5 py-6 text-center text-ui-callout text-ui-label-tertiary">
                   {_("No installed web apps.")}
                 </div>
               ) : (
-                <div className="divide-y divide-shell-separator">
+                <div className="divide-y divide-ui-separator">
                   {settings.installedWebApps.map((a) => {
                     const iconUrl =
                       (a.iconUrl && /^(https?:|data:|blob:|\/)/i.test(a.iconUrl)
@@ -586,14 +586,14 @@ function InspectorModule() {
                         />
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2">
-                            <span className="truncate text-shell-callout font-semibold text-shell-label">
+                            <span className="truncate text-ui-callout font-semibold text-ui-label">
                               {a.title}
                             </span>
-                            <span className="rounded bg-black/6 px-1.5 py-0.5 font-mono text-shell-footnote text-shell-label-secondary dark:bg-white/10">
+                            <span className="rounded bg-black/6 px-1.5 py-0.5 font-mono text-ui-footnote text-ui-label-secondary dark:bg-white/10">
                               {a.id}
                             </span>
                           </div>
-                          <div className="truncate font-mono text-shell-subheadline text-shell-label-tertiary">
+                          <div className="truncate font-mono text-ui-subheadline text-ui-label-tertiary">
                             {a.url}
                           </div>
                         </div>
@@ -611,17 +611,17 @@ function InspectorModule() {
               expandLevel={2}
             />
 
-            <div className="overflow-hidden rounded-shell-group bg-shell-group">
-              <div className="flex items-center justify-between border-b border-shell-separator px-3.5 py-2">
-                <span className="text-shell-callout font-semibold text-shell-label">
+            <div className="overflow-hidden rounded-ui-group bg-ui-group">
+              <div className="flex items-center justify-between border-b border-ui-separator px-3.5 py-2">
+                <span className="text-ui-callout font-semibold text-ui-label">
                   {_("Available GNOME Panels")}
                 </span>
-                <span className="rounded-full bg-black/6 px-2 py-0.5 text-shell-footnote font-medium text-shell-label-secondary dark:bg-white/10">
+                <span className="rounded-full bg-black/6 px-2 py-0.5 text-ui-footnote font-medium text-ui-label-secondary dark:bg-white/10">
                   {availableGnomePanels.length}
                 </span>
               </div>
               {availableGnomePanels.length === 0 ? (
-                <div className="px-3.5 py-4 text-shell-callout text-shell-label-tertiary">
+                <div className="px-3.5 py-4 text-ui-callout text-ui-label-tertiary">
                   {_("No GNOME panels detected.")}
                 </div>
               ) : (
@@ -629,7 +629,7 @@ function InspectorModule() {
                   {availableGnomePanels.map((panel) => (
                     <span
                       key={panel.desktopId || panel.panelId}
-                      className="rounded-shell-control bg-black/6 px-2 py-0.5 font-mono text-shell-subheadline text-shell-label dark:bg-white/10"
+                      className="rounded-ui-control bg-black/6 px-2 py-0.5 font-mono text-ui-subheadline text-ui-label dark:bg-white/10"
                     >
                       {panel.name || panel.panelId}
                     </span>
@@ -667,22 +667,22 @@ function InspectorModule() {
               return (
                 <div
                   key={group.prefix}
-                  className="overflow-hidden rounded-shell-group bg-shell-group"
+                  className="overflow-hidden rounded-ui-group bg-ui-group"
                 >
-                  <div className="flex items-center justify-between border-b border-shell-separator px-3.5 py-2">
-                    <span className="font-mono text-shell-callout font-semibold text-shell-label">
+                  <div className="flex items-center justify-between border-b border-ui-separator px-3.5 py-2">
+                    <span className="font-mono text-ui-callout font-semibold text-ui-label">
                       {group.label}
                     </span>
-                    <span className="rounded-full bg-black/6 px-2 py-0.5 text-shell-footnote font-medium text-shell-label-secondary dark:bg-white/10">
+                    <span className="rounded-full bg-black/6 px-2 py-0.5 text-ui-footnote font-medium text-ui-label-secondary dark:bg-white/10">
                       {groupFiles.length}
                     </span>
                   </div>
                   {groupFiles.length === 0 ? (
-                    <div className="px-3.5 py-4 text-shell-callout text-shell-label-tertiary">
+                    <div className="px-3.5 py-4 text-ui-callout text-ui-label-tertiary">
                       {_("No files found.")}
                     </div>
                   ) : (
-                    <div className="divide-y divide-shell-separator">
+                    <div className="divide-y divide-ui-separator">
                       {groupFiles.map((file) => {
                         const isOpen = expandedStatePath === file.path;
                         const content = file.content ?? "";
@@ -719,10 +719,10 @@ function InspectorModule() {
                               )}
                             >
                               <div className="min-w-0 flex-1">
-                                <div className="truncate font-mono text-shell-subheadline font-medium text-shell-label">
+                                <div className="truncate font-mono text-ui-subheadline font-medium text-ui-label">
                                   {file.path.slice(group.prefix.length + 1) || file.name}
                                 </div>
-                                <div className="font-mono text-shell-footnote text-shell-label-tertiary">
+                                <div className="font-mono text-ui-footnote text-ui-label-tertiary">
                                   {formatByteSize(content.length)} ·{" "}
                                   {file.updatedAt
                                     ? new Date(file.updatedAt).toLocaleString()
@@ -731,7 +731,7 @@ function InspectorModule() {
                               </div>
                             </button>
                             {isOpen && (
-                              <div className="border-t border-shell-separator/60 bg-black/[0.02] p-3 dark:bg-white/[0.02]">
+                              <div className="border-t border-ui-separator/60 bg-black/[0.02] p-3 dark:bg-white/[0.02]">
                                 {parsedObj ? (
                                   <ObjectView
                                     valueGetter={() => parsedObj}
@@ -749,7 +749,7 @@ function InspectorModule() {
                                     }
                                   />
                                 ) : (
-                                  <pre className="max-h-64 overflow-auto font-mono text-shell-subheadline break-words whitespace-pre-wrap text-shell-label select-text">
+                                  <pre className="max-h-64 overflow-auto font-mono text-ui-subheadline break-words whitespace-pre-wrap text-ui-label select-text">
                                     {content || "—"}
                                   </pre>
                                 )}
@@ -771,21 +771,21 @@ function InspectorModule() {
       case "notifications":
         return (
           <div className="space-y-4">
-            <div className="overflow-hidden rounded-shell-group bg-shell-group">
-              <div className="flex items-center justify-between border-b border-shell-separator px-3.5 py-2">
-                <span className="text-shell-callout font-semibold text-shell-label">
+            <div className="overflow-hidden rounded-ui-group bg-ui-group">
+              <div className="flex items-center justify-between border-b border-ui-separator px-3.5 py-2">
+                <span className="text-ui-callout font-semibold text-ui-label">
                   {_("Notifications")}
                 </span>
-                <span className="rounded-full bg-black/6 px-2 py-0.5 text-shell-footnote font-medium text-shell-label-secondary dark:bg-white/10">
+                <span className="rounded-full bg-black/6 px-2 py-0.5 text-ui-footnote font-medium text-ui-label-secondary dark:bg-white/10">
                   {notifications.length}
                 </span>
               </div>
               {notifications.length === 0 ? (
-                <div className="px-3.5 py-6 text-center text-shell-callout text-shell-label-tertiary">
+                <div className="px-3.5 py-6 text-center text-ui-callout text-ui-label-tertiary">
                   {_("No notifications.")}
                 </div>
               ) : (
-                <div className="divide-y divide-shell-separator">
+                <div className="divide-y divide-ui-separator">
                   {notifications.map((n) => (
                     <div
                       key={n.id}
@@ -801,33 +801,33 @@ function InspectorModule() {
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center justify-between gap-2">
                           <div className="flex min-w-0 items-center gap-2">
-                            <span className="truncate text-shell-callout font-semibold text-shell-label">
+                            <span className="truncate text-ui-callout font-semibold text-ui-label">
                               {n.summary}
                             </span>
                             {n.appName && (
-                              <span className="rounded bg-black/6 px-1.5 py-0.5 text-shell-footnote text-shell-label-secondary dark:bg-white/10">
+                              <span className="rounded bg-black/6 px-1.5 py-0.5 text-ui-footnote text-ui-label-secondary dark:bg-white/10">
                                 {n.appName}
                               </span>
                             )}
                             {n.urgency && (
                               <span
                                 className={cn(
-                                  "rounded-full px-1.5 py-0.5 text-shell-footnote font-medium",
+                                  "rounded-full px-1.5 py-0.5 text-ui-footnote font-medium",
                                   n.urgency === "critical"
                                     ? "bg-rose-500/15 text-rose-500"
-                                    : "bg-black/6 text-shell-label-secondary dark:bg-white/10"
+                                    : "bg-black/6 text-ui-label-secondary dark:bg-white/10"
                                 )}
                               >
                                 {n.urgency}
                               </span>
                             )}
                           </div>
-                          <span className="shrink-0 font-mono text-shell-footnote text-shell-label-tertiary">
+                          <span className="shrink-0 font-mono text-ui-footnote text-ui-label-tertiary">
                             {new Date(n.time).toLocaleTimeString()}
                           </span>
                         </div>
                         {n.body && (
-                          <div className="mt-0.5 text-shell-callout text-shell-label-secondary">
+                          <div className="mt-0.5 text-ui-callout text-ui-label-secondary">
                             {n.body}
                           </div>
                         )}
@@ -858,7 +858,7 @@ function InspectorModule() {
           ref={inspectorSidebarRef}
           onKeyDown={onInspectorSidebarKeyDown}
           onKeyUp={onInspectorSidebarKeyUp}
-          className="flex min-h-0 w-[52px] shrink-0 flex-col space-y-1 overflow-x-hidden overflow-y-auto border-r border-shell-separator bg-shell-sidebar p-1.5 transition-[width] duration-150 sm:w-44 sm:p-2"
+          className="flex min-h-0 w-[52px] shrink-0 flex-col space-y-1 overflow-x-hidden overflow-y-auto border-r border-ui-separator bg-ui-sidebar p-1.5 transition-[width] duration-150 sm:w-44 sm:p-2"
         >
           {sections.map((section) => {
             const active = highlightedSection === section.id;
@@ -870,10 +870,10 @@ function InspectorModule() {
                 data-sidebar-item={section.id}
                 onClick={() => setActiveSection(section.id)}
                 className={cn(
-                  "flex w-full shrink-0 items-center gap-2.5 rounded-shell-item px-2.5 py-2 text-left text-shell-callout transition-colors",
+                  "flex w-full shrink-0 items-center gap-2.5 rounded-ui-item px-2.5 py-2 text-left text-ui-callout transition-colors",
                   active
-                    ? "bg-shell-accent font-medium text-white shadow-xs"
-                    : "font-normal text-shell-label/85 hover-fill:bg-black/5 dark:hover-fill:bg-white/6"
+                    ? "bg-ui-accent font-medium text-white shadow-xs"
+                    : "font-normal text-ui-label/85 hover-fill:bg-black/5 dark:hover-fill:bg-white/6"
                 )}
               >
                 <span className="shrink-0 opacity-85">{section.icon}</span>
@@ -889,10 +889,10 @@ function InspectorModule() {
                   side="right"
                   sideOffset={-36}
                   className={cn(
-                    "pointer-events-none h-[34px] gap-2.5 rounded-shell-item border border-shell-separator px-2.5 py-2 text-shell-callout shadow-md sm:hidden",
+                    "pointer-events-none h-[34px] gap-2.5 rounded-ui-item border border-ui-separator px-2.5 py-2 text-ui-callout shadow-md sm:hidden",
                     active
-                      ? "bg-shell-accent font-medium text-white shadow-xs"
-                      : "bg-shell-sidebar font-normal text-shell-label"
+                      ? "bg-ui-accent font-medium text-white shadow-xs"
+                      : "bg-ui-sidebar font-normal text-ui-label"
                   )}
                 >
                   <span className="shrink-0 opacity-85">{section.icon}</span>
@@ -1220,9 +1220,9 @@ function VfsEventsModule({ active }: { active: boolean }) {
   );
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-shell-content">
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-ui-content">
       {/* Unified Header Toolbar with Filter Pills */}
-      <div className="flex h-10 shrink-0 items-center justify-between gap-2 border-b border-shell-separator bg-shell-window/60 px-4">
+      <div className="flex h-10 shrink-0 items-center justify-between gap-2 border-b border-ui-separator bg-ui-window/60 px-4">
         <div className="flex shrink-0 items-center gap-1">
           {(
             [
@@ -1239,10 +1239,10 @@ function VfsEventsModule({ active }: { active: boolean }) {
               type="button"
               onClick={() => setFilter(pill.id)}
               className={cn(
-                "rounded-full px-2.5 py-0.5 text-shell-subheadline font-medium transition-colors",
+                "rounded-full px-2.5 py-0.5 text-ui-subheadline font-medium transition-colors",
                 filter === pill.id
-                  ? "bg-shell-accent text-white"
-                  : "bg-black/6 text-shell-label-secondary hover-fill:bg-black/10 hover-fill:text-shell-label dark:bg-white/8 dark:hover-fill:bg-white/14"
+                  ? "bg-ui-accent text-white"
+                  : "bg-black/6 text-ui-label-secondary hover-fill:bg-black/10 hover-fill:text-ui-label dark:bg-white/8 dark:hover-fill:bg-white/14"
               )}
             >
               {pill.label}
@@ -1257,10 +1257,10 @@ function VfsEventsModule({ active }: { active: boolean }) {
             onClick={() => setShowDiffDrawer((prev) => !prev)}
             className={cn(
               // One line; ellipsized when the toolbar is narrow.
-              "min-w-0 truncate whitespace-nowrap rounded-full px-2.5 py-0.5 text-shell-subheadline font-medium transition-colors",
+              "min-w-0 truncate whitespace-nowrap rounded-full px-2.5 py-0.5 text-ui-subheadline font-medium transition-colors",
               showDiffDrawer
-                ? "bg-shell-accent/15 text-shell-accent"
-                : "bg-black/6 text-shell-label-secondary hover-fill:bg-black/10 hover-fill:text-shell-label dark:bg-white/8 dark:hover-fill:bg-white/14"
+                ? "bg-ui-accent/15 text-ui-accent"
+                : "bg-black/6 text-ui-label-secondary hover-fill:bg-black/10 hover-fill:text-ui-label dark:bg-white/8 dark:hover-fill:bg-white/14"
             )}
           >
             {_("VFS Diff")} ({diffs.length}) · {_("VFS Events")} ({vfsEventsCount})
@@ -1272,7 +1272,7 @@ function VfsEventsModule({ active }: { active: boolean }) {
               setBaseline(snap);
               setCurrentMap(snap);
             }}
-            className="shrink-0 whitespace-nowrap rounded-shell-control bg-black/6 px-2 py-0.5 text-shell-subheadline font-medium text-shell-label transition-colors hover-fill:bg-black/12 dark:bg-white/8 dark:hover-fill:bg-white/14"
+            className="shrink-0 whitespace-nowrap rounded-ui-control bg-black/6 px-2 py-0.5 text-ui-subheadline font-medium text-ui-label transition-colors hover-fill:bg-black/12 dark:bg-white/8 dark:hover-fill:bg-white/14"
           >
             {_("Snapshot")}
           </button>
@@ -1282,7 +1282,7 @@ function VfsEventsModule({ active }: { active: boolean }) {
               setEvents([]);
               clearConsoleEntries();
             }}
-            className="shrink-0 whitespace-nowrap rounded-shell-control bg-black/6 px-2 py-0.5 text-shell-subheadline font-medium text-shell-label transition-colors hover-fill:bg-black/12 dark:bg-white/8 dark:hover-fill:bg-white/14"
+            className="shrink-0 whitespace-nowrap rounded-ui-control bg-black/6 px-2 py-0.5 text-ui-subheadline font-medium text-ui-label transition-colors hover-fill:bg-black/12 dark:bg-white/8 dark:hover-fill:bg-white/14"
           >
             {_("Clear")}
           </button>
@@ -1290,9 +1290,9 @@ function VfsEventsModule({ active }: { active: boolean }) {
       </div>
 
       {showDiffDrawer && (
-        <div className="max-h-44 shrink-0 overflow-y-auto border-b border-shell-separator bg-black/2 px-4 py-2 font-mono text-shell-subheadline dark:bg-white/2">
+        <div className="max-h-44 shrink-0 overflow-y-auto border-b border-ui-separator bg-black/2 px-4 py-2 font-mono text-ui-subheadline dark:bg-white/2">
           {diffs.length === 0 ? (
-            <div className="py-1 text-shell-dim">
+            <div className="py-1 text-ui-dim">
               {_("No VFS changes since baseline (%d entries tracked).", currentMap.size)}
             </div>
           ) : (
@@ -1313,7 +1313,7 @@ function VfsEventsModule({ active }: { active: boolean }) {
                   {d.path}
                 </span>
                 {typeof d.sizeDelta === "number" && d.entryType === "file" && (
-                  <span className="shrink-0 text-shell-footnote text-shell-dim">
+                  <span className="shrink-0 text-ui-footnote text-ui-dim">
                     {d.sizeDelta >= 0 ? `+${d.sizeDelta}B` : `${d.sizeDelta}B`}
                   </span>
                 )}
@@ -1326,10 +1326,10 @@ function VfsEventsModule({ active }: { active: boolean }) {
       {/* Chronological Event Stream */}
       <div
         ref={eventsScrollRef}
-        className="min-h-0 flex-1 overflow-y-auto font-mono text-shell-subheadline"
+        className="min-h-0 flex-1 overflow-y-auto font-mono text-ui-subheadline"
       >
         {filteredEvents.length === 0 ? (
-          <div className="flex h-full items-center justify-center text-center font-sans text-xs text-shell-label-tertiary">
+          <div className="flex h-full items-center justify-center text-center font-sans text-xs text-ui-label-tertiary">
             {_("Listening for logs, VFS, Shell and Window events…")}
           </div>
         ) : (
@@ -1339,7 +1339,7 @@ function VfsEventsModule({ active }: { active: boolean }) {
                 key={ev.id}
                 role="row"
                 className={cn(
-                  "grid grid-cols-[4.75rem_3.5rem_minmax(0,9rem)_minmax(0,1fr)_2.25rem] items-baseline gap-x-3 border-b border-shell-separator/50 px-4 py-1 select-text",
+                  "grid grid-cols-[4.75rem_3.5rem_minmax(0,9rem)_minmax(0,1fr)_2.25rem] items-baseline gap-x-3 border-b border-ui-separator/50 px-4 py-1 select-text",
                   ev.level === "error" && "bg-rose-500/8 text-rose-600 dark:text-rose-400",
                   ev.level === "warn" && "bg-amber-500/8 text-amber-700 dark:text-amber-300",
                   !ev.level || ev.level === "log" || ev.level === "info"
@@ -1347,15 +1347,15 @@ function VfsEventsModule({ active }: { active: boolean }) {
                     : ""
                 )}
               >
-                <span className="text-shell-footnote text-shell-label-tertiary tabular-nums">{ev.time}</span>
+                <span className="text-ui-footnote text-ui-label-tertiary tabular-nums">{ev.time}</span>
                 <span
                   className={cn(
                     "justify-self-start rounded px-1.5 py-0.5 text-[9.5px] leading-none font-semibold uppercase",
-                    ev.category === "log" && "bg-black/8 text-shell-label-secondary dark:bg-white/10",
+                    ev.category === "log" && "bg-black/8 text-ui-label-secondary dark:bg-white/10",
                     ev.category === "vfs" &&
                       "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400",
                     ev.category === "window" && "bg-sky-500/15 text-sky-600 dark:text-sky-400",
-                    ev.category === "shell" && "bg-shell-accent/15 text-shell-accent"
+                    ev.category === "shell" && "bg-ui-accent/15 text-ui-accent"
                   )}
                 >
                   {ev.category}
@@ -1366,12 +1366,12 @@ function VfsEventsModule({ active }: { active: boolean }) {
                     "min-w-0",
                     ev.category === "log"
                       ? "break-words whitespace-pre-wrap"
-                      : "truncate text-shell-label-secondary"
+                      : "truncate text-ui-label-secondary"
                   )}
                 >
                   {ev.detail}
                 </span>
-                <span className="justify-self-end text-shell-footnote font-semibold text-shell-label-tertiary tabular-nums">
+                <span className="justify-self-end text-ui-footnote font-semibold text-ui-label-tertiary tabular-nums">
                   {ev.count > 1 ? ev.count : ""}
                 </span>
               </div>
@@ -1485,9 +1485,9 @@ function StorageModule() {
     <div className="flex min-h-0 flex-1 flex-col">
       {/* Split Explorer */}
       {entries.length === 0 ? (
-        <div className="flex flex-1 flex-col items-center justify-center gap-2 p-6 text-center text-shell-label-secondary">
+        <div className="flex flex-1 flex-col items-center justify-center gap-2 p-6 text-center text-ui-label-secondary">
           <DatabaseIcon className="size-7 opacity-40" />
-          <div className="text-shell-callout font-medium">
+          <div className="text-ui-callout font-medium">
             {_("No keys stored in localStorage.")}
           </div>
         </div>
@@ -1498,11 +1498,11 @@ function StorageModule() {
             ref={storageSidebarRef}
             onKeyDown={onStorageSidebarKeyDown}
             onKeyUp={onStorageSidebarKeyUp}
-            className="w-40 shrink-0 space-y-3 overflow-y-auto border-r border-shell-separator bg-shell-sidebar p-2 sm:w-44"
+            className="w-40 shrink-0 space-y-3 overflow-y-auto border-r border-ui-separator bg-ui-sidebar p-2 sm:w-44"
           >
             {groupedStorageEntries.map((group) => (
               <div key={group.section} className="space-y-0.5">
-                <div className="px-2.5 pb-1 text-shell-footnote font-semibold tracking-wider text-shell-dim uppercase">
+                <div className="px-2.5 pb-1 text-ui-footnote font-semibold tracking-wider text-ui-dim uppercase">
                   {group.section}
                 </div>
                 {group.items.map(({ entry, shortLabel }) => {
@@ -1514,13 +1514,13 @@ function StorageModule() {
                       data-sidebar-item={entry.key}
                       onClick={() => setSelectedKey(entry.key)}
                       className={cn(
-                        "flex w-full items-center rounded-shell-item px-3 py-1.5 text-left transition-colors",
+                        "flex w-full items-center rounded-ui-item px-3 py-1.5 text-left transition-colors",
                         isSelected
-                          ? "bg-shell-accent font-medium text-white shadow-xs"
-                          : "font-normal text-shell-label/85 hover-fill:bg-black/5 dark:hover-fill:bg-white/6"
+                          ? "bg-ui-accent font-medium text-white shadow-xs"
+                          : "font-normal text-ui-label/85 hover-fill:bg-black/5 dark:hover-fill:bg-white/6"
                       )}
                     >
-                      <span className="truncate text-shell-callout font-medium">
+                      <span className="truncate text-ui-callout font-medium">
                         {shortLabel}
                       </span>
                     </button>
@@ -1537,28 +1537,28 @@ function StorageModule() {
               onKeyDown={onStorageContentKeyDown}
               className="flex min-w-0 flex-1 flex-col overflow-hidden bg-black/2 dark:bg-white/2"
             >
-              <div className="flex shrink-0 items-center justify-between border-b border-shell-separator bg-shell-window/60 px-4 py-1.5">
-                <span className="truncate font-mono text-shell-subheadline font-medium text-shell-dim select-text">
+              <div className="flex shrink-0 items-center justify-between border-b border-ui-separator bg-ui-window/60 px-4 py-1.5">
+                <span className="truncate font-mono text-ui-subheadline font-medium text-ui-dim select-text">
                   {activeEntry.key}
                 </span>
-                <span className="shrink-0 font-mono text-shell-footnote text-shell-dim tabular-nums">
+                <span className="shrink-0 font-mono text-ui-footnote text-ui-dim tabular-nums">
                   {activeEntry.rawValue.length} chars
                 </span>
               </div>
               <div className="min-h-0 flex-1 overflow-auto p-4">
                 {activeImages.length > 0 && (
-                  <div className="mb-4 flex flex-wrap gap-3 border-b border-shell-separator pb-4">
+                  <div className="mb-4 flex flex-wrap gap-3 border-b border-ui-separator pb-4">
                     {activeImages.map((img) => (
                       <div
                         key={img.label}
-                        className="flex flex-col gap-1.5 rounded-shell-item bg-black/4 p-2 dark:bg-white/5"
+                        className="flex flex-col gap-1.5 rounded-ui-item bg-black/4 p-2 dark:bg-white/5"
                       >
                         <img
                           src={img.src}
                           alt={img.label}
                           className="max-h-[512px] max-w-[512px] rounded object-contain"
                         />
-                        <span className="max-w-[512px] truncate font-mono text-shell-footnote text-shell-label-secondary">
+                        <span className="max-w-[512px] truncate font-mono text-ui-footnote text-ui-label-secondary">
                           {img.label}
                         </span>
                       </div>
@@ -1568,7 +1568,7 @@ function StorageModule() {
                 {activeEntry.isJson &&
                 typeof activeEntry.parsedJson === "object" &&
                 activeEntry.parsedJson !== null ? (
-                  <div className="rounded-shell-group bg-shell-group p-3.5">
+                  <div className="rounded-ui-group bg-ui-group p-3.5">
                     <ObjectView
                       key={activeEntry.key}
                       valueGetter={() => activeEntry.parsedJson}
@@ -1587,14 +1587,14 @@ function StorageModule() {
                     />
                   </div>
                 ) : (
-                  <pre className="rounded-shell-group bg-shell-group p-3.5 font-mono text-shell-callout leading-relaxed break-words whitespace-pre-wrap text-shell-label select-text">
+                  <pre className="rounded-ui-group bg-ui-group p-3.5 font-mono text-ui-callout leading-relaxed break-words whitespace-pre-wrap text-ui-label select-text">
                     {activeDisplayValue}
                   </pre>
                 )}
               </div>
             </div>
           ) : (
-            <div className="flex flex-1 items-center justify-center p-4 text-shell-callout text-shell-label-tertiary">
+            <div className="flex flex-1 items-center justify-center p-4 text-ui-callout text-ui-label-tertiary">
               {_("Select a key to inspect its stored state.")}
             </div>
           )}
@@ -1695,7 +1695,7 @@ export function ConsoleApp({
   ];
 
   return (
-    <div className="flex h-full w-full flex-col overflow-hidden bg-shell-window text-shell-label">
+    <div className="flex h-full w-full flex-col overflow-hidden bg-ui-window text-ui-label">
       {/* Header / Module Switcher */}
       <HeaderBar>
         <HeaderBar.Title interactive>

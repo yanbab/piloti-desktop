@@ -375,7 +375,7 @@ export function AdvancedPane() {
               <GroupedFormRow key={rec.id}>
                 <GroupedFormRowLabel>
                   <div className="flex items-center gap-2">
-                    <PuzzleIcon className="size-4 text-shell-accent" />
+                    <PuzzleIcon className="size-4 text-ui-accent" />
                     <GroupedFormRowTitle>{rec.name}</GroupedFormRowTitle>
                   </div>
                   <GroupedFormRowDescription>
@@ -417,7 +417,7 @@ export function AdvancedPane() {
           <GroupedFormRow>
             <GroupedFormRowLabel>
               <div className="flex items-center gap-2">
-                <PuzzleIcon className="size-4 text-shell-accent" />
+                <PuzzleIcon className="size-4 text-ui-accent" />
                 <GroupedFormRowTitle>
                   {SAMPLE_LOCAL_EXTENSION.name}
                 </GroupedFormRowTitle>
@@ -512,7 +512,7 @@ export function AdvancedPane() {
                       if (e.key === "Enter") handleAddExtensionEntry();
                     }}
                     placeholder="/path/to/ext or Web Store ID"
-                    className="h-7 w-48 rounded-shell-control border border-shell-separator bg-black/4 px-2 text-xs text-shell-label outline-none focus:border-shell-accent dark:bg-white/6"
+                    className="h-7 w-48 rounded-ui-control border border-ui-separator bg-black/4 px-2 text-xs text-ui-label outline-none focus:border-ui-accent dark:bg-white/6"
                   />
                   <Button
                     size="sm"
@@ -551,7 +551,7 @@ export function AdvancedPane() {
                             className="size-4 rounded-[3px] object-contain"
                           />
                         ) : (
-                          <PuzzleIcon className="size-4 text-shell-label-secondary" />
+                          <PuzzleIcon className="size-4 text-ui-label-secondary" />
                         )}
                         <GroupedFormRowTitle>{ext.name}</GroupedFormRowTitle>
                       </div>
@@ -591,7 +591,7 @@ export function AdvancedPane() {
                       <Button
                         size="sm"
                         variant="ghost"
-                        className="size-7 p-0 text-shell-label-secondary hover-fill:text-destructive"
+                        className="size-7 p-0 text-ui-label-secondary hover-fill:text-destructive"
                         onClick={() => {
                           if (entry.kind === "unpacked") {
                             void saveDomicileExtensionsConfig(
@@ -719,15 +719,15 @@ export function AdvancedPane() {
                     <div className="flex items-center gap-2">
                       <GroupedFormRowTitle>{plugin.name}</GroupedFormRowTitle>
                       {plugin.scope === "system" && (
-                        <span className="rounded-shell-control bg-shell-accent/15 px-1.5 py-0.5 text-shell-footnote font-medium text-shell-accent">
+                        <span className="rounded-ui-control bg-ui-accent/15 px-1.5 py-0.5 text-ui-footnote font-medium text-ui-accent">
                           {_("System")}
                         </span>
                       )}
-                      <span className="rounded-shell-control bg-black/6 px-1.5 py-0.5 text-shell-footnote font-medium text-shell-label-secondary dark:bg-white/10">
+                      <span className="rounded-ui-control bg-black/6 px-1.5 py-0.5 text-ui-footnote font-medium text-ui-label-secondary dark:bg-white/10">
                         {kindLabel}
                       </span>
                       {plugin.version && (
-                        <span className="text-shell-subheadline text-shell-label-secondary">
+                        <span className="text-ui-subheadline text-ui-label-secondary">
                           v{plugin.version}
                         </span>
                       )}

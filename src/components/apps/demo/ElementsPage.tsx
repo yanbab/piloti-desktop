@@ -43,7 +43,7 @@ const CODE = `<AppWindow>
   <AppContent padded>Hello world</AppContent>
 </AppWindow>`;
 
-const OUTLINE = "2px solid var(--shell-accent)";
+const OUTLINE = "2px solid var(--ui-accent)";
 
 /**
  * A window built with `components/elements`, and what each part renders. The
@@ -148,12 +148,12 @@ export function ElementsPage() {
               onMouseLeave={() => outline(selector, false)}
             >
               <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <span className="text-shell-body font-semibold">{`<${name}>`}</span>
-                <code className="font-mono text-shell-footnote text-shell-label-secondary select-text">
+                <span className="text-ui-body font-semibold">{`<${name}>`}</span>
+                <code className="font-mono text-ui-footnote text-ui-label-secondary select-text">
                   {selector}
                 </code>
               </div>
-              <code className="font-mono text-shell-footnote break-words text-shell-label-secondary select-text">
+              <code className="font-mono text-ui-footnote break-words text-ui-label-secondary select-text">
                 {classes[name] ?? _("Not drawn")}
               </code>
             </GroupedFormRow>
@@ -164,7 +164,7 @@ export function ElementsPage() {
       <GroupedFormSection>
         <GroupedFormSectionTitle>{_("Code")}</GroupedFormSectionTitle>
         <GroupedFormGroup>
-          <pre className="overflow-x-auto p-3 font-mono text-shell-footnote select-text">{CODE}</pre>
+          <pre className="overflow-x-auto p-3 font-mono text-ui-footnote select-text">{CODE}</pre>
         </GroupedFormGroup>
       </GroupedFormSection>
     </GroupedForm>

@@ -50,7 +50,7 @@ function OverviewWorkspacesBar({
         transition: "transform 350ms cubic-bezier(0.22, 1, 0.36, 1)",
       }}
       className={cn(
-        "relative flex w-full shrink-0 items-center justify-center px-6 pt-[42px] pb-3 shell-material-hud animate-in fade-in-0 duration-200 motion-reduce:animate-none",
+        "relative flex w-full shrink-0 items-center justify-center px-6 pt-[42px] pb-3 ui-material-hud animate-in fade-in-0 duration-200 motion-reduce:animate-none",
         !overviewOpen && "-translate-y-full",
       )}
     >
@@ -107,7 +107,7 @@ function OverviewWorkspacesBar({
                     active
                       ? "ring-2 ring-white"
                       : "opacity-85 ring-1 ring-white/25",
-                    dropActive && "ring-2 ring-shell-accent opacity-100"
+                    dropActive && "ring-2 ring-ui-accent opacity-100"
                   )}
                 >
                   <DesktopBackgroundLayers />
@@ -184,10 +184,10 @@ function OverviewWorkspacesBar({
             })
           }
           className={cn(
-            "flex h-[68px] w-[114px] shrink-0 items-center justify-center rounded-[8px] bg-black/15 text-shell-label ring-1 ring-black/15 outline-none dark:bg-white/15 dark:text-white/90 dark:ring-white/20",
+            "flex h-[68px] w-[114px] shrink-0 items-center justify-center rounded-[8px] bg-black/15 text-ui-label ring-1 ring-black/15 outline-none dark:bg-white/15 dark:text-white/90 dark:ring-white/20",
             draggingWindowId &&
               hoveredTarget === "new" &&
-              "bg-shell-accent/80 ring-2 ring-white"
+              "bg-ui-accent/80 ring-2 ring-white"
           )}
         >
           <PlusIcon className="size-6" />
@@ -314,7 +314,7 @@ function WorkspaceOverview() {
                   className="size-12"
                   glyphClassName="size-7"
                 />
-                <span className="mt-1 max-w-[200px] truncate px-2 text-shell-callout font-medium text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.85)]">
+                <span className="mt-1 max-w-[200px] truncate px-2 text-ui-callout font-medium text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.85)]">
                   {win.title}
                 </span>
               </div>

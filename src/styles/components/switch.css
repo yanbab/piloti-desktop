@@ -1,8 +1,8 @@
 /*
  * Switch, in plain CSS.
  *
- *   <span class="shell-switch" role="switch" data-unchecked>
- *     <span class="shell-switch-thumb" data-unchecked></span>
+ *   <span class="ui-switch" role="switch" data-unchecked>
+ *     <span class="ui-switch-thumb" data-unchecked></span>
  *   </span>
  *
  * data-checked / data-unchecked on both; data-disabled on the track. Toggling
@@ -11,7 +11,7 @@
  */
 
 @layer components {
-  .shell-switch {
+  .ui-switch {
     display: inline-flex;
     flex-shrink: 0;
     align-items: center;
@@ -24,24 +24,24 @@
     transition-duration: 150ms;
     transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   }
-  .shell-switch[data-unchecked] {
+  .ui-switch[data-unchecked] {
     background-color: rgb(0 0 0 / 0.16);
   }
-  .dark .shell-switch[data-unchecked] {
+  .dark .ui-switch[data-unchecked] {
     background-color: #4e4e52;
   }
-  .shell-switch[data-checked] {
-    background-color: var(--shell-accent);
+  .ui-switch[data-checked] {
+    background-color: var(--ui-accent);
   }
-  .shell-switch:focus-visible {
-    box-shadow: var(--shell-focus-ring);
+  .ui-switch:focus-visible {
+    box-shadow: var(--ui-focus-ring);
   }
-  .shell-switch[data-disabled] {
+  .ui-switch[data-disabled] {
     cursor: not-allowed;
     opacity: 0.4;
   }
 
-  .shell-switch-thumb {
+  .ui-switch-thumb {
     display: block;
     width: 18px;
     height: 18px;
@@ -53,17 +53,17 @@
     transition-duration: 200ms;
     transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   }
-  .shell-switch-thumb[data-unchecked] {
+  .ui-switch-thumb[data-unchecked] {
     translate: 0 0;
   }
-  .dark .shell-switch-thumb[data-unchecked] {
+  .dark .ui-switch-thumb[data-unchecked] {
     background-color: #d2d2d5;
   }
-  .shell-switch-thumb[data-checked] {
+  .ui-switch-thumb[data-checked] {
     translate: 20px 0;
   }
   /* Right to left, the knob moves the other way. */
-  .shell-switch-thumb[data-checked]:dir(rtl) {
+  .ui-switch-thumb[data-checked]:dir(rtl) {
     translate: -20px 0;
   }
 }

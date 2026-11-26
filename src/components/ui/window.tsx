@@ -94,7 +94,7 @@ function useWindowContext() {
 // Where a draggable window can be grabbed: the title bar, the toolbar, the
 // strip above the sidebar, or anything marked with data-window-drag-region.
 const DRAG_REGION =
-  '[data-slot="window-titlebar"], [data-slot="toolbar"], [data-slot="shell-sidebar-header"], [data-window-drag-region]'
+  '[data-slot="window-titlebar"], [data-slot="toolbar"], [data-slot="ui-sidebar-header"], [data-window-drag-region]'
 
 // Controls inside a drag region that should never start a window drag (text inputs, sliders).
 const STRICT_NO_DRAG =
@@ -962,11 +962,11 @@ function Window({
         aria-hidden={hidden || undefined}
         inert={hidden || undefined}
         className={cn(
-          "group/window relative isolate flex overflow-visible rounded-shell-window bg-shell-window text-shell-body text-shell-label shadow-shell-window data-[inactive]:shadow-shell-window-inactive has-[>[data-slot=shell-sidebar]]:bg-transparent has-[.bg-shell-sidebar]:bg-transparent",
+          "group/window relative isolate flex overflow-visible rounded-ui-window bg-ui-window text-ui-body text-ui-label shadow-ui-window data-[inactive]:shadow-ui-window-inactive has-[>[data-slot=ui-sidebar]]:bg-transparent has-[.bg-ui-sidebar]:bg-transparent",
           // The thin light rim drawn on top of everything inside the frame.
-          "after:pointer-events-none after:absolute after:inset-0 after:z-20 after:rounded-[inherit] after:shadow-[inset_0_0_0_1px_var(--shell-window-rim)]",
+          "after:pointer-events-none after:absolute after:inset-0 after:z-20 after:rounded-[inherit] after:shadow-[inset_0_0_0_1px_var(--ui-window-rim)]",
           // Touch drags on the drag regions move the window instead of scrolling.
-          "data-[draggable]:[&_:is([data-slot=window-titlebar],[data-slot=toolbar],[data-slot=shell-sidebar-header],[data-window-drag-region])]:touch-none data-[dragging]:select-none",
+          "data-[draggable]:[&_:is([data-slot=window-titlebar],[data-slot=toolbar],[data-slot=ui-sidebar-header],[data-window-drag-region])]:touch-none data-[dragging]:select-none",
           // While dragging or resizing, prevent iframes or Wayland <app> surfaces
           // from swallowing pointer moves without changing the cursor during drag.
           "data-[resizing]:select-none data-[resizing]:*:pointer-events-none data-[dragging]:[&_iframe]:pointer-events-none data-[dragging]:[&_app]:pointer-events-none",
@@ -1018,8 +1018,8 @@ function Window({
           const target = event.target as HTMLElement
           const region = target.closest(DRAG_REGION)
           const isSidebarBody = Boolean(
-            target.closest('aside, [data-slot="shell-sidebar"]') &&
-              !target.closest('[data-slot="window-titlebar"], [data-slot="shell-sidebar-header"]')
+            target.closest('aside, [data-slot="ui-sidebar"]') &&
+              !target.closest('[data-slot="window-titlebar"], [data-slot="ui-sidebar-header"]')
           )
           if (
             onZoom &&
@@ -1083,7 +1083,7 @@ function WindowTitlebar({
         context?.onZoom?.()
       }}
       className={cn(
-        "relative flex h-[46px] min-h-[46px] shrink-0 items-center justify-between gap-2 rounded-t-[inherit] border-b border-shell-separator px-[9px] select-none shell-material-titlebar in-data-[inactive]:[&>*]:opacity-65",
+        "relative flex h-[46px] min-h-[46px] shrink-0 items-center justify-between gap-2 rounded-t-[inherit] border-b border-ui-separator px-[9px] select-none ui-material-titlebar in-data-[inactive]:[&>*]:opacity-65",
         className
       )}
       {...props}
@@ -1098,7 +1098,7 @@ function WindowTitle({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="window-title"
       className={cn(
-        "pointer-events-none absolute inset-x-24 truncate whitespace-nowrap text-center text-shell-body font-bold text-shell-label group-data-[inactive]/window:text-shell-label-tertiary",
+        "pointer-events-none absolute inset-x-24 truncate whitespace-nowrap text-center text-ui-body font-bold text-ui-label group-data-[inactive]/window:text-ui-label-tertiary",
         className
       )}
       {...props}
@@ -1125,7 +1125,7 @@ function WindowMain({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="window-main"
       className={cn(
-        "flex min-w-0 flex-1 flex-col overflow-hidden rounded-r-[inherit] bg-shell-window first:rounded-l-[inherit] has-[.bg-shell-sidebar]:bg-transparent",
+        "flex min-w-0 flex-1 flex-col overflow-hidden rounded-r-[inherit] bg-ui-window first:rounded-l-[inherit] has-[.bg-ui-sidebar]:bg-transparent",
         className
       )}
       {...props}
@@ -1135,7 +1135,7 @@ function WindowMain({ className, ...props }: React.ComponentProps<"div">) {
 
 // The round title-bar button: close, minimize, maximize and the window menu.
 const WINDOW_CONTROL_CLASS =
-  "flex size-6 items-center justify-center rounded-full bg-black/6 text-shell-label-secondary transition-colors outline-none hover-fill:bg-black/12 hover-fill:text-shell-label active:bg-black/18 focus-visible:outline-3 focus-visible:outline-solid focus-visible:outline-shell-accent/50 group-data-[inactive]/window:opacity-50 dark:bg-white/8 dark:hover-fill:bg-white/15 dark:active:bg-white/22"
+  "flex size-6 items-center justify-center rounded-full bg-black/6 text-ui-label-secondary transition-colors outline-none hover-fill:bg-black/12 hover-fill:text-ui-label active:bg-black/18 focus-visible:outline-3 focus-visible:outline-solid focus-visible:outline-ui-accent/50 group-data-[inactive]/window:opacity-50 dark:bg-white/8 dark:hover-fill:bg-white/15 dark:active:bg-white/22"
 
 function WindowControlButton({
   className,

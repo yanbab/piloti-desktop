@@ -248,10 +248,10 @@ export async function discoverPlugins(
   return discovered.sort((a, b) => a.name.localeCompare(b.name));
 }
 
-/** Plugin stylesheets written before the `--adw-*` names became `--shell-*`:
+/** Plugin stylesheets written before the `--adw-*` names became `--ui-*`:
  *  rewritten so both reading and overriding a token still work. */
 export function upgradeLegacyCssNames(cssText: string): string {
-  return cssText.replace(/(--|\.|data-slot="?)adw-/g, "$1shell-");
+  return cssText.replace(/(--|\.|data-slot="?)adw-/g, "$1ui-");
 }
 
 export function injectPluginCss(pluginId: string, cssText: string): void {

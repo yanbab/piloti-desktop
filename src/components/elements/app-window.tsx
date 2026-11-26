@@ -10,7 +10,7 @@ export function AppWindow({ className, ...props }: React.ComponentProps<"div">) 
     <div
       data-slot="app-window"
       className={cn(
-        "flex h-full w-full flex-col overflow-hidden rounded-[inherit] bg-shell-window text-shell-label",
+        "flex h-full w-full flex-col overflow-hidden rounded-[inherit] bg-ui-window text-ui-label",
         className,
       )}
       {...props}

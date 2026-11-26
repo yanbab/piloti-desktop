@@ -8,7 +8,7 @@ function Input({ className, type, ...props }: React.ComponentProps<"input">) {
     <input
       type={type}
       data-slot="input"
-      className={cn("shell-input", className)}
+      className={cn("ui-input", className)}
       {...props}
     />
   )

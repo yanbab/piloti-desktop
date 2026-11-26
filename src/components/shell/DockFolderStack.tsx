@@ -128,7 +128,7 @@ export function DockFolderStack({
       >
         <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
           {entries === null ? null : shown.length === 0 ? (
-            <div className="px-3 py-2 text-shell-body text-shell-label-tertiary">
+            <div className="px-3 py-2 text-ui-body text-ui-label-tertiary">
               {_("Folder is empty")}
             </div>
           ) : (

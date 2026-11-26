@@ -22,205 +22,205 @@
 @custom-variant hover-fill (&:hover:where(:root:not([data-interface-theme="piloti"]) *));
 
 :root {
-  --font-shell: "Cantarell", "Inter", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-shell-mono: "Adwaita Mono", "Source Code Pro", "JetBrains Mono", ui-monospace, monospace;
+  --font-ui: "Cantarell", "Inter", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-ui-mono: "Adwaita Mono", "Source Code Pro", "JetBrains Mono", ui-monospace, monospace;
 
   /* Official GNOME 47 / Libadwaita 1.6 Accent Colors */
-  --shell-blue: #3584e4;
-  --shell-teal: #2190a4;
-  --shell-green: #3a944a;
-  --shell-yellow: #c88800;
-  --shell-orange: #ed5b00;
-  --shell-red: #e62d42;
-  --shell-pink: #d56199;
-  --shell-purple: #9141ac;
-  --shell-gray: #6f8396;
-  --shell-mint: #2190a4;
-  --shell-cyan: #2190a4;
-  --shell-indigo: #3584e4;
-  --shell-brown: #986a44;
+  --ui-blue: #3584e4;
+  --ui-teal: #2190a4;
+  --ui-green: #3a944a;
+  --ui-yellow: #c88800;
+  --ui-orange: #ed5b00;
+  --ui-red: #e62d42;
+  --ui-pink: #d56199;
+  --ui-purple: #9141ac;
+  --ui-gray: #6f8396;
+  --ui-mint: #2190a4;
+  --ui-cyan: #2190a4;
+  --ui-indigo: #3584e4;
+  --ui-brown: #986a44;
 
-  --shell-accent: var(--shell-active-accent, var(--shell-blue));
-  --shell-accent-foreground: #ffffff;
-  --shell-selection: color-mix(in srgb, var(--shell-accent) 88%, black);
-  --shell-menu-highlight: rgb(0 0 0 / 0.07);
-  --shell-selection-unfocused: rgb(0 0 0 / 0.08);
-  --shell-link: #1c71d8;
+  --ui-accent: var(--ui-active-accent, var(--ui-blue));
+  --ui-accent-foreground: #ffffff;
+  --ui-selection: color-mix(in srgb, var(--ui-accent) 88%, black);
+  --ui-menu-highlight: rgb(0 0 0 / 0.07);
+  --ui-selection-unfocused: rgb(0 0 0 / 0.08);
+  --ui-link: #1c71d8;
 
   /* Adwaita Light Labels */
-  --shell-label: rgb(0 0 0 / 0.82);
-  --shell-label-secondary: rgb(0 0 0 / 0.55);
-  --shell-label-tertiary: rgb(0 0 0 / 0.36);
-  --shell-label-quaternary: rgb(0 0 0 / 0.12);
-  --shell-label-quinary: rgb(0 0 0 / 0.06);
+  --ui-label: rgb(0 0 0 / 0.82);
+  --ui-label-secondary: rgb(0 0 0 / 0.55);
+  --ui-label-tertiary: rgb(0 0 0 / 0.36);
+  --ui-label-quaternary: rgb(0 0 0 / 0.12);
+  --ui-label-quinary: rgb(0 0 0 / 0.06);
 
   /* Adwaita Light Fills & Controls */
-  --shell-fill-primary: rgb(0 0 0 / 0.12);
-  --shell-fill-secondary: rgb(0 0 0 / 0.08);
-  --shell-fill-tertiary: rgb(0 0 0 / 0.05);
-  --shell-fill-quaternary: rgb(0 0 0 / 0.03);
-  --shell-fill-quinary: rgb(0 0 0 / 0.015);
+  --ui-fill-primary: rgb(0 0 0 / 0.12);
+  --ui-fill-secondary: rgb(0 0 0 / 0.08);
+  --ui-fill-tertiary: rgb(0 0 0 / 0.05);
+  --ui-fill-quaternary: rgb(0 0 0 / 0.03);
+  --ui-fill-quinary: rgb(0 0 0 / 0.015);
 
-  --shell-control: rgb(0 0 0 / 0.08);
-  --shell-control-pressed: rgb(0 0 0 / 0.16);
-  --shell-control-disabled: rgb(0 0 0 / 0.04);
-  --shell-field: rgb(0 0 0 / 0.065);
-  --shell-field-border: transparent;
+  --ui-control: rgb(0 0 0 / 0.08);
+  --ui-control-pressed: rgb(0 0 0 / 0.16);
+  --ui-control-disabled: rgb(0 0 0 / 0.04);
+  --ui-field: rgb(0 0 0 / 0.065);
+  --ui-field-border: transparent;
 
   /* Adwaita Light Surfaces */
-  --shell-window: #fafafa;
-  --shell-content: #fafafa;
-  --shell-content-alternate: rgb(0 0 0 / 0.035);
-  --shell-group: #ffffff;
-  --shell-separator: rgb(0 0 0 / 0.055);
-  --shell-grid: rgb(0 0 0 / 0.07);
-  --shell-border: rgb(0 0 0 / 0.075);
-  --shell-sidebar: #ebebee;
-  --shell-sidebar-selection: rgb(0 0 0 / 0.08);
-  --shell-sidebar-label-inactive: rgb(0 0 0 / 0.45);
-  --shell-titlebar: #fafafa;
+  --ui-window: #fafafa;
+  --ui-content: #fafafa;
+  --ui-content-alternate: rgb(0 0 0 / 0.035);
+  --ui-group: #ffffff;
+  --ui-separator: rgb(0 0 0 / 0.055);
+  --ui-grid: rgb(0 0 0 / 0.07);
+  --ui-border: rgb(0 0 0 / 0.075);
+  --ui-sidebar: #ebebee;
+  --ui-sidebar-selection: rgb(0 0 0 / 0.08);
+  --ui-sidebar-label-inactive: rgb(0 0 0 / 0.45);
+  --ui-titlebar: #fafafa;
 
   /* Adwaita HeaderBar / Toolbar Button Surfaces */
-  --shell-glass: rgb(0 0 0 / 0.07);
-  --shell-glass-pressed: rgb(0 0 0 / 0.14);
-  --shell-glass-selected: rgb(0 0 0 / 0.12);
-  --shell-glass-edge: transparent;
-  --shell-glass-rim: transparent;
-  --shell-glass-shadow: none;
+  --ui-glass: rgb(0 0 0 / 0.07);
+  --ui-glass-pressed: rgb(0 0 0 / 0.14);
+  --ui-glass-selected: rgb(0 0 0 / 0.12);
+  --ui-glass-edge: transparent;
+  --ui-glass-rim: transparent;
+  --ui-glass-shadow: none;
 
   /* Adwaita Popovers, Menus & Dock (Opaque) */
-  --shell-material-menu: #ffffff;
-  --shell-material-popover: #ffffff;
-  --shell-material-hud: #fafafa;
-  --shell-material-tooltip: #202024;
-  --shell-material-dock: #ebebee;
-  --shell-dock-label: #ffffff;
-  --shell-material-blur: 0px;
-  --shell-material-border: rgb(0 0 0 / 0.12);
-  --shell-material-highlight: transparent;
-  --shell-overlay: rgb(0 0 0 / 0.35);
+  --ui-material-menu: #ffffff;
+  --ui-material-popover: #ffffff;
+  --ui-material-hud: #fafafa;
+  --ui-material-tooltip: #202024;
+  --ui-material-dock: #ebebee;
+  --ui-dock-label: #ffffff;
+  --ui-material-blur: 0px;
+  --ui-material-border: rgb(0 0 0 / 0.12);
+  --ui-material-highlight: transparent;
+  --ui-overlay: rgb(0 0 0 / 0.35);
 
   /* Adwaita Circular Window Controls (Light) */
-  --shell-traffic-close: rgb(0 0 0 / 0.08);
-  --shell-traffic-minimize: rgb(0 0 0 / 0.08);
-  --shell-traffic-zoom: rgb(0 0 0 / 0.08);
-  --shell-traffic-inactive: rgb(0 0 0 / 0.05);
-  --shell-traffic-edge: none;
+  --ui-traffic-close: rgb(0 0 0 / 0.08);
+  --ui-traffic-minimize: rgb(0 0 0 / 0.08);
+  --ui-traffic-zoom: rgb(0 0 0 / 0.08);
+  --ui-traffic-inactive: rgb(0 0 0 / 0.05);
+  --ui-traffic-edge: none;
 
   /* Adwaita Shadows */
-  --shell-shadow-menu: 0 0 0 1px rgb(0 0 0 / 0.14), inset 0 0 0 1px rgb(255 255 255 / 0.45), 0 4px 16px 1px rgb(0 0 0 / 0.12), 0 1px 4px rgb(0 0 0 / 0.08);
-  --shell-shadow-popover: 0 0 0 1px rgb(0 0 0 / 0.14), inset 0 0 0 1px rgb(255 255 255 / 0.45), 0 4px 16px 1px rgb(0 0 0 / 0.12), 0 1px 4px rgb(0 0 0 / 0.08);
-  --shell-shadow-tooltip: 0 0 0 1px rgb(0 0 0 / 0.14), 0 2px 6px rgb(0 0 0 / 0.14);
-  --shell-shadow-dock-label: 0 0 0 1px rgb(0 0 0 / 0.12), 0 2px 8px rgb(0 0 0 / 0.14);
-  --shell-shadow-dock: 0 0 0 1px rgb(0 0 0 / 0.12), 0 6px 20px rgb(0 0 0 / 0.16);
-  --shell-shadow-window: 0 0 0 1px rgb(0 0 0 / 0.14), 0 8px 28px 2px rgb(0 0 0 / 0.18), 0 3px 10px rgb(0 0 0 / 0.1);
-  --shell-shadow-window-inactive: 0 0 0 1px rgb(0 0 0 / 0.1), 0 4px 14px rgb(0 0 0 / 0.1);
-  --shell-window-rim: rgb(0 0 0 / 0.08);
-  --shell-focus-ring: 0 0 0 2px color-mix(in srgb, var(--shell-accent) 50%, transparent);
+  --ui-shadow-menu: 0 0 0 1px rgb(0 0 0 / 0.14), inset 0 0 0 1px rgb(255 255 255 / 0.45), 0 4px 16px 1px rgb(0 0 0 / 0.12), 0 1px 4px rgb(0 0 0 / 0.08);
+  --ui-shadow-popover: 0 0 0 1px rgb(0 0 0 / 0.14), inset 0 0 0 1px rgb(255 255 255 / 0.45), 0 4px 16px 1px rgb(0 0 0 / 0.12), 0 1px 4px rgb(0 0 0 / 0.08);
+  --ui-shadow-tooltip: 0 0 0 1px rgb(0 0 0 / 0.14), 0 2px 6px rgb(0 0 0 / 0.14);
+  --ui-shadow-dock-label: 0 0 0 1px rgb(0 0 0 / 0.12), 0 2px 8px rgb(0 0 0 / 0.14);
+  --ui-shadow-dock: 0 0 0 1px rgb(0 0 0 / 0.12), 0 6px 20px rgb(0 0 0 / 0.16);
+  --ui-shadow-window: 0 0 0 1px rgb(0 0 0 / 0.14), 0 8px 28px 2px rgb(0 0 0 / 0.18), 0 3px 10px rgb(0 0 0 / 0.1);
+  --ui-shadow-window-inactive: 0 0 0 1px rgb(0 0 0 / 0.1), 0 4px 14px rgb(0 0 0 / 0.1);
+  --ui-window-rim: rgb(0 0 0 / 0.08);
+  --ui-focus-ring: 0 0 0 2px color-mix(in srgb, var(--ui-accent) 50%, transparent);
 
   /* Official Libadwaita Corner Radii */
-  --shell-radius-control: 6px;
-  --shell-radius-menu: 12px;
-  --shell-radius-item: 6px;
-  --shell-radius-group: 12px;
-  --shell-radius-popover: 12px;
-  --shell-radius-alert: 15px;
-  --shell-radius-window: 15px;
+  --ui-radius-control: 6px;
+  --ui-radius-menu: 12px;
+  --ui-radius-item: 6px;
+  --ui-radius-group: 12px;
+  --ui-radius-popover: 12px;
+  --ui-radius-alert: 15px;
+  --ui-radius-window: 15px;
 
   /* Type roles (size scales with the font scale setting) */
-  --shell-font-large-title: calc(26px * var(--piloti-font-scale, 1));
-  --shell-font-title-1: calc(22px * var(--piloti-font-scale, 1));
-  --shell-font-title-2: calc(17px * var(--piloti-font-scale, 1));
-  --shell-font-title-3: calc(15px * var(--piloti-font-scale, 1));
-  --shell-font-headline: calc(13px * var(--piloti-font-scale, 1));
-  --shell-font-body: calc(13px * var(--piloti-font-scale, 1));
-  --shell-font-callout: calc(12px * var(--piloti-font-scale, 1));
-  --shell-font-subheadline: calc(11px * var(--piloti-font-scale, 1));
-  --shell-font-footnote: calc(10px * var(--piloti-font-scale, 1));
-  --shell-font-caption: calc(10px * var(--piloti-font-scale, 1));
+  --ui-font-large-title: calc(26px * var(--piloti-font-scale, 1));
+  --ui-font-title-1: calc(22px * var(--piloti-font-scale, 1));
+  --ui-font-title-2: calc(17px * var(--piloti-font-scale, 1));
+  --ui-font-title-3: calc(15px * var(--piloti-font-scale, 1));
+  --ui-font-headline: calc(13px * var(--piloti-font-scale, 1));
+  --ui-font-body: calc(13px * var(--piloti-font-scale, 1));
+  --ui-font-callout: calc(12px * var(--piloti-font-scale, 1));
+  --ui-font-subheadline: calc(11px * var(--piloti-font-scale, 1));
+  --ui-font-footnote: calc(10px * var(--piloti-font-scale, 1));
+  --ui-font-caption: calc(10px * var(--piloti-font-scale, 1));
 
   /* Libadwaita Control Heights */
-  --shell-control-mini: 20px;
-  --shell-control-small: 24px;
-  --shell-control-medium: 30px;
-  --shell-control-large: 34px;
-  --shell-control-xl: 40px;
+  --ui-control-mini: 20px;
+  --ui-control-small: 24px;
+  --ui-control-medium: 30px;
+  --ui-control-large: 34px;
+  --ui-control-xl: 40px;
 
   /* shadcn/Base UI semantic tokens mapped onto Adwaita values */
-  --radius: var(--shell-radius-control);
-  --background: var(--shell-window);
-  --foreground: var(--shell-label);
-  --card: var(--shell-content);
-  --card-foreground: var(--shell-label);
-  --popover: var(--shell-material-popover);
-  --popover-foreground: var(--shell-label);
-  --primary: var(--shell-accent);
-  --primary-foreground: var(--shell-accent-foreground);
-  --secondary: var(--shell-control);
-  --secondary-foreground: var(--shell-label);
-  --muted: var(--shell-fill-tertiary);
-  --muted-foreground: var(--shell-label-secondary);
-  --accent: var(--shell-accent);
-  --accent-foreground: var(--shell-accent-foreground);
-  --destructive: var(--shell-red);
-  --border: var(--shell-border);
-  --input: var(--shell-field-border);
-  --ring: var(--shell-accent);
-  --chart-1: var(--shell-blue);
-  --chart-2: var(--shell-green);
-  --chart-3: var(--shell-orange);
-  --chart-4: var(--shell-purple);
-  --chart-5: var(--shell-pink);
-  --sidebar: var(--shell-sidebar);
-  --sidebar-foreground: var(--shell-label);
-  --sidebar-primary: var(--shell-accent);
-  --sidebar-primary-foreground: var(--shell-accent-foreground);
-  --sidebar-accent: var(--shell-sidebar-selection);
-  --sidebar-accent-foreground: var(--shell-label);
-  --sidebar-border: var(--shell-separator);
-  --sidebar-ring: var(--shell-accent);
+  --radius: var(--ui-radius-control);
+  --background: var(--ui-window);
+  --foreground: var(--ui-label);
+  --card: var(--ui-content);
+  --card-foreground: var(--ui-label);
+  --popover: var(--ui-material-popover);
+  --popover-foreground: var(--ui-label);
+  --primary: var(--ui-accent);
+  --primary-foreground: var(--ui-accent-foreground);
+  --secondary: var(--ui-control);
+  --secondary-foreground: var(--ui-label);
+  --muted: var(--ui-fill-tertiary);
+  --muted-foreground: var(--ui-label-secondary);
+  --accent: var(--ui-accent);
+  --accent-foreground: var(--ui-accent-foreground);
+  --destructive: var(--ui-red);
+  --border: var(--ui-border);
+  --input: var(--ui-field-border);
+  --ring: var(--ui-accent);
+  --chart-1: var(--ui-blue);
+  --chart-2: var(--ui-green);
+  --chart-3: var(--ui-orange);
+  --chart-4: var(--ui-purple);
+  --chart-5: var(--ui-pink);
+  --sidebar: var(--ui-sidebar);
+  --sidebar-foreground: var(--ui-label);
+  --sidebar-primary: var(--ui-accent);
+  --sidebar-primary-foreground: var(--ui-accent-foreground);
+  --sidebar-accent: var(--ui-sidebar-selection);
+  --sidebar-accent-foreground: var(--ui-label);
+  --sidebar-border: var(--ui-separator);
+  --sidebar-ring: var(--ui-accent);
 }
 
 .dark {
-  --shell-blue: #3584e4;
-  --shell-teal: #2190a4;
-  --shell-green: #3a944a;
-  --shell-yellow: #c88800;
-  --shell-orange: #ed5b00;
-  --shell-red: #e62d42;
-  --shell-pink: #d56199;
-  --shell-purple: #9141ac;
-  --shell-gray: #6f8396;
-  --shell-mint: #2190a4;
-  --shell-cyan: #2190a4;
-  --shell-indigo: #3584e4;
-  --shell-brown: #986a44;
+  --ui-blue: #3584e4;
+  --ui-teal: #2190a4;
+  --ui-green: #3a944a;
+  --ui-yellow: #c88800;
+  --ui-orange: #ed5b00;
+  --ui-red: #e62d42;
+  --ui-pink: #d56199;
+  --ui-purple: #9141ac;
+  --ui-gray: #6f8396;
+  --ui-mint: #2190a4;
+  --ui-cyan: #2190a4;
+  --ui-indigo: #3584e4;
+  --ui-brown: #986a44;
 
-  --shell-accent: var(--shell-active-accent, var(--shell-blue));
-  --shell-selection: var(--shell-accent);
-  --shell-menu-highlight: rgb(255 255 255 / 0.09);
-  --shell-selection-unfocused: rgb(255 255 255 / 0.1);
-  --shell-link: #78aeed;
+  --ui-accent: var(--ui-active-accent, var(--ui-blue));
+  --ui-selection: var(--ui-accent);
+  --ui-menu-highlight: rgb(255 255 255 / 0.09);
+  --ui-selection-unfocused: rgb(255 255 255 / 0.1);
+  --ui-link: #78aeed;
 
   /* Adwaita Dark Labels */
-  --shell-label: #ffffff;
-  --shell-label-secondary: rgb(255 255 255 / 0.58);
-  --shell-label-tertiary: rgb(255 255 255 / 0.38);
-  --shell-label-quaternary: rgb(255 255 255 / 0.14);
-  --shell-label-quinary: rgb(255 255 255 / 0.06);
+  --ui-label: #ffffff;
+  --ui-label-secondary: rgb(255 255 255 / 0.58);
+  --ui-label-tertiary: rgb(255 255 255 / 0.38);
+  --ui-label-quaternary: rgb(255 255 255 / 0.14);
+  --ui-label-quinary: rgb(255 255 255 / 0.06);
 
   /* Adwaita Dark Fills & Controls */
-  --shell-fill-primary: rgb(255 255 255 / 0.12);
-  --shell-fill-secondary: rgb(255 255 255 / 0.09);
-  --shell-fill-tertiary: rgb(255 255 255 / 0.06);
-  --shell-fill-quaternary: rgb(255 255 255 / 0.04);
-  --shell-fill-quinary: rgb(255 255 255 / 0.02);
+  --ui-fill-primary: rgb(255 255 255 / 0.12);
+  --ui-fill-secondary: rgb(255 255 255 / 0.09);
+  --ui-fill-tertiary: rgb(255 255 255 / 0.06);
+  --ui-fill-quaternary: rgb(255 255 255 / 0.04);
+  --ui-fill-quinary: rgb(255 255 255 / 0.02);
 
-  --shell-control: rgb(255 255 255 / 0.1);
-  --shell-control-pressed: rgb(255 255 255 / 0.18);
-  --shell-control-disabled: rgb(255 255 255 / 0.04);
-  --shell-field: #333336;
-  --shell-field-border: transparent;
+  --ui-control: rgb(255 255 255 / 0.1);
+  --ui-control-pressed: rgb(255 255 255 / 0.18);
+  --ui-control-disabled: rgb(255 255 255 / 0.04);
+  --ui-field: #333336;
+  --ui-field-border: transparent;
 
   /*
    * Official Libadwaita 1.6 Cool Dark Surfaces (sampled from org.gnome.Adwaita1.Demo):
@@ -230,51 +230,51 @@
    * @card_bg_color = #343437
    * @popover_bg_color = #343437
    */
-  --shell-window: #202024;
-  --shell-content: #202024;
-  --shell-content-alternate: rgb(255 255 255 / 0.04);
-  --shell-group: #343437;
-  --shell-separator: rgb(255 255 255 / 0.08);
-  --shell-grid: rgb(255 255 255 / 0.1);
-  --shell-border: rgb(255 255 255 / 0.1);
-  --shell-sidebar: #28282c;
-  --shell-sidebar-selection: #3e3e41;
-  --shell-sidebar-label-inactive: rgb(255 255 255 / 0.45);
-  --shell-titlebar: #202024;
+  --ui-window: #202024;
+  --ui-content: #202024;
+  --ui-content-alternate: rgb(255 255 255 / 0.04);
+  --ui-group: #343437;
+  --ui-separator: rgb(255 255 255 / 0.08);
+  --ui-grid: rgb(255 255 255 / 0.1);
+  --ui-border: rgb(255 255 255 / 0.1);
+  --ui-sidebar: #28282c;
+  --ui-sidebar-selection: #3e3e41;
+  --ui-sidebar-label-inactive: rgb(255 255 255 / 0.45);
+  --ui-titlebar: #202024;
 
-  --shell-glass: rgb(255 255 255 / 0.1);
-  --shell-glass-pressed: rgb(255 255 255 / 0.18);
-  --shell-glass-selected: rgb(255 255 255 / 0.14);
-  --shell-glass-edge: transparent;
-  --shell-glass-rim: transparent;
-  --shell-glass-shadow: none;
+  --ui-glass: rgb(255 255 255 / 0.1);
+  --ui-glass-pressed: rgb(255 255 255 / 0.18);
+  --ui-glass-selected: rgb(255 255 255 / 0.14);
+  --ui-glass-edge: transparent;
+  --ui-glass-rim: transparent;
+  --ui-glass-shadow: none;
 
-  --shell-material-menu: #353538;
-  --shell-material-popover: #353538;
-  --shell-material-hud: #28282c;
-  --shell-material-tooltip: #141416;
-  --shell-material-dock: #242428;
-  --shell-dock-label: #343437;
-  --shell-material-blur: 0px;
-  --shell-material-border: rgb(255 255 255 / 0.1);
-  --shell-material-highlight: transparent;
-  --shell-overlay: rgb(0 0 0 / 0.55);
+  --ui-material-menu: #353538;
+  --ui-material-popover: #353538;
+  --ui-material-hud: #28282c;
+  --ui-material-tooltip: #141416;
+  --ui-material-dock: #242428;
+  --ui-dock-label: #343437;
+  --ui-material-blur: 0px;
+  --ui-material-border: rgb(255 255 255 / 0.1);
+  --ui-material-highlight: transparent;
+  --ui-overlay: rgb(0 0 0 / 0.55);
 
   /* Adwaita Circular Window Controls (Dark) */
-  --shell-traffic-close: rgb(255 255 255 / 0.1);
-  --shell-traffic-minimize: rgb(255 255 255 / 0.1);
-  --shell-traffic-zoom: rgb(255 255 255 / 0.1);
-  --shell-traffic-inactive: rgb(255 255 255 / 0.06);
-  --shell-traffic-edge: none;
+  --ui-traffic-close: rgb(255 255 255 / 0.1);
+  --ui-traffic-minimize: rgb(255 255 255 / 0.1);
+  --ui-traffic-zoom: rgb(255 255 255 / 0.1);
+  --ui-traffic-inactive: rgb(255 255 255 / 0.06);
+  --ui-traffic-edge: none;
 
-  --shell-shadow-menu: 0 0 0 1px rgb(0 0 0 / 0.78), inset 0 0 0 1px rgb(255 255 255 / 0.11), 0 8px 24px rgb(0 0 0 / 0.44), 0 2px 8px rgb(0 0 0 / 0.34);
-  --shell-shadow-popover: 0 0 0 1px rgb(0 0 0 / 0.78), inset 0 0 0 1px rgb(255 255 255 / 0.11), 0 8px 24px rgb(0 0 0 / 0.44), 0 2px 8px rgb(0 0 0 / 0.34);
-  --shell-shadow-tooltip: 0 0 0 1px rgb(255 255 255 / 0.1), 0 2px 8px rgb(0 0 0 / 0.35);
-  --shell-shadow-dock-label: 0 0 0 1px rgb(255 255 255 / 0.1), 0 2px 8px rgb(0 0 0 / 0.35);
-  --shell-shadow-dock: 0 0 0 1px rgb(255 255 255 / 0.1), 0 8px 24px rgb(0 0 0 / 0.48);
-  --shell-shadow-window: 0 0 0 1px rgb(0 0 0 / 0.78), 0 10px 32px 4px rgb(0 0 0 / 0.5), 0 4px 12px rgb(0 0 0 / 0.34);
-  --shell-shadow-window-inactive: 0 0 0 1px rgb(0 0 0 / 0.75), 0 5px 16px rgb(0 0 0 / 0.3);
-  --shell-window-rim: rgb(255 255 255 / 0.07);
+  --ui-shadow-menu: 0 0 0 1px rgb(0 0 0 / 0.78), inset 0 0 0 1px rgb(255 255 255 / 0.11), 0 8px 24px rgb(0 0 0 / 0.44), 0 2px 8px rgb(0 0 0 / 0.34);
+  --ui-shadow-popover: 0 0 0 1px rgb(0 0 0 / 0.78), inset 0 0 0 1px rgb(255 255 255 / 0.11), 0 8px 24px rgb(0 0 0 / 0.44), 0 2px 8px rgb(0 0 0 / 0.34);
+  --ui-shadow-tooltip: 0 0 0 1px rgb(255 255 255 / 0.1), 0 2px 8px rgb(0 0 0 / 0.35);
+  --ui-shadow-dock-label: 0 0 0 1px rgb(255 255 255 / 0.1), 0 2px 8px rgb(0 0 0 / 0.35);
+  --ui-shadow-dock: 0 0 0 1px rgb(255 255 255 / 0.1), 0 8px 24px rgb(0 0 0 / 0.48);
+  --ui-shadow-window: 0 0 0 1px rgb(0 0 0 / 0.78), 0 10px 32px 4px rgb(0 0 0 / 0.5), 0 4px 12px rgb(0 0 0 / 0.34);
+  --ui-shadow-window-inactive: 0 0 0 1px rgb(0 0 0 / 0.75), 0 5px 16px rgb(0 0 0 / 0.3);
+  --ui-window-rim: rgb(255 255 255 / 0.07);
 }
 
 /*
@@ -282,23 +282,23 @@
  * switches and controls.
  */
 [data-slot="window"][data-inactive] {
-  --shell-accent: var(--shell-active-accent, var(--shell-blue));
-  --shell-selection: var(--shell-accent);
-  --shell-titlebar: #f6f6f8;
-  --shell-sidebar: #f0f0f3;
+  --ui-accent: var(--ui-active-accent, var(--ui-blue));
+  --ui-selection: var(--ui-accent);
+  --ui-titlebar: #f6f6f8;
+  --ui-sidebar: #f0f0f3;
 }
 
 .dark [data-slot="window"][data-inactive],
 .dark[data-slot="window"][data-inactive] {
-  --shell-accent: var(--shell-active-accent, var(--shell-blue));
-  --shell-selection: var(--shell-accent);
-  --shell-titlebar: #202024;
-  --shell-sidebar: #242428;
-  --shell-content: #202024;
+  --ui-accent: var(--ui-active-accent, var(--ui-blue));
+  --ui-selection: var(--ui-accent);
+  --ui-titlebar: #202024;
+  --ui-sidebar: #242428;
+  --ui-content: #202024;
 }
 
-[data-slot="window"][data-inactive] .bg-shell-sidebar {
-  background-color: var(--shell-sidebar) !important;
+[data-slot="window"][data-inactive] .bg-ui-sidebar {
+  background-color: var(--ui-sidebar) !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
 }
@@ -307,44 +307,44 @@
  * Adwaita High-Contrast Theme Variant (Light & Dark)
  */
 :root[data-high-contrast="true"] {
-  --shell-window: #ffffff;
-  --shell-content: #ffffff;
-  --shell-titlebar: #f2f2f5;
-  --shell-sidebar: #ebebf0;
-  --shell-card: #ffffff;
-  --shell-label: #000000;
-  --shell-label-secondary: rgb(0 0 0 / 0.85);
-  --shell-dim: rgb(0 0 0 / 0.72);
-  --shell-separator: rgb(0 0 0 / 0.45);
-  --shell-border: rgb(0 0 0 / 0.5);
-  --shell-material-border: rgb(0 0 0 / 0.6);
-  --shell-material-dock: #f3f3f6;
-  --shell-material-menu: #ffffff;
-  --shell-material-popover: #ffffff;
-  --shell-shadow-window: 0 0 0 2px rgb(0 0 0 / 0.75), 0 10px 28px rgb(0 0 0 / 0.25);
+  --ui-window: #ffffff;
+  --ui-content: #ffffff;
+  --ui-titlebar: #f2f2f5;
+  --ui-sidebar: #ebebf0;
+  --ui-card: #ffffff;
+  --ui-label: #000000;
+  --ui-label-secondary: rgb(0 0 0 / 0.85);
+  --ui-dim: rgb(0 0 0 / 0.72);
+  --ui-separator: rgb(0 0 0 / 0.45);
+  --ui-border: rgb(0 0 0 / 0.5);
+  --ui-material-border: rgb(0 0 0 / 0.6);
+  --ui-material-dock: #f3f3f6;
+  --ui-material-menu: #ffffff;
+  --ui-material-popover: #ffffff;
+  --ui-shadow-window: 0 0 0 2px rgb(0 0 0 / 0.75), 0 10px 28px rgb(0 0 0 / 0.25);
 }
 
 :root.dark[data-high-contrast="true"] {
-  --shell-window: #000000;
-  --shell-content: #000000;
-  --shell-titlebar: #121216;
-  --shell-sidebar: #0c0c10;
-  --shell-card: #141418;
-  --shell-label: #ffffff;
-  --shell-label-secondary: rgb(255 255 255 / 0.9);
-  --shell-dim: rgb(255 255 255 / 0.78);
-  --shell-separator: rgb(255 255 255 / 0.48);
-  --shell-border: rgb(255 255 255 / 0.55);
-  --shell-material-border: rgb(255 255 255 / 0.65);
-  --shell-material-dock: #141418;
-  --shell-material-menu: #18181c;
-  --shell-material-popover: #18181c;
-  --shell-shadow-window: 0 0 0 2px rgb(255 255 255 / 0.72), 0 10px 32px rgb(0 0 0 / 0.65);
+  --ui-window: #000000;
+  --ui-content: #000000;
+  --ui-titlebar: #121216;
+  --ui-sidebar: #0c0c10;
+  --ui-card: #141418;
+  --ui-label: #ffffff;
+  --ui-label-secondary: rgb(255 255 255 / 0.9);
+  --ui-dim: rgb(255 255 255 / 0.78);
+  --ui-separator: rgb(255 255 255 / 0.48);
+  --ui-border: rgb(255 255 255 / 0.55);
+  --ui-material-border: rgb(255 255 255 / 0.65);
+  --ui-material-dock: #141418;
+  --ui-material-menu: #18181c;
+  --ui-material-popover: #18181c;
+  --ui-shadow-window: 0 0 0 2px rgb(255 255 255 / 0.72), 0 10px 32px rgb(0 0 0 / 0.65);
 }
 
 @theme inline {
-  --font-sans: var(--font-shell);
-  --font-mono: var(--font-shell-mono);
+  --font-sans: var(--font-ui);
+  --font-mono: var(--font-ui-mono);
 
   --radius-sm: calc(var(--radius) - 2px);
   --radius-md: var(--radius);
@@ -383,144 +383,144 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 
-  --color-shell-blue: var(--shell-blue);
-  --color-shell-red: var(--shell-red);
-  --color-shell-orange: var(--shell-orange);
-  --color-shell-yellow: var(--shell-yellow);
-  --color-shell-green: var(--shell-green);
-  --color-shell-mint: var(--shell-mint);
-  --color-shell-teal: var(--shell-teal);
-  --color-shell-cyan: var(--shell-cyan);
-  --color-shell-indigo: var(--shell-indigo);
-  --color-shell-purple: var(--shell-purple);
-  --color-shell-pink: var(--shell-pink);
-  --color-shell-brown: var(--shell-brown);
-  --color-shell-gray: var(--shell-gray);
-  --color-shell-accent: var(--shell-accent);
-  --color-shell-accent-foreground: var(--shell-accent-foreground);
-  --color-shell-selection: var(--shell-selection);
-  --color-shell-selection-unfocused: var(--shell-selection-unfocused);
-  --color-shell-menu-highlight: var(--shell-menu-highlight);
-  --color-shell-link: var(--shell-link);
-  --color-shell-label: var(--shell-label);
-  --color-shell-label-secondary: var(--shell-label-secondary);
-  --color-shell-label-tertiary: var(--shell-label-tertiary);
-  --color-shell-label-quaternary: var(--shell-label-quaternary);
-  --color-shell-label-quinary: var(--shell-label-quinary);
-  --color-shell-fill: var(--shell-fill-tertiary);
-  --color-shell-fill-primary: var(--shell-fill-primary);
-  --color-shell-fill-secondary: var(--shell-fill-secondary);
-  --color-shell-fill-tertiary: var(--shell-fill-tertiary);
-  --color-shell-fill-quaternary: var(--shell-fill-quaternary);
-  --color-shell-fill-quinary: var(--shell-fill-quinary);
-  --color-shell-fill-strong: var(--shell-fill-primary);
-  --color-shell-control: var(--shell-control);
-  --color-shell-control-pressed: var(--shell-control-pressed);
-  --color-shell-control-disabled: var(--shell-control-disabled);
-  --color-shell-field: var(--shell-field);
-  --color-shell-field-border: var(--shell-field-border);
-  --color-shell-window: var(--shell-window);
-  --color-shell-content: var(--shell-content);
-  --color-shell-content-alternate: var(--shell-content-alternate);
-  --color-shell-group: var(--shell-group);
-  --color-shell-separator: var(--shell-separator);
-  --color-shell-grid: var(--shell-grid);
-  --color-shell-border: var(--shell-border);
-  --color-shell-sidebar: var(--shell-sidebar);
-  --color-shell-sidebar-selection: var(--shell-sidebar-selection);
-  --color-shell-titlebar: var(--shell-titlebar);
-  --color-shell-glass: var(--shell-glass);
-  --color-shell-glass-pressed: var(--shell-glass-pressed);
-  --color-shell-glass-selected: var(--shell-glass-selected);
-  --color-shell-overlay: var(--shell-overlay);
+  --color-ui-blue: var(--ui-blue);
+  --color-ui-red: var(--ui-red);
+  --color-ui-orange: var(--ui-orange);
+  --color-ui-yellow: var(--ui-yellow);
+  --color-ui-green: var(--ui-green);
+  --color-ui-mint: var(--ui-mint);
+  --color-ui-teal: var(--ui-teal);
+  --color-ui-cyan: var(--ui-cyan);
+  --color-ui-indigo: var(--ui-indigo);
+  --color-ui-purple: var(--ui-purple);
+  --color-ui-pink: var(--ui-pink);
+  --color-ui-brown: var(--ui-brown);
+  --color-ui-gray: var(--ui-gray);
+  --color-ui-accent: var(--ui-accent);
+  --color-ui-accent-foreground: var(--ui-accent-foreground);
+  --color-ui-selection: var(--ui-selection);
+  --color-ui-selection-unfocused: var(--ui-selection-unfocused);
+  --color-ui-menu-highlight: var(--ui-menu-highlight);
+  --color-ui-link: var(--ui-link);
+  --color-ui-label: var(--ui-label);
+  --color-ui-label-secondary: var(--ui-label-secondary);
+  --color-ui-label-tertiary: var(--ui-label-tertiary);
+  --color-ui-label-quaternary: var(--ui-label-quaternary);
+  --color-ui-label-quinary: var(--ui-label-quinary);
+  --color-ui-fill: var(--ui-fill-tertiary);
+  --color-ui-fill-primary: var(--ui-fill-primary);
+  --color-ui-fill-secondary: var(--ui-fill-secondary);
+  --color-ui-fill-tertiary: var(--ui-fill-tertiary);
+  --color-ui-fill-quaternary: var(--ui-fill-quaternary);
+  --color-ui-fill-quinary: var(--ui-fill-quinary);
+  --color-ui-fill-strong: var(--ui-fill-primary);
+  --color-ui-control: var(--ui-control);
+  --color-ui-control-pressed: var(--ui-control-pressed);
+  --color-ui-control-disabled: var(--ui-control-disabled);
+  --color-ui-field: var(--ui-field);
+  --color-ui-field-border: var(--ui-field-border);
+  --color-ui-window: var(--ui-window);
+  --color-ui-content: var(--ui-content);
+  --color-ui-content-alternate: var(--ui-content-alternate);
+  --color-ui-group: var(--ui-group);
+  --color-ui-separator: var(--ui-separator);
+  --color-ui-grid: var(--ui-grid);
+  --color-ui-border: var(--ui-border);
+  --color-ui-sidebar: var(--ui-sidebar);
+  --color-ui-sidebar-selection: var(--ui-sidebar-selection);
+  --color-ui-titlebar: var(--ui-titlebar);
+  --color-ui-glass: var(--ui-glass);
+  --color-ui-glass-pressed: var(--ui-glass-pressed);
+  --color-ui-glass-selected: var(--ui-glass-selected);
+  --color-ui-overlay: var(--ui-overlay);
 
-  --radius-shell-control: var(--shell-radius-control);
-  --radius-shell-menu: var(--shell-radius-menu);
-  --radius-shell-item: var(--shell-radius-item);
-  --radius-shell-group: var(--shell-radius-group);
-  --radius-shell-popover: var(--shell-radius-popover);
-  --radius-shell-alert: var(--shell-radius-alert);
-  --radius-shell-window: var(--shell-radius-window);
+  --radius-ui-control: var(--ui-radius-control);
+  --radius-ui-menu: var(--ui-radius-menu);
+  --radius-ui-item: var(--ui-radius-item);
+  --radius-ui-group: var(--ui-radius-group);
+  --radius-ui-popover: var(--ui-radius-popover);
+  --radius-ui-alert: var(--ui-radius-alert);
+  --radius-ui-window: var(--ui-radius-window);
 
-  --shadow-shell-menu: var(--shell-shadow-menu);
-  --shadow-shell-popover: var(--shell-shadow-popover);
-  --shadow-shell-tooltip: var(--shell-shadow-tooltip);
-  --shadow-shell-dock: var(--shell-shadow-dock);
-  --shadow-shell-dock-label: var(--shell-shadow-dock-label);
-  --shadow-shell-window: var(--shell-shadow-window);
-  --shadow-shell-window-inactive: var(--shell-shadow-window-inactive);
-  --shadow-shell-focus: var(--shell-focus-ring);
+  --shadow-ui-menu: var(--ui-shadow-menu);
+  --shadow-ui-popover: var(--ui-shadow-popover);
+  --shadow-ui-tooltip: var(--ui-shadow-tooltip);
+  --shadow-ui-dock: var(--ui-shadow-dock);
+  --shadow-ui-dock-label: var(--ui-shadow-dock-label);
+  --shadow-ui-window: var(--ui-shadow-window);
+  --shadow-ui-window-inactive: var(--ui-shadow-window-inactive);
+  --shadow-ui-focus: var(--ui-focus-ring);
 
-  /* Control heights: h-shell-control-small, size-shell-control-small… */
-  --spacing-shell-control-mini: var(--shell-control-mini);
-  --spacing-shell-control-small: var(--shell-control-small);
-  --spacing-shell-control-medium: var(--shell-control-medium);
-  --spacing-shell-control-large: var(--shell-control-large);
+  /* Control heights: h-ui-control-small, size-ui-control-small… */
+  --spacing-ui-control-mini: var(--ui-control-mini);
+  --spacing-ui-control-small: var(--ui-control-small);
+  --spacing-ui-control-medium: var(--ui-control-medium);
+  --spacing-ui-control-large: var(--ui-control-large);
 
   /* Typography roles (size / line-height); sizes are per-theme variables */
-  --text-shell-large-title: var(--shell-font-large-title);
-  --text-shell-large-title--line-height: 32px;
-  --text-shell-title-1: var(--shell-font-title-1);
-  --text-shell-title-1--line-height: 26px;
-  --text-shell-title-2: var(--shell-font-title-2);
-  --text-shell-title-2--line-height: 22px;
-  --text-shell-title-3: var(--shell-font-title-3);
-  --text-shell-title-3--line-height: 20px;
-  --text-shell-headline: var(--shell-font-headline);
-  --text-shell-headline--line-height: 16px;
-  --text-shell-body: var(--shell-font-body);
-  --text-shell-body--line-height: 16px;
-  --text-shell-callout: var(--shell-font-callout);
-  --text-shell-callout--line-height: 15px;
-  --text-shell-subheadline: var(--shell-font-subheadline);
-  --text-shell-subheadline--line-height: 14px;
-  --text-shell-footnote: var(--shell-font-footnote);
-  --text-shell-footnote--line-height: 13px;
-  --text-shell-caption: var(--shell-font-caption);
-  --text-shell-caption--line-height: 13px;
+  --text-ui-large-title: var(--ui-font-large-title);
+  --text-ui-large-title--line-height: 32px;
+  --text-ui-title-1: var(--ui-font-title-1);
+  --text-ui-title-1--line-height: 26px;
+  --text-ui-title-2: var(--ui-font-title-2);
+  --text-ui-title-2--line-height: 22px;
+  --text-ui-title-3: var(--ui-font-title-3);
+  --text-ui-title-3--line-height: 20px;
+  --text-ui-headline: var(--ui-font-headline);
+  --text-ui-headline--line-height: 16px;
+  --text-ui-body: var(--ui-font-body);
+  --text-ui-body--line-height: 16px;
+  --text-ui-callout: var(--ui-font-callout);
+  --text-ui-callout--line-height: 15px;
+  --text-ui-subheadline: var(--ui-font-subheadline);
+  --text-ui-subheadline--line-height: 14px;
+  --text-ui-footnote: var(--ui-font-footnote);
+  --text-ui-footnote--line-height: 13px;
+  --text-ui-caption: var(--ui-font-caption);
+  --text-ui-caption--line-height: 13px;
 }
 
 /* Surfaces used by menus, popovers, sidebars, dock and titlebars */
-@utility shell-material-menu {
-  background-color: var(--shell-material-menu);
+@utility ui-material-menu {
+  background-color: var(--ui-material-menu);
 }
 
-@utility shell-material-popover {
-  background-color: var(--shell-material-popover);
+@utility ui-material-popover {
+  background-color: var(--ui-material-popover);
 }
 
-@utility shell-material-hud {
-  background-color: var(--shell-material-hud);
+@utility ui-material-hud {
+  background-color: var(--ui-material-hud);
 }
 
-@utility shell-material-tooltip {
-  background-color: var(--shell-material-tooltip);
+@utility ui-material-tooltip {
+  background-color: var(--ui-material-tooltip);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
   backdrop-filter: blur(20px) saturate(180%);
 }
 
-@utility shell-material-dock {
-  background-color: var(--shell-material-dock);
-  -webkit-backdrop-filter: blur(var(--shell-material-blur)) saturate(var(--shell-material-dock-saturation, 180%)) brightness(var(--shell-material-dock-brightness, 1));
-  backdrop-filter: blur(var(--shell-material-blur)) saturate(var(--shell-material-dock-saturation, 180%)) brightness(var(--shell-material-dock-brightness, 1));
+@utility ui-material-dock {
+  background-color: var(--ui-material-dock);
+  -webkit-backdrop-filter: blur(var(--ui-material-blur)) saturate(var(--ui-material-dock-saturation, 180%)) brightness(var(--ui-material-dock-brightness, 1));
+  backdrop-filter: blur(var(--ui-material-blur)) saturate(var(--ui-material-dock-saturation, 180%)) brightness(var(--ui-material-dock-brightness, 1));
 }
 
-@utility shell-material-dock-label {
-  background-color: var(--shell-dock-label);
-  -webkit-backdrop-filter: blur(20px) saturate(var(--shell-dock-label-saturation, 180%));
-  backdrop-filter: blur(20px) saturate(var(--shell-dock-label-saturation, 180%));
+@utility ui-material-dock-label {
+  background-color: var(--ui-dock-label);
+  -webkit-backdrop-filter: blur(20px) saturate(var(--ui-dock-label-saturation, 180%));
+  backdrop-filter: blur(20px) saturate(var(--ui-dock-label-saturation, 180%));
 }
 
-@utility shell-material-sidebar {
-  background-color: var(--shell-sidebar);
-  -webkit-backdrop-filter: blur(var(--shell-material-blur)) saturate(180%);
-  backdrop-filter: blur(var(--shell-material-blur)) saturate(180%);
+@utility ui-material-sidebar {
+  background-color: var(--ui-sidebar);
+  -webkit-backdrop-filter: blur(var(--ui-material-blur)) saturate(180%);
+  backdrop-filter: blur(var(--ui-material-blur)) saturate(180%);
 }
 
-@utility shell-material-titlebar {
-  background-color: var(--shell-titlebar);
-  -webkit-backdrop-filter: blur(var(--shell-material-blur)) saturate(180%);
-  backdrop-filter: blur(var(--shell-material-blur)) saturate(180%);
+@utility ui-material-titlebar {
+  background-color: var(--ui-titlebar);
+  -webkit-backdrop-filter: blur(var(--ui-material-blur)) saturate(180%);
+  backdrop-filter: blur(var(--ui-material-blur)) saturate(180%);
 }
 
 aside [data-slot="window-titlebar"],
@@ -530,19 +530,19 @@ aside [data-slot="window-titlebar"],
   backdrop-filter: none !important;
 }
 
-@utility shell-glass {
-  background-color: var(--shell-glass);
+@utility ui-glass {
+  background-color: var(--ui-glass);
   box-shadow:
-    inset 0 1px 0 var(--shell-glass-edge),
-    inset 0 -1px 0 var(--shell-glass-edge),
-    inset 1px 0 0 var(--shell-glass-rim),
-    inset -1px 0 0 var(--shell-glass-rim),
-    var(--shell-glass-shadow);
+    inset 0 1px 0 var(--ui-glass-edge),
+    inset 0 -1px 0 var(--ui-glass-edge),
+    inset 1px 0 0 var(--ui-glass-rim),
+    inset -1px 0 0 var(--ui-glass-rim),
+    var(--ui-glass-shadow);
 }
 
-@utility shell-focus-ring {
+@utility ui-focus-ring {
   outline: none;
-  box-shadow: var(--shell-focus-ring);
+  box-shadow: var(--ui-focus-ring);
 }
 
 @layer base {
@@ -551,7 +551,7 @@ aside [data-slot="window-titlebar"],
   }
 
   body {
-    @apply bg-transparent font-sans text-shell-body text-foreground;
+    @apply bg-transparent font-sans text-ui-body text-foreground;
   }
 }
 
@@ -564,13 +564,13 @@ aside [data-slot="window-titlebar"],
   border-radius: 9px !important;
   padding-inline: 10px !important;
   gap: 6px !important;
-  background-color: var(--shell-field) !important;
+  background-color: var(--ui-field) !important;
   box-shadow: none !important;
   font-size: calc(13.5px * var(--piloti-font-scale, 1)) !important;
 }
 
 [data-slot="search-field"]:focus-within {
-  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--shell-accent) 50%, transparent) !important;
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--ui-accent) 50%, transparent) !important;
 }
 
 /*
@@ -595,14 +595,14 @@ aside [data-slot="window-titlebar"],
   font-size: calc(14px * var(--piloti-font-scale, 1));
   font-weight: var(--piloti-font-weight-semibold, 500);
   letter-spacing: -0.005em;
-  color: var(--shell-label);
+  color: var(--ui-label);
 }
 
 [data-slot="grouped-form-group"] {
   padding-inline: 0;
   border-radius: 12px;
   overflow: hidden;
-  background-color: var(--shell-group);
+  background-color: var(--ui-group);
   box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.08), 0 0 0 1px rgb(0 0 0 / 0.07);
 }
 
@@ -626,7 +626,7 @@ aside [data-slot="window-titlebar"],
 [data-slot="grouped-form-row-description"] {
   font-size: calc(12px * var(--piloti-font-scale, 1));
   line-height: 1.35;
-  color: var(--shell-label-secondary);
+  color: var(--ui-label-secondary);
 }
 
 /* Adwaita Select / ComboRow Trigger */
@@ -635,7 +635,7 @@ aside [data-slot="window-titlebar"],
   border-radius: 8px !important;
   padding-inline: 10px 8px !important;
   font-size: calc(13.5px * var(--piloti-font-scale, 1)) !important;
-  background-color: var(--shell-control) !important;
+  background-color: var(--ui-control) !important;
 }
 
 /*
@@ -660,7 +660,7 @@ aside [data-slot="window-titlebar"],
 
 [data-slot="window-controls"]>button svg {
   opacity: 0.85 !important;
-  color: var(--window-controls-fg, var(--shell-label)) !important;
+  color: var(--window-controls-fg, var(--ui-label)) !important;
   width: 12px;
   height: 12px;
 }

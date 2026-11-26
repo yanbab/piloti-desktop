@@ -46,7 +46,7 @@ export function HeaderSearch({
       {/* The field gives way first when the headerbar is narrow. */}
       {open && (
         <div className="relative flex min-w-0 shrink items-center">
-          <SearchIcon className="pointer-events-none absolute left-2 size-3.5 text-shell-label-secondary" />
+          <SearchIcon className="pointer-events-none absolute left-2 size-3.5 text-ui-label-secondary" />
           <input
             ref={ref}
             type="search"
@@ -61,7 +61,7 @@ export function HeaderSearch({
             }}
             placeholder={label}
             aria-label={label}
-            className="h-7 w-44 min-w-16 shrink rounded-shell-control border border-shell-separator bg-black/6 pr-6 pl-7 text-shell-callout text-shell-label placeholder:text-shell-label-secondary focus:border-shell-accent focus:outline-none dark:bg-white/10 [&::-webkit-search-cancel-button]:hidden"
+            className="h-7 w-44 min-w-16 shrink rounded-ui-control border border-ui-separator bg-black/6 pr-6 pl-7 text-ui-callout text-ui-label placeholder:text-ui-label-secondary focus:border-ui-accent focus:outline-none dark:bg-white/10 [&::-webkit-search-cancel-button]:hidden"
           />
           {query && (
             <button
@@ -71,7 +71,7 @@ export function HeaderSearch({
                 onQueryChange("")
                 ref.current?.focus()
               }}
-              className="absolute right-1 flex size-4.5 items-center justify-center rounded-full bg-black/10 text-shell-label-secondary dark:bg-white/15"
+              className="absolute right-1 flex size-4.5 items-center justify-center rounded-full bg-black/10 text-ui-label-secondary dark:bg-white/15"
             >
               <XIcon className="size-2.5" strokeWidth={2.25} />
             </button>
@@ -87,10 +87,10 @@ export function HeaderSearch({
           aria-pressed={open}
           onClick={toggle}
           className={cn(
-            "flex size-7 shrink-0 items-center justify-center rounded-shell-control transition-colors",
+            "flex size-7 shrink-0 items-center justify-center rounded-ui-control transition-colors",
             open
-              ? "bg-black/10 text-shell-label dark:bg-white/15"
-              : "text-shell-label-secondary hover-fill:bg-black/8 hover-fill:text-shell-label dark:hover-fill:bg-white/10"
+              ? "bg-black/10 text-ui-label dark:bg-white/15"
+              : "text-ui-label-secondary hover-fill:bg-black/8 hover-fill:text-ui-label dark:hover-fill:bg-white/10"
           )}
         >
           <SearchIcon className="size-4" />

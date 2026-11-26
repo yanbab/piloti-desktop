@@ -18,14 +18,14 @@ function Switch({
       data-size={size}
       className={
         typeof className === "function"
-          ? (state) => cn("shell-switch", className(state))
-          : cn("shell-switch", className)
+          ? (state) => cn("ui-switch", className(state))
+          : cn("ui-switch", className)
       }
       {...props}
     >
       <SwitchPrimitive.Thumb
         data-slot="switch-thumb"
-        className="shell-switch-thumb"
+        className="ui-switch-thumb"
       />
     </SwitchPrimitive.Root>
   )

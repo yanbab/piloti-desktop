@@ -991,7 +991,7 @@ export function IconGrid({
             width: `${marqueeRect.right - marqueeRect.left}px`,
             height: `${marqueeRect.bottom - marqueeRect.top}px`,
           }}
-          className="pointer-events-none absolute z-40 rounded-[3px] border border-shell-accent/85 bg-shell-accent/20"
+          className="pointer-events-none absolute z-40 rounded-[3px] border border-ui-accent/85 bg-ui-accent/20"
         />
       )}
 
@@ -1144,7 +1144,7 @@ export function IconGrid({
               }
             }}
             className={cn(
-              "group relative flex cursor-default rounded-shell-group outline-none select-none",
+              "group relative flex cursor-default rounded-ui-group outline-none select-none",
               compactHorizontal
                 ? "flex-row items-center justify-start gap-1 px-1.5 py-0.5 text-left"
                 : "flex-col items-center justify-start gap-1 px-1 py-1.5 text-center",
@@ -1159,7 +1159,7 @@ export function IconGrid({
                 aria-hidden
                 data-slot="icon-selection-square"
                 style={{ width: `${iconSize + 12}px`, height: `${iconSize + 12}px` }}
-                className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 rounded-shell-item bg-black/10 dark:bg-white/16"
+                className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 rounded-ui-item bg-black/10 dark:bg-white/16"
               />
             )}
             <div
@@ -1442,16 +1442,16 @@ export function IconGrid({
                   onCommitRename?.(item, e.currentTarget.value);
                 }}
                 className={cn(
-                  "w-auto min-w-[3.5rem] max-w-full rounded bg-zinc-900/95 px-1.5 py-0.5 text-shell-callout leading-tight font-medium text-white ring-1 ring-shell-accent outline-none",
+                  "w-auto min-w-[3.5rem] max-w-full rounded bg-zinc-900/95 px-1.5 py-0.5 text-ui-callout leading-tight font-medium text-white ring-1 ring-ui-accent outline-none",
                   compactHorizontal ? "text-left" : "text-center",
                 )}
               />
             ) : (
               <span
                 className={cn(
-                  "w-fit max-w-full shrink-0 rounded px-1.5 py-0.5 text-shell-callout leading-[1.3] font-medium text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]",
+                  "w-fit max-w-full shrink-0 rounded px-1.5 py-0.5 text-ui-callout leading-[1.3] font-medium text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]",
                   compactHorizontal && "truncate",
-                  selected && "bg-shell-accent text-white drop-shadow-none",
+                  selected && "bg-ui-accent text-white drop-shadow-none",
                 )}
               >
                 <span
@@ -1512,7 +1512,7 @@ dropAnimOff ? null : dragFlyBackAnimation
                     const badge = document.createElement("span");
                     badge.textContent = String(latest.draggedIds.length);
                     badge.style.cssText =
-                      "position:absolute;top:2px;right:6px;min-width:20px;height:20px;padding:0 6px;border-radius:10px;background:var(--shell-accent,#3584e4);color:#fff;font:700 11px/20px system-ui;text-align:center;box-shadow:0 2px 6px rgba(0,0,0,.35)";
+                      "position:absolute;top:2px;right:6px;min-width:20px;height:20px;padding:0 6px;border-radius:10px;background:var(--ui-accent,#3584e4);color:#fff;font:700 11px/20px system-ui;text-align:center;box-shadow:0 2px 6px rgba(0,0,0,.35)";
                     clone.appendChild(badge);
                   }
                 });

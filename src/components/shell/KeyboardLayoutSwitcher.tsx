@@ -93,7 +93,7 @@ export function KeyboardLayoutSwitcher({
         aria-label={_("Keyboard Layout")}
         title={activeLayout.label}
         className={cn(
-          "flex h-full shrink-0 cursor-default items-center gap-1 rounded-shell-control px-2 text-shell-callout font-medium uppercase outline-none select-none transition-colors hover-fill:bg-black/8 active:bg-black/14 data-popup-open:bg-black/12 focus-visible:bg-black/10 dark:hover-fill:bg-white/10 dark:active:bg-white/18 dark:data-popup-open:bg-white/15 dark:focus-visible:bg-white/12",
+          "flex h-full shrink-0 cursor-default items-center gap-1 rounded-ui-control px-2 text-ui-callout font-medium uppercase outline-none select-none transition-colors hover-fill:bg-black/8 active:bg-black/14 data-popup-open:bg-black/12 focus-visible:bg-black/10 dark:hover-fill:bg-white/10 dark:active:bg-white/18 dark:data-popup-open:bg-white/15 dark:focus-visible:bg-white/12",
           triggerClassName
         )}
       >

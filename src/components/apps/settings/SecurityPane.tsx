@@ -255,7 +255,7 @@ export function SecurityPane() {
     <GroupedForm>
       {/* Switcher and search live in the Settings header bar. */}
       <HeaderBar.Portal>
-        <div className="inline-flex shrink-0 rounded-shell-item bg-black/8 p-0.5 dark:bg-white/10" data-slot="segmented">
+        <div className="inline-flex shrink-0 rounded-ui-item bg-black/8 p-0.5 dark:bg-white/10" data-slot="segmented">
           {(["apps", "permissions"] as const).map((mode) => {
             const selected = groupBy === mode;
             return (
@@ -266,10 +266,10 @@ export function SecurityPane() {
                 aria-pressed={selected}
                 onClick={() => setGroupBy(mode)}
                 className={cn(
-                  "rounded-shell-control px-3 py-0.5 text-shell-callout font-medium transition-all",
+                  "rounded-ui-control px-3 py-0.5 text-ui-callout font-medium transition-all",
                   selected
                     ? "bg-white text-black shadow-xs dark:bg-white/16 dark:text-white"
-                    : "text-shell-label-secondary"
+                    : "text-ui-label-secondary"
                 )}
               >
                 {mode === "apps" ? _("Apps") : _("Permissions")}
@@ -292,9 +292,9 @@ export function SecurityPane() {
         </GroupedFormSectionTitle>
         {filteredApps.length === 0 ? (
           <GroupedFormGroup>
-            <div className="flex flex-col items-center justify-center gap-1.5 py-8 text-center text-shell-label-tertiary">
+            <div className="flex flex-col items-center justify-center gap-1.5 py-8 text-center text-ui-label-tertiary">
               <ShieldCheckIcon className="size-6 opacity-60" />
-              <div className="text-shell-callout font-medium">
+              <div className="text-ui-callout font-medium">
                 {_("No matching apps found")}
               </div>
             </div>
@@ -343,28 +343,28 @@ export function SecurityPane() {
                   >
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="text-shell-body font-semibold text-shell-label">
+                        <span className="text-ui-body font-semibold text-ui-label">
                           {_(perm.label)}
                         </span>
-                        <span className="rounded-full bg-black/6 px-2 py-0.5 text-shell-footnote font-medium text-shell-label-secondary dark:bg-white/10">
+                        <span className="rounded-full bg-black/6 px-2 py-0.5 text-ui-footnote font-medium text-ui-label-secondary dark:bg-white/10">
                           {targetApps.length}
                         </span>
                       </div>
-                      <div className="truncate text-shell-subheadline text-shell-label-tertiary">
+                      <div className="truncate text-ui-subheadline text-ui-label-tertiary">
                         {_(perm.description)}
                       </div>
                     </div>
                     <ChevronDownIcon
                       className={cn(
-                        "size-4 shrink-0 text-shell-label-tertiary transition-transform duration-150",
+                        "size-4 shrink-0 text-ui-label-tertiary transition-transform duration-150",
                         isOpen && "rotate-180"
                       )}
                     />
                   </button>
                   {isOpen && (
-                    <div className="divide-y divide-shell-separator/70 border-t border-shell-separator/70">
+                    <div className="divide-y divide-ui-separator/70 border-t border-ui-separator/70">
                       {targetApps.length === 0 ? (
-                        <div className="px-4 py-3 text-shell-callout text-shell-label-tertiary">
+                        <div className="px-4 py-3 text-ui-callout text-ui-label-tertiary">
                           {_("No Flatpak apps installed")}
                         </div>
                       ) : (
@@ -457,30 +457,30 @@ export function SecurityPane() {
                       />
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
-                          <span className="truncate text-shell-body font-semibold text-shell-label">
+                          <span className="truncate text-ui-body font-semibold text-ui-label">
                             {app.name}
                           </span>
                           {app.isFlatpak && (
-                            <span className="rounded-full bg-shell-accent/15 px-1.5 py-0.5 text-shell-footnote font-medium text-shell-accent">
+                            <span className="rounded-full bg-ui-accent/15 px-1.5 py-0.5 text-ui-footnote font-medium text-ui-accent">
                               Flatpak
                             </span>
                           )}
                         </div>
-                        <div className="truncate text-shell-subheadline text-shell-label-tertiary">
+                        <div className="truncate text-ui-subheadline text-ui-label-tertiary">
                           {app.subtitle}
                         </div>
                       </div>
                     </div>
                     <ChevronDownIcon
                       className={cn(
-                        "size-4 shrink-0 text-shell-label-tertiary transition-transform duration-150",
+                        "size-4 shrink-0 text-ui-label-tertiary transition-transform duration-150",
                         isOpen && "rotate-180"
                       )}
                     />
                   </button>
 
                   {isOpen && (
-                    <div className="divide-y divide-shell-separator/70 border-t border-shell-separator/70">
+                    <div className="divide-y divide-ui-separator/70 border-t border-ui-separator/70">
                       <GroupedFormRow>
                         <GroupedFormRowLabel>
                           <GroupedFormRowTitle>

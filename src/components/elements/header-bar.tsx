@@ -71,7 +71,7 @@ function HeaderBarRoot({
       data-window-drag-region={client ? "" : undefined}
       data-decorations={decorations}
       className={cn(
-        "border-b border-shell-separator bg-shell-titlebar",
+        "border-b border-ui-separator bg-ui-titlebar",
         title && "grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]",
         server && "rounded-t-none",
         (!atStart || inset) && "rounded-tl-none",
@@ -101,7 +101,7 @@ function HeaderBarRoot({
       {title ? (
         <div
           data-slot="window-title"
-          className="flex min-w-0 items-center justify-center text-shell-body font-bold group-data-[inactive]/window:text-shell-label-tertiary"
+          className="flex min-w-0 items-center justify-center text-ui-body font-bold group-data-[inactive]/window:text-ui-label-tertiary"
         >
           {typeof title === "string" ? <span className="truncate">{title}</span> : title}
         </div>
@@ -137,7 +137,7 @@ export function HeaderHeading({ className, ...props }: React.ComponentProps<"h2"
   return (
     <h2
       data-slot="page-title"
-      className={cn("truncate pr-2 text-shell-body font-bold", className)}
+      className={cn("truncate pr-2 text-ui-body font-bold", className)}
       {...props}
     />
   );

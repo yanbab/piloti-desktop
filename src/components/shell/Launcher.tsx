@@ -429,7 +429,7 @@ export const Launcher = React.memo(function Launcher() {
           {
             value: `math:copy:${mathResult.result}`,
             score: 1200,
-            icon: <CalculatorIcon className="size-4 text-shell-accent" />,
+            icon: <CalculatorIcon className="size-4 text-ui-accent" />,
             label: `= ${mathResult.result}`,
             hint: `${mathResult.expression} · Copy Result`,
             onSelect: () =>
@@ -1275,11 +1275,11 @@ export const Launcher = React.memo(function Launcher() {
         style={{ maxHeight: `${listHeight}px` }}
       >
         {!listReady ? (
-          <div className="py-6 text-center text-shell-body text-shell-label-secondary">
+          <div className="py-6 text-center text-ui-body text-ui-label-secondary">
             {_("Loading…")}
           </div>
         ) : sections.length === 0 ? (
-          <div className="py-6 text-center text-shell-body text-shell-label-secondary">
+          <div className="py-6 text-center text-ui-body text-ui-label-secondary">
             {_("No matching apps, folders, settings, or commands.")}
           </div>
         ) : (
@@ -1305,7 +1305,7 @@ export const Launcher = React.memo(function Launcher() {
                       {item.label}
                     </span>
                     {item.hint && (
-                      <span className="shrink-0 text-shell-subheadline text-shell-label-tertiary">
+                      <span className="shrink-0 text-ui-subheadline text-ui-label-tertiary">
                         {item.hint}
                       </span>
                     )}

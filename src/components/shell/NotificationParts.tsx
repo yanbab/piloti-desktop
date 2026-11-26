@@ -79,8 +79,8 @@ export function NotificationAppIcon({
       className={cn(
         "flex size-5 shrink-0 items-center justify-center rounded-[5px]",
         urgency === "critical"
-          ? "bg-shell-accent/15 text-shell-accent"
-          : "bg-black/8 text-shell-label-secondary dark:bg-white/10",
+          ? "bg-ui-accent/15 text-ui-accent"
+          : "bg-black/8 text-ui-label-secondary dark:bg-white/10",
         className
       )}
     >
@@ -159,7 +159,7 @@ export function NotificationActionControls({
               key={act.key}
               size="sm"
               variant="secondary"
-              className="h-6 px-2 text-shell-footnote"
+              className="h-6 px-2 text-ui-footnote"
               onClick={(e) => handleActionClick(e, act)}
             >
               {act.label}
@@ -174,14 +174,14 @@ export function NotificationActionControls({
             value={replyText}
             onChange={(e) => setReplyText(e.target.value)}
             placeholder={replyAction.label || "Send a reply…"}
-            className="h-7 flex-1 text-shell-subheadline"
+            className="h-7 flex-1 text-ui-subheadline"
           />
           <Button
             type="submit"
             size="sm"
             variant="secondary"
             disabled={!replyText.trim()}
-            className="h-7 px-2 text-shell-footnote"
+            className="h-7 px-2 text-ui-footnote"
           >
             <SendIcon className="size-3" />
           </Button>

@@ -254,12 +254,12 @@ export function SettingsApp({
       sidebarRef={sidebarNavRef}
       onSidebarKeyDown={onSidebarKeyDown}
       onSidebarKeyUp={onSidebarKeyUp}
-      contentClassName="bg-shell-window"
+      contentClassName="bg-ui-window"
       header={({ contentScrolled }) => (
         <HeaderBar
           className={cn(
             "transition-colors",
-            contentScrolled ? "border-shell-separator" : "border-transparent",
+            contentScrolled ? "border-ui-separator" : "border-transparent",
           )}
         >
           <HeaderBar.Start>
@@ -275,7 +275,7 @@ export function SettingsApp({
                   size="sm"
                   variant="secondary"
                   onClick={() => openGnomeSettings(matchingGnomePanel)}
-                  className="h-6 text-shell-subheadline"
+                  className="h-6 text-ui-subheadline"
                 >
                   {_("System Settings…")}
                 </Button>

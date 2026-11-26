@@ -1030,14 +1030,14 @@ export function useSettingsValue(options?: {
     };
 
     root.style.setProperty(
-      "--font-shell",
+      "--font-ui",
       formatFontList(
         settings.fontSansFamily,
         '"Cantarell", "Adwaita Sans", "Inter", system-ui, -apple-system, BlinkMacSystemFont, sans-serif'
       )
     );
     root.style.setProperty(
-      "--font-shell-mono",
+      "--font-ui-mono",
       formatFontList(
         settings.fontMonoFamily,
         '"Adwaita Mono", "Source Code Pro", "JetBrains Mono", ui-monospace, monospace'
@@ -1086,49 +1086,49 @@ export function useSettingsValue(options?: {
     root.style.setProperty("--piloti-font-scale", String(scale));
     if (Math.abs(scale - 1) < 0.001) {
       root.style.fontSize = "";
-      root.style.removeProperty("--text-shell-large-title");
-      root.style.removeProperty("--text-shell-large-title--line-height");
-      root.style.removeProperty("--text-shell-title-1");
-      root.style.removeProperty("--text-shell-title-1--line-height");
-      root.style.removeProperty("--text-shell-title-2");
-      root.style.removeProperty("--text-shell-title-2--line-height");
-      root.style.removeProperty("--text-shell-title-3");
-      root.style.removeProperty("--text-shell-title-3--line-height");
-      root.style.removeProperty("--text-shell-headline");
-      root.style.removeProperty("--text-shell-headline--line-height");
-      root.style.removeProperty("--text-shell-body");
-      root.style.removeProperty("--text-shell-body--line-height");
-      root.style.removeProperty("--text-shell-callout");
-      root.style.removeProperty("--text-shell-callout--line-height");
-      root.style.removeProperty("--text-shell-subheadline");
-      root.style.removeProperty("--text-shell-subheadline--line-height");
-      root.style.removeProperty("--text-shell-footnote");
-      root.style.removeProperty("--text-shell-footnote--line-height");
-      root.style.removeProperty("--text-shell-caption");
-      root.style.removeProperty("--text-shell-caption--line-height");
+      root.style.removeProperty("--text-ui-large-title");
+      root.style.removeProperty("--text-ui-large-title--line-height");
+      root.style.removeProperty("--text-ui-title-1");
+      root.style.removeProperty("--text-ui-title-1--line-height");
+      root.style.removeProperty("--text-ui-title-2");
+      root.style.removeProperty("--text-ui-title-2--line-height");
+      root.style.removeProperty("--text-ui-title-3");
+      root.style.removeProperty("--text-ui-title-3--line-height");
+      root.style.removeProperty("--text-ui-headline");
+      root.style.removeProperty("--text-ui-headline--line-height");
+      root.style.removeProperty("--text-ui-body");
+      root.style.removeProperty("--text-ui-body--line-height");
+      root.style.removeProperty("--text-ui-callout");
+      root.style.removeProperty("--text-ui-callout--line-height");
+      root.style.removeProperty("--text-ui-subheadline");
+      root.style.removeProperty("--text-ui-subheadline--line-height");
+      root.style.removeProperty("--text-ui-footnote");
+      root.style.removeProperty("--text-ui-footnote--line-height");
+      root.style.removeProperty("--text-ui-caption");
+      root.style.removeProperty("--text-ui-caption--line-height");
     } else {
       const px = (base: number) => `${Math.round(base * scale * 10) / 10}px`;
       root.style.fontSize = `${Math.round(16 * scale * 100) / 100}px`;
-      root.style.setProperty("--text-shell-large-title", px(26));
-      root.style.setProperty("--text-shell-large-title--line-height", px(32));
-      root.style.setProperty("--text-shell-title-1", px(22));
-      root.style.setProperty("--text-shell-title-1--line-height", px(26));
-      root.style.setProperty("--text-shell-title-2", px(17));
-      root.style.setProperty("--text-shell-title-2--line-height", px(22));
-      root.style.setProperty("--text-shell-title-3", px(15));
-      root.style.setProperty("--text-shell-title-3--line-height", px(20));
-      root.style.setProperty("--text-shell-headline", px(13));
-      root.style.setProperty("--text-shell-headline--line-height", px(16));
-      root.style.setProperty("--text-shell-body", px(13));
-      root.style.setProperty("--text-shell-body--line-height", px(16));
-      root.style.setProperty("--text-shell-callout", px(12));
-      root.style.setProperty("--text-shell-callout--line-height", px(15));
-      root.style.setProperty("--text-shell-subheadline", px(11));
-      root.style.setProperty("--text-shell-subheadline--line-height", px(14));
-      root.style.setProperty("--text-shell-footnote", px(10));
-      root.style.setProperty("--text-shell-footnote--line-height", px(13));
-      root.style.setProperty("--text-shell-caption", px(10));
-      root.style.setProperty("--text-shell-caption--line-height", px(13));
+      root.style.setProperty("--text-ui-large-title", px(26));
+      root.style.setProperty("--text-ui-large-title--line-height", px(32));
+      root.style.setProperty("--text-ui-title-1", px(22));
+      root.style.setProperty("--text-ui-title-1--line-height", px(26));
+      root.style.setProperty("--text-ui-title-2", px(17));
+      root.style.setProperty("--text-ui-title-2--line-height", px(22));
+      root.style.setProperty("--text-ui-title-3", px(15));
+      root.style.setProperty("--text-ui-title-3--line-height", px(20));
+      root.style.setProperty("--text-ui-headline", px(13));
+      root.style.setProperty("--text-ui-headline--line-height", px(16));
+      root.style.setProperty("--text-ui-body", px(13));
+      root.style.setProperty("--text-ui-body--line-height", px(16));
+      root.style.setProperty("--text-ui-callout", px(12));
+      root.style.setProperty("--text-ui-callout--line-height", px(15));
+      root.style.setProperty("--text-ui-subheadline", px(11));
+      root.style.setProperty("--text-ui-subheadline--line-height", px(14));
+      root.style.setProperty("--text-ui-footnote", px(10));
+      root.style.setProperty("--text-ui-footnote--line-height", px(13));
+      root.style.setProperty("--text-ui-caption", px(10));
+      root.style.setProperty("--text-ui-caption--line-height", px(13));
     }
   }, [
     settings.cssFontKerning,
@@ -1178,13 +1178,13 @@ export function useSettingsValue(options?: {
     root.dataset.highContrast = settings.highContrast ? "true" : "false";
     const customHex = settings.customAccentHex?.trim();
     if (customHex && /^#[0-9a-f]{6}$/i.test(customHex)) {
-      root.style.setProperty("--shell-active-accent", customHex);
+      root.style.setProperty("--ui-active-accent", customHex);
     } else {
       const accent = ACCENT_COLORS.find((a) => a.id === settings.accentColor);
       if (accent && accent.id !== "blue") {
-        root.style.setProperty("--shell-active-accent", accent.cssVar);
+        root.style.setProperty("--ui-active-accent", accent.cssVar);
       } else {
-        root.style.removeProperty("--shell-active-accent");
+        root.style.removeProperty("--ui-active-accent");
       }
     }
     try {

@@ -39,7 +39,7 @@ function DialogOverlay({
     <DialogPrimitive.Backdrop
       data-slot="dialog-overlay"
       className={cn(
-        "fixed inset-0 z-[450] bg-shell-overlay data-open:animate-in data-open:fade-in-0",
+        "fixed inset-0 z-[450] bg-ui-overlay data-open:animate-in data-open:fade-in-0",
         className
       )}
       {...props}
@@ -71,10 +71,10 @@ function DialogContent({
       <DialogPrimitive.Popup
         data-slot="dialog-content"
         className={cn(
-          "fixed top-[50%] left-[50%] z-[450] grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] text-shell-label outline-none sm:max-w-md",
+          "fixed top-[50%] left-[50%] z-[450] grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] text-ui-label outline-none sm:max-w-md",
           variant === "menu"
-            ? "gap-0 overflow-hidden rounded-shell-menu p-0 shadow-shell-menu shell-material-menu duration-150 data-open:animate-in data-open:fade-in-0 motion-reduce:animate-none"
-            : "gap-4 rounded-shell-window bg-white/95 dark:bg-zinc-900/95 backdrop-blur-2xl p-5 shadow-shell-window duration-150 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-[0.97] dark:shadow-[0_0_0_1px_rgb(0_0_0/0.92),inset_0_0_0_1px_var(--shell-window-rim),0_18px_54px_rgb(0_0_0/0.57)]",
+            ? "gap-0 overflow-hidden rounded-ui-menu p-0 shadow-ui-menu ui-material-menu duration-150 data-open:animate-in data-open:fade-in-0 motion-reduce:animate-none"
+            : "gap-4 rounded-ui-window bg-white/95 dark:bg-zinc-900/95 backdrop-blur-2xl p-5 shadow-ui-window duration-150 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-[0.97] dark:shadow-[0_0_0_1px_rgb(0_0_0/0.92),inset_0_0_0_1px_var(--ui-window-rim),0_18px_54px_rgb(0_0_0/0.57)]",
           showCloseButton && "pt-12",
           className
         )}
@@ -84,7 +84,7 @@ function DialogContent({
         {showCloseButton && (
           <DialogPrimitive.Close
             data-slot="dialog-close"
-            className="group/close absolute top-[19px] left-[19px] flex size-3.5 items-center justify-center rounded-full [background:var(--shell-traffic-close)] shadow-[inset_0_0_0_0.5px_rgb(0_0_0/0.12)] outline-none focus-visible:outline-3 focus-visible:outline-solid focus-visible:outline-shell-accent/50"
+            className="group/close absolute top-[19px] left-[19px] flex size-3.5 items-center justify-center rounded-full [background:var(--ui-traffic-close)] shadow-[inset_0_0_0_0.5px_rgb(0_0_0/0.12)] outline-none focus-visible:outline-3 focus-visible:outline-solid focus-visible:outline-ui-accent/50"
           >
             <XIcon
               className="size-2 text-black/60 opacity-0 group-hover/close:opacity-100 group-focus-visible/close:opacity-100"
@@ -142,7 +142,7 @@ function DialogTitle({
   return (
     <DialogPrimitive.Title
       data-slot="dialog-title"
-      className={cn("text-shell-title-3 font-semibold", className)}
+      className={cn("text-ui-title-3 font-semibold", className)}
       {...props}
     />
   )
@@ -155,7 +155,7 @@ function DialogDescription({
   return (
     <DialogPrimitive.Description
       data-slot="dialog-description"
-      className={cn("text-shell-body text-shell-label-secondary", className)}
+      className={cn("text-ui-body text-ui-label-secondary", className)}
       {...props}
     />
   )

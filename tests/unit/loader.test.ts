@@ -141,7 +141,7 @@ describe("upgradeLegacyCssNames", () => {
         ':root { --adw-accent: var(--adw-blue); } .adw-material-menu [data-slot="adw-sidebar"] {}',
       ),
     ).toBe(
-      ':root { --shell-accent: var(--shell-blue); } .shell-material-menu [data-slot="shell-sidebar"] {}',
+      ':root { --ui-accent: var(--ui-blue); } .ui-material-menu [data-slot="ui-sidebar"] {}',
     );
   });
 });
