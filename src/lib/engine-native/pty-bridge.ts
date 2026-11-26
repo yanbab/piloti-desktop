@@ -9,11 +9,15 @@ import type { Piloti } from "@/lib/engine/piloti";
 export const PTY_BRIDGE_PY = String.raw`
 import fcntl, os, pty, re, select, signal, struct, sys, termios
 cols, rows = int(sys.argv[1]), int(sys.argv[2])
-shell = (sys.argv[3] if len(sys.argv) > 3 else "") or os.environ.get("SHELL") or "/bin/bash"
+command = [a for a in sys.argv[3:4] if a] + sys.argv[4:] or [os.environ.get("SHELL") or "/bin/bash"]
 pid, fd = pty.fork()
 if pid == 0:
     os.environ["TERM"] = "xterm-256color"
-    os.execvp(shell, [shell])
+    try:
+        os.execvp(command[0], command)
+    except OSError as error:
+        print(f"{command[0]}: {error.strerror}", flush=True)
+        os._exit(127)
 def size(c, r):
     fcntl.ioctl(fd, termios.TIOCSWINSZ, struct.pack("HHHH", r, c, 0, 0))
 size(cols, rows)
@@ -110,14 +114,16 @@ export async function readLoginShells(piloti: Piloti): Promise<LoginShell[]> {
 
 export async function startShell(
   piloti: Piloti,
-  shell: string,
+  /** A shell path, or a program and its arguments. */
+  command: string | readonly string[],
   size: { cols: number; rows: number },
   onOutput: (bytes: Uint8Array) => void,
-  onExit: (reason: string) => void,
+  onExit: (reason: string, code?: number) => void,
+  options: { cwd?: string } = {},
 ): Promise<BashSession | null> {
   const spawned = await piloti.processes.spawn(
-    ["python3", "-c", PTY_BRIDGE_PY, String(size.cols), String(size.rows), shell],
-    { stdin: true },
+    ["python3", "-c", PTY_BRIDGE_PY, String(size.cols), String(size.rows), ...[command].flat()],
+    { stdin: true, cwd: options.cwd },
   );
   const process = spawned.match({ Ok: (p) => p, Err: () => null });
   if (!process) {
@@ -145,6 +151,7 @@ export async function startShell(
         Ok: (e) => (e.code === 0 || e.code === undefined ? "shell exited" : `shell exited (${e.code})`),
         Err: () => "shell ended",
       }),
+      exit.match({ Ok: (e) => e.code, Err: () => undefined }),
     );
   });
   return {

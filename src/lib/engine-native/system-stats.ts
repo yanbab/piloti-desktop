@@ -16,6 +16,7 @@ const SAMPLE_SCRIPT = [
 
 export interface ProcessSample {
   ppid: number;
+  name: string;
   /** utime + stime, in clock ticks. */
   ticks: number;
   rssKb: number;
@@ -67,6 +68,7 @@ export function parseSystemSample(raw: string): SystemSample | null {
     const fields = line.slice(end + 2).split(" ");
     processes.set(Number.parseInt(line, 10), {
       ppid: Number(fields[1]),
+      name: line.slice(line.indexOf("(") + 1, end),
       ticks: Number(fields[11]) + Number(fields[12]),
       rssKb: Number(fields[21]) * pageKb,
     });

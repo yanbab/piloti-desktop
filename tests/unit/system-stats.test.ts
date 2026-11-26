@@ -25,7 +25,7 @@ describe("system stats", () => {
   it("parses totals and processes, whatever the command name", () => {
     expect(after.memTotalKb).toBe(8000000);
     expect(after.memAvailableKb).toBe(6000000);
-    expect(after.processes.get(11)).toEqual({ ppid: 10, ticks: 25, rssKb: 1024 });
+    expect(after.processes.get(11)).toEqual({ ppid: 10, name: "a (b) c", ticks: 25, rssKb: 1024 });
   });
 
   it("gives CPU as a share of the machine", () => {

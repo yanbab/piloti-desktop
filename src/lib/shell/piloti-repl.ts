@@ -2,14 +2,40 @@
  * The "piloti-shell" terminal mode: a JavaScript REPL whose scope is the
  * desktop (windows, settings, launching apps...). It speaks the terminal's
  * byte stream, so any xterm-like emulator can sit on top of it.
+ *
+ * A line is JavaScript, or a command: `name arg 'other arg'` calls
+ * `name("arg", "other arg")` when `name` is a function of the scope, else runs
+ * the program `name` of `$PATH`.
  */
+import type { Completion } from "@/lib/shell/piloti-completion";
+import { formatTable, tableRows } from "@/lib/shell/piloti-table";
+
+export interface ProgramRunner {
+  /** Whether `name` (or a path) can be run. */
+  has: (name: string) => Promise<boolean>;
+  /**
+   * Runs it in the terminal. `attach` takes what is typed meanwhile. Resolves
+   * with what is left to print, if anything.
+   */
+  run: (argv: string[], attach: (input: (data: string) => void) => void) => Promise<unknown>;
+}
 
 export interface ReplOptions {
   /** Writes terminal output. */
   write: (text: string) => void;
   /** Names usable in a line, e.g. `{ launch, windows }`. */
   scope: () => Record<string, unknown>;
-  prompt?: string;
+  prompt?: string | (() => string);
+  /** Functions whose command arguments are always text (`touch 1`), with `*` expanded. */
+  textCommands?: ReadonlySet<string>;
+  glob?: (word: string) => Promise<string[]>;
+  programs?: ProgramRunner;
+  /** Words that stand for others at the start of a line. */
+  aliases?: ReadonlyMap<string, string>;
+  /** Tab completion of the text left of the cursor. */
+  complete?: (text: string) => Promise<Completion>;
+  /** Terminal width, to redraw lines that wrap. */
+  columns?: () => number;
 }
 
 const AsyncFunction = Object.getPrototypeOf(async function () {
@@ -29,8 +55,165 @@ export async function evaluateLine(code: string, scope: Record<string, unknown>)
   return fn(...values);
 }
 
-export function formatValue(value: unknown): string {
+export interface CommandWord {
+  text: string;
+  /** `quoted` is always text; `js` is evaluated (`$name`, `$(...)`, `{...}`, `[...]`). */
+  kind: "bare" | "quoted" | "js";
+}
+
+/** Index after the bracket closing the one at `start`, skipping strings; -1 if none. */
+function closing(source: string, start: number): number {
+  let depth = 0;
+  let quote = "";
+  for (let i = start; i < source.length; i += 1) {
+    const c = source[i]!;
+    if (quote) {
+      if (c === "\\") i += 1;
+      else if (c === quote) quote = "";
+    } else if (c === "'" || c === '"' || c === "`") quote = c;
+    else if ("([{".includes(c)) depth += 1;
+    else if (")]}".includes(c) && --depth === 0) return i + 1;
+  }
+  return -1;
+}
+
+export function splitWords(source: string): CommandWord[] {
+  const words: CommandWord[] = [];
+  let i = 0;
+  while (i < source.length) {
+    if (/\s/.test(source[i]!)) {
+      i += 1;
+      continue;
+    }
+    const open = source[i] === "$" && source[i + 1] === "(" ? i + 1 : i;
+    if ("([{".includes(source[open]!)) {
+      const end = closing(source, open);
+      if (end !== -1 && (end === source.length || /\s/.test(source[end]!))) {
+        words.push({ text: source.slice(open, end), kind: "js" });
+        i = end;
+        continue;
+      }
+    }
+    let text = "";
+    let quoted = false;
+    while (i < source.length && !/\s/.test(source[i]!)) {
+      const c = source[i]!;
+      if (c === "'" || c === '"') {
+        quoted = true;
+        for (i += 1; i < source.length && source[i] !== c; i += 1) {
+          if (c === '"' && source[i] === "\\" && '"\\'.includes(source[i + 1] ?? "")) i += 1;
+          text += source[i];
+        }
+        if (i >= source.length) throw new Error(`Missing closing ${c}`);
+        i += 1;
+      } else if (c === "\\" && i + 1 < source.length) {
+        quoted = true;
+        text += source[i + 1];
+        i += 2;
+      } else {
+        text += c;
+        i += 1;
+      }
+    }
+    const variable = !quoted && /^\$[A-Za-z_][\w.]*$/.test(text);
+    words.push({ text: variable ? text.slice(1) : text, kind: variable ? "js" : quoted ? "quoted" : "bare" });
+  }
+  return words;
+}
+
+/** The function and words of a command line, or `null` if the line is JavaScript. */
+export function parseCommand(line: string, scope: Record<string, unknown>) {
+  const match = /^([A-Za-z_]\w*)(?:\s+([\s\S]*))?$/.exec(line.trim());
+  if (!match) return null;
+  const [, name, rest = ""] = match;
+  if (!Object.hasOwn(scope, name!) || typeof scope[name!] !== "function") return null;
+  // `name = 1`, `name (x)`, `name + 1`, `name ? a : b` stay JavaScript.
+  if (OPERATOR.test(rest)) return null;
+  return { name: name!, rest };
+}
+
+const LITERAL = /^(true|false|null|undefined|-?\d+(\.\d+)?)$/;
+
+const OPERATOR = /^([=(,?]|(\+|-|\*\*?|\/|%|<|>|<=|>=|!==?|&&|\|\||\?\?|in|instanceof)(\s|=|$))/;
+const KEYWORDS = new Set(
+  "async await break case catch class const continue debugger default delete do else false for function if import let new null return super switch this throw true try typeof undefined var void while with yield".split(" "),
+);
+
+/** The program and words of a line that runs one, or `null`. */
+export async function parseProgram(line: string, scope: Record<string, unknown>, programs: ProgramRunner) {
+  const match = /^((?:\.{1,2}|~)?\/[^\s'"()]*[^\s'"()/]|[A-Za-z_][\w.+-]*)(?:\s+([\s\S]*))?$/.exec(line.trim());
+  if (!match) return null;
+  const [, name, rest = ""] = match;
+  if (KEYWORDS.has(name!) || Object.hasOwn(scope, name!)) return null;
+  // Redirections look like operators too: they are reported below.
+  if (/^[=(,?]/.test(rest) || !(await programs.has(name!))) return null;
+  return { name: name!, rest };
+}
+
+async function programArgs(
+  rest: string,
+  scope: Record<string, unknown>,
+  glob?: ReplOptions["glob"],
+): Promise<string[]> {
+  const args: string[] = [];
+  for (const { text, kind } of splitWords(rest)) {
+    if (kind === "quoted") args.push(text);
+    else if (kind === "js") {
+      // `[` and `{}` are ordinary words to programs; `$x` and `$(...)` are values.
+      const value = await evaluateLine(text, scope);
+      args.push(typeof value === "object" ? JSON.stringify(value) : String(value));
+    } else if (/^(\|\|?|&&?|;|\d?>>?.*|<.*)$/.test(text)) {
+      throw new Error(`${text}: pipes and redirections are not supported (try: sh -c '...')`);
+    } else args.push(...(glob ? await glob(text) : [text]));
+  }
+  return args;
+}
+
+export function expandAliases(line: string, aliases: ReadonlyMap<string, string>): string {
+  const seen = new Set<string>();
+  let expanded = line.trim();
+  for (;;) {
+    const match = /^([\w.-]+)(\s[\s\S]*)?$/.exec(expanded);
+    const [, name = "", rest = ""] = match ?? [];
+    const value = aliases.get(name);
+    // Once each, so `alias ls='ls -a'` ends; `ll = 1` stays JavaScript.
+    if (value === undefined || seen.has(name) || OPERATOR.test(rest.trim())) return expanded;
+    seen.add(name);
+    expanded = value + rest;
+  }
+}
+
+/** Runs a command line, a script or a program, or evaluates JavaScript. */
+export async function runLine(
+  line: string,
+  scope: Record<string, unknown>,
+  { textCommands, glob, programs, aliases }: Pick<ReplOptions, "textCommands" | "glob" | "programs" | "aliases"> = {},
+  attach: (input: (data: string) => void) => void = () => {},
+): Promise<unknown> {
+  if (aliases) line = expandAliases(line, aliases);
+  const script = /^[^\s'"()=]+\.psh$/.exec(line.trim())?.[0];
+  if (script?.includes("/") && typeof scope.source === "function") return scope.source(script);
+  const program = programs && (await parseProgram(line, scope, programs));
+  if (program) {
+    return programs.run([program.name, ...(await programArgs(program.rest, scope, glob))], attach);
+  }
+  const command = parseCommand(line, scope);
+  if (!command) return evaluateLine(line, scope);
+  const asText = textCommands?.has(command.name) ?? false;
+  const args: unknown[] = [];
+  for (const { text, kind } of splitWords(command.rest)) {
+    if (kind === "js") args.push(await evaluateLine(text, scope));
+    else if (kind === "quoted") args.push(text);
+    else if (asText) args.push(...(glob ? await glob(text) : [text]));
+    else args.push(LITERAL.test(text) ? await evaluateLine(text, {}) : text);
+  }
+  return (scope[command.name] as (...a: unknown[]) => unknown)(...args);
+}
+
+export function formatValue(value: unknown, columns?: number): string {
   if (value === undefined) return "";
+  const rows = tableRows(value);
+  if (rows) return formatTable(rows, columns);
   if (typeof value === "string") return value;
   if (typeof value === "function") return `[Function ${value.name || "anonymous"}]`;
   try {
@@ -43,36 +226,130 @@ export function formatValue(value: unknown): string {
 const KEY = /\x1b\[[0-9;]*[A-Za-z~]|\x1b.|[\s\S]/g;
 const CRLF = (s: string) => s.replace(/\r?\n/g, "\r\n");
 
-export function createRepl({ write, scope, prompt = "piloti> " }: ReplOptions) {
+export function createRepl({ write, scope, prompt = "piloti> ", textCommands, glob, programs, aliases, complete, columns }: ReplOptions) {
   let line = "";
   let cursor = 0;
   const history: string[] = [];
   let historyIndex = -1;
   let busy = false;
+  /** Takes the keys while a program runs. */
+  let input: ((data: string) => void) | null = null;
+  let tabbed = false;
+  let interrupted = false;
+  let depth = 0;
 
+  // Rows between the start of the prompt and the cursor.
+  let cursorRow = 0;
   const redraw = () => {
-    write(`\r\x1b[2K${prompt}${line}`);
-    if (cursor < line.length) write(`\x1b[${line.length - cursor}D`);
+    const text = typeof prompt === "function" ? prompt() : prompt;
+    const textLength = text.replace(/\x1b\[[0-9;]*m/g, "").length;
+    const width = columns?.() || Number.MAX_SAFE_INTEGER;
+    const length = textLength + line.length;
+    const at = textLength + cursor;
+    write(`${cursorRow ? `\x1b[${cursorRow}A` : ""}\r\x1b[J${text}${line}`);
+    // A full last row leaves the cursor on it until something more is written.
+    if (length % width === 0) write("\r\n");
+    cursorRow = Math.floor(at / width);
+    const up = Math.floor(length / width) - cursorRow;
+    if (up) write(`\x1b[${up}A`);
+    if (up || cursor < line.length) write(`\r${at % width ? `\x1b[${at % width}C` : ""}`);
+  };
+  /** Leaves the edited line on screen and starts below it. */
+  const newLine = (mark = "") => {
+    if (cursor < line.length) {
+      cursor = line.length;
+      redraw();
+    }
+    write(`${mark}\r\n`);
+    cursorRow = 0;
+  };
+
+  const printError = (error: unknown) =>
+    write(`\x1b[31m${CRLF(String(error instanceof Error ? error.message : error))}\x1b[0m\r\n`);
+
+  const execute = async (code: string) => {
+    const options = { textCommands, glob, programs, aliases };
+    const value = await runLine(code, scope(), options, (to) => (input = to));
+    input = null;
+    const out = formatValue(value, columns?.());
+    if (out) write(`${CRLF(out)}\r\n`);
+  };
+
+  /** Runs a script's lines one by one; `#` and `//` start a comment line. */
+  const runScript = async (source: string, name: string, { keepGoing = false } = {}) => {
+    if (depth >= 8) throw new Error(`${name}: scripts nested too deep`);
+    depth += 1;
+    try {
+      for (const [index, raw] of source.split("\n").entries()) {
+        const code = raw.trim();
+        if (interrupted) break;
+        if (!code || code.startsWith("#") || code.startsWith("//")) continue;
+        try {
+          await execute(code);
+        } catch (error) {
+          input = null;
+          const message = error instanceof Error ? error.message : String(error);
+          const located = new Error(`${name}:${index + 1}: ${message}`);
+          if (!keepGoing) throw located;
+          printError(located);
+        }
+      }
+    } finally {
+      depth -= 1;
+    }
+  };
+
+  /** Keys are not edited into a line while `task` runs. */
+  const during = async (task: () => Promise<void>) => {
+    busy = true;
+    interrupted = false;
+    try {
+      await task();
+    } catch (error) {
+      printError(error);
+    }
+    busy = false;
+    input = null;
+    redraw();
   };
 
   const run = async () => {
     const code = line.trim();
-    write("\r\n");
+    newLine();
     line = "";
     cursor = 0;
     historyIndex = -1;
-    if (code) {
-      history.push(code);
-      busy = true;
-      try {
-        const out = formatValue(await evaluateLine(code, scope()));
-        if (out) write(`${CRLF(out)}\r\n`);
-      } catch (error) {
-        write(`\x1b[31m${CRLF(String(error instanceof Error ? error.message : error))}\x1b[0m\r\n`);
-      }
-      busy = false;
+    if (!code) return redraw();
+    history.push(code);
+    await during(() => execute(code));
+  };
+
+  const tab = async () => {
+    if (!complete) return;
+    const before = line;
+    const at = cursor;
+    const again = tabbed;
+    tabbed = true;
+    const { start, matches } = await complete(before.slice(0, at));
+    // Typed on since: the answer is for another line.
+    if (busy || line !== before || cursor !== at || !matches.length) return;
+    let common = matches[0]!.insert;
+    for (const { insert } of matches) while (!insert.startsWith(common)) common = common.slice(0, -1);
+    const only = matches.length === 1 ? matches[0]! : null;
+    const text = only ? only.insert + only.end : common;
+    if (only || text.length > at - start) {
+      line = before.slice(0, start) + text + before.slice(at);
+      cursor = start + text.length;
+      redraw();
+    } else if (again) {
+      const labels = matches.slice(0, 200).map((m) => m.label.replace(/[\x00-\x1f\x7f-\x9f]/g, "?"));
+      const more = matches.length > labels.length ? [`… ${matches.length - labels.length} more`] : [];
+      const end = cursor;
+      newLine();
+      write(`${[...labels, ...more].join("  ")}\r\n`);
+      cursor = end;
+      redraw();
     }
-    redraw();
   };
 
   const recall = (delta: number) => {
@@ -90,14 +367,37 @@ export function createRepl({ write, scope, prompt = "piloti> " }: ReplOptions) {
   };
 
   return {
-    start() {
-      write("Piloti shell — JavaScript with the desktop in reach. Type help().\r\n");
-      redraw();
+    /** Prints the greeting, runs `startup`, then prompts. */
+    start(startup?: () => Promise<void>) {
+      write("Piloti shell — JavaScript with the desktop in reach. Type help.\r\n");
+      if (startup) void during(startup);
+      else redraw();
+    },
+    runScript,
+    /** Hands the keys to a function that runs until they say stop. */
+    capture(handler: (data: string) => void) {
+      input = handler;
+    },
+    /** Ends what is running: the terminal is going away. */
+    dispose() {
+      interrupted = true;
+      input?.("\x03");
     },
     /** Feed what the emulator sends for key presses and pastes. */
     onData(data: string) {
-      if (busy) return;
+      if (busy) {
+        if (input) input(data);
+        else if (data.includes("\x03")) interrupted = true;
+        return;
+      }
       for (const key of data.match(KEY) ?? []) {
+        // A command started by this chunk takes the rest of it.
+        if (busy) break;
+        if (key === "\t") {
+          void tab();
+          continue;
+        }
+        tabbed = false;
         if (key === "\r" || key === "\n") void run();
         else if (key === "\x7f" || key === "\b") {
           if (cursor > 0) {
@@ -108,17 +408,17 @@ export function createRepl({ write, scope, prompt = "piloti> " }: ReplOptions) {
         } else if (key === "\x1b[D") {
           if (cursor > 0) {
             cursor -= 1;
-            write("\x1b[D");
+            redraw();
           }
         } else if (key === "\x1b[C") {
           if (cursor < line.length) {
             cursor += 1;
-            write("\x1b[C");
+            redraw();
           }
         } else if (key === "\x1b[A") recall(-1);
         else if (key === "\x1b[B") recall(1);
         else if (key === "\x03") {
-          write("^C\r\n");
+          newLine("^C");
           line = "";
           cursor = 0;
           redraw();
@@ -128,6 +428,7 @@ export function createRepl({ write, scope, prompt = "piloti> " }: ReplOptions) {
           redraw();
         } else if (key === "\x0c") {
           write("\x1b[2J\x1b[H");
+          cursorRow = 0;
           redraw();
         } else if (key >= " " && !key.startsWith("\x1b")) {
           line = line.slice(0, cursor) + key + line.slice(cursor);

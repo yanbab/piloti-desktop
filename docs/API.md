@@ -116,7 +116,9 @@ Types: `node_modules/@domicile-desktop/sdk/dist/desktop/`.
 ## Command line
 
 `piloti` is a wrapper that sends commands to the running shell
-(`domicile send-shell`). It does not take Domicile's own subcommands.
+(`domicile send-shell`). Commands it doesn't have go to
+[`domicile`](https://domicile-desktop.com/docs/reference/cli): `status`,
+`list-windows`, `list-displays`, `logs`, `list-shell-commands`…
 
 | `piloti` command | Does |
 |---|---|
@@ -124,6 +126,7 @@ Types: `node_modules/@domicile-desktop/sdk/dist/desktop/`.
 | `reload [shell.js]`, `which-shell` | reload, or print, the shell |
 | `open [--app] <app\|url\|file> [arg]` | open an app, URL or file |
 | `settings [pane]` | open Settings |
+| `theme dark\|light\|system\|toggle` | change Piloti's color scheme |
 | `launcher`, `overview` | open the Launcher; toggle the Overview |
 | `screenshot [file]`, `record` | capture |
 | `lock`, `logout`, `restart`, `poweroff` | session and power |
@@ -133,17 +136,67 @@ Types: `node_modules/@domicile-desktop/sdk/dist/desktop/`.
 
 Shell commands live in `lib/shell/shell-commands.ts`.
 
-Use [`domicile`](https://domicile-desktop.com/docs/reference/cli) directly for
-the rest: `theme`, `status`, `list-windows`, `focus-window`, `list-displays`,
-`configure-display`, `logs`, `list-shell-commands`…
+Where names differ, Piloti's win (`open`, `lock`, `screenshot`). Prefer
+`piloti theme` to `domicile theme`, which the shell does not follow.
 
-**Theme.** `domicile theme dark` sets the compositor's theme, not Piloti's
-setting, so the shell does not follow it. With GNOME settings sync on, this
-should change Piloti too:
+## Piloti shell
 
-```bash
-gsettings set org.gnome.desktop.interface color-scheme prefer-dark
-```
+The Terminal's JavaScript mode (menu: Piloti Shell). A line is read as:
+
+| Line | Runs |
+|---|---|
+| `name arg 'other arg'` | `name("arg", "other arg")`, for a function of the shell |
+| `git status` | the program of `$PATH`, or a path (`./run.sh`), Linux only |
+| anything else | JavaScript, `await` included |
+
+**Arguments.** Bare and quoted words are text; `*` and `?` match file names.
+`$name`, `$(expression)`, `{…}` and `[…]` are JavaScript values. For shell
+functions other than file commands, bare numbers, `true`, `false` and `null`
+keep their type. `name(…)`, `name = …` and `name + …` stay JavaScript.
+
+**Programs** run on a pseudo-terminal in the current folder, so interactive ones
+work. Shell names win over programs (`ls` is the shell's; `/bin/ls` is not).
+There are no pipes, redirections or `&&`: use `sh -c '…'`.
+
+**Tab** completes command names, file paths and object members
+(`piloti.desktop.`); twice lists the choices.
+
+**Prompt.** The folder in the accent color: from home inside it
+(`Documents/files> `, `~> ` for home), else absolute (`/etc> `).
+
+**`ls`** takes `-a`, `-A`, `-l`, `-h`, with the usual colors (also in the string
+`await ls()` returns). `-l` shows type, size, date and link target: the VFS has
+no permissions or owners, so executables are not colored.
+
+**Aliases.** `alias name='value'`, `alias`, `unalias name`. Defaults: `ll`
+(`ls -la`), `la` (`ls -a`), `less` and `more` (`cat`). Kept for the window.
+
+**Scripts** (`.psh`) run line by line: `source file`, or `./file.psh`. Lines
+starting `#` or `//` are comments; each line stands alone (`const` does not
+carry over). The first error stops the script; a program's exit code does not.
+`~/.config/piloti-shell/autoexec.psh` runs when the shell starts, errors and
+all: put aliases and `cd` there.
+
+**`top`** (Linux) lists processes by CPU, from `/proc`, every 2 s; `q` or
+Ctrl+C quits. `/usr/bin/top` is the system's.
+
+**Tables.** A non-empty array of objects, or its JSON text (a result, `cat`, a
+program's output), prints as a table with an inverse header. Wide cells end in
+`…`; columns that still do not fit are left out. `JSON.stringify(x)` does not avoid it; `x.map(JSON.stringify)` does.
+
+| Functions | |
+|---|---|
+| `cd`, `pwd`, `ls [-alh]`, `cat`, `echo` | look around |
+| `touch`, `mkdir [-p]`, `cp [-r]`, `mv`, `ln -s` | create and move, on `piloti.vfs` |
+| `rm [-r] [-f]`, `rmdir`, `trash` | `rm` is for good; it refuses `/`, home and the current folder |
+| `open`, `clear`, `help` | open with its app; clear; list functions |
+| `windows`, `settings`, `set`, `apps`, `launch`, `notify` | the desktop |
+| `alias`, `unalias`, `source`, `top` | see above |
+| `run(cmd)` | a `sh -c` command, returns `{ code, stdout, stderr }` |
+| `files`, `piloti` | Domicile's files; the desktop |
+
+File operations are not in the Folders undo history. Code:
+`lib/shell/piloti-{repl,commands,programs,run,completion,table,top}.ts`.
 
 ## React hooks
 

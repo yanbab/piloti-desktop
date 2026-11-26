@@ -2,6 +2,9 @@ import { Err, Ok, type Result } from "@cprussin/option-result";
 import type { CommandRan, ShellCommandHelp } from "@domicile-desktop/sdk/shell-command";
 import { canonicalizeWebUrl } from "@/data/web-apps";
 
+const THEME_MODES = ["dark", "light", "system", "toggle"] as const;
+export type ThemeCommandMode = (typeof THEME_MODES)[number];
+
 export interface PilotiShellCommandHandlers {
   launchApp: (appId: string, options?: { payload?: string }) => void;
   openWebUrl: (
@@ -14,6 +17,7 @@ export interface PilotiShellCommandHandlers {
   requestPowerAction: (action: "logout" | "restart" | "poweroff") => void;
   takeScreenshot: () => void | Promise<void>;
   startScreenRecording: () => void | Promise<void>;
+  setTheme?: (mode: ThemeCommandMode) => void;
   installWebApp?: (url: string) => void | Promise<void>;
   removeWebApp?: (target: string) => void | Promise<void>;
 }
@@ -84,6 +88,7 @@ export const PILOTI_SHELL_COMMAND_HELP: readonly ShellCommandHelp[] = [
   { usage: "settings [pane]", description: "Open Settings, at a pane if given" },
   { usage: "launcher", description: "Open the Launcher" },
   { usage: "overview", description: "Toggle the Overview" },
+  { usage: "theme dark|light|system|toggle", description: "Change the color scheme" },
   { usage: "lock", description: "Lock the screen" },
   { usage: "logout|restart|poweroff", description: "Ask to log out, restart or power off" },
   { usage: "screenshot", description: "Take a screenshot" },
@@ -142,6 +147,13 @@ export function dispatchPilotiShellCommand(
 
   if (head === "overview") {
     handlers.toggleOverview();
+    return true;
+  }
+
+  if (head === "theme") {
+    const mode = THEME_MODES.find((m) => m === rest[0]?.toLowerCase());
+    if (!mode || !handlers.setTheme) return false;
+    handlers.setTheme(mode);
     return true;
   }
 

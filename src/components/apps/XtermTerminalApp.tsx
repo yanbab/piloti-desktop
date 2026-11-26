@@ -24,11 +24,20 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { createRepl } from "@/lib/shell/piloti-repl";
+import { createShellCommands, SHELL_COMMAND_HELP } from "@/lib/shell/piloti-commands";
+import { useOpenPath } from "@/hooks/use-open-path";
+import { complete } from "@/lib/shell/piloti-completion";
+import { createProgramIndex } from "@/lib/shell/piloti-programs";
+import { runInTerminal } from "@/lib/shell/piloti-run";
+import { runTop } from "@/lib/shell/piloti-top";
+import { readSystemSample } from "@/lib/engine-native/system-stats";
+import { ACCENT_COLORS } from "@/data/catalog";
 import { _ } from "@/lib/core/i18n";
 import { HeaderBar } from "@/components/elements/header-bar";
 
 /** `"piloti"` is the JavaScript REPL; anything else is a shell path from /etc/shells. */
 const PILOTI = "piloti";
+const AUTOEXEC = "~/.config/piloti-shell/autoexec.psh";
 
 const DARK = { background: "#1e1e1e", foreground: "#e6e6e6", cursor: "#e6e6e6", selectionBackground: "#4a4a4a" };
 const LIGHT = { background: "#fafafa", foreground: "#1e1e1e", cursor: "#1e1e1e", selectionBackground: "#cfcfcf" };
@@ -55,7 +64,7 @@ export function XtermTerminalApp({
   windowId?: string;
 }) {
   const piloti = usePiloti();
-  const settings = useDesktopSettings(["themeMode"]);
+  const settings = useDesktopSettings(["themeMode", "accentColor", "customAccentHex"]);
   const updateSettings = useUpdateSettings();
   const { pushNotification } = useSystemBackends();
   const { launchApp } = useWindowActions();
@@ -104,8 +113,35 @@ export function XtermTerminalApp({
   const { installedXdgApps } = useApps();
   const live = React.useRef({ windows, settings, apps: installedXdgApps });
   live.current = { windows, settings, apps: installedXdgApps };
+  const { openPath } = useOpenPath();
+  const openRef = React.useRef(openPath);
+  openRef.current = openPath;
+  // Keeps the current folder for the window's life.
+  const [shellCommands] = React.useState(() =>
+    createShellCommands({ vfs: () => piloti.vfs, open: (path, kind) => openRef.current(path, { kind }), color: true }),
+  );
+  const [programIndex] = React.useState(() => (systemServices ? createProgramIndex(piloti) : null));
+  const replRef = React.useRef<ReturnType<typeof createRepl> | null>(null);
   const scope = React.useCallback(
     () => ({
+      ...shellCommands.commands,
+      clear: () => termRef.current?.clear(),
+      source: async (path: string) => {
+        const text = await piloti.vfs.readText(shellCommands.resolve(String(path)));
+        if (text === null) throw new Error(`source: ${path}: no such file`);
+        await replRef.current?.runScript(text, String(path));
+      },
+      top: async () => {
+        const term = termRef.current;
+        const repl = replRef.current;
+        if (!systemServices || !term || !repl) throw new Error("top: needs Linux");
+        await runTop({
+          sample: () => readSystemSample(piloti),
+          write: (t) => term.write(t),
+          size: () => ({ cols: term.cols, rows: term.rows }),
+          capture: repl.capture,
+        });
+      },
       windows: () => live.current.windows,
       settings: () => live.current.settings,
       set: (patch: Record<string, unknown>) => updateSettings(patch as never),
@@ -126,6 +162,15 @@ export function XtermTerminalApp({
       piloti: window.piloti ?? piloti,
       help: () =>
         [
+          "Commands can be typed shell-style: name arg 'other arg' calls name('arg', 'other arg').",
+          "Use $name, $(expression), {...} or [...] to pass JavaScript values.",
+          "Other names run programs of $PATH. Tab completes. Arrays of objects print as tables.",
+          "",
+          SHELL_COMMAND_HELP,
+          "source file        run a script, line by line (or ./file.psh)",
+          "top                processes, busiest first (q quits)",
+          "clear              clear the screen",
+          "",
           "windows()          open windows",
           "settings()         current settings",
           "set({ ... })       change settings, e.g. set({ themeMode: 'dark' })",
@@ -137,8 +182,15 @@ export function XtermTerminalApp({
           "piloti             Domicile's desktop plus desktop, settings, notifications.push, plugins",
         ].join("\n"),
     }),
-    [piloti, launchApp, pushNotification, updateSettings],
+    [piloti, launchApp, pushNotification, updateSettings, shellCommands, systemServices],
   );
+  // The prompt takes the accent color (24-bit).
+  const custom = settings.customAccentHex?.trim() ?? "";
+  const accent = /^#[0-9a-f]{6}$/i.test(custom)
+    ? custom
+    : (ACCENT_COLORS.find((c) => c.id === settings.accentColor)?.hex ?? "#3584e4");
+  const accentRef = React.useRef(accent);
+  accentRef.current = accent;
   const scopeRef = React.useRef(scope);
   scopeRef.current = scope;
 
@@ -207,9 +259,60 @@ export function XtermTerminalApp({
     let input: { dispose(): void } | null = null;
 
     if (mode === PILOTI) {
-      const repl = createRepl({ write: (t) => term.write(t), scope: () => scopeRef.current() });
+      const repl = createRepl({
+        write: (t) => term.write(t),
+        scope: () => scopeRef.current(),
+        prompt: () => {
+          const rgb = [1, 3, 5].map((i) => parseInt(accentRef.current.slice(i, i + 2), 16)).join(";");
+          return `\x1b[38;2;${rgb}m${shellCommands.shortCwd().replace(/[\x00-\x1f\x7f-\x9f]/g, "?")}>\x1b[0m `;
+        },
+        aliases: shellCommands.aliases,
+        textCommands: new Set(Object.keys(shellCommands.commands).filter((name) => name !== "echo")),
+        glob: shellCommands.glob,
+        columns: () => term.cols,
+        complete: (text) =>
+          complete(text, {
+            scope: scopeRef.current(),
+            programs: async () => [...shellCommands.aliases.keys(), ...(programIndex ? await programIndex.all() : [])],
+            vfs: piloti.vfs,
+            resolve: shellCommands.resolve,
+          }),
+        programs: programIndex
+          ? {
+              has: async (name) => {
+                if (!name.includes("/")) return programIndex.has(name);
+                return (await piloti.vfs.stat(shellCommands.resolve(name)))?.kind === "file";
+              },
+              run: (argv, attach) => {
+                const [name, ...args] = argv as [string, ...string[]];
+                return runInTerminal({
+                  start: (onOutput, onExit) =>
+                    startShell(
+                      piloti,
+                      [name.startsWith("~") ? shellCommands.resolve(name) : name, ...args],
+                      { cols: term.cols, rows: term.rows },
+                      onOutput,
+                      onExit,
+                      { cwd: shellCommands.cwd() },
+                    ),
+                  write: (data) => term.write(data),
+                  attach,
+                  // The window keeps it, to resize it and to stop it on closing.
+                  hold: (session) => {
+                    if (cancelled) session?.stop();
+                    else bashRef.current = session;
+                  },
+                });
+              },
+            }
+          : undefined,
+      });
+      replRef.current = repl;
       input = term.onData((d) => repl.onData(d));
-      repl.start();
+      repl.start(async () => {
+        const text = await piloti.vfs.readText(shellCommands.resolve(AUTOEXEC));
+        if (text !== null) await repl.runScript(text, "autoexec.psh", { keepGoing: true });
+      });
     } else {
       void startShell(
         piloti,
@@ -227,6 +330,8 @@ export function XtermTerminalApp({
     term.focus();
     return () => {
       cancelled = true;
+      replRef.current?.dispose();
+      replRef.current = null;
       input?.dispose();
       bashRef.current?.stop();
       bashRef.current = null;

@@ -23,6 +23,7 @@ import {
   useWindowActions,
   useWindowManagerSelector,
   useDesktopSettings,
+  useSettingsSelector,
   useUpdateSettings,
 } from "@/context/DesktopStateContext";
 import {
@@ -380,6 +381,8 @@ function DomicileShellCommandBridge() {
   const { launchApp, openWebUrl, setLauncherOpen, toggleOverview } =
     useWindowActions();
 
+  const resolvedTheme = useSettingsSelector((v) => v.resolvedTheme);
+  const updateSettings = useUpdateSettings();
   const handlersRef = React.useRef<PilotiShellCommandHandlers>({
     launchApp,
     openWebUrl,
@@ -400,6 +403,10 @@ function DomicileShellCommandBridge() {
     requestPowerAction,
     takeScreenshot,
     startScreenRecording,
+    setTheme: (mode) => {
+      const themeMode = mode !== "toggle" ? mode : resolvedTheme === "dark" ? "light" : "dark";
+      updateSettings({ themeMode });
+    },
     installWebApp: (rawUrl) => {
       const canonical = canonicalizeWebUrl(rawUrl);
       if (!canonical) return;

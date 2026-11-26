@@ -100,3 +100,17 @@ describe("shell command stream shapes", () => {
     expect(shellCommandAnswer(false, "no such command").match(arms)).toBe("err:no such command");
   });
 });
+
+describe("theme command", () => {
+  test("passes a known mode and refuses anything else", () => {
+    const modes: string[] = [];
+    const { handlers } = createRecorder();
+    handlers.setTheme = (mode) => modes.push(mode);
+
+    expect(dispatchPilotiShellCommand(["theme", "Dark"], handlers)).toBe(true);
+    expect(dispatchPilotiShellCommand(["theme", "toggle"], handlers)).toBe(true);
+    expect(dispatchPilotiShellCommand(["theme", "blue"], handlers)).toBe(false);
+    expect(dispatchPilotiShellCommand(["theme"], handlers)).toBe(false);
+    expect(modes).toEqual(["dark", "toggle"]);
+  });
+});
