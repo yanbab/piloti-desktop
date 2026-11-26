@@ -215,7 +215,7 @@ function renderSimpleMarkdown(md: string): React.ReactNode {
 const adwEditorTheme = EditorView.theme({
   "&": {
     height: "100%",
-    backgroundColor: "var(--shell-content-bg, var(--shell-window-bg))",
+    backgroundColor: "var(--shell-content-bg, var(--shell-window))",
     color: "var(--shell-label)",
     fontFamily: "var(--font-shell-mono)",
     fontSize: "13px",

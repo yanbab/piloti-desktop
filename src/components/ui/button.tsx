@@ -2,55 +2,29 @@
 
 import * as React from "react"
 import { Button as ButtonPrimitive } from "@base-ui/react/button"
-import { cva, type VariantProps } from "class-variance-authority"
 
 import { cn } from "@/lib/core/utils"
 
-// Flat buttons with translucent fills and medium-weight labels.
-const buttonVariants = cva(
-  "inline-flex shrink-0 cursor-default items-center justify-center gap-1.5 font-medium whitespace-nowrap select-none outline-none focus-visible:shell-focus-ring disabled:pointer-events-none data-disabled:pointer-events-none aria-invalid:shell-focus-ring [&_svg]:pointer-events-none [&_svg]:shrink-0",
-  {
-    variants: {
-      variant: {
-        // The window's default button: filled with the accent color.
-        default:
-          "bg-shell-accent text-shell-accent-foreground active:brightness-90 disabled:opacity-45",
-        destructive:
-          "bg-shell-red text-white active:brightness-90 disabled:opacity-45",
-        // The standard secondary push button.
-        secondary:
-          "bg-shell-control text-shell-label active:bg-shell-control-pressed disabled:bg-shell-control-disabled disabled:text-shell-label-tertiary",
-        // An accent-tinted button ("Bordered - Tinted").
-        tinted:
-          "bg-shell-accent/20 text-shell-accent active:bg-shell-accent/30 disabled:opacity-45",
-        // A bordered button without fill, e.g. inside grouped content.
-        outline:
-          "bg-transparent text-shell-label shadow-[inset_0_0_0_1px_var(--shell-grid)] active:bg-shell-control-pressed disabled:text-shell-label-tertiary",
-        // Borderless button, as used in toolbars and title bars.
-        ghost:
-          "text-shell-label active:bg-shell-control-pressed disabled:text-shell-label-tertiary",
-        link: "h-auto px-0 text-shell-link underline-offset-2 active:opacity-75 disabled:opacity-45",
-      },
-      size: {
-        default:
-          "h-shell-control-small rounded-shell-control px-4 text-shell-body has-[>svg]:px-3 [&_svg:not([class*='size-'])]:size-3.5",
-        xs: "h-4 gap-1 rounded-[4px] px-[7px] text-shell-footnote [&_svg:not([class*='size-'])]:size-2.5",
-        sm: "h-shell-control-mini gap-1 rounded-[5px] px-2.5 text-shell-subheadline [&_svg:not([class*='size-'])]:size-3",
-        lg: "h-shell-control-medium rounded-full px-4 text-shell-body [&_svg:not([class*='size-'])]:size-4",
-        xl: "h-9 rounded-full px-4 text-shell-body [&_svg:not([class*='size-'])]:size-4",
-        icon: "size-shell-control-small rounded-shell-control [&_svg:not([class*='size-'])]:size-3.5",
-        "icon-xs": "size-4 rounded-[4px] [&_svg:not([class*='size-'])]:size-2.5",
-        "icon-sm": "size-shell-control-mini rounded-[5px] [&_svg:not([class*='size-'])]:size-3",
-        "icon-lg": "size-shell-control-medium rounded-full [&_svg:not([class*='size-'])]:size-4",
-        "icon-xl": "size-9 rounded-full [&_svg:not([class*='size-'])]:size-[18px]",
-      },
-    },
-    defaultVariants: {
-      variant: "default",
-      size: "default",
-    },
-  }
-)
+// The look is plain CSS: styles/components/button.css.
+type ButtonVariant =
+  | "default"
+  | "destructive"
+  | "secondary"
+  | "tinted"
+  | "outline"
+  | "ghost"
+  | "link"
+type ButtonSize =
+  | "default"
+  | "xs"
+  | "sm"
+  | "lg"
+  | "xl"
+  | "icon"
+  | "icon-xs"
+  | "icon-sm"
+  | "icon-lg"
+  | "icon-xl"
 
 // Base UI's Button. To render a link or another element with the button's
 // styles, pass it as `render` (with `nativeButton={false}` when it isn't a
@@ -65,8 +39,11 @@ function Button({
   size = "default",
   keepIcon = false,
   ...props
-}: ButtonPrimitive.Props &
-  VariantProps<typeof buttonVariants> & { keepIcon?: boolean }) {
+}: ButtonPrimitive.Props & {
+  variant?: ButtonVariant
+  size?: ButtonSize
+  keepIcon?: boolean
+}) {
   const hasLabel = React.Children.toArray(props.children).some(
     (child) =>
       (typeof child === "string" || typeof child === "number") &&
@@ -79,10 +56,14 @@ function Button({
       data-size={size}
       data-label={hasLabel || undefined}
       data-keep-icon={keepIcon || undefined}
-      className={cn(buttonVariants({ variant, size, className }))}
+      className={
+        typeof className === "function"
+          ? (state) => cn("shell-button", className(state))
+          : cn("shell-button", className)
+      }
       {...props}
     />
   )
 }
 
-export { Button, buttonVariants }
+export { Button }

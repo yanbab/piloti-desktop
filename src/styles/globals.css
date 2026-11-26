@@ -3,6 +3,7 @@
 @import "./adwaita.css";
 @import "./piloti.css";
 @import "./piloti-macos.css";
+@import "./components/button.css";
 
 @layer base {
   html,
