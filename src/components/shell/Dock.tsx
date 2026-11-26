@@ -835,7 +835,7 @@ export const Dock = React.memo(function Dock() {
                     return (
                       <span
                         aria-label={`${badge.count} updates`}
-                        className="pointer-events-none absolute -top-1 -right-1 z-20 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-adw-footnote leading-none font-bold text-white shadow-sm ring-1 ring-black/15 tabular-nums"
+                        className="pointer-events-none absolute -top-1 -right-1 z-20 flex h-4 min-w-4 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--adw-label)_16%,var(--adw-window))] px-1.5 text-adw-footnote leading-none font-semibold text-adw-label shadow-sm ring-1 ring-adw-label/20 tabular-nums"
                       >
                         {badge.count > 99 ? "99+" : badge.count}
                       </span>

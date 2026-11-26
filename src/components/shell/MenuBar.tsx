@@ -91,6 +91,7 @@ import { captureLaunchOriginFromElement } from "@/lib/shell/launch-origin";
 import { buildVfsEntryWebAppUrl, getVfsEntry } from "@/lib/engine-web/web-vfs";
 import { ControlPanel, FloatingNotifications } from "./ControlPanel";
 import { KeyboardLayoutSwitcher } from "./KeyboardLayoutSwitcher";
+import { selectKeymap } from "@/lib/engine/keyboard";
 import { Launcher } from "./Launcher";
 import { PilotiLogo } from "./PilotiLogo";
 import { usePlugins } from "@/context/PluginsContext";
@@ -241,6 +242,10 @@ export const MenuBar = React.memo(function MenuBar() {
   const captureActivity = useCaptureActivity();
   const { statusItems } = usePlugins();
   const { isBrowserRuntime, settings, updateSettings } = useChromeSettings();  // FIXME : Capabilities
+  // The compositor starts on its first keymap: put back the chosen one.
+  React.useEffect(() => {
+    if (settings.keyboardLayout) selectKeymap(piloti, settings.keyboardLayout);
+  }, [piloti, settings.keyboardLayout]);
   const { installedXdgApps, launchXdgEntry } = useApps();
   const {
     batteryInfo,
@@ -1176,7 +1181,10 @@ export const MenuBar = React.memo(function MenuBar() {
           ))}
 
         {/* Keyboard Layout Switcher (shown when > 1 layout is available) */}
-        <KeyboardLayoutSwitcher sideOffset={0} />
+        <KeyboardLayoutSwitcher
+          sideOffset={0}
+          onValueChange={(keyboardLayout) => updateSettings({ keyboardLayout })}
+        />
 
         {/* Launcher Trigger & Popover */}
           <DropdownMenu

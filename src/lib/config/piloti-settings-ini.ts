@@ -94,6 +94,7 @@ const SETTINGS_INI_SCHEMA: readonly SchemaEntry[] = [
   ["org.piloti.desktop.system", "power-mode", "powerMode", "string"],
   ["org.piloti.desktop.system", "restore-windows-on-login", "restoreWindowsOnLogin", "boolean"],
   ["org.piloti.desktop.system", "computer-model", "computerModel", "string"],
+  ["org.piloti.desktop.system", "keyboard-layout", "keyboardLayout", "string"],
   ["org.piloti.desktop.system", "sync-gnome-settings", "syncGnomeSettings", "boolean"],
   ["org.piloti.desktop.system", "prefer-gnome-control-center", "preferGnomeControlCenter", "boolean"],
   ["org.piloti.desktop.system", "hidden-gnome-panels", "hiddenGnomePanels", "string[]"],

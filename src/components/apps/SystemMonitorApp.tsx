@@ -34,7 +34,9 @@ import {
   readSystemSample,
   type SystemSample,
 } from "@/lib/engine-native/system-stats";
-import { getAppSetting, setAppSetting } from "@/lib/shell/app-settings";
+import { parseIniText, serializeIniText } from "@/lib/config/ini";
+import { VFS_HOME } from "@/lib/engine/vfs-home";
+import { readVfsStateText, writeVfsStateText } from "@/lib/engine/vfs-state";
 import { DRAG_THRESHOLD, dragShuffleCss, settleFromOffset } from "@/lib/shell/drag-feedback";
 import {
   formatWidgetLayout,
@@ -51,10 +53,10 @@ import { XIcon } from "lucide-react";
  *
  * With system services the numbers come from `/proc` (`useSystemStats`); the
  * browser demo simulates them (`useSimulatedStats`). Widget places and the apps
- * list sort are app settings (`~/.config/piloti/apps/system-monitor.ini`).
+ * list sort are kept in `~/.config/piloti/piloti-system-monitor.ini`.
  */
 
-const APP_ID = "system-monitor";
+const SETTINGS_PATH = `${VFS_HOME}/.config/piloti/piloti-system-monitor.ini`;
 const TICK_MS = 2000;
 const HISTORY = 30;
 
@@ -72,6 +74,16 @@ const DEFAULT_LAYOUT: WidgetLayout<WidgetId> = {
   cpu: { col: 1, row: 0 },
   apps: { col: 0, row: 1 },
 };
+
+function readSetting(key: string): string | undefined {
+  return parseIniText(readVfsStateText(SETTINGS_PATH) ?? "").General?.[key];
+}
+
+function writeSetting(key: string, value: string): void {
+  const ini = parseIniText(readVfsStateText(SETTINGS_PATH) ?? "");
+  ini.General = { ...ini.General, [key]: value };
+  writeVfsStateText(SETTINGS_PATH, serializeIniText(ini));
+}
 
 interface AppStat {
   appId: string;
@@ -316,7 +328,7 @@ type AppSortKey = "name" | "memory" | "cpu";
 const DEFAULT_APP_SORT: ListViewSort<AppSortKey> = { by: "cpu", dir: "desc" };
 
 function readAppSort(): ListViewSort<AppSortKey> {
-  const [by, dir] = (getAppSetting(APP_ID, "sort") ?? "").split(":");
+  const [by, dir] = (readSetting("sort") ?? "").split(":");
   return (by === "name" || by === "memory" || by === "cpu") && (dir === "asc" || dir === "desc")
     ? { by, dir }
     : DEFAULT_APP_SORT;
@@ -356,7 +368,7 @@ function AppsWidget({ apps, onQuit }: { apps: AppStat[]; onQuit: (appId: string)
           // Numbers start with the biggest, names with A.
           const next = nextListViewSort(sort, column, column === "name" ? "asc" : "desc");
           setSort(next);
-          setAppSetting(APP_ID, "sort", `${next.by}:${next.dir}`);
+          writeSetting("sort", `${next.by}:${next.dir}`);
         }}
       />
       <tbody>
@@ -435,7 +447,7 @@ export const SystemMonitorApp: React.FC<SystemMonitorAppProps> = ({ windowId = "
 
   const [layout, setLayout] = React.useState(() =>
     parseWidgetLayout(
-      getAppSetting(APP_ID, "widget-cells"),
+      readSetting("widget-cells"),
       DEFAULT_LAYOUT,
       WIDGET_SIZES,
       GRID_COLS,
@@ -478,7 +490,7 @@ export const SystemMonitorApp: React.FC<SystemMonitorAppProps> = ({ windowId = "
     const grid = gridRef.current;
     setDrag(null);
     setLayout(next);
-    setAppSetting(APP_ID, "widget-cells", formatWidgetLayout(next));
+    writeSetting("widget-cells", formatWidgetLayout(next));
     if (!el || !grid) return;
     // Glide from where it was let go to its cell.
     const dx = event.delta.x - (next[id].col - layout[id].col) * (grid.clientWidth / GRID_COLS);

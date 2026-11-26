@@ -5,6 +5,7 @@ import {
   BellIcon,
   DockIcon as LucideDockIcon,
   ImageIcon,
+  KeyboardIcon,
   MonitorIcon,
   PaletteIcon,
   ShieldCheckIcon,
@@ -43,6 +44,7 @@ import { AppearancePane } from "./settings/AppearancePane";
 import { DisplaysPane } from "./settings/DisplaysPane";
 import { DockPane } from "./settings/DockPane";
 import { FontsPane } from "./settings/FontsPane";
+import { KeyboardPane } from "./settings/KeyboardPane";
 import { NotificationsPane } from "./settings/NotificationsPane";
 import { SecurityPane } from "./settings/SecurityPane";
 import { TopBarPane } from "./settings/TopBarPane";
@@ -55,6 +57,7 @@ type SettingsPaneId =
   | "topbar"
   | "displays"
   | "notifications"
+  | "keyboard"
   | "security"
   | "wallpaper"
   | "advanced";
@@ -94,6 +97,12 @@ const PANES: {
     label: "Displays",
     subtitle: "Monitors, virtual cast & workspaces",
     icon: <MonitorIcon />,
+  },
+  {
+    id: "keyboard",
+    label: "Keyboard",
+    subtitle: "Language & shortcut keys",
+    icon: <KeyboardIcon />,
   },
   {
     id: "notifications",
@@ -292,6 +301,7 @@ export function SettingsApp({
           {activePane === "dock" && <DockPane />}
           {activePane === "topbar" && <TopBarPane />}
           {activePane === "displays" && <DisplaysPane />}
+          {activePane === "keyboard" && <KeyboardPane />}
           {activePane === "notifications" && <NotificationsPane />}
           {activePane === "security" && <SecurityPane />}
           {activePane === "wallpaper" && <WallpaperPane />}

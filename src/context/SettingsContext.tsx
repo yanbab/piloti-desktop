@@ -171,6 +171,8 @@ export interface DesktopSettings {
   debugMode: boolean;
   enabledPluginIds: string[];
   computerModel: "mac" | "pc";
+  /** Keymap name chosen in Settings; empty leaves the compositor's. */
+  keyboardLayout: string;
   desktopIconPositions: Record<string, { col: number; row: number }>;
   pinnedAppIds: string[];
   /** Folders docked next to Trash; `undefined` = default (Downloads). */
@@ -257,6 +259,7 @@ const DEFAULT_SETTINGS: DesktopSettings = {
   darkReaderWebEnabled: false,
   debugMode: false,
   enabledPluginIds: ["aurora-drift", "app-indicator", "picture-in-picture", "app-dark-mode"],
+  keyboardLayout: "",
   computerModel:
     typeof navigator !== "undefined" &&
       /mac/i.test(navigator.platform || navigator.userAgent || "")

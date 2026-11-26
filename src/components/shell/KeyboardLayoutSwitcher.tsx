@@ -1,7 +1,6 @@
 import * as React from "react";
 import { useCapabilities } from "@/hooks/use-capabilities";
 import { usePiloti } from "@/lib/engine/piloti";
-import { KeymapChoice } from "@domicile-desktop/sdk/keymap-choice";
 import { KeyboardIcon } from "lucide-react";
 import {
   DropdownMenu,
@@ -14,6 +13,7 @@ import {
 import { useSettings } from "@/context/DesktopStateContext";
 import { _ } from "@/lib/core/i18n";
 import { cn } from "@/lib/core/utils";
+import { selectKeymap, useKeymaps } from "@/lib/engine/keyboard";
 
 export interface KeyboardLayoutOption {
   id: string;
@@ -54,52 +54,18 @@ export function KeyboardLayoutSwitcher({
 }: KeyboardLayoutSwitcherProps) {
   const piloti = usePiloti();
   const { systemServices } = useCapabilities();
-  const [liveLayouts, setLiveLayouts] = React.useState<KeyboardLayoutOption[]>([]);
-  const [liveActive, setLiveActive] = React.useState<string>("");
-
-  React.useEffect(() => {
-    if (!systemServices || typeof piloti.keyboard?.keymaps !== "function") {
-      return;
-    }
-    let active = true;
-    let stopListening: (() => void) | undefined;
-    let reader: ReadableStreamDefaultReader<{
-      active: string;
-      keymaps: readonly { name: string; description: string | undefined }[];
-    }> | null = null;
-
-    void piloti.keyboard
-      .keymaps()
-      .then(async (res) => {
-        if (!active) {
-          res.match({ Ok: (l) => l.stop(), Err: () => undefined });
-          return;
-        }
-        const listening = res.match({ Ok: (l) => l, Err: () => null });
-        if (!listening) return;
-        stopListening = listening.stop;
-        reader = listening.items.getReader();
-        while (active) {
-          const { done, value: next } = await reader.read();
-          if (done || !active) break;
-          setLiveLayouts(
-            next.keymaps.map((km) => ({
-              id: km.name,
-              short: formatShortLayoutCode(km.name, km.description),
-              label: km.description || km.name.toUpperCase(),
-            }))
-          );
-          setLiveActive(next.active);
-        }
-      })
-      .catch(() => undefined);
-
-    return () => {
-      active = false;
-      void reader?.cancel().catch(() => undefined);
-      stopListening?.();
-    };
-  }, [piloti, systemServices]);
+  const live = useKeymaps();
+  const [picked, setPicked] = React.useState("");
+  React.useEffect(() => setPicked(""), [live]);
+  const liveLayouts = React.useMemo<KeyboardLayoutOption[]>(
+    () =>
+      live.keymaps.map((km) => ({
+        id: km.name,
+        short: formatShortLayoutCode(km.name, km.description),
+        label: km.description || km.name.toUpperCase(),
+      })),
+    [live],
+  );
 
   const layouts = React.useMemo(() => {
     if (liveLayouts.length > 0) return liveLayouts;
@@ -111,19 +77,13 @@ export function KeyboardLayoutSwitcher({
   }
 
   const activeId =
-    (liveLayouts.length > 0 ? liveActive : value) || layouts[0].id;
+    (liveLayouts.length > 0 ? picked || live.active : value) || layouts[0].id;
   const activeLayout =
     layouts.find((kb) => kb.id === activeId) ?? layouts[0];
 
   const handleSelect = (nextId: string) => {
-    if (liveLayouts.length > 0) {
-      setLiveActive(nextId);
-    }
-    if (systemServices && typeof piloti.keyboard?.selectKeymap === "function") {
-      void piloti.keyboard
-        .selectKeymap(KeymapChoice.Named(nextId))
-        .catch(() => undefined);
-    }
+    setPicked(nextId);
+    if (systemServices) selectKeymap(piloti, nextId);
     onValueChange?.(nextId);
   };
 

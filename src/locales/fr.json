@@ -812,5 +812,9 @@
   "Not drawn": "Non affiché",
   "Hello World": "Bonjour le monde",
   "Hello world": "Bonjour le monde",
-  "The simplest app built with the shell's elements": "L’application la plus simple faite avec les éléments du shell"
+  "The simplest app built with the shell's elements": "L’application la plus simple faite avec les éléments du shell",
+  "Keyboard language": "Langue du clavier",
+  "Shortcut keys": "Touches de raccourci",
+  "English (US)": "Anglais (US)",
+  "Language & shortcut keys": "Langue et touches de raccourci"
 }

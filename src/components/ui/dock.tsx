@@ -228,7 +228,7 @@ function Dock({
 }
 
 // One tile in the Dock. `label` is shown alongside it on hover, `runningCount`
-// renders one indicator dot per open window, and `badge` shows a red count.
+// renders one indicator dot per open window, and `badge` shows a count, as in a sidebar.
 function DockItem({
   className,
   style,
@@ -320,7 +320,7 @@ function DockItem({
           aria-valuemin={0}
           aria-valuemax={100}
           aria-valuenow={progress === null ? undefined : Math.round(progress * 100)}
-          className="pointer-events-none absolute inset-x-[14%] bottom-[6%] z-20 h-[7cqw] overflow-hidden rounded-full bg-black/45 shadow-[0_0_0_0.5px_rgb(255_255_255/0.25)]"
+          className="pointer-events-none absolute inset-x-[10%] bottom-[5%] z-20 h-[11cqw] overflow-hidden rounded-full border-[1.5px] border-white/90 bg-black/60 shadow-[0_0_0_1px_rgb(0_0_0/0.35)]"
         >
           {progress === null ? (
             <span className="absolute inset-y-0 left-0 w-2/5 animate-[dock-progress-indeterminate_1.1s_ease-in-out_infinite] rounded-full bg-white motion-reduce:w-full motion-reduce:animate-none motion-reduce:opacity-60" />
@@ -352,7 +352,7 @@ function DockItem({
       {badge != null && badge !== false ? (
         <span
           data-slot="dock-badge"
-          className="pointer-events-none absolute top-[2cqw] right-[1cqw] flex h-[37cqw] min-w-[37cqw] items-center justify-center rounded-full bg-[#ec3830] px-[4cqw] text-[19.6cqw] leading-none font-medium text-white tabular-nums shadow-[0_0.5px_1.5px_rgb(0_0_0/0.3)]"
+          className="pointer-events-none absolute top-[2cqw] right-[1cqw] flex h-[37cqw] min-w-[37cqw] items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--adw-label)_16%,var(--adw-window))] px-[8cqw] text-[19.6cqw] leading-none font-semibold text-adw-label tabular-nums ring-1 ring-adw-label/20 shadow-[0_0.5px_1.5px_rgb(0_0_0/0.3)]"
         >
           {badge}
         </span>

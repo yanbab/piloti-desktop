@@ -144,6 +144,16 @@ export function MonitorHardwareIllustration({
   );
 }
 
+const PENDING_INFO: ComputerInfo = {
+  computerName: "",
+  modelSubtitle: "",
+  processor: "Detecting…",
+  graphics: "Detecting…",
+  memory: "Detecting…",
+  osName: "Piloti Desktop",
+};
+let lastInfo: ComputerInfo | null = null;
+
 /**
  * macOS "About This Mac"-inspired About Computer window built with Adwaita grouped rows.
  */
@@ -153,21 +163,14 @@ export function AboutComputerDialog() {
   const closeOnLeft = isCloseOnLeft(useChromeSettings().settings.windowButtonLayout);
   const aboutOpen = useWindowManagerSelector((wm) => wm.aboutOpen);
   const { setAboutOpen, launchApp } = useWindowActions();
-  const [info, setInfo] = React.useState<ComputerInfo>({
-    computerName: "Piloti Desktop",
-    modelSubtitle: isBrowserRuntime  // FIXME : Capabilities
-      ? "Wayland Web Shell"
-      : "Domicile Wayland Computer",
-    processor: "Detecting…",
-    graphics: "Detecting…",
-    memory: "Detecting…",
-    osName: "Piloti Desktop",
-  });
+  // The last probe, or blank: never a made-up name that changes under the eyes.
+  const [info, setInfo] = React.useState<ComputerInfo>(() => lastInfo ?? PENDING_INFO);
 
   React.useEffect(() => {
     if (!aboutOpen) return;
     let cancelled = false;
     void probeComputerInfo(piloti, isBrowserRuntime).then((next) => {  // FIXME : Capabilities
+      lastInfo = next;
       if (!cancelled) setInfo(next);
     });
     return () => {
@@ -249,11 +252,17 @@ export function AboutComputerDialog() {
               screenContent={<DesktopBackgroundLayers />}
             />
             {/* font-bold maps to the UI's semibold weight: the title is heavier. */}
+            {/* A no-break space holds each line until the probe answers. */}
             <h2 className="w-full truncate text-adw-title-2 font-extrabold text-adw-label">
-              {info.computerName}
+              {info.computerName || "\u00a0"}
             </h2>
-            <p className="line-clamp-2 text-adw-body text-adw-label-secondary">
-              {info.modelSubtitle}
+            {/* Two lines: the model, then the architecture. */}
+            <p className="w-full text-adw-body text-adw-label-secondary">
+              {[0, 1].map((line) => (
+                <span key={line} className="block truncate">
+                  {info.modelSubtitle.split(" · ")[line] || "\u00a0"}
+                </span>
+              ))}
             </p>
           </header>
 

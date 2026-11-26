@@ -320,33 +320,6 @@ export function AdvancedPane() {
           </GroupedFormRow>
           <GroupedFormRow>
             <GroupedFormRowLabel>
-              <GroupedFormRowTitle>{_("Keyboard")}</GroupedFormRowTitle>
-            </GroupedFormRowLabel>
-            <GroupedFormRowControl>
-              <div className="inline-flex rounded-adw-item bg-black/8 p-0.5 dark:bg-white/10">
-                {(["pc", "mac"] as const).map((model) => {
-                  const selected = settings.computerModel === model;
-                  return (
-                    <button
-                      key={model}
-                      type="button"
-                      onClick={() => updateSettings({ computerModel: model })}
-                      className={cn(
-                        "rounded-adw-control px-3 py-1 text-adw-callout font-medium transition-all",
-                        selected
-                          ? "bg-white text-black shadow-xs dark:bg-white/16 dark:text-white"
-                          : "text-adw-label-secondary hover-fill:text-adw-label"
-                      )}
-                    >
-                      {model === "mac" ? "Mac" : "PC"}
-                    </button>
-                  );
-                })}
-              </div>
-            </GroupedFormRowControl>
-          </GroupedFormRow>
-          <GroupedFormRow>
-            <GroupedFormRowLabel>
               <GroupedFormRowTitle>{_("File Extension Badges")}</GroupedFormRowTitle>
             </GroupedFormRowLabel>
             <GroupedFormRowControl>
