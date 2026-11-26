@@ -3,6 +3,7 @@
  * the machine totals and every process, so a sample is a single subprocess.
  * CPU shares are of the whole machine, from the difference of two samples.
  */
+import { getEngine } from "@/lib/engine/engine";
 import type { Piloti } from "@/lib/engine/piloti";
 
 const SAMPLE_SCRIPT = [
@@ -130,8 +131,19 @@ export function appUsage(
   return usage;
 }
 
+/** The same text, file by file, where there is no `sh` (the browser demo). */
+export async function readProcFiles(piloti: Pick<Piloti, "vfs">): Promise<string> {
+  const read = async (path: string) => (await piloti.vfs.readText(path)) ?? "";
+  const stat = await read("/proc/stat");
+  const pids = ((await piloti.vfs.list("/proc")) ?? []).filter((e) => /^\d+$/.test(e.name));
+  const processes = await Promise.all(pids.map((e) => read(`${e.path}/stat`)));
+  return ["4096", stat, await read("/proc/meminfo"), ...processes].join("\n");
+}
+
 export async function readSystemSample(piloti: Piloti): Promise<SystemSample | null> {
   try {
+    // On Linux one `sh` reads it all: a call per process would be costly.
+    if (!getEngine().capabilities.systemServices) return parseSystemSample(await readProcFiles(piloti));
     const res = await piloti.processes.run(["sh", "-c", SAMPLE_SCRIPT], { env: { LC_ALL: "C" } });
     return res.match({ Ok: (ran) => parseSystemSample(ran.stdout), Err: () => null });
   } catch {

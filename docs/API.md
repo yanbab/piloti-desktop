@@ -189,14 +189,19 @@ for (const name of ['a.txt', 'b.txt']) {
 - To keep a command's result, call it: `const text = await cat('a.txt')`.
 - A line starting with a name the script declares is JavaScript.
 - `#` starts a comment line. The first error ends the script; a program's exit
-  code does not. Ctrl+C stops it at its next command.
+  code does not. Ctrl+C stops it.
+
+**Loops** in scripts and typed lines are checked, so they cannot freeze the
+desktop: they pause every 50 ms and Ctrl+C stops them. In a function that is not
+`async` a loop cannot pause, and is stopped after 5 s.
 
 `~/.config/piloti-shell/autoexec.psh` runs when the shell starts, and goes on
 after a failed command (not after a JavaScript error): put aliases and `cd`
 there.
 
-**`top`** (Linux) lists processes by CPU, from `/proc`, every 2 s; `q` or
-Ctrl+C quits. `/usr/bin/top` is the system's.
+**`top`** lists processes by CPU, from `/proc`, every 2 s; `q` or Ctrl+C quits.
+`/usr/bin/top` is the system's. The browser demo's `/proc` is made up
+(`stat`, `meminfo`, `<pid>/stat`), with a process per running app.
 
 **Tables.** A non-empty array of objects, or its JSON text (a result, `cat`, a
 program's output), prints as a table with a line under its header. It shows six
@@ -216,7 +221,7 @@ a program's `-a` is its own. `x.map(JSON.stringify)` avoids the table.
 | `files`, `piloti` | Domicile's files; the desktop |
 
 File operations are not in the Folders undo history. Code:
-`lib/shell/piloti-{repl,commands,programs,run,completion,table,top,script}.ts`.
+`lib/shell/piloti-{repl,commands,programs,run,completion,table,top,script,loops}.ts`.
 
 ## React hooks
 

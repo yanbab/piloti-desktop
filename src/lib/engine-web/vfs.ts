@@ -6,6 +6,7 @@
 import type { Domicile } from "@domicile-desktop/sdk/desktop/desktop";
 import { getVfsImageThumbnailUrl } from "@/lib/core/vfs-media";
 import { WEB_VFS_TRASH, type WebVfsEntry } from "@/lib/core/vfs-paths";
+import { createDemoProc } from "@/lib/engine-web/proc";
 import {
   copyVfsEntry,
   createVfsSymlink,
@@ -25,6 +26,8 @@ import {
 } from "@/lib/engine-web/web-vfs";
 import { VFS_HOME } from "@/lib/engine/vfs-home";
 import { baseName, createPathQueue, joinPath, parentPath, VfsError, type Vfs } from "@/lib/ports/vfs";
+
+const inProc = (path: string) => path === "/proc" || path.startsWith("/proc/");
 
 const inBrowserVfs = (path: string) =>
   [VFS_HOME, "/media/user"].some((root) => path === root || path.startsWith(`${root}/`));
@@ -80,10 +83,17 @@ function renameTo(entry: WebVfsEntry | null, to: string): void {
 export function createWebVfs(domicile: Pick<Domicile, "files">): Vfs {
   const { files } = domicile;
   const queue = createPathQueue();
+  const proc = createDemoProc();
   const ok = <T,>(call: Promise<{ match<R>(on: { Ok: (v: T) => R; Err: () => R }): R }>) =>
     call.then((result) => result.match<T | null>({ Ok: (v) => v, Err: () => null }));
 
   const stat: Vfs["stat"] = async (path) => {
+    if (inProc(path)) {
+      const kind = proc.list(path) ? ("directory" as const) : ("file" as const);
+      // Sizes are 0, as on Linux; only listings tell which files exist.
+      const exists = kind === "directory" || proc.list(parentPath(path))?.some((e) => e.name === baseName(path));
+      return exists ? { name: baseName(path), path, kind, size: 0, modifiedMs: Date.now(), realPath: path } : null;
+    }
     if (!inBrowserVfs(path)) {
       const st = await ok(files.stat(path));
       if (!st) return null;
@@ -108,8 +118,15 @@ export function createWebVfs(domicile: Pick<Domicile, "files">): Vfs {
   };
 
   return {
-    readText: async (path) => (inBrowserVfs(path) ? readContent(path) : ok(files.readText(path))),
+    readText: async (path) => {
+      if (inProc(path)) return proc.read(path);
+      return inBrowserVfs(path) ? readContent(path) : ok(files.readText(path));
+    },
     async read(path) {
+      if (inProc(path)) {
+        const text = proc.read(path);
+        return text === null ? null : toBytes(text);
+      }
       if (!inBrowserVfs(path)) return ok(files.read(path));
       const content = readContent(path);
       return content === null ? null : toBytes(content);
@@ -123,6 +140,7 @@ export function createWebVfs(domicile: Pick<Domicile, "files">): Vfs {
       }),
     stat,
     async list(dir) {
+      if (inProc(dir)) return proc.list(dir)?.map((e) => ({ ...e, path: joinPath(dir, e.name) })) ?? null;
       if (!inBrowserVfs(dir)) {
         const entries = await ok(files.readDir(dir));
         return (

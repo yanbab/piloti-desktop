@@ -14,6 +14,7 @@ import {
   useUpdateSettings,
 } from "@/context/DesktopStateContext";
 import { getEngine } from "@/lib/engine/engine";
+import { setDemoApps } from "@/lib/engine/demo-processes";
 import { readLoginShells, startShell, type BashSession, type LoginShell } from "@/lib/engine-native/pty-bridge";
 import { ChevronDownIcon } from "lucide-react";
 import {
@@ -137,7 +138,8 @@ export function XtermTerminalApp({
       top: async () => {
         const term = termRef.current;
         const repl = replRef.current;
-        if (!systemServices || !term || !repl) throw new Error("top: needs Linux");
+        if (!term || !repl) return;
+        if (!systemServices) setDemoApps(live.current.windows.map((w) => w.appId));
         await runTop({
           sample: () => readSystemSample(piloti),
           write: (t) => term.write(t),

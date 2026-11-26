@@ -9,6 +9,7 @@
  */
 import type { Completion } from "@/lib/shell/piloti-completion";
 import { compileScript } from "@/lib/shell/piloti-script";
+import { createLoopGuard, guardLoops, Interrupted } from "@/lib/shell/piloti-loops";
 import { formatTable, tableRows } from "@/lib/shell/piloti-table";
 
 export interface ProgramRunner {
@@ -47,6 +48,7 @@ const AsyncFunction = Object.getPrototypeOf(async function () {
 export async function evaluateLine(code: string, scope: Record<string, unknown>): Promise<unknown> {
   const names = Object.keys(scope);
   const values = names.map((n) => scope[n]);
+  if (scope.__loop) code = guardLoops(code);
   let fn: (...values: unknown[]) => Promise<unknown>;
   try {
     fn = new AsyncFunction(...names, `return (${code}\n)`);
@@ -277,10 +279,13 @@ export function createRepl({ write, scope, prompt = "piloti> ", textCommands, gl
     write(`\x1b[31m${CRLF(String(error instanceof Error ? error.message : error))}\x1b[0m\r\n`);
 
   const options = { textCommands, glob, programs, aliases };
+  const guard = createLoopGuard(() => interrupted);
+  /** The scope, plus what the checks inside loops call. */
+  const names = () => ({ ...scope(), __loop: guard });
 
   const execute = async (code: string, evaluate?: (expression: string) => Promise<unknown>) => {
     let all = false;
-    const value = await runLine(code, scope(), options, (to) => (input = to), {
+    const value = await runLine(code, names(), options, (to) => (input = to), {
       evaluate,
       onAll: () => (all = true),
     });
@@ -310,18 +315,18 @@ export function createRepl({ write, scope, prompt = "piloti> ", textCommands, gl
   const runScript = async (source: string, name: string, { keepGoing = false } = {}) => {
     if (depth >= 8) throw new Error(`${name}: scripts nested too deep`);
     depth += 1;
-    const stop = new Error("interrupted");
     const reported = new WeakSet<Error>();
     const messageOf = (error: unknown) => (error instanceof Error ? error.message : String(error));
     let count = 0;
     const sh = async (line: string, values: Record<string, () => Promise<unknown>>, at: number) => {
       // Let the keys in now and then, so Ctrl+C can end a loop.
       if (++count % 20 === 0) await new Promise((done) => setTimeout(done, 0));
-      if (interrupted) throw stop;
+      if (interrupted) throw new Interrupted();
       try {
-        await execute(line, (code) => values[code]?.() ?? evaluateLine(code, scope()));
+        await execute(line, (code) => values[code]?.() ?? evaluateLine(code, names()));
       } catch (error) {
         input = null;
+        if (error instanceof Interrupted) throw error;
         const located = new Error(`${name}:${at}: ${messageOf(error)}`);
         reported.add(located);
         if (!keepGoing) throw located;
@@ -337,11 +342,13 @@ export function createRepl({ write, scope, prompt = "piloti> ", textCommands, gl
             .filter((w) => w.kind === "js")
             .map((w) => w.text),
       });
-      const names = scope();
-      const keys = Object.keys(names);
-      await new AsyncFunction(...keys, "__sh", body)(...keys.map((k) => names[k]), sh);
+      const inScope: Record<string, unknown> = names();
+      const keys = Object.keys(inScope);
+      await new AsyncFunction(...keys, "__sh", guardLoops(body))(...keys.map((k) => inScope[k]), sh);
     } catch (error) {
-      if (error === stop) return;
+      // A nested script passes it on, so the one that ran it stops too.
+      if (error instanceof Interrupted && depth === 1) return;
+      if (error instanceof Interrupted) throw error;
       const located = reported.has(error as Error) ? error : new Error(`${name}: ${messageOf(error)}`);
       if (!keepGoing) throw located;
       printError(located);

@@ -26,6 +26,7 @@ import {
 import { APP_CATALOG } from "@/data/catalog";
 import { _ } from "@/lib/core/i18n";
 import { cn } from "@/lib/core/utils";
+import { demoPid, setDemoApps } from "@/lib/engine/demo-processes";
 import { getEngine } from "@/lib/engine/engine";
 import { usePiloti } from "@/lib/engine/piloti";
 import {
@@ -51,8 +52,8 @@ import { XIcon } from "lucide-react";
  * System Monitor: one page of widgets, always fitted to the window, that the
  * user places by dragging them on a grid, as icons on the desktop.
  *
- * With system services the numbers come from `/proc` (`useSystemStats`); the
- * browser demo simulates them (`useSimulatedStats`). Widget places and the apps
+ * The numbers come from `/proc` (`useSystemStats`), made up by the browser VFS
+ * in the demo. Widget places and the apps
  * list sort are kept in `~/.config/piloti/piloti-system-monitor.ini`.
  */
 
@@ -100,15 +101,11 @@ interface Stats {
   apps: AppStat[];
 }
 
-const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
-const walk = (v: number, step: number, min: number, max: number) =>
-  clamp(v + (Math.random() - 0.5) * 2 * step, min, max);
-
 /**
- * Real numbers, sampled while the window is open. `apps` lists the process ids
+ * Numbers from `/proc`, sampled while the window is open. `apps` lists the process ids
  * of the running apps' windows, as `appId:pid` pairs joined by commas.
  */
-function useSystemStats(apps: string, runningAppIds: string[], enabled: boolean): Stats {
+function useSystemStats(apps: string, runningAppIds: string[]): Stats {
   const piloti = usePiloti();
   const { installedXdgApps } = useApps();
   const [sampled, setSampled] = React.useState<{
@@ -118,7 +115,6 @@ function useSystemStats(apps: string, runningAppIds: string[], enabled: boolean)
   } | null>(null);
 
   React.useEffect(() => {
-    if (!enabled) return;
     let stopped = false;
     let timer: number | undefined;
     let prev: SystemSample | null = null;
@@ -141,7 +137,7 @@ function useSystemStats(apps: string, runningAppIds: string[], enabled: boolean)
       stopped = true;
       window.clearTimeout(timer);
     };
-  }, [piloti, enabled]);
+  }, [piloti]);
 
   return React.useMemo(() => {
     if (!sampled) {
@@ -170,50 +166,6 @@ function useSystemStats(apps: string, runningAppIds: string[], enabled: boolean)
       })),
     };
   }, [sampled, apps, runningAppIds, installedXdgApps]);
-}
-
-/** Numbers that drift like real ones, for the browser demo. */
-function useSimulatedStats(runningAppIds: string[], enabled: boolean): Stats {
-  const [stats, setStats] = React.useState<Stats>(() => ({
-    cpuHistory: Array.from({ length: HISTORY }, () => 12),
-    memUsedMb: 3200,
-    memTotalMb: 8192,
-    apps: [],
-  }));
-  const idsKey = runningAppIds.join(",");
-
-  React.useEffect(() => {
-    if (!enabled) return;
-    const ids = idsKey ? idsKey.split(",") : [];
-    const tick = () =>
-      setStats((prev) => {
-        const byId = new Map(prev.apps.map((a) => [a.appId, a]));
-        const apps = ids.map((appId) => {
-          const old = byId.get(appId);
-          const name = APP_CATALOG.find((a) => a.id === appId)?.name ?? appId;
-          return {
-            appId,
-            name,
-            cpu: walk(old?.cpu ?? 2 + Math.random() * 6, 3, 0, 60),
-            memMb: walk(old?.memMb ?? 80 + Math.random() * 300, 12, 30, 1400),
-          };
-        });
-        const appsCpu = apps.reduce((sum, a) => sum + a.cpu, 0);
-        const cpu = clamp(appsCpu / Math.max(1, navigator.hardwareConcurrency || 4) + walk(6, 4, 2, 12), 1, 100);
-        const appsMem = apps.reduce((sum, a) => sum + a.memMb, 0);
-        return {
-          cpuHistory: [...prev.cpuHistory.slice(1), cpu],
-          memUsedMb: clamp(2400 + appsMem, 0, prev.memTotalMb),
-          memTotalMb: prev.memTotalMb,
-          apps,
-        };
-      });
-    tick();
-    const timer = window.setInterval(tick, TICK_MS);
-    return () => window.clearInterval(timer);
-  }, [idsKey, enabled]);
-
-  return stats;
 }
 
 function formatMb(mb: number): string {
@@ -420,8 +372,8 @@ export const SystemMonitorApp: React.FC<SystemMonitorAppProps> = ({ windowId = "
   const runningIds = useWindowManagerSelector(
     (wm) => Array.from(new Set(wm.windows.map((w) => w.appId))).join(","),
   );
-  // Only Linux client windows have a process of their own.
-  const runningProcesses = useWindowManagerSelector((wm) =>
+  // Only Linux client windows have a process of their own; in the demo each app is given one.
+  const clientProcesses = useWindowManagerSelector((wm) =>
     wm.windows
       .flatMap((w) => (w.pid ? [`${w.appId}:${w.pid}`] : []))
       .join(","),
@@ -430,9 +382,11 @@ export const SystemMonitorApp: React.FC<SystemMonitorAppProps> = ({ windowId = "
     () => (runningIds ? runningIds.split(",") : []),
     [runningIds]
   );
-  const realStats = useSystemStats(runningProcesses, runningAppIds, systemServices);
-  const simulatedStats = useSimulatedStats(runningAppIds, !systemServices);
-  const stats = systemServices ? realStats : simulatedStats;
+  if (!systemServices) setDemoApps(runningAppIds);
+  const processes = systemServices
+    ? clientProcesses
+    : runningAppIds.map((appId) => `${appId}:${demoPid(appId)}`).join(",");
+  const stats = useSystemStats(processes, runningAppIds);
 
   // `appId windowId` lines, to close an app's windows.
   const windowList = useWindowManagerSelector((wm) =>
