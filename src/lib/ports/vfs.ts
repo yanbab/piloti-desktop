@@ -74,6 +74,17 @@ export const parentPath = (path: string): string => path.slice(0, path.lastIndex
 export const baseName = (path: string): string => path.slice(path.lastIndexOf("/") + 1);
 export const joinPath = (dir: string, name: string): string => `${dir === "/" ? "" : dir}/${name}`;
 
+/** First name in `existing` (lower case) not used yet: "Name.ext" -> "Name 2.ext". */
+export function uniqueName(existing: ReadonlySet<string>, name: string): string {
+  if (!existing.has(name.toLowerCase())) return name;
+  const dot = name.lastIndexOf(".");
+  const stem = dot > 0 ? name.slice(0, dot) : name;
+  const ext = dot > 0 ? name.slice(dot) : "";
+  let index = 2;
+  while (existing.has(`${stem} ${index}${ext}`.toLowerCase())) index += 1;
+  return `${stem} ${index}${ext}`;
+}
+
 /** Runs the writes of one path in the order they were asked. */
 export function createPathQueue() {
   const tails = new Map<string, Promise<unknown>>();

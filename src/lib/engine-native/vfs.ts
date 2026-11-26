@@ -3,14 +3,14 @@
  * `gio`. Nothing is cached. Paths are absolute.
  */
 import type { Domicile } from "@domicile-desktop/sdk/desktop/desktop";
-import { uniqueName } from "@/lib/core/file-service";
-import { parseGioMetadataInfo } from "@/lib/engine-native/native-file-store";
+import { parseGioMetadataInfo } from "@/lib/engine-native/gio";
 import { createWatchHub, type WatchHubOptions } from "@/lib/engine-native/vfs-watch";
 import {
   baseName,
   createPathQueue,
   joinPath,
   parentPath,
+  uniqueName,
   VfsError,
   type Vfs,
   type VfsStat,

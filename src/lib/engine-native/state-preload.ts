@@ -1,5 +1,5 @@
 import type { KeyValueStorage } from "@/lib/ports/vfs-persistence";
-import type { FileStore } from "@/lib/ports/file-store";
+import type { Vfs } from "@/lib/ports/vfs";
 import { VFS_HOME } from "@/lib/engine/vfs-home";
 
 const KV_DIR = `${VFS_HOME}/.local/state/piloti/kv`;
@@ -11,21 +11,20 @@ const KV_DIR = `${VFS_HOME}/.local/state/piloti/kv`;
  * the entry cache itself, which mirrors the disk and is rebuilt from it.
  */
 export async function createNativeKeyValueStorage(
-  store: FileStore,
+  vfs: Pick<Vfs, "list" | "readText" | "write" | "remove" | "createDir">,
   memoryOnly: (key: string) => boolean,
 ): Promise<KeyValueStorage> {
   const map = new Map<string, string>();
-  const listed = await store.list(KV_DIR).catch(() => null);
+  const listed = await vfs.list(KV_DIR).catch(() => null);
   await Promise.all(
     (listed ?? [])
       .filter((e) => e.kind === "file")
       .map(async (e) => {
-        const text = await store.readText(`${KV_DIR}/${e.name}`).catch(() => null);
+        const text = await vfs.readText(`${KV_DIR}/${e.name}`).catch(() => null);
         if (text !== null) map.set(e.name, text);
       }),
   );
   const pending = new Map<string, ReturnType<typeof setTimeout>>();
-  let dirReady = false;
   const persist = (key: string, value: string | null) => {
     if (memoryOnly(key)) return;
     const previous = pending.get(key);
@@ -36,12 +35,12 @@ export async function createNativeKeyValueStorage(
         pending.delete(key);
         void (async () => {
           if (value === null) {
-            await store.remove(`${KV_DIR}/${key}`);
+            await vfs.remove(`${KV_DIR}/${key}`);
             return;
           }
-          if (!dirReady) dirReady = await store.createDir(KV_DIR);
-          await store.writeText(`${KV_DIR}/${key}`, value);
-        })();
+          await vfs.createDir(KV_DIR);
+          await vfs.write(`${KV_DIR}/${key}`, value);
+        })().catch((error) => console.warn("[piloti] cannot save", key, error));
       }, 200),
     );
   };

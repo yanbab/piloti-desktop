@@ -1,7 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { parseGioInfoEmblems, parseGioListEmblems } from "@/lib/engine-native/native-file-store";
-import { createFileService } from "@/lib/core/file-service";
-import type { FileStore } from "@/lib/ports/file-store";
+import { parseGioInfoEmblems, parseGioListEmblems } from "@/lib/engine-native/gio";
 
 describe("gio emblems", () => {
   test("parses `gio list -a` and `gio info` output", () => {
@@ -15,25 +13,5 @@ describe("gio emblems", () => {
       "emblem-x",
     ]);
     expect(parseGioInfoEmblems("attributs :\n")).toEqual([]);
-  });
-
-  test("syncEmblems hands each listed entry's disk emblems to the cache", async () => {
-    const seen: Array<[string, string[]]> = [];
-    const store = {
-      list: async () => [
-        { name: "a.txt", kind: "file" as const },
-        { name: "b.txt", kind: "file" as const },
-      ],
-      emblems: async () => ({ "a.txt": ["emblem-favorite"] }),
-    } as unknown as FileStore;
-    const svc = createFileService({
-      store,
-      cache: { syncVfsEmblemsFromHost: (p: string, n: readonly string[]) => seen.push([p, [...n]]) } as never,
-    });
-    await svc.syncEmblems("/h");
-    expect(seen).toEqual([
-      ["/h/a.txt", ["emblem-favorite"]],
-      ["/h/b.txt", []],
-    ]);
   });
 });

@@ -1,6 +1,5 @@
 import { hostFiles } from "@/lib/engine/host-files";
 import * as React from "react";
-import { watchNativeDir } from "@/lib/engine-native/file-watch";
 import {
   closestCenter,
   DndContext,
@@ -65,7 +64,6 @@ import {
 import {
   emptyVfsTrash,
   listVfsDir,
-  subscribeWebVfs,
   WEB_VFS_TRASH,
 } from "@/lib/engine-web/web-vfs";
 import {
@@ -338,30 +336,19 @@ export const Dock = React.memo(function Dock() {
   }, [piloti, isBrowserRuntime]);  // FIXME : Capabilities
 
   React.useEffect(() => {
-    void refreshTrashStatus();
-    if (isBrowserRuntime) {  // FIXME : Capabilities
-      return subscribeWebVfs(
-        () => {
-          void refreshTrashStatus();
-        },
-        { path: WEB_VFS_TRASH, mode: "children" },
-      );
-    }
     let active = true;
-    const onFocus = () => {
+    const refresh = () => {
       if (active) void refreshTrashStatus();
     };
-    window.addEventListener("focus", onFocus);
-    // inotify via Domicile instead of polling every 5 s (polls only as fallback).
-    const stopWatch = watchNativeDir(hostFiles(piloti), ".local/share/Trash/files", () => {
-      if (active) void refreshTrashStatus();
-    });
+    window.addEventListener("focus", refresh);
+    // Calls once when in place, then when the Trash changes.
+    const unwatch = piloti.vfs.watch(WEB_VFS_TRASH, refresh);
     return () => {
       active = false;
-      stopWatch();
-      window.removeEventListener("focus", onFocus);
+      unwatch();
+      window.removeEventListener("focus", refresh);
     };
-  }, [piloti, isBrowserRuntime, refreshTrashStatus]);  // FIXME : Capabilities
+  }, [piloti.vfs, refreshTrashStatus]);
 
   const resolveAppDefinition = React.useCallback(
     (appId: string): AppDefinition | null => {

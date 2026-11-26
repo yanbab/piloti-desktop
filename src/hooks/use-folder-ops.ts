@@ -62,11 +62,10 @@ export function useFolderOps({
       if (list.length === 0) return;
       if (isTrash) {
         // Nothing to undo.
-        for (const target of list) trashFsEntry(piloti, target.path);
+        void Promise.all(list.map((target) => trashFsEntry(piloti, target.path))).then(reload);
       } else {
-        trashWithUndo(ctx, list.map((t) => t.path));
+        void trashWithUndo(ctx, list.map((t) => t.path)).then(reload);
       }
-      reload();
       deselect(new Set(list.map((t) => t.id)));
     };
 
@@ -86,8 +85,7 @@ export function useFolderOps({
           (item) => item.path !== destPath && !destPath.startsWith(`${item.path}/`),
         );
         if (moving.length === 0) return;
-        moveWithUndo(ctx, moving.map((i) => i.path), destPath);
-        reload();
+        void moveWithUndo(ctx, moving.map((i) => i.path), destPath).then(reload);
         deselect(new Set(moving.map((i) => i.id)));
       },
 
@@ -95,9 +93,8 @@ export function useFolderOps({
         const clip = getVfsClipboard();
         if (!clip || clip.paths.length === 0 || readOnly) return;
         if (clip.mode === "cut") {
-          moveWithUndo(ctx, clip.paths, dirPath);
+          void moveWithUndo(ctx, clip.paths, dirPath).then(reload);
           setVfsClipboard(null);
-          reload();
           return;
         }
         void copyAll(clip.paths.map((path) => ({ id: path, path })), dirPath, "Paste");
@@ -121,12 +118,12 @@ export function useFolderOps({
         })).then(select);
       },
 
-      /** Returns the new path, or null when nothing was renamed. */
-      renameItem(item: Target, rawName: string): string | null {
+      /** Resolves to the new path, or null when nothing was renamed. */
+      async renameItem(item: Target, rawName: string): Promise<string | null> {
         const name = rawName.trim().replace(/[/\\]/g, "");
         const oldName = item.path.split("/").pop();
         if (!name || name === oldName) return null;
-        const renamed = renameWithUndo(ctx, item.path, name);
+        const renamed = await renameWithUndo(ctx, item.path, name);
         if (renamed) {
           reload();
           setSelectedIds([renamed]);

@@ -463,9 +463,8 @@ export function FilesApp({
   const handleRestoreItems = React.useCallback(
     (list: readonly { path: string; id: string }[]) => {
       const restoredIds = new Set<string>();
-      restoreWithUndo(undoCtx, list.map((t) => t.path));
+      void restoreWithUndo(undoCtx, list.map((t) => t.path)).then(reloadDir);
       for (const target of list) restoredIds.add(target.id);
-      reloadDir();
       setSelectedIds((prev) => prev.filter((id) => !restoredIds.has(id)));
     },
     [reloadDir, undoCtx]
@@ -960,7 +959,7 @@ export function FilesApp({
     async (next: GtkBookmark[]) => {
       setBookmarks(next);
       if (realFilesystem) await hostFiles(piloti).createDir(".config/gtk-3.0").catch(() => undefined);
-      writeFsTextFile(piloti, bookmarksFile, serializeGtkBookmarks(next));
+      void writeFsTextFile(piloti, bookmarksFile, serializeGtkBookmarks(next));
     },
     [bookmarksFile, piloti, realFilesystem],
   );
@@ -1076,18 +1075,18 @@ export function FilesApp({
     setSelectedIds([]);
   };
 
-  const handleNewFolder = () => {
+  const handleNewFolder = async () => {
     if (isTrashView || isVirtualView) return;
-    const created = createFsFolder(piloti, currentPath);
+    const created = await createFsFolder(piloti, currentPath);
     recordCreated(undoCtx, [created.path], "New Folder");
     reloadDir();
     setSelectedIds([created.path]);
     setRenamingId(created.path);
   };
 
-  const handleNewTextFile = () => {
+  const handleNewTextFile = async () => {
     if (isTrashView || isVirtualView) return;
-    const created = createFsTextFile(piloti, currentPath);
+    const created = await createFsTextFile(piloti, currentPath);
     recordCreated(undoCtx, [created.path], "New Text File");
     reloadDir();
     setSelectedIds([created.path]);

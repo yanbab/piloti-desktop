@@ -1,5 +1,4 @@
 import * as React from "react";
-import { useCapabilities } from "@/hooks/use-capabilities";
 import { usePiloti } from "@/lib/engine/piloti";
 import {
   DropdownMenu,
@@ -13,7 +12,6 @@ import { useSettings, useWindowActions } from "@/context/DesktopStateContext";
 import { _ } from "@/lib/core/i18n";
 import { listFsDir } from "@/lib/engine/fs-bridge";
 import {
-  subscribeWebVfs,
   type WebVfsEntry,
 } from "@/lib/engine-web/web-vfs";
 import { dockFolderLabel } from "@/lib/shell/dock-folders";
@@ -37,7 +35,6 @@ export function DockFolderStack({
 }: DockFolderStackProps) {
   const piloti = usePiloti();
   const { settings } = useSettings();
-  const { realFilesystem } = useCapabilities();
   const { launchApp } = useWindowActions();
   const { openPath } = useOpenPath();
   const [entries, setEntries] = React.useState<WebVfsEntry[] | null>(null);
@@ -57,14 +54,13 @@ export function DockFolderStack({
       });
       setEntries(visible);
     };
-    void load();
-    const unsub = !realFilesystem ? subscribeWebVfs(() => void load(), { path, mode: "children" }) : undefined;
+    // Calls once when in place, then when the folder changes.
+    const unwatch = piloti.vfs.watch(path, () => void load());
     return () => {
       cancelled = true;
-      unsub?.();
+      unwatch();
     };
-  }, [piloti, realFilesystem, path]);
-
+  }, [piloti, path]);
 
   const openFolder = React.useCallback(
     (target: string) => {

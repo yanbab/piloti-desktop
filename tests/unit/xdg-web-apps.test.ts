@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, test } from "bun:test";
 import type { Piloti } from "@/lib/engine/piloti";
 import type { InstalledWebApp } from "@/data/web-apps";
 import { getVfsEntry, WEB_VFS_STORAGE_KEY } from "@/lib/engine-web/web-vfs";
+import { createWebVfs } from "@/lib/engine-web/vfs";
 import {
   installWebAppDesktopEntry,
   loadWebAppsFromDesktopEntries,
@@ -53,7 +54,7 @@ const SAMPLE_APP: InstalledWebApp = {
   keywords: "whiteboard diagram",
 };
 
-const DUMMY_DOMICILE = {} as Piloti;
+const DUMMY_DOMICILE = { vfs: createWebVfs({ files: {} as never }) } as unknown as Piloti;
 
 describe("xdg-web-apps FreeDesktop .desktop persistence", () => {
   beforeEach(() => {

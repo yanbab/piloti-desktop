@@ -158,9 +158,9 @@ export function DesktopIconsApp({
   React.useEffect(() => {
     const listeners: Record<string, (e: Event) => void> = {
       "piloti:desktop-new-folder": () =>
-        editCreated(createFsFolder(piloti, desktopDirPath), "New Folder"),
+        void createFsFolder(piloti, desktopDirPath).then((c) => editCreated(c, "New Folder")),
       "piloti:desktop-new-file": () =>
-        editCreated(createFsTextFile(piloti, desktopDirPath), "New Text File"),
+        void createFsTextFile(piloti, desktopDirPath).then((c) => editCreated(c, "New Text File")),
       "piloti:desktop-new-from-template": (e) => {
         const template = (e as CustomEvent<WebVfsEntry | undefined>).detail;
         if (template) {

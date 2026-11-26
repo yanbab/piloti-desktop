@@ -81,7 +81,6 @@ import {
   getVfsClipboard,
   listVfsTemplates,
   subscribeVfsClipboard,
-  subscribeWebVfs,
   type WebVfsEntry,
   resolveVfsTemplatesDir,
 } from "@/lib/engine-web/web-vfs";
@@ -158,10 +157,7 @@ function DesktopSurface() {
       }
     };
     syncTemplates();
-    return subscribeWebVfs(() => syncTemplates(), {
-      path: resolveVfsTemplatesDir(),
-      mode: "children",
-    });
+    return piloti.vfs.watch(resolveVfsTemplatesDir(), syncTemplates);
   }, [piloti, systemServices]);
 
   const brightnessFilter =

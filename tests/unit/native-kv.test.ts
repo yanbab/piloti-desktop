@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { createNativeKeyValueStorage } from "@/lib/engine-native/state-preload";
-import type { FileStore } from "@/lib/ports/file-store";
+import type { Vfs } from "@/lib/ports/vfs";
 
 function fakeStore(initial: Record<string, string>) {
   const files = new Map(Object.entries(initial));
@@ -10,10 +10,10 @@ function fakeStore(initial: Record<string, string>) {
         .filter((p) => p.startsWith(`${dir}/`))
         .map((p) => ({ name: p.slice(dir.length + 1), kind: "file" as const })),
     readText: async (p: string) => files.get(p) ?? null,
-    writeText: async (p: string, c: string) => (files.set(p, c), true),
-    createDir: async () => true,
+    write: async (p: string, c: string) => void files.set(p, c),
+    createDir: async () => {},
     remove: async (p: string) => files.delete(p),
-  } as unknown as FileStore;
+  } as unknown as Vfs;
   return { store, files };
 }
 

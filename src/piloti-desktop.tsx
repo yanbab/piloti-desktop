@@ -63,19 +63,21 @@ async function boot(root: HTMLElement, piloti: Parameters<ShellModule>[1]) {
       }
       const { memoryBlobStorage } = await import("@/lib/ports/vfs-persistence");
       const [
-        { createNativeFileStore },
+        { createNativeVfs },
+        { setEmblems },
         { createNativeKeyValueStorage },
         { createNativeStateStore },
         { setStateSource },
       ] = await Promise.all([
-        import("@/lib/engine-native/native-file-store"),
+        import("@/lib/engine-native/vfs"),
+        import("@/lib/engine-native/gio"),
         import("@/lib/engine-native/state-preload"),
         import("@/lib/engine-native/state-store"),
         import("@/lib/engine/vfs-state"),
       ]);
-      const store = createNativeFileStore(piloti);
+      nativeVfs = createNativeVfs(piloti);
       const finishKv = startBootPhase("saved key/values");
-      const kv = await createNativeKeyValueStorage(store, (key) => key === vfs.WEB_VFS_STORAGE_KEY);
+      const kv = await createNativeKeyValueStorage(nativeVfs, (key) => key === vfs.WEB_VFS_STORAGE_KEY);
       finishKv();
       vfs.setVfsPersistence({
         kv,
@@ -84,10 +86,9 @@ async function boot(root: HTMLElement, piloti: Parameters<ShellModule>[1]) {
       });
       // Emblems (favorites included) live in the file's gio `metadata::emblems`, like other file managers.
       vfs.setVfsEmblemPersist((path, names) =>
-        void store.setEmblems?.(path, names, vfs.MANAGED_GNOME_EMBLEMS),
+        void setEmblems(piloti.processes, path, names, vfs.MANAGED_GNOME_EMBLEMS),
       );
       const finishPreload = startBootPhase("saved state files");
-      nativeVfs = (await import("@/lib/engine-native/vfs")).createNativeVfs(piloti);
       await moveLegacyConfigDir(piloti, `${home}/.config`).catch(() => undefined);
       setStateSource(await createNativeStateStore(nativeVfs, home));
       finishPreload();

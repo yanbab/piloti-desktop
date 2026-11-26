@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "bun:test";
-import { parseGioMetadataInfo } from "@/lib/engine/fs-bridge";
+import { parseGioMetadataInfo } from "@/lib/engine-native/gio";
 import { inferFileVisual } from "@/lib/shell/desktop-icons";
 import {
   clearAllWebVfsBackingStorage,

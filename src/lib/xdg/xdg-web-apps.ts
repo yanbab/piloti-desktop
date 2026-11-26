@@ -173,7 +173,7 @@ export async function installWebAppDesktopEntry(
 ): Promise<void> {
   await ensureXdgApplicationsDir(piloti);
   const filePath = `${WEB_APPS_XDG_DIR}/${webAppDesktopFileName(app)}`;
-  writeFsTextFile(piloti, filePath,
+  await writeFsTextFile(piloti, filePath,
     serializeWebAppDesktopEntry(app),
   );
   notifyWebAppsChanged();

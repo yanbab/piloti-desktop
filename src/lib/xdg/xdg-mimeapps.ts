@@ -284,7 +284,7 @@ export async function setDefaultMimeApp(
   for (const [m, ids] of Object.entries(config.added)) {
     lines.push(`${m}=${ids.join(";")};`);
   }
-  writeFsTextFile(piloti, MIMEAPPS_PATH, `${lines.join("\n")}\n`);
+  await writeFsTextFile(piloti, MIMEAPPS_PATH, `${lines.join("\n")}\n`);
 }
 
 export interface SharedMimeGlob {

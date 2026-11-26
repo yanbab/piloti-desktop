@@ -1,16 +1,12 @@
-import { getEngine } from "@/lib/engine/engine";
 import * as React from "react";
 import type { Piloti } from "@/lib/engine/piloti";
 import {
-  listVfsDir,
   normalizeVfsPath,
-  WEB_VFS_TRASH,
 } from "@/lib/engine-web/web-vfs";
 import {
   moveFsEntry,
   renameFsEntry,
   restoreFsEntry,
-  toDomicilePath,
   trashFsEntry,
 } from "@/lib/engine/fs-bridge";
 
@@ -114,48 +110,28 @@ function parentDir(path: string): string {
   return idx <= 0 ? "/" : norm.slice(0, idx);
 }
 
-/** Where a just-trashed `path` ended up in the Trash folder. */
-function findTrashedPath(path: string): string {
-  const norm = normalizeVfsPath(path);
-  const match = listVfsDir(WEB_VFS_TRASH, { includeHidden: true })
-    .filter((e) => e.trashedFromPath === norm)
-    .sort((a, b) => b.updatedAt - a.updatedAt)[0];
-  return match?.path ?? `${WEB_VFS_TRASH}/${baseName(path)}`;
+/** Trashes one after the other; where each went (`null` if it stayed or is unknown). */
+async function trashAll(ctx: FileUndoContext, paths: readonly string[]): Promise<(string | null)[]> {
+  const trashed: (string | null)[] = [];
+  for (const path of paths) trashed.push(await trashFsEntry(ctx.piloti, path));
+  return trashed;
 }
 
-function restoreFromTrash(ctx: FileUndoContext, trashPath: string, originalPath: string): void {
-  const restored = restoreFsEntry(ctx.piloti, trashPath);
-  if (!restored && getEngine().capabilities.realFilesystem) {
-    // Native trash is not always mirrored in the VFS: put it back on disk.
-    void ctx.piloti.processes.run([
-      "mv",
-      "-n",
-      "--",
-      toDomicilePath(trashPath),
-      toDomicilePath(originalPath),
-    ]);
-  }
-}
-
-function trashAll(ctx: FileUndoContext, paths: readonly string[]): string[] {
-  return paths.map((path) => {
-    trashFsEntry(ctx.piloti, path);
-    return findTrashedPath(path);
-  });
+async function restoreAll(ctx: FileUndoContext, trashPaths: readonly (string | null)[]): Promise<void> {
+  for (const path of trashPaths) if (path) await restoreFsEntry(ctx.piloti, path);
 }
 
 /** Moves `paths` to the Trash and records it (undo restores them). */
-export function trashWithUndo(ctx: FileUndoContext, paths: readonly string[]): void {
+export async function trashWithUndo(ctx: FileUndoContext, paths: readonly string[]): Promise<void> {
   if (paths.length === 0) return;
   const originals = paths.map(normalizeVfsPath);
-  let trashed = trashAll(ctx, originals);
+  let trashed = await trashAll(ctx, originals);
+  if (!trashed.some(Boolean)) return;
   record({
     label: "Move to Trash",
-    undo: () => {
-      trashed.forEach((tp, i) => restoreFromTrash(ctx, tp, originals[i] ?? tp));
-    },
-    redo: () => {
-      trashed = trashAll(ctx, originals);
+    undo: () => restoreAll(ctx, trashed),
+    redo: async () => {
+      trashed = await trashAll(ctx, originals);
     },
   });
 }
@@ -168,39 +144,35 @@ export function recordCreated(
 ): void {
   if (paths.length === 0) return;
   const created = paths.map(normalizeVfsPath);
-  let trashed: string[] = [];
+  let trashed: (string | null)[] = [];
   record({
     label,
-    undo: () => {
-      trashed = trashAll(ctx, created);
+    undo: async () => {
+      trashed = await trashAll(ctx, created);
     },
-    redo: () => {
-      trashed.forEach((tp, i) => restoreFromTrash(ctx, tp, created[i] ?? tp));
-    },
+    redo: () => restoreAll(ctx, trashed),
   });
 }
 
 /** Moves `paths` into `destDir` and records it (undo moves them back). */
-export function moveWithUndo(
+export async function moveWithUndo(
   ctx: FileUndoContext,
   paths: readonly string[],
   destDir: string,
-): string[] {
+): Promise<string[]> {
   const moves: Array<{ from: string; to: string }> = [];
   for (const from of paths) {
-    const moved = moveFsEntry(ctx.piloti, from, destDir);
-    const dir = normalizeVfsPath(destDir);
-    const to = moved?.path ?? `${dir === "/" ? "" : dir}/${baseName(from)}`;
-    if (normalizeVfsPath(from) !== to) moves.push({ from: normalizeVfsPath(from), to });
+    const moved = await moveFsEntry(ctx.piloti, from, destDir);
+    if (moved) moves.push({ from: normalizeVfsPath(from), to: moved.path });
   }
   if (moves.length > 0) {
     record({
       label: "Move",
-      undo: () => {
-        for (const m of moves) moveFsEntry(ctx.piloti, m.to, parentDir(m.from));
+      undo: async () => {
+        for (const m of moves) await moveFsEntry(ctx.piloti, m.to, parentDir(m.from));
       },
-      redo: () => {
-        for (const m of moves) moveFsEntry(ctx.piloti, m.from, parentDir(m.to));
+      redo: async () => {
+        for (const m of moves) await moveFsEntry(ctx.piloti, m.from, parentDir(m.to));
       },
     });
   }
@@ -208,45 +180,42 @@ export function moveWithUndo(
 }
 
 /** Renames `path` and records it. Returns the new path (null when it failed). */
-export function renameWithUndo(
+export async function renameWithUndo(
   ctx: FileUndoContext,
   path: string,
   newName: string,
-): string | null {
+): Promise<string | null> {
   const from = normalizeVfsPath(path);
   const oldName = baseName(from);
-  const renamed = renameFsEntry(ctx.piloti, from, newName);
+  const renamed = await renameFsEntry(ctx.piloti, from, newName);
   if (!renamed) return null;
   let current = renamed.path;
   record({
     label: "Rename",
-    undo: () => {
-      current = renameFsEntry(ctx.piloti, current, oldName)?.path ?? current;
+    undo: async () => {
+      current = (await renameFsEntry(ctx.piloti, current, oldName))?.path ?? current;
     },
-    redo: () => {
-      current = renameFsEntry(ctx.piloti, current, newName)?.path ?? current;
+    redo: async () => {
+      current = (await renameFsEntry(ctx.piloti, current, newName))?.path ?? current;
     },
   });
   return renamed.path;
 }
 
 /** Restores items from the Trash and records it (undo puts them back in the Trash). */
-export function restoreWithUndo(ctx: FileUndoContext, trashPaths: readonly string[]): void {
-  if (trashPaths.length === 0) return;
-  const items = trashPaths.map((tp) => {
-    const restored = restoreFsEntry(ctx.piloti, tp);
-    return { trashPath: tp, restored: restored?.path ?? null };
-  });
-  const placed = items.filter((i) => i.restored);
+export async function restoreWithUndo(ctx: FileUndoContext, trashPaths: readonly string[]): Promise<void> {
+  const placed: string[] = [];
+  for (const path of trashPaths) {
+    const restored = await restoreFsEntry(ctx.piloti, path);
+    if (restored) placed.push(restored.path);
+  }
   if (placed.length === 0) return;
-  let trashed = placed.map((i) => i.trashPath);
+  let trashed: (string | null)[] = [];
   record({
     label: "Restore",
-    undo: () => {
-      trashed = trashAll(ctx, placed.map((i) => i.restored as string));
+    undo: async () => {
+      trashed = await trashAll(ctx, placed);
     },
-    redo: () => {
-      trashed.forEach((tp, i) => restoreFromTrash(ctx, tp, placed[i]?.restored ?? tp));
-    },
+    redo: () => restoreAll(ctx, trashed),
   });
 }
