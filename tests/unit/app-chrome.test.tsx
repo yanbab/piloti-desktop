@@ -9,7 +9,7 @@ import {
   type HeaderEdges,
 } from "@/components/elements/app-chrome";
 import { HeaderBar } from "@/components/elements/header-bar";
-import { Window } from "@/components/ui/window";
+import { isCloseOnLeft, Window } from "@/components/ui/window";
 
 function render(
   layout: string,
@@ -20,10 +20,13 @@ function render(
     interactive = false,
   }: { edges?: HeaderEdges; content?: boolean; interactive?: boolean } = {},
 ) {
+  // As the window menu button does: only opposite the Close button.
+  const menuSide = isCloseOnLeft(layout) ? "right" : "left";
+  const menu = (side: "left" | "right") => (side === menuSide ? <i>MENU</i> : null);
   return renderToStaticMarkup(
     <Window buttonLayout={layout}>
       <AppChromeProvider
-        value={{ appId: "t", decorations, menu: <i>MENU</i>, insets: { left: 40, right: 70 } }}
+        value={{ appId: "t", decorations, menu, insets: { left: 40, right: 70 } }}
       >
         <HeaderEdgesContext.Provider value={edges}>
           <HeaderBar>
@@ -46,17 +49,17 @@ function order(html: string) {
 
 describe("HeaderBar", () => {
   test.each([
-    ["close:", ["Close", "MENU", "START", "TITLE", "END"]],
+    ["close:", ["Close", "START", "TITLE", "END", "MENU"]],
     [":close", ["MENU", "START", "TITLE", "END", "Close"]],
     ["appmenu:minimize,maximize,close", ["MENU", "START", "TITLE", "END", "Minimize", "Maximize", "Close"]],
-    ["close:minimize", ["Close", "MENU", "START", "TITLE", "END", "Minimize"]],
+    ["close:minimize", ["Close", "START", "TITLE", "END", "MENU", "Minimize"]],
   ])("client decorations, layout %s", (layout, expected) => {
     expect(order(render(layout, "client"))).toEqual(expected);
   });
 
   test("server decorations: a toolbar without controls, title or drag region", () => {
     const html = render("close:", "server");
-    expect(order(html)).toEqual(["MENU", "START", "END"]);
+    expect(order(html)).toEqual(["START", "END", "MENU"]);
     expect(html).not.toContain('data-window-drag-region=""');
     expect(order(render("close:", "server", { interactive: true }))).toContain("TITLE");
   });
@@ -67,15 +70,16 @@ describe("HeaderBar", () => {
 
   test("host decorations: room for the shell's controls, none of its own", () => {
     const html = render("close:", "host");
-    expect(order(html)).toEqual(["MENU", "START", "TITLE", "END"]);
-    expect(html).toContain("padding-left:40px;padding-right:70px");
+    expect(order(html)).toEqual(["START", "TITLE", "END", "MENU"]);
+    // The same on both sides, so the title is centred.
+    expect(html).toContain("padding-left:70px;padding-right:70px");
   });
 
   test.each([
-    ["start", ["Close", "MENU", "START", "TITLE", "END"]],
-    ["end", ["START", "TITLE", "END", "Minimize"]],
+    ["start", ["Close", "START", "TITLE", "END"]],
+    ["end", ["START", "TITLE", "END", "MENU", "Minimize"]],
     ["none", ["START", "TITLE", "END"]],
-    ["inset", ["Close", "MENU", "START", "TITLE", "END", "Minimize"]],
+    ["inset", ["Close", "START", "TITLE", "END", "MENU", "Minimize"]],
   ] as const)("a header at the %s edge only draws that side", (edges, expected) => {
     expect(order(render("close:minimize", "client", { edges }))).toEqual([...expected]);
   });

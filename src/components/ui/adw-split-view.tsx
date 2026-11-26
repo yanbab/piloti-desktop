@@ -310,14 +310,6 @@ export function AdwSplitView({
                     {title}
                   </span>
                 )}
-                <div className="relative z-10 flex shrink-0 items-center justify-end" data-window-no-drag>
-                  <WindowMenuButton
-                    side="right"
-                    windowId={windowId}
-                    appId={appId}
-                    iconName={iconName}
-                  />
-                </div>
               </div>
             )}
           </WindowTitlebar>

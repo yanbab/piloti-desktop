@@ -15,8 +15,11 @@ export interface AppChrome {
   appId: string;
   windowId?: string;
   decorations: Decorations;
-  /** The window menu button, drawn after the left controls. */
-  menu?: React.ReactNode;
+  /**
+   * The window menu button for one side of a header bar. It draws itself only
+   * on the side opposite the window controls.
+   */
+  menu?: (side: "left" | "right") => React.ReactNode;
   /** `host` only: pixels to keep free for the shell's controls. */
   insets?: { left: number; right: number };
 }

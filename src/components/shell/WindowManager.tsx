@@ -971,9 +971,9 @@ function WebViewSurface({
     windowId: win.id,
     decorations: isCsd ? "client" : "server",
     // Also under a server-side titlebar: Install Web App lives in it.
-    menu: (
+    menu: (side) => (
       <WindowMenuButton
-        side="left"
+        side={side}
         windowId={win.id}
         appId={win.appId}
         iconUrl={win.iconUrl}

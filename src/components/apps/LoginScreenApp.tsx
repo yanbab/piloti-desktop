@@ -448,7 +448,7 @@ export const LoginScreenApp: React.FC<LoginScreenAppProps> = ({
       {/* Top Greeter Menu Bar (same material & height as Piloti Desktop MenuBar) */}
       <header
         data-window-drag-region={showWindowChrome ? "" : undefined}
-        className="relative z-20 flex h-[30px] w-full shrink-0 items-center justify-between gap-2 px-2 text-adw-body text-adw-label adw-material-hud dark:text-white"
+        className="relative z-20 grid h-[30px] w-full shrink-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 px-2 text-adw-body text-adw-label adw-material-hud dark:text-white"
       >
         {/* Left: Window menu (preview only), Session & Keyboard selectors */}
         <div className="flex items-center gap-1" data-window-no-drag>
@@ -512,7 +512,7 @@ export const LoginScreenApp: React.FC<LoginScreenAppProps> = ({
         </div>
 
         {/* Right: System Status, Power Menu & Window Controls */}
-        <div className="flex items-center gap-1.5" data-window-no-drag>
+        <div className="flex items-center justify-end gap-1.5" data-window-no-drag>
           <span className="flex items-center gap-1.5 px-1 text-adw-label/85 dark:text-white/85">
             {settings.wifiEnabled ? (
               <WifiIcon className="size-3.5" />

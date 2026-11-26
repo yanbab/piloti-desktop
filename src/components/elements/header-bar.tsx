@@ -32,7 +32,7 @@ function findSlot<P>(children: React.ReactNode, slot: React.ComponentType<P>) {
 
 /**
  * An app's header bar: window controls (on the side the button layout says),
- * window menu, `Start`, a centred `Title`, `End`. Give it only
+ * window menu (on the other side), `Start`, a centred `Title`, `End`. Give it only
  * `HeaderBar.Start`, `.Title` and `.End` as direct children.
  */
 function HeaderBarRoot({
@@ -59,6 +59,9 @@ function HeaderBarRoot({
   const titleSlot = findSlot(children, Title);
   const title =
     server && !titleSlot?.props.interactive ? null : titleSlot?.props.children;
+  // A centred title needs the same room on both sides, whichever has controls.
+  const titleInset =
+    title && insets && atStart && atEnd ? Math.max(insets.left, insets.right) : undefined;
 
   // Under the shell's own titlebar an empty toolbar would be a blank strip.
   if (server && !start && !title && !end) return null;
@@ -78,8 +81,8 @@ function HeaderBarRoot({
       style={
         decorations === "host" && insets
           ? {
-              paddingLeft: atStart ? insets.left : undefined,
-              paddingRight: atEnd ? insets.right : undefined,
+              paddingLeft: titleInset ?? (atStart ? insets.left : undefined),
+              paddingRight: titleInset ?? (atEnd ? insets.right : undefined),
               ...style,
             }
           : style
@@ -92,7 +95,7 @@ function HeaderBarRoot({
         data-window-no-drag
       >
         {client && atStart && <WindowControls side="left" onClose={onClose} />}
-        {atStart && menu}
+        {atStart && menu?.("left")}
         {start}
       </div>
       {title ? (
@@ -114,6 +117,7 @@ function HeaderBarRoot({
         data-window-no-drag
       >
         {end}
+        {atEnd && menu?.("right")}
         {client && atEnd && <WindowControls side="right" onClose={onClose} />}
       </div>
     </WindowTitlebar>

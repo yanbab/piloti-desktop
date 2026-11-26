@@ -53,6 +53,9 @@ export function AppMenuItems({
         const shortcut = item.shortcut ? (
           <MenuShortcutLabel shortcut={item.shortcut} model={computerModel} />
         ) : null;
+        if (itemState?.hidden) {
+          return item.separatorAfter ? <MenubarSeparator key={item.actionId} /> : null;
+        }
         return (
           <React.Fragment key={item.actionId}>
             {checked !== undefined ? (

@@ -60,7 +60,7 @@ export function ElementsPage() {
     () => ({
       appId: "sample",
       decorations,
-      menu: decorations === "client" ? <WindowMenuButton side="left" /> : undefined,
+      menu: decorations === "client" ? (side) => <WindowMenuButton side={side} /> : undefined,
     }),
     [decorations],
   );

@@ -21,7 +21,9 @@ export function WindowAppChrome({
       windowId,
       decorations: isCsd ? "client" : "server",
       // Under a server-side titlebar the menu button is up there already.
-      menu: isCsd ? <WindowMenuButton side="left" windowId={windowId} /> : undefined,
+      menu: isCsd
+        ? (side) => <WindowMenuButton side={side} windowId={windowId} />
+        : undefined,
     }),
     [appId, windowId, isCsd],
   );

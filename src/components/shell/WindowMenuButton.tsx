@@ -1,4 +1,4 @@
-import { WINDOW_CONTROL_CLASS } from "@/components/ui/window";
+import { isCloseOnLeft, WINDOW_CONTROL_CLASS } from "@/components/ui/window";
 import { cn } from "@/lib/core/utils";
 import * as React from "react";
 import { countRender } from "@/lib/core/render-stats";
@@ -21,17 +21,13 @@ import {
   subscribeWindowPresentation,
 } from "@/lib/shell/window-presentation";
 
-export function isWindowControlsLeft(layout?: string): boolean {
-  const raw = (layout ?? ":close").trim();
-  return raw.indexOf(":") > 0 && !raw.startsWith(":");
-}
-
 export const WindowMenuButton = React.memo(function WindowMenuButton({
   windowId,
   side,
   extraItems,
 }: {
   windowId?: string;
+  /** Draws only when this is the side opposite the window controls. */
   side?: "left" | "right";
   appId?: string;
   iconUrl?: string;
@@ -47,7 +43,8 @@ export const WindowMenuButton = React.memo(function WindowMenuButton({
   if (!settings.showWindowMenu) {
     return null;
   }
-  if (side === "right") {
+  const menuSide = isCloseOnLeft(settings.windowButtonLayout) ? "right" : "left";
+  if (side && side !== menuSide) {
     return null;
   }
 
@@ -74,7 +71,7 @@ export const WindowMenuButton = React.memo(function WindowMenuButton({
         {/* One centred dot. */}
         <span aria-hidden="true" className="size-1.5 rounded-full bg-current" />
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start">
+      <DropdownMenuContent align={menuSide === "left" ? "start" : "end"}>
         {extraItems && (
           <>
             {extraItems}

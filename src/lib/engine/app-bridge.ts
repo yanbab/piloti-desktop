@@ -348,6 +348,8 @@ export function useIsolatedAppBridge(
 export interface AppMenuItemState {
   checked?: boolean;
   disabled?: boolean;
+  /** Leaves the item out; its separator stays. */
+  hidden?: boolean;
 }
 
 const windowMenuStateMap = new Map<string, Record<string, AppMenuItemState>>();

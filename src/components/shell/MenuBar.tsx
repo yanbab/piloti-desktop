@@ -486,6 +486,7 @@ export const MenuBar = React.memo(function MenuBar() {
         for (const item of section.items) {
           if (item.actionId === "shell:fullscreen" && !isBrowserRuntime) continue;  // FIXME : Capabilities
           const state = windowMenuState[item.actionId];
+          if (state?.hidden) continue;
           add([_(section.title)], _(item.label), () => handleMenuAction(item.actionId), {
             id: `app:${item.actionId}`,
             shortcut: item.shortcut,

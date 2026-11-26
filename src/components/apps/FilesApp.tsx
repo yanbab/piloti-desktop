@@ -376,6 +376,9 @@ export function FilesApp({
   const isRecentsView = currentPath === WEB_VFS_RECENTS_URI;
   const isAppsView = currentPath === WEB_VFS_APPS_URI;
   const isVirtualView = isFavoritesView || isRecentsView || isAppsView;
+  React.useEffect(() => {
+    if (!settings.debugMode && viewMode === "desktop") setViewMode("grid");
+  }, [settings.debugMode, viewMode]);
   // "As Desktop" places icons as the desktop does, whatever the sort order.
   const isDesktopView = viewMode === "desktop" && !isVirtualView && !isTrashView;
   const arrangement = isDesktopView
@@ -1287,6 +1290,7 @@ export function FilesApp({
       "files:view-desktop": {
         checked: viewMode === "desktop",
         disabled: isTrashView || isVirtualView,
+        hidden: !settings.debugMode,
       },
       "files:sort-manual": { checked: sortBy === "manual", disabled: isAppsView || isDesktopView },
       "files:sort-name": { checked: sortBy === "name", disabled: isAppsView || isDesktopView },
@@ -1321,6 +1325,7 @@ export function FilesApp({
     usbMounted,
     viewMode,
     windowId,
+    settings.debugMode,
   ]);
 
   React.useEffect(() => {

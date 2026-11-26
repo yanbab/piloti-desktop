@@ -98,6 +98,7 @@ function CommandInput({
   completionHint,
   onAcceptCompletion,
   value,
+  ref,
   ...props
 }: React.ComponentProps<typeof CommandPrimitive.Input> & {
   completion?: string
@@ -108,6 +109,8 @@ function CommandInput({
     <div data-slot="command-input-wrapper" className="flex h-12 shrink-0 items-center gap-2.5 border-b border-adw-grid px-4">
       <SearchIcon className="size-[18px] shrink-0 text-adw-label-secondary" strokeWidth={2.25} />
       <InlineCompletionInput
+        // Not with `props`: the completion input's own ref would replace it.
+        ref={ref}
         value={typeof value === "string" ? value : ""}
         completion={completion}
         completionHint={completionHint}

@@ -1,5 +1,6 @@
 import { isExtractableArchive } from "@/lib/engine/fs-bridge";
 import * as React from "react";
+import { ChevronRightIcon } from "lucide-react";
 import { useCapabilities } from "@/hooks/use-capabilities";
 import { usePopupSurface } from "@/lib/shell/popup-layer";
 import { createPortal } from "react-dom";
@@ -7,7 +8,6 @@ import { usePiloti } from "@/lib/engine/piloti";
 import { AppSquircleIcon } from "@/components/shell/AppSymbol";
 import {
   MENU_ITEM_CLASS,
-  MENU_LABEL_CLASS,
   MENU_POPUP_CLASS,
   MENU_SEPARATOR_CLASS,
 } from "@/components/ui/menu-styles";
@@ -38,6 +38,68 @@ export type FileContextMenuKind =
   | "trash"
   | "favorites"
   | "recents";
+
+/** An item that opens its entries in a menu beside it, on hover or click. */
+function ContextSubmenu({
+  label,
+  className,
+  children,
+}: {
+  label: string;
+  className: string;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = React.useState(false);
+  const triggerRef = React.useRef<HTMLButtonElement>(null);
+  const popupRef = React.useRef<HTMLDivElement>(null);
+  const closeTimer = React.useRef<number | undefined>(undefined);
+
+  // Beside the item, flipped and lifted as needed to stay on screen.
+  React.useLayoutEffect(() => {
+    const trigger = triggerRef.current;
+    const popup = popupRef.current;
+    if (!open || !trigger || !popup) return;
+    const at = trigger.getBoundingClientRect();
+    const { offsetWidth: width, offsetHeight: height } = popup;
+    const fitsRight = at.right + width <= window.innerWidth;
+    popup.style.left = fitsRight ? "100%" : `${-width}px`;
+    popup.style.top = `${Math.min(-6, window.innerHeight - at.top - height - 6)}px`;
+  }, [open]);
+
+  React.useEffect(() => () => window.clearTimeout(closeTimer.current), []);
+
+  const show = () => {
+    window.clearTimeout(closeTimer.current);
+    setOpen(true);
+  };
+  // A short delay lets the pointer cross other items on its way in.
+  const hideSoon = () => {
+    window.clearTimeout(closeTimer.current);
+    closeTimer.current = window.setTimeout(() => setOpen(false), 200);
+  };
+
+  return (
+    <div className="relative" onPointerEnter={show} onPointerLeave={hideSoon}>
+      <button
+        ref={triggerRef}
+        type="button"
+        role="menuitem"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={show}
+        className={cn(className, open && "bg-adw-menu-highlight")}
+      >
+        <span className="flex-1">{label}</span>
+        <ChevronRightIcon className="size-3.5" />
+      </button>
+      {open && (
+        <div ref={popupRef} role="menu" className={cn(MENU_POPUP_CLASS, "absolute w-max min-w-44")}>
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function FileItemContextMenu({
   menu,
@@ -327,11 +389,7 @@ export function FileItemContextMenu({
             )}
 
             {isSingle && onOpenWithApp && openWithApps.length > 0 && (
-              <>
-                <div className={MENU_SEPARATOR_CLASS} />
-                <div className={cn(MENU_LABEL_CLASS, "text-adw-subheadline font-medium")}>
-                  {_("Open With")}
-                </div>
+              <ContextSubmenu label={_("Open With")} className={itemBtnClass}>
                 {openWithApps.map((appOpt) => {
                   const catApp = APP_CATALOG.find(
                     (a) => a.id === (appOpt.builtinAppId ?? appOpt.appId),
@@ -366,7 +424,7 @@ export function FileItemContextMenu({
                     </button>
                   );
                 })}
-              </>
+              </ContextSubmenu>
             )}
 
             <div className={MENU_SEPARATOR_CLASS} />

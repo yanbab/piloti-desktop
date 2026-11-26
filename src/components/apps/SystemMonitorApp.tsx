@@ -3,18 +3,11 @@ import * as React from "react";
 import {
   DndContext,
   PointerSensor,
-  closestCenter,
+  useDraggable,
   useSensor,
   useSensors,
-  type DragEndEvent,
+  type DragMoveEvent,
 } from "@dnd-kit/core";
-import {
-  SortableContext,
-  arrayMove,
-  rectSortingStrategy,
-  useSortable,
-} from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
 import { AppSquircleIcon } from "@/components/shell/AppSymbol";
 import {
   ListView,
@@ -24,7 +17,12 @@ import {
   nextListViewSort,
   type ListViewSort,
 } from "@/components/ui/list-view";
-import { useApps, useWindowManagerSelector } from "@/context/DesktopStateContext";
+import { WindowControlButton } from "@/components/ui/window";
+import {
+  useApps,
+  useWindowActions,
+  useWindowManagerSelector,
+} from "@/context/DesktopStateContext";
 import { APP_CATALOG } from "@/data/catalog";
 import { _ } from "@/lib/core/i18n";
 import { cn } from "@/lib/core/utils";
@@ -37,13 +35,22 @@ import {
   type SystemSample,
 } from "@/lib/engine-native/system-stats";
 import { getAppSetting, setAppSetting } from "@/lib/shell/app-settings";
-import { DRAG_THRESHOLD, dragShuffleTransition } from "@/lib/shell/drag-feedback";
+import { DRAG_THRESHOLD, dragShuffleCss, settleFromOffset } from "@/lib/shell/drag-feedback";
+import {
+  formatWidgetLayout,
+  parseWidgetLayout,
+  placeWidget,
+  type WidgetLayout,
+  type WidgetSize,
+} from "@/lib/shell/widget-grid";
+import { XIcon } from "lucide-react";
 
 /**
- * System Monitor: one page of widgets the user reorders by dragging.
+ * System Monitor: one page of widgets, always fitted to the window, that the
+ * user places by dragging them on a grid, as icons on the desktop.
  *
  * With system services the numbers come from `/proc` (`useSystemStats`); the
- * browser demo simulates them (`useSimulatedStats`). Widget order and the apps
+ * browser demo simulates them (`useSimulatedStats`). Widget places and the apps
  * list sort are app settings (`~/.config/piloti/apps/system-monitor.ini`).
  */
 
@@ -51,9 +58,20 @@ const APP_ID = "system-monitor";
 const TICK_MS = 2000;
 const HISTORY = 30;
 
-type WidgetId = "cpu" | "memory" | "apps";
+type WidgetId = "memory" | "cpu" | "apps";
+const GRID_COLS = 2;
+const GRID_ROWS = 3;
+const WIDGET_SIZES: Record<WidgetId, WidgetSize> = {
+  memory: { cols: 1, rows: 1 },
+  cpu: { cols: 1, rows: 1 },
+  apps: { cols: 2, rows: 2 },
+};
 // Memory then CPU: the processor sits on the right.
-const DEFAULT_WIDGETS: WidgetId[] = ["memory", "cpu", "apps"];
+const DEFAULT_LAYOUT: WidgetLayout<WidgetId> = {
+  memory: { col: 0, row: 0 },
+  cpu: { col: 1, row: 0 },
+  apps: { col: 0, row: 1 },
+};
 
 interface AppStat {
   appId: string;
@@ -68,14 +86,6 @@ interface Stats {
   memUsedMb: number;
   memTotalMb: number;
   apps: AppStat[];
-}
-
-function readOrder<T extends string>(key: string, fallback: T[], known: (v: string) => v is T): T[] {
-  const raw = getAppSetting(APP_ID, key);
-  if (!raw) return fallback;
-  const saved = raw.split(",").map((s) => s.trim()).filter(known);
-  // Keep new entries the saved order doesn't know yet.
-  return [...saved, ...fallback.filter((id) => !saved.includes(id))];
 }
 
 const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
@@ -203,32 +213,52 @@ function formatMb(mb: number): string {
 function Widget({
   id,
   title,
-  wide,
+  cell,
+  elementRef,
   children,
 }: {
-  id: string;
+  id: WidgetId;
   title: string;
-  wide?: boolean;
+  cell: { col: number; row: number };
+  elementRef: (id: WidgetId, el: HTMLElement | null) => void;
   children: React.ReactNode;
 }) {
-  const { listeners, setNodeRef, transform, transition, isDragging } =
-    useSortable({ id, transition: dragShuffleTransition });
+  const { listeners, setNodeRef, transform, isDragging } = useDraggable({ id });
+  const size = WIDGET_SIZES[id];
+  const ref = React.useCallback(
+    (el: HTMLElement | null) => {
+      setNodeRef(el);
+      elementRef(id, el);
+    },
+    [id, setNodeRef, elementRef],
+  );
   return (
-    <section
-      ref={setNodeRef}
-      data-slot="monitor-widget"
-      aria-label={title}
-      {...listeners}
-      style={{ transform: CSS.Translate.toString(transform), transition }}
-      className={cn(
-        "flex min-w-0 cursor-default flex-col gap-2 rounded-adw-group bg-adw-group p-3",
-        wide && "col-span-full",
-        isDragging && "relative z-10 shadow-adw-popover"
-      )}
+    <div
+      ref={ref}
+      className={cn("absolute p-1.5", isDragging && "z-10")}
+      style={{
+        left: `${(cell.col / GRID_COLS) * 100}%`,
+        top: `${(cell.row / GRID_ROWS) * 100}%`,
+        width: `${(size.cols / GRID_COLS) * 100}%`,
+        height: `${(size.rows / GRID_ROWS) * 100}%`,
+        transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined,
+        // The dragged widget follows the pointer; the others slide aside.
+        transition: isDragging ? undefined : dragShuffleCss("left", "top"),
+      }}
     >
-      <h2 className="text-adw-subheadline font-semibold text-adw-label-secondary">{title}</h2>
-      {children}
-    </section>
+      <section
+        data-slot="monitor-widget"
+        aria-label={title}
+        {...listeners}
+        className={cn(
+          "flex h-full min-w-0 cursor-default flex-col gap-2 overflow-hidden rounded-adw-group bg-adw-group p-3",
+          isDragging && "shadow-adw-popover"
+        )}
+      >
+        <h2 className="shrink-0 text-adw-subheadline font-semibold text-adw-label-secondary">{title}</h2>
+        {children}
+      </section>
+    </div>
   );
 }
 
@@ -239,7 +269,7 @@ function Sparkline({ values }: { values: number[] }) {
     .map((v, i) => `${(i / Math.max(1, values.length - 1)) * w},${h - (v / 100) * h}`)
     .join(" ");
   return (
-    <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" className="h-12 w-full" aria-hidden>
+    <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" className="absolute inset-0 h-full w-full" aria-hidden>
       <polygon points={`0,${h} ${points} ${w},${h}`} className="fill-adw-accent/15" />
       <polyline
         points={points}
@@ -256,12 +286,12 @@ function Sparkline({ values }: { values: number[] }) {
 function CpuWidget({ history }: { history: number[] }) {
   const current = history[history.length - 1] ?? 0;
   return (
-    <>
-      <div className="text-adw-title-1 font-semibold tabular-nums text-adw-label">
+    <div className="relative min-h-0 flex-1">
+      <Sparkline values={history} />
+      <div className="relative text-adw-title-1 font-semibold tabular-nums text-adw-label">
         {Math.round(current)} %
       </div>
-      <Sparkline values={history} />
-    </>
+    </div>
   );
 }
 
@@ -292,7 +322,7 @@ function readAppSort(): ListViewSort<AppSortKey> {
     : DEFAULT_APP_SORT;
 }
 
-function AppsWidget({ apps }: { apps: AppStat[] }) {
+function AppsWidget({ apps, onQuit }: { apps: AppStat[]; onQuit: (appId: string) => void }) {
   const { getAppIconUrl } = useApps();
   const [sort, setSort] = React.useState(readAppSort);
   const sorted = React.useMemo(() => {
@@ -312,6 +342,8 @@ function AppsWidget({ apps }: { apps: AppStat[] }) {
     return <p className="py-2 text-adw-body text-adw-label-tertiary">{_("No apps running")}</p>;
   }
   return (
+    // A long list scrolls inside its widget; the page never does.
+    <div className="min-h-0 flex-1 overflow-y-auto">
     <ListView>
       <ListViewHeader<AppSortKey>
         columns={[
@@ -329,7 +361,7 @@ function AppsWidget({ apps }: { apps: AppStat[] }) {
       />
       <tbody>
         {sorted.map((app) => (
-          <ListViewRow key={app.appId}>
+          <ListViewRow key={app.appId} className="group">
             <ListViewCell>
               <div className="flex items-center gap-2">
                 <AppSquircleIcon
@@ -339,6 +371,16 @@ function AppsWidget({ apps }: { apps: AppStat[] }) {
                   glyphClassName="size-4"
                 />
                 <span className="truncate text-adw-label">{_(app.name)}</span>
+                <WindowControlButton
+                  aria-label={_("Quit %s", _(app.name))}
+                  title={_("Quit %s", _(app.name))}
+                  className="ml-auto size-5 shrink-0 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 [&_svg]:size-3"
+                  // Not the start of a widget drag.
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onClick={() => onQuit(app.appId)}
+                >
+                  <XIcon />
+                </WindowControlButton>
               </div>
             </ListViewCell>
             <ListViewCell align="right" className="tabular-nums text-adw-label-secondary">
@@ -351,6 +393,7 @@ function AppsWidget({ apps }: { apps: AppStat[] }) {
         ))}
       </tbody>
     </ListView>
+    </div>
   );
 }
 
@@ -371,11 +414,6 @@ export const SystemMonitorApp: React.FC<SystemMonitorAppProps> = ({ windowId = "
       .flatMap((w) => (w.pid ? [`${w.appId}:${w.pid}`] : []))
       .join(","),
   );
-  const [widgetOrder, setWidgetOrder] = React.useState<WidgetId[]>(() =>
-    readOrder("widget-order", DEFAULT_WIDGETS, (v): v is WidgetId =>
-      (DEFAULT_WIDGETS as string[]).includes(v)
-    )
-  );
   const runningAppIds = React.useMemo(
     () => (runningIds ? runningIds.split(",") : []),
     [runningIds]
@@ -384,36 +422,91 @@ export const SystemMonitorApp: React.FC<SystemMonitorAppProps> = ({ windowId = "
   const simulatedStats = useSimulatedStats(runningAppIds, !systemServices);
   const stats = systemServices ? realStats : simulatedStats;
 
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: DRAG_THRESHOLD } }));
-  const onWidgetDragEnd = ({ active, over }: DragEndEvent) => {
-    if (!over || active.id === over.id) return;
-    const next = arrayMove(
-      widgetOrder,
-      widgetOrder.indexOf(active.id as WidgetId),
-      widgetOrder.indexOf(over.id as WidgetId)
-    );
-    setWidgetOrder(next);
-    setAppSetting(APP_ID, "widget-order", next.join(","));
+  // `appId windowId` lines, to close an app's windows.
+  const windowList = useWindowManagerSelector((wm) =>
+    wm.windows.map((w) => `${w.appId} ${w.id}`).join("\n"),
+  );
+  const { closeWindow } = useWindowActions();
+  const quitApp = (appId: string) => {
+    for (const line of windowList.split("\n")) {
+      if (line.startsWith(`${appId} `)) closeWindow(line.slice(appId.length + 1));
+    }
   };
 
+  const [layout, setLayout] = React.useState(() =>
+    parseWidgetLayout(
+      getAppSetting(APP_ID, "widget-cells"),
+      DEFAULT_LAYOUT,
+      WIDGET_SIZES,
+      GRID_COLS,
+      GRID_ROWS,
+    ),
+  );
+  /** Where everything would go if dropped now. */
+  const [drag, setDrag] = React.useState<{ id: WidgetId; layout: WidgetLayout<WidgetId> } | null>(null);
+  const gridRef = React.useRef<HTMLDivElement>(null);
+  const elements = React.useRef(new Map<WidgetId, HTMLElement>());
+  const elementRef = React.useCallback((id: WidgetId, el: HTMLElement | null) => {
+    if (el) elements.current.set(id, el);
+    else elements.current.delete(id);
+  }, []);
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: DRAG_THRESHOLD } }));
+
+  const dropLayout = ({ active, delta }: DragMoveEvent) => {
+    const grid = gridRef.current;
+    if (!grid) return layout;
+    const id = active.id as WidgetId;
+    const target = {
+      col: layout[id].col + Math.round(delta.x / (grid.clientWidth / GRID_COLS)),
+      row: layout[id].row + Math.round(delta.y / (grid.clientHeight / GRID_ROWS)),
+    };
+    return placeWidget(layout, WIDGET_SIZES, id, target, GRID_COLS, GRID_ROWS);
+  };
+  const onDragMove = (event: DragMoveEvent) => {
+    const id = event.active.id as WidgetId;
+    const next = dropLayout(event);
+    setDrag((prev) =>
+      prev && formatWidgetLayout(prev.layout) === formatWidgetLayout(next)
+        ? prev
+        : { id, layout: next },
+    );
+  };
+  const onDragEnd = (event: DragMoveEvent) => {
+    const id = event.active.id as WidgetId;
+    const next = dropLayout(event);
+    const el = elements.current.get(id);
+    const grid = gridRef.current;
+    setDrag(null);
+    setLayout(next);
+    setAppSetting(APP_ID, "widget-cells", formatWidgetLayout(next));
+    if (!el || !grid) return;
+    // Glide from where it was let go to its cell.
+    const dx = event.delta.x - (next[id].col - layout[id].col) * (grid.clientWidth / GRID_COLS);
+    const dy = event.delta.y - (next[id].row - layout[id].row) * (grid.clientHeight / GRID_ROWS);
+    requestAnimationFrame(() => settleFromOffset(el, dx, dy));
+  };
+  // While dragging, the dragged widget stays put in the layout and follows the pointer.
+  const shown = drag ? { ...drag.layout, [drag.id]: layout[drag.id] } : layout;
+
   const renderWidget = (id: WidgetId) => {
+    const props = { id, cell: shown[id], elementRef };
     switch (id) {
       case "cpu":
         return (
-          <Widget key={id} id={id} title={_("CPU")}>
+          <Widget key={id} {...props} title={_("CPU")}>
             <CpuWidget history={stats.cpuHistory} />
           </Widget>
         );
       case "memory":
         return (
-          <Widget key={id} id={id} title={_("Memory")}>
+          <Widget key={id} {...props} title={_("Memory")}>
             <MemoryWidget used={stats.memUsedMb} total={stats.memTotalMb} />
           </Widget>
         );
       case "apps":
         return (
-          <Widget key={id} id={id} title={_("Apps")} wide>
-            <AppsWidget apps={stats.apps} />
+          <Widget key={id} {...props} title={_("Apps")}>
+            <AppsWidget apps={stats.apps} onQuit={quitApp} />
           </Widget>
         );
     }
@@ -427,15 +520,19 @@ export const SystemMonitorApp: React.FC<SystemMonitorAppProps> = ({ windowId = "
       <HeaderBar className="border-transparent bg-transparent">
         <HeaderBar.Title>{_("System Monitor")}</HeaderBar.Title>
       </HeaderBar>
-      <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-1 pb-4">
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onWidgetDragEnd}>
-          <SortableContext items={widgetOrder} strategy={rectSortingStrategy}>
-            <div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-3">
-              {widgetOrder.map(renderWidget)}
-            </div>
-          </SortableContext>
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-2.5 pb-2">
+        <DndContext
+          sensors={sensors}
+          autoScroll={false}
+          onDragMove={onDragMove}
+          onDragEnd={onDragEnd}
+          onDragCancel={() => setDrag(null)}
+        >
+          <div ref={gridRef} className="relative min-h-0 flex-1">
+            {(Object.keys(DEFAULT_LAYOUT) as WidgetId[]).map(renderWidget)}
+          </div>
         </DndContext>
-        <p className="mt-3 text-center text-adw-footnote text-adw-label-tertiary">
+        <p className="mt-1 shrink-0 text-center text-adw-footnote text-adw-label-tertiary">
           {systemServices
             ? _("Apps without figures run inside the desktop or share its browser.")
             : _("Simulated values in the demo.")}
