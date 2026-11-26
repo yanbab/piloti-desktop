@@ -2192,9 +2192,11 @@ export function WindowManager() {
     <div
       className="relative isolate z-10 min-h-0 flex-1 overflow-clip"
       onPointerDown={(e) => {
+        // Menus are portaled out of their window (React still bubbles their
+        // presses here): using one, or dismissing it, keeps the focus.
         if (
           !(e.target as HTMLElement).closest(
-            '[data-slot="window"], [data-slot="select-content"], [data-slot="dropdown-menu-content"], [data-slot="context-menu-content"]',
+            '[data-slot="window"], [data-slot="select-content"], [data-slot="dropdown-menu-content"], [data-slot="context-menu-content"], [role="menu"], [data-popup-backdrop]',
           )
         ) {
           clearFocusedWindow();

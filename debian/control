@@ -14,11 +14,11 @@ Depends:
  adwaita-icon-theme,
  hicolor-icon-theme,
  papirus-icon-theme,
+ libarchive-tools,
  ${misc:Depends}
 Recommends:
  xwayland-satellite,
  xdg-utils,
- libarchive-tools,
  dbus-user-session
 Suggests:
  greetd,

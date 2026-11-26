@@ -154,6 +154,10 @@ The Terminal's JavaScript mode (menu: Piloti Shell). A line is read as:
 functions other than file commands, bare numbers, `true`, `false` and `null`
 keep their type. `name(…)`, `name = …` and `name + …` stay JavaScript.
 
+**On Linux** the shell's security policy forbids `eval`, so JavaScript is limited
+to expressions and simple statements (calls, `await`, `const`). Loops, blocks and
+`.psh` scripts only run in the browser demo.
+
 **Programs** run on a pseudo-terminal in the current folder, so interactive ones
 work. Shell names win over programs (`ls` is the shell's; `/bin/ls` is not).
 There are no pipes, redirections or `&&`: use `sh -c '…'`.

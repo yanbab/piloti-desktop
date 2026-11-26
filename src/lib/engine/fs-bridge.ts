@@ -455,58 +455,59 @@ export async function listFsFavoriteEntries(
   return found.filter((e): e is WebVfsEntry => e !== null);
 }
 
+/** The files of `recently-used.xbel`, newest first; `[]` if it can't be read. */
+async function readRecentItems(piloti: Piloti): Promise<{ path: string; time: number; mimeType: string }[]> {
+  const xml = await readFsTextFile(piloti, RECENTLY_USED_XBEL_PATH);
+  if (!xml) return [];
+  try {
+    return parseRecentlyUsedXbel(xml)
+      .filter((item) => item.path && item.path !== "/")
+      .map((item) => ({
+        path: item.path.replace(/\/+$/, ""),
+        time: Date.parse(item.visited || item.modified || item.added),
+        mimeType: item.mimeType,
+      }))
+      .sort((a, b) => (b.time || 0) - (a.time || 0));
+  } catch {
+    return [];
+  }
+}
+
 /**
- * Lists recent files from FreeDesktop `~/.local/share/recently-used.xbel`
- * merged with Piloti's local VFS recent access history.
+ * Recent files from FreeDesktop `~/.local/share/recently-used.xbel`: on Linux
+ * those still on disk, in the demo merged with its own access history.
  */
 export async function listFsRecentEntries(
   piloti: Piloti,
 ): Promise<WebVfsEntry[]> {
-  const vfsRecents = listVfsRecentEntries();
-  const byPath = new Map<string, WebVfsEntry>();
-
-  try {
-    const xml = await readFsTextFile(piloti, RECENTLY_USED_XBEL_PATH,
-    );
-    if (xml) {
-      const parsed = parseRecentlyUsedXbel(xml);
-      for (const item of parsed) {
-        if (!item.path || item.path === "/") continue;
-        const norm = item.path.replace(/\/+$/, "");
-        const idx = norm.lastIndexOf("/");
-        const name = idx >= 0 ? norm.slice(idx + 1) : norm;
-        const parentPath = idx > 0 ? norm.slice(0, idx) : "/";
-        const ts = Date.parse(item.visited || item.modified || item.added);
-        const existing = getVfsEntry(norm);
-        byPath.set(norm, {
-          id: norm,
-          name: existing?.name || name,
-          kind: existing?.kind || "file",
-          path: norm,
-          parentPath: existing?.parentPath || parentPath,
-          content: existing?.content,
-          size: existing?.size,
-          updatedAt: Number.isFinite(ts) ? ts : (existing?.updatedAt ?? Date.now()),
+  const items = await readRecentItems(piloti);
+  const seen = new Set<string>();
+  const entries = await Promise.all(
+    items
+      .filter((item) => !seen.has(item.path) && seen.add(item.path))
+      .map(async ({ path, time, mimeType }) => {
+        const found = hasRealFilesystem() ? await statEntry(piloti, path) : getVfsEntry(path);
+        if (!found && hasRealFilesystem()) return null;
+        const thumbnail =
+          found?.kind === "file" && hasRealFilesystem()
+            ? await piloti.vfs.thumbnail(path).catch(() => undefined)
+            : undefined;
+        return {
+          ...(found ?? entryFor(path, "file")),
+          updatedAt: Number.isFinite(time) ? time : (found?.updatedAt ?? Date.now()),
           metadata: {
-            ...(existing?.metadata ?? {}),
-            "standard::content-type": item.mimeType,
+            ...(found?.metadata ?? {}),
+            "standard::content-type": mimeType,
+            ...(thumbnail ? { "metadata::thumbnail": thumbnail } : {}),
           },
-        });
-      }
-    }
-  } catch {
-    // ignore malformed or missing XBEL
-  }
-
-  for (const entry of vfsRecents) {
-    if (!byPath.has(entry.path)) {
-      byPath.set(entry.path, entry);
-    }
-  }
-
-  return Array.from(byPath.values()).sort(
-    (a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0),
+        } as WebVfsEntry;
+      }),
   );
+  const byPath = new Map(entries.filter((e): e is WebVfsEntry => e !== null).map((e) => [e.path, e]));
+  if (!hasRealFilesystem()) {
+    for (const entry of listVfsRecentEntries()) if (!byPath.has(entry.path)) byPath.set(entry.path, entry);
+  }
+  return Array.from(byPath.values()).sort((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0));
 }
 
 /**
