@@ -1,5 +1,6 @@
 import { isCloseOnLeft } from "@/components/ui/window";
 import * as React from "react";
+import { AppWindowIcon } from "lucide-react";
 import { countRender } from "@/lib/core/render-stats";
 import {
   DropdownMenu,
@@ -60,10 +61,12 @@ export const WindowMenuButton = React.memo(function WindowMenuButton({
     >
       <DropdownMenuTrigger
         aria-label={_("Window menu")}
+        data-window-menu=""
         onClick={() => setOpen((v) => !v)}
-        // A bare symbol, dimmed until pressed or open. Sized like Close; mx-0.5
+        // A bare symbol in the sidebar icons' colour, focused window or not,
+        // full when pressed or open. Sized like Close; mx-0.5
         // keeps it centred 23px from the edge, above the sidebar icons.
-        className="mx-0.5 flex size-6 shrink-0 cursor-default select-none items-center justify-center rounded-full text-ui-label-secondary outline-none group-data-[inactive]/window:opacity-50 focus-visible:outline-3 focus-visible:outline-solid focus-visible:outline-ui-accent/50 active:text-black data-popup-open:text-black dark:active:text-white dark:data-popup-open:text-white"
+        className="mx-0.5 flex size-6 shrink-0 cursor-default select-none items-center justify-center rounded-full text-[color-mix(in_oklab,var(--ui-label)_85%,transparent)] outline-none *:opacity-85 active:*:opacity-100 data-popup-open:*:opacity-100 focus-visible:outline-3 focus-visible:outline-solid focus-visible:outline-ui-accent/50 active:text-black data-popup-open:text-black dark:active:text-white dark:data-popup-open:text-white"
       >
         <WindowMenuIcon windowId={windowId} />
       </DropdownMenuTrigger>
@@ -83,20 +86,21 @@ export const WindowMenuButton = React.memo(function WindowMenuButton({
 });
 
 /**
- * The symbolic version of the window's app icon, drawn in the text colour;
- * a centred dot when the icon theme has none.
+ * The symbolic version of the window's app icon, drawn in the text colour; a
+ * window symbol when the icon theme has none, nothing while it loads.
  */
 function WindowMenuIcon({ windowId }: { windowId?: string }) {
   const appId = useWindowManagerSelector(
     (wm) => wm.windows.find((w) => w.id === windowId)?.appId
   );
   const load = useOptionalApps()?.loadSymbolicAppIcon;
-  const [url, setUrl] = React.useState<string>();
+  // undefined while loading, null when there is none.
+  const [url, setUrl] = React.useState<string | null>();
 
   React.useEffect(() => {
     let stale = false;
-    void (appId ? load?.(appId) : undefined)?.then((next) => {
-      if (!stale) setUrl(next);
+    void Promise.resolve(appId ? load?.(appId) : undefined).then((next) => {
+      if (!stale) setUrl(next ?? null);
     });
     return () => {
       stale = true;
@@ -104,7 +108,7 @@ function WindowMenuIcon({ windowId }: { windowId?: string }) {
   }, [appId, load]);
 
   if (!url) {
-    return <span aria-hidden="true" className="size-1.5 rounded-full bg-current" />;
+    return url === null ? <AppWindowIcon className="size-4" /> : <span className="size-4" />;
   }
   const mask = `url("${url}") center / contain no-repeat`;
   return (

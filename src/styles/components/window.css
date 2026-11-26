@@ -84,7 +84,10 @@
     backdrop-filter: blur(var(--ui-material-blur)) saturate(180%);
     user-select: none;
   }
-  [data-inactive] .ui-window-titlebar > * {
+  /* An unfocused window dims its titlebar, but not the window menu button:
+     it keeps the sidebar icons' colour. So dim around it, not its wrappers. */
+  [data-inactive] .ui-window-titlebar > *:not(:has([data-window-menu])),
+  [data-inactive] .ui-window-titlebar :has([data-window-menu]) > :not([data-window-menu], :has([data-window-menu])) {
     opacity: 0.65;
   }
 

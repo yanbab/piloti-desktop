@@ -10,7 +10,6 @@ import {
   GroupedFormGroup,
   GroupedFormRow,
   GroupedFormRowControl,
-  GroupedFormRowDescription,
   GroupedFormRowLabel,
   GroupedFormRowTitle,
   GroupedFormSection,
@@ -486,9 +485,6 @@ export function SecurityPane() {
                           <GroupedFormRowTitle>
                             {_("Notifications")}
                           </GroupedFormRowTitle>
-                          <GroupedFormRowDescription>
-                            {_("Allow this app to post desktop notifications")}
-                          </GroupedFormRowDescription>
                         </GroupedFormRowLabel>
                         <GroupedFormRowControl>
                           <Switch
@@ -507,9 +503,6 @@ export function SecurityPane() {
                           <GroupedFormRowTitle>
                             {_("Show in Search")}
                           </GroupedFormRowTitle>
-                          <GroupedFormRowDescription>
-                            {_("Include this app in Launcher search results")}
-                          </GroupedFormRowDescription>
                         </GroupedFormRowLabel>
                         <GroupedFormRowControl>
                           <Switch
@@ -528,9 +521,6 @@ export function SecurityPane() {
                               <GroupedFormRowTitle>
                                 {_(perm.label)}
                               </GroupedFormRowTitle>
-                              <GroupedFormRowDescription>
-                                {_(perm.description)}
-                              </GroupedFormRowDescription>
                             </GroupedFormRowLabel>
                             <GroupedFormRowControl>
                               <Switch
