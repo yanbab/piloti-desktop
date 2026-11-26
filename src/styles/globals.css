@@ -11,6 +11,8 @@
 @import "./components/window.css";
 @import "./components/grouped-form.css";
 @import "./components/sidebar.css";
+@import "./components/menu.css";
+@import "./components/segmented.css";
 
 @layer base {
   html,

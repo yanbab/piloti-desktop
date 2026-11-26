@@ -1,28 +1,20 @@
 /**
- * Shared Tailwind class presets for GNOME Adwaita / Libadwaita native-style menus
- * (Menubar, DropdownMenu, ContextMenu, and Select popovers).
+ * Class names shared by the menus (Menubar, DropdownMenu, ContextMenu, Select
+ * and hand-made ones). The look is plain CSS: styles/components/menu.css.
  */
 
-export const MENU_POPUP_CLASS =
-  "z-50 max-h-(--available-height) min-w-[10rem] origin-(--transform-origin) overflow-x-hidden overflow-y-auto rounded-ui-menu p-[6px] text-ui-label shadow-ui-menu ui-material-menu outline-none data-open:animate-in data-open:fade-in-0 motion-reduce:animate-none"
+export const MENU_POPUP_CLASS = "ui-menu ui-material-menu"
 
-export const MENU_ITEM_CLASS =
-  "relative flex min-h-[30px] cursor-default items-center gap-2 whitespace-nowrap rounded-ui-item px-[12px] py-1 text-[13.5px] leading-[18px] font-normal text-ui-label outline-hidden select-none data-highlighted:bg-ui-menu-highlight data-highlighted:text-ui-label data-disabled:pointer-events-none data-disabled:text-ui-label-tertiary data-[inset]:pl-[30px] [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 [&_svg:not([class*='text-'])]:text-current"
+export const MENU_ITEM_CLASS = "ui-menu-item"
 
-export const MENU_CHECK_ITEM_CLASS =
-  "relative flex min-h-[30px] cursor-default items-center gap-2 whitespace-nowrap rounded-ui-item py-1 pr-[12px] pl-[30px] text-[13.5px] leading-[18px] font-normal text-ui-label outline-hidden select-none data-highlighted:bg-ui-menu-highlight data-highlighted:text-ui-label data-disabled:pointer-events-none data-disabled:text-ui-label-tertiary [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4"
+export const MENU_CHECK_ITEM_CLASS = "ui-menu-item ui-menu-check-item"
 
-export const MENU_LABEL_CLASS =
-  "px-[12px] pt-[6px] pb-1 text-ui-subheadline font-semibold whitespace-nowrap text-ui-label-secondary data-[inset]:pl-[30px]"
+export const MENU_LABEL_CLASS = "ui-menu-label"
 
-export const MENU_SEPARATOR_CLASS = "mx-0 my-[5px] h-px bg-ui-separator"
+export const MENU_SEPARATOR_CLASS = "ui-menu-separator"
 
-export const MENU_SHORTCUT_CLASS =
-  "ml-auto shrink-0 pl-6 text-ui-body font-normal tracking-[0.16em] whitespace-nowrap text-ui-label-secondary in-data-disabled:text-ui-label-tertiary"
+export const MENU_SHORTCUT_CLASS = "ui-menu-shortcut"
 
-export const MENU_BADGE_CLASS =
-  "-mr-[2px] ml-auto flex h-[17px] shrink-0 items-center rounded-full bg-black/6 px-2 text-ui-footnote font-semibold text-ui-label dark:bg-white/10"
+export const MENU_BADGE_CLASS = "ui-menu-badge"
 
-export const MENU_SUB_TRIGGER_CLASS =
-  "flex min-h-[30px] cursor-default items-center gap-2 whitespace-nowrap rounded-ui-item px-[12px] py-1 text-[13.5px] leading-[18px] font-normal text-ui-label outline-hidden select-none data-highlighted:bg-ui-menu-highlight data-highlighted:text-ui-label data-popup-open:bg-ui-menu-highlight data-popup-open:text-ui-label data-[inset]:pl-[30px] [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 [&_svg:not([class*='text-'])]:text-current"
-
+export const MENU_SUB_TRIGGER_CLASS = "ui-menu-item ui-menu-subtrigger"

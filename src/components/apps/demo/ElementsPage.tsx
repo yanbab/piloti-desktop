@@ -3,6 +3,7 @@ import { InfoIcon, PlusIcon, SaveIcon } from "lucide-react";
 import { AppChromeProvider, type AppChrome } from "@/components/elements/app-chrome";
 import { AppContent, AppWindow } from "@/components/elements/app-window";
 import { HeaderBar, HeaderButton, HeaderHeading } from "@/components/elements/header-bar";
+import { PlainHtmlSections } from "@/components/elements/plain-html-samples";
 import { WindowMenuButton } from "@/components/shell/WindowMenuButton";
 import {
   GroupedForm,
@@ -162,11 +163,13 @@ export function ElementsPage() {
       </GroupedFormSection>
 
       <GroupedFormSection>
-        <GroupedFormSectionTitle>{_("Code")}</GroupedFormSectionTitle>
+        <GroupedFormSectionTitle>{_("Code")} · React</GroupedFormSectionTitle>
         <GroupedFormGroup>
           <pre className="overflow-x-auto p-3 font-mono text-ui-footnote select-text">{CODE}</pre>
         </GroupedFormGroup>
       </GroupedFormSection>
+
+      <PlainHtmlSections />
     </GroupedForm>
   );
 }

@@ -311,7 +311,7 @@
    change state instantly instead of fading between colours. Layout and
    transform transitions (dock, grid, switches) are left alone. */
 :root[data-interface-theme="piloti"] :is(button, [role="button"]):is(.transition-colors, .transition),
-:root[data-interface-theme="piloti"] :is(button.ui-form-row, button.ui-sidebar-item, div.ui-sidebar-item-group) {
+:root[data-interface-theme="piloti"] :is(button.ui-form-row, button.ui-sidebar-item, div.ui-sidebar-item-group, button.ui-segmented-item) {
   transition: none;
 }
 

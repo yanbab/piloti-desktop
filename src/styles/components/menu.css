@@ -1,0 +1,131 @@
+/*
+ * Menus (menu bar, dropdown, context and select popups), in plain CSS:
+ *
+ *   <div class="ui-menu ui-material-menu" role="menu">
+ *     <div class="ui-menu-label">Sort</div>
+ *     <div class="ui-menu-item" role="menuitem">Open<span class="ui-menu-shortcut">⌘O</span></div>
+ *     <div class="ui-menu-separator" role="separator"></div>
+ *   </div>
+ *
+ * ui-material-menu is the surface (translucent per theme).
+ * .ui-menu-check-item leaves room for a check mark. States: data-highlighted,
+ * data-disabled, data-inset, data-popup-open (submenu). Placing, keyboard
+ * navigation and opening are behaviour (base-ui in React).
+ */
+
+@keyframes ui-menu-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@layer components {
+  .ui-menu {
+    z-index: 50;
+    max-height: var(--available-height);
+    min-width: 10rem;
+    transform-origin: var(--transform-origin);
+    overflow: hidden auto;
+    padding: 6px;
+    border-radius: var(--ui-radius-menu);
+    color: var(--ui-label);
+    box-shadow: var(--ui-shadow-menu);
+    outline: none;
+  }
+  .ui-menu[data-open] {
+    animation: ui-menu-in 150ms ease;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .ui-menu[data-open] {
+      animation: none;
+    }
+  }
+
+  .ui-menu-item {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 30px;
+    padding: 0.25rem 12px;
+    border-radius: var(--ui-radius-item);
+    font-size: 13.5px;
+    line-height: 18px;
+    font-weight: var(--piloti-font-weight, 400);
+    white-space: nowrap;
+    color: var(--ui-label);
+    outline: none;
+    cursor: default;
+    user-select: none;
+  }
+  .ui-menu-item svg {
+    flex-shrink: 0;
+    pointer-events: none;
+  }
+  .ui-menu-item svg:not([class*="size-"]) {
+    width: 1rem;
+    height: 1rem;
+  }
+  .ui-menu-item[data-inset],
+  .ui-menu-check-item {
+    padding-left: 30px;
+  }
+  .ui-menu-item[data-highlighted],
+  .ui-menu-item.ui-menu-subtrigger[data-popup-open] {
+    background-color: var(--ui-menu-highlight);
+    color: var(--ui-label);
+  }
+  .ui-menu-item[data-disabled] {
+    pointer-events: none;
+    color: var(--ui-label-tertiary);
+  }
+
+  .ui-menu-label {
+    padding: 6px 12px 0.25rem;
+    font-size: var(--ui-font-subheadline);
+    line-height: 14px;
+    font-weight: var(--piloti-font-weight-semibold, 500);
+    white-space: nowrap;
+    color: var(--ui-label-secondary);
+  }
+  .ui-menu-label[data-inset] {
+    padding-left: 30px;
+  }
+  .ui-menu-separator {
+    height: 1px;
+    margin: 5px 0;
+    background-color: var(--ui-separator);
+  }
+  .ui-menu-shortcut {
+    flex-shrink: 0;
+    margin-left: auto;
+    padding-left: 1.5rem;
+    font-size: var(--ui-font-body);
+    line-height: 16px;
+    font-weight: var(--piloti-font-weight, 400);
+    letter-spacing: 0.16em;
+    white-space: nowrap;
+    color: var(--ui-label-secondary);
+  }
+  [data-disabled] .ui-menu-shortcut {
+    color: var(--ui-label-tertiary);
+  }
+  .ui-menu-badge {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    height: 17px;
+    margin-left: auto;
+    margin-right: -2px;
+    padding-inline: 0.5rem;
+    border-radius: 9999px;
+    background-color: rgb(0 0 0 / 0.06);
+    font-size: var(--ui-font-footnote);
+    line-height: 13px;
+    font-weight: var(--piloti-font-weight-semibold, 500);
+    color: var(--ui-label);
+  }
+  .dark .ui-menu-badge {
+    background-color: rgb(255 255 255 / 0.1);
+  }
+}
