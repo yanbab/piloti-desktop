@@ -1,3 +1,4 @@
+import { spawnProgram } from "@/lib/engine/system-commands";
 import { hostFiles } from "@/lib/engine/host-files";
 import { startBootPhase } from "@/lib/core/perf-log";
 import { VFS_HOME } from "@/lib/engine/vfs-home";
@@ -518,7 +519,7 @@ export function PluginsProvider({
               } else if (cmd.appId) {
                 shellActionsRef.current.launchApp(cmd.appId);
               } else if (cmd.exec && cmd.exec.length > 0) {
-                void piloti.processes.spawn(cmd.exec).catch(() => undefined);
+                spawnProgram(piloti, cmd.exec);
               }
             },
           });

@@ -13,6 +13,7 @@ import {
   emptyVfsTrash,
   getVfsDirHiddenNames,
   getVfsEntry,
+  importExternalFilesToVfs,
   listVfsDir,
   listVfsRecentEntries,
   listVfsTemplates,
@@ -52,7 +53,7 @@ import { vfsKeys } from "@/lib/engine/vfs-query";
 
 export { toDomicilePath };
 
-const RECENTLY_USED_XBEL_PATH = `${WEB_VFS_HOME}/.local/share/recently-used.xbel`;
+export const RECENTLY_USED_XBEL_PATH = `${WEB_VFS_HOME}/.local/share/recently-used.xbel`;
 
 export {
   buildVfsEntryWebAppUrl,
@@ -253,6 +254,32 @@ export async function createFsFileFromTemplate(
   const path = await copyFsEntry(piloti, template.path, dirPath, { name: template.name });
   if (!path) throw new Error(`Could not copy ${template.path}`);
   return entryFor(path, "file");
+}
+
+/** Copies files dragged in from outside the shell into a folder, never over one. */
+export async function importFsFiles(
+  piloti: Piloti,
+  dirPath: string,
+  files: FileList | readonly File[],
+): Promise<void> {
+  const dir = normalizeVfsPath(dirPath);
+  // Taken before any await: a drop's FileList is emptied after the event.
+  const dropped = Array.from(files);
+  if (!hasRealFilesystem()) {
+    await importExternalFilesToVfs(dir, dropped);
+    return;
+  }
+  const names = await namesIn(piloti, dir);
+  for (const file of dropped) {
+    const name = uniqueName(names, file.name.replace(/[/\\]/g, "_") || "Imported");
+    names.add(name.toLowerCase());
+    const path = joinPath(dir, name);
+    await file
+      .arrayBuffer()
+      .then((buffer) => piloti.vfs.write(path, new Uint8Array(buffer)))
+      .catch(logFailure("import", path));
+  }
+  vfsCache.changedIn(dir);
 }
 
 /** Renames in place; `null` if nothing was renamed (the name may be taken). */

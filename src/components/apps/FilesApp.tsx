@@ -10,12 +10,14 @@ import {
 } from "@/components/ui/list-view";
 import * as React from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useVfsList, useVfsQuery, useVfsRefresh, useVfsText } from "@/hooks/use-vfs";
+import { useVfsList, useVfsQuery, useVfsRefresh, useVfsStat, useVfsText, useVfsWatch } from "@/hooks/use-vfs";
 import { vfsKeys } from "@/lib/engine/vfs-query";
 import { useCapabilities } from "@/hooks/use-capabilities";
 import { usePopupSurface } from "@/lib/shell/popup-layer";
 import { createPortal } from "react-dom";
 import { usePiloti } from "@/lib/engine/piloti";
+import { useTemplatesDirPath } from "@/hooks/use-desktop-dir";
+import { parentPath } from "@/lib/ports/vfs";
 import {
   AlertCircleIcon,
   ArrowLeftIcon,
@@ -111,10 +113,8 @@ import {
   downloadVfsFile,
   duplicateVfsEntry,
   getVfsEmblems,
-  getVfsEntry,
   incrementVfsAccessCount,
   isTextEditableVfsFile,
-  listVfsDir,
   listVfsFavoriteEntries,
   listVfsRecentEntries,
   listVfsTemplates,
@@ -124,7 +124,6 @@ import {
   type VfsEmblemId,
   WEB_VFS_FAVORITES_URI,
   WEB_VFS_RECENTS_URI,
-  resolveVfsTemplatesDir,
 } from "@/lib/engine-web/web-vfs";
 import { getVfsClipboard, setVfsClipboard, subscribeVfsClipboard } from "@/lib/core/vfs-clipboard";
 import { isImageVfsFile, isZipVfsFile } from "@/lib/core/vfs-media";
@@ -136,6 +135,7 @@ import {
   emptyFsTrash,
   listFsFavoriteEntries,
   listFsRecentEntries,
+  RECENTLY_USED_XBEL_PATH,
   listFsTemplates,
   moveFsEntry,
   recordFsRecentFile,
@@ -316,16 +316,9 @@ export function FilesApp({
   const mainViewRef = React.useRef<HTMLDivElement | null>(null);
   const openFolderPaths = useOpenFolderPaths();
 
-  const [currentPath, setCurrentPath] = React.useState<string>(() => {
-    if (!initialPath) return WEB_VFS_HOME;
-    const normalized = normalizeVfsPath(initialPath);
-    const existing = getVfsEntry(normalized);
-    if (existing?.kind === "file") {
-      return existing.parentPath;
-    }
-    // On disk, a folder the cache hasn't listed yet (a link, a deep path) exists.
-    return existing?.kind === "directory" || realFilesystem ? normalized : WEB_VFS_HOME;
-  });
+  const [currentPath, setCurrentPath] = React.useState<string>(() =>
+    initialPath ? normalizeVfsPath(initialPath) : WEB_VFS_HOME,
+  );
 
   React.useEffect(() => {
     return registerOpenFolderPath(currentPath);
@@ -354,10 +347,10 @@ export function FilesApp({
   );
   const [bgNewSubOpen, setBgNewSubOpen] = React.useState(false);
   usePopupSurface(Boolean(bgMenu), () => setBgMenu(null));
-  const templatesDir = resolveVfsTemplatesDir();
+  const templatesDir = useTemplatesDirPath();
   const templates =
     useVfsQuery(vfsKeys.templates(templatesDir), templatesDir, () =>
-      realFilesystem ? listFsTemplates(piloti) : Promise.resolve(listVfsTemplates()),
+      realFilesystem ? listFsTemplates(piloti, templatesDir) : Promise.resolve(listVfsTemplates()),
     ).data ?? NO_ENTRIES;
   const refreshVfs = useVfsRefresh();
 
@@ -426,6 +419,8 @@ export function FilesApp({
     refreshVfs(vfsKeys.list(currentPath));
   }, [currentPath, piloti, realFilesystem, refreshVfs, templatesDir]);
   const archive = useArchiveActions(reloadDir);
+  // Recents also lists what other programs opened.
+  useVfsWatch(isRecentsView ? RECENTLY_USED_XBEL_PATH : null, reloadDir);
 
   React.useEffect(() => onFileUndoApplied(reloadDir), [reloadDir]);
 
@@ -710,7 +705,7 @@ export function FilesApp({
     };
   }, [editingLocation]);
 
-  const submitLocationEdit = (e: React.FormEvent) => {
+  const submitLocationEdit = async (e: React.FormEvent) => {
     e.preventDefault();
     const raw = draftLocation.trim();
     if (raw === WEB_VFS_APPS_URI) {
@@ -720,11 +715,12 @@ export function FilesApp({
       const target = raw.startsWith("~")
         ? `${WEB_VFS_HOME}${raw.slice(1)}`
         : normalizeVfsPath(raw);
-      const entry = getVfsEntry(target);
-      if (entry?.kind === "directory") {
-        setCurrentPath(entry.path);
+      setEditingLocation(false);
+      if ((await piloti.vfs.stat(target).catch(() => null))?.kind === "directory") {
+        setCurrentPath(target);
         setSelectedIds([]);
       }
+      return;
     }
     setEditingLocation(false);
   };
@@ -737,16 +733,25 @@ export function FilesApp({
     return subscribeWebVfs(() => reloadDir());
   }, [isVirtualListing, reloadDir]);
 
+  // Opened on a file: show its folder. The demo also falls back to home for a
+  // path that isn't there.
   React.useEffect(() => {
     if (!initialPath) return;
     const normalized = normalizeVfsPath(initialPath);
-    const existing = getVfsEntry(normalized);
-    if (existing?.kind === "file") {
-      setCurrentPath(existing.parentPath);
-    } else if (existing?.kind === "directory" || realFilesystem) {
-      setCurrentPath(normalized);
-    }
-  }, [initialPath, realFilesystem]);
+    let current = true;
+    setCurrentPath(normalized);
+    void piloti.vfs
+      .stat(normalized)
+      .catch(() => null)
+      .then((stat) => {
+        if (!current) return;
+        if (stat?.kind === "file") setCurrentPath(parentPath(normalized));
+        else if (!stat && !realFilesystem) setCurrentPath(WEB_VFS_HOME);
+      });
+    return () => {
+      current = false;
+    };
+  }, [initialPath, piloti, realFilesystem]);
 
   React.useEffect(() => {
     const candidates = new Set<string>();
@@ -847,7 +852,7 @@ export function FilesApp({
         : appItems;
       return filtered.sort((a, b) => a.name.localeCompare(b.name));
     }
-    const hiddenNames = hiddenNamesOf(vfsEntries, currentPath);
+    const hiddenNames = hiddenNamesOf(vfsEntries);
     const visible = showHidden
       ? vfsEntries
       : vfsEntries.filter(
@@ -1589,15 +1594,22 @@ export function FilesApp({
     </div>
   ) : null;
 
+  const inspectedItem =
+    infoPaneOpen && selectedIds.length > 0
+      ? items.find((i) => i.id === selectedIds[0])
+      : null;
+  const statPath = inspectedItem
+    ? (inspectedItem.path ?? inspectedItem.id)
+    : isVirtualListing
+      ? null
+      : currentPath;
+  const inspectedStat = useVfsStat(infoPaneOpen ? statPath : null).data;
+  const inspectedChildren = useVfsList(
+    inspectedItem?.kind === "directory" ? (inspectedItem.path ?? null) : null,
+  ).data;
+
   const infoPaneNode = infoPaneOpen
     ? (() => {
-        const inspectedItem =
-          selectedIds.length > 0
-            ? items.find((i) => i.id === selectedIds[0])
-            : null;
-        const inspectedVfs = inspectedItem
-          ? getVfsEntry(inspectedItem.path ?? inspectedItem.id)
-          : getVfsEntry(currentPath);
         const inspectedPath =
           inspectedItem?.path ??
           (!isVirtualView && !isTrashView ? currentPath : undefined);
@@ -1614,11 +1626,15 @@ export function FilesApp({
           : _("Folder");
         const displaySize = inspectedItem
           ? inspectedItem.kind === "directory"
-            ? _("%d items", listVfsDir(inspectedItem.path).length)
-            : _("%d bytes", (inspectedVfs?.content ?? "").length)
+            ? inspectedChildren
+              ? _("%d items", inspectedChildren.filter((e) => !e.name.startsWith(".")).length)
+              : "—"
+            : inspectedStat?.size !== undefined
+              ? _("%d bytes", inspectedStat.size)
+              : "—"
           : _("%d items", items.length);
-        const modifiedLabel = inspectedVfs?.updatedAt
-          ? new Date(inspectedVfs.updatedAt).toLocaleDateString()
+        const modifiedLabel = inspectedStat?.modifiedMs
+          ? new Date(inspectedStat.modifiedMs).toLocaleDateString()
           : "—";
         const emblemOrder: readonly VfsEmblemId[] = [
           "favorite",
@@ -1958,8 +1974,6 @@ export function FilesApp({
               />
               <tbody>
                 {items.map((item) => {
-                  const vfsEntry =
-                    item.kind === "desktop-entry" ? undefined : getVfsEntry(item.path ?? item.id);
                   const isSelected = selectedIds.includes(item.id);
                   const isOpenedFile =
                     item.kind === "file" &&
@@ -1975,7 +1989,9 @@ export function FilesApp({
                       ? _("Application")
                       : item.kind === "directory"
                         ? _("Folder")
-                        : `${(vfsEntry?.content ?? "").length} B`;
+                        : item.size === undefined
+                          ? "—"
+                          : `${item.size} B`;
                   return (
                     <ListViewRow
                       key={item.id}

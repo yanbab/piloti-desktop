@@ -1,3 +1,4 @@
+import { listInstalledFontFamilies } from "@/lib/engine/system-commands";
 import { InfoPane, InfoPaneToggle, useInfoPane } from "@/components/ui/info-pane";
 import { HeaderSearch } from "@/components/ui/header-search";
 import * as React from "react";
@@ -793,17 +794,8 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
     if (!isBrowserRuntime) {  // FIXME : Capabilities
       void (async () => {
         try {
-          const res = await piloti.processes.run([
-            "fc-list",
-            ":",
-            "family",
-          ]);
-          if (cancelled) return;
-          const stdout = res.match({
-            Ok: (ran) => (ran.code === 0 ? ran.stdout : ""),
-            Err: () => "",
-          });
-          if (!stdout) return;
+          const families = await listInstalledFontFamilies(piloti);
+          if (cancelled || families.length === 0) return;
           const byLower = new Map<
             string,
             { family: string; source: "Document" | "System" }
@@ -811,15 +803,9 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
           for (const item of collectDocumentFonts()) {
             byLower.set(item.family.toLowerCase(), item);
           }
-          for (const line of stdout.split(/\r?\n/)) {
-            for (const part of line.split(",")) {
-              const family = part.trim();
-              if (!family) continue;
-              const key = family.toLowerCase();
-              if (!byLower.has(key)) {
-                byLower.set(key, { family, source: "System" });
-              }
-            }
+          for (const family of families) {
+            const key = family.toLowerCase();
+            if (!byLower.has(key)) byLower.set(key, { family, source: "System" });
           }
           if (!cancelled) {
             setDetectedFontFamilies(Array.from(byLower.values()));

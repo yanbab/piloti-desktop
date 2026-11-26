@@ -84,7 +84,8 @@ import { installConsoleCapture } from "@/lib/core/console-store";
 import { _ } from "@/lib/core/i18n";
 import { bootElapsedMs, logBootEvent } from "@/lib/core/perf-log";
 import { getVfsClipboard, subscribeVfsClipboard } from "@/lib/core/vfs-clipboard";
-import { listVfsTemplates, resolveVfsTemplatesDir } from "@/lib/engine-web/web-vfs";
+import { listVfsTemplates } from "@/lib/engine-web/web-vfs";
+import { useTemplatesDirPath } from "@/hooks/use-desktop-dir";
 import { type WebVfsEntry } from "@/lib/core/vfs-paths";
 import { listFsTemplates } from "@/lib/engine/fs-bridge";
 import { useVfsQuery } from "@/hooks/use-vfs";
@@ -150,10 +151,10 @@ function DesktopSurface() {
     });
   }, []);
 
-  const templatesDir = resolveVfsTemplatesDir();
+  const templatesDir = useTemplatesDirPath();
   const templates =
     useVfsQuery(vfsKeys.templates(templatesDir), templatesDir, () =>
-      systemServices ? listFsTemplates(piloti) : Promise.resolve(listVfsTemplates()),
+      systemServices ? listFsTemplates(piloti, templatesDir) : Promise.resolve(listVfsTemplates()),
     ).data ?? NO_TEMPLATES;
 
   const brightnessFilter =

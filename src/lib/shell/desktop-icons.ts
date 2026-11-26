@@ -47,6 +47,9 @@ export interface IconGridItem {
   /** Absolute path a symbolic link points to. */
   symlinkTarget?: string;
   accessCount?: number;
+  /** A file's size in bytes. */
+  size?: number;
+  thumbnailUrl?: string;
   desktopEntry?: XdgDesktopEntry;
 }
 

@@ -3,6 +3,7 @@ import { nativeEngine, setEngine, webEngine } from "@/lib/engine/engine";
 import { subscribeVfsRenamed } from "@/lib/engine-web/web-vfs";
 import {
   copyFsEntry,
+  importFsFiles,
   createFsFolder,
   createFsTextFile,
   listFsDir,
@@ -122,5 +123,14 @@ describe("renames on a real disk", () => {
     await renameFsEntry(piloti, `${D}/a.txt`, "b.txt");
     stop();
     expect(seen).toEqual([`${D}/a.txt>${D}/b.txt`]);
+  });
+});
+
+describe("files dropped from outside", () => {
+  test("are written to the disk byte for byte, never over one that is there", async () => {
+    await piloti.vfs.write(`${D}/a.bin`, "kept");
+    await importFsFiles(piloti, D, [new File([new Uint8Array([0, 255, 7])], "a.bin")]);
+    expect(await piloti.vfs.readText(`${D}/a.bin`)).toBe("kept");
+    expect(await piloti.vfs.read(`${D}/a 2.bin`)).toEqual(new Uint8Array([0, 255, 7]));
   });
 });

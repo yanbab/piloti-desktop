@@ -9,7 +9,7 @@ import {
   incrementVfsAccessCount,
 } from "@/lib/engine-web/web-vfs";
 import { type WebVfsEntry } from "@/lib/core/vfs-paths";
-import { launchDesktopCommand } from "@/lib/engine-native";
+import { launchDesktopCommand } from "@/lib/engine/system-commands";
 import { recordFsRecentFile } from "@/lib/engine/fs-bridge";
 import {
   type OpenAction,

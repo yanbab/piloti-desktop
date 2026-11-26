@@ -1,6 +1,6 @@
 /**
  * An in-memory `domicile.files` and `domicile.processes` that behave like the
- * Linux ones where `piloti.vfs` cares (measured on the VM, `_docs/PLAN-VFS.md`):
+ * Linux ones where `piloti.vfs` cares (measured on the VM, `_docs/PLAN-NEXT.md`):
  * atomic writes replace symlinks, watches are per folder and not recursive, a
  * removed folder is reported once and then never again, and watches run out.
  */
@@ -169,6 +169,8 @@ export function createFakeDomicile(options: { watchLimit?: number } = {}) {
       case "ln":
         set(real(args[1]!, false), { type: "link", target: args[0]!, mtime: clock++, meta: {} });
         return "";
+      case "readlink":
+        return `${real(args[0]!)}\n`;
       case "rm":
         removeTree(real(args[0]!, false));
         return "";

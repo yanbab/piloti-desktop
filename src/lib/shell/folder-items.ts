@@ -2,8 +2,8 @@ import {
   type IconGridItem,
   inferFileVisual,
 } from "@/lib/shell/desktop-icons";
-import { getVfsContentType } from "@/lib/core/vfs-media";
-import { getVfsDirHiddenNames, getVfsEntry, parseDotHiddenFile } from "@/lib/engine-web/web-vfs";
+import { getVfsContentType, getVfsImageThumbnailUrl } from "@/lib/core/vfs-media";
+import { parseDotHiddenFile } from "@/lib/core/file-types";
 import { type WebVfsEntry } from "@/lib/core/vfs-paths";
 import { parseDesktopEntry } from "@/lib/xdg/xdg-desktop-entry";
 
@@ -22,9 +22,8 @@ export function entryVisual(entry: WebVfsEntry) {
 }
 
 /** Names the folder's `.hidden` file lists. */
-export function hiddenNamesOf(entries: readonly WebVfsEntry[], dirPath: string): Set<string> {
-  const dotHidden = entries.find((e) => e.name === ".hidden");
-  return dotHidden ? parseDotHiddenFile(dotHidden.content) : getVfsDirHiddenNames(dirPath);
+export function hiddenNamesOf(entries: readonly WebVfsEntry[]): Set<string> {
+  return parseDotHiddenFile(entries.find((e) => e.name === ".hidden")?.content);
 }
 
 export function vfsEntryToGridItem(
@@ -45,9 +44,11 @@ export function vfsEntryToGridItem(
     isHidden,
     isSymlink: entry.isSymlink,
     symlinkTarget: entry.symlinkTarget,
-    accessCount:
+    accessCount: entry.kind === "file" ? (entry.accessCount ?? 0) : undefined,
+    size: entry.kind === "file" ? (entry.size ?? entry.content?.length) : undefined,
+    thumbnailUrl:
       entry.kind === "file"
-        ? (entry.accessCount ?? getVfsEntry(entry.path)?.accessCount ?? 0)
+        ? getVfsImageThumbnailUrl(entry.name, entry.content, entry.metadata)
         : undefined,
     iconUrl: visual.iconCandidates.map((c) => getAppIconUrl(c)).find(Boolean),
   };

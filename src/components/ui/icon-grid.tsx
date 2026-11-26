@@ -61,14 +61,13 @@ import {
 import { _ } from "@/lib/core/i18n";
 import { cn } from "@/lib/core/utils";
 import {
-  getVfsEntry,
-  importExternalFilesToVfs,
   loadVfsEmblemsMap,
   subscribeWebVfs,
   VFS_EMBLEM_META,
   type VfsEmblemId,
 } from "@/lib/engine-web/web-vfs";
-import { getVfsImageThumbnailUrl } from "@/lib/core/vfs-media";
+import { importFsFiles } from "@/lib/engine/fs-bridge";
+import { usePiloti } from "@/lib/engine/piloti";
 
 function splitFileNameExt(name: string, kind: IconGridItem["kind"]): [string, string] {
   if (kind !== "file") return [name, ""];
@@ -215,6 +214,7 @@ export function IconGrid({
   ariaLabel = "Icon Grid",
   className,
 }: IconGridProps) {
+  const piloti = usePiloti();
   const settings = useDesktopSettings(["accentColor", "fileActivationMode", "showFileExtensionBadges"]);
   const { realFilesystem } = useCapabilities();
   const { getAppIconUrl } = useApps();
@@ -1125,7 +1125,7 @@ export function IconGrid({
               ) {
                 e.preventDefault();
                 e.stopPropagation();
-                void importExternalFilesToVfs(item.path, e.dataTransfer.files).then(() => {
+                void importFsFiles(piloti, item.path, e.dataTransfer.files).then(() => {
                   window.dispatchEvent(
                     new CustomEvent("piloti:folder-drop-anim", {
                       detail: { path: item.path },
@@ -1173,17 +1173,7 @@ export function IconGrid({
               )}
             >
               {(() => {
-                const vfsEntry =
-                  item.kind === "file" && item.path
-                    ? getVfsEntry(item.path)
-                    : undefined;
-                const thumbUrl = vfsEntry
-                  ? getVfsImageThumbnailUrl(
-                      item.name,
-                      vfsEntry.content,
-                      vfsEntry.metadata
-                    )
-                  : undefined;
+                const thumbUrl = item.thumbnailUrl;
                 if (thumbUrl) {
                   return (
                     <div className="flex size-full scale-[1.12] items-center justify-center rounded-[2px] border border-black bg-white p-[2px] shadow-xs">

@@ -1,3 +1,4 @@
+import { killAppProcesses, launchDesktopCommand } from "@/lib/engine/system-commands";
 import { logAppLaunch } from "@/lib/core/perf-log";
 import { webSearchHome } from "@/lib/shell/web-search";
 import * as React from "react";
@@ -29,7 +30,6 @@ import {
 } from "@/lib/shell/spatial-window-bounds";
 import {
   type GnomeSettingsPanel,
-  launchDesktopCommand,
   openAppModule,
   openGnomeControlCenter,
 } from "@/lib/engine-native";
@@ -2080,31 +2080,17 @@ function pruneBrowserRecord(
       const appWins = combinedWindows.filter((w) => w.appId === appId);
       const killNativeAppProcess = (desktopId?: string, waylandAppId?: string, pid?: number | null) => {
         if (isBrowserRuntime) return;  // FIXME : Capabilities
-        if (typeof pid === "number" && pid > 0) {
-          piloti.processes.run(["kill", "-9", String(pid)]).catch(() => {});
-        }
-        const flatpakId = (desktopId ?? appId).replace(/\.desktop$/i, "");
-        if (flatpakId.includes(".")) {
-          piloti.processes.run(["flatpak", "kill", flatpakId]).catch(() => {});
-        }
         const xdgMatch = matchXdgEntryForWaylandWindow(
           installedXdgApps,
           desktopId ?? appId
         );
-        const execBin = xdgMatch?.execArgv?.[0]?.split("/").pop();
-        if (execBin && execBin !== "flatpak") {
-          piloti.processes.run(["pkill", "-9", "-x", execBin]).catch(() => {});
-        }
-        const procName = (waylandAppId || appId)
-          .replace(/\.desktop$/i, "")
-          .split(".")
-          .pop();
-        if (procName) {
-          piloti.processes.run(["pkill", "-9", "-i", procName]).catch(() => {});
-        }
-        if (appId) {
-          piloti.processes.run(["pkill", "-9", "-f", appId]).catch(() => {});
-        }
+        killAppProcesses(piloti, {
+          pid,
+          flatpakId: (desktopId ?? appId).replace(/\.desktop$/i, ""),
+          execName: xdgMatch?.execArgv?.[0]?.split("/").pop(),
+          processName: (waylandAppId || appId).replace(/\.desktop$/i, "").split(".").pop(),
+          appId,
+        });
       };
 
       if (appWins.length === 0) {
@@ -2125,8 +2111,7 @@ function pruneBrowserRecord(
     [
       closeWindow,
       combinedWindows,
-      piloti.processes,
-      piloti.windows,
+      piloti,
       installedXdgApps,
       isBrowserRuntime,  // FIXME : Capabilities
     ]

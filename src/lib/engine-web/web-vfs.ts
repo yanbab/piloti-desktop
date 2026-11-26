@@ -1,3 +1,7 @@
+import { parseDotHiddenFile } from "@/lib/core/file-types";
+import { VFS_EMBLEM_META, type VfsEmblemId } from "@/lib/core/emblems";
+export { isTextEditableVfsFile, parseDotHiddenFile } from "@/lib/core/file-types";
+export { VFS_EMBLEM_META, type VfsEmblemId };
 import { VFS_HOME } from "../engine/vfs-home";
 import type { KeyValueStorage, VfsPersistence } from "@/lib/ports/vfs-persistence";
 import { browserPersistence } from "./vfs-persistence-browser";
@@ -432,22 +436,6 @@ function uniqueChildName(
   return `${baseName} ${index}${extension}`;
 }
 
-/**
- * Parses a FreeDesktop / GNOME Nautilus `.hidden` file (newline-separated
- * basenames in the same directory that should be treated as hidden).
- */
-export function parseDotHiddenFile(content: string | undefined): Set<string> {
-  const out = new Set<string>();
-  if (!content) return out;
-  for (const rawLine of content.split(/\r?\n/)) {
-    const name = rawLine.trim();
-    if (name && !name.includes("/")) {
-      out.add(name);
-    }
-  }
-  return out;
-}
-
 export function getVfsDirHiddenNames(dirPath: string): Set<string> {
   const normalized = normalizeVfsPath(dirPath);
   loadVfs();
@@ -699,38 +687,10 @@ export function incrementVfsAccessCount(rawPath: string): number {
   return nextCount;
 }
 
-export type VfsEmblemId = "favorite" | "important" | "work" | "personal";
-
 export const VFS_EMBLEMS_STORAGE_KEY = "piloti.web.vfs.emblems.v1";
 export const WEB_VFS_FAVORITES_STORAGE_KEY = "piloti.web.vfs.favorites.v1";
 export const WEB_VFS_FAVORITES_URI = "piloti://favorites";
 export const WEB_VFS_RECENTS_URI = "piloti://recents";
-
-export const VFS_EMBLEM_META: Record<
-  VfsEmblemId,
-  { label: string; colorClass: string; badgeBgClass: string }
-> = {
-  favorite: {
-    label: "Favorite",
-    colorClass: "text-rose-500",
-    badgeBgClass: "bg-rose-500/90 text-white",
-  },
-  important: {
-    label: "Important",
-    colorClass: "text-amber-500",
-    badgeBgClass: "bg-amber-500/90 text-white",
-  },
-  work: {
-    label: "Work",
-    colorClass: "text-sky-500",
-    badgeBgClass: "bg-sky-500/90 text-white",
-  },
-  personal: {
-    label: "Personal",
-    colorClass: "text-emerald-500",
-    badgeBgClass: "bg-emerald-500/90 text-white",
-  },
-};
 
 const VALID_EMBLEM_IDS = new Set<VfsEmblemId>([
   "favorite",
@@ -1378,20 +1338,6 @@ export function buildVfsEntryWebAppUrl(entry: WebVfsEntry): string {
   );
 }
 
-const TEXT_EDITABLE_EXT_RE =
-  /\.(txt|md|markdown|json|css|scss|less|js|mjs|cjs|ts|tsx|jsx|xml|csv|tsv|ya?ml|toml|ini|conf|cfg|log|sh|bash|zsh|py|rb|rs|go|java|c|cpp|h|hpp|sql)$/i;
-
-/**
- * Returns true for plain-text / markdown / code files that should open in
- * `TextEditorApp` by default instead of a standalone web view.
- */
-export function isTextEditableVfsFile(name: string): boolean {
-  const lower = name.toLowerCase();
-  if (/\.(html?|svg|png|jpe?g|gif|webp|bmp|ico|avif|mp4|webm|mkv|mov|avi|m4v|mp3|wav|flac|m4a|ogg|aac|pdf|zip|tar|gz|bz2|xz|7z|rar)$/i.test(lower)) {
-    return false;
-  }
-  return TEXT_EDITABLE_EXT_RE.test(lower) || !/\.[a-z0-9]+$/i.test(lower);
-}
 
 const TEXT_FILE_EXT_RE =
   /\.(txt|md|markdown|json|html?|css|scss|less|js|mjs|cjs|ts|tsx|jsx|svg|xml|csv|tsv|ya?ml|toml|ini|conf|cfg|log|sh|bash|zsh|py|rb|rs|go|java|c|cpp|h|hpp|sql)$/i;

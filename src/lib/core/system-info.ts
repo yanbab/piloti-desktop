@@ -1,3 +1,4 @@
+import { runText } from "@/lib/engine/system-commands";
 import { hostFiles } from "@/lib/engine/host-files";
 import type { Piloti } from "@/lib/engine/piloti";
 
@@ -116,20 +117,9 @@ async function readTextSafe(
   }
 }
 
-async function runTextSafe(
-  piloti: Piloti,
-  argv: string[]
-): Promise<string | null> {
-  try {
-    const res = await piloti.processes.run(argv);
-    return res.match({
-      Ok: (ran) => (ran.code === 0 ? ran.stdout.trim() || null : null),
-      Err: () => null,
-    });
-  } catch {
-    return null;
-  }
-}
+/** A command's trimmed output; `null` if it failed or said nothing. */
+const runTextSafe = async (piloti: Piloti, argv: string[]): Promise<string | null> =>
+  (await runText(piloti, argv).catch(() => null))?.trim() || null;
 
 function getBrowserFallbackInfo(): ComputerInfo {
   const nav = typeof navigator !== "undefined" ? navigator : undefined;

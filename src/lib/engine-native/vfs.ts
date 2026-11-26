@@ -74,6 +74,13 @@ export function createNativeVfs(domicile: NativeVfsHost, watchOptions?: WatchHub
     };
   };
 
+  /** Where a link to something missing points, else `null`. */
+  const danglingTarget = async (path: string): Promise<string | null> => {
+    const siblings = await found(files.readDir(parentPath(path)), path);
+    if (!siblings?.some((e) => e.name === baseName(path) && e.fileType === SYMLINK)) return null;
+    return (await run(["readlink", "-m", "--", path])).replace(/\n$/, "");
+  };
+
   const list: Vfs["list"] = async (dir) => {
     if ((await stat(dir))?.kind !== "directory") return null;
     const entries = await found(files.readDir(dir), dir);
@@ -139,7 +146,7 @@ export function createNativeVfs(domicile: NativeVfsHost, watchOptions?: WatchHub
     write: (path, data) =>
       queue([path], async () => {
         // Domicile replaces the file, which would turn a symlink into a plain one.
-        const target = (await stat(path))?.realPath ?? path;
+        const target = (await stat(path))?.realPath ?? (await danglingTarget(path)) ?? path;
         const result = await files.write(target, data);
         result.match({
           Ok: () => undefined,

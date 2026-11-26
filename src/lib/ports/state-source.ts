@@ -1,7 +1,7 @@
 /**
  * Where Piloti's own config and state files are kept, as the shell reads them:
  * synchronously, from what is already loaded. These are the only files held in
- * memory (see `_docs/PLAN-VFS.md`). Linux: `engine-native/state-store.ts`; the
+ * memory (see `_docs/PLAN-NEXT.md`). Linux: `engine-native/state-store.ts`; the
  * browser demo: the browser VFS itself (`engine/vfs-state.ts`).
  */
 export interface StateFile {

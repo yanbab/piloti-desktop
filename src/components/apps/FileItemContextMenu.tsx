@@ -17,7 +17,7 @@ import { APP_CATALOG } from "@/data/catalog";
 import type { IconGridItem } from "@/lib/shell/desktop-icons";
 import { _ } from "@/lib/core/i18n";
 import { cn } from "@/lib/core/utils";
-import type { VfsEmblemId } from "@/lib/engine-web/web-vfs";
+import type { VfsEmblemId } from "@/lib/core/emblems";
 import {
   inferMimeType,
   loadMimeAppsConfig,

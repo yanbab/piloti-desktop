@@ -1,5 +1,6 @@
 import * as React from "react";
-import { importExternalFilesToVfs } from "@/lib/engine-web/web-vfs";
+import { importFsFiles } from "@/lib/engine/fs-bridge";
+import { usePiloti } from "@/lib/engine/piloti";
 
 /**
  * Files dragged in from outside the shell (browser demo, other programs) are
@@ -10,6 +11,7 @@ export function useExternalFileDrop(
   enabled: boolean,
   onImported?: () => void,
 ) {
+  const piloti = usePiloti();
   const [active, setActive] = React.useState(false);
   const handlers = {
     onDragOver: (e: React.DragEvent) => {
@@ -36,7 +38,7 @@ export function useExternalFileDrop(
           },
         }),
       );
-      void importExternalFilesToVfs(dirPath, e.dataTransfer.files).then(() => {
+      void importFsFiles(piloti, dirPath, e.dataTransfer.files).then(() => {
         onImported?.();
         window.dispatchEvent(
           new CustomEvent("piloti:folder-drop-anim", { detail: { path: dirPath } }),

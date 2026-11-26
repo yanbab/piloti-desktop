@@ -13,19 +13,6 @@ setEngine(nativeEngine);
 
 const CACHE_MARKER_KEY = "piloti.vfs.native-memory.v1";
 
-/** Moves what is left of `~/.config/Piloti` (capital P) into `~/.config/piloti`. */
-async function moveLegacyConfigDir(piloti: Parameters<ShellModule>[1], config: string) {
-  if (!(await hostFiles(piloti).stat(`${config}/Piloti`)).isOk()) return;
-  await piloti.processes.run([
-    "sh",
-    "-c",
-    'mkdir -p "$2" && cp -rn "$1"/. "$2"/ && rm -rf "$1"',
-    "sh",
-    `${config}/Piloti`,
-    `${config}/piloti`,
-  ]);
-}
-
 /**
  * Entry of the native shell. The VFS root must be the real `$HOME`, and VFS
  * modules read it when they load, so ask the compositor for it first and only
@@ -89,7 +76,11 @@ async function boot(root: HTMLElement, piloti: Parameters<ShellModule>[1]) {
         void setEmblems(piloti.processes, path, names, vfs.MANAGED_GNOME_EMBLEMS),
       );
       const finishPreload = startBootPhase("saved state files");
-      await moveLegacyConfigDir(piloti, `${home}/.config`).catch(() => undefined);
+      const { mergeConfigDirs } = await import("@/lib/engine/system-commands");
+      const config = `${home}/.config`;
+      if ((await hostFiles(piloti).stat(`${config}/Piloti`)).isOk()) {
+        await mergeConfigDirs(piloti, `${config}/Piloti`, `${config}/piloti`).catch(() => undefined);
+      }
       setStateSource(await createNativeStateStore(nativeVfs, home));
       finishPreload();
       // Desktop settings in dconf when Piloti's schemas are installed.

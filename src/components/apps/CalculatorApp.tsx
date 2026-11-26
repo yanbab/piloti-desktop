@@ -366,6 +366,9 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
 
   React.useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
+      // Typing in a text field elsewhere is not for the calculator.
+      const target = e.target as HTMLElement | null;
+      if (target?.isContentEditable || target?.closest?.("input, textarea")) return;
       if (e.metaKey || e.ctrlKey || e.altKey) {
         if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "c") {
           void navigator.clipboard?.writeText(display);

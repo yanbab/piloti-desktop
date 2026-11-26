@@ -1,3 +1,4 @@
+import { runPowerAction } from "@/lib/engine/system-commands";
 import { getEngine } from "@/lib/engine/engine";
 import { settingsBackend } from "@/lib/engine/settings";
 import * as React from "react";
@@ -796,19 +797,8 @@ export function useSystemBackendsValue(
       setSessionExiting(true);
       await new Promise((resolve) => window.setTimeout(resolve, 180));
 
-      const argv =
-        action === "logout"
-          ? [
-              "sh",
-              "-c",
-              'if [ -n "$XDG_SESSION_ID" ]; then loginctl terminate-session "$XDG_SESSION_ID"; else loginctl terminate-user "$USER"; fi',
-            ]
-          : action === "restart"
-            ? ["systemctl", "reboot"]
-            : ["systemctl", "poweroff"];
-
       try {
-        const res = await piloti.processes.run(argv);
+        const res = await runPowerAction(piloti, action);
         res.match({
           Ok: (ran) => {
             if (ran.code !== 0) {
@@ -842,7 +832,7 @@ export function useSystemBackendsValue(
       }
     },
     [
-      piloti.processes,
+      piloti,
       systemServices,
       lockSession,
       pushNotification,

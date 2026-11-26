@@ -1,6 +1,6 @@
 /**
  * `Vfs.watch` over Domicile's `files.watch`. What that does on Linux (see
- * `_docs/PLAN-VFS.md`) shapes this:
+ * `_docs/PLAN-NEXT.md`) shapes this:
  * - only folders are watched: a file's watch goes silent once the file is
  *   replaced, as every atomic save does;
  * - a removed folder's watch says so once, then nothing, so it is watched anew;

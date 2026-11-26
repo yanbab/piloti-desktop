@@ -1,4 +1,4 @@
-import { hostFiles } from "@/lib/engine/host-files";
+import { emptyFsTrash } from "@/lib/engine/fs-bridge";
 import * as React from "react";
 import { useVfsQuery, useVfsRefresh } from "@/hooks/use-vfs";
 import { vfsKeys } from "@/lib/engine/vfs-query";
@@ -60,12 +60,6 @@ import {
   getWebAppFaviconUrl,
 } from "@/data/web-apps";
 import { useAltKey } from "@/hooks/use-alt-key";
-import {
-  emptyXdgTrash,
-  inspectXdgTrash,
-  resolveXdgTrashPaths,
-} from "@/lib/xdg/xdg-trash";
-import { emptyVfsTrash, listVfsDir } from "@/lib/engine-web/web-vfs";
 import { WEB_VFS_TRASH } from "@/lib/core/vfs-paths";
 import {
   SIMULATED_USB_LABEL,
@@ -325,13 +319,10 @@ export const Dock = React.memo(function Dock() {
     Math.max(24, dragDockSize ?? settings.dockSize),
     maxDockSizeForSpace,
   );
-  const trashPaths = React.useMemo(() => resolveXdgTrashPaths(), []);
-
   // Live with the Trash folder's watch; focus re-checks too.
   const trashEmpty =
     useVfsQuery(vfsKeys.trashEmpty(WEB_VFS_TRASH), WEB_VFS_TRASH, async () => {
-      if (isBrowserRuntime) return listVfsDir(WEB_VFS_TRASH).length === 0;  // FIXME : Capabilities
-      return (await inspectXdgTrash(hostFiles(piloti), ".local/share/Trash/files")).empty;
+      return ((await piloti.vfs.list(WEB_VFS_TRASH)) ?? []).length === 0;
     }).data ?? true;
   const refreshVfs = useVfsRefresh();
   const refreshTrashStatus = React.useCallback(
@@ -592,12 +583,7 @@ export const Dock = React.memo(function Dock() {
   };
 
   const handleEmptyTrash = async () => {
-    if (isBrowserRuntime) {  // FIXME : Capabilities
-      emptyVfsTrash();
-      await refreshTrashStatus();
-      return;
-    }
-    await emptyXdgTrash(piloti.processes, trashPaths);
+    await emptyFsTrash(piloti);
     await refreshTrashStatus();
   };
 

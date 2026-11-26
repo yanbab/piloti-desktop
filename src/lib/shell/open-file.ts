@@ -1,4 +1,4 @@
-import { isTextEditableVfsFile } from "@/lib/engine-web/web-vfs";
+import { isTextEditableVfsFile } from "@/lib/core/file-types";
 import {
   inferMimeType,
   type MimeAppOption,

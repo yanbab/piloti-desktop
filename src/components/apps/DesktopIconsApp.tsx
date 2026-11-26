@@ -109,7 +109,7 @@ export function DesktopIconsApp({
   }, [listingEnabled, locked, reload]);
 
   const fileItems = React.useMemo(() => {
-    const hidden = hiddenNamesOf(entries, desktopDirPath);
+    const hidden = hiddenNamesOf(entries);
     return sortDesktopItems(
       entries
         .filter((e) => !e.name.startsWith(".") && !hidden.has(e.name))

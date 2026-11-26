@@ -24,7 +24,7 @@ import {
 import { Slider } from "@/components/ui/slider";
 import { useDesktopSettings, useUpdateSettings } from "@/context/DesktopStateContext";
 import type { CssFontStyle } from "@/context/SettingsContext";
-import { listInstalledFontFamilies } from "@/lib/engine-native";
+import { listInstalledFontFamilies } from "@/lib/engine/system-commands";
 import { _ } from "@/lib/core/i18n";
 import { cn } from "@/lib/core/utils";
 

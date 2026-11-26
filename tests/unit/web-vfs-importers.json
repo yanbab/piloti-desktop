@@ -1,12 +1,10 @@
 [
   "components/apps/ConsoleApp.tsx",
   "components/apps/DesktopIconsApp.tsx",
-  "components/apps/FileItemContextMenu.tsx",
   "components/apps/FilesApp.tsx",
   "components/apps/ImageViewerApp.tsx",
   "components/apps/settings/AdvancedPane.tsx",
   "components/shell/Desktop.tsx",
-  "components/shell/Dock.tsx",
   "components/shell/Launcher.tsx",
   "components/shell/MenuBar.tsx",
   "components/ui/folder-icon-view.tsx",
@@ -15,14 +13,11 @@
   "context/SettingsContext.tsx",
   "context/SystemBackendsContext.tsx",
   "context/WindowsContext.tsx",
-  "hooks/use-external-file-drop.ts",
   "hooks/use-open-path.ts",
   "lib/engine/fs-bridge.ts",
   "lib/engine/shell-log.ts",
   "lib/engine/text-editor-host-shell.tsx",
   "lib/engine/vfs-state.ts",
-  "lib/shell/folder-items.ts",
-  "lib/shell/open-file.ts",
   "piloti-desktop.tsx",
   "piloti-web.tsx"
 ]

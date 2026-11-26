@@ -12,6 +12,14 @@ function sources(dir: string): string[] {
   });
 }
 
+/** A source file without its comment lines. */
+const code = (file: string) =>
+  fs
+    .readFileSync(file, "utf8")
+    .split("\n")
+    .filter((line) => !/^\s*(\/\/|\*|\/\*)/.test(line))
+    .join("\n");
+
 describe("engine boundary", () => {
   it("only engine code touches piloti.files", () => {
     const offenders = sources(SRC)
@@ -23,6 +31,41 @@ describe("engine boundary", () => {
       )
       .map((file) => path.relative(SRC, file));
     expect(offenders).toEqual([]);
+  });
+});
+
+/**
+ * Command lines live in the engines: UI code calls a named function
+ * (`engine/system-commands.ts`) and never runs a program itself.
+ */
+describe("process boundary", () => {
+  it("only engine code runs programs", () => {
+    const offenders = sources(SRC)
+      .filter((file) => /\bprocesses\??\s*\.(run|spawn|launch)\(/.test(code(file)))
+      .map((file) => path.relative(SRC, file));
+    expect(offenders).toEqual([]);
+  });
+});
+
+/**
+ * UI code asks `engine/`, not the Linux engine. Entry points pick the engine;
+ * the files listed still import it, and the list may only get shorter.
+ */
+describe("engine-native boundary", () => {
+  it("no new file outside the engines imports engine-native", () => {
+    const entry = /^(piloti-desktop|piloti-greeter)\.tsx$/;
+    const importers = sources(SRC)
+      // Type-only imports are erased: they don't tie a file to Linux code.
+      .filter((file) =>
+        /["/]lib\/engine-native["/)]/.test(code(file).replace(/import type [^;]*;/g, "")),
+      )
+      .map((file) => path.relative(SRC, file))
+      .filter((file) => !entry.test(file))
+      .sort();
+    const allowed: string[] = JSON.parse(
+      fs.readFileSync(path.join(import.meta.dir, "engine-native-importers.json"), "utf8"),
+    );
+    expect(importers).toEqual(allowed);
   });
 });
 

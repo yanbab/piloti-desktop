@@ -217,3 +217,14 @@ describe("native watching", () => {
     }
   });
 });
+
+describe("native symlinks", () => {
+  it("writes through a dangling one, keeping it", async () => {
+    const { vfs } = native();
+    await vfs.createDir(`${HOME}/dangling`);
+    await vfs.symlink(`${HOME}/dangling/not-yet`, `${HOME}/dangling/link`);
+    await vfs.write(`${HOME}/dangling/link`, "made");
+    expect(await vfs.readText(`${HOME}/dangling/not-yet`)).toBe("made");
+    expect((await vfs.list(`${HOME}/dangling`))!.find((e) => e.name === "link")?.isSymlink).toBe(true);
+  });
+});

@@ -1,3 +1,4 @@
+import { runShellLine } from "@/lib/engine/system-commands";
 import { hostFiles } from "@/lib/engine/host-files";
 import { onShellEvent } from "@/lib/shell/shell-events";
 import * as React from "react";
@@ -155,7 +156,7 @@ export function XtermTerminalApp({
       apps: () => live.current.apps,
       run: async (cmd: string) => {
         if (!systemServices) return { code: 0, stdout: `[web demo] would run: ${cmd}`, stderr: "" };
-        const res = await piloti.processes.run(["sh", "-c", cmd]);
+        const res = await runShellLine(piloti, cmd);
         return res.match({
           Ok: (ran) => ran,
           Err: (err) => {
