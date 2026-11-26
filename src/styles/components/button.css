@@ -6,6 +6,7 @@
  *
  * data-variant: default (when absent) destructive secondary tinted outline ghost link
  * data-size:    sm (Small), default (Medium, when absent), lg (Large), and icon-sm icon icon-lg
+ * data-shape:   round (pill ends; a circle for the icon sizes)
  *
  * Uses only --ui-* tokens, which each theme sets. It lives in the
  * `components` layer, so utility classes and theme rules still override it.
@@ -89,7 +90,7 @@
   .ui-button:where(:not([data-size]), [data-size="default"]) {
     padding-inline: 1rem;
     font-size: var(--ui-font-body);
-    line-height: 16px;
+    line-height: calc(16px * var(--piloti-font-scale, 1));
   }
   .ui-button:where(:not([data-size]), [data-size="default"]):where(:has(> svg)) {
     padding-inline: 0.75rem;
@@ -110,7 +111,7 @@
     gap: 0.25rem;
     padding-inline: 0.625rem;
     font-size: var(--ui-font-small);
-    line-height: 14px;
+    line-height: calc(14px * var(--piloti-font-scale, 1));
   }
   .ui-button:where([data-size="icon-sm"]) {
     width: var(--ui-control-small);
@@ -130,12 +131,17 @@
   .ui-button:where([data-size="lg"]) {
     padding-inline: 1rem;
     font-size: var(--ui-font-body);
-    line-height: 16px;
+    line-height: calc(16px * var(--piloti-font-scale, 1));
   }
   .ui-button:where([data-size="lg"], [data-size="icon-lg"]) svg:not([class*="size-"]) {
     width: 1rem;
     height: 1rem;
   }
+  /* After the sizes, which set their own radius. */
+  .ui-button:where([data-shape="round"]) {
+    border-radius: 9999px;
+  }
+
   /* ── States ────────────────────────────────────────────────────────────── */
 
   .ui-button:focus-visible,

@@ -628,6 +628,7 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
         {/* Dark Mode Pill */}
         <button
           type="button"
+          aria-pressed={settings.themeMode === "dark"}
           onClick={() => {
             const next = settings.themeMode === "dark" ? "light" : "dark";
             console.info("[Piloti] control-panel: theme", next);
@@ -651,6 +652,7 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
         {/* Do Not Disturb Pill */}
         <button
           type="button"
+          aria-pressed={settings.doNotDisturb}
           onClick={() => {
             const next = !settings.doNotDisturb;
             console.info(
@@ -675,6 +677,7 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
         {/* Night Light Pill */}
         <button
           type="button"
+          aria-pressed={settings.nightLight}
           onClick={() => {
             const next = !settings.nightLight;
             console.info(
@@ -699,6 +702,7 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
         {/* Power Saver Pill */}
         <button
           type="button"
+          aria-pressed={settings.powerMode === "power-saver"}
           onClick={togglePowerSaver}
           data-slot="control-pill" className={cn(
             "flex items-center gap-2.5 rounded-[12px] px-3 py-2 text-left",

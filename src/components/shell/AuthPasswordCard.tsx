@@ -109,14 +109,14 @@ export function AuthPasswordCard({
 
       <div
         className={cn(
-          "flex size-14 items-center justify-center rounded-full bg-gradient-to-br text-lg font-medium text-white shadow-md",
+          "flex size-14 items-center justify-center rounded-full bg-gradient-to-br text-ui-title font-medium text-white shadow-md",
           avatarClassName,
         )}
       >
         {avatar}
       </div>
 
-      <div className="max-w-full truncate text-sm font-medium">{title}</div>
+      <div className="max-w-full truncate text-ui-body font-medium">{title}</div>
 
       <form onSubmit={onSubmit} className="flex w-full flex-col gap-2.5">
         {showPasswordInput ? (
@@ -197,7 +197,7 @@ export function AuthPasswordCard({
         {error && (
           <div
             role="alert"
-            className="w-full rounded-ui-control bg-rose-500/20 px-2.5 py-1.5 text-center text-xs text-rose-200 ring-1 ring-rose-400/30"
+            className="w-full rounded-ui-control bg-rose-500/20 px-2.5 py-1.5 text-center text-ui-small text-rose-200 ring-1 ring-rose-400/30"
           >
             {error}
           </div>

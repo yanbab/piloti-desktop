@@ -2483,7 +2483,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                 {totalUpdatesCount === 0 ? (
                   <div className="flex flex-col items-center justify-center gap-2 rounded-2xl border border-ui-separator bg-ui-group py-12 text-center text-ui-label-secondary">
                     <CheckCircle2Icon className="size-10 text-emerald-500 opacity-80" />
-                    <p className="text-sm font-medium text-ui-label">
+                    <p className="text-ui-body font-medium text-ui-label">
                       {_("Software is up to date")}
                     </p>
                   </div>
@@ -2503,7 +2503,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                             </div>
                             <div className="min-w-0 flex-1">
                               <div className="flex items-center gap-2">
-                                <span className="truncate text-[13.5px] font-semibold text-ui-label">
+                                <span className="truncate text-ui-body font-semibold text-ui-label">
                                   {_("System Updates")}
                                 </span>
                                 <span className="rounded-full bg-black/6 px-2 py-0.5 text-ui-caption font-medium text-ui-label-secondary dark:bg-white/10">
@@ -2727,7 +2727,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
             {filteredItems.length === 0 ? (
               <div className="flex h-full flex-col items-center justify-center gap-2 text-center text-ui-label-secondary">
                 <PackageIcon className="size-10 opacity-40" />
-                <p className="text-sm font-medium">{_("No applications found")}</p>
+                <p className="text-ui-body font-medium">{_("No applications found")}</p>
               </div>
             ) : (
               <div className="space-y-5">
@@ -3092,7 +3092,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                       }}
                       className="mt-3 w-full rounded-ui-box border border-ui-separator bg-ui-group p-3 text-left text-ui-body leading-relaxed text-ui-label"
                     >
-                      <div className="text-[16px] font-semibold">
+                      <div className="text-ui-title font-semibold">
                         ABCDEFGHIJKLM
                       </div>
                       <div className="text-ui-body text-ui-label-secondary">
@@ -3282,14 +3282,14 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
               <button
                 type="button"
                 onClick={() => setPackageRequest(null)}
-                className="rounded-ui-control bg-black/8 px-3 py-1.5 text-xs font-medium text-ui-label transition-colors hover-fill:bg-black/14 dark:bg-white/10 dark:hover-fill:bg-white/16"
+                className="rounded-ui-control bg-black/8 px-3 py-1.5 text-ui-body font-medium text-ui-label transition-colors hover-fill:bg-black/14 dark:bg-white/10 dark:hover-fill:bg-white/16"
               >
                 {_("Cancel")}
               </button>
               <button
                 type="button"
                 onClick={() => void handleInstallPackage()}
-                className="rounded-ui-control bg-ui-accent px-3 py-1.5 text-xs font-medium text-white transition-opacity hover-fill:opacity-90"
+                className="rounded-ui-control bg-ui-accent px-3 py-1.5 text-ui-body font-medium text-white transition-opacity hover-fill:opacity-90"
               >
                 {_("Install")}
               </button>

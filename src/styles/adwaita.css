@@ -420,13 +420,13 @@
 
   /* Typography roles (size / line-height); sizes are per-theme variables */
   --text-ui-title: var(--ui-font-title);
-  --text-ui-title--line-height: 22px;
+  --text-ui-title--line-height: calc(22px * var(--piloti-font-scale, 1));
   --text-ui-body: var(--ui-font-body);
-  --text-ui-body--line-height: 16px;
+  --text-ui-body--line-height: calc(16px * var(--piloti-font-scale, 1));
   --text-ui-small: var(--ui-font-small);
-  --text-ui-small--line-height: 14px;
+  --text-ui-small--line-height: calc(14px * var(--piloti-font-scale, 1));
   --text-ui-caption: var(--ui-font-caption);
-  --text-ui-caption--line-height: 13px;
+  --text-ui-caption--line-height: calc(13px * var(--piloti-font-scale, 1));
 }
 
 /* Surfaces used by menus, popovers, sidebars, dock and titlebars */
@@ -515,7 +515,7 @@ aside [data-slot="window-titlebar"],
   gap: 6px !important;
   background-color: var(--ui-field) !important;
   box-shadow: none !important;
-  font-size: calc(13.5px * var(--piloti-font-scale, 1)) !important;
+  font-size: var(--ui-font-body) !important;
 }
 
 :where(:root:not([data-interface-theme="cupertino"])) [data-slot="search-field"]:focus-within {
@@ -541,7 +541,7 @@ aside [data-slot="window-titlebar"],
 :where(:root:not([data-interface-theme="cupertino"])) [data-slot="grouped-form-section-title"] {
   /* Same left edge as the row titles (rows are inset 16px). */
   padding-inline: 16px;
-  font-size: calc(14px * var(--piloti-font-scale, 1));
+  font-size: var(--ui-font-body);
   font-weight: var(--piloti-font-weight-semibold, 500);
   letter-spacing: -0.005em;
   color: var(--ui-label);
@@ -567,13 +567,13 @@ aside [data-slot="window-titlebar"],
 }
 
 :where(:root:not([data-interface-theme="cupertino"])) [data-slot="grouped-form-row-title"] {
-  font-size: calc(14px * var(--piloti-font-scale, 1));
+  font-size: var(--ui-font-body);
   font-weight: var(--piloti-font-weight, 400);
   line-height: 1.3;
 }
 
 :where(:root:not([data-interface-theme="cupertino"])) [data-slot="grouped-form-row-description"] {
-  font-size: calc(12px * var(--piloti-font-scale, 1));
+  font-size: var(--ui-font-small);
   line-height: 1.35;
   color: var(--ui-label-secondary);
 }
@@ -583,7 +583,7 @@ aside [data-slot="window-titlebar"],
   height: 32px !important;
   border-radius: 8px !important;
   padding-inline: 10px 8px !important;
-  font-size: calc(13.5px * var(--piloti-font-scale, 1)) !important;
+  font-size: var(--ui-font-body) !important;
   background-color: var(--ui-control) !important;
 }
 

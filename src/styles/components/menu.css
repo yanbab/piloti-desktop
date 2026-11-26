@@ -49,8 +49,8 @@
     min-height: 30px;
     padding: 0.25rem 12px;
     border-radius: var(--ui-radius-control);
-    font-size: 13.5px;
-    line-height: 18px;
+    font-size: var(--ui-font-body);
+    line-height: calc(18px * var(--piloti-font-scale, 1));
     font-weight: var(--piloti-font-weight, 400);
     white-space: nowrap;
     color: var(--ui-label);
@@ -83,7 +83,7 @@
   .ui-menu-label {
     padding: 6px 12px 0.25rem;
     font-size: var(--ui-font-small);
-    line-height: 14px;
+    line-height: calc(14px * var(--piloti-font-scale, 1));
     font-weight: var(--piloti-font-weight-semibold, 500);
     white-space: nowrap;
     color: var(--ui-label-secondary);
@@ -101,7 +101,7 @@
     margin-left: auto;
     padding-left: 1.5rem;
     font-size: var(--ui-font-body);
-    line-height: 16px;
+    line-height: calc(16px * var(--piloti-font-scale, 1));
     font-weight: var(--piloti-font-weight, 400);
     letter-spacing: 0.16em;
     white-space: nowrap;
@@ -121,7 +121,7 @@
     border-radius: 9999px;
     background-color: rgb(0 0 0 / 0.06);
     font-size: var(--ui-font-caption);
-    line-height: 13px;
+    line-height: calc(13px * var(--piloti-font-scale, 1));
     font-weight: var(--piloti-font-weight-semibold, 500);
     color: var(--ui-label);
   }

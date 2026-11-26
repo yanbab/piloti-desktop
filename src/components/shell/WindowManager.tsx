@@ -24,7 +24,7 @@ import {
   FolderIcon,
   GlobeIcon,
   TerminalIcon,
-  HeartIcon,
+  StarIcon,
   Loader2Icon,
   Maximize2Icon,
   MinusIcon,
@@ -1108,20 +1108,18 @@ function WebViewSurface({
             {isBrowserApp && (
               <button
                 type="button"
-                // Same heart, colours and stroke as the favorite emblem.
                 data-slot="browser-bookmark-toggle"
                 aria-pressed={bookmarked}
                 disabled={!currentUrl}
                 title={bookmarked ? _("Remove Bookmark") : _("Add Bookmark")}
                 aria-label={bookmarked ? _("Remove Bookmark") : _("Add Bookmark")}
                 onClick={() => toggleBrowserBookmark(currentUrl, win.title)}
-                style={bookmarked ? { color: "#ef4444" } : undefined}
-                className="flex size-7 items-center justify-center rounded-ui-control transition-colors disabled:opacity-35 hover-fill:bg-black/8 dark:hover-fill:bg-white/10"
+                className={cn(
+                  "flex size-7 items-center justify-center rounded-ui-control transition-colors disabled:opacity-35 active:text-black dark:active:text-white hover-fill:bg-black/8 dark:hover-fill:bg-white/10",
+                  bookmarked ? "text-ui-accent" : "text-ui-label-secondary"
+                )}
               >
-                <HeartIcon
-                  className={cn("size-4", bookmarked && "fill-current")}
-                  strokeWidth={bookmarked ? 2 : 2.25}
-                />
+                <StarIcon className={cn("size-4", bookmarked && "fill-current")} />
               </button>
             )}
             {isBrowserApp && (
@@ -1246,7 +1244,7 @@ function WebViewSurface({
               <div className="mt-3 flex gap-1.5">
                 <Button
                   size="sm"
-                  className="h-7 flex-1 text-xs"
+                  className="h-7 flex-1 text-ui-body"
                   onClick={() => setDemoBadgeCount((c) => c + 1)}
                 >
                   {_("Increment Badge")}
@@ -1254,7 +1252,7 @@ function WebViewSurface({
                 <Button
                   size="sm"
                   variant="secondary"
-                  className="h-7 text-xs"
+                  className="h-7 text-ui-body"
                   onClick={() => setDemoBadgeCount(0)}
                 >
                   {_("Clear")}
@@ -1267,8 +1265,8 @@ function WebViewSurface({
         {pageFailure && !isBrowserRuntime && (  // FIXME : Capabilities
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-ui-window p-6 text-center text-ui-label">
             <GlobeIcon className="size-7 text-ui-label-secondary" />
-            <div className="text-sm font-semibold">Unable to load page</div>
-            <div className="text-xs text-ui-label-secondary">
+            <div className="text-ui-body font-semibold">Unable to load page</div>
+            <div className="text-ui-small text-ui-label-secondary">
               {pageFailureError || pageFailure}
             </div>
             <div className="mt-2 flex gap-2">
@@ -1579,8 +1577,8 @@ const WindowBody = React.memo(
     // In Browser Dev Mode, simulated non-Settings Wayland windows render a minimal surface card
     return (
       <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-ui-window p-6 text-center text-ui-label">
-        <div className="text-sm font-semibold">{win.title}</div>
-        <div className="text-xs text-ui-label-secondary">
+        <div className="text-ui-body font-semibold">{win.title}</div>
+        <div className="text-ui-small text-ui-label-secondary">
           Simulated Wayland surface (`{win.waylandAppId ?? win.appId}`) ·
           Renders native Linux client under Domicile
         </div>

@@ -3,7 +3,9 @@ import * as React from "react";
 import {
   BellIcon,
   BoxesIcon,
+  ChevronDownIcon,
   FolderIcon,
+  HouseIcon,
   ImageIcon,
   MenuIcon,
   MonitorIcon,
@@ -131,6 +133,15 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
+const BUTTON_VARIANTS = [
+  { variant: "default", label: "Default" },
+  { variant: "secondary", label: "Secondary" },
+  { variant: "tinted", label: "Tinted" },
+  { variant: "outline", label: "Outline" },
+  { variant: "ghost", label: "Ghost" },
+  { variant: "destructive", label: "Delete" },
+] as const;
+
 function ControlsPage() {
   const [switchOn, setSwitchOn] = React.useState(true);
   const [checked, setChecked] = React.useState(true);
@@ -142,12 +153,29 @@ function ControlsPage() {
     <GroupedForm>
       <Section title={_("Buttons")}>
         <Row title={_("Variants")}>
-          <Button>{_("Default")}</Button>
-          <Button variant="secondary">{_("Secondary")}</Button>
-          <Button variant="tinted">{_("Tinted")}</Button>
-          <Button variant="outline">{_("Outline")}</Button>
-          <Button variant="ghost">{_("Ghost")}</Button>
-          <Button variant="destructive">{_("Delete")}</Button>
+          {BUTTON_VARIANTS.map(({ variant, label }) => (
+            <Button key={variant} variant={variant}>{_(label)}</Button>
+          ))}
+        </Row>
+        <Row title={_("Rounded")}>
+          {BUTTON_VARIANTS.map(({ variant, label }) => (
+            <Button key={variant} variant={variant} shape="round">{_(label)}</Button>
+          ))}
+        </Row>
+        <Row title={_("Icon and label")}>
+          {BUTTON_VARIANTS.map(({ variant, label }) => (
+            <Button key={variant} variant={variant} keepIcon><BellIcon />{_(label)}</Button>
+          ))}
+        </Row>
+        <Row title={_("Icon only")}>
+          {BUTTON_VARIANTS.map(({ variant, label }) => (
+            <Button key={variant} variant={variant} size="icon" aria-label={_(label)}><BellIcon /></Button>
+          ))}
+        </Row>
+        <Row title={_("Rounded icon")}>
+          {BUTTON_VARIANTS.map(({ variant, label }) => (
+            <Button key={variant} variant={variant} size="icon" shape="round" aria-label={_(label)}><BellIcon /></Button>
+          ))}
         </Row>
         <Row title={_("Sizes")} description="sm · default · lg">
           <Button size="sm" variant="secondary">{_("Small")}</Button>
@@ -434,6 +462,35 @@ function IconsPage() {
   );
 }
 
+// Symbolic marks for the two themes no icon set here has: GNOME's foot and
+// Apple's apple. Piloti uses the home glyph, as its menu bar does.
+function GnomeFootIcon() {
+  return (
+    <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+      <ellipse cx="10.2" cy="2.6" rx="2.1" ry="2.5" />
+      <ellipse cx="6.4" cy="2.9" rx="1.2" ry="1.5" />
+      <ellipse cx="3.9" cy="4.6" rx="1" ry="1.3" />
+      <ellipse cx="2.4" cy="7.2" rx="0.9" ry="1.1" />
+      <path d="M9.3 6.2c2.4 0 3.6 1.3 3.2 3-.4 1.600-2 1.900-2.100 3.500-.100 1.700-1 3.300-2.800 3.300-2 0-2.900-1.800-2.700-3.700-1.100-.500-1.700-1.600-1.300-2.900.6-2 3-3.200 5.700-3.200Z" />
+    </svg>
+  );
+}
+
+function AppleIcon() {
+  return (
+    <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+      <path d="M11 0c.1 1.8-1.3 3.4-3 3.4C7.800 1.7 9.300.1 11 0Z" />
+      <path d="M8 4.600c.800 0 1.700-.8 3.100-.7 1.100.1 2.100.6 2.700 1.500-2.300 1.400-1.900 4.600.400 5.600-.8 2.200-2.200 5-3.900 5-.9 0-1.300-.6-2.400-.6s-1.600.6-2.4.6C3.300 16 1.4 12.500 1.4 9.400c0-3.500 2.100-5.500 4-5.500 1.200 0 1.900.7 2.600.7Z" />
+    </svg>
+  );
+}
+
+const THEMES = [
+  { id: "piloti", label: "Piloti", Icon: HouseIcon },
+  { id: "adwaita", label: "Adwaita", Icon: GnomeFootIcon },
+  { id: "cupertino", label: "Cupertino", Icon: AppleIcon },
+] as const;
+
 export function PilotiDemoApp() {
   const settings = useDesktopSettings(["interfaceTheme", "themeMode"]);
   const updateSettings = useUpdateSettings();
@@ -447,27 +504,37 @@ export function PilotiDemoApp() {
     onClick: () => setPage(p.id),
   }));
 
+  const theme = THEMES.find((t) => t.id === settings.interfaceTheme) ?? THEMES[0];
+
   const switches = (
     <div className="flex items-center gap-2">
+      <DropdownMenu>
+        <DropdownMenuTrigger render={<Button variant="secondary" keepIcon aria-label={_("Theme")} />}>
+          <theme.Icon />
+          {theme.label}
+          <ChevronDownIcon />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuRadioGroup
+            value={theme.id}
+            onValueChange={(id) =>
+              updateSettings({
+                interfaceTheme: id as (typeof THEMES)[number]["id"],
+                iconTheme: id === "adwaita" ? "Adwaita" : "Piloti",
+              })
+            }
+          >
+            {THEMES.map(({ id, label, Icon }) => (
+              <DropdownMenuRadioItem key={id} value={id}>
+                <Icon />
+                {label}
+              </DropdownMenuRadioItem>
+            ))}
+          </DropdownMenuRadioGroup>
+        </DropdownMenuContent>
+      </DropdownMenu>
       <Segmented
-        value={
-          settings.interfaceTheme === "adwaita" || settings.interfaceTheme === "cupertino"
-            ? settings.interfaceTheme
-            : "piloti"
-        }
-        onChange={(theme) =>
-          updateSettings({
-            interfaceTheme: theme,
-            iconTheme: theme === "adwaita" ? "Adwaita" : "Piloti",
-          })
-        }
-        options={[
-          { id: "piloti", label: "Piloti" },
-          { id: "adwaita", label: "Adwaita" },
-          { id: "cupertino", label: "Cupertino" },
-        ]}
-      />
-      <Segmented
+        iconOnly
         value={settings.themeMode}
         onChange={(mode) => updateSettings({ themeMode: mode })}
         options={[

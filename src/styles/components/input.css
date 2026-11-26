@@ -13,7 +13,7 @@
     background-color: var(--ui-field);
     color: var(--ui-label);
     font-size: var(--ui-font-body);
-    line-height: 16px;
+    line-height: calc(16px * var(--piloti-font-scale, 1));
     font-weight: var(--piloti-font-weight-medium, 500);
     box-shadow: 0 0 0 1px var(--ui-field-border);
     outline: none;

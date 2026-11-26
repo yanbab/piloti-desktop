@@ -113,22 +113,22 @@ export class ShellErrorBoundary extends React.Component<
         className="fixed inset-0 z-[99999] flex flex-col justify-center bg-black px-8 py-12 text-white select-text sm:px-16 lg:px-28"
       >
         <div className="mx-auto w-full max-w-3xl space-y-6">
-          <div className="text-[72px] leading-none font-light tracking-tight select-none">
+          <div className="text-[4.5rem] leading-none font-light tracking-tight select-none">
             :(
           </div>
 
           <div className="space-y-2">
-            <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+            <h1 className="text-2xl font-semibold tracking-tight ">
               Piloti Shell ran into a problem and needs to reload.
             </h1>
-            <p className="text-sm leading-relaxed text-white/85 sm:text-base">
+            <p className="text-ui-body leading-relaxed text-white/85 ">
               {isChunkError
                 ? "A shell module could not be fetched (often caused by a rebuild while the session was running). Reloading the shell will load the updated bundle."
                 : "An unexpected error occurred while rendering the desktop shell."}
             </p>
           </div>
 
-          <pre className="max-h-52 overflow-auto rounded-ui-control border border-white/20 bg-black/25 p-4 font-mono text-xs leading-relaxed whitespace-pre-wrap break-words text-white/90">
+          <pre className="max-h-52 overflow-auto rounded-ui-control border border-white/20 bg-black/25 p-4 font-mono text-ui-small leading-relaxed whitespace-pre-wrap break-words text-white/90">
             {formatErrorDetails(error)}
           </pre>
 
@@ -137,28 +137,28 @@ export class ShellErrorBoundary extends React.Component<
               type="button"
               autoFocus
               onClick={this.handleReload}
-              className="rounded-ui-control bg-white px-5 py-2.5 text-sm font-semibold text-black shadow-sm active:brightness-90"
+              className="rounded-ui-control bg-white px-5 py-2.5 text-ui-body font-semibold text-black shadow-sm active:brightness-90"
             >
               Reload Shell
             </button>
             <button
               type="button"
               onClick={this.handleResetAndReload}
-              className="rounded-ui-control border border-white/35 bg-white/10 px-4 py-2.5 text-sm font-medium text-white active:bg-white/20"
+              className="rounded-ui-control border border-white/35 bg-white/10 px-4 py-2.5 text-ui-body font-medium text-white active:bg-white/20"
             >
               Clear Cache &amp; Reload
             </button>
             <button
               type="button"
               onClick={this.handleSendBugReport}
-              className="rounded-ui-control border border-white/35 bg-white/10 px-4 py-2.5 text-sm font-medium text-white active:bg-white/20"
+              className="rounded-ui-control border border-white/35 bg-white/10 px-4 py-2.5 text-ui-body font-medium text-white active:bg-white/20"
             >
               Send Bug Report
             </button>
             <button
               type="button"
               onClick={() => this.setState({ error: null })}
-              className="rounded-ui-control border border-white/20 px-4 py-2.5 text-sm font-medium text-white/85 active:bg-white/10"
+              className="rounded-ui-control border border-white/20 px-4 py-2.5 text-ui-body font-medium text-white/85 active:bg-white/10"
             >
               Try to Continue
             </button>

@@ -300,7 +300,7 @@ export function SecurityPane() {
             </div>
           </GroupedFormGroup>
         ) : groupBy === "permissions" ? (
-          <div className="space-y-2.5">
+          <GroupedFormGroup className="divide-y divide-ui-separator/70">
             {(
               [
                 {
@@ -326,7 +326,7 @@ export function SecurityPane() {
                 ? filteredApps.filter((a) => a.isFlatpak)
                 : filteredApps;
               return (
-                <GroupedFormGroup key={perm.key}>
+                <div key={perm.key}>
                   <button
                     type="button"
                     onClick={() =>
@@ -422,12 +422,12 @@ export function SecurityPane() {
                       )}
                     </div>
                   )}
-                </GroupedFormGroup>
+                </div>
               );
             })}
-          </div>
+          </GroupedFormGroup>
         ) : (
-          <div className="space-y-2.5">
+          <GroupedFormGroup className="divide-y divide-ui-separator/70">
             {filteredApps.map((app) => {
               const isOpen = expandedId === app.id;
               const prefs = getAppSecurityPrefs(app.id, permsMap);
@@ -437,7 +437,7 @@ export function SecurityPane() {
                 ...(liveFlatpakPerms[app.id] ?? {}),
               };
               return (
-                <GroupedFormGroup key={app.id}>
+                <div key={app.id}>
                   <button
                     type="button"
                     onClick={() => handleToggleExpand(app)}
@@ -548,10 +548,10 @@ export function SecurityPane() {
                         ))}
                     </div>
                   )}
-                </GroupedFormGroup>
+                </div>
               );
             })}
-          </div>
+          </GroupedFormGroup>
         )}
       </GroupedFormSection>
     </GroupedForm>

@@ -188,7 +188,7 @@ function DesktopSurface() {
 
       {/* Idle Blank Warning Toast */}
       {idleWarningMs !== undefined && (
-        <div className="pointer-events-none fixed top-11 left-1/2 z-[460] -translate-x-1/2 rounded-full bg-black/80 px-4 py-1.5 text-xs font-medium text-white shadow-lg ring-1 ring-white/15 backdrop-blur-md">
+        <div className="pointer-events-none fixed top-11 left-1/2 z-[460] -translate-x-1/2 rounded-full bg-black/80 px-4 py-1.5 text-ui-body font-medium text-white shadow-lg ring-1 ring-white/15 backdrop-blur-md">
           Screen will dim in {Math.max(1, Math.ceil(idleWarningMs / 1000))}s due to inactivity
         </div>
       )}
@@ -344,19 +344,19 @@ function DesktopSurface() {
           {webPowerPhase === "restarting" ? (
             <>
               <div className="size-7 animate-spin rounded-full border-2 border-white/25 border-t-white" />
-              <div className="text-sm font-medium text-white/80">
+              <div className="text-ui-body font-medium text-white/80">
                 {_("Restarting Piloti Desktop…")}
               </div>
             </>
           ) : (
             <>
-              <div className="text-sm font-medium text-white/70">
+              <div className="text-ui-body font-medium text-white/70">
                 {_("Computer is turned off")}
               </div>
               <button
                 type="button"
                 onClick={powerOnSimulatedMachine}
-                className="rounded-full border border-white/20 bg-white/10 px-5 py-2 text-sm font-semibold text-white transition-colors hover-fill:bg-white/20 active:bg-white/25"
+                className="rounded-full border border-white/20 bg-white/10 px-5 py-2 text-ui-body font-semibold text-white transition-colors hover-fill:bg-white/20 active:bg-white/25"
               >
                 {_("Power On")}
               </button>

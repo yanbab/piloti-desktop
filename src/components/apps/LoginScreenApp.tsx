@@ -590,7 +590,7 @@ export const LoginScreenApp: React.FC<LoginScreenAppProps> = ({
                   >
                     {user.initials}
                   </div>
-                  <span className="min-w-0 flex-1 truncate text-[14px] font-medium">
+                  <span className="min-w-0 flex-1 truncate text-ui-body font-medium">
                     {displayName}
                   </span>
                   <ArrowRightIcon className="size-4 shrink-0 text-white/60" />
@@ -694,7 +694,7 @@ export const LoginScreenApp: React.FC<LoginScreenAppProps> = ({
             <div className="flex size-14 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-300 ring-1 ring-emerald-400/40">
               <CheckIcon className="size-7" />
             </div>
-            <div className="text-sm font-medium">
+            <div className="text-ui-body font-medium">
               {greetdAvailable
                 ? _(
                     "Starting session for %s…",

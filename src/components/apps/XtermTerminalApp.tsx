@@ -65,7 +65,7 @@ export function XtermTerminalApp({
   windowId?: string;
 }) {
   const piloti = usePiloti();
-  const settings = useDesktopSettings(["themeMode", "accentColor", "customAccentHex"]);
+  const settings = useDesktopSettings(["themeMode", "accentColor", "customAccentHex", "fontScale", "fontMonoFamily"]);
   const updateSettings = useUpdateSettings();
   const { pushNotification } = useSystemBackends();
   const { launchApp } = useWindowActions();
@@ -250,6 +250,16 @@ export function XtermTerminalApp({
   }, [settings.themeMode]);
 
   // The terminal takes the keyboard whenever its window is focused.
+  // The terminal draws its own text: give it the font settings.
+  React.useEffect(() => {
+    const term = termRef.current;
+    if (!term) return;
+    const family = settings.fontMonoFamily.trim();
+    term.options.fontFamily = `${family ? `"${family}", ` : ""}"JetBrains Mono", "DejaVu Sans Mono", ui-monospace, monospace`;
+    term.options.fontSize = Math.round(13 * (settings.fontScale || 1));
+    fitRef.current?.fit();
+  }, [settings.fontScale, settings.fontMonoFamily]);
+
   React.useEffect(() => {
     if (focused) termRef.current?.focus();
   }, [focused, mode]);

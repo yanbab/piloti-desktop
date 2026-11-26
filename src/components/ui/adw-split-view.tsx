@@ -294,8 +294,13 @@ export function AdwSplitView({
                 : "border-b border-transparent",
             )}
           >
-            {/* Collapsed, the content's header draws the buttons instead. */}
-            {!showCompact && (
+            {/* Collapsed, the content's header draws the window buttons; the
+                menu button stays here. */}
+            {showCompact ? (
+              <div className="flex" data-window-no-drag>
+                <WindowMenuButton side="left" windowId={windowId} appId={appId} iconName={iconName} />
+              </div>
+            ) : (
               <div className="relative flex w-full items-center justify-between gap-1.5">
                 <div className="relative z-10 flex shrink-0 items-center gap-1.5" data-window-no-drag>
                   {windowId && <WindowControls side="left" />}
@@ -307,7 +312,7 @@ export function AdwSplitView({
                   />
                 </div>
                 {!crowdedTitle && (
-                  <span className="pointer-events-none absolute inset-x-10 truncate text-center text-[13.5px] font-medium tracking-tight whitespace-nowrap text-ui-label">
+                  <span className="pointer-events-none absolute inset-x-10 truncate text-center text-ui-body font-medium tracking-tight whitespace-nowrap text-ui-label">
                     {title}
                   </span>
                 )}
@@ -414,7 +419,7 @@ export function AdwSplitView({
                         className={cn(
                           "pointer-events-none rounded-ui-control border border-ui-separator px-2.5 shadow-md",
                           tall
-                            ? "h-[37px] gap-3 py-2 text-[14px]"
+                            ? "h-[37px] gap-3 py-2 text-ui-body"
                             : "h-[32px] gap-2.5 py-1.5 text-ui-body",
                           item.selected
                             ? "bg-ui-accent font-medium text-white shadow-xs"

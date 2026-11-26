@@ -324,8 +324,8 @@
   padding-inline: 9px;
   gap: 6px;
   border-radius: var(--ui-radius-control);
-  font-size: calc(13px * var(--piloti-font-scale, 1));
-  line-height: 16px;
+  font-size: var(--ui-font-body);
+  line-height: calc(16px * var(--piloti-font-scale, 1));
 }
 
 /* Room for the check mark column, like macOS. */
@@ -342,12 +342,12 @@
 
 :root[data-interface-theme="piloti"] [role="menu"] [data-slot="dropdown-menu-label"] {
   padding: 4px 9px 2px;
-  font-size: calc(11px * var(--piloti-font-scale, 1));
+  font-size: var(--ui-font-small);
 }
 
 :root[data-interface-theme="piloti"] [role="menu"] [data-slot="dropdown-menu-shortcut"] {
   padding-left: 16px;
-  font-size: calc(13px * var(--piloti-font-scale, 1));
+  font-size: var(--ui-font-body);
   letter-spacing: 0.08em;
 }
 
@@ -392,8 +392,8 @@
   min-height: 22px;
   padding: 3px 9px;
   border-radius: var(--ui-radius-control);
-  font-size: calc(13px * var(--piloti-font-scale, 1));
-  line-height: 16px;
+  font-size: var(--ui-font-body);
+  line-height: calc(16px * var(--piloti-font-scale, 1));
 }
 
 :root[data-interface-theme="piloti"] [data-slot="control-row"]:is(:hover, :focus-visible):not(:disabled) {
@@ -428,6 +428,11 @@
 
 :root[data-interface-theme="piloti"] [data-slot="dock"][data-position="right"] {
   border-radius: var(--dock-radius) 0 0 var(--dock-radius) !important;
+}
+
+/* ── Buttons: regular weight, like body text (macOS) ─────────────────── */
+:root[data-interface-theme="piloti"] [data-slot="button"] {
+  font-weight: var(--piloti-font-weight, 400);
 }
 
 /* ── Buttons: text only when they have a label (macOS) ─────────────────── */

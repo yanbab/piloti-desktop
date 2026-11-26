@@ -16,7 +16,7 @@
     gap: 0.625rem;
     padding: 11px 1.25rem 1.25rem;
     font-size: var(--ui-font-body);
-    line-height: 16px;
+    line-height: calc(16px * var(--piloti-font-scale, 1));
     color: var(--ui-label);
   }
   .ui-form-section {
@@ -30,7 +30,7 @@
   .ui-form-section-title {
     padding-inline: 11px;
     font-size: var(--ui-font-body);
-    line-height: 16px;
+    line-height: calc(16px * var(--piloti-font-scale, 1));
     font-weight: var(--piloti-font-weight-semibold, 500);
     color: var(--ui-label);
   }
@@ -102,12 +102,12 @@
   }
   .ui-form-row-title {
     font-size: var(--ui-font-body);
-    line-height: 16px;
+    line-height: calc(16px * var(--piloti-font-scale, 1));
     color: var(--ui-label);
   }
   .ui-form-row-description {
     font-size: var(--ui-font-small);
-    line-height: 14px;
+    line-height: calc(14px * var(--piloti-font-scale, 1));
     color: var(--ui-label-secondary);
   }
   .ui-form-row-control {

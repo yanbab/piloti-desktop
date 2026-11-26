@@ -1206,7 +1206,6 @@ export {
   isCloseOnLeft,
   parseWindowButtonLayout,
   useWindowContext,
-  WINDOW_CONTROL_CLASS,
   Window,
   WindowContent,
   WindowControlButton,

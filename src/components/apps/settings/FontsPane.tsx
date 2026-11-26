@@ -83,11 +83,44 @@ interface FontPopoverSelectorProps {
   fonts: string[];
   summary: string;
   onSelectFont: (family: string) => void;
-  sizePx?: number;
-  fontScale?: number;
-  onChangeScale?: (scale: number) => void;
   fontStyle?: CssFontStyle;
   onChangeStyle?: (style: CssFontStyle) => void;
+}
+
+/** The text size of every font, applied when the knob is let go: applying it
+ *  while dragging would resize the slider under the pointer. */
+function FontSizeRow() {
+  const { fontScale } = useDesktopSettings(["fontScale"]);
+  const updateSettings = useUpdateSettings();
+  const [dragged, setDragged] = React.useState<number>();
+  const scale = dragged ?? fontScale;
+  const first = (value: number | readonly number[]) => (typeof value === "number" ? value : value[0]);
+  return (
+    <GroupedFormRow>
+      <GroupedFormRowLabel>
+        <GroupedFormRowTitle>{_("Size")}</GroupedFormRowTitle>
+      </GroupedFormRowLabel>
+      <GroupedFormRowControl>
+        <span className="text-ui-small tabular-nums text-ui-label-secondary">
+          {Math.round(13 * scale)}px ({Math.round(scale * 100)}%)
+        </span>
+        <div className="w-40">
+          <Slider
+            aria-label={_("Size")}
+            min={0.85}
+            max={1.35}
+            step={0.05}
+            value={[scale]}
+            onValueChange={(value) => setDragged(first(value))}
+            onValueCommitted={(value) => {
+              setDragged(undefined);
+              updateSettings({ fontScale: first(value) });
+            }}
+          />
+        </div>
+      </GroupedFormRowControl>
+    </GroupedFormRow>
+  );
 }
 
 function FontPopoverSelector({
@@ -95,8 +128,6 @@ function FontPopoverSelector({
   fonts,
   summary,
   onSelectFont,
-  fontScale,
-  onChangeScale,
   fontStyle,
   onChangeStyle,
 }: FontPopoverSelectorProps) {
@@ -176,27 +207,6 @@ function FontPopoverSelector({
                 })
               )}
             </div>
-
-            {fontScale !== undefined && onChangeScale && (
-              <div className="mt-2 border-t border-ui-separator pt-2">
-                <div className="mb-1 flex items-center justify-between text-ui-small text-ui-label-secondary">
-                  <span>{_("Size")}</span>
-                  <span className="tabular-nums">
-                    {Math.round(13 * fontScale)}px ({Math.round(fontScale * 100)}%)
-                  </span>
-                </div>
-                <Slider
-                  min={0.85}
-                  max={1.35}
-                  step={0.05}
-                  value={[fontScale]}
-                  onValueChange={(val) => {
-                    const next = Array.isArray(val) ? val[0] : val;
-                    if (typeof next === "number") onChangeScale(next);
-                  }}
-                />
-              </div>
-            )}
 
             {fontStyle !== undefined && onChangeStyle && (
               <div className="mt-2 border-t border-ui-separator pt-2">
@@ -332,8 +342,6 @@ export function FontsPane() {
                 onSelectFont={(fontSansFamily) =>
                   updateSettings({ fontSansFamily })
                 }
-                fontScale={settings.fontScale}
-                onChangeScale={(fontScale) => updateSettings({ fontScale })}
                 fontStyle={settings.fontSansStyle}
                 onChangeStyle={(fontSansStyle) =>
                   updateSettings({ fontSansStyle })
@@ -354,11 +362,11 @@ export function FontsPane() {
                 onSelectFont={(fontMonoFamily) =>
                   updateSettings({ fontMonoFamily })
                 }
-                fontScale={settings.fontScale}
-                onChangeScale={(fontScale) => updateSettings({ fontScale })}
               />
             </GroupedFormRowControl>
           </GroupedFormRow>
+
+          <FontSizeRow />
 
           <GroupedFormRow>
             <GroupedFormRowLabel>

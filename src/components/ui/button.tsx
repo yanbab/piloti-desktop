@@ -34,11 +34,14 @@ function Button({
   className,
   variant = "default",
   size = "default",
+  shape,
   keepIcon = false,
   ...props
 }: ButtonPrimitive.Props & {
   variant?: ButtonVariant
   size?: ButtonSize
+  // "round": pill ends, or a circle for the icon sizes.
+  shape?: "round"
   keepIcon?: boolean
 }) {
   const hasLabel = React.Children.toArray(props.children).some(
@@ -51,6 +54,7 @@ function Button({
       data-slot="button"
       data-variant={variant}
       data-size={size}
+      data-shape={shape}
       data-label={hasLabel || undefined}
       data-keep-icon={keepIcon || undefined}
       className={

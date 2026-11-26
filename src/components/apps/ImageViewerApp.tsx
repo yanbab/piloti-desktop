@@ -640,7 +640,7 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
             )}
           </div>
         ) : (
-          <div className="text-xs text-ui-dim">
+          <div className="text-ui-small text-ui-dim">
             {_("No image loaded. Open an image from Files.")}
           </div>
         )}

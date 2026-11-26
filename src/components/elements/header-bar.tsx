@@ -95,7 +95,8 @@ function HeaderBarRoot({
         data-window-no-drag
       >
         {client && atStart && <WindowControls side="left" onClose={onClose} />}
-        {atStart && menu?.("left")}
+        {/* Collapsed to icons, the sidebar keeps the left menu button. */}
+        {atStart && !inset && menu?.("left")}
         {start}
       </div>
       {title ? (

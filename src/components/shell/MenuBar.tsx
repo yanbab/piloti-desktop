@@ -19,7 +19,6 @@ import {
   ChevronDownIcon,
   ChevronRightIcon,
   LayersIcon,
-  LeafIcon,
   PauseIcon,
   PlayIcon,
   LayoutGridIcon,
@@ -1283,14 +1282,16 @@ export const MenuBar = React.memo(function MenuBar() {
                 ) : (
                   <Volume2Icon className="size-4" />
                 )}
-                {settings.powerMode === "power-saver" && (
-                  <LeafIcon
-                    className="size-4"
-                    aria-label={_("Power Saver")}
-                  />
-                )}
                 {batteryInfo.present && (
-                  <span className="inline-flex items-center gap-1 text-ui-body tabular-nums">
+                  <span
+                    data-slot="menubar-battery"
+                    // The icon takes the accent in power saver mode, not the percentage.
+                    {...(settings.powerMode === "power-saver" && { title: _("Power Saver") })}
+                    className={cn(
+                      "inline-flex items-center gap-1 text-ui-body tabular-nums",
+                      settings.powerMode === "power-saver" && "[&_svg]:text-ui-accent"
+                    )}
+                  >
                     {batteryInfo.charging ? (
                       <BatteryChargingIcon className="size-4" />
                     ) : batteryInfo.percentage <= 20 ? (

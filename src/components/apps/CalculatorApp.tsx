@@ -491,10 +491,10 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
               className={cn(
                 "w-full truncate text-right font-extralight tracking-tight tabular-nums",
                 formatted.length > 11
-                  ? "text-[20px] leading-[1.15]"
+                  ? "text-[1.25rem] leading-[1.15]"
                   : formatted.length > 8
                     ? "text-ui-title leading-[1.1]"
-                    : "text-[34px] leading-[1.05]",
+                    : "text-[2.125rem] leading-[1.05]",
               )}
             >
               {formatted}
@@ -613,7 +613,7 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
           <button
             type="button"
             onClick={() => performOperation("/")}
-            className="rounded-ui-control bg-ui-accent text-[16px] font-medium text-white outline-none hover-fill:brightness-110 focus:outline-none active:brightness-90"
+            className="rounded-ui-control bg-ui-accent text-ui-title font-medium text-white outline-none hover-fill:brightness-110 focus:outline-none active:brightness-90"
           >
             ÷
           </button>
@@ -632,7 +632,7 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
           <button
             type="button"
             onClick={() => performOperation("*")}
-            className="rounded-ui-control bg-ui-accent text-[16px] font-medium text-white outline-none hover-fill:brightness-110 focus:outline-none active:brightness-90"
+            className="rounded-ui-control bg-ui-accent text-ui-title font-medium text-white outline-none hover-fill:brightness-110 focus:outline-none active:brightness-90"
           >
             ×
           </button>
@@ -651,7 +651,7 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
           <button
             type="button"
             onClick={() => performOperation("-")}
-            className="rounded-ui-control bg-ui-accent text-[16px] font-medium text-white outline-none hover-fill:brightness-110 focus:outline-none active:brightness-90"
+            className="rounded-ui-control bg-ui-accent text-ui-title font-medium text-white outline-none hover-fill:brightness-110 focus:outline-none active:brightness-90"
           >
             −
           </button>
@@ -670,7 +670,7 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
           <button
             type="button"
             onClick={() => performOperation("+")}
-            className="rounded-ui-control bg-ui-accent text-[16px] font-medium text-white outline-none hover-fill:brightness-110 focus:outline-none active:brightness-90"
+            className="rounded-ui-control bg-ui-accent text-ui-title font-medium text-white outline-none hover-fill:brightness-110 focus:outline-none active:brightness-90"
           >
             +
           </button>
@@ -693,7 +693,7 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
           <button
             type="button"
             onClick={performEquals}
-            className="rounded-ui-control bg-ui-accent text-[16px] font-medium text-white outline-none hover-fill:brightness-110 focus:outline-none active:brightness-90"
+            className="rounded-ui-control bg-ui-accent text-ui-title font-medium text-white outline-none hover-fill:brightness-110 focus:outline-none active:brightness-90"
           >
             =
           </button>

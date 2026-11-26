@@ -1033,28 +1033,9 @@ export function useSettingsValue(options?: {
 
     const scale = Math.max(0.8, Math.min(1.5, settings.fontScale || 1));
     root.style.setProperty("--piloti-font-scale", String(scale));
-    if (Math.abs(scale - 1) < 0.001) {
-      root.style.fontSize = "";
-      root.style.removeProperty("--text-ui-title");
-      root.style.removeProperty("--text-ui-title--line-height");
-      root.style.removeProperty("--text-ui-body");
-      root.style.removeProperty("--text-ui-body--line-height");
-      root.style.removeProperty("--text-ui-small");
-      root.style.removeProperty("--text-ui-small--line-height");
-      root.style.removeProperty("--text-ui-caption");
-      root.style.removeProperty("--text-ui-caption--line-height");
-    } else {
-      const px = (base: number) => `${Math.round(base * scale * 10) / 10}px`;
-      root.style.fontSize = `${Math.round(16 * scale * 100) / 100}px`;
-      root.style.setProperty("--text-ui-title", px(17));
-      root.style.setProperty("--text-ui-title--line-height", px(22));
-      root.style.setProperty("--text-ui-body", px(13));
-      root.style.setProperty("--text-ui-body--line-height", px(16));
-      root.style.setProperty("--text-ui-small", px(11));
-      root.style.setProperty("--text-ui-small--line-height", px(14));
-      root.style.setProperty("--text-ui-caption", px(10));
-      root.style.setProperty("--text-ui-caption--line-height", px(13));
-    }
+    // Type roles scale in CSS from --piloti-font-scale; this scales rem sizes.
+    root.style.fontSize =
+      Math.abs(scale - 1) < 0.001 ? "" : `${Math.round(16 * scale * 100) / 100}px`;
   }, [
     settings.cssFontKerning,
     settings.cssFontOpticalSizing,

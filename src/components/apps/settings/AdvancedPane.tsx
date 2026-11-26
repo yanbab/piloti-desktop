@@ -355,7 +355,7 @@ export function AdvancedPane() {
               <Button
                 size="sm"
                 variant="secondary"
-                className="h-7 gap-1.5 px-2.5 text-xs"
+                className="h-7 gap-1.5 px-2.5 text-ui-body"
                 onClick={() =>
                   openWebUrl(CHROME_WEB_STORE_URL, {
                     asApp: true,
@@ -518,12 +518,12 @@ export function AdvancedPane() {
                       if (e.key === "Enter") handleAddExtensionEntry();
                     }}
                     placeholder="/path/to/ext or Web Store ID"
-                    className="h-7 w-48 rounded-ui-control border border-ui-separator bg-black/4 px-2 text-xs text-ui-label outline-none focus:border-ui-accent dark:bg-white/6"
+                    className="h-7 w-48 rounded-ui-control border border-ui-separator bg-black/4 px-2 text-ui-body text-ui-label outline-none focus:border-ui-accent dark:bg-white/6"
                   />
                   <Button
                     size="sm"
                     variant="secondary"
-                    className="h-7 px-2 text-xs"
+                    className="h-7 px-2 text-ui-body"
                     onClick={handleAddExtensionEntry}
                   >
                     <PlusIcon className="mr-1 size-3.5" />
@@ -569,7 +569,7 @@ export function AdvancedPane() {
                       <Button
                         size="sm"
                         variant="secondary"
-                        className="h-7 text-xs"
+                        className="h-7 text-ui-body"
                         disabled={!ext.enabled}
                         onClick={() => piloti.extensions.activate(ext.id)}
                       >
@@ -584,7 +584,7 @@ export function AdvancedPane() {
                 (entry) => (
                   <GroupedFormRow key={`${entry.kind}:${entry.value}`}>
                     <GroupedFormRowLabel>
-                      <GroupedFormRowTitle className="font-mono text-xs">
+                      <GroupedFormRowTitle className="font-mono text-ui-body">
                         {entry.value}
                       </GroupedFormRowTitle>
                       <GroupedFormRowDescription>
@@ -668,7 +668,7 @@ export function AdvancedPane() {
               <Button
                 size="sm"
                 variant="secondary"
-                className="h-7 px-2 text-xs"
+                className="h-7 px-2 text-ui-body"
                 onClick={() => void createSamplePlugin("css")}
               >
                 {_("Sample CSS")}
@@ -676,7 +676,7 @@ export function AdvancedPane() {
               <Button
                 size="sm"
                 variant="secondary"
-                className="h-7 px-2 text-xs"
+                className="h-7 px-2 text-ui-body"
                 onClick={() => void createSamplePlugin("js")}
               >
                 {_("Sample JS")}

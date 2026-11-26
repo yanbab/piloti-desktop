@@ -173,21 +173,21 @@ function renderSimpleMarkdown(md: string): React.ReactNode {
   return lines.map((line, i) => {
     if (line.startsWith("# ")) {
       return (
-        <h1 key={i} className="mt-2 mb-1 text-lg font-bold text-ui-label">
+        <h1 key={i} className="mt-2 mb-1 text-ui-title font-bold text-ui-label">
           {line.slice(2)}
         </h1>
       );
     }
     if (line.startsWith("## ")) {
       return (
-        <h2 key={i} className="mt-2 mb-1 text-base font-semibold text-ui-label">
+        <h2 key={i} className="mt-2 mb-1 text-ui-title font-semibold text-ui-label">
           {line.slice(3)}
         </h2>
       );
     }
     if (line.startsWith("### ")) {
       return (
-        <h3 key={i} className="mt-1.5 mb-0.5 text-sm font-semibold text-ui-label">
+        <h3 key={i} className="mt-1.5 mb-0.5 text-ui-body font-semibold text-ui-label">
           {line.slice(4)}
         </h3>
       );
@@ -219,7 +219,7 @@ const adwEditorTheme = EditorView.theme({
     backgroundColor: "var(--ui-content-bg, var(--ui-window))",
     color: "var(--ui-label)",
     fontFamily: "var(--font-ui-mono)",
-    fontSize: "13px",
+    fontSize: "var(--ui-font-body)",
   },
   ".cm-scroller": {
     overflow: "auto",
@@ -1155,7 +1155,7 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
               type="search"
               value={findQuery}
               onChange={(e) => setFindQuery(e.target.value)}
-              className="w-36 bg-transparent text-xs text-ui-label outline-none"
+              className="w-36 bg-transparent text-ui-body text-ui-label outline-none"
             />
             <span className="font-mono text-ui-caption text-ui-dim tabular-nums">
               {findQuery.trim() ? _("%d found", findMatchCount) : ""}
@@ -1167,7 +1167,7 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
                 setFindOpen(false);
                 viewRef.current?.focus();
               }}
-              className="rounded px-1 text-xs text-ui-dim hover-fill:bg-ui-hover hover-fill:text-ui-label"
+              className="rounded px-1 text-ui-small text-ui-dim hover-fill:bg-ui-hover hover-fill:text-ui-label"
             >
               ×
             </button>
@@ -1219,7 +1219,7 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
                           "--bigobjview-type-boolean-color": "var(--ui-accent)",
                           "--bigobjview-type-object-object-color": "var(--ui-accent)",
                           "--bigobjview-type-object-array-color": "var(--ui-accent)",
-                          fontSize: "12px",
+                          fontSize: "var(--ui-font-body)",
                         } as React.CSSProperties
                       }
                       expandLevel={2}
@@ -1295,7 +1295,7 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
               <button
                 type="button"
                 onClick={() => setPendingRename(null)}
-                className="rounded-ui-control bg-black/8 px-3 py-1.5 text-xs font-medium text-ui-label transition-colors hover-fill:bg-black/14 dark:bg-white/10 dark:hover-fill:bg-white/16"
+                className="rounded-ui-control bg-black/8 px-3 py-1.5 text-ui-body font-medium text-ui-label transition-colors hover-fill:bg-black/14 dark:bg-white/10 dark:hover-fill:bg-white/16"
               >
                 {_("Cancel")}
               </button>
@@ -1307,7 +1307,7 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
                     setPendingRename(null);
                   }
                 }}
-                className="rounded-ui-control bg-ui-accent px-3 py-1.5 text-xs font-medium text-white transition-opacity hover-fill:opacity-90"
+                className="rounded-ui-control bg-ui-accent px-3 py-1.5 text-ui-body font-medium text-white transition-opacity hover-fill:opacity-90"
               >
                 {_("Rename")}
               </button>

@@ -135,7 +135,7 @@ export function AltTabSwitcher() {
         {mruWindows.length === 0 ? (
           <div className="flex flex-col items-center justify-center px-6 py-4 text-center text-ui-label-secondary">
             <SparklesIcon className="mb-2 size-7 text-ui-accent" />
-            <p className="text-sm font-medium text-ui-label">
+            <p className="text-ui-body font-medium text-ui-label">
               No open windows
             </p>
           </div>

@@ -65,7 +65,7 @@ export function LockScreen() {
             minute: "2-digit",
           })}
         </div>
-        <div className="mt-1 text-sm text-white/75">
+        <div className="mt-1 text-ui-body text-white/75">
           {now.toLocaleDateString(localeTag, {
             weekday: "long",
             month: "long",

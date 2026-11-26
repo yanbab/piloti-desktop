@@ -22,7 +22,7 @@
     background-color: var(--ui-window);
     color: var(--ui-label);
     font-size: var(--ui-font-body);
-    line-height: 16px;
+    line-height: calc(16px * var(--piloti-font-scale, 1));
     box-shadow: var(--ui-shadow-window);
   }
   .ui-window[data-inactive] {

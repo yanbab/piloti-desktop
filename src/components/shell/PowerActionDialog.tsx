@@ -101,7 +101,7 @@ export function PowerActionDialog() {
         className="w-[312px] max-w-[calc(100vw-2rem)] p-4 text-center"
       >
         <DialogHeader className="items-center gap-1.5 px-2 pt-1 pb-2 text-center">
-          <DialogTitle className="text-[16px] font-bold tracking-tight">
+          <DialogTitle className="text-ui-title font-bold tracking-tight">
             {title}
           </DialogTitle>
           <DialogDescription className="text-ui-body leading-snug tabular-nums">

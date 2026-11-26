@@ -1,5 +1,4 @@
-import { isCloseOnLeft, WINDOW_CONTROL_CLASS } from "@/components/ui/window";
-import { cn } from "@/lib/core/utils";
+import { isCloseOnLeft } from "@/components/ui/window";
 import * as React from "react";
 import { countRender } from "@/lib/core/render-stats";
 import {
@@ -62,12 +61,9 @@ export const WindowMenuButton = React.memo(function WindowMenuButton({
       <DropdownMenuTrigger
         aria-label={_("Window menu")}
         onClick={() => setOpen((v) => !v)}
-        // Same round button as Close; mx-0.5 keeps it centred 23px from the
-        // edge, above the sidebar icons.
-        className={cn(
-          WINDOW_CONTROL_CLASS,
-          "mx-0.5 shrink-0 cursor-default select-none data-popup-open:bg-black/14 dark:data-popup-open:bg-white/18"
-        )}
+        // A bare symbol, dimmed until pressed or open. Sized like Close; mx-0.5
+        // keeps it centred 23px from the edge, above the sidebar icons.
+        className="mx-0.5 flex size-6 shrink-0 cursor-default select-none items-center justify-center rounded-full text-ui-label-secondary outline-none group-data-[inactive]/window:opacity-50 focus-visible:outline-3 focus-visible:outline-solid focus-visible:outline-ui-accent/50 active:text-black data-popup-open:text-black dark:active:text-white dark:data-popup-open:text-white"
       >
         <WindowMenuIcon windowId={windowId} />
       </DropdownMenuTrigger>
@@ -115,7 +111,7 @@ function WindowMenuIcon({ windowId }: { windowId?: string }) {
     <span
       aria-hidden="true"
       data-slot="window-menu-icon"
-      className="size-3.5 bg-current"
+      className="size-4 bg-current"
       style={{ mask, WebkitMask: mask }}
     />
   );

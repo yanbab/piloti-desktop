@@ -1402,7 +1402,7 @@ export function IconGrid({
                   const cleanExt = ext.replace(/^\./, "").toUpperCase();
                   if (!cleanExt || cleanExt.length > 6) return null;
                   return (
-                    <span className="pointer-events-none absolute -right-0.5 -bottom-0.5 z-10 rounded bg-zinc-900/85 px-1 py-0.5 text-[9px] leading-none font-bold tracking-wide text-white shadow-xs ring-1 ring-white/20">
+                    <span className="pointer-events-none absolute -right-0.5 -bottom-0.5 z-10 rounded bg-zinc-900/85 px-1 py-0.5 text-ui-caption leading-none font-bold tracking-wide text-white shadow-xs ring-1 ring-white/20">
                       {cleanExt}
                     </span>
                   );

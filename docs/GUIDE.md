@@ -13,7 +13,8 @@ Also: [architecture](./ARCHITECTURE.md), [Linux](./LINUX.md), [API](./API.md),
   solid, no hover effects. Style per theme through `data-slot`, never by editing
   shared classes. Check visually in the Piloti demo.
 - **Tokens, not values.** Text `text-ui-{title,body,small,
-  caption}`; radius `rounded-ui-{control,
+  caption}` (they follow the font settings; no fixed text sizes,
+  line heights in CSS multiply by `--piloti-font-scale`); radius `rounded-ui-{control,
   box,window}`; height `h-/size-ui-control-{small,medium,large}`; surfaces `--ui-{window,group,sidebar,overlay}`; colour `--ui-*`, never `--adw-*`. On controls use `hover-fill:`
   (Adwaita only), never `hover:`.
 - **Leaving Tailwind** widget by widget: plain CSS in

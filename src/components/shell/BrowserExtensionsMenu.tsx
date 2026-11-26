@@ -45,7 +45,7 @@ function Badge({ item }: { item: BrowserExtensionItem }) {
         backgroundColor:
           item.badgeColor && item.badgeColor !== "#00000000" ? item.badgeColor : "var(--ui-accent)",
       }}
-      className="pointer-events-none absolute right-0.5 bottom-0.5 min-w-3 rounded-full px-0.5 text-center text-[8.5px] leading-tight font-bold text-white shadow-xs"
+      className="pointer-events-none absolute right-0.5 bottom-0.5 min-w-3 rounded-full px-0.5 text-center text-ui-caption leading-tight font-bold text-white shadow-xs"
     >
       {item.badgeText}
     </span>

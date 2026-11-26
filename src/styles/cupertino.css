@@ -114,12 +114,6 @@
   --ui-control-small: 20px;
   --ui-control-medium: 24px;
   --ui-control-large: 28px;
-
-  /* Text sizes */
-  --ui-font-title: 17px;
-  --ui-font-body: 13px;
-  --ui-font-small: 11px;
-  --ui-font-caption: 10px;
 }
 
 /* `.dark` is on the root, or on one window (per-app Dark Mode). */
@@ -226,23 +220,94 @@
   backdrop-filter: blur(var(--ui-material-blur)) saturate(180%);
 }
 
-/* ── Switch: 54x24 track, 32x20 knob ─────────────────────────────────── */
-:root[data-interface-theme="cupertino"] [data-slot="switch"] {
-  width: 54px;
-  padding-inline: 2px;
+/* ── Buttons: regular weight, like body text (macOS) ─────────────────── */
+:root[data-interface-theme="cupertino"] [data-slot="button"] {
+  font-weight: var(--piloti-font-weight, 400);
 }
 
-:root[data-interface-theme="cupertino"] [data-slot="switch-thumb"] {
+/* ── Switch: CupertinoUI's pill knob. Its sizes are mini 36x16, sm 44x20,
+   default 54x24 and lg 64x28; grouped forms use mini, like System Settings. */
+:root[data-interface-theme="cupertino"] [data-slot="switch"][data-size="mini"],
+:root[data-interface-theme="cupertino"] [data-slot="grouped-form-row"] [data-slot="switch"][data-size="default"] {
+  width: 36px;
+  height: 16px;
+  padding-inline: 1.5px;
+}
+:root[data-interface-theme="cupertino"] [data-slot="switch"][data-size="mini"] [data-slot="switch-thumb"],
+:root[data-interface-theme="cupertino"] [data-slot="grouped-form-row"] [data-slot="switch"][data-size="default"] [data-slot="switch-thumb"] {
+  width: 21px;
+  height: 13px;
+}
+:root[data-interface-theme="cupertino"] [data-slot="switch"][data-size="mini"] [data-slot="switch-thumb"][data-checked],
+:root[data-interface-theme="cupertino"] [data-slot="grouped-form-row"] [data-slot="switch"][data-size="default"] [data-slot="switch-thumb"][data-checked] {
+  translate: 12px 0;
+}
+:root[data-interface-theme="cupertino"] [data-slot="switch"][data-size="mini"] [data-slot="switch-thumb"][data-checked]:dir(rtl),
+:root[data-interface-theme="cupertino"] [data-slot="grouped-form-row"] [data-slot="switch"][data-size="default"] [data-slot="switch-thumb"][data-checked]:dir(rtl) {
+  translate: -12px 0;
+}
+:root[data-interface-theme="cupertino"] [data-slot="switch"][data-size="sm"] {
+  width: 44px;
+  height: 20px;
+  padding-inline: 2px;
+}
+:root[data-interface-theme="cupertino"] [data-slot="switch"][data-size="sm"] [data-slot="switch-thumb"] {
+  width: 26px;
+  height: 16px;
+}
+:root[data-interface-theme="cupertino"] [data-slot="switch"][data-size="sm"] [data-slot="switch-thumb"][data-checked] {
+  translate: 14px 0;
+}
+:root[data-interface-theme="cupertino"] [data-slot="switch"][data-size="sm"] [data-slot="switch-thumb"][data-checked]:dir(rtl) {
+  translate: -14px 0;
+}
+:root[data-interface-theme="cupertino"] [data-slot="switch"][data-size="default"] {
+  width: 54px;
+  height: 24px;
+  padding-inline: 2px;
+}
+:root[data-interface-theme="cupertino"] [data-slot="switch"][data-size="default"] [data-slot="switch-thumb"] {
   width: 32px;
   height: 20px;
 }
-
-:root[data-interface-theme="cupertino"] [data-slot="switch-thumb"][data-checked] {
+:root[data-interface-theme="cupertino"] [data-slot="switch"][data-size="default"] [data-slot="switch-thumb"][data-checked] {
   translate: 18px 0;
 }
-
-:root[data-interface-theme="cupertino"] [data-slot="switch-thumb"][data-checked]:dir(rtl) {
+:root[data-interface-theme="cupertino"] [data-slot="switch"][data-size="default"] [data-slot="switch-thumb"][data-checked]:dir(rtl) {
   translate: -18px 0;
+}
+:root[data-interface-theme="cupertino"] [data-slot="switch"][data-size="lg"] {
+  width: 64px;
+  height: 28px;
+  padding-inline: 2px;
+}
+:root[data-interface-theme="cupertino"] [data-slot="switch"][data-size="lg"] [data-slot="switch-thumb"] {
+  width: 38px;
+  height: 24px;
+}
+:root[data-interface-theme="cupertino"] [data-slot="switch"][data-size="lg"] [data-slot="switch-thumb"][data-checked] {
+  translate: 22px 0;
+}
+:root[data-interface-theme="cupertino"] [data-slot="switch"][data-size="lg"] [data-slot="switch-thumb"][data-checked]:dir(rtl) {
+  translate: -22px 0;
+}
+:root[data-interface-theme="cupertino"] [data-slot="switch"][data-unchecked] {
+  background-color: rgb(0 0 0 / 0.085);
+}
+:root[data-interface-theme="cupertino"].dark [data-slot="switch"][data-unchecked],
+:root[data-interface-theme="cupertino"] .dark [data-slot="switch"][data-unchecked] {
+  background-color: rgb(255 255 255 / 0.085);
+}
+:root[data-interface-theme="cupertino"] [data-slot="window"][data-inactive] [data-slot="switch"][data-checked] {
+  background-color: rgb(0 0 0 / 0.14);
+}
+:root[data-interface-theme="cupertino"].dark [data-slot="window"][data-inactive] [data-slot="switch"][data-checked],
+:root[data-interface-theme="cupertino"] .dark[data-slot="window"][data-inactive] [data-slot="switch"][data-checked] {
+  background-color: rgb(255 255 255 / 0.13);
+}
+:root[data-interface-theme="cupertino"] [data-slot="switch"] [data-slot="switch-thumb"] {
+  background-color: #fff;
+  box-shadow: 0 3px 36px rgb(0 0 0 / 0.05), 0 0 0 0.5px rgb(0 0 0 / 0.04), 0 1px 2px rgb(0 0 0 / 0.12);
 }
 
 /* ── Menus: 24px rows, accent highlight (CupertinoUI's menu) ─────────── */
@@ -256,7 +321,7 @@
   padding-inline: 11px 14px;
   border-radius: 8px;
   font-size: var(--ui-font-body);
-  line-height: 16px;
+  line-height: calc(16px * var(--piloti-font-scale, 1));
 }
 
 /* Room for the check-mark column. */
@@ -277,9 +342,34 @@
   color: inherit;
 }
 
-/* ── Sidebar: medium labels ──────────────────────────────────────────── */
+/* ── Sidebar and forms: regular labels, compact rows. Tighter than
+   CupertinoUI's form, which looks large in a settings window. ─────────── */
 :root[data-interface-theme="cupertino"] [data-slot="sidebar-item"] {
-  font-weight: var(--piloti-font-weight-medium, 500);
+  font-weight: var(--piloti-font-weight, 400);
+}
+:root[data-interface-theme="cupertino"] [data-slot="sidebar-item"][data-tall] {
+  gap: 0.5rem;
+  padding-block: 6px;
+}
+:root[data-interface-theme="cupertino"] [data-slot="grouped-form"] {
+  gap: 8px;
+  padding: 8px 16px 16px;
+}
+:root[data-interface-theme="cupertino"] [data-slot="grouped-form-section"] {
+  gap: 6px;
+}
+:root[data-interface-theme="cupertino"] [data-slot="grouped-form-section"]:not(:first-child) {
+  margin-top: 8px;
+}
+:root[data-interface-theme="cupertino"] [data-slot="grouped-form-section-title"] {
+  padding-inline: 10px;
+}
+:root[data-interface-theme="cupertino"] [data-slot="grouped-form-row"] {
+  min-height: 32px;
+  padding-block: 4px;
+}
+:root[data-interface-theme="cupertino"] [data-slot="grouped-form-row"]:has([data-slot="grouped-form-row-description"]) {
+  padding-block: 6px;
 }
 
 /* In an unfocused window the accent is grey: keep labels readable. */
@@ -433,6 +523,6 @@
   background-color: var(--ui-overlay);
   box-shadow: var(--ui-shadow-tooltip);
   font-size: var(--ui-font-small);
-  line-height: 14px;
+  line-height: calc(14px * var(--piloti-font-scale, 1));
   color: var(--ui-label);
 }

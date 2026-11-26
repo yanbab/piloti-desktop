@@ -1811,7 +1811,7 @@ export function FilesApp({
                   setDraftLocation(currentPath);
                   setEditingLocation(true);
                 }}
-                className="flex h-7 items-center truncate rounded-ui-control px-2 text-[13.5px] font-semibold text-ui-label transition-colors hover-fill:bg-black/8 dark:hover-fill:bg-white/10"
+                className="flex h-7 items-center truncate rounded-ui-control px-2 text-ui-body font-semibold text-ui-label transition-colors hover-fill:bg-black/8 dark:hover-fill:bg-white/10"
               >
                 {_(currentTitle)}
               </button>
@@ -1915,7 +1915,7 @@ export function FilesApp({
       >
         {externalDrop.active && (
           <div className="pointer-events-none absolute inset-2 z-20 flex items-end justify-center rounded-ui-box border-2 border-dashed border-ui-accent/70 bg-ui-accent/10 pb-3">
-            <span className="rounded-full bg-zinc-900/90 px-3 py-1 text-xs font-medium text-white shadow-sm ring-1 ring-white/10">
+            <span className="rounded-full bg-zinc-900/90 px-3 py-1 text-ui-body font-medium text-white shadow-sm ring-1 ring-white/10">
               {_("Drop files to copy here")}
             </span>
           </div>
