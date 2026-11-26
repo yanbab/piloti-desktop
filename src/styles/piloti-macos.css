@@ -314,7 +314,7 @@
 /* Covers Base UI menus and hand-made ones through their ARIA roles. Item
    corners use the list-row radius. */
 
-:root[data-interface-theme="piloti"] [role="menu"]:not([data-menu="launcher"]) {
+:root[data-interface-theme="piloti"] [role="menu"]:not([data-menu="launcher"], [data-menu="control-panel"]) {
   padding: 5px;
 }
 

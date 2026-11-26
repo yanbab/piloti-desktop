@@ -217,9 +217,7 @@ export function FileItemContextMenu({
                 }}
                 className={itemBtnClass}
               >
-                {multiCount > 1
-                  ? `${_("Restore")} (${multiCount})`
-                  : _("Restore")}
+                {_("Restore")}
               </button>
             )}
             <div className={MENU_SEPARATOR_CLASS} />
@@ -236,9 +234,7 @@ export function FileItemContextMenu({
               }}
               className={cn(itemBtnClass, "text-destructive")}
             >
-              {multiCount > 1
-                ? `${_("Delete Permanently")} (${multiCount})`
-                : _("Delete Permanently")}
+              {_("Delete Permanently")}
             </button>
           </>
         ) : (
@@ -386,7 +382,7 @@ export function FileItemContextMenu({
               }}
               className={itemBtnClass}
             >
-              {multiCount > 1 ? `${_("Cut")} (${multiCount})` : _("Cut")}
+              {_("Cut")}
             </button>
             <button
               type="button"
@@ -399,7 +395,7 @@ export function FileItemContextMenu({
               }}
               className={itemBtnClass}
             >
-              {multiCount > 1 ? `${_("Copy")} (${multiCount})` : _("Copy")}
+              {_("Copy")}
             </button>
             {onPaste && (
               <button
@@ -425,9 +421,7 @@ export function FileItemContextMenu({
               }}
               className={itemBtnClass}
             >
-              {multiCount > 1
-                ? `${_("Duplicate")} (${multiCount})`
-                : _("Duplicate")}
+              {_("Duplicate")}
             </button>
             {onMakeLink && !isVirtualView && !isTrash && (
               <button
@@ -439,7 +433,7 @@ export function FileItemContextMenu({
                 }}
                 className={itemBtnClass}
               >
-                {multiCount > 1 ? `${_("Make Link")} (${multiCount})` : _("Make Link")}
+                {_("Make Link")}
               </button>
             )}
 
@@ -472,9 +466,7 @@ export function FileItemContextMenu({
                     }}
                     className={itemBtnClass}
                   >
-                    {multiCount > 1
-                      ? `${_("Compress")} (${multiCount})`
-                      : _("Compress")}
+                    {_("Compress")}
                   </button>
                 )}
                 {showExtract && onExtract && (
@@ -520,9 +512,7 @@ export function FileItemContextMenu({
               }}
               className={itemBtnClass}
             >
-              {multiCount > 1
-                ? `${_("Move to Trash")} (${multiCount})`
-                : _("Move to Trash")}
+              {_("Move to Trash")}
             </button>
           </>
         )}

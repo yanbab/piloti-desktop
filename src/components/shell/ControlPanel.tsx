@@ -826,8 +826,35 @@ export function FloatingNotifications({ open = true }: { open?: boolean }) {
   return (
     <div
       aria-label={_("Notifications")}
-      className="group/notifs mt-2.5 flex w-full flex-col gap-2"
+      className="mt-2.5 flex w-full flex-col gap-2"
     >
+      <div className="flex items-center justify-between gap-2">
+        {hiddenCount > 0 || expanded ? (
+          <button
+            type="button"
+            onClick={() => setExpanded((prev) => !prev)}
+            className="rounded-full border border-black/8 px-3.5 py-1 text-adw-subheadline font-medium text-adw-label shadow-adw-popover backdrop-blur-xl transition-colors adw-material-popover hover-fill:bg-black/6 dark:border-white/10 dark:hover-fill:bg-white/10"
+          >
+            {expanded
+              ? _("Show less")
+              : hiddenCount === 1
+                ? _("1 more notification")
+                : _("%d more notifications", hiddenCount)}
+          </button>
+        ) : (
+          <span />
+        )}
+        <button
+          type="button"
+          aria-label={_("Clear All")}
+          title={_("Clear All")}
+          onClick={clearAllNotifications}
+          className="flex size-adw-control-small shrink-0 items-center justify-center rounded-full border border-black/8 text-adw-label shadow-adw-popover backdrop-blur-xl transition-colors adw-material-popover hover-fill:bg-black/6 dark:border-white/10 dark:hover-fill:bg-white/10"
+        >
+          <XIcon className="size-3.5" />
+        </button>
+      </div>
+
       {(settings.doNotDisturb || !settings.notificationsEnabled) && (
         <div className="flex items-center justify-between gap-2 rounded-2xl border border-black/8 px-3 py-2 text-adw-subheadline text-adw-label-secondary shadow-adw-popover backdrop-blur-xl adw-material-popover dark:border-white/10">
           <span className="flex min-w-0 items-center gap-1.5 truncate">
@@ -928,32 +955,6 @@ export function FloatingNotifications({ open = true }: { open?: boolean }) {
           </div>
         );
       })}
-
-      <div className="flex items-center justify-center gap-2 pt-0.5">
-        {(hiddenCount > 0 || expanded) && (
-          <button
-            type="button"
-            onClick={() => setExpanded((prev) => !prev)}
-            className="rounded-full border border-black/8 px-3.5 py-1 text-adw-subheadline font-medium text-adw-label shadow-adw-popover backdrop-blur-xl transition-colors adw-material-popover hover-fill:bg-black/6 dark:border-white/10 dark:hover-fill:bg-white/10"
-          >
-            {expanded
-              ? _("Show less")
-              : hiddenCount === 1
-                ? _("1 more notification")
-                : _("%d more notifications", hiddenCount)}
-          </button>
-        )}
-        <button
-          type="button"
-          onClick={clearAllNotifications}
-          className={cn(
-            "rounded-full border border-black/8 px-3 py-1 text-adw-subheadline font-medium text-adw-label-secondary shadow-adw-popover backdrop-blur-xl transition-opacity adw-material-popover hover-fill:text-adw-label focus-visible:opacity-100 dark:border-white/10",
-            expanded ? "opacity-100" : "opacity-0 group-hover/notifs:opacity-100"
-          )}
-        >
-          {_("Clear All")}
-        </button>
-      </div>
     </div>
   );
 }
