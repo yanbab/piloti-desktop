@@ -452,7 +452,11 @@ export function PilotiDemoApp() {
   const switches = (
     <div className="flex items-center gap-2">
       <Segmented
-        value={settings.interfaceTheme === "adwaita" ? "adwaita" : "piloti"}
+        value={
+          settings.interfaceTheme === "adwaita" || settings.interfaceTheme === "cupertino"
+            ? settings.interfaceTheme
+            : "piloti"
+        }
         onChange={(theme) =>
           updateSettings({
             interfaceTheme: theme,
@@ -462,6 +466,7 @@ export function PilotiDemoApp() {
         options={[
           { id: "piloti", label: "Piloti" },
           { id: "adwaita", label: "Adwaita" },
+          { id: "cupertino", label: "Cupertino" },
         ]}
       />
       <Segmented

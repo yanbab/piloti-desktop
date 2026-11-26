@@ -16,10 +16,11 @@
  */
 
 @custom-variant dark (&:is(.dark *));
-/* Hover fills: Adwaita highlights controls on hover; Piloti (macOS) does not,
+/* Hover fills: Adwaita highlights controls on hover; the macOS themes
+   (Piloti, Cupertino) do not,
    only menus do. Use `hover-fill:…` (bg, text, brightness…) instead of
    `hover:…` on controls. */
-@custom-variant hover-fill (&:hover:where(:root:not([data-interface-theme="piloti"]) *));
+@custom-variant hover-fill (&:hover:where(:root:not([data-interface-theme="piloti"], [data-interface-theme="cupertino"]) *));
 
 :root {
   --font-ui: "Cantarell", "Inter", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;

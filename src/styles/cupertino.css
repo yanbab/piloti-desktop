@@ -1,0 +1,271 @@
+/*
+ * Cupertino theme: the values of CupertinoUI's macos.css (cupertino-ui.com,
+ * MIT licensed), the library Piloti's components started from, as of this
+ * repository's first commit, mapped onto the --ui-* tokens. Translucent,
+ * round and blue, in the macOS 27 style.
+ */
+
+/* ── Tokens ──────────────────────────────────────────────────────────── */
+:root[data-interface-theme="cupertino"] {
+  /* Fonts. SF Pro is not redistributable; the system stack resolves to it on Apple devices. */
+  --font-ui: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro", "Helvetica Neue", "Segoe UI", Inter, system-ui, sans-serif;
+  --font-ui-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  /* Accents */
+  --ui-blue: #0088ff;
+  --ui-red: #ff383c;
+  --ui-orange: #ff8d28;
+  --ui-yellow: #ffcc00;
+  --ui-green: #34c759;
+  --ui-mint: #00c8b3;
+  --ui-teal: #00c3d0;
+  --ui-cyan: #00c0e8;
+  --ui-indigo: #6155f5;
+  --ui-purple: #cb30e0;
+  --ui-pink: #ff2d55;
+  --ui-brown: #ac7f5e;
+  --ui-gray: #8e8e93;
+
+  /* Accent (the user-selectable highlight color on macOS) */
+  --ui-accent: var(--ui-active-accent, var(--ui-blue));
+  --ui-accent-foreground: #ffffff;
+  /* Selected rows in a focused list, and the highlighted menu item */
+  --ui-selection: var(--ui-active-accent, #0064e1);
+  --ui-menu-highlight: var(--ui-active-accent, #0069f9);
+  /* Selected rows in an unfocused list */
+  --ui-selection-unfocused: rgb(0 0 0 / 0.14);
+  --ui-link: #0068da;
+
+  /* Labels */
+  --ui-label: rgb(0 0 0 / 0.85);
+  --ui-label-secondary: rgb(0 0 0 / 0.5);
+  --ui-label-tertiary: rgb(0 0 0 / 0.26);
+  --ui-label-quaternary: rgb(0 0 0 / 0.1);
+  --ui-label-quinary: rgb(0 0 0 / 0.05);
+
+  /* Fills */
+  --ui-fill-primary: rgb(0 0 0 / 0.1);
+  --ui-fill-secondary: rgb(0 0 0 / 0.08);
+  --ui-fill-tertiary: rgb(0 0 0 / 0.05);
+  --ui-fill-quaternary: rgb(0 0 0 / 0.03);
+  --ui-fill-quinary: rgb(0 0 0 / 0.008);
+
+  /* Controls: bordered buttons, pop-ups, tabss */
+  --ui-control: rgb(0 0 0 / 0.08);
+  --ui-control-pressed: rgb(0 0 0 / 0.16);
+  --ui-control-disabled: rgb(0 0 0 / 0.04);
+  /* Text fields */
+  --ui-field: #ffffff;
+  --ui-field-border: rgb(0 0 0 / 0.08);
+
+  /* Surfaces */
+  --ui-window: #ffffff;
+  --ui-content: #ffffff;
+  --ui-content-alternate: rgb(0 0 0 / 0.05);
+  --ui-group: var(--ui-fill-quaternary);
+  --ui-separator: rgb(0 0 0 / 0.05);
+  --ui-grid: rgb(0 0 0 / 0.1);
+  --ui-border: rgb(0 0 0 / 0.1);
+  --ui-sidebar: rgb(233 239 245 / 0.86);
+  --ui-sidebar-selection: rgb(0 0 0 / 0.06);
+  --ui-sidebar-label-inactive: #878787;
+  --ui-titlebar: rgb(255 255 255 / 0.92);
+
+  /* Liquid Glass (toolbar capsules, search fields in toolbars) */
+  --ui-glass: rgb(255 255 255 / 0.82);
+  --ui-glass-pressed: rgb(0 0 0 / 0.07);
+  --ui-glass-selected: rgb(0 0 0 / 0.08);
+  --ui-glass-edge: rgb(255 255 255 / 0.95);
+  --ui-glass-rim: rgb(0 0 0 / 0.1);
+  --ui-glass-shadow: 0 0 0 0.5px rgb(0 0 0 / 0.08), 0 8px 15px rgb(0 0 0 / 0.04);
+
+  /* Materials (translucent, blurred backgrounds) */
+  --ui-material-menu: rgb(244 244 246 / 0.74);
+  --ui-material-popover: rgb(246 246 246 / 0.8);
+  --ui-material-hud: rgb(246 246 246 / 0.86);
+  --ui-material-tooltip: rgb(246 246 246 / 0.9);
+  --ui-material-dock: rgb(255 255 255 / 0.32);
+  --ui-dock-label: rgb(246 246 246 / 0.85);
+  --ui-material-blur: 30px;
+  --ui-material-border: rgb(0 0 0 / 0.1);
+  --ui-material-highlight: rgb(255 255 255 / 0.5);
+  --ui-overlay: rgb(171 171 171 / 0.6);
+
+  /* Window controls */
+  --ui-traffic-close: #ff5f57;
+  --ui-traffic-minimize: #febc2e;
+  --ui-traffic-zoom: #28c840;
+  --ui-traffic-inactive: #dcdfe3;
+  --ui-traffic-edge: inset 0 0 0 0.5px rgb(0 0 0 / 0.12);
+
+  /* Shadows */
+  --ui-shadow-menu: inset 0 0 0 1px rgb(255 255 255 / 0.55), 0 0 0 0.5px rgb(0 0 0 / 0.16), 0 8px 48px rgb(0 0 0 / 0.25);
+  --ui-shadow-popover: 0 0 0 0.5px var(--ui-material-border), 0 8px 48px rgb(0 0 0 / 0.2);
+  --ui-shadow-tooltip: 0 0 0 0.5px rgb(0 0 0 / 0.12), 0 2px 8px rgb(0 0 0 / 0.15);
+  --ui-shadow-dock-label: inset 0 1px 0 rgb(255 255 255 / 0.8), 0 0 0 0.5px rgb(0 0 0 / 0.12), 0 2px 8px rgb(0 0 0 / 0.15);
+  /* Light catches the top and bottom edges of the Dock; the sides get a darker rim. */
+  --ui-shadow-dock: inset 0 1px 0 rgb(255 255 255 / 0.75), inset 0 -1px 0 rgb(255 255 255 / 0.55), inset 1px 0 0 rgb(0 0 0 / 0.1), inset -1px 0 0 rgb(0 0 0 / 0.1), inset 0 6px 6px -5px rgb(255 255 255 / 0.3), 0 8px 24px rgb(0 0 0 / 0.12);
+  --ui-shadow-window: 0 0 1px rgb(0 0 0 / 0.8), 0 18px 54px rgb(0 0 0 / 0.3);
+  --ui-shadow-window-inactive: 0 0 1px rgb(0 0 0 / 0.8), 0 7px 21px rgb(0 0 0 / 0.2);
+  --ui-window-rim: transparent;
+  --ui-focus-ring: 0 0 0 3.5px color-mix(in srgb, var(--ui-accent) 50%, transparent);
+
+  /* Radii */
+  --ui-radius-control: 6px;
+  --ui-radius-menu: 13px;
+  --ui-radius-item: 8px;
+  --ui-radius-group: 12px;
+  --ui-radius-popover: 20px;
+  --ui-radius-alert: 34px;
+  --ui-radius-window: 16px;
+
+  /* Control heights (mini, small, medium, large, extra large) */
+  --ui-control-mini: 16px;
+  --ui-control-small: 20px;
+  --ui-control-medium: 24px;
+  --ui-control-large: 28px;
+  --ui-control-xl: 36px;
+
+  /* Text sizes */
+  --ui-font-large-title: 26px;
+  --ui-font-title-1: 22px;
+  --ui-font-title-2: 17px;
+  --ui-font-title-3: 15px;
+  --ui-font-headline: 13px;
+  --ui-font-body: 13px;
+  --ui-font-callout: 12px;
+  --ui-font-subheadline: 11px;
+  --ui-font-footnote: 10px;
+  --ui-font-caption: 10px;
+}
+
+/* `.dark` is on the root, or on one window (per-app Dark Mode). */
+:root[data-interface-theme="cupertino"].dark,
+:root[data-interface-theme="cupertino"] .dark {
+  --ui-blue: #0091ff;
+  --ui-red: #ff4245;
+  --ui-orange: #ff9230;
+  --ui-yellow: #ffd600;
+  --ui-green: #30d158;
+  --ui-mint: #00dac3;
+  --ui-teal: #00d2e0;
+  --ui-cyan: #3cd3fe;
+  --ui-indigo: #6d7cff;
+  --ui-purple: #db34f2;
+  --ui-pink: #ff375f;
+  --ui-brown: #b78a66;
+  --ui-gray: #98989d;
+
+  --ui-selection: var(--ui-active-accent, #0059d1);
+  --ui-selection-unfocused: rgb(255 255 255 / 0.18);
+  --ui-link: #419cff;
+
+  --ui-label: rgb(255 255 255 / 0.85);
+  --ui-label-secondary: rgb(255 255 255 / 0.55);
+  --ui-label-tertiary: rgb(255 255 255 / 0.25);
+  --ui-label-quaternary: rgb(255 255 255 / 0.1);
+  --ui-label-quinary: rgb(255 255 255 / 0.05);
+
+  --ui-fill-primary: rgb(255 255 255 / 0.1);
+  --ui-fill-secondary: rgb(255 255 255 / 0.08);
+  --ui-fill-tertiary: rgb(255 255 255 / 0.05);
+  --ui-fill-quaternary: rgb(255 255 255 / 0.03);
+  --ui-fill-quinary: rgb(255 255 255 / 0.008);
+
+  --ui-control: rgb(255 255 255 / 0.08);
+  --ui-control-pressed: rgb(255 255 255 / 0.16);
+  --ui-control-disabled: rgb(255 255 255 / 0.04);
+  --ui-field: #1e1e1e;
+  --ui-field-border: rgb(255 255 255 / 0.04);
+
+  --ui-window: #1e1f20;
+  --ui-content: #1e2023;
+  --ui-content-alternate: rgb(255 255 255 / 0.05);
+  --ui-separator: rgb(255 255 255 / 0.05);
+  --ui-grid: rgb(255 255 255 / 0.1);
+  --ui-border: rgb(255 255 255 / 0.1);
+  --ui-sidebar: rgb(41 44 50 / 0.9);
+  --ui-sidebar-selection: rgb(255 255 255 / 0.12);
+  --ui-sidebar-label-inactive: rgb(255 255 255 / 0.35);
+  --ui-titlebar: #232528;
+
+  --ui-glass: #323435;
+  --ui-glass-pressed: rgb(255 255 255 / 0.08);
+  --ui-glass-selected: rgb(255 255 255 / 0.1);
+  --ui-glass-edge: rgb(255 255 255 / 0.17);
+  --ui-glass-rim: rgb(0 0 0 / 0.72);
+  --ui-glass-shadow: 0 0 0 transparent;
+
+  --ui-material-menu: rgb(48 52 60 / 0.6);
+  --ui-material-popover: rgb(36 36 36 / 0.82);
+  --ui-material-hud: rgb(30 30 30 / 0.86);
+  --ui-material-tooltip: rgb(20 20 20 / 0.72);
+  /* The dark Dock barely tints the wallpaper: it brightens what is behind it. */
+  --ui-material-dock: rgb(255 255 255 / 0.015);
+  --ui-material-dock-saturation: 100%;
+  --ui-material-dock-brightness: 1.15;
+  --ui-dock-label: rgb(68 68 70 / 0.42);
+  --ui-dock-label-saturation: 100%;
+  --ui-material-border: rgb(255 255 255 / 0.15);
+  --ui-material-highlight: rgb(255 255 255 / 0.08);
+  --ui-overlay: rgb(23 23 23 / 0.62);
+
+  --ui-traffic-close: linear-gradient(#f4534a 45%, #ef6861);
+  --ui-traffic-minimize: #fcba00;
+  --ui-traffic-zoom: linear-gradient(#2cc100, #00bc01 40%, #00bc01 55%, #4fc337);
+  --ui-traffic-inactive: #4b4d52;
+  --ui-traffic-edge: inset 0 0.75px 0 rgb(255 255 255 / 0.5), inset 0 -0.75px 0 rgb(255 255 255 / 0.4);
+
+  --ui-shadow-menu: inset 0 0 0 1px rgb(255 255 255 / 0.1), 0 0 0 1px rgb(0 0 0 / 0.85), 0 8px 48px rgb(0 0 0 / 0.45);
+  --ui-shadow-popover: 0 0 0 0.5px var(--ui-material-border), 0 0 0 1px rgb(0 0 0 / 0.5), 0 8px 48px rgb(0 0 0 / 0.45);
+  --ui-shadow-tooltip: inset 0 0 0 0.6px rgb(255 255 255 / 0.15), 0 0 2px rgb(0 0 0 / 0.4), 0 2px 8px rgb(0 0 0 / 0.2);
+  --ui-shadow-dock-label: inset 0 1px 0 rgb(255 255 255 / 0.18), inset 0 5px 5px -4px rgb(255 255 255 / 0.07);
+  --ui-shadow-dock: inset 0 1px 0 rgb(190 215 255 / 0.34), inset 0 -1px 0 rgb(190 215 255 / 0.33), inset 1px 0 0 rgb(0 0 0 / 0.8), inset -1px 0 0 rgb(0 0 0 / 0.8), inset 0 6px 6px -5px rgb(190 215 255 / 0.1), inset 0 -6px 6px -5px rgb(190 215 255 / 0.09), 0 8px 24px rgb(0 0 0 / 0.2);
+  --ui-shadow-window: 0 0 0 1px rgb(0 0 0 / 0.92), 0 18px 54px rgb(0 0 0 / 0.57);
+  --ui-shadow-window-inactive: 0 0 0 1px rgb(0 0 0 / 0.92), 0 7px 21px rgb(0 0 0 / 0.35);
+  --ui-window-rim: rgb(255 255 255 / 0.1);
+}
+
+/* An unfocused window greys out its accent. */
+:root[data-interface-theme="cupertino"] [data-slot="window"][data-inactive] {
+  --ui-accent: rgb(0 0 0 / 0.14);
+  --ui-selection: var(--ui-selection-unfocused);
+  --ui-sidebar: rgb(240 244 248 / 0.97);
+  --ui-sidebar-selection: rgb(0 0 0 / 0.04);
+  --ui-titlebar: #ffffff;
+}
+
+:root[data-interface-theme="cupertino"].dark [data-slot="window"][data-inactive],
+:root[data-interface-theme="cupertino"] .dark[data-slot="window"][data-inactive] {
+  --ui-accent: rgb(255 255 255 / 0.21);
+  --ui-content: #202226;
+  --ui-sidebar: #24272d;
+  --ui-sidebar-selection: rgb(255 255 255 / 0.065);
+  --ui-titlebar: #282a2d;
+  --ui-glass: #2e3032;
+}
+
+/* ── Materials: translucent surfaces blur what is behind them ────────── */
+:root[data-interface-theme="cupertino"]:not([data-high-contrast="true"]) :is(.ui-material-menu, .ui-material-popover, .ui-material-hud) {
+  -webkit-backdrop-filter: blur(var(--ui-material-blur)) saturate(180%);
+  backdrop-filter: blur(var(--ui-material-blur)) saturate(180%);
+}
+
+/* ── Switch: 54x24 track, 32x20 knob ─────────────────────────────────── */
+:root[data-interface-theme="cupertino"] [data-slot="switch"] {
+  width: 54px;
+  padding-inline: 2px;
+}
+
+:root[data-interface-theme="cupertino"] [data-slot="switch-thumb"] {
+  width: 32px;
+  height: 20px;
+}
+
+:root[data-interface-theme="cupertino"] [data-slot="switch-thumb"][data-checked] {
+  translate: 18px 0;
+}
+
+:root[data-interface-theme="cupertino"] [data-slot="switch-thumb"][data-checked]:dir(rtl) {
+  translate: -18px 0;
+}

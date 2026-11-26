@@ -68,6 +68,7 @@ export function AppearancePane() {
                 {[
                   { id: "piloti", label: _("Piloti") },
                   { id: "adwaita", label: "Adwaita" },
+                  { id: "cupertino", label: "Cupertino" },
                   ...themePlugins.map((p) => ({ id: p.id, label: p.name })),
                 ].map((theme) => {
                   const active = activeInterfaceTheme === theme.id;

@@ -4,7 +4,8 @@ Short map for coding agents, to start fast and avoid re-reading the tree.
 Conventions are in `AGENTS.md`, commands in `CLAUDE.md`.
 
 ## Ground rules
-- **Two themes.** Adwaita (`adwaita.css`) stays GNOME-faithful; Piloti
+- **Three themes.** Cupertino (`cupertino.css`) is CupertinoUI's macOS 27 look.
+  Adwaita (`adwaita.css`) stays GNOME-faithful; Piloti
   (`piloti-macos.css`, every rule under `:root[data-interface-theme="piloti"]`)
   is old macOS Ventura: compact (controls ≤ 28 px), solid, no hover effects.
   Style per theme through `data-slot` hooks, never by editing shared classes.

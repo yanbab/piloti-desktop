@@ -3,6 +3,7 @@
 @import "./adwaita.css";
 @import "./piloti.css";
 @import "./piloti-macos.css";
+@import "./cupertino.css";
 @import "./components/button.css";
 @import "./components/switch.css";
 @import "./components/checkbox.css";

@@ -20,6 +20,16 @@ describe("theme tokens", () => {
     expect(missing).toEqual([]);
   });
 
+  test("the Cupertino theme is scoped to itself", () => {
+    const rules = read("src/styles/cupertino.css").replace(/\/\*[\s\S]*?\*\//g, "");
+    const selectors = [...rules.matchAll(/([^{}]+)\{/g)].flatMap((m) =>
+      m[1]!.trim().split(/,\n/),
+    );
+    for (const selector of selectors) {
+      expect(selector.trim()).toStartWith(':root[data-interface-theme="cupertino"]');
+    }
+  });
+
   test("no source uses the old adw names", () => {
     // loader.ts translates the old names for installed plugins.
     const old = sources.filter(

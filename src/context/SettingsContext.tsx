@@ -85,7 +85,7 @@ export type CssFontStyle = "regular" | "light" | "medium" | "semibold" | "italic
 
 export type { InstalledWebApp, SavedWindowBounds, WallpaperColorMode };
 
-export type InterfaceThemeId = "piloti" | "adwaita" | (string & {});
+export type InterfaceThemeId = "piloti" | "adwaita" | "cupertino" | (string & {});
 
 export interface DesktopSettings {
   interfaceTheme: InterfaceThemeId;

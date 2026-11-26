@@ -34,7 +34,7 @@ export const ACCENT_COLORS: AccentColorOption[] = [
 
 /** The accent hex the UI uses (selections, sidebar items, tinted icons):
  *  a custom hex as is, otherwise the preset's value for the interface theme
- *  (what `--ui-accent` resolves to: Cupertino UI for Piloti, GNOME for Adwaita). */
+ *  (what `--ui-accent` resolves to: Cupertino UI for Piloti and Cupertino, GNOME for Adwaita). */
 export function resolveUiAccentHex(
   accentColor: string | undefined,
   customAccentHex?: string,
