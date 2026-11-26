@@ -10,7 +10,7 @@ function GroupedForm({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="grouped-form"
       className={cn(
-        "flex flex-col gap-2.5 px-5 pt-[11px] pb-5 text-ui-body text-ui-label",
+        "ui-form",
         className
       )}
       {...props}
@@ -25,7 +25,7 @@ function GroupedFormSection({
   return (
     <section
       data-slot="grouped-form-section"
-      className={cn("flex flex-col gap-2.5 not-first:mt-5", className)}
+      className={cn("ui-form-section", className)}
       {...props}
     />
   )
@@ -39,7 +39,7 @@ function GroupedFormSectionTitle({
     <h3
       data-slot="grouped-form-section-title"
       className={cn(
-        "px-[11px] text-ui-body font-semibold text-ui-label",
+        "ui-form-section-title",
         className
       )}
       {...props}
@@ -56,7 +56,7 @@ function GroupedFormGroup({
     <div
       data-slot="grouped-form-group"
       className={cn(
-        "flex flex-col rounded-ui-group bg-ui-group px-2.5",
+        "ui-form-group",
         className
       )}
       {...props}
@@ -69,7 +69,7 @@ function GroupedFormRow({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="grouped-form-row"
       className={cn(
-        "flex min-h-9 items-center justify-between gap-4 py-2 not-first:min-h-[37px] has-[[data-slot=grouped-form-row-description]]:py-2.5 not-first:border-t not-first:border-ui-separator has-[[data-slot=select-trigger]]:min-h-[37.5px] not-first:has-[[data-slot=select-trigger]]:min-h-[38.5px]",
+        "ui-form-row",
         className
       )}
       {...props}
@@ -85,7 +85,7 @@ function GroupedFormRowLabel({
   return (
     <div
       data-slot="grouped-form-row-label"
-      className={cn("flex min-w-0 flex-col gap-0.5", className)}
+      className={cn("ui-form-row-label", className)}
       {...props}
     />
   )
@@ -98,7 +98,7 @@ function GroupedFormRowTitle({
   return (
     <div
       data-slot="grouped-form-row-title"
-      className={cn("text-ui-body text-ui-label", className)}
+      className={cn("ui-form-row-title", className)}
       {...props}
     />
   )
@@ -112,7 +112,7 @@ function GroupedFormRowDescription({
     <p
       data-slot="grouped-form-row-description"
       className={cn(
-        "text-ui-subheadline text-ui-label-secondary",
+        "ui-form-row-description",
         className
       )}
       {...props}
@@ -128,7 +128,7 @@ function GroupedFormRowControl({
   return (
     <div
       data-slot="grouped-form-row-control"
-      className={cn("flex shrink-0 items-center gap-3", className)}
+      className={cn("ui-form-row-control", className)}
       {...props}
     />
   )
@@ -154,14 +154,7 @@ function GroupedFormExpanderRow({
       aria-expanded={expanded}
       onClick={onToggle}
       data-slot="grouped-form-row"
-      className={cn(
-        "flex w-full min-h-9 cursor-default items-center justify-between gap-4 py-2 text-left transition-colors outline-none not-first:min-h-[37px] not-first:border-t not-first:border-ui-separator",
-        expanded
-          ? "bg-black/6 hover-fill:bg-black/8 dark:bg-white/8 dark:hover-fill:bg-white/10"
-          : "hover-fill:bg-black/3 active:bg-black/5 dark:hover-fill:bg-white/4 dark:active:bg-white/7",
-        description && "py-2.5",
-        className
-      )}
+      className={cn("ui-form-row", className)}
     >
       <GroupedFormRowLabel>
         <GroupedFormRowTitle>{title}</GroupedFormRowTitle>

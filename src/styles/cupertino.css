@@ -269,3 +269,45 @@
 :root[data-interface-theme="cupertino"] [data-slot="switch-thumb"][data-checked]:dir(rtl) {
   translate: -18px 0;
 }
+
+/* ── Menus: 24px rows, accent highlight (CupertinoUI's menu) ─────────── */
+:root[data-interface-theme="cupertino"] [role="menu"]:not([data-menu="launcher"], [data-menu="control-panel"]) {
+  padding: 5px;
+}
+
+:root[data-interface-theme="cupertino"] [role="menu"] :is([role="menuitem"], [role="menuitemcheckbox"], [role="menuitemradio"]) {
+  min-height: 24px;
+  padding-block: 4px;
+  padding-inline: 11px 14px;
+  border-radius: var(--ui-radius-item);
+  font-size: var(--ui-font-body);
+  line-height: 16px;
+}
+
+/* Room for the check-mark column. */
+:root[data-interface-theme="cupertino"] [role="menu"] :is([role="menuitemcheckbox"], [role="menuitemradio"]) {
+  padding-left: 27px;
+}
+
+:root[data-interface-theme="cupertino"] [role="menu"] :is([role="menuitemcheckbox"], [role="menuitemradio"]) > span:first-child {
+  left: 11px;
+}
+
+:root[data-interface-theme="cupertino"] [role="menu"] :is([role="menuitem"], [role="menuitemcheckbox"], [role="menuitemradio"]):is([data-highlighted], [data-popup-open], :hover):not([data-disabled], [aria-disabled="true"], :disabled) {
+  background-color: var(--ui-menu-highlight);
+  color: #fff;
+}
+
+:root[data-interface-theme="cupertino"] [role="menu"] :is([role="menuitem"], [role="menuitemcheckbox"], [role="menuitemradio"]):is([data-highlighted], [data-popup-open], :hover):not([data-disabled], [aria-disabled="true"], :disabled) :is([data-slot$="-shortcut"], [data-slot$="-badge"]) {
+  color: inherit;
+}
+
+/* ── Sidebar: medium labels ──────────────────────────────────────────── */
+:root[data-interface-theme="cupertino"] [data-slot="sidebar-item"] {
+  font-weight: var(--piloti-font-weight-medium, 500);
+}
+
+/* In an unfocused window the accent is grey: keep labels readable. */
+:root[data-interface-theme="cupertino"] [data-slot="window"][data-inactive] :is([data-slot="sidebar-item"], [data-slot="sidebar-item-group"])[data-selected] {
+  color: var(--ui-label);
+}

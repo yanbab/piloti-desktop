@@ -275,7 +275,8 @@ export function AdwSplitView({
         onKeyDown={onSidebarKeyDown}
         onKeyUp={onSidebarKeyUp}
         className={cn(
-          "flex min-h-0 shrink-0 flex-col overflow-hidden border-r border-ui-separator bg-ui-sidebar",
+          // bg-ui-sidebar also marks sidebars for window and theme rules.
+          "ui-sidebar bg-ui-sidebar",
           resizable ? undefined : isCompact ? "w-[47px]" : sidebarWidthClass,
         )}
         style={
@@ -320,7 +321,7 @@ export function AdwSplitView({
             data-slot="sidebar-nav"
             onScroll={(e) => setSidebarScrolled(e.currentTarget.scrollTop > 2)}
             className={cn(
-              "flex min-h-0 flex-1 flex-col gap-0.5 pb-2 px-[9px]",
+              "ui-sidebar-nav",
               showCompact
                 ? "overflow-hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
                 : "overflow-y-auto",
@@ -338,39 +339,18 @@ export function AdwSplitView({
                     data-slot="sidebar-item"
                     data-selected={item.selected ? "" : undefined}
                     data-compact={showCompact ? "" : undefined}
+                    data-tall={tall ? "" : undefined}
+                    data-trailing={item.trailingAction ? "" : undefined}
                     data-vfs-drop-path={item.dropPath}
                     onClick={item.onClick}
-                    className={cn(
-                      "flex items-center rounded-ui-item text-left transition-colors outline-none",
-                      showCompact
-                        ? "w-full shrink-0 justify-center px-0"
-                        : item.trailingAction
-                          ? "min-w-0 flex-1 px-1.5 pr-7"
-                          : "w-full shrink-0 px-1.5",
-                      tall
-                        ? showCompact
-                          ? "gap-0 py-2 text-[14px]"
-                          : "gap-3 py-2 text-[14px]"
-                        : showCompact
-                          ? "gap-0 py-1.5 text-ui-body"
-                          : "gap-2.5 py-1.5 text-ui-body",
-                      !item.trailingAction &&
-                        (item.selected
-                          ? "bg-ui-accent font-medium text-white shadow-xs"
-                          : "font-normal text-ui-label/85 hover-fill:bg-black/5 dark:hover-fill:bg-white/6"),
-                    )}
+                    className="ui-sidebar-item"
                   >
-                    <span
-                      className={cn(
-                        "flex size-4 shrink-0 items-center justify-center [&_svg]:size-4",
-                        item.selected ? "opacity-100" : "opacity-85",
-                      )}
-                    >
+                    <span className="ui-sidebar-icon">
                       {item.icon}
                     </span>
                     {!showCompact && (
                       <>
-                        <span className="min-w-0 flex-1 truncate">{item.label}</span>
+                        <span className="ui-sidebar-label">{item.label}</span>
                         {item.badge !== undefined && item.badge !== "" && (
                           <span
                             className={cn(
@@ -392,12 +372,7 @@ export function AdwSplitView({
                   <div
                     data-slot="sidebar-item-group"
                     data-selected={item.selected ? "" : undefined}
-                    className={cn(
-                      "relative flex w-full shrink-0 items-center rounded-ui-item transition-colors",
-                      item.selected
-                        ? "bg-ui-accent font-medium text-white shadow-xs"
-                        : "font-normal text-ui-label/85 hover-fill:bg-black/5 dark:hover-fill:bg-white/6",
-                    )}
+                    className="ui-sidebar-item-group"
                   >
                     {baseBtn}
                     <button

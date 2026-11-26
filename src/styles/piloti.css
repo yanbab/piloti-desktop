@@ -9,7 +9,7 @@
  * is active, surfaces remain pure opaque Adwaita from `adwaita.css`.
  */
 
-:root:not([data-interface-theme="adwaita"])[data-more-transparency="true"]:not([data-high-contrast="true"]) {
+:root:not([data-interface-theme="adwaita"], [data-interface-theme="cupertino"])[data-more-transparency="true"]:not([data-high-contrast="true"]) {
   --piloti-surface: rgb(235 235 238 / 0.68);
   --piloti-backdrop: blur(22px) saturate(160%);
   --ui-sidebar: var(--piloti-surface);
@@ -22,7 +22,7 @@
   --ui-material-blur: 22px;
 }
 
-:root:not([data-interface-theme="adwaita"]).dark[data-more-transparency="true"]:not([data-high-contrast="true"]) {
+:root:not([data-interface-theme="adwaita"], [data-interface-theme="cupertino"]).dark[data-more-transparency="true"]:not([data-high-contrast="true"]) {
   --piloti-surface: rgb(36 36 40 / 0.65);
   --piloti-backdrop: blur(22px) saturate(160%);
   --ui-sidebar: var(--piloti-surface);
@@ -40,7 +40,7 @@
 
 /* A window forced dark on a light desktop (per-app Dark Mode): same dark
    materials as above, scoped to that window. */
-:root:not([data-interface-theme="adwaita"]):not(.dark)[data-more-transparency="true"]:not([data-high-contrast="true"]) .dark {
+:root:not([data-interface-theme="adwaita"], [data-interface-theme="cupertino"]):not(.dark)[data-more-transparency="true"]:not([data-high-contrast="true"]) .dark {
   --piloti-surface: rgb(36 36 40 / 0.65);
   --ui-sidebar: var(--piloti-surface);
   --ui-material-menu: var(--piloti-surface);
@@ -49,12 +49,12 @@
   --ui-menu-highlight: rgb(255 255 255 / 0.1);
 }
 
-:root:not([data-interface-theme="adwaita"])[data-more-transparency="true"]:not([data-high-contrast="true"]) .ui-material-menu,
-:root:not([data-interface-theme="adwaita"])[data-more-transparency="true"]:not([data-high-contrast="true"]) .ui-material-popover,
-:root:not([data-interface-theme="adwaita"])[data-more-transparency="true"]:not([data-high-contrast="true"]) .ui-material-hud,
-:root:not([data-interface-theme="adwaita"])[data-more-transparency="true"]:not([data-high-contrast="true"]) .ui-material-dock,
-:root:not([data-interface-theme="adwaita"])[data-more-transparency="true"]:not([data-high-contrast="true"]) .ui-material-sidebar,
-:root:not([data-interface-theme="adwaita"])[data-more-transparency="true"]:not([data-high-contrast="true"]) .bg-ui-sidebar {
+:root:not([data-interface-theme="adwaita"], [data-interface-theme="cupertino"])[data-more-transparency="true"]:not([data-high-contrast="true"]) .ui-material-menu,
+:root:not([data-interface-theme="adwaita"], [data-interface-theme="cupertino"])[data-more-transparency="true"]:not([data-high-contrast="true"]) .ui-material-popover,
+:root:not([data-interface-theme="adwaita"], [data-interface-theme="cupertino"])[data-more-transparency="true"]:not([data-high-contrast="true"]) .ui-material-hud,
+:root:not([data-interface-theme="adwaita"], [data-interface-theme="cupertino"])[data-more-transparency="true"]:not([data-high-contrast="true"]) .ui-material-dock,
+:root:not([data-interface-theme="adwaita"], [data-interface-theme="cupertino"])[data-more-transparency="true"]:not([data-high-contrast="true"]) .ui-material-sidebar,
+:root:not([data-interface-theme="adwaita"], [data-interface-theme="cupertino"])[data-more-transparency="true"]:not([data-high-contrast="true"]) .bg-ui-sidebar {
   background-color: var(--piloti-surface);
   -webkit-backdrop-filter: var(--piloti-backdrop);
   backdrop-filter: var(--piloti-backdrop);
@@ -67,13 +67,13 @@ body:has([data-dnd-kit-overlay]) [data-slot="tooltip-content"] {
 
 /* System Monitor: vibrant cards over the accent-tinted window. Adwaita and
    reduced transparency keep the solid group colour. */
-:root:not([data-interface-theme="adwaita"])[data-more-transparency="true"]:not([data-high-contrast="true"]) [data-slot="monitor-widget"] {
+:root:not([data-interface-theme="adwaita"], [data-interface-theme="cupertino"])[data-more-transparency="true"]:not([data-high-contrast="true"]) [data-slot="monitor-widget"] {
   background-color: rgb(255 255 255 / 0.55);
   -webkit-backdrop-filter: var(--piloti-backdrop);
   backdrop-filter: var(--piloti-backdrop);
 }
 
-:root:not([data-interface-theme="adwaita"]).dark[data-more-transparency="true"]:not([data-high-contrast="true"]) [data-slot="monitor-widget"],
-:root:not([data-interface-theme="adwaita"]):not(.dark)[data-more-transparency="true"]:not([data-high-contrast="true"]) .dark [data-slot="monitor-widget"] {
+:root:not([data-interface-theme="adwaita"], [data-interface-theme="cupertino"]).dark[data-more-transparency="true"]:not([data-high-contrast="true"]) [data-slot="monitor-widget"],
+:root:not([data-interface-theme="adwaita"], [data-interface-theme="cupertino"]):not(.dark)[data-more-transparency="true"]:not([data-high-contrast="true"]) .dark [data-slot="monitor-widget"] {
   background-color: rgb(255 255 255 / 0.08);
 }

@@ -578,7 +578,7 @@ aside [data-slot="window-titlebar"],
  * Adwaita Boxed Lists (AdwPreferencesPage / AdwPreferencesGroup / AdwActionRow):
  * Matches `Adwaita Demo -> Boxed Lists` pixel-for-pixel.
  */
-[data-slot="grouped-form"] {
+:where(:root:not([data-interface-theme="cupertino"])) [data-slot="grouped-form"] {
   max-width: 660px;
   width: 100%;
   margin-inline: auto;
@@ -586,11 +586,11 @@ aside [data-slot="window-titlebar"],
   gap: 6px;
 }
 
-[data-slot="grouped-form-section"] {
+:where(:root:not([data-interface-theme="cupertino"])) [data-slot="grouped-form-section"] {
   gap: 8px;
 }
 
-[data-slot="grouped-form-section-title"] {
+:where(:root:not([data-interface-theme="cupertino"])) [data-slot="grouped-form-section-title"] {
   /* Same left edge as the row titles (rows are inset 16px). */
   padding-inline: 16px;
   font-size: calc(14px * var(--piloti-font-scale, 1));
@@ -599,7 +599,7 @@ aside [data-slot="window-titlebar"],
   color: var(--ui-label);
 }
 
-[data-slot="grouped-form-group"] {
+:where(:root:not([data-interface-theme="cupertino"])) [data-slot="grouped-form-group"] {
   padding-inline: 0;
   border-radius: 12px;
   overflow: hidden;
@@ -607,31 +607,31 @@ aside [data-slot="window-titlebar"],
   box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.08), 0 0 0 1px rgb(0 0 0 / 0.07);
 }
 
-[data-slot="grouped-form-row"] {
+:where(:root:not([data-interface-theme="cupertino"])) [data-slot="grouped-form-row"] {
   padding-inline: 16px;
   min-height: 52px;
   padding-block: 10px;
   border-color: rgb(0 0 0 / 0.07);
 }
 
-.dark [data-slot="grouped-form-row"] {
+:where(:root:not([data-interface-theme="cupertino"]).dark) [data-slot="grouped-form-row"] {
   border-color: rgb(255 255 255 / 0.065);
 }
 
-[data-slot="grouped-form-row-title"] {
+:where(:root:not([data-interface-theme="cupertino"])) [data-slot="grouped-form-row-title"] {
   font-size: calc(14px * var(--piloti-font-scale, 1));
   font-weight: var(--piloti-font-weight, 400);
   line-height: 1.3;
 }
 
-[data-slot="grouped-form-row-description"] {
+:where(:root:not([data-interface-theme="cupertino"])) [data-slot="grouped-form-row-description"] {
   font-size: calc(12px * var(--piloti-font-scale, 1));
   line-height: 1.35;
   color: var(--ui-label-secondary);
 }
 
 /* Adwaita Select / ComboRow Trigger */
-[data-slot="select-trigger"] {
+:where(:root:not([data-interface-theme="cupertino"])) [data-slot="select-trigger"] {
   height: 32px !important;
   border-radius: 8px !important;
   padding-inline: 10px 8px !important;

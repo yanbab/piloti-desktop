@@ -1,0 +1,119 @@
+/*
+ * Grouped form (System Settings, boxed lists), in plain CSS:
+ *
+ *   .ui-form > .ui-form-section > h3.ui-form-section-title + .ui-form-group
+ *   .ui-form-group > .ui-form-row > .ui-form-row-label (title, description)
+ *                                 + .ui-form-row-control
+ *
+ * The base is CupertinoUI's form; Piloti and Adwaita restyle it through the
+ * data-slot hooks.
+ */
+
+@layer components {
+  .ui-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+    padding: 11px 1.25rem 1.25rem;
+    font-size: var(--ui-font-body);
+    line-height: 16px;
+    color: var(--ui-label);
+  }
+  .ui-form-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+  }
+  .ui-form-section:not(:first-child) {
+    margin-top: 1.25rem;
+  }
+  .ui-form-section-title {
+    padding-inline: 11px;
+    font-size: var(--ui-font-body);
+    line-height: 16px;
+    font-weight: var(--piloti-font-weight-semibold, 500);
+    color: var(--ui-label);
+  }
+  .ui-form-group {
+    display: flex;
+    flex-direction: column;
+    padding-inline: 0.625rem;
+    border-radius: var(--ui-radius-group);
+    background-color: var(--ui-group);
+  }
+
+  .ui-form-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    min-height: 2.25rem;
+    padding-block: 0.5rem;
+  }
+  .ui-form-row:not(:first-child) {
+    min-height: 37px;
+    border-top: 1px solid var(--ui-separator);
+  }
+  .ui-form-row:has([data-slot="grouped-form-row-description"]) {
+    padding-block: 0.625rem;
+  }
+  .ui-form-row:has([data-slot="select-trigger"]) {
+    min-height: 37.5px;
+  }
+  .ui-form-row:not(:first-child):has([data-slot="select-trigger"]) {
+    min-height: 38.5px;
+  }
+
+  /* A whole row that expands or opens something. */
+  button.ui-form-row {
+    width: 100%;
+    text-align: left;
+    cursor: default;
+    outline: none;
+    transition-property: color, background-color, border-color;
+    transition-duration: 150ms;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  button.ui-form-row:active {
+    background-color: rgb(0 0 0 / 0.05);
+  }
+  .dark button.ui-form-row:active {
+    background-color: rgb(255 255 255 / 0.07);
+  }
+  button.ui-form-row[aria-expanded="true"] {
+    background-color: rgb(0 0 0 / 0.06);
+  }
+  .dark button.ui-form-row[aria-expanded="true"] {
+    background-color: rgb(255 255 255 / 0.08);
+  }
+  /* Hover fills are for GNOME-like themes only. */
+  :where(:root:not([data-interface-theme="piloti"], [data-interface-theme="cupertino"])) button.ui-form-row:hover:not(:active) {
+    background-color: rgb(0 0 0 / 0.03);
+  }
+  :where(:root:not([data-interface-theme="piloti"], [data-interface-theme="cupertino"])).dark button.ui-form-row:hover:not(:active) {
+    background-color: rgb(255 255 255 / 0.04);
+  }
+
+  .ui-form-row-label {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    gap: 0.125rem;
+  }
+  .ui-form-row-title {
+    font-size: var(--ui-font-body);
+    line-height: 16px;
+    color: var(--ui-label);
+  }
+  .ui-form-row-description {
+    font-size: var(--ui-font-subheadline);
+    line-height: 14px;
+    color: var(--ui-label-secondary);
+  }
+  .ui-form-row-control {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: 0.75rem;
+  }
+}
