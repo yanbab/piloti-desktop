@@ -271,7 +271,7 @@ export function createBrowserDomicile(hostFallbackFiles?: Domicile["files"]): Do
                   dispatchSystemLine({
                     id,
                     type: "system_reply",
-                    reply: { kind: "stat", file_type: "directory", size: 0 },
+                    reply: { kind: "stat", file_type: "directory", size: 0, modified_ms: 0 },
                   });
                   return;
                 }
@@ -280,7 +280,7 @@ export function createBrowserDomicile(hostFallbackFiles?: Domicile["files"]): Do
                   dispatchSystemLine({
                     id,
                     type: "system_reply",
-                    reply: { kind: "stat", file_type: "file", size: bytes.length },
+                    reply: { kind: "stat", file_type: "file", size: bytes.length, modified_ms: 0 },
                   });
                   return;
                 }
