@@ -9,10 +9,7 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  useWindowActions,
-  useChromeSettings,
-} from "@/context/DesktopStateContext";
+import { useWindowActions, useDesktopSetting } from "@/context/DesktopStateContext";
 import { isCloseOnLeft } from "@/components/ui/window";
 import { _ } from "@/lib/core/i18n";
 import { cn } from "@/lib/core/utils";
@@ -249,7 +246,7 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
     return () => window.removeEventListener("hashchange", onHashChange);
   }, [setScientific]);
 
-  const closeOnLeft = isCloseOnLeft(useChromeSettings().settings.windowButtonLayout);
+  const closeOnLeft = isCloseOnLeft(useDesktopSetting("windowButtonLayout"));
 
   const handleClose = () => {
     if (onCloseWindow) {

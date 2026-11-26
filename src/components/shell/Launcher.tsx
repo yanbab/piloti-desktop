@@ -32,11 +32,12 @@ import {
 } from "@/components/ui/command";
 import {
   useApps,
-  useChromeSettings,
   useSystemBackends,
   type DesktopWindowInstance,
   useWindowActions,
   useWindowManagerSelector,
+  useDesktopSettings,
+  useUpdateSettings,
 } from "@/context/DesktopStateContext";
 import { usePlugins } from "@/context/PluginsContext";
 import { APP_CATALOG, isBuiltinAppEntry } from "@/data/catalog";
@@ -289,7 +290,8 @@ function pickLauncherWindow(w: DesktopWindowInstance): LauncherWindow {
 
 export const Launcher = React.memo(function Launcher() {
   countRender("Launcher");
-  const { settings, updateSettings } = useChromeSettings();
+  const settings = useDesktopSettings(["hiddenGnomePanels", "installedWebApps", "muted", "themeMode"]);
+  const updateSettings = useUpdateSettings();
   const { realFilesystem } = useCapabilities();
   const { pluginCommands } = usePlugins();
   const {

@@ -7,7 +7,7 @@ import {
 import { isWebEngine } from "@/lib/engine/engine";
 
 export async function runText(
-  piloti: Piloti,
+  piloti: Pick<Piloti, "processes">,
   argv: readonly string[]
 ): Promise<string | null> {
   try {

@@ -92,6 +92,15 @@ async function boot(root: HTMLElement, piloti: Parameters<ShellModule>[1]) {
       await moveLegacyConfigDir(piloti, `${home}/.config`).catch(() => undefined);
       setStateSource(await createNativeStateStore(nativeVfs, home));
       finishPreload();
+      // Desktop settings in dconf when Piloti's schemas are installed.
+      const finishSettings = startBootPhase("settings backend");
+      const { selectNativeSettingsBackend } = await import("@/lib/engine-native/settings-backend");
+      const statVfs = nativeVfs;
+      const backend = await selectNativeSettingsBackend(piloti, {
+        home,
+        exists: async (path) => (await statVfs.stat(path).catch(() => null)) !== null,
+      }).catch(() => "keyfile");
+      finishSettings(backend);
     }
   } catch (error) {
     console.error("Could not resolve $HOME; using the virtual /home/user", error);

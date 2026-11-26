@@ -6,7 +6,7 @@ import {
   writeVfsStateText,
 } from "@/lib/engine/vfs-state";
 import { parseIniText, serializeIniText, type IniRecord } from "@/lib/config/ini";
-import type { SettingValue, SettingsBackend } from "@/lib/ports/settings";
+import type { SettingChange, SettingValue, SettingsBackend } from "@/lib/ports/settings";
 
 /**
  * Typed settings for one schema:
@@ -96,14 +96,28 @@ export function keyfileSettingsBackend(
     return ini;
   };
 
+  /** Applies changes to one file's schemas, then writes it once. */
+  const saveFile = (path: string, changes: readonly SettingChange[]) => {
+    const ini = { ...load(changes[0].schema) };
+    for (const { schema, key, value } of changes) {
+      const name = sectionOf(schema);
+      const section = { ...(ini[name] ?? {}) };
+      if (value === null) delete section[key];
+      else section[key] = value;
+      if (Object.keys(section).length > 0) ini[name] = section;
+      else delete ini[name];
+    }
+    writeVfsStateText(path, serializeIniText(ini));
+  };
   const save = (schema: string, edit: (section: Record<string, string>) => void) => {
-    const ini = { ...load(schema) };
-    const name = sectionOf(schema);
-    const section = { ...(ini[name] ?? {}) };
+    const section: Record<string, string> = { ...(load(schema)[sectionOf(schema)] ?? {}) };
+    const before = { ...section };
     edit(section);
-    if (Object.keys(section).length > 0) ini[name] = section;
-    else delete ini[name];
-    writeVfsStateText(pathOf(schema), serializeIniText(ini));
+    const changes: SettingChange[] = [];
+    for (const key of new Set([...Object.keys(before), ...Object.keys(section)])) {
+      if (before[key] !== section[key]) changes.push({ schema, key, value: section[key] ?? null });
+    }
+    if (changes.length > 0) saveFile(pathOf(schema), changes);
   };
 
   return {
@@ -114,6 +128,15 @@ export function keyfileSettingsBackend(
     subscribeAll(listener) {
       const stops = layout.dirs.map((dir) => subscribeVfsStateDir(dir, listener));
       return () => stops.forEach((stop) => stop());
+    },
+    writeBatch(changes) {
+      const byFile = new Map<string, SettingChange[]>();
+      for (const change of changes) {
+        const path = pathOf(change.schema);
+        if (!byFile.has(path)) byFile.set(path, []);
+        byFile.get(path)!.push(change);
+      }
+      for (const [path, fileChanges] of byFile) saveFile(path, fileChanges);
     },
   };
 }
@@ -147,6 +170,20 @@ export function memorySettingsBackend(): SettingsBackend {
       all.add(listener);
       return () => all.delete(listener);
     },
+    writeBatch(changes) {
+      const touched = new Set<string>();
+      for (const { schema, key, value } of changes) {
+        const current = data.get(schema)?.get(key);
+        if (value === null) {
+          if (data.get(schema)?.delete(key)) touched.add(schema);
+        } else if (current !== value) {
+          if (!data.has(schema)) data.set(schema, new Map());
+          data.get(schema)!.set(key, value);
+          touched.add(schema);
+        }
+      }
+      for (const schema of touched) notify(schema);
+    },
   };
 }
 
@@ -159,6 +196,11 @@ export function setSettingsBackend(next: SettingsBackend | null): void {
 
 function currentBackend(): SettingsBackend {
   return (backend ??= keyfileSettingsBackend());
+}
+
+/** The backend in use (keyfile unless an entry point picked another). */
+export function settingsBackend(): SettingsBackend {
+  return currentBackend();
 }
 
 /* ------------------------------------------------------------------ */

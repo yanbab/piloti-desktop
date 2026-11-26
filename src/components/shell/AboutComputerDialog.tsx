@@ -10,10 +10,10 @@ import {
 } from "@/components/ui/window";
 import { PILOTI_VERSION } from "@/lib/core/version";
 import {
-  useChromeSettings,
   useWindowActions,
   useWindowManagerSelector,
   useSettingsSelector,
+  useDesktopSetting,
 } from "@/context/DesktopStateContext";
 import { _ } from "@/lib/core/i18n";
 import { cn } from "@/lib/core/utils";
@@ -160,7 +160,7 @@ let lastInfo: ComputerInfo | null = null;
 export function AboutComputerDialog() {
   const piloti = usePiloti();
   const isBrowserRuntime = useSettingsSelector((v) => v.isBrowserRuntime); // FIXME : Capabilities
-  const closeOnLeft = isCloseOnLeft(useChromeSettings().settings.windowButtonLayout);
+  const closeOnLeft = isCloseOnLeft(useDesktopSetting("windowButtonLayout"));
   const aboutOpen = useWindowManagerSelector((wm) => wm.aboutOpen);
   const { setAboutOpen, launchApp } = useWindowActions();
   // The last probe, or blank: never a made-up name that changes under the eyes.

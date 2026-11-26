@@ -9,6 +9,13 @@
  */
 export type SettingValue = string | number | boolean | string[];
 
+/** One change of a batch: `value` null resets the key. */
+export interface SettingChange {
+  schema: string;
+  key: string;
+  value: string | null;
+}
+
 export interface SettingsBackend {
   /** The stored value as text, or `undefined` when the key was never set. */
   read(schema: string, key: string): string | undefined;
@@ -19,4 +26,6 @@ export interface SettingsBackend {
   subscribe(schema: string, listener: () => void): () => void;
   /** The same for every schema this backend holds. */
   subscribeAll(listener: () => void): () => void;
+  /** Several changes at once (one file write, one notification per schema). */
+  writeBatch(changes: readonly SettingChange[]): void;
 }

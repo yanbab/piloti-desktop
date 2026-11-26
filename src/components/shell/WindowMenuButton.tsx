@@ -11,9 +11,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  useChromeSettings,
   useWindowActions,
   useWindowManagerSelector,
+  useDesktopSettings,
 } from "@/context/DesktopStateContext";
 import { useOptionalApps } from "@/context/AppsContext";
 import { _ } from "@/lib/core/i18n";
@@ -38,7 +38,7 @@ export const WindowMenuButton = React.memo(function WindowMenuButton({
   extraItems?: React.ReactNode;
 }) {
   countRender("WindowMenuButton");
-  const { settings } = useChromeSettings();
+  const settings = useDesktopSettings(["showWindowMenu", "windowButtonLayout"]);
   const [open, setOpen] = React.useState(false);
 
   if (!settings.showWindowMenu) {

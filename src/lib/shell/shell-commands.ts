@@ -1,3 +1,5 @@
+import { Err, Ok, type Result } from "@cprussin/option-result";
+import type { CommandRan, ShellCommandHelp } from "@domicile-desktop/sdk/shell-command";
 import { canonicalizeWebUrl } from "@/data/web-apps";
 
 export interface PilotiShellCommandHandlers {
@@ -53,8 +55,8 @@ export function resolvePilotiCommandAppId(raw: string): string {
 }
 
 /**
- * A command from `piloti.shell.commands()`: its words (SDK 2.x), or, from
- * Domicile 1.3 (SDK 3), `{ words, sent }` that the shell must answer.
+ * A command from `piloti.shell.commands()`: `{ words, sent }` to answer
+ * (Domicile ≥ 1.3, SDK 3), or only its words from an older Domicile.
  */
 export type IncomingShellCommand =
   | readonly string[]
@@ -71,16 +73,24 @@ export function shellCommandNumber(command: IncomingShellCommand): number | unde
   return typeof sent === "number" ? sent : undefined;
 }
 
-/**
- * The answer for `shell.answer(sent, …)`: `Ok("ran")`, or `Err(reason)`. Only
- * `match` is read, so it works whatever SDK the runtime has.
- */
-export function shellCommandAnswer(ran: boolean, refused: string) {
-  return {
-    match: <T>(arms: { Ok: (done: "ran") => T; Err: (reason: string) => T }): T =>
-      ran ? arms.Ok("ran") : arms.Err(refused),
-  };
+/** The answer for `shell.answer(sent, …)`: `Ok("ran")`, or `Err(why)`. */
+export function shellCommandAnswer(ran: boolean, refused: string): Result<CommandRan, string> {
+  return ran ? Ok<CommandRan, string>("ran") : Err<CommandRan, string>(refused);
 }
+
+/** What `domicile list-shell-commands` prints for Piloti. */
+export const PILOTI_SHELL_COMMAND_HELP: readonly ShellCommandHelp[] = [
+  { usage: "open [--app] <app|url|file> [arg]", description: "Open a built-in app, a URL (as an app with --app) or a file" },
+  { usage: "settings [pane]", description: "Open Settings, at a pane if given" },
+  { usage: "launcher", description: "Open the Launcher" },
+  { usage: "overview", description: "Toggle the Overview" },
+  { usage: "lock", description: "Lock the screen" },
+  { usage: "logout|restart|poweroff", description: "Ask to log out, restart or power off" },
+  { usage: "screenshot", description: "Take a screenshot" },
+  { usage: "record", description: "Start a screen recording" },
+  { usage: "install|add <url>", description: "Install a web app" },
+  { usage: "remove|del|uninstall <url|id>", description: "Remove a web app" },
+];
 
 /**
  * Dispatches a `domicile send-shell <words...>` command array into Piloti shell actions.

@@ -128,6 +128,11 @@ export function createBrowserDomicile(hostFallbackFiles?: Domicile["files"]): Do
           modeWidth: w * 2,
           modeHeight: h * 2,
           transform: "normal",
+          refreshMhz: 60000,
+          adaptiveSync: "unsupported",
+          hdr: "unsupported",
+          peakLuminance: 0,
+          sdrWhite: 0,
         },
       ],
     });

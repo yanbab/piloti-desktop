@@ -47,10 +47,12 @@ import {
   useApps,
 } from "@/context/AppsContext";
 import {
-  useChromeSettings,
   useSystemBackends,
   useWindowActions,
   useWindowManagerSelector,
+  useDesktopSettings,
+  useSettingsSelector,
+  useUpdateSettings,
 } from "@/context/DesktopStateContext";
 import { APP_CATALOG, type AppDefinition } from "@/data/catalog";
 import {
@@ -94,7 +96,9 @@ import { AppSquircleIcon } from "./AppSymbol";
 export const Dock = React.memo(function Dock() {
   countRender("Dock");
   const piloti = usePiloti();
-  const { isBrowserRuntime, settings, updateSettings } = useChromeSettings();  // FIXME : Capabilities
+  const isBrowserRuntime = useSettingsSelector((v) => v.isBrowserRuntime); // FIXME : Capabilities
+  const settings = useDesktopSettings(["debugMode", "dockAutoHide", "dockFolders", "dockMagnification", "dockMagnificationSize", "dockPosition", "dockSize", "installedWebApps", "pinnedAppIds"]);
+  const updateSettings = useUpdateSettings();
   const { pushNotification } = useSystemBackends();
   const {
     installedXdgApps,

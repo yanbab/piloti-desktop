@@ -43,29 +43,6 @@ const SettingsStoreContext = React.createContext<SelectorStore<SettingsContextVa
   null,
 );
 
-/** Settings minus fields that change on every window drag / icon move. */
-export type ChromeSettings = Omit<DesktopSettings, "savedWindowBounds" | "desktopIconPositions">;
-
-function selectChromeSettings(v: SettingsContextValue) {
-  const { savedWindowBounds: _bounds, desktopIconPositions: _icons, ...settings } = v.settings;
-  return {
-    isBrowserRuntime: v.isBrowserRuntime,  // FIXME : Capabilities
-    updateSettings: v.updateSettings,
-    settings: settings as ChromeSettings,
-  };
-}
-
-/**
- * `useSettings()` for shell chrome (MenuBar, Dock, Launcher, window buttons):
- * same `settings` object shape but without `savedWindowBounds` /
- * `desktopIconPositions`, so dragging a window or an icon doesn't re-render it.
- */
-export function useChromeSettings(): ReturnType<typeof selectChromeSettings> {
-  const store = React.useContext(SettingsStoreContext);
-  if (!store) throw new Error("useChromeSettings must be used within DesktopStateProvider");
-  return useStoreSelector(store, selectChromeSettings);
-}
-
 function useSettingsStore(hook: string): SelectorStore<SettingsContextValue> {
   const store = React.useContext(SettingsStoreContext);
   if (!store) throw new Error(`${hook} must be used within DesktopStateProvider`);

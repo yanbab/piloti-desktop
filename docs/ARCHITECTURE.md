@@ -30,7 +30,7 @@ UI (React)  ─►  piloti: Domicile's desktop + vfs, settings, desktop…
 | What | API | Stored in |
 |---|---|---|
 | Files | `piloti.vfs`; views use `useVfsList` / `useVfsText`… | the disk |
-| Settings | schema + key (`defineSettings`, `useDesktopSettings`) | `~/.config/piloti/settings.ini`, `apps/<app>.ini` |
+| Settings | schema + key (`defineSettings`, `useDesktopSettings`) | desktop: dconf (Linux, schema installed) or `settings.ini`; apps: `apps/<app>.ini` |
 | Shell state | `engine/vfs-state.ts`, read synchronously | `~/.local/state/piloti/`, `~/.cache/piloti/` |
 
 - **One cache** (TanStack Query) for file reads; one watch per path, shared.

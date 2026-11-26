@@ -54,11 +54,16 @@ const calc = defineSettings("org.piloti.calculator", { scientific: false });
 calc.get("scientific");   // also set, reset, subscribe
 ```
 
-| Schema | File in `~/.config/piloti/` |
+| Schema | Stored in |
 |---|---|
-| `org.piloti.desktop[.*]` | `settings.ini` |
-| `org.piloti.<app>[.*]` | `apps/<app>.ini` |
-| other | `apps/<schema>.ini` |
+| `org.piloti.desktop[.*]` | dconf on Linux when Piloti's schema is installed (`gsettings get org.piloti.desktop.dock icon-size`); otherwise `~/.config/piloti/settings.ini` |
+| `org.piloti.<app>[.*]` | `~/.config/piloti/apps/<app>.ini` |
+| other | `~/.config/piloti/apps/<schema>.ini` |
+
+The `.deb` installs `/usr/share/glib-2.0/schemas/org.piloti.desktop.gschema.xml`,
+generated from the settings table (`bun scripts/generate-gschemas.ts`; a test
+checks it is current). The first start with it copies settings.ini into dconf;
+after that settings.ini is no longer read on Linux.
 
 An app file's `[General]` section holds keys the shell applies to the app
 (`getAppSetting`, `setAppSetting`, `ctx.apps`). Unknown schemas read as text.
@@ -100,6 +105,38 @@ Types: `node_modules/@domicile-desktop/sdk/dist/desktop/`.
 | `browser` | `windows`, `open`, `openPrivate`, `openApp`, `close`, `fetch`, `countMatches` |
 | `extensions`, `googleCast`, `shell` | `list`, `activate`; `receivers`, `cast`, `stop`; `options`, `commands` |
 
+## Command line
+
+`piloti` is a wrapper that sends commands to the running shell
+(`domicile send-shell`). It does not take Domicile's own subcommands.
+
+| `piloti` command | Does |
+|---|---|
+| `session [args]` (default), `greeter` | start the desktop or the greeter |
+| `reload [shell.js]`, `which-shell` | reload, or print, the shell |
+| `open [--app] <app\|url\|file> [arg]` | open an app, URL or file |
+| `settings [pane]` | open Settings |
+| `launcher`, `overview` | open the Launcher; toggle the Overview |
+| `screenshot [file]`, `record` | capture |
+| `lock`, `logout`, `restart`, `poweroff` | session and power |
+| `install <url>`, `remove <url\|id>`, `list` | web apps (aliases `add`; `del`, `uninstall`) |
+| `send <word...>` | send a raw shell command |
+| `help`, `version` | usage, version |
+
+Shell commands live in `lib/shell/shell-commands.ts`.
+
+Use [`domicile`](https://domicile-desktop.com/docs/reference/cli) directly for
+the rest: `theme`, `status`, `list-windows`, `focus-window`, `list-displays`,
+`configure-display`, `logs`, `list-shell-commands`…
+
+**Theme.** `domicile theme dark` sets the compositor's theme, not Piloti's
+setting, so the shell does not follow it. With GNOME settings sync on, this
+should change Piloti too:
+
+```bash
+gsettings set org.gnome.desktop.interface color-scheme prefer-dark
+```
+
 ## React hooks
 
 | Hook | Gives |
@@ -113,7 +150,6 @@ Types: `node_modules/@domicile-desktop/sdk/dist/desktop/`.
 | `useSetting(calc, "key")` | `[value, set]` |
 | `useDesktopSetting("dockSize")`, `useDesktopSettings([…])` | desktop settings, re-render on those only |
 | `useUpdateSettings()`, `useSettingsSelector(fn)` | patch; derived value |
-| `useChromeSettings()` | all but window bounds and icon positions |
 | `useApps()`, `usePlugins()` | apps, plugins |
 | `useOpenPath()` | open a file or folder |
 | `useWindowActions()`, `useWindowManagerSelector(fn)` | window actions, window state |

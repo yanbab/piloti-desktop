@@ -181,6 +181,20 @@ export function desktopSchemaDefaults(
   return out;
 }
 
+export type DesktopKeyKind = FieldKind;
+
+/** Every key of the desktop schemas, with its kind: the gschema and backends use it. */
+export function desktopSchemaKeys(): Array<{ schema: string; key: string; kind: DesktopKeyKind }> {
+  return [
+    ...SETTINGS_INI_SCHEMA.map(([schema, key, , kind]) => ({ schema, key, kind })),
+    ...BG_SCHEMA.map(([key, , kind]) => ({
+      schema: "org.piloti.desktop.background",
+      key,
+      kind: kind as DesktopKeyKind,
+    })),
+  ];
+}
+
 /** The values of `next` that differ from `prev`, among those settings.ini holds. */
 export function diffDesktopSettings(
   prev: DesktopSettings,

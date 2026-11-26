@@ -10,6 +10,11 @@ if [ "$1" = "configure" ]; then
     gtk-update-icon-cache -q -t -f /usr/share/icons/hicolor 2>/dev/null || true
   fi
 
+  # Piloti's settings schemas (org.piloti.desktop.*); glib's trigger does it too.
+  if command -v glib-compile-schemas >/dev/null 2>&1; then
+    glib-compile-schemas /usr/share/glib-2.0/schemas 2>/dev/null || true
+  fi
+
   # Pre-warm Domicile's shell cache system-wide so first login hits cache (~0.2s)
   # instead of running Vite re-bundling and showing the build splash screen.
   if [ -x /usr/libexec/domicile/builder ]; then

@@ -19,11 +19,11 @@ import {
 } from "@/components/ui/tooltip";
 import {
   DesktopStateProvider,
-  useChromeSettings,
   useSystemBackends,
   useWindowActions,
   useWindowManagerSelector,
   useDesktopSettings,
+  useUpdateSettings,
 } from "@/context/DesktopStateContext";
 import {
   canonicalizeWebUrl,
@@ -33,6 +33,7 @@ import {
 import {
   dispatchPilotiShellCommand,
   type IncomingShellCommand,
+  PILOTI_SHELL_COMMAND_HELP,
   shellCommandAnswer,
   shellCommandNumber,
   shellCommandWords,
@@ -88,12 +89,6 @@ import { listFsTemplates } from "@/lib/engine/fs-bridge";
 import { useVfsQuery } from "@/hooks/use-vfs";
 import { vfsKeys } from "@/lib/engine/vfs-query";
 
-/** `piloti.shell.answer` (Domicile ≥ 1.3, SDK 3; not in the SDK 2.2 types). */
-type AnswerShellCommand = (
-  sent: number,
-  ran: ReturnType<typeof shellCommandAnswer>,
-) => Promise<unknown> | unknown;
-
 const NO_TEMPLATES: WebVfsEntry[] = [];
 
 installConsoleCapture();
@@ -102,7 +97,8 @@ logBootEvent("starting shell");
 function DesktopSurface() {
   const piloti = usePiloti();
   // Chrome view of settings: window drags (saved bounds) don't re-render the surface.
-  const { settings, updateSettings } = useChromeSettings();
+  const settings = useDesktopSettings(["brightness", "debugMode", "installedWebApps", "nightLight"]);
+  const updateSettings = useUpdateSettings();
   const { systemServices, simulatedHardware } = useCapabilities();
 
   React.useEffect(() => {
@@ -436,7 +432,7 @@ function DomicileShellCommandBridge() {
     let stopListening: (() => void) | null = null;
 
     void piloti.shell
-      .commands()
+      .commands(PILOTI_SHELL_COMMAND_HELP, [])
       .then((res) => {
         res.match({
           Ok: async (listening) => {
@@ -453,13 +449,12 @@ function DomicileShellCommandBridge() {
               const words = shellCommandWords(command);
               console.info("[Piloti] shellCommand", words);
               const ran = dispatchPilotiShellCommand(words, handlersRef.current);
-              // Domicile ≥ 1.3 waits for an answer (`domicile send-shell` fails without).
+              // `domicile send-shell` waits for the answer (Domicile ≥ 1.3).
               const sent = shellCommandNumber(command);
-              const answer = (piloti.shell as { answer?: AnswerShellCommand }).answer;
-              if (sent !== undefined && typeof answer === "function") {
-                void Promise.resolve(
-                  answer(sent, shellCommandAnswer(ran, `Piloti has no command "${words.join(" ")}"`)),
-                ).catch(() => undefined);
+              if (sent !== undefined && typeof piloti.shell.answer === "function") {
+                void piloti.shell
+                  .answer(sent, shellCommandAnswer(ran, `Piloti has no command "${words.join(" ")}"`))
+                  .catch(() => undefined);
               }
             }
           },

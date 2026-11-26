@@ -58,10 +58,12 @@ import {
 } from "@/components/ui/menubar";
 import {
   useApps,
-  useChromeSettings,
   useSystemBackends,
   useWindowActions,
   useWindowManagerSelector,
+  useDesktopSettings,
+  useSettingsSelector,
+  useUpdateSettings,
 } from "@/context/DesktopStateContext";
 import { matchXdgEntryForWaylandWindow } from "xdg-desktop-entry";
 import { _, getLocale } from "@/lib/core/i18n";
@@ -241,7 +243,9 @@ export const MenuBar = React.memo(function MenuBar() {
   const piloti = usePiloti();
   const captureActivity = useCaptureActivity();
   const { statusItems } = usePlugins();
-  const { isBrowserRuntime, settings, updateSettings } = useChromeSettings();  // FIXME : Capabilities
+  const isBrowserRuntime = useSettingsSelector((v) => v.isBrowserRuntime); // FIXME : Capabilities
+  const settings = useDesktopSettings(["activeWorkspace", "bluetoothEnabled", "clock24Hour", "clockShowDate", "clockShowDay", "clockShowSeconds", "computerModel", "doNotDisturb", "enabledPluginIds", "installedWebApps", "keyboardLayout", "muted", "pinnedAppIds", "powerMode", "showBatteryPercentage", "volume", "wifiEnabled", "workspaceCount"]);
+  const updateSettings = useUpdateSettings();
   // The compositor starts on its first keymap: put back the chosen one.
   React.useEffect(() => {
     if (settings.keyboardLayout) selectKeymap(piloti, settings.keyboardLayout);

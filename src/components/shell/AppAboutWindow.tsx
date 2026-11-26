@@ -2,7 +2,7 @@ import * as React from "react";
 import { createPortal } from "react-dom";
 import { isCloseOnLeft, Window, WindowControls, WindowMain } from "@/components/ui/window";
 import { AppSquircleIcon } from "@/components/shell/AppSymbol";
-import { useApps, useChromeSettings } from "@/context/DesktopStateContext";
+import { useApps, useDesktopSetting } from "@/context/DesktopStateContext";
 import type { AppDefinition } from "@/data/catalog";
 import { _ } from "@/lib/core/i18n";
 import { cn } from "@/lib/core/utils";
@@ -43,7 +43,7 @@ export function AppAboutWindow({
     return () => observer.disconnect();
   }, []);
 
-  const closeOnLeft = isCloseOnLeft(useChromeSettings().settings.windowButtonLayout);
+  const closeOnLeft = isCloseOnLeft(useDesktopSetting("windowButtonLayout"));
 
   return createPortal(
     <Window

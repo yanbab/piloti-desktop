@@ -33,8 +33,12 @@ import {
   parseDesktopSettingsRaw,
   serializeDesktopSettingsIni,
 } from "@/lib/config/piloti-settings-ini";
-import { mergeIniText } from "@/lib/config/ini";
-import { defineSettings } from "@/lib/engine/settings";
+import { defineSettings, settingsBackend } from "@/lib/engine/settings";
+import {
+  readDesktopSettingsRaw,
+  subscribeDesktopSettings,
+  writeDesktopSettings,
+} from "@/lib/config/desktop-settings-store";
 import {
   installWebAppDesktopEntry,
   loadWebAppsFromDesktopEntries,
@@ -181,7 +185,7 @@ export interface DesktopSettings {
   savedWindowBounds: Record<string, SavedWindowBounds>;
 }
 
-const DEFAULT_SETTINGS: DesktopSettings = {
+export const DEFAULT_SETTINGS: DesktopSettings = {
   interfaceTheme: "piloti",
   themeMode: "system",
   accentColor: "teal",
@@ -516,7 +520,10 @@ export function useSettingsValue(options?: {
   const [settings, setSettings] = React.useState<DesktopSettings>(() => {
     if (typeof window === "undefined") return DEFAULT_SETTINGS;
     try {
-      let savedRaw = readVfsStateText(VFS_STATE_PATHS.settings, STORAGE_KEY);
+      // The settings backend (settings.ini, or dconf on Linux), then older places.
+      let savedRaw =
+        readDesktopSettingsRaw(settingsBackend()) ??
+        readVfsStateText(VFS_STATE_PATHS.settings, STORAGE_KEY);
       if (savedRaw === null) {
         const legacyJson = readVfsStateText(VFS_STATE_PATHS.legacySettingsJson);
         if (legacyJson !== null) {
@@ -526,10 +533,7 @@ export function useSettingsValue(options?: {
       }
       const base = resolveInitialSettings(savedRaw, isBrowserRuntime);  // FIXME : Capabilities
       if (savedRaw !== null && savedRaw.trim().startsWith("{")) {
-        writeVfsStateText(
-          VFS_STATE_PATHS.settings,
-          serializeDesktopSettingsIni(base)
-        );
+        writeDesktopSettings(settingsBackend(), base);
       }
       const separatedBounds = loadSeparatedRecord<SavedWindowBounds>(
         VFS_STATE_PATHS.windowBounds,
@@ -577,11 +581,8 @@ export function useSettingsValue(options?: {
     if (!pending) return;
     pendingSettingsIniRef.current = null;
     try {
-      // Other schemas may live in settings.ini too (`engine/settings.ts`): keep them.
-      writeVfsStateText(
-        VFS_STATE_PATHS.settings,
-        mergeIniText(readVfsStateText(VFS_STATE_PATHS.settings), serializeDesktopSettingsIni(pending)),
-      );
+      // Only the keys that changed; keys the shell doesn't know stay.
+      writeDesktopSettings(settingsBackend(), pending);
     } catch {
       // ignore storage errors
     }
@@ -738,11 +739,8 @@ export function useSettingsValue(options?: {
   React.useEffect(() => {
     try {
       runVfsStateMigrations();
-      if (readVfsStateText(VFS_STATE_PATHS.settings) === null) {
-        writeVfsStateText(
-          VFS_STATE_PATHS.settings,
-          serializeDesktopSettingsIni(settingsRef.current)
-        );
+      if (readDesktopSettingsRaw(settingsBackend()) === null) {
+        writeDesktopSettings(settingsBackend(), settingsRef.current);
       }
       if (readVfsStateText(VFS_STATE_PATHS.windowBounds) === null) {
         writeVfsStateJson(
@@ -760,7 +758,7 @@ export function useSettingsValue(options?: {
       // ignore initial VFS seed errors
     }
 
-    const unsubSettings = subscribeVfsPath(VFS_STATE_PATHS.settings, (raw) => {
+    const unsubSettings = subscribeDesktopSettings(settingsBackend(), (raw) => {
       if (!raw || !raw.trim()) return;
       const parsedPatch = parseDesktopSettingsRaw(raw);
       if (!parsedPatch) return;

@@ -86,6 +86,12 @@ export type PowerAction = "logout" | "restart" | "poweroff";
 
 export type { ShellNotification };
 
+/** Seconds of warning before the screens blank for inactivity. */
+const IDLE_WARNING_SECONDS = 30;
+
+/** A stream from a Domicile `Listening` (items + stop). */
+type StreamListening<T> = { items: ReadableStream<T>; stop: () => void };
+
 export interface SystemBackendsContextValue {
   gnomeCapabilities: GnomeSystemCapabilities;
   availableGnomePanels: GnomeControlCenterPanelInfo[];
@@ -601,10 +607,20 @@ export function useSystemBackendsValue(
     let stopWarnings: (() => void) | undefined;
     let stopRefusals: (() => void) | undefined;
 
-    (async () => {
+    // "Screen will dim in Ns": Domicile ≥ 1.3 says `true` that many seconds
+    // before blanking and `false` when it is called off; older ones sent the
+    // milliseconds left (`idleWarnings`).
+    let countdown: ReturnType<typeof setInterval> | undefined;
+    const stopCountdown = () => {
+      if (countdown) clearInterval(countdown);
+      countdown = undefined;
+    };
+    const listen = async <T,>(
+      open: () => Promise<{ match: (arms: { Ok: (l: StreamListening<T>) => void; Err: () => void }) => void }>,
+      onValue: (value: T) => void,
+    ) => {
       try {
-        const res = await piloti.session.idleWarnings();
-        res.match({
+        (await open()).match({
           Ok: async (listening) => {
             if (cancelled) {
               listening.stop();
@@ -615,7 +631,7 @@ export function useSystemBackendsValue(
             while (!cancelled) {
               const { done, value } = await reader.read();
               if (done || cancelled) break;
-              setIdleWarningMs(value);
+              onValue(value);
             }
           },
           Err: () => {},
@@ -623,7 +639,31 @@ export function useSystemBackendsValue(
       } catch {
         // ignore
       }
-    })();
+    };
+    const session = piloti.session as typeof piloti.session & {
+      idleWarnings?: () => Promise<{
+        match: (arms: { Ok: (l: StreamListening<number | undefined>) => void; Err: () => void }) => void;
+      }>;
+    };
+    if (typeof session.idleBeforeBlanking === "function") {
+      void listen<boolean>(
+        () => session.idleBeforeBlanking(IDLE_WARNING_SECONDS),
+        (warn) => {
+          stopCountdown();
+          if (!warn) {
+            setIdleWarningMs(undefined);
+            return;
+          }
+          const deadline = Date.now() + IDLE_WARNING_SECONDS * 1000;
+          const tick = () => setIdleWarningMs(Math.max(0, deadline - Date.now()));
+          tick();
+          countdown = setInterval(tick, 1000);
+        },
+      );
+    } else if (typeof session.idleWarnings === "function") {
+      const idleWarnings = session.idleWarnings;
+      void listen<number | undefined>(() => idleWarnings(), setIdleWarningMs);
+    }
 
     (async () => {
       try {
@@ -659,6 +699,7 @@ export function useSystemBackendsValue(
     })();
 
     return () => {
+      stopCountdown();
       cancelled = true;
       stopWarnings?.();
       stopRefusals?.();
