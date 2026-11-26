@@ -14,17 +14,14 @@ type ButtonVariant =
   | "outline"
   | "ghost"
   | "link"
+// Small, Medium (default) and Large, as CupertinoUI names them.
 type ButtonSize =
   | "default"
-  | "xs"
   | "sm"
   | "lg"
-  | "xl"
   | "icon"
-  | "icon-xs"
   | "icon-sm"
   | "icon-lg"
-  | "icon-xl"
 
 // Base UI's Button. To render a link or another element with the button's
 // styles, pass it as `render` (with `nativeButton={false}` when it isn't a

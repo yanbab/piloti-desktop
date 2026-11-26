@@ -120,9 +120,9 @@
   --ui-radius-window: 16px;
 
   /* Control heights (mini, small, medium, large, extra large) */
-  --ui-control-small: 16px;
-  --ui-control-medium: 20px;
-  --ui-control-large: 24px;
+  --ui-control-small: 20px;
+  --ui-control-medium: 24px;
+  --ui-control-large: 28px;
 
   /* Text sizes */
   --ui-font-large-title: 26px;

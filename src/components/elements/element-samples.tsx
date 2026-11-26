@@ -137,18 +137,27 @@ const SAMPLES: { title: string; react: React.ReactNode; reactCode: string; html:
         <Button variant="tinted">Tinted</Button>
         <Button variant="destructive">Delete</Button>
         <Button variant="secondary" disabled>Disabled</Button>
+        <Button variant="secondary" size="sm">Small</Button>
+        <Button variant="secondary">Medium</Button>
+        <Button variant="secondary" size="lg">Large</Button>
       </>
     ),
     reactCode: `<Button>Save</Button>
 <Button variant="secondary">Cancel</Button>
 <Button variant="tinted">Tinted</Button>
 <Button variant="destructive">Delete</Button>
-<Button variant="secondary" disabled>Disabled</Button>`,
+<Button variant="secondary" disabled>Disabled</Button>
+<Button variant="secondary" size="sm">Small</Button>
+<Button variant="secondary">Medium</Button>
+<Button variant="secondary" size="lg">Large</Button>`,
     html: `<button class="ui-button">Save</button>
 <button class="ui-button" data-variant="secondary">Cancel</button>
 <button class="ui-button" data-variant="tinted">Tinted</button>
 <button class="ui-button" data-variant="destructive">Delete</button>
-<button class="ui-button" data-variant="secondary" disabled>Disabled</button>`,
+<button class="ui-button" data-variant="secondary" disabled>Disabled</button>
+<button class="ui-button" data-variant="secondary" data-size="sm">Small</button>
+<button class="ui-button" data-variant="secondary">Medium</button>
+<button class="ui-button" data-variant="secondary" data-size="lg">Large</button>`,
   },
   {
     title: "Switch and checkbox",
