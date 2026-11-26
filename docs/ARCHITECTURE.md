@@ -38,11 +38,11 @@ Notice `WindowsContext` is split into **state+actions (`WindowsContext`)** and *
 ### 3. Startup Notifications & Ready-to-Show Reveal (`WindowsContext.tsx`, `IsolatedAppFrame.tsx`, `WindowManager.tsx`, `Dock.tsx`)
 
 - **Dock Launch Indicators**: `launchApp`, `launchXdgApp`, and `openWebUrl` call `beginStartupNotification(...)` (resolving installed web app IDs and canonical `webview:<url>` entries in `Dock`). `Dock.resolveAppDefinition` recognizes catalog apps, XDG entries, installed web apps, running windows, and pending `webview:` URLs.
-- **Ready-to-Show Gating**: Newly mapped Domicile browser/webview windows and HTTP-isolated shell apps (`calculator`, `text-editor`, `image-viewer`) start with `ready: false` (`unreadyWindowIds`, guarded by a `2500ms` timeout). `<Window>` mounts immediately (`opacity-0 pointer-events-none`) so the guest can load while staying invisible; `markWindowReady(windowId)` reveals the window and transitions the Dock indicator from launching bounce to running dot once `piloti:ready`, `<iframe onLoad>`, or `<webview>` finishes loading.
+- **Ready-to-Show Gating**: Newly mapped Domicile browser/webview windows and an isolated `text-editor` start with `ready: false` (`unreadyWindowIds`, guarded by a `2500ms` timeout). `<Window>` mounts immediately (`opacity-0 pointer-events-none`) so the guest can load while staying invisible; `markWindowReady(windowId)` reveals the window and transitions the Dock indicator from launching bounce to running dot once `piloti:ready`, `<iframe onLoad>`, or `<webview>` finishes loading.
 
 ### 4. Isolated Mini-App Runtime & RPC Bridge (`IsolatedAppFrame.tsx`, `src/lib/engine/app-bridge.ts`)
 
-`calculator`, `text-editor`, and `image-viewer` run inside `IsolatedAppFrame`:
+`text-editor`, when set to open windows separately, runs inside `IsolatedAppFrame`:
 - Over HTTP/HTTPS dev servers, an `<iframe>` loads `?piloti_app=<id>&windowId=<id>&csd=<0|1>&path=<...>` as a dedicated entry point in `src/piloti-web.tsx`.
 - Over standalone `file://` Domicile bundles, it falls back cleanly to an isolated iframe DOM mounted via `createRoot`.
 - `useIsolatedAppBridge` receives `piloti:theme-sync` (mode, accent, fonts), `piloti:app-action` (menus, drag-region hover, dropped paths `piloti:open-path:<path>`), and executes bidirectional `piloti:fs-read` / `piloti:fs-write` / `piloti:fs-list` RPC against the shell VFS.

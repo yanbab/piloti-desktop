@@ -5,7 +5,7 @@ Status: proposal, revised after reading Domicile's `APP-MODULES.md` and the "Bui
 ## 1. Where we are today
 
 - The shell (`piloti-desktop.tsx` native, `piloti-web.tsx` browser) renders everything in one React tree: panels, dock, launcher, and every built-in app. One JS context, one crash domain, one main thread.
-- Web only: `IsolatedAppFrame.tsx` loads the same page with `?piloti_app=<id>&windowId=...` in an iframe; `piloti-web.tsx` mounts one app (calculator, text-editor, image-viewer) for that param. Messages go through `lib/engine/app-bridge.ts`.
+- Web only: `IsolatedAppFrame.tsx` loads the same page with `?piloti_app=<id>&windowId=...` in an iframe; `piloti-web.tsx` mounts one app (text-editor, image-viewer) for that param; only text-editor is framed this way today. Messages go through `lib/engine/app-bridge.ts`.
 - Native: `shell.js` is a single bundle (`vite.shell.config.ts`, `inlineDynamicImports`, CSS injected into the module). Domicile `<webview>` is used only for third-party sites (WebViewSurface in `WindowManager`).
 
 ## 2. What Domicile actually offers (from the docs)
@@ -140,4 +140,4 @@ Ran `domicile open --app /usr/share/piloti-desktop/apps/hello/hello.js` against 
 - Notepad's View menu has "Open New Windows Separately": `run-in=isolated` in `~/.config/piloti/apps/text-editor.ini` (`src/lib/shell/run-mode.ts`). Existing windows keep their mode.
 - Linux: `openAppModule` (`engine-native/app-modules.ts`) starts the module; without an installed module it opens in the shell. Not yet tried on Linux.
 - Browser demo: the window holds an `IsolatedAppFrame`. The frame has no shell contexts, so no in-window menu button; the window title is not synced back.
-- Not covered: menu checkmarks from a separate window, unsaved-changes confirmation on close, restored sessions on Linux (they reopen in the shell). The calculator's `?piloti_app` page still fails on missing shell contexts.
+- Not covered: menu checkmarks from a separate window, unsaved-changes confirmation on close, restored sessions on Linux (they reopen in the shell).

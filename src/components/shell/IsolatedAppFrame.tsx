@@ -13,7 +13,6 @@ import {
   type ShellToAppMessage,
 } from "@/lib/engine/app-bridge";
 import { getVfsEntry, listVfsDir, writeVfsTextFile } from "@/lib/engine-web/web-vfs";
-import { cn } from "@/lib/core/utils";
 
 export interface IsolatedAppFrameProps {
   appId: string;
@@ -265,39 +264,25 @@ export const IsolatedAppFrame: React.FC<IsolatedAppFrameProps> = ({
   return (
     <div
       data-drop-window-id={windowId}
-      className={cn(
-        "relative h-full w-full overflow-hidden",
-        appId === "calculator" ? "bg-transparent" : "bg-adw-window",
-      )}
+      className="relative h-full w-full overflow-hidden bg-adw-window"
     >
       {isCsd && (
-        <>
-          <div
-            data-window-drag-region=""
-            onMouseEnter={() =>
-              iframeRef.current?.contentWindow?.postMessage(
-                { type: "piloti:app-action", actionId: "piloti:header-enter" },
-                "*",
-              )
-            }
-            onMouseLeave={() =>
-              iframeRef.current?.contentWindow?.postMessage(
-                { type: "piloti:app-action", actionId: "piloti:header-leave" },
-                "*",
-              )
-            }
-            className={cn(
-              "absolute top-0 z-10 h-9",
-              appId === "calculator" ? "right-8 left-8" : "right-24 left-10",
-            )}
-          />
-          {appId === "calculator" && (
-            <div
-              data-window-drag-region=""
-              className="absolute top-9 right-0 left-0 z-10 h-[60px]"
-            />
-          )}
-        </>
+        <div
+          data-window-drag-region=""
+          onMouseEnter={() =>
+            iframeRef.current?.contentWindow?.postMessage(
+              { type: "piloti:app-action", actionId: "piloti:header-enter" },
+              "*",
+            )
+          }
+          onMouseLeave={() =>
+            iframeRef.current?.contentWindow?.postMessage(
+              { type: "piloti:app-action", actionId: "piloti:header-leave" },
+              "*",
+            )
+          }
+          className="absolute top-0 right-24 left-10 z-10 h-9"
+        />
       )}
       {/* Focus shield: while unfocused, capture pointer events above the iframe so click-to-focus and edge resize work */}
       <div
@@ -314,10 +299,7 @@ export const IsolatedAppFrame: React.FC<IsolatedAppFrameProps> = ({
           sendThemeSync();
           markWindowReady(windowId);
         }}
-        className={cn(
-          "h-full w-full border-0",
-          appId === "calculator" ? "bg-transparent" : "bg-adw-window",
-        )}
+        className="h-full w-full border-0 bg-adw-window"
       />
     </div>
   );

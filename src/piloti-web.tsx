@@ -19,11 +19,6 @@ installDynamicFavicon();
 import { AppChromeProvider } from "./components/elements/app-chrome";
 import { ShellErrorBoundary } from "./components/shell/ShellErrorBoundary";
 
-const CalculatorApp = React.lazy(() =>
-  import("./components/apps/CalculatorApp").then((m) => ({
-    default: m.CalculatorApp,
-  })),
-);
 const TextEditorApp = React.lazy(() =>
   import("./lib/engine/text-editor-host-shell").then((m) => ({
     default: m.ShellTextEditorApp,
@@ -45,19 +40,7 @@ async function start(root: HTMLElement) {
   finishFiles("home and etc");
   const params = new URLSearchParams(window.location.search);
   const isolatedApp = params.get("piloti_app");
-  if (isolatedApp === "calculator") {
-    const windowId = params.get("windowId") ?? "";
-    const isCsd = params.get("csd") !== "0";
-    createRoot(root).render(
-      <ShellErrorBoundary>
-        <AppChromeProvider value={{ appId: "calculator", windowId, decorations: isCsd ? "client" : "server" }}>
-          <React.Suspense fallback={null}>
-            <CalculatorApp windowId={windowId} />
-          </React.Suspense>
-        </AppChromeProvider>
-      </ShellErrorBoundary>,
-    );
-  } else if (isolatedApp === "text-editor") {
+  if (isolatedApp === "text-editor") {
     // The frame's own desktop, over the same demo VFS as the shell's.
     const { createBrowserDomicile } = await import("./lib/engine-web");
     const windowId = params.get("windowId") ?? "";
