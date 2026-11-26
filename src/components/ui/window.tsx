@@ -1177,14 +1177,14 @@ function WindowControls({
       {buttons.map((kind) => {
         if (kind === "minimize") {
           return (
-            <WindowControlButton key={kind} aria-label="Minimize" onClick={onMinimize}>
+            <WindowControlButton key={kind} data-control="minimize" aria-label="Minimize" onClick={onMinimize}>
               <MinusIcon strokeWidth={2.25} />
             </WindowControlButton>
           )
         }
         if (kind === "maximize") {
           return (
-            <WindowControlButton key={kind} aria-label="Maximize" onClick={onZoom}>
+            <WindowControlButton key={kind} data-control="maximize" aria-label="Maximize" onClick={onZoom}>
               <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
                 <rect x="2.2" y="2.2" width="7.6" height="7.6" rx="1.2" />
               </svg>
@@ -1192,7 +1192,7 @@ function WindowControls({
           )
         }
         return (
-          <WindowControlButton key={kind} aria-label="Close" onClick={onClose}>
+          <WindowControlButton key={kind} data-control="close" aria-label="Close" onClick={onClose}>
             <XIcon strokeWidth={2.25} />
           </WindowControlButton>
         )

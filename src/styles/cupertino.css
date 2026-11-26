@@ -363,3 +363,53 @@
   -webkit-backdrop-filter: blur(var(--ui-material-blur)) saturate(180%);
   backdrop-filter: blur(var(--ui-material-blur)) saturate(180%);
 }
+
+/* ── Traffic lights: 14px, glyphs on hovering the group, grey when the
+   window is unfocused ────────────────────────────────────────────────── */
+:root[data-interface-theme="cupertino"] [data-slot="window-controls"] {
+  gap: 9px;
+  margin-inline: 4px;
+}
+
+:root[data-interface-theme="cupertino"] [data-slot="window-controls"] > button {
+  width: 14px;
+  height: 14px;
+  box-shadow: var(--ui-traffic-edge);
+  opacity: 1;
+}
+
+:root[data-interface-theme="cupertino"] [data-slot="window-controls"] > button[data-control="close"] {
+  background: var(--ui-traffic-close);
+}
+
+:root[data-interface-theme="cupertino"] [data-slot="window-controls"] > button[data-control="minimize"] {
+  background: var(--ui-traffic-minimize);
+}
+
+:root[data-interface-theme="cupertino"] [data-slot="window-controls"] > button[data-control="maximize"] {
+  background: var(--ui-traffic-zoom);
+}
+
+:root[data-interface-theme="cupertino"] [data-slot="window-controls"] > button:active {
+  filter: brightness(0.85);
+}
+
+:root[data-interface-theme="cupertino"] [data-slot="window-controls"] > button:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--ui-accent) 50%, transparent);
+}
+
+:root[data-interface-theme="cupertino"] [data-slot="window-controls"] > button svg {
+  width: 10px;
+  height: 10px;
+  color: rgb(0 0 0 / 0.55);
+  opacity: 0;
+}
+
+:root[data-interface-theme="cupertino"] [data-slot="window-controls"]:hover > button svg {
+  opacity: 1;
+}
+
+:root[data-interface-theme="cupertino"] [data-slot="window"][data-inactive] [data-slot="window-controls"]:not(:hover) > button {
+  background: var(--ui-traffic-inactive);
+  box-shadow: none;
+}

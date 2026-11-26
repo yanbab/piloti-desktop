@@ -560,7 +560,7 @@ aside [data-slot="window-titlebar"],
  * Adwaita GtkSearchEntry:
  * Borderless 34px-tall rounded-rectangle (9px radius) with #333336 fill.
  */
-[data-slot="search-field"] {
+:where(:root:not([data-interface-theme="cupertino"])) [data-slot="search-field"] {
   height: 34px !important;
   border-radius: 9px !important;
   padding-inline: 10px !important;
@@ -570,7 +570,7 @@ aside [data-slot="window-titlebar"],
   font-size: calc(13.5px * var(--piloti-font-scale, 1)) !important;
 }
 
-[data-slot="search-field"]:focus-within {
+:where(:root:not([data-interface-theme="cupertino"])) [data-slot="search-field"]:focus-within {
   box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--ui-accent) 50%, transparent) !important;
 }
 
@@ -649,24 +649,24 @@ aside [data-slot="window-titlebar"],
   border-bottom-color: transparent;
 }
 
-[data-slot="window-controls"] {
+:where(:root:not([data-interface-theme="cupertino"])) [data-slot="window-controls"] {
   gap: 8px;
   margin-inline: 2px;
 }
 
-[data-slot="window-controls"]>button {
+:where(:root:not([data-interface-theme="cupertino"])) [data-slot="window-controls"]>button {
   width: 24px;
   height: 24px;
 }
 
-[data-slot="window-controls"]>button svg {
+:where(:root:not([data-interface-theme="cupertino"])) [data-slot="window-controls"]>button svg {
   opacity: 0.85 !important;
   color: var(--window-controls-fg, var(--ui-label)) !important;
   width: 12px;
   height: 12px;
 }
 
-[data-slot="window-controls"]>button:hover {
+:where(:root:not([data-interface-theme="cupertino"])) [data-slot="window-controls"]>button:hover {
   filter: brightness(1.2);
 }
 
