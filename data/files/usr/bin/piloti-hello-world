@@ -1,0 +1,4 @@
+#!/bin/sh
+# piloti-hello-world — Open Hello World
+set -eu
+exec /usr/bin/piloti open hello-world "$@"

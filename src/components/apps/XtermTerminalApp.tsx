@@ -24,8 +24,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { createRepl } from "@/lib/shell/piloti-repl";
 import { _ } from "@/lib/core/i18n";
-import { WindowMenuButton } from "@/components/shell/WindowMenuButton";
-import { WindowControls, WindowTitlebar } from "@/components/ui/window";
+import { HeaderBar } from "@/components/elements/header-bar";
 
 /** `"piloti"` is the JavaScript REPL; anything else is a shell path from /etc/shells. */
 const PILOTI = "piloti";
@@ -240,17 +239,9 @@ export function XtermTerminalApp({
       style={{ background: (settings.themeMode === "dark" ? DARK : LIGHT).background }}
     >
       {/* Header bar, GNOME-style: the shell menu is the title. */}
-      <WindowTitlebar
-        data-window-drag-region=""
-        // Header clicks must not take the keyboard from the terminal.
-        onMouseDown={(e) => e.preventDefault()}
-        className="h-9 shrink-0 justify-between border-b border-adw-separator bg-adw-titlebar px-2.5 select-none"
-      >
-        <div className="flex shrink-0 items-center gap-1.5" data-window-no-drag>
-          <WindowControls side="left" />
-          <WindowMenuButton side="left" windowId={windowId} appId="terminal" iconName="terminal" />
-        </div>
-        <div className="flex min-w-0 items-center justify-center" data-window-no-drag>
+      {/* Header clicks must not take the keyboard from the terminal. */}
+      <HeaderBar onMouseDown={(e) => e.preventDefault()}>
+        <HeaderBar.Title interactive>
           <DropdownMenu onOpenChange={(open) => !open && requestAnimationFrame(() => termRef.current?.focus())}>
             <DropdownMenuTrigger
               aria-label={_("Choose shell")}
@@ -271,12 +262,8 @@ export function XtermTerminalApp({
               </DropdownMenuRadioGroup>
             </DropdownMenuContent>
           </DropdownMenu>
-        </div>
-        <div className="flex shrink-0 items-center gap-1.5" data-window-no-drag>
-          <WindowMenuButton side="right" windowId={windowId} appId="terminal" iconName="terminal" />
-          <WindowControls side="right" />
-        </div>
-      </WindowTitlebar>
+        </HeaderBar.Title>
+      </HeaderBar>
       <div ref={hostRef} className="min-h-0 flex-1 p-2" onMouseDown={() => requestAnimationFrame(() => termRef.current?.focus())} />
     </div>
   );

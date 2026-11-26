@@ -6,7 +6,12 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { WindowControls, WindowTitlebar } from "@/components/ui/window";
+import {
+  parseWindowButtonLayout,
+  useWindowContext,
+  WindowControls,
+  WindowTitlebar,
+} from "@/components/ui/window";
 import type { AppSymbolName } from "@/lib/shell/desktop-icons";
 import { PanelResizeHandle, usePanelWidth } from "@/components/ui/resizable-panel";
 import { cn } from "@/lib/core/utils";
@@ -31,6 +36,8 @@ export interface AdwSplitSidebarItem {
 
 export interface AdwSplitRenderContext {
   isCompact: boolean;
+  /** The sidebar shows icons only: its header has no room for window buttons. */
+  sidebarCompact: boolean;
   contentScrolled: boolean;
   setContentScrolled: (scrolled: boolean) => void;
   onContentScroll: (e: React.UIEvent<HTMLElement>) => void;
@@ -144,7 +151,7 @@ function usePageTitleAlignment(containerRef: React.RefObject<HTMLDivElement | nu
   }, [containerRef]);
 }
 
-const PAGE_TITLE_SELECTOR = '[data-slot="page-title"], [data-slot="settings-page-title"]';
+const PAGE_TITLE_SELECTOR = '[data-slot="page-title"]';
 
 export function AdwSplitView({
   title,
@@ -236,16 +243,22 @@ export function AdwSplitView({
     return () => window.removeEventListener("keydown", handleWindowKeyDown);
   }, [onKeyDown]);
 
+  const showCompact = isCompact || (resizable && panel.collapsed);
+  const buttonLayout = useWindowContext()?.buttonLayout;
+  // Two or more buttons on the left leave a narrow sidebar no room for a title.
+  const crowdedTitle =
+    parseWindowButtonLayout(buttonLayout).left.length > 1 &&
+    (resizable ? panel.width : sidebarDefaultWidth) < 220;
+
   const renderCtx: AdwSplitRenderContext = {
     isCompact,
+    sidebarCompact: showCompact,
     contentScrolled,
     setContentScrolled,
     onContentScroll,
   };
 
   const tall = sidebarDensity === "tall";
-  const showCompact = isCompact || (resizable && panel.collapsed);
-
   return (
     <div
       ref={containerRef}
@@ -280,30 +293,33 @@ export function AdwSplitView({
                 : "border-b border-transparent",
             )}
           >
-            <div className="relative flex w-full items-center justify-between gap-1.5">
-              <div className="relative z-10 flex shrink-0 items-center gap-1.5" data-window-no-drag>
-                {windowId && <WindowControls side="left" />}
-                <WindowMenuButton
-                  side="left"
-                  windowId={windowId}
-                  appId={appId}
-                  iconName={iconName}
-                />
+            {/* Collapsed, the content's header draws the buttons instead. */}
+            {!showCompact && (
+              <div className="relative flex w-full items-center justify-between gap-1.5">
+                <div className="relative z-10 flex shrink-0 items-center gap-1.5" data-window-no-drag>
+                  {windowId && <WindowControls side="left" />}
+                  <WindowMenuButton
+                    side="left"
+                    windowId={windowId}
+                    appId={appId}
+                    iconName={iconName}
+                  />
+                </div>
+                {!crowdedTitle && (
+                  <span className="pointer-events-none absolute inset-x-10 truncate text-center text-[13.5px] font-medium tracking-tight whitespace-nowrap text-adw-label">
+                    {title}
+                  </span>
+                )}
+                <div className="relative z-10 flex shrink-0 items-center justify-end" data-window-no-drag>
+                  <WindowMenuButton
+                    side="right"
+                    windowId={windowId}
+                    appId={appId}
+                    iconName={iconName}
+                  />
+                </div>
               </div>
-              {!showCompact && (
-                <span className="pointer-events-none absolute inset-x-10 truncate text-center text-[13.5px] font-medium tracking-tight whitespace-nowrap text-adw-label">
-                  {title}
-                </span>
-              )}
-              <div className="relative z-10 flex shrink-0 items-center justify-end" data-window-no-drag>
-                <WindowMenuButton
-                  side="right"
-                  windowId={windowId}
-                  appId={appId}
-                  iconName={iconName}
-                />
-              </div>
-            </div>
+            )}
           </WindowTitlebar>
         )}
 

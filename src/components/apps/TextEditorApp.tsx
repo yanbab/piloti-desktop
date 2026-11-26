@@ -31,7 +31,6 @@ import { tags } from "@lezer/highlight";
 import { SaveIcon, SlidersHorizontalIcon } from "lucide-react";
 import { ObjectView, themeGitHubLight, themeOneDark } from "react-obj-view";
 import "react-obj-view/dist/react-obj-view.css";
-import { WindowMenuButton } from "@/components/shell/WindowMenuButton";
 import {
   Dialog,
   DialogContent,
@@ -47,21 +46,18 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { UnsavedChangesDialog } from "@/components/ui/unsaved-changes-dialog";
-import { WindowControls, WindowTitlebar } from "@/components/ui/window";
 import { publishWindowMenuState, useIsolatedAppBridge } from "@/lib/engine/app-bridge";
 import { useTextEditorHost, type TextEditorHost } from "@/lib/engine/text-editor-host";
 import { _ } from "@/lib/core/i18n";
 import { parseIniText } from "@/lib/config/ini";
 import { cn } from "@/lib/core/utils";
+import { useAppChrome } from "@/components/elements/app-chrome";
+import { HeaderBar, HeaderButton } from "@/components/elements/header-bar";
+import { Segmented } from "@/components/ui/segmented";
 
 export interface TextEditorAppProps {
-  /** Left padding (px) for the header, to leave room for shell-drawn window controls. */
-  leadingInset?: number;
-  /** Right padding (px) for the header, to leave room for shell-drawn window controls. */
-  trailingInset?: number;
   initialPath?: string;
   windowId?: string;
-  isCsd?: boolean;
 }
 
 function getBaseName(path: string): string {
@@ -281,11 +277,8 @@ const adwEditorTheme = EditorView.theme({
 });
 
 export const TextEditorApp: React.FC<TextEditorAppProps> = ({
-  leadingInset = 0,
-  trailingInset = 0,
   initialPath,
   windowId = "",
-  isCsd: propIsCsd = true,
 }) => {
   const host = useTextEditorHost();
   const previewIframeRef = React.useRef<HTMLIFrameElement | null>(null);
@@ -335,7 +328,8 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
     };
     return host.onPrintFocused(onPrintFocused);
   }, [handlePrint, windowId]);
-  const baseBridge = useIsolatedAppBridge(windowId, propIsCsd, handleMenuAction);
+  const { decorations } = useAppChrome();
+  const baseBridge = useIsolatedAppBridge(windowId, decorations === "client", handleMenuAction);
   const bridge = React.useMemo(
     () => (host.bridge ? { ...baseBridge, ...host.bridge } : baseBridge),
     [baseBridge, host],
@@ -1051,32 +1045,8 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
       className="flex h-full w-full flex-col overflow-hidden bg-adw-content text-adw-label"
     >
       {/* Headerbar */}
-      <WindowTitlebar
-        data-window-drag-region={bridge.isCsd ? "" : undefined}
-        style={
-          leadingInset || trailingInset
-            ? { paddingLeft: leadingInset || undefined, paddingRight: trailingInset || undefined }
-            : undefined
-        }
-        className={cn(
-          "h-9 shrink-0 justify-between border-b border-adw-separator bg-adw-titlebar px-2.5 select-none",
-          !bridge.isCsd && "rounded-t-none",
-        )}
-      >
-        <div className="flex shrink-0 items-center gap-1.5" data-window-no-drag>
-          {windowId && bridge.isCsd && (
-            <WindowControls side="left" onClose={requestClose} />
-          )}
-          {windowId && host.windowMenu !== false && (
-            <WindowMenuButton
-              side="left"
-              windowId={windowId}
-              appId="text-editor"
-              iconName="file-text"
-            />
-          )}
-        </div>
-        <div className="flex min-w-0 items-center gap-1.5 px-2" data-window-no-drag>
+      <HeaderBar onClose={requestClose}>
+        <HeaderBar.Title interactive={Boolean(filePath) || isDirty}>
           {editingTitle && filePath ? (
             <input
               ref={titleInputRef}
@@ -1126,53 +1096,21 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
               </span>
             </button>
           )}
-        </div>
-        <div className="flex items-center gap-1" data-window-no-drag>
-          <button
-            type="button"
+        </HeaderBar.Title>
+        <HeaderBar.End>
+          <HeaderButton
+            icon={SaveIcon}
+            label={_("Save")}
             disabled={!isDirty}
-            aria-label={_("Save")}
-            title={_("Save")}
             onClick={() => void handleSave()}
-            className={cn(
-              "flex size-7 items-center justify-center rounded-adw-control transition-colors",
-              isDirty
-                ? "text-adw-label hover-fill:bg-black/8 dark:hover-fill:bg-white/10"
-                : "text-adw-label-secondary/40",
-            )}
-          >
-            <SaveIcon className="size-4" />
-          </button>
+          />
           {availableModes.length > 0 && (
-            <div className="inline-flex items-center gap-0.5 rounded-adw-item bg-black/8 p-0.5 dark:bg-white/8">
-              {availableModes.map((mode) => {
-                const active = viewMode === mode.id;
-                return (
-                  <button
-                    key={mode.id}
-                    type="button"
-                    onClick={() => setViewMode(mode.id)}
-                    className={cn(
-                      "rounded-adw-control px-2 py-0.5 text-adw-subheadline font-medium transition-all",
-                      active
-                        ? "bg-white text-black shadow-2xs dark:bg-white/18 dark:text-white"
-                        : "text-adw-label-secondary hover-fill:text-adw-label",
-                    )}
-                  >
-                    {mode.label}
-                  </button>
-                );
-              })}
-            </div>
+            <Segmented value={viewMode} onChange={setViewMode} options={availableModes} />
           )}
           <DropdownMenu>
             <DropdownMenuTrigger
-              aria-label={_("Editor Preferences")}
-              title={_("Preferences")}
-              className="flex size-7 items-center justify-center rounded-adw-control text-adw-label-secondary transition-colors outline-none hover-fill:bg-black/8 hover-fill:text-adw-label data-popup-open:bg-black/10 dark:hover-fill:bg-white/10 dark:data-popup-open:bg-white/15"
-            >
-              <SlidersHorizontalIcon className="size-4" />
-            </DropdownMenuTrigger>
+              render={<HeaderButton icon={SlidersHorizontalIcon} label={_("Editor Preferences")} />}
+            />
             <DropdownMenuContent align="end" className="w-52">
               <DropdownMenuCheckboxItem
                 checked={showLineNumbers}
@@ -1206,19 +1144,8 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
               </DropdownMenuCheckboxItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          {windowId && host.windowMenu !== false && (
-            <WindowMenuButton
-              side="right"
-              windowId={windowId}
-              appId="text-editor"
-              iconName="file-text"
-            />
-          )}
-          {windowId && bridge.isCsd && (
-            <WindowControls side="right" onClose={requestClose} />
-          )}
-        </div>
-      </WindowTitlebar>
+        </HeaderBar.End>
+      </HeaderBar>
 
       {/* Editor Body */}
       <div className="relative min-h-0 flex-1 overflow-hidden">

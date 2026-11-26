@@ -1,13 +1,13 @@
 import { hostFiles } from "@/lib/engine/host-files";
 import * as React from "react";
+import { HeaderBar } from "@/components/elements/header-bar";
+import { Segmented } from "@/components/ui/segmented";
 import { useCapabilities } from "@/hooks/use-capabilities";
 import { usePiloti } from "@/lib/engine/piloti";
 import { CameraIcon, MicIcon, VideoIcon } from "lucide-react";
-import { WindowMenuButton } from "@/components/shell/WindowMenuButton";
 import { emitShellEvent } from "@/lib/shell/shell-events";
 import { useApps, useSettings } from "@/context/DesktopStateContext";
 import { resolveUserDirPath } from "@/lib/xdg/xdg-user-dirs";
-import { WindowControls } from "@/components/ui/window";
 import { _ } from "@/lib/core/i18n";
 import { cn } from "@/lib/core/utils";
 import { listFsDir, toDomicilePath } from "@/lib/engine/fs-bridge";
@@ -24,7 +24,6 @@ type CameraMode = "photo" | "video" | "audio";
 
 export interface CameraAppProps {
   windowId?: string;
-  isCsd?: boolean;
 }
 
 const MODES: { id: CameraMode; label: string; icon: React.ReactNode }[] = [
@@ -56,7 +55,7 @@ function blobToDataUrl(blob: Blob): Promise<string> {
   });
 }
 
-export const CameraApp: React.FC<CameraAppProps> = ({ windowId = "", isCsd = true }) => {
+export const CameraApp: React.FC<CameraAppProps> = ({ windowId = "" }) => {
   const piloti = usePiloti();
   const { realFilesystem } = useCapabilities();
   const { xdgUserDirs } = useApps();
@@ -226,66 +225,41 @@ export const CameraApp: React.FC<CameraAppProps> = ({ windowId = "", isCsd = tru
 
   return (
     <div className="flex h-full w-full flex-col overflow-hidden bg-black text-white select-none">
-      <div
-        data-window-drag-region={isCsd ? "" : undefined}
-        className="relative flex h-11 shrink-0 items-center justify-between gap-2 border-b border-white/10 bg-adw-titlebar px-2.5 text-adw-label"
-      >
-        <div className="flex items-center gap-2" data-window-no-drag>
-          {windowId && (
-            <WindowMenuButton side="left" windowId={windowId} appId="camera" iconName="sparkles" />
-          )}
-        </div>
-        <div className="absolute left-1/2 flex -translate-x-1/2 items-center gap-2" data-window-no-drag>
-          {recording && (
-            <span className="font-mono text-adw-subheadline tabular-nums text-adw-label">
-              {formatCaptureDuration(elapsed)}
-            </span>
-          )}
-          <button
-            type="button"
-            aria-label={mode === "photo" ? _("Take Photo") : recording ? _("Stop") : _("Record")}
-            title={mode === "photo" ? _("Take Photo") : recording ? _("Stop") : _("Record")}
-            disabled={Boolean(error)}
-            onClick={onRecordClick}
-            className="flex size-7 items-center justify-center rounded-full border-2 border-rose-500/40 outline-none transition-transform active:scale-90 disabled:opacity-40"
-          >
-            <span
-              className={cn(
-                "bg-rose-500 transition-all duration-150",
-                recording ? "size-2.5 rounded-[2px]" : "size-4 rounded-full",
-              )}
-            />
-          </button>
-        </div>
-        <div className="flex items-center justify-end gap-2" data-window-no-drag>
-          <div
-            role="tablist"
-            className="inline-flex items-center gap-1 rounded-adw-item bg-black/8 p-1 dark:bg-white/8"
-          >
-            {MODES.map((m) => (
-              <button
-                key={m.id}
-                aria-label={_(m.label)}
-                title={_(m.label)}
-                type="button"
-                role="tab"
-                aria-selected={mode === m.id}
-                disabled={recording}
-                onClick={() => setMode(m.id)}
+      <HeaderBar className="text-adw-label" onClose={requestClose}>
+        <HeaderBar.Title interactive>
+          <div className="flex items-center gap-2">
+            {recording && (
+              <span className="font-mono text-adw-subheadline tabular-nums text-adw-label">
+                {formatCaptureDuration(elapsed)}
+              </span>
+            )}
+            <button
+              type="button"
+              aria-label={mode === "photo" ? _("Take Photo") : recording ? _("Stop") : _("Record")}
+              title={mode === "photo" ? _("Take Photo") : recording ? _("Stop") : _("Record")}
+              disabled={Boolean(error)}
+              onClick={onRecordClick}
+              className="flex size-7 items-center justify-center rounded-full border-2 border-rose-500/40 outline-none transition-transform active:scale-90 disabled:opacity-40"
+            >
+              <span
                 className={cn(
-                  "flex items-center rounded-adw-control px-2 py-1 text-adw-body font-medium transition-all outline-none disabled:opacity-60",
-                  mode === m.id
-                    ? "bg-white text-black dark:bg-white/18 dark:text-white"
-                    : "text-adw-label-secondary hover-fill:text-adw-label",
+                  "bg-rose-500 transition-all duration-150",
+                  recording ? "size-2.5 rounded-[2px]" : "size-4 rounded-full",
                 )}
-              >
-                {m.icon}
-              </button>
-            ))}
+              />
+            </button>
           </div>
-          {windowId && isCsd && <WindowControls side="right" onClose={requestClose} />}
-        </div>
-      </div>
+        </HeaderBar.Title>
+        <HeaderBar.End>
+          <Segmented
+            iconOnly
+            value={mode}
+            onChange={setMode}
+            disabled={recording}
+            options={MODES.map((m) => ({ id: m.id, label: _(m.label), icon: m.icon }))}
+          />
+        </HeaderBar.End>
+      </HeaderBar>
 
       <div className="relative flex min-h-0 flex-1 items-center justify-center bg-black">
         <video

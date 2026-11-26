@@ -1,0 +1,16 @@
+[Desktop Entry]
+Type=Application
+Name=Hello World
+Comment=The simplest app built with the shell's elements
+Exec=piloti-hello-world
+Icon=application-x-executable
+Categories=Utility;
+OnlyShowIn=Piloti;
+X-Piloti-AppId=hello-world
+X-Piloti-Component=hello-world
+X-Piloti-ShortName=Hello World
+X-Piloti-Category=Development
+X-Piloti-Order=85
+X-Piloti-XdgIcons=application-x-executable;
+X-Piloti-Size=420x280
+X-Piloti-MinSize=240x160

@@ -6,6 +6,7 @@ import type { AppMain } from "@domicile-desktop/sdk/app";
 import { useAppDomicile } from "@domicile-desktop/react/domicile-provider";
 import { mount } from "@domicile-desktop/react/mount";
 import * as React from "react";
+import { AppChromeProvider, hostControlInsets, type AppChrome } from "@/components/elements/app-chrome";
 import { TextEditorApp } from "@/components/apps/TextEditorApp";
 import { applyThemeToDocument } from "@/lib/engine/app-bridge";
 import { TextEditorHostProvider, type TextEditorHost } from "@/lib/engine/text-editor-host";
@@ -13,16 +14,20 @@ import { createDomicileEditorHost } from "./host";
 
 const OPEN_FILE = ".cache/piloti/text-editor-open";
 
-const App = ({ host, path }: { host: TextEditorHost; path: string | null }) => (
-  <TextEditorHostProvider value={host}>
-    <TextEditorApp initialPath={path ?? undefined} windowId="" isCsd={false} leadingInset={96} trailingInset={110} />
-  </TextEditorHostProvider>
+// The shell lays the window controls over this module's header (`csd: true` in
+// data/app-modules.ts).
+const App = ({ host, path, chrome }: { host: TextEditorHost; path: string | null; chrome: AppChrome }) => (
+  <AppChromeProvider value={chrome}>
+    <TextEditorHostProvider value={host}>
+      <TextEditorApp initialPath={path ?? undefined} windowId="" />
+    </TextEditorHostProvider>
+  </AppChromeProvider>
 );
 
 const Boot = () => {
   const { files } = useAppDomicile();
   const [state, setState] = React.useState<
-    { host: TextEditorHost; path: string | null } | undefined
+    { host: TextEditorHost; path: string | null; chrome: AppChrome } | undefined
   >();
   React.useEffect(() => {
     void (async () => {
@@ -38,10 +43,16 @@ const Boot = () => {
         fontMonoFamily: "",
         fontScale: 1,
       });
-      setState({ host, path });
+      const buttons = settings["org.piloti.desktop.wm"]?.["button-layout"];
+      const chrome: AppChrome = {
+        appId: "text-editor",
+        decorations: "host",
+        insets: hostControlInsets(typeof buttons === "string" ? buttons : undefined),
+      };
+      setState({ host, path, chrome });
     })();
   }, [files]);
-  return state ? <App host={state.host} path={state.path} /> : null;
+  return state ? <App {...state} /> : null;
 };
 
 export const main: AppMain = mount(Boot);

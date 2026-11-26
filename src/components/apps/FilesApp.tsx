@@ -48,7 +48,8 @@ import {
 } from "@/lib/engine-web/usb-drive";
 import { NicePathLabel } from "@/components/shell/NicePathLabel";
 import { InfoPane, InfoPaneToggle, useInfoPane } from "@/components/ui/info-pane";
-import { AdwSplitView, type AdwSplitSidebarItem } from "@/components/ui/adw-split-view";
+import { HeaderBar, HeaderButton } from "@/components/elements/header-bar";
+import { AppSplitView, type SidebarItem } from "@/components/elements/split-view";
 import { FolderIconView } from "@/components/ui/folder-icon-view";
 import { useExternalFileDrop } from "@/hooks/use-external-file-drop";
 import { useFolderOps } from "@/hooks/use-folder-ops";
@@ -59,8 +60,6 @@ import {
   vfsEntryToGridItem,
 } from "@/lib/shell/folder-items";
 import { AppSquircleIcon } from "@/components/shell/AppSymbol";
-import { WindowMenuButton } from "@/components/shell/WindowMenuButton";
-import { WindowControls, WindowTitlebar } from "@/components/ui/window";
 import { useSidebarKeyboardNav } from "@/hooks/use-sidebar-keyboard-nav";
 import {
   FileItemContextMenu,
@@ -286,11 +285,9 @@ const filesViewMenuItems = () =>
 
 export function FilesApp({
   initialPath,
-  isCsd = false,
   windowId,
 }: {
   initialPath?: string;
-  isCsd?: boolean;
   windowId?: string;
 }) {
   const piloti = usePiloti();
@@ -1049,7 +1046,7 @@ export function FilesApp({
     contentRef: mainViewRef,
   });
 
-  const sidebarItems = React.useMemo<AdwSplitSidebarItem[]>(
+  const sidebarItems = React.useMemo<SidebarItem[]>(
     () =>
       placesList.map((place) => {
         const isUsb = place.id === "usb-drive";
@@ -1773,12 +1770,9 @@ export function FilesApp({
     : null;
 
   return (
-    <AdwSplitView
+    <AppSplitView
       title={_("Folders")}
-      appId="nautilus"
       iconName="folder"
-      windowId={windowId}
-      isCsd={isCsd}
       sidebarItems={sidebarItems}
       sidebarWidthClass="w-40"
       sidebarId="files-sidebar"
@@ -1820,33 +1814,15 @@ export function FilesApp({
           requestAnimationFrame(() => searchInputRef.current?.focus());
         }
       }}
-      header={({ isCompact }) => (
-        <WindowTitlebar
-          data-window-drag-region={isCsd ? "" : undefined}
-          className={cn(
-            "!border-b !border-adw-separator bg-adw-titlebar",
-            !isCompact && "rounded-tl-none",
-            !isCsd && "rounded-t-none"
-          )}
-        >
-          <div className="flex min-w-0 items-center gap-1.5" data-window-no-drag>
-            {!isCsd && (
-              <WindowMenuButton
-                windowId={windowId}
-                appId="nautilus"
-                iconName="folder"
-              />
-            )}
-            <button
-              type="button"
-              aria-label={_("Back")}
-              title={_("Back")}
+      header={
+        <HeaderBar>
+          <HeaderBar.Start>
+            <HeaderButton
+              icon={ArrowLeftIcon}
+              label={_("Back")}
               disabled={!canGoUp}
               onClick={handleGoUp}
-              className="flex size-7 items-center justify-center rounded-adw-control text-adw-label-secondary transition-colors hover-fill:bg-black/8 hover-fill:text-adw-label disabled:pointer-events-none disabled:opacity-35 dark:hover-fill:bg-white/10"
-            >
-              <ArrowLeftIcon className="size-4" />
-            </button>
+            />
             {editingLocation ? (
               <form onSubmit={submitLocationEdit} className="min-w-0 flex-1">
                 <input
@@ -1880,9 +1856,8 @@ export function FilesApp({
                 {_(currentTitle)}
               </button>
             )}
-          </div>
-
-          <div className="flex shrink-0 items-center gap-1" data-window-no-drag>
+          </HeaderBar.Start>
+          <HeaderBar.End>
             {isTrashView && (
               <Button
                 size="sm"
@@ -1958,16 +1933,9 @@ export function FilesApp({
             />
 
             <InfoPaneToggle pane={infoPane} />
-
-            {/* CSD Window Controls */}
-            {isCsd && windowId && (
-              <div className="ml-1 flex items-center" data-window-no-drag>
-                <WindowControls side="right" />
-              </div>
-            )}
-          </div>
-        </WindowTitlebar>
-      )}
+          </HeaderBar.End>
+        </HeaderBar>
+      }
       rightPane={infoPaneNode}
     >
       <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden bg-adw-content">
@@ -2353,6 +2321,6 @@ export function FilesApp({
         (typeof document !== "undefined"
           ? createPortal(bgMenuPortal, document.body)
           : bgMenuPortal)}
-    </AdwSplitView>
+    </AppSplitView>
   );
 }

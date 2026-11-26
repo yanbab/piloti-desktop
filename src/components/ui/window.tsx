@@ -1211,6 +1211,7 @@ function WindowControls({
 export type { WindowHandle, WindowInsets, WindowPosition, WindowSize, ResizeEdge as WindowResizeEdge }
 export {
   isCloseOnLeft,
+  parseWindowButtonLayout,
   useWindowContext,
   WINDOW_CONTROL_CLASS,
   Window,

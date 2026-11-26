@@ -4,8 +4,15 @@ import { useAppDomicile } from "@domicile-desktop/react/domicile-provider";
 import { mount } from "@domicile-desktop/react/mount";
 import { Bus } from "@domicile-desktop/sdk/system";
 import { useEffect, useState } from "react";
+import "@/styles/globals.css";
+import { AppChromeProvider, type AppChrome } from "@/components/elements/app-chrome";
+import { AppContent, AppWindow } from "@/components/elements/app-window";
+import { HeaderBar } from "@/components/elements/header-bar";
 
 const REPORT = "piloti-appmodule-test.json";
+
+// The shell draws this module's titlebar (`csd: false` in data/app-modules.ts).
+const CHROME: AppChrome = { appId: "hello", decorations: "server" };
 
 const Hello = () => {
   const { files, dbus } = useAppDomicile();
@@ -13,6 +20,7 @@ const Hello = () => {
 
   useEffect(() => {
     document.title = "App Module Test";
+    document.documentElement.classList.toggle("dark", matchMedia("(prefers-color-scheme: dark)").matches);
   }, []);
 
   useEffect(() => {
@@ -63,10 +71,16 @@ const Hello = () => {
   }, [files]);
 
   return (
-    <div style={{ font: "13px system-ui", padding: 16, colorScheme: "light dark", background: "Canvas", color: "CanvasText", minBlockSize: "100vh" }}>
-      <h2 style={{ margin: "0 0 8px" }}>Piloti app module test</h2>
-      <pre style={{ whiteSpace: "pre-wrap" }}>{lines.join("\n")}</pre>
-    </div>
+    <AppChromeProvider value={CHROME}>
+      <AppWindow className="h-screen">
+        <HeaderBar>
+          <HeaderBar.Title>Piloti app module test</HeaderBar.Title>
+        </HeaderBar>
+        <AppContent padded>
+          <pre className="text-adw-body whitespace-pre-wrap">{lines.join("\n")}</pre>
+        </AppContent>
+      </AppWindow>
+    </AppChromeProvider>
   );
 };
 

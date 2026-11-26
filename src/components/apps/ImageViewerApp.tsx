@@ -13,9 +13,9 @@ import {
   ZoomInIcon,
   ZoomOutIcon,
 } from "lucide-react";
-import { WindowMenuButton } from "@/components/shell/WindowMenuButton";
 import { UnsavedChangesDialog } from "@/components/ui/unsaved-changes-dialog";
-import { WindowControls, WindowTitlebar } from "@/components/ui/window";
+import { useAppChrome } from "@/components/elements/app-chrome";
+import { HeaderBar } from "@/components/elements/header-bar";
 import { useIsolatedAppBridge } from "@/lib/engine/app-bridge";
 import { toDomicilePath } from "@/lib/engine/fs-bridge";
 import { readVfsStateJson, writeVfsStateJson } from "@/lib/engine/vfs-state";
@@ -33,7 +33,6 @@ import {
 export interface ImageViewerAppProps {
   initialPath?: string;
   windowId?: string;
-  isCsd?: boolean;
 }
 
 const IMAGE_VIEWER_STATE_PATH = `${VFS_HOME}/.local/state/piloti/image-viewer-state.json`;
@@ -71,7 +70,6 @@ function isLocalImagePath(path: string): boolean {
 export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
   initialPath,
   windowId = "",
-  isCsd: propIsCsd = true,
 }) => {
   const [dragRegionHovered, setDragRegionHovered] = React.useState(false);
   const resolvedPath = React.useMemo(() => {
@@ -93,7 +91,8 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
       setActivePath(actionId.slice("piloti:open-path:".length));
     }
   }, []);
-  const bridge = useIsolatedAppBridge(windowId, propIsCsd, handleShellAction);
+  const { decorations } = useAppChrome();
+  const bridge = useIsolatedAppBridge(windowId, decorations === "client", handleShellAction);
 
   const [imageSrc, setImageSrc] = React.useState<string>(() => {
     if (!resolvedPath) return "";
@@ -498,78 +497,59 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
       className="relative flex h-full w-full flex-col overflow-hidden bg-adw-window text-adw-label select-none"
     >
       {/* Headerbar */}
-      <WindowTitlebar
-        data-window-drag-region={bridge.isCsd ? "" : undefined}
-        className={cn(
-          "h-9 shrink-0 justify-between border-b border-adw-separator bg-adw-titlebar px-2.5 select-none",
-          !bridge.isCsd && "rounded-t-none",
-        )}
-      >
-        <div className="flex shrink-0 items-center gap-1.5" data-window-no-drag>
-          {windowId && bridge.isCsd && (
-            <WindowControls side="left" onClose={requestClose} />
-          )}
-          {windowId && (
-            <WindowMenuButton
-              side="left"
-              windowId={windowId}
-              appId="image-viewer"
-              iconName="sparkles"
+      <HeaderBar onClose={requestClose}>
+        <HeaderBar.Title interactive={isRenameableVfsFile}>
+          {editingTitle && isRenameableVfsFile ? (
+            <input
+              ref={titleInputRef}
+              type="text"
+              autoFocus
+              data-window-no-drag
+              value={draftTitle}
+              onChange={(e) => setDraftTitle(e.target.value)}
+              onBlur={commitTitleRename}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") commitTitleRename();
+                if (e.key === "Escape") setEditingTitle(false);
+              }}
+              onFocus={(e) => {
+                const dot = e.currentTarget.value.lastIndexOf(".");
+                if (dot > 0) e.currentTarget.setSelectionRange(0, dot);
+                else e.currentTarget.select();
+              }}
+              className="h-6 w-48 rounded-adw-control border border-adw-accent bg-adw-content px-2 text-center text-adw-body font-semibold text-adw-label outline-none"
             />
-          )}
-        </div>
-        <div className="flex min-w-0 items-center justify-center gap-1.5 px-2" data-window-no-drag>
-        {editingTitle && isRenameableVfsFile ? (
-          <input
-            ref={titleInputRef}
-            type="text"
-            autoFocus
-            data-window-no-drag
-            value={draftTitle}
-            onChange={(e) => setDraftTitle(e.target.value)}
-            onBlur={commitTitleRename}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") commitTitleRename();
-              if (e.key === "Escape") setEditingTitle(false);
-            }}
-            onFocus={(e) => {
-              const dot = e.currentTarget.value.lastIndexOf(".");
-              if (dot > 0) e.currentTarget.setSelectionRange(0, dot);
-              else e.currentTarget.select();
-            }}
-            className="h-6 w-48 rounded-adw-control border border-adw-accent bg-adw-content px-2 text-center text-adw-body font-semibold text-adw-label outline-none"
-          />
-        ) : isRenameableVfsFile ? (
-          <button
-            type="button"
-            data-window-no-drag
-            onClick={() => {
-              setDraftTitle(fileName);
-              setEditingTitle(true);
-            }}
-            className="truncate rounded-adw-control px-2 py-0.5 text-adw-body font-semibold whitespace-nowrap text-adw-label transition-colors hover-fill:bg-black/8 dark:hover-fill:bg-white/10"
-          >
-            {fileName}
-          </button>
-        ) : (
-          <span className="pointer-events-none truncate text-adw-body font-semibold whitespace-nowrap text-adw-label">
-            {fileName}
-          </span>
-        )}
-        </div>
-        <div className="flex shrink-0 items-center gap-1" data-window-no-drag>
-          {canSave && (
+          ) : isRenameableVfsFile ? (
             <button
               type="button"
-              aria-label={_("Save Changes")}
-              onClick={() => void handleSave()}
-              className="flex size-7 items-center justify-center rounded-adw-control bg-adw-accent text-white transition-opacity hover-fill:opacity-90"
+              data-window-no-drag
+              onClick={() => {
+                setDraftTitle(fileName);
+                setEditingTitle(true);
+              }}
+              className="truncate rounded-adw-control px-2 py-0.5 text-adw-body font-semibold whitespace-nowrap text-adw-label transition-colors hover-fill:bg-black/8 dark:hover-fill:bg-white/10"
             >
-              <SaveIcon className="size-4" />
+              {fileName}
             </button>
+          ) : (
+            <span className="pointer-events-none truncate text-adw-body font-semibold whitespace-nowrap text-adw-label">
+              {fileName}
+            </span>
           )}
-        </div>
-      </WindowTitlebar>
+        </HeaderBar.Title>
+        <HeaderBar.End>
+            {canSave && (
+              <button
+                type="button"
+                aria-label={_("Save Changes")}
+                onClick={() => void handleSave()}
+                className="flex size-7 items-center justify-center rounded-adw-control bg-adw-accent text-white transition-opacity hover-fill:opacity-90"
+              >
+                <SaveIcon className="size-4" />
+              </button>
+            )}
+        </HeaderBar.End>
+      </HeaderBar>
 
       {/* Canvas */}
       <div

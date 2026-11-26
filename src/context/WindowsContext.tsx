@@ -2495,6 +2495,7 @@ function pruneBrowserRecord(
         "piloti-notepad": "text-editor",
         "piloti-calculator": "calculator",
         "piloti-demo": "piloti-demo",
+        "piloti-hello-world": "hello-world",
         "piloti-camera": "camera",
         "piloti-system-monitor": "system-monitor",
         "piloti-browser": "browser",

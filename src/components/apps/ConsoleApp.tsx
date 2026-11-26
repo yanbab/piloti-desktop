@@ -1,3 +1,5 @@
+import { HeaderBar } from "@/components/elements/header-bar";
+import { Segmented } from "@/components/ui/segmented";
 import { VFS_HOME } from "@/lib/engine/vfs-home";
 import * as React from "react";
 import { useCapabilities } from "@/hooks/use-capabilities";
@@ -22,7 +24,6 @@ import {
 import { ObjectView, themeGitHubLight, themeOneDark } from "react-obj-view";
 import "react-obj-view/dist/react-obj-view.css";
 import { AppSquircleIcon } from "@/components/shell/AppSymbol";
-import { WindowMenuButton } from "@/components/shell/WindowMenuButton";
 import { InlineCompletionInput } from "@/components/ui/inline-completion-input";
 import {
   Tooltip,
@@ -30,7 +31,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { WindowControls, WindowTitlebar } from "@/components/ui/window";
 import { getWebAppFaviconUrl } from "@/data/web-apps";
 import { useSidebarKeyboardNav } from "@/hooks/use-sidebar-keyboard-nav";
 import {
@@ -1607,12 +1607,8 @@ function StorageModule() {
 
 export function ConsoleApp({
   initialModule,
-  isCsd = false,
-  windowId,
 }: {
   initialModule?: string;
-  isCsd?: boolean;
-  windowId?: string;
 }) {
   const piloti = usePiloti();
   const { settings, updateSettings } = useSettings();
@@ -1702,64 +1698,11 @@ export function ConsoleApp({
   return (
     <div className="flex h-full w-full flex-col overflow-hidden bg-adw-window text-adw-label">
       {/* Header / Module Switcher */}
-      <WindowTitlebar
-        data-window-drag-region={isCsd ? "" : undefined}
-        className={cn(
-          "border-b border-adw-separator bg-adw-titlebar",
-          !isCsd && "rounded-t-none"
-        )}
-      >
-        <div className="flex w-16 items-center gap-1.5" data-window-no-drag>
-          {isCsd && windowId && <WindowControls side="left" />}
-          <WindowMenuButton
-            side="left"
-            windowId={windowId}
-            appId="console"
-            iconName="activity"
-          />
-        </div>
-
-        {/* Module Tabs (text-only, no icons) */}
-        <div
-          data-window-no-drag
-          className="flex items-center gap-1 rounded-adw-item bg-black/6 p-0.5 dark:bg-white/8"
-        >
-          {modules.map((mod) => {
-            const active = activeModule === mod.id;
-            return (
-              <button
-                key={mod.id}
-                type="button"
-                onClick={() => setActiveModule(mod.id)}
-                className={cn(
-                  "flex items-center gap-1.5 rounded-adw-control px-2.5 py-1 text-adw-subheadline font-medium transition-colors",
-                  active
-                    ? "bg-adw-window text-adw-label shadow-xs"
-                    : "text-adw-label-secondary hover-fill:text-adw-label"
-                )}
-              >
-                <span>{mod.label}</span>
-                {mod.badge !== undefined && (
-                  <span className="rounded-full bg-rose-500 px-1.5 text-[9.5px] font-bold text-white">
-                    {mod.badge}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* CSD Window Controls */}
-        <div className="flex w-16 items-center justify-end gap-1.5" data-window-no-drag>
-          <WindowMenuButton
-            side="right"
-            windowId={windowId}
-            appId="console"
-            iconName="activity"
-          />
-          {isCsd && windowId && <WindowControls side="right" />}
-        </div>
-      </WindowTitlebar>
+      <HeaderBar>
+        <HeaderBar.Title interactive>
+          <Segmented value={activeModule} onChange={setActiveModule} options={modules} />
+        </HeaderBar.Title>
+      </HeaderBar>
 
       {/* Active module (Events stays mounted so its log persists across tab switches) */}
       {activeModule === "inspector" && <InspectorModule />}

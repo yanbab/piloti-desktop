@@ -29,7 +29,6 @@ export function createInShellEditorHost(
 ): TextEditorHost {
   return {
     nativeFs: getEngine().capabilities.realFilesystem,
-    windowMenu: typeof window === "undefined" || window.parent === window,
     normalizePath: normalizeVfsPath,
     defaultNewFilePath: (name) => `${VFS_HOME}/Desktop/${name}`,
     peekFile: (path) => getVfsEntry(path),

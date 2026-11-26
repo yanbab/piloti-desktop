@@ -203,7 +203,6 @@
 
 /* Page title in the headerbar (Settings, Piloti demo…): macOS type. Its
    left inset is measured to match the rows below (AdwSplitView). */
-:root[data-interface-theme="piloti"] [data-slot="settings-page-title"],
 :root[data-interface-theme="piloti"] [data-slot="page-title"] {
   font-size: var(--adw-font-body);
   font-weight: var(--piloti-font-weight-bold, 700);

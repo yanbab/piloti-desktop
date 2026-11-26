@@ -34,13 +34,11 @@ import {
   XIcon,
 } from "lucide-react";
 import { createPortal } from "react-dom";
-import { AdwSplitView, type AdwSplitSidebarItem } from "@/components/ui/adw-split-view";
+import { HeaderBar, HeaderButton, HeaderHeading } from "@/components/elements/header-bar";
+import { AppSplitView, type SidebarItem } from "@/components/elements/split-view";
 import { AppSquircleIcon } from "@/components/shell/AppSymbol";
-import { WindowMenuButton } from "@/components/shell/WindowMenuButton";
 import {
   WindowControlButton,
-  WindowControls,
-  WindowTitlebar,
 } from "@/components/ui/window";
 import {
   Dialog,
@@ -129,7 +127,6 @@ import {
 } from "@/lib/xdg/xdg-web-apps";
 
 interface AppStoreAppProps {
-  isCsd?: boolean;
   windowId?: string;
   /** `install:deb:<path>` / `install:flatpak:<path>` when a package file was opened. */
   initialPayload?: string;
@@ -687,7 +684,6 @@ const SOURCE_TOGGLES: ReadonlyArray<{
 ];
 
 export const AppStoreApp: React.FC<AppStoreAppProps> = ({
-  isCsd = false,
   windowId,
   initialPayload,
 }) => {
@@ -1442,7 +1438,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
     [flatpakUpdates],
   );
 
-  const sidebarItems = React.useMemo<AdwSplitSidebarItem[]>(() => {
+  const sidebarItems = React.useMemo<SidebarItem[]>(() => {
     // Counts follow the search; only the three top entries and the current one show one.
     const q = query.trim().toLowerCase();
     const countFor = (id: StoreCategory): number | undefined => {
@@ -2244,11 +2240,8 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
 
   return (
     <>
-    <AdwSplitView
+    <AppSplitView
       title={_("App Store")}
-      appId="app-store"
-      windowId={windowId}
-      isCsd={isCsd}
       sidebarItems={sidebarItems}
       sidebarWidthClass="w-44"
       sidebarId="app-store-sidebar"
@@ -2321,30 +2314,18 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
           )}
         </InfoPane>
       }
-      header={({ isCompact, contentScrolled }) => (
-        <WindowTitlebar
-          data-window-drag-region={isCsd ? "" : undefined}
-          className={cn(
-            "bg-adw-titlebar transition-colors",
-            !isCompact && "rounded-tl-none",
-            !isCsd && "rounded-t-none",
-            "border-b border-adw-separator",
-          )}
-        >
-          <div className="flex min-w-0 items-center gap-1.5" data-window-no-drag>
-            {!isCsd && (
-              <WindowMenuButton windowId={windowId} appId="app-store" />
-            )}
-            <span className="truncate px-2 text-[13.5px] font-medium text-adw-label">
+      header={
+        <HeaderBar>
+          <HeaderBar.Start>
+            <HeaderHeading className="px-2">
               {_(
                 [...SIDEBAR_ITEMS, ...COLLECTION_ITEMS, ...CATEGORY_ITEMS].find(
                   (i) => i.id === category,
                 )?.label ?? "Explore"
               )}
-            </span>
-          </div>
-
-          <div className="flex shrink-0 items-center gap-1.5" data-window-no-drag>
+            </HeaderHeading>
+          </HeaderBar.Start>
+          <HeaderBar.End>
             <HeaderSearch
               open={category !== "updates" && searchOpen}
               onOpenChange={setSearchOpen}
@@ -2355,12 +2336,8 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
             <InfoPaneToggle pane={infoPane} />
             <DropdownMenu>
               <DropdownMenuTrigger
-                aria-label={_("Software Sources")}
-                title={_("Software Sources")}
-                className="flex size-7 items-center justify-center rounded-adw-control text-adw-label-secondary transition-colors outline-none hover-fill:bg-black/8 hover-fill:text-adw-label data-popup-open:bg-black/10 data-popup-open:text-adw-label dark:hover-fill:bg-white/10 dark:data-popup-open:bg-white/15"
-              >
-                <SlidersHorizontalIcon className="size-4" />
-              </DropdownMenuTrigger>
+                render={<HeaderButton icon={SlidersHorizontalIcon} label={_("Software Sources")} />}
+              />
               <DropdownMenuContent align="end" className="w-56">
                 <DropdownMenuLabel>{_("Software Sources")}</DropdownMenuLabel>
                 {SOURCE_TOGGLES.map(({ key, label }) => (
@@ -2377,10 +2354,9 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                 ))}
               </DropdownMenuContent>
             </DropdownMenu>
-            {isCsd && windowId && <WindowControls side="right" />}
-          </div>
-        </WindowTitlebar>
-      )}
+          </HeaderBar.End>
+        </HeaderBar>
+      }
       footer={
         pendingOp || opStatus ? (
           <div className="flex h-9 shrink-0 items-center justify-between gap-3 border-t border-adw-separator bg-adw-titlebar px-4">
@@ -3275,7 +3251,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
           )}
         </div>
         )}
-      </AdwSplitView>
+      </AppSplitView>
         <Dialog
           open={Boolean(packageRequest)}
           onOpenChange={(open) => {

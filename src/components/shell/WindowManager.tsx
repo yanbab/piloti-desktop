@@ -60,7 +60,11 @@ import {
   setWorkArea,
   subscribeWindowPresentation,
 } from "@/lib/shell/window-presentation";
+import { AppChromeProvider, useAppChrome, type AppChrome } from "@/components/elements/app-chrome";
+import { HeaderBar } from "@/components/elements/header-bar";
+import { ShellTitlebar, WindowAppChrome } from "@/components/shell/WindowAppChrome";
 import { CalculatorApp } from "@/components/apps/CalculatorApp";
+import { HelloWorldApp } from "@/components/apps/HelloWorldApp";
 import { PilotiDemoApp } from "@/components/apps/PilotiDemoApp";
 import { CameraApp } from "@/components/apps/CameraApp";
 import { SystemMonitorApp } from "@/components/apps/SystemMonitorApp";
@@ -121,8 +125,6 @@ import {
   type WindowHandle,
   WindowMain,
   type WindowResizeEdge,
-  WindowTitle,
-  WindowTitlebar,
 } from "@/components/ui/window";
 import {
   normalizeWebUrl,
@@ -293,11 +295,10 @@ function isAppModuleWindow(win: DesktopWindowInstance) {
  */
 function AppModuleSurface({
   win,
-  isCsd,
 }: {
   win: DesktopWindowInstance;
-  isCsd: boolean;
 }) {
+  const isCsd = useAppChrome().decorations === "client";
   const windowCtx = useWindowContext();
   const { setBrowserTitle, markWindowReady } = useWindowManager();
   const viewRef = React.useRef<HTMLWebViewElement | null>(null);
@@ -359,28 +360,9 @@ function AppModuleSurface({
   }
   return (
     <div className="flex h-full w-full flex-1 flex-col overflow-hidden bg-adw-content">
-      <WindowTitlebar
-        data-window-drag-region={isCsd ? "" : undefined}
-        className={cn(
-          "relative border-b border-adw-separator bg-adw-titlebar",
-          !isCsd && "rounded-t-none"
-        )}
-      >
-        <div className="flex shrink-0 items-center gap-1.5" data-window-no-drag>
-          {isCsd && <WindowControls side="left" />}
-          <WindowMenuButton
-            side="left"
-            windowId={win.id}
-            appId={win.appId}
-            iconUrl={win.iconUrl}
-            iconName={win.iconName}
-            gradient={win.gradient}
-          />
-        </div>
-        <div className="pointer-events-none absolute inset-x-24 truncate text-center text-adw-body font-semibold text-adw-label">
-          {win.title}
-        </div>
-      </WindowTitlebar>
+      <HeaderBar>
+        <HeaderBar.Title>{win.title}</HeaderBar.Title>
+      </HeaderBar>
       <webview
         ref={viewRef}
         window={win.browserWindowId}
@@ -393,20 +375,19 @@ function AppModuleSurface({
 
 function WebViewSurface({
   win,
-  isCsd,
   darkReaderEnabled,
   onToggleDarkReader,
   active = true,
   tabBar,
 }: {
   win: DesktopWindowInstance;
-  isCsd: boolean;
   darkReaderEnabled: boolean;
   onToggleDarkReader: () => void;
   /** False for a background tab: it stays mounted but ignores shortcuts. */
   active?: boolean;
   tabBar?: React.ReactNode;
 }) {
+  const isCsd = useAppChrome().decorations === "client";
   const piloti = usePiloti();
   const { isBrowserRuntime, resolvedTheme, settings, updateSettings } =  // FIXME : Capabilities
     useSettings();
@@ -985,226 +966,208 @@ function WebViewSurface({
     : null;
   const contrastFg = getContrastForeground(effectiveThemeColor);
 
+  const chrome: AppChrome = {
+    appId: win.appId,
+    windowId: win.id,
+    decorations: isCsd ? "client" : "server",
+    // Also under a server-side titlebar: Install Web App lives in it.
+    menu: (
+      <WindowMenuButton
+        side="left"
+        windowId={win.id}
+        appId={win.appId}
+        iconUrl={win.iconUrl}
+        iconName={win.iconName}
+        gradient={win.gradient}
+        isWebApp
+        extraItems={
+          <DropdownMenuItem
+            disabled={!currentUrl}
+            onClick={toggleInstallApp}
+          >
+            {isInstalled ? _("Remove Web App") : _("Install Web App")}
+          </DropdownMenuItem>
+        }
+      />
+    ),
+  };
+
   return (
     <div className="flex h-full w-full flex-1 flex-col overflow-hidden bg-adw-content">
-      <WindowTitlebar
-        data-window-drag-region={isCsd ? "" : undefined}
-        style={
-          effectiveThemeColor
-            ? {
-              backgroundColor: effectiveThemeColor,
-              color: contrastFg ?? undefined,
-              borderBottomColor: "rgba(128,128,128,0.22)",
-              ...(contrastFg
-                ? ({ "--window-controls-fg": contrastFg } as React.CSSProperties)
-                : {}),
-            }
-            : undefined
-        }
-        className={cn(
-          "border-b border-adw-separator bg-adw-titlebar transition-colors duration-200",
-          !isCsd && "rounded-t-none"
-        )}
-      >
-        <div className="flex flex-1 basis-0 items-center justify-start gap-1.5" data-window-no-drag>
-          {isCsd && (
-            <WindowControls
-              side="left"
-              className="[&_button]:bg-[color-mix(in_srgb,currentColor_10%,transparent)] [&_button]:text-current [&_button:hover]:bg-[color-mix(in_srgb,currentColor_18%,transparent)]"
-            />
+      <AppChromeProvider value={chrome}>
+        <HeaderBar
+          style={
+            effectiveThemeColor
+              ? {
+                backgroundColor: effectiveThemeColor,
+                color: contrastFg ?? undefined,
+                borderBottomColor: "rgba(128,128,128,0.22)",
+                ...(contrastFg
+                  ? ({ "--window-controls-fg": contrastFg } as React.CSSProperties)
+                  : {}),
+              }
+              : undefined
+          }
+          className={cn(
+            "transition-colors duration-200",
+            // The address field takes the room the centred title leaves.
+            editingAddress && "grid-cols-[auto_minmax(0,1fr)_auto]",
+            // A tinted header tints its window buttons too.
+            "[&_[data-slot=window-controls]_button]:bg-[color-mix(in_srgb,currentColor_10%,transparent)] [&_[data-slot=window-controls]_button]:text-current [&_[data-slot=window-controls]_button:hover]:bg-[color-mix(in_srgb,currentColor_18%,transparent)]",
           )}
-          <WindowMenuButton
-            side="left"
-            windowId={win.id}
-            appId={win.appId}
-            iconUrl={win.iconUrl}
-            iconName={win.iconName}
-            gradient={win.gradient}
-            isWebApp
-            extraItems={
-              <DropdownMenuItem
-                disabled={!currentUrl}
-                onClick={toggleInstallApp}
+        >
+          <HeaderBar.Start>
+            <button
+              type="button"
+              title={_("Back")}
+              aria-label={_("Back")}
+              disabled={!canGoBack}
+              onClick={handleGoBack}
+              className={cn(
+                "flex size-7 items-center justify-center rounded-adw-control transition-colors disabled:pointer-events-none disabled:opacity-35",
+                "hover-fill:bg-black/8 dark:hover-fill:bg-white/10"
+              )}
+            >
+              <ChevronLeftIcon className="size-4" />
+            </button>
+          </HeaderBar.Start>
+          <HeaderBar.Title interactive>
+            {editingAddress ? (
+              <form
+                onSubmit={submitAddressEdit}
+                data-window-no-drag
+                className="flex min-w-0 flex-1 items-center justify-center px-2"
               >
-                {isInstalled ? _("Remove Web App") : _("Install Web App")}
-              </DropdownMenuItem>
-            }
-          />
-          <button
-            type="button"
-            title={_("Back")}
-            aria-label={_("Back")}
-            disabled={!canGoBack}
-            onClick={handleGoBack}
-            className={cn(
-              "flex size-7 items-center justify-center rounded-adw-control transition-colors disabled:pointer-events-none disabled:opacity-35",
-              "hover-fill:bg-black/8 dark:hover-fill:bg-white/10"
-            )}
-          >
-            <ChevronLeftIcon className="size-4" />
-          </button>
-        </div>
-
-        {editingAddress ? (
-          <form
-            onSubmit={submitAddressEdit}
-            data-window-no-drag
-            className="flex min-w-0 flex-1 items-center justify-center px-2"
-          >
-            <input
-              ref={addressInputRef}
-              type="text"
-              value={draftAddress}
-              onChange={(e) => setDraftAddress(e.target.value)}
-              onBlur={() => setEditingAddress(false)}
-              onKeyDown={(e) => {
-                if (e.key === "Escape") {
-                  e.preventDefault();
-                  setEditingAddress(false);
-                }
-              }}
-              aria-label="Address"
-              placeholder="https://…"
-              className={cn(
-                "h-7 w-full max-w-xl rounded-adw-control border border-adw-accent/70 bg-black/8 px-2.5 text-adw-callout font-medium outline-none dark:bg-white/12",
-                !contrastFg && "text-adw-label"
-              )}
-            />
-          </form>
-        ) : (
-          <div className="pointer-events-none flex min-w-0 shrink items-center justify-center gap-1.5 px-4">
-            {isLoading && (
-              <Loader2Icon
-                aria-label="Loading"
-                className={cn(
-                  "size-3.5 shrink-0 animate-spin opacity-75",
-                  !contrastFg && "text-adw-label"
+                <input
+                  ref={addressInputRef}
+                  type="text"
+                  value={draftAddress}
+                  onChange={(e) => setDraftAddress(e.target.value)}
+                  onBlur={() => setEditingAddress(false)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Escape") {
+                      e.preventDefault();
+                      setEditingAddress(false);
+                    }
+                  }}
+                  aria-label="Address"
+                  placeholder="https://…"
+                  className={cn(
+                    "h-7 w-full max-w-xl rounded-adw-control border border-adw-accent/70 bg-black/8 px-2.5 text-adw-callout font-medium outline-none dark:bg-white/12",
+                    !contrastFg && "text-adw-label"
+                  )}
+                />
+              </form>
+            ) : (
+              <div className="pointer-events-none flex min-w-0 shrink items-center justify-center gap-1.5 px-4">
+                {isLoading && (
+                  <Loader2Icon
+                    aria-label="Loading"
+                    className={cn(
+                      "size-3.5 shrink-0 animate-spin opacity-75",
+                      !contrastFg && "text-adw-label"
+                    )}
+                  />
                 )}
-              />
+                <button
+                  type="button"
+                  data-window-no-drag
+                  aria-label={_("Edit address")}
+                  onClick={() => {
+                    setDraftAddress(currentUrl);
+                    setEditingAddress(true);
+                  }}
+                  className={cn(
+                    "pointer-events-auto max-w-full cursor-text truncate rounded-adw-control px-2 py-0.5 text-adw-body font-semibold transition-colors hover-fill:bg-black/6 dark:hover-fill:bg-white/10",
+                    !contrastFg && "text-adw-label"
+                  )}
+                >
+                  {win.title}
+                </button>
+              </div>
             )}
-            <button
-              type="button"
-              data-window-no-drag
-              aria-label={_("Edit address")}
-              onClick={() => {
-                setDraftAddress(currentUrl);
-                setEditingAddress(true);
-              }}
-              className={cn(
-                "pointer-events-auto max-w-full cursor-text truncate rounded-adw-control px-2 py-0.5 text-adw-body font-semibold transition-colors hover-fill:bg-black/6 dark:hover-fill:bg-white/10",
-                !contrastFg && "text-adw-label"
-              )}
-            >
-              {win.title}
-            </button>
-          </div>
-        )}
-
-        <div className="flex flex-1 basis-0 items-center justify-end gap-1" data-window-no-drag>
-          {storeExtId && (
-            <Button
-              size="sm"
-              variant={storeExtInstalled ? "secondary" : "default"}
-              onClick={() => void handleToggleStoreExtension()}
-              className="mr-1 h-6 gap-1 px-2 text-adw-subheadline"
-            >
-              <DownloadIcon className="size-3" />
-              {storeExtInstalled
-                ? _("Remove Extension")
-                : _("Install Extension")}
-            </Button>
-          )}
-          {isBrowserApp && (
-            <button
-              type="button"
-              // Same heart, colours and stroke as the favorite emblem.
-              data-slot="browser-bookmark-toggle"
-              aria-pressed={bookmarked}
-              disabled={!currentUrl}
-              title={bookmarked ? _("Remove Bookmark") : _("Add Bookmark")}
-              aria-label={bookmarked ? _("Remove Bookmark") : _("Add Bookmark")}
-              onClick={() => toggleBrowserBookmark(currentUrl, win.title)}
-              style={bookmarked ? { color: "#ef4444" } : undefined}
-              className="flex size-7 items-center justify-center rounded-adw-control transition-colors disabled:opacity-35 hover-fill:bg-black/8 dark:hover-fill:bg-white/10"
-            >
-              <HeartIcon
-                className={cn("size-4", bookmarked && "fill-current")}
-                strokeWidth={bookmarked ? 2 : 2.25}
-              />
-            </button>
-          )}
-          {isBrowserApp && (
-            // Split button: + opens a web page tab; the chevron lists apps
-            // that can open in a tab. Placeholder: those apps will declare
-            // tab support in their .desktop entry (e.g. `X-Piloti-Tabs=true`).
-            <div data-slot="new-tab-split" className="flex items-center">
+          </HeaderBar.Title>
+          <HeaderBar.End>
+            {storeExtId && (
+              <Button
+                size="sm"
+                variant={storeExtInstalled ? "secondary" : "default"}
+                onClick={() => void handleToggleStoreExtension()}
+                className="mr-1 h-6 gap-1 px-2 text-adw-subheadline"
+              >
+                <DownloadIcon className="size-3" />
+                {storeExtInstalled
+                  ? _("Remove Extension")
+                  : _("Install Extension")}
+              </Button>
+            )}
+            {isBrowserApp && (
               <button
                 type="button"
-                title={_("New Tab")}
-                aria-label={_("New Tab")}
-                onClick={() => openBrowserTab(win.id)}
-                className="flex size-7 items-center justify-center rounded-l-adw-control transition-colors hover-fill:bg-black/8 dark:hover-fill:bg-white/10"
-              >
-                <PlusIcon className="size-4" />
-              </button>
-              <DropdownMenu>
-                <DropdownMenuTrigger
-                  aria-label={_("New Tab With…")}
-                  title={_("New Tab With…")}
-                  className="flex h-7 w-4 items-center justify-center rounded-r-adw-control outline-none transition-colors hover-fill:bg-black/8 data-[popup-open]:bg-black/12 dark:hover-fill:bg-white/10 dark:data-[popup-open]:bg-white/15"
-                >
-                  <ChevronDownIcon className="size-3" strokeWidth={2.5} />
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="min-w-48">
-                  <DropdownMenuItem onClick={() => openBrowserTab(win.id)}>
-                    <GlobeIcon className="size-4" />
-                    {_("Web Page")}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem disabled>
-                    <FolderIcon className="size-4" />
-                    {_("Folders")}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem disabled>
-                    <TerminalIcon className="size-4" />
-                    {_("Terminal")}
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          )}
-          <BrowserExtensionsMenu
-            items={extensionMenuItems}
-            pinnedIds={settings.pinnedExtensionIds ?? []}
-            onTogglePin={toggleExtensionPin}
-            onManage={() => launchApp("settings", { payload: "advanced" })}
-          />
-          <WindowMenuButton
-            side="right"
-            windowId={win.id}
-            appId={win.appId}
-            iconUrl={win.iconUrl}
-            iconName={win.iconName}
-            gradient={win.gradient}
-            isWebApp
-            extraItems={
-              <DropdownMenuItem
+                // Same heart, colours and stroke as the favorite emblem.
+                data-slot="browser-bookmark-toggle"
+                aria-pressed={bookmarked}
                 disabled={!currentUrl}
-                onClick={toggleInstallApp}
+                title={bookmarked ? _("Remove Bookmark") : _("Add Bookmark")}
+                aria-label={bookmarked ? _("Remove Bookmark") : _("Add Bookmark")}
+                onClick={() => toggleBrowserBookmark(currentUrl, win.title)}
+                style={bookmarked ? { color: "#ef4444" } : undefined}
+                className="flex size-7 items-center justify-center rounded-adw-control transition-colors disabled:opacity-35 hover-fill:bg-black/8 dark:hover-fill:bg-white/10"
               >
-                {isInstalled ? _("Remove Web App") : _("Install Web App")}
-              </DropdownMenuItem>
-            }
-          />
-          {isCsd ? (
-            <WindowControls
-              side="right"
-              className="[&_button]:bg-[color-mix(in_srgb,currentColor_10%,transparent)] [&_button]:text-current [&_button:hover]:bg-[color-mix(in_srgb,currentColor_18%,transparent)]"
+                <HeartIcon
+                  className={cn("size-4", bookmarked && "fill-current")}
+                  strokeWidth={bookmarked ? 2 : 2.25}
+                />
+              </button>
+            )}
+            {isBrowserApp && (
+              // Split button: + opens a web page tab; the chevron lists apps
+              // that can open in a tab. Placeholder: those apps will declare
+              // tab support in their .desktop entry (e.g. `X-Piloti-Tabs=true`).
+              <div data-slot="new-tab-split" className="flex items-center">
+                <button
+                  type="button"
+                  title={_("New Tab")}
+                  aria-label={_("New Tab")}
+                  onClick={() => openBrowserTab(win.id)}
+                  className="flex size-7 items-center justify-center rounded-l-adw-control transition-colors hover-fill:bg-black/8 dark:hover-fill:bg-white/10"
+                >
+                  <PlusIcon className="size-4" />
+                </button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger
+                    aria-label={_("New Tab With…")}
+                    title={_("New Tab With…")}
+                    className="flex h-7 w-4 items-center justify-center rounded-r-adw-control outline-none transition-colors hover-fill:bg-black/8 data-[popup-open]:bg-black/12 dark:hover-fill:bg-white/10 dark:data-[popup-open]:bg-white/15"
+                  >
+                    <ChevronDownIcon className="size-3" strokeWidth={2.5} />
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="min-w-48">
+                    <DropdownMenuItem onClick={() => openBrowserTab(win.id)}>
+                      <GlobeIcon className="size-4" />
+                      {_("Web Page")}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem disabled>
+                      <FolderIcon className="size-4" />
+                      {_("Folders")}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem disabled>
+                      <TerminalIcon className="size-4" />
+                      {_("Terminal")}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            )}
+            <BrowserExtensionsMenu
+              items={extensionMenuItems}
+              pinnedIds={settings.pinnedExtensionIds ?? []}
+              onTogglePin={toggleExtensionPin}
+              onManage={() => launchApp("settings", { payload: "advanced" })}
             />
-          ) : (
-            <div className="w-7" />
-          )}
-        </div>
-      </WindowTitlebar>
+          </HeaderBar.End>
+        </HeaderBar>
+      </AppChromeProvider>
       {tabBar}
 
       <div className="relative min-h-0 flex-1 overflow-hidden">
@@ -1335,12 +1298,10 @@ function WebViewSurface({
  */
 function BrowserTabsSurface({
   win,
-  isCsd,
   darkReaderEnabled,
   onToggleDarkReader,
 }: {
   win: DesktopWindowInstance;
-  isCsd: boolean;
   darkReaderEnabled: boolean;
   onToggleDarkReader: () => void;
 }) {
@@ -1424,7 +1385,6 @@ function BrowserTabsSurface({
               }
               active={active}
               tabBar={tabSlot}
-              isCsd={isCsd}
               darkReaderEnabled={darkReaderEnabled}
               onToggleDarkReader={onToggleDarkReader}
             />
@@ -1451,17 +1411,16 @@ function WindowDomReadySignal({
 const WindowBody = React.memo(
   function WindowBody({
     win,
-    isCsd,
     onDomReady,
     darkReaderEnabled,
     onToggleDarkReader,
   }: {
     win: DesktopWindowInstance;
-    isCsd: boolean;
     onDomReady: (id: string) => void;
     darkReaderEnabled: boolean;
     onToggleDarkReader: () => void;
   }) {
+    const isCsd = useAppChrome().decorations === "client";
     const { isBrowserRuntime } = useSettings();  // FIXME : Capabilities
 
     if (win.waylandAppId && !isBrowserRuntime) {  // FIXME : Capabilities
@@ -1469,14 +1428,13 @@ const WindowBody = React.memo(
     }
 
     if (win.browserWindowId && isAppModuleWindow(win)) {
-      return <AppModuleSurface win={win} isCsd={isCsd} />;
+      return <AppModuleSurface win={win} />;
     }
 
     if (win.browserWindowId) {
       return (
         <BrowserTabsSurface
           win={win}
-          isCsd={isCsd}
           darkReaderEnabled={darkReaderEnabled}
           onToggleDarkReader={onToggleDarkReader}
         />
@@ -1489,8 +1447,6 @@ const WindowBody = React.memo(
           <WindowDomReadySignal windowId={win.id} onReady={onDomReady} />
           <SettingsApp
             initialPane={win.payload}
-            isCsd={isCsd}
-            windowId={win.id}
           />
         </React.Suspense>
       );
@@ -1502,8 +1458,6 @@ const WindowBody = React.memo(
           <WindowDomReadySignal windowId={win.id} onReady={onDomReady} />
           <ConsoleApp
             initialModule={win.payload}
-            isCsd={isCsd}
-            windowId={win.id}
           />
         </React.Suspense>
       );
@@ -1515,7 +1469,6 @@ const WindowBody = React.memo(
           <WindowDomReadySignal windowId={win.id} onReady={onDomReady} />
           <FilesApp
             initialPath={win.payload}
-            isCsd={isCsd}
             windowId={win.id}
           />
         </React.Suspense>
@@ -1539,7 +1492,6 @@ const WindowBody = React.memo(
           <TextEditorApp
             initialPath={win.payload}
             windowId={win.id}
-            isCsd={isCsd}
           />
         </React.Suspense>
       );
@@ -1551,7 +1503,6 @@ const WindowBody = React.memo(
           <ImageViewerApp
             initialPath={win.payload}
             windowId={win.id}
-            isCsd={isCsd}
           />
         </React.Suspense>
       );
@@ -1568,7 +1519,7 @@ const WindowBody = React.memo(
       return (
         <React.Suspense fallback={null}>
           <WindowDomReadySignal windowId={win.id} onReady={onDomReady} />
-          <AppStoreApp isCsd={isCsd} windowId={win.id} initialPayload={win.payload} />
+          <AppStoreApp windowId={win.id} initialPayload={win.payload} />
         </React.Suspense>
       );
     }
@@ -1576,7 +1527,15 @@ const WindowBody = React.memo(
       return (
         <React.Suspense fallback={null}>
           <WindowDomReadySignal windowId={win.id} onReady={onDomReady} />
-          <CalculatorApp windowId={win.id} isCsd={isCsd} />
+          <CalculatorApp windowId={win.id} />
+        </React.Suspense>
+      );
+    }
+    if (win.builtinComponent === "hello-world") {
+      return (
+        <React.Suspense fallback={null}>
+          <WindowDomReadySignal windowId={win.id} onReady={onDomReady} />
+          <HelloWorldApp />
         </React.Suspense>
       );
     }
@@ -1584,7 +1543,7 @@ const WindowBody = React.memo(
       return (
         <React.Suspense fallback={null}>
           <WindowDomReadySignal windowId={win.id} onReady={onDomReady} />
-          <PilotiDemoApp windowId={win.id} isCsd={isCsd} />
+          <PilotiDemoApp />
         </React.Suspense>
       );
     }
@@ -1592,7 +1551,7 @@ const WindowBody = React.memo(
       return (
         <React.Suspense fallback={null}>
           <WindowDomReadySignal windowId={win.id} onReady={onDomReady} />
-          <CameraApp windowId={win.id} isCsd={isCsd} />
+          <CameraApp windowId={win.id} />
         </React.Suspense>
       );
     }
@@ -1600,7 +1559,7 @@ const WindowBody = React.memo(
       return (
         <React.Suspense fallback={null}>
           <WindowDomReadySignal windowId={win.id} onReady={onDomReady} />
-          <SystemMonitorApp windowId={win.id} isCsd={isCsd} />
+          <SystemMonitorApp windowId={win.id} />
         </React.Suspense>
       );
     }
@@ -1608,7 +1567,7 @@ const WindowBody = React.memo(
       return (
         <React.Suspense fallback={null}>
           <WindowDomReadySignal windowId={win.id} onReady={onDomReady} />
-          <LoginScreenApp windowId={win.id} isCsd={isCsd} />
+          <LoginScreenApp windowId={win.id} />
         </React.Suspense>
       );
     }
@@ -1625,7 +1584,6 @@ const WindowBody = React.memo(
     );
   },
   (prev, next) =>
-    prev.isCsd === next.isCsd &&
     prev.darkReaderEnabled === next.darkReaderEnabled &&
     prev.win.id === next.win.id &&
     prev.win.builtinComponent === next.win.builtinComponent &&
@@ -2429,19 +2387,7 @@ export function WindowManager() {
               >
                 {/* Server-Side Titlebar (SSD) */}
                 {!isCsd && win.builtinComponent !== "terminal" && (
-                  <WindowTitlebar className="justify-between">
-                    <div className="flex shrink-0 items-center gap-1.5" data-window-no-drag>
-                      <WindowControls side="left" />
-                      <WindowMenuButton side="left" windowId={win.id} />
-                    </div>
-                    <WindowTitle className="flex items-center justify-center gap-1.5">
-                      <span className="truncate">{win.title}</span>
-                    </WindowTitle>
-                    <div className="flex shrink-0 items-center gap-1.5" data-window-no-drag>
-                      <WindowMenuButton side="right" windowId={win.id} />
-                      <WindowControls side="right" />
-                    </div>
-                  </WindowTitlebar>
+                  <ShellTitlebar windowId={win.id} appId={win.appId} title={win.title} />
                 )}
 
                 {/* Non-interactive presentation: the presenter gets the pointer */}
@@ -2468,16 +2414,22 @@ export function WindowManager() {
                 )}
 
                 <WindowContent className="flex flex-col overflow-hidden">
-                  <WindowBody
-                    win={win}
-                    isCsd={isCsd}
-                    onDomReady={handleDomReady}
-                    darkReaderEnabled={Boolean(
-                      darkReaderByWindowId[win.id] ??
-                        settings.darkReaderWebEnabled
-                    )}
-                    onToggleDarkReader={() => toggleDarkReaderForWindow(win.id)}
-                  />
+                  <WindowAppChrome
+                    windowId={win.id}
+                    appId={win.appId}
+                    // The terminal never gets a server-side titlebar.
+                    isCsd={isCsd || win.builtinComponent === "terminal"}
+                  >
+                    <WindowBody
+                      win={win}
+                      onDomReady={handleDomReady}
+                      darkReaderEnabled={Boolean(
+                        darkReaderByWindowId[win.id] ??
+                          settings.darkReaderWebEnabled
+                      )}
+                      onToggleDarkReader={() => toggleDarkReaderForWindow(win.id)}
+                    />
+                  </WindowAppChrome>
                 </WindowContent>
               </WindowMain>
             </Window>

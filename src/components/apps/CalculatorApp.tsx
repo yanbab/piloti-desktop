@@ -1,3 +1,4 @@
+import { useAppChrome } from "@/components/elements/app-chrome";
 import * as React from "react";
 import { emitShellEvent, onShellEvent } from "@/lib/shell/shell-events";
 import { ChevronDownIcon, XIcon } from "lucide-react";
@@ -10,7 +11,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {
   useWindowActions,
+  useChromeSettings,
 } from "@/context/DesktopStateContext";
+import { isCloseOnLeft } from "@/components/ui/window";
 import { _ } from "@/lib/core/i18n";
 import { cn } from "@/lib/core/utils";
 import { publishWindowMenuState } from "@/lib/engine/app-bridge";
@@ -57,7 +60,6 @@ function evaluateBinary(a: number, op: Operator, b: number): string {
 
 export interface CalculatorAppProps {
   windowId?: string;
-  isCsd?: boolean;
   onCloseWindow?: () => void;
 }
 
@@ -86,9 +88,9 @@ function loadSavedCalculatorState(): SavedCalculatorState {
 
 export const CalculatorApp: React.FC<CalculatorAppProps> = ({
   windowId = "",
-  isCsd = true,
   onCloseWindow,
 }) => {
+  const isCsd = useAppChrome().decorations === "client";
   const { updateWindowGeometry } = useWindowActions();
 
   const initialStateRef = React.useRef<SavedCalculatorState | null>(null);
@@ -237,6 +239,8 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
     window.addEventListener("hashchange", onHashChange);
     return () => window.removeEventListener("hashchange", onHashChange);
   }, []);
+
+  const closeOnLeft = isCloseOnLeft(useChromeSettings().settings.windowButtonLayout);
 
   const handleClose = () => {
     if (onCloseWindow) {
@@ -409,6 +413,18 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
   const clearLabel =
     display !== "0" || storedValue !== null || pendingOp !== null ? "C" : "AC";
 
+  const closeButton = isCsd && (
+      <button
+        type="button"
+        data-window-no-drag
+        aria-label={_("Close window")}
+        onClick={handleClose}
+        className="flex size-5 shrink-0 items-center justify-center rounded-full bg-black/8 text-adw-label-secondary transition-colors outline-none hover-fill:bg-black/15 hover-fill:text-adw-label active:bg-black/22 dark:bg-white/10 dark:hover-fill:bg-white/18 dark:hover-fill:text-adw-label dark:active:bg-white/24"
+      >
+        <XIcon className="size-3" strokeWidth={2.5} />
+      </button>
+  );
+
   return (
     <div className="flex h-full w-full flex-col overflow-hidden bg-transparent text-adw-label select-none">
       {/* Combined Vibrant Headerbar + Result Display */}
@@ -422,6 +438,7 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
           className="flex h-5 w-max min-w-full items-center justify-between gap-2"
         >
           <div className="flex shrink-0 items-center gap-1.5">
+          {closeOnLeft && closeButton}
           <button
             type="button"
             data-window-no-drag
@@ -449,17 +466,7 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
             {_("Copied")}
           </span>
           </div>
-          {isCsd && (
-            <button
-              type="button"
-              data-window-no-drag
-              aria-label={_("Close window")}
-              onClick={handleClose}
-              className="flex size-5 shrink-0 items-center justify-center rounded-full bg-black/8 text-adw-label-secondary transition-colors outline-none hover-fill:bg-black/15 hover-fill:text-adw-label active:bg-black/22 dark:bg-white/10 dark:hover-fill:bg-white/18 dark:hover-fill:text-adw-label dark:active:bg-white/24"
-            >
-              <XIcon className="size-3" strokeWidth={2.5} />
-            </button>
-          )}
+          {!closeOnLeft && closeButton}
         </div>
 
         <div

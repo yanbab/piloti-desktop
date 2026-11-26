@@ -4,16 +4,19 @@ import { usePiloti } from "@/lib/engine/piloti";
 import { Button } from "@/components/ui/button";
 import {
   Window,
+  isCloseOnLeft,
   WindowControls,
   WindowMain,
 } from "@/components/ui/window";
 import { PILOTI_VERSION } from "@/lib/core/version";
 import {
   useSettings,
+  useChromeSettings,
   useWindowActions,
   useWindowManagerSelector,
 } from "@/context/DesktopStateContext";
 import { _ } from "@/lib/core/i18n";
+import { cn } from "@/lib/core/utils";
 import { type ComputerInfo, probeComputerInfo } from "@/lib/core/system-info";
 
 export function ComputerHardwareIllustration({
@@ -147,6 +150,7 @@ export function MonitorHardwareIllustration({
 export function AboutComputerDialog() {
   const piloti = usePiloti();
   const { isBrowserRuntime } = useSettings();  // FIXME : Capabilities
+  const closeOnLeft = isCloseOnLeft(useChromeSettings().settings.windowButtonLayout);
   const aboutOpen = useWindowManagerSelector((wm) => wm.aboutOpen);
   const { setAboutOpen, launchApp } = useWindowActions();
   const [info, setInfo] = React.useState<ComputerInfo>({
@@ -224,6 +228,7 @@ export function AboutComputerDialog() {
       draggable
       resizable={false}
       bounds="parent"
+      buttonLayout={closeOnLeft ? "close:" : ":close"}
       onClose={() => setAboutOpen(false)}
       style={{ position: "fixed", top: 0, left: 0, zIndex: 420 }}
     >
@@ -236,8 +241,8 @@ export function AboutComputerDialog() {
             data-window-drag-region=""
             className="relative flex flex-col items-center gap-1 rounded-t-[inherit] border-b border-adw-separator bg-adw-sidebar px-4 pt-4 pb-4 text-center"
           >
-            <div className="absolute top-2.5 right-2.5" data-window-no-drag>
-              <WindowControls side="right" />
+            <div className={cn("absolute top-2.5", closeOnLeft ? "left-2.5" : "right-2.5")} data-window-no-drag>
+              <WindowControls side={closeOnLeft ? "left" : "right"} />
             </div>
             <ComputerHardwareIllustration
               className="pointer-events-none mb-1 h-24 w-38 shrink-0 drop-shadow-md"

@@ -15,7 +15,7 @@ export function Greeter() {
     <ShellErrorBoundary>
       <DesktopStateProvider greeterMode>
         <div className="h-screen w-screen overflow-hidden">
-          <LoginScreenApp mode="greeter" isCsd={false} />
+          <LoginScreenApp mode="greeter" />
         </div>
       </DesktopStateProvider>
     </ShellErrorBoundary>

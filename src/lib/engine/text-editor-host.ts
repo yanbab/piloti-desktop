@@ -13,8 +13,6 @@ import type { IsolatedAppBridge } from "@/lib/engine/app-bridge";
 export interface TextEditorHost {
   /** True when files live on the real filesystem (not the browser demo VFS). */
   nativeFs: boolean;
-  /** The shell's window menu is available (false in a frame, which has no shell around it). */
-  windowMenu?: boolean;
   normalizePath(path: string): string;
   /** Where an unsaved document goes on first save (the user's Desktop). */
   defaultNewFilePath(name: string): string;

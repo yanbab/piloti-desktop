@@ -14,7 +14,9 @@ import {
   TypeIcon,
   Volume2Icon,
 } from "lucide-react";
-import { AdwSplitView, type AdwSplitSidebarItem } from "@/components/ui/adw-split-view";
+import { HeaderBar, HeaderHeading } from "@/components/elements/header-bar";
+import { AppSplitView, type SidebarItem } from "@/components/elements/split-view";
+import { ElementsPage } from "@/components/apps/demo/ElementsPage";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -55,10 +57,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Segmented } from "@/components/ui/segmented";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { WindowControls, WindowTitlebar } from "@/components/ui/window";
 import { useApps, useSettings } from "@/context/DesktopStateContext";
 import { APP_CATALOG } from "@/data/catalog";
 import { _ } from "@/lib/core/i18n";
@@ -70,9 +72,10 @@ import { cn } from "@/lib/core/utils";
  * consistency at a glance.
  */
 
-type PageId = "controls" | "menus" | "text" | "tokens" | "icons";
+type PageId = "elements" | "controls" | "menus" | "text" | "tokens" | "icons";
 
 const PAGES: { id: PageId; label: string; icon: React.ReactNode }[] = [
+  { id: "elements", label: "Elements", icon: <BoxesIcon className="size-4" /> },
   { id: "controls", label: "Controls", icon: <SlidersHorizontalIcon className="size-4" /> },
   { id: "menus", label: "Menus", icon: <MenuIcon className="size-4" /> },
   { id: "text", label: "Text", icon: <TypeIcon className="size-4" /> },
@@ -102,42 +105,6 @@ const LABEL_TOKENS = ["label", "label-secondary", "label-tertiary", "label-quate
 const SURFACE_TOKENS = ["window", "content", "group", "titlebar", "control", "fill-primary", "separator"] as const;
 const RADIUS_TOKENS = ["control", "item", "menu", "group", "popover", "window"] as const;
 const HEIGHT_TOKENS = ["mini", "small", "medium", "large"] as const;
-
-function Segmented<T extends string>({
-  value,
-  options,
-  onChange,
-}: {
-  value: T;
-  options: { id: T; label: string; icon?: React.ReactNode }[];
-  onChange: (id: T) => void;
-}) {
-  return (
-    <div
-      data-slot="segmented"
-      className="inline-flex items-center gap-1 rounded-adw-item bg-black/8 p-1 dark:bg-white/8"
-    >
-      {options.map((opt) => (
-        <button
-          key={opt.id}
-          type="button"
-          data-slot="segmented-item"
-          aria-pressed={value === opt.id}
-          onClick={() => onChange(opt.id)}
-          className={cn(
-            "inline-flex items-center gap-1.5 rounded-adw-control px-2.5 py-1 text-adw-callout font-medium transition-colors",
-            value === opt.id
-              ? "bg-adw-window text-adw-label shadow-xs dark:bg-white/16"
-              : "text-adw-label-secondary hover-fill:bg-black/5 dark:hover-fill:bg-white/6",
-          )}
-        >
-          {opt.icon}
-          {opt.label}
-        </button>
-      ))}
-    </div>
-  );
-}
 
 function Row({
   title,
@@ -470,11 +437,11 @@ function IconsPage() {
   );
 }
 
-export function PilotiDemoApp({ windowId, isCsd = false }: { windowId?: string; isCsd?: boolean }) {
+export function PilotiDemoApp() {
   const { settings, updateSettings } = useSettings();
   const [page, setPage] = React.useState<PageId>("controls");
 
-  const sidebarItems: AdwSplitSidebarItem[] = PAGES.map((p) => ({
+  const sidebarItems: SidebarItem[] = PAGES.map((p) => ({
     id: p.id,
     label: _(p.label),
     icon: p.icon,
@@ -483,7 +450,7 @@ export function PilotiDemoApp({ windowId, isCsd = false }: { windowId?: string; 
   }));
 
   const switches = (
-    <div className="flex items-center gap-2" data-window-no-drag>
+    <div className="flex items-center gap-2">
       <Segmented
         value={settings.interfaceTheme === "adwaita" ? "adwaita" : "piloti"}
         onChange={(theme) =>
@@ -510,39 +477,25 @@ export function PilotiDemoApp({ windowId, isCsd = false }: { windowId?: string; 
   );
 
   return (
-    <AdwSplitView
+    <AppSplitView
       title={_("Piloti demo")}
-      appId="piloti-demo"
       iconName="sparkles"
-      windowId={windowId}
-      isCsd={isCsd}
       sidebarItems={sidebarItems}
       sidebarWidthClass="w-[176px]"
       sidebarId="piloti-demo-sidebar"
       contentClassName="bg-adw-window"
-      header={() =>
-        isCsd ? (
-          <WindowTitlebar data-window-drag-region className="rounded-tl-none border-b border-adw-separator bg-adw-titlebar">
-            <h2 data-slot="page-title" className="truncate pr-2 text-adw-body font-bold text-adw-label">
-              {_(PAGES.find((p) => p.id === page)?.label ?? "")}
-            </h2>
-            <div className="flex items-center gap-2">
-              {switches}
-              {windowId && <WindowControls side="right" />}
-            </div>
-          </WindowTitlebar>
-        ) : (
-          <div className="flex items-center justify-between gap-3 border-b border-adw-separator bg-adw-window px-5 py-2.5">
-            <h2 data-slot="page-title" className="truncate text-adw-title-3 font-bold text-adw-label">
-              {_(PAGES.find((p) => p.id === page)?.label ?? "")}
-            </h2>
-            {switches}
-          </div>
-        )
+      header={
+        <HeaderBar>
+          <HeaderBar.Start>
+            <HeaderHeading>{_(PAGES.find((p) => p.id === page)?.label ?? "")}</HeaderHeading>
+          </HeaderBar.Start>
+          <HeaderBar.End>{switches}</HeaderBar.End>
+        </HeaderBar>
       }
     >
       {({ onContentScroll }) => (
         <div onScroll={onContentScroll} className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+          {page === "elements" && <ElementsPage />}
           {page === "controls" && <ControlsPage />}
           {page === "menus" && <MenusPage />}
           {page === "text" && <TextPage />}
@@ -550,6 +503,6 @@ export function PilotiDemoApp({ windowId, isCsd = false }: { windowId?: string; 
           {page === "icons" && <IconsPage />}
         </div>
       )}
-    </AdwSplitView>
+    </AppSplitView>
   );
 }

@@ -222,7 +222,8 @@ export type BuiltinAppId =
   | "camera"
   | "system-monitor"
   | "login-screen"
-  | "piloti-demo";
+  | "piloti-demo"
+  | "hello-world";
 
 export interface AppMenuSection {
   title: string;

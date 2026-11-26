@@ -1,10 +1,11 @@
 import * as React from "react";
 import { createPortal } from "react-dom";
-import { Window, WindowControls, WindowMain } from "@/components/ui/window";
+import { isCloseOnLeft, Window, WindowControls, WindowMain } from "@/components/ui/window";
 import { AppSquircleIcon } from "@/components/shell/AppSymbol";
-import { useApps } from "@/context/DesktopStateContext";
+import { useApps, useChromeSettings } from "@/context/DesktopStateContext";
 import type { AppDefinition } from "@/data/catalog";
 import { _ } from "@/lib/core/i18n";
+import { cn } from "@/lib/core/utils";
 import { PILOTI_VERSION } from "@/lib/core/version";
 
 const WIDTH = 280;
@@ -42,6 +43,8 @@ export function AppAboutWindow({
     return () => observer.disconnect();
   }, []);
 
+  const closeOnLeft = isCloseOnLeft(useChromeSettings().settings.windowButtonLayout);
+
   return createPortal(
     <Window
       position={pos}
@@ -49,12 +52,13 @@ export function AppAboutWindow({
       size={{ width: WIDTH, height }}
       draggable
       resizable={false}
+      buttonLayout={closeOnLeft ? "close:" : ":close"}
       onClose={onClose}
       style={{ position: "fixed", top: 0, left: 0, zIndex: 420 + index }}
     >
       <WindowMain className="relative bg-adw-sidebar">
-        <div className="absolute top-2.5 right-2.5 z-10" data-window-no-drag>
-          <WindowControls side="right" />
+        <div className={cn("absolute top-2.5 z-10", closeOnLeft ? "left-2.5" : "right-2.5")} data-window-no-drag>
+          <WindowControls side={closeOnLeft ? "left" : "right"} />
         </div>
         {/* Drag it from anywhere. */}
         <div

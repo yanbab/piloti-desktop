@@ -1,5 +1,5 @@
 import { HeaderSearch } from "@/components/ui/header-search";
-import { SettingsHeaderActions } from "./header-slot";
+import { HeaderBar } from "@/components/elements/header-bar";
 import * as React from "react";
 import { useCapabilities } from "@/hooks/use-capabilities";
 import { usePiloti } from "@/lib/engine/piloti";
@@ -253,8 +253,8 @@ export function SecurityPane() {
 
   return (
     <GroupedForm>
-      {/* Switcher and search live in the Settings headerbar. */}
-      <SettingsHeaderActions>
+      {/* Switcher and search live in the Settings header bar. */}
+      <HeaderBar.Portal>
         <div className="inline-flex shrink-0 rounded-adw-item bg-black/8 p-0.5 dark:bg-white/10" data-slot="segmented">
           {(["apps", "permissions"] as const).map((mode) => {
             const selected = groupBy === mode;
@@ -284,7 +284,7 @@ export function SecurityPane() {
           onQueryChange={setQuery}
           placeholder={_("Search apps…")}
         />
-      </SettingsHeaderActions>
+      </HeaderBar.Portal>
 
       <GroupedFormSection>
         <GroupedFormSectionTitle>

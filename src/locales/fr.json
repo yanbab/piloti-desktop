@@ -800,5 +800,16 @@
   "Debug mode": "Mode débogage",
   "Show the desktop as it loads, to profile startup": "Afficher le bureau au fil du chargement, pour analyser le démarrage",
   "No Wi-Fi adapter": "Aucun adaptateur Wi-Fi",
-  "No Bluetooth adapter": "Aucun adaptateur Bluetooth"
+  "No Bluetooth adapter": "Aucun adaptateur Bluetooth",
+  "Elements": "Éléments",
+  "Decorations": "Décorations",
+  "Client": "Client",
+  "Server": "Serveur",
+  "Window buttons": "Boutons de fenêtre",
+  "Sample window": "Fenêtre d’exemple",
+  "Parts": "Composants",
+  "Not drawn": "Non affiché",
+  "Hello World": "Bonjour le monde",
+  "Hello world": "Bonjour le monde",
+  "The simplest app built with the shell's elements": "L’application la plus simple faite avec les éléments du shell"
 }

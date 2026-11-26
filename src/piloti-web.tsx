@@ -16,6 +16,7 @@ import { installDynamicFavicon } from "./lib/engine-web/dynamic-favicon";
 setEngine(webEngine);
 setVfsSeed(demoVfsSeed);
 installDynamicFavicon();
+import { AppChromeProvider } from "./components/elements/app-chrome";
 import { ShellErrorBoundary } from "./components/shell/ShellErrorBoundary";
 
 const CalculatorApp = React.lazy(() =>
@@ -49,9 +50,11 @@ async function start(root: HTMLElement) {
     const isCsd = params.get("csd") !== "0";
     createRoot(root).render(
       <ShellErrorBoundary>
-        <React.Suspense fallback={null}>
-          <CalculatorApp windowId={windowId} isCsd={isCsd} />
-        </React.Suspense>
+        <AppChromeProvider value={{ appId: "calculator", windowId, decorations: isCsd ? "client" : "server" }}>
+          <React.Suspense fallback={null}>
+            <CalculatorApp windowId={windowId} />
+          </React.Suspense>
+        </AppChromeProvider>
       </ShellErrorBoundary>,
     );
   } else if (isolatedApp === "text-editor") {
@@ -62,11 +65,13 @@ async function start(root: HTMLElement) {
     const initialPath = params.get("path") ?? undefined;
     createRoot(root).render(
       <ShellErrorBoundary>
-        <DomicileProvider domicile={createBrowserDomicile()}>
-          <React.Suspense fallback={null}>
-            <TextEditorApp initialPath={initialPath} windowId={windowId} isCsd={isCsd} />
-          </React.Suspense>
-        </DomicileProvider>
+        <AppChromeProvider value={{ appId: "text-editor", windowId, decorations: isCsd ? "client" : "server" }}>
+          <DomicileProvider domicile={createBrowserDomicile()}>
+            <React.Suspense fallback={null}>
+              <TextEditorApp initialPath={initialPath} windowId={windowId} />
+            </React.Suspense>
+          </DomicileProvider>
+        </AppChromeProvider>
       </ShellErrorBoundary>,
     );
   } else if (isolatedApp === "image-viewer") {
@@ -75,13 +80,14 @@ async function start(root: HTMLElement) {
     const initialPath = params.get("path") ?? undefined;
     createRoot(root).render(
       <ShellErrorBoundary>
-        <React.Suspense fallback={null}>
-          <ImageViewerApp
-            initialPath={initialPath}
-            windowId={windowId}
-            isCsd={isCsd}
-          />
-        </React.Suspense>
+        <AppChromeProvider value={{ appId: "image-viewer", windowId, decorations: isCsd ? "client" : "server" }}>
+          <React.Suspense fallback={null}>
+            <ImageViewerApp
+              initialPath={initialPath}
+              windowId={windowId}
+            />
+          </React.Suspense>
+        </AppChromeProvider>
       </ShellErrorBoundary>,
     );
   } else {

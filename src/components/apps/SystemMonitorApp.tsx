@@ -1,3 +1,4 @@
+import { HeaderBar } from "@/components/elements/header-bar";
 import * as React from "react";
 import {
   DndContext,
@@ -14,8 +15,6 @@ import {
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { WindowMenuButton } from "@/components/shell/WindowMenuButton";
-import { WindowControls } from "@/components/ui/window";
 import { AppSquircleIcon } from "@/components/shell/AppSymbol";
 import {
   ListView,
@@ -359,10 +358,9 @@ function AppsWidget({ apps }: { apps: AppStat[] }) {
 
 export interface SystemMonitorAppProps {
   windowId?: string;
-  isCsd?: boolean;
 }
 
-export const SystemMonitorApp: React.FC<SystemMonitorAppProps> = ({ windowId = "", isCsd = true }) => {
+export const SystemMonitorApp: React.FC<SystemMonitorAppProps> = ({ windowId = "" }) => {
   const { systemServices } = getEngine().capabilities;
   const runningIds = useWindowManagerSelector(
     (wm) => Array.from(new Set(wm.windows.map((w) => w.appId))).join(","),
@@ -426,20 +424,9 @@ export const SystemMonitorApp: React.FC<SystemMonitorAppProps> = ({ windowId = "
       data-slot="system-monitor"
       className="flex h-full w-full flex-col overflow-hidden bg-[color-mix(in_srgb,var(--adw-accent)_10%,var(--adw-window))] text-adw-label select-none"
     >
-      <div
-        data-window-drag-region={isCsd ? "" : undefined}
-        className="relative flex h-11 shrink-0 items-center justify-between gap-2 px-2.5"
-      >
-        <div className="flex items-center gap-2" data-window-no-drag>
-          {windowId && <WindowMenuButton side="left" windowId={windowId} appId={APP_ID} />}
-        </div>
-        <div className="pointer-events-none absolute inset-x-24 truncate text-center text-adw-body font-bold">
-          {_("System Monitor")}
-        </div>
-        <div className="flex items-center gap-2" data-window-no-drag>
-          {isCsd && <WindowControls side="right" />}
-        </div>
-      </div>
+      <HeaderBar className="border-transparent bg-transparent">
+        <HeaderBar.Title>{_("System Monitor")}</HeaderBar.Title>
+      </HeaderBar>
       <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-1 pb-4">
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onWidgetDragEnd}>
           <SortableContext items={widgetOrder} strategy={rectSortingStrategy}>

@@ -1,3 +1,4 @@
+import { useAppChrome } from "@/components/elements/app-chrome";
 import { VFS_HOME } from "@/lib/engine/vfs-home";
 import * as React from "react";
 import { useCapabilities } from "@/hooks/use-capabilities";
@@ -54,7 +55,6 @@ import { readVfsStateJson, writeVfsStateJson } from "@/lib/engine/vfs-state";
 
 export interface LoginScreenAppProps {
   windowId?: string;
-  isCsd?: boolean;
   /**
    * `"greeter"` runs fullscreen as a Display Manager replacement (e.g. under `greetd`),
    * authenticating via `GREETD_SOCK` and using real `systemctl` power controls.
@@ -160,9 +160,9 @@ function loadGreeterState(): SavedGreeterState {
 
 export const LoginScreenApp: React.FC<LoginScreenAppProps> = ({
   windowId,
-  isCsd = true,
   mode = "preview",
 }) => {
+  const isCsd = useAppChrome().decorations === "client";
   const piloti = usePiloti();
   const { settings } = useSettings();
   const { systemServices } = useCapabilities();

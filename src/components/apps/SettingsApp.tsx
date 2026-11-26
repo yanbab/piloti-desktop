@@ -12,9 +12,9 @@ import {
   TypeIcon,
   WrenchIcon,
 } from "lucide-react";
-import { AdwSplitView, type AdwSplitSidebarItem } from "@/components/ui/adw-split-view";
+import { HeaderBar, HeaderHeading } from "@/components/elements/header-bar";
+import { AppSplitView, type SidebarItem } from "@/components/elements/split-view";
 import { Button } from "@/components/ui/button";
-import { WindowControls, WindowTitlebar } from "@/components/ui/window";
 import { useSidebarKeyboardNav } from "@/hooks/use-sidebar-keyboard-nav";
 import {
   useSettings,
@@ -45,7 +45,6 @@ import { DockPane } from "./settings/DockPane";
 import { FontsPane } from "./settings/FontsPane";
 import { NotificationsPane } from "./settings/NotificationsPane";
 import { SecurityPane } from "./settings/SecurityPane";
-import { SettingsHeaderSlot } from "./settings/header-slot";
 import { TopBarPane } from "./settings/TopBarPane";
 import { WallpaperPane } from "./settings/WallpaperPane";
 
@@ -137,12 +136,8 @@ function isSettingsPaneId(
 
 export function SettingsApp({
   initialPane,
-  isCsd = false,
-  windowId,
 }: {
   initialPane?: string;
-  isCsd?: boolean;
-  windowId?: string;
 }) {
   const piloti = usePiloti();
   const { systemServices } = useCapabilities();
@@ -231,7 +226,7 @@ export function SettingsApp({
     contentRef: detailContentRef,
   });
 
-  const sidebarItems: AdwSplitSidebarItem[] = PANES.map((pane) => ({
+  const sidebarItems: SidebarItem[] = PANES.map((pane) => ({
     id: pane.id,
     label: _(pane.label),
     icon: pane.icon,
@@ -239,16 +234,10 @@ export function SettingsApp({
     onClick: () => setActivePane(pane.id),
   }));
 
-  // Panes portal headerbar controls here (see header-slot.tsx).
-  const [headerSlot, setHeaderSlot] = React.useState<HTMLDivElement | null>(null);
-
   return (
-    <AdwSplitView
+    <AppSplitView
       title={_("Settings")}
-      appId="settings"
       iconName="settings"
-      windowId={windowId}
-      isCsd={isCsd}
       sidebarItems={sidebarItems}
       sidebarWidthClass="w-[176px]"
       sidebarId="settings-sidebar"
@@ -257,54 +246,19 @@ export function SettingsApp({
       onSidebarKeyDown={onSidebarKeyDown}
       onSidebarKeyUp={onSidebarKeyUp}
       contentClassName="bg-adw-window"
-      header={({ contentScrolled }) =>
-        isCsd ? (
-          <WindowTitlebar
-            data-window-drag-region
-            className={cn(
-              "rounded-tl-none bg-adw-titlebar transition-colors",
-              contentScrolled
-                ? "border-b border-adw-separator"
-                : "border-b border-transparent",
-            )}
-          >
-            <div className="flex shrink-0 items-center gap-1.5" data-window-no-drag>
-              <h2
-                data-slot="settings-page-title"
-                className="truncate pr-2 text-[13.5px] font-medium text-adw-label"
-              >
-                {currentPaneMeta ? _(currentPaneMeta.label) : ""}
-              </h2>
-            </div>
-            <div className="flex min-w-0 items-center justify-end gap-2" data-window-no-drag>
-              <div ref={setHeaderSlot} data-slot="settings-header-actions" className="flex min-w-0 items-center gap-2 empty:hidden" />
-              {matchingGnomePanel &&
-                systemServices &&
-                gnomeCapabilities.gnomeControlCenter && (
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={() => openGnomeSettings(matchingGnomePanel)}
-                    className="h-6 text-adw-subheadline"
-                  >
-                    {_("System Settings…")}
-                  </Button>
-                )}
-              {windowId && <WindowControls side="right" />}
-            </div>
-          </WindowTitlebar>
-        ) : (
-          <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-adw-separator bg-adw-window px-6 py-3">
-            <div className="flex min-w-0 items-center gap-2.5">
-              <div className="min-w-0">
-                <h2 className="truncate text-adw-title-3 font-bold tracking-tight">
-                  {currentPaneMeta ? _(currentPaneMeta.label) : ""}
-                </h2>
-                <p className="truncate text-adw-subheadline text-adw-label-secondary">
-                  {currentPaneMeta ? _(currentPaneMeta.subtitle) : ""}
-                </p>
-              </div>
-            </div>
+      header={({ contentScrolled }) => (
+        <HeaderBar
+          className={cn(
+            "transition-colors",
+            contentScrolled ? "border-adw-separator" : "border-transparent",
+          )}
+        >
+          <HeaderBar.Start>
+            <HeaderHeading>{currentPaneMeta ? _(currentPaneMeta.label) : ""}</HeaderHeading>
+          </HeaderBar.Start>
+          <HeaderBar.End className="min-w-0 shrink">
+            {/* Panes add their controls here with HeaderBar.Portal. */}
+            <HeaderBar.Outlet />
             {matchingGnomePanel &&
               systemServices &&
               gnomeCapabilities.gnomeControlCenter && (
@@ -312,14 +266,14 @@ export function SettingsApp({
                   size="sm"
                   variant="secondary"
                   onClick={() => openGnomeSettings(matchingGnomePanel)}
-                  className="text-adw-subheadline"
+                  className="h-6 text-adw-subheadline"
                 >
-                  {_("Open in System Settings…")}
+                  {_("System Settings…")}
                 </Button>
               )}
-          </div>
-        )
-      }
+          </HeaderBar.End>
+        </HeaderBar>
+      )}
     >
       {({ onContentScroll }) => (
         <div
@@ -333,7 +287,6 @@ export function SettingsApp({
               : "overflow-y-auto",
           )}
         >
-          <SettingsHeaderSlot.Provider value={headerSlot}>
           {activePane === "appearance" && <AppearancePane />}
           {activePane === "fonts" && <FontsPane />}
           {activePane === "dock" && <DockPane />}
@@ -343,9 +296,8 @@ export function SettingsApp({
           {activePane === "security" && <SecurityPane />}
           {activePane === "wallpaper" && <WallpaperPane />}
           {activePane === "advanced" && <AdvancedPane />}
-          </SettingsHeaderSlot.Provider>
         </div>
       )}
-    </AdwSplitView>
+    </AppSplitView>
   );
 }
