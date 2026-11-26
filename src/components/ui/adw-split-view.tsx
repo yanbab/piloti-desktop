@@ -173,7 +173,7 @@ export function AdwSplitView({
   children,
   rightPane,
   footer,
-  contentClassName = "bg-adw-content",
+  contentClassName = "bg-shell-content",
   className,
   onKeyDown,
 }: AdwSplitViewProps) {
@@ -264,7 +264,7 @@ export function AdwSplitView({
       ref={containerRef}
       onKeyDown={onKeyDown}
       className={cn(
-        "relative flex h-full w-full overflow-hidden bg-transparent text-adw-label select-none",
+        "relative flex h-full w-full overflow-hidden bg-transparent text-shell-label select-none",
         className,
       )}
     >
@@ -275,7 +275,7 @@ export function AdwSplitView({
         onKeyDown={onSidebarKeyDown}
         onKeyUp={onSidebarKeyUp}
         className={cn(
-          "flex min-h-0 shrink-0 flex-col overflow-hidden border-r border-adw-separator bg-adw-sidebar",
+          "flex min-h-0 shrink-0 flex-col overflow-hidden border-r border-shell-separator bg-shell-sidebar",
           resizable ? undefined : isCompact ? "w-[47px]" : sidebarWidthClass,
         )}
         style={
@@ -289,7 +289,7 @@ export function AdwSplitView({
               "bg-transparent transition-colors",
               showCompact && "justify-center px-[9px]",
               sidebarScrolled
-                ? "border-b border-adw-separator/70"
+                ? "border-b border-shell-separator/70"
                 : "border-b border-transparent",
             )}
           >
@@ -306,7 +306,7 @@ export function AdwSplitView({
                   />
                 </div>
                 {!crowdedTitle && (
-                  <span className="pointer-events-none absolute inset-x-10 truncate text-center text-[13.5px] font-medium tracking-tight whitespace-nowrap text-adw-label">
+                  <span className="pointer-events-none absolute inset-x-10 truncate text-center text-[13.5px] font-medium tracking-tight whitespace-nowrap text-shell-label">
                     {title}
                   </span>
                 )}
@@ -341,7 +341,7 @@ export function AdwSplitView({
                     data-vfs-drop-path={item.dropPath}
                     onClick={item.onClick}
                     className={cn(
-                      "flex items-center rounded-adw-item text-left transition-colors outline-none",
+                      "flex items-center rounded-shell-item text-left transition-colors outline-none",
                       showCompact
                         ? "w-full shrink-0 justify-center px-0"
                         : item.trailingAction
@@ -352,12 +352,12 @@ export function AdwSplitView({
                           ? "gap-0 py-2 text-[14px]"
                           : "gap-3 py-2 text-[14px]"
                         : showCompact
-                          ? "gap-0 py-1.5 text-adw-body"
-                          : "gap-2.5 py-1.5 text-adw-body",
+                          ? "gap-0 py-1.5 text-shell-body"
+                          : "gap-2.5 py-1.5 text-shell-body",
                       !item.trailingAction &&
                         (item.selected
-                          ? "bg-adw-accent font-medium text-white shadow-xs"
-                          : "font-normal text-adw-label/85 hover-fill:bg-black/5 dark:hover-fill:bg-white/6"),
+                          ? "bg-shell-accent font-medium text-white shadow-xs"
+                          : "font-normal text-shell-label/85 hover-fill:bg-black/5 dark:hover-fill:bg-white/6"),
                     )}
                   >
                     <span
@@ -374,10 +374,10 @@ export function AdwSplitView({
                         {item.badge !== undefined && item.badge !== "" && (
                           <span
                             className={cn(
-                              "ml-auto shrink-0 rounded-full text-adw-footnote leading-none font-semibold tabular-nums",
+                              "ml-auto shrink-0 rounded-full text-shell-footnote leading-none font-semibold tabular-nums",
                               item.selected
                                 ? "px-0.5 text-white/90"
-                                : "bg-black/8 px-1.5 py-0.5 text-adw-label/60 dark:bg-white/10",
+                                : "bg-black/8 px-1.5 py-0.5 text-shell-label/60 dark:bg-white/10",
                             )}
                           >
                             {item.badge}
@@ -393,10 +393,10 @@ export function AdwSplitView({
                     data-slot="sidebar-item-group"
                     data-selected={item.selected ? "" : undefined}
                     className={cn(
-                      "relative flex w-full shrink-0 items-center rounded-adw-item transition-colors",
+                      "relative flex w-full shrink-0 items-center rounded-shell-item transition-colors",
                       item.selected
-                        ? "bg-adw-accent font-medium text-white shadow-xs"
-                        : "font-normal text-adw-label/85 hover-fill:bg-black/5 dark:hover-fill:bg-white/6",
+                        ? "bg-shell-accent font-medium text-white shadow-xs"
+                        : "font-normal text-shell-label/85 hover-fill:bg-black/5 dark:hover-fill:bg-white/6",
                     )}
                   >
                     {baseBtn}
@@ -408,7 +408,7 @@ export function AdwSplitView({
                         e.stopPropagation();
                         item.trailingAction?.onClick();
                       }}
-                      className="absolute right-1.5 flex size-6 items-center justify-center rounded-adw-control text-adw-label-secondary transition-colors hover-fill:bg-black/10 hover-fill:text-adw-label dark:hover-fill:bg-white/12 [&_svg]:size-3.5"
+                      className="absolute right-1.5 flex size-6 items-center justify-center rounded-shell-control text-shell-label-secondary transition-colors hover-fill:bg-black/10 hover-fill:text-shell-label dark:hover-fill:bg-white/12 [&_svg]:size-3.5"
                     >
                       {item.trailingAction.icon}
                     </button>
@@ -418,7 +418,7 @@ export function AdwSplitView({
                 );
 
                 const sep = item.separatorAfter ? (
-                  <div className="my-1 h-px shrink-0 bg-adw-separator" />
+                  <div className="my-1 h-px shrink-0 bg-shell-separator" />
                 ) : null;
 
                 if (!showCompact) {
@@ -437,13 +437,13 @@ export function AdwSplitView({
                         side="right"
                         sideOffset={-36}
                         className={cn(
-                          "pointer-events-none rounded-adw-item border border-adw-separator px-2.5 shadow-md",
+                          "pointer-events-none rounded-shell-item border border-shell-separator px-2.5 shadow-md",
                           tall
                             ? "h-[37px] gap-3 py-2 text-[14px]"
-                            : "h-[32px] gap-2.5 py-1.5 text-adw-body",
+                            : "h-[32px] gap-2.5 py-1.5 text-shell-body",
                           item.selected
-                            ? "bg-adw-accent font-medium text-white shadow-xs"
-                            : "bg-adw-sidebar font-normal text-adw-label",
+                            ? "bg-shell-accent font-medium text-white shadow-xs"
+                            : "bg-shell-sidebar font-normal text-shell-label",
                         )}
                       >
                         <span className="flex size-4 shrink-0 items-center justify-center opacity-85 [&_svg]:size-4">
@@ -463,7 +463,7 @@ export function AdwSplitView({
                 <>
                   {regularItems.map(renderItem)}
                   {bottomItems.length > 0 && (
-                    <div className="mt-auto flex flex-col gap-0.5 border-t border-adw-separator/60 pt-1.5">
+                    <div className="mt-auto flex flex-col gap-0.5 border-t border-shell-separator/60 pt-1.5">
                       {bottomItems.map(renderItem)}
                     </div>
                   )}

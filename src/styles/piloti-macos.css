@@ -10,115 +10,115 @@
 
 /* ── Tokens from Cupertino UI (cupertino-ui.com/themes, macos.css) ───────── */
 /* Piloti's components come from Cupertino UI; these are its `--mac-*` values
-   mapped onto the `--adw-*` tokens. Redefining the named palette makes the
-   accent (`--adw-active-accent: var(--adw-green)` …), selections and status
+   mapped onto the `--shell-*` tokens. Redefining the named palette makes the
+   accent (`--shell-active-accent: var(--shell-green)` …), selections and status
    colors follow macOS. Materials (menus, popovers, dock, sidebar) keep
    Piloti's vibrant translucency from piloti.css. */
 
 :root[data-interface-theme="piloti"] {
   /* System colors */
-  --adw-blue: #0088ff;
-  --adw-indigo: #6155f5;
-  --adw-purple: #cb30e0;
-  --adw-pink: #ff2d55;
-  --adw-red: #ff383c;
-  --adw-orange: #ff8d28;
-  --adw-yellow: #ffcc00;
-  --adw-green: #34c759;
-  --adw-mint: #00c8b3;
-  --adw-teal: #00c3d0;
-  --adw-cyan: #00c0e8;
-  --adw-gray: #8e8e93;
-  --adw-brown: #ac7f5e;
-  --adw-link: #0068da;
+  --shell-blue: #0088ff;
+  --shell-indigo: #6155f5;
+  --shell-purple: #cb30e0;
+  --shell-pink: #ff2d55;
+  --shell-red: #ff383c;
+  --shell-orange: #ff8d28;
+  --shell-yellow: #ffcc00;
+  --shell-green: #34c759;
+  --shell-mint: #00c8b3;
+  --shell-teal: #00c3d0;
+  --shell-cyan: #00c0e8;
+  --shell-gray: #8e8e93;
+  --shell-brown: #ac7f5e;
+  --shell-link: #0068da;
 
   /* Labels and fills */
-  --adw-label: rgb(0 0 0 / 0.85);
-  --adw-label-secondary: rgb(0 0 0 / 0.5);
-  --adw-label-tertiary: rgb(0 0 0 / 0.26);
-  --adw-label-quaternary: rgb(0 0 0 / 0.1);
-  --adw-label-quinary: rgb(0 0 0 / 0.05);
-  --adw-fill-primary: rgb(0 0 0 / 0.1);
-  --adw-fill-secondary: rgb(0 0 0 / 0.08);
-  --adw-fill-tertiary: rgb(0 0 0 / 0.05);
-  --adw-fill-quaternary: rgb(0 0 0 / 0.03);
-  --adw-fill-quinary: rgb(0 0 0 / 0.008);
-  --adw-control: rgb(0 0 0 / 0.08);
-  --adw-control-pressed: rgb(0 0 0 / 0.16);
-  --adw-control-disabled: rgb(0 0 0 / 0.04);
-  --adw-field: #ffffff;
-  --adw-field-border: rgb(0 0 0 / 0.08);
-  --adw-separator: rgb(0 0 0 / 0.05);
-  --adw-grid: rgb(0 0 0 / 0.1);
-  --adw-border: rgb(0 0 0 / 0.1);
-  --adw-material-border: rgb(0 0 0 / 0.1);
+  --shell-label: rgb(0 0 0 / 0.85);
+  --shell-label-secondary: rgb(0 0 0 / 0.5);
+  --shell-label-tertiary: rgb(0 0 0 / 0.26);
+  --shell-label-quaternary: rgb(0 0 0 / 0.1);
+  --shell-label-quinary: rgb(0 0 0 / 0.05);
+  --shell-fill-primary: rgb(0 0 0 / 0.1);
+  --shell-fill-secondary: rgb(0 0 0 / 0.08);
+  --shell-fill-tertiary: rgb(0 0 0 / 0.05);
+  --shell-fill-quaternary: rgb(0 0 0 / 0.03);
+  --shell-fill-quinary: rgb(0 0 0 / 0.008);
+  --shell-control: rgb(0 0 0 / 0.08);
+  --shell-control-pressed: rgb(0 0 0 / 0.16);
+  --shell-control-disabled: rgb(0 0 0 / 0.04);
+  --shell-field: #ffffff;
+  --shell-field-border: rgb(0 0 0 / 0.08);
+  --shell-separator: rgb(0 0 0 / 0.05);
+  --shell-grid: rgb(0 0 0 / 0.1);
+  --shell-border: rgb(0 0 0 / 0.1);
+  --shell-material-border: rgb(0 0 0 / 0.1);
 
   /* Surfaces (solid) */
-  --adw-window: #ffffff;
-  --adw-content: #ffffff;
-  --adw-content-alternate: rgb(0 0 0 / 0.05);
-  --adw-group: #f8f8f8;
-  --adw-titlebar: #ffffff;
+  --shell-window: #ffffff;
+  --shell-content: #ffffff;
+  --shell-content-alternate: rgb(0 0 0 / 0.05);
+  --shell-group: #f8f8f8;
+  --shell-titlebar: #ffffff;
 
   /* Control heights: nothing taller than 28px */
-  --adw-control-mini: 20px;
-  --adw-control-small: 24px;
-  --adw-control-medium: 28px;
-  --adw-control-large: 28px;
-  --adw-control-xl: 28px;
+  --shell-control-mini: 20px;
+  --shell-control-small: 24px;
+  --shell-control-medium: 28px;
+  --shell-control-large: 28px;
+  --shell-control-xl: 28px;
 
   /* Radii */
-  --adw-radius-control: 6px;
+  --shell-radius-control: 6px;
   /* Menu corners follow their items: item radius + the 5px menu padding. */
-  --adw-radius-menu: calc(var(--adw-radius-item) + 5px);
-  --adw-radius-item: 5px;
-  --adw-radius-group: 12px;
-  --adw-radius-popover: 20px;
-  --adw-radius-alert: 34px;
-  --adw-radius-window: 16px;
+  --shell-radius-menu: calc(var(--shell-radius-item) + 5px);
+  --shell-radius-item: 5px;
+  --shell-radius-group: 12px;
+  --shell-radius-popover: 20px;
+  --shell-radius-alert: 34px;
+  --shell-radius-window: 16px;
 }
 
 :root[data-interface-theme="piloti"].dark {
-  --adw-blue: #0091ff;
-  --adw-indigo: #6d7cff;
-  --adw-purple: #db34f2;
-  --adw-pink: #ff375f;
-  --adw-red: #ff4245;
-  --adw-orange: #ff9230;
-  --adw-yellow: #ffd600;
-  --adw-green: #30d158;
-  --adw-mint: #00dac3;
-  --adw-teal: #00d2e0;
-  --adw-cyan: #3cd3fe;
-  --adw-gray: #98989d;
-  --adw-brown: #b78a66;
-  --adw-link: #419cff;
+  --shell-blue: #0091ff;
+  --shell-indigo: #6d7cff;
+  --shell-purple: #db34f2;
+  --shell-pink: #ff375f;
+  --shell-red: #ff4245;
+  --shell-orange: #ff9230;
+  --shell-yellow: #ffd600;
+  --shell-green: #30d158;
+  --shell-mint: #00dac3;
+  --shell-teal: #00d2e0;
+  --shell-cyan: #3cd3fe;
+  --shell-gray: #98989d;
+  --shell-brown: #b78a66;
+  --shell-link: #419cff;
 
-  --adw-label: rgb(255 255 255 / 0.85);
-  --adw-label-secondary: rgb(255 255 255 / 0.55);
-  --adw-label-tertiary: rgb(255 255 255 / 0.25);
-  --adw-label-quaternary: rgb(255 255 255 / 0.1);
-  --adw-label-quinary: rgb(255 255 255 / 0.05);
-  --adw-fill-primary: rgb(255 255 255 / 0.1);
-  --adw-fill-secondary: rgb(255 255 255 / 0.08);
-  --adw-fill-tertiary: rgb(255 255 255 / 0.05);
-  --adw-fill-quaternary: rgb(255 255 255 / 0.03);
-  --adw-fill-quinary: rgb(255 255 255 / 0.008);
-  --adw-control: rgb(255 255 255 / 0.08);
-  --adw-control-pressed: rgb(255 255 255 / 0.16);
-  --adw-control-disabled: rgb(255 255 255 / 0.04);
-  --adw-field: #1e1e1e;
-  --adw-field-border: rgb(255 255 255 / 0.04);
-  --adw-separator: rgb(255 255 255 / 0.05);
-  --adw-grid: rgb(255 255 255 / 0.1);
-  --adw-border: rgb(255 255 255 / 0.1);
-  --adw-material-border: rgb(255 255 255 / 0.15);
+  --shell-label: rgb(255 255 255 / 0.85);
+  --shell-label-secondary: rgb(255 255 255 / 0.55);
+  --shell-label-tertiary: rgb(255 255 255 / 0.25);
+  --shell-label-quaternary: rgb(255 255 255 / 0.1);
+  --shell-label-quinary: rgb(255 255 255 / 0.05);
+  --shell-fill-primary: rgb(255 255 255 / 0.1);
+  --shell-fill-secondary: rgb(255 255 255 / 0.08);
+  --shell-fill-tertiary: rgb(255 255 255 / 0.05);
+  --shell-fill-quaternary: rgb(255 255 255 / 0.03);
+  --shell-fill-quinary: rgb(255 255 255 / 0.008);
+  --shell-control: rgb(255 255 255 / 0.08);
+  --shell-control-pressed: rgb(255 255 255 / 0.16);
+  --shell-control-disabled: rgb(255 255 255 / 0.04);
+  --shell-field: #1e1e1e;
+  --shell-field-border: rgb(255 255 255 / 0.04);
+  --shell-separator: rgb(255 255 255 / 0.05);
+  --shell-grid: rgb(255 255 255 / 0.1);
+  --shell-border: rgb(255 255 255 / 0.1);
+  --shell-material-border: rgb(255 255 255 / 0.15);
 
-  --adw-window: #1e1f20;
-  --adw-content: #1e2023;
-  --adw-content-alternate: rgb(255 255 255 / 0.05);
-  --adw-group: #252627;
-  --adw-titlebar: #232528;
+  --shell-window: #1e1f20;
+  --shell-content: #1e2023;
+  --shell-content-alternate: rgb(255 255 255 / 0.05);
+  --shell-group: #252627;
+  --shell-titlebar: #232528;
 }
 
 /* ── Settings grouped form (measured on macOS Ventura System Settings) ─── */
@@ -127,7 +127,7 @@
 
 :root[data-interface-theme="piloti"] [data-slot="grouped-form"] {
   --grouped-form-inset: 20px;
-  --grouped-form-radius: var(--adw-radius-item);
+  --grouped-form-radius: var(--shell-radius-item);
   --grouped-form-row-inset: 10px;
   --grouped-form-separator: rgb(0 0 0 / 0.08);
   /* 680px of rows (Settings opens at sidebar + 680px); wider windows
@@ -157,7 +157,7 @@
 
 :root[data-interface-theme="piloti"] [data-slot="grouped-form-section-title"] {
   padding-inline: var(--grouped-form-row-inset);
-  font-size: var(--adw-font-body);
+  font-size: var(--shell-font-body);
   font-weight: var(--piloti-font-weight-bold, 700);
 }
 
@@ -194,17 +194,17 @@
 }
 
 :root[data-interface-theme="piloti"] [data-slot="grouped-form-row-title"] {
-  font-size: var(--adw-font-body);
+  font-size: var(--shell-font-body);
 }
 
 :root[data-interface-theme="piloti"] [data-slot="grouped-form-row-description"] {
-  font-size: var(--adw-font-subheadline);
+  font-size: var(--shell-font-subheadline);
 }
 
 /* Page title in the headerbar (Settings, Piloti demo…): macOS type. Its
    left inset is measured to match the rows below (AdwSplitView). */
 :root[data-interface-theme="piloti"] [data-slot="page-title"] {
-  font-size: var(--adw-font-body);
+  font-size: var(--shell-font-body);
   font-weight: var(--piloti-font-weight-bold, 700);
 }
 
@@ -236,7 +236,7 @@
   height: 28px !important;
   padding-inline: 10px !important;
   border-radius: 8px !important;
-  font-size: var(--adw-font-body) !important;
+  font-size: var(--shell-font-body) !important;
   background-color: transparent !important;
 }
 
@@ -275,8 +275,8 @@
   /* Icon centre at 23px (10px inset + 5px + 8px): under the header's ⋮. */
   padding-inline: 5px 8px;
   gap: 8px;
-  border-radius: var(--adw-radius-item);
-  font-size: var(--adw-font-body);
+  border-radius: var(--shell-radius-item);
+  font-size: var(--shell-font-body);
 }
 
 /* Collapsed: centred in the 26px item, so icons stay where they were. */
@@ -285,7 +285,7 @@
 }
 
 :root[data-interface-theme="piloti"] [data-slot="sidebar-item-group"] {
-  border-radius: var(--adw-radius-item);
+  border-radius: var(--shell-radius-item);
 }
 
 /* ── No hover fills (macOS highlights only on press and selection) ──────── */
@@ -328,7 +328,7 @@
   padding-block: 3px;
   padding-inline: 9px;
   gap: 6px;
-  border-radius: var(--adw-radius-item);
+  border-radius: var(--shell-radius-item);
   font-size: calc(13px * var(--piloti-font-scale, 1));
   line-height: 16px;
 }
@@ -365,7 +365,7 @@
 :root[data-interface-theme="piloti"] [role="menu"] :is([role="menuitem"], [role="menuitemcheckbox"], [role="menuitemradio"]):is([data-highlighted], [data-popup-open], :hover):not([data-disabled], [aria-disabled="true"], :disabled),
 :root[data-interface-theme="piloti"] [data-slot="sidebar-item"][data-selected],
 :root[data-interface-theme="piloti"] [data-slot="sidebar-item-group"][data-selected] {
-  background-color: var(--adw-accent);
+  background-color: var(--shell-accent);
   color: #fff;
 }
 
@@ -384,25 +384,25 @@
 
 /* Modules and pills: item radius + the 5px menu inset, like menus. */
 :root[data-interface-theme="piloti"] :is([data-slot="control-card"], [data-slot="control-pill"]) {
-  border-radius: var(--adw-radius-menu);
+  border-radius: var(--shell-radius-menu);
 }
 
 /* The panel wraps modules with its 12px padding. */
 :root[data-interface-theme="piloti"] [data-slot="control-panel"] {
-  border-radius: calc(var(--adw-radius-menu) + 12px);
+  border-radius: calc(var(--shell-radius-menu) + 12px);
 }
 
 /* List rows (outputs, networks…) are menu items. */
 :root[data-interface-theme="piloti"] [data-slot="control-row"] {
   min-height: 22px;
   padding: 3px 9px;
-  border-radius: var(--adw-radius-item);
+  border-radius: var(--shell-radius-item);
   font-size: calc(13px * var(--piloti-font-scale, 1));
   line-height: 16px;
 }
 
 :root[data-interface-theme="piloti"] [data-slot="control-row"]:is(:hover, :focus-visible):not(:disabled) {
-  background-color: var(--adw-accent);
+  background-color: var(--shell-accent);
   color: #fff;
 }
 
@@ -447,12 +447,12 @@
 
 :root[data-interface-theme="piloti"] :is(.dark, .dark *):is(
     [data-slot="window-titlebar"]:not(.bg-transparent),
-    .bg-adw-titlebar
+    .bg-shell-titlebar
   ) {
   border-bottom: 1px solid #000;
 }
 
-:root[data-interface-theme="piloti"] :is(.dark, .dark *):is(aside.bg-adw-sidebar) {
+:root[data-interface-theme="piloti"] :is(.dark, .dark *):is(aside.bg-shell-sidebar) {
   border-right: 1px solid #000;
 }
 

@@ -87,7 +87,7 @@ function ScreenshotPortalOverlay({
 
   return (
     <div className="fixed inset-0 z-[800] flex flex-col items-center justify-center bg-black/85 select-none">
-      <div className="relative flex max-h-[82vh] max-w-[90vw] items-center justify-center overflow-hidden rounded-adw-group border border-white/20 shadow-2xl">
+      <div className="relative flex max-h-[82vh] max-w-[90vw] items-center justify-center overflow-hidden rounded-shell-group border border-white/20 shadow-2xl">
         <img
           ref={imgRef}
           src={frame}
@@ -213,19 +213,19 @@ function ScreenCastPortalDialog({
 
   return (
     <div className="fixed inset-0 z-[800] flex items-center justify-center bg-black/45 p-4">
-      <div className="w-full max-w-[460px] rounded-adw-menu p-5 text-adw-label shadow-adw-menu adw-material-menu">
+      <div className="w-full max-w-[460px] rounded-shell-menu p-5 text-shell-label shadow-shell-menu shell-material-menu">
         <div className="mb-3 flex items-center gap-2.5">
-          <VideoIcon className="size-5 text-adw-accent" />
+          <VideoIcon className="size-5 text-shell-accent" />
           <div>
             <h3 className="text-[14px] font-bold">{_("Share Screen or Window")}</h3>
-            <p className="text-adw-subheadline text-adw-label-secondary">
+            <p className="text-shell-subheadline text-shell-label-secondary">
               {_("Requested by %s", request.appId || _("Application"))}
             </p>
           </div>
         </div>
 
         {request.body.desk && (
-          <div className="mb-3 overflow-hidden rounded-adw-item border border-adw-separator/70 bg-black/30">
+          <div className="mb-3 overflow-hidden rounded-shell-item border border-shell-separator/70 bg-black/30">
             <img
               src={request.body.desk.frame}
               alt={_("Desktop preview")}
@@ -257,16 +257,16 @@ function ScreenCastPortalDialog({
                 type="button"
                 onClick={() => toggleIndex(idx)}
                 className={cn(
-                  "flex w-full items-center gap-2.5 rounded-adw-item px-3 py-2 text-left text-xs transition-colors",
+                  "flex w-full items-center gap-2.5 rounded-shell-item px-3 py-2 text-left text-xs transition-colors",
                   active
-                    ? "bg-adw-accent text-white"
-                    : "bg-adw-fill-tertiary hover-fill:bg-adw-fill-secondary"
+                    ? "bg-shell-accent text-white"
+                    : "bg-shell-fill-tertiary hover-fill:bg-shell-fill-secondary"
                 )}
               >
                 <MonitorIcon className="size-4 shrink-0" />
                 <span className="min-w-0 flex-1 truncate font-medium">{label}</span>
                 {meta && (
-                  <span className="shrink-0 font-mono text-adw-footnote opacity-75">
+                  <span className="shrink-0 font-mono text-shell-footnote opacity-75">
                     {meta}
                   </span>
                 )}
@@ -433,8 +433,8 @@ function FileChooserPortalDialog({
 
   return (
     <div className="fixed inset-0 z-[800] flex items-center justify-center bg-black/45 p-4">
-      <div className="flex max-h-[82vh] w-full max-w-[600px] flex-col overflow-hidden rounded-adw-menu text-adw-label shadow-adw-menu adw-material-menu">
-        <div className="flex items-center justify-between gap-2 border-b border-adw-separator px-4 py-3">
+      <div className="flex max-h-[82vh] w-full max-w-[600px] flex-col overflow-hidden rounded-shell-menu text-shell-label shadow-shell-menu shell-material-menu">
+        <div className="flex items-center justify-between gap-2 border-b border-shell-separator px-4 py-3">
           <div className="min-w-0">
             <h3 className="text-[14px] font-bold">
               {body.title ||
@@ -446,7 +446,7 @@ function FileChooserPortalDialog({
                       ? _("Select Folder")
                       : _("Open File"))}
             </h3>
-            <p className="truncate font-mono text-adw-subheadline text-adw-label-secondary">
+            <p className="truncate font-mono text-shell-subheadline text-shell-label-secondary">
               {cwd}
             </p>
           </div>
@@ -480,7 +480,7 @@ function FileChooserPortalDialog({
         </div>
 
         <div className="flex min-h-[260px] flex-1 overflow-hidden">
-          <aside className="w-36 shrink-0 space-y-1 border-r border-adw-separator p-2">
+          <aside className="w-36 shrink-0 space-y-1 border-r border-shell-separator p-2">
             {places.map((p) => (
               <button
                 key={p.path}
@@ -490,9 +490,9 @@ function FileChooserPortalDialog({
                   setSelectedPaths([]);
                 }}
                 className={cn(
-                  "flex w-full items-center gap-2 rounded-adw-control px-2.5 py-1.5 text-left text-adw-callout transition-colors",
+                  "flex w-full items-center gap-2 rounded-shell-control px-2.5 py-1.5 text-left text-shell-callout transition-colors",
                   cwd === p.path
-                    ? "bg-adw-accent text-white"
+                    ? "bg-shell-accent text-white"
                     : "hover-fill:bg-black/6 dark:hover-fill:bg-white/10"
                 )}
               >
@@ -504,7 +504,7 @@ function FileChooserPortalDialog({
 
           <div className="flex-1 overflow-y-auto p-2">
             {visibleEntries.length === 0 ? (
-              <div className="py-12 text-center text-xs text-adw-label-secondary">
+              <div className="py-12 text-center text-xs text-shell-label-secondary">
                 Empty folder
               </div>
             ) : (
@@ -551,9 +551,9 @@ function FileChooserPortalDialog({
                         }
                       }}
                       className={cn(
-                        "flex w-full items-center gap-2 rounded-adw-control px-2.5 py-1.5 text-left text-adw-callout transition-colors",
+                        "flex w-full items-center gap-2 rounded-shell-control px-2.5 py-1.5 text-left text-shell-callout transition-colors",
                         selected
-                          ? "bg-adw-accent text-white"
+                          ? "bg-shell-accent text-white"
                           : "hover-fill:bg-black/6 dark:hover-fill:bg-white/10"
                       )}
                     >
@@ -571,11 +571,11 @@ function FileChooserPortalDialog({
           </div>
         </div>
 
-        <div className="space-y-2 border-t border-adw-separator px-4 py-3">
+        <div className="space-y-2 border-t border-shell-separator px-4 py-3">
           {body.mode === FileChooserMode.SaveFiles && body.files.length > 0 && (
-            <div className="rounded-adw-control bg-black/5 px-2.5 py-1.5 text-adw-subheadline text-adw-label-secondary dark:bg-white/8">
+            <div className="rounded-shell-control bg-black/5 px-2.5 py-1.5 text-shell-subheadline text-shell-label-secondary dark:bg-white/8">
               {_("Files to save (%d):", body.files.length)}{" "}
-              <span className="font-mono text-adw-label">
+              <span className="font-mono text-shell-label">
                 {body.files.slice(0, 4).join(", ")}
                 {body.files.length > 4 ? ` +${body.files.length - 4}` : ""}
               </span>
@@ -583,7 +583,7 @@ function FileChooserPortalDialog({
           )}
           {body.mode === FileChooserMode.Save && (
             <div className="flex items-center gap-2">
-              <span className="text-xs font-medium text-adw-label-secondary">
+              <span className="text-xs font-medium text-shell-label-secondary">
                 {_("Name")}
               </span>
               <input
@@ -596,7 +596,7 @@ function FileChooserPortalDialog({
                     confirm();
                   }
                 }}
-                className="h-7 flex-1 rounded-adw-control border border-adw-separator bg-black/5 px-2 text-xs text-adw-label outline-none focus:border-adw-accent dark:bg-white/10"
+                className="h-7 flex-1 rounded-shell-control border border-shell-separator bg-black/5 px-2 text-xs text-shell-label outline-none focus:border-shell-accent dark:bg-white/10"
               />
             </div>
           )}
@@ -623,7 +623,7 @@ function FileChooserPortalDialog({
                   </label>
                 ) : (
                   <div key={c.id} className="flex items-center gap-1.5 text-xs">
-                    <span className="text-adw-label-secondary">{c.label}:</span>
+                    <span className="text-shell-label-secondary">{c.label}:</span>
                     <Select
                       value={choiceValues[c.id]}
                       items={c.options.map((o) => ({ value: o.id, label: o.label }))}
@@ -722,12 +722,12 @@ function AppChooserPortalDialog({
 
   return (
     <div className="fixed inset-0 z-[800] flex items-center justify-center bg-black/45 p-4">
-      <div className="w-full max-w-[380px] rounded-adw-menu p-5 text-adw-label shadow-adw-menu adw-material-menu">
+      <div className="w-full max-w-[380px] rounded-shell-menu p-5 text-shell-label shadow-shell-menu shell-material-menu">
         <div className="mb-3 flex items-center gap-2.5">
-          <AppWindowIcon className="size-5 text-adw-accent" />
+          <AppWindowIcon className="size-5 text-shell-accent" />
           <div className="min-w-0">
             <h3 className="text-[14px] font-bold">{_("Open With")}</h3>
-            <p className="truncate text-adw-subheadline text-adw-label-secondary">
+            <p className="truncate text-shell-subheadline text-shell-label-secondary">
               {request.body.filename || request.body.contentType || request.body.uri}
             </p>
           </div>
@@ -744,16 +744,16 @@ function AppChooserPortalDialog({
                 onClick={() => setSelected(choice)}
                 onDoubleClick={() => confirmChoice(choice)}
                 className={cn(
-                  "flex w-full items-center gap-2.5 rounded-adw-item border px-3 py-2 text-left text-xs transition-colors",
+                  "flex w-full items-center gap-2.5 rounded-shell-item border px-3 py-2 text-left text-xs transition-colors",
                   selected === choice
-                    ? "border-adw-accent bg-adw-accent/15 font-medium"
+                    ? "border-shell-accent bg-shell-accent/15 font-medium"
                     : "border-transparent hover-fill:bg-black/6 dark:hover-fill:bg-white/10"
                 )}
               >
                 {xdg?.iconUrl ? (
                   <img src={xdg.iconUrl} alt="" className="size-5 shrink-0" />
                 ) : (
-                  <SparklesIcon className="size-4 shrink-0 text-adw-label-secondary" />
+                  <SparklesIcon className="size-4 shrink-0 text-shell-label-secondary" />
                 )}
                 <span className="truncate">{xdg?.name ?? choice}</span>
               </button>
@@ -761,7 +761,7 @@ function AppChooserPortalDialog({
           })}
         </div>
         {request.body.contentType && (
-          <label className="mt-3 flex items-center gap-2 text-xs text-adw-label-secondary">
+          <label className="mt-3 flex items-center gap-2 text-xs text-shell-label-secondary">
             <input
               type="checkbox"
               checked={rememberDefault}
@@ -801,21 +801,21 @@ function DynamicLauncherPortalDialog({
   const [name, setName] = React.useState(request.body.name);
   return (
     <div className="fixed inset-0 z-[800] flex items-center justify-center bg-black/45 p-4">
-      <div className="w-full max-w-[380px] rounded-adw-menu p-5 text-adw-label shadow-adw-menu adw-material-menu">
+      <div className="w-full max-w-[380px] rounded-shell-menu p-5 text-shell-label shadow-shell-menu shell-material-menu">
         <div className="mb-3 flex items-center gap-3">
           {request.body.icon ? (
             <img
               src={request.body.icon}
               alt=""
-              className="size-10 rounded-adw-item object-contain"
+              className="size-10 rounded-shell-item object-contain"
             />
           ) : (
-            <SparklesIcon className="size-6 text-adw-accent" />
+            <SparklesIcon className="size-6 text-shell-accent" />
           )}
           <div className="min-w-0">
             <h3 className="text-[14px] font-bold">Install Application Launcher</h3>
             {request.body.target && (
-              <p className="truncate text-adw-subheadline text-adw-label-secondary">
+              <p className="truncate text-shell-subheadline text-shell-label-secondary">
                 {request.body.target}
               </p>
             )}
@@ -826,7 +826,7 @@ function DynamicLauncherPortalDialog({
           disabled={!request.body.editableName}
           value={name}
           onChange={(e) => setName(e.target.value)}
-          className="h-8 w-full rounded-adw-control border border-adw-separator bg-black/5 px-2.5 text-xs text-adw-label outline-none focus:border-adw-accent disabled:opacity-70 dark:bg-white/10"
+          className="h-8 w-full rounded-shell-control border border-shell-separator bg-black/5 px-2.5 text-xs text-shell-label outline-none focus:border-shell-accent disabled:opacity-70 dark:bg-white/10"
         />
         <div className="mt-4 flex justify-end gap-2">
           <Button
@@ -897,12 +897,12 @@ function GlobalShortcutsPortalDialog({
 
   return (
     <div className="fixed inset-0 z-[800] flex items-center justify-center bg-black/45 p-4">
-      <div className="w-full max-w-[460px] rounded-adw-menu p-5 text-adw-label shadow-adw-menu adw-material-menu">
+      <div className="w-full max-w-[460px] rounded-shell-menu p-5 text-shell-label shadow-shell-menu shell-material-menu">
         <div className="mb-3 flex items-center gap-2.5">
-          <KeyboardIcon className="size-5 text-adw-accent" />
+          <KeyboardIcon className="size-5 text-shell-accent" />
           <div>
             <h3 className="text-[14px] font-bold">{_("Global Shortcuts")}</h3>
-            <p className="text-adw-subheadline text-adw-label-secondary">
+            <p className="text-shell-subheadline text-shell-label-secondary">
               {_("%s requests global shortcuts", request.appId || _("Application"))}
             </p>
           </div>
@@ -917,7 +917,7 @@ function GlobalShortcutsPortalDialog({
             return (
               <div
                 key={sc.id}
-                className="flex flex-col gap-1 rounded-adw-item border border-adw-separator/60 px-3 py-2"
+                className="flex flex-col gap-1 rounded-shell-item border border-shell-separator/60 px-3 py-2"
               >
                 <div className="flex items-center justify-between gap-2">
                   <span className="truncate text-xs font-medium">
@@ -952,10 +952,10 @@ function GlobalShortcutsPortalDialog({
                         }
                       }}
                       className={cn(
-                        "h-6 min-w-[96px] rounded border px-2 text-center font-mono text-adw-subheadline outline-none transition-colors",
+                        "h-6 min-w-[96px] rounded border px-2 text-center font-mono text-shell-subheadline outline-none transition-colors",
                         isRecording
-                          ? "border-adw-accent bg-adw-accent/15 text-adw-accent"
-                          : "border-adw-separator bg-black/5 hover-fill:bg-black/10 dark:bg-white/10 dark:hover-fill:bg-white/15"
+                          ? "border-shell-accent bg-shell-accent/15 text-shell-accent"
+                          : "border-shell-separator bg-black/5 hover-fill:bg-black/10 dark:bg-white/10 dark:hover-fill:bg-white/15"
                       )}
                     >
                       {isRecording
@@ -972,7 +972,7 @@ function GlobalShortcutsPortalDialog({
                             [sc.id]: undefined,
                           }))
                         }
-                        className="flex size-6 items-center justify-center rounded text-adw-label-secondary hover-fill:bg-black/10 dark:hover-fill:bg-white/15"
+                        className="flex size-6 items-center justify-center rounded text-shell-label-secondary hover-fill:bg-black/10 dark:hover-fill:bg-white/15"
                       >
                         <XIcon className="size-3" />
                       </button>
@@ -980,7 +980,7 @@ function GlobalShortcutsPortalDialog({
                   </div>
                 </div>
                 {conflictApp && (
-                  <div className="flex items-center gap-1 text-adw-footnote text-amber-600 dark:text-amber-400">
+                  <div className="flex items-center gap-1 text-shell-footnote text-amber-600 dark:text-amber-400">
                     <AlertTriangleIcon className="size-3 shrink-0" />
                     <span>
                       {_("Already used by %s", conflictApp)}
@@ -1036,12 +1036,12 @@ function RemoteDesktopPortalDialog({
 
   return (
     <div className="fixed inset-0 z-[800] flex items-center justify-center bg-black/45 p-4">
-      <div className="w-full max-w-[380px] rounded-adw-menu p-5 text-adw-label shadow-adw-menu adw-material-menu">
+      <div className="w-full max-w-[380px] rounded-shell-menu p-5 text-shell-label shadow-shell-menu shell-material-menu">
         <div className="mb-3 flex items-center gap-2.5">
-          <MonitorIcon className="size-5 text-adw-accent" />
+          <MonitorIcon className="size-5 text-shell-accent" />
           <div>
             <h3 className="text-[14px] font-bold">Remote Desktop Access</h3>
-            <p className="text-adw-subheadline text-adw-label-secondary">
+            <p className="text-shell-subheadline text-shell-label-secondary">
               {request.appId || "Application"} requests remote control
             </p>
           </div>
@@ -1135,14 +1135,14 @@ function PrintPortalDialog({
 
   return (
     <div className="fixed inset-0 z-[800] flex items-center justify-center bg-black/45 p-4">
-      <div className="w-full max-w-[400px] rounded-adw-menu p-5 text-adw-label shadow-adw-menu adw-material-menu">
+      <div className="w-full max-w-[400px] rounded-shell-menu p-5 text-shell-label shadow-shell-menu shell-material-menu">
         <div className="mb-3 flex items-center gap-2.5">
-          <PrinterIcon className="size-5 text-adw-accent" />
+          <PrinterIcon className="size-5 text-shell-accent" />
           <h3 className="text-[14px] font-bold">{request.body.title || "Print"}</h3>
         </div>
         <div className="space-y-2.5 text-xs">
           <div className="block">
-            <span className="text-adw-label-secondary">Printer</span>
+            <span className="text-shell-label-secondary">Printer</span>
             <Select
               value={selectedPrinter}
               items={[
@@ -1166,24 +1166,24 @@ function PrintPortalDialog({
           </div>
           {isPdf ? (
             <label className="block">
-              <span className="text-adw-label-secondary">PDF Path</span>
+              <span className="text-shell-label-secondary">PDF Path</span>
               <input
                 type="text"
                 value={pdfPath}
                 onChange={(e) => setPdfPath(e.target.value)}
-                className="mt-1 h-8 w-full rounded border border-adw-separator bg-black/5 px-2 font-mono dark:bg-white/10"
+                className="mt-1 h-8 w-full rounded border border-shell-separator bg-black/5 px-2 font-mono dark:bg-white/10"
               />
             </label>
           ) : (
             <label className="block">
-              <span className="text-adw-label-secondary">Copies</span>
+              <span className="text-shell-label-secondary">Copies</span>
               <input
                 type="number"
                 min={1}
                 max={99}
                 value={copies}
                 onChange={(e) => setCopies(Math.max(1, Number(e.target.value) || 1))}
-                className="mt-1 h-8 w-24 rounded border border-adw-separator bg-black/5 px-2 dark:bg-white/10"
+                className="mt-1 h-8 w-24 rounded border border-shell-separator bg-black/5 px-2 dark:bg-white/10"
               />
             </label>
           )}
@@ -1262,7 +1262,7 @@ function PickColorPortalOverlay({
             left: `${Math.min(window.innerWidth - 110, cursor.x + 16)}px`,
             top: `${Math.min(window.innerHeight - 36, cursor.y + 16)}px`,
           }}
-          className="pointer-events-none fixed flex items-center gap-1.5 rounded-full bg-zinc-900/92 px-2.5 py-1 font-mono text-adw-subheadline text-white shadow-lg ring-1 ring-white/20"
+          className="pointer-events-none fixed flex items-center gap-1.5 rounded-full bg-zinc-900/92 px-2.5 py-1 font-mono text-shell-subheadline text-white shadow-lg ring-1 ring-white/20"
         >
           <PipetteIcon className="size-3 text-sky-400" />
           <span>
@@ -1342,7 +1342,7 @@ function PermissionPortalDialog({
   let denyLabel = _("Deny");
   let destructive = false;
   let icon: React.ReactNode = (
-    <ShieldCheckIcon className="size-5 shrink-0 text-adw-accent" />
+    <ShieldCheckIcon className="size-5 shrink-0 text-shell-accent" />
   );
 
   if (request.kind === PortalKind.Access) {
@@ -1360,7 +1360,7 @@ function PermissionPortalDialog({
     bodyText =
       request.body.reason ||
       _("Allow %s to access your user name and profile picture.", subtitle);
-    icon = <UserIcon className="size-5 shrink-0 text-adw-accent" />;
+    icon = <UserIcon className="size-5 shrink-0 text-shell-accent" />;
   } else if (request.kind === PortalKind.Wallpaper) {
     title = _("Set Desktop Wallpaper?");
     const targetLabel =
@@ -1371,14 +1371,14 @@ function PermissionPortalDialog({
           : _("Desktop Background");
     bodyText = _("Apply image to %s.", targetLabel);
     grantLabel = _("Set Wallpaper");
-    icon = <ImageIcon className="size-5 shrink-0 text-adw-accent" />;
+    icon = <ImageIcon className="size-5 shrink-0 text-shell-accent" />;
   } else if (request.kind === PortalKind.Usb) {
     title = _("Allow USB Device Access?");
     bodyText = _(
       "%s wants to access the following USB devices:",
       subtitle
     );
-    icon = <UsbIcon className="size-5 shrink-0 text-adw-accent" />;
+    icon = <UsbIcon className="size-5 shrink-0 text-shell-accent" />;
   } else if (request.kind === PortalKind.InputCapture) {
     title = _("Allow Input Capture?");
     bodyText = _(
@@ -1389,26 +1389,26 @@ function PermissionPortalDialog({
 
   return (
     <div className="fixed inset-0 z-[800] flex items-center justify-center bg-black/45 p-4">
-      <div className="w-full max-w-[400px] rounded-adw-menu p-5 text-adw-label shadow-adw-menu adw-material-menu">
+      <div className="w-full max-w-[400px] rounded-shell-menu p-5 text-shell-label shadow-shell-menu shell-material-menu">
         <div className="mb-3 flex items-center gap-2.5">
           {icon}
           <div className="min-w-0">
             <h3 className="text-[14px] font-bold">{title}</h3>
-            <p className="truncate text-adw-subheadline text-adw-label-secondary">
+            <p className="truncate text-shell-subheadline text-shell-label-secondary">
               {subtitle}
             </p>
           </div>
         </div>
 
         {bodyText && (
-          <p className="mb-3 text-xs leading-relaxed text-adw-label-secondary">
+          <p className="mb-3 text-xs leading-relaxed text-shell-label-secondary">
             {bodyText}
           </p>
         )}
 
         {request.kind === PortalKind.Account && request.body.name && (
-          <div className="mb-3 flex items-center gap-2.5 rounded-adw-item bg-black/5 px-3 py-2 text-xs dark:bg-white/8">
-            <UserIcon className="size-4 text-adw-accent" />
+          <div className="mb-3 flex items-center gap-2.5 rounded-shell-item bg-black/5 px-3 py-2 text-xs dark:bg-white/8">
+            <UserIcon className="size-4 text-shell-accent" />
             <span className="font-medium">{request.body.name}</span>
           </div>
         )}
@@ -1416,7 +1416,7 @@ function PermissionPortalDialog({
         {request.kind === PortalKind.Wallpaper && (
           <div className="mb-3 space-y-1.5">
             {wallpaperPreviewUrl && (
-              <div className="overflow-hidden rounded-adw-item border border-adw-separator/70 bg-black/25">
+              <div className="overflow-hidden rounded-shell-item border border-shell-separator/70 bg-black/25">
                 <img
                   src={wallpaperPreviewUrl}
                   alt={_("Wallpaper preview")}
@@ -1424,7 +1424,7 @@ function PermissionPortalDialog({
                 />
               </div>
             )}
-            <p className="truncate font-mono text-adw-subheadline text-adw-label-secondary">
+            <p className="truncate font-mono text-shell-subheadline text-shell-label-secondary">
               {request.body.path}
             </p>
           </div>
@@ -1435,24 +1435,24 @@ function PermissionPortalDialog({
             {request.body.devices.map((dev) => (
               <div
                 key={dev.id}
-                className="flex items-center justify-between gap-2 rounded-adw-item bg-black/5 px-2.5 py-1.5 text-xs dark:bg-white/8"
+                className="flex items-center justify-between gap-2 rounded-shell-item bg-black/5 px-2.5 py-1.5 text-xs dark:bg-white/8"
               >
                 <div className="min-w-0">
                   <div className="truncate font-medium">
                     {dev.product || dev.id}
                   </div>
                   {dev.vendor && (
-                    <div className="truncate text-adw-footnote text-adw-label-secondary">
+                    <div className="truncate text-shell-footnote text-shell-label-secondary">
                       {dev.vendor}
                     </div>
                   )}
                 </div>
                 <span
                   className={cn(
-                    "shrink-0 rounded-full px-2 py-0.5 text-adw-footnote font-medium",
+                    "shrink-0 rounded-full px-2 py-0.5 text-shell-footnote font-medium",
                     dev.writable
                       ? "bg-amber-500/20 text-amber-700 dark:text-amber-300"
-                      : "bg-black/8 text-adw-label-secondary dark:bg-white/10"
+                      : "bg-black/8 text-shell-label-secondary dark:bg-white/10"
                   )}
                 >
                   {dev.writable ? _("Read/Write") : _("Read-Only")}
@@ -1465,17 +1465,17 @@ function PermissionPortalDialog({
         {request.kind === PortalKind.InputCapture && (
           <div className="mb-3 flex flex-wrap gap-1.5">
             {request.body.devices.keyboard && (
-              <span className="rounded-full bg-black/8 px-2.5 py-0.5 text-adw-subheadline font-medium dark:bg-white/10">
+              <span className="rounded-full bg-black/8 px-2.5 py-0.5 text-shell-subheadline font-medium dark:bg-white/10">
                 {_("Keyboard")}
               </span>
             )}
             {request.body.devices.pointer && (
-              <span className="rounded-full bg-black/8 px-2.5 py-0.5 text-adw-subheadline font-medium dark:bg-white/10">
+              <span className="rounded-full bg-black/8 px-2.5 py-0.5 text-shell-subheadline font-medium dark:bg-white/10">
                 {_("Pointer")}
               </span>
             )}
             {request.body.devices.touchscreen && (
-              <span className="rounded-full bg-black/8 px-2.5 py-0.5 text-adw-subheadline font-medium dark:bg-white/10">
+              <span className="rounded-full bg-black/8 px-2.5 py-0.5 text-shell-subheadline font-medium dark:bg-white/10">
                 {_("Touchscreen")}
               </span>
             )}
@@ -1615,9 +1615,9 @@ export function PortalDialogs() {
   // Fallback for unhandled portal request kinds (e.g. AppChooser / FileChooser / Print)
   return (
     <div className="fixed inset-0 z-[800] flex items-center justify-center bg-black/45 p-4">
-      <div className="w-full max-w-[380px] rounded-adw-menu p-5 text-adw-label shadow-adw-menu adw-material-menu">
+      <div className="w-full max-w-[380px] rounded-shell-menu p-5 text-shell-label shadow-shell-menu shell-material-menu">
         <h3 className="text-[14px] font-bold">Application Portal Request</h3>
-        <p className="mt-1 text-xs text-adw-label-secondary">
+        <p className="mt-1 text-xs text-shell-label-secondary">
           {current.appId || "Application"} requested{" "}
           {describePortalKind(current)}.
         </p>

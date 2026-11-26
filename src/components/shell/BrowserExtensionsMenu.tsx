@@ -27,7 +27,7 @@ export interface BrowserExtensionItem {
 }
 
 const BUTTON_CLASS =
-  "relative flex size-7 items-center justify-center rounded-adw-control transition-colors disabled:pointer-events-none disabled:opacity-40";
+  "relative flex size-7 items-center justify-center rounded-shell-control transition-colors disabled:pointer-events-none disabled:opacity-40";
 
 function ExtensionIcon({ item }: { item: BrowserExtensionItem }) {
   return item.icon ? (
@@ -43,7 +43,7 @@ function Badge({ item }: { item: BrowserExtensionItem }) {
     <span
       style={{
         backgroundColor:
-          item.badgeColor && item.badgeColor !== "#00000000" ? item.badgeColor : "var(--adw-accent)",
+          item.badgeColor && item.badgeColor !== "#00000000" ? item.badgeColor : "var(--shell-accent)",
       }}
       className="pointer-events-none absolute right-0.5 bottom-0.5 min-w-3 rounded-full px-0.5 text-center text-[8.5px] leading-tight font-bold text-white shadow-xs"
     >
@@ -99,7 +99,7 @@ export function BrowserExtensionsMenu({
         <DropdownMenuContent align="end" className="w-72">
           <DropdownMenuLabel>{_("Extensions")}</DropdownMenuLabel>
           {items.length === 0 && (
-            <div className="px-3 py-3 text-adw-callout text-adw-label-secondary">
+            <div className="px-3 py-3 text-shell-callout text-shell-label-secondary">
               {_("No extensions installed.")}
             </div>
           )}
@@ -126,8 +126,8 @@ export function BrowserExtensionsMenu({
                     onTogglePin(item.id);
                   }}
                   className={cn(
-                    "mr-1 flex size-7 shrink-0 items-center justify-center rounded-adw-control transition-colors hover-fill:bg-black/8 dark:hover-fill:bg-white/10",
-                    isPinned && "text-adw-accent",
+                    "mr-1 flex size-7 shrink-0 items-center justify-center rounded-shell-control transition-colors hover-fill:bg-black/8 dark:hover-fill:bg-white/10",
+                    isPinned && "text-shell-accent",
                   )}
                 >
                   {isPinned ? <PinOffIcon className="size-3.5" /> : <PinIcon className="size-3.5" />}

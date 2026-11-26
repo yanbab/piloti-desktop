@@ -2295,19 +2295,19 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                   className="size-16"
                 />
               )}
-              <div className="text-adw-headline font-bold text-adw-label">{selectedItem.title}</div>
-              <p className="text-adw-callout text-adw-label-secondary">{selectedItem.subtitle}</p>
-              <dl className="mt-2 grid w-full grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-left text-adw-callout">
-                <dt className="text-adw-label-secondary">{_("Kind")}</dt>
+              <div className="text-shell-headline font-bold text-shell-label">{selectedItem.title}</div>
+              <p className="text-shell-callout text-shell-label-secondary">{selectedItem.subtitle}</p>
+              <dl className="mt-2 grid w-full grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-left text-shell-callout">
+                <dt className="text-shell-label-secondary">{_("Kind")}</dt>
                 <dd className="truncate text-right">{_(selectedItem.kind === "web" ? "Web App" : selectedItem.kind === "flatpak" ? "Flatpak" : selectedItem.kind === "app" ? "Application" : selectedItem.kind === "extension" ? "Extension" : selectedItem.kind === "plugin" ? "Plugin" : "Font")}</dd>
-                <dt className="text-adw-label-secondary">{_("Status")}</dt>
+                <dt className="text-shell-label-secondary">{_("Status")}</dt>
                 <dd className="truncate text-right">{selectedItem.installed ? _("Installed") : _("Not installed")}</dd>
               </dl>
             </div>
           ) : (
             <div className="flex flex-col items-center gap-1 py-6 text-center">
-              <div className="text-adw-headline font-bold text-adw-label">{_("No selection")}</div>
-              <p className="text-adw-callout text-adw-label-secondary">
+              <div className="text-shell-headline font-bold text-shell-label">{_("No selection")}</div>
+              <p className="text-shell-callout text-shell-label-secondary">
                 {_("%d items", filteredItems.length)}
               </p>
             </div>
@@ -2359,9 +2359,9 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
       }
       footer={
         pendingOp || opStatus ? (
-          <div className="flex h-9 shrink-0 items-center justify-between gap-3 border-t border-adw-separator bg-adw-titlebar px-4">
+          <div className="flex h-9 shrink-0 items-center justify-between gap-3 border-t border-shell-separator bg-shell-titlebar px-4">
             <div className="flex min-w-0 flex-1 items-center gap-2.5">
-              <span className="shrink-0 text-adw-subheadline font-medium text-adw-label">
+              <span className="shrink-0 text-shell-subheadline font-medium text-shell-label">
                 {pendingOp
                   ? pendingOp.kind === "removing"
                     ? _("Removing…")
@@ -2371,7 +2371,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                     : _("Upgrading…")}
               </span>
               {(pendingOp?.statusLine || opStatus?.statusLine) && (
-                <span className="min-w-0 truncate font-mono text-adw-subheadline text-adw-label-secondary">
+                <span className="min-w-0 truncate font-mono text-shell-subheadline text-shell-label-secondary">
                   {pendingOp?.statusLine ?? opStatus?.statusLine}
                 </span>
               )}
@@ -2392,7 +2392,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                       <div
                         className={cn(
                           "h-full w-2/5 animate-[piloti-indeterminate_1.3s_ease-in-out_infinite]",
-                          isRemoving ? "bg-adw-red" : "bg-adw-accent",
+                          isRemoving ? "bg-shell-red" : "bg-shell-accent",
                         )}
                       />
                     ) : (
@@ -2400,7 +2400,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                         style={{ width: `${prog}%` }}
                         className={cn(
                           "h-full transition-[width] duration-75",
-                          isRemoving ? "bg-adw-red" : "bg-adw-accent",
+                          isRemoving ? "bg-shell-red" : "bg-shell-accent",
                         )}
                       />
                     )}
@@ -2415,7 +2415,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                   aria-label={_("Cancel")}
                   title={_("Cancel")}
                   onClick={handleCancelPendingOp}
-                  className="h-6 px-2 text-adw-subheadline"
+                  className="h-6 px-2 text-shell-subheadline"
                 >
                   <XIcon className="mr-1 size-3" />
                   {_("Cancel")}
@@ -2439,10 +2439,10 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
               <div className="mx-auto max-w-3xl space-y-4" onClick={(e) => e.stopPropagation()}>
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <h2 className="text-adw-title-3 font-bold text-adw-label">
+                    <h2 className="text-shell-title-3 font-bold text-shell-label">
                       {_("Available Updates")}
                     </h2>
-                    <p className="text-adw-callout text-adw-label-secondary">
+                    <p className="text-shell-callout text-shell-label-secondary">
                       {totalUpdatesCount === 0
                         ? _("Your system and applications are up to date.")
                         : _("%d upgrades available", totalUpdatesCount)}
@@ -2477,16 +2477,16 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                 </div>
 
                 {totalUpdatesCount === 0 ? (
-                  <div className="flex flex-col items-center justify-center gap-2 rounded-2xl border border-adw-separator bg-adw-card py-12 text-center text-adw-label-secondary">
+                  <div className="flex flex-col items-center justify-center gap-2 rounded-2xl border border-shell-separator bg-shell-card py-12 text-center text-shell-label-secondary">
                     <CheckCircle2Icon className="size-10 text-emerald-500 opacity-80" />
-                    <p className="text-sm font-medium text-adw-label">
+                    <p className="text-sm font-medium text-shell-label">
                       {_("Software is up to date")}
                     </p>
                   </div>
                 ) : (
                   <div className="space-y-3">
                     {sources.system && aptUpdates.length > 0 && (
-                      <div className="overflow-hidden rounded-adw-group border border-adw-separator bg-adw-card">
+                      <div className="overflow-hidden rounded-shell-group border border-shell-separator bg-shell-card">
                         <div className="flex items-center justify-between gap-3 px-4 py-3">
                           <button
                             type="button"
@@ -2494,25 +2494,25 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                             aria-expanded={systemUpdatesExpanded}
                             className="flex min-w-0 flex-1 items-center gap-3 text-left"
                           >
-                            <div className="flex size-10 shrink-0 items-center justify-center rounded-adw-group bg-adw-accent/15 text-adw-accent">
+                            <div className="flex size-10 shrink-0 items-center justify-center rounded-shell-group bg-shell-accent/15 text-shell-accent">
                               <ServerIcon className="size-5" />
                             </div>
                             <div className="min-w-0 flex-1">
                               <div className="flex items-center gap-2">
-                                <span className="truncate text-[13.5px] font-semibold text-adw-label">
+                                <span className="truncate text-[13.5px] font-semibold text-shell-label">
                                   {_("System Updates")}
                                 </span>
-                                <span className="rounded-full bg-black/6 px-2 py-0.5 text-adw-footnote font-medium text-adw-label-secondary dark:bg-white/10">
+                                <span className="rounded-full bg-black/6 px-2 py-0.5 text-shell-footnote font-medium text-shell-label-secondary dark:bg-white/10">
                                   {_("%d packages", aptUpdates.length)}
                                 </span>
                               </div>
-                              <div className="truncate text-adw-subheadline text-adw-label-secondary">
+                              <div className="truncate text-shell-subheadline text-shell-label-secondary">
                                 apt upgrade -y
                               </div>
                             </div>
                             <ChevronDownIcon
                               className={cn(
-                                "size-4 shrink-0 text-adw-label-tertiary transition-transform duration-150",
+                                "size-4 shrink-0 text-shell-label-tertiary transition-transform duration-150",
                                 systemUpdatesExpanded && "rotate-180",
                               )}
                             />
@@ -2531,16 +2531,16 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                         </div>
 
                         {systemUpdatesExpanded && (
-                          <div className="divide-y divide-adw-separator/60 border-t border-adw-separator/60 bg-black/[0.02] dark:bg-white/[0.02]">
+                          <div className="divide-y divide-shell-separator/60 border-t border-shell-separator/60 bg-black/[0.02] dark:bg-white/[0.02]">
                             {aptUpdates.map((pkg) => (
                               <div
                                 key={pkg.name}
-                                className="flex items-center justify-between gap-3 px-4 py-2 font-mono text-adw-subheadline"
+                                className="flex items-center justify-between gap-3 px-4 py-2 font-mono text-shell-subheadline"
                               >
-                                <span className="truncate font-medium text-adw-label">
+                                <span className="truncate font-medium text-shell-label">
                                   {pkg.name}
                                 </span>
-                                <span className="shrink-0 text-adw-label-tertiary">
+                                <span className="shrink-0 text-shell-label-tertiary">
                                   {pkg.currentVersion
                                     ? `${pkg.currentVersion} → ${pkg.newVersion ?? ""}`
                                     : (pkg.newVersion ?? "")}
@@ -2553,7 +2553,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                     )}
 
                     {sources.flatpak && flatpakUpdates.length > 0 && (
-                      <div className="divide-y divide-adw-separator/60 overflow-hidden rounded-adw-group border border-adw-separator bg-adw-card">
+                      <div className="divide-y divide-shell-separator/60 overflow-hidden rounded-shell-group border border-shell-separator bg-shell-card">
                         {flatpakUpdates.map((upd) => {
                           const storeItem = items.find(
                             (i) => i.kind === "flatpak" && i.flatpak?.appId === upd.appId,
@@ -2573,7 +2573,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                               className={cn(
                                 "flex cursor-default items-center justify-between gap-3 px-3.5 py-2.5 transition-colors outline-none",
                                 isSelected
-                                  ? "bg-adw-accent/15"
+                                  ? "bg-shell-accent/15"
                                   : "hover-fill:bg-black/[0.03] dark:hover-fill:bg-white/[0.04]",
                               )}
                             >
@@ -2587,10 +2587,10 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                                   className="size-10"
                                 />
                                 <div className="min-w-0">
-                                  <div className="truncate text-adw-body font-semibold text-adw-label">
+                                  <div className="truncate text-shell-body font-semibold text-shell-label">
                                     {upd.name}
                                   </div>
-                                  <div className="truncate text-adw-subheadline text-adw-label-secondary">
+                                  <div className="truncate text-shell-subheadline text-shell-label-secondary">
                                     {storeItem?.subtitle || upd.appId}
                                     {upd.version ? ` · v${upd.version}` : ""}
                                   </div>
@@ -2605,7 +2605,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                                   e.stopPropagation();
                                   void handleUpgradeFlatpak(upd.appId);
                                 }}
-                                className="h-7 px-3 text-adw-subheadline"
+                                className="h-7 px-3 text-shell-subheadline"
                               >
                                 {updatingTarget === upd.appId
                                   ? _("Upgrading…")
@@ -2627,7 +2627,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                 onClick={(e) => e.stopPropagation()}
                 onPointerEnter={() => setFeaturedHovered(true)}
                 onPointerLeave={() => setFeaturedHovered(false)}
-                className="group/featured relative mb-5 overflow-hidden rounded-adw-group bg-black/5 px-5 py-10 dark:bg-white/5"
+                className="group/featured relative mb-5 overflow-hidden rounded-shell-group bg-black/5 px-5 py-10 dark:bg-white/5"
               >
                 {/* Crossfade: the new backdrop fades in over the previous one. */}
                 {[underFeaturedItem, activeFeaturedItem].map(
@@ -2669,7 +2669,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                           featuredItems.length,
                       )
                     }
-                    className="flex size-8 shrink-0 items-center justify-center rounded-full bg-black/5 text-adw-label-secondary opacity-0 transition-opacity group-hover/featured:opacity-100 focus-visible:opacity-100 dark:bg-white/8"
+                    className="flex size-8 shrink-0 items-center justify-center rounded-full bg-black/5 text-shell-label-secondary opacity-0 transition-opacity group-hover/featured:opacity-100 focus-visible:opacity-100 dark:bg-white/8"
                   >
                     <ChevronLeftIcon className="size-4" />
                   </button>
@@ -2693,11 +2693,11 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                     />
                     <div className="min-w-0 max-w-lg">
                       {/* font-bold maps to the UI's semibold weight: the hero title is heavier. */}
-                      <div className="truncate text-adw-title-1 font-extrabold text-adw-label">
+                      <div className="truncate text-shell-title-1 font-extrabold text-shell-label">
                         {activeFeaturedItem.title}
                       </div>
                       {/* Always two lines tall, so the slider keeps its height between apps. */}
-                      <p className="mt-1 line-clamp-2 min-h-[2lh] text-adw-body text-adw-label-secondary">
+                      <p className="mt-1 line-clamp-2 min-h-[2lh] text-shell-body text-shell-label-secondary">
                         {activeFeaturedItem.subtitle}
                       </p>
                     </div>
@@ -2711,7 +2711,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                         (prev) => (prev + 1) % featuredItems.length,
                       )
                     }
-                    className="flex size-8 shrink-0 items-center justify-center rounded-full bg-black/5 text-adw-label-secondary opacity-0 transition-opacity group-hover/featured:opacity-100 focus-visible:opacity-100 dark:bg-white/8"
+                    className="flex size-8 shrink-0 items-center justify-center rounded-full bg-black/5 text-shell-label-secondary opacity-0 transition-opacity group-hover/featured:opacity-100 focus-visible:opacity-100 dark:bg-white/8"
                   >
                     <ChevronRightIcon className="size-4" />
                   </button>
@@ -2721,7 +2721,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
             )}
 
             {filteredItems.length === 0 ? (
-              <div className="flex h-full flex-col items-center justify-center gap-2 text-center text-adw-label-secondary">
+              <div className="flex h-full flex-col items-center justify-center gap-2 text-center text-shell-label-secondary">
                 <PackageIcon className="size-10 opacity-40" />
                 <p className="text-sm font-medium">{_("No applications found")}</p>
               </div>
@@ -2740,13 +2740,13 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                   .filter((group) => group.list.length > 0)
                   .map((group) => (
                     <section key={group.id} className="space-y-2.5">
-                      <h2 className="px-0.5 text-adw-callout font-semibold tracking-wider text-adw-label-tertiary uppercase">
+                      <h2 className="px-0.5 text-shell-callout font-semibold tracking-wider text-shell-label-tertiary uppercase">
                         {group.title}
                       </h2>
                       <div
                         className={cn(
                           viewMode === "list"
-                            ? "divide-y divide-adw-separator/60 overflow-hidden rounded-adw-group border border-adw-separator bg-adw-card"
+                            ? "divide-y divide-shell-separator/60 overflow-hidden rounded-shell-group border border-shell-separator bg-shell-card"
                             : "grid grid-cols-[repeat(auto-fill,minmax(min(220px,100%),1fr))] gap-2.5",
                         )}
                       >
@@ -2786,13 +2786,13 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                                       ? cn(
                                           "px-3.5 py-2.5",
                                           isSelected
-                                            ? "bg-adw-accent/15"
+                                            ? "bg-shell-accent/15"
                                             : "hover-fill:bg-black/[0.03] dark:hover-fill:bg-white/[0.04]",
                                         )
                                       : cn(
-                                          "rounded-adw-group p-3",
+                                          "rounded-shell-group p-3",
                                           isSelected
-                                            ? "bg-adw-accent/15 ring-1 ring-adw-accent/60"
+                                            ? "bg-shell-accent/15 ring-1 ring-shell-accent/60"
                                             : "bg-black/[0.03] hover-fill:bg-black/[0.06] dark:bg-white/[0.04] dark:hover-fill:bg-white/[0.07]",
                                         ),
                                   )}
@@ -2812,12 +2812,12 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                                         className="size-10"
                                       />
                                     ) : (
-                                      <div className="flex size-10 shrink-0 items-center justify-center rounded-adw-group bg-violet-500/12 text-violet-500">
+                                      <div className="flex size-10 shrink-0 items-center justify-center rounded-shell-group bg-violet-500/12 text-violet-500">
                                         <PuzzleIcon className="size-5" />
                                       </div>
                                     )
                                   ) : item.kind === "plugin" ? (
-                                    <div className="flex size-10 shrink-0 items-center justify-center rounded-adw-group bg-emerald-500/12 text-emerald-500">
+                                    <div className="flex size-10 shrink-0 items-center justify-center rounded-shell-group bg-emerald-500/12 text-emerald-500">
                                       <BlocksIcon className="size-5" />
                                     </div>
                                   ) : item.kind === "font" && item.font ? (
@@ -2825,7 +2825,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                                       style={{
                                         fontFamily: `"${item.font.family}", ${item.font.fontCategory === "Monospace" ? "monospace" : item.font.fontCategory === "Serif" ? "serif" : "sans-serif"}`,
                                       }}
-                                      className="flex size-10 shrink-0 items-center justify-center rounded-adw-group bg-amber-500/12 text-adw-title-2 font-semibold text-amber-600 dark:text-amber-400"
+                                      className="flex size-10 shrink-0 items-center justify-center rounded-shell-group bg-amber-500/12 text-shell-title-2 font-semibold text-amber-600 dark:text-amber-400"
                                     >
                                       Aa
                                     </div>
@@ -2846,7 +2846,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                                             }
                                           : undefined
                                       }
-                                      className="truncate text-adw-body font-semibold"
+                                      className="truncate text-shell-body font-semibold"
                                     >
                                       {item.title}
                                     </div>
@@ -2858,7 +2858,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                                             }
                                           : undefined
                                       }
-                                      className="truncate text-adw-subheadline text-adw-label-secondary"
+                                      className="truncate text-shell-subheadline text-shell-label-secondary"
                                     >
                                       {item.kind === "font" && item.font
                                         ? item.font.sampleText
@@ -2880,7 +2880,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                                           onClick={() =>
                                             void handleUpgradeFlatpak(item.flatpak!.appId)
                                           }
-                                          className="flex size-7 items-center justify-center rounded-adw-control text-adw-accent transition-colors hover:bg-adw-accent/15 disabled:opacity-40"
+                                          className="flex size-7 items-center justify-center rounded-shell-control text-shell-accent transition-colors hover:bg-shell-accent/15 disabled:opacity-40"
                                         >
                                           <RefreshCwIcon className="size-3.5" />
                                         </button>
@@ -2914,7 +2914,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                                               aria-label={_("Uninstall")}
                                               disabled={isBusy}
                                               onClick={() => handleUninstall(item)}
-                                              className="flex size-7 items-center justify-center rounded-adw-control text-adw-label-tertiary transition-colors hover-fill:bg-rose-500/12 hover-fill:text-rose-500 disabled:opacity-40"
+                                              className="flex size-7 items-center justify-center rounded-shell-control text-shell-label-tertiary transition-colors hover-fill:bg-rose-500/12 hover-fill:text-rose-500 disabled:opacity-40"
                                             >
                                               <XIcon className="size-3.5" />
                                             </button>
@@ -2925,7 +2925,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                                             variant="secondary"
                                             disabled={isBusy}
                                             onClick={() => handleOpen(item)}
-                                            className="h-7 px-3 text-adw-subheadline"
+                                            className="h-7 px-3 text-shell-subheadline"
                                           >
                                             {item.kind === "font"
                                               ? _("Apply")
@@ -2938,7 +2938,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                                           size="sm"
                                           disabled={isBusy}
                                           onClick={() => handleInstall(item)}
-                                          className="h-7 px-3 text-adw-subheadline"
+                                          className="h-7 px-3 text-shell-subheadline"
                                         >
                                           {_("Install")}
                                         </Button>
@@ -2953,8 +2953,8 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                                           className={cn(
                                             "h-full w-2/5 animate-[piloti-indeterminate_1.3s_ease-in-out_infinite]",
                                             pendingOp.kind === "removing"
-                                              ? "bg-adw-red"
-                                              : "bg-adw-accent",
+                                              ? "bg-shell-red"
+                                              : "bg-shell-accent",
                                           )}
                                         />
                                       ) : (
@@ -2963,8 +2963,8 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                                           className={cn(
                                             "h-full transition-[width] duration-75",
                                             pendingOp.kind === "removing"
-                                              ? "bg-adw-red"
-                                              : "bg-adw-accent",
+                                              ? "bg-shell-red"
+                                              : "bg-shell-accent",
                                           )}
                                         />
                                       )}
@@ -3009,18 +3009,18 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
           {selectedItem && (
             <aside
               onClick={(e) => e.stopPropagation()}
-              className="flex w-72 shrink-0 flex-col border-l border-adw-separator bg-adw-sidebar"
+              className="flex w-72 shrink-0 flex-col border-l border-shell-separator bg-shell-sidebar"
             >
-              <div className="flex h-10 shrink-0 items-center gap-2 border-b border-adw-separator px-3">
+              <div className="flex h-10 shrink-0 items-center gap-2 border-b border-shell-separator px-3">
                 <button
                   type="button"
                   aria-label={_("Close")}
                   onClick={() => setSelectedId(null)}
-                  className="flex size-6 items-center justify-center rounded-adw-control text-adw-label-secondary transition-colors hover-fill:bg-black/8 hover-fill:text-adw-label dark:hover-fill:bg-white/10"
+                  className="flex size-6 items-center justify-center rounded-shell-control text-shell-label-secondary transition-colors hover-fill:bg-black/8 hover-fill:text-shell-label dark:hover-fill:bg-white/10"
                 >
                   <XIcon className="size-3.5" />
                 </button>
-                <span className="text-adw-callout font-semibold text-adw-label">
+                <span className="text-shell-callout font-semibold text-shell-label">
                   {_("Infos")}
                 </span>
               </div>
@@ -3055,7 +3055,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                       style={{
                         fontFamily: `"${selectedItem.font.family}", ${selectedItem.font.fontCategory === "Monospace" ? "monospace" : selectedItem.font.fontCategory === "Serif" ? "serif" : "sans-serif"}`,
                       }}
-                      className="flex size-16 items-center justify-center rounded-2xl bg-amber-500/12 text-adw-large-title font-semibold text-amber-600 dark:text-amber-400"
+                      className="flex size-16 items-center justify-center rounded-2xl bg-amber-500/12 text-shell-large-title font-semibold text-amber-600 dark:text-amber-400"
                     >
                       Aa
                     </div>
@@ -3074,11 +3074,11 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                           }
                         : undefined
                     }
-                    className="mt-3 text-adw-title-3 font-bold text-adw-label"
+                    className="mt-3 text-shell-title-3 font-bold text-shell-label"
                   >
                     {selectedItem.title}
                   </h3>
-                  <p className="mt-1 text-adw-callout leading-snug text-adw-label-secondary">
+                  <p className="mt-1 text-shell-callout leading-snug text-shell-label-secondary">
                     {selectedItem.subtitle}
                   </p>
                   {selectedItem.kind === "font" && selectedItem.font && (
@@ -3086,15 +3086,15 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                       style={{
                         fontFamily: `"${selectedItem.font.family}", ${selectedItem.font.fontCategory === "Monospace" ? "monospace" : selectedItem.font.fontCategory === "Serif" ? "serif" : "sans-serif"}`,
                       }}
-                      className="mt-3 w-full rounded-adw-group border border-adw-separator bg-adw-card p-3 text-left text-adw-body leading-relaxed text-adw-label"
+                      className="mt-3 w-full rounded-shell-group border border-shell-separator bg-shell-card p-3 text-left text-shell-body leading-relaxed text-shell-label"
                     >
                       <div className="text-[16px] font-semibold">
                         ABCDEFGHIJKLM
                       </div>
-                      <div className="text-adw-body text-adw-label-secondary">
+                      <div className="text-shell-body text-shell-label-secondary">
                         abcdefghijklm 0123456789
                       </div>
-                      <div className="mt-1 text-adw-callout text-adw-label-secondary">
+                      <div className="mt-1 text-shell-callout text-shell-label-secondary">
                         {_("The quick brown fox jumps over the lazy dog.")}
                       </div>
                     </div>
@@ -3106,7 +3106,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                         : undefined;
                     if (!upd?.version) return null;
                     return (
-                      <div className="mt-1.5 text-adw-subheadline font-medium text-adw-accent">
+                      <div className="mt-1.5 text-shell-subheadline font-medium text-shell-accent">
                         {_("Upgrade available: %s", upd.version)}
                       </div>
                     );
@@ -3193,16 +3193,16 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                   )}
                 </div>
 
-                <div className="divide-y divide-adw-separator/60 overflow-hidden rounded-adw-group border border-adw-separator bg-adw-card text-adw-callout">
+                <div className="divide-y divide-shell-separator/60 overflow-hidden rounded-shell-group border border-shell-separator bg-shell-card text-shell-callout">
                   <div className="flex items-center justify-between gap-2 px-3 py-2">
-                    <span className="text-adw-label-secondary">{_("Category")}</span>
-                    <span className="font-medium text-adw-label">
+                    <span className="text-shell-label-secondary">{_("Category")}</span>
+                    <span className="font-medium text-shell-label">
                       {_(selectedItem.category)}
                     </span>
                   </div>
                   <div className="flex items-center justify-between gap-2 px-3 py-2">
-                    <span className="text-adw-label-secondary">{_("Source")}</span>
-                    <span className="font-medium text-adw-label">
+                    <span className="text-shell-label-secondary">{_("Source")}</span>
+                    <span className="font-medium text-shell-label">
                       {selectedItem.kind === "flatpak"
                         ? selectedItem.flatpak?.origin || "Flathub"
                         : selectedItem.kind === "web"
@@ -3221,8 +3221,8 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                     </span>
                   </div>
                   <div className="flex items-center justify-between gap-2 px-3 py-2">
-                    <span className="text-adw-label-secondary">{_("ID")}</span>
-                    <span className="max-w-[150px] truncate font-mono text-adw-subheadline text-adw-label">
+                    <span className="text-shell-label-secondary">{_("ID")}</span>
+                    <span className="max-w-[150px] truncate font-mono text-shell-subheadline text-shell-label">
                       {selectedItem.flatpak?.appId ||
                         selectedItem.appDef?.id ||
                         selectedItem.extension?.id ||
@@ -3233,15 +3233,15 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                   </div>
                   {selectedItem.webApp?.url && (
                     <div className="flex items-center justify-between gap-2 px-3 py-2">
-                      <span className="text-adw-label-secondary">{_("URL")}</span>
-                      <span className="max-w-[150px] truncate font-mono text-adw-subheadline text-adw-accent">
+                      <span className="text-shell-label-secondary">{_("URL")}</span>
+                      <span className="max-w-[150px] truncate font-mono text-shell-subheadline text-shell-accent">
                         {selectedItem.webApp.url}
                       </span>
                     </div>
                   )}
                   <div className="flex items-center justify-between gap-2 px-3 py-2">
-                    <span className="text-adw-label-secondary">{_("Status")}</span>
-                    <span className="font-medium text-adw-label">
+                    <span className="text-shell-label-secondary">{_("Status")}</span>
+                    <span className="font-medium text-shell-label">
                       {selectedItem.installed ? _("Installed") : _("Available")}
                     </span>
                   </div>
@@ -3278,14 +3278,14 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
               <button
                 type="button"
                 onClick={() => setPackageRequest(null)}
-                className="rounded-adw-item bg-black/8 px-3 py-1.5 text-xs font-medium text-adw-label transition-colors hover-fill:bg-black/14 dark:bg-white/10 dark:hover-fill:bg-white/16"
+                className="rounded-shell-item bg-black/8 px-3 py-1.5 text-xs font-medium text-shell-label transition-colors hover-fill:bg-black/14 dark:bg-white/10 dark:hover-fill:bg-white/16"
               >
                 {_("Cancel")}
               </button>
               <button
                 type="button"
                 onClick={() => void handleInstallPackage()}
-                className="rounded-adw-item bg-adw-accent px-3 py-1.5 text-xs font-medium text-white transition-opacity hover-fill:opacity-90"
+                className="rounded-shell-item bg-shell-accent px-3 py-1.5 text-xs font-medium text-white transition-opacity hover-fill:opacity-90"
               >
                 {_("Install")}
               </button>

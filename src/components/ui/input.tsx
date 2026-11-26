@@ -9,9 +9,9 @@ function Input({ className, type, ...props }: React.ComponentProps<"input">) {
       type={type}
       data-slot="input"
       className={cn(
-        "h-adw-control-small w-full min-w-0 rounded-adw-control bg-adw-field px-2 text-adw-body font-medium text-adw-label shadow-[0_0_0_1px_var(--adw-field-border)] transition-[box-shadow] outline-none selection:bg-adw-accent/30 file:inline-flex file:h-5 file:border-0 file:bg-transparent file:text-adw-body file:font-medium file:text-adw-label placeholder:font-normal placeholder:text-adw-label-tertiary disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50",
-        "focus-visible:shadow-[0_0_0_1px_var(--adw-field-border),0_0_0_3.5px_color-mix(in_srgb,var(--adw-accent)_50%,transparent),inset_0_0_0_1px_color-mix(in_srgb,var(--adw-accent)_50%,transparent)]",
-        "aria-invalid:shadow-[0_0_0_3.5px_color-mix(in_srgb,var(--adw-red)_50%,transparent)]",
+        "h-shell-control-small w-full min-w-0 rounded-shell-control bg-shell-field px-2 text-shell-body font-medium text-shell-label shadow-[0_0_0_1px_var(--shell-field-border)] transition-[box-shadow] outline-none selection:bg-shell-accent/30 file:inline-flex file:h-5 file:border-0 file:bg-transparent file:text-shell-body file:font-medium file:text-shell-label placeholder:font-normal placeholder:text-shell-label-tertiary disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50",
+        "focus-visible:shadow-[0_0_0_1px_var(--shell-field-border),0_0_0_3.5px_color-mix(in_srgb,var(--shell-accent)_50%,transparent),inset_0_0_0_1px_color-mix(in_srgb,var(--shell-accent)_50%,transparent)]",
+        "aria-invalid:shadow-[0_0_0_3.5px_color-mix(in_srgb,var(--shell-red)_50%,transparent)]",
         className
       )}
       {...props}

@@ -1,40 +1,40 @@
 import { clsx, type ClassValue } from "clsx"
 import { extendTailwindMerge } from "tailwind-merge"
 
-// Teach tailwind-merge our Adwaita theme scales so e.g. `text-adw-body`
+// Teach tailwind-merge our Adwaita theme scales so e.g. `text-shell-body`
 // (a font size) is not mistaken for a text color and dropped.
 const twMerge = extendTailwindMerge({
   extend: {
     theme: {
       text: [
-        "adw-large-title",
-        "adw-title-1",
-        "adw-title-2",
-        "adw-title-3",
-        "adw-headline",
-        "adw-body",
-        "adw-callout",
-        "adw-subheadline",
-        "adw-footnote",
-        "adw-caption",
+        "shell-large-title",
+        "shell-title-1",
+        "shell-title-2",
+        "shell-title-3",
+        "shell-headline",
+        "shell-body",
+        "shell-callout",
+        "shell-subheadline",
+        "shell-footnote",
+        "shell-caption",
       ],
       radius: [
-        "adw-control",
-        "adw-menu",
-        "adw-item",
-        "adw-group",
-        "adw-popover",
-        "adw-alert",
-        "adw-window",
+        "shell-control",
+        "shell-menu",
+        "shell-item",
+        "shell-group",
+        "shell-popover",
+        "shell-alert",
+        "shell-window",
       ],
       shadow: [
-        "adw-menu",
-        "adw-popover",
-        "adw-tooltip",
-        "adw-dock",
-        "adw-window",
-        "adw-window-inactive",
-        "adw-focus",
+        "shell-menu",
+        "shell-popover",
+        "shell-tooltip",
+        "shell-dock",
+        "shell-window",
+        "shell-window-inactive",
+        "shell-focus",
       ],
     },
   },

@@ -32,7 +32,7 @@ function WindowMiniPreview({
 
   if (win.appId === "settings") {
     return (
-      <div className="flex h-full bg-zinc-900/90 text-adw-footnote">
+      <div className="flex h-full bg-zinc-900/90 text-shell-footnote">
         <div className="flex w-1/3 flex-col gap-1.5 border-r border-white/10 bg-white/5 p-2">
           <div className="h-2 w-4/5 rounded-full bg-sky-500/60" />
           <div className="h-2 w-3/4 rounded-full bg-white/20" />
@@ -46,8 +46,8 @@ function WindowMiniPreview({
             <span className="size-3 rounded-full bg-pink-500" />
             <span className="size-3 rounded-full bg-emerald-500" />
           </div>
-          <div className="h-5 rounded-adw-control bg-white/10" />
-          <div className="h-5 rounded-adw-control bg-white/10" />
+          <div className="h-5 rounded-shell-control bg-white/10" />
+          <div className="h-5 rounded-shell-control bg-white/10" />
         </div>
       </div>
     );
@@ -63,7 +63,7 @@ function WindowMiniPreview({
         className="size-9"
         glyphClassName="size-5"
       />
-      <span className="max-w-full truncate text-adw-footnote text-white/70">
+      <span className="max-w-full truncate text-shell-footnote text-white/70">
         {win.waylandAppId
           ? `Wayland · ${win.waylandAppId}`
           : `${win.size.width}×${win.size.height}`}
@@ -130,12 +130,12 @@ export function AltTabSwitcher() {
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="flex max-w-[90vw] flex-col items-center overflow-hidden rounded-[22px] px-5 py-4 text-adw-label shadow-adw-menu adw-material-menu animate-in fade-in-0 zoom-in-95 duration-150 motion-reduce:animate-none"
+        className="flex max-w-[90vw] flex-col items-center overflow-hidden rounded-[22px] px-5 py-4 text-shell-label shadow-shell-menu shell-material-menu animate-in fade-in-0 zoom-in-95 duration-150 motion-reduce:animate-none"
       >
         {mruWindows.length === 0 ? (
-          <div className="flex flex-col items-center justify-center px-6 py-4 text-center text-adw-label-secondary">
-            <SparklesIcon className="mb-2 size-7 text-adw-accent" />
-            <p className="text-sm font-medium text-adw-label">
+          <div className="flex flex-col items-center justify-center px-6 py-4 text-center text-shell-label-secondary">
+            <SparklesIcon className="mb-2 size-7 text-shell-accent" />
+            <p className="text-sm font-medium text-shell-label">
               No open windows
             </p>
           </div>
@@ -165,7 +165,7 @@ export function AltTabSwitcher() {
                     className={cn(
                       "flex size-[80px] items-center justify-center rounded-[18px] p-2 transition-all duration-100 motion-reduce:transition-none",
                       selected
-                        ? "bg-black/14 ring-2 ring-adw-accent dark:bg-white/16"
+                        ? "bg-black/14 ring-2 ring-shell-accent dark:bg-white/16"
                         : "bg-transparent hover-fill:bg-black/6 dark:hover-fill:bg-white/8",
                       win.minimized && "opacity-65"
                     )}
@@ -183,7 +183,7 @@ export function AltTabSwitcher() {
                     />
                   </div>
                   {selected && (
-                    <span className="pointer-events-none absolute -bottom-7 left-1/2 -translate-x-1/2 whitespace-nowrap text-center text-adw-callout font-medium text-adw-label-secondary">
+                    <span className="pointer-events-none absolute -bottom-7 left-1/2 -translate-x-1/2 whitespace-nowrap text-center text-shell-callout font-medium text-shell-label-secondary">
                       {win.title}
                     </span>
                   )}

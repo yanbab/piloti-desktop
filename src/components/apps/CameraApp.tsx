@@ -225,11 +225,11 @@ export const CameraApp: React.FC<CameraAppProps> = ({ windowId = "" }) => {
 
   return (
     <div className="flex h-full w-full flex-col overflow-hidden bg-black text-white select-none">
-      <HeaderBar className="text-adw-label" onClose={requestClose}>
+      <HeaderBar className="text-shell-label" onClose={requestClose}>
         <HeaderBar.Title interactive>
           <div className="flex items-center gap-2">
             {recording && (
-              <span className="font-mono text-adw-subheadline tabular-nums text-adw-label">
+              <span className="font-mono text-shell-subheadline tabular-nums text-shell-label">
                 {formatCaptureDuration(elapsed)}
               </span>
             )}
@@ -269,17 +269,17 @@ export const CameraApp: React.FC<CameraAppProps> = ({ windowId = "" }) => {
           className={cn("size-full object-contain", mode === "audio" && "hidden")}
         />
         {mode === "audio" && !error && (
-          <div className="flex flex-col items-center gap-1 text-adw-callout text-white/40">
+          <div className="flex flex-col items-center gap-1 text-shell-callout text-white/40">
             {recording ? _("Recording…") : _("Microphone ready")}
           </div>
         )}
         {error && (
-          <div className="absolute inset-0 flex items-center justify-center p-6 text-center text-adw-callout text-white/70">
+          <div className="absolute inset-0 flex items-center justify-center p-6 text-center text-shell-callout text-white/70">
             {error}
           </div>
         )}
         {status && (
-          <div className="absolute bottom-3 left-1/2 max-w-[90%] -translate-x-1/2 truncate rounded-full bg-black/70 px-3 py-1 text-adw-subheadline text-white">
+          <div className="absolute bottom-3 left-1/2 max-w-[90%] -translate-x-1/2 truncate rounded-full bg-black/70 px-3 py-1 text-shell-subheadline text-white">
             {status}
           </div>
         )}

@@ -10,10 +10,10 @@
 }
 
 .piloti-wp-anim {
-  background-color: color-mix(in srgb, var(--adw-active-accent, #007aff) 10%, #050811);
+  background-color: color-mix(in srgb, var(--shell-active-accent, #007aff) 10%, #050811);
   background-image:
-    radial-gradient(66% 58% at 25% 35%, color-mix(in srgb, var(--adw-active-accent, #007aff) 48%, transparent) 0%, transparent 64%),
-    radial-gradient(62% 56% at 76% 74%, color-mix(in srgb, var(--adw-active-accent, #007aff) 32%, #1d4ed8 14%) 0%, transparent 66%);
+    radial-gradient(66% 58% at 25% 35%, color-mix(in srgb, var(--shell-active-accent, #007aff) 48%, transparent) 0%, transparent 64%),
+    radial-gradient(62% 56% at 76% 74%, color-mix(in srgb, var(--shell-active-accent, #007aff) 32%, #1d4ed8 14%) 0%, transparent 66%);
   background-size: 145% 145%, 145% 145%;
   animation: piloti-aurora-drift-dark 22s ease-in-out infinite;
 }

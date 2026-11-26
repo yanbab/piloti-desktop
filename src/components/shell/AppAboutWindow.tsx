@@ -56,7 +56,7 @@ export function AppAboutWindow({
       onClose={onClose}
       style={{ position: "fixed", top: 0, left: 0, zIndex: 420 + index }}
     >
-      <WindowMain className="relative bg-adw-sidebar">
+      <WindowMain className="relative bg-shell-sidebar">
         <div className={cn("absolute top-2.5 z-10", closeOnLeft ? "left-2.5" : "right-2.5")} data-window-no-drag>
           <WindowControls side={closeOnLeft ? "left" : "right"} />
         </div>
@@ -75,9 +75,9 @@ export function AppAboutWindow({
             glyphClassName="size-9"
           />
           {/* font-bold maps to the UI's semibold weight: the title is heavier. */}
-          <h2 className="text-adw-title-2 font-extrabold text-adw-label">{_(app.name)}</h2>
-          <p className="text-adw-callout text-adw-label-secondary">{_(app.description)}</p>
-          <span className="mt-1.5 rounded-full bg-black/6 px-2.5 py-0.5 text-adw-subheadline font-medium tabular-nums text-adw-label-secondary dark:bg-white/10">
+          <h2 className="text-shell-title-2 font-extrabold text-shell-label">{_(app.name)}</h2>
+          <p className="text-shell-callout text-shell-label-secondary">{_(app.description)}</p>
+          <span className="mt-1.5 rounded-full bg-black/6 px-2.5 py-0.5 text-shell-subheadline font-medium tabular-nums text-shell-label-secondary dark:bg-white/10">
             {_("Version %s", PILOTI_VERSION)}
           </span>
         </div>

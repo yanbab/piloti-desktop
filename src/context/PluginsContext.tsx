@@ -708,7 +708,7 @@ export function PluginsProvider({
         const relPath = `${PLUGINS_REL_DIR}/${fileName}`;
         const content =
           kind === "css"
-            ? `/* Piloti CSS Plugin — edit me in ~/.config/piloti/plugins/${fileName} */\n:root {\n  --adw-accent: #9141ac;\n}\n`
+            ? `/* Piloti CSS Plugin — edit me in ~/.config/piloti/plugins/${fileName} */\n:root {\n  --shell-accent: #9141ac;\n}\n`
             : `// Piloti JS Plugin — no manifest.json required\nexport function activate(ctx) {\n  let clicks = 0;\n  const item = ctx.menubar.addStatusItem({\n    id: "hello",\n    label: "★ 0",\n    tooltip: "Sample plugin status item",\n    onClick() {\n      clicks += 1;\n      item.update({ label: \`★ \${clicks}\` });\n      ctx.notifications.push({\n        summary: "Sample Plugin",\n        body: \`Clicked \${clicks} time(s)\`,\n      });\n    },\n  });\n}\n`;
 
         await hostFiles(piloti).write(relPath, content);

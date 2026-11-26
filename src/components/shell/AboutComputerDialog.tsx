@@ -242,7 +242,7 @@ export function AboutComputerDialog() {
               to move. */}
           <header
             data-window-drag-region=""
-            className="relative flex flex-col items-center gap-1 rounded-t-[inherit] border-b border-adw-separator bg-adw-sidebar px-4 pt-4 pb-4 text-center"
+            className="relative flex flex-col items-center gap-1 rounded-t-[inherit] border-b border-shell-separator bg-shell-sidebar px-4 pt-4 pb-4 text-center"
           >
             <div className={cn("absolute top-2.5", closeOnLeft ? "left-2.5" : "right-2.5")} data-window-no-drag>
               <WindowControls side={closeOnLeft ? "left" : "right"} />
@@ -253,11 +253,11 @@ export function AboutComputerDialog() {
             />
             {/* font-bold maps to the UI's semibold weight: the title is heavier. */}
             {/* A no-break space holds each line until the probe answers. */}
-            <h2 className="w-full truncate text-adw-title-2 font-extrabold text-adw-label">
+            <h2 className="w-full truncate text-shell-title-2 font-extrabold text-shell-label">
               {info.computerName || "\u00a0"}
             </h2>
             {/* Two lines: the model, then the architecture. */}
-            <p className="w-full text-adw-body text-adw-label-secondary">
+            <p className="w-full text-shell-body text-shell-label-secondary">
               {[0, 1].map((line) => (
                 <span key={line} className="block truncate">
                   {info.modelSubtitle.split(" · ")[line] || "\u00a0"}
@@ -266,12 +266,12 @@ export function AboutComputerDialog() {
             </p>
           </header>
 
-          <div className="flex flex-col gap-4 rounded-b-[inherit] bg-adw-window p-4">
-          <dl className="grid grid-cols-[auto_1fr] items-baseline gap-x-4 gap-y-2.5 rounded-adw-group bg-black/4 px-4 py-3.5 text-adw-body dark:bg-white/5">
+          <div className="flex flex-col gap-4 rounded-b-[inherit] bg-shell-window p-4">
+          <dl className="grid grid-cols-[auto_1fr] items-baseline gap-x-4 gap-y-2.5 rounded-shell-group bg-black/4 px-4 py-3.5 text-shell-body dark:bg-white/5">
             {rows.map((row) => (
               <React.Fragment key={row.label}>
-                <dt className="font-medium text-adw-label">{row.label}</dt>
-                <dd className="truncate text-right text-adw-label-secondary select-text">
+                <dt className="font-medium text-shell-label">{row.label}</dt>
+                <dd className="truncate text-right text-shell-label-secondary select-text">
                   {row.value}
                 </dd>
               </React.Fragment>

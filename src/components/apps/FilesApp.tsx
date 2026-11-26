@@ -1480,7 +1480,7 @@ export function FilesApp({
           }}
           className={cn(
             MENU_ITEM_CLASS,
-            "w-full text-left hover:bg-adw-menu-highlight"
+            "w-full text-left hover:bg-shell-menu-highlight"
           )}
         >
           {_("New Folder")}
@@ -1498,8 +1498,8 @@ export function FilesApp({
             onClick={() => setBgNewSubOpen((v) => !v)}
             className={cn(
               MENU_SUB_TRIGGER_CLASS,
-              "w-full text-left hover:bg-adw-menu-highlight",
-              bgNewSubOpen && "bg-adw-menu-highlight"
+              "w-full text-left hover:bg-shell-menu-highlight",
+              bgNewSubOpen && "bg-shell-menu-highlight"
             )}
           >
             <span>{_("New…")}</span>
@@ -1525,7 +1525,7 @@ export function FilesApp({
                 }}
                 className={cn(
                   MENU_ITEM_CLASS,
-                  "w-full text-left hover:bg-adw-menu-highlight"
+                  "w-full text-left hover:bg-shell-menu-highlight"
                 )}
               >
                 {_("New Text File")}
@@ -1546,7 +1546,7 @@ export function FilesApp({
                         }}
                         className={cn(
                           MENU_ITEM_CLASS,
-                          "w-full text-left hover:bg-adw-menu-highlight"
+                          "w-full text-left hover:bg-shell-menu-highlight"
                         )}
                       >
                         <span className="truncate">{_(label)}</span>
@@ -1569,7 +1569,7 @@ export function FilesApp({
             }}
             className={cn(
               MENU_ITEM_CLASS,
-              "w-full text-left hover:bg-adw-menu-highlight"
+              "w-full text-left hover:bg-shell-menu-highlight"
             )}
           >
             {_("Paste")}
@@ -1598,7 +1598,7 @@ export function FilesApp({
           }}
           className={cn(
             MENU_ITEM_CLASS,
-            "w-full text-left hover:bg-adw-menu-highlight"
+            "w-full text-left hover:bg-shell-menu-highlight"
           )}
         >
           {_("Open in Terminal")}
@@ -1646,7 +1646,7 @@ export function FilesApp({
         ];
         return (
           <InfoPane pane={infoPane}>
-            <div className="flex flex-col items-center gap-2 border-b border-adw-separator pb-3 text-center">
+            <div className="flex flex-col items-center gap-2 border-b border-shell-separator pb-3 text-center">
               <div className="size-16 shrink-0">
                 {!inspectedItem || inspectedItem.kind === "directory" ? (
                   <DynamicFolderIcon
@@ -1665,40 +1665,40 @@ export function FilesApp({
                   />
                 )}
               </div>
-              <div className="w-full truncate text-adw-body font-semibold">
+              <div className="w-full truncate text-shell-body font-semibold">
                 {displayName}
               </div>
-              <div className="text-adw-subheadline text-adw-label-secondary">
+              <div className="text-shell-subheadline text-shell-label-secondary">
                 {displayKind}
               </div>
             </div>
-            <dl className="space-y-2 text-adw-subheadline">
+            <dl className="space-y-2 text-shell-subheadline">
               <div className="grid grid-cols-2 gap-2">
                 <div className="min-w-0">
-                  <dt className="text-adw-dim">{_("Size")}</dt>
+                  <dt className="text-shell-dim">{_("Size")}</dt>
                   <dd className="truncate font-medium">{displaySize}</dd>
                 </div>
                 <div className="min-w-0">
-                  <dt className="text-adw-dim">{_("Modified")}</dt>
+                  <dt className="text-shell-dim">{_("Modified")}</dt>
                   <dd className="truncate font-medium">{modifiedLabel}</dd>
                 </div>
               </div>
               <div>
-                <dt className="text-adw-dim">{_("Where")}</dt>
-                <dd className="flex min-w-0 text-adw-subheadline text-adw-label-secondary">
+                <dt className="text-shell-dim">{_("Where")}</dt>
+                <dd className="flex min-w-0 text-shell-subheadline text-shell-label-secondary">
                   <NicePathLabel path={inspectedItem?.path ?? currentPath} />
                 </dd>
               </div>
               {inspectedItem?.kind === "file" &&
                 inspectedItem.accessCount !== undefined && (
                   <div>
-                    <dt className="text-adw-dim">{_("Opens")}</dt>
+                    <dt className="text-shell-dim">{_("Opens")}</dt>
                     <dd className="font-medium">{inspectedItem.accessCount}</dd>
                   </div>
                 )}
               {inspectedPath && !isTrashView && (
                 <div>
-                  <dt className="mb-1 text-adw-dim">{_("Tags")}</dt>
+                  <dt className="mb-1 text-shell-dim">{_("Tags")}</dt>
                   <dd className="flex flex-wrap gap-1">
                     {emblemOrder.map((emblem) => {
                       const meta = VFS_EMBLEM_META[emblem];
@@ -1721,11 +1721,11 @@ export function FilesApp({
                             reloadDir();
                           }}
                           className={cn(
-                            "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-adw-footnote font-medium transition-colors active:bg-[color-mix(in_srgb,currentColor_22%,transparent)]",
+                            "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-shell-footnote font-medium transition-colors active:bg-[color-mix(in_srgb,currentColor_22%,transparent)]",
                             meta.colorClass,
                             active
                               ? "border-current/45 bg-[color-mix(in_srgb,currentColor_14%,transparent)] hover-fill:bg-[color-mix(in_srgb,currentColor_22%,transparent)]"
-                              : "border-adw-separator opacity-75 hover:opacity-100 hover-fill:bg-[color-mix(in_srgb,currentColor_12%,transparent)]"
+                              : "border-shell-separator opacity-75 hover:opacity-100 hover-fill:bg-[color-mix(in_srgb,currentColor_12%,transparent)]"
                           )}
                         >
                           <Icon
@@ -1816,7 +1816,7 @@ export function FilesApp({
                     }
                   }}
                   aria-label="Folder path"
-                  className="h-7 w-64 max-w-full rounded-adw-control border border-adw-accent/70 bg-black/8 px-2 font-mono text-adw-callout text-adw-label outline-none dark:bg-white/12"
+                  className="h-7 w-64 max-w-full rounded-shell-control border border-shell-accent/70 bg-black/8 px-2 font-mono text-shell-callout text-shell-label outline-none dark:bg-white/12"
                 />
               </form>
             ) : (
@@ -1829,7 +1829,7 @@ export function FilesApp({
                   setDraftLocation(currentPath);
                   setEditingLocation(true);
                 }}
-                className="flex h-7 items-center truncate rounded-adw-control px-2 text-[13.5px] font-semibold text-adw-label transition-colors hover-fill:bg-black/8 dark:hover-fill:bg-white/10"
+                className="flex h-7 items-center truncate rounded-shell-control px-2 text-[13.5px] font-semibold text-shell-label transition-colors hover-fill:bg-black/8 dark:hover-fill:bg-white/10"
               >
                 {_(currentTitle)}
               </button>
@@ -1860,23 +1860,23 @@ export function FilesApp({
             {!isAppsView && (
               <div
                 data-slot="files-view-split-button"
-                className="flex h-7 items-center rounded-adw-control text-adw-label-secondary"
+                className="flex h-7 items-center rounded-shell-control text-shell-label-secondary"
               >
                 <button
                   type="button"
                   aria-label={viewMode === "grid" ? _("List view") : _("Grid view")}
                   title={viewMode === "grid" ? _("List view") : _("Grid view")}
                   onClick={() => setViewMode((m) => (m === "grid" ? "list" : "grid"))}
-                  className="flex h-7 w-7 items-center justify-center rounded-l-adw-control transition-colors hover-fill:bg-black/8 hover-fill:text-adw-label active:bg-black/12 dark:hover-fill:bg-white/10 dark:active:bg-white/14"
+                  className="flex h-7 w-7 items-center justify-center rounded-l-shell-control transition-colors hover-fill:bg-black/8 hover-fill:text-shell-label active:bg-black/12 dark:hover-fill:bg-white/10 dark:active:bg-white/14"
                 >
                   {viewMode === "grid" ? <ListIcon className="size-4" /> : <LayoutGridIcon className="size-4" />}
                 </button>
-                <span aria-hidden className="h-4 w-px bg-adw-separator" />
+                <span aria-hidden className="h-4 w-px bg-shell-separator" />
                 <DropdownMenu>
                   <DropdownMenuTrigger
                     aria-label={_("View")}
                     title={_("View")}
-                    className="flex h-7 w-5 items-center justify-center rounded-r-adw-control transition-colors outline-none hover-fill:bg-black/8 hover-fill:text-adw-label active:bg-black/12 data-popup-open:bg-black/10 data-popup-open:text-adw-label dark:hover-fill:bg-white/10 dark:active:bg-white/14 dark:data-popup-open:bg-white/14"
+                    className="flex h-7 w-5 items-center justify-center rounded-r-shell-control transition-colors outline-none hover-fill:bg-black/8 hover-fill:text-shell-label active:bg-black/12 data-popup-open:bg-black/10 data-popup-open:text-shell-label dark:hover-fill:bg-white/10 dark:active:bg-white/14 dark:data-popup-open:bg-white/14"
                   >
                     <ChevronDownIcon className="size-3.5" />
                   </DropdownMenuTrigger>
@@ -1916,12 +1916,12 @@ export function FilesApp({
       }
       rightPane={infoPaneNode}
     >
-      <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden bg-adw-content">
+      <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden bg-shell-content">
         <div
           ref={mainViewRef}
           data-vfs-drop-path={isVirtualView ? undefined : currentPath}
           onKeyDown={onContentKeyDown}
-          className="relative min-h-0 flex-1 overflow-auto bg-adw-content"
+          className="relative min-h-0 flex-1 overflow-auto bg-shell-content"
         {...externalDrop.handlers}
         onContextMenu={(e) => {
           if (isTrashView || isVirtualView) return;
@@ -1932,16 +1932,16 @@ export function FilesApp({
         }}
       >
         {externalDrop.active && (
-          <div className="pointer-events-none absolute inset-2 z-20 flex items-end justify-center rounded-adw-group border-2 border-dashed border-adw-accent/70 bg-adw-accent/10 pb-3">
+          <div className="pointer-events-none absolute inset-2 z-20 flex items-end justify-center rounded-shell-group border-2 border-dashed border-shell-accent/70 bg-shell-accent/10 pb-3">
             <span className="rounded-full bg-zinc-900/90 px-3 py-1 text-xs font-medium text-white shadow-sm ring-1 ring-white/10">
               {_("Drop files to copy here")}
             </span>
           </div>
         )}
         {items.length === 0 ? (
-          <div className="flex h-full flex-col items-center justify-center gap-1.5 text-center text-adw-label-tertiary">
+          <div className="flex h-full flex-col items-center justify-center gap-1.5 text-center text-shell-label-tertiary">
             <FolderIcon className="size-9 opacity-35" />
-            <span className="text-adw-callout">
+            <span className="text-shell-callout">
               {isTrashView
                 ? _("Trash is empty")
                 : isFavoritesView
@@ -2110,7 +2110,7 @@ export function FilesApp({
                               onBlur={(e) =>
                                 handleCommitRename(item, e.currentTarget.value)
                               }
-                              className="min-w-28 rounded bg-zinc-900/95 px-1.5 py-0.5 text-adw-callout font-medium text-white ring-1 ring-adw-accent outline-none"
+                              className="min-w-28 rounded bg-zinc-900/95 px-1.5 py-0.5 text-shell-callout font-medium text-white ring-1 ring-shell-accent outline-none"
                             />
                           ) : (
                             <span className="truncate">{item.name}</span>
@@ -2136,10 +2136,10 @@ export function FilesApp({
                           )}
                         </div>
                       </td>
-                      <td className="px-3 py-2 text-adw-label-secondary">
+                      <td className="px-3 py-2 text-shell-label-secondary">
                         {item.kind === "directory" ? _("Directory") : _("File")}
                       </td>
-                      <td className="px-3 py-2 text-right font-mono text-adw-subheadline text-adw-label-secondary">
+                      <td className="px-3 py-2 text-right font-mono text-shell-subheadline text-shell-label-secondary">
                         {sizeLabel}
                       </td>
                       <td className="w-8 px-1 py-0 text-center">
@@ -2157,10 +2157,10 @@ export function FilesApp({
                               toggleFavoriteItem(item);
                             }}
                             className={cn(
-                              "inline-flex size-6 items-center justify-center rounded-adw-control transition-opacity duration-150",
+                              "inline-flex size-6 items-center justify-center rounded-shell-control transition-opacity duration-150",
                               isFavorite
                                 ? "text-red-500 opacity-100"
-                                : "text-adw-label-secondary opacity-0 group-hover:opacity-60 hover:!opacity-100 focus-visible:opacity-100"
+                                : "text-shell-label-secondary opacity-0 group-hover:opacity-60 hover:!opacity-100 focus-visible:opacity-100"
                             )}
                           >
                             <HeartIcon className={cn("size-3.5", isFavorite && "fill-current")} />
@@ -2197,7 +2197,7 @@ export function FilesApp({
             selectedIds={selectedIds}
             onSelectIds={setSelectedIds}
             ariaLabel={currentTitle}
-            className="[&_button[aria-selected=false]_span]:text-adw-label [&_button_span]:drop-shadow-none"
+            className="[&_button[aria-selected=false]_span]:text-shell-label [&_button_span]:drop-shadow-none"
           />
         )}
         </div>
@@ -2205,11 +2205,11 @@ export function FilesApp({
         <div
           data-slot="files-bottom-bar"
           data-window-no-drag
-          className="flex h-[26px] shrink-0 items-center justify-between gap-3 border-t border-adw-separator bg-black/[0.03] px-2.5 dark:bg-white/[0.04]"
+          className="flex h-[26px] shrink-0 items-center justify-between gap-3 border-t border-shell-separator bg-black/[0.03] px-2.5 dark:bg-white/[0.04]"
         >
           <span
             data-testid="files-status-pill"
-            className="min-w-0 truncate text-adw-subheadline text-adw-label-secondary"
+            className="min-w-0 truncate text-shell-subheadline text-shell-label-secondary"
           >
             {selectedIds.length > 0
               ? _("%d selected", selectedIds.length)

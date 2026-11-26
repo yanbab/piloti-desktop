@@ -1,7 +1,7 @@
 /**
  * Browser demo favicon that follows the desktop: the Piloti symbol in the
  * accent color, filling the icon (no tile).
- * Redrawn when the root's class (`dark`), style (`--adw-active-accent`) or
+ * Redrawn when the root's class (`dark`), style (`--shell-active-accent`) or
  * interface theme changes.
  */
 
@@ -47,7 +47,7 @@ export function installDynamicFavicon(): () => void {
   const update = () => {
     frame = 0;
     const style = getComputedStyle(root);
-    const fg = toCssColor(style.getPropertyValue("--adw-accent"), "#0088ff");
+    const fg = toCssColor(style.getPropertyValue("--shell-accent"), "#0088ff");
     const href = buildFavicon(fg);
     if (href !== last) {
       last = href;

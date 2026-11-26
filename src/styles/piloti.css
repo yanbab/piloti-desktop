@@ -12,49 +12,49 @@
 :root:not([data-interface-theme="adwaita"])[data-more-transparency="true"]:not([data-high-contrast="true"]) {
   --piloti-surface: rgb(235 235 238 / 0.68);
   --piloti-backdrop: blur(22px) saturate(160%);
-  --adw-sidebar: var(--piloti-surface);
-  --adw-material-menu: var(--piloti-surface);
-  --adw-material-popover: var(--piloti-surface);
-  --adw-material-hud: var(--piloti-surface);
-  --adw-material-tooltip: rgb(0 0 0 / 0.85);
-  --adw-material-dock: var(--piloti-surface);
-  --adw-material-dock-saturation: 160%;
-  --adw-material-blur: 22px;
+  --shell-sidebar: var(--piloti-surface);
+  --shell-material-menu: var(--piloti-surface);
+  --shell-material-popover: var(--piloti-surface);
+  --shell-material-hud: var(--piloti-surface);
+  --shell-material-tooltip: rgb(0 0 0 / 0.85);
+  --shell-material-dock: var(--piloti-surface);
+  --shell-material-dock-saturation: 160%;
+  --shell-material-blur: 22px;
 }
 
 :root:not([data-interface-theme="adwaita"]).dark[data-more-transparency="true"]:not([data-high-contrast="true"]) {
   --piloti-surface: rgb(36 36 40 / 0.65);
   --piloti-backdrop: blur(22px) saturate(160%);
-  --adw-sidebar: var(--piloti-surface);
-  --adw-material-menu: var(--piloti-surface);
-  --adw-material-popover: var(--piloti-surface);
-  --adw-material-hud: var(--piloti-surface);
-  --adw-material-tooltip: rgb(0 0 0 / 0.88);
-  --adw-material-dock: var(--piloti-surface);
-  --adw-material-dock-saturation: 160%;
-  --adw-material-blur: 22px;
-  --adw-sidebar-selection: rgb(255 255 255 / 0.14);
-  --adw-menu-highlight: rgb(255 255 255 / 0.1);
-  --adw-glass-selected: rgb(255 255 255 / 0.16);
+  --shell-sidebar: var(--piloti-surface);
+  --shell-material-menu: var(--piloti-surface);
+  --shell-material-popover: var(--piloti-surface);
+  --shell-material-hud: var(--piloti-surface);
+  --shell-material-tooltip: rgb(0 0 0 / 0.88);
+  --shell-material-dock: var(--piloti-surface);
+  --shell-material-dock-saturation: 160%;
+  --shell-material-blur: 22px;
+  --shell-sidebar-selection: rgb(255 255 255 / 0.14);
+  --shell-menu-highlight: rgb(255 255 255 / 0.1);
+  --shell-glass-selected: rgb(255 255 255 / 0.16);
 }
 
 /* A window forced dark on a light desktop (per-app Dark Mode): same dark
    materials as above, scoped to that window. */
 :root:not([data-interface-theme="adwaita"]):not(.dark)[data-more-transparency="true"]:not([data-high-contrast="true"]) .dark {
   --piloti-surface: rgb(36 36 40 / 0.65);
-  --adw-sidebar: var(--piloti-surface);
-  --adw-material-menu: var(--piloti-surface);
-  --adw-material-popover: var(--piloti-surface);
-  --adw-sidebar-selection: rgb(255 255 255 / 0.14);
-  --adw-menu-highlight: rgb(255 255 255 / 0.1);
+  --shell-sidebar: var(--piloti-surface);
+  --shell-material-menu: var(--piloti-surface);
+  --shell-material-popover: var(--piloti-surface);
+  --shell-sidebar-selection: rgb(255 255 255 / 0.14);
+  --shell-menu-highlight: rgb(255 255 255 / 0.1);
 }
 
-:root:not([data-interface-theme="adwaita"])[data-more-transparency="true"]:not([data-high-contrast="true"]) .adw-material-menu,
-:root:not([data-interface-theme="adwaita"])[data-more-transparency="true"]:not([data-high-contrast="true"]) .adw-material-popover,
-:root:not([data-interface-theme="adwaita"])[data-more-transparency="true"]:not([data-high-contrast="true"]) .adw-material-hud,
-:root:not([data-interface-theme="adwaita"])[data-more-transparency="true"]:not([data-high-contrast="true"]) .adw-material-dock,
-:root:not([data-interface-theme="adwaita"])[data-more-transparency="true"]:not([data-high-contrast="true"]) .adw-material-sidebar,
-:root:not([data-interface-theme="adwaita"])[data-more-transparency="true"]:not([data-high-contrast="true"]) .bg-adw-sidebar {
+:root:not([data-interface-theme="adwaita"])[data-more-transparency="true"]:not([data-high-contrast="true"]) .shell-material-menu,
+:root:not([data-interface-theme="adwaita"])[data-more-transparency="true"]:not([data-high-contrast="true"]) .shell-material-popover,
+:root:not([data-interface-theme="adwaita"])[data-more-transparency="true"]:not([data-high-contrast="true"]) .shell-material-hud,
+:root:not([data-interface-theme="adwaita"])[data-more-transparency="true"]:not([data-high-contrast="true"]) .shell-material-dock,
+:root:not([data-interface-theme="adwaita"])[data-more-transparency="true"]:not([data-high-contrast="true"]) .shell-material-sidebar,
+:root:not([data-interface-theme="adwaita"])[data-more-transparency="true"]:not([data-high-contrast="true"]) .bg-shell-sidebar {
   background-color: var(--piloti-surface);
   -webkit-backdrop-filter: var(--piloti-backdrop);
   backdrop-filter: var(--piloti-backdrop);

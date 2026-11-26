@@ -703,7 +703,7 @@ export const Dock = React.memo(function Dock() {
                   viewBox="0 0 24 24"
                   fill="currentColor"
                   aria-hidden="true"
-                  className="size-full text-adw-label opacity-85"
+                  className="size-full text-shell-label opacity-85"
                 >
                   <rect x="3" y="3" width="4.5" height="4.5" rx="1.2" />
                   <rect x="9.75" y="3" width="4.5" height="4.5" rx="1.2" />
@@ -788,7 +788,7 @@ export const Dock = React.memo(function Dock() {
                 }}
                 className={
                   dropTargetAppId === app.id
-                      ? "scale-110 rounded-adw-group bg-adw-accent/20 ring-2 ring-adw-accent/80 transition-transform"
+                      ? "scale-110 rounded-shell-group bg-shell-accent/20 ring-2 ring-shell-accent/80 transition-transform"
                       : undefined
                 }
                 onClick={(e) => {
@@ -819,7 +819,7 @@ export const Dock = React.memo(function Dock() {
                     return (
                       <span
                         aria-label={`${badge.count} updates`}
-                        className="pointer-events-none absolute -top-1 -right-1 z-20 flex h-4 min-w-4 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--adw-label)_16%,var(--adw-window))] px-1.5 text-adw-footnote leading-none font-semibold text-adw-label shadow-sm ring-1 ring-adw-label/20 tabular-nums"
+                        className="pointer-events-none absolute -top-1 -right-1 z-20 flex h-4 min-w-4 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--shell-label)_16%,var(--shell-window))] px-1.5 text-shell-footnote leading-none font-semibold text-shell-label shadow-sm ring-1 ring-shell-label/20 tabular-nums"
                       >
                         {badge.count > 99 ? "99+" : badge.count}
                       </span>

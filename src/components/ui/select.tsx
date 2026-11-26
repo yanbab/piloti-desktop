@@ -144,10 +144,10 @@ function SelectTrigger({
       data-size={size}
       data-variant={variant}
       className={cn(
-        "inline-flex max-w-full min-w-0 cursor-default items-center justify-between gap-1.5 rounded-adw-item px-2.5 text-adw-body font-medium whitespace-nowrap text-adw-label outline-none select-none transition-colors hover-fill:bg-black/6 focus-visible:adw-focus-ring data-popup-open:bg-black/8 data-disabled:cursor-not-allowed data-disabled:text-adw-label-tertiary data-disabled:hover-fill:bg-transparent dark:hover-fill:bg-white/10 dark:data-popup-open:bg-white/12",
-        size === "sm" && "h-adw-control-small px-2 text-adw-subheadline",
-        size === "default" && "h-adw-control-medium",
-        size === "lg" && "h-adw-control-large",
+        "inline-flex max-w-full min-w-0 cursor-default items-center justify-between gap-1.5 rounded-shell-item px-2.5 text-shell-body font-medium whitespace-nowrap text-shell-label outline-none select-none transition-colors hover-fill:bg-black/6 focus-visible:shell-focus-ring data-popup-open:bg-black/8 data-disabled:cursor-not-allowed data-disabled:text-shell-label-tertiary data-disabled:hover-fill:bg-transparent dark:hover-fill:bg-white/10 dark:data-popup-open:bg-white/12",
+        size === "sm" && "h-shell-control-small px-2 text-shell-subheadline",
+        size === "default" && "h-shell-control-medium",
+        size === "lg" && "h-shell-control-large",
         className
       )}
       {...props}
@@ -155,7 +155,7 @@ function SelectTrigger({
       {children}
       <ChevronsUpDownIcon
         aria-hidden
-        className="size-3.5 shrink-0 text-adw-label-secondary"
+        className="size-3.5 shrink-0 text-shell-label-secondary"
       />
     </MenuPrimitive.Trigger>
   )

@@ -248,6 +248,12 @@ export async function discoverPlugins(
   return discovered.sort((a, b) => a.name.localeCompare(b.name));
 }
 
+/** Plugin stylesheets written before the `--adw-*` names became `--shell-*`:
+ *  rewritten so both reading and overriding a token still work. */
+export function upgradeLegacyCssNames(cssText: string): string {
+  return cssText.replace(/(--|\.|data-slot="?)adw-/g, "$1shell-");
+}
+
 export function injectPluginCss(pluginId: string, cssText: string): void {
   if (typeof document === "undefined") return;
   let el = document.head.querySelector<HTMLStyleElement>(
@@ -258,7 +264,7 @@ export function injectPluginCss(pluginId: string, cssText: string): void {
     el.setAttribute("data-piloti-plugin", pluginId);
     document.head.appendChild(el);
   }
-  el.textContent = cssText;
+  el.textContent = upgradeLegacyCssNames(cssText);
 }
 
 export function removePluginCss(pluginId: string): void {

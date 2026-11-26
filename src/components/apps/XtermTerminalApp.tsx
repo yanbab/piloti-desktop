@@ -245,7 +245,7 @@ export function XtermTerminalApp({
           <DropdownMenu onOpenChange={(open) => !open && requestAnimationFrame(() => termRef.current?.focus())}>
             <DropdownMenuTrigger
               aria-label={_("Choose shell")}
-              className="inline-flex max-w-full items-center gap-1 rounded-[7px] px-2.5 py-1 text-adw-body font-semibold text-adw-label outline-none hover:bg-black/8 data-popup-open:bg-black/12 dark:hover:bg-white/10 dark:data-popup-open:bg-white/15"
+              className="inline-flex max-w-full items-center gap-1 rounded-[7px] px-2.5 py-1 text-shell-body font-semibold text-shell-label outline-none hover:bg-black/8 data-popup-open:bg-black/12 dark:hover:bg-white/10 dark:data-popup-open:bg-white/15"
             >
               <span className="truncate">
                 {shellDisplayName(mode)}

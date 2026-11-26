@@ -8,10 +8,10 @@ Conventions are in `AGENTS.md`, commands in `CLAUDE.md`.
   (`piloti-macos.css`, every rule under `:root[data-interface-theme="piloti"]`)
   is old macOS Ventura: compact (controls ≤ 28 px), solid, no hover effects.
   Style per theme through `data-slot` hooks, never by editing shared classes.
-- **Tokens, not values.** Text `text-adw-{body,callout,subheadline,footnote,
-  caption,title-1..3,large-title,headline}`; radii `rounded-adw-{control,item,
-  group,menu,popover,window}`; heights `h-/size-adw-control-{mini,small,medium,
-  large}`; colours `--adw-*`. Hover effects use `hover-fill:` (Adwaita only),
+- **Tokens, not values.** Text `text-shell-{body,callout,subheadline,footnote,
+  caption,title-1..3,large-title,headline}`; radii `rounded-shell-{control,item,
+  group,menu,popover,window}`; heights `h-/size-shell-control-{mini,small,medium,
+  large}`; colours `--shell-*` (every theme sets these; never `--adw-*`). Hover effects use `hover-fill:` (Adwaita only),
   never `hover:` on controls. Check visually in the **Piloti demo** app.
 - Wrap UI text in `_()`, add fr/es keys. No co-author trailer in commits.
 - **One session, one worktree.** Several agent sessions run on this repo at
@@ -31,8 +31,8 @@ Conventions are in `AGENTS.md`, commands in `CLAUDE.md`.
 Corners are concentric: an outer radius = the inner radius + the gap between
 them. All in `piloti-macos.css`, computed from tokens, not hard-coded:
 
-- **Items** (menu items, sidebar items, list rows): `--adw-radius-item` (5px).
-- **Menus**: `--adw-radius-menu` = item radius + the 5px menu padding (10px).
+- **Items** (menu items, sidebar items, list rows): `--shell-radius-item` (5px).
+- **Menus**: `--shell-radius-menu` = item radius + the 5px menu padding (10px).
   Items: 22px rows, 13px text, 9px side padding; a 20px check column only in
   menus with check or radio items. Highlight = accent, white text (same as
   the sidebar selection).

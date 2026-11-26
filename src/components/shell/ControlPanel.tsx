@@ -179,11 +179,11 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
                 launchApp("settings");
               }
             }}
-            className="flex size-7 items-center justify-center rounded-full bg-black/8 text-adw-label active:bg-black/16 dark:bg-white/10 dark:active:bg-white/22"
+            className="flex size-7 items-center justify-center rounded-full bg-black/8 text-shell-label active:bg-black/16 dark:bg-white/10 dark:active:bg-white/22"
           >
             <SlidersHorizontalIcon className="size-3.5" />
           </button>
-          <span className="text-adw-callout font-medium text-adw-label-secondary">
+          <span className="text-shell-callout font-medium text-shell-label-secondary">
             {new Date().toLocaleDateString(
               getLocale() === "fr" ? "fr-FR" : "en-US",
               {
@@ -202,7 +202,7 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
               setControlPanelOpen(false);
               void takeScreenshot();
             }}
-            className="flex size-7 items-center justify-center rounded-full bg-black/8 text-adw-label active:bg-black/16 dark:bg-white/10 dark:active:bg-white/22"
+            className="flex size-7 items-center justify-center rounded-full bg-black/8 text-shell-label active:bg-black/16 dark:bg-white/10 dark:active:bg-white/22"
           >
             <CameraIcon className="size-3.5" />
           </button>
@@ -213,7 +213,7 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
               setControlPanelOpen(false);
               void startScreenRecording();
             }}
-            className="flex size-7 items-center justify-center rounded-full bg-black/8 text-adw-label active:bg-black/16 dark:bg-white/10 dark:active:bg-white/22"
+            className="flex size-7 items-center justify-center rounded-full bg-black/8 text-shell-label active:bg-black/16 dark:bg-white/10 dark:active:bg-white/22"
           >
             <VideoIcon className="size-3.5" />
           </button>
@@ -223,7 +223,7 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
       {/* Sound Volume & Display Brightness Sliders */}
       <div data-slot="control-card" className="flex flex-col gap-2.5 rounded-[16px] bg-black/6 p-3 dark:bg-white/8">
         {/* Sound Volume + Audio Output Picker Toggle */}
-        <div className="flex items-center gap-2 text-adw-label dark:text-white">
+        <div className="flex items-center gap-2 text-shell-label dark:text-white">
           <div className="relative flex flex-1 items-center">
             <Slider
               aria-label="Sound Output"
@@ -271,8 +271,8 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
             className={cn(
               "flex size-6 shrink-0 items-center justify-center rounded-full",
               expandedPicker === "audio"
-                ? "bg-adw-accent text-white active:bg-[color-mix(in_srgb,var(--adw-accent),white_20%)]"
-                : "bg-black/8 text-adw-label-secondary active:bg-black/16 dark:bg-white/10 dark:active:bg-white/18"
+                ? "bg-shell-accent text-white active:bg-[color-mix(in_srgb,var(--shell-accent),white_20%)]"
+                : "bg-black/8 text-shell-label-secondary active:bg-black/16 dark:bg-white/10 dark:active:bg-white/18"
             )}
           >
             <ChevronRightIcon
@@ -285,9 +285,9 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
         </div>
 
         {expandedPicker === "audio" && (
-          <div className="flex flex-col gap-1 border-t border-adw-separator pt-2">
+          <div className="flex flex-col gap-1 border-t border-shell-separator pt-2">
             <div className="flex items-center justify-between px-0.5">
-              <span className="text-adw-subheadline font-medium text-adw-label-secondary">
+              <span className="text-shell-subheadline font-medium text-shell-label-secondary">
                 {_("Output Device")}
               </span>
               {!isBrowserRuntime && gnomeCapabilities.gnomeControlCenter && (  // FIXME : Capabilities
@@ -297,14 +297,14 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
                     setControlPanelOpen(false);
                     openGnomeSettings("sound");
                   }}
-                  className="text-adw-footnote font-medium text-adw-accent active:opacity-70"
+                  className="text-shell-footnote font-medium text-shell-accent active:opacity-70"
                 >
                   {_("Sound Settings…")}
                 </button>
               )}
             </div>
             {audioSinks.length === 0 ? (
-              <div className="px-1 py-1.5 text-adw-subheadline text-adw-label-secondary">
+              <div className="px-1 py-1.5 text-shell-subheadline text-shell-label-secondary">
                 {_("Using default system output.")}
               </div>
             ) : (
@@ -315,9 +315,9 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
                     type="button"
                     onClick={() => void selectAudioSink(sink.name)}
                     data-slot="control-row" className={cn(
-                      "flex items-center justify-between gap-2 rounded-adw-item px-2 py-1.5 text-left text-adw-subheadline",
+                      "flex items-center justify-between gap-2 rounded-shell-item px-2 py-1.5 text-left text-shell-subheadline",
                       sink.active
-                        ? "bg-adw-accent/18 font-medium text-adw-label"
+                        ? "bg-shell-accent/18 font-medium text-shell-label"
                         : "active:bg-black/10 dark:active:bg-white/12"
                     )}
                   >
@@ -328,7 +328,7 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
                       </span>
                     </span>
                     {sink.active && (
-                      <CheckIcon className="size-3.5 shrink-0 text-adw-accent" />
+                      <CheckIcon className="size-3.5 shrink-0 text-shell-accent" />
                     )}
                   </button>
                 ))}
@@ -338,7 +338,7 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
         )}
 
         {/* Display Brightness */}
-        <div className="flex items-center text-adw-label dark:text-white">
+        <div className="flex items-center text-shell-label dark:text-white">
           <Slider
             aria-label="Display Brightness"
             variant="capsule"
@@ -365,8 +365,8 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
             "flex items-stretch overflow-hidden rounded-[12px]",
             !wifiPresent && "opacity-50",
             settings.wifiEnabled
-              ? "bg-adw-accent text-white"
-              : "bg-black/6 text-adw-label dark:bg-white/8"
+              ? "bg-shell-accent text-white"
+              : "bg-black/6 text-shell-label dark:bg-white/8"
           )}
         >
           <button
@@ -386,7 +386,7 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
             )}
           >
             <WifiIcon className="size-[18px] shrink-0" />
-            <span className="truncate text-adw-callout font-medium">Wi-Fi</span>
+            <span className="truncate text-shell-callout font-medium">Wi-Fi</span>
           </button>
           <button
             type="button"
@@ -417,8 +417,8 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
             "flex items-stretch overflow-hidden rounded-[12px]",
             !bluetoothPresent && "opacity-50",
             settings.bluetoothEnabled
-              ? "bg-adw-accent text-white"
-              : "bg-black/6 text-adw-label dark:bg-white/8"
+              ? "bg-shell-accent text-white"
+              : "bg-black/6 text-shell-label dark:bg-white/8"
           )}
         >
           <button
@@ -441,7 +441,7 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
             )}
           >
             <BluetoothIcon className="size-[18px] shrink-0" />
-            <span className="truncate text-adw-callout font-medium">
+            <span className="truncate text-shell-callout font-medium">
               Bluetooth
             </span>
           </button>
@@ -472,7 +472,7 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
         {expandedPicker === "wifi" && (
           <div data-slot="control-card" className="col-span-2 flex flex-col gap-1 rounded-[14px] bg-black/6 p-2.5 dark:bg-white/8">
             <div className="mb-1 flex items-center justify-between px-1">
-              <span className="text-adw-subheadline font-medium text-adw-label-secondary">
+              <span className="text-shell-subheadline font-medium text-shell-label-secondary">
                 {_("Wi-Fi Networks")}
               </span>
               {!isBrowserRuntime && gnomeCapabilities.gnomeControlCenter && (  // FIXME : Capabilities
@@ -482,18 +482,18 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
                     setControlPanelOpen(false);
                     openGnomeSettings("wifi");
                   }}
-                  className="text-adw-footnote font-medium text-adw-accent active:opacity-70"
+                  className="text-shell-footnote font-medium text-shell-accent active:opacity-70"
                 >
                   {_("Network Settings…")}
                 </button>
               )}
             </div>
             {!settings.wifiEnabled ? (
-              <div className="px-2 py-2 text-adw-subheadline text-adw-label-secondary">
+              <div className="px-2 py-2 text-shell-subheadline text-shell-label-secondary">
                 {_("Wi-Fi is turned off.")}
               </div>
             ) : liveWifiNetworks.length === 0 ? (
-              <div className="px-2 py-2 text-adw-subheadline text-adw-label-secondary">
+              <div className="px-2 py-2 text-shell-subheadline text-shell-label-secondary">
                 {_("No wireless networks discovered.")}
               </div>
             ) : (
@@ -506,9 +506,9 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
                       type="button"
                       onClick={() => void joinWifi(net.ssid)}
                       data-slot="control-row" className={cn(
-                        "flex items-center justify-between gap-2 rounded-adw-item px-2.5 py-1.5 text-left text-adw-subheadline",
+                        "flex items-center justify-between gap-2 rounded-shell-item px-2.5 py-1.5 text-left text-shell-subheadline",
                         connected
-                          ? "bg-adw-accent/18 font-medium text-adw-label"
+                          ? "bg-shell-accent/18 font-medium text-shell-label"
                           : "active:bg-black/10 dark:active:bg-white/12"
                       )}
                     >
@@ -516,11 +516,11 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
                         <WifiIcon className="size-3.5 shrink-0 opacity-80" />
                         <span className="truncate">{net.ssid}</span>
                       </span>
-                      <span className="flex shrink-0 items-center gap-1.5 text-adw-footnote text-adw-label-secondary tabular-nums">
+                      <span className="flex shrink-0 items-center gap-1.5 text-shell-footnote text-shell-label-secondary tabular-nums">
                         {net.secured && <LockIcon className="size-3 opacity-75" />}
                         <span>{net.signal}%</span>
                         {connected && (
-                          <CheckIcon className="size-3.5 text-adw-accent" />
+                          <CheckIcon className="size-3.5 text-shell-accent" />
                         )}
                       </span>
                     </button>
@@ -547,10 +547,10 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
                             e.stopPropagation();
                             if (e.key === "Escape") setWifiPrompt(null);
                           }}
-                          className="h-adw-control-medium rounded-adw-control bg-adw-window px-2 text-adw-subheadline text-adw-label outline-none focus:ring-2 focus:ring-adw-accent"
+                          className="h-shell-control-medium rounded-shell-control bg-shell-window px-2 text-shell-subheadline text-shell-label outline-none focus:ring-2 focus:ring-shell-accent"
                         />
                         {wifiPrompt.failed && (
-                          <span className="text-adw-footnote text-destructive">
+                          <span className="text-shell-footnote text-destructive">
                             {_("Could not connect. Check the password.")}
                           </span>
                         )}
@@ -568,7 +568,7 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
         {expandedPicker === "bluetooth" && (
           <div data-slot="control-card" className="col-span-2 flex flex-col gap-1 rounded-[14px] bg-black/6 p-2.5 dark:bg-white/8">
             <div className="mb-1 flex items-center justify-between px-1">
-              <span className="text-adw-subheadline font-medium text-adw-label-secondary">
+              <span className="text-shell-subheadline font-medium text-shell-label-secondary">
                 {_("Bluetooth Devices")}
               </span>
               {!isBrowserRuntime && gnomeCapabilities.gnomeControlCenter && (  // FIXME : Capabilities
@@ -578,18 +578,18 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
                     setControlPanelOpen(false);
                     openGnomeSettings("bluetooth");
                   }}
-                  className="text-adw-footnote font-medium text-adw-accent active:opacity-70"
+                  className="text-shell-footnote font-medium text-shell-accent active:opacity-70"
                 >
                   {_("Bluetooth Settings…")}
                 </button>
               )}
             </div>
             {!settings.bluetoothEnabled ? (
-              <div className="px-2 py-2 text-adw-subheadline text-adw-label-secondary">
+              <div className="px-2 py-2 text-shell-subheadline text-shell-label-secondary">
                 {_("Bluetooth is turned off.")}
               </div>
             ) : bluetoothDevices.length === 0 ? (
-              <div className="px-2 py-2 text-adw-subheadline text-adw-label-secondary">
+              <div className="px-2 py-2 text-shell-subheadline text-shell-label-secondary">
                 {_("No paired Bluetooth devices nearby.")}
               </div>
             ) : (
@@ -600,9 +600,9 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
                     type="button"
                     onClick={() => void toggleBluetoothDevice(device.path)}
                     data-slot="control-row" className={cn(
-                      "flex items-center justify-between gap-2 rounded-adw-item px-2.5 py-1.5 text-left text-adw-subheadline",
+                      "flex items-center justify-between gap-2 rounded-shell-item px-2.5 py-1.5 text-left text-shell-subheadline",
                       device.connected
-                        ? "bg-adw-accent/18 font-medium text-adw-label"
+                        ? "bg-shell-accent/18 font-medium text-shell-label"
                         : "active:bg-black/10 dark:active:bg-white/12"
                     )}
                   >
@@ -610,9 +610,9 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
                       <BluetoothIcon className="size-3.5 shrink-0 opacity-80" />
                       <span className="truncate">{device.name}</span>
                     </span>
-                    <span className="flex shrink-0 items-center gap-1.5 text-adw-footnote text-adw-label-secondary tabular-nums">
+                    <span className="flex shrink-0 items-center gap-1.5 text-shell-footnote text-shell-label-secondary tabular-nums">
                       {device.battery !== undefined && <span>{device.battery}%</span>}
-                      {device.connected && <CheckIcon className="size-3.5 text-adw-accent" />}
+                      {device.connected && <CheckIcon className="size-3.5 text-shell-accent" />}
                     </span>
                   </button>
                 ))}
@@ -634,12 +634,12 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
           data-slot="control-pill" className={cn(
             "flex items-center gap-2.5 rounded-[12px] px-3 py-2 text-left",
             settings.themeMode === "dark"
-              ? "bg-adw-accent text-white active:bg-[color-mix(in_srgb,var(--adw-accent),white_20%)]"
-              : "bg-black/6 text-adw-label active:bg-black/14 dark:bg-white/8 dark:active:bg-white/18"
+              ? "bg-shell-accent text-white active:bg-[color-mix(in_srgb,var(--shell-accent),white_20%)]"
+              : "bg-black/6 text-shell-label active:bg-black/14 dark:bg-white/8 dark:active:bg-white/18"
           )}
         >
           <MoonIcon className="size-[18px] shrink-0" />
-          <span className="truncate text-adw-callout font-medium">
+          <span className="truncate text-shell-callout font-medium">
             {_("Dark Mode")}
           </span>
         </button>
@@ -658,12 +658,12 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
           data-slot="control-pill" className={cn(
             "flex items-center gap-2.5 rounded-[12px] px-3 py-2 text-left",
             settings.doNotDisturb
-              ? "bg-adw-accent text-white active:bg-[color-mix(in_srgb,var(--adw-accent),white_20%)]"
-              : "bg-black/6 text-adw-label active:bg-black/14 dark:bg-white/8 dark:active:bg-white/18"
+              ? "bg-shell-accent text-white active:bg-[color-mix(in_srgb,var(--shell-accent),white_20%)]"
+              : "bg-black/6 text-shell-label active:bg-black/14 dark:bg-white/8 dark:active:bg-white/18"
           )}
         >
           <BellOffIcon className="size-[18px] shrink-0" />
-          <span className="truncate text-adw-callout font-medium">
+          <span className="truncate text-shell-callout font-medium">
             {_("Silent")}
           </span>
         </button>
@@ -682,12 +682,12 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
           data-slot="control-pill" className={cn(
             "flex items-center gap-2.5 rounded-[12px] px-3 py-2 text-left",
             settings.nightLight
-              ? "bg-adw-accent text-white active:bg-[color-mix(in_srgb,var(--adw-accent),white_20%)]"
-              : "bg-black/6 text-adw-label active:bg-black/14 dark:bg-white/8 dark:active:bg-white/18"
+              ? "bg-shell-accent text-white active:bg-[color-mix(in_srgb,var(--shell-accent),white_20%)]"
+              : "bg-black/6 text-shell-label active:bg-black/14 dark:bg-white/8 dark:active:bg-white/18"
           )}
         >
           <FlameIcon className="size-[18px] shrink-0" />
-          <span className="truncate text-adw-callout font-medium">
+          <span className="truncate text-shell-callout font-medium">
             {_("Night Light")}
           </span>
         </button>
@@ -699,12 +699,12 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
           data-slot="control-pill" className={cn(
             "flex items-center gap-2.5 rounded-[12px] px-3 py-2 text-left",
             settings.powerMode === "power-saver"
-              ? "bg-adw-accent text-white active:bg-[color-mix(in_srgb,var(--adw-accent),white_20%)]"
-              : "bg-black/6 text-adw-label active:bg-black/14 dark:bg-white/8 dark:active:bg-white/18"
+              ? "bg-shell-accent text-white active:bg-[color-mix(in_srgb,var(--shell-accent),white_20%)]"
+              : "bg-black/6 text-shell-label active:bg-black/14 dark:bg-white/8 dark:active:bg-white/18"
           )}
         >
           <GaugeIcon className="size-[18px] shrink-0" />
-          <span className="truncate text-adw-callout font-medium">
+          <span className="truncate text-shell-callout font-medium">
             {_("Power Saver")}
           </span>
         </button>
@@ -712,16 +712,16 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
 
       {/* MPRIS Media Player Card */}
       {mprisMedia && (
-        <div data-slot="control-card" className="flex items-center justify-between gap-2.5 rounded-adw-card bg-black/6 px-3 py-2.5 dark:bg-white/8">
+        <div data-slot="control-card" className="flex items-center justify-between gap-2.5 rounded-shell-card bg-black/6 px-3 py-2.5 dark:bg-white/8">
           <div className="flex min-w-0 flex-1 items-center gap-2.5">
-            <span className="flex size-8 shrink-0 items-center justify-center rounded-adw-item bg-adw-accent/20 text-adw-accent">
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-shell-item bg-shell-accent/20 text-shell-accent">
               <Music2Icon className="size-4" />
             </span>
             <div className="min-w-0 flex-1">
-              <div className="truncate text-adw-callout font-medium text-adw-label">
+              <div className="truncate text-shell-callout font-medium text-shell-label">
                 {mprisMedia.title}
               </div>
-              <div className="truncate text-adw-footnote text-adw-label-secondary">
+              <div className="truncate text-shell-footnote text-shell-label-secondary">
                 {mprisMedia.artist}
               </div>
             </div>
@@ -731,7 +731,7 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
               type="button"
               aria-label="Previous track"
               onClick={() => void controlMpris("previous")}
-              className="flex size-7 items-center justify-center rounded-full text-adw-label active:bg-black/14 dark:active:bg-white/18"
+              className="flex size-7 items-center justify-center rounded-full text-shell-label active:bg-black/14 dark:active:bg-white/18"
             >
               <SkipBackIcon className="size-3.5" />
             </button>
@@ -739,7 +739,7 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
               type="button"
               aria-label={mprisMedia.status === "Playing" ? "Pause" : "Play"}
               onClick={() => void controlMpris("play-pause")}
-              className="flex size-7 items-center justify-center rounded-full bg-adw-accent text-white active:bg-adw-accent/80"
+              className="flex size-7 items-center justify-center rounded-full bg-shell-accent text-white active:bg-shell-accent/80"
             >
               {mprisMedia.status === "Playing" ? (
                 <PauseIcon className="size-3.5" />
@@ -751,7 +751,7 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
               type="button"
               aria-label="Next track"
               onClick={() => void controlMpris("next")}
-              className="flex size-7 items-center justify-center rounded-full text-adw-label active:bg-black/14 dark:active:bg-white/18"
+              className="flex size-7 items-center justify-center rounded-full text-shell-label active:bg-black/14 dark:active:bg-white/18"
             >
               <SkipForwardIcon className="size-3.5" />
             </button>
@@ -760,13 +760,13 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
       )}
 
       {activeInhibitors.length > 0 && (
-        <div className="flex items-start gap-2 rounded-[10px] border border-amber-500/30 bg-amber-500/12 px-2.5 py-1.5 text-adw-subheadline text-amber-900 dark:text-amber-200">
+        <div className="flex items-start gap-2 rounded-[10px] border border-amber-500/30 bg-amber-500/12 px-2.5 py-1.5 text-shell-subheadline text-amber-900 dark:text-amber-200">
           <AlertTriangleIcon className="mt-0.5 size-3.5 shrink-0 text-amber-600 dark:text-amber-400" />
           <div className="min-w-0 flex-1">
             <div className="font-medium">
               {_("Sleep or logout inhibited")}
             </div>
-            <div className="truncate text-adw-footnote opacity-85">
+            <div className="truncate text-shell-footnote opacity-85">
               {activeInhibitors
                 .map((i) =>
                   i.body.reason
@@ -833,7 +833,7 @@ export function FloatingNotifications({ open = true }: { open?: boolean }) {
           <button
             type="button"
             onClick={() => setExpanded((prev) => !prev)}
-            className="rounded-full border border-black/8 px-3.5 py-1 text-adw-subheadline font-medium text-adw-label shadow-adw-popover backdrop-blur-xl transition-colors adw-material-popover hover-fill:bg-black/6 dark:border-white/10 dark:hover-fill:bg-white/10"
+            className="rounded-full border border-black/8 px-3.5 py-1 text-shell-subheadline font-medium text-shell-label shadow-shell-popover backdrop-blur-xl transition-colors shell-material-popover hover-fill:bg-black/6 dark:border-white/10 dark:hover-fill:bg-white/10"
           >
             {expanded
               ? _("Show less")
@@ -849,16 +849,16 @@ export function FloatingNotifications({ open = true }: { open?: boolean }) {
           aria-label={_("Clear All")}
           title={_("Clear All")}
           onClick={clearAllNotifications}
-          className="flex size-adw-control-small shrink-0 items-center justify-center rounded-full border border-black/8 text-adw-label shadow-adw-popover backdrop-blur-xl transition-colors adw-material-popover hover-fill:bg-black/6 dark:border-white/10 dark:hover-fill:bg-white/10"
+          className="flex size-shell-control-small shrink-0 items-center justify-center rounded-full border border-black/8 text-shell-label shadow-shell-popover backdrop-blur-xl transition-colors shell-material-popover hover-fill:bg-black/6 dark:border-white/10 dark:hover-fill:bg-white/10"
         >
           <XIcon className="size-3.5" />
         </button>
       </div>
 
       {(settings.doNotDisturb || !settings.notificationsEnabled) && (
-        <div className="flex items-center justify-between gap-2 rounded-2xl border border-black/8 px-3 py-2 text-adw-subheadline text-adw-label-secondary shadow-adw-popover backdrop-blur-xl adw-material-popover dark:border-white/10">
+        <div className="flex items-center justify-between gap-2 rounded-2xl border border-black/8 px-3 py-2 text-shell-subheadline text-shell-label-secondary shadow-shell-popover backdrop-blur-xl shell-material-popover dark:border-white/10">
           <span className="flex min-w-0 items-center gap-1.5 truncate">
-            <BellOffIcon className="size-3 shrink-0 text-adw-accent" />
+            <BellOffIcon className="size-3 shrink-0 text-shell-accent" />
             <span className="truncate">
               {!settings.notificationsEnabled
                 ? _("Notifications paused in Settings")
@@ -874,7 +874,7 @@ export function FloatingNotifications({ open = true }: { open?: boolean }) {
                   : { doNotDisturb: false }
               )
             }
-            className="shrink-0 font-medium text-adw-accent active:opacity-70"
+            className="shrink-0 font-medium text-shell-accent active:opacity-70"
           >
             {_("Resume")}
           </button>
@@ -893,8 +893,8 @@ export function FloatingNotifications({ open = true }: { open?: boolean }) {
               }
             }}
             className={cn(
-              "group/card relative flex items-start gap-2.5 rounded-2xl border border-black/8 p-3 shadow-adw-popover backdrop-blur-xl adw-material-popover dark:border-white/10",
-              isCritical && "ring-1 ring-adw-accent/45",
+              "group/card relative flex items-start gap-2.5 rounded-2xl border border-black/8 p-3 shadow-shell-popover backdrop-blur-xl shell-material-popover dark:border-white/10",
+              isCritical && "ring-1 ring-shell-accent/45",
               n.fromDomicile && n.clickable && "cursor-default"
             )}
           >
@@ -902,7 +902,7 @@ export function FloatingNotifications({ open = true }: { open?: boolean }) {
               appName={n.appName}
               icon={n.icon}
               urgency={n.urgency}
-              className="mt-0.5 size-9 rounded-adw-item"
+              className="mt-0.5 size-9 rounded-shell-item"
             />
 
             <div className="min-w-0 flex-1">
@@ -913,16 +913,16 @@ export function FloatingNotifications({ open = true }: { open?: boolean }) {
                       title="New"
                       className={cn(
                         "size-1.5 shrink-0 rounded-full",
-                        isCritical ? "bg-adw-accent" : "bg-adw-label-secondary"
+                        isCritical ? "bg-shell-accent" : "bg-shell-label-secondary"
                       )}
                     />
                   )}
-                  <span className="truncate text-adw-body font-semibold leading-snug text-adw-label">
+                  <span className="truncate text-shell-body font-semibold leading-snug text-shell-label">
                     {n.summary}
                   </span>
                 </div>
                 <div className="flex shrink-0 items-center gap-1.5">
-                  <span className="text-adw-subheadline text-adw-label-tertiary tabular-nums">
+                  <span className="text-shell-subheadline text-shell-label-tertiary tabular-nums">
                     {formatRelativeNotificationTime(n.time)}
                   </span>
                   <button
@@ -932,7 +932,7 @@ export function FloatingNotifications({ open = true }: { open?: boolean }) {
                       e.stopPropagation();
                       dismissNotification(n.id);
                     }}
-                    className="flex size-4 items-center justify-center rounded-full bg-black/10 text-adw-label-secondary opacity-0 transition-opacity group-hover/card:opacity-80 hover:opacity-100 focus-visible:opacity-100 active:bg-black/20 dark:bg-white/15 dark:active:bg-white/25"
+                    className="flex size-4 items-center justify-center rounded-full bg-black/10 text-shell-label-secondary opacity-0 transition-opacity group-hover/card:opacity-80 hover:opacity-100 focus-visible:opacity-100 active:bg-black/20 dark:bg-white/15 dark:active:bg-white/25"
                   >
                     <XIcon className="size-2.5" />
                   </button>
@@ -940,7 +940,7 @@ export function FloatingNotifications({ open = true }: { open?: boolean }) {
               </div>
 
               {n.body && (
-                <div className="mt-0.5 line-clamp-3 text-adw-callout leading-snug text-adw-label-secondary">
+                <div className="mt-0.5 line-clamp-3 text-shell-callout leading-snug text-shell-label-secondary">
                   <NotificationBodyText body={n.body} />
                 </div>
               )}

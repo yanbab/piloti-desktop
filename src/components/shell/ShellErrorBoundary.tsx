@@ -128,7 +128,7 @@ export class ShellErrorBoundary extends React.Component<
             </p>
           </div>
 
-          <pre className="max-h-52 overflow-auto rounded-adw-item border border-white/20 bg-black/25 p-4 font-mono text-xs leading-relaxed whitespace-pre-wrap break-words text-white/90">
+          <pre className="max-h-52 overflow-auto rounded-shell-item border border-white/20 bg-black/25 p-4 font-mono text-xs leading-relaxed whitespace-pre-wrap break-words text-white/90">
             {formatErrorDetails(error)}
           </pre>
 
@@ -137,28 +137,28 @@ export class ShellErrorBoundary extends React.Component<
               type="button"
               autoFocus
               onClick={this.handleReload}
-              className="rounded-adw-control bg-white px-5 py-2.5 text-sm font-semibold text-black shadow-sm active:brightness-90"
+              className="rounded-shell-control bg-white px-5 py-2.5 text-sm font-semibold text-black shadow-sm active:brightness-90"
             >
               Reload Shell
             </button>
             <button
               type="button"
               onClick={this.handleResetAndReload}
-              className="rounded-adw-control border border-white/35 bg-white/10 px-4 py-2.5 text-sm font-medium text-white active:bg-white/20"
+              className="rounded-shell-control border border-white/35 bg-white/10 px-4 py-2.5 text-sm font-medium text-white active:bg-white/20"
             >
               Clear Cache &amp; Reload
             </button>
             <button
               type="button"
               onClick={this.handleSendBugReport}
-              className="rounded-adw-control border border-white/35 bg-white/10 px-4 py-2.5 text-sm font-medium text-white active:bg-white/20"
+              className="rounded-shell-control border border-white/35 bg-white/10 px-4 py-2.5 text-sm font-medium text-white active:bg-white/20"
             >
               Send Bug Report
             </button>
             <button
               type="button"
               onClick={() => this.setState({ error: null })}
-              className="rounded-adw-control border border-white/20 px-4 py-2.5 text-sm font-medium text-white/85 active:bg-white/10"
+              className="rounded-shell-control border border-white/20 px-4 py-2.5 text-sm font-medium text-white/85 active:bg-white/10"
             >
               Try to Continue
             </button>

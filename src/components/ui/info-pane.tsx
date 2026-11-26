@@ -63,7 +63,7 @@ export function InfoPane({
       <aside
         aria-label={label ?? _("Info Pane")}
         className={cn(
-          "flex min-w-0 flex-1 flex-col gap-3 overflow-y-auto border-l border-adw-separator bg-adw-sidebar/70 p-3 text-adw-label",
+          "flex min-w-0 flex-1 flex-col gap-3 overflow-y-auto border-l border-shell-separator bg-shell-sidebar/70 p-3 text-shell-label",
           className
         )}
       >
@@ -83,10 +83,10 @@ export function InfoPaneToggle({ pane }: { pane: ReturnType<typeof useInfoPane> 
       aria-pressed={pane.open}
       onClick={() => pane.setOpen((v) => !v)}
       className={cn(
-        "flex size-7 items-center justify-center rounded-adw-control transition-colors",
+        "flex size-7 items-center justify-center rounded-shell-control transition-colors",
         pane.open
-          ? "bg-black/10 text-adw-label dark:bg-white/15"
-          : "text-adw-label-secondary hover-fill:bg-black/8 hover-fill:text-adw-label dark:hover-fill:bg-white/10"
+          ? "bg-black/10 text-shell-label dark:bg-white/15"
+          : "text-shell-label-secondary hover-fill:bg-black/8 hover-fill:text-shell-label dark:hover-fill:bg-white/10"
       )}
     >
       <InfoIcon className="size-4" />

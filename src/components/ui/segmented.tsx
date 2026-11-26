@@ -27,7 +27,7 @@ export function Segmented<T extends string>({
   return (
     <div
       data-slot="segmented"
-      className="inline-flex items-center gap-1 rounded-adw-item bg-black/8 p-1 dark:bg-white/8"
+      className="inline-flex items-center gap-1 rounded-shell-item bg-black/8 p-1 dark:bg-white/8"
     >
       {options.map((opt) => (
         <button
@@ -40,16 +40,16 @@ export function Segmented<T extends string>({
           disabled={disabled}
           onClick={() => onChange(opt.id)}
           className={cn(
-            "inline-flex items-center gap-1.5 rounded-adw-control px-2.5 py-1 text-adw-callout font-medium transition-colors disabled:opacity-60",
+            "inline-flex items-center gap-1.5 rounded-shell-control px-2.5 py-1 text-shell-callout font-medium transition-colors disabled:opacity-60",
             value === opt.id
-              ? "bg-adw-window text-adw-label shadow-xs dark:bg-white/16"
-              : "text-adw-label-secondary hover-fill:bg-black/5 dark:hover-fill:bg-white/6",
+              ? "bg-shell-window text-shell-label shadow-xs dark:bg-white/16"
+              : "text-shell-label-secondary hover-fill:bg-black/5 dark:hover-fill:bg-white/6",
           )}
         >
           {opt.icon}
           {!iconOnly && opt.label}
           {opt.badge !== undefined && (
-            <span className="rounded-full bg-adw-red px-1.5 text-adw-caption font-bold text-white">
+            <span className="rounded-full bg-shell-red px-1.5 text-shell-caption font-bold text-white">
               {opt.badge}
             </span>
           )}

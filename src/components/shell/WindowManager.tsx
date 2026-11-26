@@ -325,12 +325,12 @@ function AppModuleSurface({
     // the shell lays window controls and a drag strip over the header area.
     const drag = mod.drag ?? { left: 96, right: 96, height: 36 };
     return (
-      <div className="relative h-full w-full flex-1 overflow-hidden bg-adw-content">
+      <div className="relative h-full w-full flex-1 overflow-hidden bg-shell-content">
         <webview
           ref={viewRef}
           window={win.browserWindowId}
           resizing={windowCtx?.resizing ? "" : undefined}
-          className="block h-full w-full bg-adw-window"
+          className="block h-full w-full bg-shell-window"
         />
         {isCsd && (
           <>
@@ -359,7 +359,7 @@ function AppModuleSurface({
     );
   }
   return (
-    <div className="flex h-full w-full flex-1 flex-col overflow-hidden bg-adw-content">
+    <div className="flex h-full w-full flex-1 flex-col overflow-hidden bg-shell-content">
       <HeaderBar>
         <HeaderBar.Title>{win.title}</HeaderBar.Title>
       </HeaderBar>
@@ -367,7 +367,7 @@ function AppModuleSurface({
         ref={viewRef}
         window={win.browserWindowId}
         resizing={windowCtx?.resizing ? "" : undefined}
-        className="block min-h-0 w-full flex-1 bg-adw-window"
+        className="block min-h-0 w-full flex-1 bg-shell-window"
       />
     </div>
   );
@@ -993,7 +993,7 @@ function WebViewSurface({
   };
 
   return (
-    <div className="flex h-full w-full flex-1 flex-col overflow-hidden bg-adw-content">
+    <div className="flex h-full w-full flex-1 flex-col overflow-hidden bg-shell-content">
       <AppChromeProvider value={chrome}>
         <HeaderBar
           style={
@@ -1024,7 +1024,7 @@ function WebViewSurface({
               disabled={!canGoBack}
               onClick={handleGoBack}
               className={cn(
-                "flex size-7 items-center justify-center rounded-adw-control transition-colors disabled:pointer-events-none disabled:opacity-35",
+                "flex size-7 items-center justify-center rounded-shell-control transition-colors disabled:pointer-events-none disabled:opacity-35",
                 "hover-fill:bg-black/8 dark:hover-fill:bg-white/10"
               )}
             >
@@ -1053,8 +1053,8 @@ function WebViewSurface({
                   aria-label="Address"
                   placeholder="https://…"
                   className={cn(
-                    "h-7 w-full max-w-xl rounded-adw-control border border-adw-accent/70 bg-black/8 px-2.5 text-adw-callout font-medium outline-none dark:bg-white/12",
-                    !contrastFg && "text-adw-label"
+                    "h-7 w-full max-w-xl rounded-shell-control border border-shell-accent/70 bg-black/8 px-2.5 text-shell-callout font-medium outline-none dark:bg-white/12",
+                    !contrastFg && "text-shell-label"
                   )}
                 />
               </form>
@@ -1065,7 +1065,7 @@ function WebViewSurface({
                     aria-label="Loading"
                     className={cn(
                       "size-3.5 shrink-0 animate-spin opacity-75",
-                      !contrastFg && "text-adw-label"
+                      !contrastFg && "text-shell-label"
                     )}
                   />
                 )}
@@ -1078,8 +1078,8 @@ function WebViewSurface({
                     setEditingAddress(true);
                   }}
                   className={cn(
-                    "pointer-events-auto max-w-full cursor-text truncate rounded-adw-control px-2 py-0.5 text-adw-body font-semibold transition-colors hover-fill:bg-black/6 dark:hover-fill:bg-white/10",
-                    !contrastFg && "text-adw-label"
+                    "pointer-events-auto max-w-full cursor-text truncate rounded-shell-control px-2 py-0.5 text-shell-body font-semibold transition-colors hover-fill:bg-black/6 dark:hover-fill:bg-white/10",
+                    !contrastFg && "text-shell-label"
                   )}
                 >
                   {win.title}
@@ -1093,7 +1093,7 @@ function WebViewSurface({
                 size="sm"
                 variant={storeExtInstalled ? "secondary" : "default"}
                 onClick={() => void handleToggleStoreExtension()}
-                className="mr-1 h-6 gap-1 px-2 text-adw-subheadline"
+                className="mr-1 h-6 gap-1 px-2 text-shell-subheadline"
               >
                 <DownloadIcon className="size-3" />
                 {storeExtInstalled
@@ -1112,7 +1112,7 @@ function WebViewSurface({
                 aria-label={bookmarked ? _("Remove Bookmark") : _("Add Bookmark")}
                 onClick={() => toggleBrowserBookmark(currentUrl, win.title)}
                 style={bookmarked ? { color: "#ef4444" } : undefined}
-                className="flex size-7 items-center justify-center rounded-adw-control transition-colors disabled:opacity-35 hover-fill:bg-black/8 dark:hover-fill:bg-white/10"
+                className="flex size-7 items-center justify-center rounded-shell-control transition-colors disabled:opacity-35 hover-fill:bg-black/8 dark:hover-fill:bg-white/10"
               >
                 <HeartIcon
                   className={cn("size-4", bookmarked && "fill-current")}
@@ -1130,7 +1130,7 @@ function WebViewSurface({
                   title={_("New Tab")}
                   aria-label={_("New Tab")}
                   onClick={() => openBrowserTab(win.id)}
-                  className="flex size-7 items-center justify-center rounded-l-adw-control transition-colors hover-fill:bg-black/8 dark:hover-fill:bg-white/10"
+                  className="flex size-7 items-center justify-center rounded-l-shell-control transition-colors hover-fill:bg-black/8 dark:hover-fill:bg-white/10"
                 >
                   <PlusIcon className="size-4" />
                 </button>
@@ -1138,7 +1138,7 @@ function WebViewSurface({
                   <DropdownMenuTrigger
                     aria-label={_("New Tab With…")}
                     title={_("New Tab With…")}
-                    className="flex h-7 w-4 items-center justify-center rounded-r-adw-control outline-none transition-colors hover-fill:bg-black/8 data-[popup-open]:bg-black/12 dark:hover-fill:bg-white/10 dark:data-[popup-open]:bg-white/15"
+                    className="flex h-7 w-4 items-center justify-center rounded-r-shell-control outline-none transition-colors hover-fill:bg-black/8 data-[popup-open]:bg-black/12 dark:hover-fill:bg-white/10 dark:data-[popup-open]:bg-white/15"
                   >
                     <ChevronDownIcon className="size-3" strokeWidth={2.5} />
                   </DropdownMenuTrigger>
@@ -1185,14 +1185,14 @@ function WebViewSurface({
                 ? { filter: WEB_DARK_READER_FILTER, colorScheme: "dark" }
                 : undefined
             }
-            className="h-full w-full border-0 bg-adw-window"
+            className="h-full w-full border-0 bg-shell-window"
           />
         ) : (
           <webview
             ref={webviewRef}
             window={win.browserWindowId}
             resizing={windowCtx?.resizing ? "" : undefined}
-            className="block h-full w-full bg-adw-window"
+            className="block h-full w-full bg-shell-window"
           />
         )}
 
@@ -1207,7 +1207,7 @@ function WebViewSurface({
                 width: `${extPopupSize.width}px`,
                 height: `${extPopupSize.height}px`,
               }}
-              className="absolute top-1.5 right-2 z-40 max-h-[calc(100%-12px)] max-w-[calc(100%-16px)] overflow-hidden rounded-adw-group border border-adw-separator bg-adw-window shadow-2xl"
+              className="absolute top-1.5 right-2 z-40 max-h-[calc(100%-12px)] max-w-[calc(100%-16px)] overflow-hidden rounded-shell-group border border-shell-separator bg-shell-window shadow-2xl"
             >
               <webview
                 ref={extPopupWebviewRef}
@@ -1225,18 +1225,18 @@ function WebViewSurface({
               className="absolute inset-0 z-30"
               onClick={() => setDemoPopupOpen(false)}
             />
-            <div className="absolute top-1.5 right-2 z-40 w-[290px] max-w-[calc(100%-16px)] rounded-adw-group border border-adw-separator bg-adw-window p-3.5 text-adw-label shadow-2xl">
+            <div className="absolute top-1.5 right-2 z-40 w-[290px] max-w-[calc(100%-16px)] rounded-shell-group border border-shell-separator bg-shell-window p-3.5 text-shell-label shadow-2xl">
               <div className="flex items-center gap-2">
-                <PuzzleIcon className="size-4 text-adw-accent" />
-                <div className="text-adw-body font-semibold">
+                <PuzzleIcon className="size-4 text-shell-accent" />
+                <div className="text-shell-body font-semibold">
                   Piloti Demo Extension
                 </div>
               </div>
-              <p className="mt-1 text-adw-subheadline leading-relaxed text-adw-label-secondary">
+              <p className="mt-1 text-shell-subheadline leading-relaxed text-shell-label-secondary">
                 {_("Simulated extension popup in Web mode. On native Domicile, real Chrome extensions load via extensions.unpacked / extensions.web_store.")}
               </p>
-              <div className="mt-2.5 rounded-adw-item bg-black/5 px-2.5 py-2 text-adw-subheadline break-all text-adw-label-secondary dark:bg-white/6">
-                <div className="font-medium text-adw-label">{win.title}</div>
+              <div className="mt-2.5 rounded-shell-item bg-black/5 px-2.5 py-2 text-shell-subheadline break-all text-shell-label-secondary dark:bg-white/6">
+                <div className="font-medium text-shell-label">{win.title}</div>
                 <div className="mt-0.5 opacity-80">{win.browserUrl || address}</div>
               </div>
               <div className="mt-3 flex gap-1.5">
@@ -1261,10 +1261,10 @@ function WebViewSurface({
         )}
 
         {pageFailure && !isBrowserRuntime && (  // FIXME : Capabilities
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-adw-content p-6 text-center text-adw-label">
-            <GlobeIcon className="size-7 text-adw-label-secondary" />
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-shell-content p-6 text-center text-shell-label">
+            <GlobeIcon className="size-7 text-shell-label-secondary" />
             <div className="text-sm font-semibold">Unable to load page</div>
-            <div className="text-xs text-adw-label-secondary">
+            <div className="text-xs text-shell-label-secondary">
               {pageFailureError || pageFailure}
             </div>
             <div className="mt-2 flex gap-2">
@@ -1343,7 +1343,7 @@ function BrowserTabsSurface({
   const tabSlot = (
     <div
       data-slot="browser-tab-slot"
-      className={cn("h-adw-control-medium shrink-0", !showTabBar && "hidden")}
+      className={cn("h-shell-control-medium shrink-0", !showTabBar && "hidden")}
     />
   );
   return (
@@ -1574,9 +1574,9 @@ const WindowBody = React.memo(
 
     // In Browser Dev Mode, simulated non-Settings Wayland windows render a minimal surface card
     return (
-      <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-adw-content p-6 text-center text-adw-label">
+      <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-shell-content p-6 text-center text-shell-label">
         <div className="text-sm font-semibold">{win.title}</div>
-        <div className="text-xs text-adw-label-secondary">
+        <div className="text-xs text-shell-label-secondary">
           Simulated Wayland surface (`{win.waylandAppId ?? win.appId}`) ·
           Renders native Linux client under Domicile
         </div>
@@ -2222,7 +2222,7 @@ export function WindowManager() {
             bottom: `${bottomDockClearance + 6}px`,
           }}
           className={cn(
-            "pointer-events-none absolute top-1.5 z-[5] rounded-[14px] border-2 border-adw-accent/70 bg-adw-accent/18 backdrop-blur-sm transition-all duration-150",
+            "pointer-events-none absolute top-1.5 z-[5] rounded-[14px] border-2 border-shell-accent/70 bg-shell-accent/18 backdrop-blur-sm transition-all duration-150",
             snapPreview === "left" && "left-2 right-1/2 mr-1",
             snapPreview === "right" && "right-2 left-1/2 ml-1",
             snapPreview === "full" && "inset-x-2"
@@ -2319,13 +2319,13 @@ export function WindowManager() {
                 e.stopPropagation();
                 const target = e.target as HTMLElement | null;
                 const isSidebarBody = Boolean(
-                  target?.closest('[data-slot="adw-sidebar"], aside') &&
+                  target?.closest('[data-slot="shell-sidebar"], aside') &&
                   !target?.closest('[data-slot="window-titlebar"]'),
                 );
                 if (
                   !isSidebarBody &&
                   target?.closest(
-                    '[data-slot="window-titlebar"], [data-window-drag-region], [data-slot="adw-sidebar-header"]',
+                    '[data-slot="window-titlebar"], [data-window-drag-region], [data-slot="shell-sidebar-header"]',
                   )
                 ) {
                   e.preventDefault();

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import type { Files } from "@domicile-desktop/sdk/desktop/files";
-import { discoverPlugins } from "@/lib/plugins/loader";
+import { discoverPlugins, upgradeLegacyCssNames } from "@/lib/plugins/loader";
 
 function createMockFiles(tree: Record<string, string | "dir">): Files {
   const ok = <T,>(val: T) => ({
@@ -133,3 +133,15 @@ describe("discoverPlugins", () => {
   });
 });
 
+
+describe("upgradeLegacyCssNames", () => {
+  test("maps old adw tokens, classes and slots to shell ones", () => {
+    expect(
+      upgradeLegacyCssNames(
+        ':root { --adw-accent: var(--adw-blue); } .adw-material-menu [data-slot="adw-sidebar"] {}',
+      ),
+    ).toBe(
+      ':root { --shell-accent: var(--shell-blue); } .shell-material-menu [data-slot="shell-sidebar"] {}',
+    );
+  });
+});

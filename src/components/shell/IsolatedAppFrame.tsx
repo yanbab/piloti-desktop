@@ -193,7 +193,7 @@ export const IsolatedAppFrame: React.FC<IsolatedAppFrameProps> = ({
 
     doc.open();
     doc.write(
-      '<!doctype html><html><head><meta charset="utf-8" /></head><body class="m-0 h-full w-full overflow-hidden bg-adw-window"><div id="isolated-root" class="h-full w-full"></div></body></html>',
+      '<!doctype html><html><head><meta charset="utf-8" /></head><body class="m-0 h-full w-full overflow-hidden bg-shell-window"><div id="isolated-root" class="h-full w-full"></div></body></html>',
     );
     doc.close();
 
@@ -226,7 +226,7 @@ export const IsolatedAppFrame: React.FC<IsolatedAppFrameProps> = ({
   return (
     <div
       data-drop-window-id={windowId}
-      className="relative h-full w-full overflow-hidden bg-adw-window"
+      className="relative h-full w-full overflow-hidden bg-shell-window"
     >
       {isCsd && (
         <div
@@ -261,7 +261,7 @@ export const IsolatedAppFrame: React.FC<IsolatedAppFrameProps> = ({
           sendThemeSync();
           markWindowReady(windowId);
         }}
-        className="h-full w-full border-0 bg-adw-window"
+        className="h-full w-full border-0 bg-shell-window"
       />
     </div>
   );

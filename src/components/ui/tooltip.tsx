@@ -38,7 +38,7 @@ function TooltipContent({
       >
         <TooltipPrimitive.Popup
           className={cn(
-            "flex items-center rounded-adw-item px-3 py-1.5 text-adw-callout font-medium text-adw-label shadow-adw-dock-label adw-material-dock-label animate-in fade-in-0 zoom-in-95 duration-100 motion-reduce:animate-none dark:text-white/95",
+            "flex items-center rounded-shell-item px-3 py-1.5 text-shell-callout font-medium text-shell-label shadow-shell-dock-label shell-material-dock-label animate-in fade-in-0 zoom-in-95 duration-100 motion-reduce:animate-none dark:text-white/95",
             className,
           )}
           {...props}
@@ -52,7 +52,7 @@ function TooltipContent({
 
 /**
  * Intercepts native `[title]` hover/focus across the desktop and apps so every
- * tooltip renders with the shared Dock-style `adw-material-dock-label` popup.
+ * tooltip renders with the shared Dock-style `shell-material-dock-label` popup.
  */
 function GlobalTitleTooltip() {
   const [state, setState] = React.useState<{
@@ -153,7 +153,7 @@ function GlobalTitleTooltip() {
           sideOffset={8}
           className="pointer-events-none z-[500]"
         >
-          <TooltipPrimitive.Popup className="flex max-w-xs items-center rounded-adw-item px-3 py-1.5 text-adw-callout font-medium text-adw-label shadow-adw-dock-label adw-material-dock-label animate-in fade-in-0 zoom-in-95 duration-100 motion-reduce:animate-none dark:text-white/95">
+          <TooltipPrimitive.Popup className="flex max-w-xs items-center rounded-shell-item px-3 py-1.5 text-shell-callout font-medium text-shell-label shadow-shell-dock-label shell-material-dock-label animate-in fade-in-0 zoom-in-95 duration-100 motion-reduce:animate-none dark:text-white/95">
             {state.text}
           </TooltipPrimitive.Popup>
         </TooltipPrimitive.Positioner>

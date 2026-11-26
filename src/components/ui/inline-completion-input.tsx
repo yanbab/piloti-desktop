@@ -99,7 +99,7 @@ export const InlineCompletionInput = React.forwardRef<
   };
 
   const sharedTypographyClass = cn(
-    "w-full border-0 bg-transparent p-0 font-sans text-adw-title-2 leading-[1.4] tracking-normal",
+    "w-full border-0 bg-transparent p-0 font-sans text-shell-title-2 leading-[1.4] tracking-normal",
     className
   );
 
@@ -112,7 +112,7 @@ export const InlineCompletionInput = React.forwardRef<
     onKeyDown: handleKeyDown,
     onScroll: handleScroll,
     className: cn(
-      "relative z-10 text-adw-label outline-hidden placeholder:text-adw-label-tertiary disabled:cursor-not-allowed disabled:opacity-50",
+      "relative z-10 text-shell-label outline-hidden placeholder:text-shell-label-tertiary disabled:cursor-not-allowed disabled:opacity-50",
       sharedTypographyClass
     ),
   };
@@ -129,7 +129,7 @@ export const InlineCompletionInput = React.forwardRef<
       >
         <span className="text-transparent">{value}</span>
         {suffix && (
-          <span className={cn("text-adw-label-tertiary", ghostClassName)}>
+          <span className={cn("text-shell-label-tertiary", ghostClassName)}>
             <span>{suffix}</span>
             {completionHint && (
               <span className="ml-1 text-[0.78em] opacity-80">

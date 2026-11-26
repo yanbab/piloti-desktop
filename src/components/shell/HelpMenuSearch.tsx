@@ -48,7 +48,7 @@ export function HelpMenuSearch({
       onPointerMove={(e) => e.stopPropagation()}
     >
       <label className="mx-[2px] mb-1 flex h-[30px] items-center gap-2 rounded-[8px] bg-black/6 px-2.5 dark:bg-white/10">
-        <SearchIcon className="size-3.5 shrink-0 text-adw-label-secondary" />
+        <SearchIcon className="size-3.5 shrink-0 text-shell-label-secondary" />
         <input
           ref={inputRef}
           type="text"
@@ -78,14 +78,14 @@ export function HelpMenuSearch({
               run(results[activeIndex]);
             }
           }}
-          className="h-full min-w-0 flex-1 bg-transparent text-adw-body text-adw-label outline-none placeholder:text-adw-label-tertiary"
+          className="h-full min-w-0 flex-1 bg-transparent text-shell-body text-shell-label outline-none placeholder:text-shell-label-tertiary"
         />
       </label>
       {query.trim() && (
         <div ref={listRef} role="listbox" aria-label={_("Menu Items")} className="max-h-[min(60vh,420px)] overflow-y-auto">
           <div className={MENU_LABEL_CLASS}>{_("Menu Items")}</div>
           {results.length === 0 ? (
-            <div className="px-[12px] py-1.5 text-adw-callout text-adw-label-tertiary">
+            <div className="px-[12px] py-1.5 text-shell-callout text-shell-label-tertiary">
               {_("No matching commands")}
             </div>
           ) : (
@@ -109,7 +109,7 @@ export function HelpMenuSearch({
                 <span className="flex min-w-0 items-baseline gap-1.5">
                   <span className="truncate">{command.label}</span>
                   {command.path.length > 0 && (
-                    <span className="truncate text-adw-subheadline text-adw-label-secondary">
+                    <span className="truncate text-shell-subheadline text-shell-label-secondary">
                       {command.path.join(" ▸ ")}
                     </span>
                   )}

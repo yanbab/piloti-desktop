@@ -130,9 +130,9 @@ function resolveLanguageExtension(filePath: string | null): Extension[] {
 }
 
 const adwLightHighlightStyle = HighlightStyle.define([
-  { tag: tags.keyword, color: "var(--adw-accent)", fontWeight: "600" },
+  { tag: tags.keyword, color: "var(--shell-accent)", fontWeight: "600" },
   { tag: [tags.name, tags.deleted, tags.character, tags.macroName], color: "#1f2937" },
-  { tag: [tags.propertyName], color: "var(--adw-accent)" },
+  { tag: [tags.propertyName], color: "var(--shell-accent)" },
   { tag: [tags.function(tags.variableName), tags.labelName], color: "#2563eb" },
   { tag: [tags.color, tags.constant(tags.name), tags.standard(tags.name)], color: "#d97706" },
   { tag: [tags.definition(tags.name), tags.separator], color: "#374151" },
@@ -141,17 +141,17 @@ const adwLightHighlightStyle = HighlightStyle.define([
   { tag: [tags.meta, tags.comment], color: "#6b7280", fontStyle: "italic" },
   { tag: tags.strong, fontWeight: "bold" },
   { tag: tags.emphasis, fontStyle: "italic" },
-  { tag: tags.heading, fontWeight: "bold", color: "var(--adw-accent)" },
+  { tag: tags.heading, fontWeight: "bold", color: "var(--shell-accent)" },
   { tag: [tags.atom, tags.bool, tags.special(tags.variableName)], color: "#7c3aed" },
   { tag: [tags.processingInstruction, tags.string, tags.inserted], color: "#059669" },
-  { tag: [tags.tagName], color: "var(--adw-accent)", fontWeight: "500" },
+  { tag: [tags.tagName], color: "var(--shell-accent)", fontWeight: "500" },
   { tag: [tags.attributeName], color: "#7c3aed" },
 ]);
 
 const adwDarkHighlightStyle = HighlightStyle.define([
-  { tag: tags.keyword, color: "var(--adw-accent)", fontWeight: "600" },
+  { tag: tags.keyword, color: "var(--shell-accent)", fontWeight: "600" },
   { tag: [tags.name, tags.deleted, tags.character, tags.macroName], color: "#e5e7eb" },
-  { tag: [tags.propertyName], color: "var(--adw-accent)" },
+  { tag: [tags.propertyName], color: "var(--shell-accent)" },
   { tag: [tags.function(tags.variableName), tags.labelName], color: "#60a5fa" },
   { tag: [tags.color, tags.constant(tags.name), tags.standard(tags.name)], color: "#fbbf24" },
   { tag: [tags.definition(tags.name), tags.separator], color: "#d1d5db" },
@@ -160,10 +160,10 @@ const adwDarkHighlightStyle = HighlightStyle.define([
   { tag: [tags.meta, tags.comment], color: "#9ca3af", fontStyle: "italic" },
   { tag: tags.strong, fontWeight: "bold" },
   { tag: tags.emphasis, fontStyle: "italic" },
-  { tag: tags.heading, fontWeight: "bold", color: "var(--adw-accent)" },
+  { tag: tags.heading, fontWeight: "bold", color: "var(--shell-accent)" },
   { tag: [tags.atom, tags.bool, tags.special(tags.variableName)], color: "#c084fc" },
   { tag: [tags.processingInstruction, tags.string, tags.inserted], color: "#34d399" },
-  { tag: [tags.tagName], color: "var(--adw-accent)", fontWeight: "500" },
+  { tag: [tags.tagName], color: "var(--shell-accent)", fontWeight: "500" },
   { tag: [tags.attributeName], color: "#c084fc" },
 ]);
 
@@ -172,21 +172,21 @@ function renderSimpleMarkdown(md: string): React.ReactNode {
   return lines.map((line, i) => {
     if (line.startsWith("# ")) {
       return (
-        <h1 key={i} className="mt-2 mb-1 text-lg font-bold text-adw-label">
+        <h1 key={i} className="mt-2 mb-1 text-lg font-bold text-shell-label">
           {line.slice(2)}
         </h1>
       );
     }
     if (line.startsWith("## ")) {
       return (
-        <h2 key={i} className="mt-2 mb-1 text-base font-semibold text-adw-label">
+        <h2 key={i} className="mt-2 mb-1 text-base font-semibold text-shell-label">
           {line.slice(3)}
         </h2>
       );
     }
     if (line.startsWith("### ")) {
       return (
-        <h3 key={i} className="mt-1.5 mb-0.5 text-sm font-semibold text-adw-label">
+        <h3 key={i} className="mt-1.5 mb-0.5 text-sm font-semibold text-shell-label">
           {line.slice(4)}
         </h3>
       );
@@ -195,7 +195,7 @@ function renderSimpleMarkdown(md: string): React.ReactNode {
       return (
         <li
           key={i}
-          className="ml-4 list-disc text-adw-body leading-relaxed text-adw-label"
+          className="ml-4 list-disc text-shell-body leading-relaxed text-shell-label"
         >
           {line.slice(2)}
         </li>
@@ -205,7 +205,7 @@ function renderSimpleMarkdown(md: string): React.ReactNode {
       return <div key={i} className="h-2" />;
     }
     return (
-      <p key={i} className="text-adw-body leading-relaxed text-adw-label">
+      <p key={i} className="text-shell-body leading-relaxed text-shell-label">
         {line}
       </p>
     );
@@ -215,42 +215,42 @@ function renderSimpleMarkdown(md: string): React.ReactNode {
 const adwEditorTheme = EditorView.theme({
   "&": {
     height: "100%",
-    backgroundColor: "var(--adw-content-bg, var(--adw-window-bg))",
-    color: "var(--adw-label)",
-    fontFamily: "var(--font-adw-mono)",
+    backgroundColor: "var(--shell-content-bg, var(--shell-window-bg))",
+    color: "var(--shell-label)",
+    fontFamily: "var(--font-shell-mono)",
     fontSize: "13px",
   },
   ".cm-scroller": {
     overflow: "auto",
-    fontFamily: "var(--font-adw-mono)",
+    fontFamily: "var(--font-shell-mono)",
     paddingBottom: "32px",
   },
   ".cm-content": {
     padding: "10px 4px",
-    caretColor: "var(--adw-accent)",
+    caretColor: "var(--shell-accent)",
   },
   ".cm-gutters": {
     backgroundColor: "transparent",
-    color: "var(--adw-dim)",
+    color: "var(--shell-dim)",
     border: "none",
     paddingLeft: "6px",
   },
   ".cm-activeLineGutter": {
     backgroundColor: "transparent",
-    color: "var(--adw-label)",
+    color: "var(--shell-label)",
   },
   ".cm-activeLine": {
     backgroundColor: "rgb(128 128 128 / 0.08)",
   },
   ".cm-selectionBackground, ::selection": {
-    backgroundColor: "color-mix(in srgb, var(--adw-accent) 28%, transparent)",
+    backgroundColor: "color-mix(in srgb, var(--shell-accent) 28%, transparent)",
   },
   ".cm-cursor, .cm-dropCursor": {
-    borderLeftColor: "var(--adw-accent)",
+    borderLeftColor: "var(--shell-accent)",
   },
   ".cm-matchingBracket, .cm-nonmatchingBracket": {
-    backgroundColor: "color-mix(in srgb, var(--adw-accent) 20%, transparent)",
-    outline: "1px solid color-mix(in srgb, var(--adw-accent) 55%, transparent)",
+    backgroundColor: "color-mix(in srgb, var(--shell-accent) 20%, transparent)",
+    outline: "1px solid color-mix(in srgb, var(--shell-accent) 55%, transparent)",
     borderRadius: "2px",
   },
   "&.cm-focused": {
@@ -259,7 +259,7 @@ const adwEditorTheme = EditorView.theme({
   ".cm-foldGutter .cm-gutterElement": {
     padding: "0 4px 0 2px",
     cursor: "pointer",
-    color: "var(--adw-dim)",
+    color: "var(--shell-dim)",
     opacity: "0.55",
     transition: "opacity 120ms",
   },
@@ -267,9 +267,9 @@ const adwEditorTheme = EditorView.theme({
     opacity: "1",
   },
   ".cm-foldPlaceholder": {
-    backgroundColor: "color-mix(in srgb, var(--adw-accent) 18%, transparent)",
+    backgroundColor: "color-mix(in srgb, var(--shell-accent) 18%, transparent)",
     border: "none",
-    color: "var(--adw-accent)",
+    color: "var(--shell-accent)",
     borderRadius: "4px",
     padding: "0 4px",
     margin: "0 2px",
@@ -1036,7 +1036,7 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
     <div
       data-drop-window-id={windowId}
       onKeyDown={handleKeyDown}
-      className="flex h-full w-full flex-col overflow-hidden bg-adw-content text-adw-label"
+      className="flex h-full w-full flex-col overflow-hidden bg-shell-content text-shell-label"
     >
       {/* Headerbar */}
       <HeaderBar onClose={requestClose}>
@@ -1060,7 +1060,7 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
                 }
               }}
               style={{ width: `${Math.max(8, draftTitle.length + 2)}ch` }}
-              className="h-6 max-w-48 rounded-adw-control border border-adw-accent/70 bg-black/8 px-2 text-center text-adw-body font-semibold text-adw-label outline-none dark:bg-white/12"
+              className="h-6 max-w-48 rounded-shell-control border border-shell-accent/70 bg-black/8 px-2 text-center text-shell-body font-semibold text-shell-label outline-none dark:bg-white/12"
             />
           ) : (
             <button
@@ -1073,7 +1073,7 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
                 setEditingTitle(true);
               }}
               className={cn(
-                "flex items-center truncate rounded-adw-control px-2 py-0.5 text-adw-body font-semibold text-adw-label transition-colors",
+                "flex items-center truncate rounded-shell-control px-2 py-0.5 text-shell-body font-semibold text-shell-label transition-colors",
                 filePath &&
                   "hover-fill:bg-black/8 dark:hover-fill:bg-white/10",
               )}
@@ -1082,7 +1082,7 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
                 <span
                   aria-label={_("Unsaved changes")}
                   title={_("Unsaved changes")}
-                  className="mr-1.5 inline-block size-1.5 shrink-0 rounded-full bg-adw-label"
+                  className="mr-1.5 inline-block size-1.5 shrink-0 rounded-full bg-shell-label"
                 />
               )}
               <span className="truncate">
@@ -1146,16 +1146,16 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
         {findOpen && (
           <div
             data-testid="text-editor-find-bar"
-            className="absolute top-2 right-3 z-20 flex items-center gap-1.5 rounded-adw-item border border-adw-border bg-adw-card/95 px-2 py-1 shadow-md backdrop-blur-md"
+            className="absolute top-2 right-3 z-20 flex items-center gap-1.5 rounded-shell-item border border-shell-border bg-shell-card/95 px-2 py-1 shadow-md backdrop-blur-md"
           >
             <input
               ref={findInputRef}
               type="search"
               value={findQuery}
               onChange={(e) => setFindQuery(e.target.value)}
-              className="w-36 bg-transparent text-xs text-adw-label outline-none"
+              className="w-36 bg-transparent text-xs text-shell-label outline-none"
             />
-            <span className="font-mono text-adw-footnote text-adw-dim tabular-nums">
+            <span className="font-mono text-shell-footnote text-shell-dim tabular-nums">
               {findQuery.trim() ? _("%d found", findMatchCount) : ""}
             </span>
             <button
@@ -1165,7 +1165,7 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
                 setFindOpen(false);
                 viewRef.current?.focus();
               }}
-              className="rounded px-1 text-xs text-adw-dim hover-fill:bg-adw-hover hover-fill:text-adw-label"
+              className="rounded px-1 text-xs text-shell-dim hover-fill:bg-shell-hover hover-fill:text-shell-label"
             >
               ×
             </button>
@@ -1189,7 +1189,7 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
               className="h-full w-full border-0 bg-white"
             />
           ) : isSvgFile ? (
-            <div className="flex h-full w-full items-center justify-center overflow-auto bg-adw-content p-6">
+            <div className="flex h-full w-full items-center justify-center overflow-auto bg-shell-content p-6">
               <img
                 src={`data:image/svg+xml;charset=utf-8,${encodeURIComponent(content)}`}
                 alt={filePath ? getBaseName(filePath) : "SVG"}
@@ -1197,7 +1197,7 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
               />
             </div>
           ) : /\.(json|ini)$/i.test(filePath ?? "") ? (
-            <div className="h-full w-full overflow-auto bg-adw-content p-4 font-mono text-adw-callout select-text">
+            <div className="h-full w-full overflow-auto bg-shell-content p-4 font-mono text-shell-callout select-text">
               {(() => {
                 try {
                   const parsed = /\.ini$/i.test(filePath ?? "")
@@ -1214,9 +1214,9 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
                           ...(isDark ? themeOneDark : themeGitHubLight),
                           backgroundColor: "transparent",
                           "--bigobjview-bg-color": "transparent",
-                          "--bigobjview-type-boolean-color": "var(--adw-accent)",
-                          "--bigobjview-type-object-object-color": "var(--adw-accent)",
-                          "--bigobjview-type-object-array-color": "var(--adw-accent)",
+                          "--bigobjview-type-boolean-color": "var(--shell-accent)",
+                          "--bigobjview-type-object-object-color": "var(--shell-accent)",
+                          "--bigobjview-type-object-array-color": "var(--shell-accent)",
                           fontSize: "12px",
                         } as React.CSSProperties
                       }
@@ -1225,7 +1225,7 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
                   );
                 } catch (err) {
                   return (
-                    <div className="rounded-adw-item border border-red-500/30 bg-red-500/10 p-3 text-red-400">
+                    <div className="rounded-shell-item border border-red-500/30 bg-red-500/10 p-3 text-red-400">
                       Invalid JSON: {String(err)}
                     </div>
                   );
@@ -1233,7 +1233,7 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
               })()}
             </div>
           ) : (
-            <div className="h-full w-full overflow-auto bg-adw-content p-4 select-text">
+            <div className="h-full w-full overflow-auto bg-shell-content p-4 select-text">
               {renderSimpleMarkdown(content)}
             </div>
           )
@@ -1244,7 +1244,7 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
         {showCursorPos && (
           <div
             data-testid="text-editor-status-pill"
-            className="pointer-events-none absolute right-2.5 bottom-2 z-10 rounded-full border border-adw-border/60 bg-adw-card/90 px-2.5 py-0.5 font-mono text-adw-footnote text-adw-dim shadow-xs backdrop-blur-md"
+            className="pointer-events-none absolute right-2.5 bottom-2 z-10 rounded-full border border-shell-border/60 bg-shell-card/90 px-2.5 py-0.5 font-mono text-shell-footnote text-shell-dim shadow-xs backdrop-blur-md"
           >
             Ln {cursorPos.ln}, Col {cursorPos.col}
           </div>
@@ -1293,7 +1293,7 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
               <button
                 type="button"
                 onClick={() => setPendingRename(null)}
-                className="rounded-adw-item bg-black/8 px-3 py-1.5 text-xs font-medium text-adw-label transition-colors hover-fill:bg-black/14 dark:bg-white/10 dark:hover-fill:bg-white/16"
+                className="rounded-shell-item bg-black/8 px-3 py-1.5 text-xs font-medium text-shell-label transition-colors hover-fill:bg-black/14 dark:bg-white/10 dark:hover-fill:bg-white/16"
               >
                 {_("Cancel")}
               </button>
@@ -1305,7 +1305,7 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
                     setPendingRename(null);
                   }
                 }}
-                className="rounded-adw-item bg-adw-accent px-3 py-1.5 text-xs font-medium text-white transition-opacity hover-fill:opacity-90"
+                className="rounded-shell-item bg-shell-accent px-3 py-1.5 text-xs font-medium text-white transition-opacity hover-fill:opacity-90"
               >
                 {_("Rename")}
               </button>

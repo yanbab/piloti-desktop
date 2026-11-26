@@ -263,11 +263,11 @@ function Widget({
         aria-label={title}
         {...listeners}
         className={cn(
-          "flex h-full min-w-0 cursor-default flex-col gap-2 overflow-hidden rounded-adw-group bg-adw-group p-3",
-          isDragging && "shadow-adw-popover"
+          "flex h-full min-w-0 cursor-default flex-col gap-2 overflow-hidden rounded-shell-group bg-shell-group p-3",
+          isDragging && "shadow-shell-popover"
         )}
       >
-        <h2 className="shrink-0 text-adw-subheadline font-semibold text-adw-label-secondary">{title}</h2>
+        <h2 className="shrink-0 text-shell-subheadline font-semibold text-shell-label-secondary">{title}</h2>
         {children}
       </section>
     </div>
@@ -282,11 +282,11 @@ function Sparkline({ values }: { values: number[] }) {
     .join(" ");
   return (
     <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" className="absolute inset-0 h-full w-full" aria-hidden>
-      <polygon points={`0,${h} ${points} ${w},${h}`} className="fill-adw-accent/15" />
+      <polygon points={`0,${h} ${points} ${w},${h}`} className="fill-shell-accent/15" />
       <polyline
         points={points}
         fill="none"
-        className="stroke-adw-accent"
+        className="stroke-shell-accent"
         strokeWidth={1.5}
         vectorEffect="non-scaling-stroke"
         strokeLinejoin="round"
@@ -300,7 +300,7 @@ function CpuWidget({ history }: { history: number[] }) {
   return (
     <div className="relative min-h-0 flex-1">
       <Sparkline values={history} />
-      <div className="relative text-adw-title-1 font-semibold tabular-nums text-adw-label">
+      <div className="relative text-shell-title-1 font-semibold tabular-nums text-shell-label">
         {Math.round(current)} %
       </div>
     </div>
@@ -311,13 +311,13 @@ function MemoryWidget({ used, total }: { used: number; total: number }) {
   const ratio = total > 0 ? used / total : 0;
   return (
     <>
-      <div className="text-adw-title-1 font-semibold tabular-nums text-adw-label">
+      <div className="text-shell-title-1 font-semibold tabular-nums text-shell-label">
         {total > 0 ? formatMb(used) : "—"}
       </div>
       <div className="h-2 overflow-hidden rounded-full bg-black/8 dark:bg-white/10">
-        <div className="h-full rounded-full bg-adw-accent transition-[width] duration-500" style={{ width: `${ratio * 100}%` }} />
+        <div className="h-full rounded-full bg-shell-accent transition-[width] duration-500" style={{ width: `${ratio * 100}%` }} />
       </div>
-      <div className="text-adw-footnote tabular-nums text-adw-label-secondary">
+      <div className="text-shell-footnote tabular-nums text-shell-label-secondary">
         {total > 0 ? _("%s of %s", formatMb(used), formatMb(total)) : "—"}
       </div>
     </>
@@ -351,7 +351,7 @@ function AppsWidget({ apps, onQuit }: { apps: AppStat[]; onQuit: (appId: string)
   }, [apps, sort]);
 
   if (apps.length === 0) {
-    return <p className="py-2 text-adw-body text-adw-label-tertiary">{_("No apps running")}</p>;
+    return <p className="py-2 text-shell-body text-shell-label-tertiary">{_("No apps running")}</p>;
   }
   return (
     // A long list scrolls inside its widget; the page never does.
@@ -382,7 +382,7 @@ function AppsWidget({ apps, onQuit }: { apps: AppStat[]; onQuit: (appId: string)
                   className="size-6 shrink-0"
                   glyphClassName="size-4"
                 />
-                <span className="truncate text-adw-label">{_(app.name)}</span>
+                <span className="truncate text-shell-label">{_(app.name)}</span>
                 <WindowControlButton
                   aria-label={_("Quit %s", _(app.name))}
                   title={_("Quit %s", _(app.name))}
@@ -395,10 +395,10 @@ function AppsWidget({ apps, onQuit }: { apps: AppStat[]; onQuit: (appId: string)
                 </WindowControlButton>
               </div>
             </ListViewCell>
-            <ListViewCell align="right" className="tabular-nums text-adw-label-secondary">
+            <ListViewCell align="right" className="tabular-nums text-shell-label-secondary">
               {app.memMb === undefined ? "—" : formatMb(app.memMb)}
             </ListViewCell>
-            <ListViewCell align="right" className="tabular-nums text-adw-label-secondary">
+            <ListViewCell align="right" className="tabular-nums text-shell-label-secondary">
               {app.cpu === undefined ? "—" : `${app.cpu.toFixed(1)} %`}
             </ListViewCell>
           </ListViewRow>
@@ -527,7 +527,7 @@ export const SystemMonitorApp: React.FC<SystemMonitorAppProps> = ({ windowId = "
   return (
     <div
       data-slot="system-monitor"
-      className="flex h-full w-full flex-col overflow-hidden bg-[color-mix(in_srgb,var(--adw-accent)_10%,var(--adw-window))] text-adw-label select-none"
+      className="flex h-full w-full flex-col overflow-hidden bg-[color-mix(in_srgb,var(--shell-accent)_10%,var(--shell-window))] text-shell-label select-none"
     >
       <HeaderBar className="border-transparent bg-transparent">
         <HeaderBar.Title>{_("System Monitor")}</HeaderBar.Title>
@@ -544,7 +544,7 @@ export const SystemMonitorApp: React.FC<SystemMonitorAppProps> = ({ windowId = "
             {(Object.keys(DEFAULT_LAYOUT) as WidgetId[]).map(renderWidget)}
           </div>
         </DndContext>
-        <p className="mt-1 shrink-0 text-center text-adw-footnote text-adw-label-tertiary">
+        <p className="mt-1 shrink-0 text-center text-shell-footnote text-shell-label-tertiary">
           {systemServices
             ? _("Apps without figures run inside the desktop or share its browser.")
             : _("Simulated values in the demo.")}

@@ -46,11 +46,11 @@ const tabClass = (active: boolean, pinned = false) =>
   cn(
     // Chrome-style: tabs share the bar up to 240px each, left-aligned, and
     // shrink when there are many; icon, title, then close on the right.
-    "group relative flex min-w-8 max-w-60 flex-1 basis-0 items-center gap-1.5 rounded-adw-control pr-1 pl-2 text-adw-subheadline select-none",
+    "group relative flex min-w-8 max-w-60 flex-1 basis-0 items-center gap-1.5 rounded-shell-control pr-1 pl-2 text-shell-subheadline select-none",
     pinned && "max-w-9 min-w-9 flex-none justify-center px-0",
     active
-      ? "bg-adw-window font-medium text-adw-label shadow-2xs"
-      : "text-adw-label-secondary"
+      ? "bg-shell-window font-medium text-shell-label shadow-2xs"
+      : "text-shell-label-secondary"
   );
 
 function TabContents({ tab, active, onClose }: { tab: BrowserTab; active: boolean; onClose?: () => void }) {
@@ -70,7 +70,7 @@ function TabContents({ tab, active, onClose }: { tab: BrowserTab; active: boolea
         onPointerDown={(e) => e.stopPropagation()}
         onClick={onClose}
         className={cn(
-          "order-last flex size-4 shrink-0 items-center justify-center rounded-adw-control text-adw-label-secondary hover-fill:bg-black/10 dark:hover-fill:bg-white/12",
+          "order-last flex size-4 shrink-0 items-center justify-center rounded-shell-control text-shell-label-secondary hover-fill:bg-black/10 dark:hover-fill:bg-white/12",
           active ? "visible" : "invisible group-hover:visible"
         )}
       >
@@ -233,7 +233,7 @@ export function BrowserTabBar({
                 hidden={hidden}
                 style={{ top }}
                 className={cn(
-                  "absolute inset-x-0 z-10 h-adw-control-medium shrink-0 items-stretch gap-px border-b border-adw-separator bg-black/5 px-1 py-0.5 dark:bg-white/4",
+                  "absolute inset-x-0 z-10 h-shell-control-medium shrink-0 items-stretch gap-px border-b border-shell-separator bg-black/5 px-1 py-0.5 dark:bg-white/4",
                   hidden ? "hidden" : "flex"
                 )}
               />

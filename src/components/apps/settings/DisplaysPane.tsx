@@ -101,7 +101,7 @@ export function DisplaysPane() {
       {/* Same header strip as Wallpaper: each screen with its wallpaper. */}
       <div
         data-slot="displays-preview"
-        className="flex shrink-0 items-end justify-center gap-8 border-b border-adw-separator bg-adw-window/60 px-6 pt-3 pb-4"
+        className="flex shrink-0 items-end justify-center gap-8 border-b border-shell-separator bg-shell-window/60 px-6 pt-3 pb-4"
       >
         {screens.map((screen) => {
           const Illustration =
@@ -113,10 +113,10 @@ export function DisplaysPane() {
                 screenContent={<DesktopBackgroundLayers />}
               />
               <div className="flex min-w-0 flex-col">
-                <span className="max-w-44 truncate text-adw-body font-semibold text-adw-label">
+                <span className="max-w-44 truncate text-shell-body font-semibold text-shell-label">
                   {screen.name}
                 </span>
-                <span className="text-adw-footnote tabular-nums text-adw-label-secondary">
+                <span className="text-shell-footnote tabular-nums text-shell-label-secondary">
                   {screen.resolution}
                 </span>
               </div>
@@ -140,7 +140,7 @@ export function DisplaysPane() {
                 </GroupedFormRowTitle>
               </GroupedFormRowLabel>
               <GroupedFormRowControl>
-                <span className="rounded-full bg-adw-accent/15 px-2.5 py-0.5 text-adw-subheadline font-semibold text-adw-accent">
+                <span className="rounded-full bg-shell-accent/15 px-2.5 py-0.5 text-shell-subheadline font-semibold text-shell-accent">
                   {idx === 0 ? _("Primary Output") : _("Extended")}
                 </span>
               </GroupedFormRowControl>

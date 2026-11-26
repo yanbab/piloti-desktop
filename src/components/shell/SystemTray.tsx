@@ -46,7 +46,7 @@ function TraySubmenuGroup({
         )}
       </DropdownMenuItem>
       {expanded && entry.submenu && (
-        <div className="my-0.5 ml-2.5 max-h-56 overflow-y-auto border-l border-adw-separator/60 pl-1">
+        <div className="my-0.5 ml-2.5 max-h-56 overflow-y-auto border-l border-shell-separator/60 pl-1">
           {renderMenuEntries(entry.submenu, watched)}
         </div>
       )}
@@ -153,7 +153,7 @@ export function SystemTrayItem({ item }: { item: TrayItem }) {
         type="button"
         aria-label={item.title}
         onClick={() => piloti.tray.activate(item.id, "primary")}
-        className="flex h-full shrink-0 cursor-default items-center justify-center rounded-adw-control px-1.5 outline-none select-none hover-fill:bg-black/8 active:bg-black/14 focus-visible:bg-black/10 dark:hover-fill:bg-white/10 dark:active:bg-white/18 dark:focus-visible:bg-white/12"
+        className="flex h-full shrink-0 cursor-default items-center justify-center rounded-shell-control px-1.5 outline-none select-none hover-fill:bg-black/8 active:bg-black/14 focus-visible:bg-black/10 dark:hover-fill:bg-white/10 dark:active:bg-white/18 dark:focus-visible:bg-white/12"
       >
         {iconEl}
       </button>
@@ -183,7 +183,7 @@ export function SystemTrayItem({ item }: { item: TrayItem }) {
           setOpen(true);
           void watchedRef.current?.aboutToShow(0);
         }}
-        className="flex h-full shrink-0 cursor-default items-center justify-center rounded-adw-control px-1.5 outline-none select-none hover-fill:bg-black/8 active:bg-black/14 data-popup-open:bg-black/12 focus-visible:bg-black/10 dark:hover-fill:bg-white/10 dark:active:bg-white/18 dark:data-popup-open:bg-white/15 dark:focus-visible:bg-white/12"
+        className="flex h-full shrink-0 cursor-default items-center justify-center rounded-shell-control px-1.5 outline-none select-none hover-fill:bg-black/8 active:bg-black/14 data-popup-open:bg-black/12 focus-visible:bg-black/10 dark:hover-fill:bg-white/10 dark:active:bg-white/18 dark:data-popup-open:bg-white/15 dark:focus-visible:bg-white/12"
       >
         {iconEl}
       </DropdownMenuTrigger>

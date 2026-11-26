@@ -22,7 +22,7 @@ export function HoverCloseButton({
     <WindowControlButton
       {...props}
       className={cn(
-        "absolute bg-adw-window/85 opacity-0 shadow-md backdrop-blur-md transition-opacity group-hover:opacity-100",
+        "absolute bg-shell-window/85 opacity-0 shadow-md backdrop-blur-md transition-opacity group-hover:opacity-100",
         inset ? "top-1.5" : "-top-2",
         inset
           ? closeOnLeft ? "left-1.5" : "right-1.5"

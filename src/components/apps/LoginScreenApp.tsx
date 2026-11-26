@@ -429,7 +429,7 @@ export const LoginScreenApp: React.FC<LoginScreenAppProps> = ({
   };
 
   return (
-    <div className="relative flex h-full w-full flex-col overflow-hidden bg-adw-window text-white select-none">
+    <div className="relative flex h-full w-full flex-col overflow-hidden bg-shell-window text-white select-none">
       <style>{`
         @keyframes piloti-gdm-shake {
           0%, 100% { transform: translate3d(0, 0, 0); }
@@ -448,7 +448,7 @@ export const LoginScreenApp: React.FC<LoginScreenAppProps> = ({
       {/* Top Greeter Menu Bar (same material & height as Piloti Desktop MenuBar) */}
       <header
         data-window-drag-region={showWindowChrome ? "" : undefined}
-        className="relative z-20 grid h-[30px] w-full shrink-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 px-2 text-adw-body text-adw-label adw-material-hud dark:text-white"
+        className="relative z-20 grid h-[30px] w-full shrink-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 px-2 text-shell-body text-shell-label shell-material-hud dark:text-white"
       >
         {/* Left: Window menu (preview only), Session & Keyboard selectors */}
         <div className="flex items-center gap-1" data-window-no-drag>
@@ -468,7 +468,7 @@ export const LoginScreenApp: React.FC<LoginScreenAppProps> = ({
           <DropdownMenu>
             <DropdownMenuTrigger
               aria-label={_("Session")}
-              className="flex h-[24px] items-center gap-1.5 rounded-adw-control px-2 text-adw-callout font-medium outline-none transition-colors hover-fill:bg-black/8 active:bg-black/14 data-popup-open:bg-black/12 dark:hover-fill:bg-white/10 dark:active:bg-white/18 dark:data-popup-open:bg-white/15"
+              className="flex h-[24px] items-center gap-1.5 rounded-shell-control px-2 text-shell-callout font-medium outline-none transition-colors hover-fill:bg-black/8 active:bg-black/14 data-popup-open:bg-black/12 dark:hover-fill:bg-white/10 dark:active:bg-white/18 dark:data-popup-open:bg-white/15"
             >
               <MonitorIcon className="size-3.5 opacity-85" />
               <span className="max-w-[160px] truncate">
@@ -486,7 +486,7 @@ export const LoginScreenApp: React.FC<LoginScreenAppProps> = ({
                   <DropdownMenuRadioItem key={sess.id} value={sess.id}>
                     <div className="flex min-w-0 flex-col">
                       <span className="truncate">{_(sess.label)}</span>
-                      <span className="truncate text-adw-subheadline text-adw-label-secondary">
+                      <span className="truncate text-shell-subheadline text-shell-label-secondary">
                         {_(sess.subtitle)}
                       </span>
                     </div>
@@ -507,13 +507,13 @@ export const LoginScreenApp: React.FC<LoginScreenAppProps> = ({
         </div>
 
         {/* Center: Live Clock */}
-        <div className="pointer-events-none truncate text-adw-callout font-medium tracking-tight tabular-nums">
+        <div className="pointer-events-none truncate text-shell-callout font-medium tracking-tight tabular-nums">
           {formattedClock}
         </div>
 
         {/* Right: System Status, Power Menu & Window Controls */}
         <div className="flex items-center justify-end gap-1.5" data-window-no-drag>
-          <span className="flex items-center gap-1.5 px-1 text-adw-label/85 dark:text-white/85">
+          <span className="flex items-center gap-1.5 px-1 text-shell-label/85 dark:text-white/85">
             {settings.wifiEnabled ? (
               <WifiIcon className="size-3.5" />
             ) : (
@@ -535,7 +535,7 @@ export const LoginScreenApp: React.FC<LoginScreenAppProps> = ({
           <DropdownMenu>
             <DropdownMenuTrigger
               aria-label={_("Power")}
-              className="flex size-6 items-center justify-center rounded-adw-control outline-none transition-colors hover-fill:bg-black/8 active:bg-black/14 data-popup-open:bg-black/12 dark:hover-fill:bg-white/10 dark:active:bg-white/18 dark:data-popup-open:bg-white/15"
+              className="flex size-6 items-center justify-center rounded-shell-control outline-none transition-colors hover-fill:bg-black/8 active:bg-black/14 data-popup-open:bg-black/12 dark:hover-fill:bg-white/10 dark:active:bg-white/18 dark:data-popup-open:bg-white/15"
             >
               <PowerIcon className="size-3.5" />
             </DropdownMenuTrigger>
@@ -587,7 +587,7 @@ export const LoginScreenApp: React.FC<LoginScreenAppProps> = ({
                 >
                   <div
                     className={cn(
-                      "flex size-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br text-adw-callout font-medium text-white shadow-sm",
+                      "flex size-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br text-shell-callout font-medium text-white shadow-sm",
                       user.gradient,
                     )}
                   >
@@ -608,7 +608,7 @@ export const LoginScreenApp: React.FC<LoginScreenAppProps> = ({
                 setManualUsername("");
                 setView("other-user");
               }}
-              className="flex w-full items-center justify-center gap-2 rounded-[14px] bg-white/8 px-3 py-2 text-adw-callout font-medium text-white/85 ring-1 ring-white/15 transition-colors hover-fill:bg-white/14"
+              className="flex w-full items-center justify-center gap-2 rounded-[14px] bg-white/8 px-3 py-2 text-shell-callout font-medium text-white/85 ring-1 ring-white/15 transition-colors hover-fill:bg-white/14"
             >
               <UserPlusIcon className="size-3.5" />
               <span>{_("Not listed?")}</span>
@@ -643,13 +643,13 @@ export const LoginScreenApp: React.FC<LoginScreenAppProps> = ({
                 onChange={(e) => setManualUsername(e.target.value)}
                 placeholder={_("Username")}
                 aria-label={_("Username")}
-                className="h-9 w-full rounded-[10px] border border-white/20 bg-black/30 pr-9 pl-3 text-adw-body text-white placeholder:text-white/45 focus:border-white/40 focus:outline-none"
+                className="h-9 w-full rounded-[10px] border border-white/20 bg-black/30 pr-9 pl-3 text-shell-body text-white placeholder:text-white/45 focus:border-white/40 focus:outline-none"
               />
               <button
                 type="submit"
                 disabled={!manualUsername.trim()}
                 aria-label={_("Next")}
-                className="absolute right-1.5 flex size-6 items-center justify-center rounded-adw-control bg-adw-accent text-white transition-all hover-fill:brightness-110 active:scale-95 disabled:opacity-40"
+                className="absolute right-1.5 flex size-6 items-center justify-center rounded-shell-control bg-shell-accent text-white transition-all hover-fill:brightness-110 active:scale-95 disabled:opacity-40"
               >
                 <ArrowRightIcon className="size-3.5" />
               </button>

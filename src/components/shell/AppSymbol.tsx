@@ -89,7 +89,7 @@ export function AppSquircleIcon({
     return (
       <GlobeIcon
         aria-hidden="true"
-        className={cn("shrink-0 text-adw-label-secondary", className)}
+        className={cn("shrink-0 text-shell-label-secondary", className)}
       />
     );
   }
@@ -97,7 +97,7 @@ export function AppSquircleIcon({
   return (
     <AppWindowIcon
       aria-hidden="true"
-      className={cn("shrink-0 text-adw-label-secondary", className)}
+      className={cn("shrink-0 text-shell-label-secondary", className)}
     />
   );
 }
