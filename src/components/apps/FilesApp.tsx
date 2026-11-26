@@ -9,6 +9,9 @@ import {
   nextListViewSort,
 } from "@/components/ui/list-view";
 import * as React from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useVfsList, useVfsQuery, useVfsRefresh, useVfsText } from "@/hooks/use-vfs";
+import { vfsKeys } from "@/lib/engine/vfs-query";
 import { useCapabilities } from "@/hooks/use-capabilities";
 import { usePopupSurface } from "@/lib/shell/popup-layer";
 import { createPortal } from "react-dom";
@@ -131,18 +134,15 @@ import {
   createFsFolder,
   createFsTextFile,
   emptyFsTrash,
-  listFsDir as bridgeListFsDir,
   listFsFavoriteEntries,
   listFsRecentEntries,
   listFsTemplates,
   moveFsEntry,
-  readFsTextFile,
   recordFsRecentFile,
   writeFsTextFile,
   renameFsEntry,
   restoreFsEntry,
   trashFsEntry,
-  watchFsDir,
 } from "@/lib/engine/fs-bridge";
 import {
   onFileUndoApplied,
@@ -269,6 +269,8 @@ const LIST_ZOOM_LEVELS = ICON_SIZES;
 /** A folder shows its opening this long before Folders navigates into it. */
 const FOLDER_OPEN_DELAY_MS = 180;
 
+const NO_ENTRIES: WebVfsEntry[] = [];
+
 /** The Folders View menu, shared with the menu bar (catalog). */
 const filesViewMenuItems = () =>
   APP_CATALOG.find((app) => app.id === "nautilus")?.menus.find(
@@ -334,9 +336,15 @@ export function FilesApp({
   const infoPane = useInfoPane("files-info");
   const { open: infoPaneOpen, setOpen: setInfoPaneOpen } = infoPane;
   const [showHidden, setShowHidden] = React.useState(false);
-  const [vfsEntries, setVfsEntries] = React.useState<WebVfsEntry[]>(() =>
-    listVfsDir(currentPath)
-  );
+  // Favorites, Recents and Apps are built from everywhere; real folders are
+  // VFS queries, refreshed by their watch.
+  const isVirtualListing =
+    currentPath === WEB_VFS_FAVORITES_URI ||
+    currentPath === WEB_VFS_RECENTS_URI ||
+    currentPath === WEB_VFS_APPS_URI;
+  const [virtualEntries, setVirtualEntries] = React.useState<WebVfsEntry[]>([]);
+  const folderListing = useVfsList(isVirtualListing ? null : currentPath).data;
+  const vfsEntries = isVirtualListing ? virtualEntries : (folderListing ?? NO_ENTRIES);
   const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
   const [renamingId, setRenamingId] = React.useState<string | null>(null);
     const [itemMenu, setItemMenu] =
@@ -346,9 +354,12 @@ export function FilesApp({
   );
   const [bgNewSubOpen, setBgNewSubOpen] = React.useState(false);
   usePopupSurface(Boolean(bgMenu), () => setBgMenu(null));
-  const [templates, setTemplates] = React.useState<WebVfsEntry[]>(() =>
-    listVfsTemplates()
-  );
+  const templatesDir = resolveVfsTemplatesDir();
+  const templates =
+    useVfsQuery(vfsKeys.templates(templatesDir), templatesDir, () =>
+      realFilesystem ? listFsTemplates(piloti) : Promise.resolve(listVfsTemplates()),
+    ).data ?? NO_ENTRIES;
+  const refreshVfs = useVfsRefresh();
 
   React.useEffect(() => {
     if (!bgMenu) setBgNewSubOpen(false);
@@ -392,43 +403,28 @@ export function FilesApp({
     return set;
   }, [windows]);
 
-  const listRequestRef = React.useRef(0);
   const reloadDir = React.useCallback(() => {
-    if (!realFilesystem) {
-      setTemplates(listVfsTemplates());
-    } else {
-      void listFsTemplates(piloti).then((list) => {
-        setTemplates(list);
-      });
-    }
+    refreshVfs(vfsKeys.templates(templatesDir));
     if (currentPath === WEB_VFS_APPS_URI) {
-      setVfsEntries([]);
+      setVirtualEntries([]);
       return;
     }
     if (currentPath === WEB_VFS_FAVORITES_URI) {
-      setVfsEntries(listVfsFavoriteEntries());
+      setVirtualEntries(listVfsFavoriteEntries());
       if (realFilesystem) {
-        void listFsFavoriteEntries(piloti).then((entries) => setVfsEntries(entries));
+        void listFsFavoriteEntries(piloti).then((entries) => setVirtualEntries(entries));
       }
       return;
     }
     if (currentPath === WEB_VFS_RECENTS_URI) {
-      setVfsEntries(listVfsRecentEntries());
+      setVirtualEntries(listVfsRecentEntries());
       void listFsRecentEntries(piloti).then((entries) => {
-        setVfsEntries(entries);
+        setVirtualEntries(entries);
       });
       return;
     }
-    if (!realFilesystem) {
-      setVfsEntries(listVfsDir(currentPath, { includeHidden: showHidden }));
-      return;
-    }
-    // Only the latest listing counts: an earlier, slower one may be stale.
-    const request = ++listRequestRef.current;
-    void bridgeListFsDir(piloti, currentPath).then((entries) => {
-      if (request === listRequestRef.current) setVfsEntries(entries);
-    });
-  }, [currentPath, piloti, realFilesystem, showHidden]);
+    refreshVfs(vfsKeys.list(currentPath));
+  }, [currentPath, piloti, realFilesystem, refreshVfs, templatesDir]);
   const archive = useArchiveActions(reloadDir);
 
   React.useEffect(() => onFileUndoApplied(reloadDir), [reloadDir]);
@@ -734,23 +730,12 @@ export function FilesApp({
   };
 
   React.useEffect(() => {
+    // Virtual views depend on emblems/access counts anywhere, so they listen to
+    // everything. Real folders and templates are watched by their queries.
+    if (!isVirtualListing) return;
     reloadDir();
-    // Virtual views (Favorites, Recents, Apps) depend on emblems/access counts
-    // anywhere, so they listen to everything; real folders only to their children.
-    const isVirtualView =
-      currentPath === WEB_VFS_FAVORITES_URI ||
-      currentPath === WEB_VFS_RECENTS_URI ||
-      currentPath === WEB_VFS_APPS_URI;
-    if (isVirtualView) return subscribeWebVfs(() => reloadDir());
-    const stopDir = watchFsDir(piloti, currentPath, reloadDir);
-    const stopTemplates = subscribeWebVfs(() => reloadDir(), [
-      { path: resolveVfsTemplatesDir(), mode: "children" },
-    ]);
-    return () => {
-      stopDir();
-      stopTemplates();
-    };
-  }, [currentPath, piloti, reloadDir]);
+    return subscribeWebVfs(() => reloadDir());
+  }, [isVirtualListing, reloadDir]);
 
   React.useEffect(() => {
     if (!initialPath) return;
@@ -938,24 +923,21 @@ export function FilesApp({
 
   // Sidebar bookmarks: the same GTK file Nautilus and file choosers use.
   const bookmarksFile = `${WEB_VFS_HOME}/${GTK_BOOKMARKS_RELATIVE_PATH}`;
-  const [bookmarks, setBookmarks] = React.useState<GtkBookmark[]>([]);
-  const loadBookmarks = React.useCallback(() => {
-    void readFsTextFile(piloti, bookmarksFile).then((text) =>
-      setBookmarks(parseGtkBookmarks(text)),
-    );
-  }, [bookmarksFile, piloti, realFilesystem]);
-  // The watch calls once when in place: the first load too.
-  React.useEffect(
-    () => piloti.vfs.watch(bookmarksFile, loadBookmarks),
-    [bookmarksFile, piloti.vfs, loadBookmarks],
+  const bookmarksText = useVfsText(bookmarksFile).data;
+  const bookmarks = React.useMemo(
+    () => parseGtkBookmarks(bookmarksText ?? ""),
+    [bookmarksText],
   );
+  const queryClient = useQueryClient();
   const saveBookmarks = React.useCallback(
     async (next: GtkBookmark[]) => {
-      setBookmarks(next);
+      const text = serializeGtkBookmarks(next);
+      // Shown at once; the watch confirms once the file is written.
+      queryClient.setQueryData(vfsKeys.text(bookmarksFile), text);
       if (realFilesystem) await hostFiles(piloti).createDir(".config/gtk-3.0").catch(() => undefined);
-      void writeFsTextFile(piloti, bookmarksFile, serializeGtkBookmarks(next));
+      void writeFsTextFile(piloti, bookmarksFile, text);
     },
-    [bookmarksFile, piloti, realFilesystem],
+    [bookmarksFile, piloti, queryClient, realFilesystem],
   );
   const bookmarkedPaths = React.useMemo(() => new Set(bookmarks.map((b) => b.path)), [bookmarks]);
   const toggleBookmark = React.useCallback(

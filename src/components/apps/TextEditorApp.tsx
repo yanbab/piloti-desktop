@@ -1,4 +1,5 @@
 import * as React from "react";
+import { retainVfsWatch } from "@/lib/engine/vfs-query";
 import {
   defaultKeymap,
   history,
@@ -706,7 +707,8 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
     };
     // Only this file: the editor's own state writes (cursor, scroll) must not
     // trigger a re-read of the document. Calls once when in place.
-    const unsub = host.vfs.watch(filePath, syncFromDisk);
+    // Shared with other views of the file; not cached (an open document).
+    const unsub = retainVfsWatch(host.vfs, filePath, () => syncFromDisk());
     return () => {
       cancelled = true;
       unsub();

@@ -17,14 +17,14 @@ import { useExternalFileDrop } from "@/hooks/use-external-file-drop";
 import { useFolderOps } from "@/hooks/use-folder-ops";
 import { useLauncherItems } from "@/hooks/use-launcher-items";
 import { useOpenPath } from "@/hooks/use-open-path";
+import { useVfsList, useVfsRefresh } from "@/hooks/use-vfs";
+import { vfsKeys } from "@/lib/engine/vfs-query";
 import { _ } from "@/lib/core/i18n";
 import { startBootPhase } from "@/lib/core/perf-log";
 import {
   createFsFileFromTemplate,
   createFsFolder,
   createFsTextFile,
-  listFsDir,
-  watchFsDir,
 } from "@/lib/engine/fs-bridge";
 import {
   onFileUndoApplied,
@@ -33,12 +33,14 @@ import {
   undoFileOperation,
 } from "@/lib/engine/fs-undo";
 import { usePiloti } from "@/lib/engine/piloti";
-import { downloadVfsFile, listVfsDir, toggleVfsEmblem } from "@/lib/engine-web/web-vfs";
+import { downloadVfsFile, toggleVfsEmblem } from "@/lib/engine-web/web-vfs";
 import { getVfsClipboard, setVfsClipboard, subscribeVfsClipboard } from "@/lib/core/vfs-clipboard";
 import { type WebVfsEntry } from "@/lib/core/vfs-paths";
 import { onShellEvent } from "@/lib/shell/shell-events";
 import { type IconGridItem, sortDesktopItems } from "@/lib/shell/desktop-icons";
 import { hiddenNamesOf, vfsEntryToGridItem, entryVisual } from "@/lib/shell/folder-items";
+
+const NO_ENTRIES: WebVfsEntry[] = [];
 
 /**
  * The desktop: the XDG Desktop folder's icons over the wallpaper (below
@@ -58,7 +60,6 @@ export function DesktopIconsApp({
   const { openPath, openPathWith } = useOpenPath();
   const desktopDirPath = useDesktopDirPath();
 
-  const [entries, setEntries] = React.useState<WebVfsEntry[]>([]);
   const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
   const [renamingId, setRenamingId] = React.useState<string | null>(null);
   const [clipboard, setLocalClipboard] = React.useState(() => getVfsClipboard());
@@ -70,56 +71,41 @@ export function DesktopIconsApp({
     [],
   );
 
+  // Debug mode lists the folder without waiting for the essential icons.
+  const listingEnabled =
+    settings.desktopIconsEnabled && (dockIconsReady || settings.debugMode);
+  // Our own operations and other programs' (inotify via Domicile) refresh it.
+  const listing = useVfsList(listingEnabled ? desktopDirPath : null);
+  const entries = (settings.desktopIconsEnabled && listing.data) || NO_ENTRIES;
+  const refresh = useVfsRefresh();
+  const reload = React.useCallback(
+    () => refresh(vfsKeys.list(desktopDirPath)),
+    [desktopDirPath, refresh],
+  );
+
   const finishBootPhaseRef = React.useRef<((note: string) => void) | null | undefined>(
     undefined,
   );
-  const listRequestRef = React.useRef(0);
-  const reload = React.useCallback(() => {
-    if (!settings.desktopIconsEnabled) return;
-    if (finishBootPhaseRef.current === undefined) {
+  React.useEffect(() => {
+    if (listingEnabled && finishBootPhaseRef.current === undefined) {
       finishBootPhaseRef.current = startBootPhase("desktop icons");
     }
-    const show = (list: WebVfsEntry[]) => {
-      setEntries(list);
-      finishBootPhaseRef.current?.(`${list.length} items`);
-      finishBootPhaseRef.current = null;
-    };
-    if (!realFilesystem) {
-      show(listVfsDir(desktopDirPath));
-      return;
-    }
-    // Only the latest listing counts: an earlier, slower one may be stale.
-    const request = ++listRequestRef.current;
-    void listFsDir(piloti, desktopDirPath).then((list) => {
-      if (request === listRequestRef.current) show(list);
-    });
-  }, [desktopDirPath, piloti, realFilesystem, settings.desktopIconsEnabled]);
+  }, [listingEnabled]);
+  React.useEffect(() => {
+    if (!listing.data || !finishBootPhaseRef.current) return;
+    finishBootPhaseRef.current(`${listing.data.length} items`);
+    finishBootPhaseRef.current = null;
+  }, [listing.data]);
+
   const archive = useArchiveActions(reload);
 
   React.useEffect(() => onFileUndoApplied(reload), [reload]);
 
   React.useEffect(() => {
-    // Debug mode lists the folder without waiting for the essential icons.
-    if (!settings.desktopIconsEnabled || (!dockIconsReady && !settings.debugMode)) return;
-    reload();
-    // Our own operations, plus other programs' (inotify via Domicile).
-    const stopWatch = watchFsDir(piloti, desktopDirPath, () => {
-      if (!locked) reload();
-    });
+    if (!listingEnabled || locked) return;
     window.addEventListener("focus", reload);
-    return () => {
-      stopWatch();
-      window.removeEventListener("focus", reload);
-    };
-  }, [
-    desktopDirPath,
-    piloti,
-    dockIconsReady,
-    settings.debugMode,
-    reload,
-    locked,
-    settings.desktopIconsEnabled,
-  ]);
+    return () => window.removeEventListener("focus", reload);
+  }, [listingEnabled, locked, reload]);
 
   const fileItems = React.useMemo(() => {
     const hidden = hiddenNamesOf(entries, desktopDirPath);

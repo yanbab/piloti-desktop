@@ -2,7 +2,8 @@ import { hostFiles } from "@/lib/engine/host-files";
 import { startBootPhase } from "@/lib/core/perf-log";
 import { VFS_HOME } from "@/lib/engine/vfs-home";
 import * as React from "react";
-import { extendDomicile, usePiloti } from "@/lib/engine/piloti";
+import { extendDomicile, type PilotiShellApi, usePiloti } from "@/lib/engine/piloti";
+import { listSettingsSchemas, settingsFor } from "@/lib/engine/settings";
 import {
   useSettings,
   useSystemBackends,
@@ -201,7 +202,19 @@ export function PluginsProvider({
           }),
       },
       settings: {
-        get: () => shellActionsRef.current.settings,
+        get: ((schema?: string, key?: string) =>
+          schema === undefined || key === undefined
+            ? shellActionsRef.current.settings
+            : settingsFor(schema).get(key)) as PilotiShellApi["settings"]["get"],
+        set: (schema, key, value) => settingsFor(schema).set(key, value),
+        reset: (schema, key) => settingsFor(schema).reset(key),
+        watch: (schema, key, onChange) => {
+          const settings = settingsFor(schema);
+          return settings.subscribe(key, () => onChange(settings.get(key)));
+        },
+        get schemas() {
+          return listSettingsSchemas();
+        },
         update: (patch) =>
           shellActionsRef.current.updateSettings(patch as Parameters<typeof updateSettings>[0]),
       },

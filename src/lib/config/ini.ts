@@ -39,3 +39,16 @@ export function serializeIniText(data: IniRecord): string {
   return sections.join("\n\n") + (sections.length > 0 ? "\n" : "");
 }
 
+
+/**
+ * `generated` laid over `existing`: its keys win, everything else in `existing`
+ * (other sections, keys it doesn't know) is kept. For files several writers share.
+ */
+export function mergeIniText(existing: string | null, generated: string): string {
+  if (!existing || !existing.trim()) return generated;
+  const out = parseIniText(existing);
+  for (const [section, entries] of Object.entries(parseIniText(generated))) {
+    out[section] = { ...(out[section] ?? {}), ...entries };
+  }
+  return serializeIniText(out);
+}

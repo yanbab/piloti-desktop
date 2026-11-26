@@ -81,6 +81,10 @@ import { getVfsClipboard, subscribeVfsClipboard } from "@/lib/core/vfs-clipboard
 import { listVfsTemplates, resolveVfsTemplatesDir } from "@/lib/engine-web/web-vfs";
 import { type WebVfsEntry } from "@/lib/core/vfs-paths";
 import { listFsTemplates } from "@/lib/engine/fs-bridge";
+import { useVfsQuery } from "@/hooks/use-vfs";
+import { vfsKeys } from "@/lib/engine/vfs-query";
+
+const NO_TEMPLATES: WebVfsEntry[] = [];
 
 installConsoleCapture();
 logBootEvent("starting shell");
@@ -139,22 +143,11 @@ function DesktopSurface() {
     });
   }, []);
 
-  const [templates, setTemplates] = React.useState<WebVfsEntry[]>(() =>
-    listVfsTemplates()
-  );
-  React.useEffect(() => {
-    const syncTemplates = () => {
-      if (!systemServices) {
-        setTemplates(listVfsTemplates());
-      } else {
-        void listFsTemplates(piloti).then((list) =>
-          setTemplates(list)
-        );
-      }
-    };
-    syncTemplates();
-    return piloti.vfs.watch(resolveVfsTemplatesDir(), syncTemplates);
-  }, [piloti, systemServices]);
+  const templatesDir = resolveVfsTemplatesDir();
+  const templates =
+    useVfsQuery(vfsKeys.templates(templatesDir), templatesDir, () =>
+      systemServices ? listFsTemplates(piloti) : Promise.resolve(listVfsTemplates()),
+    ).data ?? NO_TEMPLATES;
 
   const brightnessFilter =
     settings.brightness < 100

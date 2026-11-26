@@ -1,5 +1,7 @@
 import { hostFiles } from "@/lib/engine/host-files";
 import * as React from "react";
+import { useVfsQuery, useVfsRefresh } from "@/hooks/use-vfs";
+import { vfsKeys } from "@/lib/engine/vfs-query";
 import {
   closestCenter,
   DndContext,
@@ -131,7 +133,6 @@ export const Dock = React.memo(function Dock() {
   } = useWindowActions();
   const altPressed = useAltKey();
 
-  const [trashEmpty, setTrashEmpty] = React.useState(true);
   const [entered, setEntered] = React.useState(false);
 
   React.useEffect(() => {
@@ -322,30 +323,22 @@ export const Dock = React.memo(function Dock() {
   );
   const trashPaths = React.useMemo(() => resolveXdgTrashPaths(), []);
 
-  const refreshTrashStatus = React.useCallback(async () => {
-    if (isBrowserRuntime) {  // FIXME : Capabilities
-      const items = listVfsDir(WEB_VFS_TRASH);
-      setTrashEmpty(items.length === 0);
-      return;
-    }
-    const status = await inspectXdgTrash(hostFiles(piloti), ".local/share/Trash/files");
-    setTrashEmpty(status.empty);
-  }, [piloti, isBrowserRuntime]);  // FIXME : Capabilities
-
+  // Live with the Trash folder's watch; focus re-checks too.
+  const trashEmpty =
+    useVfsQuery(vfsKeys.trashEmpty(WEB_VFS_TRASH), WEB_VFS_TRASH, async () => {
+      if (isBrowserRuntime) return listVfsDir(WEB_VFS_TRASH).length === 0;  // FIXME : Capabilities
+      return (await inspectXdgTrash(hostFiles(piloti), ".local/share/Trash/files")).empty;
+    }).data ?? true;
+  const refreshVfs = useVfsRefresh();
+  const refreshTrashStatus = React.useCallback(
+    async () => refreshVfs(vfsKeys.trashEmpty(WEB_VFS_TRASH)),
+    [refreshVfs],
+  );
   React.useEffect(() => {
-    let active = true;
-    const refresh = () => {
-      if (active) void refreshTrashStatus();
-    };
+    const refresh = () => void refreshTrashStatus();
     window.addEventListener("focus", refresh);
-    // Calls once when in place, then when the Trash changes.
-    const unwatch = piloti.vfs.watch(WEB_VFS_TRASH, refresh);
-    return () => {
-      active = false;
-      unwatch();
-      window.removeEventListener("focus", refresh);
-    };
-  }, [piloti.vfs, refreshTrashStatus]);
+    return () => window.removeEventListener("focus", refresh);
+  }, [refreshTrashStatus]);
 
   const resolveAppDefinition = React.useCallback(
     (appId: string): AppDefinition | null => {

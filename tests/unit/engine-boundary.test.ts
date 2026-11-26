@@ -27,6 +27,24 @@ describe("engine boundary", () => {
 });
 
 /**
+ * Views read files with `hooks/use-vfs.ts` (cached, one shared watch per path)
+ * or `retainVfsWatch`; a direct `vfs.watch` would open its own inotify watch.
+ */
+describe("vfs watch boundary", () => {
+  it("only engine code calls vfs.watch", () => {
+    const offenders = sources(SRC)
+      .filter((file) =>
+        fs
+          .readFileSync(file, "utf8")
+          .split("\n")
+          .some((line) => !/^\s*(\/\/|\*|\/\*)/.test(line) && /\bvfs\??\.watch\(/.test(line))
+      )
+      .map((file) => path.relative(SRC, file));
+    expect(offenders).toEqual([]);
+  });
+});
+
+/**
  * On Linux files are reached through `piloti.vfs`; `web-vfs` is the browser
  * demo's storage. These files still use it (favorites, emblems, templates,
  * clipboard, rename events, demo-only paths): the list may only get shorter.

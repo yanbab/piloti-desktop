@@ -121,6 +121,14 @@ for (const [engine, create] of [["native", native], ["web", web]] as const) {
       expect(await vfs.stat(dir)).toBeNull();
     });
 
+    it("refuses to restore what isn't in the Trash", async () => {
+      const { vfs, dir } = await setup();
+      await vfs.write(`${dir}/stay`, "x");
+      await expect(vfs.restore(dir)).rejects.toThrow();
+      await expect(vfs.restore(undefined as unknown as string)).rejects.toThrow();
+      expect(await vfs.readText(`${dir}/stay`)).toBe("x");
+    });
+
     it("sets and reads metadata", async () => {
       const { vfs, dir } = await setup();
       await vfs.write(`${dir}/a`, "x");

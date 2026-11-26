@@ -205,6 +205,10 @@ export function createWebVfs(domicile: Pick<Domicile, "files">): Vfs {
         trashVfsEntry(path);
       }),
     async restore(trashPath) {
+      // Anything else would be moved out of its place (the home folder itself).
+      if (!trashPath?.startsWith(`${WEB_VFS_TRASH}/`)) {
+        throw new VfsError("not-found", `${trashPath}: not in the Trash`);
+      }
       required(trashPath);
       const restored = restoreVfsEntry(trashPath);
       if (!restored) throw new VfsError("failed", `could not restore ${trashPath}`);

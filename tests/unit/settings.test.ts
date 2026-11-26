@@ -5,6 +5,16 @@ import {
   memorySettingsBackend,
   setSettingsBackend,
 } from "@/lib/engine/settings";
+import {
+  SHELL_SETTINGS_PATH,
+  findSettings,
+  listSettingsSchemas,
+  settingsFor,
+  settingsPathForSchema,
+} from "@/lib/engine/settings";
+import { desktopSchemaDefaults } from "@/lib/config/piloti-settings-ini";
+import type { DesktopSettings } from "@/context/SettingsContext";
+import { mergeIniText } from "@/lib/config/ini";
 import { setStateSource } from "@/lib/engine/vfs-state";
 import {
   appSettingsPath,
@@ -80,11 +90,11 @@ describe("settings", () => {
     expect(calls).toBe(1);
   });
 
-  it("stores a keyfile per schema and follows edits to it", () => {
+  it("stores a built-in app's schema in its app file and follows edits to it", () => {
     const state = memoryStateSource();
     setStateSource(state);
-    setSettingsBackend(keyfileSettingsBackend({ dir: "/home/user/.config/piloti/settings" }));
-    const path = "/home/user/.config/piloti/settings/org.piloti.test.ini";
+    setSettingsBackend(keyfileSettingsBackend());
+    const path = appSettingsPath("test");
     const s = defineSettings("org.piloti.test", defaults);
 
     s.set("scientific", true);
@@ -110,7 +120,7 @@ describe("settings", () => {
     const state = memoryStateSource();
     setStateSource(state);
     setSettingsBackend(
-      keyfileSettingsBackend({ dir: "/s", fileName: () => "app", section: () => "General" }),
+      keyfileSettingsBackend({ path: () => "/s/app.ini", section: () => "General", dirs: ["/s"] }),
     );
     state.write("/s/app.ini", "[Desktop Entry]\nName=App\n");
     const s = defineSettings("app", { dark: false });
@@ -134,5 +144,61 @@ describe("app settings", () => {
     expect(getAppSetting("org.example.App", "color-scheme")).toBeUndefined();
     expect(calls).toBe(2);
     stop();
+  });
+});
+
+describe("settings files", () => {
+  it("picks one file per owner from the schema id", () => {
+    expect(settingsPathForSchema("org.piloti.desktop")).toBe(SHELL_SETTINGS_PATH);
+    expect(settingsPathForSchema("org.piloti.desktop.dock")).toBe(SHELL_SETTINGS_PATH);
+    expect(settingsPathForSchema("org.piloti.calculator")).toBe(appSettingsPath("calculator"));
+    expect(settingsPathForSchema("org.piloti.calculator.history")).toBe(appSettingsPath("calculator"));
+    expect(settingsPathForSchema("org.gnome.TextEditor")).toBe(appSettingsPath("org.gnome.TextEditor"));
+  });
+
+  it("an app's schema and the shell's keys for it share the file", () => {
+    const state = memoryStateSource();
+    setStateSource(state);
+    setSettingsBackend(keyfileSettingsBackend());
+    setAppSetting("calculator", "color-scheme", "dark");
+    defineSettings("org.piloti.calculator", { scientific: false }).set("scientific", true);
+    expect(state.data.get(appSettingsPath("calculator"))).toBe(
+      "[General]\ncolor-scheme=dark\n\n[org.piloti.calculator]\nscientific=true\n",
+    );
+    expect(getAppSetting("calculator", "color-scheme")).toBe("dark");
+  });
+
+  it("mergeIniText keeps what the generated text doesn't hold", () => {
+    expect(mergeIniText("[a]\nx=1\nkeep=1\n\n[b]\ny=2\n", "[a]\nx=9\n")).toBe(
+      "[a]\nx=9\nkeep=1\n\n[b]\ny=2\n",
+    );
+    expect(mergeIniText(null, "[a]\nx=1\n")).toBe("[a]\nx=1\n");
+  });
+});
+
+describe("schema registry", () => {
+  it("finds defined schemas and gives untyped access to others", () => {
+    setSettingsBackend(memorySettingsBackend());
+    const s = defineSettings("org.piloti.registry-test", { size: 3 });
+    expect(findSettings("org.piloti.registry-test")).toBe(s as never);
+    expect(listSettingsSchemas()).toContain("org.piloti.registry-test");
+
+    const other = settingsFor("org.example.Unknown");
+    expect(other.get("anything")).toBeUndefined();
+    other.set("anything", "42");
+    expect(other.get("anything")).toBe("42");
+    expect(listSettingsSchemas()).not.toContain("org.example.Unknown");
+  });
+
+  it("turns settings.ini's table into desktop schemas", () => {
+    const schemas = desktopSchemaDefaults({
+      dockSize: 48,
+      pinnedAppIds: ["a", "b"],
+      gnomeBackground: { pictureOptions: "zoom" },
+    } as unknown as DesktopSettings);
+    expect(schemas["org.piloti.desktop.dock"]?.["icon-size"]).toBe(48);
+    expect(schemas["org.piloti.desktop.dock"]?.["pinned-apps"]).toEqual(["a", "b"]);
+    expect(schemas["org.piloti.desktop.background"]?.["picture-options"]).toBe("zoom");
+    expect(schemas["org.piloti.desktop.dock"]).not.toHaveProperty("position");
   });
 });

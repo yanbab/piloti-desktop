@@ -1,5 +1,4 @@
 import * as React from "react";
-import { usePiloti } from "@/lib/engine/piloti";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,7 +9,7 @@ import { DynamicFileIcon, DynamicFolderIcon } from "@/data/folder-icons";
 import { useOpenPath } from "@/hooks/use-open-path";
 import { useSettings, useWindowActions } from "@/context/DesktopStateContext";
 import { _ } from "@/lib/core/i18n";
-import { listFsDir } from "@/lib/engine/fs-bridge";
+import { useVfsList } from "@/hooks/use-vfs";
 import { type WebVfsEntry } from "@/lib/core/vfs-paths";
 import { dockFolderLabel } from "@/lib/shell/dock-folders";
 import { inferFileVisual } from "@/lib/shell/desktop-icons";
@@ -31,34 +30,22 @@ export function DockFolderStack({
   dockPosition,
   onClose,
 }: DockFolderStackProps) {
-  const piloti = usePiloti();
   const { settings } = useSettings();
   const { launchApp } = useWindowActions();
   const { openPath } = useOpenPath();
-  const [entries, setEntries] = React.useState<WebVfsEntry[] | null>(null);
-
-  React.useEffect(() => {
-    let cancelled = false;
-    const load = async () => {
-      const list = await listFsDir(piloti, path);
-      if (cancelled) return;
-      const visible = list.filter((e) => !e.name.startsWith("."));
-      visible.sort((a, b) => {
-        if (a.kind !== b.kind) return a.kind === "directory" ? -1 : 1;
-        return a.name.localeCompare(b.name, undefined, {
-          sensitivity: "base",
-          numeric: true,
-        });
+  const listing = useVfsList(path).data;
+  const entries = React.useMemo(() => {
+    if (!listing) return null;
+    const visible = listing.filter((e) => !e.name.startsWith("."));
+    visible.sort((a, b) => {
+      if (a.kind !== b.kind) return a.kind === "directory" ? -1 : 1;
+      return a.name.localeCompare(b.name, undefined, {
+        sensitivity: "base",
+        numeric: true,
       });
-      setEntries(visible);
-    };
-    // Calls once when in place, then when the folder changes.
-    const unwatch = piloti.vfs.watch(path, () => void load());
-    return () => {
-      cancelled = true;
-      unwatch();
-    };
-  }, [piloti, path]);
+    });
+    return visible;
+  }, [listing]);
 
   const openFolder = React.useCallback(
     (target: string) => {

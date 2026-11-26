@@ -1,5 +1,6 @@
 import type { DesktopSettings } from "@/context/SettingsContext";
 import { type IniRecord, parseIniText, serializeIniText } from "./ini";
+import type { SettingValue } from "@/lib/ports/settings";
 
 type FieldKind = "string" | "boolean" | "number" | "string[]";
 
@@ -159,6 +160,25 @@ export function serializeDesktopSettingsIni(settings: DesktopSettings): string {
     }
   }
   return serializeIniText(rec);
+}
+
+/**
+ * settings.ini as schemas (`org.piloti.desktop.dock` → `{ "icon-size": 48, … }`),
+ * with `defaults`' values, for `defineSettings`. Unset optional props are left out.
+ */
+export function desktopSchemaDefaults(
+  defaults: DesktopSettings,
+): Record<string, Record<string, SettingValue>> {
+  const out: Record<string, Record<string, SettingValue>> = {};
+  const put = (section: string, key: string, value: unknown) => {
+    if (value === undefined || value === null) return;
+    (out[section] ??= {})[key] = value as SettingValue;
+  };
+  for (const [section, iniKey, prop] of SETTINGS_INI_SCHEMA) put(section, iniKey, defaults[prop]);
+  for (const [iniKey, prop] of BG_SCHEMA) {
+    put("org.piloti.desktop.background", iniKey, defaults.gnomeBackground[prop]);
+  }
+  return out;
 }
 
 /** The values of `next` that differ from `prev`, among those settings.ini holds. */

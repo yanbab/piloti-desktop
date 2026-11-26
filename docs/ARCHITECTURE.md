@@ -1,62 +1,83 @@
 # Architecture
 
-One React tree (shell + built-in apps) runs on two engines. For where things are in the code, see the Map in [AGENT-GUIDE.md](./AGENT-GUIDE.md).
+One React tree (shell and built-in apps) runs on two engines. For where things are in the code, see the Map in [AGENT-GUIDE.md](./AGENT-GUIDE.md).
 
-## Engines and ports
+Also: [PILOTI-API.md](./PILOTI-API.md), [APP-MODULES.md](./APP-MODULES.md), [GNOME-REUSE.md](./GNOME-REUSE.md), [PLUGINS.md](./PLUGINS.md), [ICONS.md](./ICONS.md), [WEB-APPS.md](./WEB-APPS.md).
 
-- **Native** (`src/piloti-desktop.tsx`, `src/lib/engine-native/`): the Wayland session. Mounted inside Domicile's compositor; real windows are `<app>` surfaces; Linux services come from Domicile's `@domicile-desktop/system-*` libraries, D-Bus, gsettings and `processes.run`.
-- **Web** (`src/piloti-web.tsx`, `src/lib/engine-web/`): the browser demo on `createBrowserDomicile()` (fake host, in-browser VFS, simulated hardware). Builds to `docs/demo/`.
-- Each entry point calls `setEngine()` (`src/lib/engine/engine.ts`) with capability flags `realFilesystem`, `systemServices`, `simulatedHardware`. Shared code asks `useCapabilities()` / `getEngine().capabilities`, not which engine it is on (older code still checks `isBrowserRuntime`; those spots are marked `FIXME : Capabilities`).
-- Files: `piloti.vfs` (`src/lib/ports/vfs.ts`), added to Domicile's desktop by each entry point. Native (`engine-native/vfs.ts`): the disk through `domicile.files`, coreutils and `gio`, with shared folder watches (`vfs-watch.ts`). Web (`engine-web/vfs.ts`): the browser VFS (`web-vfs.ts`).
-- Config and state files are read synchronously (`engine/vfs-state.ts`): from a store loaded at start and kept current from disk on native (`engine-native/state-store.ts`), from the browser VFS on the web.
-- The native bundle never imports the web engine or the demo tree (`piloti-web.tsx` injects the seed with `setVfsSeed`).
-- Built-in apps (Settings, Folders, Terminal, Text Editor, Image Viewer, Calculator, App Store, Camera, Desktop Console, spatial Desktop) run in the shell next to Wayland/XDG windows and web view windows. Heavier apps can be separate Domicile modules: see [APP-MODULES.md](./APP-MODULES.md).
+## Engines
 
-Other references: [NATIVE.md](./NATIVE.md) (Wayland toolkits, portals, XDG coverage), [GNOME-REUSE.md](./GNOME-REUSE.md) (GNOME services we reuse), [PLUGINS.md](./PLUGINS.md), [ICONS.md](./ICONS.md), [WEB-APPS.md](./WEB-APPS.md) (web apps that work in the demo).
+| | Native | Web |
+|---|---|---|
+| Entry | `src/piloti-desktop.tsx` | `src/piloti-web.tsx` |
+| Code | `src/lib/engine-native/` | `src/lib/engine-web/` |
+| Host | Domicile compositor | `createBrowserDomicile()`, builds to `docs/demo/` |
+| Files (`piloti.vfs`) | the disk: `domicile.files`, coreutils, `gio`; shared folder watches | `web-vfs.ts` (localStorage, IndexedDB) |
+| System | `@domicile-desktop/system-*`, D-Bus, gsettings, `processes.run` | simulated |
 
----
+- Each entry calls `setEngine()` (`lib/engine/engine.ts`) with `realFilesystem`, `systemServices` and `simulatedHardware`. Shared code checks capabilities, not the engine. Older `isBrowserRuntime` checks are marked `FIXME : Capabilities`.
+- Config and state files are read synchronously (`engine/vfs-state.ts`); natively from a store that follows the disk.
+- The native bundle never imports the web engine or the demo seed (`setVfsSeed`).
+- Built-in apps run in the shell. Heavier apps can be separate Domicile modules.
 
-## Key Subsystems
+## Native layers
 
-### 1. Layered State & Render Isolation (`src/context/DesktopStateContext.tsx`)
+1. **Domicile engine** (Chromium on DRM): renders `dist/shell.js`, reads input, embeds Wayland clients as `<app>` elements.
+2. **Domicile compositor** (Rust/Smithay): Wayland, `xdg_shell`, decorations, portal backends, IPC.
+3. **Piloti shell**: the desktop UI and system bridges.
 
-`DesktopStateProvider` composes four ordered layers:
+The DOM drives window bounds while the engine forwards input to `<app>`, so a Wayland bug can sit in the toolkit, compositor, engine or shell.
 
-`SettingsProvider` → `SystemBackendsProvider` → `WindowsLayer` (`AppsProvider` inside)
+## Shell
 
-Notice `WindowsContext` is split into **state+actions (`WindowsContext`)** and **action-only (`WindowActionsContext`)** so shell components and isolated frames calling `useWindowActions()` do not re-render on every window focus or geometry tick.
+**State.** `DesktopStateProvider` nests settings, system backends, then windows and apps. Window actions have their own context (`useWindowActions()`), so focus and geometry changes don't re-render their users.
 
-### 2. Spatial Window Management (`src/context/WindowsContext.tsx`, `src/lib/shell/spatial-window-bounds.ts`, `src/components/ui/window.tsx`, `src/components/shell/WindowManager.tsx`)
+**Windows**
+- Bounds and workspace are saved in `settings.savedWindowBounds`, keyed by URL (without query or hash), app + document, or app (`spatial-window-bounds.ts`).
+- Windows keep a stable DOM order; other workspaces are hidden with CSS, so iframes don't reload.
+- `data-piloti-window-dragging` keeps drags smooth over iframes and `<app>`.
+- New webview and isolated windows stay invisible until ready (2.5 s limit); the Dock shows them launching.
 
-- **Spatial Persistence**: Window position, size, and workspace are persisted in `settings.savedWindowBounds` keyed by `resolveSpatialBoundsKey`:
-  - `url:<origin><pathname>` for browser/web-app windows (ignoring ephemeral query strings and hashes),
-  - `${appId}:${payload}` for document/folder-scoped apps (`nautilus`, `text-editor`, `image-viewer`, `terminal`),
-  - `desktopId` or `appId` for standard apps, with specificity fallback via `lookupSpatialWindowBounds`.
-- **Outer-Shadow Resize Targets & Dragging**: `[data-slot="window"]` uses `overflow-visible` (with clipping inside `WindowMain`) so top/bottom/left/right (`6px` outside + `6px` inside) and corner (`20×20` extending `7px` outside) resize handles sit over the window drop-shadow edge without clipping. Dragging and resizing apply `data-piloti-window-dragging` to keep pointer events smooth over iframes/webviews.
-- **Workspace Persistence Without Iframe Reloads**: `WindowManager` renders all open windows in stable DOM order (`zIndex` handles stacking) and hides windows on inactive workspaces via CSS (`invisible pointer-events-none`, `aria-hidden`) instead of unmounting, preventing embedded web apps and documents from reloading on workspace switch.
-- **Unified Frame & Tiling**: `WindowTitlebar` (`46px` height) supports titlebar double-click maximize/restore, right-click window menu, configurable GNOME `buttonLayout`, dock-aware `maximizeInsets`, edge snap tiling (`12px` sides, `10px` top) with pre-tile size restoration, and `WindowState.Maximized` / `TiledLeft` / `TiledRight` Wayland hints.
+**Isolated apps.** Text Editor in a separate window runs in `IsolatedAppFrame`: an iframe over HTTP, a `createRoot` in an iframe under `file://`. `engine/app-bridge.ts` carries theme, menu actions and file calls.
 
-### 3. Startup Notifications & Ready-to-Show Reveal (`WindowsContext.tsx`, `IsolatedAppFrame.tsx`, `WindowManager.tsx`, `Dock.tsx`)
+**Web VFS.** Provides `/home/user`, XDG folders, Trash, a clipboard shared across windows, and per-path emblems that follow renames and moves.
 
-- **Dock Launch Indicators**: `launchApp`, `launchXdgApp`, and `openWebUrl` call `beginStartupNotification(...)` (resolving installed web app IDs and canonical `webview:<url>` entries in `Dock`). `Dock.resolveAppDefinition` recognizes catalog apps, XDG entries, installed web apps, running windows, and pending `webview:` URLs.
-- **Ready-to-Show Gating**: Newly mapped Domicile browser/webview windows and an isolated `text-editor` start with `ready: false` (`unreadyWindowIds`, guarded by a `2500ms` timeout). `<Window>` mounts immediately (`opacity-0 pointer-events-none`) so the guest can load while staying invisible; `markWindowReady(windowId)` reveals the window and transitions the Dock indicator from launching bounce to running dot once `piloti:ready`, `<iframe onLoad>`, or `<webview>` finishes loading.
+**UI.** `adw-split-view.tsx` is the sidebar layout of Settings, Folders and App Store. `icon-grid.tsx` handles icon drags; drop targets respect window stacking.
 
-### 4. Isolated Mini-App Runtime & RPC Bridge (`IsolatedAppFrame.tsx`, `src/lib/engine/app-bridge.ts`)
+## Wayland toolkit notes
 
-`text-editor`, when set to open windows separately, runs inside `IsolatedAppFrame`:
-- Over HTTP/HTTPS dev servers, an `<iframe>` loads `?piloti_app=<id>&windowId=<id>&csd=<0|1>&path=<...>` as a dedicated entry point in `src/piloti-web.tsx`.
-- Over standalone `file://` Domicile bundles, it falls back cleanly to an isolated iframe DOM mounted via `createRoot`.
-- `useIsolatedAppBridge` receives `piloti:theme-sync` (mode, accent, fonts), `piloti:app-action` (menus, drag-region hover, dropped paths `piloti:open-path:<path>`), and executes bidirectional `piloti:fs-read` / `piloti:fs-write` / `piloti:fs-list` RPC against the shell VFS.
+Observed in a Debian VM with `domicile 1.2.0-1`; recheck on newer releases.
 
-### 5. Virtual Filesystem, Generalized Emblems & Z-Order Drag-and-Drop (`src/lib/engine-web/web-vfs.ts`, `src/lib/shell/desktop-icons.ts`, `src/components/ui/icon-grid.tsx`, `FilesApp.tsx`, `DesktopIconsApp.tsx`)
+| Client | Behaviour | Status |
+|---|---|---|
+| GTK2 | Wants server-side decorations. `GTK` in `Categories` must not imply CSD. | Fixed |
+| GTK3 | Asks for client decorations, compositor always answers server: endless loop, high CPU. | Compositor bug |
+| GTK3 | Sends `unset_fullscreen` at startup. Requests are ignored unless a pointer press is held on that app. | Fixed |
+| GTK3, Firefox, Chromium | Move only with `xdg_toplevel.move`, which 1.2.0-1 ignores. Needs `cprussin/domicile#2049`. | Alt/Super + drag |
+| GTK4 | Headerbar drag also sends `unset_fullscreen`, accepted as a move. | Worked around |
+| Any `<app>` | `setPointerCapture` is lost at once for client-started drags; use window listeners. | Fixed |
+| Any CSD | Wide resize strips steal headerbar button clicks; keep inward overlap small. | Fixed |
 
-- **VFS & Shared Clipboard**: `web-vfs.ts` provides `/home/user` POSIX paths, XDG folders, Trash/Restore, `copyVfsEntry`, `duplicateVfsEntry`, external file drop import, and module-shared cross-window clipboard (`getVfsClipboard` / `setVfsClipboard` / `subscribeVfsClipboard`) syncing cut/copy/paste across Desktop and multiple Files windows.
-- **Generalized Emblems**: `VfsEmblemId` (`"favorite" | "important" | "work" | "personal"`) stores badges per normalized VFS path with prefix migration across rename, move, trash, restore, and permanent deletion, keeping legacy Favorites APIs (`loadVfsFavorites`, `toggleVfsFavorite`, `piloti://favorites`) 100% compatible.
-- **Compact Desktop Grid & Bi-Directional DnD**: `desktop-icons.ts` uses compact `92×90` grid cells (`12px` padding) and supports Left and Right column-first placement (`settings.desktopIconAlign`). `IconGrid` supports multi-item drag with a stacked count ghost badge and walks `document.elementsFromPoint(...)` top-to-bottom (`resolveTopDropTarget`), respecting `[data-slot="window"]` z-order boundaries so drags cleanly route across Dock apps, Trash, sidebar places, folder rows/icons, Desktop, or `Text Editor` / `Image Viewer` drop targets without punching through unrelated windows.
+**Cursor offset (VMware `vmwgfx`).** Clicks land 6 px right and 4 px down: the engine sets the DRM cursor without its hotspot. Engine bug; the fix is `drmModeSetCursor2`.
 
-### 6. Consistent Adwaita Split-View UI (`src/components/ui/adw-split-view.tsx`)
+**GTK styling.** Plugins can ship `gtk3.css` and `gtk4.css`, synced to `~/.config/gtk-*/gtk.css`.
 
-`AdwSplitView` encapsulates the collapsible `<aside>` navigation pattern shared by `SettingsApp`, `FilesApp`, and `AppStoreApp`:
-- Automatic compact icon-rail collapse via `ResizeObserver` + compact hover tooltips,
-- `<aside>` container preserving translucent `adwaita.css` CSD sidebar titlebar styling and scroll-triggered divider borders,
-- Keyboard navigation integration (`useSidebarKeyboardNav`), configurable right headerbar, optional auxiliary `rightPane` (Files Info Inspector), and scoped bottom action/footer bar.
+## Portals
+
+Apps call `org.freedesktop.portal.*`. Domicile handles D-Bus, permissions, streams and capture. Piloti draws the dialog (`PortalDialogs.tsx`) and replies with `portals.answer(id, answer)`.
+
+Implemented: Screenshot, ScreenCast, PickColor, Access, Account, Wallpaper, InputCapture, USB, Inhibit, FileChooser, AppChooser, GlobalShortcuts, DynamicLauncher, RemoteDesktop, Print.
+
+## XDG coverage
+
+In `src/lib/xdg/`: base directories, desktop entries and actions, icon themes, `mimeapps.list` and shared MIME info, user directories, trash, recent files, thumbnails (read), autostart, session restore, web app entries and global menus (GTK and dbusmenu).
+
+Elsewhere: sound cues (`lib/shell/sound-effects.ts`) and a `greetd` greeter (`src/piloti-greeter.tsx`).
+
+## Open items
+
+- Unlock the keyring at login (Secret Service).
+- Generate missing thumbnails.
+- Documents, OpenURI, Contacts and Location portals; per-app permission settings.
+- Notification portal actions and replies.
+- Play the system sound theme.
+- Portal polish: window thumbnails in ScreenCast, colour loupe, FileChooser search, print page range and duplex.

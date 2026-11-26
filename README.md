@@ -79,7 +79,7 @@ bun run build
 ## Documentation
 
 - [Agent guide](./docs/AGENT-GUIDE.md) — where things are in the code and how to check changes (start here).
-- [Architecture](./docs/ARCHITECTURE.md) — engines, ports, window manager, VFS and drag-and-drop design.
+- [Architecture](./docs/ARCHITECTURE.md) — engines, window manager, Wayland notes, portals and XDG coverage.
 - More in `docs/`: native Linux notes, GNOME reuse, plugins, icons, app modules.
 
 ## Keyboard Shortcuts

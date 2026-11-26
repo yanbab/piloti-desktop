@@ -1,5 +1,6 @@
 import { VFS_HOME } from "@/lib/engine/vfs-home";
 import * as React from "react";
+import { retainVfsWatch } from "@/lib/engine/vfs-query";
 import { usePiloti } from "@/lib/engine/piloti";
 import { getEngine } from "@/lib/engine/engine";
 import { emitShellEvent, onShellEvent } from "@/lib/shell/shell-events";
@@ -187,8 +188,8 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
       else if (isSvg) setImageSrc(`data:image/svg+xml;utf8,${encodeURIComponent(content)}`);
       else setImageSrc(content);
     };
-    // Calls once when in place, then when the file changes.
-    const unwatch = piloti.vfs.watch(activePath, () => {
+    // Calls once when in place, then when the file changes. Not cached: bytes.
+    const unwatch = retainVfsWatch(piloti.vfs, activePath, () => {
       void (realFilesystem && !isSvg ? showBytes() : showText()).catch(() => undefined);
     });
     return () => {

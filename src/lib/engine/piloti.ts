@@ -8,6 +8,7 @@
 import { useDomicile } from "@domicile-desktop/react/domicile-provider";
 import type { Domicile } from "@domicile-desktop/sdk/desktop/desktop";
 import type { Vfs } from "@/lib/ports/vfs";
+import type { SettingValue } from "@/lib/ports/settings";
 
 /** What engine and UI code are handed: all of Domicile's desktop, plus `vfs`. */
 export type Piloti = Domicile & { readonly vfs: Vfs };
@@ -26,8 +27,20 @@ export interface PilotiShellApi {
     minimize: (id: string) => void;
     toggleMaximize: (id: string) => void;
   };
+  /**
+   * Settings as schema + key (`get("org.piloti.desktop.dock", "icon-size")`),
+   * see `engine/settings.ts`. `get()` and `update(patch)` without a schema are
+   * the older whole-desktop object, kept for existing scripts.
+   */
   settings: {
-    get: () => unknown;
+    get(): unknown;
+    get(schema: string, key: string): SettingValue | undefined;
+    set: (schema: string, key: string, value: SettingValue) => void;
+    reset: (schema: string, key: string) => void;
+    /** Calls `onChange` with the new value when the key changes. Returns stop. */
+    watch: (schema: string, key: string, onChange: (value: SettingValue | undefined) => void) => () => void;
+    /** The schemas defined so far. */
+    readonly schemas: string[];
     update: (patch: Record<string, unknown>) => void;
   };
   plugins: {

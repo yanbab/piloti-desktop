@@ -33,36 +33,66 @@ export interface Settings<T extends Record<string, SettingValue> = Record<string
 /* Backends                                                            */
 /* ------------------------------------------------------------------ */
 
-export const SETTINGS_DIR = `${VFS_HOME}/.config/piloti/settings`;
+const CONFIG_DIR = `${VFS_HOME}/.config/piloti`;
+/** The shell's own schemas (`org.piloti.desktop.*`). */
+export const SHELL_SETTINGS_PATH = `${CONFIG_DIR}/settings.ini`;
+/** One file per app: its own schemas plus the keys the shell applies to it. */
+export const APP_SETTINGS_DIR = `${CONFIG_DIR}/apps`;
 
-export interface KeyfileLayout {
-  /** Folder holding one `.ini` per schema. */
-  dir: string;
-  /** File name (without `.ini`) for a schema; the schema id by default. */
-  fileName?: (schema: string) => string;
-  /** Section holding the schema's keys; `[<schema id>]` by default. */
-  section?: (schema: string) => string;
+const safeFileName = (id: string) => id.replace(/[^A-Za-z0-9._-]/g, "_");
+
+/** The file holding an app's settings, built-in (`calculator`) or not. */
+export function appSettingsPath(appId: string): string {
+  return `${APP_SETTINGS_DIR}/${safeFileName(appId)}.ini`;
 }
 
 /**
- * One `.ini` file per schema, read through the state store. Other sections of
- * the file are kept as they are.
+ * One file per owner, chosen from the schema id:
+ * - `org.piloti.desktop[.*]` → `settings.ini` (the shell);
+ * - `org.piloti.<app>[.*]` → `apps/<app>.ini` (a built-in app, e.g. `calculator`);
+ * - anything else (`org.gnome.TextEditor`) → `apps/<schema>.ini`.
+ */
+export function settingsPathForSchema(schema: string): string {
+  if (schema === "org.piloti.desktop" || schema.startsWith("org.piloti.desktop.")) {
+    return SHELL_SETTINGS_PATH;
+  }
+  const builtIn = /^org\.piloti\.([^.]+)/.exec(schema);
+  return appSettingsPath(builtIn ? builtIn[1] : schema);
+}
+
+export interface KeyfileLayout {
+  /** The `.ini` file holding a schema. */
+  path: (schema: string) => string;
+  /** Section holding the schema's keys; `[<schema id>]` by default. */
+  section?: (schema: string) => string;
+  /** Folders to watch for `subscribeAll`. */
+  dirs: readonly string[];
+}
+
+export const PILOTI_SETTINGS_LAYOUT: KeyfileLayout = {
+  path: settingsPathForSchema,
+  dirs: [CONFIG_DIR, APP_SETTINGS_DIR],
+};
+
+/**
+ * Keyfiles read through the state store, several schemas per file if the
+ * layout says so. Other sections of a file are kept as they are.
  */
 export function keyfileSettingsBackend(
-  layout: KeyfileLayout = { dir: SETTINGS_DIR },
+  layout: KeyfileLayout = PILOTI_SETTINGS_LAYOUT,
 ): SettingsBackend {
-  const fileName = layout.fileName ?? ((schema) => schema);
   const sectionOf = layout.section ?? ((schema) => schema);
-  const pathOf = (schema: string) => `${layout.dir}/${fileName(schema)}.ini`;
+  const pathOf = layout.path;
   // Parsed once per file content: reads happen on every render.
   const parsed = new Map<string, { raw: string | null; ini: IniRecord }>();
 
   const load = (schema: string): IniRecord => {
-    const raw = readVfsStateText(pathOf(schema));
-    const hit = parsed.get(schema);
+    const path = pathOf(schema);
+    const raw = readVfsStateText(path);
+    const hit = parsed.get(path);
     if (hit && hit.raw === raw) return hit.ini;
     const ini = raw ? parseIniText(raw) : {};
-    parsed.set(schema, { raw, ini });
+    parsed.set(path, { raw, ini });
     return ini;
   };
 
@@ -81,7 +111,10 @@ export function keyfileSettingsBackend(
     write: (schema, key, value) => save(schema, (s) => void (s[key] = value)),
     reset: (schema, key) => save(schema, (s) => void delete s[key]),
     subscribe: (schema, listener) => subscribeVfsPath(pathOf(schema), () => listener()),
-    subscribeAll: (listener) => subscribeVfsStateDir(layout.dir, listener),
+    subscribeAll(listener) {
+      const stops = layout.dirs.map((dir) => subscribeVfsStateDir(dir, listener));
+      return () => stops.forEach((stop) => stop());
+    },
   };
 }
 
@@ -169,9 +202,30 @@ type Widen<V> = V extends boolean
         : V;
 export type SettingsOf<D> = { -readonly [K in keyof D]: Widen<D[K]> };
 
+const registry = new Map<string, Settings>();
+
+/** The schema defined under `schema`, if any. */
+export function findSettings(schema: string): Settings | undefined {
+  return registry.get(schema);
+}
+
+/** Every schema defined so far, for scripts and the Console. */
+export function listSettingsSchemas(): string[] {
+  return [...registry.keys()].sort();
+}
+
+/**
+ * A defined schema, or untyped access to an unknown one: its keys read as
+ * stored text, `undefined` when unset. For `window.piloti.settings` and plugins.
+ */
+export function settingsFor(schema: string): Settings {
+  return registry.get(schema) ?? defineSettings(schema, {}, { register: false });
+}
+
 export function defineSettings<D extends Record<string, SettingValue>>(
   schema: string,
   initial: D,
+  options: { register?: boolean } = {},
 ): Settings<SettingsOf<D>> {
   type T = SettingsOf<D>;
   const defaults = initial as unknown as T;
@@ -182,12 +236,16 @@ export function defineSettings<D extends Record<string, SettingValue>>(
     const raw = currentBackend().read(schema, key);
     const hit = cache.get(key);
     if (hit && hit.raw === raw) return hit.value as T[K];
-    const value = raw === undefined ? defaults[key] : decode(raw, defaults[key]);
+    const fallback = defaults[key];
+    // A key with no default (untyped access) reads as its stored text.
+    const value = (
+      raw === undefined ? fallback : fallback === undefined ? raw : decode(raw, fallback)
+    ) as T[K];
     cache.set(key, { raw, value });
     return value;
   };
 
-  return {
+  const settings = {
     schema,
     defaults,
     get,
@@ -212,4 +270,6 @@ export function defineSettings<D extends Record<string, SettingValue>>(
       });
     },
   } as Settings<T>;
+  if (options.register !== false) registry.set(schema, settings as unknown as Settings);
+  return settings;
 }

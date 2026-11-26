@@ -28,10 +28,13 @@ import {
   writeVfsStateText,
 } from "@/lib/engine/vfs-state";
 import {
+  desktopSchemaDefaults,
   diffDesktopSettings,
   parseDesktopSettingsRaw,
   serializeDesktopSettingsIni,
 } from "@/lib/config/piloti-settings-ini";
+import { mergeIniText } from "@/lib/config/ini";
+import { defineSettings } from "@/lib/engine/settings";
 import {
   installWebAppDesktopEntry,
   loadWebAppsFromDesktopEntries,
@@ -268,6 +271,15 @@ const DEFAULT_SETTINGS: DesktopSettings = {
   installedWebApps: [],
   savedWindowBounds: {},
 };
+
+/**
+ * The desktop's schemas in settings.ini (`org.piloti.desktop.dock`…), readable
+ * and writable through the settings layer; edits reach this context through
+ * the settings.ini watch.
+ */
+for (const [schema, defaults] of Object.entries(desktopSchemaDefaults(DEFAULT_SETTINGS))) {
+  defineSettings(schema, defaults);
+}
 
 const STORAGE_KEY = "piloti.desktop.settings.v1";
 const WINDOW_BOUNDS_STORAGE_KEY = "piloti.window-bounds.v1";
@@ -565,7 +577,11 @@ export function useSettingsValue(options?: {
     if (!pending) return;
     pendingSettingsIniRef.current = null;
     try {
-      writeVfsStateText(VFS_STATE_PATHS.settings, serializeDesktopSettingsIni(pending));
+      // Other schemas may live in settings.ini too (`engine/settings.ts`): keep them.
+      writeVfsStateText(
+        VFS_STATE_PATHS.settings,
+        mergeIniText(readVfsStateText(VFS_STATE_PATHS.settings), serializeDesktopSettingsIni(pending)),
+      );
     } catch {
       // ignore storage errors
     }

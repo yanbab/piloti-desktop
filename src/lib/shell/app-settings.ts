@@ -7,24 +7,22 @@
  *
  * Keys the shell itself applies: `color-scheme` (`dark` forces the app's
  * windows dark; absent = follow the desktop). Plugins read and write them
- * through `ctx.apps`. Stored through the settings layer (`engine/settings.ts`),
- * one schema per app id.
+ * through `ctx.apps`. Stored through the settings layer (`engine/settings.ts`);
+ * the app's own schemas live in other sections of the same file.
  */
-import { VFS_HOME } from "@/lib/engine/vfs-home";
-import { keyfileSettingsBackend } from "@/lib/engine/settings";
+import {
+  APP_SETTINGS_DIR,
+  appSettingsPath,
+  keyfileSettingsBackend,
+} from "@/lib/engine/settings";
 
-export const APP_SETTINGS_DIR = `${VFS_HOME}/.config/piloti/apps`;
+export { APP_SETTINGS_DIR, appSettingsPath };
 
-const safeName = (appId: string) => appId.replace(/[^A-Za-z0-9._-]/g, "_");
-
-export function appSettingsPath(appId: string): string {
-  return `${APP_SETTINGS_DIR}/${safeName(appId)}.ini`;
-}
-
+// Untyped keys in `[General]` of the app's own file, next to its schemas.
 const backend = keyfileSettingsBackend({
-  dir: APP_SETTINGS_DIR,
-  fileName: safeName,
+  path: appSettingsPath,
   section: () => "General",
+  dirs: [APP_SETTINGS_DIR],
 });
 
 let version = 0;

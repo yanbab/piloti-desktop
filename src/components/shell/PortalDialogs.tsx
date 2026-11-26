@@ -1,5 +1,6 @@
 import { VFS_HOME } from "@/lib/engine/vfs-home";
 import * as React from "react";
+import { useVfsList } from "@/hooks/use-vfs";
 import { useCapabilities } from "@/hooks/use-capabilities";
 import { usePiloti } from "@/lib/engine/piloti";
 import { usePortalRequests } from "@domicile-desktop/react/portals";
@@ -338,14 +339,10 @@ function FileChooserPortalDialog({
   request: Extract<PortalRequest, { kind: PortalKind.FileChooser }>;
   onAnswer: (ans: PortalAnswer) => void;
 }) {
-  const piloti = usePiloti();
   const { realFilesystem } = useCapabilities();
   const body = request.body;
   const startDir = body.currentFolder || body.home || `${VFS_HOME}`;
   const [cwd, setCwd] = React.useState(startDir);
-  const [entries, setEntries] = React.useState<
-    Array<{ name: string; path: string; isDir: boolean }>
-  >([]);
   const [selectedPaths, setSelectedPaths] = React.useState<string[]>([]);
   const [saveName, setSaveName] = React.useState(body.currentName ?? "");
   const [showHidden, setShowHidden] = React.useState(false);
@@ -357,25 +354,14 @@ function FileChooserPortalDialog({
       Object.fromEntries(body.choices.map((c) => [c.id, c.initial]))
   );
 
-  React.useEffect(() => {
-    let active = true;
-    const load = async () => {
-      const list = ((await piloti.vfs.list(cwd)) ?? [])
+  const listing = useVfsList(cwd).data;
+  const entries = React.useMemo(
+    () =>
+      (listing ?? [])
         .filter((e) => showHidden || !e.name.startsWith("."))
-        .map((e) => ({ name: e.name, path: e.path, isDir: e.kind === "directory" }));
-      if (active) setEntries(list);
-    };
-    // Calls once when in place, then when the folder changes.
-    const unwatch = piloti.vfs.watch(cwd, () => {
-      void load().catch(() => {
-        if (active) setEntries([]);
-      });
-    });
-    return () => {
-      active = false;
-      unwatch();
-    };
-  }, [cwd, piloti.vfs, showHidden]);
+        .map((e) => ({ name: e.name, path: e.path, isDir: e.kind === "directory" })),
+    [listing, showHidden],
+  );
 
   const activeFilter = body.filters[filterIdx];
   const visibleEntries = React.useMemo(() => {
