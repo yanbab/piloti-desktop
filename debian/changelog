@@ -1,3 +1,27 @@
+piloti-desktop (0.10.10-1) unstable; urgency=medium
+
+  * Release v0.10.10:
+    - Files: one API (piloti.vfs) on both engines, the disk as the only copy;
+      views share one cache and one watch per folder, and the shell's own
+      file operations show at once. Changes made by other programs appear
+      live in Folders and on the desktop.
+    - Settings: schema + key, one file per owner (settings.ini for the
+      desktop, apps/<app>.ini for an app); settings.ini edits apply live;
+      window.piloti.settings get/set/reset/watch.
+    - Fewer re-renders: components subscribe to the settings they read.
+    - Cupertino interface theme; buttons, switches, menus, sidebar and window
+      frame styled with plain CSS and ui tokens.
+    - Folders and desktop share one icon view (View > As Desktop); Open With
+      submenu; Select All, Move to Trash and Eject in the File menu.
+    - Keyboard settings pane, System Monitor, Text Editor in its own process
+      (optional), Compress and Extract Here.
+    - piloti CLI commands work with Domicile 1.3.
+    - Fixes: undo after opening a file or a numbered move; Trash restore in
+      the demo could move the home folder; missing application folders no
+      longer use inotify instances.
+
+ -- yanbab <yanbab@gmail.com>  Thu, 26 Nov 2026 20:15:00 +0100
+
 piloti-desktop (0.10.9-1) unstable; urgency=medium
 
   * Release v0.10.9:
