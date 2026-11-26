@@ -6,8 +6,6 @@
 import type { Piloti } from "@/lib/engine/piloti";
 import { getEngine } from "@/lib/engine/engine";
 import { writeNativeShellLog } from "@/lib/engine-native/shell-log";
-import { writeVfsTextFile } from "@/lib/engine-web/web-vfs";
-import { VFS_STATE_PATHS } from "@/lib/engine/vfs-state";
 
 export type ShellLogWriter = (text: string) => Promise<unknown>;
 
@@ -15,7 +13,13 @@ export function createShellLogWriter(piloti: Piloti): ShellLogWriter {
   if (getEngine().capabilities.realFilesystem) {
     return (text) => writeNativeShellLog(piloti, text);
   }
+  // Loaded on first use: the native entry imports this module before `$HOME` is
+  // known, and VFS modules read it when they load (see `vfs-home.ts`).
   return async (text) => {
+    const [{ writeVfsTextFile }, { VFS_STATE_PATHS }] = await Promise.all([
+      import("@/lib/engine-web/web-vfs"),
+      import("@/lib/engine/vfs-state"),
+    ]);
     writeVfsTextFile(VFS_STATE_PATHS.consoleLog, text);
   };
 }

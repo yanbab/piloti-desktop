@@ -292,8 +292,8 @@ export function useIsolatedAppBridge(
               ? shellHostFiles()
               : undefined;
             if (shellFiles) {
-              await shellFiles.write(path, content);
-              return true;
+              const res = await shellFiles.write(path, content).catch(() => null);
+              return res?.isOk() ?? false;
             }
             writeVfsTextFile(path, content);
             return true;

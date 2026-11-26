@@ -1,5 +1,4 @@
 import * as React from "react";
-import { consumeLegacyLocalStorageValue } from "@/lib/engine-web/web-vfs";
 
 export type ConsoleLogLevel = "log" | "info" | "warn" | "error";
 
@@ -39,7 +38,12 @@ function flushConsoleLogToDisk(): void {
         return `[${ts}] [${entry.level.toUpperCase()}] ${entry.message}${repeat}`;
       })
       .join("\n") + "\n";
-  consumeLegacyLocalStorageValue(CONSOLE_LOG_STORAGE_KEY);
+  try {
+    // Left by earlier builds, which kept the log in browser storage.
+    localStorage.removeItem(CONSOLE_LOG_STORAGE_KEY);
+  } catch {
+    /* storage unavailable */
+  }
   writeLogFile(payload);
 }
 

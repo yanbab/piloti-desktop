@@ -161,6 +161,19 @@ export function serializeDesktopSettingsIni(settings: DesktopSettings): string {
   return serializeIniText(rec);
 }
 
+/** The values of `next` that differ from `prev`, among those settings.ini holds. */
+export function diffDesktopSettings(
+  prev: DesktopSettings,
+  next: DesktopSettings,
+): Partial<DesktopSettings> {
+  const out: Record<string, unknown> = {};
+  const props = [...SETTINGS_INI_SCHEMA.map((entry) => entry[2]), "gnomeBackground" as const];
+  for (const prop of props) {
+    if (JSON.stringify(prev[prop]) !== JSON.stringify(next[prop])) out[prop] = next[prop];
+  }
+  return out as Partial<DesktopSettings>;
+}
+
 /**
  * Parses either GSettings-style `.ini` or legacy JSON desktop settings into a partial object.
  */

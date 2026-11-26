@@ -34,9 +34,12 @@ import {
   writeVfsStateText,
 } from "@/lib/engine/vfs-state";
 import {
+  diffDesktopSettings,
   parseDesktopSettingsRaw,
   serializeDesktopSettingsIni,
 } from "@/lib/config/piloti-settings-ini";
+import { watchNativeDir } from "@/lib/engine-native/file-watch";
+import { refreshFromHostFile } from "@/lib/engine-native/host-state-refresh";
 import {
   installWebAppDesktopEntry,
   loadWebAppsFromDesktopEntries,
@@ -602,10 +605,17 @@ export function useSettingsValue(options?: {
       });
     };
     let cancelled = false;
+    // Writes in flight: what's on disk meanwhile is older than the cache.
+    const writing = new Map<string, number>();
     const writeHostFile = async (vfsPath: string, content: string) => {
-      await ensureParentDir(vfsPath);
-      const bytes = new TextEncoder().encode(content);
-      await hostFiles(piloti).write(toDomicilePath(vfsPath), bytes);
+      writing.set(vfsPath, (writing.get(vfsPath) ?? 0) + 1);
+      try {
+        await ensureParentDir(vfsPath);
+        const bytes = new TextEncoder().encode(content);
+        await hostFiles(piloti).write(toDomicilePath(vfsPath), bytes);
+      } finally {
+        writing.set(vfsPath, (writing.get(vfsPath) ?? 1) - 1);
+      }
     };
     registerVfsHostSync({
       writeText: (vfsPath, content) => {
@@ -649,11 +659,174 @@ export function useSettingsValue(options?: {
       }
     })().catch(() => undefined);
 
+    // The VFS only caches the disk: pick up edits other programs (any editor,
+    // a terminal) make to the config files. Their VFS subscribers apply them.
+    const stopWatch = watchNativeDir(
+      hostFiles(piloti),
+      toDomicilePath(`${WEB_VFS_HOME}/.config/piloti`),
+      () => {
+        for (const vfsPath of [VFS_STATE_PATHS.settings, VFS_STATE_PATHS.locale]) {
+          void refreshFromHostFile({
+            isWriting: () =>
+              (writing.get(vfsPath) ?? 0) > 0 ||
+              (vfsPath === VFS_STATE_PATHS.settings && pendingSettingsIniRef.current !== null),
+            readCache: () => getVfsEntry(vfsPath)?.content ?? null,
+            readHost: async () =>
+              (await hostFiles(piloti).readText(toDomicilePath(vfsPath))).match({
+                Ok: (text) => text,
+                Err: () => null,
+              }),
+            writeCache: (text) => {
+              if (!cancelled) writeVfsTextFile(vfsPath, text);
+            },
+          }).catch(() => undefined);
+        }
+      },
+    );
+
     return () => {
       cancelled = true;
+      stopWatch();
       registerVfsHostSync(null);
     };
   }, [piloti, isBrowserRuntime]);  // FIXME : Capabilities
+
+  // What a settings change means outside the page (GNOME settings, hardware).
+  const applySystemSettings = React.useCallback(
+    (
+      prev: DesktopSettings,
+      next: DesktopSettings,
+      changed: Partial<DesktopSettings>
+    ) => {
+      if (!isBrowserRuntime && !applyingGnomeSyncRef.current) {  // FIXME : Capabilities
+        if (
+          next.syncGnomeSettings &&
+          (changed.themeMode !== undefined ||
+            changed.accentColor !== undefined ||
+            changed.iconTheme !== undefined ||
+            changed.clock24Hour !== undefined ||
+            changed.clockShowSeconds !== undefined ||
+            changed.gtkFontName !== undefined ||
+            changed.gtkDocumentFontName !== undefined ||
+            changed.gtkMonospaceFontName !== undefined ||
+            changed.gtkTextScalingFactor !== undefined ||
+            changed.gtkFontAntialiasing !== undefined ||
+            changed.gtkFontHinting !== undefined ||
+            changed.gtkFontRgbaOrder !== undefined)
+        ) {
+          void syncGnomeInterfaceKey(piloti, {
+            ...(changed.themeMode !== undefined ? { themeMode: next.themeMode } : {}),
+            ...(changed.accentColor !== undefined ? { accentColor: next.accentColor } : {}),
+            ...(changed.iconTheme !== undefined ? { iconTheme: next.iconTheme } : {}),
+            ...(changed.clock24Hour !== undefined ? { clock24Hour: next.clock24Hour } : {}),
+            ...(changed.clockShowSeconds !== undefined
+              ? { clockShowSeconds: next.clockShowSeconds }
+              : {}),
+            ...(changed.gtkFontName !== undefined ? { gtkFontName: next.gtkFontName } : {}),
+            ...(changed.gtkDocumentFontName !== undefined
+              ? { gtkDocumentFontName: next.gtkDocumentFontName }
+              : {}),
+            ...(changed.gtkMonospaceFontName !== undefined
+              ? { gtkMonospaceFontName: next.gtkMonospaceFontName }
+              : {}),
+            ...(changed.gtkTextScalingFactor !== undefined
+              ? { gtkTextScalingFactor: next.gtkTextScalingFactor }
+              : {}),
+            ...(changed.gtkFontAntialiasing !== undefined
+              ? { gtkFontAntialiasing: next.gtkFontAntialiasing }
+              : {}),
+            ...(changed.gtkFontHinting !== undefined
+              ? { gtkFontHinting: next.gtkFontHinting }
+              : {}),
+            ...(changed.gtkFontRgbaOrder !== undefined
+              ? { gtkFontRgbaOrder: next.gtkFontRgbaOrder }
+              : {}),
+          });
+          if (changed.iconTheme !== undefined) {
+            void syncGtkIconTheme(piloti, next.iconTheme);
+          }
+        }
+
+        if (next.syncGnomeSettings && changed.gnomeBackground) {
+          const bgDiff: Partial<GnomeBackgroundSettings> = {};
+          const keys = Object.keys(
+            changed.gnomeBackground
+          ) as (keyof GnomeBackgroundSettings)[];
+          for (const key of keys) {
+            if (next.gnomeBackground[key] !== prev.gnomeBackground[key]) {
+              (bgDiff as Record<string, unknown>)[key] =
+                next.gnomeBackground[key];
+            }
+          }
+          if (Object.keys(bgDiff).length > 0) {
+            sliderTimersRef.current.gnomeBgPending = {
+              ...sliderTimersRef.current.gnomeBgPending,
+              ...bgDiff,
+            };
+            clearTimeout(sliderTimersRef.current.gnomeBg);
+            sliderTimersRef.current.gnomeBg = setTimeout(() => {
+              const pending = sliderTimersRef.current.gnomeBgPending;
+              sliderTimersRef.current.gnomeBgPending = undefined;
+              if (pending && Object.keys(pending).length > 0) {
+                void syncGnomeBackgroundSettings(piloti, pending);
+              }
+            }, 120);
+          }
+        }
+
+        if (
+          next.syncGnomeSettings &&
+          (changed.doNotDisturb !== undefined ||
+            changed.notificationShowOnLockScreen !== undefined)
+        ) {
+          void syncGnomeNotificationSettings(piloti, {
+            ...(changed.doNotDisturb !== undefined
+              ? { doNotDisturb: next.doNotDisturb }
+              : {}),
+            ...(changed.notificationShowOnLockScreen !== undefined
+              ? { showInLockScreen: next.notificationShowOnLockScreen }
+              : {}),
+          });
+        }
+
+        if (changed.nightLight !== undefined) {
+          piloti.displays
+            .setColorTemperature(next.nightLight ? 4200 : 6500)
+            .catch(() => { });
+        }
+
+        if (changed.volume !== undefined || changed.muted !== undefined) {
+          clearTimeout(sliderTimersRef.current.audio);
+          sliderTimersRef.current.audio = setTimeout(() => {
+            void setSystemAudio(piloti, next.volume, next.muted);
+          }, 60);
+        }
+
+        if (changed.brightness !== undefined) {
+          clearTimeout(sliderTimersRef.current.brightness);
+          sliderTimersRef.current.brightness = setTimeout(() => {
+            void setSystemBrightness(piloti, next.brightness);
+          }, 90);
+        }
+
+        if (changed.wifiEnabled !== undefined) {
+          void setSystemWifiEnabled(piloti, next.wifiEnabled);
+        }
+
+        if (changed.bluetoothEnabled !== undefined) {
+          void setSystemBluetoothPowered(piloti, next.bluetoothEnabled);
+        }
+
+        if (changed.powerMode !== undefined) {
+          void setSystemPowerProfile(piloti, next.powerMode);
+        }
+      }
+    },
+    [piloti, isBrowserRuntime]  // FIXME : Capabilities
+  );
+  // The settings.ini subscriber below lives longer than one render.
+  const applySystemSettingsRef = React.useRef(applySystemSettings);
+  applySystemSettingsRef.current = applySystemSettings;
 
   // Seed settings.ini in VFS on first run so users can inspect/edit it in Files or Text Editor,
   // and subscribe to live VFS edits on settings.ini, window-bounds.json, and desktop-icons.json.
@@ -698,6 +871,7 @@ export function useSettingsValue(options?: {
         if (currentSerialized === serializeDesktopSettingsIni(mergedNext)) {
           return prev;
         }
+        applySystemSettingsRef.current(prev, mergedNext, diffDesktopSettings(prev, mergedNext));
         return mergedNext;
       });
     });
@@ -879,134 +1053,12 @@ export function useSettingsValue(options?: {
         const next = { ...prev, ...mergedPatch };
         persist(next, mergedPatch);
 
-        if (!isBrowserRuntime && !applyingGnomeSyncRef.current) {  // FIXME : Capabilities
-          if (
-            next.syncGnomeSettings &&
-            (mergedPatch.themeMode !== undefined ||
-              mergedPatch.accentColor !== undefined ||
-              mergedPatch.iconTheme !== undefined ||
-              mergedPatch.clock24Hour !== undefined ||
-              mergedPatch.clockShowSeconds !== undefined ||
-              mergedPatch.gtkFontName !== undefined ||
-              mergedPatch.gtkDocumentFontName !== undefined ||
-              mergedPatch.gtkMonospaceFontName !== undefined ||
-              mergedPatch.gtkTextScalingFactor !== undefined ||
-              mergedPatch.gtkFontAntialiasing !== undefined ||
-              mergedPatch.gtkFontHinting !== undefined ||
-              mergedPatch.gtkFontRgbaOrder !== undefined)
-          ) {
-            void syncGnomeInterfaceKey(piloti, {
-              ...(mergedPatch.themeMode !== undefined ? { themeMode: next.themeMode } : {}),
-              ...(mergedPatch.accentColor !== undefined ? { accentColor: next.accentColor } : {}),
-              ...(mergedPatch.iconTheme !== undefined ? { iconTheme: next.iconTheme } : {}),
-              ...(mergedPatch.clock24Hour !== undefined ? { clock24Hour: next.clock24Hour } : {}),
-              ...(mergedPatch.clockShowSeconds !== undefined
-                ? { clockShowSeconds: next.clockShowSeconds }
-                : {}),
-              ...(mergedPatch.gtkFontName !== undefined ? { gtkFontName: next.gtkFontName } : {}),
-              ...(mergedPatch.gtkDocumentFontName !== undefined
-                ? { gtkDocumentFontName: next.gtkDocumentFontName }
-                : {}),
-              ...(mergedPatch.gtkMonospaceFontName !== undefined
-                ? { gtkMonospaceFontName: next.gtkMonospaceFontName }
-                : {}),
-              ...(mergedPatch.gtkTextScalingFactor !== undefined
-                ? { gtkTextScalingFactor: next.gtkTextScalingFactor }
-                : {}),
-              ...(mergedPatch.gtkFontAntialiasing !== undefined
-                ? { gtkFontAntialiasing: next.gtkFontAntialiasing }
-                : {}),
-              ...(mergedPatch.gtkFontHinting !== undefined
-                ? { gtkFontHinting: next.gtkFontHinting }
-                : {}),
-              ...(mergedPatch.gtkFontRgbaOrder !== undefined
-                ? { gtkFontRgbaOrder: next.gtkFontRgbaOrder }
-                : {}),
-            });
-            if (mergedPatch.iconTheme !== undefined) {
-              void syncGtkIconTheme(piloti, next.iconTheme);
-            }
-          }
-
-          if (next.syncGnomeSettings && patch.gnomeBackground) {
-            const bgDiff: Partial<GnomeBackgroundSettings> = {};
-            const keys = Object.keys(
-              patch.gnomeBackground
-            ) as (keyof GnomeBackgroundSettings)[];
-            for (const key of keys) {
-              if (next.gnomeBackground[key] !== prev.gnomeBackground[key]) {
-                (bgDiff as Record<string, unknown>)[key] =
-                  next.gnomeBackground[key];
-              }
-            }
-            if (Object.keys(bgDiff).length > 0) {
-              sliderTimersRef.current.gnomeBgPending = {
-                ...sliderTimersRef.current.gnomeBgPending,
-                ...bgDiff,
-              };
-              clearTimeout(sliderTimersRef.current.gnomeBg);
-              sliderTimersRef.current.gnomeBg = setTimeout(() => {
-                const pending = sliderTimersRef.current.gnomeBgPending;
-                sliderTimersRef.current.gnomeBgPending = undefined;
-                if (pending && Object.keys(pending).length > 0) {
-                  void syncGnomeBackgroundSettings(piloti, pending);
-                }
-              }, 120);
-            }
-          }
-
-          if (
-            next.syncGnomeSettings &&
-            (patch.doNotDisturb !== undefined ||
-              patch.notificationShowOnLockScreen !== undefined)
-          ) {
-            void syncGnomeNotificationSettings(piloti, {
-              ...(patch.doNotDisturb !== undefined
-                ? { doNotDisturb: next.doNotDisturb }
-                : {}),
-              ...(patch.notificationShowOnLockScreen !== undefined
-                ? { showInLockScreen: next.notificationShowOnLockScreen }
-                : {}),
-            });
-          }
-
-          if (patch.nightLight !== undefined) {
-            piloti.displays
-              .setColorTemperature(next.nightLight ? 4200 : 6500)
-              .catch(() => { });
-          }
-
-          if (patch.volume !== undefined || patch.muted !== undefined) {
-            clearTimeout(sliderTimersRef.current.audio);
-            sliderTimersRef.current.audio = setTimeout(() => {
-              void setSystemAudio(piloti, next.volume, next.muted);
-            }, 60);
-          }
-
-          if (patch.brightness !== undefined) {
-            clearTimeout(sliderTimersRef.current.brightness);
-            sliderTimersRef.current.brightness = setTimeout(() => {
-              void setSystemBrightness(piloti, next.brightness);
-            }, 90);
-          }
-
-          if (patch.wifiEnabled !== undefined) {
-            void setSystemWifiEnabled(piloti, next.wifiEnabled);
-          }
-
-          if (patch.bluetoothEnabled !== undefined) {
-            void setSystemBluetoothPowered(piloti, next.bluetoothEnabled);
-          }
-
-          if (patch.powerMode !== undefined) {
-            void setSystemPowerProfile(piloti, next.powerMode);
-          }
-        }
+        applySystemSettings(prev, next, mergedPatch);
 
         return next;
       });
     },
-    [piloti, isBrowserRuntime]  // FIXME : Capabilities
+    [applySystemSettings]
   );
 
   // Sync portal-requested background wallpaper path into GNOME background spec
