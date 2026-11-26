@@ -19,6 +19,7 @@ setEngine(webEngine);
 setVfsSeed(demoVfsSeed);
 installDynamicFavicon();
 import { AppChromeProvider } from "./components/elements/app-chrome";
+import { PilotiQueryProvider } from "./lib/engine/query-client";
 import { ShellErrorBoundary } from "./components/shell/ShellErrorBoundary";
 
 const TextEditorApp = React.lazy(() =>
@@ -51,6 +52,7 @@ async function start(root: HTMLElement) {
     const initialPath = params.get("path") ?? undefined;
     createRoot(root).render(
       <ShellErrorBoundary>
+        <PilotiQueryProvider>
         <AppChromeProvider value={{ appId: "text-editor", windowId, decorations: isCsd ? "client" : "server" }}>
           <DomicileProvider domicile={withVfs(domicile, createWebVfs(domicile))}>
             <React.Suspense fallback={null}>
@@ -58,6 +60,7 @@ async function start(root: HTMLElement) {
             </React.Suspense>
           </DomicileProvider>
         </AppChromeProvider>
+        </PilotiQueryProvider>
       </ShellErrorBoundary>,
     );
   } else if (isolatedApp === "image-viewer") {
@@ -68,6 +71,7 @@ async function start(root: HTMLElement) {
     const initialPath = params.get("path") ?? undefined;
     createRoot(root).render(
       <ShellErrorBoundary>
+        <PilotiQueryProvider>
         <AppChromeProvider value={{ appId: "image-viewer", windowId, decorations: isCsd ? "client" : "server" }}>
           <DomicileProvider domicile={withVfs(domicile, createWebVfs(domicile))}>
             <React.Suspense fallback={null}>
@@ -78,6 +82,7 @@ async function start(root: HTMLElement) {
             </React.Suspense>
           </DomicileProvider>
         </AppChromeProvider>
+        </PilotiQueryProvider>
       </ShellErrorBoundary>,
     );
   } else {

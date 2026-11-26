@@ -7,33 +7,29 @@
  *
  * Keys the shell itself applies: `color-scheme` (`dark` forces the app's
  * windows dark; absent = follow the desktop). Plugins read and write them
- * through `ctx.apps`.
+ * through `ctx.apps`. Stored through the settings layer (`engine/settings.ts`),
+ * one schema per app id.
  */
 import { VFS_HOME } from "@/lib/engine/vfs-home";
-import { parseIniText, serializeIniText, type IniRecord } from "@/lib/config/ini";
-import { readVfsStateText, subscribeVfsStateDir, writeVfsStateText } from "@/lib/engine/vfs-state";
+import { keyfileSettingsBackend } from "@/lib/engine/settings";
 
 export const APP_SETTINGS_DIR = `${VFS_HOME}/.config/piloti/apps`;
-const SECTION = "General";
+
+const safeName = (appId: string) => appId.replace(/[^A-Za-z0-9._-]/g, "_");
 
 export function appSettingsPath(appId: string): string {
-  const safe = appId.replace(/[^A-Za-z0-9._-]/g, "_");
-  return `${APP_SETTINGS_DIR}/${safe}.ini`;
+  return `${APP_SETTINGS_DIR}/${safeName(appId)}.ini`;
 }
 
-const cache = new Map<string, IniRecord>();
+const backend = keyfileSettingsBackend({
+  dir: APP_SETTINGS_DIR,
+  fileName: safeName,
+  section: () => "General",
+});
+
 let version = 0;
 const listeners = new Set<() => void>();
-let unsubscribeDir: (() => void) | null = null;
-
-function load(appId: string): IniRecord {
-  let data = cache.get(appId);
-  if (!data) {
-    data = parseIniText(readVfsStateText(appSettingsPath(appId)) ?? "");
-    cache.set(appId, data);
-  }
-  return data;
-}
+let unsubscribeAll: (() => void) | null = null;
 
 function notify() {
   version += 1;
@@ -41,18 +37,12 @@ function notify() {
 }
 
 export function getAppSetting(appId: string, key: string): string | undefined {
-  return load(appId)[SECTION]?.[key];
+  return backend.read(appId, key);
 }
 
 export function setAppSetting(appId: string, key: string, value: string | null): void {
-  const data = { ...load(appId) };
-  const section = { ...(data[SECTION] ?? {}) };
-  if (value === null || value === "") delete section[key];
-  else section[key] = value;
-  if (Object.keys(section).length > 0) data[SECTION] = section;
-  else delete data[SECTION];
-  cache.set(appId, data);
-  writeVfsStateText(appSettingsPath(appId), serializeIniText(data));
+  if (value === null || value === "") backend.reset(appId, key);
+  else backend.write(appId, key, value);
   notify();
 }
 
@@ -63,18 +53,13 @@ export function getAppSettingsVersion(): number {
 
 export function subscribeAppSettings(listener: () => void): () => void {
   listeners.add(listener);
-  if (!unsubscribeDir) {
-    // Edits made in Folders / Text Editor apply live.
-    unsubscribeDir = subscribeVfsStateDir(APP_SETTINGS_DIR, () => {
-      cache.clear();
-      notify();
-    });
-  }
+  // Edits made in Folders / Text Editor apply live.
+  unsubscribeAll ??= backend.subscribeAll(notify);
   return () => {
     listeners.delete(listener);
-    if (listeners.size === 0 && unsubscribeDir) {
-      unsubscribeDir();
-      unsubscribeDir = null;
+    if (listeners.size === 0 && unsubscribeAll) {
+      unsubscribeAll();
+      unsubscribeAll = null;
     }
   };
 }

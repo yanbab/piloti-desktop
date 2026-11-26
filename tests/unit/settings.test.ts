@@ -1,0 +1,138 @@
+import { afterEach, describe, expect, it } from "bun:test";
+import {
+  defineSettings,
+  keyfileSettingsBackend,
+  memorySettingsBackend,
+  setSettingsBackend,
+} from "@/lib/engine/settings";
+import { setStateSource } from "@/lib/engine/vfs-state";
+import {
+  appSettingsPath,
+  getAppSetting,
+  setAppSetting,
+  subscribeAppSettings,
+} from "@/lib/shell/app-settings";
+import type { StateSource } from "@/lib/ports/state-source";
+
+function memoryStateSource(): StateSource & { data: Map<string, string> } {
+  const data = new Map<string, string>();
+  const listeners = new Map<string, Set<() => void>>();
+  return {
+    data,
+    files: () => [],
+    read: (path) => data.get(path) ?? null,
+    write(path, content) {
+      data.set(path, content);
+      listeners.get(path)?.forEach((l) => l());
+    },
+    remove(path) {
+      data.delete(path);
+      listeners.get(path)?.forEach((l) => l());
+    },
+    subscribe(path, listener) {
+      if (!listeners.has(path)) listeners.set(path, new Set());
+      listeners.get(path)!.add(listener);
+      return () => listeners.get(path)?.delete(listener);
+    },
+    subscribeDir: () => () => {},
+  };
+}
+
+afterEach(() => {
+  setSettingsBackend(null);
+  setStateSource(null);
+});
+
+describe("settings", () => {
+  const defaults = { scientific: false, precision: 10, label: "Calc", history: [] as string[] };
+
+  it("reads defaults, then what was set, then defaults again after reset", () => {
+    setSettingsBackend(memorySettingsBackend());
+    const s = defineSettings("org.piloti.test", defaults);
+    expect(s.get("scientific")).toBe(false);
+    s.set("scientific", true);
+    s.set("precision", 4);
+    s.set("history", ["1+1", "2*3"]);
+    expect(s.get("scientific")).toBe(true);
+    expect(s.get("precision")).toBe(4);
+    expect(s.get("history")).toEqual(["1+1", "2*3"]);
+    s.reset("precision");
+    expect(s.get("precision")).toBe(10);
+  });
+
+  it("returns the same array until it changes", () => {
+    setSettingsBackend(memorySettingsBackend());
+    const s = defineSettings("org.piloti.test", defaults);
+    s.set("history", ["a"]);
+    expect(s.get("history")).toBe(s.get("history"));
+  });
+
+  it("notifies a key's listener only when that key changes", () => {
+    setSettingsBackend(memorySettingsBackend());
+    const s = defineSettings("org.piloti.test", defaults);
+    let calls = 0;
+    const stop = s.subscribe("scientific", () => calls++);
+    s.set("precision", 3);
+    s.set("scientific", true);
+    s.set("scientific", true);
+    stop();
+    s.set("scientific", false);
+    expect(calls).toBe(1);
+  });
+
+  it("stores a keyfile per schema and follows edits to it", () => {
+    const state = memoryStateSource();
+    setStateSource(state);
+    setSettingsBackend(keyfileSettingsBackend({ dir: "/home/user/.config/piloti/settings" }));
+    const path = "/home/user/.config/piloti/settings/org.piloti.test.ini";
+    const s = defineSettings("org.piloti.test", defaults);
+
+    s.set("scientific", true);
+    s.set("history", ["a", "b"]);
+    expect(state.data.get(path)).toBe("[org.piloti.test]\nscientific=true\nhistory=a;b\n");
+
+    let calls = 0;
+    s.subscribe("precision", () => calls++);
+    state.write(path, "[org.piloti.test]\nprecision=2\n");
+    expect(calls).toBe(1);
+    expect(s.get("precision")).toBe(2);
+    expect(s.get("scientific")).toBe(false);
+  });
+
+  it("reads a bad value as the default", () => {
+    setSettingsBackend(memorySettingsBackend());
+    const s = defineSettings("org.piloti.test", defaults);
+    s.set("precision", "x" as unknown as number);
+    expect(s.get("precision")).toBe(10);
+  });
+
+  it("keeps other sections of a keyfile and drops an emptied one", () => {
+    const state = memoryStateSource();
+    setStateSource(state);
+    setSettingsBackend(
+      keyfileSettingsBackend({ dir: "/s", fileName: () => "app", section: () => "General" }),
+    );
+    state.write("/s/app.ini", "[Desktop Entry]\nName=App\n");
+    const s = defineSettings("app", { dark: false });
+    s.set("dark", true);
+    expect(state.data.get("/s/app.ini")).toBe("[Desktop Entry]\nName=App\n\n[General]\ndark=true\n");
+    s.reset("dark");
+    expect(state.data.get("/s/app.ini")).toBe("[Desktop Entry]\nName=App\n");
+  });
+});
+
+describe("app settings", () => {
+  it("stores strings per app under [General], empty means unset", () => {
+    const state = memoryStateSource();
+    setStateSource(state);
+    let calls = 0;
+    const stop = subscribeAppSettings(() => calls++);
+    setAppSetting("org.example.App", "color-scheme", "dark");
+    expect(getAppSetting("org.example.App", "color-scheme")).toBe("dark");
+    expect(state.data.get(appSettingsPath("org.example.App"))).toBe("[General]\ncolor-scheme=dark\n");
+    setAppSetting("org.example.App", "color-scheme", "");
+    expect(getAppSetting("org.example.App", "color-scheme")).toBeUndefined();
+    expect(calls).toBe(2);
+    stop();
+  });
+});

@@ -22,6 +22,8 @@ import {
   VFS_STATE_PATHS,
   writeVfsStateJson,
 } from "@/lib/engine/vfs-state";
+import { defineSettings } from "@/lib/engine/settings";
+import { useSetting } from "@/hooks/use-setting";
 
 type Operator = "+" | "-" | "*" | "/";
 
@@ -65,12 +67,18 @@ export interface CalculatorAppProps {
 
 const CALCULATOR_STATE_KEY = "piloti.calculator.state.v1";
 
+/** Preferences; the display and pending operation are state (`calculator.json`). */
+const calculatorSettings = defineSettings("org.piloti.calculator", {
+  scientific: false,
+});
+
 interface SavedCalculatorState {
   display?: string;
   storedValue?: number | null;
   pendingOp?: Operator | null;
   waitingForOperand?: boolean;
   expressionLine?: string;
+  /** Moved to `calculatorSettings`; read once to carry it over. */
   scientific?: boolean;
 }
 
@@ -80,7 +88,11 @@ function loadSavedCalculatorState(): SavedCalculatorState {
       VFS_STATE_PATHS.calculator,
       CALCULATOR_STATE_KEY,
     );
-    return parsed && typeof parsed === "object" ? parsed : {};
+    if (!parsed || typeof parsed !== "object") return {};
+    if (typeof parsed.scientific === "boolean") {
+      calculatorSettings.set("scientific", parsed.scientific);
+    }
+    return parsed;
   } catch {
     return {};
   }
@@ -121,15 +133,13 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
       ? initialSaved.expressionLine
       : ""
   );
-  const [scientific, setScientific] = React.useState(() => {
-    if (typeof window !== "undefined" && window.location.hash === "#scientific") {
-      return true;
-    }
-    if (typeof window !== "undefined" && window.location.hash === "#basic") {
-      return false;
-    }
-    return Boolean(initialSaved.scientific);
-  });
+  const [scientific, setScientific] = useSetting(calculatorSettings, "scientific");
+  // `#scientific` / `#basic` in the URL pick the mode when the window opens.
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (window.location.hash === "#scientific") setScientific(true);
+    else if (window.location.hash === "#basic") setScientific(false);
+  }, [setScientific]);
   const [copied, setCopied] = React.useState(false);
   const headerRef = React.useRef<HTMLDivElement | null>(null);
   const topBarRef = React.useRef<HTMLDivElement | null>(null);
@@ -144,12 +154,11 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
         pendingOp,
         waitingForOperand,
         expressionLine,
-        scientific,
       } satisfies SavedCalculatorState);
     } catch {
       // ignore storage errors
     }
-  }, [display, expressionLine, pendingOp, scientific, storedValue, waitingForOperand]);
+  }, [display, expressionLine, pendingOp, storedValue, waitingForOperand]);
 
   const syncWindowToDom = React.useCallback(() => {
     if (!windowId) return;
@@ -203,7 +212,7 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
       }
     }
     setScientific(nextScientific);
-  }, []);
+  }, [setScientific]);
 
   React.useEffect(() => {
     if (!windowId) return;
@@ -238,7 +247,7 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
     };
     window.addEventListener("hashchange", onHashChange);
     return () => window.removeEventListener("hashchange", onHashChange);
-  }, []);
+  }, [setScientific]);
 
   const closeOnLeft = isCloseOnLeft(useChromeSettings().settings.windowButtonLayout);
 

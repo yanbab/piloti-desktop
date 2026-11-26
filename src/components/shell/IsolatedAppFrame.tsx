@@ -11,6 +11,7 @@ import {
   applyThemeToDocument,
   type ShellToAppMessage,
 } from "@/lib/engine/app-bridge";
+import { PilotiQueryProvider } from "@/lib/engine/query-client";
 
 export interface IsolatedAppFrameProps {
   appId: string;
@@ -207,7 +208,7 @@ export const IsolatedAppFrame: React.FC<IsolatedAppFrameProps> = ({
     if (mountNode) {
       const root = createRoot(mountNode);
       portalRootRef.current = root;
-      root.render(fallbackElementRef.current);
+      root.render(<PilotiQueryProvider>{fallbackElementRef.current}</PilotiQueryProvider>);
       markWindowReady(windowId);
     }
 
@@ -219,7 +220,7 @@ export const IsolatedAppFrame: React.FC<IsolatedAppFrameProps> = ({
 
   React.useEffect(() => {
     if (isHttpRuntime || !portalRootRef.current || !fallbackElement) return;
-    portalRootRef.current.render(fallbackElement);
+    portalRootRef.current.render(<PilotiQueryProvider>{fallbackElement}</PilotiQueryProvider>);
   }, [fallbackElement, isHttpRuntime]);
 
   return (
