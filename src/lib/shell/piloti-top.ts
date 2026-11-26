@@ -24,9 +24,10 @@ export function formatTop(prev: SystemSample, next: SystemSample, cols: number, 
   return [
     line(`CPU ${cpuPercent(prev, next).toFixed(1)}%   Memory ${mb(next.memTotalKb - next.memAvailableKb)} / ${mb(next.memTotalKb)}`),
     line(`${processes.length} processes   q to quit`),
-    `\x1b[7m${columns("PID", "CPU%", "MEM MB", "NAME").padEnd(cols)}\x1b[0m`,
+    columns("PID", "CPU%", "MEM MB", "NAME"),
+    "─".repeat(cols),
     ...processes
-      .slice(0, Math.max(0, rows - 3))
+      .slice(0, Math.max(0, rows - 4))
       .map((p) =>
         columns(String(p.pid), p.cpu.toFixed(1), p.mem.toFixed(1), p.name.replace(/[\x00-\x1f\x7f-\x9f]/g, "?")),
       ),

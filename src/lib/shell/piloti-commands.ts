@@ -4,6 +4,7 @@
  */
 import { resolveVfsPath, WEB_VFS_HOME } from "@/lib/core/vfs-paths";
 import { baseName, joinPath, parentPath, type Vfs } from "@/lib/ports/vfs";
+import { formatTable } from "@/lib/shell/piloti-table";
 
 export interface ShellCommandOptions {
   vfs: () => Vfs;
@@ -12,6 +13,8 @@ export interface ShellCommandOptions {
   home?: string;
   /** Colors `ls` as a terminal's does. */
   color?: boolean;
+  /** Terminal width, for `ls -l`. */
+  columns?: () => number;
 }
 
 export const SHELL_COMMAND_HELP = [
@@ -83,7 +86,7 @@ function parseFlags(command: string, args: string[], allowed: string) {
   return { flags, rest };
 }
 
-export function createShellCommands({ vfs, open, home = WEB_VFS_HOME, color = false }: ShellCommandOptions) {
+export function createShellCommands({ vfs, open, home = WEB_VFS_HOME, color = false, columns }: ShellCommandOptions) {
   let cwd = home;
   let previous = home;
   const aliases = new Map<string, string>(Object.entries(DEFAULT_ALIASES));
@@ -148,17 +151,19 @@ export function createShellCommands({ vfs, open, home = WEB_VFS_HOME, color = fa
     return (await vfs().list(parentPath(full)))?.find((e) => e.name === baseName(full));
   };
 
-  const paint = (name: string, kind: "file" | "directory", isSymlink?: boolean) => {
-    const shown = printable(name);
-    const suffix = kind === "directory" ? "/" : "";
-    if (!color) return shown + suffix;
-    const code = isSymlink
+  const colorOf = ({ name, kind, isSymlink }: Listed) =>
+    isSymlink
       ? "01;36"
       : kind === "directory"
         ? "01;34"
         : FILE_COLORS.find(([pattern]) => pattern.test(name))?.[1];
-    return (code ? `\x1b[${code}m${shown}\x1b[0m` : shown) + suffix;
+
+  const colored = (text: string, entry: Listed) => {
+    const code = color ? colorOf(entry) : undefined;
+    return code ? `\x1b[${code}m${text}\x1b[0m` : text;
   };
+
+  const suffix = (entry: Listed) => (entry.kind === "directory" ? "/" : "");
 
   interface Listed {
     name: string;
@@ -167,19 +172,28 @@ export function createShellCommands({ vfs, open, home = WEB_VFS_HOME, color = fa
     isSymlink?: boolean;
   }
 
-  const lsLines = async (entries: Listed[], long: boolean, human: boolean) => {
-    if (!long) return entries.map((e) => paint(e.name, e.kind, e.isSymlink));
+  /** Names one per line, or with `long` a table. */
+  const listing = async (entries: Listed[], long: boolean, human: boolean) => {
+    if (!long) return entries.map((e) => colored(printable(e.name), e) + suffix(e)).join("\n");
+    if (!entries.length) return "";
     const rows = await Promise.all(
       entries.map(async (e) => {
         const stat = await vfs().stat(e.path).catch(() => null);
         const size = stat?.size === undefined ? "-" : human ? humanSize(stat.size) : String(stat.size);
-        const type = e.isSymlink ? "l" : e.kind === "directory" ? "d" : "-";
-        const target = e.isSymlink && stat ? ` -> ${printable(stat.realPath)}` : "";
-        return { type, size, date: lsDate(stat?.modifiedMs), name: paint(e.name, e.kind, e.isSymlink) + target };
+        const target = e.isSymlink && stat ? ` -> ${stat.realPath}` : "";
+        return {
+          type: e.isSymlink ? "link" : e.kind === "directory" ? "dir" : "file",
+          size,
+          modified: lsDate(stat?.modifiedMs),
+          name: printable(e.name + suffix(e) + target),
+        };
       }),
     );
-    const width = Math.max(0, ...rows.map((r) => r.size.length));
-    return rows.map((r) => `${r.type} ${r.size.padStart(width)} ${r.date} ${r.name}`);
+    return formatTable(rows, {
+      columns: columns?.(),
+      maxCell: Number.MAX_SAFE_INTEGER,
+      paint: (text, row, key) => (key === "name" ? colored(text, entries[row]!) : text),
+    });
   };
 
   const commands = {
@@ -202,13 +216,13 @@ export function createShellCommands({ vfs, open, home = WEB_VFS_HOME, color = fa
         if (stat.kind === "directory") folders.push({ target, path });
         else files.push({ name: target, path, kind: "file", isSymlink: (await entryOf(target))?.isSymlink });
       }
-      const blocks = files.length ? [(await lsLines(files, long, flags.has("h"))).join("\n")] : [];
+      const blocks = files.length ? [await listing(files, long, flags.has("h"))] : [];
       for (const { target, path } of folders) {
         const entries = ((await vfs().list(path)) ?? [])
           .filter((e) => hidden || !e.name.startsWith("."))
           .sort((a, b) => a.name.localeCompare(b.name));
-        const lines = await lsLines(entries, long, flags.has("h"));
-        blocks.push([...(rest.length > 1 ? [`${printable(target)}:`] : []), ...lines].join("\n"));
+        const text = await listing(entries, long, flags.has("h"));
+        blocks.push([...(rest.length > 1 ? [`${printable(target)}:`] : []), text].join("\n"));
       }
       return blocks.join(rest.length > 1 ? "\n\n" : "\n");
     },
@@ -329,7 +343,7 @@ export function createShellCommands({ vfs, open, home = WEB_VFS_HOME, color = fa
     resolve,
     cwd: () => cwd,
     aliases: aliases as ReadonlyMap<string, string>,
-    /** The current folder: from home inside it (`~` for home itself), else absolute. */
-    shortCwd: () => (cwd === home ? "~" : cwd.startsWith(`${home}/`) ? cwd.slice(home.length + 1) : cwd),
+    /** The current folder: from home inside it (empty for home itself), else absolute. */
+    shortCwd: () => (cwd === home ? "" : cwd.startsWith(`${home}/`) ? cwd.slice(home.length + 1) : cwd),
   };
 }

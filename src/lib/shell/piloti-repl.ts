@@ -8,6 +8,7 @@
  * the program `name` of `$PATH`.
  */
 import type { Completion } from "@/lib/shell/piloti-completion";
+import { compileScript } from "@/lib/shell/piloti-script";
 import { formatTable, tableRows } from "@/lib/shell/piloti-table";
 
 export interface ProgramRunner {
@@ -150,9 +151,11 @@ export async function parseProgram(line: string, scope: Record<string, unknown>,
   return { name: name!, rest };
 }
 
+type Evaluate = (code: string) => Promise<unknown>;
+
 async function programArgs(
   rest: string,
-  scope: Record<string, unknown>,
+  evaluate: Evaluate,
   glob?: ReplOptions["glob"],
 ): Promise<string[]> {
   const args: string[] = [];
@@ -160,7 +163,7 @@ async function programArgs(
     if (kind === "quoted") args.push(text);
     else if (kind === "js") {
       // `[` and `{}` are ordinary words to programs; `$x` and `$(...)` are values.
-      const value = await evaluateLine(text, scope);
+      const value = await evaluate(text);
       args.push(typeof value === "object" ? JSON.stringify(value) : String(value));
     } else if (/^(\|\|?|&&?|;|\d?>>?.*|<.*)$/.test(text)) {
       throw new Error(`${text}: pipes and redirections are not supported (try: sh -c '...')`);
@@ -189,20 +192,26 @@ export async function runLine(
   scope: Record<string, unknown>,
   { textCommands, glob, programs, aliases }: Pick<ReplOptions, "textCommands" | "glob" | "programs" | "aliases"> = {},
   attach: (input: (data: string) => void) => void = () => {},
+  {
+    evaluate = (code) => evaluateLine(code, scope),
+    onAll,
+  }: { evaluate?: Evaluate; /** `-a`: show every column. */ onAll?: () => void } = {},
 ): Promise<unknown> {
   if (aliases) line = expandAliases(line, aliases);
   const script = /^[^\s'"()=]+\.psh$/.exec(line.trim())?.[0];
   if (script?.includes("/") && typeof scope.source === "function") return scope.source(script);
   const program = programs && (await parseProgram(line, scope, programs));
   if (program) {
-    return programs.run([program.name, ...(await programArgs(program.rest, scope, glob))], attach);
+    return programs.run([program.name, ...(await programArgs(program.rest, evaluate, glob))], attach);
   }
   const command = parseCommand(line, scope);
   if (!command) return evaluateLine(line, scope);
   const asText = textCommands?.has(command.name) ?? false;
   const args: unknown[] = [];
   for (const { text, kind } of splitWords(command.rest)) {
-    if (kind === "js") args.push(await evaluateLine(text, scope));
+    // For `cat` and functions without options of their own, `-a` is about the table.
+    if (kind === "bare" && text === "-a" && (!asText || command.name === "cat")) onAll?.();
+    else if (kind === "js") args.push(await evaluate(text));
     else if (kind === "quoted") args.push(text);
     else if (asText) args.push(...(glob ? await glob(text) : [text]));
     else args.push(LITERAL.test(text) ? await evaluateLine(text, {}) : text);
@@ -210,10 +219,10 @@ export async function runLine(
   return (scope[command.name] as (...a: unknown[]) => unknown)(...args);
 }
 
-export function formatValue(value: unknown, columns?: number): string {
+export function formatValue(value: unknown, columns?: number, all?: boolean): string {
   if (value === undefined) return "";
   const rows = tableRows(value);
-  if (rows) return formatTable(rows, columns);
+  if (rows) return formatTable(rows, { columns, all });
   if (typeof value === "string") return value;
   if (typeof value === "function") return `[Function ${value.name || "anonymous"}]`;
   try {
@@ -267,33 +276,75 @@ export function createRepl({ write, scope, prompt = "piloti> ", textCommands, gl
   const printError = (error: unknown) =>
     write(`\x1b[31m${CRLF(String(error instanceof Error ? error.message : error))}\x1b[0m\r\n`);
 
-  const execute = async (code: string) => {
-    const options = { textCommands, glob, programs, aliases };
-    const value = await runLine(code, scope(), options, (to) => (input = to));
+  const options = { textCommands, glob, programs, aliases };
+
+  const execute = async (code: string, evaluate?: (expression: string) => Promise<unknown>) => {
+    let all = false;
+    const value = await runLine(code, scope(), options, (to) => (input = to), {
+      evaluate,
+      onAll: () => (all = true),
+    });
     input = null;
-    const out = formatValue(value, columns?.());
+    const out = formatValue(value, columns?.(), all);
     if (out) write(`${CRLF(out)}\r\n`);
   };
 
-  /** Runs a script's lines one by one; `#` and `//` start a comment line. */
+  /** Whether a script line is a command; `declared` are the script's own names. */
+  const isCommand = async (line: string, declared: ReadonlySet<string>, own: Set<string>) => {
+    const [first = ""] = line.split(/\s/);
+    const defined = /^alias\s+([\w.-]+)=/.exec(line)?.[1];
+    if (defined) own.add(defined);
+    if (declared.has(first)) return false;
+    const expanded = expandAliases(line, aliases ?? new Map());
+    // An alias the script itself sets is not there yet.
+    if (own.has(first) || expanded !== line) return true;
+    const names = scope();
+    if (parseCommand(line, names) || /^[^\s'"()=]*\/[^\s'"()=]*\.psh$/.test(line)) return true;
+    return !!programs && !!(await parseProgram(line, names, programs));
+  };
+
+  /**
+   * Runs a script as one program: JavaScript in which a line may be a command.
+   * `#` starts a comment line. With `keepGoing`, a failed command does not end it.
+   */
   const runScript = async (source: string, name: string, { keepGoing = false } = {}) => {
     if (depth >= 8) throw new Error(`${name}: scripts nested too deep`);
     depth += 1;
-    try {
-      for (const [index, raw] of source.split("\n").entries()) {
-        const code = raw.trim();
-        if (interrupted) break;
-        if (!code || code.startsWith("#") || code.startsWith("//")) continue;
-        try {
-          await execute(code);
-        } catch (error) {
-          input = null;
-          const message = error instanceof Error ? error.message : String(error);
-          const located = new Error(`${name}:${index + 1}: ${message}`);
-          if (!keepGoing) throw located;
-          printError(located);
-        }
+    const stop = new Error("interrupted");
+    const reported = new WeakSet<Error>();
+    const messageOf = (error: unknown) => (error instanceof Error ? error.message : String(error));
+    let count = 0;
+    const sh = async (line: string, values: Record<string, () => Promise<unknown>>, at: number) => {
+      // Let the keys in now and then, so Ctrl+C can end a loop.
+      if (++count % 20 === 0) await new Promise((done) => setTimeout(done, 0));
+      if (interrupted) throw stop;
+      try {
+        await execute(line, (code) => values[code]?.() ?? evaluateLine(code, scope()));
+      } catch (error) {
+        input = null;
+        const located = new Error(`${name}:${at}: ${messageOf(error)}`);
+        reported.add(located);
+        if (!keepGoing) throw located;
+        printError(located);
       }
+    };
+    try {
+      const own = new Set<string>();
+      const body = await compileScript(source, {
+        isCommand: (line, declared) => isCommand(line, declared, own),
+        jsWords: (line) =>
+          splitWords(line.replace(/^\S+/, ""))
+            .filter((w) => w.kind === "js")
+            .map((w) => w.text),
+      });
+      const names = scope();
+      const keys = Object.keys(names);
+      await new AsyncFunction(...keys, "__sh", body)(...keys.map((k) => names[k]), sh);
+    } catch (error) {
+      if (error === stop) return;
+      const located = reported.has(error as Error) ? error : new Error(`${name}: ${messageOf(error)}`);
+      if (!keepGoing) throw located;
+      printError(located);
     } finally {
       depth -= 1;
     }

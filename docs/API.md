@@ -162,27 +162,47 @@ There are no pipes, redirections or `&&`: use `sh -c '…'`.
 (`piloti.desktop.`); twice lists the choices.
 
 **Prompt.** The folder in the accent color: from home inside it
-(`Documents/files> `, `~> ` for home), else absolute (`/etc> `).
+(`Documents/files> `, just `> ` in home), else absolute (`/etc> `).
 
 **`ls`** takes `-a`, `-A`, `-l`, `-h`, with the usual colors (also in the string
-`await ls()` returns). `-l` shows type, size, date and link target: the VFS has
+`await ls()` returns). `-l` is a table of type, size, date and name: the VFS has
 no permissions or owners, so executables are not colored.
 
 **Aliases.** `alias name='value'`, `alias`, `unalias name`. Defaults: `ll`
 (`ls -la`), `la` (`ls -a`), `less` and `more` (`cat`). Kept for the window.
 
-**Scripts** (`.psh`) run line by line: `source file`, or `./file.psh`. Lines
-starting `#` or `//` are comments; each line stands alone (`const` does not
-carry over). The first error stops the script; a program's exit code does not.
-`~/.config/piloti-shell/autoexec.psh` runs when the shell starts, errors and
-all: put aliases and `cd` there.
+**Scripts** (`.psh`) run with `source file` or `./file.psh`. A script is one
+JavaScript program in which a line may be a command, so variables, `if` and
+loops work across lines:
+
+```
+# backup.psh
+const folder = 'backup'
+mkdir -p $folder
+for (const name of ['a.txt', 'b.txt']) {
+  cp $name $folder
+}
+```
+
+- A command takes a whole line; `if (x) { ls }` on one line is JavaScript.
+- Commands print their result; JavaScript lines do not (use `echo`).
+- To keep a command's result, call it: `const text = await cat('a.txt')`.
+- A line starting with a name the script declares is JavaScript.
+- `#` starts a comment line. The first error ends the script; a program's exit
+  code does not. Ctrl+C stops it at its next command.
+
+`~/.config/piloti-shell/autoexec.psh` runs when the shell starts, and goes on
+after a failed command (not after a JavaScript error): put aliases and `cd`
+there.
 
 **`top`** (Linux) lists processes by CPU, from `/proc`, every 2 s; `q` or
 Ctrl+C quits. `/usr/bin/top` is the system's.
 
 **Tables.** A non-empty array of objects, or its JSON text (a result, `cat`, a
-program's output), prints as a table with an inverse header. Wide cells end in
-`…`; columns that still do not fit are left out. `JSON.stringify(x)` does not avoid it; `x.map(JSON.stringify)` does.
+program's output), prints as a table with a line under its header. It shows six
+columns at most (`id`, `name`, `title` first) and cuts wide cells with `…`.
+`-a` shows every column (`apps -a`, `cat list.json -a`), wrapping if need be;
+a program's `-a` is its own. `x.map(JSON.stringify)` avoids the table.
 
 | Functions | |
 |---|---|
@@ -196,7 +216,7 @@ program's output), prints as a table with an inverse header. Wide cells end in
 | `files`, `piloti` | Domicile's files; the desktop |
 
 File operations are not in the Folders undo history. Code:
-`lib/shell/piloti-{repl,commands,programs,run,completion,table,top}.ts`.
+`lib/shell/piloti-{repl,commands,programs,run,completion,table,top,script}.ts`.
 
 ## React hooks
 

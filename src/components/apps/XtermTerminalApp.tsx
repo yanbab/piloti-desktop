@@ -118,7 +118,10 @@ export function XtermTerminalApp({
   openRef.current = openPath;
   // Keeps the current folder for the window's life.
   const [shellCommands] = React.useState(() =>
-    createShellCommands({ vfs: () => piloti.vfs, open: (path, kind) => openRef.current(path, { kind }), color: true }),
+    createShellCommands({ vfs: () => piloti.vfs, open: (path, kind) => openRef.current(path, { kind }),
+      color: true,
+      columns: () => termRef.current?.cols ?? 80,
+    }),
   );
   const [programIndex] = React.useState(() => (systemServices ? createProgramIndex(piloti) : null));
   const replRef = React.useRef<ReturnType<typeof createRepl> | null>(null);

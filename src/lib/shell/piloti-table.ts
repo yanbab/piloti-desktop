@@ -33,12 +33,34 @@ function cell(value: unknown): string {
 const fit = (text: string, width: number) =>
   text.length > width ? `${text.slice(0, width - 1)}…` : text.padEnd(width);
 
-export function formatTable(rows: Row[], columns = 80): string {
+export interface TableOptions {
+  columns?: number;
+  /** Every column, even past the terminal's width. */
+  all?: boolean;
+  maxCell?: number;
+  /** Colors a cell's text, already cut to size. */
+  paint?: (text: string, row: number, key: string) => string;
+}
+
+const MAX_COLUMNS = 6;
+/** Shown first, as they say what a row is. */
+const LEADING = ["id", "name", "title"];
+
+export function formatTable(rows: Row[], options: TableOptions = {}): string {
+  const { columns = 80, all = false, maxCell = MAX_CELL, paint } = options;
   const shown = rows.slice(0, MAX_ROWS);
-  let keys = [...new Set(shown.flatMap((row) => Object.keys(row)))];
+  const found = [...new Set(shown.flatMap((row) => Object.keys(row)))];
+  let keys = found;
+  if (!all && found.length > MAX_COLUMNS) {
+    const rank = (key: string) => (LEADING.includes(key) ? LEADING.indexOf(key) : LEADING.length);
+    keys = found
+      .filter((key) => shown.some((row) => cell(row[key]) !== ""))
+      .sort((a, b) => rank(a) - rank(b))
+      .slice(0, MAX_COLUMNS);
+  }
   const cells = shown.map((row) => keys.map((key) => cell(row[key])));
   const widths = keys.map((key, i) =>
-    Math.min(MAX_CELL, Math.max(cell(key).length, ...cells.map((r) => r[i]!.length))),
+    Math.min(maxCell, Math.max(cell(key).length, ...cells.map((r) => r[i]!.length))),
   );
   const total = () => widths.reduce((sum, w) => sum + w + 1, -1);
   // Too wide: narrow the widest columns, then leave out the last ones.
@@ -47,18 +69,27 @@ export function formatTable(rows: Row[], columns = 80): string {
     if (widths[widest]! <= MIN_CELL) break;
     widths[widest]! -= 1;
   }
-  let hidden = 0;
-  while (widths.length > 1 && total() > columns) {
-    widths.pop();
-    hidden += 1;
-  }
+  while (!all && widths.length > 1 && total() > columns) widths.pop();
   keys = keys.slice(0, widths.length);
-  const line = (values: string[]) => widths.map((w, i) => fit(values[i]!, w)).join(" ");
+  const line = (values: string[], row?: number) =>
+    widths
+      .map((w, i) => {
+        const text = fit(values[i]!, w);
+        if (row === undefined || !paint) return text;
+        const body = text.trimEnd();
+        return paint(body, row, keys[i]!) + text.slice(body.length);
+      })
+      .join(" ")
+      .trimEnd();
+  const hidden = found.length - keys.length;
   const notes = [
     rows.length > shown.length ? `… ${rows.length - shown.length} more rows` : "",
-    hidden ? `… ${hidden} more columns` : "",
+    hidden && !all ? `… ${hidden} more columns (-a shows all)` : "",
   ].filter(Boolean);
-  // The header is in inverse video, over its whole width.
-  const body = cells.map((row) => line(row).trimEnd());
-  return [`\x1b[7m${line(keys.map(cell))}\x1b[0m`, ...body, ...notes].join("\n");
+  return [
+    line(keys.map(cell)),
+    "─".repeat(Math.min(total(), columns)),
+    ...cells.map((row, i) => line(row, i)),
+    ...notes,
+  ].join("\n");
 }

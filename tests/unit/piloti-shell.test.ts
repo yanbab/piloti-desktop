@@ -32,12 +32,17 @@ describe("piloti shell tables", () => {
     for (const value of [rows, JSON.stringify(rows)]) {
       const lines = formatValue(value, 80).split("\n");
       expect(lines[0]).toContain("name");
-      expect(lines[1]).toBe("a [2J 1");
-      expect(lines[2]).toBe('bb         ["x"]');
+      expect(lines[1]).toMatch(/^─+$/);
+      expect(lines[2]).toBe("a [2J 1");
+      expect(lines[3]).toBe('bb         ["x"]');
     }
     expect(formatValue([1, 2])).toBe("[\n  1,\n  2\n]");
     const wide = formatValue([{ a: "x".repeat(100), b: "y".repeat(100) }], 30).split("\n");
-    expect(wide[1]!.length).toBeLessThanOrEqual(30);
+    expect(wide[2]!.length).toBeLessThanOrEqual(30);
+    const many = [{ a: 1, b: 2, c: 3, d: 4, e: 5, f: 6, g: 7, name: "n" }];
+    expect(formatValue(many)).toStartWith("name a b c d e\n");
+    expect(formatValue(many)).toContain("2 more columns");
+    expect(formatValue(many, 80, true)).toStartWith("a b c d e f g name\n");
   });
 
   test("holds a program's JSON array for a table, and streams anything else", async () => {
@@ -109,15 +114,16 @@ describe("piloti shell scripts, aliases, ls and top", () => {
     const shell = createShellCommands({ vfs: () => vfs, home: "/h", color: true });
     expect(await shell.commands.ls()).toBe("\x1b[01;35ma.png\x1b[0m\n\x1b[01;34mpics\x1b[0m/");
     const long = (await shell.commands.ls("-lah")).split("\n");
-    expect(long).toHaveLength(3);
-    expect(long[0]).toBe("- 2.0K Jan  1  1970 .rc");
-    expect(shell.shortCwd()).toBe("~");
+    expect(long).toHaveLength(5);
+    expect(long[0]).toStartWith("type size modified");
+    expect(long[2]).toBe("file 2.0K Jan  1  1970 .rc");
+    expect(shell.shortCwd()).toBe("");
     await shell.commands.cd("pics");
     expect(shell.shortCwd()).toBe("pics");
     await shell.commands.cd("/h");
   });
 
-  test("aliases expand once; scripts run line by line and stop at an error", async () => {
+  test("aliases expand once; scripts stop at a failed command", async () => {
     const shell = createShellCommands({ vfs: () => vfs, home: "/h" });
     const { aliases } = shell;
     expect(expandAliases("ll pics", aliases)).toBe("ls -la pics");
@@ -128,12 +134,46 @@ describe("piloti shell scripts, aliases, ls and top", () => {
 
     let out = "";
     const repl = createRepl({ write: (t) => (out += t), scope: () => ({ ...shell.commands }), aliases });
-    await expect(repl.runScript("# note\necho one\nboom(\necho two", "s.psh")).rejects.toThrow("s.psh:3");
+    await expect(repl.runScript("# note\necho one\nunalias nope\necho two", "s.psh")).rejects.toThrow("s.psh:3");
     expect(out).toBe("hi one\r\n");
     out = "";
-    await repl.runScript("boom(\necho two", "autoexec.psh", { keepGoing: true });
+    await repl.runScript("unalias nope\necho two", "autoexec.psh", { keepGoing: true });
     expect(out).toContain("autoexec.psh:1");
     expect(out).toContain("hi two");
+  });
+
+  test("a script is one program: variables, blocks and objects span lines", async () => {
+    const echo = (...words: unknown[]) => words.join(" ");
+    const seen: unknown[] = [];
+    let out = "";
+    const repl = createRepl({
+      write: (t) => (out += t),
+      scope: () => ({ echo, apps: () => seen, keep: (...a: unknown[]) => void seen.push(...a) }),
+    });
+    await repl.runScript(
+      [
+        "const apps = ['a', 'b']",
+        "let total = 0",
+        "for (const name of apps) {",
+        "  echo item $name $(name.toUpperCase())",
+        "  total += 1",
+        "}",
+        "const o = {",
+        "  echo: 1,",
+        "  keep",
+        "    : 2",
+        "}",
+        "if (total === 2)",
+        "  keep $o",
+        "alias say='echo said'",
+      ]
+        .slice(0, -1)
+        .join("\n"),
+      "s.psh",
+    );
+    expect(out).toBe("item a A\r\nitem b B\r\n");
+    expect(seen).toEqual([{ echo: 1, keep: 2 }]);
+    await expect(repl.runScript("const x =", "bad.psh")).rejects.toThrow("bad.psh");
   });
 
   test("top draws busiest first and quits on q", async () => {
