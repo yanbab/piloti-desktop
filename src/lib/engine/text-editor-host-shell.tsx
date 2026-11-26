@@ -6,7 +6,8 @@ import {
   writePilotiAppIni,
 } from "@/lib/config/piloti-ini";
 import { readVfsStateJson, writeVfsStateJson } from "@/lib/engine/vfs-state";
-import { normalizeVfsPath, subscribeVfsRenamed } from "@/lib/engine-web/web-vfs";
+import { normalizeVfsPath } from "@/lib/core/vfs-paths";
+import { subscribeVfsRenamed } from "@/lib/engine-web/web-vfs";
 import { VFS_HOME } from "@/lib/engine/vfs-home";
 import { emitShellEvent, onShellEvent } from "@/lib/shell/shell-events";
 

@@ -15,7 +15,7 @@ import {
   removeFsFile,
   writeFsTextFile,
 } from "@/lib/engine/fs-bridge";
-import { WEB_VFS_HOME } from "@/lib/engine-web/web-vfs";
+import { WEB_VFS_HOME } from "@/lib/core/vfs-paths";
 import { parseDesktopEntry } from "./xdg-desktop-entry";
 
 export const WEB_APPS_XDG_DIR = `${WEB_VFS_HOME}/.local/share/applications`;

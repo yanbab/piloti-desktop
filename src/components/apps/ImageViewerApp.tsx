@@ -23,10 +23,8 @@ import { shouldConfirmUnsavedOnClose } from "@/lib/config/piloti-ini";
 import { isBrowserDevRuntime } from "@/context/SettingsContext";
 import { _ } from "@/lib/core/i18n";
 import { cn } from "@/lib/core/utils";
-import {
-  normalizeVfsPath,
-  subscribeVfsRenamed,
-} from "@/lib/engine-web/web-vfs";
+import { normalizeVfsPath } from "@/lib/core/vfs-paths";
+import { subscribeVfsRenamed } from "@/lib/engine-web/web-vfs";
 
 export interface ImageViewerAppProps {
   initialPath?: string;

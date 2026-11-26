@@ -15,10 +15,8 @@ import {
   DEFAULT_LAUNCHER_WEB_APPS,
   type InstalledWebApp,
 } from "@/data/web-apps";
-import {
-  WEB_VFS_HOME,
-  subscribeWebVfs,
-} from "@/lib/engine-web/web-vfs";
+import { WEB_VFS_HOME } from "@/lib/core/vfs-paths";
+import { subscribeWebVfs } from "@/lib/engine-web/web-vfs";
 import {
   readVfsStateJson,
   readVfsStateText,

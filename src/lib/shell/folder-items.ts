@@ -2,13 +2,9 @@ import {
   type IconGridItem,
   inferFileVisual,
 } from "@/lib/shell/desktop-icons";
-import {
-  getVfsContentType,
-  getVfsDirHiddenNames,
-  getVfsEntry,
-  parseDotHiddenFile,
-  type WebVfsEntry,
-} from "@/lib/engine-web/web-vfs";
+import { getVfsContentType } from "@/lib/core/vfs-media";
+import { getVfsDirHiddenNames, getVfsEntry, parseDotHiddenFile } from "@/lib/engine-web/web-vfs";
+import { type WebVfsEntry } from "@/lib/core/vfs-paths";
 import { parseDesktopEntry } from "@/lib/xdg/xdg-desktop-entry";
 
 /** Folder entries as icon grid items: shared by Folders and the desktop. */

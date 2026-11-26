@@ -51,12 +51,8 @@ import {
   clampWorkspace,
   resolveWaylandOuterConstraints,
 } from "@/lib/shell/window-bounds";
-import {
-  buildVfsEntryWebAppUrl,
-  getVfsEntry,
-  isImageVfsFile,
-  isTextEditableVfsFile,
-} from "@/lib/engine-web/web-vfs";
+import { buildVfsEntryWebAppUrl, getVfsEntry, isTextEditableVfsFile } from "@/lib/engine-web/web-vfs";
+import { isImageVfsFile } from "@/lib/core/vfs-media";
 import { type AppsContextValue, matchAppFromWayland } from "./AppsContext";
 import { type SettingsContextValue } from "./SettingsContext";
 import { type SystemBackendsContextValue } from "./SystemBackendsContext";

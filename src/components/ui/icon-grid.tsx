@@ -62,13 +62,13 @@ import { _ } from "@/lib/core/i18n";
 import { cn } from "@/lib/core/utils";
 import {
   getVfsEntry,
-  getVfsImageThumbnailUrl,
   importExternalFilesToVfs,
   loadVfsEmblemsMap,
   subscribeWebVfs,
   VFS_EMBLEM_META,
   type VfsEmblemId,
 } from "@/lib/engine-web/web-vfs";
+import { getVfsImageThumbnailUrl } from "@/lib/core/vfs-media";
 
 function splitFileNameExt(name: string, kind: IconGridItem["kind"]): [string, string] {
   if (kind !== "file") return [name, ""];

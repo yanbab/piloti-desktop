@@ -7,8 +7,8 @@ import {
   extractVfsZip,
   getVfsEntry,
   incrementVfsAccessCount,
-  type WebVfsEntry,
 } from "@/lib/engine-web/web-vfs";
+import { type WebVfsEntry } from "@/lib/core/vfs-paths";
 import { launchDesktopCommand } from "@/lib/engine-native";
 import { recordFsRecentFile } from "@/lib/engine/fs-bridge";
 import {

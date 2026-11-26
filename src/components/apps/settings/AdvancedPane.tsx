@@ -57,7 +57,8 @@ import {
   parseAutostartDesktopFile,
   type XdgAutostartEntry,
 } from "@/lib/xdg/xdg-autostart";
-import { listVfsDir, WEB_VFS_HOME, writeVfsTextFile } from "@/lib/engine-web/web-vfs";
+import { listVfsDir, writeVfsTextFile } from "@/lib/engine-web/web-vfs";
+import { WEB_VFS_HOME } from "@/lib/core/vfs-paths";
 import {
   CHROME_WEB_STORE_URL,
   RECOMMENDED_EXTENSIONS,

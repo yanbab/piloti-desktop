@@ -6,7 +6,8 @@ import { useWatch } from "@domicile-desktop/react/use-watch";
 import { type Capturing, CapturingKind } from "@domicile-desktop/sdk/portal";
 import { ScreenshotKeptKind, UnlockRefusal, type UnlockRefused } from "@domicile-desktop/sdk/system";
 import { SAMPLE_WIFI_NETWORKS, type WifiNetwork } from "@/data/catalog";
-import { listVfsDir, WEB_VFS_HOME, writeVfsTextFile } from "@/lib/engine-web/web-vfs";
+import { listVfsDir, writeVfsTextFile } from "@/lib/engine-web/web-vfs";
+import { WEB_VFS_HOME } from "@/lib/core/vfs-paths";
 import {
   migrateLegacyStateFilesToJson,
   readVfsStateJson,

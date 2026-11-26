@@ -1,8 +1,6 @@
 import * as React from "react";
 import type { Piloti } from "@/lib/engine/piloti";
-import {
-  normalizeVfsPath,
-} from "@/lib/engine-web/web-vfs";
+import { normalizeVfsPath } from "@/lib/core/vfs-paths";
 import {
   moveFsEntry,
   renameFsEntry,

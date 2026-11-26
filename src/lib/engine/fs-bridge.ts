@@ -1,5 +1,6 @@
 import type { Piloti } from "@/lib/engine/piloti";
 import {
+  announceVfsRenamed,
   notifyVfsChanged,
   subscribeWebVfs as subscribeVfs,
   compressVfsEntries,
@@ -16,7 +17,6 @@ import {
   listVfsRecentEntries,
   listVfsTemplates,
   moveVfsEntry,
-  normalizeVfsPath,
   parseDotHiddenFile,
   removeVfsEntry,
   renameVfsEntry,
@@ -24,15 +24,18 @@ import {
   restoreVfsEntry,
   setVfsEntryMetadata,
   trashVfsEntry,
-  WEB_VFS_HOME,
-  WEB_VFS_TEMPLATES,
-  WEB_VFS_TRASH,
-  type WebVfsEntry,
   writeVfsTextFile,
   listVfsFavoriteEntries,
   syncVfsEmblemsFromHost,
   loadVfsFavorites,
 } from "@/lib/engine-web/web-vfs";
+import {
+  normalizeVfsPath,
+  WEB_VFS_HOME,
+  WEB_VFS_TEMPLATES,
+  WEB_VFS_TRASH,
+  type WebVfsEntry,
+} from "@/lib/core/vfs-paths";
 import {
   parseRecentlyUsedXbel,
   serializeRecentlyUsedXbel,
@@ -255,7 +258,10 @@ export async function renameFsEntry(
   const kind = (await piloti.vfs.stat(from).catch(() => null))?.kind ?? "file";
   return piloti.vfs
     .move(from, to)
-    .then(() => entryFor(to, kind))
+    .then(() => {
+      if (hasRealFilesystem()) announceVfsRenamed(from, to);
+      return entryFor(to, kind);
+    })
     .catch(logFailure("rename", from));
 }
 

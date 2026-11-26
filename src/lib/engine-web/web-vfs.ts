@@ -1301,6 +1301,11 @@ export function subscribeWebVfs(
   };
 }
 
+/** For a rename made on a real disk: the browser VFS announces its own. */
+export function announceVfsRenamed(oldPath: string, newPath: string): void {
+  sync.emit({ type: "renamed", oldPath, newPath });
+}
+
 export function subscribeVfsRenamed(
   listener: (detail: { oldPath: string; newPath: string }) => void
 ): () => void {

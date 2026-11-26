@@ -25,3 +25,27 @@ describe("engine boundary", () => {
     expect(offenders).toEqual([]);
   });
 });
+
+/**
+ * On Linux files are reached through `piloti.vfs`; `web-vfs` is the browser
+ * demo's storage. These files still use it (favorites, emblems, templates,
+ * clipboard, rename events, demo-only paths): the list may only get shorter.
+ */
+describe("web-vfs boundary", () => {
+  it("no new file outside engine-web imports web-vfs", () => {
+    const all = (dir: string): string[] =>
+      fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+        const full = path.join(dir, entry.name);
+        if (entry.isDirectory()) return entry.name === "engine-web" ? [] : all(full);
+        return /\.tsx?$/.test(entry.name) ? [full] : [];
+      });
+    const importers = all(SRC)
+      .filter((file) => /["/]engine-web\/web-vfs["\)]/.test(fs.readFileSync(file, "utf8")))
+      .map((file) => path.relative(SRC, file))
+      .sort();
+    const allowed: string[] = JSON.parse(
+      fs.readFileSync(path.join(import.meta.dir, "web-vfs-importers.json"), "utf8"),
+    );
+    expect(importers).toEqual(allowed);
+  });
+});

@@ -77,13 +77,9 @@ import { WindowManager } from "./WindowManager";
 import { installConsoleCapture } from "@/lib/core/console-store";
 import { _ } from "@/lib/core/i18n";
 import { bootElapsedMs, logBootEvent } from "@/lib/core/perf-log";
-import {
-  getVfsClipboard,
-  listVfsTemplates,
-  subscribeVfsClipboard,
-  type WebVfsEntry,
-  resolveVfsTemplatesDir,
-} from "@/lib/engine-web/web-vfs";
+import { getVfsClipboard, subscribeVfsClipboard } from "@/lib/core/vfs-clipboard";
+import { listVfsTemplates, resolveVfsTemplatesDir } from "@/lib/engine-web/web-vfs";
+import { type WebVfsEntry } from "@/lib/core/vfs-paths";
 import { listFsTemplates } from "@/lib/engine/fs-bridge";
 
 installConsoleCapture();

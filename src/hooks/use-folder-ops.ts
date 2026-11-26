@@ -8,7 +8,8 @@ import {
 } from "@/lib/engine/fs-undo";
 import { usePiloti } from "@/lib/engine/piloti";
 import { _ } from "@/lib/core/i18n";
-import { getVfsClipboard, setVfsClipboard, WEB_VFS_TRASH } from "@/lib/engine-web/web-vfs";
+import { getVfsClipboard, setVfsClipboard } from "@/lib/core/vfs-clipboard";
+import { WEB_VFS_TRASH } from "@/lib/core/vfs-paths";
 
 type Target = { id: string; path: string; name?: string };
 

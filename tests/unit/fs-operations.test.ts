@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { nativeEngine, setEngine, webEngine } from "@/lib/engine/engine";
+import { subscribeVfsRenamed } from "@/lib/engine-web/web-vfs";
 import {
   copyFsEntry,
   createFsFolder,
@@ -95,5 +96,17 @@ describe("file operations on a real disk", () => {
     await trashFsEntry(piloti, trashed!);
     expect(await names(`${HOME}/.local/share/Trash/files`)).toEqual([]);
     expect(await names(`${HOME}/.local/share/Trash/info`)).toEqual([]);
+  });
+});
+
+describe("renames on a real disk", () => {
+  // Desktop icon positions and open editors follow a rename through this.
+  test("are announced", async () => {
+    await piloti.vfs.write(`${D}/a.txt`, "x");
+    const seen: string[] = [];
+    const stop = subscribeVfsRenamed(({ oldPath, newPath }) => seen.push(`${oldPath}>${newPath}`));
+    await renameFsEntry(piloti, `${D}/a.txt`, "b.txt");
+    stop();
+    expect(seen).toEqual([`${D}/a.txt>${D}/b.txt`]);
   });
 });

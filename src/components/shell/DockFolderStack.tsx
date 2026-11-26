@@ -11,9 +11,7 @@ import { useOpenPath } from "@/hooks/use-open-path";
 import { useSettings, useWindowActions } from "@/context/DesktopStateContext";
 import { _ } from "@/lib/core/i18n";
 import { listFsDir } from "@/lib/engine/fs-bridge";
-import {
-  type WebVfsEntry,
-} from "@/lib/engine-web/web-vfs";
+import { type WebVfsEntry } from "@/lib/core/vfs-paths";
 import { dockFolderLabel } from "@/lib/shell/dock-folders";
 import { inferFileVisual } from "@/lib/shell/desktop-icons";
 

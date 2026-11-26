@@ -61,11 +61,8 @@ import {
   inspectXdgTrash,
   resolveXdgTrashPaths,
 } from "@/lib/xdg/xdg-trash";
-import {
-  emptyVfsTrash,
-  listVfsDir,
-  WEB_VFS_TRASH,
-} from "@/lib/engine-web/web-vfs";
+import { emptyVfsTrash, listVfsDir } from "@/lib/engine-web/web-vfs";
+import { WEB_VFS_TRASH } from "@/lib/core/vfs-paths";
 import {
   SIMULATED_USB_LABEL,
   SIMULATED_USB_PATH,

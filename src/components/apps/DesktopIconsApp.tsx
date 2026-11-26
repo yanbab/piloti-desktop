@@ -33,15 +33,9 @@ import {
   undoFileOperation,
 } from "@/lib/engine/fs-undo";
 import { usePiloti } from "@/lib/engine/piloti";
-import {
-  downloadVfsFile,
-  getVfsClipboard,
-  listVfsDir,
-  setVfsClipboard,
-  subscribeVfsClipboard,
-  toggleVfsEmblem,
-  type WebVfsEntry,
-} from "@/lib/engine-web/web-vfs";
+import { downloadVfsFile, listVfsDir, toggleVfsEmblem } from "@/lib/engine-web/web-vfs";
+import { getVfsClipboard, setVfsClipboard, subscribeVfsClipboard } from "@/lib/core/vfs-clipboard";
+import { type WebVfsEntry } from "@/lib/core/vfs-paths";
 import { onShellEvent } from "@/lib/shell/shell-events";
 import { type IconGridItem, sortDesktopItems } from "@/lib/shell/desktop-icons";
 import { hiddenNamesOf, vfsEntryToGridItem, entryVisual } from "@/lib/shell/folder-items";

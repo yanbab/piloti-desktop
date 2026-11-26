@@ -57,9 +57,9 @@ import {
   getWebVfsPerfStats,
   listWebVfsBackingStorageEntries,
   resetWebVfsPerfStats,
-  type WebVfsEntry,
   type WebVfsPerfStats,
 } from "@/lib/engine-web/web-vfs";
+import { type WebVfsEntry } from "@/lib/core/vfs-paths";
 import {
   parseVfsStateString,
   readVfsStateString,

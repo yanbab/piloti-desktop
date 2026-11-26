@@ -6,11 +6,11 @@ import {
   getVfsEntry,
   getVfsSnapshotEntries,
   moveVfsEntry,
-  normalizeVfsPath,
   removeVfsEntry,
   subscribeWebVfs,
   writeVfsTextFile,
 } from "@/lib/engine-web/web-vfs";
+import { normalizeVfsPath } from "@/lib/core/vfs-paths";
 
 export const VFS_STATE_PATHS = {
   settings: `${VFS_HOME}/.config/piloti/settings.ini`,

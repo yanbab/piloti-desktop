@@ -1,7 +1,7 @@
 import * as React from "react";
 import { useApps } from "@/context/DesktopStateContext";
 import { useCapabilities } from "@/hooks/use-capabilities";
-import { normalizeVfsPath, WEB_VFS_HOME } from "@/lib/engine-web/web-vfs";
+import { normalizeVfsPath, WEB_VFS_HOME } from "@/lib/core/vfs-paths";
 import { resolveUserDirPath } from "@/lib/xdg/xdg-user-dirs";
 
 /** The XDG Desktop folder. */
