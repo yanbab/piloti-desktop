@@ -49,7 +49,15 @@ import {
 import { NicePathLabel } from "@/components/shell/NicePathLabel";
 import { InfoPane, InfoPaneToggle, useInfoPane } from "@/components/ui/info-pane";
 import { AdwSplitView, type AdwSplitSidebarItem } from "@/components/ui/adw-split-view";
-import { IconGrid } from "@/components/ui/icon-grid";
+import { FolderIconView } from "@/components/ui/folder-icon-view";
+import { useExternalFileDrop } from "@/hooks/use-external-file-drop";
+import { useFolderOps } from "@/hooks/use-folder-ops";
+import { useLauncherItems } from "@/hooks/use-launcher-items";
+import {
+  entryVisual,
+  hiddenNamesOf,
+  vfsEntryToGridItem,
+} from "@/lib/shell/folder-items";
 import { AppSquircleIcon } from "@/components/shell/AppSymbol";
 import { WindowMenuButton } from "@/components/shell/WindowMenuButton";
 import { WindowControls, WindowTitlebar } from "@/components/ui/window";
@@ -80,10 +88,7 @@ import {
 import { publishWindowMenuState, useWindowMenuState } from "@/lib/engine/app-bridge";
 import {
   type AppSymbolName,
-  type GridCoord,
   type IconGridItem,
-  inferFileVisual,
-  moveItemsInSpatialGrid,
   sortDesktopItems,
 } from "@/lib/shell/desktop-icons";
 import { _ } from "@/lib/core/i18n";
@@ -103,11 +108,8 @@ import {
   downloadVfsFile,
   duplicateVfsEntry,
   getVfsClipboard,
-  getVfsContentType,
-  getVfsDirHiddenNames,
   getVfsEmblems,
   getVfsEntry,
-  importExternalFilesToVfs,
   incrementVfsAccessCount,
   isImageVfsFile,
   isTextEditableVfsFile,
@@ -117,7 +119,6 @@ import {
   listVfsRecentEntries,
   listVfsTemplates,
   normalizeVfsPath,
-  parseDotHiddenFile,
   setVfsClipboard,
   subscribeVfsClipboard,
   subscribeWebVfs,
@@ -132,7 +133,6 @@ import {
   resolveVfsTemplatesDir,
 } from "@/lib/engine-web/web-vfs";
 import {
-  copyFsEntry,
   createFsFileFromTemplate,
   createFsFolder,
   createFsTextFile,
@@ -151,13 +151,10 @@ import {
   watchFsDir,
 } from "@/lib/engine/fs-bridge";
 import {
-  moveWithUndo,
   onFileUndoApplied,
   recordCreated,
   redoFileOperation,
-  renameWithUndo,
   restoreWithUndo,
-  trashWithUndo,
   undoFileOperation,
   useFileUndoState,
 } from "@/lib/engine/fs-undo";
@@ -277,38 +274,6 @@ const ICON_ZOOM_LEVELS = [
 // List rows step through the shared icon size scale.
 const LIST_ZOOM_LEVELS = ICON_SIZES;
 
-function isVfsEntryEmpty(entry: WebVfsEntry): boolean {
-  if (entry.kind !== "file") return false;
-  if (typeof entry.size === "number") return entry.size === 0;
-  return !entry.content || entry.content.length === 0;
-}
-
-function vfsEntryToGridItem(
-  entry: WebVfsEntry,
-  getAppIconUrl: (id?: string) => string | undefined,
-  isHidden?: boolean
-): IconGridItem {
-  const isEmpty = isVfsEntryEmpty(entry);
-  const visual = inferFileVisual(entry.name, entry.kind, getVfsContentType(entry), {
-    isEmpty,
-  });
-  return {
-    id: entry.path,
-    name: entry.name,
-    kind: entry.kind,
-    path: entry.path,
-    iconName: visual.iconName,
-    iconCandidates: visual.iconCandidates,
-    gradient: visual.gradient,
-    isEmpty,
-    isHidden,
-    isSymlink: entry.isSymlink,
-    symlinkTarget: entry.symlinkTarget,
-    accessCount: entry.kind === "file" ? (entry.accessCount ?? 0) : undefined,
-    iconUrl: visual.iconCandidates.map((c) => getAppIconUrl(c)).find(Boolean),
-  };
-}
-
 /** A folder shows its opening this long before Folders navigates into it. */
 const FOLDER_OPEN_DELAY_MS = 180;
 
@@ -331,10 +296,6 @@ export function FilesApp({
   const { settings } = useSettings();
   const { realFilesystem } = useCapabilities();
   const { installedXdgApps, getAppIconUrl, ensureWaylandIcons, xdgUserDirs } = useApps();
-  const desktopDirPath = React.useMemo(() => {
-    if (!realFilesystem) return `${WEB_VFS_HOME}/Desktop`;
-    return normalizeVfsPath(resolveUserDirPath("DESKTOP", xdgUserDirs, WEB_VFS_HOME));
-  }, [realFilesystem, xdgUserDirs]);
   const usbMounted = useSimulatedUsbMounted();
   const { windows, focusedWindowId } = useWindowManagerSelector((wm) => ({
     windows: wm.windows.map((w) => ({ appId: w.appId, payload: w.payload })),
@@ -349,13 +310,9 @@ export function FilesApp({
     if (!item.path || item.kind === "desktop-entry") return;
     toggleVfsEmblem(item.path, "favorite");
   }, []);
-  const [viewMode, setViewMode] = React.useState<"grid" | "list">("grid");
+  const [viewMode, setViewMode] = React.useState<"grid" | "list" | "desktop">("grid");
   // "manual": free placement like the desktop (Sort Manually).
   const [sortBy, setSortBy] = React.useState<"manual" | "name" | "kind" | "modified" | "size">("name");
-  // Manual positions per folder, in memory only for now (not saved).
-  const [manualPositions, setManualPositions] = React.useState<
-    Record<string, Record<string, GridCoord>>
-  >({});
   const [sortDir, setSortDir] = React.useState<"asc" | "desc">("asc");
   const [editingLocation, setEditingLocation] = React.useState(false);
   const [draftLocation, setDraftLocation] = React.useState("");
@@ -392,8 +349,7 @@ export function FilesApp({
   );
   const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
   const [renamingId, setRenamingId] = React.useState<string | null>(null);
-  const [externalDropActive, setExternalDropActive] = React.useState(false);
-  const [itemMenu, setItemMenu] =
+    const [itemMenu, setItemMenu] =
     React.useState<FileItemContextMenuState | null>(null);
   const [bgMenu, setBgMenu] = React.useState<{ x: number; y: number } | null>(
     null
@@ -422,7 +378,13 @@ export function FilesApp({
   const isRecentsView = currentPath === WEB_VFS_RECENTS_URI;
   const isAppsView = currentPath === WEB_VFS_APPS_URI;
   const isVirtualView = isFavoritesView || isRecentsView || isAppsView;
-  const isManualLayout = sortBy === "manual" && viewMode === "grid" && !isAppsView;
+  // "As Desktop" places icons as the desktop does, whatever the sort order.
+  const isDesktopView = viewMode === "desktop" && !isVirtualView && !isTrashView;
+  const arrangement = isDesktopView
+    ? "desktop"
+    : sortBy === "manual" && viewMode === "grid" && !isAppsView
+      ? "manual"
+      : "flow";
 
   const openFilePaths = React.useMemo(() => {
     const set = new Set<string>();
@@ -481,65 +443,22 @@ export function FilesApp({
   const undoCtx = React.useMemo(() => ({ piloti }), [piloti, realFilesystem]);
   const { undoLabel, redoLabel } = useFileUndoState();
 
-  const handlePasteItems = React.useCallback(() => {
-    const clip = getVfsClipboard();
-    if (!clip || clip.paths.length === 0 || isTrashView || isVirtualView) return;
-    void (async () => {
-      if (clip.mode === "cut") {
-        moveWithUndo(undoCtx, clip.paths, currentPath);
-        setVfsClipboard(null);
-      } else {
-        const created: string[] = [];
-        for (const srcPath of clip.paths) {
-          const path = await copyFsEntry(piloti, srcPath, currentPath);
-          if (path) created.push(path);
-        }
-        recordCreated(undoCtx, created, "Paste");
-      }
-      reloadDir();
-    })();
-  }, [currentPath, piloti, realFilesystem, isTrashView, isVirtualView, reloadDir, undoCtx]);
-
-  const handleDuplicateItems = React.useCallback(
-    (list: readonly { path: string; id: string }[]) => {
-      if (isTrashView || isVirtualView) return;
-      void (async () => {
-        const createdIds: string[] = [];
-        for (const target of list) {
-          const base = target.path.split("/").filter(Boolean).pop() ?? "item";
-          const dot = base.lastIndexOf(".");
-          const copyName =
-            dot > 0 ? `${base.slice(0, dot)} Copy${base.slice(dot)}` : `${base} Copy`;
-          const path = await copyFsEntry(piloti, target.path, currentPath, {
-            name: copyName,
-          });
-          if (path) createdIds.push(path);
-        }
-        recordCreated(undoCtx, createdIds, "Duplicate");
-        reloadDir();
-        if (createdIds.length > 0) setSelectedIds(createdIds);
-      })();
-    },
-    [currentPath, piloti, realFilesystem, isTrashView, isVirtualView, reloadDir, undoCtx]
-  );
-
-  const handleTrashItems = React.useCallback(
-    (list: readonly { path: string; id: string }[]) => {
-      const removedIds = new Set<string>();
-      if (isTrashView) {
-        // Deleting from the Trash is permanent: nothing to undo.
-        for (const target of list) {
-          trashFsEntry(piloti, target.path);
-          removedIds.add(target.id);
-        }
-      } else {
-        trashWithUndo(undoCtx, list.map((t) => t.path));
-        for (const target of list) removedIds.add(target.id);
-      }
-      reloadDir();
-      setSelectedIds((prev) => prev.filter((id) => !removedIds.has(id)));
-    },
-    [piloti, realFilesystem, isTrashView, reloadDir, undoCtx]
+  const ops = useFolderOps({
+    dirPath: currentPath,
+    reload: reloadDir,
+    setSelectedIds,
+    isTrash: isTrashView,
+    readOnly: isTrashView || isVirtualView,
+  });
+  const {
+    pasteClipboard: handlePasteItems,
+    duplicateItems: handleDuplicateItems,
+    trashItems: handleTrashItems,
+  } = ops;
+  const externalDrop = useExternalFileDrop(
+    currentPath,
+    !isTrashView && !isVirtualView,
+    reloadDir,
   );
 
   const handleRestoreItems = React.useCallback(
@@ -855,13 +774,7 @@ export function FilesApp({
   React.useEffect(() => {
     const candidates = new Set<string>();
     for (const entry of vfsEntries) {
-      const visual = inferFileVisual(
-        entry.name,
-        entry.kind,
-        getVfsContentType(entry),
-        { isEmpty: isVfsEntryEmpty(entry) }
-      );
-      for (const candidate of visual.iconCandidates) {
+      for (const candidate of entryVisual(entry).iconCandidates) {
         candidates.add(candidate);
       }
     }
@@ -870,7 +783,7 @@ export function FilesApp({
     }
   }, [ensureWaylandIcons, vfsEntries]);
 
-  const items = React.useMemo(() => {
+  const listedItems = React.useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     if (isAppsView) {
       const builtins = APP_CATALOG.filter((app) => Boolean(app.builtinComponent));
@@ -957,10 +870,7 @@ export function FilesApp({
         : appItems;
       return filtered.sort((a, b) => a.name.localeCompare(b.name));
     }
-    const dotHiddenEntry = vfsEntries.find((e) => e.name === ".hidden");
-    const hiddenNames = dotHiddenEntry
-      ? parseDotHiddenFile(dotHiddenEntry.content)
-      : getVfsDirHiddenNames(currentPath);
+    const hiddenNames = hiddenNamesOf(vfsEntries, currentPath);
     const visible = showHidden
       ? vfsEntries
       : vfsEntries.filter(
@@ -994,18 +904,20 @@ export function FilesApp({
         }) * dirFactor
       );
     });
-    return sorted.map((entry) =>
+    const gridItems = sorted.map((entry) =>
       vfsEntryToGridItem(
         entry,
         getAppIconUrl,
         entry.name.startsWith(".") || hiddenNames.has(entry.name)
       )
     );
+    return isDesktopView ? sortDesktopItems(gridItems) : gridItems;
   }, [
     currentPath,
     getAppIconUrl,
     installedXdgApps,
     isAppsView,
+    isDesktopView,
     searchQuery,
     settings.installedWebApps,
     showHidden,
@@ -1013,6 +925,7 @@ export function FilesApp({
     sortDir,
     vfsEntries,
   ]);
+  const items = useLauncherItems(listedItems, isDesktopView);
 
   React.useEffect(() => {
     if (!usbMounted && isSimulatedUsbPath(currentPath)) {
@@ -1282,58 +1195,11 @@ export function FilesApp({
 
   const handleCommitRename = (item: IconGridItem, nextName: string) => {
     setRenamingId(null);
-    const renamedPath = renameWithUndo(undoCtx, item.path, nextName);
-    if (renamedPath) {
-      reloadDir();
-      setSelectedIds([renamedPath]);
-    }
+    ops.renameItem(item, nextName);
   };
 
   const handleTrashItem = (item: IconGridItem) => {
     handleTrashItems([item]);
-  };
-
-  const handleDropItems = (
-    droppedItems: IconGridItem[],
-    destPath: string,
-    opts?: { copy?: boolean },
-  ) => {
-    if (destPath === WEB_VFS_TRASH) {
-      handleTrashItems(droppedItems);
-      return;
-    }
-    if (opts?.copy) {
-      void (async () => {
-        const created: string[] = [];
-        for (const item of droppedItems) {
-          if (destPath === item.path || destPath.startsWith(`${item.path}/`)) continue;
-          const path = await copyFsEntry(piloti, item.path, destPath);
-          if (path) created.push(path);
-        }
-        recordCreated(undoCtx, created, "Copy");
-        reloadDir();
-      })();
-      return;
-    }
-    const movedIds = new Set<string>();
-    const toMove: string[] = [];
-    for (const item of droppedItems) {
-      if (item.path === destPath || destPath.startsWith(`${item.path}/`)) {
-        continue;
-      }
-      toMove.push(item.path);
-      movedIds.add(item.id);
-    }
-    moveWithUndo(undoCtx, toMove, destPath);
-    if (movedIds.size > 0) {
-      reloadDir();
-      setSelectedIds((prev) => prev.filter((id) => !movedIds.has(id)));
-      window.dispatchEvent(
-        new CustomEvent("piloti:folder-drop-anim", {
-          detail: { path: destPath },
-        }),
-      );
-    }
   };
 
   const zoom = ICON_ZOOM_LEVELS[gridZoomIndex] ?? ICON_ZOOM_LEVELS[5];
@@ -1427,15 +1293,19 @@ export function FilesApp({
       "files:empty-trash": { disabled: !isTrashView || items.length === 0 },
       "files:view-grid": { checked: viewMode === "grid" },
       "files:view-list": { checked: viewMode === "list" },
-      "files:sort-manual": { checked: sortBy === "manual", disabled: isAppsView },
-      "files:sort-name": { checked: sortBy === "name", disabled: isAppsView },
-      "files:sort-kind": { checked: sortBy === "kind", disabled: isAppsView },
-      "files:sort-modified": { checked: sortBy === "modified", disabled: isAppsView },
-      "files:sort-size": { checked: sortBy === "size", disabled: isAppsView },
-      "files:sort-asc": { checked: sortDir === "asc", disabled: isAppsView },
-      "files:sort-desc": { checked: sortDir === "desc", disabled: isAppsView },
-      "files:zoom-in": { disabled: activeZoomIndex >= maxZoomIndex },
-      "files:zoom-out": { disabled: activeZoomIndex <= 0 },
+      "files:view-desktop": {
+        checked: viewMode === "desktop",
+        disabled: isTrashView || isVirtualView,
+      },
+      "files:sort-manual": { checked: sortBy === "manual", disabled: isAppsView || isDesktopView },
+      "files:sort-name": { checked: sortBy === "name", disabled: isAppsView || isDesktopView },
+      "files:sort-kind": { checked: sortBy === "kind", disabled: isAppsView || isDesktopView },
+      "files:sort-modified": { checked: sortBy === "modified", disabled: isAppsView || isDesktopView },
+      "files:sort-size": { checked: sortBy === "size", disabled: isAppsView || isDesktopView },
+      "files:sort-asc": { checked: sortDir === "asc", disabled: isAppsView || isDesktopView },
+      "files:sort-desc": { checked: sortDir === "desc", disabled: isAppsView || isDesktopView },
+      "files:zoom-in": { disabled: isDesktopView || activeZoomIndex >= maxZoomIndex },
+      "files:zoom-out": { disabled: isDesktopView || activeZoomIndex <= 0 },
       "files:toggle-hidden": { checked: showHidden },
       "files:toggle-info": { checked: infoPaneOpen },
     });
@@ -1456,6 +1326,7 @@ export function FilesApp({
     sortBy,
     sortDir,
     isAppsView,
+    isDesktopView,
     viewMode,
     windowId,
   ]);
@@ -1536,6 +1407,9 @@ export function FilesApp({
           break;
         case "files:view-list":
           setViewMode("list");
+          break;
+        case "files:view-desktop":
+          setViewMode("desktop");
           break;
         case "files:sort-manual":
           setSortBy("manual");
@@ -2086,32 +1960,7 @@ export function FilesApp({
           data-vfs-drop-path={isVirtualView ? undefined : currentPath}
           onKeyDown={onContentKeyDown}
           className="relative min-h-0 flex-1 overflow-auto bg-adw-content"
-        onDragOver={(e) => {
-          if (isTrashView || isVirtualView || !e.dataTransfer?.types?.includes("Files")) return;
-          e.preventDefault();
-          e.dataTransfer.dropEffect = "copy";
-          if (!externalDropActive) setExternalDropActive(true);
-        }}
-        onDragLeave={(e) => {
-          if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
-            setExternalDropActive(false);
-          }
-        }}
-        onDrop={(e) => {
-          if (isTrashView || isVirtualView || !e.dataTransfer?.files?.length) return;
-          e.preventDefault();
-          setExternalDropActive(false);
-          void importExternalFilesToVfs(currentPath, e.dataTransfer.files).then(
-            () => {
-              reloadDir();
-              window.dispatchEvent(
-                new CustomEvent("piloti:folder-drop-anim", {
-                  detail: { path: currentPath },
-                }),
-              );
-            }
-          );
-        }}
+        {...externalDrop.handlers}
         onContextMenu={(e) => {
           if (isTrashView || isVirtualView) return;
           e.preventDefault();
@@ -2120,7 +1969,7 @@ export function FilesApp({
           setBgMenu({ x: e.clientX, y: e.clientY });
         }}
       >
-        {externalDropActive && (
+        {externalDrop.active && (
           <div className="pointer-events-none absolute inset-2 z-20 flex items-end justify-center rounded-adw-group border-2 border-dashed border-adw-accent/70 bg-adw-accent/10 pb-3">
             <span className="rounded-full bg-zinc-900/90 px-3 py-1 text-xs font-medium text-white shadow-sm ring-1 ring-white/10">
               {_("Drop files to copy here")}
@@ -2363,32 +2212,15 @@ export function FilesApp({
             </ListView>
           </div>
         ) : (
-          <IconGrid
+          <FolderIconView
             items={items}
-            mode={isManualLayout ? "spatial" : "flow"}
-            positions={isManualLayout ? manualPositions[currentPath] ?? {} : undefined}
-            onMoveItems={
-              isManualLayout
-                ? (itemIds, primaryId, cell, metrics) =>
-                    setManualPositions((prev) => ({
-                      ...prev,
-                      [currentPath]: moveItemsInSpatialGrid(
-                        items,
-                        prev[currentPath] ?? {},
-                        itemIds,
-                        primaryId,
-                        cell,
-                        metrics
-                      ),
-                    }))
-                : undefined
-            }
+            dirPath={isVirtualView ? undefined : currentPath}
+            arrangement={arrangement}
             folderOpenDelayMs={FOLDER_OPEN_DELAY_MS}
-            currentDirPath={isVirtualView ? undefined : currentPath}
             cellWidth={zoom.cellWidth}
             cellHeight={zoom.cellHeight}
             iconSize={zoom.iconSize}
-            onDropItems={handleDropItems}
+            onDropItems={ops.dropItems}
             onActivateItem={handleActivateItem}
             onContextMenuItem={(item, e) => {
               e.preventDefault();
@@ -2426,6 +2258,7 @@ export function FilesApp({
           <div className="w-[96px] shrink-0">
             <Slider
               aria-label={_("Zoom")}
+              disabled={isDesktopView}
               size="sm"
               min={0}
               max={maxZoomIndex}
@@ -2465,21 +2298,7 @@ export function FilesApp({
         }}
         bookmarkedPaths={bookmarkedPaths}
         onToggleBookmark={(target) => toggleBookmark(target.path)}
-        onMakeLink={(list) => {
-          void Promise.all(
-            list.map((target) =>
-              copyFsEntry(piloti, target.path, currentPath, {
-                symlink: true,
-                name: _("Link to {name}").replace("{name}", target.name),
-              }),
-            ),
-          ).then((created) => {
-            reloadDir();
-            const paths = created.filter((p): p is string => Boolean(p));
-            recordCreated(undoCtx, paths, "Make Link");
-            if (paths.length > 0) setSelectedIds(paths);
-          });
-        }}
+        onMakeLink={ops.makeLinks}
         onOpenInNewWindow={(target) =>
           launchApp("nautilus", { payload: target.path, forceNew: true })
         }

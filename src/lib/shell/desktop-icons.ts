@@ -32,6 +32,8 @@ export interface GridMetrics {
 export interface IconGridItem {
   id: string;
   name: string;
+  /** Key in saved layouts when it isn't `name` (launchers keep their file name). */
+  layoutKey?: string;
   kind: DesktopIconKind;
   path: string;
   iconName: AppSymbolName;
@@ -707,4 +709,78 @@ export function moveItemsInSpatialGrid(
 ): Record<string, GridCoord> {
   const current = assignGridPositions(items, savedPositions, metrics.cols, metrics.rows, align);
   return pushItemsToCells(current, itemIds, primaryId, cell, metrics.cols, metrics.rows);
+}
+
+/** Saved layout of a folder, keyed by entry name (as `desktopIconPositions`). */
+export type NamedPositions = Record<string, GridCoord>;
+
+type NamedItem = Pick<IconGridItem, "id" | "name" | "layoutKey">;
+const layoutKeyOf = (item: NamedItem) => item.layoutKey ?? item.name;
+
+/** A name-keyed layout as the id-keyed one the grid works with. */
+export function positionsById(
+  items: readonly NamedItem[],
+  saved: Readonly<NamedPositions>
+): Record<string, GridCoord> {
+  const byId: Record<string, GridCoord> = {};
+  for (const item of items) {
+    const cell = saved[layoutKeyOf(item)];
+    if (cell) byId[item.id] = cell;
+  }
+  return byId;
+}
+
+/**
+ * The layout to save after a drop in a spatial grid. With `partial`, only the
+ * icons the drop actually moved are written: a view smaller than the desktop
+ * must not squeeze every other icon into its own bounds.
+ */
+export function moveInNamedLayout(
+  items: readonly NamedItem[],
+  saved: Readonly<NamedPositions>,
+  itemIds: readonly string[],
+  primaryId: string,
+  cell: GridCoord,
+  metrics: Pick<GridMetrics, "cols" | "rows">,
+  { align = "left", partial = false }: { align?: DesktopIconAlign; partial?: boolean } = {}
+): NamedPositions {
+  const byId = positionsById(items, saved);
+  const current = assignGridPositions(items, byId, metrics.cols, metrics.rows, align);
+  const moved = moveItemsInSpatialGrid(items, byId, itemIds, primaryId, cell, metrics, align);
+  const next: NamedPositions = partial ? { ...saved } : {};
+  for (const item of items) {
+    const pos = moved[item.id];
+    if (!pos) continue;
+    const before = current[item.id];
+    const changed =
+      itemIds.includes(item.id) || before?.col !== pos.col || before?.row !== pos.row;
+    if (!partial || changed) next[layoutKeyOf(item)] = pos;
+  }
+  return next;
+}
+
+/** Gives files about to appear (dropped from elsewhere) free cells near `target`. */
+export function placeNamesNear(
+  items: readonly NamedItem[],
+  saved: Readonly<NamedPositions>,
+  names: readonly string[],
+  target: GridCoord,
+  metrics: Pick<GridMetrics, "cols" | "rows">,
+  align: DesktopIconAlign = "left"
+): NamedPositions {
+  const current = assignGridPositions(
+    items,
+    positionsById(items, saved),
+    metrics.cols,
+    metrics.rows,
+    align
+  );
+  const occupied = new Set(Object.values(current).map(coordKey));
+  const next: NamedPositions = { ...saved };
+  for (const name of names) {
+    const cell = findClosestFreeCell(occupied, target, metrics.cols, metrics.rows);
+    next[name] = cell;
+    occupied.add(coordKey(cell));
+  }
+  return next;
 }

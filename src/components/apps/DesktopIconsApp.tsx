@@ -1,81 +1,53 @@
-import { hostFiles } from "@/lib/engine/host-files";
-import { useArchiveActions } from "@/hooks/use-archive-actions";
 import * as React from "react";
-import { useCapabilities } from "@/hooks/use-capabilities";
-import { useOpenPath } from "@/hooks/use-open-path";
-import { copyFsEntry, moveFsEntry, watchFsDir } from "@/lib/engine/fs-bridge";
-import {
-  moveWithUndo,
-  onFileUndoApplied,
-  recordCreated,
-  redoFileOperation,
-  trashWithUndo,
-  undoFileOperation,
-} from "@/lib/engine/fs-undo";
-import { usePiloti } from "@/lib/engine/piloti";
-import { FileType } from "@domicile-desktop/sdk/system";
 import {
   FileItemContextMenu,
   type FileItemContextMenuState,
 } from "@/components/apps/FileItemContextMenu";
+import { FolderIconView } from "@/components/ui/folder-icon-view";
 import {
   useApps,
   useSettings,
   useSystemBackends,
   useWindowActions,
 } from "@/context/DesktopStateContext";
-import {
-  assignGridPositions,
-  clientPointToGridCell,
-  computeGridMetrics,
-  coordKey,
-  findClosestFreeCell,
-  type GridCoord,
-  type GridMetrics,
-  type IconGridItem,
-  inferFileVisual,
-  moveItemsInSpatialGrid,
-  sortDesktopItems,
-} from "@/lib/shell/desktop-icons";
-import { launchDesktopCommand } from "@/lib/engine-native";
+import { useArchiveActions } from "@/hooks/use-archive-actions";
+import { useCapabilities } from "@/hooks/use-capabilities";
+import { useDesktopDirPath } from "@/hooks/use-desktop-dir";
+import { useExternalFileDrop } from "@/hooks/use-external-file-drop";
+import { useFolderOps } from "@/hooks/use-folder-ops";
+import { useLauncherItems } from "@/hooks/use-launcher-items";
+import { useOpenPath } from "@/hooks/use-open-path";
 import { _ } from "@/lib/core/i18n";
 import { startBootPhase } from "@/lib/core/perf-log";
-import { parseDesktopEntry } from "@/lib/xdg/xdg-desktop-entry";
 import {
-  buildVfsEntryWebAppUrl,
-  createVfsFileFromTemplate,
-  createVfsFolder,
-  createVfsTextFile,
-  duplicateVfsEntry,
+  createFsFileFromTemplate,
+  createFsFolder,
+  createFsTextFile,
+  listFsDir,
+  watchFsDir,
+} from "@/lib/engine/fs-bridge";
+import {
+  onFileUndoApplied,
+  recordCreated,
+  redoFileOperation,
+  undoFileOperation,
+} from "@/lib/engine/fs-undo";
+import { usePiloti } from "@/lib/engine/piloti";
+import {
+  downloadVfsFile,
   getVfsClipboard,
-  getVfsContentType,
-  getVfsEntry,
-  importExternalFilesToVfs,
-  incrementVfsAccessCount,
-  isImageVfsFile,
-  isTextEditableVfsFile,
   listVfsDir,
-  normalizeVfsPath,
-  parseDotHiddenFile,
-  renameVfsEntry,
   setVfsClipboard,
   subscribeVfsClipboard,
-  subscribeVfsRenamed,
-  subscribeWebVfs,
   toggleVfsEmblem,
-  trashVfsEntry,
-  WEB_VFS_HOME,
-  WEB_VFS_TRASH,
   type WebVfsEntry,
-  downloadVfsFile,
 } from "@/lib/engine-web/web-vfs";
-
-import { IconGrid, type IconGridProps } from "@/components/ui/icon-grid";
-export { IconGrid, type IconGridProps };
+import { type IconGridItem, sortDesktopItems } from "@/lib/shell/desktop-icons";
+import { hiddenNamesOf, vfsEntryToGridItem, entryVisual } from "@/lib/shell/folder-items";
 
 /**
- * Transparent Desktop Icons app mounted over the desktop wallpaper (below windows).
- * Reads the user's XDG Desktop folder (`$HOME/Desktop`) and persists grid coordinates.
+ * The desktop: the XDG Desktop folder's icons over the wallpaper (below
+ * windows), in the same view Folders shows with "As Desktop".
  */
 export function DesktopIconsApp({
   bottomInset = 0,
@@ -83,596 +55,137 @@ export function DesktopIconsApp({
   bottomInset?: number;
 }) {
   const piloti = usePiloti();
-  const { settings, updateSettings } = useSettings();
+  const { settings } = useSettings();
   const { realFilesystem } = useCapabilities();
   const { locked } = useSystemBackends();
-  const {
-    xdgUserDirs,
-    installedXdgApps,
-    dockIconsReady,
-    getAppIconUrl,
-    ensureWaylandIcons,
-    launchXdgEntry,
-  } = useApps();
-  const { launchApp, openWebUrl } = useWindowActions();
+  const { dockIconsReady, getAppIconUrl, ensureWaylandIcons, launchXdgEntry } = useApps();
+  const { launchApp } = useWindowActions();
   const { openPath, openPathWith } = useOpenPath();
+  const desktopDirPath = useDesktopDirPath();
 
-  const [items, setItems] = React.useState<IconGridItem[]>([]);
+  const [entries, setEntries] = React.useState<WebVfsEntry[]>([]);
   const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
   const [renamingId, setRenamingId] = React.useState<string | null>(null);
-  const [externalDropActive, setExternalDropActive] = React.useState(false);
-  const [clipboard, setLocalClipboard] = React.useState(() =>
-    getVfsClipboard()
-  );
+  const [clipboard, setLocalClipboard] = React.useState(() => getVfsClipboard());
   const [contextMenu, setContextMenu] =
     React.useState<FileItemContextMenuState | null>(null);
-  const initialDesktopLoadLoggedRef = React.useRef(false);
 
-  React.useEffect(() => {
-    return subscribeVfsClipboard(() => {
-      setLocalClipboard(getVfsClipboard());
-    });
-  }, []);
+  React.useEffect(
+    () => subscribeVfsClipboard(() => setLocalClipboard(getVfsClipboard())),
+    [],
+  );
 
-  const desktopDirPath = React.useMemo(() => {
-    if (!realFilesystem) return `${WEB_VFS_HOME}/Desktop`;
-    const dir = xdgUserDirs.find((d) => d.key === "DESKTOP");
-    return dir?.absolutePath ?? dir?.relativeHomePath ?? "Desktop";
-  }, [realFilesystem, xdgUserDirs]);
-
-  const loadDesktopFolder = React.useCallback(async () => {
+  const finishBootPhaseRef = React.useRef<((note: string) => void) | null | undefined>(
+    undefined,
+  );
+  const listRequestRef = React.useRef(0);
+  const reload = React.useCallback(() => {
     if (!settings.desktopIconsEnabled) return;
-    const finishDesktopIcons = !initialDesktopLoadLoggedRef.current
-      ? startBootPhase("desktop icons")
-      : null;
-    try {
-      if (!realFilesystem) {
-        const vfsEntries = listVfsDir(desktopDirPath);
-        const iconCandidatesToEnsure = new Set<string>();
-        const built: IconGridItem[] = vfsEntries.map((entry) => {
-          const isEmpty =
-            entry.kind === "file" &&
-            (typeof entry.size === "number"
-              ? entry.size === 0
-              : !entry.content || entry.content.length === 0);
-          const visual = inferFileVisual(
-            entry.name,
-            entry.kind,
-            getVfsContentType(entry),
-            { isEmpty }
-          );
-          for (const candidate of visual.iconCandidates) {
-            iconCandidatesToEnsure.add(candidate);
-          }
-          return {
-            id: entry.name,
-            name: entry.name,
-            kind: entry.kind,
-            path: entry.path,
-            iconName: visual.iconName,
-            iconCandidates: visual.iconCandidates,
-            gradient: visual.gradient,
-            isEmpty,
-            isSymlink: entry.isSymlink,
-            symlinkTarget: entry.symlinkTarget,
-            accessCount:
-              entry.kind === "file" ? (entry.accessCount ?? 0) : undefined,
-            iconUrl: visual.iconCandidates
-              .map((c) => getAppIconUrl(c))
-              .find(Boolean),
-          };
-        });
-        if (iconCandidatesToEnsure.size > 0) {
-          ensureWaylandIcons(Array.from(iconCandidatesToEnsure));
-        }
-        setItems(sortDesktopItems(built));
-        if (finishDesktopIcons) {
-          initialDesktopLoadLoggedRef.current = true;
-          finishDesktopIcons(`${built.length} items`);
-        }
-        return;
-      }
-
-      const res = await hostFiles(piloti).readDir(desktopDirPath);
-      const entries = res.match({
-        Ok: (list) => list,
-        Err: () => [],
-      });
-
-      let hiddenNames = new Set<string>();
-      if (entries.some((e) => e.name === ".hidden")) {
-        try {
-          const dotHiddenRes = await hostFiles(piloti).readText(
-            `${desktopDirPath.replace(/\/+$/, "")}/.hidden`
-          );
-          dotHiddenRes.match({
-            Ok: (t) => {
-              hiddenNames = parseDotHiddenFile(t);
-            },
-            Err: () => {},
-          });
-        } catch {
-          // ignore .hidden read failure
-        }
-      }
-
-      const visible = entries.filter(
-        (entry) =>
-          entry.name &&
-          !entry.name.startsWith(".") &&
-          !hiddenNames.has(entry.name)
-      );
-
-      const iconCandidatesToEnsure = new Set<string>();
-      const built: IconGridItem[] = await Promise.all(
-        visible.map(async (entry): Promise<IconGridItem> => {
-          const fullPath = `${desktopDirPath.replace(/\/+$/, "")}/${entry.name}`;
-          const isSymlink = entry.fileType === FileType.Symlink;
-          let entryFileType: "file" | "directory" =
-            entry.fileType === FileType.Directory ? "directory" : "file";
-          if (isSymlink && typeof hostFiles(piloti).stat === "function") {
-            // Follow the link to know whether it points at a folder.
-            const linkStat = await hostFiles(piloti).stat(fullPath).catch(() => undefined);
-            if (linkStat?.match({ Ok: (st) => st.fileType === FileType.Directory, Err: () => false })) {
-              entryFileType = "directory";
-            }
-          }
-
-          if (entryFileType === "file" && entry.name.endsWith(".desktop")) {
-            try {
-              const textRes = await hostFiles(piloti).readText(fullPath);
-              const content = textRes.match({
-                Ok: (t) => t,
-                Err: () => "",
-              });
-              if (content) {
-                const parsed = parseDesktopEntry(content, {
-                  filePath: fullPath,
-                  baseDir: desktopDirPath,
-                });
-                if (parsed) {
-                  if (parsed.icon) iconCandidatesToEnsure.add(parsed.icon);
-                  const matchedXdg = installedXdgApps.find(
-                    (app) =>
-                      app.desktopId === parsed.desktopId ||
-                      app.appId === parsed.appId
-                  );
-                  return {
-                    id: entry.name,
-                    name: parsed.name,
-                    kind: "desktop-entry",
-                    path: fullPath,
-                    iconName: "sparkles",
-                    iconCandidates: parsed.icon ? [parsed.icon] : undefined,
-                    iconUrl:
-                      matchedXdg?.iconUrl ??
-                      getAppIconUrl(parsed.icon) ??
-                      getAppIconUrl(parsed.desktopId) ??
-                      getAppIconUrl(parsed.appId),
-                    desktopEntry: parsed,
-                  };
-                }
-              }
-            } catch {
-              // fallback to generic file entry below
-            }
-          }
-
-          let isEmpty = false;
-          if (entryFileType === "file" && typeof hostFiles(piloti).stat === "function") {
-            try {
-              const statRes = await hostFiles(piloti).stat(fullPath);
-              statRes.match({
-                Ok: (st) => {
-                  isEmpty = st.size === 0;
-                },
-                Err: () => { },
-              });
-            } catch {
-              // ignore stat failure
-            }
-          }
-          const visual = inferFileVisual(entry.name, entryFileType, undefined, {
-            isEmpty,
-          });
-          for (const candidate of visual.iconCandidates) {
-            iconCandidatesToEnsure.add(candidate);
-          }
-
-          return {
-            id: entry.name,
-            name: entry.name,
-            kind: entryFileType === "directory" ? "directory" : "file",
-            path: fullPath,
-            iconName: visual.iconName,
-            iconCandidates: visual.iconCandidates,
-            gradient: visual.gradient,
-            isEmpty,
-            isSymlink: isSymlink || undefined,
-            accessCount:
-              entryFileType === "file"
-                ? (getVfsEntry(fullPath)?.accessCount ?? 0)
-                : undefined,
-            iconUrl: visual.iconCandidates
-              .map((c) => getAppIconUrl(c))
-              .find(Boolean),
-          };
-        })
-      );
-
-      if (iconCandidatesToEnsure.size > 0) {
-        ensureWaylandIcons(Array.from(iconCandidatesToEnsure));
-      }
-
-      setItems(sortDesktopItems(built));
-      if (finishDesktopIcons) {
-        initialDesktopLoadLoggedRef.current = true;
-        finishDesktopIcons(`${built.length} items`);
-      }
-    } catch {
-      setItems([]);
-      if (finishDesktopIcons) {
-        initialDesktopLoadLoggedRef.current = true;
-        finishDesktopIcons("0 items");
-      }
+    if (finishBootPhaseRef.current === undefined) {
+      finishBootPhaseRef.current = startBootPhase("desktop icons");
     }
-  }, [
-    desktopDirPath,
-    piloti,
-    ensureWaylandIcons,
-    getAppIconUrl,
-    installedXdgApps,
-    realFilesystem,
-    settings.desktopIconsEnabled,
-  ]);
-  const archive = useArchiveActions(loadDesktopFolder);
+    const show = (list: WebVfsEntry[]) => {
+      setEntries(list);
+      finishBootPhaseRef.current?.(`${list.length} items`);
+      finishBootPhaseRef.current = null;
+    };
+    if (!realFilesystem) {
+      show(listVfsDir(desktopDirPath));
+      return;
+    }
+    // Only the latest listing counts: an earlier, slower one may be stale.
+    const request = ++listRequestRef.current;
+    void listFsDir(piloti, desktopDirPath).then((list) => {
+      if (request === listRequestRef.current) show(list);
+    });
+  }, [desktopDirPath, piloti, realFilesystem, settings.desktopIconsEnabled]);
+  const archive = useArchiveActions(reload);
 
-  React.useEffect(() => onFileUndoApplied(() => void loadDesktopFolder()), [loadDesktopFolder]);
+  React.useEffect(() => onFileUndoApplied(reload), [reload]);
 
   React.useEffect(() => {
     // Debug mode lists the folder without waiting for the essential icons.
     if (!settings.desktopIconsEnabled || (!dockIconsReady && !settings.debugMode)) return;
-    void loadDesktopFolder();
-    if (!realFilesystem) {
-      const unsubVfs = subscribeWebVfs(
-        () => {
-          void loadDesktopFolder();
-        },
-        { path: desktopDirPath, mode: "children" },
-      );
-      const unsubRenamed = subscribeVfsRenamed(({ oldPath, newPath }) => {
-        const prefix = `${desktopDirPath.replace(/\/+$/, "")}/`;
-        if (!oldPath.startsWith(prefix) || !newPath.startsWith(prefix)) return;
-        const oldName = oldPath.slice(prefix.length);
-        const newName = newPath.slice(prefix.length);
-        if (!oldName || !newName || oldName === newName) return;
-        if (
-          settings.desktopIconPositions[oldName] &&
-          !settings.desktopIconPositions[newName]
-        ) {
-          const nextPositions = { ...settings.desktopIconPositions };
-          nextPositions[newName] = nextPositions[oldName];
-          delete nextPositions[oldName];
-          updateSettings({ desktopIconPositions: nextPositions });
-        }
-        void loadDesktopFolder();
-      });
-      return () => {
-        unsubVfs();
-        unsubRenamed();
-      };
-    }
+    reload();
     // Our own operations, plus other programs' (inotify via Domicile).
     const stopWatch = watchFsDir(piloti, desktopDirPath, () => {
-      if (!locked) void loadDesktopFolder();
+      if (!locked) reload();
     });
-    const onFocus = () => {
-      void loadDesktopFolder();
-    };
-    window.addEventListener("focus", onFocus);
+    window.addEventListener("focus", reload);
     return () => {
       stopWatch();
-      window.removeEventListener("focus", onFocus);
+      window.removeEventListener("focus", reload);
     };
   }, [
     desktopDirPath,
     piloti,
     dockIconsReady,
     settings.debugMode,
-    realFilesystem,
-    loadDesktopFolder,
+    reload,
     locked,
     settings.desktopIconsEnabled,
   ]);
 
-  const createDesktopFolder = React.useCallback(async () => {
-    if (!realFilesystem) {
-      const created = createVfsFolder(desktopDirPath);
-      await loadDesktopFolder();
-      setSelectedIds([created.name]);
-      setRenamingId(created.name);
-      return;
-    }
-    const existingNames = new Set(items.map((i) => i.name));
-    let folderName = "Untitled Folder";
-    let n = 2;
-    while (existingNames.has(folderName)) {
-      folderName = `Untitled Folder ${n++}`;
-    }
-    const fullPath = `${desktopDirPath.replace(/\/+$/, "")}/${folderName}`;
-    await hostFiles(piloti).createDir(fullPath).catch(() => undefined);
-    await loadDesktopFolder();
-    setSelectedIds([folderName]);
-    setRenamingId(folderName);
-  }, [desktopDirPath, piloti, realFilesystem, items, loadDesktopFolder]);
-
-  const createDesktopTextFile = React.useCallback(async () => {
-    if (!realFilesystem) {
-      const created = createVfsTextFile(desktopDirPath);
-      await loadDesktopFolder();
-      setSelectedIds([created.name]);
-      setRenamingId(created.name);
-      return;
-    }
-    const existingNames = new Set(items.map((i) => i.name));
-    let fileName = "Untitled.txt";
-    let n = 2;
-    while (existingNames.has(fileName)) {
-      fileName = `Untitled ${n++}.txt`;
-    }
-    const fullPath = `${desktopDirPath.replace(/\/+$/, "")}/${fileName}`;
-    await hostFiles(piloti).write(fullPath, "").catch(() => undefined);
-    await loadDesktopFolder();
-    setSelectedIds([fileName]);
-    setRenamingId(fileName);
-  }, [desktopDirPath, piloti, realFilesystem, items, loadDesktopFolder]);
-
-  const createDesktopFromTemplate = React.useCallback(
-    async (template: WebVfsEntry) => {
-      if (!realFilesystem) {
-        const created =
-          createVfsFileFromTemplate(desktopDirPath, template.path) ??
-          createVfsTextFile(desktopDirPath, template.name, template.content ?? "");
-        await loadDesktopFolder();
-        setSelectedIds([created.name]);
-        setRenamingId(created.name);
-        return;
-      }
-      const existingNames = new Set(items.map((i) => i.name));
-      const hasExt = /\.[a-z0-9]+$/i.test(template.name);
-      const stem = hasExt
-        ? template.name.replace(/\.[a-z0-9]+$/i, "")
-        : template.name;
-      const ext = hasExt ? template.name.slice(stem.length) : "";
-      let fileName = `${stem}${ext}`;
-      let n = 2;
-      while (existingNames.has(fileName)) {
-        fileName = `${stem} ${n++}${ext}`;
-      }
-      let content = template.content ?? "";
-      if (!content && template.path) {
-        const res = await hostFiles(piloti).readText(
-          template.path.startsWith(`${WEB_VFS_HOME}/`)
-            ? template.path.slice(WEB_VFS_HOME.length + 1)
-            : template.path
-        );
-        res.match({
-          Ok: (t) => {
-            content = t;
-          },
-          Err: () => {},
-        });
-      }
-      const fullPath = `${desktopDirPath.replace(/\/+$/, "")}/${fileName}`;
-      await hostFiles(piloti).write(fullPath, content).catch(() => undefined);
-      await loadDesktopFolder();
-      setSelectedIds([fileName]);
-      setRenamingId(fileName);
-    },
-    [desktopDirPath, piloti, realFilesystem, items, loadDesktopFolder]
-  );
-
-  // Listen for "New Folder", "New Text File", "New from Template", and "Arrange Icons" triggered from Desktop menus
-  React.useEffect(() => {
-    const onNewFolder = () => void createDesktopFolder();
-    const onNewFile = () => void createDesktopTextFile();
-    const onNewFromTemplate = (e: Event) => {
-      const tmpl = (e as CustomEvent<WebVfsEntry | undefined>).detail;
-      if (tmpl) void createDesktopFromTemplate(tmpl);
-    };
-    const onAlignIcons = () => updateSettings({ desktopIconPositions: {} });
-    window.addEventListener("piloti:desktop-new-folder", onNewFolder);
-    window.addEventListener("piloti:desktop-new-file", onNewFile);
-    window.addEventListener("piloti:desktop-new-from-template", onNewFromTemplate);
-    window.addEventListener("piloti:desktop-align-icons", onAlignIcons);
-    return () => {
-      window.removeEventListener("piloti:desktop-new-folder", onNewFolder);
-      window.removeEventListener("piloti:desktop-new-file", onNewFile);
-      window.removeEventListener(
-        "piloti:desktop-new-from-template",
-        onNewFromTemplate
-      );
-      window.removeEventListener("piloti:desktop-align-icons", onAlignIcons);
-    };
-  }, [
-    createDesktopFolder,
-    createDesktopFromTemplate,
-    createDesktopTextFile,
-    updateSettings,
-  ]);
-
-  const handleCommitRename = React.useCallback(
-    async (item: IconGridItem, rawNextName: string) => {
-      setRenamingId(null);
-      const nextName = rawNextName.trim().replace(/[/\\]/g, "");
-      if (!nextName || nextName === item.name) return;
-
-      const nextPath = `${desktopDirPath.replace(/\/+$/, "")}/${nextName}`;
-      if (realFilesystem) {
-        await piloti.processes
-          .run(["mv", "-n", "--", item.path, nextPath])
-          .catch(() => undefined);
-        await loadDesktopFolder();
-      } else {
-        const renamed = renameVfsEntry(item.path, nextName);
-        if (!renamed) return;
-        await loadDesktopFolder();
-      }
-
-      if (settings.desktopIconPositions[item.id]) {
-        const nextPositions = { ...settings.desktopIconPositions };
-        nextPositions[nextName] = nextPositions[item.id];
-        delete nextPositions[item.id];
-        updateSettings({ desktopIconPositions: nextPositions });
-      }
-      setSelectedIds([nextName]);
-    },
-    [
-      desktopDirPath,
-      piloti.processes,
-      realFilesystem,
-      loadDesktopFolder,
-      settings.desktopIconPositions,
-      updateSettings,
-    ]
-  );
-
-  const handleMoveToTrash = React.useCallback(
-    async (item: IconGridItem) => {
-      setContextMenu(null);
-      trashWithUndo({ piloti }, [item.path]);
-      await loadDesktopFolder();
-      setSelectedIds((prev) => prev.filter((id) => id !== item.id));
-    },
-    [piloti, realFilesystem, loadDesktopFolder]
-  );
-
-  // Re-attach resolved XDG icon URLs once asynchronous icon loading completes
-  const enrichedItems = React.useMemo(
-    () =>
-      items.map((item) => {
-        if (!item.iconCandidates) return item;
-        const resolved = item.iconCandidates
-          .map((c) => getAppIconUrl(c))
-          .find(Boolean);
-        return resolved && resolved !== item.iconUrl
-          ? { ...item, iconUrl: resolved }
-          : item;
-      }),
-    [getAppIconUrl, items]
-  );
-
-  const rootRef = React.useRef<HTMLDivElement | null>(null);
-
-  const assignDroppedNamesNearCursor = React.useCallback(
-    (names: readonly string[], clientX: number, clientY: number) => {
-      const rootEl = rootRef.current;
-      if (!rootEl || names.length === 0) return;
-      const rect = rootEl.getBoundingClientRect();
-      const metrics = computeGridMetrics(rect.width, rect.height);
-      const targetCell = clientPointToGridCell(
-        clientX - rect.left,
-        clientY - rect.top,
-        metrics
-      );
-      const currentAssigned = assignGridPositions(
-        enrichedItems,
-        settings.desktopIconPositions,
-        metrics.cols,
-        metrics.rows,
-        settings.desktopIconAlign ?? "left"
-      );
-      const occupied = new Set<string>();
-      for (const pos of Object.values(currentAssigned)) {
-        if (pos) occupied.add(coordKey(pos));
-      }
-      const nextPositions: Record<string, GridCoord> = {
-        ...settings.desktopIconPositions,
-      };
-      for (const name of names) {
-        const dropId = `${desktopDirPath}/${name}`;
-        const cell = findClosestFreeCell(
-          occupied,
-          targetCell,
-          metrics.cols,
-          metrics.rows
-        );
-        nextPositions[dropId] = cell;
-        occupied.add(coordKey(cell));
-      }
-      updateSettings({ desktopIconPositions: nextPositions });
-    },
-    [
-      desktopDirPath,
-      enrichedItems,
-      settings.desktopIconAlign,
-      settings.desktopIconPositions,
-      updateSettings,
-    ]
-  );
-
-  React.useEffect(() => {
-    const onDesktopDropPosition = (e: Event) => {
-      const detail = (
-        e as CustomEvent<{
-          destPath?: string;
-          names?: string[];
-          clientX?: number;
-          clientY?: number;
-        }>
-      ).detail;
-      if (
-        !detail ||
-        detail.destPath !== desktopDirPath ||
-        !detail.names?.length ||
-        typeof detail.clientX !== "number" ||
-        typeof detail.clientY !== "number"
-      ) {
-        return;
-      }
-      assignDroppedNamesNearCursor(
-        detail.names,
-        detail.clientX,
-        detail.clientY
-      );
-    };
-    window.addEventListener(
-      "residence:desktop-drop-position",
-      onDesktopDropPosition
+  const fileItems = React.useMemo(() => {
+    const hidden = hiddenNamesOf(entries, desktopDirPath);
+    return sortDesktopItems(
+      entries
+        .filter((e) => !e.name.startsWith(".") && !hidden.has(e.name))
+        .map((e) => vfsEntryToGridItem(e, getAppIconUrl)),
     );
-    return () =>
-      window.removeEventListener(
-        "residence:desktop-drop-position",
-        onDesktopDropPosition
-      );
-  }, [assignDroppedNamesNearCursor, desktopDirPath]);
+  }, [desktopDirPath, entries, getAppIconUrl]);
 
-  const handleMoveItems = React.useCallback(
-    (
-      itemIds: string[],
-      primaryId: string,
-      cell: GridCoord,
-      metrics: GridMetrics
-    ) => {
-      updateSettings({
-        desktopIconPositions: moveItemsInSpatialGrid(
-          enrichedItems,
-          settings.desktopIconPositions,
-          itemIds,
-          primaryId,
-          cell,
-          metrics,
-          settings.desktopIconAlign ?? "left"
-        ),
-      });
+  React.useEffect(() => {
+    const candidates = entries.flatMap((e) => [...entryVisual(e).iconCandidates]);
+    if (candidates.length > 0) ensureWaylandIcons(Array.from(new Set(candidates)));
+  }, [ensureWaylandIcons, entries]);
+
+  const items = useLauncherItems(fileItems);
+  const ops = useFolderOps({ dirPath: desktopDirPath, reload, setSelectedIds });
+  const externalDrop = useExternalFileDrop(desktopDirPath, !realFilesystem, reload);
+
+  // "New Folder", "Paste", "Open in Terminal"... from the shell's desktop menus.
+  const editCreated = React.useCallback(
+    (created: WebVfsEntry, label?: string) => {
+      if (label) recordCreated({ piloti }, [created.path], label);
+      reload();
+      setSelectedIds([created.path]);
+      setRenamingId(created.path);
     },
-    [
-      enrichedItems,
-      settings.desktopIconAlign,
-      settings.desktopIconPositions,
-      updateSettings,
-    ]
+    [piloti, reload],
   );
+  React.useEffect(() => {
+    const listeners: Record<string, (e: Event) => void> = {
+      "piloti:desktop-new-folder": () =>
+        editCreated(createFsFolder(piloti, desktopDirPath), "New Folder"),
+      "piloti:desktop-new-file": () =>
+        editCreated(createFsTextFile(piloti, desktopDirPath), "New Text File"),
+      "piloti:desktop-new-from-template": (e) => {
+        const template = (e as CustomEvent<WebVfsEntry | undefined>).detail;
+        if (template) {
+          void createFsFileFromTemplate(piloti, desktopDirPath, template).then((c) =>
+            editCreated(c),
+          );
+        }
+      },
+      "piloti:desktop-paste": () => ops.pasteClipboard(),
+      "piloti:desktop-open-terminal": () =>
+        launchApp("terminal", { payload: desktopDirPath, forceNew: true }),
+    };
+    for (const [type, fn] of Object.entries(listeners)) window.addEventListener(type, fn);
+    return () => {
+      for (const [type, fn] of Object.entries(listeners)) {
+        window.removeEventListener(type, fn);
+      }
+    };
+  }, [desktopDirPath, editCreated, launchApp, ops, piloti]);
+
+  const { updateSettings } = useSettings();
+  React.useEffect(() => {
+    const onAlignIcons = () => updateSettings({ desktopIconPositions: {} });
+    window.addEventListener("piloti:desktop-align-icons", onAlignIcons);
+    return () => window.removeEventListener("piloti:desktop-align-icons", onAlignIcons);
+  }, [updateSettings]);
 
   const handleActivateItem = React.useCallback(
     (item: IconGridItem) => {
@@ -695,118 +208,22 @@ export function DesktopIconsApp({
       void openPath(item.path, {
         kind: item.kind === "directory" ? "directory" : "file",
         name: item.name,
-        onExtracted: () => void loadDesktopFolder(),
+        onExtracted: reload,
       });
     },
-    [realFilesystem, launchApp, launchXdgEntry, loadDesktopFolder, openPath]
-  );
-
-  // Paste and Open in Terminal from the shell's desktop menu.
-  React.useEffect(() => {
-    const onPaste = () => void handlePasteToDesktopRef.current();
-    const onOpenTerminal = () =>
-      launchApp("terminal", { payload: desktopDirPath, forceNew: true });
-    window.addEventListener("piloti:desktop-paste", onPaste);
-    window.addEventListener("piloti:desktop-open-terminal", onOpenTerminal);
-    return () => {
-      window.removeEventListener("piloti:desktop-paste", onPaste);
-      window.removeEventListener("piloti:desktop-open-terminal", onOpenTerminal);
-    };
-  }, [desktopDirPath, launchApp]);
-
-  const handlePasteToDesktop = React.useCallback(async () => {
-    const clip = getVfsClipboard();
-    if (!clip || clip.paths.length === 0) return;
-    const ctx = { piloti };
-    if (clip.mode === "cut") {
-      moveWithUndo(ctx, clip.paths, desktopDirPath);
-    } else {
-      const created: string[] = [];
-      for (const srcPath of clip.paths) {
-        const path = await copyFsEntry(piloti, srcPath, desktopDirPath);
-        if (path) created.push(path);
-      }
-      recordCreated(ctx, created, "Paste");
-    }
-    if (clip.mode === "cut") {
-      setVfsClipboard(null);
-    }
-    await loadDesktopFolder();
-  }, [desktopDirPath, piloti, realFilesystem, loadDesktopFolder]);
-  const handlePasteToDesktopRef = React.useRef(handlePasteToDesktop);
-  handlePasteToDesktopRef.current = handlePasteToDesktop;
-
-  const handleDuplicateItems = React.useCallback(
-    async (list: IconGridItem[]) => {
-      const createdPaths: string[] = [];
-      for (const item of list) {
-        const dot = item.name.lastIndexOf(".");
-        const name =
-          dot > 0 && item.kind !== "directory"
-            ? `${item.name.slice(0, dot)} Copy${item.name.slice(dot)}`
-            : `${item.name} Copy`;
-        const path = await copyFsEntry(piloti, item.path, desktopDirPath, { name });
-        if (path) createdPaths.push(path);
-      }
-      recordCreated({ piloti }, createdPaths, "Duplicate");
-      await loadDesktopFolder();
-      if (createdPaths.length > 0) {
-        setSelectedIds(createdPaths.map((p) => p.split("/").pop() ?? p));
-      }
-    },
-    [desktopDirPath, piloti, realFilesystem, loadDesktopFolder]
-  );
-
-  const handleMoveItemsToTrash = React.useCallback(
-    async (list: IconGridItem[]) => {
-      for (const item of list) {
-        await handleMoveToTrash(item);
-      }
-    },
-    [handleMoveToTrash]
-  );
-
-  const handleDropDesktopItems = React.useCallback(
-    async (droppedItems: IconGridItem[], destPath: string, opts?: { copy?: boolean }) => {
-      if (destPath === WEB_VFS_TRASH) {
-        await handleMoveItemsToTrash(droppedItems);
-        return;
-      }
-      if (opts?.copy) {
-        const created: string[] = [];
-        for (const item of droppedItems) {
-          const path = await copyFsEntry(piloti, item.path, destPath);
-          if (path) created.push(path);
-        }
-        recordCreated({ piloti }, created, "Copy");
-        await loadDesktopFolder();
-        return;
-      }
-      const movedIds = new Set<string>();
-      const toMove: string[] = [];
-      for (const item of droppedItems) {
-        if (item.path === destPath || destPath.startsWith(`${item.path}/`)) {
-          continue;
-        }
-        toMove.push(item.path);
-        movedIds.add(item.id);
-      }
-      moveWithUndo({ piloti }, toMove, destPath);
-      if (movedIds.size > 0) {
-        await loadDesktopFolder();
-        setSelectedIds((prev) => prev.filter((id) => !movedIds.has(id)));
-      }
-    },
-    [piloti, handleMoveItemsToTrash, realFilesystem, loadDesktopFolder]
+    [realFilesystem, launchApp, launchXdgEntry, reload, openPath]
   );
 
   if (!settings.desktopIconsEnabled) return null;
 
-  const selectedItems = enrichedItems.filter((i) => selectedIds.includes(i.id));
+  const selectedItems = items.filter((i) => selectedIds.includes(i.id));
+  const trashItems = (list: readonly IconGridItem[]) => {
+    setContextMenu(null);
+    ops.trashItems(list);
+  };
 
   return (
     <div
-      ref={rootRef}
       data-desktop-icons-root
       data-vfs-drop-path={desktopDirPath}
       style={{ bottom: `${bottomInset}px` }}
@@ -838,10 +255,10 @@ export function DesktopIconsApp({
           else void undoFileOperation();
         } else if (mod && key === "v") {
           e.preventDefault();
-          void handlePasteToDesktop();
+          ops.pasteClipboard();
         } else if (mod && key === "d" && selectedItems.length > 0) {
           e.preventDefault();
-          void handleDuplicateItems(selectedItems);
+          ops.duplicateItems(selectedItems);
         } else if (
           ((e.ctrlKey && !e.altKey && !e.shiftKey && e.key === "Enter") ||
             e.key === "F2") &&
@@ -865,51 +282,17 @@ export function DesktopIconsApp({
           selectedItems.length > 0
         ) {
           e.preventDefault();
-          void handleMoveItemsToTrash(selectedItems);
+          trashItems(selectedItems);
         }
       }}
-      onDragOver={(e) => {
-        if (realFilesystem || !e.dataTransfer?.types?.includes("Files")) {
-          return;
-        }
-        e.preventDefault();
-        e.dataTransfer.dropEffect = "copy";
-        if (!externalDropActive) setExternalDropActive(true);
-      }}
-      onDragLeave={(e) => {
-        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
-          setExternalDropActive(false);
-        }
-      }}
-      onDrop={(e) => {
-        if (realFilesystem || !e.dataTransfer?.files?.length) return;
-        e.preventDefault();
-        setExternalDropActive(false);
-        const names = Array.from(e.dataTransfer.files).map((f) => f.name);
-        assignDroppedNamesNearCursor(names, e.clientX, e.clientY);
-        void importExternalFilesToVfs(desktopDirPath, e.dataTransfer.files).then(() => {
-          window.dispatchEvent(
-            new CustomEvent("piloti:folder-drop-anim", {
-              detail: { path: desktopDirPath },
-            }),
-          );
-        });
-      }}
+      {...externalDrop.handlers}
     >
-      <IconGrid
-        items={enrichedItems}
-        mode="spatial"
-        align={settings.desktopIconAlign ?? "left"}
-        cellWidth={112}
-        cellHeight={112}
-        iconSize={64}
-        stretchCells
-        currentDirPath={desktopDirPath}
-        positions={settings.desktopIconPositions}
-        onMoveItems={handleMoveItems}
-        onDropItems={(dropped, destPath, opts) =>
-          void handleDropDesktopItems(dropped, destPath, opts)
-        }
+      <FolderIconView
+        items={items}
+        dirPath={desktopDirPath}
+        arrangement="desktop"
+        isDesktop
+        onDropItems={ops.dropItems}
         onActivateItem={handleActivateItem}
         onToggleFavorite={(item) => {
           if (item.path && item.kind !== "desktop-entry") {
@@ -922,16 +305,17 @@ export function DesktopIconsApp({
           setContextMenu({ item, x: e.clientX, y: e.clientY });
         }}
         renamingId={renamingId}
-        onCommitRename={(item, nextName) =>
-          void handleCommitRename(item, nextName)
-        }
+        onCommitRename={(item, nextName) => {
+          setRenamingId(null);
+          ops.renameItem(item, nextName);
+        }}
         onCancelRename={() => setRenamingId(null)}
         selectedIds={selectedIds}
         onSelectIds={setSelectedIds}
         ariaLabel="Desktop Icons"
       />
 
-      {externalDropActive && (
+      {externalDrop.active && (
         <div className="pointer-events-none absolute inset-3 z-30 flex items-end justify-center rounded-adw-group border-2 border-dashed border-adw-accent/70 bg-adw-accent/10 pb-4">
           <span className="rounded-full bg-zinc-900/90 px-3 py-1 text-xs font-medium text-white shadow-sm ring-1 ring-white/10">
             {_("Drop files to copy to Desktop")}
@@ -950,16 +334,7 @@ export function DesktopIconsApp({
             kind: target.kind === "directory" ? "directory" : "file",
           });
         }}
-        onMakeLink={(list) => {
-          void Promise.all(
-            list.map((target) =>
-              copyFsEntry(piloti, target.path, desktopDirPath, {
-                symlink: true,
-                name: _("Link to {name}").replace("{name}", target.name),
-              }),
-            ),
-          ).then(() => loadDesktopFolder());
-        }}
+        onMakeLink={ops.makeLinks}
         onShowOriginal={(target) => {
           const dest = target.symlinkTarget;
           if (!dest) return;
@@ -977,17 +352,17 @@ export function DesktopIconsApp({
         onCopyItems={(list) =>
           setVfsClipboard({ mode: "copy", paths: list.map((i) => i.path) })
         }
-        onDuplicate={(list) => void handleDuplicateItems(list)}
+        onDuplicate={ops.duplicateItems}
         onCompress={(list) => archive.compress(list.map((i) => i.path))}
         onExtract={(target) => archive.extract(target.path)}
         onDownload={
           !realFilesystem ? (target) => downloadVfsFile(target.path) : undefined
         }
         canPaste={Boolean(clipboard && clipboard.paths.length > 0)}
-        onPaste={() => void handlePasteToDesktop()}
+        onPaste={ops.pasteClipboard}
         onRename={(target) => setRenamingId(target.id)}
-        onTrash={(target) => void handleMoveToTrash(target)}
-        onTrashItems={(list) => void handleMoveItemsToTrash(list)}
+        onTrash={(target) => trashItems([target])}
+        onTrashItems={trashItems}
       />
     </div>
   );

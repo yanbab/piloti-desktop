@@ -318,7 +318,8 @@ const APP_MENUS: Record<string, AppMenuSection[]> = {
       title: "View",
       items: [
         { label: "As Icons", shortcut: "Ctrl+1", actionId: "files:view-grid", checked: true },
-        { label: "As List", shortcut: "Ctrl+2", actionId: "files:view-list", checked: false, separatorAfter: true },
+        { label: "As List", shortcut: "Ctrl+2", actionId: "files:view-list", checked: false },
+        { label: "As Desktop", actionId: "files:view-desktop", checked: false, separatorAfter: true },
         { label: "Sort Manually", actionId: "files:sort-manual", checked: false },
         { label: "Sort by Name", actionId: "files:sort-name", checked: true },
         { label: "Sort by Kind", actionId: "files:sort-kind", checked: false },
