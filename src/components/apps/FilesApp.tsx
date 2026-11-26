@@ -1650,11 +1650,11 @@ export function FilesApp({
               <div className="w-full truncate text-ui-body font-semibold">
                 {displayName}
               </div>
-              <div className="text-ui-subheadline text-ui-label-secondary">
+              <div className="text-ui-small text-ui-label-secondary">
                 {displayKind}
               </div>
             </div>
-            <dl className="space-y-2 text-ui-subheadline">
+            <dl className="space-y-2 text-ui-small">
               <div className="grid grid-cols-2 gap-2">
                 <div className="min-w-0">
                   <dt className="text-ui-dim">{_("Size")}</dt>
@@ -1667,7 +1667,7 @@ export function FilesApp({
               </div>
               <div>
                 <dt className="text-ui-dim">{_("Where")}</dt>
-                <dd className="flex min-w-0 text-ui-subheadline text-ui-label-secondary">
+                <dd className="flex min-w-0 text-ui-small text-ui-label-secondary">
                   <NicePathLabel path={inspectedItem?.path ?? currentPath} />
                 </dd>
               </div>
@@ -1703,7 +1703,7 @@ export function FilesApp({
                             reloadDir();
                           }}
                           className={cn(
-                            "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-ui-footnote font-medium transition-colors active:bg-[color-mix(in_srgb,currentColor_22%,transparent)]",
+                            "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-ui-caption font-medium transition-colors active:bg-[color-mix(in_srgb,currentColor_22%,transparent)]",
                             meta.colorClass,
                             active
                               ? "border-current/45 bg-[color-mix(in_srgb,currentColor_14%,transparent)] hover-fill:bg-[color-mix(in_srgb,currentColor_22%,transparent)]"
@@ -1798,7 +1798,7 @@ export function FilesApp({
                     }
                   }}
                   aria-label="Folder path"
-                  className="h-7 w-64 max-w-full rounded-ui-control border border-ui-accent/70 bg-black/8 px-2 font-mono text-ui-callout text-ui-label outline-none dark:bg-white/12"
+                  className="h-7 w-64 max-w-full rounded-ui-control border border-ui-accent/70 bg-black/8 px-2 font-mono text-ui-body text-ui-label outline-none dark:bg-white/12"
                 />
               </form>
             ) : (
@@ -1898,12 +1898,12 @@ export function FilesApp({
       }
       rightPane={infoPaneNode}
     >
-      <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden bg-ui-content">
+      <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden bg-ui-window">
         <div
           ref={mainViewRef}
           data-vfs-drop-path={isVirtualView ? undefined : currentPath}
           onKeyDown={onContentKeyDown}
-          className="relative min-h-0 flex-1 overflow-auto bg-ui-content"
+          className="relative min-h-0 flex-1 overflow-auto bg-ui-window"
         {...externalDrop.handlers}
         onContextMenu={(e) => {
           if (isTrashView || isVirtualView) return;
@@ -1914,7 +1914,7 @@ export function FilesApp({
         }}
       >
         {externalDrop.active && (
-          <div className="pointer-events-none absolute inset-2 z-20 flex items-end justify-center rounded-ui-group border-2 border-dashed border-ui-accent/70 bg-ui-accent/10 pb-3">
+          <div className="pointer-events-none absolute inset-2 z-20 flex items-end justify-center rounded-ui-box border-2 border-dashed border-ui-accent/70 bg-ui-accent/10 pb-3">
             <span className="rounded-full bg-zinc-900/90 px-3 py-1 text-xs font-medium text-white shadow-sm ring-1 ring-white/10">
               {_("Drop files to copy here")}
             </span>
@@ -1923,7 +1923,7 @@ export function FilesApp({
         {items.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center gap-1.5 text-center text-ui-label-tertiary">
             <FolderIcon className="size-9 opacity-35" />
-            <span className="text-ui-callout">
+            <span className="text-ui-body">
               {isTrashView
                 ? _("Trash is empty")
                 : isFavoritesView
@@ -2092,7 +2092,7 @@ export function FilesApp({
                               onBlur={(e) =>
                                 handleCommitRename(item, e.currentTarget.value)
                               }
-                              className="min-w-28 rounded bg-zinc-900/95 px-1.5 py-0.5 text-ui-callout font-medium text-white ring-1 ring-ui-accent outline-none"
+                              className="min-w-28 rounded bg-zinc-900/95 px-1.5 py-0.5 text-ui-body font-medium text-white ring-1 ring-ui-accent outline-none"
                             />
                           ) : (
                             <span className="truncate">{item.name}</span>
@@ -2121,7 +2121,7 @@ export function FilesApp({
                       <td className="px-3 py-2 text-ui-label-secondary">
                         {item.kind === "directory" ? _("Directory") : _("File")}
                       </td>
-                      <td className="px-3 py-2 text-right font-mono text-ui-subheadline text-ui-label-secondary">
+                      <td className="px-3 py-2 text-right font-mono text-ui-small text-ui-label-secondary">
                         {sizeLabel}
                       </td>
                       <td className="w-8 px-1 py-0 text-center">
@@ -2191,7 +2191,7 @@ export function FilesApp({
         >
           <span
             data-testid="files-status-pill"
-            className="min-w-0 truncate text-ui-subheadline text-ui-label-secondary"
+            className="min-w-0 truncate text-ui-small text-ui-label-secondary"
           >
             {selectedIds.length > 0
               ? _("%d selected", selectedIds.length)

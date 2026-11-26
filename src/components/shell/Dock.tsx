@@ -781,7 +781,7 @@ export const Dock = React.memo(function Dock() {
                 }}
                 className={
                   dropTargetAppId === app.id
-                      ? "scale-110 rounded-ui-group bg-ui-accent/20 ring-2 ring-ui-accent/80 transition-transform"
+                      ? "scale-110 rounded-ui-box bg-ui-accent/20 ring-2 ring-ui-accent/80 transition-transform"
                       : undefined
                 }
                 onClick={(e) => {
@@ -812,7 +812,7 @@ export const Dock = React.memo(function Dock() {
                     return (
                       <span
                         aria-label={`${badge.count} updates`}
-                        className="pointer-events-none absolute -top-1 -right-1 z-20 flex h-4 min-w-4 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--ui-label)_16%,var(--ui-window))] px-1.5 text-ui-footnote leading-none font-semibold text-ui-label shadow-sm ring-1 ring-ui-label/20 tabular-nums"
+                        className="pointer-events-none absolute -top-1 -right-1 z-20 flex h-4 min-w-4 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--ui-label)_16%,var(--ui-window))] px-1.5 text-ui-caption leading-none font-semibold text-ui-label shadow-sm ring-1 ring-ui-label/20 tabular-nums"
                       >
                         {badge.count > 99 ? "99+" : badge.count}
                       </span>

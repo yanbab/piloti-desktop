@@ -263,11 +263,11 @@ function Widget({
         aria-label={title}
         {...listeners}
         className={cn(
-          "flex h-full min-w-0 cursor-default flex-col gap-2 overflow-hidden rounded-ui-group bg-ui-group p-3",
+          "flex h-full min-w-0 cursor-default flex-col gap-2 overflow-hidden rounded-ui-box bg-ui-group p-3",
           isDragging && "shadow-ui-popover"
         )}
       >
-        <h2 className="shrink-0 text-ui-subheadline font-semibold text-ui-label-secondary">{title}</h2>
+        <h2 className="shrink-0 text-ui-small font-semibold text-ui-label-secondary">{title}</h2>
         {children}
       </section>
     </div>
@@ -300,7 +300,7 @@ function CpuWidget({ history }: { history: number[] }) {
   return (
     <div className="relative min-h-0 flex-1">
       <Sparkline values={history} />
-      <div className="relative text-ui-title-1 font-semibold tabular-nums text-ui-label">
+      <div className="relative text-ui-title font-semibold tabular-nums text-ui-label">
         {Math.round(current)} %
       </div>
     </div>
@@ -311,13 +311,13 @@ function MemoryWidget({ used, total }: { used: number; total: number }) {
   const ratio = total > 0 ? used / total : 0;
   return (
     <>
-      <div className="text-ui-title-1 font-semibold tabular-nums text-ui-label">
+      <div className="text-ui-title font-semibold tabular-nums text-ui-label">
         {total > 0 ? formatMb(used) : "—"}
       </div>
       <div className="h-2 overflow-hidden rounded-full bg-black/8 dark:bg-white/10">
         <div className="h-full rounded-full bg-ui-accent transition-[width] duration-500" style={{ width: `${ratio * 100}%` }} />
       </div>
-      <div className="text-ui-footnote tabular-nums text-ui-label-secondary">
+      <div className="text-ui-caption tabular-nums text-ui-label-secondary">
         {total > 0 ? _("%s of %s", formatMb(used), formatMb(total)) : "—"}
       </div>
     </>
@@ -544,7 +544,7 @@ export const SystemMonitorApp: React.FC<SystemMonitorAppProps> = ({ windowId = "
             {(Object.keys(DEFAULT_LAYOUT) as WidgetId[]).map(renderWidget)}
           </div>
         </DndContext>
-        <p className="mt-1 shrink-0 text-center text-ui-footnote text-ui-label-tertiary">
+        <p className="mt-1 shrink-0 text-center text-ui-caption text-ui-label-tertiary">
           {systemServices
             ? _("Apps without figures run inside the desktop or share its browser.")
             : _("Simulated values in the demo.")}

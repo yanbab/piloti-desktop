@@ -167,7 +167,7 @@ function CommandGroup({
       ref={listScrollRef(ref, (node) => node.querySelector<HTMLElement>("[cmdk-group-heading]"))}
       data-slot="command-group"
       className={cn(
-        "overflow-hidden text-ui-label **:[[cmdk-group-heading]]:px-2.5 **:[[cmdk-group-heading]]:pt-2 **:[[cmdk-group-heading]]:pb-1 **:[[cmdk-group-heading]]:text-ui-subheadline **:[[cmdk-group-heading]]:font-semibold **:[[cmdk-group-heading]]:text-ui-label-secondary",
+        "overflow-hidden text-ui-label **:[[cmdk-group-heading]]:px-2.5 **:[[cmdk-group-heading]]:pt-2 **:[[cmdk-group-heading]]:pb-1 **:[[cmdk-group-heading]]:text-ui-small **:[[cmdk-group-heading]]:font-semibold **:[[cmdk-group-heading]]:text-ui-label-secondary",
         className
       )}
       {...props}
@@ -200,7 +200,7 @@ function CommandItem({
       ref={listScrollRef(ref)}
       data-slot="command-item"
       className={cn(
-        "group/command-item relative flex h-8 cursor-default items-center gap-2.5 rounded-ui-item px-2.5 text-ui-body outline-hidden select-none data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 data-[selected=true]:bg-ui-menu-highlight data-[selected=true]:text-ui-label [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 [&_svg:not([class*='text-'])]:text-ui-label-secondary data-[selected=true]:*:[svg]:text-ui-label",
+        "group/command-item relative flex h-8 cursor-default items-center gap-2.5 rounded-ui-control px-2.5 text-ui-body outline-hidden select-none data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 data-[selected=true]:bg-ui-menu-highlight data-[selected=true]:text-ui-label [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 [&_svg:not([class*='text-'])]:text-ui-label-secondary data-[selected=true]:*:[svg]:text-ui-label",
         className
       )}
       {...props}

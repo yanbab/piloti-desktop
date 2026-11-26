@@ -99,7 +99,7 @@ export function BrowserExtensionsMenu({
         <DropdownMenuContent align="end" className="w-72">
           <DropdownMenuLabel>{_("Extensions")}</DropdownMenuLabel>
           {items.length === 0 && (
-            <div className="px-3 py-3 text-ui-callout text-ui-label-secondary">
+            <div className="px-3 py-3 text-ui-body text-ui-label-secondary">
               {_("No extensions installed.")}
             </div>
           )}

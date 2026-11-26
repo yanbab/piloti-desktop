@@ -327,7 +327,7 @@ function AppModuleSurface({
     // the shell lays window controls and a drag strip over the header area.
     const drag = mod.drag ?? { left: 96, right: 96, height: 36 };
     return (
-      <div className="relative h-full w-full flex-1 overflow-hidden bg-ui-content">
+      <div className="relative h-full w-full flex-1 overflow-hidden bg-ui-window">
         <webview
           ref={viewRef}
           window={win.browserWindowId}
@@ -361,7 +361,7 @@ function AppModuleSurface({
     );
   }
   return (
-    <div className="flex h-full w-full flex-1 flex-col overflow-hidden bg-ui-content">
+    <div className="flex h-full w-full flex-1 flex-col overflow-hidden bg-ui-window">
       <HeaderBar>
         <HeaderBar.Title>{win.title}</HeaderBar.Title>
       </HeaderBar>
@@ -997,7 +997,7 @@ function WebViewSurface({
   };
 
   return (
-    <div className="flex h-full w-full flex-1 flex-col overflow-hidden bg-ui-content">
+    <div className="flex h-full w-full flex-1 flex-col overflow-hidden bg-ui-window">
       <AppChromeProvider value={chrome}>
         <HeaderBar
           style={
@@ -1057,7 +1057,7 @@ function WebViewSurface({
                   aria-label="Address"
                   placeholder="https://…"
                   className={cn(
-                    "h-7 w-full max-w-xl rounded-ui-control border border-ui-accent/70 bg-black/8 px-2.5 text-ui-callout font-medium outline-none dark:bg-white/12",
+                    "h-7 w-full max-w-xl rounded-ui-control border border-ui-accent/70 bg-black/8 px-2.5 text-ui-body font-medium outline-none dark:bg-white/12",
                     !contrastFg && "text-ui-label"
                   )}
                 />
@@ -1097,7 +1097,7 @@ function WebViewSurface({
                 size="sm"
                 variant={storeExtInstalled ? "secondary" : "default"}
                 onClick={() => void handleToggleStoreExtension()}
-                className="mr-1 h-6 gap-1 px-2 text-ui-subheadline"
+                className="mr-1 h-6 gap-1 px-2 text-ui-small"
               >
                 <DownloadIcon className="size-3" />
                 {storeExtInstalled
@@ -1211,7 +1211,7 @@ function WebViewSurface({
                 width: `${extPopupSize.width}px`,
                 height: `${extPopupSize.height}px`,
               }}
-              className="absolute top-1.5 right-2 z-40 max-h-[calc(100%-12px)] max-w-[calc(100%-16px)] overflow-hidden rounded-ui-group border border-ui-separator bg-ui-window shadow-2xl"
+              className="absolute top-1.5 right-2 z-40 max-h-[calc(100%-12px)] max-w-[calc(100%-16px)] overflow-hidden rounded-ui-box border border-ui-separator bg-ui-window shadow-2xl"
             >
               <webview
                 ref={extPopupWebviewRef}
@@ -1229,17 +1229,17 @@ function WebViewSurface({
               className="absolute inset-0 z-30"
               onClick={() => setDemoPopupOpen(false)}
             />
-            <div className="absolute top-1.5 right-2 z-40 w-[290px] max-w-[calc(100%-16px)] rounded-ui-group border border-ui-separator bg-ui-window p-3.5 text-ui-label shadow-2xl">
+            <div className="absolute top-1.5 right-2 z-40 w-[290px] max-w-[calc(100%-16px)] rounded-ui-box border border-ui-separator bg-ui-window p-3.5 text-ui-label shadow-2xl">
               <div className="flex items-center gap-2">
                 <PuzzleIcon className="size-4 text-ui-accent" />
                 <div className="text-ui-body font-semibold">
                   Piloti Demo Extension
                 </div>
               </div>
-              <p className="mt-1 text-ui-subheadline leading-relaxed text-ui-label-secondary">
+              <p className="mt-1 text-ui-small leading-relaxed text-ui-label-secondary">
                 {_("Simulated extension popup in Web mode. On native Domicile, real Chrome extensions load via extensions.unpacked / extensions.web_store.")}
               </p>
-              <div className="mt-2.5 rounded-ui-item bg-black/5 px-2.5 py-2 text-ui-subheadline break-all text-ui-label-secondary dark:bg-white/6">
+              <div className="mt-2.5 rounded-ui-control bg-black/5 px-2.5 py-2 text-ui-small break-all text-ui-label-secondary dark:bg-white/6">
                 <div className="font-medium text-ui-label">{win.title}</div>
                 <div className="mt-0.5 opacity-80">{win.browserUrl || address}</div>
               </div>
@@ -1265,7 +1265,7 @@ function WebViewSurface({
         )}
 
         {pageFailure && !isBrowserRuntime && (  // FIXME : Capabilities
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-ui-content p-6 text-center text-ui-label">
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-ui-window p-6 text-center text-ui-label">
             <GlobeIcon className="size-7 text-ui-label-secondary" />
             <div className="text-sm font-semibold">Unable to load page</div>
             <div className="text-xs text-ui-label-secondary">
@@ -1578,7 +1578,7 @@ const WindowBody = React.memo(
 
     // In Browser Dev Mode, simulated non-Settings Wayland windows render a minimal surface card
     return (
-      <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-ui-content p-6 text-center text-ui-label">
+      <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-ui-window p-6 text-center text-ui-label">
         <div className="text-sm font-semibold">{win.title}</div>
         <div className="text-xs text-ui-label-secondary">
           Simulated Wayland surface (`{win.waylandAppId ?? win.appId}`) ·

@@ -60,7 +60,6 @@
 
   /* Surfaces */
   --ui-window: #ffffff;
-  --ui-content: #ffffff;
   --ui-content-alternate: rgb(0 0 0 / 0.05);
   --ui-group: var(--ui-fill-quaternary);
   --ui-separator: rgb(0 0 0 / 0.05);
@@ -69,7 +68,6 @@
   --ui-sidebar: rgb(233 239 245 / 0.86);
   --ui-sidebar-selection: rgb(0 0 0 / 0.06);
   --ui-sidebar-label-inactive: #878787;
-  --ui-titlebar: rgb(255 255 255 / 0.92);
 
   /* Liquid Glass (toolbar capsules, search fields in toolbars) */
   --ui-glass: rgb(255 255 255 / 0.82);
@@ -80,16 +78,13 @@
   --ui-glass-shadow: 0 0 0 0.5px rgb(0 0 0 / 0.08), 0 8px 15px rgb(0 0 0 / 0.04);
 
   /* Materials (translucent, blurred backgrounds) */
-  --ui-material-menu: rgb(244 244 246 / 0.74);
-  --ui-material-popover: rgb(246 246 246 / 0.8);
-  --ui-material-hud: rgb(246 246 246 / 0.86);
-  --ui-material-tooltip: rgb(246 246 246 / 0.9);
+  --ui-overlay: rgb(244 244 246 / 0.74);
   --ui-material-dock: rgb(255 255 255 / 0.32);
   --ui-dock-label: rgb(246 246 246 / 0.85);
   --ui-material-blur: 30px;
   --ui-material-border: rgb(0 0 0 / 0.1);
   --ui-material-highlight: rgb(255 255 255 / 0.5);
-  --ui-overlay: rgb(171 171 171 / 0.6);
+  --ui-scrim: rgb(171 171 171 / 0.6);
 
   /* Window controls */
   --ui-traffic-close: #ff5f57;
@@ -112,11 +107,7 @@
 
   /* Radii */
   --ui-radius-control: 6px;
-  --ui-radius-menu: 13px;
-  --ui-radius-item: 8px;
-  --ui-radius-group: 12px;
-  --ui-radius-popover: 20px;
-  --ui-radius-alert: 34px;
+  --ui-radius-box: 13px;
   --ui-radius-window: 16px;
 
   /* Control heights (mini, small, medium, large, extra large) */
@@ -125,15 +116,9 @@
   --ui-control-large: 28px;
 
   /* Text sizes */
-  --ui-font-large-title: 26px;
-  --ui-font-title-1: 22px;
-  --ui-font-title-2: 17px;
-  --ui-font-title-3: 15px;
-  --ui-font-headline: 13px;
+  --ui-font-title: 17px;
   --ui-font-body: 13px;
-  --ui-font-callout: 12px;
-  --ui-font-subheadline: 11px;
-  --ui-font-footnote: 10px;
+  --ui-font-small: 11px;
   --ui-font-caption: 10px;
 }
 
@@ -177,7 +162,6 @@
   --ui-field-border: rgb(255 255 255 / 0.04);
 
   --ui-window: #1e1f20;
-  --ui-content: #1e2023;
   --ui-content-alternate: rgb(255 255 255 / 0.05);
   --ui-separator: rgb(255 255 255 / 0.05);
   --ui-grid: rgb(255 255 255 / 0.1);
@@ -185,7 +169,6 @@
   --ui-sidebar: rgb(41 44 50 / 0.9);
   --ui-sidebar-selection: rgb(255 255 255 / 0.12);
   --ui-sidebar-label-inactive: rgb(255 255 255 / 0.35);
-  --ui-titlebar: #232528;
 
   --ui-glass: #323435;
   --ui-glass-pressed: rgb(255 255 255 / 0.08);
@@ -194,10 +177,7 @@
   --ui-glass-rim: rgb(0 0 0 / 0.72);
   --ui-glass-shadow: 0 0 0 transparent;
 
-  --ui-material-menu: rgb(48 52 60 / 0.6);
-  --ui-material-popover: rgb(36 36 36 / 0.82);
-  --ui-material-hud: rgb(30 30 30 / 0.86);
-  --ui-material-tooltip: rgb(20 20 20 / 0.72);
+  --ui-overlay: rgb(48 52 60 / 0.6);
   /* The dark Dock barely tints the wallpaper: it brightens what is behind it. */
   --ui-material-dock: rgb(255 255 255 / 0.015);
   --ui-material-dock-saturation: 100%;
@@ -206,7 +186,7 @@
   --ui-dock-label-saturation: 100%;
   --ui-material-border: rgb(255 255 255 / 0.15);
   --ui-material-highlight: rgb(255 255 255 / 0.08);
-  --ui-overlay: rgb(23 23 23 / 0.62);
+  --ui-scrim: rgb(23 23 23 / 0.62);
 
   --ui-traffic-close: linear-gradient(#f4534a 45%, #ef6861);
   --ui-traffic-minimize: #fcba00;
@@ -230,16 +210,13 @@
   --ui-selection: var(--ui-selection-unfocused);
   --ui-sidebar: rgb(240 244 248 / 0.97);
   --ui-sidebar-selection: rgb(0 0 0 / 0.04);
-  --ui-titlebar: #ffffff;
 }
 
 :root[data-interface-theme="cupertino"].dark [data-slot="window"][data-inactive],
 :root[data-interface-theme="cupertino"] .dark[data-slot="window"][data-inactive] {
   --ui-accent: rgb(255 255 255 / 0.21);
-  --ui-content: #202226;
   --ui-sidebar: #24272d;
   --ui-sidebar-selection: rgb(255 255 255 / 0.065);
-  --ui-titlebar: #282a2d;
   --ui-glass: #2e3032;
 }
 
@@ -277,7 +254,7 @@
   min-height: 24px;
   padding-block: 4px;
   padding-inline: 11px 14px;
-  border-radius: var(--ui-radius-item);
+  border-radius: 8px;
   font-size: var(--ui-font-body);
   line-height: 16px;
 }

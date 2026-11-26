@@ -251,7 +251,13 @@ export async function discoverPlugins(
 /** Plugin stylesheets written before the `--adw-*` names became `--ui-*`:
  *  rewritten so both reading and overriding a token still work. */
 export function upgradeLegacyCssNames(cssText: string): string {
-  return cssText.replace(/(--|\.|data-slot="?)adw-/g, "$1ui-");
+  return cssText
+    .replace(/(--|\.|data-slot="?)adw-/g, "$1ui-")
+    .replace(/--ui-(content|titlebar)(?![\w-])/g, "--ui-window")
+    .replace(/--ui-card(?![\w-])/g, "--ui-group")
+    .replace(/--ui-material-(menu|popover|hud|tooltip)(?![\w-])/g, "--ui-overlay")
+    .replace(/--ui-radius-(item)(?![\w-])/g, "--ui-radius-control")
+    .replace(/--ui-radius-(group|menu|popover)(?![\w-])/g, "--ui-radius-box")
 }
 
 export function injectPluginCss(pluginId: string, cssText: string): void {

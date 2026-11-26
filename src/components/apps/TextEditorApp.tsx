@@ -1038,7 +1038,7 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
     <div
       data-drop-window-id={windowId}
       onKeyDown={handleKeyDown}
-      className="flex h-full w-full flex-col overflow-hidden bg-ui-content text-ui-label"
+      className="flex h-full w-full flex-col overflow-hidden bg-ui-window text-ui-label"
     >
       {/* Headerbar */}
       <HeaderBar onClose={requestClose}>
@@ -1148,7 +1148,7 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
         {findOpen && (
           <div
             data-testid="text-editor-find-bar"
-            className="absolute top-2 right-3 z-20 flex items-center gap-1.5 rounded-ui-item border border-ui-border bg-ui-card/95 px-2 py-1 shadow-md backdrop-blur-md"
+            className="absolute top-2 right-3 z-20 flex items-center gap-1.5 rounded-ui-control border border-ui-border bg-ui-group/95 px-2 py-1 shadow-md backdrop-blur-md"
           >
             <input
               ref={findInputRef}
@@ -1157,7 +1157,7 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
               onChange={(e) => setFindQuery(e.target.value)}
               className="w-36 bg-transparent text-xs text-ui-label outline-none"
             />
-            <span className="font-mono text-ui-footnote text-ui-dim tabular-nums">
+            <span className="font-mono text-ui-caption text-ui-dim tabular-nums">
               {findQuery.trim() ? _("%d found", findMatchCount) : ""}
             </span>
             <button
@@ -1191,7 +1191,7 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
               className="h-full w-full border-0 bg-white"
             />
           ) : isSvgFile ? (
-            <div className="flex h-full w-full items-center justify-center overflow-auto bg-ui-content p-6">
+            <div className="flex h-full w-full items-center justify-center overflow-auto bg-ui-window p-6">
               <img
                 src={`data:image/svg+xml;charset=utf-8,${encodeURIComponent(content)}`}
                 alt={filePath ? getBaseName(filePath) : "SVG"}
@@ -1199,7 +1199,7 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
               />
             </div>
           ) : /\.(json|ini)$/i.test(filePath ?? "") ? (
-            <div className="h-full w-full overflow-auto bg-ui-content p-4 font-mono text-ui-callout select-text">
+            <div className="h-full w-full overflow-auto bg-ui-window p-4 font-mono text-ui-body select-text">
               {(() => {
                 try {
                   const parsed = /\.ini$/i.test(filePath ?? "")
@@ -1227,7 +1227,7 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
                   );
                 } catch (err) {
                   return (
-                    <div className="rounded-ui-item border border-red-500/30 bg-red-500/10 p-3 text-red-400">
+                    <div className="rounded-ui-control border border-red-500/30 bg-red-500/10 p-3 text-red-400">
                       Invalid JSON: {String(err)}
                     </div>
                   );
@@ -1235,7 +1235,7 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
               })()}
             </div>
           ) : (
-            <div className="h-full w-full overflow-auto bg-ui-content p-4 select-text">
+            <div className="h-full w-full overflow-auto bg-ui-window p-4 select-text">
               {renderSimpleMarkdown(content)}
             </div>
           )
@@ -1246,7 +1246,7 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
         {showCursorPos && (
           <div
             data-testid="text-editor-status-pill"
-            className="pointer-events-none absolute right-2.5 bottom-2 z-10 rounded-full border border-ui-border/60 bg-ui-card/90 px-2.5 py-0.5 font-mono text-ui-footnote text-ui-dim shadow-xs backdrop-blur-md"
+            className="pointer-events-none absolute right-2.5 bottom-2 z-10 rounded-full border border-ui-border/60 bg-ui-group/90 px-2.5 py-0.5 font-mono text-ui-caption text-ui-dim shadow-xs backdrop-blur-md"
           >
             Ln {cursorPos.ln}, Col {cursorPos.col}
           </div>
@@ -1295,7 +1295,7 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
               <button
                 type="button"
                 onClick={() => setPendingRename(null)}
-                className="rounded-ui-item bg-black/8 px-3 py-1.5 text-xs font-medium text-ui-label transition-colors hover-fill:bg-black/14 dark:bg-white/10 dark:hover-fill:bg-white/16"
+                className="rounded-ui-control bg-black/8 px-3 py-1.5 text-xs font-medium text-ui-label transition-colors hover-fill:bg-black/14 dark:bg-white/10 dark:hover-fill:bg-white/16"
               >
                 {_("Cancel")}
               </button>
@@ -1307,7 +1307,7 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
                     setPendingRename(null);
                   }
                 }}
-                className="rounded-ui-item bg-ui-accent px-3 py-1.5 text-xs font-medium text-white transition-opacity hover-fill:opacity-90"
+                className="rounded-ui-control bg-ui-accent px-3 py-1.5 text-xs font-medium text-white transition-opacity hover-fill:opacity-90"
               >
                 {_("Rename")}
               </button>

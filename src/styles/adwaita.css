@@ -70,7 +70,6 @@
 
   /* Adwaita Light Surfaces */
   --ui-window: #fafafa;
-  --ui-content: #fafafa;
   --ui-content-alternate: rgb(0 0 0 / 0.035);
   --ui-group: #ffffff;
   --ui-separator: rgb(0 0 0 / 0.055);
@@ -79,7 +78,6 @@
   --ui-sidebar: #ebebee;
   --ui-sidebar-selection: rgb(0 0 0 / 0.08);
   --ui-sidebar-label-inactive: rgb(0 0 0 / 0.45);
-  --ui-titlebar: #fafafa;
 
   /* Adwaita HeaderBar / Toolbar Button Surfaces */
   --ui-glass: rgb(0 0 0 / 0.07);
@@ -90,16 +88,13 @@
   --ui-glass-shadow: none;
 
   /* Adwaita Popovers, Menus & Dock (Opaque) */
-  --ui-material-menu: #ffffff;
-  --ui-material-popover: #ffffff;
-  --ui-material-hud: #fafafa;
-  --ui-material-tooltip: #202024;
+  --ui-overlay: #ffffff;
   --ui-material-dock: #ebebee;
   --ui-dock-label: #ffffff;
   --ui-material-blur: 0px;
   --ui-material-border: rgb(0 0 0 / 0.12);
   --ui-material-highlight: transparent;
-  --ui-overlay: rgb(0 0 0 / 0.35);
+  --ui-scrim: rgb(0 0 0 / 0.35);
 
   /* Adwaita Circular Window Controls (Light) */
   --ui-traffic-close: rgb(0 0 0 / 0.08);
@@ -121,23 +116,13 @@
 
   /* Official Libadwaita Corner Radii */
   --ui-radius-control: 6px;
-  --ui-radius-menu: 12px;
-  --ui-radius-item: 6px;
-  --ui-radius-group: 12px;
-  --ui-radius-popover: 12px;
-  --ui-radius-alert: 15px;
+  --ui-radius-box: 12px;
   --ui-radius-window: 15px;
 
   /* Type roles (size scales with the font scale setting) */
-  --ui-font-large-title: calc(26px * var(--piloti-font-scale, 1));
-  --ui-font-title-1: calc(22px * var(--piloti-font-scale, 1));
-  --ui-font-title-2: calc(17px * var(--piloti-font-scale, 1));
-  --ui-font-title-3: calc(15px * var(--piloti-font-scale, 1));
-  --ui-font-headline: calc(13px * var(--piloti-font-scale, 1));
+  --ui-font-title: calc(17px * var(--piloti-font-scale, 1));
   --ui-font-body: calc(13px * var(--piloti-font-scale, 1));
-  --ui-font-callout: calc(12px * var(--piloti-font-scale, 1));
-  --ui-font-subheadline: calc(11px * var(--piloti-font-scale, 1));
-  --ui-font-footnote: calc(10px * var(--piloti-font-scale, 1));
+  --ui-font-small: calc(11px * var(--piloti-font-scale, 1));
   --ui-font-caption: calc(10px * var(--piloti-font-scale, 1));
 
   /* Libadwaita Control Heights */
@@ -149,9 +134,9 @@
   --radius: var(--ui-radius-control);
   --background: var(--ui-window);
   --foreground: var(--ui-label);
-  --card: var(--ui-content);
+  --card: var(--ui-window);
   --card-foreground: var(--ui-label);
-  --popover: var(--ui-material-popover);
+  --popover: var(--ui-overlay);
   --popover-foreground: var(--ui-label);
   --primary: var(--ui-accent);
   --primary-foreground: var(--ui-accent-foreground);
@@ -230,7 +215,6 @@
    * @popover_bg_color = #343437
    */
   --ui-window: #202024;
-  --ui-content: #202024;
   --ui-content-alternate: rgb(255 255 255 / 0.04);
   --ui-group: #343437;
   --ui-separator: rgb(255 255 255 / 0.08);
@@ -239,7 +223,6 @@
   --ui-sidebar: #28282c;
   --ui-sidebar-selection: #3e3e41;
   --ui-sidebar-label-inactive: rgb(255 255 255 / 0.45);
-  --ui-titlebar: #202024;
 
   --ui-glass: rgb(255 255 255 / 0.1);
   --ui-glass-pressed: rgb(255 255 255 / 0.18);
@@ -248,16 +231,13 @@
   --ui-glass-rim: transparent;
   --ui-glass-shadow: none;
 
-  --ui-material-menu: #353538;
-  --ui-material-popover: #353538;
-  --ui-material-hud: #28282c;
-  --ui-material-tooltip: #141416;
+  --ui-overlay: #353538;
   --ui-material-dock: #242428;
   --ui-dock-label: #343437;
   --ui-material-blur: 0px;
   --ui-material-border: rgb(255 255 255 / 0.1);
   --ui-material-highlight: transparent;
-  --ui-overlay: rgb(0 0 0 / 0.55);
+  --ui-scrim: rgb(0 0 0 / 0.55);
 
   /* Adwaita Circular Window Controls (Dark) */
   --ui-traffic-close: rgb(255 255 255 / 0.1);
@@ -283,7 +263,6 @@
 [data-slot="window"][data-inactive] {
   --ui-accent: var(--ui-active-accent, var(--ui-blue));
   --ui-selection: var(--ui-accent);
-  --ui-titlebar: #f6f6f8;
   --ui-sidebar: #f0f0f3;
 }
 
@@ -291,9 +270,7 @@
 .dark[data-slot="window"][data-inactive] {
   --ui-accent: var(--ui-active-accent, var(--ui-blue));
   --ui-selection: var(--ui-accent);
-  --ui-titlebar: #202024;
   --ui-sidebar: #242428;
-  --ui-content: #202024;
 }
 
 [data-slot="window"][data-inactive] .bg-ui-sidebar {
@@ -307,10 +284,7 @@
  */
 :root[data-high-contrast="true"] {
   --ui-window: #ffffff;
-  --ui-content: #ffffff;
-  --ui-titlebar: #f2f2f5;
   --ui-sidebar: #ebebf0;
-  --ui-card: #ffffff;
   --ui-label: #000000;
   --ui-label-secondary: rgb(0 0 0 / 0.85);
   --ui-dim: rgb(0 0 0 / 0.72);
@@ -318,17 +292,13 @@
   --ui-border: rgb(0 0 0 / 0.5);
   --ui-material-border: rgb(0 0 0 / 0.6);
   --ui-material-dock: #f3f3f6;
-  --ui-material-menu: #ffffff;
-  --ui-material-popover: #ffffff;
+  --ui-overlay: #ffffff;
   --ui-shadow-window: 0 0 0 2px rgb(0 0 0 / 0.75), 0 10px 28px rgb(0 0 0 / 0.25);
 }
 
 :root.dark[data-high-contrast="true"] {
   --ui-window: #000000;
-  --ui-content: #000000;
-  --ui-titlebar: #121216;
   --ui-sidebar: #0c0c10;
-  --ui-card: #141418;
   --ui-label: #ffffff;
   --ui-label-secondary: rgb(255 255 255 / 0.9);
   --ui-dim: rgb(255 255 255 / 0.78);
@@ -336,8 +306,7 @@
   --ui-border: rgb(255 255 255 / 0.55);
   --ui-material-border: rgb(255 255 255 / 0.65);
   --ui-material-dock: #141418;
-  --ui-material-menu: #18181c;
-  --ui-material-popover: #18181c;
+  --ui-overlay: #18181c;
   --ui-shadow-window: 0 0 0 2px rgb(255 255 255 / 0.72), 0 10px 32px rgb(0 0 0 / 0.65);
 }
 
@@ -419,7 +388,6 @@
   --color-ui-field: var(--ui-field);
   --color-ui-field-border: var(--ui-field-border);
   --color-ui-window: var(--ui-window);
-  --color-ui-content: var(--ui-content);
   --color-ui-content-alternate: var(--ui-content-alternate);
   --color-ui-group: var(--ui-group);
   --color-ui-separator: var(--ui-separator);
@@ -427,18 +395,13 @@
   --color-ui-border: var(--ui-border);
   --color-ui-sidebar: var(--ui-sidebar);
   --color-ui-sidebar-selection: var(--ui-sidebar-selection);
-  --color-ui-titlebar: var(--ui-titlebar);
   --color-ui-glass: var(--ui-glass);
   --color-ui-glass-pressed: var(--ui-glass-pressed);
   --color-ui-glass-selected: var(--ui-glass-selected);
-  --color-ui-overlay: var(--ui-overlay);
+  --color-ui-scrim: var(--ui-scrim);
 
   --radius-ui-control: var(--ui-radius-control);
-  --radius-ui-menu: var(--ui-radius-menu);
-  --radius-ui-item: var(--ui-radius-item);
-  --radius-ui-group: var(--ui-radius-group);
-  --radius-ui-popover: var(--ui-radius-popover);
-  --radius-ui-alert: var(--ui-radius-alert);
+  --radius-ui-box: var(--ui-radius-box);
   --radius-ui-window: var(--ui-radius-window);
 
   --shadow-ui-menu: var(--ui-shadow-menu);
@@ -456,43 +419,31 @@
   --spacing-ui-control-large: var(--ui-control-large);
 
   /* Typography roles (size / line-height); sizes are per-theme variables */
-  --text-ui-large-title: var(--ui-font-large-title);
-  --text-ui-large-title--line-height: 32px;
-  --text-ui-title-1: var(--ui-font-title-1);
-  --text-ui-title-1--line-height: 26px;
-  --text-ui-title-2: var(--ui-font-title-2);
-  --text-ui-title-2--line-height: 22px;
-  --text-ui-title-3: var(--ui-font-title-3);
-  --text-ui-title-3--line-height: 20px;
-  --text-ui-headline: var(--ui-font-headline);
-  --text-ui-headline--line-height: 16px;
+  --text-ui-title: var(--ui-font-title);
+  --text-ui-title--line-height: 22px;
   --text-ui-body: var(--ui-font-body);
   --text-ui-body--line-height: 16px;
-  --text-ui-callout: var(--ui-font-callout);
-  --text-ui-callout--line-height: 15px;
-  --text-ui-subheadline: var(--ui-font-subheadline);
-  --text-ui-subheadline--line-height: 14px;
-  --text-ui-footnote: var(--ui-font-footnote);
-  --text-ui-footnote--line-height: 13px;
+  --text-ui-small: var(--ui-font-small);
+  --text-ui-small--line-height: 14px;
   --text-ui-caption: var(--ui-font-caption);
   --text-ui-caption--line-height: 13px;
 }
 
 /* Surfaces used by menus, popovers, sidebars, dock and titlebars */
 @utility ui-material-menu {
-  background-color: var(--ui-material-menu);
+  background-color: var(--ui-overlay);
 }
 
 @utility ui-material-popover {
-  background-color: var(--ui-material-popover);
+  background-color: var(--ui-overlay);
 }
 
 @utility ui-material-hud {
-  background-color: var(--ui-material-hud);
+  background-color: var(--ui-overlay);
 }
 
 @utility ui-material-tooltip {
-  background-color: var(--ui-material-tooltip);
+  background-color: var(--ui-overlay);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
   backdrop-filter: blur(20px) saturate(180%);
 }
@@ -516,7 +467,7 @@
 }
 
 @utility ui-material-titlebar {
-  background-color: var(--ui-titlebar);
+  background-color: var(--ui-window);
   -webkit-backdrop-filter: blur(var(--ui-material-blur)) saturate(180%);
   backdrop-filter: blur(var(--ui-material-blur)) saturate(180%);
 }

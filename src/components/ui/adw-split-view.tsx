@@ -173,7 +173,7 @@ export function AdwSplitView({
   children,
   rightPane,
   footer,
-  contentClassName = "bg-ui-content",
+  contentClassName = "bg-ui-window",
   className,
   onKeyDown,
 }: AdwSplitViewProps) {
@@ -354,7 +354,7 @@ export function AdwSplitView({
                         {item.badge !== undefined && item.badge !== "" && (
                           <span
                             className={cn(
-                              "ml-auto shrink-0 rounded-full text-ui-footnote leading-none font-semibold tabular-nums",
+                              "ml-auto shrink-0 rounded-full text-ui-caption leading-none font-semibold tabular-nums",
                               item.selected
                                 ? "px-0.5 text-white/90"
                                 : "bg-black/8 px-1.5 py-0.5 text-ui-label/60 dark:bg-white/10",
@@ -412,7 +412,7 @@ export function AdwSplitView({
                         side="right"
                         sideOffset={-36}
                         className={cn(
-                          "pointer-events-none rounded-ui-item border border-ui-separator px-2.5 shadow-md",
+                          "pointer-events-none rounded-ui-control border border-ui-separator px-2.5 shadow-md",
                           tall
                             ? "h-[37px] gap-3 py-2 text-[14px]"
                             : "h-[32px] gap-2.5 py-1.5 text-ui-body",

@@ -109,7 +109,7 @@
   .ui-button:where([data-size="sm"]) {
     gap: 0.25rem;
     padding-inline: 0.625rem;
-    font-size: var(--ui-font-subheadline);
+    font-size: var(--ui-font-small);
     line-height: 14px;
   }
   .ui-button:where([data-size="icon-sm"]) {

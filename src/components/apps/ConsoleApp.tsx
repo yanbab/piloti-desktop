@@ -120,7 +120,7 @@ function VfsPerformanceSection() {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <span className="text-ui-callout text-ui-label-secondary">
+        <span className="text-ui-body text-ui-label-secondary">
           {_("Since %s", new Date(stats.startedAt).toLocaleTimeString())}
         </span>
         <button
@@ -131,7 +131,7 @@ function VfsPerformanceSection() {
             setStats(getWebVfsPerfStats());
             setRenders(getRenderCounts());
           }}
-          className="rounded-ui-control bg-black/6 px-2.5 py-1 text-ui-subheadline font-medium text-ui-label hover-fill:bg-black/10 dark:bg-white/10 dark:hover-fill:bg-white/15"
+          className="rounded-ui-control bg-black/6 px-2.5 py-1 text-ui-small font-medium text-ui-label hover-fill:bg-black/10 dark:bg-white/10 dark:hover-fill:bg-white/15"
         >
           {_("Reset")}
         </button>
@@ -140,9 +140,9 @@ function VfsPerformanceSection() {
         {tiles.map((stat) => (
           <div
             key={stat.label}
-            className="rounded-ui-group bg-ui-group px-3.5 py-2.5"
+            className="rounded-ui-box bg-ui-group px-3.5 py-2.5"
           >
-            <div className="text-ui-subheadline font-medium text-ui-label-secondary">{stat.label}</div>
+            <div className="text-ui-small font-medium text-ui-label-secondary">{stat.label}</div>
             <div className="mt-0.5 truncate font-mono text-[14px] font-semibold text-ui-label">
               {stat.value}
             </div>
@@ -174,11 +174,11 @@ function InspectorJsonCard({
 }) {
   const isObject = typeof data === "object" && data !== null;
   return (
-    <div className="overflow-hidden rounded-ui-group bg-ui-group">
+    <div className="overflow-hidden rounded-ui-box bg-ui-group">
       <div className="flex items-center justify-between border-b border-ui-separator px-3.5 py-2">
-        <span className="text-ui-callout font-semibold text-ui-label">{title}</span>
+        <span className="text-ui-body font-semibold text-ui-label">{title}</span>
         {count !== undefined && (
-          <span className="rounded-full bg-black/6 px-2 py-0.5 text-ui-footnote font-medium text-ui-label-secondary dark:bg-white/10">
+          <span className="rounded-full bg-black/6 px-2 py-0.5 text-ui-caption font-medium text-ui-label-secondary dark:bg-white/10">
             {count}
           </span>
         )}
@@ -199,7 +199,7 @@ function InspectorJsonCard({
             }
           />
         ) : (
-          <pre className="font-mono text-ui-callout text-ui-label-secondary select-text">
+          <pre className="font-mono text-ui-body text-ui-label-secondary select-text">
             {String(data ?? "null")}
           </pre>
         )}
@@ -279,9 +279,9 @@ function InspectorModule() {
               ].map((stat) => (
                 <div
                   key={stat.label}
-                  className="rounded-ui-group bg-ui-group px-3.5 py-2.5"
+                  className="rounded-ui-box bg-ui-group px-3.5 py-2.5"
                 >
-                  <div className="text-ui-subheadline font-medium text-ui-label-secondary">
+                  <div className="text-ui-small font-medium text-ui-label-secondary">
                     {stat.label}
                   </div>
                   <div className="mt-0.5 truncate font-mono text-[14px] font-semibold text-ui-label">
@@ -291,17 +291,17 @@ function InspectorModule() {
               ))}
             </div>
 
-            <div className="overflow-hidden rounded-ui-group bg-ui-group">
+            <div className="overflow-hidden rounded-ui-box bg-ui-group">
               <div className="flex items-center justify-between border-b border-ui-separator px-3.5 py-2">
-                <span className="text-ui-callout font-semibold text-ui-label">
+                <span className="text-ui-body font-semibold text-ui-label">
                   {_("Windows")}
                 </span>
-                <span className="rounded-full bg-black/6 px-2 py-0.5 text-ui-footnote font-medium text-ui-label-secondary dark:bg-white/10">
+                <span className="rounded-full bg-black/6 px-2 py-0.5 text-ui-caption font-medium text-ui-label-secondary dark:bg-white/10">
                   {windows.length}
                 </span>
               </div>
               {windows.length === 0 ? (
-                <div className="px-3.5 py-6 text-center text-ui-callout text-ui-label-tertiary">
+                <div className="px-3.5 py-6 text-center text-ui-body text-ui-label-tertiary">
                   {_("No open windows.")}
                 </div>
               ) : (
@@ -325,17 +325,17 @@ function InspectorModule() {
                         />
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2">
-                            <span className="truncate text-ui-callout font-semibold text-ui-label">
+                            <span className="truncate text-ui-body font-semibold text-ui-label">
                               {w.title || w.appId}
                             </span>
-                            <span className="rounded bg-black/6 px-1.5 py-0.5 font-mono text-ui-footnote text-ui-label-secondary dark:bg-white/10">
+                            <span className="rounded bg-black/6 px-1.5 py-0.5 font-mono text-ui-caption text-ui-label-secondary dark:bg-white/10">
                               {w.appId}
                             </span>
                             {flags.map((flag) => (
                               <span
                                 key={flag}
                                 className={cn(
-                                  "rounded-full px-1.5 py-0.5 text-ui-footnote font-medium",
+                                  "rounded-full px-1.5 py-0.5 text-ui-caption font-medium",
                                   flag === "focused"
                                     ? "bg-ui-accent/15 text-ui-accent"
                                     : "bg-black/6 text-ui-label-secondary dark:bg-white/10"
@@ -345,7 +345,7 @@ function InspectorModule() {
                               </span>
                             ))}
                           </div>
-                          <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 font-mono text-ui-subheadline text-ui-label-tertiary">
+                          <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 font-mono text-ui-small text-ui-label-tertiary">
                             <span>id: {w.id}</span>
                             <span>ws: {w.workspace}</span>
                             <span>
@@ -383,17 +383,17 @@ function InspectorModule() {
       case "displays":
         return (
           <div className="space-y-4">
-            <div className="overflow-hidden rounded-ui-group bg-ui-group">
+            <div className="overflow-hidden rounded-ui-box bg-ui-group">
               <div className="flex items-center justify-between border-b border-ui-separator px-3.5 py-2">
-                <span className="text-ui-callout font-semibold text-ui-label">
+                <span className="text-ui-body font-semibold text-ui-label">
                   {_("Displays")}
                 </span>
-                <span className="rounded-full bg-black/6 px-2 py-0.5 text-ui-footnote font-medium text-ui-label-secondary dark:bg-white/10">
+                <span className="rounded-full bg-black/6 px-2 py-0.5 text-ui-caption font-medium text-ui-label-secondary dark:bg-white/10">
                   {displays.length}
                 </span>
               </div>
               {displays.length === 0 ? (
-                <div className="px-3.5 py-6 text-center text-ui-callout text-ui-label-tertiary">
+                <div className="px-3.5 py-6 text-center text-ui-body text-ui-label-tertiary">
                   {_("No displays reported.")}
                 </div>
               ) : (
@@ -414,21 +414,21 @@ function InspectorModule() {
                           <MonitorIcon className="size-4 shrink-0 text-ui-label-secondary" />
                           <div className="min-w-0">
                             <div className="flex items-center gap-2">
-                              <span className="truncate text-ui-callout font-semibold text-ui-label">
+                              <span className="truncate text-ui-body font-semibold text-ui-label">
                                 {name}
                               </span>
                               {Boolean(rec.primary) && (
-                                <span className="rounded-full bg-ui-accent/15 px-1.5 py-0.5 text-ui-footnote font-medium text-ui-accent">
+                                <span className="rounded-full bg-ui-accent/15 px-1.5 py-0.5 text-ui-caption font-medium text-ui-accent">
                                   {_("Primary")}
                                 </span>
                               )}
                             </div>
-                            <div className="font-mono text-ui-subheadline text-ui-label-tertiary">
+                            <div className="font-mono text-ui-small text-ui-label-tertiary">
                               {String(w)}×{String(h)} @ {String(x)},{String(y)} · {String(rec.scale ?? 1)}×
                             </div>
                           </div>
                         </div>
-                        <span className="shrink-0 font-mono text-ui-subheadline text-ui-label-tertiary">
+                        <span className="shrink-0 font-mono text-ui-small text-ui-label-tertiary">
                           {String(rec.id ?? "—")}
                         </span>
                       </div>
@@ -470,12 +470,12 @@ function InspectorModule() {
               ].map((item) => (
                 <div
                   key={item.label}
-                  className="rounded-ui-group bg-ui-group px-3.5 py-2.5"
+                  className="rounded-ui-box bg-ui-group px-3.5 py-2.5"
                 >
-                  <div className="text-ui-subheadline font-medium text-ui-label-secondary">
+                  <div className="text-ui-small font-medium text-ui-label-secondary">
                     {item.label}
                   </div>
-                  <div className="mt-0.5 truncate font-mono text-ui-callout font-semibold text-ui-label">
+                  <div className="mt-0.5 truncate font-mono text-ui-body font-semibold text-ui-label">
                     {String(item.value)}
                   </div>
                 </div>
@@ -512,17 +512,17 @@ function InspectorModule() {
       case "apps":
         return (
           <div className="space-y-4">
-            <div className="overflow-hidden rounded-ui-group bg-ui-group">
+            <div className="overflow-hidden rounded-ui-box bg-ui-group">
               <div className="flex items-center justify-between border-b border-ui-separator px-3.5 py-2">
-                <span className="text-ui-callout font-semibold text-ui-label">
+                <span className="text-ui-body font-semibold text-ui-label">
                   {_("Installed XDG Apps")}
                 </span>
-                <span className="rounded-full bg-black/6 px-2 py-0.5 text-ui-footnote font-medium text-ui-label-secondary dark:bg-white/10">
+                <span className="rounded-full bg-black/6 px-2 py-0.5 text-ui-caption font-medium text-ui-label-secondary dark:bg-white/10">
                   {installedXdgApps.length}
                 </span>
               </div>
               {installedXdgApps.length === 0 ? (
-                <div className="px-3.5 py-6 text-center text-ui-callout text-ui-label-tertiary">
+                <div className="px-3.5 py-6 text-center text-ui-body text-ui-label-tertiary">
                   {_("No XDG apps indexed.")}
                 </div>
               ) : (
@@ -537,14 +537,14 @@ function InspectorModule() {
                         className="size-7 shrink-0"
                       />
                       <div className="min-w-0 flex-1">
-                        <div className="truncate text-ui-callout font-semibold text-ui-label">
+                        <div className="truncate text-ui-body font-semibold text-ui-label">
                           {a.name}
                         </div>
-                        <div className="truncate font-mono text-ui-footnote text-ui-label-tertiary">
+                        <div className="truncate font-mono text-ui-caption text-ui-label-tertiary">
                           {a.desktopId}
                         </div>
                         {a.exec && (
-                          <div className="truncate font-mono text-ui-footnote text-ui-label-secondary">
+                          <div className="truncate font-mono text-ui-caption text-ui-label-secondary">
                             {a.exec}
                           </div>
                         )}
@@ -555,17 +555,17 @@ function InspectorModule() {
               )}
             </div>
 
-            <div className="overflow-hidden rounded-ui-group bg-ui-group">
+            <div className="overflow-hidden rounded-ui-box bg-ui-group">
               <div className="flex items-center justify-between border-b border-ui-separator px-3.5 py-2">
-                <span className="text-ui-callout font-semibold text-ui-label">
+                <span className="text-ui-body font-semibold text-ui-label">
                   {_("Installed Web Apps")}
                 </span>
-                <span className="rounded-full bg-black/6 px-2 py-0.5 text-ui-footnote font-medium text-ui-label-secondary dark:bg-white/10">
+                <span className="rounded-full bg-black/6 px-2 py-0.5 text-ui-caption font-medium text-ui-label-secondary dark:bg-white/10">
                   {settings.installedWebApps.length}
                 </span>
               </div>
               {settings.installedWebApps.length === 0 ? (
-                <div className="px-3.5 py-6 text-center text-ui-callout text-ui-label-tertiary">
+                <div className="px-3.5 py-6 text-center text-ui-body text-ui-label-tertiary">
                   {_("No installed web apps.")}
                 </div>
               ) : (
@@ -587,14 +587,14 @@ function InspectorModule() {
                         />
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2">
-                            <span className="truncate text-ui-callout font-semibold text-ui-label">
+                            <span className="truncate text-ui-body font-semibold text-ui-label">
                               {a.title}
                             </span>
-                            <span className="rounded bg-black/6 px-1.5 py-0.5 font-mono text-ui-footnote text-ui-label-secondary dark:bg-white/10">
+                            <span className="rounded bg-black/6 px-1.5 py-0.5 font-mono text-ui-caption text-ui-label-secondary dark:bg-white/10">
                               {a.id}
                             </span>
                           </div>
-                          <div className="truncate font-mono text-ui-subheadline text-ui-label-tertiary">
+                          <div className="truncate font-mono text-ui-small text-ui-label-tertiary">
                             {a.url}
                           </div>
                         </div>
@@ -612,17 +612,17 @@ function InspectorModule() {
               expandLevel={2}
             />
 
-            <div className="overflow-hidden rounded-ui-group bg-ui-group">
+            <div className="overflow-hidden rounded-ui-box bg-ui-group">
               <div className="flex items-center justify-between border-b border-ui-separator px-3.5 py-2">
-                <span className="text-ui-callout font-semibold text-ui-label">
+                <span className="text-ui-body font-semibold text-ui-label">
                   {_("Available GNOME Panels")}
                 </span>
-                <span className="rounded-full bg-black/6 px-2 py-0.5 text-ui-footnote font-medium text-ui-label-secondary dark:bg-white/10">
+                <span className="rounded-full bg-black/6 px-2 py-0.5 text-ui-caption font-medium text-ui-label-secondary dark:bg-white/10">
                   {availableGnomePanels.length}
                 </span>
               </div>
               {availableGnomePanels.length === 0 ? (
-                <div className="px-3.5 py-4 text-ui-callout text-ui-label-tertiary">
+                <div className="px-3.5 py-4 text-ui-body text-ui-label-tertiary">
                   {_("No GNOME panels detected.")}
                 </div>
               ) : (
@@ -630,7 +630,7 @@ function InspectorModule() {
                   {availableGnomePanels.map((panel) => (
                     <span
                       key={panel.desktopId || panel.panelId}
-                      className="rounded-ui-control bg-black/6 px-2 py-0.5 font-mono text-ui-subheadline text-ui-label dark:bg-white/10"
+                      className="rounded-ui-control bg-black/6 px-2 py-0.5 font-mono text-ui-small text-ui-label dark:bg-white/10"
                     >
                       {panel.name || panel.panelId}
                     </span>
@@ -668,18 +668,18 @@ function InspectorModule() {
               return (
                 <div
                   key={group.prefix}
-                  className="overflow-hidden rounded-ui-group bg-ui-group"
+                  className="overflow-hidden rounded-ui-box bg-ui-group"
                 >
                   <div className="flex items-center justify-between border-b border-ui-separator px-3.5 py-2">
-                    <span className="font-mono text-ui-callout font-semibold text-ui-label">
+                    <span className="font-mono text-ui-body font-semibold text-ui-label">
                       {group.label}
                     </span>
-                    <span className="rounded-full bg-black/6 px-2 py-0.5 text-ui-footnote font-medium text-ui-label-secondary dark:bg-white/10">
+                    <span className="rounded-full bg-black/6 px-2 py-0.5 text-ui-caption font-medium text-ui-label-secondary dark:bg-white/10">
                       {groupFiles.length}
                     </span>
                   </div>
                   {groupFiles.length === 0 ? (
-                    <div className="px-3.5 py-4 text-ui-callout text-ui-label-tertiary">
+                    <div className="px-3.5 py-4 text-ui-body text-ui-label-tertiary">
                       {_("No files found.")}
                     </div>
                   ) : (
@@ -720,10 +720,10 @@ function InspectorModule() {
                               )}
                             >
                               <div className="min-w-0 flex-1">
-                                <div className="truncate font-mono text-ui-subheadline font-medium text-ui-label">
+                                <div className="truncate font-mono text-ui-small font-medium text-ui-label">
                                   {file.path.slice(group.prefix.length + 1) || file.name}
                                 </div>
-                                <div className="font-mono text-ui-footnote text-ui-label-tertiary">
+                                <div className="font-mono text-ui-caption text-ui-label-tertiary">
                                   {formatByteSize(content.length)} ·{" "}
                                   {file.updatedAt
                                     ? new Date(file.updatedAt).toLocaleString()
@@ -750,7 +750,7 @@ function InspectorModule() {
                                     }
                                   />
                                 ) : (
-                                  <pre className="max-h-64 overflow-auto font-mono text-ui-subheadline break-words whitespace-pre-wrap text-ui-label select-text">
+                                  <pre className="max-h-64 overflow-auto font-mono text-ui-small break-words whitespace-pre-wrap text-ui-label select-text">
                                     {content || "—"}
                                   </pre>
                                 )}
@@ -772,17 +772,17 @@ function InspectorModule() {
       case "notifications":
         return (
           <div className="space-y-4">
-            <div className="overflow-hidden rounded-ui-group bg-ui-group">
+            <div className="overflow-hidden rounded-ui-box bg-ui-group">
               <div className="flex items-center justify-between border-b border-ui-separator px-3.5 py-2">
-                <span className="text-ui-callout font-semibold text-ui-label">
+                <span className="text-ui-body font-semibold text-ui-label">
                   {_("Notifications")}
                 </span>
-                <span className="rounded-full bg-black/6 px-2 py-0.5 text-ui-footnote font-medium text-ui-label-secondary dark:bg-white/10">
+                <span className="rounded-full bg-black/6 px-2 py-0.5 text-ui-caption font-medium text-ui-label-secondary dark:bg-white/10">
                   {notifications.length}
                 </span>
               </div>
               {notifications.length === 0 ? (
-                <div className="px-3.5 py-6 text-center text-ui-callout text-ui-label-tertiary">
+                <div className="px-3.5 py-6 text-center text-ui-body text-ui-label-tertiary">
                   {_("No notifications.")}
                 </div>
               ) : (
@@ -802,18 +802,18 @@ function InspectorModule() {
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center justify-between gap-2">
                           <div className="flex min-w-0 items-center gap-2">
-                            <span className="truncate text-ui-callout font-semibold text-ui-label">
+                            <span className="truncate text-ui-body font-semibold text-ui-label">
                               {n.summary}
                             </span>
                             {n.appName && (
-                              <span className="rounded bg-black/6 px-1.5 py-0.5 text-ui-footnote text-ui-label-secondary dark:bg-white/10">
+                              <span className="rounded bg-black/6 px-1.5 py-0.5 text-ui-caption text-ui-label-secondary dark:bg-white/10">
                                 {n.appName}
                               </span>
                             )}
                             {n.urgency && (
                               <span
                                 className={cn(
-                                  "rounded-full px-1.5 py-0.5 text-ui-footnote font-medium",
+                                  "rounded-full px-1.5 py-0.5 text-ui-caption font-medium",
                                   n.urgency === "critical"
                                     ? "bg-rose-500/15 text-rose-500"
                                     : "bg-black/6 text-ui-label-secondary dark:bg-white/10"
@@ -823,12 +823,12 @@ function InspectorModule() {
                               </span>
                             )}
                           </div>
-                          <span className="shrink-0 font-mono text-ui-footnote text-ui-label-tertiary">
+                          <span className="shrink-0 font-mono text-ui-caption text-ui-label-tertiary">
                             {new Date(n.time).toLocaleTimeString()}
                           </span>
                         </div>
                         {n.body && (
-                          <div className="mt-0.5 text-ui-callout text-ui-label-secondary">
+                          <div className="mt-0.5 text-ui-body text-ui-label-secondary">
                             {n.body}
                           </div>
                         )}
@@ -871,7 +871,7 @@ function InspectorModule() {
                 data-sidebar-item={section.id}
                 onClick={() => setActiveSection(section.id)}
                 className={cn(
-                  "flex w-full shrink-0 items-center gap-2.5 rounded-ui-item px-2.5 py-2 text-left text-ui-callout transition-colors",
+                  "flex w-full shrink-0 items-center gap-2.5 rounded-ui-control px-2.5 py-2 text-left text-ui-body transition-colors",
                   active
                     ? "bg-ui-accent font-medium text-white shadow-xs"
                     : "font-normal text-ui-label/85 hover-fill:bg-black/5 dark:hover-fill:bg-white/6"
@@ -890,7 +890,7 @@ function InspectorModule() {
                   side="right"
                   sideOffset={-36}
                   className={cn(
-                    "pointer-events-none h-[34px] gap-2.5 rounded-ui-item border border-ui-separator px-2.5 py-2 text-ui-callout shadow-md sm:hidden",
+                    "pointer-events-none h-[34px] gap-2.5 rounded-ui-control border border-ui-separator px-2.5 py-2 text-ui-body shadow-md sm:hidden",
                     active
                       ? "bg-ui-accent font-medium text-white shadow-xs"
                       : "bg-ui-sidebar font-normal text-ui-label"
@@ -1221,7 +1221,7 @@ function VfsEventsModule({ active }: { active: boolean }) {
   );
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-ui-content">
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-ui-window">
       {/* Unified Header Toolbar with Filter Pills */}
       <div className="flex h-10 shrink-0 items-center justify-between gap-2 border-b border-ui-separator bg-ui-window/60 px-4">
         <div className="flex shrink-0 items-center gap-1">
@@ -1240,7 +1240,7 @@ function VfsEventsModule({ active }: { active: boolean }) {
               type="button"
               onClick={() => setFilter(pill.id)}
               className={cn(
-                "rounded-full px-2.5 py-0.5 text-ui-subheadline font-medium transition-colors",
+                "rounded-full px-2.5 py-0.5 text-ui-small font-medium transition-colors",
                 filter === pill.id
                   ? "bg-ui-accent text-white"
                   : "bg-black/6 text-ui-label-secondary hover-fill:bg-black/10 hover-fill:text-ui-label dark:bg-white/8 dark:hover-fill:bg-white/14"
@@ -1258,7 +1258,7 @@ function VfsEventsModule({ active }: { active: boolean }) {
             onClick={() => setShowDiffDrawer((prev) => !prev)}
             className={cn(
               // One line; ellipsized when the toolbar is narrow.
-              "min-w-0 truncate whitespace-nowrap rounded-full px-2.5 py-0.5 text-ui-subheadline font-medium transition-colors",
+              "min-w-0 truncate whitespace-nowrap rounded-full px-2.5 py-0.5 text-ui-small font-medium transition-colors",
               showDiffDrawer
                 ? "bg-ui-accent/15 text-ui-accent"
                 : "bg-black/6 text-ui-label-secondary hover-fill:bg-black/10 hover-fill:text-ui-label dark:bg-white/8 dark:hover-fill:bg-white/14"
@@ -1273,7 +1273,7 @@ function VfsEventsModule({ active }: { active: boolean }) {
               setBaseline(snap);
               setCurrentMap(snap);
             }}
-            className="shrink-0 whitespace-nowrap rounded-ui-control bg-black/6 px-2 py-0.5 text-ui-subheadline font-medium text-ui-label transition-colors hover-fill:bg-black/12 dark:bg-white/8 dark:hover-fill:bg-white/14"
+            className="shrink-0 whitespace-nowrap rounded-ui-control bg-black/6 px-2 py-0.5 text-ui-small font-medium text-ui-label transition-colors hover-fill:bg-black/12 dark:bg-white/8 dark:hover-fill:bg-white/14"
           >
             {_("Snapshot")}
           </button>
@@ -1283,7 +1283,7 @@ function VfsEventsModule({ active }: { active: boolean }) {
               setEvents([]);
               clearConsoleEntries();
             }}
-            className="shrink-0 whitespace-nowrap rounded-ui-control bg-black/6 px-2 py-0.5 text-ui-subheadline font-medium text-ui-label transition-colors hover-fill:bg-black/12 dark:bg-white/8 dark:hover-fill:bg-white/14"
+            className="shrink-0 whitespace-nowrap rounded-ui-control bg-black/6 px-2 py-0.5 text-ui-small font-medium text-ui-label transition-colors hover-fill:bg-black/12 dark:bg-white/8 dark:hover-fill:bg-white/14"
           >
             {_("Clear")}
           </button>
@@ -1291,7 +1291,7 @@ function VfsEventsModule({ active }: { active: boolean }) {
       </div>
 
       {showDiffDrawer && (
-        <div className="max-h-44 shrink-0 overflow-y-auto border-b border-ui-separator bg-black/2 px-4 py-2 font-mono text-ui-subheadline dark:bg-white/2">
+        <div className="max-h-44 shrink-0 overflow-y-auto border-b border-ui-separator bg-black/2 px-4 py-2 font-mono text-ui-small dark:bg-white/2">
           {diffs.length === 0 ? (
             <div className="py-1 text-ui-dim">
               {_("No VFS changes since baseline (%d entries tracked).", currentMap.size)}
@@ -1314,7 +1314,7 @@ function VfsEventsModule({ active }: { active: boolean }) {
                   {d.path}
                 </span>
                 {typeof d.sizeDelta === "number" && d.entryType === "file" && (
-                  <span className="shrink-0 text-ui-footnote text-ui-dim">
+                  <span className="shrink-0 text-ui-caption text-ui-dim">
                     {d.sizeDelta >= 0 ? `+${d.sizeDelta}B` : `${d.sizeDelta}B`}
                   </span>
                 )}
@@ -1327,7 +1327,7 @@ function VfsEventsModule({ active }: { active: boolean }) {
       {/* Chronological Event Stream */}
       <div
         ref={eventsScrollRef}
-        className="min-h-0 flex-1 overflow-y-auto font-mono text-ui-subheadline"
+        className="min-h-0 flex-1 overflow-y-auto font-mono text-ui-small"
       >
         {filteredEvents.length === 0 ? (
           <div className="flex h-full items-center justify-center text-center font-sans text-xs text-ui-label-tertiary">
@@ -1348,7 +1348,7 @@ function VfsEventsModule({ active }: { active: boolean }) {
                     : ""
                 )}
               >
-                <span className="text-ui-footnote text-ui-label-tertiary tabular-nums">{ev.time}</span>
+                <span className="text-ui-caption text-ui-label-tertiary tabular-nums">{ev.time}</span>
                 <span
                   className={cn(
                     "justify-self-start rounded px-1.5 py-0.5 text-[9.5px] leading-none font-semibold uppercase",
@@ -1372,7 +1372,7 @@ function VfsEventsModule({ active }: { active: boolean }) {
                 >
                   {ev.detail}
                 </span>
-                <span className="justify-self-end text-ui-footnote font-semibold text-ui-label-tertiary tabular-nums">
+                <span className="justify-self-end text-ui-caption font-semibold text-ui-label-tertiary tabular-nums">
                   {ev.count > 1 ? ev.count : ""}
                 </span>
               </div>
@@ -1488,7 +1488,7 @@ function StorageModule() {
       {entries.length === 0 ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-2 p-6 text-center text-ui-label-secondary">
           <DatabaseIcon className="size-7 opacity-40" />
-          <div className="text-ui-callout font-medium">
+          <div className="text-ui-body font-medium">
             {_("No keys stored in localStorage.")}
           </div>
         </div>
@@ -1503,7 +1503,7 @@ function StorageModule() {
           >
             {groupedStorageEntries.map((group) => (
               <div key={group.section} className="space-y-0.5">
-                <div className="px-2.5 pb-1 text-ui-footnote font-semibold tracking-wider text-ui-dim uppercase">
+                <div className="px-2.5 pb-1 text-ui-caption font-semibold tracking-wider text-ui-dim uppercase">
                   {group.section}
                 </div>
                 {group.items.map(({ entry, shortLabel }) => {
@@ -1515,13 +1515,13 @@ function StorageModule() {
                       data-sidebar-item={entry.key}
                       onClick={() => setSelectedKey(entry.key)}
                       className={cn(
-                        "flex w-full items-center rounded-ui-item px-3 py-1.5 text-left transition-colors",
+                        "flex w-full items-center rounded-ui-control px-3 py-1.5 text-left transition-colors",
                         isSelected
                           ? "bg-ui-accent font-medium text-white shadow-xs"
                           : "font-normal text-ui-label/85 hover-fill:bg-black/5 dark:hover-fill:bg-white/6"
                       )}
                     >
-                      <span className="truncate text-ui-callout font-medium">
+                      <span className="truncate text-ui-body font-medium">
                         {shortLabel}
                       </span>
                     </button>
@@ -1539,10 +1539,10 @@ function StorageModule() {
               className="flex min-w-0 flex-1 flex-col overflow-hidden bg-black/2 dark:bg-white/2"
             >
               <div className="flex shrink-0 items-center justify-between border-b border-ui-separator bg-ui-window/60 px-4 py-1.5">
-                <span className="truncate font-mono text-ui-subheadline font-medium text-ui-dim select-text">
+                <span className="truncate font-mono text-ui-small font-medium text-ui-dim select-text">
                   {activeEntry.key}
                 </span>
-                <span className="shrink-0 font-mono text-ui-footnote text-ui-dim tabular-nums">
+                <span className="shrink-0 font-mono text-ui-caption text-ui-dim tabular-nums">
                   {activeEntry.rawValue.length} chars
                 </span>
               </div>
@@ -1552,14 +1552,14 @@ function StorageModule() {
                     {activeImages.map((img) => (
                       <div
                         key={img.label}
-                        className="flex flex-col gap-1.5 rounded-ui-item bg-black/4 p-2 dark:bg-white/5"
+                        className="flex flex-col gap-1.5 rounded-ui-control bg-black/4 p-2 dark:bg-white/5"
                       >
                         <img
                           src={img.src}
                           alt={img.label}
                           className="max-h-[512px] max-w-[512px] rounded object-contain"
                         />
-                        <span className="max-w-[512px] truncate font-mono text-ui-footnote text-ui-label-secondary">
+                        <span className="max-w-[512px] truncate font-mono text-ui-caption text-ui-label-secondary">
                           {img.label}
                         </span>
                       </div>
@@ -1569,7 +1569,7 @@ function StorageModule() {
                 {activeEntry.isJson &&
                 typeof activeEntry.parsedJson === "object" &&
                 activeEntry.parsedJson !== null ? (
-                  <div className="rounded-ui-group bg-ui-group p-3.5">
+                  <div className="rounded-ui-box bg-ui-group p-3.5">
                     <ObjectView
                       key={activeEntry.key}
                       valueGetter={() => activeEntry.parsedJson}
@@ -1588,14 +1588,14 @@ function StorageModule() {
                     />
                   </div>
                 ) : (
-                  <pre className="rounded-ui-group bg-ui-group p-3.5 font-mono text-ui-callout leading-relaxed break-words whitespace-pre-wrap text-ui-label select-text">
+                  <pre className="rounded-ui-box bg-ui-group p-3.5 font-mono text-ui-body leading-relaxed break-words whitespace-pre-wrap text-ui-label select-text">
                     {activeDisplayValue}
                   </pre>
                 )}
               </div>
             </div>
           ) : (
-            <div className="flex flex-1 items-center justify-center p-4 text-ui-callout text-ui-label-tertiary">
+            <div className="flex flex-1 items-center justify-center p-4 text-ui-body text-ui-label-tertiary">
               {_("Select a key to inspect its stored state.")}
             </div>
           )}

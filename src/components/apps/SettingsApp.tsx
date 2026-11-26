@@ -275,7 +275,7 @@ export function SettingsApp({
                   size="sm"
                   variant="secondary"
                   onClick={() => openGnomeSettings(matchingGnomePanel)}
-                  className="h-6 text-ui-subheadline"
+                  className="h-6 text-ui-small"
                 >
                   {_("System Settings…")}
                 </Button>

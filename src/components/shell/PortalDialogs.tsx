@@ -88,7 +88,7 @@ function ScreenshotPortalOverlay({
 
   return (
     <div className="fixed inset-0 z-[800] flex flex-col items-center justify-center bg-black/85 select-none">
-      <div className="relative flex max-h-[82vh] max-w-[90vw] items-center justify-center overflow-hidden rounded-ui-group border border-white/20 shadow-2xl">
+      <div className="relative flex max-h-[82vh] max-w-[90vw] items-center justify-center overflow-hidden rounded-ui-box border border-white/20 shadow-2xl">
         <img
           ref={imgRef}
           src={frame}
@@ -214,19 +214,19 @@ function ScreenCastPortalDialog({
 
   return (
     <div className="fixed inset-0 z-[800] flex items-center justify-center bg-black/45 p-4">
-      <div className="w-full max-w-[460px] rounded-ui-menu p-5 text-ui-label shadow-ui-menu ui-material-menu">
+      <div className="w-full max-w-[460px] rounded-ui-box p-5 text-ui-label shadow-ui-menu ui-material-menu">
         <div className="mb-3 flex items-center gap-2.5">
           <VideoIcon className="size-5 text-ui-accent" />
           <div>
             <h3 className="text-[14px] font-bold">{_("Share Screen or Window")}</h3>
-            <p className="text-ui-subheadline text-ui-label-secondary">
+            <p className="text-ui-small text-ui-label-secondary">
               {_("Requested by %s", request.appId || _("Application"))}
             </p>
           </div>
         </div>
 
         {request.body.desk && (
-          <div className="mb-3 overflow-hidden rounded-ui-item border border-ui-separator/70 bg-black/30">
+          <div className="mb-3 overflow-hidden rounded-ui-control border border-ui-separator/70 bg-black/30">
             <img
               src={request.body.desk.frame}
               alt={_("Desktop preview")}
@@ -258,7 +258,7 @@ function ScreenCastPortalDialog({
                 type="button"
                 onClick={() => toggleIndex(idx)}
                 className={cn(
-                  "flex w-full items-center gap-2.5 rounded-ui-item px-3 py-2 text-left text-xs transition-colors",
+                  "flex w-full items-center gap-2.5 rounded-ui-control px-3 py-2 text-left text-xs transition-colors",
                   active
                     ? "bg-ui-accent text-white"
                     : "bg-ui-fill-tertiary hover-fill:bg-ui-fill-secondary"
@@ -267,7 +267,7 @@ function ScreenCastPortalDialog({
                 <MonitorIcon className="size-4 shrink-0" />
                 <span className="min-w-0 flex-1 truncate font-medium">{label}</span>
                 {meta && (
-                  <span className="shrink-0 font-mono text-ui-footnote opacity-75">
+                  <span className="shrink-0 font-mono text-ui-caption opacity-75">
                     {meta}
                   </span>
                 )}
@@ -419,7 +419,7 @@ function FileChooserPortalDialog({
 
   return (
     <div className="fixed inset-0 z-[800] flex items-center justify-center bg-black/45 p-4">
-      <div className="flex max-h-[82vh] w-full max-w-[600px] flex-col overflow-hidden rounded-ui-menu text-ui-label shadow-ui-menu ui-material-menu">
+      <div className="flex max-h-[82vh] w-full max-w-[600px] flex-col overflow-hidden rounded-ui-box text-ui-label shadow-ui-menu ui-material-menu">
         <div className="flex items-center justify-between gap-2 border-b border-ui-separator px-4 py-3">
           <div className="min-w-0">
             <h3 className="text-[14px] font-bold">
@@ -432,7 +432,7 @@ function FileChooserPortalDialog({
                       ? _("Select Folder")
                       : _("Open File"))}
             </h3>
-            <p className="truncate font-mono text-ui-subheadline text-ui-label-secondary">
+            <p className="truncate font-mono text-ui-small text-ui-label-secondary">
               {cwd}
             </p>
           </div>
@@ -476,7 +476,7 @@ function FileChooserPortalDialog({
                   setSelectedPaths([]);
                 }}
                 className={cn(
-                  "flex w-full items-center gap-2 rounded-ui-control px-2.5 py-1.5 text-left text-ui-callout transition-colors",
+                  "flex w-full items-center gap-2 rounded-ui-control px-2.5 py-1.5 text-left text-ui-body transition-colors",
                   cwd === p.path
                     ? "bg-ui-accent text-white"
                     : "hover-fill:bg-black/6 dark:hover-fill:bg-white/10"
@@ -537,7 +537,7 @@ function FileChooserPortalDialog({
                         }
                       }}
                       className={cn(
-                        "flex w-full items-center gap-2 rounded-ui-control px-2.5 py-1.5 text-left text-ui-callout transition-colors",
+                        "flex w-full items-center gap-2 rounded-ui-control px-2.5 py-1.5 text-left text-ui-body transition-colors",
                         selected
                           ? "bg-ui-accent text-white"
                           : "hover-fill:bg-black/6 dark:hover-fill:bg-white/10"
@@ -559,7 +559,7 @@ function FileChooserPortalDialog({
 
         <div className="space-y-2 border-t border-ui-separator px-4 py-3">
           {body.mode === FileChooserMode.SaveFiles && body.files.length > 0 && (
-            <div className="rounded-ui-control bg-black/5 px-2.5 py-1.5 text-ui-subheadline text-ui-label-secondary dark:bg-white/8">
+            <div className="rounded-ui-control bg-black/5 px-2.5 py-1.5 text-ui-small text-ui-label-secondary dark:bg-white/8">
               {_("Files to save (%d):", body.files.length)}{" "}
               <span className="font-mono text-ui-label">
                 {body.files.slice(0, 4).join(", ")}
@@ -708,12 +708,12 @@ function AppChooserPortalDialog({
 
   return (
     <div className="fixed inset-0 z-[800] flex items-center justify-center bg-black/45 p-4">
-      <div className="w-full max-w-[380px] rounded-ui-menu p-5 text-ui-label shadow-ui-menu ui-material-menu">
+      <div className="w-full max-w-[380px] rounded-ui-box p-5 text-ui-label shadow-ui-menu ui-material-menu">
         <div className="mb-3 flex items-center gap-2.5">
           <AppWindowIcon className="size-5 text-ui-accent" />
           <div className="min-w-0">
             <h3 className="text-[14px] font-bold">{_("Open With")}</h3>
-            <p className="truncate text-ui-subheadline text-ui-label-secondary">
+            <p className="truncate text-ui-small text-ui-label-secondary">
               {request.body.filename || request.body.contentType || request.body.uri}
             </p>
           </div>
@@ -730,7 +730,7 @@ function AppChooserPortalDialog({
                 onClick={() => setSelected(choice)}
                 onDoubleClick={() => confirmChoice(choice)}
                 className={cn(
-                  "flex w-full items-center gap-2.5 rounded-ui-item border px-3 py-2 text-left text-xs transition-colors",
+                  "flex w-full items-center gap-2.5 rounded-ui-control border px-3 py-2 text-left text-xs transition-colors",
                   selected === choice
                     ? "border-ui-accent bg-ui-accent/15 font-medium"
                     : "border-transparent hover-fill:bg-black/6 dark:hover-fill:bg-white/10"
@@ -787,13 +787,13 @@ function DynamicLauncherPortalDialog({
   const [name, setName] = React.useState(request.body.name);
   return (
     <div className="fixed inset-0 z-[800] flex items-center justify-center bg-black/45 p-4">
-      <div className="w-full max-w-[380px] rounded-ui-menu p-5 text-ui-label shadow-ui-menu ui-material-menu">
+      <div className="w-full max-w-[380px] rounded-ui-box p-5 text-ui-label shadow-ui-menu ui-material-menu">
         <div className="mb-3 flex items-center gap-3">
           {request.body.icon ? (
             <img
               src={request.body.icon}
               alt=""
-              className="size-10 rounded-ui-item object-contain"
+              className="size-10 rounded-ui-control object-contain"
             />
           ) : (
             <SparklesIcon className="size-6 text-ui-accent" />
@@ -801,7 +801,7 @@ function DynamicLauncherPortalDialog({
           <div className="min-w-0">
             <h3 className="text-[14px] font-bold">Install Application Launcher</h3>
             {request.body.target && (
-              <p className="truncate text-ui-subheadline text-ui-label-secondary">
+              <p className="truncate text-ui-small text-ui-label-secondary">
                 {request.body.target}
               </p>
             )}
@@ -883,12 +883,12 @@ function GlobalShortcutsPortalDialog({
 
   return (
     <div className="fixed inset-0 z-[800] flex items-center justify-center bg-black/45 p-4">
-      <div className="w-full max-w-[460px] rounded-ui-menu p-5 text-ui-label shadow-ui-menu ui-material-menu">
+      <div className="w-full max-w-[460px] rounded-ui-box p-5 text-ui-label shadow-ui-menu ui-material-menu">
         <div className="mb-3 flex items-center gap-2.5">
           <KeyboardIcon className="size-5 text-ui-accent" />
           <div>
             <h3 className="text-[14px] font-bold">{_("Global Shortcuts")}</h3>
-            <p className="text-ui-subheadline text-ui-label-secondary">
+            <p className="text-ui-small text-ui-label-secondary">
               {_("%s requests global shortcuts", request.appId || _("Application"))}
             </p>
           </div>
@@ -903,7 +903,7 @@ function GlobalShortcutsPortalDialog({
             return (
               <div
                 key={sc.id}
-                className="flex flex-col gap-1 rounded-ui-item border border-ui-separator/60 px-3 py-2"
+                className="flex flex-col gap-1 rounded-ui-control border border-ui-separator/60 px-3 py-2"
               >
                 <div className="flex items-center justify-between gap-2">
                   <span className="truncate text-xs font-medium">
@@ -938,7 +938,7 @@ function GlobalShortcutsPortalDialog({
                         }
                       }}
                       className={cn(
-                        "h-6 min-w-[96px] rounded border px-2 text-center font-mono text-ui-subheadline outline-none transition-colors",
+                        "h-6 min-w-[96px] rounded border px-2 text-center font-mono text-ui-small outline-none transition-colors",
                         isRecording
                           ? "border-ui-accent bg-ui-accent/15 text-ui-accent"
                           : "border-ui-separator bg-black/5 hover-fill:bg-black/10 dark:bg-white/10 dark:hover-fill:bg-white/15"
@@ -966,7 +966,7 @@ function GlobalShortcutsPortalDialog({
                   </div>
                 </div>
                 {conflictApp && (
-                  <div className="flex items-center gap-1 text-ui-footnote text-amber-600 dark:text-amber-400">
+                  <div className="flex items-center gap-1 text-ui-caption text-amber-600 dark:text-amber-400">
                     <AlertTriangleIcon className="size-3 shrink-0" />
                     <span>
                       {_("Already used by %s", conflictApp)}
@@ -1022,12 +1022,12 @@ function RemoteDesktopPortalDialog({
 
   return (
     <div className="fixed inset-0 z-[800] flex items-center justify-center bg-black/45 p-4">
-      <div className="w-full max-w-[380px] rounded-ui-menu p-5 text-ui-label shadow-ui-menu ui-material-menu">
+      <div className="w-full max-w-[380px] rounded-ui-box p-5 text-ui-label shadow-ui-menu ui-material-menu">
         <div className="mb-3 flex items-center gap-2.5">
           <MonitorIcon className="size-5 text-ui-accent" />
           <div>
             <h3 className="text-[14px] font-bold">Remote Desktop Access</h3>
-            <p className="text-ui-subheadline text-ui-label-secondary">
+            <p className="text-ui-small text-ui-label-secondary">
               {request.appId || "Application"} requests remote control
             </p>
           </div>
@@ -1121,7 +1121,7 @@ function PrintPortalDialog({
 
   return (
     <div className="fixed inset-0 z-[800] flex items-center justify-center bg-black/45 p-4">
-      <div className="w-full max-w-[400px] rounded-ui-menu p-5 text-ui-label shadow-ui-menu ui-material-menu">
+      <div className="w-full max-w-[400px] rounded-ui-box p-5 text-ui-label shadow-ui-menu ui-material-menu">
         <div className="mb-3 flex items-center gap-2.5">
           <PrinterIcon className="size-5 text-ui-accent" />
           <h3 className="text-[14px] font-bold">{request.body.title || "Print"}</h3>
@@ -1248,7 +1248,7 @@ function PickColorPortalOverlay({
             left: `${Math.min(window.innerWidth - 110, cursor.x + 16)}px`,
             top: `${Math.min(window.innerHeight - 36, cursor.y + 16)}px`,
           }}
-          className="pointer-events-none fixed flex items-center gap-1.5 rounded-full bg-zinc-900/92 px-2.5 py-1 font-mono text-ui-subheadline text-white shadow-lg ring-1 ring-white/20"
+          className="pointer-events-none fixed flex items-center gap-1.5 rounded-full bg-zinc-900/92 px-2.5 py-1 font-mono text-ui-small text-white shadow-lg ring-1 ring-white/20"
         >
           <PipetteIcon className="size-3 text-sky-400" />
           <span>
@@ -1375,12 +1375,12 @@ function PermissionPortalDialog({
 
   return (
     <div className="fixed inset-0 z-[800] flex items-center justify-center bg-black/45 p-4">
-      <div className="w-full max-w-[400px] rounded-ui-menu p-5 text-ui-label shadow-ui-menu ui-material-menu">
+      <div className="w-full max-w-[400px] rounded-ui-box p-5 text-ui-label shadow-ui-menu ui-material-menu">
         <div className="mb-3 flex items-center gap-2.5">
           {icon}
           <div className="min-w-0">
             <h3 className="text-[14px] font-bold">{title}</h3>
-            <p className="truncate text-ui-subheadline text-ui-label-secondary">
+            <p className="truncate text-ui-small text-ui-label-secondary">
               {subtitle}
             </p>
           </div>
@@ -1393,7 +1393,7 @@ function PermissionPortalDialog({
         )}
 
         {request.kind === PortalKind.Account && request.body.name && (
-          <div className="mb-3 flex items-center gap-2.5 rounded-ui-item bg-black/5 px-3 py-2 text-xs dark:bg-white/8">
+          <div className="mb-3 flex items-center gap-2.5 rounded-ui-control bg-black/5 px-3 py-2 text-xs dark:bg-white/8">
             <UserIcon className="size-4 text-ui-accent" />
             <span className="font-medium">{request.body.name}</span>
           </div>
@@ -1402,7 +1402,7 @@ function PermissionPortalDialog({
         {request.kind === PortalKind.Wallpaper && (
           <div className="mb-3 space-y-1.5">
             {wallpaperPreviewUrl && (
-              <div className="overflow-hidden rounded-ui-item border border-ui-separator/70 bg-black/25">
+              <div className="overflow-hidden rounded-ui-control border border-ui-separator/70 bg-black/25">
                 <img
                   src={wallpaperPreviewUrl}
                   alt={_("Wallpaper preview")}
@@ -1410,7 +1410,7 @@ function PermissionPortalDialog({
                 />
               </div>
             )}
-            <p className="truncate font-mono text-ui-subheadline text-ui-label-secondary">
+            <p className="truncate font-mono text-ui-small text-ui-label-secondary">
               {request.body.path}
             </p>
           </div>
@@ -1421,21 +1421,21 @@ function PermissionPortalDialog({
             {request.body.devices.map((dev) => (
               <div
                 key={dev.id}
-                className="flex items-center justify-between gap-2 rounded-ui-item bg-black/5 px-2.5 py-1.5 text-xs dark:bg-white/8"
+                className="flex items-center justify-between gap-2 rounded-ui-control bg-black/5 px-2.5 py-1.5 text-xs dark:bg-white/8"
               >
                 <div className="min-w-0">
                   <div className="truncate font-medium">
                     {dev.product || dev.id}
                   </div>
                   {dev.vendor && (
-                    <div className="truncate text-ui-footnote text-ui-label-secondary">
+                    <div className="truncate text-ui-caption text-ui-label-secondary">
                       {dev.vendor}
                     </div>
                   )}
                 </div>
                 <span
                   className={cn(
-                    "shrink-0 rounded-full px-2 py-0.5 text-ui-footnote font-medium",
+                    "shrink-0 rounded-full px-2 py-0.5 text-ui-caption font-medium",
                     dev.writable
                       ? "bg-amber-500/20 text-amber-700 dark:text-amber-300"
                       : "bg-black/8 text-ui-label-secondary dark:bg-white/10"
@@ -1451,17 +1451,17 @@ function PermissionPortalDialog({
         {request.kind === PortalKind.InputCapture && (
           <div className="mb-3 flex flex-wrap gap-1.5">
             {request.body.devices.keyboard && (
-              <span className="rounded-full bg-black/8 px-2.5 py-0.5 text-ui-subheadline font-medium dark:bg-white/10">
+              <span className="rounded-full bg-black/8 px-2.5 py-0.5 text-ui-small font-medium dark:bg-white/10">
                 {_("Keyboard")}
               </span>
             )}
             {request.body.devices.pointer && (
-              <span className="rounded-full bg-black/8 px-2.5 py-0.5 text-ui-subheadline font-medium dark:bg-white/10">
+              <span className="rounded-full bg-black/8 px-2.5 py-0.5 text-ui-small font-medium dark:bg-white/10">
                 {_("Pointer")}
               </span>
             )}
             {request.body.devices.touchscreen && (
-              <span className="rounded-full bg-black/8 px-2.5 py-0.5 text-ui-subheadline font-medium dark:bg-white/10">
+              <span className="rounded-full bg-black/8 px-2.5 py-0.5 text-ui-small font-medium dark:bg-white/10">
                 {_("Touchscreen")}
               </span>
             )}
@@ -1601,7 +1601,7 @@ export function PortalDialogs() {
   // Fallback for unhandled portal request kinds (e.g. AppChooser / FileChooser / Print)
   return (
     <div className="fixed inset-0 z-[800] flex items-center justify-center bg-black/45 p-4">
-      <div className="w-full max-w-[380px] rounded-ui-menu p-5 text-ui-label shadow-ui-menu ui-material-menu">
+      <div className="w-full max-w-[380px] rounded-ui-box p-5 text-ui-label shadow-ui-menu ui-material-menu">
         <h3 className="text-[14px] font-bold">Application Portal Request</h3>
         <p className="mt-1 text-xs text-ui-label-secondary">
           {current.appId || "Application"} requested{" "}

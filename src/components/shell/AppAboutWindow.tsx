@@ -75,9 +75,9 @@ export function AppAboutWindow({
             glyphClassName="size-9"
           />
           {/* font-bold maps to the UI's semibold weight: the title is heavier. */}
-          <h2 className="text-ui-title-2 font-extrabold text-ui-label">{_(app.name)}</h2>
-          <p className="text-ui-callout text-ui-label-secondary">{_(app.description)}</p>
-          <span className="mt-1.5 rounded-full bg-black/6 px-2.5 py-0.5 text-ui-subheadline font-medium tabular-nums text-ui-label-secondary dark:bg-white/10">
+          <h2 className="text-ui-title font-extrabold text-ui-label">{_(app.name)}</h2>
+          <p className="text-ui-body text-ui-label-secondary">{_(app.description)}</p>
+          <span className="mt-1.5 rounded-full bg-black/6 px-2.5 py-0.5 text-ui-small font-medium tabular-nums text-ui-label-secondary dark:bg-white/10">
             {_("Version %s", PILOTI_VERSION)}
           </span>
         </div>

@@ -465,7 +465,7 @@ export const LoginScreenApp: React.FC<LoginScreenAppProps> = ({
           <DropdownMenu>
             <DropdownMenuTrigger
               aria-label={_("Session")}
-              className="flex h-[24px] items-center gap-1.5 rounded-ui-control px-2 text-ui-callout font-medium outline-none transition-colors hover-fill:bg-black/8 active:bg-black/14 data-popup-open:bg-black/12 dark:hover-fill:bg-white/10 dark:active:bg-white/18 dark:data-popup-open:bg-white/15"
+              className="flex h-[24px] items-center gap-1.5 rounded-ui-control px-2 text-ui-body font-medium outline-none transition-colors hover-fill:bg-black/8 active:bg-black/14 data-popup-open:bg-black/12 dark:hover-fill:bg-white/10 dark:active:bg-white/18 dark:data-popup-open:bg-white/15"
             >
               <MonitorIcon className="size-3.5 opacity-85" />
               <span className="max-w-[160px] truncate">
@@ -483,7 +483,7 @@ export const LoginScreenApp: React.FC<LoginScreenAppProps> = ({
                   <DropdownMenuRadioItem key={sess.id} value={sess.id}>
                     <div className="flex min-w-0 flex-col">
                       <span className="truncate">{_(sess.label)}</span>
-                      <span className="truncate text-ui-subheadline text-ui-label-secondary">
+                      <span className="truncate text-ui-small text-ui-label-secondary">
                         {_(sess.subtitle)}
                       </span>
                     </div>
@@ -504,7 +504,7 @@ export const LoginScreenApp: React.FC<LoginScreenAppProps> = ({
         </div>
 
         {/* Center: Live Clock */}
-        <div className="pointer-events-none truncate text-ui-callout font-medium tracking-tight tabular-nums">
+        <div className="pointer-events-none truncate text-ui-body font-medium tracking-tight tabular-nums">
           {formattedClock}
         </div>
 
@@ -584,7 +584,7 @@ export const LoginScreenApp: React.FC<LoginScreenAppProps> = ({
                 >
                   <div
                     className={cn(
-                      "flex size-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br text-ui-callout font-medium text-white shadow-sm",
+                      "flex size-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br text-ui-body font-medium text-white shadow-sm",
                       user.gradient,
                     )}
                   >
@@ -605,7 +605,7 @@ export const LoginScreenApp: React.FC<LoginScreenAppProps> = ({
                 setManualUsername("");
                 setView("other-user");
               }}
-              className="flex w-full items-center justify-center gap-2 rounded-[14px] bg-white/8 px-3 py-2 text-ui-callout font-medium text-white/85 ring-1 ring-white/15 transition-colors hover-fill:bg-white/14"
+              className="flex w-full items-center justify-center gap-2 rounded-[14px] bg-white/8 px-3 py-2 text-ui-body font-medium text-white/85 ring-1 ring-white/15 transition-colors hover-fill:bg-white/14"
             >
               <UserPlusIcon className="size-3.5" />
               <span>{_("Not listed?")}</span>

@@ -55,7 +55,7 @@ function ToastRoot({
         ...style,
       }}
       className={cn(
-        "pointer-events-auto relative flex w-full flex-col gap-1.5 rounded-ui-popover p-3 text-ui-label shadow-ui-menu ui-material-menu select-none",
+        "pointer-events-auto relative flex w-full flex-col gap-1.5 rounded-ui-box p-3 text-ui-label shadow-ui-menu ui-material-menu select-none",
         "transition-[opacity,transform] duration-200 ease-out",
         "data-starting-style:opacity-0",
         "data-ending-style:opacity-0",
@@ -95,7 +95,7 @@ function ToastDescription({
     <ToastPrimitive.Description
       data-slot="toast-description"
       className={cn(
-        "text-ui-callout leading-relaxed text-ui-label-secondary",
+        "text-ui-body leading-relaxed text-ui-label-secondary",
         className
       )}
       {...props}
@@ -108,7 +108,7 @@ function ToastAction({ className, ...props }: ToastPrimitive.Action.Props) {
     <ToastPrimitive.Action
       data-slot="toast-action"
       className={cn(
-        "inline-flex h-6 items-center justify-center rounded-[7px] bg-black/8 px-2.5 text-ui-subheadline font-medium text-ui-label transition-colors hover-fill:bg-black/14 dark:bg-white/10 dark:hover-fill:bg-white/18",
+        "inline-flex h-6 items-center justify-center rounded-[7px] bg-black/8 px-2.5 text-ui-small font-medium text-ui-label transition-colors hover-fill:bg-black/14 dark:bg-white/10 dark:hover-fill:bg-white/18",
         className
       )}
       {...props}

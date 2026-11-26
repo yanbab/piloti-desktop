@@ -88,18 +88,7 @@ const PAGES: { id: PageId; label: string; icon: React.ReactNode }[] = [
   { id: "icons", label: "Icons", icon: <ImageIcon className="size-4" /> },
 ];
 
-const TYPE_ROLES = [
-  "large-title",
-  "title-1",
-  "title-2",
-  "title-3",
-  "headline",
-  "body",
-  "callout",
-  "subheadline",
-  "footnote",
-  "caption",
-] as const;
+const TYPE_ROLES = ["title", "body", "small", "caption"] as const;
 
 const SYSTEM_COLORS = [
   "blue", "indigo", "purple", "pink", "red", "orange", "yellow",
@@ -107,8 +96,8 @@ const SYSTEM_COLORS = [
 ] as const;
 
 const LABEL_TOKENS = ["label", "label-secondary", "label-tertiary", "label-quaternary"] as const;
-const SURFACE_TOKENS = ["window", "content", "group", "titlebar", "control", "fill-primary", "separator"] as const;
-const RADIUS_TOKENS = ["control", "item", "menu", "group", "popover", "window"] as const;
+const SURFACE_TOKENS = ["window", "group", "sidebar", "overlay", "control", "fill-primary", "separator"] as const;
+const RADIUS_TOKENS = ["control", "box", "window"] as const;
 const HEIGHT_TOKENS = ["small", "medium", "large"] as const;
 
 function Row({
@@ -273,7 +262,7 @@ function MenusPage() {
         </Row>
         <Row title={_("Context menu")} description={_("Right-click the area")}>
           <ContextMenu>
-            <ContextMenuTrigger className="flex h-14 w-48 items-center justify-center rounded-ui-item border border-dashed border-ui-separator text-ui-callout text-ui-label-secondary">
+            <ContextMenuTrigger className="flex h-14 w-48 items-center justify-center rounded-ui-control border border-dashed border-ui-separator text-ui-body text-ui-label-secondary">
               {_("Right-click here")}
             </ContextMenuTrigger>
             <ContextMenuContent>
@@ -309,7 +298,7 @@ function TextPage() {
             >
               The quick brown fox
             </span>
-            <code className="shrink-0 font-mono text-ui-footnote text-ui-label-secondary">
+            <code className="shrink-0 font-mono text-ui-caption text-ui-label-secondary">
               text-ui-{role}
             </code>
           </GroupedFormRow>
@@ -416,7 +405,7 @@ function IconsPage() {
                     <AppSquircleIcon iconUrl={url} className="size-full" />
                   </span>
                 ) : (
-                  <span style={{ width: size, height: size }} className="rounded-ui-item bg-ui-accent" />
+                  <span style={{ width: size, height: size }} className="rounded-ui-control bg-ui-accent" />
                 )}
                 <span className="text-ui-caption tabular-nums text-ui-label-secondary">{size}</span>
               </div>

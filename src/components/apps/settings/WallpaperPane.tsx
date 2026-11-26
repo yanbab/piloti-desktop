@@ -630,7 +630,7 @@ export function WallpaperPane() {
                         accentHex={accentHex}
                       />
                       {(isAnimated || isAdaptive) && (
-                        <span className="pointer-events-none absolute right-1.5 bottom-1.5 flex items-center gap-1.5 rounded-full bg-black/55 px-2 py-1 text-ui-subheadline font-medium text-white backdrop-blur-xs">
+                        <span className="pointer-events-none absolute right-1.5 bottom-1.5 flex items-center gap-1.5 rounded-full bg-black/55 px-2 py-1 text-ui-small font-medium text-white backdrop-blur-xs">
                           {isAnimated && <FilmIcon className="size-4" />}
                           {isAdaptive && <SunMoonIcon className="size-4" />}
                         </span>
@@ -702,7 +702,7 @@ export function WallpaperPane() {
                         accentHex={accentHex}
                       />
                       {isAdaptive && (
-                        <span className="pointer-events-none absolute right-1.5 bottom-1.5 flex items-center gap-1.5 rounded-full bg-black/55 px-2 py-1 text-ui-subheadline font-medium text-white backdrop-blur-xs">
+                        <span className="pointer-events-none absolute right-1.5 bottom-1.5 flex items-center gap-1.5 rounded-full bg-black/55 px-2 py-1 text-ui-small font-medium text-white backdrop-blur-xs">
                           <SunMoonIcon className="size-4" />
                         </span>
                       )}
@@ -719,7 +719,7 @@ export function WallpaperPane() {
               <div
                 role="radiogroup"
                 aria-label={_("Color Mode")}
-                className="inline-flex rounded-ui-item bg-black/8 p-0.5 dark:bg-white/10"
+                className="inline-flex rounded-ui-control bg-black/8 p-0.5 dark:bg-white/10"
               >
                 {(["solid", "linear", "circular"] as const).map((mode) => {
                   const selected = colorMode === mode;
@@ -739,7 +739,7 @@ export function WallpaperPane() {
                         updateSettings({ wallpaperColorMode: mode })
                       }
                       className={cn(
-                        "rounded-ui-control px-3 py-1 text-ui-callout font-medium transition-all",
+                        "rounded-ui-control px-3 py-1 text-ui-body font-medium transition-all",
                         selected
                           ? "bg-white text-black shadow-xs dark:bg-white/16 dark:text-white"
                           : "text-ui-label-secondary hover-fill:text-ui-label"
@@ -1043,7 +1043,7 @@ export function WallpaperPane() {
                 >
                   <ArrowUpIcon className="size-3.5" />
                 </Button>
-                <span className="truncate text-ui-callout text-ui-label-secondary">
+                <span className="truncate text-ui-body text-ui-label-secondary">
                   {pickerCwd}
                 </span>
               </div>
@@ -1080,7 +1080,7 @@ export function WallpaperPane() {
               </div>
             </div>
 
-            <div className="max-h-64 min-h-40 overflow-y-auto rounded-ui-item border border-ui-separator bg-ui-group p-1.5">
+            <div className="max-h-64 min-h-40 overflow-y-auto rounded-ui-control border border-ui-separator bg-ui-group p-1.5">
               {pickerLoading ? (
                 <div className="flex h-36 items-center justify-center text-ui-body text-ui-label-secondary">
                   {_("Loading...")}

@@ -197,7 +197,7 @@ export function AuthPasswordCard({
         {error && (
           <div
             role="alert"
-            className="w-full rounded-ui-item bg-rose-500/20 px-2.5 py-1.5 text-center text-xs text-rose-200 ring-1 ring-rose-400/30"
+            className="w-full rounded-ui-control bg-rose-500/20 px-2.5 py-1.5 text-center text-xs text-rose-200 ring-1 ring-rose-400/30"
           >
             {error}
           </div>

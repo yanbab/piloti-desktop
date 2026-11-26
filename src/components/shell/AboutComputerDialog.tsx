@@ -253,7 +253,7 @@ export function AboutComputerDialog() {
             />
             {/* font-bold maps to the UI's semibold weight: the title is heavier. */}
             {/* A no-break space holds each line until the probe answers. */}
-            <h2 className="w-full truncate text-ui-title-2 font-extrabold text-ui-label">
+            <h2 className="w-full truncate text-ui-title font-extrabold text-ui-label">
               {info.computerName || "\u00a0"}
             </h2>
             {/* Two lines: the model, then the architecture. */}
@@ -267,7 +267,7 @@ export function AboutComputerDialog() {
           </header>
 
           <div className="flex flex-col gap-4 rounded-b-[inherit] bg-ui-window p-4">
-          <dl className="grid grid-cols-[auto_1fr] items-baseline gap-x-4 gap-y-2.5 rounded-ui-group bg-black/4 px-4 py-3.5 text-ui-body dark:bg-white/5">
+          <dl className="grid grid-cols-[auto_1fr] items-baseline gap-x-4 gap-y-2.5 rounded-ui-box bg-black/4 px-4 py-3.5 text-ui-body dark:bg-white/5">
             {rows.map((row) => (
               <React.Fragment key={row.label}>
                 <dt className="font-medium text-ui-label">{row.label}</dt>

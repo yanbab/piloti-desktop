@@ -55,10 +55,8 @@
 
   /* Surfaces (solid) */
   --ui-window: #ffffff;
-  --ui-content: #ffffff;
   --ui-content-alternate: rgb(0 0 0 / 0.05);
   --ui-group: #f8f8f8;
-  --ui-titlebar: #ffffff;
 
   /* Control heights: nothing taller than 28px */
   --ui-control-small: 20px;
@@ -66,13 +64,9 @@
   --ui-control-large: 28px;
 
   /* Radii */
-  --ui-radius-control: 6px;
+  --ui-radius-control: 5px;
   /* Menu corners follow their items: item radius + the 5px menu padding. */
-  --ui-radius-menu: calc(var(--ui-radius-item) + 5px);
-  --ui-radius-item: 5px;
-  --ui-radius-group: 12px;
-  --ui-radius-popover: 20px;
-  --ui-radius-alert: 34px;
+  --ui-radius-box: calc(var(--ui-radius-control) + 5px);
   --ui-radius-window: 16px;
 }
 
@@ -113,10 +107,8 @@
   --ui-material-border: rgb(255 255 255 / 0.15);
 
   --ui-window: #1e1f20;
-  --ui-content: #1e2023;
   --ui-content-alternate: rgb(255 255 255 / 0.05);
   --ui-group: #252627;
-  --ui-titlebar: #232528;
 }
 
 /* ── Settings grouped form (measured on macOS Ventura System Settings) ─── */
@@ -125,7 +117,7 @@
 
 :root[data-interface-theme="piloti"] [data-slot="grouped-form"] {
   --grouped-form-inset: 20px;
-  --grouped-form-radius: var(--ui-radius-item);
+  --grouped-form-radius: var(--ui-radius-control);
   --grouped-form-row-inset: 10px;
   --grouped-form-separator: rgb(0 0 0 / 0.08);
   /* 680px of rows (Settings opens at sidebar + 680px); wider windows
@@ -196,7 +188,7 @@
 }
 
 :root[data-interface-theme="piloti"] [data-slot="grouped-form-row-description"] {
-  font-size: var(--ui-font-subheadline);
+  font-size: var(--ui-font-small);
 }
 
 /* Page title in the headerbar (Settings, Piloti demo…): macOS type. Its
@@ -277,7 +269,7 @@
   /* Icon centre at 23px (10px inset + 5px + 8px): under the header's ⋮. */
   padding-inline: 5px 8px;
   gap: 8px;
-  border-radius: var(--ui-radius-item);
+  border-radius: var(--ui-radius-control);
   font-size: var(--ui-font-body);
 }
 
@@ -287,7 +279,7 @@
 }
 
 :root[data-interface-theme="piloti"] [data-slot="sidebar-item-group"] {
-  border-radius: var(--ui-radius-item);
+  border-radius: var(--ui-radius-control);
 }
 
 /* ── No hover fills (macOS highlights only on press and selection) ──────── */
@@ -331,7 +323,7 @@
   padding-block: 3px;
   padding-inline: 9px;
   gap: 6px;
-  border-radius: var(--ui-radius-item);
+  border-radius: var(--ui-radius-control);
   font-size: calc(13px * var(--piloti-font-scale, 1));
   line-height: 16px;
 }
@@ -387,19 +379,19 @@
 
 /* Modules and pills: item radius + the 5px menu inset, like menus. */
 :root[data-interface-theme="piloti"] :is([data-slot="control-card"], [data-slot="control-pill"]) {
-  border-radius: var(--ui-radius-menu);
+  border-radius: var(--ui-radius-box);
 }
 
 /* The panel wraps modules with its 12px padding. */
 :root[data-interface-theme="piloti"] [data-slot="control-panel"] {
-  border-radius: calc(var(--ui-radius-menu) + 12px);
+  border-radius: calc(var(--ui-radius-box) + 12px);
 }
 
 /* List rows (outputs, networks…) are menu items. */
 :root[data-interface-theme="piloti"] [data-slot="control-row"] {
   min-height: 22px;
   padding: 3px 9px;
-  border-radius: var(--ui-radius-item);
+  border-radius: var(--ui-radius-control);
   font-size: calc(13px * var(--piloti-font-scale, 1));
   line-height: 16px;
 }
@@ -449,8 +441,7 @@
 /* `.dark` is on the root, or on one window (per-app Dark Mode). */
 
 :root[data-interface-theme="piloti"] :is(.dark, .dark *):is(
-    [data-slot="window-titlebar"]:not(.bg-transparent),
-    .bg-ui-titlebar
+    [data-slot="window-titlebar"]:not(.bg-transparent)
   ) {
   border-bottom: 1px solid #000;
 }

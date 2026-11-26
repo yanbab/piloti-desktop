@@ -187,7 +187,7 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
           >
             <SlidersHorizontalIcon className="size-3.5" />
           </button>
-          <span className="text-ui-callout font-medium text-ui-label-secondary">
+          <span className="text-ui-body font-medium text-ui-label-secondary">
             {new Date().toLocaleDateString(
               getLocale() === "fr" ? "fr-FR" : "en-US",
               {
@@ -291,7 +291,7 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
         {expandedPicker === "audio" && (
           <div className="flex flex-col gap-1 border-t border-ui-separator pt-2">
             <div className="flex items-center justify-between px-0.5">
-              <span className="text-ui-subheadline font-medium text-ui-label-secondary">
+              <span className="text-ui-small font-medium text-ui-label-secondary">
                 {_("Output Device")}
               </span>
               {!isBrowserRuntime && gnomeCapabilities.gnomeControlCenter && (  // FIXME : Capabilities
@@ -301,14 +301,14 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
                     setControlPanelOpen(false);
                     openGnomeSettings("sound");
                   }}
-                  className="text-ui-footnote font-medium text-ui-accent active:opacity-70"
+                  className="text-ui-caption font-medium text-ui-accent active:opacity-70"
                 >
                   {_("Sound Settings…")}
                 </button>
               )}
             </div>
             {audioSinks.length === 0 ? (
-              <div className="px-1 py-1.5 text-ui-subheadline text-ui-label-secondary">
+              <div className="px-1 py-1.5 text-ui-small text-ui-label-secondary">
                 {_("Using default system output.")}
               </div>
             ) : (
@@ -319,7 +319,7 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
                     type="button"
                     onClick={() => void selectAudioSink(sink.name)}
                     data-slot="control-row" className={cn(
-                      "flex items-center justify-between gap-2 rounded-ui-item px-2 py-1.5 text-left text-ui-subheadline",
+                      "flex items-center justify-between gap-2 rounded-ui-control px-2 py-1.5 text-left text-ui-small",
                       sink.active
                         ? "bg-ui-accent/18 font-medium text-ui-label"
                         : "active:bg-black/10 dark:active:bg-white/12"
@@ -390,7 +390,7 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
             )}
           >
             <WifiIcon className="size-[18px] shrink-0" />
-            <span className="truncate text-ui-callout font-medium">Wi-Fi</span>
+            <span className="truncate text-ui-body font-medium">Wi-Fi</span>
           </button>
           <button
             type="button"
@@ -445,7 +445,7 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
             )}
           >
             <BluetoothIcon className="size-[18px] shrink-0" />
-            <span className="truncate text-ui-callout font-medium">
+            <span className="truncate text-ui-body font-medium">
               Bluetooth
             </span>
           </button>
@@ -476,7 +476,7 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
         {expandedPicker === "wifi" && (
           <div data-slot="control-card" className="col-span-2 flex flex-col gap-1 rounded-[14px] bg-black/6 p-2.5 dark:bg-white/8">
             <div className="mb-1 flex items-center justify-between px-1">
-              <span className="text-ui-subheadline font-medium text-ui-label-secondary">
+              <span className="text-ui-small font-medium text-ui-label-secondary">
                 {_("Wi-Fi Networks")}
               </span>
               {!isBrowserRuntime && gnomeCapabilities.gnomeControlCenter && (  // FIXME : Capabilities
@@ -486,18 +486,18 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
                     setControlPanelOpen(false);
                     openGnomeSettings("wifi");
                   }}
-                  className="text-ui-footnote font-medium text-ui-accent active:opacity-70"
+                  className="text-ui-caption font-medium text-ui-accent active:opacity-70"
                 >
                   {_("Network Settings…")}
                 </button>
               )}
             </div>
             {!settings.wifiEnabled ? (
-              <div className="px-2 py-2 text-ui-subheadline text-ui-label-secondary">
+              <div className="px-2 py-2 text-ui-small text-ui-label-secondary">
                 {_("Wi-Fi is turned off.")}
               </div>
             ) : liveWifiNetworks.length === 0 ? (
-              <div className="px-2 py-2 text-ui-subheadline text-ui-label-secondary">
+              <div className="px-2 py-2 text-ui-small text-ui-label-secondary">
                 {_("No wireless networks discovered.")}
               </div>
             ) : (
@@ -510,7 +510,7 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
                       type="button"
                       onClick={() => void joinWifi(net.ssid)}
                       data-slot="control-row" className={cn(
-                        "flex items-center justify-between gap-2 rounded-ui-item px-2.5 py-1.5 text-left text-ui-subheadline",
+                        "flex items-center justify-between gap-2 rounded-ui-control px-2.5 py-1.5 text-left text-ui-small",
                         connected
                           ? "bg-ui-accent/18 font-medium text-ui-label"
                           : "active:bg-black/10 dark:active:bg-white/12"
@@ -520,7 +520,7 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
                         <WifiIcon className="size-3.5 shrink-0 opacity-80" />
                         <span className="truncate">{net.ssid}</span>
                       </span>
-                      <span className="flex shrink-0 items-center gap-1.5 text-ui-footnote text-ui-label-secondary tabular-nums">
+                      <span className="flex shrink-0 items-center gap-1.5 text-ui-caption text-ui-label-secondary tabular-nums">
                         {net.secured && <LockIcon className="size-3 opacity-75" />}
                         <span>{net.signal}%</span>
                         {connected && (
@@ -551,10 +551,10 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
                             e.stopPropagation();
                             if (e.key === "Escape") setWifiPrompt(null);
                           }}
-                          className="h-ui-control-large rounded-ui-control bg-ui-window px-2 text-ui-subheadline text-ui-label outline-none focus:ring-2 focus:ring-ui-accent"
+                          className="h-ui-control-large rounded-ui-control bg-ui-window px-2 text-ui-small text-ui-label outline-none focus:ring-2 focus:ring-ui-accent"
                         />
                         {wifiPrompt.failed && (
-                          <span className="text-ui-footnote text-destructive">
+                          <span className="text-ui-caption text-destructive">
                             {_("Could not connect. Check the password.")}
                           </span>
                         )}
@@ -572,7 +572,7 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
         {expandedPicker === "bluetooth" && (
           <div data-slot="control-card" className="col-span-2 flex flex-col gap-1 rounded-[14px] bg-black/6 p-2.5 dark:bg-white/8">
             <div className="mb-1 flex items-center justify-between px-1">
-              <span className="text-ui-subheadline font-medium text-ui-label-secondary">
+              <span className="text-ui-small font-medium text-ui-label-secondary">
                 {_("Bluetooth Devices")}
               </span>
               {!isBrowserRuntime && gnomeCapabilities.gnomeControlCenter && (  // FIXME : Capabilities
@@ -582,18 +582,18 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
                     setControlPanelOpen(false);
                     openGnomeSettings("bluetooth");
                   }}
-                  className="text-ui-footnote font-medium text-ui-accent active:opacity-70"
+                  className="text-ui-caption font-medium text-ui-accent active:opacity-70"
                 >
                   {_("Bluetooth Settings…")}
                 </button>
               )}
             </div>
             {!settings.bluetoothEnabled ? (
-              <div className="px-2 py-2 text-ui-subheadline text-ui-label-secondary">
+              <div className="px-2 py-2 text-ui-small text-ui-label-secondary">
                 {_("Bluetooth is turned off.")}
               </div>
             ) : bluetoothDevices.length === 0 ? (
-              <div className="px-2 py-2 text-ui-subheadline text-ui-label-secondary">
+              <div className="px-2 py-2 text-ui-small text-ui-label-secondary">
                 {_("No paired Bluetooth devices nearby.")}
               </div>
             ) : (
@@ -604,7 +604,7 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
                     type="button"
                     onClick={() => void toggleBluetoothDevice(device.path)}
                     data-slot="control-row" className={cn(
-                      "flex items-center justify-between gap-2 rounded-ui-item px-2.5 py-1.5 text-left text-ui-subheadline",
+                      "flex items-center justify-between gap-2 rounded-ui-control px-2.5 py-1.5 text-left text-ui-small",
                       device.connected
                         ? "bg-ui-accent/18 font-medium text-ui-label"
                         : "active:bg-black/10 dark:active:bg-white/12"
@@ -614,7 +614,7 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
                       <BluetoothIcon className="size-3.5 shrink-0 opacity-80" />
                       <span className="truncate">{device.name}</span>
                     </span>
-                    <span className="flex shrink-0 items-center gap-1.5 text-ui-footnote text-ui-label-secondary tabular-nums">
+                    <span className="flex shrink-0 items-center gap-1.5 text-ui-caption text-ui-label-secondary tabular-nums">
                       {device.battery !== undefined && <span>{device.battery}%</span>}
                       {device.connected && <CheckIcon className="size-3.5 text-ui-accent" />}
                     </span>
@@ -643,7 +643,7 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
           )}
         >
           <MoonIcon className="size-[18px] shrink-0" />
-          <span className="truncate text-ui-callout font-medium">
+          <span className="truncate text-ui-body font-medium">
             {_("Dark Mode")}
           </span>
         </button>
@@ -667,7 +667,7 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
           )}
         >
           <BellOffIcon className="size-[18px] shrink-0" />
-          <span className="truncate text-ui-callout font-medium">
+          <span className="truncate text-ui-body font-medium">
             {_("Silent")}
           </span>
         </button>
@@ -691,7 +691,7 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
           )}
         >
           <FlameIcon className="size-[18px] shrink-0" />
-          <span className="truncate text-ui-callout font-medium">
+          <span className="truncate text-ui-body font-medium">
             {_("Night Light")}
           </span>
         </button>
@@ -708,7 +708,7 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
           )}
         >
           <GaugeIcon className="size-[18px] shrink-0" />
-          <span className="truncate text-ui-callout font-medium">
+          <span className="truncate text-ui-body font-medium">
             {_("Power Saver")}
           </span>
         </button>
@@ -718,14 +718,14 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
       {mprisMedia && (
         <div data-slot="control-card" className="flex items-center justify-between gap-2.5 rounded-ui-card bg-black/6 px-3 py-2.5 dark:bg-white/8">
           <div className="flex min-w-0 flex-1 items-center gap-2.5">
-            <span className="flex size-8 shrink-0 items-center justify-center rounded-ui-item bg-ui-accent/20 text-ui-accent">
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-ui-control bg-ui-accent/20 text-ui-accent">
               <Music2Icon className="size-4" />
             </span>
             <div className="min-w-0 flex-1">
-              <div className="truncate text-ui-callout font-medium text-ui-label">
+              <div className="truncate text-ui-body font-medium text-ui-label">
                 {mprisMedia.title}
               </div>
-              <div className="truncate text-ui-footnote text-ui-label-secondary">
+              <div className="truncate text-ui-caption text-ui-label-secondary">
                 {mprisMedia.artist}
               </div>
             </div>
@@ -764,13 +764,13 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
       )}
 
       {activeInhibitors.length > 0 && (
-        <div className="flex items-start gap-2 rounded-[10px] border border-amber-500/30 bg-amber-500/12 px-2.5 py-1.5 text-ui-subheadline text-amber-900 dark:text-amber-200">
+        <div className="flex items-start gap-2 rounded-[10px] border border-amber-500/30 bg-amber-500/12 px-2.5 py-1.5 text-ui-small text-amber-900 dark:text-amber-200">
           <AlertTriangleIcon className="mt-0.5 size-3.5 shrink-0 text-amber-600 dark:text-amber-400" />
           <div className="min-w-0 flex-1">
             <div className="font-medium">
               {_("Sleep or logout inhibited")}
             </div>
-            <div className="truncate text-ui-footnote opacity-85">
+            <div className="truncate text-ui-caption opacity-85">
               {activeInhibitors
                 .map((i) =>
                   i.body.reason
@@ -838,7 +838,7 @@ export function FloatingNotifications({ open = true }: { open?: boolean }) {
           <button
             type="button"
             onClick={() => setExpanded((prev) => !prev)}
-            className="rounded-full border border-black/8 px-3.5 py-1 text-ui-subheadline font-medium text-ui-label shadow-ui-popover backdrop-blur-xl transition-colors ui-material-popover hover-fill:bg-black/6 dark:border-white/10 dark:hover-fill:bg-white/10"
+            className="rounded-full border border-black/8 px-3.5 py-1 text-ui-small font-medium text-ui-label shadow-ui-popover backdrop-blur-xl transition-colors ui-material-popover hover-fill:bg-black/6 dark:border-white/10 dark:hover-fill:bg-white/10"
           >
             {expanded
               ? _("Show less")
@@ -861,7 +861,7 @@ export function FloatingNotifications({ open = true }: { open?: boolean }) {
       </div>
 
       {(settings.doNotDisturb || !settings.notificationsEnabled) && (
-        <div className="flex items-center justify-between gap-2 rounded-2xl border border-black/8 px-3 py-2 text-ui-subheadline text-ui-label-secondary shadow-ui-popover backdrop-blur-xl ui-material-popover dark:border-white/10">
+        <div className="flex items-center justify-between gap-2 rounded-2xl border border-black/8 px-3 py-2 text-ui-small text-ui-label-secondary shadow-ui-popover backdrop-blur-xl ui-material-popover dark:border-white/10">
           <span className="flex min-w-0 items-center gap-1.5 truncate">
             <BellOffIcon className="size-3 shrink-0 text-ui-accent" />
             <span className="truncate">
@@ -907,7 +907,7 @@ export function FloatingNotifications({ open = true }: { open?: boolean }) {
               appName={n.appName}
               icon={n.icon}
               urgency={n.urgency}
-              className="mt-0.5 size-9 rounded-ui-item"
+              className="mt-0.5 size-9 rounded-ui-control"
             />
 
             <div className="min-w-0 flex-1">
@@ -927,7 +927,7 @@ export function FloatingNotifications({ open = true }: { open?: boolean }) {
                   </span>
                 </div>
                 <div className="flex shrink-0 items-center gap-1.5">
-                  <span className="text-ui-subheadline text-ui-label-tertiary tabular-nums">
+                  <span className="text-ui-small text-ui-label-tertiary tabular-nums">
                     {formatRelativeNotificationTime(n.time)}
                   </span>
                   <button
@@ -945,7 +945,7 @@ export function FloatingNotifications({ open = true }: { open?: boolean }) {
               </div>
 
               {n.body && (
-                <div className="mt-0.5 line-clamp-3 text-ui-callout leading-snug text-ui-label-secondary">
+                <div className="mt-0.5 line-clamp-3 text-ui-body leading-snug text-ui-label-secondary">
                   <NotificationBodyText body={n.body} />
                 </div>
               )}

@@ -128,7 +128,7 @@ export class ShellErrorBoundary extends React.Component<
             </p>
           </div>
 
-          <pre className="max-h-52 overflow-auto rounded-ui-item border border-white/20 bg-black/25 p-4 font-mono text-xs leading-relaxed whitespace-pre-wrap break-words text-white/90">
+          <pre className="max-h-52 overflow-auto rounded-ui-control border border-white/20 bg-black/25 p-4 font-mono text-xs leading-relaxed whitespace-pre-wrap break-words text-white/90">
             {formatErrorDetails(error)}
           </pre>
 

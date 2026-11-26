@@ -159,7 +159,7 @@ export function NotificationActionControls({
               key={act.key}
               size="sm"
               variant="secondary"
-              className="h-6 px-2 text-ui-footnote"
+              className="h-6 px-2 text-ui-caption"
               onClick={(e) => handleActionClick(e, act)}
             >
               {act.label}
@@ -174,14 +174,14 @@ export function NotificationActionControls({
             value={replyText}
             onChange={(e) => setReplyText(e.target.value)}
             placeholder={replyAction.label || "Send a reply…"}
-            className="h-7 flex-1 text-ui-subheadline"
+            className="h-7 flex-1 text-ui-small"
           />
           <Button
             type="submit"
             size="sm"
             variant="secondary"
             disabled={!replyText.trim()}
-            className="h-7 px-2 text-ui-footnote"
+            className="h-7 px-2 text-ui-caption"
           >
             <SendIcon className="size-3" />
           </Button>

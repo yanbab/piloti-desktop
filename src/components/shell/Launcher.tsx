@@ -1305,7 +1305,7 @@ export const Launcher = React.memo(function Launcher() {
                       {item.label}
                     </span>
                     {item.hint && (
-                      <span className="shrink-0 text-ui-subheadline text-ui-label-tertiary">
+                      <span className="shrink-0 text-ui-small text-ui-label-tertiary">
                         {item.hint}
                       </span>
                     )}

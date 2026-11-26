@@ -110,12 +110,12 @@ export function PowerActionDialog() {
         </DialogHeader>
 
         {inhibitors.length > 0 && (
-          <div className="mb-2 rounded-ui-item border border-amber-500/35 bg-amber-500/12 px-3 py-2 text-left text-ui-subheadline text-amber-900 dark:text-amber-200">
+          <div className="mb-2 rounded-ui-control border border-amber-500/35 bg-amber-500/12 px-3 py-2 text-left text-ui-small text-amber-900 dark:text-amber-200">
             <div className="flex items-center gap-1.5 font-semibold">
               <AlertTriangleIcon className="size-3.5 shrink-0 text-amber-600 dark:text-amber-400" />
               <span>{_("Blocked by running applications:")}</span>
             </div>
-            <ul className="mt-1 space-y-0.5 pl-5 text-ui-subheadline opacity-90">
+            <ul className="mt-1 space-y-0.5 pl-5 text-ui-small opacity-90">
               {inhibitors.map((inh) => (
                 <li key={inh.id} className="list-disc">
                   <span className="font-medium">{inh.appId || _("Application")}</span>
@@ -126,7 +126,7 @@ export function PowerActionDialog() {
           </div>
         )}
 
-        <label className="flex cursor-default items-center justify-center gap-2.5 rounded-ui-item px-2.5 py-2.5 select-none">
+        <label className="flex cursor-default items-center justify-center gap-2.5 rounded-ui-control px-2.5 py-2.5 select-none">
           <Checkbox
             aria-label={_("Restore open windows")}
             checked={settings.restoreWindowsOnLogin}

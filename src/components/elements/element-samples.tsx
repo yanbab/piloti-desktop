@@ -48,7 +48,7 @@ export function ElementSample({
         <h3 className="text-ui-body font-semibold text-ui-label">{title}</h3>
         {controls}
       </div>
-      <div className="grid grid-cols-[repeat(auto-fit,minmax(260px,1fr))] overflow-hidden rounded-ui-group border border-ui-separator bg-ui-group">
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(260px,1fr))] overflow-hidden rounded-ui-box border border-ui-separator bg-ui-group">
         {tab === "react" ? (
           <div className="flex min-w-0 flex-wrap content-center items-center justify-center gap-2 p-3">
             {react}
@@ -71,7 +71,7 @@ export function ElementSample({
               ]}
             />
           </div>
-          <pre className="max-h-64 overflow-auto font-mono text-ui-footnote select-text">
+          <pre className="max-h-64 overflow-auto font-mono text-ui-caption select-text">
             {tab === "react" ? reactCode : html}
           </pre>
         </div>

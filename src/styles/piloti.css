@@ -13,10 +13,7 @@
   --piloti-surface: rgb(235 235 238 / 0.68);
   --piloti-backdrop: blur(22px) saturate(160%);
   --ui-sidebar: var(--piloti-surface);
-  --ui-material-menu: var(--piloti-surface);
-  --ui-material-popover: var(--piloti-surface);
-  --ui-material-hud: var(--piloti-surface);
-  --ui-material-tooltip: rgb(0 0 0 / 0.85);
+  --ui-overlay: var(--piloti-surface);
   --ui-material-dock: var(--piloti-surface);
   --ui-material-dock-saturation: 160%;
   --ui-material-blur: 22px;
@@ -26,10 +23,7 @@
   --piloti-surface: rgb(36 36 40 / 0.65);
   --piloti-backdrop: blur(22px) saturate(160%);
   --ui-sidebar: var(--piloti-surface);
-  --ui-material-menu: var(--piloti-surface);
-  --ui-material-popover: var(--piloti-surface);
-  --ui-material-hud: var(--piloti-surface);
-  --ui-material-tooltip: rgb(0 0 0 / 0.88);
+  --ui-overlay: var(--piloti-surface);
   --ui-material-dock: var(--piloti-surface);
   --ui-material-dock-saturation: 160%;
   --ui-material-blur: 22px;
@@ -43,8 +37,7 @@
 :root:not([data-interface-theme="adwaita"], [data-interface-theme="cupertino"]):not(.dark)[data-more-transparency="true"]:not([data-high-contrast="true"]) .dark {
   --piloti-surface: rgb(36 36 40 / 0.65);
   --ui-sidebar: var(--piloti-surface);
-  --ui-material-menu: var(--piloti-surface);
-  --ui-material-popover: var(--piloti-surface);
+  --ui-overlay: var(--piloti-surface);
   --ui-sidebar-selection: rgb(255 255 255 / 0.14);
   --ui-menu-highlight: rgb(255 255 255 / 0.1);
 }

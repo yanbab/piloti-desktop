@@ -46,7 +46,7 @@ export function ShortcutsDialog({
                 <h3 className="mb-1.5 text-xs font-semibold tracking-wide text-ui-label-secondary uppercase">
                   {_(group.title)}
                 </h3>
-                <ul className="divide-y divide-ui-separator/60 rounded-ui-item border border-ui-separator/60">
+                <ul className="divide-y divide-ui-separator/60 rounded-ui-control border border-ui-separator/60">
                   {group.entries.map((entry) => (
                     <li
                       key={`${entry.label}-${entry.shortcut}`}

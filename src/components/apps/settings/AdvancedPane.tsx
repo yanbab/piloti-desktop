@@ -725,15 +725,15 @@ export function AdvancedPane() {
                     <div className="flex items-center gap-2">
                       <GroupedFormRowTitle>{plugin.name}</GroupedFormRowTitle>
                       {plugin.scope === "system" && (
-                        <span className="rounded-ui-control bg-ui-accent/15 px-1.5 py-0.5 text-ui-footnote font-medium text-ui-accent">
+                        <span className="rounded-ui-control bg-ui-accent/15 px-1.5 py-0.5 text-ui-caption font-medium text-ui-accent">
                           {_("System")}
                         </span>
                       )}
-                      <span className="rounded-ui-control bg-black/6 px-1.5 py-0.5 text-ui-footnote font-medium text-ui-label-secondary dark:bg-white/10">
+                      <span className="rounded-ui-control bg-black/6 px-1.5 py-0.5 text-ui-caption font-medium text-ui-label-secondary dark:bg-white/10">
                         {kindLabel}
                       </span>
                       {plugin.version && (
-                        <span className="text-ui-subheadline text-ui-label-secondary">
+                        <span className="text-ui-small text-ui-label-secondary">
                           v{plugin.version}
                         </span>
                       )}

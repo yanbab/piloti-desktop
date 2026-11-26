@@ -19,7 +19,7 @@ const searchFieldVariants = cva(
           "bg-ui-fill-primary shadow-[0_0_0_1px_rgb(0_0_0/0.04)] dark:bg-white/13 dark:shadow-[0_0_0_1px_rgb(0_0_0/0.5)]",
       },
       size: {
-        sm: "h-5 pl-1.5 text-ui-subheadline [&_[data-slot=search-field-icon]]:size-3",
+        sm: "h-5 pl-1.5 text-ui-small [&_[data-slot=search-field-icon]]:size-3",
         default: "h-6 pl-2 [&_[data-slot=search-field-icon]]:size-3.5",
         lg: "h-7 pl-[9px] [&_[data-slot=search-field-icon]]:size-[15px]",
         xl: "h-9 pl-3 [&_[data-slot=search-field-icon]]:size-4",

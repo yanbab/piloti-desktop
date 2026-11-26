@@ -1125,7 +1125,7 @@ export const MenuBar = React.memo(function MenuBar() {
           return (
             <div
               key={cap.id}
-              className="mr-1 flex h-[22px] shrink-0 items-center gap-1 rounded-full bg-rose-500/85 px-2 text-ui-footnote font-semibold text-white"
+              className="mr-1 flex h-[22px] shrink-0 items-center gap-1 rounded-full bg-rose-500/85 px-2 text-ui-caption font-semibold text-white"
             >
               <span className="size-1.5 animate-pulse rounded-full bg-white" />
               <span>{isRec ? (paused ? "Paused" : "REC") : "Sharing"}</span>
@@ -1169,7 +1169,7 @@ export const MenuBar = React.memo(function MenuBar() {
                 console.error(`[Plugin:${item.pluginId}] status click error:`, err);
               }
             }}
-            className="flex h-full shrink-0 cursor-default items-center rounded-ui-control px-2 text-ui-callout font-medium outline-none select-none hover-fill:bg-black/8 active:bg-black/14 focus-visible:bg-black/10 dark:hover-fill:bg-white/10 dark:active:bg-white/18 dark:focus-visible:bg-white/12"
+            className="flex h-full shrink-0 cursor-default items-center rounded-ui-control px-2 text-ui-body font-medium outline-none select-none hover-fill:bg-black/8 active:bg-black/14 focus-visible:bg-black/10 dark:hover-fill:bg-white/10 dark:active:bg-white/18 dark:focus-visible:bg-white/12"
           >
             {item.label}
           </button>
@@ -1318,7 +1318,7 @@ export const MenuBar = React.memo(function MenuBar() {
               // shadows (same as menus) are not clipped by its overflow.
               className="-mr-1 w-[348px] max-w-[calc(100vw-8px)] overflow-x-hidden overflow-y-auto rounded-none border-0 bg-transparent! pt-0 pr-3 pb-8 pl-6 shadow-none! [backdrop-filter:none]! [-webkit-backdrop-filter:none]!"
             >
-              <div data-slot="control-panel" className="rounded-ui-popover p-3 shadow-ui-popover ui-material-menu">
+              <div data-slot="control-panel" className="rounded-ui-box p-3 shadow-ui-popover ui-material-menu">
                 <ControlPanel open={controlPanelOpen} />
               </div>
               <FloatingNotifications open={controlPanelOpen} />

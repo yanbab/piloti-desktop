@@ -12,9 +12,9 @@ Also: [architecture](./ARCHITECTURE.md), [Linux](./LINUX.md), [API](./API.md),
   `:root[data-interface-theme="piloti"]`): Ventura, compact (controls ≤ 28 px),
   solid, no hover effects. Style per theme through `data-slot`, never by editing
   shared classes. Check visually in the Piloti demo.
-- **Tokens, not values.** Text `text-ui-{body,callout,subheadline,footnote,
-  caption,title-1..3,large-title,headline}`; radius `rounded-ui-{control,item,
-  group,menu,popover,window}`; height `h-/size-ui-control-{small,medium,large}`; colour `--ui-*`, never `--adw-*`. On controls use `hover-fill:`
+- **Tokens, not values.** Text `text-ui-{title,body,small,
+  caption}`; radius `rounded-ui-{control,
+  box,window}`; height `h-/size-ui-control-{small,medium,large}`; surfaces `--ui-{window,group,sidebar,overlay}`; colour `--ui-*`, never `--adw-*`. On controls use `hover-fill:`
   (Adwaita only), never `hover:`.
 - **Leaving Tailwind** widget by widget: plain CSS in
   `styles/components/<name>.css` (`ui-<name>`, `data-variant`, `data-size`,
@@ -33,8 +33,8 @@ Also: [architecture](./ARCHITECTURE.md), [Linux](./LINUX.md), [API](./API.md),
 Corners are concentric: outer radius = inner radius + gap, computed from tokens
 in `piloti-macos.css`.
 
-- Items and list rows: `--ui-radius-item` (5px).
-- Menus: item radius + 5px padding. Rows 22px, text 13px, side padding 9px; 20px
+- Items and list rows: `--ui-radius-control` (5px).
+- Menus: `--ui-radius-box` = control radius + 5px padding. Rows 22px, text 13px, side padding 9px; 20px
   check column only with check or radio items. Highlight: accent, white text.
 - Control panel: modules use the menu radius; panel = that + 12px padding.
 - Dock: square icons fill 56 of 64px (4.2px corners); padding is 7px. Corner =

@@ -79,7 +79,7 @@
     border-bottom: 1px solid var(--ui-separator);
     border-start-start-radius: inherit;
     border-start-end-radius: inherit;
-    background-color: var(--ui-titlebar);
+    background-color: var(--ui-window);
     -webkit-backdrop-filter: blur(var(--ui-material-blur)) saturate(180%);
     backdrop-filter: blur(var(--ui-material-blur)) saturate(180%);
     user-select: none;

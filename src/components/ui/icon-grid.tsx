@@ -1144,7 +1144,7 @@ export function IconGrid({
               }
             }}
             className={cn(
-              "group relative flex cursor-default rounded-ui-group outline-none select-none",
+              "group relative flex cursor-default rounded-ui-box outline-none select-none",
               compactHorizontal
                 ? "flex-row items-center justify-start gap-1 px-1.5 py-0.5 text-left"
                 : "flex-col items-center justify-start gap-1 px-1 py-1.5 text-center",
@@ -1159,7 +1159,7 @@ export function IconGrid({
                 aria-hidden
                 data-slot="icon-selection-square"
                 style={{ width: `${iconSize + 12}px`, height: `${iconSize + 12}px` }}
-                className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 rounded-ui-item bg-black/10 dark:bg-white/16"
+                className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 rounded-ui-control bg-black/10 dark:bg-white/16"
               />
             )}
             <div
@@ -1442,14 +1442,14 @@ export function IconGrid({
                   onCommitRename?.(item, e.currentTarget.value);
                 }}
                 className={cn(
-                  "w-auto min-w-[3.5rem] max-w-full rounded bg-zinc-900/95 px-1.5 py-0.5 text-ui-callout leading-tight font-medium text-white ring-1 ring-ui-accent outline-none",
+                  "w-auto min-w-[3.5rem] max-w-full rounded bg-zinc-900/95 px-1.5 py-0.5 text-ui-body leading-tight font-medium text-white ring-1 ring-ui-accent outline-none",
                   compactHorizontal ? "text-left" : "text-center",
                 )}
               />
             ) : (
               <span
                 className={cn(
-                  "w-fit max-w-full shrink-0 rounded px-1.5 py-0.5 text-ui-callout leading-[1.3] font-medium text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]",
+                  "w-fit max-w-full shrink-0 rounded px-1.5 py-0.5 text-ui-body leading-[1.3] font-medium text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]",
                   compactHorizontal && "truncate",
                   selected && "bg-ui-accent text-white drop-shadow-none",
                 )}

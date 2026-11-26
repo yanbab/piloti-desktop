@@ -39,7 +39,7 @@ function DialogOverlay({
     <DialogPrimitive.Backdrop
       data-slot="dialog-overlay"
       className={cn(
-        "fixed inset-0 z-[450] bg-ui-overlay data-open:animate-in data-open:fade-in-0",
+        "fixed inset-0 z-[450] bg-ui-scrim data-open:animate-in data-open:fade-in-0",
         className
       )}
       {...props}
@@ -73,7 +73,7 @@ function DialogContent({
         className={cn(
           "fixed top-[50%] left-[50%] z-[450] grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] text-ui-label outline-none sm:max-w-md",
           variant === "menu"
-            ? "gap-0 overflow-hidden rounded-ui-menu p-0 shadow-ui-menu ui-material-menu duration-150 data-open:animate-in data-open:fade-in-0 motion-reduce:animate-none"
+            ? "gap-0 overflow-hidden rounded-ui-box p-0 shadow-ui-menu ui-material-menu duration-150 data-open:animate-in data-open:fade-in-0 motion-reduce:animate-none"
             : "gap-4 rounded-ui-window bg-white/95 dark:bg-zinc-900/95 backdrop-blur-2xl p-5 shadow-ui-window duration-150 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-[0.97] dark:shadow-[0_0_0_1px_rgb(0_0_0/0.92),inset_0_0_0_1px_var(--ui-window-rim),0_18px_54px_rgb(0_0_0/0.57)]",
           showCloseButton && "pt-12",
           className
@@ -142,7 +142,7 @@ function DialogTitle({
   return (
     <DialogPrimitive.Title
       data-slot="dialog-title"
-      className={cn("text-ui-title-3 font-semibold", className)}
+      className={cn("text-ui-title font-semibold", className)}
       {...props}
     />
   )

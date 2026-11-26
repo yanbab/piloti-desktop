@@ -46,7 +46,7 @@ const tabClass = (active: boolean, pinned = false) =>
   cn(
     // Chrome-style: tabs share the bar up to 240px each, left-aligned, and
     // shrink when there are many; icon, title, then close on the right.
-    "group relative flex min-w-8 max-w-60 flex-1 basis-0 items-center gap-1.5 rounded-ui-control pr-1 pl-2 text-ui-subheadline select-none",
+    "group relative flex min-w-8 max-w-60 flex-1 basis-0 items-center gap-1.5 rounded-ui-control pr-1 pl-2 text-ui-small select-none",
     pinned && "max-w-9 min-w-9 flex-none justify-center px-0",
     active
       ? "bg-ui-window font-medium text-ui-label shadow-2xs"

@@ -85,7 +85,7 @@ export function HelpMenuSearch({
         <div ref={listRef} role="listbox" aria-label={_("Menu Items")} className="max-h-[min(60vh,420px)] overflow-y-auto">
           <div className={MENU_LABEL_CLASS}>{_("Menu Items")}</div>
           {results.length === 0 ? (
-            <div className="px-[12px] py-1.5 text-ui-callout text-ui-label-tertiary">
+            <div className="px-[12px] py-1.5 text-ui-body text-ui-label-tertiary">
               {_("No matching commands")}
             </div>
           ) : (
@@ -109,7 +109,7 @@ export function HelpMenuSearch({
                 <span className="flex min-w-0 items-baseline gap-1.5">
                   <span className="truncate">{command.label}</span>
                   {command.path.length > 0 && (
-                    <span className="truncate text-ui-subheadline text-ui-label-secondary">
+                    <span className="truncate text-ui-small text-ui-label-secondary">
                       {command.path.join(" ▸ ")}
                     </span>
                   )}

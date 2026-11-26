@@ -71,7 +71,7 @@ function HeaderBarRoot({
       data-window-drag-region={client ? "" : undefined}
       data-decorations={decorations}
       className={cn(
-        "border-b border-ui-separator bg-ui-titlebar",
+        "border-b border-ui-separator bg-ui-window",
         title && "grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]",
         server && "rounded-t-none",
         (!atStart || inset) && "rounded-tl-none",

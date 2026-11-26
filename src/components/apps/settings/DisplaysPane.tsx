@@ -118,7 +118,7 @@ export function DisplaysPane() {
                 <span className="max-w-44 truncate text-ui-body font-semibold text-ui-label">
                   {screen.name}
                 </span>
-                <span className="text-ui-footnote tabular-nums text-ui-label-secondary">
+                <span className="text-ui-caption tabular-nums text-ui-label-secondary">
                   {screen.resolution}
                 </span>
               </div>
@@ -142,7 +142,7 @@ export function DisplaysPane() {
                 </GroupedFormRowTitle>
               </GroupedFormRowLabel>
               <GroupedFormRowControl>
-                <span className="rounded-full bg-ui-accent/15 px-2.5 py-0.5 text-ui-subheadline font-semibold text-ui-accent">
+                <span className="rounded-full bg-ui-accent/15 px-2.5 py-0.5 text-ui-small font-semibold text-ui-accent">
                   {idx === 0 ? _("Primary Output") : _("Extended")}
                 </span>
               </GroupedFormRowControl>

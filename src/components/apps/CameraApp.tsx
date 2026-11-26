@@ -229,7 +229,7 @@ export const CameraApp: React.FC<CameraAppProps> = ({ windowId = "" }) => {
         <HeaderBar.Title interactive>
           <div className="flex items-center gap-2">
             {recording && (
-              <span className="font-mono text-ui-subheadline tabular-nums text-ui-label">
+              <span className="font-mono text-ui-small tabular-nums text-ui-label">
                 {formatCaptureDuration(elapsed)}
               </span>
             )}
@@ -269,17 +269,17 @@ export const CameraApp: React.FC<CameraAppProps> = ({ windowId = "" }) => {
           className={cn("size-full object-contain", mode === "audio" && "hidden")}
         />
         {mode === "audio" && !error && (
-          <div className="flex flex-col items-center gap-1 text-ui-callout text-white/40">
+          <div className="flex flex-col items-center gap-1 text-ui-body text-white/40">
             {recording ? _("Recording…") : _("Microphone ready")}
           </div>
         )}
         {error && (
-          <div className="absolute inset-0 flex items-center justify-center p-6 text-center text-ui-callout text-white/70">
+          <div className="absolute inset-0 flex items-center justify-center p-6 text-center text-ui-body text-white/70">
             {error}
           </div>
         )}
         {status && (
-          <div className="absolute bottom-3 left-1/2 max-w-[90%] -translate-x-1/2 truncate rounded-full bg-black/70 px-3 py-1 text-ui-subheadline text-white">
+          <div className="absolute bottom-3 left-1/2 max-w-[90%] -translate-x-1/2 truncate rounded-full bg-black/70 px-3 py-1 text-ui-small text-white">
             {status}
           </div>
         )}

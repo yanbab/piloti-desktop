@@ -455,7 +455,7 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
             aria-label={_("Scientific")}
             onClick={() => setMode(!scientific)}
             className={cn(
-              "inline-flex h-5 shrink-0 cursor-default items-center justify-center rounded-full px-2 text-ui-subheadline font-medium leading-none transition-colors outline-none select-none",
+              "inline-flex h-5 shrink-0 cursor-default items-center justify-center rounded-full px-2 text-ui-small font-medium leading-none transition-colors outline-none select-none",
               scientific
                 ? "bg-ui-accent text-white hover-fill:brightness-110 active:brightness-95"
                 : "bg-black/8 text-ui-label-secondary hover-fill:bg-black/15 hover-fill:text-ui-label active:bg-black/22 dark:bg-white/10 dark:hover-fill:bg-white/18 dark:hover-fill:text-ui-label dark:active:bg-white/24",
@@ -468,7 +468,7 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
             role="status"
             aria-live="polite"
             className={cn(
-              "inline-flex h-5 shrink-0 items-center justify-center rounded-full bg-black/8 px-2 text-ui-subheadline font-medium leading-none text-ui-label-secondary transition-opacity duration-200 select-none dark:bg-white/10",
+              "inline-flex h-5 shrink-0 items-center justify-center rounded-full bg-black/8 px-2 text-ui-small font-medium leading-none text-ui-label-secondary transition-opacity duration-200 select-none dark:bg-white/10",
               copied ? "opacity-100" : "pointer-events-none opacity-0",
             )}
           >
@@ -486,7 +486,7 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
           }}
           className="mt-1 flex cursor-default flex-col items-end justify-end"
         >
-          <div className="flex h-3.5 w-full items-center justify-end text-ui-footnote text-ui-dim tabular-nums">
+          <div className="flex h-3.5 w-full items-center justify-end text-ui-caption text-ui-dim tabular-nums">
             <span className="truncate">{expressionLine}</span>
           </div>
           <div className="flex h-[36px] w-full items-end justify-end">
@@ -496,7 +496,7 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
                 formatted.length > 11
                   ? "text-[20px] leading-[1.15]"
                   : formatted.length > 8
-                    ? "text-ui-large-title leading-[1.1]"
+                    ? "text-ui-title leading-[1.1]"
                     : "text-[34px] leading-[1.05]",
               )}
             >
@@ -514,56 +514,56 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
             <button
               type="button"
               onClick={() => applyUnary("sq", (x) => x * x)}
-              className="rounded-ui-item bg-black/14 text-ui-subheadline font-medium text-ui-label outline-none hover-fill:bg-black/20 focus:outline-none active:bg-black/26 dark:bg-white/12 dark:hover-fill:bg-white/18 dark:active:bg-white/24"
+              className="rounded-ui-control bg-black/14 text-ui-small font-medium text-ui-label outline-none hover-fill:bg-black/20 focus:outline-none active:bg-black/26 dark:bg-white/12 dark:hover-fill:bg-white/18 dark:active:bg-white/24"
             >
               x²
             </button>
             <button
               type="button"
               onClick={() => applyUnary("sqrt", (x) => Math.sqrt(x))}
-              className="rounded-ui-item bg-black/14 text-ui-subheadline font-medium text-ui-label outline-none hover-fill:bg-black/20 focus:outline-none active:bg-black/26 dark:bg-white/12 dark:hover-fill:bg-white/18 dark:active:bg-white/24"
+              className="rounded-ui-control bg-black/14 text-ui-small font-medium text-ui-label outline-none hover-fill:bg-black/20 focus:outline-none active:bg-black/26 dark:bg-white/12 dark:hover-fill:bg-white/18 dark:active:bg-white/24"
             >
               √x
             </button>
             <button
               type="button"
               onClick={() => applyUnary("sin", (x) => Math.sin(x))}
-              className="rounded-ui-item bg-black/14 text-ui-subheadline font-medium text-ui-label outline-none hover-fill:bg-black/20 focus:outline-none active:bg-black/26 dark:bg-white/12 dark:hover-fill:bg-white/18 dark:active:bg-white/24"
+              className="rounded-ui-control bg-black/14 text-ui-small font-medium text-ui-label outline-none hover-fill:bg-black/20 focus:outline-none active:bg-black/26 dark:bg-white/12 dark:hover-fill:bg-white/18 dark:active:bg-white/24"
             >
               sin
             </button>
             <button
               type="button"
               onClick={() => applyUnary("cos", (x) => Math.cos(x))}
-              className="rounded-ui-item bg-black/14 text-ui-subheadline font-medium text-ui-label outline-none hover-fill:bg-black/20 focus:outline-none active:bg-black/26 dark:bg-white/12 dark:hover-fill:bg-white/18 dark:active:bg-white/24"
+              className="rounded-ui-control bg-black/14 text-ui-small font-medium text-ui-label outline-none hover-fill:bg-black/20 focus:outline-none active:bg-black/26 dark:bg-white/12 dark:hover-fill:bg-white/18 dark:active:bg-white/24"
             >
               cos
             </button>
             <button
               type="button"
               onClick={() => applyUnary("tan", (x) => Math.tan(x))}
-              className="rounded-ui-item bg-black/14 text-ui-subheadline font-medium text-ui-label outline-none hover-fill:bg-black/20 focus:outline-none active:bg-black/26 dark:bg-white/12 dark:hover-fill:bg-white/18 dark:active:bg-white/24"
+              className="rounded-ui-control bg-black/14 text-ui-small font-medium text-ui-label outline-none hover-fill:bg-black/20 focus:outline-none active:bg-black/26 dark:bg-white/12 dark:hover-fill:bg-white/18 dark:active:bg-white/24"
             >
               tan
             </button>
             <button
               type="button"
               onClick={() => applyUnary("ln", (x) => Math.log(x))}
-              className="rounded-ui-item bg-black/14 text-ui-subheadline font-medium text-ui-label outline-none hover-fill:bg-black/20 focus:outline-none active:bg-black/26 dark:bg-white/12 dark:hover-fill:bg-white/18 dark:active:bg-white/24"
+              className="rounded-ui-control bg-black/14 text-ui-small font-medium text-ui-label outline-none hover-fill:bg-black/20 focus:outline-none active:bg-black/26 dark:bg-white/12 dark:hover-fill:bg-white/18 dark:active:bg-white/24"
             >
               ln
             </button>
             <button
               type="button"
               onClick={() => applyUnary("log", (x) => Math.log10(x))}
-              className="rounded-ui-item bg-black/14 text-ui-subheadline font-medium text-ui-label outline-none hover-fill:bg-black/20 focus:outline-none active:bg-black/26 dark:bg-white/12 dark:hover-fill:bg-white/18 dark:active:bg-white/24"
+              className="rounded-ui-control bg-black/14 text-ui-small font-medium text-ui-label outline-none hover-fill:bg-black/20 focus:outline-none active:bg-black/26 dark:bg-white/12 dark:hover-fill:bg-white/18 dark:active:bg-white/24"
             >
               log
             </button>
             <button
               type="button"
               onClick={() => applyUnary("inv", (x) => 1 / x)}
-              className="rounded-ui-item bg-black/14 text-ui-subheadline font-medium text-ui-label outline-none hover-fill:bg-black/20 focus:outline-none active:bg-black/26 dark:bg-white/12 dark:hover-fill:bg-white/18 dark:active:bg-white/24"
+              className="rounded-ui-control bg-black/14 text-ui-small font-medium text-ui-label outline-none hover-fill:bg-black/20 focus:outline-none active:bg-black/26 dark:bg-white/12 dark:hover-fill:bg-white/18 dark:active:bg-white/24"
             >
               1/x
             </button>
@@ -573,7 +573,7 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
                 setDisplay(Number(Math.PI.toPrecision(12)).toString());
                 setWaitingForOperand(false);
               }}
-              className="rounded-ui-item bg-black/14 text-ui-subheadline font-medium text-ui-label outline-none hover-fill:bg-black/20 focus:outline-none active:bg-black/26 dark:bg-white/12 dark:hover-fill:bg-white/18 dark:active:bg-white/24"
+              className="rounded-ui-control bg-black/14 text-ui-small font-medium text-ui-label outline-none hover-fill:bg-black/20 focus:outline-none active:bg-black/26 dark:bg-white/12 dark:hover-fill:bg-white/18 dark:active:bg-white/24"
             >
               π
             </button>
@@ -583,7 +583,7 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
                 setDisplay(Number(Math.E.toPrecision(12)).toString());
                 setWaitingForOperand(false);
               }}
-              className="rounded-ui-item bg-black/14 text-ui-subheadline font-medium text-ui-label outline-none hover-fill:bg-black/20 focus:outline-none active:bg-black/26 dark:bg-white/12 dark:hover-fill:bg-white/18 dark:active:bg-white/24"
+              className="rounded-ui-control bg-black/14 text-ui-small font-medium text-ui-label outline-none hover-fill:bg-black/20 focus:outline-none active:bg-black/26 dark:bg-white/12 dark:hover-fill:bg-white/18 dark:active:bg-white/24"
             >
               e
             </button>
@@ -595,28 +595,28 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
           <button
             type="button"
             onClick={clearAll}
-            className="rounded-ui-item bg-black/14 text-ui-body font-medium text-ui-label outline-none hover-fill:bg-black/20 focus:outline-none active:bg-black/26 dark:bg-white/12 dark:hover-fill:bg-white/18 dark:active:bg-white/24"
+            className="rounded-ui-control bg-black/14 text-ui-body font-medium text-ui-label outline-none hover-fill:bg-black/20 focus:outline-none active:bg-black/26 dark:bg-white/12 dark:hover-fill:bg-white/18 dark:active:bg-white/24"
           >
             {clearLabel}
           </button>
           <button
             type="button"
             onClick={toggleSign}
-            className="rounded-ui-item bg-black/14 text-ui-body font-medium text-ui-label outline-none hover-fill:bg-black/20 focus:outline-none active:bg-black/26 dark:bg-white/12 dark:hover-fill:bg-white/18 dark:active:bg-white/24"
+            className="rounded-ui-control bg-black/14 text-ui-body font-medium text-ui-label outline-none hover-fill:bg-black/20 focus:outline-none active:bg-black/26 dark:bg-white/12 dark:hover-fill:bg-white/18 dark:active:bg-white/24"
           >
             +/−
           </button>
           <button
             type="button"
             onClick={inputPercent}
-            className="rounded-ui-item bg-black/14 text-ui-body font-medium text-ui-label outline-none hover-fill:bg-black/20 focus:outline-none active:bg-black/26 dark:bg-white/12 dark:hover-fill:bg-white/18 dark:active:bg-white/24"
+            className="rounded-ui-control bg-black/14 text-ui-body font-medium text-ui-label outline-none hover-fill:bg-black/20 focus:outline-none active:bg-black/26 dark:bg-white/12 dark:hover-fill:bg-white/18 dark:active:bg-white/24"
           >
             %
           </button>
           <button
             type="button"
             onClick={() => performOperation("/")}
-            className="rounded-ui-item bg-ui-accent text-[16px] font-medium text-white outline-none hover-fill:brightness-110 focus:outline-none active:brightness-90"
+            className="rounded-ui-control bg-ui-accent text-[16px] font-medium text-white outline-none hover-fill:brightness-110 focus:outline-none active:brightness-90"
           >
             ÷
           </button>
@@ -627,7 +627,7 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
               key={d}
               type="button"
               onClick={() => inputDigit(d)}
-              className="rounded-ui-item bg-black/7 text-ui-title-3 font-medium text-ui-label outline-none hover-fill:bg-black/13 focus:outline-none active:bg-black/20 dark:bg-white/24 dark:hover-fill:bg-white/30 dark:active:bg-white/36"
+              className="rounded-ui-control bg-black/7 text-ui-title font-medium text-ui-label outline-none hover-fill:bg-black/13 focus:outline-none active:bg-black/20 dark:bg-white/24 dark:hover-fill:bg-white/30 dark:active:bg-white/36"
             >
               {d}
             </button>
@@ -635,7 +635,7 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
           <button
             type="button"
             onClick={() => performOperation("*")}
-            className="rounded-ui-item bg-ui-accent text-[16px] font-medium text-white outline-none hover-fill:brightness-110 focus:outline-none active:brightness-90"
+            className="rounded-ui-control bg-ui-accent text-[16px] font-medium text-white outline-none hover-fill:brightness-110 focus:outline-none active:brightness-90"
           >
             ×
           </button>
@@ -646,7 +646,7 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
               key={d}
               type="button"
               onClick={() => inputDigit(d)}
-              className="rounded-ui-item bg-black/7 text-ui-title-3 font-medium text-ui-label outline-none hover-fill:bg-black/13 focus:outline-none active:bg-black/20 dark:bg-white/24 dark:hover-fill:bg-white/30 dark:active:bg-white/36"
+              className="rounded-ui-control bg-black/7 text-ui-title font-medium text-ui-label outline-none hover-fill:bg-black/13 focus:outline-none active:bg-black/20 dark:bg-white/24 dark:hover-fill:bg-white/30 dark:active:bg-white/36"
             >
               {d}
             </button>
@@ -654,7 +654,7 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
           <button
             type="button"
             onClick={() => performOperation("-")}
-            className="rounded-ui-item bg-ui-accent text-[16px] font-medium text-white outline-none hover-fill:brightness-110 focus:outline-none active:brightness-90"
+            className="rounded-ui-control bg-ui-accent text-[16px] font-medium text-white outline-none hover-fill:brightness-110 focus:outline-none active:brightness-90"
           >
             −
           </button>
@@ -665,7 +665,7 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
               key={d}
               type="button"
               onClick={() => inputDigit(d)}
-              className="rounded-ui-item bg-black/7 text-ui-title-3 font-medium text-ui-label outline-none hover-fill:bg-black/13 focus:outline-none active:bg-black/20 dark:bg-white/24 dark:hover-fill:bg-white/30 dark:active:bg-white/36"
+              className="rounded-ui-control bg-black/7 text-ui-title font-medium text-ui-label outline-none hover-fill:bg-black/13 focus:outline-none active:bg-black/20 dark:bg-white/24 dark:hover-fill:bg-white/30 dark:active:bg-white/36"
             >
               {d}
             </button>
@@ -673,7 +673,7 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
           <button
             type="button"
             onClick={() => performOperation("+")}
-            className="rounded-ui-item bg-ui-accent text-[16px] font-medium text-white outline-none hover-fill:brightness-110 focus:outline-none active:brightness-90"
+            className="rounded-ui-control bg-ui-accent text-[16px] font-medium text-white outline-none hover-fill:brightness-110 focus:outline-none active:brightness-90"
           >
             +
           </button>
@@ -682,21 +682,21 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
           <button
             type="button"
             onClick={() => inputDigit("0")}
-            className="col-span-2 flex items-center justify-center rounded-ui-item bg-black/7 text-ui-title-3 font-medium text-ui-label outline-none hover-fill:bg-black/13 focus:outline-none active:bg-black/20 dark:bg-white/24 dark:hover-fill:bg-white/30 dark:active:bg-white/36"
+            className="col-span-2 flex items-center justify-center rounded-ui-control bg-black/7 text-ui-title font-medium text-ui-label outline-none hover-fill:bg-black/13 focus:outline-none active:bg-black/20 dark:bg-white/24 dark:hover-fill:bg-white/30 dark:active:bg-white/36"
           >
             0
           </button>
           <button
             type="button"
             onClick={inputDecimal}
-            className="rounded-ui-item bg-black/7 text-ui-title-3 font-medium text-ui-label outline-none hover-fill:bg-black/13 focus:outline-none active:bg-black/20 dark:bg-white/24 dark:hover-fill:bg-white/30 dark:active:bg-white/36"
+            className="rounded-ui-control bg-black/7 text-ui-title font-medium text-ui-label outline-none hover-fill:bg-black/13 focus:outline-none active:bg-black/20 dark:bg-white/24 dark:hover-fill:bg-white/30 dark:active:bg-white/36"
           >
             .
           </button>
           <button
             type="button"
             onClick={performEquals}
-            className="rounded-ui-item bg-ui-accent text-[16px] font-medium text-white outline-none hover-fill:brightness-110 focus:outline-none active:brightness-90"
+            className="rounded-ui-control bg-ui-accent text-[16px] font-medium text-white outline-none hover-fill:brightness-110 focus:outline-none active:brightness-90"
           >
             =
           </button>

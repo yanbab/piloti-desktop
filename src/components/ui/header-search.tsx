@@ -61,7 +61,7 @@ export function HeaderSearch({
             }}
             placeholder={label}
             aria-label={label}
-            className="h-7 w-44 min-w-16 shrink rounded-ui-control border border-ui-separator bg-black/6 pr-6 pl-7 text-ui-callout text-ui-label placeholder:text-ui-label-secondary focus:border-ui-accent focus:outline-none dark:bg-white/10 [&::-webkit-search-cancel-button]:hidden"
+            className="h-7 w-44 min-w-16 shrink rounded-ui-control border border-ui-separator bg-black/6 pr-6 pl-7 text-ui-body text-ui-label placeholder:text-ui-label-secondary focus:border-ui-accent focus:outline-none dark:bg-white/10 [&::-webkit-search-cancel-button]:hidden"
           />
           {query && (
             <button

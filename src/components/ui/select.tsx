@@ -144,8 +144,8 @@ function SelectTrigger({
       data-size={size}
       data-variant={variant}
       className={cn(
-        "inline-flex max-w-full min-w-0 cursor-default items-center justify-between gap-1.5 rounded-ui-item px-2.5 text-ui-body font-medium whitespace-nowrap text-ui-label outline-none select-none transition-colors hover-fill:bg-black/6 focus-visible:ui-focus-ring data-popup-open:bg-black/8 data-disabled:cursor-not-allowed data-disabled:text-ui-label-tertiary data-disabled:hover-fill:bg-transparent dark:hover-fill:bg-white/10 dark:data-popup-open:bg-white/12",
-        size === "sm" && "h-ui-control-medium px-2 text-ui-subheadline",
+        "inline-flex max-w-full min-w-0 cursor-default items-center justify-between gap-1.5 rounded-ui-control px-2.5 text-ui-body font-medium whitespace-nowrap text-ui-label outline-none select-none transition-colors hover-fill:bg-black/6 focus-visible:ui-focus-ring data-popup-open:bg-black/8 data-disabled:cursor-not-allowed data-disabled:text-ui-label-tertiary data-disabled:hover-fill:bg-transparent dark:hover-fill:bg-white/10 dark:data-popup-open:bg-white/12",
+        size === "sm" && "h-ui-control-medium px-2 text-ui-small",
         size === "default" && "h-ui-control-large",
         size === "lg" && "h-ui-control-large",
         className

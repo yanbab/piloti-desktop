@@ -35,21 +35,21 @@ export function UnsavedChangesDialog({
           <button
             type="button"
             onClick={onDiscard}
-            className="rounded-ui-item bg-red-500/12 px-3 py-1.5 text-xs font-medium text-red-500 transition-colors hover-fill:bg-red-500/20"
+            className="rounded-ui-control bg-red-500/12 px-3 py-1.5 text-xs font-medium text-red-500 transition-colors hover-fill:bg-red-500/20"
           >
             {_("Discard")}
           </button>
           <button
             type="button"
             onClick={onCancel}
-            className="rounded-ui-item bg-black/8 px-3 py-1.5 text-xs font-medium text-ui-label transition-colors hover-fill:bg-black/14 dark:bg-white/10 dark:hover-fill:bg-white/16"
+            className="rounded-ui-control bg-black/8 px-3 py-1.5 text-xs font-medium text-ui-label transition-colors hover-fill:bg-black/14 dark:bg-white/10 dark:hover-fill:bg-white/16"
           >
             {_("Cancel")}
           </button>
           <button
             type="button"
             onClick={onSave}
-            className="rounded-ui-item bg-ui-accent px-3 py-1.5 text-xs font-medium text-white transition-opacity hover-fill:opacity-90"
+            className="rounded-ui-control bg-ui-accent px-3 py-1.5 text-xs font-medium text-white transition-opacity hover-fill:opacity-90"
           >
             {_("Save")}
           </button>

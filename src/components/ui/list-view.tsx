@@ -44,7 +44,7 @@ function ListView({ className, ...props }: React.ComponentProps<"table">) {
   return (
     <table
       data-slot="list-view"
-      className={cn("w-full border-collapse text-left text-ui-callout", className)}
+      className={cn("w-full border-collapse text-left text-ui-body", className)}
       {...props}
     />
   )
@@ -63,7 +63,7 @@ function ListViewHeader<K extends string>({
     <thead>
       <tr
         data-slot="list-view-header"
-        className="border-b border-ui-separator text-ui-subheadline font-semibold text-ui-label-secondary"
+        className="border-b border-ui-separator text-ui-small font-semibold text-ui-label-secondary"
       >
         {columns.map((col) => {
           const active = sort?.by === col.id
