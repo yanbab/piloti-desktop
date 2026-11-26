@@ -1,4 +1,5 @@
 import { VFS_HOME } from "@/lib/engine/vfs-home";
+import type { StateFile, StateSource } from "@/lib/ports/state-source";
 import {
   consumeLegacyLocalStorageValue,
   ensureVfsDir,
@@ -42,19 +43,27 @@ export const VFS_STATE_PATHS = {
   cacheDir: `${VFS_HOME}/.cache/piloti`,
 } as const;
 
-export interface VfsHostSync {
-  writeText: (vfsPath: string, content: string) => void;
-  removeFile: (vfsPath: string) => void;
-}
+/** The browser demo: the browser VFS is the storage, and is read directly. */
+const browserState: StateSource = {
+  files: () =>
+    getVfsSnapshotEntries()
+      .filter((e) => e.kind === "file")
+      .map((e) => ({ path: e.path, name: e.name, content: e.content ?? "", updatedAt: e.updatedAt })),
+  read(path) {
+    const entry = getVfsEntry(path);
+    return entry?.kind === "file" ? (entry.content ?? "") : null;
+  },
+  write: (path, content) => void writeVfsTextFile(path, content),
+  remove: (path) => void removeVfsEntry(path),
+  subscribe: (path, listener) => subscribeWebVfs(listener, { path, mode: "exact" }),
+  subscribeDir: (path, listener) => subscribeWebVfs(listener, { path, mode: "children" }),
+};
 
-let hostSync: VfsHostSync | null = null;
+let source: StateSource = browserState;
 
-/**
- * Registers an optional host-filesystem mirror (Domicile on Linux) so state
- * and config writes to `web-vfs` also persist under the user's real `$HOME`.
- */
-export function registerVfsHostSync(sync: VfsHostSync | null): void {
-  hostSync = sync;
+/** The Linux entry points set their disk-backed store here before the shell loads. */
+export function setStateSource(next: StateSource | null): void {
+  source = next ?? browserState;
 }
 
 /**
@@ -76,10 +85,8 @@ export function readVfsStateText(
   legacyStorageKeys?: string | readonly string[],
 ): string | null {
   const norm = normalizeVfsPath(vfsPath);
-  const existing = getVfsEntry(norm);
-  if (existing?.kind === "file") {
-    return existing.content ?? "";
-  }
+  const existing = source.read(norm);
+  if (existing !== null) return existing;
   const keys =
     typeof legacyStorageKeys === "string"
       ? [legacyStorageKeys]
@@ -88,8 +95,7 @@ export function readVfsStateText(
     const legacy = consumeLegacyLocalStorageValue(key);
     if (legacy !== null) {
       try {
-        writeVfsTextFile(norm, legacy);
-        hostSync?.writeText(norm, legacy);
+        source.write(norm, legacy);
       } catch {
         // ignore migration write failures (e.g., quota)
       }
@@ -105,12 +111,8 @@ export function readVfsStateText(
  */
 export function writeVfsStateText(vfsPath: string, content: string): boolean {
   const norm = normalizeVfsPath(vfsPath);
-  const existing = getVfsEntry(norm);
-  if (existing?.kind === "file" && (existing.content ?? "") === content) {
-    return false;
-  }
-  writeVfsTextFile(norm, content);
-  hostSync?.writeText(norm, content);
+  if (source.read(norm) === content) return false;
+  source.write(norm, content);
   return true;
 }
 
@@ -148,14 +150,11 @@ export function writeVfsStateJson(
 }
 
 /**
- * Removes a state/config file from VFS (and host mirror if registered).
+ * Removes a state/config file.
  */
 export function removeVfsStateFile(vfsPath: string): void {
   const norm = normalizeVfsPath(vfsPath);
-  const removed = removeVfsEntry(norm);
-  if (removed) {
-    hostSync?.removeFile(norm);
-  }
+  if (source.read(norm) !== null) source.remove(norm);
 }
 
 /**
@@ -167,20 +166,24 @@ export function subscribeVfsPath(
   onChange: (content: string | null) => void,
 ): () => void {
   const norm = normalizeVfsPath(vfsPath);
-  const readCurrent = (): string | null => {
-    const entry = getVfsEntry(norm);
-    return entry?.kind === "file" ? (entry.content ?? "") : null;
-  };
-  let lastContent = readCurrent();
-  return subscribeWebVfs(
-    () => {
-      const nextContent = readCurrent();
-      if (nextContent === lastContent) return;
-      lastContent = nextContent;
-      onChange(nextContent);
-    },
-    { path: norm, mode: "exact" },
-  );
+  const from = source;
+  let lastContent = from.read(norm);
+  return from.subscribe(norm, () => {
+    const nextContent = from.read(norm);
+    if (nextContent === lastContent) return;
+    lastContent = nextContent;
+    onChange(nextContent);
+  });
+}
+
+/** The files behind the shell's state (the whole VFS in the browser demo). */
+export function listVfsStateFiles(): StateFile[] {
+  return source.files();
+}
+
+/** Subscribes to changes of the files directly inside a config folder. */
+export function subscribeVfsStateDir(dir: string, onChange: () => void): () => void {
+  return source.subscribeDir(normalizeVfsPath(dir), onChange);
 }
 
 /** Legacy `.txt` / extensionless state files that are rewritten as JSON. */
@@ -212,11 +215,11 @@ const LEGACY_STATE_FILE_MIGRATIONS: ReadonlyArray<{
  */
 export function migrateLegacyStateFilesToJson(): void {
   for (const m of LEGACY_STATE_FILE_MIGRATIONS) {
-    const old = getVfsEntry(normalizeVfsPath(m.from));
-    if (old?.kind !== "file") continue;
+    const old = source.read(normalizeVfsPath(m.from));
+    if (old === null) continue;
     try {
-      if (getVfsEntry(normalizeVfsPath(m.to))?.kind !== "file") {
-        writeVfsStateJson(m.to, m.convert(old.content ?? ""));
+      if (source.read(normalizeVfsPath(m.to)) === null) {
+        writeVfsStateJson(m.to, m.convert(old));
       }
     } catch {
       // ignore write failures; keep legacy file for the next attempt
@@ -234,6 +237,8 @@ const CONFIG_DIR = `${VFS_HOME}/.config/piloti`;
  * `~/.config/piloti` without overwriting, then removes the old directory.
  */
 export function migrateLegacyConfigDir(): void {
+  // On Linux the entry point moves the real folder (`piloti-desktop.tsx`).
+  if (source !== browserState) return;
   const prefix = `${LEGACY_CONFIG_DIR}/`;
   const entries = getVfsSnapshotEntries()
     .filter((e) => e.kind === "file" && e.path.startsWith(prefix))
@@ -247,10 +252,7 @@ export function migrateLegacyConfigDir(): void {
     const destDir = dest.slice(0, slash);
     try {
       ensureVfsDir(destDir);
-      const moved = moveVfsEntry(entry.path, destDir);
-      if (moved) {
-        hostSync?.writeText(dest, moved.content ?? "");
-      }
+      moveVfsEntry(entry.path, destDir);
     } catch {
       // ignore; leave the file in place
     }

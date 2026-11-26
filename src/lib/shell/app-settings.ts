@@ -11,8 +11,7 @@
  */
 import { VFS_HOME } from "@/lib/engine/vfs-home";
 import { parseIniText, serializeIniText, type IniRecord } from "@/lib/config/ini";
-import { readVfsStateText, writeVfsStateText } from "@/lib/engine/vfs-state";
-import { subscribeWebVfs } from "@/lib/engine-web/web-vfs";
+import { readVfsStateText, subscribeVfsStateDir, writeVfsStateText } from "@/lib/engine/vfs-state";
 
 export const APP_SETTINGS_DIR = `${VFS_HOME}/.config/piloti/apps`;
 const SECTION = "General";
@@ -66,13 +65,10 @@ export function subscribeAppSettings(listener: () => void): () => void {
   listeners.add(listener);
   if (!unsubscribeDir) {
     // Edits made in Folders / Text Editor apply live.
-    unsubscribeDir = subscribeWebVfs(
-      () => {
-        cache.clear();
-        notify();
-      },
-      { path: APP_SETTINGS_DIR, mode: "children" },
-    );
+    unsubscribeDir = subscribeVfsStateDir(APP_SETTINGS_DIR, () => {
+      cache.clear();
+      notify();
+    });
   }
   return () => {
     listeners.delete(listener);

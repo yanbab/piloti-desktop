@@ -9,7 +9,7 @@ import { writeNativeShellLog } from "@/lib/engine-native/shell-log";
 
 export type ShellLogWriter = (text: string) => Promise<unknown>;
 
-export function createShellLogWriter(piloti: Piloti): ShellLogWriter {
+export function createShellLogWriter(piloti: Pick<Piloti, "files" | "processes">): ShellLogWriter {
   if (getEngine().capabilities.realFilesystem) {
     return (text) => writeNativeShellLog(piloti, text);
   }

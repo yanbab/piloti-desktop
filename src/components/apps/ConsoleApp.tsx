@@ -66,6 +66,7 @@ import {
   subscribeVfsPath,
   VFS_STATE_PATHS,
   writeVfsStateString,
+  listVfsStateFiles,
 } from "@/lib/engine/vfs-state";
 
 export type ConsoleModuleId =
@@ -654,9 +655,7 @@ function InspectorModule() {
           { label: "~/.local/share", prefix: `${VFS_HOME}/.local/share` },
           { label: "~/.cache/piloti", prefix: `${VFS_HOME}/.cache/piloti` },
         ];
-        const allFiles = getVfsSnapshotEntries()
-          .filter((entry) => entry.kind === "file")
-          .sort((a, b) => a.path.localeCompare(b.path));
+        const allFiles = listVfsStateFiles().sort((a, b) => a.path.localeCompare(b.path));
         return (
           <div className="space-y-4">
             {stateRoots.map((group) => {

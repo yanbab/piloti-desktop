@@ -4,7 +4,7 @@
  * their totals overlap and can exceed the startup time: read them as "where
  * the work is". Costs a timestamp per call and stops after the report.
  */
-import type { Piloti } from "@/lib/engine/piloti";
+import type { Domicile } from "@domicile-desktop/sdk/desktop/desktop";
 import { bootElapsedMs, bootPhases } from "./perf-log";
 
 const REPORT_AFTER_MS = 15_000;
@@ -79,7 +79,7 @@ function report(): void {
 }
 
 /** Starts profiling and returns `domicile` with its file and process calls timed. */
-export function profileStartup(piloti: Piloti): Piloti {
+export function profileStartup<T extends Domicile>(piloti: T): T {
   recording = true;
   try {
     new PerformanceObserver((list) => {

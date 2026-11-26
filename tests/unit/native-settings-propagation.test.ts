@@ -1,7 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import fs from "node:fs";
 import path from "node:path";
-import { refreshFromHostFile } from "@/lib/engine-native/host-state-refresh";
 
 const SRC = path.resolve(import.meta.dir, "../../src");
 
@@ -38,55 +37,26 @@ describe("native $HOME", () => {
   // `vfs-home` reads `$HOME` once, when it loads. Loaded before the entry has
   // asked for it, the Linux shell uses `/home/user`: settings.ini saved from
   // the Text Editor then goes nowhere.
-  it("the native entry loads no VFS path before it knows $HOME", () => {
+  it("the native entries load no VFS path before they know $HOME", () => {
     const loaded = staticImports(path.join(SRC, "piloti-desktop.tsx"));
     expect(loaded).toContain("lib/core/console-store.ts");
     expect(loaded).not.toContain("lib/engine/vfs-home.ts");
-  });
-});
-
-describe("refreshFromHostFile", () => {
-  const file = (disk: string | null, cache = "color-scheme=light") => {
-    const state = { cache, writing: false };
-    return {
-      state,
-      host: {
-        isWriting: () => state.writing,
-        readCache: () => state.cache,
-        readHost: async () => disk,
-        writeCache: (text: string) => void (state.cache = text),
-      },
-    };
-  };
-
-  it("takes an edit made on disk", async () => {
-    const { state, host } = file("color-scheme=dark");
-    await refreshFromHostFile(host);
-    expect(state.cache).toBe("color-scheme=dark");
+    expect(staticImports(path.join(SRC, "piloti-greeter.tsx"))).not.toContain("lib/engine/vfs-home.ts");
   });
 
-  it("keeps the cache for a missing or half-written file", async () => {
-    for (const disk of [null, "", "\n"]) {
-      const { state, host } = file(disk);
-      await refreshFromHostFile(host);
-      expect(state.cache).toBe("color-scheme=light");
+  // The bundle inlines `import()`, but a module still loads when first imported.
+  it("and import none before the line that sets $HOME", () => {
+    for (const name of ["piloti-desktop.tsx", "piloti-greeter.tsx"]) {
+      const entry = path.join(SRC, name);
+      const source = fs.readFileSync(entry, "utf8");
+      const setsHome = source.search(/__PILOTI_VFS_HOME__ = /);
+      expect(setsHome).toBeGreaterThan(0);
+      // `boot` runs top to bottom: what precedes the assignment loads before it.
+      const before = source.slice(source.indexOf("async function boot"), setsHome);
+      for (const [, spec] of before.matchAll(/import\(\s*["']([^"']+)["']\s*\)/g)) {
+        const target = resolveImport(entry, spec!)!;
+        expect([spec, staticImports(target).includes("lib/engine/vfs-home.ts")]).toEqual([spec, false]);
+      }
     }
-  });
-
-  it("lets the shell's own write win, started before or during the read", async () => {
-    const before = file("old");
-    before.state.writing = true;
-    await refreshFromHostFile(before.host);
-    expect(before.state.cache).toBe("color-scheme=light");
-
-    const during = file("old");
-    await refreshFromHostFile({
-      ...during.host,
-      readHost: async () => {
-        during.state.cache = "color-scheme=default";
-        return "old";
-      },
-    });
-    expect(during.state.cache).toBe("color-scheme=default");
   });
 });

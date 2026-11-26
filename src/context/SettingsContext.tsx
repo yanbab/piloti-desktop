@@ -17,15 +17,11 @@ import {
 } from "@/data/web-apps";
 import {
   WEB_VFS_HOME,
-  getVfsEntry,
   subscribeWebVfs,
-  writeVfsTextFile,
 } from "@/lib/engine-web/web-vfs";
-import { toDomicilePath } from "@/lib/engine/fs-bridge";
 import {
   readVfsStateJson,
   readVfsStateText,
-  registerVfsHostSync,
   runVfsStateMigrations,
   removeVfsStateFile,
   subscribeVfsPath,
@@ -38,8 +34,6 @@ import {
   parseDesktopSettingsRaw,
   serializeDesktopSettingsIni,
 } from "@/lib/config/piloti-settings-ini";
-import { watchNativeDir } from "@/lib/engine-native/file-watch";
-import { refreshFromHostFile } from "@/lib/engine-native/host-state-refresh";
 import {
   installWebAppDesktopEntry,
   loadWebAppsFromDesktopEntries,
@@ -588,109 +582,6 @@ export function useSettingsValue(options?: {
     };
   }, [flushSettingsIni]);
 
-  React.useEffect(() => {
-    if (isBrowserRuntime) {  // FIXME : Capabilities
-      registerVfsHostSync(null);
-      return;
-    }
-    const ensuredDirs = new Set<string>();
-    const ensureParentDir = async (vfsPath: string) => {
-      const idx = vfsPath.lastIndexOf("/");
-      if (idx <= 0) return;
-      const relDir = toDomicilePath(vfsPath.slice(0, idx));
-      if (!relDir || relDir === "." || ensuredDirs.has(relDir)) return;
-      ensuredDirs.add(relDir);
-      await piloti.processes.run(["mkdir", "-p", "--", relDir]).catch(() => {
-        ensuredDirs.delete(relDir);
-      });
-    };
-    let cancelled = false;
-    // Writes in flight: what's on disk meanwhile is older than the cache.
-    const writing = new Map<string, number>();
-    const writeHostFile = async (vfsPath: string, content: string) => {
-      writing.set(vfsPath, (writing.get(vfsPath) ?? 0) + 1);
-      try {
-        await ensureParentDir(vfsPath);
-        const bytes = new TextEncoder().encode(content);
-        await hostFiles(piloti).write(toDomicilePath(vfsPath), bytes);
-      } finally {
-        writing.set(vfsPath, (writing.get(vfsPath) ?? 1) - 1);
-      }
-    };
-    registerVfsHostSync({
-      writeText: (vfsPath, content) => {
-        void writeHostFile(vfsPath, content).catch(() => undefined);
-      },
-      removeFile: (vfsPath) => {
-        void piloti.processes
-          .run(["rm", "-f", "--", toDomicilePath(vfsPath)])
-          .catch(() => undefined);
-      },
-    });
-
-    // Move leftovers of the legacy ~/.config/Piloti directory to ~/.config/piloti.
-    void piloti.processes
-      .run([
-        "sh",
-        "-c",
-        'd="$HOME/.config/Piloti"; n="$HOME/.config/piloti"; if [ -d "$d" ]; then mkdir -p "$n" && cp -rn "$d"/. "$n"/ && rm -rf "$d"; fi',
-      ])
-      .catch(() => undefined);
-
-    // Hydrate settings.ini from the real Linux $HOME if present, or seed it on
-    // disk when migrated during initial render before hostSync was registered.
-    void (async () => {
-      const relSettings = toDomicilePath(VFS_STATE_PATHS.settings);
-      const res = await hostFiles(piloti).readText(relSettings);
-      if (cancelled) return;
-      const hostRaw = res.match({
-        Ok: (text) => (text.trim().length > 0 ? text : null),
-        Err: () => null,
-      });
-      if (hostRaw !== null) {
-        if ((getVfsEntry(VFS_STATE_PATHS.settings)?.content ?? "") !== hostRaw) {
-          writeVfsTextFile(VFS_STATE_PATHS.settings, hostRaw);
-        }
-      } else {
-        const currentIni =
-          getVfsEntry(VFS_STATE_PATHS.settings)?.content ||
-          serializeDesktopSettingsIni(settingsRef.current);
-        await writeHostFile(VFS_STATE_PATHS.settings, currentIni);
-      }
-    })().catch(() => undefined);
-
-    // The VFS only caches the disk: pick up edits other programs (any editor,
-    // a terminal) make to the config files. Their VFS subscribers apply them.
-    const stopWatch = watchNativeDir(
-      hostFiles(piloti),
-      toDomicilePath(`${WEB_VFS_HOME}/.config/piloti`),
-      () => {
-        for (const vfsPath of [VFS_STATE_PATHS.settings, VFS_STATE_PATHS.locale]) {
-          void refreshFromHostFile({
-            isWriting: () =>
-              (writing.get(vfsPath) ?? 0) > 0 ||
-              (vfsPath === VFS_STATE_PATHS.settings && pendingSettingsIniRef.current !== null),
-            readCache: () => getVfsEntry(vfsPath)?.content ?? null,
-            readHost: async () =>
-              (await hostFiles(piloti).readText(toDomicilePath(vfsPath))).match({
-                Ok: (text) => text,
-                Err: () => null,
-              }),
-            writeCache: (text) => {
-              if (!cancelled) writeVfsTextFile(vfsPath, text);
-            },
-          }).catch(() => undefined);
-        }
-      },
-    );
-
-    return () => {
-      cancelled = true;
-      stopWatch();
-      registerVfsHostSync(null);
-    };
-  }, [piloti, isBrowserRuntime]);  // FIXME : Capabilities
-
   // What a settings change means outside the page (GNOME settings, hardware).
   const applySystemSettings = React.useCallback(
     (
@@ -833,19 +724,19 @@ export function useSettingsValue(options?: {
   React.useEffect(() => {
     try {
       runVfsStateMigrations();
-      if (!getVfsEntry(VFS_STATE_PATHS.settings)) {
+      if (readVfsStateText(VFS_STATE_PATHS.settings) === null) {
         writeVfsStateText(
           VFS_STATE_PATHS.settings,
           serializeDesktopSettingsIni(settingsRef.current)
         );
       }
-      if (!getVfsEntry(VFS_STATE_PATHS.windowBounds)) {
+      if (readVfsStateText(VFS_STATE_PATHS.windowBounds) === null) {
         writeVfsStateJson(
           VFS_STATE_PATHS.windowBounds,
           settingsRef.current.savedWindowBounds
         );
       }
-      if (!getVfsEntry(VFS_STATE_PATHS.desktopIcons)) {
+      if (readVfsStateText(VFS_STATE_PATHS.desktopIcons) === null) {
         writeVfsStateJson(
           VFS_STATE_PATHS.desktopIcons,
           settingsRef.current.desktopIconPositions

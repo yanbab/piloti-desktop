@@ -1,9 +1,7 @@
-import { hostFiles } from "@/lib/engine/host-files";
 import { VFS_HOME } from "@/lib/engine/vfs-home";
 import type { Piloti } from "@/lib/engine/piloti";
 import { type IniRecord, parseIniText, serializeIniText } from "@/lib/config/ini";
 import { readVfsStateText, writeVfsStateText } from "@/lib/engine/vfs-state";
-import { isWebEngine } from "@/lib/engine/engine";
 
 export { type IniRecord, parseIniText, serializeIniText };
 
@@ -26,50 +24,21 @@ export function getCachedPilotiAppIni(appName: string): IniRecord {
   }
 }
 
-const ensuredIniDirs = new Set<string>();
-
-function isBrowserHostRuntime(): boolean {
-  return isWebEngine();
-}
-
+/** The same as `getCachedPilotiAppIni`: the state store follows the disk. */
 export async function readPilotiAppIni(
-  piloti: Piloti | null | undefined,
+  _piloti: Piloti | null | undefined,
   appName: string
 ): Promise<IniRecord> {
-  const relPath = `${PILOTI_INI_DIR}/${appName}.ini`;
-  const vfsPath = getPilotiAppIniVfsPath(appName);
-  if (piloti && !isBrowserHostRuntime()) {
-    try {
-      const res = await hostFiles(piloti).readText(relPath);
-      return res.match({
-        Ok: (text) => {
-          try {
-            writeVfsStateText(vfsPath, text);
-          } catch {
-            // ignore
-          }
-          return parseIniText(text);
-        },
-        Err: () => getCachedPilotiAppIni(appName),
-      });
-    } catch {
-      return getCachedPilotiAppIni(appName);
-    }
-  }
   return getCachedPilotiAppIni(appName);
 }
 
 export async function writePilotiAppIni(
-  piloti: Piloti | null | undefined,
+  _piloti: Piloti | null | undefined,
   appName: string,
   section: string,
   values: Record<string, string | number | boolean>
 ): Promise<void> {
-  const cached = getCachedPilotiAppIni(appName);
-  const current =
-    Object.keys(cached).length > 0
-      ? cached
-      : await readPilotiAppIni(piloti, appName);
+  const current = getCachedPilotiAppIni(appName);
   const next: IniRecord = {
     ...current,
     [section]: {
@@ -79,23 +48,10 @@ export async function writePilotiAppIni(
       ),
     },
   };
-  const serialized = serializeIniText(next);
   try {
-    writeVfsStateText(getPilotiAppIniVfsPath(appName), serialized);
+    writeVfsStateText(getPilotiAppIniVfsPath(appName), serializeIniText(next));
   } catch {
     // ignore
-  }
-  if (piloti && !isBrowserHostRuntime()) {
-    try {
-      if (!ensuredIniDirs.has(PILOTI_INI_DIR)) {
-        await hostFiles(piloti).createDir(".config").catch(() => undefined);
-        await hostFiles(piloti).createDir(PILOTI_INI_DIR).catch(() => undefined);
-        ensuredIniDirs.add(PILOTI_INI_DIR);
-      }
-      await hostFiles(piloti).write(`${PILOTI_INI_DIR}/${appName}.ini`, serialized);
-    } catch {
-      ensuredIniDirs.delete(PILOTI_INI_DIR);
-    }
   }
 }
 

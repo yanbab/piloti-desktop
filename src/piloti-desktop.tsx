@@ -7,10 +7,24 @@ import { startBootPhase } from "./lib/core/perf-log";
 import type { Shell as ShellModule } from "@domicile-desktop/sdk/shell";
 import "./styles/globals.css";
 import { nativeEngine, setEngine } from "./lib/engine/engine";
+import type { Vfs } from "./lib/ports/vfs";
 
 setEngine(nativeEngine);
 
 const CACHE_MARKER_KEY = "piloti.vfs.native-memory.v1";
+
+/** Moves what is left of `~/.config/Piloti` (capital P) into `~/.config/piloti`. */
+async function moveLegacyConfigDir(piloti: Parameters<ShellModule>[1], config: string) {
+  if (!(await hostFiles(piloti).stat(`${config}/Piloti`)).isOk()) return;
+  await piloti.processes.run([
+    "sh",
+    "-c",
+    'mkdir -p "$2" && cp -rn "$1"/. "$2"/ && rm -rf "$1"',
+    "sh",
+    `${config}/Piloti`,
+    `${config}/piloti`,
+  ]);
+}
 
 /**
  * Entry of the native shell. The VFS root must be the real `$HOME`, and VFS
@@ -23,6 +37,7 @@ const CACHE_MARKER_KEY = "piloti.vfs.native-memory.v1";
  */
 async function boot(root: HTMLElement, piloti: Parameters<ShellModule>[1]) {
   const finishState = startBootPhase("home + saved state");
+  let nativeVfs: Vfs | undefined;
   try {
     const finishHome = startBootPhase("stat $HOME");
     const stat = await hostFiles(piloti).stat(".");
@@ -47,11 +62,17 @@ async function boot(root: HTMLElement, piloti: Parameters<ShellModule>[1]) {
         }
       }
       const { memoryBlobStorage } = await import("@/lib/ports/vfs-persistence");
-      const [{ createNativeFileStore }, { preloadNativeState, createNativeKeyValueStorage }] =
-        await Promise.all([
-          import("@/lib/engine-native/native-file-store"),
-          import("@/lib/engine-native/state-preload"),
-        ]);
+      const [
+        { createNativeFileStore },
+        { createNativeKeyValueStorage },
+        { createNativeStateStore },
+        { setStateSource },
+      ] = await Promise.all([
+        import("@/lib/engine-native/native-file-store"),
+        import("@/lib/engine-native/state-preload"),
+        import("@/lib/engine-native/state-store"),
+        import("@/lib/engine/vfs-state"),
+      ]);
       const store = createNativeFileStore(piloti);
       const finishKv = startBootPhase("saved key/values");
       const kv = await createNativeKeyValueStorage(store, (key) => key === vfs.WEB_VFS_STORAGE_KEY);
@@ -66,11 +87,10 @@ async function boot(root: HTMLElement, piloti: Parameters<ShellModule>[1]) {
         void store.setEmblems?.(path, names, vfs.MANAGED_GNOME_EMBLEMS),
       );
       const finishPreload = startBootPhase("saved state files");
-      const loaded = await preloadNativeState(store, {
-        ensureDir: (path) => void vfs.ensureVfsDir(path),
-        writeText: (path, content) => void vfs.writeVfsTextFile(path, content),
-      });
-      finishPreload(`${loaded} files`);
+      nativeVfs = (await import("@/lib/engine-native/vfs")).createNativeVfs(piloti);
+      await moveLegacyConfigDir(piloti, `${home}/.config`).catch(() => undefined);
+      setStateSource(await createNativeStateStore(nativeVfs, home));
+      finishPreload();
     }
   } catch (error) {
     console.error("Could not resolve $HOME; using the virtual /home/user", error);
@@ -80,10 +100,15 @@ async function boot(root: HTMLElement, piloti: Parameters<ShellModule>[1]) {
   await loadAppCatalog(piloti);
   finishApps();
   const finishImport = startBootPhase("desktop module");
-  const app = await import("./piloti-desktop-app");
+  // Imported late, like the desktop: no module may be loaded before `$HOME` is known.
+  const [app, { createNativeVfs }, { withVfs }] = await Promise.all([
+    import("./piloti-desktop-app"),
+    import("@/lib/engine-native/vfs"),
+    import("@/lib/engine/with-vfs"),
+  ]);
   finishImport();
   const finishRender = startBootPhase("first render");
-  app.Shell(root, piloti);
+  app.Shell(root, withVfs(piloti, nativeVfs ?? createNativeVfs(piloti)));
   finishRender();
 }
 

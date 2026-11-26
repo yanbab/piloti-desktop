@@ -16,7 +16,7 @@ import {
   readVfsStateJson,
   readVfsStateString,
   readVfsStateText,
-  registerVfsHostSync,
+  setStateSource,
   removeVfsStateFile,
   subscribeVfsPath,
   VFS_STATE_PATHS,
@@ -51,11 +51,11 @@ describe("vfs-state", () => {
       },
     });
     clearAllWebVfsBackingStorage();
-    registerVfsHostSync(null);
+    setStateSource(null);
   });
 
   afterEach(() => {
-    registerVfsHostSync(null);
+    setStateSource(null);
     clearAllWebVfsBackingStorage();
     Object.defineProperty(globalThis, "localStorage", {
       configurable: true,
@@ -147,22 +147,27 @@ describe("vfs-state", () => {
     unsub();
   });
 
-  it("forwards writes and removals to an optional host mirror and sanitizes cache paths", () => {
+  it("uses the source it is given, and sanitizes cache paths", () => {
     const ops: string[] = [];
-    registerVfsHostSync({
-      writeText: (path, content) => ops.push(`write:${path}:${content.trim()}`),
-      removeFile: (path) => ops.push(`rm:${path}`),
+    const files = new Map<string, string>();
+    setStateSource({
+      files: () => [],
+      read: (path) => files.get(path) ?? null,
+      write: (path, content) => void (files.set(path, content), ops.push(`write:${path}:${content}`)),
+      remove: (path) => void (files.delete(path), ops.push(`rm:${path}`)),
+      subscribe: () => () => {},
+      subscribeDir: () => () => {},
     });
 
     const cachePath = getVfsCacheFilePath("piloti.web-app-meta:v1");
     expect(cachePath).toBe("/home/user/.cache/piloti/piloti.web-app-meta-v1.json");
 
     writeVfsStateJson(cachePath, { ok: true }, false);
+    expect(writeVfsStateJson(cachePath, { ok: true }, false)).toBe(false);
     removeVfsStateFile(cachePath);
-    expect(ops).toEqual([
-      `write:${cachePath}:{"ok":true}`,
-      `rm:${cachePath}`,
-    ]);
+    removeVfsStateFile(cachePath);
+    expect(ops).toEqual([`write:${cachePath}:{"ok":true}`, `rm:${cachePath}`]);
+    expect(getVfsEntry(cachePath)).toBeUndefined();
   });
 
   it("serializes and parses desktop settings in GSettings-style .ini format", () => {

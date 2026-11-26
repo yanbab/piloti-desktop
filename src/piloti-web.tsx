@@ -12,6 +12,8 @@ import { demoVfsSeed } from "./lib/engine-web/vfs-seed";
 import { loadDataFiles } from "./lib/engine-web/data-files";
 import { setVfsSeed } from "./lib/engine-web/web-vfs";
 import { installDynamicFavicon } from "./lib/engine-web/dynamic-favicon";
+import { createWebVfs } from "./lib/engine-web/vfs";
+import { withVfs } from "./lib/engine/with-vfs";
 
 setEngine(webEngine);
 setVfsSeed(demoVfsSeed);
@@ -43,13 +45,14 @@ async function start(root: HTMLElement) {
   if (isolatedApp === "text-editor") {
     // The frame's own desktop, over the same demo VFS as the shell's.
     const { createBrowserDomicile } = await import("./lib/engine-web");
+    const domicile = createBrowserDomicile();
     const windowId = params.get("windowId") ?? "";
     const isCsd = params.get("csd") !== "0";
     const initialPath = params.get("path") ?? undefined;
     createRoot(root).render(
       <ShellErrorBoundary>
         <AppChromeProvider value={{ appId: "text-editor", windowId, decorations: isCsd ? "client" : "server" }}>
-          <DomicileProvider domicile={createBrowserDomicile()}>
+          <DomicileProvider domicile={withVfs(domicile, createWebVfs(domicile))}>
             <React.Suspense fallback={null}>
               <TextEditorApp initialPath={initialPath} windowId={windowId} />
             </React.Suspense>
@@ -79,7 +82,8 @@ async function start(root: HTMLElement) {
       const host = createBrowserDomicile();
       installConsoleCapture();
       attachConsoleDiskSink(createShellLogWriter(host));
-      const piloti = profileStartup(host);
+      const timed = profileStartup(host);
+      const piloti = withVfs(timed, createWebVfs(timed));
       // The apps first: the shell's modules expect the catalog.
       await loadAppCatalog(piloti);
       const { Shell } = await import("./piloti-desktop-app");

@@ -7,11 +7,12 @@
  */
 import { useDomicile } from "@domicile-desktop/react/domicile-provider";
 import type { Domicile } from "@domicile-desktop/sdk/desktop/desktop";
+import type { Vfs } from "@/lib/ports/vfs";
 
-/** What engine and UI code are handed: all of Domicile's desktop. */
-export type Piloti = Domicile;
+/** What engine and UI code are handed: all of Domicile's desktop, plus `vfs`. */
+export type Piloti = Domicile & { readonly vfs: Vfs };
 
-export const usePiloti = (): Piloti => useDomicile();
+export const usePiloti = (): Piloti => useDomicile() as Piloti;
 
 /** What the shell adds. `windows` stays Domicile's (the Linux client windows). */
 export interface PilotiShellApi {
@@ -59,5 +60,6 @@ export function extendDomicile(domicile: Piloti, shell: PilotiShellApi): PilotiG
     Object.create(domicile.notifications) as Piloti["notifications"],
     shell.notifications,
   );
-  return { ...domicile, ...shell, notifications };
+  // `vfs` is not an own property (see `with-vfs.ts`), so the spread skips it.
+  return { ...domicile, vfs: domicile.vfs, ...shell, notifications };
 }

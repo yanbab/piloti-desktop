@@ -117,7 +117,7 @@ const thumbnailDataUrlCache = new Map<string, string | null>();
  * on a native Domicile host and returns a `data:image/png;base64,...` URL when present.
  */
 export async function lookupXdgThumbnailDataUrl(
-  piloti: Piloti,
+  piloti: Pick<Piloti, "files">,
   absolutePath: string,
   preferredSizes: readonly XdgThumbnailSize[] = ["large", "normal"]
 ): Promise<string | null> {

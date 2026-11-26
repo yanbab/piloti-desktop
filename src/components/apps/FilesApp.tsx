@@ -169,8 +169,6 @@ import {
   serializeGtkBookmarks,
   type GtkBookmark,
 } from "@/lib/xdg/xdg-bookmarks";
-import { watchNativeDir } from "@/lib/engine-native/file-watch";
-import { subscribeVfsPath } from "@/lib/engine/vfs-state";
 import { useOpenPath } from "@/hooks/use-open-path";
 
 interface XdgPlaceItem {
@@ -953,11 +951,11 @@ export function FilesApp({
       setBookmarks(parseGtkBookmarks(text)),
     );
   }, [bookmarksFile, piloti, realFilesystem]);
-  React.useEffect(() => {
-    loadBookmarks();
-    if (!realFilesystem) return subscribeVfsPath(bookmarksFile, loadBookmarks);
-    return watchNativeDir(hostFiles(piloti), ".config/gtk-3.0", loadBookmarks);
-  }, [bookmarksFile, piloti, realFilesystem, loadBookmarks]);
+  // The watch calls once when in place: the first load too.
+  React.useEffect(
+    () => piloti.vfs.watch(bookmarksFile, loadBookmarks),
+    [bookmarksFile, piloti.vfs, loadBookmarks],
+  );
   const saveBookmarks = React.useCallback(
     async (next: GtkBookmark[]) => {
       setBookmarks(next);

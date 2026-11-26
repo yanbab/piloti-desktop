@@ -51,7 +51,7 @@ export function toDomicilePath(vfsPath: string): string {
 }
 
 /** FileStore over the compositor's file calls (`domicile.files`). */
-export function createNativeFileStore(piloti: Piloti): FileStore {
+export function createNativeFileStore(piloti: Pick<Piloti, "files" | "processes">): FileStore {
   const stat = async (path: string): Promise<FileStoreEntry | null> => {
     if (typeof piloti.files.stat !== "function") return null;
     const res = await piloti.files.stat(toDomicilePath(path));
