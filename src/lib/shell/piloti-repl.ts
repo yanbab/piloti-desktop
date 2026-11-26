@@ -44,15 +44,28 @@ const AsyncFunction = Object.getPrototypeOf(async function () {
   /* constructor access */
 }).constructor as new (...args: string[]) => (...values: unknown[]) => Promise<unknown>;
 
+/** The native shell's content security policy forbids `eval`. */
+const NEEDS_EVAL = "Loops, blocks and scripts need eval, which this shell's security policy blocks.";
+const BLOCK_STATEMENT = /^\s*(for|while|do|if|switch|try|function|class|async\s+function)\b/;
+
+/** `evaluateLine` where `eval` is blocked: expressions and simple statements. */
+export async function evaluateWithoutEval(code: string, scope: Record<string, unknown>): Promise<unknown> {
+  if (BLOCK_STATEMENT.test(code)) throw new Error(NEEDS_EVAL);
+  const { evaluateCspSafe } = await import("@/lib/shell/csp-repl-eval");
+  return evaluateCspSafe(code, scope);
+}
+
 /** Evaluates a line as an expression, else as statements, with `scope` in reach. */
 export async function evaluateLine(code: string, scope: Record<string, unknown>): Promise<unknown> {
+  const typed = code;
   const names = Object.keys(scope);
   const values = names.map((n) => scope[n]);
   if (scope.__loop) code = guardLoops(code);
   let fn: (...values: unknown[]) => Promise<unknown>;
   try {
     fn = new AsyncFunction(...names, `return (${code}\n)`);
-  } catch {
+  } catch (error) {
+    if (error instanceof EvalError) return evaluateWithoutEval(typed, scope);
     fn = new AsyncFunction(...names, code);
   }
   return fn(...values);
@@ -345,7 +358,8 @@ export function createRepl({ write, scope, prompt = "piloti> ", textCommands, gl
       const inScope: Record<string, unknown> = names();
       const keys = Object.keys(inScope);
       await new AsyncFunction(...keys, "__sh", guardLoops(body))(...keys.map((k) => inScope[k]), sh);
-    } catch (error) {
+    } catch (caught) {
+      const error = caught instanceof EvalError ? new Error(NEEDS_EVAL) : caught;
       // A nested script passes it on, so the one that ran it stops too.
       if (error instanceof Interrupted && depth === 1) return;
       if (error instanceof Interrupted) throw error;

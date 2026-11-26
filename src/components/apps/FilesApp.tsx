@@ -95,7 +95,7 @@ import {
   type IconGridItem,
   sortDesktopItems,
 } from "@/lib/shell/desktop-icons";
-import { _ } from "@/lib/core/i18n";
+import { _, getLocale } from "@/lib/core/i18n";
 import { onShellEvent } from "@/lib/shell/shell-events";
 import { captureLaunchOriginFromElement } from "@/lib/shell/launch-origin";
 import { APP_CATALOG } from "@/data/catalog";
@@ -410,7 +410,7 @@ export function FilesApp({
       return;
     }
     if (currentPath === WEB_VFS_RECENTS_URI) {
-      setVirtualEntries(listVfsRecentEntries());
+      if (!realFilesystem) setVirtualEntries(listVfsRecentEntries());
       void listFsRecentEntries(piloti).then((entries) => {
         setVirtualEntries(entries);
       });
@@ -1482,7 +1482,8 @@ export function FilesApp({
             role="menuitem"
             aria-haspopup="menu"
             aria-expanded={bgNewSubOpen}
-            onClick={() => setBgNewSubOpen((v) => !v)}
+            // Hovering opened it already: a click must not close it.
+            onClick={() => setBgNewSubOpen(true)}
             className={cn(
               MENU_SUB_TRIGGER_CLASS,
               "w-full text-left hover:bg-ui-menu-highlight",
@@ -1634,7 +1635,9 @@ export function FilesApp({
               : "—"
           : _("%d items", items.length);
         const modifiedLabel = inspectedStat?.modifiedMs
-          ? new Date(inspectedStat.modifiedMs).toLocaleDateString()
+          ? new Date(inspectedStat.modifiedMs).toLocaleDateString(
+              getLocale() === "fr" ? "fr-FR" : getLocale() === "es" ? "es-ES" : "en-US",
+            )
           : "—";
         const emblemOrder: readonly VfsEmblemId[] = [
           "favorite",
@@ -1688,7 +1691,8 @@ export function FilesApp({
                 </dd>
               </div>
               {inspectedItem?.kind === "file" &&
-                inspectedItem.accessCount !== undefined && (
+                // Only the demo counts opens.
+                Boolean(inspectedItem.accessCount) && (
                   <div>
                     <dt className="text-ui-dim">{_("Opens")}</dt>
                     <dd className="font-medium">{inspectedItem.accessCount}</dd>

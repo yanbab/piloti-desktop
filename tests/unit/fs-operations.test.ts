@@ -4,6 +4,8 @@ import { subscribeVfsRenamed } from "@/lib/engine-web/web-vfs";
 import {
   copyFsEntry,
   importFsFiles,
+  listFsRecentEntries,
+  recordFsRecentFile,
   createFsFolder,
   createFsTextFile,
   listFsDir,
@@ -132,5 +134,17 @@ describe("files dropped from outside", () => {
     await importFsFiles(piloti, D, [new File([new Uint8Array([0, 255, 7])], "a.bin")]);
     expect(await piloti.vfs.readText(`${D}/a.bin`)).toBe("kept");
     expect(await piloti.vfs.read(`${D}/a 2.bin`)).toEqual(new Uint8Array([0, 255, 7]));
+  });
+});
+
+describe("recent files", () => {
+  test("have their kind and size from the disk, and leave out what is gone", async () => {
+    await piloti.vfs.write(`${D}/seen.txt`, "12345");
+    await piloti.vfs.write(`${D}/gone.txt`, "x");
+    for (const path of [`${D}/gone.txt`, `${D}/sub`, `${D}/seen.txt`]) await recordFsRecentFile(piloti, path);
+    await piloti.vfs.remove(`${D}/gone.txt`);
+    const entries = await listFsRecentEntries(piloti);
+    expect(entries.map((e) => `${e.name}:${e.kind}`).sort()).toEqual(["seen.txt:file", "sub:directory"]);
+    expect(entries.find((e) => e.name === "seen.txt")?.size).toBe(5);
   });
 });

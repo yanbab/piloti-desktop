@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { createRepl, evaluateLine, formatValue } from "@/lib/shell/piloti-repl";
+import { createRepl, evaluateLine, formatValue, evaluateWithoutEval } from "@/lib/shell/piloti-repl";
 
 describe("piloti repl", () => {
   test("evaluates expressions and statements with the scope in reach", async () => {
@@ -31,5 +31,16 @@ describe("piloti repl", () => {
     out = "";
     repl.onData("\x1b[A");
     expect(out).toContain("boom(");
+  });
+});
+
+describe("where eval is blocked (Linux)", () => {
+  test("calls, expressions and await still work", async () => {
+    const scope = { run: async (cmd: string) => ({ stdout: cmd.toUpperCase() }), n: 2 };
+    expect(await evaluateWithoutEval('run("echo hi")', scope)).toEqual({ stdout: "ECHO HI" });
+    expect(await evaluateWithoutEval('(await run("a")).stdout + n', scope)).toBe("A2");
+  });
+  test("loops say why they can't run", async () => {
+    await expect(evaluateWithoutEval("for (const a of []) {}", {})).rejects.toThrow("need eval");
   });
 });
