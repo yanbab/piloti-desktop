@@ -65,6 +65,14 @@ generated from the settings table (`bun scripts/generate-gschemas.ts`; a test
 checks it is current). The first start with it copies settings.ini into dconf;
 after that settings.ini is no longer read on Linux.
 
+**GNOME links** (Linux). `data/files/usr/share/piloti/gsettings-links.ini`
+(installed to `/usr/share/piloti/`) lists the Piloti keys that follow a GNOME
+key: appearance, clock, fonts, wallpaper, window buttons, notifications. While
+`org.piloti.desktop.system sync-gnome-settings` is on, a linked key reads
+GNOME's value once one is set, and a change writes both. First-run values are
+not sent to GNOME. The icon theme is sent only. Needs `dconf`; the file's
+header gives the format.
+
 An app file's `[General]` section holds keys the shell applies to the app
 (`getAppSetting`, `setAppSetting`, `ctx.apps`). Unknown schemas read as text.
 Remembered state (window bounds, history) is not a setting.

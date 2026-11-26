@@ -18,16 +18,36 @@ export function readDesktopSettingsRaw(backend: SettingsBackend): string | null 
   return Object.keys(ini).length > 0 ? serializeIniText(ini) : null;
 }
 
-/** Writes the keys whose value changed, in one batch. Keys it doesn't know stay. */
-export function writeDesktopSettings(backend: SettingsBackend, settings: DesktopSettings): number {
+/**
+ * Writes, in one batch, the keys whose value changed. With `previous`, only
+ * those the caller changed: the others are not sent to linked GNOME keys.
+ * Keys it doesn't know stay.
+ */
+export function writeDesktopSettings(
+  backend: SettingsBackend,
+  settings: DesktopSettings,
+  previous?: DesktopSettings,
+): number {
+  const before = previous && parseIniText(serializeDesktopSettingsIni(previous));
   const changes: SettingChange[] = [];
   for (const [schema, entries] of Object.entries(parseIniText(serializeDesktopSettingsIni(settings)))) {
     for (const [key, value] of Object.entries(entries)) {
+      if (before && before[schema]?.[key] === value) continue;
       if (backend.read(schema, key) !== value) changes.push({ schema, key, value });
     }
   }
   if (changes.length > 0) backend.writeBatch(changes);
   return changes.length;
+}
+
+/** First run or migration: stores every value, without touching GNOME's. */
+export function seedDesktopSettings(backend: SettingsBackend, settings: DesktopSettings): void {
+  const changes: SettingChange[] = [];
+  for (const [schema, entries] of Object.entries(parseIniText(serializeDesktopSettingsIni(settings)))) {
+    for (const [key, value] of Object.entries(entries)) changes.push({ schema, key, value });
+  }
+  if (backend.seed) backend.seed(changes);
+  else backend.writeBatch(changes);
 }
 
 /** Calls `onChange` with the new text when a desktop setting changed, here or elsewhere. */

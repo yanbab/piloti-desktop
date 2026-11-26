@@ -1,8 +1,7 @@
 import type { SettingChange, SettingsBackend } from "@/lib/ports/settings";
-import { fromGVariant, toGVariant } from "./gvariant";
+import { fromGVariant, toGVariant, type GVariantKind } from "./gvariant";
 import { parseIniText, serializeIniText, type IniRecord } from "./ini";
 import { schemaPath } from "./piloti-gschema";
-import type { DesktopKeyKind } from "./piloti-settings-ini";
 
 /** What the backend needs from the system: dconf's command line. */
 export interface DconfHost {
@@ -22,7 +21,7 @@ export interface DconfBackendOptions {
   /** dconf folder holding the schemas, such as `/org/piloti/desktop/`. */
   root: string;
   /** The kind of each `schema` + `key`, to convert GVariant text. */
-  kindOf: (schema: string, key: string) => DesktopKeyKind | undefined;
+  kindOf: (schema: string, key: string) => GVariantKind | undefined;
   /** Writes made in this window are sent together. */
   flushMs?: number;
 }

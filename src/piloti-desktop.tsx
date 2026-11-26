@@ -99,6 +99,7 @@ async function boot(root: HTMLElement, piloti: Parameters<ShellModule>[1]) {
       const backend = await selectNativeSettingsBackend(piloti, {
         home,
         exists: async (path) => (await statVfs.stat(path).catch(() => null)) !== null,
+        readText: (path) => statVfs.readText(path),
       }).catch(() => "keyfile");
       finishSettings(backend);
     }

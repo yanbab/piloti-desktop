@@ -5,10 +5,14 @@ import type { DesktopKeyKind } from "./piloti-settings-ini";
  * settings layer's text (keyfile style: `true`, `52`, `a;b`). Only the types
  * Piloti's schemas use: `s`, `b`, `d`, `as`.
  */
-export const GVARIANT_TYPE: Record<DesktopKeyKind, string> = {
+/** `int` is only for GNOME keys Piloti links to. */
+export type GVariantKind = DesktopKeyKind | "int";
+
+export const GVARIANT_TYPE: Record<GVariantKind, string> = {
   string: "s",
   boolean: "b",
   number: "d",
+  int: "i",
   "string[]": "as",
 };
 
@@ -35,8 +39,9 @@ function readQuoted(raw: string): { value: string; rest: string } | null {
 }
 
 /** Layer text → GVariant text. */
-export function toGVariant(text: string, kind: DesktopKeyKind): string {
+export function toGVariant(text: string, kind: GVariantKind): string {
   if (kind === "boolean") return text === "true" || text === "1" ? "true" : "false";
+  if (kind === "int") return String(Math.round(Number(text)) || 0);
   if (kind === "number") {
     const n = Number(text);
     const v = Number.isFinite(n) ? n : 0;
@@ -50,7 +55,7 @@ export function toGVariant(text: string, kind: DesktopKeyKind): string {
 }
 
 /** GVariant text → layer text; `undefined` when it can't be read. */
-export function fromGVariant(raw: string, kind?: DesktopKeyKind): string | undefined {
+export function fromGVariant(raw: string, kind?: GVariantKind): string | undefined {
   let text = raw.trim();
   if (text.startsWith("@")) text = text.replace(/^@\S+\s*/, "");
   if (kind === "string[]" || text.startsWith("[")) {

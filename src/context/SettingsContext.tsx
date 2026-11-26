@@ -38,6 +38,7 @@ import {
   readDesktopSettingsRaw,
   subscribeDesktopSettings,
   writeDesktopSettings,
+  seedDesktopSettings,
 } from "@/lib/config/desktop-settings-store";
 import {
   installWebAppDesktopEntry,
@@ -54,6 +55,8 @@ import {
   parseGnomeBackgroundXml,
   resolveBackgroundRenderSpec,
   selectGnomePictureUri,
+  normalizeGnomeColor,
+  isGnomeBackgroundConfigured,
 } from "@/lib/engine-native/background";
 import { clampHistoryLimit } from "@/lib/shell/notifications";
 import {
@@ -63,9 +66,6 @@ import {
   setSystemPowerProfile,
   setSystemBluetoothPowered,
   setSystemWifiEnabled,
-  syncGnomeBackgroundSettings,
-  syncGnomeInterfaceKey,
-  syncGnomeNotificationSettings,
   syncGtkIconTheme,
   DEFAULT_HIDDEN_GNOME_PANELS,
   type GtkFontAntialiasing,
@@ -411,6 +411,11 @@ export function resolveInitialSettings(
           ...DEFAULT_GNOME_BACKGROUND,
           ...rawGnomeBg,
         };
+        // GNOME may spell colours as `#rrrrggggbbbb`.
+        for (const key of ["primaryColor", "secondaryColor"] as const) {
+          gnomeBackground[key] =
+            normalizeGnomeColor(gnomeBackground[key]) ?? DEFAULT_GNOME_BACKGROUND[key];
+        }
         if (parsed.customWallpaperUrl && !gnomeBackground.pictureUri) {
           gnomeBackground.pictureUri = parsed.customWallpaperUrl;
         }
@@ -449,6 +454,10 @@ export function resolveInitialSettings(
         return {
           ...DEFAULT_SETTINGS,
           ...parsed,
+          // No wallpaper chosen in Piloti yet: take GNOME's if there is one.
+          ...(!parsed.wallpaperId && parsed.gnomeBackground && isGnomeBackgroundConfigured(gnomeBackground)
+            ? { wallpaperId: "gnome" }
+            : {}),
           customWallpaperColors,
           wallpaperColorMode,
           interfaceTheme,
@@ -488,7 +497,6 @@ export interface SettingsContextValue {
   settings: DesktopSettings;
   updateSettings: (patch: Partial<DesktopSettings>) => void;
   applySettingsState: (patch: Partial<DesktopSettings>) => void;
-  applyingGnomeSyncRef: React.MutableRefObject<boolean>;
   resolvedTheme: "dark" | "light";
   reducedMotion: boolean;
   activeWallpaper: WallpaperOption;
@@ -533,7 +541,7 @@ export function useSettingsValue(options?: {
       }
       const base = resolveInitialSettings(savedRaw, isBrowserRuntime);  // FIXME : Capabilities
       if (savedRaw !== null && savedRaw.trim().startsWith("{")) {
-        writeDesktopSettings(settingsBackend(), base);
+        seedDesktopSettings(settingsBackend(), base);
       }
       const separatedBounds = loadSeparatedRecord<SavedWindowBounds>(
         VFS_STATE_PATHS.windowBounds,
@@ -557,7 +565,6 @@ export function useSettingsValue(options?: {
     }
   });
 
-  const applyingGnomeSyncRef = React.useRef(false);
   const settingsRef = React.useRef(settings);
   settingsRef.current = settings;
   const sliderTimersRef = React.useRef<{
@@ -565,15 +572,16 @@ export function useSettingsValue(options?: {
     brightness?: ReturnType<typeof setTimeout>;
     boundsStorage?: ReturnType<typeof setTimeout>;
     iconsStorage?: ReturnType<typeof setTimeout>;
-    gnomeBg?: ReturnType<typeof setTimeout>;
-    gnomeBgPending?: Partial<GnomeBackgroundSettings>;
     xdgWebApps?: ReturnType<typeof setTimeout>;
     settingsIni?: ReturnType<typeof setTimeout>;
   }>({});
 
   // settings.ini is serialized once per burst (sliders, color pickers) instead
   // of on every update; flushed on page hide so the last change isn't lost.
-  const pendingSettingsIniRef = React.useRef<DesktopSettings | null>(null);
+  const pendingSettingsIniRef = React.useRef<{
+    previous: DesktopSettings;
+    next: DesktopSettings;
+  } | null>(null);
   const flushSettingsIni = React.useCallback(() => {
     clearTimeout(sliderTimersRef.current.settingsIni);
     sliderTimersRef.current.settingsIni = undefined;
@@ -582,7 +590,7 @@ export function useSettingsValue(options?: {
     pendingSettingsIniRef.current = null;
     try {
       // Only the keys that changed; keys the shell doesn't know stay.
-      writeDesktopSettings(settingsBackend(), pending);
+      writeDesktopSettings(settingsBackend(), pending.next, pending.previous);
     } catch {
       // ignore storage errors
     }
@@ -600,99 +608,13 @@ export function useSettingsValue(options?: {
   // What a settings change means outside the page (GNOME settings, hardware).
   const applySystemSettings = React.useCallback(
     (
-      prev: DesktopSettings,
       next: DesktopSettings,
       changed: Partial<DesktopSettings>
     ) => {
-      if (!isBrowserRuntime && !applyingGnomeSyncRef.current) {  // FIXME : Capabilities
-        if (
-          next.syncGnomeSettings &&
-          (changed.themeMode !== undefined ||
-            changed.accentColor !== undefined ||
-            changed.iconTheme !== undefined ||
-            changed.clock24Hour !== undefined ||
-            changed.clockShowSeconds !== undefined ||
-            changed.gtkFontName !== undefined ||
-            changed.gtkDocumentFontName !== undefined ||
-            changed.gtkMonospaceFontName !== undefined ||
-            changed.gtkTextScalingFactor !== undefined ||
-            changed.gtkFontAntialiasing !== undefined ||
-            changed.gtkFontHinting !== undefined ||
-            changed.gtkFontRgbaOrder !== undefined)
-        ) {
-          void syncGnomeInterfaceKey(piloti, {
-            ...(changed.themeMode !== undefined ? { themeMode: next.themeMode } : {}),
-            ...(changed.accentColor !== undefined ? { accentColor: next.accentColor } : {}),
-            ...(changed.iconTheme !== undefined ? { iconTheme: next.iconTheme } : {}),
-            ...(changed.clock24Hour !== undefined ? { clock24Hour: next.clock24Hour } : {}),
-            ...(changed.clockShowSeconds !== undefined
-              ? { clockShowSeconds: next.clockShowSeconds }
-              : {}),
-            ...(changed.gtkFontName !== undefined ? { gtkFontName: next.gtkFontName } : {}),
-            ...(changed.gtkDocumentFontName !== undefined
-              ? { gtkDocumentFontName: next.gtkDocumentFontName }
-              : {}),
-            ...(changed.gtkMonospaceFontName !== undefined
-              ? { gtkMonospaceFontName: next.gtkMonospaceFontName }
-              : {}),
-            ...(changed.gtkTextScalingFactor !== undefined
-              ? { gtkTextScalingFactor: next.gtkTextScalingFactor }
-              : {}),
-            ...(changed.gtkFontAntialiasing !== undefined
-              ? { gtkFontAntialiasing: next.gtkFontAntialiasing }
-              : {}),
-            ...(changed.gtkFontHinting !== undefined
-              ? { gtkFontHinting: next.gtkFontHinting }
-              : {}),
-            ...(changed.gtkFontRgbaOrder !== undefined
-              ? { gtkFontRgbaOrder: next.gtkFontRgbaOrder }
-              : {}),
-          });
-          if (changed.iconTheme !== undefined) {
-            void syncGtkIconTheme(piloti, next.iconTheme);
-          }
-        }
-
-        if (next.syncGnomeSettings && changed.gnomeBackground) {
-          const bgDiff: Partial<GnomeBackgroundSettings> = {};
-          const keys = Object.keys(
-            changed.gnomeBackground
-          ) as (keyof GnomeBackgroundSettings)[];
-          for (const key of keys) {
-            if (next.gnomeBackground[key] !== prev.gnomeBackground[key]) {
-              (bgDiff as Record<string, unknown>)[key] =
-                next.gnomeBackground[key];
-            }
-          }
-          if (Object.keys(bgDiff).length > 0) {
-            sliderTimersRef.current.gnomeBgPending = {
-              ...sliderTimersRef.current.gnomeBgPending,
-              ...bgDiff,
-            };
-            clearTimeout(sliderTimersRef.current.gnomeBg);
-            sliderTimersRef.current.gnomeBg = setTimeout(() => {
-              const pending = sliderTimersRef.current.gnomeBgPending;
-              sliderTimersRef.current.gnomeBgPending = undefined;
-              if (pending && Object.keys(pending).length > 0) {
-                void syncGnomeBackgroundSettings(piloti, pending);
-              }
-            }, 120);
-          }
-        }
-
-        if (
-          next.syncGnomeSettings &&
-          (changed.doNotDisturb !== undefined ||
-            changed.notificationShowOnLockScreen !== undefined)
-        ) {
-          void syncGnomeNotificationSettings(piloti, {
-            ...(changed.doNotDisturb !== undefined
-              ? { doNotDisturb: next.doNotDisturb }
-              : {}),
-            ...(changed.notificationShowOnLockScreen !== undefined
-              ? { showInLockScreen: next.notificationShowOnLockScreen }
-              : {}),
-          });
+      if (!isBrowserRuntime) {  // FIXME : Capabilities
+        // GNOME keys follow through the settings links; GTK 3/4 files don't.
+        if (next.syncGnomeSettings && changed.iconTheme !== undefined) {
+          void syncGtkIconTheme(piloti, next.iconTheme);
         }
 
         if (changed.nightLight !== undefined) {
@@ -740,7 +662,7 @@ export function useSettingsValue(options?: {
     try {
       runVfsStateMigrations();
       if (readDesktopSettingsRaw(settingsBackend()) === null) {
-        writeDesktopSettings(settingsBackend(), settingsRef.current);
+        seedDesktopSettings(settingsBackend(), settingsRef.current);
       }
       if (readVfsStateText(VFS_STATE_PATHS.windowBounds) === null) {
         writeVfsStateJson(
@@ -774,7 +696,13 @@ export function useSettingsValue(options?: {
         if (currentSerialized === serializeDesktopSettingsIni(mergedNext)) {
           return prev;
         }
-        applySystemSettingsRef.current(prev, mergedNext, diffDesktopSettings(prev, mergedNext));
+        const changed = diffDesktopSettings(prev, mergedNext);
+        // A wallpaper chosen outside Piloti (GNOME Settings, gsettings) is shown.
+        if (changed.gnomeBackground && changed.wallpaperId === undefined) {
+          mergedNext.wallpaperId = "gnome";
+          mergedNext.customWallpaperUrl = "";
+        }
+        applySystemSettingsRef.current(mergedNext, changed);
         return mergedNext;
       });
     });
@@ -822,7 +750,11 @@ export function useSettingsValue(options?: {
     };
   }, [isBrowserRuntime]);  // FIXME : Capabilities
 
-  const persist = (next: DesktopSettings, patch?: Partial<DesktopSettings>) => {
+  const persist = (
+    previous: DesktopSettings,
+    next: DesktopSettings,
+    patch?: Partial<DesktopSettings>
+  ) => {
     try {
       const patchKeys = patch ? Object.keys(patch) : null;
       const onlyBounds =
@@ -867,7 +799,10 @@ export function useSettingsValue(options?: {
       if (patch?.desktopIconPositions !== undefined) {
         writeVfsStateJson(VFS_STATE_PATHS.desktopIcons, next.desktopIconPositions);
       }
-      pendingSettingsIniRef.current = next;
+      pendingSettingsIniRef.current = {
+        previous: pendingSettingsIniRef.current?.previous ?? previous,
+        next,
+      };
       clearTimeout(sliderTimersRef.current.settingsIni);
       sliderTimersRef.current.settingsIni = setTimeout(flushSettingsIni, 150);
     } catch {
@@ -878,7 +813,7 @@ export function useSettingsValue(options?: {
   const applySettingsState = React.useCallback((patch: Partial<DesktopSettings>) => {
     setSettings((prev) => {
       const next = { ...prev, ...patch };
-      persist(next, patch);
+      persist(prev, next, patch);
       return next;
     });
   }, []);
@@ -954,9 +889,9 @@ export function useSettingsValue(options?: {
             patch.interfaceTheme === "adwaita" ? "Adwaita" : "Piloti";
         }
         const next = { ...prev, ...mergedPatch };
-        persist(next, mergedPatch);
+        persist(prev, next, mergedPatch);
 
-        applySystemSettings(prev, next, mergedPatch);
+        applySystemSettings(next, mergedPatch);
 
         return next;
       });
@@ -1414,7 +1349,6 @@ export function useSettingsValue(options?: {
       settings,
       updateSettings,
       applySettingsState,
-      applyingGnomeSyncRef,
       resolvedTheme,
       reducedMotion,
       activeWallpaper,

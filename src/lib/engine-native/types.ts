@@ -1,4 +1,3 @@
-import type { AccentColorId } from "@/data/catalog";
 
 /**
  * Environment variables injected when launching GNOME / GTK / XDG applications
@@ -39,25 +38,6 @@ export type GtkFontAntialiasing = "none" | "grayscale" | "rgba";
 export type GtkFontHinting = "none" | "slight" | "medium" | "full";
 export type GtkFontRgbaOrder = "rgb" | "bgr" | "vrgb" | "vbgr";
 
-export interface GnomeInterfaceSnapshot {
-  themeMode?: "dark" | "light" | "system";
-  accentColor?: AccentColorId;
-  iconTheme?: string;
-  clock24Hour?: boolean;
-  clockShowSeconds?: boolean;
-  fontName?: string;
-  documentFontName?: string;
-  monospaceFontName?: string;
-  textScalingFactor?: number;
-  fontAntialiasing?: GtkFontAntialiasing;
-  fontHinting?: GtkFontHinting;
-  fontRgbaOrder?: GtkFontRgbaOrder;
-}
-
-export interface GnomeWmPreferencesSnapshot {
-  buttonLayout?: string;
-}
-
 export interface GnomeSystemCapabilities {
   gsettings: boolean;
   gnomeControlCenter: boolean;
@@ -91,11 +71,6 @@ export interface GnomeControlCenterPanelInfo {
   comment?: string;
   /** Whether the panel relies on GNOME Mutter private D-Bus APIs. */
   mutterOnly?: boolean;
-}
-
-export interface GnomeNotificationSettings {
-  doNotDisturb?: boolean;
-  showInLockScreen?: boolean;
 }
 
 export interface MprisMediaInfo {

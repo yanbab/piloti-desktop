@@ -1,8 +1,9 @@
 import type { Piloti } from "@/lib/engine/piloti";
 import { keyfileSettingsBackend, setSettingsBackend } from "@/lib/engine/settings";
 import { createDconfSettingsBackend, routeSettingsBackend, type DconfHost } from "@/lib/config/dconf-settings-backend";
+import { GSETTINGS_LINKS_PATH, linkSettingsBackend, parseGSettingsLinks } from "@/lib/config/gsettings-links";
 import { desktopSchemaKeys } from "@/lib/config/piloti-settings-ini";
-import type { SettingChange } from "@/lib/ports/settings";
+import type { SettingChange, SettingsBackend } from "@/lib/ports/settings";
 import { runText } from "./exec";
 
 const DESKTOP_ROOT = "/org/piloti/desktop/";
@@ -65,29 +66,74 @@ export function nativeDconfHost(piloti: Pick<Piloti, "processes">): DconfHost {
   };
 }
 
+const GNOME_ROOT = "/org/gnome/desktop/";
+
+type Options = {
+  home: string;
+  exists: (path: string) => Promise<boolean>;
+  readText: (path: string) => Promise<string | null>;
+};
+
 /**
- * On Linux, when Piloti's schemas are installed (the .deb ships them), the
- * desktop settings live in dconf, seen by `gsettings` and dconf-editor; the
- * first time, settings.ini's values are copied there. Otherwise (dev build,
- * no dconf) everything stays in the keyfiles. Called before the shell renders.
+ * Where the desktop settings live on Linux, then the GNOME keys they are linked
+ * to (`gsettings-links.ini`). Called before the shell renders.
  */
 export async function selectNativeSettingsBackend(
   piloti: Pick<Piloti, "processes">,
-  options: { home: string; exists: (path: string) => Promise<boolean> },
+  options: Options,
 ): Promise<"dconf" | "keyfile"> {
+  const own = await desktopBackend(piloti, options);
+  const backend = own ?? keyfileSettingsBackend();
+  setSettingsBackend((await withGnomeLinks(piloti, backend, options.readText)) ?? backend);
+  return own ? "dconf" : "keyfile";
+}
+
+/** `base` with its linked keys, or null without the list or without dconf. */
+async function withGnomeLinks(
+  piloti: Pick<Piloti, "processes">,
+  base: SettingsBackend,
+  readText: Options["readText"],
+): Promise<SettingsBackend | null> {
+  const text = await readText(GSETTINGS_LINKS_PATH).catch(() => null);
+  const links = text ? parseGSettingsLinks(text) : [];
+  if (links.length === 0) return null;
+  const kinds = new Map(links.map(({ target }) => [`${target.schema}\0${target.key}`, target.kind]));
+  const gnome = createDconfSettingsBackend(nativeDconfHost(piloti), {
+    root: GNOME_ROOT,
+    kindOf: (schema, key) => kinds.get(`${schema}\0${key}`),
+  });
+  if (!(await gnome.preload())) return null;
+  return linkSettingsBackend({
+    base,
+    gnome,
+    links,
+    toggle: { schema: `${DESKTOP_SCHEMA}.system`, key: "sync-gnome-settings" },
+  });
+}
+
+/**
+ * When Piloti's schemas are installed (the .deb ships them), the desktop
+ * settings live in dconf, seen by `gsettings` and dconf-editor; the first time,
+ * settings.ini's values are copied there. Otherwise (dev build, no dconf),
+ * null: everything stays in the keyfiles.
+ */
+async function desktopBackend(
+  piloti: Pick<Piloti, "processes">,
+  options: Options,
+): Promise<SettingsBackend | null> {
   // A file check, not `gsettings list-schemas` (a process, ~150 ms at start).
   const schemaDirs = [`${options.home}/.local/share`, "/usr/local/share", "/usr/share"].map(
     (dir) => `${dir}/glib-2.0/schemas/${DESKTOP_SCHEMA}.gschema.xml`,
   );
   const installed = (await Promise.all(schemaDirs.map(options.exists))).some(Boolean);
-  if (!installed) return "keyfile";
+  if (!installed) return null;
 
   const kinds = new Map(desktopSchemaKeys().map(({ schema, key, kind }) => [`${schema}\0${key}`, kind]));
   const dconf = createDconfSettingsBackend(nativeDconfHost(piloti), {
     root: DESKTOP_ROOT,
     kindOf: (schema, key) => kinds.get(`${schema}\0${key}`),
   });
-  if (!(await dconf.preload())) return "keyfile";
+  if (!(await dconf.preload())) return null;
 
   const keyfile = keyfileSettingsBackend();
   const nothingSet = desktopSchemaKeys().every(({ schema, key }) => dconf.read(schema, key) === undefined);
@@ -103,8 +149,5 @@ export async function selectNativeSettingsBackend(
       console.info(`[piloti] settings: copied ${fromFile.length} keys from settings.ini to dconf`);
     }
   }
-  setSettingsBackend(
-    routeSettingsBackend((schema) => (isDesktopSchema(schema) ? "primary" : "fallback"), dconf, keyfile),
-  );
-  return "dconf";
+  return routeSettingsBackend((schema) => (isDesktopSchema(schema) ? "primary" : "fallback"), dconf, keyfile);
 }

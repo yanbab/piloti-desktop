@@ -28,4 +28,8 @@ export interface SettingsBackend {
   subscribeAll(listener: () => void): () => void;
   /** Several changes at once (one file write, one notification per schema). */
   writeBatch(changes: readonly SettingChange[]): void;
+  /** First-run values: stored by Piloti only. `writeBatch` when absent. */
+  seed?(changes: readonly SettingChange[]): void;
+  /** The linked system value of a key (`config/gsettings-links.ts`), if any. */
+  linkedValue?(schema: string, key: string): string | undefined;
 }

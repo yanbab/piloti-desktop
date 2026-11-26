@@ -1,4 +1,5 @@
 import { getEngine } from "@/lib/engine/engine";
+import { settingsBackend } from "@/lib/engine/settings";
 import * as React from "react";
 import { usePiloti } from "@/lib/engine/piloti";
 import { useCapturing } from "@domicile-desktop/react/portals";
@@ -16,10 +17,6 @@ import {
   writeVfsStateJson,
   writeVfsStateText,
 } from "@/lib/engine/vfs-state";
-import {
-  type GnomeBackgroundSettings,
-  isGnomeBackgroundConfigured,
-} from "@/lib/engine-native/gnome-background";
 import { startBootPhase } from "@/lib/core/perf-log";
 import { isAppNotificationAllowed } from "@/lib/core/app-permissions";
 import { _ } from "@/lib/core/i18n";
@@ -36,16 +33,13 @@ import {
   type BluetoothDeviceInfo,
   type BatteryInfo,
   type GnomeControlCenterPanelInfo,
-  type GnomeInterfaceSnapshot,
   type GnomeSystemCapabilities,
   type MprisMediaInfo,
   DEFAULT_GNOME_PANELS,
   connectSystemWifi,
   controlMprisMedia,
   discoverGnomeControlCenterPanels,
-  monitorGnomeDesktopSettings,
   probeGnomeCapabilities,
-  readGnomeDesktopSettingsBatch,
   watchSystemAudio,
   watchSystemBluetooth,
   setSystemBluetoothConnected,
@@ -177,7 +171,6 @@ export function useSystemBackendsValue(
     settings,
     applySettingsState,
     updateSettings,
-    applyingGnomeSyncRef,
   } = settingsCtx;
 
   const [gnomeCapabilities, setGnomeCapabilities] =
@@ -967,138 +960,21 @@ export function useSystemBackendsValue(
     [piloti, systemServices]
   );
 
-  const gnomeBackgroundRef = React.useRef(settings.gnomeBackground);
-  gnomeBackgroundRef.current = settings.gnomeBackground;
-
   React.useEffect(() => {
     if (!systemServices) return;
-    let cancelled = false;
+    const deferTimer = window.setTimeout(() => void refreshSystemBackends(), 250);
+    return () => window.clearTimeout(deferTimer);
+  }, [systemServices, refreshSystemBackends]);
 
-    const deferTimer = window.setTimeout(() => {
-      if (!cancelled) void refreshSystemBackends();
-    }, 250);
-
-    if (greeterMode) {
-      return () => {
-        cancelled = true;
-        window.clearTimeout(deferTimer);
-      };
-    }
-
-    const applyGnomeSnapshot = (snap: GnomeInterfaceSnapshot) => {
-      if (cancelled || !settings.syncGnomeSettings) return;
-      const patch: Partial<DesktopSettings> = {};
-      if (snap.themeMode) patch.themeMode = snap.themeMode;
-      if (snap.accentColor) patch.accentColor = snap.accentColor;
-      if (snap.clock24Hour !== undefined) patch.clock24Hour = snap.clock24Hour;
-      if (snap.clockShowSeconds !== undefined) {
-        patch.clockShowSeconds = snap.clockShowSeconds;
-      }
-      if (snap.fontName) patch.gtkFontName = snap.fontName;
-      if (snap.documentFontName) {
-        patch.gtkDocumentFontName = snap.documentFontName;
-      }
-      if (snap.monospaceFontName) {
-        patch.gtkMonospaceFontName = snap.monospaceFontName;
-      }
-      if (snap.textScalingFactor !== undefined) {
-        patch.gtkTextScalingFactor = snap.textScalingFactor;
-      }
-      if (snap.fontAntialiasing) {
-        patch.gtkFontAntialiasing = snap.fontAntialiasing;
-      }
-      if (snap.fontHinting) patch.gtkFontHinting = snap.fontHinting;
-      if (snap.fontRgbaOrder) patch.gtkFontRgbaOrder = snap.fontRgbaOrder;
-      if (snap.iconTheme) {
-        setGnomeIconThemeOverride(snap.iconTheme);
-      }
-      if (Object.keys(patch).length > 0) {
-        applyingGnomeSyncRef.current = true;
-        applySettingsState(patch);
-        applyingGnomeSyncRef.current = false;
-      }
-    };
-
-    const applyGnomeBackgroundSnapshot = (
-      snap: Partial<GnomeBackgroundSettings>,
-      fromMonitor: boolean
-    ) => {
-      if (cancelled || !settings.syncGnomeSettings) return;
-      const keys = Object.keys(snap) as (keyof GnomeBackgroundSettings)[];
-      if (keys.length === 0) return;
-
-      const current = gnomeBackgroundRef.current;
-      if (!fromMonitor && !isGnomeBackgroundConfigured(snap)) {
-        return;
-      }
-      const changed = keys.some((k) => snap[k] !== current[k]);
-      if (!changed) return;
-
-      const nextBg: GnomeBackgroundSettings = { ...current, ...snap };
-      gnomeBackgroundRef.current = nextBg;
-      applyingGnomeSyncRef.current = true;
-      applySettingsState({
-        wallpaperId: "gnome",
-        customWallpaperUrl: "",
-        gnomeBackground: nextBg,
-      });
-      applyingGnomeSyncRef.current = false;
-    };
-
-    const applyGnomeNotificationSnapshot = (snap: {
-      doNotDisturb?: boolean;
-      showInLockScreen?: boolean;
-    }) => {
-      if (cancelled || !settings.syncGnomeSettings) return;
-      const patch: Partial<DesktopSettings> = {};
-      if (snap.doNotDisturb !== undefined) {
-        patch.doNotDisturb = snap.doNotDisturb;
-      }
-      if (snap.showInLockScreen !== undefined) {
-        patch.notificationShowOnLockScreen = snap.showInLockScreen;
-      }
-      if (Object.keys(patch).length > 0) {
-        applyingGnomeSyncRef.current = true;
-        applySettingsState(patch);
-        applyingGnomeSyncRef.current = false;
-      }
-    };
-
-    const applyGnomeWmSnapshot = (snap: { buttonLayout?: string }) => {
-      if (cancelled || !settings.syncGnomeSettings || !snap.buttonLayout) return;
-      applyingGnomeSyncRef.current = true;
-      applySettingsState({ windowButtonLayout: snap.buttonLayout });
-      applyingGnomeSyncRef.current = false;
-    };
-
-    void readGnomeDesktopSettingsBatch(piloti).then((batch) => {
-      applyGnomeSnapshot(batch.interface);
-      applyGnomeBackgroundSnapshot(batch.background, false);
-      applyGnomeNotificationSnapshot(batch.notifications);
-      applyGnomeWmSnapshot(batch.wm);
-    });
-
-    const stopDesktopSettingsMonitor = monitorGnomeDesktopSettings(piloti, {
-      onInterface: applyGnomeSnapshot,
-      onBackground: (snap) => applyGnomeBackgroundSnapshot(snap, true),
-      onWm: applyGnomeWmSnapshot,
-      onNotifications: applyGnomeNotificationSnapshot,
-    });
-
-    return () => {
-      cancelled = true;
-      window.clearTimeout(deferTimer);
-      stopDesktopSettingsMonitor();
-    };
-  }, [
-    applySettingsState,
-    applyingGnomeSyncRef,
-    piloti,
-    greeterMode,
-    systemServices,
-    refreshSystemBackends,
-    settings.syncGnomeSettings,
-  ]);
+  // GNOME's icon theme stands in when Piloti's is the default one.
+  React.useEffect(() => {
+    if (!systemServices || greeterMode) return;
+    const backend = settingsBackend();
+    const read = () =>
+      setGnomeIconThemeOverride(backend.linkedValue?.("org.piloti.desktop.interface", "icon-theme"));
+    read();
+    return backend.subscribeAll(read);
+  }, [systemServices, greeterMode]);
 
   const connectWifiNetwork = React.useCallback(
     async (ssid: string, passphrase?: string) => {

@@ -9,7 +9,6 @@ import {
   localPathToFileUri,
   normalizeBackgroundPictureUri,
   normalizeGnomeColor,
-  parseGnomeBackgroundKeyVal,
   parseGnomeBackgroundPropertiesXml,
   parseGnomeBackgroundXml,
   resolveBackgroundRenderSpec,
@@ -17,53 +16,6 @@ import {
 } from "@/lib/engine-native/gnome-background";
 
 describe("GNOME background spec helpers", () => {
-  test("parses all org.gnome.desktop.background GVariant keys", () => {
-    expect(
-      parseGnomeBackgroundKeyVal(
-        "picture-uri",
-        "'file:///usr/share/backgrounds/gnome/adwaita-l.jxl'"
-      )
-    ).toEqual({
-      pictureUri: "file:///usr/share/backgrounds/gnome/adwaita-l.jxl",
-    });
-
-    expect(
-      parseGnomeBackgroundKeyVal(
-        "picture-uri-dark",
-        "'file:///usr/share/backgrounds/gnome/adwaita-d.jxl'"
-      )
-    ).toEqual({
-      pictureUriDark: "file:///usr/share/backgrounds/gnome/adwaita-d.jxl",
-    });
-
-    expect(parseGnomeBackgroundKeyVal("picture-options", "'scaled'")).toEqual({
-      pictureOptions: "scaled",
-    });
-    expect(parseGnomeBackgroundKeyVal("picture-options", "'invalid'")).toEqual(
-      {}
-    );
-
-    expect(
-      parseGnomeBackgroundKeyVal("color-shading-type", "'horizontal'")
-    ).toEqual({
-      colorShadingType: "horizontal",
-    });
-
-    expect(parseGnomeBackgroundKeyVal("primary-color", "'#30307171aeae'")).toEqual({
-      primaryColor: "#3071ae",
-    });
-    expect(parseGnomeBackgroundKeyVal("secondary-color", "'#5789CA'")).toEqual({
-      secondaryColor: "#5789ca",
-    });
-
-    expect(parseGnomeBackgroundKeyVal("picture-opacity", "75")).toEqual({
-      pictureOpacity: 75,
-    });
-    expect(parseGnomeBackgroundKeyVal("picture-opacity", "140")).toEqual({
-      pictureOpacity: 100,
-    });
-  });
-
   test("converts between file:// URIs and POSIX paths safely", () => {
     expect(localPathToFileUri("/home/alice/My Wallpapers/bg 1.png")).toBe(
       "file:///home/alice/My%20Wallpapers/bg%201.png"

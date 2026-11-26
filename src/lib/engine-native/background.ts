@@ -102,17 +102,6 @@ const VALID_SHADING_TYPES = new Set<GnomeColorShadingType>(
   GNOME_SHADING_TYPES.map((s) => s.value)
 );
 
-function stripGVariantQuotes(raw: string): string {
-  const trimmed = raw.trim();
-  if (
-    (trimmed.startsWith("'") && trimmed.endsWith("'")) ||
-    (trimmed.startsWith('"') && trimmed.endsWith('"'))
-  ) {
-    return trimmed.slice(1, -1);
-  }
-  return trimmed;
-}
-
 /**
  * Normalizes a GNOME/GTK color string (`#rgb`, `#rrggbb`, `#rrrrggggbbbb`, or
  * `rgb(...)`) into standard CSS color notation.
@@ -200,48 +189,6 @@ export function normalizeBackgroundPictureUri(raw: string): string {
   if (!trimmed) return "";
   if (trimmed.startsWith("/")) return localPathToFileUri(trimmed);
   return trimmed;
-}
-
-/**
- * Parses a single key/value pair from `org.gnome.desktop.background`.
- */
-export function parseGnomeBackgroundKeyVal(
-  key: string,
-  rawVal: string
-): Partial<GnomeBackgroundSettings> {
-  const val = stripGVariantQuotes(rawVal);
-  switch (key) {
-    case "picture-uri":
-      return { pictureUri: val };
-    case "picture-uri-dark":
-      return { pictureUriDark: val };
-    case "picture-options": {
-      return VALID_PICTURE_OPTIONS.has(val as GnomePictureOptions)
-        ? { pictureOptions: val as GnomePictureOptions }
-        : {};
-    }
-    case "color-shading-type": {
-      return VALID_SHADING_TYPES.has(val as GnomeColorShadingType)
-        ? { colorShadingType: val as GnomeColorShadingType }
-        : {};
-    }
-    case "primary-color": {
-      const color = normalizeGnomeColor(val);
-      return color ? { primaryColor: color } : {};
-    }
-    case "secondary-color": {
-      const color = normalizeGnomeColor(val);
-      return color ? { secondaryColor: color } : {};
-    }
-    case "picture-opacity": {
-      const parsed = Number(val);
-      return Number.isFinite(parsed)
-        ? { pictureOpacity: Math.max(0, Math.min(100, Math.round(parsed))) }
-        : {};
-    }
-    default:
-      return {};
-  }
 }
 
 /**

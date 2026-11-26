@@ -70,7 +70,7 @@ CLI or a private file. Each move is a port with a native and a demo adapter.
 
 | Feature | Now | Target |
 |---|---|---|
-| Appearance, fonts, wallpaper, WM prefs | `gsettings`, `dconf` | same keys, watched over D-Bus or `gsettings monitor` |
+| Appearance, fonts, wallpaper, WM prefs | `gsettings`, `dconf` | linked keys (`usr/share/piloti/gsettings-links.ini`), `dconf watch` |
 | Notification settings | gsettings | done |
 | Power actions, brightness | `systemctl`, `loginctl`, `brightnessctl` | logind |
 | Battery, power profiles | `upower`, `powerprofilesctl` | UPower, `net.hadess.PowerProfiles` |
