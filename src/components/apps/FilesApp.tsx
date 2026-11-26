@@ -1000,26 +1000,8 @@ export function FilesApp({
   );
 
   const activePlace = placesList.find((p) => p.path === currentPath);
-  const activeSidebarPath = React.useMemo(() => {
-    const exact = placesList.find((p) => p.path === currentPath);
-    if (exact) return exact.path;
-    if (isSimulatedUsbPath(currentPath) && usbMounted) {
-      return SIMULATED_USB_PATH;
-    }
-    if (!currentPath.startsWith(`${WEB_VFS_HOME}/`)) return "";
-    let bestPath = WEB_VFS_HOME;
-    for (const place of placesList) {
-      if (place.path.startsWith("piloti://") || isSimulatedUsbPath(place.path)) continue;
-      if (
-        (currentPath === place.path ||
-          currentPath.startsWith(`${place.path}/`)) &&
-        place.path.length > bestPath.length
-      ) {
-        bestPath = place.path;
-      }
-    }
-    return bestPath;
-  }, [currentPath, placesList, usbMounted]);
+  // Only the folder itself lights up its sidebar row, not its subfolders.
+  const activeSidebarPath = activePlace?.path ?? "";
   const currentTitle =
     activePlace?.label ??
     (currentPath.split("/").filter(Boolean).pop() || _("Folders"));

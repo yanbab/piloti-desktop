@@ -471,6 +471,16 @@ export function IconGrid({
     }
   }, []);
 
+  // Enter and Escape remove the rename field, which would leave focus on the
+  // page: give it back to the icon (under its new name once listed).
+  const refocusAfterRenameRef = React.useRef(false);
+  React.useEffect(() => {
+    if (!refocusAfterRenameRef.current || renamingId || !primarySelectedId) return;
+    if (!itemRefs.current.has(primarySelectedId)) return;
+    refocusAfterRenameRef.current = false;
+    focusItemButton(primarySelectedId);
+  }, [focusItemButton, items, primarySelectedId, renamingId]);
+
   React.useEffect(() => {
     const onGlobalFileDrag = (e: Event) => {
       const detail = (
@@ -1420,9 +1430,11 @@ export function IconGrid({
                   e.stopPropagation();
                   if (e.key === "Enter") {
                     e.preventDefault();
+                    refocusAfterRenameRef.current = true;
                     onCommitRename?.(item, e.currentTarget.value);
                   } else if (e.key === "Escape") {
                     e.preventDefault();
+                    refocusAfterRenameRef.current = true;
                     onCancelRename?.();
                   }
                 }}
