@@ -2,7 +2,7 @@
 Name=Adwaita
 Comment=GNOME Adwaita Icon Theme
 Inherits=hicolor
-Directories=scalable/apps,scalable/places,scalable/status,scalable/mimetypes,symbolic/actions,symbolic/ui,symbolic/status,symbolic/devices,symbolic/places,symbolic/apps,symbolic/categories,symbolic/mimetypes,symbolic/emblems
+Directories=scalable/apps,scalable/places,scalable/status,scalable/mimetypes,symbolic/actions,symbolic/apps,symbolic/categories,symbolic/devices,symbolic/emblems,symbolic/legacy,symbolic/mimetypes,symbolic/places,symbolic/status,symbolic/ui
 
 [scalable/apps]
 Context=Applications
@@ -39,34 +39,6 @@ MinSize=8
 MaxSize=512
 Type=Scalable
 
-[symbolic/ui]
-Context=UI
-Size=16
-MinSize=8
-MaxSize=512
-Type=Scalable
-
-[symbolic/status]
-Context=Status
-Size=16
-MinSize=8
-MaxSize=512
-Type=Scalable
-
-[symbolic/devices]
-Context=Devices
-Size=16
-MinSize=8
-MaxSize=512
-Type=Scalable
-
-[symbolic/places]
-Context=Places
-Size=16
-MinSize=8
-MaxSize=512
-Type=Scalable
-
 [symbolic/apps]
 Context=Applications
 Size=16
@@ -81,8 +53,8 @@ MinSize=8
 MaxSize=512
 Type=Scalable
 
-[symbolic/mimetypes]
-Context=MimeTypes
+[symbolic/devices]
+Context=Devices
 Size=16
 MinSize=8
 MaxSize=512
@@ -90,6 +62,41 @@ Type=Scalable
 
 [symbolic/emblems]
 Context=Emblems
+Size=16
+MinSize=8
+MaxSize=512
+Type=Scalable
+
+[symbolic/legacy]
+Context=Legacy
+Size=16
+MinSize=8
+MaxSize=512
+Type=Scalable
+
+[symbolic/mimetypes]
+Context=MimeTypes
+Size=16
+MinSize=8
+MaxSize=512
+Type=Scalable
+
+[symbolic/places]
+Context=Places
+Size=16
+MinSize=8
+MaxSize=512
+Type=Scalable
+
+[symbolic/status]
+Context=Status
+Size=16
+MinSize=8
+MaxSize=512
+Type=Scalable
+
+[symbolic/ui]
+Context=UI
 Size=16
 MinSize=8
 MaxSize=512

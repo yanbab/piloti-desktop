@@ -103,6 +103,7 @@ export const SYMBOLIC_ICONS = {
   starred: [],
   "non-starred": [],
   "application-x-addon": [],
+  "application-x-executable": [],
   "preferences-desktop-appearance": ["applications-graphics"],
   "preferences-desktop-font": ["font-x-generic"],
   "preferences-system": ["emblem-system"],

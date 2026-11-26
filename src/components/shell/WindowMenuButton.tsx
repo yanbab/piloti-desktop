@@ -1,6 +1,7 @@
 import { isCloseOnLeft } from "@/components/ui/window";
 import * as React from "react";
 import { AppWindowIcon } from "lucide-react";
+import { SymbolicIcon } from "@/components/ui/symbolic-icon";
 import { countRender } from "@/lib/core/render-stats";
 import {
   DropdownMenu,
@@ -87,7 +88,7 @@ export const WindowMenuButton = React.memo(function WindowMenuButton({
 
 /**
  * The symbolic version of the window's app icon, drawn in the text colour; a
- * window symbol when the icon theme has none, nothing while it loads.
+ * generic app symbol when the icon theme has none, nothing while it loads.
  */
 function WindowMenuIcon({ windowId }: { windowId?: string }) {
   const appId = useWindowManagerSelector(
@@ -108,7 +109,11 @@ function WindowMenuIcon({ windowId }: { windowId?: string }) {
   }, [appId, load]);
 
   if (!url) {
-    return url === null ? <AppWindowIcon className="size-4" /> : <span className="size-4" />;
+    return url === null ? (
+      <SymbolicIcon name="application-x-executable" fallback={AppWindowIcon} className="size-4" />
+    ) : (
+      <span className="size-4" />
+    );
   }
   const mask = `url("${url}") center / contain no-repeat`;
   return (

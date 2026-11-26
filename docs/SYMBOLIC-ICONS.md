@@ -8,21 +8,24 @@ text colour. Piloti and Adwaita use the theme; Cupertino keeps Lucide.
   standard name first. All are loaded together when the icon theme changes
   (`lib/shell/symbolic-icons.ts`).
 - The Lucide glyph is drawn when no theme in the chain has the name.
-- A new name needs a demo SVG under
-  `data/files/usr/share/icons/Adwaita/symbolic/` (16px, drawn for Piloti, not
-  copied from GNOME) and its folder in that `index.theme`. The `.deb` leaves
-  them out: installed systems provide Adwaita and Papirus.
+- A new name needs its demo SVGs: copy them, unmodified, from an installed
+  system (`/usr/share/icons/Adwaita/symbolic/` and
+  `Papirus/16x16/symbolic/`) into `data/files/usr/share/icons/<theme>/symbolic/`
+  and list new folders in that `index.theme`. Don't draw them. The `.deb`
+  leaves both out. Current copies: Debian `adwaita-icon-theme` 51.0
+  (LGPL-3.0 or CC-BY-SA-3.0) and `papirus-icon-theme` 20260801 (GPL-3.0).
 
 ## Lucide to symbolic names
 
-Names without `-symbolic`. "—" has no standard name. Names for icons not yet
-converted are proposals: check them against an installed Adwaita.
+Names without `-symbolic`, checked against Adwaita 51 unless marked "Papirus
+only". "—" has no standard name. GNOME has no dock or sparkles icon, and no
+single spinner glyph (GTK draws it).
 
 | Lucide | Symbolic | Note |
 |---|---|---|
 | AlertCircle | `dialog-error` |  |
 | AlertTriangle | `dialog-warning` |  |
-| AppWindow | — | fallback glyph for windows and apps without an icon (application-x-executable is the nearest) |
+| AppWindow | `application-x-executable` | windows and apps without an icon |
 | ArrowDownUp | `view-sort-descending` |  |
 | ArrowLeft | `go-previous` |  |
 | ArrowRight | `go-next` |  |
@@ -42,7 +45,7 @@ converted are proposals: check them against an installed Adwaita.
 | Calculator | `accessories-calculator` |  |
 | Camera | `camera-photo` |  |
 | Check | `object-select` |  |
-| CheckCircle2 | `emblem-ok` |  |
+| CheckCircle2 | `emblem-ok` | Papirus only |
 | ChevronDown | `pan-down` |  |
 | ChevronLeft | `go-previous` |  |
 | ChevronRight | `pan-end` (menus, disclosure) / `go-next` |  |
@@ -50,12 +53,12 @@ converted are proposals: check them against an installed Adwaita.
 | ChevronsUpDown | — | GTK drop-downs use pan-down |
 | Circle | — | menu radio dot, drawn by the toolkit (media-record is the nearest) |
 | Clock | `document-open-recent` |  |
-| Code2 | `applications-development` |  |
+| Code2 | `applications-development` | Papirus only |
 | Columns2 | `view-dual` |  |
 | Cpu | — | applications-system is the nearest |
-| Crop | `image-crop` |  |
+| Crop | `image-crop` | Papirus only |
 | Database | — | drive-harddisk is the nearest |
-| Dock | — | GNOME's dock-bottom is app-private |
+| Dock | — | `preferences-desktop-multitasking` is the nearest |
 | Download | `folder-download` |  |
 | Eject | `media-eject` |  |
 | Eye | `view-reveal` |  |
@@ -70,7 +73,7 @@ converted are proposals: check them against an installed Adwaita.
 | Gamepad2 | `applications-games` |  |
 | Gauge | `power-profile-power-saver` | the Power Saver tile; the Console's use has no standard name |
 | Globe | `web-browser` |  |
-| Heart | `emblem-favorite` |  |
+| Heart | `emblem-favorite` | Papirus only |
 | Home | `user-home` |  |
 | House | `user-home` |  |
 | Image | `image-x-generic` |  |
@@ -81,7 +84,7 @@ converted are proposals: check them against an installed Adwaita.
 | LayoutTemplate | — |  |
 | List | `view-list` |  |
 | ListFilter | — | view-sort-descending is the nearest |
-| Loader2 | — | process-working is an animation sheet, keep the spinning glyph |
+| Loader2 | — | keep the spinning glyph (`content-loading` is three still dots) |
 | Lock | `system-lock-screen` (lock) / `network-wireless-encrypted` (secured network) |  |
 | Maximize2 | `view-fullscreen` |  |
 | Menu | `open-menu` |  |
@@ -175,7 +178,6 @@ converted are proposals: check them against an installed Adwaita.
 | `shell/PortalDialogs.tsx` | AlertTriangle, AppWindow, Camera, Eye, EyeOff, File, Folder, Image, Keyboard, Monitor, Pipette, Printer, ShieldCheck, Sparkles, Usb, User, Video, X |
 | `shell/PowerActionDialog.tsx` | AlertTriangle |
 | `shell/WindowManager.tsx` | Loader2 |
-| `shell/WindowMenuButton.tsx` | AppWindow |
 | `ui/checkbox.tsx` | Check |
 | `ui/command.tsx` | Check, Search |
 | `ui/dialog.tsx` | X |
