@@ -23,11 +23,10 @@ import {
   PlayIcon,
   LayoutGridIcon,
   SquareIcon,
-  Volume2Icon,
-  VolumeXIcon,
-  WifiIcon,
   WifiOffIcon,
 } from "lucide-react";
+import { SoundVolumeIcon } from "@/components/shell/SoundVolumeIcon";
+import { WifiSignalIcon } from "@/components/shell/WifiSignalIcon";
 import { SymbolicIcon } from "@/components/ui/symbolic-icon";
 import {
   Window,
@@ -244,7 +243,7 @@ export const MenuBar = React.memo(function MenuBar() {
   const captureActivity = useCaptureActivity();
   const { statusItems } = usePlugins();
   const isBrowserRuntime = useSettingsSelector((v) => v.isBrowserRuntime); // FIXME : Capabilities
-  const settings = useDesktopSettings(["activeWorkspace", "bluetoothEnabled", "clock24Hour", "clockShowDate", "clockShowDay", "clockShowSeconds", "computerModel", "doNotDisturb", "enabledPluginIds", "installedWebApps", "keyboardLayout", "muted", "pinnedAppIds", "powerMode", "showBatteryPercentage", "volume", "wifiEnabled", "workspaceCount"]);
+  const settings = useDesktopSettings(["activeWorkspace", "bluetoothEnabled", "clock24Hour", "clockShowDate", "clockShowDay", "clockShowSeconds", "computerModel", "connectedWifi", "doNotDisturb", "enabledPluginIds", "installedWebApps", "keyboardLayout", "muted", "pinnedAppIds", "powerMode", "showBatteryPercentage", "volume", "wifiEnabled", "workspaceCount"]);
   const updateSettings = useUpdateSettings();
   // The compositor starts on its first keymap: put back the chosen one.
   React.useEffect(() => {
@@ -266,7 +265,9 @@ export const MenuBar = React.memo(function MenuBar() {
     startScreenRecording,
     wifiPresent,
     bluetoothPresent,
+    liveWifiNetworks,
   } = useSystemBackends();
+  const connectedSignal = liveWifiNetworks.find((n) => n.ssid === settings.connectedWifi)?.signal;
   const altHeld = useAltKey();
   // Narrow slice: window drags/resizes don't change any of these fields.
   const {
@@ -1269,7 +1270,7 @@ export const MenuBar = React.memo(function MenuBar() {
                   />
                 ) : null}
                 {!wifiPresent ? null : settings.wifiEnabled ? (
-                  <SymbolicIcon name="network-wireless-signal-excellent" fallback={WifiIcon} className="size-4" />
+                  <WifiSignalIcon signal={connectedSignal} className="size-4" />
                 ) : (
                   <SymbolicIcon name="network-wireless-disabled" fallback={WifiOffIcon} className="size-4 text-ui-label/45 dark:text-white/45" />
                 )}
@@ -1278,11 +1279,7 @@ export const MenuBar = React.memo(function MenuBar() {
                 ) : (
                   <SymbolicIcon name="bluetooth-disabled" fallback={BluetoothOffIcon} className="size-4 text-ui-label/45 dark:text-white/45" />
                 )}
-                {settings.muted || settings.volume === 0 ? (
-                  <SymbolicIcon name="audio-volume-muted" fallback={VolumeXIcon} className="size-4 text-ui-label/60 dark:text-white/60" />
-                ) : (
-                  <SymbolicIcon name="audio-volume-high" fallback={Volume2Icon} className="size-4" />
-                )}
+                <SoundVolumeIcon volume={settings.volume} muted={settings.muted} className="size-4" />
                 {batteryInfo.present && (
                   <span
                     data-slot="menubar-battery"

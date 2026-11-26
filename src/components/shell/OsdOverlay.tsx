@@ -1,5 +1,7 @@
 import * as React from "react";
-import { SunIcon, Volume2Icon, VolumeXIcon } from "lucide-react";
+import { SunIcon } from "lucide-react";
+import { SoundVolumeIcon } from "@/components/shell/SoundVolumeIcon";
+import { cn } from "@/lib/core/utils";
 import {
   useWindowManagerSelector,
   useDesktopSettings,
@@ -123,11 +125,11 @@ export function OsdOverlay() {
       className="pointer-events-none fixed bottom-24 left-1/2 z-[450] flex w-56 -translate-x-1/2 items-center gap-3 rounded-full px-4 py-2.5 text-ui-label shadow-ui-menu ring-1 ring-ui-border ui-material-hud animate-in fade-in zoom-in-95 duration-150"
     >
       {osd.kind === "volume" ? (
-        osd.muted || osd.value === 0 ? (
-          <VolumeXIcon className="size-4.5 shrink-0 text-ui-label-secondary" />
-        ) : (
-          <Volume2Icon className="size-4.5 shrink-0 text-ui-label" />
-        )
+        <SoundVolumeIcon
+          volume={osd.value}
+          muted={osd.muted}
+          className={cn("size-4.5 shrink-0", osd.muted || osd.value === 0 ? "text-ui-label-secondary" : "text-ui-label")}
+        />
       ) : (
         <SunIcon className="size-4.5 shrink-0 text-ui-label" />
       )}

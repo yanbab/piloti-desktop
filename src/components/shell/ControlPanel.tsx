@@ -22,11 +22,10 @@ import {
   SpeakerIcon,
   SunIcon,
   VideoIcon,
-  Volume2Icon,
-  VolumeXIcon,
-  WifiIcon,
   XIcon,
 } from "lucide-react";
+import { SoundVolumeIcon } from "@/components/shell/SoundVolumeIcon";
+import { WifiSignalIcon } from "@/components/shell/WifiSignalIcon";
 import { SymbolicIcon } from "@/components/ui/symbolic-icon";
 import { Slider } from "@/components/ui/slider";
 import {
@@ -79,6 +78,7 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
     takeScreenshot,
     startScreenRecording,
   } = useSystemBackends();
+  const connectedSignal = liveWifiNetworks.find((n) => n.ssid === settings.connectedWifi)?.signal;
   const { setControlPanelOpen, launchApp, openGnomeSettings } =
     useWindowActions();
   // Secured network waiting for its passphrase (no saved profile).
@@ -233,13 +233,7 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
             <Slider
               aria-label="Sound Output"
               variant="capsule"
-              icon={
-                settings.muted || settings.volume === 0 ? (
-                  <SymbolicIcon name="audio-volume-muted" fallback={VolumeXIcon} className="size-3.5" />
-                ) : (
-                  <SymbolicIcon name="audio-volume-high" fallback={Volume2Icon} className="size-3.5" />
-                )
-              }
+              icon={<SoundVolumeIcon volume={settings.volume} muted={settings.muted} className="size-3.5" />}
               className="flex-1"
               min={0}
               max={100}
@@ -390,7 +384,7 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
                 : "active:bg-black/14 dark:active:bg-white/18"
             )}
           >
-            <SymbolicIcon name="network-wireless-signal-excellent" fallback={WifiIcon} className="size-[18px] shrink-0" />
+            <WifiSignalIcon signal={connectedSignal} className="size-[18px] shrink-0" />
             <span className="truncate text-ui-body font-medium">Wi-Fi</span>
           </button>
           <button
@@ -518,7 +512,7 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
                       )}
                     >
                       <span className="flex min-w-0 items-center gap-2">
-                        <SymbolicIcon name="network-wireless-signal-excellent" fallback={WifiIcon} className="size-3.5 shrink-0 opacity-80" />
+                        <WifiSignalIcon signal={net.signal} className="size-3.5 shrink-0 opacity-80" />
                         <span className="truncate">{net.ssid}</span>
                       </span>
                       <span className="flex shrink-0 items-center gap-1.5 text-ui-caption text-ui-label-secondary tabular-nums">

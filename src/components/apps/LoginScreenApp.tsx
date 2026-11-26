@@ -14,11 +14,10 @@ import {
   PowerIcon,
   UserIcon,
   UserPlusIcon,
-  Volume2Icon,
-  VolumeXIcon,
   WifiIcon,
   WifiOffIcon,
 } from "lucide-react";
+import { SoundVolumeIcon } from "@/components/shell/SoundVolumeIcon";
 import { AuthPasswordCard } from "@/components/shell/AuthPasswordCard";
 import { DesktopBackgroundLayers } from "@/components/shell/DesktopBackgroundLayers";
 import { KeyboardLayoutSwitcher } from "@/components/shell/KeyboardLayoutSwitcher";
@@ -516,11 +515,7 @@ export const LoginScreenApp: React.FC<LoginScreenAppProps> = ({
             ) : (
               <WifiOffIcon className="size-3.5 opacity-50" />
             )}
-            {settings.muted || settings.volume === 0 ? (
-              <VolumeXIcon className="size-3.5 opacity-60" />
-            ) : (
-              <Volume2Icon className="size-3.5" />
-            )}
+            <SoundVolumeIcon volume={settings.volume} muted={settings.muted} className="size-3.5" />
             {batteryInfo.present &&
               (batteryInfo.charging ? (
                 <BatteryChargingIcon className="size-3.5" />

@@ -134,9 +134,9 @@ single spinner glyph (GTK draws it).
 | User | `avatar-default` |  |
 | UserPlus | `contact-new` |  |
 | Video | `camera-video` |  |
-| Volume2 | `audio-volume-high` |  |
+| Volume2 | `audio-volume-low` / `-medium` / `-high` | Adwaita only: Piloti and Cupertino draw Lucide `Volume` / `Volume1` / `Volume2` by level (`shell/SoundVolumeIcon.tsx`) |
 | VolumeX | `audio-volume-muted` |  |
-| Wifi | `network-wireless-signal-excellent` |  |
+| Wifi | `network-wireless-signal-weak` / `-ok` / `-excellent` | Adwaita only: Piloti and Cupertino draw Lucide `WifiLow` / `WifiHigh` / `Wifi` by signal (`shell/WifiSignalIcon.tsx`) |
 | WifiOff | `network-wireless-disabled` |  |
 | Wrench | `applications-utilities` |  |
 | X | `window-close` |  |
@@ -154,7 +154,7 @@ single spinner glyph (GTK draws it).
 | `apps/FileItemContextMenu.tsx` | ChevronRight |
 | `apps/FilesApp.tsx` | AlertCircle, ArrowLeft, Briefcase, ChevronDown, ChevronRight, Clock, Download, Eject, FileText, Folder, Heart, Home, Image, LayoutGrid, List, Monitor, Music, Tag, Trash2, Usb, Video, X |
 | `apps/ImageViewerApp.tsx` | Check, Crop, Maximize2, RotateCcw, RotateCw, Save, X, ZoomIn, ZoomOut |
-| `apps/LoginScreenApp.tsx` | ArrowLeft, ArrowRight, Battery, BatteryCharging, Check, ChevronDown, Monitor, Power, User, UserPlus, Volume2, VolumeX, Wifi, WifiOff |
+| `apps/LoginScreenApp.tsx` | ArrowLeft, ArrowRight, Battery, BatteryCharging, Check, ChevronDown, Monitor, Power, User, UserPlus, Wifi, WifiOff |
 | `apps/PilotiDemoApp.tsx` | Bell, Boxes, ChevronDown, Folder, House, Image, Menu, Monitor, Moon, Palette, SlidersHorizontal, Sun, Type, Volume2 |
 | `apps/SettingsApp.tsx` | Dock |
 | `apps/SystemMonitorApp.tsx` | X |
@@ -173,11 +173,13 @@ single spinner glyph (GTK draws it).
 | `shell/Launcher.tsx` | BellRing, Calculator, Camera, Columns2, Globe, Layers, LayoutTemplate, Lock, Maximize2, Moon, Palette, Puzzle, Settings, Sun, Video, Volume2, VolumeX |
 | `shell/LockScreen.tsx` | Bell, Lock |
 | `shell/NicePathLabel.tsx` | Home |
-| `shell/OsdOverlay.tsx` | Sun, Volume2, VolumeX |
+| `shell/OsdOverlay.tsx` | Sun |
+| `shell/SoundVolumeIcon.tsx` | Volume, Volume1, Volume2, VolumeX (by level, outside Adwaita) |
 | `shell/Overview.tsx` | Plus |
 | `shell/PortalDialogs.tsx` | AlertTriangle, AppWindow, Camera, Eye, EyeOff, File, Folder, Image, Keyboard, Monitor, Pipette, Printer, ShieldCheck, Sparkles, Usb, User, Video, X |
 | `shell/PowerActionDialog.tsx` | AlertTriangle |
 | `shell/WindowManager.tsx` | Loader2 |
+| `shell/WifiSignalIcon.tsx` | Wifi, WifiHigh, WifiLow (by signal, outside Adwaita) |
 | `ui/checkbox.tsx` | Check |
 | `ui/command.tsx` | Check, Search |
 | `ui/dialog.tsx` | X |
