@@ -10,6 +10,7 @@ import { DEFAULT_USER_DIR_SPECS } from "@/lib/xdg/xdg-user-dirs";
 import {
   APP_GRID_ICON_CANDIDATES,
   SHELL_XDG_ICON_GROUPS,
+  SYMBOLIC_ICONS,
 } from "@/lib/shell/shell-icon-names";
 import {
   hasAccentMarkers,
@@ -140,5 +141,23 @@ describe("accent-colored icons", () => {
     expect(hasAccentMarkers(folder)).toBe(true);
     expect(decode(folder!)).toContain('class="accent-darker"');
     expect(hasAccentMarkers(drive)).toBe(false);
+  });
+});
+
+describe("symbolic icons of the shell UI", () => {
+  for (const themes of [["Piloti", "Adwaita", "hicolor"], ["Adwaita", "hicolor"]]) {
+    it(`has every <SymbolicIcon> name with the ${themes[0]} theme`, async () => {
+      const index = await buildXdgIconThemeIndex(diskIconReader as never, themes);
+      const missing = Object.entries(SYMBOLIC_ICONS)
+        .filter(([name, fallbacks]) => !lookupXdgSymbolicIconPath(index, [name, ...fallbacks])?.endsWith("-symbolic.svg"))
+        .map(([name]) => name);
+      expect(missing).toEqual([]);
+    });
+  }
+
+  it("never gives an app or file a UI symbol", async () => {
+    const index = await buildXdgIconThemeIndex(diskIconReader as never, ["Adwaita", "hicolor"]);
+    expect(lookupXdgSymbolicIconPath(index, "dialog-warning")).toContain("/symbolic/status/");
+    expect(lookupXdgIconPath(index, "dialog-warning", 64, 1)).toBeUndefined();
   });
 });

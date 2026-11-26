@@ -1,5 +1,6 @@
 import * as React from "react";
 import { CheckIcon, SearchIcon } from "lucide-react";
+import { SymbolicIcon } from "@/components/ui/symbolic-icon";
 import { MENU_ITEM_CLASS, MENU_LABEL_CLASS, MENU_SEPARATOR_CLASS, MENU_SHORTCUT_CLASS } from "@/components/ui/menu-styles";
 import { _ } from "@/lib/core/i18n";
 import { cn } from "@/lib/core/utils";
@@ -48,7 +49,7 @@ export function HelpMenuSearch({
       onPointerMove={(e) => e.stopPropagation()}
     >
       <label className="mx-[2px] mb-1 flex h-[30px] items-center gap-2 rounded-[8px] bg-black/6 px-2.5 dark:bg-white/10">
-        <SearchIcon className="size-3.5 shrink-0 text-ui-label-secondary" />
+        <SymbolicIcon name="system-search" fallback={SearchIcon} className="size-3.5 shrink-0 text-ui-label-secondary" />
         <input
           ref={inputRef}
           type="text"
@@ -104,7 +105,7 @@ export function HelpMenuSearch({
                 className={cn(MENU_ITEM_CLASS, "pl-[30px]")}
               >
                 {command.checked && (
-                  <CheckIcon className="absolute left-[9px] size-3.5" />
+                  <SymbolicIcon name="object-select" fallback={CheckIcon} className="absolute left-[9px] size-3.5" />
                 )}
                 <span className="flex min-w-0 items-baseline gap-1.5">
                   <span className="truncate">{command.label}</span>

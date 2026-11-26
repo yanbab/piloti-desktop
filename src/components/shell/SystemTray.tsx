@@ -8,6 +8,7 @@ import {
 } from "@domicile-desktop/sdk/dbusmenu";
 import type { TrayItem } from "@domicile-desktop/sdk/tray";
 import { ChevronDownIcon, ChevronRightIcon } from "lucide-react";
+import { SymbolicIcon } from "@/components/ui/symbolic-icon";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -40,9 +41,9 @@ function TraySubmenuGroup({
       >
         <span>{entry.label}</span>
         {expanded ? (
-          <ChevronDownIcon className="ml-2 size-3.5 opacity-70" />
+          <SymbolicIcon name="pan-down" fallback={ChevronDownIcon} className="ml-2 size-3.5 opacity-70" />
         ) : (
-          <ChevronRightIcon className="ml-2 size-3.5 opacity-70" />
+          <SymbolicIcon name="pan-end" fallback={ChevronRightIcon} className="ml-2 size-3.5 opacity-70" />
         )}
       </DropdownMenuItem>
       {expanded && entry.submenu && (

@@ -27,6 +27,7 @@ import {
   WifiIcon,
   XIcon,
 } from "lucide-react";
+import { SymbolicIcon } from "@/components/ui/symbolic-icon";
 import { Slider } from "@/components/ui/slider";
 import {
   useSystemBackends,
@@ -185,7 +186,7 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
             }}
             className="flex size-7 items-center justify-center rounded-full bg-black/8 text-ui-label active:bg-black/16 dark:bg-white/10 dark:active:bg-white/22"
           >
-            <SlidersHorizontalIcon className="size-3.5" />
+            <SymbolicIcon name="emblem-system" fallback={SlidersHorizontalIcon} className="size-3.5" />
           </button>
           <span className="text-ui-body font-medium text-ui-label-secondary">
             {new Date().toLocaleDateString(
@@ -208,7 +209,7 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
             }}
             className="flex size-7 items-center justify-center rounded-full bg-black/8 text-ui-label active:bg-black/16 dark:bg-white/10 dark:active:bg-white/22"
           >
-            <CameraIcon className="size-3.5" />
+            <SymbolicIcon name="camera-photo" fallback={CameraIcon} className="size-3.5" />
           </button>
           <button
             type="button"
@@ -219,7 +220,7 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
             }}
             className="flex size-7 items-center justify-center rounded-full bg-black/8 text-ui-label active:bg-black/16 dark:bg-white/10 dark:active:bg-white/22"
           >
-            <VideoIcon className="size-3.5" />
+            <SymbolicIcon name="camera-video" fallback={VideoIcon} className="size-3.5" />
           </button>
         </div>
       </div>
@@ -234,9 +235,9 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
               variant="capsule"
               icon={
                 settings.muted || settings.volume === 0 ? (
-                  <VolumeXIcon className="size-3.5" />
+                  <SymbolicIcon name="audio-volume-muted" fallback={VolumeXIcon} className="size-3.5" />
                 ) : (
-                  <Volume2Icon className="size-3.5" />
+                  <SymbolicIcon name="audio-volume-high" fallback={Volume2Icon} className="size-3.5" />
                 )
               }
               className="flex-1"
@@ -279,7 +280,7 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
                 : "bg-black/8 text-ui-label-secondary active:bg-black/16 dark:bg-white/10 dark:active:bg-white/18"
             )}
           >
-            <ChevronRightIcon
+            <SymbolicIcon name="pan-end" fallback={ChevronRightIcon}
               className={cn(
                 "size-3.5 transition-transform duration-150",
                 expandedPicker === "audio" && "rotate-90"
@@ -326,13 +327,13 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
                     )}
                   >
                     <span className="flex min-w-0 items-center gap-2">
-                      <SpeakerIcon className="size-3.5 shrink-0 opacity-80" />
+                      <SymbolicIcon name="audio-speakers" fallback={SpeakerIcon} className="size-3.5 shrink-0 opacity-80" />
                       <span className="truncate">
                         {sink.description || sink.name}
                       </span>
                     </span>
                     {sink.active && (
-                      <CheckIcon className="size-3.5 shrink-0 text-ui-accent" />
+                      <SymbolicIcon name="object-select" fallback={CheckIcon} className="size-3.5 shrink-0 text-ui-accent" />
                     )}
                   </button>
                 ))}
@@ -346,7 +347,7 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
           <Slider
             aria-label="Display Brightness"
             variant="capsule"
-            icon={<SunIcon className="size-3.5" />}
+            icon={<SymbolicIcon name="display-brightness" fallback={SunIcon} className="size-3.5" />}
             className="flex-1"
             min={25}
             max={100}
@@ -389,7 +390,7 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
                 : "active:bg-black/14 dark:active:bg-white/18"
             )}
           >
-            <WifiIcon className="size-[18px] shrink-0" />
+            <SymbolicIcon name="network-wireless-signal-excellent" fallback={WifiIcon} className="size-[18px] shrink-0" />
             <span className="truncate text-ui-body font-medium">Wi-Fi</span>
           </button>
           <button
@@ -406,7 +407,7 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
                 : "border-black/10 active:bg-black/14 dark:border-white/10 dark:active:bg-white/18"
             )}
           >
-            <ChevronRightIcon
+            <SymbolicIcon name="pan-end" fallback={ChevronRightIcon}
               className={cn(
                 "size-3.5 transition-transform duration-150",
                 expandedPicker === "wifi" && "rotate-90"
@@ -444,7 +445,7 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
                 : "active:bg-black/14 dark:active:bg-white/18"
             )}
           >
-            <BluetoothIcon className="size-[18px] shrink-0" />
+            <SymbolicIcon name="bluetooth-active" fallback={BluetoothIcon} className="size-[18px] shrink-0" />
             <span className="truncate text-ui-body font-medium">
               Bluetooth
             </span>
@@ -463,7 +464,7 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
                 : "border-black/10 active:bg-black/14 dark:border-white/10 dark:active:bg-white/18"
             )}
           >
-            <ChevronRightIcon
+            <SymbolicIcon name="pan-end" fallback={ChevronRightIcon}
               className={cn(
                 "size-3.5 transition-transform duration-150",
                 expandedPicker === "bluetooth" && "rotate-90"
@@ -517,14 +518,14 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
                       )}
                     >
                       <span className="flex min-w-0 items-center gap-2">
-                        <WifiIcon className="size-3.5 shrink-0 opacity-80" />
+                        <SymbolicIcon name="network-wireless-signal-excellent" fallback={WifiIcon} className="size-3.5 shrink-0 opacity-80" />
                         <span className="truncate">{net.ssid}</span>
                       </span>
                       <span className="flex shrink-0 items-center gap-1.5 text-ui-caption text-ui-label-secondary tabular-nums">
-                        {net.secured && <LockIcon className="size-3 opacity-75" />}
+                        {net.secured && <SymbolicIcon name="network-wireless-encrypted" fallback={LockIcon} className="size-3 opacity-75" />}
                         <span>{net.signal}%</span>
                         {connected && (
-                          <CheckIcon className="size-3.5 text-ui-accent" />
+                          <SymbolicIcon name="object-select" fallback={CheckIcon} className="size-3.5 text-ui-accent" />
                         )}
                       </span>
                     </button>
@@ -611,12 +612,12 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
                     )}
                   >
                     <span className="flex min-w-0 items-center gap-2">
-                      <BluetoothIcon className="size-3.5 shrink-0 opacity-80" />
+                      <SymbolicIcon name="bluetooth-active" fallback={BluetoothIcon} className="size-3.5 shrink-0 opacity-80" />
                       <span className="truncate">{device.name}</span>
                     </span>
                     <span className="flex shrink-0 items-center gap-1.5 text-ui-caption text-ui-label-secondary tabular-nums">
                       {device.battery !== undefined && <span>{device.battery}%</span>}
-                      {device.connected && <CheckIcon className="size-3.5 text-ui-accent" />}
+                      {device.connected && <SymbolicIcon name="object-select" fallback={CheckIcon} className="size-3.5 text-ui-accent" />}
                     </span>
                   </button>
                 ))}
@@ -643,7 +644,7 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
               : "bg-black/6 text-ui-label active:bg-black/14 dark:bg-white/8 dark:active:bg-white/18"
           )}
         >
-          <MoonIcon className="size-[18px] shrink-0" />
+          <SymbolicIcon name="weather-clear-night" fallback={MoonIcon} className="size-[18px] shrink-0" />
           <span className="truncate text-ui-body font-medium">
             {_("Dark Mode")}
           </span>
@@ -668,7 +669,7 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
               : "bg-black/6 text-ui-label active:bg-black/14 dark:bg-white/8 dark:active:bg-white/18"
           )}
         >
-          <BellOffIcon className="size-[18px] shrink-0" />
+          <SymbolicIcon name="notifications-disabled" fallback={BellOffIcon} className="size-[18px] shrink-0" />
           <span className="truncate text-ui-body font-medium">
             {_("Silent")}
           </span>
@@ -693,7 +694,7 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
               : "bg-black/6 text-ui-label active:bg-black/14 dark:bg-white/8 dark:active:bg-white/18"
           )}
         >
-          <FlameIcon className="size-[18px] shrink-0" />
+          <SymbolicIcon name="night-light" fallback={FlameIcon} className="size-[18px] shrink-0" />
           <span className="truncate text-ui-body font-medium">
             {_("Night Light")}
           </span>
@@ -711,7 +712,7 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
               : "bg-black/6 text-ui-label active:bg-black/14 dark:bg-white/8 dark:active:bg-white/18"
           )}
         >
-          <GaugeIcon className="size-[18px] shrink-0" />
+          <SymbolicIcon name="power-profile-power-saver" fallback={GaugeIcon} className="size-[18px] shrink-0" />
           <span className="truncate text-ui-body font-medium">
             {_("Power Saver")}
           </span>
@@ -723,7 +724,7 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
         <div data-slot="control-card" className="flex items-center justify-between gap-2.5 rounded-ui-card bg-black/6 px-3 py-2.5 dark:bg-white/8">
           <div className="flex min-w-0 flex-1 items-center gap-2.5">
             <span className="flex size-8 shrink-0 items-center justify-center rounded-ui-control bg-ui-accent/20 text-ui-accent">
-              <Music2Icon className="size-4" />
+              <SymbolicIcon name="audio-x-generic" fallback={Music2Icon} className="size-4" />
             </span>
             <div className="min-w-0 flex-1">
               <div className="truncate text-ui-body font-medium text-ui-label">
@@ -741,7 +742,7 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
               onClick={() => void controlMpris("previous")}
               className="flex size-7 items-center justify-center rounded-full text-ui-label active:bg-black/14 dark:active:bg-white/18"
             >
-              <SkipBackIcon className="size-3.5" />
+              <SymbolicIcon name="media-skip-backward" fallback={SkipBackIcon} className="size-3.5" />
             </button>
             <button
               type="button"
@@ -750,9 +751,9 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
               className="flex size-7 items-center justify-center rounded-full bg-ui-accent text-white active:bg-ui-accent/80"
             >
               {mprisMedia.status === "Playing" ? (
-                <PauseIcon className="size-3.5" />
+                <SymbolicIcon name="media-playback-pause" fallback={PauseIcon} className="size-3.5" />
               ) : (
-                <PlayIcon className="size-3.5" />
+                <SymbolicIcon name="media-playback-start" fallback={PlayIcon} className="size-3.5" />
               )}
             </button>
             <button
@@ -761,7 +762,7 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
               onClick={() => void controlMpris("next")}
               className="flex size-7 items-center justify-center rounded-full text-ui-label active:bg-black/14 dark:active:bg-white/18"
             >
-              <SkipForwardIcon className="size-3.5" />
+              <SymbolicIcon name="media-skip-forward" fallback={SkipForwardIcon} className="size-3.5" />
             </button>
           </div>
         </div>
@@ -769,7 +770,7 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
 
       {activeInhibitors.length > 0 && (
         <div className="flex items-start gap-2 rounded-[10px] border border-amber-500/30 bg-amber-500/12 px-2.5 py-1.5 text-ui-small text-amber-900 dark:text-amber-200">
-          <AlertTriangleIcon className="mt-0.5 size-3.5 shrink-0 text-amber-600 dark:text-amber-400" />
+          <SymbolicIcon name="dialog-warning" fallback={AlertTriangleIcon} className="mt-0.5 size-3.5 shrink-0 text-amber-600 dark:text-amber-400" />
           <div className="min-w-0 flex-1">
             <div className="font-medium">
               {_("Sleep or logout inhibited")}
@@ -860,14 +861,14 @@ export function FloatingNotifications({ open = true }: { open?: boolean }) {
           onClick={clearAllNotifications}
           className="flex size-ui-control-medium shrink-0 items-center justify-center rounded-full border border-black/8 text-ui-label shadow-ui-popover backdrop-blur-xl transition-colors ui-material-popover hover-fill:bg-black/6 dark:border-white/10 dark:hover-fill:bg-white/10"
         >
-          <XIcon className="size-3.5" />
+          <SymbolicIcon name="window-close" fallback={XIcon} className="size-3.5" />
         </button>
       </div>
 
       {(settings.doNotDisturb || !settings.notificationsEnabled) && (
         <div className="flex items-center justify-between gap-2 rounded-2xl border border-black/8 px-3 py-2 text-ui-small text-ui-label-secondary shadow-ui-popover backdrop-blur-xl ui-material-popover dark:border-white/10">
           <span className="flex min-w-0 items-center gap-1.5 truncate">
-            <BellOffIcon className="size-3 shrink-0 text-ui-accent" />
+            <SymbolicIcon name="notifications-disabled" fallback={BellOffIcon} className="size-3 shrink-0 text-ui-accent" />
             <span className="truncate">
               {!settings.notificationsEnabled
                 ? _("Notifications paused in Settings")
@@ -943,7 +944,7 @@ export function FloatingNotifications({ open = true }: { open?: boolean }) {
                     }}
                     className="flex size-4 items-center justify-center rounded-full bg-black/10 text-ui-label-secondary opacity-0 transition-opacity group-hover/card:opacity-80 hover:opacity-100 focus-visible:opacity-100 active:bg-black/20 dark:bg-white/15 dark:active:bg-white/25"
                   >
-                    <XIcon className="size-2.5" />
+                    <SymbolicIcon name="window-close" fallback={XIcon} className="size-2.5" />
                   </button>
                 </div>
               </div>

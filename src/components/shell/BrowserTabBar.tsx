@@ -18,6 +18,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { GlobeIcon, XIcon } from "lucide-react";
+import { SymbolicIcon } from "@/components/ui/symbolic-icon";
 import { createPortal } from "react-dom";
 import {
   ContextMenu,
@@ -58,7 +59,7 @@ function TabContents({ tab, active, onClose }: { tab: BrowserTab; active: boolea
     return tab.iconUrl ? (
       <img src={tab.iconUrl} alt="" className="size-4 shrink-0" draggable={false} />
     ) : (
-      <GlobeIcon className="size-4 shrink-0" />
+      <SymbolicIcon name="web-browser" fallback={GlobeIcon} className="size-4 shrink-0" />
     );
   }
   return (
@@ -74,12 +75,12 @@ function TabContents({ tab, active, onClose }: { tab: BrowserTab; active: boolea
           active ? "visible" : "invisible group-hover:visible"
         )}
       >
-        <XIcon className="size-3" />
+        <SymbolicIcon name="window-close" fallback={XIcon} className="size-3" />
       </button>
       {tab.iconUrl ? (
         <img src={tab.iconUrl} alt="" className="size-4 shrink-0" draggable={false} />
       ) : (
-        <GlobeIcon className="size-4 shrink-0" />
+        <SymbolicIcon name="web-browser" fallback={GlobeIcon} className="size-4 shrink-0" />
       )}
       <span className="min-w-0 flex-1 truncate">{tab.title}</span>
     </>

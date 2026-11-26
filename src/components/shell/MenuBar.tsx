@@ -28,6 +28,7 @@ import {
   WifiIcon,
   WifiOffIcon,
 } from "lucide-react";
+import { SymbolicIcon } from "@/components/ui/symbolic-icon";
 import {
   Window,
   WindowContent,
@@ -122,9 +123,9 @@ function RemoteSubmenuGroup({
       >
         <span>{entry.label}</span>
         {expanded ? (
-          <ChevronDownIcon className="ml-2 size-3.5 opacity-70" />
+          <SymbolicIcon name="pan-down" fallback={ChevronDownIcon} className="ml-2 size-3.5 opacity-70" />
         ) : (
-          <ChevronRightIcon className="ml-2 size-3.5 opacity-70" />
+          <SymbolicIcon name="pan-end" fallback={ChevronRightIcon} className="ml-2 size-3.5 opacity-70" />
         )}
       </MenubarItem>
       {expanded && entry.submenu && (
@@ -1142,9 +1143,9 @@ export const MenuBar = React.memo(function MenuBar() {
                   className="rounded-full p-0.5 hover-fill:bg-white/20"
                 >
                   {paused ? (
-                    <PlayIcon className="size-2.5" />
+                    <SymbolicIcon name="media-playback-start" fallback={PlayIcon} className="size-2.5" />
                   ) : (
-                    <PauseIcon className="size-2.5" />
+                    <SymbolicIcon name="media-playback-pause" fallback={PauseIcon} className="size-2.5" />
                   )}
                 </button>
               )}
@@ -1154,7 +1155,7 @@ export const MenuBar = React.memo(function MenuBar() {
                 onClick={() => stopCapturing(cap.id)}
                 className="rounded-full p-0.5 hover-fill:bg-white/20"
               >
-                <SquareIcon className="size-2.5 fill-current" />
+                <SymbolicIcon name="media-playback-stop" fallback={SquareIcon} className="size-2.5 fill-current" />
               </button>
             </div>
           );
@@ -1215,7 +1216,7 @@ export const MenuBar = React.memo(function MenuBar() {
               aria-label="Launcher (Alt+Space)"
               className="flex h-full shrink-0 cursor-default items-center rounded-ui-control px-2 outline-none select-none active:bg-black/14 data-popup-open:bg-black/12 focus-visible:bg-black/10 dark:active:bg-white/18 dark:data-popup-open:bg-white/15 dark:focus-visible:bg-white/12"
             >
-              <LayoutGridIcon className="size-4 text-ui-label/90 dark:text-white/90" />
+              <SymbolicIcon name="view-app-grid" fallback={LayoutGridIcon} className="size-4 text-ui-label/90 dark:text-white/90" />
             </DropdownMenuTrigger>
             <DropdownMenuContent
               anchor={rightClusterRef}
@@ -1254,9 +1255,9 @@ export const MenuBar = React.memo(function MenuBar() {
             >
               <span className="flex items-center gap-1.5 text-ui-label/90 dark:text-white/90">
                 {settings.doNotDisturb ? (
-                  <BellOffIcon className="size-4 text-ui-label/45 dark:text-white/45" />
+                  <SymbolicIcon name="notifications-disabled" fallback={BellOffIcon} className="size-4 text-ui-label/45 dark:text-white/45" />
                 ) : notifications.length > 0 ? (
-                  <BellIcon
+                  <SymbolicIcon name="preferences-system-notifications" fallback={BellIcon}
                     className={cn(
                       "size-4",
                       notifications.some(
@@ -1268,19 +1269,19 @@ export const MenuBar = React.memo(function MenuBar() {
                   />
                 ) : null}
                 {!wifiPresent ? null : settings.wifiEnabled ? (
-                  <WifiIcon className="size-4" />
+                  <SymbolicIcon name="network-wireless-signal-excellent" fallback={WifiIcon} className="size-4" />
                 ) : (
-                  <WifiOffIcon className="size-4 text-ui-label/45 dark:text-white/45" />
+                  <SymbolicIcon name="network-wireless-disabled" fallback={WifiOffIcon} className="size-4 text-ui-label/45 dark:text-white/45" />
                 )}
                 {!bluetoothPresent ? null : settings.bluetoothEnabled ? (
-                  <BluetoothIcon className="size-4" />
+                  <SymbolicIcon name="bluetooth-active" fallback={BluetoothIcon} className="size-4" />
                 ) : (
-                  <BluetoothOffIcon className="size-4 text-ui-label/45 dark:text-white/45" />
+                  <SymbolicIcon name="bluetooth-disabled" fallback={BluetoothOffIcon} className="size-4 text-ui-label/45 dark:text-white/45" />
                 )}
                 {settings.muted || settings.volume === 0 ? (
-                  <VolumeXIcon className="size-4 text-ui-label/60 dark:text-white/60" />
+                  <SymbolicIcon name="audio-volume-muted" fallback={VolumeXIcon} className="size-4 text-ui-label/60 dark:text-white/60" />
                 ) : (
-                  <Volume2Icon className="size-4" />
+                  <SymbolicIcon name="audio-volume-high" fallback={Volume2Icon} className="size-4" />
                 )}
                 {batteryInfo.present && (
                   <span
@@ -1293,11 +1294,11 @@ export const MenuBar = React.memo(function MenuBar() {
                     )}
                   >
                     {batteryInfo.charging ? (
-                      <BatteryChargingIcon className="size-4" />
+                      <SymbolicIcon name="battery-good-charging" fallback={BatteryChargingIcon} className="size-4" />
                     ) : batteryInfo.percentage <= 20 ? (
-                      <BatteryLowIcon className="size-4 text-amber-500" />
+                      <SymbolicIcon name="battery-caution" fallback={BatteryLowIcon} className="size-4 text-amber-500" />
                     ) : (
-                      <BatteryIcon className="size-4" />
+                      <SymbolicIcon name="battery-good" fallback={BatteryIcon} className="size-4" />
                     )}
                     {settings.showBatteryPercentage && (
                       <span>{batteryInfo.percentage}%</span>

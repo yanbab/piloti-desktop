@@ -3,6 +3,7 @@
 import { installPopupPressThrough } from "@/lib/shell/popup-layer"
 import * as React from "react"
 import { MinusIcon, XIcon } from "lucide-react"
+import { SymbolicIcon } from "@/components/ui/symbolic-icon";
 
 import { cn } from "@/lib/core/utils"
 
@@ -1178,7 +1179,7 @@ function WindowControls({
         if (kind === "minimize") {
           return (
             <WindowControlButton key={kind} data-control="minimize" aria-label="Minimize" onClick={onMinimize}>
-              <MinusIcon strokeWidth={2.25} />
+              <SymbolicIcon name="window-minimize" fallback={MinusIcon} strokeWidth={2.25} />
             </WindowControlButton>
           )
         }
@@ -1193,7 +1194,7 @@ function WindowControls({
         }
         return (
           <WindowControlButton key={kind} data-control="close" aria-label="Close" onClick={onClose}>
-            <XIcon strokeWidth={2.25} />
+            <SymbolicIcon name="window-close" fallback={XIcon} strokeWidth={2.25} />
           </WindowControlButton>
         )
       })}

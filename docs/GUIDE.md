@@ -55,6 +55,7 @@ in `piloti-macos.css`.
 | Icon grid | `components/ui/icon-grid.tsx`, `lib/shell/{desktop-icons,drag-feedback}.ts` |
 | Folder views | `components/ui/folder-icon-view.tsx`, `hooks/{use-folder-ops,use-external-file-drop,use-launcher-items}.ts`, `lib/shell/folder-items.ts` |
 | Icons ([details](#icons)) | `lib/xdg/xdg-icon-theme.ts`, `lib/shell/{icon-accent-tint,shell-icon-names}.ts` |
+| UI symbols ([details](./SYMBOLIC-ICONS.md)) | `components/ui/symbolic-icon.tsx`, `lib/shell/symbolic-icons.ts` |
 | Web browser | `WebViewSurface`, `BrowserTabsSurface` (`WindowManager.tsx`), `BrowserTabBar.tsx`; tab groups in `WindowsContext.tsx`. A tab is a Domicile browser window; iframes must not move on reorder |
 | Settings | `context/SettingsContext.tsx`, `piloti-settings-ini.ts` |
 | App chrome | `components/elements/` (`AppWindow`, `HeaderBar`, `AppSplitView`…), fed by `shell/WindowAppChrome.tsx`. Start from `apps/HelloWorldApp.tsx`. Apps only lay out content (`tests/unit/app-styling.test.ts`) |

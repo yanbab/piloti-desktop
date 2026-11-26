@@ -261,23 +261,17 @@ function isRelevantIconSubdir(subdir: XdgIconSubdirDescriptor): boolean {
   if (
     lowerPath.includes("cursors") ||
     lowerPath.includes("animations") ||
-    lowerPath.includes("emblems") ||
     lowerPath.includes("intl") ||
-    (!isSymbolic && lowerPath.includes("actions")) ||
-    // File-type and trash icons come from mimetypes/ and status/; symbolic
-    // variants of those are not used.
-    (isSymbolic && (lowerPath.includes("mimetypes") || lowerPath.includes("status"))) ||
     lowerPath.includes("panel")
   ) {
     return false;
   }
 
-  if (isSymbolic) {
-    return (
-      lowerPath.includes("places") ||
-      lowerPath.includes("apps") ||
-      lowerPath.includes("actions")
-    );
+  // Every symbolic folder: the shell's own icons come from all of them.
+  if (isSymbolic) return true;
+
+  if (lowerPath.includes("emblems") || lowerPath.includes("actions")) {
+    return false;
   }
 
   // Skip HiDPI @2x/@3x duplicate subdirectories (SVGs scale cleanly at scale=1,
@@ -665,7 +659,8 @@ function lookupXdgIconPath(
   for (const themeId of index.themeOrder) {
     for (const name of symbolicCandidates) {
       const hit = lookupSingleIconInTheme(index, themeId, name, size, scale);
-      if (hit) return hit;
+      // An app or file never borrows a UI symbol (status, devices, ui…).
+      if (hit && !/\/symbolic\/(?!apps\/|actions\/|places\/)/.test(hit)) return hit;
     }
   }
 
@@ -760,12 +755,12 @@ async function resolveXdgIconUrl(
   return loadXdgIconDataUrl(files, path);
 }
 
-const ICON_INDEX_CACHE_KEY = "piloti.xdg-icon-index.v6";
+const ICON_INDEX_CACHE_KEY = "piloti.xdg-icon-index.v7";
 
 type CompactSubdirGroup = [string, (string | [string, string])[]];
 
-interface SerializedIconThemeIndexV5 {
-  v: 5;
+interface SerializedIconThemeIndex {
+  v: 6;
   key: string;
   themeOrder: string[];
   themes: [string, XdgIconThemeDescriptor][];
@@ -815,8 +810,8 @@ function serializeXdgIconThemeIndex(
     compactSubdirs.push([k, Array.from(byDir.entries())]);
   }
 
-  const payload: SerializedIconThemeIndexV5 = {
-    v: 5,
+  const payload: SerializedIconThemeIndex = {
+    v: 6,
     key,
     themeOrder: index.themeOrder,
     themes: compactThemes,
@@ -831,9 +826,9 @@ function deserializeXdgIconThemeIndex(
   raw: string
 ): XdgIconThemeIndex | null {
   try {
-    const parsed = JSON.parse(raw) as Partial<SerializedIconThemeIndexV5>;
+    const parsed = JSON.parse(raw) as Partial<SerializedIconThemeIndex>;
     if (
-      parsed.v !== 5 ||
+      parsed.v !== 6 ||
       parsed.key !== key ||
       !Array.isArray(parsed.themeOrder) ||
       !Array.isArray(parsed.themes) ||

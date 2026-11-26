@@ -1,5 +1,6 @@
 import * as React from "react"
 import { SearchIcon, XIcon } from "lucide-react"
+import { SymbolicIcon } from "@/components/ui/symbolic-icon";
 
 import { _ } from "@/lib/core/i18n"
 import { cn } from "@/lib/core/utils"
@@ -46,7 +47,7 @@ export function HeaderSearch({
       {/* The field gives way first when the headerbar is narrow. */}
       {open && (
         <div className="relative flex min-w-0 shrink items-center">
-          <SearchIcon className="pointer-events-none absolute left-2 size-3.5 text-ui-label-secondary" />
+          <SymbolicIcon name="system-search" fallback={SearchIcon} className="pointer-events-none absolute left-2 size-3.5 text-ui-label-secondary" />
           <input
             ref={ref}
             type="search"
@@ -73,7 +74,7 @@ export function HeaderSearch({
               }}
               className="absolute right-1 flex size-4.5 items-center justify-center rounded-full bg-black/10 text-ui-label-secondary dark:bg-white/15"
             >
-              <XIcon className="size-2.5" strokeWidth={2.25} />
+              <SymbolicIcon name="window-close" fallback={XIcon} className="size-2.5" strokeWidth={2.25} />
             </button>
           )}
         </div>
@@ -93,7 +94,7 @@ export function HeaderSearch({
               : "text-ui-label-secondary hover-fill:bg-black/8 hover-fill:text-ui-label dark:hover-fill:bg-white/10"
           )}
         >
-          <SearchIcon className="size-4" />
+          <SymbolicIcon name="system-search" fallback={SearchIcon} className="size-4" />
         </button>
       )}
     </div>

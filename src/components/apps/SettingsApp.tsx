@@ -13,6 +13,7 @@ import {
   TypeIcon,
   WrenchIcon,
 } from "lucide-react";
+import { SymbolicIcon } from "@/components/ui/symbolic-icon";
 import { HeaderBar, HeaderHeading } from "@/components/elements/header-bar";
 import { AppSplitView, type SidebarItem } from "@/components/elements/split-view";
 import { Button } from "@/components/ui/button";
@@ -72,13 +73,13 @@ const PANES: {
     id: "appearance",
     label: "Appearance",
     subtitle: "Theme, accent color, desktop",
-    icon: <PaletteIcon />,
+    icon: <SymbolicIcon name="preferences-desktop-appearance" fallback={PaletteIcon} />,
   },
   {
     id: "fonts",
     label: "Fonts",
     subtitle: "Typeface, size, style & rendering",
-    icon: <TypeIcon />,
+    icon: <SymbolicIcon name="preferences-desktop-font" fallback={TypeIcon} />,
   },
   {
     id: "dock",
@@ -90,43 +91,43 @@ const PANES: {
     id: "topbar",
     label: "Control Panel",
     subtitle: "Clock, date, seconds, battery",
-    icon: <SlidersHorizontalIcon />,
+    icon: <SymbolicIcon name="preferences-system" fallback={SlidersHorizontalIcon} />,
   },
   {
     id: "displays",
     label: "Displays",
     subtitle: "Monitors, virtual cast & workspaces",
-    icon: <MonitorIcon />,
+    icon: <SymbolicIcon name="video-display" fallback={MonitorIcon} />,
   },
   {
     id: "keyboard",
     label: "Keyboard",
     subtitle: "Language & shortcut keys",
-    icon: <KeyboardIcon />,
+    icon: <SymbolicIcon name="input-keyboard" fallback={KeyboardIcon} />,
   },
   {
     id: "notifications",
     label: "Notifications",
     subtitle: "Banners, previews & history",
-    icon: <BellIcon />,
+    icon: <SymbolicIcon name="preferences-system-notifications" fallback={BellIcon} />,
   },
   {
     id: "security",
     label: "Permissions",
     subtitle: "Flatpak permissions, notifications & search",
-    icon: <ShieldCheckIcon />,
+    icon: <SymbolicIcon name="security-high" fallback={ShieldCheckIcon} />,
   },
   {
     id: "wallpaper",
     label: "Wallpaper",
     subtitle: "Dynamic meshes & custom backgrounds",
-    icon: <ImageIcon />,
+    icon: <SymbolicIcon name="image-x-generic" fallback={ImageIcon} />,
   },
   {
     id: "advanced",
     label: "Advanced",
     subtitle: "Language, extensions, plugins & testing",
-    icon: <WrenchIcon />,
+    icon: <SymbolicIcon name="applications-utilities" fallback={WrenchIcon} />,
   },
 ];
 

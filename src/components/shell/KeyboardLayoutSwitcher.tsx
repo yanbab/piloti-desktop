@@ -2,6 +2,7 @@ import * as React from "react";
 import { useCapabilities } from "@/hooks/use-capabilities";
 import { usePiloti } from "@/lib/engine/piloti";
 import { KeyboardIcon } from "lucide-react";
+import { SymbolicIcon } from "@/components/ui/symbolic-icon";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -97,7 +98,7 @@ export function KeyboardLayoutSwitcher({
           triggerClassName
         )}
       >
-        <KeyboardIcon className="size-3.5 opacity-85" />
+        <SymbolicIcon name="input-keyboard" fallback={KeyboardIcon} className="size-3.5 opacity-85" />
         <span>{activeLayout.short}</span>
       </DropdownMenuTrigger>
       <DropdownMenuContent align={align} sideOffset={sideOffset} className="w-48">

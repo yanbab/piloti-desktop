@@ -1,5 +1,6 @@
 import * as React from "react";
 import { XIcon } from "lucide-react";
+import { SymbolicIcon } from "@/components/ui/symbolic-icon";
 import { WindowControlButton } from "@/components/ui/window";
 import { cn } from "@/lib/core/utils";
 
@@ -30,7 +31,7 @@ export function HoverCloseButton({
         className
       )}
     >
-      <XIcon strokeWidth={2.25} />
+      <SymbolicIcon name="window-close" fallback={XIcon} strokeWidth={2.25} />
     </WindowControlButton>
   );
 }

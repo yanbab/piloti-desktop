@@ -11,6 +11,7 @@ import {
 import { launchDesktopCommand, readApplicationDirs } from "@/lib/engine-native";
 import { getEngine } from "@/lib/engine/engine";
 import { XDG_APPLICATION_DIRS } from "@/lib/xdg/xdg-basedir";
+import { setSymbolicIconResolver } from "@/lib/shell/symbolic-icons";
 import {
   APP_GRID_ICON_CANDIDATES,
   SHELL_XDG_ICON_GROUPS,
@@ -238,7 +239,7 @@ async function resolveThemedIconUrl(
 const DOCK_ICONS_CACHE_KEY = "piloti.dock-icons.v21";
 // Bump when icon resolution or accent marking changes, so cached icons and
 // icon paths from an older build are not reused.
-const ICON_CACHE_VERSION = 2;
+const ICON_CACHE_VERSION = 3;
 
 interface DockIconsCachePayload {
   v?: number;
@@ -385,6 +386,21 @@ export function useAppsValue(
     DEFAULT_ICON_ACCENT_CONFIG
   );
   const attemptedIconIdsRef = React.useRef<Set<string>>(new Set());
+
+  // The shell's own symbolic icons; Cupertino keeps its glyphs.
+  const themedSymbols = settings.interfaceTheme !== "cupertino";
+  React.useLayoutEffect(() => {
+    void setSymbolicIconResolver(
+      !themedSymbols
+        ? null
+        : !iconIndexState
+          ? "loading"
+          : async (candidates) => {
+              const path = lookupXdgSymbolicIconPath(iconIndexState, candidates);
+              return path ? loadXdgIconDataUrl(hostFiles(piloti), path) : undefined;
+            }
+    );
+  }, [themedSymbols, iconIndexState, piloti]);
 
   React.useEffect(() => {
     attemptedIconIdsRef.current.clear();
@@ -676,6 +692,8 @@ export function useAppsValue(
           }, 4500);
         }
       } catch (err) {
+        // No icon index: the shell's own glyphs rather than empty boxes.
+        if (!iconThemeIndexRef.current) void setSymbolicIconResolver(null);
         logBootEvent(
           `dock/apps load failed: ${err instanceof Error ? err.message : String(err)}`
         );

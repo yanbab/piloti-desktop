@@ -1,5 +1,6 @@
 import * as React from "react";
 import { BellIcon, SendIcon, TriangleAlertIcon } from "lucide-react";
+import { SymbolicIcon } from "@/components/ui/symbolic-icon";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -85,9 +86,9 @@ export function NotificationAppIcon({
       )}
     >
       {urgency === "critical" ? (
-        <TriangleAlertIcon className="size-4" />
+        <SymbolicIcon name="dialog-warning" fallback={TriangleAlertIcon} className="size-4" />
       ) : (
-        <BellIcon className="size-4" />
+        <SymbolicIcon name="preferences-system-notifications" fallback={BellIcon} className="size-4" />
       )}
     </span>
   );
@@ -183,7 +184,7 @@ export function NotificationActionControls({
             disabled={!replyText.trim()}
             className="h-7 px-2 text-ui-caption"
           >
-            <SendIcon className="size-3" />
+            <SymbolicIcon name="mail-send" fallback={SendIcon} className="size-3" />
           </Button>
         </form>
       )}

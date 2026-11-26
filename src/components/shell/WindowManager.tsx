@@ -34,6 +34,7 @@ import {
   Trash2Icon,
   XIcon,
 } from "lucide-react";
+import { SymbolicIcon } from "@/components/ui/symbolic-icon";
 import { initAppModules, resolveAppModuleByUrl } from "@/data/app-modules";
 import { IsolatedAppFrame } from "@/components/shell/IsolatedAppFrame";
 import { WindowMenuButton, WindowMenuItems } from "@/components/shell/WindowMenuButton";
@@ -1032,7 +1033,7 @@ function WebViewSurface({
                 "hover-fill:bg-black/8 dark:hover-fill:bg-white/10"
               )}
             >
-              <ChevronLeftIcon className="size-4" />
+              <SymbolicIcon name="go-previous" fallback={ChevronLeftIcon} className="size-4" />
             </button>
           </HeaderBar.Start>
           <HeaderBar.Title interactive>
@@ -1099,7 +1100,7 @@ function WebViewSurface({
                 onClick={() => void handleToggleStoreExtension()}
                 className="mr-1 h-6 gap-1 px-2 text-ui-small"
               >
-                <DownloadIcon className="size-3" />
+                <SymbolicIcon name="folder-download" fallback={DownloadIcon} className="size-3" />
                 {storeExtInstalled
                   ? _("Remove Extension")
                   : _("Install Extension")}
@@ -1119,7 +1120,11 @@ function WebViewSurface({
                   bookmarked ? "text-ui-accent" : "text-ui-label-secondary"
                 )}
               >
-                <StarIcon className={cn("size-4", bookmarked && "fill-current")} />
+                <SymbolicIcon
+                  name={bookmarked ? "starred" : "non-starred"}
+                  fallback={StarIcon}
+                  className={cn("size-4", bookmarked && "fill-current")}
+                />
               </button>
             )}
             {isBrowserApp && (
@@ -1134,7 +1139,7 @@ function WebViewSurface({
                   onClick={() => openBrowserTab(win.id)}
                   className="flex size-7 items-center justify-center rounded-l-ui-control transition-colors hover-fill:bg-black/8 dark:hover-fill:bg-white/10"
                 >
-                  <PlusIcon className="size-4" />
+                  <SymbolicIcon name="list-add" fallback={PlusIcon} className="size-4" />
                 </button>
                 <DropdownMenu>
                   <DropdownMenuTrigger
@@ -1142,19 +1147,19 @@ function WebViewSurface({
                     title={_("New Tab With…")}
                     className="flex h-7 w-4 items-center justify-center rounded-r-ui-control outline-none transition-colors hover-fill:bg-black/8 data-[popup-open]:bg-black/12 dark:hover-fill:bg-white/10 dark:data-[popup-open]:bg-white/15"
                   >
-                    <ChevronDownIcon className="size-3" strokeWidth={2.5} />
+                    <SymbolicIcon name="pan-down" fallback={ChevronDownIcon} className="size-3" strokeWidth={2.5} />
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="min-w-48">
                     <DropdownMenuItem onClick={() => openBrowserTab(win.id)}>
-                      <GlobeIcon className="size-4" />
+                      <SymbolicIcon name="web-browser" fallback={GlobeIcon} className="size-4" />
                       {_("Web Page")}
                     </DropdownMenuItem>
                     <DropdownMenuItem disabled>
-                      <FolderIcon className="size-4" />
+                      <SymbolicIcon name="folder" fallback={FolderIcon} className="size-4" />
                       {_("Folders")}
                     </DropdownMenuItem>
                     <DropdownMenuItem disabled>
-                      <TerminalIcon className="size-4" />
+                      <SymbolicIcon name="utilities-terminal" fallback={TerminalIcon} className="size-4" />
                       {_("Terminal")}
                     </DropdownMenuItem>
                   </DropdownMenuContent>
@@ -1229,7 +1234,7 @@ function WebViewSurface({
             />
             <div className="absolute top-1.5 right-2 z-40 w-[290px] max-w-[calc(100%-16px)] rounded-ui-box border border-ui-separator bg-ui-window p-3.5 text-ui-label shadow-2xl">
               <div className="flex items-center gap-2">
-                <PuzzleIcon className="size-4 text-ui-accent" />
+                <SymbolicIcon name="application-x-addon" fallback={PuzzleIcon} className="size-4 text-ui-accent" />
                 <div className="text-ui-body font-semibold">
                   Piloti Demo Extension
                 </div>
@@ -1264,7 +1269,7 @@ function WebViewSurface({
 
         {pageFailure && !isBrowserRuntime && (  // FIXME : Capabilities
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-ui-window p-6 text-center text-ui-label">
-            <GlobeIcon className="size-7 text-ui-label-secondary" />
+            <SymbolicIcon name="web-browser" fallback={GlobeIcon} className="size-7 text-ui-label-secondary" />
             <div className="text-ui-body font-semibold">Unable to load page</div>
             <div className="text-ui-small text-ui-label-secondary">
               {pageFailureError || pageFailure}
