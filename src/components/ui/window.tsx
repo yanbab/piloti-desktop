@@ -962,16 +962,9 @@ function Window({
         aria-hidden={hidden || undefined}
         inert={hidden || undefined}
         className={cn(
-          "group/window relative isolate flex overflow-visible rounded-ui-window bg-ui-window text-ui-body text-ui-label shadow-ui-window data-[inactive]:shadow-ui-window-inactive has-[>[data-slot=ui-sidebar]]:bg-transparent has-[.bg-ui-sidebar]:bg-transparent",
-          // The thin light rim drawn on top of everything inside the frame.
-          "after:pointer-events-none after:absolute after:inset-0 after:z-20 after:rounded-[inherit] after:shadow-[inset_0_0_0_1px_var(--ui-window-rim)]",
-          // Touch drags on the drag regions move the window instead of scrolling.
-          "data-[draggable]:[&_:is([data-slot=window-titlebar],[data-slot=toolbar],[data-slot=ui-sidebar-header],[data-window-drag-region])]:touch-none data-[dragging]:select-none",
-          // While dragging or resizing, prevent iframes or Wayland <app> surfaces
-          // from swallowing pointer moves without changing the cursor during drag.
-          "data-[resizing]:select-none data-[resizing]:*:pointer-events-none data-[dragging]:[&_iframe]:pointer-events-none data-[dragging]:[&_app]:pointer-events-none",
-          "data-[dragging]:will-change-[translate] data-[resizing]:will-change-[translate,width,height]",
-          "data-[minimized]:invisible",
+          // The look is plain CSS: styles/components/window.css. `group/window`
+          // is for the Tailwind classes of what sits inside.
+          "ui-window group/window",
           className
         )}
         style={
@@ -1083,7 +1076,7 @@ function WindowTitlebar({
         context?.onZoom?.()
       }}
       className={cn(
-        "relative flex h-[46px] min-h-[46px] shrink-0 items-center justify-between gap-2 rounded-t-[inherit] border-b border-ui-separator px-[9px] select-none ui-material-titlebar in-data-[inactive]:[&>*]:opacity-65",
+        "ui-window-titlebar",
         className
       )}
       {...props}
@@ -1098,7 +1091,7 @@ function WindowTitle({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="window-title"
       className={cn(
-        "pointer-events-none absolute inset-x-24 truncate whitespace-nowrap text-center text-ui-body font-bold text-ui-label group-data-[inactive]/window:text-ui-label-tertiary",
+        "ui-window-title",
         className
       )}
       {...props}
@@ -1110,7 +1103,7 @@ function WindowContent({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="window-content"
-      className={cn("min-h-0 min-w-0 flex-1 overflow-auto", className)}
+      className={cn("ui-window-content", className)}
       {...props}
     />
   )
@@ -1125,7 +1118,7 @@ function WindowMain({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="window-main"
       className={cn(
-        "flex min-w-0 flex-1 flex-col overflow-hidden rounded-r-[inherit] bg-ui-window first:rounded-l-[inherit] has-[.bg-ui-sidebar]:bg-transparent",
+        "ui-window-main",
         className
       )}
       {...props}
