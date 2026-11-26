@@ -66,6 +66,7 @@ import {
   useDesktopSettings,
   useUpdateSettings,
 } from "@/context/DesktopStateContext";
+import { AppSquircleIcon } from "@/components/shell/AppSymbol";
 import { APP_CATALOG } from "@/data/catalog";
 import { _ } from "@/lib/core/i18n";
 import { cn } from "@/lib/core/utils";
@@ -108,7 +109,7 @@ const SYSTEM_COLORS = [
 const LABEL_TOKENS = ["label", "label-secondary", "label-tertiary", "label-quaternary"] as const;
 const SURFACE_TOKENS = ["window", "content", "group", "titlebar", "control", "fill-primary", "separator"] as const;
 const RADIUS_TOKENS = ["control", "item", "menu", "group", "popover", "window"] as const;
-const HEIGHT_TOKENS = ["mini", "small", "medium", "large"] as const;
+const HEIGHT_TOKENS = ["small", "medium", "large"] as const;
 
 function Row({
   title,
@@ -392,7 +393,8 @@ function IconsPage() {
       <div key={key} className="flex w-20 flex-col items-center gap-1.5">
         <span className="flex size-12 items-center justify-center">
           {url ? (
-            <img src={url} alt="" className="size-12 object-contain" draggable={false} />
+            // Handles animated (Lottie) icons, which an <img> can't draw.
+            <AppSquircleIcon iconUrl={url} animateOnHover className="size-12" />
           ) : (
             <BoxesIcon className="size-8 text-ui-label-tertiary" />
           )}
@@ -410,7 +412,9 @@ function IconsPage() {
             return (
               <div key={size} className="flex flex-col items-center gap-1.5">
                 {url ? (
-                  <img src={url} alt="" style={{ width: size, height: size }} className="object-contain" draggable={false} />
+                  <span style={{ width: size, height: size }}>
+                    <AppSquircleIcon iconUrl={url} className="size-full" />
+                  </span>
                 ) : (
                   <span style={{ width: size, height: size }} className="rounded-ui-item bg-ui-accent" />
                 )}

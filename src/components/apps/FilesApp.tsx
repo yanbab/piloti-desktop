@@ -332,7 +332,7 @@ export function FilesApp({
   }, [currentPath]);
 
   const [gridZoomIndex, setGridZoomIndex] = React.useState(5);
-  const [listZoomIndex, setListZoomIndex] = React.useState(1);
+  const [listZoomIndex, setListZoomIndex] = React.useState(0);
   const infoPane = useInfoPane("files-info");
   const { open: infoPaneOpen, setOpen: setInfoPaneOpen } = infoPane;
   const [showHidden, setShowHidden] = React.useState(false);
@@ -1169,7 +1169,7 @@ export function FilesApp({
   };
 
   const zoom = ICON_ZOOM_LEVELS[gridZoomIndex] ?? ICON_ZOOM_LEVELS[5];
-  const listIconSize = LIST_ZOOM_LEVELS[listZoomIndex] ?? LIST_ZOOM_LEVELS[1];
+  const listIconSize = LIST_ZOOM_LEVELS[listZoomIndex] ?? LIST_ZOOM_LEVELS[0];
   const activeZoomIndex = viewMode === "list" ? listZoomIndex : gridZoomIndex;
   const maxZoomIndex =
     viewMode === "list"

@@ -233,7 +233,7 @@ export function BrowserTabBar({
                 hidden={hidden}
                 style={{ top }}
                 className={cn(
-                  "absolute inset-x-0 z-10 h-ui-control-medium shrink-0 items-stretch gap-px border-b border-ui-separator bg-black/5 px-1 py-0.5 dark:bg-white/4",
+                  "absolute inset-x-0 z-10 h-ui-control-large shrink-0 items-stretch gap-px border-b border-ui-separator bg-black/5 px-1 py-0.5 dark:bg-white/4",
                   hidden ? "hidden" : "flex"
                 )}
               />

@@ -83,7 +83,7 @@
   /* ── Sizes (after the variants: a size sets height and padding) ───────── */
 
   .ui-button:where(:not([data-size]), [data-size="default"], [data-size="icon"]) {
-    height: var(--ui-control-small);
+    height: var(--ui-control-medium);
     border-radius: var(--ui-radius-control);
   }
   .ui-button:where(:not([data-size]), [data-size="default"]) {
@@ -95,7 +95,7 @@
     padding-inline: 0.75rem;
   }
   .ui-button:where([data-size="icon"]) {
-    width: var(--ui-control-small);
+    width: var(--ui-control-medium);
   }
   .ui-button:where(:not([data-size]), [data-size="default"], [data-size="icon"]) svg:not([class*="size-"]) {
     width: 0.875rem;
@@ -121,7 +121,7 @@
   }
 
   .ui-button:where([data-size="sm"], [data-size="icon-sm"]) {
-    height: var(--ui-control-mini);
+    height: var(--ui-control-small);
     border-radius: 5px;
   }
   .ui-button:where([data-size="sm"]) {
@@ -131,7 +131,7 @@
     line-height: 14px;
   }
   .ui-button:where([data-size="icon-sm"]) {
-    width: var(--ui-control-mini);
+    width: var(--ui-control-small);
   }
   .ui-button:where([data-size="sm"], [data-size="icon-sm"]) svg:not([class*="size-"]) {
     width: 0.75rem;
@@ -139,11 +139,11 @@
   }
 
   .ui-button:where([data-size="lg"], [data-size="icon-lg"]) {
-    height: var(--ui-control-medium);
+    height: var(--ui-control-large);
     border-radius: 9999px;
   }
   .ui-button:where([data-size="icon-lg"]) {
-    width: var(--ui-control-medium);
+    width: var(--ui-control-large);
   }
   .ui-button:where([data-size="xl"], [data-size="icon-xl"]) {
     height: 2.25rem;

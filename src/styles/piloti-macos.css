@@ -61,11 +61,9 @@
   --ui-titlebar: #ffffff;
 
   /* Control heights: nothing taller than 28px */
-  --ui-control-mini: 20px;
-  --ui-control-small: 24px;
-  --ui-control-medium: 28px;
+  --ui-control-small: 20px;
+  --ui-control-medium: 24px;
   --ui-control-large: 28px;
-  --ui-control-xl: 28px;
 
   /* Radii */
   --ui-radius-control: 6px;

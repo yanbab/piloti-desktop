@@ -7,7 +7,7 @@
   .ui-input {
     width: 100%;
     min-width: 0;
-    height: var(--ui-control-small);
+    height: var(--ui-control-medium);
     padding-inline: 0.5rem;
     border-radius: var(--ui-radius-control);
     background-color: var(--ui-field);

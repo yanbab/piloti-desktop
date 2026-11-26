@@ -551,7 +551,7 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
                             e.stopPropagation();
                             if (e.key === "Escape") setWifiPrompt(null);
                           }}
-                          className="h-ui-control-medium rounded-ui-control bg-ui-window px-2 text-ui-subheadline text-ui-label outline-none focus:ring-2 focus:ring-ui-accent"
+                          className="h-ui-control-large rounded-ui-control bg-ui-window px-2 text-ui-subheadline text-ui-label outline-none focus:ring-2 focus:ring-ui-accent"
                         />
                         {wifiPrompt.failed && (
                           <span className="text-ui-footnote text-destructive">
@@ -854,7 +854,7 @@ export function FloatingNotifications({ open = true }: { open?: boolean }) {
           aria-label={_("Clear All")}
           title={_("Clear All")}
           onClick={clearAllNotifications}
-          className="flex size-ui-control-small shrink-0 items-center justify-center rounded-full border border-black/8 text-ui-label shadow-ui-popover backdrop-blur-xl transition-colors ui-material-popover hover-fill:bg-black/6 dark:border-white/10 dark:hover-fill:bg-white/10"
+          className="flex size-ui-control-medium shrink-0 items-center justify-center rounded-full border border-black/8 text-ui-label shadow-ui-popover backdrop-blur-xl transition-colors ui-material-popover hover-fill:bg-black/6 dark:border-white/10 dark:hover-fill:bg-white/10"
         >
           <XIcon className="size-3.5" />
         </button>

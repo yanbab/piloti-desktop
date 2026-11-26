@@ -1347,7 +1347,7 @@ function BrowserTabsSurface({
   const tabSlot = (
     <div
       data-slot="browser-tab-slot"
-      className={cn("h-ui-control-medium shrink-0", !showTabBar && "hidden")}
+      className={cn("h-ui-control-large shrink-0", !showTabBar && "hidden")}
     />
   );
   return (

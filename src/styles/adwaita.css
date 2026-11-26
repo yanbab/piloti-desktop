@@ -141,11 +141,9 @@
   --ui-font-caption: calc(10px * var(--piloti-font-scale, 1));
 
   /* Libadwaita Control Heights */
-  --ui-control-mini: 20px;
-  --ui-control-small: 24px;
-  --ui-control-medium: 30px;
-  --ui-control-large: 34px;
-  --ui-control-xl: 40px;
+  --ui-control-small: 20px;
+  --ui-control-medium: 24px;
+  --ui-control-large: 30px;
 
   /* shadcn/Base UI semantic tokens mapped onto Adwaita values */
   --radius: var(--ui-radius-control);
@@ -452,8 +450,7 @@
   --shadow-ui-window-inactive: var(--ui-shadow-window-inactive);
   --shadow-ui-focus: var(--ui-focus-ring);
 
-  /* Control heights: h-ui-control-small, size-ui-control-small… */
-  --spacing-ui-control-mini: var(--ui-control-mini);
+  /* Control heights: h-ui-control-medium, size-ui-control-medium… */
   --spacing-ui-control-small: var(--ui-control-small);
   --spacing-ui-control-medium: var(--ui-control-medium);
   --spacing-ui-control-large: var(--ui-control-large);

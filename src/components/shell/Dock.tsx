@@ -313,12 +313,12 @@ export const Dock = React.memo(function Dock() {
     : viewportSize.width - 48;
   // Each tile costs its size + the 8px gap; the dock adds ~14px of padding.
   const maxDockSizeForSpace = Math.max(
-    18,
+    24,
     Math.min(96, Math.floor((availableSpan - 14) / totalSlots) - 8),
   );
   const activeDockSize = Math.min(
     96,
-    Math.max(18, dragDockSize ?? settings.dockSize),
+    Math.max(24, dragDockSize ?? settings.dockSize),
     maxDockSizeForSpace,
   );
   const trashPaths = React.useMemo(() => resolveXdgTrashPaths(), []);
@@ -834,7 +834,7 @@ export const Dock = React.memo(function Dock() {
           <DockSeparator
             resizable
             resizeSize={activeDockSize}
-            minSize={18}
+            minSize={24}
             maxSize={maxDockSizeForSpace}
             onResizingChange={(dragging) => {
               setResizingDock(dragging);

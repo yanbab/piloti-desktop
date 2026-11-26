@@ -14,8 +14,7 @@ Also: [architecture](./ARCHITECTURE.md), [Linux](./LINUX.md), [API](./API.md),
   shared classes. Check visually in the Piloti demo.
 - **Tokens, not values.** Text `text-ui-{body,callout,subheadline,footnote,
   caption,title-1..3,large-title,headline}`; radius `rounded-ui-{control,item,
-  group,menu,popover,window}`; height `h-/size-ui-control-{mini,small,medium,
-  large}`; colour `--ui-*`, never `--adw-*`. On controls use `hover-fill:`
+  group,menu,popover,window}`; height `h-/size-ui-control-{small,medium,large}`; colour `--ui-*`, never `--adw-*`. On controls use `hover-fill:`
   (Adwaita only), never `hover:`.
 - **Leaving Tailwind** widget by widget: plain CSS in
   `styles/components/<name>.css` (`ui-<name>`, `data-variant`, `data-size`,

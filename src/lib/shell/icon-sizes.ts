@@ -1,9 +1,9 @@
 /**
- * The icon sizes the shell uses, in px. Icons are never smaller than 16px and
+ * The icon sizes the shell uses, in px: 16 to 128 in steps of 16. Icons are never smaller than 16px and
  * always one of these (the Piloti Demo app shows them side by side).
  * Larger image previews (Folders zoomed in) are thumbnails, not icons.
  */
-export const ICON_SIZES = [16, 24, 32, 48, 56, 64, 96] as const;
+export const ICON_SIZES = [16, 32, 48, 64, 80, 96, 112, 128] as const;
 
 export type IconSize = (typeof ICON_SIZES)[number];
 
