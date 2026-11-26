@@ -14,7 +14,7 @@ const APPS = join(import.meta.dir, "../../src/components/apps");
 const BASELINE = join(import.meta.dir, "app-styling-baseline.json");
 
 const APPEARANCE =
-  /(?<![\w-])(?:bg|rounded|shadow|font|text-adw|text-white|text-black|text-\[|border-adw|hover-fill:)(?=[-:\[\s"'`])/g;
+  /(?<![\w-])(?:bg|rounded|shadow|font|text-ui|text-white|text-black|text-\[|border-ui|hover-fill:)(?=[-:\[\s"'`])/g;
 
 const counts = Object.fromEntries(
   (readdirSync(APPS, { recursive: true }) as string[])

@@ -10,6 +10,7 @@ import {
   GroupedFormSection,
   GroupedFormSectionTitle,
 } from "@/components/ui/grouped-form";
+import { Segmented } from "@/components/ui/segmented";
 import { Switch } from "@/components/ui/switch";
 import { useDesktopSettings, useUpdateSettings } from "@/context/DesktopStateContext";
 import { useOptionalPlugins } from "@/context/PluginsContext";
@@ -65,37 +66,21 @@ export function AppearancePane() {
               <GroupedFormRowTitle>{_("Theme")}</GroupedFormRowTitle>
             </GroupedFormRowLabel>
             <GroupedFormRowControl>
-              <div data-slot="segmented" className="inline-flex flex-wrap items-center gap-1 rounded-ui-item bg-black/8 p-1 dark:bg-white/8">
-                {[
+              <Segmented
+                value={activeInterfaceTheme}
+                onChange={(theme) =>
+                  updateSettings({
+                    interfaceTheme: theme,
+                    iconTheme: theme === "adwaita" ? "Adwaita" : "Piloti",
+                  })
+                }
+                options={[
                   { id: "piloti", label: _("Piloti") },
                   { id: "adwaita", label: "Adwaita" },
                   { id: "cupertino", label: "Cupertino" },
                   ...themePlugins.map((p) => ({ id: p.id, label: p.name })),
-                ].map((theme) => {
-                  const active = activeInterfaceTheme === theme.id;
-                  return (
-                    <button
-                      key={theme.id}
-                      type="button"
-                      data-slot="segmented-item"
-                      onClick={() =>
-                        updateSettings({
-                          interfaceTheme: theme.id,
-                          iconTheme: theme.id === "adwaita" ? "Adwaita" : "Piloti",
-                        })
-                      }
-                      className={cn(
-                        "rounded-ui-control px-2.5 py-1 text-ui-body font-medium transition-all",
-                        active
-                          ? "bg-white text-black dark:bg-white/18 dark:text-white"
-                          : "text-ui-label-secondary hover-fill:text-ui-label"
-                      )}
-                    >
-                      {theme.label}
-                    </button>
-                  );
-                })}
-              </div>
+                ]}
+              />
             </GroupedFormRowControl>
           </GroupedFormRow>
 
@@ -104,46 +89,15 @@ export function AppearancePane() {
               <GroupedFormRowTitle>{_("Style")}</GroupedFormRowTitle>
             </GroupedFormRowLabel>
             <GroupedFormRowControl>
-              <div data-slot="segmented" className="inline-flex items-center gap-1 rounded-ui-item bg-black/8 p-1 dark:bg-white/8">
-                {(
-                  [
-                    {
-                      id: "system",
-                      label: _("Auto"),
-                      icon: <MonitorIcon className="size-3.5" />,
-                    },
-                    {
-                      id: "light",
-                      label: _("Light"),
-                      icon: <SunIcon className="size-3.5" />,
-                    },
-                    {
-                      id: "dark",
-                      label: _("Dark"),
-                      icon: <MoonIcon className="size-3.5" />,
-                    },
-                  ] as const
-                ).map((mode) => {
-                  const active = settings.themeMode === mode.id;
-                  return (
-                    <button
-                      key={mode.id}
-                      type="button"
-                      data-slot="segmented-item"
-                      onClick={() => updateSettings({ themeMode: mode.id })}
-                      className={cn(
-                        "flex items-center gap-1.5 rounded-ui-control px-2.5 py-1 text-ui-body font-medium transition-all",
-                        active
-                          ? "bg-white text-black dark:bg-white/18 dark:text-white"
-                          : "text-ui-label-secondary hover-fill:text-ui-label"
-                      )}
-                    >
-                      {mode.icon}
-                      <span>{mode.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
+              <Segmented
+                value={settings.themeMode}
+                onChange={(themeMode) => updateSettings({ themeMode })}
+                options={[
+                  { id: "system", label: _("Auto"), icon: <MonitorIcon className="size-3.5" /> },
+                  { id: "light", label: _("Light"), icon: <SunIcon className="size-3.5" /> },
+                  { id: "dark", label: _("Dark"), icon: <MoonIcon className="size-3.5" /> },
+                ]}
+              />
             </GroupedFormRowControl>
           </GroupedFormRow>
 
@@ -275,32 +229,14 @@ export function AppearancePane() {
               <GroupedFormRowTitle>{_("Button Placement")}</GroupedFormRowTitle>
             </GroupedFormRowLabel>
             <GroupedFormRowControl>
-              <div data-slot="segmented" className="inline-flex items-center gap-1 rounded-ui-item bg-black/8 p-1 dark:bg-white/8">
-                {(
-                  [
-                    { id: "left", label: _("Left"), left: true },
-                    { id: "right", label: _("Right"), left: false },
-                  ] as const
-                ).map((opt) => {
-                  const active = isLeftPlacement === opt.left;
-                  return (
-                    <button
-                      key={opt.id}
-                      type="button"
-                      data-slot="segmented-item"
-                      onClick={() => updateButtonLayout({ left: opt.left })}
-                      className={cn(
-                        "rounded-ui-control px-2.5 py-1 text-ui-body font-medium transition-all",
-                        active
-                          ? "bg-white text-black dark:bg-white/18 dark:text-white"
-                          : "text-ui-label-secondary hover-fill:text-ui-label"
-                      )}
-                    >
-                      {opt.label}
-                    </button>
-                  );
-                })}
-              </div>
+              <Segmented
+                value={isLeftPlacement ? "left" : "right"}
+                onChange={(side) => updateButtonLayout({ left: side === "left" })}
+                options={[
+                  { id: "left", label: _("Left") },
+                  { id: "right", label: _("Right") },
+                ]}
+              />
             </GroupedFormRowControl>
           </GroupedFormRow>
         </GroupedFormGroup>
@@ -328,37 +264,16 @@ export function AppearancePane() {
               <GroupedFormRowTitle>{_("Icon Alignment")}</GroupedFormRowTitle>
             </GroupedFormRowLabel>
             <GroupedFormRowControl>
-              <div data-slot="segmented" className="inline-flex items-center gap-1 rounded-ui-item bg-black/8 p-1 dark:bg-white/8">
-                {(
-                  [
-                    { id: "left", label: _("Left") },
-                    { id: "right", label: _("Right") },
-                  ] as const
-                ).map((opt) => {
-                  const active = (settings.desktopIconAlign ?? "left") === opt.id;
-                  return (
-                    <button
-                      key={opt.id}
-                      type="button"
-                      data-slot="segmented-item"
-                      onClick={() =>
-                        updateSettings({
-                          desktopIconAlign: opt.id,
-                          desktopIconPositions: {},
-                        })
-                      }
-                      className={cn(
-                        "rounded-ui-control px-2.5 py-1 text-ui-body font-medium transition-all",
-                        active
-                          ? "bg-white text-black dark:bg-white/18 dark:text-white"
-                          : "text-ui-label-secondary hover-fill:text-ui-label"
-                      )}
-                    >
-                      {opt.label}
-                    </button>
-                  );
-                })}
-              </div>
+              <Segmented
+                value={settings.desktopIconAlign ?? "left"}
+                onChange={(desktopIconAlign) =>
+                  updateSettings({ desktopIconAlign, desktopIconPositions: {} })
+                }
+                options={[
+                  { id: "left", label: _("Left") },
+                  { id: "right", label: _("Right") },
+                ]}
+              />
             </GroupedFormRowControl>
           </GroupedFormRow>
 
@@ -367,32 +282,14 @@ export function AppearancePane() {
               <GroupedFormRowTitle>{_("Open Files & Folders")}</GroupedFormRowTitle>
             </GroupedFormRowLabel>
             <GroupedFormRowControl>
-              <div data-slot="segmented" className="inline-flex items-center gap-1 rounded-ui-item bg-black/8 p-1 dark:bg-white/8">
-                {(
-                  [
-                    { id: "single", label: _("Single Click") },
-                    { id: "double", label: _("Double Click") },
-                  ] as const
-                ).map((opt) => {
-                  const active = settings.fileActivationMode === opt.id;
-                  return (
-                    <button
-                      key={opt.id}
-                      type="button"
-                      data-slot="segmented-item"
-                      onClick={() => updateSettings({ fileActivationMode: opt.id })}
-                      className={cn(
-                        "rounded-ui-control px-2.5 py-1 text-ui-body font-medium transition-all",
-                        active
-                          ? "bg-white text-black dark:bg-white/18 dark:text-white"
-                          : "text-ui-label-secondary hover-fill:text-ui-label"
-                      )}
-                    >
-                      {opt.label}
-                    </button>
-                  );
-                })}
-              </div>
+              <Segmented
+                value={settings.fileActivationMode}
+                onChange={(fileActivationMode) => updateSettings({ fileActivationMode })}
+                options={[
+                  { id: "single", label: _("Single Click") },
+                  { id: "double", label: _("Double Click") },
+                ]}
+              />
             </GroupedFormRowControl>
           </GroupedFormRow>
         </GroupedFormGroup>

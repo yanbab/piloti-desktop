@@ -60,3 +60,11 @@
     color: #fff;
   }
 }
+
+@layer components {
+  /* In a form row the control reads at the row's text size. */
+  .ui-form-row .ui-segmented-item {
+    font-size: var(--ui-font-body);
+    line-height: 16px;
+  }
+}

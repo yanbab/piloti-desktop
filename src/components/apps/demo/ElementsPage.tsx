@@ -3,39 +3,17 @@ import { InfoIcon, PlusIcon, SaveIcon } from "lucide-react";
 import { AppChromeProvider, type AppChrome } from "@/components/elements/app-chrome";
 import { AppContent, AppWindow } from "@/components/elements/app-window";
 import { HeaderBar, HeaderButton, HeaderHeading } from "@/components/elements/header-bar";
-import { PlainHtmlSections } from "@/components/elements/plain-html-samples";
+import { ElementSample, ElementSamples } from "@/components/elements/element-samples";
 import { WindowMenuButton } from "@/components/shell/WindowMenuButton";
-import {
-  GroupedForm,
-  GroupedFormGroup,
-  GroupedFormRow,
-  GroupedFormSection,
-  GroupedFormSectionTitle,
-} from "@/components/ui/grouped-form";
 import { Segmented } from "@/components/ui/segmented";
 import { Window } from "@/components/ui/window";
 import { _ } from "@/lib/core/i18n";
-
-/** Each part of the sample: the component and the selector it renders. */
-const PARTS = [
-  ["AppWindow", '[data-slot="app-window"]'],
-  ["HeaderBar", '[data-slot="window-titlebar"]'],
-  ["HeaderBar.Start", '[data-slot="header-bar-start"]'],
-  ["WindowControls", '[data-slot="window-controls"]'],
-  ["HeaderHeading", '[data-slot="page-title"]'],
-  ["HeaderBar.Title", '[data-slot="window-title"]'],
-  ["HeaderBar.End", '[data-slot="header-bar-end"]'],
-  ["HeaderButton", "[data-header-button]"],
-  ["Segmented", '[data-slot="segmented"]'],
-  ["AppContent", '[data-slot="app-content"]'],
-] as const;
 
 const CODE = `<AppWindow>
   <HeaderBar>
     <HeaderBar.Start>
       <HeaderHeading>Notes</HeaderHeading>
     </HeaderBar.Start>
-    <HeaderBar.Title>Title</HeaderBar.Title>
     <HeaderBar.End>
       <HeaderButton icon={PlusIcon} label="New" />
       <Segmented value={view} onChange={setView} options={views} />
@@ -44,18 +22,18 @@ const CODE = `<AppWindow>
   <AppContent padded>Hello world</AppContent>
 </AppWindow>`;
 
-const OUTLINE = "2px solid var(--ui-accent)";
+const HTML = `<section class="ui-window" style="flex-direction: column; width: 100%; height: 14rem">
+  <header class="ui-window-titlebar">
+    <div class="ui-window-title">Hello</div>
+  </header>
+  <div class="ui-window-content" style="padding: 16px">Hello world</div>
+</section>`;
 
-/**
- * A window built with `components/elements`, and what each part renders. The
- * class names are read from the sample itself, so they can't go stale.
- */
+/** Each element, drawn and written: a sample window first. */
 export function ElementsPage() {
   const [decorations, setDecorations] = React.useState<"client" | "server">("client");
   const [side, setSide] = React.useState<"left" | "right">("right");
   const [view, setView] = React.useState<"list" | "grid">("list");
-  const sample = React.useRef<HTMLDivElement | null>(null);
-  const [classes, setClasses] = React.useState<Record<string, string>>({});
 
   const chrome = React.useMemo<AppChrome>(
     () => ({
@@ -66,29 +44,14 @@ export function ElementsPage() {
     [decorations],
   );
 
-  React.useLayoutEffect(() => {
-    setClasses(
-      Object.fromEntries(
-        PARTS.flatMap(([name, selector]) => {
-          const node = sample.current?.querySelector(selector);
-          return node ? [[name, node.getAttribute("class") ?? ""]] : [];
-        }),
-      ),
-    );
-  }, [decorations, side]);
-
-  const outline = (selector: string, on: boolean) => {
-    for (const node of sample.current?.querySelectorAll<HTMLElement>(selector) ?? []) {
-      node.style.outline = on ? OUTLINE : "";
-      node.style.outlineOffset = on ? "-2px" : "";
-    }
-  };
-
   return (
-    <GroupedForm>
-      <GroupedFormSection>
-        <GroupedFormSectionTitle>{_("Sample window")}</GroupedFormSectionTitle>
-        <div className="flex flex-wrap justify-end gap-2 pb-2">
+    <div className="flex flex-col gap-5 p-4">
+      <ElementSample
+        title={_("Sample window")}
+        reactCode={CODE}
+        html={HTML}
+        controls={
+          <div className="flex flex-wrap gap-2">
           <Segmented
             value={decorations}
             onChange={setDecorations}
@@ -105,11 +68,12 @@ export function ElementsPage() {
               { id: "right", label: _("Right") },
             ]}
           />
-        </div>
-        <div ref={sample}>
+          </div>
+        }
+        react={
           <Window
             buttonLayout={side === "left" ? "close,minimize,maximize:" : ":minimize,maximize,close"}
-            className="h-56 w-full"
+            className="h-56 w-full min-w-0"
           >
             <AppChromeProvider value={chrome}>
               <AppWindow>
@@ -117,7 +81,6 @@ export function ElementsPage() {
                   <HeaderBar.Start>
                     <HeaderHeading>Notes</HeaderHeading>
                   </HeaderBar.Start>
-                  <HeaderBar.Title>Title</HeaderBar.Title>
                   <HeaderBar.End>
                     <HeaderButton icon={PlusIcon} label="New" />
                     <Segmented
@@ -135,41 +98,9 @@ export function ElementsPage() {
               </AppWindow>
             </AppChromeProvider>
           </Window>
-        </div>
-      </GroupedFormSection>
-
-      <GroupedFormSection>
-        <GroupedFormSectionTitle>{_("Parts")}</GroupedFormSectionTitle>
-        <GroupedFormGroup>
-          {PARTS.map(([name, selector]) => (
-            <GroupedFormRow
-              key={name}
-              className="flex-col items-stretch gap-1 py-2"
-              onMouseEnter={() => outline(selector, true)}
-              onMouseLeave={() => outline(selector, false)}
-            >
-              <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <span className="text-ui-body font-semibold">{`<${name}>`}</span>
-                <code className="font-mono text-ui-footnote text-ui-label-secondary select-text">
-                  {selector}
-                </code>
-              </div>
-              <code className="font-mono text-ui-footnote break-words text-ui-label-secondary select-text">
-                {classes[name] ?? _("Not drawn")}
-              </code>
-            </GroupedFormRow>
-          ))}
-        </GroupedFormGroup>
-      </GroupedFormSection>
-
-      <GroupedFormSection>
-        <GroupedFormSectionTitle>{_("Code")} · React</GroupedFormSectionTitle>
-        <GroupedFormGroup>
-          <pre className="overflow-x-auto p-3 font-mono text-ui-footnote select-text">{CODE}</pre>
-        </GroupedFormGroup>
-      </GroupedFormSection>
-
-      <PlainHtmlSections />
-    </GroupedForm>
+        }
+      />
+      <ElementSamples />
+    </div>
   );
 }

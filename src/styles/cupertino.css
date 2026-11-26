@@ -311,3 +311,55 @@
 :root[data-interface-theme="cupertino"] [data-slot="window"][data-inactive] :is([data-slot="sidebar-item"], [data-slot="sidebar-item-group"])[data-selected] {
   color: var(--ui-label);
 }
+
+/* ── Segmented control: CupertinoUI's tabs. 24px, accent selection, thin
+   dividers between the other segments ────────────────────────────────── */
+:root[data-interface-theme="cupertino"] [data-slot="segmented"] {
+  gap: 0;
+  height: 24px;
+  padding: 2px;
+  border-radius: 6px;
+  background-color: var(--ui-control);
+}
+
+:root[data-interface-theme="cupertino"] [data-slot="segmented-item"] {
+  position: relative;
+  justify-content: center;
+  height: 20px;
+  padding: 0 10px;
+  border-radius: 5px;
+  font-size: var(--ui-font-body);
+  color: var(--ui-label);
+}
+
+:root[data-interface-theme="cupertino"] [data-slot="segmented-item"][aria-pressed="true"] {
+  background-color: var(--ui-accent);
+  color: #fff;
+  box-shadow: none;
+}
+
+:root[data-interface-theme="cupertino"] [data-slot="window"][data-inactive] [data-slot="segmented-item"][aria-pressed="true"] {
+  background-color: var(--ui-fill-primary);
+  color: var(--ui-label);
+}
+
+:root[data-interface-theme="cupertino"] [data-slot="segmented-item"] + [data-slot="segmented-item"]::before {
+  content: "";
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  left: 0;
+  width: 1px;
+  background-color: var(--ui-label-tertiary);
+}
+
+:root[data-interface-theme="cupertino"] [data-slot="segmented-item"][aria-pressed="true"]::before,
+:root[data-interface-theme="cupertino"] [data-slot="segmented-item"][aria-pressed="true"] + [data-slot="segmented-item"]::before {
+  display: none;
+}
+
+/* ── Translucent sidebar: blur what is behind it ─────────────────────── */
+:root[data-interface-theme="cupertino"]:not([data-high-contrast="true"]) aside.bg-ui-sidebar {
+  -webkit-backdrop-filter: blur(var(--ui-material-blur)) saturate(180%);
+  backdrop-filter: blur(var(--ui-material-blur)) saturate(180%);
+}
