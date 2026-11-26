@@ -360,7 +360,7 @@ function DockItem({
       {label ? (
         <Tooltip>
           <TooltipTrigger render={button} />
-          <TooltipContent side={tooltipSide} sideOffset={9} className="z-[400]">
+          <TooltipContent data-dock-label="" side={tooltipSide} sideOffset={9} className="z-[400]">
             {label}
           </TooltipContent>
         </Tooltip>

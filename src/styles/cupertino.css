@@ -388,3 +388,51 @@
   background: var(--ui-traffic-inactive);
   box-shadow: none;
 }
+
+/* ── Checkbox: filled, no border ─────────────────────────────────────── */
+:root[data-interface-theme="cupertino"] [data-slot="checkbox"] {
+  border: 0;
+  border-radius: 5.5px;
+  background-color: var(--ui-fill-primary);
+  box-shadow: none;
+}
+
+:root[data-interface-theme="cupertino"] [data-slot="checkbox"][data-checked] {
+  background-color: var(--ui-accent);
+}
+
+:root[data-interface-theme="cupertino"] [data-slot="checkbox"][data-disabled] {
+  opacity: 0.4;
+}
+
+/* ── Popup button: a bordered control with its chevrons in a chip ────── */
+:root[data-interface-theme="cupertino"] [data-slot="select-trigger"] {
+  height: var(--ui-control-medium);
+  padding-inline: 12px 2px;
+  border-radius: var(--ui-radius-control);
+  background-color: var(--ui-control);
+}
+
+:root[data-interface-theme="cupertino"] [data-slot="select-trigger"]:is(:active, [data-popup-open]) {
+  background-color: var(--ui-control-pressed);
+}
+
+:root[data-interface-theme="cupertino"] [data-slot="select-trigger"] > svg {
+  width: 20px;
+  height: 20px;
+  padding: 4px;
+  border-radius: 9999px;
+  background-color: var(--ui-control);
+  color: var(--ui-label);
+}
+
+/* ── Tooltip: small and square-cornered (the Dock draws its own labels) ──── */
+:root[data-interface-theme="cupertino"] [data-slot="tooltip-content"]:not([data-dock-label]) {
+  padding: 3px 6px 2px;
+  border-radius: 6px;
+  background-color: var(--ui-overlay);
+  box-shadow: var(--ui-shadow-tooltip);
+  font-size: var(--ui-font-small);
+  line-height: 14px;
+  color: var(--ui-label);
+}
