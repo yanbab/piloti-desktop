@@ -125,6 +125,22 @@ const XDG_APPLICATION_DIRS: readonly string[] = [
   "/usr/share/applications",
 ];
 
+/**
+ * Application folders for a session's `XDG_DATA_DIRS`, highest priority first:
+ * the user's own, then the session's in its order, then any usual folder it
+ * left out.
+ */
+function applicationDirsFor(dataDirs: string | null | undefined): string[] {
+  const session = (dataDirs ?? "")
+    .split(":")
+    .map((dir) => dir.trim().replace(/\/+$/, ""))
+    .filter((dir) => dir.startsWith("/"))
+    .map((dir) => `${dir}/applications`);
+  return Array.from(
+    new Set([XDG_APPLICATION_DIRS[0]!, ...session, ...XDG_APPLICATION_DIRS.slice(1)]),
+  );
+}
+
 const XDG_ICON_BASE_DIRS: readonly string[] = [
   ".icons",
   ".local/share/icons",
@@ -144,6 +160,7 @@ export {
   XDG_APPLICATION_DIRS,
   XDG_ICON_BASE_DIRS,
   XDG_PIXMAPS_DIRS,
+  applicationDirsFor,
   getXdgApplicationDirs,
   getXdgIconBaseDirs,
   xdgCacheHome,

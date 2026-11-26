@@ -6,6 +6,7 @@ import { isBrowserDevRuntime } from "../SettingsContext";
 import { matchAppFromWayland } from "../AppsContext";
 import type { SystemBackendsContextValue } from "../SystemBackendsContext";
 import type { DesktopWindowInstance } from "../WindowsContext";
+import { getRunIn, RUN_SEPARATELY_ACTION, setRunIn } from "@/lib/shell/run-mode";
 
 export interface UseGlobalAppMenuParams {
   focusedWindow: DesktopWindowInstance | undefined;
@@ -151,6 +152,9 @@ export function useGlobalAppMenu({
         tileWindow(focusedWindowId, "left");
       } else if (actionId === "window:tile-right" && focusedWindowId) {
         tileWindow(focusedWindowId, "right");
+      } else if (actionId === RUN_SEPARATELY_ACTION && focusedWindow) {
+        const { appId } = focusedWindow;
+        setRunIn(appId, getRunIn(appId) === "isolated" ? "shell" : "isolated");
       } else if (actionId === "app:new-window" && focusedWindow) {
         launchApp(focusedWindow.appId, { forceNew: true });
       } else if (actionId === "desktop:new-folder") {

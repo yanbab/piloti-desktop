@@ -1521,6 +1521,17 @@ const WindowBody = React.memo(
         </React.Suspense>
       );
     }
+    if (win.builtinComponent === "text-editor" && win.isolated) {
+      return (
+        <IsolatedAppFrame
+          appId="text-editor"
+          windowId={win.id}
+          title={win.title}
+          isCsd={isCsd}
+          initialPath={win.payload}
+        />
+      );
+    }
     if (win.builtinComponent === "text-editor") {
       return (
         <React.Suspense fallback={null}>

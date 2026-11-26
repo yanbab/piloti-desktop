@@ -14,7 +14,6 @@ import {
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { GripVerticalIcon } from "lucide-react";
 import { WindowMenuButton } from "@/components/shell/WindowMenuButton";
 import { WindowControls } from "@/components/ui/window";
 import { AppSquircleIcon } from "@/components/shell/AppSymbol";
@@ -60,8 +59,9 @@ const DEFAULT_WIDGETS: WidgetId[] = ["memory", "cpu", "apps"];
 interface AppStat {
   appId: string;
   name: string;
-  cpu: number; // %
-  memMb: number;
+  /** Unset for an app with no process of its own. */
+  cpu?: number; // %
+  memMb?: number;
 }
 
 interface Stats {
@@ -84,10 +84,10 @@ const walk = (v: number, step: number, min: number, max: number) =>
   clamp(v + (Math.random() - 0.5) * 2 * step, min, max);
 
 /**
- * Real numbers, sampled while the window is open. `apps` lists each running app
- * with the process ids of its windows, as `appId:pid` pairs joined by commas.
+ * Real numbers, sampled while the window is open. `apps` lists the process ids
+ * of the running apps' windows, as `appId:pid` pairs joined by commas.
  */
-function useSystemStats(apps: string, enabled: boolean): Stats {
+function useSystemStats(apps: string, runningAppIds: string[], enabled: boolean): Stats {
   const piloti = usePiloti();
   const { installedXdgApps } = useApps();
   const [sampled, setSampled] = React.useState<{
@@ -134,20 +134,21 @@ function useSystemStats(apps: string, enabled: boolean): Stats {
       const pid = Number(pair.slice(split + 1));
       if (pid > 0) appPids.set(appId, [...(appPids.get(appId) ?? []), pid]);
     }
+    const usage = appUsage(prev, next, appPids);
     return {
       cpuHistory,
       memUsedMb: (next.memTotalKb - next.memAvailableKb) / 1024,
       memTotalMb: next.memTotalKb / 1024,
-      apps: Array.from(appUsage(prev, next, appPids), ([appId, usage]) => ({
+      apps: runningAppIds.map((appId) => ({
         appId,
         name:
           installedXdgApps.find((entry) => entry.appId === appId)?.name ??
           APP_CATALOG.find((a) => a.id === appId)?.name ??
           appId,
-        ...usage,
+        ...usage.get(appId),
       })),
     };
-  }, [sampled, apps, installedXdgApps]);
+  }, [sampled, apps, runningAppIds, installedXdgApps]);
 }
 
 /** Numbers that drift like real ones, for the browser demo. */
@@ -211,33 +212,22 @@ function Widget({
   wide?: boolean;
   children: React.ReactNode;
 }) {
-  const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } =
+  const { listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id, transition: dragShuffleTransition });
   return (
     <section
       ref={setNodeRef}
       data-slot="monitor-widget"
       aria-label={title}
+      {...listeners}
       style={{ transform: CSS.Translate.toString(transform), transition }}
       className={cn(
-        "flex min-w-0 flex-col gap-2 rounded-adw-group bg-adw-group p-3",
+        "flex min-w-0 cursor-default flex-col gap-2 rounded-adw-group bg-adw-group p-3",
         wide && "col-span-full",
         isDragging && "relative z-10 shadow-adw-popover"
       )}
     >
-      <header className="flex items-center gap-1">
-        <h2 className="flex-1 text-adw-subheadline font-semibold text-adw-label-secondary">{title}</h2>
-        <button
-          ref={setActivatorNodeRef}
-          type="button"
-          aria-label={_("Move")}
-          className="flex size-5 cursor-grab items-center justify-center rounded-adw-control text-adw-label-tertiary active:cursor-grabbing"
-          {...attributes}
-          {...listeners}
-        >
-          <GripVerticalIcon className="size-3.5" />
-        </button>
-      </header>
+      <h2 className="text-adw-subheadline font-semibold text-adw-label-secondary">{title}</h2>
       {children}
     </section>
   );
@@ -313,8 +303,8 @@ function AppsWidget({ apps }: { apps: AppStat[] }) {
         sort.by === "name"
           ? _(a.name).localeCompare(_(b.name))
           : sort.by === "memory"
-            ? a.memMb - b.memMb
-            : a.cpu - b.cpu;
+            ? (a.memMb ?? -1) - (b.memMb ?? -1)
+            : (a.cpu ?? -1) - (b.cpu ?? -1);
       return diff * factor || _(a.name).localeCompare(_(b.name));
     });
   }, [apps, sort]);
@@ -353,10 +343,10 @@ function AppsWidget({ apps }: { apps: AppStat[] }) {
               </div>
             </ListViewCell>
             <ListViewCell align="right" className="tabular-nums text-adw-label-secondary">
-              {formatMb(app.memMb)}
+              {app.memMb === undefined ? "—" : formatMb(app.memMb)}
             </ListViewCell>
             <ListViewCell align="right" className="tabular-nums text-adw-label-secondary">
-              {app.cpu.toFixed(1)} %
+              {app.cpu === undefined ? "—" : `${app.cpu.toFixed(1)} %`}
             </ListViewCell>
           </ListViewRow>
         ))}
@@ -392,7 +382,7 @@ export const SystemMonitorApp: React.FC<SystemMonitorAppProps> = ({ windowId = "
     () => (runningIds ? runningIds.split(",") : []),
     [runningIds]
   );
-  const realStats = useSystemStats(runningProcesses, systemServices);
+  const realStats = useSystemStats(runningProcesses, runningAppIds, systemServices);
   const simulatedStats = useSimulatedStats(runningAppIds, !systemServices);
   const stats = systemServices ? realStats : simulatedStats;
 
@@ -432,10 +422,13 @@ export const SystemMonitorApp: React.FC<SystemMonitorAppProps> = ({ windowId = "
   };
 
   return (
-    <div className="flex h-full w-full flex-col overflow-hidden bg-adw-window text-adw-label select-none">
+    <div
+      data-slot="system-monitor"
+      className="flex h-full w-full flex-col overflow-hidden bg-[color-mix(in_srgb,var(--adw-accent)_10%,var(--adw-window))] text-adw-label select-none"
+    >
       <div
         data-window-drag-region={isCsd ? "" : undefined}
-        className="relative flex h-11 shrink-0 items-center justify-between gap-2 border-b border-adw-separator bg-adw-titlebar px-2.5"
+        className="relative flex h-11 shrink-0 items-center justify-between gap-2 px-2.5"
       >
         <div className="flex items-center gap-2" data-window-no-drag>
           {windowId && <WindowMenuButton side="left" windowId={windowId} appId={APP_ID} />}
@@ -447,7 +440,7 @@ export const SystemMonitorApp: React.FC<SystemMonitorAppProps> = ({ windowId = "
           {isCsd && <WindowControls side="right" />}
         </div>
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto p-4">
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-1 pb-4">
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onWidgetDragEnd}>
           <SortableContext items={widgetOrder} strategy={rectSortingStrategy}>
             <div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-3">
@@ -457,7 +450,7 @@ export const SystemMonitorApp: React.FC<SystemMonitorAppProps> = ({ windowId = "
         </DndContext>
         <p className="mt-3 text-center text-adw-footnote text-adw-label-tertiary">
           {systemServices
-            ? _("Built-in apps and web pages run inside the desktop and are not listed.")
+            ? _("Apps without figures run inside the desktop or share its browser.")
             : _("Simulated values in the demo.")}
         </p>
       </div>

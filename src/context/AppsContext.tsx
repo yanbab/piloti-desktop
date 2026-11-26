@@ -7,7 +7,9 @@ import {
   APP_CATALOG,
   type AppDefinition,
 } from "@/data/catalog";
-import { launchDesktopCommand } from "@/lib/engine-native";
+import { launchDesktopCommand, readApplicationDirs } from "@/lib/engine-native";
+import { getEngine } from "@/lib/engine/engine";
+import { XDG_APPLICATION_DIRS } from "@/lib/xdg/xdg-basedir";
 import {
   APP_GRID_ICON_CANDIDATES,
   SHELL_XDG_ICON_GROUPS,
@@ -363,6 +365,15 @@ export function useAppsValue(
     setRefreshNonce((n) => n + 1);
   }, []);
   const iconThemeIndexRef = React.useRef<XdgIconThemeIndex | null>(null);
+  // The session's XDG_DATA_DIRS does not change while the shell runs.
+  const appDirsPromiseRef = React.useRef<Promise<readonly string[]> | null>(null);
+  const readAppDirs = React.useCallback(
+    () =>
+      (appDirsPromiseRef.current ??= getEngine().capabilities.systemServices
+        ? readApplicationDirs(piloti)
+        : Promise.resolve(XDG_APPLICATION_DIRS)),
+    [piloti],
+  );
   // Shade math from the icon theme's `[X-Piloti Accent]` group.
   const [iconAccentConfig, setIconAccentConfig] = React.useState<IconAccentConfig>(
     DEFAULT_ICON_ACCENT_CONFIG
@@ -563,7 +574,7 @@ export function useAppsValue(
           ? cachedApps!
           : await discoverInstalledXdgApps(
               hostFiles(piloti),
-              { iconThemes: preferredThemes, deferIconDataLoad: true },
+              { iconThemes: preferredThemes, deferIconDataLoad: true, applicationDirs: await readAppDirs() },
               Promise.resolve(iconIndex)
             );
         if (cancelled) return;
@@ -638,12 +649,13 @@ export function useAppsValue(
 
         // Background SWR refresh when hydrated from cached XDG apps
         if (useWarmCachedApps && !cancelled) {
-          bgAppsTimer = setTimeout(() => {
+          bgAppsTimer = setTimeout(async () => {
+            const applicationDirs = await readAppDirs();
             if (cancelled) return;
             const activeIdx = iconThemeIndexRef.current ?? iconIndex;
             void discoverInstalledXdgApps(
               hostFiles(piloti),
-              { iconThemes: preferredThemes, deferIconDataLoad: true },
+              { iconThemes: preferredThemes, deferIconDataLoad: true, applicationDirs },
               Promise.resolve(activeIdx)
             )
               .then(async (freshApps) => {
@@ -679,13 +691,6 @@ export function useAppsValue(
     let stopped = false;
     let debounceTimer: ReturnType<typeof setTimeout> | null = null;
     const stopFns: Array<() => void> = [];
-    const appDirs = [
-      ".local/share/applications",
-      "/usr/share/applications",
-      "/usr/local/share/applications",
-      "/var/lib/flatpak/exports/share/applications",
-      ".local/share/flatpak/exports/share/applications",
-    ];
 
     const scheduleRefresh = () => {
       if (stopped) return;
@@ -695,36 +700,39 @@ export function useAppsValue(
       }, 400);
     };
 
-    for (const dir of appDirs) {
-      void hostFiles(piloti)
-        .watch(dir)
-        .then((res) => {
-          res.match({
-            Ok: async (listening) => {
-              if (stopped) {
-                listening.stop();
-                return;
-              }
-              stopFns.push(() => listening.stop());
-              const reader = listening.items.getReader();
-              while (!stopped) {
-                const next = await reader.read();
-                if (next.done) break;
-                scheduleRefresh();
-              }
-            },
-            Err: () => undefined,
-          });
-        })
-        .catch(() => undefined);
-    }
+    void readAppDirs().then((appDirs) => {
+      if (stopped) return;
+      for (const dir of appDirs) {
+        void hostFiles(piloti)
+          .watch(dir)
+          .then((res) => {
+            res.match({
+              Ok: async (listening) => {
+                if (stopped) {
+                  listening.stop();
+                  return;
+                }
+                stopFns.push(() => listening.stop());
+                const reader = listening.items.getReader();
+                while (!stopped) {
+                  const next = await reader.read();
+                  if (next.done) break;
+                  scheduleRefresh();
+                }
+              },
+              Err: () => undefined,
+            });
+          })
+          .catch(() => undefined);
+      }
+    });
 
     return () => {
       stopped = true;
       if (debounceTimer) clearTimeout(debounceTimer);
       for (const stop of stopFns) stop();
     };
-  }, [piloti, isBrowserRuntime, refreshXdgApps]);  // FIXME : Capabilities
+  }, [piloti, isBrowserRuntime, refreshXdgApps, readAppDirs]);  // FIXME : Capabilities
 
   const ensureWaylandIcons = React.useCallback(
     (ids: readonly string[]) => {

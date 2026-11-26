@@ -1067,7 +1067,7 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
           {windowId && bridge.isCsd && (
             <WindowControls side="left" onClose={requestClose} />
           )}
-          {windowId && (
+          {windowId && host.windowMenu !== false && (
             <WindowMenuButton
               side="left"
               windowId={windowId}
@@ -1206,7 +1206,7 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
               </DropdownMenuCheckboxItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          {windowId && (
+          {windowId && host.windowMenu !== false && (
             <WindowMenuButton
               side="right"
               windowId={windowId}

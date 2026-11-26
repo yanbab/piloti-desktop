@@ -59,6 +59,8 @@ interface XdgDesktopEntry {
 }
 
 interface ParseDesktopEntryOptions {
+  /** Where to look for applications, highest priority first. */
+  applicationDirs?: readonly string[];
   filePath?: string;
   baseDir?: string;
   locale?: string;
@@ -538,7 +540,7 @@ async function discoverInstalledXdgApps(
 
   // Scan application dirs in parallel, then deduplicate by XDG precedence order.
   const perDirCandidates = await Promise.all(
-    XDG_APPLICATION_DIRS.map((appDir) => collectDir(appDir, appDir, 0))
+    (options.applicationDirs ?? XDG_APPLICATION_DIRS).map((appDir) => collectDir(appDir, appDir, 0))
   );
   const seenIds = new Set<string>();
   const uniqueCandidates: CandidateDesktopFile[] = [];

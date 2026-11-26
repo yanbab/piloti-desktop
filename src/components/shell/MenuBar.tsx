@@ -66,6 +66,8 @@ import {
 import { matchXdgEntryForWaylandWindow } from "xdg-desktop-entry";
 import { _, getLocale } from "@/lib/core/i18n";
 import { useWindowMenuState } from "@/lib/engine/app-bridge";
+import { getAppSettingsVersion, subscribeAppSettings } from "@/lib/shell/app-settings";
+import { getRunIn, RUN_SEPARATELY_ACTION } from "@/lib/shell/run-mode";
 import { useAltKey } from "@/hooks/use-alt-key";
 import {
   discoverRemoteGlobalMenu,
@@ -285,7 +287,14 @@ export const MenuBar = React.memo(function MenuBar() {
   const trayItems = useWatch(piloti.tray, "change", () => piloti.tray.items) ?? [];
   const waylandClients =
     useWatch(piloti.windows, "change", () => piloti.windows.list) ?? [];
-  const windowMenuState = useWindowMenuState(focusedWindowId);
+  const publishedMenuState = useWindowMenuState(focusedWindowId);
+  // The run mode is the shell's own checkmark, not one the app publishes.
+  React.useSyncExternalStore(subscribeAppSettings, getAppSettingsVersion, getAppSettingsVersion);
+  const runsSeparately = getRunIn(focusedWindow?.appId ?? "") === "isolated";
+  const windowMenuState = React.useMemo(
+    (): typeof publishedMenuState => ({ ...publishedMenuState, [RUN_SEPARATELY_ACTION]: { checked: runsSeparately } }),
+    [publishedMenuState, runsSeparately],
+  );
   const [remoteMenu, setRemoteMenu] = React.useState<RemoteGlobalMenu | null>(
     null
   );

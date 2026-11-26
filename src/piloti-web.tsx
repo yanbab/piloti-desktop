@@ -5,6 +5,7 @@ import { profileStartup } from "./lib/core/startup-profile";
 import { startBootPhase } from "./lib/core/perf-log";
 import * as React from "react";
 import { createRoot } from "react-dom/client";
+import { DomicileProvider } from "@domicile-desktop/react/domicile-provider";
 import "./styles/globals.css";
 import { setEngine, webEngine } from "./lib/engine/engine";
 import { demoVfsSeed } from "./lib/engine-web/vfs-seed";
@@ -54,13 +55,18 @@ async function start(root: HTMLElement) {
       </ShellErrorBoundary>,
     );
   } else if (isolatedApp === "text-editor") {
+    // The frame's own desktop, over the same demo VFS as the shell's.
+    const { createBrowserDomicile } = await import("./lib/engine-web");
     const windowId = params.get("windowId") ?? "";
+    const isCsd = params.get("csd") !== "0";
     const initialPath = params.get("path") ?? undefined;
     createRoot(root).render(
       <ShellErrorBoundary>
-        <React.Suspense fallback={null}>
-          <TextEditorApp initialPath={initialPath} windowId={windowId} />
-        </React.Suspense>
+        <DomicileProvider domicile={createBrowserDomicile()}>
+          <React.Suspense fallback={null}>
+            <TextEditorApp initialPath={initialPath} windowId={windowId} isCsd={isCsd} />
+          </React.Suspense>
+        </DomicileProvider>
       </ShellErrorBoundary>,
     );
   } else if (isolatedApp === "image-viewer") {

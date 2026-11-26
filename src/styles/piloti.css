@@ -64,3 +64,16 @@
 body:has([data-dnd-kit-overlay]) [data-slot="tooltip-content"] {
   display: none !important;
 }
+
+/* System Monitor: vibrant cards over the accent-tinted window. Adwaita and
+   reduced transparency keep the solid group colour. */
+:root:not([data-interface-theme="adwaita"])[data-more-transparency="true"]:not([data-high-contrast="true"]) [data-slot="monitor-widget"] {
+  background-color: rgb(255 255 255 / 0.55);
+  -webkit-backdrop-filter: var(--piloti-backdrop);
+  backdrop-filter: var(--piloti-backdrop);
+}
+
+:root:not([data-interface-theme="adwaita"]).dark[data-more-transparency="true"]:not([data-high-contrast="true"]) [data-slot="monitor-widget"],
+:root:not([data-interface-theme="adwaita"]):not(.dark)[data-more-transparency="true"]:not([data-high-contrast="true"]) .dark [data-slot="monitor-widget"] {
+  background-color: rgb(255 255 255 / 0.08);
+}

@@ -134,3 +134,10 @@ Ran `domicile open --app /usr/share/piloti-desktop/apps/hello/hello.js` against 
 ## 14. D-Bus from an app module (VM, 2026-11-24)
 
 `dbus.call` on the session bus works from a module: `org.freedesktop.portal.Settings.Read("org.freedesktop.appearance", "color-scheme")` returned `1` (prefer dark) and `accent-color` returned `(-1,-1,-1)` (unset). So modules can follow dark/light and accent through the standard Settings portal (and `dbus.match` for `SettingChanged`), instead of watching `settings.ini`. Not yet tried: `dbus.match`, FileChooser, Notification, OpenURI portals.
+
+## 15. Per-app run mode (2026-11-26)
+
+- Notepad's View menu has "Open New Windows Separately": `run-in=isolated` in `~/.config/piloti/apps/text-editor.ini` (`src/lib/shell/run-mode.ts`). Existing windows keep their mode.
+- Linux: `openAppModule` (`engine-native/app-modules.ts`) starts the module; without an installed module it opens in the shell. Not yet tried on Linux.
+- Browser demo: the window holds an `IsolatedAppFrame`. The frame has no shell contexts, so no in-window menu button; the window title is not synced back.
+- Not covered: menu checkmarks from a separate window, unsaved-changes confirmation on close, restored sessions on Linux (they reopen in the shell). The calculator's `?piloti_app` page still fails on missing shell contexts.

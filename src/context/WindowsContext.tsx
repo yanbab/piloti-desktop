@@ -30,8 +30,10 @@ import {
 import {
   type GnomeSettingsPanel,
   launchDesktopCommand,
+  openAppModule,
   openGnomeControlCenter,
 } from "@/lib/engine-native";
+import { getRunIn } from "@/lib/shell/run-mode";
 import {
   matchXdgEntryForWaylandWindow,
   resolveWaylandClientFrame,
@@ -60,7 +62,7 @@ import { type SettingsContextValue } from "./SettingsContext";
 import { type SystemBackendsContextValue } from "./SystemBackendsContext";
 import { useGlobalAppMenu } from "./windows/useGlobalAppMenu";
 import { useGlobalShortcuts } from "./windows/useGlobalShortcuts";
-import { isWebEngine } from "@/lib/engine/engine";
+import { getEngine, isWebEngine } from "@/lib/engine/engine";
 
 export interface DesktopWindowInstance {
   id: string;
@@ -70,6 +72,8 @@ export interface DesktopWindowInstance {
   iconUrl?: string;
   gradient: string;
   builtinComponent?: BuiltinAppId;
+  /** Browser demo: the built-in app runs in its own iframe. */
+  isolated?: boolean;
   waylandAppId?: string;
   waylandDesktopId?: string;
   pid?: number | null;
@@ -412,6 +416,8 @@ export function useWindowsValue(
               iconName: def.iconName,
               gradient: def.gradient,
               builtinComponent: def.builtinComponent,
+              isolated:
+                !getEngine().capabilities.systemServices && getRunIn(rec.id) === "isolated",
               clientFrame: def.builtinComponent !== "terminal",
               workspace: clampWorkspace(rec.workspace, settings.workspaceCount),
               position: clamped.position,
@@ -2134,10 +2140,14 @@ function pruneBrowserRecord(
   combinedWindowsRef.current = combinedWindows;
   const recentLaunchGuardRef = React.useRef<Map<string, number>>(new Map());
 
+  // For the fallback when an app module cannot be started.
+  const launchAppRef = React.useRef<
+    ((appId: string, options?: { payload?: string; forceNew?: boolean; forceCsd?: boolean; inShell?: boolean }) => void) | null
+  >(null);
   const launchApp = React.useCallback(
     (
       appId: string,
-      options?: { payload?: string; forceNew?: boolean; forceCsd?: boolean }
+      options?: { payload?: string; forceNew?: boolean; forceCsd?: boolean; inShell?: boolean }
     ) => {
       clearLaunchOverlays();
       logAppLaunch(appId, options?.payload);
@@ -2219,6 +2229,17 @@ function pruneBrowserRecord(
             : appId === "terminal"
               ? "terminal"
               : undefined);
+      const isolated = !options?.inShell && getRunIn(builtinKind ?? appId) === "isolated";
+      if (builtinKind && isolated && getEngine().capabilities.systemServices) {
+        beginStartupNotification(appId);
+        void openAppModule(piloti, builtinKind, options?.payload)
+          .catch(() => false)
+          .then((opened) => {
+            // No module installed: open it in the shell after all.
+            if (!opened) launchAppRef.current?.(appId, { ...options, inShell: true });
+          });
+        return;
+      }
       if (builtinKind) {
         const builtinDef =
           def ?? APP_CATALOG.find((a) => a.id === builtinKind) ?? APP_CATALOG[0];
@@ -2271,6 +2292,7 @@ function pruneBrowserRecord(
           iconName: builtinDef.iconName,
           gradient: builtinDef.gradient,
           builtinComponent: builtinKind,
+          isolated,
           clientFrame:
             options?.forceCsd ?? builtinKind !== "terminal",
           workspace: targetWorkspace,
@@ -2358,6 +2380,8 @@ function pruneBrowserRecord(
       updateSettings,
     ]
   );
+
+  launchAppRef.current = launchApp;
 
   const openGnomeSettings = React.useCallback(
     (panel?: GnomeSettingsPanel | (string & {})) => {

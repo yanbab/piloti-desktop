@@ -13,3 +13,5 @@ export * from "./autostart";
 export * from "./greeter";
 
 export * from "./system-stats";
+export * from "./data-dirs";
+export * from "./app-modules";
