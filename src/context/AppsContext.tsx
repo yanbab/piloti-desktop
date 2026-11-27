@@ -471,7 +471,11 @@ export function useAppsValue(
         const iconIndexPromise = useWarmCachedIndex
           ? Promise.resolve(cachedIndex!)
           : buildXdgIconThemeIndex(hostFiles(piloti), preferredThemes);
-        const userDirsPromise = discoverXdgUserDirs(hostFiles(piloti));
+        // Published at once: the desktop waits for it to know which folder to list.
+        const userDirsPromise = discoverXdgUserDirs(hostFiles(piloti)).then((dirs) => {
+          if (!cancelled) setXdgUserDirs(dirs);
+          return dirs;
+        });
 
         const [iconIndex, userDirs] = await Promise.all([
           iconIndexPromise,
@@ -497,7 +501,6 @@ export function useAppsValue(
               .catch(() => undefined);
           }, 4000);
         }
-        setXdgUserDirs(userDirs);
 
         // Resolve all Dock, launcher, trash, fallback, and folder icons together
         // so the Dock slides in atomically with all icons already painted.

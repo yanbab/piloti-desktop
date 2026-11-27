@@ -43,6 +43,7 @@ import {
   upsertRecentXbelItem,
 } from "@/lib/xdg/xdg-recents";
 import { getEngine } from "@/lib/engine/engine";
+import { inferMimeType } from "@/lib/xdg/xdg-mimeapps";
 import { compressNative, extractNative } from "@/lib/engine-native/archive";
 import { listEmblems } from "@/lib/engine-native/gio";
 import { toDomicilePath } from "@/lib/engine-native/paths";
@@ -101,14 +102,19 @@ const logFailure = (what: string, path: string) => (error: unknown) => {
 };
 
 /** Reads the `metadata::emblems` of a folder's entries into the emblem list. */
-async function syncEmblems(piloti: Piloti, dirPath: string): Promise<void> {
-  const dir = normalizeVfsPath(dirPath);
-  const [onDisk, listed] = await Promise.all([
-    listEmblems(piloti.processes, dir),
-    piloti.vfs.list(dir).catch(() => null),
-  ]);
-  if (!onDisk || !listed) return;
+async function syncEmblems(
+  piloti: Piloti,
+  dir: string,
+  listed: readonly { name: string; path: string }[],
+): Promise<void> {
+  const onDisk = await listEmblems(piloti.processes, dir);
+  if (!onDisk) return;
   for (const item of listed) syncVfsEmblemsFromHost(item.path, onDisk[item.name] ?? []);
+}
+
+/** Whether a thumbnail is worth looking up: each lookup costs several disk reads. */
+export function mayHaveThumbnail(name: string): boolean {
+  return /^(image|video)\/|^application\/pdf$/.test(inferMimeType(name, "file"));
 }
 
 /** One entry as the disk has it, or `null`. */
@@ -121,42 +127,51 @@ async function statEntry(piloti: Piloti, path: string): Promise<WebVfsEntry | nu
 
 /**
  * Lists a folder: from the disk on Linux (with sizes, thumbnails and emblems),
- * from the browser VFS in the demo.
+ * from the browser VFS in the demo. `onNames` gets the entries as soon as names
+ * and sizes are known, before the slower thumbnails and emblems.
  */
 export async function listFsDir(
   piloti: Piloti,
   dirPath: string,
-  options?: { includeHidden?: boolean },
+  options?: { includeHidden?: boolean; onNames?: (entries: WebVfsEntry[]) => void },
 ): Promise<WebVfsEntry[]> {
   const dir = normalizeVfsPath(dirPath);
   // The disk lists everything; the demo leaves hidden ones out unless asked.
   if (!hasRealFilesystem()) return listVfsDir(dir, options);
-  const [listed] = await Promise.all([
-    piloti.vfs.list(dir).catch(() => null),
-    syncEmblems(piloti, dir).catch(() => undefined),
-  ]);
+  const listed = await piloti.vfs.list(dir).catch(() => null);
   if (!listed) return [];
-  return Promise.all(
+  const items = await Promise.all(
     listed.map(async (item) => {
       const needsStat = item.kind === "file" || item.isSymlink;
       const st = needsStat ? await piloti.vfs.stat(item.path).catch(() => null) : null;
-      const thumbnail =
-        item.kind === "file" && st
-          ? await piloti.vfs.thumbnail(item.path).catch(() => undefined)
-          : undefined;
       const hidden =
         item.kind === "file" && item.name === ".hidden"
           ? await piloti.vfs.readText(item.path).catch(() => null)
           : null;
-      return entryFor(item.path, item.kind, {
-        size: st?.size,
-        updatedAt: st?.modifiedMs ?? Date.now(),
-        ...(hidden !== null ? { content: hidden } : {}),
-        ...(thumbnail ? { metadata: { "metadata::thumbnail": thumbnail } } : {}),
-        ...(item.isSymlink ? { isSymlink: true, symlinkTarget: st?.realPath } : {}),
-      });
+      return { item, st, hidden };
     }),
   );
+  const toEntry = ({ item, st, hidden }: (typeof items)[number], thumbnail?: string) =>
+    entryFor(item.path, item.kind, {
+      size: st?.size,
+      updatedAt: st?.modifiedMs ?? Date.now(),
+      ...(hidden !== null ? { content: hidden } : {}),
+      ...(thumbnail ? { metadata: { "metadata::thumbnail": thumbnail } } : {}),
+      ...(item.isSymlink ? { isSymlink: true, symlinkTarget: st?.realPath } : {}),
+    });
+  options?.onNames?.(items.map((one) => toEntry(one)));
+  const [thumbnails] = await Promise.all([
+    Promise.all(
+      items.map(({ item, st }) =>
+        item.kind === "file" && st && mayHaveThumbnail(item.name)
+          ? piloti.vfs.thumbnail(item.path).catch(() => undefined)
+          : undefined,
+      ),
+    ),
+    syncEmblems(piloti, dir, listed).catch(() => undefined),
+  ]);
+  // New objects, so views also pick up the emblems.
+  return items.map((one, i) => toEntry(one, thumbnails[i]));
 }
 
 /** A file's text, or "" if there is none. */
@@ -461,7 +476,11 @@ export async function listFsFavoriteEntries(
   if (!hasRealFilesystem()) return listVfsFavoriteEntries();
   // Another app may have (un)starred files: read the folders' metadata first.
   const dirs = new Set(loadVfsFavorites().map((p) => p.slice(0, p.lastIndexOf("/")) || "/"));
-  await Promise.all([...dirs].map((dir) => syncEmblems(piloti, dir)));
+  await Promise.all(
+    [...dirs].map(async (dir) =>
+      syncEmblems(piloti, dir, (await piloti.vfs.list(dir).catch(() => null)) ?? []),
+    ),
+  );
   const found = await Promise.all(loadVfsFavorites().map((path) => statEntry(piloti, path)));
   return found.filter((e): e is WebVfsEntry => e !== null);
 }

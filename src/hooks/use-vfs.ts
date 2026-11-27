@@ -24,7 +24,9 @@ export function useVfsQuery<T>(key: QueryKey, watchPath: string | null, load: ()
       // The first call means "in place": the query is already loading, unless
       // it shows cached data, which may be old (another view's watch on the
       // same path only refreshes that view's key).
-      if (initial && client.getQueryState(key)?.status !== "success") return;
+      const state = client.getQueryState(key);
+      // A load under way may already show partial data: don't restart it.
+      if (initial && (state?.status !== "success" || state.fetchStatus === "fetching")) return;
       void client.invalidateQueries({ queryKey: key, exact: true });
     });
     // `key` is described by `keyHash`.
@@ -40,8 +42,16 @@ export function useVfsQuery<T>(key: QueryKey, watchPath: string | null, load: ()
  */
 export function useVfsList(dir: string | null) {
   const piloti = usePiloti();
-  return useVfsQuery<WebVfsEntry[]>(vfsKeys.list(dir ?? ""), dir, () =>
-    listFsDir(piloti, dir!, { includeHidden: true }),
+  const client = useQueryClient();
+  const key = vfsKeys.list(dir ?? "");
+  return useVfsQuery<WebVfsEntry[]>(key, dir, () =>
+    listFsDir(piloti, dir!, {
+      includeHidden: true,
+      // A first load shows names at once; a refresh keeps what it has.
+      onNames: (entries) => {
+        if (client.getQueryData(key) === undefined) client.setQueryData(key, entries);
+      },
+    }),
   );
 }
 

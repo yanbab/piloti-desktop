@@ -56,7 +56,7 @@ export function DesktopIconsApp({
   const settings = useDesktopSettings(["debugMode", "desktopIconsEnabled"]);
   const { realFilesystem } = useCapabilities();
   const { locked } = useSystemBackends();
-  const { dockIconsReady, getAppIconUrl, ensureWaylandIcons } = useApps();
+  const { dockIconsReady, getAppIconUrl, ensureWaylandIcons, xdgUserDirs } = useApps();
   const { launchApp, launchXdgApp } = useWindowActions();
   const { openPath, openPathWith } = useOpenPath();
   const desktopDirPath = useDesktopDirPath();
@@ -76,7 +76,9 @@ export function DesktopIconsApp({
   const listingEnabled =
     settings.desktopIconsEnabled && (dockIconsReady || settings.debugMode);
   // Our own operations and other programs' (inotify via Domicile) refresh it.
-  const listing = useVfsList(listingEnabled ? desktopDirPath : null);
+  // On Linux the folder may be localised (`~/Bureau`): not before user-dirs is read.
+  const desktopDirKnown = !realFilesystem || xdgUserDirs.length > 0;
+  const listing = useVfsList(listingEnabled && desktopDirKnown ? desktopDirPath : null);
   const entries = (settings.desktopIconsEnabled && listing.data) || NO_ENTRIES;
   const refresh = useVfsRefresh();
   const reload = React.useCallback(
