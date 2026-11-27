@@ -755,7 +755,7 @@ async function resolveXdgIconUrl(
   return loadXdgIconDataUrl(files, path);
 }
 
-const ICON_INDEX_CACHE_KEY = "piloti.xdg-icon-index.v7";
+const ICON_INDEX_CACHE_KEY = "piloti.xdg-icon-index.v8";
 
 type CompactSubdirGroup = [string, (string | [string, string])[]];
 

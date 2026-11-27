@@ -2,7 +2,7 @@
 Name=Piloti
 Comment=Piloti icon theme: animated folders and documents, accent-colored icons
 Inherits=Papirus,Adwaita,hicolor
-Directories=animated/places,animated/mimetypes,animated/apps,animated/devices,scalable/apps,scalable/mimetypes,symbolic/apps
+Directories=animated/places,animated/mimetypes,animated/apps,animated/devices,scalable/apps,scalable/mimetypes
 
 # Accent-colored icons (read by Piloti Desktop, ignored by GTK and Qt).
 #
@@ -60,12 +60,5 @@ Type=Scalable
 Context=MimeTypes
 Size=64
 MinSize=16
-MaxSize=512
-Type=Scalable
-
-[symbolic/apps]
-Context=Applications
-Size=16
-MinSize=8
 MaxSize=512
 Type=Scalable
