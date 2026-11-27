@@ -99,6 +99,11 @@ Domicile app module:
   (`data/app-modules.ts`).
 - Built with `npm run build:apps` → `dist/apps/<id>/` (`hello`, `text-editor`).
 
+Shell and module share only the module's URL and the disk: the module puts its
+open file after `#` (so opening it again focuses the window), the shell leaves
+renames and moves in `~/.cache/piloti/moves/`, and a module that must not close
+refuses with `beforeunload` and asks in its own window.
+
 Notepad talks to a `TextEditorHost` port (`engine/text-editor-host.ts`). View ▸
 Open New Windows Separately sets `run-in=isolated`; without an installed module
 it opens in the shell.

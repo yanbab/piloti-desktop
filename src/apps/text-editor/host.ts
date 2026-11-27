@@ -1,5 +1,8 @@
 import { createNativeVfs, type NativeVfsHost } from "@/lib/engine-native/vfs";
 import { parseIniText, serializeIniText } from "@/lib/config/ini";
+import { documentHash, MODULE_MOVES_DIR, MODULE_MOVES_FILE, type ModuleMove } from "@/data/app-modules";
+import { _ } from "@/lib/core/i18n";
+import { retainVfsWatch } from "@/lib/engine/vfs-query";
 import type { TextEditorHost } from "@/lib/engine/text-editor-host";
 
 /** `piloti.vfs` takes absolute paths. */
@@ -45,6 +48,18 @@ export async function createDomicileEditorHost(domicile: NativeVfsHost) {
   const desktopMatch = userDirs && /^XDG_DESKTOP_DIR="?\$HOME\/([^"\n]+)"?/m.exec(userDirs);
   const desktopDir = desktopMatch ? desktopMatch[1]!.replace(/\/+$/, "") : "Desktop";
 
+  const vfs = createNativeVfs(domicile);
+  await files.createDir(MODULE_MOVES_DIR).catch(() => {});
+  const readMoves = async (): Promise<ModuleMove[]> => {
+    try {
+      return JSON.parse((await readText(files, MODULE_MOVES_FILE)) || "[]") as ModuleMove[];
+    } catch {
+      return [];
+    }
+  };
+  // Moves made before this window opened are not for it.
+  let seen = Math.max(0, ...(await readMoves()).map((m) => m.seq));
+
   const notepad = notepadRaw ? parseIniText(notepadRaw) : {};
   const general = generalRaw ? parseIniText(generalRaw) : {};
   const settings = settingsRaw ? parseIniText(settingsRaw) : {};
@@ -62,10 +77,35 @@ export async function createDomicileEditorHost(domicile: NativeVfsHost) {
   });
 
   const host: TextEditorHost = {
-    vfs: createNativeVfs(domicile),
+    vfs,
     normalizePath: toReal,
     defaultNewFilePath: (name) => `${home}/${desktopDir}/${name}`,
-    onRenamed: () => () => {},
+    onRenamed: (listener) =>
+      // The folder: a watch on a replaced file reports only once.
+      retainVfsWatch(vfs, `${home}/${MODULE_MOVES_DIR}`, () => {
+        void readMoves().then((moves) => {
+          for (const move of moves) {
+            if (move.seq <= seen) continue;
+            seen = move.seq;
+            listener({ oldPath: move.from, newPath: move.to });
+          }
+        });
+      }),
+    opened: (path) => {
+      history.replaceState(null, "", path ? documentHash(path) : location.pathname);
+      if (!path) document.title = _("Untitled");
+    },
+    guardClose: (mustAsk, ask) => {
+      const onBeforeUnload = (event: BeforeUnloadEvent) => {
+        if (!mustAsk()) return;
+        // The shell answers "stay"; the editor then asks in its own window.
+        event.preventDefault();
+        event.returnValue = "";
+        ask();
+      };
+      addEventListener("beforeunload", onBeforeUnload);
+      return () => removeEventListener("beforeunload", onBeforeUnload);
+    },
     readState: <T,>(path: string, isValid: (v: unknown) => v is T) => {
       const v = stateCache.get(`${path}`);
       return isValid(v) ? v : null;

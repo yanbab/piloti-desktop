@@ -1,3 +1,4 @@
+import { resolveAppModuleByUrl } from "@/data/app-modules";
 import * as React from "react";
 import { selectAll } from "@/lib/shell/select-all";
 import { APP_CATALOG, type AppDefinition } from "@/data/catalog";
@@ -43,6 +44,12 @@ export function useGlobalAppMenu({
 }: UseGlobalAppMenuParams) {
   const activeAppDef = React.useMemo<AppDefinition>(() => {
     if (focusedWindow) {
+      // Our app modules are web views too, but they are our apps, not web pages.
+      // The shell can't reach their menu actions.
+      const moduleDef =
+        resolveAppModuleByUrl(focusedWindow.browserUrl) &&
+        APP_CATALOG.find((a) => a.id === focusedWindow.appId);
+      if (moduleDef) return { ...moduleDef, menus: [] };
       if (focusedWindow.browserWindowId) {
         const safeLabel = resolveWebAppTitle({
           rawUrl: focusedWindow.browserUrl,

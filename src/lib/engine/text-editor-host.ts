@@ -14,6 +14,10 @@ export interface TextEditorHost {
   normalizePath(path: string): string;
   /** Where an unsaved document goes on first save (the user's Desktop). */
   defaultNewFilePath(name: string): string;
+  /** Told which file the editor holds (`null`: a new document). */
+  opened?(path: string | null): void;
+  /** For a host whose window closes without asking the shell first. */
+  guardClose?(mustAsk: () => boolean, ask: () => void): () => void;
   /** Told after the editor renames its file. */
   moved?(from: string, to: string): void;
   /** Another part of the host renamed a file. */

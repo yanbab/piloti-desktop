@@ -43,6 +43,33 @@ export function resolveAppModuleByUrl(url: string | undefined): AppModuleDef | u
 }
 
 /**
+ * The shell and a module share no channel but the module's URL and the disk:
+ * a module puts its open file after `#`, and the shell leaves the moves of
+ * files in `MODULE_MOVES_FILE` (relative to `$HOME`).
+ */
+export const documentHash = (path: string) => `#${encodeURIComponent(path)}`;
+
+export function moduleDocument(url: string | undefined): string | null {
+  const hash = url?.split("#")[1];
+  if (!hash) return null;
+  try {
+    return decodeURIComponent(hash);
+  } catch {
+    return null;
+  }
+}
+
+export const MODULE_MOVES_DIR = ".cache/piloti/moves";
+export const MODULE_MOVES_FILE = `${MODULE_MOVES_DIR}/moves.json`;
+
+export interface ModuleMove {
+  /** Rises with each move, also across shell restarts. */
+  seq: number;
+  from: string;
+  to: string;
+}
+
+/**
  * The app a web view window belongs to. Our modules are known by their URL:
  * Domicile may list one as a plain page, which would make it the Web Browser's.
  */

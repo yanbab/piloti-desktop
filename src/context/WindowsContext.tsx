@@ -23,7 +23,7 @@ import {
   getWebAppFaviconUrl,
   resolveWebAppTitle,
 } from "@/data/web-apps";
-import { resolveAppModuleByUrl, webViewAppId } from "@/data/app-modules";
+import { moduleDocument, resolveAppModuleByUrl, webViewAppId } from "@/data/app-modules";
 import {
   DOCUMENT_SCOPED_APP_IDS,
   lookupSpatialWindowBounds,
@@ -31,7 +31,7 @@ import {
 } from "@/lib/shell/spatial-window-bounds";
 import {
   type GnomeSettingsPanel,
-  openAppModule,
+  openAppModule, tellModulesMoved,
   openGnomeControlCenter,
 } from "@/lib/engine-native";
 import { getRunIn } from "@/lib/shell/run-mode";
@@ -2128,7 +2128,12 @@ function pruneBrowserRecord(
   // A document window follows its file, so opening it again finds the window.
   React.useEffect(
     () =>
-      subscribeVfsRenamed(({ oldPath, newPath }) =>
+      subscribeVfsRenamed(({ oldPath, newPath }) => {
+        if (combinedWindowsRef.current.some((w) => resolveAppModuleByUrl(w.browserUrl))) {
+          void tellModulesMoved(piloti, oldPath, newPath).catch((error) =>
+            console.warn("[Piloti] could not tell app modules about a move", error),
+          );
+        }
         setShellWindows((prev) => {
           let changed = false;
           const next = prev.map((w) => {
@@ -2139,9 +2144,9 @@ function pruneBrowserRecord(
             return { ...w, payload };
           });
           return changed ? next : prev;
-        }),
-      ),
-    [],
+        });
+      }),
+    [piloti],
   );
 
   // For the fallback when an app module cannot be started.
@@ -2247,6 +2252,22 @@ function pruneBrowserRecord(
               : undefined);
       const isolated = !options?.inShell && getRunIn(builtinKind ?? appId) === "isolated";
       if (builtinKind && isolated && getEngine().capabilities.systemServices) {
+        const open =
+          options?.payload &&
+          combinedWindowsRef.current.find(
+            (w) =>
+              resolveAppModuleByUrl(w.browserUrl)?.id === builtinKind &&
+              moduleDocument(w.browserUrl) === options.payload,
+          );
+        if (open) {
+          focusWindow(open.id);
+          return;
+        }
+        // A double-click can ask twice before the first window is there.
+        const launchKey = `module:${builtinKind}::${options?.payload ?? ""}`;
+        const now = Date.now();
+        if (now - (recentLaunchGuardRef.current.get(launchKey) ?? 0) < 500) return;
+        recentLaunchGuardRef.current.set(launchKey, now);
         beginStartupNotification(appId);
         void openAppModule(piloti, builtinKind, options?.payload)
           .catch(() => false)

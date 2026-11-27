@@ -308,6 +308,20 @@ function AppModuleSurface({
     };
   }, [win.browserWindowId, win.id, setBrowserTitle, markWindowReady]);
   const mod = resolveAppModuleByUrl(win.browserUrl);
+  const isModule = Boolean(mod);
+  React.useEffect(() => {
+    const view = viewRef.current;
+    if (!view || !isModule) return;
+    // A module that refuses to close asks in its own window: answer "stay".
+    const onDialog = (event: Event) => {
+      const dialog = event as Event & { dialogType: string; dismiss: () => void };
+      if (dialog.dialogType !== "beforeunload") return;
+      event.preventDefault();
+      dialog.dismiss();
+    };
+    view.addEventListener("domicile-dialog", onDialog);
+    return () => view.removeEventListener("domicile-dialog", onDialog);
+  }, [isModule, win.browserWindowId]);
   if (mod?.csd) {
     // The module draws its own header. The webview swallows pointer events, so
     // the shell lays window controls and a drag strip over the header area.
@@ -1784,6 +1798,11 @@ export function WindowManager() {
         { cancelable: true },
       );
       if (!allowed) return;
+      // A module may refuse: don't fade out a window that is going to stay.
+      if (resolveAppModuleByUrl(win.browserUrl)) {
+        closeWindow(win.id);
+        return;
+      }
       const el = windowElementsRef.current.get(win.id);
       if (!el || reducedMotion) {
         closeWindow(win.id);

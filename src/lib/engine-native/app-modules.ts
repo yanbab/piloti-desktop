@@ -1,5 +1,5 @@
 /** Starts one of our apps as a Domicile app module (see docs/ARCHITECTURE.md). */
-import { APP_MODULES } from "@/data/app-modules";
+import { MODULE_MOVES_DIR, MODULE_MOVES_FILE, type ModuleMove, APP_MODULES } from "@/data/app-modules";
 import { hostFiles } from "@/lib/engine/host-files";
 import type { Piloti } from "@/lib/engine/piloti";
 
@@ -22,4 +22,16 @@ export async function openAppModule(piloti: Piloti, appId: string, path?: string
   await files.write(`.cache/piloti/${mod.id}-open`, path ?? "");
   piloti.processes.launch(["domicile", "open", "--app", entry]);
   return true;
+}
+
+let moves: ModuleMove[] = [];
+
+/** Tells module windows a file was renamed or moved. */
+export async function tellModulesMoved(piloti: Piloti, from: string, to: string): Promise<void> {
+  const seq = Math.max(Date.now(), (moves[moves.length - 1]?.seq ?? 0) + 1);
+  // Several moves can land before a module reads: keep the last ones.
+  moves = [...moves.slice(-49), { seq, from, to }];
+  const files = hostFiles(piloti);
+  await files.createDir(MODULE_MOVES_DIR);
+  await files.write(MODULE_MOVES_FILE, JSON.stringify(moves));
 }

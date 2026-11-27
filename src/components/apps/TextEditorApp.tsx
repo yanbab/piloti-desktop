@@ -860,6 +860,22 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
     [host],
   );
 
+  React.useEffect(() => {
+    host.opened?.(filePath);
+  }, [filePath, host]);
+
+  React.useEffect(
+    () =>
+      host.guardClose?.(
+        () => {
+          persistEditorStateNow(filePathRef.current);
+          return mustConfirmClose();
+        },
+        () => setConfirmCloseOpen(true),
+      ),
+    [host, mustConfirmClose, persistEditorStateNow],
+  );
+
   const requestClose = React.useCallback(() => {
     if (mustConfirmClose()) {
       setConfirmCloseOpen(true);
