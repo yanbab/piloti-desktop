@@ -21,9 +21,15 @@ import {
   DRAG_THRESHOLD,
   dragFlyBackAnimation,
   dragShuffleCss,
-  liftGhost,
   settleFromOffset,
 } from "@/lib/shell/drag-feedback";
+import { buildDragGhost } from "@/lib/shell/drag-ghost";
+import {
+  broadcastItemDrag,
+  endItemDragBroadcast,
+  resolveTopDropTarget,
+  routeItemDrop,
+} from "@/lib/shell/item-drop";
 import {
   useApps,
   useWindowManagerSelector,
@@ -70,47 +76,6 @@ function splitFileNameExt(name: string, kind: IconGridItem["kind"]): [string, st
   const dotIdx = name.lastIndexOf(".");
   if (dotIdx <= 0 || dotIdx === name.length - 1) return [name, ""];
   return [name.slice(0, dotIdx), name.slice(dotIdx)];
-}
-
-type ResolvedDropTarget =
-  | { kind: "dock"; appId: string }
-  | { kind: "vfs"; destPath: string }
-  | { kind: "window"; windowId: string }
-  | { kind: "blocked" }
-  | null;
-
-function resolveTopDropTarget(
-  clientX: number,
-  clientY: number,
-  draggedPaths: readonly string[],
-): ResolvedDropTarget {
-  if (typeof document === "undefined") return null;
-  const hits = document.elementsFromPoint(clientX, clientY);
-  for (const el of hits) {
-    if (el.hasAttribute("data-dock-app-id")) {
-      const appId = el.getAttribute("data-dock-app-id");
-      if (appId) return { kind: "dock", appId };
-    }
-    if (el.hasAttribute("data-vfs-drop-path")) {
-      const destPath = el.getAttribute("data-vfs-drop-path");
-      if (destPath) {
-        const isSelfOrChild = draggedPaths.some(
-          (src) => src === destPath || destPath.startsWith(`${src}/`),
-        );
-        if (!isSelfOrChild) {
-          return { kind: "vfs", destPath };
-        }
-      }
-    }
-    if (el.hasAttribute("data-drop-window-id")) {
-      const windowId = el.getAttribute("data-drop-window-id");
-      if (windowId) return { kind: "window", windowId };
-    }
-    if (el.getAttribute("data-slot") === "window") {
-      return { kind: "blocked" };
-    }
-  }
-  return null;
 }
 
 export interface IconGridProps {
@@ -542,17 +507,7 @@ export function IconGrid({
         const draggedItems = items.filter((i) => latest.draggedIds.includes(i.id));
         const draggedItem = items.find((i) => i.id === latest.itemId) ?? draggedItems[0];
         if (!draggedItem) return;
-        window.dispatchEvent(
-          new CustomEvent("residence:file-drag", {
-            detail: {
-              active: true,
-              item: draggedItem,
-              items: draggedItems,
-              clientX: latest.currentX,
-              clientY: latest.currentY,
-            },
-          }),
-        );
+        broadcastItemDrag(draggedItem, draggedItems, latest.currentX, latest.currentY);
         if (mode !== "spatial") return;
         const rect = containerRef.current?.getBoundingClientRect();
         const top = resolveTopDropTarget(
@@ -630,9 +585,7 @@ export function IconGrid({
     const cur = dragRef.current;
     previewKeyRef.current = "";
     setPreview(null);
-    window.dispatchEvent(
-      new CustomEvent("residence:file-drag", { detail: { active: false } }),
-    );
+    endItemDragBroadcast();
     if (cur && commit) {
       suppressClickRef.current = cur.itemId;
       const outcome = commitDrop(cur, lastPointerRef.current);
@@ -670,59 +623,13 @@ export function IconGrid({
       else onMoveItem?.(cur.itemId, dropCell, metrics);
       return "moved";
     };
-    const topTarget = resolveTopDropTarget(
-      pt.x,
-      pt.y,
-      draggedItems.map((d) => d.path),
-    );
-    if (topTarget?.kind === "dock") {
-      window.dispatchEvent(
-        new CustomEvent("residence:file-drop-dock", {
-          detail: { appId: topTarget.appId, item: draggedItem, items: draggedItems },
-        }),
-      );
-      return "external";
-    }
-    if (topTarget?.kind === "window") {
-      window.dispatchEvent(
-        new CustomEvent("residence:file-drop-window", {
-          detail: { windowId: topTarget.windowId, item: draggedItem, items: draggedItems },
-        }),
-      );
-      return "external";
-    }
-    if (topTarget?.kind === "vfs") {
-      const isSameDir =
-        (currentDirPath !== undefined && topTarget.destPath === currentDirPath) ||
-        draggedItems.every(
-          (d) =>
-            d.path.startsWith(`${topTarget.destPath}/`) &&
-            !d.path.slice(topTarget.destPath.length + 1).includes("/"),
-        );
-      if (isSameDir) {
-        return moveWithinGrid();
-      }
-      window.dispatchEvent(
-        new CustomEvent("residence:desktop-drop-position", {
-          detail: {
-            destPath: topTarget.destPath,
-            names: draggedItems.map((d) => d.name),
-            clientX: pt.x,
-            clientY: pt.y,
-          },
-        }),
-      );
-      if (onDropItems) {
-        onDropItems(draggedItems, topTarget.destPath, { copy: pt.alt });
-      } else if (onDropItem) {
-        onDropItem(draggedItem, pt.x, pt.y);
-      }
-      window.dispatchEvent(
-        new CustomEvent("piloti:folder-drop-anim", { detail: { path: topTarget.destPath } }),
-      );
-      return "external";
-    }
-    return topTarget ? "none" : moveWithinGrid();
+    const outcome = routeItemDrop(draggedItem, draggedItems, { x: pt.x, y: pt.y, copy: pt.alt }, {
+      currentDirPath,
+      onDropItems,
+      onDropItem,
+    });
+    if (outcome === "external") return "external";
+    return outcome === "blocked" ? "none" : moveWithinGrid();
   };
 
   const onDndEnd = (_e: DragEndEvent) => endDrag(true);
@@ -1447,37 +1354,14 @@ dropAnimOff ? null : dragFlyBackAnimation
               data-drag-ghost
               ref={(el) => {
                 const latest = dragRef.current;
-                if (!el || !latest || el.childElementCount > 0) return;
-                // Exact clones of the dragged items, kept where they are relative to the one
-                // in hand, so what you drag is what you see (thumbnails included).
-                const primaryRect = itemRefs.current.get(latest.itemId)?.getBoundingClientRect();
-                if (!primaryRect) return;
-                latest.draggedIds.forEach((id) => {
-                  const node = itemRefs.current.get(id);
-                  if (!node) return;
-                  const rect = node.getBoundingClientRect();
-                  const clone = node.cloneNode(true) as HTMLElement;
-                  clone.removeAttribute("id");
-                  clone.removeAttribute("data-vfs-drop-path");
-                  clone.removeAttribute("role");
-                  clone.tabIndex = -1;
-                  clone.style.cssText = [
-                    "position:absolute",
-                    `left:${rect.left - primaryRect.left}px`,
-                    `top:${rect.top - primaryRect.top}px`,
-                    `width:${rect.width}px`,
-                    `height:${rect.height}px`,
-                    "margin:0",
-                  ].join(";");
-                  liftGhost(clone);
-                  el.appendChild(clone);
-                  if (id === latest.itemId && latest.draggedIds.length > 1) {
-                    const badge = document.createElement("span");
-                    badge.textContent = String(latest.draggedIds.length);
-                    badge.style.cssText =
-                      "position:absolute;top:2px;right:6px;min-width:20px;height:20px;padding:0 6px;border-radius:10px;background:var(--ui-accent);color:var(--ui-accent-foreground);font:700 11px/20px system-ui;text-align:center;box-shadow:0 2px 6px rgba(0,0,0,.35)";
-                    clone.appendChild(badge);
-                  }
+                if (!el || !latest) return;
+                const origin = itemRefs.current.get(latest.itemId)?.getBoundingClientRect();
+                if (!origin) return;
+                buildDragGhost(el, {
+                  ids: latest.draggedIds,
+                  primaryId: latest.itemId,
+                  nodeOf: (id) => itemRefs.current.get(id),
+                  origin,
                 });
               }}
               className="pointer-events-none size-full select-none"

@@ -1,5 +1,10 @@
 import { emptyFsTrash } from "@/lib/engine/fs-bridge";
 import * as React from "react";
+import type { IconGridItem } from "@/lib/shell/desktop-icons";
+import { addDockPins, dockPinIdFor, isAppLauncherItem } from "@/lib/shell/dock-pins";
+import { readFsTextFile } from "@/lib/engine/fs-bridge";
+import { parentPath } from "@/lib/ports/vfs";
+import { parseDesktopEntry } from "@/lib/xdg/xdg-desktop-entry";
 import { useVfsQuery, useVfsRefresh } from "@/hooks/use-vfs";
 import { vfsKeys } from "@/lib/engine/vfs-query";
 import {
@@ -180,19 +185,48 @@ export const Dock = React.memo(function Dock() {
     [updateSettings]
   );
 
+  const pinnedIdsRef = React.useRef(settings.pinnedAppIds);
+  pinnedIdsRef.current = settings.pinnedAppIds;
+  const pinDroppedApps = async (items: IconGridItem[], beforeId?: string) => {
+    const catalog = {
+      builtins: APP_CATALOG,
+      installed: installedXdgApps,
+      webApps: settings.installedWebApps ?? [],
+    };
+    const ids = await Promise.all(
+      items.map(async (item) => {
+        // A file in a folder: read what it launches.
+        const entry =
+          item.desktopEntry ??
+          (item.kind === "file"
+            ? (parseDesktopEntry(await readFsTextFile(piloti, item.path), {
+                filePath: item.path,
+                baseDir: parentPath(item.path),
+              }) ?? undefined)
+            : undefined);
+        return dockPinIdFor(item, catalog, entry);
+      }),
+    );
+    const pinned = pinnedIdsRef.current;
+    const next = addDockPins(pinned, ids.filter((id) => id !== null), beforeId);
+    if (next.length !== pinned.length) updateSettings({ pinnedAppIds: next });
+  };
+  const pinDroppedAppsRef = React.useRef(pinDroppedApps);
+  pinDroppedAppsRef.current = pinDroppedApps;
+
   React.useEffect(() => {
     const handleFileDrag = (e: Event) => {
       const detail = (
         e as CustomEvent<{
           active: boolean;
-          item?: { kind?: string };
+          item?: IconGridItem;
           clientX?: number;
           clientY?: number;
         }>
       ).detail;
       if (
         !detail?.active ||
-        detail.item?.kind !== "file" ||
+        !detail.item ||
         detail.clientX === undefined ||
         detail.clientY === undefined
       ) {
@@ -202,21 +236,21 @@ export const Dock = React.memo(function Dock() {
       const hits = document.elementsFromPoint(detail.clientX, detail.clientY);
       const dockEl = hits.find((el) => el.hasAttribute("data-dock-app-id"));
       const hoveredId = dockEl?.getAttribute("data-dock-app-id") ?? null;
-      setDropTargetAppId(
-        hoveredId === "text-editor" ||
+      const opens =
+        detail.item.kind === "file" &&
+        (hoveredId === "text-editor" ||
           hoveredId === "image-viewer" ||
-          hoveredId === "nautilus"
-          ? hoveredId
-          : null
-      );
+          hoveredId === "nautilus");
+      // An app can be dropped on any tile: it is pinned there.
+      setDropTargetAppId(opens || isAppLauncherItem(detail.item) ? hoveredId : null);
     };
 
     const handleFileDrop = (e: Event) => {
       const detail = (
         e as CustomEvent<{
           appId?: string;
-          item?: { kind?: string; path?: string; name?: string };
-          items?: Array<{ kind?: string; path?: string; name?: string }>;
+          item?: IconGridItem;
+          items?: IconGridItem[];
         }>
       ).detail;
       setDropTargetAppId(null);
@@ -225,8 +259,15 @@ export const Dock = React.memo(function Dock() {
         : detail?.item
           ? [detail.item]
           : [];
+      // Text Editor opens a `.desktop` file; elsewhere on the Dock an app is pinned.
+      const apps = droppedItems.filter(
+        (item) =>
+          isAppLauncherItem(item) &&
+          !(item.kind === "file" && detail?.appId === "text-editor"),
+      );
+      if (apps.length > 0) void pinDroppedAppsRef.current(apps, detail?.appId);
       for (const item of droppedItems) {
-        if (!item.path) continue;
+        if (!item.path || apps.includes(item)) continue;
         if (detail?.appId === "text-editor" && item.kind === "file") {
           launchApp("text-editor", { payload: item.path });
         } else if (
@@ -477,8 +518,6 @@ export const Dock = React.memo(function Dock() {
 
   // Reordering pinned apps with dnd-kit: neighbours slide aside with a springy transition,
   // the dragged icon is a DragOverlay that follows the pointer, and drop animates into place.
-  const pinnedIdsRef = React.useRef(settings.pinnedAppIds);
-  pinnedIdsRef.current = settings.pinnedAppIds;
   const updateSettingsRef = React.useRef(updateSettings);
   updateSettingsRef.current = updateSettings;
   const dndSensors = useSensors(

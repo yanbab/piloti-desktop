@@ -46,6 +46,8 @@ in `piloti-macos.css`.
 | Window presentations | `lib/shell/window-presentation.ts`, `context/PluginsContext.tsx`, `lib/plugins/types.ts` |
 | Bundled plugins | `data/files/home/user/.config/piloti/plugins/` |
 | Icon grid | `components/ui/icon-grid.tsx`, `lib/shell/{desktop-icons,drag-feedback}.ts` |
+| Folders tree | `components/ui/folder-tree-view.tsx`, `hooks/use-folder-tree.ts`, `lib/shell/folder-tree.ts` |
+| Item drag and drop | `lib/shell/{item-drop,drag-ghost,dock-pins}.ts` |
 | Folder views | `components/ui/folder-icon-view.tsx`, `hooks/{use-folder-ops,use-external-file-drop,use-launcher-items}.ts`, `lib/shell/folder-items.ts` |
 | Icons ([details](#icons)) | `lib/xdg/xdg-icon-theme.ts`, `lib/shell/{icon-accent-tint,shell-icon-names}.ts` |
 | UI symbols ([details](./SYMBOLIC-ICONS.md)) | `components/ui/symbolic-icon.tsx`, `lib/shell/symbolic-icons.ts` |

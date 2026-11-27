@@ -28,22 +28,25 @@ export function useExternalFileDrop(
       if (!enabled || !e.dataTransfer?.files?.length) return;
       e.preventDefault();
       setActive(false);
+      // Dropped on a folder inside the view (a tree row): copy into that one.
+      const row = (e.target as Element).closest?.("[data-vfs-drop-path]");
+      const destPath = row?.getAttribute("data-vfs-drop-path") || dirPath;
       // Spatial views place the new icons where they were dropped.
       window.dispatchEvent(
         new CustomEvent("residence:desktop-drop-position", {
           detail: {
-            destPath: dirPath,
+            destPath,
             names: Array.from(e.dataTransfer.files, (f) => f.name),
             clientX: e.clientX,
             clientY: e.clientY,
           },
         }),
       );
-      void importFsFiles(piloti, dirPath, e.dataTransfer.files).then((created) => {
+      void importFsFiles(piloti, destPath, e.dataTransfer.files).then((created) => {
         recordCreated({ piloti }, created, "Create");
         onImported?.();
         window.dispatchEvent(
-          new CustomEvent("piloti:folder-drop-anim", { detail: { path: dirPath } }),
+          new CustomEvent("piloti:folder-drop-anim", { detail: { path: destPath } }),
         );
       });
     },

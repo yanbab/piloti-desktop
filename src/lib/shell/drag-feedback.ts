@@ -27,6 +27,10 @@ export const DRAG_DURATION = {
   flyBack: 300,
   /** Neighbours making room while dragging. */
   shuffle: 320,
+  /** Hovering a closed folder this long during a drag opens it. */
+  springLoad: 700,
+  /** Rows appearing under a folder that opens. */
+  reveal: 200,
 } as const;
 
 /** Pointer travel (px) before a press becomes a drag, for every surface. */

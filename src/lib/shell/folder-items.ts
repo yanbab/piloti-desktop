@@ -45,6 +45,7 @@ export function vfsEntryToGridItem(
     symlinkTarget: entry.symlinkTarget,
     accessCount: entry.kind === "file" ? (entry.accessCount ?? 0) : undefined,
     size: entry.kind === "file" ? (entry.size ?? entry.content?.length) : undefined,
+    modifiedMs: entry.updatedAt || undefined,
     thumbnailUrl:
       entry.kind === "file"
         ? getVfsImageThumbnailUrl(entry.name, entry.content, entry.metadata)
@@ -80,4 +81,51 @@ export function toLauncherItem(
     iconUrl: undefined,
     desktopEntry: parsed,
   };
+}
+
+export type FolderSortBy = "manual" | "name" | "kind" | "modified" | "size";
+
+/** A folder's entries as Folders lists them: folders first, then by the chosen column. */
+export function folderEntriesToItems(
+  entries: readonly WebVfsEntry[],
+  options: {
+    showHidden: boolean;
+    query?: string;
+    sortBy: FolderSortBy;
+    sortDir: "asc" | "desc";
+    getAppIconUrl: (id?: string) => string | undefined;
+  },
+): IconGridItem[] {
+  const { showHidden, query, sortBy, sortDir, getAppIconUrl } = options;
+  const hiddenNames = hiddenNamesOf(entries);
+  const isHidden = (entry: WebVfsEntry) =>
+    entry.name.startsWith(".") || hiddenNames.has(entry.name);
+  const visible = showHidden ? entries : entries.filter((entry) => !isHidden(entry));
+  const searched = query
+    ? visible.filter((entry) => entry.name.toLowerCase().includes(query))
+    : visible;
+  const dirFactor = sortDir === "asc" ? 1 : -1;
+  const sizeOf = (e: WebVfsEntry) => e.size ?? e.content?.length ?? 0;
+  const extensionOf = (e: WebVfsEntry) =>
+    e.kind === "directory" ? "" : (e.name.split(".").pop()?.toLowerCase() ?? "");
+  return [...searched]
+    .sort((a, b) => {
+      const rankA = a.kind === "directory" ? 0 : 1;
+      const rankB = b.kind === "directory" ? 0 : 1;
+      if (rankA !== rankB) return rankA - rankB;
+      const diff =
+        sortBy === "modified"
+          ? a.updatedAt - b.updatedAt
+          : sortBy === "size"
+            ? sizeOf(a) - sizeOf(b)
+            : sortBy === "kind"
+              ? extensionOf(a).localeCompare(extensionOf(b))
+              : 0;
+      if (diff !== 0) return diff * dirFactor;
+      return (
+        a.name.localeCompare(b.name, undefined, { sensitivity: "base", numeric: true }) *
+        dirFactor
+      );
+    })
+    .map((entry) => vfsEntryToGridItem(entry, getAppIconUrl, isHidden(entry)));
 }

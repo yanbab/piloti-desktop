@@ -2,12 +2,10 @@ import { hostFiles } from "@/lib/engine/host-files";
 import { useArchiveActions } from "@/hooks/use-archive-actions";
 import { ICON_SIZES } from "@/lib/shell/icon-sizes";
 import { HeaderSearch } from "@/components/ui/header-search";
-import {
-  ListView,
-  ListViewHeader,
-  ListViewRow,
-  nextListViewSort,
-} from "@/components/ui/list-view";
+import { nextListViewSort } from "@/components/ui/list-view";
+import { FolderTreeView } from "@/components/ui/folder-tree-view";
+import { useFolderTree } from "@/hooks/use-folder-tree";
+import { topmostItems } from "@/lib/shell/folder-tree";
 import * as React from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useVfsList, useVfsQuery, useVfsRefresh, useVfsStat, useVfsText, useVfsWatch } from "@/hooks/use-vfs";
@@ -37,8 +35,7 @@ import { useFolderOps } from "@/hooks/use-folder-ops";
 import { useLauncherItems } from "@/hooks/use-launcher-items";
 import {
   entryVisual,
-  hiddenNamesOf,
-  vfsEntryToGridItem,
+  folderEntriesToItems,
 } from "@/lib/shell/folder-items";
 import { AppSquircleIcon } from "@/components/shell/AppSymbol";
 import { useSidebarKeyboardNav } from "@/hooks/use-sidebar-keyboard-nav";
@@ -244,6 +241,9 @@ const LIST_ZOOM_LEVELS = ICON_SIZES;
 
 /** A folder shows its opening this long before Folders navigates into it. */
 const FOLDER_OPEN_DELAY_MS = 180;
+
+const topmostPaths = (paths: readonly string[]) =>
+  topmostItems(paths.map((path) => ({ path }))).map((i) => i.path);
 
 const NO_ENTRIES: WebVfsEntry[] = [];
 
@@ -510,7 +510,7 @@ export function FilesApp({
         !isVirtualView
       ) {
         e.preventDefault();
-        setVfsClipboard({ mode: "cut", paths: selectedIds });
+        setVfsClipboard({ mode: "cut", paths: topmostPaths(selectedIds) });
       } else if (
         (e.ctrlKey || e.metaKey) &&
         !e.altKey &&
@@ -519,7 +519,7 @@ export function FilesApp({
         !isTrashView
       ) {
         e.preventDefault();
-        setVfsClipboard({ mode: "copy", paths: selectedIds });
+        setVfsClipboard({ mode: "copy", paths: topmostPaths(selectedIds) });
       } else if (
         (e.ctrlKey || e.metaKey) &&
         !e.altKey &&
@@ -563,9 +563,9 @@ export function FilesApp({
         !e.altKey &&
         !e.shiftKey &&
         selectedIds.length === 1 &&
-        !(e.target as HTMLElement | null)?.closest('[role="grid"]')
+        !(e.target as HTMLElement | null)?.closest('[role="grid"], [role="treegrid"]')
       ) {
-        const target = items.find((i) => i.id === selectedIds[0]);
+        const target = shownItems.find((i) => i.id === selectedIds[0]);
         if (target) {
           e.preventDefault();
           handleActivateItem(target);
@@ -741,6 +741,14 @@ export function FilesApp({
     }
   }, [ensureWaylandIcons, vfsEntries]);
 
+  const toItems = React.useCallback(
+    (entries: readonly WebVfsEntry[], query?: string) =>
+      folderEntriesToItems(entries, { showHidden, query, sortBy, sortDir, getAppIconUrl }),
+    [getAppIconUrl, showHidden, sortBy, sortDir],
+  );
+  // The tree searches its open folders too, so it filters its own rows.
+  const treeSearches = viewMode === "list" && !isVirtualView && !isTrashView;
+
   const listedItems = React.useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     if (isAppsView) {
@@ -827,47 +835,7 @@ export function FilesApp({
         : appItems;
       return filtered.sort((a, b) => a.name.localeCompare(b.name));
     }
-    const hiddenNames = hiddenNamesOf(vfsEntries);
-    const visible = showHidden
-      ? vfsEntries
-      : vfsEntries.filter(
-          (entry) => !entry.name.startsWith(".") && !hiddenNames.has(entry.name)
-        );
-    const searched = q
-      ? visible.filter((entry) => entry.name.toLowerCase().includes(q))
-      : visible;
-    const dirFactor = sortDir === "asc" ? 1 : -1;
-    const sorted = [...searched].sort((a, b) => {
-      const rankA = a.kind === "directory" ? 0 : 1;
-      const rankB = b.kind === "directory" ? 0 : 1;
-      if (rankA !== rankB) return rankA - rankB;
-      if (sortBy === "modified") {
-        const diff = a.updatedAt - b.updatedAt;
-        if (diff !== 0) return diff * dirFactor;
-      } else if (sortBy === "size") {
-        const sizeA = a.size ?? a.content?.length ?? 0;
-        const sizeB = b.size ?? b.content?.length ?? 0;
-        if (sizeA !== sizeB) return (sizeA - sizeB) * dirFactor;
-      } else if (sortBy === "kind") {
-        const extA = a.kind === "directory" ? "" : a.name.split(".").pop()?.toLowerCase() ?? "";
-        const extB = b.kind === "directory" ? "" : b.name.split(".").pop()?.toLowerCase() ?? "";
-        const extCmp = extA.localeCompare(extB);
-        if (extCmp !== 0) return extCmp * dirFactor;
-      }
-      return (
-        a.name.localeCompare(b.name, undefined, {
-          sensitivity: "base",
-          numeric: true,
-        }) * dirFactor
-      );
-    });
-    const gridItems = sorted.map((entry) =>
-      vfsEntryToGridItem(
-        entry,
-        getAppIconUrl,
-        entry.name.startsWith(".") || hiddenNames.has(entry.name)
-      )
-    );
+    const gridItems = toItems(vfsEntries, treeSearches ? undefined : q);
     return isDesktopView ? sortDesktopItems(gridItems) : gridItems;
   }, [
     currentPath,
@@ -877,12 +845,29 @@ export function FilesApp({
     isDesktopView,
     searchQuery,
     settings.installedWebApps,
-    showHidden,
-    sortBy,
-    sortDir,
+    toItems,
+    treeSearches,
     vfsEntries,
   ]);
   const items = useLauncherItems(listedItems, isDesktopView);
+
+  const treeChildren = React.useCallback(
+    (entries: readonly WebVfsEntry[]) => toItems(entries),
+    [toItems],
+  );
+  const tree = useFolderTree({
+    rootPath: currentPath,
+    rootItems: items,
+    toItems: treeChildren,
+    query: treeSearches ? searchQuery.trim().toLowerCase() : "",
+    enabled: treeSearches,
+  });
+  /** What is on screen: in the list, items of open folders too. */
+  const shownItems = viewMode === "list" ? tree.visibleItems : items;
+  React.useEffect(() => {
+    const candidates = shownItems.flatMap((i) => i.iconCandidates ?? []);
+    if (candidates.length > 0) ensureWaylandIcons(candidates);
+  }, [ensureWaylandIcons, shownItems]);
 
   React.useEffect(() => {
     if (!usbMounted && isSimulatedUsbPath(currentPath)) {
@@ -1099,9 +1084,9 @@ export function FilesApp({
       onShellEvent("piloti:select-all", (detail, event) => {
         if (detail.windowId !== (windowId ?? null)) return;
         event.preventDefault();
-        setSelectedIds(items.map((i) => i.id));
+        setSelectedIds(shownItems.map((i) => i.id));
       }),
-    [items, windowId],
+    [shownItems, windowId],
   );
 
   const handleActivateItem = (item: IconGridItem) => {
@@ -1141,7 +1126,9 @@ export function FilesApp({
 
   const handleCommitRename = (item: IconGridItem, nextName: string) => {
     setRenamingId(null);
-    ops.renameItem(item, nextName);
+    void ops.renameItem(item, nextName).then((renamed) => {
+      if (renamed) tree.rename(item.path, renamed);
+    });
   };
 
   const handleTrashItem = (item: IconGridItem) => {
@@ -1168,8 +1155,8 @@ export function FilesApp({
   };
 
   const selectedItems = React.useMemo(
-    () => items.filter((i) => selectedIds.includes(i.id)),
-    [items, selectedIds]
+    () => shownItems.filter((i) => selectedIds.includes(i.id)),
+    [shownItems, selectedIds]
   );
 
   latestActionsRef.current = {
@@ -1185,12 +1172,12 @@ export function FilesApp({
     },
     cutSelected: () => {
       if (selectedItems.length > 0 && !isTrashView && !isVirtualView) {
-        setVfsClipboard({ mode: "cut", paths: selectedItems.map((i) => i.path) });
+        setVfsClipboard({ mode: "cut", paths: topmostItems(selectedItems).map((i) => i.path) });
       }
     },
     copySelected: () => {
       if (selectedItems.length > 0 && !isTrashView) {
-        setVfsClipboard({ mode: "copy", paths: selectedItems.map((i) => i.path) });
+        setVfsClipboard({ mode: "copy", paths: topmostItems(selectedItems).map((i) => i.path) });
       }
     },
     pasteClipboard: () => handlePasteItems(),
@@ -1201,7 +1188,7 @@ export function FilesApp({
     },
     compressSelected: () => {
       if (archive.available && selectedItems.length > 0 && !isTrashView && !isVirtualView) {
-        archive.compress(selectedItems.map((i) => i.path));
+        archive.compress(topmostItems(selectedItems).map((i) => i.path));
       }
     },
     renameSelected: () => {
@@ -1572,7 +1559,7 @@ export function FilesApp({
 
   const inspectedItem =
     infoPaneOpen && selectedIds.length > 0
-      ? items.find((i) => i.id === selectedIds[0])
+      ? shownItems.find((i) => i.id === selectedIds[0])
       : null;
   const statPath = inspectedItem
     ? (inspectedItem.path ?? inspectedItem.id)
@@ -1608,7 +1595,7 @@ export function FilesApp({
             : inspectedStat?.size !== undefined
               ? _("%d bytes", inspectedStat.size)
               : "—"
-          : _("%d items", items.length);
+          : _("%d items", shownItems.length);
         const modifiedLabel = inspectedStat?.modifiedMs
           ? new Date(inspectedStat.modifiedMs).toLocaleDateString(
               getLocale() === "fr" ? "fr-FR" : getLocale() === "es" ? "es-ES" : "en-US",
@@ -1915,7 +1902,7 @@ export function FilesApp({
             </span>
           </div>
         )}
-        {!isVirtualListing && folderListing === undefined ? null : items.length === 0 ? (
+        {!isVirtualListing && folderListing === undefined ? null : shownItems.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center gap-1.5 text-center text-ui-label-tertiary">
             <FolderIcon className="size-9 opacity-35" />
             <span className="text-ui-body">
@@ -1927,228 +1914,41 @@ export function FilesApp({
             </span>
           </div>
         ) : viewMode === "list" ? (
-          <div className="p-2">
-            <ListView>
-              <ListViewHeader
-                columns={[
-                  { id: "name", label: _("Name") },
-                  { id: "kind", label: _("Kind") },
-                  { id: "size", label: _("Size"), align: "right" },
-                  { id: "favorite", label: "", ariaLabel: _("Favorites"), width: "32px", sortable: false },
-                ]}
-                sort={
-                  sortBy === "name" || sortBy === "kind" || sortBy === "size"
-                    ? { by: sortBy, dir: sortDir }
-                    : undefined
-                }
-                onSort={(column) => {
-                  if (column !== "name" && column !== "kind" && column !== "size") return;
-                  const next = nextListViewSort(
-                    { by: sortBy, dir: sortDir },
-                    column
-                  );
-                  setSortBy(next.by as typeof sortBy);
-                  setSortDir(next.dir);
-                }}
-              />
-              <tbody>
-                {items.map((item) => {
-                  const isSelected = selectedIds.includes(item.id);
-                  const isOpenedFile =
-                    item.kind === "file" &&
-                    Boolean(item.path) &&
-                    openFilePaths.has(item.path.replace(/\/+$/, "") || "/");
-                  const allRowEmblems =
-                    item.kind === "desktop-entry" ? [] : getVfsEmblems(item.path);
-                  const isFavorite = allRowEmblems.includes("favorite");
-                  // The favorite heart has its own toggle column.
-                  const rowEmblems = allRowEmblems.filter((id) => id !== "favorite");
-                  const sizeLabel =
-                    item.kind === "desktop-entry"
-                      ? _("Application")
-                      : item.kind === "directory"
-                        ? _("Folder")
-                        : item.size === undefined
-                          ? "—"
-                          : `${item.size} B`;
-                  return (
-                    <ListViewRow
-                      key={item.id}
-                      selected={isSelected}
-                      data-vfs-drop-path={
-                        item.kind === "directory" ? item.path : undefined
-                      }
-                      onPointerDown={(e) => {
-                        if (e.button !== 0) return;
-                        if (e.metaKey || e.ctrlKey) {
-                          setSelectedIds((prev) =>
-                            prev.includes(item.id)
-                              ? prev.filter((id) => id !== item.id)
-                              : [...prev, item.id]
-                          );
-                        } else if (e.shiftKey) {
-                          setSelectedIds((prev) =>
-                            prev.includes(item.id) ? prev : [...prev, item.id]
-                          );
-                        } else {
-                          setSelectedIds([item.id]);
-                        }
-                      }}
-                      onClick={(e) => {
-                        if (
-                          settings.fileActivationMode === "single" ||
-                          item.kind === "desktop-entry"
-                        ) {
-                          captureLaunchOriginFromElement(e.currentTarget);
-                          handleActivateItem(item);
-                        }
-                      }}
-                      onDoubleClick={(e) => {
-                        if (
-                          settings.fileActivationMode === "double" &&
-                          item.kind !== "desktop-entry"
-                        ) {
-                          captureLaunchOriginFromElement(e.currentTarget);
-                          handleActivateItem(item);
-                        }
-                      }}
-                      onContextMenu={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        captureLaunchOriginFromElement(e.currentTarget, 10000);
-                        if (!selectedIds.includes(item.id)) {
-                          setSelectedIds([item.id]);
-                        }
-                        setBgMenu(null);
-                        setItemMenu({ item, x: e.clientX, y: e.clientY });
-                      }}
-                      style={{
-                        opacity:
-                          item.isHidden || item.name.startsWith(".")
-                            ? 0.55
-                            : undefined,
-                      }}
-                    >
-                      <td className="px-3 py-1.5 font-medium">
-                        <div className="flex items-center gap-2.5">
-                          <span
-                            style={{
-                              width: `${listIconSize}px`,
-                              height: `${listIconSize}px`,
-                            }}
-                            className={cn(
-                              "inline-flex shrink-0",
-                              isOpenedFile &&
-                                "opacity-55 grayscale-[0.45] brightness-90"
-                            )}
-                          >
-                            {item.kind === "desktop-entry" ? (
-                              <AppSquircleIcon
-                                iconName={item.iconName}
-                                iconUrl={item.iconUrl}
-                                squircle={item.id.startsWith("app:web:")}
-                                className="size-full"
-                              />
-                            ) : item.kind === "directory" ? (
-                              <ThemeFolderIcon
-                                accentColor={settings.accentColor}
-                                opened={openFolderPaths.has(item.path)}
-                                pathOrName={item.path || item.name}
-                                className="size-full"
-                              />
-                            ) : (
-                              <DynamicFileIcon
-                                accentColor={settings.accentColor}
-                                name={item.name}
-                                iconCandidates={item.iconCandidates}
-                                isEmpty={item.isEmpty}
-                                className="size-full"
-                              />
-                            )}
-                          </span>
-                          {renamingId === item.id ? (
-                            <input
-                              type="text"
-                              defaultValue={item.name}
-                              autoFocus
-                              onClick={(e) => e.stopPropagation()}
-                              onPointerDown={(e) => e.stopPropagation()}
-                              onKeyDown={(e) => {
-                                e.stopPropagation();
-                                if (e.key === "Enter") {
-                                  e.preventDefault();
-                                  handleCommitRename(item, e.currentTarget.value);
-                                } else if (e.key === "Escape") {
-                                  e.preventDefault();
-                                  setRenamingId(null);
-                                }
-                              }}
-                              onBlur={(e) =>
-                                handleCommitRename(item, e.currentTarget.value)
-                              }
-                              className="min-w-28 rounded bg-ui-hud-dark px-1.5 py-0.5 text-ui-body font-medium text-ui-hud-dark-label ring-1 ring-ui-accent outline-none"
-                            />
-                          ) : (
-                            <span className="truncate">{item.name}</span>
-                          )}
-                          {rowEmblems.length > 0 && (
-                            <span className="inline-flex shrink-0 items-center gap-1">
-                              {rowEmblems.map((emblemId) => {
-                                const meta = VFS_EMBLEM_META[emblemId];
-                                const Icon =
-                                  emblemId === "important"
-                                    ? AlertCircleIcon
-                                    : emblemId === "work"
-                                      ? BriefcaseIcon
-                                      : TagIcon;
-                                return (
-                                  <Icon
-                                    key={emblemId}
-                                    className={cn("size-3", meta.colorClass)}
-                                  />
-                                );
-                              })}
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-3 py-2 text-ui-label-secondary">
-                        {item.kind === "directory" ? _("Directory") : _("File")}
-                      </td>
-                      <td className="px-3 py-2 text-right font-mono text-ui-small text-ui-label-secondary">
-                        {sizeLabel}
-                      </td>
-                      <td className="w-8 px-1 py-0 text-center">
-                        {item.kind !== "desktop-entry" && (
-                          <button
-                            type="button"
-                            data-slot="list-favorite-toggle"
-                            aria-pressed={isFavorite}
-                            aria-label={isFavorite ? _("Remove from Favorites") : _("Add to Favorites")}
-                            title={isFavorite ? _("Remove from Favorites") : _("Add to Favorites")}
-                            onPointerDown={(e) => e.stopPropagation()}
-                            onDoubleClick={(e) => e.stopPropagation()}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              toggleFavoriteItem(item);
-                            }}
-                            className={cn(
-                              "inline-flex size-6 items-center justify-center rounded-ui-control transition-opacity duration-150",
-                              isFavorite
-                                ? "text-red-500 opacity-100"
-                                : "text-ui-label-secondary opacity-0 group-hover:opacity-60 hover:!opacity-100 focus-visible:opacity-100"
-                            )}
-                          >
-                            <HeartIcon className={cn("size-3.5", isFavorite && "fill-current")} />
-                          </button>
-                        )}
-                      </td>
-                    </ListViewRow>
-                  );
-                })}
-              </tbody>
-            </ListView>
-          </div>
+          <FolderTreeView
+            // Another folder: new scroll position, cursor and drag state.
+            key={currentPath}
+            tree={tree}
+            sort={sortBy === "manual" ? undefined : { by: sortBy, dir: sortDir }}
+            onSort={(column) => {
+              const next = nextListViewSort({ by: sortBy, dir: sortDir }, column);
+              setSortBy(next.by as typeof sortBy);
+              setSortDir(next.dir);
+            }}
+            iconSize={listIconSize}
+            accentColor={settings.accentColor}
+            selectedIds={selectedIds}
+            onSelectIds={setSelectedIds}
+            openFilePaths={openFilePaths}
+            emblemsOf={(item) => getVfsEmblems(item.path)}
+            onToggleFavorite={toggleFavoriteItem}
+            renamingId={renamingId}
+            onCommitRename={handleCommitRename}
+            onCancelRename={() => setRenamingId(null)}
+            activateOnClick={settings.fileActivationMode === "single"}
+            onActivateItem={(item, row) => {
+              captureLaunchOriginFromElement(row);
+              handleActivateItem(item);
+            }}
+            onContextMenuItem={(item, e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              captureLaunchOriginFromElement(e.currentTarget, 10000);
+              setBgMenu(null);
+              setItemMenu({ item, x: e.clientX, y: e.clientY });
+            }}
+            onDropItems={isTrashView || isVirtualView ? undefined : ops.dropItems}
+            ariaLabel={currentTitle}
+          />
         ) : (
           <FolderIconView
             items={items}
@@ -2189,9 +1989,9 @@ export function FilesApp({
           >
             {selectedIds.length > 0
               ? _("%d selected", selectedIds.length)
-              : items.length === 1
-                ? _("%d item", items.length)
-                : _("%d items", items.length)}
+              : shownItems.length === 1
+                ? _("%d item", shownItems.length)
+                : _("%d items", shownItems.length)}
           </span>
           <div className="w-[96px] shrink-0">
             <Slider
@@ -2252,14 +2052,14 @@ export function FilesApp({
           launchApp("terminal", { payload: target.path, forceNew: true })
         }
         onCutItems={(list) =>
-          setVfsClipboard({ mode: "cut", paths: list.map((i) => i.path) })
+          setVfsClipboard({ mode: "cut", paths: topmostItems(list).map((i) => i.path) })
         }
         onCopyItems={(list) =>
-          setVfsClipboard({ mode: "copy", paths: list.map((i) => i.path) })
+          setVfsClipboard({ mode: "copy", paths: topmostItems(list).map((i) => i.path) })
         }
         onDuplicate={handleDuplicateItems}
         onCompress={
-          archive.available ? (list) => archive.compress(list.map((i) => i.path)) : undefined
+          archive.available ? (list) => archive.compress(topmostItems(list).map((i) => i.path)) : undefined
         }
         onExtract={archive.available ? (target) => archive.extract(target.path) : undefined}
         onDownload={

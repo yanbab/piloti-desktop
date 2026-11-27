@@ -10,6 +10,8 @@ import { usePiloti } from "@/lib/engine/piloti";
 import { _ } from "@/lib/core/i18n";
 import { getVfsClipboard, setVfsClipboard } from "@/lib/core/vfs-clipboard";
 import { WEB_VFS_TRASH } from "@/lib/core/vfs-paths";
+import { parentPath } from "@/lib/ports/vfs";
+import { topmostItems } from "@/lib/shell/folder-tree";
 
 type Target = { id: string; path: string; name?: string };
 
@@ -47,11 +49,14 @@ export function useFolderOps({
       destPath: string,
       label: string,
       options: (target: Target) => { name?: string; symlink?: boolean } = () => ({}),
+      /** Each copy next to its source: the tree shows subfolders' items. */
+      beside = false,
     ) => {
       const created: string[] = [];
-      for (const target of list) {
-        if (destPath === target.path || destPath.startsWith(`${target.path}/`)) continue;
-        const path = await copyFsEntry(piloti, target.path, destPath, options(target));
+      for (const target of topmostItems(list)) {
+        const into = beside ? parentPath(target.path) : destPath;
+        if (into === target.path || into.startsWith(`${target.path}/`)) continue;
+        const path = await copyFsEntry(piloti, target.path, into, options(target));
         if (path) created.push(path);
       }
       recordCreated(ctx, created, label);
@@ -59,7 +64,9 @@ export function useFolderOps({
       return created;
     };
 
-    const trashItems = (list: readonly Target[]) => {
+    const trashItems = (selection: readonly Target[]) => {
+      // A folder takes its contents with it.
+      const list = topmostItems(selection);
       if (list.length === 0) return;
       if (isTrash) {
         // Nothing to undo.
@@ -67,7 +74,7 @@ export function useFolderOps({
       } else {
         void trashWithUndo(ctx, list.map((t) => t.path)).then(reload);
       }
-      deselect(new Set(list.map((t) => t.id)));
+      deselect(new Set(selection.map((t) => t.id)));
     };
 
     return {
@@ -82,8 +89,11 @@ export function useFolderOps({
           void copyAll(list, destPath, "Copy");
           return;
         }
-        const moving = list.filter(
-          (item) => item.path !== destPath && !destPath.startsWith(`${item.path}/`),
+        const moving = topmostItems(list).filter(
+          (item) =>
+            item.path !== destPath &&
+            parentPath(item.path) !== destPath &&
+            !destPath.startsWith(`${item.path}/`),
         );
         if (moving.length === 0) return;
         void moveWithUndo(ctx, moving.map((i) => i.path), destPath).then(reload);
@@ -94,7 +104,8 @@ export function useFolderOps({
         const clip = getVfsClipboard();
         if (!clip || clip.paths.length === 0 || readOnly) return;
         if (clip.mode === "cut") {
-          void moveWithUndo(ctx, clip.paths, dirPath).then(reload);
+          const paths = topmostItems(clip.paths.map((path) => ({ path }))).map((i) => i.path);
+          void moveWithUndo(ctx, paths, dirPath).then(reload);
           setVfsClipboard(null);
           return;
         }
@@ -109,14 +120,14 @@ export function useFolderOps({
           return {
             name: dot > 0 ? `${base.slice(0, dot)} Copy${base.slice(dot)}` : `${base} Copy`,
           };
-        }).then(select);
+        }, true).then(select);
       },
 
       makeLinks(list: readonly Target[]) {
         void copyAll(list, dirPath, "Make Link", (target) => ({
           symlink: true,
           name: _("Link to {name}").replace("{name}", target.name ?? ""),
-        })).then(select);
+        }), true).then(select);
       },
 
       /** Resolves to the new path, or null when nothing was renamed. */

@@ -48,6 +48,7 @@ export interface IconGridItem {
   accessCount?: number;
   /** A file's size in bytes. */
   size?: number;
+  modifiedMs?: number;
   thumbnailUrl?: string;
   desktopEntry?: XdgDesktopEntry;
 }

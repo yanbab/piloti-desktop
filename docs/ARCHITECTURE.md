@@ -74,6 +74,10 @@ UI (React)  ─►  piloti: Domicile's desktop + vfs, settings, desktop…
 - Shell events are typed in `lib/shell/shell-events.ts`.
 - `DesktopIconsApp` (the spatial desktop) and Folders share
   `components/ui/icon-grid.tsx`.
+- Folders' list view is a tree (`components/ui/folder-tree-view.tsx`): each open
+  folder has its own listing and watch, released when it is hidden.
+- Item drags find their target by `data-*` attributes (`lib/shell/item-drop.ts`),
+  so grids, the tree, the Dock and windows take each other's drops.
 
 ## App modules
 
