@@ -16,6 +16,7 @@ import { isBrowserDevRuntime } from "@/context/SettingsContext";
 import { _ } from "@/lib/core/i18n";
 import { cn } from "@/lib/core/utils";
 import { normalizeVfsPath } from "@/lib/core/vfs-paths";
+import { renameFsEntry } from "@/lib/engine/fs-bridge";
 import { subscribeVfsRenamed } from "@/lib/engine-web/web-vfs";
 
 export interface ImageViewerAppProps {
@@ -433,15 +434,12 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
     if (!isRenameableVfsFile) return;
     const nextName = draftTitle.trim().replace(/[/\\]/g, "");
     if (!nextName || nextName === fileName) return;
-    const renamed = `${activePath.slice(0, activePath.lastIndexOf("/"))}/${nextName}`;
-    void piloti.vfs.move(activePath, renamed).then(
-      () => {
-        setActivePath(renamed);
-        bridge.setTitle(nextName);
-      },
-      (error) => console.warn("Could not rename", activePath, error),
-    );
-  }, [activePath, bridge, draftTitle, fileName, isRenameableVfsFile, piloti.vfs]);
+    void renameFsEntry(piloti, activePath, nextName).then((renamed) => {
+      if (!renamed) return;
+      setActivePath(renamed.path);
+      bridge.setTitle(nextName);
+    });
+  }, [activePath, bridge, draftTitle, fileName, isRenameableVfsFile, piloti]);
 
   React.useEffect(() => {
     if (!editingTitle) return;

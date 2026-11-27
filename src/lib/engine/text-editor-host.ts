@@ -14,6 +14,8 @@ export interface TextEditorHost {
   normalizePath(path: string): string;
   /** Where an unsaved document goes on first save (the user's Desktop). */
   defaultNewFilePath(name: string): string;
+  /** Told after the editor renames its file. */
+  moved?(from: string, to: string): void;
   /** Another part of the host renamed a file. */
   onRenamed(listener: (e: { oldPath: string; newPath: string }) => void): () => void;
   /** Per-user JSON state by key (cursor, scroll, unsaved text per file). */

@@ -124,7 +124,7 @@ export function DesktopIconsApp({
 
   const items = useLauncherItems(fileItems);
   const ops = useFolderOps({ dirPath: desktopDirPath, reload, setSelectedIds });
-  const externalDrop = useExternalFileDrop(desktopDirPath, !realFilesystem, reload);
+  const externalDrop = useExternalFileDrop(desktopDirPath, true, reload);
 
   // "New Folder", "Paste", "Open in Terminal"... from the shell's desktop menus.
   const editCreated = React.useCallback(

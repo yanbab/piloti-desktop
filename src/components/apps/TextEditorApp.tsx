@@ -467,6 +467,7 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
       const renamed = `${filePath.slice(0, filePath.lastIndexOf("/"))}/${nextName}`;
       void host.vfs.move(filePath, renamed).then(
         () => {
+          host.moved?.(filePath, renamed);
           setFilePath(renamed);
           bridge.setTitle(nextName);
         },

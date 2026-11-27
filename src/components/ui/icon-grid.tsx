@@ -62,6 +62,7 @@ import {
   type VfsEmblemId,
 } from "@/lib/engine-web/web-vfs";
 import { importFsFiles } from "@/lib/engine/fs-bridge";
+import { recordCreated } from "@/lib/engine/fs-undo";
 import { usePiloti } from "@/lib/engine/piloti";
 
 function splitFileNameExt(name: string, kind: IconGridItem["kind"]): [string, string] {
@@ -1112,7 +1113,8 @@ export function IconGrid({
               ) {
                 e.preventDefault();
                 e.stopPropagation();
-                void importFsFiles(piloti, item.path, e.dataTransfer.files).then(() => {
+                void importFsFiles(piloti, item.path, e.dataTransfer.files).then((created) => {
+                  recordCreated({ piloti }, created, "Create");
                   window.dispatchEvent(
                     new CustomEvent("piloti:folder-drop-anim", {
                       detail: { path: item.path },

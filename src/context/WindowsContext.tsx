@@ -2958,11 +2958,9 @@ export function useWindowManager() {
 
 export function useWindowActions(): WindowActionsValue {
   const actions = React.useContext(WindowActionsContext);
-  if (actions) return actions;
-  const ctx = React.useContext(WindowsContext);
-  if (!ctx) {
+  if (!actions) {
     throw new Error("useWindowActions must be used within DesktopStateProvider");
   }
-  return ctx;
+  return actions;
 }
 

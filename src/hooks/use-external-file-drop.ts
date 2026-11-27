@@ -1,5 +1,6 @@
 import * as React from "react";
 import { importFsFiles } from "@/lib/engine/fs-bridge";
+import { recordCreated } from "@/lib/engine/fs-undo";
 import { usePiloti } from "@/lib/engine/piloti";
 
 /**
@@ -38,7 +39,8 @@ export function useExternalFileDrop(
           },
         }),
       );
-      void importFsFiles(piloti, dirPath, e.dataTransfer.files).then(() => {
+      void importFsFiles(piloti, dirPath, e.dataTransfer.files).then((created) => {
+        recordCreated({ piloti }, created, "Create");
         onImported?.();
         window.dispatchEvent(
           new CustomEvent("piloti:folder-drop-anim", { detail: { path: dirPath } }),

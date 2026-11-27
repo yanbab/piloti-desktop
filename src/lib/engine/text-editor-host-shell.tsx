@@ -8,6 +8,7 @@ import {
 import { readVfsStateJson, writeVfsStateJson } from "@/lib/engine/vfs-state";
 import { normalizeVfsPath } from "@/lib/core/vfs-paths";
 import { subscribeVfsRenamed } from "@/lib/engine-web/web-vfs";
+import { announceRename } from "@/lib/engine/fs-bridge";
 import { VFS_HOME } from "@/lib/engine/vfs-home";
 import { emitShellEvent, onShellEvent } from "@/lib/shell/shell-events";
 
@@ -23,6 +24,7 @@ export function createInShellEditorHost(piloti: Piloti): TextEditorHost {
     normalizePath: normalizeVfsPath,
     defaultNewFilePath: (name) => `${VFS_HOME}/Desktop/${name}`,
     onRenamed: subscribeVfsRenamed,
+    moved: announceRename,
     readState: (key, isValid) =>
       readVfsStateJson(stateFile(key), undefined, isValid),
     writeState: (key, value) => {
