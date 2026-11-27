@@ -6,10 +6,35 @@ import {
   getSystemLocale,
   setLocale,
 } from "@/lib/core/i18n";
+import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+import es from "@/locales/es.json";
+import fr from "@/locales/fr.json";
+
+/** Literal `_("…")` keys under src/. */
+function sourceKeys(): string[] {
+  const root = join(import.meta.dir, "../../src");
+  const keys = new Set<string>();
+  for (const file of readdirSync(root, { recursive: true, encoding: "utf8" })) {
+    if (!/\.tsx?$/.test(file)) continue;
+    const text = readFileSync(join(root, file), "utf8");
+    for (const match of text.matchAll(/\b_\(\s*("(?:[^"\\\n]|\\.)*")/g)) {
+      keys.add(JSON.parse(match[1]!) as string);
+    }
+  }
+  return [...keys];
+}
 
 describe("i18n translation helper", () => {
   afterEach(() => {
     setLocale("en");
+  });
+
+  test("fr and es cover every literal string in the source", () => {
+    const keys = sourceKeys();
+    expect(keys.length).toBeGreaterThan(500);
+    expect(keys.filter((key) => !(key in fr))).toEqual([]);
+    expect(keys.filter((key) => !(key in es))).toEqual([]);
   });
 
   test("falls back to English key when en.json is empty and formats %s/%d", () => {

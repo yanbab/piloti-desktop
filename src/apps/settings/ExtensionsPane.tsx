@@ -239,7 +239,7 @@ export function ExtensionsPane() {
                     ? "CSS"
                     : plugin.scriptPath
                       ? "JS"
-                      : "Manifest";
+                      : _("Manifest");
               return (
                 <GroupedFormRow key={plugin.id}>
                   <GroupedFormRowLabel>
@@ -469,7 +469,7 @@ export function ExtensionsPane() {
                     onKeyDown={(e) => {
                       if (e.key === "Enter") handleAddExtensionEntry();
                     }}
-                    placeholder="/path/to/ext or Web Store ID"
+                    placeholder={_("/path/to/ext or Web Store ID")}
                     className="h-7 w-48 rounded-ui-control border border-ui-separator bg-black/4 px-2 text-ui-body text-ui-label outline-none focus:border-ui-accent dark:bg-white/6"
                   />
                   <Button

@@ -46,6 +46,7 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Banner } from "@/components/ui/banner";
 import { FileChangedDialog, UnsavedChangesDialog } from "@/components/ui/unsaved-changes-dialog";
 import { publishWindowMenuState, useIsolatedAppBridge } from "@/lib/engine/app-bridge";
 import { pathAfterRename, uniqueName } from "@/lib/ports/vfs";
@@ -724,7 +725,11 @@ export const TextsApp: React.FC<TextsAppProps> = ({
     [persistEditorStateNow],
   );
 
+  // The open file was trashed or deleted: saving would create it again.
+  const [fileGone, setFileGone] = React.useState(false);
+
   React.useEffect(() => {
+    setFileGone(false);
     if (!filePath) return;
     let cancelled = false;
     let first = keptPathRef.current !== filePath;
@@ -734,6 +739,15 @@ export const TextsApp: React.FC<TextsAppProps> = ({
       // The first read opens the file; later ones follow outside changes.
       const force = first;
       first = false;
+      if (!force) {
+        // Checked with unsaved edits too.
+        void host.vfs.stat(filePath).then(
+          (stat) => {
+            if (!cancelled) setFileGone(!stat);
+          },
+          () => undefined,
+        );
+      }
       if (!force && isDirtyRef.current) return;
       void host.vfs.readText(filePath).catch(() => null).then((next) => {
         if (cancelled || next === null) return;
@@ -808,6 +822,7 @@ export const TextsApp: React.FC<TextsAppProps> = ({
         return false;
       }
       staleEditsRef.current = false;
+      setFileGone(false);
       setSavedContent(textToSave);
       savedContentRef.current = textToSave;
       if (!current) keepAt(targetPath);
@@ -1222,7 +1237,7 @@ export const TextsApp: React.FC<TextsAppProps> = ({
           <HeaderButton
             icon={SaveIcon}
             label={_("Save")}
-            disabled={!isDirty}
+            disabled={!isDirty && !fileGone}
             onClick={() => void handleSave()}
           />
           {availableModes.length > 0 && (
@@ -1267,6 +1282,8 @@ export const TextsApp: React.FC<TextsAppProps> = ({
           </DropdownMenu>
         </HeaderBar.End>
       </HeaderBar>
+
+      {fileGone && <Banner>{_("This file was trashed or deleted. Saving creates it again.")}</Banner>}
 
       {/* Editor Body */}
       <div className="relative min-h-0 flex-1 overflow-hidden">
