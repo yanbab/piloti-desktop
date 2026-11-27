@@ -2,7 +2,7 @@
  * The one filesystem API (`piloti.vfs`). Linux: the disk, watched
  * (`engine-native/vfs.ts`). Browser demo: the browser VFS
  * (`engine-web/vfs.ts`). Paths are absolute. Every operation is async, and
- * failures reject with a `VfsError`. Plan: `_docs/PLAN-NEXT.md`.
+ * failures reject with a `VfsError`.
  */
 export interface VfsEntry {
   name: string;

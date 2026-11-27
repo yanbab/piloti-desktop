@@ -1,6 +1,6 @@
 /**
  * An in-memory `domicile.files` and `domicile.processes` that behave like the
- * Linux ones where `piloti.vfs` cares (measured on the VM, `_docs/PLAN-NEXT.md`):
+ * Linux ones where `piloti.vfs` cares (measured on the VM, `_docs/NOTES.md`):
  * atomic writes replace symlinks, watches are per folder and not recursive, a
  * removed folder is reported once and then never again, and watches run out.
  */

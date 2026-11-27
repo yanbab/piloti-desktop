@@ -1,57 +1,98 @@
-# Project Habits & Conventions (`Piloti Desktop`)
+# AGENTS.md
 
-Guidelines for LLM coding agents working in `residence-desktop-environment`.
+Instructions for coding agents. This is the only copy: `CLAUDE.md` imports it.
 
-Do not go over 0.10 version, always use 0.10.x.
+Piloti Desktop: a Linux Wayland desktop shell (React 19, Tailwind, Adwaita
+tokens, base-ui) on `@domicile-desktop/react`. One UI tree runs on two engines:
+native Domicile and a browser demo.
 
-## Architecture & Directory Layout
+## Read first
 
-Piloti Desktop is a Linux Wayland desktop shell built on `@domicile-desktop/react` and React/Tailwind/Adwaita primitives, sharing one UI tree across two runtime engines:
+- [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md): engines, files, state, windows.
+  Read it before changing code.
+- [docs/GUIDE.md](./docs/GUIDE.md): code map, themes and tokens, checks in the demo, icons.
+- [docs/LINUX.md](./docs/LINUX.md), [docs/API.md](./docs/API.md), [docs/PLUGINS.md](./docs/PLUGINS.md).
 
-- **`src/piloti-desktop.tsx`** + **`src/lib/engine-native/`**: Native Domicile Wayland session entry (`vite.shell.config.ts` -> `dist/shell.js`, plus `src/piloti-greeter.tsx` -> `dist/greeter.js`). Communicates with Linux subsystems via Domicile APIs (Wayland, GSettings, D-Bus menus, PipeWire/wpctl, nmcli, UPower, Flatpak, `xwayland-satellite`, `greetd`).
-- **`src/piloti-web.tsx`** + **`src/lib/engine-web/`**: Browser dev/demo entry (`index.html` + `vite.config.ts` -> `docs/demo/`). Uses `createBrowserDomicile()`, in-browser `web-vfs.ts`, and fetches the shipped files from `__fs/`.
-- **`src/lib/engine/`**: Unified runtime selector & engine-agnostic bridges (`engine-override.ts`, `fs-bridge.ts`, `app-bridge.ts`, `vfs-state.ts`).
-- **`src/lib/xdg/`**: FreeDesktop (`XDG`) specs implementation (basedir, `.desktop` parsing, icon themes, mimeapps, user-dirs, trash, autostart, recents XBEL, global app menus, session management, thumbnails, web app `.desktop` sync). Always keep XDG modules inside `src/lib/xdg/` (keep tsconfig/Vite path aliases `"xdg-basedir"`, `"xdg-desktop-entry"`, `"xdg-icon-theme"` updated if files move).
-- **`src/lib/config/`**, **`src/lib/shell/`**, **`src/lib/plugins/`**, **`src/lib/core/`**: INI/storage config, shell domain logic (window bounds, desktop icons, launcher, notifications, sound, terminal), plugin loader, and core utilities (`utils.ts`, `i18n.ts`, `perf-log.ts`, `console-store.ts`, `system-info.ts`).
-- **Engine isolation**: Keep UI components (`src/components/`) and contexts (`src/context/`) decoupled from direct Linux CLI/GNOME calls; go through `src/lib/engine-native/` vs `src/lib/engine-web/` and `src/lib/engine/`.
+## Commands
 
-## Data Tree, State & Settings
+Bun may not be on PATH: use `~/.bun/bin/bun`.
 
-- **Canonical filesystem (`data/files/`)**: Holds default `/home/user/...` starter files, `.desktop` entries, `/usr/bin/piloti*` launchers, and icon themes (`Piloti`, `Papirus`, `Adwaita`, `hicolor`).
-  - `engine:web` gets them over HTTP from `__fs/` (served by the dev server, copied into the web build, with `__fs/index.json`), fetched at start (the shell waits for `/home/user` and `/etc`): `/home/user` seeds the browser VFS on first start, the rest (`/usr`, `/etc`) is read-only from memory. The landing page links there too.
-  - After changing files or icons under `data/files/`, regenerate the animated icons with:
-    ```bash
-    node scripts/generate-piloti-icons.mjs
-    ```
-- **Files**: use `piloti.vfs` (async, on both engines); don't import `web-vfs.ts` in new code.
-- **VFS-backed `.ini` state**: Persist settings and shell state through VFS (`src/lib/engine/vfs-state.ts`, `src/lib/config/piloti-settings-ini.ts`, `src/lib/engine-web/web-vfs.ts`) using GSettings-style `.ini` files (e.g. `/home/user/.config/piloti/settings.ini`) rather than raw `localStorage` keys so files remain live-editable in Text Editor / Folders.
-- **Drag and drop**: dnd-kit for items (icon grids, dock, sortable lists); `startPointerDrag` (`src/lib/shell/pointer-drag.ts`) for moving/resizing surfaces. Timings, easings, threshold and ghost lift live in `src/lib/shell/drag-feedback.ts`; reuse them instead of new constants.
-- **Performance on rapid controls**: Throttle/debounce rapid UI updates (color pickers via `useThrottledColor`, sliders, window drags) so VFS serialization, `.desktop` scans, and `gsettings` subprocesses do not run at 60-120Hz.
+- `npm run dev`: browser demo on http://localhost:5173. `window.piloti` drives it.
+- `npm run typecheck` and `npm test`: run routinely. One test:
+  `bun test tests/unit/xdg-mimeapps.test.ts` (`-t "name"` to filter).
+- `npm run lint`: React hooks rules, warnings only; add none.
+- `npm run test:e2e` and the VM are long: only when asked.
+- `npm run build` (web → `docs/demo/`, shell → `dist/shell.js`), `build:greeter`,
+  `build:apps`, `build:deb` (→ `dist/piloti-desktop_<ver>-1_all.deb`).
 
-## UI, Apps & Iconography
+After changing:
 
-- **Built-in App Names & Commands**:
-  - **Folders** (`nautilus`, `piloti-files`)
-  - **Desktop Settings** (`settings`, `piloti-settings`)
-  - **Desktop Console** (`console`, `piloti-console`)
-  - **Desktop Shell** (`terminal`, `piloti-shell`)
-  - **Applications** (`app-store`, `piloti-applications`)
-- **Icon Themes**: `Piloti` inherits `Papirus,Adwaita,hicolor`. Do not redraw standard app icons—use Papirus icons and keep Piloti's `animated/` Lottie assets focused on stateful interactive targets (`folder`, `folder-open`, `user-trash`, `user-trash-full`, `text-x-generic`, `application-x-zerosize`).
-- **Window Frame & Dock**:
-  - `Window` / `WindowTitlebar` (`src/components/ui/window.tsx`) defers pointer capture behind a drag movement threshold (`startPendingInteractiveDrag`) so single clicks and titlebar/headerbar double-clicks (maximize/unmaximize) always work in both CSD and SSD modes.
-  - Dock icon sizes span **`18px` to `96px`**.
-  - In `Folders` (`FilesApp.tsx`), the item count pill and icon-size slider float above the scrollable view, and the slider container has no background or border.
-- **Localization**: Wrap UI text with `_()` (`src/lib/core/i18n.ts`) and keep `src/locales/fr.json` and `src/locales/es.json` updated alongside new strings.
+- `data/files/` (icons, default tree): `node scripts/generate-piloti-icons.mjs`.
+- the settings table (`lib/config/piloti-settings-ini.ts`) or its defaults:
+  `bun scripts/generate-gschemas.ts` (a test checks).
+- the shell API: update `docs/API.md`.
 
-## Testing & VM Workflow
+## Code rules
 
-- **Fast local checks (run routinely)**:
-  ```bash
-  npm run typecheck
-  npm test
-  ```
-- **Long tests (E2E Playwright & VM checks)**: **Do NOT run `npm run test:e2e` or VM tests on every routine edit.** Run them only when explicitly requested or when validating end-to-end regressions (browser UI interactions, compositor integration).
-- **Debian VM**: If VM access is needed and the VM is not running, start VMware with:
-  `"/Users/yanbab/Virtual Machines.localized/Debian with Piloti"`
-  (e.g., via `vmrun` or opening the `.vmwarevm` bundle at `/Users/yanbab/Virtual Machines.localized/Debian with Piloti`).
+- **Engines.** Components and contexts go through `lib/engine/`. Never call Linux
+  CLIs or `piloti.processes` directly: add a function to
+  `engine/system-commands.ts`. Prefer a capability (`realFilesystem`,
+  `systemServices`, `simulatedHardware`) over checking the engine. The native
+  bundle imports neither the web engine nor the demo files.
+- **Domicile** is received as `piloti: Piloti` (`usePiloti()`), not `domicile`.
+- **Files:** `piloti.vfs`. Domicile's own file calls go through
+  `hostFiles(piloti)`, never `piloti.files`. Don't import `web-vfs.ts` in new code.
+- Tests hold lists of old importers (`engine-native`, `web-vfs`): they may only
+  shrink.
+- No VFS module may load before the native entry knows `$HOME`.
+- **State** goes in `.ini` files through `vfs-state.ts`, so they stay editable;
+  no raw `localStorage` keys (small per-viewer UI prefs excepted).
+- File operations in Folders and Desktop use `engine/fs-undo.ts`
+  (`*WithUndo`, `recordCreated`).
+- Opening a file or folder: `hooks/use-open-path.ts` and `lib/shell/open-file.ts`.
+- XDG code stays in `lib/xdg/` (keep the tsconfig and Vite aliases up to date).
+- **Drag and drop:** dnd-kit for items; `startPointerDrag`
+  (`lib/shell/pointer-drag.ts`) to move or resize surfaces. Timings, curves,
+  threshold and ghost lift come from `lib/shell/drag-feedback.ts`. A drop never
+  animates back to its start first.
+- **Performance:** throttle or debounce drags, colour pickers and sliders so VFS
+  writes, `.desktop` scans and subprocesses don't run at frame rate. Check
+  re-renders in Console ▸ Infos ▸ Performance.
+- **Text:** wrap in `_()` (`lib/core/i18n.ts`) and update `src/locales/fr.json`
+  and `es.json`.
+- **Icons:** don't redraw app icons, use Papirus. Piloti's animated Lottie icons
+  are only for stateful targets (folders, trash).
 
+Paths without a root are under `src/`.
+
+## Workflow
+
+- Commit or push only when asked. No co-author trailer.
+- One session, one worktree, unless told to use the main checkout:
+  `git worktree add .claude/worktrees/<name> -b <name> main`, `npm ci`,
+  `npm run dev -- --port <free>`. Merge or open a PR when asked, then
+  `git worktree remove`.
+- In the main checkout, others may be editing: read `git diff` first, commit
+  explicit paths, never `git add -A`.
+- `_docs/` (local, not in git): `TODO.md` (all open work), `DONE.md`,
+  `NOTES.md` (ideas, measurements).
+
+## Testing
+
+- Unit and functional tests are pure TypeScript.
+- UI checks: see "Checking in the demo" in the guide. Playwright (Chrome channel)
+  runs from the project folder: `node --input-type=module < script.mjs`.
+- Dev-server module instances differ from the app's: create test state through
+  the UI or app actions, not by importing VFS modules in the page.
+
+## Linux VM
+
+- VM: `/Users/yanbab/Virtual Machines.localized/Debian with Piloti` (VMware).
+- Build there with `scripts/vm-build.sh` (the shared `node_modules` are macOS
+  ones). `scripts/vm-dev.sh` is the edit loop without a `.deb`.
+
+## Release
+
+Stay on 0.10.x. Bump `package.json`, add a `debian/changelog` entry signed
+` -- yanbab <yanbab@gmail.com>  <date>`, `build:deb`, commit, tag `vX.Y.Z`,
+`gh release create` with the `.deb`. Author is yanbab.

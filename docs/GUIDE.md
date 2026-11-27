@@ -1,11 +1,11 @@
 # Guide
 
-Where things are and how to check them. Conventions: `AGENTS.md`; commands:
-`CLAUDE.md`. Paths are under `src/`.
+Where things are and how to check them. Rules and commands:
+[AGENTS.md](../AGENTS.md). Paths are under `src/`.
 Also: [architecture](./ARCHITECTURE.md), [Linux](./LINUX.md), [API](./API.md),
 [plugins](./PLUGINS.md).
 
-## Rules
+## Themes and tokens
 
 - **Themes.** Cupertino (`cupertino.css`): CupertinoUI's macOS 27 look.
   Adwaita (`adwaita.css`): GNOME-faithful. Piloti (`piloti-macos.css`, all under
@@ -21,13 +21,6 @@ Also: [architecture](./ARCHITECTURE.md), [Linux](./LINUX.md), [API](./API.md),
   `styles/components/<name>.css` (`ui-<name>`, `data-variant`, `data-size`,
   `@layer components`), usable without React. Done: button, switch, checkbox,
   input, window frame, grouped form, sidebar, menus, segmented control.
-- Wrap UI text in `_()` and add fr/es keys. No co-author trailer.
-- **One session, one worktree**, unless told to use the main checkout:
-  `git worktree add .claude/worktrees/<name> -b <name> main`, then `npm ci` and
-  `npm run dev -- --port <free>`. Merge into `main` or open a PR when asked,
-  then `git worktree remove`.
-- **In the main checkout:** read `git diff` first (others may be editing),
-  commit explicit paths, never `git add -A`.
 
 ## Piloti geometry
 
@@ -65,14 +58,13 @@ in `piloti-macos.css`.
 
 - `window.piloti` drives the shell ([API](./API.md)).
 - The demo VFS is seeded once: new bundled files are missing from an existing
-  profile. Import with `?raw` and `piloti.files.write`.
+  profile. Import with `?raw` and `piloti.vfs.write`.
 - After changing `data/files/`: `node scripts/generate-piloti-icons.mjs`.
 - Icons are cached: check theme changes on `127.0.0.1` instead of `localhost`.
 - An error the source doesn't have may be a stale file: `touch` it, reload.
 - Drag and drop: dispatch `PointerEvent`s (down on the element, move and up on
   `window`). Test editing shortcuts with synthetic `KeyboardEvent`s.
 - Measure alignment with a `Range` around text.
-- Tests: `~/.bun/bin/bun test tests/unit tests/functional`.
 
 ## Icons
 

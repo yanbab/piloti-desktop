@@ -21,7 +21,12 @@ UI (React)  ─►  piloti: Domicile's desktop + vfs, settings, desktop…
 
 - Check capabilities (`realFilesystem`, `systemServices`, `simulatedHardware`),
   not the engine.
-- The native bundle never imports the web engine or the demo files.
+- The native bundle never imports the web engine or the demo files:
+  `piloti-web.tsx` injects the seed (`setVfsSeed`) and the demo capture.
+- Each entry point calls `setEngine()` (`lib/engine/engine.ts`).
+  `lib/engine/` holds the bridges both engines share.
+- System features use Domicile's `@domicile-desktop/system-*` libraries and
+  GNOME/freedesktop services.
 - On Linux: Domicile renders the shell, its compositor runs Wayland and
   portals, Piloti draws the desktop. A Wayland bug can sit in any of them.
 
@@ -38,14 +43,37 @@ UI (React)  ─►  piloti: Domicile's desktop + vfs, settings, desktop…
 - **Settings** are what the user chose; window bounds, history and caches are
   state.
 - File operations users can undo go through `engine/fs-undo.ts`.
+- **`piloti.vfs`** (`ports/vfs.ts`) is async, rejects on failure and writes
+  through symlinks. `watch` calls once when in place, then on changes. On Linux it
+  watches folders only (not recursive), shared and capped: inotify is scarce.
+- `engine/fs-bridge.ts` adds naming rules and listings for Folders and Desktop.
+- `web-vfs.ts` (localStorage + IndexedDB) is the demo's storage. On Linux the disk
+  is the only copy of files.
+- Config and state are the exception held in memory, read through
+  `vfs-state.ts`; `engine-native/state-store.ts` follows the disk.
 
 ## Shell
 
+- Notifications, session lock, power and capture live in `context/backends/`;
+  `SystemBackendsContext` joins them with the hardware state.
+- Contexts are split and selected (`useWindowManagerSelector`,
+  `useDesktopSettings([...])`, `useWindowActions`); the window store is external
+  (`window-manager-store.ts`). MenuBar, Dock and Launcher are memoised.
 - `DesktopStateProvider` nests settings, system backends, windows and apps.
   Components subscribe to slices, so a change re-renders only what uses it.
 - Windows keep their DOM order and are hidden with CSS, so iframes don't reload.
 - Bounds and workspace are saved per URL, document or app.
 - New webview windows stay hidden until ready (2.5 s limit).
+
+## Built-in apps
+
+- Described by `data/files/usr/share/applications/piloti-*.desktop`
+  (`X-Piloti-*` keys), read at start by `engine/app-catalog.ts`.
+- `data/catalog.ts` holds their menus. Clicks arrive as `piloti:app-action`
+  events; apps publish menu state with `publishWindowMenuState`.
+- Shell events are typed in `lib/shell/shell-events.ts`.
+- `DesktopIconsApp` (the spatial desktop) and Folders share
+  `components/ui/icon-grid.tsx`.
 
 ## App modules
 
