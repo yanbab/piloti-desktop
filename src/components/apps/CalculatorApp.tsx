@@ -9,7 +9,7 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useWindowActions, useDesktopSetting } from "@/context/DesktopStateContext";
+import { useWindowActions, useWindowManagerSelector, useDesktopSetting } from "@/context/DesktopStateContext";
 import { isCloseOnLeft } from "@/components/ui/window";
 import { _ } from "@/lib/core/i18n";
 import { cn } from "@/lib/core/utils";
@@ -101,6 +101,8 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
 }) => {
   const isCsd = useAppChrome().decorations === "client";
   const { updateWindowGeometry } = useWindowActions();
+  // Standalone, there is no window to focus: it always listens.
+  const focused = useWindowManagerSelector((wm) => !windowId || wm.focusedWindowId === windowId);
 
   const initialStateRef = React.useRef<SavedCalculatorState | null>(null);
   if (initialStateRef.current === null) {
@@ -365,6 +367,7 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
   );
 
   React.useEffect(() => {
+    if (!focused) return;
     const onKeyDown = (e: KeyboardEvent) => {
       // Typing in a text field elsewhere is not for the calculator.
       const target = e.target as HTMLElement | null;
@@ -410,6 +413,7 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
   }, [
     clearAll,
     display,
+    focused,
     inputDecimal,
     inputDigit,
     inputPercent,

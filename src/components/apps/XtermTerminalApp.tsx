@@ -250,7 +250,6 @@ export function XtermTerminalApp({
     if (term) term.options.theme = settings.themeMode === "dark" ? DARK : LIGHT;
   }, [settings.themeMode]);
 
-  // The terminal takes the keyboard whenever its window is focused.
   // The terminal draws its own text: give it the font settings.
   React.useEffect(() => {
     const term = termRef.current;
@@ -261,6 +260,7 @@ export function XtermTerminalApp({
     fitRef.current?.fit();
   }, [settings.fontScale, settings.fontMonoFamily]);
 
+  // The terminal takes the keyboard whenever its window is focused.
   React.useEffect(() => {
     if (focused) termRef.current?.focus();
   }, [focused, mode]);

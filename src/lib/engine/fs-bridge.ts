@@ -256,20 +256,23 @@ export async function createFsFileFromTemplate(
   return entryFor(path, "file");
 }
 
-/** Copies files dragged in from outside the shell into a folder, never over one. */
+/**
+ * Copies files dragged in from outside the shell into a folder, never over one.
+ * Returns the created paths (for undo).
+ */
 export async function importFsFiles(
   piloti: Piloti,
   dirPath: string,
   files: FileList | readonly File[],
-): Promise<void> {
+): Promise<string[]> {
   const dir = normalizeVfsPath(dirPath);
   // Taken before any await: a drop's FileList is emptied after the event.
   const dropped = Array.from(files);
   if (!hasRealFilesystem()) {
-    await importExternalFilesToVfs(dir, dropped);
-    return;
+    return (await importExternalFilesToVfs(dir, dropped)).map((e) => e.path);
   }
   const names = await namesIn(piloti, dir);
+  const created: string[] = [];
   for (const file of dropped) {
     const name = uniqueName(names, file.name.replace(/[/\\]/g, "_") || "Imported");
     names.add(name.toLowerCase());
@@ -277,9 +280,17 @@ export async function importFsFiles(
     await file
       .arrayBuffer()
       .then((buffer) => piloti.vfs.write(path, new Uint8Array(buffer)))
+      .then(() => void created.push(path))
       .catch(logFailure("import", path));
   }
   vfsCache.changedIn(dir);
+  return created;
+}
+
+/** Tells views that follow a file (desktop cells, open viewers) it has a new path. */
+export function announceRename(from: string, to: string): void {
+  // The demo's storage announces its own renames.
+  if (hasRealFilesystem()) announceVfsRenamed(from, to);
 }
 
 /** Renames in place; `null` if nothing was renamed (the name may be taken). */
@@ -296,7 +307,7 @@ export async function renameFsEntry(
   return piloti.vfs
     .move(from, to)
     .then(() => {
-      if (hasRealFilesystem()) announceVfsRenamed(from, to);
+      announceRename(from, to);
       const entry = entryFor(to, kind);
       vfsCache.moved(from, entry);
       return entry;

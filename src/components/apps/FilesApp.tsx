@@ -1940,7 +1940,7 @@ export function FilesApp({
             </span>
           </div>
         )}
-        {items.length === 0 ? (
+        {!isVirtualListing && folderListing === undefined ? null : items.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center gap-1.5 text-center text-ui-label-tertiary">
             <FolderIcon className="size-9 opacity-35" />
             <span className="text-ui-body">

@@ -131,7 +131,8 @@ describe("renames on a real disk", () => {
 describe("files dropped from outside", () => {
   test("are written to the disk byte for byte, never over one that is there", async () => {
     await piloti.vfs.write(`${D}/a.bin`, "kept");
-    await importFsFiles(piloti, D, [new File([new Uint8Array([0, 255, 7])], "a.bin")]);
+    const created = await importFsFiles(piloti, D, [new File([new Uint8Array([0, 255, 7])], "a.bin")]);
+    expect(created).toEqual([`${D}/a 2.bin`]);
     expect(await piloti.vfs.readText(`${D}/a.bin`)).toBe("kept");
     expect(await piloti.vfs.read(`${D}/a 2.bin`)).toEqual(new Uint8Array([0, 255, 7]));
   });
