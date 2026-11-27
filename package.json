@@ -1,6 +1,6 @@
 {
   "name": "piloti-desktop",
-  "version": "0.10.11",
+  "version": "0.10.12",
   "private": true,
   "description": "Piloti Desktop — A Linux Wayland desktop shell built on Domicile",
   "type": "module",

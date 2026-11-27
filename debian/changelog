@@ -1,3 +1,30 @@
+piloti-desktop (0.10.12-1) unstable; urgency=medium
+
+  * Release v0.10.12:
+    - Text Editor never saves over another file: a new document takes an
+      unused name, and a file changed on disk asks to Overwrite, Reload or
+      Cancel. Closing an unsaved new document asks.
+    - The editor and Image Viewer follow renames and moves, of a parent folder
+      too. Opening an open file focuses its window. This also works with the
+      editor as a separate process.
+    - Folders' list view is a tree with a Modified column and drag and drop.
+      Apps dropped on the Dock are pinned.
+    - Settings gains System and Extensions panes. Switching workspaces slides
+      the windows in. Adwaita Sans is the UI font.
+    - Admin apps such as Synaptic open: Piloti starts a polkit agent and lets
+      root use its Xwayland display.
+    - Agents asking to drive the desktop get a permission dialog, for the whole
+      desktop or checked windows; the menu bar shows the agent and a stop
+      button.
+    - Files and desktop launchers opened with installed apps give startup
+      feedback and honour Terminal=true.
+    - Fixes for the Dock Trash, Text Editor's Dock icon, window buttons and
+      focus rings.
+    - Faster start: desktop icons show before thumbnails, and icon caches are
+      only rewritten when icons change.
+
+ -- yanbab <yanbab@gmail.com>  Fri, 27 Nov 2026 14:50:00 +0100
+
 piloti-desktop (0.10.11-1) unstable; urgency=medium
 
   * Release v0.10.11:
