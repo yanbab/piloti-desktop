@@ -359,9 +359,7 @@ class Parser {
           chain(right(env), (b) => {
             if (op === "===") return a === b;
             if (op === "!==") return a !== b;
-            // eslint-disable-next-line eqeqeq
             if (op === "==") return a == b;
-            // eslint-disable-next-line eqeqeq
             return a != b;
           })
         );
