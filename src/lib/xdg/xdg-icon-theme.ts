@@ -768,6 +768,13 @@ interface SerializedIconThemeIndex {
   fallbackFiles: [string, string][];
 }
 
+/**
+ * Map entries by key. The index is filled by parallel scans, so insertion order
+ * changes from run to run; the cache text must not, or it is rewritten each start.
+ */
+const sortedEntries = <T>(map: ReadonlyMap<string, T>): [string, T][] =>
+  [...map].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
+
 function serializeXdgIconThemeIndex(
   key: string,
   index: XdgIconThemeIndex
@@ -789,10 +796,10 @@ function serializeXdgIconThemeIndex(
   ]);
 
   const compactSubdirs: [string, CompactSubdirGroup[]][] = [];
-  for (const [k, map] of index.subdirFiles.entries()) {
+  for (const [k, map] of sortedEntries(index.subdirFiles)) {
     if (map.size === 0) continue;
     const byDir = new Map<string, (string | [string, string])[]>();
-    for (const [baseName, fullPath] of map.entries()) {
+    for (const [baseName, fullPath] of sortedEntries(map)) {
       const slashIdx = fullPath.lastIndexOf("/");
       const dirPrefix = slashIdx >= 0 ? fullPath.slice(0, slashIdx) : "";
       const filename = slashIdx >= 0 ? fullPath.slice(slashIdx + 1) : fullPath;
@@ -807,7 +814,7 @@ function serializeXdgIconThemeIndex(
         bucket.push([baseName, filename]);
       }
     }
-    compactSubdirs.push([k, Array.from(byDir.entries())]);
+    compactSubdirs.push([k, sortedEntries(byDir)]);
   }
 
   const payload: SerializedIconThemeIndex = {
@@ -816,7 +823,7 @@ function serializeXdgIconThemeIndex(
     themeOrder: index.themeOrder,
     themes: compactThemes,
     subdirFiles: compactSubdirs,
-    fallbackFiles: Array.from(index.fallbackFiles.entries()),
+    fallbackFiles: sortedEntries(index.fallbackFiles),
   };
   return JSON.stringify(payload);
 }

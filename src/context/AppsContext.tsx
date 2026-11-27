@@ -266,9 +266,13 @@ function loadCachedDockIcons(theme: string): DockIconsCachePayload | null {
 
 function saveCachedDockIcons(payload: DockIconsCachePayload): void {
   try {
+    // Icons resolve in parallel: sorted, an unchanged cache is not rewritten.
+    const icons = Object.fromEntries(
+      Object.entries(payload.icons).sort(([a], [b]) => (a < b ? -1 : 1))
+    );
     writeVfsStateJson(
       VFS_STATE_PATHS.dockIconsCache,
-      { ...payload, v: ICON_CACHE_VERSION },
+      { ...payload, icons, v: ICON_CACHE_VERSION },
       false
     );
   } catch {
