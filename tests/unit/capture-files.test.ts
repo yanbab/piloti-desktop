@@ -3,7 +3,7 @@ import {
   captureOpenAction,
   nextCaptureFilename,
   parseOpenAction,
-} from "@/lib/shell/capture-files";
+} from "@/lib/files/capture-files";
 
 describe("capture-files", () => {
   it("picks the first free numbered filename", () => {

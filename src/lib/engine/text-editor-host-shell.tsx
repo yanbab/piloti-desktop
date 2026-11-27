@@ -10,11 +10,11 @@ import { normalizeVfsPath } from "@/lib/core/vfs-paths";
 import { subscribeVfsRenamed } from "@/lib/engine-web/web-vfs";
 import { announceRename, moveKeepingEmblems } from "@/lib/engine/fs-bridge";
 import { VFS_HOME } from "@/lib/engine/vfs-home";
-import { emitShellEvent, onShellEvent } from "@/lib/shell/shell-events";
+import { emitShellEvent, onShellEvent } from "@/lib/core/shell-events";
 
 import type { TextEditorHost } from "@/lib/engine/text-editor-host";
 import { TextEditorHostProvider } from "@/lib/engine/text-editor-host";
-import { TextEditorApp, type TextEditorAppProps } from "@/components/apps/TextEditorApp";
+import { TextEditorApp, type TextEditorAppProps } from "@/apps/text-editor/TextEditorApp";
 
 const stateFile = (key: string) => `${VFS_HOME}/.local/state/piloti/${key}.json`;
 

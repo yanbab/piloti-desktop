@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { moveInNamedLayout, placeNamesNear, positionsById } from "@/lib/shell/desktop-icons";
+import { moveInNamedLayout, placeNamesNear, positionsById } from "@/lib/files/desktop-icons";
 
 const items = [
   { id: "/d/a", name: "a" },

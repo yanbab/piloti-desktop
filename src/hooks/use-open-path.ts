@@ -15,7 +15,7 @@ import {
   type OpenAction,
   actionForApp,
   resolveOpenAction,
-} from "@/lib/shell/open-file";
+} from "@/lib/files/open-file";
 import {
   type MimeAppOption,
   type MimeAppsConfig,

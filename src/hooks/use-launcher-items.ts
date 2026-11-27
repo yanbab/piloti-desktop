@@ -2,8 +2,8 @@ import * as React from "react";
 import { useApps } from "@/context/DesktopStateContext";
 import { readFsTextFile } from "@/lib/engine/fs-bridge";
 import { usePiloti } from "@/lib/engine/piloti";
-import type { IconGridItem } from "@/lib/shell/desktop-icons";
-import { isLauncherItem, toLauncherItem } from "@/lib/shell/folder-items";
+import type { IconGridItem } from "@/lib/files/desktop-icons";
+import { isLauncherItem, toLauncherItem } from "@/lib/files/folder-items";
 
 /** Shows `.desktop` files as launchers (name and icon of the app), as the desktop does. */
 export function useLauncherItems(

@@ -1,9 +1,9 @@
 import { describe, expect, test } from "bun:test";
-import { complete } from "@/lib/shell/piloti-completion";
-import { createRepl, expandAliases, formatValue, runLine, type ProgramRunner } from "@/lib/shell/piloti-repl";
-import { createShellCommands } from "@/lib/shell/piloti-commands";
-import { runTop } from "@/lib/shell/piloti-top";
-import { runInTerminal } from "@/lib/shell/piloti-run";
+import { complete } from "@/apps/terminal/piloti-completion";
+import { createRepl, expandAliases, formatValue, runLine, type ProgramRunner } from "@/apps/terminal/piloti-repl";
+import { createShellCommands } from "@/apps/terminal/piloti-commands";
+import { runTop } from "@/apps/terminal/piloti-top";
+import { runInTerminal } from "@/apps/terminal/piloti-run";
 import type { Vfs } from "@/lib/ports/vfs";
 
 const programs: ProgramRunner = {

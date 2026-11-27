@@ -4,7 +4,7 @@
  * screen share (`engine-web/capture.ts`), set by the web entry point.
  */
 import type { Capturing } from "@domicile-desktop/sdk/portal";
-import type { NotificationActionItem } from "@/lib/shell/notifications";
+import type { NotificationActionItem } from "@/lib/core/notifications";
 
 export interface CaptureBackend {
   capturingSessions: readonly Capturing[];

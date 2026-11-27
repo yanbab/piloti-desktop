@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { vfsEntryToGridItem } from "@/lib/shell/folder-items";
+import { vfsEntryToGridItem } from "@/lib/files/folder-items";
 
 describe("folder entries as icons", () => {
   // On Linux the listing is all there is: no file content to read these from.

@@ -22,7 +22,7 @@ import {
   ChevronRightIcon,
   ChevronUpIcon,
 } from "@/components/ui/symbols";
-import { AppSquircleIcon } from "@/components/shell/AppSymbol";
+import { AppSquircleIcon } from "@/components/common/AppSymbol";
 import { ThemeFolderIcon } from "@/components/ui/folder-icon";
 import type { ListViewSort } from "@/components/ui/list-view";
 import { DynamicFileIcon, useOpenFolderPaths } from "@/data/folder-icons";
@@ -31,21 +31,21 @@ import { VFS_EMBLEM_META, type VfsEmblemId } from "@/lib/core/emblems";
 import { _, getLocale } from "@/lib/core/i18n";
 import { cn } from "@/lib/core/utils";
 import { parentPath } from "@/lib/ports/vfs";
-import type { IconGridItem } from "@/lib/shell/desktop-icons";
+import type { IconGridItem } from "@/lib/files/desktop-icons";
 import {
   DRAG_DURATION,
   DRAG_EASE_SETTLE,
   DRAG_THRESHOLD,
   dragFlyBackAnimation,
-} from "@/lib/shell/drag-feedback";
-import { buildDragGhost } from "@/lib/shell/drag-ghost";
-import { topmostItems, type FolderTreeNode } from "@/lib/shell/folder-tree";
+} from "@/lib/dnd/drag-feedback";
+import { buildDragGhost } from "@/lib/dnd/drag-ghost";
+import { topmostItems, type FolderTreeNode } from "@/lib/files/folder-tree";
 import {
   broadcastItemDrag,
   endItemDragBroadcast,
   resolveTopDropTarget,
   routeItemDrop,
-} from "@/lib/shell/item-drop";
+} from "@/lib/dnd/item-drop";
 
 const INDENT_PX = 16;
 const HEADER_PX = 28;

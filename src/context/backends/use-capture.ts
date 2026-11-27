@@ -5,8 +5,8 @@ import { getEngine } from "@/lib/engine/engine";
 import type { Piloti } from "@/lib/engine/piloti";
 import { _ } from "@/lib/core/i18n";
 import { type CaptureBackend, demoCapture, type Notify } from "@/lib/ports/capture";
-import { captureOpenAction } from "@/lib/shell/capture-files";
-import { playSoundThemeEvent } from "@/lib/shell/sound-effects";
+import { captureOpenAction } from "@/lib/files/capture-files";
+import { playSoundThemeEvent } from "@/lib/core/sound-effects";
 
 interface CaptureHost {
   piloti: Piloti;

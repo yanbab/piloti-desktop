@@ -1,6 +1,6 @@
 "use client"
 
-import { installPopupPressThrough } from "@/lib/shell/popup-layer"
+import { installPopupPressThrough } from "@/lib/windows/popup-layer"
 import * as React from "react"
 import { MinusIcon, XIcon } from "lucide-react"
 import { SymbolicIcon } from "@/components/ui/symbolic-icon";

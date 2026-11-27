@@ -10,7 +10,7 @@ import baseline from "./app-styling-baseline.json";
  *
  * After removing some, lower the baseline: `UPDATE_STYLING_BASELINE=1 bun test app-styling`
  */
-const APPS = join(import.meta.dir, "../../src/components/apps");
+const APPS = join(import.meta.dir, "../../src/apps");
 const BASELINE = join(import.meta.dir, "app-styling-baseline.json");
 
 const APPEARANCE =
@@ -41,6 +41,6 @@ describe("app styling", () => {
   });
 
   test("the smallest app needs none", () => {
-    expect(counts["HelloWorldApp.tsx"]).toBeUndefined();
+    expect(counts["hello/HelloWorldApp.tsx"]).toBeUndefined();
   });
 });

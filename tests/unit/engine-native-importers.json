@@ -1,17 +1,17 @@
 [
+  "apps/app-store/AppStoreApp.tsx",
+  "apps/login/LoginScreenApp.tsx",
+  "apps/settings/AdvancedPane.tsx",
+  "apps/settings/SecurityPane.tsx",
+  "apps/settings/WallpaperPane.tsx",
+  "apps/system-monitor/SystemMonitorApp.tsx",
+  "apps/terminal/XtermTerminalApp.tsx",
+  "apps/terminal/piloti-top.ts",
   "apps/text-editor/host.ts",
-  "components/apps/AppStoreApp.tsx",
-  "components/apps/LoginScreenApp.tsx",
-  "components/apps/SystemMonitorApp.tsx",
-  "components/apps/XtermTerminalApp.tsx",
-  "components/apps/settings/AdvancedPane.tsx",
-  "components/apps/settings/SecurityPane.tsx",
-  "components/apps/settings/WallpaperPane.tsx",
-  "components/shell/DesktopBackgroundLayers.tsx",
   "context/AppsContext.tsx",
   "context/SettingsContext.tsx",
   "context/SystemBackendsContext.tsx",
   "context/WindowsContext.tsx",
   "lib/core/app-permissions.ts",
-  "lib/shell/piloti-top.ts"
+  "shell/desktop/DesktopBackgroundLayers.tsx"
 ]

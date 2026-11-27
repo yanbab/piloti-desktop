@@ -13,23 +13,23 @@ import {
 } from "@dnd-kit/core";
 import { BriefcaseIcon, HeartIcon, TagIcon } from "lucide-react";
 import { AlertCircleIcon } from "@/components/ui/symbols";
-import { AppSquircleIcon } from "@/components/shell/AppSymbol";
+import { AppSquircleIcon } from "@/components/common/AppSymbol";
 import { ThemeFolderIcon } from "@/components/ui/folder-icon";
 import { isLottieIconUrl, LottieIcon } from "@/components/ui/lottie-icon";
-import { captureLaunchOriginFromElement } from "@/lib/shell/launch-origin";
+import { captureLaunchOriginFromElement } from "@/lib/windows/launch-origin";
 import {
   DRAG_THRESHOLD,
   dragFlyBackAnimation,
   dragShuffleCss,
   settleFromOffset,
-} from "@/lib/shell/drag-feedback";
-import { buildDragGhost } from "@/lib/shell/drag-ghost";
+} from "@/lib/dnd/drag-feedback";
+import { buildDragGhost } from "@/lib/dnd/drag-ghost";
 import {
   broadcastItemDrag,
   endItemDragBroadcast,
   resolveTopDropTarget,
   routeItemDrop,
-} from "@/lib/shell/item-drop";
+} from "@/lib/dnd/item-drop";
 import {
   useApps,
   useWindowManagerSelector,
@@ -58,7 +58,7 @@ import {
   type IconGridMode,
   normalizeRect,
   pushItemsToCells,
-} from "@/lib/shell/desktop-icons";
+} from "@/lib/files/desktop-icons";
 import { _ } from "@/lib/core/i18n";
 import { cn } from "@/lib/core/utils";
 import {

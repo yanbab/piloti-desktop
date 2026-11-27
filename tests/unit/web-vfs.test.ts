@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "bun:test";
 import { parseGioMetadataInfo } from "@/lib/engine-native/gio";
-import { inferFileVisual } from "@/lib/shell/desktop-icons";
+import { inferFileVisual } from "@/lib/files/desktop-icons";
 import {
   clearAllWebVfsBackingStorage,
   copyVfsEntry,

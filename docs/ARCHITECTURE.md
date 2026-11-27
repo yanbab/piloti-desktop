@@ -71,12 +71,12 @@ UI (React)  ─►  piloti: Domicile's desktop + vfs, settings, desktop…
   (`X-Piloti-*` keys), read at start by `engine/app-catalog.ts`.
 - `data/catalog.ts` holds their menus. Clicks arrive as `piloti:app-action`
   events; apps publish menu state with `publishWindowMenuState`.
-- Shell events are typed in `lib/shell/shell-events.ts`.
+- Shell events are typed in `lib/core/shell-events.ts`.
 - `DesktopIconsApp` (the spatial desktop) and Folders share
   `components/ui/icon-grid.tsx`.
 - Folders' list view is a tree (`components/ui/folder-tree-view.tsx`): each open
   folder has its own listing and watch, released when it is hidden.
-- Item drags find their target by `data-*` attributes (`lib/shell/item-drop.ts`),
+- Item drags find their target by `data-*` attributes (`lib/dnd/item-drop.ts`),
   so grids, the tree, the Dock and windows take each other's drops.
 
 ## App modules

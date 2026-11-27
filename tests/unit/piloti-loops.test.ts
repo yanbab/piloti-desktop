@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { createLoopGuard, guardLoops } from "@/lib/shell/piloti-loops";
-import { createRepl, evaluateLine } from "@/lib/shell/piloti-repl";
+import { createLoopGuard, guardLoops } from "@/apps/terminal/piloti-loops";
+import { createRepl, evaluateLine } from "@/apps/terminal/piloti-repl";
 import { createWebVfs } from "@/lib/engine-web/vfs";
 import { setDemoApps, demoPid } from "@/lib/engine/demo-processes";
 import { parseSystemSample, readProcFiles } from "@/lib/engine-native/system-stats";

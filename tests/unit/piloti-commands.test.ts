@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { createShellCommands } from "@/lib/shell/piloti-commands";
-import { runLine, splitWords } from "@/lib/shell/piloti-repl";
+import { createShellCommands } from "@/apps/terminal/piloti-commands";
+import { runLine, splitWords } from "@/apps/terminal/piloti-repl";
 import type { Vfs } from "@/lib/ports/vfs";
 
 /** Folders are `null`, files their text. */

@@ -1,6 +1,6 @@
 import { killAppProcesses, launchDesktopCommand } from "@/lib/engine/system-commands";
 import { logAppLaunch } from "@/lib/core/perf-log";
-import { webSearchHome } from "@/lib/shell/web-search";
+import { webSearchHome } from "@/lib/core/web-search";
 import * as React from "react";
 import { useDisplays } from "@domicile-desktop/react/displays";
 import { usePiloti } from "@/lib/engine/piloti";
@@ -28,13 +28,13 @@ import {
   DOCUMENT_SCOPED_APP_IDS,
   lookupSpatialWindowBounds,
   resolveSpatialBoundsKey,
-} from "@/lib/shell/spatial-window-bounds";
+} from "@/lib/windows/spatial-window-bounds";
 import {
   type GnomeSettingsPanel,
   openAppModule, tellModulesMoved,
   openGnomeControlCenter,
 } from "@/lib/engine-native";
-import { getRunIn } from "@/lib/shell/run-mode";
+import { getRunIn } from "@/lib/windows/run-mode";
 import {
   matchXdgEntryForWaylandWindow,
   resolveWaylandClientFrame,
@@ -51,7 +51,7 @@ import {
   clampWindowBounds,
   clampWorkspace,
   resolveWaylandOuterConstraints,
-} from "@/lib/shell/window-bounds";
+} from "@/lib/windows/window-bounds";
 import { buildVfsEntryWebAppUrl, getVfsEntry, isTextEditableVfsFile, subscribeVfsRenamed } from "@/lib/engine-web/web-vfs";
 import { pathAfterRename } from "@/lib/ports/vfs";
 import { isImageVfsFile } from "@/lib/core/vfs-media";

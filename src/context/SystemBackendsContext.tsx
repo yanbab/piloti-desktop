@@ -36,7 +36,7 @@ import {
 import {
   type NotificationActionItem,
   type ShellNotification,
-} from "@/lib/shell/notifications";
+} from "@/lib/core/notifications";
 import { subscribeWebBattery } from "@/lib/engine-web/web-battery";
 import {
   type SettingsContextValue,

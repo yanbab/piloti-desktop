@@ -23,7 +23,7 @@ setVfsSeed(demoVfsSeed);
 installDynamicFavicon();
 import { AppChromeProvider } from "./components/elements/app-chrome";
 import { PilotiQueryProvider } from "./lib/engine/query-client";
-import { ShellErrorBoundary } from "./components/shell/ShellErrorBoundary";
+import { ShellErrorBoundary } from "./shell/desktop/ShellErrorBoundary";
 
 const TextEditorApp = React.lazy(() =>
   import("./lib/engine/text-editor-host-shell").then((m) => ({
@@ -31,7 +31,7 @@ const TextEditorApp = React.lazy(() =>
   })),
 );
 const ImageViewerApp = React.lazy(() =>
-  import("./components/apps/ImageViewerApp").then((m) => ({
+  import("./apps/image-viewer/ImageViewerApp").then((m) => ({
     default: m.ImageViewerApp,
   })),
 );

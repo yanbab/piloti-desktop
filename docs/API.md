@@ -134,7 +134,7 @@ Types: `node_modules/@domicile-desktop/sdk/dist/desktop/`.
 | `send <word...>` | send a raw shell command |
 | `help`, `version` | usage, version |
 
-Shell commands live in `lib/shell/shell-commands.ts`.
+Shell commands live in `shell/desktop/shell-commands.ts`.
 
 Where names differ, Piloti's win (`open`, `lock`, `screenshot`). Prefer
 `piloti theme` to `domicile theme`, which the shell does not follow.
@@ -225,7 +225,7 @@ a program's `-a` is its own. `x.map(JSON.stringify)` avoids the table.
 | `files`, `piloti` | Domicile's files; the desktop |
 
 File operations are not in the Folders undo history. Code:
-`lib/shell/piloti-{repl,commands,programs,run,completion,table,top,script,loops}.ts`.
+`apps/terminal/piloti-{repl,commands,programs,run,completion,table,top,script,loops}.ts`.
 
 ## React hooks
 

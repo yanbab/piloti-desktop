@@ -13,18 +13,18 @@ import { getEngine } from "@/lib/engine/engine";
 import { XDG_APPLICATION_DIRS, XDG_ICON_BASE_DIRS, XDG_PIXMAPS_DIRS } from "@/lib/xdg/xdg-basedir";
 import { readIconFoldersStamp } from "@/lib/engine/system-commands";
 import { PILOTI_VERSION } from "@/lib/core/version";
-import { setSymbolicIconResolver } from "@/lib/shell/symbolic-icons";
+import { setSymbolicIconResolver } from "@/lib/icons/symbolic-icons";
 import {
   APP_GRID_ICON_CANDIDATES,
   SHELL_XDG_ICON_GROUPS,
-} from "@/lib/shell/shell-icon-names";
+} from "@/lib/icons/shell-icon-names";
 import {
   DEFAULT_ICON_ACCENT_CONFIG,
   iconAccentConfigFromIndex,
   markInheritedAccentIcon,
   tintIconDataUrl,
   type IconAccentConfig,
-} from "@/lib/shell/icon-accent-tint";
+} from "@/lib/icons/icon-accent-tint";
 import {
   readVfsStateJson,
   VFS_STATE_PATHS,

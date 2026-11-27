@@ -6,7 +6,7 @@ import { CheckIcon, ChevronRightIcon } from "@/components/ui/symbols";
 import { Menu as MenuPrimitive } from "@base-ui/react/menu"
 
 import { cn } from "@/lib/core/utils"
-import { PopupSurfaceScope, usePopupSurfaceState } from "@/lib/shell/popup-layer"
+import { PopupSurfaceScope, usePopupSurfaceState } from "@/lib/windows/popup-layer"
 import {
   MENU_BADGE_CLASS,
   MENU_CHECK_ITEM_CLASS,

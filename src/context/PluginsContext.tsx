@@ -23,7 +23,7 @@ import { BUNDLED_PLUGINS } from "@/lib/plugins/bundled";
 import { _ } from "@/lib/core/i18n";
 import { useCapabilities } from "@/hooks/use-capabilities";
 import { parseIniText, serializeIniText } from "@/lib/config/ini";
-import { getAppSetting, setAppSetting } from "@/lib/shell/app-settings";
+import { getAppSetting, setAppSetting } from "@/lib/core/app-settings";
 import { consumeLegacyLocalStorageValue } from "@/lib/engine-web/web-vfs";
 import {
   readVfsStateJson,
@@ -47,7 +47,7 @@ import {
   getWindowPresentation,
   getWorkArea,
   setWindowPresentation,
-} from "@/lib/shell/window-presentation";
+} from "@/lib/windows/window-presentation";
 
 interface PluginsContextValue {
   plugins: DiscoveredPlugin[];

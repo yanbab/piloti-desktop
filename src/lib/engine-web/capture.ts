@@ -9,7 +9,7 @@ import {
   screenshotBaseName,
   uniqueCaptureName,
   videoBaseName,
-} from "@/lib/shell/capture-files";
+} from "@/lib/files/capture-files";
 
 const desktopCaptureName = (base: string, ext: string) =>
   uniqueCaptureName(

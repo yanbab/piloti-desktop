@@ -3,7 +3,7 @@ import {
   collectRemoteMenuCommands,
   type MenuCommand,
   searchMenuCommands,
-} from "@/lib/shell/menu-commands";
+} from "@/shell/menubar/menu-commands";
 import type { RemoteMenuEntry } from "@/lib/xdg/xdg-app-menu";
 
 const cmd = (path: string[], label: string, shortcut?: string): MenuCommand => ({

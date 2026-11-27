@@ -3,7 +3,7 @@ import {
   formatNicePath,
   looksLikeAbsolutePath,
   resolveNicePath,
-} from "@/lib/shell/nice-path";
+} from "@/lib/files/nice-path";
 
 describe("nice-path", () => {
   it("strips the home folder", () => {

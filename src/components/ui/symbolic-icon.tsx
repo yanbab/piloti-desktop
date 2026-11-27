@@ -1,8 +1,8 @@
 import * as React from "react";
 import type { LucideIcon, LucideProps } from "lucide-react";
 import { cn } from "@/lib/core/utils";
-import type { SymbolicIconName } from "@/lib/shell/shell-icon-names";
-import { getSymbolicIcon, subscribeSymbolicIcons } from "@/lib/shell/symbolic-icons";
+import type { SymbolicIconName } from "@/lib/icons/shell-icon-names";
+import { getSymbolicIcon, subscribeSymbolicIcons } from "@/lib/icons/symbolic-icons";
 
 /**
  * A symbolic icon from the icon theme, in the text colour; `fallback` when the

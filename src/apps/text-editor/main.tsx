@@ -7,7 +7,7 @@ import { useAppDomicile } from "@domicile-desktop/react/domicile-provider";
 import { mount } from "@domicile-desktop/react/mount";
 import * as React from "react";
 import { AppChromeProvider, hostControlInsets, type AppChrome } from "@/components/elements/app-chrome";
-import { TextEditorApp } from "@/components/apps/TextEditorApp";
+import { TextEditorApp } from "@/apps/text-editor/TextEditorApp";
 import { applyThemeToDocument } from "@/lib/engine/app-bridge";
 import { TextEditorHostProvider, type TextEditorHost } from "@/lib/engine/text-editor-host";
 import { createDomicileEditorHost } from "./host";

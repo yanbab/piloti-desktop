@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { APP_MODULES } from "../../src/data/app-modules";
-import { canRunIsolated } from "../../src/lib/shell/run-mode";
+import { canRunIsolated } from "../../src/lib/windows/run-mode";
 
 describe("run mode", () => {
   it("offers separate windows only for apps with a module", () => {

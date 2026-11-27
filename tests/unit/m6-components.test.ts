@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { parseHtmlManifestHref, parseWebAppManifest } from "@/data/web-apps";
-import { clampWindowBounds } from "@/lib/shell/window-bounds";
-import { resolveSpatialBoundsKey } from "@/lib/shell/spatial-window-bounds";
+import { clampWindowBounds } from "@/lib/windows/window-bounds";
+import { resolveSpatialBoundsKey } from "@/lib/windows/spatial-window-bounds";
 
 describe("M5 & M6: Web app manifest parsing & spatial window lifecycle", () => {
   it("extracts manifest href from HTML and resolves relative URLs", () => {

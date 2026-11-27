@@ -88,7 +88,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon, LucideProps } from "lucide-react";
 import { SymbolicIcon } from "@/components/ui/symbolic-icon";
-import type { SymbolicIconName } from "@/lib/shell/shell-icon-names";
+import type { SymbolicIconName } from "@/lib/icons/shell-icon-names";
 
 function themed(name: SymbolicIconName, fallback: LucideIcon): LucideIcon {
   const Themed = (props: LucideProps) => <SymbolicIcon {...props} name={name} fallback={fallback} />;

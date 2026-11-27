@@ -1,6 +1,6 @@
 import * as React from "react";
 import { cn } from "@/lib/core/utils";
-import { startPointerDrag } from "@/lib/shell/pointer-drag";
+import { startPointerDrag } from "@/lib/dnd/pointer-drag";
 
 export interface PanelWidthOptions {
   /** Persistence key, e.g. "files-sidebar". */

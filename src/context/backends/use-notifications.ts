@@ -9,7 +9,7 @@ import {
   writeVfsStateJson,
 } from "@/lib/engine/vfs-state";
 import { isAppNotificationAllowed } from "@/lib/core/app-permissions";
-import { parseOpenAction } from "@/lib/shell/capture-files";
+import { parseOpenAction } from "@/lib/files/capture-files";
 import {
   type NotificationActionItem,
   type ShellNotification,
@@ -22,7 +22,7 @@ import {
   saveReadNotificationIds,
   shouldShowNotificationBanner,
   toToastId,
-} from "@/lib/shell/notifications";
+} from "@/lib/core/notifications";
 import type { DesktopSettings } from "../SettingsContext";
 
 let nextNotifCounter = 5000;

@@ -4,7 +4,7 @@ import * as React from "react"
 import { ContextMenu as ContextMenuPrimitive } from "@base-ui/react/context-menu"
 
 import { cn } from "@/lib/core/utils"
-import { PopupSurfaceScope, usePopupSurfaceState } from "@/lib/shell/popup-layer"
+import { PopupSurfaceScope, usePopupSurfaceState } from "@/lib/windows/popup-layer"
 import { MENU_POPUP_CLASS } from "./menu-styles"
 import {
   DropdownMenuBadge,

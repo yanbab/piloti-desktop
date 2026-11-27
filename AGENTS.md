@@ -39,6 +39,9 @@ After changing:
   `engine/system-commands.ts`. Prefer a capability (`realFilesystem`,
   `systemServices`, `simulatedHardware`) over checking the engine. The native
   bundle imports neither the web engine nor the demo files.
+- **Layout.** A helper only one app or shell feature uses stays in its folder
+  (`apps/<app>/`, `shell/<feature>/`); shared logic goes in `lib/<topic>/`,
+  shared UI in `components/`.
 - **Domicile** is received as `piloti: Piloti` (`usePiloti()`), not `domicile`.
 - **Files:** `piloti.vfs`. Domicile's own file calls go through
   `hostFiles(piloti)`, never `piloti.files`. Don't import `web-vfs.ts` in new code.
@@ -49,11 +52,11 @@ After changing:
   no raw `localStorage` keys (small per-viewer UI prefs excepted).
 - File operations in Folders and Desktop use `engine/fs-undo.ts`
   (`*WithUndo`, `recordCreated`).
-- Opening a file or folder: `hooks/use-open-path.ts` and `lib/shell/open-file.ts`.
+- Opening a file or folder: `hooks/use-open-path.ts` and `lib/files/open-file.ts`.
 - XDG code stays in `lib/xdg/` (keep the tsconfig and Vite aliases up to date).
 - **Drag and drop:** dnd-kit for items; `startPointerDrag`
-  (`lib/shell/pointer-drag.ts`) to move or resize surfaces. Timings, curves,
-  threshold and ghost lift come from `lib/shell/drag-feedback.ts`. A drop never
+  (`lib/dnd/pointer-drag.ts`) to move or resize surfaces. Timings, curves,
+  threshold and ghost lift come from `lib/dnd/drag-feedback.ts`. A drop never
   animates back to its start first.
 - **Performance:** throttle or debounce drags, colour pickers and sliders so VFS
   writes, `.desktop` scans and subprocesses don't run at frame rate. Check

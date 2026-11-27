@@ -21,7 +21,7 @@ import {
   getAppSetting,
   setAppSetting,
   subscribeAppSettings,
-} from "@/lib/shell/app-settings";
+} from "@/lib/core/app-settings";
 import type { StateSource } from "@/lib/ports/state-source";
 
 function memoryStateSource(): StateSource & { data: Map<string, string> } {

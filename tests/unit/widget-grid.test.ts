@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { formatWidgetLayout, parseWidgetLayout, placeWidget } from "@/lib/shell/widget-grid";
+import { formatWidgetLayout, parseWidgetLayout, placeWidget } from "@/apps/system-monitor/widget-grid";
 
 const sizes = { a: { cols: 1, rows: 1 }, b: { cols: 1, rows: 1 }, big: { cols: 2, rows: 2 } };
 const layout = { a: { col: 0, row: 0 }, b: { col: 1, row: 0 }, big: { col: 0, row: 1 } };

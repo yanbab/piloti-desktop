@@ -11,7 +11,7 @@ import { _ } from "@/lib/core/i18n";
 import { getVfsClipboard, setVfsClipboard } from "@/lib/core/vfs-clipboard";
 import { WEB_VFS_TRASH } from "@/lib/core/vfs-paths";
 import { parentPath } from "@/lib/ports/vfs";
-import { topmostItems } from "@/lib/shell/folder-tree";
+import { topmostItems } from "@/lib/files/folder-tree";
 
 type Target = { id: string; path: string; name?: string };
 

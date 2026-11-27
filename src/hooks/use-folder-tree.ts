@@ -4,8 +4,8 @@ import { usePiloti } from "@/lib/engine/piloti";
 import { listFsDir } from "@/lib/engine/fs-bridge";
 import { retainVfsWatch, vfsKeys } from "@/lib/engine/vfs-query";
 import type { WebVfsEntry } from "@/lib/core/vfs-paths";
-import type { IconGridItem } from "@/lib/shell/desktop-icons";
-import { buildFolderTree, renameExpanded, type ExpandedFolders } from "@/lib/shell/folder-tree";
+import type { IconGridItem } from "@/lib/files/desktop-icons";
+import { buildFolderTree, renameExpanded, type ExpandedFolders } from "@/lib/files/folder-tree";
 
 const NONE: ExpandedFolders = {};
 

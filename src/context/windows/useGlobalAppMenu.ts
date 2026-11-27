@@ -1,6 +1,6 @@
 import { resolveAppModuleByUrl } from "@/data/app-modules";
 import * as React from "react";
-import { selectAll } from "@/lib/shell/select-all";
+import { selectAll } from "@/lib/core/select-all";
 import { APP_CATALOG, type AppDefinition } from "@/data/catalog";
 import { type InstalledWebApp, resolveWebAppTitle } from "@/data/web-apps";
 import type { XdgDesktopEntry } from "xdg-desktop-entry";
@@ -8,7 +8,7 @@ import { isBrowserDevRuntime } from "../SettingsContext";
 import { matchAppFromWayland } from "../AppsContext";
 import type { SystemBackendsContextValue } from "../SystemBackendsContext";
 import type { DesktopWindowInstance } from "../WindowsContext";
-import { getRunIn, RUN_SEPARATELY_ACTION, setRunIn } from "@/lib/shell/run-mode";
+import { getRunIn, RUN_SEPARATELY_ACTION, setRunIn } from "@/lib/windows/run-mode";
 
 export interface UseGlobalAppMenuParams {
   focusedWindow: DesktopWindowInstance | undefined;

@@ -1,12 +1,9 @@
 [
-  "components/apps/ConsoleApp.tsx",
-  "components/apps/DesktopIconsApp.tsx",
-  "components/apps/FilesApp.tsx",
-  "components/apps/ImageViewerApp.tsx",
-  "components/apps/settings/AdvancedPane.tsx",
-  "components/shell/Desktop.tsx",
-  "components/shell/Launcher.tsx",
-  "components/shell/MenuBar.tsx",
+  "apps/console/ConsoleApp.tsx",
+  "apps/desktop-icons/DesktopIconsApp.tsx",
+  "apps/files/FilesApp.tsx",
+  "apps/image-viewer/ImageViewerApp.tsx",
+  "apps/settings/AdvancedPane.tsx",
   "components/ui/folder-icon-view.tsx",
   "components/ui/icon-grid.tsx",
   "context/PluginsContext.tsx",
@@ -18,5 +15,8 @@
   "lib/engine/text-editor-host-shell.tsx",
   "lib/engine/vfs-state.ts",
   "piloti-desktop.tsx",
-  "piloti-web.tsx"
+  "piloti-web.tsx",
+  "shell/desktop/Desktop.tsx",
+  "shell/launcher/Launcher.tsx",
+  "shell/menubar/MenuBar.tsx"
 ]

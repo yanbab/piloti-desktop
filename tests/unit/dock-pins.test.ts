@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { addDockPins, dockPinIdFor, isAppLauncherItem } from "@/lib/shell/dock-pins";
+import { addDockPins, dockPinIdFor, isAppLauncherItem } from "@/shell/dock/dock-pins";
 
 const catalog = {
   builtins: [{ id: "nautilus", command: "piloti-files", builtinComponent: "files" }],

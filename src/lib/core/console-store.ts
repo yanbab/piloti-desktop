@@ -280,14 +280,14 @@ export async function evaluateReplCode(
     fn = new AsyncFunction(...keys, `"use strict";\nreturn (${trimmed});`);
   } catch (err) {
     if (err instanceof EvalError) {
-      const { evaluateCspSafe } = await import("@/lib/shell/csp-repl-eval");
+      const { evaluateCspSafe } = await import("@/lib/core/csp-repl-eval");
       return evaluateCspSafe(trimmed, scope);
     }
     try {
       fn = new AsyncFunction(...keys, `"use strict";\n${trimmed}`);
     } catch (innerErr) {
       if (innerErr instanceof EvalError) {
-        const { evaluateCspSafe } = await import("@/lib/shell/csp-repl-eval");
+        const { evaluateCspSafe } = await import("@/lib/core/csp-repl-eval");
         return evaluateCspSafe(trimmed, scope);
       }
       throw innerErr;

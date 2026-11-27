@@ -1,7 +1,7 @@
 import * as React from "react";
 import type { Piloti } from "@/lib/engine/piloti";
 import { launchDesktopCommand } from "@/lib/engine/system-commands";
-import { emitShellEvent } from "@/lib/shell/shell-events";
+import { emitShellEvent } from "@/lib/core/shell-events";
 
 export interface UseGlobalShortcutsParams {
   piloti: Piloti;

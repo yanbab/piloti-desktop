@@ -3,7 +3,7 @@ import type {
   WindowMenuItem,
   WindowPresentation,
   WorkArea,
-} from "@/lib/shell/window-presentation";
+} from "@/lib/windows/window-presentation";
 
 export type { WindowMenuItem, WindowPresentation, WorkArea };
 

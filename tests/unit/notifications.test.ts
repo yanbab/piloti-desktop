@@ -9,7 +9,7 @@ import {
   saveLocalNotificationHistory,
   saveReadNotificationIds,
   shouldShowNotificationBanner,
-} from "@/lib/shell/notifications";
+} from "@/lib/core/notifications";
 
 const BASE_POLICY: NotificationPolicySettings = {
   notificationsEnabled: true,

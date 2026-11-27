@@ -1,5 +1,5 @@
 import * as React from "react";
-import { WindowMenuButton } from "@/components/shell/WindowMenuButton";
+import { WindowMenuButton } from "@/components/common/WindowMenuButton";
 import {
   Tooltip,
   TooltipContent,
@@ -12,7 +12,7 @@ import {
   WindowControls,
   WindowTitlebar,
 } from "@/components/ui/window";
-import type { AppSymbolName } from "@/lib/shell/desktop-icons";
+import type { AppSymbolName } from "@/lib/files/desktop-icons";
 import { PanelResizeHandle, usePanelWidth } from "@/components/ui/resizable-panel";
 import { cn } from "@/lib/core/utils";
 

@@ -58,7 +58,7 @@ import {
   normalizeGnomeColor,
   isGnomeBackgroundConfigured,
 } from "@/lib/engine-native/background";
-import { clampHistoryLimit } from "@/lib/shell/notifications";
+import { clampHistoryLimit } from "@/lib/core/notifications";
 import {
   readGnomeBackgroundBlob,
   setSystemAudio,
@@ -74,8 +74,8 @@ import {
 } from "@/lib/engine-native";
 import { startBootPhase } from "@/lib/core/perf-log";
 import { subscribeLocale } from "@/lib/core/i18n";
-import type { DesktopIconAlign } from "@/lib/shell/desktop-icons";
-import type { SavedWindowBounds } from "@/lib/shell/spatial-window-bounds";
+import type { DesktopIconAlign } from "@/lib/files/desktop-icons";
+import type { SavedWindowBounds } from "@/lib/windows/spatial-window-bounds";
 import { isWebEngine } from "@/lib/engine/engine";
 
 export type WindowDecorationMode = "auto" | "csd" | "ssd";

@@ -71,7 +71,7 @@ unsandboxed.
 - `interactive: false` sends the pointer to `onPointerDown` and `onDoubleClick`.
   `above: true` keeps it on top.
 - `floating: { resizable?, minWidth?, maxWidth? }` lets the shell drag, snap and
-  resize it (`lib/shell/floating-window.ts`); `onChange` reports the result.
+  resize it (`lib/windows/floating-window.ts`); `onChange` reports the result.
 - `addMenuItem` adds to the window menu.
 
 Example: the bundled `picture-in-picture` plugin.

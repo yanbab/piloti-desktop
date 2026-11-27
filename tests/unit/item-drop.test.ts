@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { allInFolder, dropTargetAmong, isVirtualAppItem } from "@/lib/shell/item-drop";
+import { allInFolder, dropTargetAmong, isVirtualAppItem } from "@/lib/dnd/item-drop";
 
 const el = (attrs: Record<string, string>) => ({
   hasAttribute: (name: string) => name in attrs,

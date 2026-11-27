@@ -11,13 +11,13 @@ import {
   APP_GRID_ICON_CANDIDATES,
   SHELL_XDG_ICON_GROUPS,
   SYMBOLIC_ICONS,
-} from "@/lib/shell/shell-icon-names";
+} from "@/lib/icons/shell-icon-names";
 import {
   hasAccentMarkers,
   iconAccentConfigFromIndex,
   markInheritedAccentIcon,
   tintIconDataUrl,
-} from "@/lib/shell/icon-accent-tint";
+} from "@/lib/icons/icon-accent-tint";
 import { diskIconReader, listDataFiles, readDataFile } from "../helpers/disk-icon-reader";
 
 // Every icon the shell asks for, by what asks for it.

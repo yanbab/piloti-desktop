@@ -4,9 +4,9 @@ The shell's UI symbols come from the icon theme through `<SymbolicIcon
 name="…" fallback={LucideGlyph}>` (`components/ui/symbolic-icon.tsx`), in the
 text colour. Adwaita uses the theme; Piloti and Cupertino keep Lucide.
 
-- Names are listed in `SYMBOLIC_ICONS` (`lib/shell/shell-icon-names.ts`),
+- Names are listed in `SYMBOLIC_ICONS` (`lib/icons/shell-icon-names.ts`),
   standard name first. All are loaded together when the icon theme changes
-  (`lib/shell/symbolic-icons.ts`).
+  (`lib/icons/symbolic-icons.ts`).
 - The Lucide glyph is drawn when no theme in the chain has the name.
 - A new name needs its demo SVGs: copy them, unmodified, from an installed
   system (`/usr/share/icons/Adwaita/symbolic/` and
@@ -139,9 +139,9 @@ single spinner glyph (GTK draws it).
 | User | `avatar-default` |  |
 | UserPlus | `contact-new` |  |
 | Video | `camera-video` |  |
-| Volume2 | `audio-volume-low` / `-medium` / `-high` | Adwaita only: Piloti and Cupertino draw Lucide `Volume` / `Volume1` / `Volume2` by level (`shell/SoundVolumeIcon.tsx`) |
+| Volume2 | `audio-volume-low` / `-medium` / `-high` | Adwaita only: Piloti and Cupertino draw Lucide `Volume` / `Volume1` / `Volume2` by level (`components/common/SoundVolumeIcon.tsx`) |
 | VolumeX | `audio-volume-muted` |  |
-| Wifi | `network-wireless-signal-weak` / `-ok` / `-excellent` | Adwaita only: Piloti and Cupertino draw Lucide `WifiLow` / `WifiHigh` / `Wifi` by signal (`shell/WifiSignalIcon.tsx`) |
+| Wifi | `network-wireless-signal-weak` / `-ok` / `-excellent` | Adwaita only: Piloti and Cupertino draw Lucide `WifiLow` / `WifiHigh` / `Wifi` by signal (`components/common/WifiSignalIcon.tsx`) |
 | WifiOff | `network-wireless-disabled` |  |
 | Wrench | `applications-utilities` |  |
 | X | `window-close` |  |
@@ -154,20 +154,20 @@ No standard name, Papirus-only names, spinners, and the favourite heart.
 
 | File (`src/components/`) | Icons |
 |---|---|
-| `apps/AppStoreApp.tsx` | Briefcase, CheckCircle2, Code2, Layers, Sparkles |
-| `apps/ConsoleApp.tsx` | Cpu, Database, Gauge |
-| `apps/FilesApp.tsx` | Briefcase, Heart, Tag |
-| `apps/ImageViewerApp.tsx` | Crop |
-| `apps/PilotiDemoApp.tsx` | Boxes |
-| `apps/SettingsApp.tsx` | Dock |
+| `apps/app-store/AppStoreApp.tsx` | Briefcase, CheckCircle2, Code2, Layers, Sparkles |
+| `apps/console/ConsoleApp.tsx` | Cpu, Database, Gauge |
+| `apps/files/FilesApp.tsx` | Briefcase, Heart, Tag |
+| `apps/image-viewer/ImageViewerApp.tsx` | Crop |
+| `apps/piloti-demo/PilotiDemoApp.tsx` | Boxes |
+| `apps/settings/SettingsApp.tsx` | Dock |
 | `apps/settings/FontsPane.tsx` | ChevronsUpDown |
 | `apps/settings/WallpaperPane.tsx` | SunMoon |
-| `shell/AltTabSwitcher.tsx` | Sparkles |
-| `shell/AuthPasswordCard.tsx` | Loader2 |
-| `shell/BrowserExtensionsMenu.tsx` | PinOff |
-| `shell/Launcher.tsx` | Layers, LayoutTemplate |
-| `shell/PortalDialogs.tsx` | Sparkles |
-| `shell/WindowManager.tsx` | Loader2 |
+| `shell/overview/AltTabSwitcher.tsx` | Sparkles |
+| `shell/session/AuthPasswordCard.tsx` | Loader2 |
+| `shell/windows/BrowserExtensionsMenu.tsx` | PinOff |
+| `shell/launcher/Launcher.tsx` | Layers, LayoutTemplate |
+| `shell/dialogs/PortalDialogs.tsx` | Sparkles |
+| `shell/windows/WindowManager.tsx` | Loader2 |
 | `ui/dropdown-menu.tsx` | Circle |
 | `ui/icon-grid.tsx` | Briefcase, Heart, Tag |
 | `ui/search-field.tsx` | ListFilter |

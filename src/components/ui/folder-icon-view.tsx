@@ -13,7 +13,7 @@ import {
   type NamedPositions,
   placeNamesNear,
   positionsById,
-} from "@/lib/shell/desktop-icons";
+} from "@/lib/files/desktop-icons";
 
 /**
  * - `flow`: sorted items, wrapped.

@@ -5,7 +5,7 @@ import { Menu as MenuPrimitive } from "@base-ui/react/menu"
 import { Menubar as MenubarPrimitive } from "@base-ui/react/menubar"
 
 import { cn } from "@/lib/core/utils"
-import { PopupSurfaceScope, usePopupSurfaceState } from "@/lib/shell/popup-layer"
+import { PopupSurfaceScope, usePopupSurfaceState } from "@/lib/windows/popup-layer"
 import { MENU_POPUP_CLASS } from "./menu-styles"
 import {
   DropdownMenuBadge,
