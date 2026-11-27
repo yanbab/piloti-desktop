@@ -14,10 +14,13 @@ Releases of Piloti Desktop, latest first. Dates are the tagged commit's.
 - Piloti theme: softer accent, better menu and sidebar spacing.
 - Text Editor is now Texts and Camera is Selfies. Settings, pins and default
   apps saved under the old names are still read.
+- Apps without their own symbolic icon use the theme's generic one in the
+  window menu button.
 - Internal: smaller engine boundary, ports for hardware and media.
 
 ### Commits
 
+- `e423805` revert: drop the Lucide-converted app symbolic icons
 - `212c8ff` refactor: move the demo's file code out of fs-bridge
 - `bc233b2` refactor: route Terminal, Flatpak and app lists through engine
 - `cb50233` refactor: rename Text Editor to Texts and Camera to Selfies

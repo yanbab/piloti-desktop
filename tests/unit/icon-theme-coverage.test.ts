@@ -50,14 +50,6 @@ describe("bundled icon themes (web demo)", () => {
     expect(missingIcons(index)).toEqual([]);
   });
 
-  it("has a symbolic icon for every app with the Piloti theme", async () => {
-    const index = await buildXdgIconThemeIndex(diskIconReader as never, ["Piloti", "Adwaita", "hicolor"]);
-    const missing = APP_CATALOG.filter(
-      (app) => !lookupXdgSymbolicIconPath(index, app.xdgIcons ?? [app.id])?.endsWith("-symbolic.svg")
-    ).map((app) => app.id);
-    expect(missing).toEqual([]);
-  });
-
   it("resolves every shell and app icon with the Adwaita theme", async () => {
     const index = await buildXdgIconThemeIndex(diskIconReader as never, ["Adwaita", "hicolor"]);
     // GNOME has no colour icon for a login screen: the shell draws its own glyph.
