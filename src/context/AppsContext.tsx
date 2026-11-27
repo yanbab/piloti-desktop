@@ -8,7 +8,7 @@ import {
   APP_CATALOG,
   type AppDefinition,
 } from "@/data/catalog";
-import { launchDesktopCommand, readApplicationDirs } from "@/lib/engine-native";
+import { launchDesktopCommand, readApplicationDirs } from "@/lib/engine/applications";
 import { getEngine } from "@/lib/engine/engine";
 import { XDG_APPLICATION_DIRS, XDG_ICON_BASE_DIRS, XDG_PIXMAPS_DIRS } from "@/lib/xdg/xdg-basedir";
 import { readIconFoldersStamp } from "@/lib/engine/system-commands";

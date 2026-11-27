@@ -16,7 +16,7 @@ import {
 } from "@/context/DesktopStateContext";
 import { getEngine } from "@/lib/engine/engine";
 import { setDemoApps } from "@/lib/engine/demo-processes";
-import { readLoginShells, startShell, type BashSession, type LoginShell } from "@/lib/engine-native/pty-bridge";
+import { readLoginShells, startShell, type BashSession, type LoginShell } from "@/lib/engine/terminal";
 import { ChevronDownIcon } from "@/components/ui/symbols";
 import {
   DropdownMenu,

@@ -1,10 +1,7 @@
 [
   "apps/app-store/AppStoreApp.tsx",
   "apps/login/LoginScreenApp.tsx",
-  "apps/settings/SecurityPane.tsx",
-  "apps/terminal/XtermTerminalApp.tsx",
   "apps/texts/host.ts",
-  "context/AppsContext.tsx",
   "context/SettingsContext.tsx",
   "context/SystemBackendsContext.tsx",
   "context/WindowsContext.tsx"

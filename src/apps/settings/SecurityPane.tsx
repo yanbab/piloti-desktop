@@ -26,13 +26,12 @@ import {
 } from "@/lib/core/app-permissions";
 import { _ } from "@/lib/core/i18n";
 import { cn } from "@/lib/core/utils";
+import { DEFAULT_FLATPAK_PERMISSIONS, type FlatpakPermissionsState } from "@/lib/core/flatpak-permissions";
 import {
-  DEFAULT_FLATPAK_PERMISSIONS,
   getFlatpakPermissions,
   listInstalledFlatpaks,
   setFlatpakPermissionOverride,
-  type FlatpakPermissionsState,
-} from "@/lib/engine-native/flatpak";
+} from "@/lib/engine/flatpak";
 import { readVfsStateJson, VFS_STATE_PATHS } from "@/lib/engine/vfs-state";
 
 interface SecurityAppEntry {
