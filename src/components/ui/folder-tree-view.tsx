@@ -482,7 +482,7 @@ export function FolderTreeView({
           >
             <ChevronRightIcon
               className={cn(
-                "size-3 transition-transform motion-reduce:transition-none",
+                "size-4 transition-transform motion-reduce:transition-none",
                 expanded && "rotate-90",
               )}
               style={{

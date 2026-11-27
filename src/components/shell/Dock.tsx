@@ -606,7 +606,7 @@ export const Dock = React.memo(function Dock() {
 
   const handleOpenTrash = () => {
     launchApp("nautilus", {
-      payload: isBrowserRuntime ? WEB_VFS_TRASH : "trash:///",  // FIXME : Capabilities
+      payload: WEB_VFS_TRASH,
     });
   };
 

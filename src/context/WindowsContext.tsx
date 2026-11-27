@@ -23,6 +23,7 @@ import {
   getWebAppFaviconUrl,
   resolveWebAppTitle,
 } from "@/data/web-apps";
+import { resolveAppModuleByUrl, webViewAppId } from "@/data/app-modules";
 import {
   DOCUMENT_SCOPED_APP_IDS,
   lookupSpatialWindowBounds,
@@ -621,7 +622,8 @@ function pruneBrowserRecord(
     for (const [idx, bw] of browserWindows.entries()) {
       if (!knownBrowserIdsRef.current.has(bw.id)) {
         // A page asked for as a tab joins its window instead of opening one.
-        if (!bw.isApp && pendingTabGroupsRef.current.length > 0) {
+        const isModule = Boolean(resolveAppModuleByUrl(bw.url));
+        if (!bw.isApp && !isModule && pendingTabGroupsRef.current.length > 0) {
           const group = pendingTabGroupsRef.current.shift()!;
           if (activeIds.has(group) || prevGroups[group]) {
             tabAdds.push([group, bw.id]);
@@ -687,7 +689,7 @@ function pruneBrowserRecord(
         const pinned = restored?.pinned ?? false;
         const restoredAsBrowser = restored?.payload === "browser";
         const browserApp =
-          !bw.isApp && (restoredAsBrowser || pendingBrowserAppRef.current > 0);
+          !bw.isApp && !isModule && (restoredAsBrowser || pendingBrowserAppRef.current > 0);
         if (browserApp && !restoredAsBrowser) pendingBrowserAppRef.current -= 1;
         newEntries.set(bw.id, {
           browserApp,
@@ -1159,16 +1161,19 @@ function pruneBrowserRecord(
         });
       // Domicile app modules (`domicile open --app <entry.js>`) are our own
       // isolated apps: take title and icon from the window / desktop entry.
-      const isAppModule = Boolean(bw.isApp && bw.url.startsWith("domicile://app-"));
+      const mod = resolveAppModuleByUrl(bw.url);
+      const isAppModule = Boolean(mod || (bw.isApp && bw.url.startsWith("domicile://app-")));
+      const appId = webViewAppId(bw, webAppMatch?.id);
       return {
         // Plain pages belong to the Web Browser (one Dock icon); app-mode
         // windows of sites that are not installed keep a tile of their own.
-        appId: bw.appId || webAppMatch?.id || (bw.isApp ? `webview:${bw.id}` : "browser"),
+        appId,
+        isModule: Boolean(mod),
         title: isAppModule
-          ? browserTitles[bw.id] || bw.title || bw.appId || resolvedTitle
+          ? browserTitles[bw.id] || bw.title || bw.appId || mod?.id || resolvedTitle
           : resolvedTitle,
         iconUrl: isAppModule
-          ? (bw.appId ? getAppIconUrl(bw.appId) : undefined) ||
+          ? (mod || bw.appId ? getAppIconUrl(appId) : undefined) ||
             browserFavicons[bw.id]
           : browserFavicons[bw.id] ||
             webAppMatch?.iconUrl ||
@@ -1207,7 +1212,7 @@ function pruneBrowserRecord(
       });
       return [{
         id: `browser:${group}`,
-        appId: meta.browserApp ? "browser" : described.appId,
+        appId: meta.browserApp && !described.isModule ? "browser" : described.appId,
         title: described.title,
         iconName: "globe",
         iconUrl: described.iconUrl,

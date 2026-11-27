@@ -41,3 +41,19 @@ export function resolveAppModuleByUrl(url: string | undefined): AppModuleDef | u
   const m = /^domicile:\/\/app-([0-9a-f]{32})/.exec(url ?? "");
   return m ? byHash.get(m[1]!) : undefined;
 }
+
+/**
+ * The app a web view window belongs to. Our modules are known by their URL:
+ * Domicile may list one as a plain page, which would make it the Web Browser's.
+ */
+export function webViewAppId(
+  view: { id: string | number; url: string; appId?: string; isApp?: boolean },
+  webAppId?: string,
+): string {
+  return (
+    resolveAppModuleByUrl(view.url)?.id ||
+    view.appId ||
+    webAppId ||
+    (view.isApp ? `webview:${view.id}` : "browser")
+  );
+}
