@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Texts (module)
+Comment=Spike: Texts as an isolated Domicile app module
+Exec=domicile open --app /usr/share/piloti-desktop/apps/texts/texts.js
+Icon=accessories-text-editor
+Categories=Utility;TextEditor;
+OnlyShowIn=Piloti;

@@ -11,9 +11,9 @@ describe("web view windows", () => {
   beforeAll(initAppModules);
 
   test("an app module's window is its app, however it is listed", () => {
-    const url = moduleUrl("text-editor");
-    expect(webViewAppId({ id: 1, url })).toBe("text-editor");
-    expect(webViewAppId({ id: 1, url, isApp: true, appId: "browser" })).toBe("text-editor");
+    const url = moduleUrl("texts");
+    expect(webViewAppId({ id: 1, url })).toBe("texts");
+    expect(webViewAppId({ id: 1, url, isApp: true, appId: "browser" })).toBe("texts");
   });
 
   test("other pages keep their web app, or belong to the browser", () => {

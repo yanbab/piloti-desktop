@@ -1,8 +1,0 @@
-[Desktop Entry]
-Type=Application
-Name=Notepad (module)
-Comment=Spike: the Text Editor as an isolated Domicile app module
-Exec=domicile open --app /usr/share/piloti-desktop/apps/text-editor/text-editor.js
-Icon=accessories-text-editor
-Categories=Utility;TextEditor;
-OnlyShowIn=Piloti;

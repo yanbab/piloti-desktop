@@ -20,7 +20,7 @@ import {
 
 type CameraMode = "photo" | "video" | "audio";
 
-export interface CameraAppProps {
+export interface SelfiesAppProps {
   windowId?: string;
 }
 
@@ -53,7 +53,7 @@ function blobToDataUrl(blob: Blob): Promise<string> {
   });
 }
 
-export const CameraApp: React.FC<CameraAppProps> = ({ windowId = "" }) => {
+export const SelfiesApp: React.FC<SelfiesAppProps> = ({ windowId = "" }) => {
   const piloti = usePiloti();
   const { realFilesystem } = useCapabilities();
   const { xdgUserDirs } = useApps();
@@ -66,7 +66,7 @@ export const CameraApp: React.FC<CameraAppProps> = ({ windowId = "" }) => {
   const streamRef = React.useRef<MediaStream | null>(null);
   const recorderRef = React.useRef<MediaRecorder | null>(null);
   const startedAtRef = React.useRef(0);
-  const ownerId = windowId || "camera";
+  const ownerId = windowId || "selfies";
 
   const stopStream = React.useCallback(() => {
     for (const t of streamRef.current?.getTracks() ?? []) t.stop();

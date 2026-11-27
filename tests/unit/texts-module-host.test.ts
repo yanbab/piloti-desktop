@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, test } from "bun:test";
-import { createDomicileEditorHost } from "@/apps/text-editor/host";
+import { createDomicileEditorHost } from "@/apps/texts/host";
 import { createFakeDomicile } from "../helpers/fake-domicile";
 
 beforeAll(() => {
@@ -17,7 +17,7 @@ async function start(seed: Record<string, string> = {}) {
   return { host, files: domicile.files };
 }
 
-describe("Text Editor module host (piloti.vfs over Domicile)", () => {
+describe("Texts module host (piloti.vfs over Domicile)", () => {
   test("saves and reads back at the real path", async () => {
     const { host } = await start();
     await host.vfs.write("/home/user/note.txt", "line 1\nline 2\n");
@@ -39,14 +39,19 @@ describe("Text Editor module host (piloti.vfs over Domicile)", () => {
     expect(host.defaultNewFilePath("Untitled.txt")).toBe("/home/user/Bureau/Untitled.txt");
   });
 
-  test("editor preferences persist to notepad.ini", async () => {
+  test("editor preferences persist to piloti-texts/settings.ini", async () => {
     const { host, files } = await start();
     host.writeEditorPrefs({ "word-wrap": true, "font-size": 14 });
     await new Promise((r) => setTimeout(r, 10));
-    const ini = (await files.readText(".config/piloti/notepad.ini")).unwrapOr("" as never) as string;
+    const ini = (await files.readText(".config/piloti-texts/settings.ini")).unwrapOr("" as never) as string;
     expect(ini).toContain("[Editor]");
     expect(ini).toContain("word-wrap=true");
     expect(host.readEditorPrefs()).toEqual({ "word-wrap": "true", "font-size": "14" });
+  });
+
+  test("preferences from before the rename are still read", async () => {
+    const { host } = await start({ ".config/piloti/notepad.ini": "[Editor]\nword-wrap=false\n" });
+    expect(host.readEditorPrefs()).toEqual({ "word-wrap": "false" });
   });
 
   test("confirm-unsaved-on-close follows general.ini", async () => {

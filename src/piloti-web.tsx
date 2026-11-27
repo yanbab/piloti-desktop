@@ -25,9 +25,9 @@ import { AppChromeProvider } from "./components/elements/app-chrome";
 import { PilotiQueryProvider } from "./lib/engine/query-client";
 import { ShellErrorBoundary } from "./shell/desktop/ShellErrorBoundary";
 
-const TextEditorApp = React.lazy(() =>
-  import("./lib/engine/text-editor-host-shell").then((m) => ({
-    default: m.ShellTextEditorApp,
+const TextsApp = React.lazy(() =>
+  import("./lib/engine/texts-host-shell").then((m) => ({
+    default: m.ShellTextsApp,
   })),
 );
 const ImageViewerApp = React.lazy(() =>
@@ -46,7 +46,7 @@ async function start(root: HTMLElement) {
   finishFiles("home and etc");
   const params = new URLSearchParams(window.location.search);
   const isolatedApp = params.get("piloti_app");
-  if (isolatedApp === "text-editor") {
+  if (isolatedApp === "texts") {
     // The frame's own desktop, over the same demo VFS as the shell's.
     const { createBrowserDomicile } = await import("./lib/engine-web");
     const domicile = createBrowserDomicile();
@@ -56,10 +56,10 @@ async function start(root: HTMLElement) {
     createRoot(root).render(
       <ShellErrorBoundary>
         <PilotiQueryProvider>
-        <AppChromeProvider value={{ appId: "text-editor", windowId, decorations: isCsd ? "client" : "server" }}>
+        <AppChromeProvider value={{ appId: "texts", windowId, decorations: isCsd ? "client" : "server" }}>
           <DomicileProvider domicile={withVfs(domicile, createWebVfs(domicile))}>
             <React.Suspense fallback={null}>
-              <TextEditorApp initialPath={initialPath} windowId={windowId} />
+              <TextsApp initialPath={initialPath} windowId={windowId} />
             </React.Suspense>
           </DomicileProvider>
         </AppChromeProvider>

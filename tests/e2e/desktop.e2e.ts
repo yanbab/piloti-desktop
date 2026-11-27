@@ -7,7 +7,7 @@ test.describe("Piloti Desktop E2E", () => {
     await page.goto("/", { waitUntil: "domcontentloaded" });
 
     const filesDockIcon = page.locator('[data-dock-app-id="nautilus"]');
-    const editorDockIcon = page.locator('[data-dock-app-id="text-editor"]');
+    const editorDockIcon = page.locator('[data-dock-app-id="texts"]');
     const terminalDockIcon = page.locator('[data-dock-app-id="terminal"]');
 
     await expect(filesDockIcon).toBeVisible({ timeout: 35_000 });
@@ -21,7 +21,7 @@ test.describe("Piloti Desktop E2E", () => {
       .locator('[data-slot="window"][data-app-id="terminal"]')
       .first();
     const editorWindow = page
-      .locator('[data-slot="window"][data-app-id="text-editor"]')
+      .locator('[data-slot="window"][data-app-id="texts"]')
       .first();
     const filesWindow = page
       .locator('[data-slot="window"][data-app-id="nautilus"]')
@@ -91,7 +91,7 @@ test.describe("Piloti Desktop E2E", () => {
     expect(Math.abs(restoredBox!.height - resizedBox!.height)).toBeLessThanOrEqual(4);
   });
 
-  test("propagates Settings panel changes to settings.ini open in Text Editor", async ({
+  test("propagates Settings panel changes to settings.ini open in Texts", async ({
     page,
   }) => {
     await page.goto("/", { waitUntil: "domcontentloaded" });
@@ -123,12 +123,12 @@ test.describe("Piloti Desktop E2E", () => {
     await iniItem.dblclick();
 
     const editorWindow = page
-      .locator('[data-slot="window"][data-app-id="text-editor"]')
+      .locator('[data-slot="window"][data-app-id="texts"]')
       .first();
     await expect(editorWindow).toBeVisible();
     await expect(editorWindow).toContainText("lastPane=dock");
 
-    // Bring Settings to front, switch to Wallpaper, close Settings, and verify Text Editor updates live
+    // Bring Settings to front, switch to Wallpaper, close Settings, and verify Texts updates live
     await page.locator('[data-dock-app-id="settings"]').click();
     await settingsWindow.getByRole("button", { name: "Wallpaper" }).click();
     await settingsWindow
@@ -327,7 +327,7 @@ test.describe("Piloti Desktop E2E", () => {
     await expect(filesWindow.getByRole("slider", { name: "Zoom" })).toBeVisible();
   });
 
-  test("live-editing /home/user/.config/piloti/settings.ini in Text Editor updates shell settings immediately", async ({
+  test("live-editing /home/user/.config/piloti/settings.ini in Texts updates shell settings immediately", async ({
     page,
   }) => {
     await page.goto("/", { waitUntil: "domcontentloaded" });
@@ -356,14 +356,14 @@ test.describe("Piloti Desktop E2E", () => {
     await settingsIniItem.dblclick();
 
     const editorWindow = page
-      .locator('[data-slot="window"][data-app-id="text-editor"]')
+      .locator('[data-slot="window"][data-app-id="texts"]')
       .first();
     await expect(editorWindow).toBeVisible();
 
     const editorTextbox = editorWindow.getByRole("textbox").first();
     await expect(editorWindow).toContainText("interface-theme=piloti");
 
-    // Edit interface-theme line live in Text Editor (CodeMirror) and press Ctrl/Cmd+S
+    // Edit interface-theme line live in Texts (CodeMirror) and press Ctrl/Cmd+S
     const themeLine = editorTextbox
       .locator(".cm-line", { hasText: "interface-theme=" })
       .first();

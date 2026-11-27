@@ -402,7 +402,7 @@ const CORE_BUILTIN_IDS = new Set([
   "nautilus",
   "settings",
   "console",
-  "text-editor",
+  "texts",
   "terminal",
   "app-store",
 ]);

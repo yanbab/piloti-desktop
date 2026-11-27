@@ -42,11 +42,11 @@ describe("xdg-mimeapps", () => {
     const config = parseMimeAppsList(DEFAULT_MIMEAPPS_INI);
     const jsonApps = resolveAppsForMime("application/json", config);
     // JSON is a sub-class of text/plain, so it also inherits the text associations.
-    expect(jsonApps.map((a) => a.appId)).toEqual(["text-editor", "console", "terminal"]);
+    expect(jsonApps.map((a) => a.appId)).toEqual(["texts", "console", "terminal"]);
 
     const customTextApps = resolveAppsForMime("text/x-python", config);
     expect(customTextApps.map((a) => a.appId)).toEqual([
-      "text-editor",
+      "texts",
       "terminal",
     ]);
   });

@@ -1,4 +1,0 @@
-#!/bin/sh
-# piloti-notepad — Open Piloti Notepad
-set -eu
-exec /usr/bin/piloti open text-editor "$@"

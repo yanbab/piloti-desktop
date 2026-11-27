@@ -7,7 +7,7 @@
   "apps/system-monitor/SystemMonitorApp.tsx",
   "apps/terminal/XtermTerminalApp.tsx",
   "apps/terminal/piloti-top.ts",
-  "apps/text-editor/host.ts",
+  "apps/texts/host.ts",
   "context/AppsContext.tsx",
   "context/SettingsContext.tsx",
   "context/SystemBackendsContext.tsx",

@@ -38,7 +38,7 @@ describe("M5 & M6: Web app manifest parsing & spatial window lifecycle", () => {
     ).toContain("example.com");
     expect(
       resolveSpatialBoundsKey({
-        appId: "text-editor",
+        appId: "texts",
         payload: "/home/user/notes.md",
       })
     ).toContain("notes.md");

@@ -49,7 +49,7 @@ import {
 import { FileChangedDialog, UnsavedChangesDialog } from "@/components/ui/unsaved-changes-dialog";
 import { publishWindowMenuState, useIsolatedAppBridge } from "@/lib/engine/app-bridge";
 import { pathAfterRename, uniqueName } from "@/lib/ports/vfs";
-import { useTextEditorHost, type TextEditorHost } from "@/lib/engine/text-editor-host";
+import { useTextsHost, type TextsHost } from "@/lib/engine/texts-host";
 import { _ } from "@/lib/core/i18n";
 import { parseIniText } from "@/lib/config/ini";
 import { cn } from "@/lib/core/utils";
@@ -57,7 +57,7 @@ import { useAppChrome } from "@/components/elements/app-chrome";
 import { HeaderBar, HeaderButton } from "@/components/elements/header-bar";
 import { Segmented } from "@/components/ui/segmented";
 
-export interface TextEditorAppProps {
+export interface TextsAppProps {
   initialPath?: string;
   windowId?: string;
 }
@@ -84,7 +84,7 @@ interface PersistedFileEditorState {
 
 type PersistedEditorStateMap = Record<string, PersistedFileEditorState>;
 
-function readPersistedEditorStateMap(host: TextEditorHost): PersistedEditorStateMap {
+function readPersistedEditorStateMap(host: TextsHost): PersistedEditorStateMap {
   return (
     host.readState<PersistedEditorStateMap>(
       EDITOR_STATE_KEY,
@@ -125,7 +125,7 @@ const iniLanguage = StreamLanguage.define({
 });
 
 /** Where a new document goes: never over a file that is already there. */
-async function unusedNewFilePath(host: TextEditorHost, name: string): Promise<string> {
+async function unusedNewFilePath(host: TextsHost, name: string): Promise<string> {
   const taken = new Set<string>();
   let candidate = name;
   while (await host.vfs.stat(host.defaultNewFilePath(candidate))) {
@@ -298,11 +298,11 @@ const adwEditorTheme = EditorView.theme({
   },
 });
 
-export const TextEditorApp: React.FC<TextEditorAppProps> = ({
+export const TextsApp: React.FC<TextsAppProps> = ({
   initialPath,
   windowId = "",
 }) => {
-  const host = useTextEditorHost();
+  const host = useTextsHost();
   const previewIframeRef = React.useRef<HTMLIFrameElement | null>(null);
   const designIframeRef = React.useRef<HTMLIFrameElement | null>(null);
   const viewModeRef = React.useRef<EditorViewMode>("code");
@@ -323,15 +323,15 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
   }, []);
 
   const handleMenuAction = React.useCallback((actionId: string) => {
-    if (actionId === "text-editor:toggle-line-numbers") {
+    if (actionId === "texts:toggle-line-numbers") {
       setShowLineNumbers((v) => !v);
-    } else if (actionId === "text-editor:toggle-syntax") {
+    } else if (actionId === "texts:toggle-syntax") {
       setEnableHighlight((v) => !v);
-    } else if (actionId === "text-editor:toggle-word-wrap") {
+    } else if (actionId === "texts:toggle-word-wrap") {
       setWordWrap((v) => !v);
-    } else if (actionId === "text-editor:toggle-active-line") {
+    } else if (actionId === "texts:toggle-active-line") {
       setHighlightLine((v) => !v);
-    } else if (actionId === "text-editor:toggle-cursor-position") {
+    } else if (actionId === "texts:toggle-cursor-position") {
       setShowCursorPos((v) => !v);
     } else if (actionId === "file:print" || actionId === "piloti:print-focused") {
       handlePrint();
@@ -393,7 +393,7 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
     col: 1,
   });
 
-  // Editor preferences (all on by default; persisted to .config/piloti/notepad.ini)
+  // Editor preferences (all on by default; persisted to .config/piloti-texts/settings.ini)
   const initialEditorPrefs = React.useMemo(
     () => host.readEditorPrefs(),
     [host]
@@ -557,11 +557,11 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
   React.useEffect(() => {
     if (!windowId) return;
     publishWindowMenuState(windowId, {
-      "text-editor:toggle-line-numbers": { checked: showLineNumbers },
-      "text-editor:toggle-syntax": { checked: enableHighlight },
-      "text-editor:toggle-word-wrap": { checked: wordWrap },
-      "text-editor:toggle-active-line": { checked: highlightLine },
-      "text-editor:toggle-cursor-position": { checked: showCursorPos },
+      "texts:toggle-line-numbers": { checked: showLineNumbers },
+      "texts:toggle-syntax": { checked: enableHighlight },
+      "texts:toggle-word-wrap": { checked: wordWrap },
+      "texts:toggle-active-line": { checked: highlightLine },
+      "texts:toggle-cursor-position": { checked: showCursorPos },
     });
   }, [
     enableHighlight,
@@ -1272,7 +1272,7 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
       <div className="relative min-h-0 flex-1 overflow-hidden">
         {findOpen && (
           <div
-            data-testid="text-editor-find-bar"
+            data-testid="texts-find-bar"
             className="absolute top-2 right-3 z-20 flex items-center gap-1.5 rounded-ui-control border border-ui-border bg-ui-group/95 px-2 py-1 shadow-md backdrop-blur-md"
           >
             <input
@@ -1370,7 +1370,7 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
 
         {showCursorPos && (
           <div
-            data-testid="text-editor-status-pill"
+            data-testid="texts-status-pill"
             className="pointer-events-none absolute right-2.5 bottom-2 z-10 rounded-full border border-ui-border/60 bg-ui-group/90 px-2.5 py-0.5 font-mono text-ui-caption text-ui-dim shadow-xs backdrop-blur-md"
           >
             Ln {cursorPos.ln}, Col {cursorPos.col}

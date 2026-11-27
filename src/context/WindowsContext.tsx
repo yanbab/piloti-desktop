@@ -2230,7 +2230,7 @@ function pruneBrowserRecord(
 
       // One window per document, whatever the caller asked: two editors of the
       // same file would save over each other.
-      if (options?.forceNew && options.payload && (appId === "text-editor" || appId === "image-viewer")) {
+      if (options?.forceNew && options.payload && (appId === "texts" || appId === "image-viewer")) {
         const sameDocument = combinedWindowsRef.current.find(
           (w) => w.appId === appId && w.payload === options.payload,
         );
@@ -2240,7 +2240,7 @@ function pruneBrowserRecord(
         }
       }
 
-      // Built-in shell windows (`settings`, `console`, `files`, `terminal`, `text-editor`, `app-store`, `calculator`, `image-viewer`)
+      // Built-in shell windows (`settings`, `console`, `files`, `terminal`, `texts`, `app-store`, `calculator`, `image-viewer`)
       const builtinKind: BuiltinAppId | undefined =
         def?.builtinComponent ??
         (appId === "settings" || appId === "console"
@@ -2322,7 +2322,7 @@ function pruneBrowserRecord(
           id: newWinId,
           appId: resolvedAppId,
           title:
-            (builtinKind === "text-editor" || builtinKind === "image-viewer") &&
+            (builtinKind === "texts" || builtinKind === "image-viewer") &&
             options?.payload
               ? options.payload.split("/").pop() || builtinDef.name
               : builtinDef.name,
@@ -2528,11 +2528,11 @@ function pruneBrowserRecord(
         "piloti-files": "nautilus",
         "piloti-shell": "terminal",
         "piloti-terminal": "terminal",
-        "piloti-notepad": "text-editor",
+        "piloti-texts": "texts",
         "piloti-calculator": "calculator",
         "piloti-demo": "piloti-demo",
         "piloti-hello-world": "hello-world",
-        "piloti-camera": "camera",
+        "piloti-selfies": "selfies",
         "piloti-system-monitor": "system-monitor",
         "piloti-browser": "browser",
         "piloti-image-viewer": "image-viewer",
@@ -2890,7 +2890,7 @@ function pruneBrowserRecord(
             return;
           }
           if (isTextEditableVfsFile(entry.name)) {
-            launchApp("text-editor", { payload: entry.path });
+            launchApp("texts", { payload: entry.path });
             return;
           }
           openWebUrl(buildVfsEntryWebAppUrl(entry), {

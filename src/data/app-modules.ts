@@ -18,8 +18,8 @@ const APPS_ROOT = "/usr/share/piloti-desktop/apps";
 export const APP_MODULES: readonly AppModuleDef[] = [
   { id: "hello", dir: `${APPS_ROOT}/hello`, csd: false },
   {
-    id: "text-editor",
-    dir: `${APPS_ROOT}/text-editor`,
+    id: "texts",
+    dir: `${APPS_ROOT}/texts`,
     csd: true,
     drag: { left: 96, right: 200, height: 36 },
   },

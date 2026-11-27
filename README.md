@@ -21,7 +21,7 @@ It allows nice experiments when boundaries between web and native apps are not s
 ### Apps
 - Files (Grid/List views, Sort & Emblem filtering, bottom zoom slider, GIO/GVfs metadata)
 - Web Terminal (pipes, redirects, `Ctrl+R` history, `piloti` CLI) & DevTools (REPL, Logs, Infos, VFS & Events, Storage)
-- Notepad (Markdown & JSON preview), Calculator (Standard & Scientific), Image Viewer, App Store, Settings
+- Texts (Markdown & JSON preview), Calculator (Standard & Scientific), Image Viewer, App Store, Settings
 
 ## Quick Start
 

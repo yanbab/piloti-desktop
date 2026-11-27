@@ -65,7 +65,7 @@ const subscribe = (onChange: () => void) => {
 };
 const getSnapshot = () => (cache ??= readBrowserBookmarks());
 
-/** Live bookmarks (also follows edits of the file in Files / Notepad). */
+/** Live bookmarks (also follows edits of the file in Files / Texts). */
 export function useBrowserBookmarks(): BrowserBookmark[] {
   return React.useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 }

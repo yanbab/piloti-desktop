@@ -52,7 +52,7 @@ import { ShellTitlebar, WindowAppChrome } from "@/shell/windows/WindowAppChrome"
 import { CalculatorApp } from "@/apps/calculator/CalculatorApp";
 import { HelloWorldApp } from "@/apps/hello/HelloWorldApp";
 import { PilotiDemoApp } from "@/apps/piloti-demo/PilotiDemoApp";
-import { CameraApp } from "@/apps/camera/CameraApp";
+import { SelfiesApp } from "@/apps/selfies/SelfiesApp";
 import { SystemMonitorApp } from "@/apps/system-monitor/SystemMonitorApp";
 const ConsoleApp = React.lazy(() =>
   import("@/apps/console/ConsoleApp").then((m) => ({
@@ -65,9 +65,9 @@ const FilesApp = React.lazy(() =>
     default: m.FilesApp,
   }))
 );
-const TextEditorApp = React.lazy(() =>
-  import("@/lib/engine/text-editor-host-shell").then((m) => ({
-    default: m.ShellTextEditorApp,
+const TextsApp = React.lazy(() =>
+  import("@/lib/engine/texts-host-shell").then((m) => ({
+    default: m.ShellTextsApp,
   }))
 );
 const ImageViewerApp = React.lazy(() =>
@@ -1479,10 +1479,10 @@ const WindowBody = React.memo(
         </React.Suspense>
       );
     }
-    if (win.builtinComponent === "text-editor" && win.isolated) {
+    if (win.builtinComponent === "texts" && win.isolated) {
       return (
         <IsolatedAppFrame
-          appId="text-editor"
+          appId="texts"
           windowId={win.id}
           title={win.title}
           isCsd={isCsd}
@@ -1490,11 +1490,11 @@ const WindowBody = React.memo(
         />
       );
     }
-    if (win.builtinComponent === "text-editor") {
+    if (win.builtinComponent === "texts") {
       return (
         <React.Suspense fallback={null}>
           <WindowDomReadySignal windowId={win.id} onReady={onDomReady} />
-          <TextEditorApp
+          <TextsApp
             initialPath={win.payload}
             windowId={win.id}
           />
@@ -1552,11 +1552,11 @@ const WindowBody = React.memo(
         </React.Suspense>
       );
     }
-    if (win.builtinComponent === "camera") {
+    if (win.builtinComponent === "selfies") {
       return (
         <React.Suspense fallback={null}>
           <WindowDomReadySignal windowId={win.id} onReady={onDomReady} />
-          <CameraApp windowId={win.id} />
+          <SelfiesApp windowId={win.id} />
         </React.Suspense>
       );
     }
@@ -1847,7 +1847,7 @@ export function WindowManager() {
     if (typeof window === "undefined") return;
     const preload = () => {
       void import("@/apps/files/FilesApp");
-      void import("@/apps/text-editor/TextEditorApp");
+      void import("@/apps/texts/TextsApp");
       void import("@/apps/image-viewer/ImageViewerApp");
       void import("@/apps/terminal/XtermTerminalApp");
       void import("@/apps/settings/SettingsApp");

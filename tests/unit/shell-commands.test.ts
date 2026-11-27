@@ -28,7 +28,7 @@ function createRecorder() {
 describe("shell-commands (domicile send-shell dispatcher)", () => {
   test("resolves piloti-* wrapper commands and friendly aliases to built-in app IDs", () => {
     expect(resolvePilotiCommandAppId("piloti-files")).toBe("nautilus");
-    expect(resolvePilotiCommandAppId("piloti-notepad")).toBe("text-editor");
+    expect(resolvePilotiCommandAppId("piloti-texts")).toBe("texts");
     expect(resolvePilotiCommandAppId("piloti-applications")).toBe("app-store");
     expect(resolvePilotiCommandAppId("piloti-console")).toBe("console");
     expect(resolvePilotiCommandAppId("piloti-desktop")).toBe("console");
@@ -43,13 +43,13 @@ describe("shell-commands (domicile send-shell dispatcher)", () => {
     expect(dispatchPilotiShellCommand(["open", "nautilus", "/home/user/Documents"], handlers)).toBe(true);
     expect(dispatchPilotiShellCommand(["open", "https://example.com"], handlers)).toBe(true);
     expect(dispatchPilotiShellCommand(["open", "--app", "https://excalidraw.com"], handlers)).toBe(true);
-    expect(dispatchPilotiShellCommand(["piloti-notepad", "/tmp/note.txt"], handlers)).toBe(true);
+    expect(dispatchPilotiShellCommand(["piloti-texts", "/tmp/note.txt"], handlers)).toBe(true);
 
     expect(calls).toEqual([
       { fn: "launchApp", args: ["nautilus", { payload: "/home/user/Documents" }] },
       { fn: "openWebUrl", args: ["https://example.com/", undefined] },
       { fn: "openWebUrl", args: ["https://excalidraw.com/", { asApp: true }] },
-      { fn: "launchApp", args: ["text-editor", { payload: "/tmp/note.txt" }] },
+      { fn: "launchApp", args: ["texts", { payload: "/tmp/note.txt" }] },
     ]);
   });
 

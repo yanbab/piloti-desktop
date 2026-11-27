@@ -36,7 +36,7 @@ function staticImports(entry: string): string[] {
 describe("native $HOME", () => {
   // `vfs-home` reads `$HOME` once, when it loads. Loaded before the entry has
   // asked for it, the Linux shell uses `/home/user`: settings.ini saved from
-  // the Text Editor then goes nowhere.
+  // the Texts then goes nowhere.
   it("the native entries load no VFS path before they know $HOME", () => {
     const loaded = staticImports(path.join(SRC, "piloti-desktop.tsx"));
     expect(loaded).toContain("lib/core/console-store.ts");

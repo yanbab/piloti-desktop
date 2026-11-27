@@ -362,7 +362,7 @@ const PAPIRUS_FILE_FLAP_D =
 const PAPIRUS_FILE_HIGHLIGHT_D =
   "M 12.75 4 C 11.2265 4 10 5.2495812 10 6.8007812 L 10 7.8007812 C 10 6.2495813 11.2265 5 12.75 5 L 36 5 L 36 4 L 12.75 4 z";
 
-// The text document shared by `text-x-generic` and the Text Editor app icon,
+// The text document shared by `text-x-generic` and the Texts app icon,
 // so the two always match: accent heading line, three text lines, Papirus page.
 const textDocLines = (ind) =>
   layer(ind, "Lines", [
@@ -681,7 +681,7 @@ const ICONS = {
 
   "apps/accessories-text-editor": {
     ...lottieDoc(
-      "piloti-text-editor",
+      "piloti-texts",
       [
         // Lottie draws the first shape on top: pencil, then badge, then shadow.
         layer(

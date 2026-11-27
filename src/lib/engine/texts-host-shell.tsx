@@ -1,10 +1,6 @@
 import * as React from "react";
 import { usePiloti, type Piloti } from "@/lib/engine/piloti";
-import {
-  getCachedPilotiAppIni,
-  shouldConfirmUnsavedOnClose,
-  writePilotiAppIni,
-} from "@/lib/config/piloti-ini";
+import { shouldConfirmUnsavedOnClose, readTextsSettings, writeTextsSettings } from "@/lib/config/piloti-ini";
 import { readVfsStateJson, writeVfsStateJson } from "@/lib/engine/vfs-state";
 import { normalizeVfsPath } from "@/lib/core/vfs-paths";
 import { subscribeVfsRenamed } from "@/lib/engine-web/web-vfs";
@@ -12,13 +8,13 @@ import { announceRename, moveKeepingEmblems } from "@/lib/engine/fs-bridge";
 import { VFS_HOME } from "@/lib/engine/vfs-home";
 import { emitShellEvent, onShellEvent } from "@/lib/core/shell-events";
 
-import type { TextEditorHost } from "@/lib/engine/text-editor-host";
-import { TextEditorHostProvider } from "@/lib/engine/text-editor-host";
-import { TextEditorApp, type TextEditorAppProps } from "@/apps/text-editor/TextEditorApp";
+import type { TextsHost } from "@/lib/engine/texts-host";
+import { TextsHostProvider } from "@/lib/engine/texts-host";
+import { TextsApp, type TextsAppProps } from "@/apps/texts/TextsApp";
 
 const stateFile = (key: string) => `${VFS_HOME}/.local/state/piloti/${key}.json`;
 
-export function createInShellEditorHost(piloti: Piloti): TextEditorHost {
+export function createInShellEditorHost(piloti: Piloti): TextsHost {
   return {
     // The title rename keeps the file's emblems, as Folders does.
     vfs: { ...piloti.vfs, move: (from, to) => moveKeepingEmblems(piloti, from, to) },
@@ -31,9 +27,9 @@ export function createInShellEditorHost(piloti: Piloti): TextEditorHost {
     writeState: (key, value) => {
       writeVfsStateJson(stateFile(key), value, false);
     },
-    readEditorPrefs: () => getCachedPilotiAppIni("notepad").Editor ?? {},
+    readEditorPrefs: () => readTextsSettings().Editor ?? {},
     writeEditorPrefs: (values) => {
-      void writePilotiAppIni(null, "notepad", "Editor", values);
+      writeTextsSettings("Editor", values);
     },
     confirmUnsavedOnClose: shouldConfirmUnsavedOnClose,
     requestAnimatedClose: (windowId) =>
@@ -45,13 +41,13 @@ export function createInShellEditorHost(piloti: Piloti): TextEditorHost {
 }
 
 
-/** TextEditorApp running in the shell (or its web iframe) with the shell's host. */
-export const ShellTextEditorApp: React.FC<TextEditorAppProps> = (props) => {
+/** TextsApp running in the shell (or its web iframe) with the shell's host. */
+export const ShellTextsApp: React.FC<TextsAppProps> = (props) => {
   const piloti = usePiloti();
   const host = React.useMemo(() => createInShellEditorHost(piloti), [piloti]);
   return (
-    <TextEditorHostProvider value={host}>
-      <TextEditorApp {...props} />
-    </TextEditorHostProvider>
+    <TextsHostProvider value={host}>
+      <TextsApp {...props} />
+    </TextsHostProvider>
   );
 };

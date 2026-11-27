@@ -238,7 +238,7 @@ export const Dock = React.memo(function Dock() {
       const hoveredId = dockEl?.getAttribute("data-dock-app-id") ?? null;
       const opens =
         detail.item.kind === "file" &&
-        (hoveredId === "text-editor" ||
+        (hoveredId === "texts" ||
           hoveredId === "image-viewer" ||
           hoveredId === "nautilus");
       // An app can be dropped on any tile: it is pinned there.
@@ -259,17 +259,17 @@ export const Dock = React.memo(function Dock() {
         : detail?.item
           ? [detail.item]
           : [];
-      // Text Editor opens a `.desktop` file; elsewhere on the Dock an app is pinned.
+      // Texts opens a `.desktop` file; elsewhere on the Dock an app is pinned.
       const apps = droppedItems.filter(
         (item) =>
           isAppLauncherItem(item) &&
-          !(item.kind === "file" && detail?.appId === "text-editor"),
+          !(item.kind === "file" && detail?.appId === "texts"),
       );
       if (apps.length > 0) void pinDroppedAppsRef.current(apps, detail?.appId);
       for (const item of droppedItems) {
         if (!item.path || apps.includes(item)) continue;
-        if (detail?.appId === "text-editor" && item.kind === "file") {
-          launchApp("text-editor", { payload: item.path });
+        if (detail?.appId === "texts" && item.kind === "file") {
+          launchApp("texts", { payload: item.path });
         } else if (
           detail?.appId === "image-viewer" &&
           item.kind === "file" &&

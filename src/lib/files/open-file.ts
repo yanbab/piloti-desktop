@@ -10,7 +10,7 @@ import { parseDesktopEntry, type XdgDesktopEntry } from "@/lib/xdg/xdg-desktop-e
 /** What opening a file should do. Pure data: `useOpenPath` performs it. */
 export type OpenAction =
   | { type: "folder"; path: string }
-  /** A built-in shell app (Notepad, Image Viewer, Web Browser, …) with the file as payload. */
+  /** A built-in shell app (Texts, Image Viewer, Web Browser, …) with the file as payload. */
   | { type: "app"; appId: string; path: string }
   /** An installed application (.deb, Flatpak, web app, …) launched with the file. */
   | { type: "xdg"; entry: XdgDesktopEntry; path: string }
@@ -75,6 +75,6 @@ export function resolveOpenAction(input: ResolveOpenInput): OpenAction {
   if (first) return actionForApp(first, path);
 
   if (isImageName(name)) return { type: "app", appId: "image-viewer", path };
-  if (isTextEditableVfsFile(name)) return { type: "app", appId: "text-editor", path };
+  if (isTextEditableVfsFile(name)) return { type: "app", appId: "texts", path };
   return { type: "web-file", path };
 }

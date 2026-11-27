@@ -55,13 +55,39 @@ export async function writePilotiAppIni(
   }
 }
 
+/** Texts keeps its settings in its own folder; `notepad.ini` is where they were. */
+export const TEXTS_SETTINGS_PATH = ".config/piloti-texts/settings.ini";
+
+export function readTextsSettings(): IniRecord {
+  const raw =
+    readVfsStateText(`${VFS_HOME}/${TEXTS_SETTINGS_PATH}`) ??
+    readVfsStateText(getPilotiAppIniVfsPath("notepad"));
+  return raw ? parseIniText(raw) : {};
+}
+
+export function writeTextsSettings(section: string, values: Record<string, string | number | boolean>): void {
+  const current = readTextsSettings();
+  const next: IniRecord = {
+    ...current,
+    [section]: {
+      ...(current[section] ?? {}),
+      ...Object.fromEntries(Object.entries(values).map(([k, v]) => [k, String(v)])),
+    },
+  };
+  try {
+    writeVfsStateText(`${VFS_HOME}/${TEXTS_SETTINGS_PATH}`, serializeIniText(next));
+  } catch {
+    // ignore
+  }
+}
+
 /**
  * Hidden general preferences (`~/.config/piloti/general.ini`, no Settings UI).
  *
  *   [Windows]
  *   confirm-unsaved-on-close=false
  *
- * Spatial apps (Text Editor, Image Viewer) persist unsaved state across
+ * Spatial apps (Texts, Image Viewer) persist unsaved state across
  * close/reopen, so the Save / Discard / Cancel prompt is off by default.
  */
 export function shouldConfirmUnsavedOnClose(): boolean {

@@ -1,5 +1,6 @@
 import { hostFiles } from "@/lib/engine/host-files";
 import * as React from "react";
+import { currentAppId, renameBoundsKeys } from "@/lib/core/renamed-apps";
 import { getEngine } from "@/lib/engine/engine";
 import { usePiloti } from "@/lib/engine/piloti";
 import { usePortalWallpaper } from "@domicile-desktop/react/portals";
@@ -315,9 +316,9 @@ const DEFAULT_WEB_PINNED_APP_IDS = [
   "nautilus",
   "browser",
   "terminal",
-  "text-editor",
+  "texts",
   "calculator",
-  "camera",
+  "selfies",
   "piloti-demo",
   "app-store",
   "settings",
@@ -409,7 +410,9 @@ export function resolveInitialSettings(
           : rawWebApps;
 
         const pinnedAppIds = needsWebDefaults
-          ? normalizeWebPinnedApps(parsed.pinnedAppIds)
+          ? normalizeWebPinnedApps(
+              Array.isArray(parsed.pinnedAppIds) ? parsed.pinnedAppIds.map(currentAppId) : parsed.pinnedAppIds,
+            )
           : Array.isArray(parsed.pinnedAppIds)
             ? parsed.pinnedAppIds
             : DEFAULT_SETTINGS.pinnedAppIds;
@@ -478,12 +481,12 @@ export function resolveInitialSettings(
           notificationHistoryLimit,
           workspaceCount,
           activeWorkspace,
-          pinnedAppIds,
+          pinnedAppIds: pinnedAppIds.map(currentAppId),
           installedWebApps,
           ...(isBrowserBackend
             ? { webAppsSeeded: true, webDefaultsVersion: WEB_DEFAULTS_VERSION }
             : {}),
-          savedWindowBounds: parsed.savedWindowBounds ?? {},
+          savedWindowBounds: renameBoundsKeys(parsed.savedWindowBounds ?? {}),
         };
       }
     } catch {
@@ -565,7 +568,7 @@ export function useSettingsValue(options?: {
       return {
         ...base,
         savedWindowBounds: separatedBounds
-          ? { ...base.savedWindowBounds, ...separatedBounds }
+          ? { ...base.savedWindowBounds, ...renameBoundsKeys(separatedBounds) }
           : base.savedWindowBounds,
         desktopIconPositions: separatedIcons
           ? { ...base.desktopIconPositions, ...separatedIcons }
@@ -667,7 +670,7 @@ export function useSettingsValue(options?: {
   const applySystemSettingsRef = React.useRef(applySystemSettings);
   applySystemSettingsRef.current = applySystemSettings;
 
-  // Seed settings.ini in VFS on first run so users can inspect/edit it in Files or Text Editor,
+  // Seed settings.ini in VFS on first run so users can inspect/edit it in Files or Texts,
   // and subscribe to live VFS edits on settings.ini, window-bounds.json, and desktop-icons.json.
   React.useEffect(() => {
     try {

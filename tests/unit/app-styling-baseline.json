@@ -1,7 +1,6 @@
 {
   "app-store/AppStoreApp.tsx": 252,
   "calculator/CalculatorApp.tsx": 244,
-  "camera/CameraApp.tsx": 17,
   "console/ConsoleApp.tsx": 410,
   "desktop-icons/DesktopIconsApp.tsx": 9,
   "files/FileItemContextMenu.tsx": 2,
@@ -10,6 +9,7 @@
   "image-viewer/ImageViewerApp.tsx": 61,
   "login/LoginScreenApp.tsx": 75,
   "piloti-demo/PilotiDemoApp.tsx": 6,
+  "selfies/SelfiesApp.tsx": 17,
   "settings/AppearancePane.tsx": 8,
   "settings/DisplaysPane.tsx": 13,
   "settings/DockPane.tsx": 11,
@@ -20,5 +20,5 @@
   "settings/WallpaperPane.tsx": 60,
   "system-monitor/SystemMonitorApp.tsx": 29,
   "terminal/XtermTerminalApp.tsx": 9,
-  "text-editor/TextEditorApp.tsx": 74
+  "texts/TextsApp.tsx": 74
 }

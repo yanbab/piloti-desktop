@@ -227,12 +227,12 @@ export type BuiltinAppId =
   | "settings"
   | "console"
   | "files"
-  | "text-editor"
+  | "texts"
   | "terminal"
   | "app-store"
   | "calculator"
   | "image-viewer"
-  | "camera"
+  | "selfies"
   | "system-monitor"
   | "login-screen"
   | "piloti-demo"
@@ -349,7 +349,7 @@ const APP_MENUS: Record<string, AppMenuSection[]> = {
       ],
     },
   ],
-  "text-editor": [
+  "texts": [
     {
       title: "File",
       items: [
@@ -359,11 +359,11 @@ const APP_MENUS: Record<string, AppMenuSection[]> = {
     {
       title: "View",
       items: [
-        { label: "Line Numbers", actionId: "text-editor:toggle-line-numbers", checked: false },
-        { label: "Syntax Highlighting", actionId: "text-editor:toggle-syntax", checked: true },
-        { label: "Word Wrap", actionId: "text-editor:toggle-word-wrap", checked: false },
-        { label: "Active Line", actionId: "text-editor:toggle-active-line", checked: false },
-        { label: "Cursor Position", actionId: "text-editor:toggle-cursor-position", checked: false, separatorAfter: true },
+        { label: "Line Numbers", actionId: "texts:toggle-line-numbers", checked: false },
+        { label: "Syntax Highlighting", actionId: "texts:toggle-syntax", checked: true },
+        { label: "Word Wrap", actionId: "texts:toggle-word-wrap", checked: false },
+        { label: "Active Line", actionId: "texts:toggle-active-line", checked: false },
+        { label: "Cursor Position", actionId: "texts:toggle-cursor-position", checked: false, separatorAfter: true },
         { label: "Open New Windows Separately", actionId: "shell:run-separately", checked: false },
       ],
     },

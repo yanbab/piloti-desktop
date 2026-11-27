@@ -56,14 +56,14 @@ describe("menu shortcut collection", () => {
 
 describe("per-app help links", () => {
   it("slugifies app names", () => {
-    expect(slugifyAppName("Text Editor")).toBe("text-editor");
+    expect(slugifyAppName("Texts")).toBe("texts");
     expect(slugifyAppName("  Desktop  Settings! ")).toBe("desktop-settings");
   });
 
   it("builds website and issue URLs", () => {
-    expect(buildAppHelpLinks("Text Editor")).toEqual({
-      websiteUrl: "https://yanbab.github.io/piloti-desktop/#text-editor",
-      issueUrl: "https://github.com/yanbab/piloti-desktop/issues/new?title=Text%20Editor%20issue",
+    expect(buildAppHelpLinks("Texts")).toEqual({
+      websiteUrl: "https://yanbab.github.io/piloti-desktop/#texts",
+      issueUrl: "https://github.com/yanbab/piloti-desktop/issues/new?title=Texts%20issue",
     });
   });
 

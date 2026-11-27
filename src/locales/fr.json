@@ -176,7 +176,6 @@
   "Medium": "Moyen",
   "Memory": "Mémoire",
   "Min": "Réd.",
-  "Minimal plain-text notepad with instant localStorage VFS save": "Éditeur de texte léger avec sauvegarde instantanée",
   "Minimize": "Réduire",
   "Minimize Button": "Bouton de réduction",
   "Minimized": "Réduite",
@@ -867,5 +866,8 @@
   "Show On-Screen Keyboard": "Afficher le clavier virtuel",
   "Keyboard Settings\u2026": "Réglages du clavier…",
   "Install tecla to show the keyboard layout.": "Installez tecla pour afficher la disposition du clavier.",
-  "Install wvkbd or squeekboard to type on screen.": "Installez wvkbd ou squeekboard pour saisir à l’écran."
+  "Install wvkbd or squeekboard to type on screen.": "Installez wvkbd ou squeekboard pour saisir à l’écran.",
+  "Texts": "Textes",
+  "Selfies": "Selfies",
+  "Edit plain text and Markdown files": "Modifier des fichiers texte et Markdown"
 }

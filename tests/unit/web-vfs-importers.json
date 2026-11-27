@@ -12,7 +12,7 @@
   "hooks/use-open-path.ts",
   "lib/engine/fs-bridge.ts",
   "lib/engine/shell-log.ts",
-  "lib/engine/text-editor-host-shell.tsx",
+  "lib/engine/texts-host-shell.tsx",
   "lib/engine/vfs-state.ts",
   "piloti-desktop.tsx",
   "piloti-web.tsx",

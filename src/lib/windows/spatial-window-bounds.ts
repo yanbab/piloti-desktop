@@ -10,7 +10,7 @@ export interface SavedWindowBounds {
 
 export const DOCUMENT_SCOPED_APP_IDS = new Set([
   "nautilus",
-  "text-editor",
+  "texts",
   "image-viewer",
   "terminal",
 ]);

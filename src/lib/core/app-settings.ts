@@ -51,7 +51,7 @@ export function getAppSettingsVersion(): number {
 
 export function subscribeAppSettings(listener: () => void): () => void {
   listeners.add(listener);
-  // Edits made in Folders / Text Editor apply live.
+  // Edits made in Folders / Texts apply live.
   unsubscribeAll ??= backend.subscribeAll(notify);
   return () => {
     listeners.delete(listener);

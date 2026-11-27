@@ -138,7 +138,7 @@ describe("vfs-state", () => {
     writeVfsTextFile("/home/user/Documents/other.txt", "hello");
     expect(updates).toEqual([]);
 
-    // Live edit simulating Text Editor / Files update triggers subscriber
+    // Live edit simulating Texts / Files update triggers subscriber
     writeVfsTextFile(VFS_STATE_PATHS.settingsPane, "dock\n");
     expect(updates).toEqual(["dock\n"]);
 

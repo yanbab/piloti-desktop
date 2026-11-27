@@ -4,18 +4,23 @@
  * the app's settings (`~/.config/piloti/apps/<app-id>.ini`, key `run-in`).
  */
 import { getAppSetting, setAppSetting } from "@/lib/core/app-settings";
+import { formerAppId } from "@/lib/core/renamed-apps";
 
 export type RunIn = "shell" | "isolated";
 
 /** Apps with both an app module (`src/apps/<id>`) and an iframe entry. */
-const ISOLATABLE = new Set(["text-editor"]);
+const ISOLATABLE = new Set(["texts"]);
 
 export const RUN_SEPARATELY_ACTION = "shell:run-separately";
 
 export const canRunIsolated = (appId: string): boolean => ISOLATABLE.has(appId);
 
-export const getRunIn = (appId: string): RunIn =>
-  canRunIsolated(appId) && getAppSetting(appId, "run-in") === "isolated" ? "isolated" : "shell";
+export function getRunIn(appId: string): RunIn {
+  const former = formerAppId(appId);
+  const chosen =
+    getAppSetting(appId, "run-in") ?? (former ? getAppSetting(former, "run-in") : undefined);
+  return canRunIsolated(appId) && chosen === "isolated" ? "isolated" : "shell";
+}
 
 export const setRunIn = (appId: string, runIn: RunIn): void =>
   setAppSetting(appId, "run-in", runIn === "isolated" ? runIn : null);
