@@ -2762,6 +2762,26 @@ function pruneBrowserRecord(
     [altTabIndex, focusWindow, mruWindows]
   );
 
+  // Focus follows a workspace switch: its top window, or none when it is empty.
+  const focusWorkspaceRef = React.useRef(settings.activeWorkspace);
+  React.useEffect(() => {
+    if (focusWorkspaceRef.current === settings.activeWorkspace) return;
+    focusWorkspaceRef.current = settings.activeWorkspace;
+    const shown = combinedWindows.filter(
+      (w) => !w.minimized && (w.pinned || w.workspace === settings.activeWorkspace)
+    );
+    if (shown.some((w) => w.id === focusedWindowId)) return;
+    const top = shown.sort((a, b) => b.zIndex - a.zIndex)[0];
+    if (top) focusWindow(top.id);
+    else clearFocusedWindow();
+  }, [
+    clearFocusedWindow,
+    combinedWindows,
+    focusWindow,
+    focusedWindowId,
+    settings.activeWorkspace,
+  ]);
+
   const closeAltTab = React.useCallback(() => {
     setAltTabState((prev) => (prev.open ? { ...prev, open: false } : prev));
   }, []);
