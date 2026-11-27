@@ -4,17 +4,8 @@ import { retainVfsWatch } from "@/lib/engine/vfs-query";
 import { usePiloti } from "@/lib/engine/piloti";
 import { getEngine } from "@/lib/engine/engine";
 import { emitShellEvent, onShellEvent } from "@/lib/shell/shell-events";
-import {
-  CheckIcon,
-  CropIcon,
-  Maximize2Icon,
-  RotateCcwIcon,
-  RotateCwIcon,
-  SaveIcon,
-  XIcon,
-  ZoomInIcon,
-  ZoomOutIcon,
-} from "lucide-react";
+import { CropIcon } from "lucide-react";
+import { CheckIcon, Maximize2Icon, RotateCcwIcon, RotateCwIcon, SaveIcon, XIcon, ZoomInIcon, ZoomOutIcon } from "@/components/ui/symbols";
 import { UnsavedChangesDialog } from "@/components/ui/unsaved-changes-dialog";
 import { useAppChrome } from "@/components/elements/app-chrome";
 import { HeaderBar } from "@/components/elements/header-bar";
@@ -652,7 +643,7 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
           onPointerMove={(e) => e.stopPropagation()}
           onPointerUp={(e) => e.stopPropagation()}
           onWheel={(e) => e.stopPropagation()}
-          className="absolute bottom-3 left-1/2 z-20 cursor-default flex -translate-x-1/2 items-center gap-1 rounded-ui-box border border-white/15 bg-zinc-900/80 p-1 text-white shadow-xl backdrop-blur-md"
+          className="absolute bottom-3 left-1/2 z-20 cursor-default flex -translate-x-1/2 items-center gap-1 rounded-ui-box border border-white/15 bg-ui-hud-dark p-1 text-ui-hud-dark-label shadow-xl backdrop-blur-md"
         >
           <button
             type="button"

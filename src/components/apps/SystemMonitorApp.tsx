@@ -46,7 +46,7 @@ import {
   type WidgetLayout,
   type WidgetSize,
 } from "@/lib/shell/widget-grid";
-import { XIcon } from "lucide-react";
+import { XIcon } from "@/components/ui/symbols";
 
 /**
  * System Monitor: one page of widgets, always fitted to the window, that the

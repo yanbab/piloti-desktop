@@ -39,7 +39,6 @@ export function vfsEntryToGridItem(
     path: entry.path,
     iconName: visual.iconName,
     iconCandidates: visual.iconCandidates,
-    gradient: visual.gradient,
     isEmpty: isVfsEntryEmpty(entry),
     isHidden,
     isSymlink: entry.isSymlink,

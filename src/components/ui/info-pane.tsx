@@ -1,5 +1,5 @@
 import * as React from "react"
-import { InfoIcon } from "lucide-react"
+import { InfoIcon } from "@/components/ui/symbols";
 
 import { _ } from "@/lib/core/i18n"
 import { cn } from "@/lib/core/utils"

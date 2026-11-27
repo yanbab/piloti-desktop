@@ -4,14 +4,7 @@ import * as React from "react";
 import { useCapabilities } from "@/hooks/use-capabilities";
 import { usePiloti } from "@/lib/engine/piloti";
 import { useWatch } from "@domicile-desktop/react/use-watch";
-import {
-  FolderOpenIcon,
-  PlusIcon,
-  PuzzleIcon,
-  RefreshCwIcon,
-  Trash2Icon,
-  UsbIcon,
-} from "lucide-react";
+import { FolderOpenIcon, PlusIcon, PuzzleIcon, RefreshCwIcon, Trash2Icon, UsbIcon } from "@/components/ui/symbols";
 import {
   useSystemBackends,
   useWindowActions,

@@ -417,6 +417,20 @@ export const DynamicFolderIcon: React.FC<DynamicFolderIconProps> = ({
   );
 };
 
+/** A special folder's badge alone, laid over a folder drawn on the same 64px grid. */
+export function FolderBadge({ badge, accentColor, opened }: { badge: FolderBadgeKind; accentColor?: AccentColorId; opened?: boolean }) {
+  return (
+    <svg viewBox="0 0 64 64" aria-hidden="true" data-folder-badge={badge} className="pointer-events-none absolute inset-0 size-full">
+      <g
+        fill={getFolderShades(accentColor).emblem}
+        style={{ transform: opened ? "translateY(3px)" : "none", transition: FOLDER_OPEN_TRANSITION }}
+      >
+        {renderFolderBadgeGlyph(badge)}
+      </g>
+    </svg>
+  );
+}
+
 export interface DynamicFileIconProps {
   accentColor?: AccentColorId;
   badge?: FileBadgeKind;

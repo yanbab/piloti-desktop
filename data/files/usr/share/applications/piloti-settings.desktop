@@ -14,6 +14,5 @@ X-Piloti-Order=10
 X-Piloti-Pinned=true
 X-Piloti-IconName=settings
 X-Piloti-XdgIcons=preferences-desktop;preferences-system;org.gnome.Settings;piloti-settings;
-X-Piloti-Gradient=from-slate-400 via-zinc-500 to-zinc-700
 X-Piloti-Size=860x550
 X-Piloti-MinSize=320x400

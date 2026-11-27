@@ -119,6 +119,20 @@
   --ui-radius-box: 12px;
   --ui-radius-window: 15px;
 
+  /* Dark in both colour modes: pills, badges and toolbars over any content */
+  --ui-hud-dark: rgb(24 24 27 / 0.92);
+  --ui-hud-dark-label: #ffffff;
+  --ui-hud-dark-border: rgb(255 255 255 / 0.15);
+
+  /* Light in both modes: small marks drawn on icons */
+  --ui-emblem: #ffffff;
+  --ui-emblem-label: #27272a;
+
+  /* Terminal (xterm.js needs plain colours) */
+  --ui-terminal-background: #fafafa;
+  --ui-terminal-label: #1e1e1e;
+  --ui-terminal-selection: #cfcfcf;
+
   /* Type roles (size scales with the font scale setting) */
   --ui-font-title: calc(17px * var(--piloti-font-scale, 1));
   --ui-font-body: calc(13px * var(--piloti-font-scale, 1));
@@ -166,6 +180,10 @@
 }
 
 .dark {
+  --ui-terminal-background: #1e1e1e;
+  --ui-terminal-label: #e6e6e6;
+  --ui-terminal-selection: #4a4a4a;
+
   --ui-blue: #3584e4;
   --ui-teal: #2190a4;
   --ui-green: #3a944a;
@@ -399,6 +417,11 @@
   --color-ui-glass-pressed: var(--ui-glass-pressed);
   --color-ui-glass-selected: var(--ui-glass-selected);
   --color-ui-scrim: var(--ui-scrim);
+  --color-ui-hud-dark: var(--ui-hud-dark);
+  --color-ui-hud-dark-label: var(--ui-hud-dark-label);
+  --color-ui-hud-dark-border: var(--ui-hud-dark-border);
+  --color-ui-emblem: var(--ui-emblem);
+  --color-ui-emblem-label: var(--ui-emblem-label);
 
   --radius-ui-control: var(--ui-radius-control);
   --radius-ui-box: var(--ui-radius-box);

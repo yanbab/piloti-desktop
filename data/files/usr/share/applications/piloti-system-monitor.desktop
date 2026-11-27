@@ -14,6 +14,5 @@ X-Piloti-Order=100
 X-Piloti-Pinned=false
 X-Piloti-IconName=code
 X-Piloti-XdgIcons=piloti-system-monitor;utilities-system-monitor;
-X-Piloti-Gradient=from-indigo-700 via-slate-800 to-zinc-950
 X-Piloti-Size=560x520
 X-Piloti-MinSize=320x320

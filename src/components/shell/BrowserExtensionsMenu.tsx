@@ -1,5 +1,6 @@
 import * as React from "react";
-import { PinIcon, PinOffIcon, PuzzleIcon, SettingsIcon } from "lucide-react";
+import { PinOffIcon } from "lucide-react";
+import { PinIcon, PuzzleIcon, SettingsIcon } from "@/components/ui/symbols";
 import {
   DropdownMenu,
   DropdownMenuContent,

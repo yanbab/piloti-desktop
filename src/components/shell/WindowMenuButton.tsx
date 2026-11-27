@@ -34,7 +34,6 @@ export const WindowMenuButton = React.memo(function WindowMenuButton({
   appId?: string;
   iconUrl?: string;
   iconName?: string;
-  gradient?: string;
   isWebApp?: boolean;
   extraItems?: React.ReactNode;
 }) {
@@ -179,7 +178,8 @@ export function WindowMenuItems({
           checked={item.checked?.(windowId) ?? false}
           onCheckedChange={run(() => item.onSelect(windowId))}
         >
-          {item.label}
+          {/* Plugins register English labels; known ones are translated. */}
+          {_(item.label)}
         </DropdownMenuCheckboxItem>
       ))}
       <DropdownMenuSeparator />

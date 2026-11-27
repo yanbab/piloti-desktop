@@ -114,7 +114,6 @@ export const Dock = React.memo(function Dock() {
         browserWindowId: w.browserWindowId,
         iconName: w.iconName,
         iconUrl: w.iconUrl,
-        gradient: w.gradient,
       })),
       focusedWindowId: wm.focusedWindowId,
       launchingApps: wm.launchingApps,
@@ -357,7 +356,6 @@ export const Dock = React.memo(function Dock() {
           iconName:
             visual.iconName === "notes" ? "file-text" : visual.iconName,
           iconUrl: xdgMatch.iconUrl ?? getAppIconUrl(xdgMatch.appId),
-          gradient: visual.gradient,
           pinnedByDefault: false,
           defaultSize: { width: 740, height: 480 },
           menus: [],
@@ -377,7 +375,6 @@ export const Dock = React.memo(function Dock() {
           iconName: "globe",
           iconUrl: webMatch.iconUrl || getWebAppFaviconUrl(webMatch.url),
           isWebApp: true,
-          gradient: "from-cyan-400 via-blue-500 to-indigo-600",
           pinnedByDefault: false,
           defaultSize: { width: 1040, height: 720 },
           menus: [],
@@ -398,7 +395,6 @@ export const Dock = React.memo(function Dock() {
             winMatch.iconUrl ??
             (isWebApp ? undefined : getAppIconUrl(winMatch.appId)),
           isWebApp,
-          gradient: winMatch.gradient || "from-violet-500 to-indigo-600",
           pinnedByDefault: false,
           defaultSize: { width: 720, height: 480 },
           menus: [],
@@ -417,7 +413,6 @@ export const Dock = React.memo(function Dock() {
           iconName: "globe",
           iconUrl: getWebAppFaviconUrl(rawUrl),
           isWebApp: true,
-          gradient: "from-cyan-400 via-blue-500 to-indigo-600",
           pinnedByDefault: false,
           defaultSize: { width: 1040, height: 720 },
           menus: [],
@@ -787,7 +782,6 @@ export const Dock = React.memo(function Dock() {
                       app.isWebApp ? getAppIconUrl("browser") : undefined
                     }
                     squircle={app.isWebApp}
-                    gradient={app.gradient}
                     playNonce={launchNonces[app.id]}
                     className="size-full"
                     glyphClassName="size-[56%]"
@@ -1105,7 +1099,6 @@ export const Dock = React.memo(function Dock() {
                 iconUrl={overlayApp.iconUrl ?? getAppIconUrl(overlayApp.id)}
                 fallbackIconUrl={overlayApp.isWebApp ? getAppIconUrl("browser") : undefined}
                 squircle={overlayApp.isWebApp}
-                gradient={overlayApp.gradient}
                 className="size-full"
                 glyphClassName="size-[56%]"
               />

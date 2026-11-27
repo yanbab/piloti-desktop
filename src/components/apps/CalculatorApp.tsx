@@ -1,7 +1,7 @@
 import { useAppChrome } from "@/components/elements/app-chrome";
 import * as React from "react";
 import { emitShellEvent, onShellEvent } from "@/lib/shell/shell-events";
-import { ChevronDownIcon, XIcon } from "lucide-react";
+import { XIcon } from "@/components/ui/symbols";
 import {
   DropdownMenu,
   DropdownMenuContent,

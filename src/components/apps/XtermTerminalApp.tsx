@@ -17,7 +17,7 @@ import {
 import { getEngine } from "@/lib/engine/engine";
 import { setDemoApps } from "@/lib/engine/demo-processes";
 import { readLoginShells, startShell, type BashSession, type LoginShell } from "@/lib/engine-native/pty-bridge";
-import { ChevronDownIcon } from "lucide-react";
+import { ChevronDownIcon } from "@/components/ui/symbols";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -41,8 +41,13 @@ import { HeaderBar } from "@/components/elements/header-bar";
 const PILOTI = "piloti";
 const AUTOEXEC = "~/.config/piloti-shell/autoexec.psh";
 
-const DARK = { background: "#1e1e1e", foreground: "#e6e6e6", cursor: "#e6e6e6", selectionBackground: "#4a4a4a" };
-const LIGHT = { background: "#fafafa", foreground: "#1e1e1e", cursor: "#1e1e1e", selectionBackground: "#cfcfcf" };
+/** The terminal colour tokens, as the page resolves them now. */
+function terminalTheme() {
+  const style = getComputedStyle(document.documentElement);
+  const token = (name: string) => style.getPropertyValue(`--ui-terminal-${name}`).trim();
+  const foreground = token("label");
+  return { background: token("background"), foreground, cursor: foreground, selectionBackground: token("selection") };
+}
 
 /**
  * Terminal on xterm.js with two modes: `bash` (the user's shell on a real
@@ -66,7 +71,7 @@ export function XtermTerminalApp({
   windowId?: string;
 }) {
   const piloti = usePiloti();
-  const settings = useDesktopSettings(["themeMode", "accentColor", "customAccentHex", "fontScale", "fontMonoFamily"]);
+  const settings = useDesktopSettings(["accentColor", "customAccentHex", "fontScale", "fontMonoFamily"]);
   const updateSettings = useUpdateSettings();
   const { pushNotification } = useSystemBackends();
   const { launchApp } = useWindowActions();
@@ -245,10 +250,14 @@ export function XtermTerminalApp({
     [windowId],
   );
 
+  // Light and dark switch on the root element, also in automatic mode.
   React.useEffect(() => {
-    const term = termRef.current;
-    if (term) term.options.theme = settings.themeMode === "dark" ? DARK : LIGHT;
-  }, [settings.themeMode]);
+    const observer = new MutationObserver(() => {
+      if (termRef.current) termRef.current.options.theme = terminalTheme();
+    });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class", "data-interface-theme"] });
+    return () => observer.disconnect();
+  }, []);
 
   // The terminal takes the keyboard whenever its window is focused.
   // The terminal draws its own text: give it the font settings.
@@ -270,7 +279,7 @@ export function XtermTerminalApp({
     const term = termRef.current;
     if (!term || !mode) return;
     term.reset();
-    term.options.theme = settings.themeMode === "dark" ? DARK : LIGHT;
+    term.options.theme = terminalTheme();
     let cancelled = false;
     let input: { dispose(): void } | null = null;
 
@@ -359,7 +368,7 @@ export function XtermTerminalApp({
   return (
     <div
       className="flex h-full min-h-0 flex-col"
-      style={{ background: (settings.themeMode === "dark" ? DARK : LIGHT).background }}
+      style={{ background: "var(--ui-terminal-background)" }}
     >
       {/* Header bar, GNOME-style: the shell menu is the title. */}
       {/* Header clicks must not take the keyboard from the terminal. */}

@@ -1,11 +1,6 @@
 import * as React from "react";
-import {
-  ArrowLeftIcon,
-  ArrowRightIcon,
-  EyeIcon,
-  EyeOffIcon,
-  Loader2Icon,
-} from "lucide-react";
+import { Loader2Icon } from "lucide-react";
+import { ArrowLeftIcon, ArrowRightIcon, EyeIcon, EyeOffIcon } from "@/components/ui/symbols";
 import { Button } from "@/components/ui/button";
 import { _ } from "@/lib/core/i18n";
 import { cn } from "@/lib/core/utils";

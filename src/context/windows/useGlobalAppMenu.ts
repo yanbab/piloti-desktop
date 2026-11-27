@@ -54,7 +54,6 @@ export function useGlobalAppMenu({
           ...(APP_CATALOG.find((a) => a.id === "browser") ?? {
             category: "Internet" as const,
             iconName: "globe" as const,
-            gradient: "from-cyan-400 via-blue-500 to-indigo-600",
             pinnedByDefault: false,
             defaultSize: { width: 880, height: 560 },
             menus: [],
@@ -98,7 +97,6 @@ export function useGlobalAppMenu({
       description: "Piloti Desktop Shell",
       category: "System",
       iconName: "sparkles",
-      gradient: "from-blue-500 to-indigo-600",
       pinnedByDefault: false,
       defaultSize: { width: 800, height: 500 },
       menus: [

@@ -66,7 +66,6 @@ export interface DesktopWindowInstance {
   title: string;
   iconName: string;
   iconUrl?: string;
-  gradient: string;
   builtinComponent?: BuiltinAppId;
   /** Browser demo: the built-in app runs in its own iframe. */
   isolated?: boolean;
@@ -410,7 +409,6 @@ export function useWindowsValue(
               appId: rec.id,
               title: rec.title || def.name,
               iconName: def.iconName,
-              gradient: def.gradient,
               builtinComponent: def.builtinComponent,
               isolated:
                 !getEngine().capabilities.systemServices && getRunIn(rec.id) === "isolated",
@@ -454,7 +452,6 @@ export function useWindowsValue(
           appId: "settings",
           title: "Desktop Settings",
           iconName: settingsDef.iconName,
-          gradient: settingsDef.gradient,
           builtinComponent: "settings",
           clientFrame: true,
           workspace: saved?.workspace ?? 1,
@@ -1113,7 +1110,6 @@ function pruneBrowserRecord(
           title: w.title || xdgMatch?.name || matched.name || w.appId,
           iconName: matched.iconName,
           iconUrl: resolvedIconUrl,
-          gradient: matched.gradient,
           waylandAppId: w.appId,
           waylandDesktopId: w.desktopId,
           pid: w.pid,
@@ -1215,7 +1211,6 @@ function pruneBrowserRecord(
         title: described.title,
         iconName: "globe",
         iconUrl: described.iconUrl,
-        gradient: "from-cyan-400 via-blue-500 to-indigo-600",
         browserWindowId: bw.id,
         browserUrl: bw.url,
         browserIsApp: bw.isApp,
@@ -2271,7 +2266,6 @@ function pruneBrowserRecord(
               ? options.payload.split("/").pop() || builtinDef.name
               : builtinDef.name,
           iconName: builtinDef.iconName,
-          gradient: builtinDef.gradient,
           builtinComponent: builtinKind,
           isolated,
           clientFrame:

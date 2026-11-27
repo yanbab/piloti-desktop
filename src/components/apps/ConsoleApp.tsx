@@ -6,21 +6,8 @@ import { useCapabilities } from "@/hooks/use-capabilities";
 import { useDisplays } from "@domicile-desktop/react/displays";
 import { usePiloti } from "@/lib/engine/piloti";
 import { useWatch } from "@domicile-desktop/react/use-watch";
-import {
-  AppWindowIcon,
-  BellIcon,
-  GaugeIcon,
-  ChevronRightIcon,
-  CpuIcon,
-  DatabaseIcon,
-  LayoutGridIcon,
-  Maximize2Icon,
-  MinusIcon,
-  MonitorIcon,
-  ScrollTextIcon,
-  SettingsIcon,
-  XIcon,
-} from "lucide-react";
+import { GaugeIcon, CpuIcon, DatabaseIcon } from "lucide-react";
+import { AppWindowIcon, BellIcon, LayoutGridIcon, MonitorIcon, SettingsIcon } from "@/components/ui/symbols";
 import { ObjectView, themeGitHubLight, themeOneDark } from "react-obj-view";
 import "react-obj-view/dist/react-obj-view.css";
 import { AppSquircleIcon } from "@/components/shell/AppSymbol";

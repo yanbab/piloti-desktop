@@ -3,7 +3,7 @@ import { HeaderBar } from "@/components/elements/header-bar";
 import { Segmented } from "@/components/ui/segmented";
 import { useCapabilities } from "@/hooks/use-capabilities";
 import { usePiloti } from "@/lib/engine/piloti";
-import { CameraIcon, MicIcon, VideoIcon } from "lucide-react";
+import { CameraIcon, MicIcon, VideoIcon } from "@/components/ui/symbols";
 import { emitShellEvent } from "@/lib/shell/shell-events";
 import { useApps, useSettings } from "@/context/DesktopStateContext";
 import { resolveUserDirPath } from "@/lib/xdg/xdg-user-dirs";

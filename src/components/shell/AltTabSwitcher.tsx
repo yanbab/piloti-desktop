@@ -2,7 +2,7 @@ import * as React from "react";
 import { useCapabilities } from "@/hooks/use-capabilities";
 import { usePiloti } from "@/lib/engine/piloti";
 import { PreviewedWindow } from "@domicile-desktop/sdk/previewed-window";
-import { Minimize2Icon, SparklesIcon } from "lucide-react";
+import { SparklesIcon } from "lucide-react";
 import {
   useApps,
   useSettings,
@@ -25,26 +25,26 @@ function WindowMiniPreview({
         src={captureUrl}
         alt={win.title}
         draggable={false}
-        className="h-full w-full bg-zinc-950 object-contain"
+        className="h-full w-full bg-ui-hud-dark object-contain"
       />
     );
   }
 
   if (win.appId === "settings") {
     return (
-      <div className="flex h-full bg-zinc-900/90 text-ui-caption">
+      <div className="flex h-full bg-ui-hud-dark text-ui-caption">
         <div className="flex w-1/3 flex-col gap-1.5 border-r border-white/10 bg-white/5 p-2">
-          <div className="h-2 w-4/5 rounded-full bg-sky-500/60" />
+          <div className="h-2 w-4/5 rounded-full bg-ui-accent/60" />
           <div className="h-2 w-3/4 rounded-full bg-white/20" />
           <div className="h-2 w-2/3 rounded-full bg-white/15" />
           <div className="h-2 w-4/5 rounded-full bg-white/15" />
         </div>
         <div className="flex flex-1 flex-col gap-2 p-2.5">
           <div className="flex gap-1.5">
-            <span className="size-3 rounded-full bg-blue-500" />
-            <span className="size-3 rounded-full bg-purple-500" />
-            <span className="size-3 rounded-full bg-pink-500" />
-            <span className="size-3 rounded-full bg-emerald-500" />
+            <span className="size-3 rounded-full bg-ui-blue" />
+            <span className="size-3 rounded-full bg-ui-purple" />
+            <span className="size-3 rounded-full bg-ui-pink" />
+            <span className="size-3 rounded-full bg-ui-green" />
           </div>
           <div className="h-5 rounded-ui-control bg-white/10" />
           <div className="h-5 rounded-ui-control bg-white/10" />
@@ -54,12 +54,11 @@ function WindowMiniPreview({
   }
 
   return (
-    <div className="flex h-full flex-col items-center justify-center gap-1.5 bg-gradient-to-br from-zinc-900 to-zinc-950 p-3 text-center">
+    <div className="flex h-full flex-col items-center justify-center gap-1.5 bg-ui-hud-dark p-3 text-center">
       <AppSquircleIcon
         iconName={win.iconName}
         iconUrl={win.iconUrl}
         squircle={Boolean(win.browserWindowId)}
-        gradient={win.gradient}
         className="size-9"
         glyphClassName="size-5"
       />
@@ -177,7 +176,6 @@ export function AltTabSwitcher() {
                         win.browserWindowId ? getAppIconUrl("browser") : undefined
                       }
                       squircle={Boolean(win.browserWindowId)}
-                      gradient={win.gradient}
                       className="size-16"
                       glyphClassName="size-8"
                     />

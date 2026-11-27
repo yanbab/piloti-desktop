@@ -18,32 +18,8 @@ import { createPortal } from "react-dom";
 import { usePiloti } from "@/lib/engine/piloti";
 import { useTemplatesDirPath } from "@/hooks/use-desktop-dir";
 import { parentPath } from "@/lib/ports/vfs";
-import {
-  AlertCircleIcon,
-  ArrowLeftIcon,
-  BriefcaseIcon,
-  ChevronDownIcon,
-  ChevronRightIcon,
-  ClockIcon,
-  DownloadIcon,
-  EjectIcon,
-  FileTextIcon,
-  FolderIcon,
-  HeartIcon,
-  HomeIcon,
-  ImageIcon,
-  InfoIcon,
-  LayoutGridIcon,
-  ListIcon,
-  MonitorIcon,
-  MusicIcon,
-  SearchIcon,
-  TagIcon,
-  Trash2Icon,
-  UsbIcon,
-  VideoIcon,
-  XIcon,
-} from "lucide-react";
+import { BriefcaseIcon, HeartIcon, TagIcon } from "lucide-react";
+import { AlertCircleIcon, ArrowLeftIcon, ChevronDownIcon, ChevronRightIcon, ClockIcon, DownloadIcon, EjectIcon, FileTextIcon, FolderIcon, HomeIcon, ImageIcon, LayoutGridIcon, ListIcon, MonitorIcon, MusicIcon, Trash2Icon, UsbIcon, VideoIcon, XIcon } from "@/components/ui/symbols";
 import {
   isSimulatedUsbPath,
   SIMULATED_USB_LABEL,
@@ -101,9 +77,9 @@ import { captureLaunchOriginFromElement } from "@/lib/shell/launch-origin";
 import { APP_CATALOG } from "@/data/catalog";
 import { AppMenuItems } from "@/components/shell/AppMenuItems";
 import { getWebAppFaviconUrl, resolveWebAppTitle } from "@/data/web-apps";
+import { ThemeFolderIcon } from "@/components/ui/folder-icon";
 import {
   DynamicFileIcon,
-  DynamicFolderIcon,
   registerOpenFolderPath,
   useOpenFolderPaths,
 } from "@/data/folder-icons";
@@ -783,7 +759,6 @@ export function FilesApp({
             ? "notes"
             : app.iconName) as AppSymbolName,
           iconUrl: getAppIconUrl(app.id),
-          gradient: app.gradient,
         });
       }
       for (const entry of installedXdgApps) {
@@ -1650,7 +1625,7 @@ export function FilesApp({
             <div className="flex flex-col items-center gap-2 border-b border-ui-separator pb-3 text-center">
               <div className="size-16 shrink-0">
                 {!inspectedItem || inspectedItem.kind === "directory" ? (
-                  <DynamicFolderIcon
+                  <ThemeFolderIcon
                     accentColor={settings.accentColor}
                     opened={false}
                     pathOrName={inspectedItem?.path ?? currentPath}
@@ -1935,7 +1910,7 @@ export function FilesApp({
       >
         {externalDrop.active && (
           <div className="pointer-events-none absolute inset-2 z-20 flex items-end justify-center rounded-ui-box border-2 border-dashed border-ui-accent/70 bg-ui-accent/10 pb-3">
-            <span className="rounded-full bg-zinc-900/90 px-3 py-1 text-ui-body font-medium text-white shadow-sm ring-1 ring-white/10">
+            <span className="rounded-full bg-ui-hud-dark px-3 py-1 text-ui-body font-medium text-ui-hud-dark-label shadow-sm ring-1 ring-ui-hud-dark-border">
               {_("Drop files to copy here")}
             </span>
           </div>
@@ -2071,12 +2046,11 @@ export function FilesApp({
                               <AppSquircleIcon
                                 iconName={item.iconName}
                                 iconUrl={item.iconUrl}
-                                gradient={item.gradient}
                                 squircle={item.id.startsWith("app:web:")}
                                 className="size-full"
                               />
                             ) : item.kind === "directory" ? (
-                              <DynamicFolderIcon
+                              <ThemeFolderIcon
                                 accentColor={settings.accentColor}
                                 opened={openFolderPaths.has(item.path)}
                                 pathOrName={item.path || item.name}
@@ -2112,7 +2086,7 @@ export function FilesApp({
                               onBlur={(e) =>
                                 handleCommitRename(item, e.currentTarget.value)
                               }
-                              className="min-w-28 rounded bg-zinc-900/95 px-1.5 py-0.5 text-ui-body font-medium text-white ring-1 ring-ui-accent outline-none"
+                              className="min-w-28 rounded bg-ui-hud-dark px-1.5 py-0.5 text-ui-body font-medium text-ui-hud-dark-label ring-1 ring-ui-accent outline-none"
                             />
                           ) : (
                             <span className="truncate">{item.name}</span>

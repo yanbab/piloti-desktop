@@ -29,7 +29,7 @@ import {
   lineNumbers,
 } from "@codemirror/view";
 import { tags } from "@lezer/highlight";
-import { SaveIcon, SlidersHorizontalIcon } from "lucide-react";
+import { SaveIcon, SlidersHorizontalIcon } from "@/components/ui/symbols";
 import { ObjectView, themeGitHubLight, themeOneDark } from "react-obj-view";
 import "react-obj-view/dist/react-obj-view.css";
 import {

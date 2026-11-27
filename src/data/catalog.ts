@@ -254,7 +254,6 @@ export interface AppDefinition {
   xdgIcons?: string[];
   iconUrl?: string;
   isWebApp?: boolean;
-  gradient: string;
   pinnedByDefault: boolean;
   builtinComponent?: BuiltinAppId;
   command?: string;
@@ -425,7 +424,6 @@ export function appFromDesktopFile(text: string): (AppDefinition & { order: numb
     category: (x("Category") || "Utilities") as AppDefinition["category"],
     iconName: (x("IconName") || "sparkles") as AppDefinition["iconName"],
     xdgIcons: xdgIcons.length > 0 ? xdgIcons : undefined,
-    gradient: x("Gradient") || "from-zinc-500 to-zinc-700",
     pinnedByDefault: x("Pinned") === "true",
     builtinComponent: (x("Component") || undefined) as BuiltinAppId | undefined,
     command: entry.Exec?.split(/\s+/)[0],

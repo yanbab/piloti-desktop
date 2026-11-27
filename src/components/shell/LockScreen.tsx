@@ -1,5 +1,5 @@
 import * as React from "react";
-import { BellIcon, LockIcon } from "lucide-react";
+import { BellIcon, LockIcon } from "@/components/ui/symbols";
 import { useSystemBackends, useDesktopSettings } from "@/context/DesktopStateContext";
 import { _, getLocale } from "@/lib/core/i18n";
 import { formatRelativeNotificationTime } from "@/lib/shell/notifications";

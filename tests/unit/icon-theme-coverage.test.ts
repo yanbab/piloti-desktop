@@ -60,15 +60,8 @@ describe("bundled icon themes (web demo)", () => {
 
   it("resolves every shell and app icon with the Adwaita theme", async () => {
     const index = await buildXdgIconThemeIndex(diskIconReader as never, ["Adwaita", "hicolor"]);
-    // Not bundled for the web demo (a GNOME system has the drive icons; there
-    // is no login-screen app icon): the shell falls back to its own glyphs.
-    expect(missingIcons(index)).toEqual([
-      "app:login-screen",
-      "shell:__usb_drive__",
-      "shell:__harddisk__",
-      "shell:__optical_drive__",
-      "shell:__sd_card__",
-    ]);
+    // GNOME has no colour icon for a login screen: the shell draws its own glyph.
+    expect(missingIcons(index)).toEqual(["app:login-screen"]);
   });
 
   it("uses the GNOME app icons under Adwaita", async () => {

@@ -1,7 +1,8 @@
 "use client"
 
 import * as React from "react"
-import { CheckIcon, ChevronsUpDownIcon } from "lucide-react"
+import { ChevronsUpDownIcon } from "lucide-react";
+import { CheckIcon } from "@/components/ui/symbols";
 import { Menu as MenuPrimitive } from "@base-ui/react/menu"
 
 import { cn } from "@/lib/core/utils"

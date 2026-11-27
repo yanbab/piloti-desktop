@@ -3,25 +3,8 @@ import { isWebEngine } from "@/lib/engine/engine";
 import * as React from "react";
 import { useCapabilities } from "@/hooks/use-capabilities";
 import { countRender } from "@/lib/core/render-stats";
-import {
-  BellRingIcon,
-  CalculatorIcon,
-  CameraIcon,
-  Columns2Icon,
-  GlobeIcon,
-  LayersIcon,
-  LayoutTemplateIcon,
-  LockIcon,
-  Maximize2Icon,
-  MoonIcon,
-  PaletteIcon,
-  SettingsIcon,
-  PuzzleIcon,
-  SunIcon,
-  VideoIcon,
-  Volume2Icon,
-  VolumeXIcon,
-} from "lucide-react";
+import { LayersIcon, LayoutTemplateIcon } from "lucide-react";
+import { BellRingIcon, CalculatorIcon, CameraIcon, Columns2Icon, GlobeIcon, LockIcon, Maximize2Icon, MoonIcon, PaletteIcon, SettingsIcon, PuzzleIcon, SunIcon, VideoIcon, Volume2Icon, VolumeXIcon } from "@/components/ui/symbols";
 import {
   Command,
   CommandGroup,

@@ -69,7 +69,6 @@ export function AppAboutWindow({
           <AppSquircleIcon
             iconName={app.iconName}
             iconUrl={getAppIconUrl(app.id) ?? app.iconUrl}
-            gradient={app.gradient}
             squircle={false}
             className="mb-1 size-16"
             glyphClassName="size-9"

@@ -15,10 +15,15 @@ text colour. Piloti and Adwaita use the theme; Cupertino keeps Lucide.
   leaves both out. Current copies: Debian `adwaita-icon-theme` 51.0
   (LGPL-3.0 or CC-BY-SA-3.0) and `papirus-icon-theme` 20260801 (GPL-3.0).
 
+Import a Lucide name from `components/ui/symbols.tsx` to get the themed one;
+add it there when a new glyph is needed. Where the meaning differs from that
+default (Chevron in a menu or a button, a charging battery), write
+`<SymbolicIcon>` with the name.
+
 ## Lucide to symbolic names
 
 Names without `-symbolic`, checked against Adwaita 51 unless marked "Papirus
-only". "—" has no standard name. GNOME has no dock or sparkles icon, and no
+only" (those stay Lucide). "—" has no standard name. GNOME has no dock or sparkles icon, and no
 single spinner glyph (GTK draws it).
 
 | Lucide | Symbolic | Note |
@@ -145,49 +150,25 @@ single spinner glyph (GTK draws it).
 
 ## Still drawn by Lucide
 
+No standard name, Papirus-only names, spinners, and the favourite heart.
+
 | File (`src/components/`) | Icons |
 |---|---|
-| `apps/AppStoreApp.tsx` | ArrowUpCircle, Blocks, Briefcase, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, Code2, FlaskConical, Gamepad2, Globe, Layers, Music, Package, Palette, Puzzle, RefreshCw, Server, SlidersHorizontal, Sparkles, Type, Wrench, X |
-| `apps/CalculatorApp.tsx` | X |
-| `apps/CameraApp.tsx` | Camera, Mic, Video |
-| `apps/ConsoleApp.tsx` | AppWindow, Bell, Cpu, Database, Gauge, LayoutGrid, Monitor, Settings |
-| `apps/FileItemContextMenu.tsx` | ChevronRight |
-| `apps/FilesApp.tsx` | AlertCircle, ArrowLeft, Briefcase, ChevronDown, ChevronRight, Clock, Download, Eject, FileText, Folder, Heart, Home, Image, LayoutGrid, List, Monitor, Music, Tag, Trash2, Usb, Video, X |
-| `apps/ImageViewerApp.tsx` | Check, Crop, Maximize2, RotateCcw, RotateCw, Save, X, ZoomIn, ZoomOut |
-| `apps/LoginScreenApp.tsx` | ArrowLeft, ArrowRight, Battery, BatteryCharging, Check, ChevronDown, Monitor, Power, User, UserPlus, Wifi, WifiOff |
-| `apps/PilotiDemoApp.tsx` | Bell, Boxes, ChevronDown, Folder, House, Image, Menu, Monitor, Moon, Palette, SlidersHorizontal, Sun, Type, Volume2 |
+| `apps/AppStoreApp.tsx` | Briefcase, CheckCircle2, Code2, Layers, Sparkles |
+| `apps/ConsoleApp.tsx` | Cpu, Database, Gauge |
+| `apps/FilesApp.tsx` | Briefcase, Heart, Tag |
+| `apps/ImageViewerApp.tsx` | Crop |
+| `apps/PilotiDemoApp.tsx` | Boxes |
 | `apps/SettingsApp.tsx` | Dock |
-| `apps/SystemMonitorApp.tsx` | X |
-| `apps/TextEditorApp.tsx` | Save, SlidersHorizontal |
-| `apps/XtermTerminalApp.tsx` | ChevronDown |
-| `apps/demo/ElementsPage.tsx` | Info, Plus, Save |
-| `apps/settings/AdvancedPane.tsx` | FolderOpen, Plus, Puzzle, RefreshCw, Trash2, Usb |
-| `apps/settings/AppearancePane.tsx` | Monitor, Moon, Sun |
-| `apps/settings/FontsPane.tsx` | Check, ChevronsUpDown, Search |
-| `apps/settings/SecurityPane.tsx` | ChevronDown, ShieldCheck |
-| `apps/settings/WallpaperPane.tsx` | ArrowUp, Film, Folder, Image, Plus, SunMoon |
+| `apps/settings/FontsPane.tsx` | ChevronsUpDown |
+| `apps/settings/WallpaperPane.tsx` | SunMoon |
 | `shell/AltTabSwitcher.tsx` | Sparkles |
-| `shell/AppSymbol.tsx` | AppWindow, Globe |
-| `shell/AuthPasswordCard.tsx` | ArrowLeft, ArrowRight, Eye, EyeOff, Loader2 |
-| `shell/BrowserExtensionsMenu.tsx` | Pin, PinOff, Puzzle, Settings |
-| `shell/Launcher.tsx` | BellRing, Calculator, Camera, Columns2, Globe, Layers, LayoutTemplate, Lock, Maximize2, Moon, Palette, Puzzle, Settings, Sun, Video, Volume2, VolumeX |
-| `shell/LockScreen.tsx` | Bell, Lock |
-| `shell/NicePathLabel.tsx` | Home |
-| `shell/OsdOverlay.tsx` | Sun |
-| `shell/SoundVolumeIcon.tsx` | Volume, Volume1, Volume2, VolumeX (by level, outside Adwaita) |
-| `shell/Overview.tsx` | Plus |
-| `shell/PortalDialogs.tsx` | AlertTriangle, AppWindow, Camera, Eye, EyeOff, File, Folder, Image, Keyboard, Monitor, Pipette, Printer, ShieldCheck, Sparkles, Usb, User, Video, X |
-| `shell/PowerActionDialog.tsx` | AlertTriangle |
+| `shell/AuthPasswordCard.tsx` | Loader2 |
+| `shell/BrowserExtensionsMenu.tsx` | PinOff |
+| `shell/Launcher.tsx` | Layers, LayoutTemplate |
+| `shell/PortalDialogs.tsx` | Sparkles |
 | `shell/WindowManager.tsx` | Loader2 |
-| `shell/WifiSignalIcon.tsx` | Wifi, WifiHigh, WifiLow (by signal, outside Adwaita) |
-| `ui/checkbox.tsx` | Check |
-| `ui/command.tsx` | Check, Search |
-| `ui/dialog.tsx` | X |
-| `ui/dropdown-menu.tsx` | Check, ChevronRight, Circle |
-| `ui/grouped-form.tsx` | ChevronDown, ChevronRight |
-| `ui/icon-grid.tsx` | AlertCircle, Briefcase, Heart, Tag |
-| `ui/info-pane.tsx` | Info |
-| `ui/list-view.tsx` | ChevronDown, ChevronUp |
-| `ui/search-field.tsx` | ListFilter, Search |
-| `ui/select.tsx` | Check, ChevronsUpDown |
-| `ui/toast.tsx` | X |
+| `ui/dropdown-menu.tsx` | Circle |
+| `ui/icon-grid.tsx` | Briefcase, Heart, Tag |
+| `ui/search-field.tsx` | ListFilter |
+| `ui/select.tsx` | ChevronsUpDown |

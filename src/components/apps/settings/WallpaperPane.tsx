@@ -3,14 +3,8 @@ import * as React from "react";
 import { useCapabilities } from "@/hooks/use-capabilities";
 import { useDisplays } from "@domicile-desktop/react/displays";
 import { usePiloti } from "@/lib/engine/piloti";
-import {
-  ArrowUpIcon,
-  FilmIcon,
-  FolderIcon,
-  ImageIcon,
-  PlusIcon,
-  SunMoonIcon,
-} from "lucide-react";
+import { SunMoonIcon } from "lucide-react";
+import { ArrowUpIcon, FilmIcon, FolderIcon, ImageIcon, PlusIcon } from "@/components/ui/symbols";
 import { ComputerHardwareIllustration } from "@/components/shell/AboutComputerDialog";
 import {
   DesktopBackgroundLayers,

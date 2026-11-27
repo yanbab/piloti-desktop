@@ -60,7 +60,6 @@ function resolveXdgVisualStyle(entry: XdgDesktopEntry): {
   | "activity"
   | "code"
   | "sparkles";
-  gradient: string;
 } {
   const lower = `${entry.desktopId} ${entry.icon ?? ""} ${entry.categories.join(" ")}`.toLowerCase();
 
@@ -72,7 +71,6 @@ function resolveXdgVisualStyle(entry: XdgDesktopEntry): {
   ) {
     return {
       iconName: "terminal",
-      gradient: "from-zinc-700 via-zinc-800 to-zinc-950",
     };
   }
   if (
@@ -83,7 +81,6 @@ function resolveXdgVisualStyle(entry: XdgDesktopEntry): {
   ) {
     return {
       iconName: "folder",
-      gradient: "from-sky-400 via-blue-500 to-blue-600",
     };
   }
   if (
@@ -95,7 +92,6 @@ function resolveXdgVisualStyle(entry: XdgDesktopEntry): {
   ) {
     return {
       iconName: "globe",
-      gradient: "from-cyan-400 via-blue-500 to-indigo-600",
     };
   }
   if (
@@ -106,7 +102,6 @@ function resolveXdgVisualStyle(entry: XdgDesktopEntry): {
   ) {
     return {
       iconName: "code",
-      gradient: "from-blue-500 via-indigo-500 to-purple-600",
     };
   }
   if (
@@ -118,7 +113,6 @@ function resolveXdgVisualStyle(entry: XdgDesktopEntry): {
   ) {
     return {
       iconName: "notes",
-      gradient: "from-amber-400 via-orange-500 to-amber-600",
     };
   }
   if (
@@ -128,7 +122,6 @@ function resolveXdgVisualStyle(entry: XdgDesktopEntry): {
   ) {
     return {
       iconName: "activity",
-      gradient: "from-emerald-400 via-teal-500 to-cyan-600",
     };
   }
   if (
@@ -139,12 +132,10 @@ function resolveXdgVisualStyle(entry: XdgDesktopEntry): {
   ) {
     return {
       iconName: "settings",
-      gradient: "from-slate-400 via-slate-600 to-zinc-800",
     };
   }
   return {
     iconName: "sparkles",
-    gradient: "from-violet-500 via-purple-500 to-indigo-600",
   };
 }
 
@@ -190,7 +181,6 @@ export function matchAppFromWayland(
     description: "Wayland Client Application",
     category: "Utilities",
     iconName: "sparkles",
-    gradient: "from-violet-500 via-purple-500 to-indigo-600",
     pinnedByDefault: false,
     defaultSize: { width: 740, height: 480 },
     menus: [],

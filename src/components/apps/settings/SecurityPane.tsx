@@ -3,7 +3,7 @@ import { HeaderBar } from "@/components/elements/header-bar";
 import * as React from "react";
 import { useCapabilities } from "@/hooks/use-capabilities";
 import { usePiloti } from "@/lib/engine/piloti";
-import { ChevronDownIcon, SearchIcon, ShieldCheckIcon } from "lucide-react";
+import { ChevronDownIcon, ShieldCheckIcon } from "@/components/ui/symbols";
 import { AppSquircleIcon } from "@/components/shell/AppSymbol";
 import {
   GroupedForm,

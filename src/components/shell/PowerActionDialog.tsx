@@ -1,7 +1,7 @@
 import * as React from "react";
 import { usePortalRequests } from "@domicile-desktop/react/portals";
 import { PortalKind, type PortalRequest } from "@domicile-desktop/sdk/portal";
-import { AlertTriangleIcon } from "lucide-react";
+import { AlertTriangleIcon } from "@/components/ui/symbols";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {

@@ -1,21 +1,7 @@
 import { ICON_SIZES } from "@/lib/shell/icon-sizes";
 import * as React from "react";
-import {
-  BellIcon,
-  BoxesIcon,
-  ChevronDownIcon,
-  FolderIcon,
-  HouseIcon,
-  ImageIcon,
-  MenuIcon,
-  MonitorIcon,
-  MoonIcon,
-  PaletteIcon,
-  SlidersHorizontalIcon,
-  SunIcon,
-  TypeIcon,
-  Volume2Icon,
-} from "lucide-react";
+import { BoxesIcon } from "lucide-react";
+import { BellIcon, ChevronDownIcon, FolderIcon, HouseIcon, ImageIcon, MenuIcon, MonitorIcon, MoonIcon, PaletteIcon, SlidersHorizontalIcon, SunIcon, TypeIcon, Volume2Icon } from "@/components/ui/symbols";
 import { HeaderBar, HeaderHeading } from "@/components/elements/header-bar";
 import { AppSplitView, type SidebarItem } from "@/components/elements/split-view";
 import { ElementsPage } from "@/components/apps/demo/ElementsPage";

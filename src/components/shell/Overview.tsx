@@ -1,10 +1,5 @@
 import * as React from "react";
-import {
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  LayersIcon,
-  PlusIcon,
-} from "lucide-react";
+import { PlusIcon } from "@/components/ui/symbols";
 import {
   useApps,
   useWindowManager,
@@ -133,7 +128,7 @@ function OverviewWorkspacesBar({
                           width: `${widthPct}%`,
                           height: `${heightPct}%`,
                         }}
-                        className="pointer-events-none absolute rounded-[2px] border border-white/30 bg-zinc-900/80 shadow-xs"
+                        className="pointer-events-none absolute rounded-[2px] border border-ui-hud-dark-border bg-ui-hud-dark shadow-xs"
                       />
                     );
                   })}
@@ -312,7 +307,6 @@ function WorkspaceOverview() {
                       : undefined
                   }
                   squircle={Boolean(win.browserWindowId)}
-                  gradient={win.gradient}
                   className="size-12"
                   glyphClassName="size-7"
                 />

@@ -1,6 +1,6 @@
 import { isExtractableArchive } from "@/lib/engine/fs-bridge";
 import * as React from "react";
-import { ChevronRightIcon } from "lucide-react";
+import { ChevronRightIcon } from "@/components/ui/symbols";
 import { useCapabilities } from "@/hooks/use-capabilities";
 import { usePopupSurface } from "@/lib/shell/popup-layer";
 import { createPortal } from "react-dom";
@@ -413,7 +413,6 @@ export function FileItemContextMenu({
                       <AppSquircleIcon
                         iconName={catApp?.iconName}
                         iconUrl={iconUrl}
-                        gradient={catApp?.gradient}
                         squircle={false}
                         className="size-4 shrink-0"
                         glyphClassName="size-4"

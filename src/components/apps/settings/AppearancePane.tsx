@@ -1,5 +1,5 @@
 import * as React from "react";
-import { CheckIcon, MonitorIcon, MoonIcon, SunIcon } from "lucide-react";
+import { MonitorIcon, MoonIcon, SunIcon } from "@/components/ui/symbols";
 import {
   GroupedForm,
   GroupedFormGroup,

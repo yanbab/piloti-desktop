@@ -13,26 +13,8 @@ import {
   WallpaperTarget,
   type PortalRequest,
 } from "@domicile-desktop/sdk/portal";
-import {
-  AlertTriangleIcon,
-  AppWindowIcon,
-  CameraIcon,
-  EyeIcon,
-  EyeOffIcon,
-  FolderIcon,
-  FileIcon,
-  ImageIcon,
-  KeyboardIcon,
-  MonitorIcon,
-  PipetteIcon,
-  PrinterIcon,
-  ShieldCheckIcon,
-  SparklesIcon,
-  UsbIcon,
-  UserIcon,
-  VideoIcon,
-  XIcon,
-} from "lucide-react";
+import { SparklesIcon } from "lucide-react";
+import { AlertTriangleIcon, AppWindowIcon, CameraIcon, EyeIcon, EyeOffIcon, FolderIcon, FileIcon, ImageIcon, KeyboardIcon, MonitorIcon, PipetteIcon, PrinterIcon, ShieldCheckIcon, UsbIcon, UserIcon, VideoIcon, XIcon } from "@/components/ui/symbols";
 import { useApps, useSettings } from "@/context/DesktopStateContext";
 import { _ } from "@/lib/core/i18n";
 import { setDefaultMimeApp } from "@/lib/xdg/xdg-mimeapps";
@@ -120,7 +102,7 @@ function ScreenshotPortalOverlay({
       </div>
 
       {/* Floating Capture Toolbar */}
-      <div className="mt-4 flex flex-wrap items-center gap-2 rounded-full bg-zinc-900/95 px-4 py-2 text-ui-body text-white shadow-xl ring-1 ring-white/15">
+      <div className="mt-4 flex flex-wrap items-center gap-2 rounded-full bg-ui-hud-dark px-4 py-2 text-ui-body text-ui-hud-dark-label shadow-xl ring-1 ring-ui-hud-dark-border">
         <CameraIcon className="size-4 text-sky-400" />
         <span className="font-medium">Drag to select area</span>
 
@@ -1236,7 +1218,7 @@ function PickColorPortalOverlay({
         );
       }}
     >
-      <div className="pointer-events-none flex items-center gap-2 rounded-full bg-zinc-900/90 px-4 py-2 text-ui-body font-medium text-white shadow-xl ring-1 ring-white/15">
+      <div className="pointer-events-none flex items-center gap-2 rounded-full bg-ui-hud-dark px-4 py-2 text-ui-body font-medium text-ui-hud-dark-label shadow-xl ring-1 ring-ui-hud-dark-border">
         <PipetteIcon className="size-4 text-sky-400" />
         <span>
           {_("Click anywhere to sample pixel color (Esc to cancel)")}
@@ -1248,7 +1230,7 @@ function PickColorPortalOverlay({
             left: `${Math.min(window.innerWidth - 110, cursor.x + 16)}px`,
             top: `${Math.min(window.innerHeight - 36, cursor.y + 16)}px`,
           }}
-          className="pointer-events-none fixed flex items-center gap-1.5 rounded-full bg-zinc-900/92 px-2.5 py-1 font-mono text-ui-small text-white shadow-lg ring-1 ring-white/20"
+          className="pointer-events-none fixed flex items-center gap-1.5 rounded-full bg-ui-hud-dark px-2.5 py-1 font-mono text-ui-small text-ui-hud-dark-label shadow-lg ring-1 ring-ui-hud-dark-border"
         >
           <PipetteIcon className="size-3 text-sky-400" />
           <span>

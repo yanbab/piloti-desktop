@@ -11,13 +11,10 @@ import {
   type DragEndEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
-import {
-  AlertCircleIcon,
-  BriefcaseIcon,
-  HeartIcon,
-  TagIcon,
-} from "lucide-react";
+import { BriefcaseIcon, HeartIcon, TagIcon } from "lucide-react";
+import { AlertCircleIcon } from "@/components/ui/symbols";
 import { AppSquircleIcon } from "@/components/shell/AppSymbol";
+import { ThemeFolderIcon } from "@/components/ui/folder-icon";
 import { isLottieIconUrl, LottieIcon } from "@/components/ui/lottie-icon";
 import { captureLaunchOriginFromElement } from "@/lib/shell/launch-origin";
 import {
@@ -34,10 +31,8 @@ import {
 } from "@/context/DesktopStateContext";
 import {
   DynamicFileIcon,
-  DynamicFolderIcon,
   getAccentFolderIconUrl,
   getAccentHtmlIconUrl,
-  inferFolderBadge,
   useOpenFolderPaths,
 } from "@/data/folder-icons";
 import {
@@ -221,14 +216,6 @@ export function IconGrid({
   const windows = useWindowManagerSelector((wm) =>
     wm.windows.map((w) => ({ appId: w.appId, payload: w.payload })),
   );
-  const folderLottieUrl = React.useMemo(() => {
-    const url = getAppIconUrl("folder");
-    return isLottieIconUrl(url) ? url : undefined;
-  }, [getAppIconUrl]);
-  const folderOpenLottieUrl = React.useMemo(() => {
-    const url = getAppIconUrl("folder-open");
-    return isLottieIconUrl(url) ? url : undefined;
-  }, [getAppIconUrl]);
   const openFolderPaths = useOpenFolderPaths();
   const openFilePaths = React.useMemo(() => {
     const set = new Set<string>();
@@ -1192,28 +1179,13 @@ export function IconGrid({
                     openFolderPaths.has(item.path) ||
                     hoveredDropPath === item.path ||
                     openingDirPath === normDir;
-                  const hasSpecialBadge = Boolean(
-                    inferFolderBadge(item.path || item.name),
-                  );
-                  const activeFolderLottie = folderLottieUrl ?? folderOpenLottieUrl;
-                  if (activeFolderLottie && !hasSpecialBadge) {
-                    return (
-                      <LottieIcon
-                        src={activeFolderLottie}
-                        open={isOpened}
-                        // Folders open on drag-over and when opened, not on hover.
-                        animateOnHover={false}
-                        playNonce={folderDropNonces[normDir] ?? 0}
-                        className="size-full drop-shadow-[0_1px_2px_rgba(0,0,0,0.22)]"
-                      />
-                    );
-                  }
                   return (
-                    <DynamicFolderIcon
+                    <ThemeFolderIcon
                       accentColor={settings.accentColor}
                       opened={isOpened}
+                      playNonce={folderDropNonces[normDir] ?? 0}
                       pathOrName={item.path || item.name}
-                      className="size-full"
+                      className="size-full drop-shadow-[0_1px_2px_rgba(0,0,0,0.22)]"
                     />
                   );
                 }
@@ -1252,7 +1224,6 @@ export function IconGrid({
                   <AppSquircleIcon
                     iconName={item.iconName}
                     iconUrl={resolveItemIconUrl(item)}
-                    gradient={item.gradient}
                     squircle={false}
                     className="size-full"
                     glyphClassName="size-7"
@@ -1263,7 +1234,7 @@ export function IconGrid({
                 <span
                   aria-hidden
                   title="Symbolic link"
-                  className="pointer-events-none absolute -bottom-0.5 -left-0.5 z-10 flex size-[1.1em] min-h-4 min-w-4 items-center justify-center rounded-full bg-white text-zinc-800 shadow ring-1 ring-black/25"
+                  className="pointer-events-none absolute -bottom-0.5 -left-0.5 z-10 flex size-[1.1em] min-h-4 min-w-4 items-center justify-center rounded-full bg-ui-emblem text-ui-emblem-label shadow ring-1 ring-black/25"
                 >
                   <svg viewBox="0 0 16 16" className="size-[70%]" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M4 12 12 4M6 4h6v6" />
@@ -1292,7 +1263,7 @@ export function IconGrid({
                       width: `${heartSize}px`,
                       height: `${heartSize}px`,
                       // Inline: label colour rules on the grid reach every span.
-                      color: isFavorite ? "#ef4444" : "#ffffff",
+                      color: isFavorite ? "var(--ui-red)" : "var(--ui-emblem)",
                     }}
                     className={cn(
                       "absolute -top-1 -right-1 z-20 flex cursor-default items-center justify-center transition-opacity duration-150",
@@ -1337,18 +1308,18 @@ export function IconGrid({
                           style={{
                             width: `${heartSize}px`,
                             height: `${heartSize}px`,
-                            color: "#ef4444",
+                            color: "var(--ui-red)",
                             ...overlapStyle,
                           }}
-                          className="flex items-center justify-center !text-red-500 drop-shadow-[0_1px_2px_rgba(0,0,0,0.65)]"
+                          className="flex items-center justify-center !text-ui-red drop-shadow-[0_1px_2px_rgba(0,0,0,0.65)]"
                         >
                           <HeartIcon
                             style={{
                               width: `${heartSize}px`,
                               height: `${heartSize}px`,
-                              color: "#ef4444",
+                              color: "var(--ui-red)",
                             }}
-                            className="fill-current !text-red-500"
+                            className="fill-current !text-ui-red"
                           />
                         </span>
                       );
@@ -1392,7 +1363,7 @@ export function IconGrid({
                   const cleanExt = ext.replace(/^\./, "").toUpperCase();
                   if (!cleanExt || cleanExt.length > 6) return null;
                   return (
-                    <span className="pointer-events-none absolute -right-0.5 -bottom-0.5 z-10 rounded bg-zinc-900/85 px-1 py-0.5 text-ui-caption leading-none font-bold tracking-wide text-white shadow-xs ring-1 ring-white/20">
+                    <span className="pointer-events-none absolute -right-0.5 -bottom-0.5 z-10 rounded bg-ui-hud-dark px-1 py-0.5 text-ui-caption leading-none font-bold tracking-wide text-ui-hud-dark-label shadow-xs ring-1 ring-ui-hud-dark-border">
                       {cleanExt}
                     </span>
                   );
@@ -1432,7 +1403,7 @@ export function IconGrid({
                   onCommitRename?.(item, e.currentTarget.value);
                 }}
                 className={cn(
-                  "w-auto min-w-[3.5rem] max-w-full rounded bg-zinc-900/95 px-1.5 py-0.5 text-ui-body leading-tight font-medium text-white ring-1 ring-ui-accent outline-none",
+                  "w-auto min-w-[3.5rem] max-w-full rounded bg-ui-hud-dark px-1.5 py-0.5 text-ui-body leading-tight font-medium text-ui-hud-dark-label ring-1 ring-ui-accent outline-none",
                   compactHorizontal ? "text-left" : "text-center",
                 )}
               />
@@ -1502,7 +1473,7 @@ dropAnimOff ? null : dragFlyBackAnimation
                     const badge = document.createElement("span");
                     badge.textContent = String(latest.draggedIds.length);
                     badge.style.cssText =
-                      "position:absolute;top:2px;right:6px;min-width:20px;height:20px;padding:0 6px;border-radius:10px;background:var(--ui-accent,#3584e4);color:#fff;font:700 11px/20px system-ui;text-align:center;box-shadow:0 2px 6px rgba(0,0,0,.35)";
+                      "position:absolute;top:2px;right:6px;min-width:20px;height:20px;padding:0 6px;border-radius:10px;background:var(--ui-accent);color:var(--ui-accent-foreground);font:700 11px/20px system-ui;text-align:center;box-shadow:0 2px 6px rgba(0,0,0,.35)";
                     clone.appendChild(badge);
                   }
                 });

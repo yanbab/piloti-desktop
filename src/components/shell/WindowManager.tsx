@@ -17,23 +17,7 @@ import {
   WEBVIEW_PAGE_CHANGE_EVENT,
   WEBVIEW_PAGE_FAILURE_CHANGE_EVENT,
 } from "@domicile-desktop/sdk/webview-element";
-import {
-  ChevronLeftIcon,
-  DownloadIcon,
-  ChevronDownIcon,
-  FolderIcon,
-  GlobeIcon,
-  TerminalIcon,
-  StarIcon,
-  Loader2Icon,
-  Maximize2Icon,
-  MinusIcon,
-  MoonIcon,
-  PlusIcon,
-  PuzzleIcon,
-  Trash2Icon,
-  XIcon,
-} from "lucide-react";
+import { ChevronLeftIcon, DownloadIcon, ChevronDownIcon, FolderIcon, GlobeIcon, TerminalIcon, StarIcon, Loader2Icon, PlusIcon, PuzzleIcon } from "lucide-react";
 import { SymbolicIcon } from "@/components/ui/symbolic-icon";
 import { initAppModules, resolveAppModuleByUrl } from "@/data/app-modules";
 import { IsolatedAppFrame } from "@/components/shell/IsolatedAppFrame";
@@ -983,7 +967,6 @@ function WebViewSurface({
         appId={win.appId}
         iconUrl={win.iconUrl}
         iconName={win.iconName}
-        gradient={win.gradient}
         isWebApp
         extraItems={
           <DropdownMenuItem

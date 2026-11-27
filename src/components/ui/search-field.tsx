@@ -1,6 +1,7 @@
 import * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
-import { ListFilterIcon, SearchIcon } from "lucide-react"
+import { ListFilterIcon } from "lucide-react";
+import { SearchIcon } from "@/components/ui/symbols";
 
 import { cn } from "@/lib/core/utils"
 

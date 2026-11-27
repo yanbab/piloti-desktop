@@ -3,37 +3,8 @@ import { InfoPane, InfoPaneToggle, useInfoPane } from "@/components/ui/info-pane
 import { HeaderSearch } from "@/components/ui/header-search";
 import * as React from "react";
 import { usePiloti } from "@/lib/engine/piloti";
-import {
-  ArrowUpCircleIcon,
-  BlocksIcon,
-  BriefcaseIcon,
-  CheckCircle2Icon,
-  ChevronDownIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  Code2Icon,
-  FlaskConicalIcon,
-  Gamepad2Icon,
-  GlobeIcon,
-  HeartIcon,
-  LayersIcon,
-  MusicIcon,
-  PackageIcon,
-  PaletteIcon,
-  PuzzleIcon,
-  ArrowDownUpIcon,
-  LayoutGridIcon,
-  ListIcon,
-  RefreshCwIcon,
-  SearchIcon,
-  ServerIcon,
-  SlidersHorizontalIcon,
-  SparklesIcon,
-  Trash2Icon,
-  TypeIcon,
-  WrenchIcon,
-  XIcon,
-} from "lucide-react";
+import { BriefcaseIcon, CheckCircle2Icon, Code2Icon, LayersIcon, SparklesIcon } from "lucide-react";
+import { ArrowUpCircleIcon, BlocksIcon, ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon, FlaskConicalIcon, Gamepad2Icon, GlobeIcon, MusicIcon, PackageIcon, PaletteIcon, PuzzleIcon, RefreshCwIcon, ServerIcon, SlidersHorizontalIcon, TypeIcon, WrenchIcon, XIcon } from "@/components/ui/symbols";
 import { createPortal } from "react-dom";
 import { HeaderBar, HeaderButton, HeaderHeading } from "@/components/elements/header-bar";
 import { AppSplitView, type SidebarItem } from "@/components/elements/split-view";
@@ -2791,7 +2762,6 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                                     <AppSquircleIcon
                                       iconUrl={getAppIconUrl(item.appDef.id)}
                                       iconName={item.appDef.iconName}
-                                      gradient={item.appDef.gradient}
                                       className="size-10"
                                     />
                                   ) : item.kind === "extension" ? (
@@ -3021,7 +2991,6 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
                     <AppSquircleIcon
                       iconUrl={getAppIconUrl(selectedItem.appDef.id)}
                       iconName={selectedItem.appDef.iconName}
-                      gradient={selectedItem.appDef.gradient}
                       className="size-16"
                     />
                   ) : selectedItem.kind === "extension" ? (

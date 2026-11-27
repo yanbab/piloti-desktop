@@ -1,5 +1,5 @@
 import * as React from "react";
-import { AppWindowIcon, GlobeIcon } from "lucide-react";
+import { AppWindowIcon, GlobeIcon } from "@/components/ui/symbols";
 import { isLottieIconUrl, LottieIcon } from "@/components/ui/lottie-icon";
 import { useOptionalApps } from "@/context/AppsContext";
 import { cn } from "@/lib/core/utils";
@@ -24,7 +24,6 @@ export function AppSquircleIcon({
   open?: boolean;
   animateOnHover?: boolean;
   playNonce?: number;
-  gradient?: string;
   className?: string;
   glyphClassName?: string;
 }) {

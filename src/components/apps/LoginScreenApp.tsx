@@ -3,20 +3,7 @@ import { VFS_HOME } from "@/lib/engine/vfs-home";
 import * as React from "react";
 import { useCapabilities } from "@/hooks/use-capabilities";
 import { usePiloti } from "@/lib/engine/piloti";
-import {
-  ArrowLeftIcon,
-  ArrowRightIcon,
-  BatteryChargingIcon,
-  BatteryIcon,
-  CheckIcon,
-  ChevronDownIcon,
-  MonitorIcon,
-  PowerIcon,
-  UserIcon,
-  UserPlusIcon,
-  WifiIcon,
-  WifiOffIcon,
-} from "lucide-react";
+import { ArrowLeftIcon, ArrowRightIcon, BatteryChargingIcon, BatteryIcon, CheckIcon, ChevronDownIcon, MonitorIcon, PowerIcon, UserIcon, UserPlusIcon, WifiIcon, WifiOffIcon } from "@/components/ui/symbols";
 import { SoundVolumeIcon } from "@/components/shell/SoundVolumeIcon";
 import { AuthPasswordCard } from "@/components/shell/AuthPasswordCard";
 import { DesktopBackgroundLayers } from "@/components/shell/DesktopBackgroundLayers";

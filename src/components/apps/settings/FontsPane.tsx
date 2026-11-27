@@ -1,7 +1,8 @@
 import * as React from "react";
 import { useCapabilities } from "@/hooks/use-capabilities";
 import { Popover } from "@base-ui/react/popover";
-import { CheckIcon, ChevronsUpDownIcon, SearchIcon } from "lucide-react";
+import { ChevronsUpDownIcon } from "lucide-react";
+import { CheckIcon, SearchIcon } from "@/components/ui/symbols";
 import { usePiloti } from "@/lib/engine/piloti";
 import {
   GroupedForm,

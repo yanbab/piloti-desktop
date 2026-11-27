@@ -8,23 +8,7 @@ import { usePiloti } from "@/lib/engine/piloti";
 import { useWatch } from "@domicile-desktop/react/use-watch";
 import { useCaptureActivity } from "@/lib/shell/capture-activity";
 import { CapturingKind } from "@domicile-desktop/sdk/portal";
-import {
-  BatteryChargingIcon,
-  BatteryIcon,
-  BatteryLowIcon,
-  BellIcon,
-  BellOffIcon,
-  BluetoothIcon,
-  BluetoothOffIcon,
-  ChevronDownIcon,
-  ChevronRightIcon,
-  LayersIcon,
-  PauseIcon,
-  PlayIcon,
-  LayoutGridIcon,
-  SquareIcon,
-  WifiOffIcon,
-} from "lucide-react";
+import { BatteryChargingIcon, BatteryIcon, BatteryLowIcon, BellIcon, BellOffIcon, BluetoothIcon, BluetoothOffIcon, ChevronDownIcon, ChevronRightIcon, PauseIcon, PlayIcon, LayoutGridIcon, SquareIcon, WifiOffIcon } from "lucide-react";
 import { SoundVolumeIcon } from "@/components/shell/SoundVolumeIcon";
 import { WifiSignalIcon } from "@/components/shell/WifiSignalIcon";
 import { SymbolicIcon } from "@/components/ui/symbolic-icon";

@@ -2,7 +2,7 @@
 Name=Adwaita
 Comment=GNOME Adwaita Icon Theme
 Inherits=hicolor
-Directories=scalable/apps,scalable/places,scalable/status,scalable/mimetypes,symbolic/actions,symbolic/apps,symbolic/categories,symbolic/devices,symbolic/emblems,symbolic/legacy,symbolic/mimetypes,symbolic/places,symbolic/status,symbolic/ui
+Directories=scalable/apps,scalable/places,scalable/status,scalable/mimetypes,scalable/devices,symbolic/actions,symbolic/apps,symbolic/categories,symbolic/devices,symbolic/emblems,symbolic/legacy,symbolic/mimetypes,symbolic/places,symbolic/status,symbolic/ui
 
 [scalable/apps]
 Context=Applications
@@ -20,6 +20,13 @@ Type=Scalable
 
 [scalable/status]
 Context=Status
+Size=128
+MinSize=8
+MaxSize=512
+Type=Scalable
+
+[scalable/devices]
+Context=Devices
 Size=128
 MinSize=8
 MaxSize=512

@@ -1,5 +1,5 @@
 import * as React from "react";
-import { HomeIcon } from "lucide-react";
+import { HomeIcon } from "@/components/ui/symbols";
 import { useApps } from "@/context/DesktopStateContext";
 import { _ } from "@/lib/core/i18n";
 import { cn } from "@/lib/core/utils";

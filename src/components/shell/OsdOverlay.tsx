@@ -1,5 +1,5 @@
 import * as React from "react";
-import { SunIcon } from "lucide-react";
+import { SunIcon } from "@/components/ui/symbols";
 import { SoundVolumeIcon } from "@/components/shell/SoundVolumeIcon";
 import { cn } from "@/lib/core/utils";
 import {

@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { XIcon } from "lucide-react"
+import { XIcon } from "@/components/ui/symbols";
 import { Toast as ToastPrimitive } from "@base-ui/react/toast"
 
 import { cn } from "@/lib/core/utils"

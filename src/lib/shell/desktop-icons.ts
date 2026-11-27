@@ -39,7 +39,6 @@ export interface IconGridItem {
   iconName: AppSymbolName;
   iconCandidates?: readonly string[];
   iconUrl?: string;
-  gradient?: string;
   isEmpty?: boolean;
   isHidden?: boolean;
   /** Symbolic link (shown with an arrow emblem). */
@@ -388,13 +387,11 @@ export function inferFileVisual(
   options?: { isEmpty?: boolean }
 ): {
   iconName: AppSymbolName;
-  gradient: string;
   iconCandidates: readonly string[];
 } {
   if (fileType === "directory") {
     return {
       iconName: "folder",
-      gradient: "from-sky-400 via-blue-500 to-blue-600",
       iconCandidates: ["folder", "inode-directory"],
     };
   }
@@ -404,14 +401,12 @@ export function inferFileVisual(
   if (nameLower.endsWith(".desktop")) {
     return {
       iconName: "sparkles",
-      gradient: "from-slate-500 via-slate-600 to-zinc-700",
       iconCandidates: ["application-x-desktop"],
     };
   }
   if (/\.(deb|rpm|flatpakref|flatpak)$/.test(nameLower)) {
     return {
       iconName: "folder",
-      gradient: "from-amber-500 via-yellow-600 to-orange-600",
       iconCandidates: ["package-x-generic", "text-x-generic"],
     };
   }
@@ -426,49 +421,42 @@ export function inferFileVisual(
     if (normalizedMime === "application/x-zerosize") {
       return {
         iconName: "notes",
-        gradient: "from-slate-400 via-slate-500 to-zinc-600",
         iconCandidates: [...emptyTextCandidates],
       };
     }
     if (normalizedMime === "text/plain" && isEmpty) {
       return {
         iconName: "notes",
-        gradient: "from-slate-400 via-slate-500 to-zinc-600",
         iconCandidates: [...emptyTextCandidates],
       };
     }
     if (normalizedMime.startsWith("audio/")) {
       return {
         iconName: "sparkles",
-        gradient: "from-orange-400 via-amber-500 to-rose-500",
         iconCandidates: ["audio-x-generic", "gnome-mime-audio", "text-x-generic"],
       };
     }
     if (normalizedMime.startsWith("video/")) {
       return {
         iconName: "sparkles",
-        gradient: "from-purple-500 via-violet-500 to-indigo-600",
         iconCandidates: ["video-x-generic", "gnome-mime-video", "text-x-generic"],
       };
     }
     if (normalizedMime.startsWith("image/")) {
       return {
         iconName: "sparkles",
-        gradient: "from-fuchsia-500 via-pink-500 to-rose-500",
         iconCandidates: ["image-x-generic", "gnome-mime-image", "text-x-generic"],
       };
     }
     if (normalizedMime === "text/html") {
       return {
         iconName: "globe",
-        gradient: "from-sky-500 via-blue-500 to-indigo-600",
         iconCandidates: ["text-html", "text-x-generic"],
       };
     }
     if (normalizedMime === "application/pdf") {
       return {
         iconName: "notes",
-        gradient: "from-rose-500 via-red-500 to-red-600",
         iconCandidates: ["application-pdf", "x-office-document", "text-x-generic"],
       };
     }
@@ -478,42 +466,36 @@ export function inferFileVisual(
   if (/\.(html|htm)$/.test(lower)) {
     return {
       iconName: "globe",
-      gradient: "from-sky-500 via-blue-500 to-indigo-600",
       iconCandidates: ["text-html", "text-x-generic"],
     };
   }
   if (/\.(png|jpe?g|gif|webp|svg|bmp|ico|avif)$/.test(lower)) {
     return {
       iconName: "sparkles",
-      gradient: "from-fuchsia-500 via-pink-500 to-rose-500",
       iconCandidates: ["image-x-generic", "gnome-mime-image", "text-x-generic"],
     };
   }
   if (/\.(mp4|webm|mkv|mov|avi|m4v)$/.test(lower)) {
     return {
       iconName: "sparkles",
-      gradient: "from-purple-500 via-violet-500 to-indigo-600",
       iconCandidates: ["video-x-generic", "gnome-mime-video", "text-x-generic"],
     };
   }
   if (/\.(mp3|wav|flac|m4a|ogg|aac)$/.test(lower)) {
     return {
       iconName: "sparkles",
-      gradient: "from-orange-400 via-amber-500 to-rose-500",
       iconCandidates: ["audio-x-generic", "gnome-mime-audio", "text-x-generic"],
     };
   }
   if (/\.pdf$/.test(lower)) {
     return {
       iconName: "notes",
-      gradient: "from-rose-500 via-red-500 to-red-600",
       iconCandidates: ["application-pdf", "x-office-document", "text-x-generic"],
     };
   }
   if (/\.(zip|tar|gz|tgz|bz2|xz|zst|7z|rar)$/.test(lower)) {
     return {
       iconName: "folder",
-      gradient: "from-amber-500 via-yellow-600 to-orange-600",
       iconCandidates: ["package-x-generic", "application-x-archive", "text-x-generic"],
     };
   }
@@ -524,16 +506,12 @@ export function inferFileVisual(
   ) {
     return {
       iconName: "code",
-      gradient: "from-blue-500 via-indigo-500 to-purple-600",
       iconCandidates: ["text-x-script", "application-x-executable", "text-x-generic"],
     };
   }
   if (/\.(md|txt|doc|docx|odt|rtf|log|csv|ini|conf|cfg)$/.test(lower)) {
     return {
       iconName: "notes",
-      gradient: isEmpty
-        ? "from-slate-400 via-slate-500 to-zinc-600"
-        : "from-amber-400 via-orange-500 to-amber-600",
       iconCandidates: isEmpty
         ? [...emptyTextCandidates]
         : ["text-x-generic", "x-office-document"],
@@ -541,9 +519,6 @@ export function inferFileVisual(
   }
   return {
     iconName: "notes",
-    gradient: isEmpty
-      ? "from-slate-400 via-slate-500 to-zinc-600"
-      : "from-slate-500 via-slate-600 to-zinc-700",
     iconCandidates: isEmpty
       ? [...emptyTextCandidates]
       : ["text-x-generic", "application-octet-stream"],

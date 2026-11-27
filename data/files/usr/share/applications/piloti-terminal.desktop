@@ -14,5 +14,4 @@ X-Piloti-Order=40
 X-Piloti-Pinned=true
 X-Piloti-IconName=terminal
 X-Piloti-XdgIcons=utilities-terminal;org.gnome.Console;piloti-shell;piloti-terminal;
-X-Piloti-Gradient=from-zinc-700 via-zinc-800 to-zinc-950
 X-Piloti-Size=720x460

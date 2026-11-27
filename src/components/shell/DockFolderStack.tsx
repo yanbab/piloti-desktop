@@ -5,7 +5,8 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { DynamicFileIcon, DynamicFolderIcon } from "@/data/folder-icons";
+import { ThemeFolderIcon } from "@/components/ui/folder-icon";
+import { DynamicFileIcon } from "@/data/folder-icons";
 import { useOpenPath } from "@/hooks/use-open-path";
 import { useWindowActions, useDesktopSettings } from "@/context/DesktopStateContext";
 import { _ } from "@/lib/core/i18n";
@@ -70,7 +71,7 @@ export function DockFolderStack({
   const renderIcon = (entry: WebVfsEntry) => {
     if (entry.kind === "directory") {
       return (
-        <DynamicFolderIcon
+        <ThemeFolderIcon
           accentColor={settings.accentColor}
           pathOrName={entry.path}
           className="size-6 shrink-0"

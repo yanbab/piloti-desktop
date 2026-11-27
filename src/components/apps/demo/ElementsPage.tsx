@@ -1,5 +1,5 @@
 import * as React from "react";
-import { InfoIcon, PlusIcon, SaveIcon } from "lucide-react";
+import { InfoIcon, PlusIcon, SaveIcon } from "@/components/ui/symbols";
 import { AppChromeProvider, type AppChrome } from "@/components/elements/app-chrome";
 import { AppContent, AppWindow } from "@/components/elements/app-window";
 import { HeaderBar, HeaderButton, HeaderHeading } from "@/components/elements/header-bar";
