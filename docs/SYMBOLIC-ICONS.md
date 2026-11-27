@@ -2,7 +2,7 @@
 
 The shell's UI symbols come from the icon theme through `<SymbolicIcon
 name="…" fallback={LucideGlyph}>` (`components/ui/symbolic-icon.tsx`), in the
-text colour. Piloti and Adwaita use the theme; Cupertino keeps Lucide.
+text colour. Adwaita uses the theme; Piloti and Cupertino keep Lucide.
 
 - Names are listed in `SYMBOLIC_ICONS` (`lib/shell/shell-icon-names.ts`),
   standard name first. All are loaded together when the icon theme changes

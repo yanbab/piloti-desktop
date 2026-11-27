@@ -74,8 +74,8 @@ Paths without a root are under `src/`.
   `git worktree remove`.
 - In the main checkout, others may be editing: read `git diff` first, commit
   explicit paths, never `git add -A`.
-- `_docs/` (local, not in git): `TODO.md` (all open work), `DONE.md`,
-  `NOTES.md` (ideas, measurements).
+- `_docs/` (local, not in git): `ROADMAP.md` (scheduled work), `BACKLOG.md`
+  (unscheduled, by area), `DONE.md`, `NOTES.md` (ideas, measurements).
 
 ## Testing
 

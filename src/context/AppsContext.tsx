@@ -394,8 +394,9 @@ export function useAppsValue(
   );
   const attemptedIconIdsRef = React.useRef<Set<string>>(new Set());
 
-  // The shell's own symbolic icons; Cupertino keeps its glyphs.
-  const themedSymbols = settings.interfaceTheme !== "cupertino";
+  // The shell's own symbolic icons are Adwaita's look; the other interface
+  // themes keep the Lucide glyphs.
+  const themedSymbols = settings.interfaceTheme === "adwaita";
   React.useLayoutEffect(() => {
     void setSymbolicIconResolver(
       !themedSymbols
