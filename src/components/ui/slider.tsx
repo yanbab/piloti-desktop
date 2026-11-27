@@ -67,11 +67,14 @@ function Slider<Value extends number | readonly number[]>({
                 : "bg-black/8 data-[orientation=horizontal]:h-1.5 data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-1.5 dark:bg-white/10"
           )}
         >
+          {/* The capsule is drawn from its value alone: base-ui hides an
+              edge-aligned slider until it has measured it, and the Control
+              Center is built hidden, so Linux showed it empty at start. */}
           <SliderPrimitive.Indicator
             data-slot="slider-range"
             style={
               isCapsule
-                ? { width: `calc(${pct}% + ${((100 - pct) / 100) * 20}px)` }
+                ? { width: `calc(${pct}% + ${((100 - pct) / 100) * 20}px)`, visibility: "visible" }
                 : undefined
             }
             className={cn(
@@ -94,6 +97,11 @@ function Slider<Value extends number | readonly number[]>({
             data-slot="slider-thumb"
             key={index}
             index={index}
+            style={
+              isCapsule
+                ? { insetInlineStart: `calc(10px + (100% - 20px) * ${pct / 100})`, visibility: "visible" }
+                : undefined
+            }
             aria-label={props["aria-label"]}
             aria-labelledby={props["aria-labelledby"]}
             className={cn(
