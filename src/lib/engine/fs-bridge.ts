@@ -1,35 +1,7 @@
 import type { Piloti } from "@/lib/engine/piloti";
-import {
-  notifyVfsChanged,
-  subscribeWebVfs as subscribeVfs,
-  compressVfsEntries,
-  createVfsFileFromTemplate,
-  copyVfsEntry,
-  extractVfsZip,
-  createVfsFolder,
-  createVfsSymlink,
-  createVfsTextFile,
-  emptyVfsTrash,
-  getVfsDirHiddenNames,
-  getVfsEntry,
-  importExternalFilesToVfs,
-  listVfsDir,
-  listVfsRecentEntries,
-  listVfsTemplates,
-  moveVfsEntry,
-  parseDotHiddenFile,
-  removeVfsEntry,
-  renameVfsEntry,
-  resolveVfsTemplatesDir,
-  restoreVfsEntry,
-  setVfsEntryMetadata,
-  trashVfsEntry,
-  writeVfsTextFile,
-  listVfsFavoriteEntries,
-  syncVfsEmblemsFromHost,
-  loadVfsFavorites,
-  liftVfsEmblems,
-} from "@/lib/engine-web/web-vfs";
+import { liftVfsEmblems, resolveVfsTemplatesDir, syncVfsEmblemsFromHost, loadVfsFavorites } from "@/lib/engine-web/web-vfs";
+import { parseDotHiddenFile } from "@/lib/core/file-types";
+import { demoFiles } from "@/lib/ports/demo-files";
 import {
   normalizeVfsPath,
   WEB_VFS_HOME,
@@ -57,26 +29,7 @@ export { toDomicilePath };
 
 export const RECENTLY_USED_XBEL_PATH = `${WEB_VFS_HOME}/.local/share/recently-used.xbel`;
 
-export {
-  buildVfsEntryWebAppUrl,
-  createVfsFileFromTemplate,
-  getVfsDirHiddenNames,
-  getVfsEntry,
-  importExternalFilesToVfs,
-  isTextEditableVfsFile,
-  listVfsDir,
-  listVfsTemplates,
-  normalizeVfsPath,
-  parseDotHiddenFile,
-  resolveVfsPath,
-  resolveVfsTemplatesDir,
-  setVfsEntryMetadata,
-  subscribeWebVfs,
-  WEB_VFS_HOME,
-  WEB_VFS_TEMPLATES,
-  WEB_VFS_TRASH,
-  type WebVfsEntry,
-} from "@/lib/engine-web/web-vfs";
+export { resolveVfsTemplatesDir };
 
 
 /** Files live on a real disk, as opposed to the browser VFS being the only copy. */
@@ -138,7 +91,7 @@ export async function listFsDir(
 ): Promise<WebVfsEntry[]> {
   const dir = normalizeVfsPath(dirPath);
   // The disk lists everything; the demo leaves hidden ones out unless asked.
-  if (!hasRealFilesystem()) return listVfsDir(dir, options);
+  if (!hasRealFilesystem()) return demoFiles().list(dir, options);
   const listed = await piloti.vfs.list(dir).catch(() => null);
   if (!listed) return [];
   const items = await Promise.all(
@@ -235,7 +188,7 @@ export async function listFsTemplates(
   templatesDirPath?: string,
 ): Promise<WebVfsEntry[]> {
   if (!hasRealFilesystem()) {
-    return listVfsTemplates();
+    return demoFiles().templates();
   }
   const dir = normalizeVfsPath(templatesDirPath || resolveVfsTemplatesDir());
   const entries = await listFsDir(piloti, dir);
@@ -260,9 +213,7 @@ export async function createFsFileFromTemplate(
   template: { name: string; path: string; content?: string },
 ): Promise<WebVfsEntry> {
   if (!hasRealFilesystem()) {
-    const entry =
-      createVfsFileFromTemplate(dirPath, template.path) ??
-      createVfsTextFile(dirPath, template.name, template.content ?? "");
+    const entry = demoFiles().createFromTemplate(dirPath, template);
     vfsCache.added(entry);
     return entry;
   }
@@ -285,7 +236,7 @@ export async function importFsFiles(
   // Taken before any await: a drop's FileList is emptied after the event.
   const dropped = Array.from(files);
   if (!hasRealFilesystem()) {
-    return (await importExternalFilesToVfs(dir, dropped)).map((e) => e.path);
+    return (await demoFiles().importFiles(dir, dropped)).map((e) => e.path);
   }
   const names = await namesIn(piloti, dir);
   const created: string[] = [];
@@ -442,10 +393,7 @@ async function trashFsEntryNow(piloti: Piloti, from: string): Promise<string | n
   }
   if (!hasRealFilesystem()) {
     await piloti.vfs.trash(from);
-    const trashed = listVfsDir(WEB_VFS_TRASH, { includeHidden: true })
-      .filter((e) => e.trashedFromPath === from)
-      .sort((a, b) => b.updatedAt - a.updatedAt)[0];
-    return trashed?.path ?? null;
+    return demoFiles().trashedPath(from);
   }
   // `gio` picks the name in the Trash: it is the one that was not there before.
   const before = await trashInfoNames(piloti);
@@ -503,7 +451,7 @@ export async function removeFsFile(
 export async function listFsFavoriteEntries(
   piloti: Piloti,
 ): Promise<WebVfsEntry[]> {
-  if (!hasRealFilesystem()) return listVfsFavoriteEntries();
+  if (!hasRealFilesystem()) return demoFiles().favorites();
   // Another app may have (un)starred files: read the folders' metadata first.
   const dirs = new Set(loadVfsFavorites().map((p) => p.slice(0, p.lastIndexOf("/")) || "/"));
   await Promise.all(
@@ -546,7 +494,7 @@ export async function listFsRecentEntries(
     items
       .filter((item) => !seen.has(item.path) && seen.add(item.path))
       .map(async ({ path, time, mimeType }) => {
-        const found = hasRealFilesystem() ? await statEntry(piloti, path) : getVfsEntry(path);
+        const found = hasRealFilesystem() ? await statEntry(piloti, path) : demoFiles().entry(path);
         if (!found && hasRealFilesystem()) return null;
         const thumbnail =
           found?.kind === "file" && hasRealFilesystem()
@@ -565,7 +513,7 @@ export async function listFsRecentEntries(
   );
   const byPath = new Map(entries.filter((e): e is WebVfsEntry => e !== null).map((e) => [e.path, e]));
   if (!hasRealFilesystem()) {
-    for (const entry of listVfsRecentEntries()) if (!byPath.has(entry.path)) byPath.set(entry.path, entry);
+    for (const entry of demoFiles().recents()) if (!byPath.has(entry.path)) byPath.set(entry.path, entry);
   }
   return Array.from(byPath.values()).sort((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0));
 }
@@ -604,7 +552,7 @@ export async function compressFsEntries(
   paths: readonly string[],
 ): Promise<string | null> {
   if (hasRealFilesystem()) return compressNative(piloti, paths);
-  return (await compressVfsEntries(paths))?.path ?? null;
+  return demoFiles().compress(paths);
 }
 
 /** Extracts an archive into a new folder next to it; returns its path, or null. */
@@ -613,6 +561,6 @@ export async function extractFsArchive(
   path: string,
 ): Promise<string | null> {
   if (hasRealFilesystem()) return extractNative(piloti, path);
-  return (await extractVfsZip(path))?.path ?? null;
+  return (await demoFiles().extract(path))?.path ?? null;
 }
 

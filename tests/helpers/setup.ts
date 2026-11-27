@@ -6,6 +6,8 @@ import { setEngine, webEngine } from "@/lib/engine/engine";
 import { setDataFiles } from "@/lib/engine-web/data-files";
 import { demoVfsSeed } from "@/lib/engine-web/vfs-seed";
 import { setVfsSeed } from "@/lib/engine-web/web-vfs";
+import { webDemoFiles } from "@/lib/engine-web/demo-files";
+import { setDemoFiles } from "@/lib/ports/demo-files";
 // @ts-expect-error -- plain build script
 import { DATA_FILES_DIR, indexDataFiles } from "../../scripts/data-files.mjs";
 
@@ -25,3 +27,4 @@ registerApps(
 );
 setVfsSeed(demoVfsSeed);
 setEngine(webEngine);
+setDemoFiles(webDemoFiles);

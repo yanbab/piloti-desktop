@@ -2,12 +2,22 @@ import type { DemoFiles } from "@/lib/ports/demo-files";
 import { isTextEditableVfsFile } from "@/lib/core/file-types";
 import {
   buildVfsEntryWebAppUrl,
+  compressVfsEntries,
+  createVfsFileFromTemplate,
+  createVfsTextFile,
   downloadVfsFile,
   extractVfsZip,
   getVfsEntry,
+  importExternalFilesToVfs,
   incrementVfsAccessCount,
+  listVfsDir,
+  listVfsFavoriteEntries,
+  listVfsRecentEntries,
+  listVfsTemplates,
   subscribeWebVfs,
+  writeVfsTextFile,
 } from "./web-vfs";
+import { WEB_VFS_TRASH } from "@/lib/core/vfs-paths";
 
 export const webDemoFiles: DemoFiles = {
   entry: getVfsEntry,
@@ -21,4 +31,18 @@ export const webDemoFiles: DemoFiles = {
   download: (path) => void downloadVfsFile(path),
   watchFolder: (dir, onChange) =>
     subscribeWebVfs(() => onChange(), { path: dir, mode: "children" }),
+  list: listVfsDir,
+  templates: listVfsTemplates,
+  createFromTemplate: (dir, template) =>
+    createVfsFileFromTemplate(dir, template.path) ??
+    createVfsTextFile(dir, template.name, template.content ?? ""),
+  importFiles: importExternalFilesToVfs,
+  trashedPath: (path) =>
+    listVfsDir(WEB_VFS_TRASH, { includeHidden: true })
+      .filter((e) => e.trashedFromPath === path)
+      .sort((a, b) => b.updatedAt - a.updatedAt)[0]?.path ?? null,
+  favorites: listVfsFavoriteEntries,
+  recents: () => listVfsRecentEntries(),
+  compress: async (paths) => (await compressVfsEntries(paths))?.path ?? null,
+  writeText: (path, text) => void writeVfsTextFile(path, text),
 };

@@ -3,7 +3,6 @@
   "apps/files/FilesApp.tsx",
   "lib/engine/emblems.ts",
   "lib/engine/fs-bridge.ts",
-  "lib/engine/shell-log.ts",
   "lib/engine/vfs-state.ts",
   "piloti-desktop.tsx",
   "piloti-web.tsx"

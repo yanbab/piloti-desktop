@@ -52,13 +52,9 @@ import {
   resolveDynamicWallpaperCss,
   type WallpaperOption,
 } from "@/data/catalog";
-import {
-  WEB_VFS_HOME,
-  importExternalFilesToVfs,
-  listFsDir,
-  toDomicilePath,
-  type WebVfsEntry,
-} from "@/lib/engine/fs-bridge";
+import { WEB_VFS_HOME, type WebVfsEntry } from "@/lib/core/vfs-paths";
+import { listFsDir, toDomicilePath } from "@/lib/engine/fs-bridge";
+import { demoFiles } from "@/lib/ports/demo-files";
 import {
   GNOME_PICTURE_OPTIONS,
   GNOME_SHADING_TYPES,
@@ -318,7 +314,7 @@ export function WallpaperPane() {
     async (files: FileList | null) => {
       if (!files || files.length === 0) return;
       if (!realFilesystem) {
-        const imported = await importExternalFilesToVfs(picturesDir, files);
+        const imported = await demoFiles().importFiles(picturesDir, files);
         const firstImage = imported.find((e) => IMAGE_FILE_EXT_RE.test(e.name)) ?? imported[0];
         if (firstImage) {
           applyPictureUri(localPathToFileUri(firstImage.path));
