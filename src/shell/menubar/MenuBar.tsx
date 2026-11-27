@@ -82,6 +82,7 @@ import { PilotiLogo } from "@/components/common/PilotiLogo";
 import { usePlugins } from "@/context/PluginsContext";
 import { SystemTrayItem } from "./SystemTray";
 import { AppMenuItems, MenuShortcutLabel } from "@/components/common/AppMenuItems";
+import { useCapabilities } from "@/hooks/use-capabilities";
 
 function RemoteSubmenuGroup({
   entry,
@@ -226,7 +227,7 @@ export const MenuBar = React.memo(function MenuBar() {
   const piloti = usePiloti();
   const captureActivity = useCaptureActivity();
   const { statusItems } = usePlugins();
-  const isBrowserRuntime = useSettingsSelector((v) => v.isBrowserRuntime); // FIXME : Capabilities
+  const { compositor } = useCapabilities();
   const settings = useDesktopSettings(["activeWorkspace", "bluetoothEnabled", "clock24Hour", "clockShowDate", "clockShowDay", "clockShowSeconds", "computerModel", "connectedWifi", "doNotDisturb", "enabledPluginIds", "installedWebApps", "keyboardLayout", "muted", "pinnedAppIds", "powerMode", "showBatteryPercentage", "volume", "wifiEnabled", "workspaceCount"]);
   const updateSettings = useUpdateSettings();
   // The compositor starts on its first keymap: put back the chosen one.
@@ -310,7 +311,7 @@ export const MenuBar = React.memo(function MenuBar() {
   }, [focusedWaylandClient?.desktopId, focusedWindow?.appId, installedXdgApps]);
 
   React.useEffect(() => {
-    if (!focusedWindow?.waylandAppId || isBrowserRuntime) {  // FIXME : Capabilities
+    if (!focusedWindow?.waylandAppId || !compositor) {
       setRemoteMenu(null);
       return;
     }
@@ -352,7 +353,7 @@ export const MenuBar = React.memo(function MenuBar() {
     focusedWaylandClient?.pid,
     focusedWindow?.appId,
     focusedWindow?.waylandAppId,
-    isBrowserRuntime,  // FIXME : Capabilities
+    compositor,
     launchXdgEntry,
   ]);
 
@@ -478,7 +479,7 @@ export const MenuBar = React.memo(function MenuBar() {
     if (!hasRemoteSections) {
       for (const section of activeAppDef.menus) {
         for (const item of section.items) {
-          if (item.actionId === "shell:fullscreen" && !isBrowserRuntime) continue;  // FIXME : Capabilities
+          if (item.actionId === "shell:fullscreen" && compositor) continue;
           const state = windowMenuState[item.actionId];
           if (state?.hidden) continue;
           add([_(section.title)], _(item.label), () => handleMenuAction(item.actionId), {
@@ -541,7 +542,7 @@ export const MenuBar = React.memo(function MenuBar() {
     focusedWindowId,
     handleMenuAction,
     hasRemoteSections,
-    isBrowserRuntime,  // FIXME : Capabilities
+    compositor,
     launchApp,
     lockSession,
     remoteMenu,
@@ -878,7 +879,7 @@ export const MenuBar = React.memo(function MenuBar() {
               .filter((section) => section.title === "View")
               .map((section) => {
                 const visibleItems = section.items.filter(
-                  (i) => i.actionId !== "shell:fullscreen" || isBrowserRuntime,  // FIXME : Capabilities
+                  (i) => i.actionId !== "shell:fullscreen" || !compositor,
                 );
                 return (
                   <MenubarMenu key={section.title}>
@@ -1027,7 +1028,7 @@ export const MenuBar = React.memo(function MenuBar() {
               </MenubarItem>
               <MenubarItem
                 onClick={() => {
-                  if (isBrowserRuntime) {  // FIXME : Capabilities
+                  if (!compositor) {
                     window.open(helpLinks.issueUrl, "_blank", "noopener,noreferrer");
                   } else {
                     openWebUrl(helpLinks.issueUrl, { title: _("Report Issue") });

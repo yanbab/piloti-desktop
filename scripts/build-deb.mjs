@@ -225,7 +225,7 @@ function generateDebianControl({ version, installedSizeKiB, repoRoot }) {
     "Priority: optional",
     "Architecture: all",
     "Depends: domicile, adwaita-icon-theme, hicolor-icon-theme, papirus-icon-theme, libarchive-tools",
-    "Recommends: xwayland-satellite, fonts-adwaita, fonts-noto-color-emoji, xdg-utils, dbus-user-session, pkexec, mate-polkit | lxpolkit | lxqt-policykit | polkit-kde-agent-1, x11-xserver-utils",
+    "Recommends: xwayland-satellite, fonts-adwaita, fonts-noto-color-emoji, xdg-utils, dbus-user-session, udisks2, pkexec, mate-polkit | lxpolkit | lxqt-policykit | polkit-kde-agent-1, x11-xserver-utils",
     "Suggests: fonts-cantarell, fonts-ubuntu, greetd, gnome-control-center, flatpak, network-manager, pipewire, tecla, wvkbd",
     "Provides: wayland-session",
     `Installed-Size: ${installedSizeKiB}`,

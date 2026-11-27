@@ -39,14 +39,7 @@ import { parseIniText } from "@/lib/config/piloti-ini";
 import { _ } from "@/lib/core/i18n";
 import { getRenderCounts, resetRenderCounts } from "@/lib/core/render-stats";
 import { cn } from "@/lib/core/utils";
-import {
-  WEB_VFS_CHANGED_EVENT,
-  getVfsSnapshotEntries,
-  getWebVfsPerfStats,
-  listWebVfsBackingStorageEntries,
-  resetWebVfsPerfStats,
-  type WebVfsPerfStats,
-} from "@/lib/engine-web/web-vfs";
+import { vfsInspector, type WebVfsPerfStats } from "@/lib/ports/vfs-inspector";
 import { type WebVfsEntry } from "@/lib/core/vfs-paths";
 import {
   parseVfsStateString,
@@ -73,21 +66,21 @@ type InspectorSectionId =
   | "notifications"
   | "performance";
 
-/** Live web-VFS persistence counters (writes, coalesced flushes, listener fan-out). */
-function VfsPerformanceSection() {
-  const [stats, setStats] = React.useState<WebVfsPerfStats>(() => getWebVfsPerfStats());
+/** Component renders, and the demo's VFS persistence counters (writes, coalesced flushes, listener fan-out). */
+function PerformanceSection() {
+  const [stats, setStats] = React.useState<WebVfsPerfStats | undefined>(() => vfsInspector()?.stats());
   const [renders, setRenders] = React.useState(() => getRenderCounts());
   React.useEffect(() => {
     const timer = window.setInterval(() => {
-      setStats(getWebVfsPerfStats());
+      setStats(vfsInspector()?.stats());
       setRenders(getRenderCounts());
     }, 1000);
     return () => window.clearInterval(timer);
   }, []);
-  const minutes = Math.max(1 / 60, (Date.now() - stats.startedAt) / 60_000);
-  const avgFlush = stats.flushes > 0 ? stats.totalFlushMs / stats.flushes : 0;
-  const delivered = stats.listenerCalls + stats.listenerSkips;
-  const tiles = [
+  const minutes = stats ? Math.max(1 / 60, (Date.now() - stats.startedAt) / 60_000) : 1;
+  const avgFlush = stats && stats.flushes > 0 ? stats.totalFlushMs / stats.flushes : 0;
+  const delivered = stats ? stats.listenerCalls + stats.listenerSkips : 0;
+  const tiles = !stats ? [] : [
     { label: _("VFS writes / min"), value: (stats.writes / minutes).toFixed(1) },
     { label: _("Storage flushes / min"), value: (stats.flushes / minutes).toFixed(1) },
     {
@@ -108,14 +101,14 @@ function VfsPerformanceSection() {
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <span className="text-ui-body text-ui-label-secondary">
-          {_("Since %s", new Date(stats.startedAt).toLocaleTimeString())}
+          {stats && _("Since %s", new Date(stats.startedAt).toLocaleTimeString())}
         </span>
         <button
           type="button"
           onClick={() => {
-            resetWebVfsPerfStats();
+            vfsInspector()?.resetStats();
             resetRenderCounts();
-            setStats(getWebVfsPerfStats());
+            setStats(vfsInspector()?.stats());
             setRenders(getRenderCounts());
           }}
           className="rounded-ui-control bg-black/6 px-2.5 py-1 text-ui-small font-medium text-ui-label hover-fill:bg-black/10 dark:bg-white/10 dark:hover-fill:bg-white/15"
@@ -755,7 +748,7 @@ function InspectorModule() {
         );
       }
       case "performance":
-        return <VfsPerformanceSection />;
+        return <PerformanceSection />;
       case "notifications":
         return (
           <div className="space-y-4">
@@ -972,7 +965,7 @@ function formatByteSize(bytes: number): string {
 }
 
 function readLocalStorageEntries(): StorageEntry[] {
-  const rawEntries = listWebVfsBackingStorageEntries();
+  const rawEntries = vfsInspector()?.backingStorage() ?? [];
   const encoder =
     typeof TextEncoder !== "undefined" ? new TextEncoder() : null;
   const entries: StorageEntry[] = [];
@@ -1024,7 +1017,7 @@ interface VfsDiffItem {
 
 function readVfsSnapshotMap(): Map<string, WebVfsEntry> {
   const map = new Map<string, WebVfsEntry>();
-  for (const entry of getVfsSnapshotEntries()) {
+  for (const entry of vfsInspector()?.entries() ?? []) {
     if (entry?.path) map.set(entry.path, entry);
   }
   return map;
@@ -1124,6 +1117,7 @@ function VfsEventsModule({ active }: { active: boolean }) {
   }, [focusedWindowId, pushEvent, windows]);
 
   React.useEffect(() => {
+    const vfsEvent = vfsInspector()?.changedEvent;
     const eventNames = [
       "piloti:app-action",
       "piloti:app-menu-state",
@@ -1133,11 +1127,11 @@ function VfsEventsModule({ active }: { active: boolean }) {
       "residence:file-drop-dock",
       "residence:file-drop-window",
       "residence:desktop-drop-position",
-      WEB_VFS_CHANGED_EVENT,
+      ...(vfsEvent ? [vfsEvent] : []),
     ];
     const listeners = eventNames.map((name) => {
       const fn = (e: Event) => {
-        if (name === WEB_VFS_CHANGED_EVENT) {
+        if (name === vfsEvent) {
           setCurrentMap(readVfsSnapshotMap());
         }
         const detail = (e as CustomEvent<unknown>).detail;
@@ -1150,7 +1144,7 @@ function VfsEventsModule({ active }: { active: boolean }) {
         pushEvent(
           name,
           detailStr.slice(0, 180),
-          name === WEB_VFS_CHANGED_EVENT ? "vfs" : "shell"
+          name === vfsEvent ? "vfs" : "shell"
         );
       };
       window.addEventListener(name, fn);
@@ -1217,7 +1211,7 @@ function VfsEventsModule({ active }: { active: boolean }) {
               { id: "all", label: _("All") },
               { id: "log", label: _("Logs") },
               { id: "issues", label: _("Issues") },
-              { id: "vfs", label: "VFS" },
+              ...(vfsInspector() ? [{ id: "vfs", label: "VFS" } as const] : []),
               { id: "shell", label: _("Shell") },
               { id: "window", label: _("Window") },
             ] as const
@@ -1239,31 +1233,35 @@ function VfsEventsModule({ active }: { active: boolean }) {
         </div>
 
         <div className="flex min-w-0 items-center gap-1.5">
-          <button
-            type="button"
-            title={`${_("VFS Diff")} (${diffs.length}) · ${_("VFS Events")} (${vfsEventsCount})`}
-            onClick={() => setShowDiffDrawer((prev) => !prev)}
-            className={cn(
-              // One line; ellipsized when the toolbar is narrow.
-              "min-w-0 truncate whitespace-nowrap rounded-full px-2.5 py-0.5 text-ui-small font-medium transition-colors",
-              showDiffDrawer
-                ? "bg-ui-accent/15 text-ui-accent"
-                : "bg-black/6 text-ui-label-secondary hover-fill:bg-black/10 hover-fill:text-ui-label dark:bg-white/8 dark:hover-fill:bg-white/14"
-            )}
-          >
-            {_("VFS Diff")} ({diffs.length}) · {_("VFS Events")} ({vfsEventsCount})
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              const snap = readVfsSnapshotMap();
-              setBaseline(snap);
-              setCurrentMap(snap);
-            }}
-            className="shrink-0 whitespace-nowrap rounded-ui-control bg-black/6 px-2 py-0.5 text-ui-small font-medium text-ui-label transition-colors hover-fill:bg-black/12 dark:bg-white/8 dark:hover-fill:bg-white/14"
-          >
-            {_("Snapshot")}
-          </button>
+          {vfsInspector() && (
+            <>
+              <button
+                type="button"
+                title={`${_("VFS Diff")} (${diffs.length}) · ${_("VFS Events")} (${vfsEventsCount})`}
+                onClick={() => setShowDiffDrawer((prev) => !prev)}
+                className={cn(
+                  // One line; ellipsized when the toolbar is narrow.
+                  "min-w-0 truncate whitespace-nowrap rounded-full px-2.5 py-0.5 text-ui-small font-medium transition-colors",
+                  showDiffDrawer
+                    ? "bg-ui-accent/15 text-ui-accent"
+                    : "bg-black/6 text-ui-label-secondary hover-fill:bg-black/10 hover-fill:text-ui-label dark:bg-white/8 dark:hover-fill:bg-white/14"
+                )}
+              >
+                {_("VFS Diff")} ({diffs.length}) · {_("VFS Events")} ({vfsEventsCount})
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const snap = readVfsSnapshotMap();
+                  setBaseline(snap);
+                  setCurrentMap(snap);
+                }}
+                className="shrink-0 whitespace-nowrap rounded-ui-control bg-black/6 px-2 py-0.5 text-ui-small font-medium text-ui-label transition-colors hover-fill:bg-black/12 dark:bg-white/8 dark:hover-fill:bg-white/14"
+              >
+                {_("Snapshot")}
+              </button>
+            </>
+          )}
           <button
             type="button"
             onClick={() => {
@@ -1625,7 +1623,7 @@ export function ConsoleApp({
   const isModuleId = (v: string | null | undefined): v is ConsoleModuleId =>
     v === "logs" || // legacy: merged into Events
     v === "inspector" ||
-    v === "storage" ||
+    (v === "storage" && vfsInspector() !== null) ||
     v === "vfs-events";
 
   const [activeModule, setActiveModule] = React.useState<ConsoleModuleId>(
@@ -1680,7 +1678,7 @@ export function ConsoleApp({
       label: _("Events"),
       badge: errorCount > 0 ? errorCount : undefined,
     },
-    { id: "storage", label: "Storage" },
+    ...(vfsInspector() ? [{ id: "storage" as const, label: "Storage" }] : []),
   ];
 
   return (

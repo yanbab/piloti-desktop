@@ -26,6 +26,9 @@ export interface WebVfsEntry {
 }
 
 export const WEB_VFS_HOME = `${VFS_HOME}`;
+/** Folders' own listings, which are not folders. */
+export const WEB_VFS_FAVORITES_URI = "piloti://favorites";
+export const WEB_VFS_RECENTS_URI = "piloti://recents";
 export const WEB_VFS_TEMPLATES = `${VFS_HOME}/Templates`;
 export const WEB_VFS_TRASH = `${VFS_HOME}/.local/share/Trash/files`;
 

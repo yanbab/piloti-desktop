@@ -1,14 +1,11 @@
-import * as React from "react";
+import { SIMULATED_USB_PATH, type DemoUsb } from "@/lib/ports/demo-usb";
 import {
   getVfsEntry,
-  normalizeVfsPath,
   removeVfsEntry,
   writeVfsTextFile,
 } from "./web-vfs";
 
-export const SIMULATED_USB_PATH = "/media/user/PILOTI_USB";
-export const SIMULATED_USB_LABEL = "PILOTI USB";
-export const SIMULATED_USB_CHANGED_EVENT = "piloti:usb-drive-changed";
+const SIMULATED_USB_CHANGED_EVENT = "piloti:usb-drive-changed";
 
 const USB_MOUNTED_STORAGE_KEY = "piloti.simulated-usb.mounted";
 
@@ -40,14 +37,7 @@ function emitUsbChanged(): void {
   }
 }
 
-export function isSimulatedUsbPath(rawPath: string): boolean {
-  const norm = normalizeVfsPath(rawPath);
-  return (
-    norm === SIMULATED_USB_PATH || norm.startsWith(`${SIMULATED_USB_PATH}/`)
-  );
-}
-
-export function isSimulatedUsbMounted(): boolean {
+function isMounted(): boolean {
   if (readStoredMountFlag()) {
     if (!getVfsEntry(SIMULATED_USB_PATH)) {
       seedSimulatedUsbContents();
@@ -73,27 +63,19 @@ function seedSimulatedUsbContents(): void {
   }
 }
 
-export function mountSimulatedUsb(): boolean {
+function mount(): void {
   writeStoredMountFlag(true);
   seedSimulatedUsbContents();
   emitUsbChanged();
-  return true;
 }
 
-export function unmountSimulatedUsb(): boolean {
+function unmount(): void {
   writeStoredMountFlag(false);
   removeVfsEntry(SIMULATED_USB_PATH);
   emitUsbChanged();
-  return false;
 }
 
-export function toggleSimulatedUsb(): boolean {
-  return isSimulatedUsbMounted()
-    ? unmountSimulatedUsb()
-    : mountSimulatedUsb();
-}
-
-export function subscribeSimulatedUsb(listener: () => void): () => void {
+function subscribe(listener: () => void): () => void {
   if (typeof window === "undefined") return () => {};
   const onStorage = (e: StorageEvent) => {
     if (e.key === USB_MOUNTED_STORAGE_KEY || e.key === null) {
@@ -108,12 +90,4 @@ export function subscribeSimulatedUsb(listener: () => void): () => void {
   };
 }
 
-export function useSimulatedUsbMounted(): boolean {
-  const [mounted, setMounted] = React.useState(() => isSimulatedUsbMounted());
-  React.useEffect(() => {
-    setMounted(isSimulatedUsbMounted());
-    return subscribeSimulatedUsb(() => setMounted(isSimulatedUsbMounted()));
-  }, []);
-  return mounted;
-}
-
+export const webDemoUsb: DemoUsb = { mounted: isMounted, mount, unmount, subscribe };

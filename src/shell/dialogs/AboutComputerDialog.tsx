@@ -18,6 +18,7 @@ import {
 import { _ } from "@/lib/core/i18n";
 import { cn } from "@/lib/core/utils";
 import { type ComputerInfo, probeComputerInfo } from "@/lib/core/system-info";
+import { useCapabilities } from "@/hooks/use-capabilities";
 
 export function ComputerHardwareIllustration({
   className,
@@ -159,7 +160,7 @@ let lastInfo: ComputerInfo | null = null;
  */
 export function AboutComputerDialog() {
   const piloti = usePiloti();
-  const isBrowserRuntime = useSettingsSelector((v) => v.isBrowserRuntime); // FIXME : Capabilities
+  const { simulatedHardware } = useCapabilities();
   const closeOnLeft = isCloseOnLeft(useDesktopSetting("windowButtonLayout"));
   const aboutOpen = useWindowManagerSelector((wm) => wm.aboutOpen);
   const { setAboutOpen, launchApp } = useWindowActions();
@@ -169,17 +170,17 @@ export function AboutComputerDialog() {
   React.useEffect(() => {
     if (!aboutOpen) return;
     let cancelled = false;
-    void probeComputerInfo(piloti, isBrowserRuntime).then((next) => {  // FIXME : Capabilities
+    void probeComputerInfo(piloti, simulatedHardware).then((next) => {
       lastInfo = next;
       if (!cancelled) setInfo(next);
     });
     return () => {
       cancelled = true;
     };
-  }, [aboutOpen, piloti, isBrowserRuntime]);  // FIXME : Capabilities
+  }, [aboutOpen, piloti, simulatedHardware]);
 
   const platformLabel = React.useMemo(() => {
-    if (!isBrowserRuntime) {  // FIXME : Capabilities
+    if (!simulatedHardware) {
       return info.kernel ? `Linux ${info.kernel}` : info.osName;
     }
     const ua = typeof navigator !== "undefined" ? navigator.userAgent : "";
@@ -187,7 +188,7 @@ export function AboutComputerDialog() {
     if (/Edg\//.test(ua) || /Chrome\//.test(ua)) return "Web Engine (Blink)";
     if (/Safari\//.test(ua)) return "Web Engine (WebKit)";
     return "Web Engine";
-  }, [info.kernel, info.osName, isBrowserRuntime]);  // FIXME : Capabilities
+  }, [info.kernel, info.osName, simulatedHardware]);
 
   const rows = [
     { label: _("Desktop"), value: `Piloti v${PILOTI_VERSION}` },

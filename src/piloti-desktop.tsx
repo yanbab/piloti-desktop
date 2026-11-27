@@ -11,15 +11,12 @@ import type { Vfs } from "./lib/ports/vfs";
 
 setEngine(nativeEngine);
 
-const CACHE_MARKER_KEY = "piloti.vfs.native-memory.v1";
-
 /**
  * Entry of the native shell. The VFS root must be the real `$HOME`, and VFS
  * modules read it when they load, so ask the compositor for it first and only
  * then load the desktop (see `src/lib/engine/vfs-home.ts`).
  *
- * The native VFS is a memory cache of the disk: no browser storage, no demo
- * tree. Piloti's own state files are read back from `$HOME` before the desktop
+ * Files are the disk's: no browser storage, no demo tree. Piloti's own state files are read back from `$HOME` before the desktop
  * starts.
  */
 async function boot(root: HTMLElement, piloti: Parameters<ShellModule>[1]) {
@@ -32,51 +29,28 @@ async function boot(root: HTMLElement, piloti: Parameters<ShellModule>[1]) {
     const home = stat.unwrapOr(undefined as never)?.realPath;
     if (home && home.startsWith("/")) {
       (globalThis as { __PILOTI_VFS_HOME__?: string }).__PILOTI_VFS_HOME__ = home;
-      const vfs = await import("@/lib/engine-web/web-vfs");
-      let cleared = false;
-      try {
-        cleared = localStorage.getItem(CACHE_MARKER_KEY) === "1";
-      } catch {
-        /* storage unavailable */
-      }
-      if (!cleared) {
-        // Earlier builds cached the VFS (and a demo tree) in browser storage.
-        vfs.clearAllWebVfsBackingStorage();
-        try {
-          localStorage.setItem(CACHE_MARKER_KEY, "1");
-        } catch {
-          /* storage unavailable */
-        }
-      }
-      const { memoryBlobStorage } = await import("@/lib/ports/vfs-persistence");
       const [
         { createNativeVfs },
         { setEmblems },
-        { createNativeKeyValueStorage },
+        { createNativeEmblemStorage },
         { createNativeStateStore },
         { setStateSource },
+        emblems,
+        { clearOldBrowserCache },
       ] = await Promise.all([
         import("@/lib/engine-native/vfs"),
         import("@/lib/engine-native/gio"),
-        import("@/lib/engine-native/state-preload"),
+        import("@/lib/engine-native/emblem-storage"),
         import("@/lib/engine-native/state-store"),
         import("@/lib/engine/vfs-state"),
+        import("@/lib/engine/emblems"),
+        import("@/lib/engine-native/clear-old-browser-cache"),
       ]);
+      clearOldBrowserCache();
       nativeVfs = createNativeVfs(piloti);
-      const finishKv = startBootPhase("saved key/values");
-      // Emblems are read from `gio` as folders are listed. Only the favorites are
-      // saved: `gio` can't say which files have one.
-      const mirrored = [vfs.WEB_VFS_STORAGE_KEY, vfs.VFS_EMBLEMS_STORAGE_KEY];
-      const kv = await createNativeKeyValueStorage(nativeVfs, (key) => mirrored.includes(key));
-      finishKv();
-      vfs.setVfsPersistence({
-        kv,
-        blobs: memoryBlobStorage(),
-        persistEntries: false,
-      });
       // Emblems (favorites included) live in the file's gio `metadata::emblems`, like other file managers.
-      vfs.setVfsEmblemPersist((path, names) =>
-        setEmblems(piloti.processes, path, names, vfs.MANAGED_GNOME_EMBLEMS),
+      emblems.setEmblemPersist((path, names) =>
+        setEmblems(piloti.processes, path, names, emblems.MANAGED_GNOME_EMBLEMS),
       );
       const finishPreload = startBootPhase("saved state files");
       const { mergeConfigDirs } = await import("@/lib/engine/system-commands");
@@ -85,6 +59,8 @@ async function boot(root: HTMLElement, piloti: Parameters<ShellModule>[1]) {
         await mergeConfigDirs(piloti, `${config}/Piloti`, `${config}/piloti`).catch(() => undefined);
       }
       setStateSource(await createNativeStateStore(nativeVfs, home));
+      // After the state store: the favorites are one of its files.
+      emblems.setEmblemStorage(await createNativeEmblemStorage(nativeVfs));
       finishPreload();
       // Desktop settings in dconf when Piloti's schemas are installed.
       const finishSettings = startBootPhase("settings backend");

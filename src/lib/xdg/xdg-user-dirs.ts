@@ -255,9 +255,9 @@ export async function discoverXdgUserDirs(
  */
 export function buildOpenXdgFolderArgv(
   folder: XdgUserDir,
-  isBrowserRuntime: boolean  // FIXME : Capabilities
+  virtualHome: boolean
 ): string[] {
-  if (isBrowserRuntime) {  // FIXME : Capabilities
+  if (virtualHome) {
     return ["nautilus", "--new-window", folder.displayPath];
   }
   if (folder.absolutePath) {

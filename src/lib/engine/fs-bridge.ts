@@ -1,5 +1,5 @@
 import type { Piloti } from "@/lib/engine/piloti";
-import { liftVfsEmblems, resolveVfsTemplatesDir, syncVfsEmblemsFromHost, loadVfsFavorites } from "@/lib/engine-web/web-vfs";
+import { liftEmblems, listFavoritePaths, syncEmblemsFromHost } from "@/lib/engine/emblems";
 import { parseDotHiddenFile } from "@/lib/core/file-types";
 import { demoFiles } from "@/lib/ports/demo-files";
 import {
@@ -28,9 +28,6 @@ import { vfsKeys } from "@/lib/engine/vfs-query";
 export { toDomicilePath };
 
 export const RECENTLY_USED_XBEL_PATH = `${WEB_VFS_HOME}/.local/share/recently-used.xbel`;
-
-export { resolveVfsTemplatesDir };
-
 
 /** Files live on a real disk, as opposed to the browser VFS being the only copy. */
 const hasRealFilesystem = (): boolean => getEngine().capabilities.realFilesystem;
@@ -63,7 +60,7 @@ async function syncEmblems(
 ): Promise<void> {
   const onDisk = await listEmblems(piloti.processes, dir);
   if (!onDisk) return;
-  for (const item of listed) syncVfsEmblemsFromHost(item.path, onDisk[item.name] ?? []);
+  for (const item of listed) syncEmblemsFromHost(item.path, onDisk[item.name] ?? []);
 }
 
 /** Whether a thumbnail is worth looking up: each lookup costs several disk reads. */
@@ -190,7 +187,7 @@ export async function listFsTemplates(
   if (!hasRealFilesystem()) {
     return demoFiles().templates();
   }
-  const dir = normalizeVfsPath(templatesDirPath || resolveVfsTemplatesDir());
+  const dir = normalizeVfsPath(templatesDirPath || WEB_VFS_TEMPLATES);
   const entries = await listFsDir(piloti, dir);
   const dotHidden = entries.find((e) => e.name === ".hidden");
   const hiddenNames = parseDotHiddenFile(dotHidden?.content);
@@ -264,7 +261,7 @@ export async function moveKeepingEmblems(
   from: string,
   to: string,
 ): Promise<void> {
-  const putEmblems = await liftVfsEmblems(from);
+  const putEmblems = await liftEmblems(from);
   await piloti.vfs.move(from, to).catch(async (error: unknown) => {
     await putEmblems(from);
     throw error;
@@ -360,7 +357,7 @@ const trashInfoNames = async (piloti: Piloti) =>
  */
 export async function trashFsEntry(piloti: Piloti, path: string): Promise<string | null> {
   const from = normalizeVfsPath(path);
-  const putEmblems = await liftVfsEmblems(from);
+  const putEmblems = await liftEmblems(from);
   try {
     const where = await trashFsEntryNow(piloti, from).catch(async (error: unknown) => {
       await putEmblems(from);
@@ -409,7 +406,7 @@ export async function restoreFsEntry(
 ): Promise<WebVfsEntry | null> {
   const from = normalizeVfsPath(trashPath);
   const kind = (await piloti.vfs.stat(from).catch(() => null))?.kind ?? "file";
-  const putEmblems = await liftVfsEmblems(from);
+  const putEmblems = await liftEmblems(from);
   return piloti.vfs
     .restore(from)
     .catch(async (error: unknown) => {
@@ -438,7 +435,7 @@ export async function removeFsFile(
   filePath: string,
 ): Promise<void> {
   const path = normalizeVfsPath(filePath);
-  const putEmblems = await liftVfsEmblems(path);
+  const putEmblems = await liftEmblems(path);
   await piloti.vfs.remove(path).catch(async (error: unknown) => {
     await putEmblems(path);
     throw error;
@@ -453,13 +450,13 @@ export async function listFsFavoriteEntries(
 ): Promise<WebVfsEntry[]> {
   if (!hasRealFilesystem()) return demoFiles().favorites();
   // Another app may have (un)starred files: read the folders' metadata first.
-  const dirs = new Set(loadVfsFavorites().map((p) => p.slice(0, p.lastIndexOf("/")) || "/"));
+  const dirs = new Set(listFavoritePaths().map((p) => p.slice(0, p.lastIndexOf("/")) || "/"));
   await Promise.all(
     [...dirs].map(async (dir) =>
       syncEmblems(piloti, dir, (await piloti.vfs.list(dir).catch(() => null)) ?? []),
     ),
   );
-  const found = await Promise.all(loadVfsFavorites().map((path) => statEntry(piloti, path)));
+  const found = await Promise.all(listFavoritePaths().map((path) => statEntry(piloti, path)));
   return found.filter((e): e is WebVfsEntry => e !== null);
 }
 

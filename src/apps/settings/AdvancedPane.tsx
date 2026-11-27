@@ -43,7 +43,7 @@ import {
   SIMULATED_USB_PATH,
   toggleSimulatedUsb,
   useSimulatedUsbMounted,
-} from "@/lib/engine-web/usb-drive";
+} from "@/lib/ports/demo-usb";
 
 export function AdvancedPane() {
   const progressDemoTimerRef = React.useRef<number | undefined>(undefined);

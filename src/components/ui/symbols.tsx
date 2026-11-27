@@ -28,6 +28,7 @@ import {
   ClockIcon as LucideClockIcon,
   Columns2Icon as LucideColumns2Icon,
   DownloadIcon as LucideDownloadIcon,
+  DiscIcon as LucideDiscIcon,
   EjectIcon as LucideEjectIcon,
   EyeIcon as LucideEyeIcon,
   EyeOffIcon as LucideEyeOffIcon,
@@ -96,6 +97,7 @@ function themed(name: SymbolicIconName, fallback: LucideIcon): LucideIcon {
 }
 
 // No symbolic counterpart in the icon themes.
+export const DiscIcon = LucideDiscIcon;
 export const CodeIcon = LucideCodeXmlIcon;
 export const PencilRulerIcon = LucidePencilRulerIcon;
 

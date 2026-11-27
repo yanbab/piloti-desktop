@@ -14,6 +14,7 @@ import {
   listVfsFavoriteEntries,
   listVfsRecentEntries,
   listVfsTemplates,
+  resolveVfsTemplatesDir,
   subscribeWebVfs,
   writeVfsTextFile,
 } from "./web-vfs";
@@ -31,8 +32,10 @@ export const webDemoFiles: DemoFiles = {
   download: (path) => void downloadVfsFile(path),
   watchFolder: (dir, onChange) =>
     subscribeWebVfs(() => onChange(), { path: dir, mode: "children" }),
+  watchAll: (onChange) => subscribeWebVfs(() => onChange()),
   list: listVfsDir,
   templates: listVfsTemplates,
+  templatesDir: resolveVfsTemplatesDir,
   createFromTemplate: (dir, template) =>
     createVfsFileFromTemplate(dir, template.path) ??
     createVfsTextFile(dir, template.name, template.content ?? ""),

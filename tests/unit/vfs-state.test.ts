@@ -11,7 +11,6 @@ import {
 } from "@/lib/config/piloti-settings-ini";
 import {
   getVfsCacheFilePath,
-  migrateLegacyConfigDir,
   migrateLegacyStateFilesToJson,
   readVfsStateJson,
   readVfsStateString,
@@ -23,6 +22,7 @@ import {
   writeVfsStateJson,
   writeVfsStateText,
 } from "@/lib/engine/vfs-state";
+import { migrateLegacyConfigDir } from "@/lib/engine-web/state-source";
 
 describe("vfs-state", () => {
   const store = new Map<string, string>();

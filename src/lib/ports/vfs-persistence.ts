@@ -22,12 +22,6 @@ export interface VfsPersistence {
   /** `null` when nothing can be persisted (the VFS then lives in memory only). */
   kv: KeyValueStorage | null;
   blobs: BlobStorage | null;
-  /**
-   * Whether the whole entry cache is saved to `kv` (the browser demo). The
-   * native engine's cache mirrors the disk, so it keeps only small keyed
-   * values in `kv` and never serializes the entries. Default true.
-   */
-  persistEntries?: boolean;
 }
 
 export function memoryKeyValueStorage(): KeyValueStorage {

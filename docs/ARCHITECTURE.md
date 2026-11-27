@@ -19,7 +19,8 @@ UI (React)  ─►  piloti: Domicile's desktop + vfs, settings, desktop…
 | Files | the disk | browser storage |
 | System | D-Bus, gsettings, processes | simulated |
 
-- Check capabilities (`realFilesystem`, `systemServices`, `simulatedHardware`),
+- Check capabilities (`realFilesystem`, `systemServices`, `simulatedHardware`,
+  `compositor`),
   not the engine.
 - The native bundle never imports the web engine or the demo files:
   `piloti-web.tsx` injects the seed (`setVfsSeed`) and the demo capture.
@@ -50,7 +51,8 @@ UI (React)  ─►  piloti: Domicile's desktop + vfs, settings, desktop…
   watches folders only (not recursive), shared and capped: inotify is scarce.
 - `engine/fs-bridge.ts` adds naming rules and listings for Folders and Desktop.
 - Renames are announced on `engine/renames.ts`; emblems go through
-  `engine/emblems.ts`. What only the demo does with files (open as a page, zip,
+  `engine/emblems.ts` (stored in each file's `metadata::emblems` on Linux, with
+  the favorites listed in `favorites.json`). What only the demo does with files (open as a page, zip,
   download) is behind `ports/demo-files.ts`, set by `piloti-web.tsx`.
 - `web-vfs.ts` (localStorage + IndexedDB) is the demo's storage. On Linux the disk
   is the only copy of files.

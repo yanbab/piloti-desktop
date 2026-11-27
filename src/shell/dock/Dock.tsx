@@ -66,12 +66,9 @@ import {
 } from "@/data/web-apps";
 import { useAltKey } from "@/hooks/use-alt-key";
 import { WEB_VFS_TRASH } from "@/lib/core/vfs-paths";
-import {
-  SIMULATED_USB_LABEL,
-  SIMULATED_USB_PATH,
-  unmountSimulatedUsb,
-  useSimulatedUsbMounted,
-} from "@/lib/engine-web/usb-drive";
+import { useDrives } from "@/hooks/use-drives";
+import { DockDrives } from "@/shell/dock/DockDrives";
+import type { DriveInfo } from "@/lib/ports/hardware";
 import { _ } from "@/lib/core/i18n";
 import { captureLaunchOriginFromElement } from "@/lib/windows/launch-origin";
 import { cn } from "@/lib/core/utils";
@@ -91,11 +88,12 @@ import {
 } from "@/shell/dock/dock-folders";
 import { DockFolderStack } from "./DockFolderStack";
 import { AppSquircleIcon } from "@/components/common/AppSymbol";
+import { useCapabilities } from "@/hooks/use-capabilities";
 
 export const Dock = React.memo(function Dock() {
   countRender("Dock");
   const piloti = usePiloti();
-  const isBrowserRuntime = useSettingsSelector((v) => v.isBrowserRuntime); // FIXME : Capabilities
+  const { realFilesystem } = useCapabilities();
   const settings = useDesktopSettings(["debugMode", "dockAutoHide", "dockFolders", "dockMagnification", "dockMagnificationSize", "dockPosition", "dockSize", "installedWebApps", "pinnedAppIds"]);
   const updateSettings = useUpdateSettings();
   const { pushNotification } = useSystemBackends();
@@ -163,9 +161,9 @@ export const Dock = React.memo(function Dock() {
     () =>
       effectiveDockFolders(
         settings.dockFolders,
-        resolveDefaultDockFolders(xdgUserDirs, isBrowserRuntime)  // FIXME : Capabilities
+        resolveDefaultDockFolders(xdgUserDirs, !realFilesystem)
       ),
-    [settings.dockFolders, xdgUserDirs, isBrowserRuntime]  // FIXME : Capabilities
+    [settings.dockFolders, xdgUserDirs, realFilesystem]
   );
   const dockFoldersRef = React.useRef(dockFolders);
   dockFoldersRef.current = dockFolders;
@@ -292,44 +290,12 @@ export const Dock = React.memo(function Dock() {
     };
   }, [addFolderToDock, launchApp]);
   const [contextTarget, setContextTarget] = React.useState<
-    { kind: "dock" } | { kind: "trash" } | { kind: "usb" } | { kind: "app"; appId: string } | { kind: "folder"; path: string }
+    { kind: "dock" } | { kind: "trash" } | { kind: "drive"; id: string } | { kind: "app"; appId: string } | { kind: "folder"; path: string }
   >({ kind: "dock" });
-  const usbMounted = useSimulatedUsbMounted();
+  const { drives, mount: mountDrive, eject: ejectDrive } = useDrives();
   const xdgBadgeCounts = useXdgAppBadgeCounts();
   const xdgProgress = useXdgAppProgress();
   const xdgUrgent = useXdgAppUrgent();
-  const [usbRenderMounted, setUsbRenderMounted] = React.useState(usbMounted);
-  const [usbAnimState, setUsbAnimState] = React.useState<
-    "entering" | "idle" | "exiting"
-  >("idle");
-  const [usbPlayNonce, setUsbPlayNonce] = React.useState(0);
-  const prevUsbMountedRef = React.useRef(usbMounted);
-
-  React.useEffect(() => {
-    if (prevUsbMountedRef.current === usbMounted) return;
-    prevUsbMountedRef.current = usbMounted;
-    let timer = 0;
-    let raf = 0;
-    if (usbMounted) {
-      setUsbRenderMounted(true);
-      setUsbAnimState("entering");
-      setUsbPlayNonce((n) => n + 1);
-      raf = window.requestAnimationFrame(() => {
-        setUsbAnimState("idle");
-      });
-    } else {
-      setUsbAnimState("exiting");
-      setUsbPlayNonce((n) => n + 1);
-      timer = window.setTimeout(() => {
-        setUsbRenderMounted(false);
-        setUsbAnimState("idle");
-      }, 480);
-    }
-    return () => {
-      if (timer) window.clearTimeout(timer);
-      if (raf) window.cancelAnimationFrame(raf);
-    };
-  }, [usbMounted]);
   const didReorderRef = React.useRef(false);
   const dockTilesRef = React.useRef<Map<string, HTMLElement>>(new Map());
   const dockPosition = settings.dockPosition ?? "bottom";
@@ -514,7 +480,7 @@ export const Dock = React.memo(function Dock() {
     );
 
     return [...pinnedDefs, ...extras];
-  }, [effectivePinnedIds, isBrowserRuntime, launchingApps, resolveAppDefinition, windows]);  // FIXME : Capabilities
+  }, [effectivePinnedIds, launchingApps, resolveAppDefinition, windows]);
 
   // Reordering pinned apps with dnd-kit: neighbours slide aside with a springy transition,
   // the dragged icon is a DragOverlay that follows the pointer, and drop animates into place.
@@ -610,11 +576,10 @@ export const Dock = React.memo(function Dock() {
     });
   };
 
-  const handleOpenUsb = () => {
-    launchApp("nautilus", {
-      payload: SIMULATED_USB_PATH,
+  const handleOpenDrive = (drive: DriveInfo) =>
+    void mountDrive(drive).then((path) => {
+      if (path) launchApp("nautilus", { payload: path });
     });
-  };
 
   const handleEmptyTrash = async () => {
     await emptyFsTrash(piloti);
@@ -639,8 +604,8 @@ export const Dock = React.memo(function Dock() {
       ?.getAttribute("data-dock-context");
     if (raw === "trash") {
       setContextTarget({ kind: "trash" });
-    } else if (raw === "usb") {
-      setContextTarget({ kind: "usb" });
+    } else if (raw?.startsWith("drive:")) {
+      setContextTarget({ kind: "drive", id: raw.slice("drive:".length) });
     } else if (raw?.startsWith("folder:")) {
       setContextTarget({ kind: "folder", path: raw.slice(7) });
     } else if (raw?.startsWith("app:")) {
@@ -908,32 +873,14 @@ export const Dock = React.memo(function Dock() {
             );
           })}
 
-          {usbRenderMounted && (
-            <DockItem
-              label={SIMULATED_USB_LABEL}
-              tileProps={{
-                "data-dock-context": "usb",
-                "data-vfs-drop-path": SIMULATED_USB_PATH,
-                className: cn(
-                  "transition-all duration-300 ease-out",
-                  usbAnimState === "entering" && "scale-75 opacity-0",
-                  usbAnimState === "idle" && "scale-100 opacity-100",
-                  usbAnimState === "exiting" && "scale-75 -translate-y-1 opacity-0"
-                ),
-              }}
-              onClick={(e) => {
-                captureLaunchOriginFromElement(e.currentTarget);
-                handleOpenUsb();
-              }}
-            >
-              <AppSquircleIcon
-                iconUrl={getAppIconUrl("__usb_drive__")}
-                animateOnHover
-                playNonce={usbPlayNonce}
-                className="size-full"
-              />
-            </DockItem>
-          )}
+          <DockDrives
+            drives={drives}
+            iconUrl={(drive) => getAppIconUrl(drive.kind === "optical" ? "__optical_drive__" : "__usb_drive__")}
+            onOpen={(drive, tile) => {
+              captureLaunchOriginFromElement(tile);
+              handleOpenDrive(drive);
+            }}
+          />
 
           <DockItem
             label={_("Trash")}
@@ -1067,16 +1014,16 @@ export const Dock = React.memo(function Dock() {
                 {_("Empty Trash")}
               </ContextMenuItem>
             </>
-          ) : contextTarget.kind === "usb" ? (
-            <>
-              <ContextMenuItem onClick={handleOpenUsb}>
-                {_("Open USB Drive")}
-              </ContextMenuItem>
-              <ContextMenuSeparator />
-              <ContextMenuItem onClick={unmountSimulatedUsb}>
-                {_("Eject")}
-              </ContextMenuItem>
-            </>
+          ) : contextTarget.kind === "drive" && drives.some((d) => d.id === contextTarget.id) ? (
+            drives
+              .filter((d) => d.id === contextTarget.id)
+              .map((drive) => (
+                <React.Fragment key={drive.id}>
+                  <ContextMenuItem onClick={() => handleOpenDrive(drive)}>{_("Open")}</ContextMenuItem>
+                  <ContextMenuSeparator />
+                  <ContextMenuItem onClick={() => ejectDrive(drive)}>{_("Eject")}</ContextMenuItem>
+                </React.Fragment>
+              ))
           ) : (
             <>
               <ContextMenuCheckboxItem

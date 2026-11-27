@@ -1,4 +1,4 @@
-import { createNativeVfs, type NativeVfsHost } from "@/lib/engine-native/vfs";
+import { createNativeVfs, type NativeVfsHost } from "@/lib/engine/app-module-vfs";
 import { parseIniText, serializeIniText } from "@/lib/config/ini";
 import { documentHash, MODULE_MOVES_DIR, MODULE_MOVES_FILE, type ModuleMove } from "@/data/app-modules";
 import { _ } from "@/lib/core/i18n";

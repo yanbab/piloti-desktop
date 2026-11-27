@@ -1,8 +1,1 @@
-[
-  "apps/app-store/AppStoreApp.tsx",
-  "apps/login/LoginScreenApp.tsx",
-  "apps/texts/host.ts",
-  "context/SettingsContext.tsx",
-  "context/SystemBackendsContext.tsx",
-  "context/WindowsContext.tsx"
-]
+[]

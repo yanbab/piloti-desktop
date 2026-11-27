@@ -985,5 +985,7 @@
   "Notification": "Notification",
   "Test notification": "Notification de test",
   "A normal notification.": "Une notification normale.",
-  "An urgent notification.": "Une notification urgente."
+  "An urgent notification.": "Une notification urgente.",
+  "Could not open %s": "Impossible d’ouvrir %s",
+  "Could not eject %s": "Impossible d’éjecter %s"
 }

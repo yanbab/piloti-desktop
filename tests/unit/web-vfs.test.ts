@@ -12,12 +12,9 @@ import {
   getVfsAccessCount,
   getVfsClipboard,
   getVfsContentType,
-  getVfsEmblems,
   getVfsEntry,
   getVfsImageThumbnailUrl,
-  hasVfsEmblem,
   incrementVfsAccessCount,
-  isVfsFavorite,
   listVfsDir,
   listVfsTemplates,
   moveVfsEntry,
@@ -25,9 +22,6 @@ import {
   resolveVfsPath,
   restoreVfsEntry,
   setVfsClipboard,
-  setVfsEmblem,
-  toggleVfsEmblem,
-  toggleVfsFavorite,
   trashVfsEntry,
   VFS_EMBLEMS_STORAGE_KEY,
   WEB_VFS_FAVORITES_STORAGE_KEY,
@@ -36,6 +30,7 @@ import {
   WEB_VFS_TRASH,
   writeVfsTextFile,
 } from "@/lib/engine-web/web-vfs";
+import { getEmblems, hasEmblem, setEmblem, toggleEmblem } from "@/lib/engine/emblems";
 
 function installMemoryLocalStorage() {
   const store = new Map<string, string>();
@@ -109,15 +104,15 @@ describe("web-vfs", () => {
 
   it("manages generalized emblems, favorites compatibility, and migrates across moves/trash/restore", () => {
     const file = createVfsTextFile(`${WEB_VFS_HOME}/Documents`, "Report.md", "v1");
-    expect(getVfsEmblems(file.path)).toEqual([]);
+    expect(getEmblems(file.path)).toEqual([]);
 
-    toggleVfsFavorite(file.path);
-    expect(isVfsFavorite(file.path)).toBe(true);
-    expect(hasVfsEmblem(file.path, "favorite")).toBe(true);
+    toggleEmblem(file.path, "favorite");
+    expect(hasEmblem(file.path, "favorite")).toBe(true);
+    expect(hasEmblem(file.path, "favorite")).toBe(true);
 
-    toggleVfsEmblem(file.path, "important");
-    setVfsEmblem(file.path, "work", true);
-    expect(getVfsEmblems(file.path)).toEqual(["favorite", "important", "work"]);
+    toggleEmblem(file.path, "important");
+    setEmblem(file.path, "work", true);
+    expect(getEmblems(file.path)).toEqual(["favorite", "important", "work"]);
     expect(getVfsEntry(file.path)?.metadata?.["metadata::emblems"]).toEqual([
       "emblem-favorite",
       "emblem-important",
@@ -126,25 +121,25 @@ describe("web-vfs", () => {
 
     const renamed = renameVfsEntry(file.path, "AnnualReport.md");
     expect(renamed).not.toBeNull();
-    expect(getVfsEmblems(file.path)).toEqual([]);
-    expect(getVfsEmblems(renamed!.path)).toEqual(["favorite", "important", "work"]);
+    expect(getEmblems(file.path)).toEqual([]);
+    expect(getEmblems(renamed!.path)).toEqual(["favorite", "important", "work"]);
 
     const moved = moveVfsEntry(renamed!.path, `${WEB_VFS_HOME}/Desktop`);
     expect(moved).not.toBeNull();
-    expect(getVfsEmblems(moved!.path)).toEqual(["favorite", "important", "work"]);
+    expect(getEmblems(moved!.path)).toEqual(["favorite", "important", "work"]);
 
     trashVfsEntry(moved!.path);
     const trashedPath = `${WEB_VFS_TRASH}/${moved!.name}`;
-    expect(getVfsEmblems(moved!.path)).toEqual([]);
-    expect(getVfsEmblems(trashedPath)).toEqual(["favorite", "important", "work"]);
+    expect(getEmblems(moved!.path)).toEqual([]);
+    expect(getEmblems(trashedPath)).toEqual(["favorite", "important", "work"]);
 
     const restored = restoreVfsEntry(trashedPath);
     expect(restored?.path).toBe(`${WEB_VFS_HOME}/Desktop/${moved!.name}`);
-    expect(getVfsEmblems(restored!.path)).toEqual(["favorite", "important", "work"]);
+    expect(getEmblems(restored!.path)).toEqual(["favorite", "important", "work"]);
 
     trashVfsEntry(restored!.path);
     emptyVfsTrash();
-    expect(getVfsEmblems(`${WEB_VFS_TRASH}/${moved!.name}`)).toEqual([]);
+    expect(getEmblems(`${WEB_VFS_TRASH}/${moved!.name}`)).toEqual([]);
   });
 
   it("duplicates files and folders recursively and manages shared clipboard", () => {

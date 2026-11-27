@@ -17,10 +17,14 @@ export interface DemoFiles {
   download(path: string): void;
   /** Calls `onChange` when something directly inside `dir` changes. */
   watchFolder(dir: string, onChange: () => void): () => void;
+  /** The same for any change, for listings that gather files from anywhere. */
+  watchAll(onChange: () => void): () => void;
 
   // The demo's side of `engine/fs-bridge.ts`.
   list(dir: string, options?: { includeHidden?: boolean }): WebVfsEntry[];
   templates(): WebVfsEntry[];
+  /** From the demo's `user-dirs.dirs`. */
+  templatesDir(): string;
   createFromTemplate(dir: string, template: { name: string; path: string; content?: string }): WebVfsEntry;
   /** Copies files from outside the page into `dir`. */
   importFiles(dir: string, files: FileList | readonly File[]): Promise<WebVfsEntry[]>;
@@ -42,8 +46,10 @@ const none: DemoFiles = {
   extract: async () => undefined,
   download: () => undefined,
   watchFolder: () => () => undefined,
+  watchAll: () => () => undefined,
   list: () => [],
   templates: () => [],
+  templatesDir: () => "",
   createFromTemplate: () => {
     throw new Error("Only the browser demo creates files this way");
   },

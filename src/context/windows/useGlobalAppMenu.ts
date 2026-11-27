@@ -4,7 +4,7 @@ import { selectAll } from "@/lib/core/select-all";
 import { APP_CATALOG, type AppDefinition } from "@/data/catalog";
 import { type InstalledWebApp, resolveWebAppTitle } from "@/data/web-apps";
 import type { XdgDesktopEntry } from "xdg-desktop-entry";
-import { isBrowserDevRuntime } from "../SettingsContext";
+import { getEngine } from "@/lib/engine/engine";
 import { matchAppFromWayland } from "../AppsContext";
 import type { SystemBackendsContextValue } from "../SystemBackendsContext";
 import type { DesktopWindowInstance } from "../WindowsContext";
@@ -123,7 +123,7 @@ export function useGlobalAppMenu({
         {
           title: "View",
           items: [
-            ...(isBrowserDevRuntime()
+            ...(!getEngine().capabilities.compositor
               ? [
                   {
                     label: "Full Screen",

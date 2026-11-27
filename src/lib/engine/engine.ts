@@ -15,6 +15,11 @@ export interface EngineCapabilities {
   systemServices: boolean;
   /** Hardware is simulated for the demo (USB stick, battery, Wi-Fi list). */
   simulatedHardware: boolean;
+  /**
+   * A real compositor: Wayland windows, native web views and browser extensions,
+   * and shortcuts reach the shell. The demo draws iframes inside a browser page.
+   */
+  compositor: boolean;
 }
 
 export interface Engine {
@@ -24,12 +29,12 @@ export interface Engine {
 
 export const webEngine: Engine = {
   kind: "web",
-  capabilities: { realFilesystem: false, systemServices: false, simulatedHardware: true },
+  capabilities: { realFilesystem: false, systemServices: false, simulatedHardware: true, compositor: false },
 };
 
 export const nativeEngine: Engine = {
   kind: "native",
-  capabilities: { realFilesystem: true, systemServices: true, simulatedHardware: false },
+  capabilities: { realFilesystem: true, systemServices: true, simulatedHardware: false, compositor: true },
 };
 
 let current: Engine | null = null;

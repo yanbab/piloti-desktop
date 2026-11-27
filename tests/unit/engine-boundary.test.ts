@@ -48,8 +48,8 @@ describe("process boundary", () => {
 });
 
 /**
- * UI code asks `engine/`, not the Linux engine. Entry points pick the engine;
- * the files listed still import it, and the list may only get shorter.
+ * UI code asks `engine/`, not the Linux engine. Only entry points import it:
+ * the list of other files is empty, and stays so.
  */
 describe("engine-native boundary", () => {
   it("no new file outside the engines imports engine-native", () => {
@@ -108,8 +108,8 @@ describe("vfs watch boundary", () => {
 
 /**
  * On Linux files are reached through `piloti.vfs`; `web-vfs` is the browser
- * demo's storage. These files still use it (favorites, emblems, templates,
- * clipboard, rename events, demo-only paths): the list may only get shorter.
+ * demo's storage. Only the demo's entry point still imports it from outside
+ * `engine-web`: the list may only get shorter.
  */
 describe("web-vfs boundary", () => {
   it("no new file outside engine-web imports web-vfs", () => {
@@ -127,5 +127,15 @@ describe("web-vfs boundary", () => {
       fs.readFileSync(path.join(import.meta.dir, "web-vfs-importers.json"), "utf8"),
     );
     expect(importers).toEqual(allowed);
+  });
+});
+
+/** The Linux bundle carries neither the demo's storage nor its fakes. */
+describe("engine-web boundary", () => {
+  it("only the demo's entry point imports engine-web", () => {
+    const importers = sources(SRC)
+      .filter((file) => /(from |import\()"[^"]*engine-web[/"]/.test(code(file).replace(/import type [^;]*;/g, "")))
+      .map((file) => path.relative(SRC, file));
+    expect(importers).toEqual(["piloti-web.tsx"]);
   });
 });

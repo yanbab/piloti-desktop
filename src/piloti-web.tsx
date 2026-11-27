@@ -1,3 +1,5 @@
+// First: modules below may read files or state as they load.
+import "./lib/engine-web/install";
 import { loadAppCatalog } from "./lib/engine/app-catalog";
 import { attachConsoleDiskSink, installConsoleCapture } from "./lib/core/console-store";
 import { createShellLogWriter } from "./lib/engine/shell-log";
@@ -12,8 +14,6 @@ import { demoVfsSeed } from "./lib/engine-web/vfs-seed";
 import { loadDataFiles } from "./lib/engine-web/data-files";
 import { setVfsSeed } from "./lib/engine-web/web-vfs";
 import { useWebCapture } from "./lib/engine-web/capture";
-import { setDemoFiles } from "./lib/ports/demo-files";
-import { webDemoFiles } from "./lib/engine-web/demo-files";
 import { setHardware } from "./lib/engine/hardware";
 import { webHardware } from "./lib/engine-web/hardware";
 import { setDemoCapture } from "./lib/ports/capture";
@@ -23,7 +23,6 @@ import { withVfs } from "./lib/engine/with-vfs";
 
 setEngine(webEngine);
 setDemoCapture(useWebCapture);
-setDemoFiles(webDemoFiles);
 setHardware(webHardware);
 setVfsSeed(demoVfsSeed);
 installDynamicFavicon();
@@ -34,11 +33,6 @@ import { ShellErrorBoundary } from "./shell/desktop/ShellErrorBoundary";
 const TextsApp = React.lazy(() =>
   import("./lib/engine/texts-host-shell").then((m) => ({
     default: m.ShellTextsApp,
-  })),
-);
-const ImageViewerApp = React.lazy(() =>
-  import("./apps/image-viewer/ImageViewerApp").then((m) => ({
-    default: m.ImageViewerApp,
   })),
 );
 
@@ -66,28 +60,6 @@ async function start(root: HTMLElement) {
           <DomicileProvider domicile={withVfs(domicile, createWebVfs(domicile))}>
             <React.Suspense fallback={null}>
               <TextsApp initialPath={initialPath} windowId={windowId} />
-            </React.Suspense>
-          </DomicileProvider>
-        </AppChromeProvider>
-        </PilotiQueryProvider>
-      </ShellErrorBoundary>,
-    );
-  } else if (isolatedApp === "image-viewer") {
-    const { createBrowserDomicile } = await import("./lib/engine-web");
-    const domicile = createBrowserDomicile();
-    const windowId = params.get("windowId") ?? "";
-    const isCsd = params.get("csd") !== "0";
-    const initialPath = params.get("path") ?? undefined;
-    createRoot(root).render(
-      <ShellErrorBoundary>
-        <PilotiQueryProvider>
-        <AppChromeProvider value={{ appId: "image-viewer", windowId, decorations: isCsd ? "client" : "server" }}>
-          <DomicileProvider domicile={withVfs(domicile, createWebVfs(domicile))}>
-            <React.Suspense fallback={null}>
-              <ImageViewerApp
-                initialPath={initialPath}
-                windowId={windowId}
-              />
             </React.Suspense>
           </DomicileProvider>
         </AppChromeProvider>

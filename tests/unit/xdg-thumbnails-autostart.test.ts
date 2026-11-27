@@ -132,9 +132,12 @@ describe("polkit agent lookup", () => {
     return run.stdout.toString().trim();
   };
 
+  // These run a shell: slower than the default 5 s when the machine is busy.
+  const SHELL_TIMEOUT = 30_000;
+
   test("takes the Exec line even when limited to another desktop", () => {
     expect(find({ "lxqt-policykit-agent.desktop": "sh --agent" })).toBe("sh --agent");
-  });
+  }, SHELL_TIMEOUT);
 
   test("skips agents that are not installed and unrelated entries", () => {
     expect(
@@ -143,5 +146,5 @@ describe("polkit agent lookup", () => {
         "geoclue-demo-agent.desktop": "sh",
       }),
     ).toBe("");
-  });
+  }, SHELL_TIMEOUT);
 });

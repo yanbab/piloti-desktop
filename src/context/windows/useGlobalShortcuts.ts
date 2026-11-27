@@ -2,10 +2,10 @@ import * as React from "react";
 import type { Piloti } from "@/lib/engine/piloti";
 import { launchDesktopCommand } from "@/lib/engine/system-commands";
 import { emitShellEvent } from "@/lib/core/shell-events";
+import { useCapabilities } from "@/hooks/use-capabilities";
 
 export interface UseGlobalShortcutsParams {
   piloti: Piloti;
-  isBrowserRuntime: boolean;  // FIXME : Capabilities
   overviewOpen: boolean;
   setOverviewOpen: React.Dispatch<React.SetStateAction<boolean>>;
   toggleOverview: () => void;
@@ -30,7 +30,6 @@ export interface UseGlobalShortcutsParams {
 
 export function useGlobalShortcuts({
   piloti,
-  isBrowserRuntime,  // FIXME : Capabilities
   overviewOpen,
   setOverviewOpen,
   toggleOverview,
@@ -49,6 +48,7 @@ export function useGlobalShortcuts({
   toggleMaximizeWindow,
   tileWindow,
 }: UseGlobalShortcutsParams) {
+  const { compositor } = useCapabilities();
   // Global Domicile key grabs
   React.useEffect(() => {
     const chords = [
@@ -152,7 +152,7 @@ export function useGlobalShortcuts({
         toggleOverview();
         return;
       }
-      if (isBrowserRuntime && e.altKey && e.code === "Space") {  // FIXME : Capabilities
+      if (!compositor && e.altKey && e.code === "Space") {
         e.preventDefault();
         setOverviewOpen(false);
         setLauncherOpen((v) => !v);
@@ -170,14 +170,14 @@ export function useGlobalShortcuts({
         emitShellEvent("piloti:open-command-hud");
         return;
       }
-      if (isBrowserRuntime && e.altKey && e.key === "Tab") {  // FIXME : Capabilities
+      if (!compositor && e.altKey && e.key === "Tab") {
         e.preventDefault();
         setOverviewOpen(false);
         cycleAltTab(e.shiftKey ? -1 : 1);
         return;
       }
       if (altTabOpen) {
-        if (e.key === "ArrowRight" || (isBrowserRuntime && e.key === "Tab")) {  // FIXME : Capabilities
+        if (e.key === "ArrowRight" || (!compositor && e.key === "Tab")) {
           e.preventDefault();
           cycleAltTab(e.shiftKey ? -1 : 1);
           return;
@@ -274,7 +274,7 @@ export function useGlobalShortcuts({
     commitAltTab,
     cycleAltTab,
     focusedWindowId,
-    isBrowserRuntime,  // FIXME : Capabilities
+    compositor,
     launchApp,
     overviewOpen,
     setControlPanelOpen,

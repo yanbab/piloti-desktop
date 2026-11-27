@@ -37,7 +37,7 @@ After changing:
 - **Engines.** Components and contexts go through `lib/engine/`. Never call Linux
   CLIs or `piloti.processes` directly: add a function to
   `engine/system-commands.ts`. Prefer a capability (`realFilesystem`,
-  `systemServices`, `simulatedHardware`) over checking the engine. The native
+  `systemServices`, `simulatedHardware`, `compositor`) over checking the engine. The native
   bundle imports neither the web engine nor the demo files.
 - **Layout.** A helper only one app or shell feature uses stays in its folder
   (`apps/<app>/`, `shell/<feature>/`); shared logic goes in `lib/<topic>/`,

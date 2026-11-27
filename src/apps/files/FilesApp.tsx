@@ -20,14 +20,8 @@ import { usePiloti } from "@/lib/engine/piloti";
 import { useTemplatesDirPath } from "@/hooks/use-desktop-dir";
 import { parentPath } from "@/lib/ports/vfs";
 import { BriefcaseIcon, HeartIcon, TagIcon } from "lucide-react";
-import { AlertCircleIcon, ArrowLeftIcon, ChevronDownIcon, ChevronRightIcon, ClockIcon, DownloadIcon, EjectIcon, FileTextIcon, FolderIcon, HomeIcon, ImageIcon, LayoutGridIcon, ListIcon, MonitorIcon, MusicIcon, Trash2Icon, UsbIcon, VideoIcon, XIcon } from "@/components/ui/symbols";
-import {
-  isSimulatedUsbPath,
-  SIMULATED_USB_LABEL,
-  SIMULATED_USB_PATH,
-  unmountSimulatedUsb,
-  useSimulatedUsbMounted,
-} from "@/lib/engine-web/usb-drive";
+import { AlertCircleIcon, ArrowLeftIcon, ChevronDownIcon, ChevronRightIcon, ClockIcon, DiscIcon, DownloadIcon, EjectIcon, FileTextIcon, FolderIcon, HomeIcon, ImageIcon, LayoutGridIcon, ListIcon, MonitorIcon, MusicIcon, Trash2Icon, UsbIcon, VideoIcon, XIcon } from "@/components/ui/symbols";
+import { isOnDrive, useDrives } from "@/hooks/use-drives";
 import { NicePathLabel } from "@/components/common/NicePathLabel";
 import { InfoPane, InfoPaneToggle, useInfoPane } from "@/components/ui/info-pane";
 import { HeaderBar, HeaderButton } from "@/components/elements/header-bar";
@@ -84,22 +78,11 @@ import {
   useOpenFolderPaths,
 } from "@/data/folder-icons";
 import { cn } from "@/lib/core/utils";
-import {
-  buildVfsEntryWebAppUrl,
-  downloadVfsFile,
-  duplicateVfsEntry,
-  incrementVfsAccessCount,
-  isTextEditableVfsFile,
-  listVfsFavoriteEntries,
-  listVfsRecentEntries,
-  subscribeWebVfs,
-  WEB_VFS_FAVORITES_URI,
-  WEB_VFS_RECENTS_URI,
-} from "@/lib/engine-web/web-vfs";
-import { EMBLEM_META, getEmblems, toggleEmblem, type EmblemId } from "@/lib/engine/emblems";
+import { EMBLEM_META, getEmblems, subscribeEmblems, toggleEmblem, type EmblemId } from "@/lib/engine/emblems";
+import { demoFiles } from "@/lib/ports/demo-files";
 import { getVfsClipboard, setVfsClipboard, subscribeVfsClipboard } from "@/lib/core/vfs-clipboard";
 import { isImageVfsFile, isZipVfsFile } from "@/lib/core/vfs-media";
-import { normalizeVfsPath, WEB_VFS_HOME, WEB_VFS_TRASH, type WebVfsEntry } from "@/lib/core/vfs-paths";
+import { normalizeVfsPath, WEB_VFS_HOME, WEB_VFS_TRASH, type WebVfsEntry, WEB_VFS_FAVORITES_URI, WEB_VFS_RECENTS_URI } from "@/lib/core/vfs-paths";
 import {
   createFsFileFromTemplate,
   createFsFolder,
@@ -263,7 +246,7 @@ export function FilesApp({
   const settings = useDesktopSettings(["accentColor", "computerModel", "debugMode", "fileActivationMode", "installedWebApps", "muted", "volume"]);
   const { realFilesystem } = useCapabilities();
   const { installedXdgApps, getAppIconUrl, ensureWaylandIcons, xdgUserDirs } = useApps();
-  const usbMounted = useSimulatedUsbMounted();
+  const { drives, mount: mountDrive, eject: ejectDrive } = useDrives();
   const { windows, focusedWindowId } = useWindowManagerSelector((wm) => ({
     windows: wm.windows.map((w) => ({ appId: w.appId, payload: w.payload })),
     focusedWindowId: wm.focusedWindowId,
@@ -394,14 +377,12 @@ export function FilesApp({
       return;
     }
     if (currentPath === WEB_VFS_FAVORITES_URI) {
-      setVirtualEntries(listVfsFavoriteEntries());
-      if (realFilesystem) {
-        void listFsFavoriteEntries(piloti).then((entries) => setVirtualEntries(entries));
-      }
+      if (!realFilesystem) setVirtualEntries(demoFiles().favorites());
+      void listFsFavoriteEntries(piloti).then((entries) => setVirtualEntries(entries));
       return;
     }
     if (currentPath === WEB_VFS_RECENTS_URI) {
-      if (!realFilesystem) setVirtualEntries(listVfsRecentEntries());
+      if (!realFilesystem) setVirtualEntries(demoFiles().recents());
       void listFsRecentEntries(piloti).then((entries) => {
         setVirtualEntries(entries);
       });
@@ -460,6 +441,7 @@ export function FilesApp({
     compressSelected: () => void;
     renameSelected: () => void;
     trashSelected: () => void;
+    ejectCurrentDrive: () => void;
   }>({
     canGoUp: false,
     handleGoUp: () => {},
@@ -474,6 +456,7 @@ export function FilesApp({
     compressSelected: () => {},
     renameSelected: () => {},
     trashSelected: () => {},
+    ejectCurrentDrive: () => {},
   });
 
   React.useEffect(() => {
@@ -723,7 +706,13 @@ export function FilesApp({
     // everything. Real folders and templates are watched by their queries.
     if (!isVirtualListing) return;
     reloadDir();
-    return subscribeWebVfs(() => reloadDir());
+    const stopEmblems = subscribeEmblems(() => reloadDir());
+    // The demo's access counts and recents are on any of its files.
+    const stopDemo = demoFiles().watchAll(reloadDir);
+    return () => {
+      stopEmblems();
+      stopDemo();
+    };
   }, [isVirtualListing, reloadDir]);
 
   // Opened on a file: show its folder. The demo also falls back to home for a
@@ -886,12 +875,29 @@ export function FilesApp({
     if (candidates.length > 0) ensureWaylandIcons(candidates);
   }, [ensureWaylandIcons, shownItems]);
 
+  // Leave a drive that was ejected or unplugged.
+  const previousDrivesRef = React.useRef(drives);
   React.useEffect(() => {
-    if (!usbMounted && isSimulatedUsbPath(currentPath)) {
-      setCurrentPath(WEB_VFS_HOME);
-      setSelectedIds([]);
-    }
-  }, [currentPath, usbMounted]);
+    const gone = previousDrivesRef.current.some(
+      (drive) => isOnDrive(currentPath, drive) && !drives.some((d) => isOnDrive(currentPath, d)),
+    );
+    previousDrivesRef.current = drives;
+    if (!gone) return;
+    setCurrentPath(WEB_VFS_HOME);
+    setSelectedIds([]);
+  }, [currentPath, drives]);
+
+  /** The drive the window is showing, else the first one: what "Eject" means. */
+  const ejectableDrive = drives.find((d) => isOnDrive(currentPath, d)) ?? drives[0];
+  const openDrive = React.useCallback(
+    (drive: (typeof drives)[number]) =>
+      void mountDrive(drive).then((path) => {
+        if (!path) return;
+        setCurrentPath(path);
+        setSelectedIds([]);
+      }),
+    [mountDrive],
+  );
 
   const xdgPlaces = React.useMemo(
     () =>
@@ -942,19 +948,18 @@ export function FilesApp({
           icon: <FolderIcon className="size-4" />,
         })),
       ];
-      return usbMounted
-        ? [
-            ...base,
-            {
-              id: "usb-drive",
-              label: SIMULATED_USB_LABEL,
-              path: SIMULATED_USB_PATH,
-              icon: <UsbIcon className="size-4" />,
-            },
-          ]
-        : base;
+      return [
+        ...base,
+        // Not mounted yet: its id stands for the path until it is.
+        ...drives.map((drive) => ({
+          id: `drive:${drive.id}`,
+          label: drive.label,
+          path: drive.mountPath ?? drive.id,
+          icon: drive.kind === "optical" ? <DiscIcon className="size-4" /> : <UsbIcon className="size-4" />,
+        })),
+      ];
     },
-    [usbMounted, xdgPlaces, bookmarks]
+    [drives, xdgPlaces, bookmarks]
   );
 
   const activePlace = placesList.find((p) => p.path === currentPath);
@@ -969,7 +974,7 @@ export function FilesApp({
     !isVirtualView &&
     ((currentPath !== WEB_VFS_HOME &&
       currentPath.startsWith(`${WEB_VFS_HOME}/`)) ||
-      currentPath.startsWith(`${SIMULATED_USB_PATH}/`));
+      drives.some((d) => isOnDrive(currentPath, d) && currentPath !== d.mountPath));
 
   const {
     onSidebarKeyDown,
@@ -979,6 +984,8 @@ export function FilesApp({
     itemIds: placesList.map((p) => p.path),
     activeId: activeSidebarPath,
     onActivate: (path) => {
+      const drive = drives.find((d) => d.id === path);
+      if (drive) return openDrive(drive);
       setCurrentPath(path);
       setSelectedIds([]);
     },
@@ -989,40 +996,42 @@ export function FilesApp({
   const sidebarItems = React.useMemo<SidebarItem[]>(
     () =>
       placesList.map((place) => {
-        const isUsb = place.id === "usb-drive";
+        const drive = drives.find((d) => `drive:${d.id}` === place.id);
         return {
           id: place.path,
-          label: isUsb ? SIMULATED_USB_LABEL : _(place.label),
+          label: drive ? place.label : _(place.label),
           icon: place.icon,
           selected: activeSidebarPath === place.path,
           dropPath:
             place.path === WEB_VFS_FAVORITES_URI ||
-            place.path === WEB_VFS_RECENTS_URI
+            place.path === WEB_VFS_RECENTS_URI ||
+            (drive && !drive.mountPath)
               ? undefined
               : place.path,
           separatorAfter:
             place.id === "favorites" || (place.id === "videos" && bookmarks.length > 0),
-          pinnedBottom: isUsb,
+          pinnedBottom: Boolean(drive),
           trailingAction: place.id.startsWith("bookmark:")
             ? {
                 icon: <XIcon className="size-3.5" />,
                 label: _("Remove from Bookmarks"),
                 onClick: () => toggleBookmark(place.path),
               }
-            : isUsb
+            : drive
             ? {
                 icon: <EjectIcon className="size-3.5" />,
-                label: _("Eject USB Drive"),
-                onClick: unmountSimulatedUsb,
+                label: _("Eject"),
+                onClick: () => ejectDrive(drive),
               }
             : undefined,
           onClick: () => {
+            if (drive) return openDrive(drive);
             setCurrentPath(place.path);
             setSelectedIds([]);
           },
         };
       }),
-    [activeSidebarPath, placesList, bookmarks.length, toggleBookmark]
+    [activeSidebarPath, placesList, bookmarks.length, toggleBookmark, drives, openDrive, ejectDrive]
   );
 
   const handleGoUp = () => {
@@ -1177,6 +1186,9 @@ export function FilesApp({
   );
 
   latestActionsRef.current = {
+    ejectCurrentDrive: () => {
+      if (ejectableDrive) ejectDrive(ejectableDrive);
+    },
     canGoUp,
     handleGoUp,
     handleNewFolder,
@@ -1239,7 +1251,7 @@ export function FilesApp({
       "files:compress": { disabled: !hasSel || !canModifyDir || !archive.available },
       "files:rename": { disabled: !hasSingleSel || !canModifyDir },
       "files:trash": { disabled: !hasSel },
-      "files:eject": { disabled: !usbMounted },
+      "files:eject": { disabled: !ejectableDrive },
       "files:go-up": { disabled: !canGoUp },
       "files:empty-trash": { disabled: !isTrashView || items.length === 0 },
       "files:view-grid": { checked: viewMode === "grid" },
@@ -1279,7 +1291,7 @@ export function FilesApp({
     sortDir,
     isAppsView,
     isDesktopView,
-    usbMounted,
+    ejectableDrive,
     viewMode,
     windowId,
     settings.debugMode,
@@ -1322,7 +1334,7 @@ export function FilesApp({
           latestActionsRef.current.renameSelected();
           break;
         case "files:eject":
-          unmountSimulatedUsb();
+          latestActionsRef.current.ejectCurrentDrive();
           break;
         case "files:trash":
           latestActionsRef.current.trashSelected();
@@ -2075,7 +2087,7 @@ export function FilesApp({
         }
         onExtract={archive.available ? (target) => archive.extract(target.path) : undefined}
         onDownload={
-          !realFilesystem ? (target) => downloadVfsFile(target.path) : undefined
+          !realFilesystem ? (target) => demoFiles().download(target.path) : undefined
         }
         canPaste={Boolean(clipboard && clipboard.paths.length > 0)}
         onPaste={handlePasteItems}

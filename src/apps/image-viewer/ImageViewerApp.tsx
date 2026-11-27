@@ -12,7 +12,6 @@ import { HeaderBar } from "@/components/elements/header-bar";
 import { useIsolatedAppBridge } from "@/lib/engine/app-bridge";
 import { readVfsStateJson, writeVfsStateJson } from "@/lib/engine/vfs-state";
 import { shouldConfirmUnsavedOnClose } from "@/lib/config/piloti-ini";
-import { isBrowserDevRuntime } from "@/context/SettingsContext";
 import { _ } from "@/lib/core/i18n";
 import { cn } from "@/lib/core/utils";
 import { normalizeVfsPath } from "@/lib/core/vfs-paths";

@@ -51,6 +51,7 @@ import {
 } from "@/lib/xdg/xdg-user-dirs";
 import { type SettingsContextValue } from "./SettingsContext";
 import { type SystemBackendsContextValue } from "./SystemBackendsContext";
+import { useCapabilities } from "@/hooks/use-capabilities";
 
 function resolveXdgVisualStyle(entry: XdgDesktopEntry): {
   iconName:
@@ -342,7 +343,8 @@ export function useAppsValue(
   onEssentialIconsReady?: () => void
 ): AppsContextValue {
   const piloti = usePiloti();
-  const { isBrowserRuntime, settings } = settingsCtx;  // FIXME : Capabilities
+  const { settings } = settingsCtx;
+  const { systemServices, realFilesystem } = useCapabilities();
   const { gnomeIconThemeOverride } = backendsCtx;
   const onEssentialIconsReadyRef = React.useRef(onEssentialIconsReady);
   onEssentialIconsReadyRef.current = onEssentialIconsReady;
@@ -741,7 +743,7 @@ export function useAppsValue(
 
   // Watch XDG application directories so newly installed apps appear without restarting the shell
   React.useEffect(() => {
-    if (isBrowserRuntime) return;  // FIXME : Capabilities
+    if (!systemServices) return;
     let stopped = false;
     let debounceTimer: ReturnType<typeof setTimeout> | null = null;
     const stopFns: Array<() => void> = [];
@@ -781,7 +783,7 @@ export function useAppsValue(
       if (debounceTimer) clearTimeout(debounceTimer);
       for (const stop of stopFns) stop();
     };
-  }, [piloti, isBrowserRuntime, refreshXdgApps, readAppDirs]);  // FIXME : Capabilities
+  }, [piloti, systemServices, refreshXdgApps, readAppDirs]);
 
   const ensureWaylandIcons = React.useCallback(
     (ids: readonly string[]) => {
@@ -902,21 +904,21 @@ export function useAppsValue(
         const fullArgv = [...argv, ...files];
         const finalArgv = entry.terminal ? ["kitty", "-e", ...fullArgv] : fullArgv;
         launchDesktopCommand(piloti, finalArgv, {
-          cwd: isBrowserRuntime ? undefined : entry.workingDirectory,  // FIXME : Capabilities
+          cwd: !systemServices ? undefined : entry.workingDirectory,
         });
       }
     },
-    [piloti, isBrowserRuntime]  // FIXME : Capabilities
+    [piloti, systemServices]
   );
 
   const openXdgFolder = React.useCallback(
     (folder: XdgUserDir) => {
       launchDesktopCommand(
         piloti,
-        buildOpenXdgFolderArgv(folder, isBrowserRuntime)  // FIXME : Capabilities
+        buildOpenXdgFolderArgv(folder, !realFilesystem)
       );
     },
-    [piloti, isBrowserRuntime]  // FIXME : Capabilities
+    [piloti, realFilesystem]
   );
 
   const fallbackAppIconUrl = tintedAppIconsMap.__fallback_app__;

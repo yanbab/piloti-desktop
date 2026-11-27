@@ -22,7 +22,7 @@ import {
   syncGnomePanelOverrides,
   runXdgAutostartOnce,
   ensurePolkitAgent,
-} from "@/lib/engine-native";
+} from "@/lib/engine/desktop-integration";
 import {
   type NotificationActionItem,
   type ShellNotification,

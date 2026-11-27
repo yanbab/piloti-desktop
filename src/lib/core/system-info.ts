@@ -145,10 +145,10 @@ function getBrowserFallbackInfo(): ComputerInfo {
  */
 export async function probeComputerInfo(
   piloti: Piloti,
-  isBrowserRuntime: boolean  // FIXME : Capabilities
+  simulated: boolean
 ): Promise<ComputerInfo> {
   const fallback = getBrowserFallbackInfo();
-  if (isBrowserRuntime) {  // FIXME : Capabilities
+  if (simulated) {
     return fallback;
   }
 

@@ -47,10 +47,10 @@ export function resolveDefaultDockFolders(
     relativeHomePath?: string;
     absolutePath?: string;
   }>,
-  isBrowserRuntime: boolean,  // FIXME : Capabilities
+  virtualHome: boolean,
   homePath = `${VFS_HOME}`
 ): string[] {
-  if (isBrowserRuntime) return [DEFAULT_WEB_DOWNLOADS_PATH];  // FIXME : Capabilities
+  if (virtualHome) return [DEFAULT_WEB_DOWNLOADS_PATH];
   const dl = userDirs.find((d) => d.key === "DOWNLOAD");
   if (!dl) return [`${homePath}/Downloads`];
   if (dl.absolutePath) return [normalizeDockFolderPath(dl.absolutePath)];

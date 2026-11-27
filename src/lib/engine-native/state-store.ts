@@ -78,8 +78,7 @@ export async function createNativeStateStore(vfs: Vfs, home: string): Promise<Na
     await Promise.all(
       (entries ?? []).map(async (entry) => {
         if (entry.kind === "directory") {
-          // `kv` belongs to the key/value storage (`state-preload.ts`).
-          if (depth < MAX_DEPTH && entry.name !== "kv") await loadTree(entry.path, depth + 1);
+          if (depth < MAX_DEPTH) await loadTree(entry.path, depth + 1);
         } else if (isStateFile(entry.name)) await load(entry.path);
       }),
     );

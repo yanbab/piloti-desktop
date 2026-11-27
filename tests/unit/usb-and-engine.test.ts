@@ -9,14 +9,13 @@ import {
   setEngine,
   webEngine,
 } from "@/lib/engine/engine";
+import { webDemoUsb } from "@/lib/engine-web/usb-drive";
 import {
-  isSimulatedUsbMounted,
   isSimulatedUsbPath,
-  mountSimulatedUsb,
   SIMULATED_USB_PATH,
   toggleSimulatedUsb,
   unmountSimulatedUsb,
-} from "@/lib/engine-web/usb-drive";
+} from "@/lib/ports/demo-usb";
 import { getVfsEntry, listVfsDir } from "@/lib/engine-web/web-vfs";
 
 function createMemoryStorage(): Storage {
@@ -72,24 +71,24 @@ describe("Simulated USB pen drive, Engine override & Folders rename", () => {
   });
 
   test("mounts and unmounts simulated USB drive cleanly in VFS", () => {
-    expect(isSimulatedUsbMounted()).toBe(false);
+    expect(webDemoUsb.mounted()).toBe(false);
     expect(isSimulatedUsbPath(SIMULATED_USB_PATH)).toBe(true);
     expect(isSimulatedUsbPath(`${SIMULATED_USB_PATH}/Photos`)).toBe(true);
     expect(isSimulatedUsbPath("/home/user/Documents")).toBe(false);
 
-    mountSimulatedUsb();
-    expect(isSimulatedUsbMounted()).toBe(true);
+    webDemoUsb.mount();
+    expect(webDemoUsb.mounted()).toBe(true);
     expect(getVfsEntry(SIMULATED_USB_PATH)?.kind).toBe("directory");
     const rootItems = listVfsDir(SIMULATED_USB_PATH).map((e) => e.name);
     expect(rootItems).toContain("README.txt");
     expect(rootItems).toContain("Photos");
 
-    expect(toggleSimulatedUsb()).toBe(false);
-    expect(isSimulatedUsbMounted()).toBe(false);
+    toggleSimulatedUsb();
+    expect(webDemoUsb.mounted()).toBe(false);
     expect(getVfsEntry(SIMULATED_USB_PATH)).toBeUndefined();
 
     unmountSimulatedUsb();
-    expect(isSimulatedUsbMounted()).toBe(false);
+    expect(webDemoUsb.mounted()).toBe(false);
   });
 
   test("an entry point picks the engine; capabilities say what it can do", () => {

@@ -31,7 +31,7 @@ import {
   runGreeterPowerAction,
   type GreeterSessionOption,
   type GreeterUserAccount,
-} from "@/lib/engine-native/index";
+} from "@/lib/engine/greeter";
 import { _, getLocale } from "@/lib/core/i18n";
 import { cn } from "@/lib/core/utils";
 import { batteryTone } from "@/components/common/power-saver";

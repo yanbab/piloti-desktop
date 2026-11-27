@@ -2,7 +2,7 @@
  * Where Piloti's own config and state files are kept, as the shell reads them:
  * synchronously, from what is already loaded. These are the only files held in
  * memory (see `_docs/NOTES.md`). Linux: `engine-native/state-store.ts`; the
- * browser demo: the browser VFS itself (`engine/vfs-state.ts`).
+ * browser demo: the browser VFS itself (`engine-web/state-source.ts`).
  */
 export interface StateFile {
   path: string;
@@ -21,4 +21,8 @@ export interface StateSource {
   subscribe(path: string, listener: () => void): () => void;
   /** The same for any file directly inside `dir`. */
   subscribeDir(dir: string, listener: () => void): () => void;
+  /** Takes a value out of `localStorage`, where early releases kept it (demo). */
+  consumeLegacy?(key: string): string | null;
+  /** Moves of the storage's own layout (demo; Linux moves its folders itself). */
+  migrate?(): void;
 }

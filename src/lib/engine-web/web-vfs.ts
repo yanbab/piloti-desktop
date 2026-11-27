@@ -1,9 +1,15 @@
 import { numberedName } from "@/lib/ports/vfs";
 import { announceRename } from "@/lib/engine/renames";
 import { parseDotHiddenFile } from "@/lib/core/file-types";
-import { VFS_EMBLEM_META, type VfsEmblemId } from "@/lib/core/emblems";
+import type { VfsEmblemId } from "@/lib/core/emblems";
+import {
+  listFavoritePaths,
+  normalizeEmblemList,
+  toGnomeEmblemName,
+  type EmblemStorage,
+} from "@/lib/engine/emblems";
+import type { WebVfsBackingStorageEntry, WebVfsPerfStats } from "@/lib/ports/vfs-inspector";
 export { isTextEditableVfsFile, parseDotHiddenFile } from "@/lib/core/file-types";
-export { VFS_EMBLEM_META, type VfsEmblemId };
 import { VFS_HOME } from "../engine/vfs-home";
 import type { KeyValueStorage, VfsPersistence } from "@/lib/ports/vfs-persistence";
 import { browserPersistence } from "./vfs-persistence-browser";
@@ -61,7 +67,7 @@ export interface VfsSeed {
   topUp?(entries: WebVfsEntry[], kv: KeyValueStorage | null): boolean;
 }
 
-/** Only the home folder: the native engine fills the cache from the real disk. */
+/** Only the home folder, until a seed is set. */
 const minimalSeed: VfsSeed = {
   create: () => {
     const now = Date.now();
@@ -78,7 +84,7 @@ const minimalSeed: VfsSeed = {
 
 let seed: VfsSeed = minimalSeed;
 
-/** The browser demo installs its seeded tree here (`piloti-web.tsx`); native keeps the minimal one. */
+/** The browser demo installs its seeded tree here (`piloti-web.tsx`). */
 export function setVfsSeed(next: VfsSeed): void {
   seed = next;
   clearVfsMemoryCache();
@@ -92,8 +98,6 @@ export function setVfsPersistence(next: VfsPersistence): void {
   clearVfsMemoryCache();
 }
 const hasKv = () => persistence.kv !== null;
-/** The entry cache itself is saved (browser demo); native keeps it in memory only. */
-const persistsEntries = () => hasKv() && persistence.persistEntries !== false;
 const kv = () => persistence.kv as NonNullable<VfsPersistence["kv"]>;
 
 function isExternalizable(entry: WebVfsEntry): boolean {
@@ -159,7 +163,7 @@ function setVfsCache(entries: WebVfsEntry[], raw: string | null): WebVfsEntry[] 
 }
 
 function loadVfs(): WebVfsEntry[] {
-  if (!persistsEntries()) {
+  if (!hasKv()) {
     return vfsCacheEntries ?? setVfsCache(seedVfs(), null);
   }
   if (vfsCacheInMemoryOnly && vfsCacheEntries) {
@@ -265,22 +269,6 @@ export function vfsChangeAffects(
 }
 
 // --- Perf counters (shown in Console ▸ Infos) ---
-export interface WebVfsPerfStats {
-  /** In-memory VFS mutations (each `saveVfs`). */
-  writes: number;
-  /** Coalesced localStorage serializations. */
-  flushes: number;
-  lastFlushMs: number;
-  totalFlushMs: number;
-  /** Size of the last serialized VFS JSON (characters). */
-  lastJsonChars: number;
-  /** Listener invocations (delivered) vs. skipped by path filters. */
-  listenerCalls: number;
-  listenerSkips: number;
-  /** Full re-parses of localStorage after another window changed it. */
-  reloads: number;
-  startedAt: number;
-}
 
 const vfsPerf: WebVfsPerfStats = {
   writes: 0,
@@ -348,7 +336,7 @@ export function flushWebVfs(): void {
   const entries = vfsCacheEntries;
   const paths = vfsPendingPaths ? [...vfsPendingPaths] : undefined;
   vfsPendingPaths = new Set();
-  if (!entries || !persistsEntries()) return;
+  if (!entries || !hasKv()) return;
   const started = typeof performance !== "undefined" ? performance.now() : Date.now();
   try {
     syncBlobStore(entries);
@@ -685,56 +673,8 @@ export function incrementVfsAccessCount(rawPath: string): number {
 
 export const VFS_EMBLEMS_STORAGE_KEY = "piloti.web.vfs.emblems.v1";
 export const WEB_VFS_FAVORITES_STORAGE_KEY = "piloti.web.vfs.favorites.v1";
-export const WEB_VFS_FAVORITES_URI = "piloti://favorites";
-export const WEB_VFS_RECENTS_URI = "piloti://recents";
 
-const VALID_EMBLEM_IDS = new Set<VfsEmblemId>([
-  "favorite",
-  "important",
-  "work",
-  "personal",
-]);
-
-const GNOME_EMBLEM_MAP: Record<VfsEmblemId, string> = {
-  favorite: "emblem-favorite",
-  important: "emblem-important",
-  work: "emblem-work",
-  personal: "emblem-personal",
-};
-
-const REVERSE_GNOME_EMBLEM_MAP: Record<string, VfsEmblemId> = {
-  "emblem-favorite": "favorite",
-  "emblem-important": "important",
-  "emblem-work": "work",
-  "emblem-personal": "personal",
-};
-
-export function toGnomeEmblemName(id: VfsEmblemId): string {
-  return GNOME_EMBLEM_MAP[id];
-}
-
-export function fromGnomeEmblemName(name: string): VfsEmblemId | null {
-  const lower = name.trim().toLowerCase();
-  if (VALID_EMBLEM_IDS.has(lower as VfsEmblemId)) {
-    return lower as VfsEmblemId;
-  }
-  return REVERSE_GNOME_EMBLEM_MAP[lower] ?? null;
-}
-
-function normalizeEmblemList(raw: unknown): VfsEmblemId[] {
-  if (!Array.isArray(raw)) return [];
-  const out: VfsEmblemId[] = [];
-  for (const item of raw) {
-    if (typeof item !== "string") continue;
-    const mapped = fromGnomeEmblemName(item);
-    if (mapped && !out.includes(mapped)) {
-      out.push(mapped);
-    }
-  }
-  return out;
-}
-
-export function loadVfsEmblemsMap(): Record<string, VfsEmblemId[]> {
+function loadVfsEmblemsMap(): Record<string, VfsEmblemId[]> {
   if (!hasKv()) return {};
   const result: Record<string, VfsEmblemId[]> = {};
 
@@ -899,113 +839,12 @@ function migrateVfsEmblemsPrefix(
   }
 }
 
-/**
- * For a file about to be renamed, moved or deleted on a real disk. GVfs keys
- * emblems by path and a plain move leaves them behind, so they are taken off
- * before and put back by the returned function, at the new path (or the old one
- * if nothing moved; `null` drops them). The browser VFS moves its own.
- */
-export async function liftVfsEmblems(rawPath: string): Promise<(to: string | null) => Promise<void>> {
-  const persist = emblemPersist;
-  if (!persist) return async () => undefined;
-  const from = normalizeVfsPath(rawPath);
-  const lifted = Object.entries(loadVfsEmblemsMap()).filter(
-    ([path]) => path === from || path.startsWith(`${from}/`),
-  );
-  const write = (path: string, emblems: readonly VfsEmblemId[]) => {
-    emblemLocalWrites.set(path, Date.now());
-    return persist(path, emblems.map(toGnomeEmblemName));
-  };
-  for (const [path] of lifted) await write(path, []);
-  return async (to) => {
-    if (lifted.length === 0) return;
-    const target = to === null ? null : normalizeVfsPath(to);
-    const map = loadVfsEmblemsMap();
-    const changed: string[] = [];
-    for (const [path, emblems] of lifted) {
-      delete map[path];
-      changed.push(path);
-      if (target === null) continue;
-      const next = `${target}${path.slice(from.length)}`;
-      map[next] = emblems;
-      changed.push(next);
-      await write(next, emblems);
-    }
-    saveVfsEmblemsMap(map, true, changed);
-  };
-}
-
-export function getVfsEmblems(rawPath: string): VfsEmblemId[] {
-  const norm = normalizeVfsPath(rawPath);
-  return loadVfsEmblemsMap()[norm] ?? [];
-}
-
-export function hasVfsEmblem(rawPath: string, emblem: VfsEmblemId): boolean {
-  return getVfsEmblems(rawPath).includes(emblem);
-}
-
-type EmblemPersist = (path: string, gnomeNames: string[]) => void | Promise<void>;
-let emblemPersist: EmblemPersist | null = null;
-const emblemLocalWrites = new Map<string, number>();
-const EMBLEM_LOCAL_GRACE_MS = 5000;
-
-/** Native engine: mirror emblem changes into the file's `metadata::emblems` (shared with other file managers). */
-export function setVfsEmblemPersist(fn: EmblemPersist | null): void {
-  emblemPersist = fn;
-}
-
-/** The GVfs names Piloti manages (others on a file are left alone). */
-export const MANAGED_GNOME_EMBLEMS: readonly string[] = Object.values(GNOME_EMBLEM_MAP);
-
-/**
- * Adopts the emblems another app set on `path` (read from `metadata::emblems`).
- * Skipped for paths this app changed a moment ago, so a slow read can't undo them.
- */
-export function syncVfsEmblemsFromHost(rawPath: string, hostNames: readonly string[]): void {
-  const norm = normalizeVfsPath(rawPath);
-  const wrote = emblemLocalWrites.get(norm);
-  if (wrote && Date.now() - wrote < EMBLEM_LOCAL_GRACE_MS) return;
-  const next = normalizeEmblemList([...hostNames]);
-  const prev = loadVfsEmblemsMap()[norm] ?? [];
-  if (next.length === prev.length && next.every((e) => prev.includes(e))) return;
-  const map = loadVfsEmblemsMap();
-  if (next.length > 0) map[norm] = next;
-  else delete map[norm];
-  saveVfsEmblemsMap(map, true, [norm]);
-}
-
-export function setVfsEmblem(
-  rawPath: string,
-  emblem: VfsEmblemId,
-  enabled: boolean
-): VfsEmblemId[] {
-  const norm = normalizeVfsPath(rawPath);
-  const map = loadVfsEmblemsMap();
-  const prev = map[norm] ?? [];
-  const nextForPath = enabled
-    ? prev.includes(emblem)
-      ? prev
-      : [...prev, emblem]
-    : prev.filter((e) => e !== emblem);
-  if (nextForPath.length > 0) {
-    map[norm] = nextForPath;
-  } else {
-    delete map[norm];
-  }
-  saveVfsEmblemsMap(map, true, [norm]);
-  if (emblemPersist) {
-    emblemLocalWrites.set(norm, Date.now());
-    emblemPersist(norm, nextForPath.map(toGnomeEmblemName));
-  }
-  return nextForPath;
-}
-
-export function toggleVfsEmblem(
-  rawPath: string,
-  emblem: VfsEmblemId
-): VfsEmblemId[] {
-  return setVfsEmblem(rawPath, emblem, !hasVfsEmblem(rawPath, emblem));
-}
+/** The demo's emblems: on its files' entries, with a map for the rest. */
+export const webEmblemStorage: EmblemStorage = {
+  load: loadVfsEmblemsMap,
+  save: (map, changed) => saveVfsEmblemsMap(map, true, changed),
+  subscribe: (listener) => subscribeWebVfs(listener),
+};
 
 export function renameVfsEntry(
   rawPath: string,
@@ -1398,24 +1237,8 @@ export async function importExternalFilesToVfs(
   return imported;
 }
 
-export function loadVfsFavorites(): string[] {
-  const map = loadVfsEmblemsMap();
-  return Object.entries(map)
-    .filter(([, emblems]) => emblems.includes("favorite"))
-    .map(([path]) => path);
-}
-
-export function isVfsFavorite(path: string): boolean {
-  return hasVfsEmblem(path, "favorite");
-}
-
-export function toggleVfsFavorite(path: string): string[] {
-  toggleVfsEmblem(path, "favorite");
-  return loadVfsFavorites();
-}
-
 export function listVfsFavoriteEntries(): WebVfsEntry[] {
-  const favSet = new Set(loadVfsFavorites());
+  const favSet = new Set(listFavoritePaths());
   return loadVfs().filter((e) => favSet.has(e.path));
 }
 
@@ -1742,11 +1565,6 @@ export async function extractVfsZip(zipPath: string): Promise<WebVfsEntry | null
   return entries.find((e) => e.path === rootFolderPath) ?? rootFolder;
 }
 
-export interface WebVfsBackingStorageEntry {
-  key: string;
-  bytes: number;
-  value: string;
-}
 
 /**
  * Returns a snapshot array of all current entries in `web-vfs`.

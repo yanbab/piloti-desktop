@@ -1,16 +1,5 @@
 import { VFS_HOME } from "@/lib/engine/vfs-home";
 import type { StateFile, StateSource } from "@/lib/ports/state-source";
-import {
-  consumeLegacyLocalStorageValue,
-  ensureVfsDir,
-  getVfsEntry,
-  getVfsSnapshotEntries,
-  moveVfsEntry,
-  removeVfsEntry,
-  subscribeWebVfs,
-  writeVfsTextFile,
-} from "@/lib/engine-web/web-vfs";
-export { consumeLegacyLocalStorageValue };
 import { normalizeVfsPath } from "@/lib/core/vfs-paths";
 
 export const VFS_STATE_PATHS = {
@@ -36,6 +25,7 @@ export const VFS_STATE_PATHS = {
   consoleLog: `${VFS_HOME}/.local/state/piloti/piloti.log`,
   appStoreMeta: `${VFS_HOME}/.cache/piloti/app-store-meta.json`,
   appStoreSources: `${VFS_HOME}/.config/piloti/app-store-sources.json`,
+  favorites: `${VFS_HOME}/.local/state/piloti/favorites.json`,
   appPermissions: `${VFS_HOME}/.config/piloti/app-permissions.json`,
   browserBookmarks: `${VFS_HOME}/.config/piloti/browser/bookmarks.json`,
   iconIndexCache: `${VFS_HOME}/.cache/piloti/icon-index.json`,
@@ -45,27 +35,36 @@ export const VFS_STATE_PATHS = {
   cacheDir: `${VFS_HOME}/.cache/piloti`,
 } as const;
 
-/** The browser demo: the browser VFS is the storage, and is read directly. */
-const browserState: StateSource = {
-  files: () =>
-    getVfsSnapshotEntries()
-      .filter((e) => e.kind === "file")
-      .map((e) => ({ path: e.path, name: e.name, content: e.content ?? "", updatedAt: e.updatedAt })),
-  read(path) {
-    const entry = getVfsEntry(path);
-    return entry?.kind === "file" ? (entry.content ?? "") : null;
-  },
-  write: (path, content) => void writeVfsTextFile(path, content),
-  remove: (path) => void removeVfsEntry(path),
-  subscribe: (path, listener) => subscribeWebVfs(listener, { path, mode: "exact" }),
-  subscribeDir: (path, listener) => subscribeWebVfs(listener, { path, mode: "children" }),
-};
+/** Until an engine sets one: nothing outlives the page. */
+function memoryStateSource(): StateSource {
+  const files = new Map<string, string>();
+  return {
+    files: () => [...files].map(([path, content]) => ({ path, name: path.slice(path.lastIndexOf("/") + 1), content })),
+    read: (path) => files.get(path) ?? null,
+    write: (path, content) => void files.set(path, content),
+    remove: (path) => void files.delete(path),
+    subscribe: () => () => undefined,
+    subscribeDir: () => () => undefined,
+  };
+}
 
-let source: StateSource = browserState;
+let fallback: StateSource = memoryStateSource();
+let source: StateSource = fallback;
+
+/** The demo's storage, set once by its entry point; `setStateSource(null)` returns to it. */
+export function setDefaultStateSource(next: StateSource): void {
+  if (source === fallback) source = next;
+  fallback = next;
+}
 
 /** The Linux entry points set their disk-backed store here before the shell loads. */
 export function setStateSource(next: StateSource | null): void {
-  source = next ?? browserState;
+  source = next ?? fallback;
+}
+
+/** A value an early release kept in `localStorage`, taken out of it. */
+export function consumeLegacyLocalStorageValue(key: string): string | null {
+  return source.consumeLegacy?.(key) ?? null;
 }
 
 /**
@@ -231,43 +230,12 @@ export function migrateLegacyStateFilesToJson(): void {
   }
 }
 
-const LEGACY_CONFIG_DIR = `${VFS_HOME}/.config/Piloti`;
-const CONFIG_DIR = `${VFS_HOME}/.config/piloti`;
-
-/**
- * Moves any files remaining in `~/.config/Piloti` (capital P) to
- * `~/.config/piloti` without overwriting, then removes the old directory.
- */
-export function migrateLegacyConfigDir(): void {
-  // On Linux the entry point moves the real folder (`piloti-desktop.tsx`).
-  if (source !== browserState) return;
-  const prefix = `${LEGACY_CONFIG_DIR}/`;
-  const entries = getVfsSnapshotEntries()
-    .filter((e) => e.kind === "file" && e.path.startsWith(prefix))
-    .sort((a, b) => a.path.localeCompare(b.path));
-  if (entries.length === 0 && !getVfsEntry(LEGACY_CONFIG_DIR)) return;
-  for (const entry of entries) {
-    const rel = entry.path.slice(prefix.length);
-    const dest = `${CONFIG_DIR}/${rel}`;
-    if (getVfsEntry(dest)) continue;
-    const slash = dest.lastIndexOf("/");
-    const destDir = dest.slice(0, slash);
-    try {
-      ensureVfsDir(destDir);
-      moveVfsEntry(entry.path, destDir);
-    } catch {
-      // ignore; leave the file in place
-    }
-  }
-  removeVfsEntry(LEGACY_CONFIG_DIR);
-}
-
 /**
  * Runs every startup VFS state migration (idempotent).
  */
 export function runVfsStateMigrations(): void {
   migrateLegacyStateFilesToJson();
-  migrateLegacyConfigDir();
+  source.migrate?.();
 }
 
 /**

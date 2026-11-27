@@ -2,7 +2,7 @@ import * as React from "react";
 import { useApps } from "@/context/DesktopStateContext";
 import { useCapabilities } from "@/hooks/use-capabilities";
 import { normalizeVfsPath, WEB_VFS_HOME } from "@/lib/core/vfs-paths";
-import { resolveVfsTemplatesDir } from "@/lib/engine/fs-bridge";
+import { demoFiles } from "@/lib/ports/demo-files";
 import { resolveUserDirPath } from "@/lib/xdg/xdg-user-dirs";
 
 /** The XDG Desktop folder. */
@@ -21,7 +21,7 @@ export function useTemplatesDirPath(): string {
   const { xdgUserDirs } = useApps();
   return React.useMemo(() => {
     // The demo reads its own `user-dirs.dirs`.
-    if (!realFilesystem) return resolveVfsTemplatesDir();
+    if (!realFilesystem) return demoFiles().templatesDir();
     return normalizeVfsPath(resolveUserDirPath("TEMPLATES", xdgUserDirs, WEB_VFS_HOME));
   }, [realFilesystem, xdgUserDirs]);
 }

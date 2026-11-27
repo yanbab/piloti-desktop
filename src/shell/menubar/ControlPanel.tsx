@@ -44,6 +44,7 @@ import {
   NotificationActionControls,
   NotificationAppIcon,
 } from "@/shell/notifications/NotificationParts";
+import { useCapabilities } from "@/hooks/use-capabilities";
 
 /** Stays mounted while closed (built once); `open` says when it is shown. */
 export function ControlPanel({ open = true }: { open?: boolean }) {
@@ -57,7 +58,7 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
       ),
     [portalRequests]
   );
-  const isBrowserRuntime = useSettingsSelector((v) => v.isBrowserRuntime); // FIXME : Capabilities
+  const { systemServices } = useCapabilities();
   const settings = useDesktopSettings(["bluetoothEnabled", "brightness", "connectedWifi", "doNotDisturb", "dockAutoHide", "dockPosition", "dockSize", "muted", "nightLight", "notificationsEnabled", "powerMode", "themeMode", "volume", "wifiEnabled"]);
   const updateSettings = useUpdateSettings();
   const {
@@ -167,18 +168,18 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
           <button
             type="button"
             title={
-              isBrowserRuntime  // FIXME : Capabilities
+              !systemServices
                 ? _("Desktop Settings")
                 : _("Open System Settings (Shift+Click) or Desktop Settings")
             }
             onClick={(e) => {
               console.info(
                 "[Piloti] control-panel: open settings",
-                !isBrowserRuntime && e.shiftKey ? "gnome" : "desktop"  // FIXME : Capabilities
+                systemServices && e.shiftKey ? "gnome" : "desktop"
               );
               captureLaunchOriginFromElement(e.currentTarget);
               setControlPanelOpen(false);
-              if (!isBrowserRuntime && e.shiftKey) {  // FIXME : Capabilities
+              if (systemServices && e.shiftKey) {
                 openGnomeSettings();
               } else {
                 launchApp("settings");
@@ -289,7 +290,7 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
               <span className="text-ui-small font-medium text-ui-label-secondary">
                 {_("Output Device")}
               </span>
-              {!isBrowserRuntime && gnomeCapabilities.gnomeControlCenter && (  // FIXME : Capabilities
+              {systemServices && gnomeCapabilities.gnomeControlCenter && (
                 <button
                   type="button"
                   onClick={() => {
@@ -474,7 +475,7 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
               <span className="text-ui-small font-medium text-ui-label-secondary">
                 {_("Wi-Fi Networks")}
               </span>
-              {!isBrowserRuntime && gnomeCapabilities.gnomeControlCenter && (  // FIXME : Capabilities
+              {systemServices && gnomeCapabilities.gnomeControlCenter && (
                 <button
                   type="button"
                   onClick={() => {
@@ -570,7 +571,7 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
               <span className="text-ui-small font-medium text-ui-label-secondary">
                 {_("Bluetooth Devices")}
               </span>
-              {!isBrowserRuntime && gnomeCapabilities.gnomeControlCenter && (  // FIXME : Capabilities
+              {systemServices && gnomeCapabilities.gnomeControlCenter && (
                 <button
                   type="button"
                   onClick={() => {

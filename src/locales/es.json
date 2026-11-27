@@ -985,5 +985,7 @@
   "Notification": "Notificación",
   "Test notification": "Notificación de prueba",
   "A normal notification.": "Una notificación normal.",
-  "An urgent notification.": "Una notificación urgente."
+  "An urgent notification.": "Una notificación urgente.",
+  "Could not open %s": "No se pudo abrir %s",
+  "Could not eject %s": "No se pudo expulsar %s"
 }

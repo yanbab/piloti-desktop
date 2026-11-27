@@ -22,6 +22,7 @@ Recommends:
  fonts-noto-color-emoji,
  xdg-utils,
  dbus-user-session,
+ udisks2,
  pkexec,
  mate-polkit | lxpolkit | lxqt-policykit | polkit-kde-agent-1,
  x11-xserver-utils

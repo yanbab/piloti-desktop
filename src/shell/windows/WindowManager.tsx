@@ -147,6 +147,7 @@ import {
   setExtensionEnabled,
 } from "@/lib/engine/browser-extensions";
 import { toggleWebAppInstall } from "@/lib/xdg/xdg-web-apps";
+import { useCapabilities } from "@/hooks/use-capabilities";
 
 /**
  * Wraps the native Domicile `<app>` element and reports its exact viewport CSS
@@ -391,7 +392,7 @@ function WebViewSurface({
 }) {
   const isCsd = useAppChrome().decorations === "client";
   const piloti = usePiloti();
-  const isBrowserRuntime = useSettingsSelector((v) => v.isBrowserRuntime); // FIXME : Capabilities
+  const { compositor } = useCapabilities();
   const resolvedTheme = useSettingsSelector((v) => v.resolvedTheme);
   const settings = useDesktopSettings(["activeWorkspace", "darkReaderWebEnabled", "debugMode", "demoExtensionEnabled", "dockAutoHide", "dockPosition", "dockSize", "installedWebApps", "pinnedAppIds", "pinnedExtensionIds", "windowButtonLayout", "windowDecorationMode"]);
   const updateSettings = useUpdateSettings();
@@ -434,13 +435,13 @@ function WebViewSurface({
   const [demoBadgeCount, setDemoBadgeCount] = React.useState(1);
 
   React.useEffect(() => {
-    if (isBrowserRuntime) return;  // FIXME : Capabilities
+    if (!compositor) return;
     return piloti.extensions.on("popup", (req) => {
       if (!isFocusedTab) return;
       setExtPopupSize({ width: 360, height: 440 });
       setActiveExtPopup(req);
     });
-  }, [piloti.extensions, isFocusedTab, isBrowserRuntime]);  // FIXME : Capabilities
+  }, [piloti.extensions, isFocusedTab, compositor]);
 
   React.useEffect(() => {
     const view = extPopupWebviewRef.current;
@@ -513,7 +514,7 @@ function WebViewSurface({
 
   React.useEffect(() => {
     const view = webviewRef.current;
-    if (!view || isBrowserRuntime) return;  // FIXME : Capabilities
+    if (!view || !compositor) return;
 
     const syncHistory = () => setNativeCanGoBack(Boolean(view.canGoBack));
     const syncPage = () => {
@@ -579,7 +580,7 @@ function WebViewSurface({
       view.removeEventListener(WEBVIEW_PAGE_FAILURE_CHANGE_EVENT, syncFailure);
       view.removeEventListener("did-change-theme-color", onThemeColor);
     };
-  }, [isBrowserRuntime, prefersDark, win.browserWindowId, win.browserUrl]);  // FIXME : Capabilities
+  }, [compositor, prefersDark, win.browserWindowId, win.browserUrl]);
 
   const currentUrl = normalizeWebUrl(address) ?? win.browserUrl ?? "";
   const bookmarks = useBrowserBookmarks();
@@ -596,7 +597,7 @@ function WebViewSurface({
 
   const handleToggleStoreExtension = React.useCallback(async () => {
     if (!storeExtId) return;
-    if (isBrowserRuntime) {  // FIXME : Capabilities
+    if (!compositor) {
       pushNotification({
         appName: "Chrome Web Store",
         summary: _("Extension ID: %s", storeExtId),
@@ -653,7 +654,7 @@ function WebViewSurface({
         urgency: "critical",
       });
     }
-  }, [piloti, isBrowserRuntime, pushNotification, storeExtId]);  // FIXME : Capabilities
+  }, [piloti, compositor, pushNotification, storeExtId]);
 
   React.useEffect(() => {
     if (!isFocusedTab) return;
@@ -691,11 +692,11 @@ function WebViewSurface({
     const normalized = looksLikeUrl(draftAddress)
       ? normalizeWebUrl(draftAddress)
       : draftAddress.trim()
-        ? webSearchUrl(draftAddress, isBrowserRuntime)  // FIXME : Capabilities
+        ? webSearchUrl(draftAddress, !compositor)
         : null;
     if (normalized) {
       setAddress(normalized);
-      if (isBrowserRuntime) {  // FIXME : Capabilities
+      if (!compositor) {
         setHistoryState((prev) => {
           if (prev.stack[prev.index] === normalized) return prev;
           const nextStack = [...prev.stack.slice(0, prev.index + 1), normalized];
@@ -708,9 +709,9 @@ function WebViewSurface({
     setEditingAddress(false);
   };
 
-  const canGoBack = isBrowserRuntime ? historyState.index > 0 : nativeCanGoBack;  // FIXME : Capabilities
+  const canGoBack = !compositor ? historyState.index > 0 : nativeCanGoBack;
   const handleGoBack = React.useCallback(() => {
-    if (isBrowserRuntime) {  // FIXME : Capabilities
+    if (!compositor) {
       setHistoryState((prev) => {
         if (prev.index <= 0) return prev;
         const nextIndex = prev.index - 1;
@@ -721,12 +722,12 @@ function WebViewSurface({
     } else {
       webviewRef.current?.goBack();
     }
-  }, [isBrowserRuntime]);  // FIXME : Capabilities
+  }, [compositor]);
 
   React.useEffect(() => {
     const triggerPrint = () => {
       if (!isFocusedTab) return;
-      if (isBrowserRuntime) {  // FIXME : Capabilities
+      if (!compositor) {
         try {
           const cw = iframeRef.current?.contentWindow;
           if (cw) {
@@ -779,7 +780,7 @@ function WebViewSurface({
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("piloti:app-action", onAppAction);
     };
-  }, [isFocusedTab, active, isBrowserRuntime, win.id, win.browserWindowId, openBrowserTab, closeBrowserTab, reopenClosedBrowserTab, launchApp]);  // FIXME : Capabilities
+  }, [isFocusedTab, active, compositor, win.id, win.browserWindowId, openBrowserTab, closeBrowserTab, reopenClosedBrowserTab, launchApp]);
   const installedApps = settings.installedWebApps ?? [];
   const matchedInstalledApp = findMatchingWebApp(currentUrl, installedApps);
   const isInstalled = currentUrl !== "" && Boolean(matchedInstalledApp);
@@ -809,7 +810,7 @@ function WebViewSurface({
   React.useEffect(() => {
     const cached = getCachedWebThemeColor(currentUrl, prefersDark) ?? null;
     setThemeColor(cached);
-    if (!isBrowserRuntime || !currentUrl || !win.browserWindowId) return;  // FIXME : Capabilities
+    if (compositor || !currentUrl || !win.browserWindowId) return;
     if (cached !== null) {
       // Still fetch title if needed, or update themeColor in background
     }
@@ -826,12 +827,12 @@ function WebViewSurface({
       }
     );
     return () => controller.abort();
-  }, [isBrowserRuntime, currentUrl, win.browserWindowId, prefersDark]);  // FIXME : Capabilities
+  }, [compositor, currentUrl, win.browserWindowId, prefersDark]);
 
   const iframeSrc = normalizeWebUrl(address) ?? "about:blank";
 
   React.useEffect(() => {
-    if (!isBrowserRuntime) return;  // FIXME : Capabilities
+    if (compositor) return;
     if (iframeSrc === "about:blank") {
       setIsLoading(false);
       markReadyRef.current();
@@ -843,7 +844,7 @@ function WebViewSurface({
       markReadyRef.current();
     }, 15000);
     return () => clearTimeout(timeout);
-  }, [isBrowserRuntime, iframeSrc]);  // FIXME : Capabilities
+  }, [compositor, iframeSrc]);
 
   const handleIframeLoad = React.useCallback(() => {
     setIsLoading(false);
@@ -911,7 +912,7 @@ function WebViewSurface({
     });
   };
 
-  const extensionMenuItems: BrowserExtensionItem[] = isBrowserRuntime  // FIXME : Capabilities
+  const extensionMenuItems: BrowserExtensionItem[] = !compositor
     ? [
         {
           id: "dark-reader",
@@ -1176,7 +1177,7 @@ function WebViewSurface({
       {tabBar}
 
       <div className="relative min-h-0 flex-1 overflow-hidden">
-        {isBrowserRuntime ? (  // FIXME : Capabilities
+        {!compositor ? (
           <iframe
             ref={iframeRef}
             src={iframeSrc}
@@ -1201,7 +1202,7 @@ function WebViewSurface({
           />
         )}
 
-        {!isBrowserRuntime && activeExtPopup && (  // FIXME : Capabilities
+        {compositor && activeExtPopup && (
           <>
             <div
               className="absolute inset-0 z-30"
@@ -1224,7 +1225,7 @@ function WebViewSurface({
           </>
         )}
 
-        {demoPopupOpen && isBrowserRuntime && settings.demoExtensionEnabled !== false && (  // FIXME : Capabilities
+        {demoPopupOpen && !compositor && settings.demoExtensionEnabled !== false && (
           <>
             <div
               className="absolute inset-0 z-30"
@@ -1265,7 +1266,7 @@ function WebViewSurface({
           </>
         )}
 
-        {pageFailure && !isBrowserRuntime && (  // FIXME : Capabilities
+        {pageFailure && compositor && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-ui-window p-6 text-center text-ui-label">
             <SymbolicIcon name="web-browser" fallback={GlobeIcon} className="size-7 text-ui-label-secondary" />
             <div className="text-ui-body font-semibold">Unable to load page</div>
@@ -1426,9 +1427,9 @@ const WindowBody = React.memo(
     onToggleDarkReader: () => void;
   }) {
     const isCsd = useAppChrome().decorations === "client";
-    const isBrowserRuntime = useSettingsSelector((v) => v.isBrowserRuntime); // FIXME : Capabilities
+    const { compositor } = useCapabilities();
 
-    if (win.waylandAppId && !isBrowserRuntime) {  // FIXME : Capabilities
+    if (win.waylandAppId && compositor) {
       return <WaylandAppSurface win={win} />;
     }
 
@@ -1635,7 +1636,7 @@ const DOMICILE_RESIZE_EDGE_MAP: Record<number, WindowResizeEdge> = {
 
 export function WindowManager() {
   const piloti = usePiloti();
-  const isBrowserRuntime = useSettingsSelector((v) => v.isBrowserRuntime); // FIXME : Capabilities
+  const { compositor } = useCapabilities();
   const settings = useDesktopSettings(["activeWorkspace", "darkReaderWebEnabled", "debugMode", "demoExtensionEnabled", "dockAutoHide", "dockPosition", "dockSize", "installedWebApps", "pinnedAppIds", "pinnedExtensionIds", "windowButtonLayout", "windowDecorationMode"]);
   const reducedMotion = useSettingsSelector((v) => v.reducedMotion);
   const {
@@ -2043,7 +2044,7 @@ export function WindowManager() {
     lastDomFocusedIdRef.current = focusedWindowId;
 
     const frame = requestAnimationFrame(() => {
-      if (targetWin.waylandAppId && !isBrowserRuntime) {  // FIXME : Capabilities
+      if (targetWin.waylandAppId && compositor) {
         if (piloti.windows.focused !== targetWin.waylandAppId) {
           piloti.windows.focus(targetWin.waylandAppId);
         }
@@ -2069,7 +2070,7 @@ export function WindowManager() {
     piloti.windows,
     overviewOpen,
     focusedWindowId,
-    isBrowserRuntime,  // FIXME : Capabilities
+    compositor,
     workspaceWindows.length,
   ]);
 
@@ -2254,7 +2255,7 @@ export function WindowManager() {
           const isCsd =
             settings.windowDecorationMode === "csd" ||
             (settings.windowDecorationMode === "auto" && Boolean(win.clientFrame));
-          const isWaylandSurface = Boolean(win.waylandAppId) && !isBrowserRuntime;  // FIXME : Capabilities
+          const isWaylandSurface = Boolean(win.waylandAppId) && compositor;
           const ovLayout =
             overviewOpen && isActiveWorkspace
               ? overviewLayouts?.get(win.id)

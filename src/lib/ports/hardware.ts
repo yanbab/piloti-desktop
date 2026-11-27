@@ -52,6 +52,16 @@ export interface BluetoothState {
 
 export type PowerProfile = "balanced" | "performance" | "power-saver";
 
+/** A removable volume with a filesystem: a USB stick, an SD card, a CD. */
+export interface DriveInfo {
+  /** What requests address (the UDisks2 object path on Linux). */
+  id: string;
+  label: string;
+  kind: "usb" | "optical";
+  /** `null` while not mounted. */
+  mountPath: string | null;
+}
+
 export interface MprisMediaInfo {
   status: "Playing" | "Paused" | "Stopped";
   title: string;
@@ -96,6 +106,13 @@ export interface Hardware {
     watch(piloti: Piloti, onChange: (state: BluetoothState | null) => void): Stop;
     setPowered(piloti: Piloti, powered: boolean): Promise<void>;
     setConnected(piloti: Piloti, devicePath: string, connected: boolean): Promise<void>;
+  };
+  drives: {
+    watch(piloti: Piloti, onChange: (drives: DriveInfo[]) => void): () => void;
+    /** Returns where it is mounted; rejects with the system's message. */
+    mount(piloti: Piloti, id: string): Promise<string>;
+    /** Unmounts, then ejects or powers off what can be; rejects likewise. */
+    eject(piloti: Piloti, id: string): Promise<void>;
   };
   media: {
     watch(piloti: Piloti, onChange: (media: MprisMediaInfo | null) => void): Stop;

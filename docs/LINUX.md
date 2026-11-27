@@ -85,7 +85,7 @@ CLI or a private file. Each move is a port with a native and a demo adapter.
 | Battery, power profiles | `upower`, `powerprofilesctl` | UPower, `net.hadess.PowerProfiles` |
 | Network | `nmcli` | NetworkManager D-Bus |
 | Media player | `playerctl` | MPRIS |
-| Removable drives | `lsblk`, simulated USB | UDisks2 |
+| Removable drives, CDs | UDisks2 (`engine-native/drives.ts`) | done; no automount |
 | Volume | `wpctl`, `pactl` | keep; events from `pactl subscribe` |
 | Bluetooth | none | BlueZ |
 | Time, locale, hostname, user | files or none | `timedate1`, `locale1`, `hostname1`, AccountsService |

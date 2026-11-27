@@ -2,11 +2,9 @@ import { subscribeRenames } from "@/lib/engine/renames";
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { nativeEngine, setEngine, webEngine } from "@/lib/engine/engine";
 import {
-  getVfsEmblems,
-  setVfsEmblem,
-  setVfsEmblemPersist,
   setVfsPersistence,
 } from "@/lib/engine-web/web-vfs";
+import { getEmblems, setEmblem, setEmblemPersist } from "@/lib/engine/emblems";
 import { browserPersistence } from "@/lib/engine-web/vfs-persistence-browser";
 import { memoryPersistence } from "@/lib/ports/vfs-persistence";
 import {
@@ -79,16 +77,16 @@ describe("file operations on a real disk", () => {
   // GVfs keys emblems by path, and `mv` would leave them on the old one.
   test("emblems follow rename, move and trash", async () => {
     const disk = new Map<string, string[]>();
-    setVfsPersistence({ ...memoryPersistence(), persistEntries: false });
-    setVfsEmblemPersist((path, names) => void (names.length ? disk.set(path, names) : disk.delete(path)));
+    setVfsPersistence(memoryPersistence());
+    setEmblemPersist((path, names) => void (names.length ? disk.set(path, names) : disk.delete(path)));
     try {
       await piloti.vfs.write(`${D}/sub/a.txt`, "A");
-      setVfsEmblem(`${D}/sub`, "work", true);
-      setVfsEmblem(`${D}/sub/a.txt`, "important", true);
+      setEmblem(`${D}/sub`, "work", true);
+      setEmblem(`${D}/sub/a.txt`, "important", true);
       await renameFsEntry(piloti, `${D}/sub`, "new");
       expect([...disk.keys()].sort()).toEqual([`${D}/new`, `${D}/new/a.txt`]);
-      expect(getVfsEmblems(`${D}/new/a.txt`)).toEqual(["important"]);
-      expect(getVfsEmblems(`${D}/sub/a.txt`)).toEqual([]);
+      expect(getEmblems(`${D}/new/a.txt`)).toEqual(["important"]);
+      expect(getEmblems(`${D}/sub/a.txt`)).toEqual([]);
       await moveFsEntry(piloti, `${D}/new/a.txt`, D);
       expect(disk.get(`${D}/a.txt`)).toEqual(["emblem-important"]);
       expect(disk.has(`${D}/new/a.txt`)).toBe(false);
@@ -97,12 +95,12 @@ describe("file operations on a real disk", () => {
       expect(await renameFsEntry(piloti, `${D}/a.txt`, "b.txt")).toBeNull();
       expect(disk.get(`${D}/a.txt`)).toEqual(["emblem-important"]);
       await trashWithUndo({ piloti }, [`${D}/a.txt`]);
-      expect(getVfsEmblems(`${D}/a.txt`)).toEqual([]);
+      expect(getEmblems(`${D}/a.txt`)).toEqual([]);
       await undoFileOperation();
-      expect(getVfsEmblems(`${D}/a.txt`)).toEqual(["important"]);
+      expect(getEmblems(`${D}/a.txt`)).toEqual(["important"]);
       expect(disk.get(`${D}/a.txt`)).toEqual(["emblem-important"]);
     } finally {
-      setVfsEmblemPersist(null);
+      setEmblemPersist(null);
       setVfsPersistence(browserPersistence());
     }
   });

@@ -24,6 +24,7 @@ import {
   watchMprisMedia,
   watchSystemPowerProfile,
 } from "@/lib/engine-native/dbus-services";
+import { ejectSystemDrive, mountSystemDrive, watchSystemDrives } from "@/lib/engine-native/drives";
 import type { Hardware } from "@/lib/ports/hardware";
 
 export const nativeHardware: Hardware = {
@@ -42,6 +43,7 @@ export const nativeHardware: Hardware = {
     setPowered: setSystemBluetoothPowered,
     setConnected: setSystemBluetoothConnected,
   },
+  drives: { watch: watchSystemDrives, mount: mountSystemDrive, eject: ejectSystemDrive },
   media: { watch: watchMprisMedia, control: controlMprisMedia },
 };
 
