@@ -63,6 +63,9 @@ UI (React)  ─►  piloti: Domicile's desktop + vfs, settings, desktop…
   Components subscribe to slices, so a change re-renders only what uses it.
 - Windows keep their DOM order and are hidden with CSS, so iframes don't reload.
 - Bounds and workspace are saved per URL, document or app.
+- Folders opened on a folder keeps view, sort and zoom per folder
+  (`metadata::piloti-view`); opened without one, a single view in
+  `apps/folders.ini`, with the info pane (`apps/files/folder-view.ts`).
 - New webview windows stay hidden until ready (2.5 s limit).
 
 ## Built-in apps

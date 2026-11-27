@@ -9,7 +9,7 @@ import {
   ToastViewport,
   useToastManager,
 } from "@/components/ui/toast";
-import { useSystemBackends, useDesktopSettings } from "@/context/DesktopStateContext";
+import { useSystemBackends, useDesktopSettings, useWindowManagerSelector } from "@/context/DesktopStateContext";
 import {
   type NotificationToastData,
   pilotiToastManager,
@@ -25,10 +25,25 @@ function ToastBannerStack() {
   const { invokeNotificationAction } = useSystemBackends();
   const { toasts, close } = useToastManager<NotificationToastData>();
 
+  const controlPanelOpen = useWindowManagerSelector((wm) => wm.controlPanelOpen);
+  React.useEffect(() => {
+    if (!controlPanelOpen || toasts.length === 0) return;
+    const timer = window.setTimeout(() => toasts.forEach((t) => close(t.id)), 150);
+    return () => window.clearTimeout(timer);
+  }, [close, controlPanelOpen, toasts]);
+
   if (toasts.length === 0) return null;
 
   return (
-    <ToastViewport position="top-right">
+    <ToastViewport
+      position="top-right"
+      data-no-tooltips=""
+      // The Control Panel lists them: fade out as it fades in.
+      className={cn(
+        "transition-[opacity,visibility] duration-150 ease-[ease]",
+        controlPanelOpen && "invisible opacity-0",
+      )}
+    >
       {toasts.map((toast) => {
         const data = toast.data;
         const isCritical = data?.urgency === "critical" || toast.type === "critical";
@@ -45,7 +60,7 @@ function ToastBannerStack() {
               }
             }}
             className={cn(
-              isCritical && "border-ui-accent/50 ring-1 ring-ui-accent/35",
+              isCritical && "ui-notification-urgent",
               isClickable && "cursor-default hover-fill:brightness-105"
             )}
           >
@@ -61,7 +76,7 @@ function ToastBannerStack() {
                 <div className="min-w-0 flex-1">
                   <div className="flex items-start justify-between gap-2">
                     {toast.title ? (
-                      <ToastTitle className="min-w-0 flex-1 truncate">
+                      <ToastTitle className={cn("min-w-0 flex-1 truncate", isCritical && "text-ui-accent")}>
                         {toast.title}
                       </ToastTitle>
                     ) : (

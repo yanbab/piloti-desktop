@@ -830,6 +830,7 @@ export function FloatingNotifications({ open = true }: { open?: boolean }) {
   return (
     <div
       aria-label={_("Notifications")}
+      data-no-tooltips=""
       className="mt-2.5 flex w-full flex-col gap-2"
     >
       <div className="flex items-center justify-between gap-2">
@@ -848,42 +849,38 @@ export function FloatingNotifications({ open = true }: { open?: boolean }) {
         ) : (
           <span />
         )}
-        <button
-          type="button"
-          aria-label={_("Clear All")}
-          title={_("Clear All")}
-          onClick={clearAllNotifications}
-          className="flex size-ui-control-medium shrink-0 items-center justify-center rounded-full border border-black/8 text-ui-label shadow-ui-popover backdrop-blur-xl transition-colors ui-material-popover hover-fill:bg-black/6 dark:border-white/10 dark:hover-fill:bg-white/10"
-        >
-          <SymbolicIcon name="window-close" fallback={XIcon} className="size-3.5" />
-        </button>
-      </div>
-
-      {(settings.doNotDisturb || !settings.notificationsEnabled) && (
-        <div className="flex items-center justify-between gap-2 rounded-2xl border border-black/8 px-3 py-2 text-ui-small text-ui-label-secondary shadow-ui-popover backdrop-blur-xl ui-material-popover dark:border-white/10">
-          <span className="flex min-w-0 items-center gap-1.5 truncate">
-            <SymbolicIcon name="notifications-disabled" fallback={BellOffIcon} className="size-3 shrink-0 text-ui-accent" />
-            <span className="truncate">
-              {!settings.notificationsEnabled
-                ? _("Notifications paused in Settings")
-                : _("Silent · Banners silenced")}
-            </span>
-          </span>
+        <div className="flex items-center gap-1.5">
+          {(settings.doNotDisturb || !settings.notificationsEnabled) && (
+            <button
+              type="button"
+              aria-label={
+                settings.notificationsEnabled
+                  ? `${_("Silent")}: ${_("Resume")}`
+                  : `${_("Notifications paused in Settings")}: ${_("Resume")}`
+              }
+              onClick={() =>
+                updateSettings(
+                  !settings.notificationsEnabled
+                    ? { notificationsEnabled: true }
+                    : { doNotDisturb: false }
+                )
+              }
+              className="flex h-ui-control-medium shrink-0 items-center gap-1.5 rounded-full border border-black/8 px-2.5 text-ui-small font-medium text-ui-label shadow-ui-popover backdrop-blur-xl transition-colors ui-material-popover hover-fill:bg-black/6 dark:border-white/10 dark:hover-fill:bg-white/10"
+            >
+              <SymbolicIcon name="notifications-disabled" fallback={BellOffIcon} className="size-3.5 shrink-0 dark:text-white" />
+              {_("Resume")}
+            </button>
+          )}
           <button
             type="button"
-            onClick={() =>
-              updateSettings(
-                !settings.notificationsEnabled
-                  ? { notificationsEnabled: true }
-                  : { doNotDisturb: false }
-              )
-            }
-            className="shrink-0 font-medium text-ui-accent active:opacity-70"
+            aria-label={_("Clear All")}
+            onClick={clearAllNotifications}
+            className="flex size-ui-control-medium shrink-0 items-center justify-center rounded-full border border-black/8 text-ui-label shadow-ui-popover backdrop-blur-xl transition-colors ui-material-popover hover-fill:bg-black/6 dark:border-white/10 dark:hover-fill:bg-white/10"
           >
-            {_("Resume")}
+            <SymbolicIcon name="window-close" fallback={XIcon} className="size-3.5" />
           </button>
         </div>
-      )}
+      </div>
 
       {visibleNotifications.map((n) => {
         const isNew = unreadSnapshot.has(n.id);
@@ -898,7 +895,7 @@ export function FloatingNotifications({ open = true }: { open?: boolean }) {
             }}
             className={cn(
               "group/card relative flex items-start gap-2.5 rounded-2xl border border-black/8 p-3 shadow-ui-popover backdrop-blur-xl ui-material-popover dark:border-white/10",
-              isCritical && "ring-1 ring-ui-accent/45",
+              isCritical && "ui-notification-urgent",
               n.fromDomicile && n.clickable && "cursor-default"
             )}
           >
@@ -914,19 +911,24 @@ export function FloatingNotifications({ open = true }: { open?: boolean }) {
                 <div className="flex min-w-0 flex-1 items-center gap-1.5">
                   {isNew && (
                     <span
-                      title="New"
                       className={cn(
                         "size-1.5 shrink-0 rounded-full",
                         isCritical ? "bg-ui-accent" : "bg-ui-label-secondary"
                       )}
                     />
                   )}
-                  <span className="truncate text-ui-body font-semibold leading-snug text-ui-label">
+                  <span
+                    className={cn(
+                      "truncate text-ui-body font-semibold leading-snug",
+                      isCritical ? "text-ui-accent" : "text-ui-label"
+                    )}
+                  >
                     {n.summary}
                   </span>
                 </div>
-                <div className="flex shrink-0 items-center gap-1.5">
-                  <span className="text-ui-small text-ui-label-tertiary tabular-nums">
+                {/* Dismiss takes the time's place, so the time reaches the edge. */}
+                <div className="relative flex shrink-0 items-center">
+                  <span className="text-ui-small text-ui-label-tertiary tabular-nums group-hover/card:opacity-0">
                     {formatRelativeNotificationTime(n.time)}
                   </span>
                   <button
@@ -936,7 +938,7 @@ export function FloatingNotifications({ open = true }: { open?: boolean }) {
                       e.stopPropagation();
                       dismissNotification(n.id);
                     }}
-                    className="flex size-4 items-center justify-center rounded-full bg-black/10 text-ui-label-secondary opacity-0 transition-opacity group-hover/card:opacity-80 hover:opacity-100 focus-visible:opacity-100 active:bg-black/20 dark:bg-white/15 dark:active:bg-white/25"
+                    className="absolute right-0 flex size-4 items-center justify-center rounded-full bg-black/10 text-ui-label-secondary opacity-0 transition-opacity group-hover/card:opacity-80 hover:opacity-100 focus-visible:opacity-100 active:bg-black/20 dark:bg-white/15 dark:active:bg-white/25"
                   >
                     <SymbolicIcon name="window-close" fallback={XIcon} className="size-2.5" />
                   </button>

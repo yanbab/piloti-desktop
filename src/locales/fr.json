@@ -853,5 +853,19 @@
   "No Active Browser Extensions": "Aucune extension de navigateur active",
   "Activate": "Activer",
   "Unpacked extension": "Extension non empaquetée",
-  "Chrome Web Store ID": "Identifiant du Chrome Web Store"
+  "Chrome Web Store ID": "Identifiant du Chrome Web Store",
+  "Typography": "Typographie",
+  "Icon and round buttons": "Boutons à icône et arrondis",
+  "Switch and checkbox": "Interrupteur et case à cocher",
+  "Grouped form": "Formulaire groupé",
+  "Sidebar": "Barre latérale",
+  "Menu": "Menu",
+  "Context menu and tooltip": "Menu contextuel et infobulle",
+  "Labels": "Libellés",
+  "Surfaces": "Surfaces",
+  "Show Keyboard Layout": "Afficher la disposition du clavier",
+  "Show On-Screen Keyboard": "Afficher le clavier virtuel",
+  "Keyboard Settings\u2026": "Réglages du clavier…",
+  "Install tecla to show the keyboard layout.": "Installez tecla pour afficher la disposition du clavier.",
+  "Install wvkbd or squeekboard to type on screen.": "Installez wvkbd ou squeekboard pour saisir à l’écran."
 }

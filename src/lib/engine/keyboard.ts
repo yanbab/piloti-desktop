@@ -13,6 +13,12 @@ export interface Keymap {
   description: string | undefined;
 }
 
+/** The layouts the shipped compositor config names. */
+export const CONFIG_LAYOUTS = [
+  { id: "fr", short: "fr", label: "French" },
+  { id: "us", short: "en", label: "English (US)" },
+] as const;
+
 export interface KeymapState {
   active: string;
   keymaps: readonly Keymap[];

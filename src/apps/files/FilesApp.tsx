@@ -2,6 +2,9 @@ import { hostFiles } from "@/lib/engine/host-files";
 import { useArchiveActions } from "@/hooks/use-archive-actions";
 import { ICON_SIZES } from "@/lib/files/icon-sizes";
 import { HeaderSearch } from "@/components/ui/header-search";
+import { PanelRightIcon } from "lucide-react";
+import { infoPaneMemory, useFolderView, type FolderView } from "@/apps/files/folder-view";
+import { Segmented } from "@/components/ui/segmented";
 import { nextListViewSort } from "@/components/ui/list-view";
 import { FolderTreeView } from "@/components/ui/folder-tree-view";
 import { useFolderTree } from "@/hooks/use-folder-tree";
@@ -278,10 +281,6 @@ export function FilesApp({
     if (!item.path || item.kind === "desktop-entry") return;
     toggleVfsEmblem(item.path, "favorite");
   }, []);
-  const [viewMode, setViewMode] = React.useState<"grid" | "list" | "desktop">("grid");
-  // "manual": free placement like the desktop (Sort Manually).
-  const [sortBy, setSortBy] = React.useState<"manual" | "name" | "kind" | "modified" | "size">("name");
-  const [sortDir, setSortDir] = React.useState<"asc" | "desc">("asc");
   const [editingLocation, setEditingLocation] = React.useState(false);
   const [draftLocation, setDraftLocation] = React.useState("");
   const [searchOpen, setSearchOpen] = React.useState(false);
@@ -300,17 +299,37 @@ export function FilesApp({
     return registerOpenFolderPath(currentPath);
   }, [currentPath]);
 
-  const [gridZoomIndex, setGridZoomIndex] = React.useState(5);
-  const [listZoomIndex, setListZoomIndex] = React.useState(0);
-  const infoPane = useInfoPane("files-info");
+  const infoPane = useInfoPane("files-info", infoPaneMemory);
   const { open: infoPaneOpen, setOpen: setInfoPaneOpen } = infoPane;
-  const [showHidden, setShowHidden] = React.useState(false);
   // Favorites, Recents and Apps are built from everywhere; real folders are
   // VFS queries, refreshed by their watch.
   const isVirtualListing =
     currentPath === WEB_VFS_FAVORITES_URI ||
     currentPath === WEB_VFS_RECENTS_URI ||
     currentPath === WEB_VFS_APPS_URI;
+  // Opened on a folder: spatial, each folder keeps its view (see `folder-view.ts`).
+  const {
+    view: viewMode,
+    sortBy,
+    sortDir,
+    gridZoom: gridZoomIndex,
+    listZoom: listZoomIndex,
+    showHidden,
+    set: setFolderView,
+  } = useFolderView(initialPath && !isVirtualListing ? currentPath : null);
+  type Update<K extends keyof FolderView> = React.SetStateAction<FolderView[K]>;
+  const { setViewMode, setSortBy, setSortDir, setGridZoomIndex, setListZoomIndex, setShowHidden } =
+    React.useMemo(
+      () => ({
+        setViewMode: (v: Update<"view">) => setFolderView("view", v),
+        setSortBy: (v: Update<"sortBy">) => setFolderView("sortBy", v),
+        setSortDir: (v: Update<"sortDir">) => setFolderView("sortDir", v),
+        setGridZoomIndex: (v: Update<"gridZoom">) => setFolderView("gridZoom", v),
+        setListZoomIndex: (v: Update<"listZoom">) => setFolderView("listZoom", v),
+        setShowHidden: (v: Update<"showHidden">) => setFolderView("showHidden", v),
+      }),
+      [setFolderView],
+    );
   const [virtualEntries, setVirtualEntries] = React.useState<WebVfsEntry[]>([]);
   const folderListing = useVfsList(isVirtualListing ? null : currentPath).data;
   const vfsEntries = isVirtualListing ? virtualEntries : (folderListing ?? NO_ENTRIES);
@@ -350,7 +369,7 @@ export function FilesApp({
   const isVirtualView = isFavoritesView || isRecentsView || isAppsView;
   React.useEffect(() => {
     if (!settings.debugMode && viewMode === "desktop") setViewMode("grid");
-  }, [settings.debugMode, viewMode]);
+  }, [settings.debugMode, viewMode, setViewMode]);
   // "As Desktop" places icons as the desktop does, whatever the sort order.
   const isDesktopView = viewMode === "desktop" && !isVirtualView && !isTrashView;
   const arrangement = isDesktopView
@@ -638,6 +657,8 @@ export function FilesApp({
     window.addEventListener("keydown", onKeyDown, true);
     return () => window.removeEventListener("keydown", onKeyDown, true);
   }, [
+    setShowHidden,
+    setViewMode,
     clipboard,
     currentPath,
     editingLocation,
@@ -1390,6 +1411,10 @@ export function FilesApp({
     window.addEventListener("piloti:app-action", onAppAction);
     return () => window.removeEventListener("piloti:app-action", onAppAction);
   }, [
+    setShowHidden,
+    setSortBy,
+    setSortDir,
+    setViewMode,
     currentPath,
     piloti,
     realFilesystem,
@@ -1800,6 +1825,18 @@ export function FilesApp({
             )}
           </HeaderBar.Start>
           <HeaderBar.End>
+            <HeaderSearch
+              open={searchOpen}
+              onOpenChange={(open) => {
+                setEditingLocation(false);
+                setSearchOpen(open);
+              }}
+              query={searchQuery}
+              onQueryChange={setSearchQuery}
+              placeholder={_("Filter files")}
+              inputRef={searchInputRef}
+            />
+
             {isTrashView && (
               <Button
                 size="sm"
@@ -1819,31 +1856,22 @@ export function FilesApp({
                 {_("Empty Trash")}
               </Button>
             )}
-            {/* View split button (as in Nautilus): toggle grid/list, and the
-                same View menu as the menu bar. */}
             {!isAppsView && (
-              <div
-                data-slot="files-view-split-button"
-                className="flex h-7 items-center rounded-ui-control text-ui-label-secondary"
-              >
-                <button
-                  type="button"
-                  aria-label={viewMode === "grid" ? _("List view") : _("Grid view")}
-                  title={viewMode === "grid" ? _("List view") : _("Grid view")}
-                  onClick={() => setViewMode((m) => (m === "grid" ? "list" : "grid"))}
-                  className="flex h-7 w-7 items-center justify-center rounded-l-ui-control transition-colors hover-fill:bg-black/8 hover-fill:text-ui-label active:bg-black/12 dark:hover-fill:bg-white/10 dark:active:bg-white/14"
-                >
-                  {viewMode === "grid" ? <ListIcon className="size-4" /> : <LayoutGridIcon className="size-4" />}
-                </button>
-                <span aria-hidden className="h-4 w-px bg-ui-separator" />
+              <>
+                <Segmented
+                  iconOnly
+                  value={viewMode}
+                  onChange={setViewMode}
+                  options={[
+                    { id: "grid", label: _("Grid view"), icon: <LayoutGridIcon className="size-4" /> },
+                    { id: "list", label: _("List view"), icon: <ListIcon className="size-4" /> },
+                  ]}
+                />
+                {/* The same View menu as the menu bar. */}
                 <DropdownMenu>
                   <DropdownMenuTrigger
-                    aria-label={_("View")}
-                    title={_("View")}
-                    className="flex h-7 w-5 items-center justify-center rounded-r-ui-control transition-colors outline-none hover-fill:bg-black/8 hover-fill:text-ui-label active:bg-black/12 data-popup-open:bg-black/10 data-popup-open:text-ui-label dark:hover-fill:bg-white/10 dark:active:bg-white/14 dark:data-popup-open:bg-white/14"
-                  >
-                    <ChevronDownIcon className="size-3.5" />
-                  </DropdownMenuTrigger>
+                    render={<HeaderButton icon={ChevronDownIcon} label={_("View")} />}
+                  />
                   <DropdownMenuContent align="end" className="min-w-56">
                     <AppMenuItems
                       items={filesViewMenuItems()}
@@ -1860,21 +1888,9 @@ export function FilesApp({
                     />
                   </DropdownMenuContent>
                 </DropdownMenu>
-              </div>
+              </>
             )}
-            <HeaderSearch
-              open={searchOpen}
-              onOpenChange={(open) => {
-                setEditingLocation(false);
-                setSearchOpen(open);
-              }}
-              query={searchQuery}
-              onQueryChange={setSearchQuery}
-              placeholder={_("Filter files")}
-              inputRef={searchInputRef}
-            />
-
-            <InfoPaneToggle pane={infoPane} />
+            <InfoPaneToggle pane={infoPane} icon={PanelRightIcon} />
           </HeaderBar.End>
         </HeaderBar>
       }

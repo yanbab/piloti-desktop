@@ -97,11 +97,15 @@ function usePageTitleAlignment(containerRef: React.RefObject<HTMLDivElement | nu
       frame = 0;
       const title = container.querySelector<HTMLElement>(PAGE_TITLE_SELECTOR);
       if (!title) return;
+      // Content that is not a form marks what the title lines up with.
+      const anchor = container.querySelector<HTMLElement>("[data-page-title-anchor]");
       // Where row content starts: the first visible row's padding box edge.
       const row = Array.from(
         container.querySelectorAll<HTMLElement>('[data-slot="grouped-form-row"]'),
       ).find((el) => el.getBoundingClientRect().width > 0);
-      const target = row
+      const target = anchor
+        ? { left: anchor.getBoundingClientRect().left }
+        : row
         ? {
             left:
               row.getBoundingClientRect().left +

@@ -45,10 +45,27 @@ function writeStored(id: string, value: { width: number; collapsed: boolean }): 
  * Width state for a resizable side panel: min / max clamp, snap to the default,
  * collapse when dragged below a threshold, remembered per `id`.
  */
-export function usePanelWidth(options: PanelWidthOptions) {
+export function usePanelWidth(
+  options: PanelWidthOptions & {
+    /** Remembers the width somewhere else than this viewer's localStorage. */
+    storage?: {
+      read: () => { width: number; collapsed: boolean };
+      write: (value: { width: number; collapsed: boolean }) => void;
+    };
+  },
+) {
   const { id, side, defaultWidth, min, max, collapseBelow, snap = 10, collapsedWidth = 0 } = options;
+  const storageRef = React.useRef(options.storage);
+  storageRef.current = options.storage;
+  const persist = React.useCallback(
+    (value: { width: number; collapsed: boolean }) => {
+      if (storageRef.current) storageRef.current.write(value);
+      else writeStored(id, value);
+    },
+    [id],
+  );
   const [state, setState] = React.useState(() => {
-    const stored = readStored(id);
+    const stored = options.storage?.read() ?? readStored(id);
     return {
       width: Math.min(max, Math.max(min, stored?.width ?? defaultWidth)),
       collapsed: stored?.collapsed ?? false,
@@ -102,26 +119,26 @@ export function usePanelWidth(options: PanelWidthOptions) {
           if (raf) cancelAnimationFrame(raf);
           compute();
           setDragging(false);
-          writeStored(id, stateRef.current);
+          persist(stateRef.current);
         },
       });
     },
-    [apply, collapseBelow, collapsedWidth, defaultWidth, id, max, min, side, snap],
+    [apply, collapseBelow, collapsedWidth, defaultWidth, max, min, persist, side, snap],
   );
 
   const reset = React.useCallback(() => {
     const next = { width: defaultWidth, collapsed: false };
     apply(next);
-    writeStored(id, next);
-  }, [apply, defaultWidth, id]);
+    persist(next);
+  }, [apply, defaultWidth, persist]);
 
   const setCollapsed = React.useCallback(
     (collapsed: boolean) => {
       const next = { width: stateRef.current.width, collapsed };
       apply(next);
-      writeStored(id, next);
+      persist(next);
     },
-    [apply, id],
+    [apply, persist],
   );
 
   return {

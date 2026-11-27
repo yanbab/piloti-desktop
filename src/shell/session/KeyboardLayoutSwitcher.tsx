@@ -43,6 +43,8 @@ export interface KeyboardLayoutSwitcherProps {
   align?: "start" | "end" | "center";
   /** Dropdown side offset. */
   sideOffset?: number;
+  /** Items under the layouts; with them, the switcher shows for one layout too. */
+  children?: React.ReactNode;
 }
 
 export function KeyboardLayoutSwitcher({
@@ -52,6 +54,7 @@ export function KeyboardLayoutSwitcher({
   triggerClassName,
   align = "end",
   sideOffset = 4,
+  children,
 }: KeyboardLayoutSwitcherProps) {
   const piloti = usePiloti();
   const { systemServices } = useCapabilities();
@@ -73,7 +76,7 @@ export function KeyboardLayoutSwitcher({
     return fallbackLayouts ?? [];
   }, [fallbackLayouts, liveLayouts]);
 
-  if (layouts.length <= 1) {
+  if (layouts.length < (children ? 1 : 2)) {
     return null;
   }
 
@@ -101,7 +104,7 @@ export function KeyboardLayoutSwitcher({
         <SymbolicIcon name="input-keyboard" fallback={KeyboardIcon} className="size-3.5 opacity-85" />
         <span>{activeLayout.short}</span>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align={align} sideOffset={sideOffset} className="w-48">
+      <DropdownMenuContent align={align} sideOffset={sideOffset} className="w-auto min-w-52">
         <DropdownMenuLabel>{_("Keyboard Layout")}</DropdownMenuLabel>
         <DropdownMenuRadioGroup value={activeId} onValueChange={handleSelect}>
           {layouts.map((kb) => (
@@ -110,6 +113,7 @@ export function KeyboardLayoutSwitcher({
             </DropdownMenuRadioItem>
           ))}
         </DropdownMenuRadioGroup>
+        {children}
       </DropdownMenuContent>
     </DropdownMenu>
   );

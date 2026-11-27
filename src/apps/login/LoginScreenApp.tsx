@@ -34,6 +34,7 @@ import {
 } from "@/lib/engine-native/index";
 import { _, getLocale } from "@/lib/core/i18n";
 import { cn } from "@/lib/core/utils";
+import { batteryTone } from "@/components/common/power-saver";
 import { readVfsStateJson, writeVfsStateJson } from "@/lib/engine/vfs-state";
 
 export interface LoginScreenAppProps {
@@ -147,7 +148,7 @@ export const LoginScreenApp: React.FC<LoginScreenAppProps> = ({
 }) => {
   const isCsd = useAppChrome().decorations === "client";
   const piloti = usePiloti();
-  const settings = useDesktopSettings(["clock24Hour", "muted", "volume", "wifiEnabled"]);
+  const settings = useDesktopSettings(["clock24Hour", "muted", "powerMode", "volume", "wifiEnabled"]);
   const { systemServices } = useCapabilities();
   const { batteryInfo, pushNotification } = useSystemBackends();
 
@@ -503,12 +504,15 @@ export const LoginScreenApp: React.FC<LoginScreenAppProps> = ({
               <WifiOffIcon className="size-3.5 opacity-50" />
             )}
             <SoundVolumeIcon volume={settings.volume} muted={settings.muted} className="size-3.5" />
-            {batteryInfo.present &&
-              (batteryInfo.charging ? (
-                <BatteryChargingIcon className="size-3.5" />
-              ) : (
-                <BatteryIcon className="size-3.5" />
-              ))}
+            {batteryInfo.present && (
+              <span className={batteryTone(settings.powerMode)}>
+                {batteryInfo.charging ? (
+                  <BatteryChargingIcon className="size-3.5" />
+                ) : (
+                  <BatteryIcon className="size-3.5" />
+                )}
+              </span>
+            )}
           </span>
 
           <DropdownMenu>

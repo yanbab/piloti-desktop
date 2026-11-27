@@ -16,6 +16,26 @@ export async function hasArchiver(piloti: Piloti): Promise<boolean> {
   return commandExists(piloti, "bsdtar").catch(() => false);
 }
 
+/** Starts the first of these programs that is installed; `false` if none is. */
+async function launchFirst(piloti: Piloti, commands: readonly string[][]): Promise<boolean> {
+  for (const argv of commands) {
+    if (await commandExists(piloti, argv[0])) {
+      piloti.processes.launch(argv);
+      return true;
+    }
+  }
+  return false;
+}
+
+/** The viewer GNOME Settings uses, or its older one. */
+export function showKeyboardLayout(piloti: Piloti, layout: string): Promise<boolean> {
+  return launchFirst(piloti, [["tecla", layout], ["gkbd-keyboard-display", "-l", layout]]);
+}
+
+export function showOnScreenKeyboard(piloti: Piloti): Promise<boolean> {
+  return launchFirst(piloti, [["wvkbd-mobintl"], ["squeekboard"], ["onboard"]]);
+}
+
 /** Ends the session, restarts or powers off. */
 export function runPowerAction(piloti: Host, action: "logout" | "restart" | "poweroff") {
   return piloti.processes.run(

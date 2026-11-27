@@ -7,12 +7,28 @@ import { PanelResizeHandle, usePanelWidth } from "@/components/ui/resizable-pane
 
 /**
  * The right-hand info pane (Folders' "Get Info", App Store details): a
- * resizable side panel using the sidebar's resize code, and its (i) toggle.
+ * resizable side panel using the sidebar's resize code, and its toggle.
  * Dragging it narrower than `collapseBelow` closes it.
  */
-export function useInfoPane(id: string) {
-  const [open, setOpen] = React.useState(false)
+export function useInfoPane(
+  id: string,
+  /** Keeps open and width for the next window, e.g. in the app's settings. */
+  remember?: {
+    read: () => { open: boolean; width: number }
+    write: (patch: { open?: boolean; width?: number }) => void
+  },
+) {
+  const [open, setOpen] = React.useState(() => remember?.read().open ?? false)
+  const rememberRef = React.useRef(remember)
+  rememberRef.current = remember
+  React.useEffect(() => {
+    rememberRef.current?.write({ open })
+  }, [open])
   const panel = usePanelWidth({
+    storage: remember && {
+      read: () => ({ width: remember.read().width, collapsed: false }),
+      write: ({ width }) => remember.write({ width }),
+    },
     id,
     side: "left",
     defaultWidth: 240,
@@ -73,8 +89,14 @@ export function InfoPane({
   )
 }
 
-/** The (i) headerbar button that shows or hides the info pane. */
-export function InfoPaneToggle({ pane }: { pane: ReturnType<typeof useInfoPane> }) {
+/** The headerbar button that shows or hides the info pane: (i), or `icon`. */
+export function InfoPaneToggle({
+  pane,
+  icon: Icon = InfoIcon,
+}: {
+  pane: ReturnType<typeof useInfoPane>
+  icon?: React.ComponentType<{ className?: string }>
+}) {
   return (
     <button
       type="button"
@@ -89,7 +111,7 @@ export function InfoPaneToggle({ pane }: { pane: ReturnType<typeof useInfoPane> 
           : "text-ui-label-secondary hover-fill:bg-black/8 hover-fill:text-ui-label dark:hover-fill:bg-white/10"
       )}
     >
-      <InfoIcon className="size-4" />
+      <Icon className="size-4" />
     </button>
   )
 }

@@ -1,15 +1,16 @@
 import * as React from "react";
+import { ElementSample } from "@/components/elements/element-sample";
+import { InlineMenuSample, MENU_CODE, MENU_HTML } from "@/components/elements/menu-sample";
 import { AdwSplitView } from "@/components/ui/adw-split-view";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuShortcut,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
 import {
   GroupedForm,
   GroupedFormGroup,
@@ -19,74 +20,31 @@ import {
   GroupedFormSection,
 } from "@/components/ui/grouped-form";
 import { Input } from "@/components/ui/input";
+import { SearchField } from "@/components/ui/search-field";
 import { Segmented } from "@/components/ui/segmented";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
-
-/**
- * One element: its preview on the left, the code that makes it on the right,
- * as React or as plain HTML. The preview follows the tab; the HTML one is made
- * from the very string shown, so the two can't drift apart.
- */
-export function ElementSample({
-  title,
-  react,
-  reactCode,
-  html,
-  controls,
-}: {
-  title: string;
-  react: React.ReactNode;
-  reactCode: string;
-  html: string;
-  /** Options of the preview, e.g. the window's decorations. */
-  controls?: React.ReactNode;
-}) {
-  const [tab, setTab] = React.useState<"react" | "html">("react");
-  return (
-    <section data-element-sample={title} className="flex flex-col gap-2">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 className="text-ui-body font-semibold text-ui-label">{title}</h3>
-        {controls}
-      </div>
-      <div className="grid grid-cols-[repeat(auto-fit,minmax(260px,1fr))] overflow-hidden rounded-ui-box border border-ui-separator bg-ui-group">
-        {tab === "react" ? (
-          <div className="flex min-w-0 flex-wrap content-center items-center justify-center gap-2 p-3">
-            {react}
-          </div>
-        ) : (
-          // Constant strings from this repository: never user content.
-          <div
-            className="flex min-w-0 flex-wrap content-center items-center justify-center gap-2 p-3"
-            dangerouslySetInnerHTML={{ __html: html }}
-          />
-        )}
-        <div className="flex min-w-0 flex-col gap-2 border-l border-ui-separator p-3">
-          <div className="self-end">
-            <Segmented
-              value={tab}
-              onChange={setTab}
-              options={[
-                { id: "react", label: "React" },
-                { id: "html", label: "HTML" },
-              ]}
-            />
-          </div>
-          <pre className="max-h-64 overflow-auto font-mono text-ui-caption select-text">
-            {tab === "react" ? reactCode : html}
-          </pre>
-        </div>
-      </div>
-    </section>
-  );
-}
+import { BellIcon, ListIcon, LayoutGridIcon, Volume2Icon } from "@/components/ui/symbols";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 function Toggles() {
   const [on, setOn] = React.useState(true);
   return (
     <>
+      <Switch size="sm" checked={on} onCheckedChange={setOn} />
       <Switch checked={on} onCheckedChange={setOn} />
       <Switch checked={!on} onCheckedChange={(v) => setOn(!v)} />
+      <Switch disabled checked={false} />
       <Checkbox checked={on} onCheckedChange={(v) => setOn(Boolean(v))} />
+      <Checkbox checked={!on} onCheckedChange={(v) => setOn(!v)} />
+      <Checkbox disabled checked />
     </>
   );
 }
@@ -94,14 +52,25 @@ function Toggles() {
 function Views() {
   const [view, setView] = React.useState<"list" | "grid">("list");
   return (
-    <Segmented
-      value={view}
-      onChange={setView}
-      options={[
-        { id: "list", label: "List" },
-        { id: "grid", label: "Grid" },
-      ]}
-    />
+    <>
+      <Segmented
+        value={view}
+        onChange={setView}
+        options={[
+          { id: "list", label: "List" },
+          { id: "grid", label: "Grid" },
+        ]}
+      />
+      <Segmented
+        iconOnly
+        value={view}
+        onChange={setView}
+        options={[
+          { id: "list", label: "List", icon: <ListIcon className="size-3.5" /> },
+          { id: "grid", label: "Grid", icon: <LayoutGridIcon className="size-3.5" /> },
+        ]}
+      />
+    </>
   );
 }
 
@@ -127,7 +96,79 @@ function Places() {
   );
 }
 
-const SAMPLES: { title: string; react: React.ReactNode; reactCode: string; html: string }[] = [
+const VARIANTS = ["default", "secondary", "tinted", "outline", "ghost", "destructive"] as const;
+
+function IconButtons() {
+  return (
+    <>
+      {VARIANTS.map((v) => (
+        <Button key={v} variant={v} keepIcon><BellIcon />Notify</Button>
+      ))}
+      {VARIANTS.map((v) => (
+        <Button key={v} variant={v} shape="round">Round</Button>
+      ))}
+      {VARIANTS.map((v) => (
+        <Button key={v} variant={v} size="icon" aria-label={v}><BellIcon /></Button>
+      ))}
+      {VARIANTS.map((v) => (
+        <Button key={v} variant={v} size="icon" shape="round" aria-label={v}><BellIcon /></Button>
+      ))}
+    </>
+  );
+}
+
+const BELL_SVG = `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 11V7a4 4 0 0 1 8 0v4l1 1H3zM6.5 14h3"/></svg>`;
+
+const ICON_BUTTONS_HTML = `<button class="ui-button" data-variant="secondary" data-label data-keep-icon>${BELL_SVG}Notify</button>
+<button class="ui-button" data-variant="secondary" data-shape="round">Round</button>
+<button class="ui-button" data-variant="secondary" data-size="icon" aria-label="Notify">${BELL_SVG}</button>
+<button class="ui-button" data-variant="secondary" data-size="icon" data-shape="round" aria-label="Notify">${BELL_SVG}</button>`;
+
+function Sliders() {
+  const [value, setValue] = React.useState(60);
+  const change = (v: number | readonly number[]) => setValue(typeof v === "number" ? v : v[0]);
+  return (
+    <div className="flex w-44 flex-col gap-3">
+      <Slider aria-label="Default" value={[value]} onValueChange={change} />
+      <Slider aria-label="Small" size="sm" value={[value]} onValueChange={change} />
+      <Slider
+        aria-label="Capsule"
+        variant="capsule"
+        icon={<Volume2Icon className="size-3.5" />}
+        value={[value]}
+        onValueChange={change}
+      />
+    </div>
+  );
+}
+
+function PopupButton() {
+  const [fruit, setFruit] = React.useState("apple");
+  return (
+    <Select
+      items={{ apple: "Apple", pear: "Pear", plum: "Plum" }}
+      value={fruit}
+      onValueChange={(v) => setFruit(String(v))}
+    >
+      <SelectTrigger aria-label="Fruit">
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="apple">Apple</SelectItem>
+        <SelectItem value="pear">Pear</SelectItem>
+        <SelectItem value="plum">Plum</SelectItem>
+      </SelectContent>
+    </Select>
+  );
+}
+
+const TYPE_ROLES = ["title", "body", "small", "caption"] as const;
+
+const typeStyle = (role: string) => ({ fontSize: `var(--ui-font-${role})` });
+
+type Sample = { title: string; react: React.ReactNode; reactCode: string; html?: string };
+
+const SAMPLES: Sample[] = [
   {
     title: "Buttons",
     react: (
@@ -135,6 +176,8 @@ const SAMPLES: { title: string; react: React.ReactNode; reactCode: string; html:
         <Button>Save</Button>
         <Button variant="secondary">Cancel</Button>
         <Button variant="tinted">Tinted</Button>
+        <Button variant="outline">Outline</Button>
+        <Button variant="ghost">Ghost</Button>
         <Button variant="destructive">Delete</Button>
         <Button variant="secondary" disabled>Disabled</Button>
         <Button variant="secondary" size="sm">Small</Button>
@@ -145,6 +188,8 @@ const SAMPLES: { title: string; react: React.ReactNode; reactCode: string; html:
     reactCode: `<Button>Save</Button>
 <Button variant="secondary">Cancel</Button>
 <Button variant="tinted">Tinted</Button>
+<Button variant="outline">Outline</Button>
+<Button variant="ghost">Ghost</Button>
 <Button variant="destructive">Delete</Button>
 <Button variant="secondary" disabled>Disabled</Button>
 <Button variant="secondary" size="sm">Small</Button>
@@ -153,6 +198,8 @@ const SAMPLES: { title: string; react: React.ReactNode; reactCode: string; html:
     html: `<button class="ui-button">Save</button>
 <button class="ui-button" data-variant="secondary">Cancel</button>
 <button class="ui-button" data-variant="tinted">Tinted</button>
+<button class="ui-button" data-variant="outline">Outline</button>
+<button class="ui-button" data-variant="ghost">Ghost</button>
 <button class="ui-button" data-variant="destructive">Delete</button>
 <button class="ui-button" data-variant="secondary" disabled>Disabled</button>
 <button class="ui-button" data-variant="secondary" data-size="sm">Small</button>
@@ -160,11 +207,24 @@ const SAMPLES: { title: string; react: React.ReactNode; reactCode: string; html:
 <button class="ui-button" data-variant="secondary" data-size="lg">Large</button>`,
   },
   {
+    title: "Icon and round buttons",
+    react: <IconButtons />,
+    reactCode: `<Button keepIcon><BellIcon />Notify</Button>
+<Button shape="round">Round</Button>
+<Button size="icon" aria-label="Notify"><BellIcon /></Button>
+<Button size="icon" shape="round" aria-label="Notify">
+  <BellIcon />
+</Button>`,
+    html: ICON_BUTTONS_HTML,
+  },
+  {
     title: "Switch and checkbox",
     react: <Toggles />,
-    reactCode: `<Switch checked={on} onCheckedChange={setOn} />
-<Switch checked={!on} onCheckedChange={(v) => setOn(!v)} />
-<Checkbox checked={on} onCheckedChange={setOn} />`,
+    reactCode: `<Switch size="sm" checked={on} onCheckedChange={setOn} />
+<Switch checked={on} onCheckedChange={setOn} />
+<Switch disabled checked={false} />
+<Checkbox checked={on} onCheckedChange={setOn} />
+<Checkbox disabled checked />`,
     html: `<span class="ui-switch" data-slot="switch" role="switch" aria-checked="true" data-checked>
   <span class="ui-switch-thumb" data-slot="switch-thumb" data-checked></span>
 </span>
@@ -184,6 +244,37 @@ const SAMPLES: { title: string; react: React.ReactNode; reactCode: string; html:
     html: `<input class="ui-input" placeholder="Name" style="max-width: 13rem">`,
   },
   {
+    title: "Search field",
+    react: <SearchField className="w-48" />,
+    reactCode: `<SearchField placeholder="Search" />
+<FilterField placeholder="Filter" />`,
+  },
+  {
+    title: "Slider",
+    react: <Sliders />,
+    reactCode: `<Slider value={[value]} onValueChange={change} />
+<Slider size="sm" value={[value]} onValueChange={change} />
+<Slider
+  variant="capsule"
+  icon={<Volume2Icon />}
+  value={[value]}
+  onValueChange={change}
+/>`,
+  },
+  {
+    title: "Popup button",
+    react: <PopupButton />,
+    reactCode: `<Select items={fruits} value={fruit} onValueChange={setFruit}>
+  <SelectTrigger>
+    <SelectValue />
+  </SelectTrigger>
+  <SelectContent>
+    <SelectItem value="apple">Apple</SelectItem>
+    <SelectItem value="pear">Pear</SelectItem>
+  </SelectContent>
+</Select>`,
+  },
+  {
     title: "Segmented control",
     react: <Views />,
     reactCode: `<Segmented
@@ -193,7 +284,8 @@ const SAMPLES: { title: string; react: React.ReactNode; reactCode: string; html:
     { id: "list", label: "List" },
     { id: "grid", label: "Grid" },
   ]}
-/>`,
+/>
+<Segmented iconOnly value={view} onChange={setView} options={views} />`,
     html: `<div class="ui-segmented" data-slot="segmented">
   <button class="ui-segmented-item" data-slot="segmented-item" aria-pressed="true">List</button>
   <button class="ui-segmented-item" data-slot="segmented-item" aria-pressed="false">Grid</button>
@@ -259,38 +351,63 @@ const SAMPLES: { title: string; react: React.ReactNode; reactCode: string; html:
   },
   {
     title: "Menu",
+    react: <InlineMenuSample />,
+    reactCode: MENU_CODE,
+    html: MENU_HTML,
+  },
+  {
+    title: "Context menu and tooltip",
     react: (
-      <DropdownMenu>
-        <DropdownMenuTrigger render={<Button variant="secondary" />}>Open Menu</DropdownMenuTrigger>
-        <DropdownMenuContent>
-          <DropdownMenuItem>
-            Open
-            <DropdownMenuShortcut>⌘O</DropdownMenuShortcut>
-          </DropdownMenuItem>
-          <DropdownMenuItem>Rename…</DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem disabled>Move to Trash</DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <>
+        <ContextMenu>
+          <ContextMenuTrigger className="flex h-14 w-40 items-center justify-center rounded-ui-control border border-dashed border-ui-separator text-ui-body text-ui-label-secondary">
+            Right-click here
+          </ContextMenuTrigger>
+          <ContextMenuContent>
+            <ContextMenuItem>Open</ContextMenuItem>
+            <ContextMenuItem>Rename…</ContextMenuItem>
+            <ContextMenuSeparator />
+            <ContextMenuItem>Move to Trash</ContextMenuItem>
+          </ContextMenuContent>
+        </ContextMenu>
+        <Tooltip>
+          <TooltipTrigger render={<Button variant="secondary" size="icon" aria-label="Notifications" />}>
+            <BellIcon />
+          </TooltipTrigger>
+          <TooltipContent>Notifications</TooltipContent>
+        </Tooltip>
+      </>
     ),
-    reactCode: `<DropdownMenu>
-  <DropdownMenuTrigger render={<Button variant="secondary" />}>
-    Open Menu
-  </DropdownMenuTrigger>
-  <DropdownMenuContent>
-    <DropdownMenuItem>
-      Open<DropdownMenuShortcut>⌘O</DropdownMenuShortcut>
-    </DropdownMenuItem>
-    <DropdownMenuSeparator />
-    <DropdownMenuItem disabled>Move to Trash</DropdownMenuItem>
-  </DropdownMenuContent>
-</DropdownMenu>`,
-    html: `<div class="ui-menu ui-material-menu" role="menu" style="width: 13rem">
-  <div class="ui-menu-item" role="menuitem">Open<span class="ui-menu-shortcut">⌘O</span></div>
-  <div class="ui-menu-item" role="menuitem" data-highlighted>Rename…</div>
-  <div class="ui-menu-separator" role="separator"></div>
-  <div class="ui-menu-item" role="menuitem" data-disabled>Move to Trash</div>
-</div>`,
+    reactCode: `<ContextMenu>
+  <ContextMenuTrigger>Right-click here</ContextMenuTrigger>
+  <ContextMenuContent>
+    <ContextMenuItem>Open</ContextMenuItem>
+  </ContextMenuContent>
+</ContextMenu>
+
+<Tooltip>
+  <TooltipTrigger render={<Button size="icon" />}>
+    <BellIcon />
+  </TooltipTrigger>
+  <TooltipContent>Notifications</TooltipContent>
+</Tooltip>`,
+  },
+  {
+    title: "Typography",
+    react: (
+      <div className="flex w-full min-w-0 flex-col gap-1.5">
+        {TYPE_ROLES.map((role) => (
+          <div key={role} className="flex items-baseline justify-between gap-3">
+            <span className="min-w-0 truncate text-ui-label" style={typeStyle(role)}>
+              The quick brown fox
+            </span>
+            <code className="shrink-0 font-mono text-ui-caption text-ui-label-secondary">{role}</code>
+          </div>
+        ))}
+      </div>
+    ),
+    reactCode: TYPE_ROLES.map((role) => `<span className="text-ui-${role}">The quick brown fox</span>`).join("\n"),
+    html: TYPE_ROLES.map((role) => `<div style="width: 100%; font-size: var(--ui-font-${role})">The quick brown fox</div>`).join("\n"),
   },
 ];
 

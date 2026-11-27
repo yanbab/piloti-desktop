@@ -1,5 +1,6 @@
 import { hostFiles } from "@/lib/engine/host-files";
 import * as React from "react";
+import { getEngine } from "@/lib/engine/engine";
 import { usePiloti } from "@/lib/engine/piloti";
 import { usePortalWallpaper } from "@domicile-desktop/react/portals";
 import { useWatch } from "@domicile-desktop/react/use-watch";
@@ -369,6 +370,16 @@ function mergeDefaultBrowserWebApps(
  * pre-installs the curated 20 iframe-friendly web apps once per defaults
  * version without overriding subsequent user edits.
  */
+/**
+ * Volume and brightness are the hardware's, not choices to restore: Linux reads
+ * them from the system (the `watchSystem*` watchers); the demo's start full.
+ */
+function withEngineLevels(settings: DesktopSettings): DesktopSettings {
+  return getEngine().capabilities.simulatedHardware
+    ? { ...settings, volume: 100, brightness: 100 }
+    : settings;
+}
+
 export function resolveInitialSettings(
   savedRaw: string | null,
   isBrowserBackend: boolean
@@ -525,7 +536,7 @@ export function useSettingsValue(options?: {
 
   const allowLocalWallpaper = !deferLocalWallpaper || wallpaperFallbackReady;
 
-  const [settings, setSettings] = React.useState<DesktopSettings>(() => {
+  const [settings, setSettings] = React.useState<DesktopSettings>(() => withEngineLevels((() => {
     if (typeof window === "undefined") return DEFAULT_SETTINGS;
     try {
       // The settings backend (settings.ini, or dconf on Linux), then older places.
@@ -563,7 +574,7 @@ export function useSettingsValue(options?: {
     } catch {
       return resolveInitialSettings(null, isBrowserRuntime);  // FIXME : Capabilities
     }
-  });
+  })()));
 
   const settingsRef = React.useRef(settings);
   settingsRef.current = settings;
@@ -678,6 +689,12 @@ export function useSettingsValue(options?: {
       }
     } catch {
       // ignore initial VFS seed errors
+    }
+
+    // The file must say the same levels, or its next change would restore old ones.
+    if (getEngine().capabilities.simulatedHardware) {
+      const current = settingsRef.current;
+      writeDesktopSettings(settingsBackend(), current, { ...current, volume: -1, brightness: -1 });
     }
 
     const unsubSettings = subscribeDesktopSettings(settingsBackend(), (raw) => {

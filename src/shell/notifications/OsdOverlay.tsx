@@ -122,7 +122,7 @@ export function OsdOverlay() {
     <div
       role="status"
       aria-live="polite"
-      className="pointer-events-none fixed bottom-24 left-1/2 z-[450] flex w-56 -translate-x-1/2 items-center gap-3 rounded-full px-4 py-2.5 text-ui-label shadow-ui-menu ring-1 ring-ui-border ui-material-hud animate-in fade-in zoom-in-95 duration-150"
+      className="pointer-events-none fixed bottom-24 left-1/2 z-[870] flex w-56 -translate-x-1/2 items-center gap-3 rounded-full px-4 py-2.5 text-ui-label shadow-ui-menu ring-1 ring-ui-border ui-material-hud animate-in fade-in zoom-in-95 duration-150"
     >
       {osd.kind === "volume" ? (
         <SoundVolumeIcon
