@@ -11,7 +11,6 @@
   "components/ui/icon-grid.tsx",
   "context/PluginsContext.tsx",
   "context/SettingsContext.tsx",
-  "context/SystemBackendsContext.tsx",
   "context/WindowsContext.tsx",
   "hooks/use-open-path.ts",
   "lib/engine/fs-bridge.ts",

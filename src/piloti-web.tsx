@@ -11,11 +11,14 @@ import { setEngine, webEngine } from "./lib/engine/engine";
 import { demoVfsSeed } from "./lib/engine-web/vfs-seed";
 import { loadDataFiles } from "./lib/engine-web/data-files";
 import { setVfsSeed } from "./lib/engine-web/web-vfs";
+import { useWebCapture } from "./lib/engine-web/capture";
+import { setDemoCapture } from "./lib/ports/capture";
 import { installDynamicFavicon } from "./lib/engine-web/dynamic-favicon";
 import { createWebVfs } from "./lib/engine-web/vfs";
 import { withVfs } from "./lib/engine/with-vfs";
 
 setEngine(webEngine);
+setDemoCapture(useWebCapture);
 setVfsSeed(demoVfsSeed);
 installDynamicFavicon();
 import { AppChromeProvider } from "./components/elements/app-chrome";
