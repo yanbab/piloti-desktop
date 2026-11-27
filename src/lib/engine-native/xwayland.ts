@@ -93,6 +93,25 @@ export function resetXwaylandCacheForTest(): void {
 }
 
 /**
+ * Lets programs running as root open windows on Piloti's X display: without it
+ * `pkexec` apps such as Synaptic ask for a password, then show nothing. Only
+ * root is added (it can already read everything). Does nothing without `xhost`.
+ */
+async function allowRootOnDisplay(piloti: Piloti, display: string): Promise<void> {
+  try {
+    await piloti.processes.run([
+      "sh",
+      "-c",
+      'command -v xhost >/dev/null && DISPLAY="$1" timeout 3 xhost +si:localuser:root',
+      "sh",
+      display,
+    ]);
+  } catch {
+    // root apps won't open; everything else works
+  }
+}
+
+/**
  * Detects an existing `xwayland-satellite` instance or starts one cleanly on a
  * free X11 display (`:0`, `:1`, ...) under the active Wayland session.
  */
@@ -117,6 +136,7 @@ export async function ensureXwaylandSatellite(
       const [topPart = "", psPart = ""] = probeOut.split("---");
       const runningDisplay = parseRunningSatelliteDisplay(psPart);
       if (runningDisplay) {
+        await allowRootOnDisplay(piloti, runningDisplay);
         cachedDisplay = runningDisplay;
         return runningDisplay;
       }
@@ -140,6 +160,7 @@ export async function ensureXwaylandSatellite(
       piloti.processes.launch([bin, display]);
 
       // Wait briefly for Xwayland socket creation so first X11 app succeeds immediately
+      let ready = false;
       await piloti.processes
         .run([
           "sh",
@@ -149,16 +170,18 @@ export async function ensureXwaylandSatellite(
         .then((r) =>
           r.match({
             Ok: (ran) => {
-              if (ran.code === 0) {
-                cachedDisplay = display;
-              }
+              ready = ran.code === 0;
             },
             Err: () => undefined,
           })
         )
         .catch(() => undefined);
 
-      return cachedDisplay ?? display;
+      if (ready) {
+        await allowRootOnDisplay(piloti, display);
+        cachedDisplay = display;
+      }
+      return display;
     } catch {
       return null;
     } finally {

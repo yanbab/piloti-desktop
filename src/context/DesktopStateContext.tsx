@@ -147,6 +147,7 @@ function WindowsLayer({ children }: { children: React.ReactNode }) {
     return {
       launchApp: call("launchApp"),
       launchXdgApp: call("launchXdgApp"),
+      openFileWithXdgApp: call("openFileWithXdgApp"),
       markWindowReady: call("markWindowReady"),
       openGnomeSettings: call("openGnomeSettings"),
       openWebUrl: call("openWebUrl"),

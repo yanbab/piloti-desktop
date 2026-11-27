@@ -141,6 +141,8 @@ export interface WindowsContextValue {
     options?: { payload?: string; forceNew?: boolean; forceCsd?: boolean }
   ) => void;
   launchXdgApp: (entry: XdgDesktopEntry, actionId?: string) => void;
+  /** Opens a file with an installed application, with startup feedback. */
+  openFileWithXdgApp: (entry: XdgDesktopEntry, path: string) => void;
   openGnomeSettings: (panel?: GnomeSettingsPanel | (string & {})) => void;
   openWebUrl: (
     rawUrl: string,
@@ -203,6 +205,7 @@ export type WindowActionsValue = Pick<
   WindowsContextValue,
   | "launchApp"
   | "launchXdgApp"
+  | "openFileWithXdgApp"
   | "markWindowReady"
   | "openGnomeSettings"
   | "openWebUrl"
@@ -2523,6 +2526,16 @@ function pruneBrowserRecord(
     ]
   );
 
+  const openFileWithXdgApp = React.useCallback(
+    (entry: XdgDesktopEntry, path: string) => {
+      clearLaunchOverlays();
+      logAppLaunch(entry.desktopId);
+      beginStartupNotification(entry.appId);
+      launchXdgEntry(entry, undefined, [path]);
+    },
+    [beginStartupNotification, clearLaunchOverlays, launchXdgEntry]
+  );
+
   const toggleOverview = React.useCallback(() => {
     setAltTabState((prev) => (prev.open ? { ...prev, open: false } : prev));
     setOverviewOpen((prev) => {
@@ -2855,6 +2868,7 @@ function pruneBrowserRecord(
       markWindowReady,
       launchApp,
       launchXdgApp,
+      openFileWithXdgApp,
       openGnomeSettings,
       openWebUrl,
       setBrowserFavicon,
@@ -2919,6 +2933,7 @@ function pruneBrowserRecord(
       handleMenuAction,
       launchApp,
       launchXdgApp,
+      openFileWithXdgApp,
       launchingApps,
       markWindowReady,
       minimizeWindow,

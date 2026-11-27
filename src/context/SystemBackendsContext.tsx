@@ -31,6 +31,7 @@ import {
   setDefaultAudioSink,
   syncGnomePanelOverrides,
   runXdgAutostartOnce,
+  ensurePolkitAgent,
 } from "@/lib/engine-native";
 import {
   type NotificationActionItem,
@@ -259,6 +260,8 @@ export function useSystemBackendsValue(
         finishBackends();
         return;
       }
+
+      void ensurePolkitAgent(piloti);
 
       const [caps, panels] = await Promise.all([
         probeGnomeCapabilities(piloti),

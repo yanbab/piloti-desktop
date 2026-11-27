@@ -46,7 +46,7 @@ export function useOpenPath() {
   const piloti = usePiloti();
   const { realFilesystem, systemServices } = getEngine().capabilities;
   const { installedXdgApps } = useApps();
-  const { launchApp, launchXdgApp, openWebUrl } = useWindowActions();
+  const { launchApp, launchXdgApp, openFileWithXdgApp, openWebUrl } = useWindowActions();
   const configRef = React.useRef<MimeAppsConfig | null>(null);
 
   React.useEffect(() => {
@@ -101,9 +101,7 @@ export function useOpenPath() {
             launchXdgApp(action.entry);
             return;
           }
-          launchDesktopCommand(piloti, [...action.entry.execArgv, action.path], {
-            cwd: action.entry.workingDirectory,
-          });
+          openFileWithXdgApp(action.entry, action.path);
           return;
         }
         case "launch-entry":
@@ -137,7 +135,7 @@ export function useOpenPath() {
         }
       }
     },
-    [piloti, realFilesystem, systemServices, launchApp, launchXdgApp, openWebUrl],
+    [piloti, realFilesystem, systemServices, launchApp, launchXdgApp, openFileWithXdgApp, openWebUrl],
   );
 
   const openPathInternal = React.useCallback(

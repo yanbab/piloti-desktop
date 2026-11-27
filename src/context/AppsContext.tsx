@@ -198,7 +198,8 @@ export interface AppsContextValue {
   ensureWaylandIcons: (ids: readonly string[]) => void;
   /** The app's `<icon>-symbolic` icon from the icon theme, if there is one. */
   loadSymbolicAppIcon: (appId: string) => Promise<string | undefined>;
-  launchXdgEntry: (entry: XdgDesktopEntry, actionId?: string) => void;
+  /** Runs the entry's command, with `files` as arguments. No launch feedback: see `WindowsContext`. */
+  launchXdgEntry: (entry: XdgDesktopEntry, actionId?: string, files?: readonly string[]) => void;
   openXdgFolder: (folder: XdgUserDir) => void;
   refreshXdgApps: () => void;
 }
@@ -853,7 +854,7 @@ export function useAppsValue(
   );
 
   const launchXdgEntry = React.useCallback(
-    (entry: XdgDesktopEntry, actionId?: string) => {
+    (entry: XdgDesktopEntry, actionId?: string, files: readonly string[] = []) => {
       const action = actionId
         ? entry.actions.find((a) => a.id === actionId)
         : undefined;
@@ -861,7 +862,8 @@ export function useAppsValue(
         action && action.execArgv.length > 0 ? action.execArgv : entry.execArgv;
 
       if (argv.length > 0) {
-        const finalArgv = entry.terminal ? ["kitty", "-e", ...argv] : argv;
+        const fullArgv = [...argv, ...files];
+        const finalArgv = entry.terminal ? ["kitty", "-e", ...fullArgv] : fullArgv;
         launchDesktopCommand(piloti, finalArgv, {
           cwd: isBrowserRuntime ? undefined : entry.workingDirectory,  // FIXME : Capabilities
         });

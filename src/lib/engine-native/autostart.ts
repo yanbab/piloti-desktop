@@ -145,6 +145,45 @@ async function readAutostartDir(
   return entries;
 }
 
+/**
+ * Finds the polkit authentication agent to start. Agents' autostart entries are
+ * limited to their own desktop (`OnlyShowIn=LXQt;`), so Piloti reads their
+ * `Exec` line itself. Prints `RUNNING` when this user already has one. Process
+ * names are matched as the kernel keeps them, cut at 15 characters.
+ */
+export const FIND_POLKIT_AGENT_SCRIPT = `
+if pgrep -u "$(id -u)" -x 'lxqt-policykit-|polkit-mate-aut|polkit-kde-auth|polkit-gnome-au|lxpolkit' >/dev/null 2>&1; then echo RUNNING; exit 0; fi
+dir="\${1:-/etc/xdg/autostart}"
+for f in "$dir"/*polkit*.desktop "$dir"/*policykit*.desktop; do
+  [ -f "$f" ] || continue
+  exec_line="$(sed -n 's/^Exec=//p' "$f" | head -n 1)"
+  bin="\${exec_line%% *}"
+  if [ -n "$bin" ] && command -v "$bin" >/dev/null 2>&1; then printf '%s\\n' "$exec_line"; exit 0; fi
+done
+`;
+
+/**
+ * Starts a polkit authentication agent, without which `pkexec` (Synaptic,
+ * package installs) is refused with no password prompt.
+ */
+export async function ensurePolkitAgent(piloti: Piloti): Promise<void> {
+  // Never in the greeter: it must not offer to raise privileges.
+  const out = await runText(piloti, [
+    "sh",
+    "-c",
+    `[ "\${PILOTI_GREETER:-0}" = "1" ] || [ -n "\${GREETD_SOCK:-}" ] && exit 0\n${FIND_POLKIT_AGENT_SCRIPT}`,
+  ]);
+  const found = out?.trim();
+  if (found === "RUNNING") return;
+  const argv = buildAutostartArgv(found);
+  if (argv.length === 0) {
+    console.warn("[Piloti] no polkit agent installed: admin password prompts won't work");
+    return;
+  }
+  launchDesktopCommand(piloti, argv);
+  console.info("[Piloti] polkit agent started:", argv[0]);
+}
+
 let autostartTriggeredInPage = false;
 
 /**

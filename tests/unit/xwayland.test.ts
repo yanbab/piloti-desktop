@@ -1,8 +1,11 @@
 import { describe, expect, it } from "bun:test";
+import type { Piloti } from "@/lib/engine/piloti";
 import {
+  ensureXwaylandSatellite,
   parseRunningSatelliteDisplay,
   parseX11DisplaySockets,
   pickAvailableXDisplay,
+  resetXwaylandCacheForTest,
   XWAYLAND_SATELLITE_FALLBACK_PATHS,
 } from "@/lib/engine-native/xwayland";
 
@@ -37,3 +40,24 @@ describe("xwayland-satellite helpers", () => {
   });
 });
 
+
+describe("root access to the display", () => {
+  it("grants it once on a running satellite", async () => {
+    resetXwaylandCacheForTest();
+    const calls: string[][] = [];
+    const piloti = {
+      processes: {
+        run: async (argv: string[]) => {
+          calls.push(argv);
+          const stdout = "ENV_DISPLAY=\nX3\n---\n/usr/bin/xwayland-satellite :3\n";
+          return { match: (m: { Ok: (r: unknown) => unknown }) => m.Ok({ code: 0, stdout }) };
+        },
+      },
+    } as unknown as Piloti;
+    expect(await ensureXwaylandSatellite(piloti)).toBe(":3");
+    expect(await ensureXwaylandSatellite(piloti)).toBe(":3");
+    const grants = calls.filter((argv) => argv[2]?.includes("xhost +si:localuser:root"));
+    expect(grants.map((argv) => argv.at(-1))).toEqual([":3"]);
+    resetXwaylandCacheForTest();
+  });
+});

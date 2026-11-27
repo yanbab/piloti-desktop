@@ -26,6 +26,15 @@ Done: Screenshot, ScreenCast, PickColor, Access, Account, Wallpaper,
 InputCapture, USB, Inhibit, FileChooser, AppChooser, GlobalShortcuts,
 DynamicLauncher, RemoteDesktop, Print.
 
+## Admin prompts
+
+Piloti starts an installed polkit agent (`ensurePolkitAgent`), found through its
+`/etc/xdg/autostart` entry. The `.deb` recommends `mate-polkit`; without an
+agent `pkexec` is refused.
+
+Root apps (Synaptic) draw through X: Piloti grants `si:localuser:root` on its
+Xwayland display with `xhost` (`x11-xserver-utils`).
+
 ## XDG coverage
 
 `lib/xdg/`: base and user directories, desktop entries, icon themes, MIME apps,

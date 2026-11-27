@@ -1,6 +1,10 @@
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, test } from "bun:test";
 import {
   buildAutostartArgv,
+  FIND_POLKIT_AGENT_SCRIPT,
   parseAutostartCondition,
   shouldLaunchAutostartEntry,
 } from "@/lib/engine-native/autostart";
@@ -110,5 +114,34 @@ describe("XDG Thumbnail Managing Standard & Autostart runtime helpers", () => {
         ["Piloti", "GNOME"]
       )
     ).toBeNull();
+  });
+});
+
+describe("polkit agent lookup", () => {
+  const find = (entries: Record<string, string>) => {
+    const dir = mkdtempSync(join(tmpdir(), "polkit-"));
+    for (const [name, exec] of Object.entries(entries)) {
+      writeFileSync(join(dir, name), `[Desktop Entry]\nExec=${exec}\nOnlyShowIn=LXQt;\n`);
+    }
+    // A stand-in `pgrep` so a real agent on this machine doesn't matter.
+    writeFileSync(join(dir, "pgrep"), "#!/bin/sh\nexit 1\n", { mode: 0o755 });
+    const run = Bun.spawnSync(["sh", "-c", FIND_POLKIT_AGENT_SCRIPT, "sh", dir], {
+      env: { PATH: `${dir}:/usr/bin:/bin` },
+    });
+    rmSync(dir, { recursive: true });
+    return run.stdout.toString().trim();
+  };
+
+  test("takes the Exec line even when limited to another desktop", () => {
+    expect(find({ "lxqt-policykit-agent.desktop": "sh --agent" })).toBe("sh --agent");
+  });
+
+  test("skips agents that are not installed and unrelated entries", () => {
+    expect(
+      find({
+        "polkit-gone.desktop": "/nowhere/agent",
+        "geoclue-demo-agent.desktop": "sh",
+      }),
+    ).toBe("");
   });
 });

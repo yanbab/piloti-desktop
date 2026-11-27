@@ -21,7 +21,10 @@ Recommends:
  fonts-adwaita,
  fonts-noto-color-emoji,
  xdg-utils,
- dbus-user-session
+ dbus-user-session,
+ pkexec,
+ mate-polkit | lxpolkit | lxqt-policykit | polkit-kde-agent-1,
+ x11-xserver-utils
 Suggests:
  fonts-cantarell,
  fonts-ubuntu,

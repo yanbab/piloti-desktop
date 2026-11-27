@@ -56,8 +56,8 @@ export function DesktopIconsApp({
   const settings = useDesktopSettings(["debugMode", "desktopIconsEnabled"]);
   const { realFilesystem } = useCapabilities();
   const { locked } = useSystemBackends();
-  const { dockIconsReady, getAppIconUrl, ensureWaylandIcons, launchXdgEntry } = useApps();
-  const { launchApp } = useWindowActions();
+  const { dockIconsReady, getAppIconUrl, ensureWaylandIcons } = useApps();
+  const { launchApp, launchXdgApp } = useWindowActions();
   const { openPath, openPathWith } = useOpenPath();
   const desktopDirPath = useDesktopDirPath();
 
@@ -197,7 +197,7 @@ export function DesktopIconsApp({
             return;
           }
         }
-        launchXdgEntry(item.desktopEntry);
+        launchXdgApp(item.desktopEntry);
         return;
       }
 
@@ -207,7 +207,7 @@ export function DesktopIconsApp({
         onExtracted: reload,
       });
     },
-    [realFilesystem, launchApp, launchXdgEntry, reload, openPath]
+    [realFilesystem, launchApp, launchXdgApp, reload, openPath]
   );
 
   if (!settings.desktopIconsEnabled) return null;
