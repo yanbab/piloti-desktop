@@ -1,3 +1,4 @@
+import { PortalTestButtons } from "@/components/elements/portal-test-buttons";
 import { hostFiles } from "@/lib/engine/host-files";
 import { VFS_HOME } from "@/lib/engine/vfs-home";
 import * as React from "react";
@@ -185,6 +186,15 @@ export function AdvancedPane() {
               </GroupedFormRow>
             ))
           )}
+        </GroupedFormGroup>
+      </GroupedFormSection>
+
+      <GroupedFormSection>
+        <GroupedFormSectionTitle>{_("Portals")}</GroupedFormSectionTitle>
+        <GroupedFormGroup>
+          <GroupedFormRow>
+            <PortalTestButtons />
+          </GroupedFormRow>
         </GroupedFormGroup>
       </GroupedFormSection>
 

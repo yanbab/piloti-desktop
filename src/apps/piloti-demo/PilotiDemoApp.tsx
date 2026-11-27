@@ -6,6 +6,7 @@ import { HeaderBar, HeaderHeading } from "@/components/elements/header-bar";
 import { AppSplitView, type SidebarItem } from "@/components/elements/split-view";
 import { ColorSamples } from "@/components/elements/color-samples";
 import { ElementSample, ElementSampleList } from "@/components/elements/element-sample";
+import { DialogsPage } from "@/apps/piloti-demo/DialogsPage";
 import { ElementsPage } from "@/apps/piloti-demo/ElementsPage";
 import { Button } from "@/components/ui/button";
 import {
@@ -32,12 +33,13 @@ import { _ } from "@/lib/core/i18n";
  * consistency at a glance.
  */
 
-type PageId = "elements" | "colors" | "icons";
+type PageId = "elements" | "colors" | "icons" | "dialogs";
 
 const PAGES: { id: PageId; label: string; icon: React.ReactNode }[] = [
   { id: "elements", label: "Elements", icon: <SlidersHorizontalIcon className="size-4" /> },
   { id: "colors", label: "Colors", icon: <PaletteIcon className="size-4" /> },
   { id: "icons", label: "Icons", icon: <ImageIcon className="size-4" /> },
+  { id: "dialogs", label: "Dialogs", icon: <BellIcon className="size-4" /> },
 ];
 
 const SYMBOLS = [
@@ -192,6 +194,7 @@ export function PilotiDemoApp() {
           {page === "elements" && <ElementsPage />}
           {page === "colors" && <ColorSamples />}
           {page === "icons" && <IconsPage />}
+          {page === "dialogs" && <DialogsPage />}
         </div>
       )}
     </AppSplitView>
