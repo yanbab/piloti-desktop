@@ -1117,7 +1117,11 @@ export const MenuBar = React.memo(function MenuBar() {
               className="mr-1 flex h-[22px] shrink-0 items-center gap-1 rounded-full bg-rose-500/85 px-2 text-ui-caption font-semibold text-white"
             >
               <span className="size-1.5 animate-pulse rounded-full bg-white" />
-              <span>{isRec ? (paused ? "Paused" : "REC") : "Sharing"}</span>
+              <span>
+                {isRec
+                  ? paused ? "Paused" : "REC"
+                  : cap.kind === CapturingKind.Agent ? cap.agent : "Sharing"}
+              </span>
               {isRec && (
                 <button
                   type="button"

@@ -10,6 +10,7 @@ import type { FakeDomicileHost } from "@domicile-desktop/sdk/fake-host";
  *   __PILOTI_PORTALS__.fileChooser()          // Open
  *   __PILOTI_PORTALS__.fileChooser("save")    // Save
  *   __PILOTI_PORTALS__.print()
+ *   __PILOTI_PORTALS__.agent()                // an agent asks to be let in
  * Answers are logged to the console.
  */
 
@@ -23,6 +24,7 @@ type WireItem = {
 export type PortalSimulator = {
   fileChooser: (mode?: "open" | "save" | "save_files") => number;
   print: () => number;
+  agent: () => number;
   /** Whether `id` is a request this simulator made (and so should answer). */
   owns: (id: number) => boolean;
   answer: (id: number, rawAnswer: string) => void;
@@ -121,6 +123,17 @@ export function installPortalSimulator(fake: FakeDomicileHost): PortalSimulator 
           title: "Print Document",
         },
         "org.gnome.TextEditor"
+      ),
+    agent: () =>
+      add(
+        "agent",
+        {
+          agent: "Claude",
+          current: undefined,
+          remembered: false,
+          windows: [{ app: "org.gnome.TextEditor", id: "1", kind: "native", title: "notes.txt" }],
+        },
+        ""
       ),
     owns: (id) => pending.has(id),
     answer: (id, rawAnswer) => {

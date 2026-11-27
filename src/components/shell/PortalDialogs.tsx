@@ -14,6 +14,7 @@ import {
   type PortalRequest,
 } from "@domicile-desktop/sdk/portal";
 import { SparklesIcon } from "lucide-react";
+import { AgentPortalDialog } from "@/components/shell/AgentPortalDialog";
 import { AlertTriangleIcon, AppWindowIcon, CameraIcon, EyeIcon, EyeOffIcon, FolderIcon, FileIcon, ImageIcon, KeyboardIcon, MonitorIcon, PipetteIcon, PrinterIcon, ShieldCheckIcon, UsbIcon, UserIcon, VideoIcon, XIcon } from "@/components/ui/symbols";
 import { useApps, useSettings } from "@/context/DesktopStateContext";
 import { _ } from "@/lib/core/i18n";
@@ -1564,6 +1565,11 @@ export function PortalDialogs() {
 
   if (current.kind === PortalKind.Print) {
     return <PrintPortalDialog request={current} onAnswer={answer} />;
+  }
+
+  if (current.kind === PortalKind.Agent) {
+    // Keyed: a new request starts with nothing chosen.
+    return <AgentPortalDialog key={current.id} request={current} onAnswer={answer} />;
   }
 
   if (current.kind === PortalKind.PickColor) {
