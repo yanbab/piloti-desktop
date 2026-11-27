@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import type { BatteryInfo } from "@/lib/engine-native";
+import type { BatteryInfo } from "@/lib/ports/hardware";
 import {
   type BatteryManagerLike,
   batteryFromManager,

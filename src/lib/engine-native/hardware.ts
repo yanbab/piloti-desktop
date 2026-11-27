@@ -18,7 +18,13 @@ import {
   setPowered,
   watchBluetooth,
 } from "@domicile-desktop/system-bluetooth/bluetooth";
-import type { AudioSinkInfo, BatteryInfo, BluetoothDeviceInfo } from "./types";
+import type {
+  AudioState,
+  BatteryInfo,
+  BluetoothState,
+  WifiConnectResult,
+  WifiState,
+} from "@/lib/ports/hardware";
 
 const sound = new WeakMap<object, { server: SoundServer; defaultId?: string }>();
 
@@ -31,20 +37,13 @@ function soundFor(piloti: Piloti) {
   return entry;
 }
 
-export interface SystemAudioState {
-  /** Default output, 0 to 100. */
-  volume: number;
-  muted: boolean;
-  sinks: AudioSinkInfo[];
-}
-
 /**
  * Calls `onAudio` now and after each change of the sound server (PulseAudio or
  * PipeWire, through Domicile's `system-audio`); returns a stop function.
  */
 export function watchSystemAudio(
   piloti: Piloti,
-  onAudio: (audio: SystemAudioState) => void,
+  onAudio: (audio: AudioState) => void,
 ): () => void {
   const entry = soundFor(piloti);
   return entry.server.watch((audio) => {
@@ -83,12 +82,6 @@ export async function setDefaultAudioSink(piloti: Piloti, sinkId: string): Promi
   await soundFor(piloti).server.setDefault(sinkId).catch(() => undefined);
 }
 
-type WifiSnapshot = {
-  enabled: boolean;
-  connectedSsid: string | null;
-  networks: WifiNetwork[];
-};
-
 const latestWifiDevice = new WeakMap<object, WifiDevice>();
 const latestWifiNetworks = new WeakMap<object, LibWifiNetwork[]>();
 
@@ -101,7 +94,7 @@ const bandOf = (frequencyMhz: number | undefined): WifiNetwork["band"] =>
  */
 export function watchSystemWifi(
   piloti: Piloti,
-  onWifi: (wifi: WifiSnapshot | null) => void,
+  onWifi: (wifi: WifiState | null) => void,
 ): () => void {
   return watchWifi(piloti, (result) =>
     result.match({
@@ -150,7 +143,7 @@ export async function connectSystemWifi(
   piloti: Piloti,
   ssid: string,
   passphrase?: string,
-): Promise<"connected" | "needs-passphrase" | "failed"> {
+): Promise<WifiConnectResult> {
   const device = latestWifiDevice.get(piloti);
   const network = latestWifiNetworks.get(piloti)?.find((n) => n.ssid === ssid);
   if (!device || !network) return "failed";
@@ -254,7 +247,7 @@ const bluetoothAdapters = new WeakMap<object, string>();
  */
 export function watchSystemBluetooth(
   piloti: Piloti,
-  onBluetooth: (state: { powered: boolean; devices: BluetoothDeviceInfo[] } | null) => void,
+  onBluetooth: (state: BluetoothState | null) => void,
 ): () => void {
   return watchBluetooth(piloti, (result) =>
     result.match({

@@ -1,7 +1,7 @@
 import type { Piloti } from "@/lib/engine/piloti";
 import { Bus } from "@domicile-desktop/sdk/system";
 import { runText } from "./exec";
-import type { MprisMediaInfo } from "./types";
+import type { MprisMediaInfo, PowerProfile } from "@/lib/ports/hardware";
 
 /**
  * Power profiles (power-profiles-daemon) and media players (MPRIS) over D-Bus
@@ -16,7 +16,7 @@ const PROPERTIES = "org.freedesktop.DBus.Properties";
 
 // ---- Power profiles ---------------------------------------------------------
 
-export type PowerProfile = "balanced" | "performance" | "power-saver";
+export type { PowerProfile };
 
 /** power-profiles-daemon moved its name in 0.30: try the new one, then the old. */
 const POWER_SERVICES = [

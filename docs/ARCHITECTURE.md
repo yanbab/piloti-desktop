@@ -25,6 +25,8 @@ UI (React)  ─►  piloti: Domicile's desktop + vfs, settings, desktop…
   `piloti-web.tsx` injects the seed (`setVfsSeed`) and the demo capture.
 - Each entry point calls `setEngine()` (`lib/engine/engine.ts`).
   `lib/engine/` holds the bridges both engines share.
+- Battery, audio, brightness, power profile, Wi-Fi, Bluetooth and media go
+  through `hardware()` (`engine/hardware.ts`, shape in `ports/hardware.ts`).
 - System features use Domicile's `@domicile-desktop/system-*` libraries and
   GNOME/freedesktop services.
 - On Linux: Domicile renders the shell, its compositor runs Wayland and

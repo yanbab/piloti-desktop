@@ -4,31 +4,21 @@ import * as React from "react";
 import { usePiloti } from "@/lib/engine/piloti";
 import { type UnlockRefused } from "@domicile-desktop/sdk/system";
 import { SAMPLE_WIFI_NETWORKS, type WifiNetwork } from "@/data/catalog";
+import { hardware } from "@/lib/engine/hardware";
+import type {
+  AudioSinkInfo,
+  BatteryInfo,
+  BluetoothDeviceInfo,
+  MprisMediaInfo,
+} from "@/lib/ports/hardware";
 import { startBootPhase } from "@/lib/core/perf-log";
 import { _ } from "@/lib/core/i18n";
 import {
-  type AudioSinkInfo,
-  type BluetoothDeviceInfo,
-  type BatteryInfo,
   type GnomeControlCenterPanelInfo,
   type GnomeSystemCapabilities,
-  type MprisMediaInfo,
   DEFAULT_GNOME_PANELS,
-  connectSystemWifi,
-  controlMprisMedia,
   discoverGnomeControlCenterPanels,
   probeGnomeCapabilities,
-  watchSystemAudio,
-  watchSystemBluetooth,
-  setSystemBluetoothConnected,
-  readSystemBattery,
-  watchSystemBattery,
-  watchSystemBrightness,
-  watchMprisMedia,
-  watchSystemPowerProfile,
-  scanSystemWifi,
-  watchSystemWifi,
-  setDefaultAudioSink,
   syncGnomePanelOverrides,
   runXdgAutostartOnce,
   ensurePolkitAgent,
@@ -37,7 +27,6 @@ import {
   type NotificationActionItem,
   type ShellNotification,
 } from "@/lib/core/notifications";
-import { subscribeWebBattery } from "@/lib/engine-web/web-battery";
 import {
   type SettingsContextValue,
 } from "./SettingsContext";
@@ -179,10 +168,8 @@ export function useSystemBackendsValue(
     muted: settings.muted,
   });
 
-  React.useEffect(() => {
-    if (systemServices) return;
-    return subscribeWebBattery(setBatteryInfo);
-  }, [systemServices]);
+  // UPower on Linux, the browser's own in the demo.
+  React.useEffect(() => hardware().battery.watch(piloti, setBatteryInfo), [piloti]);
 
   // Sync GNOME Control Center panel overrides whenever hiddenGnomePanels changes
   React.useEffect(() => {
@@ -193,15 +180,15 @@ export function useSystemBackendsValue(
     return () => window.clearTimeout(timer);
   }, [piloti, greeterMode, systemServices, settings.hiddenGnomePanels]);
 
-  // Battery and brightness follow the system (UPower, backlight), whoever changes them.
+  // Settings follow the hardware, whoever changes it.
   React.useEffect(() => {
     if (!systemServices) return;
-    const stopBattery = watchSystemBattery(piloti, setBatteryInfo);
-    const stopAudio = watchSystemAudio(piloti, (audio) => {
-      applySettingsState({ volume: audio.volume, muted: audio.muted });
-      if (audio.sinks.length > 0) setAudioSinks(audio.sinks);
+    const { audio, bluetooth, wifi, brightness, powerProfile, media } = hardware();
+    const stopAudio = audio.watch(piloti, (state) => {
+      applySettingsState({ volume: state.volume, muted: state.muted });
+      if (state.sinks.length > 0) setAudioSinks(state.sinks);
     });
-    const stopBluetooth = watchSystemBluetooth(piloti, (bt) => {
+    const stopBluetooth = bluetooth.watch(piloti, (bt) => {
       setBluetoothPresent(Boolean(bt));
       if (!bt) {
         setBluetoothDevices([]);
@@ -211,32 +198,31 @@ export function useSystemBackendsValue(
       applySettingsState({ bluetoothEnabled: bt.powered });
       setBluetoothDevices(bt.devices);
     });
-    const stopWifi = watchSystemWifi(piloti, (wifi) => {
-      setWifiPresent(Boolean(wifi));
-      if (!wifi) {
+    const stopWifi = wifi.watch(piloti, (state) => {
+      setWifiPresent(Boolean(state));
+      if (!state) {
         // No Wi-Fi hardware: show it off and empty.
         setLiveWifiNetworks([]);
         applySettingsState({ wifiEnabled: false, connectedWifi: "" });
         return;
       }
-      setLiveWifiNetworks(wifi.networks);
+      setLiveWifiNetworks(state.networks);
       applySettingsState({
-        wifiEnabled: wifi.enabled,
-        connectedWifi: wifi.connectedSsid ?? "",
+        wifiEnabled: state.enabled,
+        connectedWifi: state.connectedSsid ?? "",
       });
     });
     const stopBrightness = greeterMode
       ? () => undefined
-      : watchSystemBrightness(piloti, (brightness) => applySettingsState({ brightness }));
+      : brightness.watch(piloti, (level) => applySettingsState({ brightness: level }));
     // Power profile and media players arrive as D-Bus signals.
     const stopPowerProfile = greeterMode
       ? () => undefined
-      : watchSystemPowerProfile(piloti, (powerMode) => applySettingsState({ powerMode }));
-    const stopMpris = greeterMode ? () => undefined : watchMprisMedia(piloti, setMprisMedia);
+      : powerProfile.watch(piloti, (powerMode) => applySettingsState({ powerMode }));
+    const stopMpris = greeterMode ? () => undefined : media.watch(piloti, setMprisMedia);
     return () => {
       stopPowerProfile();
       stopMpris();
-      stopBattery();
       stopWifi();
       stopBluetooth();
       stopAudio();
@@ -249,12 +235,12 @@ export function useSystemBackendsValue(
     async (options?: { scanWifi?: boolean }) => {
       if (!systemServices) return;
       const finishBackends = startBootPhase("system backends");
-      const battery = await readSystemBattery(piloti);
+      const battery = await hardware().battery.read(piloti);
       setBatteryInfo(
         battery ?? { present: false, percentage: 100, charging: true }
       );
 
-      if (options?.scanWifi) void scanSystemWifi(piloti);
+      if (options?.scanWifi) void hardware().wifi.scan(piloti);
 
       if (greeterMode) {
         finishBackends();
@@ -281,7 +267,7 @@ export function useSystemBackendsValue(
     async (action: "play-pause" | "next" | "previous") => {
       console.info("[Piloti] control-panel: mpris", action);
       if (!systemServices) return;
-      await controlMprisMedia(piloti, action); // the watcher reports the new state
+      await hardware().media.control(piloti, action); // the watcher reports the new state
     },
     [piloti, systemServices]
   );
@@ -309,7 +295,7 @@ export function useSystemBackendsValue(
         updateSettings({ connectedWifi: ssid, wifiEnabled: true });
         return "connected" as const;
       }
-      const result = await connectSystemWifi(piloti, ssid, passphrase);
+      const result = await hardware().wifi.connect(piloti, ssid, passphrase);
       if (result === "connected") updateSettings({ connectedWifi: ssid, wifiEnabled: true });
       void refreshSystemBackends();
       return result;
@@ -321,7 +307,7 @@ export function useSystemBackendsValue(
     async (path: string) => {
       if (!systemServices) return;
       const device = bluetoothDevices.find((d) => d.path === path);
-      if (device) await setSystemBluetoothConnected(piloti, path, !device.connected);
+      if (device) await hardware().bluetooth.setConnected(piloti, path, !device.connected);
     },
     [bluetoothDevices, piloti, systemServices]
   );
@@ -333,7 +319,7 @@ export function useSystemBackendsValue(
         prev.map((s) => ({ ...s, active: s.name === sinkName }))
       );
       if (systemServices) {
-        await setDefaultAudioSink(piloti, sinkName);
+        await hardware().audio.setDefaultSink(piloti, sinkName);
         void refreshSystemBackends();
       }
     },

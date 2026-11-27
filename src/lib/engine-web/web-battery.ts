@@ -1,4 +1,4 @@
-import type { BatteryInfo } from "@/lib/engine-native";
+import type { BatteryInfo } from "@/lib/ports/hardware";
 
 export interface BatteryManagerLike extends EventTarget {
   level: number;

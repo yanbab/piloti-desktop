@@ -61,17 +61,13 @@ import {
 import { clampHistoryLimit } from "@/lib/core/notifications";
 import {
   readGnomeBackgroundBlob,
-  setSystemAudio,
-  setSystemBrightness,
-  setSystemPowerProfile,
-  setSystemBluetoothPowered,
-  setSystemWifiEnabled,
   syncGtkIconTheme,
   DEFAULT_HIDDEN_GNOME_PANELS,
   type GtkFontAntialiasing,
   type GtkFontHinting,
   type GtkFontRgbaOrder,
 } from "@/lib/engine-native";
+import { hardware } from "@/lib/engine/hardware";
 import { startBootPhase } from "@/lib/core/perf-log";
 import { subscribeLocale } from "@/lib/core/i18n";
 import type { DesktopIconAlign } from "@/lib/files/desktop-icons";
@@ -626,27 +622,27 @@ export function useSettingsValue(options?: {
         if (changed.volume !== undefined || changed.muted !== undefined) {
           clearTimeout(sliderTimersRef.current.audio);
           sliderTimersRef.current.audio = setTimeout(() => {
-            void setSystemAudio(piloti, next.volume, next.muted);
+            void hardware().audio.set(piloti, next.volume, next.muted);
           }, 60);
         }
 
         if (changed.brightness !== undefined) {
           clearTimeout(sliderTimersRef.current.brightness);
           sliderTimersRef.current.brightness = setTimeout(() => {
-            void setSystemBrightness(piloti, next.brightness);
+            void hardware().brightness.set(piloti, next.brightness);
           }, 90);
         }
 
         if (changed.wifiEnabled !== undefined) {
-          void setSystemWifiEnabled(piloti, next.wifiEnabled);
+          void hardware().wifi.setEnabled(piloti, next.wifiEnabled);
         }
 
         if (changed.bluetoothEnabled !== undefined) {
-          void setSystemBluetoothPowered(piloti, next.bluetoothEnabled);
+          void hardware().bluetooth.setPowered(piloti, next.bluetoothEnabled);
         }
 
         if (changed.powerMode !== undefined) {
-          void setSystemPowerProfile(piloti, next.powerMode);
+          void hardware().powerProfile.set(piloti, next.powerMode);
         }
       }
     },

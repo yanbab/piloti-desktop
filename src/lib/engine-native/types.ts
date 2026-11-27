@@ -47,19 +47,6 @@ export interface GnomeSystemCapabilities {
   upower: boolean;
 }
 
-export interface AudioSinkInfo {
-  id: string;
-  name: string;
-  description: string;
-  active: boolean;
-}
-
-export interface BatteryInfo {
-  present: boolean;
-  percentage: number;
-  charging: boolean;
-}
-
 export interface GnomeControlCenterPanelInfo {
   /** Desktop filename, e.g. `gnome-wifi-panel.desktop`. */
   desktopId: string;
@@ -73,19 +60,9 @@ export interface GnomeControlCenterPanelInfo {
   mutterOnly?: boolean;
 }
 
-export interface MprisMediaInfo {
-  status: "Playing" | "Paused" | "Stopped";
-  title: string;
-  artist: string;
-  playerName?: string;
-}
-
-
-export interface BluetoothDeviceInfo {
-  /** BlueZ object path; what requests address. */
-  path: string;
-  name: string;
-  connected: boolean;
-  /** 0 to 100, for a device that reports it. */
-  battery?: number;
-}
+export type {
+  AudioSinkInfo,
+  BatteryInfo,
+  BluetoothDeviceInfo,
+  MprisMediaInfo,
+} from "@/lib/ports/hardware";
