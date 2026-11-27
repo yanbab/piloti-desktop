@@ -49,8 +49,8 @@ describe("file operations on a real disk", () => {
   test("new files and folders never take a name already on disk", async () => {
     await piloti.vfs.write(`${D}/Untitled.txt`, "precious");
     await piloti.vfs.createDir(`${D}/New Folder`);
-    expect((await createFsTextFile(piloti, D)).name).toBe("Untitled 2.txt");
-    expect((await createFsFolder(piloti, D)).name).toBe("New Folder 2");
+    expect((await createFsTextFile(piloti, D)).name).toBe("Untitled (1).txt");
+    expect((await createFsFolder(piloti, D)).name).toBe("New Folder (1)");
     expect(await read(`${D}/Untitled.txt`)).toBe("precious");
   });
 
@@ -59,8 +59,8 @@ describe("file operations on a real disk", () => {
     await piloti.vfs.write(`${D}/sub/a.txt`, "other");
     await piloti.vfs.write(`${D}/b.txt`, "B");
     expect(await renameFsEntry(piloti, `${D}/a.txt`, "b.txt")).toBeNull();
-    expect(await copyFsEntry(piloti, `${D}/a.txt`, `${D}/sub`)).toBe(`${D}/sub/a 2.txt`);
-    expect((await moveFsEntry(piloti, `${D}/a.txt`, `${D}/sub`))?.path).toBe(`${D}/sub/a 3.txt`);
+    expect(await copyFsEntry(piloti, `${D}/a.txt`, `${D}/sub`)).toBe(`${D}/sub/a (1).txt`);
+    expect((await moveFsEntry(piloti, `${D}/a.txt`, `${D}/sub`))?.path).toBe(`${D}/sub/a (2).txt`);
     expect(await read(`${D}/sub/a.txt`)).toBe("other");
     expect(await read(`${D}/b.txt`)).toBe("B");
     expect(await moveFsEntry(piloti, `${D}/sub`, `${D}/sub`)).toBeNull();
@@ -88,7 +88,7 @@ describe("file operations on a real disk", () => {
     expect(await names(D)).toEqual(["c.txt", "sub"]);
     expect(await read(`${D}/c.txt`)).toBe("mine");
     await redoFileOperation();
-    expect(await read(`${D}/sub/c 2.txt`)).toBe("mine");
+    expect(await read(`${D}/sub/c (1).txt`)).toBe("mine");
     expect(await read(`${D}/sub/c.txt`)).toBe("theirs");
     await undoFileOperation();
     expect(await names(D)).toEqual(["c.txt", "sub"]);
@@ -132,9 +132,9 @@ describe("files dropped from outside", () => {
   test("are written to the disk byte for byte, never over one that is there", async () => {
     await piloti.vfs.write(`${D}/a.bin`, "kept");
     const created = await importFsFiles(piloti, D, [new File([new Uint8Array([0, 255, 7])], "a.bin")]);
-    expect(created).toEqual([`${D}/a 2.bin`]);
+    expect(created).toEqual([`${D}/a (1).bin`]);
     expect(await piloti.vfs.readText(`${D}/a.bin`)).toBe("kept");
-    expect(await piloti.vfs.read(`${D}/a 2.bin`)).toEqual(new Uint8Array([0, 255, 7]));
+    expect(await piloti.vfs.read(`${D}/a (1).bin`)).toEqual(new Uint8Array([0, 255, 7]));
   });
 });
 

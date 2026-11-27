@@ -6,9 +6,15 @@
 import type { Piloti } from "@/lib/engine/piloti";
 
 export { launchDesktopCommand, runText } from "@/lib/engine-native/exec";
+import { commandExists } from "@/lib/engine-native/exec";
 export { listInstalledFontFamilies } from "@/lib/engine-native/gsettings";
 
 type Host = Pick<Piloti, "processes">;
+
+/** Whether `bsdtar` is there: Compress and Extract need it. */
+export async function hasArchiver(piloti: Piloti): Promise<boolean> {
+  return commandExists(piloti, "bsdtar").catch(() => false);
+}
 
 /** Ends the session, restarts or powers off. */
 export function runPowerAction(piloti: Host, action: "logout" | "restart" | "poweroff") {

@@ -35,14 +35,28 @@ describe("native archives", () => {
     const all = [...names, "dir"].map((n) => join(root, n));
     const zip = await compressNative(piloti, all);
     expect(zip).toBe(join(root, "Archive.zip"));
-    expect(await compressNative(piloti, all)).toBe(join(root, "Archive 2.zip"));
+    expect(await compressNative(piloti, all)).toBe(join(root, "Archive (1).zip"));
 
     const out = await extractNative(piloti, zip!);
     expect(out).toBe(join(root, "Archive"));
     for (const n of names) expect(readFileSync(join(out!, n), "utf8")).toBe(n);
     expect(readFileSync(join(out!, "dir", "inner.txt"), "utf8")).toBe("inner");
-    expect(await extractNative(piloti, zip!)).toBe(join(root, "Archive 2"));
+    expect(await extractNative(piloti, zip!)).toBe(join(root, "Archive (1)"));
     expect(existsSync(join(root, "hacked"))).toBe(false);
+  });
+
+  it.skipIf(!hasBsdtar)("gives back a lone file or folder as itself", async () => {
+    const dir = mkdtempSync(join(root, "lone-"));
+    writeFileSync(join(dir, "note.txt"), "hi");
+    const zip = await compressNative(piloti, [join(dir, "note.txt")]);
+    expect(await extractNative(piloti, zip!)).toBe(join(dir, "note (1).txt"));
+    expect(readFileSync(join(dir, "note (1).txt"), "utf8")).toBe("hi");
+
+    mkdirSync(join(dir, "photos.v1"));
+    writeFileSync(join(dir, "photos.v1", "a"), "a");
+    const folderZip = await compressNative(piloti, [join(dir, "photos.v1")]);
+    expect(await extractNative(piloti, folderZip!)).toBe(join(dir, "photos.v1 (1)"));
+    expect(readdirSync(dir).some((n) => n.startsWith(".extract-"))).toBe(false);
   });
 
   it.skipIf(!hasBsdtar)("leaves nothing behind when it fails", async () => {

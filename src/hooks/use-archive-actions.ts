@@ -4,16 +4,28 @@ import { useSystemBackends } from "@/context/DesktopStateContext";
 import { useCapabilities } from "@/hooks/use-capabilities";
 import { compressFsEntries, extractFsArchive } from "@/lib/engine/fs-bridge";
 import { recordCreated } from "@/lib/engine/fs-undo";
+import { hasArchiver } from "@/lib/engine/system-commands";
 import { _ } from "@/lib/core/i18n";
 
 /**
  * "Compress" and "Extract Here" for Folders and the Desktop. `onDone` reloads
- * the listing; the result can be undone, and a failure is notified.
+ * the listing; the result can be undone, and a failure is notified. Hide both
+ * unless `available`.
  */
 export function useArchiveActions(onDone: () => unknown) {
   const piloti = usePiloti();
   const { realFilesystem } = useCapabilities();
   const { pushNotification } = useSystemBackends();
+  // The demo zips by itself; Linux needs `bsdtar` (libarchive-tools).
+  const [available, setAvailable] = React.useState(!realFilesystem);
+  React.useEffect(() => {
+    if (!realFilesystem) return;
+    let current = true;
+    void hasArchiver(piloti).then((found) => current && setAvailable(found));
+    return () => {
+      current = false;
+    };
+  }, [piloti, realFilesystem]);
 
   const finish = React.useCallback(
     async (job: Promise<string | null>, failure: string) => {
@@ -22,9 +34,7 @@ export function useArchiveActions(onDone: () => unknown) {
         pushNotification({
           appName: _("Folders"),
           summary: failure,
-          body: realFilesystem
-            ? _("Check the file, free space and that libarchive-tools is installed.")
-            : "",
+          body: realFilesystem ? _("Check the file and free space.") : "",
         });
         return;
       }
@@ -45,5 +55,5 @@ export function useArchiveActions(onDone: () => unknown) {
     [piloti, finish]
   );
 
-  return { compress, extract };
+  return { available, compress, extract };
 }

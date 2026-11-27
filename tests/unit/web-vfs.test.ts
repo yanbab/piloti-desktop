@@ -71,7 +71,7 @@ describe("web-vfs", () => {
     expect(dir.name).toBe("New Folder");
 
     const dir2 = createVfsFolder(`${WEB_VFS_HOME}/Desktop`);
-    expect(dir2.name).toBe("New Folder 2");
+    expect(dir2.name).toBe("New Folder (1)");
 
     const file = createVfsTextFile(dir.path);
     expect(file.name).toBe("Untitled.txt");
@@ -156,7 +156,7 @@ describe("web-vfs", () => {
     expect(dup1?.content).toBe("no-ext");
 
     const dup2 = duplicateVfsEntry(`${folder.path}/README`);
-    expect(dup2?.name).toBe("README Copy 2");
+    expect(dup2?.name).toBe("README Copy (1)");
 
     const dupFolder = duplicateVfsEntry(folder.path);
     expect(dupFolder?.name).toBe("Bundle Copy");

@@ -349,8 +349,10 @@ export function DesktopIconsApp({
           setVfsClipboard({ mode: "copy", paths: list.map((i) => i.path) })
         }
         onDuplicate={ops.duplicateItems}
-        onCompress={(list) => archive.compress(list.map((i) => i.path))}
-        onExtract={(target) => archive.extract(target.path)}
+        onCompress={
+          archive.available ? (list) => archive.compress(list.map((i) => i.path)) : undefined
+        }
+        onExtract={archive.available ? (target) => archive.extract(target.path) : undefined}
         onDownload={
           !realFilesystem ? (target) => downloadVfsFile(target.path) : undefined
         }

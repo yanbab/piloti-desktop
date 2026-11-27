@@ -1200,7 +1200,7 @@ export function FilesApp({
       }
     },
     compressSelected: () => {
-      if (selectedItems.length > 0 && !isTrashView && !isVirtualView) {
+      if (archive.available && selectedItems.length > 0 && !isTrashView && !isVirtualView) {
         archive.compress(selectedItems.map((i) => i.path));
       }
     },
@@ -1232,7 +1232,7 @@ export function FilesApp({
       "files:copy": { disabled: !hasSel || isTrashView },
       "files:paste": { disabled: !hasClip || !canModifyDir },
       "files:duplicate": { disabled: !hasSel || !canModifyDir },
-      "files:compress": { disabled: !hasSel || !canModifyDir },
+      "files:compress": { disabled: !hasSel || !canModifyDir || !archive.available },
       "files:rename": { disabled: !hasSingleSel || !canModifyDir },
       "files:trash": { disabled: !hasSel },
       "files:eject": { disabled: !usbMounted },
@@ -2258,8 +2258,10 @@ export function FilesApp({
           setVfsClipboard({ mode: "copy", paths: list.map((i) => i.path) })
         }
         onDuplicate={handleDuplicateItems}
-        onCompress={(list) => archive.compress(list.map((i) => i.path))}
-        onExtract={(target) => archive.extract(target.path)}
+        onCompress={
+          archive.available ? (list) => archive.compress(list.map((i) => i.path)) : undefined
+        }
+        onExtract={archive.available ? (target) => archive.extract(target.path) : undefined}
         onDownload={
           !realFilesystem ? (target) => downloadVfsFile(target.path) : undefined
         }

@@ -74,15 +74,18 @@ export const parentPath = (path: string): string => path.slice(0, path.lastIndex
 export const baseName = (path: string): string => path.slice(path.lastIndexOf("/") + 1);
 export const joinPath = (dir: string, name: string): string => `${dir === "/" ? "" : dir}/${name}`;
 
-/** First name in `existing` (lower case) not used yet: "Name.ext" -> "Name 2.ext". */
+/** `stem.ext`, or the first `stem (n).ext` not in `existing` (lower case). */
+export function numberedName(existing: ReadonlySet<string>, stem: string, ext = ""): string {
+  let name = `${stem}${ext}`;
+  for (let n = 1; existing.has(name.toLowerCase()); n += 1) name = `${stem} (${n})${ext}`;
+  return name;
+}
+
+/** First name in `existing` (lower case) not used yet: "Name.ext" -> "Name (1).ext". */
 export function uniqueName(existing: ReadonlySet<string>, name: string): string {
   if (!existing.has(name.toLowerCase())) return name;
-  const dot = name.lastIndexOf(".");
-  const stem = dot > 0 ? name.slice(0, dot) : name;
-  const ext = dot > 0 ? name.slice(dot) : "";
-  let index = 2;
-  while (existing.has(`${stem} ${index}${ext}`.toLowerCase())) index += 1;
-  return `${stem} ${index}${ext}`;
+  const ext = /(?<=.)(\.tar)?\.[^.]*$/.exec(name)?.[0] ?? "";
+  return numberedName(existing, name.slice(0, name.length - ext.length), ext);
 }
 
 /** Runs the writes of one path in the order they were asked. */

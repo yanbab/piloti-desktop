@@ -13,6 +13,9 @@ piloti-desktop (0.10.11-1) unstable; urgency=medium
       Wi-Fi and speaker icons follow signal and level.
     - Cupertino theme refinements; type follows the font settings.
     - libarchive-tools is now a dependency; Domicile SDK 3.
+    - Compress and Extract are hidden without bsdtar; an archive holding one
+      file or folder extracts to it, with no extra folder.
+    - Names that are taken are numbered "name (1)", "name (2)".
     - Internal: one boundary for system commands, backends split by concern,
       ESLint.
 

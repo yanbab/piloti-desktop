@@ -2,32 +2,53 @@
  * Compress and extract real files with `bsdtar` (libarchive-tools): it reads
  * zip, tar.*, 7z and rar and writes zip. Names are passed as arguments, never
  * pasted into the script. Existing files are never overwritten: a free name
- * ("Archive 2.zip", "photos 2") is picked, and a failed run removes only what
+ * ("Archive (1).zip", "photos (1)") is picked, and a failed run removes only what
  * it created.
  */
 import type { Piloti } from "@/lib/engine/piloti";
 import { runText } from "./exec";
 
 // $1 = folder, $2 = archive name without ".zip", rest = entries in the folder.
+// Names that are taken get " (1)", " (2)"…
 const COMPRESS_SCRIPT = `
 cd -- "$1" || exit 1
 base="$2"; shift 2
-out="$base.zip"; n=2
-while [ -e "./$out" ] || [ -L "./$out" ]; do out="$base $n.zip"; n=$((n+1)); done
+out="$base.zip"; n=1
+while [ -e "./$out" ] || [ -L "./$out" ]; do out="$base ($n).zip"; n=$((n+1)); done
 bsdtar --format=zip -cf "./$out" -- "$@" || { rm -f -- "./$out"; exit 1; }
 printf %s "$out"
 `;
 
-// $1 = folder, $2 = archive file name, $3 = destination folder name.
+// $1 = folder, $2 = archive file name, $3 = folder name if one is needed.
+// A lone file or folder in the archive comes out as itself; several entries get
+// a folder of their own.
 const EXTRACT_SCRIPT = `
 cd -- "$1" || exit 1
-dest="$3"; n=2
-while ! mkdir "./$dest" 2>/dev/null; do
-  [ -e "./$dest" ] || exit 1
-  dest="$3 $n"; n=$((n+1))
+tmp="$(mktemp -d ./.extract-XXXXXX)" || exit 1
+bsdtar -xf "./$2" -C "$tmp" || { rm -rf -- "$tmp"; exit 1; }
+count=0
+for e in "$tmp"/* "$tmp"/.[!.]* "$tmp"/..?*; do
+  [ -e "$e" ] || [ -L "$e" ] || continue
+  count=$((count+1)); only="$e"
 done
-bsdtar -xf "./$2" -C "./$dest" || { rm -rf -- "./$dest"; exit 1; }
-printf %s "$dest"
+if [ "$count" = 1 ]; then
+  from="$only"; name="\${only##*/}"
+else
+  from="$tmp"; name="$3"
+  chmod =rwx "$tmp"
+fi
+stem="$name"; ext=""
+if [ "$count" = 1 ] && [ ! -d "$from" ]; then
+  case "$name" in
+    ?*.tar.*) stem="\${name%.tar.*}"; ext="\${name#"$stem"}" ;;
+    ?*.*) stem="\${name%.*}"; ext=".\${name##*.}" ;;
+  esac
+fi
+out="$name"; n=1
+while [ -e "./$out" ] || [ -L "./$out" ]; do out="$stem ($n)$ext"; n=$((n+1)); done
+mv -n -- "$from" "./$out" || { rm -rf -- "$tmp"; exit 1; }
+[ "$count" = 1 ] && rmdir -- "$tmp"
+printf %s "$out"
 `;
 
 const dirOf = (path: string) => path.slice(0, path.lastIndexOf("/")) || "/";
@@ -53,7 +74,10 @@ export async function compressNative(
   return out ? join(parent, out) : null;
 }
 
-/** Extracts an archive into a new folder next to it; returns the folder's path, or null. */
+/**
+ * Extracts an archive next to it; returns what appeared (the archive's lone entry,
+ * or a folder of its entries), or null.
+ */
 export async function extractNative(piloti: Piloti, path: string): Promise<string | null> {
   const parent = dirOf(path);
   const name = nameOf(path);

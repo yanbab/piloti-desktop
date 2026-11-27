@@ -48,7 +48,7 @@ export function formatCaptureDuration(ms: number): string {
 export function uniqueCaptureName(existingNames: Iterable<string>, base: string, ext: string): string {
   const existing = new Set(existingNames);
   let name = `${base}.${ext}`;
-  for (let n = 2; existing.has(name); n += 1) name = `${base} (${n}).${ext}`;
+  for (let n = 1; existing.has(name); n += 1) name = `${base} (${n}).${ext}`;
   return name;
 }
 

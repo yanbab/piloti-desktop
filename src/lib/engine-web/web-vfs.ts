@@ -1,3 +1,4 @@
+import { numberedName } from "@/lib/ports/vfs";
 import { parseDotHiddenFile } from "@/lib/core/file-types";
 import { VFS_EMBLEM_META, type VfsEmblemId } from "@/lib/core/emblems";
 export { isTextEditableVfsFile, parseDotHiddenFile } from "@/lib/core/file-types";
@@ -426,14 +427,7 @@ function uniqueChildName(
       .filter((e) => e.parentPath === parentPath)
       .map((e) => e.name.toLowerCase())
   );
-  const first = `${baseName}${extension}`;
-  if (!existing.has(first.toLowerCase())) return first;
-
-  let index = 2;
-  while (existing.has(`${baseName} ${index}${extension}`.toLowerCase())) {
-    index += 1;
-  }
-  return `${baseName} ${index}${extension}`;
+  return numberedName(existing, baseName, extension);
 }
 
 export function getVfsDirHiddenNames(dirPath: string): Set<string> {
@@ -1634,7 +1628,19 @@ export async function extractVfsZip(zipPath: string): Promise<WebVfsEntry | null
 
   const parentPath = zipEntry.parentPath || WEB_VFS_HOME;
   const stem = zipEntry.name.replace(/\.zip$/i, "") || "Archive";
-  const folderName = uniqueChildName(entries, parentPath, stem);
+  const files = Object.entries(zip.files)
+    .map(([raw, file]) => [raw.replace(/^\/+|\/+$/g, ""), file] as const)
+    .filter(([rel]) => rel && !rel.includes(".."));
+  // A lone file or folder comes out as itself; several entries get a folder.
+  const tops = new Set(files.map(([rel]) => rel.split("/")[0]!));
+  const lone = tops.size === 1 ? [...tops][0]! : null;
+  const isLoneFile = lone !== null && files.every(([rel, file]) => rel === lone && !file.dir);
+  const wanted = lone ?? stem;
+  const dot = isLoneFile ? wanted.lastIndexOf(".") : -1;
+  const folderName =
+    dot > 0
+      ? uniqueChildName(entries, parentPath, wanted.slice(0, dot), wanted.slice(dot))
+      : uniqueChildName(entries, parentPath, wanted);
   const rootFolderPath = `${parentPath === "/" ? "" : parentPath}/${folderName}`;
   const now = Date.now();
 
@@ -1664,12 +1670,12 @@ export async function extractVfsZip(zipPath: string): Promise<WebVfsEntry | null
     parentPath,
     updatedAt: now,
   };
-  entries.push(rootFolder);
+  if (!isLoneFile) entries.push(rootFolder);
 
-  for (const [relRaw, fileObj] of Object.entries(zip.files)) {
-    const cleanRel = relRaw.replace(/^\/+|\/+$/g, "");
-    if (!cleanRel || cleanRel.includes("..")) continue;
-    const targetPath = `${rootFolderPath}/${cleanRel}`;
+  for (const [cleanRel, fileObj] of files) {
+    // Inside the lone folder, or the lone file itself, its name is the root's.
+    const inside = lone === null ? cleanRel : cleanRel.slice(lone.length + 1);
+    const targetPath = inside ? `${rootFolderPath}/${inside}` : rootFolderPath;
     if (fileObj.dir) {
       ensureDir(targetPath);
       continue;
@@ -1708,7 +1714,7 @@ export async function extractVfsZip(zipPath: string): Promise<WebVfsEntry | null
   }
 
   saveVfs(entries, [rootFolderPath]);
-  return rootFolder;
+  return entries.find((e) => e.path === rootFolderPath) ?? rootFolder;
 }
 
 export interface WebVfsBackingStorageEntry {
