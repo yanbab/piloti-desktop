@@ -10,7 +10,9 @@ import {
 } from "@/data/catalog";
 import { launchDesktopCommand, readApplicationDirs } from "@/lib/engine-native";
 import { getEngine } from "@/lib/engine/engine";
-import { XDG_APPLICATION_DIRS } from "@/lib/xdg/xdg-basedir";
+import { XDG_APPLICATION_DIRS, XDG_ICON_BASE_DIRS, XDG_PIXMAPS_DIRS } from "@/lib/xdg/xdg-basedir";
+import { readIconFoldersStamp } from "@/lib/engine/system-commands";
+import { PILOTI_VERSION } from "@/lib/core/version";
 import { setSymbolicIconResolver } from "@/lib/shell/symbolic-icons";
 import {
   APP_GRID_ICON_CANDIDATES,
@@ -280,6 +282,16 @@ function saveCachedDockIcons(payload: DockIconsCachePayload): void {
   }
 }
 
+/** The icon folders as they were when the cached index was built. */
+function loadIconIndexStamp(key: string): string | null {
+  const saved = readVfsStateJson<{ key: string; stamp: string }>(VFS_STATE_PATHS.iconIndexStamp);
+  return saved?.key === key ? saved.stamp : null;
+}
+
+function saveIconIndexStamp(key: string, stamp: string | null): void {
+  if (stamp) writeVfsStateJson(VFS_STATE_PATHS.iconIndexStamp, { key, stamp }, false);
+}
+
 interface XdgAppsCachePayload {
   v: typeof ICON_CACHE_VERSION;
   theme: string;
@@ -461,6 +473,13 @@ export function useAppsValue(
     let bgIndexTimer: ReturnType<typeof setTimeout> | null = null;
     let bgAppsTimer: ReturnType<typeof setTimeout> | null = null;
 
+    const { realFilesystem } = getEngine().capabilities;
+    const stampKey = `${PILOTI_VERSION}|${preferredThemes.join("|")}`;
+    const readStamp = () =>
+      realFilesystem
+        ? readIconFoldersStamp(piloti, [...XDG_ICON_BASE_DIRS, ...XDG_PIXMAPS_DIRS])
+        : Promise.resolve(null);
+
     (async () => {
       const finishDock = startBootPhase("dock");
       try {
@@ -492,17 +511,27 @@ export function useAppsValue(
         setIconAccentConfig(iconAccentConfigFromIndex(iconIndex));
         if (!useWarmCachedIndex) {
           saveCachedXdgIconThemeIndex(preferredThemes, iconIndex);
+          void readStamp().then((stamp) => saveIconIndexStamp(stampKey, stamp));
         } else if (refreshNonce === 0) {
+          // Rebuild only if the icon folders changed since the cache was built.
           bgIndexTimer = setTimeout(() => {
             if (cancelled) return;
-            void buildXdgIconThemeIndex(hostFiles(piloti), preferredThemes)
-              .then((fresh) => {
-                if (cancelled) return;
-                iconThemeIndexRef.current = fresh;
-                setIconIndexState(fresh);
-                saveCachedXdgIconThemeIndex(preferredThemes, fresh);
-              })
-              .catch(() => undefined);
+            void (async () => {
+              // Read before the scan, so a change made during it counts next time.
+              const stamp = await readStamp();
+              if (cancelled) return;
+              if (stamp && stamp === loadIconIndexStamp(stampKey)) {
+                logBootEvent("icon index up to date");
+                return;
+              }
+              const fresh = await buildXdgIconThemeIndex(hostFiles(piloti), preferredThemes);
+              if (cancelled) return;
+              iconThemeIndexRef.current = fresh;
+              setIconIndexState(fresh);
+              saveCachedXdgIconThemeIndex(preferredThemes, fresh);
+              saveIconIndexStamp(stampKey, stamp);
+              logBootEvent("icon index rebuilt");
+            })().catch(() => undefined);
           }, 4000);
         }
 

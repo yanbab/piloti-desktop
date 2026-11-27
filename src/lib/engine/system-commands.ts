@@ -73,3 +73,20 @@ export async function listPathPrograms(piloti: Host): Promise<string[]> {
 export async function mergeConfigDirs(piloti: Host, from: string, into: string): Promise<void> {
   await piloti.processes.run(["sh", "-c", 'mkdir -p "$2" && cp -rn "$1"/. "$2"/ && rm -rf "$1"', "sh", from, into]);
 }
+
+// Relative folders are in `$HOME`; theme folders that are links are followed too.
+const FOLDERS_STAMP = `n=$#
+while [ $n -gt 0 ]; do d=$1; shift; n=$((n-1)); case $d in /*) ;; *) d=$HOME/$d ;; esac; set -- "$@" "$d"; done
+for r do for t in "$r"/*; do [ -L "$t" ] && [ -d "$t" ] && set -- "$@" "$t"; done; done
+find -H "$@" \\( -type d -o -name index.theme \\) -printf '%p %T@\\n' 2>/dev/null | LC_ALL=C sort | cksum`;
+
+/**
+ * A checksum of the icon folders' modification times: it changes when icons are
+ * added, removed or renamed. `null` when it can't be told.
+ */
+export async function readIconFoldersStamp(piloti: Host, dirs: readonly string[]): Promise<string | null> {
+  const result = await piloti.processes.run(["sh", "-c", FOLDERS_STAMP, "sh", ...dirs]).catch(() => null);
+  const out = result?.match({ Ok: (ran) => ran.stdout.trim(), Err: () => "" });
+  // `cksum` of nothing ends in a size of 0.
+  return out && !out.endsWith(" 0") ? out : null;
+}

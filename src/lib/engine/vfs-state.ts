@@ -38,6 +38,7 @@ export const VFS_STATE_PATHS = {
   appPermissions: `${VFS_HOME}/.config/piloti/app-permissions.json`,
   browserBookmarks: `${VFS_HOME}/.config/piloti/browser/bookmarks.json`,
   iconIndexCache: `${VFS_HOME}/.cache/piloti/icon-index.json`,
+  iconIndexStamp: `${VFS_HOME}/.cache/piloti/icon-index-stamp.json`,
   dockIconsCache: `${VFS_HOME}/.cache/piloti/dock-icons.json`,
   xdgAppsCache: `${VFS_HOME}/.cache/piloti/xdg-apps.json`,
   cacheDir: `${VFS_HOME}/.cache/piloti`,
