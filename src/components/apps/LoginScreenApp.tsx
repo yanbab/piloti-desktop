@@ -5,6 +5,7 @@ import { useCapabilities } from "@/hooks/use-capabilities";
 import { usePiloti } from "@/lib/engine/piloti";
 import { ArrowLeftIcon, ArrowRightIcon, BatteryChargingIcon, BatteryIcon, CheckIcon, ChevronDownIcon, MonitorIcon, PowerIcon, UserIcon, UserPlusIcon, WifiIcon, WifiOffIcon } from "@/components/ui/symbols";
 import { SoundVolumeIcon } from "@/components/shell/SoundVolumeIcon";
+import { SessionIcon } from "@/components/shell/SessionIcon";
 import { AuthPasswordCard } from "@/components/shell/AuthPasswordCard";
 import { DesktopBackgroundLayers } from "@/components/shell/DesktopBackgroundLayers";
 import { KeyboardLayoutSwitcher } from "@/components/shell/KeyboardLayoutSwitcher";
@@ -98,6 +99,7 @@ const DEMO_SESSION_OPTIONS: readonly GreeterSessionOption[] = [
     exec: "/usr/bin/piloti-session",
     sessionType: "wayland",
     desktopNames: "Piloti;GNOME;",
+    icon: "piloti-desktop-symbolic",
   },
   {
     id: "wayland:gnome",
@@ -453,7 +455,7 @@ export const LoginScreenApp: React.FC<LoginScreenAppProps> = ({
               aria-label={_("Session")}
               className="flex h-[24px] items-center gap-1.5 rounded-ui-control px-2 text-ui-body font-medium outline-none transition-colors hover-fill:bg-black/8 active:bg-black/14 data-popup-open:bg-black/12 dark:hover-fill:bg-white/10 dark:active:bg-white/18 dark:data-popup-open:bg-white/15"
             >
-              <MonitorIcon className="size-3.5 opacity-85" />
+              <SessionIcon session={activeSession} />
               <span className="max-w-[160px] truncate">
                 {_(activeSession.label)}
               </span>
@@ -467,11 +469,14 @@ export const LoginScreenApp: React.FC<LoginScreenAppProps> = ({
               >
                 {sessions.map((sess) => (
                   <DropdownMenuRadioItem key={sess.id} value={sess.id}>
-                    <div className="flex min-w-0 flex-col">
-                      <span className="truncate">{_(sess.label)}</span>
-                      <span className="truncate text-ui-small text-ui-label-secondary">
-                        {_(sess.subtitle)}
-                      </span>
+                    <div className="flex min-w-0 items-center gap-2">
+                      <SessionIcon session={sess} />
+                      <div className="flex min-w-0 flex-col">
+                        <span className="truncate">{_(sess.label)}</span>
+                        <span className="truncate text-ui-small text-ui-label-secondary">
+                          {_(sess.subtitle)}
+                        </span>
+                      </div>
                     </div>
                   </DropdownMenuRadioItem>
                 ))}

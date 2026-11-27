@@ -1,7 +1,8 @@
 import { ICON_SIZES } from "@/lib/shell/icon-sizes";
+import { PilotiSymbolicIcon } from "@/components/shell/PilotiLogo";
 import * as React from "react";
 import { BoxesIcon } from "lucide-react";
-import { BellIcon, ChevronDownIcon, FolderIcon, HouseIcon, ImageIcon, MenuIcon, MonitorIcon, MoonIcon, PaletteIcon, SlidersHorizontalIcon, SunIcon, TypeIcon, Volume2Icon } from "@/components/ui/symbols";
+import { BellIcon, ChevronDownIcon, FolderIcon, ImageIcon, MenuIcon, MonitorIcon, MoonIcon, PaletteIcon, SlidersHorizontalIcon, SunIcon, TypeIcon, Volume2Icon } from "@/components/ui/symbols";
 import { HeaderBar, HeaderHeading } from "@/components/elements/header-bar";
 import { AppSplitView, type SidebarItem } from "@/components/elements/split-view";
 import { ElementsPage } from "@/components/apps/demo/ElementsPage";
@@ -472,7 +473,7 @@ function AppleIcon() {
 }
 
 const THEMES = [
-  { id: "piloti", label: "Piloti", Icon: HouseIcon },
+  { id: "piloti", label: "Piloti", Icon: PilotiSymbolicIcon },
   { id: "adwaita", label: "Adwaita", Icon: GnomeFootIcon },
   { id: "cupertino", label: "Cupertino", Icon: AppleIcon },
 ] as const;

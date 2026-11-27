@@ -1,4 +1,5 @@
 import { isCloseOnLeft } from "@/components/ui/window";
+import { PilotiSymbolicIcon } from "@/components/shell/PilotiLogo";
 import * as React from "react";
 import { MonitorIcon, MoonIcon, SunIcon } from "@/components/ui/symbols";
 import {
@@ -76,7 +77,7 @@ export function AppearancePane() {
                   })
                 }
                 options={[
-                  { id: "piloti", label: _("Piloti") },
+                  { id: "piloti", label: _("Piloti"), icon: <PilotiSymbolicIcon className="size-3.5" /> },
                   { id: "adwaita", label: "Adwaita" },
                   { id: "cupertino", label: "Cupertino" },
                   ...themePlugins.map((p) => ({ id: p.id, label: p.name })),
