@@ -96,6 +96,10 @@ Paths without a root are under `src/`.
 
 ## Release
 
-Stay on 0.10.x. Bump `package.json`, add a `debian/changelog` entry signed
+Bump `package.json`, add a `debian/changelog` entry signed
 ` -- yanbab <yanbab@gmail.com>  <date>`, `build:deb`, commit, tag `vX.Y.Z`,
 `gh release create` with the `.deb`. Author is yanbab.
+
+Update `CHANGELOG.md` in the release commit (latest first): version, date,
+release notes, and the commits since the last tag
+(``git log --no-merges --format='- `%h` %s' vPREV..HEAD``).
