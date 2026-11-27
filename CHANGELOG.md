@@ -2,7 +2,7 @@
 
 Releases of Piloti Desktop, latest first. Dates are the tagged commit's.
 
-## 0.10.13 — unreleased
+## 0.10.13 — 2026-11-27
 
 - Piloti demo: Elements, Colors and Icons panes, with code beside each sample.
 - Folders: new toolbar; a folder opened on its own keeps its view, sort and
@@ -16,11 +16,25 @@ Releases of Piloti Desktop, latest first. Dates are the tagged commit's.
   apps saved under the old names are still read.
 - Apps without their own symbolic icon use the theme's generic one in the
   window menu button.
+- Volume and brightness sliders are no longer empty at desktop start.
+- Focus follows a workspace switch: an empty workspace no longer names the
+  app of another.
+- Texts says when the open file was trashed or deleted.
+- Settings ▸ Advanced can show each portal dialog; the Piloti demo has a
+  Dialogs pane.
+- Missing French and Spanish translations added.
 - Internal: smaller engine boundary, ports for hardware and media.
 
 ### Commits
 
-- `e423805` revert: drop the Lucide-converted app symbolic icons
+- `6208c0d` chore: name the shell module for Domicile in package.json
+- `5195314` test(e2e): split the desktop spec by area
+- `b4391c3` feat: Dialogs pane in the demo and portal tests in Settings
+- `017bb72` fix: capsule sliders show their value before they are measured
+- `29b6a38` fix(texts): say when the open file was trashed or deleted
+- `e090ffe` fix: focus follows a workspace switch
+- `0780031` fix(i18n): translate the missing fr and es strings, and test coverage
+- `43ecff7` docs: add CHANGELOG.md and update the release notes in AGENTS.md
 - `212c8ff` refactor: move the demo's file code out of fs-bridge
 - `bc233b2` refactor: route Terminal, Flatpak and app lists through engine
 - `cb50233` refactor: rename Text Editor to Texts and Camera to Selfies
@@ -32,6 +46,7 @@ Releases of Piloti Desktop, latest first. Dates are the tagged commit's.
 - `ff61a64` refactor: group apps and shell by feature at the top of src
 - `89bf152` fix(linux) : security policy script-src 'self' crashes plugins
 - `0b9a4f7` fix: badges follow renames and moves on Linux
+- `e423805` revert: drop the Lucide-converted app symbolic icons
 
 ## 0.10.12 — 2026-11-27
 

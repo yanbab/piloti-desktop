@@ -1,3 +1,21 @@
+piloti-desktop (0.10.13-1) unstable; urgency=medium
+
+  * Release v0.10.13:
+    - Text Editor is now Texts and Camera is Selfies; settings, pins and
+      default apps saved under the old names are still read.
+    - Folders has a new toolbar, remembers the view of a folder opened on its
+      own, and remembers the info pane.
+    - New keyboard menu; Control Center and Launcher aligned; new notification
+      looks; softer Piloti accent and better spacing.
+    - Volume and brightness sliders are no longer empty at desktop start.
+    - Focus follows a workspace switch.
+    - Texts says when the open file was trashed or deleted.
+    - Settings ▸ Advanced can show each portal dialog; the Piloti demo gains
+      Elements, Colors, Icons and Dialogs panes.
+    - Missing French and Spanish translations added.
+
+ -- yanbab <yanbab@gmail.com>  Fri, 27 Nov 2026 22:45:00 +0100
+
 piloti-desktop (0.10.12-1) unstable; urgency=medium
 
   * Release v0.10.12:
