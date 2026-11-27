@@ -10,7 +10,7 @@ import type { Vfs } from "@/lib/ports/vfs";
  * State and prefs reads are synchronous: a host loads them before mounting.
  */
 export interface TextEditorHost {
-  vfs: Pick<Vfs, "readText" | "write" | "watch" | "move" | "metadata" | "setMetadata">;
+  vfs: Pick<Vfs, "readText" | "write" | "stat" | "watch" | "move" | "metadata" | "setMetadata">;
   normalizePath(path: string): string;
   /** Where an unsaved document goes on first save (the user's Desktop). */
   defaultNewFilePath(name: string): string;

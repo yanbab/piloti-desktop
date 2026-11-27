@@ -304,8 +304,9 @@ export async function importFsFiles(
 
 /** Tells views that follow a file (desktop cells, open viewers) it has a new path. */
 export function announceRename(from: string, to: string): void {
-  // The demo's storage announces its own renames.
-  if (hasRealFilesystem()) announceVfsRenamed(from, to);
+  // The demo's storage announces its own renames, but not its moves: a second
+  // announcement finds nothing left at `from`.
+  announceVfsRenamed(from, to);
 }
 
 /** Renames in place; `null` if nothing was renamed (the name may be taken). */
@@ -351,6 +352,7 @@ export async function moveFsEntry(
     const kind = (await piloti.vfs.stat(from))?.kind ?? "file";
     const to = joinPath(dir, uniqueName(await namesIn(piloti, dir), options.name ?? baseName(from)));
     await piloti.vfs.move(from, to);
+    announceRename(from, to);
     const entry = entryFor(to, kind);
     vfsCache.moved(from, entry);
     return entry;

@@ -52,7 +52,8 @@ import {
   clampWorkspace,
   resolveWaylandOuterConstraints,
 } from "@/lib/shell/window-bounds";
-import { buildVfsEntryWebAppUrl, getVfsEntry, isTextEditableVfsFile } from "@/lib/engine-web/web-vfs";
+import { buildVfsEntryWebAppUrl, getVfsEntry, isTextEditableVfsFile, subscribeVfsRenamed } from "@/lib/engine-web/web-vfs";
+import { pathAfterRename } from "@/lib/ports/vfs";
 import { isImageVfsFile } from "@/lib/core/vfs-media";
 import { type AppsContextValue, matchAppFromWayland } from "./AppsContext";
 import { type SettingsContextValue } from "./SettingsContext";
@@ -2124,6 +2125,25 @@ function pruneBrowserRecord(
   combinedWindowsRef.current = combinedWindows;
   const recentLaunchGuardRef = React.useRef<Map<string, number>>(new Map());
 
+  // A document window follows its file, so opening it again finds the window.
+  React.useEffect(
+    () =>
+      subscribeVfsRenamed(({ oldPath, newPath }) =>
+        setShellWindows((prev) => {
+          let changed = false;
+          const next = prev.map((w) => {
+            if (!DOCUMENT_SCOPED_APP_IDS.has(w.appId) || !w.payload) return w;
+            const payload = pathAfterRename(w.payload, oldPath, newPath);
+            if (!payload) return w;
+            changed = true;
+            return { ...w, payload };
+          });
+          return changed ? next : prev;
+        }),
+      ),
+    [],
+  );
+
   // For the fallback when an app module cannot be started.
   const launchAppRef = React.useRef<
     ((appId: string, options?: { payload?: string; forceNew?: boolean; forceCsd?: boolean; inShell?: boolean }) => void) | null
@@ -2199,6 +2219,18 @@ function pruneBrowserRecord(
         );
         if (sameFolderWin) {
           focusWindow(sameFolderWin.id);
+          return;
+        }
+      }
+
+      // One window per document, whatever the caller asked: two editors of the
+      // same file would save over each other.
+      if (options?.forceNew && options.payload && (appId === "text-editor" || appId === "image-viewer")) {
+        const sameDocument = combinedWindowsRef.current.find(
+          (w) => w.appId === appId && w.payload === options.payload,
+        );
+        if (sameDocument) {
+          focusWindow(sameDocument.id);
           return;
         }
       }

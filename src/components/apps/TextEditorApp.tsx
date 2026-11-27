@@ -48,6 +48,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { UnsavedChangesDialog } from "@/components/ui/unsaved-changes-dialog";
 import { publishWindowMenuState, useIsolatedAppBridge } from "@/lib/engine/app-bridge";
+import { pathAfterRename, uniqueName } from "@/lib/ports/vfs";
 import { useTextEditorHost, type TextEditorHost } from "@/lib/engine/text-editor-host";
 import { _ } from "@/lib/core/i18n";
 import { parseIniText } from "@/lib/config/ini";
@@ -113,6 +114,17 @@ const iniLanguage = StreamLanguage.define({
     return null;
   },
 });
+
+/** Where a new document goes: never over a file that is already there. */
+async function unusedNewFilePath(host: TextEditorHost, name: string): Promise<string> {
+  const taken = new Set<string>();
+  let candidate = name;
+  while (await host.vfs.stat(host.defaultNewFilePath(candidate))) {
+    taken.add(candidate.toLowerCase());
+    candidate = uniqueName(taken, name);
+  }
+  return host.defaultNewFilePath(candidate);
+}
 
 function resolveLanguageExtension(filePath: string | null): Extension[] {
   const ext = filePath?.split(".").pop()?.toLowerCase() ?? "";
@@ -352,6 +364,8 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
   });
   const [savedContent, setSavedContent] = React.useState("");
   const [confirmCloseOpen, setConfirmCloseOpen] = React.useState(false);
+  const filePathRef = React.useRef(filePath);
+  filePathRef.current = filePath;
   const isDirty = content !== savedContent;
   const isDirtyRef = React.useRef(isDirty);
   isDirtyRef.current = isDirty;
@@ -451,15 +465,42 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
     });
   }, [editingTitle]);
 
-  React.useEffect(() => {
-    if (!filePath) return;
-    return host.onRenamed(({ oldPath, newPath }) => {
-      if (host.normalizePath(filePath) === host.normalizePath(oldPath)) {
-        setFilePath(newPath);
-        bridge.setTitle(getBaseName(newPath));
+
+  /** Points the open document at `path` without reading it again. */
+  const keepAt = React.useCallback(
+    (path: string) => {
+      keptPathRef.current = path;
+      restoredFilePathRef.current = path;
+      filePathRef.current = path;
+      setFilePath(path);
+      bridge.setTitle(getBaseName(path));
+    },
+    [bridge],
+  );
+
+  /** The file or a folder above it was renamed or moved. */
+  const followRename = React.useCallback(
+    (oldPath: string, newPath: string) => {
+      const current = filePathRef.current;
+      if (!current) return;
+      const from = host.normalizePath(current);
+      const to = pathAfterRename(from, host.normalizePath(oldPath), host.normalizePath(newPath));
+      if (!to) return;
+      const map = readPersistedEditorStateMap(host);
+      if (map[from]) {
+        map[to] = map[from];
+        delete map[from];
+        host.writeState(EDITOR_STATE_KEY, map);
       }
-    });
-  }, [bridge, filePath]);
+      keepAt(to);
+    },
+    [host, keepAt],
+  );
+
+  React.useEffect(
+    () => host.onRenamed(({ oldPath, newPath }) => followRename(oldPath, newPath)),
+    [followRename, host],
+  );
 
   const applyTitleRename = React.useCallback(
     (nextName: string) => {
@@ -468,13 +509,12 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
       void host.vfs.move(filePath, renamed).then(
         () => {
           host.moved?.(filePath, renamed);
-          setFilePath(renamed);
-          bridge.setTitle(nextName);
+          followRename(filePath, renamed);
         },
         (error) => console.warn("Could not rename", filePath, error),
       );
     },
-    [bridge, filePath, host],
+    [filePath, followRename, host],
   );
 
   const commitTitleRename = React.useCallback(() => {
@@ -541,14 +581,15 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
   const findInputRef = React.useRef<HTMLInputElement | null>(null);
   const contentRef = React.useRef(content);
   contentRef.current = content;
-  const filePathRef = React.useRef(filePath);
-  filePathRef.current = filePath;
 
   React.useEffect(() => {
     setFilePath(resolvedPath);
   }, [resolvedPath]);
 
   const restoredFilePathRef = React.useRef<string | null>(null);
+  // The path the open document just took (renamed, moved, first save): the
+  // buffer stays, it is not opened again.
+  const keptPathRef = React.useRef<string | null>(null);
   const saveTimerRef = React.useRef<number | null>(null);
 
   const persistEditorStateNow = React.useCallback(
@@ -669,7 +710,9 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
   React.useEffect(() => {
     if (!filePath) return;
     let cancelled = false;
-    let first = true;
+    let first = keptPathRef.current !== filePath;
+    // Once switched to another file, coming back opens it again.
+    if (first) keptPathRef.current = null;
     const syncFromDisk = () => {
       // The first read opens the file; later ones follow outside changes.
       const force = first;
@@ -716,28 +759,31 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
     };
   }, [bridge, filePath, host, restoreEditorViewState]);
 
-  const handleSave = React.useCallback(async () => {
-    const targetPath =
-      filePathRef.current ?? host.defaultNewFilePath("Untitled.txt");
-    if (!filePathRef.current) {
-      filePathRef.current = targetPath;
-      setFilePath(targetPath);
-    }
-    const textToSave = contentRef.current;
-    const ok = await host.vfs.write(targetPath, textToSave).then(
-      () => true,
-      (error) => {
+  // One save at a time: a second Ctrl+S must not create a second new file.
+  const savingRef = React.useRef<Promise<boolean> | null>(null);
+  const handleSave = React.useCallback((): Promise<boolean> => {
+    const save = async () => {
+      const current = filePathRef.current;
+      const textToSave = contentRef.current;
+      let targetPath = current;
+      try {
+        targetPath ??= await unusedNewFilePath(host, "Untitled.txt");
+        await host.vfs.write(targetPath, textToSave);
+      } catch (error) {
         console.warn("Could not save", targetPath, error);
         return false;
-      },
-    );
-    if (ok) {
+      }
       setSavedContent(textToSave);
       savedContentRef.current = textToSave;
-      persistEditorStateNow(targetPath, { clearUnsaved: true });
-    }
-    return ok;
-  }, [host, persistEditorStateNow]);
+      if (!current) keepAt(targetPath);
+      persistEditorStateNow(filePathRef.current, { clearUnsaved: true });
+      return true;
+    };
+    savingRef.current ??= save().finally(() => {
+      savingRef.current = null;
+    });
+    return savingRef.current;
+  }, [host, keepAt, persistEditorStateNow]);
 
   const performClose = React.useCallback(() => {
     if (saveTimerRef.current !== null) {
@@ -752,13 +798,23 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
     }
   }, [bridge, persistEditorStateNow, windowId]);
 
+  // Unsaved text of a file is kept and restored; a new document has nowhere to
+  // keep it, so closing it always asks.
+  const mustConfirmClose = React.useCallback(
+    () =>
+      isDirtyRef.current &&
+      !forceCloseRef.current &&
+      (!filePathRef.current || host.confirmUnsavedOnClose()),
+    [host],
+  );
+
   const requestClose = React.useCallback(() => {
-    if (isDirtyRef.current && !forceCloseRef.current && host.confirmUnsavedOnClose()) {
+    if (mustConfirmClose()) {
       setConfirmCloseOpen(true);
       return;
     }
     performClose();
-  }, [performClose]);
+  }, [mustConfirmClose, performClose]);
 
   React.useEffect(() => {
     if (!windowId) return;
@@ -767,7 +823,7 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
       e: { preventDefault: () => void },
     ) => {
       if (detail?.windowId !== windowId) return;
-      if (isDirtyRef.current && !forceCloseRef.current && host.confirmUnsavedOnClose()) {
+      if (mustConfirmClose()) {
         e.preventDefault();
         setConfirmCloseOpen(true);
         return;
@@ -776,7 +832,7 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
       persistEditorStateNow(filePathRef.current);
     };
     return host.onBeforeClose(onBeforeClose);
-  }, [persistEditorStateNow, windowId]);
+  }, [mustConfirmClose, persistEditorStateNow, windowId]);
 
   const persistText = React.useCallback(
     (next: string) => {

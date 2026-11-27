@@ -88,6 +88,12 @@ export function uniqueName(existing: ReadonlySet<string>, name: string): string 
   return numberedName(existing, name.slice(0, name.length - ext.length), ext);
 }
 
+/** Where `path` is after `from` was renamed to `to`; `null` if that didn't move it. */
+export function pathAfterRename(path: string, from: string, to: string): string | null {
+  if (path === from) return to;
+  return path.startsWith(`${from}/`) ? `${to}${path.slice(from.length)}` : null;
+}
+
 /** Runs the writes of one path in the order they were asked. */
 export function createPathQueue() {
   const tails = new Map<string, Promise<unknown>>();

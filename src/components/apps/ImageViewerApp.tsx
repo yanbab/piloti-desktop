@@ -17,6 +17,7 @@ import { _ } from "@/lib/core/i18n";
 import { cn } from "@/lib/core/utils";
 import { normalizeVfsPath } from "@/lib/core/vfs-paths";
 import { renameFsEntry } from "@/lib/engine/fs-bridge";
+import { pathAfterRename } from "@/lib/ports/vfs";
 import { subscribeVfsRenamed } from "@/lib/engine-web/web-vfs";
 
 export interface ImageViewerAppProps {
@@ -414,16 +415,18 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
   React.useEffect(() => {
     if (!isRenameableVfsFile) return;
     return subscribeVfsRenamed(({ oldPath, newPath }) => {
-      if (normalizeVfsPath(activePath) === normalizeVfsPath(oldPath)) {
+      const from = normalizeVfsPath(activePath);
+      const to = pathAfterRename(from, normalizeVfsPath(oldPath), normalizeVfsPath(newPath));
+      if (to) {
         const map = readImageViewStateMap();
-        const prev = map[normalizeVfsPath(oldPath)];
+        const prev = map[from];
         if (prev) {
-          delete map[normalizeVfsPath(oldPath)];
-          map[normalizeVfsPath(newPath)] = prev;
+          delete map[from];
+          map[to] = prev;
           writeVfsStateJson(IMAGE_VIEWER_STATE_PATH, map, false);
         }
-        setActivePath(newPath);
-        const nextName = newPath.split("/").filter(Boolean).pop();
+        setActivePath(to);
+        const nextName = to.split("/").filter(Boolean).pop();
         if (nextName) bridge.setTitle(nextName);
       }
     });
