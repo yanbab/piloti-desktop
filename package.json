@@ -4,6 +4,9 @@
   "private": true,
   "description": "Piloti Desktop — A Linux Wayland desktop shell built on Domicile",
   "type": "module",
+  "domicile": {
+    "shell": "dist/shell.js"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build && vite build --config vite.shell.config.ts",
