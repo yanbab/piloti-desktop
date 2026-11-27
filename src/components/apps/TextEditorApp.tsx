@@ -46,7 +46,7 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { UnsavedChangesDialog } from "@/components/ui/unsaved-changes-dialog";
+import { FileChangedDialog, UnsavedChangesDialog } from "@/components/ui/unsaved-changes-dialog";
 import { publishWindowMenuState, useIsolatedAppBridge } from "@/lib/engine/app-bridge";
 import { pathAfterRename, uniqueName } from "@/lib/ports/vfs";
 import { useTextEditorHost, type TextEditorHost } from "@/lib/engine/text-editor-host";
@@ -74,6 +74,8 @@ const EDITOR_STATE_KEY = "editor-state";
 
 interface PersistedFileEditorState {
   unsavedContent?: string;
+  /** Hash of the file text the unsaved edits started from. */
+  baseHash?: number;
   cursor: number;
   scrollTop: number;
   viewMode?: EditorViewMode;
@@ -90,6 +92,13 @@ function readPersistedEditorStateMap(host: TextEditorHost): PersistedEditorState
         Boolean(val && typeof val === "object" && !Array.isArray(val)),
     ) ?? {}
   );
+}
+
+/** FNV-1a: tells whether a file is still the one that was edited. */
+function textHash(text: string): number {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < text.length; i += 1) hash = Math.imul(hash ^ text.charCodeAt(i), 0x01000193);
+  return hash >>> 0;
 }
 
 function getFileExtension(name: string): string {
@@ -372,6 +381,9 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
   const savedContentRef = React.useRef(savedContent);
   savedContentRef.current = savedContent;
   const forceCloseRef = React.useRef(false);
+  // Unsaved edits restored over a file that changed since they were made.
+  const staleEditsRef = React.useRef(false);
+  const [conflictOpen, setConflictOpen] = React.useState(false);
   const [viewMode, setViewMode] = React.useState<EditorViewMode>("code");
   viewModeRef.current = viewMode;
   const [findOpen, setFindOpen] = React.useState(false);
@@ -622,7 +634,12 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
       const dirty =
         !options?.clearUnsaved && currentText !== savedContentRef.current;
       map[normPath] = {
-        ...(dirty ? { unsavedContent: currentText } : {}),
+        ...(dirty
+          ? {
+              unsavedContent: currentText,
+              baseHash: staleEditsRef.current ? map[normPath]?.baseHash : textHash(savedContentRef.current),
+            }
+          : {}),
         cursor,
         scrollTop,
         viewMode: viewModeRef.current,
@@ -727,6 +744,10 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
           persisted?.unsavedContent !== undefined && persisted.unsavedContent !== next
             ? persisted.unsavedContent
             : next;
+        staleEditsRef.current =
+          restoredText !== next &&
+          persisted?.baseHash !== undefined &&
+          persisted.baseHash !== textHash(next);
         setSavedContent(next);
         savedContentRef.current = next;
         setContent(restoredText);
@@ -761,18 +782,32 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
 
   // One save at a time: a second Ctrl+S must not create a second new file.
   const savingRef = React.useRef<Promise<boolean> | null>(null);
-  const handleSave = React.useCallback((): Promise<boolean> => {
+  const handleSave = React.useCallback((options?: { overwrite?: boolean }): Promise<boolean> => {
     const save = async () => {
       const current = filePathRef.current;
       const textToSave = contentRef.current;
       let targetPath = current;
       try {
         targetPath ??= await unusedNewFilePath(host, "Untitled.txt");
+        if (current && !options?.overwrite) {
+          // Never silently over what another program wrote since it was read.
+          const onDisk = await host.vfs.readText(current).catch(() => null);
+          if (
+            onDisk !== null &&
+            onDisk !== textToSave &&
+            (staleEditsRef.current || onDisk !== savedContentRef.current)
+          ) {
+            setConfirmCloseOpen(false);
+            setConflictOpen(true);
+            return false;
+          }
+        }
         await host.vfs.write(targetPath, textToSave);
       } catch (error) {
         console.warn("Could not save", targetPath, error);
         return false;
       }
+      staleEditsRef.current = false;
       setSavedContent(textToSave);
       savedContentRef.current = textToSave;
       if (!current) keepAt(targetPath);
@@ -784,6 +819,23 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
     });
     return savingRef.current;
   }, [host, keepAt, persistEditorStateNow]);
+
+  /** Drops the edits for what is on disk; Undo brings them back. */
+  const reloadFromDisk = React.useCallback(async () => {
+    setConflictOpen(false);
+    const path = filePathRef.current;
+    if (!path) return;
+    const next = await host.vfs.readText(path).catch(() => null);
+    if (next === null) return;
+    staleEditsRef.current = false;
+    setSavedContent(next);
+    savedContentRef.current = next;
+    setContent(next);
+    contentRef.current = next;
+    const view = viewRef.current;
+    if (view) view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: next } });
+    persistEditorStateNow(path, { clearUnsaved: true });
+  }, [host, persistEditorStateNow]);
 
   const performClose = React.useCallback(() => {
     if (saveTimerRef.current !== null) {
@@ -1325,6 +1377,17 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
                 forceCloseRef.current = true;
                 performClose();
               }
+            }}
+          />
+        )}
+
+        {conflictOpen && (
+          <FileChangedDialog
+            onCancel={() => setConflictOpen(false)}
+            onReload={() => void reloadFromDisk()}
+            onOverwrite={() => {
+              setConflictOpen(false);
+              void handleSave({ overwrite: true });
             }}
           />
         )}
