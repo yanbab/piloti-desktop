@@ -1,4 +1,5 @@
 /// <reference types="@domicile-desktop/react/elements" />
+import { WorkspaceTransition } from "@/components/shell/WorkspaceTransition";
 import { hostFiles } from "@/lib/engine/host-files";
 import { logAppEvent } from "@/lib/core/perf-log";
 import { looksLikeUrl, webSearchUrl } from "@/lib/shell/web-search";
@@ -1153,7 +1154,7 @@ function WebViewSurface({
               items={extensionMenuItems}
               pinnedIds={settings.pinnedExtensionIds ?? []}
               onTogglePin={toggleExtensionPin}
-              onManage={() => launchApp("settings", { payload: "advanced" })}
+              onManage={() => launchApp("settings", { payload: "extensions" })}
             />
           </HeaderBar.End>
         </HeaderBar>
@@ -2430,6 +2431,10 @@ export function WindowManager() {
           );
         })}
       </div>
+      <WorkspaceTransition
+        stageRef={workspaceStageRef}
+        empty={!overviewOpen && !renderedWindows.some((w) => w.workspace === settings.activeWorkspace && !w.minimized)}
+      />
 
       {/* Wayland Child Popups */}
       {waylandPopups.map((popup) => (

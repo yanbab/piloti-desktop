@@ -229,7 +229,7 @@ async function resolveThemedIconUrl(
 const DOCK_ICONS_CACHE_KEY = "piloti.dock-icons.v21";
 // Bump when icon resolution or accent marking changes, so cached icons and
 // icon paths from an older build are not reused.
-const ICON_CACHE_VERSION = 3;
+const ICON_CACHE_VERSION = 4;
 
 interface DockIconsCachePayload {
   v?: number;

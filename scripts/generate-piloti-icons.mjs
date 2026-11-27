@@ -426,9 +426,9 @@ const textDocLines = (ind) =>
 const textDocPage = (ind) =>
   layer(ind, "Page", [
       pathGroup("Shadow", { d: PAPIRUS_FILE_SHADOW_D, fill: "#000000", opacity: 20 }),
-      pathGroup("Sheet", { d: PAPIRUS_FILE_SHEET_D, fill: "#e4e4e4" }),
+      pathGroup("Sheet", { d: PAPIRUS_FILE_SHEET_D, fill: "#f5f5f5" }),
       pathGroup("FlapShadow", { d: PAPIRUS_FILE_FLAP_SHADOW_D, fill: "#000000", opacity: 20 }),
-      pathGroup("Flap", { d: PAPIRUS_FILE_FLAP_D, fill: "#fafafa" }),
+      pathGroup("Flap", { d: PAPIRUS_FILE_FLAP_D, fill: "#ffffff" }),
       pathGroup("TopHighlight", { d: PAPIRUS_FILE_HIGHLIGHT_D, fill: "#ffffff", opacity: 20 }),
     ]);
 
@@ -548,9 +548,9 @@ const ICONS = {
     ]),
     layer(3, "Page", [
       pathGroup("Shadow", { d: PAPIRUS_FILE_SHADOW_D, fill: "#000000", opacity: 20 }),
-      pathGroup("Sheet", { d: PAPIRUS_FILE_SHEET_D, fill: "#e4e4e4" }),
+      pathGroup("Sheet", { d: PAPIRUS_FILE_SHEET_D, fill: "#f5f5f5" }),
       pathGroup("FlapShadow", { d: PAPIRUS_FILE_FLAP_SHADOW_D, fill: "#000000", opacity: 20 }),
-      pathGroup("Flap", { d: PAPIRUS_FILE_FLAP_D, fill: "#fafafa" }),
+      pathGroup("Flap", { d: PAPIRUS_FILE_FLAP_D, fill: "#ffffff" }),
       pathGroup("TopHighlight", { d: PAPIRUS_FILE_HIGHLIGHT_D, fill: "#ffffff", opacity: 20 }),
     ]),
   ]),
@@ -708,8 +708,10 @@ const ICONS = {
             }),
           ],
           {
+            // Scaled up to the Calculator badge: r16 centred on 46,46.
             a: kStatic([48, 48]),
-            p: kFrames([[0, [48, 48]], [12, [46, 46]], [26, [49, 47]], [40, [48, 48]]]),
+            s: kStatic([123, 123]),
+            p: kFrames([[0, [46, 46]], [12, [44, 44]], [26, [47, 45]], [40, [46, 46]]]),
             r: kFrames([[0, [0]], [12, [-8]], [26, [5]], [40, [0]]]),
           }
         ),

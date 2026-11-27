@@ -459,9 +459,7 @@
   filter: brightness(0.85);
 }
 
-:root[data-interface-theme="cupertino"] [data-slot="window-controls"] > button:focus-visible {
-  outline: 3px solid color-mix(in srgb, var(--ui-accent) 50%, transparent);
-}
+
 
 :root[data-interface-theme="cupertino"] [data-slot="window-controls"] > button svg {
   width: 10px;

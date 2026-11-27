@@ -1904,7 +1904,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
         return;
       }
       if (item.kind === "plugin" && item.plugin) {
-        launchApp("settings", { payload: "advanced" });
+        launchApp("settings", { payload: "extensions" });
         return;
       }
       if (item.kind === "font" && item.font) {

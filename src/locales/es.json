@@ -822,5 +822,9 @@
   "English (US)": "Inglés (EE. UU.)",
   "Language & shortcut keys": "Idioma y teclas de acceso rápido",
   "Expand": "Desplegar",
-  "Collapse": "Plegar"
+  "Collapse": "Plegar",
+  "Workspace %s is empty": "El espacio de trabajo %s está vacío",
+  "Startup services & testing": "Servicios de inicio y pruebas",
+  "Web extensions & desktop plugins": "Extensiones web y complementos del escritorio",
+  "General": "General"
 }

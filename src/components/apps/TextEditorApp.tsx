@@ -29,7 +29,7 @@ import {
   lineNumbers,
 } from "@codemirror/view";
 import { tags } from "@lezer/highlight";
-import { SaveIcon, SlidersHorizontalIcon } from "@/components/ui/symbols";
+import { CodeIcon, EyeIcon, PencilRulerIcon, SaveIcon, SlidersHorizontalIcon } from "@/components/ui/symbols";
 import { ObjectView, themeGitHubLight, themeOneDark } from "react-obj-view";
 import "react-obj-view/dist/react-obj-view.css";
 import {
@@ -367,25 +367,25 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
     col: 1,
   });
 
-  // Editor preferences (only syntax highlighting enabled by default; persisted to .config/piloti/notepad.ini)
+  // Editor preferences (all on by default; persisted to .config/piloti/notepad.ini)
   const initialEditorPrefs = React.useMemo(
     () => host.readEditorPrefs(),
     [host]
   );
   const [showLineNumbers, setShowLineNumbers] = React.useState(
-    () => initialEditorPrefs.lineNumbers === "true"
+    () => initialEditorPrefs.lineNumbers !== "false"
   );
   const [enableHighlight, setEnableHighlight] = React.useState(
     () => initialEditorPrefs.syntaxHighlight !== "false"
   );
   const [wordWrap, setWordWrap] = React.useState(
-    () => initialEditorPrefs.wordWrap === "true"
+    () => initialEditorPrefs.wordWrap !== "false"
   );
   const [highlightLine, setHighlightLine] = React.useState(
-    () => initialEditorPrefs.activeLine === "true"
+    () => initialEditorPrefs.activeLine !== "false"
   );
   const [showCursorPos, setShowCursorPos] = React.useState(
-    () => initialEditorPrefs.cursorPosition === "true"
+    () => initialEditorPrefs.cursorPosition !== "false"
   );
   // No UI: fold markers sit next to line numbers unless `codeFolding=false`.
   const showCodeFolding = initialEditorPrefs.codeFolding !== "false";
@@ -960,19 +960,19 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
   }, [content, findQuery]);
 
   const availableModes = React.useMemo<
-    readonly { id: EditorViewMode; label: string }[]
+    readonly { id: EditorViewMode; label: string; icon: React.ReactNode }[]
   >(() => {
     if (!isPreviewable) return [];
     if (isHtmlFile) {
       return [
-        { id: "code", label: _("Code") },
-        { id: "preview", label: _("Preview") },
-        { id: "design", label: _("Design") },
+        { id: "code", label: _("Code"), icon: <CodeIcon className="size-4" /> },
+        { id: "preview", label: _("Preview"), icon: <EyeIcon className="size-4" /> },
+        { id: "design", label: _("Design"), icon: <PencilRulerIcon className="size-4" /> },
       ];
     }
     return [
-      { id: "code", label: _("Code") },
-      { id: "preview", label: _("Preview") },
+      { id: "code", label: _("Code"), icon: <CodeIcon className="size-4" /> },
+      { id: "preview", label: _("Preview"), icon: <EyeIcon className="size-4" /> },
     ];
   }, [isHtmlFile, isPreviewable]);
 
@@ -1102,7 +1102,7 @@ export const TextEditorApp: React.FC<TextEditorAppProps> = ({
             onClick={() => void handleSave()}
           />
           {availableModes.length > 0 && (
-            <Segmented value={viewMode} onChange={setViewMode} options={availableModes} />
+            <Segmented value={viewMode} onChange={setViewMode} options={availableModes} iconOnly />
           )}
           <DropdownMenu>
             <DropdownMenuTrigger

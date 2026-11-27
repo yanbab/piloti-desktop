@@ -19,6 +19,8 @@ import {
   CalculatorIcon as LucideCalculatorIcon,
   CameraIcon as LucideCameraIcon,
   CheckIcon as LucideCheckIcon,
+  CodeXmlIcon as LucideCodeXmlIcon,
+  PencilRulerIcon as LucidePencilRulerIcon,
   ChevronDownIcon as LucideChevronDownIcon,
   ChevronLeftIcon as LucideChevronLeftIcon,
   ChevronRightIcon as LucideChevronRightIcon,
@@ -92,6 +94,10 @@ function themed(name: SymbolicIconName, fallback: LucideIcon): LucideIcon {
   const Themed = (props: LucideProps) => <SymbolicIcon {...props} name={name} fallback={fallback} />;
   return Themed as unknown as LucideIcon;
 }
+
+// No symbolic counterpart in the icon themes.
+export const CodeIcon = LucideCodeXmlIcon;
+export const PencilRulerIcon = LucidePencilRulerIcon;
 
 export const AlertCircleIcon = themed("dialog-error", LucideAlertCircleIcon);
 export const AlertTriangleIcon = themed("dialog-warning", LucideAlertTriangleIcon);

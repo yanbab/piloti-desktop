@@ -1318,6 +1318,8 @@ export function IconGrid({
               />
             ) : (
               <span
+                data-slot="icon-label"
+                data-selected={selected || undefined}
                 className={cn(
                   "w-fit max-w-full shrink-0 rounded px-1.5 py-0.5 text-ui-body leading-[1.3] font-medium text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]",
                   compactHorizontal && "truncate",

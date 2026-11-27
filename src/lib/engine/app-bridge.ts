@@ -78,7 +78,7 @@ export function applyThemeToDocument(
   if (theme.fontSansFamily) {
     root.style.setProperty(
       "--font-ui",
-      `"${theme.fontSansFamily}", "Cantarell", system-ui, sans-serif`,
+      `"${theme.fontSansFamily}", "Adwaita Sans", "Cantarell", system-ui, sans-serif`,
     );
   }
   if (theme.fontMonoFamily) {

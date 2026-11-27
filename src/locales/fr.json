@@ -822,5 +822,9 @@
   "English (US)": "Anglais (US)",
   "Language & shortcut keys": "Langue et touches de raccourci",
   "Expand": "Développer",
-  "Collapse": "Réduire"
+  "Collapse": "Réduire",
+  "Workspace %s is empty": "L’espace de travail %s est vide",
+  "Startup services & testing": "Services au démarrage et tests",
+  "Web extensions & desktop plugins": "Extensions web et modules du bureau",
+  "General": "Général"
 }

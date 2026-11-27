@@ -34,16 +34,28 @@ export const ACCENT_COLORS: AccentColorOption[] = [
 
 /** The accent hex the UI uses (selections, sidebar items, tinted icons):
  *  a custom hex as is, otherwise the preset's value for the interface theme
- *  (what `--ui-accent` resolves to: Cupertino UI for Piloti and Cupertino, GNOME for Adwaita). */
+ *  (what `--ui-accent` resolves to: Cupertino UI for Piloti and Cupertino, GNOME for Adwaita).
+ *  Piloti gets its soft accent (`--ui-accent-soft`). */
 export function resolveUiAccentHex(
   accentColor: string | undefined,
   customAccentHex?: string,
   interfaceTheme?: string
 ): string {
   const custom = customAccentHex?.trim();
-  if (custom && /^#[0-9a-fA-F]{6}$/.test(custom)) return custom;
   const accent = ACCENT_COLORS.find((c) => c.id === accentColor) ?? ACCENT_COLORS[0];
-  return interfaceTheme === "adwaita" ? accent.adwaitaHex : accent.hex;
+  const hex =
+    custom && /^#[0-9a-fA-F]{6}$/.test(custom)
+      ? custom
+      : interfaceTheme === "adwaita" ? accent.adwaitaHex : accent.hex;
+  return (interfaceTheme || "piloti") === "piloti" ? softenAccentHex(hex) : hex;
+}
+
+/** The CSS `color-mix(in srgb, accent 80%, white)` of `--ui-accent-soft`. */
+function softenAccentHex(hex: string): string {
+  return `#${[1, 3, 5]
+    .map((i) => Math.round(parseInt(hex.slice(i, i + 2), 16) * 0.8 + 255 * 0.2))
+    .map((v) => v.toString(16).padStart(2, "0"))
+    .join("")}`;
 }
 
 export interface WallpaperOption {

@@ -68,6 +68,10 @@
   /* Menu corners follow their items: item radius + the 5px menu padding. */
   --ui-radius-box: calc(var(--ui-radius-control) + 5px);
   --ui-radius-window: 16px;
+
+  /* A lighter accent for large accented areas: selected sidebar rows, menu
+     highlights, selected icons and colored icons (`resolveUiAccentHex`). */
+  --ui-accent-soft: color-mix(in srgb, var(--ui-accent) 80%, white);
 }
 
 :root[data-interface-theme="piloti"].dark {
@@ -259,7 +263,7 @@
 /* ── Sidebar (28px items, item radius, 8px icon gap, 10px inset) ────────── */
 
 :root[data-interface-theme="piloti"] [data-slot="sidebar-nav"] {
-  gap: 0;
+  gap: 2px;
   padding-inline: 10px;
 }
 
@@ -328,6 +332,11 @@
   line-height: calc(16px * var(--piloti-font-scale, 1));
 }
 
+/* Neighbouring highlights never touch. */
+:root[data-interface-theme="piloti"] [role="menu"]:not([data-menu]) :is([role="menuitem"], [role="menuitemcheckbox"], [role="menuitemradio"]) + :is([role="menuitem"], [role="menuitemcheckbox"], [role="menuitemradio"]) {
+  margin-top: 1px;
+}
+
 /* Room for the check mark column, like macOS. */
 
 /* A check-mark column on the left only when the menu has check or radio
@@ -359,8 +368,9 @@
 
 :root[data-interface-theme="piloti"] [role="menu"] :is([role="menuitem"], [role="menuitemcheckbox"], [role="menuitemradio"]):is([data-highlighted], [data-popup-open], :hover):not([data-disabled], [aria-disabled="true"], :disabled),
 :root[data-interface-theme="piloti"] [data-slot="sidebar-item"][data-selected],
-:root[data-interface-theme="piloti"] [data-slot="sidebar-item-group"][data-selected] {
-  background-color: var(--ui-accent);
+:root[data-interface-theme="piloti"] [data-slot="sidebar-item-group"][data-selected],
+:root[data-interface-theme="piloti"] [data-slot="icon-label"][data-selected] {
+  background-color: var(--ui-accent-soft);
   color: #fff;
 }
 
@@ -397,7 +407,7 @@
 }
 
 :root[data-interface-theme="piloti"] [data-slot="control-row"]:is(:hover, :focus-visible):not(:disabled) {
-  background-color: var(--ui-accent);
+  background-color: var(--ui-accent-soft);
   color: #fff;
 }
 

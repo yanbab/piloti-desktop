@@ -13,11 +13,11 @@
   "SystemMonitorApp.tsx": 29,
   "TextEditorApp.tsx": 74,
   "XtermTerminalApp.tsx": 9,
-  "settings/AdvancedPane.tsx": 32,
   "settings/AppearancePane.tsx": 8,
   "settings/DisplaysPane.tsx": 13,
   "settings/DockPane.tsx": 11,
-  "settings/FontsPane.tsx": 37,
+  "settings/ExtensionsPane.tsx": 32,
+  "settings/FontsPane.tsx": 36,
   "settings/SecurityPane.tsx": 50,
   "settings/WallpaperPane.tsx": 60
 }

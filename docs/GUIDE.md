@@ -22,6 +22,11 @@ Also: [architecture](./ARCHITECTURE.md), [Linux](./LINUX.md), [API](./API.md),
   `@layer components`), usable without React. Done: button, switch, checkbox,
   input, window frame, grouped form, sidebar, menus, segmented control.
 
+- **Piloti soft accent.** `--ui-accent-soft` (80% accent, 20% white) fills
+  selected sidebar rows, menu highlights and selected icon labels; colored
+  icons are tinted with the same value (`resolveUiAccentHex`). Controls keep
+  `--ui-accent`.
+
 ## Piloti geometry
 
 Corners are concentric: outer radius = inner radius + gap, computed from tokens

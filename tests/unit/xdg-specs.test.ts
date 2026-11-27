@@ -94,7 +94,7 @@ describe("XDG specifications (Autostart, Recents XBEL, Globs2/Magic)", () => {
       "/usr/share/icons/hicolor/scalable/apps/piloti-devtools.svg"
     );
     expect(lookupXdgIconPath(index, "preferences-desktop", 64, 1)).toBe(
-      "/usr/share/icons/Papirus/64x64/apps/preferences-desktop.svg"
+      "/usr/share/icons/Piloti/scalable/apps/preferences-desktop.svg"
     );
     expect(lookupXdgIconPath(index, "user-trash", 64, 1)).toBe(
       "/usr/share/icons/Piloti/animated/places/user-trash.json"

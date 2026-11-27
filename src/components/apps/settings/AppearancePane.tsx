@@ -1,3 +1,4 @@
+import { isCloseOnLeft } from "@/components/ui/window";
 import * as React from "react";
 import { MonitorIcon, MoonIcon, SunIcon } from "@/components/ui/symbols";
 import {
@@ -34,8 +35,8 @@ export function AppearancePane() {
   const activeInterfaceTheme = settings.interfaceTheme || "piloti";
 
   const layoutRaw = (settings.windowButtonLayout ?? ":close").trim();
-  const isLeftPlacement =
-    layoutRaw.indexOf(":") > 0 && !layoutRaw.startsWith(":");
+  // GNOME writes e.g. "appmenu:close": only Close tells the side.
+  const isLeftPlacement = isCloseOnLeft(layoutRaw);
   const hasMinimize = layoutRaw.toLowerCase().includes("minimize");
   const hasMaximize = layoutRaw.toLowerCase().includes("maximize");
 

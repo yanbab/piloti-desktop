@@ -215,7 +215,7 @@ export const DEFAULT_SETTINGS: DesktopSettings = {
   syncGnomeSettings: true,
   preferGnomeControlCenter: false,
   hiddenGnomePanels: [...DEFAULT_HIDDEN_GNOME_PANELS],
-  fontSansFamily: "Cantarell",
+  fontSansFamily: "Adwaita Sans",
   fontMonoFamily: "Adwaita Mono",
   fontScale: 1,
   fontSansStyle: "regular",
@@ -982,7 +982,7 @@ export function useSettingsValue(options?: {
       "--font-ui",
       formatFontList(
         settings.fontSansFamily,
-        '"Cantarell", "Adwaita Sans", "Inter", system-ui, -apple-system, BlinkMacSystemFont, sans-serif'
+        '"Adwaita Sans", "Cantarell", "Inter", system-ui, -apple-system, BlinkMacSystemFont, sans-serif'
       )
     );
     root.style.setProperty(

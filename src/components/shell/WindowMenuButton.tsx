@@ -66,7 +66,7 @@ export const WindowMenuButton = React.memo(function WindowMenuButton({
         // A bare symbol in the sidebar icons' colour, focused window or not,
         // full when pressed or open. Sized like Close; mx-0.5
         // keeps it centred 23px from the edge, above the sidebar icons.
-        className="mx-0.5 flex size-6 shrink-0 cursor-default select-none items-center justify-center rounded-full text-[color-mix(in_oklab,var(--ui-label)_85%,transparent)] outline-none *:opacity-85 active:*:opacity-100 data-popup-open:*:opacity-100 focus-visible:outline-3 focus-visible:outline-solid focus-visible:outline-ui-accent/50 active:text-black data-popup-open:text-black dark:active:text-white dark:data-popup-open:text-white"
+        className="mx-0.5 flex size-6 shrink-0 cursor-default select-none items-center justify-center rounded-full text-[color-mix(in_oklab,var(--ui-label)_85%,transparent)] outline-none *:opacity-85 active:*:opacity-100 data-popup-open:*:opacity-100 active:text-black data-popup-open:text-black dark:active:text-white dark:data-popup-open:text-white"
       >
         <WindowMenuIcon windowId={windowId} />
       </DropdownMenuTrigger>

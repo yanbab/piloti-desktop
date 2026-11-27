@@ -113,6 +113,7 @@
   --ui-shadow-window-inactive: 0 0 0 1px rgb(0 0 0 / 0.1), 0 4px 14px rgb(0 0 0 / 0.1);
   --ui-window-rim: rgb(0 0 0 / 0.08);
   --ui-focus-ring: 0 0 0 2px color-mix(in srgb, var(--ui-accent) 50%, transparent);
+  --ui-accent-soft: var(--ui-accent);
 
   /* Official Libadwaita Corner Radii */
   --ui-radius-control: 6px;

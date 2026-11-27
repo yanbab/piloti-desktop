@@ -4,6 +4,8 @@ import { usePiloti } from "@/lib/engine/piloti";
 import {
   BellIcon,
   DockIcon as LucideDockIcon,
+  GlobeIcon,
+  PuzzleIcon,
   ImageIcon,
   KeyboardIcon,
   MonitorIcon,
@@ -41,6 +43,8 @@ import {
 } from "@/lib/engine/vfs-state";
 import { cn } from "@/lib/core/utils";
 import { AdvancedPane } from "./settings/AdvancedPane";
+import { ExtensionsPane } from "./settings/ExtensionsPane";
+import { SystemPane } from "./settings/SystemPane";
 import { AppearancePane } from "./settings/AppearancePane";
 import { DisplaysPane } from "./settings/DisplaysPane";
 import { DockPane } from "./settings/DockPane";
@@ -61,6 +65,8 @@ type SettingsPaneId =
   | "keyboard"
   | "security"
   | "wallpaper"
+  | "system"
+  | "extensions"
   | "advanced";
 
 const PANES: {
@@ -124,9 +130,21 @@ const PANES: {
     icon: <SymbolicIcon name="image-x-generic" fallback={ImageIcon} />,
   },
   {
+    id: "system",
+    label: "System",
+    subtitle: "Language",
+    icon: <GlobeIcon />,
+  },
+  {
+    id: "extensions",
+    label: "Extensions",
+    subtitle: "Web extensions & desktop plugins",
+    icon: <SymbolicIcon name="application-x-addon" fallback={PuzzleIcon} />,
+  },
+  {
     id: "advanced",
     label: "Advanced",
-    subtitle: "Language, extensions, plugins & testing",
+    subtitle: "Startup services & testing",
     icon: <SymbolicIcon name="applications-utilities" fallback={WrenchIcon} />,
   },
 ];
@@ -306,6 +324,8 @@ export function SettingsApp({
           {activePane === "notifications" && <NotificationsPane />}
           {activePane === "security" && <SecurityPane />}
           {activePane === "wallpaper" && <WallpaperPane />}
+          {activePane === "system" && <SystemPane />}
+          {activePane === "extensions" && <ExtensionsPane />}
           {activePane === "advanced" && <AdvancedPane />}
         </div>
       )}

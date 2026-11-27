@@ -18,9 +18,13 @@ Depends:
  ${misc:Depends}
 Recommends:
  xwayland-satellite,
+ fonts-adwaita,
+ fonts-noto-color-emoji,
  xdg-utils,
  dbus-user-session
 Suggests:
+ fonts-cantarell,
+ fonts-ubuntu,
  greetd,
  gnome-control-center,
  flatpak,

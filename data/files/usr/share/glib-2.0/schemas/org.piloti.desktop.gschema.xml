@@ -29,7 +29,7 @@
   </schema>
   <schema id="org.piloti.desktop.fonts" path="/org/piloti/desktop/fonts/">
     <key name="font-name" type="s">
-      <default>'Cantarell'</default>
+      <default>'Adwaita Sans'</default>
     </key>
     <key name="monospace-font-name" type="s">
       <default>'Adwaita Mono'</default>

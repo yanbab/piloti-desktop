@@ -18,4 +18,9 @@
    <rect x="15.3" y="17.25" width="2.2" height="2.2" rx="0.4"/>
   </g>
  </g>
+ <!-- Play badge, ringed to stand out from the accent tile -->
+ <circle style="opacity:0.2" cx="46" cy="47" r="16"/>
+ <circle style="fill:#ffffff" cx="46" cy="46" r="16"/>
+ <circle class="accent-darker" style="fill:#4877b1" cx="46" cy="46" r="13.5"/>
+ <path style="fill:#ffffff" stroke="#ffffff" stroke-width="2" stroke-linejoin="round" d="M 42,39.5 L 53,46 L 42,52.5 Z"/>
 </svg>
