@@ -14,10 +14,14 @@ import {
   discoverPlugins,
   injectPluginCss,
   loadPluginScript,
+  activatePluginModule,
   PLUGINS_REL_DIR,
   removePluginCss,
   syncManagedGtkCssFile,
 } from "@/lib/plugins/loader";
+import { BUNDLED_PLUGINS } from "@/lib/plugins/bundled";
+import { _ } from "@/lib/core/i18n";
+import { useCapabilities } from "@/hooks/use-capabilities";
 import { parseIniText, serializeIniText } from "@/lib/config/ini";
 import { getAppSetting, setAppSetting } from "@/lib/shell/app-settings";
 import { consumeLegacyLocalStorageValue } from "@/lib/engine-web/web-vfs";
@@ -112,6 +116,7 @@ export function PluginsProvider({
   getWindows?: () => unknown[];
 }) {
   const piloti = usePiloti();
+  const { systemServices } = useCapabilities();
   const { settings, updateSettings } = useSettings();
   const {
     openWebUrl,
@@ -569,7 +574,14 @@ export function PluginsProvider({
           }
         }
 
-        if (plugin.scriptPath && !safeMode) {
+        const bundled = plugin.scope === "system" ? BUNDLED_PLUGINS[plugin.id] : undefined;
+        if (plugin.scriptPath && !safeMode && bundled) {
+          await activatePluginModule(bundled, ctx, disposables);
+        } else if (plugin.scriptPath && !safeMode) {
+          // The shell's security policy on Linux refuses scripts read from disk.
+          if (systemServices) {
+            throw new Error(_("Can't run on Linux: only the scripts that come with Piloti do."));
+          }
           const res = await hostFiles(piloti).readText(plugin.scriptPath);
           const scriptText = res.match({
             Ok: (text) => text,
@@ -586,11 +598,12 @@ export function PluginsProvider({
         );
         return undefined;
       } catch (err) {
+        console.warn(`[Plugin:${plugin.id}] not loaded:`, err);
         disposePlugin(plugin.id);
         return err instanceof Error ? err.message : String(err);
       }
     },
-    [buildPluginContext, disposePlugin, piloti, safeMode]
+    [buildPluginContext, disposePlugin, piloti, safeMode, systemServices]
   );
 
   const syncPlugins = React.useCallback(

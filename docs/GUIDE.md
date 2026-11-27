@@ -49,7 +49,7 @@ in `piloti-macos.css`.
 | Popups (one at a time) | `lib/shell/popup-layer.ts` |
 | Floating windows | `lib/shell/{floating-window,pointer-drag}.ts`, `components/shell/PresentationOverlay.tsx` |
 | Window presentations | `lib/shell/window-presentation.ts`, `context/PluginsContext.tsx`, `lib/plugins/types.ts` |
-| Bundled plugins | `data/files/home/user/.config/piloti/plugins/` |
+| Bundled plugins | `data/files/usr/share/piloti/plugins/`; the demo-only example is in `data/files/home/user/.config/piloti/plugins/` |
 | Icon grid | `components/ui/icon-grid.tsx`, `lib/shell/{desktop-icons,drag-feedback}.ts` |
 | Folders tree | `components/ui/folder-tree-view.tsx`, `hooks/use-folder-tree.ts`, `lib/shell/folder-tree.ts` |
 | Item drag and drop | `lib/shell/{item-drop,drag-ghost,dock-pins}.ts` |

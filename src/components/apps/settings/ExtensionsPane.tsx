@@ -153,6 +153,147 @@ export function ExtensionsPane() {
   return (
     <GroupedForm>
       <GroupedFormSection>
+        <GroupedFormSectionTitle>{_("Extensions")}</GroupedFormSectionTitle>
+        <GroupedFormGroup>
+          <GroupedFormRow>
+            <GroupedFormRowLabel>
+              <GroupedFormRowTitle>
+                {_("Plugins Folder (~/.config/piloti/plugins/)")}
+              </GroupedFormRowTitle>
+              <GroupedFormRowDescription>
+                {pluginsSafeMode
+                  ? _("Safe mode active (?safe-mode=1): JS plugins are skipped.")
+                  : systemServices
+                    ? _("Drop a .css file or folder (manifest.json optional).")
+                    : _("Drop a .css file, .js file, or folder (manifest.json optional).")}
+              </GroupedFormRowDescription>
+            </GroupedFormRowLabel>
+            <GroupedFormRowControl className="flex flex-wrap items-center gap-1.5">
+              <Button
+                size="sm"
+                variant="secondary"
+                aria-label={_("Open Folder")}
+                title={_("Open Folder")}
+                className="size-7 p-0"
+                onClick={() =>
+                  launchApp("nautilus", {
+                    payload: `${VFS_HOME}/.config/piloti/plugins`,
+                    forceNew: true,
+                  })
+                }
+              >
+                <FolderOpenIcon className="size-3.5" />
+              </Button>
+              <Button
+                size="sm"
+                variant="secondary"
+                className="h-7 px-2 text-ui-body"
+                onClick={() => void createSamplePlugin("css")}
+              >
+                {_("Sample CSS")}
+              </Button>
+              {!systemServices && (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className="h-7 px-2 text-ui-body"
+                  onClick={() => void createSamplePlugin("js")}
+                >
+                  {_("Sample JS")}
+                </Button>
+              )}
+              <Button
+                size="sm"
+                variant="ghost"
+                className="size-7 p-0"
+                title={_("Refresh plugins")}
+                disabled={pluginsLoading}
+                onClick={() => void refreshPlugins()}
+              >
+                <RefreshCwIcon
+                  className={cn("size-3.5", pluginsLoading && "animate-spin")}
+                />
+              </Button>
+            </GroupedFormRowControl>
+          </GroupedFormRow>
+
+          {userPlugins.length === 0 ? (
+            <GroupedFormRow>
+              <GroupedFormRowLabel>
+                <GroupedFormRowTitle>
+                  {_("No User Plugins Found")}
+                </GroupedFormRowTitle>
+                <GroupedFormRowDescription>
+                  {systemServices
+                    ? _("Click Sample CSS above to create your first plugin.")
+                    : _("Click Sample CSS or Sample JS above to create your first plugin.")}
+                </GroupedFormRowDescription>
+              </GroupedFormRowLabel>
+            </GroupedFormRow>
+          ) : (
+            userPlugins.map((plugin) => {
+              const kindLabel =
+                plugin.stylePath && plugin.scriptPath
+                  ? "CSS + JS"
+                  : plugin.stylePath
+                    ? "CSS"
+                    : plugin.scriptPath
+                      ? "JS"
+                      : "Manifest";
+              return (
+                <GroupedFormRow key={plugin.id}>
+                  <GroupedFormRowLabel>
+                    <div className="flex items-center gap-2">
+                      <GroupedFormRowTitle>{plugin.name}</GroupedFormRowTitle>
+                      {plugin.scope === "system" && (
+                        <span className="rounded-ui-control bg-ui-accent/15 px-1.5 py-0.5 text-ui-caption font-medium text-ui-accent">
+                          {_("System")}
+                        </span>
+                      )}
+                      <span className="rounded-ui-control bg-black/6 px-1.5 py-0.5 text-ui-caption font-medium text-ui-label-secondary dark:bg-white/10">
+                        {kindLabel}
+                      </span>
+                      {plugin.version && (
+                        <span className="text-ui-small text-ui-label-secondary">
+                          v{plugin.version}
+                        </span>
+                      )}
+                    </div>
+                    <GroupedFormRowDescription>
+                      {plugin.error ? (
+                        <span className="text-destructive">{plugin.error}</span>
+                      ) : (
+                        plugin.description || plugin.entryPath
+                      )}
+                    </GroupedFormRowDescription>
+                  </GroupedFormRowLabel>
+                  <GroupedFormRowControl className="flex items-center gap-2">
+                    {plugin.enabled && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="size-7 p-0"
+                        title={_("Reload plugin")}
+                        onClick={() => void reloadPlugin(plugin.id)}
+                      >
+                        <RefreshCwIcon className="size-3.5" />
+                      </Button>
+                    )}
+                    <Switch
+                      checked={plugin.enabled}
+                      onCheckedChange={(checked) =>
+                        togglePlugin(plugin.id, checked)
+                      }
+                    />
+                  </GroupedFormRowControl>
+                </GroupedFormRow>
+              );
+            })
+          )}
+        </GroupedFormGroup>
+      </GroupedFormSection>
+
+      <GroupedFormSection>
         <GroupedFormSectionTitle>{_("Web extensions")}</GroupedFormSectionTitle>
         <GroupedFormGroup>
           <GroupedFormRow>
@@ -443,146 +584,6 @@ export function ExtensionsPane() {
           )}
         </GroupedFormGroup>
       </GroupedFormSection>
-
-      <GroupedFormSection>
-        <GroupedFormSectionTitle>{_("Desktop plugins")}</GroupedFormSectionTitle>
-        <GroupedFormGroup>
-          <GroupedFormRow>
-            <GroupedFormRowLabel>
-              <GroupedFormRowTitle>
-                {_("Plugins Folder (~/.config/piloti/plugins/)")}
-              </GroupedFormRowTitle>
-              <GroupedFormRowDescription>
-                {pluginsSafeMode
-                  ? _("Safe mode active (?safe-mode=1): JS plugins are skipped.")
-                  : _(
-                      "Drop a .css file, .js file, or folder (manifest.json optional)."
-                    )}
-              </GroupedFormRowDescription>
-            </GroupedFormRowLabel>
-            <GroupedFormRowControl className="flex flex-wrap items-center gap-1.5">
-              <Button
-                size="sm"
-                variant="secondary"
-                aria-label={_("Open Folder")}
-                title={_("Open Folder")}
-                className="size-7 p-0"
-                onClick={() =>
-                  launchApp("nautilus", {
-                    payload: `${VFS_HOME}/.config/piloti/plugins`,
-                    forceNew: true,
-                  })
-                }
-              >
-                <FolderOpenIcon className="size-3.5" />
-              </Button>
-              <Button
-                size="sm"
-                variant="secondary"
-                className="h-7 px-2 text-ui-body"
-                onClick={() => void createSamplePlugin("css")}
-              >
-                {_("Sample CSS")}
-              </Button>
-              <Button
-                size="sm"
-                variant="secondary"
-                className="h-7 px-2 text-ui-body"
-                onClick={() => void createSamplePlugin("js")}
-              >
-                {_("Sample JS")}
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                className="size-7 p-0"
-                title={_("Refresh plugins")}
-                disabled={pluginsLoading}
-                onClick={() => void refreshPlugins()}
-              >
-                <RefreshCwIcon
-                  className={cn("size-3.5", pluginsLoading && "animate-spin")}
-                />
-              </Button>
-            </GroupedFormRowControl>
-          </GroupedFormRow>
-
-          {userPlugins.length === 0 ? (
-            <GroupedFormRow>
-              <GroupedFormRowLabel>
-                <GroupedFormRowTitle>
-                  {_("No User Plugins Found")}
-                </GroupedFormRowTitle>
-                <GroupedFormRowDescription>
-                  {_(
-                    "Click Sample CSS or Sample JS above to create your first plugin."
-                  )}
-                </GroupedFormRowDescription>
-              </GroupedFormRowLabel>
-            </GroupedFormRow>
-          ) : (
-            userPlugins.map((plugin) => {
-              const kindLabel =
-                plugin.stylePath && plugin.scriptPath
-                  ? "CSS + JS"
-                  : plugin.stylePath
-                    ? "CSS"
-                    : plugin.scriptPath
-                      ? "JS"
-                      : "Manifest";
-              return (
-                <GroupedFormRow key={plugin.id}>
-                  <GroupedFormRowLabel>
-                    <div className="flex items-center gap-2">
-                      <GroupedFormRowTitle>{plugin.name}</GroupedFormRowTitle>
-                      {plugin.scope === "system" && (
-                        <span className="rounded-ui-control bg-ui-accent/15 px-1.5 py-0.5 text-ui-caption font-medium text-ui-accent">
-                          {_("System")}
-                        </span>
-                      )}
-                      <span className="rounded-ui-control bg-black/6 px-1.5 py-0.5 text-ui-caption font-medium text-ui-label-secondary dark:bg-white/10">
-                        {kindLabel}
-                      </span>
-                      {plugin.version && (
-                        <span className="text-ui-small text-ui-label-secondary">
-                          v{plugin.version}
-                        </span>
-                      )}
-                    </div>
-                    <GroupedFormRowDescription>
-                      {plugin.error ? (
-                        <span className="text-destructive">{plugin.error}</span>
-                      ) : (
-                        plugin.description || plugin.entryPath
-                      )}
-                    </GroupedFormRowDescription>
-                  </GroupedFormRowLabel>
-                  <GroupedFormRowControl className="flex items-center gap-2">
-                    {plugin.enabled && (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="size-7 p-0"
-                        title={_("Reload plugin")}
-                        onClick={() => void reloadPlugin(plugin.id)}
-                      >
-                        <RefreshCwIcon className="size-3.5" />
-                      </Button>
-                    )}
-                    <Switch
-                      checked={plugin.enabled}
-                      onCheckedChange={(checked) =>
-                        togglePlugin(plugin.id, checked)
-                      }
-                    />
-                  </GroupedFormRowControl>
-                </GroupedFormRow>
-              );
-            })
-          )}
-        </GroupedFormGroup>
-      </GroupedFormSection>
-
     </GroupedForm>
   );
 }

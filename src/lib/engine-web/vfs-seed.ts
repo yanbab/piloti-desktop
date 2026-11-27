@@ -178,6 +178,16 @@ export function topUpDefaults(entries: WebVfsEntry[], kv: KeyValueStorage | null
         addedDefaults = true;
       }
     }
+    // These moved to /usr/share/piloti/plugins: old demos' copies would shadow them.
+    for (const id of ["app-dark-mode", "aurora-drift", "picture-in-picture"]) {
+      const dir = `${VFS_HOME}/.config/piloti/plugins/${id}`;
+      for (let i = entries.length - 1; i >= 0; i -= 1) {
+        const path = entries[i]!.path;
+        if (path !== dir && !path.startsWith(`${dir}/`)) continue;
+        entries.splice(i, 1);
+        addedDefaults = true;
+      }
+    }
     // Bundled plugins ship with the shell (like /usr/share on native): keep
     // the demo's copies current, so updates and new plugins reach old demos.
     const pluginsPrefix = `${VFS_HOME}/.config/piloti/plugins/`;

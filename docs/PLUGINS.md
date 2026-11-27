@@ -3,6 +3,11 @@
 Plugins live in `~/.config/piloti/plugins/` (user) and
 `/usr/share/piloti/plugins/` (system). No build step.
 
+On Linux the shell only runs its own code, so JavaScript works in the plugins
+that ship with Piloti (built into the shell, `lib/plugins/bundled.ts`). Your own
+plugins can use CSS and manifest entries there; their scripts run in the browser
+demo only.
+
 | Form | Effect |
 |---|---|
 | `name.css` | stylesheet |

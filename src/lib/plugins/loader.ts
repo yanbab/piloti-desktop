@@ -329,6 +329,31 @@ export async function syncManagedGtkCssFile(
   await files.write(filePath, next);
 }
 
+export interface PluginModule {
+  activate?: (ctx: PilotiPluginContext) => unknown | Promise<unknown>;
+  deactivate?: () => unknown;
+}
+
+export async function activatePluginModule(
+  mod: PluginModule,
+  ctx: PilotiPluginContext,
+  disposables: Array<() => void>
+): Promise<void> {
+  if (typeof mod.deactivate === "function") {
+    const deactivate = mod.deactivate;
+    disposables.push(() => {
+      try {
+        deactivate();
+      } catch (err) {
+        console.error(`[Plugin:${ctx.pluginId}] deactivate error:`, err);
+      }
+    });
+  }
+  if (typeof mod.activate === "function") {
+    await mod.activate(ctx);
+  }
+}
+
 export async function loadPluginScript(
   scriptText: string,
   ctx: PilotiPluginContext,
@@ -337,23 +362,8 @@ export async function loadPluginScript(
   const blob = new Blob([scriptText], { type: "text/javascript" });
   const url = URL.createObjectURL(blob);
   try {
-    const mod = (await import(/* @vite-ignore */ url)) as {
-      activate?: (ctx: PilotiPluginContext) => unknown | Promise<unknown>;
-      deactivate?: () => unknown;
-    };
-    if (typeof mod.deactivate === "function") {
-      const deactivate = mod.deactivate;
-      disposables.push(() => {
-        try {
-          deactivate();
-        } catch (err) {
-          console.error(`[Plugin:${ctx.pluginId}] deactivate error:`, err);
-        }
-      });
-    }
-    if (typeof mod.activate === "function") {
-      await mod.activate(ctx);
-    }
+    const mod = (await import(/* @vite-ignore */ url)) as PluginModule;
+    await activatePluginModule(mod, ctx, disposables);
   } finally {
     URL.revokeObjectURL(url);
   }
