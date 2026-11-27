@@ -1,13 +1,6 @@
 import type { Piloti } from "@/lib/engine/piloti";
 import { KeymapChoice } from "@domicile-desktop/sdk/keymap-choice";
 import { tokenizeExec } from "@/lib/xdg/xdg-desktop-entry";
-import {
-  buildXdgIconThemeIndex,
-  loadXdgIconDataUrl,
-  lookupXdgIconPath,
-  lookupXdgSymbolicIconPath,
-} from "@/lib/xdg/xdg-icon-theme";
-import { hostFiles } from "@/lib/engine/host-files";
 import { runText } from "./exec";
 
 export interface GreeterUserAccount {
@@ -30,10 +23,6 @@ export interface GreeterSessionOption {
   exec: string;
   sessionType: "wayland" | "x11";
   desktopNames?: string;
-  /** The entry's `Icon` key: a theme icon name or an absolute path. */
-  icon?: string;
-  /** `icon` loaded from the icon theme, as a data URL. */
-  iconUrl?: string;
 }
 
 export interface GreeterRuntimeInfo {
@@ -156,7 +145,6 @@ export function parseSessionDesktopEntry(
   let comment = "";
   let exec = "";
   let desktopNames = "";
-  let icon = "";
   let hidden = false;
   let noDisplay = false;
 
@@ -176,7 +164,6 @@ export function parseSessionDesktopEntry(
     else if (key === "Comment" && !comment) comment = val;
     else if (key === "Exec" && !exec) exec = val;
     else if (key === "DesktopNames" && !desktopNames) desktopNames = val;
-    else if (key === "Icon" && !icon) icon = val;
     else if (key === "Hidden") hidden = val.toLowerCase() === "true";
     else if (key === "NoDisplay") noDisplay = val.toLowerCase() === "true";
   }
@@ -192,7 +179,6 @@ export function parseSessionDesktopEntry(
     exec,
     sessionType,
     desktopNames: desktopNames || undefined,
-    icon: icon || undefined,
   };
 }
 
@@ -268,32 +254,6 @@ export async function discoverGreeterUsers(
   }
 }
 
-/** Loads each session's `Icon`; one the theme lacks stays without `iconUrl`. */
-async function withSessionIcons(
-  piloti: Piloti,
-  sessions: GreeterSessionOption[]
-): Promise<GreeterSessionOption[]> {
-  if (!sessions.some((s) => s.icon)) return sessions;
-  try {
-    const files = hostFiles(piloti);
-    const index = await buildXdgIconThemeIndex(files, ["Piloti", "Adwaita", "hicolor"]);
-    return await Promise.all(
-      sessions.map(async (session) => {
-        const { icon } = session;
-        if (!icon) return session;
-        const path =
-          !icon.startsWith("/") && icon.endsWith("-symbolic")
-            ? lookupXdgSymbolicIconPath(index, icon)
-            : lookupXdgIconPath(index, icon, 32);
-        const iconUrl = path ? await loadXdgIconDataUrl(files, path).catch(() => undefined) : undefined;
-        return { ...session, iconUrl };
-      })
-    );
-  } catch {
-    return sessions;
-  }
-}
-
 /**
  * Discovers installed desktop sessions from `/usr/share/wayland-sessions`
  * and `/usr/share/xsessions`, prioritizing Piloti Desktop first.
@@ -324,7 +284,7 @@ export async function discoverGreeterSessions(
     }
   }
 
-  found.sort((a, b) => {
+  return found.sort((a, b) => {
     const aPiloti = a.id.toLowerCase().includes("piloti") ? 0 : 1;
     const bPiloti = b.id.toLowerCase().includes("piloti") ? 0 : 1;
     if (aPiloti !== bPiloti) return aPiloti - bPiloti;
@@ -333,7 +293,6 @@ export async function discoverGreeterSessions(
     }
     return a.label.localeCompare(b.label);
   });
-  return withSessionIcons(piloti, found);
 }
 
 const GREETD_HELPER_PATHS = [

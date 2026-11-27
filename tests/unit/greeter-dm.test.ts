@@ -60,7 +60,6 @@ describe("Display Manager / greetd greeter backend", () => {
       "Exec=/usr/bin/piloti-session",
       "Type=Application",
       "DesktopNames=Piloti;GNOME;",
-      "Icon=piloti-desktop-symbolic",
     ].join("\n");
 
     const hiddenDesktop = [
@@ -78,7 +77,6 @@ describe("Display Manager / greetd greeter backend", () => {
       exec: "/usr/bin/piloti-session",
       sessionType: "wayland",
       desktopNames: "Piloti;GNOME;",
-      icon: "piloti-desktop-symbolic",
     });
     expect(parseSessionDesktopEntry("hidden.desktop", hiddenDesktop, "x11")).toBeNull();
 

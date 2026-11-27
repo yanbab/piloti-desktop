@@ -1,8 +1,0 @@
-<!-- Piloti symbol: a house on three pilotis (PilotiSymbolicIcon) -->
-<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2e3436" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-  <path class="foreground-stroke transparent-fill" d="M3 10.5L12 3l9 7.5"/>
-  <path class="foreground-stroke transparent-fill" d="M5 10v6h14v-6"/>
-  <rect class="foreground-fill" x="5.5" y="18.5" width="2.5" height="2.5" rx="0.5" fill="#2e3436" stroke="none"/>
-  <rect class="foreground-fill" x="10.75" y="18.5" width="2.5" height="2.5" rx="0.5" fill="#2e3436" stroke="none"/>
-  <rect class="foreground-fill" x="16" y="18.5" width="2.5" height="2.5" rx="0.5" fill="#2e3436" stroke="none"/>
-</svg>
