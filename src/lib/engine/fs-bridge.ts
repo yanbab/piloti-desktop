@@ -29,6 +29,7 @@ import {
   listVfsFavoriteEntries,
   syncVfsEmblemsFromHost,
   loadVfsFavorites,
+  liftVfsEmblems,
 } from "@/lib/engine-web/web-vfs";
 import {
   normalizeVfsPath,
@@ -309,6 +310,20 @@ export function announceRename(from: string, to: string): void {
   announceVfsRenamed(from, to);
 }
 
+/** Moves `from` to exactly `to`, its emblems with it. */
+export async function moveKeepingEmblems(
+  piloti: { vfs: Pick<Piloti["vfs"], "move"> },
+  from: string,
+  to: string,
+): Promise<void> {
+  const putEmblems = await liftVfsEmblems(from);
+  await piloti.vfs.move(from, to).catch(async (error: unknown) => {
+    await putEmblems(from);
+    throw error;
+  });
+  await putEmblems(to);
+}
+
 /** Renames in place; `null` if nothing was renamed (the name may be taken). */
 export async function renameFsEntry(
   piloti: Piloti,
@@ -320,8 +335,7 @@ export async function renameFsEntry(
   if (!name || name === baseName(from)) return null;
   const to = joinPath(parentPath(from), name);
   const kind = (await piloti.vfs.stat(from).catch(() => null))?.kind ?? "file";
-  return piloti.vfs
-    .move(from, to)
+  return moveKeepingEmblems(piloti, from, to)
     .then(() => {
       announceRename(from, to);
       const entry = entryFor(to, kind);
@@ -351,7 +365,7 @@ export async function moveFsEntry(
   try {
     const kind = (await piloti.vfs.stat(from))?.kind ?? "file";
     const to = joinPath(dir, uniqueName(await namesIn(piloti, dir), options.name ?? baseName(from)));
-    await piloti.vfs.move(from, to);
+    await moveKeepingEmblems(piloti, from, to);
     announceRename(from, to);
     const entry = entryFor(to, kind);
     vfsCache.moved(from, entry);
@@ -398,8 +412,14 @@ const trashInfoNames = async (piloti: Piloti) =>
  */
 export async function trashFsEntry(piloti: Piloti, path: string): Promise<string | null> {
   const from = normalizeVfsPath(path);
+  const putEmblems = await liftVfsEmblems(from);
   try {
-    const where = await trashFsEntryNow(piloti, from);
+    const where = await trashFsEntryNow(piloti, from).catch(async (error: unknown) => {
+      await putEmblems(from);
+      throw error;
+    });
+    // They wait in the Trash for a restore.
+    await putEmblems(where);
     vfsCache.removed(from);
     return where;
   } catch (error) {
@@ -444,9 +464,15 @@ export async function restoreFsEntry(
 ): Promise<WebVfsEntry | null> {
   const from = normalizeVfsPath(trashPath);
   const kind = (await piloti.vfs.stat(from).catch(() => null))?.kind ?? "file";
+  const putEmblems = await liftVfsEmblems(from);
   return piloti.vfs
     .restore(from)
-    .then((path) => {
+    .catch(async (error: unknown) => {
+      await putEmblems(from);
+      throw error;
+    })
+    .then(async (path) => {
+      await putEmblems(path);
       const entry = entryFor(path, kind);
       vfsCache.moved(from, entry);
       trashChanged();
@@ -467,7 +493,12 @@ export async function removeFsFile(
   filePath: string,
 ): Promise<void> {
   const path = normalizeVfsPath(filePath);
-  await piloti.vfs.remove(path);
+  const putEmblems = await liftVfsEmblems(path);
+  await piloti.vfs.remove(path).catch(async (error: unknown) => {
+    await putEmblems(path);
+    throw error;
+  });
+  await putEmblems(null);
   vfsCache.removed(path);
 }
 

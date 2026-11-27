@@ -64,7 +64,10 @@ async function boot(root: HTMLElement, piloti: Parameters<ShellModule>[1]) {
       ]);
       nativeVfs = createNativeVfs(piloti);
       const finishKv = startBootPhase("saved key/values");
-      const kv = await createNativeKeyValueStorage(nativeVfs, (key) => key === vfs.WEB_VFS_STORAGE_KEY);
+      // Emblems are read from `gio` as folders are listed. Only the favorites are
+      // saved: `gio` can't say which files have one.
+      const mirrored = [vfs.WEB_VFS_STORAGE_KEY, vfs.VFS_EMBLEMS_STORAGE_KEY];
+      const kv = await createNativeKeyValueStorage(nativeVfs, (key) => mirrored.includes(key));
       finishKv();
       vfs.setVfsPersistence({
         kv,
@@ -73,7 +76,7 @@ async function boot(root: HTMLElement, piloti: Parameters<ShellModule>[1]) {
       });
       // Emblems (favorites included) live in the file's gio `metadata::emblems`, like other file managers.
       vfs.setVfsEmblemPersist((path, names) =>
-        void setEmblems(piloti.processes, path, names, vfs.MANAGED_GNOME_EMBLEMS),
+        setEmblems(piloti.processes, path, names, vfs.MANAGED_GNOME_EMBLEMS),
       );
       const finishPreload = startBootPhase("saved state files");
       const { mergeConfigDirs } = await import("@/lib/engine/system-commands");

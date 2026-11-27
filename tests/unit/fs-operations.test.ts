@@ -1,6 +1,14 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { nativeEngine, setEngine, webEngine } from "@/lib/engine/engine";
-import { subscribeVfsRenamed } from "@/lib/engine-web/web-vfs";
+import {
+  getVfsEmblems,
+  setVfsEmblem,
+  setVfsEmblemPersist,
+  setVfsPersistence,
+  subscribeVfsRenamed,
+} from "@/lib/engine-web/web-vfs";
+import { browserPersistence } from "@/lib/engine-web/vfs-persistence-browser";
+import { memoryPersistence } from "@/lib/ports/vfs-persistence";
 import {
   copyFsEntry,
   importFsFiles,
@@ -66,6 +74,37 @@ describe("file operations on a real disk", () => {
     expect(await moveFsEntry(piloti, `${D}/sub`, `${D}/sub`)).toBeNull();
     expect((await listFsDir(piloti, D)).map((e) => e.name).sort()).toEqual(["b.txt", "sub"]);
     expect(await readFsTextFile(piloti, `${D}/none`)).toBe("");
+  });
+
+  // GVfs keys emblems by path, and `mv` would leave them on the old one.
+  test("emblems follow rename, move and trash", async () => {
+    const disk = new Map<string, string[]>();
+    setVfsPersistence({ ...memoryPersistence(), persistEntries: false });
+    setVfsEmblemPersist((path, names) => void (names.length ? disk.set(path, names) : disk.delete(path)));
+    try {
+      await piloti.vfs.write(`${D}/sub/a.txt`, "A");
+      setVfsEmblem(`${D}/sub`, "work", true);
+      setVfsEmblem(`${D}/sub/a.txt`, "important", true);
+      await renameFsEntry(piloti, `${D}/sub`, "new");
+      expect([...disk.keys()].sort()).toEqual([`${D}/new`, `${D}/new/a.txt`]);
+      expect(getVfsEmblems(`${D}/new/a.txt`)).toEqual(["important"]);
+      expect(getVfsEmblems(`${D}/sub/a.txt`)).toEqual([]);
+      await moveFsEntry(piloti, `${D}/new/a.txt`, D);
+      expect(disk.get(`${D}/a.txt`)).toEqual(["emblem-important"]);
+      expect(disk.has(`${D}/new/a.txt`)).toBe(false);
+      // A refused rename leaves them where they are.
+      await piloti.vfs.write(`${D}/b.txt`, "B");
+      expect(await renameFsEntry(piloti, `${D}/a.txt`, "b.txt")).toBeNull();
+      expect(disk.get(`${D}/a.txt`)).toEqual(["emblem-important"]);
+      await trashWithUndo({ piloti }, [`${D}/a.txt`]);
+      expect(getVfsEmblems(`${D}/a.txt`)).toEqual([]);
+      await undoFileOperation();
+      expect(getVfsEmblems(`${D}/a.txt`)).toEqual(["important"]);
+      expect(disk.get(`${D}/a.txt`)).toEqual(["emblem-important"]);
+    } finally {
+      setVfsEmblemPersist(null);
+      setVfsPersistence(browserPersistence());
+    }
   });
 
   test("move and rename undo and redo", async () => {

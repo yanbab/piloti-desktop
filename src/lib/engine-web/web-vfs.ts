@@ -897,6 +897,42 @@ function migrateVfsEmblemsPrefix(
   }
 }
 
+/**
+ * For a file about to be renamed, moved or deleted on a real disk. GVfs keys
+ * emblems by path and a plain move leaves them behind, so they are taken off
+ * before and put back by the returned function, at the new path (or the old one
+ * if nothing moved; `null` drops them). The browser VFS moves its own.
+ */
+export async function liftVfsEmblems(rawPath: string): Promise<(to: string | null) => Promise<void>> {
+  const persist = emblemPersist;
+  if (!persist) return async () => undefined;
+  const from = normalizeVfsPath(rawPath);
+  const lifted = Object.entries(loadVfsEmblemsMap()).filter(
+    ([path]) => path === from || path.startsWith(`${from}/`),
+  );
+  const write = (path: string, emblems: readonly VfsEmblemId[]) => {
+    emblemLocalWrites.set(path, Date.now());
+    return persist(path, emblems.map(toGnomeEmblemName));
+  };
+  for (const [path] of lifted) await write(path, []);
+  return async (to) => {
+    if (lifted.length === 0) return;
+    const target = to === null ? null : normalizeVfsPath(to);
+    const map = loadVfsEmblemsMap();
+    const changed: string[] = [];
+    for (const [path, emblems] of lifted) {
+      delete map[path];
+      changed.push(path);
+      if (target === null) continue;
+      const next = `${target}${path.slice(from.length)}`;
+      map[next] = emblems;
+      changed.push(next);
+      await write(next, emblems);
+    }
+    saveVfsEmblemsMap(map, true, changed);
+  };
+}
+
 export function getVfsEmblems(rawPath: string): VfsEmblemId[] {
   const norm = normalizeVfsPath(rawPath);
   return loadVfsEmblemsMap()[norm] ?? [];
@@ -906,7 +942,7 @@ export function hasVfsEmblem(rawPath: string, emblem: VfsEmblemId): boolean {
   return getVfsEmblems(rawPath).includes(emblem);
 }
 
-type EmblemPersist = (path: string, gnomeNames: string[]) => void;
+type EmblemPersist = (path: string, gnomeNames: string[]) => void | Promise<void>;
 let emblemPersist: EmblemPersist | null = null;
 const emblemLocalWrites = new Map<string, number>();
 const EMBLEM_LOCAL_GRACE_MS = 5000;

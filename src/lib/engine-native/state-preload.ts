@@ -6,9 +6,9 @@ const KV_DIR = `${VFS_HOME}/.local/state/piloti/kv`;
 
 /**
  * The VFS keeps a few small keyed values besides its entry cache (emblems,
- * favorites). On native they must outlive the session, so they live as files in
- * `~/.local/state/piloti/kv/` — except the keys named by `memoryOnly`, such as
- * the entry cache itself, which mirrors the disk and is rebuilt from it.
+ * favorites). Those that must outlive the session live as files in
+ * `~/.local/state/piloti/kv/` — except the keys named by `memoryOnly`, which
+ * mirror the disk (the entry cache, each file's emblems) and are rebuilt from it.
  */
 export async function createNativeKeyValueStorage(
   vfs: Pick<Vfs, "list" | "readText" | "write" | "remove" | "createDir">,
@@ -18,7 +18,7 @@ export async function createNativeKeyValueStorage(
   const listed = await vfs.list(KV_DIR).catch(() => null);
   await Promise.all(
     (listed ?? [])
-      .filter((e) => e.kind === "file")
+      .filter((e) => e.kind === "file" && !memoryOnly(e.name))
       .map(async (e) => {
         const text = await vfs.readText(`${KV_DIR}/${e.name}`).catch(() => null);
         if (text !== null) map.set(e.name, text);

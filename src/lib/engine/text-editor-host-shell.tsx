@@ -8,7 +8,7 @@ import {
 import { readVfsStateJson, writeVfsStateJson } from "@/lib/engine/vfs-state";
 import { normalizeVfsPath } from "@/lib/core/vfs-paths";
 import { subscribeVfsRenamed } from "@/lib/engine-web/web-vfs";
-import { announceRename } from "@/lib/engine/fs-bridge";
+import { announceRename, moveKeepingEmblems } from "@/lib/engine/fs-bridge";
 import { VFS_HOME } from "@/lib/engine/vfs-home";
 import { emitShellEvent, onShellEvent } from "@/lib/shell/shell-events";
 
@@ -20,7 +20,8 @@ const stateFile = (key: string) => `${VFS_HOME}/.local/state/piloti/${key}.json`
 
 export function createInShellEditorHost(piloti: Piloti): TextEditorHost {
   return {
-    vfs: piloti.vfs,
+    // The title rename keeps the file's emblems, as Folders does.
+    vfs: { ...piloti.vfs, move: (from, to) => moveKeepingEmblems(piloti, from, to) },
     normalizePath: normalizeVfsPath,
     defaultNewFilePath: (name) => `${VFS_HOME}/Desktop/${name}`,
     onRenamed: subscribeVfsRenamed,
