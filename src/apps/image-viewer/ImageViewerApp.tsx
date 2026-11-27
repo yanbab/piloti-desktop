@@ -18,7 +18,7 @@ import { cn } from "@/lib/core/utils";
 import { normalizeVfsPath } from "@/lib/core/vfs-paths";
 import { renameFsEntry } from "@/lib/engine/fs-bridge";
 import { pathAfterRename } from "@/lib/ports/vfs";
-import { subscribeVfsRenamed } from "@/lib/engine-web/web-vfs";
+import { subscribeRenames } from "@/lib/engine/renames";
 
 export interface ImageViewerAppProps {
   initialPath?: string;
@@ -414,7 +414,7 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
 
   React.useEffect(() => {
     if (!isRenameableVfsFile) return;
-    return subscribeVfsRenamed(({ oldPath, newPath }) => {
+    return subscribeRenames(({ oldPath, newPath }) => {
       const from = normalizeVfsPath(activePath);
       const to = pathAfterRename(from, normalizeVfsPath(oldPath), normalizeVfsPath(newPath));
       if (to) {

@@ -47,6 +47,9 @@ UI (React)  ─►  piloti: Domicile's desktop + vfs, settings, desktop…
   through symlinks. `watch` calls once when in place, then on changes. On Linux it
   watches folders only (not recursive), shared and capped: inotify is scarce.
 - `engine/fs-bridge.ts` adds naming rules and listings for Folders and Desktop.
+- Renames are announced on `engine/renames.ts`; emblems go through
+  `engine/emblems.ts`. What only the demo does with files (open as a page, zip,
+  download) is behind `ports/demo-files.ts`, set by `piloti-web.tsx`.
 - `web-vfs.ts` (localStorage + IndexedDB) is the demo's storage. On Linux the disk
   is the only copy of files.
 - Config and state are the exception held in memory, read through

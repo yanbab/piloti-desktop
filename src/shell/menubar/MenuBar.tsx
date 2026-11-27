@@ -73,7 +73,6 @@ import {
 } from "@/shell/menubar/menu-commands";
 import { buildAppHelpLinks } from "@/shell/menubar/app-help-links";
 import { captureLaunchOriginFromElement } from "@/lib/windows/launch-origin";
-import { buildVfsEntryWebAppUrl, getVfsEntry } from "@/lib/engine-web/web-vfs";
 import { ControlPanel, FloatingNotifications } from "./ControlPanel";
 import { KeyboardLayoutSwitcher } from "@/shell/session/KeyboardLayoutSwitcher";
 import { selectKeymap } from "@/lib/engine/keyboard";

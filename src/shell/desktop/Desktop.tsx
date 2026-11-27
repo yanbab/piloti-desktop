@@ -84,7 +84,6 @@ import { installConsoleCapture } from "@/lib/core/console-store";
 import { _ } from "@/lib/core/i18n";
 import { bootElapsedMs, logBootEvent } from "@/lib/core/perf-log";
 import { getVfsClipboard, subscribeVfsClipboard } from "@/lib/core/vfs-clipboard";
-import { listVfsTemplates } from "@/lib/engine-web/web-vfs";
 import { useTemplatesDirPath } from "@/hooks/use-desktop-dir";
 import { type WebVfsEntry } from "@/lib/core/vfs-paths";
 import { listFsTemplates } from "@/lib/engine/fs-bridge";
@@ -154,7 +153,7 @@ function DesktopSurface() {
   const templatesDir = useTemplatesDirPath();
   const templates =
     useVfsQuery(vfsKeys.templates(templatesDir), templatesDir, () =>
-      systemServices ? listFsTemplates(piloti, templatesDir) : Promise.resolve(listVfsTemplates()),
+      listFsTemplates(piloti, templatesDir),
     ).data ?? NO_TEMPLATES;
 
   const brightnessFilter =

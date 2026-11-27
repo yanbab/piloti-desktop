@@ -2,12 +2,7 @@ import { getEngine } from "@/lib/engine/engine";
 import * as React from "react";
 import { usePiloti } from "@/lib/engine/piloti";
 import { useApps, useWindowActions } from "@/context/DesktopStateContext";
-import {
-  buildVfsEntryWebAppUrl,
-  extractVfsZip,
-  getVfsEntry,
-  incrementVfsAccessCount,
-} from "@/lib/engine-web/web-vfs";
+import { demoFiles } from "@/lib/ports/demo-files";
 import { type WebVfsEntry } from "@/lib/core/vfs-paths";
 import { launchDesktopCommand } from "@/lib/engine/system-commands";
 import { recordFsRecentFile } from "@/lib/engine/fs-bridge";
@@ -83,7 +78,7 @@ export function useOpenPath() {
           launchApp("nautilus", { payload: action.path, forceNew: true });
           return;
         case "app": {
-          const entry = realFilesystem ? undefined : getVfsEntry(action.path);
+          const entry = realFilesystem ? undefined : demoFiles().entry(action.path);
           if (action.appId === "browser" || action.appId === "web-browser") {
             return perform({ type: "web-file", path: action.path }, options);
           }
@@ -91,7 +86,7 @@ export function useOpenPath() {
             launchApp("nautilus", { payload: action.path, forceNew: true });
             return;
           }
-          if (entry?.kind === "file") incrementVfsAccessCount(entry.path);
+          if (entry?.kind === "file") demoFiles().recordAccess(entry.path);
           launchApp(action.appId, { payload: action.path, forceNew: action.appId !== "app-store" });
           return;
         }
@@ -109,7 +104,7 @@ export function useOpenPath() {
           return;
         case "extract":
           if (!systemServices) {
-            const folder = await extractVfsZip(action.path);
+            const folder = await demoFiles().extract(action.path);
             if (folder) options.onExtracted?.(folder);
           } else {
             launchDesktopCommand(piloti, ["xdg-open", action.path]);
@@ -123,14 +118,9 @@ export function useOpenPath() {
             launchDesktopCommand(piloti, ["xdg-open", action.path]);
             return;
           }
-          const entry = getVfsEntry(action.path);
+          const entry = demoFiles().entry(action.path);
           if (!entry || entry.kind !== "file") return;
-          const url =
-            entry.name.toLowerCase().endsWith(".pdf") &&
-            entry.content?.trimStart().startsWith("%PDF-")
-              ? URL.createObjectURL(new Blob([entry.content], { type: "application/pdf" }))
-              : buildVfsEntryWebAppUrl(entry);
-          openWebUrl(url, { asApp: true, appId: `file:${entry.path}`, title: entry.name });
+          openWebUrl(demoFiles().pageUrl(entry), { asApp: true, appId: `file:${entry.path}`, title: entry.name });
           return;
         }
       }
@@ -140,7 +130,7 @@ export function useOpenPath() {
 
   const openPathInternal = React.useCallback(
     async (path: string, options: OpenPathOptions): Promise<void> => {
-      const vfsEntry = realFilesystem ? undefined : getVfsEntry(path);
+      const vfsEntry = realFilesystem ? undefined : demoFiles().entry(path);
       // Browser VFS symlinks have no children of their own: open what they point to.
       if (vfsEntry?.isSymlink && vfsEntry.symlinkTarget && vfsEntry.symlinkTarget !== path) {
         return openPathInternal(vfsEntry.symlinkTarget, { ...options, kind: undefined, name: undefined });
@@ -175,8 +165,8 @@ export function useOpenPath() {
   const openPathWith = React.useCallback(
     (path: string, app: MimeAppOption, options: OpenPathOptions = {}) => {
       const action = actionForApp(app, path);
-      const entry = realFilesystem ? undefined : getVfsEntry(path);
-      if (entry?.kind === "file" && action.type !== "xdg") incrementVfsAccessCount(path);
+      const entry = realFilesystem ? undefined : demoFiles().entry(path);
+      if (entry?.kind === "file" && action.type !== "xdg") demoFiles().recordAccess(path);
       return perform(action, options);
     },
     [realFilesystem, perform],

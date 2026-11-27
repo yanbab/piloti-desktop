@@ -61,12 +61,7 @@ import {
 } from "@/lib/files/desktop-icons";
 import { _ } from "@/lib/core/i18n";
 import { cn } from "@/lib/core/utils";
-import {
-  loadVfsEmblemsMap,
-  subscribeWebVfs,
-  VFS_EMBLEM_META,
-  type VfsEmblemId,
-} from "@/lib/engine-web/web-vfs";
+import { EMBLEM_META, loadEmblemsMap, subscribeEmblems, type EmblemId } from "@/lib/engine/emblems";
 import { importFsFiles } from "@/lib/engine/fs-bridge";
 import { recordCreated } from "@/lib/engine/fs-undo";
 import { usePiloti } from "@/lib/engine/piloti";
@@ -272,11 +267,10 @@ export function IconGrid({
     }
   }, [openFilePaths]);
   const [emblemsMap, setEmblemsMap] = React.useState<
-    Record<string, VfsEmblemId[]>
-  >(() => loadVfsEmblemsMap());
+    Record<string, EmblemId[]>
+  >(() => loadEmblemsMap());
   React.useEffect(() => {
-    return subscribeWebVfs(() => {
-      const next = loadVfsEmblemsMap();
+    return subscribeEmblems((next) => {
       // Keep the same object when unchanged so the whole grid doesn't re-render.
       setEmblemsMap((prev) =>
         JSON.stringify(prev) === JSON.stringify(next) ? prev : next,
@@ -1204,7 +1198,7 @@ export function IconGrid({
                   {(emblemsMap[item.path] ?? [])
                     .filter((emblemId) => !(onToggleFavorite && emblemId === "favorite"))
                     .map((emblemId, emblemIdx) => {
-                    const meta = VFS_EMBLEM_META[emblemId];
+                    const meta = EMBLEM_META[emblemId];
                     const overlapStyle =
                       emblemIdx > 0
                         ? { marginTop: `-${emblemStackOverlap}px` }

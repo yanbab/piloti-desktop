@@ -85,19 +85,15 @@ import {
   buildVfsEntryWebAppUrl,
   downloadVfsFile,
   duplicateVfsEntry,
-  getVfsEmblems,
   incrementVfsAccessCount,
   isTextEditableVfsFile,
   listVfsFavoriteEntries,
   listVfsRecentEntries,
-  listVfsTemplates,
   subscribeWebVfs,
-  toggleVfsEmblem,
-  VFS_EMBLEM_META,
-  type VfsEmblemId,
   WEB_VFS_FAVORITES_URI,
   WEB_VFS_RECENTS_URI,
 } from "@/lib/engine-web/web-vfs";
+import { EMBLEM_META, getEmblems, toggleEmblem, type EmblemId } from "@/lib/engine/emblems";
 import { getVfsClipboard, setVfsClipboard, subscribeVfsClipboard } from "@/lib/core/vfs-clipboard";
 import { isImageVfsFile, isZipVfsFile } from "@/lib/core/vfs-media";
 import { normalizeVfsPath, WEB_VFS_HOME, WEB_VFS_TRASH, type WebVfsEntry } from "@/lib/core/vfs-paths";
@@ -276,7 +272,7 @@ export function FilesApp({
   // Direct manipulation: the heart on an icon or list row (de)favorites it.
   const toggleFavoriteItem = React.useCallback((item: IconGridItem) => {
     if (!item.path || item.kind === "desktop-entry") return;
-    toggleVfsEmblem(item.path, "favorite");
+    toggleEmblem(item.path, "favorite");
   }, []);
   const [viewMode, setViewMode] = React.useState<"grid" | "list" | "desktop">("grid");
   // "manual": free placement like the desktop (Sort Manually).
@@ -326,7 +322,7 @@ export function FilesApp({
   const templatesDir = useTemplatesDirPath();
   const templates =
     useVfsQuery(vfsKeys.templates(templatesDir), templatesDir, () =>
-      realFilesystem ? listFsTemplates(piloti, templatesDir) : Promise.resolve(listVfsTemplates()),
+      listFsTemplates(piloti, templatesDir),
     ).data ?? NO_ENTRIES;
   const refreshVfs = useVfsRefresh();
 
@@ -1577,7 +1573,7 @@ export function FilesApp({
           inspectedItem?.path ??
           (!isVirtualView && !isTrashView ? currentPath : undefined);
         const inspectedEmblems = inspectedPath
-          ? getVfsEmblems(inspectedPath)
+          ? getEmblems(inspectedPath)
           : [];
         const displayName = inspectedItem?.name ?? _(currentTitle);
         const displayKind = inspectedItem
@@ -1601,7 +1597,7 @@ export function FilesApp({
               getLocale() === "fr" ? "fr-FR" : getLocale() === "es" ? "es-ES" : "en-US",
             )
           : "—";
-        const emblemOrder: readonly VfsEmblemId[] = [
+        const emblemOrder: readonly EmblemId[] = [
           "favorite",
           "important",
           "work",
@@ -1665,7 +1661,7 @@ export function FilesApp({
                   <dt className="mb-1 text-ui-dim">{_("Tags")}</dt>
                   <dd className="flex flex-wrap gap-1">
                     {emblemOrder.map((emblem) => {
-                      const meta = VFS_EMBLEM_META[emblem];
+                      const meta = EMBLEM_META[emblem];
                       const active = inspectedEmblems.includes(emblem);
                       const Icon =
                         emblem === "favorite"
@@ -1681,7 +1677,7 @@ export function FilesApp({
                           type="button"
                           aria-pressed={active}
                           onClick={() => {
-                            toggleVfsEmblem(inspectedPath, emblem);
+                            toggleEmblem(inspectedPath, emblem);
                             reloadDir();
                           }}
                           className={cn(
@@ -1929,7 +1925,7 @@ export function FilesApp({
             selectedIds={selectedIds}
             onSelectIds={setSelectedIds}
             openFilePaths={openFilePaths}
-            emblemsOf={(item) => getVfsEmblems(item.path)}
+            emblemsOf={(item) => getEmblems(item.path)}
             onToggleFavorite={toggleFavoriteItem}
             renamingId={renamingId}
             onCommitRename={handleCommitRename}

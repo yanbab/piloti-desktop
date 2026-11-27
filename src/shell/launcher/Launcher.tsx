@@ -49,7 +49,7 @@ import { startPointerDrag } from "@/lib/dnd/pointer-drag";
 
 /** Height of the menu bar above the floating area. */
 const MENU_BAR_HEIGHT = 30;
-import { consumeLegacyLocalStorageValue } from "@/lib/engine-web/web-vfs";
+import { consumeLegacyLocalStorageValue } from "@/lib/engine/vfs-state";
 import {
   readVfsStateJson,
   VFS_STATE_PATHS,

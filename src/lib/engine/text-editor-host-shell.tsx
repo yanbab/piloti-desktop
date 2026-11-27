@@ -7,7 +7,7 @@ import {
 } from "@/lib/config/piloti-ini";
 import { readVfsStateJson, writeVfsStateJson } from "@/lib/engine/vfs-state";
 import { normalizeVfsPath } from "@/lib/core/vfs-paths";
-import { subscribeVfsRenamed } from "@/lib/engine-web/web-vfs";
+import { subscribeRenames } from "@/lib/engine/renames";
 import { announceRename, moveKeepingEmblems } from "@/lib/engine/fs-bridge";
 import { VFS_HOME } from "@/lib/engine/vfs-home";
 import { emitShellEvent, onShellEvent } from "@/lib/core/shell-events";
@@ -24,7 +24,7 @@ export function createInShellEditorHost(piloti: Piloti): TextEditorHost {
     vfs: { ...piloti.vfs, move: (from, to) => moveKeepingEmblems(piloti, from, to) },
     normalizePath: normalizeVfsPath,
     defaultNewFilePath: (name) => `${VFS_HOME}/Desktop/${name}`,
-    onRenamed: subscribeVfsRenamed,
+    onRenamed: subscribeRenames,
     moved: announceRename,
     readState: (key, isValid) =>
       readVfsStateJson(stateFile(key), undefined, isValid),

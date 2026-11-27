@@ -10,6 +10,7 @@ import {
   subscribeWebVfs,
   writeVfsTextFile,
 } from "@/lib/engine-web/web-vfs";
+export { consumeLegacyLocalStorageValue };
 import { normalizeVfsPath } from "@/lib/core/vfs-paths";
 
 export const VFS_STATE_PATHS = {

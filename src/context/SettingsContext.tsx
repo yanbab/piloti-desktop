@@ -16,7 +16,7 @@ import {
   type InstalledWebApp,
 } from "@/data/web-apps";
 import { WEB_VFS_HOME } from "@/lib/core/vfs-paths";
-import { subscribeWebVfs } from "@/lib/engine-web/web-vfs";
+import { demoFiles } from "@/lib/ports/demo-files";
 import {
   readVfsStateJson,
   readVfsStateText,
@@ -864,10 +864,7 @@ export function useSettingsValue(options?: {
     window.addEventListener(XDG_WEBAPPS_CHANGED_EVENT, onXdgChanged);
     // Web app .desktop files only live here; ignore unrelated VFS writes.
     const unsubVfs = isBrowserRuntime  // FIXME : Capabilities
-      ? subscribeWebVfs(() => onXdgChanged(), {
-          path: `${WEB_VFS_HOME}/.local/share/applications`,
-          mode: "children",
-        })
+      ? demoFiles().watchFolder(`${WEB_VFS_HOME}/.local/share/applications`, onXdgChanged)
       : undefined;
     return () => {
       cancelled = true;

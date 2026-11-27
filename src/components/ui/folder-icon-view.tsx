@@ -2,7 +2,7 @@ import * as React from "react";
 import { IconGrid, type IconGridProps } from "@/components/ui/icon-grid";
 import { useDesktopSettings, useUpdateSettings } from "@/context/DesktopStateContext";
 import { useDesktopDirPath } from "@/hooks/use-desktop-dir";
-import { subscribeVfsRenamed } from "@/lib/engine-web/web-vfs";
+import { subscribeRenames } from "@/lib/engine/renames";
 import {
   clientPointToGridCell,
   computeGridMetrics,
@@ -147,7 +147,7 @@ export function FolderIconView({
   // A renamed icon keeps its cell.
   React.useEffect(() => {
     if (!spatial) return;
-    return subscribeVfsRenamed(({ oldPath, newPath }) => {
+    return subscribeRenames(({ oldPath, newPath }) => {
       const prefix = `${dirPath}/`;
       if (!oldPath.startsWith(prefix) || !newPath.startsWith(prefix)) return;
       const oldName = oldPath.slice(prefix.length);

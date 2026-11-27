@@ -1,4 +1,5 @@
 import { numberedName } from "@/lib/ports/vfs";
+import { announceRename } from "@/lib/engine/renames";
 import { parseDotHiddenFile } from "@/lib/core/file-types";
 import { VFS_EMBLEM_META, type VfsEmblemId } from "@/lib/core/emblems";
 export { isTextEditableVfsFile, parseDotHiddenFile } from "@/lib/core/file-types";
@@ -391,8 +392,9 @@ function installSyncHooks(): void {
     }),
   );
   syncTeardown.push(
-    sync.subscribe((_msg, remote) => {
+    sync.subscribe((msg, remote) => {
       if (remote) vfsCacheFresh = false;
+      if (msg.type === "renamed") announceRename(msg.oldPath, msg.newPath);
     }),
   );
 }
@@ -1289,19 +1291,6 @@ export function subscribeWebVfs(
     offMessages();
     offStorage();
   };
-}
-
-/** For a rename made on a real disk: the browser VFS announces its own. */
-export function announceVfsRenamed(oldPath: string, newPath: string): void {
-  sync.emit({ type: "renamed", oldPath, newPath });
-}
-
-export function subscribeVfsRenamed(
-  listener: (detail: { oldPath: string; newPath: string }) => void
-): () => void {
-  return sync.subscribe((msg) => {
-    if (msg.type === "renamed") listener({ oldPath: msg.oldPath, newPath: msg.newPath });
-  });
 }
 
 function escapeHtmlAttr(raw: string): string {

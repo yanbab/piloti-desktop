@@ -34,7 +34,8 @@ import {
   undoFileOperation,
 } from "@/lib/engine/fs-undo";
 import { usePiloti } from "@/lib/engine/piloti";
-import { downloadVfsFile, toggleVfsEmblem } from "@/lib/engine-web/web-vfs";
+import { toggleEmblem } from "@/lib/engine/emblems";
+import { demoFiles } from "@/lib/ports/demo-files";
 import { getVfsClipboard, setVfsClipboard, subscribeVfsClipboard } from "@/lib/core/vfs-clipboard";
 import { type WebVfsEntry } from "@/lib/core/vfs-paths";
 import { onShellEvent } from "@/lib/core/shell-events";
@@ -294,7 +295,7 @@ export function DesktopIconsApp({
         onActivateItem={handleActivateItem}
         onToggleFavorite={(item) => {
           if (item.path && item.kind !== "desktop-entry") {
-            toggleVfsEmblem(item.path, "favorite");
+            toggleEmblem(item.path, "favorite");
           }
         }}
         onContextMenuItem={(item, e) => {
@@ -356,7 +357,7 @@ export function DesktopIconsApp({
         }
         onExtract={archive.available ? (target) => archive.extract(target.path) : undefined}
         onDownload={
-          !realFilesystem ? (target) => downloadVfsFile(target.path) : undefined
+          !realFilesystem ? (target) => demoFiles().download(target.path) : undefined
         }
         canPaste={Boolean(clipboard && clipboard.paths.length > 0)}
         onPaste={ops.pasteClipboard}

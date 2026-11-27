@@ -52,7 +52,8 @@ import {
   clampWorkspace,
   resolveWaylandOuterConstraints,
 } from "@/lib/windows/window-bounds";
-import { buildVfsEntryWebAppUrl, getVfsEntry, isTextEditableVfsFile, subscribeVfsRenamed } from "@/lib/engine-web/web-vfs";
+import { subscribeRenames } from "@/lib/engine/renames";
+import { demoFiles } from "@/lib/ports/demo-files";
 import { pathAfterRename } from "@/lib/ports/vfs";
 import { isImageVfsFile } from "@/lib/core/vfs-media";
 import { type AppsContextValue, matchAppFromWayland } from "./AppsContext";
@@ -2128,7 +2129,7 @@ function pruneBrowserRecord(
   // A document window follows its file, so opening it again finds the window.
   React.useEffect(
     () =>
-      subscribeVfsRenamed(({ oldPath, newPath }) => {
+      subscribeRenames(({ oldPath, newPath }) => {
         if (combinedWindowsRef.current.some((w) => resolveAppModuleByUrl(w.browserUrl))) {
           void tellModulesMoved(piloti, oldPath, newPath).catch((error) =>
             console.warn("[Piloti] could not tell app modules about a move", error),
@@ -2883,17 +2884,17 @@ function pruneBrowserRecord(
       const filePath = (e as CustomEvent<{ path?: string }>).detail?.path;
       if (!filePath) return;
       if (isBrowserRuntime) {  // FIXME : Capabilities
-        const entry = getVfsEntry(filePath);
+        const entry = demoFiles().entry(filePath);
         if (entry && entry.kind === "file") {
           if (isImageVfsFile(entry.name, entry.content)) {
             launchApp("image-viewer", { payload: entry.path });
             return;
           }
-          if (isTextEditableVfsFile(entry.name)) {
+          if (demoFiles().isTextEditable(entry.name)) {
             launchApp("text-editor", { payload: entry.path });
             return;
           }
-          openWebUrl(buildVfsEntryWebAppUrl(entry), {
+          openWebUrl(demoFiles().pageUrl(entry), {
             asApp: true,
             appId: `file:${entry.path}`,
             title: entry.name,

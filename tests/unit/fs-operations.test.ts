@@ -1,3 +1,4 @@
+import { subscribeRenames } from "@/lib/engine/renames";
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { nativeEngine, setEngine, webEngine } from "@/lib/engine/engine";
 import {
@@ -5,7 +6,6 @@ import {
   setVfsEmblem,
   setVfsEmblemPersist,
   setVfsPersistence,
-  subscribeVfsRenamed,
 } from "@/lib/engine-web/web-vfs";
 import { browserPersistence } from "@/lib/engine-web/vfs-persistence-browser";
 import { memoryPersistence } from "@/lib/ports/vfs-persistence";
@@ -160,7 +160,7 @@ describe("renames on a real disk", () => {
   test("are announced", async () => {
     await piloti.vfs.write(`${D}/a.txt`, "x");
     const seen: string[] = [];
-    const stop = subscribeVfsRenamed(({ oldPath, newPath }) => seen.push(`${oldPath}>${newPath}`));
+    const stop = subscribeRenames(({ oldPath, newPath }) => seen.push(`${oldPath}>${newPath}`));
     await renameFsEntry(piloti, `${D}/a.txt`, "b.txt");
     stop();
     expect(seen).toEqual([`${D}/a.txt>${D}/b.txt`]);

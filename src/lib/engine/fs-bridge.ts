@@ -1,6 +1,5 @@
 import type { Piloti } from "@/lib/engine/piloti";
 import {
-  announceVfsRenamed,
   notifyVfsChanged,
   subscribeWebVfs as subscribeVfs,
   compressVfsEntries,
@@ -47,6 +46,7 @@ import { getEngine } from "@/lib/engine/engine";
 import { inferMimeType } from "@/lib/xdg/xdg-mimeapps";
 import { compressNative, extractNative } from "@/lib/engine-native/archive";
 import { listEmblems } from "@/lib/engine-native/gio";
+import { announceRename } from "@/lib/engine/renames";
 import { toDomicilePath } from "@/lib/engine-native/paths";
 import { baseName, joinPath, parentPath, uniqueName } from "@/lib/ports/vfs";
 import { queryClient } from "@/lib/engine/query-client";
@@ -303,12 +303,9 @@ export async function importFsFiles(
   return created;
 }
 
-/** Tells views that follow a file (desktop cells, open viewers) it has a new path. */
-export function announceRename(from: string, to: string): void {
-  // The demo's storage announces its own renames, but not its moves: a second
-  // announcement finds nothing left at `from`.
-  announceVfsRenamed(from, to);
-}
+// The demo's storage announces its own renames, but not its moves: a second
+// announcement finds nothing left at `from`.
+export { announceRename };
 
 /** Moves `from` to exactly `to`, its emblems with it. */
 export async function moveKeepingEmblems(

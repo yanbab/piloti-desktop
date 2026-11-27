@@ -24,7 +24,7 @@ import { _ } from "@/lib/core/i18n";
 import { useCapabilities } from "@/hooks/use-capabilities";
 import { parseIniText, serializeIniText } from "@/lib/config/ini";
 import { getAppSetting, setAppSetting } from "@/lib/core/app-settings";
-import { consumeLegacyLocalStorageValue } from "@/lib/engine-web/web-vfs";
+import { consumeLegacyLocalStorageValue } from "@/lib/engine/vfs-state";
 import {
   readVfsStateJson,
   readVfsStateText,

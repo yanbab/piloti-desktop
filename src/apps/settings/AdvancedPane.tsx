@@ -36,7 +36,6 @@ import {
   parseAutostartDesktopFile,
   type XdgAutostartEntry,
 } from "@/lib/xdg/xdg-autostart";
-import { listVfsDir, writeVfsTextFile } from "@/lib/engine-web/web-vfs";
 import { WEB_VFS_HOME } from "@/lib/core/vfs-paths";
 import { getEngine } from "@/lib/engine/engine";
 import {
@@ -61,14 +60,16 @@ export function AdvancedPane() {
   const loadAutostart = React.useCallback(async () => {
     const userDir = `${WEB_VFS_HOME}/.config/autostart`;
     if (!systemServices) {
-      const userFiles = listVfsDir(userDir).filter(
+      const userFiles = ((await piloti.vfs.list(userDir)) ?? []).filter(
         (e) => e.kind === "file" && e.name.endsWith(".desktop")
       );
-      const parsed = userFiles
-        .map((e) =>
-          parseAutostartDesktopFile(e.name, e.path, e.content ?? "", "user")
+      const parsed = (
+        await Promise.all(
+          userFiles.map(async (e) =>
+            parseAutostartDesktopFile(e.name, e.path, (await piloti.vfs.readText(e.path)) ?? "", "user")
+          )
         )
-        .filter((x): x is XdgAutostartEntry => Boolean(x));
+      ).filter((x): x is XdgAutostartEntry => Boolean(x));
       setAutostartEntries(mergeAutostartEntries([], parsed));
       return;
     }
@@ -103,7 +104,9 @@ export function AdvancedPane() {
     async (entry: XdgAutostartEntry, enabled: boolean) => {
       const content = buildAutostartOverrideDesktopContent(entry, enabled);
       if (!systemServices) {
-        writeVfsTextFile(`${WEB_VFS_HOME}/.config/autostart/${entry.id}`, content);
+        const dir = `${WEB_VFS_HOME}/.config/autostart`;
+        await piloti.vfs.createDir(dir);
+        await piloti.vfs.write(`${dir}/${entry.id}`, content);
       } else {
         await hostFiles(piloti).createDir(".config/autostart");
         await hostFiles(piloti).write(
