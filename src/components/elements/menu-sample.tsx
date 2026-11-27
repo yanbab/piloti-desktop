@@ -56,14 +56,14 @@ export function InlineMenuSample() {
   return (
     <div className="flex flex-col items-center gap-3">
       <div role="menu" className={`${MENU_POPUP_CLASS} w-56`}>
-        <div className={MENU_LABEL_CLASS}>Label</div>
+        <div data-slot="dropdown-menu-label" className={MENU_LABEL_CLASS}>Label</div>
         <div role="menuitem" {...item("plain")}>Item</div>
         <div role="menuitem" {...item("folder")}><FolderIcon />New Folder</div>
         <div role="menuitem" {...item("save")}>
-          <SaveIcon />Save<span className={MENU_SHORTCUT_CLASS}>⌘S</span>
+          <SaveIcon />Save<span data-slot="dropdown-menu-shortcut" className={MENU_SHORTCUT_CLASS}>⌘S</span>
         </div>
         <div role="menuitem" {...item("badge")}>
-          <InfoIcon />Updates<span className={MENU_BADGE_CLASS}>2</span>
+          <InfoIcon />Updates<span data-slot="dropdown-menu-badge" className={MENU_BADGE_CLASS}>2</span>
         </div>
         <div role="menuitem" {...item("sub", MENU_SUB_TRIGGER_CLASS)}>
           Submenu<ChevronRightIcon className="ml-auto size-3.5" />

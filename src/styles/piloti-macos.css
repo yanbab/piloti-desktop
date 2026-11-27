@@ -69,9 +69,10 @@
   --ui-radius-box: calc(var(--ui-radius-control) + 5px);
   --ui-radius-window: 16px;
 
-  /* A lighter accent for large accented areas: selected sidebar rows, menu
-     highlights, selected icons and colored icons (`resolveUiAccentHex`). */
-  --ui-accent-soft: color-mix(in srgb, var(--ui-accent) 80%, white);
+  /* A lighter, greyer accent for large accented areas: selected sidebar rows,
+     menu highlights, selected icons, Control Center pills and colored icons
+     (`resolveUiAccentHex` mixes the same). */
+  --ui-accent-soft: color-mix(in srgb, var(--ui-accent) 70%, rgb(170 170 178));
 }
 
 :root[data-interface-theme="piloti"].dark {
@@ -263,7 +264,7 @@
 /* ── Sidebar (28px items, item radius, 8px icon gap, 10px inset) ────────── */
 
 :root[data-interface-theme="piloti"] [data-slot="sidebar-nav"] {
-  gap: 2px;
+  gap: 4px;
   padding-inline: 10px;
 }
 
@@ -332,17 +333,31 @@
   line-height: calc(16px * var(--piloti-font-scale, 1));
 }
 
-/* Neighbouring highlights never touch. */
+/* Neighbouring highlights stay apart. */
 :root[data-interface-theme="piloti"] [role="menu"]:not([data-menu]) :is([role="menuitem"], [role="menuitemcheckbox"], [role="menuitemradio"]) + :is([role="menuitem"], [role="menuitemcheckbox"], [role="menuitemradio"]) {
-  margin-top: 1px;
+  margin-top: 2px;
 }
-
-/* Room for the check mark column, like macOS. */
 
 /* A check-mark column on the left only when the menu has check or radio
    items (macOS); otherwise labels start at the item padding. */
 :root[data-interface-theme="piloti"] [role="menu"]:has([role="menuitemcheckbox"], [role="menuitemradio"]) :is([role="menuitem"], [role="menuitemcheckbox"], [role="menuitemradio"], [data-slot$="-label"]) {
-  padding-left: 20px;
+  /* The mark ends at 19px. */
+  padding-left: 25px;
+}
+
+/* Beside items with icons, the others' text starts where theirs does (an
+   `ml-auto` icon is a submenu arrow, not an item's icon). */
+:root[data-interface-theme="piloti"] [role="menu"]:not([data-menu]):has(> * > :is(svg, img):first-child:not(.ml-auto)) [role="menuitem"]:not(:has(> :is(svg, img):first-child:not(.ml-auto))) {
+  padding-left: 31px;
+}
+
+:root[data-interface-theme="piloti"] [role="menu"]:not([data-menu]):has([role="menuitemcheckbox"], [role="menuitemradio"]):has(> * > :is(svg, img):first-child:not(.ml-auto)) [role="menuitem"]:not(:has(> :is(svg, img):first-child:not(.ml-auto))) {
+  padding-left: 47px;
+}
+
+/* Check and radio items line up with the text beside them too. */
+:root[data-interface-theme="piloti"] [role="menu"]:not([data-menu]):has(> * > :is(svg, img):first-child:not(.ml-auto)) :is([role="menuitemcheckbox"], [role="menuitemradio"]) {
+  padding-left: 47px;
 }
 
 :root[data-interface-theme="piloti"] [role="menu"] [role="separator"] {
@@ -383,6 +398,11 @@
 :root[data-interface-theme="piloti"] [role="menu"]:not([data-menu="launcher"], [data-menu="stack"]) :is([role="menuitem"], [role="menuitemcheckbox"], [role="menuitemradio"]) > :is(svg, img) {
   width: 16px;
   height: 16px;
+}
+
+/* Switched-on pills are large accented areas too. */
+:root[data-interface-theme="piloti"] [data-slot="control-pill"].bg-ui-accent {
+  background-color: var(--ui-accent-soft);
 }
 
 /* ── Control panel: a menu with modules (same item rules, concentric radii) ─ */

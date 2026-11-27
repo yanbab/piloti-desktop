@@ -50,10 +50,11 @@ export function resolveUiAccentHex(
   return (interfaceTheme || "piloti") === "piloti" ? softenAccentHex(hex) : hex;
 }
 
-/** The CSS `color-mix(in srgb, accent 80%, white)` of `--ui-accent-soft`. */
+/** The CSS `color-mix(in srgb, accent 70%, rgb(170 170 178))` of `--ui-accent-soft`. */
 function softenAccentHex(hex: string): string {
+  const grey = [170, 170, 178];
   return `#${[1, 3, 5]
-    .map((i) => Math.round(parseInt(hex.slice(i, i + 2), 16) * 0.8 + 255 * 0.2))
+    .map((i, c) => Math.round(parseInt(hex.slice(i, i + 2), 16) * 0.7 + grey[c] * 0.3))
     .map((v) => v.toString(16).padStart(2, "0"))
     .join("")}`;
 }
