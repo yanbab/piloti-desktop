@@ -4,7 +4,7 @@ import { useOptionalPlugins } from "@/context/PluginsContext";
 import {
   resolveBackgroundRenderSpec,
   type BackgroundRenderSpec,
-} from "@/lib/engine-native/gnome-background";
+} from "@/lib/core/gnome-background";
 import type { WallpaperOption } from "@/data/catalog";
 
 /** Plain base shown while a plugin wallpaper loads (Aurora Drift's base tones). */

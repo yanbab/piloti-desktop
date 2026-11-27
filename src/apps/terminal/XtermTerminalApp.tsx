@@ -32,7 +32,7 @@ import { complete } from "@/apps/terminal/piloti-completion";
 import { createProgramIndex } from "@/apps/terminal/piloti-programs";
 import { runInTerminal } from "@/apps/terminal/piloti-run";
 import { runTop } from "@/apps/terminal/piloti-top";
-import { readSystemSample } from "@/lib/engine-native/system-stats";
+import { readSystemSample } from "@/lib/engine/system-commands";
 import { ACCENT_COLORS } from "@/data/catalog";
 import { _ } from "@/lib/core/i18n";
 import { HeaderBar } from "@/components/elements/header-bar";

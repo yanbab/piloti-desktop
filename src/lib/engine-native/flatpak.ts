@@ -1,3 +1,7 @@
+import {
+  DEFAULT_FLATPAK_PERMISSIONS,
+  type FlatpakPermissionsState,
+} from "@/lib/core/flatpak-permissions";
 import type { Piloti } from "@/lib/engine/piloti";
 import { Signal } from "@domicile-desktop/sdk/system";
 import { hostFiles } from "@/lib/engine/host-files";
@@ -491,24 +495,6 @@ export function launchFlatpakApp(piloti: Piloti, appId: string): void {
   launchDesktopCommand(piloti, ["flatpak", "run", cleanId]);
 }
 
-export interface FlatpakPermissionsState {
-  network: boolean;
-  homeFiles: boolean;
-  hostFiles: boolean;
-  wayland: boolean;
-  audio: boolean;
-  devices: boolean;
-}
-
-export const DEFAULT_FLATPAK_PERMISSIONS: FlatpakPermissionsState = {
-  network: true,
-  homeFiles: false,
-  hostFiles: false,
-  wayland: true,
-  audio: true,
-  devices: false,
-};
-
 function parseFlatpakPermissionLines(raw: string): Partial<FlatpakPermissionsState> {
   const result: Partial<FlatpakPermissionsState> = {};
   for (const line of raw.split(/\r?\n/)) {
@@ -814,3 +800,5 @@ export async function installFlatpakFile(
     return { ok: false, error: String(err) };
   }
 }
+
+export { DEFAULT_FLATPAK_PERMISSIONS, type FlatpakPermissionsState };

@@ -3,7 +3,8 @@ import { createLoopGuard, guardLoops } from "@/apps/terminal/piloti-loops";
 import { createRepl, evaluateLine } from "@/apps/terminal/piloti-repl";
 import { createWebVfs } from "@/lib/engine-web/vfs";
 import { setDemoApps, demoPid } from "@/lib/engine/demo-processes";
-import { parseSystemSample, readProcFiles } from "@/lib/engine-native/system-stats";
+import { parseSystemSample } from "@/lib/core/system-stats";
+import { readProcFiles } from "@/lib/engine-native/system-stats";
 
 describe("piloti shell loop checks", () => {
   test("guarded code still means the same", async () => {

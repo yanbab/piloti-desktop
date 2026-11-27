@@ -2,7 +2,7 @@ import type { Piloti } from "@/lib/engine/piloti";
 import {
   fileUriToLocalPath,
   parseGnomeBackgroundXml,
-} from "./background";
+} from "@/lib/core/gnome-background";
 import { hashPathKey, runText } from "./exec";
 
 const IMAGE_MIME_BY_EXT: Record<string, string> = {

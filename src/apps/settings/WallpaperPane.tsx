@@ -73,7 +73,7 @@ import {
   resolveBackgroundRenderSpec,
   selectGnomePictureUri,
   toHexColorInputValue,
-} from "@/lib/engine-native/gnome-background";
+} from "@/lib/core/gnome-background";
 
 const MACOS_COLOR_SWATCHES = [
   "#000000",

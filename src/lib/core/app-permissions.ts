@@ -1,7 +1,7 @@
 import {
   DEFAULT_FLATPAK_PERMISSIONS,
   type FlatpakPermissionsState,
-} from "@/lib/engine-native/flatpak";
+} from "@/lib/core/flatpak-permissions";
 import {
   readVfsStateJson,
   VFS_STATE_PATHS,

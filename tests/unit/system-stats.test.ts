@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { appUsage, cpuPercent, parseSystemSample } from "../../src/lib/engine-native/system-stats";
+import { appUsage, cpuPercent, parseSystemSample } from "../../src/lib/core/system-stats";
 
 const stat = (pid: number, comm: string, ppid: number, ticks: number, pages: number) =>
   `${pid} (${comm}) S ${ppid} 1 1 0 -1 0 0 0 0 0 ${ticks} 0 0 0 20 0 1 0 100 1000 ${pages} 0`;

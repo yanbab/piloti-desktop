@@ -57,7 +57,7 @@ import {
   selectGnomePictureUri,
   normalizeGnomeColor,
   isGnomeBackgroundConfigured,
-} from "@/lib/engine-native/background";
+} from "@/lib/core/gnome-background";
 import { clampHistoryLimit } from "@/lib/core/notifications";
 import {
   readGnomeBackgroundBlob,

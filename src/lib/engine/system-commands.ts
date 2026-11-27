@@ -7,6 +7,7 @@ import type { Piloti } from "@/lib/engine/piloti";
 
 export { launchDesktopCommand, runText } from "@/lib/engine-native/exec";
 import { commandExists } from "@/lib/engine-native/exec";
+export { readSystemSample } from "@/lib/engine-native/system-stats";
 export { listInstalledFontFamilies } from "@/lib/engine-native/gsettings";
 
 type Host = Pick<Piloti, "processes">;

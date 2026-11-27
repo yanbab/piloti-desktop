@@ -6,12 +6,12 @@ export * from "./wallpaper";
 export * from "./hardware";
 export * from "./dbus-services";
 export * from "./flatpak";
-export * from "./background";
-export * from "./gnome-background";
+export * from "@/lib/core/gnome-background";
 export * from "./xwayland";
 export * from "./autostart";
 export * from "./greeter";
 
 export * from "./system-stats";
+export * from "@/lib/core/system-stats";
 export * from "./data-dirs";
 export * from "./app-modules";

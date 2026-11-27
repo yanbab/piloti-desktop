@@ -13,7 +13,7 @@ import {
   parseGnomeBackgroundXml,
   resolveBackgroundRenderSpec,
   selectGnomePictureUri,
-} from "@/lib/engine-native/gnome-background";
+} from "@/lib/core/gnome-background";
 
 describe("GNOME background spec helpers", () => {
   test("converts between file:// URIs and POSIX paths safely", () => {

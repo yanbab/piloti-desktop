@@ -9,10 +9,7 @@ import type {
 
 const MUTTER_ONLY_PANEL_IDS = new Set(["display", "multitasking"]);
 
-export const DEFAULT_HIDDEN_GNOME_PANELS: readonly string[] = [
-  "gnome-display-panel.desktop",
-  "gnome-multitasking-panel.desktop",
-];
+export { DEFAULT_HIDDEN_GNOME_PANELS } from "@/lib/core/gnome-panels";
 
 export const DEFAULT_GNOME_PANELS: readonly GnomeControlCenterPanelInfo[] = [
   { desktopId: "gnome-wifi-panel.desktop", panelId: "wifi", name: "Wi-Fi" },

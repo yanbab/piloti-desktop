@@ -1,5 +1,5 @@
 /** piloti-shell's `top`: processes by CPU, redrawn until `q` or Ctrl+C. */
-import { cpuPercent, type SystemSample } from "@/lib/engine-native/system-stats";
+import { cpuPercent, type SystemSample } from "@/lib/core/system-stats";
 
 export interface TopOptions {
   sample: () => Promise<SystemSample | null>;

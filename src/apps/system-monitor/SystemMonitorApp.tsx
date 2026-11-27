@@ -29,12 +29,8 @@ import { cn } from "@/lib/core/utils";
 import { demoPid, setDemoApps } from "@/lib/engine/demo-processes";
 import { getEngine } from "@/lib/engine/engine";
 import { usePiloti } from "@/lib/engine/piloti";
-import {
-  appUsage,
-  cpuPercent,
-  readSystemSample,
-  type SystemSample,
-} from "@/lib/engine-native/system-stats";
+import { appUsage, cpuPercent, type SystemSample } from "@/lib/core/system-stats";
+import { readSystemSample } from "@/lib/engine/system-commands";
 import { parseIniText, serializeIniText } from "@/lib/config/ini";
 import { VFS_HOME } from "@/lib/engine/vfs-home";
 import { readVfsStateText, writeVfsStateText } from "@/lib/engine/vfs-state";

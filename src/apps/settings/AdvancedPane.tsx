@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/grouped-form";
 import { Switch } from "@/components/ui/switch";
 import { _ } from "@/lib/core/i18n";
-import { DEFAULT_HIDDEN_GNOME_PANELS } from "@/lib/engine-native/index";
+import { DEFAULT_HIDDEN_GNOME_PANELS } from "@/lib/core/gnome-panels";
 import {
   buildAutostartOverrideDesktopContent,
   mergeAutostartEntries,
