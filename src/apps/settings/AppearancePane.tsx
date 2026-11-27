@@ -1,7 +1,7 @@
 import { isCloseOnLeft } from "@/components/ui/window";
-import { PilotiSymbolicIcon } from "@/components/common/PilotiLogo";
 import * as React from "react";
-import { MonitorIcon, MoonIcon, SunIcon } from "@/components/ui/symbols";
+import { SunMoonIcon } from "lucide-react";
+import { MoonIcon, SunIcon } from "@/components/ui/symbols";
 import {
   GroupedForm,
   GroupedFormGroup,
@@ -77,7 +77,7 @@ export function AppearancePane() {
                   })
                 }
                 options={[
-                  { id: "piloti", label: _("Piloti"), icon: <PilotiSymbolicIcon className="size-3.5" /> },
+                  { id: "piloti", label: _("Piloti") },
                   { id: "adwaita", label: "Adwaita" },
                   { id: "cupertino", label: "Cupertino" },
                   ...themePlugins.map((p) => ({ id: p.id, label: p.name })),
@@ -95,7 +95,7 @@ export function AppearancePane() {
                 value={settings.themeMode}
                 onChange={(themeMode) => updateSettings({ themeMode })}
                 options={[
-                  { id: "system", label: _("Auto"), icon: <MonitorIcon className="size-3.5" /> },
+                  { id: "system", label: _("Auto"), icon: <SunMoonIcon className="size-3.5" /> },
                   { id: "light", label: _("Light"), icon: <SunIcon className="size-3.5" /> },
                   { id: "dark", label: _("Dark"), icon: <MoonIcon className="size-3.5" /> },
                 ]}

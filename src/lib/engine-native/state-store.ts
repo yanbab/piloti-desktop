@@ -2,7 +2,7 @@
  * Piloti's config and state files on Linux, over `piloti.vfs`. They are loaded
  * before the desktop starts, because the shell reads them synchronously, and
  * kept current from the disk:
- * - config files (`~/.config/piloti`, `mimeapps.list`) are watched for the whole
+ * - config files (`~/.config/piloti`, `~/.config/piloti-texts`, `mimeapps.list`) are watched for the whole
  *   session, so editing one applies at once;
  * - state and cache files are the shell's own, rewritten often: they are watched
  *   only while something subscribes.
@@ -24,6 +24,8 @@ export interface NativeStateStore extends StateSource {
 
 export async function createNativeStateStore(vfs: Vfs, home: string): Promise<NativeStateStore> {
   const configRoot = `${home}/.config/piloti`;
+  /** Texts has its own folder, read by the shell too. */
+  const textsRoot = `${home}/.config/piloti-texts`;
   const values = new Map<string, string>();
   const listeners = new Map<string, Set<() => void>>();
   const dirListeners = new Map<string, Set<() => void>>();
@@ -110,12 +112,14 @@ export async function createNativeStateStore(vfs: Vfs, home: string): Promise<Na
   const mimeapps = `${home}/.config/mimeapps.list`;
   await Promise.all([
     loadTree(configRoot, 0),
+    loadTree(textsRoot, 0),
     loadTree(`${home}/.local/state/piloti`, 0),
     loadTree(`${home}/.cache/piloti`, 0),
     load(`${home}/.piloti_history`),
     load(mimeapps),
   ]);
   watchConfigDir(configRoot, 0);
+  watchConfigDir(textsRoot, 0);
   keepWatched(mimeapps);
 
   const add = (map: Map<string, Set<() => void>>, key: string, listener: () => void) => {

@@ -21,7 +21,7 @@ const TEXT_EDITABLE_EXT_RE =
 
 /**
  * Returns true for plain-text / markdown / code files that should open in
- * `TextEditorApp` by default instead of a standalone web view.
+ * `TextsApp` by default instead of a standalone web view.
  */
 export function isTextEditableVfsFile(name: string): boolean {
   const lower = name.toLowerCase();

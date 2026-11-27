@@ -212,7 +212,7 @@ export function useGlobalAppMenu({
       ) {
         setControlPanelOpen((v) => !v);
       } else if (
-        (actionId.startsWith("text-editor:") || actionId.startsWith("files:")) &&
+        (actionId.startsWith("texts:") || actionId.startsWith("files:")) &&
         focusedWindowId
       ) {
         window.dispatchEvent(

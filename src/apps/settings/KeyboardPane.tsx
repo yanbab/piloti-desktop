@@ -18,13 +18,7 @@ import {
 } from "@/components/ui/select";
 import { useDesktopSettings, useUpdateSettings } from "@/context/DesktopStateContext";
 import { _ } from "@/lib/core/i18n";
-import { useKeymaps } from "@/lib/engine/keyboard";
-
-/** The layouts the shipped compositor config names. */
-const LAYOUTS = [
-  { id: "fr", label: "French" },
-  { id: "us", label: "English (US)" },
-];
+import { CONFIG_LAYOUTS as LAYOUTS, useKeymaps } from "@/lib/engine/keyboard";
 
 export function KeyboardPane() {
   const settings = useDesktopSettings(["computerModel", "keyboardLayout"]);

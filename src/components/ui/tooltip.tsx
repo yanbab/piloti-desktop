@@ -3,6 +3,8 @@ import { Tooltip as TooltipPrimitive } from "@base-ui/react/tooltip";
 import { cn } from "@/lib/core/utils";
 
 const TooltipProvider = TooltipPrimitive.Provider;
+// Above windows, menus and dialogs; under the OSD (870) and the lock screen (900).
+const TOOLTIP_LAYER = "pointer-events-none z-[860]";
 function Tooltip({
   disableHoverablePopup = true,
   ...props
@@ -34,7 +36,7 @@ function TooltipContent({
         side={side}
         sideOffset={sideOffset}
         align={align}
-        className="pointer-events-none z-[500]"
+        className={TOOLTIP_LAYER}
       >
         <TooltipPrimitive.Popup data-slot="tooltip-content"
           className={cn(
@@ -99,6 +101,8 @@ function GlobalTitleTooltip() {
       el.setAttribute("data-piloti-title", text);
       el.removeAttribute("title");
       activeElRef.current = el;
+      // E.g. notifications: no tooltip, the browser's own included.
+      if (el.closest("[data-no-tooltips]")) return;
       timerRef.current = window.setTimeout(() => {
         if (activeElRef.current === el && el.isConnected) {
           setState({ anchor: el, text });
@@ -151,7 +155,7 @@ function GlobalTitleTooltip() {
           anchor={state.anchor}
           side="top"
           sideOffset={8}
-          className="pointer-events-none z-[500]"
+          className={TOOLTIP_LAYER}
         >
           <TooltipPrimitive.Popup data-slot="tooltip-content" className="flex max-w-xs items-center rounded-ui-control px-3 py-1.5 text-ui-body font-medium text-ui-label shadow-ui-dock-label ui-material-dock-label animate-in fade-in-0 zoom-in-95 duration-100 motion-reduce:animate-none dark:text-white/95">
             {state.text}

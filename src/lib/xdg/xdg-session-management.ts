@@ -2,6 +2,7 @@
  * xdg-session-management-v1 — Client/Shell window session persistence
  * storing an array of session window records in VFS (`~/.local/state/piloti/session.json`).
  */
+import { currentAppId } from "@/lib/core/renamed-apps";
 import {
   readVfsStateJson,
   removeVfsStateFile,
@@ -106,7 +107,9 @@ function loadXdgSession(
     if (!Array.isArray(parsed)) return null;
     return parsed
       .map(parseSessionWindow)
-      .filter((entry): entry is XdgSessionWindow => entry !== null);
+      .filter((entry): entry is XdgSessionWindow => entry !== null)
+      // The id is the app's, and may predate a rename.
+      .map((entry) => ({ ...entry, id: currentAppId(entry.id) }));
   } catch {
     return null;
   }

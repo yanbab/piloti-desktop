@@ -1,5 +1,7 @@
 import { hostFiles } from "@/lib/engine/host-files";
 import * as React from "react";
+import { currentAppId, renameBoundsKeys } from "@/lib/core/renamed-apps";
+import { getEngine } from "@/lib/engine/engine";
 import { usePiloti } from "@/lib/engine/piloti";
 import { usePortalWallpaper } from "@domicile-desktop/react/portals";
 import { useWatch } from "@domicile-desktop/react/use-watch";
@@ -310,9 +312,9 @@ const DEFAULT_WEB_PINNED_APP_IDS = [
   "nautilus",
   "browser",
   "terminal",
-  "text-editor",
+  "texts",
   "calculator",
-  "camera",
+  "selfies",
   "piloti-demo",
   "app-store",
   "settings",
@@ -365,6 +367,16 @@ function mergeDefaultBrowserWebApps(
  * pre-installs the curated 20 iframe-friendly web apps once per defaults
  * version without overriding subsequent user edits.
  */
+/**
+ * Volume and brightness are the hardware's, not choices to restore: Linux reads
+ * them from the system (the `watchSystem*` watchers); the demo's start full.
+ */
+function withEngineLevels(settings: DesktopSettings): DesktopSettings {
+  return getEngine().capabilities.simulatedHardware
+    ? { ...settings, volume: 100, brightness: 100 }
+    : settings;
+}
+
 export function resolveInitialSettings(
   savedRaw: string | null,
   isBrowserBackend: boolean
@@ -394,7 +406,9 @@ export function resolveInitialSettings(
           : rawWebApps;
 
         const pinnedAppIds = needsWebDefaults
-          ? normalizeWebPinnedApps(parsed.pinnedAppIds)
+          ? normalizeWebPinnedApps(
+              Array.isArray(parsed.pinnedAppIds) ? parsed.pinnedAppIds.map(currentAppId) : parsed.pinnedAppIds,
+            )
           : Array.isArray(parsed.pinnedAppIds)
             ? parsed.pinnedAppIds
             : DEFAULT_SETTINGS.pinnedAppIds;
@@ -463,12 +477,12 @@ export function resolveInitialSettings(
           notificationHistoryLimit,
           workspaceCount,
           activeWorkspace,
-          pinnedAppIds,
+          pinnedAppIds: pinnedAppIds.map(currentAppId),
           installedWebApps,
           ...(isBrowserBackend
             ? { webAppsSeeded: true, webDefaultsVersion: WEB_DEFAULTS_VERSION }
             : {}),
-          savedWindowBounds: parsed.savedWindowBounds ?? {},
+          savedWindowBounds: renameBoundsKeys(parsed.savedWindowBounds ?? {}),
         };
       }
     } catch {
@@ -521,7 +535,7 @@ export function useSettingsValue(options?: {
 
   const allowLocalWallpaper = !deferLocalWallpaper || wallpaperFallbackReady;
 
-  const [settings, setSettings] = React.useState<DesktopSettings>(() => {
+  const [settings, setSettings] = React.useState<DesktopSettings>(() => withEngineLevels((() => {
     if (typeof window === "undefined") return DEFAULT_SETTINGS;
     try {
       // The settings backend (settings.ini, or dconf on Linux), then older places.
@@ -550,7 +564,7 @@ export function useSettingsValue(options?: {
       return {
         ...base,
         savedWindowBounds: separatedBounds
-          ? { ...base.savedWindowBounds, ...separatedBounds }
+          ? { ...base.savedWindowBounds, ...renameBoundsKeys(separatedBounds) }
           : base.savedWindowBounds,
         desktopIconPositions: separatedIcons
           ? { ...base.desktopIconPositions, ...separatedIcons }
@@ -559,7 +573,7 @@ export function useSettingsValue(options?: {
     } catch {
       return resolveInitialSettings(null, isBrowserRuntime);  // FIXME : Capabilities
     }
-  });
+  })()));
 
   const settingsRef = React.useRef(settings);
   settingsRef.current = settings;
@@ -652,7 +666,7 @@ export function useSettingsValue(options?: {
   const applySystemSettingsRef = React.useRef(applySystemSettings);
   applySystemSettingsRef.current = applySystemSettings;
 
-  // Seed settings.ini in VFS on first run so users can inspect/edit it in Files or Text Editor,
+  // Seed settings.ini in VFS on first run so users can inspect/edit it in Files or Texts,
   // and subscribe to live VFS edits on settings.ini, window-bounds.json, and desktop-icons.json.
   React.useEffect(() => {
     try {
@@ -674,6 +688,12 @@ export function useSettingsValue(options?: {
       }
     } catch {
       // ignore initial VFS seed errors
+    }
+
+    // The file must say the same levels, or its next change would restore old ones.
+    if (getEngine().capabilities.simulatedHardware) {
+      const current = settingsRef.current;
+      writeDesktopSettings(settingsBackend(), current, { ...current, volume: -1, brightness: -1 });
     }
 
     const unsubSettings = subscribeDesktopSettings(settingsBackend(), (raw) => {

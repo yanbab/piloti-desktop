@@ -42,7 +42,7 @@ describe("subscribeWebVfs path filtering", () => {
     });
     const before = getWebVfsPerfStats();
 
-    // Text Editor cursor/scroll state: must not reload Desktop icons.
+    // Texts cursor/scroll state: must not reload Desktop icons.
     writeVfsStateJson("/home/user/.local/state/piloti/editor-state.json", { a: Date.now() });
     writeVfsStateJson("/home/user/.local/state/piloti/editor-state.json", { a: Date.now() + 1 });
     expect(desktopCalls).toBe(0);

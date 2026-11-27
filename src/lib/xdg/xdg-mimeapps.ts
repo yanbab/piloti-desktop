@@ -6,10 +6,10 @@ import { WEB_VFS_HOME } from "@/lib/core/vfs-paths";
 /** Used when the user has no `mimeapps.list`. */
 export const DEFAULT_MIMEAPPS_INI = `[Default Applications]
 inode/directory=nautilus.desktop
-text/plain=text-editor.desktop
-text/markdown=text-editor.desktop
+text/plain=texts.desktop
+text/markdown=texts.desktop
 text/html=browser.desktop
-application/json=text-editor.desktop
+application/json=texts.desktop
 image/png=image-viewer.desktop
 image/jpeg=image-viewer.desktop
 image/webp=image-viewer.desktop
@@ -18,11 +18,11 @@ image/svg+xml=image-viewer.desktop
 
 [Added Associations]
 inode/directory=nautilus.desktop;terminal.desktop;
-text/plain=text-editor.desktop;terminal.desktop;
-text/markdown=text-editor.desktop;browser.desktop;
-text/html=browser.desktop;text-editor.desktop;
-text/*=text-editor.desktop;terminal.desktop;
-application/json=text-editor.desktop;console.desktop;
+text/plain=texts.desktop;terminal.desktop;
+text/markdown=texts.desktop;browser.desktop;
+text/html=browser.desktop;texts.desktop;
+text/*=texts.desktop;terminal.desktop;
+application/json=texts.desktop;console.desktop;
 image/*=image-viewer.desktop;browser.desktop;
 `;
 export const MIMEAPPS_PATH = `${WEB_VFS_HOME}/.config/mimeapps.list`;
@@ -47,8 +47,12 @@ const KNOWN_MIME_APPS: Record<string, { appId: string; label: string }> = {
   "nautilus.desktop": { appId: "nautilus", label: "Folders" },
   "org.gnome.Nautilus.desktop": { appId: "nautilus", label: "Folders" },
   "piloti-files.desktop": { appId: "nautilus", label: "Folders" },
-  "text-editor.desktop": { appId: "text-editor", label: "Notepad" },
-  "piloti-notepad.desktop": { appId: "text-editor", label: "Notepad" },
+  "texts.desktop": { appId: "texts", label: "Texts" },
+  "piloti-texts.desktop": { appId: "texts", label: "Texts" },
+  // Their names before the renames, as users' mimeapps.list may still say.
+  "text-editor.desktop": { appId: "texts", label: "Texts" },
+  "piloti-notepad.desktop": { appId: "texts", label: "Texts" },
+  "piloti-camera.desktop": { appId: "selfies", label: "Selfies" },
   "terminal.desktop": { appId: "terminal", label: "Terminal" },
   "piloti-shell.desktop": { appId: "terminal", label: "Terminal" },
   "image-viewer.desktop": { appId: "image-viewer", label: "Image Viewer" },
@@ -60,7 +64,7 @@ const KNOWN_MIME_APPS: Record<string, { appId: string; label: string }> = {
   "app-store.desktop": { appId: "app-store", label: "App Store" },
   "piloti-appstore.desktop": { appId: "app-store", label: "App Store" },
   "piloti-calculator.desktop": { appId: "calculator", label: "Calculator" },
-  "piloti-camera.desktop": { appId: "camera", label: "Camera" },
+  "piloti-selfies.desktop": { appId: "selfies", label: "Selfies" },
   "piloti-demo.desktop": { appId: "piloti-demo", label: "Piloti demo" },
   "piloti-hello-world.desktop": { appId: "hello-world", label: "Hello World" },
   "piloti-system-monitor.desktop": { appId: "system-monitor", label: "System Monitor" },
@@ -73,14 +77,14 @@ const KNOWN_MIME_APPS: Record<string, { appId: string; label: string }> = {
 const BUILTIN_MIME_DEFAULTS: ReadonlyArray<readonly [pattern: string, desktopIds: readonly string[]]> = [
   ["inode/directory", ["nautilus.desktop"]],
   ["image/*", ["image-viewer.desktop", "browser.desktop"]],
-  ["text/html", ["browser.desktop", "text-editor.desktop"]],
+  ["text/html", ["browser.desktop", "texts.desktop"]],
   ["application/pdf", ["browser.desktop"]],
   ["audio/*", ["browser.desktop"]],
   ["video/*", ["browser.desktop"]],
-  ["text/*", ["text-editor.desktop"]],
-  ["application/json", ["text-editor.desktop"]],
-  ["application/xml", ["text-editor.desktop"]],
-  ["application/x-shellscript", ["text-editor.desktop", "terminal.desktop"]],
+  ["text/*", ["texts.desktop"]],
+  ["application/json", ["texts.desktop"]],
+  ["application/xml", ["texts.desktop"]],
+  ["application/x-shellscript", ["texts.desktop", "terminal.desktop"]],
   ["application/vnd.debian.binary-package", ["piloti-appstore.desktop"]],
   ["application/vnd.flatpak.ref", ["piloti-appstore.desktop"]],
   ["application/vnd.flatpak", ["piloti-appstore.desktop"]],
@@ -240,7 +244,7 @@ export function resolveAppsForMime(
     if (types.some((t) => mimeMatchesPattern(pattern, t))) pushAll(ids);
   }
 
-  // One option per application: `text-editor.desktop` and `piloti-notepad.desktop` are the same app.
+  // One option per application: `texts.desktop`, `piloti-texts.desktop` and former names.
   const seen = new Set<string>();
   const options = ordered
     .map((id) => toOption(id, installed))

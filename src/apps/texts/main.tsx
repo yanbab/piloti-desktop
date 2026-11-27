@@ -1,5 +1,5 @@
-// Domicile app module: the Text Editor in its own document (own origin/process
-// boundary). See docs/ARCHITECTURE.md. File to open: ~/.cache/piloti/text-editor-open
+// Domicile app module: the Texts in its own document (own origin/process
+// boundary). See docs/ARCHITECTURE.md. File to open: ~/.cache/piloti/texts-open
 // (one path, consumed on start), until the shell can pass arguments.
 import "@/styles/globals.css";
 import type { AppMain } from "@domicile-desktop/sdk/app";
@@ -7,20 +7,20 @@ import { useAppDomicile } from "@domicile-desktop/react/domicile-provider";
 import { mount } from "@domicile-desktop/react/mount";
 import * as React from "react";
 import { AppChromeProvider, hostControlInsets, type AppChrome } from "@/components/elements/app-chrome";
-import { TextEditorApp } from "@/apps/text-editor/TextEditorApp";
+import { TextsApp } from "@/apps/texts/TextsApp";
 import { applyThemeToDocument } from "@/lib/engine/app-bridge";
-import { TextEditorHostProvider, type TextEditorHost } from "@/lib/engine/text-editor-host";
+import { TextsHostProvider, type TextsHost } from "@/lib/engine/texts-host";
 import { createDomicileEditorHost } from "./host";
 
-const OPEN_FILE = ".cache/piloti/text-editor-open";
+const OPEN_FILE = ".cache/piloti/texts-open";
 
 // The shell lays the window controls over this module's header (`csd: true` in
 // data/app-modules.ts).
-const App = ({ host, path, chrome }: { host: TextEditorHost; path: string | null; chrome: AppChrome }) => (
+const App = ({ host, path, chrome }: { host: TextsHost; path: string | null; chrome: AppChrome }) => (
   <AppChromeProvider value={chrome}>
-    <TextEditorHostProvider value={host}>
-      <TextEditorApp initialPath={path ?? undefined} windowId="" />
-    </TextEditorHostProvider>
+    <TextsHostProvider value={host}>
+      <TextsApp initialPath={path ?? undefined} windowId="" />
+    </TextsHostProvider>
   </AppChromeProvider>
 );
 
@@ -28,7 +28,7 @@ const Boot = () => {
   const domicile = useAppDomicile();
   const { files } = domicile;
   const [state, setState] = React.useState<
-    { host: TextEditorHost; path: string | null; chrome: AppChrome } | undefined
+    { host: TextsHost; path: string | null; chrome: AppChrome } | undefined
   >();
   React.useEffect(() => {
     void (async () => {
@@ -46,7 +46,7 @@ const Boot = () => {
       });
       const buttons = settings["org.piloti.desktop.wm"]?.["button-layout"];
       const chrome: AppChrome = {
-        appId: "text-editor",
+        appId: "texts",
         decorations: "host",
         insets: hostControlInsets(typeof buttons === "string" ? buttons : undefined),
       };

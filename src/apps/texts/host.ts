@@ -3,13 +3,15 @@ import { parseIniText, serializeIniText } from "@/lib/config/ini";
 import { documentHash, MODULE_MOVES_DIR, MODULE_MOVES_FILE, type ModuleMove } from "@/data/app-modules";
 import { _ } from "@/lib/core/i18n";
 import { retainVfsWatch } from "@/lib/engine/vfs-query";
-import type { TextEditorHost } from "@/lib/engine/text-editor-host";
+import type { TextsHost } from "@/lib/engine/texts-host";
 
 /** `piloti.vfs` takes absolute paths. */
 const toReal = (p: string) => p.replace(/\/+/g, "/");
 
 const SETTINGS_INI = ".config/piloti/settings.ini";
-const NOTEPAD_INI = ".config/piloti/notepad.ini";
+const TEXTS_INI = ".config/piloti-texts/settings.ini";
+/** Where the settings were before the app was renamed. */
+const FORMER_INI = ".config/piloti/notepad.ini";
 const GENERAL_INI = ".config/piloti/general.ini";
 
 type Files = NativeVfsHost["files"];
@@ -20,7 +22,7 @@ async function readText(files: Files, path: string): Promise<string | null> {
 }
 
 /**
- * TextEditorHost for a Domicile app module: the document goes through the same
+ * TextsHost for a Domicile app module: the document goes through the same
  * `piloti.vfs` as in the shell; the app's prefs and state, which the editor
  * reads synchronously, are loaded before it mounts.
  */
@@ -28,8 +30,8 @@ export async function createDomicileEditorHost(domicile: NativeVfsHost) {
   const { files } = domicile;
   const stateCache = new Map<string, unknown>();
   const home = (await files.stat(".")).unwrapOr(undefined as never)?.realPath ?? "";
-  const [notepadRaw, generalRaw, settingsRaw] = await Promise.all([
-    readText(files, NOTEPAD_INI),
+  const [textsRaw, generalRaw, settingsRaw] = await Promise.all([
+    readText(files, TEXTS_INI).then((raw) => raw ?? readText(files, FORMER_INI)),
     readText(files, GENERAL_INI),
     readText(files, SETTINGS_INI),
   ]);
@@ -60,7 +62,7 @@ export async function createDomicileEditorHost(domicile: NativeVfsHost) {
   // Moves made before this window opened are not for it.
   let seen = Math.max(0, ...(await readMoves()).map((m) => m.seq));
 
-  const notepad = notepadRaw ? parseIniText(notepadRaw) : {};
+  const texts = textsRaw ? parseIniText(textsRaw) : {};
   const general = generalRaw ? parseIniText(generalRaw) : {};
   const settings = settingsRaw ? parseIniText(settingsRaw) : {};
 
@@ -76,7 +78,7 @@ export async function createDomicileEditorHost(domicile: NativeVfsHost) {
     if (stateTimer !== null) flushState();
   });
 
-  const host: TextEditorHost = {
+  const host: TextsHost = {
     vfs,
     normalizePath: toReal,
     defaultNewFilePath: (name) => `${home}/${desktopDir}/${name}`,
@@ -114,13 +116,13 @@ export async function createDomicileEditorHost(domicile: NativeVfsHost) {
       stateCache.set(path, value);
       if (stateTimer === null) stateTimer = window.setTimeout(flushState, 400);
     },
-    readEditorPrefs: () => notepad.Editor ?? {},
+    readEditorPrefs: () => texts.Editor ?? {},
     writeEditorPrefs: (values) => {
-      notepad.Editor = Object.fromEntries(
+      texts.Editor = Object.fromEntries(
         Object.entries(values).map(([k, v]) => [k, String(v)]),
       );
-      void files.createDir(".config/piloti").catch(() => {});
-      void files.write(NOTEPAD_INI, serializeIniText(notepad)).catch(() => {});
+      void files.createDir(".config/piloti-texts").catch(() => {});
+      void files.write(TEXTS_INI, serializeIniText(texts)).catch(() => {});
     },
     confirmUnsavedOnClose: () => {
       const v = general.Windows?.["confirm-unsaved-on-close"];

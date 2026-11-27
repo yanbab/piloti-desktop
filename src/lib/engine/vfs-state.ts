@@ -160,7 +160,7 @@ export function removeVfsStateFile(vfsPath: string): void {
 }
 
 /**
- * Subscribes to live content changes on a single VFS file path (e.g. edited in Files / Text Editor).
+ * Subscribes to live content changes on a single VFS file path (e.g. edited in Files / Texts).
  * Invokes `onChange` only when the file's content string changes.
  */
 export function subscribeVfsPath(

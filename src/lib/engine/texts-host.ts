@@ -3,13 +3,13 @@ import type { IsolatedAppBridge } from "@/lib/engine/app-bridge";
 import type { Vfs } from "@/lib/ports/vfs";
 
 /**
- * Everything the Text Editor needs from the host it runs in: the shell, or a
+ * Everything the Texts needs from the host it runs in: the shell, or a
  * Domicile app module (see docs/ARCHITECTURE.md). Files go through `vfs` on
- * both, so TextEditorApp itself never imports shell modules.
+ * both, so TextsApp itself never imports shell modules.
  *
  * State and prefs reads are synchronous: a host loads them before mounting.
  */
-export interface TextEditorHost {
+export interface TextsHost {
   vfs: Pick<Vfs, "readText" | "write" | "stat" | "watch" | "move" | "metadata" | "setMetadata">;
   normalizePath(path: string): string;
   /** Where an unsaved document goes on first save (the user's Desktop). */
@@ -25,7 +25,7 @@ export interface TextEditorHost {
   /** Per-user JSON state by key (cursor, scroll, unsaved text per file). */
   readState<T>(key: string, isValid: (v: unknown) => v is T): T | null;
   writeState(key: string, value: unknown): void;
-  /** Editor preferences (`notepad.ini` [Editor]). */
+  /** Editor preferences (`piloti-texts/settings.ini` [Editor]). */
   readEditorPrefs(): Record<string, string>;
   writeEditorPrefs(values: Record<string, string | number | boolean>): void;
   confirmUnsavedOnClose(): boolean;
@@ -39,12 +39,12 @@ export interface TextEditorHost {
   ): () => void;
 }
 
-const TextEditorHostContext = React.createContext<TextEditorHost | null>(null);
-export const TextEditorHostProvider = TextEditorHostContext.Provider;
+const TextsHostContext = React.createContext<TextsHost | null>(null);
+export const TextsHostProvider = TextsHostContext.Provider;
 
 /** The host the editor runs in (provided by whoever mounts it). */
-export function useTextEditorHost(): TextEditorHost {
-  const host = React.useContext(TextEditorHostContext);
-  if (!host) throw new Error("TextEditorApp needs a TextEditorHostProvider");
+export function useTextsHost(): TextsHost {
+  const host = React.useContext(TextsHostContext);
+  if (!host) throw new Error("TextsApp needs a TextsHostProvider");
   return host;
 }

@@ -1,0 +1,4 @@
+#!/bin/sh
+# piloti-texts — Open Piloti Texts
+set -eu
+exec /usr/bin/piloti open texts "$@"

@@ -37,7 +37,7 @@ describe("Functional: open 3 apps, move/resize, reload desktop & restore state",
   });
 
   test("restores 3 open apps with moved positions, resized bounds, and payloads after desktop reload", () => {
-    // 1. Initial boot & open 3 apps: Files, Notepad (with file payload), Desktop Shell
+    // 1. Initial boot & open 3 apps: Files, Texts (with file payload), Desktop Shell
     const initialSettings = resolveInitialSettings(null, true);
     let savedBounds = initialSettings.savedWindowBounds;
 
@@ -54,8 +54,8 @@ describe("Functional: open 3 apps, move/resize, reload desktop & restore state",
         payload: "/home/user/Documents",
       },
       {
-        id: "text-editor-1",
-        appId: "text-editor",
+        id: "texts-1",
+        appId: "texts",
         title: "Notes.txt",
         workspace: 1,
         position: { x: 240, y: 140 },
@@ -140,9 +140,9 @@ describe("Functional: open 3 apps, move/resize, reload desktop & restore state",
       payload: "/home/user/Documents",
     });
 
-    const notepadRec = restoredSession!.find((r) => r.id === "text-editor");
+    const notepadRec = restoredSession!.find((r) => r.id === "texts");
     expect(notepadRec).toMatchObject({
-      id: "text-editor",
+      id: "texts",
       x: 460,
       y: 160,
       width: 640,
@@ -164,7 +164,7 @@ describe("Functional: open 3 apps, move/resize, reload desktop & restore state",
     // Also verify spatial bounds lookup restores exact size/pos when reopening later
     expect(
       lookupSpatialWindowBounds(reloadedSettings.savedWindowBounds, {
-        appId: "text-editor",
+        appId: "texts",
         payload: "/home/user/Documents/Notes.txt",
       })
     ).toMatchObject({

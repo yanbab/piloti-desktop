@@ -26,6 +26,8 @@ Recommends:
  mate-polkit | lxpolkit | lxqt-policykit | polkit-kde-agent-1,
  x11-xserver-utils
 Suggests:
+ tecla,
+ wvkbd,
  fonts-cantarell,
  fonts-ubuntu,
  greetd,

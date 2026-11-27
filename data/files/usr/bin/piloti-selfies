@@ -1,0 +1,4 @@
+#!/bin/sh
+# piloti-selfies — Open Piloti Selfies
+set -eu
+exec /usr/bin/piloti open selfies "$@"

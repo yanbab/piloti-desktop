@@ -1,4 +1,0 @@
-#!/bin/sh
-# piloti-camera — Open Piloti Camera
-set -eu
-exec /usr/bin/piloti open camera "$@"

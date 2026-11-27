@@ -50,10 +50,11 @@ export function resolveUiAccentHex(
   return (interfaceTheme || "piloti") === "piloti" ? softenAccentHex(hex) : hex;
 }
 
-/** The CSS `color-mix(in srgb, accent 80%, white)` of `--ui-accent-soft`. */
+/** The CSS `color-mix(in srgb, accent 70%, rgb(170 170 178))` of `--ui-accent-soft`. */
 function softenAccentHex(hex: string): string {
+  const grey = [170, 170, 178];
   return `#${[1, 3, 5]
-    .map((i) => Math.round(parseInt(hex.slice(i, i + 2), 16) * 0.8 + 255 * 0.2))
+    .map((i, c) => Math.round(parseInt(hex.slice(i, i + 2), 16) * 0.7 + grey[c] * 0.3))
     .map((v) => v.toString(16).padStart(2, "0"))
     .join("")}`;
 }
@@ -226,12 +227,12 @@ export type BuiltinAppId =
   | "settings"
   | "console"
   | "files"
-  | "text-editor"
+  | "texts"
   | "terminal"
   | "app-store"
   | "calculator"
   | "image-viewer"
-  | "camera"
+  | "selfies"
   | "system-monitor"
   | "login-screen"
   | "piloti-demo"
@@ -348,7 +349,7 @@ const APP_MENUS: Record<string, AppMenuSection[]> = {
       ],
     },
   ],
-  "text-editor": [
+  "texts": [
     {
       title: "File",
       items: [
@@ -358,11 +359,11 @@ const APP_MENUS: Record<string, AppMenuSection[]> = {
     {
       title: "View",
       items: [
-        { label: "Line Numbers", actionId: "text-editor:toggle-line-numbers", checked: false },
-        { label: "Syntax Highlighting", actionId: "text-editor:toggle-syntax", checked: true },
-        { label: "Word Wrap", actionId: "text-editor:toggle-word-wrap", checked: false },
-        { label: "Active Line", actionId: "text-editor:toggle-active-line", checked: false },
-        { label: "Cursor Position", actionId: "text-editor:toggle-cursor-position", checked: false, separatorAfter: true },
+        { label: "Line Numbers", actionId: "texts:toggle-line-numbers", checked: false },
+        { label: "Syntax Highlighting", actionId: "texts:toggle-syntax", checked: true },
+        { label: "Word Wrap", actionId: "texts:toggle-word-wrap", checked: false },
+        { label: "Active Line", actionId: "texts:toggle-active-line", checked: false },
+        { label: "Cursor Position", actionId: "texts:toggle-cursor-position", checked: false, separatorAfter: true },
         { label: "Open New Windows Separately", actionId: "shell:run-separately", checked: false },
       ],
     },

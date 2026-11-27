@@ -23,10 +23,10 @@ describe("spatial-window-bounds", () => {
 
     expect(
       resolveSpatialBoundsKey({
-        appId: "text-editor",
+        appId: "texts",
         payload: "/home/user/Desktop/notes.md",
       }),
-    ).toBe("text-editor:/home/user/Desktop/notes.md");
+    ).toBe("texts:/home/user/Desktop/notes.md");
 
     expect(
       resolveSpatialBoundsKey({

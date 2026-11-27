@@ -171,3 +171,11 @@ app {
   transition-duration: 0.01ms !important;
   scroll-behavior: auto !important;
 }
+
+/* An urgent notification: the surface and border of any other, tinted. */
+.ui-notification-urgent {
+  background-image: linear-gradient(
+    color-mix(in oklab, var(--ui-accent) 20%, transparent),
+    color-mix(in oklab, var(--ui-accent) 20%, transparent)
+  );
+}

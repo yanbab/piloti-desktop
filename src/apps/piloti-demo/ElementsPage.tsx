@@ -3,7 +3,8 @@ import { InfoIcon, PlusIcon, SaveIcon } from "@/components/ui/symbols";
 import { AppChromeProvider, type AppChrome } from "@/components/elements/app-chrome";
 import { AppContent, AppWindow } from "@/components/elements/app-window";
 import { HeaderBar, HeaderButton, HeaderHeading } from "@/components/elements/header-bar";
-import { ElementSample, ElementSamples } from "@/components/elements/element-samples";
+import { ElementSample, ElementSampleList } from "@/components/elements/element-sample";
+import { ElementSamples } from "@/components/elements/element-samples";
 import { WindowMenuButton } from "@/components/common/WindowMenuButton";
 import { Segmented } from "@/components/ui/segmented";
 import { Window } from "@/components/ui/window";
@@ -45,9 +46,9 @@ export function ElementsPage() {
   );
 
   return (
-    <div className="flex flex-col gap-5 p-4">
+    <ElementSampleList>
       <ElementSample
-        title={_("Sample window")}
+        title="Sample window"
         reactCode={CODE}
         html={HTML}
         controls={
@@ -101,6 +102,6 @@ export function ElementsPage() {
         }
       />
       <ElementSamples />
-    </div>
+    </ElementSampleList>
   );
 }

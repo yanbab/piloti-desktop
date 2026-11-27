@@ -9,7 +9,8 @@ import { cn } from "@/lib/core/utils"
 export type ToastViewportPosition = "top-right"
 
 const VIEWPORT_POSITION_CLASSES: Record<ToastViewportPosition, string> = {
-  "top-right": "top-10 right-3",
+  // Where and as wide as the Control Panel and its notifications.
+  "top-right": "top-9 right-1.5",
 }
 
 function ToastProvider({ ...props }: ToastPrimitive.Provider.Props) {
@@ -29,7 +30,7 @@ function ToastViewport({
         data-slot="toast-viewport"
         data-position={position}
         className={cn(
-          "pointer-events-none fixed z-[450] flex w-[380px] max-w-[calc(100vw-24px)] flex-col gap-2 outline-none",
+          "pointer-events-none fixed z-[450] flex w-[312px] max-w-[calc(100vw-12px)] flex-col gap-2 outline-none",
           VIEWPORT_POSITION_CLASSES[position],
           className
         )}

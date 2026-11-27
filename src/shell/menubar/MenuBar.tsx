@@ -74,7 +74,8 @@ import {
 import { buildAppHelpLinks } from "@/shell/menubar/app-help-links";
 import { captureLaunchOriginFromElement } from "@/lib/windows/launch-origin";
 import { ControlPanel, FloatingNotifications } from "./ControlPanel";
-import { KeyboardLayoutSwitcher } from "@/shell/session/KeyboardLayoutSwitcher";
+import { batteryTone } from "@/components/common/power-saver";
+import { KeyboardMenu } from "./KeyboardMenu";
 import { selectKeymap } from "@/lib/engine/keyboard";
 import { Launcher } from "@/shell/launcher/Launcher";
 import { PilotiLogo } from "@/components/common/PilotiLogo";
@@ -1172,11 +1173,7 @@ export const MenuBar = React.memo(function MenuBar() {
             <SystemTrayItem key={item.id} item={item} />
           ))}
 
-        {/* Keyboard Layout Switcher (shown when > 1 layout is available) */}
-        <KeyboardLayoutSwitcher
-          sideOffset={0}
-          onValueChange={(keyboardLayout) => updateSettings({ keyboardLayout })}
-        />
+        <KeyboardMenu />
 
         {/* Launcher Trigger & Popover */}
           <DropdownMenu
@@ -1210,10 +1207,11 @@ export const MenuBar = React.memo(function MenuBar() {
               anchor={rightClusterRef}
               align="end"
               alignOffset={-8}
-              sideOffset={0}
+              sideOffset={6}
               collisionAvoidance={{ side: "flip", align: "shift" }}
               data-menu="launcher"
-              className="w-[312px] max-w-[calc(100vw-16px)] overflow-hidden p-0"
+              // 5px collision padding + 1: as far from the edge as the Piloti menu.
+              className="mr-px w-[312px] max-w-[calc(100vw-16px)] overflow-hidden p-0"
             >
               {launcherOpen && <Launcher />}
             </DropdownMenuContent>
@@ -1270,11 +1268,11 @@ export const MenuBar = React.memo(function MenuBar() {
                 {batteryInfo.present && (
                   <span
                     data-slot="menubar-battery"
-                    // The icon takes the accent in power saver mode, not the percentage.
+                    // The icon turns orange in power saver mode, not the percentage.
                     {...(settings.powerMode === "power-saver" && { title: _("Power Saver") })}
                     className={cn(
                       "inline-flex items-center gap-1 text-ui-body tabular-nums",
-                      settings.powerMode === "power-saver" && "[&_svg]:text-ui-accent"
+                      batteryTone(settings.powerMode)
                     )}
                   >
                     {batteryInfo.charging ? (
@@ -1302,11 +1300,11 @@ export const MenuBar = React.memo(function MenuBar() {
               // Built once, then shown and hidden.
               keepMounted
               align="end"
-              sideOffset={0}
+              sideOffset={6}
               data-menu="control-panel"
               // The scroll container is padded so the panel and notification
               // shadows (same as menus) are not clipped by its overflow.
-              className="-mr-1 w-[348px] max-w-[calc(100vw-8px)] overflow-x-hidden overflow-y-auto rounded-none border-0 bg-transparent! pt-0 pr-3 pb-8 pl-6 shadow-none! [backdrop-filter:none]! [-webkit-backdrop-filter:none]!"
+              className="-mr-[11px] w-[348px] max-w-[calc(100vw-8px)] overflow-x-hidden overflow-y-auto rounded-none border-0 bg-transparent! pt-0 pr-3 pb-8 pl-6 shadow-none! [backdrop-filter:none]! [-webkit-backdrop-filter:none]!"
             >
               <div data-slot="control-panel" className="rounded-ui-box p-3 shadow-ui-popover ui-material-menu">
                 <ControlPanel open={controlPanelOpen} />

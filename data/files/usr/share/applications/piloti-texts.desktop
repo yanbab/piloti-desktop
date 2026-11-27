@@ -1,18 +1,20 @@
 [Desktop Entry]
 Type=Application
-Name=Notepad
-Comment=Minimal plain-text notepad with instant localStorage VFS save
-Exec=piloti-notepad %F
+Name=Texts
+Name[fr]=Textes
+Name[es]=Textos
+Comment=Edit plain text and Markdown files
+Exec=piloti-texts %F
 Icon=accessories-text-editor
 Categories=Utility;TextEditor;
 MimeType=text/plain;text/markdown;text/css;text/csv;application/json;application/xml;application/x-shellscript;application/x-yaml;application/x-desktop;
 OnlyShowIn=Piloti;
-X-Piloti-AppId=text-editor
-X-Piloti-Component=text-editor
-X-Piloti-ShortName=Notepad
+X-Piloti-AppId=texts
+X-Piloti-Component=texts
+X-Piloti-ShortName=Texts
 X-Piloti-Category=Utilities
 X-Piloti-Order=50
 X-Piloti-Pinned=true
 X-Piloti-IconName=file-text
-X-Piloti-XdgIcons=accessories-text-editor;org.gnome.TextEditor;piloti-notepad;piloti-text-editor;
+X-Piloti-XdgIcons=accessories-text-editor;org.gnome.TextEditor;piloti-texts;
 X-Piloti-Size=520x380

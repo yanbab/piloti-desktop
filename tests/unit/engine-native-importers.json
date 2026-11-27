@@ -3,7 +3,7 @@
   "apps/login/LoginScreenApp.tsx",
   "apps/settings/SecurityPane.tsx",
   "apps/terminal/XtermTerminalApp.tsx",
-  "apps/text-editor/host.ts",
+  "apps/texts/host.ts",
   "context/AppsContext.tsx",
   "context/SettingsContext.tsx",
   "context/SystemBackendsContext.tsx",
