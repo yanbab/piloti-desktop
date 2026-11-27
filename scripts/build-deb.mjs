@@ -224,7 +224,7 @@ function generateDebianControl({ version, installedSizeKiB, repoRoot }) {
     "Section: x11",
     "Priority: optional",
     "Architecture: all",
-    "Depends: domicile, adwaita-icon-theme, hicolor-icon-theme, papirus-icon-theme",
+    "Depends: domicile, adwaita-icon-theme, hicolor-icon-theme, papirus-icon-theme, libarchive-tools",
     "Recommends: xwayland-satellite, xdg-utils, dbus-user-session",
     "Suggests: greetd, gnome-control-center, flatpak, network-manager, pipewire",
     "Provides: wayland-session",

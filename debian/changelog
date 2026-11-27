@@ -1,3 +1,23 @@
+piloti-desktop (0.10.11-1) unstable; urgency=medium
+
+  * Release v0.10.11:
+    - Folders on Linux: image thumbnails, file sizes, a working location bar
+      and info pane, the localized Templates folder, Recents with sizes that
+      refreshes live, and saving through a dangling link keeps the link.
+    - Outside drops are written to disk, on the desktop too, and can be undone.
+    - Focus stays in the window after using a context menu.
+    - Desktop settings live in dconf (GSettings), linked to GNOME's keys.
+    - Piloti Shell: file commands, programs, completion and scripts; on Linux,
+      JavaScript is limited to expressions (the shell forbids eval).
+    - Themed symbolic icons everywhere, one folder renderer, drive icons;
+      Wi-Fi and speaker icons follow signal and level.
+    - Cupertino theme refinements; type follows the font settings.
+    - libarchive-tools is now a dependency; Domicile SDK 3.
+    - Internal: one boundary for system commands, backends split by concern,
+      ESLint.
+
+ -- yanbab <yanbab@gmail.com>  Fri, 27 Nov 2026 02:35:00 +0100
+
 piloti-desktop (0.10.10-1) unstable; urgency=medium
 
   * Release v0.10.10:
