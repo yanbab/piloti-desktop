@@ -1,7 +1,6 @@
 import { SparklesIcon } from "lucide-react";
 import {
   useApps,
-  useWindowActions,
   useWindowManagerSelector,
 } from "@/context/DesktopStateContext";
 import { cn } from "@/lib/core/utils";
@@ -9,14 +8,21 @@ import { AppSquircleIcon } from "@/components/common/AppSymbol";
 
 export function AltTabSwitcher() {
   const { getAppIconUrl } = useApps();
-  const { altTabOpen, altTabIndex, mruWindows } = useWindowManagerSelector(
-    (wm) => ({
-      altTabOpen: wm.altTabOpen,
-      altTabIndex: wm.altTabIndex,
-      mruWindows: wm.mruWindows,
-    })
-  );
-  const { setAltTabIndex, commitAltTab, closeAltTab } = useWindowActions();
+  const {
+    altTabOpen,
+    altTabIndex,
+    mruWindows,
+    setAltTabIndex,
+    commitAltTab,
+    closeAltTab,
+  } = useWindowManagerSelector((wm) => ({
+    altTabOpen: wm.altTabOpen,
+    altTabIndex: wm.altTabIndex,
+    mruWindows: wm.mruWindows,
+    setAltTabIndex: wm.setAltTabIndex,
+    commitAltTab: wm.commitAltTab,
+    closeAltTab: wm.closeAltTab,
+  }));
 
   return (
     <div

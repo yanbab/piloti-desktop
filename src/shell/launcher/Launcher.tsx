@@ -391,19 +391,8 @@ export const Launcher = React.memo(function Launcher() {
     [searchQuery]
   );
 
-  // Show the panel at once; fill the list on the next frame so opening is not blocked by it.
-  const [listReady, setListReady] = React.useState(false);
-  React.useEffect(() => {
-    if (!launcherOpen) {
-      setListReady(false);
-      return;
-    }
-    const id = window.setTimeout(() => setListReady(true), 0);
-    return () => window.clearTimeout(id);
-  }, [launcherOpen]);
-
   const sections = React.useMemo(() => {
-    if (!listReady) return [];
+    if (!launcherOpen) return [];
     const out: { heading: string; items: PaletteEntry[] }[] = [];
 
     if (mathResult) {
@@ -953,7 +942,7 @@ export const Launcher = React.memo(function Launcher() {
 
     return out;
   }, [
-    listReady,
+    launcherOpen,
     availableGnomePanels,
     detectedUrl,
     mathResult,
@@ -1104,6 +1093,7 @@ export const Launcher = React.memo(function Launcher() {
   );
 
   React.useLayoutEffect(() => {
+    if (!launcherOpen) return;
     const popup = searchHeaderRef.current?.closest<HTMLElement>(
       '[data-slot="dropdown-menu-content"]'
     );
@@ -1112,15 +1102,25 @@ export const Launcher = React.memo(function Launcher() {
       popup.style.translate = "";
       return;
     }
-    const placed = placePopupOffset(popup, popupOffset.x, popupOffset.y, "settle");
-    popup.style.translate =
-      placed.x || placed.y ? `${placed.x}px ${placed.y}px` : "";
+    popup.style.translate = `${popupOffset.x}px ${popupOffset.y}px`;
+    const frame = requestAnimationFrame(() => {
+      const placed = placePopupOffset(popup, popupOffset.x, popupOffset.y, "settle");
+      popup.style.translate =
+        placed.x || placed.y ? `${placed.x}px ${placed.y}px` : "";
+    });
+    return () => cancelAnimationFrame(frame);
   }, [placePopupOffset, launcherOpen, listHeight, popupOffset.x, popupOffset.y]);
 
   const handleHeaderDragPointerDown = (
     e: React.PointerEvent<HTMLDivElement>
   ) => {
     if (e.button !== 0) return;
+    if (
+      e.target instanceof Element &&
+      e.target.closest("input, textarea, [contenteditable='true']")
+    ) {
+      return;
+    }
     const popup = searchHeaderRef.current?.closest<HTMLElement>(
       '[data-slot="dropdown-menu-content"]'
     );
@@ -1260,11 +1260,7 @@ export const Launcher = React.memo(function Launcher() {
       <CommandList
         style={{ maxHeight: `${listHeight}px` }}
       >
-        {!listReady ? (
-          <div className="py-6 text-center text-ui-body text-ui-label-secondary">
-            {_("Loading…")}
-          </div>
-        ) : sections.length === 0 ? (
+        {sections.length === 0 ? (
           <div className="py-6 text-center text-ui-body text-ui-label-secondary">
             {_("No matching apps, folders, settings, or commands.")}
           </div>
