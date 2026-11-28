@@ -39,6 +39,12 @@ export function useModuleChannel(
       return id ? [`${id}=${w.id}`] : [];
     })
     .join(" ");
+  // Module windows that hold nothing else: only those take the module's size,
+  // a window with other tabs keeps its own.
+  const aloneKey = windows
+    .filter((w) => (w.browserTabs?.length ?? 1) <= 1 && moduleInstance(w.browserUrl))
+    .map((w) => w.id)
+    .join(" ");
   const windowsRef = React.useRef(windows);
   windowsRef.current = windows;
   const resizeRef = React.useRef(resize);
@@ -62,6 +68,7 @@ export function useModuleChannel(
     }
     known.current = new Set(modules.keys());
     if (modules.size === 0) return;
+    const alone = new Set(aloneKey ? aloneKey.split(" ") : []);
 
     const apply = () => {
       for (const [id, windowId] of modules) {
@@ -73,6 +80,10 @@ export function useModuleChannel(
         }
         if (state?.menu) publishWindowMenuState(windowId, state.menu);
         const size = state?.size;
+        if (!alone.has(windowId)) {
+          sizes.current.delete(id); // fitted again once alone
+          continue;
+        }
         if (!size || sizes.current.get(id) === `${size.width}x${size.height}`) continue;
         sizes.current.set(id, `${size.width}x${size.height}`);
         const titlebar = document.querySelector<HTMLElement>(`[data-window-id="${windowId}"] header`);
@@ -94,7 +105,7 @@ export function useModuleChannel(
       stop();
       window.removeEventListener("piloti:app-action", onAppAction);
     };
-  }, [key, piloti]);
+  }, [key, aloneKey, piloti]);
 
   // Requests: any module may ask, as any program of the session could.
   const actionsRef = React.useRef(actions);
