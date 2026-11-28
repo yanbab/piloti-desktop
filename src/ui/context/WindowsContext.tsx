@@ -13,13 +13,12 @@ import {
 } from "@domicile-desktop/sdk/window-state";
 import {
   APP_CATALOG,
-  type BuiltinAppId,
 } from "@/core/data/catalog";
 import {
   canonicalizeWebUrl,
   findMatchingWebApp,
 } from "@/core/data/web-apps";
-import { moduleDocument, resolveAppModuleByUrl } from "@/core/data/app-modules";
+import { resolveAppModuleByUrl } from "@/core/data/app-modules";
 import { restoreModuleWindows } from "@/ui/context/windows/restore-modules";
 import {
   DOCUMENT_SCOPED_APP_IDS,
@@ -32,6 +31,8 @@ import {
   openGnomeControlCenter,
 } from "@/platform/shared/desktop-integration";
 import { getRunIn } from "@/core/windows/run-mode";
+import { createRepeatGuard, planLaunch } from "@/core/windows/launch-plan";
+import { newShellWindow } from "@/core/windows/new-shell-window";
 import {
   matchXdgEntryForWaylandWindow,
   resolveWaylandClientFrame,
@@ -1544,7 +1545,7 @@ export function useWindowsValue(
 
   const combinedWindowsRef = React.useRef<DesktopWindowInstance[]>(combinedWindows);
   combinedWindowsRef.current = combinedWindows;
-  const recentLaunchGuardRef = React.useRef<Map<string, number>>(new Map());
+  const repeatedRef = React.useRef(createRepeatGuard());
 
   // A document window follows its file, so opening it again finds the window.
   React.useEffect(
@@ -1579,251 +1580,105 @@ export function useWindowsValue(
       appId: string,
       options?: { payload?: string; forceNew?: boolean; forceCsd?: boolean; inShell?: boolean }
     ) => {
-      // Advanced settings are in Devtools now.
-      if (appId === "settings" && options?.payload === "advanced") {
-        launchAppRef.current?.("console", { payload: "advanced" });
+      const definition = APP_CATALOG.find((a) => a.id === appId);
+      const plan = planLaunch(appId, options ?? {}, {
+        windows: combinedWindowsRef.current,
+        definition,
+        programs: installedXdgApps,
+        runIn: getRunIn,
+        systemServices: getEngine().capabilities.systemServices,
+        browserUrl:
+          normalizeWebUrl(options?.payload ?? "") ??
+          (!compositor ? BROWSER_DEMO_HOME_URL : BROWSER_HOME_URL),
+      });
+      if (plan.kind === "instead") {
+        launchAppRef.current?.(plan.appId, plan.options);
         return;
       }
       clearLaunchOverlays();
       logAppLaunch(appId, options?.payload);
-      const def = APP_CATALOG.find((a) => a.id === appId);
 
-      // Web Browser: our own browser window (the web view used by web apps,
-      // with its address bar and extensions), not an external browser.
-      if (appId === "browser") {
-        const url =
-          normalizeWebUrl(options?.payload ?? "") ??
-          (!compositor ? BROWSER_DEMO_HOME_URL : BROWSER_HOME_URL);
-        const existing = options?.forceNew
-          ? undefined
-          : combinedWindowsRef.current.find((w) => w.appId === "browser" && w.browserWindowId);
-        if (existing) {
-          // Like other browsers: a link opens as a tab of the open window.
-          if (options?.payload) openBrowserTab(existing.id, url);
-          focusWindow(existing.id);
-          return;
-        }
-        beginStartupNotification("browser");
-        pendingBrowserAppRef.current += 1;
-        piloti.browser.open(url);
-        return;
-      }
-
-      // Focus existing window unless forceNew (for document-scoped apps with a payload, only reuse matching document/folder)
-      if (!options?.forceNew) {
-        const lowerAppId = appId.toLowerCase();
-        const existing = combinedWindowsRef.current.find((w) => {
-          const idMatches =
-            w.appId === appId ||
-            w.appId.toLowerCase() === lowerAppId ||
-            w.waylandDesktopId?.toLowerCase() === lowerAppId ||
-            w.waylandDesktopId?.replace(/\.desktop$/i, "").toLowerCase() === lowerAppId;
-          return DOCUMENT_SCOPED_APP_IDS.has(appId) && options?.payload
-            ? idMatches && w.payload === options.payload
-            : idMatches;
-        });
-        if (existing) {
-          if (
-            (options?.payload || options?.forceCsd !== undefined) &&
-            !existing.id.startsWith("wayland:")
-          ) {
+      switch (plan.kind) {
+        case "focus": {
+          const { patch } = plan;
+          if (patch) {
             setShellWindows((prev) =>
-              prev.map((w) =>
-                w.id === existing.id
-                  ? {
-                    ...w,
-                    payload: options.payload ?? w.payload,
-                    clientFrame: options.forceCsd ?? w.clientFrame,
-                  }
-                  : w
-              )
+              prev.map((w) => (w.id === plan.windowId ? { ...w, ...patch } : w))
             );
           }
-          focusWindow(existing.id);
+          if (plan.openTab) openBrowserTab(plan.windowId, plan.openTab);
+          focusWindow(plan.windowId);
           return;
         }
-      }
-
-      if (appId === "nautilus" && options?.payload && options?.forceNew) {
-        const sameFolderWin = combinedWindows.find(
-          (w) => w.appId === "nautilus" && w.payload === options.payload,
-        );
-        if (sameFolderWin) {
-          focusWindow(sameFolderWin.id);
+        case "browser":
+          // Our own browser window (the web view used by web apps, with its
+          // address bar and extensions), not an external browser.
+          beginStartupNotification("browser");
+          pendingBrowserAppRef.current += 1;
+          piloti.browser.open(plan.url);
           return;
-        }
-      }
-
-      // One window per document, whatever the caller asked: two editors of the
-      // same file would save over each other.
-      if (options?.forceNew && options.payload && (appId === "texts" || appId === "image-viewer")) {
-        const sameDocument = combinedWindowsRef.current.find(
-          (w) => w.appId === appId && w.payload === options.payload,
-        );
-        if (sameDocument) {
-          focusWindow(sameDocument.id);
+        case "module":
+          if (repeatedRef.current(`module:${plan.builtin}::${options?.payload ?? ""}`)) return;
+          beginStartupNotification(appId);
+          void openAppModule(piloti, plan.builtin, options?.payload)
+            .catch(() => false)
+            .then((opened) => {
+              // No module installed: open it in the shell after all.
+              if (!opened) launchAppRef.current?.(appId, { ...options, inShell: true });
+            });
           return;
-        }
-      }
-
-      // Built-in shell windows (`settings`, `console`, `files`, `terminal`, `texts`, `app-store`, `calculator`, `image-viewer`)
-      const builtinKind: BuiltinAppId | undefined =
-        def?.builtinComponent ??
-        (appId === "settings" || appId === "console"
-          ? (appId as BuiltinAppId)
-          : appId === "nautilus"
-            ? "files"
-            : appId === "terminal"
-              ? "terminal"
-              : undefined);
-      const isolated = !options?.inShell && getRunIn(builtinKind ?? appId) === "isolated";
-      if (builtinKind && isolated && getEngine().capabilities.systemServices) {
-        const open =
-          options?.payload &&
-          combinedWindowsRef.current.find(
-            (w) =>
-              resolveAppModuleByUrl(w.browserUrl)?.id === builtinKind &&
-              moduleDocument(w.browserUrl) === options.payload,
-          );
-        if (open) {
-          focusWindow(open.id);
-          return;
-        }
-        // A double-click can ask twice before the first window is there.
-        const launchKey = `module:${builtinKind}::${options?.payload ?? ""}`;
-        const now = Date.now();
-        if (now - (recentLaunchGuardRef.current.get(launchKey) ?? 0) < 500) return;
-        recentLaunchGuardRef.current.set(launchKey, now);
-        beginStartupNotification(appId);
-        void openAppModule(piloti, builtinKind, options?.payload)
-          .catch(() => false)
-          .then((opened) => {
-            // No module installed: open it in the shell after all.
-            if (!opened) launchAppRef.current?.(appId, { ...options, inShell: true });
+        case "shell": {
+          const catalogEntry =
+            definition ?? APP_CATALOG.find((a) => a.id === plan.builtin) ?? APP_CATALOG[0];
+          const resolvedAppId = definition?.id ?? plan.builtin;
+          const newWin = newShellWindow({
+            id: `shell:${plan.builtin}-${++nextShellWinCounter}`,
+            appId: resolvedAppId,
+            builtin: plan.builtin,
+            definition: catalogEntry,
+            payload: options?.payload,
+            isolated: plan.isolated,
+            forceCsd: options?.forceCsd,
+            remembered: lookupSpatialWindowBounds(settings.savedWindowBounds, {
+              appId: resolvedAppId,
+              payload: options?.payload,
+            }),
+            windows: shellWindows,
+            screen: { width: screenWidth, height: screenHeight },
+            workspaces: { active: settings.activeWorkspace, count: settings.workspaceCount },
+            zIndex: nextZ(),
           });
-        return;
-      }
-      if (builtinKind) {
-        const builtinDef =
-          def ?? APP_CATALOG.find((a) => a.id === builtinKind) ?? APP_CATALOG[0];
-        const count = ++nextShellWinCounter;
-        const resolvedAppId = def?.id ?? builtinKind;
-        const newWinId = `shell:${builtinKind}-${count}`;
-        const remembered = lookupSpatialWindowBounds(settings.savedWindowBounds, {
-          appId: resolvedAppId,
-          payload: options?.payload,
-        });
-        const minSize = builtinDef.minSize ?? {
-          width: Math.min(360, builtinDef.defaultSize.width),
-          height: Math.min(260, builtinDef.defaultSize.height),
-        };
-        const width =
-          remembered?.size.width ??
-          Math.min(builtinDef.defaultSize.width, screenWidth - 48);
-        const height =
-          remembered?.size.height ??
-          Math.min(builtinDef.defaultSize.height, screenHeight - 120);
-        const sameAppPositions = shellWindows
-          .filter((w) => w.appId === resolvedAppId && !w.minimized)
-          .sort((a, b) => a.zIndex - b.zIndex)
-          .map((w) => w.position);
-        const clamped = clampWindowBounds(
-          computeCenteredOrCascadedPosition(
-            sameAppPositions,
-            { width, height },
-            screenWidth,
-            screenHeight,
-            remembered?.position
-          ),
-          { width, height },
-          screenWidth,
-          screenHeight,
-          { minWidth: minSize.width, minHeight: minSize.height }
-        );
-        const targetWorkspace =
-          remembered?.workspace !== undefined
-            ? clampWorkspace(remembered.workspace, settings.workspaceCount)
-            : clampWorkspace(settings.activeWorkspace, settings.workspaceCount);
-        const newWin: DesktopWindowInstance = {
-          id: newWinId,
-          appId: resolvedAppId,
-          title:
-            (builtinKind === "texts" || builtinKind === "image-viewer") &&
-            options?.payload
-              ? options.payload.split("/").pop() || builtinDef.name
-              : builtinDef.name,
-          iconName: builtinDef.iconName,
-          builtinComponent: builtinKind,
-          isolated,
-          clientFrame:
-            options?.forceCsd ?? builtinKind !== "terminal",
-          workspace: targetWorkspace,
-          position: clamped.position,
-          size: clamped.size,
-          minSize,
-          minimized: false,
-          maximized: remembered?.maximized ?? false,
-          zIndex: nextZ(),
-          payload: options?.payload,
-        };
-        beginStartupNotification(resolvedAppId);
-        if (targetWorkspace !== settings.activeWorkspace) {
-          updateSettings({ activeWorkspace: targetWorkspace });
-        }
-        combinedWindowsRef.current = [...combinedWindowsRef.current, newWin];
-        setShellWindows((prev) => {
-          if (
-            !options?.forceNew &&
-            prev.some((w) => w.appId === resolvedAppId && (!DOCUMENT_SCOPED_APP_IDS.has(appId) || !options?.payload || w.payload === options.payload))
-          ) {
-            return prev;
+          beginStartupNotification(resolvedAppId);
+          if (newWin.workspace !== settings.activeWorkspace) {
+            updateSettings({ activeWorkspace: newWin.workspace });
           }
-          return [...prev, newWin];
-        });
-        setFocusedWindowId(newWin.id);
-        setMruIds((prev) => [newWin.id, ...prev]);
-        piloti.windows.focusShell();
-        return;
-      }
-
-      // All other applications run as native Wayland / Linux processes (with XDG Startup Notification)
-      if (!options?.forceNew) {
-        const now = Date.now();
-        const launchKey = `${appId.toLowerCase()}::${options?.payload ?? ""}`;
-        const lastAt = recentLaunchGuardRef.current.get(launchKey) ?? 0;
-        if (now - lastAt < 500) {
+          combinedWindowsRef.current = [...combinedWindowsRef.current, newWin];
+          setShellWindows((prev) => {
+            if (
+              !options?.forceNew &&
+              prev.some((w) => w.appId === resolvedAppId && (!DOCUMENT_SCOPED_APP_IDS.has(appId) || !options?.payload || w.payload === options.payload))
+            ) {
+              return prev;
+            }
+            return [...prev, newWin];
+          });
+          setFocusedWindowId(newWin.id);
+          setMruIds((prev) => [newWin.id, ...prev]);
+          piloti.windows.focusShell();
           return;
         }
-        recentLaunchGuardRef.current.set(launchKey, now);
+        case "program":
+          // A Linux process, with XDG startup notification.
+          if (!options?.forceNew && repeatedRef.current(`${appId.toLowerCase()}::${options?.payload ?? ""}`)) {
+            return;
+          }
+          beginStartupNotification(appId);
+          launchDesktopCommand(piloti, plan.argv);
       }
-      beginStartupNotification(appId);
-      if (def?.linuxCommand) {
-        launchDesktopCommand(piloti, def.linuxCommand);
-        return;
-      }
-      const lowerAppId = appId.toLowerCase();
-      const matchedXdg = installedXdgApps.find(
-        (entry) =>
-          entry.appId.toLowerCase() === lowerAppId ||
-          entry.desktopId.toLowerCase() === lowerAppId ||
-          entry.desktopId.toLowerCase() === `${lowerAppId}.desktop`
-      );
-      if (matchedXdg && matchedXdg.execArgv.length > 0) {
-        launchDesktopCommand(piloti, matchedXdg.execArgv);
-        return;
-      }
-      // Reverse-DNS IDs (e.g. `org.gnome.Calculator`, `com.github.tchx84.Flatseal`)
-      // launch via `flatpak run <appId>` when not already matched to an XDG entry.
-      if (/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_.-]+$/.test(appId)) {
-        launchDesktopCommand(piloti, ["flatpak", "run", appId]);
-        return;
-      }
-      launchDesktopCommand(piloti, [appId]);
     },
     [
       beginStartupNotification,
       clearLaunchOverlays,
-      combinedWindows,
       piloti,
       focusWindow,
       installedXdgApps,
