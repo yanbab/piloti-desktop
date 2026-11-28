@@ -2,6 +2,23 @@
 
 Releases of Piloti Desktop, latest first. Dates are the tagged commit's.
 
+## 0.10.16 — 2026-11-28
+
+- Image Viewer and Selfies can run as separate apps, like Texts and Calculator.
+  Separate apps follow the desktop's theme, fonts and language (dconf
+  included) and can send notifications.
+- Texts and Image Viewer now run separately by default; choose otherwise in
+  Devtools ▸ Apps or View ▸ Open New Windows Separately.
+- Devtools has a new Apps tab: which apps run separately, with their start time
+  and memory, and GNOME Calculator to compare.
+- Settings ▸ Advanced moved to Devtools ▸ Advanced.
+- Fixed: separate app windows are started again on login.
+
+### Commits
+
+- `a0f963f` feat(devtools): run apps separately from Devtools, with their cost
+- `dcaeecb` feat(apps): one runtime for app modules; Image Viewer and Selfies run separately
+
 ## 0.10.15 — 2026-11-28
 
 - Window switcher (Alt+Tab) is faster: kept ready, without transitions or ring.

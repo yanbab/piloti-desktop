@@ -13,7 +13,6 @@ import {
   ShieldCheckIcon,
   SlidersHorizontalIcon,
   TypeIcon,
-  WrenchIcon,
 } from "lucide-react";
 import { SymbolicIcon } from "@/ui/components/ui/symbolic-icon";
 import { HeaderBar, HeaderHeading } from "@/ui/components/elements/header-bar";
@@ -42,7 +41,6 @@ import {
   writeVfsStateString,
 } from "@/core/state/vfs-state";
 import { cn } from "@/core/util/utils";
-import { AdvancedPane } from "./AdvancedPane";
 import { ExtensionsPane } from "./ExtensionsPane";
 import { SystemPane } from "./SystemPane";
 import { AppearancePane } from "./AppearancePane";
@@ -66,8 +64,7 @@ type SettingsPaneId =
   | "security"
   | "wallpaper"
   | "system"
-  | "extensions"
-  | "advanced";
+  | "extensions";
 
 const PANES: {
   id: SettingsPaneId;
@@ -140,12 +137,6 @@ const PANES: {
     label: "Extensions",
     subtitle: "Web extensions & desktop plugins",
     icon: <SymbolicIcon name="application-x-addon" fallback={PuzzleIcon} />,
-  },
-  {
-    id: "advanced",
-    label: "Advanced",
-    subtitle: "Startup services & testing",
-    icon: <SymbolicIcon name="applications-utilities" fallback={WrenchIcon} />,
   },
 ];
 
@@ -326,7 +317,6 @@ export function SettingsApp({
           {activePane === "wallpaper" && <WallpaperPane />}
           {activePane === "system" && <SystemPane />}
           {activePane === "extensions" && <ExtensionsPane />}
-          {activePane === "advanced" && <AdvancedPane />}
         </div>
       )}
     </AppSplitView>

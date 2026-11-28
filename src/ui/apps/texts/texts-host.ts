@@ -1,38 +1,18 @@
 import * as React from "react";
-import type { IsolatedAppBridge } from "@/platform/shared/app-bridge";
-import type { AppHost } from "@/core/ports/app-host";
-import type { Vfs } from "@/core/ports/vfs";
+import type { DocumentHost } from "@/core/ports/app-host";
 
 /**
  * Everything the Texts needs from the host it runs in: the shell, or a
- * Domicile app module (see docs/ARCHITECTURE.md). Files go through `vfs` on
- * both, so TextsApp itself never imports shell modules.
- *
- * State and prefs reads are synchronous: a host loads them before mounting.
+ * Domicile app module (see docs/ARCHITECTURE.md). TextsApp itself never imports
+ * shell modules.
  */
-export interface TextsHost extends Omit<AppHost, "vfs"> {
-  vfs: Pick<Vfs, "readText" | "write" | "stat" | "watch" | "move" | "metadata" | "setMetadata">;
-  normalizePath(path: string): string;
+export interface TextsHost extends DocumentHost {
   /** Where an unsaved document goes on first save (the user's Desktop). */
   defaultNewFilePath(name: string): string;
-  /** Told which file the editor holds (`null`: a new document). */
-  opened?(path: string | null): void;
-  /** For a host whose window closes without asking the shell first. */
-  guardClose?(mustAsk: () => boolean, ask: () => void): () => void;
-  /** Told after the editor renames its file. */
-  moved?(from: string, to: string): void;
-  /** Another part of the host renamed a file. */
-  onRenamed(listener: (e: { oldPath: string; newPath: string }) => void): () => void;
   /** Editor preferences (`piloti-texts/settings.ini` [Editor]). */
   readEditorPrefs(): Record<string, string>;
   writeEditorPrefs(values: Record<string, string | number | boolean>): void;
-  confirmUnsavedOnClose(): boolean;
   onPrintFocused(listener: (detail: { windowId?: string } | undefined) => void): () => void;
-  /** Overrides for the window bridge (title, close) when the host has no shell to message. */
-  bridge?: Partial<Pick<IsolatedAppBridge, "setTitle" | "closeWindow">>;
-  onBeforeClose(
-    listener: (detail: { windowId: string }, e: { preventDefault: () => void }) => void,
-  ): () => void;
 }
 
 const TextsHostContext = React.createContext<TextsHost | null>(null);

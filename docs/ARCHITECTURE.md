@@ -151,7 +151,7 @@ Domicile app module:
   It talks to the shell through files or D-Bus.
 - Shown in a `<webview>`; the shell draws its controls and drag strip
   (`core/data/app-modules.ts`).
-- Built with `npm run build:apps` → `dist/apps/<id>/` (`hello`, `calculator`, `texts`).
+- Built with `npm run build:apps` → `dist/apps/<id>/` (`hello`, `calculator`, `image-viewer`, `selfies`, `texts`).
 
 A module and the shell talk as in Electron (`core/apps/module-channel.ts`):
 
@@ -170,9 +170,17 @@ In a module, menu state and actions are the same window events as in the shell,
 so an app needs nothing of its own. A module that must not close refuses with
 `beforeunload` and asks in its own window.
 
-Texts (`engine/texts-host.ts`) and Calculator (`ui/apps/calculator/host.ts`) add
-what only they need. A module follows its settings file and `settings.ini`, but
-not dconf, and has no notifications or drag and drop with the shell. View ▸
+Each app adds only what it needs to `AppHost`; one that holds a file takes
+`DocumentHost` (rename, follow renames, ask before closing).
+
+**Porting an app:** a `host.ts` with what it needs, a `shell-host.tsx` for the
+shell, a `main.tsx` calling `mountModuleApp` (`ui/apps/module-app.tsx`), a line in
+`core/data/app-modules.ts` and `run-mode.ts`, and its name in `build:apps`. The
+runtime gives every module the desktop's look and language (read from dconf as
+the shell does, and followed), its settings and state, notifications
+(`org.freedesktop.Notifications`) and its window chrome.
+
+View ▸
 Open New Windows Separately sets `run-in=isolated`; without an installed module
 it opens in the shell.
 

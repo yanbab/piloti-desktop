@@ -1,15 +1,10 @@
 import * as React from "react";
 import { HeaderBar } from "@/ui/components/elements/header-bar";
 import { Segmented } from "@/ui/components/ui/segmented";
-import { useCapabilities } from "@/ui/hooks/use-capabilities";
-import { usePiloti } from "@/platform/shared/piloti";
 import { CameraIcon, MicIcon, VideoIcon } from "@/ui/components/ui/symbols";
-import { emitShellEvent } from "@/core/windows/shell-events";
-import { useApps, useSettings } from "@/ui/context/DesktopStateContext";
-import { resolveUserDirPath } from "@/core/xdg/xdg-user-dirs";
 import { _ } from "@/core/util/i18n";
+import type { SelfiesHost } from "@/ui/apps/selfies/host";
 import { cn } from "@/core/util/utils";
-import { WEB_VFS_HOME } from "@/core/files/vfs-paths";
 import {
   audioBaseName,
   captureStamp,
@@ -21,6 +16,7 @@ import {
 type CameraMode = "photo" | "video" | "audio";
 
 export interface SelfiesAppProps {
+  host: SelfiesHost;
   windowId?: string;
 }
 
@@ -53,10 +49,7 @@ function blobToDataUrl(blob: Blob): Promise<string> {
   });
 }
 
-export const SelfiesApp: React.FC<SelfiesAppProps> = ({ windowId = "" }) => {
-  const piloti = usePiloti();
-  const { realFilesystem } = useCapabilities();
-  const { xdgUserDirs } = useApps();
+export const SelfiesApp: React.FC<SelfiesAppProps> = ({ host, windowId = "" }) => {
   const [mode, setMode] = React.useState<CameraMode>("photo");
   const [error, setError] = React.useState<string | null>(null);
   const [recording, setRecording] = React.useState(false);
@@ -127,22 +120,20 @@ export const SelfiesApp: React.FC<SelfiesAppProps> = ({ windowId = "" }) => {
   /** Saves a capture to ~/Desktop. Metadata is stored on the entry when the engine supports it. */
   const saveToDesktop = React.useCallback(
     async (blob: Blob, base: string, ext: string, mime: string, meta: Record<string, string | number>) => {
-      const dir = !realFilesystem
-        ? `${WEB_VFS_HOME}/Desktop`
-        : resolveUserDirPath("DESKTOP", xdgUserDirs, WEB_VFS_HOME);
-      await piloti.vfs.createDir(dir);
+      const dir = host.userDir("DESKTOP");
+      await host.vfs.createDir(dir);
       const name = uniqueCaptureName(
-        ((await piloti.vfs.list(dir)) ?? []).map((e) => e.name),
+        ((await host.vfs.list(dir)) ?? []).map((e) => e.name),
         base,
         ext,
       );
       const path = `${dir}/${name}`;
-      if (realFilesystem) {
-        await piloti.vfs.write(path, new Uint8Array(await blob.arrayBuffer()));
+      if (host.binaryFiles) {
+        await host.vfs.write(path, new Uint8Array(await blob.arrayBuffer()));
       } else {
         // The browser VFS keeps pictures as data URLs, with their description.
-        await piloti.vfs.write(path, await blobToDataUrl(blob));
-        await piloti.vfs.setMetadata(path, {
+        await host.vfs.write(path, await blobToDataUrl(blob));
+        await host.vfs.setMetadata(path, {
           "standard::content-type": mime,
           "metadata::created": new Date().toISOString(),
           ...meta,
@@ -150,7 +141,7 @@ export const SelfiesApp: React.FC<SelfiesAppProps> = ({ windowId = "" }) => {
       }
       setStatus(_("Saved to Desktop") + ` — ${name}`);
     },
-    [piloti, realFilesystem, xdgUserDirs],
+    [host],
   );
 
   const takePhoto = React.useCallback(async () => {
@@ -220,7 +211,7 @@ export const SelfiesApp: React.FC<SelfiesAppProps> = ({ windowId = "" }) => {
   };
 
   const requestClose = () => {
-    if (windowId) emitShellEvent("piloti:request-animated-close", { windowId });
+    if (windowId) host.close(windowId);
   };
 
   return (

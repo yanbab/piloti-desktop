@@ -1,6 +1,6 @@
 /// <reference types="@domicile-desktop/react/elements" />
 import { WorkspaceTransition } from "@/ui/shell/windows/WorkspaceTransition";
-import { logAppEvent } from "@/core/util/perf-log";
+import { logAppEvent, recordAppReady } from "@/core/util/perf-log";
 import * as React from "react";
 import { emitShellEvent, onShellEvent } from "@/core/windows/shell-events";
 import { usePiloti } from "@/platform/shared/piloti";
@@ -112,11 +112,14 @@ export function WindowManager() {
       logAppEvent(appId, "closed");
     }
   }, [windows]);
+  const windowsRef = React.useRef(windows);
+  windowsRef.current = windows;
   const handleDomReady = React.useCallback((id: string) => {
     const appId = loggedWindowsRef.current.get(id);
     if (appId && !readyLoggedRef.current.has(id)) {
       readyLoggedRef.current.add(id);
-      logAppEvent(appId, "ready");
+      // A frame says itself when its app is drawn (`IsolatedAppFrame`).
+      if (!windowsRef.current.find((w) => w.id === id)?.isolated) recordAppReady(appId, false);
     }
     setDomReadyIds((prev) => {
       if (prev.has(id)) return prev;

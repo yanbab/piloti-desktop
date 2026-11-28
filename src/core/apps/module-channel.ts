@@ -25,6 +25,8 @@ export interface ModuleWindowState {
   menu?: Record<string, { checked?: boolean; disabled?: boolean; hidden?: boolean }>;
   /** The size the app's content wants, without the shell's titlebar. */
   size?: { width: number; height: number };
+  /** The app is drawn. */
+  ready?: boolean;
 }
 
 export type ShellMessage =

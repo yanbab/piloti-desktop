@@ -6,12 +6,15 @@ import { desktopSchemaKeys } from "@/core/config/piloti-settings-ini";
 import type { SettingChange, SettingsBackend } from "@/core/ports/settings";
 import { runText } from "./exec";
 
+/** An app module has no `launch`. */
+type ProcessHost = { processes: Pick<Piloti["processes"], "run" | "spawn"> };
+
 const DESKTOP_ROOT = "/org/piloti/desktop/";
 const DESKTOP_SCHEMA = "org.piloti.desktop";
 const isDesktopSchema = (schema: string) =>
   schema === DESKTOP_SCHEMA || schema.startsWith(`${DESKTOP_SCHEMA}.`);
 
-async function ok(piloti: Pick<Piloti, "processes">, argv: readonly string[]): Promise<boolean> {
+async function ok(piloti: ProcessHost, argv: readonly string[]): Promise<boolean> {
   try {
     return (await piloti.processes.run(argv)).match({ Ok: (r) => r.code === 0, Err: () => false });
   } catch {
@@ -20,7 +23,7 @@ async function ok(piloti: Pick<Piloti, "processes">, argv: readonly string[]): P
 }
 
 /** dconf's command line through Domicile's processes. */
-export function nativeDconfHost(piloti: Pick<Piloti, "processes">): DconfHost {
+export function nativeDconfHost(piloti: ProcessHost): DconfHost {
   return {
     dump: (dir) => runText(piloti, ["dconf", "dump", dir]),
     // `run` has no stdin: the text goes through sh as an argument, unquoted.
@@ -79,7 +82,7 @@ type Options = {
  * to (`gsettings-links.ini`). Called before the shell renders.
  */
 export async function selectNativeSettingsBackend(
-  piloti: Pick<Piloti, "processes">,
+  piloti: ProcessHost,
   options: Options,
 ): Promise<"dconf" | "keyfile"> {
   // Each reads dconf with its own process: both at once.
@@ -92,9 +95,24 @@ export async function selectNativeSettingsBackend(
   return own ? "dconf" : "keyfile";
 }
 
+/**
+ * The same for an app module, which only reads: dconf and its links, or `null`
+ * without Piloti's schema. Copying settings.ini there is the shell's job.
+ */
+export async function loadNativeDesktopBackend(
+  piloti: ProcessHost,
+  options: Options,
+): Promise<SettingsBackend | null> {
+  const [own, link] = await Promise.all([
+    installedDconf(piloti, options),
+    gnomeLinks(piloti, options.readText),
+  ]);
+  return own ? (link?.(own) ?? own) : null;
+}
+
 /** Adds the linked keys to a backend; null without the list or without dconf. */
 async function gnomeLinks(
-  piloti: Pick<Piloti, "processes">,
+  piloti: ProcessHost,
   readText: Options["readText"],
 ): Promise<((base: SettingsBackend) => SettingsBackend) | null> {
   const text = await readText(GSETTINGS_LINKS_PATH).catch(() => null);
@@ -115,16 +133,8 @@ async function gnomeLinks(
     });
 }
 
-/**
- * When Piloti's schemas are installed (the .deb ships them), the desktop
- * settings live in dconf, seen by `gsettings` and dconf-editor; the first time,
- * settings.ini's values are copied there. Otherwise (dev build, no dconf),
- * null: everything stays in the keyfiles.
- */
-async function desktopBackend(
-  piloti: Pick<Piloti, "processes">,
-  options: Options,
-): Promise<SettingsBackend | null> {
+/** Piloti's dconf settings, if its schema is installed (the .deb ships it). */
+async function installedDconf(piloti: ProcessHost, options: Options) {
   // A file check, not `gsettings list-schemas` (a process, ~150 ms at start).
   const schemaDirs = [`${options.home}/.local/share`, "/usr/local/share", "/usr/share"].map(
     (dir) => `${dir}/glib-2.0/schemas/${DESKTOP_SCHEMA}.gschema.xml`,
@@ -138,6 +148,21 @@ async function desktopBackend(
     kindOf: (schema, key) => kinds.get(`${schema}\0${key}`),
   });
   if (!(await dconf.preload())) return null;
+  return dconf;
+}
+
+/**
+ * When Piloti's schema is installed, the desktop
+ * settings live in dconf, seen by `gsettings` and dconf-editor; the first time,
+ * settings.ini's values are copied there. Otherwise (dev build, no dconf),
+ * null: everything stays in the keyfiles.
+ */
+async function desktopBackend(
+  piloti: ProcessHost,
+  options: Options,
+): Promise<SettingsBackend | null> {
+  const dconf = await installedDconf(piloti, options);
+  if (!dconf) return null;
 
   const keyfile = keyfileSettingsBackend();
   const nothingSet = desktopSchemaKeys().every(({ schema, key }) => dconf.read(schema, key) === undefined);

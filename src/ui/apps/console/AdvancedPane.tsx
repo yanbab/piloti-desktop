@@ -1,4 +1,3 @@
-import { HeaderBar } from "@/ui/components/elements/header-bar";
 import { PortalTestButtons } from "@/ui/components/elements/portal-test-buttons";
 import { hostFiles } from "@/core/files/host-files";
 import { VFS_HOME } from "@/core/state/vfs-home";
@@ -123,19 +122,19 @@ export function AdvancedPane() {
 
   return (
     <GroupedForm>
-      <HeaderBar.Portal>
-        <Button
-          type="button"
-          size="sm"
-          variant="secondary"
-          onClick={() => window.location.reload()}
-        >
-          {_("Restart Piloti")}
-        </Button>
-      </HeaderBar.Portal>
       <GroupedFormSection>
         <GroupedFormSectionTitle>{_("General")}</GroupedFormSectionTitle>
         <GroupedFormGroup>
+          <GroupedFormRow>
+            <GroupedFormRowLabel>
+              <GroupedFormRowTitle>{_("Restart Piloti")}</GroupedFormRowTitle>
+            </GroupedFormRowLabel>
+            <GroupedFormRowControl>
+              <Button type="button" size="sm" variant="secondary" onClick={() => window.location.reload()}>
+                {_("Restart")}
+              </Button>
+            </GroupedFormRowControl>
+          </GroupedFormRow>
           <GroupedFormRow>
             <GroupedFormRowLabel>
               <GroupedFormRowTitle>{_("Debug mode")}</GroupedFormRowTitle>

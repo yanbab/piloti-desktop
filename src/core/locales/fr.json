@@ -1074,5 +1074,19 @@
   "This page is not a website.": "Cette page n’est pas un site web.",
   "Reset Permissions": "Réinitialiser les autorisations",
   "No Pages": "Aucune page",
-  "Go to First Page": "Aller à la première page"
+  "Go to First Page": "Aller à la première page",
+  "Run in their own process": "Exécution dans leur propre processus",
+  "In the shell: %s": "Dans le shell : %s",
+  "Separate: %s": "Séparée : %s",
+  "Run %s separately": "Exécuter %s séparément",
+  "best %d ms of %d": "meilleur %d ms sur %d",
+  "Measures": "Mesures",
+  "Renderer processes": "Processus de rendu",
+  "%d processes, %d MB in all": "%d processus, %d Mo au total",
+  "Only measured on Linux": "Mesuré sous Linux uniquement",
+  "Time is from the request to the app being drawn. Memory is what all renderers grew by, three seconds later: an estimate.": "Le temps va de la demande à l’affichage de l’application. La mémoire est la croissance de tous les processus de rendu, trois secondes après : une estimation.",
+  "To compare with": "Pour comparer",
+  "Window shown: %s": "Fenêtre affichée : %s",
+  "Not installed (gnome-calculator)": "Non installée (gnome-calculator)",
+  "Close it before opening it again. Its memory is its whole process.": "Fermez-la avant de la rouvrir. Sa mémoire est celle de tout son processus."
 }
