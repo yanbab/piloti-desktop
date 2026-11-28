@@ -5,7 +5,7 @@
  */
 import * as React from "react";
 import { appIconThemes } from "@/core/apps/describe-apps";
-import type { AppDragState } from "@/core/apps/module-channel";
+import type { AppDragEvent } from "@/core/apps/module-channel";
 import type { DesktopSettings } from "@/core/config/desktop-settings";
 import type { Apps } from "@/core/ports/apps";
 import type { ShellHost, ShellWindow } from "@/core/ports/shell-host";
@@ -16,6 +16,13 @@ import {
   lookupXdgIconPath,
 } from "@/core/xdg/xdg-icon-theme";
 import type { MimeAppOption } from "@/core/xdg/xdg-mimeapps";
+import { droppedPathsAction } from "@/core/files/dropped-paths";
+import {
+  broadcastItemDrag,
+  endItemDragBroadcast,
+  pathItems,
+  resolveTopDropTarget,
+} from "@/ui/dnd/item-drop";
 import { discoverXdgUserDirs, type XdgUserDir } from "@/core/xdg/xdg-user-dirs";
 import type { FilesActions, FilesApps, FilesHost, FilesNotify } from "@/ui/components/files-host";
 
@@ -40,9 +47,9 @@ export interface StandaloneFilesPort {
   /** Items released outside the window, at `point` in its coordinates. */
   dropOut(paths: readonly string[], point: { x: number; y: number; copy: boolean }): void;
   /** Tells the shell about a drag in this window (none: it ended here). */
-  dragItems(paths: readonly string[]): void;
+  dragItems(paths: readonly string[], icon?: string): void;
   /** What the shell did with that drag. Returns stop. */
-  watchDrag(listener: (state: AppDragState) => void): () => void;
+  watchDrag(listener: (event: AppDragEvent) => void): () => void;
   /** Whether this window has the focus, at once and on each change. Returns stop. */
   watchFocus(listener: (focused: boolean) => void): () => void;
 }
@@ -102,6 +109,23 @@ export function createStandaloneFilesHost(port: StandaloneFilesPort): FilesHost 
   };
   const ensureWaylandIcons = (ids: readonly string[]) => ids.forEach(loadIcon);
 
+  // A drag the shell owns, over this window: light the folder under it, and
+  // take a drop as the shell's own drops on this window (`dropped-paths.ts`).
+  port.watchDrag((event) => {
+    if (event.state === "over") {
+      const items = pathItems(event.paths);
+      broadcastItemDrag(items[0]!, items, event.x, event.y);
+    } else if (event.state === "leave") {
+      endItemDragBroadcast();
+    } else if (event.state === "drop") {
+      endItemDragBroadcast();
+      const target = resolveTopDropTarget(event.x, event.y, event.paths);
+      const dest = target?.kind === "vfs" ? target.destPath : undefined;
+      const actionId = droppedPathsAction(event.paths, event.copy, dest);
+      dispatchEvent(new CustomEvent("piloti:app-action", { detail: { windowId: port.windowId, actionId } }));
+    }
+  });
+
   const windows = store<readonly ShellWindow[]>([]);
   port.shell.watchWindows((next) => windows.set(next));
   const focused = store(false);
@@ -142,7 +166,7 @@ export function createStandaloneFilesHost(port: StandaloneFilesPort): FilesHost 
       );
     },
     dropOutside: (paths, point) => port.dropOut(paths, point),
-    appDrag: { report: (paths) => port.dragItems(paths), watch: (listener) => port.watchDrag(listener) },
+    appDrag: { report: (paths, icon) => port.dragItems(paths, icon), watch: (listener) => port.watchDrag(listener) },
     useActions: () => actions,
     useOpenPath: () => openPath,
     useWindows() {

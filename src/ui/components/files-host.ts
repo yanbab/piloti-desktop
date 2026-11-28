@@ -5,7 +5,7 @@
  * shell's can read its contexts and a module's its own sources; nothing under
  * it imports the shell.
  */
-import type { AppDragState } from "@/core/apps/module-channel";
+import type { AppDragEvent } from "@/core/apps/module-channel";
 import * as React from "react";
 import type { DesktopSettings } from "@/core/config/desktop-settings";
 import type { XdgDesktopEntry } from "@/core/xdg/xdg-desktop-entry";
@@ -59,10 +59,10 @@ export interface FilesHost {
    * Unset in the shell.
    */
   appDrag?: {
-    /** These items are being dragged; none: the drag ended here. */
-    report(paths: readonly string[]): void;
+    /** These items are being dragged (`icon`: the first's, a `data:` URL); none: the drag ended here. */
+    report(paths: readonly string[], icon?: string): void;
     /** "outside": the shell draws the drag now; "ended": it dropped or let go. */
-    watch(listener: (state: AppDragState) => void): () => void;
+    watch(listener: (event: AppDragEvent) => void): () => void;
   };
 }
 

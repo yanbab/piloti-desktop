@@ -499,7 +499,7 @@ export function FilesApp({
     trashSelected: () => void;
     ejectCurrentDrive: () => void;
     /** Files dropped on this window from elsewhere (it runs on its own). */
-    dropPaths: (paths: readonly string[], copy: boolean) => void;
+    dropPaths: (paths: readonly string[], copy: boolean, dest?: string) => void;
   }>({
     dropPaths: () => {},
     canGoUp: false,
@@ -1212,11 +1212,11 @@ export function FilesApp({
     ejectCurrentDrive: () => {
       if (ejectableDrive) ejectDrive(ejectableDrive);
     },
-    dropPaths: (paths, copy) => {
-      if (isVirtualView) return;
+    dropPaths: (paths, copy, dest) => {
+      if (isVirtualView && !dest) return;
       ops.dropItems(
         paths.map((path) => ({ id: path, path })),
-        currentPath,
+        dest ?? currentPath,
         { copy },
       );
     },
@@ -1344,7 +1344,7 @@ export function FilesApp({
       if (detail.windowId && detail.windowId !== windowId) return;
       const dropped = parseDroppedPaths(detail.actionId);
       if (dropped) {
-        latestActionsRef.current.dropPaths(dropped.paths, dropped.copy);
+        latestActionsRef.current.dropPaths(dropped.paths, dropped.copy, dropped.dest);
         return;
       }
       switch (detail.actionId) {

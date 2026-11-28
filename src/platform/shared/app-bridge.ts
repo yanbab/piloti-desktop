@@ -1,7 +1,7 @@
 import * as React from "react";
 import { ACCENT_COLORS, type AccentColorId } from "@/core/data/catalog";
 import { subscribeLocale } from "@/core/util/i18n";
-import type { AppDragState, ModuleRequest } from "@/core/apps/module-channel";
+import type { AppDragEvent, ModuleRequest } from "@/core/apps/module-channel";
 import type { ShellWindow } from "@/core/ports/shell-host";
 import type { DesktopSettings } from "@/core/config/desktop-settings";
 
@@ -37,11 +37,8 @@ export type ShellToAppMessage =
       type: "piloti:shell-windows";
       windows: ShellWindow[];
     }
-  | {
-      /** What the shell did with the frame's drag (`drag-items`). */
-      type: "piloti:drag";
-      state: AppDragState;
-    }
+  /** What the shell did with the frame's drag (`drag-items`). */
+  | ({ type: "piloti:drag" } & AppDragEvent)
 ;
 
 export type AppToShellMessage =

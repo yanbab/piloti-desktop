@@ -127,8 +127,8 @@ export function useModuleChannel(
             endAppDrag(id);
           } else {
             const piloti = pilotiRef.current;
-            followAppDrag(piloti, id, view, request.paths, (state) =>
-              sendToModule(piloti, { to: id, type: "drag", state }),
+            followAppDrag(piloti, id, view, request, (event) =>
+              sendToModule(piloti, { to: id, type: "drag", ...event }),
             );
           }
           return;

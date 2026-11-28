@@ -196,8 +196,8 @@ export const IsolatedAppFrame: React.FC<IsolatedAppFrameProps> = ({
           const frame = iframeRef.current;
           if (request.paths.length === 0 || !frame) endAppDrag(windowId);
           else
-            followAppDrag(live.current.piloti, windowId, frame, request.paths, (state) => {
-              const msg: ShellToAppMessage = { type: "piloti:drag", state };
+            followAppDrag(live.current.piloti, windowId, frame, request, (event) => {
+              const msg: ShellToAppMessage = { type: "piloti:drag", ...event };
               frame.contentWindow?.postMessage(msg, "*");
             });
         } else if (request.do === "close-window") shell.closeWindow(request.windowId);

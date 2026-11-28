@@ -1,5 +1,6 @@
 /** Folders in the demo's iframe: the page around it holds the windows, settings and apps. */
 import * as React from "react";
+import { parseAppDragEvent } from "@/core/apps/module-channel";
 import { hostFiles } from "@/core/files/host-files";
 import {
   type FrameRequest,
@@ -43,11 +44,13 @@ export function FrameFilesApp({ windowId, initialPath }: { windowId: string; ini
       open: (path, options) => request({ do: "open", path, ...options }),
       notify: ({ summary, body }) => postToShell({ type: "piloti:notify", windowId, summary, body }),
       dropOut: (paths, point) => request({ do: "drop-items", paths: [...paths], ...point }),
-      dragItems: (paths) => request({ do: "drag-items", paths: [...paths] }),
+      dragItems: (paths, icon) => request({ do: "drag-items", paths: [...paths], ...(icon ? { icon } : null) }),
       watchDrag: (listener) => {
         const onMessage = (e: MessageEvent) => {
           const msg = e.data as ShellToAppMessage | null;
-          if (e.source === window.parent && msg?.type === "piloti:drag") listener(msg.state);
+          if (e.source !== window.parent || msg?.type !== "piloti:drag") return;
+          const event = parseAppDragEvent(msg);
+          if (event) listener(event);
         };
         window.addEventListener("message", onMessage);
         return () => window.removeEventListener("message", onMessage);

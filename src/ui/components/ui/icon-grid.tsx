@@ -23,7 +23,7 @@ import {
   dragShuffleCss,
   settleFromOffset,
 } from "@/ui/fx/drag-feedback";
-import { buildDragGhost } from "@/ui/dnd/drag-ghost";
+import { buildDragGhost, iconSnapshot } from "@/ui/dnd/drag-ghost";
 import {
   broadcastItemDrag,
   endItemDragBroadcast,
@@ -564,7 +564,11 @@ export function IconGrid({
     previewKeyRef.current = "";
     setDropAnimOff(false);
     setDragAway(false);
-    host.appDrag?.report(items.filter((i) => ids.includes(i.id) && !isVirtualAppItem(i)).map((i) => i.path));
+    if (host.appDrag)
+      host.appDrag.report(
+      items.filter((i) => ids.includes(i.id) && !isVirtualAppItem(i)).map((i) => i.path),
+      iconSnapshot(itemRefs.current.get(id)),
+    );
     setDrag({
       itemId: id,
       draggedIds: ids,
@@ -649,11 +653,12 @@ export function IconGrid({
   const appDrag = host.appDrag;
   React.useEffect(() => {
     if (!isDragStarted || !appDrag) return;
-    return appDrag.watch((state) => {
+    return appDrag.watch(({ state }) => {
       if (state === "outside") {
         setDragAway(true);
         return;
       }
+      if (state !== "ended") return;
       setDropAnimOff(true);
       endDragRef.current(false);
       // dnd-kit still waits for a release this window will never see: its

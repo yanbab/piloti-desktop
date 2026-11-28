@@ -52,10 +52,43 @@ export type ModuleRequest =
    * the pointer leaves the window, the shell gets it: it follows the drag and
    * drops (Domicile gives each move to the surface under the pointer).
    */
-  | { do: "drag-items"; paths: string[] };
+  | { do: "drag-items"; paths: string[]; icon?: string };
 
-/** What the shell did with a drag it took over (`drag-items`). */
-export type AppDragState = "outside" | "ended";
+/**
+ * What the shell tells an app of a drag it owns (`drag-items`): to the app it
+ * came from, that it took it over (`outside`) and that it is over (`ended`);
+ * to a module window under the pointer, where it is (`over`, in the window's
+ * coordinates), that it left (`leave`), and where it was dropped (`drop`).
+ */
+export type AppDragEvent =
+  | { state: "outside" }
+  | { state: "ended" }
+  | { state: "over"; paths: string[]; x: number; y: number }
+  | { state: "leave" }
+  | { state: "drop"; paths: string[]; x: number; y: number; copy: boolean };
+
+/** Reads an `AppDragEvent` back; `null` if it is not one. */
+export function parseAppDragEvent(value: unknown): AppDragEvent | null {
+  const v = value as Record<string, unknown> | null;
+  const paths = Array.isArray(v?.paths)
+    ? v.paths.filter((p): p is string => typeof p === "string" && p.startsWith("/"))
+    : [];
+  const at = typeof v?.x === "number" && typeof v?.y === "number" && Number.isFinite(v.x) && Number.isFinite(v.y);
+  switch (v?.state) {
+    case "outside":
+    case "ended":
+    case "leave":
+      return { state: v.state };
+    case "over":
+      return at && paths.length > 0 ? { state: "over", paths, x: v.x as number, y: v.y as number } : null;
+    case "drop":
+      return at && paths.length > 0
+        ? { state: "drop", paths, x: v.x as number, y: v.y as number, copy: v.copy === true }
+        : null;
+    default:
+      return null;
+  }
+}
 
 export type ShellMessage =
   | { to: string; type: "action"; actionId: string }
@@ -65,8 +98,8 @@ export type ShellMessage =
   | { to: string; type: "overlay"; visible: boolean }
   /** The desktop's windows, for a module that watches them. */
   | { to: string; type: "windows"; windows: ShellWindow[] }
-  /** The drag left the window (the shell draws it), or the shell ended it. */
-  | { to: string; type: "drag"; state: AppDragState };
+  /** A drag the shell owns (`AppDragEvent`). */
+  | ({ to: string; type: "drag" } & AppDragEvent);
 
 export const newModuleId = (): string =>
   `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
@@ -155,7 +188,8 @@ export function parseRequestWords(
         const paths = Array.isArray(request.paths)
           ? request.paths.filter((p): p is string => typeof p === "string" && p.startsWith("/"))
           : [];
-        return { do: "drag-items", paths };
+        const icon = text("icon");
+        return { do: "drag-items", paths, ...(icon?.startsWith("data:image/") ? { icon } : null) };
       }
       default:
         return null;
@@ -176,7 +210,7 @@ export function createModuleChannel({ processes, dbus }: ChannelHost, id: string
   const listeners = new Set<(actionId: string) => void>();
   const overlayListeners = new Set<(visible: boolean) => void>();
   const windowListeners = new Set<(windows: ShellWindow[]) => void>();
-  const dragListeners = new Set<(state: AppDragState) => void>();
+  const dragListeners = new Set<(event: AppDragEvent) => void>();
 
   const run = async (words: string[]) => {
     try {
@@ -205,8 +239,9 @@ export function createModuleChannel({ processes, dbus }: ChannelHost, id: string
     if (message.type === "sync") void send();
     else if (message.type === "action") listeners.forEach((l) => l(message.actionId));
     else if (message.type === "overlay") overlayListeners.forEach((l) => l(message.visible !== false));
-    else if (message.type === "drag" && (message.state === "outside" || message.state === "ended")) {
-      dragListeners.forEach((l) => l(message.state));
+    else if (message.type === "drag") {
+      const event = parseAppDragEvent(message);
+      if (event) dragListeners.forEach((l) => l(event));
     } else if (message.type === "windows" && Array.isArray(message.windows)) {
       windowListeners.forEach((l) => l(message.windows));
     }
@@ -247,7 +282,7 @@ export function createModuleChannel({ processes, dbus }: ChannelHost, id: string
       windowListeners.add(listener);
       return () => void windowListeners.delete(listener);
     },
-    onDrag(listener: (state: AppDragState) => void) {
+    onDrag(listener: (event: AppDragEvent) => void) {
       dragListeners.add(listener);
       return () => void dragListeners.delete(listener);
     },

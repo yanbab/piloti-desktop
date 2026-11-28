@@ -8,6 +8,7 @@ import { initAppModules, moduleInstance, resolveAppModuleByUrl } from "@/core/da
 import { parseDragRegions, type Rect } from "@/core/apps/window-controls-overlay";
 import { moduleState, onModuleState, sendToModule } from "@/platform/shared/module-ipc";
 import { usePiloti } from "@/platform/shared/piloti";
+import { appDragSource } from "@/ui/dnd/app-drag";
 import { useAppChrome } from "@/ui/components/elements/app-chrome";
 import { HeaderBar } from "@/ui/components/elements/header-bar";
 import { useWindowContext, WindowControls } from "@/ui/components/ui/window";
@@ -45,6 +46,25 @@ function useModuleOverlay(url: string | undefined, tabbed: boolean): Rect[] | un
     return onModuleState(sync);
   }, [instance, tabbed, piloti]);
   return regions;
+}
+
+/**
+ * While items are dragged in the shell, a layer over the module's view: the
+ * engine gives each pointer move to the surface under the pointer, so without
+ * it the view would take the drag (and its release) from the shell. Not over
+ * the module the drag came from, which draws it itself when back over it.
+ */
+function DropShield({ instance }: { instance: string | null | undefined }) {
+  const [shown, setShown] = React.useState(false);
+  React.useEffect(() => {
+    const onDrag = (e: Event) => {
+      const active = (e as CustomEvent<{ active?: boolean }>).detail?.active === true;
+      setShown(active && (!instance || appDragSource() !== instance));
+    };
+    window.addEventListener("residence:file-drag", onDrag);
+    return () => window.removeEventListener("residence:file-drag", onDrag);
+  }, [instance]);
+  return shown ? <div data-drop-shield className="absolute inset-0 z-30" /> : null;
 }
 
 /** A Domicile app module window (`domicile open --app <entry.js>`). */
@@ -115,10 +135,12 @@ export function AppModuleSurface({
         <webview
           ref={viewRef}
           data-module-view={win.id}
+          data-module-instance={moduleInstance(win.browserUrl) ?? undefined}
           window={win.browserWindowId}
           resizing={windowCtx?.resizing ? "" : undefined}
           className="block h-full w-full bg-ui-window"
         />
+        <DropShield instance={moduleInstance(win.browserUrl)} />
         {isCsd && !tabbed && (
           <>
             <div
@@ -158,17 +180,19 @@ export function AppModuleSurface({
     );
   }
   return (
-    <div className="flex h-full w-full flex-1 flex-col overflow-hidden bg-ui-window">
+    <div className="relative flex h-full w-full flex-1 flex-col overflow-hidden bg-ui-window">
       <HeaderBar>
         <HeaderBar.Title>{win.title}</HeaderBar.Title>
       </HeaderBar>
       <webview
         ref={viewRef}
         data-module-view={win.id}
+          data-module-instance={moduleInstance(win.browserUrl) ?? undefined}
         window={win.browserWindowId}
         resizing={windowCtx?.resizing ? "" : undefined}
         className="block min-h-0 w-full flex-1 bg-ui-window"
       />
+      <DropShield instance={moduleInstance(win.browserUrl)} />
     </div>
   );
 }

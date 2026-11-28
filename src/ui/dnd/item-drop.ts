@@ -15,6 +15,16 @@ export type DropTarget =
 
 type HitElement = Pick<Element, "hasAttribute" | "getAttribute">;
 
+/** Items for bare paths (from an app on its own), as drop targets take them. */
+export const pathItems = (paths: readonly string[]): IconGridItem[] =>
+  paths.map((path) => ({
+    id: path,
+    path,
+    name: path.slice(path.lastIndexOf("/") + 1),
+    kind: "file",
+    iconName: "folder",
+  }));
+
 /** The first target among `hits`, topmost first. */
 export function dropTargetAmong(
   hits: Iterable<HitElement>,

@@ -5,18 +5,22 @@
  */
 const PREFIX = "piloti:drop-paths:";
 
-export function droppedPathsAction(paths: readonly string[], copy: boolean): string {
-  return `${PREFIX}${JSON.stringify({ paths, copy })}`;
+/** `dest`: the folder they go to; the window's own folder when unset. */
+export function droppedPathsAction(paths: readonly string[], copy: boolean, dest?: string): string {
+  return `${PREFIX}${JSON.stringify({ paths, copy, ...(dest ? { dest } : null) })}`;
 }
 
-export function parseDroppedPaths(actionId: string): { paths: string[]; copy: boolean } | null {
+export function parseDroppedPaths(
+  actionId: string,
+): { paths: string[]; copy: boolean; dest?: string } | null {
   if (!actionId.startsWith(PREFIX)) return null;
   try {
-    const value = JSON.parse(actionId.slice(PREFIX.length)) as { paths?: unknown; copy?: unknown };
+    const value = JSON.parse(actionId.slice(PREFIX.length)) as { paths?: unknown; copy?: unknown; dest?: unknown };
     const paths = Array.isArray(value.paths)
       ? value.paths.filter((p): p is string => typeof p === "string" && p.startsWith("/"))
       : [];
-    return paths.length > 0 ? { paths, copy: value.copy === true } : null;
+    const dest = typeof value.dest === "string" && value.dest.startsWith("/") ? value.dest : undefined;
+    return paths.length > 0 ? { paths, copy: value.copy === true, ...(dest ? { dest } : null) } : null;
   } catch {
     return null;
   }

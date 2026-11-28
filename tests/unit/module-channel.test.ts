@@ -4,6 +4,7 @@ import { documentHash, moduleDocument, moduleInstance } from "@/core/data/app-mo
 import {
   createModuleChannel,
   newModuleId,
+  parseAppDragEvent,
   parseRequestWords,
   parseStateWords,
   requestWords,
@@ -134,6 +135,31 @@ describe("module channel", () => {
     // A drag's paths; none (or none usable) ends it.
     expect(read({ do: "drag-items", paths: ["/a", "b"] })).toEqual({ do: "drag-items", paths: ["/a"] });
     expect(read({ do: "drag-items", paths: "x" })).toEqual({ do: "drag-items", paths: [] });
+  });
+});
+
+describe("a drag the shell owns", () => {
+  test("reads each event back, and nothing else", () => {
+    expect(parseAppDragEvent({ state: "outside" })).toEqual({ state: "outside" });
+    expect(parseAppDragEvent({ state: "leave", x: 1 })).toEqual({ state: "leave" });
+    expect(parseAppDragEvent({ to: "m", type: "drag", state: "over", paths: ["/a", "b"], x: 3, y: 4 })).toEqual({
+      state: "over",
+      paths: ["/a"],
+      x: 3,
+      y: 4,
+    });
+    expect(parseAppDragEvent({ state: "drop", paths: ["/a"], x: 1, y: 2, copy: true })).toEqual({
+      state: "drop",
+      paths: ["/a"],
+      x: 1,
+      y: 2,
+      copy: true,
+    });
+    // A place and a usable path, or nothing.
+    expect(parseAppDragEvent({ state: "drop", paths: ["/a"], x: "1", y: 2 })).toBeNull();
+    expect(parseAppDragEvent({ state: "over", paths: ["a"], x: 1, y: 2 })).toBeNull();
+    expect(parseAppDragEvent({ state: "fly" })).toBeNull();
+    expect(parseAppDragEvent(null)).toBeNull();
   });
 });
 

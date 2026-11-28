@@ -45,7 +45,7 @@ export const start: AppMain = (root, domicile) =>
       open: (target, options) => module.request({ do: "open", path: target, ...options }),
       notify: app.notify,
       dropOut: (paths, point) => module.request({ do: "drop-items", paths: [...paths], ...point }),
-      dragItems: (paths) => module.request({ do: "drag-items", paths: [...paths] }),
+      dragItems: (paths, icon) => module.request({ do: "drag-items", paths: [...paths], ...(icon ? { icon } : null) }),
       watchDrag: module.onDrag,
       watchFocus: watchDocumentFocus,
     });

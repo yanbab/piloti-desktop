@@ -212,9 +212,14 @@ app as `piloti:drop-paths:` then `piloti:open-path:` actions
 out of its window: in the demo's iframe the browser keeps the pointer, so it
 asks the shell to drop them (`drop-items`, `ui/dnd/drop-from-app.ts`). On
 Domicile each pointer move goes to the surface under the pointer, so the
-module only reports its drag (`drag-items`): once the pointer leaves the
-window, the shell draws the drag, lights the targets and drops
-(`ui/dnd/app-drag.ts`), and tells the module (`drag`: outside, ended).
+module only reports its drag (`drag-items`). Once the pointer leaves the
+window the shell owns the drag, as a compositor does: a layer over the whole
+screen takes the pointer, the shell draws the items, lights its targets and
+drops (`ui/dnd/app-drag.ts`). Over a module window it tells that module where
+the drag is and where it was dropped (`drag`: over, leave, drop), so the
+module fills the folder under the pointer, its own window included. While the
+shell drags items itself, a layer covers each module's view
+(`AppModuleSurface`), else the view would take the pointer.
 Its undo history is its own window's. Folders stays in the shell by default
 until dragging out of its own process is tried on Linux.
 

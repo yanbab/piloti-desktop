@@ -7,6 +7,12 @@ describe("items dropped on an app on its own", () => {
       paths: ["/home/u/a b.txt", "/home/u/c"],
       copy: true,
     });
+    expect(parseDroppedPaths(droppedPathsAction(["/a"], false, "/home/u/Music"))).toEqual({
+      paths: ["/a"],
+      copy: false,
+      dest: "/home/u/Music",
+    });
+    expect(parseDroppedPaths(droppedPathsAction(["/a"], false, "Music"))).toEqual({ paths: ["/a"], copy: false });
     expect(parseDroppedPaths("piloti:drop-paths:{oops")).toBeNull();
     expect(parseDroppedPaths(droppedPathsAction(["relative"], false))).toBeNull();
     expect(parseDroppedPaths("files:copy")).toBeNull();

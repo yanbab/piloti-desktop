@@ -48,3 +48,37 @@ export function buildDragGhost(
     }
   }
 }
+
+/** Longest icon an app sends the shell with a drag (it travels as a command's word). */
+const MAX_ICON_URL = 40_000;
+
+/**
+ * The icon of a grid item's element as a `data:` URL, for the shell to draw a
+ * drag that left the app's window; `undefined` when there is none or it is too big.
+ */
+export function iconSnapshot(node: HTMLElement | null | undefined): string | undefined {
+  const icon = node?.querySelector("img, svg, canvas");
+  if (!icon) return undefined;
+  let url: string | undefined;
+  try {
+    if (icon instanceof SVGSVGElement) {
+      const box = icon.getBoundingClientRect();
+      const clone = icon.cloneNode(true) as SVGSVGElement;
+      clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+      clone.setAttribute("width", String(Math.round(box.width)));
+      clone.setAttribute("height", String(Math.round(box.height)));
+      const text = new XMLSerializer().serializeToString(clone);
+      url = `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(text)))}`;
+    } else if (icon instanceof HTMLImageElement && icon.src.startsWith("data:")) {
+      url = icon.src;
+    } else if (icon instanceof HTMLImageElement || icon instanceof HTMLCanvasElement) {
+      const canvas = document.createElement("canvas");
+      canvas.width = canvas.height = 64;
+      canvas.getContext("2d")?.drawImage(icon, 0, 0, 64, 64);
+      url = canvas.toDataURL("image/png");
+    }
+  } catch {
+    return undefined;
+  }
+  return url && url.length <= MAX_ICON_URL ? url : undefined;
+}
