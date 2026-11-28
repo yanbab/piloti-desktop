@@ -1,3 +1,4 @@
+import { HeaderBar } from "@/components/elements/header-bar";
 import { PortalTestButtons } from "@/components/elements/portal-test-buttons";
 import { hostFiles } from "@/lib/engine/host-files";
 import { VFS_HOME } from "@/lib/engine/vfs-home";
@@ -19,6 +20,7 @@ import {
 import { Button } from "@/components/ui/button";
 import {
   GroupedForm,
+  GroupedFormExpanderRow,
   GroupedFormGroup,
   GroupedFormRow,
   GroupedFormRowControl,
@@ -55,6 +57,7 @@ export function AdvancedPane() {
   const { launchApp, openWebUrl } = useWindowActions();
   const { pushNotification } = useSystemBackends();
   const [autostartEntries, setAutostartEntries] = React.useState<XdgAutostartEntry[]>([]);
+  const [startupExpanded, setStartupExpanded] = React.useState(false);
 
   const loadAutostart = React.useCallback(async () => {
     const userDir = `${WEB_VFS_HOME}/.config/autostart`;
@@ -120,6 +123,16 @@ export function AdvancedPane() {
 
   return (
     <GroupedForm>
+      <HeaderBar.Portal>
+        <Button
+          type="button"
+          size="sm"
+          variant="secondary"
+          onClick={() => window.location.reload()}
+        >
+          {_("Restart Piloti")}
+        </Button>
+      </HeaderBar.Portal>
       <GroupedFormSection>
         <GroupedFormSectionTitle>{_("General")}</GroupedFormSectionTitle>
         <GroupedFormGroup>
@@ -144,7 +157,16 @@ export function AdvancedPane() {
                 {_("Expose Chrome DevTools on localhost:9222 on next login")}
               </GroupedFormRowDescription>
             </GroupedFormRowLabel>
-            <GroupedFormRowControl>
+            <GroupedFormRowControl className="flex items-center gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                disabled={!settings.remoteDevtools}
+                onClick={() => openWebUrl("chrome://inspect")}
+              >
+                {_("Inspect")}
+              </Button>
               <Switch
                 checked={settings.remoteDevtools}
                 onCheckedChange={(checked) => updateSettings({ remoteDevtools: Boolean(checked) })}
@@ -169,35 +191,46 @@ export function AdvancedPane() {
       <GroupedFormSection>
         <GroupedFormSectionTitle>{_("Startup services")}</GroupedFormSectionTitle>
         <GroupedFormGroup>
-          {autostartEntries.length === 0 ? (
-            <GroupedFormRow>
-              <GroupedFormRowLabel>
-                <GroupedFormRowTitle>{_("No XDG autostart entries")}</GroupedFormRowTitle>
-                <GroupedFormRowDescription>
-                  {_("Entries in ~/.config/autostart/*.desktop and /etc/xdg/autostart appear here.")}
-                </GroupedFormRowDescription>
-              </GroupedFormRowLabel>
-            </GroupedFormRow>
-          ) : (
-            autostartEntries.map((entry) => (
-              <GroupedFormRow key={entry.id}>
+          <GroupedFormExpanderRow
+            title={_("Autostart entries")}
+            description={
+              autostartEntries.length === 0
+                ? _("No XDG autostart entries")
+                : _("%d entries", autostartEntries.length)
+            }
+            expanded={startupExpanded}
+            onToggle={() => setStartupExpanded((v) => !v)}
+          />
+          {startupExpanded &&
+            (autostartEntries.length === 0 ? (
+              <GroupedFormRow>
                 <GroupedFormRowLabel>
-                  <GroupedFormRowTitle>{entry.name}</GroupedFormRowTitle>
+                  <GroupedFormRowTitle>{_("No XDG autostart entries")}</GroupedFormRowTitle>
                   <GroupedFormRowDescription>
-                    {entry.comment || entry.exec || entry.id}
+                    {_("Entries in ~/.config/autostart/*.desktop and /etc/xdg/autostart appear here.")}
                   </GroupedFormRowDescription>
                 </GroupedFormRowLabel>
-                <GroupedFormRowControl>
-                  <Switch
-                    checked={entry.enabled}
-                    onCheckedChange={(checked) =>
-                      void toggleAutostart(entry, Boolean(checked))
-                    }
-                  />
-                </GroupedFormRowControl>
               </GroupedFormRow>
-            ))
-          )}
+            ) : (
+              autostartEntries.map((entry) => (
+                <GroupedFormRow key={entry.id}>
+                  <GroupedFormRowLabel>
+                    <GroupedFormRowTitle>{entry.name}</GroupedFormRowTitle>
+                    <GroupedFormRowDescription>
+                      {entry.comment || entry.exec || entry.id}
+                    </GroupedFormRowDescription>
+                  </GroupedFormRowLabel>
+                  <GroupedFormRowControl>
+                    <Switch
+                      checked={entry.enabled}
+                      onCheckedChange={(checked) =>
+                        void toggleAutostart(entry, Boolean(checked))
+                      }
+                    />
+                  </GroupedFormRowControl>
+                </GroupedFormRow>
+              ))
+            ))}
         </GroupedFormGroup>
       </GroupedFormSection>
 

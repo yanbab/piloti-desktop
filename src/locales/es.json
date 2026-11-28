@@ -989,5 +989,9 @@
   "A normal notification.": "Una notificación normal.",
   "An urgent notification.": "Una notificación urgente.",
   "Could not open %s": "No se pudo abrir %s",
-  "Could not eject %s": "No se pudo expulsar %s"
+  "Could not eject %s": "No se pudo expulsar %s",
+  "Restart Piloti": "Reiniciar Piloti",
+  "Inspect": "Inspeccionar",
+  "Autostart entries": "Entradas de inicio automático",
+  "%d entries": "%d entradas"
 }
