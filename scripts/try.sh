@@ -16,12 +16,12 @@
 #
 # The VM is reached over ssh: PILOTI_VM (default debian@192.168.162.236).
 # It keeps its own clone with Linux node_modules in PILOTI_VM_DIR
-# (default ~/Projets/piloti-desktop), made on first use. No shared folder needed.
+# (default ~/.cache/piloti-try), made on first use. Not a shared folder.
 set -eu
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 VM="${PILOTI_VM:-debian@192.168.162.236}"
-VM_DIR="${PILOTI_VM_DIR:-Projets/piloti-desktop}"
+VM_DIR="${PILOTI_VM_DIR:-.cache/piloti-try}"
 TREES="$ROOT/.claude/worktrees"
 
 die() { echo "try: $*" >&2; exit 1; }

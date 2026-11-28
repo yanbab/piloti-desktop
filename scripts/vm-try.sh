@@ -7,15 +7,25 @@
 #   dev   build the shell and reload the running session (no .deb)
 #   deb   build the .deb and install it
 #
-# PILOTI_DIR: the VM's clone, relative to $HOME (default Projets/piloti-desktop).
-# It is a scratch copy: local changes there are overwritten.
+# PILOTI_DIR: the VM's clone, relative to $HOME (default .cache/piloti-try).
+# It is a scratch copy: local changes there are overwritten. It must be on the
+# VM's own disk, not a link or a shared folder (/mnt/hgfs): npm ci is very slow
+# there, and the checkout would switch the Mac's folder.
 set -eu
 
 MODE="${1:?dev or deb}"
 REF="${2:?branch or --local}"
 REPO="${PILOTI_REPO:-https://github.com/yanbab/piloti-desktop.git}"
 cd "$HOME"
-DIR="${PILOTI_DIR:-Projets/piloti-desktop}"
+DIR="${PILOTI_DIR:-.cache/piloti-try}"
+
+die() { echo "vm: $*" >&2; exit 1; }
+if [ -L "$DIR" ]; then
+  die "~/$DIR is a link to $(readlink "$DIR"): use a folder on the VM's disk (PILOTI_VM_DIR)"
+fi
+case "$(cd "$DIR" 2>/dev/null && pwd -P)" in
+  /mnt/hgfs/* | /media/*) die "$DIR is a shared folder: use a folder on the VM's disk (PILOTI_VM_DIR)" ;;
+esac
 
 if [ "$REF" = "--local" ]; then
   export PILOTI_REVISION="${3:-0}"
@@ -25,6 +35,7 @@ else
   if [ ! -d "$DIR/.git" ]; then
     mkdir -p "$(dirname "$DIR")"
     rm -rf "$DIR"
+    echo "vm: cloning $REPO into ~/$DIR"
     git clone --quiet "$REPO" "$DIR"
   fi
   cd "$DIR"
@@ -39,12 +50,14 @@ fi
 
 # Reinstall only when the lock file changed.
 if ! cmp -s package-lock.json node_modules/.piloti-lock; then
+  echo "vm: npm ci (package-lock.json changed; a few minutes the first time)"
   npm ci --no-audit --no-fund
   cp package-lock.json node_modules/.piloti-lock
 fi
 
 case "$MODE" in
   dev)
+    echo "vm: building the shell"
     npm run build:shell 2>&1 | tail -5
     if command -v piloti >/dev/null 2>&1; then
       piloti reload "$PWD/dist/shell.js"
@@ -55,6 +68,7 @@ case "$MODE" in
     ;;
   deb)
     rm -rf dist
+    echo "vm: building the .deb"
     npm run build:deb
     sudo apt-get install -y --reinstall ./dist/piloti-desktop_*.deb
     echo "vm: installed $(cd dist && ls piloti-desktop_*.deb). Log out and back in."

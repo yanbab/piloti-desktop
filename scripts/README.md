@@ -29,7 +29,7 @@ sh scripts/try.sh --clean                # remove the web worktrees
 | Variable | Default | |
 |---|---|---|
 | `PILOTI_VM` | `debian@192.168.162.236` | ssh target |
-| `PILOTI_VM_DIR` | `Projets/piloti-desktop` | the VM's clone, under its `$HOME` |
+| `PILOTI_VM_DIR` | `.cache/piloti-try` | the VM's clone, under its `$HOME`; on the VM's disk, not a link or `/mnt/hgfs` (refused) |
 
 An ssh key saves typing the password each time:
 `ssh-copy-id debian@192.168.162.236`. `deb` still asks for the sudo password.
