@@ -1,6 +1,7 @@
 import { AdvancedPane } from "@/ui/apps/console/AdvancedPane";
 import { AppsModule } from "@/ui/apps/console/AppsModule";
 import { HeaderBar } from "@/ui/components/elements/header-bar";
+import { Badge } from "@/ui/components/ui/badge";
 import { Segmented } from "@/ui/components/ui/segmented";
 import { VFS_HOME } from "@/core/state/vfs-home";
 import * as React from "react";
@@ -41,6 +42,9 @@ import { parseIniText } from "@/core/config/piloti-ini";
 import { _ } from "@/core/util/i18n";
 import { getRenderCounts, resetRenderCounts } from "@/core/util/render-stats";
 import { cn } from "@/core/util/utils";
+import type { DesktopWindowInstance } from "@/core/windows/types";
+import { windowKind, windowKindHint, windowKindLabel } from "@/core/windows/window-kind";
+import { readProcessNames } from "@/platform/shared/system-commands";
 import { vfsInspector, type WebVfsPerfStats } from "@/core/ports/vfs-inspector";
 import { type WebVfsEntry } from "@/core/files/vfs-paths";
 import {
@@ -193,11 +197,32 @@ function InspectorJsonCard({
 }
 
 
+/** The command of each native window's process, read again as the set of pids changes. */
+function useWindowProcessNames(windows: readonly DesktopWindowInstance[]): Map<number, string> {
+  const piloti = usePiloti();
+  const pids = [...new Set(windows.flatMap((w) => (w.waylandAppId && w.pid ? [w.pid] : [])))].sort(
+    (a, b) => a - b,
+  );
+  const key = pids.join(",");
+  const [names, setNames] = React.useState<Map<number, string>>(() => new Map());
+  React.useEffect(() => {
+    if (!key) return;
+    let live = true;
+    void readProcessNames(piloti, key.split(",").map(Number)).then((next) => {
+      if (live) setNames(next);
+    });
+    return () => {
+      live = false;
+    };
+  }, [key, piloti]);
+  return names;
+}
+
 function InspectorModule() {
   const piloti = usePiloti();
   const displays = useDisplays() ?? [];
   const settings = useDesktopSettings(["connectedWifi", "installedWebApps", "themeMode", "wifiEnabled"]);
-  const { systemServices } = useCapabilities();
+  const { systemServices, compositor } = useCapabilities();
   const {
     installedXdgApps,
     xdgUserDirs,
@@ -219,6 +244,9 @@ function InspectorModule() {
 
   const [activeSection, setActiveSection] =
     React.useState<InspectorSectionId>("windows");
+  const processNames = useWindowProcessNames(
+    compositor && activeSection === "windows" ? windows : [],
+  );
   const [expandedStatePath, setExpandedStatePath] = React.useState<string | null>(
     null
   );
@@ -298,6 +326,8 @@ function InspectorModule() {
                       w.fullscreen ? "fullscreen" : null,
                       w.tiled ? `tiled:${w.tiled}` : null,
                     ].filter((f): f is string => Boolean(f));
+                    const processName = w.pid ? processNames.get(w.pid) : undefined;
+                    const kind = windowKind(w, { compositor, processName });
                     return (
                       <div
                         key={w.id}
@@ -336,8 +366,21 @@ function InspectorModule() {
                               {w.size.width}×{w.size.height} @ {w.position.x},{w.position.y}
                             </span>
                             <span>z: {w.zIndex}</span>
+                            {w.pid ? (
+                              <span>
+                                pid: {w.pid}
+                                {processName ? ` (${processName})` : ""}
+                              </span>
+                            ) : null}
                           </div>
                         </div>
+                        <Badge
+                          className="shrink-0"
+                          tone={kind === "wayland" || kind === "x11" ? "accent" : "neutral"}
+                          title={windowKindHint(kind)}
+                        >
+                          {windowKindLabel(kind)}
+                        </Badge>
                       </div>
                     );
                   })}

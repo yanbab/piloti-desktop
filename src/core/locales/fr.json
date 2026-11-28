@@ -1095,5 +1095,20 @@
   "Hide On-Screen Keyboard": "Masquer le clavier virtuel",
   "On-Screen Keyboard": "Clavier virtuel",
   "space": "espace",
-  "Tap a text field in Piloti to type. Other applications can't receive this keyboard yet.": "Touchez un champ de texte de Piloti pour écrire. Les autres applications ne reçoivent pas encore ce clavier."
+  "Tap a text field in Piloti to type. Other applications can't receive this keyboard yet.": "Touchez un champ de texte de Piloti pour écrire. Les autres applications ne reçoivent pas encore ce clavier.",
+  "Iframe": "Iframe",
+  "App module": "Module d'app",
+  "Web app": "App web",
+  "Web page": "Page web",
+  "Wayland": "Wayland",
+  "X11 (XWayland)": "X11 (XWayland)",
+  "Simulated Wayland": "Wayland simulé",
+  "Drawn by the shell's React tree, in the shell's process": "Dessinée par l'arbre React du shell, dans son processus",
+  "A built-in app in its own iframe (browser demo)": "Une app intégrée dans sa propre iframe (démo web)",
+  "A Domicile app module, in its own process": "Un module d'app Domicile, dans son propre processus",
+  "An installed web app, in its own Domicile web view": "Une app web installée, dans sa propre vue web Domicile",
+  "A web page, in a Domicile web view": "Une page web, dans une vue web Domicile",
+  "A native Wayland client": "Un client Wayland natif",
+  "An X11 client, through xwayland-satellite": "Un client X11, via xwayland-satellite",
+  "A native client simulated by the browser demo": "Un client natif simulé par la démo web"
 }
