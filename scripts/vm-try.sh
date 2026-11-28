@@ -28,7 +28,8 @@ else
     git clone --quiet "$REPO" "$DIR"
   fi
   cd "$DIR"
-  git fetch --quiet --tags origin "$REF"
+  # From GitHub, whatever this clone's origin points to.
+  git fetch --quiet --tags "$REPO" "$REF"
   git checkout --quiet --force --detach FETCH_HEAD
   # Leftovers from a "." run; ignored files (node_modules) stay.
   git clean --quiet -fd
