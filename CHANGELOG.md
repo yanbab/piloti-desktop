@@ -2,6 +2,23 @@
 
 Releases of Piloti Desktop, latest first. Dates are the tagged commit's.
 
+## 0.10.15 — 2026-11-28
+
+- Window switcher (Alt+Tab) is faster: kept ready, without transitions or ring.
+- Launcher: no jump when it opens; the search text can be selected, and the
+  header still drags.
+- Internal: the sources are now in three layers, `core/` (plain TypeScript),
+  `platform/` (adapters) and `ui/` (React). `core/` imports nothing above it.
+
+### Commits
+
+- `5abd79a` fix(launcher): keep input cursor and preserve selection during drag
+- `18ace37` refactor: core/ imports nothing from platform/ or ui/
+- `8bc7d91` fix(launcher): restore header drag over input with default cursor
+- `f955ac1` refactor!: src/ in three layers: core, platform, ui
+- `3bb35ec` fix(launcher): prevent opening jump and allow selecting search text
+- `d50967f` perf(alttab): keep switcher mounted and remove transitions/ring
+
 ## 0.10.14 — 2026-11-28
 
 **For plugin and script authors: the API changed, without aliases.** `piloti` is

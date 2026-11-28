@@ -1,3 +1,12 @@
+piloti-desktop (0.10.15-1) unstable; urgency=medium
+
+  * Release v0.10.15:
+    - Faster window switcher.
+    - Launcher no longer jumps on opening; its search text can be selected.
+    - Sources reorganised in layers (core, platform, ui).
+
+ -- yanbab <yanbab@gmail.com>  Sat, 28 Nov 2026 07:22:11 +0100
+
 piloti-desktop (0.10.14-1) unstable; urgency=medium
 
   * Release v0.10.14:
