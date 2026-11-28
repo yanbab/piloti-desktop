@@ -64,7 +64,7 @@ import type { DesktopWindowInstance, BrowserTabGroup, WindowsContextValue, Windo
 export type { DesktopWindowInstance, BrowserTab, ResolvedPopupWindow, WindowsContextValue, WindowActionsValue } from "./windows/types";
 export { BROWSER_DEMO_HOME_URL, BROWSER_HOME_URL, normalizeWebUrl } from "@/core/windows/browser-url";
 import { BROWSER_DEMO_HOME_URL, BROWSER_HOME_URL, normalizeWebUrl } from "@/core/windows/browser-url";
-import { pinnedTabs, reorderedTabs } from "@/core/windows/tab-groups";
+import { movedTabGroups, pinnedTabs, reorderedTabs } from "@/core/windows/tab-groups";
 import { patchExternalMeta, upsertBrowserRecord, pruneBrowserRecord } from "./windows/window-meta";
 import { computeCenteredOrCascadedPosition } from "@/core/windows/cascade-position";
 import { resolvePopupWindows, resolveSyncedParentFrames } from "@/core/windows/popups";
@@ -1119,6 +1119,28 @@ export function useWindowsValue(
       return `browser:${newKey}`;
     },
     [browserMeta, screenWidth, screenHeight]
+  );
+
+  const moveBrowserTab = React.useCallback(
+    (fromWindowId: string, tabId: string, toWindowId: string, index: number) => {
+      if (!fromWindowId.startsWith("browser:") || !toWindowId.startsWith("browser:")) return;
+      const from = fromWindowId.slice("browser:".length);
+      const to = toWindowId.slice("browser:".length);
+      const moved = movedTabGroups(browserTabGroupsRef.current, from, to, tabId, index);
+      if (!moved) return;
+      browserTabGroupsRef.current = moved.groups;
+      setBrowserTabGroups(moved.groups);
+      setBrowserMeta((prev) => {
+        const target = prev[to];
+        const next = { ...prev };
+        if (moved.fromEmptied) delete next[from];
+        if (target) next[to] = { ...target, minimized: false, zIndex: nextZ() };
+        return next;
+      });
+      setFocusedWindowId(toWindowId);
+      setMruIds((prev) => [toWindowId, ...prev.filter((id) => id !== toWindowId && !(moved.fromEmptied && id === fromWindowId))]);
+    },
+    []
   );
 
   /** Pages closed as tabs, newest last, for "Reopen Closed Tab". */
@@ -2342,6 +2364,7 @@ export function useWindowsValue(
       closeBrowserTab,
       reorderBrowserTabs,
       detachBrowserTab,
+      moveBrowserTab,
       pinBrowserTab,
       reopenClosedBrowserTab,
       focusWindow,
@@ -2416,6 +2439,7 @@ export function useWindowsValue(
       closeBrowserTab,
       reorderBrowserTabs,
       detachBrowserTab,
+      moveBrowserTab,
       pinBrowserTab,
       reopenClosedBrowserTab,
       subscribeClientWindowRequest,

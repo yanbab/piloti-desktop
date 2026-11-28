@@ -9,6 +9,7 @@ import { cn } from "@/core/util/utils";
 import { WebViewSurface } from "@/ui/shell/windows/WebViewSurface";
 import { followTornTab, TEAR_GRAB_Y } from "@/ui/shell/windows/browser-tab-tear";
 import { BROWSER_TAB_RELOAD_EVENT } from "@/ui/shell/windows/browser-shortcuts";
+import { TAB_DROP_ATTR } from "@/ui/shell/windows/browser-tab-drop";
 
 /**
  * A web window and its tabs. Every tab keeps its page mounted (switching never
@@ -29,6 +30,7 @@ export function BrowserTabsSurface({
     closeBrowserTab,
     reorderBrowserTabs,
     detachBrowserTab,
+    moveBrowserTab,
     pinBrowserTab,
     updateWindowGeometry,
     openBrowserTab,
@@ -65,6 +67,8 @@ export function BrowserTabsSurface({
   // follows it until release.
   const geometryRef = React.useRef(updateWindowGeometry);
   geometryRef.current = updateWindowGeometry;
+  const moveRef = React.useRef(moveBrowserTab);
+  moveRef.current = moveBrowserTab;
   const tearOff = (tabId: string, pointer: { clientX: number; clientY: number }) => {
     const rect = containerRef.current
       ?.closest<HTMLElement>("[data-window-id]")
@@ -89,7 +93,11 @@ export function BrowserTabsSurface({
       at,
       pointer,
       (position) => geometryRef.current(newId, { position }),
-      grabX
+      grabX,
+      // Dropped on a Web Browser window's tabs (this one's too): it joins them.
+      win.appId === "browser"
+        ? ({ windowId, index }) => moveRef.current(newId, tabId, windowId, index)
+        : undefined
     );
   };
   const tabSlot = (
@@ -99,7 +107,11 @@ export function BrowserTabsSurface({
     />
   );
   return (
-    <div ref={containerRef} className="relative flex h-full w-full flex-1 overflow-hidden">
+    <div
+      ref={containerRef}
+      {...{ [TAB_DROP_ATTR]: win.appId === "browser" ? win.id : undefined }}
+      className="relative flex h-full w-full flex-1 overflow-hidden"
+    >
       <BrowserTabBar
         hidden={!showTabBar}
         top={tabBarTop}

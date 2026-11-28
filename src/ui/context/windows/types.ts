@@ -49,6 +49,8 @@ export interface WindowsContextValue {
     tabId: string,
     at?: { x: number; y: number }
   ) => string | undefined;
+  /** Moves a tab into another Web Browser window, at `index` among its tabs. */
+  moveBrowserTab: (fromWindowId: string, tabId: string, toWindowId: string, index: number) => void;
   pinBrowserTab: (windowId: string, tabId: string, pinned: boolean) => void;
   /** Opens the tab closed last again, in this window. */
   reopenClosedBrowserTab: (windowId: string) => void;
