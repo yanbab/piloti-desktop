@@ -1,3 +1,14 @@
+piloti-desktop (0.10.16-1) unstable; urgency=medium
+
+  * Release v0.10.16:
+    - Image Viewer and Selfies can run as separate apps; separate apps follow
+      the theme, fonts and language.
+    - Texts and Image Viewer run separately by default.
+    - Devtools: new Apps tab; Settings > Advanced moved there.
+    - Separate app windows are started again on login.
+
+ -- yanbab <yanbab@gmail.com>  Sat, 28 Nov 2026 08:54:55 +0100
+
 piloti-desktop (0.10.15-1) unstable; urgency=medium
 
   * Release v0.10.15:
