@@ -1,3 +1,5 @@
+import { DndKitDragSession } from "@/ui/dnd/dnd-kit-session";
+import { trackDrag } from "@/ui/dnd/drag-session";
 import * as React from "react";
 import { useCapabilities } from "@/ui/hooks/use-capabilities";
 import { createPortal } from "react-dom";
@@ -732,7 +734,10 @@ export function IconGrid({
     window.addEventListener("pointermove", handlePointerMove);
     window.addEventListener("pointerup", handlePointerUp);
     window.addEventListener("pointercancel", handlePointerUp);
+    // Escape or a missed release: the selection stays as drawn.
+    const untrack = trackDrag(() => setMarquee(null));
     return () => {
+      untrack();
       window.removeEventListener("pointermove", handlePointerMove);
       window.removeEventListener("pointerup", handlePointerUp);
       window.removeEventListener("pointercancel", handlePointerUp);
@@ -821,6 +826,7 @@ export function IconGrid({
       onDragEnd={onDndEnd}
       onDragCancel={() => endDrag(false)}
     >
+      <DndKitDragSession />
     <div
       ref={containerRef}
       role="grid"

@@ -65,6 +65,7 @@ import { useGlobalAppMenu } from "./windows/useGlobalAppMenu";
 import { useModuleChannel } from "./windows/use-module-channel";
 import { useAppMemory } from "./windows/use-app-memory";
 import { useGlobalShortcuts } from "./windows/useGlobalShortcuts";
+import { useDragEscape } from "@/ui/dnd/use-drag-escape";
 import { getEngine } from "@/core/ports/engine";
 import { useCapabilities } from "@/ui/hooks/use-capabilities";
 import type { DesktopWindowInstance, WindowsContextValue, WindowActionsValue, ExternalWindowMeta } from "./windows/types";
@@ -1817,6 +1818,7 @@ export function useWindowsValue(
     [settings.activeWorkspace, settings.workspaceCount, updateSettings]
   );
 
+  useDragEscape(piloti);
   useGlobalShortcuts({
     piloti,
     overviewOpen,

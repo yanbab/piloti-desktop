@@ -1,5 +1,6 @@
 "use client"
 
+import { trackDrag } from "@/ui/dnd/drag-session"
 import { FX_DURATION, FX_EASE } from "@/ui/fx/motion"
 import { installPopupPressThrough } from "@/ui/hooks/popup-layer"
 import * as React from "react"
@@ -536,6 +537,7 @@ function Window({
     } else {
       attachGlobalInteractionListeners()
     }
+    trackInteraction(pointerId)
     setResizing(edge)
   }
 
@@ -606,6 +608,20 @@ function Window({
   const pressedEdge = React.useRef<ResizeEdge | undefined>(undefined)
 
   const globalCleanup = React.useRef<(() => void) | null>(null)
+
+  // A move or resize in progress is in `drag-session.ts`: Escape puts the
+  // window back, a release the window never heard of keeps it where it is.
+  const untrackInteraction = React.useRef<(() => void) | null>(null)
+  const capturedPointer = React.useRef<number | undefined>(undefined)
+  function trackInteraction(pointerId?: number) {
+    untrackInteraction.current?.()
+    capturedPointer.current = pointerId
+    untrackInteraction.current = trackDrag((reason) => {
+      untrackInteraction.current = null
+      finishInteraction(undefined, reason === "cancel")
+    })
+  }
+  React.useEffect(() => () => untrackInteraction.current?.(), [])
 
   React.useEffect(() => () => globalCleanup.current?.(), [])
 
@@ -696,6 +712,7 @@ function Window({
     } else {
       attachGlobalInteractionListeners()
     }
+    trackInteraction(pointerId)
     setDragging(true)
   }
 
@@ -885,10 +902,12 @@ function Window({
     applyDragMove(event.clientX, event.clientY)
   }
 
-  function finishInteraction(event?: React.PointerEvent<HTMLDivElement>) {
+  function finishInteraction(event?: React.PointerEvent<HTMLDivElement>, revert = false) {
     maxDragPending.current = null
     interactiveDragCleanupRef.current?.()
     detachGlobalInteractionListeners()
+    untrackInteraction.current?.()
+    untrackInteraction.current = null
     const finishedDrag = drag.current
     const finishedResize = resize.current
     if (!finishedDrag && !finishedResize) return
@@ -899,6 +918,24 @@ function Window({
     setResizing(null)
     if (event && event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId)
+    }
+    const pointerId = capturedPointer.current
+    capturedPointer.current = undefined
+    const node = element.current
+    if (!event && node && pointerId !== undefined && node.hasPointerCapture(pointerId)) {
+      node.releasePointerCapture(pointerId)
+    }
+    if (revert) {
+      // Escape: back where it was, at the size it was.
+      onSnapPreviewChange?.(null)
+      if (node) {
+        node.style.translate = current.x || current.y ? `${current.x}px ${current.y}px` : ""
+        if (finishedResize) {
+          node.style.width = `${finishedResize.start.width}px`
+          node.style.height = `${finishedResize.start.height}px`
+        }
+      }
+      return
     }
     if (finishedDrag?.snapZone) {
       const zone = finishedDrag.snapZone

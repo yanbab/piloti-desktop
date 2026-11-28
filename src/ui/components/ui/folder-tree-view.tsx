@@ -1,3 +1,4 @@
+import { DndKitDragSession } from "@/ui/dnd/dnd-kit-session";
 import * as React from "react";
 import { createPortal } from "react-dom";
 import {
@@ -570,6 +571,7 @@ export function FolderTreeView({
       onDragEnd={() => endDrag(true)}
       onDragCancel={() => endDrag(false)}
     >
+      <DndKitDragSession />
       <div
         ref={scrollRef}
         role="treegrid"

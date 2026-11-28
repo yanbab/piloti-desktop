@@ -1,3 +1,4 @@
+import { DndKitDragSession } from "@/ui/dnd/dnd-kit-session";
 import { emptyFsTrash } from "@/platform/shared/fs-bridge";
 import * as React from "react";
 import type { IconGridItem } from "@/core/files/desktop-icons";
@@ -633,6 +634,7 @@ export const Dock = React.memo(function Dock() {
       onDragEnd={onDockDragEnd}
       onDragCancel={onDockDragCancel}
     >
+      <DndKitDragSession />
     <SortableContext
       items={sortableIds}
       strategy={isVerticalDock ? verticalListSortingStrategy : horizontalListSortingStrategy}

@@ -1,3 +1,4 @@
+import { DndKitDragSession } from "@/ui/dnd/dnd-kit-session";
 import * as React from "react";
 import {
   closestCenter,
@@ -264,6 +265,7 @@ export function BrowserTabBar({
         setOverlay(null);
       }}
     >
+      <DndKitDragSession />
       <SortableContext items={ids} strategy={horizontalListSortingStrategy}>
         <ContextMenu>
           <ContextMenuTrigger

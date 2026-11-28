@@ -62,7 +62,10 @@ After changing:
 - **Drag and drop:** dnd-kit for items; `startPointerDrag`
   (`ui/dnd/pointer-drag.ts`) to move or resize surfaces. Timings, curves,
   threshold and ghost lift come from `ui/fx/drag-feedback.ts`. A drop never
-  animates back to its start first.
+  animates back to its start first. Every drag is in `ui/dnd/drag-session.ts`,
+  so Escape (grabbed from the compositor while one runs) or a missed release
+  ends it: `startPointerDrag` and `<Window>` do it themselves, a `DndContext`
+  holds `<DndKitDragSession />`, any other drag calls `trackDrag`.
 - **Effects (piloti-fx, `ui/fx/`):** every curve and duration is in
   `ui/fx/motion.ts` (`fxTransition`, `FX_EASE`, `FX_DURATION`; `--fx-*` in CSS
   and Tailwind). Edge panels slide with `ui/fx/slide.ts`. Write no
@@ -130,9 +133,12 @@ A cloud session gets there through a Remote Control session on the Mac.
 - DevTools: the engine runs with `--remote-debugging-port=9222` on the VM's
   127.0.0.1. The shell is the page `domicile://shell/`, with `window.piloti`
   and `__PILOTI_RENDER_COUNTS__` as in the demo. From the Mac:
-  `ssh -N -L 9222:127.0.0.1:9222 debian@192.168.162.236`, then Playwright
-  `chromium.connectOverCDP("http://127.0.0.1:9222")`; or run a Node script
-  on the VM (Node 24, global `WebSocket`) against `/json/list`.
+  `ssh -N -L 9222:127.0.0.1:9222 debian@192.168.162.236`, then a plain
+  WebSocket to the page's `webSocketDebuggerUrl` (from `/json/list`) sending
+  `Runtime.evaluate` (`awaitPromise`, `returnByValue`). **Not Playwright's
+  `connectOverCDP`**: once it is attached, opening a browser window makes the
+  engine exit with SIGTRAP (Domicile restarts it up to 5 times in a row, then
+  the session is lost). Use `domicile pointer`/`drag`/`type` for real input.
 - `performance.timeOrigin` of that page tells when the shell last reloaded;
   compare it with the build time of `shell.js`.
 - `npm run test:e2e` targets the web demo only. `tests/wayland-wm-check.py`

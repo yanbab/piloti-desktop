@@ -1,3 +1,4 @@
+import { DndKitDragSession } from "@/ui/dnd/dnd-kit-session";
 import { HeaderBar } from "@/ui/components/elements/header-bar";
 import * as React from "react";
 import {
@@ -498,6 +499,7 @@ export const SystemMonitorApp: React.FC<SystemMonitorAppProps> = ({ host }) => {
           onDragEnd={onDragEnd}
           onDragCancel={() => setDrag(null)}
         >
+          <DndKitDragSession />
           <div ref={gridRef} className="relative min-h-0 flex-1">
             {(Object.keys(DEFAULT_LAYOUT) as WidgetId[]).map(renderWidget)}
           </div>
