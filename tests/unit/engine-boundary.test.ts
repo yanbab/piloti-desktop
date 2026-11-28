@@ -191,6 +191,13 @@ describe("layers", () => {
     expect(importers("core", "platform|ui")).toEqual([]);
   });
 
+  it("core uses no React", () => {
+    const offenders = sources(path.join(SRC, "core"))
+      .filter((file) => /from "react(-dom)?[/"]/.test(code(file)))
+      .map((file) => path.relative(SRC, file));
+    expect(offenders).toEqual([]);
+  });
+
   it("platform imports no UI", () => {
     expect(importers("platform", "ui")).toEqual([]);
   });

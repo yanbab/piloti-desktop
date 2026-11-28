@@ -97,7 +97,8 @@ Nothing the entry imports up front may read `$HOME` (the build checks).
   Components subscribe to slices, so a change re-renders only what uses it.
 - Window manager: `ui/context/WindowsContext.tsx` holds the state and actions;
   its types, derived lists and self-contained hooks are in `ui/context/windows/`,
-  pure logic in `core/windows/`.
+  pure logic in `core/windows/`. What a launch does is decided by
+  `core/windows/launch-plan.ts` (tested); the context carries it out.
 - Windows keep their DOM order and are hidden with CSS, so iframes don't reload.
 - Bounds and workspace are saved per URL, document or app.
 - Folders opened on a folder keeps view, sort and zoom per folder
