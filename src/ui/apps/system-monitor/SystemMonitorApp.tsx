@@ -18,22 +18,18 @@ import {
   type ListViewSort,
 } from "@/ui/components/ui/list-view";
 import { WindowControlButton } from "@/ui/components/ui/window";
-import {
-  useApps,
-  useWindowActions,
-  useWindowManagerSelector,
-} from "@/ui/context/DesktopStateContext";
 import { APP_CATALOG } from "@/core/data/catalog";
 import { _ } from "@/core/util/i18n";
 import { cn } from "@/core/util/utils";
 import { demoPid, setDemoApps } from "@/platform/shared/demo-processes";
-import { getEngine } from "@/core/ports/engine";
-import { usePiloti } from "@/platform/shared/piloti";
+import type { ShellWindow } from "@/core/ports/shell-host";
 import { appUsage, cpuPercent, type SystemSample } from "@/core/system/system-stats";
-import { readSystemSample } from "@/platform/shared/system-commands";
-import { parseIniText, serializeIniText } from "@/core/config/ini";
-import { VFS_HOME } from "@/core/state/vfs-home";
-import { readVfsStateText, writeVfsStateText } from "@/core/state/vfs-state";
+import { useSetting } from "@/ui/hooks/use-setting";
+import {
+  monitorSettings,
+  type MonitorAppInfo,
+  type SystemMonitorHost,
+} from "@/ui/apps/system-monitor/host";
 import { DRAG_THRESHOLD, dragShuffleCss, settleFromOffset } from "@/ui/dnd/drag-feedback";
 import {
   formatWidgetLayout,
@@ -49,11 +45,10 @@ import { XIcon } from "@/ui/components/ui/symbols";
  * user places by dragging them on a grid, as icons on the desktop.
  *
  * The numbers come from `/proc` (`useSystemStats`), made up by the browser VFS
- * in the demo. Widget places and the apps
- * list sort are kept in `~/.config/piloti/piloti-system-monitor.ini`.
+ * in the demo. Everything else comes from its host (`host.ts`): the windows,
+ * app names and icons. It runs in the shell or in its own process.
  */
 
-const SETTINGS_PATH = `${VFS_HOME}/.config/piloti/piloti-system-monitor.ini`;
 const TICK_MS = 2000;
 const HISTORY = 30;
 
@@ -71,16 +66,6 @@ const DEFAULT_LAYOUT: WidgetLayout<WidgetId> = {
   cpu: { col: 1, row: 0 },
   apps: { col: 0, row: 1 },
 };
-
-function readSetting(key: string): string | undefined {
-  return parseIniText(readVfsStateText(SETTINGS_PATH) ?? "").General?.[key];
-}
-
-function writeSetting(key: string, value: string): void {
-  const ini = parseIniText(readVfsStateText(SETTINGS_PATH) ?? "");
-  ini.General = { ...ini.General, [key]: value };
-  writeVfsStateText(SETTINGS_PATH, serializeIniText(ini));
-}
 
 interface AppStat {
   appId: string;
@@ -101,9 +86,12 @@ interface Stats {
  * Numbers from `/proc`, sampled while the window is open. `apps` lists the process ids
  * of the running apps' windows, as `appId:pid` pairs joined by commas.
  */
-function useSystemStats(apps: string, runningAppIds: string[]): Stats {
-  const piloti = usePiloti();
-  const { installedXdgApps } = useApps();
+function useSystemStats(
+  host: SystemMonitorHost,
+  apps: string,
+  runningAppIds: string[],
+  info: Record<string, MonitorAppInfo>,
+): Stats {
   const [sampled, setSampled] = React.useState<{
     cpuHistory: number[];
     prev: SystemSample;
@@ -117,7 +105,7 @@ function useSystemStats(apps: string, runningAppIds: string[]): Stats {
     let cpuHistory = Array.from({ length: HISTORY }, () => 0);
     // A chain rather than an interval, so a slow sample never overlaps the next.
     const tick = async () => {
-      const next = await readSystemSample(piloti);
+      const next = await host.readSample();
       if (stopped) return;
       // CPU needs two samples: the second follows the first closely.
       const delay = next && !prev ? 500 : TICK_MS;
@@ -133,7 +121,7 @@ function useSystemStats(apps: string, runningAppIds: string[]): Stats {
       stopped = true;
       window.clearTimeout(timer);
     };
-  }, [piloti]);
+  }, [host]);
 
   return React.useMemo(() => {
     if (!sampled) {
@@ -154,14 +142,11 @@ function useSystemStats(apps: string, runningAppIds: string[]): Stats {
       memTotalMb: next.memTotalKb / 1024,
       apps: runningAppIds.map((appId) => ({
         appId,
-        name:
-          installedXdgApps.find((entry) => entry.appId === appId)?.name ??
-          APP_CATALOG.find((a) => a.id === appId)?.name ??
-          appId,
+        name: info[appId]?.name ?? APP_CATALOG.find((a) => a.id === appId)?.name ?? appId,
         ...usage.get(appId),
       })),
     };
-  }, [sampled, apps, runningAppIds, installedXdgApps]);
+  }, [sampled, apps, runningAppIds, info]);
 }
 
 function formatMb(mb: number): string {
@@ -275,16 +260,24 @@ function MemoryWidget({ used, total }: { used: number; total: number }) {
 type AppSortKey = "name" | "memory" | "cpu";
 const DEFAULT_APP_SORT: ListViewSort<AppSortKey> = { by: "cpu", dir: "desc" };
 
-function readAppSort(): ListViewSort<AppSortKey> {
-  const [by, dir] = (readSetting("sort") ?? "").split(":");
+function parseAppSort(value: string): ListViewSort<AppSortKey> {
+  const [by, dir] = value.split(":");
   return (by === "name" || by === "memory" || by === "cpu") && (dir === "asc" || dir === "desc")
     ? { by, dir }
     : DEFAULT_APP_SORT;
 }
 
-function AppsWidget({ apps, onQuit }: { apps: AppStat[]; onQuit: (appId: string) => void }) {
-  const { getAppIconUrl } = useApps();
-  const [sort, setSort] = React.useState(readAppSort);
+function AppsWidget({
+  apps,
+  info,
+  onQuit,
+}: {
+  apps: AppStat[];
+  info: Record<string, MonitorAppInfo>;
+  onQuit: (appId: string) => void;
+}) {
+  const [sortSetting, setSortSetting] = useSetting(monitorSettings, "sort");
+  const sort = parseAppSort(sortSetting);
   const sorted = React.useMemo(() => {
     const factor = sort.dir === "asc" ? 1 : -1;
     return [...apps].sort((a, b) => {
@@ -315,8 +308,7 @@ function AppsWidget({ apps, onQuit }: { apps: AppStat[]; onQuit: (appId: string)
         onSort={(column) => {
           // Numbers start with the biggest, names with A.
           const next = nextListViewSort(sort, column, column === "name" ? "asc" : "desc");
-          setSort(next);
-          writeSetting("sort", `${next.by}:${next.dir}`);
+          setSortSetting(`${next.by}:${next.dir}`);
         }}
       />
       <tbody>
@@ -325,7 +317,7 @@ function AppsWidget({ apps, onQuit }: { apps: AppStat[]; onQuit: (appId: string)
             <ListViewCell>
               <div className="flex items-center gap-2">
                 <AppSquircleIcon
-                  iconUrl={getAppIconUrl(app.appId)}
+                  iconUrl={info[app.appId]?.iconUrl}
                   squircle={false}
                   className="size-6 shrink-0"
                   glyphClassName="size-4"
@@ -360,44 +352,60 @@ function AppsWidget({ apps, onQuit }: { apps: AppStat[]; onQuit: (appId: string)
 // ── App ──────────────────────────────────────────────────────────────────
 
 export interface SystemMonitorAppProps {
-  windowId?: string;
+  host: SystemMonitorHost;
 }
 
-export const SystemMonitorApp: React.FC<SystemMonitorAppProps> = ({ windowId = "" }) => {
-  const { systemServices } = getEngine().capabilities;
-  const runningIds = useWindowManagerSelector(
-    (wm) => Array.from(new Set(wm.windows.map((w) => w.appId))).join(","),
-  );
+/** The desktop's windows, from the host. */
+function useShellWindows(host: SystemMonitorHost): readonly ShellWindow[] {
+  const [windows, setWindows] = React.useState<readonly ShellWindow[]>([]);
+  React.useEffect(() => host.shell.watchWindows(setWindows), [host]);
+  return windows;
+}
+
+/** Names and icons of the running apps, asked for when the list changes. */
+function useAppInfo(host: SystemMonitorHost, runningIds: string): Record<string, MonitorAppInfo> {
+  const [info, setInfo] = React.useState<Record<string, MonitorAppInfo>>({});
+  React.useEffect(() => {
+    let current = true;
+    const ask = () =>
+      void host
+        .describeApps(runningIds ? runningIds.split(",") : [])
+        .then((next) => current && setInfo(next))
+        .catch(() => undefined);
+    ask();
+    const stop = host.onAppsChanged?.(ask);
+    return () => {
+      current = false;
+      stop?.();
+    };
+  }, [host, runningIds]);
+  return info;
+}
+
+export const SystemMonitorApp: React.FC<SystemMonitorAppProps> = ({ host }) => {
+  const windows = useShellWindows(host);
+  const runningIds = Array.from(new Set(windows.map((w) => w.appId))).join(",");
   // Only Linux client windows have a process of their own; in the demo each app is given one.
-  const clientProcesses = useWindowManagerSelector((wm) =>
-    wm.windows
-      .flatMap((w) => (w.pid ? [`${w.appId}:${w.pid}`] : []))
-      .join(","),
-  );
+  const clientProcesses = windows.flatMap((w) => (w.pid ? [`${w.appId}:${w.pid}`] : [])).join(",");
   const runningAppIds = React.useMemo(
     () => (runningIds ? runningIds.split(",") : []),
     [runningIds]
   );
-  if (!systemServices) setDemoApps(runningAppIds);
-  const processes = systemServices
-    ? clientProcesses
-    : runningAppIds.map((appId) => `${appId}:${demoPid(appId)}`).join(",");
-  const stats = useSystemStats(processes, runningAppIds);
+  if (host.simulatedProcesses) setDemoApps(runningAppIds);
+  const processes = host.simulatedProcesses
+    ? runningAppIds.map((appId) => `${appId}:${demoPid(appId)}`).join(",")
+    : clientProcesses;
+  const info = useAppInfo(host, runningIds);
+  const stats = useSystemStats(host, processes, runningAppIds, info);
 
-  // `appId windowId` lines, to close an app's windows.
-  const windowList = useWindowManagerSelector((wm) =>
-    wm.windows.map((w) => `${w.appId} ${w.id}`).join("\n"),
-  );
-  const { closeWindow } = useWindowActions();
   const quitApp = (appId: string) => {
-    for (const line of windowList.split("\n")) {
-      if (line.startsWith(`${appId} `)) closeWindow(line.slice(appId.length + 1));
-    }
+    for (const w of windows) if (w.appId === appId) host.shell.closeWindow(w.id);
   };
 
+  const [cells, setCells] = useSetting(monitorSettings, "widget-cells");
   const [layout, setLayout] = React.useState(() =>
     parseWidgetLayout(
-      readSetting("widget-cells"),
+      cells || undefined,
       DEFAULT_LAYOUT,
       WIDGET_SIZES,
       GRID_COLS,
@@ -440,7 +448,7 @@ export const SystemMonitorApp: React.FC<SystemMonitorAppProps> = ({ windowId = "
     const grid = gridRef.current;
     setDrag(null);
     setLayout(next);
-    writeSetting("widget-cells", formatWidgetLayout(next));
+    setCells(formatWidgetLayout(next));
     if (!el || !grid) return;
     // Glide from where it was let go to its cell.
     const dx = event.delta.x - (next[id].col - layout[id].col) * (grid.clientWidth / GRID_COLS);
@@ -468,7 +476,7 @@ export const SystemMonitorApp: React.FC<SystemMonitorAppProps> = ({ windowId = "
       case "apps":
         return (
           <Widget key={id} {...props} title={_("Apps")}>
-            <AppsWidget apps={stats.apps} onQuit={quitApp} />
+            <AppsWidget apps={stats.apps} info={info} onQuit={quitApp} />
           </Widget>
         );
     }
@@ -495,7 +503,7 @@ export const SystemMonitorApp: React.FC<SystemMonitorAppProps> = ({ windowId = "
           </div>
         </DndContext>
         <p className="mt-1 shrink-0 text-center text-ui-caption text-ui-label-tertiary">
-          {systemServices
+          {!host.simulatedProcesses
             ? _("Apps without figures run inside the desktop or share its browser.")
             : _("Simulated values in the demo.")}
         </p>

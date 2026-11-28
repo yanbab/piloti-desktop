@@ -12,8 +12,11 @@
 import type { Dbus } from "@domicile-desktop/sdk/desktop/dbus";
 import type { Processes } from "@domicile-desktop/sdk/desktop/processes";
 import { Bus } from "@domicile-desktop/sdk/system";
+import type { ShellWindow } from "@/core/ports/shell-host";
 
 export const IPC_COMMAND = "piloti-ipc";
+/** A request to the shell, answered once: close or focus a window. */
+export const IPC_REQUEST = "piloti-ipc-do";
 export const IPC_SIGNAL = {
   path: "/org/piloti/Shell",
   interface: "org.piloti.Shell",
@@ -27,12 +30,20 @@ export interface ModuleWindowState {
   size?: { width: number; height: number };
   /** The app is drawn. */
   ready?: boolean;
+  /** What the shell should keep the module told about. */
+  watch?: readonly "windows"[];
 }
+
+export type ModuleRequest =
+  | { do: "close-window"; windowId: string }
+  | { do: "focus-window"; windowId: string };
 
 export type ShellMessage =
   | { to: string; type: "action"; actionId: string }
   /** Send the state again: the shell has just met this window. */
-  | { to: string; type: "sync" };
+  | { to: string; type: "sync" }
+  /** The desktop's windows, for a module that watches them. */
+  | { to: string; type: "windows"; windows: ShellWindow[] };
 
 export const newModuleId = (): string =>
   `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
@@ -41,7 +52,7 @@ export const newModuleId = (): string =>
 export const stateWords = (id: string, state: ModuleWindowState): string[] => [
   IPC_COMMAND,
   id,
-  encodeURIComponent(JSON.stringify(state)),
+  encodeWord(state),
 ];
 
 /** Reads `stateWords` back; `null` for another command or a bad message. */
@@ -49,13 +60,43 @@ export function parseStateWords(
   words: readonly string[],
 ): { id: string; state: ModuleWindowState } | null {
   const [command, id, encoded] = words;
-  if (command !== IPC_COMMAND || !id || !encoded) return null;
+  if (command !== IPC_COMMAND || !id) return null;
+  const state = decodeWord(encoded);
+  return typeof state === "object" && state ? { id, state } : null;
+}
+
+/** One word for any JSON value: no spaces, quotes or shell characters. */
+const encodeWord = (value: unknown) => encodeURIComponent(JSON.stringify(value));
+
+function decodeWord(word: string | undefined): unknown {
+  if (!word) return null;
   try {
-    const state: unknown = JSON.parse(decodeURIComponent(encoded));
-    return typeof state === "object" && state ? { id, state } : null;
+    return JSON.parse(decodeURIComponent(word));
   } catch {
     return null;
   }
+}
+
+export const requestWords = (id: string, request: ModuleRequest): string[] => [
+  IPC_REQUEST,
+  id,
+  encodeWord(request),
+];
+
+/** Reads `requestWords` back; `null` for another command or a bad message. */
+export function parseRequestWords(
+  words: readonly string[],
+): { id: string; request: ModuleRequest } | null {
+  const [command, id, encoded] = words;
+  if (command !== IPC_REQUEST || !id) return null;
+  const request = decodeWord(encoded) as Partial<ModuleRequest> | null;
+  if (
+    (request?.do === "close-window" || request?.do === "focus-window") &&
+    typeof request.windowId === "string"
+  ) {
+    return { id, request: { do: request.do, windowId: request.windowId } };
+  }
+  return null;
 }
 
 export interface ChannelHost {
@@ -68,22 +109,23 @@ export function createModuleChannel({ processes, dbus }: ChannelHost, id: string
   let state: ModuleWindowState = {};
   let tail: Promise<unknown> = Promise.resolve();
   const listeners = new Set<(actionId: string) => void>();
+  const windowListeners = new Set<(windows: ShellWindow[]) => void>();
 
+  const run = async (words: string[]) => {
+    try {
+      const ran = await processes.run(["piloti", "send", ...words]);
+      const problem = ran.match({
+        Ok: (r) => (r.code === 0 ? null : r.stderr),
+        Err: (e) => e.message,
+      });
+      // Refused while the screen is locked: the next change or `sync` resends.
+      if (problem) console.warn("[piloti] the shell did not answer:", problem);
+    } catch (error) {
+      console.warn("[piloti] could not reach the shell", error);
+    }
+  };
   // One at a time, so an older state cannot arrive after a newer one.
-  const send = () =>
-    (tail = tail.then(async () => {
-      try {
-        const ran = await processes.run(["piloti", "send", ...stateWords(id, state)]);
-        const problem = ran.match({
-          Ok: (r) => (r.code === 0 ? null : r.stderr),
-          Err: (e) => e.message,
-        });
-        // Refused while the screen is locked: the next change or `sync` resends.
-        if (problem) console.warn("[piloti] the shell did not answer:", problem);
-      } catch (error) {
-        console.warn("[piloti] could not reach the shell", error);
-      }
-    }));
+  const send = () => (tail = tail.then(() => run(stateWords(id, state))));
 
   const receive = (body: unknown) => {
     let message: ShellMessage;
@@ -95,6 +137,9 @@ export function createModuleChannel({ processes, dbus }: ChannelHost, id: string
     if (message?.to !== id) return;
     if (message.type === "sync") void send();
     else if (message.type === "action") listeners.forEach((l) => l(message.actionId));
+    else if (message.type === "windows" && Array.isArray(message.windows)) {
+      windowListeners.forEach((l) => l(message.windows));
+    }
   };
 
   void dbus.match({ bus: Bus.Session, ...IPC_SIGNAL }).then((result) =>
@@ -123,6 +168,14 @@ export function createModuleChannel({ processes, dbus }: ChannelHost, id: string
     onAction(listener: (actionId: string) => void) {
       listeners.add(listener);
       return () => void listeners.delete(listener);
+    },
+    onWindows(listener: (windows: ShellWindow[]) => void) {
+      windowListeners.add(listener);
+      return () => void windowListeners.delete(listener);
+    },
+    /** Asks the shell for something; after the states already sent. */
+    request(request: ModuleRequest) {
+      return (tail = tail.then(() => run(requestWords(id, request))));
     },
   };
 }

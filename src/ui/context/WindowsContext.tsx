@@ -1811,7 +1811,11 @@ export function useWindowsValue(
     [combinedWindows, focusedWindowId]
   );
 
-  useModuleChannel(piloti, combinedWindows, updateWindowGeometry);
+  useModuleChannel(piloti, combinedWindows, {
+    resize: updateWindowGeometry,
+    close: closeWindow,
+    focus: focusWindow,
+  });
   useAppMemory(piloti, systemServices);
 
   const { activeAppDef, handleMenuAction } = useGlobalAppMenu({
