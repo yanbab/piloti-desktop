@@ -20,7 +20,7 @@ export const ISOLATABLE_APPS: readonly string[] = [
 const ISOLATABLE = new Set(ISOLATABLE_APPS);
 
 /** Apps heavy enough to run on their own unless chosen otherwise, on Linux. */
-const SEPARATE_BY_DEFAULT = new Set(["image-viewer", "texts"]);
+const SEPARATE_BY_DEFAULT = new Set(["image-viewer", "system-monitor", "texts"]);
 
 export const RUN_SEPARATELY_ACTION = "shell:run-separately";
 
