@@ -1,135 +1,42 @@
-import * as React from "react";
-import { useCapabilities } from "@/ui/hooks/use-capabilities";
-import { usePiloti } from "@/platform/shared/piloti";
-import { PreviewedWindow } from "@domicile-desktop/sdk/previewed-window";
 import { SparklesIcon } from "lucide-react";
 import {
   useApps,
-  useSettings,
-  useWindowManager,
-  type DesktopWindowInstance,
+  useWindowManagerSelector,
 } from "@/ui/context/DesktopStateContext";
 import { cn } from "@/core/util/utils";
 import { AppSquircleIcon } from "@/ui/components/common/AppSymbol";
 
-function WindowMiniPreview({
-  win,
-  captureUrl,
-}: {
-  win: DesktopWindowInstance;
-  captureUrl?: string;
-}) {
-  if (captureUrl) {
-    return (
-      <img
-        src={captureUrl}
-        alt={win.title}
-        draggable={false}
-        className="h-full w-full bg-ui-hud-dark object-contain"
-      />
-    );
-  }
-
-  if (win.appId === "settings") {
-    return (
-      <div className="flex h-full bg-ui-hud-dark text-ui-caption">
-        <div className="flex w-1/3 flex-col gap-1.5 border-r border-white/10 bg-white/5 p-2">
-          <div className="h-2 w-4/5 rounded-full bg-ui-accent/60" />
-          <div className="h-2 w-3/4 rounded-full bg-white/20" />
-          <div className="h-2 w-2/3 rounded-full bg-white/15" />
-          <div className="h-2 w-4/5 rounded-full bg-white/15" />
-        </div>
-        <div className="flex flex-1 flex-col gap-2 p-2.5">
-          <div className="flex gap-1.5">
-            <span className="size-3 rounded-full bg-ui-blue" />
-            <span className="size-3 rounded-full bg-ui-purple" />
-            <span className="size-3 rounded-full bg-ui-pink" />
-            <span className="size-3 rounded-full bg-ui-green" />
-          </div>
-          <div className="h-5 rounded-ui-control bg-white/10" />
-          <div className="h-5 rounded-ui-control bg-white/10" />
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex h-full flex-col items-center justify-center gap-1.5 bg-ui-hud-dark p-3 text-center">
-      <AppSquircleIcon
-        iconName={win.iconName}
-        iconUrl={win.iconUrl}
-        squircle={Boolean(win.browserWindowId)}
-        className="size-9"
-        glyphClassName="size-5"
-      />
-      <span className="max-w-full truncate text-ui-caption text-white/70">
-        {win.waylandAppId
-          ? `Wayland · ${win.waylandAppId}`
-          : `${win.size.width}×${win.size.height}`}
-      </span>
-    </div>
-  );
-}
-
 export function AltTabSwitcher() {
-  const piloti = usePiloti();
-  const { systemServices } = useCapabilities();
   const { getAppIconUrl } = useApps();
   const {
     altTabOpen,
     altTabIndex,
-    setAltTabIndex,
     mruWindows,
+    setAltTabIndex,
     commitAltTab,
     closeAltTab,
-  } = useWindowManager();
-
-  const [previews, setPreviews] = React.useState<Record<string, string>>({});
-
-  // Capture live PNG thumbnails for Wayland windows via `domicile.capture.preview`
-  React.useEffect(() => {
-    if (!altTabOpen || !systemServices) return;
-    let cancelled = false;
-
-    const waylandWins = mruWindows.filter((w) => Boolean(w.waylandAppId));
-    if (waylandWins.length === 0) return;
-
-    Promise.all(
-      waylandWins.map(async (w) => {
-        if (!w.waylandAppId) return;
-        try {
-          const res = await piloti.capture.preview(
-            PreviewedWindow.App(w.waylandAppId)
-          );
-          res.match({
-            Ok: (dataUrl) => {
-              if (!cancelled && dataUrl) {
-                setPreviews((prev) => ({ ...prev, [w.id]: dataUrl }));
-              }
-            },
-            Err: () => {},
-          });
-        } catch {
-          // ignore if unavailable
-        }
-      })
-    );
-
-    return () => {
-      cancelled = true;
-    };
-  }, [altTabOpen, piloti.capture, systemServices, mruWindows]);
-
-  if (!altTabOpen) return null;
+  } = useWindowManagerSelector((wm) => ({
+    altTabOpen: wm.altTabOpen,
+    altTabIndex: wm.altTabIndex,
+    mruWindows: wm.mruWindows,
+    setAltTabIndex: wm.setAltTabIndex,
+    commitAltTab: wm.commitAltTab,
+    closeAltTab: wm.closeAltTab,
+  }));
 
   return (
     <div
-      className="fixed inset-0 z-[500] flex items-center justify-center p-6"
+      aria-hidden={!altTabOpen || undefined}
+      className={
+        altTabOpen
+          ? "fixed inset-0 z-[500] flex items-center justify-center p-6"
+          : "hidden"
+      }
       onClick={() => closeAltTab()}
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="flex max-w-[90vw] flex-col items-center overflow-hidden rounded-[22px] px-5 py-4 text-ui-label shadow-ui-menu ui-material-menu animate-in fade-in-0 zoom-in-95 duration-150 motion-reduce:animate-none"
+        className="flex max-w-[90vw] flex-col items-center overflow-hidden rounded-[22px] px-5 py-4 text-ui-label shadow-ui-menu ui-material-menu"
       >
         {mruWindows.length === 0 ? (
           <div className="flex flex-col items-center justify-center px-6 py-4 text-center text-ui-label-secondary">
@@ -156,15 +63,16 @@ export function AltTabSwitcher() {
                   role="option"
                   aria-selected={selected}
                   type="button"
+                  tabIndex={-1}
                   onPointerEnter={() => setAltTabIndex(index)}
                   onClick={() => commitAltTab(win.id)}
-                  className="group relative flex w-[92px] shrink-0 flex-col items-center outline-none"
+                  className="group relative flex w-[92px] shrink-0 flex-col items-center outline-none focus-visible:outline-none"
                 >
                   <div
                     className={cn(
-                      "flex size-[80px] items-center justify-center rounded-[18px] p-2 transition-all duration-100 motion-reduce:transition-none",
+                      "flex size-[80px] items-center justify-center rounded-[18px] p-2",
                       selected
-                        ? "bg-black/14 ring-2 ring-ui-accent dark:bg-white/16"
+                        ? "bg-black/14 dark:bg-white/16"
                         : "bg-transparent hover-fill:bg-black/6 dark:hover-fill:bg-white/8",
                       win.minimized && "opacity-65"
                     )}

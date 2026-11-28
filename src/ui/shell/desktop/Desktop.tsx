@@ -45,11 +45,7 @@ import {
   installWebAppDesktopEntry,
   removeWebAppDesktopEntry,
 } from "@/core/xdg/xdg-web-apps";
-const AltTabSwitcher = React.lazy(() =>
-  import("@/ui/shell/overview/AltTabSwitcher").then((m) => ({
-    default: m.AltTabSwitcher,
-  }))
-);
+import { AltTabSwitcher } from "@/ui/shell/overview/AltTabSwitcher";
 const AboutComputerDialog = React.lazy(() =>
   import("@/ui/shell/dialogs/AboutComputerDialog").then((m) => ({
     default: m.AboutComputerDialog,
@@ -122,9 +118,8 @@ function DesktopSurface() {
     webPowerPhase,
     powerOnSimulatedMachine,
   } = useSystemBackends();
-  const { aboutOpen, altTabOpen, overviewOpen } = useWindowManagerSelector((wm) => ({
+  const { aboutOpen, overviewOpen } = useWindowManagerSelector((wm) => ({
     aboutOpen: wm.aboutOpen,
-    altTabOpen: wm.altTabOpen,
     overviewOpen: wm.overviewOpen,
   }));
   const { setOverviewOpen, setLauncherOpen, setControlPanelOpen, launchApp } =
@@ -288,11 +283,7 @@ function DesktopSurface() {
       <OsdOverlay />
 
       {/* Alt+Tab Switcher */}
-      {altTabOpen && (
-        <React.Suspense fallback={null}>
-          <AltTabSwitcher />
-        </React.Suspense>
-      )}
+      <AltTabSwitcher />
 
       {/* Overview (Workspaces & Window Spread) */}
       {overviewMounted && (

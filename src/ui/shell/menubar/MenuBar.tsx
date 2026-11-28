@@ -1211,12 +1211,13 @@ export const MenuBar = React.memo(function MenuBar() {
               align="end"
               alignOffset={-8}
               sideOffset={6}
+              keepMounted
               collisionAvoidance={{ side: "flip", align: "shift" }}
               data-menu="launcher"
               // 5px collision padding + 1: as far from the edge as the Piloti menu.
               className="mr-px w-[312px] max-w-[calc(100vw-16px)] overflow-hidden p-0"
             >
-              {launcherOpen && <Launcher />}
+              <Launcher />
             </DropdownMenuContent>
           </DropdownMenu>
 
