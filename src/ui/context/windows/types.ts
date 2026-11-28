@@ -4,6 +4,7 @@ import type {
   BrowserTabGroup,
   BrowserTab,
   ResolvedPopupWindow,
+  WindowPlacement,
 } from "@/core/windows/types";
 import type { WindowRequest } from "@domicile-desktop/sdk/window-state";
 import type { AppDefinition } from "@/core/data/catalog";
@@ -116,16 +117,7 @@ export type WindowActionsValue = Pick<
 >;
 
 /** What the shell keeps about a window Domicile lists (Wayland or browser). */
-export interface ExternalWindowMeta {
-  position: { x: number; y: number };
-  size: { width: number; height: number };
-  minimized: boolean;
-  maximized: boolean;
-  fullscreen?: boolean;
-  pinned?: boolean;
-  tiled?: "left" | "right" | null;
-  zIndex: number;
-  workspace: number;
+export interface ExternalWindowMeta extends WindowPlacement {
   /** Opened by the Web Browser: grouped under its Dock icon whatever the page. */
   browserApp?: boolean;
 }

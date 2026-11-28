@@ -64,3 +64,16 @@ export interface ResolvedPopupWindow {
   cursor?: string;
   zIndex: number;
 }
+
+/** Where and how a window stands, whoever draws it. */
+export interface WindowPlacement {
+  position: { x: number; y: number };
+  size: { width: number; height: number };
+  minimized: boolean;
+  maximized: boolean;
+  fullscreen?: boolean;
+  pinned?: boolean;
+  tiled?: "left" | "right" | null;
+  zIndex: number;
+  workspace: number;
+}
