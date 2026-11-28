@@ -12,6 +12,7 @@
 import type { Dbus } from "@domicile-desktop/sdk/desktop/dbus";
 import type { Processes } from "@domicile-desktop/sdk/desktop/processes";
 import { Bus } from "@domicile-desktop/sdk/system";
+import type { Rect } from "@/core/apps/window-controls-overlay";
 import type { ShellWindow } from "@/core/ports/shell-host";
 
 export const IPC_COMMAND = "piloti-ipc";
@@ -30,6 +31,8 @@ export interface ModuleWindowState {
   size?: { width: number; height: number };
   /** The app is drawn. */
   ready?: boolean;
+  /** Where its own titlebar drags the window (`window-controls-overlay.ts`). */
+  dragRegions?: Rect[];
   /** What the shell should keep the module told about. */
   watch?: readonly "windows"[];
 }
@@ -42,6 +45,8 @@ export type ShellMessage =
   | { to: string; type: "action"; actionId: string }
   /** Send the state again: the shell has just met this window. */
   | { to: string; type: "sync" }
+  /** Whether the shell lays its window controls over the module's titlebar (not as a tab). */
+  | { to: string; type: "overlay"; visible: boolean }
   /** The desktop's windows, for a module that watches them. */
   | { to: string; type: "windows"; windows: ShellWindow[] };
 
@@ -109,6 +114,7 @@ export function createModuleChannel({ processes, dbus }: ChannelHost, id: string
   let state: ModuleWindowState = {};
   let tail: Promise<unknown> = Promise.resolve();
   const listeners = new Set<(actionId: string) => void>();
+  const overlayListeners = new Set<(visible: boolean) => void>();
   const windowListeners = new Set<(windows: ShellWindow[]) => void>();
 
   const run = async (words: string[]) => {
@@ -137,6 +143,7 @@ export function createModuleChannel({ processes, dbus }: ChannelHost, id: string
     if (message?.to !== id) return;
     if (message.type === "sync") void send();
     else if (message.type === "action") listeners.forEach((l) => l(message.actionId));
+    else if (message.type === "overlay") overlayListeners.forEach((l) => l(message.visible !== false));
     else if (message.type === "windows" && Array.isArray(message.windows)) {
       windowListeners.forEach((l) => l(message.windows));
     }
@@ -168,6 +175,10 @@ export function createModuleChannel({ processes, dbus }: ChannelHost, id: string
     onAction(listener: (actionId: string) => void) {
       listeners.add(listener);
       return () => void listeners.delete(listener);
+    },
+    onOverlay(listener: (visible: boolean) => void) {
+      overlayListeners.add(listener);
+      return () => void overlayListeners.delete(listener);
     },
     onWindows(listener: (windows: ShellWindow[]) => void) {
       windowListeners.add(listener);

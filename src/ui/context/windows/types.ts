@@ -40,12 +40,20 @@ export interface WindowsContextValue {
   setBrowserTitle: (browserWindowId: string, title: string) => void;
   /** Opens `url` (or the start page) in a new tab of Web Browser window `windowId`. */
   openBrowserTab: (windowId: string, url?: string) => void;
+  /** Opens app module `moduleId` as a tab of Web Browser window `windowId` (native only). */
+  openModuleTab: (windowId: string, moduleId: string) => void;
   selectBrowserTab: (windowId: string, tabId: string) => void;
   closeBrowserTab: (windowId: string, tabId: string) => void;
   /** Puts a window's tabs in the given order (same set of ids). */
   reorderBrowserTabs: (windowId: string, tabIds: string[]) => void;
-  /** Moves a tab out into a window of its own. */
-  detachBrowserTab: (windowId: string, tabId: string) => void;
+  /** Moves a tab to a window of its own, at `at` when given; returns its id. */
+  detachBrowserTab: (
+    windowId: string,
+    tabId: string,
+    at?: { x: number; y: number }
+  ) => string | undefined;
+  /** Moves a tab into another Web Browser window, at `index` among its tabs. */
+  moveBrowserTab: (fromWindowId: string, tabId: string, toWindowId: string, index: number) => void;
   pinBrowserTab: (windowId: string, tabId: string, pinned: boolean) => void;
   /** Opens the tab closed last again, in this window. */
   reopenClosedBrowserTab: (windowId: string) => void;

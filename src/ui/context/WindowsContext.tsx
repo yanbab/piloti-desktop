@@ -71,7 +71,7 @@ import type { DesktopWindowInstance, BrowserTabGroup, WindowsContextValue, Windo
 export type { DesktopWindowInstance, BrowserTab, ResolvedPopupWindow, WindowsContextValue, WindowActionsValue } from "./windows/types";
 export { BROWSER_DEMO_HOME_URL, BROWSER_HOME_URL, normalizeWebUrl } from "@/core/windows/browser-url";
 import { BROWSER_DEMO_HOME_URL, BROWSER_HOME_URL, normalizeWebUrl } from "@/core/windows/browser-url";
-import { pinnedTabs, reorderedTabs } from "@/core/windows/tab-groups";
+import { movedTabGroups, pinnedTabs, reorderedTabs } from "@/core/windows/tab-groups";
 import { patchExternalMeta, upsertBrowserRecord, pruneBrowserRecord } from "./windows/window-meta";
 import { computeCenteredOrCascadedPosition } from "@/core/windows/cascade-position";
 import { resolvePopupWindows, resolveSyncedParentFrames } from "@/core/windows/popups";
@@ -319,6 +319,8 @@ export function useWindowsValue(
   browserTabGroupsRef.current = browserTabGroups;
   /** Groups waiting for the browser window they asked for, oldest first. */
   const pendingTabGroupsRef = React.useRef<string[]>([]);
+  /** App modules asked for as tabs: the first window of that module joins `group`. */
+  const pendingModuleTabsRef = React.useRef<Array<{ group: string; moduleId: string; until: number }>>([]);
   /** Web Browser windows asked for and not yet listed by Domicile. */
   const pendingBrowserAppRef = React.useRef(0);
 
@@ -344,6 +346,19 @@ export function useWindowsValue(
         // A page asked for as a tab joins its window instead of opening one.
         const appModule = resolveAppModuleByUrl(bw.url);
         const isModule = Boolean(appModule);
+        if (appModule) {
+          const now = Date.now();
+          pendingModuleTabsRef.current = pendingModuleTabsRef.current.filter((p) => p.until > now);
+          const wanted = pendingModuleTabsRef.current.findIndex((p) => p.moduleId === appModule.id);
+          const group = wanted >= 0 ? pendingModuleTabsRef.current[wanted]!.group : undefined;
+          if (group !== undefined) {
+            pendingModuleTabsRef.current.splice(wanted, 1);
+            if (activeIds.has(group) || prevGroups[group]) {
+              tabAdds.push([group, bw.id]);
+              continue;
+            }
+          }
+        }
         if (!bw.isApp && !isModule && pendingTabGroupsRef.current.length > 0) {
           const group = pendingTabGroupsRef.current.shift()!;
           if (activeIds.has(group) || prevGroups[group]) {
@@ -1021,6 +1036,20 @@ export function useWindowsValue(
     [piloti.browser, compositor]
   );
 
+  const openModuleTab = React.useCallback(
+    (windowId: string, moduleId: string) => {
+      if (!windowId.startsWith("browser:")) return;
+      pendingModuleTabsRef.current.push({
+        group: windowId.slice("browser:".length),
+        moduleId,
+        // A module starts as a process of its own: give it time.
+        until: Date.now() + 15_000,
+      });
+      void openAppModule(piloti, moduleId).catch(() => false);
+    },
+    [piloti]
+  );
+
   const selectBrowserTab = React.useCallback((windowId: string, tabId: string) => {
     const group = windowId.slice("browser:".length);
     setBrowserTabGroups((prev) => {
@@ -1047,11 +1076,11 @@ export function useWindowsValue(
   }, []);
 
   const detachBrowserTab = React.useCallback(
-    (windowId: string, tabId: string) => {
+    (windowId: string, tabId: string, at?: { x: number; y: number }): string | undefined => {
       const group = windowId.slice("browser:".length);
       const grp = browserTabGroupsRef.current[group];
       const meta = browserMeta[group];
-      if (!grp || !meta || grp.tabs.length < 2 || !grp.tabs.includes(tabId)) return;
+      if (!grp || !meta || grp.tabs.length < 2 || !grp.tabs.includes(tabId)) return undefined;
       const newKey = `${tabId}~${Date.now().toString(36)}`;
       const index = grp.tabs.indexOf(tabId);
       const remaining = grp.tabs.filter((id) => id !== tabId);
@@ -1073,7 +1102,7 @@ export function useWindowsValue(
       browserTabGroupsRef.current = next;
       setBrowserTabGroups(next);
       const clamped = clampWindowBounds(
-        { x: meta.position.x + 36, y: meta.position.y + 36 },
+        at ?? { x: meta.position.x + 36, y: meta.position.y + 36 },
         meta.size,
         screenWidth,
         screenHeight,
@@ -1094,8 +1123,31 @@ export function useWindowsValue(
       }));
       setFocusedWindowId(`browser:${newKey}`);
       setMruIds((prev) => [`browser:${newKey}`, ...prev]);
+      return `browser:${newKey}`;
     },
     [browserMeta, screenWidth, screenHeight]
+  );
+
+  const moveBrowserTab = React.useCallback(
+    (fromWindowId: string, tabId: string, toWindowId: string, index: number) => {
+      if (!fromWindowId.startsWith("browser:") || !toWindowId.startsWith("browser:")) return;
+      const from = fromWindowId.slice("browser:".length);
+      const to = toWindowId.slice("browser:".length);
+      const moved = movedTabGroups(browserTabGroupsRef.current, from, to, tabId, index);
+      if (!moved) return;
+      browserTabGroupsRef.current = moved.groups;
+      setBrowserTabGroups(moved.groups);
+      setBrowserMeta((prev) => {
+        const target = prev[to];
+        const next = { ...prev };
+        if (moved.fromEmptied) delete next[from];
+        if (target) next[to] = { ...target, minimized: false, zIndex: nextZ() };
+        return next;
+      });
+      setFocusedWindowId(toWindowId);
+      setMruIds((prev) => [toWindowId, ...prev.filter((id) => id !== toWindowId && !(moved.fromEmptied && id === fromWindowId))]);
+    },
+    []
   );
 
   /** Pages closed as tabs, newest last, for "Reopen Closed Tab". */
@@ -1915,10 +1967,12 @@ export function useWindowsValue(
       setBrowserFavicon,
       setBrowserTitle,
       openBrowserTab,
+      openModuleTab,
       selectBrowserTab,
       closeBrowserTab,
       reorderBrowserTabs,
       detachBrowserTab,
+      moveBrowserTab,
       pinBrowserTab,
       reopenClosedBrowserTab,
       focusWindow,
@@ -1989,10 +2043,12 @@ export function useWindowsValue(
       setBrowserFavicon,
       setBrowserTitle,
       openBrowserTab,
+      openModuleTab,
       selectBrowserTab,
       closeBrowserTab,
       reorderBrowserTabs,
       detachBrowserTab,
+      moveBrowserTab,
       pinBrowserTab,
       reopenClosedBrowserTab,
       subscribeClientWindowRequest,

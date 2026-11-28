@@ -34,14 +34,17 @@ import {
   DRAG_THRESHOLD,
   dragFlyBackAnimation,
   dragShuffleTransition,
-  liftGhost,
+  DRAG_DURATION,
+  DRAG_LIFT,
 } from "@/ui/dnd/drag-feedback";
 
-/** Tabs slide sideways only. */
-const horizontalOnly: Modifier = ({ transform }) => ({ ...transform, y: 0 });
-
 /** Dragging this far above or below the bar tears the tab off into its own window. */
-const DETACH_DISTANCE = 48;
+const DETACH_DISTANCE = 32;
+
+/** Escape cancels a dnd-kit pointer drag, the way a tear-off ends the reorder. */
+function cancelReorder() {
+  document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", code: "Escape" }));
+}
 
 const tabClass = (active: boolean, pinned = false) =>
   cn(
@@ -107,6 +110,7 @@ function SortableTab({
       {...sortable.attributes}
       {...listeners}
       role="tab"
+      data-window-no-drag
       aria-selected={active}
       data-slot="browser-tab"
       data-tab-id={tab.id}
@@ -116,6 +120,8 @@ function SortableTab({
       onPointerDown={(e) => {
         if (e.button === 0) onSelect(tab.id);
         listeners?.onPointerDown?.(e);
+        // The bar is the window's titlebar: a tab drags itself, not the window.
+        e.stopPropagation();
       }}
       onAuxClick={(e) => {
         if (e.button === 1) {
@@ -141,24 +147,34 @@ function SortableTab({
  */
 export function BrowserTabBar({
   hidden,
-  top,
   tabs,
   activeId,
   onSelect,
   onClose,
   onReorder,
   onDetach,
+  onTearOff,
   onPin,
+  onDuplicate,
+  onReload,
+  onCloseOthers,
+  onCloseToRight,
 }: {
   hidden: boolean;
-  top: number;
   tabs: BrowserTab[];
   activeId?: string;
   onSelect: (id: string) => void;
   onClose: (id: string) => void;
   onReorder: (ids: string[]) => void;
   onDetach: (id: string) => void;
+  /** The tab was pulled off the bar: it becomes a window following `pointer`. */
+  onTearOff: (id: string, pointer: { clientX: number; clientY: number }) => void;
   onPin: (id: string, pinned: boolean) => void;
+  onDuplicate: (id: string) => void;
+  onReload: (id: string) => void;
+  /** Closes every tab but `id` (pinned ones stay). */
+  onCloseOthers: (id: string) => void;
+  onCloseToRight: (id: string) => void;
 }) {
   const [menuTab, setMenuTab] = React.useState<string | null>(null);
   const menuTabInfo = tabs.find((t) => t.id === menuTab);
@@ -166,41 +182,71 @@ export function BrowserTabBar({
     useSensor(PointerSensor, { activationConstraint: { distance: DRAG_THRESHOLD } })
   );
   const [overlay, setOverlay] = React.useState<{ id: string; width: number; height: number } | null>(null);
-  const [tearing, setTearing] = React.useState(false);
+  const barRef = React.useRef<HTMLDivElement | null>(null);
+  // The bar's edges at drag start: a dragged tab stays between them.
+  const barRectRef = React.useRef<DOMRect | null>(null);
+  const keepInBar = React.useCallback<Modifier>(({ transform, activeNodeRect }) => {
+    // Pulled up or down, the tab gives a little, then tears off.
+    const pull = Math.sign(transform.y) * Math.min(Math.abs(transform.y) * 0.45, DETACH_DISTANCE * 0.45);
+    const bar = barRectRef.current;
+    if (!bar || !activeNodeRect) return { ...transform, y: pull };
+    const minX = bar.left + 2 - activeNodeRect.left;
+    const maxX = bar.right - 2 - activeNodeRect.right;
+    return { ...transform, x: Math.min(maxX, Math.max(minX, transform.x)), y: pull };
+  }, []);
+  // Lifted by its shadow only: a tab keeps its size while it moves.
   const liftRef = React.useCallback((el: HTMLDivElement | null) => {
-    if (el) liftGhost(el);
+    if (!el) return;
+    el.style.opacity = String(DRAG_LIFT.opacity);
+    el.style.filter = DRAG_LIFT.restShadow;
+    el.style.transition = `filter ${DRAG_DURATION.lift}ms ease`;
+    requestAnimationFrame(() => {
+      el.style.filter = DRAG_LIFT.shadow;
+    });
   }, []);
   const ids = tabs.map((t) => t.id);
   const overlayTab = overlay ? tabs.find((t) => t.id === overlay.id) : undefined;
 
-  // The modifier zeroes the vertical offset dnd-kit reports, so follow the pointer itself.
-  const pointerRef = React.useRef({ startY: 0, y: 0 });
+  // The modifier zeroes the vertical offset dnd-kit reports, so follow the
+  // pointer itself: past DETACH_DISTANCE up or down, the tab tears off.
+  const dragRef = React.useRef<{ id: string; startY: number } | null>(null);
+  const onTearOffRef = React.useRef(onTearOff);
+  onTearOffRef.current = onTearOff;
+  const canTearRef = React.useRef(false);
+  canTearRef.current = ids.length > 1;
   const trackPointer = React.useCallback((e: PointerEvent) => {
-    pointerRef.current.y = e.clientY;
-    setTearing(Math.abs(e.clientY - pointerRef.current.startY) > DETACH_DISTANCE);
+    const drag = dragRef.current;
+    if (!drag || !canTearRef.current) return;
+    if (Math.abs(e.clientY - drag.startY) <= DETACH_DISTANCE) return;
+    dragRef.current = null;
+    window.removeEventListener("pointermove", trackPointer, true);
+    cancelReorder();
+    onTearOffRef.current(drag.id, { clientX: e.clientX, clientY: e.clientY });
   }, []);
   const stopTracking = React.useCallback(() => {
-    window.removeEventListener("pointermove", trackPointer);
+    dragRef.current = null;
+    window.removeEventListener("pointermove", trackPointer, true);
   }, [trackPointer]);
   React.useEffect(() => stopTracking, [stopTracking]);
 
   const onDragStart = (e: DragStartEvent) => {
-    const startY = (e.activatorEvent as PointerEvent).clientY;
-    pointerRef.current = { startY, y: startY };
-    window.addEventListener("pointermove", trackPointer);
-    const rect = e.active.rect.current.initial;
+    barRectRef.current = barRef.current?.getBoundingClientRect() ?? null;
+    dragRef.current = {
+      id: String(e.active.id),
+      startY: (e.activatorEvent as PointerEvent).clientY,
+    };
+    window.addEventListener("pointermove", trackPointer, true);
+    // The ghost keeps the tab's size: measure the tab itself.
+    const node = Array.from(
+      barRef.current?.querySelectorAll<HTMLElement>("[data-tab-id]") ?? []
+    ).find((el) => el.dataset.tabId === String(e.active.id));
+    const rect = node?.getBoundingClientRect() ?? e.active.rect.current.initial;
     setOverlay({ id: String(e.active.id), width: rect?.width ?? 160, height: rect?.height ?? 28 });
   };
   const onDragEnd = (e: DragEndEvent) => {
     stopTracking();
     setOverlay(null);
-    setTearing(false);
     const id = String(e.active.id);
-    const { startY, y } = pointerRef.current;
-    if (ids.length > 1 && Math.abs(y - startY) > DETACH_DISTANCE) {
-      onDetach(id);
-      return;
-    }
     const from = ids.indexOf(id);
     const to = e.over ? ids.indexOf(String(e.over.id)) : -1;
     if (from >= 0 && to >= 0 && from !== to) onReorder(arrayMove([...ids], from, to));
@@ -210,13 +256,12 @@ export function BrowserTabBar({
     <DndContext
       sensors={sensors}
       collisionDetection={closestCenter}
-      modifiers={[horizontalOnly]}
+      modifiers={[keepInBar]}
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
       onDragCancel={() => {
         stopTracking();
         setOverlay(null);
-        setTearing(false);
       }}
     >
       <SortableContext items={ids} strategy={horizontalListSortingStrategy}>
@@ -229,12 +274,12 @@ export function BrowserTabBar({
             }
             render={
               <div
+                ref={barRef}
                 role="tablist"
                 data-slot="browser-tab-bar"
                 hidden={hidden}
-                style={{ top }}
                 className={cn(
-                  "absolute inset-x-0 z-10 h-ui-control-large shrink-0 items-stretch gap-px border-b border-ui-separator bg-black/5 px-1 py-0.5 dark:bg-white/4",
+                  "h-ui-control-large min-w-0 flex-1 items-stretch gap-px py-0.5",
                   hidden ? "hidden" : "flex"
                 )}
               />
@@ -252,6 +297,9 @@ export function BrowserTabBar({
           </ContextMenuTrigger>
           {menuTabInfo && (
             <ContextMenuContent className="min-w-48">
+              <ContextMenuItem onClick={() => onReload(menuTabInfo.id)}>{_("Reload Tab")}</ContextMenuItem>
+              <ContextMenuItem onClick={() => onDuplicate(menuTabInfo.id)}>{_("Duplicate Tab")}</ContextMenuItem>
+              <ContextMenuSeparator />
               <ContextMenuItem onClick={() => onPin(menuTabInfo.id, !menuTabInfo.pinned)}>
                 {menuTabInfo.pinned ? _("Unpin Tab") : _("Pin Tab")}
               </ContextMenuItem>
@@ -262,6 +310,18 @@ export function BrowserTabBar({
               )}
               <ContextMenuSeparator />
               <ContextMenuItem onClick={() => onClose(menuTabInfo.id)}>{_("Close Tab")}</ContextMenuItem>
+              <ContextMenuItem
+                disabled={!tabs.some((t) => t.id !== menuTabInfo.id && !t.pinned)}
+                onClick={() => onCloseOthers(menuTabInfo.id)}
+              >
+                {_("Close Other Tabs")}
+              </ContextMenuItem>
+              <ContextMenuItem
+                disabled={!tabs.slice(tabs.findIndex((t) => t.id === menuTabInfo.id) + 1).some((t) => !t.pinned)}
+                onClick={() => onCloseToRight(menuTabInfo.id)}
+              >
+                {_("Close Tabs to the Right")}
+              </ContextMenuItem>
             </ContextMenuContent>
           )}
         </ContextMenu>
@@ -271,13 +331,16 @@ export function BrowserTabBar({
           <>
           {/* Pages are iframes/web views that swallow the pointer: cover them while dragging. */}
           {overlay && <div className="fixed inset-0 z-[9998] cursor-grabbing" />}
-          <DragOverlay zIndex={9999} modifiers={[horizontalOnly]} dropAnimation={dragFlyBackAnimation}>
+          <DragOverlay zIndex={9999} modifiers={[keepInBar]} dropAnimation={dragFlyBackAnimation}>
             {overlayTab && overlay ? (
               <div
                 ref={liftRef}
                 data-dnd-kit-overlay=""
-                style={{ width: overlay.width, height: overlay.height, opacity: tearing ? 0.6 : 1 }}
-                className={cn(tabClass(overlayTab.id === activeId, overlayTab.pinned), "cursor-grabbing")}
+                style={{ width: overlay.width, height: overlay.height }}
+                className={cn(
+                  tabClass(overlayTab.id === activeId, overlayTab.pinned),
+                  "max-w-none min-w-0 flex-none cursor-grabbing"
+                )}
               >
                 <TabContents tab={overlayTab} active={overlayTab.id === activeId} />
               </div>

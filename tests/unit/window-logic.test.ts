@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { computeCenteredOrCascadedPosition } from "@/core/windows/cascade-position";
 import { resolvePopupWindows, resolveSyncedParentFrames } from "@/core/windows/popups";
-import { pinnedTabs, reorderedTabs } from "@/core/windows/tab-groups";
+import { movedTabGroups, pinnedTabs, reorderedTabs } from "@/core/windows/tab-groups";
 import type { DesktopWindowInstance } from "@/ui/context/windows/types";
 
 describe("browser tab groups", () => {
@@ -64,5 +64,36 @@ describe("popups", () => {
   test("hides them with their window", () => {
     const frames = resolveSyncedParentFrames(surfaces);
     expect(resolvePopupWindows(surfaces, [parent], frames, { activeWorkspace: 2, windowDecorationMode: "auto" })).toEqual([]);
+  });
+});
+
+describe("movedTabGroups", () => {
+  test("a tab joins another window at the slot and becomes active", () => {
+    const groups = { a: { tabs: ["a", "b", "c"], active: "b" }, x: { tabs: ["x", "y"], active: "x" } };
+    const moved = movedTabGroups(groups, "a", "x", "b", 1);
+    expect(moved?.fromEmptied).toBe(false);
+    expect(moved?.groups.a).toEqual({ tabs: ["a", "c"], active: "c" });
+    expect(moved?.groups.x).toEqual({ tabs: ["x", "b", "y"], active: "b" });
+  });
+
+  test("single-page windows have no record on either side", () => {
+    const moved = movedTabGroups({}, "p", "q", "p", 5);
+    expect(moved?.fromEmptied).toBe(true);
+    expect(moved?.groups).toEqual({ q: { tabs: ["q", "p"], active: "p" } });
+  });
+
+  test("never lands before pinned tabs; drops its own pin", () => {
+    const groups = {
+      a: { tabs: ["a", "b"], active: "a", pinned: ["b"] },
+      x: { tabs: ["x", "y"], active: "y", pinned: ["x"] },
+    };
+    const moved = movedTabGroups(groups, "a", "x", "b", 0);
+    expect(moved?.groups.x.tabs).toEqual(["x", "b", "y"]);
+    expect(moved?.groups.a).toEqual({ tabs: ["a"], active: "a" });
+  });
+
+  test("no-ops", () => {
+    expect(movedTabGroups({}, "a", "a", "a", 0)).toBeNull();
+    expect(movedTabGroups({}, "a", "x", "zz", 0)).toBeNull();
   });
 });

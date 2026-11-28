@@ -35,3 +35,47 @@ export function pinnedTabs(
   const tail = rest.filter((id) => !nextPinned.includes(id));
   return { ...grp, tabs: [...lead, tabId, ...tail], pinned: nextPinned.length ? nextPinned : undefined };
 }
+
+/**
+ * Tab `tabId` leaves window `from` for window `to`, at `index` among its tabs
+ * (never before its pinned ones), and becomes its active tab. A window is
+ * keyed by its group, or by its only tab when it has no record. Returns the
+ * new groups and whether `from` is left empty (its window goes away), or
+ * `null` when the move makes no sense.
+ */
+export function movedTabGroups(
+  groups: Readonly<Record<string, BrowserTabGroup>>,
+  from: string,
+  to: string,
+  tabId: string,
+  index: number,
+): { groups: Record<string, BrowserTabGroup>; fromEmptied: boolean } | null {
+  if (from === to) return null;
+  const source: BrowserTabGroup = groups[from] ?? { tabs: [from], active: from };
+  const target: BrowserTabGroup = groups[to] ?? { tabs: [to], active: to };
+  if (!source.tabs.includes(tabId) || target.tabs.includes(tabId)) return null;
+  const next: Record<string, BrowserTabGroup> = { ...groups };
+
+  const remaining = source.tabs.filter((id) => id !== tabId);
+  const fromEmptied = remaining.length === 0;
+  if (fromEmptied) {
+    delete next[from];
+  } else {
+    const at = source.tabs.indexOf(tabId);
+    const pinned = source.pinned?.filter((id) => id !== tabId);
+    next[from] = {
+      tabs: remaining,
+      active: source.active === tabId ? remaining[Math.min(at, remaining.length - 1)]! : source.active,
+      ...(pinned?.length ? { pinned } : {}),
+    };
+  }
+
+  const lead = target.pinned?.length ?? 0;
+  const slot = Math.min(Math.max(index, lead), target.tabs.length);
+  next[to] = {
+    ...target,
+    tabs: [...target.tabs.slice(0, slot), tabId, ...target.tabs.slice(slot)],
+    active: tabId,
+  };
+  return { groups: next, fromEmptied };
+}
