@@ -3,7 +3,15 @@
  * `files`, `processes` and `dbus`. Paths are relative to the home folder, so
  * nothing here needs to know where it is.
  */
-import { documentHash } from "@/core/data/app-modules";
+import {
+  documentHash,
+  MODULE_MOVES_DIR,
+  MODULE_MOVES_FILE,
+  type ModuleMove,
+} from "@/core/data/app-modules";
+import { baseName, joinPath, parentPath } from "@/core/ports/vfs";
+import { Bus } from "@domicile-desktop/sdk/system";
+import type { AppDomicile } from "@domicile-desktop/sdk/desktop/app-desktop";
 import { createModuleApps } from "@/core/apps/module-apps";
 import {
   type ChannelHost,
@@ -12,16 +20,16 @@ import {
   type ModuleWindowState,
 } from "@/core/apps/module-channel";
 import { parseIniText, serializeIniText } from "@/core/config/ini";
-import { applyThemeToDocument, MENU_STATE_EVENT } from "@/platform/shared/app-bridge";
+import { MENU_STATE_EVENT } from "@/platform/shared/app-bridge";
+import { openDesktopSettings, type ModuleSettingsHost } from "@/platform/shared/app-module-desktop";
 import { createNativeVfs, type NativeVfsHost } from "@/platform/shared/app-module-vfs";
 import { setSettingsBackend } from "@/core/state/settings";
 import { retainVfsWatch } from "@/platform/shared/vfs-query";
-import type { AppHost } from "@/core/ports/app-host";
+import type { AppHost, DocumentHost } from "@/core/ports/app-host";
 import type { SettingsBackend } from "@/core/ports/settings";
 
 const STATE_DIR = ".local/state/piloti";
 const APP_SETTINGS = ".config/piloti/apps";
-const DESKTOP_SETTINGS = ".config/piloti/settings.ini";
 
 export type ModuleFiles = NativeVfsHost["files"];
 
@@ -94,7 +102,9 @@ export interface ModuleHostOptions {
   stateKeys?: readonly string[];
 }
 
-export type ModuleDomicile = NativeVfsHost & Pick<ChannelHost, "dbus">;
+export type ModuleDomicile = NativeVfsHost &
+  ModuleSettingsHost &
+  ChannelHost & { dbus: Pick<AppDomicile["dbus"], "call" | "match"> };
 
 export async function createAppModuleHost(
   domicile: ModuleDomicile,
@@ -156,6 +166,18 @@ export async function createAppModuleHost(
 
   const host: AppHost = {
     vfs,
+    userDir: () => `${home}/Desktop`,
+    // Domicile is the notification server: the standard call reaches it.
+    notify: ({ summary, body = "" }) =>
+      void domicile.dbus.call({
+        bus: Bus.Session,
+        destination: "org.freedesktop.Notifications",
+        path: "/org/freedesktop/Notifications",
+        interface: "org.freedesktop.Notifications",
+        member: "Notify",
+        signature: "susssasa{sv}i",
+        body: ["Piloti", 0, "", summary, body, [], {}, -1],
+      }),
     apps: createModuleApps(domicile),
     readState: (key, isValid) => {
       const value = state.get(key);
@@ -169,31 +191,97 @@ export async function createAppModuleHost(
     close: () => window.close(),
   };
 
-  const readDesktop = async () => {
-    const raw = await readModuleText(files, DESKTOP_SETTINGS);
-    return raw ? parseIniText(raw) : {};
-  };
+  const desktop = await openDesktopSettings(domicile, home, watchDir);
+  // The real Desktop folder from ~/.config/user-dirs.dirs (e.g. "Bureau").
+  const userDirs = await readModuleText(files, ".config/user-dirs.dirs");
+  const desktopDir =
+    /^XDG_DESKTOP_DIR="?\$HOME\/([^"\n]+)"?/m.exec(userDirs ?? "")?.[1]?.replace(/\/+$/, "") ?? "Desktop";
+  host.userDir = () => `${home}/${desktopDir}`;
+
   return {
     host,
     home,
     /** This window's name in the shell. */
     instance,
     publish: (patch: ModuleWindowState) => void channel.publish(patch),
-    desktopSettings: await readDesktop(),
-    /** Calls `onChange` once, then whenever `settings.ini` may have changed. */
-    watchDesktopSettings: (onChange: (settings: Awaited<ReturnType<typeof readDesktop>>) => void) =>
-      watchDir(".config/piloti", () => void readDesktop().then(onChange)),
+    desktop,
+    watchDir,
+    /** The file the shell asked this window to open, once. */
+    async takeOpenFile(): Promise<string | null> {
+      const request = `.cache/piloti/${appId}-open`;
+      const path = (await readModuleText(files, request))?.trim() || null;
+      if (path) await files.write(request, "").catch(() => {});
+      return path;
+    },
   };
 }
 
-/** Light or dark and the accent, from the desktop's `settings.ini`. */
-export function applyDesktopTheme(settings: Record<string, Record<string, string>>): void {
-  const iface = settings["org.piloti.desktop.interface"] ?? {};
-  applyThemeToDocument(document, {
-    themeMode: (iface["color-scheme"] as "dark" | "light" | "system") ?? "system",
-    accentColor: (iface["accent-color"] ?? "blue") as never,
-    fontSansFamily: "",
-    fontMonoFamily: "",
-    fontScale: 1,
-  });
+/** `DocumentHost` for a module holding a file: names, renames and closing. */
+export async function createModuleDocumentHost(
+  module: Awaited<ReturnType<typeof createAppModuleHost>>,
+  files: ModuleFiles,
+  untitled: () => string,
+): Promise<DocumentHost> {
+  const { host, instance, watchDir } = module;
+  const general = parseIniText((await readModuleText(files, ".config/piloti/general.ini")) ?? "");
+  await files.createDir(MODULE_MOVES_DIR).catch(() => {});
+  const readMoves = async (): Promise<ModuleMove[]> => {
+    try {
+      return JSON.parse((await readModuleText(files, MODULE_MOVES_FILE)) || "[]") as ModuleMove[];
+    } catch {
+      return [];
+    }
+  };
+  // Moves made before this window opened are not for it.
+  let seen = Math.max(0, ...(await readMoves()).map((m) => m.seq));
+
+  return {
+    ...host,
+    normalizePath: (path) => path.replace(/\/+/g, "/"),
+    async rename(path, name) {
+      const to = joinPath(parentPath(path), name);
+      return host.vfs.move(path, to).then(
+        () => to,
+        () => null,
+      );
+    },
+    opened(path) {
+      history.replaceState(null, "", documentHash(path ?? "", instance));
+      document.title = path ? baseName(path) : untitled();
+    },
+    onRenamed: (listener) =>
+      // The folder: a watch on a replaced file reports only once.
+      watchDir(MODULE_MOVES_DIR, () => {
+        void readMoves().then((moves) => {
+          for (const move of moves) {
+            if (move.seq <= seen) continue;
+            seen = move.seq;
+            listener({ oldPath: move.from, newPath: move.to });
+          }
+        });
+      }),
+    confirmUnsavedOnClose: () => {
+      const v = general.Windows?.["confirm-unsaved-on-close"];
+      return v === "true" || v === "1";
+    },
+    guardClose(mustAsk, ask) {
+      const onBeforeUnload = (event: BeforeUnloadEvent) => {
+        if (!mustAsk()) return;
+        // The shell answers "stay"; the app then asks in its own window.
+        event.preventDefault();
+        event.returnValue = "";
+        ask();
+      };
+      addEventListener("beforeunload", onBeforeUnload);
+      return () => removeEventListener("beforeunload", onBeforeUnload);
+    },
+    onBeforeClose: () => () => {},
+    close: () => window.close(),
+    bridge: {
+      setTitle: (title) => {
+        document.title = title;
+      },
+      closeWindow: () => window.close(),
+    },
+  };
 }

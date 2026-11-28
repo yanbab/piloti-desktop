@@ -6,7 +6,7 @@ describe("run mode", () => {
   it("offers separate windows only for apps with a module", () => {
     expect(canRunIsolated("texts")).toBe(true);
     expect(canRunIsolated("terminal")).toBe(false);
-    for (const id of ["texts", "calculator"]) {
+    for (const id of ["texts", "calculator", "image-viewer", "selfies"]) {
       expect(canRunIsolated(id)).toBe(true);
       expect(APP_MODULES.some((m) => m.id === id)).toBe(true);
     }

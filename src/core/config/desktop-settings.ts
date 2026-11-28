@@ -1,8 +1,13 @@
 /** The desktop's settings as one object (`org.piloti.desktop.*`). */
-import type { AccentColorId } from "@/core/data/catalog";
+import { type AccentColorId, APP_CATALOG } from "@/core/data/catalog";
 import type { InstalledWebApp } from "@/core/data/web-apps";
 import type { DesktopIconAlign } from "@/core/files/desktop-icons";
-import type { GnomeBackgroundSettings, WallpaperColorMode } from "@/core/system/gnome-background";
+import {
+  DEFAULT_GNOME_BACKGROUND,
+  type GnomeBackgroundSettings,
+  type WallpaperColorMode,
+} from "@/core/system/gnome-background";
+import { DEFAULT_HIDDEN_GNOME_PANELS } from "@/core/system/gnome-panels";
 import type { SavedWindowBounds } from "@/core/windows/spatial-window-bounds";
 
 export type GtkFontAntialiasing = "none" | "grayscale" | "rgba";
@@ -114,3 +119,95 @@ export interface DesktopSettings {
   webDefaultsVersion?: number;
   savedWindowBounds: Record<string, SavedWindowBounds>;
 }
+
+export const DEFAULT_SETTINGS: DesktopSettings = {
+  interfaceTheme: "piloti",
+  themeMode: "system",
+  accentColor: "teal",
+  customAccentHex: "",
+  highContrast: false,
+  wallpaperId: "aurora-drift:aurora-drift",
+  customWallpaperUrl: "",
+  customWallpaperColors: [],
+  wallpaperColorMode: "solid",
+  gnomeBackground: { ...DEFAULT_GNOME_BACKGROUND },
+  dockSize: 52,
+  dockPosition: "bottom",
+  dockMagnification: false,
+  dockMagnificationSize: 76,
+  dockAutoHide: false,
+  clock24Hour: true,
+  clockShowSeconds: false,
+  clockShowDay: false,
+  clockShowDate: false,
+  showBatteryPercentage: false,
+  reduceMotion: false,
+  moreTransparency: true,
+  windowDecorationMode: "auto",
+  windowButtonLayout: ":close",
+  showWindowMenu: true,
+  iconTheme: "Piloti",
+  syncGnomeSettings: true,
+  preferGnomeControlCenter: false,
+  hiddenGnomePanels: [...DEFAULT_HIDDEN_GNOME_PANELS],
+  fontSansFamily: "Adwaita Sans",
+  fontMonoFamily: "Adwaita Mono",
+  fontScale: 1,
+  fontSansStyle: "regular",
+  cssFontSmoothing: "antialiased",
+  cssTextRendering: "auto",
+  cssFontOpticalSizing: "auto",
+  cssFontKerning: "auto",
+  cssFontSynthesis: "auto",
+  cssLetterSpacingEm: 0,
+  cssTextStrokePx: 0,
+  gtkFontName: "Adwaita Sans 11",
+  gtkDocumentFontName: "Sans 11",
+  gtkMonospaceFontName: "Adwaita Mono 11",
+  gtkTextScalingFactor: 1,
+  gtkFontAntialiasing: "grayscale",
+  gtkFontHinting: "slight",
+  gtkFontRgbaOrder: "rgb",
+  volume: 78,
+  muted: false,
+  brightness: 95,
+  nightLight: false,
+  wifiEnabled: true,
+  connectedWifi: "Piloti-5G-Ultra",
+  bluetoothEnabled: true,
+  doNotDisturb: false,
+  notificationsEnabled: true,
+  notificationBannersEnabled: true,
+  notificationShowOnLockScreen: true,
+  notificationShowPreviews: true,
+  notificationAllowCriticalInDnd: true,
+  notificationBannerTimeoutMs: 5000,
+  notificationHistoryLimit: 50,
+  powerMode: "balanced",
+  activeWorkspace: 1,
+  workspaceCount: 2,
+  restoreWindowsOnLogin: true,
+  desktopIconsEnabled: true,
+  desktopIconAlign: "left",
+  fileActivationMode: "single",
+  showFileExtensionBadges: true,
+  demoExtensionEnabled: true,
+  pinnedExtensionIds: [],
+  darkReaderWebEnabled: false,
+  debugMode: false,
+  remoteDevtools: false,
+  enabledPluginIds: ["aurora-drift", "app-indicator", "picture-in-picture", "app-dark-mode"],
+  keyboardLayout: "",
+  computerModel:
+    typeof navigator !== "undefined" &&
+      /mac/i.test(navigator.platform || navigator.userAgent || "")
+      ? "mac"
+      : "pc",
+  desktopIconPositions: {},
+  // A getter: the catalog is read from files before the shell starts.
+  get pinnedAppIds() {
+    return APP_CATALOG.filter((a) => a.pinnedByDefault).map((a) => a.id);
+  },
+  installedWebApps: [],
+  savedWindowBounds: {},
+};

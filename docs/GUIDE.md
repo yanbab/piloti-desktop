@@ -71,7 +71,7 @@ in `piloti-macos.css`.
 | UI symbols ([details](./SYMBOLIC-ICONS.md)) | `ui/components/ui/symbolic-icon.tsx`, `core/icons/symbolic-icons.ts` |
 | Web browser | `WebViewSurface.tsx`, `BrowserTabsSurface.tsx`, `BrowserTabBar.tsx`; tab groups in `WindowsContext.tsx`. A tab is a Domicile browser window; iframes must not move on reorder |
 | Settings | `ui/context/SettingsContext.tsx`, `piloti-settings-ini.ts` |
-| Separate apps | hosts in `platform/shared/app-{shell,module}-host.ts`; `core/apps/module-channel.ts`; list in `core/data/app-modules.ts` |
+| Separate apps | `ui/apps/module-app.tsx` (module runtime); hosts in `platform/shared/app-{shell,module}-host.ts`; `core/apps/module-channel.ts`; list in `core/data/app-modules.ts` |
 | App chrome | `ui/components/elements/` (`AppWindow`, `HeaderBar`, `AppSplitView`…), fed by `ui/shell/windows/WindowAppChrome.tsx`. Start from `ui/apps/hello/HelloWorldApp.tsx`. Apps only lay out content (`tests/unit/app-styling.test.ts`) |
 | Sidebar apps | `ui/components/ui/adw-split-view.tsx` |
 

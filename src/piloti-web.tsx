@@ -11,6 +11,7 @@ import { DomicileProvider } from "@domicile-desktop/react/domicile-provider";
 import "./ui/styles/globals.css";
 import { setEngine, webEngine } from "./core/ports/engine";
 import { demoVfsSeed } from "./platform/web/vfs-seed";
+import { canRunIsolated } from "./core/windows/run-mode";
 import { loadDataFiles } from "./platform/web/data-files";
 import { setVfsSeed } from "./platform/web/web-vfs";
 import { useWebCapture } from "./platform/web/capture";
@@ -42,6 +43,13 @@ const CalculatorApp = React.lazy(() =>
   })),
 );
 
+const ImageViewerApp = React.lazy(() =>
+  import("./ui/apps/image-viewer/shell-host").then((m) => ({ default: m.ShellImageViewerApp })),
+);
+const SelfiesApp = React.lazy(() =>
+  import("./ui/apps/selfies/shell-host").then((m) => ({ default: m.ShellSelfiesApp })),
+);
+
 const root = document.getElementById("root");
 if (root) void start(root);
 
@@ -52,7 +60,7 @@ async function start(root: HTMLElement) {
   finishFiles("home and etc");
   const params = new URLSearchParams(window.location.search);
   const isolatedApp = params.get("piloti_app");
-  if (isolatedApp === "texts" || isolatedApp === "calculator") {
+  if (isolatedApp && canRunIsolated(isolatedApp)) {
     // The frame's own desktop, over the same demo VFS as the shell's.
     const { createBrowserDomicile } = await import("./platform/web");
     const domicile = createBrowserDomicile();
@@ -65,10 +73,14 @@ async function start(root: HTMLElement) {
         <AppChromeProvider value={{ appId: isolatedApp, windowId, decorations: isCsd ? "client" : "server" }}>
           <DomicileProvider domicile={withVfs(domicile, createWebVfs(domicile))}>
             <React.Suspense fallback={null}>
-              {isolatedApp === "texts" ? (
-                <TextsApp initialPath={initialPath} windowId={windowId} />
-              ) : (
+              {isolatedApp === "calculator" ? (
                 <CalculatorApp windowId={windowId} isCsd={isCsd} />
+              ) : isolatedApp === "image-viewer" ? (
+                <ImageViewerApp initialPath={initialPath} windowId={windowId} />
+              ) : isolatedApp === "selfies" ? (
+                <SelfiesApp windowId={windowId} />
+              ) : (
+                <TextsApp initialPath={initialPath} windowId={windowId} />
               )}
             </React.Suspense>
           </DomicileProvider>

@@ -150,6 +150,14 @@ export function getLocalePreference(): LocalePreference {
   return activePreference;
 }
 
+/**
+ * Takes the desktop's language (the text of `locale.ini`, or `null`) without
+ * writing it, for an app module; `true` if it changed.
+ */
+export function followLocale(raw: string | null): boolean {
+  return applyLocaleString(raw ?? "default").changed;
+}
+
 export function setLocale(locale: string): SupportedLocale {
   applyLocaleString(locale);
   try {

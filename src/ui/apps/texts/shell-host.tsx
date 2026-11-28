@@ -1,11 +1,8 @@
 import * as React from "react";
 import { usePiloti, type Piloti } from "@/platform/shared/piloti";
-import { shouldConfirmUnsavedOnClose, readTextsSettings, writeTextsSettings } from "@/core/config/piloti-ini";
-import { normalizeVfsPath } from "@/core/files/vfs-paths";
-import { subscribeRenames } from "@/platform/shared/renames";
-import { announceRename, moveKeepingEmblems } from "@/platform/shared/fs-bridge";
-import { VFS_HOME } from "@/core/state/vfs-home";
-import { createShellAppHost } from "@/platform/shared/app-shell-host";
+import { readTextsSettings, writeTextsSettings } from "@/core/config/piloti-ini";
+import { moveKeepingEmblems } from "@/platform/shared/fs-bridge";
+import { createShellDocumentHost } from "@/platform/shared/app-shell-host";
 import { onShellEvent } from "@/core/windows/shell-events";
 
 import type { TextsHost } from "@/ui/apps/texts/texts-host";
@@ -13,25 +10,19 @@ import { TextsHostProvider } from "@/ui/apps/texts/texts-host";
 import { TextsApp, type TextsAppProps } from "@/ui/apps/texts/TextsApp";
 
 export function createInShellEditorHost(piloti: Piloti): TextsHost {
+  const documents = createShellDocumentHost(piloti);
   return {
-    ...createShellAppHost(piloti),
+    ...documents,
     // The title rename keeps the file's emblems, as Folders does.
     vfs: { ...piloti.vfs, move: (from, to) => moveKeepingEmblems(piloti, from, to) },
-    normalizePath: normalizeVfsPath,
-    defaultNewFilePath: (name) => `${VFS_HOME}/Desktop/${name}`,
-    onRenamed: subscribeRenames,
-    moved: announceRename,
+    defaultNewFilePath: (name) => `${documents.userDir("DESKTOP")}/${name}`,
     readEditorPrefs: () => readTextsSettings().Editor ?? {},
     writeEditorPrefs: (values) => {
       writeTextsSettings("Editor", values);
     },
-    confirmUnsavedOnClose: shouldConfirmUnsavedOnClose,
     onPrintFocused: (listener) => onShellEvent("piloti:print-focused", listener),
-    onBeforeClose: (listener) =>
-      onShellEvent("piloti:before-close-window", listener),
   };
 }
-
 
 /** TextsApp running in the shell (or its web iframe) with the shell's host. */
 export const ShellTextsApp: React.FC<TextsAppProps> = (props) => {

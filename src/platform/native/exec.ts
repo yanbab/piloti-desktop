@@ -6,7 +6,7 @@ import {
 import { getEngine } from "@/core/ports/engine";
 
 export async function runText(
-  piloti: Pick<Piloti, "processes">,
+  piloti: { processes: Pick<Piloti["processes"], "run"> },
   argv: readonly string[]
 ): Promise<string | null> {
   try {
