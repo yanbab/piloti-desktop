@@ -1,3 +1,11 @@
+piloti-desktop (0.10.17-1) unstable; urgency=medium
+
+  * Release v0.10.17:
+    - Overview: a dragged window follows the pointer.
+    - Window management rules reorganised and tested.
+
+ -- yanbab <yanbab@gmail.com>  Sat, 28 Nov 2026 09:52:24 +0100
+
 piloti-desktop (0.10.16-1) unstable; urgency=medium
 
   * Release v0.10.16:
