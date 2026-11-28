@@ -35,6 +35,7 @@ import { newShellWindow } from "@/core/windows/new-shell-window";
 import { rememberBounds } from "@/core/windows/remember-bounds";
 import type { WindowPlacement } from "@/core/windows/types";
 import { moveToWorkspace, removeWorkspace as planWorkspaceRemoval } from "@/core/windows/workspaces";
+import { canResize, createUntiledSizes, tiled, toggledMaximize } from "@/core/windows/tiling";
 import {
   matchXdgEntryForWaylandWindow,
   resolveWaylandClientFrame,
@@ -1148,7 +1149,7 @@ export function useWindowsValue(
     (windowId: string) => {
       console.info("[Piloti] toggleMaximizeWindow", windowId);
       const targetWin = combinedWindows.find((w) => w.id === windowId);
-      if (targetWin?.appId === "calculator") {
+      if (!canResize(targetWin?.appId)) {
         return;
       }
       if (targetWin) {
@@ -1159,7 +1160,7 @@ export function useWindowsValue(
         });
       }
       const newZ = nextZ();
-      patchWindow(windowId, (cur) => ({ maximized: !cur.maximized, minimized: false, zIndex: newZ }));
+      patchWindow(windowId, (cur) => ({ ...toggledMaximize(cur), zIndex: newZ }));
       setFocusedWindowId(windowId);
     },
     [combinedWindows, patchWindow, primaryMonitorName, settings.savedWindowBounds, updateSettings]
@@ -1187,6 +1188,8 @@ export function useWindowsValue(
     };
   }, []);
 
+  const untiledSizesRef = React.useRef(createUntiledSizes());
+
   const updateWindowGeometry = React.useCallback(
     (
       windowId: string,
@@ -1196,13 +1199,7 @@ export function useWindowsValue(
       }
     ) => {
       const targetWin = combinedWindows.find((w) => w.id === windowId);
-      const untileRestoredSize =
-        patch.position && !patch.size && targetWin?.tiled
-          ? preTileSizesRef.current.get(windowId)
-          : undefined;
-      if (untileRestoredSize) {
-        preTileSizesRef.current.delete(windowId);
-      }
+      const untileRestoredSize = untiledSizesRef.current.takeOnMove(windowId, targetWin, patch);
       const effectiveSizePatch = patch.size ?? untileRestoredSize;
       const winWidth = effectiveSizePatch?.width ?? targetWin?.size.width ?? 240;
       const maxY = Math.max(0, screenHeight - 30 - 48);
@@ -1278,52 +1275,24 @@ export function useWindowsValue(
     ]
   );
 
-  const preTileSizesRef = React.useRef<
-    Map<string, { width: number; height: number }>
-  >(new Map());
-
   const tileWindow = React.useCallback(
     (windowId: string, side: "left" | "right" | "full") => {
       console.info("[Piloti] tileWindow", windowId, side);
       const existingWin = combinedWindows.find((w) => w.id === windowId);
-      if (existingWin?.appId === "calculator") {
+      if (!canResize(existingWin?.appId)) {
         return;
       }
       if (side === "full") {
         toggleMaximizeWindow(windowId);
         return;
       }
-      if (existingWin && !existingWin.tiled) {
-        preTileSizesRef.current.set(windowId, existingWin.size);
-      }
-      const menubarHeight = 30;
-      const topInset = 6;
-      const dockPos = settings.dockPosition ?? "bottom";
-      const dockClearance = settings.dockAutoHide ? 8 : settings.dockSize + 24;
-      const bottomInset = dockPos === "bottom" ? dockClearance + 6 : 8;
-      const leftInset = dockPos === "left" ? dockClearance + 8 : 8;
-      const rightInset = dockPos === "right" ? dockClearance + 8 : 8;
-      const usableHeight = Math.max(
-        300,
-        screenHeight - menubarHeight - topInset - bottomInset
-      );
-      const usableWidth = Math.max(400, screenWidth - leftInset - rightInset);
-      const halfWidth = Math.floor((usableWidth - 8) / 2);
-      const pos = {
-        x: side === "left" ? leftInset : leftInset + halfWidth + 8,
-        y: topInset,
-      };
-      const sz = { width: halfWidth, height: usableHeight };
-
+      if (existingWin) untiledSizesRef.current.keep(windowId, existingWin);
+      const placement = tiled(side, {
+        screen: { width: screenWidth, height: screenHeight },
+        dock: { position: settings.dockPosition, size: settings.dockSize, autoHide: settings.dockAutoHide },
+      });
       const newZ = nextZ();
-      patchWindow(windowId, () => ({
-        maximized: false,
-        minimized: false,
-        tiled: side,
-        position: pos,
-        size: sz,
-        zIndex: newZ,
-      }));
+      patchWindow(windowId, () => ({ ...placement, zIndex: newZ }));
       clearLaunchOverlays();
       setFocusedWindowId(windowId);
       setMruIds((prev) => [windowId, ...prev.filter((id) => id !== windowId)]);
