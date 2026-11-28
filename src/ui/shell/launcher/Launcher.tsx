@@ -1115,12 +1115,6 @@ export const Launcher = React.memo(function Launcher() {
     e: React.PointerEvent<HTMLDivElement>
   ) => {
     if (e.button !== 0) return;
-    if (
-      e.target instanceof Element &&
-      e.target.closest("input, textarea, [contenteditable='true']")
-    ) {
-      return;
-    }
     const popup = searchHeaderRef.current?.closest<HTMLElement>(
       '[data-slot="dropdown-menu-content"]'
     );
@@ -1138,8 +1132,13 @@ export const Launcher = React.memo(function Launcher() {
         latest = placePopupOffset(popup, baseOffset.x + dx, baseOffset.y + dy, "drag");
         showOffset();
       },
-      onEnd: (_ev, { moved }) => {
-        if (!moved) return;
+      onEnd: (ev, { moved }) => {
+        if (!moved) {
+          if (ev.target instanceof HTMLInputElement) {
+            ev.target.focus();
+          }
+          return;
+        }
         latest = placePopupOffset(popup, latest.x, latest.y, "settle");
         settleSurface(popup, "translate", showOffset);
         setPopupOffset(latest);
@@ -1241,8 +1240,18 @@ export const Launcher = React.memo(function Launcher() {
       <div
         ref={searchHeaderRef}
         data-launcher-drag-header=""
+        onDragStart={(e) => e.preventDefault()}
+        onMouseDown={(e) => {
+          if (
+            e.button === 0 &&
+            e.target instanceof HTMLInputElement &&
+            e.target.selectionStart !== e.target.selectionEnd
+          ) {
+            e.preventDefault();
+          }
+        }}
         onPointerDown={handleHeaderDragPointerDown}
-        className="cursor-default [&_[data-slot=command-input-wrapper]]:cursor-default"
+        className="cursor-default [&_[data-slot=command-input-wrapper]]:cursor-default [&_[data-slot=command-input]]:cursor-default"
       >
         <CommandInput
           ref={inputRef}
