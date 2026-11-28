@@ -109,6 +109,19 @@ Paths without a root are under `src/`.
 - All scripts: [scripts/README.md](./scripts/README.md).
 - Inside the VM: `scripts/vm-build.sh` (the shared `node_modules` are macOS
   ones). `scripts/vm-dev.sh` is the edit loop without a `.deb`.
+- `vm` rebuilds only the shell: app modules (`/usr/share/piloti-desktop/apps`)
+  come from the `.deb`, so test a module change with `deb`.
+- Scripted checks on the VM (from the Mac; a cloud session gets there through
+  a Remote Control session on the Mac):
+  - ssh: `debian@<VM>` with a key (the default in `try.sh`). Commands need the
+    session's socket: `export DOMICILE_SOCK=$(ls /run/user/1000/domicile-ipc.*.sock)`.
+  - The live shell has Chrome DevTools on the VM's `127.0.0.1:9222`. Tunnel it
+    (`ssh -N -L 9222:127.0.0.1:9222 debian@<VM>`), then Playwright
+    `chromium.connectOverCDP("http://127.0.0.1:9222")`, page `domicile://shell/`:
+    `window.piloti` and the DOM, as in the demo.
+  - Real input and state: `domicile list-windows --json`, `pointer x,y click`,
+    `drag x1,y1 x2,y2`, `key`, `type`, `screenshot <file>`, `logs`; `piloti open`,
+    `piloti reload`.
 
 ## Release
 
