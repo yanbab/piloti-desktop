@@ -156,7 +156,8 @@ Domicile app module:
   (`core/data/app-modules.ts`).
 - Built in chunks next to the entry, so a module loads only what it uses: its
   language (`ensureLocale` in `core/util/i18n.ts`), the Lottie player (only for
-  animated icons). Shared components reach the shell only through small
+  animated icons). Its stylesheet holds only the Tailwind classes of the files
+  it imports (`moduleCssSources` in `vite.plugins.ts`). Shared components reach the shell only through small
   contexts (`ui/components/app-icons.ts`, `files-host.ts`), never `ui/context/`.
 - Built with `npm run build:apps` → `dist/apps/<id>/` (`calculator`, `files`, `image-viewer`, `selfies`, `system-monitor`, `terminal`, `texts`).
 

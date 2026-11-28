@@ -1,3 +1,5 @@
+import fs from "node:fs";
+import path from "node:path";
 import type { Plugin } from "vite";
 
 // Domicile's document has no <link> for a stylesheet, so extracted CSS is
@@ -62,3 +64,59 @@ export const homeNotReadEarly = (): Plugin => ({
     }
   },
 });
+
+/**
+ * An app module's stylesheet holds only the Tailwind classes of the files it
+ * imports, not the whole desktop's. Walks the module's imports from `entry`
+ * (code under `src/`, `@/` paths) and gives Tailwind those files as sources.
+ */
+export const moduleCssSources = (entry: string, srcDir: string): Plugin => {
+  const files = moduleSourceFiles(entry, srcDir);
+  return {
+    name: "module-css-sources",
+    enforce: "pre",
+    transform(code, id) {
+      if (!id.endsWith("/ui/styles/globals.css")) return null;
+      const dir = path.dirname(id);
+      const sources = files
+        .map((file) => `@source "${path.relative(dir, file).split(path.sep).join("/")}";`)
+        .join("\n");
+      const next = code.replace('@import "tailwindcss";', `@import "tailwindcss" source(none);\n${sources}`);
+      if (next === code) this.error('globals.css: no @import "tailwindcss" to narrow');
+      return { code: next, map: null };
+    },
+  };
+};
+
+const IMPORT = /(?:^|[^\w.])(?:import|export)\s*(?:[^'"`;]*?\sfrom\s*)?\(?\s*["']([^"']+)["']/g;
+
+function moduleSourceFiles(entry: string, srcDir: string): string[] {
+  const resolve = (spec: string, from: string): string | null => {
+    const base = spec.startsWith("@/")
+      ? path.join(srcDir, spec.slice(2))
+      : spec.startsWith(".")
+        ? path.resolve(path.dirname(from), spec)
+        : null;
+    if (!base) return null;
+    for (const ext of [".tsx", ".ts", "/index.tsx", "/index.ts", ""]) {
+      const file = base + ext;
+      if (/\.tsx?$/.test(file) && fs.existsSync(file) && fs.statSync(file).isFile()) return file;
+    }
+    return null;
+  };
+  const seen = new Set<string>();
+  const queue = [path.resolve(entry)];
+  while (queue.length > 0) {
+    const file = queue.pop() as string;
+    if (seen.has(file)) continue;
+    seen.add(file);
+    const code = fs.readFileSync(file, "utf8");
+    for (const match of code.matchAll(IMPORT)) {
+      // Types bring no classes.
+      if (/^\s*import\s+type\b|^\s*export\s+type\b/.test(code.slice(code.lastIndexOf("\n", match.index) + 1, match.index + match[0].length))) continue;
+      const next = resolve(match[1]!, file);
+      if (next && !seen.has(next)) queue.push(next);
+    }
+  }
+  return [...seen].sort();
+}

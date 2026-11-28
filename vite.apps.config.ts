@@ -4,7 +4,7 @@ import { buildVersion } from "./scripts/version.mjs";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
-import { cssInTheModule, homeNotReadEarly } from "./vite.plugins";
+import { cssInTheModule, homeNotReadEarly, moduleCssSources } from "./vite.plugins";
 
 // Builds ONE Domicile app module: APP=<id> vite build -c vite.apps.config.ts
 // -> dist/apps/<id>/<id>.js (own directory = own origin and storage).
@@ -18,7 +18,13 @@ const HOME_FIRST = new Set(["files"]);
 export default defineConfig({
   define: { __PILOTI_VERSION__: JSON.stringify(buildVersion()) },
   base: "./",
-  plugins: [react(), tailwindcss(), cssInTheModule(), ...(HOME_FIRST.has(id) ? [homeNotReadEarly()] : [])],
+  plugins: [
+    moduleCssSources(`src/ui/apps/${id}/main.tsx`, path.resolve(__dirname, "src")),
+    react(),
+    tailwindcss(),
+    cssInTheModule(),
+    ...(HOME_FIRST.has(id) ? [homeNotReadEarly()] : []),
+  ],
   resolve: { alias: { "@": path.resolve(__dirname, "src") } },
   build: {
     outDir: `dist/apps/${id}`,
