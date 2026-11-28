@@ -1,3 +1,4 @@
+import { watchPopupLayer } from "@/ui/hooks/popup-layer";
 import type { AppDefinition } from "@/core/data/catalog";
 import { AppAboutWindow } from "./AppAboutWindow";
 import * as React from "react";
@@ -257,6 +258,26 @@ export const MenuBar = React.memo(function MenuBar() {
   } = useSystemBackends();
   const connectedSignal = liveWifiNetworks.find((n) => n.ssid === settings.connectedWifi)?.signal;
   const altHeld = useAltKey();
+  // A menu opened with a click while an app has the keyboard: its keys (Alt
+  // for the alternate items, arrows, typing) would go to the app. The shell
+  // takes the keyboard while a menu is open, then gives it back.
+  React.useEffect(() => {
+    if (!compositor) return;
+    let lent: string | undefined;
+    return watchPopupLayer((open) => {
+      if (open) {
+        const focused = piloti.windows.focused;
+        if (focused === undefined) return;
+        lent = focused;
+        piloti.windows.focusShell();
+        return;
+      }
+      const owner = lent;
+      lent = undefined;
+      // Unless the menu's action moved the keyboard elsewhere.
+      if (owner && piloti.windows.focused === undefined) piloti.windows.focus(owner);
+    });
+  }, [compositor, piloti.windows]);
   // Narrow slice: window drags/resizes don't change any of these fields.
   const {
     activeAppDef,

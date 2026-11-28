@@ -17,6 +17,8 @@ interface Holder {
 }
 
 let current: Holder | null = null;
+const layerListeners = new Set<(open: boolean) => void>();
+const notifyLayer = () => layerListeners.forEach((l) => l(current !== null));
 
 /** Registers an open surface, closing the previous one. Returns a release. */
 export function openPopupSurface(close: () => void): () => void {
@@ -24,9 +26,18 @@ export function openPopupSurface(close: () => void): () => void {
   const token = Symbol("popup-surface");
   current = { token, close };
   if (previous) previous.close();
+  notifyLayer();
   return () => {
-    if (current?.token === token) current = null;
+    if (current?.token !== token) return;
+    current = null;
+    notifyLayer();
   };
+}
+
+/** Hears whether a surface holds the popup layer, on each change. Returns stop. */
+export function watchPopupLayer(listener: (open: boolean) => void): () => void {
+  layerListeners.add(listener);
+  return () => void layerListeners.delete(listener);
 }
 
 /** Whether a surface currently holds the popup layer (for tests/diagnostics). */
