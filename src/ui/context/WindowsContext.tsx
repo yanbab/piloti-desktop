@@ -1045,7 +1045,18 @@ export function useWindowsValue(
         // A module starts as a process of its own: give it time.
         until: Date.now() + 15_000,
       });
-      void openAppModule(piloti, moduleId).catch(() => false);
+      void openAppModule(piloti, moduleId)
+        .catch(() => false)
+        .then((opened) => {
+          if (opened) return;
+          // Not installed as a module (a shell built without its apps): it
+          // can't be a tab, so it opens in the shell rather than not at all.
+          pendingModuleTabsRef.current = pendingModuleTabsRef.current.filter(
+            (p) => p.moduleId !== moduleId,
+          );
+          console.warn(`[Piloti] app module ${moduleId} is not installed: opening it in the shell`);
+          launchAppRef.current?.(moduleId, { inShell: true });
+        });
     },
     [piloti]
   );
