@@ -120,6 +120,7 @@ export function OnScreenKeyboard({ open }: { open: boolean }) {
         buttonTheme={[
           { class: "ui-osk-action", buttons: "{bksp} {enter} {shift} {numbers} {abc} {tab} {left} {right} {hide}" },
           { class: "ui-osk-space", buttons: "{space}" },
+          { class: "ui-osk-wide", buttons: "{numbers} {abc} {tab} {hide}" },
           ...(state.layer === "shift" ? [{ class: "ui-osk-latched", buttons: "{shift}" }] : []),
         ]}
       />

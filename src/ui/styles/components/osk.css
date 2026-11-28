@@ -16,7 +16,8 @@
     /* Below the screen edge until shown; `transition` comes from piloti-fx. */
     transform: translate(-50%, calc(100% + 16px));
     pointer-events: none;
-    padding: 8px 8px 10px;
+    --ui-osk-gap: 6px;
+    padding: 8px;
     border-radius: var(--ui-radius-window) var(--ui-radius-window) 0 0;
     background: var(--ui-window);
     box-shadow: var(--ui-shadow-popover);
@@ -39,15 +40,20 @@
     text-align: center;
   }
 
-  .ui-osk-keys {
+  /*
+   * simple-keyboard nests rows in `.hg-rows`. Every key gets one width unit,
+   * so letters line up from row to row; space and the corner keys get more.
+   */
+  .ui-osk-keys,
+  .ui-osk-keys .hg-rows {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: var(--ui-osk-gap);
   }
 
   .ui-osk-keys .hg-row {
     display: flex;
-    gap: 6px;
+    gap: var(--ui-osk-gap);
   }
 
   .ui-osk-keys .hg-button {
@@ -57,6 +63,7 @@
     justify-content: center;
     min-width: 0;
     height: 46px;
+    margin: 0;
     border-radius: var(--ui-radius-control);
     background: var(--ui-control);
     color: var(--ui-label);
@@ -74,13 +81,16 @@
   }
 
   .ui-osk-keys .hg-button.ui-osk-action {
-    flex-grow: 1.4;
     background: var(--ui-fill-secondary);
     font-size: var(--ui-font-body);
   }
 
+  .ui-osk-keys .hg-button.ui-osk-wide {
+    flex-grow: 1.5;
+  }
+
   .ui-osk-keys .hg-button.ui-osk-space {
-    flex-grow: 5;
+    flex-grow: 4;
     font-size: var(--ui-font-body);
     color: var(--ui-label-secondary);
   }
