@@ -50,31 +50,11 @@ import {
 import { AppChromeProvider, useAppChrome, type AppChrome } from "@/components/elements/app-chrome";
 import { HeaderBar } from "@/components/elements/header-bar";
 import { ShellTitlebar, WindowAppChrome } from "@/shell/windows/WindowAppChrome";
-const CalculatorApp = React.lazy(() =>
-  import("@/apps/calculator/CalculatorApp").then((m) => ({
-    default: m.CalculatorApp,
-  }))
-);
-const HelloWorldApp = React.lazy(() =>
-  import("@/apps/hello/HelloWorldApp").then((m) => ({
-    default: m.HelloWorldApp,
-  }))
-);
-const PilotiDemoApp = React.lazy(() =>
-  import("@/apps/piloti-demo/PilotiDemoApp").then((m) => ({
-    default: m.PilotiDemoApp,
-  }))
-);
-const SelfiesApp = React.lazy(() =>
-  import("@/apps/selfies/SelfiesApp").then((m) => ({
-    default: m.SelfiesApp,
-  }))
-);
-const SystemMonitorApp = React.lazy(() =>
-  import("@/apps/system-monitor/SystemMonitorApp").then((m) => ({
-    default: m.SystemMonitorApp,
-  }))
-);
+import { CalculatorApp } from "@/apps/calculator/CalculatorApp";
+import { HelloWorldApp } from "@/apps/hello/HelloWorldApp";
+import { PilotiDemoApp } from "@/apps/piloti-demo/PilotiDemoApp";
+import { SelfiesApp } from "@/apps/selfies/SelfiesApp";
+import { SystemMonitorApp } from "@/apps/system-monitor/SystemMonitorApp";
 const ConsoleApp = React.lazy(() =>
   import("@/apps/console/ConsoleApp").then((m) => ({
     default: m.ConsoleApp,
@@ -935,43 +915,43 @@ function WebViewSurface({
 
   const extensionMenuItems: BrowserExtensionItem[] = !compositor
     ? [
-        {
-          id: "dark-reader",
-          name: "Dark Reader",
-          pressed: darkReaderEnabled,
-          onActivate: onToggleDarkReader,
-        },
-        ...(settings.demoExtensionEnabled !== false
-          ? [
-              {
-                id: "piloti-demo",
-                name: "Piloti Demo Extension",
-                badgeText: demoBadgeCount > 0 ? String(demoBadgeCount) : undefined,
-                active: demoPopupOpen,
-                onActivate: () => setDemoPopupOpen((v) => !v),
-              },
-            ]
-          : []),
-      ]
+      {
+        id: "dark-reader",
+        name: "Dark Reader",
+        pressed: darkReaderEnabled,
+        onActivate: onToggleDarkReader,
+      },
+      ...(settings.demoExtensionEnabled !== false
+        ? [
+          {
+            id: "piloti-demo",
+            name: "Piloti Demo Extension",
+            badgeText: demoBadgeCount > 0 ? String(demoBadgeCount) : undefined,
+            active: demoPopupOpen,
+            onActivate: () => setDemoPopupOpen((v) => !v),
+          },
+        ]
+        : []),
+    ]
     : extensions.map((ext) => ({
-        id: ext.id,
-        name: ext.title || ext.name,
-        icon: ext.icon || undefined,
-        badgeText: ext.badgeText || undefined,
-        badgeColor: ext.badgeColor,
-        enabled: ext.enabled,
-        active: activeExtPopup?.id === ext.id,
-        onActivate: () => {
-          const closing = activeExtPopup?.id === ext.id;
-          if (!closing) piloti.extensions.activate(ext.id);
-          if (ext.popup) {
-            setExtPopupSize({ width: 360, height: 440 });
-            setActiveExtPopup(closing ? null : { id: ext.id, popup: ext.popup });
-          } else {
-            setActiveExtPopup(null);
-          }
-        },
-      }));
+      id: ext.id,
+      name: ext.title || ext.name,
+      icon: ext.icon || undefined,
+      badgeText: ext.badgeText || undefined,
+      badgeColor: ext.badgeColor,
+      enabled: ext.enabled,
+      active: activeExtPopup?.id === ext.id,
+      onActivate: () => {
+        const closing = activeExtPopup?.id === ext.id;
+        if (!closing) piloti.extensions.activate(ext.id);
+        if (ext.popup) {
+          setExtPopupSize({ width: 360, height: 440 });
+          setActiveExtPopup(closing ? null : { id: ext.id, popup: ext.popup });
+        } else {
+          setActiveExtPopup(null);
+        }
+      },
+    }));
 
   const toggleInstallApp = () => {
     toggleWebAppInstall({
@@ -1403,12 +1383,12 @@ function BrowserTabsSurface({
                 active
                   ? win
                   : {
-                      ...win,
-                      browserWindowId: tab.id,
-                      browserUrl: tab.url,
-                      title: tab.title,
-                      iconUrl: tab.iconUrl,
-                    }
+                    ...win,
+                    browserWindowId: tab.id,
+                    browserUrl: tab.url,
+                    title: tab.title,
+                    iconUrl: tab.iconUrl,
+                  }
               }
               active={active}
               tabBar={tabSlot}
@@ -2287,11 +2267,11 @@ export function WindowManager() {
             : windowPresentations.get(win.id);
           const presented = presentation
             ? presentationTransform(
-                win.maximized
-                  ? { x: workArea.x, y: workArea.y, width: workArea.width }
-                  : { x: win.position.x, y: win.position.y, width: win.size.width },
-                presentation,
-              )
+              win.maximized
+                ? { x: workArea.x, y: workArea.y, width: workArea.width }
+                : { x: win.position.x, y: win.position.y, width: win.size.width },
+              presentation,
+            )
             : undefined;
 
           return (
@@ -2395,24 +2375,24 @@ export function WindowManager() {
                   presentation?.animate === false
                     ? "none"
                     : // No opacity fade: while a window is part transparent the
-                      // vibrant sidebar cannot blur what is behind the window.
-                      "transform 350ms cubic-bezier(0.22, 1, 0.36, 1)",
+                    // vibrant sidebar cannot blur what is behind the window.
+                    "transform 350ms cubic-bezier(0.22, 1, 0.36, 1)",
               }}
               className={cn(
                 "contain-[layout_style] outline-none",
                 isWaylandSurface && "bg-transparent",
                 // Debug mode shows a window while it is still loading.
                 !settings.debugMode &&
-                  (win.ready === false ||
-                    (win.builtinComponent && !domReadyIds.has(win.id))) &&
-                  "opacity-0 pointer-events-none",
+                (win.ready === false ||
+                  (win.builtinComponent && !domReadyIds.has(win.id))) &&
+                "opacity-0 pointer-events-none",
                 overviewOpen && "pointer-events-none",
                 closingWindowIds.has(win.id) && "pointer-events-none",
                 !isActiveWorkspace && "invisible pointer-events-none",
                 // Per-app dark mode (`apps/<app-id>.ini` color-scheme=dark).
                 appSettingsVersion >= 0 &&
-                  getAppSetting(win.appId, "color-scheme") === "dark" &&
-                  "dark",
+                getAppSetting(win.appId, "color-scheme") === "dark" &&
+                "dark",
               )}
               aria-hidden={!isActiveWorkspace || undefined}
             >
@@ -2462,7 +2442,7 @@ export function WindowManager() {
                       onDomReady={handleDomReady}
                       darkReaderEnabled={Boolean(
                         darkReaderByWindowId[win.id] ??
-                          settings.darkReaderWebEnabled
+                        settings.darkReaderWebEnabled
                       )}
                       onToggleDarkReader={() => toggleDarkReaderForWindow(win.id)}
                     />
