@@ -17,9 +17,10 @@ export interface CombineWindowsInput {
   browserWindows: NonNullable<Piloti["browser"]["windows"]>;
   browserFavicons: Readonly<Record<string, string>>;
   browserTitles: Readonly<Record<string, string>>;
-  browserMeta: Readonly<Record<string, ExternalWindowMeta>>;
-  /** Web windows with several tabs (splits come later: only stacks for now). */
-  browserTabGroups: FrameRoots;
+  /** Where each window stands, by window id; a shell window just opened has none yet. */
+  frameMeta: Readonly<Record<string, ExternalWindowMeta>>;
+  /** Frames with several views, by window id (only web windows' tabs for now, as stacks). */
+  frameRoots: FrameRoots;
   waylandWindows: ReturnType<typeof useWindows>;
   waylandMeta: Readonly<Record<string, ExternalWindowMeta>>;
   syncedParentFrames: ReadonlyMap<string, number>;
@@ -38,8 +39,8 @@ export function combineWindows({
   browserWindows,
   browserFavicons,
   browserTitles,
-  browserMeta,
-  browserTabGroups,
+  frameMeta,
+  frameRoots,
   waylandWindows,
   waylandMeta,
   syncedParentFrames,
@@ -53,6 +54,7 @@ export function combineWindows({
 }: CombineWindowsInput): DesktopWindowInstance[] {
   const resolvedShellWindows = shellWindows.map((sw) => ({
     ...sw,
+    ...frameMeta[sw.id],
     iconUrl: sw.iconUrl ?? getAppIconUrl(sw.appId),
     ready: !unreadyWindowIds.has(sw.id),
   }));
@@ -115,10 +117,17 @@ export function combineWindows({
 
   const tabGroupOf = new Map<string, string>();
   const stacks: Record<string, StackNode> = {};
-  for (const [group, root] of Object.entries(browserTabGroups)) {
-    if (root.kind !== "stack") continue;
-    stacks[group] = root;
-    for (const tab of root.tabs) tabGroupOf.set(tab, group);
+  const raw = (id: string) => id.slice("browser:".length);
+  for (const [frame, root] of Object.entries(frameRoots)) {
+    if (root.kind !== "stack" || !frame.startsWith("browser:")) continue;
+    const group = raw(frame);
+    stacks[group] = {
+      kind: "stack",
+      tabs: root.tabs.map(raw),
+      active: raw(root.active),
+      ...(root.pinned ? { pinned: root.pinned.map(raw) } : {}),
+    };
+    for (const tab of root.tabs) tabGroupOf.set(raw(tab), group);
   }
   const describeBrowserWindow = (bw: (typeof browserWindows)[number]) => {
     const webAppMatch = findMatchingWebApp(bw.url, settings.installedWebApps);
@@ -168,7 +177,7 @@ export function combineWindows({
       listedGroups.add(group);
     }
     const bw = grp ? browserById.get(grp.active) ?? first : first;
-    const meta = browserMeta[group];
+    const meta = frameMeta[`browser:${group}`];
     if (!meta) return [];
     const described = describeBrowserWindow(bw);
     const browserTabs = grp?.tabs.flatMap((tabId): BrowserTab[] => {

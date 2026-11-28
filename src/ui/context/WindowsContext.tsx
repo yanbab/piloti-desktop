@@ -71,6 +71,7 @@ import type { DesktopWindowInstance, WindowsContextValue, WindowActionsValue, Ex
 export type { DesktopWindowInstance, BrowserTab, ResolvedPopupWindow, WindowsContextValue, WindowActionsValue } from "./windows/types";
 export { BROWSER_DEMO_HOME_URL, BROWSER_HOME_URL, normalizeWebUrl } from "@/core/windows/browser-url";
 import { BROWSER_DEMO_HOME_URL, BROWSER_HOME_URL, normalizeWebUrl } from "@/core/windows/browser-url";
+import { placementOf, scopedSetter, syncShellMeta, useScopedMeta, type FrameMeta } from "./windows/frame-meta";
 import { detachToFrame, moveToFrame, rootOf, syncFrames, updateFrameStack, type FrameRoots } from "@/core/windows/layout/frames";
 import { pinTab, reorderTabs, selectTab } from "@/core/windows/layout/stack";
 import { surfacesOf } from "@/core/windows/layout/tree";
@@ -276,13 +277,15 @@ export function useWindowsValue(
     void restoreModuleWindows(piloti, moduleUrls);
   }, [piloti, systemServices, settings.restoreWindowsOnLogin]);
 
-  const [waylandMeta, setWaylandMeta] = React.useState<
-    Record<string, ExternalWindowMeta>
-  >({});
-
-  const [browserMeta, setBrowserMeta] = React.useState<
-    Record<string, ExternalWindowMeta>
-  >({});
+  // Where every window stands, keyed by window id (`windows/frame-meta.ts`).
+  // Code for one kind of window sees its own records, by raw id.
+  const [frameMeta, setFrameMeta] = React.useState<FrameMeta>({});
+  const shellWindowsRef = React.useRef(shellWindows);
+  shellWindowsRef.current = shellWindows;
+  const waylandMeta = useScopedMeta(frameMeta, "wayland:");
+  const setWaylandMeta = React.useMemo(() => scopedSetter(setFrameMeta, "wayland:"), []);
+  const browserMeta = useScopedMeta(frameMeta, "browser:");
+  const setBrowserMeta = React.useMemo(() => scopedSetter(setFrameMeta, "browser:"), []);
 
 
   const [browserFavicons, setBrowserFavicons] = React.useState<
@@ -310,13 +313,20 @@ export function useWindowsValue(
     []
   );
 
-  // Web Browser tabs. A window is a group of Domicile browser windows keyed by
-  // the first one (its geometry lives in browserMeta under that key, even
-  // after that tab closes); only the active tab is shown. A window with a
-  // single page has no record.
-  const [browserTabGroups, setBrowserTabGroups] = React.useState<FrameRoots>({});
-  const browserTabGroupsRef = React.useRef(browserTabGroups);
-  browserTabGroupsRef.current = browserTabGroups;
+  // The views of each frame, keyed by window id, views by window id too
+  // (`core/windows/layout/frames.ts`). For now only Web Browser windows hold
+  // several (tabs, each a Domicile browser window): a frame is keyed by its
+  // first view and keeps its place in frameMeta under that key, even after
+  // that tab closes; only the active tab is shown. A frame holding only the
+  // view it is named after has no record.
+  const [frameRoots, setFrameRoots] = React.useState<FrameRoots>({});
+  const frameRootsRef = React.useRef(frameRoots);
+  frameRootsRef.current = frameRoots;
+
+  // Shell windows' records follow the windows (a new one starts where it opened).
+  React.useLayoutEffect(() => {
+    setFrameMeta((prev) => syncShellMeta(prev, shellWindows, (id) => Boolean(frameRootsRef.current[id])));
+  }, [shellWindows]);
   /** Groups waiting for the browser window they asked for, oldest first. */
   const pendingTabGroupsRef = React.useRef<string[]>([]);
   /** App modules asked for as tabs: the first window of that module joins `group`. */
@@ -338,7 +348,7 @@ export function useWindowsValue(
       pinned: boolean;
     } | null = null;
 
-    const prevGroups = browserTabGroupsRef.current;
+    const prevGroups = frameRootsRef.current;
     const tabAdds: Array<[group: string, tab: string]> = [];
 
     for (const [idx, bw] of browserWindows.entries()) {
@@ -353,16 +363,16 @@ export function useWindowsValue(
           const group = wanted >= 0 ? pendingModuleTabsRef.current[wanted]!.group : undefined;
           if (group !== undefined) {
             pendingModuleTabsRef.current.splice(wanted, 1);
-            if (activeIds.has(group) || prevGroups[group]) {
-              tabAdds.push([group, bw.id]);
+            if (activeIds.has(group) || prevGroups[`browser:${group}`]) {
+              tabAdds.push([`browser:${group}`, `browser:${bw.id}`]);
               continue;
             }
           }
         }
         if (!bw.isApp && !isModule && pendingTabGroupsRef.current.length > 0) {
           const group = pendingTabGroupsRef.current.shift()!;
-          if (activeIds.has(group) || prevGroups[group]) {
-            tabAdds.push([group, bw.id]);
+          if (activeIds.has(group) || prevGroups[`browser:${group}`]) {
+            tabAdds.push([`browser:${group}`, `browser:${bw.id}`]);
             continue;
           }
         }
@@ -454,11 +464,15 @@ export function useWindowsValue(
     knownBrowserIdsRef.current = activeIds;
 
     // Drop closed tabs; a closed active tab hands over to its neighbour.
-    const synced = syncFrames(prevGroups, (id) => activeIds.has(id), tabAdds);
+    const synced = syncFrames(
+      prevGroups,
+      (id) => !id.startsWith("browser:") || activeIds.has(id.slice("browser:".length)),
+      tabAdds,
+    );
     const nextGroups = synced.roots;
     if (synced.changed) {
-      browserTabGroupsRef.current = nextGroups;
-      setBrowserTabGroups(nextGroups);
+      frameRootsRef.current = nextGroups;
+      setFrameRoots(nextGroups);
     }
 
     setBrowserFavicons((prev) => pruneBrowserRecord(prev, activeIds));
@@ -468,7 +482,7 @@ export function useWindowsValue(
       let changed = false;
       const next: Record<string, ExternalWindowMeta> = {};
       for (const [id, meta] of Object.entries(prev)) {
-        if (activeIds.has(id) || nextGroups[id]) next[id] = meta;
+        if (activeIds.has(id) || nextGroups[`browser:${id}`]) next[id] = meta;
         else changed = true;
       }
       for (const [id, entry] of newEntries) {
@@ -495,6 +509,7 @@ export function useWindowsValue(
     clearLaunchOverlays,
     piloti.windows,
     markWindowUnready,
+    setBrowserMeta,
     screenHeight,
     screenWidth,
     settings.activeWorkspace,
@@ -663,6 +678,7 @@ export function useWindowsValue(
     clearLaunchOverlays,
     piloti.windows,
     ensureWaylandIcons,
+    setWaylandMeta,
     screenHeight,
     screenWidth,
     settings.activeWorkspace,
@@ -762,7 +778,7 @@ export function useWindowsValue(
       cancelled = true;
       stopListening?.();
     };
-  }, [piloti.windows]);
+  }, [piloti.windows, setWaylandMeta]);
 
   // Synchronize xdg_toplevel Tiled states so GTK4/Libadwaita CSD apps drop internal shadow margins
   React.useEffect(() => {
@@ -798,8 +814,8 @@ export function useWindowsValue(
         browserWindows,
         browserFavicons,
         browserTitles,
-        browserMeta,
-        browserTabGroups,
+        frameMeta,
+        frameRoots,
         waylandWindows,
         waylandMeta,
         syncedParentFrames,
@@ -820,8 +836,8 @@ export function useWindowsValue(
       browserWindows,
       browserFavicons,
       browserTitles,
-      browserMeta,
-      browserTabGroups,
+      frameMeta,
+      frameRoots,
       waylandWindows,
       waylandMeta,
       syncedParentFrames,
@@ -896,10 +912,14 @@ export function useWindowsValue(
       } else if (windowId.startsWith("browser:")) {
         patchExternalMeta(setBrowserMeta, windowId.slice("browser:".length), patch);
       } else {
-        setShellWindows((prev) => prev.map((w) => (w.id === windowId ? patch(w) : w)));
+        setFrameMeta((prev) => {
+          // A shell window opened this render has no record yet.
+          const cur = prev[windowId] ?? shellWindowsRef.current.find((w) => w.id === windowId);
+          return cur ? { ...prev, [windowId]: patch(placementOf(cur)) } : prev;
+        });
       }
     },
-    [],
+    [setBrowserMeta, setWaylandMeta],
   );
 
   const focusWindow = React.useCallback(
@@ -994,7 +1014,7 @@ export function useWindowsValue(
         piloti.windows.close(rawId);
       } else if (windowId.startsWith("browser:")) {
         const rawId = windowId.slice("browser:".length);
-        const tabs = surfacesOf(rootOf(browserTabGroupsRef.current, rawId));
+        const tabs = surfacesOf(rootOf(frameRootsRef.current, windowId)).map((id) => id.slice("browser:".length));
         for (const tab of tabs) piloti.browser.close(tab);
       } else {
         setShellWindows((prev) => prev.filter((w) => w.id !== windowId));
@@ -1031,18 +1051,18 @@ export function useWindowsValue(
   );
 
   const selectBrowserTab = React.useCallback((windowId: string, tabId: string) => {
-    const group = windowId.slice("browser:".length);
-    setBrowserTabGroups((prev) => updateFrameStack(prev, group, tabId, (stack) => selectTab(stack, tabId)) ?? prev);
+    const tab = `browser:${tabId}`;
+    setFrameRoots((prev) => updateFrameStack(prev, windowId, tab, (stack) => selectTab(stack, tab)) ?? prev);
   }, []);
 
   const reorderBrowserTabs = React.useCallback((windowId: string, tabIds: string[]) => {
-    const group = windowId.slice("browser:".length);
-    setBrowserTabGroups((prev) => updateFrameStack(prev, group, tabIds[0], (stack) => reorderTabs(stack, tabIds)) ?? prev);
+    const tabs = tabIds.map((id) => `browser:${id}`);
+    setFrameRoots((prev) => updateFrameStack(prev, windowId, tabs[0], (stack) => reorderTabs(stack, tabs)) ?? prev);
   }, []);
 
   const pinBrowserTab = React.useCallback((windowId: string, tabId: string, pinned: boolean) => {
-    const group = windowId.slice("browser:".length);
-    setBrowserTabGroups((prev) => updateFrameStack(prev, group, tabId, (stack) => pinTab(stack, tabId, pinned)) ?? prev);
+    const tab = `browser:${tabId}`;
+    setFrameRoots((prev) => updateFrameStack(prev, windowId, tab, (stack) => pinTab(stack, tab, pinned)) ?? prev);
   }, []);
 
   const detachBrowserTab = React.useCallback(
@@ -1051,10 +1071,10 @@ export function useWindowsValue(
       const meta = browserMeta[group];
       if (!meta) return undefined;
       const newKey = `${tabId}~${Date.now().toString(36)}`;
-      const next = detachToFrame(browserTabGroupsRef.current, group, tabId, newKey);
+      const next = detachToFrame(frameRootsRef.current, windowId, `browser:${tabId}`, `browser:${newKey}`);
       if (!next) return undefined;
-      browserTabGroupsRef.current = next;
-      setBrowserTabGroups(next);
+      frameRootsRef.current = next;
+      setFrameRoots(next);
       const clamped = clampWindowBounds(
         at ?? { x: meta.position.x + 36, y: meta.position.y + 36 },
         meta.size,
@@ -1079,7 +1099,7 @@ export function useWindowsValue(
       setMruIds((prev) => [`browser:${newKey}`, ...prev]);
       return `browser:${newKey}`;
     },
-    [browserMeta, screenWidth, screenHeight]
+    [browserMeta, setBrowserMeta, screenWidth, screenHeight]
   );
 
   const moveBrowserTab = React.useCallback(
@@ -1087,10 +1107,10 @@ export function useWindowsValue(
       if (!fromWindowId.startsWith("browser:") || !toWindowId.startsWith("browser:")) return;
       const from = fromWindowId.slice("browser:".length);
       const to = toWindowId.slice("browser:".length);
-      const moved = moveToFrame(browserTabGroupsRef.current, from, to, tabId, index);
+      const moved = moveToFrame(frameRootsRef.current, fromWindowId, toWindowId, `browser:${tabId}`, index);
       if (!moved) return;
-      browserTabGroupsRef.current = moved.roots;
-      setBrowserTabGroups(moved.roots);
+      frameRootsRef.current = moved.roots;
+      setFrameRoots(moved.roots);
       setBrowserMeta((prev) => {
         const target = prev[to];
         const next = { ...prev };
@@ -1101,7 +1121,7 @@ export function useWindowsValue(
       setFocusedWindowId(toWindowId);
       setMruIds((prev) => [toWindowId, ...prev.filter((id) => id !== toWindowId && !(moved.fromEmptied && id === fromWindowId))]);
     },
-    []
+    [setBrowserMeta]
   );
 
   /** Pages closed as tabs, newest last, for "Reopen Closed Tab". */
@@ -1121,7 +1141,7 @@ export function useWindowsValue(
     (windowId: string, tabId: string) => {
       const closedUrl = browserWindowsRef.current.find((bw) => bw.id === tabId)?.url;
       if (closedUrl) closedTabsRef.current = [...closedTabsRef.current.slice(-19), closedUrl];
-      const tabs = surfacesOf(browserTabGroupsRef.current[windowId.slice("browser:".length)] ?? null);
+      const tabs = surfacesOf(frameRootsRef.current[windowId] ?? null);
       if (tabs.length <= 1) closeWindow(windowId);
       else piloti.browser.close(tabId);
     },
@@ -1408,7 +1428,7 @@ export function useWindowsValue(
               appId: resolvedAppId,
               payload: options?.payload,
             }),
-            windows: shellWindows,
+            windows: combinedWindowsRef.current,
             screen: { width: screenWidth, height: screenHeight },
             workspaces: { active: settings.activeWorkspace, count: settings.workspaceCount },
             zIndex: nextZ(),
@@ -1454,7 +1474,6 @@ export function useWindowsValue(
       settings.activeWorkspace,
       settings.savedWindowBounds,
       settings.workspaceCount,
-      shellWindows,
       updateSettings,
     ]
   );
@@ -1678,9 +1697,7 @@ export function useWindowsValue(
       const move = <T extends WindowPlacement>(w: T): T => ({ ...w, workspace: removal.remap(w.workspace) });
       const moveAll = (prev: Record<string, ExternalWindowMeta>) =>
         Object.fromEntries(Object.entries(prev).map(([id, w]) => [id, move(w)]));
-      setWaylandMeta(moveAll);
-      setBrowserMeta(moveAll);
-      setShellWindows((prev) => prev.map(move));
+      setFrameMeta(moveAll);
       updateSettings({ workspaceCount: removal.count, activeWorkspace: removal.active });
     },
     [settings.activeWorkspace, settings.workspaceCount, updateSettings]
