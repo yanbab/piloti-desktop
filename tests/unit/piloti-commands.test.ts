@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
-import { createShellCommands } from "@/apps/terminal/piloti-commands";
-import { runLine, splitWords } from "@/apps/terminal/piloti-repl";
-import type { Vfs } from "@/lib/ports/vfs";
+import { createShellCommands } from "@/ui/apps/terminal/piloti-commands";
+import { runLine, splitWords } from "@/ui/apps/terminal/piloti-repl";
+import type { Vfs } from "@/core/ports/vfs";
 
 /** Folders are `null`, files their text. */
 function fakeVfs(files: Map<string, string | null>): Vfs {

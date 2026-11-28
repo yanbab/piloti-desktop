@@ -56,7 +56,7 @@ export const homeNotReadEarly = (): Plugin => ({
       if (seen.has(name) || chunk?.type !== "chunk") continue;
       seen.add(name);
       queue.push(...chunk.imports);
-      if (Object.keys(chunk.modules).some((id) => id.endsWith("/lib/engine/vfs-home.ts"))) {
+      if (Object.keys(chunk.modules).some((id) => id.endsWith("/platform/shared/vfs-home.ts"))) {
         this.error(`${name} reads $HOME before the entry knows it`);
       }
     }

@@ -1,21 +1,21 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { APP_CATALOG } from "@/data/catalog";
+import { APP_CATALOG } from "@/core/data/catalog";
 import {
   getEngine,
   nativeEngine,
   setEngine,
   webEngine,
-} from "@/lib/engine/engine";
-import { webDemoUsb } from "@/lib/engine-web/usb-drive";
+} from "@/platform/shared/engine";
+import { webDemoUsb } from "@/platform/web/usb-drive";
 import {
   isSimulatedUsbPath,
   SIMULATED_USB_PATH,
   toggleSimulatedUsb,
   unmountSimulatedUsb,
-} from "@/lib/ports/demo-usb";
-import { getVfsEntry, listVfsDir } from "@/lib/engine-web/web-vfs";
+} from "@/core/ports/demo-usb";
+import { getVfsEntry, listVfsDir } from "@/platform/web/web-vfs";
 
 function createMemoryStorage(): Storage {
   const store = new Map<string, string>();

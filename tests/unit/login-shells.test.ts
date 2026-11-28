@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { readLoginShells } from "@/lib/engine-native/pty-bridge";
+import { readLoginShells } from "@/platform/native/pty-bridge";
 
 const ok = <T,>(v: T) => ({ match: (h: { Ok: (v: T) => unknown }) => h.Ok(v) });
 const err = () => ({ match: (h: { Err: () => unknown }) => h.Err() });

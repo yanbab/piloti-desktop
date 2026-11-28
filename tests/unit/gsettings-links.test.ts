@@ -1,9 +1,9 @@
 import { describe, expect, it } from "bun:test";
 import { readFileSync } from "node:fs";
-import { linkSettingsBackend, parseGSettingsLinks } from "@/lib/config/gsettings-links";
-import { toGVariant } from "@/lib/config/gvariant";
-import { desktopSchemaKeys } from "@/lib/config/piloti-settings-ini";
-import { memorySettingsBackend } from "@/lib/engine/settings";
+import { linkSettingsBackend, parseGSettingsLinks } from "@/core/config/gsettings-links";
+import { toGVariant } from "@/core/config/gvariant";
+import { desktopSchemaKeys } from "@/core/config/piloti-settings-ini";
+import { memorySettingsBackend } from "@/platform/shared/settings";
 
 const links = parseGSettingsLinks(readFileSync("data/files/usr/share/piloti/gsettings-links.ini", "utf8"));
 const IFACE = "org.piloti.desktop.interface";

@@ -4,27 +4,27 @@ import {
   xdgConfigHome,
   xdgDataDirs,
   xdgDataHome,
-} from "@/lib/xdg/xdg-basedir";
+} from "@/core/xdg/xdg-basedir";
 import {
   computeDesktopFileId,
   expandExecArgv,
   parseDesktopEntry,
   splitXdgList,
   unescapeXdgValue,
-} from "@/lib/xdg/xdg-desktop-entry";
+} from "@/core/xdg/xdg-desktop-entry";
 import {
   buildXdgIconThemeIndex,
   directoryMatchesSize,
   directorySizeDistance,
   lookupXdgIconPath,
   parseIconThemeIndex,
-} from "@/lib/xdg/xdg-icon-theme";
+} from "@/core/xdg/xdg-icon-theme";
 import {
   buildOpenXdgFolderArgv,
   buildXdgUserDirList,
   discoverXdgUserDirs,
   parseXdgUserDirs,
-} from "@/lib/xdg/xdg-user-dirs";
+} from "@/core/xdg/xdg-user-dirs";
 
 describe("xdg-desktop Desktop Entry parser", () => {
   test("unescapes XDG values and splits semicolon lists", () => {
@@ -91,7 +91,7 @@ Exec=nautilus --new-window
     const {
       matchXdgEntryForWaylandWindow,
       resolveWaylandClientFrame,
-    } = require("@/lib/xdg/xdg-desktop-entry");
+    } = require("@/core/xdg/xdg-desktop-entry");
 
     const settingsEntry = parseDesktopEntry(
       `[Desktop Entry]

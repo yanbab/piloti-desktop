@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { pushItemsToCells } from "@/lib/files/desktop-icons";
+import { pushItemsToCells } from "@/core/files/desktop-icons";
 
 describe("pushItemsToCells", () => {
   it("moves the occupant out of the landing cell", () => {

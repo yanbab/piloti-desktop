@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { parseGioInfoEmblems, parseGioListEmblems } from "@/lib/engine-native/gio";
+import { parseGioInfoEmblems, parseGioListEmblems } from "@/platform/native/gio";
 
 describe("gio emblems", () => {
   test("parses `gio list -a` and `gio info` output", () => {

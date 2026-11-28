@@ -7,12 +7,12 @@ import {
   FIND_POLKIT_AGENT_SCRIPT,
   parseAutostartCondition,
   shouldLaunchAutostartEntry,
-} from "@/lib/engine-native/autostart";
-import { parseAutostartDesktopFile } from "@/lib/xdg/xdg-autostart";
+} from "@/platform/native/autostart";
+import { parseAutostartDesktopFile } from "@/core/xdg/xdg-autostart";
 import {
   getXdgThumbnailRelativePath,
   md5Hex,
-} from "@/lib/xdg/xdg-thumbnails";
+} from "@/core/xdg/xdg-thumbnails";
 
 describe("XDG Thumbnail Managing Standard & Autostart runtime helpers", () => {
   test("computes RFC 1321 MD5 hashes and FreeDesktop thumbnail cache paths", () => {

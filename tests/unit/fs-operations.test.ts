@@ -1,12 +1,12 @@
-import { subscribeRenames } from "@/lib/engine/renames";
+import { subscribeRenames } from "@/platform/shared/renames";
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { nativeEngine, setEngine, webEngine } from "@/lib/engine/engine";
+import { nativeEngine, setEngine, webEngine } from "@/platform/shared/engine";
 import {
   setVfsPersistence,
-} from "@/lib/engine-web/web-vfs";
-import { getEmblems, setEmblem, setEmblemPersist } from "@/lib/engine/emblems";
-import { browserPersistence } from "@/lib/engine-web/vfs-persistence-browser";
-import { memoryPersistence } from "@/lib/ports/vfs-persistence";
+} from "@/platform/web/web-vfs";
+import { getEmblems, setEmblem, setEmblemPersist } from "@/platform/shared/emblems";
+import { browserPersistence } from "@/platform/web/vfs-persistence-browser";
+import { memoryPersistence } from "@/core/ports/vfs-persistence";
 import {
   copyFsEntry,
   importFsFiles,
@@ -19,7 +19,7 @@ import {
   readFsTextFile,
   renameFsEntry,
   trashFsEntry,
-} from "@/lib/engine/fs-bridge";
+} from "@/platform/shared/fs-bridge";
 import {
   clearFileUndoHistory,
   moveWithUndo,
@@ -27,9 +27,9 @@ import {
   renameWithUndo,
   trashWithUndo,
   undoFileOperation,
-} from "@/lib/engine/fs-undo";
-import type { Piloti } from "@/lib/engine/piloti";
-import { createNativeVfs } from "@/lib/engine-native/vfs";
+} from "@/platform/shared/fs-undo";
+import type { Piloti } from "@/platform/shared/piloti";
+import { createNativeVfs } from "@/platform/native/vfs";
 import { createFakeDomicile } from "../helpers/fake-domicile";
 
 const HOME = "/home/user";

@@ -1,9 +1,9 @@
 import { describe, expect, it } from "bun:test";
-import { createDconfSettingsBackend, routeSettingsBackend, type DconfHost } from "@/lib/config/dconf-settings-backend";
-import { readDesktopSettingsRaw, writeDesktopSettings } from "@/lib/config/desktop-settings-store";
-import { parseIniText } from "@/lib/config/ini";
-import { memorySettingsBackend } from "@/lib/engine/settings";
-import type { DesktopSettings } from "@/context/SettingsContext";
+import { createDconfSettingsBackend, routeSettingsBackend, type DconfHost } from "@/core/config/dconf-settings-backend";
+import { readDesktopSettingsRaw, writeDesktopSettings } from "@/core/config/desktop-settings-store";
+import { parseIniText } from "@/core/config/ini";
+import { memorySettingsBackend } from "@/platform/shared/settings";
+import type { DesktopSettings } from "@/ui/context/SettingsContext";
 
 /** A dconf database in memory, with the command line's text formats. */
 function fakeDconf(initial: Record<string, string> = {}) {

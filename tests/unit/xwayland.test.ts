@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import type { Piloti } from "@/lib/engine/piloti";
+import type { Piloti } from "@/platform/shared/piloti";
 import {
   ensureXwaylandSatellite,
   parseRunningSatelliteDisplay,
@@ -7,7 +7,7 @@ import {
   pickAvailableXDisplay,
   resetXwaylandCacheForTest,
   XWAYLAND_SATELLITE_FALLBACK_PATHS,
-} from "@/lib/engine-native/xwayland";
+} from "@/platform/native/xwayland";
 
 describe("xwayland-satellite helpers", () => {
   it("parses X11 Unix socket listings and picks lowest available display", () => {

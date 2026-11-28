@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { latestRunner } from "@/lib/plugins/latest-run";
+import { latestRunner } from "@/core/plugins/latest-run";
 
 describe("latestRunner", () => {
   test("never overlaps, and folds calls made meanwhile into the last one", async () => {

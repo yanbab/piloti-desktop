@@ -2,9 +2,9 @@
 //   ~/.bun/bin/bun scripts/generate-gschemas.ts
 import fs from "node:fs";
 import path from "node:path";
-import { DEFAULT_SETTINGS } from "@/context/SettingsContext";
-import { buildPilotiGschemaXml, gschemaDefaults, PILOTI_GSCHEMA_FILE } from "@/lib/config/piloti-gschema";
-import { desktopSchemaDefaults, desktopSchemaKeys } from "@/lib/config/piloti-settings-ini";
+import { DEFAULT_SETTINGS } from "@/ui/context/SettingsContext";
+import { buildPilotiGschemaXml, gschemaDefaults, PILOTI_GSCHEMA_FILE } from "@/core/config/piloti-gschema";
+import { desktopSchemaDefaults, desktopSchemaKeys } from "@/core/config/piloti-settings-ini";
 
 const xml = buildPilotiGschemaXml(
   desktopSchemaKeys(),

@@ -7,7 +7,7 @@ const SRC = path.resolve(import.meta.dir, "../../src");
 function sources(dir: string): string[] {
   return fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
     const full = path.join(dir, entry.name);
-    if (entry.isDirectory()) return /^engine(-native|-web)?$/.test(entry.name) ? [] : sources(full);
+    if (entry.isDirectory()) return full === path.join(SRC, "platform") ? [] : sources(full);
     return /\.tsx?$/.test(entry.name) ? [full] : [];
   });
 }
@@ -37,12 +37,12 @@ describe("engine boundary", () => {
 /**
  * Command lines live in the engines: UI code calls a named function
  * (`engine/system-commands.ts`) and never runs a program itself. The plain
- * backends (`lib/apps/`) take their host as an argument and may.
+ * backends (`core/apps/`) take their host as an argument and may.
  */
 describe("process boundary", () => {
   it("only engine code runs programs", () => {
     const offenders = sources(SRC)
-      .filter((file) => !file.startsWith(path.join(SRC, "lib/apps/")))
+      .filter((file) => !file.startsWith(path.join(SRC, "core/apps/")))
       .filter((file) => /\bprocesses\??\s*\.(run|spawn|launch)\(/.test(code(file)))
       .map((file) => path.relative(SRC, file));
     expect(offenders).toEqual([]);
@@ -59,7 +59,7 @@ describe("engine-native boundary", () => {
     const importers = sources(SRC)
       // Type-only imports are erased: they don't tie a file to Linux code.
       .filter((file) =>
-        /["/]lib\/engine-native["/)]/.test(code(file).replace(/import type [^;]*;/g, "")),
+        /["/]platform\/native["/)]/.test(code(file).replace(/import type [^;]*;/g, "")),
       )
       .map((file) => path.relative(SRC, file))
       .filter((file) => !entry.test(file))
@@ -118,11 +118,11 @@ describe("web-vfs boundary", () => {
     const all = (dir: string): string[] =>
       fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
         const full = path.join(dir, entry.name);
-        if (entry.isDirectory()) return entry.name === "engine-web" ? [] : all(full);
+        if (entry.isDirectory()) return full === path.join(SRC, "platform/web") ? [] : all(full);
         return /\.tsx?$/.test(entry.name) ? [full] : [];
       });
     const importers = all(SRC)
-      .filter((file) => /["/]engine-web\/web-vfs["\)]/.test(fs.readFileSync(file, "utf8")))
+      .filter((file) => /["/]platform\/web\/web-vfs["\)]/.test(fs.readFileSync(file, "utf8")))
       .map((file) => path.relative(SRC, file))
       .sort();
     const allowed: string[] = JSON.parse(
@@ -136,7 +136,7 @@ describe("web-vfs boundary", () => {
 describe("engine-web boundary", () => {
   it("only the demo's entry point imports engine-web", () => {
     const importers = sources(SRC)
-      .filter((file) => /(from |import\()"[^"]*engine-web[/"]/.test(code(file).replace(/import type [^;]*;/g, "")))
+      .filter((file) => /(from |import\()"[^"]*platform\/web[/"]/.test(code(file).replace(/import type [^;]*;/g, "")))
       .map((file) => path.relative(SRC, file));
     expect(importers).toEqual(["piloti-web.tsx"]);
   });
@@ -154,12 +154,50 @@ describe("engine kind", () => {
 
 /** A backend an app module can run: no React, no state, nothing of the shell. */
 describe("plain backend boundary", () => {
-  it("lib/apps imports no React, context, UI or engine", () => {
-    const offenders = sources(path.join(SRC, "lib/apps"))
-      .filter((file) =>
-        /from "(react|@\/(context|components|shell|hooks|lib\/engine[\w-]*)[/"])/.test(code(file)),
-      )
+  it("core/apps imports no React, UI or platform", () => {
+    const offenders = sources(path.join(SRC, "core/apps"))
+      .filter((file) => /from "(react|@\/(ui|platform)\/)/.test(code(file)))
       .map((file) => path.relative(SRC, file));
     expect(offenders).toEqual([]);
+  });
+});
+
+/**
+ * `core/` is plain TypeScript, `platform/` its adapters, `ui/` the React shell
+ * and apps. Imports go down only.
+ */
+describe("layers", () => {
+  /** Files of `layer` that import from `forbidden`, types included or not. */
+  const importers = (layer: string, forbidden: string, { types = true } = {}) => {
+    const all = (dir: string): string[] =>
+      fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+        const full = path.join(dir, entry.name);
+        if (entry.isDirectory()) return all(full);
+        return /\.tsx?$/.test(entry.name) ? [full] : [];
+      });
+    const target = new RegExp(`(from |import\\()"@/(${forbidden})[/"]`);
+    return all(path.join(SRC, layer))
+      .filter((file) => {
+        const text = types ? code(file) : code(file).replace(/import type [^;]*;/g, "");
+        return target.test(text);
+      })
+      .map((file) => path.relative(SRC, file))
+      .sort();
+  };
+
+  it("core imports neither platform nor UI, except what is left to untangle", () => {
+    const left: string[] = JSON.parse(
+      fs.readFileSync(path.join(import.meta.dir, "core-upward-importers.json"), "utf8"),
+    );
+    // The list may only get shorter.
+    expect(importers("core", "platform|ui")).toEqual(left);
+  });
+
+  it("platform imports no UI", () => {
+    expect(importers("platform", "ui")).toEqual([]);
+  });
+
+  it("UI imports the shared part of the platform, not an engine", () => {
+    expect(importers("ui", "platform/(native|web)", { types: false })).toEqual([]);
   });
 });

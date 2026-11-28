@@ -9,7 +9,7 @@ import {
   parseAdminUsernames,
   parsePasswdUsers,
   parseSessionDesktopEntry,
-} from "@/lib/engine-native/greeter";
+} from "@/platform/native/greeter";
 
 describe("Display Manager / greetd greeter backend", () => {
   test("parses /etc/passwd human accounts and /etc/group admin roles cleanly", () => {

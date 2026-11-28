@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, test } from "bun:test";
-import { createDomicileEditorHost } from "@/apps/texts/host";
+import { createDomicileEditorHost } from "@/ui/apps/texts/host";
 import { Ok } from "@cprussin/option-result";
 import { createFakeDomicile } from "../helpers/fake-domicile";
 

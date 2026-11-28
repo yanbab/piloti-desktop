@@ -1,20 +1,20 @@
-import { loadAppCatalog } from "./lib/engine/app-catalog";
-import { hostFiles } from "@/lib/engine/host-files";
-import { attachConsoleDiskSink, installConsoleCapture } from "./lib/core/console-store";
-import { createShellLogWriter } from "./lib/engine/shell-log";
-import { profileStartup } from "./lib/core/startup-profile";
-import { startBootPhase } from "./lib/core/perf-log";
+import { loadAppCatalog } from "./platform/shared/app-catalog";
+import { hostFiles } from "@/platform/shared/host-files";
+import { attachConsoleDiskSink, installConsoleCapture } from "./core/util/console-store";
+import { createShellLogWriter } from "./platform/shared/shell-log";
+import { profileStartup } from "./core/util/startup-profile";
+import { startBootPhase } from "./core/util/perf-log";
 import type { Shell as ShellModule } from "@domicile-desktop/sdk/shell";
-import "./styles/globals.css";
-import { nativeEngine, setEngine } from "./lib/engine/engine";
-import type { Vfs } from "./lib/ports/vfs";
+import "./ui/styles/globals.css";
+import { nativeEngine, setEngine } from "./platform/shared/engine";
+import type { Vfs } from "./core/ports/vfs";
 
 setEngine(nativeEngine);
 
 /**
  * Entry of the native shell. The VFS root must be the real `$HOME`, and VFS
  * modules read it when they load, so ask the compositor for it first and only
- * then load the desktop (see `src/lib/engine/vfs-home.ts`).
+ * then load the desktop (see `src/platform/shared/vfs-home.ts`).
  *
  * Files are the disk's: no browser storage, no demo tree. Piloti's own state files are read back from `$HOME` before the desktop
  * starts.
@@ -45,13 +45,13 @@ async function boot(root: HTMLElement, piloti: Parameters<ShellModule>[1]) {
         emblems,
         { clearOldBrowserCache },
       ] = await Promise.all([
-        import("@/lib/engine-native/vfs"),
-        import("@/lib/engine-native/gio"),
-        import("@/lib/engine-native/emblem-storage"),
-        import("@/lib/engine-native/state-store"),
-        import("@/lib/engine/vfs-state"),
-        import("@/lib/engine/emblems"),
-        import("@/lib/engine-native/clear-old-browser-cache"),
+        import("@/platform/native/vfs"),
+        import("@/platform/native/gio"),
+        import("@/platform/native/emblem-storage"),
+        import("@/platform/native/state-store"),
+        import("@/platform/shared/vfs-state"),
+        import("@/platform/shared/emblems"),
+        import("@/platform/native/clear-old-browser-cache"),
       ]);
       clearOldBrowserCache();
       nativeVfs = createNativeVfs(piloti);
@@ -59,7 +59,7 @@ async function boot(root: HTMLElement, piloti: Parameters<ShellModule>[1]) {
       emblems.setEmblemPersist((path, names) =>
         setEmblems(piloti.processes, path, names, emblems.MANAGED_GNOME_EMBLEMS),
       );
-      const { mergeConfigDirs } = await import("@/lib/engine/system-commands");
+      const { mergeConfigDirs } = await import("@/platform/shared/system-commands");
       const config = `${home}/.config`;
       if ((await hostFiles(piloti).stat(`${config}/Piloti`)).isOk()) {
         await mergeConfigDirs(piloti, `${config}/Piloti`, `${config}/piloti`).catch(() => undefined);
@@ -75,7 +75,7 @@ async function boot(root: HTMLElement, piloti: Parameters<ShellModule>[1]) {
       // Desktop settings in dconf when Piloti's schemas are installed.
       const loadSettings = async () => {
         const finishSettings = startBootPhase("settings backend");
-        const { selectNativeSettingsBackend } = await import("@/lib/engine-native/settings-backend");
+        const { selectNativeSettingsBackend } = await import("@/platform/native/settings-backend");
         const backend = await selectNativeSettingsBackend(piloti, {
           home,
           exists: async (path) => (await statVfs.stat(path).catch(() => null)) !== null,
@@ -96,8 +96,8 @@ async function boot(root: HTMLElement, piloti: Parameters<ShellModule>[1]) {
   // Imported late, like the desktop: no module may be loaded before `$HOME` is known.
   const [app, { createNativeVfs }, { withVfs }] = await Promise.all([
     import("./piloti-desktop-app"),
-    import("@/lib/engine-native/vfs"),
-    import("@/lib/engine/with-vfs"),
+    import("@/platform/native/vfs"),
+    import("@/platform/shared/with-vfs"),
   ]);
   finishImport();
   const finishRender = startBootPhase("first render");

@@ -1,12 +1,12 @@
 // The unit tests run against the browser demo's seeded VFS, as `piloti-web.tsx` sets it up.
 import fs from "node:fs";
 import path from "node:path";
-import { registerApps } from "@/data/catalog";
-import { setEngine, webEngine } from "@/lib/engine/engine";
-import { setDataFiles } from "@/lib/engine-web/data-files";
-import { demoVfsSeed } from "@/lib/engine-web/vfs-seed";
-import { setVfsSeed } from "@/lib/engine-web/web-vfs";
-import "@/lib/engine-web/install";
+import { registerApps } from "@/core/data/catalog";
+import { setEngine, webEngine } from "@/platform/shared/engine";
+import { setDataFiles } from "@/platform/web/data-files";
+import { demoVfsSeed } from "@/platform/web/vfs-seed";
+import { setVfsSeed } from "@/platform/web/web-vfs";
+import "@/platform/web/install";
 // @ts-expect-error -- plain build script
 import { DATA_FILES_DIR, indexDataFiles } from "../../scripts/data-files.mjs";
 

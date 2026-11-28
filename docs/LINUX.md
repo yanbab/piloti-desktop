@@ -37,7 +37,7 @@ Xwayland display with `xhost` (`x11-xserver-utils`).
 
 ## XDG coverage
 
-`lib/xdg/`: base and user directories, desktop entries, icon themes, MIME apps,
+`core/xdg/`: base and user directories, desktop entries, icon themes, MIME apps,
 trash, recents, thumbnails (read), autostart, session restore, web apps, global
 menus. Also sound cues and a `greetd` greeter.
 
@@ -85,7 +85,7 @@ CLI or a private file. Each move is a port with a native and a demo adapter.
 | Battery, power profiles | `upower`, `powerprofilesctl` | UPower, `net.hadess.PowerProfiles` |
 | Network | `nmcli` | NetworkManager D-Bus |
 | Media player | `playerctl` | MPRIS |
-| Removable drives, CDs | UDisks2 (`engine-native/drives.ts`) | done; no automount |
+| Removable drives, CDs | UDisks2 (`platform/native/drives.ts`) | done; no automount |
 | Volume | `wpctl`, `pactl` | keep; events from `pactl subscribe` |
 | Bluetooth | none | BlueZ |
 | Time, locale, hostname, user | files or none | `timedate1`, `locale1`, `hostname1`, AccountsService |

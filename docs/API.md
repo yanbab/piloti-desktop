@@ -12,13 +12,13 @@ It is one object: `usePiloti()`, the `piloti` argument in engine code, a
 plugin's `ctx.piloti`, and `window.piloti` for scripts and the console. App
 modules only have `vfs` of the additions.
 
-The additions are typed in `src/lib/ports/shell-api.ts`; changing them is an
+The additions are typed in `src/core/ports/shell-api.ts`; changing them is an
 API change. Live lists are a property plus `on("change", fn)`, as in Domicile, so
 `useWatch` works. Actions return nothing, and an unknown id does nothing.
 
 ## vfs
 
-`src/lib/ports/vfs.ts`. Absolute paths, async, rejects with a `VfsError`
+`src/core/ports/vfs.ts`. Absolute paths, async, rejects with a `VfsError`
 (`not-found`, `exists`, `failed`).
 
 ```
@@ -37,9 +37,9 @@ thumbnail(path)                     data URL or undefined
 
 - `watch` calls once when in place (load there), then on changes. Not recursive.
 - Views use the file hooks, not `watch` (tested). Other code uses
-  `retainVfsWatch()` (`lib/engine/vfs-query.ts`) to share watches.
-- Undoable operations go through `lib/engine/fs-undo.ts`.
-- `lib/engine/fs-bridge.ts` operations update cached listings at once.
+  `retainVfsWatch()` (`platform/shared/vfs-query.ts`) to share watches.
+- Undoable operations go through `platform/shared/fs-undo.ts`.
+- `platform/shared/fs-bridge.ts` operations update cached listings at once.
 
 ## settings
 
@@ -52,7 +52,7 @@ watch(schema, key, fn)    returns stop
 schemas                   defined schemas
 ```
 
-In shell code (`lib/engine/settings.ts`):
+In shell code (`platform/shared/settings.ts`):
 
 ```ts
 const calc = defineSettings("org.piloti.calculator", { scientific: false });
@@ -155,7 +155,7 @@ Types: `node_modules/@domicile-desktop/sdk/dist/desktop/`.
 | `send <word...>` | send a raw shell command |
 | `help`, `version` | usage, version |
 
-Shell commands live in `shell/desktop/shell-commands.ts`.
+Shell commands live in `ui/shell/desktop/shell-commands.ts`.
 
 Where names differ, Piloti's win (`open`, `lock`, `screenshot`). Prefer
 `piloti theme` to `domicile theme`, which the shell does not follow.
@@ -246,7 +246,7 @@ a program's `-a` is its own. `x.map(JSON.stringify)` avoids the table.
 | `files`, `piloti` | Domicile's files; the desktop |
 
 File operations are not in the Folders undo history. Code:
-`apps/terminal/piloti-{repl,commands,programs,run,completion,table,top,script,loops}.ts`.
+`ui/apps/terminal/piloti-{repl,commands,programs,run,completion,table,top,script,loops}.ts`.
 
 ## React hooks
 

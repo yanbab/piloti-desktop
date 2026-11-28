@@ -3,8 +3,8 @@ import {
   buildXdgIconThemeIndex,
   loadXdgIconDataUrl,
   lookupXdgIconPath,
-} from "@/lib/xdg/xdg-icon-theme";
-import { DATA_FILES } from "@/lib/engine-web/data-files";
+} from "@/core/xdg/xdg-icon-theme";
+import { DATA_FILES } from "@/platform/web/data-files";
 import { diskIconReader, readDataFile } from "../helpers/disk-icon-reader";
 
 const mkOk = <T>(v: T) => ({ match: ({ Ok }: { Ok: (x: T) => unknown }) => Ok(v) });
@@ -13,13 +13,13 @@ import {
   buildAutostartOverrideDesktopContent,
   mergeAutostartEntries,
   parseAutostartDesktopFile,
-} from "@/lib/xdg/xdg-autostart";
+} from "@/core/xdg/xdg-autostart";
 import {
   parseRecentlyUsedXbel,
   serializeRecentlyUsedXbel,
   upsertRecentXbelItem,
-} from "@/lib/xdg/xdg-recents";
-import { parseGlobs2, sniffMimeType } from "@/lib/xdg/xdg-mimeapps";
+} from "@/core/xdg/xdg-recents";
+import { parseGlobs2, sniffMimeType } from "@/core/xdg/xdg-mimeapps";
 
 const PILOTI_VIRTUAL_ICONS: Record<string, string> = Object.fromEntries(
   Object.entries(DATA_FILES).filter(([p]) => p.startsWith("/usr/share/icons/Piloti/"))

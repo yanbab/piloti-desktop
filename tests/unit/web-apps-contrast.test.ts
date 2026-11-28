@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { getContrastForeground } from "@/data/web-apps";
+import { getContrastForeground } from "@/core/data/web-apps";
 
 describe("getContrastForeground (tinted headerbar)", () => {
   it("returns dark foreground for light theme colors and white for dark ones", () => {

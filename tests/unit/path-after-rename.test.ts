@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { pathAfterRename } from "@/lib/ports/vfs";
+import { pathAfterRename } from "@/core/ports/vfs";
 
 describe("pathAfterRename", () => {
   test("the renamed file and anything inside a renamed folder", () => {

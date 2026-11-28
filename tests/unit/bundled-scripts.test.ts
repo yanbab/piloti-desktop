@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import fs from "node:fs";
 import path from "node:path";
-import { BUNDLED_PLUGINS } from "@/lib/plugins/bundled";
+import { BUNDLED_PLUGINS } from "@/core/plugins/bundled";
 
 const SYSTEM = path.resolve(import.meta.dir, "../../data/files/usr/share/piloti/plugins");
 

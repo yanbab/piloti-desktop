@@ -28,43 +28,45 @@ Bun may not be on PATH: use `~/.bun/bin/bun`.
 After changing:
 
 - `data/files/` (icons, default tree): `node scripts/generate-piloti-icons.mjs`.
-- the settings table (`lib/config/piloti-settings-ini.ts`) or its defaults:
+- the settings table (`core/config/piloti-settings-ini.ts`) or its defaults:
   `bun scripts/generate-gschemas.ts` (a test checks).
 - the shell API: update `docs/API.md`.
 
 ## Code rules
 
-- **Backends.** Logic any app needs is plain TypeScript in `lib/<domain>/` with
-  its interface in `ports/`: no React, no engine, the host passed in (a test
-  checks `lib/apps/`).
-- **Engines.** Components and contexts go through `lib/engine/`. Never call Linux
+- **Layers.** `core/` (plain TypeScript) ← `platform/` (adapters) ← `ui/`
+  (React). Imports go down only; a test checks. See `docs/ARCHITECTURE.md`.
+- **Backends.** Logic any app needs is plain TypeScript in `core/<domain>/` with
+  its interface in `core/ports/`: no React, no engine, the host passed in (a test
+  checks `core/apps/`).
+- **Engines.** Components and contexts go through `platform/shared/`. Never call Linux
   CLIs or `piloti.processes` directly: add a function to
-  `engine/system-commands.ts` (backends take their host as an argument). Prefer a capability (`realFilesystem`,
+  `platform/shared/system-commands.ts` (backends take their host as an argument). Prefer a capability (`realFilesystem`,
   `systemServices`, `simulatedHardware`, `compositor`) over checking the engine. The native
   bundle imports neither the web engine nor the demo files.
 - **Layout.** A helper only one app or shell feature uses stays in its folder
-  (`apps/<app>/`, `shell/<feature>/`); shared logic goes in `lib/<topic>/`,
-  shared UI in `components/`.
+  (`ui/apps/<app>/`, `ui/shell/<feature>/`); shared logic goes in `core/<topic>/`,
+  shared UI in `ui/components/`.
 - **Domicile** is received as `piloti: Piloti` (`usePiloti()`), not `domicile`.
 - **Files:** `piloti.vfs`. Domicile's own file calls go through
   `hostFiles(piloti)`, never `piloti.files`. Don't import `web-vfs.ts` in new code.
-- Tests hold lists of old importers (`engine-native`, `web-vfs`): they may only
-  shrink.
+- Tests hold lists of old importers (`platform/native`, `web-vfs`, upward imports
+  from `core/`): they may only shrink.
 - No VFS module may load before the native entry knows `$HOME`.
 - **State** goes in `.ini` files through `vfs-state.ts`, so they stay editable;
   no raw `localStorage` keys (small per-viewer UI prefs excepted).
-- File operations in Folders and Desktop use `engine/fs-undo.ts`
+- File operations in Folders and Desktop use `platform/shared/fs-undo.ts`
   (`*WithUndo`, `recordCreated`).
-- Opening a file or folder: `hooks/use-open-path.ts` and `lib/files/open-file.ts`.
-- XDG code stays in `lib/xdg/` (keep the tsconfig and Vite aliases up to date).
+- Opening a file or folder: `ui/hooks/use-open-path.ts` and `core/files/open-file.ts`.
+- XDG code stays in `core/xdg/` (keep the tsconfig and Vite aliases up to date).
 - **Drag and drop:** dnd-kit for items; `startPointerDrag`
-  (`lib/dnd/pointer-drag.ts`) to move or resize surfaces. Timings, curves,
-  threshold and ghost lift come from `lib/dnd/drag-feedback.ts`. A drop never
+  (`ui/dnd/pointer-drag.ts`) to move or resize surfaces. Timings, curves,
+  threshold and ghost lift come from `ui/dnd/drag-feedback.ts`. A drop never
   animates back to its start first.
 - **Performance:** throttle or debounce drags, colour pickers and sliders so VFS
   writes, `.desktop` scans and subprocesses don't run at frame rate. Check
   re-renders in Console ▸ Infos ▸ Performance.
-- **Text:** wrap in `_()` (`lib/core/i18n.ts`) and update `src/locales/fr.json`
+- **Text:** wrap in `_()` (`core/util/i18n.ts`) and update `src/core/locales/fr.json`
   and `es.json`.
 - **Icons:** don't redraw app icons, use Papirus. Piloti's animated Lottie icons
   are only for stateful targets (folders, trash).

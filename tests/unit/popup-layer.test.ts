@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { hasOpenPopupSurface, openPopupSurface } from "@/lib/windows/popup-layer";
+import { hasOpenPopupSurface, openPopupSurface } from "@/ui/hooks/popup-layer";
 
 describe("popup layer", () => {
   it("keeps one surface: opening one closes the previous", () => {

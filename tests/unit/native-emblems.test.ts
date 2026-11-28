@@ -1,8 +1,8 @@
 import { afterAll, describe, expect, test } from "bun:test";
-import { createNativeEmblemStorage } from "@/lib/engine-native/emblem-storage";
-import { loadEmblemsMap, setEmblemStorage, syncEmblemsFromHost, toggleEmblem } from "@/lib/engine/emblems";
-import { readVfsStateJson, removeVfsStateFile, setStateSource, VFS_STATE_PATHS } from "@/lib/engine/vfs-state";
-import { webEmblemStorage } from "@/lib/engine-web/web-vfs";
+import { createNativeEmblemStorage } from "@/platform/native/emblem-storage";
+import { loadEmblemsMap, setEmblemStorage, syncEmblemsFromHost, toggleEmblem } from "@/platform/shared/emblems";
+import { readVfsStateJson, removeVfsStateFile, setStateSource, VFS_STATE_PATHS } from "@/platform/shared/vfs-state";
+import { webEmblemStorage } from "@/platform/web/web-vfs";
 
 const files = new Map<string, string>();
 const source = {

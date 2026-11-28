@@ -8,7 +8,7 @@ import {
   loadDataFiles,
   readShippedFile,
   setDataFiles,
-} from "@/lib/engine-web/data-files";
+} from "@/platform/web/data-files";
 
 describe("shipped files", () => {
   it("fetches the home and /etc up front, the rest when first read", async () => {

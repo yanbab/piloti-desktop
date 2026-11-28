@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { evaluateLauncherMath } from "@/shell/launcher/launcher-math";
+import { evaluateLauncherMath } from "@/ui/shell/launcher/launcher-math";
 
 describe("evaluateLauncherMath", () => {
   it("evaluates arithmetic with operator precedence and parentheses", () => {

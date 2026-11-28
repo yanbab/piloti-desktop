@@ -1,10 +1,10 @@
 import { describe, expect, it } from "bun:test";
 import fs from "node:fs";
 import path from "node:path";
-import { DEFAULT_SETTINGS } from "@/context/SettingsContext";
-import { fromGVariant, toGVariant } from "@/lib/config/gvariant";
-import { buildPilotiGschemaXml, gschemaDefaults, PILOTI_GSCHEMA_FILE, schemaPath } from "@/lib/config/piloti-gschema";
-import { desktopSchemaDefaults, desktopSchemaKeys } from "@/lib/config/piloti-settings-ini";
+import { DEFAULT_SETTINGS } from "@/ui/context/SettingsContext";
+import { fromGVariant, toGVariant } from "@/core/config/gvariant";
+import { buildPilotiGschemaXml, gschemaDefaults, PILOTI_GSCHEMA_FILE, schemaPath } from "@/core/config/piloti-gschema";
+import { desktopSchemaDefaults, desktopSchemaKeys } from "@/core/config/piloti-settings-ini";
 
 describe("GVariant text", () => {
   it("round-trips each kind", () => {

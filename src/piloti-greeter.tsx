@@ -1,7 +1,7 @@
 /// <reference types="@domicile-desktop/react/elements" />
-import { loadAppCatalog } from "./lib/engine/app-catalog";
-import { hostFiles } from "./lib/engine/host-files";
-import "./styles/globals.css";
+import { loadAppCatalog } from "./platform/shared/app-catalog";
+import { hostFiles } from "./platform/shared/host-files";
+import "./ui/styles/globals.css";
 import type { Shell as ShellModule } from "@domicile-desktop/sdk/shell";
 
 /**
@@ -21,15 +21,15 @@ async function boot(root: HTMLElement, domicile: Parameters<ShellModule>[1]) {
   }
   // Only now: these read `$HOME` when they load.
   const [{ createNativeVfs }, { withVfs }] = await Promise.all([
-    import("./lib/engine-native/vfs"),
-    import("./lib/engine/with-vfs"),
+    import("./platform/native/vfs"),
+    import("./platform/shared/with-vfs"),
   ]);
   const vfs = createNativeVfs(domicile);
   if (home) {
     try {
       const [{ createNativeStateStore }, { setStateSource }] = await Promise.all([
-        import("./lib/engine-native/state-store"),
-        import("./lib/engine/vfs-state"),
+        import("./platform/native/state-store"),
+        import("./platform/shared/vfs-state"),
       ]);
       setStateSource(await createNativeStateStore(vfs, home));
     } catch (error) {

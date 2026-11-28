@@ -19,7 +19,7 @@ export default defineConfig({
     outDir: `dist/apps/${id}`,
     emptyOutDir: true,
     rollupOptions: {
-      input: `src/apps/${id}/main.tsx`,
+      input: `src/ui/apps/${id}/main.tsx`,
       output: { entryFileNames: `${id}.js`, inlineDynamicImports: true },
       preserveEntrySignatures: "exports-only",
     },

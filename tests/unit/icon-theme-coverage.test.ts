@@ -1,23 +1,23 @@
 import { describe, expect, it } from "bun:test";
-import { APP_CATALOG } from "@/data/catalog";
+import { APP_CATALOG } from "@/core/data/catalog";
 import {
   buildXdgIconThemeIndex,
   lookupXdgIconPath,
   lookupXdgSymbolicIconPath,
   type XdgIconThemeIndex,
-} from "@/lib/xdg/xdg-icon-theme";
-import { DEFAULT_USER_DIR_SPECS } from "@/lib/xdg/xdg-user-dirs";
+} from "@/core/xdg/xdg-icon-theme";
+import { DEFAULT_USER_DIR_SPECS } from "@/core/xdg/xdg-user-dirs";
 import {
   APP_GRID_ICON_CANDIDATES,
   SHELL_XDG_ICON_GROUPS,
   SYMBOLIC_ICONS,
-} from "@/lib/icons/shell-icon-names";
+} from "@/core/icons/shell-icon-names";
 import {
   hasAccentMarkers,
   iconAccentConfigFromIndex,
   markInheritedAccentIcon,
   tintIconDataUrl,
-} from "@/lib/icons/icon-accent-tint";
+} from "@/core/icons/icon-accent-tint";
 import { diskIconReader, listDataFiles, readDataFile } from "../helpers/disk-icon-reader";
 
 // Every icon the shell asks for, by what asks for it.

@@ -35,14 +35,14 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(import.meta.dirname, "src"),
-      "xdg-basedir": path.resolve(import.meta.dirname, "src/lib/xdg/xdg-basedir.ts"),
+      "xdg-basedir": path.resolve(import.meta.dirname, "src/core/xdg/xdg-basedir.ts"),
       "xdg-desktop-entry": path.resolve(
         import.meta.dirname,
-        "src/lib/xdg/xdg-desktop-entry.ts"
+        "src/core/xdg/xdg-desktop-entry.ts"
       ),
       "xdg-icon-theme": path.resolve(
         import.meta.dirname,
-        "src/lib/xdg/xdg-icon-theme.ts"
+        "src/core/xdg/xdg-icon-theme.ts"
       ),
     },
   },

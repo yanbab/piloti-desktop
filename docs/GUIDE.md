@@ -18,7 +18,7 @@ Also: [architecture](./ARCHITECTURE.md), [Linux](./LINUX.md), [API](./API.md),
   box,window}`; height `h-/size-ui-control-{small,medium,large}`; surfaces `--ui-{window,group,sidebar,overlay}`; colour `--ui-*`, never `--adw-*`. On controls use `hover-fill:`
   (Adwaita only), never `hover:`.
 - **Leaving Tailwind** widget by widget: plain CSS in
-  `styles/components/<name>.css` (`ui-<name>`, `data-variant`, `data-size`,
+  `ui/styles/components/<name>.css` (`ui-<name>`, `data-variant`, `data-size`,
   `@layer components`), usable without React. Done: button, switch, checkbox,
   input, window frame, grouped form, sidebar, menus, segmented control.
 
@@ -43,33 +43,37 @@ in `piloti-macos.css`.
 
 | Folder | Holds |
 |---|---|
-| `apps/<app>/` | One built-in app: its components and the helpers only it uses. `main.tsx` is its isolated module entry |
-| `shell/<feature>/` | Desktop, menu bar, Dock, launcher, overview, windows, notifications, session, dialogs |
-| `components/` | `ui/` widgets, `elements/` app chrome, `common/` pieces shared by apps and shell |
-| `context/`, `hooks/`, `data/` | Shared state, hooks and catalogs |
-| `lib/` | Engines and ports, `xdg`, `config`, `core`, and shared logic: `dnd`, `files`, `icons`, `windows`, `plugins` |
+| `ui/apps/<app>/` | One built-in app: its components and the helpers only it uses. `main.tsx` is its isolated module entry |
+| `ui/shell/<feature>/` | Desktop, menu bar, Dock, launcher, overview, windows, notifications, session, dialogs |
+| `ui/components/` | `ui/` widgets, `elements/` app chrome, `common/` pieces shared by apps and shell |
+| `ui/context/`, `ui/hooks/`, `ui/dnd/` | Shared state, hooks, drag and drop |
+| `platform/` | Adapters: `shared/` (what UI code calls), `native/` (Linux), `web/` (demo) |
+| `core/ports/` | Interfaces: `Piloti`, `vfs`, settings, hardware, the public shell API, `AppHost` and `Apps` |
+| `core/apps/` | The apps backend and the module IPC, plain enough for an app module |
+| `core/<topic>/` | Plain logic: `xdg`, `config`, `files`, `windows`, `icons`, `plugins`, `system`, `util`; `data/` catalogs |
 
 ## Map
 
 | Area | Files |
 |---|---|
-| Window manager, frame | `shell/windows/WindowManager.tsx`, `components/ui/window.tsx`; window contents: `WindowBody.tsx` and `*Surface.tsx` |
-| App registration | `data/catalog.ts`, `BUILTIN_APPS` in `shell/windows/WindowBody.tsx`, `launchApp` and `builtinExecMap` in `context/WindowsContext.tsx` |
-| Menus | `shell/menubar/MenuBar.tsx`, `components/common/AppMenuItems.tsx`, `publishWindowMenuState` (`lib/engine/app-bridge.ts`) |
-| Popups (one at a time) | `lib/windows/popup-layer.ts` |
-| Floating windows | `lib/windows/floating-window.ts`, `lib/dnd/pointer-drag.ts`, `shell/windows/PresentationOverlay.tsx` |
-| Window presentations | `lib/windows/window-presentation.ts`, `context/PluginsContext.tsx`, `lib/plugins/types.ts` |
+| Window manager, frame | `ui/shell/windows/WindowManager.tsx`, `ui/components/ui/window.tsx`; window contents: `WindowBody.tsx` and `*Surface.tsx` |
+| App registration | `core/data/catalog.ts`, `BUILTIN_APPS` in `ui/shell/windows/WindowBody.tsx`, `launchApp` and `builtinExecMap` in `ui/context/WindowsContext.tsx` |
+| Menus | `ui/shell/menubar/MenuBar.tsx`, `ui/components/common/AppMenuItems.tsx`, `publishWindowMenuState` (`platform/shared/app-bridge.ts`) |
+| Popups (one at a time) | `ui/hooks/popup-layer.ts` |
+| Floating windows | `core/windows/floating-window.ts`, `ui/dnd/pointer-drag.ts`, `ui/shell/windows/PresentationOverlay.tsx` |
+| Window presentations | `core/windows/window-presentation.ts`, `ui/context/PluginsContext.tsx`, `core/plugins/types.ts` |
 | Bundled plugins | `data/files/usr/share/piloti/plugins/`; the demo-only example is in `data/files/home/user/.config/piloti/plugins/` |
-| Icon grid | `components/ui/icon-grid.tsx`, `lib/files/desktop-icons.ts`, `lib/dnd/drag-feedback.ts` |
-| Folders tree | `components/ui/folder-tree-view.tsx`, `hooks/use-folder-tree.ts`, `lib/files/folder-tree.ts` |
-| Item drag and drop | `lib/dnd/{item-drop,drag-ghost}.ts`, `shell/dock/dock-pins.ts` |
-| Folder views | `components/ui/folder-icon-view.tsx`, `hooks/{use-folder-ops,use-external-file-drop,use-launcher-items}.ts`, `lib/files/folder-items.ts` |
-| Icons ([details](#icons)) | `lib/xdg/xdg-icon-theme.ts`, `lib/icons/{icon-accent-tint,shell-icon-names}.ts` |
-| UI symbols ([details](./SYMBOLIC-ICONS.md)) | `components/ui/symbolic-icon.tsx`, `lib/icons/symbolic-icons.ts` |
+| Icon grid | `ui/components/ui/icon-grid.tsx`, `core/files/desktop-icons.ts`, `ui/dnd/drag-feedback.ts` |
+| Folders tree | `ui/components/ui/folder-tree-view.tsx`, `ui/hooks/use-folder-tree.ts`, `core/files/folder-tree.ts` |
+| Item drag and drop | `ui/dnd/{item-drop,drag-ghost}.ts`, `ui/shell/dock/dock-pins.ts` |
+| Folder views | `ui/components/ui/folder-icon-view.tsx`, `ui/hooks/{use-folder-ops,use-external-file-drop,use-launcher-items}.ts`, `core/files/folder-items.ts` |
+| Icons ([details](#icons)) | `core/xdg/xdg-icon-theme.ts`, `core/icons/{icon-accent-tint,shell-icon-names}.ts` |
+| UI symbols ([details](./SYMBOLIC-ICONS.md)) | `ui/components/ui/symbolic-icon.tsx`, `core/icons/symbolic-icons.ts` |
 | Web browser | `WebViewSurface.tsx`, `BrowserTabsSurface.tsx`, `BrowserTabBar.tsx`; tab groups in `WindowsContext.tsx`. A tab is a Domicile browser window; iframes must not move on reorder |
-| Settings | `context/SettingsContext.tsx`, `piloti-settings-ini.ts` |
-| App chrome | `components/elements/` (`AppWindow`, `HeaderBar`, `AppSplitView`…), fed by `shell/windows/WindowAppChrome.tsx`. Start from `apps/hello/HelloWorldApp.tsx`. Apps only lay out content (`tests/unit/app-styling.test.ts`) |
-| Sidebar apps | `components/ui/adw-split-view.tsx` |
+| Settings | `ui/context/SettingsContext.tsx`, `piloti-settings-ini.ts` |
+| Separate apps | hosts in `platform/shared/app-{shell,module}-host.ts`; `core/apps/module-channel.ts`; list in `core/data/app-modules.ts` |
+| App chrome | `ui/components/elements/` (`AppWindow`, `HeaderBar`, `AppSplitView`…), fed by `ui/shell/windows/WindowAppChrome.tsx`. Start from `ui/apps/hello/HelloWorldApp.tsx`. Apps only lay out content (`tests/unit/app-styling.test.ts`) |
+| Sidebar apps | `ui/components/ui/adw-split-view.tsx` |
 
 ## Checking in the demo
 
@@ -97,13 +101,13 @@ the next. Installed systems provide Papirus, Adwaita and hicolor; we ship
 Piloti and `hicolor/…/piloti-*`. The demo has minimal copies in
 `data/files/usr/share/icons/`.
 
-Names are listed in `src/data/catalog.ts` (`xdgIcons`),
-`lib/icons/shell-icon-names.ts` and `lib/xdg/xdg-user-dirs.ts`.
+Names are listed in `src/core/data/catalog.ts` (`xdgIcons`),
+`core/icons/shell-icon-names.ts` and `core/xdg/xdg-user-dirs.ts`.
 `tests/unit/icon-theme-coverage.test.ts` resolves them all.
 
 ### Accent tinting
 
-Only marked shapes are recolored (`lib/icons/icon-accent-tint.ts`).
+Only marked shapes are recolored (`core/icons/icon-accent-tint.ts`).
 
 | Class | Color | Placeholder |
 |---|---|---|
@@ -133,4 +137,4 @@ tint; `*` matches a suffix). Adwaita has none, so GNOME icons keep their colors.
 
 Dock icons (`~/.cache/piloti/dock-icons.json`), XDG apps and the icon index.
 When resolution or marking changes, bump `ICON_CACHE_VERSION`
-(`context/AppsContext.tsx`).
+(`ui/context/AppsContext.tsx`).

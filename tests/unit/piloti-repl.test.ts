@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { createRepl, evaluateLine, formatValue, evaluateWithoutEval } from "@/apps/terminal/piloti-repl";
+import { createRepl, evaluateLine, formatValue, evaluateWithoutEval } from "@/ui/apps/terminal/piloti-repl";
 
 describe("piloti repl", () => {
   test("evaluates expressions and statements with the scope in reach", async () => {

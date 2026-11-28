@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { parseIniText, serializeIniText } from "@/lib/config/ini";
+import { parseIniText, serializeIniText } from "@/core/config/ini";
 
 describe("ini preview conversion", () => {
   it("converts INI text to a section/key object for the JSON viewer", () => {

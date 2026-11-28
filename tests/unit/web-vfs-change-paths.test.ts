@@ -6,8 +6,8 @@ import {
   subscribeWebVfs,
   vfsChangeAffects,
   writeVfsTextFile,
-} from "@/lib/engine-web/web-vfs";
-import { writeVfsStateJson } from "@/lib/engine/vfs-state";
+} from "@/platform/web/web-vfs";
+import { writeVfsStateJson } from "@/platform/shared/vfs-state";
 
 describe("vfsChangeAffects", () => {
   it("matches exact paths and ancestors", () => {

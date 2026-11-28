@@ -1,8 +1,8 @@
 import { describe, expect, it } from "bun:test";
 import fs from "node:fs";
 import path from "node:path";
-import { publishWindows, shellApi } from "@/lib/engine/shell-api";
-import { withVfs } from "@/lib/engine/with-vfs";
+import { publishWindows, shellApi } from "@/platform/shared/shell-api";
+import { withVfs } from "@/platform/shared/with-vfs";
 
 const ROOT = path.resolve(import.meta.dir, "../..");
 const read = (file: string) => fs.readFileSync(path.join(ROOT, file), "utf8");
@@ -45,7 +45,7 @@ describe("shell API", () => {
 
   it("is described in docs/API.md, member by member", () => {
     const doc = read("docs/API.md");
-    const source = read("src/lib/ports/shell-api.ts");
+    const source = read("src/core/ports/shell-api.ts");
     const members = [...source.matchAll(/^  (?:readonly )?(\w+)\??[(:]/gm)].map((m) => m[1]);
     expect(members.length).toBeGreaterThan(20);
     expect(members.filter((name) => !new RegExp(`\\b${name}\\b`).test(doc))).toEqual([]);

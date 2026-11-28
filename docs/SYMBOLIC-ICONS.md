@@ -1,21 +1,21 @@
 # Symbolic icons
 
 The shell's UI symbols come from the icon theme through `<SymbolicIcon
-name="…" fallback={LucideGlyph}>` (`components/ui/symbolic-icon.tsx`), in the
+name="…" fallback={LucideGlyph}>` (`ui/components/ui/symbolic-icon.tsx`), in the
 text colour. Adwaita uses the theme; Piloti and Cupertino keep Lucide.
 
-- Names are listed in `SYMBOLIC_ICONS` (`lib/icons/shell-icon-names.ts`),
+- Names are listed in `SYMBOLIC_ICONS` (`core/icons/shell-icon-names.ts`),
   standard name first. All are loaded together when the icon theme changes
-  (`lib/icons/symbolic-icons.ts`).
+  (`core/icons/symbolic-icons.ts`).
 - The Lucide glyph is drawn when no theme in the chain has the name.
 - A new name needs its demo SVGs: copy them, unmodified, from an installed
   system (`/usr/share/icons/Adwaita/symbolic/` and
-  `Papirus/16x16/symbolic/`) into `data/files/usr/share/icons/<theme>/symbolic/`
+  `Papirus/16x16/symbolic/`) into `core/data/files/usr/share/icons/<theme>/symbolic/`
   and list new folders in that `index.theme`. Don't draw them. The `.deb`
   leaves both out. Current copies: Debian `adwaita-icon-theme` 51.0
   (LGPL-3.0 or CC-BY-SA-3.0) and `papirus-icon-theme` 20260801 (GPL-3.0).
 
-Import a Lucide name from `components/ui/symbols.tsx` to get the themed one;
+Import a Lucide name from `ui/components/ui/symbols.tsx` to get the themed one;
 add it there when a new glyph is needed. Where the meaning differs from that
 default (Chevron in a menu or a button, a charging battery), write
 `<SymbolicIcon>` with the name.
@@ -139,9 +139,9 @@ single spinner glyph (GTK draws it).
 | User | `avatar-default` |  |
 | UserPlus | `contact-new` |  |
 | Video | `camera-video` |  |
-| Volume2 | `audio-volume-low` / `-medium` / `-high` | Adwaita only: Piloti and Cupertino draw Lucide `Volume` / `Volume1` / `Volume2` by level (`components/common/SoundVolumeIcon.tsx`) |
+| Volume2 | `audio-volume-low` / `-medium` / `-high` | Adwaita only: Piloti and Cupertino draw Lucide `Volume` / `Volume1` / `Volume2` by level (`ui/components/common/SoundVolumeIcon.tsx`) |
 | VolumeX | `audio-volume-muted` |  |
-| Wifi | `network-wireless-signal-weak` / `-ok` / `-excellent` | Adwaita only: Piloti and Cupertino draw Lucide `WifiLow` / `WifiHigh` / `Wifi` by signal (`components/common/WifiSignalIcon.tsx`) |
+| Wifi | `network-wireless-signal-weak` / `-ok` / `-excellent` | Adwaita only: Piloti and Cupertino draw Lucide `WifiLow` / `WifiHigh` / `Wifi` by signal (`ui/components/common/WifiSignalIcon.tsx`) |
 | WifiOff | `network-wireless-disabled` |  |
 | Wrench | `applications-utilities` |  |
 | X | `window-close` |  |
@@ -152,22 +152,22 @@ single spinner glyph (GTK draws it).
 
 No standard name, Papirus-only names, spinners, and the favourite heart.
 
-| File (`src/components/`) | Icons |
+| File (`src/ui/components/`) | Icons |
 |---|---|
-| `apps/app-store/AppStoreApp.tsx` | Briefcase, CheckCircle2, Code2, Layers, Sparkles |
-| `apps/console/ConsoleApp.tsx` | Cpu, Database, Gauge |
-| `apps/files/FilesApp.tsx` | Briefcase, Heart, Tag |
-| `apps/image-viewer/ImageViewerApp.tsx` | Crop |
-| `apps/piloti-demo/PilotiDemoApp.tsx` | Boxes |
-| `apps/settings/SettingsApp.tsx` | Dock |
-| `apps/settings/FontsPane.tsx` | ChevronsUpDown |
-| `apps/settings/WallpaperPane.tsx` | SunMoon |
-| `shell/overview/AltTabSwitcher.tsx` | Sparkles |
-| `shell/session/AuthPasswordCard.tsx` | Loader2 |
-| `shell/windows/BrowserExtensionsMenu.tsx` | PinOff |
-| `shell/launcher/Launcher.tsx` | Layers, LayoutTemplate |
-| `shell/dialogs/PortalDialogs.tsx` | Sparkles |
-| `shell/windows/WindowManager.tsx` | Loader2 |
+| `ui/apps/app-store/AppStoreApp.tsx` | Briefcase, CheckCircle2, Code2, Layers, Sparkles |
+| `ui/apps/console/ConsoleApp.tsx` | Cpu, Database, Gauge |
+| `ui/apps/files/FilesApp.tsx` | Briefcase, Heart, Tag |
+| `ui/apps/image-viewer/ImageViewerApp.tsx` | Crop |
+| `ui/apps/piloti-demo/PilotiDemoApp.tsx` | Boxes |
+| `ui/apps/settings/SettingsApp.tsx` | Dock |
+| `ui/apps/settings/FontsPane.tsx` | ChevronsUpDown |
+| `ui/apps/settings/WallpaperPane.tsx` | SunMoon |
+| `ui/shell/overview/AltTabSwitcher.tsx` | Sparkles |
+| `ui/shell/session/AuthPasswordCard.tsx` | Loader2 |
+| `ui/shell/windows/BrowserExtensionsMenu.tsx` | PinOff |
+| `ui/shell/launcher/Launcher.tsx` | Layers, LayoutTemplate |
+| `ui/shell/dialogs/PortalDialogs.tsx` | Sparkles |
+| `ui/shell/windows/WindowManager.tsx` | Loader2 |
 | `ui/dropdown-menu.tsx` | Circle |
 | `ui/icon-grid.tsx` | Briefcase, Heart, Tag |
 | `ui/search-field.tsx` | ListFilter |

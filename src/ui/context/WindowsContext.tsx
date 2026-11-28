@@ -1,0 +1,2449 @@
+import { killAppProcesses, launchDesktopCommand } from "@/platform/shared/system-commands";
+import { logAppLaunch } from "@/core/util/perf-log";
+import * as React from "react";
+import { useDisplays } from "@domicile-desktop/react/displays";
+import { usePiloti } from "@/platform/shared/piloti";
+import { AppReuse } from "@domicile-desktop/sdk/desktop/browser";
+import { useWatch } from "@domicile-desktop/react/use-watch";
+import { useFocusedWindow, useWindows } from "@domicile-desktop/react/windows";
+import {
+  type WindowRequest,
+  WindowRequestKind,
+  WindowState,
+} from "@domicile-desktop/sdk/window-state";
+import {
+  APP_CATALOG,
+  type BuiltinAppId,
+} from "@/core/data/catalog";
+import {
+  canonicalizeWebUrl,
+  findMatchingWebApp,
+} from "@/core/data/web-apps";
+import { moduleDocument, resolveAppModuleByUrl } from "@/core/data/app-modules";
+import {
+  DOCUMENT_SCOPED_APP_IDS,
+  lookupSpatialWindowBounds,
+  resolveSpatialBoundsKey,
+} from "@/core/windows/spatial-window-bounds";
+import {
+  type GnomeSettingsPanel,
+  openAppModule, tellModulesMoved,
+  openGnomeControlCenter,
+} from "@/platform/shared/desktop-integration";
+import { getRunIn } from "@/core/windows/run-mode";
+import {
+  matchXdgEntryForWaylandWindow,
+  resolveWaylandClientFrame,
+  type XdgDesktopEntry,
+} from "xdg-desktop-entry";
+import {
+  clearXdgSession,
+  loadXdgSession,
+  saveXdgSession,
+  serializeWindowToXdgSession,
+  type XdgSessionWindow,
+} from "@/core/xdg/xdg-session-management";
+import {
+  clampWindowBounds,
+  clampWorkspace,
+  resolveWaylandOuterConstraints,
+} from "@/core/windows/window-bounds";
+import { subscribeRenames } from "@/platform/shared/renames";
+import { demoFiles } from "@/core/ports/demo-files";
+import { pathAfterRename } from "@/core/ports/vfs";
+import { isImageVfsFile } from "@/core/files/vfs-media";
+import { type AppsContextValue, matchAppFromWayland } from "./AppsContext";
+import { type SettingsContextValue } from "./SettingsContext";
+import { type SystemBackendsContextValue } from "./SystemBackendsContext";
+import { useGlobalAppMenu } from "./windows/useGlobalAppMenu";
+import { useModuleChannel } from "./windows/use-module-channel";
+import { useGlobalShortcuts } from "./windows/useGlobalShortcuts";
+import { getEngine } from "@/platform/shared/engine";
+import { useCapabilities } from "@/ui/hooks/use-capabilities";
+import type { DesktopWindowInstance, BrowserTabGroup, WindowsContextValue, WindowActionsValue, ExternalWindowMeta } from "./windows/types";
+export type { DesktopWindowInstance, BrowserTab, ResolvedPopupWindow, WindowsContextValue, WindowActionsValue } from "./windows/types";
+export { BROWSER_DEMO_HOME_URL, BROWSER_HOME_URL, normalizeWebUrl } from "@/core/windows/browser-url";
+import { BROWSER_DEMO_HOME_URL, BROWSER_HOME_URL, normalizeWebUrl } from "@/core/windows/browser-url";
+import { pinnedTabs, reorderedTabs } from "@/core/windows/tab-groups";
+import { patchExternalMeta, upsertBrowserRecord, pruneBrowserRecord } from "./windows/window-meta";
+import { computeCenteredOrCascadedPosition } from "@/core/windows/cascade-position";
+import { resolvePopupWindows, resolveSyncedParentFrames } from "@/core/windows/popups";
+import { combineWindows } from "./windows/combine-windows";
+import { useWindowReadiness } from "./windows/use-window-readiness";
+import { useStartupNotifications } from "./windows/use-startup-notifications";
+import { useDockRefs } from "./windows/use-dock-refs";
+import { nextZ } from "./windows/z-order";
+
+// One array while there is nothing, so memos and effects keep still.
+const NO_BROWSER_WINDOWS: NonNullable<ReturnType<typeof usePiloti>["browser"]["windows"]> = [];
+
+export const WindowsContext = React.createContext<WindowsContextValue | null>(null);
+export const WindowActionsContext =
+  React.createContext<WindowActionsValue | null>(null);
+
+let nextShellWinCounter = 1;
+
+export function useWindowsValue(
+  settingsCtx: SettingsContextValue,
+  backendsCtx: SystemBackendsContextValue,
+  appsCtx: AppsContextValue
+): WindowsContextValue {
+  const piloti = usePiloti();
+  const displays = useDisplays();
+  const waylandWindows = useWindows();
+  const waylandFocused = useFocusedWindow();
+  const browserWindows =
+    useWatch(piloti.browser, "change", () => piloti.browser.windows) ?? NO_BROWSER_WINDOWS;
+
+  const { settings, updateSettings } = settingsCtx;
+  const { systemServices, realFilesystem, compositor } = useCapabilities();
+  const { gnomeCapabilities, takeScreenshot } = backendsCtx;
+  const {
+    installedXdgApps,
+    getAppIconUrl,
+    ensureWaylandIcons,
+    launchXdgEntry,
+  } = appsCtx;
+
+  const primaryDisplay = displays?.[0];
+  const primaryMonitorName = primaryDisplay?.name ?? "primary";
+  const screenWidth =
+    primaryDisplay?.width ??
+    (typeof window !== "undefined" ? window.innerWidth : 1440);
+  const screenHeight =
+    primaryDisplay?.height ??
+    (typeof window !== "undefined" ? window.innerHeight : 900);
+
+  const pendingSessionRestoreRef = React.useRef<Map<string, XdgSessionWindow>>(
+    new Map()
+  );
+  const sessionHydratedRef = React.useRef(false);
+  const clientWindowRequestListenersRef = React.useRef(
+    new Set<(req: WindowRequest) => void>()
+  );
+  const subscribeClientWindowRequest = React.useCallback(
+    (listener: (req: WindowRequest) => void) => {
+      clientWindowRequestListenersRef.current.add(listener);
+      return () => {
+        clientWindowRequestListenersRef.current.delete(listener);
+      };
+    },
+    []
+  );
+
+  const pendingWebTitlesRef = React.useRef<Map<string, string>>(new Map());
+  const [launcherOpen, setLauncherOpen] = React.useState(false);
+
+  React.useEffect(() => {
+    const onOpenLauncher = () => setLauncherOpen(true);
+    window.addEventListener("piloti:open-launcher", onOpenLauncher);
+    return () =>
+      window.removeEventListener("piloti:open-launcher", onOpenLauncher);
+  }, []);
+  const [controlPanelOpen, setControlPanelOpen] = React.useState(false);
+  const [aboutOpen, setAboutOpen] = React.useState(false);
+  const [overviewOpen, setOverviewOpen] = React.useState(false);
+  const [altTabState, setAltTabState] = React.useState<{
+    open: boolean;
+    index: number;
+  }>({ open: false, index: 0 });
+  const altTabOpen = altTabState.open;
+  const altTabIndex = altTabState.index;
+
+  const clearLaunchOverlays = React.useCallback(() => {
+    setOverviewOpen(false);
+    setLauncherOpen(false);
+    setControlPanelOpen(false);
+    setAltTabState((prev) => (prev.open ? { ...prev, open: false } : prev));
+  }, []);
+
+  // Restore built-in shell windows from xdg-session-management-v1 (or default Browser Dev Mode window on first run)
+  const [shellWindows, setShellWindows] = React.useState<
+    DesktopWindowInstance[]
+  >(() => {
+    if (!settings.restoreWindowsOnLogin) {
+      clearXdgSession();
+    } else {
+      const savedSession = loadXdgSession();
+      if (savedSession !== null) {
+        const restoredShell: DesktopWindowInstance[] = [];
+        for (const rec of savedSession) {
+          const def = APP_CATALOG.find((a) => a.id === rec.id);
+          if (def?.builtinComponent) {
+            const count = ++nextShellWinCounter;
+            const minSize = def.minSize ?? { width: 320, height: 240 };
+            const clamped = clampWindowBounds(
+              { x: rec.x, y: rec.y },
+              { width: rec.width, height: rec.height },
+              screenWidth,
+              screenHeight,
+              { minWidth: minSize.width, minHeight: minSize.height }
+            );
+            restoredShell.push({
+              id: `shell:${rec.id}-${count}`,
+              appId: rec.id,
+              title: rec.title || def.name,
+              iconName: def.iconName,
+              builtinComponent: def.builtinComponent,
+              isolated:
+                !getEngine().capabilities.systemServices && getRunIn(rec.id) === "isolated",
+              clientFrame: def.builtinComponent !== "terminal",
+              workspace: clampWorkspace(rec.workspace, settings.workspaceCount),
+              position: clamped.position,
+              size: clamped.size,
+              minSize,
+              minimized: false,
+              maximized: rec.maximized,
+              fullscreen: rec.fullscreen,
+              pinned: rec.pinned,
+              zIndex: nextZ(),
+              payload: rec.payload,
+            });
+          } else {
+            pendingSessionRestoreRef.current.set(rec.id, rec);
+          }
+        }
+        return restoredShell;
+      }
+    }
+
+    if (getEngine().capabilities.simulatedHardware) {
+      const settingsDef = APP_CATALOG.find((a) => a.id === "settings")!;
+      const minSize = settingsDef.minSize ?? { width: 620, height: 400 };
+      const saved = settings.savedWindowBounds?.settings;
+      const clamped = clampWindowBounds(
+        saved?.position ?? {
+          x: Math.max(80, Math.round(screenWidth * 0.22)),
+          y: Math.max(48, Math.round(screenHeight * 0.1)),
+        },
+        saved?.size ?? { width: 820, height: 540 },
+        screenWidth,
+        screenHeight,
+        { minWidth: minSize.width, minHeight: minSize.height }
+      );
+      return [
+        {
+          id: "shell:settings-1",
+          appId: "settings",
+          title: "Desktop Settings",
+          iconName: settingsDef.iconName,
+          builtinComponent: "settings",
+          clientFrame: true,
+          workspace: saved?.workspace ?? 1,
+          position: clamped.position,
+          size: clamped.size,
+          minSize,
+          minimized: false,
+          maximized: saved?.maximized ?? false,
+          zIndex: nextZ(),
+          payload: "appearance",
+        },
+      ];
+    }
+    return [];
+  });
+
+  // Restore external (webview / Wayland) windows queued from xdg-session-management-v1
+  React.useEffect(() => {
+    if (sessionHydratedRef.current) return;
+    sessionHydratedRef.current = true;
+    if (!settings.restoreWindowsOnLogin) {
+      pendingSessionRestoreRef.current.clear();
+      return;
+    }
+
+    for (const rec of pendingSessionRestoreRef.current.values()) {
+      if (rec.id.startsWith("web:")) {
+        const url = rec.id.slice(4);
+        if (url) piloti.browser.open(url);
+      } else if (systemServices) {
+        const def = APP_CATALOG.find((a) => a.id === rec.id);
+        launchDesktopCommand(piloti, def?.linuxCommand ?? [rec.id]);
+      }
+    }
+  }, [piloti, systemServices, settings.restoreWindowsOnLogin]);
+
+  const [waylandMeta, setWaylandMeta] = React.useState<
+    Record<string, ExternalWindowMeta>
+  >({});
+
+  const [browserMeta, setBrowserMeta] = React.useState<
+    Record<string, ExternalWindowMeta>
+  >({});
+
+
+  const [browserFavicons, setBrowserFavicons] = React.useState<
+    Record<string, string>
+  >({});
+  const [browserTitles, setBrowserTitles] = React.useState<
+    Record<string, string>
+  >({});
+
+  const setBrowserFavicon = React.useCallback(
+    (browserWindowId: string, favicon: string) => {
+      setBrowserFavicons((prev) =>
+        upsertBrowserRecord(prev, browserWindowId, favicon)
+      );
+    },
+    []
+  );
+
+  const setBrowserTitle = React.useCallback(
+    (browserWindowId: string, title: string) => {
+      setBrowserTitles((prev) =>
+        upsertBrowserRecord(prev, browserWindowId, title.trim())
+      );
+    },
+    []
+  );
+
+  // Web Browser tabs. A window is a group of Domicile browser windows keyed by
+  // the first one (its geometry lives in browserMeta under that key, even
+  // after that tab closes); only the active tab is shown. A window with a
+  // single page has no record.
+  const [browserTabGroups, setBrowserTabGroups] = React.useState<
+    Record<string, BrowserTabGroup>
+  >({});
+  const browserTabGroupsRef = React.useRef(browserTabGroups);
+  browserTabGroupsRef.current = browserTabGroups;
+  /** Groups waiting for the browser window they asked for, oldest first. */
+  const pendingTabGroupsRef = React.useRef<string[]>([]);
+  /** Web Browser windows asked for and not yet listed by Domicile. */
+  const pendingBrowserAppRef = React.useRef(0);
+
+  const { unreadyWindowIds, markWindowReady, markWindowUnready } = useWindowReadiness();
+
+  // Sync Domicile `<webview>` browser windows
+  const knownBrowserIdsRef = React.useRef<Set<string>>(new Set());
+
+  React.useLayoutEffect(() => {
+    const activeIds = new Set(browserWindows.map((bw) => bw.id));
+    const newEntries = new Map<string, ExternalWindowMeta>();
+    let newlyFocused: {
+      id: string;
+      workspace: number;
+      pinned: boolean;
+    } | null = null;
+
+    const prevGroups = browserTabGroupsRef.current;
+    const tabAdds: Array<[group: string, tab: string]> = [];
+
+    for (const [idx, bw] of browserWindows.entries()) {
+      if (!knownBrowserIdsRef.current.has(bw.id)) {
+        // A page asked for as a tab joins its window instead of opening one.
+        const appModule = resolveAppModuleByUrl(bw.url);
+        const isModule = Boolean(appModule);
+        if (!bw.isApp && !isModule && pendingTabGroupsRef.current.length > 0) {
+          const group = pendingTabGroupsRef.current.shift()!;
+          if (activeIds.has(group) || prevGroups[group]) {
+            tabAdds.push([group, bw.id]);
+            continue;
+          }
+        }
+        markWindowUnready(`browser:${bw.id}`, 180);
+        const sessionKey = bw.url ? `web:${bw.url}` : undefined;
+        const restored = sessionKey
+          ? pendingSessionRestoreRef.current.get(sessionKey)
+          : undefined;
+        if (sessionKey && restored) {
+          pendingSessionRestoreRef.current.delete(sessionKey);
+        }
+        const remembered = lookupSpatialWindowBounds(settings.savedWindowBounds, {
+          appId: bw.appId || "webview",
+          browserUrl: bw.url,
+        });
+        const defaultW =
+          restored?.width ??
+          remembered?.size.width ??
+          appModule?.size?.width ??
+          (bw.width > 200
+            ? bw.width
+            : Math.min(720, Math.max(520, screenWidth - 220)));
+        const defaultH =
+          restored?.height ??
+          remembered?.size.height ??
+          appModule?.size?.height ??
+          (bw.height > 150
+            ? bw.height
+            : Math.min(520, Math.max(380, screenHeight - 180)));
+        const sameAppPositions: Array<{ x: number; y: number }> = [];
+        for (const prevBw of browserWindows) {
+          if (prevBw.id === bw.id) continue;
+          const prevKey = prevBw.appId || prevBw.url;
+          const curKey = bw.appId || bw.url;
+          if (prevKey !== curKey) continue;
+          const existingMeta =
+            newEntries.get(prevBw.id) ?? browserMeta[prevBw.id];
+          if (existingMeta && !existingMeta.minimized) {
+            sameAppPositions.push(existingMeta.position);
+          }
+        }
+        const clamped = clampWindowBounds(
+          restored
+            ? { x: restored.x, y: restored.y }
+            : computeCenteredOrCascadedPosition(
+                sameAppPositions,
+                { width: defaultW, height: defaultH },
+                screenWidth,
+                screenHeight,
+                remembered?.position
+              ),
+          { width: defaultW, height: defaultH },
+          screenWidth,
+          screenHeight,
+          {
+            minWidth: appModule?.size?.width ?? 420,
+            minHeight: appModule?.size?.height ?? 300,
+          }
+        );
+        const workspace = restored
+          ? clampWorkspace(restored.workspace, settings.workspaceCount)
+          : remembered?.workspace !== undefined
+            ? clampWorkspace(remembered.workspace, settings.workspaceCount)
+            : clampWorkspace(settings.activeWorkspace, settings.workspaceCount);
+        const pinned = restored?.pinned ?? false;
+        const restoredAsBrowser = restored?.payload === "browser";
+        const browserApp =
+          !bw.isApp && !isModule && (restoredAsBrowser || pendingBrowserAppRef.current > 0);
+        if (browserApp && !restoredAsBrowser) pendingBrowserAppRef.current -= 1;
+        newEntries.set(bw.id, {
+          browserApp,
+          position: clamped.position,
+          size: clamped.size,
+          minimized: false,
+          maximized: restored?.maximized ?? remembered?.maximized ?? false,
+          fullscreen: restored?.fullscreen ?? false,
+          pinned,
+          tiled: null,
+          zIndex: nextZ(),
+          workspace,
+        });
+        newlyFocused = {
+          id: `browser:${bw.id}`,
+          workspace,
+          pinned,
+        };
+      }
+    }
+    knownBrowserIdsRef.current = activeIds;
+
+    // Drop closed tabs; a closed active tab hands over to its neighbour.
+    let groupsChanged = tabAdds.length > 0;
+    const nextGroups: Record<string, BrowserTabGroup> = {};
+    for (const [group, grp] of Object.entries(prevGroups)) {
+      const tabs = grp.tabs.filter((id) => activeIds.has(id));
+      if (tabs.length !== grp.tabs.length) groupsChanged = true;
+      if (tabs.length === 0) continue;
+      const active = tabs.includes(grp.active)
+        ? grp.active
+        : tabs[Math.min(Math.max(0, grp.tabs.indexOf(grp.active) - 1), tabs.length - 1)];
+      const pinned = grp.pinned?.filter((id) => tabs.includes(id));
+      nextGroups[group] = { tabs, active, ...(pinned?.length ? { pinned } : {}) };
+    }
+    for (const [group, tab] of tabAdds) {
+      const grp = nextGroups[group] ?? { tabs: [group], active: group };
+      nextGroups[group] = { ...grp, tabs: [...grp.tabs, tab], active: tab };
+    }
+    for (const [group, grp] of Object.entries(nextGroups)) {
+      if (grp.tabs.length === 1 && grp.tabs[0] === group) {
+        delete nextGroups[group];
+        groupsChanged = true;
+      }
+    }
+    if (groupsChanged) {
+      browserTabGroupsRef.current = nextGroups;
+      setBrowserTabGroups(nextGroups);
+    }
+
+    setBrowserFavicons((prev) => pruneBrowserRecord(prev, activeIds));
+    setBrowserTitles((prev) => pruneBrowserRecord(prev, activeIds));
+
+    setBrowserMeta((prev) => {
+      let changed = false;
+      const next: Record<string, ExternalWindowMeta> = {};
+      for (const [id, meta] of Object.entries(prev)) {
+        if (activeIds.has(id) || nextGroups[id]) next[id] = meta;
+        else changed = true;
+      }
+      for (const [id, entry] of newEntries) {
+        if (!next[id]) {
+          next[id] = entry;
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+
+    if (newlyFocused) {
+      const target = newlyFocused;
+      clearLaunchOverlays();
+      if (!target.pinned && target.workspace !== settings.activeWorkspace) {
+        updateSettings({ activeWorkspace: target.workspace });
+      }
+      setFocusedWindowId(target.id);
+      setMruIds((prev) => [target.id, ...prev.filter((id) => id !== target.id)]);
+      piloti.windows.focusShell();
+    }
+  }, [
+    browserWindows,
+    clearLaunchOverlays,
+    piloti.windows,
+    markWindowUnready,
+    screenHeight,
+    screenWidth,
+    settings.activeWorkspace,
+    settings.savedWindowBounds,
+    settings.workspaceCount,
+    updateSettings,
+  ]);
+
+  // Sync new Wayland windows and restore remembered geometry per desktopId
+  const knownWaylandIdsRef = React.useRef<Set<string>>(new Set());
+
+  React.useLayoutEffect(() => {
+    const toplevels = waylandWindows.filter((w) => w.parent === undefined);
+    const idsToResolve: string[] = [];
+    const currentIds = new Set(toplevels.map((w) => w.appId));
+    const newEntries = new Map<string, ExternalWindowMeta>();
+    let newlyMapped: {
+      appId: string;
+      workspace: number;
+      pinned: boolean;
+    } | null = null;
+
+    for (const [idx, w] of toplevels.entries()) {
+      if (w.desktopId) idsToResolve.push(w.desktopId);
+      if (!knownWaylandIdsRef.current.has(w.appId)) {
+        const shortId = w.desktopId.replace(/\.desktop$/i, "");
+        const restored =
+          pendingSessionRestoreRef.current.get(w.desktopId) ??
+          pendingSessionRestoreRef.current.get(shortId);
+        if (restored) {
+          pendingSessionRestoreRef.current.delete(w.desktopId);
+          pendingSessionRestoreRef.current.delete(shortId);
+        }
+        const remembered = w.dialog
+          ? undefined
+          : lookupSpatialWindowBounds(settings.savedWindowBounds, {
+              appId: shortId || w.appId,
+              desktopId: w.desktopId,
+              shortId,
+            });
+        const matched = matchAppFromWayland(w.desktopId, w.title);
+        const xdgMatch = matchXdgEntryForWaylandWindow(
+          installedXdgApps,
+          w.desktopId
+        );
+        const isCsdWindow =
+          settings.windowDecorationMode === "csd" ||
+          (settings.windowDecorationMode === "auto" &&
+            resolveWaylandClientFrame(w, xdgMatch));
+        const constraints = resolveWaylandOuterConstraints(w, isCsdWindow, {
+          width: 640,
+          height: 440,
+        });
+        const rawSize = restored
+          ? { width: restored.width, height: restored.height }
+          : remembered?.size ?? constraints.defaultSize;
+        const parentMeta = w.transientFor
+          ? (newEntries.get(w.transientFor) ?? waylandMeta[w.transientFor])
+          : undefined;
+        const sameAppPositions: Array<{ x: number; y: number }> = [];
+        for (const prevW of toplevels) {
+          if (prevW.appId === w.appId) continue;
+          if ((prevW.desktopId || prevW.appId) !== (w.desktopId || w.appId)) {
+            continue;
+          }
+          const existingMeta =
+            newEntries.get(prevW.appId) ?? waylandMeta[prevW.appId];
+          if (existingMeta && !existingMeta.minimized) {
+            sameAppPositions.push(existingMeta.position);
+          }
+        }
+        const rawPos = restored
+          ? { x: restored.x, y: restored.y }
+          : parentMeta
+            ? {
+                x: Math.round(
+                  parentMeta.position.x +
+                    (parentMeta.size.width - rawSize.width) / 2
+                ),
+                y: Math.round(
+                  parentMeta.position.y +
+                    (parentMeta.size.height - rawSize.height) / 2
+                ),
+              }
+            : computeCenteredOrCascadedPosition(
+                sameAppPositions,
+                rawSize,
+                screenWidth,
+                screenHeight,
+                remembered?.position
+              );
+        const clamped = clampWindowBounds(
+          rawPos,
+          rawSize,
+          screenWidth,
+          screenHeight,
+          {
+            minWidth: constraints.minSize.width,
+            minHeight: constraints.minSize.height,
+            maxWidth: constraints.maxWidth,
+            maxHeight: constraints.maxHeight,
+          }
+        );
+        const workspace = restored
+          ? clampWorkspace(restored.workspace, settings.workspaceCount)
+          : remembered?.workspace !== undefined
+            ? clampWorkspace(remembered.workspace, settings.workspaceCount)
+            : clampWorkspace(settings.activeWorkspace, settings.workspaceCount);
+        const pinned = restored?.pinned ?? false;
+
+        newEntries.set(w.appId, {
+          position: clamped.position,
+          size: clamped.size,
+          minimized: false,
+          maximized: restored?.maximized ?? remembered?.maximized ?? false,
+          fullscreen: restored?.fullscreen ?? false,
+          pinned,
+          tiled: null,
+          zIndex: nextZ(),
+          workspace,
+        });
+        newlyMapped = {
+          appId: w.appId,
+          workspace,
+          pinned,
+        };
+      }
+    }
+    knownWaylandIdsRef.current = currentIds;
+
+    setWaylandMeta((prev) => {
+      let changed = false;
+      const next: Record<string, ExternalWindowMeta> = {};
+      for (const [id, meta] of Object.entries(prev)) {
+        if (currentIds.has(id)) next[id] = meta;
+        else changed = true;
+      }
+      for (const [id, entry] of newEntries) {
+        if (!next[id]) {
+          next[id] = entry;
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+
+    if (idsToResolve.length > 0) {
+      ensureWaylandIcons(idsToResolve);
+    }
+
+    if (newlyMapped) {
+      const target = newlyMapped;
+      const wid = `wayland:${target.appId}`;
+      clearLaunchOverlays();
+      if (!target.pinned && target.workspace !== settings.activeWorkspace) {
+        updateSettings({ activeWorkspace: target.workspace });
+      }
+      setFocusedWindowId(wid);
+      setMruIds((prev) => [wid, ...prev.filter((id) => id !== wid)]);
+      const frame = requestAnimationFrame(() => {
+        piloti.windows.focus(target.appId);
+      });
+      return () => cancelAnimationFrame(frame);
+    }
+  }, [
+    clearLaunchOverlays,
+    piloti.windows,
+    ensureWaylandIcons,
+    screenHeight,
+    screenWidth,
+    settings.activeWorkspace,
+    settings.savedWindowBounds,
+    settings.workspaceCount,
+    updateSettings,
+    waylandWindows,
+  ]);
+
+  // Listen to Wayland client window requests (Maximize / Fullscreen)
+  React.useEffect(() => {
+    let cancelled = false;
+    let stopListening: (() => void) | undefined;
+
+    (async () => {
+      try {
+        const res = await piloti.windows.requests();
+        const listening = res.match({
+          Ok: (v) => v,
+          Err: (err) => {
+            console.warn("[Piloti] windowRequests subscribe Err", err);
+            return undefined;
+          },
+        });
+        if (cancelled || !listening) return;
+        stopListening = () => listening.stop();
+        const reader = listening.items.getReader();
+
+        while (!cancelled) {
+          const { done, value: req } = await reader.read();
+          if (done || !req || cancelled) break;
+          console.info(
+            "[Piloti] windowRequest",
+            WindowRequestKind[req.kind] ?? req.kind,
+            req
+          );
+          if (
+            req.kind === WindowRequestKind.Maximize ||
+            req.kind === WindowRequestKind.Fullscreen
+          ) {
+            setWaylandMeta((prev) => {
+              const cur = prev[req.appId];
+              if (!cur) return prev;
+              return {
+                ...prev,
+                [req.appId]: {
+                  ...cur,
+                  maximized: true,
+                  minimized: false,
+                  zIndex: nextZ(),
+                },
+              };
+            });
+          } else if (
+            req.kind === WindowRequestKind.Unmaximize
+          ) {
+            setWaylandMeta((prev) => {
+              const cur = prev[req.appId];
+              if (!cur) return prev;
+              return {
+                ...prev,
+                [req.appId]: {
+                  ...cur,
+                  maximized: false,
+                  zIndex: nextZ(),
+                },
+              };
+            });
+          } else if ((req as { kind: number }).kind === 4) {
+            setWaylandMeta((prev) => {
+              const cur = prev[req.appId];
+              if (!cur) return prev;
+              return {
+                ...prev,
+                [req.appId]: {
+                  ...cur,
+                  minimized: true,
+                },
+              };
+            });
+          } else if (
+            (req as { kind: number }).kind === 5 ||
+            (req as { kind: number }).kind === 6 ||
+            req.kind === WindowRequestKind.Unfullscreen
+          ) {
+            for (const listener of clientWindowRequestListenersRef.current) {
+              listener(req);
+            }
+          }
+        }
+      } catch (err) {
+        console.warn("[Piloti] windowRequests stream error", err);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      stopListening?.();
+    };
+  }, [piloti.windows]);
+
+  // Synchronize xdg_toplevel Tiled states so GTK4/Libadwaita CSD apps drop internal shadow margins
+  React.useEffect(() => {
+    const toplevels = waylandWindows.filter((w) => w.parent === undefined);
+    for (const w of toplevels) {
+      const meta = waylandMeta[w.appId];
+      const states: WindowState[] = [
+        WindowState.TiledLeft,
+        WindowState.TiledRight,
+        WindowState.TiledTop,
+        WindowState.TiledBottom,
+      ];
+      if (meta?.maximized) {
+        states.unshift(WindowState.Maximized);
+      }
+      try {
+        piloti.windows.setStates(w.appId, states);
+      } catch {
+        // ignore
+      }
+    }
+  }, [piloti.windows, waylandMeta, waylandWindows]);
+
+  const syncedParentFrames = React.useMemo(
+    () => resolveSyncedParentFrames(waylandWindows),
+    [waylandWindows],
+  );
+
+  const combinedWindows = React.useMemo(
+    () =>
+      combineWindows({
+        shellWindows,
+        browserWindows,
+        browserFavicons,
+        browserTitles,
+        browserMeta,
+        browserTabGroups,
+        waylandWindows,
+        waylandMeta,
+        syncedParentFrames,
+        installedXdgApps,
+        getAppIconUrl,
+        unreadyWindowIds,
+        screenWidth,
+        screenHeight,
+        settings: {
+          installedWebApps: settings.installedWebApps,
+          windowDecorationMode: settings.windowDecorationMode,
+        },
+        pendingWebTitles: pendingWebTitlesRef.current,
+      }),
+    // Only the settings it reads, so other changes don't rebuild the list.
+    [
+      shellWindows,
+      browserWindows,
+      browserFavicons,
+      browserTitles,
+      browserMeta,
+      browserTabGroups,
+      waylandWindows,
+      waylandMeta,
+      syncedParentFrames,
+      installedXdgApps,
+      getAppIconUrl,
+      unreadyWindowIds,
+      screenWidth,
+      screenHeight,
+      settings.installedWebApps,
+      settings.windowDecorationMode,
+    ],
+  );
+
+  const waylandPopups = React.useMemo(
+    () =>
+      resolvePopupWindows(waylandWindows, combinedWindows, syncedParentFrames, {
+        activeWorkspace: settings.activeWorkspace,
+        windowDecorationMode: settings.windowDecorationMode,
+      }),
+    [
+      waylandWindows,
+      combinedWindows,
+      settings.activeWorkspace,
+      settings.windowDecorationMode,
+      syncedParentFrames,
+    ],
+  );
+
+  const [focusedWindowId, setFocusedWindowId] = React.useState<string | null>(
+    () =>
+      getEngine().capabilities.simulatedHardware
+        ? "shell:settings-1"
+        : null
+  );
+  const [mruIds, setMruIds] = React.useState<string[]>(() =>
+    getEngine().capabilities.simulatedHardware
+      ? ["shell:settings-1"]
+      : []
+  );
+
+  React.useEffect(() => {
+    if (waylandFocused) {
+      const wid = `wayland:${waylandFocused}`;
+      setFocusedWindowId(wid);
+      setMruIds((prev) => [wid, ...prev.filter((id) => id !== wid)]);
+    }
+  }, [waylandFocused]);
+
+  React.useEffect(() => {
+    if (
+      focusedWindowId &&
+      !combinedWindows.some((w) => w.id === focusedWindowId && !w.minimized)
+    ) {
+      const topVisible = [...combinedWindows]
+        .filter((w) => !w.minimized && w.workspace === settings.activeWorkspace)
+        .sort((a, b) => b.zIndex - a.zIndex)[0];
+      setFocusedWindowId(topVisible?.id ?? null);
+    }
+  }, [combinedWindows, focusedWindowId, settings.activeWorkspace]);
+
+  const clearFocusedWindow = React.useCallback(() => {
+    setFocusedWindowId(null);
+    piloti.windows.focusShell();
+  }, [piloti.windows]);
+
+  const focusWindow = React.useCallback(
+    (windowId: string) => {
+      const newZ = nextZ();
+      clearLaunchOverlays();
+      setFocusedWindowId(windowId);
+      setMruIds((prev) => [windowId, ...prev.filter((id) => id !== windowId)]);
+
+      const existing = combinedWindows.find((w) => w.id === windowId);
+      const targetWorkspace = existing
+        ? clampWorkspace(existing.workspace, settings.workspaceCount)
+        : undefined;
+      if (
+        existing &&
+        targetWorkspace !== undefined &&
+        !existing.pinned &&
+        targetWorkspace !== settings.activeWorkspace
+      ) {
+        updateSettings({ activeWorkspace: targetWorkspace });
+      }
+
+      const clampForWindow = (
+        pos: { x: number; y: number },
+        sz: { width: number; height: number },
+        maximized?: boolean,
+        fullscreen?: boolean,
+        minSize?: { width?: number; height?: number }
+      ) =>
+        !maximized && !fullscreen
+          ? clampWindowBounds(pos, sz, screenWidth, screenHeight, {
+              minWidth: minSize?.width,
+              minHeight: minSize?.height,
+            })
+          : null;
+
+      if (windowId.startsWith("wayland:")) {
+        const rawId = windowId.slice("wayland:".length);
+        patchExternalMeta(setWaylandMeta, rawId, (cur) => {
+          const clamped = clampForWindow(
+            cur.position,
+            cur.size,
+            cur.maximized,
+            cur.fullscreen,
+            existing?.minSize
+          );
+          return {
+            ...cur,
+            ...(clamped
+              ? { position: clamped.position, size: clamped.size }
+              : {}),
+            workspace: clampWorkspace(cur.workspace, settings.workspaceCount),
+            minimized: false,
+            zIndex: newZ,
+          };
+        });
+        piloti.windows.focus(rawId);
+      } else if (windowId.startsWith("browser:")) {
+        const rawId = windowId.slice("browser:".length);
+        patchExternalMeta(setBrowserMeta, rawId, (cur) => {
+          const clamped = clampForWindow(
+            cur.position,
+            cur.size,
+            cur.maximized,
+            cur.fullscreen,
+            existing?.minSize
+          );
+          return {
+            ...cur,
+            ...(clamped
+              ? { position: clamped.position, size: clamped.size }
+              : {}),
+            workspace: clampWorkspace(cur.workspace, settings.workspaceCount),
+            minimized: false,
+            zIndex: newZ,
+          };
+        });
+        piloti.windows.focusShell();
+      } else {
+        setShellWindows((prev) =>
+          prev.map((w) => {
+            if (w.id !== windowId) return w;
+            const clamped = clampForWindow(
+              w.position,
+              w.size,
+              w.maximized,
+              w.fullscreen,
+              w.minSize
+            );
+            return {
+              ...w,
+              ...(clamped
+                ? {
+                    position: clamped.position,
+                    size: clamped.size,
+                  }
+                : {}),
+              workspace: clampWorkspace(w.workspace, settings.workspaceCount),
+              minimized: false,
+              zIndex: newZ,
+            };
+          })
+        );
+        piloti.windows.focusShell();
+      }
+    },
+    [
+      clearLaunchOverlays,
+      combinedWindows,
+      piloti.windows,
+      screenHeight,
+      screenWidth,
+      settings.activeWorkspace,
+      settings.workspaceCount,
+      updateSettings,
+    ]
+  );
+
+  const focusWindowRef = React.useRef(focusWindow);
+  focusWindowRef.current = focusWindow;
+
+  React.useEffect(() => {
+    return piloti.windows.on("focusrequest", (appId) => {
+      const byId = new Map(piloti.windows.list.map((w) => [w.appId, w]));
+      let cur = byId.get(appId);
+      while (cur?.parent !== undefined) {
+        cur = byId.get(cur.parent);
+      }
+      const rootAppId = cur?.appId ?? appId;
+      focusWindowRef.current(`wayland:${rootAppId}`);
+    });
+  }, [piloti.windows]);
+
+  const closeWindow = React.useCallback(
+    (windowId: string) => {
+      console.info("[Piloti] closeWindow", windowId);
+      markWindowReady(windowId);
+      if (windowId.startsWith("wayland:")) {
+        const rawId = windowId.slice("wayland:".length);
+        piloti.windows.close(rawId);
+      } else if (windowId.startsWith("browser:")) {
+        const rawId = windowId.slice("browser:".length);
+        const tabs = browserTabGroupsRef.current[rawId]?.tabs ?? [rawId];
+        for (const tab of tabs) piloti.browser.close(tab);
+      } else {
+        setShellWindows((prev) => prev.filter((w) => w.id !== windowId));
+      }
+      setMruIds((prev) => prev.filter((id) => id !== windowId));
+    },
+    [piloti.browser, piloti.windows, markWindowReady]
+  );
+
+  const openBrowserTab = React.useCallback(
+    (windowId: string, rawUrl?: string) => {
+      if (!windowId.startsWith("browser:")) return;
+      const url =
+        normalizeWebUrl(rawUrl ?? "") ??
+        (!compositor ? BROWSER_DEMO_HOME_URL : BROWSER_HOME_URL);
+      pendingTabGroupsRef.current.push(windowId.slice("browser:".length));
+      piloti.browser.open(url);
+    },
+    [piloti.browser, compositor]
+  );
+
+  const selectBrowserTab = React.useCallback((windowId: string, tabId: string) => {
+    const group = windowId.slice("browser:".length);
+    setBrowserTabGroups((prev) => {
+      const grp = prev[group];
+      if (!grp || grp.active === tabId || !grp.tabs.includes(tabId)) return prev;
+      return { ...prev, [group]: { ...grp, active: tabId } };
+    });
+  }, []);
+
+  const reorderBrowserTabs = React.useCallback((windowId: string, tabIds: string[]) => {
+    const group = windowId.slice("browser:".length);
+    setBrowserTabGroups((prev) => {
+      const next = reorderedTabs(prev[group], tabIds);
+      return next ? { ...prev, [group]: next } : prev;
+    });
+  }, []);
+
+  const pinBrowserTab = React.useCallback((windowId: string, tabId: string, pinned: boolean) => {
+    const group = windowId.slice("browser:".length);
+    setBrowserTabGroups((prev) => {
+      const next = pinnedTabs(prev[group], tabId, pinned);
+      return next ? { ...prev, [group]: next } : prev;
+    });
+  }, []);
+
+  const detachBrowserTab = React.useCallback(
+    (windowId: string, tabId: string) => {
+      const group = windowId.slice("browser:".length);
+      const grp = browserTabGroupsRef.current[group];
+      const meta = browserMeta[group];
+      if (!grp || !meta || grp.tabs.length < 2 || !grp.tabs.includes(tabId)) return;
+      const newKey = `${tabId}~${Date.now().toString(36)}`;
+      const index = grp.tabs.indexOf(tabId);
+      const remaining = grp.tabs.filter((id) => id !== tabId);
+      const active =
+        grp.active === tabId
+          ? remaining[Math.min(index, remaining.length - 1)]
+          : grp.active;
+      const next = {
+        ...browserTabGroupsRef.current,
+        [group]: {
+          tabs: remaining,
+          active,
+          ...(grp.pinned?.some((id) => id !== tabId)
+            ? { pinned: grp.pinned.filter((id) => id !== tabId) }
+            : {}),
+        },
+        [newKey]: { tabs: [tabId], active: tabId },
+      };
+      browserTabGroupsRef.current = next;
+      setBrowserTabGroups(next);
+      const clamped = clampWindowBounds(
+        { x: meta.position.x + 36, y: meta.position.y + 36 },
+        meta.size,
+        screenWidth,
+        screenHeight,
+        { minWidth: 420, minHeight: 300 }
+      );
+      setBrowserMeta((prev) => ({
+        ...prev,
+        [newKey]: {
+          ...meta,
+          position: clamped.position,
+          size: clamped.size,
+          minimized: false,
+          maximized: false,
+          fullscreen: false,
+          tiled: null,
+          zIndex: nextZ(),
+        },
+      }));
+      setFocusedWindowId(`browser:${newKey}`);
+      setMruIds((prev) => [`browser:${newKey}`, ...prev]);
+    },
+    [browserMeta, screenWidth, screenHeight]
+  );
+
+  /** Pages closed as tabs, newest last, for "Reopen Closed Tab". */
+  const closedTabsRef = React.useRef<string[]>([]);
+  const browserWindowsRef = React.useRef(browserWindows);
+  browserWindowsRef.current = browserWindows;
+
+  const reopenClosedBrowserTab = React.useCallback(
+    (windowId: string) => {
+      const url = closedTabsRef.current.pop();
+      if (url) openBrowserTab(windowId, url);
+    },
+    [openBrowserTab]
+  );
+
+  const closeBrowserTab = React.useCallback(
+    (windowId: string, tabId: string) => {
+      const closedUrl = browserWindowsRef.current.find((bw) => bw.id === tabId)?.url;
+      if (closedUrl) closedTabsRef.current = [...closedTabsRef.current.slice(-19), closedUrl];
+      const grp = browserTabGroupsRef.current[windowId.slice("browser:".length)];
+      if (!grp || grp.tabs.length <= 1) closeWindow(windowId);
+      else piloti.browser.close(tabId);
+    },
+    [closeWindow, piloti.browser]
+  );
+
+  const minimizeWindow = React.useCallback(
+    (windowId: string) => {
+      console.info("[Piloti] minimizeWindow", windowId);
+      if (windowId.startsWith("wayland:")) {
+        const rawId = windowId.slice("wayland:".length);
+        patchExternalMeta(setWaylandMeta, rawId, (cur) => ({
+          ...cur,
+          minimized: true,
+        }));
+        piloti.windows.setBounds(rawId, { x: 0, y: 0, width: 0, height: 0 });
+      } else if (windowId.startsWith("browser:")) {
+        const rawId = windowId.slice("browser:".length);
+        patchExternalMeta(setBrowserMeta, rawId, (cur) => ({
+          ...cur,
+          minimized: true,
+        }));
+      } else {
+        setShellWindows((prev) =>
+          prev.map((w) => (w.id === windowId ? { ...w, minimized: true } : w))
+        );
+      }
+    },
+    [piloti.windows]
+  );
+
+  const toggleMinimizeWindow = React.useCallback(
+    (windowId: string) => {
+      const target = combinedWindows.find((w) => w.id === windowId);
+      if (!target) return;
+      if (target.minimized) {
+        focusWindow(windowId);
+      } else {
+        minimizeWindow(windowId);
+      }
+    },
+    [combinedWindows, focusWindow, minimizeWindow]
+  );
+
+  const toggleMaximizeWindow = React.useCallback(
+    (windowId: string) => {
+      console.info("[Piloti] toggleMaximizeWindow", windowId);
+      const targetWin = combinedWindows.find((w) => w.id === windowId);
+      if (targetWin?.appId === "calculator") {
+        return;
+      }
+      if (targetWin) {
+        const key = resolveSpatialBoundsKey({
+          appId: targetWin.appId,
+          payload: targetWin.payload,
+          browserUrl: targetWin.browserUrl,
+          desktopId: targetWin.waylandDesktopId,
+        });
+        updateSettings({
+          savedWindowBounds: {
+            ...settings.savedWindowBounds,
+            [key]: {
+              position: targetWin.position,
+              size: targetWin.size,
+              workspace: targetWin.workspace,
+              maximized: !targetWin.maximized,
+              monitor: primaryMonitorName,
+            },
+          },
+        });
+      }
+      const newZ = nextZ();
+      if (windowId.startsWith("wayland:")) {
+        const rawId = windowId.slice("wayland:".length);
+        patchExternalMeta(setWaylandMeta, rawId, (cur) => ({
+          ...cur,
+          maximized: !cur.maximized,
+          minimized: false,
+          zIndex: newZ,
+        }));
+      } else if (windowId.startsWith("browser:")) {
+        const rawId = windowId.slice("browser:".length);
+        patchExternalMeta(setBrowserMeta, rawId, (cur) => ({
+          ...cur,
+          maximized: !cur.maximized,
+          minimized: false,
+          zIndex: newZ,
+        }));
+      } else {
+        setShellWindows((prev) =>
+          prev.map((w) =>
+            w.id === windowId
+              ? { ...w, maximized: !w.maximized, minimized: false, zIndex: newZ }
+              : w
+          )
+        );
+      }
+      setFocusedWindowId(windowId);
+    },
+    [combinedWindows, primaryMonitorName, settings.savedWindowBounds, updateSettings]
+  );
+
+  const geometryLogRef = React.useRef<
+    Map<
+      string,
+      {
+        timer: ReturnType<typeof setTimeout>;
+        label: string;
+        position?: { x: number; y: number };
+        size?: { width: number; height: number };
+      }
+    >
+  >(new Map());
+
+  React.useEffect(() => {
+    const timers = geometryLogRef.current;
+    return () => {
+      for (const entry of timers.values()) {
+        clearTimeout(entry.timer);
+      }
+      timers.clear();
+    };
+  }, []);
+
+  const updateWindowGeometry = React.useCallback(
+    (
+      windowId: string,
+      patch: {
+        position?: { x: number; y: number };
+        size?: { width: number; height: number };
+      }
+    ) => {
+      const targetWin = combinedWindows.find((w) => w.id === windowId);
+      const untileRestoredSize =
+        patch.position && !patch.size && targetWin?.tiled
+          ? preTileSizesRef.current.get(windowId)
+          : undefined;
+      if (untileRestoredSize) {
+        preTileSizesRef.current.delete(windowId);
+      }
+      const effectiveSizePatch = patch.size ?? untileRestoredSize;
+      const winWidth = effectiveSizePatch?.width ?? targetWin?.size.width ?? 240;
+      const maxY = Math.max(0, screenHeight - 30 - 48);
+      const minX = -Math.max(0, winWidth - 80);
+      const maxX = Math.max(0, screenWidth - 80);
+      const clampedPosition = patch.position
+        ? {
+          x: Math.min(maxX, Math.max(minX, Math.round(patch.position.x))),
+          y: Math.min(maxY, Math.max(0, Math.round(patch.position.y))),
+        }
+        : undefined;
+      const roundedSize = effectiveSizePatch
+        ? {
+          width: Math.round(effectiveSizePatch.width),
+          height: Math.round(effectiveSizePatch.height),
+        }
+        : undefined;
+
+      if (targetWin) {
+        const nextPos = clampedPosition ?? targetWin.position;
+        const nextSize = effectiveSizePatch ?? targetWin.size;
+        const key = resolveSpatialBoundsKey({
+          appId: targetWin.appId,
+          payload: targetWin.payload,
+          browserUrl: targetWin.browserUrl,
+          desktopId: targetWin.waylandDesktopId,
+        });
+        updateSettings({
+          savedWindowBounds: {
+            ...settings.savedWindowBounds,
+            [key]: {
+              position: nextPos,
+              size: nextSize,
+              workspace: targetWin.workspace,
+              maximized: targetWin.maximized,
+              monitor: primaryMonitorName,
+            },
+          },
+        });
+      }
+
+      if (clampedPosition || roundedSize) {
+        const label = targetWin?.appId || windowId;
+        const existing = geometryLogRef.current.get(windowId);
+        if (existing) {
+          clearTimeout(existing.timer);
+        }
+        const nextPosition = clampedPosition ?? existing?.position;
+        const nextSize = roundedSize ?? existing?.size;
+        const timer = setTimeout(() => {
+          const entry = geometryLogRef.current.get(windowId);
+          if (!entry) return;
+          geometryLogRef.current.delete(windowId);
+          if (entry.position) {
+            console.info(
+              `[Piloti] moved ${entry.label} to ${entry.position.x}x${entry.position.y}`
+            );
+          }
+          if (entry.size) {
+            console.info(
+              `[Piloti] resized ${entry.label} to ${entry.size.width}x${entry.size.height}`
+            );
+          }
+        }, 300);
+        geometryLogRef.current.set(windowId, {
+          timer,
+          label,
+          position: nextPosition,
+          size: nextSize,
+        });
+      }
+
+      if (windowId.startsWith("wayland:")) {
+        const rawId = windowId.slice("wayland:".length);
+        patchExternalMeta(setWaylandMeta, rawId, (cur) => ({
+          ...cur,
+          position: clampedPosition ?? cur.position,
+          size: effectiveSizePatch ?? cur.size,
+          tiled: clampedPosition ? null : cur.tiled,
+        }));
+      } else if (windowId.startsWith("browser:")) {
+        const rawId = windowId.slice("browser:".length);
+        patchExternalMeta(setBrowserMeta, rawId, (cur) => ({
+          ...cur,
+          position: clampedPosition ?? cur.position,
+          size: effectiveSizePatch ?? cur.size,
+          tiled: clampedPosition ? null : cur.tiled,
+        }));
+      } else {
+        setShellWindows((prev) =>
+          prev.map((w) =>
+            w.id === windowId
+              ? {
+                ...w,
+                position: clampedPosition ?? w.position,
+                size: effectiveSizePatch ?? w.size,
+                tiled: clampedPosition ? null : w.tiled,
+              }
+              : w
+          )
+        );
+      }
+    },
+    [
+      combinedWindows,
+      primaryMonitorName,
+      screenHeight,
+      screenWidth,
+      settings.savedWindowBounds,
+      updateSettings,
+    ]
+  );
+
+  const preTileSizesRef = React.useRef<
+    Map<string, { width: number; height: number }>
+  >(new Map());
+
+  const tileWindow = React.useCallback(
+    (windowId: string, side: "left" | "right" | "full") => {
+      console.info("[Piloti] tileWindow", windowId, side);
+      const existingWin = combinedWindows.find((w) => w.id === windowId);
+      if (existingWin?.appId === "calculator") {
+        return;
+      }
+      if (side === "full") {
+        toggleMaximizeWindow(windowId);
+        return;
+      }
+      if (existingWin && !existingWin.tiled) {
+        preTileSizesRef.current.set(windowId, existingWin.size);
+      }
+      const menubarHeight = 30;
+      const topInset = 6;
+      const dockPos = settings.dockPosition ?? "bottom";
+      const dockClearance = settings.dockAutoHide ? 8 : settings.dockSize + 24;
+      const bottomInset = dockPos === "bottom" ? dockClearance + 6 : 8;
+      const leftInset = dockPos === "left" ? dockClearance + 8 : 8;
+      const rightInset = dockPos === "right" ? dockClearance + 8 : 8;
+      const usableHeight = Math.max(
+        300,
+        screenHeight - menubarHeight - topInset - bottomInset
+      );
+      const usableWidth = Math.max(400, screenWidth - leftInset - rightInset);
+      const halfWidth = Math.floor((usableWidth - 8) / 2);
+      const pos = {
+        x: side === "left" ? leftInset : leftInset + halfWidth + 8,
+        y: topInset,
+      };
+      const sz = { width: halfWidth, height: usableHeight };
+
+      if (windowId.startsWith("wayland:")) {
+        const rawId = windowId.slice("wayland:".length);
+        patchExternalMeta(setWaylandMeta, rawId, (cur) => ({
+          ...cur,
+          maximized: false,
+          minimized: false,
+          tiled: side,
+          position: pos,
+          size: sz,
+          zIndex: nextZ(),
+        }));
+      } else if (windowId.startsWith("browser:")) {
+        const rawId = windowId.slice("browser:".length);
+        patchExternalMeta(setBrowserMeta, rawId, (cur) => ({
+          ...cur,
+          maximized: false,
+          minimized: false,
+          tiled: side,
+          position: pos,
+          size: sz,
+          zIndex: nextZ(),
+        }));
+      } else {
+        setShellWindows((prev) =>
+          prev.map((w) =>
+            w.id === windowId
+              ? {
+                ...w,
+                maximized: false,
+                minimized: false,
+                tiled: side,
+                position: pos,
+                size: sz,
+                zIndex: nextZ(),
+              }
+              : w
+          )
+        );
+      }
+      clearLaunchOverlays();
+      setFocusedWindowId(windowId);
+      setMruIds((prev) => [windowId, ...prev.filter((id) => id !== windowId)]);
+      if (windowId.startsWith("wayland:")) {
+        piloti.windows.focus(windowId.slice("wayland:".length));
+      } else {
+        piloti.windows.focusShell();
+      }
+    },
+    [
+      clearLaunchOverlays,
+      combinedWindows,
+      piloti.windows,
+      screenHeight,
+      screenWidth,
+      settings.dockAutoHide,
+      settings.dockPosition,
+      settings.dockSize,
+      toggleMaximizeWindow,
+    ]
+  );
+
+  const { launchingApps, beginStartupNotification, endStartupNotification } =
+    useStartupNotifications(combinedWindows);
+
+  const forceQuitApp = React.useCallback(
+    (appId: string) => {
+      console.info("[Piloti] forceQuitApp", appId);
+      const appWins = combinedWindows.filter((w) => w.appId === appId);
+      const killNativeAppProcess = (desktopId?: string, waylandAppId?: string, pid?: number | null) => {
+        if (!systemServices) return;
+        const xdgMatch = matchXdgEntryForWaylandWindow(
+          installedXdgApps,
+          desktopId ?? appId
+        );
+        killAppProcesses(piloti, {
+          pid,
+          flatpakId: (desktopId ?? appId).replace(/\.desktop$/i, ""),
+          execName: xdgMatch?.execArgv?.[0]?.split("/").pop(),
+          processName: (waylandAppId || appId).replace(/\.desktop$/i, "").split(".").pop(),
+          appId,
+        });
+      };
+
+      if (appWins.length === 0) {
+        killNativeAppProcess(appId);
+      } else {
+        for (const win of appWins) {
+          if (win.id.startsWith("wayland:")) {
+            const rawId = win.waylandAppId ?? win.id.slice("wayland:".length);
+            piloti.windows.close(rawId);
+            killNativeAppProcess(win.waylandDesktopId, win.waylandAppId, win.pid);
+          } else {
+            closeWindow(win.id);
+          }
+        }
+      }
+      endStartupNotification(appId);
+    },
+    [
+      endStartupNotification,
+      closeWindow,
+      combinedWindows,
+      piloti,
+      installedXdgApps,
+      systemServices,
+    ]
+  );
+
+  const combinedWindowsRef = React.useRef<DesktopWindowInstance[]>(combinedWindows);
+  combinedWindowsRef.current = combinedWindows;
+  const recentLaunchGuardRef = React.useRef<Map<string, number>>(new Map());
+
+  // A document window follows its file, so opening it again finds the window.
+  React.useEffect(
+    () =>
+      subscribeRenames(({ oldPath, newPath }) => {
+        if (combinedWindowsRef.current.some((w) => resolveAppModuleByUrl(w.browserUrl))) {
+          void tellModulesMoved(piloti, oldPath, newPath).catch((error) =>
+            console.warn("[Piloti] could not tell app modules about a move", error),
+          );
+        }
+        setShellWindows((prev) => {
+          let changed = false;
+          const next = prev.map((w) => {
+            if (!DOCUMENT_SCOPED_APP_IDS.has(w.appId) || !w.payload) return w;
+            const payload = pathAfterRename(w.payload, oldPath, newPath);
+            if (!payload) return w;
+            changed = true;
+            return { ...w, payload };
+          });
+          return changed ? next : prev;
+        });
+      }),
+    [piloti],
+  );
+
+  // For the fallback when an app module cannot be started.
+  const launchAppRef = React.useRef<
+    ((appId: string, options?: { payload?: string; forceNew?: boolean; forceCsd?: boolean; inShell?: boolean }) => void) | null
+  >(null);
+  const launchApp = React.useCallback(
+    (
+      appId: string,
+      options?: { payload?: string; forceNew?: boolean; forceCsd?: boolean; inShell?: boolean }
+    ) => {
+      clearLaunchOverlays();
+      logAppLaunch(appId, options?.payload);
+      const def = APP_CATALOG.find((a) => a.id === appId);
+
+      // Web Browser: our own browser window (the web view used by web apps,
+      // with its address bar and extensions), not an external browser.
+      if (appId === "browser") {
+        const url =
+          normalizeWebUrl(options?.payload ?? "") ??
+          (!compositor ? BROWSER_DEMO_HOME_URL : BROWSER_HOME_URL);
+        const existing = options?.forceNew
+          ? undefined
+          : combinedWindowsRef.current.find((w) => w.appId === "browser" && w.browserWindowId);
+        if (existing) {
+          // Like other browsers: a link opens as a tab of the open window.
+          if (options?.payload) openBrowserTab(existing.id, url);
+          focusWindow(existing.id);
+          return;
+        }
+        beginStartupNotification("browser");
+        pendingBrowserAppRef.current += 1;
+        piloti.browser.open(url);
+        return;
+      }
+
+      // Focus existing window unless forceNew (for document-scoped apps with a payload, only reuse matching document/folder)
+      if (!options?.forceNew) {
+        const lowerAppId = appId.toLowerCase();
+        const existing = combinedWindowsRef.current.find((w) => {
+          const idMatches =
+            w.appId === appId ||
+            w.appId.toLowerCase() === lowerAppId ||
+            w.waylandDesktopId?.toLowerCase() === lowerAppId ||
+            w.waylandDesktopId?.replace(/\.desktop$/i, "").toLowerCase() === lowerAppId;
+          return DOCUMENT_SCOPED_APP_IDS.has(appId) && options?.payload
+            ? idMatches && w.payload === options.payload
+            : idMatches;
+        });
+        if (existing) {
+          if (
+            (options?.payload || options?.forceCsd !== undefined) &&
+            !existing.id.startsWith("wayland:")
+          ) {
+            setShellWindows((prev) =>
+              prev.map((w) =>
+                w.id === existing.id
+                  ? {
+                    ...w,
+                    payload: options.payload ?? w.payload,
+                    clientFrame: options.forceCsd ?? w.clientFrame,
+                  }
+                  : w
+              )
+            );
+          }
+          focusWindow(existing.id);
+          return;
+        }
+      }
+
+      if (appId === "nautilus" && options?.payload && options?.forceNew) {
+        const sameFolderWin = combinedWindows.find(
+          (w) => w.appId === "nautilus" && w.payload === options.payload,
+        );
+        if (sameFolderWin) {
+          focusWindow(sameFolderWin.id);
+          return;
+        }
+      }
+
+      // One window per document, whatever the caller asked: two editors of the
+      // same file would save over each other.
+      if (options?.forceNew && options.payload && (appId === "texts" || appId === "image-viewer")) {
+        const sameDocument = combinedWindowsRef.current.find(
+          (w) => w.appId === appId && w.payload === options.payload,
+        );
+        if (sameDocument) {
+          focusWindow(sameDocument.id);
+          return;
+        }
+      }
+
+      // Built-in shell windows (`settings`, `console`, `files`, `terminal`, `texts`, `app-store`, `calculator`, `image-viewer`)
+      const builtinKind: BuiltinAppId | undefined =
+        def?.builtinComponent ??
+        (appId === "settings" || appId === "console"
+          ? (appId as BuiltinAppId)
+          : appId === "nautilus"
+            ? "files"
+            : appId === "terminal"
+              ? "terminal"
+              : undefined);
+      const isolated = !options?.inShell && getRunIn(builtinKind ?? appId) === "isolated";
+      if (builtinKind && isolated && getEngine().capabilities.systemServices) {
+        const open =
+          options?.payload &&
+          combinedWindowsRef.current.find(
+            (w) =>
+              resolveAppModuleByUrl(w.browserUrl)?.id === builtinKind &&
+              moduleDocument(w.browserUrl) === options.payload,
+          );
+        if (open) {
+          focusWindow(open.id);
+          return;
+        }
+        // A double-click can ask twice before the first window is there.
+        const launchKey = `module:${builtinKind}::${options?.payload ?? ""}`;
+        const now = Date.now();
+        if (now - (recentLaunchGuardRef.current.get(launchKey) ?? 0) < 500) return;
+        recentLaunchGuardRef.current.set(launchKey, now);
+        beginStartupNotification(appId);
+        void openAppModule(piloti, builtinKind, options?.payload)
+          .catch(() => false)
+          .then((opened) => {
+            // No module installed: open it in the shell after all.
+            if (!opened) launchAppRef.current?.(appId, { ...options, inShell: true });
+          });
+        return;
+      }
+      if (builtinKind) {
+        const builtinDef =
+          def ?? APP_CATALOG.find((a) => a.id === builtinKind) ?? APP_CATALOG[0];
+        const count = ++nextShellWinCounter;
+        const resolvedAppId = def?.id ?? builtinKind;
+        const newWinId = `shell:${builtinKind}-${count}`;
+        const remembered = lookupSpatialWindowBounds(settings.savedWindowBounds, {
+          appId: resolvedAppId,
+          payload: options?.payload,
+        });
+        const minSize = builtinDef.minSize ?? {
+          width: Math.min(360, builtinDef.defaultSize.width),
+          height: Math.min(260, builtinDef.defaultSize.height),
+        };
+        const width =
+          remembered?.size.width ??
+          Math.min(builtinDef.defaultSize.width, screenWidth - 48);
+        const height =
+          remembered?.size.height ??
+          Math.min(builtinDef.defaultSize.height, screenHeight - 120);
+        const sameAppPositions = shellWindows
+          .filter((w) => w.appId === resolvedAppId && !w.minimized)
+          .sort((a, b) => a.zIndex - b.zIndex)
+          .map((w) => w.position);
+        const clamped = clampWindowBounds(
+          computeCenteredOrCascadedPosition(
+            sameAppPositions,
+            { width, height },
+            screenWidth,
+            screenHeight,
+            remembered?.position
+          ),
+          { width, height },
+          screenWidth,
+          screenHeight,
+          { minWidth: minSize.width, minHeight: minSize.height }
+        );
+        const targetWorkspace =
+          remembered?.workspace !== undefined
+            ? clampWorkspace(remembered.workspace, settings.workspaceCount)
+            : clampWorkspace(settings.activeWorkspace, settings.workspaceCount);
+        const newWin: DesktopWindowInstance = {
+          id: newWinId,
+          appId: resolvedAppId,
+          title:
+            (builtinKind === "texts" || builtinKind === "image-viewer") &&
+            options?.payload
+              ? options.payload.split("/").pop() || builtinDef.name
+              : builtinDef.name,
+          iconName: builtinDef.iconName,
+          builtinComponent: builtinKind,
+          isolated,
+          clientFrame:
+            options?.forceCsd ?? builtinKind !== "terminal",
+          workspace: targetWorkspace,
+          position: clamped.position,
+          size: clamped.size,
+          minSize,
+          minimized: false,
+          maximized: remembered?.maximized ?? false,
+          zIndex: nextZ(),
+          payload: options?.payload,
+        };
+        beginStartupNotification(resolvedAppId);
+        if (targetWorkspace !== settings.activeWorkspace) {
+          updateSettings({ activeWorkspace: targetWorkspace });
+        }
+        combinedWindowsRef.current = [...combinedWindowsRef.current, newWin];
+        setShellWindows((prev) => {
+          if (
+            !options?.forceNew &&
+            prev.some((w) => w.appId === resolvedAppId && (!DOCUMENT_SCOPED_APP_IDS.has(appId) || !options?.payload || w.payload === options.payload))
+          ) {
+            return prev;
+          }
+          return [...prev, newWin];
+        });
+        setFocusedWindowId(newWin.id);
+        setMruIds((prev) => [newWin.id, ...prev]);
+        piloti.windows.focusShell();
+        return;
+      }
+
+      // All other applications run as native Wayland / Linux processes (with XDG Startup Notification)
+      if (!options?.forceNew) {
+        const now = Date.now();
+        const launchKey = `${appId.toLowerCase()}::${options?.payload ?? ""}`;
+        const lastAt = recentLaunchGuardRef.current.get(launchKey) ?? 0;
+        if (now - lastAt < 500) {
+          return;
+        }
+        recentLaunchGuardRef.current.set(launchKey, now);
+      }
+      beginStartupNotification(appId);
+      if (def?.linuxCommand) {
+        launchDesktopCommand(piloti, def.linuxCommand);
+        return;
+      }
+      const lowerAppId = appId.toLowerCase();
+      const matchedXdg = installedXdgApps.find(
+        (entry) =>
+          entry.appId.toLowerCase() === lowerAppId ||
+          entry.desktopId.toLowerCase() === lowerAppId ||
+          entry.desktopId.toLowerCase() === `${lowerAppId}.desktop`
+      );
+      if (matchedXdg && matchedXdg.execArgv.length > 0) {
+        launchDesktopCommand(piloti, matchedXdg.execArgv);
+        return;
+      }
+      // Reverse-DNS IDs (e.g. `org.gnome.Calculator`, `com.github.tchx84.Flatseal`)
+      // launch via `flatpak run <appId>` when not already matched to an XDG entry.
+      if (/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_.-]+$/.test(appId)) {
+        launchDesktopCommand(piloti, ["flatpak", "run", appId]);
+        return;
+      }
+      launchDesktopCommand(piloti, [appId]);
+    },
+    [
+      beginStartupNotification,
+      clearLaunchOverlays,
+      combinedWindows,
+      piloti,
+      focusWindow,
+      installedXdgApps,
+      compositor,
+      openBrowserTab,
+      screenHeight,
+      screenWidth,
+      settings.activeWorkspace,
+      settings.savedWindowBounds,
+      settings.workspaceCount,
+      shellWindows,
+      updateSettings,
+    ]
+  );
+
+  launchAppRef.current = launchApp;
+
+  const openGnomeSettings = React.useCallback(
+    (panel?: GnomeSettingsPanel | (string & {})) => {
+      if (!systemServices) {
+        const reverseMap: Record<string, string> = {
+          wifi: "network",
+          network: "network",
+          bluetooth: "network",
+          sound: "sound",
+          display: "displays",
+          background: "wallpaper",
+          appearance: "appearance",
+          notifications: "notifications",
+          system: "about",
+        };
+        launchApp("settings", {
+          payload: panel ? reverseMap[panel] : undefined,
+          forceCsd: true,
+        });
+        return;
+      }
+      openGnomeControlCenter(piloti, panel, settings.hiddenGnomePanels);
+    },
+    [piloti, systemServices, launchApp, settings.hiddenGnomePanels]
+  );
+
+  const openWebUrl = React.useCallback(
+    (
+      rawUrl: string,
+      options?: { asApp?: boolean; appId?: string; title?: string }
+    ) => {
+      const normalized = normalizeWebUrl(rawUrl);
+      if (!normalized) return;
+      clearLaunchOverlays();
+      const matchedWebApp = findMatchingWebApp(
+        normalized,
+        settings.installedWebApps
+      );
+      const resolvedAppId = options?.appId ?? matchedWebApp?.id;
+      const resolvedTitle = options?.title ?? matchedWebApp?.title;
+      const canonical = canonicalizeWebUrl(normalized);
+      if (canonical) {
+        const existing = combinedWindows.find(
+          (w) =>
+            w.browserUrl &&
+            canonicalizeWebUrl(w.browserUrl) === canonical &&
+            (!resolvedAppId || w.appId === resolvedAppId)
+        );
+        if (existing) {
+          focusWindow(existing.id);
+          return;
+        }
+      }
+      console.info("[Piloti] openWebUrl", normalized);
+      beginStartupNotification(
+        resolvedAppId ??
+          (options?.asApp && canonical ? `webview:${canonical}` : "browser")
+      );
+      if (resolvedTitle) {
+        pendingWebTitlesRef.current.set(
+          resolvedAppId ?? normalized,
+          resolvedTitle
+        );
+        pendingWebTitlesRef.current.set(normalized, resolvedTitle);
+      }
+      if (options?.asApp) {
+        piloti.browser.openApp(normalized, {
+          id: resolvedAppId ?? normalized,
+          reuse: AppReuse.Focus,
+        });
+      } else {
+        const browserWin = resolvedAppId
+          ? undefined
+          : combinedWindows.find((w) => w.appId === "browser" && w.browserWindowId);
+        if (browserWin) {
+          openBrowserTab(browserWin.id, normalized);
+          focusWindow(browserWin.id);
+        } else {
+          if (!resolvedAppId) pendingBrowserAppRef.current += 1;
+          piloti.browser.open(normalized);
+        }
+      }
+    },
+    [
+      openBrowserTab,
+      beginStartupNotification,
+      clearLaunchOverlays,
+      combinedWindows,
+      piloti.browser,
+      focusWindow,
+      settings.installedWebApps,
+    ]
+  );
+
+  const launchXdgApp = React.useCallback(
+    (entry: XdgDesktopEntry, actionId?: string) => {
+      clearLaunchOverlays();
+      logAppLaunch(entry.desktopId, actionId);
+      const execCmd = entry.execArgv[0];
+      if (execCmd === "piloti-webapp" && entry.execArgv[1]) {
+        openWebUrl(entry.execArgv[1], {
+          asApp: true,
+          title: entry.name,
+        });
+        return;
+      }
+      const builtinExecMap: Record<string, string> = {
+        "piloti-files": "nautilus",
+        "piloti-shell": "terminal",
+        "piloti-terminal": "terminal",
+        "piloti-texts": "texts",
+        "piloti-calculator": "calculator",
+        "piloti-demo": "piloti-demo",
+        "piloti-hello-world": "hello-world",
+        "piloti-selfies": "selfies",
+        "piloti-system-monitor": "system-monitor",
+        "piloti-browser": "browser",
+        "piloti-image-viewer": "image-viewer",
+        "piloti-login": "login-screen",
+        "piloti-appstore": "app-store",
+        "piloti-applications": "app-store",
+        "piloti-app-store": "app-store",
+        "piloti-console": "console",
+        "piloti-desktop": "console",
+        "piloti-devtools": "console",
+        "piloti-settings": "settings",
+      };
+      if (execCmd && builtinExecMap[execCmd]) {
+        launchApp(builtinExecMap[execCmd]);
+        return;
+      }
+      if (!systemServices) {
+        const lower = `${entry.desktopId} ${entry.appId}`.toLowerCase();
+        if (lower.includes("settings") || lower.includes("controlcenter")) {
+          launchApp("settings", { forceCsd: true });
+          return;
+        }
+      } else if (
+        !actionId &&
+        (entry.desktopId === "org.gnome.Settings.desktop" ||
+          entry.desktopId === "gnome-control-center.desktop" ||
+          entry.execArgv[0]?.endsWith("gnome-control-center") === true)
+      ) {
+        openGnomeControlCenter(piloti, undefined, settings.hiddenGnomePanels);
+        return;
+      }
+      beginStartupNotification(entry.appId);
+      launchXdgEntry(entry, actionId);
+    },
+    [
+      beginStartupNotification,
+      clearLaunchOverlays,
+      piloti,
+      systemServices,
+      launchApp,
+      launchXdgEntry,
+      openWebUrl,
+      settings.hiddenGnomePanels,
+    ]
+  );
+
+  const openFileWithXdgApp = React.useCallback(
+    (entry: XdgDesktopEntry, path: string) => {
+      clearLaunchOverlays();
+      logAppLaunch(entry.desktopId);
+      beginStartupNotification(entry.appId);
+      launchXdgEntry(entry, undefined, [path]);
+    },
+    [beginStartupNotification, clearLaunchOverlays, launchXdgEntry]
+  );
+
+  const toggleOverview = React.useCallback(() => {
+    setAltTabState((prev) => (prev.open ? { ...prev, open: false } : prev));
+    setOverviewOpen((prev) => {
+      const next = !prev;
+      if (next) piloti.windows.focusShell();
+      return next;
+    });
+  }, [piloti.windows]);
+
+  const moveWindowToWorkspace = React.useCallback(
+    (windowId: string, targetWorkspace: number) => {
+      const ws = Math.max(1, targetWorkspace);
+      const targetWin = combinedWindows.find((w) => w.id === windowId);
+      console.info(
+        `[Piloti] moved ${targetWin?.appId || windowId} to workspace ${ws}`
+      );
+      const settingsPatch: {
+        workspaceCount?: number;
+        savedWindowBounds?: typeof settings.savedWindowBounds;
+      } = {};
+      if (ws > settings.workspaceCount) {
+        settingsPatch.workspaceCount = ws;
+      }
+      if (targetWin) {
+        const key = resolveSpatialBoundsKey({
+          appId: targetWin.appId,
+          payload: targetWin.payload,
+          browserUrl: targetWin.browserUrl,
+          desktopId: targetWin.waylandDesktopId,
+        });
+        settingsPatch.savedWindowBounds = {
+          ...settings.savedWindowBounds,
+          [key]: {
+            position: targetWin.position,
+            size: targetWin.size,
+            workspace: ws,
+            maximized: targetWin.maximized,
+            monitor: primaryMonitorName,
+          },
+        };
+      }
+      if (Object.keys(settingsPatch).length > 0) {
+        updateSettings(settingsPatch);
+      }
+      if (windowId.startsWith("wayland:")) {
+        const rawId = windowId.slice("wayland:".length);
+        patchExternalMeta(setWaylandMeta, rawId, (cur) => ({
+          ...cur,
+          workspace: ws,
+        }));
+      } else if (windowId.startsWith("browser:")) {
+        const rawId = windowId.slice("browser:".length);
+        patchExternalMeta(setBrowserMeta, rawId, (cur) => ({
+          ...cur,
+          workspace: ws,
+        }));
+      } else {
+        setShellWindows((prev) =>
+          prev.map((w) => (w.id === windowId ? { ...w, workspace: ws } : w))
+        );
+      }
+    },
+    [
+      combinedWindows,
+      primaryMonitorName,
+      settings.savedWindowBounds,
+      settings.workspaceCount,
+      updateSettings,
+    ]
+  );
+
+  const removeWorkspace = React.useCallback(
+    (workspace: number) => {
+      if (settings.workspaceCount <= 1) return;
+      const remap = (ws: number) =>
+        ws === workspace ? 1 : ws > workspace ? ws - 1 : ws;
+      setWaylandMeta((prev) => {
+        const next: Record<string, ExternalWindowMeta> = {};
+        for (const [k, v] of Object.entries(prev)) {
+          next[k] = { ...v, workspace: remap(v.workspace) };
+        }
+        return next;
+      });
+      setBrowserMeta((prev) => {
+        const next: Record<string, ExternalWindowMeta> = {};
+        for (const [k, v] of Object.entries(prev)) {
+          next[k] = { ...v, workspace: remap(v.workspace) };
+        }
+        return next;
+      });
+      setShellWindows((prev) =>
+        prev.map((w) => ({ ...w, workspace: remap(w.workspace) }))
+      );
+      const nextCount = settings.workspaceCount - 1;
+      const nextActive = Math.min(
+        nextCount,
+        settings.activeWorkspace === workspace
+          ? 1
+          : settings.activeWorkspace > workspace
+            ? settings.activeWorkspace - 1
+            : settings.activeWorkspace
+      );
+      updateSettings({ workspaceCount: nextCount, activeWorkspace: nextActive });
+    },
+    [settings.activeWorkspace, settings.workspaceCount, updateSettings]
+  );
+
+  const setAltTabIndex = React.useCallback<
+    React.Dispatch<React.SetStateAction<number>>
+  >((value) => {
+    setAltTabState((prev) => ({
+      ...prev,
+      index: typeof value === "function" ? value(prev.index) : value,
+    }));
+  }, []);
+
+  const mruWindows = React.useMemo(() => {
+    const map = new Map(combinedWindows.map((w) => [w.id, w]));
+    const ordered: DesktopWindowInstance[] = [];
+    for (const id of mruIds) {
+      const win = map.get(id);
+      if (win) {
+        ordered.push(win);
+        map.delete(id);
+      }
+    }
+    for (const win of map.values()) {
+      ordered.push(win);
+    }
+    return ordered;
+  }, [combinedWindows, mruIds]);
+
+  const openAltTab = React.useCallback(() => {
+    if (mruWindows.length === 0) return;
+    piloti.windows.focusShell();
+    setAltTabState({
+      open: true,
+      index: mruWindows.length > 1 ? 1 : 0,
+    });
+  }, [piloti.windows, mruWindows.length]);
+
+  const cycleAltTab = React.useCallback(
+    (delta: number) => {
+      if (mruWindows.length === 0) return;
+      piloti.windows.focusShell();
+      setAltTabState((prev) => {
+        if (!prev.open) {
+          return {
+            open: true,
+            index: mruWindows.length > 1 ? 1 : 0,
+          };
+        }
+        return {
+          open: true,
+          index: (prev.index + delta + mruWindows.length) % mruWindows.length,
+        };
+      });
+    },
+    [piloti.windows, mruWindows.length]
+  );
+
+  const commitAltTab = React.useCallback(
+    (explicitWindowId?: string) => {
+      const targetId = explicitWindowId ?? mruWindows[altTabIndex]?.id;
+      setAltTabState((prev) => (prev.open ? { ...prev, open: false } : prev));
+      if (targetId) {
+        focusWindow(targetId);
+      }
+    },
+    [altTabIndex, focusWindow, mruWindows]
+  );
+
+  // Focus follows a workspace switch: its top window, or none when it is empty.
+  const focusWorkspaceRef = React.useRef(settings.activeWorkspace);
+  React.useEffect(() => {
+    if (focusWorkspaceRef.current === settings.activeWorkspace) return;
+    focusWorkspaceRef.current = settings.activeWorkspace;
+    const shown = combinedWindows.filter(
+      (w) => !w.minimized && (w.pinned || w.workspace === settings.activeWorkspace)
+    );
+    if (shown.some((w) => w.id === focusedWindowId)) return;
+    const top = shown.sort((a, b) => b.zIndex - a.zIndex)[0];
+    if (top) focusWindow(top.id);
+    else clearFocusedWindow();
+  }, [
+    clearFocusedWindow,
+    combinedWindows,
+    focusWindow,
+    focusedWindowId,
+    settings.activeWorkspace,
+  ]);
+
+  const closeAltTab = React.useCallback(() => {
+    setAltTabState((prev) => (prev.open ? { ...prev, open: false } : prev));
+  }, []);
+
+  const switchWorkspace = React.useCallback(
+    (delta: -1 | 1) => {
+      const next = Math.max(
+        1,
+        Math.min(settings.workspaceCount, settings.activeWorkspace + delta)
+      );
+      if (next !== settings.activeWorkspace) {
+        console.info(`[Piloti] switched to workspace ${next}`);
+        updateSettings({ activeWorkspace: next });
+      }
+    },
+    [settings.activeWorkspace, settings.workspaceCount, updateSettings]
+  );
+
+  useGlobalShortcuts({
+    piloti,
+    overviewOpen,
+    setOverviewOpen,
+    toggleOverview,
+    setLauncherOpen,
+    setControlPanelOpen,
+    altTabOpen,
+    cycleAltTab,
+    commitAltTab,
+    closeAltTab,
+    switchWorkspace,
+    takeScreenshot,
+    focusedWindowId,
+    launchApp,
+    closeWindow,
+    toggleMinimizeWindow,
+    toggleMaximizeWindow,
+    tileWindow,
+  });
+
+  const { registerDockRef, getDockRef } = useDockRefs();
+
+  const focusedWindow = React.useMemo(
+    () => combinedWindows.find((w) => w.id === focusedWindowId),
+    [combinedWindows, focusedWindowId]
+  );
+
+  useModuleChannel(piloti, combinedWindows, updateWindowGeometry);
+
+  const { activeAppDef, handleMenuAction } = useGlobalAppMenu({
+    focusedWindow,
+    focusedWindowId,
+    installedWebApps: settings.installedWebApps,
+    installedXdgApps,
+    backendsCtx,
+    closeWindow,
+    toggleMinimizeWindow,
+    toggleMaximizeWindow,
+    tileWindow,
+    launchApp,
+    setLauncherOpen,
+    setControlPanelOpen,
+  });
+
+  // Persist open windows to localStorage via xdg-session-management-v1
+  React.useEffect(() => {
+    if (!sessionHydratedRef.current) return;
+    if (!settings.restoreWindowsOnLogin) {
+      clearXdgSession();
+      return;
+    }
+    const records = combinedWindows.map((w) =>
+      serializeWindowToXdgSession(
+        // Web Browser windows come back as Browser windows, not web apps.
+        w.browserWindowId && w.appId === "browser" ? { ...w, payload: "browser" } : w,
+        primaryMonitorName
+      )
+    );
+    const timer = setTimeout(() => {
+      saveXdgSession(records);
+    }, 150);
+    const flush = () => saveXdgSession(records);
+    window.addEventListener("beforeunload", flush);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("beforeunload", flush);
+    };
+  }, [combinedWindows, primaryMonitorName, settings.restoreWindowsOnLogin]);
+
+  const workspaceWindows = React.useMemo(
+    () =>
+      combinedWindows.filter(
+        (w) => w.pinned || w.workspace === settings.activeWorkspace
+      ),
+    [combinedWindows, settings.activeWorkspace]
+  );
+
+  React.useEffect(() => {
+    const onOpenPath = (e: Event) => {
+      const filePath = (e as CustomEvent<{ path?: string }>).detail?.path;
+      if (!filePath) return;
+      if (!realFilesystem) {
+        const entry = demoFiles().entry(filePath);
+        if (entry && entry.kind === "file") {
+          if (isImageVfsFile(entry.name, entry.content)) {
+            launchApp("image-viewer", { payload: entry.path });
+            return;
+          }
+          if (demoFiles().isTextEditable(entry.name)) {
+            launchApp("texts", { payload: entry.path });
+            return;
+          }
+          openWebUrl(demoFiles().pageUrl(entry), {
+            asApp: true,
+            appId: `file:${entry.path}`,
+            title: entry.name,
+          });
+        }
+        return;
+      }
+      launchDesktopCommand(piloti, ["xdg-open", filePath]);
+    };
+    window.addEventListener("piloti:open-path", onOpenPath);
+    return () => window.removeEventListener("piloti:open-path", onOpenPath);
+  }, [piloti, realFilesystem, launchApp, openWebUrl]);
+
+  const value = React.useMemo<WindowsContextValue>(
+    () => ({
+      windows: combinedWindows,
+      workspaceWindows,
+      waylandPopups,
+      focusedWindowId,
+      focusedWindow,
+      clearFocusedWindow,
+      activeAppDef,
+      mruWindows,
+      launchingApps,
+      markWindowReady,
+      launchApp,
+      launchXdgApp,
+      openFileWithXdgApp,
+      openGnomeSettings,
+      openWebUrl,
+      setBrowserFavicon,
+      setBrowserTitle,
+      openBrowserTab,
+      selectBrowserTab,
+      closeBrowserTab,
+      reorderBrowserTabs,
+      detachBrowserTab,
+      pinBrowserTab,
+      reopenClosedBrowserTab,
+      focusWindow,
+      closeWindow,
+      forceQuitApp,
+      toggleMinimizeWindow,
+      minimizeWindow,
+      toggleMaximizeWindow,
+      tileWindow,
+      updateWindowGeometry,
+      handleMenuAction,
+      launcherOpen,
+      setLauncherOpen,
+      controlPanelOpen,
+      setControlPanelOpen,
+      aboutOpen,
+      setAboutOpen,
+      altTabOpen,
+      altTabIndex,
+      setAltTabIndex,
+      openAltTab,
+      cycleAltTab,
+      commitAltTab,
+      closeAltTab,
+      overviewOpen,
+      setOverviewOpen,
+      toggleOverview,
+      moveWindowToWorkspace,
+      removeWorkspace,
+      registerDockRef,
+      getDockRef,
+      subscribeClientWindowRequest,
+    }),
+    [
+      aboutOpen,
+      activeAppDef,
+      altTabIndex,
+      altTabOpen,
+      closeAltTab,
+      closeWindow,
+      clearFocusedWindow,
+      combinedWindows,
+      launcherOpen,
+      commitAltTab,
+      controlPanelOpen,
+      cycleAltTab,
+      overviewOpen,
+      focusWindow,
+      focusedWindow,
+      focusedWindowId,
+      forceQuitApp,
+      getDockRef,
+      handleMenuAction,
+      launchApp,
+      launchXdgApp,
+      openFileWithXdgApp,
+      launchingApps,
+      markWindowReady,
+      minimizeWindow,
+      moveWindowToWorkspace,
+      mruWindows,
+      openAltTab,
+      openGnomeSettings,
+      openWebUrl,
+      registerDockRef,
+      removeWorkspace,
+      setAltTabIndex,
+      setBrowserFavicon,
+      setBrowserTitle,
+      openBrowserTab,
+      selectBrowserTab,
+      closeBrowserTab,
+      reorderBrowserTabs,
+      detachBrowserTab,
+      pinBrowserTab,
+      reopenClosedBrowserTab,
+      subscribeClientWindowRequest,
+      tileWindow,
+      toggleOverview,
+      toggleMaximizeWindow,
+      toggleMinimizeWindow,
+      updateWindowGeometry,
+      waylandPopups,
+      workspaceWindows,
+    ]
+  );
+
+  return value;
+}
+
+export function useWindowManager() {
+  const ctx = React.useContext(WindowsContext);
+  if (!ctx) {
+    throw new Error("useWindowManager must be used within DesktopStateProvider");
+  }
+  return ctx;
+}
+
+export function useWindowActions(): WindowActionsValue {
+  const actions = React.useContext(WindowActionsContext);
+  if (!actions) {
+    throw new Error("useWindowActions must be used within DesktopStateProvider");
+  }
+  return actions;
+}
+

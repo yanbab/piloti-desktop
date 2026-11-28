@@ -1,13 +1,13 @@
 import { afterAll, describe, expect, test } from "bun:test";
-import { browserPersistence } from "@/lib/engine-web/vfs-persistence-browser";
-import { memoryPersistence } from "@/lib/ports/vfs-persistence";
+import { browserPersistence } from "@/platform/web/vfs-persistence-browser";
+import { memoryPersistence } from "@/core/ports/vfs-persistence";
 import {
   getVfsEntry,
   setVfsPersistence,
   writeVfsTextFile,
   WEB_VFS_STORAGE_KEY,
-} from "@/lib/engine-web/web-vfs";
-import { VFS_HOME } from "@/lib/engine/vfs-home";
+} from "@/platform/web/web-vfs";
+import { VFS_HOME } from "@/platform/shared/vfs-home";
 
 describe("VFS persistence port", () => {
   afterAll(() => setVfsPersistence(browserPersistence()));
@@ -27,9 +27,9 @@ describe("VFS persistence port", () => {
 
 describe("VFS sync port", () => {
   test("subscribers hear local changes through an injected sync", async () => {
-    const { memoryVfsSync } = await import("@/lib/ports/vfs-sync");
-    const { setVfsSync, subscribeWebVfs } = await import("@/lib/engine-web/web-vfs");
-    const { browserVfsSync } = await import("@/lib/engine-web/vfs-sync-browser");
+    const { memoryVfsSync } = await import("@/core/ports/vfs-sync");
+    const { setVfsSync, subscribeWebVfs } = await import("@/platform/web/web-vfs");
+    const { browserVfsSync } = await import("@/platform/web/vfs-sync-browser");
     setVfsPersistence(memoryPersistence());
     setVfsSync(memoryVfsSync());
     const heard: Array<readonly string[] | undefined> = [];

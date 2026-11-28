@@ -6,7 +6,7 @@ import {
   normalizeExtensionsConfig,
   parseChromeWebStoreExtensionId,
   setExtensionEnabled,
-} from "@/lib/engine/browser-extensions";
+} from "@/platform/shared/browser-extensions";
 
 describe("browser extensions catalog", () => {
   it("lists uBlock Origin Lite and Dark Reader with Chrome Web Store IDs", () => {

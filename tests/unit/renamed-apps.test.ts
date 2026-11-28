@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { currentAppId, formerAppId, renameBoundsKeys } from "@/lib/core/renamed-apps";
+import { currentAppId, formerAppId, renameBoundsKeys } from "@/core/config/renamed-apps";
 
 describe("renamed apps", () => {
   test("old ids read as new ones, others as they are", () => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { looksLikeUrl, webSearchHome, webSearchUrl } from "@/lib/core/web-search";
+import { looksLikeUrl, webSearchHome, webSearchUrl } from "@/core/util/web-search";
 
 describe("web search", () => {
   it("tells addresses from searches", () => {

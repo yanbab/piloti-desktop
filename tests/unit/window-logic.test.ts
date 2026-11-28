@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import { computeCenteredOrCascadedPosition } from "@/lib/windows/cascade-position";
-import { resolvePopupWindows, resolveSyncedParentFrames } from "@/lib/windows/popups";
-import { pinnedTabs, reorderedTabs } from "@/lib/windows/tab-groups";
-import type { DesktopWindowInstance } from "@/context/windows/types";
+import { computeCenteredOrCascadedPosition } from "@/core/windows/cascade-position";
+import { resolvePopupWindows, resolveSyncedParentFrames } from "@/core/windows/popups";
+import { pinnedTabs, reorderedTabs } from "@/core/windows/tab-groups";
+import type { DesktopWindowInstance } from "@/ui/context/windows/types";
 
 describe("browser tab groups", () => {
   const group = { tabs: ["a", "b", "c"], active: "a" };
