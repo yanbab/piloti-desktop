@@ -168,3 +168,25 @@ export async function readProcessMemory(piloti: Pick<Piloti, "processes">, pid: 
     return null;
   }
 }
+
+/** The command name of each process (`ps -o comm`, cut to 15 characters). */
+export async function readProcessNames(
+  piloti: Pick<Piloti, "processes">,
+  pids: readonly number[],
+): Promise<Map<number, string>> {
+  const names = new Map<number, string>();
+  if (pids.length === 0) return names;
+  try {
+    const out = (await piloti.processes.run(["ps", "-o", "pid=,comm=", "-p", pids.join(",")])).match({
+      Ok: (r) => r.stdout,
+      Err: () => "",
+    });
+    for (const line of out.split("\n")) {
+      const m = /^\s*(\d+)\s+(.+?)\s*$/.exec(line);
+      if (m) names.set(Number(m[1]), m[2]!);
+    }
+  } catch {
+    // No ps: names stay unknown.
+  }
+  return names;
+}
