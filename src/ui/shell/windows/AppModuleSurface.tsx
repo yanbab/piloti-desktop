@@ -8,7 +8,7 @@ import { initAppModules, moduleInstance, resolveAppModuleByUrl } from "@/core/da
 import { parseDragRegions, type Rect } from "@/core/apps/window-controls-overlay";
 import { moduleState, onModuleState, sendToModule } from "@/platform/shared/module-ipc";
 import { usePiloti } from "@/platform/shared/piloti";
-import { appDragSource } from "@/ui/dnd/app-drag";
+import { DRAG_THRESHOLD } from "@/ui/fx/drag-feedback";
 import { useAppChrome } from "@/ui/components/elements/app-chrome";
 import { HeaderBar } from "@/ui/components/elements/header-bar";
 import { useWindowContext, WindowControls } from "@/ui/components/ui/window";
@@ -48,22 +48,101 @@ function useModuleOverlay(url: string | undefined, tabbed: boolean): Rect[] | un
   return regions;
 }
 
+/** How often a module under a shell drag hears where it is. */
+const MODULE_OVER_MS = 33;
+
 /**
- * While items are dragged in the shell, a layer over the module's view: the
- * engine gives each pointer move to the surface under the pointer, so without
- * it the view would take the drag (and its release) from the shell. Not over
- * the module the drag came from, which draws it itself when back over it.
+ * While the shell drags anything (items, a window, a divider), a layer over
+ * the module's view: the engine gives each pointer move to the surface under
+ * the pointer, so without it the view would take the drag and its release
+ * from the shell. Items dragged over it are reported to the module, which
+ * lights the folder under them (it takes the drop through `routeItemDrop`).
+ * A drag started in the module itself never shows it: the shell saw no press.
  */
 function DropShield({ instance }: { instance: string | null | undefined }) {
+  const piloti = usePiloti();
   const [shown, setShown] = React.useState(false);
   React.useEffect(() => {
+    let press: { x: number; y: number } | null = null;
+    const onDown = (e: PointerEvent) => {
+      if (e.button === 0) press = { x: e.clientX, y: e.clientY };
+    };
+    const onMove = (e: PointerEvent) => {
+      if ((e.buttons & 1) === 0) {
+        press = null;
+        setShown(false);
+        return;
+      }
+      if (press && Math.hypot(e.clientX - press.x, e.clientY - press.y) > DRAG_THRESHOLD) setShown(true);
+    };
+    const onUp = () => {
+      press = null;
+      setShown(false);
+    };
+    window.addEventListener("pointerdown", onDown, true);
+    window.addEventListener("pointermove", onMove, true);
+    window.addEventListener("pointerup", onUp, true);
+    window.addEventListener("pointercancel", onUp, true);
+    window.addEventListener("blur", onUp);
+    return () => {
+      window.removeEventListener("pointerdown", onDown, true);
+      window.removeEventListener("pointermove", onMove, true);
+      window.removeEventListener("pointerup", onUp, true);
+      window.removeEventListener("pointercancel", onUp, true);
+      window.removeEventListener("blur", onUp);
+    };
+  }, []);
+  // Items dragged over the view: the module lights its folder under them.
+  React.useEffect(() => {
+    if (!instance) return;
+    let over = false;
+    let sentAt = 0;
+    const leave = () => {
+      if (!over) return;
+      over = false;
+      sendToModule(piloti, { to: instance, type: "drag", state: "leave" });
+    };
     const onDrag = (e: Event) => {
-      const active = (e as CustomEvent<{ active?: boolean }>).detail?.active === true;
-      setShown(active && (!instance || appDragSource() !== instance));
+      const detail = (e as CustomEvent<{
+        active?: boolean;
+        clientX?: number;
+        clientY?: number;
+        items?: readonly { path?: string }[];
+      }>).detail;
+      const rect = document
+        .querySelector(`[data-module-instance="${CSS.escape(instance)}"]`)
+        ?.getBoundingClientRect();
+      const paths = (detail?.items ?? []).flatMap((i) => (i.path?.startsWith("/") ? [i.path] : []));
+      if (!detail?.active || !rect || detail.clientX === undefined || detail.clientY === undefined) {
+        leave();
+        return;
+      }
+      const inside =
+        detail.clientX >= rect.left && detail.clientX < rect.right &&
+        detail.clientY >= rect.top && detail.clientY < rect.bottom;
+      if (!inside || paths.length === 0) {
+        leave();
+        return;
+      }
+      const now = performance.now();
+      if (over && now - sentAt < MODULE_OVER_MS) return;
+      over = true;
+      sentAt = now;
+      sendToModule(piloti, {
+        to: instance,
+        type: "drag",
+        state: "over",
+        paths,
+        x: detail.clientX - rect.left,
+        y: detail.clientY - rect.top,
+      });
     };
     window.addEventListener("residence:file-drag", onDrag);
-    return () => window.removeEventListener("residence:file-drag", onDrag);
-  }, [instance]);
+    return () => {
+      window.removeEventListener("residence:file-drag", onDrag);
+      leave();
+    };
+  }, [instance, piloti]);
   return shown ? <div data-drop-shield className="absolute inset-0 z-30" /> : null;
 }
 

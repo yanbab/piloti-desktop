@@ -218,8 +218,9 @@ screen takes the pointer, the shell draws the items, lights its targets and
 drops (`ui/dnd/app-drag.ts`). Over a module window it tells that module where
 the drag is and where it was dropped (`drag`: over, leave, drop), so the
 module fills the folder under the pointer, its own window included. While the
-shell drags items itself, a layer covers each module's view
-(`AppModuleSurface`), else the view would take the pointer.
+shell drags anything itself (items, a window), a layer covers each module's
+view (`AppModuleSurface`), else the view would take the pointer and the
+release; items dragged over it are reported to the module the same way.
 Its undo history is its own window's. Folders stays in the shell by default
 until dragging out of its own process is tried on Linux.
 

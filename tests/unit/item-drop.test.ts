@@ -17,6 +17,11 @@ describe("drop targets", () => {
     expect(dropTargetAmong(hits, ["/h/a"])).toEqual({ kind: "vfs", destPath: "/h" });
   });
 
+  test("an app module's view takes the drop before its window refuses it", () => {
+    const hits = [el({ "data-drop-shield": "" }), el({ "data-module-instance": "m1" }), el({ "data-slot": "window" })];
+    expect(dropTargetAmong(hits, ["/h/a"])).toEqual({ kind: "module", instance: "m1" });
+  });
+
   test("a blocked row stops the search", () => {
     const hits = [el({ "data-drop-blocked": "" }), el({ "data-vfs-drop-path": "/h" })];
     expect(dropTargetAmong(hits, ["/h/a/x"])).toEqual({ kind: "blocked" });

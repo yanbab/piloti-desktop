@@ -10,10 +10,21 @@ export type DropTarget =
   | { kind: "dock"; appId: string }
   | { kind: "vfs"; destPath: string }
   | { kind: "window"; windowId: string }
+  /** An app module's view (`data-module-instance`): the module takes the drop. */
+  | { kind: "module"; instance: string }
   | { kind: "blocked" }
   | null;
 
 type HitElement = Pick<Element, "hasAttribute" | "getAttribute">;
+
+/** Items dropped on a module's view (`residence:file-drop-module`), in its coordinates. */
+export interface ModuleDropDetail {
+  instance: string;
+  paths: string[];
+  x: number;
+  y: number;
+  copy: boolean;
+}
 
 /** Items for bare paths (from an app on its own), as drop targets take them. */
 export const pathItems = (paths: readonly string[]): IconGridItem[] =>
@@ -41,6 +52,8 @@ export function dropTargetAmong(
       );
       if (!isSelfOrChild) return { kind: "vfs", destPath };
     }
+    const instance = el.getAttribute("data-module-instance");
+    if (instance) return { kind: "module", instance };
     const windowId = el.getAttribute("data-drop-window-id");
     if (windowId) return { kind: "window", windowId };
     if (el.getAttribute("data-slot") === "window") return { kind: "blocked" };
@@ -114,6 +127,23 @@ export function routeItemDrop(
     return "external";
   }
   if (isVirtualAppItem(primary)) return "blocked";
+  if (target.kind === "module") {
+    const view = document.querySelector(`[data-module-instance="${CSS.escape(target.instance)}"]`);
+    const rect = view?.getBoundingClientRect();
+    if (!rect) return "none";
+    window.dispatchEvent(
+      new CustomEvent<ModuleDropDetail>("residence:file-drop-module", {
+        detail: {
+          instance: target.instance,
+          paths: items.map((i) => i.path),
+          x: point.x - rect.left,
+          y: point.y - rect.top,
+          copy: point.copy,
+        },
+      }),
+    );
+    return "external";
+  }
   if (target.kind === "window") {
     window.dispatchEvent(
       new CustomEvent("residence:file-drop-window", {

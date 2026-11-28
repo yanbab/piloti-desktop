@@ -1,6 +1,7 @@
 /** The shell's side of its app module windows: menus, size, and what they watch. */
 import { endAppDrag, followAppDrag } from "@/ui/dnd/app-drag";
 import { dropFromApp } from "@/ui/dnd/drop-from-app";
+import type { ModuleDropDetail } from "@/ui/dnd/item-drop";
 import { droppedActions, type FileDropWindowDetail } from "@/core/files/dropped-paths";
 import * as React from "react";
 import type { DesktopWindowInstance } from "@/ui/context/windows/types";
@@ -99,14 +100,21 @@ export function useModuleChannel(
         for (const actionId of droppedActions(detail)) sendToModule(piloti, { to: id, type: "action", actionId });
       }
     };
+    // Items dropped on a module's view: it fills the folder under the pointer.
+    const onModuleDrop = (e: Event) => {
+      const { instance, ...drop } = (e as CustomEvent<ModuleDropDetail>).detail;
+      sendToModule(piloti, { to: instance, type: "drag", state: "drop", ...drop });
+    };
     window.addEventListener("piloti:app-action", onAppAction);
     window.addEventListener("residence:file-drop-window", onFileDrop);
+    window.addEventListener("residence:file-drop-module", onModuleDrop);
     const stop = onModuleState(apply);
     apply();
     return () => {
       stop();
       window.removeEventListener("piloti:app-action", onAppAction);
       window.removeEventListener("residence:file-drop-window", onFileDrop);
+      window.removeEventListener("residence:file-drop-module", onModuleDrop);
     };
   }, [key, piloti]);
 
