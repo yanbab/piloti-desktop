@@ -14,7 +14,7 @@ demo only.
 | `name.js`, `name.mjs` | ES module |
 | `name/` | optional `manifest.json`; else `style.css`, `index.js` or `index.mjs` |
 
-Manage them in Settings > Advanced > User Plugins. `?safe-mode=1` skips
+Manage them in Settings > Extensions. `?safe-mode=1` skips
 JavaScript.
 
 ## Manifest

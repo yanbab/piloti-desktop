@@ -2,6 +2,7 @@
 import * as React from "react";
 import type { DesktopWindowInstance } from "@/ui/context/windows/types";
 import { moduleInstance, resolveAppModuleByUrl } from "@/core/data/app-modules";
+import { recordAppReady } from "@/core/util/perf-log";
 import { publishWindowMenuState } from "@/platform/shared/app-bridge";
 import { forgetModule, moduleState, onModuleState, sendToModule } from "@/platform/shared/module-ipc";
 import type { Piloti } from "@/platform/shared/piloti";
@@ -20,11 +21,14 @@ export function useModuleChannel(
       return id ? [`${id}=${w.id}`] : [];
     })
     .join(" ");
+  const windowsRef = React.useRef(windows);
+  windowsRef.current = windows;
   const resizeRef = React.useRef(resize);
   resizeRef.current = resize;
   const known = React.useRef(new Set<string>());
   /** The size last applied, so a window the user resized stays so. */
   const sizes = React.useRef(new Map<string, string>());
+  const drawn = React.useRef(new Set<string>());
 
   React.useEffect(() => {
     const modules = new Map(key ? key.split(" ").map((p) => p.split("=") as [string, string]) : []);
@@ -32,6 +36,7 @@ export function useModuleChannel(
       if (modules.has(id)) continue;
       forgetModule(id);
       sizes.current.delete(id);
+      drawn.current.delete(id);
     }
     // A shell that was reloaded, or a state sent before the window was listed.
     for (const id of modules.keys()) {
@@ -43,6 +48,11 @@ export function useModuleChannel(
     const apply = () => {
       for (const [id, windowId] of modules) {
         const state = moduleState(id);
+        if (state?.ready && !drawn.current.has(id)) {
+          drawn.current.add(id);
+          const appId = windowsRef.current.find((w) => w.id === windowId)?.appId;
+          if (appId) recordAppReady(appId, true);
+        }
         if (state?.menu) publishWindowMenuState(windowId, state.menu);
         const size = state?.size;
         if (!size || sizes.current.get(id) === `${size.width}x${size.height}`) continue;

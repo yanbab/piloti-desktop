@@ -1,4 +1,5 @@
 import * as React from "react";
+import { recordAppReady } from "@/core/util/perf-log";
 import { emitShellEvent } from "@/core/windows/shell-events";
 import { createRoot, type Root } from "react-dom/client";
 import {
@@ -148,6 +149,7 @@ export const IsolatedAppFrame: React.FC<IsolatedAppFrameProps> = ({
       if (data.windowId && data.windowId !== windowId) return;
 
       if (data.type === "piloti:ready") {
+        recordAppReady(appId, true);
         sendThemeSync();
         markWindowReady(windowId);
       } else if (data.type === "piloti:focus-window") {
@@ -172,6 +174,7 @@ export const IsolatedAppFrame: React.FC<IsolatedAppFrameProps> = ({
     window.addEventListener("message", onMessage);
     return () => window.removeEventListener("message", onMessage);
   }, [
+    appId,
     closeWindow,
     focusWindow,
     markWindowReady,
