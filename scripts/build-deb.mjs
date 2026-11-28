@@ -138,6 +138,21 @@ export function stagePackageRoot({
   fs.chmodSync(shellDst, 0o644);
   stagedFiles.push({ rel: shellDstRel, mode: 0o644, size: shellBytes.length });
 
+  // The apps the shell loads on demand, next to it.
+  const chunksSrc = path.join(path.dirname(shellBundlePath), "shell-chunks");
+  if (fs.existsSync(chunksSrc)) {
+    for (const name of fs.readdirSync(chunksSrc).sort()) {
+      if (!name.endsWith(".js")) continue;
+      const rel = `usr/share/piloti-desktop/shell-chunks/${name}`;
+      const dst = path.join(stageDir, rel);
+      fs.mkdirSync(path.dirname(dst), { recursive: true });
+      const bytes = fs.readFileSync(path.join(chunksSrc, name));
+      fs.writeFileSync(dst, bytes, { mode: 0o644 });
+      fs.chmodSync(dst, 0o644);
+      stagedFiles.push({ rel, mode: 0o644, size: bytes.length });
+    }
+  }
+
   // Install Domicile app modules (one directory per app = own origin/storage)
   const appsSrc = path.join(repoRoot, "dist", "apps");
   if (fs.existsSync(appsSrc)) {

@@ -1,5 +1,4 @@
 import type { Piloti } from "@/lib/engine/piloti";
-import { KeymapChoice } from "@domicile-desktop/sdk/keymap-choice";
 import { tokenizeExec } from "@/lib/xdg/xdg-desktop-entry";
 import { runText } from "./exec";
 
@@ -410,24 +409,4 @@ export async function runGreeterPowerAction(
   } catch {
     return false;
   }
-}
-
-/**
- * Switches the live Domicile compositor keyboard layout when running on native Linux.
- */
-export async function switchGreeterKeymap(
-  piloti: Piloti,
-  layoutId: string
-): Promise<boolean> {
-  try {
-    if (typeof piloti.keyboard?.selectKeymap === "function") {
-      const res = await piloti.keyboard.selectKeymap(
-        KeymapChoice.Named(layoutId)
-      );
-      return res.match({ Ok: () => true, Err: () => false });
-    }
-  } catch {
-    // ignore keymap errors if config doesn't define the named layout
-  }
-  return false;
 }

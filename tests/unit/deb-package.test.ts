@@ -41,6 +41,8 @@ describe("Debian packaging (data/files -> .deb)", () => {
       const dummyGreeter = path.join(tmpDir, "greeter.js");
       fs.writeFileSync(dummyShell, "export const Shell = {};\n", "utf8");
       fs.writeFileSync(dummyGreeter, "export const Shell = {};\n", "utf8");
+      fs.mkdirSync(path.join(tmpDir, "shell-chunks"));
+      fs.writeFileSync(path.join(tmpDir, "shell-chunks", "App-abc.js"), "export {};\n", "utf8");
 
       const stageDir = path.join(tmpDir, "stage");
       const staged = stagePackageRoot({
@@ -51,6 +53,7 @@ describe("Debian packaging (data/files -> .deb)", () => {
       });
 
       const rels = new Set(staged.files.map((f) => f.rel));
+      expect(rels.has("usr/share/piloti-desktop/shell-chunks/App-abc.js")).toBe(true);
       expect(rels.has("usr/bin/piloti")).toBe(true);
       expect(rels.has("usr/bin/piloti-session")).toBe(true);
       expect(rels.has("usr/bin/piloti-greeter")).toBe(true);

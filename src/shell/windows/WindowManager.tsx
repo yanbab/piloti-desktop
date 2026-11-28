@@ -4,6 +4,7 @@ import { hostFiles } from "@/lib/engine/host-files";
 import { logAppEvent } from "@/lib/core/perf-log";
 import { looksLikeUrl, webSearchUrl } from "@/lib/core/web-search";
 import * as React from "react";
+import { countRender } from "@/lib/core/render-stats";
 import { emitShellEvent, onShellEvent } from "@/lib/core/shell-events";
 import { usePiloti } from "@/lib/engine/piloti";
 import { useWatch } from "@domicile-desktop/react/use-watch";
@@ -49,11 +50,31 @@ import {
 import { AppChromeProvider, useAppChrome, type AppChrome } from "@/components/elements/app-chrome";
 import { HeaderBar } from "@/components/elements/header-bar";
 import { ShellTitlebar, WindowAppChrome } from "@/shell/windows/WindowAppChrome";
-import { CalculatorApp } from "@/apps/calculator/CalculatorApp";
-import { HelloWorldApp } from "@/apps/hello/HelloWorldApp";
-import { PilotiDemoApp } from "@/apps/piloti-demo/PilotiDemoApp";
-import { SelfiesApp } from "@/apps/selfies/SelfiesApp";
-import { SystemMonitorApp } from "@/apps/system-monitor/SystemMonitorApp";
+const CalculatorApp = React.lazy(() =>
+  import("@/apps/calculator/CalculatorApp").then((m) => ({
+    default: m.CalculatorApp,
+  }))
+);
+const HelloWorldApp = React.lazy(() =>
+  import("@/apps/hello/HelloWorldApp").then((m) => ({
+    default: m.HelloWorldApp,
+  }))
+);
+const PilotiDemoApp = React.lazy(() =>
+  import("@/apps/piloti-demo/PilotiDemoApp").then((m) => ({
+    default: m.PilotiDemoApp,
+  }))
+);
+const SelfiesApp = React.lazy(() =>
+  import("@/apps/selfies/SelfiesApp").then((m) => ({
+    default: m.SelfiesApp,
+  }))
+);
+const SystemMonitorApp = React.lazy(() =>
+  import("@/apps/system-monitor/SystemMonitorApp").then((m) => ({
+    default: m.SystemMonitorApp,
+  }))
+);
 const ConsoleApp = React.lazy(() =>
   import("@/apps/console/ConsoleApp").then((m) => ({
     default: m.ConsoleApp,
@@ -1428,6 +1449,7 @@ const WindowBody = React.memo(
   }) {
     const isCsd = useAppChrome().decorations === "client";
     const { compositor } = useCapabilities();
+    countRender("WindowBody");
 
     if (win.waylandAppId && compositor) {
       return <WaylandAppSurface win={win} />;
@@ -2205,7 +2227,7 @@ export function WindowManager() {
         // presses here): using one, or dismissing it, keeps the focus.
         if (
           !(e.target as HTMLElement).closest(
-            '[data-slot="window"], [data-slot="select-content"], [data-slot="dropdown-menu-content"], [data-slot="context-menu-content"], [role="menu"], [data-popup-backdrop]',
+            '[data-slot="window"], [data-wayland-popup], [data-slot="select-content"], [data-slot="dropdown-menu-content"], [data-slot="context-menu-content"], [role="menu"], [data-popup-backdrop]',
           )
         ) {
           clearFocusedWindow();
@@ -2460,6 +2482,12 @@ export function WindowManager() {
       {waylandPopups.map((popup) => (
         <div
           key={popup.appId}
+          data-wayland-popup=""
+          onPointerDown={() => {
+            if (focusedWindowId !== popup.parentToplevelId) {
+              focusWindow(popup.parentToplevelId);
+            }
+          }}
           style={{
             position: "absolute",
             left: `${popup.x}px`,

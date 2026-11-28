@@ -1,13 +1,9 @@
 /**
- * Which engine this page runs on. Each entry point picks one at startup
- * (`piloti-web.tsx` the browser demo, `piloti-desktop.tsx` the Linux session)
- * and the shared code asks here, instead of sniffing globals.
- *
- * Prefer a capability to the kind: a feature should ask what it needs
- * (`engine.capabilities.realFilesystem`), not which engine it is on.
+ * What the engine this page runs on can do. Each entry point picks one at
+ * startup (`piloti-web.tsx` the browser demo, `piloti-desktop.tsx` the Linux
+ * session). Shared code asks for what it needs
+ * (`getEngine().capabilities.realFilesystem`), not which engine it is on.
  */
-export type EngineKind = "web" | "native";
-
 export interface EngineCapabilities {
   /** Files live on a real disk (the VFS is a cache of it). Otherwise the browser VFS is the only copy. */
   realFilesystem: boolean;
@@ -23,37 +19,23 @@ export interface EngineCapabilities {
 }
 
 export interface Engine {
-  kind: EngineKind;
   capabilities: EngineCapabilities;
 }
 
 export const webEngine: Engine = {
-  kind: "web",
   capabilities: { realFilesystem: false, systemServices: false, simulatedHardware: true, compositor: false },
 };
 
 export const nativeEngine: Engine = {
-  kind: "native",
   capabilities: { realFilesystem: true, systemServices: true, simulatedHardware: false, compositor: true },
 };
 
-let current: Engine | null = null;
+/** Linux until an entry point says otherwise: app modules never do. */
+let current: Engine = nativeEngine;
 
 /** Called once by an entry point before the desktop renders. */
 export function setEngine(engine: Engine): void {
   current = engine;
 }
 
-/** Before an entry point has chosen (tests, tools), the in-page fake host marks the browser demo. */
-function legacyKind(): EngineKind {
-  return typeof window !== "undefined" &&
-    Boolean((window as { __PILOTI_BROWSER_HOST__?: unknown }).__PILOTI_BROWSER_HOST__)
-    ? "web"
-    : "native";
-}
-
-export function getEngine(): Engine {
-  return current ?? (legacyKind() === "web" ? webEngine : nativeEngine);
-}
-
-export const isWebEngine = (): boolean => getEngine().kind === "web";
+export const getEngine = (): Engine => current;

@@ -21,6 +21,8 @@ export interface StateSource {
   subscribe(path: string, listener: () => void): () => void;
   /** The same for any file directly inside `dir`. */
   subscribeDir(dir: string, listener: () => void): () => void;
+  /** Resolves once `path` can be read; only for files loaded late (Linux). */
+  ready?(path: string): Promise<void>;
   /** Takes a value out of `localStorage`, where early releases kept it (demo). */
   consumeLegacy?(key: string): string | null;
   /** Moves of the storage's own layout (demo; Linux moves its folders itself). */

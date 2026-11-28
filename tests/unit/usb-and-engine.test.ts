@@ -4,7 +4,6 @@ import { join } from "node:path";
 import { APP_CATALOG } from "@/data/catalog";
 import {
   getEngine,
-  isWebEngine,
   nativeEngine,
   setEngine,
   webEngine,
@@ -93,10 +92,8 @@ describe("Simulated USB pen drive, Engine override & Folders rename", () => {
 
   test("an entry point picks the engine; capabilities say what it can do", () => {
     setEngine(webEngine);
-    expect(isWebEngine()).toBe(true);
     expect(getEngine().capabilities.realFilesystem).toBe(false);
     setEngine(nativeEngine);
-    expect(isWebEngine()).toBe(false);
     expect(getEngine().capabilities.systemServices).toBe(true);
     setEngine(webEngine); // the rest of the suite runs as the browser demo
   });

@@ -5,7 +5,7 @@ import {
 import type { Piloti } from "@/lib/engine/piloti";
 import { Signal } from "@domicile-desktop/sdk/system";
 import { hostFiles } from "@/lib/engine/host-files";
-import { commandExists, launchDesktopCommand, runText } from "./exec";
+import { commandExists, runText } from "./exec";
 
 export interface FlatpakAppEntry {
   appId: string;
@@ -222,12 +222,6 @@ async function fetchFlathubJson<T>(
     }
   }
   return null;
-}
-
-export async function fetchFlathubPopular(
-  installedIds?: ReadonlySet<string>
-): Promise<FlatpakAppEntry[]> {
-  return getPopularFlathubApps(installedIds);
 }
 
 export async function searchFlatpaks(
@@ -484,15 +478,6 @@ export async function uninstallFlatpakApp(
     options?.onUpdate,
     options?.signal
   );
-}
-
-/**
- * Launches an installed Flatpak application under Domicile's Wayland/Xwayland session.
- */
-export function launchFlatpakApp(piloti: Piloti, appId: string): void {
-  const cleanId = appId.trim();
-  if (!cleanId) return;
-  launchDesktopCommand(piloti, ["flatpak", "run", cleanId]);
 }
 
 function parseFlatpakPermissionLines(raw: string): Partial<FlatpakPermissionsState> {

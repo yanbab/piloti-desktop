@@ -55,20 +55,6 @@ export function upsertGtkSettingsIni(
   return `${lines.join("\n").replace(/\n+$/, "")}\n`;
 }
 
-export async function readGtk4HintFontMetrics(
-  piloti: Piloti
-): Promise<boolean> {
-  try {
-    const res = await piloti.files.readText(".config/gtk-4.0/settings.ini");
-    return res.match({
-      Ok: (text) => parseGtk4HintFontMetrics(text),
-      Err: () => false,
-    });
-  } catch {
-    return false;
-  }
-}
-
 export async function syncGtkIconTheme(
   piloti: Piloti,
   iconTheme: string
@@ -97,29 +83,6 @@ export async function syncGtkIconTheme(
   }
 }
 
-export async function setGtk4HintFontMetrics(
-  piloti: Piloti,
-  enabled: boolean
-): Promise<boolean> {
-  try {
-    await piloti.files.createDir(".config/gtk-4.0").catch(() => undefined);
-    const readRes = await piloti.files.readText(".config/gtk-4.0/settings.ini");
-    const current = readRes.match({ Ok: (t) => t, Err: () => "" });
-    const updated = upsertGtkSettingsIni(
-      current,
-      "gtk-hint-font-metrics",
-      enabled ? "true" : "false"
-    );
-    const writeRes = await piloti.files.write(
-      ".config/gtk-4.0/settings.ini",
-      updated
-    );
-    return writeRes.match({ Ok: () => true, Err: () => false });
-  } catch {
-    return false;
-  }
-}
-
 export async function listInstalledFontFamilies(
   piloti: Piloti
 ): Promise<string[]> {
@@ -131,26 +94,4 @@ export async function listInstalledFontFamilies(
     if (name) unique.add(name);
   }
   return Array.from(unique).sort((a, b) => a.localeCompare(b));
-}
-
-export async function readGtk4CustomCss(piloti: Piloti): Promise<string> {
-  try {
-    const res = await piloti.files.readText(".config/gtk-4.0/gtk.css");
-    return res.match({ Ok: (t) => t, Err: () => "" });
-  } catch {
-    return "";
-  }
-}
-
-export async function writeGtk4CustomCss(
-  piloti: Piloti,
-  css: string
-): Promise<boolean> {
-  try {
-    await piloti.files.createDir(".config/gtk-4.0").catch(() => undefined);
-    const writeRes = await piloti.files.write(".config/gtk-4.0/gtk.css", css);
-    return writeRes.match({ Ok: () => true, Err: () => false });
-  } catch {
-    return false;
-  }
 }

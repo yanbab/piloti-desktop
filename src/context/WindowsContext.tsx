@@ -61,7 +61,7 @@ import { type SettingsContextValue } from "./SettingsContext";
 import { type SystemBackendsContextValue } from "./SystemBackendsContext";
 import { useGlobalAppMenu } from "./windows/useGlobalAppMenu";
 import { useGlobalShortcuts } from "./windows/useGlobalShortcuts";
-import { getEngine, isWebEngine } from "@/lib/engine/engine";
+import { getEngine } from "@/lib/engine/engine";
 import { useCapabilities } from "@/hooks/use-capabilities";
 
 export interface DesktopWindowInstance {
@@ -440,7 +440,7 @@ export function useWindowsValue(
       }
     }
 
-    if (isWebEngine()) {
+    if (getEngine().capabilities.simulatedHardware) {
       const settingsDef = APP_CATALOG.find((a) => a.id === "settings")!;
       const minSize = settingsDef.minSize ?? { width: 620, height: 400 };
       const saved = settings.savedWindowBounds?.settings;
@@ -1330,12 +1330,12 @@ function pruneBrowserRecord(
 
   const [focusedWindowId, setFocusedWindowId] = React.useState<string | null>(
     () =>
-      isWebEngine()
+      getEngine().capabilities.simulatedHardware
         ? "shell:settings-1"
         : null
   );
   const [mruIds, setMruIds] = React.useState<string[]>(() =>
-    isWebEngine()
+    getEngine().capabilities.simulatedHardware
       ? ["shell:settings-1"]
       : []
   );

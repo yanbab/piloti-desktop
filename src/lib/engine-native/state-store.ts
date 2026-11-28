@@ -6,12 +6,16 @@
  *   session, so editing one applies at once;
  * - state and cache files are the shell's own, rewritten often: they are watched
  *   only while something subscribes.
+ * Large caches the first frame does not need are read meanwhile: ask `ready()`.
  * Only this store writes these files.
  */
 import { parentPath, type Vfs } from "@/lib/ports/vfs";
 import type { StateSource } from "@/lib/ports/state-source";
 
 const MAX_DEPTH = 3;
+
+/** Read after the others: big, and only needed once the desktop is up. */
+const DEFERRED = [".cache/piloti/xdg-apps.json"];
 
 /** Text the shell reads back: not logs (only written), images or plugin code. */
 const isStateFile = (name: string) => /\.(ini|json|list)$/.test(name) || !/.\.[^.]+$/.test(name);
@@ -71,15 +75,20 @@ export async function createNativeStateStore(vfs: Vfs, home: string): Promise<Na
 
   const load = async (path: string) => {
     const text = await vfs.readText(path).catch(() => null);
-    if (text !== null) values.set(path, text);
+    // A write made while reading is newer.
+    if (text !== null && !values.has(path) && !pending.get(path)) values.set(path, text);
   };
+  const deferred = new Map<string, Promise<void>>();
+  for (const relative of DEFERRED) deferred.set(`${home}/${relative}`, Promise.resolve());
   const loadTree = async (dir: string, depth: number): Promise<void> => {
     const entries = await vfs.list(dir).catch(() => null);
     await Promise.all(
       (entries ?? []).map(async (entry) => {
         if (entry.kind === "directory") {
           if (depth < MAX_DEPTH) await loadTree(entry.path, depth + 1);
-        } else if (isStateFile(entry.name)) await load(entry.path);
+        } else if (!isStateFile(entry.name)) return;
+        else if (deferred.has(entry.path)) deferred.set(entry.path, load(entry.path));
+        else await load(entry.path);
       }),
     );
   };
@@ -164,6 +173,7 @@ export async function createNativeStateStore(vfs: Vfs, home: string): Promise<Na
     },
     // Config folders are watched already (`watchConfigDir`).
     subscribeDir: (dir, listener) => add(dirListeners, dir, listener),
+    ready: (path) => deferred.get(path) ?? Promise.resolve(),
     settled: () => tail,
     dispose() {
       for (const stop of sessionWatches.values()) stop();

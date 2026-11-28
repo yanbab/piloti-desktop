@@ -47,7 +47,8 @@ import {
 import { useCapabilities } from "@/hooks/use-capabilities";
 
 /** Stays mounted while closed (built once); `open` says when it is shown. */
-export function ControlPanel({ open = true }: { open?: boolean }) {
+// Memoised: the menu bar re-renders on every focus change, and this is always mounted.
+export const ControlPanel = React.memo(function ControlPanel({ open = true }: { open?: boolean }) {
   countRender("ControlPanel");
   const portalRequests = usePortalRequests() ?? [];
   const activeInhibitors = React.useMemo(
@@ -784,7 +785,7 @@ export function ControlPanel({ open = true }: { open?: boolean }) {
       )}
     </div>
   );
-}
+});
 
 const MAX_COLLAPSED_NOTIFICATIONS = 3;
 

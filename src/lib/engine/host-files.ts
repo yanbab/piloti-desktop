@@ -14,8 +14,3 @@ export type HostFiles = Piloti["files"];
 export function hostFiles<T = HostFiles>(piloti: { files: T }): T {
   return piloti.files;
 }
-
-/** The running shell's files, for apps that may render outside the Domicile provider. */
-export function shellHostFiles(): HostFiles | undefined {
-  return window.piloti?.files;
-}

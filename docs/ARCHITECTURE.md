@@ -33,6 +33,12 @@ UI (React)  ─►  piloti: Domicile's desktop + vfs, settings, desktop…
 - On Linux: Domicile renders the shell, its compositor runs Wayland and
   portals, Piloti draws the desktop. A Wayland bug can sit in any of them.
 
+## Loading
+
+The Linux shell is `shell.js` plus `shell-chunks/`: apps and their libraries
+load when first opened, so import them with `React.lazy` from the shell.
+Nothing the entry imports up front may read `$HOME` (the build checks).
+
 ## Data
 
 | What | API | Stored in |

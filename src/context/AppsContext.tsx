@@ -27,6 +27,7 @@ import {
 } from "@/lib/icons/icon-accent-tint";
 import {
   readVfsStateJson,
+  whenStateReady,
   VFS_STATE_PATHS,
   writeVfsStateJson,
 } from "@/lib/engine/vfs-state";
@@ -368,7 +369,11 @@ export function useAppsValue(
   const [installedXdgApps, setInstalledXdgApps] = React.useState<
     XdgDesktopEntry[]
   >([]);
-  const [xdgUserDirs, setXdgUserDirs] = React.useState<XdgUserDir[]>([]);
+  // Last session's folders at once, so the desktop can list before they are read again.
+  const [xdgUserDirs, setXdgUserDirs] = React.useState<XdgUserDir[]>(
+    () => readVfsStateJson<XdgUserDir[]>(VFS_STATE_PATHS.userDirsCache) ?? [],
+  );
+  const essentialsLoadedRef = React.useRef(false);
   const [appIconsMap, setAppIconsMap] = React.useState<Record<string, string>>(
     {}
   );
@@ -464,7 +469,14 @@ export function useAppsValue(
           Boolean(cachedDock.icons[id]) ||
           Boolean(cachedDock.icons[id.replace(/\.desktop$/i, "")])
       );
-    if (cachedDock && hasAllPinnedCached && Object.keys(cachedDock.icons).length > 0) {
+    const hydrated =
+      cachedDock !== null && hasAllPinnedCached && Object.keys(cachedDock.icons).length > 0;
+    // At startup a complete cache is enough: the icons are resolved again only
+    // if the icon folders changed (below), or for a later theme or refresh.
+    const keepCachedIcons =
+      hydrated && cachedIndex !== null && refreshNonce === 0 && !essentialsLoadedRef.current;
+    essentialsLoadedRef.current = true;
+    if (cachedDock && hydrated) {
       setAppGridIsSymbolic(cachedDock.appGridIsSymbolic);
       setAppIconsMap((prev) => ({ ...cachedDock.icons, ...prev }));
       logBootEvent(
@@ -499,7 +511,10 @@ export function useAppsValue(
           : buildXdgIconThemeIndex(hostFiles(piloti), preferredThemes);
         // Published at once: the desktop waits for it to know which folder to list.
         const userDirsPromise = discoverXdgUserDirs(hostFiles(piloti)).then((dirs) => {
-          if (!cancelled) setXdgUserDirs(dirs);
+          if (!cancelled) {
+            setXdgUserDirs(dirs);
+            writeVfsStateJson(VFS_STATE_PATHS.userDirsCache, dirs, false);
+          }
           return dirs;
         });
 
@@ -534,93 +549,101 @@ export function useAppsValue(
               saveCachedXdgIconThemeIndex(preferredThemes, fresh);
               saveIconIndexStamp(stampKey, stamp);
               logBootEvent("icon index rebuilt");
+              // Icons kept from the cache may be out of date: resolve them again.
+              if (keepCachedIcons) setRefreshNonce((n) => n + 1);
             })().catch(() => undefined);
           }, 4000);
         }
 
-        // Resolve all Dock, launcher, trash, fallback, and folder icons together
-        // so the Dock slides in atomically with all icons already painted.
-        const essentialIcons: Record<string, string> = {};
-        let resolvedAppGridSymbolic = true;
         const pinnedSet = new Set(settings.pinnedAppIds);
-        const prioritizedCatalog = [
-          ...APP_CATALOG.filter((app) => pinnedSet.has(app.id)),
-          ...APP_CATALOG.filter((app) => !pinnedSet.has(app.id)),
-        ];
+        if (keepCachedIcons) {
+          finishDock("cached");
+        } else {
+          // Resolve all Dock, launcher, trash, fallback, and folder icons together
+          // so the Dock slides in atomically with all icons already painted.
+          const essentialIcons: Record<string, string> = {};
+          let resolvedAppGridSymbolic = true;
+          const prioritizedCatalog = [
+            ...APP_CATALOG.filter((app) => pinnedSet.has(app.id)),
+            ...APP_CATALOG.filter((app) => !pinnedSet.has(app.id)),
+          ];
 
-        const catalogIds = new Set(APP_CATALOG.map((app) => app.id));
-        const customPinnedIds = settings.pinnedAppIds.filter(
-          (id) => !catalogIds.has(id)
-        );
+          const catalogIds = new Set(APP_CATALOG.map((app) => app.id));
+          const customPinnedIds = settings.pinnedAppIds.filter(
+            (id) => !catalogIds.has(id)
+          );
 
-        await Promise.all([
-          ...prioritizedCatalog.map(async (app) => {
-            const url = await resolveThemedIconUrl(
-              hostFiles(piloti),
-              iconIndex,
-              app.xdgIcons ?? [app.id]
-            );
-            if (url) essentialIcons[app.id] = url;
-          }),
-          ...customPinnedIds.map(async (pinnedId) => {
-            const cleanId = pinnedId.replace(/\.desktop$/i, "");
-            const url = await resolveThemedIconUrl(
-              hostFiles(piloti),
-              iconIndex,
-              [cleanId, cleanId.toLowerCase()]
-            );
-            if (url) {
-              essentialIcons[pinnedId] = url;
-              essentialIcons[cleanId] = url;
-            }
-          }),
-          ...Object.entries(SHELL_XDG_ICON_GROUPS).map(
-            async ([key, candidates]) => {
+          await Promise.all([
+            ...prioritizedCatalog.map(async (app) => {
               const url = await resolveThemedIconUrl(
                 hostFiles(piloti),
                 iconIndex,
-                candidates
+                app.xdgIcons ?? [app.id]
               );
-              if (url) essentialIcons[key] = url;
-            }
-          ),
-          (async () => {
-            for (const candidate of APP_GRID_ICON_CANDIDATES) {
-              const path = lookupXdgIconPath(iconIndex, candidate, 64, 1);
-              if (!path) continue;
-              const url = await loadXdgIconDataUrl(hostFiles(piloti), path);
+              if (url) essentialIcons[app.id] = url;
+            }),
+            ...customPinnedIds.map(async (pinnedId) => {
+              const cleanId = pinnedId.replace(/\.desktop$/i, "");
+              const url = await resolveThemedIconUrl(
+                hostFiles(piloti),
+                iconIndex,
+                [cleanId, cleanId.toLowerCase()]
+              );
               if (url) {
-                essentialIcons.__app_grid__ = url;
-                resolvedAppGridSymbolic =
-                  path.includes("/symbolic/") ||
-                  path.endsWith("-symbolic.svg");
-                break;
+                essentialIcons[pinnedId] = url;
+                essentialIcons[cleanId] = url;
               }
-            }
-          })(),
-          ...userDirs.map(async (dir) => {
-            const url = await resolveThemedIconUrl(
-              hostFiles(piloti),
-              iconIndex,
-              dir.iconCandidates,
-              48
-            );
-            if (url) essentialIcons[`folder:${dir.key}`] = url;
-          }),
-        ]);
+            }),
+            ...Object.entries(SHELL_XDG_ICON_GROUPS).map(
+              async ([key, candidates]) => {
+                const url = await resolveThemedIconUrl(
+                  hostFiles(piloti),
+                  iconIndex,
+                  candidates
+                );
+                if (url) essentialIcons[key] = url;
+              }
+            ),
+            (async () => {
+              for (const candidate of APP_GRID_ICON_CANDIDATES) {
+                const path = lookupXdgIconPath(iconIndex, candidate, 64, 1);
+                if (!path) continue;
+                const url = await loadXdgIconDataUrl(hostFiles(piloti), path);
+                if (url) {
+                  essentialIcons.__app_grid__ = url;
+                  resolvedAppGridSymbolic =
+                    path.includes("/symbolic/") ||
+                    path.endsWith("-symbolic.svg");
+                  break;
+                }
+              }
+            })(),
+            ...userDirs.map(async (dir) => {
+              const url = await resolveThemedIconUrl(
+                hostFiles(piloti),
+                iconIndex,
+                dir.iconCandidates,
+                48
+              );
+              if (url) essentialIcons[`folder:${dir.key}`] = url;
+            }),
+          ]);
 
-        if (cancelled) return;
-        setAppGridIsSymbolic(resolvedAppGridSymbolic);
-        setAppIconsMap((prev) => ({ ...prev, ...essentialIcons }));
-        saveCachedDockIcons({
-          theme: activeIconTheme,
-          appGridIsSymbolic: resolvedAppGridSymbolic,
-          icons: essentialIcons,
-        });
-        finishDock(`${Object.keys(essentialIcons).length} icons`);
-        signalEssentialReady();
+          if (cancelled) return;
+          setAppGridIsSymbolic(resolvedAppGridSymbolic);
+          setAppIconsMap((prev) => ({ ...prev, ...essentialIcons }));
+          saveCachedDockIcons({
+            theme: activeIconTheme,
+            appGridIsSymbolic: resolvedAppGridSymbolic,
+            icons: essentialIcons,
+          });
+          finishDock(`${Object.keys(essentialIcons).length} icons`);
+          signalEssentialReady();
+        }
 
         const finishXdgApps = startBootPhase("xdg apps");
+        await whenStateReady(VFS_STATE_PATHS.xdgAppsCache);
+        if (cancelled) return;
         const cachedApps =
           refreshNonce === 0 ? loadCachedXdgApps(activeIconTheme) : null;
         const useWarmCachedApps = Boolean(cachedApps && cachedApps.length > 0);

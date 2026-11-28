@@ -103,6 +103,8 @@ export function DesktopBackgroundLayers({
 }) {
   const effectiveSpec = useResolvedDesktopBackgroundSpec();
   const reducedMotion = useSettingsSelector((v) => v.reducedMotion);
+  // Debug mode has no entrances: the wallpaper is there with the first frame.
+  const { debugMode } = useDesktopSettings(["debugMode"]);
   const active = spec ?? effectiveSpec;
   const reactId = React.useId();
   const scopeId = `${active.animatedCss?.id ?? "bg"}-${reactId}`.replace(/[^a-zA-Z0-9_-]/g, "_");
@@ -134,7 +136,7 @@ export function DesktopBackgroundLayers({
   }, [active.pictureLayer]);
 
   const isDesktopRoot = !spec;
-  const [mounted, setMounted] = React.useState(!isDesktopRoot);
+  const [mounted, setMounted] = React.useState(!isDesktopRoot || debugMode);
 
   React.useEffect(() => {
     if (!isDesktopRoot) return;

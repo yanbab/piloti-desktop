@@ -139,3 +139,13 @@ describe("engine-web boundary", () => {
     expect(importers).toEqual(["piloti-web.tsx"]);
   });
 });
+
+/** Code asks for a capability, never which engine it runs on. */
+describe("engine kind", () => {
+  it("nothing asks which engine this is", () => {
+    const offenders = sources(SRC)
+      .filter((file) => /\bisWebEngine\b|getEngine\(\)\.kind\b/.test(code(file)))
+      .map((file) => path.relative(SRC, file));
+    expect(offenders).toEqual([]);
+  });
+});

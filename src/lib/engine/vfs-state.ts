@@ -25,6 +25,7 @@ export const VFS_STATE_PATHS = {
   consoleLog: `${VFS_HOME}/.local/state/piloti/piloti.log`,
   appStoreMeta: `${VFS_HOME}/.cache/piloti/app-store-meta.json`,
   appStoreSources: `${VFS_HOME}/.config/piloti/app-store-sources.json`,
+  userDirsCache: `${VFS_HOME}/.cache/piloti/user-dirs.json`,
   favorites: `${VFS_HOME}/.local/state/piloti/favorites.json`,
   appPermissions: `${VFS_HOME}/.config/piloti/app-permissions.json`,
   browserBookmarks: `${VFS_HOME}/.config/piloti/browser/bookmarks.json`,
@@ -175,6 +176,11 @@ export function subscribeVfsPath(
     lastContent = nextContent;
     onChange(nextContent);
   });
+}
+
+/** Wait before reading a large cache that may still be loading. */
+export function whenStateReady(vfsPath: string): Promise<void> {
+  return source.ready?.(normalizeVfsPath(vfsPath)) ?? Promise.resolve();
 }
 
 /** The files behind the shell's state (the whole VFS in the browser demo). */

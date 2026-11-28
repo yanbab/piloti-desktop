@@ -36,6 +36,13 @@ const heard = (store: NativeStateStore, path: string) => {
 };
 
 describe("native state store", () => {
+  it("reads the large app cache on its own, and says when it is there", async () => {
+    const cache = `${HOME}/.cache/piloti/xdg-apps.json`;
+    const { store } = await start({ [cache]: '{"v":4}' });
+    await store.ready!(cache);
+    expect(store.read(cache)).toBe('{"v":4}');
+  });
+
   it("has the saved files before anything reads them, but not logs", async () => {
     const { store } = await start({
       [`${CONFIG}/settings.ini`]: "a=1",

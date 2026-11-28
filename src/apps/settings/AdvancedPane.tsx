@@ -38,7 +38,6 @@ import {
   type XdgAutostartEntry,
 } from "@/lib/xdg/xdg-autostart";
 import { WEB_VFS_HOME } from "@/lib/core/vfs-paths";
-import { getEngine } from "@/lib/engine/engine";
 import {
   SIMULATED_USB_PATH,
   toggleSimulatedUsb,
@@ -51,9 +50,8 @@ export function AdvancedPane() {
   const piloti = usePiloti();
   const settings = useDesktopSettings(["activeWorkspace", "debugMode", "dockFolders", "hiddenGnomePanels", "notificationsEnabled", "showFileExtensionBadges", "volume"]);
   const updateSettings = useUpdateSettings();
-  const { systemServices } = useCapabilities();
+  const { systemServices, compositor } = useCapabilities();
   const usbMounted = useSimulatedUsbMounted();
-  const effectiveEngine = getEngine().kind;
   const { launchApp, openWebUrl } = useWindowActions();
   const { pushNotification } = useSystemBackends();
   const [autostartEntries, setAutostartEntries] = React.useState<XdgAutostartEntry[]>([]);
@@ -228,7 +226,7 @@ export function AdvancedPane() {
             <GroupedFormRowLabel>
               <GroupedFormRowTitle>{_("Runtime Engine")}</GroupedFormRowTitle>
               <GroupedFormRowDescription>
-                {_("Active engine: %s.", `engine:${effectiveEngine}`)}
+                {_("Active engine: %s.", compositor ? "engine:native" : "engine:web")}
               </GroupedFormRowDescription>
             </GroupedFormRowLabel>
           </GroupedFormRow>

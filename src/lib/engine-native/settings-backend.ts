@@ -82,18 +82,21 @@ export async function selectNativeSettingsBackend(
   piloti: Pick<Piloti, "processes">,
   options: Options,
 ): Promise<"dconf" | "keyfile"> {
-  const own = await desktopBackend(piloti, options);
+  // Each reads dconf with its own process: both at once.
+  const [own, link] = await Promise.all([
+    desktopBackend(piloti, options),
+    gnomeLinks(piloti, options.readText),
+  ]);
   const backend = own ?? keyfileSettingsBackend();
-  setSettingsBackend((await withGnomeLinks(piloti, backend, options.readText)) ?? backend);
+  setSettingsBackend(link?.(backend) ?? backend);
   return own ? "dconf" : "keyfile";
 }
 
-/** `base` with its linked keys, or null without the list or without dconf. */
-async function withGnomeLinks(
+/** Adds the linked keys to a backend; null without the list or without dconf. */
+async function gnomeLinks(
   piloti: Pick<Piloti, "processes">,
-  base: SettingsBackend,
   readText: Options["readText"],
-): Promise<SettingsBackend | null> {
+): Promise<((base: SettingsBackend) => SettingsBackend) | null> {
   const text = await readText(GSETTINGS_LINKS_PATH).catch(() => null);
   const links = text ? parseGSettingsLinks(text) : [];
   if (links.length === 0) return null;
@@ -103,12 +106,13 @@ async function withGnomeLinks(
     kindOf: (schema, key) => kinds.get(`${schema}\0${key}`),
   });
   if (!(await gnome.preload())) return null;
-  return linkSettingsBackend({
-    base,
-    gnome,
-    links,
-    toggle: { schema: `${DESKTOP_SCHEMA}.system`, key: "sync-gnome-settings" },
-  });
+  return (base) =>
+    linkSettingsBackend({
+      base,
+      gnome,
+      links,
+      toggle: { schema: `${DESKTOP_SCHEMA}.system`, key: "sync-gnome-settings" },
+    });
 }
 
 /**

@@ -1,5 +1,4 @@
 import { webSearchUrl } from "@/lib/core/web-search";
-import { isWebEngine } from "@/lib/engine/engine";
 import * as React from "react";
 import { useCapabilities } from "@/hooks/use-capabilities";
 import { countRender } from "@/lib/core/render-stats";
@@ -275,7 +274,7 @@ export const Launcher = React.memo(function Launcher() {
   countRender("Launcher");
   const settings = useDesktopSettings(["hiddenGnomePanels", "installedWebApps", "muted", "themeMode"]);
   const updateSettings = useUpdateSettings();
-  const { realFilesystem } = useCapabilities();
+  const { realFilesystem, compositor } = useCapabilities();
   const { pluginCommands } = usePlugins();
   const {
     pushNotification,
@@ -946,7 +945,7 @@ export const Launcher = React.memo(function Launcher() {
             icon: <GlobeIcon className="size-4" />,
             label: _("Search the web for “%s”", webQuery),
             onSelect: () =>
-              runAndClose(() => openWebUrl(webSearchUrl(webQuery, isWebEngine()))),
+              runAndClose(() => openWebUrl(webSearchUrl(webQuery, !compositor))),
           },
         ],
       });

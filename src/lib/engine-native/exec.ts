@@ -1,10 +1,9 @@
 import type { Piloti } from "@/lib/engine/piloti";
-import { GNOME_ENV_PREFIX, GNOME_SESSION_ENV } from "./types";
 import {
   ensureXwaylandSatellite,
   getCachedXwaylandDisplay,
 } from "./xwayland";
-import { isWebEngine } from "@/lib/engine/engine";
+import { getEngine } from "@/lib/engine/engine";
 
 export async function runText(
   piloti: Pick<Piloti, "processes">,
@@ -56,7 +55,7 @@ export function launchDesktopCommand(
 ): void {
   if (argv.length === 0) return;
 
-  const isBrowserMock = isWebEngine();
+  const isBrowserMock = !getEngine().capabilities.systemServices;
 
   const spawnWithEnv = (resolvedEnv?: Record<string, string>) => {
     const mergedEnv =
@@ -108,27 +107,5 @@ export function launchDesktopCommand(
     .catch(() => {
       spawnWithEnv();
     });
-}
-
-/**
- * Launches a Linux / XDG command with `XDG_CURRENT_DESKTOP=GNOME` so GNOME apps
- * (especially `gnome-control-center`) enable full GNOME integration.
- */
-export function launchWithGnomeEnv(
-  piloti: Piloti,
-  argv: readonly string[],
-  options?: { cwd?: string; extraEnv?: Record<string, string> }
-): void {
-  if (argv.length === 0) return;
-
-  if (!options?.cwd && !options?.extraEnv) {
-    piloti.processes.launch([...GNOME_ENV_PREFIX, ...argv]);
-    return;
-  }
-
-  launchDesktopCommand(piloti, argv, {
-    cwd: options?.cwd,
-    extraEnv: { ...GNOME_SESSION_ENV, ...options?.extraEnv },
-  });
 }
 

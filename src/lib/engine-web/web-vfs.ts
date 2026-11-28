@@ -36,7 +36,6 @@ export {
 };
 export * from "@/lib/core/vfs-clipboard";
 export * from "@/lib/core/vfs-media";
-import { isImageVfsFile, isZipVfsFile, getVfsContentType } from "@/lib/core/vfs-media";
 
 export const WEB_VFS_STORAGE_KEY = "piloti.web.vfs.v1";
 export const WEB_VFS_CHANGED_EVENT = WEB_VFS_CHANGED_DOM_EVENT;
@@ -219,10 +218,6 @@ function loadVfs(): WebVfsEntry[] {
   return setVfsCache(seeded, json);
 }
 
-type VfsBroadcastMessage =
-  | { type: "vfs-changed"; paths?: readonly string[] }
-  | { type: "vfs-renamed"; oldPath: string; newPath: string };
-
 /** Detail of `WEB_VFS_CHANGED_EVENT`; `paths` is absent when the change is unknown/global. */
 export interface WebVfsChangeDetail {
   paths?: readonly string[];
@@ -309,12 +304,6 @@ export function setVfsSync(next: VfsSync): void {
   syncTeardown = [];
   sync = next;
   installSyncHooks();
-}
-
-/** Notifies in-document subscribers immediately (reads already see the new cache). */
-/** Tells subscribers to read `paths` again (a disk write has just ended). */
-export function notifyVfsChanged(paths: readonly string[]): void {
-  emitVfsChanged(paths.map(normalizeVfsPath));
 }
 
 function emitVfsChanged(paths: readonly string[] | undefined): void {
