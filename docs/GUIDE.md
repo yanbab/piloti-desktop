@@ -69,7 +69,7 @@ in `piloti-macos.css`.
 | Folder views | `ui/components/ui/folder-icon-view.tsx`, `ui/hooks/{use-folder-ops,use-external-file-drop,use-launcher-items}.ts`, `core/files/folder-items.ts` |
 | Icons ([details](#icons)) | `core/xdg/xdg-icon-theme.ts`, `core/icons/{icon-accent-tint,shell-icon-names}.ts` |
 | UI symbols ([details](./SYMBOLIC-ICONS.md)) | `ui/components/ui/symbolic-icon.tsx`, `core/icons/symbolic-icons.ts` |
-| Web browser | `WebViewSurface.tsx`, `BrowserTabsSurface.tsx`, `BrowserTabBar.tsx`; tab groups in `WindowsContext.tsx`. A tab is a Domicile browser window; iframes must not move on reorder |
+| Web browser | `WebViewSurface.tsx`, `BrowserTabsSurface.tsx`, `BrowserTabBar.tsx`; tabs as layout trees (`core/windows/layout/`, held in `WindowsContext.tsx`). A tab is a Domicile browser window; iframes must not move on reorder |
 | Settings | `ui/context/SettingsContext.tsx`, `piloti-settings-ini.ts` |
 | Separate apps | `ui/apps/module-app.tsx` (module runtime); hosts in `platform/shared/app-{shell,module}-host.ts`; `core/apps/module-channel.ts`; list in `core/data/app-modules.ts` |
 | App chrome | `ui/components/elements/` (`AppWindow`, `HeaderBar`, `AppSplitView`…), fed by `ui/shell/windows/WindowAppChrome.tsx`. Start from `ui/apps/hello/HelloWorldApp.tsx`. Apps only lay out content (`tests/unit/app-styling.test.ts`) |

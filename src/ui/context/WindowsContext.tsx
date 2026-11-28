@@ -67,11 +67,13 @@ import { useAppMemory } from "./windows/use-app-memory";
 import { useGlobalShortcuts } from "./windows/useGlobalShortcuts";
 import { getEngine } from "@/core/ports/engine";
 import { useCapabilities } from "@/ui/hooks/use-capabilities";
-import type { DesktopWindowInstance, BrowserTabGroup, WindowsContextValue, WindowActionsValue, ExternalWindowMeta } from "./windows/types";
+import type { DesktopWindowInstance, WindowsContextValue, WindowActionsValue, ExternalWindowMeta } from "./windows/types";
 export type { DesktopWindowInstance, BrowserTab, ResolvedPopupWindow, WindowsContextValue, WindowActionsValue } from "./windows/types";
 export { BROWSER_DEMO_HOME_URL, BROWSER_HOME_URL, normalizeWebUrl } from "@/core/windows/browser-url";
 import { BROWSER_DEMO_HOME_URL, BROWSER_HOME_URL, normalizeWebUrl } from "@/core/windows/browser-url";
-import { movedTabGroups, pinnedTabs, reorderedTabs } from "@/core/windows/tab-groups";
+import { detachToFrame, moveToFrame, rootOf, syncFrames, updateFrameStack, type FrameRoots } from "@/core/windows/layout/frames";
+import { pinTab, reorderTabs, selectTab } from "@/core/windows/layout/stack";
+import { surfacesOf } from "@/core/windows/layout/tree";
 import { patchExternalMeta, upsertBrowserRecord, pruneBrowserRecord } from "./windows/window-meta";
 import { computeCenteredOrCascadedPosition } from "@/core/windows/cascade-position";
 import { resolvePopupWindows, resolveSyncedParentFrames } from "@/core/windows/popups";
@@ -312,9 +314,7 @@ export function useWindowsValue(
   // the first one (its geometry lives in browserMeta under that key, even
   // after that tab closes); only the active tab is shown. A window with a
   // single page has no record.
-  const [browserTabGroups, setBrowserTabGroups] = React.useState<
-    Record<string, BrowserTabGroup>
-  >({});
+  const [browserTabGroups, setBrowserTabGroups] = React.useState<FrameRoots>({});
   const browserTabGroupsRef = React.useRef(browserTabGroups);
   browserTabGroupsRef.current = browserTabGroups;
   /** Groups waiting for the browser window they asked for, oldest first. */
@@ -454,29 +454,9 @@ export function useWindowsValue(
     knownBrowserIdsRef.current = activeIds;
 
     // Drop closed tabs; a closed active tab hands over to its neighbour.
-    let groupsChanged = tabAdds.length > 0;
-    const nextGroups: Record<string, BrowserTabGroup> = {};
-    for (const [group, grp] of Object.entries(prevGroups)) {
-      const tabs = grp.tabs.filter((id) => activeIds.has(id));
-      if (tabs.length !== grp.tabs.length) groupsChanged = true;
-      if (tabs.length === 0) continue;
-      const active = tabs.includes(grp.active)
-        ? grp.active
-        : tabs[Math.min(Math.max(0, grp.tabs.indexOf(grp.active) - 1), tabs.length - 1)];
-      const pinned = grp.pinned?.filter((id) => tabs.includes(id));
-      nextGroups[group] = { tabs, active, ...(pinned?.length ? { pinned } : {}) };
-    }
-    for (const [group, tab] of tabAdds) {
-      const grp = nextGroups[group] ?? { tabs: [group], active: group };
-      nextGroups[group] = { ...grp, tabs: [...grp.tabs, tab], active: tab };
-    }
-    for (const [group, grp] of Object.entries(nextGroups)) {
-      if (grp.tabs.length === 1 && grp.tabs[0] === group) {
-        delete nextGroups[group];
-        groupsChanged = true;
-      }
-    }
-    if (groupsChanged) {
+    const synced = syncFrames(prevGroups, (id) => activeIds.has(id), tabAdds);
+    const nextGroups = synced.roots;
+    if (synced.changed) {
       browserTabGroupsRef.current = nextGroups;
       setBrowserTabGroups(nextGroups);
     }
@@ -1014,7 +994,7 @@ export function useWindowsValue(
         piloti.windows.close(rawId);
       } else if (windowId.startsWith("browser:")) {
         const rawId = windowId.slice("browser:".length);
-        const tabs = browserTabGroupsRef.current[rawId]?.tabs ?? [rawId];
+        const tabs = surfacesOf(rootOf(browserTabGroupsRef.current, rawId));
         for (const tab of tabs) piloti.browser.close(tab);
       } else {
         setShellWindows((prev) => prev.filter((w) => w.id !== windowId));
@@ -1052,53 +1032,27 @@ export function useWindowsValue(
 
   const selectBrowserTab = React.useCallback((windowId: string, tabId: string) => {
     const group = windowId.slice("browser:".length);
-    setBrowserTabGroups((prev) => {
-      const grp = prev[group];
-      if (!grp || grp.active === tabId || !grp.tabs.includes(tabId)) return prev;
-      return { ...prev, [group]: { ...grp, active: tabId } };
-    });
+    setBrowserTabGroups((prev) => updateFrameStack(prev, group, tabId, (stack) => selectTab(stack, tabId)) ?? prev);
   }, []);
 
   const reorderBrowserTabs = React.useCallback((windowId: string, tabIds: string[]) => {
     const group = windowId.slice("browser:".length);
-    setBrowserTabGroups((prev) => {
-      const next = reorderedTabs(prev[group], tabIds);
-      return next ? { ...prev, [group]: next } : prev;
-    });
+    setBrowserTabGroups((prev) => updateFrameStack(prev, group, tabIds[0], (stack) => reorderTabs(stack, tabIds)) ?? prev);
   }, []);
 
   const pinBrowserTab = React.useCallback((windowId: string, tabId: string, pinned: boolean) => {
     const group = windowId.slice("browser:".length);
-    setBrowserTabGroups((prev) => {
-      const next = pinnedTabs(prev[group], tabId, pinned);
-      return next ? { ...prev, [group]: next } : prev;
-    });
+    setBrowserTabGroups((prev) => updateFrameStack(prev, group, tabId, (stack) => pinTab(stack, tabId, pinned)) ?? prev);
   }, []);
 
   const detachBrowserTab = React.useCallback(
     (windowId: string, tabId: string, at?: { x: number; y: number }): string | undefined => {
       const group = windowId.slice("browser:".length);
-      const grp = browserTabGroupsRef.current[group];
       const meta = browserMeta[group];
-      if (!grp || !meta || grp.tabs.length < 2 || !grp.tabs.includes(tabId)) return undefined;
+      if (!meta) return undefined;
       const newKey = `${tabId}~${Date.now().toString(36)}`;
-      const index = grp.tabs.indexOf(tabId);
-      const remaining = grp.tabs.filter((id) => id !== tabId);
-      const active =
-        grp.active === tabId
-          ? remaining[Math.min(index, remaining.length - 1)]
-          : grp.active;
-      const next = {
-        ...browserTabGroupsRef.current,
-        [group]: {
-          tabs: remaining,
-          active,
-          ...(grp.pinned?.some((id) => id !== tabId)
-            ? { pinned: grp.pinned.filter((id) => id !== tabId) }
-            : {}),
-        },
-        [newKey]: { tabs: [tabId], active: tabId },
-      };
+      const next = detachToFrame(browserTabGroupsRef.current, group, tabId, newKey);
+      if (!next) return undefined;
       browserTabGroupsRef.current = next;
       setBrowserTabGroups(next);
       const clamped = clampWindowBounds(
@@ -1133,10 +1087,10 @@ export function useWindowsValue(
       if (!fromWindowId.startsWith("browser:") || !toWindowId.startsWith("browser:")) return;
       const from = fromWindowId.slice("browser:".length);
       const to = toWindowId.slice("browser:".length);
-      const moved = movedTabGroups(browserTabGroupsRef.current, from, to, tabId, index);
+      const moved = moveToFrame(browserTabGroupsRef.current, from, to, tabId, index);
       if (!moved) return;
-      browserTabGroupsRef.current = moved.groups;
-      setBrowserTabGroups(moved.groups);
+      browserTabGroupsRef.current = moved.roots;
+      setBrowserTabGroups(moved.roots);
       setBrowserMeta((prev) => {
         const target = prev[to];
         const next = { ...prev };
@@ -1167,8 +1121,8 @@ export function useWindowsValue(
     (windowId: string, tabId: string) => {
       const closedUrl = browserWindowsRef.current.find((bw) => bw.id === tabId)?.url;
       if (closedUrl) closedTabsRef.current = [...closedTabsRef.current.slice(-19), closedUrl];
-      const grp = browserTabGroupsRef.current[windowId.slice("browser:".length)];
-      if (!grp || grp.tabs.length <= 1) closeWindow(windowId);
+      const tabs = surfacesOf(browserTabGroupsRef.current[windowId.slice("browser:".length)] ?? null);
+      if (tabs.length <= 1) closeWindow(windowId);
       else piloti.browser.close(tabId);
     },
     [closeWindow, piloti.browser]

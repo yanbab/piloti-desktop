@@ -3,7 +3,9 @@ import type { useWindows } from "@domicile-desktop/react/windows";
 import type { Piloti } from "@/platform/shared/piloti";
 import type { AppsContextValue } from "@/ui/context/AppsContext";
 import type { DesktopSettings } from "@/ui/context/SettingsContext";
-import type { BrowserTab, BrowserTabGroup, DesktopWindowInstance, ExternalWindowMeta } from "./types";
+import type { BrowserTab, DesktopWindowInstance, ExternalWindowMeta } from "./types";
+import type { FrameRoots } from "@/core/windows/layout/frames";
+import type { StackNode } from "@/core/windows/layout/types";
 import { findMatchingWebApp, getWebAppFaviconUrl, resolveWebAppTitle } from "@/core/data/web-apps";
 import { resolveAppModuleByUrl, webViewAppId } from "@/core/data/app-modules";
 import { resolveWaylandOuterConstraints } from "@/core/windows/window-bounds";
@@ -16,7 +18,8 @@ export interface CombineWindowsInput {
   browserFavicons: Readonly<Record<string, string>>;
   browserTitles: Readonly<Record<string, string>>;
   browserMeta: Readonly<Record<string, ExternalWindowMeta>>;
-  browserTabGroups: Readonly<Record<string, BrowserTabGroup>>;
+  /** Web windows with several tabs (splits come later: only stacks for now). */
+  browserTabGroups: FrameRoots;
   waylandWindows: ReturnType<typeof useWindows>;
   waylandMeta: Readonly<Record<string, ExternalWindowMeta>>;
   syncedParentFrames: ReadonlyMap<string, number>;
@@ -111,8 +114,11 @@ export function combineWindows({
     });
 
   const tabGroupOf = new Map<string, string>();
-  for (const [group, grp] of Object.entries(browserTabGroups)) {
-    for (const tab of grp.tabs) tabGroupOf.set(tab, group);
+  const stacks: Record<string, StackNode> = {};
+  for (const [group, root] of Object.entries(browserTabGroups)) {
+    if (root.kind !== "stack") continue;
+    stacks[group] = root;
+    for (const tab of root.tabs) tabGroupOf.set(tab, group);
   }
   const describeBrowserWindow = (bw: (typeof browserWindows)[number]) => {
     const webAppMatch = findMatchingWebApp(bw.url, settings.installedWebApps);
@@ -154,7 +160,7 @@ export function combineWindows({
   const listedGroups = new Set<string>();
   const resolvedBrowserWindows = browserWindows.flatMap((first): DesktopWindowInstance[] => {
     const group = tabGroupOf.get(first.id) ?? first.id;
-    const grp = browserTabGroups[group];
+    const grp = stacks[group];
     // One window per group, listed at its first tab (a stable DOM order,
     // so switching tabs never moves iframes) and drawn from the active one.
     if (grp) {

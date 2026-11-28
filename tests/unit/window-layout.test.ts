@@ -14,6 +14,7 @@ import {
 import { layoutRects, minSize, moveDivider, neighborOf, tiledEdges } from "@/core/windows/layout/geometry";
 import { dropPreviewRect, dropZoneAt, fittingDrop, screenEdgeAt } from "@/core/windows/layout/drop-zones";
 import { formatLayoutIni, formatTree, parseLayoutIni, parseTree } from "@/core/windows/layout/serialize";
+import { detachToFrame, moveToFrame, syncFrames, updateFrameStack } from "@/core/windows/layout/frames";
 import type { LayoutNode, SplitNode, StackNode } from "@/core/windows/layout/types";
 
 const metrics = { tabBarHeight: 32, divider: 8 };
@@ -208,5 +209,56 @@ describe("layout.ini", () => {
       ["frame-2", "floating", 1, "stack(a, *b)"],
     ]);
     expect(back[1]!.rect).toEqual({ x: 10, y: 20, width: 800, height: 600 });
+  });
+});
+
+describe("frames (web windows and their tabs)", () => {
+  const roots = { a: t("stack(a, *b, c)"), x: t("stack(*x, y)") };
+
+  test("a tab joins another window at the slot and shows", () => {
+    const moved = moveToFrame(roots, "a", "x", "b", 1)!;
+    expect(moved.fromEmptied).toBe(false);
+    expect(f(moved.roots.a!)).toBe("stack(a, *c)");
+    expect(f(moved.roots.x!)).toBe("stack(x, *b, y)");
+  });
+
+  test("single-page windows have no record on either side", () => {
+    const moved = moveToFrame({}, "p", "q", "p", 5)!;
+    expect(moved.fromEmptied).toBe(true);
+    expect(Object.keys(moved.roots)).toEqual(["q"]);
+    expect(f(moved.roots.q!)).toBe("stack(q, *p)");
+  });
+
+  test("never lands before pinned tabs; drops its own pin", () => {
+    const pinned = { a: t("stack(*a, ^b)"), x: t("stack(^x, *y)") };
+    const moved = moveToFrame(pinned, "a", "x", "b", 0)!;
+    expect(f(moved.roots.x!)).toBe("stack(^x, *b, y)");
+    expect(moved.roots.a).toEqual(stackOf("a"));
+    expect(moveToFrame({}, "a", "a", "a", 0)).toBeNull();
+    expect(moveToFrame({}, "a", "x", "zz", 0)).toBeNull();
+  });
+
+  test("detaches into a frame of its own", () => {
+    const next = detachToFrame(roots, "a", "b", "b~1")!;
+    expect(f(next.a!)).toBe("stack(a, *c)");
+    expect(next["b~1"]).toEqual(stackOf("b"));
+    expect(detachToFrame({}, "a", "a", "n")).toBeNull();
+  });
+
+  test("closed tabs leave, the one before shows; a window back to its own page loses its record", () => {
+    const synced = syncFrames(roots, (id) => id !== "b" && id !== "y", [["x", "z"]]);
+    expect(synced.changed).toBe(true);
+    expect(f(synced.roots.a!)).toBe("stack(*a, c)");
+    expect(f(synced.roots.x!)).toBe("stack(x, *z)");
+    expect(syncFrames(roots, () => true)).toEqual({ roots, changed: false });
+    expect(syncFrames({ a: t("stack(a, *b)") }, (id) => id === "a").roots).toEqual({});
+    expect(f(syncFrames({}, () => true, [["p", "q"]]).roots.p!)).toBe("stack(p, *q)");
+  });
+
+  test("tab changes apply to the stack holding the tab", () => {
+    expect(f(updateFrameStack(roots, "a", "c", (s) => selectTab(s, "c"))!.a!)).toBe("stack(a, b, *c)");
+    expect(updateFrameStack(roots, "a", "c", (s) => selectTab(s, "b"))).toBeNull();
+    expect(updateFrameStack(roots, "q", undefined, (s) => s)).toBeNull();
+    expect(f(updateFrameStack(roots, "a", "a", (s) => reorderTabs(s, ["c", "a", "b"]))!.a!)).toBe("stack(c, a, *b)");
   });
 });
