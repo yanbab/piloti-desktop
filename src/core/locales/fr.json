@@ -1017,5 +1017,22 @@
   "Show in Folder": "Afficher dans le dossier",
   "Open Downloads Folder": "Ouvrir le dossier Téléchargements",
   "Clear List": "Effacer la liste",
-  "Accepted Files": "Fichiers acceptés"
+  "Accepted Files": "Fichiers acceptés",
+  "Suggestions": "Suggestions",
+  "Bookmarks": "Signets",
+  "Bookmark This Page": "Ajouter cette page aux signets",
+  "Show Bookmarks": "Afficher les signets",
+  "Open Link in New Tab": "Ouvrir le lien dans un nouvel onglet",
+  "Open Link in New Window": "Ouvrir le lien dans une nouvelle fenêtre",
+  "Copy Link Address": "Copier l'adresse du lien",
+  "Save Link As…": "Enregistrer le lien sous…",
+  "Open Image in New Tab": "Ouvrir l'image dans un nouvel onglet",
+  "Copy Image": "Copier l'image",
+  "Copy Image Address": "Copier l'adresse de l'image",
+  "Save Image As…": "Enregistrer l'image sous…",
+  "Exit Picture in Picture": "Quitter l'image dans l'image",
+  "Copy Media Address": "Copier l'adresse du média",
+  "Save Video As…": "Enregistrer la vidéo sous…",
+  "Save Audio As…": "Enregistrer l'audio sous…",
+  "Search the Web for “%s”": "Rechercher « %s » sur le Web"
 }

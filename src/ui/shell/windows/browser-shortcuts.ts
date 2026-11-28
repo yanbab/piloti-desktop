@@ -18,6 +18,8 @@ export type BrowserCommand =
   | { kind: "zoom-in" }
   | { kind: "zoom-out" }
   | { kind: "zoom-reset" }
+  | { kind: "toggle-bookmark" }
+  | { kind: "clear-history" }
   | { kind: "next-tab" }
   | { kind: "previous-tab" }
   /** 0-based; -1 is the last tab. */
@@ -64,6 +66,7 @@ export function browserShortcut(e: ShortcutKey): BrowserCommand | null {
   if (key === "f") return { kind: "find" };
   if (key === "w") return { kind: "close-tab" };
   if (key === "n") return { kind: "new-window" };
+  if (key === "d") return { kind: "toggle-bookmark" };
   return null;
 }
 

@@ -8,6 +8,7 @@ import { useWatch } from "@domicile-desktop/react/use-watch";
 import {
   WEBVIEW_CLOSE_EVENT,
   WEBVIEW_CONTENT_SIZE_CHANGE_EVENT,
+  WEBVIEW_CONTEXT_MENU_EVENT,
   WEBVIEW_FILE_CHOOSER_EVENT,
   WEBVIEW_FAVICON_CHANGE_EVENT,
   WEBVIEW_GUEST_FOCUS_EVENT,
@@ -109,6 +110,14 @@ import {
   stepFrame,
   subscribeFrameHistory,
 } from "@/ui/shell/windows/demo-frame-history";
+import { BrowserAddressSuggestions } from "@/ui/shell/windows/BrowserAddressSuggestions";
+import {
+  addressSuggestions,
+  clearBrowserHistory,
+  readBrowserHistory,
+  recordBrowserVisit,
+} from "@/ui/shell/windows/browser-history";
+import { BrowserPageMenu, type PageMenuCommands } from "@/ui/shell/windows/BrowserPageMenu";
 import { BrowserDownloadsMenu } from "@/ui/shell/windows/BrowserDownloadsMenu";
 import { BrowserFileChooser } from "@/ui/shell/windows/BrowserFileChooser";
 import {
@@ -142,6 +151,9 @@ const MENU_COMMANDS = new Set<BrowserCommand["kind"]>([
   "zoom-in",
   "zoom-out",
   "zoom-reset",
+  "focus-address",
+  "toggle-bookmark",
+  "clear-history",
 ]);
 
 function darkenThemeColor(cssColor: string): string {
@@ -320,6 +332,20 @@ export function WebViewSurface({
   const [findQuery, setFindQuery] = React.useState("");
   const [findToken, setFindToken] = React.useState(0);
   const [fileChooser, setFileChooser] = React.useState<DomicileFileChooserEvent | null>(null);
+  const [pageMenu, setPageMenu] = React.useState<DomicileContextMenuEvent | null>(null);
+  const closePageMenu = React.useCallback(() => setPageMenu(null), []);
+
+  // The engine draws no right-click menu: it says what was clicked.
+  React.useEffect(() => {
+    const view = webviewRef.current;
+    if (!view || !compositor) return;
+    const onContextMenu = (event: Event) => {
+      dismissOpenPopups();
+      setPageMenu(event as DomicileContextMenuEvent);
+    };
+    view.addEventListener(WEBVIEW_CONTEXT_MENU_EVENT, onContextMenu);
+    return () => view.removeEventListener(WEBVIEW_CONTEXT_MENU_EVENT, onContextMenu);
+  }, [compositor]);
 
   // Downloads show on the Dock and notify, whichever window started them.
   React.useEffect(() => {
@@ -473,6 +499,13 @@ export function WebViewSurface({
       ? "secure"
       : "";
   const bookmarks = useBrowserBookmarks();
+  // Each page shown is a visit (not the pages restored at start).
+  const shownOnceRef = React.useRef(false);
+  React.useEffect(() => {
+    if (!isBrowserApp || !currentUrl) return;
+    if (shownOnceRef.current) recordBrowserVisit(currentUrl);
+    shownOnceRef.current = true;
+  }, [isBrowserApp, currentUrl]);
   const bookmarked = isBrowserApp && Boolean(currentUrl) && isBookmarked(bookmarks, currentUrl);
   const storeExtId = React.useMemo(
     () => parseChromeWebStoreExtensionId(currentUrl),
@@ -553,8 +586,36 @@ export function WebViewSurface({
     return () => cancelAnimationFrame(frame);
   }, [editingAddress]);
 
+  // Untouched, the field lists the bookmarks; typed into, matching pages.
+  const [suggestIndex, setSuggestIndex] = React.useState(-1);
+  const [addressInput, setAddressInput] = React.useState<HTMLInputElement | null>(null);
+  const suggestQuery = draftAddress === currentUrl ? "" : draftAddress;
+  const suggestions = React.useMemo(
+    () =>
+      editingAddress && isBrowserApp
+        ? addressSuggestions(suggestQuery, bookmarks, readBrowserHistory(), Date.now())
+        : [],
+    [editingAddress, isBrowserApp, suggestQuery, bookmarks]
+  );
+  React.useEffect(() => setSuggestIndex(-1), [suggestQuery, editingAddress]);
+
+  const goTo = (normalized: string) => {
+    if (!compositor) {
+      navigateFrame(normalized);
+    } else if (webviewRef.current) {
+      setAddress(normalized);
+      webviewRef.current.src = normalized;
+    }
+    setEditingAddress(false);
+  };
+
   const submitAddressEdit = (e: React.FormEvent) => {
     e.preventDefault();
+    const picked = suggestions[suggestIndex];
+    if (picked) {
+      goTo(picked.url);
+      return;
+    }
     // An address goes there; anything else is a web search.
     const normalized = looksLikeUrl(draftAddress)
       ? normalizeWebUrl(draftAddress)
@@ -729,6 +790,14 @@ export function WebViewSurface({
       case "zoom-reset":
         applyZoom(1);
         return true;
+      case "toggle-bookmark":
+        if (!isBrowserApp || !currentUrl) return false;
+        toggleBrowserBookmark(currentUrl, win.title);
+        return true;
+      case "clear-history":
+        if (!isBrowserApp) return false;
+        clearBrowserHistory();
+        return true;
       case "next-tab":
       case "previous-tab":
       case "select-tab": {
@@ -742,6 +811,22 @@ export function WebViewSurface({
   };
   const runCommandRef = React.useRef(runCommand);
   runCommandRef.current = runCommand;
+
+  const pageMenuCommands: PageMenuCommands = {
+    canGoBack,
+    canGoForward,
+    back: handleGoBack,
+    forward: handleGoForward,
+    reload: handleReload,
+    print: () => webviewRef.current?.print(),
+    openInNewTab: isBrowserApp ? (url) => openBrowserTab(win.id, url) : undefined,
+    openInNewWindow: (url) => launchApp("browser", { forceNew: true, payload: url }),
+    searchWeb: (text) => {
+      const url = webSearchUrl(text, !compositor);
+      if (isBrowserApp) openBrowserTab(win.id, url);
+      else launchApp("browser", { payload: url });
+    },
+  };
 
   // The page's chords arrive as guest keydowns; the toolbar's as keydowns.
   React.useEffect(() => {
@@ -828,6 +913,9 @@ export function WebViewSurface({
   titleHandlerRef.current = (discoveredTitle: string) => {
     const clean = discoveredTitle.trim();
     if (!clean) return;
+    if (isBrowserApp && !isHostnameFallbackTitle(clean, currentUrl)) {
+      recordBrowserVisit(currentUrl, clean, false);
+    }
     if (win.browserWindowId) {
       setBrowserTitle(win.browserWindowId, clean);
     }
@@ -1116,10 +1204,13 @@ export function WebViewSurface({
               <form
                 onSubmit={submitAddressEdit}
                 data-window-no-drag
-                className="flex min-w-0 flex-1 items-center justify-center px-2"
+                className="relative flex min-w-0 flex-1 items-center justify-center px-2"
               >
                 <input
-                  ref={addressInputRef}
+                  ref={(node) => {
+                    addressInputRef.current = node;
+                    setAddressInput(node);
+                  }}
                   type="text"
                   value={draftAddress}
                   onChange={(e) => setDraftAddress(e.target.value)}
@@ -1128,14 +1219,32 @@ export function WebViewSurface({
                     if (e.key === "Escape") {
                       e.preventDefault();
                       setEditingAddress(false);
+                    } else if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+                      if (suggestions.length === 0) return;
+                      e.preventDefault();
+                      const step = e.key === "ArrowDown" ? 1 : -1;
+                      setSuggestIndex((i) =>
+                        Math.max(-1, Math.min(suggestions.length - 1, i + step))
+                      );
                     }
                   }}
+                  role="combobox"
+                  aria-expanded={suggestions.length > 0}
+                  aria-autocomplete="list"
                   aria-label={_("Address")}
                   placeholder="https://…"
                   className={cn(
                     "h-7 w-full max-w-xl rounded-ui-control border border-ui-accent/70 bg-black/8 px-2.5 text-ui-body font-medium outline-none dark:bg-white/12",
                     !contrastFg && "text-ui-label"
                   )}
+                />
+                <BrowserAddressSuggestions
+                  anchor={addressInput}
+                  items={suggestions}
+                  selected={suggestIndex}
+                  empty={suggestQuery === ""}
+                  onPick={goTo}
+                  onHover={setSuggestIndex}
                 />
               </form>
             ) : (
@@ -1429,6 +1538,10 @@ export function WebViewSurface({
               </div>
             </div>
           </>
+        )}
+
+        {pageMenu && compositor && (
+          <BrowserPageMenu event={pageMenu} commands={pageMenuCommands} onClose={closePageMenu} />
         )}
 
         {fileChooser && (

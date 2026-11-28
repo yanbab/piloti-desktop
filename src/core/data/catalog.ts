@@ -422,7 +422,15 @@ const APP_MENUS: Record<string, AppMenuSection[]> = {
       title: "Go",
       items: [
         { label: "Back", shortcut: "Alt+Left", actionId: "browser:back" },
-        { label: "Forward", shortcut: "Alt+Right", actionId: "browser:forward" },
+        { label: "Forward", shortcut: "Alt+Right", actionId: "browser:forward", separatorAfter: true },
+        { label: "Clear History", actionId: "browser:clear-history" },
+      ],
+    },
+    {
+      title: "Bookmarks",
+      items: [
+        { label: "Bookmark This Page", shortcut: "Ctrl+D", actionId: "browser:toggle-bookmark" },
+        { label: "Show Bookmarks", shortcut: "Ctrl+L", actionId: "browser:focus-address" },
       ],
     },
   ],
