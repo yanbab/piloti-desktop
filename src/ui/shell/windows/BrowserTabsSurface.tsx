@@ -25,6 +25,7 @@ export function browserTabsOf(win: DesktopWindowInstance): BrowserTab[] {
         url: win.browserUrl ?? "",
         title: win.title,
         iconUrl: win.iconUrl,
+        ...(win.browserIsApp ? { isApp: true } : {}),
       },
     ]
   );

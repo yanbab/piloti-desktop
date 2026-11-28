@@ -6,7 +6,6 @@ import { type DesktopWindowInstance } from "@/ui/context/DesktopStateContext";
 import type { BrowserTab } from "@/ui/context/WindowsContext";
 import { useCapabilities } from "@/ui/hooks/use-capabilities";
 import { WaylandAppSurface } from "@/ui/shell/windows/WaylandAppSurface";
-import { AppModuleSurface, isAppModuleWindow } from "@/ui/shell/windows/AppModuleSurface";
 import { BrowserTabsSurface } from "@/ui/shell/windows/BrowserTabsSurface";
 
 const CalculatorApp = React.lazy(() =>
@@ -122,10 +121,9 @@ function WindowDomReadySignal({
   return null;
 }
 
-/** A web window drawn with its tabs (a single app module is drawn on its own). */
+/** A web window (pages or app modules), drawn with its tabs. */
 export function showsBrowserTabs(win: DesktopWindowInstance, compositor: boolean): boolean {
-  if (!win.browserWindowId || (win.waylandAppId && compositor)) return false;
-  return !(isAppModuleWindow(win) && (win.browserTabs?.length ?? 0) < 2);
+  return Boolean(win.browserWindowId) && !(win.waylandAppId && compositor);
 }
 
 export const WindowBody = React.memo(
@@ -149,13 +147,9 @@ export const WindowBody = React.memo(
     }
 
     if (showsBrowserTabs(win, compositor)) {
-      // Its tabs' views are rendered by the window manager (`BrowserTabContent`).
+      // Its tabs' views (pages and app modules, even alone) are rendered by
+      // the window manager (`BrowserTabContent`), so they survive a move.
       return <BrowserTabsSurface win={win} />;
-    }
-
-    // An app module on its own; as a tab, the tabs surface draws it.
-    if (win.browserWindowId) {
-      return <AppModuleSurface win={win} />;
     }
 
     if (win.builtinComponent && win.isolated) {
