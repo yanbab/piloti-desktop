@@ -111,17 +111,32 @@ Paths without a root are under `src/`.
   ones). `scripts/vm-dev.sh` is the edit loop without a `.deb`.
 - `vm` rebuilds only the shell: app modules (`/usr/share/piloti-desktop/apps`)
   come from the `.deb`, so test a module change with `deb`.
-- Scripted checks on the VM (from the Mac; a cloud session gets there through
-  a Remote Control session on the Mac):
-  - ssh: `debian@<VM>` with a key (the default in `try.sh`). Commands need the
-    session's socket: `export DOMICILE_SOCK=$(ls /run/user/1000/domicile-ipc.*.sock)`.
-  - The live shell has Chrome DevTools on the VM's `127.0.0.1:9222`. Tunnel it
-    (`ssh -N -L 9222:127.0.0.1:9222 debian@<VM>`), then Playwright
-    `chromium.connectOverCDP("http://127.0.0.1:9222")`, page `domicile://shell/`:
-    `window.piloti` and the DOM, as in the demo.
-  - Real input and state: `domicile list-windows --json`, `pointer x,y click`,
-    `drag x1,y1 x2,y2`, `key`, `type`, `screenshot <file>`, `logs`; `piloti open`,
-    `piloti reload`.
+
+### Checking the running shell on the VM
+
+A cloud session gets there through a Remote Control session on the Mac.
+
+- ssh: `debian@192.168.162.236` (the Mac's key works, no password). The IP comes
+  from VMware's DHCP: `vmrun getGuestIPAddress <vmx>` if it changes.
+- `domicile` and `piloti` need the desktop's socket, which ssh doesn't have:
+  `ssh debian@192.168.162.236 'export DOMICILE_SOCK=$(ls /run/user/1000/domicile-ipc.*.sock); domicile status'`.
+  `status` shows which `shell.js` is served (`try.sh … vm` builds
+  `~/.cache/piloti-try/dist/shell.js`).
+- `domicile` CLI for scripted checks: `list-windows --json`, `focus-window`,
+  `close-window`, `open`, `send-shell <cmd>` (`list-shell-commands`), real input
+  (`pointer x,y click`, `drag x1,y1 x2,y2`, `key <chord>`, `type`),
+  `screenshot <file>`, `subscribe` (JSON events), `logs`, `accessibility` and
+  `devtools <window> <method>` for a native window.
+- DevTools: the engine runs with `--remote-debugging-port=9222` on the VM's
+  127.0.0.1. The shell is the page `domicile://shell/`, with `window.piloti`
+  and `__PILOTI_RENDER_COUNTS__` as in the demo. From the Mac:
+  `ssh -N -L 9222:127.0.0.1:9222 debian@192.168.162.236`, then Playwright
+  `chromium.connectOverCDP("http://127.0.0.1:9222")`; or run a Node script
+  on the VM (Node 24, global `WebSocket`) against `/json/list`.
+- `performance.timeOrigin` of that page tells when the shell last reloaded;
+  compare it with the build time of `shell.js`.
+- `npm run test:e2e` targets the web demo only. `tests/wayland-wm-check.py`
+  runs on the VM over ssh (GTK apps, needs sudo).
 
 ## Release
 
