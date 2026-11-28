@@ -2,6 +2,44 @@
 
 Releases of Piloti Desktop, latest first. Dates are the tagged commit's.
 
+## 0.10.14 — 2026-11-28
+
+**For plugin and script authors: the API changed, without aliases.** `piloti` is
+now the same object everywhere, with `desktop`, `settings` and `plugins`; see
+`docs/API.md`. `piloti.desktop.launchApp` is `desktop.apps.launch`, window calls
+are under `desktop.windows`, `settings.get()` and `update()` are gone, and a
+plugin's `ctx.windows`, `ctx.apps` and `ctx.notifications` moved to
+`ctx.piloti.desktop` and `ctx.notify`.
+
+- Calculator can run as a separate app, like Texts (View ▸ Open New Windows
+  Separately). Separate apps now get menu bar actions and checkmarks, and
+  follow the desktop theme and their settings.
+- Removable drives and CDs in Folders and the Dock: mount on click, eject.
+- Settings: a Remote DevTools switch, an Inspect button, Restart Piloti in the
+  header and collapsible startup services.
+- Faster startup: apps load when first opened, and plugins reload only when
+  something changed.
+- Fixed: power profile changes made outside Piloti were not shown.
+- Fixed: the drive list refreshed on every system property change.
+- Fixed: apps that run in a terminal started two terminals.
+- Fixed: Calculator's menu bar items did nothing.
+- Internal: window manager split into modules, plain backends under `lib/apps/`.
+
+### Commits
+
+- `c46274b` docs: one backlog, and the plain backend rule
+- `320b1ee` feat(apps): plain apps backend, and Texts and Calculator as app modules
+- `fdee9a9` feat(api)!: one piloti with desktop, settings and plugins
+- `7c2060a` fix(system): read the signal from what a D-Bus match hears
+- `a2937a8` feat(settings): add Inspect button, Restart Piloti header button, and collapsible Startup services
+- `71c33e2` refactor(windows): split the window manager and context, fix hook dependencies
+- `0d56f54` perf(demo): fetch system files and the login screen when first needed
+- `053228f` feat(settings): add Remote DevTools toggle for session launcher
+- `f8f46ab` chore(windows): load built-in apps eagerly and format WindowManager
+- `51201b9` perf(plugins): resync only on real changes, discover in parallel, never overlap
+- `c553b7d` perf: faster startup, and apps loaded on demand
+- `c2a85d9` refactor: engine boundary cleanup, and removable drives with UDisks2
+
 ## 0.10.13 — 2026-11-27
 
 - Piloti demo: Elements, Colors and Icons panes, with code beside each sample.

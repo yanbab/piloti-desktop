@@ -1,3 +1,17 @@
+piloti-desktop (0.10.14-1) unstable; urgency=medium
+
+  * Release v0.10.14:
+    - The plugin and window.piloti API changed (docs/API.md).
+    - Calculator can run as a separate app; separate apps get menu actions
+      and follow the theme.
+    - Removable drives and CDs in Folders and the Dock.
+    - Remote DevTools switch and Inspect button in Settings.
+    - Faster startup.
+    - Fixed power profile changes, drive list refreshes, terminal apps
+      starting twice, and Calculator's menu items.
+
+ -- yanbab <yanbab@gmail.com>  Sat, 28 Nov 2026 06:26:47 +0100
+
 piloti-desktop (0.10.13-1) unstable; urgency=medium
 
   * Release v0.10.13:
