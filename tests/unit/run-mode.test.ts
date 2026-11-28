@@ -28,7 +28,7 @@ describe("run mode", () => {
       expect(getRunIn("texts")).toBe("isolated");
       expect(getRunIn("image-viewer")).toBe("isolated");
       expect(getRunIn("calculator")).toBe("shell");
-      expect(getRunIn("terminal")).toBe("shell");
+      expect(getRunIn("terminal")).toBe("isolated");
       setEngine(webEngine);
       expect(getRunIn("texts")).toBe("shell");
     } finally {
