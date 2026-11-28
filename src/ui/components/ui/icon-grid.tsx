@@ -27,6 +27,7 @@ import { buildDragGhost } from "@/ui/dnd/drag-ghost";
 import {
   broadcastItemDrag,
   endItemDragBroadcast,
+  isVirtualAppItem,
   resolveTopDropTarget,
   routeItemDrop,
 } from "@/ui/dnd/item-drop";
@@ -138,6 +139,10 @@ interface MarqueeState {
   initialSelection: readonly string[];
   additive: boolean;
 }
+
+/** A point past this document's edges: the pointer left the window. */
+const outsideWindow = (pt: { x: number; y: number }) =>
+  pt.x < 0 || pt.y < 0 || pt.x >= window.innerWidth || pt.y >= window.innerHeight;
 
 export function IconGrid({
   items,
@@ -612,6 +617,14 @@ export function IconGrid({
       else onMoveItem?.(cur.itemId, dropCell, metrics);
       return "moved";
     };
+    // On its own, Folders can't see past its window: the shell takes the drop.
+    if (host.dropOutside && !isVirtualAppItem(draggedItem) && outsideWindow(pt)) {
+      host.dropOutside(
+        draggedItems.map((i) => i.path),
+        { x: pt.x, y: pt.y, copy: pt.alt },
+      );
+      return "external";
+    }
     const outcome = routeItemDrop(draggedItem, draggedItems, { x: pt.x, y: pt.y, copy: pt.alt }, {
       currentDirPath,
       onDropItems,

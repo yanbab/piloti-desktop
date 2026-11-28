@@ -114,6 +114,7 @@ export function AppModuleSurface({
       <div className="relative min-h-0 w-full flex-1 overflow-hidden">
         <webview
           ref={viewRef}
+          data-module-view={win.id}
           window={win.browserWindowId}
           resizing={windowCtx?.resizing ? "" : undefined}
           className="block h-full w-full bg-ui-window"
@@ -163,6 +164,7 @@ export function AppModuleSurface({
       </HeaderBar>
       <webview
         ref={viewRef}
+        data-module-view={win.id}
         window={win.browserWindowId}
         resizing={windowCtx?.resizing ? "" : undefined}
         className="block min-h-0 w-full flex-1 bg-ui-window"

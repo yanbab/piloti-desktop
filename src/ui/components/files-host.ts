@@ -46,6 +46,12 @@ export interface FilesHost {
   useOpenPath(): FilesOpenPath;
   /** The desktop's windows (to mark open folders and files), and the focused one. */
   useWindows(): { windows: readonly { appId: string; payload?: string }[]; focusedWindowId: string | null };
+  /**
+   * Items released outside this window (Folders on its own): the shell drops
+   * them where the pointer is, on the Desktop, the Dock or another window.
+   * `point` is in this window's coordinates. Unset in the shell.
+   */
+  dropOutside?(paths: readonly string[], point: { x: number; y: number; copy: boolean }): void;
 }
 
 const FilesHostContext = React.createContext<FilesHost | null>(null);

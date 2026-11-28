@@ -208,7 +208,10 @@ shell's Folders would. Its paths are real ones, so its `main.tsx` learns `$HOME`
 before loading the app, which is a chunk of its own (`HOME_FIRST` in
 `vite.apps.config.ts`). Items dropped on a module's or a frame's window reach the
 app as `piloti:drop-paths:` then `piloti:open-path:` actions
-(`core/files/dropped-paths.ts`): Folders moves or copies them into its folder.
+(`core/files/dropped-paths.ts`): Folders moves or copies them into its folder. Items it drags
+out of its window are released there (the window keeps the pointer): it asks
+the shell (`drop-items`), which drops them at that point as its own views
+would (`ui/dnd/drop-from-app.ts`).
 Its undo history is its own window's. Folders stays in the shell by default
 until dragging out of its own process is tried on Linux.
 

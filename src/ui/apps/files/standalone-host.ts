@@ -36,6 +36,8 @@ export interface StandaloneFilesPort {
   launch(appId: string, payload?: string): void;
   open(path: string, options: { kind?: "file" | "directory"; preferApp?: MimeAppOption }): void;
   notify(notification: { summary: string; body?: string }): void;
+  /** Items released outside the window, at `point` in its coordinates. */
+  dropOut(paths: readonly string[], point: { x: number; y: number; copy: boolean }): void;
   /** Whether this window has the focus, at once and on each change. Returns stop. */
   watchFocus(listener: (focused: boolean) => void): () => void;
 }
@@ -134,6 +136,7 @@ export function createStandaloneFilesHost(port: StandaloneFilesPort): FilesHost 
         [installedXdgApps, xdgUserDirs, version],
       );
     },
+    dropOutside: (paths, point) => port.dropOut(paths, point),
     useActions: () => actions,
     useOpenPath: () => openPath,
     useWindows() {

@@ -1,4 +1,6 @@
 import * as React from "react";
+import { usePiloti } from "@/platform/shared/piloti";
+import { dropFromApp } from "@/ui/dnd/drop-from-app";
 import { droppedActions, type FileDropWindowDetail } from "@/core/files/dropped-paths";
 import { recordAppReady } from "@/core/util/perf-log";
 import { emitShellEvent } from "@/core/windows/shell-events";
@@ -58,8 +60,9 @@ export const IsolatedAppFrame: React.FC<IsolatedAppFrameProps> = ({
   const desktopSettings = useSettingsSelector((v) => v.settings);
   const updateSettings = useUpdateSettings();
   const { openPath } = useOpenPath();
-  const live = React.useRef({ updateSettings, openPath });
-  live.current = { updateSettings, openPath };
+  const piloti = usePiloti();
+  const live = React.useRef({ updateSettings, openPath, piloti });
+  live.current = { updateSettings, openPath, piloti };
   const iframeRef = React.useRef<HTMLIFrameElement | null>(null);
   const portalRootRef = React.useRef<Root | null>(null);
   const fallbackElementRef = React.useRef<React.ReactNode>(fallbackElement);
@@ -186,7 +189,9 @@ export const IsolatedAppFrame: React.FC<IsolatedAppFrameProps> = ({
         else if (request.do === "launch") launchApp(request.appId, { payload: request.payload });
         else if (request.do === "open")
           void live.current.openPath(request.path, { kind: request.kind, preferApp: request.preferApp });
-        else if (request.do === "close-window") shell.closeWindow(request.windowId);
+        else if (request.do === "drop-items") {
+          if (iframeRef.current) dropFromApp(live.current.piloti, iframeRef.current, request);
+        } else if (request.do === "close-window") shell.closeWindow(request.windowId);
         else shell.focusWindow(request.windowId);
       }
     };

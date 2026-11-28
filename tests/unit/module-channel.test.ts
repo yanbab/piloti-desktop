@@ -123,6 +123,14 @@ describe("module channel", () => {
     // Only absolute paths, and only the kinds there are.
     expect(read({ do: "open", path: "a.txt" })).toBeNull();
     expect(read({ do: "open", path: "/a", kind: "socket" })).toEqual({ do: "open", path: "/a" });
+    expect(read({ do: "drop-items", paths: ["/a", "b", 3], x: -12.5, y: 40, copy: true })).toEqual({
+      do: "drop-items",
+      paths: ["/a"],
+      x: -12.5,
+      y: 40,
+      copy: true,
+    });
+    expect(read({ do: "drop-items", paths: ["/a"], x: "1", y: 2 })).toBeNull();
   });
 });
 

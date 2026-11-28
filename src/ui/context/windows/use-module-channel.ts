@@ -1,4 +1,5 @@
 /** The shell's side of its app module windows: menus, size, and what they watch. */
+import { dropFromApp } from "@/ui/dnd/drop-from-app";
 import { droppedActions, type FileDropWindowDetail } from "@/core/files/dropped-paths";
 import * as React from "react";
 import type { DesktopWindowInstance } from "@/ui/context/windows/types";
@@ -111,9 +112,17 @@ export function useModuleChannel(
   // Requests: any module may ask, as any program of the session could.
   const actionsRef = React.useRef(actions);
   actionsRef.current = actions;
+  const pilotiRef = React.useRef(piloti);
+  pilotiRef.current = piloti;
   React.useEffect(
     () =>
-      onModuleRequest((_id, request) => {
+      onModuleRequest((id, request) => {
+        if (request.do === "drop-items") {
+          const win = windowsRef.current.find((w) => moduleInstance(w.browserUrl) === id);
+          const view = win && document.querySelector(`[data-module-view="${CSS.escape(win.id)}"]`);
+          if (view) dropFromApp(pilotiRef.current, view, request);
+          return;
+        }
         // Launches and opens: `useModuleOpenRequests`.
         if (request.do !== "close-window" && request.do !== "focus-window") return;
         const exists = windowsRef.current.some((w) => w.id === request.windowId);

@@ -44,6 +44,7 @@ export const start: AppMain = (root, domicile) =>
       launch: (appId, payload) => module.request({ do: "launch", appId, ...(payload ? { payload } : null) }),
       open: (target, options) => module.request({ do: "open", path: target, ...options }),
       notify: app.notify,
+      dropOut: (paths, point) => module.request({ do: "drop-items", paths: [...paths], ...point }),
       watchFocus: watchDocumentFocus,
     });
     const piloti = withModuleVfs(domicile, app.vfs);

@@ -37,6 +37,7 @@ export function FrameFilesApp({ windowId, initialPath }: { windowId: string; ini
       launch: (appId, payload) => request({ do: "launch", appId, ...(payload ? { payload } : null) }),
       open: (path, options) => request({ do: "open", path, ...options }),
       notify: ({ summary, body }) => postToShell({ type: "piloti:notify", windowId, summary, body }),
+      dropOut: (paths, point) => request({ do: "drop-items", paths: [...paths], ...point }),
       watchFocus: watchDocumentFocus,
     });
   });

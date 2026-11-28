@@ -44,7 +44,9 @@ export type ModuleRequest =
   /** Opens an app as the shell would: a built-in one, a `.desktop` id, a program. */
   | { do: "launch"; appId: string; payload?: string }
   /** Opens a file or folder with its default app, or the one chosen ("Open With"). */
-  | { do: "open"; path: string; kind?: "file" | "directory"; preferApp?: MimeAppOption };
+  | { do: "open"; path: string; kind?: "file" | "directory"; preferApp?: MimeAppOption }
+  /** Items dragged out of the window, released at `x`, `y` (the window's coordinates). */
+  | { do: "drop-items"; paths: string[]; x: number; y: number; copy: boolean };
 
 export type ShellMessage =
   | { to: string; type: "action"; actionId: string }
@@ -128,6 +130,15 @@ export function parseRequestWords(
           ...(kind === "file" || kind === "directory" ? { kind } : null),
           ...(preferApp ? { preferApp } : null),
         };
+      }
+      case "drop-items": {
+        const paths = Array.isArray(request.paths)
+          ? request.paths.filter((p): p is string => typeof p === "string" && p.startsWith("/"))
+          : [];
+        const { x, y } = request;
+        if (paths.length === 0 || typeof x !== "number" || typeof y !== "number") return null;
+        if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
+        return { do: "drop-items", paths, x, y, copy: request.copy === true };
       }
       default:
         return null;
