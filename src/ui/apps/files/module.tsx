@@ -11,10 +11,15 @@ import { createStandaloneFilesHost } from "@/ui/apps/files/standalone-host";
 import { mountModuleApp } from "@/ui/apps/module-app";
 import { FilesHostProvider } from "@/ui/components/files-host";
 
-/** What Folders' code reads as `piloti`: this module's Domicile and its VFS. */
+/**
+ * What Folders' code reads as `piloti`: this module's Domicile and its VFS.
+ * `usePiloti()` wants a shell's desktop, which Domicile knows by its `windows`:
+ * a module has none, so they read as `undefined` (Folders asks the shell).
+ */
 function withModuleVfs(domicile: AppDomicile, vfs: Vfs) {
   return new Proxy(domicile, {
     get: (target, key) => (key === "vfs" ? vfs : Reflect.get(target, key, target)),
+    has: (target, key) => key === "vfs" || key === "windows" || Reflect.has(target, key),
   });
 }
 
