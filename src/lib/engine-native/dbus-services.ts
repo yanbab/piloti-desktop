@@ -1,3 +1,4 @@
+import { signalOf } from "@/lib/engine-native/signal";
 import type { Piloti } from "@/lib/engine/piloti";
 import { Bus } from "@domicile-desktop/sdk/system";
 import { runText } from "./exec";
@@ -105,7 +106,7 @@ export function watchSystemPowerProfile(
               while (!stopped) {
                 const next = await reader.read();
                 if (next.done) break;
-                const body = (next.value as { value?: { body?: unknown[] } }).value?.body;
+                const body = signalOf(next.value)?.body;
                 const profile = body ? parsePowerProfileChange(body) : null;
                 if (profile) on(profile);
               }
