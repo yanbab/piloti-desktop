@@ -82,8 +82,12 @@ export function BrowserTabsSurface({
     const newId = detachBrowserTab(win.id, tabId, at);
     if (!newId) return;
     // Committed on release, when the new window is in the latest state.
-    followTornTab(newId, at, pointer, (position) =>
-      geometryRef.current(newId, { position })
+    followTornTab(
+      newId,
+      at,
+      pointer,
+      (position) => geometryRef.current(newId, { position }),
+      grabX
     );
   };
   const tabSlot = (

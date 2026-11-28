@@ -34,7 +34,8 @@ import {
   DRAG_THRESHOLD,
   dragFlyBackAnimation,
   dragShuffleTransition,
-  liftGhost,
+  DRAG_DURATION,
+  DRAG_LIFT,
 } from "@/ui/dnd/drag-feedback";
 
 /** Dragging this far above or below the bar tears the tab off into its own window. */
@@ -175,14 +176,23 @@ export function BrowserTabBar({
   // The bar's edges at drag start: a dragged tab stays between them.
   const barRectRef = React.useRef<DOMRect | null>(null);
   const keepInBar = React.useCallback<Modifier>(({ transform, activeNodeRect }) => {
+    // Pulled up or down, the tab gives a little, then tears off.
+    const pull = Math.sign(transform.y) * Math.min(Math.abs(transform.y) * 0.45, DETACH_DISTANCE * 0.45);
     const bar = barRectRef.current;
-    if (!bar || !activeNodeRect) return { ...transform, y: 0 };
+    if (!bar || !activeNodeRect) return { ...transform, y: pull };
     const minX = bar.left + 2 - activeNodeRect.left;
     const maxX = bar.right - 2 - activeNodeRect.right;
-    return { ...transform, x: Math.min(maxX, Math.max(minX, transform.x)), y: 0 };
+    return { ...transform, x: Math.min(maxX, Math.max(minX, transform.x)), y: pull };
   }, []);
+  // Lifted by its shadow only: a tab keeps its size while it moves.
   const liftRef = React.useCallback((el: HTMLDivElement | null) => {
-    if (el) liftGhost(el);
+    if (!el) return;
+    el.style.opacity = String(DRAG_LIFT.opacity);
+    el.style.filter = DRAG_LIFT.restShadow;
+    el.style.transition = `filter ${DRAG_DURATION.lift}ms ease`;
+    requestAnimationFrame(() => {
+      el.style.filter = DRAG_LIFT.shadow;
+    });
   }, []);
   const ids = tabs.map((t) => t.id);
   const overlayTab = overlay ? tabs.find((t) => t.id === overlay.id) : undefined;
@@ -216,7 +226,11 @@ export function BrowserTabBar({
       startY: (e.activatorEvent as PointerEvent).clientY,
     };
     window.addEventListener("pointermove", trackPointer, true);
-    const rect = e.active.rect.current.initial;
+    // The ghost keeps the tab's size: measure the tab itself.
+    const node = Array.from(
+      barRef.current?.querySelectorAll<HTMLElement>("[data-tab-id]") ?? []
+    ).find((el) => el.dataset.tabId === String(e.active.id));
+    const rect = node?.getBoundingClientRect() ?? e.active.rect.current.initial;
     setOverlay({ id: String(e.active.id), width: rect?.width ?? 160, height: rect?.height ?? 28 });
   };
   const onDragEnd = (e: DragEndEvent) => {
@@ -299,7 +313,10 @@ export function BrowserTabBar({
                 ref={liftRef}
                 data-dnd-kit-overlay=""
                 style={{ width: overlay.width, height: overlay.height }}
-                className={cn(tabClass(overlayTab.id === activeId, overlayTab.pinned), "cursor-grabbing")}
+                className={cn(
+                  tabClass(overlayTab.id === activeId, overlayTab.pinned),
+                  "max-w-none min-w-0 flex-none cursor-grabbing"
+                )}
               >
                 <TabContents tab={overlayTab} active={overlayTab.id === activeId} />
               </div>
