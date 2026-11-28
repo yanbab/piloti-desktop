@@ -1058,5 +1058,19 @@
   "Duplicate Tab": "Duplicar pestaña",
   "Reload Tab": "Recargar pestaña",
   "Close Other Tabs": "Cerrar las demás pestañas",
-  "Close Tabs to the Right": "Cerrar las pestañas de la derecha"
+  "Close Tabs to the Right": "Cerrar las pestañas de la derecha",
+  "Camera": "Cámara",
+  "Microphone": "Micrófono",
+  "Location": "Ubicación",
+  "Clipboard": "Portapapeles",
+  "MIDI Devices": "Dispositivos MIDI",
+  "Window Management": "Gestión de ventanas",
+  "Idle Detection": "Detección de inactividad",
+  "Automatic Downloads": "Descargas automáticas",
+  "Ask": "Preguntar",
+  "Site Information": "Información del sitio",
+  "The connection to this site is secure.": "La conexión con este sitio es segura.",
+  "The connection to this site is not secure.": "La conexión con este sitio no es segura.",
+  "This page is not a website.": "Esta página no es un sitio web.",
+  "Reset Permissions": "Restablecer permisos"
 }

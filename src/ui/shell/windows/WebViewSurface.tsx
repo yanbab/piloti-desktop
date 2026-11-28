@@ -125,6 +125,15 @@ import {
 import { BrowserPageMenu, type PageMenuCommands } from "@/ui/shell/windows/BrowserPageMenu";
 import { PageDialog, PermissionBubble } from "@/ui/shell/windows/BrowserPagePrompts";
 import { BrowserDownloadsMenu } from "@/ui/shell/windows/BrowserDownloadsMenu";
+import { BrowserSiteInfo } from "@/ui/shell/windows/BrowserSiteInfo";
+
+function siteHost(url: string): string {
+  try {
+    return new URL(url).host || url;
+  } catch {
+    return url;
+  }
+}
 import { BrowserFileChooser } from "@/ui/shell/windows/BrowserFileChooser";
 import {
   downloadFileName,
@@ -233,6 +242,9 @@ export function WebViewSurface({
   const isBrowserApp = win.appId === "browser";
   const windowCtx = useWindowContext();
   const webviewRef = React.useRef<HTMLWebViewElement | null>(null);
+  // The same element, as state, for children that listen to it.
+  const [webviewEl, setWebviewEl] = React.useState<HTMLWebViewElement | null>(null);
+  React.useEffect(() => setWebviewEl(compositor ? webviewRef.current : null), [compositor]);
   const extPopupWebviewRef = React.useRef<HTMLWebViewElement | null>(null);
   const iframeRef = React.useRef<HTMLIFrameElement | null>(null);
   const addressInputRef = React.useRef<HTMLInputElement | null>(null);
@@ -1302,6 +1314,8 @@ export function WebViewSurface({
                       !contrastFg && "text-ui-label"
                     )}
                   />
+                ) : compositor ? (
+                  <BrowserSiteInfo view={webviewEl} security={security} site={siteHost(currentUrl)} />
                 ) : security === "secure" ? (
                   <SymbolicIcon
                     name="network-wireless-encrypted"

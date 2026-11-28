@@ -1058,5 +1058,19 @@
   "Duplicate Tab": "Dupliquer l'onglet",
   "Reload Tab": "Actualiser l'onglet",
   "Close Other Tabs": "Fermer les autres onglets",
-  "Close Tabs to the Right": "Fermer les onglets à droite"
+  "Close Tabs to the Right": "Fermer les onglets à droite",
+  "Camera": "Caméra",
+  "Microphone": "Micro",
+  "Location": "Position",
+  "Clipboard": "Presse-papiers",
+  "MIDI Devices": "Appareils MIDI",
+  "Window Management": "Gestion des fenêtres",
+  "Idle Detection": "Détection d’inactivité",
+  "Automatic Downloads": "Téléchargements automatiques",
+  "Ask": "Demander",
+  "Site Information": "Informations sur le site",
+  "The connection to this site is secure.": "La connexion à ce site est sécurisée.",
+  "The connection to this site is not secure.": "La connexion à ce site n’est pas sécurisée.",
+  "This page is not a website.": "Cette page n’est pas un site web.",
+  "Reset Permissions": "Réinitialiser les autorisations"
 }
