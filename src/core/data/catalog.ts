@@ -405,7 +405,24 @@ const APP_MENUS: Record<string, AppMenuSection[]> = {
         { label: "New Tab", shortcut: "Ctrl+T", actionId: "browser:new-tab" },
         { label: "Close Tab", shortcut: "Ctrl+W", actionId: "browser:close-tab" },
         { label: "Reopen Closed Tab", shortcut: "Ctrl+Shift+T", actionId: "browser:reopen-tab", separatorAfter: true },
+        { label: "Find…", shortcut: "Ctrl+F", actionId: "browser:find", separatorAfter: true },
         { label: "Print…", shortcut: "Ctrl+P", actionId: "file:print" },
+      ],
+    },
+    {
+      title: "View",
+      items: [
+        { label: "Reload", shortcut: "Ctrl+R", actionId: "browser:reload", separatorAfter: true },
+        { label: "Zoom In", shortcut: "Ctrl++", actionId: "browser:zoom-in" },
+        { label: "Zoom Out", shortcut: "Ctrl+-", actionId: "browser:zoom-out" },
+        { label: "Reset Zoom", shortcut: "Ctrl+0", actionId: "browser:zoom-reset" },
+      ],
+    },
+    {
+      title: "Go",
+      items: [
+        { label: "Back", shortcut: "Alt+Left", actionId: "browser:back" },
+        { label: "Forward", shortcut: "Alt+Right", actionId: "browser:forward" },
       ],
     },
   ],

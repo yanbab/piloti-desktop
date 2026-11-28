@@ -993,5 +993,21 @@
   "Restart Piloti": "Reiniciar Piloti",
   "Inspect": "Inspeccionar",
   "Autostart entries": "Entradas de inicio automático",
-  "%d entries": "%d entradas"
+  "%d entries": "%d entradas",
+  "Forward": "Adelante",
+  "Address": "Dirección",
+  "Secure Connection": "Conexión segura",
+  "Not Secure": "No seguro",
+  "Reset Zoom": "Restablecer zoom",
+  "Find in Page": "Buscar en la página",
+  "%d of %d": "%d de %d",
+  "No results": "Sin resultados",
+  "Previous Match": "Resultado anterior",
+  "Next Match": "Resultado siguiente",
+  "This page crashed": "Esta página se ha bloqueado",
+  "This page ran out of memory": "Esta página se quedó sin memoria",
+  "Unable to load page": "No se puede cargar la página",
+  "Proceed Anyway": "Continuar de todos modos",
+  "Find…": "Buscar…",
+  "Go": "Ir"
 }

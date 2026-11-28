@@ -10,13 +10,21 @@ import {
   WEBVIEW_CONTENT_SIZE_CHANGE_EVENT,
   WEBVIEW_FAVICON_CHANGE_EVENT,
   WEBVIEW_GUEST_FOCUS_EVENT,
+  WEBVIEW_GUEST_KEYDOWN_EVENT,
   WEBVIEW_HISTORY_CHANGE_EVENT,
   WEBVIEW_LOADING_CHANGE_EVENT,
   WEBVIEW_PAGE_CHANGE_EVENT,
   WEBVIEW_PAGE_FAILURE_CHANGE_EVENT,
+  WEBVIEW_ZOOM_IN_REQUEST_EVENT,
+  WEBVIEW_ZOOM_OUT_REQUEST_EVENT,
 } from "@domicile-desktop/sdk/webview-element";
 import {
   ChevronLeftIcon,
+  ChevronRightIcon,
+  LockIcon,
+  RotateCwIcon,
+  TriangleAlertIcon,
+  XIcon,
   DownloadIcon,
   ChevronDownIcon,
   FolderIcon,
@@ -81,9 +89,40 @@ import {
 import { toggleWebAppInstall } from "@/platform/shared/web-apps-store";
 import { useCapabilities } from "@/ui/hooks/use-capabilities";
 import { dismissOpenPopups } from "@/ui/shell/windows/dismiss-popups";
+import { BrowserFindBar } from "@/ui/shell/windows/BrowserFindBar";
+import {
+  browserShortcut,
+  browserTabTarget,
+  type BrowserCommand,
+} from "@/ui/shell/windows/browser-shortcuts";
+import { formatBrowserZoom, nextBrowserZoom } from "@/ui/shell/windows/browser-zoom";
+import { useWebViewStatus } from "@/ui/shell/windows/use-webview-status";
+
+const toolbarButton = cn(
+  "flex size-7 items-center justify-center rounded-ui-control transition-colors disabled:pointer-events-none disabled:opacity-35",
+  "hover-fill:bg-black/8 dark:hover-fill:bg-white/10"
+);
 
 // One array while there is nothing, so memos and effects keep still.
 const NO_EXTENSIONS: NonNullable<ReturnType<typeof usePiloti>["extensions"]["list"]> = [];
+
+function isEditableTarget(target: EventTarget | null): boolean {
+  return (
+    target instanceof HTMLElement &&
+    (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName))
+  );
+}
+
+/** Menu bar actions (`browser:<command>`) that run a toolbar command. */
+const MENU_COMMANDS = new Set<BrowserCommand["kind"]>([
+  "back",
+  "forward",
+  "reload",
+  "find",
+  "zoom-in",
+  "zoom-out",
+  "zoom-reset",
+]);
 
 function darkenThemeColor(cssColor: string): string {
   const raw = cssColor.trim();
@@ -150,6 +189,7 @@ export function WebViewSurface({
     openBrowserTab,
     closeBrowserTab,
     reopenClosedBrowserTab,
+    selectBrowserTab,
   } = useWindowManager();
   const isFocusedTab = active && focusedWindowId === win.id;
   const isBrowserApp = win.appId === "browser";
@@ -223,6 +263,12 @@ export function WebViewSurface({
   const [pageFailureError, setPageFailureError] = React.useState("");
   const [pageFailureCanProceed, setPageFailureCanProceed] =
     React.useState(false);
+  const status = useWebViewStatus(webviewRef, compositor);
+  const [demoZoom, setDemoZoom] = React.useState(1);
+  const zoom = compositor ? status.zoom : demoZoom;
+  const [findOpen, setFindOpen] = React.useState(false);
+  const [findQuery, setFindQuery] = React.useState("");
+  const [findToken, setFindToken] = React.useState(0);
 
   const focusSelfRef = React.useRef(() => focusWindow(win.id));
   focusSelfRef.current = () => focusWindow(win.id);
@@ -322,6 +368,13 @@ export function WebViewSurface({
   }, [compositor, prefersDark, win.browserWindowId, win.browserUrl]);
 
   const currentUrl = normalizeWebUrl(address) ?? win.browserUrl ?? "";
+  // The lock follows the page's committed address (native), never the typed
+  // one; the demo can only go by the scheme.
+  const security = compositor
+    ? status.security
+    : currentUrl.startsWith("https:")
+      ? "secure"
+      : "";
   const bookmarks = useBrowserBookmarks();
   const bookmarked = isBrowserApp && Boolean(currentUrl) && isBookmarked(bookmarks, currentUrl);
   const storeExtId = React.useMemo(
@@ -395,27 +448,6 @@ export function WebViewSurface({
   }, [piloti, compositor, pushNotification, storeExtId]);
 
   React.useEffect(() => {
-    if (!isFocusedTab) return;
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (!(e.ctrlKey || e.metaKey) || e.altKey || e.shiftKey) return;
-      const key = e.key.toLowerCase();
-      if (key === "l") {
-        e.preventDefault();
-        setDraftAddress(currentUrl);
-        setEditingAddress(true);
-      } else if (isBrowserApp && key === "t") {
-        e.preventDefault();
-        openBrowserTab(win.id);
-      } else if (isBrowserApp && key === "w" && win.browserWindowId) {
-        e.preventDefault();
-        closeBrowserTab(win.id, win.browserWindowId);
-      }
-    };
-    window.addEventListener("keydown", onKeyDown, true);
-    return () => window.removeEventListener("keydown", onKeyDown, true);
-  }, [isFocusedTab, isBrowserApp, win.id, win.browserWindowId, currentUrl, openBrowserTab, closeBrowserTab]);
-
-  React.useEffect(() => {
     if (!editingAddress) return;
     const frame = requestAnimationFrame(() => {
       addressInputRef.current?.focus();
@@ -462,6 +494,189 @@ export function WebViewSurface({
     }
   }, [compositor]);
 
+  const canGoForward = !compositor
+    ? historyState.index < historyState.stack.length - 1
+    : status.canGoForward;
+  const handleGoForward = React.useCallback(() => {
+    if (!compositor) {
+      setHistoryState((prev) => {
+        if (prev.index >= prev.stack.length - 1) return prev;
+        const nextIndex = prev.index + 1;
+        const nextUrl = prev.stack[nextIndex];
+        if (nextUrl) setAddress(nextUrl);
+        return { ...prev, index: nextIndex };
+      });
+    } else {
+      webviewRef.current?.goForward();
+    }
+  }, [compositor]);
+
+  const handleReload = React.useCallback(() => {
+    if (compositor) {
+      webviewRef.current?.reload();
+      return;
+    }
+    const frame = iframeRef.current;
+    const src = frame?.getAttribute("src");
+    if (!frame || !src || src === "about:blank") return;
+    setIsLoading(true);
+    // Setting the attribute again navigates, even to the same address.
+    frame.setAttribute("src", src);
+  }, [compositor]);
+
+  const handleStop = React.useCallback(() => {
+    if (compositor) {
+      webviewRef.current?.stop();
+      return;
+    }
+    try {
+      iframeRef.current?.contentWindow?.stop();
+    } catch {
+      // Cross-origin frames cannot be stopped from here.
+    }
+    setIsLoading(false);
+  }, [compositor]);
+
+  const applyZoom = React.useCallback(
+    (next: number) => {
+      if (!compositor) {
+        setDemoZoom(next);
+        return;
+      }
+      try {
+        webviewRef.current?.setZoom(next);
+      } catch {
+        // RangeError outside 0.25 to 5: the steps stay inside.
+      }
+    },
+    [compositor]
+  );
+  const zoomRef = React.useRef(zoom);
+  zoomRef.current = zoom;
+
+  // Ctrl+wheel over the page: the engine asks, the shell picks the step.
+  React.useEffect(() => {
+    const view = webviewRef.current;
+    if (!view || !compositor) return;
+    const zoomIn = () => applyZoom(nextBrowserZoom(zoomRef.current, 1));
+    const zoomOut = () => applyZoom(nextBrowserZoom(zoomRef.current, -1));
+    view.addEventListener(WEBVIEW_ZOOM_IN_REQUEST_EVENT, zoomIn);
+    view.addEventListener(WEBVIEW_ZOOM_OUT_REQUEST_EVENT, zoomOut);
+    return () => {
+      view.removeEventListener(WEBVIEW_ZOOM_IN_REQUEST_EVENT, zoomIn);
+      view.removeEventListener(WEBVIEW_ZOOM_OUT_REQUEST_EVENT, zoomOut);
+    };
+  }, [compositor, applyZoom]);
+
+  // Find in page: native only, a demo iframe is another origin.
+  const findQueryRef = React.useRef(findQuery);
+  findQueryRef.current = findQuery;
+  const openFind = React.useCallback(() => {
+    setFindOpen(true);
+    setFindToken((t) => t + 1);
+    const query = findQueryRef.current;
+    if (query.trim()) webviewRef.current?.find(query);
+  }, []);
+  const closeFind = React.useCallback(() => {
+    setFindOpen(false);
+    webviewRef.current?.stopFinding();
+    webviewRef.current?.focus();
+  }, []);
+  const changeFindQuery = React.useCallback((query: string) => {
+    setFindQuery(query);
+    webviewRef.current?.find(query.trim() ? query : "");
+  }, []);
+  const stepFind = React.useCallback((backward: boolean) => {
+    const query = findQueryRef.current;
+    if (query.trim()) webviewRef.current?.find(query, backward);
+  }, []);
+
+  /** Runs a shortcut or menu command; false when it does not apply here. */
+  const runCommand = (command: BrowserCommand): boolean => {
+    switch (command.kind) {
+      case "focus-address":
+        setDraftAddress(currentUrl);
+        setEditingAddress(true);
+        return true;
+      case "new-tab":
+        if (!isBrowserApp) return false;
+        openBrowserTab(win.id);
+        return true;
+      case "new-window":
+        if (!isBrowserApp) return false;
+        launchApp("browser", { forceNew: true });
+        return true;
+      case "close-tab":
+        if (!isBrowserApp || !win.browserWindowId) return false;
+        closeBrowserTab(win.id, win.browserWindowId);
+        return true;
+      case "reopen-tab":
+        if (!isBrowserApp) return false;
+        reopenClosedBrowserTab(win.id);
+        return true;
+      case "back":
+        handleGoBack();
+        return true;
+      case "forward":
+        handleGoForward();
+        return true;
+      case "reload":
+        handleReload();
+        return true;
+      case "find":
+        if (!compositor) return false;
+        openFind();
+        return true;
+      case "find-next":
+      case "find-previous":
+        if (!compositor) return false;
+        if (findOpen) stepFind(command.kind === "find-previous");
+        else openFind();
+        return true;
+      case "zoom-in":
+        applyZoom(nextBrowserZoom(zoom, 1));
+        return true;
+      case "zoom-out":
+        applyZoom(nextBrowserZoom(zoom, -1));
+        return true;
+      case "zoom-reset":
+        applyZoom(1);
+        return true;
+      case "next-tab":
+      case "previous-tab":
+      case "select-tab": {
+        if (!isBrowserApp) return false;
+        const ids = (win.browserTabs ?? []).map((t) => t.id);
+        const target = browserTabTarget(command, ids, win.browserWindowId);
+        if (target) selectBrowserTab(win.id, target);
+        return ids.length > 1;
+      }
+    }
+  };
+  const runCommandRef = React.useRef(runCommand);
+  runCommandRef.current = runCommand;
+
+  // The page's chords arrive as guest keydowns; the toolbar's as keydowns.
+  React.useEffect(() => {
+    if (!isFocusedTab) return;
+    const onKeyDown = (event: Event) => {
+      const e = event as KeyboardEvent;
+      if (e.defaultPrevented) return;
+      const command = browserShortcut(e);
+      if (!command) return;
+      if ((command.kind === "back" || command.kind === "forward") && isEditableTarget(e.target)) {
+        return;
+      }
+      if (runCommandRef.current(command)) e.preventDefault();
+    };
+    window.addEventListener("keydown", onKeyDown, true);
+    window.addEventListener(WEBVIEW_GUEST_KEYDOWN_EVENT, onKeyDown);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown, true);
+      window.removeEventListener(WEBVIEW_GUEST_KEYDOWN_EVENT, onKeyDown);
+    };
+  }, [isFocusedTab]);
+
   React.useEffect(() => {
     const triggerPrint = () => {
       if (!isFocusedTab) return;
@@ -496,6 +711,12 @@ export function WebViewSurface({
       if (!detail || (detail.windowId && detail.windowId !== win.id)) return;
       if (detail.actionId === "file:print") triggerPrint();
       if (!active) return;
+      const command = detail.actionId?.startsWith("browser:")
+        ? (detail.actionId.slice("browser:".length) as BrowserCommand["kind"])
+        : null;
+      if (command && MENU_COMMANDS.has(command)) {
+        runCommandRef.current({ kind: command } as BrowserCommand);
+      }
       if (detail.actionId === "browser:new-tab") openBrowserTab(win.id);
       if (detail.actionId === "browser:new-window") launchApp("browser", { forceNew: true });
       if (detail.actionId === "browser:reopen-tab") reopenClosedBrowserTab(win.id);
@@ -504,18 +725,9 @@ export function WebViewSurface({
       }
     };
     const offPrintFocused = onShellEvent("piloti:print-focused", onPrintFocused);
-    // Ctrl/Cmd+Shift+T brings the last closed tab back.
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (!active || !isFocusedTab || !(e.ctrlKey || e.metaKey) || e.altKey || !e.shiftKey) return;
-      if (e.key.toLowerCase() !== "t") return;
-      e.preventDefault();
-      reopenClosedBrowserTab(win.id);
-    };
-    window.addEventListener("keydown", onKeyDown);
     window.addEventListener("piloti:app-action", onAppAction);
     return () => {
       offPrintFocused();
-      window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("piloti:app-action", onAppAction);
     };
   }, [isFocusedTab, active, compositor, win.id, win.browserWindowId, openBrowserTab, closeBrowserTab, reopenClosedBrowserTab, launchApp]);
@@ -765,13 +977,44 @@ export function WebViewSurface({
               aria-label={_("Back")}
               disabled={!canGoBack}
               onClick={handleGoBack}
-              className={cn(
-                "flex size-7 items-center justify-center rounded-ui-control transition-colors disabled:pointer-events-none disabled:opacity-35",
-                "hover-fill:bg-black/8 dark:hover-fill:bg-white/10"
-              )}
+              className={toolbarButton}
             >
               <SymbolicIcon name="go-previous" fallback={ChevronLeftIcon} className="size-4" />
             </button>
+            <button
+              type="button"
+              title={_("Forward")}
+              aria-label={_("Forward")}
+              disabled={!canGoForward}
+              onClick={handleGoForward}
+              className={toolbarButton}
+            >
+              <SymbolicIcon name="go-next" fallback={ChevronRightIcon} className="size-4" />
+            </button>
+            {isLoading ? (
+              <button
+                type="button"
+                data-slot="browser-stop"
+                title={_("Stop")}
+                aria-label={_("Stop")}
+                onClick={handleStop}
+                className={toolbarButton}
+              >
+                <SymbolicIcon name="window-close" fallback={XIcon} className="size-4" />
+              </button>
+            ) : (
+              <button
+                type="button"
+                data-slot="browser-reload"
+                title={_("Reload")}
+                aria-label={_("Reload")}
+                disabled={!currentUrl}
+                onClick={handleReload}
+                className={toolbarButton}
+              >
+                <SymbolicIcon name="view-refresh" fallback={RotateCwIcon} className="size-4" />
+              </button>
+            )}
           </HeaderBar.Start>
           <HeaderBar.Title interactive>
             {editingAddress ? (
@@ -792,7 +1035,7 @@ export function WebViewSurface({
                       setEditingAddress(false);
                     }
                   }}
-                  aria-label="Address"
+                  aria-label={_("Address")}
                   placeholder="https://…"
                   className={cn(
                     "h-7 w-full max-w-xl rounded-ui-control border border-ui-accent/70 bg-black/8 px-2.5 text-ui-body font-medium outline-none dark:bg-white/12",
@@ -802,15 +1045,37 @@ export function WebViewSurface({
               </form>
             ) : (
               <div className="pointer-events-none flex min-w-0 shrink items-center justify-center gap-1.5 px-4">
-                {isLoading && (
+                {isLoading ? (
                   <Loader2Icon
-                    aria-label="Loading"
+                    aria-label={_("Loading")}
                     className={cn(
                       "size-3.5 shrink-0 animate-spin opacity-75",
                       !contrastFg && "text-ui-label"
                     )}
                   />
-                )}
+                ) : security === "secure" ? (
+                  <SymbolicIcon
+                    name="network-wireless-encrypted"
+                    fallback={LockIcon}
+                    aria-label={_("Secure Connection")}
+                    className="size-3.5 shrink-0 opacity-60"
+                  />
+                ) : security === "warning" || security === "dangerous" ? (
+                  <span
+                    title={_("Not Secure")}
+                    className={cn(
+                      "flex shrink-0 items-center",
+                      security === "dangerous" && "text-ui-red"
+                    )}
+                  >
+                    <SymbolicIcon
+                      name="dialog-warning"
+                      fallback={TriangleAlertIcon}
+                      aria-label={_("Not Secure")}
+                      className="size-3.5"
+                    />
+                  </span>
+                ) : null}
                 <button
                   type="button"
                   data-window-no-drag
@@ -830,6 +1095,18 @@ export function WebViewSurface({
             )}
           </HeaderBar.Title>
           <HeaderBar.End>
+            {Math.abs(zoom - 1) > 0.001 && (
+              <button
+                type="button"
+                data-slot="browser-zoom-reset"
+                title={_("Reset Zoom")}
+                aria-label={_("Reset Zoom")}
+                onClick={() => applyZoom(1)}
+                className="mr-0.5 h-6 rounded-ui-control px-1.5 text-ui-small font-medium tabular-nums transition-colors hover-fill:bg-black/8 dark:hover-fill:bg-white/10"
+              >
+                {formatBrowserZoom(zoom)}
+              </button>
+            )}
             {storeExtId && (
               <Button
                 size="sm"
@@ -924,11 +1201,21 @@ export function WebViewSurface({
             onError={() => setIsLoading(false)}
             onPointerDownCapture={dismissOpenPopups}
             onFocus={dismissOpenPopups}
-            style={
-              darkReaderEnabled
-                ? { filter: WEB_DARK_READER_FILTER, colorScheme: "dark" }
-                : undefined
-            }
+            style={{
+              ...(darkReaderEnabled
+                ? { filter: WEB_DARK_READER_FILTER, colorScheme: "dark" as const }
+                : {}),
+              // The demo zooms the frame itself: a page of another origin
+              // cannot be asked to.
+              ...(demoZoom !== 1
+                ? {
+                  width: `${100 / demoZoom}%`,
+                  height: `${100 / demoZoom}%`,
+                  transform: `scale(${demoZoom})`,
+                  transformOrigin: "0 0",
+                }
+                : {}),
+            }}
             className="h-full w-full border-0 bg-ui-window"
           />
         ) : (
@@ -938,6 +1225,50 @@ export function WebViewSurface({
             resizing={windowCtx?.resizing ? "" : undefined}
             className="block h-full w-full bg-ui-window"
           />
+        )}
+
+        {isLoading && compositor && status.loadProgress > 0 && (
+          <div
+            aria-hidden
+            data-slot="browser-load-progress"
+            className="pointer-events-none absolute inset-x-0 top-0 z-10 h-0.5"
+          >
+            <div
+              className="h-full bg-ui-accent transition-[width] duration-200 ease-out"
+              style={{ width: `${Math.round(status.loadProgress * 100)}%` }}
+            />
+          </div>
+        )}
+
+        {findOpen && compositor && (
+          <BrowserFindBar
+            query={findQuery}
+            onQueryChange={changeFindQuery}
+            matches={status.findMatches}
+            activeMatch={status.findActiveMatch}
+            focusToken={findToken}
+            onStep={stepFind}
+            onClose={closeFind}
+          />
+        )}
+
+        {compositor && status.tooltip && !status.targetUrl && (
+          <div
+            role="tooltip"
+            style={{ left: status.tooltipX + 12, top: status.tooltipY + 20 }}
+            className="pointer-events-none absolute z-20 max-w-xs rounded-ui-control px-2 py-1 text-ui-small font-medium text-ui-label shadow-ui-dock-label ui-material-dock-label dark:text-white/95"
+          >
+            {status.tooltip}
+          </div>
+        )}
+
+        {compositor && status.targetUrl && (
+          <div
+            data-slot="browser-link-status"
+            className="pointer-events-none absolute bottom-1 left-1 z-20 max-w-[min(32rem,calc(100%-8px))] truncate rounded-ui-control border border-ui-separator bg-ui-window/95 px-2 py-0.5 text-ui-caption text-ui-label-secondary shadow-sm backdrop-blur-md"
+          >
+            {status.targetUrl}
+          </div>
         )}
 
         {compositor && activeExtPopup && (
@@ -1004,27 +1335,39 @@ export function WebViewSurface({
           </>
         )}
 
-        {pageFailure && compositor && (
+        {(pageFailure || status.renderProcessGone) && compositor && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-ui-window p-6 text-center text-ui-label">
-            <SymbolicIcon name="web-browser" fallback={GlobeIcon} className="size-7 text-ui-label-secondary" />
-            <div className="text-ui-body font-semibold">Unable to load page</div>
-            <div className="text-ui-small text-ui-label-secondary">
-              {pageFailureError || pageFailure}
+            <SymbolicIcon
+              name={status.renderProcessGone ? "dialog-error" : "web-browser"}
+              fallback={GlobeIcon}
+              className="size-7 text-ui-label-secondary"
+            />
+            <div className="text-ui-body font-semibold">
+              {status.renderProcessGone
+                ? status.renderProcessGone === "oom"
+                  ? _("This page ran out of memory")
+                  : _("This page crashed")
+                : _("Unable to load page")}
             </div>
+            {!status.renderProcessGone && (
+              <div className="text-ui-small text-ui-label-secondary">
+                {pageFailureError || pageFailure}
+              </div>
+            )}
             <div className="mt-2 flex gap-2">
               <Button
                 size="sm"
                 variant="secondary"
                 onClick={() => webviewRef.current?.reload()}
               >
-                Reload
+                {_("Reload")}
               </Button>
-              {pageFailureCanProceed && (
+              {pageFailureCanProceed && !status.renderProcessGone && (
                 <Button
                   size="sm"
                   onClick={() => webviewRef.current?.proceedPastWarning()}
                 >
-                  Proceed Anyway
+                  {_("Proceed Anyway")}
                 </Button>
               )}
             </div>
