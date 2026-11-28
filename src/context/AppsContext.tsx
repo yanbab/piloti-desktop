@@ -8,9 +8,11 @@ import {
   APP_CATALOG,
   type AppDefinition,
 } from "@/data/catalog";
-import { launchDesktopCommand, readApplicationDirs } from "@/lib/engine/applications";
+import { entryCommand } from "@/lib/apps/entry-command";
+import { createInstalledApps } from "@/lib/apps/installed-apps";
+import { launchDesktopCommand } from "@/lib/engine/system-commands";
 import { getEngine } from "@/lib/engine/engine";
-import { XDG_APPLICATION_DIRS, XDG_ICON_BASE_DIRS, XDG_PIXMAPS_DIRS } from "@/lib/xdg/xdg-basedir";
+import { XDG_ICON_BASE_DIRS, XDG_PIXMAPS_DIRS } from "@/lib/xdg/xdg-basedir";
 import { readIconFoldersStamp } from "@/lib/engine/system-commands";
 import { PILOTI_VERSION } from "@/lib/core/version";
 import { setSymbolicIconResolver } from "@/lib/icons/symbolic-icons";
@@ -33,7 +35,6 @@ import {
 } from "@/lib/engine/vfs-state";
 import { logBootEvent, startBootPhase } from "@/lib/core/perf-log";
 import {
-  discoverInstalledXdgApps,
   type XdgDesktopEntry,
 } from "xdg-desktop-entry";
 import {
@@ -386,14 +387,9 @@ export function useAppsValue(
   const iconThemeIndexRef = React.useRef<XdgIconThemeIndex | null>(null);
   // The same index as state, for lookups that must rerun when it changes.
   const [iconIndexState, setIconIndexState] = React.useState<XdgIconThemeIndex | null>(null);
-  // The session's XDG_DATA_DIRS does not change while the shell runs.
-  const appDirsPromiseRef = React.useRef<Promise<readonly string[]> | null>(null);
-  const readAppDirs = React.useCallback(
-    () =>
-      (appDirsPromiseRef.current ??= getEngine().capabilities.systemServices
-        ? readApplicationDirs(piloti)
-        : Promise.resolve(XDG_APPLICATION_DIRS)),
-    [piloti],
+  const installedApps = React.useMemo(
+    () => createInstalledApps(piloti, { session: systemServices }),
+    [piloti, systemServices],
   );
   // Shade math from the icon theme's `[X-Piloti Accent]` group.
   const [iconAccentConfig, setIconAccentConfig] = React.useState<IconAccentConfig>(
@@ -649,9 +645,8 @@ export function useAppsValue(
         const useWarmCachedApps = Boolean(cachedApps && cachedApps.length > 0);
         const apps = useWarmCachedApps
           ? cachedApps!
-          : await discoverInstalledXdgApps(
-              hostFiles(piloti),
-              { iconThemes: preferredThemes, deferIconDataLoad: true, applicationDirs: await readAppDirs() },
+          : await installedApps.list(
+              { iconThemes: preferredThemes, deferIconDataLoad: true },
               Promise.resolve(iconIndex)
             );
         if (cancelled) return;
@@ -727,14 +722,10 @@ export function useAppsValue(
         // Background SWR refresh when hydrated from cached XDG apps
         if (useWarmCachedApps && !cancelled) {
           bgAppsTimer = setTimeout(async () => {
-            const applicationDirs = await readAppDirs();
             if (cancelled) return;
             const activeIdx = iconThemeIndexRef.current ?? iconIndex;
-            void discoverInstalledXdgApps(
-              hostFiles(piloti),
-              { iconThemes: preferredThemes, deferIconDataLoad: true, applicationDirs },
-              Promise.resolve(activeIdx)
-            )
+            void installedApps
+              .list({ iconThemes: preferredThemes, deferIconDataLoad: true }, Promise.resolve(activeIdx))
               .then(async (freshApps) => {
                 if (cancelled) return;
                 saveCachedXdgApps(activeIconTheme, freshApps);
@@ -783,7 +774,7 @@ export function useAppsValue(
     // says the watch is in place. Only folders that exist: a missing one would
     // watch its parent (one more inotify instance) for a folder that rarely
     // appears while the session runs.
-    void readAppDirs().then(async (appDirs) => {
+    void installedApps.directories().then(async (appDirs) => {
       const existing = (
         await Promise.all(
           appDirs.map(async (dir) =>
@@ -806,7 +797,7 @@ export function useAppsValue(
       if (debounceTimer) clearTimeout(debounceTimer);
       for (const stop of stopFns) stop();
     };
-  }, [piloti, systemServices, refreshXdgApps, readAppDirs]);
+  }, [piloti, systemServices, refreshXdgApps, installedApps]);
 
   const ensureWaylandIcons = React.useCallback(
     (ids: readonly string[]) => {
@@ -917,19 +908,11 @@ export function useAppsValue(
 
   const launchXdgEntry = React.useCallback(
     (entry: XdgDesktopEntry, actionId?: string, files: readonly string[] = []) => {
-      const action = actionId
-        ? entry.actions.find((a) => a.id === actionId)
-        : undefined;
-      const argv =
-        action && action.execArgv.length > 0 ? action.execArgv : entry.execArgv;
-
-      if (argv.length > 0) {
-        const fullArgv = [...argv, ...files];
-        const finalArgv = entry.terminal ? ["kitty", "-e", ...fullArgv] : fullArgv;
-        launchDesktopCommand(piloti, finalArgv, {
-          cwd: !systemServices ? undefined : entry.workingDirectory,
-        });
-      }
+      const command = entryCommand(entry, actionId, files);
+      if (!command) return;
+      launchDesktopCommand(piloti, command.argv, {
+        cwd: !systemServices ? undefined : command.cwd,
+      });
     },
     [piloti, systemServices]
   );

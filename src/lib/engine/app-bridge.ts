@@ -209,7 +209,7 @@ export interface AppMenuItemState {
 }
 
 const windowMenuStateMap = new Map<string, Record<string, AppMenuItemState>>();
-const MENU_STATE_EVENT = "piloti:app-menu-state";
+export const MENU_STATE_EVENT = "piloti:app-menu-state";
 
 /**
  * Publishes per-window menu item state (checkboxes / disabled flags) so the
@@ -257,3 +257,13 @@ export function useWindowMenuState(
   return state;
 }
 
+
+/** Menu actions chosen for `windowId`'s app. Returns stop. */
+export function onAppAction(windowId: string, listener: (actionId: string) => void): () => void {
+  const onEvent = (e: Event) => {
+    const { windowId: to, actionId } = (e as CustomEvent).detail ?? {};
+    if (actionId && (!to || to === windowId)) listener(actionId);
+  };
+  window.addEventListener("piloti:app-action", onEvent);
+  return () => window.removeEventListener("piloti:app-action", onEvent);
+}

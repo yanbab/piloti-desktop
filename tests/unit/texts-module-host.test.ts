@@ -1,5 +1,6 @@
 import { beforeAll, describe, expect, test } from "bun:test";
 import { createDomicileEditorHost } from "@/apps/texts/host";
+import { Ok } from "@cprussin/option-result";
 import { createFakeDomicile } from "../helpers/fake-domicile";
 
 beforeAll(() => {
@@ -13,7 +14,9 @@ async function start(seed: Record<string, string> = {}) {
     await domicile.processes.run(["mkdir", "-p", "--", `/home/user/${path.slice(0, path.lastIndexOf("/"))}`]);
     await domicile.files.write(path, text);
   }
-  const { host } = await createDomicileEditorHost(domicile as never);
+  // A bus nobody speaks on.
+  const dbus = { match: async () => Ok({ items: new ReadableStream() }) };
+  const { host } = await createDomicileEditorHost(Object.assign(domicile, { dbus }) as never);
   return { host, files: domicile.files };
 }
 

@@ -15,6 +15,7 @@ Depends:
  hicolor-icon-theme,
  papirus-icon-theme,
  libarchive-tools,
+ libglib2.0-bin,
  ${misc:Depends}
 Recommends:
  xwayland-satellite,

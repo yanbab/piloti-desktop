@@ -10,8 +10,8 @@ import { AppModuleSurface, isAppModuleWindow } from "@/shell/windows/AppModuleSu
 import { BrowserTabsSurface } from "@/shell/windows/BrowserTabsSurface";
 
 const CalculatorApp = React.lazy(() =>
-  import("@/apps/calculator/CalculatorApp").then((m) => ({
-    default: m.CalculatorApp,
+  import("@/apps/calculator/ShellCalculatorApp").then((m) => ({
+    default: m.ShellCalculatorApp,
   }))
 );
 
@@ -156,15 +156,18 @@ export const WindowBody = React.memo(
       );
     }
 
-    if (win.builtinComponent === "texts" && win.isolated) {
+    if (win.builtinComponent && win.isolated) {
       return (
-        <IsolatedAppFrame
-          appId="texts"
-          windowId={win.id}
-          title={win.title}
-          isCsd={isCsd}
-          initialPath={win.payload}
-        />
+        <>
+          <WindowDomReadySignal windowId={win.id} onReady={onDomReady} />
+          <IsolatedAppFrame
+            appId={win.builtinComponent}
+            windowId={win.id}
+            title={win.title}
+            isCsd={isCsd}
+            initialPath={win.payload}
+          />
+        </>
       );
     }
 

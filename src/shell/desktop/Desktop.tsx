@@ -40,6 +40,7 @@ import {
   shellCommandWords,
   type PilotiShellCommandHandlers,
 } from "@/shell/desktop/shell-commands";
+import { receiveModuleCommand } from "@/lib/engine/module-ipc";
 import {
   installWebAppDesktopEntry,
   removeWebAppDesktopEntry,
@@ -454,8 +455,10 @@ function DomicileShellCommandBridge() {
               if (next.done) break;
               const command = next.value as unknown as IncomingShellCommand;
               const words = shellCommandWords(command);
-              console.info("[Piloti] shellCommand", words);
-              const ran = dispatchPilotiShellCommand(words, handlersRef.current);
+              // App modules report their menus and size this way: not logged.
+              const fromModule = receiveModuleCommand(words);
+              if (!fromModule) console.info("[Piloti] shellCommand", words);
+              const ran = fromModule || dispatchPilotiShellCommand(words, handlersRef.current);
               // `domicile send-shell` waits for the answer (Domicile ≥ 1.3).
               const sent = shellCommandNumber(command);
               if (sent !== undefined && typeof piloti.shell.answer === "function") {
