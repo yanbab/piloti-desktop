@@ -1,4 +1,5 @@
 /** Removable drives and CDs, from UDisks2 on the system bus. */
+import { signalOf } from "@/lib/engine-native/signal";
 import { Bus } from "@domicile-desktop/sdk/system";
 import type { Piloti } from "@/lib/engine/piloti";
 import type { DriveInfo } from "@/lib/ports/hardware";
@@ -124,7 +125,7 @@ export function watchSystemDrives(piloti: Piloti, onChange: (drives: DriveInfo[]
               while (!stopped) {
                 const next = await reader.read();
                 if (next.done) break;
-                const path = (next.value as { value?: { path?: string } }).value?.path;
+                const path = signalOf(next.value)?.path;
                 if (!path || path.startsWith(ROOT)) schedule();
               }
             } catch {

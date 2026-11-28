@@ -211,10 +211,8 @@ export function useGlobalAppMenu({
         actionId === "shell:control-center"
       ) {
         setControlPanelOpen((v) => !v);
-      } else if (
-        (actionId.startsWith("texts:") || actionId.startsWith("files:")) &&
-        focusedWindowId
-      ) {
+      } else if (focusedWindowId) {
+        // Anything else is the app's own.
         window.dispatchEvent(
           new CustomEvent("piloti:app-action", {
             detail: { windowId: focusedWindowId, actionId },

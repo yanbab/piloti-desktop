@@ -137,6 +137,7 @@ export function combineWindows({
       // windows of sites that are not installed keep a tile of their own.
       appId,
       isModule: Boolean(mod),
+      minSize: mod?.size,
       title: isAppModule
         ? browserTitles[bw.id] || bw.title || bw.appId || mod?.id || resolvedTitle
         : resolvedTitle,
@@ -192,7 +193,7 @@ export function combineWindows({
       workspace: meta.workspace,
       position: meta.position,
       size: meta.size,
-      minSize: { width: 420, height: 300 },
+      minSize: described.minSize ?? { width: 420, height: 300 },
       minimized: meta.minimized,
       maximized: meta.maximized,
       fullscreen: meta.fullscreen,

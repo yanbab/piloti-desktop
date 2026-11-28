@@ -170,7 +170,7 @@ export function XtermTerminalApp({
         });
       },
       files: hostFiles(piloti),
-      piloti: window.piloti ?? piloti,
+      piloti,
       help: () =>
         [
           "Commands can be typed shell-style: name arg 'other arg' calls name('arg', 'other arg').",
@@ -190,7 +190,7 @@ export function XtermTerminalApp({
           "apps()             installed applications",
           "run(cmd)           run a Linux command, returns { code, stdout, stderr }",
           "files              Domicile's files",
-          "piloti             Domicile's desktop plus desktop, settings, notifications.push, plugins",
+          "piloti             Domicile's desktop plus vfs, desktop, settings, plugins",
         ].join("\n"),
     }),
     [piloti, launchApp, pushNotification, updateSettings, shellCommands, systemServices],

@@ -36,6 +36,12 @@ const TextsApp = React.lazy(() =>
   })),
 );
 
+const CalculatorApp = React.lazy(() =>
+  import("./apps/calculator/FrameCalculatorApp").then((m) => ({
+    default: m.FrameCalculatorApp,
+  })),
+);
+
 const root = document.getElementById("root");
 if (root) void start(root);
 
@@ -46,7 +52,7 @@ async function start(root: HTMLElement) {
   finishFiles("home and etc");
   const params = new URLSearchParams(window.location.search);
   const isolatedApp = params.get("piloti_app");
-  if (isolatedApp === "texts") {
+  if (isolatedApp === "texts" || isolatedApp === "calculator") {
     // The frame's own desktop, over the same demo VFS as the shell's.
     const { createBrowserDomicile } = await import("./lib/engine-web");
     const domicile = createBrowserDomicile();
@@ -56,10 +62,14 @@ async function start(root: HTMLElement) {
     createRoot(root).render(
       <ShellErrorBoundary>
         <PilotiQueryProvider>
-        <AppChromeProvider value={{ appId: "texts", windowId, decorations: isCsd ? "client" : "server" }}>
+        <AppChromeProvider value={{ appId: isolatedApp, windowId, decorations: isCsd ? "client" : "server" }}>
           <DomicileProvider domicile={withVfs(domicile, createWebVfs(domicile))}>
             <React.Suspense fallback={null}>
-              <TextsApp initialPath={initialPath} windowId={windowId} />
+              {isolatedApp === "texts" ? (
+                <TextsApp initialPath={initialPath} windowId={windowId} />
+              ) : (
+                <CalculatorApp windowId={windowId} isCsd={isCsd} />
+              )}
             </React.Suspense>
           </DomicileProvider>
         </AppChromeProvider>

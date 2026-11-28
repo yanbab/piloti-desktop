@@ -1,6 +1,5 @@
 import { useAppChrome } from "@/components/elements/app-chrome";
 import * as React from "react";
-import { emitShellEvent, onShellEvent } from "@/lib/core/shell-events";
 import { XIcon } from "@/components/ui/symbols";
 import {
   DropdownMenu,
@@ -9,18 +8,11 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useWindowActions, useWindowManagerSelector, useDesktopSetting } from "@/context/DesktopStateContext";
-import { isCloseOnLeft } from "@/components/ui/window";
 import { _ } from "@/lib/core/i18n";
 import { cn } from "@/lib/core/utils";
-import { publishWindowMenuState } from "@/lib/engine/app-bridge";
-import {
-  readVfsStateJson,
-  VFS_STATE_PATHS,
-  writeVfsStateJson,
-} from "@/lib/engine/vfs-state";
 import { defineSettings } from "@/lib/engine/settings";
 import { useSetting } from "@/hooks/use-setting";
+import type { CalculatorHost } from "@/apps/calculator/host";
 
 type Operator = "+" | "-" | "*" | "/";
 
@@ -58,11 +50,15 @@ function evaluateBinary(a: number, op: Operator, b: number): string {
 }
 
 export interface CalculatorAppProps {
+  host: CalculatorHost;
   windowId?: string;
-  onCloseWindow?: () => void;
+  /** Whether keys are for this calculator. */
+  focused?: boolean;
+  /** The window's close button is on the left. */
+  closeOnLeft?: boolean;
 }
 
-const CALCULATOR_STATE_KEY = "piloti.calculator.state.v1";
+const STATE_KEY = "calculator";
 
 /** Preferences; the display and pending operation are state (`calculator.json`). */
 const calculatorSettings = defineSettings("org.piloti.calculator", {
@@ -79,34 +75,27 @@ interface SavedCalculatorState {
   scientific?: boolean;
 }
 
-function loadSavedCalculatorState(): SavedCalculatorState {
-  try {
-    const parsed = readVfsStateJson<SavedCalculatorState>(
-      VFS_STATE_PATHS.calculator,
-      CALCULATOR_STATE_KEY,
-    );
-    if (!parsed || typeof parsed !== "object") return {};
-    if (typeof parsed.scientific === "boolean") {
-      calculatorSettings.set("scientific", parsed.scientific);
-    }
-    return parsed;
-  } catch {
-    return {};
-  }
+const isSavedState = (v: unknown): v is SavedCalculatorState =>
+  typeof v === "object" && v !== null;
+
+function loadSavedCalculatorState(host: CalculatorHost): SavedCalculatorState {
+  const saved = host.readState(STATE_KEY, isSavedState);
+  if (!saved) return {};
+  if (typeof saved.scientific === "boolean") calculatorSettings.set("scientific", saved.scientific);
+  return saved;
 }
 
 export const CalculatorApp: React.FC<CalculatorAppProps> = ({
+  host,
   windowId = "",
-  onCloseWindow,
+  focused = true,
+  closeOnLeft = false,
 }) => {
   const isCsd = useAppChrome().decorations === "client";
-  const { updateWindowGeometry } = useWindowActions();
-  // Standalone, there is no window to focus: it always listens.
-  const focused = useWindowManagerSelector((wm) => !windowId || wm.focusedWindowId === windowId);
 
   const initialStateRef = React.useRef<SavedCalculatorState | null>(null);
   if (initialStateRef.current === null) {
-    initialStateRef.current = loadSavedCalculatorState();
+    initialStateRef.current = loadSavedCalculatorState(host);
   }
   const initialSaved = initialStateRef.current;
 
@@ -133,12 +122,6 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
       : ""
   );
   const [scientific, setScientific] = useSetting(calculatorSettings, "scientific");
-  // `#scientific` / `#basic` in the URL pick the mode when the window opens.
-  React.useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (window.location.hash === "#scientific") setScientific(true);
-    else if (window.location.hash === "#basic") setScientific(false);
-  }, [setScientific]);
   const [copied, setCopied] = React.useState(false);
   const headerRef = React.useRef<HTMLDivElement | null>(null);
   const topBarRef = React.useRef<HTMLDivElement | null>(null);
@@ -146,21 +129,17 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
   const lastMeasuredSizeRef = React.useRef<{ width: number; height: number } | null>(null);
 
   React.useEffect(() => {
-    try {
-      writeVfsStateJson(VFS_STATE_PATHS.calculator, {
-        display,
-        storedValue,
-        pendingOp,
-        waitingForOperand,
-        expressionLine,
-      } satisfies SavedCalculatorState);
-    } catch {
-      // ignore storage errors
-    }
-  }, [display, expressionLine, pendingOp, storedValue, waitingForOperand]);
+    host.writeState(STATE_KEY, {
+      display,
+      storedValue,
+      pendingOp,
+      waitingForOperand,
+      expressionLine,
+    } satisfies SavedCalculatorState);
+  }, [display, expressionLine, host, pendingOp, storedValue, waitingForOperand]);
 
   const syncWindowToDom = React.useCallback(() => {
-    if (!windowId) return;
+    if (!host.resize) return;
     const headerEl = headerRef.current;
     const keypadEl = keypadContentRef.current;
     if (!headerEl || !keypadEl) return;
@@ -192,10 +171,8 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
       return;
     }
     lastMeasuredSizeRef.current = { width: nextWidth, height: nextHeight };
-    updateWindowGeometry(windowId, {
-      size: { width: nextWidth, height: nextHeight },
-    });
-  }, [isCsd, scientific, updateWindowGeometry, windowId]);
+    host.resize(windowId, { width: nextWidth, height: nextHeight });
+  }, [host, isCsd, scientific, windowId]);
 
   React.useLayoutEffect(() => {
     syncWindowToDom();
@@ -203,60 +180,23 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
     return () => cancelAnimationFrame(raf);
   }, [isCsd, scientific, syncWindowToDom]);
 
-  const setMode = React.useCallback((nextScientific: boolean) => {
-    if (typeof window !== "undefined") {
-      const nextHash = nextScientific ? "#scientific" : "#basic";
-      if (window.location.hash !== nextHash) {
-        window.history.replaceState(null, "", nextHash);
-      }
-    }
-    setScientific(nextScientific);
-  }, [setScientific]);
-
   React.useEffect(() => {
-    if (!windowId) return;
-    publishWindowMenuState(windowId, {
+    host.publishMenu?.(windowId, {
       "calculator:basic": { checked: !scientific },
       "calculator:scientific": { checked: scientific },
     });
-  }, [scientific, windowId]);
+  }, [host, scientific, windowId]);
 
-  React.useEffect(() => {
-    if (!windowId) return;
-    const onAppAction = (e: Event) => {
-      const detail = (
-        e as CustomEvent<{ windowId?: string; actionId?: string }>
-      ).detail;
-      if (!detail?.actionId) return;
-      if (detail.windowId && detail.windowId !== windowId) return;
-      if (detail.actionId === "calculator:basic") {
-        setMode(false);
-      } else if (detail.actionId === "calculator:scientific") {
-        setMode(true);
-      }
-    };
-    window.addEventListener("piloti:app-action", onAppAction);
-    return () => window.removeEventListener("piloti:app-action", onAppAction);
-  }, [setMode, windowId]);
+  React.useEffect(
+    () =>
+      host.onMenuAction?.(windowId, (actionId) => {
+        if (actionId === "calculator:basic") setScientific(false);
+        else if (actionId === "calculator:scientific") setScientific(true);
+      }),
+    [host, setScientific, windowId],
+  );
 
-  React.useEffect(() => {
-    const onHashChange = () => {
-      const next = window.location.hash === "#scientific";
-      setScientific(next);
-    };
-    window.addEventListener("hashchange", onHashChange);
-    return () => window.removeEventListener("hashchange", onHashChange);
-  }, [setScientific]);
-
-  const closeOnLeft = isCloseOnLeft(useDesktopSetting("windowButtonLayout"));
-
-  const handleClose = () => {
-    if (onCloseWindow) {
-      onCloseWindow();
-    } else if (windowId) {
-      emitShellEvent("piloti:request-animated-close", { windowId: windowId });
-    }
-  };
+  const handleClose = () => host.close(windowId);
 
   const inputDigit = React.useCallback(
     (digit: string) => {
@@ -457,7 +397,7 @@ export const CalculatorApp: React.FC<CalculatorAppProps> = ({
             data-window-no-drag
             aria-pressed={scientific}
             aria-label={_("Scientific")}
-            onClick={() => setMode(!scientific)}
+            onClick={() => setScientific(!scientific)}
             className={cn(
               "inline-flex h-5 shrink-0 cursor-default items-center justify-center rounded-full px-2 text-ui-small font-medium leading-none transition-colors outline-none select-none",
               scientific

@@ -9,7 +9,7 @@ import { formerAppId } from "@/lib/core/renamed-apps";
 export type RunIn = "shell" | "isolated";
 
 /** Apps with both an app module (`src/apps/<id>`) and an iframe entry. */
-const ISOLATABLE = new Set(["texts"]);
+const ISOLATABLE = new Set(["texts", "calculator"]);
 
 export const RUN_SEPARATELY_ACTION = "shell:run-separately";
 

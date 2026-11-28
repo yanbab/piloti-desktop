@@ -56,6 +56,7 @@ import { type AppsContextValue, matchAppFromWayland } from "./AppsContext";
 import { type SettingsContextValue } from "./SettingsContext";
 import { type SystemBackendsContextValue } from "./SystemBackendsContext";
 import { useGlobalAppMenu } from "./windows/useGlobalAppMenu";
+import { useModuleChannel } from "./windows/use-module-channel";
 import { useGlobalShortcuts } from "./windows/useGlobalShortcuts";
 import { getEngine } from "@/lib/engine/engine";
 import { useCapabilities } from "@/hooks/use-capabilities";
@@ -330,7 +331,8 @@ export function useWindowsValue(
     for (const [idx, bw] of browserWindows.entries()) {
       if (!knownBrowserIdsRef.current.has(bw.id)) {
         // A page asked for as a tab joins its window instead of opening one.
-        const isModule = Boolean(resolveAppModuleByUrl(bw.url));
+        const appModule = resolveAppModuleByUrl(bw.url);
+        const isModule = Boolean(appModule);
         if (!bw.isApp && !isModule && pendingTabGroupsRef.current.length > 0) {
           const group = pendingTabGroupsRef.current.shift()!;
           if (activeIds.has(group) || prevGroups[group]) {
@@ -353,12 +355,14 @@ export function useWindowsValue(
         const defaultW =
           restored?.width ??
           remembered?.size.width ??
+          appModule?.size?.width ??
           (bw.width > 200
             ? bw.width
             : Math.min(720, Math.max(520, screenWidth - 220)));
         const defaultH =
           restored?.height ??
           remembered?.size.height ??
+          appModule?.size?.height ??
           (bw.height > 150
             ? bw.height
             : Math.min(520, Math.max(380, screenHeight - 180)));
@@ -387,7 +391,10 @@ export function useWindowsValue(
           { width: defaultW, height: defaultH },
           screenWidth,
           screenHeight,
-          { minWidth: 420, minHeight: 300 }
+          {
+            minWidth: appModule?.size?.width ?? 420,
+            minHeight: appModule?.size?.height ?? 300,
+          }
         );
         const workspace = restored
           ? clampWorkspace(restored.workspace, settings.workspaceCount)
@@ -2230,6 +2237,8 @@ export function useWindowsValue(
     () => combinedWindows.find((w) => w.id === focusedWindowId),
     [combinedWindows, focusedWindowId]
   );
+
+  useModuleChannel(piloti, combinedWindows, updateWindowGeometry);
 
   const { activeAppDef, handleMenuAction } = useGlobalAppMenu({
     focusedWindow,

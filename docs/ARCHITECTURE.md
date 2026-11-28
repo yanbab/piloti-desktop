@@ -5,7 +5,7 @@ One React tree (shell and built-in apps) on two engines. Code map:
 API: [API.md](./API.md).
 
 ```
-UI (React)  ─►  piloti: Domicile's desktop + vfs, settings, desktop…
+UI (React)  ─►  piloti: Domicile's desktop + vfs, desktop, settings, plugins
                   ├─ native engine  →  Domicile, the disk, D-Bus, gsettings
                   └─ web engine     →  fake host, browser storage (demo)
 ```
@@ -67,6 +67,8 @@ Nothing the entry imports up front may read `$HOME` (the build checks).
 
 ## Shell
 
+- The public `piloti.desktop`, `.settings` and `.plugins` are typed in
+  `ports/shell-api.ts`; `context/use-shell-api.ts` connects them to the shell.
 - Notifications, session lock, power and capture live in `context/backends/`;
   `SystemBackendsContext` joins them with the hardware state.
 - Contexts are split and selected (`useWindowManagerSelector`,
@@ -98,6 +100,17 @@ Nothing the entry imports up front may read `$HOME` (the build checks).
 - Item drags find their target by `data-*` attributes (`lib/dnd/item-drop.ts`),
   so grids, the tree, the Dock and windows take each other's drops.
 
+## Backends
+
+Logic any app needs, in the shell or in its own process, is plain TypeScript: no
+React, no engine, and a host passed in (`files`, `processes`, `dbus`, which is
+all an app module has). Interfaces are in `ports/`, code in `lib/<domain>/`; a
+test keeps it so.
+
+- **Apps** (`ports/apps.ts`, `lib/apps/`): list the installed applications, ask
+  the shell to open one. A module can't launch programs, so `createModuleApps`
+  runs `piloti open`; the shell starts them itself.
+
 ## App modules
 
 Small utilities run in the shell. Heavier apps can run in their own document,
@@ -112,18 +125,35 @@ for crash and performance isolation (not a sandbox).
 Domicile app module:
 
 - Exports `main` (`mount(Component)`); run with `domicile open --app /path/app.js`.
+- An app takes what it needs from an `AppHost` (`ports/app-host.ts`: files,
+  apps, state, close) and settings from `defineSettings`. The shell builds one
+  with `engine/app-shell-host.ts`, a module with `engine/app-module-host.ts`.
 - Own origin and storage per directory; gets `files`, `processes`, `dbus` only.
   It talks to the shell through files or D-Bus.
 - Shown in a `<webview>`; the shell draws its controls and drag strip
   (`data/app-modules.ts`).
-- Built with `npm run build:apps` → `dist/apps/<id>/` (`hello`, `texts`).
+- Built with `npm run build:apps` → `dist/apps/<id>/` (`hello`, `calculator`, `texts`).
 
-Shell and module share only the module's URL and the disk: the module puts its
-open file after `#` (so opening it again focuses the window), the shell leaves
-renames and moves in `~/.cache/piloti/moves/`, and a module that must not close
-refuses with `beforeunload` and asks in its own window.
+A module and the shell talk as in Electron (`lib/apps/module-channel.ts`):
 
-Texts talks to a `TextsHost` port (`engine/texts-host.ts`). View ▸
+| Direction | Carried by |
+|---|---|
+| Module → shell: menu state, wanted size | a shell command, `piloti send piloti-ipc …`, answered |
+| Shell → module: menu actions, "send again" | the D-Bus signal `org.piloti.Shell.Message` |
+
+After `#` in its URL, a module puts its open file (so opening it again focuses
+the window) and the name it goes by. Renames and moves made in the shell are
+still left in `~/.cache/piloti/moves/`. On the VM a round trip takes 35–150 ms,
+and each module had its own renderer process; Domicile gives no pid for it.
+Any program of the session can send these messages: not a security boundary.
+
+In a module, menu state and actions are the same window events as in the shell,
+so an app needs nothing of its own. A module that must not close refuses with
+`beforeunload` and asks in its own window.
+
+Texts (`engine/texts-host.ts`) and Calculator (`apps/calculator/host.ts`) add
+what only they need. A module follows its settings file and `settings.ini`, but
+not dconf, and has no notifications or drag and drop with the shell. View ▸
 Open New Windows Separately sets `run-in=isolated`; without an installed module
 it opens in the shell.
 

@@ -11,12 +11,21 @@ export interface AppModuleDef {
   csd: boolean;
   /** Pixels reserved by the module's header: shell controls at the edges (whichever side the button layout uses), module buttons next to them. */
   drag?: { left: number; right: number; height: number };
+  /** Its window's first and smallest size, for an app smaller than a web page. */
+  size?: { width: number; height: number };
 }
 
 const APPS_ROOT = "/usr/share/piloti-desktop/apps";
 
 export const APP_MODULES: readonly AppModuleDef[] = [
   { id: "hello", dir: `${APPS_ROOT}/hello`, csd: false },
+  // The basic keypad; the module then asks for the size it needs.
+  {
+    id: "calculator",
+    dir: `${APPS_ROOT}/calculator`,
+    csd: false,
+    size: { width: 196, height: 320 },
+  },
   {
     id: "texts",
     dir: `${APPS_ROOT}/texts`,
@@ -43,14 +52,15 @@ export function resolveAppModuleByUrl(url: string | undefined): AppModuleDef | u
 }
 
 /**
- * The shell and a module share no channel but the module's URL and the disk:
- * a module puts its open file after `#`, and the shell leaves the moves of
- * files in `MODULE_MOVES_FILE` (relative to `$HOME`).
+ * The shell and a module share only the module's URL and the disk. After `#` a
+ * module puts its open file and the name it goes by (`lib/apps/module-channel.ts`);
+ * the shell leaves the moves of files in `MODULE_MOVES_FILE`.
  */
-export const documentHash = (path: string) => `#${encodeURIComponent(path)}`;
+export const documentHash = (path: string, instance?: string) =>
+  `#${encodeURIComponent(path)}${instance ? `&i=${instance}` : ""}`;
 
 export function moduleDocument(url: string | undefined): string | null {
-  const hash = url?.split("#")[1];
+  const hash = url?.split("#")[1]?.split("&")[0];
   if (!hash) return null;
   try {
     return decodeURIComponent(hash);
@@ -58,6 +68,9 @@ export function moduleDocument(url: string | undefined): string | null {
     return null;
   }
 }
+
+export const moduleInstance = (url: string | undefined): string | null =>
+  /#[^#]*&i=([a-z0-9-]+)$/.exec(url ?? "")?.[1] ?? null;
 
 export const MODULE_MOVES_DIR = ".cache/piloti/moves";
 export const MODULE_MOVES_FILE = `${MODULE_MOVES_DIR}/moves.json`;

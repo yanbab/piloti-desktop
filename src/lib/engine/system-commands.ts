@@ -112,3 +112,17 @@ export async function readIconFoldersStamp(piloti: Host, dirs: readonly string[]
   // `cksum` of nothing ends in a size of 0.
   return out && !out.endsWith(" 0") ? out : null;
 }
+
+/** Broadcasts `message` on the session bus, as `org.piloti.Shell.Message`. */
+export function emitShellSignal(piloti: Pick<Piloti, "processes">, message: string): void {
+  void piloti.processes.run([
+    "gdbus",
+    "emit",
+    "--session",
+    "--object-path",
+    "/org/piloti/Shell",
+    "--signal",
+    "org.piloti.Shell.Message",
+    `'${message.replace(/\\/g, "\\\\").replace(/'/g, "\\'")}'`,
+  ]);
+}

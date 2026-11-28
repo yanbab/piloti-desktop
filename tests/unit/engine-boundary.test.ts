@@ -36,11 +36,13 @@ describe("engine boundary", () => {
 
 /**
  * Command lines live in the engines: UI code calls a named function
- * (`engine/system-commands.ts`) and never runs a program itself.
+ * (`engine/system-commands.ts`) and never runs a program itself. The plain
+ * backends (`lib/apps/`) take their host as an argument and may.
  */
 describe("process boundary", () => {
   it("only engine code runs programs", () => {
     const offenders = sources(SRC)
+      .filter((file) => !file.startsWith(path.join(SRC, "lib/apps/")))
       .filter((file) => /\bprocesses\??\s*\.(run|spawn|launch)\(/.test(code(file)))
       .map((file) => path.relative(SRC, file));
     expect(offenders).toEqual([]);
@@ -145,6 +147,18 @@ describe("engine kind", () => {
   it("nothing asks which engine this is", () => {
     const offenders = sources(SRC)
       .filter((file) => /\bisWebEngine\b|getEngine\(\)\.kind\b/.test(code(file)))
+      .map((file) => path.relative(SRC, file));
+    expect(offenders).toEqual([]);
+  });
+});
+
+/** A backend an app module can run: no React, no state, nothing of the shell. */
+describe("plain backend boundary", () => {
+  it("lib/apps imports no React, context, UI or engine", () => {
+    const offenders = sources(path.join(SRC, "lib/apps"))
+      .filter((file) =>
+        /from "(react|@\/(context|components|shell|hooks|lib\/engine[\w-]*)[/"])/.test(code(file)),
+      )
       .map((file) => path.relative(SRC, file));
     expect(offenders).toEqual([]);
   });

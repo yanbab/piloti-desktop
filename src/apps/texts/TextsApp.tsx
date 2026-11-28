@@ -861,7 +861,7 @@ export const TextsApp: React.FC<TextsAppProps> = ({
     }
     persistEditorStateNow(filePathRef.current);
     if (typeof window !== "undefined" && window.parent === window) {
-      host.requestAnimatedClose(windowId);
+      host.close(windowId);
     } else {
       bridge.closeWindow();
     }
