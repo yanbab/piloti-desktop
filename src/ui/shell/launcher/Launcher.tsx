@@ -1128,6 +1128,7 @@ export const Launcher = React.memo(function Launcher() {
     };
 
     startPointerDrag(e, {
+      clearSelection: false,
       onMove: (_ev, { dx, dy }) => {
         latest = placePopupOffset(popup, baseOffset.x + dx, baseOffset.y + dy, "drag");
         showOffset();
@@ -1251,7 +1252,7 @@ export const Launcher = React.memo(function Launcher() {
           }
         }}
         onPointerDown={handleHeaderDragPointerDown}
-        className="cursor-default [&_[data-slot=command-input-wrapper]]:cursor-default [&_[data-slot=command-input]]:cursor-default"
+        className="cursor-default [&_[data-slot=command-input-wrapper]]:cursor-default"
       >
         <CommandInput
           ref={inputRef}
