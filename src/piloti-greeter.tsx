@@ -38,7 +38,11 @@ async function boot(root: HTMLElement, domicile: Parameters<ShellModule>[1]) {
   }
   const piloti = withVfs(domicile, vfs);
   await loadAppCatalog(piloti).catch((error) => console.error("No app descriptions", error));
-  const { mountGreeter } = await import("./piloti-greeter-app");
+  const [{ mountGreeter }, { ensureLocale }] = await Promise.all([
+    import("./piloti-greeter-app"),
+    import("./core/util/i18n"),
+  ]);
+  await ensureLocale();
   mountGreeter(root, piloti);
 }
 

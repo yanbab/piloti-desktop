@@ -94,11 +94,14 @@ async function boot(root: HTMLElement, piloti: Parameters<ShellModule>[1]) {
   await loadApps();
   const finishImport = startBootPhase("desktop module");
   // Imported late, like the desktop: no module may be loaded before `$HOME` is known.
-  const [app, { createNativeVfs }, { withVfs }] = await Promise.all([
+  const [app, { createNativeVfs }, { withVfs }, { ensureLocale }] = await Promise.all([
     import("./piloti-desktop-app"),
     import("@/platform/native/vfs"),
     import("@/platform/shared/with-vfs"),
+    import("@/core/util/i18n"),
   ]);
+  // The language's strings before the first drawing.
+  await ensureLocale();
   finishImport();
   const finishRender = startBootPhase("first render");
   app.Shell(root, withVfs(piloti, nativeVfs ?? createNativeVfs(piloti)));

@@ -1,8 +1,31 @@
 import * as React from "react";
-import lottie, { type AnimationItem } from "lottie-web/build/player/lottie_light";
+import type { AnimationItem, LottiePlayer } from "lottie-web/build/player/lottie_light";
 import { cn } from "@/core/util/utils";
 
 const parsedAnimationCache = new Map<string, Record<string, unknown>>();
+
+// The player is loaded once an animated icon is drawn: an app without any
+// (most app modules) doesn't carry it.
+let player: LottiePlayer | null = null;
+let loadingPlayer: Promise<LottiePlayer> | null = null;
+
+/** Loads the player ahead of the first icon (the shell's Dock). */
+export function preloadLottie(): Promise<LottiePlayer> {
+  return (loadingPlayer ??= import("lottie-web/build/player/lottie_light").then((m) => (player = m.default)));
+}
+
+function useLottiePlayer(): LottiePlayer | null {
+  const [loaded, setLoaded] = React.useState(player);
+  React.useEffect(() => {
+    if (loaded) return;
+    let current = true;
+    void preloadLottie().then((next) => current && setLoaded(() => next));
+    return () => {
+      current = false;
+    };
+  }, [loaded]);
+  return loaded;
+}
 
 export function isLottieIconUrl(url?: string): boolean {
   if (!url) return false;
@@ -101,6 +124,7 @@ export function LottieIcon({
   const desiredOpenRef = React.useRef(Boolean(open));
   desiredOpenRef.current = Boolean(open) || (open !== undefined && hoveredRef.current);
 
+  const lottie = useLottiePlayer();
   const [loadedData, setLoadedData] = React.useState<Record<string, unknown> | null>(
     () => decodeLottieDataUrl(src)
   );
@@ -149,7 +173,7 @@ export function LottieIcon({
 
   React.useEffect(() => {
     const container = containerRef.current;
-    if (!container || !loadedData) return;
+    if (!container || !loadedData || !lottie) return;
 
     const anim = lottie.loadAnimation({
       container,
@@ -231,7 +255,7 @@ export function LottieIcon({
         animRef.current = null;
       }
     };
-  }, [loadedData, loop, syncStatefulAnimation]);
+  }, [lottie, loadedData, loop, syncStatefulAnimation]);
 
   React.useEffect(() => {
     if (open === undefined) return;

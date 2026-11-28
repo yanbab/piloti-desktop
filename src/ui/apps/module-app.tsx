@@ -11,7 +11,7 @@ import * as React from "react";
 import { applyColors, applyFonts, applyInterface, resolveTheme } from "@/core/config/appearance";
 import type { DesktopSettings } from "@/core/config/desktop-settings";
 import { setSymbolicIconResolver } from "@/core/icons/symbolic-icons";
-import { _, followLocale } from "@/core/util/i18n";
+import { _, ensureLocale, followLocale } from "@/core/util/i18n";
 import {
   buildXdgIconThemeIndex,
   loadXdgIconDataUrl,
@@ -88,9 +88,12 @@ export function mountModuleApp(
         const module = await createAppModuleHost(domicile, options);
         const readLocale = () => readModuleText(files, LOCALE_INI);
         followLocale(await readLocale());
+        await ensureLocale();
         module.watchDir(".config/piloti", () => {
-          void readLocale().then((raw) => {
-            if (followLocale(raw)) setLocale((n) => n + 1);
+          void readLocale().then(async (raw) => {
+            if (!followLocale(raw)) return;
+            await ensureLocale();
+            setLocale((n) => n + 1);
           });
         });
         let settings = module.desktop.current();

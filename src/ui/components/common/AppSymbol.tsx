@@ -1,7 +1,7 @@
 import * as React from "react";
 import { AppWindowIcon, GlobeIcon } from "@/ui/components/ui/symbols";
 import { isLottieIconUrl, LottieIcon } from "@/ui/components/ui/lottie-icon";
-import { useOptionalApps } from "@/ui/context/AppsContext";
+import { useAppIcons } from "@/ui/components/app-icons";
 import { cn } from "@/core/util/utils";
 
 /**
@@ -27,7 +27,7 @@ export function AppSquircleIcon({
   className?: string;
   glyphClassName?: string;
 }) {
-  const apps = useOptionalApps();
+  const apps = useAppIcons();
   const [imgFailed, setImgFailed] = React.useState(false);
 
   React.useEffect(() => {

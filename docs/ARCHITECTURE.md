@@ -154,6 +154,10 @@ Domicile app module:
   It talks to the shell through files or D-Bus.
 - Shown in a `<webview>`; the shell draws its controls and drag strip
   (`core/data/app-modules.ts`).
+- Built in chunks next to the entry, so a module loads only what it uses: its
+  language (`ensureLocale` in `core/util/i18n.ts`), the Lottie player (only for
+  animated icons). Shared components reach the shell only through small
+  contexts (`ui/components/app-icons.ts`, `files-host.ts`), never `ui/context/`.
 - Built with `npm run build:apps` → `dist/apps/<id>/` (`calculator`, `files`, `image-viewer`, `selfies`, `system-monitor`, `terminal`, `texts`).
 
 A module and the shell talk as in Electron (`core/apps/module-channel.ts`):
@@ -200,7 +204,7 @@ windows. The shell provides it to all its views (`ui/context/ShellFilesHost.tsx`
 the module and the demo's iframe build one with `ui/apps/files/standalone-host.ts`
 and ask the shell to launch and open (`launch` and `open` requests), as the
 shell's Folders would. Its paths are real ones, so its `main.tsx` learns `$HOME`
-before loading the app, which is a chunk of its own (`CHUNKED` in
+before loading the app, which is a chunk of its own (`HOME_FIRST` in
 `vite.apps.config.ts`). Items dropped on a module's or a frame's window reach the
 app as `piloti:drop-paths:` then `piloti:open-path:` actions
 (`core/files/dropped-paths.ts`): Folders moves or copies them into its folder.

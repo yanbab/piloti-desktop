@@ -9,26 +9,26 @@ import { cssInTheModule, homeNotReadEarly } from "./vite.plugins";
 // Builds ONE Domicile app module: APP=<id> vite build -c vite.apps.config.ts
 // -> dist/apps/<id>/<id>.js (own directory = own origin and storage).
 const id = process.env.APP ?? "calculator";
-// These learn `$HOME` before loading the app (`src/ui/apps/files/main.tsx`):
-// the app is a chunk of its own, next to the entry (the .deb copies the
-// module's directory flat).
-const CHUNKED = new Set(["files"]);
-const chunked = CHUNKED.has(id);
+// What a module may not need up front (a language, the Lottie player, the app
+// itself for Folders) is a chunk of its own, next to the entry: the .deb copies
+// the module's directory flat. Folders learns `$HOME` before loading the app
+// (`src/ui/apps/files/main.tsx`), which the build checks.
+const HOME_FIRST = new Set(["files"]);
 
 export default defineConfig({
   define: { __PILOTI_VERSION__: JSON.stringify(buildVersion()) },
   base: "./",
-  plugins: [react(), tailwindcss(), cssInTheModule(), ...(chunked ? [homeNotReadEarly()] : [])],
+  plugins: [react(), tailwindcss(), cssInTheModule(), ...(HOME_FIRST.has(id) ? [homeNotReadEarly()] : [])],
   resolve: { alias: { "@": path.resolve(__dirname, "src") } },
   build: {
     outDir: `dist/apps/${id}`,
     emptyOutDir: true,
-    ...(chunked ? { cssCodeSplit: false, modulePreload: false } : null),
+    // One stylesheet, which the entry injects.
+    cssCodeSplit: false,
+    modulePreload: false,
     rollupOptions: {
       input: `src/ui/apps/${id}/main.tsx`,
-      output: chunked
-        ? { entryFileNames: `${id}.js`, chunkFileNames: `${id}-[name]-[hash].js` }
-        : { entryFileNames: `${id}.js`, inlineDynamicImports: true },
+      output: { entryFileNames: `${id}.js`, chunkFileNames: `${id}-[name]-[hash].js` },
       preserveEntrySignatures: "exports-only",
     },
   },

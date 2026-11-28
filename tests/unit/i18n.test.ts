@@ -4,6 +4,7 @@ import {
   getLocale,
   getLocalePreference,
   getSystemLocale,
+  ensureLocale,
   setLocale,
 } from "@/core/util/i18n";
 import { readdirSync, readFileSync } from "node:fs";
@@ -47,8 +48,9 @@ describe("i18n translation helper", () => {
     expect(_("Items: %d / 100%%", 42)).toBe("Items: 42 / 100%");
   });
 
-  test("translates using fr.json when French locale is active and supports default preference", () => {
+  test("translates using fr.json when French locale is active and supports default preference", async () => {
     setLocale("fr-FR");
+    await ensureLocale();
     expect(getLocale()).toBe("fr");
     expect(getLocalePreference()).toBe("fr");
     expect(_("My english sentence is: %s", "hello friend")).toBe(

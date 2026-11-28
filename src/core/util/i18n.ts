@@ -6,18 +6,50 @@ import {
   VFS_STATE_PATHS,
   writeVfsStateText,
 } from "@/core/state/vfs-state";
-import en from "@/core/locales/en.json";
-import es from "@/core/locales/es.json";
-import fr from "@/core/locales/fr.json";
 
 export type SupportedLocale = "en" | "fr" | "es";
 export type LocalePreference = "default" | SupportedLocale;
 
-const DICTIONARIES: Record<string, Record<string, string>> = {
-  en,
-  es,
-  fr,
+// English is the keys themselves. The other languages load on demand: an app
+// module carries only the one in use (`ensureLocale` before the first drawing).
+const DICTIONARIES: Partial<Record<SupportedLocale, Record<string, string>>> = { en: {} };
+const LOADERS: Record<Exclude<SupportedLocale, "en">, () => Promise<{ default: Record<string, string> }>> = {
+  fr: () => import("@/core/locales/fr.json"),
+  es: () => import("@/core/locales/es.json"),
 };
+const loading = new Map<SupportedLocale, Promise<void>>();
+
+function loadDictionary(locale: SupportedLocale): Promise<void> {
+  if (DICTIONARIES[locale]) return Promise.resolve();
+  let pending = loading.get(locale);
+  if (!pending) {
+    pending = LOADERS[locale as Exclude<SupportedLocale, "en">]()
+      .then((m) => void (DICTIONARIES[locale] = m.default))
+      .catch((error) => {
+        loading.delete(locale);
+        console.warn(`[piloti] no ${locale} translations`, error);
+      });
+    loading.set(locale, pending);
+  }
+  return pending;
+}
+
+/** Loads the active language's strings; await it before the first drawing. */
+export function ensureLocale(): Promise<void> {
+  return loadDictionary(activeLocale);
+}
+
+/** Says the language changed, once its strings are in. */
+function announceLocale(): void {
+  if (typeof window === "undefined") return;
+  void ensureLocale().then(() =>
+    window.dispatchEvent(
+      new CustomEvent(LOCALE_CHANGED_EVENT, {
+        detail: { locale: activeLocale, preference: activePreference },
+      }),
+    ),
+  );
+}
 
 export const LOCALE_STORAGE_KEY = "piloti.locale.v1";
 export const LOCALE_CHANGED_EVENT = "piloti:locale-changed";
@@ -168,26 +200,14 @@ export function setLocale(locale: string): SupportedLocale {
   } catch {
     // ignore VFS write errors
   }
-  if (typeof window !== "undefined") {
-    window.dispatchEvent(
-      new CustomEvent(LOCALE_CHANGED_EVENT, {
-        detail: { locale: activeLocale, preference: activePreference },
-      }),
-    );
-  }
+  announceLocale();
   return activeLocale;
 }
 
 if (typeof window !== "undefined") {
   subscribeVfsPath(VFS_STATE_PATHS.locale, (content) => {
     const { changed } = applyLocaleString(content ?? "default");
-    if (changed) {
-      window.dispatchEvent(
-        new CustomEvent(LOCALE_CHANGED_EVENT, {
-          detail: { locale: activeLocale, preference: activePreference },
-        }),
-      );
-    }
+    if (changed) announceLocale();
   });
 }
 
@@ -198,7 +218,7 @@ export function subscribeLocale(listener: () => void): () => void {
       const next = detectInitialState();
       activePreference = next.preference;
       activeLocale = next.locale;
-      listener();
+      void ensureLocale().then(listener);
     }
   };
   window.addEventListener(LOCALE_CHANGED_EVENT, listener);

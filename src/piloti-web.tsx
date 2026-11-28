@@ -21,6 +21,7 @@ import { setDemoCapture } from "./core/ports/capture";
 import { installDynamicFavicon } from "./platform/web/dynamic-favicon";
 import { createWebVfs } from "./platform/web/vfs";
 import { withVfs } from "./platform/shared/with-vfs";
+import { ensureLocale } from "./core/util/i18n";
 
 setEngine(webEngine);
 setDemoCapture(useWebCapture);
@@ -67,6 +68,8 @@ async function start(root: HTMLElement) {
   const finishFiles = startBootPhase("shipped files");
   await loadDataFiles().catch((error) => console.error("[piloti] no shipped files", error));
   finishFiles("home and etc");
+  // The language's strings before the first drawing.
+  await ensureLocale();
   const params = new URLSearchParams(window.location.search);
   const isolatedApp = params.get("piloti_app");
   if (isolatedApp && canRunIsolated(isolatedApp)) {

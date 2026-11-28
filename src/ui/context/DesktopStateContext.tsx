@@ -1,4 +1,5 @@
 import * as React from "react";
+import { AppIconProvider } from "@/ui/components/app-icons";
 import { ShellFilesHost } from "@/ui/context/ShellFilesHost";
 import { usePiloti } from "@/platform/shared/piloti";
 import { PluginsProvider } from "@/ui/context/PluginsContext";
@@ -196,7 +197,9 @@ function AppsLayer({
   );
   return (
     <AppsContext.Provider value={appsValue}>
-      <WindowsLayer>{children}</WindowsLayer>
+      <AppIconProvider value={appsValue}>
+        <WindowsLayer>{children}</WindowsLayer>
+      </AppIconProvider>
     </AppsContext.Provider>
   );
 }

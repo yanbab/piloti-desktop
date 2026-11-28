@@ -1,5 +1,5 @@
 import { isLottieIconUrl, LottieIcon } from "@/ui/components/ui/lottie-icon";
-import { useOptionalApps } from "@/ui/context/AppsContext";
+import { useAppIcons } from "@/ui/components/app-icons";
 import type { AccentColorId } from "@/core/data/catalog";
 import { DynamicFolderIcon, FolderBadge, inferFolderBadge } from "@/ui/components/folder-icons";
 import { cn } from "@/core/util/utils";
@@ -23,7 +23,7 @@ export function ThemeFolderIcon({
   playNonce?: number;
   className?: string;
 }) {
-  const getAppIconUrl = useOptionalApps()?.getAppIconUrl;
+  const getAppIconUrl = useAppIcons()?.getAppIconUrl;
   const url = [getAppIconUrl?.("folder"), getAppIconUrl?.("folder-open")].find(isLottieIconUrl);
   if (!url) {
     return <DynamicFolderIcon accentColor={accentColor} opened={opened} pathOrName={pathOrName} className={className} />;
