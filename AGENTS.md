@@ -97,7 +97,13 @@ Paths without a root are under `src/`.
 ## Linux VM
 
 - VM: `/Users/yanbab/Virtual Machines.localized/Debian with Piloti` (VMware).
-- Build there with `scripts/vm-build.sh` (the shared `node_modules` are macOS
+- From the Mac, `scripts/try.sh <branch> [web|vm|deb|all]` tries a GitHub branch
+  (or `.` for the working folder): `web` runs the demo in its own worktree, `vm`
+  rebuilds the shell on the VM and reloads it, `deb` builds and installs the
+  `.deb` there. Over ssh (`PILOTI_VM`); the VM keeps its own clone. `--list`
+  shows recent branches, `--clean` removes the worktrees.
+- All scripts: [scripts/README.md](./scripts/README.md).
+- Inside the VM: `scripts/vm-build.sh` (the shared `node_modules` are macOS
   ones). `scripts/vm-dev.sh` is the edit loop without a `.deb`.
 
 ## Release
