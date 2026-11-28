@@ -1,6 +1,7 @@
 import { spawnProgram } from "@/lib/engine/system-commands";
 import { hostFiles } from "@/lib/engine/host-files";
 import { startBootPhase } from "@/lib/core/perf-log";
+import { latestRunner } from "@/lib/plugins/latest-run";
 import { VFS_HOME } from "@/lib/engine/vfs-home";
 import * as React from "react";
 import { extendDomicile, type PilotiShellApi, usePiloti } from "@/lib/engine/piloti";
@@ -686,9 +687,18 @@ export function PluginsProvider({
     [activateDiscoveredPlugin, disposePlugin, piloti, settings.interfaceTheme]
   );
 
+  // Re-reading the settings makes a new array: only its contents matter.
+  const enabledKey = JSON.stringify(settings.enabledPluginIds ?? []);
+  // Of the interface themes, only one a plugin ships changes what is loaded.
+  const pluginTheme = plugins.some((p) => p.kind === "theme" && p.id === settings.interfaceTheme)
+    ? settings.interfaceTheme
+    : "";
+  const syncRef = React.useRef(syncPlugins);
+  syncRef.current = syncPlugins;
+  const [requestSync] = React.useState(() => latestRunner((ids: string[]) => syncRef.current(ids)));
   React.useEffect(() => {
-    void syncPlugins(settings.enabledPluginIds ?? []);
-  }, [settings.enabledPluginIds, settings.interfaceTheme, syncPlugins]);
+    requestSync(JSON.parse(enabledKey) as string[]);
+  }, [enabledKey, pluginTheme, requestSync]);
 
   React.useEffect(() => {
     return () => {
