@@ -36,6 +36,7 @@ import { rememberBounds } from "@/core/windows/remember-bounds";
 import type { WindowPlacement } from "@/core/windows/types";
 import { moveToWorkspace, removeWorkspace as planWorkspaceRemoval } from "@/core/windows/workspaces";
 import { canResize, createUntiledSizes, tiled, toggledMaximize } from "@/core/windows/tiling";
+import { allowedChange, changedGeometry, createGeometryLog } from "@/core/windows/geometry";
 import {
   matchXdgEntryForWaylandWindow,
   resolveWaylandClientFrame,
@@ -1166,26 +1167,10 @@ export function useWindowsValue(
     [combinedWindows, patchWindow, primaryMonitorName, settings.savedWindowBounds, updateSettings]
   );
 
-  const geometryLogRef = React.useRef<
-    Map<
-      string,
-      {
-        timer: ReturnType<typeof setTimeout>;
-        label: string;
-        position?: { x: number; y: number };
-        size?: { width: number; height: number };
-      }
-    >
-  >(new Map());
-
+  const geometryLogRef = React.useRef(createGeometryLog((line) => console.info(line)));
   React.useEffect(() => {
-    const timers = geometryLogRef.current;
-    return () => {
-      for (const entry of timers.values()) {
-        clearTimeout(entry.timer);
-      }
-      timers.clear();
-    };
+    const log = geometryLogRef.current;
+    return () => log.stop();
   }, []);
 
   const untiledSizesRef = React.useRef(createUntiledSizes());
@@ -1200,69 +1185,23 @@ export function useWindowsValue(
     ) => {
       const targetWin = combinedWindows.find((w) => w.id === windowId);
       const untileRestoredSize = untiledSizesRef.current.takeOnMove(windowId, targetWin, patch);
-      const effectiveSizePatch = patch.size ?? untileRestoredSize;
-      const winWidth = effectiveSizePatch?.width ?? targetWin?.size.width ?? 240;
-      const maxY = Math.max(0, screenHeight - 30 - 48);
-      const minX = -Math.max(0, winWidth - 80);
-      const maxX = Math.max(0, screenWidth - 80);
-      const clampedPosition = patch.position
-        ? {
-          x: Math.min(maxX, Math.max(minX, Math.round(patch.position.x))),
-          y: Math.min(maxY, Math.max(0, Math.round(patch.position.y))),
-        }
-        : undefined;
-      const roundedSize = effectiveSizePatch
-        ? {
-          width: Math.round(effectiveSizePatch.width),
-          height: Math.round(effectiveSizePatch.height),
-        }
-        : undefined;
+      const size = patch.size ?? untileRestoredSize;
+      const change = allowedChange(
+        { position: patch.position, size },
+        size?.width ?? targetWin?.size.width ?? 240,
+        { width: screenWidth, height: screenHeight },
+      );
 
       if (targetWin) {
         updateSettings({
           savedWindowBounds: rememberBounds(settings.savedWindowBounds, targetWin, primaryMonitorName, {
-            position: clampedPosition ?? targetWin.position,
-            size: effectiveSizePatch ?? targetWin.size,
+            position: change.position ?? targetWin.position,
+            size: change.size ?? targetWin.size,
           }),
         });
       }
-
-      if (clampedPosition || roundedSize) {
-        const label = targetWin?.appId || windowId;
-        const existing = geometryLogRef.current.get(windowId);
-        if (existing) {
-          clearTimeout(existing.timer);
-        }
-        const nextPosition = clampedPosition ?? existing?.position;
-        const nextSize = roundedSize ?? existing?.size;
-        const timer = setTimeout(() => {
-          const entry = geometryLogRef.current.get(windowId);
-          if (!entry) return;
-          geometryLogRef.current.delete(windowId);
-          if (entry.position) {
-            console.info(
-              `[Piloti] moved ${entry.label} to ${entry.position.x}x${entry.position.y}`
-            );
-          }
-          if (entry.size) {
-            console.info(
-              `[Piloti] resized ${entry.label} to ${entry.size.width}x${entry.size.height}`
-            );
-          }
-        }, 300);
-        geometryLogRef.current.set(windowId, {
-          timer,
-          label,
-          position: nextPosition,
-          size: nextSize,
-        });
-      }
-
-      patchWindow(windowId, (cur) => ({
-        position: clampedPosition ?? cur.position,
-        size: effectiveSizePatch ?? cur.size,
-        tiled: clampedPosition ? null : cur.tiled,
-      }));
+      geometryLogRef.current.add(windowId, targetWin?.appId || windowId, change);
+      patchWindow(windowId, (cur) => changedGeometry(cur, change));
     },
     [
       combinedWindows,
