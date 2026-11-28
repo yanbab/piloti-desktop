@@ -29,8 +29,9 @@ else
   fi
   cd "$DIR"
   # From GitHub, whatever this clone's origin points to.
-  git fetch --quiet --tags "$REPO" "$REF"
-  git checkout --quiet --force --detach FETCH_HEAD
+  # Into a named ref, not FETCH_HEAD: some git versions leave a tag first there.
+  git fetch --quiet --force --tags "$REPO" "+refs/heads/$REF:refs/try/$REF"
+  git checkout --quiet --force --detach "refs/try/$REF"
   # Leftovers from a "." run; ignored files (node_modules) stay.
   git clean --quiet -fd
   echo "vm: $(git log -1 --format='%h %s')"
