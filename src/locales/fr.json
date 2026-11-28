@@ -812,6 +812,8 @@
   "Check the file and free space.": "Vérifiez le fichier et l’espace libre.",
   "Debug mode": "Mode débogage",
   "Show the desktop as it loads, to profile startup": "Afficher le bureau au fil du chargement, pour analyser le démarrage",
+  "Remote DevTools": "DevTools à distance",
+  "Expose Chrome DevTools on localhost:9222 on next login": "Exposer Chrome DevTools sur localhost:9222 à la prochaine connexion",
   "No Wi-Fi adapter": "Aucun adaptateur Wi-Fi",
   "No Bluetooth adapter": "Aucun adaptateur Bluetooth",
   "Elements": "Éléments",

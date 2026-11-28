@@ -169,6 +169,8 @@ export interface DesktopSettings {
   darkReaderWebEnabled: boolean;
   /** Show the desktop as it loads (no ready gates or entrances), to profile startup. */
   debugMode: boolean;
+  /** Expose Chrome DevTools on localhost:9222 on next login. */
+  remoteDevtools: boolean;
   enabledPluginIds: string[];
   computerModel: "mac" | "pc";
   /** Keymap name chosen in Settings; empty leaves the compositor's. */
@@ -258,6 +260,7 @@ export const DEFAULT_SETTINGS: DesktopSettings = {
   pinnedExtensionIds: [],
   darkReaderWebEnabled: false,
   debugMode: false,
+  remoteDevtools: false,
   enabledPluginIds: ["aurora-drift", "app-indicator", "picture-in-picture", "app-dark-mode"],
   keyboardLayout: "",
   computerModel:

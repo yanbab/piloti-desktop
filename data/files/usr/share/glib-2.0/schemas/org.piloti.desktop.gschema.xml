@@ -270,6 +270,9 @@
     <key name="debug-mode" type="b">
       <default>false</default>
     </key>
+    <key name="remote-devtools" type="b">
+      <default>false</default>
+    </key>
     <key name="enabled-plugins" type="as">
       <default>['aurora-drift', 'app-indicator', 'picture-in-picture', 'app-dark-mode']</default>
     </key>

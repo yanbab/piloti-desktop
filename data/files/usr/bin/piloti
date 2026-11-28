@@ -123,6 +123,29 @@ start_session() {
   export DESKTOP_SESSION="${DESKTOP_SESSION:-piloti}"
   export XDG_SESSION_TYPE="${XDG_SESSION_TYPE:-wayland}"
 
+  # Expose Chrome DevTools on localhost:9222 when enabled in Piloti settings
+  # (dconf or settings.ini) or via PILOTI_DEVTOOLS=1.
+  devtools_enabled="${PILOTI_DEVTOOLS:-0}"
+  if [ "${devtools_enabled}" != "1" ] && command -v gsettings >/dev/null 2>&1; then
+    if [ "$(gsettings get org.piloti.desktop.system remote-devtools 2>/dev/null || true)" = "true" ]; then
+      devtools_enabled=1
+    fi
+  fi
+  if [ "${devtools_enabled}" != "1" ]; then
+    settings_ini="${XDG_CONFIG_HOME:-${HOME}/.config}/piloti/settings.ini"
+    if [ -f "${settings_ini}" ] && grep -Eq '^[[:space:]]*remote-devtools[[:space:]]*=[[:space:]]*(true|1)[[:space:]]*$' "${settings_ini}" 2>/dev/null; then
+      devtools_enabled=1
+    fi
+  fi
+  if [ "${devtools_enabled}" = "1" ]; then
+    case " ${DOMICILE_ENGINE_ARGS:-} " in
+      *" --remote-debugging-port"*) ;;
+      *)
+        export DOMICILE_ENGINE_ARGS="${DOMICILE_ENGINE_ARGS:+${DOMICILE_ENGINE_ARGS} }--remote-debugging-port=9222"
+        ;;
+    esac
+  fi
+
   # Piloti keeps its own Domicile config so the plain "Domicile" session
   # (which reads ~/.config/domicile) keeps launching Domicile's default shell.
   # First run: seed it from a previous Piloti-era ~/.config/domicile file when

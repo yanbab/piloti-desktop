@@ -48,7 +48,7 @@ export function AdvancedPane() {
   const progressDemoTimerRef = React.useRef<number | undefined>(undefined);
   React.useEffect(() => () => window.clearInterval(progressDemoTimerRef.current), []);
   const piloti = usePiloti();
-  const settings = useDesktopSettings(["activeWorkspace", "debugMode", "dockFolders", "hiddenGnomePanels", "notificationsEnabled", "showFileExtensionBadges", "volume"]);
+  const settings = useDesktopSettings(["activeWorkspace", "debugMode", "dockFolders", "hiddenGnomePanels", "notificationsEnabled", "remoteDevtools", "showFileExtensionBadges", "volume"]);
   const updateSettings = useUpdateSettings();
   const { systemServices, compositor } = useCapabilities();
   const usbMounted = useSimulatedUsbMounted();
@@ -134,6 +134,20 @@ export function AdvancedPane() {
               <Switch
                 checked={settings.debugMode}
                 onCheckedChange={(checked) => updateSettings({ debugMode: Boolean(checked) })}
+              />
+            </GroupedFormRowControl>
+          </GroupedFormRow>
+          <GroupedFormRow>
+            <GroupedFormRowLabel>
+              <GroupedFormRowTitle>{_("Remote DevTools")}</GroupedFormRowTitle>
+              <GroupedFormRowDescription>
+                {_("Expose Chrome DevTools on localhost:9222 on next login")}
+              </GroupedFormRowDescription>
+            </GroupedFormRowLabel>
+            <GroupedFormRowControl>
+              <Switch
+                checked={settings.remoteDevtools}
+                onCheckedChange={(checked) => updateSettings({ remoteDevtools: Boolean(checked) })}
               />
             </GroupedFormRowControl>
           </GroupedFormRow>
