@@ -7,6 +7,7 @@ import type { BrowserTab } from "@/ui/context/WindowsContext";
 import { BrowserTabBar } from "./BrowserTabBar";
 import { cn } from "@/core/util/utils";
 import { WebViewSurface } from "@/ui/shell/windows/WebViewSurface";
+import { followTornTab, TEAR_GRAB_Y } from "@/ui/shell/windows/browser-tab-tear";
 
 /**
  * A web window and its tabs. Every tab keeps its page mounted (switching never
@@ -28,6 +29,7 @@ export function BrowserTabsSurface({
     reorderBrowserTabs,
     detachBrowserTab,
     pinBrowserTab,
+    updateWindowGeometry,
   } = useWindowManager();
   const tabs: BrowserTab[] = win.browserTabs ?? [
     {
@@ -57,6 +59,33 @@ export function BrowserTabsSurface({
     observer.observe(container);
     return () => observer.disconnect();
   }, [showTabBar, win.browserWindowId]);
+  // A tab pulled off the bar: a window of its own, under the pointer, that
+  // follows it until release.
+  const geometryRef = React.useRef(updateWindowGeometry);
+  geometryRef.current = updateWindowGeometry;
+  const tearOff = (tabId: string, pointer: { clientX: number; clientY: number }) => {
+    const rect = containerRef.current
+      ?.closest<HTMLElement>("[data-window-id]")
+      ?.getBoundingClientRect();
+    if (!rect || win.maximized) {
+      detachBrowserTab(win.id, tabId);
+      return;
+    }
+    // Window positions are offsets from the desktop's origin.
+    const originX = rect.left - win.position.x;
+    const originY = rect.top - win.position.y;
+    const grabX = Math.min(Math.max(pointer.clientX - rect.left, 80), rect.width - 80);
+    const at = {
+      x: Math.round(pointer.clientX - grabX - originX),
+      y: Math.round(pointer.clientY - TEAR_GRAB_Y - originY),
+    };
+    const newId = detachBrowserTab(win.id, tabId, at);
+    if (!newId) return;
+    // Committed on release, when the new window is in the latest state.
+    followTornTab(newId, at, pointer, (position) =>
+      geometryRef.current(newId, { position })
+    );
+  };
   const tabSlot = (
     <div
       data-slot="browser-tab-slot"
@@ -74,6 +103,7 @@ export function BrowserTabsSurface({
         onClose={(id) => closeBrowserTab(win.id, id)}
         onReorder={(ids) => reorderBrowserTabs(win.id, ids)}
         onDetach={(id) => detachBrowserTab(win.id, id)}
+        onTearOff={tearOff}
         onPin={(id, pinned) => pinBrowserTab(win.id, id, pinned)}
       />
       {tabs.map((tab) => {

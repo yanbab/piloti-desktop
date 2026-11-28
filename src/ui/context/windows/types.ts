@@ -43,8 +43,12 @@ export interface WindowsContextValue {
   closeBrowserTab: (windowId: string, tabId: string) => void;
   /** Puts a window's tabs in the given order (same set of ids). */
   reorderBrowserTabs: (windowId: string, tabIds: string[]) => void;
-  /** Moves a tab out into a window of its own. */
-  detachBrowserTab: (windowId: string, tabId: string) => void;
+  /** Moves a tab to a window of its own, at `at` when given; returns its id. */
+  detachBrowserTab: (
+    windowId: string,
+    tabId: string,
+    at?: { x: number; y: number }
+  ) => string | undefined;
   pinBrowserTab: (windowId: string, tabId: string, pinned: boolean) => void;
   /** Opens the tab closed last again, in this window. */
   reopenClosedBrowserTab: (windowId: string) => void;

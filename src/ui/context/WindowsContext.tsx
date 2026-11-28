@@ -1069,11 +1069,11 @@ export function useWindowsValue(
   }, []);
 
   const detachBrowserTab = React.useCallback(
-    (windowId: string, tabId: string) => {
+    (windowId: string, tabId: string, at?: { x: number; y: number }): string | undefined => {
       const group = windowId.slice("browser:".length);
       const grp = browserTabGroupsRef.current[group];
       const meta = browserMeta[group];
-      if (!grp || !meta || grp.tabs.length < 2 || !grp.tabs.includes(tabId)) return;
+      if (!grp || !meta || grp.tabs.length < 2 || !grp.tabs.includes(tabId)) return undefined;
       const newKey = `${tabId}~${Date.now().toString(36)}`;
       const index = grp.tabs.indexOf(tabId);
       const remaining = grp.tabs.filter((id) => id !== tabId);
@@ -1095,7 +1095,7 @@ export function useWindowsValue(
       browserTabGroupsRef.current = next;
       setBrowserTabGroups(next);
       const clamped = clampWindowBounds(
-        { x: meta.position.x + 36, y: meta.position.y + 36 },
+        at ?? { x: meta.position.x + 36, y: meta.position.y + 36 },
         meta.size,
         screenWidth,
         screenHeight,
@@ -1116,6 +1116,7 @@ export function useWindowsValue(
       }));
       setFocusedWindowId(`browser:${newKey}`);
       setMruIds((prev) => [`browser:${newKey}`, ...prev]);
+      return `browser:${newKey}`;
     },
     [browserMeta, screenWidth, screenHeight]
   );
