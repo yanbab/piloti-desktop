@@ -11,8 +11,7 @@ import {
   MENU_POPUP_CLASS,
   MENU_SEPARATOR_CLASS,
 } from "@/ui/components/ui/menu-styles";
-import { useApps } from "@/ui/context/AppsContext";
-import { useSettings } from "@/ui/context/DesktopStateContext";
+import { useFilesHost } from "@/ui/components/files-host";
 import { APP_CATALOG } from "@/core/data/catalog";
 import type { IconGridItem } from "@/core/files/desktop-icons";
 import { _ } from "@/core/util/i18n";
@@ -172,7 +171,7 @@ export function FileItemContextMenu({
 }) {
   const piloti = usePiloti();
   const { realFilesystem } = useCapabilities();
-  const { getAppIconUrl, installedXdgApps } = useApps();
+  const { getAppIconUrl, installedXdgApps } = useFilesHost().useApps();
   const [mimeConfig, setMimeConfig] = React.useState<MimeAppsConfig | null>(null);
   usePopupSurface(Boolean(menu), onClose);
 

@@ -6,6 +6,8 @@
  */
 export interface AppModuleDef {
   id: string;
+  /** The app its windows belong to, when not `id` (menus, Dock icon). */
+  appId?: string;
   dir: string;
   /** The module draws its own header; the shell adds only controls + drag strip. */
   csd: boolean;
@@ -27,6 +29,15 @@ export const APP_MODULES: readonly AppModuleDef[] = [
   },
   { id: "image-viewer", dir: `${APPS_ROOT}/image-viewer`, csd: false, size: { width: 640, height: 480 } },
   { id: "selfies", dir: `${APPS_ROOT}/selfies`, csd: false, size: { width: 520, height: 420 } },
+  // Folders' windows are the app `nautilus` (`files` is its component).
+  {
+    id: "files",
+    appId: "nautilus",
+    dir: `${APPS_ROOT}/files`,
+    csd: true,
+    drag: { left: 96, right: 200, height: 36 },
+    size: { width: 860, height: 540 },
+  },
   {
     id: "system-monitor",
     dir: `${APPS_ROOT}/system-monitor`,
@@ -107,6 +118,7 @@ export function webViewAppId(
   webAppId?: string,
 ): string {
   return (
+    resolveAppModuleByUrl(view.url)?.appId ||
     resolveAppModuleByUrl(view.url)?.id ||
     view.appId ||
     webAppId ||

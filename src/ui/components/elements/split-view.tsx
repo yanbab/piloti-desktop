@@ -14,7 +14,7 @@ export function AppSplitView({
   header,
   ...props
 }: Omit<AdwSplitViewProps, "appId" | "windowId" | "isCsd">) {
-  const { appId, windowId, decorations } = useAppChrome();
+  const { appId, windowId, decorations, menu, insets } = useAppChrome();
   return (
     <HeaderPortalScope>
       <AdwSplitView
@@ -22,6 +22,8 @@ export function AppSplitView({
         appId={appId}
         windowId={windowId}
         isCsd={decorations === "client"}
+        menu={menu}
+        hostInset={decorations === "host" ? insets?.left : undefined}
         header={(ctx) => (
           <HeaderEdgesContext.Provider value={ctx.sidebarCompact ? "inset" : "end"}>
             {typeof header === "function" ? header(ctx) : header}

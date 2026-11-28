@@ -1,6 +1,6 @@
 import * as React from "react";
 import { usePiloti } from "@/platform/shared/piloti";
-import { useSystemBackends } from "@/ui/context/DesktopStateContext";
+import type { FilesNotify } from "@/ui/components/files-host";
 import { useCapabilities } from "@/ui/hooks/use-capabilities";
 import { compressFsEntries, extractFsArchive } from "@/platform/shared/fs-bridge";
 import { recordCreated } from "@/platform/shared/fs-undo";
@@ -12,10 +12,9 @@ import { _ } from "@/core/util/i18n";
  * the listing; the result can be undone, and a failure is notified. Hide both
  * unless `available`.
  */
-export function useArchiveActions(onDone: () => unknown) {
+export function useArchiveActions(onDone: () => unknown, notify: FilesNotify) {
   const piloti = usePiloti();
   const { realFilesystem } = useCapabilities();
-  const { pushNotification } = useSystemBackends();
   // The demo zips by itself; Linux needs `bsdtar` (libarchive-tools).
   const [available, setAvailable] = React.useState(!realFilesystem);
   React.useEffect(() => {
@@ -31,7 +30,7 @@ export function useArchiveActions(onDone: () => unknown) {
     async (job: Promise<string | null>, failure: string) => {
       const created = await job.catch(() => null);
       if (!created) {
-        pushNotification({
+        notify({
           appName: _("Folders"),
           summary: failure,
           body: realFilesystem ? _("Check the file and free space.") : "",
@@ -41,7 +40,7 @@ export function useArchiveActions(onDone: () => unknown) {
       await onDone();
       recordCreated({ piloti }, [created], "Create");
     },
-    [piloti, onDone, pushNotification, realFilesystem]
+    [piloti, onDone, notify, realFilesystem]
   );
 
   const compress = React.useCallback(

@@ -17,19 +17,11 @@ import {
   useWindowManagerSelector,
 } from "@/ui/context/DesktopStateContext";
 import { useOpenPath } from "@/ui/hooks/use-open-path";
-import { DEFAULT_SETTINGS } from "@/core/config/desktop-settings";
-import { parseDesktopSettingsRaw } from "@/core/config/piloti-settings-ini";
-import { SHELL_SETTINGS_PATH } from "@/core/state/settings";
-import { readVfsStateText } from "@/core/state/vfs-state";
 import { createShellAppHost } from "@/platform/shared/app-shell-host";
 import { createFrameShellHost } from "@/platform/shared/app-frame-shell";
-import {
-  type FrameRequest,
-  postToShell,
-  type ShellToAppMessage,
-  useIsolatedAppBridge,
-} from "@/platform/shared/app-bridge";
-import { watchDocumentFocus } from "@/ui/apps/terminal/host";
+import { frameDesktop } from "@/platform/shared/app-frame-desktop";
+import { type FrameRequest, postToShell, useIsolatedAppBridge } from "@/platform/shared/app-bridge";
+import { watchDocumentFocus } from "@/ui/apps/document-focus";
 import { useShellHost } from "@/ui/hooks/use-shell-host";
 
 /** A value React holds, offered to a host as `current` + `watch`. */
@@ -94,37 +86,6 @@ export const ShellTerminalApp = ({ windowId = "" }: { windowId?: string; initial
   );
   return <XtermTerminalApp host={host} />;
 };
-
-/** The desktop settings, from the page around the demo's iframe. */
-function frameDesktop(windowId: string): TerminalHost["desktop"] {
-  const raw = readVfsStateText(SHELL_SETTINGS_PATH);
-  let settings: DesktopSettings = { ...DEFAULT_SETTINGS, ...(raw ? parseDesktopSettingsRaw(raw) : null) };
-  const listeners = new Set<(settings: DesktopSettings) => void>();
-  const onMessage = (e: MessageEvent) => {
-    const data = e.data as ShellToAppMessage | undefined;
-    if (data?.type !== "piloti:desktop-settings") return;
-    settings = data.settings;
-    listeners.forEach((l) => l(settings));
-  };
-  const request = (request: FrameRequest) => postToShell({ type: "piloti:shell-request", windowId, request });
-  return {
-    current: () => settings,
-    watch(listener) {
-      listeners.add(listener);
-      if (listeners.size === 1) {
-        addEventListener("message", onMessage);
-        request({ do: "watch-settings", on: true });
-      }
-      return () => {
-        listeners.delete(listener);
-        if (listeners.size > 0) return;
-        removeEventListener("message", onMessage);
-        request({ do: "watch-settings", on: false });
-      };
-    },
-    update: (patch) => request({ do: "update-settings", patch }),
-  };
-}
 
 /** In the demo's iframe: the page around it holds the windows, settings and apps. */
 export const FrameTerminalApp = ({ windowId }: { windowId: string }) => {

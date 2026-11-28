@@ -107,7 +107,7 @@ export function routeItemDrop(
   if (target.kind === "window") {
     window.dispatchEvent(
       new CustomEvent("residence:file-drop-window", {
-        detail: { windowId: target.windowId, item: primary, items },
+        detail: { windowId: target.windowId, item: primary, items, copy: point.copy },
       }),
     );
     return "external";

@@ -290,7 +290,7 @@ export const Dock = React.memo(function Dock() {
   const [contextTarget, setContextTarget] = React.useState<
     { kind: "dock" } | { kind: "trash" } | { kind: "drive"; id: string } | { kind: "app"; appId: string } | { kind: "folder"; path: string }
   >({ kind: "dock" });
-  const { drives, mount: mountDrive, eject: ejectDrive } = useDrives();
+  const { drives, mount: mountDrive, eject: ejectDrive } = useDrives(pushNotification);
   const xdgBadgeCounts = useXdgAppBadgeCounts();
   const xdgProgress = useXdgAppProgress();
   const xdgUrgent = useXdgAppUrgent();

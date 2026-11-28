@@ -52,6 +52,9 @@ const SelfiesApp = React.lazy(() =>
 const TerminalApp = React.lazy(() =>
   import("./ui/apps/terminal/shell-host").then((m) => ({ default: m.FrameTerminalApp })),
 );
+const FilesApp = React.lazy(() =>
+  import("./ui/apps/files/frame-host").then((m) => ({ default: m.FrameFilesApp })),
+);
 const SystemMonitorApp = React.lazy(() =>
   import("./ui/apps/system-monitor/shell-host").then((m) => ({ default: m.FrameSystemMonitorApp })),
 );
@@ -87,6 +90,8 @@ async function start(root: HTMLElement) {
                 <SelfiesApp windowId={windowId} />
               ) : isolatedApp === "terminal" ? (
                 <TerminalApp windowId={windowId} />
+              ) : isolatedApp === "files" ? (
+                <FilesApp windowId={windowId} initialPath={initialPath} />
               ) : isolatedApp === "system-monitor" ? (
                 <SystemMonitorApp windowId={windowId} />
               ) : (

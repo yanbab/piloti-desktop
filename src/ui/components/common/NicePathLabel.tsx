@@ -1,6 +1,6 @@
 import * as React from "react";
 import { HomeIcon } from "@/ui/components/ui/symbols";
-import { useApps } from "@/ui/context/DesktopStateContext";
+import { useFilesHost } from "@/ui/components/files-host";
 import { _ } from "@/core/util/i18n";
 import { cn } from "@/core/util/utils";
 import {
@@ -20,7 +20,7 @@ export function NicePathLabel({
   className?: string;
   showIcon?: boolean;
 }) {
-  const { getAppIconUrl } = useApps();
+  const { getAppIconUrl } = useFilesHost().useApps();
   const nice = React.useMemo(() => resolveNicePath(path), [path]);
   const iconKey = NICE_PATH_DEVICE_ICON_KEY[nice.device];
   const iconUrl = iconKey ? getAppIconUrl(iconKey) : undefined;

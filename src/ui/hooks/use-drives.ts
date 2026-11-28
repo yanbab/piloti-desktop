@@ -1,5 +1,5 @@
 import * as React from "react";
-import { useSystemBackends } from "@/ui/context/DesktopStateContext";
+import type { FilesNotify } from "@/ui/components/files-host";
 import { _ } from "@/core/util/i18n";
 import { hardware } from "@/platform/shared/hardware";
 import { usePiloti, type Piloti } from "@/platform/shared/piloti";
@@ -25,9 +25,8 @@ function subscribe(piloti: Piloti, listener: () => void): () => void {
 }
 
 /** The removable drives, with mount and eject; failures are notified. */
-export function useDrives() {
+export function useDrives(notify: FilesNotify) {
   const piloti = usePiloti();
-  const { pushNotification } = useSystemBackends();
   const list = React.useSyncExternalStore(
     React.useCallback((listener: () => void) => subscribe(piloti, listener), [piloti]),
     () => drives,
@@ -35,13 +34,13 @@ export function useDrives() {
 
   const failed = React.useCallback(
     (summary: string, error: unknown) => {
-      pushNotification({
+      notify({
         appName: _("Folders"),
         summary,
         body: error instanceof Error ? error.message : String(error),
       });
     },
-    [pushNotification],
+    [notify],
   );
 
   /** Where the drive is mounted, mounting it if needed; `null` if it can't be. */

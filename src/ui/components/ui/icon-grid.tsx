@@ -30,11 +30,7 @@ import {
   resolveTopDropTarget,
   routeItemDrop,
 } from "@/ui/dnd/item-drop";
-import {
-  useApps,
-  useWindowManagerSelector,
-  useDesktopSettings,
-} from "@/ui/context/DesktopStateContext";
+import { useFilesHost } from "@/ui/components/files-host";
 import {
   DynamicFileIcon,
   getAccentFolderIconUrl,
@@ -171,12 +167,11 @@ export function IconGrid({
   className,
 }: IconGridProps) {
   const piloti = usePiloti();
-  const settings = useDesktopSettings(["accentColor", "fileActivationMode", "showFileExtensionBadges"]);
+  const host = useFilesHost();
+  const settings = host.useDesktopSettings(["accentColor", "fileActivationMode", "showFileExtensionBadges"]);
   const { realFilesystem } = useCapabilities();
-  const { getAppIconUrl } = useApps();
-  const windows = useWindowManagerSelector((wm) =>
-    wm.windows.map((w) => ({ appId: w.appId, payload: w.payload })),
-  );
+  const { getAppIconUrl } = host.useApps();
+  const { windows } = host.useWindows();
   const openFolderPaths = useOpenFolderPaths();
   const openFilePaths = React.useMemo(() => {
     const set = new Set<string>();

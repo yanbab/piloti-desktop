@@ -10,9 +10,7 @@ export type FrameRequest =
   | ModuleRequest
   | { do: "watch-windows"; on: boolean }
   | { do: "watch-settings"; on: boolean }
-  | { do: "update-settings"; patch: Partial<DesktopSettings> }
-  | { do: "launch"; appId: string; payload?: string }
-  | { do: "open"; path: string; kind: "file" | "directory" };
+  | { do: "update-settings"; patch: Partial<DesktopSettings> };
 
 export type ShellToAppMessage =
   | {

@@ -103,6 +103,27 @@ describe("module channel", () => {
     expect(parseRequestWords(stateWords("a-1", {}))).toBeNull();
     expect(parseStateWords(words)).toBeNull();
   });
+
+  test("a module asks the shell to launch and open", () => {
+    const read = (request: unknown) =>
+      parseRequestWords(["piloti-ipc-do", "a-1", encodeURIComponent(JSON.stringify(request))])?.request ?? null;
+    expect(read({ do: "launch", appId: "texts", payload: "/home/u/a.txt" })).toEqual({
+      do: "launch",
+      appId: "texts",
+      payload: "/home/u/a.txt",
+    });
+    expect(read({ do: "launch" })).toBeNull();
+    const app = { appId: "texts", desktopId: "piloti-texts.desktop", label: "Texts" };
+    expect(read({ do: "open", path: "/home/u/a.txt", kind: "file", preferApp: app, extra: 1 })).toEqual({
+      do: "open",
+      path: "/home/u/a.txt",
+      kind: "file",
+      preferApp: app,
+    });
+    // Only absolute paths, and only the kinds there are.
+    expect(read({ do: "open", path: "a.txt" })).toBeNull();
+    expect(read({ do: "open", path: "/a", kind: "socket" })).toEqual({ do: "open", path: "/a" });
+  });
 });
 
 describe("module shell", () => {
@@ -153,10 +174,14 @@ describe("module shell", () => {
       toShellWindows([
         { id: "w1", appId: "texts", title: "a.txt", pid: null },
         { id: "w2", appId: "x", title: "X", pid: 7 },
+        { id: "w3", appId: "nautilus", title: "Music", pid: null, payload: "/home/u/Music" },
+        { id: "w4", appId: "settings", title: "Settings", pid: null, payload: "wifi" },
       ]),
     ).toEqual([
       { id: "w1", appId: "texts", title: "a.txt" },
       { id: "w2", appId: "x", title: "X", pid: 7 },
+      { id: "w3", appId: "nautilus", title: "Music", path: "/home/u/Music" },
+      { id: "w4", appId: "settings", title: "Settings" },
     ]);
   });
 });

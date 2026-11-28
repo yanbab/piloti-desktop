@@ -1,6 +1,6 @@
 import * as React from "react";
 import { IconGrid, type IconGridProps } from "@/ui/components/ui/icon-grid";
-import { useDesktopSettings, useUpdateSettings } from "@/ui/context/DesktopStateContext";
+import { useFilesHost } from "@/ui/components/files-host";
 import { useDesktopDirPath } from "@/ui/hooks/use-desktop-dir";
 import { subscribeRenames } from "@/platform/shared/renames";
 import {
@@ -34,9 +34,10 @@ const subscribeLayouts = (listener: () => void) => {
 const NO_POSITIONS: NamedPositions = {};
 
 function useFolderLayout(dirPath: string, arrangement: FolderArrangement) {
-  const settings = useDesktopSettings(["desktopIconAlign", "desktopIconPositions"]);
-  const updateSettings = useUpdateSettings();
-  const desktopDirPath = useDesktopDirPath();
+  const host = useFilesHost();
+  const settings = host.useDesktopSettings(["desktopIconAlign", "desktopIconPositions"]);
+  const { updateSettings } = host.useActions();
+  const desktopDirPath = useDesktopDirPath(host.useApps().xdgUserDirs);
   const persisted = arrangement === "desktop" && dirPath === desktopDirPath;
   const key = `${arrangement}:${dirPath}`;
   const session = React.useSyncExternalStore(

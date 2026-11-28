@@ -56,11 +56,11 @@ export function DesktopIconsApp({
   const piloti = usePiloti();
   const settings = useDesktopSettings(["debugMode", "desktopIconsEnabled"]);
   const { realFilesystem } = useCapabilities();
-  const { locked } = useSystemBackends();
-  const { dockIconsReady, getAppIconUrl, ensureWaylandIcons, xdgUserDirs } = useApps();
+  const { locked, pushNotification } = useSystemBackends();
+  const { dockIconsReady, getAppIconUrl, ensureWaylandIcons, xdgUserDirs, installedXdgApps } = useApps();
   const { launchApp, launchXdgApp } = useWindowActions();
   const { openPath, openPathWith } = useOpenPath();
-  const desktopDirPath = useDesktopDirPath();
+  const desktopDirPath = useDesktopDirPath(xdgUserDirs);
 
   const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
   const [renamingId, setRenamingId] = React.useState<string | null>(null);
@@ -101,7 +101,7 @@ export function DesktopIconsApp({
     finishBootPhaseRef.current = null;
   }, [listing.data]);
 
-  const archive = useArchiveActions(reload);
+  const archive = useArchiveActions(reload, pushNotification);
 
   React.useEffect(() => onFileUndoApplied(reload), [reload]);
 
@@ -125,7 +125,7 @@ export function DesktopIconsApp({
     if (candidates.length > 0) ensureWaylandIcons(Array.from(new Set(candidates)));
   }, [ensureWaylandIcons, entries]);
 
-  const items = useLauncherItems(fileItems);
+  const items = useLauncherItems(fileItems, { getAppIconUrl, ensureWaylandIcons, installedXdgApps });
   const ops = useFolderOps({ dirPath: desktopDirPath, reload, setSelectedIds });
   const externalDrop = useExternalFileDrop(desktopDirPath, true, reload);
 

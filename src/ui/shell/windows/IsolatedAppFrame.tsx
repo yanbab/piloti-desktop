@@ -1,4 +1,5 @@
 import * as React from "react";
+import { droppedActions, type FileDropWindowDetail } from "@/core/files/dropped-paths";
 import { recordAppReady } from "@/core/util/perf-log";
 import { emitShellEvent } from "@/core/windows/shell-events";
 import { createRoot, type Root } from "react-dom/client";
@@ -124,28 +125,21 @@ export const IsolatedAppFrame: React.FC<IsolatedAppFrameProps> = ({
       win.postMessage(msg, "*");
     };
     const onFileDropWindow = (e: Event) => {
-      const detail = (
-        e as CustomEvent<{
-          windowId?: string;
-          item?: { path?: string };
-          items?: Array<{ path?: string }>;
-        }>
-      ).detail;
+      const detail = (e as CustomEvent<FileDropWindowDetail>).detail;
       if (!detail || detail.windowId !== windowId) return;
-      const path = detail.items?.[0]?.path ?? detail.item?.path;
-      if (!path) return;
-      const actionId = `piloti:open-path:${path}`;
-      if (isHttpRuntime) {
-        iframeRef.current?.contentWindow?.postMessage(
-          { type: "piloti:app-action", actionId } satisfies ShellToAppMessage,
-          "*",
-        );
-      } else {
-        window.dispatchEvent(
-          new CustomEvent("piloti:app-action", {
-            detail: { windowId, actionId },
-          }),
-        );
+      for (const actionId of droppedActions(detail)) {
+        if (isHttpRuntime) {
+          iframeRef.current?.contentWindow?.postMessage(
+            { type: "piloti:app-action", actionId } satisfies ShellToAppMessage,
+            "*",
+          );
+        } else {
+          window.dispatchEvent(
+            new CustomEvent("piloti:app-action", {
+              detail: { windowId, actionId },
+            }),
+          );
+        }
       }
     };
     window.addEventListener("piloti:app-action", onAppAction);
@@ -190,7 +184,8 @@ export const IsolatedAppFrame: React.FC<IsolatedAppFrameProps> = ({
         else if (request.do === "watch-settings") setWatchingSettings(request.on);
         else if (request.do === "update-settings") live.current.updateSettings(request.patch);
         else if (request.do === "launch") launchApp(request.appId, { payload: request.payload });
-        else if (request.do === "open") void live.current.openPath(request.path, { kind: request.kind });
+        else if (request.do === "open")
+          void live.current.openPath(request.path, { kind: request.kind, preferApp: request.preferApp });
         else if (request.do === "close-window") shell.closeWindow(request.windowId);
         else shell.focusWindow(request.windowId);
       }

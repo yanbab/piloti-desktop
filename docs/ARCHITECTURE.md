@@ -154,14 +154,14 @@ Domicile app module:
   It talks to the shell through files or D-Bus.
 - Shown in a `<webview>`; the shell draws its controls and drag strip
   (`core/data/app-modules.ts`).
-- Built with `npm run build:apps` → `dist/apps/<id>/` (`calculator`, `image-viewer`, `selfies`, `system-monitor`, `terminal`, `texts`).
+- Built with `npm run build:apps` → `dist/apps/<id>/` (`calculator`, `files`, `image-viewer`, `selfies`, `system-monitor`, `terminal`, `texts`).
 
 A module and the shell talk as in Electron (`core/apps/module-channel.ts`):
 
 | Direction | Carried by |
 |---|---|
 | Module → shell: menu state, wanted size, what it watches | a shell command, `piloti send piloti-ipc …`, answered |
-| Module → shell: close or focus a window | `piloti send piloti-ipc-do …`, answered |
+| Module → shell: close or focus a window, launch an app, open a file | `piloti send piloti-ipc-do …`, answered |
 | Shell → module: menu actions, "send again", the windows | the D-Bus signal `org.piloti.Shell.Message` |
 
 After `#` in its URL, a module puts its open file (so opening it again focuses
@@ -192,6 +192,20 @@ Piloti Shell is the module's own Domicile (`files`, `processes`, `vfs`). In the
 demo's iframe it has Piloti Shell only, and asks the page around it for the
 settings, launching and opening (`FrameRequest` in `app-bridge.ts`). Every
 module should have such an iframe entry, so it can be tried in the demo.
+
+Folders (`files`, windows of the app `nautilus`) and the views it shares with
+the Desktop (icon grid, folder layout, item menu, path label) take a `FilesHost`
+(`ui/components/files-host.ts`): settings, apps and icons, launch and open, the
+windows. The shell provides it to all its views (`ui/context/ShellFilesHost.tsx`);
+the module and the demo's iframe build one with `ui/apps/files/standalone-host.ts`
+and ask the shell to launch and open (`launch` and `open` requests), as the
+shell's Folders would. Its paths are real ones, so its `main.tsx` learns `$HOME`
+before loading the app, which is a chunk of its own (`CHUNKED` in
+`vite.apps.config.ts`). Items dropped on a module's or a frame's window reach the
+app as `piloti:drop-paths:` then `piloti:open-path:` actions
+(`core/files/dropped-paths.ts`): Folders moves or copies them into its folder.
+Its undo history is its own window's. Folders stays in the shell by default
+until dragging out of its own process is tried on Linux.
 
 **Porting an app:** a `host.ts` with what it needs, a `shell-host.tsx` for the
 shell, a `main.tsx` calling `mountModuleApp` (`ui/apps/module-app.tsx`), a line in

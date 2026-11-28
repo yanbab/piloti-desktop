@@ -8,8 +8,8 @@ describe("run mode", () => {
     const before = getEngine();
     try {
       setEngine(nativeEngine);
-      expect(canRunIsolated("nautilus")).toBe(false);
-      for (const id of ["texts", "calculator", "image-viewer", "selfies", "system-monitor", "terminal"]) {
+      expect(canRunIsolated("settings")).toBe(false);
+      for (const id of ["texts", "calculator", "files", "image-viewer", "selfies", "system-monitor", "terminal"]) {
         expect(canRunIsolated(id)).toBe(true);
         expect(APP_MODULES.some((m) => m.id === id)).toBe(true);
       }
@@ -21,6 +21,11 @@ describe("run mode", () => {
     }
   });
 
+  it("knows Folders by its windows' app and by its module", () => {
+    expect(canRunIsolated("nautilus")).toBe(true);
+    expect(APP_MODULES.find((m) => m.id === "files")?.appId).toBe("nautilus");
+  });
+
   it("runs the editor and the viewer on their own on Linux, unless chosen", () => {
     const before = getEngine();
     try {
@@ -29,6 +34,8 @@ describe("run mode", () => {
       expect(getRunIn("image-viewer")).toBe("isolated");
       expect(getRunIn("calculator")).toBe("shell");
       expect(getRunIn("terminal")).toBe("isolated");
+      // Folders stays in the shell until dragging out of its own process works.
+      expect(getRunIn("nautilus")).toBe("shell");
       setEngine(webEngine);
       expect(getRunIn("texts")).toBe("shell");
     } finally {

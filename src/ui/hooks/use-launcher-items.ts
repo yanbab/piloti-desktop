@@ -1,5 +1,5 @@
 import * as React from "react";
-import { useApps } from "@/ui/context/DesktopStateContext";
+import type { FilesApps } from "@/ui/components/files-host";
 import { readFsTextFile } from "@/platform/shared/fs-bridge";
 import { usePiloti } from "@/platform/shared/piloti";
 import type { IconGridItem } from "@/core/files/desktop-icons";
@@ -8,10 +8,11 @@ import { isLauncherItem, toLauncherItem } from "@/core/files/folder-items";
 /** Shows `.desktop` files as launchers (name and icon of the app), as the desktop does. */
 export function useLauncherItems(
   items: readonly IconGridItem[],
+  apps: Pick<FilesApps, "getAppIconUrl" | "ensureWaylandIcons" | "installedXdgApps">,
   enabled = true
 ): readonly IconGridItem[] {
   const piloti = usePiloti();
-  const { getAppIconUrl, ensureWaylandIcons, installedXdgApps } = useApps();
+  const { getAppIconUrl, ensureWaylandIcons, installedXdgApps } = apps;
   const [contents, setContents] = React.useState<Record<string, string>>({});
 
   React.useEffect(() => {

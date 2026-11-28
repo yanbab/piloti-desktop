@@ -1,4 +1,5 @@
 /** The shell's side of its app module windows: menus, size, and what they watch. */
+import { droppedActions, type FileDropWindowDetail } from "@/core/files/dropped-paths";
 import * as React from "react";
 import type { DesktopWindowInstance } from "@/ui/context/windows/types";
 import { moduleInstance, resolveAppModuleByUrl } from "@/core/data/app-modules";
@@ -87,12 +88,23 @@ export function useModuleChannel(
         if (module === windowId && actionId) sendToModule(piloti, { to: id, type: "action", actionId });
       }
     };
+    // Items dropped on a module's window: Folders takes them into its folder,
+    // an editor or a viewer opens the first.
+    const onFileDrop = (e: Event) => {
+      const detail = (e as CustomEvent<FileDropWindowDetail>).detail;
+      for (const [id, module] of modules) {
+        if (module !== detail?.windowId) continue;
+        for (const actionId of droppedActions(detail)) sendToModule(piloti, { to: id, type: "action", actionId });
+      }
+    };
     window.addEventListener("piloti:app-action", onAppAction);
+    window.addEventListener("residence:file-drop-window", onFileDrop);
     const stop = onModuleState(apply);
     apply();
     return () => {
       stop();
       window.removeEventListener("piloti:app-action", onAppAction);
+      window.removeEventListener("residence:file-drop-window", onFileDrop);
     };
   }, [key, piloti]);
 
@@ -102,6 +114,8 @@ export function useModuleChannel(
   React.useEffect(
     () =>
       onModuleRequest((_id, request) => {
+        // Launches and opens: `useModuleOpenRequests`.
+        if (request.do !== "close-window" && request.do !== "focus-window") return;
         const exists = windowsRef.current.some((w) => w.id === request.windowId);
         if (!exists) return;
         if (request.do === "close-window") actionsRef.current.close(request.windowId);

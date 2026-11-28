@@ -18,6 +18,7 @@ import {
   type ChannelHost,
   createModuleChannel,
   newModuleId,
+  type ModuleRequest,
   type ModuleWindowState,
 } from "@/core/apps/module-channel";
 import { parseIniText, serializeIniText } from "@/core/config/ini";
@@ -209,6 +210,8 @@ export async function createAppModuleHost(
     onOverlay: (listener: (visible: boolean) => void) => channel.onOverlay(listener),
     /** The desktop's windows, through the shell. */
     shell: createModuleShell(channel),
+    /** Asks the shell to launch an app or open a file. */
+    request: (request: ModuleRequest) => void channel.request(request),
     processes: domicile.processes,
     desktop,
     watchDir,

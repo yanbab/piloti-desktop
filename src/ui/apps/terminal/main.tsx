@@ -2,7 +2,8 @@
 import * as React from "react";
 import { openWithDefaultApp, readSystemSample } from "@/platform/shared/system-commands";
 import { mountModuleApp } from "@/ui/apps/module-app";
-import { type TerminalHost, watchDocumentFocus } from "@/ui/apps/terminal/host";
+import { watchDocumentFocus } from "@/ui/apps/document-focus";
+import type { TerminalHost } from "@/ui/apps/terminal/host";
 import { XtermTerminalApp } from "@/ui/apps/terminal/XtermTerminalApp";
 
 // The Terminal draws its own header bar; the shell lays its controls over it

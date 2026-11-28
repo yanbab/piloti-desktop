@@ -11,6 +11,8 @@ export interface ShellWindow {
   title: string;
   /** The process of a Linux client window; unset for the shell's own apps. */
   pid?: number;
+  /** The folder or file a window of the shell's own apps shows. */
+  path?: string;
 }
 
 export interface ShellHost {
@@ -26,4 +28,6 @@ export interface ShellHost {
 
 /** What changes for an app: the same windows in the same order compare equal. */
 export const shellWindowsKey = (windows: readonly ShellWindow[]): string =>
-  windows.map((w) => `${w.id}\u0000${w.appId}\u0000${w.title}\u0000${w.pid ?? ""}`).join("\u0001");
+  windows
+    .map((w) => `${w.id}\u0000${w.appId}\u0000${w.title}\u0000${w.pid ?? ""}\u0000${w.path ?? ""}`)
+    .join("\u0001");

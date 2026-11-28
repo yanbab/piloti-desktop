@@ -9,6 +9,7 @@
  * its window. This is not a security boundary: any program of the session can
  * send either.
  */
+import type { MimeAppOption } from "@/core/xdg/xdg-mimeapps";
 import type { Dbus } from "@domicile-desktop/sdk/desktop/dbus";
 import type { Processes } from "@domicile-desktop/sdk/desktop/processes";
 import { Bus } from "@domicile-desktop/sdk/system";
@@ -39,7 +40,11 @@ export interface ModuleWindowState {
 
 export type ModuleRequest =
   | { do: "close-window"; windowId: string }
-  | { do: "focus-window"; windowId: string };
+  | { do: "focus-window"; windowId: string }
+  /** Opens an app as the shell would: a built-in one, a `.desktop` id, a program. */
+  | { do: "launch"; appId: string; payload?: string }
+  /** Opens a file or folder with its default app, or the one chosen ("Open With"). */
+  | { do: "open"; path: string; kind?: "file" | "directory"; preferApp?: MimeAppOption };
 
 export type ShellMessage =
   | { to: string; type: "action"; actionId: string }
@@ -94,14 +99,41 @@ export function parseRequestWords(
 ): { id: string; request: ModuleRequest } | null {
   const [command, id, encoded] = words;
   if (command !== IPC_REQUEST || !id) return null;
-  const request = decodeWord(encoded) as Partial<ModuleRequest> | null;
-  if (
-    (request?.do === "close-window" || request?.do === "focus-window") &&
-    typeof request.windowId === "string"
-  ) {
-    return { id, request: { do: request.do, windowId: request.windowId } };
-  }
-  return null;
+  const request = decodeWord(encoded) as Record<string, unknown> | null;
+  const text = (key: string) => (typeof request?.[key] === "string" ? (request[key] as string) : undefined);
+  const parsed = ((): ModuleRequest | null => {
+    switch (request?.do) {
+      case "close-window":
+      case "focus-window": {
+        const windowId = text("windowId");
+        return windowId === undefined ? null : { do: request.do, windowId };
+      }
+      case "launch": {
+        const appId = text("appId");
+        const payload = text("payload");
+        return appId ? { do: "launch", appId, ...(payload ? { payload } : null) } : null;
+      }
+      case "open": {
+        const path = text("path");
+        const kind = text("kind");
+        const app = request.preferApp as Partial<MimeAppOption> | undefined;
+        const preferApp =
+          app && typeof app.appId === "string" && typeof app.desktopId === "string"
+            ? (app as MimeAppOption)
+            : undefined;
+        if (!path?.startsWith("/")) return null;
+        return {
+          do: "open",
+          path,
+          ...(kind === "file" || kind === "directory" ? { kind } : null),
+          ...(preferApp ? { preferApp } : null),
+        };
+      }
+      default:
+        return null;
+    }
+  })();
+  return parsed ? { id, request: parsed } : null;
 }
 
 export interface ChannelHost {

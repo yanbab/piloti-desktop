@@ -1,5 +1,4 @@
 import { hostFiles } from "@/core/files/host-files";
-import { useArchiveActions } from "@/ui/hooks/use-archive-actions";
 import { ICON_SIZES } from "@/core/files/icon-sizes";
 import { HeaderSearch } from "@/ui/components/ui/header-search";
 import { PanelRightIcon } from "lucide-react";
@@ -17,11 +16,13 @@ import { useCapabilities } from "@/ui/hooks/use-capabilities";
 import { usePopupSurface } from "@/ui/hooks/popup-layer";
 import { createPortal } from "react-dom";
 import { usePiloti } from "@/platform/shared/piloti";
-import { useTemplatesDirPath } from "@/ui/hooks/use-desktop-dir";
 import { parentPath } from "@/core/ports/vfs";
 import { BriefcaseIcon, HeartIcon, TagIcon } from "lucide-react";
 import { AlertCircleIcon, ArrowLeftIcon, ChevronDownIcon, ChevronRightIcon, ClockIcon, DiscIcon, DownloadIcon, EjectIcon, FileTextIcon, FolderIcon, HomeIcon, ImageIcon, LayoutGridIcon, ListIcon, MonitorIcon, MusicIcon, Trash2Icon, UsbIcon, VideoIcon, XIcon } from "@/ui/components/ui/symbols";
 import { isOnDrive, useDrives } from "@/ui/hooks/use-drives";
+import { useArchiveActions } from "@/ui/hooks/use-archive-actions";
+import { useTemplatesDirPath } from "@/ui/hooks/use-desktop-dir";
+import { useLauncherItems } from "@/ui/hooks/use-launcher-items";
 import { NicePathLabel } from "@/ui/components/common/NicePathLabel";
 import { InfoPane, InfoPaneToggle, useInfoPane } from "@/ui/components/ui/info-pane";
 import { HeaderBar, HeaderButton } from "@/ui/components/elements/header-bar";
@@ -29,7 +30,6 @@ import { AppSplitView, type SidebarItem } from "@/ui/components/elements/split-v
 import { FolderIconView } from "@/ui/components/ui/folder-icon-view";
 import { useExternalFileDrop } from "@/ui/hooks/use-external-file-drop";
 import { useFolderOps } from "@/ui/hooks/use-folder-ops";
-import { useLauncherItems } from "@/ui/hooks/use-launcher-items";
 import {
   entryVisual,
   folderEntriesToItems,
@@ -53,12 +53,8 @@ import {
   MENU_SEPARATOR_CLASS,
   MENU_SUB_TRIGGER_CLASS,
 } from "@/ui/components/ui/menu-styles";
-import {
-  useApps,
-  useWindowActions,
-  useWindowManagerSelector,
-  useDesktopSettings,
-} from "@/ui/context/DesktopStateContext";
+import { useFilesHost } from "@/ui/components/files-host";
+import { parseDroppedPaths } from "@/core/files/dropped-paths";
 import { publishWindowMenuState, useWindowMenuState } from "@/platform/shared/app-bridge";
 import {
   type AppSymbolName,
@@ -122,7 +118,6 @@ import {
   serializeGtkBookmarks,
   type GtkBookmark,
 } from "@/core/xdg/xdg-bookmarks";
-import { useOpenPath } from "@/ui/hooks/use-open-path";
 
 interface XdgPlaceItem {
   id: string;
@@ -239,6 +234,16 @@ const filesViewMenuItems = () =>
     (section) => section.title === "View"
   )?.items ?? [];
 
+const FILES_SETTINGS = [
+  "accentColor",
+  "computerModel",
+  "debugMode",
+  "fileActivationMode",
+  "installedWebApps",
+  "muted",
+  "volume",
+] as const;
+
 export function FilesApp({
   initialPath,
   windowId,
@@ -247,16 +252,14 @@ export function FilesApp({
   windowId?: string;
 }) {
   const piloti = usePiloti();
-  const settings = useDesktopSettings(["accentColor", "computerModel", "debugMode", "fileActivationMode", "installedWebApps", "muted", "volume"]);
+  const host = useFilesHost();
+  const settings = host.useDesktopSettings(FILES_SETTINGS);
   const { realFilesystem } = useCapabilities();
-  const { installedXdgApps, getAppIconUrl, ensureWaylandIcons, xdgUserDirs } = useApps();
-  const { drives, mount: mountDrive, eject: ejectDrive } = useDrives();
-  const { windows, focusedWindowId } = useWindowManagerSelector((wm) => ({
-    windows: wm.windows.map((w) => ({ appId: w.appId, payload: w.payload })),
-    focusedWindowId: wm.focusedWindowId,
-  }));
-  const { launchApp, launchXdgApp, openWebUrl } = useWindowActions();
-  const { openPath, openPathWith } = useOpenPath();
+  const { installedXdgApps, getAppIconUrl, ensureWaylandIcons, xdgUserDirs } = host.useApps();
+  const { windows, focusedWindowId } = host.useWindows();
+  const { launchApp, launchXdgApp, openWebUrl, notify } = host.useActions();
+  const { drives, mount: mountDrive, eject: ejectDrive } = useDrives(notify);
+  const { openPath, openPathWith } = host.useOpenPath();
 
   const viewMenuState = useWindowMenuState(windowId ?? null);
   // Direct manipulation: the heart on an icon or list row (de)favorites it.
@@ -373,7 +376,7 @@ export function FilesApp({
   );
   const [bgNewSubOpen, setBgNewSubOpen] = React.useState(false);
   usePopupSurface(Boolean(bgMenu), () => setBgMenu(null));
-  const templatesDir = useTemplatesDirPath();
+  const templatesDir = useTemplatesDirPath(xdgUserDirs);
   const templates =
     useVfsQuery(vfsKeys.templates(templatesDir), templatesDir, () =>
       listFsTemplates(piloti, templatesDir),
@@ -442,7 +445,7 @@ export function FilesApp({
     }
     refreshVfs(vfsKeys.list(currentPath));
   }, [currentPath, piloti, realFilesystem, refreshVfs, templatesDir]);
-  const archive = useArchiveActions(reloadDir);
+  const archive = useArchiveActions(reloadDir, notify);
   // Recents also lists what other programs opened.
   useVfsWatch(isRecentsView ? RECENTLY_USED_XBEL_PATH : null, reloadDir);
 
@@ -495,7 +498,10 @@ export function FilesApp({
     renameSelected: () => void;
     trashSelected: () => void;
     ejectCurrentDrive: () => void;
+    /** Files dropped on this window from elsewhere (it runs on its own). */
+    dropPaths: (paths: readonly string[], copy: boolean) => void;
   }>({
+    dropPaths: () => {},
     canGoUp: false,
     handleGoUp: () => {},
     handleNewFolder: () => {},
@@ -868,7 +874,11 @@ export function FilesApp({
     treeSearches,
     vfsEntries,
   ]);
-  const items = useLauncherItems(listedItems, isDesktopView);
+  const items = useLauncherItems(
+    listedItems,
+    { getAppIconUrl, ensureWaylandIcons, installedXdgApps },
+    isDesktopView,
+  );
 
   const treeChildren = React.useCallback(
     (entries: readonly WebVfsEntry[]) => toItems(entries),
@@ -1202,6 +1212,14 @@ export function FilesApp({
     ejectCurrentDrive: () => {
       if (ejectableDrive) ejectDrive(ejectableDrive);
     },
+    dropPaths: (paths, copy) => {
+      if (isVirtualView) return;
+      ops.dropItems(
+        paths.map((path) => ({ id: path, path })),
+        currentPath,
+        { copy },
+      );
+    },
     canGoUp,
     handleGoUp,
     handleNewFolder,
@@ -1324,6 +1342,11 @@ export function FilesApp({
       ).detail;
       if (!detail?.actionId) return;
       if (detail.windowId && detail.windowId !== windowId) return;
+      const dropped = parseDroppedPaths(detail.actionId);
+      if (dropped) {
+        latestActionsRef.current.dropPaths(dropped.paths, dropped.copy);
+        return;
+      }
       switch (detail.actionId) {
         case "files:new-folder":
           latestActionsRef.current.handleNewFolder();

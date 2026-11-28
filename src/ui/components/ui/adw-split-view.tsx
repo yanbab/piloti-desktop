@@ -1,5 +1,4 @@
 import * as React from "react";
-import { WindowMenuButton } from "@/ui/components/common/WindowMenuButton";
 import {
   Tooltip,
   TooltipContent,
@@ -50,6 +49,13 @@ export interface AdwSplitViewProps {
   iconName?: AppSymbolName;
   windowId?: string;
   isCsd?: boolean;
+  /** The window menu button for the sidebar's titlebar (`AppChrome.menu`). */
+  menu?: (side: "left" | "right") => React.ReactNode;
+  /**
+   * The shell lays its window controls over the sidebar's titlebar (an app in
+   * its own process): pixels to keep free on the left.
+   */
+  hostInset?: number;
   /** Sidebar configuration */
   sidebarItems: readonly AdwSplitSidebarItem[];
   sidebarWidthClass?: string;
@@ -159,10 +165,10 @@ const PAGE_TITLE_SELECTOR = '[data-slot="page-title"]';
 
 export function AdwSplitView({
   title,
-  appId,
-  iconName,
   windowId,
   isCsd = false,
+  menu,
+  hostInset,
   sidebarItems,
   sidebarWidthClass = "w-44",
   sidebarId,
@@ -287,9 +293,10 @@ export function AdwSplitView({
           resizable ? { width: showCompact ? 47 : panel.width } : undefined
         }
       >
-        {isCsd && (
+        {(isCsd || hostInset !== undefined) && (
           <WindowTitlebar
             data-window-drag-region
+            style={hostInset !== undefined && !showCompact ? { paddingLeft: hostInset } : undefined}
             className={cn(
               "bg-transparent transition-colors",
               showCompact && "justify-center px-[9px]",
@@ -303,13 +310,8 @@ export function AdwSplitView({
                 isn't remounted (and its icon reloaded). */}
             <div className={cn("relative flex items-center justify-between gap-1.5", !showCompact && "w-full")}>
               <div className="relative z-10 flex shrink-0 items-center gap-1.5" data-window-no-drag>
-                {!showCompact && windowId && <WindowControls side="left" />}
-                <WindowMenuButton
-                  side="left"
-                  windowId={windowId}
-                  appId={appId}
-                  iconName={iconName}
-                />
+                {!showCompact && windowId && isCsd && <WindowControls side="left" />}
+                {menu?.("left")}
               </div>
               {!showCompact && !crowdedTitle && (
                 <span className="pointer-events-none absolute inset-x-10 truncate text-center text-ui-body font-medium tracking-tight whitespace-nowrap text-ui-label">

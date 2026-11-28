@@ -19,6 +19,7 @@ import {
 } from "@/ui/components/ui/tooltip";
 import {
   DesktopStateProvider,
+  useApps,
   useSystemBackends,
   useWindowActions,
   useWindowManagerSelector,
@@ -153,7 +154,8 @@ function DesktopSurface() {
     });
   }, []);
 
-  const templatesDir = useTemplatesDirPath();
+  const { xdgUserDirs } = useApps();
+  const templatesDir = useTemplatesDirPath(xdgUserDirs);
   const templates =
     useVfsQuery(vfsKeys.templates(templatesDir), templatesDir, () =>
       listFsTemplates(piloti, templatesDir),

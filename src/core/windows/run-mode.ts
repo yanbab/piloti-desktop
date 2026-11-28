@@ -12,6 +12,7 @@ export type RunIn = "shell" | "isolated";
 /** Apps with both an app module (`src/ui/apps/<id>`) and an iframe entry. */
 export const ISOLATABLE_APPS: readonly string[] = [
   "calculator",
+  "files",
   "image-viewer",
   "selfies",
   "system-monitor",
@@ -25,9 +26,13 @@ const SEPARATE_BY_DEFAULT = new Set(["image-viewer", "system-monitor", "terminal
 
 export const RUN_SEPARATELY_ACTION = "shell:run-separately";
 
-export const canRunIsolated = (appId: string): boolean => ISOLATABLE.has(appId);
+/** Folders' windows are the app `nautilus`; its module and component are `files`. */
+const runId = (appId: string) => (appId === "nautilus" ? "files" : appId);
 
-export function getRunIn(appId: string): RunIn {
+export const canRunIsolated = (appId: string): boolean => ISOLATABLE.has(runId(appId));
+
+export function getRunIn(windowAppId: string): RunIn {
+  const appId = runId(windowAppId);
   const former = formerAppId(appId);
   const chosen =
     getAppSetting(appId, "run-in") ?? (former ? getAppSetting(former, "run-in") : undefined);
@@ -37,4 +42,5 @@ export function getRunIn(appId: string): RunIn {
   return getEngine().capabilities.systemServices && SEPARATE_BY_DEFAULT.has(appId) ? "isolated" : "shell";
 }
 
-export const setRunIn = (appId: string, runIn: RunIn): void => setAppSetting(appId, "run-in", runIn);
+export const setRunIn = (appId: string, runIn: RunIn): void =>
+  setAppSetting(runId(appId), "run-in", runIn);

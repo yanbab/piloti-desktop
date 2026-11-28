@@ -1,4 +1,5 @@
 import * as React from "react";
+import { ShellFilesHost } from "@/ui/context/ShellFilesHost";
 import { usePiloti } from "@/platform/shared/piloti";
 import { PluginsProvider } from "@/ui/context/PluginsContext";
 import { AppsContext, useApps, useAppsValue } from "./AppsContext";
@@ -170,7 +171,9 @@ function WindowsLayer({ children }: { children: React.ReactNode }) {
     <WindowManagerStoreContext.Provider value={store}>
       <WindowActionsContext.Provider value={actionsValue}>
         <WindowsContext.Provider value={windowsValue}>
-          <PluginsProvider>{children}</PluginsProvider>
+          <PluginsProvider>
+            <ShellFilesHost>{children}</ShellFilesHost>
+          </PluginsProvider>
         </WindowsContext.Provider>
       </WindowActionsContext.Provider>
     </WindowManagerStoreContext.Provider>
