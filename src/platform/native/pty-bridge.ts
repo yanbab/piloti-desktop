@@ -90,7 +90,9 @@ const baseName = (path: string) => path.slice(path.lastIndexOf("/") + 1);
  * program (`/bin` and `/usr/bin` are often the same directory), sorted by
  * name. `bash` is always listed, marked unavailable when it is not installed.
  */
-export async function readLoginShells(piloti: Piloti): Promise<LoginShell[]> {
+export async function readLoginShells(
+  piloti: { files: Pick<Piloti["files"], "readText" | "stat"> },
+): Promise<LoginShell[]> {
   const res = await piloti.files.readText("/etc/shells").catch(() => null);
   const text = res?.match({ Ok: (t) => t, Err: () => "" }) ?? "";
   const candidates = text
@@ -113,7 +115,7 @@ export async function readLoginShells(piloti: Piloti): Promise<LoginShell[]> {
 }
 
 export async function startShell(
-  piloti: Piloti,
+  piloti: { processes: Pick<Piloti["processes"], "spawn"> },
   /** A shell path, or a program and its arguments. */
   command: string | readonly string[],
   size: { cols: number; rows: number },

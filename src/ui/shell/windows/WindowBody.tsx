@@ -64,8 +64,8 @@ const ImageViewerApp = React.lazy(() =>
 );
 
 const TerminalApp = React.lazy(() =>
-  import("@/ui/apps/terminal/XtermTerminalApp").then((m) => ({
-    default: m.XtermTerminalApp,
+  import("@/ui/apps/terminal/shell-host").then((m) => ({
+    default: m.ShellTerminalApp,
   }))
 );
 

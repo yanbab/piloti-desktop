@@ -3,6 +3,16 @@ import { ACCENT_COLORS, type AccentColorId } from "@/core/data/catalog";
 import { subscribeLocale } from "@/core/util/i18n";
 import type { ModuleRequest } from "@/core/apps/module-channel";
 import type { ShellWindow } from "@/core/ports/shell-host";
+import type { DesktopSettings } from "@/core/config/desktop-settings";
+
+/** What an app in the demo's iframe asks the page around it, beyond a module's requests. */
+export type FrameRequest =
+  | ModuleRequest
+  | { do: "watch-windows"; on: boolean }
+  | { do: "watch-settings"; on: boolean }
+  | { do: "update-settings"; patch: Partial<DesktopSettings> }
+  | { do: "launch"; appId: string; payload?: string }
+  | { do: "open"; path: string; kind: "file" | "directory" };
 
 export type ShellToAppMessage =
   | {
@@ -18,6 +28,11 @@ export type ShellToAppMessage =
   | {
       type: "piloti:app-action";
       actionId: string;
+    }
+  | {
+      /** For a frame watching the desktop settings. */
+      type: "piloti:desktop-settings";
+      settings: DesktopSettings;
     }
   | {
       /** For a frame watching the desktop's windows (`ShellHost`). */
@@ -61,7 +76,7 @@ export type AppToShellMessage =
       /** `ShellHost` for a frame: watch the windows, or act on one. */
       type: "piloti:shell-request";
       windowId: string;
-      request: ModuleRequest | { do: "watch-windows"; on: boolean };
+      request: FrameRequest;
     }
 
 

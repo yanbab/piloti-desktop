@@ -152,7 +152,7 @@ Domicile app module:
   It talks to the shell through files or D-Bus.
 - Shown in a `<webview>`; the shell draws its controls and drag strip
   (`core/data/app-modules.ts`).
-- Built with `npm run build:apps` → `dist/apps/<id>/` (`hello`, `calculator`, `image-viewer`, `selfies`, `system-monitor`, `texts`).
+- Built with `npm run build:apps` → `dist/apps/<id>/` (`hello`, `calculator`, `image-viewer`, `selfies`, `system-monitor`, `terminal`, `texts`).
 
 A module and the shell talk as in Electron (`core/apps/module-channel.ts`):
 
@@ -183,6 +183,13 @@ and the shell sends the list when it changes, at most every 250 ms; the demo's
 iframe asks the page around it (`platform/shared/app-frame-shell.ts`). Names and
 icons of other apps: `core/apps/describe-apps.ts` reads the `.desktop` files and
 the icon theme.
+
+The Terminal's module runs its shells and Piloti Shell itself; `set({...})`
+writes the desktop settings to dconf, which the shell follows, and `piloti` in
+Piloti Shell is the module's own Domicile (`files`, `processes`, `vfs`). In the
+demo's iframe it has Piloti Shell only, and asks the page around it for the
+settings, launching and opening (`FrameRequest` in `app-bridge.ts`). Every
+module should have such an iframe entry, so it can be tried in the demo.
 
 **Porting an app:** a `host.ts` with what it needs, a `shell-host.tsx` for the
 shell, a `main.tsx` calling `mountModuleApp` (`ui/apps/module-app.tsx`), a line in

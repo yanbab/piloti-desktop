@@ -34,6 +34,15 @@ export const APP_MODULES: readonly AppModuleDef[] = [
     csd: false,
     size: { width: 560, height: 520 },
   },
+  // Its title is the shell menu: until modules send their drag regions, only a
+  // thin strip along the top moves the window.
+  {
+    id: "terminal",
+    dir: `${APPS_ROOT}/terminal`,
+    csd: true,
+    drag: { left: 96, right: 96, height: 8 },
+    size: { width: 720, height: 460 },
+  },
   {
     id: "texts",
     dir: `${APPS_ROOT}/texts`,
