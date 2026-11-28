@@ -1,4 +1,5 @@
 /// <reference types="@domicile-desktop/react/elements" />
+import { canResize } from "@/core/windows/tiling";
 import { WorkspaceTransition } from "@/ui/shell/windows/WorkspaceTransition";
 import { logAppEvent, recordAppReady } from "@/core/util/perf-log";
 import * as React from "react";
@@ -727,7 +728,7 @@ export function WindowManager() {
               minSize={win.minSize}
               maxSize={win.maxSize}
               draggable
-              resizable={win.appId !== "calculator" && !presentation}
+              resizable={canResize(win.appId) && !presentation}
               bounds="parent"
               inactive={!isFocused}
               minimized={overviewOpen ? false : win.minimized}
@@ -742,17 +743,17 @@ export function WindowManager() {
                 left: leftDockClearance,
               }}
               onSnapPreviewChange={
-                win.appId === "calculator" ? undefined : setSnapPreview
+                !canResize(win.appId) ? undefined : setSnapPreview
               }
               onSnapCommit={
-                win.appId === "calculator"
+                !canResize(win.appId)
                   ? undefined
                   : (zone) => tileWindow(win.id, zone)
               }
               onClose={() => handleAnimatedClose(win)}
               onMinimize={() => minimizeWindow(win.id)}
               onZoom={
-                win.appId === "calculator"
+                !canResize(win.appId)
                   ? undefined
                   : () => toggleMaximizeWindow(win.id)
               }
