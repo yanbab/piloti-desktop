@@ -1,3 +1,4 @@
+import { followDrag, hideDragImage } from "@/ui/dnd/follow-drag";
 import * as React from "react";
 import { PlusIcon } from "@/ui/components/ui/symbols";
 import {
@@ -266,8 +267,21 @@ function WorkspaceOverview() {
                 e.dataTransfer.setData("text/piloti-window", win.id);
                 e.dataTransfer.effectAllowed = "move";
                 setDraggingWindowId(win.id);
+                // The window itself comes along; this overlay would only show its icon.
+                const surface = document.querySelector<HTMLElement>(
+                  `[data-window-id="${CSS.escape(win.id)}"]`
+                );
+                if (!surface) return;
+                hideDragImage(e.dataTransfer);
+                followDrag(surface, e);
+                const overlay = e.currentTarget;
+                // Changing the source while the drag starts would cancel it.
+                requestAnimationFrame(() => (overlay.style.opacity = "0"));
               }}
-              onDragEnd={() => setDraggingWindowId(null)}
+              onDragEnd={(e) => {
+                e.currentTarget.style.opacity = "";
+                setDraggingWindowId(null);
+              }}
               onAuxClick={(e) => {
                 if (e.button === 1) {
                   e.preventDefault();
