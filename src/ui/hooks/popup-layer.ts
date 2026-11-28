@@ -56,6 +56,20 @@ export function usePopupSurface(open: boolean, close: () => void): void {
 }
 
 /**
+ * Marks a surface whose presses never dismiss the open popup, such as the
+ * on-screen keyboard: typing into the Launcher must not close it.
+ */
+export const KEEPS_POPUPS_ATTRIBUTE = "data-keeps-popups";
+
+/** Whether Base UI's close `details` come from a press on such a surface. */
+function isPressOnKeepingSurface(details: unknown): details is { cancel?: () => void } {
+  if (!details || typeof details !== "object") return false;
+  const event = (details as { event?: Event }).event;
+  const target = event?.target;
+  return target instanceof Element && target.closest(`[${KEEPS_POPUPS_ATTRIBUTE}]`) !== null;
+}
+
+/**
  * Open state for a menu root that may be controlled or not, registered on the
  * popup layer. Returns the props to pass to the Base UI root.
  */
@@ -69,6 +83,10 @@ export function usePopupSurfaceState<Details>(props: {
   const open = openProp ?? inner;
   const handleOpenChange = React.useCallback(
     (next: boolean, details: Details) => {
+      if (!next && isPressOnKeepingSurface(details)) {
+        details.cancel?.();
+        return;
+      }
       if (openProp === undefined) setInner(next);
       onOpenChange?.(next, details);
     },

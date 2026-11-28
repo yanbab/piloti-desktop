@@ -35,7 +35,7 @@ import {
   dragFlyBackAnimation,
   dragShuffleTransition,
   liftGhost,
-} from "@/ui/dnd/drag-feedback";
+} from "@/ui/fx/drag-feedback";
 
 /** Tabs slide sideways only. */
 const horizontalOnly: Modifier = ({ transform }) => ({ ...transform, y: 0 });

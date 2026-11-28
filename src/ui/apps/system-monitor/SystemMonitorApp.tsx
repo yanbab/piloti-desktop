@@ -34,7 +34,7 @@ import { readSystemSample } from "@/platform/shared/system-commands";
 import { parseIniText, serializeIniText } from "@/core/config/ini";
 import { VFS_HOME } from "@/core/state/vfs-home";
 import { readVfsStateText, writeVfsStateText } from "@/core/state/vfs-state";
-import { DRAG_THRESHOLD, dragShuffleCss, settleFromOffset } from "@/ui/dnd/drag-feedback";
+import { DRAG_THRESHOLD, dragShuffleCss, settleFromOffset } from "@/ui/fx/drag-feedback";
 import {
   formatWidgetLayout,
   parseWidgetLayout,

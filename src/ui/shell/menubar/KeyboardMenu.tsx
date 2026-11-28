@@ -7,7 +7,8 @@ import { useCapabilities } from "@/ui/hooks/use-capabilities";
 import { _ } from "@/core/util/i18n";
 import { usePiloti } from "@/platform/shared/piloti";
 import { CONFIG_LAYOUTS, useKeymaps } from "@/ui/hooks/keyboard";
-import { showKeyboardLayout, showOnScreenKeyboard } from "@/platform/shared/system-commands";
+import { showKeyboardLayout } from "@/platform/shared/system-commands";
+import { toggleOnScreenKeyboard, useOnScreenKeyboardOpen } from "@/ui/shell/osk/osk-store";
 import { KeyboardLayoutSwitcher } from "@/ui/shell/session/KeyboardLayoutSwitcher";
 
 /** The menu bar's keyboard menu: layouts, the layout viewer, the on-screen keyboard. */
@@ -19,6 +20,7 @@ export function KeyboardMenu() {
   const { pushNotification } = useSystemBackends();
   const { launchApp } = useWindowActions();
   const { active } = useKeymaps();
+  const oskOpen = useOnScreenKeyboardOpen();
 
   const open = async (run: () => Promise<boolean>, missing: string) => {
     if (systemServices && (await run().catch(() => false))) return;
@@ -43,15 +45,8 @@ export function KeyboardMenu() {
       >
         {_("Show Keyboard Layout")}
       </DropdownMenuItem>
-      <DropdownMenuItem
-        onClick={() =>
-          void open(
-            () => showOnScreenKeyboard(piloti),
-            _("Install wvkbd or squeekboard to type on screen."),
-          )
-        }
-      >
-        {_("Show On-Screen Keyboard")}
+      <DropdownMenuItem onClick={toggleOnScreenKeyboard}>
+        {oskOpen ? _("Hide On-Screen Keyboard") : _("Show On-Screen Keyboard")}
       </DropdownMenuItem>
       <DropdownMenuSeparator />
       <DropdownMenuItem onClick={() => launchApp("settings", { payload: "keyboard" })}>

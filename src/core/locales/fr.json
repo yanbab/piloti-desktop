@@ -868,7 +868,6 @@
   "Show On-Screen Keyboard": "Afficher le clavier virtuel",
   "Keyboard Settings\u2026": "Réglages du clavier…",
   "Install tecla to show the keyboard layout.": "Installez tecla pour afficher la disposition du clavier.",
-  "Install wvkbd or squeekboard to type on screen.": "Installez wvkbd ou squeekboard pour saisir à l’écran.",
   "Texts": "Textes",
   "Selfies": "Selfies",
   "Edit plain text and Markdown files": "Modifier des fichiers texte et Markdown",
@@ -1007,5 +1006,9 @@
   "To compare with": "Pour comparer",
   "Window shown: %s": "Fenêtre affichée : %s",
   "Not installed (gnome-calculator)": "Non installée (gnome-calculator)",
-  "Close it before opening it again. Its memory is its whole process.": "Fermez-la avant de la rouvrir. Sa mémoire est celle de tout son processus."
+  "Close it before opening it again. Its memory is its whole process.": "Fermez-la avant de la rouvrir. Sa mémoire est celle de tout son processus.",
+  "Hide On-Screen Keyboard": "Masquer le clavier virtuel",
+  "On-Screen Keyboard": "Clavier virtuel",
+  "space": "espace",
+  "Tap a text field in Piloti to type. Other applications can't receive this keyboard yet.": "Touchez un champ de texte de Piloti pour écrire. Les autres applications ne reçoivent pas encore ce clavier."
 }

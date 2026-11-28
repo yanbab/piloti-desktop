@@ -1,9 +1,9 @@
 import * as React from "react";
 import { useDesktopSettings } from "@/ui/context/DesktopStateContext";
 import { _ } from "@/core/util/i18n";
-import { DRAG_EASE_SETTLE } from "@/ui/dnd/drag-feedback";
+import { FX_DURATION, FX_EASE } from "@/ui/fx/motion";
 
-const SLIDE_MS = 260;
+const SLIDE_MS = FX_DURATION.workspaceSwitch;
 const SLIDE_PX = 80;
 const HINT_MS = 1400;
 
@@ -34,7 +34,7 @@ export function WorkspaceTransition({
       ? undefined
       : stageRef.current?.animate(
           [{ transform: `translateX(${direction * SLIDE_PX}px)`, opacity: 0 }, { transform: "none", opacity: 1 }],
-          { duration: SLIDE_MS, easing: DRAG_EASE_SETTLE },
+          { duration: SLIDE_MS, easing: FX_EASE.settle },
         );
     return () => {
       window.clearTimeout(timer);

@@ -1,4 +1,4 @@
-import { liftGhost } from "@/ui/dnd/drag-feedback";
+import { liftGhost } from "@/ui/fx/drag-feedback";
 
 /** Ghosts show a handful of items; the badge says how many there are. */
 const MAX_GHOST_ITEMS = 8;

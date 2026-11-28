@@ -61,6 +61,13 @@ const LockScreen = React.lazy(() =>
 import { MenuBar } from "@/ui/shell/menubar/MenuBar";
 import { NotificationToasts } from "@/ui/shell/notifications/NotificationToasts";
 import { OsdOverlay } from "@/ui/shell/notifications/OsdOverlay";
+import { useOnScreenKeyboardOpen } from "@/ui/shell/osk/osk-store";
+import { useSlidePresence } from "@/ui/fx/slide";
+const OnScreenKeyboard = React.lazy(() =>
+  import("@/ui/shell/osk/OnScreenKeyboard").then((m) => ({
+    default: m.OnScreenKeyboard,
+  }))
+);
 const Overview = React.lazy(() =>
   import("@/ui/shell/overview/Overview").then((m) => ({
     default: m.Overview,
@@ -157,15 +164,9 @@ function DesktopSurface() {
       ? `brightness(${0.45 + (settings.brightness / 100) * 0.55})`
       : undefined;
 
-  const [overviewMounted, setOverviewMounted] = React.useState(overviewOpen);
-  React.useEffect(() => {
-    if (overviewOpen) {
-      setOverviewMounted(true);
-      return;
-    }
-    const timer = window.setTimeout(() => setOverviewMounted(false), 360);
-    return () => window.clearTimeout(timer);
-  }, [overviewOpen]);
+  const overviewMounted = useSlidePresence(overviewOpen);
+  const oskOpen = useOnScreenKeyboardOpen();
+  const oskMounted = useSlidePresence(oskOpen);
 
   return (
     <div
@@ -281,6 +282,13 @@ function DesktopSurface() {
 
       {/* Volume & Brightness OSD Pill */}
       <OsdOverlay />
+
+      {/* On-screen keyboard (Keyboard menu) */}
+      {oskMounted && (
+        <React.Suspense fallback={null}>
+          <OnScreenKeyboard open={oskOpen} />
+        </React.Suspense>
+      )}
 
       {/* Alt+Tab Switcher */}
       <AltTabSwitcher />

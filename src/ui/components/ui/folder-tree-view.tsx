@@ -37,7 +37,7 @@ import {
   DRAG_EASE_SETTLE,
   DRAG_THRESHOLD,
   dragFlyBackAnimation,
-} from "@/ui/dnd/drag-feedback";
+} from "@/ui/fx/drag-feedback";
 import { buildDragGhost } from "@/ui/dnd/drag-ghost";
 import { topmostItems, type FolderTreeNode } from "@/core/files/folder-tree";
 import {

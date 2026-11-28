@@ -1,3 +1,4 @@
+import { FX_DURATION, fxTransition } from "@/ui/fx/motion";
 import * as React from "react";
 import type { AccentColorId } from "@/core/data/catalog";
 
@@ -338,7 +339,7 @@ function renderFileBadgeGlyph(badge: FileBadgeKind, shades: FolderShadePair) {
   }
 }
 
-const FOLDER_OPEN_TRANSITION = "transform 220ms cubic-bezier(0.22, 1, 0.36, 1)";
+const FOLDER_OPEN_TRANSITION = fxTransition(FX_DURATION.folderOpen, "settle", "transform");
 
 /**
  * The front flap opening: it drops by `drop` and shortens by the same amount

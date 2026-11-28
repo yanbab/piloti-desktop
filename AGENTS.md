@@ -61,8 +61,12 @@ After changing:
 - XDG code stays in `core/xdg/` (keep the tsconfig and Vite aliases up to date).
 - **Drag and drop:** dnd-kit for items; `startPointerDrag`
   (`ui/dnd/pointer-drag.ts`) to move or resize surfaces. Timings, curves,
-  threshold and ghost lift come from `ui/dnd/drag-feedback.ts`. A drop never
+  threshold and ghost lift come from `ui/fx/drag-feedback.ts`. A drop never
   animates back to its start first.
+- **Effects (piloti-fx, `ui/fx/`):** every curve and duration is in
+  `ui/fx/motion.ts` (`fxTransition`, `FX_EASE`, `FX_DURATION`; `--fx-*` in CSS
+  and Tailwind). Edge panels slide with `ui/fx/slide.ts`. Write no
+  `cubic-bezier(` elsewhere (a test checks).
 - **Performance:** throttle or debounce drags, colour pickers and sliders so VFS
   writes, `.desktop` scans and subprocesses don't run at frame rate. Check
   re-renders in Console ▸ Infos ▸ Performance.

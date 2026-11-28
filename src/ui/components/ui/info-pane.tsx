@@ -65,7 +65,7 @@ export function InfoPane({
       className={cn(
         "relative flex shrink-0",
         // TODO: use the shared motion library once it lands.
-        !panel.dragging && "transition-[width] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)]"
+        !panel.dragging && "transition-[width] duration-200 ease-[var(--fx-ease-settle)]"
       )}
       style={{ width: panel.width }}
     >

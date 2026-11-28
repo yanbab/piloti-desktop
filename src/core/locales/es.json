@@ -868,7 +868,6 @@
   "Show On-Screen Keyboard": "Mostrar el teclado en pantalla",
   "Keyboard Settings\u2026": "Ajustes del teclado…",
   "Install tecla to show the keyboard layout.": "Instale tecla para mostrar la distribución del teclado.",
-  "Install wvkbd or squeekboard to type on screen.": "Instale wvkbd o squeekboard para escribir en pantalla.",
   "Texts": "Textos",
   "Selfies": "Selfies",
   "Edit plain text and Markdown files": "Editar archivos de texto y Markdown",
@@ -1007,5 +1006,9 @@
   "To compare with": "Para comparar",
   "Window shown: %s": "Ventana mostrada: %s",
   "Not installed (gnome-calculator)": "No instalada (gnome-calculator)",
-  "Close it before opening it again. Its memory is its whole process.": "Ciérrela antes de volver a abrirla. Su memoria es la de todo su proceso."
+  "Close it before opening it again. Its memory is its whole process.": "Ciérrela antes de volver a abrirla. Su memoria es la de todo su proceso.",
+  "Hide On-Screen Keyboard": "Ocultar el teclado en pantalla",
+  "On-Screen Keyboard": "Teclado en pantalla",
+  "space": "espacio",
+  "Tap a text field in Piloti to type. Other applications can't receive this keyboard yet.": "Toque un campo de texto de Piloti para escribir. Las demás aplicaciones aún no reciben este teclado."
 }

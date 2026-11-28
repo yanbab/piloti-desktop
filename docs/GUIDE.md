@@ -63,8 +63,9 @@ in `piloti-macos.css`.
 | Floating windows | `core/windows/floating-window.ts`, `ui/dnd/pointer-drag.ts`, `ui/shell/windows/PresentationOverlay.tsx` |
 | Window presentations | `core/windows/window-presentation.ts`, `ui/context/PluginsContext.tsx`, `core/plugins/types.ts` |
 | Bundled plugins | `data/files/usr/share/piloti/plugins/`; the demo-only example is in `data/files/home/user/.config/piloti/plugins/` |
-| Icon grid | `ui/components/ui/icon-grid.tsx`, `core/files/desktop-icons.ts`, `ui/dnd/drag-feedback.ts` |
+| Icon grid | `ui/components/ui/icon-grid.tsx`, `core/files/desktop-icons.ts`, `ui/fx/drag-feedback.ts` |
 | Folders tree | `ui/components/ui/folder-tree-view.tsx`, `ui/hooks/use-folder-tree.ts`, `core/files/folder-tree.ts` |
+| Effects (piloti-fx) | `ui/fx/motion.ts` (curves, durations, `fxTransition`), `ui/fx/fx.css` (`--fx-*`), `ui/fx/slide.ts` (edge panels), `ui/fx/drag-feedback.ts` |
 | Item drag and drop | `ui/dnd/{item-drop,drag-ghost}.ts`, `ui/shell/dock/dock-pins.ts` |
 | Folder views | `ui/components/ui/folder-icon-view.tsx`, `ui/hooks/{use-folder-ops,use-external-file-drop,use-launcher-items}.ts`, `core/files/folder-items.ts` |
 | Icons ([details](#icons)) | `core/xdg/xdg-icon-theme.ts`, `core/icons/{icon-accent-tint,shell-icon-names}.ts` |
@@ -74,6 +75,7 @@ in `piloti-macos.css`.
 | Separate apps | `ui/apps/module-app.tsx` (module runtime); hosts in `platform/shared/app-{shell,module}-host.ts`; `core/apps/module-channel.ts`; list in `core/data/app-modules.ts` |
 | App chrome | `ui/components/elements/` (`AppWindow`, `HeaderBar`, `AppSplitView`…), fed by `ui/shell/windows/WindowAppChrome.tsx`. Start from `ui/apps/hello/HelloWorldApp.tsx`. Apps only lay out content (`tests/unit/app-styling.test.ts`) |
 | Sidebar apps | `ui/components/ui/adw-split-view.tsx` |
+| On-screen keyboard | `ui/shell/osk/` (panel, shell-field target), layouts in `core/osk/osk-layouts.ts`, target interface `core/ports/text-input.ts` |
 
 ## Checking in the demo
 

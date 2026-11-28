@@ -1,0 +1,24 @@
+/*
+ * piloti-fx tokens for CSS and Tailwind (`ease-[var(--fx-ease-settle)]`).
+ * The values come from `ui/fx/motion.ts`; a test keeps them equal.
+ */
+:root {
+  --fx-ease-settle: cubic-bezier(0.22, 1, 0.36, 1);
+  --fx-ease-spring: cubic-bezier(0.34, 1.45, 0.5, 1);
+  --fx-ease-fly-back: cubic-bezier(0.34, 1.35, 0.5, 1);
+  --fx-ease-minimize: cubic-bezier(0.45, 0, 0.75, 0.6);
+  --fx-ease-genie: cubic-bezier(0.4, 0, 0.9, 0.8);
+  --fx-ease-maximize: cubic-bezier(0.25, 0.8, 0.3, 1);
+  --fx-ease-bounce: cubic-bezier(0.28, 0.84, 0.42, 1);
+  --fx-ease-shake: cubic-bezier(0.36, 0.07, 0.19, 0.97);
+  --fx-duration-quick: 200ms;
+  --fx-duration-folder-open: 220ms;
+  --fx-duration-open: 240ms;
+  --fx-duration-workspace-switch: 260ms;
+  --fx-duration-overview: 350ms;
+  --fx-duration-slide: 350ms;
+  --fx-duration-minimize: 360ms;
+  --fx-duration-maximize: 380ms;
+  --fx-duration-shake: 420ms;
+  --fx-duration-genie: 560ms;
+}

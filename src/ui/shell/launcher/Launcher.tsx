@@ -43,7 +43,7 @@ import {
   floatingDragPosition,
   settleFloatingPosition,
 } from "@/core/windows/floating-window";
-import { settleSurface } from "@/ui/dnd/drag-feedback";
+import { settleSurface } from "@/ui/fx/drag-feedback";
 import { startPointerDrag } from "@/ui/dnd/pointer-drag";
 
 /** Height of the menu bar above the floating area. */

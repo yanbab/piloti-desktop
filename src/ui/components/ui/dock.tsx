@@ -306,7 +306,7 @@ function DockItem({
       {...restTileProps}
       className={cn(
         // A size container, so the badge scales with the tile and the icon matches `--dock-size` exactly.
-        "@container relative flex size-[var(--dock-item-size,var(--dock-size))] shrink-0 items-center justify-center transition-[width,height] duration-200 ease-out group-data-[resizing]/dock:transition-none has-[>button:active]:brightness-75 data-[launching]:animate-[dock-launch-bounce_0.75s_cubic-bezier(0.28,0.84,0.42,1)_infinite] data-[urgent]:animate-[dock-launch-bounce_0.75s_cubic-bezier(0.28,0.84,0.42,1)_infinite] motion-reduce:data-[launching]:animate-none motion-reduce:data-[urgent]:animate-none [&>img]:size-full [&>svg]:size-full",
+        "@container relative flex size-[var(--dock-item-size,var(--dock-size))] shrink-0 items-center justify-center transition-[width,height] duration-200 ease-out group-data-[resizing]/dock:transition-none has-[>button:active]:brightness-75 data-[launching]:animate-[dock-launch-bounce_0.75s_var(--fx-ease-bounce)_infinite] data-[urgent]:animate-[dock-launch-bounce_0.75s_var(--fx-ease-bounce)_infinite] motion-reduce:data-[launching]:animate-none motion-reduce:data-[urgent]:animate-none [&>img]:size-full [&>svg]:size-full",
         tileClassName,
         className
       )}

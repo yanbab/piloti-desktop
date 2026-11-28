@@ -8,7 +8,7 @@
  * capture, `pointercancel` treated like a release, and guaranteed cleanup.
  */
 
-import { DRAG_THRESHOLD } from "./drag-feedback";
+import { DRAG_THRESHOLD } from "@/ui/fx/drag-feedback";
 
 export interface PointerDragDelta {
   dx: number;
