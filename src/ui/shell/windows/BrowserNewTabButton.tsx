@@ -24,7 +24,7 @@ export function BrowserNewTabButton({ windowId, className }: { windowId: string;
   const { compositor } = useCapabilities();
   const tabApps = React.useMemo(
     () =>
-      APP_MODULES.filter((m) => m.id !== "hello").map((m) => ({
+      APP_MODULES.map((m) => ({
         id: m.id,
         name: APP_CATALOG.find((a) => a.id === m.id || a.builtinComponent === m.id)?.name ?? m.id,
       })),

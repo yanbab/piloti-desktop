@@ -18,7 +18,6 @@ export interface AppModuleDef {
 const APPS_ROOT = "/usr/share/piloti-desktop/apps";
 
 export const APP_MODULES: readonly AppModuleDef[] = [
-  { id: "hello", dir: `${APPS_ROOT}/hello`, csd: false },
   // The basic keypad; the module then asks for the size it needs.
   {
     id: "calculator",

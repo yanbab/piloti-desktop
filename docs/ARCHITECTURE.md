@@ -154,7 +154,7 @@ Domicile app module:
   It talks to the shell through files or D-Bus.
 - Shown in a `<webview>`; the shell draws its controls and drag strip
   (`core/data/app-modules.ts`).
-- Built with `npm run build:apps` → `dist/apps/<id>/` (`hello`, `calculator`, `image-viewer`, `selfies`, `system-monitor`, `terminal`, `texts`).
+- Built with `npm run build:apps` → `dist/apps/<id>/` (`calculator`, `image-viewer`, `selfies`, `system-monitor`, `terminal`, `texts`).
 
 A module and the shell talk as in Electron (`core/apps/module-channel.ts`):
 

@@ -8,7 +8,7 @@ import { cssInTheModule } from "./vite.plugins";
 
 // Builds ONE Domicile app module: APP=<id> vite build -c vite.apps.config.ts
 // -> dist/apps/<id>/<id>.js (own directory = own origin and storage).
-const id = process.env.APP ?? "hello";
+const id = process.env.APP ?? "calculator";
 
 export default defineConfig({
   define: { __PILOTI_VERSION__: JSON.stringify(buildVersion()) },
