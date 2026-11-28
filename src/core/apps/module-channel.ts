@@ -12,6 +12,7 @@
 import type { Dbus } from "@domicile-desktop/sdk/desktop/dbus";
 import type { Processes } from "@domicile-desktop/sdk/desktop/processes";
 import { Bus } from "@domicile-desktop/sdk/system";
+import type { Rect } from "@/core/apps/window-controls-overlay";
 
 export const IPC_COMMAND = "piloti-ipc";
 export const IPC_SIGNAL = {
@@ -27,12 +28,16 @@ export interface ModuleWindowState {
   size?: { width: number; height: number };
   /** The app is drawn. */
   ready?: boolean;
+  /** Where its own titlebar drags the window (`window-controls-overlay.ts`). */
+  dragRegions?: Rect[];
 }
 
 export type ShellMessage =
   | { to: string; type: "action"; actionId: string }
   /** Send the state again: the shell has just met this window. */
-  | { to: string; type: "sync" };
+  | { to: string; type: "sync" }
+  /** Whether the shell lays its window controls over the module's titlebar (not as a tab). */
+  | { to: string; type: "overlay"; visible: boolean };
 
 export const newModuleId = (): string =>
   `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
@@ -68,6 +73,7 @@ export function createModuleChannel({ processes, dbus }: ChannelHost, id: string
   let state: ModuleWindowState = {};
   let tail: Promise<unknown> = Promise.resolve();
   const listeners = new Set<(actionId: string) => void>();
+  const overlayListeners = new Set<(visible: boolean) => void>();
 
   // One at a time, so an older state cannot arrive after a newer one.
   const send = () =>
@@ -95,6 +101,7 @@ export function createModuleChannel({ processes, dbus }: ChannelHost, id: string
     if (message?.to !== id) return;
     if (message.type === "sync") void send();
     else if (message.type === "action") listeners.forEach((l) => l(message.actionId));
+    else if (message.type === "overlay") overlayListeners.forEach((l) => l(message.visible !== false));
   };
 
   void dbus.match({ bus: Bus.Session, ...IPC_SIGNAL }).then((result) =>
@@ -123,6 +130,10 @@ export function createModuleChannel({ processes, dbus }: ChannelHost, id: string
     onAction(listener: (actionId: string) => void) {
       listeners.add(listener);
       return () => void listeners.delete(listener);
+    },
+    onOverlay(listener: (visible: boolean) => void) {
+      overlayListeners.add(listener);
+      return () => void overlayListeners.delete(listener);
     },
   };
 }

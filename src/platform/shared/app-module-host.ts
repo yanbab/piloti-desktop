@@ -204,6 +204,8 @@ export async function createAppModuleHost(
     /** This window's name in the shell. */
     instance,
     publish: (patch: ModuleWindowState) => void channel.publish(patch),
+    /** The shell says whether its window controls lie over this window's titlebar. */
+    onOverlay: (listener: (visible: boolean) => void) => channel.onOverlay(listener),
     desktop,
     watchDir,
     /** The file the shell asked this window to open, once. */

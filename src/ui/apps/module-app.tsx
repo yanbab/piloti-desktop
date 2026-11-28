@@ -23,6 +23,10 @@ import {
   hostControlInsets,
   type AppChrome,
 } from "@/ui/components/elements/app-chrome";
+import { installWindowControlsOverlay, watchDragRegions } from "@/ui/apps/module-overlay";
+
+/** A titlebar's height when the page has none to measure. */
+const DEFAULT_TITLEBAR_HEIGHT = 36;
 
 export type ModuleRuntime = Awaited<ReturnType<typeof createAppModuleHost>> & {
   files: ModuleFiles;
@@ -75,6 +79,8 @@ export function mountModuleApp(
     }>();
     // A new language draws the app again.
     const [locale, setLocale] = React.useState(0);
+    // The shell's window controls over our titlebar (not when we are a tab).
+    const [overlay, setOverlay] = React.useState({ visible: true, layout: undefined as string | undefined });
 
     React.useEffect(() => {
       void (async () => {
@@ -89,7 +95,36 @@ export function mountModuleApp(
         });
         let settings = module.desktop.current();
         applyLook(settings, files);
-        module.desktop.watch((next) => applyLook((settings = next), files));
+        let visible = true;
+        const host = options.decorations === "host";
+        // Window Controls Overlay: the page knows the free part of its titlebar,
+        // the shell where it drags the window.
+        let titlebarHeight = DEFAULT_TITLEBAR_HEIGHT;
+        const geometry = () => ({
+          visible,
+          insets: visible ? hostControlInsets(settings.windowButtonLayout) : { left: 0, right: 0 },
+          height: titlebarHeight,
+        });
+        const wco = host ? installWindowControlsOverlay(geometry()) : null;
+        if (host) {
+          watchDragRegions((regions) => {
+            const bar = document.querySelector<HTMLElement>('[data-slot="window-titlebar"]');
+            if (bar?.offsetHeight) titlebarHeight = bar.offsetHeight;
+            wco?.set(geometry());
+            module.publish({ dragRegions: regions });
+          });
+          module.onOverlay((next) => {
+            visible = next;
+            wco?.set(geometry());
+            setOverlay({ visible, layout: settings.windowButtonLayout });
+          });
+        }
+        setOverlay({ visible, layout: settings.windowButtonLayout });
+        module.desktop.watch((next) => {
+          applyLook((settings = next), files);
+          wco?.set(geometry());
+          setOverlay({ visible, layout: settings.windowButtonLayout });
+        });
         // "System" follows the time of day.
         window.setInterval(() => applyLook(settings, files), 60_000);
         document.title = _(options.title);
@@ -97,19 +132,23 @@ export function mountModuleApp(
         setApp({
           render,
           drawn: () => module.publish({ ready: true }),
-          chrome: {
-            appId: options.appId,
-            decorations: options.decorations,
-            ...(options.decorations === "host"
-              ? { insets: hostControlInsets(settings.windowButtonLayout) }
-              : null),
-          },
+          chrome: { appId: options.appId, decorations: options.decorations },
         });
       })().catch((error) => console.error(`[piloti] ${options.appId} could not start`, error));
     }, [domicile]);
 
-    return app ? (
-      <AppChromeProvider value={app.chrome}>
+    const chrome = React.useMemo<AppChrome | undefined>(
+      () =>
+        app && {
+          ...app.chrome,
+          ...(options.decorations === "host"
+            ? { insets: overlay.visible ? hostControlInsets(overlay.layout) : hostControlInsets("") }
+            : null),
+        },
+      [app, overlay]
+    );
+    return app && chrome ? (
+      <AppChromeProvider value={chrome}>
         <div key={locale} className="flex h-screen flex-col overflow-hidden">
           <Drawn onDrawn={app.drawn} />
           {app.render()}
