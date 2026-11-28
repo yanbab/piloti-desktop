@@ -14,21 +14,84 @@ import { AppModuleSurface } from "@/ui/shell/windows/AppModuleSurface";
 import { followTornTab, TEAR_GRAB_Y } from "@/ui/shell/windows/browser-tab-tear";
 import { BROWSER_TAB_RELOAD_EVENT } from "@/ui/shell/windows/browser-shortcuts";
 import { TAB_DROP_ATTR } from "@/ui/shell/windows/browser-tab-drop";
+import { SurfaceSlot } from "@/ui/shell/windows/surface-host";
+
+/** A web window's tabs (a single page is one tab). */
+export function browserTabsOf(win: DesktopWindowInstance): BrowserTab[] {
+  return (
+    win.browserTabs ?? [
+      {
+        id: win.browserWindowId!,
+        url: win.browserUrl ?? "",
+        title: win.title,
+        iconUrl: win.iconUrl,
+      },
+    ]
+  );
+}
+
+/** The view of a tab: rendered once (`surface-host.tsx`), so it survives moving to another window. */
+export const browserTabSurfaceId = (tabId: string) => `browser-tab:${tabId}`;
+
+/** What a tab shows: a page, or an app module with the tab bar on top. */
+export function BrowserTabContent({
+  win,
+  tab,
+  tabbed,
+  darkReaderEnabled,
+  onToggleDarkReader,
+}: {
+  win: DesktopWindowInstance;
+  tab: BrowserTab;
+  tabbed: boolean;
+  darkReaderEnabled: boolean;
+  onToggleDarkReader: () => void;
+}) {
+  const active = tab.id === win.browserWindowId;
+  return (
+    <HeaderEdgesContext.Provider value={tabbed ? "none" : "both"}>
+      {tab.isApp && tab.url.startsWith("domicile://app-") ? (
+        // An app module as a tab: its own frame, the tab bar on top.
+        <AppModuleSurface
+          win={{
+            ...win,
+            browserWindowId: tab.id,
+            browserUrl: tab.url,
+            browserIsApp: true,
+            title: tab.title,
+            iconUrl: tab.iconUrl,
+          }}
+          tabbed={tabbed}
+        />
+      ) : (
+        <WebViewSurface
+          win={
+            active
+              ? win
+              : {
+                ...win,
+                browserWindowId: tab.id,
+                browserUrl: tab.url,
+                title: tab.title,
+                iconUrl: tab.iconUrl,
+              }
+          }
+          active={active}
+          tabbed={tabbed}
+          darkReaderEnabled={darkReaderEnabled}
+          onToggleDarkReader={onToggleDarkReader}
+        />
+      )}
+    </HeaderEdgesContext.Provider>
+  );
+}
 
 /**
  * A web window and its tabs. Every tab keeps its page mounted (switching never
  * reloads it); only the active one is shown. The tab bar appears from two
  * tabs on, under the toolbar (Safari).
  */
-export function BrowserTabsSurface({
-  win,
-  darkReaderEnabled,
-  onToggleDarkReader,
-}: {
-  win: DesktopWindowInstance;
-  darkReaderEnabled: boolean;
-  onToggleDarkReader: () => void;
-}) {
+export function BrowserTabsSurface({ win }: { win: DesktopWindowInstance }) {
   const {
     selectBrowserTab,
     closeBrowserTab,
@@ -39,14 +102,7 @@ export function BrowserTabsSurface({
     updateWindowGeometry,
     openBrowserTab,
   } = useWindowManager();
-  const tabs: BrowserTab[] = win.browserTabs ?? [
-    {
-      id: win.browserWindowId!,
-      url: win.browserUrl ?? "",
-      title: win.title,
-      iconUrl: win.iconUrl,
-    },
-  ];
+  const tabs = browserTabsOf(win);
   const showTabBar = tabs.length > 1;
   // From two tabs on, the tab bar is the window's titlebar (Chrome): window
   // controls and drag strip stay put whatever the tab; each tab keeps its own
@@ -136,7 +192,6 @@ export function BrowserTabsSurface({
         {win.appId === "browser" && <BrowserNewTabButton windowId={win.id} className="text-ui-label-secondary" />}
         {client && <WindowControls side="right" data-window-no-drag />}
       </WindowTitlebar>
-      <HeaderEdgesContext.Provider value={showTabBar ? "none" : "both"}>
       <div className="relative min-h-0 w-full flex-1">
       {tabs.map((tab) => {
         const active = tab.id === win.browserWindowId;
@@ -150,43 +205,12 @@ export function BrowserTabsSurface({
               !active && "invisible pointer-events-none"
             )}
           >
-            {tab.isApp && tab.url.startsWith("domicile://app-") ? (
-              // An app module as a tab: its own frame, the tab bar on top.
-              <AppModuleSurface
-                win={{
-                  ...win,
-                  browserWindowId: tab.id,
-                  browserUrl: tab.url,
-                  browserIsApp: true,
-                  title: tab.title,
-                  iconUrl: tab.iconUrl,
-                }}
-                tabbed={showTabBar}
-              />
-            ) : (
-              <WebViewSurface
-                win={
-                  active
-                    ? win
-                    : {
-                      ...win,
-                      browserWindowId: tab.id,
-                      browserUrl: tab.url,
-                      title: tab.title,
-                      iconUrl: tab.iconUrl,
-                    }
-                }
-                active={active}
-                tabbed={showTabBar}
-                darkReaderEnabled={darkReaderEnabled}
-                onToggleDarkReader={onToggleDarkReader}
-              />
-            )}
+            {/* The tab's view is rendered by the window manager (`BrowserTabContent`). */}
+            <SurfaceSlot surfaceId={browserTabSurfaceId(tab.id)} className="flex h-full w-full" />
           </div>
         );
       })}
       </div>
-      </HeaderEdgesContext.Provider>
     </div>
   );
 }

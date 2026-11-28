@@ -19,6 +19,13 @@ type ResizeEdge = "n" | "e" | "s" | "w" | "ne" | "se" | "sw" | "nw"
 type WindowHandle = {
   startMove: (clientX: number, clientY: number, pointerId?: number) => void
   startResize: (edge: ResizeEdge, clientX: number, clientY: number, pointerId?: number) => void
+  /**
+   * A press or double-click on content that sits in the window but is
+   * rendered elsewhere in React (a view portalled in): handled as if it
+   * reached the window (drag regions, focus, double-click to zoom).
+   */
+  pointerDown: (event: React.PointerEvent<HTMLElement>) => void
+  doubleClick: (event: React.MouseEvent<HTMLElement>) => void
 }
 
 // Invisible resize strips placed mostly outside the frame (3px inward on edges,
@@ -269,6 +276,7 @@ function Window({
   onPointerUp,
   onPointerCancel,
   onDoubleClick,
+  onContextValue,
   ...props
 }: Omit<React.ComponentProps<"div">, "draggable"> & {
   inactive?: boolean
@@ -295,6 +303,8 @@ function Window({
   onSnapPreviewChange?: (zone: "left" | "right" | "full" | null) => void
   onSnapCommit?: (zone: "left" | "right" | "full") => void
   windowRef?: React.Ref<WindowHandle>
+  /** Told what the window gives its content (controls, state), for content portalled in. */
+  onContextValue?: (value: WindowContextValue) => void
 }) {
   const [uncontrolledPosition, setUncontrolledPosition] =
     React.useState<WindowPosition>(defaultPosition ?? { x: 0, y: 0 })
@@ -449,6 +459,9 @@ function Window({
     }),
     [onClose, onMinimize, onZoom, maximized, isResizing, buttonLayout]
   )
+  React.useLayoutEffect(() => {
+    onContextValue?.(context)
+  }, [context, onContextValue])
   const drag = React.useRef<{
     pointer: WindowPosition
     start: WindowPosition
@@ -524,11 +537,6 @@ function Window({
       attachGlobalInteractionListeners()
     }
     setResizing(edge)
-  }
-
-  function startResize(event: React.PointerEvent<HTMLDivElement>, edge: ResizeEdge) {
-    beginResize(event.currentTarget, edge, event.clientX, event.clientY, event.pointerId)
-    event.preventDefault()
   }
 
   function applyResize(clientX: number, clientY: number) {
@@ -754,12 +762,19 @@ function Window({
   }
 
   function handlePointerDown(event: React.PointerEvent<HTMLDivElement>) {
-    onPointerDown?.(event)
+    pointerDownOn(event.currentTarget, event, resizable ? resizeEdge(event) : undefined)
+  }
+
+  function pointerDownOn(
+    node: HTMLDivElement,
+    event: React.PointerEvent<HTMLElement>,
+    edge: ResizeEdge | undefined
+  ) {
+    onPointerDown?.(event as React.PointerEvent<HTMLDivElement>)
     if (event.defaultPrevented || event.button !== 0) return
 
     if (maximized) {
       if (!draggable || !onZoom) return
-      const node = event.currentTarget
       const target = event.target as HTMLElement
       const region = target.closest(DRAG_REGION)
       if (
@@ -779,12 +794,14 @@ function Window({
       return
     }
 
-    const edge = resizable ? resizeEdge(event) : undefined
     pressedEdge.current = edge
-    if (edge) return startResize(event, edge)
+    if (edge) {
+      beginResize(node, edge, event.clientX, event.clientY, event.pointerId)
+      event.preventDefault()
+      return
+    }
     if (!draggable) return
 
-    const node = event.currentTarget
     const target = event.target as HTMLElement
     const region = target.closest(DRAG_REGION)
     if (
@@ -913,7 +930,35 @@ function Window({
     }
   }
 
+  // Double-clicking the title bar toggles window zoom/maximize. True when it did.
+  function doubleClickOn(node: HTMLDivElement, event: React.MouseEvent<HTMLElement>): boolean {
+    onDoubleClick?.(event as React.MouseEvent<HTMLDivElement>)
+    const target = event.target as HTMLElement
+    const region = target.closest(DRAG_REGION)
+    const isSidebarBody = Boolean(
+      target.closest('aside, [data-slot="ui-sidebar"]') &&
+        !target.closest('[data-slot="window-titlebar"], [data-slot="ui-sidebar-header"]')
+    )
+    if (
+      onZoom &&
+      !event.defaultPrevented &&
+      !isSidebarBody &&
+      region?.closest('[data-slot="window"]') === node &&
+      !target.closest(DOUBLE_CLICK_NO_ZOOM)
+    ) {
+      onZoom()
+      return true
+    }
+    return false
+  }
+
   React.useImperativeHandle(windowRef, () => ({
+    pointerDown: (event: React.PointerEvent<HTMLElement>) => {
+      if (element.current) pointerDownOn(element.current, event, undefined)
+    },
+    doubleClick: (event: React.MouseEvent<HTMLElement>) => {
+      if (element.current) doubleClickOn(element.current, event)
+    },
     startMove: (clientX: number, clientY: number, pointerId?: number) => {
       const node = element.current
       if (!node || !draggable) return
@@ -1008,24 +1053,7 @@ function Window({
           finishInteraction()
         }}
         onDoubleClick={(event) => {
-          onDoubleClick?.(event)
-          // Double-clicking the title bar toggles window zoom/maximize.
-          const target = event.target as HTMLElement
-          const region = target.closest(DRAG_REGION)
-          const isSidebarBody = Boolean(
-            target.closest('aside, [data-slot="ui-sidebar"]') &&
-              !target.closest('[data-slot="window-titlebar"], [data-slot="ui-sidebar-header"]')
-          )
-          if (
-            onZoom &&
-            !event.defaultPrevented &&
-            !isSidebarBody &&
-            region?.closest('[data-slot="window"]') === event.currentTarget &&
-            !target.closest(DOUBLE_CLICK_NO_ZOOM)
-          ) {
-            onZoom()
-            return
-          }
+          if (doubleClickOn(event.currentTarget, event)) return
           const edge =
             resizeEdge(event) ??
             (event.target === event.currentTarget ? pressedEdge.current : undefined)
@@ -1203,12 +1231,18 @@ function WindowControls({
   )
 }
 
-export type { WindowHandle, WindowInsets, WindowPosition, WindowSize, ResizeEdge as WindowResizeEdge }
+/** Gives content rendered outside a window (portalled in) the window's context. */
+function WindowContextProvider({ value, children }: { value: WindowContextValue | null; children: React.ReactNode }) {
+  return <WindowContext.Provider value={value}>{children}</WindowContext.Provider>
+}
+
+export type { WindowContextValue, WindowHandle, WindowInsets, WindowPosition, WindowSize, ResizeEdge as WindowResizeEdge }
 export {
   isCloseOnLeft,
   parseWindowButtonLayout,
   useWindowContext,
   Window,
+  WindowContextProvider,
   WindowContent,
   WindowControlButton,
   WindowControls,

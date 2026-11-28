@@ -33,6 +33,8 @@ import { DropdownMenu, DropdownMenuContent } from "@/ui/components/ui/dropdown-m
 import {
   Window,
   WindowContent,
+  WindowContextProvider,
+  type WindowContextValue,
   type WindowHandle,
   WindowMain,
   type WindowResizeEdge,
@@ -45,7 +47,9 @@ import {
 } from "@/ui/context/DesktopStateContext";
 import { cn } from "@/core/util/utils";
 import { useCapabilities } from "@/ui/hooks/use-capabilities";
-import { WindowBody } from "@/ui/shell/windows/WindowBody";
+import { showsBrowserTabs, WindowBody } from "@/ui/shell/windows/WindowBody";
+import { BrowserTabContent, browserTabSurfaceId, browserTabsOf } from "@/ui/shell/windows/BrowserTabsSurface";
+import { SurfacePortal, SurfaceSlot } from "@/ui/shell/windows/surface-host";
 import { dismissOpenPopups } from "@/ui/shell/windows/dismiss-popups";
 
 const DOMICILE_RESIZE_EDGE_MAP: Record<number, WindowResizeEdge> = {
@@ -624,6 +628,77 @@ export function WindowManager() {
 
   const renderedWindows = windows;
 
+  // What each window gives its content (controls, maximized…), for the views
+  // rendered outside it.
+  // Its handlers change every render: the views get stable ones that call the
+  // latest, and a new value only when what they show changes.
+  const [windowContexts, setWindowContexts] = React.useState<Record<string, WindowContextValue>>({});
+  const latestWindowContexts = React.useRef(new Map<string, WindowContextValue>());
+  const publishWindowContext = React.useCallback((windowId: string, value: WindowContextValue) => {
+    latestWindowContexts.current.set(windowId, value);
+    setWindowContexts((prev) => {
+      const cur = prev[windowId];
+      if (
+        cur &&
+        cur.maximized === value.maximized &&
+        cur.resizing === value.resizing &&
+        cur.buttonLayout === value.buttonLayout &&
+        !cur.onClose === !value.onClose &&
+        !cur.onMinimize === !value.onMinimize &&
+        !cur.onZoom === !value.onZoom
+      ) {
+        return prev;
+      }
+      const latest = () => latestWindowContexts.current.get(windowId);
+      return {
+        ...prev,
+        [windowId]: {
+          maximized: value.maximized,
+          resizing: value.resizing,
+          buttonLayout: value.buttonLayout,
+          onClose: value.onClose && (() => latest()?.onClose?.()),
+          onMinimize: value.onMinimize && (() => latest()?.onMinimize?.()),
+          onZoom: value.onZoom && (() => latest()?.onZoom?.()),
+        },
+      };
+    });
+  }, []);
+  React.useEffect(() => {
+    setWindowContexts((prev) => {
+      const open = new Set(windows.map((w) => w.id));
+      return Object.keys(prev).every((id) => open.has(id))
+        ? prev
+        : Object.fromEntries(Object.entries(prev).filter(([id]) => open.has(id)));
+    });
+    for (const id of latestWindowContexts.current.keys()) {
+      if (!windows.some((w) => w.id === id)) latestWindowContexts.current.delete(id);
+    }
+  }, [windows]);
+
+  const isClientFrame = (win: DesktopWindowInstance) =>
+    settings.windowDecorationMode === "csd" ||
+    (settings.windowDecorationMode === "auto" && Boolean(win.clientFrame));
+
+  // Right-click on a titlebar or header: the window menu (same as the ⋮ button).
+  const openTitlebarMenu = (windowId: string, e: React.MouseEvent<HTMLElement>) => {
+    e.stopPropagation();
+    const target = e.target as HTMLElement | null;
+    const isSidebarBody = Boolean(
+      target?.closest('[data-slot="ui-sidebar"], aside') &&
+      !target?.closest('[data-slot="window-titlebar"]'),
+    );
+    if (
+      !isSidebarBody &&
+      target?.closest(
+        '[data-slot="window-titlebar"], [data-window-drag-region], [data-slot="ui-sidebar-header"]',
+      )
+    ) {
+      e.preventDefault();
+      focusWindow(windowId);
+      setWindowContextMenu({ windowId, x: e.clientX, y: e.clientY });
+    }
+  };
+
   return (
     <div
       className="relative isolate z-10 min-h-0 flex-1 overflow-clip"
@@ -679,9 +754,7 @@ export function WindowManager() {
         {renderedWindows.map((win) => {
           const isActiveWorkspace = win.workspace === settings.activeWorkspace;
           const isFocused = isActiveWorkspace && focusedWindowId === win.id;
-          const isCsd =
-            settings.windowDecorationMode === "csd" ||
-            (settings.windowDecorationMode === "auto" && Boolean(win.clientFrame));
+          const isCsd = isClientFrame(win);
           const isWaylandSurface = Boolean(win.waylandAppId) && compositor;
           const ovLayout =
             overviewOpen && isActiveWorkspace
@@ -712,6 +785,7 @@ export function WindowManager() {
                 }
               }}
               tabIndex={-1}
+              onContextValue={(value) => publishWindowContext(win.id, value)}
               windowRef={(handle) => {
                 if (handle) {
                   windowHandlesRef.current.set(win.id, handle);
@@ -757,28 +831,7 @@ export function WindowManager() {
                   ? undefined
                   : () => toggleMaximizeWindow(win.id)
               }
-              onContextMenu={(e) => {
-                e.stopPropagation();
-                const target = e.target as HTMLElement | null;
-                const isSidebarBody = Boolean(
-                  target?.closest('[data-slot="ui-sidebar"], aside') &&
-                  !target?.closest('[data-slot="window-titlebar"]'),
-                );
-                if (
-                  !isSidebarBody &&
-                  target?.closest(
-                    '[data-slot="window-titlebar"], [data-window-drag-region], [data-slot="ui-sidebar-header"]',
-                  )
-                ) {
-                  e.preventDefault();
-                  focusWindow(win.id);
-                  setWindowContextMenu({
-                    windowId: win.id,
-                    x: e.clientX,
-                    y: e.clientY,
-                  });
-                }
-              }}
+              onContextMenu={(e) => openTitlebarMenu(win.id, e)}
               onWheel={(e) => e.stopPropagation()}
               onPointerDown={() => {
                 if (!isFocused) {
@@ -856,28 +909,72 @@ export function WindowManager() {
                 )}
 
                 <WindowContent className="flex flex-col overflow-hidden">
-                  <WindowAppChrome
-                    windowId={win.id}
-                    appId={win.appId}
-                    // The terminal never gets a server-side titlebar.
-                    isCsd={isCsd || win.builtinComponent === "terminal"}
-                  >
-                    <WindowBody
-                      win={win}
-                      onDomReady={handleDomReady}
-                      darkReaderEnabled={Boolean(
-                        darkReaderByWindowId[win.id] ??
-                        settings.darkReaderWebEnabled
-                      )}
-                      onToggleDarkReader={() => toggleDarkReaderForWindow(win.id)}
-                    />
-                  </WindowAppChrome>
+                  {/* The view is rendered below (`SurfacePortal`) and shown here. */}
+                  <SurfaceSlot surfaceId={win.id} className="flex min-h-0 w-full flex-1 flex-col" />
                 </WindowContent>
               </WindowMain>
             </Window>
           );
         })}
       </div>
+      {/* Every window's view, and every web tab's, rendered once whatever
+          window shows it (`surface-host.tsx`): one list, so a tab moving to
+          another window keeps its place in React. */}
+      {renderedWindows.flatMap((win) => [
+        <SurfacePortal
+          key={win.id}
+          surfaceId={win.id}
+          events={{
+            onPointerDown: (e) => windowHandlesRef.current.get(win.id)?.pointerDown(e),
+            onDoubleClick: (e) => windowHandlesRef.current.get(win.id)?.doubleClick(e),
+            onContextMenu: (e) => openTitlebarMenu(win.id, e),
+          }}
+        >
+          <WindowContextProvider value={windowContexts[win.id] ?? null}>
+            <WindowAppChrome
+              windowId={win.id}
+              appId={win.appId}
+              // The terminal never gets a server-side titlebar.
+              isCsd={isClientFrame(win) || win.builtinComponent === "terminal"}
+            >
+              <WindowBody
+                win={win}
+                onDomReady={handleDomReady}
+                darkReaderEnabled={Boolean(
+                  darkReaderByWindowId[win.id] ??
+                  settings.darkReaderWebEnabled
+                )}
+                onToggleDarkReader={() => toggleDarkReaderForWindow(win.id)}
+              />
+            </WindowAppChrome>
+          </WindowContextProvider>
+        </SurfacePortal>,
+        ...(showsBrowserTabs(win, compositor) ? browserTabsOf(win) : []).map((tab) => (
+          <SurfacePortal
+            key={browserTabSurfaceId(tab.id)}
+            surfaceId={browserTabSurfaceId(tab.id)}
+            events={{
+              onPointerDown: (e) => windowHandlesRef.current.get(win.id)?.pointerDown(e),
+              onDoubleClick: (e) => windowHandlesRef.current.get(win.id)?.doubleClick(e),
+              onContextMenu: (e) => openTitlebarMenu(win.id, e),
+            }}
+          >
+            <WindowContextProvider value={windowContexts[win.id] ?? null}>
+              <WindowAppChrome windowId={win.id} appId={win.appId} isCsd={isClientFrame(win)}>
+                <BrowserTabContent
+                  win={win}
+                  tab={tab}
+                  tabbed={(win.browserTabs?.length ?? 0) > 1}
+                  darkReaderEnabled={Boolean(
+                    darkReaderByWindowId[win.id] ?? settings.darkReaderWebEnabled
+                  )}
+                  onToggleDarkReader={() => toggleDarkReaderForWindow(win.id)}
+                />
+              </WindowAppChrome>
+            </WindowContextProvider>
+          </SurfacePortal>
+        )),
+      ])}
       <WorkspaceTransition
         stageRef={workspaceStageRef}
         empty={!overviewOpen && !renderedWindows.some((w) => w.workspace === settings.activeWorkspace && !w.minimized)}

@@ -102,6 +102,11 @@ Nothing the entry imports up front may read `$HOME` (the build checks).
   (`core/windows/layout/`: tabs now, splits and the mosaic next). What a launch does is decided by
   `core/windows/launch-plan.ts` (tested); the context carries it out.
 - Windows keep their DOM order and are hidden with CSS, so iframes don't reload.
+- A window's view, and each web tab's, is rendered once in a flat list and
+  shown in its window through a slot (`ui/shell/windows/surface-host.tsx`):
+  a tab moving to another window keeps its React state (an iframe moved
+  between windows still reloads). Presses and double-clicks in a view are
+  handed to its window (`WindowHandle.pointerDown`, `doubleClick`).
 - Bounds and workspace are saved per URL, document or app.
 - Folders opened on a folder keeps view, sort and zoom per folder
   (`metadata::piloti-view`); opened without one, a single view in

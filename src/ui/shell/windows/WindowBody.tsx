@@ -122,6 +122,12 @@ function WindowDomReadySignal({
   return null;
 }
 
+/** A web window drawn with its tabs (a single app module is drawn on its own). */
+export function showsBrowserTabs(win: DesktopWindowInstance, compositor: boolean): boolean {
+  if (!win.browserWindowId || (win.waylandAppId && compositor)) return false;
+  return !(isAppModuleWindow(win) && (win.browserTabs?.length ?? 0) < 2);
+}
+
 export const WindowBody = React.memo(
   function WindowBody({
     win,
@@ -142,19 +148,14 @@ export const WindowBody = React.memo(
       return <WaylandAppSurface win={win} />;
     }
 
-    // An app module on its own; as a tab, the tabs surface draws it.
-    if (win.browserWindowId && isAppModuleWindow(win) && (win.browserTabs?.length ?? 0) < 2) {
-      return <AppModuleSurface win={win} />;
+    if (showsBrowserTabs(win, compositor)) {
+      // Its tabs' views are rendered by the window manager (`BrowserTabContent`).
+      return <BrowserTabsSurface win={win} />;
     }
 
+    // An app module on its own; as a tab, the tabs surface draws it.
     if (win.browserWindowId) {
-      return (
-        <BrowserTabsSurface
-          win={win}
-          darkReaderEnabled={darkReaderEnabled}
-          onToggleDarkReader={onToggleDarkReader}
-        />
-      );
+      return <AppModuleSurface win={win} />;
     }
 
     if (win.builtinComponent && win.isolated) {
