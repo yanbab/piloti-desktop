@@ -5,10 +5,11 @@
 // and it survives restarts. Unchecked, the app follows the desktop style.
 
 export function activate(ctx) {
-  const appOf = (windowId) => ctx.windows.get(windowId)?.appId;
+  const { windows, apps } = ctx.piloti.desktop;
+  const appOf = (windowId) => windows.get(windowId)?.appId;
   const isDark = (windowId) => {
     const appId = appOf(windowId);
-    return Boolean(appId) && ctx.apps.getSetting(appId, "color-scheme") === "dark";
+    return Boolean(appId) && apps.getSetting(appId, "color-scheme") === "dark";
   };
 
   ctx.windows.addMenuItem({
@@ -18,7 +19,7 @@ export function activate(ctx) {
     onSelect: (windowId) => {
       const appId = appOf(windowId);
       if (!appId) return;
-      ctx.apps.setSetting(appId, "color-scheme", isDark(windowId) ? null : "dark");
+      apps.setSetting(appId, "color-scheme", isDark(windowId) ? null : "dark");
     },
   });
 }

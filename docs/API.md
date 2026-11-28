@@ -2,14 +2,19 @@
 
 `piloti` is Domicile's desktop (SDK 3.0.0) plus what the shell adds.
 
-| Member | What | Where |
-|---|---|---|
-| `.vfs` | files | everywhere |
-| `.settings`, `.desktop`, `.plugins`, `.notifications.push` | shell additions | `window.piloti` |
-| `.files`, `.processes`, `.dbus`… | Domicile | everywhere |
+| Member | What |
+|---|---|
+| `.vfs` | files |
+| `.desktop`, `.settings`, `.plugins` | what the shell adds |
+| `.files`, `.processes`, `.dbus`… | Domicile, left as it is |
 
-"Everywhere" is `usePiloti()`, the `piloti` argument in engine code and
-`window.piloti`. The latter is for scripts, plugins and the console.
+It is one object: `usePiloti()`, the `piloti` argument in engine code, a
+plugin's `ctx.piloti`, and `window.piloti` for scripts and the console. App
+modules only have `vfs` of the additions.
+
+The additions are typed in `src/lib/ports/shell-api.ts`; changing them is an
+API change. Live lists are a property plus `on("change", fn)`, as in Domicile, so
+`useWatch` works. Actions return nothing, and an unknown id does nothing.
 
 ## vfs
 
@@ -38,13 +43,13 @@ thumbnail(path)                     data URL or undefined
 
 ## settings
 
-Schema id plus typed keys (`string`, `number`, `boolean`, `string[]`).
+Schema id plus typed keys (`string`, `number`, `boolean`, `string[]`). Schema
+ids and key names are public.
 
 ```
 get(schema, key)  set(schema, key, value)  reset(schema, key)
 watch(schema, key, fn)    returns stop
 schemas                   defined schemas
-get()  update(patch)      older whole-desktop object
 ```
 
 In shell code (`lib/engine/settings.ts`):
@@ -77,17 +82,33 @@ An app file's `[General]` section holds keys the shell applies to the app
 (`getAppSetting`, `setAppSetting`, `ctx.apps`). Unknown schemas read as text.
 Remembered state (window bounds, history) is not a setting.
 
-## Other shell additions
+## desktop
+
+`piloti.windows` is Linux client windows; `desktop.windows` is every window of
+the shell, those included.
 
 ```
-desktop         list, launchApp(id), openWebUrl(url, title?), focus(id),
-                close(id), minimize(id), toggleMaximize(id)
-notifications   push({ summary, body?, urgency? })
-plugins         list
+windows.list  windows.get(id)           { id, appId, title, workspace,
+windows.on("change", fn)                  position, size, minimized, maximized }
+windows.focus(id)  close(id)  minimize(id)  toggleMaximize(id)
+windows.workArea                        what a maximized window fills
+
+apps.launch(appId, { payload?, forceNew? })
+apps.getSetting(appId, key)             keys the shell applies to an app
+apps.setSetting(appId, key, value)      null removes it
+
+openUrl(url, { title?, asApp? })
+notify({ summary, body?, urgency?, appName? })
+toggleLauncher()  toggleOverview()
 ```
 
-`desktop` is the shell's own windows; `windows` is Linux client windows.
-Installed apps are not listed here (React: `useApps()`).
+## plugins
+
+```
+list  on("change", fn)      { id, name, kind, version?, enabled, error? }
+```
+
+Writing one: [PLUGINS.md](./PLUGINS.md).
 
 ## Domicile
 

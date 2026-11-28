@@ -121,10 +121,6 @@ function WindowsLayer({ children }: { children: React.ReactNode }) {
     systemBackendsValue,
     appsValue
   );
-  const windowsRef = React.useRef(windowsValue.windows);
-  windowsRef.current = windowsValue.windows;
-  const getWindows = React.useCallback(() => windowsRef.current, []);
-
   // Latest value for the external store + stable action wrappers.
   const latestRef = React.useRef(windowsValue);
   latestRef.current = windowsValue;
@@ -174,7 +170,7 @@ function WindowsLayer({ children }: { children: React.ReactNode }) {
     <WindowManagerStoreContext.Provider value={store}>
       <WindowActionsContext.Provider value={actionsValue}>
         <WindowsContext.Provider value={windowsValue}>
-          <PluginsProvider getWindows={getWindows}>{children}</PluginsProvider>
+          <PluginsProvider>{children}</PluginsProvider>
         </WindowsContext.Provider>
       </WindowActionsContext.Provider>
     </WindowManagerStoreContext.Provider>

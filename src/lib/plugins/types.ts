@@ -4,20 +4,9 @@ import type {
   WindowPresentation,
   WorkArea,
 } from "@/lib/windows/window-presentation";
+import type { PilotiNotification } from "@/lib/ports/shell-api";
 
 export type { WindowMenuItem, WindowPresentation, WorkArea };
-
-/** A window as plugins see it (geometry in work-area coordinates). */
-export interface PluginWindowInfo {
-  id: string;
-  appId: string;
-  title: string;
-  workspace: number;
-  position: { x: number; y: number };
-  size: { width: number; height: number };
-  minimized: boolean;
-  maximized: boolean;
-}
 
 export interface PluginCommandManifest {
   id: string;
@@ -150,28 +139,16 @@ export interface PilotiPluginContext {
   wallpapers: {
     register: (wallpaper: PluginWallpaperInput) => () => void;
   };
+  /** What is undone when the plugin stops; the rest is on `piloti.desktop`. */
   windows: {
-    openWebUrl: (url: string, title?: string) => void;
-    launchApp: (appId: string) => void;
-    list: () => PluginWindowInfo[];
-    get: (windowId: string) => PluginWindowInfo | undefined;
-    focus: (windowId: string) => void;
-    /** Usable area (what a maximized window fills). */
-    getWorkArea: () => WorkArea;
     /** Show a window scaled and moved, without changing its geometry. */
     setPresentation: (windowId: string, presentation: WindowPresentation | null) => void;
     getPresentation: (windowId: string) => WindowPresentation | undefined;
     /** Add an entry to the window menus (⋮ button and titlebar right-click). */
     addMenuItem: (item: WindowMenuItem) => () => void;
   };
-  /** Per-app settings (`~/.config/piloti/apps/<app-id>.ini`); `color-scheme=dark` forces an app dark. */
-  apps: {
-    getSetting: (appId: string, key: string) => string | undefined;
-    setSetting: (appId: string, key: string, value: string | null) => void;
-  };
-  notifications: {
-    push: (opts: { summary: string; body?: string; urgency?: "low" | "normal" | "critical" }) => void;
-  };
+  /** A notification in the plugin's name. */
+  notify: (notification: Omit<PilotiNotification, "appName">) => void;
   storage: {
     get: <T = unknown>(key: string) => T | undefined;
     set: (key: string, value: unknown) => void;

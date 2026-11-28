@@ -1,9 +1,15 @@
 import type { Domicile } from "@domicile-desktop/sdk/desktop/desktop";
+import { shellApi } from "@/lib/engine/shell-api";
+import type { PilotiShellApi } from "@/lib/ports/shell-api";
 import type { Vfs } from "@/lib/ports/vfs";
 
-/** Domicile's desktop with `vfs`, which each entry point adds for its engine. */
-export function withVfs(domicile: Domicile, vfs: Vfs): Domicile & { readonly vfs: Vfs } {
+/**
+ * `piloti`: Domicile's desktop with `vfs`, which each entry point adds for its
+ * engine, and what the shell adds. Domicile's own namespaces are left alone.
+ */
+export function withVfs(domicile: Domicile, vfs: Vfs): Domicile & PilotiShellApi & { readonly vfs: Vfs } {
+  const added: Record<string | symbol, unknown> = { vfs, ...shellApi };
   return new Proxy(domicile, {
-    get: (target, key) => (key === "vfs" ? vfs : Reflect.get(target, key, target)),
-  }) as Domicile & { readonly vfs: Vfs };
+    get: (target, key) => (Object.hasOwn(added, key) ? added[key] : Reflect.get(target, key, target)),
+  }) as Domicile & PilotiShellApi & { readonly vfs: Vfs };
 }

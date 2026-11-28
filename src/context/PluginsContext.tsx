@@ -4,13 +4,9 @@ import { startBootPhase } from "@/lib/core/perf-log";
 import { latestRunner } from "@/lib/plugins/latest-run";
 import { VFS_HOME } from "@/lib/engine/vfs-home";
 import * as React from "react";
-import { extendDomicile, type PilotiShellApi, usePiloti } from "@/lib/engine/piloti";
-import { listSettingsSchemas, settingsFor } from "@/lib/engine/settings";
-import {
-  useSettings,
-  useSystemBackends,
-  useWindowActions,
-} from "@/context/DesktopStateContext";
+import { usePiloti } from "@/lib/engine/piloti";
+import { useShellApi } from "@/context/use-shell-api";
+import { useSettings } from "@/context/DesktopStateContext";
 import {
   discoverPlugins,
   injectPluginCss,
@@ -24,7 +20,6 @@ import { BUNDLED_PLUGINS } from "@/lib/plugins/bundled";
 import { _ } from "@/lib/core/i18n";
 import { useCapabilities } from "@/hooks/use-capabilities";
 import { parseIniText, serializeIniText } from "@/lib/config/ini";
-import { getAppSetting, setAppSetting } from "@/lib/core/app-settings";
 import { consumeLegacyLocalStorageValue } from "@/lib/engine/vfs-state";
 import {
   readVfsStateJson,
@@ -40,13 +35,10 @@ import type {
   PilotiPluginContext,
   PluginCommandEntry,
   PluginWallpaperEntry,
-  PluginWindowInfo,
 } from "@/lib/plugins/types";
-import type { DesktopWindowInstance } from "@/context/WindowsContext";
 import {
   addWindowMenuItem,
   getWindowPresentation,
-  getWorkArea,
   setWindowPresentation,
 } from "@/lib/windows/window-presentation";
 
@@ -67,19 +59,6 @@ interface PluginsContextValue {
 }
 
 const PluginsContext = React.createContext<PluginsContextValue | null>(null);
-
-function listPluginWindows(raw: unknown[] | undefined): PluginWindowInfo[] {
-  return ((raw ?? []) as DesktopWindowInstance[]).map((w) => ({
-    id: w.id,
-    appId: w.appId,
-    title: w.title,
-    workspace: w.workspace,
-    position: { ...w.position },
-    size: { ...w.size },
-    minimized: w.minimized,
-    maximized: w.maximized,
-  }));
-}
 
 /** Wraps a plugin predicate so a throwing plugin cannot break a menu. */
 function guardPluginCallback(
@@ -109,25 +88,10 @@ function isSafeModeRequested(): boolean {
   }
 }
 
-export function PluginsProvider({
-  children,
-  getWindows,
-}: {
-  children: React.ReactNode;
-  getWindows?: () => unknown[];
-}) {
+export function PluginsProvider({ children }: { children: React.ReactNode }) {
   const piloti = usePiloti();
   const { systemServices } = useCapabilities();
   const { settings, updateSettings } = useSettings();
-  const {
-    openWebUrl,
-    launchApp,
-    focusWindow,
-    closeWindow,
-    minimizeWindow,
-    toggleMaximizeWindow,
-  } = useWindowActions();
-  const { pushNotification } = useSystemBackends();
 
   const [safeMode] = React.useState(() => isSafeModeRequested());
   const [plugins, setPlugins] = React.useState<DiscoveredPlugin[]>([]);
@@ -151,87 +115,8 @@ export function PluginsProvider({
   const pluginsRef = React.useRef<DiscoveredPlugin[]>([]);
   pluginsRef.current = plugins;
 
-  // Keep latest shell actions in refs so plugin callbacks never go stale
-  const shellActionsRef = React.useRef({
-    getWindows,
-    openWebUrl,
-    launchApp,
-    focusWindow,
-    closeWindow,
-    minimizeWindow,
-    toggleMaximizeWindow,
-    pushNotification,
-    settings,
-    updateSettings,
-  });
-  shellActionsRef.current = {
-    getWindows,
-    openWebUrl,
-    launchApp,
-    focusWindow,
-    closeWindow,
-    minimizeWindow,
-    toggleMaximizeWindow,
-    pushNotification,
-    settings,
-    updateSettings,
-  };
-
-  // The `piloti` global, for scripts, top-level JS plugins and the console
-  React.useEffect(() => {
-    if (typeof window === "undefined") return;
-    window.piloti = extendDomicile(piloti, {
-      desktop: {
-        get list() {
-          return shellActionsRef.current.getWindows?.() ?? [];
-        },
-        openWebUrl: (url: string, title?: string) =>
-          shellActionsRef.current.openWebUrl(url, title ? { title } : undefined),
-        launchApp: (appId: string) =>
-          shellActionsRef.current.launchApp(appId),
-        focus: (id: string) => shellActionsRef.current.focusWindow(id),
-        close: (id: string) => shellActionsRef.current.closeWindow(id),
-        minimize: (id: string) => shellActionsRef.current.minimizeWindow(id),
-        toggleMaximize: (id: string) =>
-          shellActionsRef.current.toggleMaximizeWindow(id),
-      },
-      notifications: {
-        push: (opts: {
-          summary: string;
-          body?: string;
-          urgency?: "low" | "normal" | "critical";
-        }) =>
-          shellActionsRef.current.pushNotification({
-            appName: "Piloti Plugin",
-            summary: opts.summary,
-            body: opts.body ?? "",
-            urgency: opts.urgency,
-          }),
-      },
-      settings: {
-        get: ((schema?: string, key?: string) =>
-          schema === undefined || key === undefined
-            ? shellActionsRef.current.settings
-            : settingsFor(schema).get(key)) as PilotiShellApi["settings"]["get"],
-        set: (schema, key, value) => settingsFor(schema).set(key, value),
-        reset: (schema, key) => settingsFor(schema).reset(key),
-        watch: (schema, key, onChange) => {
-          const settings = settingsFor(schema);
-          return settings.subscribe(key, () => onChange(settings.get(key)));
-        },
-        get schemas() {
-          return listSettingsSchemas();
-        },
-        update: (patch) =>
-          shellActionsRef.current.updateSettings(patch as Parameters<typeof updateSettings>[0]),
-      },
-      plugins: {
-        get list() {
-          return pluginsRef.current;
-        },
-      },
-    });
-  }, [piloti]);
+  // `piloti.desktop`, `.settings`, `.plugins` and the `piloti` global.
+  useShellApi(plugins);
 
   const disposePlugin = React.useCallback((pluginId: string) => {
     const cbs = disposablesRef.current.get(pluginId);
@@ -354,16 +239,6 @@ export function PluginsProvider({
           },
         },
         windows: {
-          openWebUrl: (url, title) =>
-            shellActionsRef.current.openWebUrl(url, title ? { title } : undefined),
-          launchApp: (appId) => shellActionsRef.current.launchApp(appId),
-          list: () => listPluginWindows(shellActionsRef.current.getWindows?.()),
-          get: (windowId) =>
-            listPluginWindows(shellActionsRef.current.getWindows?.()).find(
-              (w) => w.id === windowId
-            ),
-          focus: (windowId) => shellActionsRef.current.focusWindow(windowId),
-          getWorkArea,
           getPresentation: getWindowPresentation,
           setPresentation: (windowId, presentation) => {
             if (presentation && !presentedIds.has(windowId)) {
@@ -398,19 +273,8 @@ export function PluginsProvider({
             return remove;
           },
         },
-        apps: {
-          getSetting: getAppSetting,
-          setSetting: setAppSetting,
-        },
-        notifications: {
-          push: (opts) =>
-            shellActionsRef.current.pushNotification({
-              appName: pluginId,
-              summary: opts.summary,
-              body: opts.body ?? "",
-              urgency: opts.urgency,
-            }),
-        },
+        notify: (notification) =>
+          piloti.desktop.notify({ ...notification, appName: pluginId }),
         storage: {
           get: <T = unknown,>(key: string) => {
             try {
@@ -521,9 +385,9 @@ export function PluginsProvider({
             keywords: cmd.keywords,
             run: () => {
               if (cmd.url) {
-                shellActionsRef.current.openWebUrl(cmd.url, { title: cmd.title });
+                piloti.desktop.openUrl(cmd.url, { title: cmd.title });
               } else if (cmd.appId) {
-                shellActionsRef.current.launchApp(cmd.appId);
+                piloti.desktop.apps.launch(cmd.appId);
               } else if (cmd.exec && cmd.exec.length > 0) {
                 spawnProgram(piloti, cmd.exec);
               }
@@ -746,7 +610,7 @@ export function PluginsProvider({
         const content =
           kind === "css"
             ? `/* Piloti CSS Plugin — edit me in ~/.config/piloti/plugins/${fileName} */\n:root {\n  --ui-accent: #9141ac;\n}\n`
-            : `// Piloti JS Plugin — no manifest.json required\nexport function activate(ctx) {\n  let clicks = 0;\n  const item = ctx.menubar.addStatusItem({\n    id: "hello",\n    label: "★ 0",\n    tooltip: "Sample plugin status item",\n    onClick() {\n      clicks += 1;\n      item.update({ label: \`★ \${clicks}\` });\n      ctx.notifications.push({\n        summary: "Sample Plugin",\n        body: \`Clicked \${clicks} time(s)\`,\n      });\n    },\n  });\n}\n`;
+            : `// Piloti JS Plugin — no manifest.json required\nexport function activate(ctx) {\n  let clicks = 0;\n  const item = ctx.menubar.addStatusItem({\n    id: "hello",\n    label: "★ 0",\n    tooltip: "Sample plugin status item",\n    onClick() {\n      clicks += 1;\n      item.update({ label: \`★ \${clicks}\` });\n      ctx.notify({\n        summary: "Sample Plugin",\n        body: \`Clicked \${clicks} time(s)\`,\n      });\n    },\n  });\n}\n`;
 
         await hostFiles(piloti).write(relPath, content);
         const current = settings.enabledPluginIds ?? [];

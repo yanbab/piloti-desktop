@@ -16,6 +16,7 @@ const MAX_WIDTH_RATIO = 0.7;
 const MARGIN = 6; // same gap as the shell's floating windows and menus
 
 export function activate(ctx) {
+  const { windows } = ctx.piloti.desktop;
   const pipWindows = new Set();
 
   const naturalSize = (win, area) =>
@@ -25,7 +26,7 @@ export function activate(ctx) {
 
   // Last place and width the user gave a PiP window, or the bottom-right corner.
   function initialRect(win) {
-    const area = ctx.windows.getWorkArea();
+    const area = windows.workArea;
     const natural = naturalSize(win, area);
     const saved = ctx.storage.get("rect");
     const width = Math.round(
@@ -47,9 +48,9 @@ export function activate(ctx) {
   }
 
   function enter(windowId) {
-    const win = ctx.windows.get(windowId);
+    const win = windows.get(windowId);
     if (!win) return;
-    const area = ctx.windows.getWorkArea();
+    const area = windows.workArea;
     pipWindows.add(windowId);
     ctx.windows.setPresentation(windowId, {
       ...initialRect(win),
@@ -68,7 +69,7 @@ export function activate(ctx) {
   function exit(windowId) {
     pipWindows.delete(windowId);
     ctx.windows.setPresentation(windowId, null);
-    ctx.windows.focus(windowId);
+    windows.focus(windowId);
   }
 
   // The shell drops the presentation of a window that closes.

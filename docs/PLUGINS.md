@@ -43,7 +43,7 @@ export function activate(ctx) {
   const item = ctx.menubar.addStatusItem({
     id: "hello",
     label: "Hello",
-    onClick: () => ctx.notifications.push({ summary: "Hello" }),
+    onClick: () => ctx.notify({ summary: "Hello" }),
   });
   ctx.onCleanup(() => item.remove());
 }
@@ -52,26 +52,27 @@ export function activate(ctx) {
 `deactivate()` is optional; top-level code can use `window.piloti`. Plugins run
 unsandboxed.
 
+`ctx` holds what is undone when the plugin stops. The rest, windows and apps
+included, is the [Piloti API](./API.md) on `ctx.piloti`.
+
 | `ctx` | Members |
 |---|---|
 | `menubar` | `addStatusItem` |
 | `launcher` | `registerProvider` |
 | `commands`, `wallpapers` | `register` |
-| `windows` | `openWebUrl`, `launchApp`, `list`, `get`, `focus`, `getWorkArea`, `setPresentation`, `getPresentation`, `addMenuItem` |
-| `apps` | `getSetting`, `setSetting` per app |
-| `notifications` | `push` |
+| `windows` | `setPresentation`, `getPresentation`, `addMenuItem` |
+| `notify` | a notification in the plugin's name |
 | `storage` | `get`, `set` |
-| `piloti` | the [Piloti API](./API.md) |
-| `onCleanup` | teardown on disable or reload |
+| `pluginId`, `piloti`, `onCleanup` | |
 
 ## Window plugins
 
-- `setPresentation(id, box)` shows a window moved and scaled without changing
+- `ctx.windows.setPresentation(id, box)` shows a window moved and scaled without changing
   its geometry; `null` restores it. Coordinates are in the work area.
 - `interactive: false` sends the pointer to `onPointerDown` and `onDoubleClick`.
   `above: true` keeps it on top.
 - `floating: { resizable?, minWidth?, maxWidth? }` lets the shell drag, snap and
   resize it (`lib/windows/floating-window.ts`); `onChange` reports the result.
-- `addMenuItem` adds to the window menu.
+- `ctx.windows.addMenuItem` adds to the window menu.
 
 Example: the bundled `picture-in-picture` plugin.
