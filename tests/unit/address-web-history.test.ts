@@ -34,6 +34,7 @@ describe("browser history", () => {
         key: "https://lwn.net/",
         title: "LWN.net",
         detail: "lwn.net",
+        completion: "lwn.net",
         icon: "bookmark",
         target: { kind: "url", url: "https://lwn.net/" },
       },

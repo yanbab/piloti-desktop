@@ -1820,7 +1820,8 @@ export function FilesApp({
               field={locationField}
               label={_("Folder path")}
               suggestionsLabel={_("Folders")}
-              inputClassName="w-64 max-w-full font-mono text-ui-label"
+              boxClassName="w-64 max-w-full"
+              inputClassName="font-mono"
             >
               <button
                 type="button"

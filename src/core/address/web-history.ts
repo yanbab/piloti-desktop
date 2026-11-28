@@ -153,6 +153,8 @@ export function addressSuggestions(
     key: page.url,
     title: page.title || displayUrl(page.url),
     detail: displayUrl(page.url),
+    // Completes the host, as browsers do (`exa` → `example.com`).
+    completion: displayUrl(page.url).split(/[/?#]/)[0],
     icon: page.bookmarked ? "bookmark" : "history",
     target: { kind: "url", url: page.url },
   }));

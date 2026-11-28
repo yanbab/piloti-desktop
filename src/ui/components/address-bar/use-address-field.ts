@@ -28,6 +28,10 @@ export interface AddressField {
   suggestions: readonly AddressSuggestion[];
   /** Index in `suggestions`, -1 for none. */
   selected: number;
+  /** The text the field would complete to, shown after the caret as in the
+   *  Launcher (Tab or Right accepts it, Enter goes there). */
+  inlineCompletion: string | undefined;
+  acceptCompletion: (text: string) => void;
   setSelected: (index: number) => void;
   pick: (item: AddressSuggestion) => void;
   inputRef: (node: HTMLInputElement | null) => void;
@@ -97,6 +101,16 @@ export function useAddressField({ value, suggest, onSubmit }: AddressFieldOption
     };
   }, [editing, draft, untouched]);
 
+  // The picked suggestion, else the first, when it continues what is typed.
+  const inlineCompletion = React.useMemo(() => {
+    if (untouched || !draft) return undefined;
+    const item = suggestions[selected >= 0 ? selected : 0];
+    const text = item?.completion;
+    return text && text.length > draft.length && text.toLowerCase().startsWith(draft.toLowerCase())
+      ? text
+      : undefined;
+  }, [draft, selected, suggestions, untouched]);
+
   const pick = React.useCallback(
     (item: AddressSuggestion) => {
       setEditing(false);
@@ -114,19 +128,16 @@ export function useAddressField({ value, suggest, onSubmit }: AddressFieldOption
       e.preventDefault();
       const step = e.key === "ArrowDown" ? 1 : -1;
       setSelected((i) => Math.max(-1, Math.min(suggestions.length - 1, i + step)));
-    } else if (e.key === "Tab" && !e.shiftKey && !e.altKey && !e.ctrlKey && !e.metaKey) {
-      // Tab completes a path, as in a terminal.
-      const item = suggestions[Math.max(0, selected)];
-      if (!item?.completion) return;
-      e.preventDefault();
-      setDraft(item.completion);
     }
   };
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     setEditing(false);
-    onSubmit({ suggestion: suggestions[selected], text: draft });
+    // Enter on a shown completion goes there (`exa` → example.com).
+    const picked = suggestions[selected];
+    if (picked) onSubmit({ suggestion: picked, text: draft });
+    else onSubmit({ text: inlineCompletion ?? draft });
   };
 
   return {
@@ -139,6 +150,8 @@ export function useAddressField({ value, suggest, onSubmit }: AddressFieldOption
     suggestions,
     selected,
     setSelected,
+    inlineCompletion,
+    acceptCompletion: setDraft,
     pick,
     inputRef: setInput,
     input,

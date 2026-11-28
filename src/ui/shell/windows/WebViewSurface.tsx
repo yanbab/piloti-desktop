@@ -1253,7 +1253,9 @@ export function WebViewSurface({
               suggestionsLabel={addressField.untouched ? _("Bookmarks") : _("Suggestions")}
               suggestionsHeading={addressField.untouched ? _("Bookmarks") : undefined}
               className="justify-center px-2"
-              inputClassName={cn("max-w-xl font-medium", !contrastFg && "text-ui-label")}
+              boxClassName="max-w-xl"
+              inputClassName={cn("font-medium", contrastFg && "text-inherit")}
+              ghostClassName={contrastFg ? "text-inherit opacity-50" : undefined}
             >
               <div className="pointer-events-none flex min-w-0 shrink items-center justify-center gap-1.5 px-4">
                 {isLoading ? (
