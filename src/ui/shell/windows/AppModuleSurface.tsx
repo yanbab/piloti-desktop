@@ -26,8 +26,11 @@ export function isAppModuleWindow(win: DesktopWindowInstance) {
  */
 export function AppModuleSurface({
   win,
+  tabBar,
 }: {
   win: DesktopWindowInstance;
+  /** As a tab of a Web Browser window: the slot the tab bar lies over, on top. */
+  tabBar?: React.ReactNode;
 }) {
   const isCsd = useAppChrome().decorations === "client";
   const windowCtx = useWindowContext();
@@ -70,7 +73,9 @@ export function AppModuleSurface({
     // the shell lays window controls and a drag strip over the header area.
     const drag = mod.drag ?? { left: 96, right: 96, height: 36 };
     return (
-      <div className="relative h-full w-full flex-1 overflow-hidden bg-ui-window">
+      <div className="flex h-full w-full flex-1 flex-col overflow-hidden bg-ui-window">
+      {tabBar}
+      <div className="relative min-h-0 w-full flex-1 overflow-hidden">
         <webview
           ref={viewRef}
           window={win.browserWindowId}
@@ -101,6 +106,7 @@ export function AppModuleSurface({
           style={{ left: drag.left, right: drag.right, height: drag.height }}
         />
       </div>
+      </div>
     );
   }
   return (
@@ -108,6 +114,7 @@ export function AppModuleSurface({
       <HeaderBar>
         <HeaderBar.Title>{win.title}</HeaderBar.Title>
       </HeaderBar>
+      {tabBar}
       <webview
         ref={viewRef}
         window={win.browserWindowId}

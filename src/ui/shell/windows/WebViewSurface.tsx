@@ -39,6 +39,7 @@ import {
   StarIcon,
   Loader2Icon,
   PlusIcon,
+  AppWindowIcon,
   PuzzleIcon,
 } from "lucide-react";
 import { SymbolicIcon } from "@/ui/components/ui/symbolic-icon";
@@ -59,6 +60,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/ui/components/ui/dropdown-menu";
 import { useWindowContext } from "@/ui/components/ui/window";
@@ -126,6 +128,8 @@ import { BrowserPageMenu, type PageMenuCommands } from "@/ui/shell/windows/Brows
 import { PageDialog, PermissionBubble } from "@/ui/shell/windows/BrowserPagePrompts";
 import { BrowserDownloadsMenu } from "@/ui/shell/windows/BrowserDownloadsMenu";
 import { BrowserSiteInfo } from "@/ui/shell/windows/BrowserSiteInfo";
+import { APP_MODULES } from "@/core/data/app-modules";
+import { APP_CATALOG } from "@/core/data/catalog";
 import { BrowserHistoryMenu } from "@/ui/shell/windows/BrowserHistoryMenu";
 
 function siteHost(url: string): string {
@@ -235,6 +239,7 @@ export function WebViewSurface({
     setBrowserTitle,
     markWindowReady,
     openBrowserTab,
+    openModuleTab,
     closeBrowserTab,
     reopenClosedBrowserTab,
     selectBrowserTab,
@@ -870,6 +875,15 @@ export function WebViewSurface({
     return () => window.removeEventListener(BROWSER_TAB_RELOAD_EVENT, onReloadTab);
   }, [win.browserWindowId]);
 
+  // The app modules that can open as a tab, by their catalog name.
+  const tabApps = React.useMemo(
+    () =>
+      APP_MODULES.filter((m) => m.id !== "hello").map((m) => ({
+        id: m.id,
+        name: APP_CATALOG.find((a) => a.id === m.id || a.builtinComponent === m.id)?.name ?? m.id,
+      })),
+    []
+  );
   const historyNewTab = isBrowserApp ? (url: string) => openBrowserTab(win.id, url) : undefined;
 
   const pageMenuCommands: PageMenuCommands = {
@@ -1438,6 +1452,15 @@ export function WebViewSurface({
                       <SymbolicIcon name="web-browser" fallback={GlobeIcon} className="size-4" />
                       {_("Web Page")}
                     </DropdownMenuItem>
+                    {compositor && tabApps.length > 0 && <DropdownMenuSeparator />}
+                    {compositor &&
+                      tabApps.map((app) => (
+                        <DropdownMenuItem key={app.id} onClick={() => openModuleTab(win.id, app.id)}>
+                          <SymbolicIcon name="application-x-executable" fallback={AppWindowIcon} className="size-4" />
+                          {app.name}
+                        </DropdownMenuItem>
+                      ))}
+                    <DropdownMenuSeparator />
                     <DropdownMenuItem disabled>
                       <SymbolicIcon name="folder" fallback={FolderIcon} className="size-4" />
                       {_("Folders")}

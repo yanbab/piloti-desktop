@@ -51,6 +51,8 @@ export interface BrowserTab {
   url: string;
   title: string;
   iconUrl?: string;
+  /** An app (an app module or an installed web app), not a web page. */
+  isApp?: boolean;
 }
 
 export interface ResolvedPopupWindow {

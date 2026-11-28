@@ -7,6 +7,7 @@ import type { BrowserTab } from "@/ui/context/WindowsContext";
 import { BrowserTabBar } from "./BrowserTabBar";
 import { cn } from "@/core/util/utils";
 import { WebViewSurface } from "@/ui/shell/windows/WebViewSurface";
+import { AppModuleSurface } from "@/ui/shell/windows/AppModuleSurface";
 import { followTornTab, TEAR_GRAB_Y } from "@/ui/shell/windows/browser-tab-tear";
 import { BROWSER_TAB_RELOAD_EVENT } from "@/ui/shell/windows/browser-shortcuts";
 import { TAB_DROP_ATTR } from "@/ui/shell/windows/browser-tab-drop";
@@ -151,23 +152,38 @@ export function BrowserTabsSurface({
               !active && "invisible pointer-events-none"
             )}
           >
-            <WebViewSurface
-              win={
-                active
-                  ? win
-                  : {
-                    ...win,
-                    browserWindowId: tab.id,
-                    browserUrl: tab.url,
-                    title: tab.title,
-                    iconUrl: tab.iconUrl,
-                  }
-              }
-              active={active}
-              tabBar={tabSlot}
-              darkReaderEnabled={darkReaderEnabled}
-              onToggleDarkReader={onToggleDarkReader}
-            />
+            {tab.isApp && tab.url.startsWith("domicile://app-") ? (
+              // An app module as a tab: its own frame, the tab bar on top.
+              <AppModuleSurface
+                win={{
+                  ...win,
+                  browserWindowId: tab.id,
+                  browserUrl: tab.url,
+                  browserIsApp: true,
+                  title: tab.title,
+                  iconUrl: tab.iconUrl,
+                }}
+                tabBar={tabSlot}
+              />
+            ) : (
+              <WebViewSurface
+                win={
+                  active
+                    ? win
+                    : {
+                      ...win,
+                      browserWindowId: tab.id,
+                      browserUrl: tab.url,
+                      title: tab.title,
+                      iconUrl: tab.iconUrl,
+                    }
+                }
+                active={active}
+                tabBar={tabSlot}
+                darkReaderEnabled={darkReaderEnabled}
+                onToggleDarkReader={onToggleDarkReader}
+              />
+            )}
           </div>
         );
       })}

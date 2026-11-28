@@ -314,6 +314,8 @@ export function useWindowsValue(
   browserTabGroupsRef.current = browserTabGroups;
   /** Groups waiting for the browser window they asked for, oldest first. */
   const pendingTabGroupsRef = React.useRef<string[]>([]);
+  /** App modules asked for as tabs: the first window of that module joins `group`. */
+  const pendingModuleTabsRef = React.useRef<Array<{ group: string; moduleId: string; until: number }>>([]);
   /** Web Browser windows asked for and not yet listed by Domicile. */
   const pendingBrowserAppRef = React.useRef(0);
 
@@ -339,6 +341,19 @@ export function useWindowsValue(
         // A page asked for as a tab joins its window instead of opening one.
         const appModule = resolveAppModuleByUrl(bw.url);
         const isModule = Boolean(appModule);
+        if (appModule) {
+          const now = Date.now();
+          pendingModuleTabsRef.current = pendingModuleTabsRef.current.filter((p) => p.until > now);
+          const wanted = pendingModuleTabsRef.current.findIndex((p) => p.moduleId === appModule.id);
+          const group = wanted >= 0 ? pendingModuleTabsRef.current[wanted]!.group : undefined;
+          if (group !== undefined) {
+            pendingModuleTabsRef.current.splice(wanted, 1);
+            if (activeIds.has(group) || prevGroups[group]) {
+              tabAdds.push([group, bw.id]);
+              continue;
+            }
+          }
+        }
         if (!bw.isApp && !isModule && pendingTabGroupsRef.current.length > 0) {
           const group = pendingTabGroupsRef.current.shift()!;
           if (activeIds.has(group) || prevGroups[group]) {
@@ -1047,6 +1062,20 @@ export function useWindowsValue(
       piloti.browser.open(url);
     },
     [piloti.browser, compositor]
+  );
+
+  const openModuleTab = React.useCallback(
+    (windowId: string, moduleId: string) => {
+      if (!windowId.startsWith("browser:")) return;
+      pendingModuleTabsRef.current.push({
+        group: windowId.slice("browser:".length),
+        moduleId,
+        // A module starts as a process of its own: give it time.
+        until: Date.now() + 15_000,
+      });
+      void openAppModule(piloti, moduleId).catch(() => false);
+    },
+    [piloti]
   );
 
   const selectBrowserTab = React.useCallback((windowId: string, tabId: string) => {
@@ -2372,6 +2401,7 @@ export function useWindowsValue(
       setBrowserFavicon,
       setBrowserTitle,
       openBrowserTab,
+      openModuleTab,
       selectBrowserTab,
       closeBrowserTab,
       reorderBrowserTabs,
@@ -2447,6 +2477,7 @@ export function useWindowsValue(
       setBrowserFavicon,
       setBrowserTitle,
       openBrowserTab,
+      openModuleTab,
       selectBrowserTab,
       closeBrowserTab,
       reorderBrowserTabs,

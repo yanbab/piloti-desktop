@@ -142,7 +142,8 @@ export const WindowBody = React.memo(
       return <WaylandAppSurface win={win} />;
     }
 
-    if (win.browserWindowId && isAppModuleWindow(win)) {
+    // An app module on its own; as a tab, the tabs surface draws it.
+    if (win.browserWindowId && isAppModuleWindow(win) && (win.browserTabs?.length ?? 0) < 2) {
       return <AppModuleSurface win={win} />;
     }
 

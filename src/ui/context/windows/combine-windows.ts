@@ -176,12 +176,17 @@ export function combineWindows({
           title: d.title,
           iconUrl: d.iconUrl,
           ...(grp.pinned?.includes(tabId) ? { pinned: true } : {}),
+          ...(tab.isApp ? { isApp: true } : {}),
         },
       ];
     });
     return [{
       id: `browser:${group}`,
-      appId: meta.browserApp && !described.isModule ? "browser" : described.appId,
+      // A Web Browser window stays one while an app module is its active tab.
+      appId:
+        meta.browserApp && (!described.isModule || (browserTabs?.length ?? 0) > 1)
+          ? "browser"
+          : described.appId,
       title: described.title,
       iconName: "globe",
       iconUrl: described.iconUrl,
