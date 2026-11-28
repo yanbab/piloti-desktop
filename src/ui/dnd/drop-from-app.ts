@@ -16,20 +16,25 @@ export function dropFromApp(
   drop: { paths: readonly string[]; x: number; y: number; copy: boolean },
 ): void {
   const rect = frame.getBoundingClientRect();
-  const items: IconGridItem[] = drop.paths.map((path) => ({
+  const items = appDropItems(drop.paths);
+  const point = { x: rect.left + drop.x, y: rect.top + drop.y, copy: drop.copy };
+  routeItemDrop(items[0]!, items, point, {
+    onDropItems: (list, destPath, options) =>
+      void moveOrCopyFromApp(piloti, list, destPath, options?.copy === true),
+  });
+}
+
+/** The items of an app's paths, as the shell's drop targets take them. */
+export const appDropItems = (paths: readonly string[]): IconGridItem[] =>
+  paths.map((path) => ({
     id: path,
     path,
     name: path.slice(path.lastIndexOf("/") + 1),
     kind: "file",
     iconName: "folder",
   }));
-  const point = { x: rect.left + drop.x, y: rect.top + drop.y, copy: drop.copy };
-  routeItemDrop(items[0]!, items, point, {
-    onDropItems: (list, destPath, options) => void moveOrCopy(piloti, list, destPath, options?.copy === true),
-  });
-}
 
-async function moveOrCopy(piloti: Piloti, items: readonly IconGridItem[], destPath: string, copy: boolean) {
+export async function moveOrCopyFromApp(piloti: Piloti, items: readonly IconGridItem[], destPath: string, copy: boolean) {
   const ctx = { piloti };
   const paths = items
     .map((i) => i.path)

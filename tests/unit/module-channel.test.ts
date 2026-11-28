@@ -131,6 +131,9 @@ describe("module channel", () => {
       copy: true,
     });
     expect(read({ do: "drop-items", paths: ["/a"], x: "1", y: 2 })).toBeNull();
+    // A drag's paths; none (or none usable) ends it.
+    expect(read({ do: "drag-items", paths: ["/a", "b"] })).toEqual({ do: "drag-items", paths: ["/a"] });
+    expect(read({ do: "drag-items", paths: "x" })).toEqual({ do: "drag-items", paths: [] });
   });
 });
 

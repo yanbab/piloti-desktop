@@ -15,6 +15,7 @@ import type { AppDomicile } from "@domicile-desktop/sdk/desktop/app-desktop";
 import { createModuleApps } from "@/core/apps/module-apps";
 import { createModuleShell } from "@/core/apps/module-shell";
 import {
+  type AppDragState,
   type ChannelHost,
   createModuleChannel,
   newModuleId,
@@ -208,6 +209,8 @@ export async function createAppModuleHost(
     publish: (patch: ModuleWindowState) => void channel.publish(patch),
     /** The shell says whether its window controls lie over this window's titlebar. */
     onOverlay: (listener: (visible: boolean) => void) => channel.onOverlay(listener),
+    /** What the shell did with a drag this window handed it (`drag-items`). */
+    onDrag: (listener: (state: AppDragState) => void) => channel.onDrag(listener),
     /** The desktop's windows, through the shell. */
     shell: createModuleShell(channel),
     /** Asks the shell to launch an app or open a file. */

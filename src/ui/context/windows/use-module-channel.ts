@@ -1,4 +1,5 @@
 /** The shell's side of its app module windows: menus, size, and what they watch. */
+import { endAppDrag, followAppDrag } from "@/ui/dnd/app-drag";
 import { dropFromApp } from "@/ui/dnd/drop-from-app";
 import { droppedActions, type FileDropWindowDetail } from "@/core/files/dropped-paths";
 import * as React from "react";
@@ -117,10 +118,19 @@ export function useModuleChannel(
   React.useEffect(
     () =>
       onModuleRequest((id, request) => {
-        if (request.do === "drop-items") {
+        if (request.do === "drop-items" || request.do === "drag-items") {
           const win = windowsRef.current.find((w) => moduleInstance(w.browserUrl) === id);
           const view = win && document.querySelector(`[data-module-view="${CSS.escape(win.id)}"]`);
-          if (view) dropFromApp(pilotiRef.current, view, request);
+          if (request.do === "drop-items") {
+            if (view) dropFromApp(pilotiRef.current, view, request);
+          } else if (request.paths.length === 0 || !view) {
+            endAppDrag(id);
+          } else {
+            const piloti = pilotiRef.current;
+            followAppDrag(piloti, id, view, request.paths, (state) =>
+              sendToModule(piloti, { to: id, type: "drag", state }),
+            );
+          }
           return;
         }
         // Launches and opens: `useModuleOpenRequests`.

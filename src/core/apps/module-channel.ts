@@ -46,7 +46,16 @@ export type ModuleRequest =
   /** Opens a file or folder with its default app, or the one chosen ("Open With"). */
   | { do: "open"; path: string; kind?: "file" | "directory"; preferApp?: MimeAppOption }
   /** Items dragged out of the window, released at `x`, `y` (the window's coordinates). */
-  | { do: "drop-items"; paths: string[]; x: number; y: number; copy: boolean };
+  | { do: "drop-items"; paths: string[]; x: number; y: number; copy: boolean }
+  /**
+   * A drag of these items started in the window (none: it ended there). Once
+   * the pointer leaves the window, the shell gets it: it follows the drag and
+   * drops (Domicile gives each move to the surface under the pointer).
+   */
+  | { do: "drag-items"; paths: string[] };
+
+/** What the shell did with a drag it took over (`drag-items`). */
+export type AppDragState = "outside" | "ended";
 
 export type ShellMessage =
   | { to: string; type: "action"; actionId: string }
@@ -55,7 +64,9 @@ export type ShellMessage =
   /** Whether the shell lays its window controls over the module's titlebar (not as a tab). */
   | { to: string; type: "overlay"; visible: boolean }
   /** The desktop's windows, for a module that watches them. */
-  | { to: string; type: "windows"; windows: ShellWindow[] };
+  | { to: string; type: "windows"; windows: ShellWindow[] }
+  /** The drag left the window (the shell draws it), or the shell ended it. */
+  | { to: string; type: "drag"; state: AppDragState };
 
 export const newModuleId = (): string =>
   `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
@@ -140,6 +151,12 @@ export function parseRequestWords(
         if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
         return { do: "drop-items", paths, x, y, copy: request.copy === true };
       }
+      case "drag-items": {
+        const paths = Array.isArray(request.paths)
+          ? request.paths.filter((p): p is string => typeof p === "string" && p.startsWith("/"))
+          : [];
+        return { do: "drag-items", paths };
+      }
       default:
         return null;
     }
@@ -159,6 +176,7 @@ export function createModuleChannel({ processes, dbus }: ChannelHost, id: string
   const listeners = new Set<(actionId: string) => void>();
   const overlayListeners = new Set<(visible: boolean) => void>();
   const windowListeners = new Set<(windows: ShellWindow[]) => void>();
+  const dragListeners = new Set<(state: AppDragState) => void>();
 
   const run = async (words: string[]) => {
     try {
@@ -187,7 +205,9 @@ export function createModuleChannel({ processes, dbus }: ChannelHost, id: string
     if (message.type === "sync") void send();
     else if (message.type === "action") listeners.forEach((l) => l(message.actionId));
     else if (message.type === "overlay") overlayListeners.forEach((l) => l(message.visible !== false));
-    else if (message.type === "windows" && Array.isArray(message.windows)) {
+    else if (message.type === "drag" && (message.state === "outside" || message.state === "ended")) {
+      dragListeners.forEach((l) => l(message.state));
+    } else if (message.type === "windows" && Array.isArray(message.windows)) {
       windowListeners.forEach((l) => l(message.windows));
     }
   };
@@ -226,6 +246,10 @@ export function createModuleChannel({ processes, dbus }: ChannelHost, id: string
     onWindows(listener: (windows: ShellWindow[]) => void) {
       windowListeners.add(listener);
       return () => void windowListeners.delete(listener);
+    },
+    onDrag(listener: (state: AppDragState) => void) {
+      dragListeners.add(listener);
+      return () => void dragListeners.delete(listener);
     },
     /** Asks the shell for something; after the states already sent. */
     request(request: ModuleRequest) {

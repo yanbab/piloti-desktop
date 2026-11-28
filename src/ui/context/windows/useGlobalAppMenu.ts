@@ -45,11 +45,18 @@ export function useGlobalAppMenu({
   const activeAppDef = React.useMemo<AppDefinition>(() => {
     if (focusedWindow) {
       // Our app modules are web views too, but they are our apps, not web pages.
-      // The shell can't reach their menu actions.
+      // The shell can't reach their menu actions: only its own stay, such as
+      // where new windows run (else a separate app could not come back).
       const moduleDef =
         resolveAppModuleByUrl(focusedWindow.browserUrl) &&
         APP_CATALOG.find((a) => a.id === focusedWindow.appId);
-      if (moduleDef) return { ...moduleDef, menus: [] };
+      if (moduleDef) {
+        const menus = moduleDef.menus
+          .map((m) => ({ ...m, items: m.items.filter((i) => i.actionId === RUN_SEPARATELY_ACTION) }))
+          .filter((m) => m.items.length > 0)
+          .map((m) => ({ ...m, items: m.items.map((i) => ({ ...i, separatorAfter: false })) }));
+        return { ...moduleDef, menus };
+      }
       if (focusedWindow.browserWindowId) {
         const safeLabel = resolveWebAppTitle({
           rawUrl: focusedWindow.browserUrl,

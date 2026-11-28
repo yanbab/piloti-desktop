@@ -1,7 +1,12 @@
 /** Folders in the demo's iframe: the page around it holds the windows, settings and apps. */
 import * as React from "react";
 import { hostFiles } from "@/core/files/host-files";
-import { type FrameRequest, postToShell, useIsolatedAppBridge } from "@/platform/shared/app-bridge";
+import {
+  type FrameRequest,
+  postToShell,
+  type ShellToAppMessage,
+  useIsolatedAppBridge,
+} from "@/platform/shared/app-bridge";
 import { frameDesktop } from "@/platform/shared/app-frame-desktop";
 import { createFrameShellHost } from "@/platform/shared/app-frame-shell";
 import { createShellAppHost } from "@/platform/shared/app-shell-host";
@@ -38,6 +43,15 @@ export function FrameFilesApp({ windowId, initialPath }: { windowId: string; ini
       open: (path, options) => request({ do: "open", path, ...options }),
       notify: ({ summary, body }) => postToShell({ type: "piloti:notify", windowId, summary, body }),
       dropOut: (paths, point) => request({ do: "drop-items", paths: [...paths], ...point }),
+      dragItems: (paths) => request({ do: "drag-items", paths: [...paths] }),
+      watchDrag: (listener) => {
+        const onMessage = (e: MessageEvent) => {
+          const msg = e.data as ShellToAppMessage | null;
+          if (e.source === window.parent && msg?.type === "piloti:drag") listener(msg.state);
+        };
+        window.addEventListener("message", onMessage);
+        return () => window.removeEventListener("message", onMessage);
+      },
       watchFocus: watchDocumentFocus,
     });
   });

@@ -434,6 +434,13 @@ export function WindowManager() {
       setModifierGrabActive(e.altKey || e.metaKey);
     };
     const clearModifier = () => setModifierGrabActive(false);
+    // A key released in an app's window never reaches the shell: the next
+    // pointer event over the shell says whether it is still held.
+    const checkPointer = (e: PointerEvent) => {
+      if (!e.altKey && !e.metaKey) setModifierGrabActive(false);
+    };
+    window.addEventListener("pointermove", checkPointer, true);
+    window.addEventListener("pointerdown", checkPointer, true);
 
     window.addEventListener("keydown", syncModifier);
     window.addEventListener(
@@ -450,6 +457,8 @@ export function WindowManager() {
       );
       window.removeEventListener("keyup", syncModifier);
       window.removeEventListener("blur", clearModifier);
+      window.removeEventListener("pointermove", checkPointer, true);
+      window.removeEventListener("pointerdown", checkPointer, true);
     };
   }, []);
 

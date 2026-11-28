@@ -5,6 +5,7 @@
  */
 import * as React from "react";
 import { appIconThemes } from "@/core/apps/describe-apps";
+import type { AppDragState } from "@/core/apps/module-channel";
 import type { DesktopSettings } from "@/core/config/desktop-settings";
 import type { Apps } from "@/core/ports/apps";
 import type { ShellHost, ShellWindow } from "@/core/ports/shell-host";
@@ -38,6 +39,10 @@ export interface StandaloneFilesPort {
   notify(notification: { summary: string; body?: string }): void;
   /** Items released outside the window, at `point` in its coordinates. */
   dropOut(paths: readonly string[], point: { x: number; y: number; copy: boolean }): void;
+  /** Tells the shell about a drag in this window (none: it ended here). */
+  dragItems(paths: readonly string[]): void;
+  /** What the shell did with that drag. Returns stop. */
+  watchDrag(listener: (state: AppDragState) => void): () => void;
   /** Whether this window has the focus, at once and on each change. Returns stop. */
   watchFocus(listener: (focused: boolean) => void): () => void;
 }
@@ -137,6 +142,7 @@ export function createStandaloneFilesHost(port: StandaloneFilesPort): FilesHost 
       );
     },
     dropOutside: (paths, point) => port.dropOut(paths, point),
+    appDrag: { report: (paths) => port.dragItems(paths), watch: (listener) => port.watchDrag(listener) },
     useActions: () => actions,
     useOpenPath: () => openPath,
     useWindows() {

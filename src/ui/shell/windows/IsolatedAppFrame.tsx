@@ -1,5 +1,6 @@
 import * as React from "react";
 import { usePiloti } from "@/platform/shared/piloti";
+import { endAppDrag, followAppDrag } from "@/ui/dnd/app-drag";
 import { dropFromApp } from "@/ui/dnd/drop-from-app";
 import { droppedActions, type FileDropWindowDetail } from "@/core/files/dropped-paths";
 import { recordAppReady } from "@/core/util/perf-log";
@@ -191,6 +192,14 @@ export const IsolatedAppFrame: React.FC<IsolatedAppFrameProps> = ({
           void live.current.openPath(request.path, { kind: request.kind, preferApp: request.preferApp });
         else if (request.do === "drop-items") {
           if (iframeRef.current) dropFromApp(live.current.piloti, iframeRef.current, request);
+        } else if (request.do === "drag-items") {
+          const frame = iframeRef.current;
+          if (request.paths.length === 0 || !frame) endAppDrag(windowId);
+          else
+            followAppDrag(live.current.piloti, windowId, frame, request.paths, (state) => {
+              const msg: ShellToAppMessage = { type: "piloti:drag", state };
+              frame.contentWindow?.postMessage(msg, "*");
+            });
         } else if (request.do === "close-window") shell.closeWindow(request.windowId);
         else shell.focusWindow(request.windowId);
       }

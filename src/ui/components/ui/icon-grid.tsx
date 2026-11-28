@@ -475,6 +475,8 @@ export function IconGrid({
   const [preview, setPreview] = React.useState<Record<string, GridCoord> | null>(null);
   const previewKeyRef = React.useRef("");
   const [dropAnimOff, setDropAnimOff] = React.useState(false);
+  // Folders on its own: the drag left its window, the shell draws it there.
+  const [dragAway, setDragAway] = React.useState(false);
   const dndSensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: DRAG_THRESHOLD } }),
   );
@@ -489,6 +491,7 @@ export function IconGrid({
       const cur = dragRef.current;
       if (!cur) return;
       lastPointerRef.current = { x: e.clientX, y: e.clientY, alt: e.altKey || e.ctrlKey };
+      setDragAway(false);
       cur.currentX = e.clientX;
       cur.currentY = e.clientY;
       // Ctrl / Alt while dragging means "copy": show it with the cursor.
@@ -560,6 +563,8 @@ export function IconGrid({
     lastPointerRef.current = { x: ev.clientX, y: ev.clientY, alt: ev.altKey || ev.ctrlKey };
     previewKeyRef.current = "";
     setDropAnimOff(false);
+    setDragAway(false);
+    host.appDrag?.report(items.filter((i) => ids.includes(i.id) && !isVirtualAppItem(i)).map((i) => i.path));
     setDrag({
       itemId: id,
       draggedIds: ids,
@@ -580,6 +585,7 @@ export function IconGrid({
     previewKeyRef.current = "";
     setPreview(null);
     endItemDragBroadcast();
+    if (cur) host.appDrag?.report([]);
     if (cur && commit) {
       suppressClickRef.current = cur.itemId;
       const outcome = commitDrop(cur, lastPointerRef.current);
@@ -635,6 +641,26 @@ export function IconGrid({
   };
 
   const onDndEnd = (_e: DragEndEvent) => endDrag(true);
+
+  // The shell took the drag over (Folders on its own): it hides ours while it
+  // draws it, and once it dropped, ours ends where it is.
+  const endDragRef = React.useRef(endDrag);
+  endDragRef.current = endDrag;
+  const appDrag = host.appDrag;
+  React.useEffect(() => {
+    if (!isDragStarted || !appDrag) return;
+    return appDrag.watch((state) => {
+      if (state === "outside") {
+        setDragAway(true);
+        return;
+      }
+      setDropAnimOff(true);
+      endDragRef.current(false);
+      // dnd-kit still waits for a release this window will never see: its
+      // pointer sensor cancels when the window's visibility changes.
+      window.dispatchEvent(new Event("visibilitychange"));
+    });
+  }, [appDrag, isDragStarted]);
 
 
   React.useEffect(() => {
@@ -1368,7 +1394,7 @@ dropAnimOff ? null : dragFlyBackAnimation
                   origin,
                 });
               }}
-              className="pointer-events-none size-full select-none"
+              className={cn("pointer-events-none size-full select-none", dragAway && "opacity-0")}
             />
           ) : null}
         </DragOverlay>,
