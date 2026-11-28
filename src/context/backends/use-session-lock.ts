@@ -138,7 +138,7 @@ export function useSessionLock(piloti: Piloti) {
       stopWarnings?.();
       stopRefusals?.();
     };
-  }, [piloti.session, systemServices]);
+  }, [systemServices, piloti]);
 
   const lockSession = React.useCallback(() => {
     console.info("[Piloti] session: lock");

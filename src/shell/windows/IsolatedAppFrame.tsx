@@ -1,5 +1,5 @@
 import * as React from "react";
-import { emitShellEvent, onShellEvent } from "@/lib/core/shell-events";
+import { emitShellEvent } from "@/lib/core/shell-events";
 import { createRoot, type Root } from "react-dom/client";
 import {
   useSystemBackends,

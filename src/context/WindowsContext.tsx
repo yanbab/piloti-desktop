@@ -1,6 +1,5 @@
 import { killAppProcesses, launchDesktopCommand } from "@/lib/engine/system-commands";
 import { logAppLaunch } from "@/lib/core/perf-log";
-import { webSearchHome } from "@/lib/core/web-search";
 import * as React from "react";
 import { useDisplays } from "@domicile-desktop/react/displays";
 import { usePiloti } from "@/lib/engine/piloti";
@@ -14,16 +13,13 @@ import {
 } from "@domicile-desktop/sdk/window-state";
 import {
   APP_CATALOG,
-  type AppDefinition,
   type BuiltinAppId,
 } from "@/data/catalog";
 import {
   canonicalizeWebUrl,
   findMatchingWebApp,
-  getWebAppFaviconUrl,
-  resolveWebAppTitle,
 } from "@/data/web-apps";
-import { moduleDocument, resolveAppModuleByUrl, webViewAppId } from "@/data/app-modules";
+import { moduleDocument, resolveAppModuleByUrl } from "@/data/app-modules";
 import {
   DOCUMENT_SCOPED_APP_IDS,
   lookupSpatialWindowBounds,
@@ -63,258 +59,28 @@ import { useGlobalAppMenu } from "./windows/useGlobalAppMenu";
 import { useGlobalShortcuts } from "./windows/useGlobalShortcuts";
 import { getEngine } from "@/lib/engine/engine";
 import { useCapabilities } from "@/hooks/use-capabilities";
+import type { DesktopWindowInstance, BrowserTabGroup, WindowsContextValue, WindowActionsValue, ExternalWindowMeta } from "./windows/types";
+export type { DesktopWindowInstance, BrowserTab, ResolvedPopupWindow, WindowsContextValue, WindowActionsValue } from "./windows/types";
+export { BROWSER_DEMO_HOME_URL, BROWSER_HOME_URL, normalizeWebUrl } from "@/lib/windows/browser-url";
+import { BROWSER_DEMO_HOME_URL, BROWSER_HOME_URL, normalizeWebUrl } from "@/lib/windows/browser-url";
+import { pinnedTabs, reorderedTabs } from "@/lib/windows/tab-groups";
+import { patchExternalMeta, upsertBrowserRecord, pruneBrowserRecord } from "./windows/window-meta";
+import { computeCenteredOrCascadedPosition } from "@/lib/windows/cascade-position";
+import { resolvePopupWindows, resolveSyncedParentFrames } from "@/lib/windows/popups";
+import { combineWindows } from "./windows/combine-windows";
+import { useWindowReadiness } from "./windows/use-window-readiness";
+import { useStartupNotifications } from "./windows/use-startup-notifications";
+import { useDockRefs } from "./windows/use-dock-refs";
+import { nextZ } from "./windows/z-order";
 
-export interface DesktopWindowInstance {
-  id: string;
-  appId: string;
-  title: string;
-  iconName: string;
-  iconUrl?: string;
-  builtinComponent?: BuiltinAppId;
-  /** Browser demo: the built-in app runs in its own iframe. */
-  isolated?: boolean;
-  waylandAppId?: string;
-  waylandDesktopId?: string;
-  pid?: number | null;
-  browserWindowId?: string;
-  browserUrl?: string;
-  browserIsApp?: boolean;
-  /** Tabs of a Web Browser window (each one a Domicile browser window);
-   *  `browserWindowId` is the active one. Absent for a single page. */
-  browserTabs?: BrowserTab[];
-  clientFrame?: boolean;
-  cursor?: string;
-  syncedFrame?: number;
-  tiled?: "left" | "right" | null;
-  workspace: number;
-  position: { x: number; y: number };
-  size: { width: number; height: number };
-  minSize: { width: number; height: number };
-  maxSize?: { width: number; height: number };
-  minimized: boolean;
-  maximized: boolean;
-  fullscreen?: boolean;
-  pinned?: boolean;
-  ready?: boolean;
-  zIndex: number;
-  payload?: string;
-}
-
-/** The tabs of one web window; `pinned` ones are always first in `tabs`. */
-interface BrowserTabGroup {
-  tabs: string[];
-  active: string;
-  pinned?: string[];
-}
-
-export interface BrowserTab {
-  id: string;
-  /** Pinned tabs sit first, as icons. */
-  pinned?: boolean;
-  url: string;
-  title: string;
-  iconUrl?: string;
-}
-
-export interface ResolvedPopupWindow {
-  appId: string;
-  parentToplevelId: string;
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  frame: number;
-  cursor?: string;
-  zIndex: number;
-}
-
-export interface WindowsContextValue {
-  windows: DesktopWindowInstance[];
-  workspaceWindows: DesktopWindowInstance[];
-  waylandPopups: ResolvedPopupWindow[];
-  focusedWindowId: string | null;
-  focusedWindow: DesktopWindowInstance | undefined;
-  clearFocusedWindow: () => void;
-  activeAppDef: AppDefinition;
-  mruWindows: DesktopWindowInstance[];
-  launchingApps: string[];
-  markWindowReady: (windowId: string) => void;
-  launchApp: (
-    appId: string,
-    options?: { payload?: string; forceNew?: boolean; forceCsd?: boolean }
-  ) => void;
-  launchXdgApp: (entry: XdgDesktopEntry, actionId?: string) => void;
-  /** Opens a file with an installed application, with startup feedback. */
-  openFileWithXdgApp: (entry: XdgDesktopEntry, path: string) => void;
-  openGnomeSettings: (panel?: GnomeSettingsPanel | (string & {})) => void;
-  openWebUrl: (
-    rawUrl: string,
-    options?: { asApp?: boolean; appId?: string; title?: string }
-  ) => void;
-  setBrowserFavicon: (browserWindowId: string, favicon: string) => void;
-  setBrowserTitle: (browserWindowId: string, title: string) => void;
-  /** Opens `url` (or the start page) in a new tab of Web Browser window `windowId`. */
-  openBrowserTab: (windowId: string, url?: string) => void;
-  selectBrowserTab: (windowId: string, tabId: string) => void;
-  closeBrowserTab: (windowId: string, tabId: string) => void;
-  /** Puts a window's tabs in the given order (same set of ids). */
-  reorderBrowserTabs: (windowId: string, tabIds: string[]) => void;
-  /** Moves a tab out into a window of its own. */
-  detachBrowserTab: (windowId: string, tabId: string) => void;
-  pinBrowserTab: (windowId: string, tabId: string, pinned: boolean) => void;
-  /** Opens the tab closed last again, in this window. */
-  reopenClosedBrowserTab: (windowId: string) => void;
-  focusWindow: (windowId: string) => void;
-  closeWindow: (windowId: string) => void;
-  forceQuitApp: (appId: string) => void;
-  toggleMinimizeWindow: (windowId: string) => void;
-  minimizeWindow: (windowId: string) => void;
-  toggleMaximizeWindow: (windowId: string) => void;
-  tileWindow: (windowId: string, side: "left" | "right" | "full") => void;
-  updateWindowGeometry: (
-    windowId: string,
-    patch: {
-      position?: { x: number; y: number };
-      size?: { width: number; height: number };
-    }
-  ) => void;
-  handleMenuAction: (actionId: string) => void;
-  launcherOpen: boolean;
-  setLauncherOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  controlPanelOpen: boolean;
-  setControlPanelOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  aboutOpen: boolean;
-  setAboutOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  altTabOpen: boolean;
-  altTabIndex: number;
-  setAltTabIndex: React.Dispatch<React.SetStateAction<number>>;
-  openAltTab: () => void;
-  cycleAltTab: (delta: number) => void;
-  commitAltTab: (explicitWindowId?: string) => void;
-  closeAltTab: () => void;
-  overviewOpen: boolean;
-  setOverviewOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  toggleOverview: () => void;
-  moveWindowToWorkspace: (windowId: string, workspace: number) => void;
-  removeWorkspace: (workspace: number) => void;
-  registerDockRef: (appId: string, node: HTMLElement | null) => void;
-  getDockRef: (appId: string) => React.RefObject<Element | null>;
-  subscribeClientWindowRequest: (
-    listener: (req: WindowRequest) => void
-  ) => () => void;
-}
-
-export type WindowActionsValue = Pick<
-  WindowsContextValue,
-  | "launchApp"
-  | "launchXdgApp"
-  | "openFileWithXdgApp"
-  | "markWindowReady"
-  | "openGnomeSettings"
-  | "openWebUrl"
-  | "focusWindow"
-  | "closeWindow"
-  | "forceQuitApp"
-  | "toggleMinimizeWindow"
-  | "minimizeWindow"
-  | "toggleMaximizeWindow"
-  | "tileWindow"
-  | "updateWindowGeometry"
-  | "handleMenuAction"
-  | "setLauncherOpen"
-  | "setControlPanelOpen"
-  | "setAboutOpen"
-  | "setOverviewOpen"
-  | "toggleOverview"
-  | "moveWindowToWorkspace"
-  | "removeWorkspace"
-  | "openAltTab"
->;
+// One array while there is nothing, so memos and effects keep still.
+const NO_BROWSER_WINDOWS: NonNullable<ReturnType<typeof usePiloti>["browser"]["windows"]> = [];
 
 export const WindowsContext = React.createContext<WindowsContextValue | null>(null);
 export const WindowActionsContext =
   React.createContext<WindowActionsValue | null>(null);
 
-let nextZIndex = 20;
 let nextShellWinCounter = 1;
-
-interface ExternalWindowMeta {
-  position: { x: number; y: number };
-  size: { width: number; height: number };
-  minimized: boolean;
-  maximized: boolean;
-  fullscreen?: boolean;
-  pinned?: boolean;
-  tiled?: "left" | "right" | null;
-  zIndex: number;
-  workspace: number;
-  /** Opened by the Web Browser: grouped under its Dock icon whatever the page. */
-  browserApp?: boolean;
-}
-
-/** Pinned tabs first, each side keeping its order. */
-function pinnedFirst(tabs: string[], pinned: string[] | undefined): string[] {
-  if (!pinned?.length) return tabs;
-  return [
-    ...tabs.filter((id) => pinned.includes(id)),
-    ...tabs.filter((id) => !pinned.includes(id)),
-  ];
-}
-
-/** Start page of a new Web Browser window or tab: the web search home. */
-export const BROWSER_HOME_URL = webSearchHome();
-/** Web demo start page: pages are shown in an iframe, which most search
- *  engines refuse; the demo searches Wikipedia, which allows it. */
-export const BROWSER_DEMO_HOME_URL = webSearchHome(true);
-
-/**
- * Normalizes a user-typed URL or host into a navigable URL string.
- */
-export function normalizeWebUrl(raw: string): string | null {
-  const trimmed = raw.trim();
-  if (!trimmed) return null;
-  if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(trimmed)) {
-    return trimmed;
-  }
-  if (/^(localhost|127\.0\.0\.1|\[::1\])(?::\d+)?(\/|$)/i.test(trimmed)) {
-    return `http://${trimmed}`;
-  }
-  return `https://${trimmed}`;
-}
-
-function patchExternalMeta(
-  setMeta: React.Dispatch<
-    React.SetStateAction<Record<string, ExternalWindowMeta>>
-  >,
-  rawId: string,
-  updater: (cur: ExternalWindowMeta) => ExternalWindowMeta
-) {
-  setMeta((prev) => {
-    const cur = prev[rawId];
-    if (!cur) return prev;
-    return { ...prev, [rawId]: updater(cur) };
-  });
-}
-
-function computeCenteredOrCascadedPosition(
-  existingPositions: Array<{ x: number; y: number }>,
-  size: { width: number; height: number },
-  screenWidth: number,
-  screenHeight: number,
-  rememberedPosition?: { x: number; y: number }
-): { x: number; y: number } {
-  if (existingPositions.length > 0) {
-    const last = existingPositions[existingPositions.length - 1];
-    return { x: last.x + 24, y: last.y + 24 };
-  }
-  if (rememberedPosition) {
-    return rememberedPosition;
-  }
-  return {
-    x: Math.max(0, Math.round((screenWidth - size.width) / 2)),
-    y: Math.max(0, Math.round((screenHeight - 30 - size.height) / 2)),
-  };
-}
 
 export function useWindowsValue(
   settingsCtx: SettingsContextValue,
@@ -326,7 +92,7 @@ export function useWindowsValue(
   const waylandWindows = useWindows();
   const waylandFocused = useFocusedWindow();
   const browserWindows =
-    useWatch(piloti.browser, "change", () => piloti.browser.windows) ?? [];
+    useWatch(piloti.browser, "change", () => piloti.browser.windows) ?? NO_BROWSER_WINDOWS;
 
   const { settings, updateSettings } = settingsCtx;
   const { systemServices, realFilesystem, compositor } = useCapabilities();
@@ -429,7 +195,7 @@ export function useWindowsValue(
               maximized: rec.maximized,
               fullscreen: rec.fullscreen,
               pinned: rec.pinned,
-              zIndex: ++nextZIndex,
+              zIndex: nextZ(),
               payload: rec.payload,
             });
           } else {
@@ -468,7 +234,7 @@ export function useWindowsValue(
           minSize,
           minimized: false,
           maximized: saved?.maximized ?? false,
-          zIndex: ++nextZIndex,
+          zIndex: nextZ(),
           payload: "appearance",
         },
       ];
@@ -504,33 +270,6 @@ export function useWindowsValue(
     Record<string, ExternalWindowMeta>
   >({});
 
-function upsertBrowserRecord(
-  prev: Record<string, string>,
-  browserWindowId: string,
-  value: string
-): Record<string, string> {
-  if (!value) {
-    if (!(browserWindowId in prev)) return prev;
-    const next = { ...prev };
-    delete next[browserWindowId];
-    return next;
-  }
-  if (prev[browserWindowId] === value) return prev;
-  return { ...prev, [browserWindowId]: value };
-}
-
-function pruneBrowserRecord(
-  prev: Record<string, string>,
-  activeIds: Set<string>
-): Record<string, string> {
-  let changed = false;
-  const next: Record<string, string> = {};
-  for (const [id, val] of Object.entries(prev)) {
-    if (activeIds.has(id)) next[id] = val;
-    else changed = true;
-  }
-  return changed ? next : prev;
-}
 
   const [browserFavicons, setBrowserFavicons] = React.useState<
     Record<string, string>
@@ -571,45 +310,7 @@ function pruneBrowserRecord(
   /** Web Browser windows asked for and not yet listed by Domicile. */
   const pendingBrowserAppRef = React.useRef(0);
 
-  const [unreadyWindowIds, setUnreadyWindowIds] = React.useState<Set<string>>(
-    () => new Set()
-  );
-  const readyTimersRef = React.useRef<Map<string, ReturnType<typeof setTimeout>>>(
-    new Map()
-  );
-
-  const markWindowReady = React.useCallback((windowId: string) => {
-    const timer = readyTimersRef.current.get(windowId);
-    if (timer) {
-      clearTimeout(timer);
-      readyTimersRef.current.delete(windowId);
-    }
-    setUnreadyWindowIds((prev) => {
-      if (!prev.has(windowId)) return prev;
-      const next = new Set(prev);
-      next.delete(windowId);
-      return next;
-    });
-  }, []);
-
-  const markWindowUnready = React.useCallback(
-    (windowId: string, timeoutMs = 2500) => {
-      setUnreadyWindowIds((prev) => {
-        if (prev.has(windowId)) return prev;
-        const next = new Set(prev);
-        next.add(windowId);
-        return next;
-      });
-      const existingTimer = readyTimersRef.current.get(windowId);
-      if (existingTimer) clearTimeout(existingTimer);
-      const timer = setTimeout(() => {
-        readyTimersRef.current.delete(windowId);
-        markWindowReady(windowId);
-      }, timeoutMs);
-      readyTimersRef.current.set(windowId, timer);
-    },
-    [markWindowReady]
-  );
+  const { unreadyWindowIds, markWindowReady, markWindowUnready } = useWindowReadiness();
 
   // Sync Domicile `<webview>` browser windows
   const knownBrowserIdsRef = React.useRef<Set<string>>(new Set());
@@ -707,7 +408,7 @@ function pruneBrowserRecord(
           fullscreen: restored?.fullscreen ?? false,
           pinned,
           tiled: null,
-          zIndex: ++nextZIndex,
+          zIndex: nextZ(),
           workspace,
         });
         newlyFocused = {
@@ -899,7 +600,7 @@ function pruneBrowserRecord(
           fullscreen: restored?.fullscreen ?? false,
           pinned,
           tiled: null,
-          zIndex: ++nextZIndex,
+          zIndex: nextZ(),
           workspace,
         });
         newlyMapped = {
@@ -998,7 +699,7 @@ function pruneBrowserRecord(
                   ...cur,
                   maximized: true,
                   minimized: false,
-                  zIndex: ++nextZIndex,
+                  zIndex: nextZ(),
                 },
               };
             });
@@ -1013,7 +714,7 @@ function pruneBrowserRecord(
                 [req.appId]: {
                   ...cur,
                   maximized: false,
-                  zIndex: ++nextZIndex,
+                  zIndex: nextZ(),
                 },
               };
             });
@@ -1072,261 +773,69 @@ function pruneBrowserRecord(
     }
   }, [piloti.windows, waylandMeta, waylandWindows]);
 
-  const syncedParentFrames = React.useMemo(() => {
-    const byId = new Map(waylandWindows.map((w) => [w.appId, w]));
-    const frames = new Map<string, number>();
-    for (const w of waylandWindows) {
-      if (w.parent === undefined) continue;
-      let cur = byId.get(w.parent);
-      while (cur) {
-        frames.set(cur.appId, cur.frame);
-        cur = cur.parent !== undefined ? byId.get(cur.parent) : undefined;
-      }
-    }
-    return frames;
-  }, [waylandWindows]);
+  const syncedParentFrames = React.useMemo(
+    () => resolveSyncedParentFrames(waylandWindows),
+    [waylandWindows],
+  );
 
-  const combinedWindows = React.useMemo<DesktopWindowInstance[]>(() => {
-    const resolvedShellWindows = shellWindows.map((sw) => ({
-      ...sw,
-      iconUrl: sw.iconUrl ?? getAppIconUrl(sw.appId),
-      ready: !unreadyWindowIds.has(sw.id),
-    }));
+  const combinedWindows = React.useMemo(
+    () =>
+      combineWindows({
+        shellWindows,
+        browserWindows,
+        browserFavicons,
+        browserTitles,
+        browserMeta,
+        browserTabGroups,
+        waylandWindows,
+        waylandMeta,
+        syncedParentFrames,
+        installedXdgApps,
+        getAppIconUrl,
+        unreadyWindowIds,
+        screenWidth,
+        screenHeight,
+        settings: {
+          installedWebApps: settings.installedWebApps,
+          windowDecorationMode: settings.windowDecorationMode,
+        },
+        pendingWebTitles: pendingWebTitlesRef.current,
+      }),
+    // Only the settings it reads, so other changes don't rebuild the list.
+    [
+      shellWindows,
+      browserWindows,
+      browserFavicons,
+      browserTitles,
+      browserMeta,
+      browserTabGroups,
+      waylandWindows,
+      waylandMeta,
+      syncedParentFrames,
+      installedXdgApps,
+      getAppIconUrl,
+      unreadyWindowIds,
+      screenWidth,
+      screenHeight,
+      settings.installedWebApps,
+      settings.windowDecorationMode,
+    ],
+  );
 
-    const toplevels = waylandWindows
-      .filter((w) => w.parent === undefined)
-      .flatMap((w): DesktopWindowInstance[] => {
-        const meta = waylandMeta[w.appId];
-        if (!meta) return [];
-        const matched = matchAppFromWayland(w.desktopId, w.title);
-        const xdgMatch = matchXdgEntryForWaylandWindow(
-          installedXdgApps,
-          w.desktopId
-        );
-        const resolvedIconUrl =
-          xdgMatch?.iconUrl ??
-          getAppIconUrl(w.desktopId) ??
-          getAppIconUrl(w.appId) ??
-          getAppIconUrl(matched.id);
-        const clientFrame = resolveWaylandClientFrame(w, xdgMatch);
-        const isCsdWindow =
-          settings.windowDecorationMode === "csd" ||
-          (settings.windowDecorationMode === "auto" && clientFrame);
-        const constraints = resolveWaylandOuterConstraints(w, isCsdWindow);
-        return [{
-          id: `wayland:${w.appId}`,
-          appId: xdgMatch?.appId ?? matched.id,
-          title: w.title || xdgMatch?.name || matched.name || w.appId,
-          iconName: matched.iconName,
-          iconUrl: resolvedIconUrl,
-          waylandAppId: w.appId,
-          waylandDesktopId: w.desktopId,
-          pid: w.pid,
-          clientFrame,
-          cursor: w.cursor,
-          syncedFrame: syncedParentFrames.get(w.appId),
-          tiled: meta.tiled ?? null,
-          workspace: meta.workspace,
-          position: meta.position,
-          size: meta.size,
-          minSize: {
-            width: w.minWidth ? constraints.minSize.width : (matched.minSize?.width ?? constraints.minSize.width),
-            height: w.minHeight ? constraints.minSize.height : (matched.minSize?.height ?? constraints.minSize.height),
-          },
-          maxSize:
-            constraints.maxWidth || constraints.maxHeight
-              ? {
-                  width: constraints.maxWidth ?? screenWidth,
-                  height: constraints.maxHeight ?? screenHeight,
-                }
-              : undefined,
-          minimized: meta.minimized,
-          maximized: meta.maximized,
-          fullscreen: meta.fullscreen,
-          pinned: meta.pinned,
-          ready: !unreadyWindowIds.has(`wayland:${w.appId}`),
-          zIndex: meta.zIndex,
-        }];
-      });
-
-    const tabGroupOf = new Map<string, string>();
-    for (const [group, grp] of Object.entries(browserTabGroups)) {
-      for (const tab of grp.tabs) tabGroupOf.set(tab, group);
-    }
-    const describeBrowserWindow = (bw: (typeof browserWindows)[number]) => {
-      const webAppMatch = findMatchingWebApp(bw.url, settings.installedWebApps);
-      const pendingTitle =
-        pendingWebTitlesRef.current.get(bw.appId) ??
-        pendingWebTitlesRef.current.get(bw.url);
-      const resolvedTitle =
-        pendingTitle ??
-        resolveWebAppTitle({
-          rawUrl: bw.url,
-          liveTitle: browserTitles[bw.id],
-          hostTitle: bw.title,
-          installedApps: settings.installedWebApps,
-        });
-      // Domicile app modules (`domicile open --app <entry.js>`) are our own
-      // isolated apps: take title and icon from the window / desktop entry.
-      const mod = resolveAppModuleByUrl(bw.url);
-      const isAppModule = Boolean(mod || (bw.isApp && bw.url.startsWith("domicile://app-")));
-      const appId = webViewAppId(bw, webAppMatch?.id);
-      return {
-        // Plain pages belong to the Web Browser (one Dock icon); app-mode
-        // windows of sites that are not installed keep a tile of their own.
-        appId,
-        isModule: Boolean(mod),
-        title: isAppModule
-          ? browserTitles[bw.id] || bw.title || bw.appId || mod?.id || resolvedTitle
-          : resolvedTitle,
-        iconUrl: isAppModule
-          ? (mod || bw.appId ? getAppIconUrl(appId) : undefined) ||
-            browserFavicons[bw.id]
-          : browserFavicons[bw.id] ||
-            webAppMatch?.iconUrl ||
-            getWebAppFaviconUrl(bw.url),
-      };
-    };
-    const browserById = new Map(browserWindows.map((bw) => [bw.id, bw]));
-
-    const listedGroups = new Set<string>();
-    const resolvedBrowserWindows = browserWindows.flatMap((first): DesktopWindowInstance[] => {
-      const group = tabGroupOf.get(first.id) ?? first.id;
-      const grp = browserTabGroups[group];
-      // One window per group, listed at its first tab (a stable DOM order,
-      // so switching tabs never moves iframes) and drawn from the active one.
-      if (grp) {
-        if (listedGroups.has(group)) return [];
-        listedGroups.add(group);
-      }
-      const bw = grp ? browserById.get(grp.active) ?? first : first;
-      const meta = browserMeta[group];
-      if (!meta) return [];
-      const described = describeBrowserWindow(bw);
-      const browserTabs = grp?.tabs.flatMap((tabId): BrowserTab[] => {
-        const tab = browserById.get(tabId);
-        if (!tab) return [];
-        const d = tabId === bw.id ? described : describeBrowserWindow(tab);
-        return [
-          {
-            id: tabId,
-            url: tab.url,
-            title: d.title,
-            iconUrl: d.iconUrl,
-            ...(grp.pinned?.includes(tabId) ? { pinned: true } : {}),
-          },
-        ];
-      });
-      return [{
-        id: `browser:${group}`,
-        appId: meta.browserApp && !described.isModule ? "browser" : described.appId,
-        title: described.title,
-        iconName: "globe",
-        iconUrl: described.iconUrl,
-        browserWindowId: bw.id,
-        browserUrl: bw.url,
-        browserIsApp: bw.isApp,
-        browserTabs,
-        clientFrame: true,
-        workspace: meta.workspace,
-        position: meta.position,
-        size: meta.size,
-        minSize: { width: 420, height: 300 },
-        minimized: meta.minimized,
-        maximized: meta.maximized,
-        fullscreen: meta.fullscreen,
-        pinned: meta.pinned,
-        tiled: meta.tiled ?? null,
-        ready: !unreadyWindowIds.has(`browser:${group}`),
-        zIndex: meta.zIndex,
-      }];
-    });
-
-    // Keep stable insertion order in DOM so zIndex CSS handles stacking without
-    // moving <iframe> nodes via insertBefore (which reloads iframes on focus).
-    return [...resolvedShellWindows, ...resolvedBrowserWindows, ...toplevels];
-  }, [
-    shellWindows,
-    browserWindows,
-    browserFavicons,
-    browserTitles,
-    browserMeta,
-    browserTabGroups,
-    waylandWindows,
-    waylandMeta,
-    syncedParentFrames,
-    installedXdgApps,
-    getAppIconUrl,
-    unreadyWindowIds,
-    screenWidth,
-    screenHeight,
-    settings.activeWorkspace,
-    settings.installedWebApps,
-    settings.workspaceCount,
-  ]);
-
-  const waylandPopups = React.useMemo<ResolvedPopupWindow[]>(() => {
-    const byId = new Map(waylandWindows.map((w) => [w.appId, w]));
-    const resolved: ResolvedPopupWindow[] = [];
-
-    for (const w of waylandWindows) {
-      if (w.parent === undefined) continue;
-      let offsetX = w.x ?? 0;
-      let offsetY = w.y ?? 0;
-      let ancestor = byId.get(w.parent);
-      let rootToplevel = ancestor;
-
-      while (ancestor && ancestor.parent !== undefined) {
-        offsetX += ancestor.x ?? 0;
-        offsetY += ancestor.y ?? 0;
-        ancestor = byId.get(ancestor.parent);
-        if (ancestor && ancestor.parent === undefined) {
-          rootToplevel = ancestor;
-        }
-      }
-
-      if (!rootToplevel) continue;
-      const parentWin = combinedWindows.find(
-        (cw) => cw.waylandAppId === rootToplevel.appId
-      );
-      if (
-        !parentWin ||
-        parentWin.minimized ||
-        parentWin.workspace !== settings.activeWorkspace
-      ) {
-        continue;
-      }
-
-      const isCsd =
-        settings.windowDecorationMode === "csd" ||
-        (settings.windowDecorationMode === "auto" &&
-          Boolean(parentWin.clientFrame));
-      const titlebarHeight = isCsd ? 0 : 46;
-      const basePos = parentWin.maximized
-        ? { x: 0, y: 0 }
-        : parentWin.position;
-
-      resolved.push({
-        appId: w.appId,
-        parentToplevelId: parentWin.id,
-        x: basePos.x + offsetX,
-        y: basePos.y + titlebarHeight + offsetY,
-        width: w.width ?? 220,
-        height: w.height ?? 180,
-        frame: syncedParentFrames.get(w.appId) ?? w.frame,
-        cursor: w.cursor,
-        zIndex: parentWin.zIndex + 2,
-      });
-    }
-
-    return resolved;
-  }, [
-    waylandWindows,
-    combinedWindows,
-    settings.activeWorkspace,
-    settings.windowDecorationMode,
-    syncedParentFrames,
-  ]);
+  const waylandPopups = React.useMemo(
+    () =>
+      resolvePopupWindows(waylandWindows, combinedWindows, syncedParentFrames, {
+        activeWorkspace: settings.activeWorkspace,
+        windowDecorationMode: settings.windowDecorationMode,
+      }),
+    [
+      waylandWindows,
+      combinedWindows,
+      settings.activeWorkspace,
+      settings.windowDecorationMode,
+      syncedParentFrames,
+    ],
+  );
 
   const [focusedWindowId, setFocusedWindowId] = React.useState<string | null>(
     () =>
@@ -1367,7 +876,7 @@ function pruneBrowserRecord(
 
   const focusWindow = React.useCallback(
     (windowId: string) => {
-      const newZ = ++nextZIndex;
+      const newZ = nextZ();
       clearLaunchOverlays();
       setFocusedWindowId(windowId);
       setMruIds((prev) => [windowId, ...prev.filter((id) => id !== windowId)]);
@@ -1539,28 +1048,16 @@ function pruneBrowserRecord(
   const reorderBrowserTabs = React.useCallback((windowId: string, tabIds: string[]) => {
     const group = windowId.slice("browser:".length);
     setBrowserTabGroups((prev) => {
-      const grp = prev[group];
-      if (!grp || tabIds.length !== grp.tabs.length) return prev;
-      if (!tabIds.every((id) => grp.tabs.includes(id))) return prev;
-      if (tabIds.every((id, i) => id === grp.tabs[i])) return prev;
-      return { ...prev, [group]: { ...grp, tabs: pinnedFirst(tabIds, grp.pinned) } };
+      const next = reorderedTabs(prev[group], tabIds);
+      return next ? { ...prev, [group]: next } : prev;
     });
   }, []);
 
   const pinBrowserTab = React.useCallback((windowId: string, tabId: string, pinned: boolean) => {
     const group = windowId.slice("browser:".length);
     setBrowserTabGroups((prev) => {
-      const grp = prev[group];
-      if (!grp || !grp.tabs.includes(tabId)) return prev;
-      const current = grp.pinned ?? [];
-      if (current.includes(tabId) === pinned) return prev;
-      const nextPinned = pinned ? [...current, tabId] : current.filter((id) => id !== tabId);
-      const rest = grp.tabs.filter((id) => id !== tabId);
-      // A tab just pinned goes after the pinned ones; one unpinned goes right after them.
-      const lead = rest.filter((id) => nextPinned.includes(id));
-      const tail = rest.filter((id) => !nextPinned.includes(id));
-      const tabs = pinned ? [...lead, tabId, ...tail] : [...lead, tabId, ...tail];
-      return { ...prev, [group]: { ...grp, tabs, pinned: nextPinned.length ? nextPinned : undefined } };
+      const next = pinnedTabs(prev[group], tabId, pinned);
+      return next ? { ...prev, [group]: next } : prev;
     });
   }, []);
 
@@ -1607,7 +1104,7 @@ function pruneBrowserRecord(
           maximized: false,
           fullscreen: false,
           tiled: null,
-          zIndex: ++nextZIndex,
+          zIndex: nextZ(),
         },
       }));
       setFocusedWindowId(`browser:${newKey}`);
@@ -1705,7 +1202,7 @@ function pruneBrowserRecord(
           },
         });
       }
-      const newZ = ++nextZIndex;
+      const newZ = nextZ();
       if (windowId.startsWith("wayland:")) {
         const rawId = windowId.slice("wayland:".length);
         patchExternalMeta(setWaylandMeta, rawId, (cur) => ({
@@ -1933,7 +1430,7 @@ function pruneBrowserRecord(
           tiled: side,
           position: pos,
           size: sz,
-          zIndex: ++nextZIndex,
+          zIndex: nextZ(),
         }));
       } else if (windowId.startsWith("browser:")) {
         const rawId = windowId.slice("browser:".length);
@@ -1944,7 +1441,7 @@ function pruneBrowserRecord(
           tiled: side,
           position: pos,
           size: sz,
-          zIndex: ++nextZIndex,
+          zIndex: nextZ(),
         }));
       } else {
         setShellWindows((prev) =>
@@ -1957,7 +1454,7 @@ function pruneBrowserRecord(
                 tiled: side,
                 position: pos,
                 size: sz,
-                zIndex: ++nextZIndex,
+                zIndex: nextZ(),
               }
               : w
           )
@@ -1985,101 +1482,8 @@ function pruneBrowserRecord(
     ]
   );
 
-  const [launchingApps, setLaunchingApps] = React.useState<string[]>([]);
-  const launchingTimersRef = React.useRef<Map<string, ReturnType<typeof setTimeout>>>(
-    new Map()
-  );
-  const launchingStartedAtRef = React.useRef<Map<string, number>>(new Map());
-  const launchingClearTimersRef = React.useRef<Map<string, ReturnType<typeof setTimeout>>>(
-    new Map()
-  );
-
-  const beginStartupNotification = React.useCallback((appId: string) => {
-    launchingStartedAtRef.current.set(appId, Date.now());
-    const pendingClear = launchingClearTimersRef.current.get(appId);
-    if (pendingClear) {
-      clearTimeout(pendingClear);
-      launchingClearTimersRef.current.delete(appId);
-    }
-    setLaunchingApps((prev) => (prev.includes(appId) ? prev : [...prev, appId]));
-    const existingTimer = launchingTimersRef.current.get(appId);
-    if (existingTimer) clearTimeout(existingTimer);
-    // Per XDG Startup Notification Spec, clear launching state after timeout if no window maps
-    const timer = setTimeout(() => {
-      launchingTimersRef.current.delete(appId);
-      launchingStartedAtRef.current.delete(appId);
-      setLaunchingApps((prev) => prev.filter((id) => id !== appId));
-    }, 15000);
-    launchingTimersRef.current.set(appId, timer);
-  }, []);
-
-  // Clear XDG Startup Notification launching state when a matching ready window appears
-  // (after a brief minimum bounce so Dock feedback is visible for fast built-in apps).
-  React.useEffect(() => {
-    if (launchingApps.length === 0) return;
-    const readyWindows = combinedWindows.filter((w) => w.ready !== false);
-    const runningIds = new Set(
-      readyWindows.flatMap((w) => [
-        w.appId.toLowerCase(),
-        (w.waylandAppId ?? "").toLowerCase(),
-      ])
-    );
-    const readyWebCanonicals = new Set(
-      readyWindows
-        .map((w) => canonicalizeWebUrl(w.browserUrl))
-        .filter((u): u is string => Boolean(u))
-    );
-    const completed = launchingApps.filter((id) => {
-      const lower = id.toLowerCase();
-      const base = lower.replace(/\.desktop$/, "");
-      if (runningIds.has(lower) || runningIds.has(base)) return true;
-      if (id.startsWith("webview:")) {
-        const canonical = canonicalizeWebUrl(id.slice("webview:".length));
-        if (canonical && readyWebCanonicals.has(canonical)) return true;
-      }
-      return false;
-    });
-    if (completed.length > 0) {
-      const immediate: string[] = [];
-      for (const id of completed) {
-        const timer = launchingTimersRef.current.get(id);
-        if (timer) {
-          clearTimeout(timer);
-          launchingTimersRef.current.delete(id);
-        }
-        const startedAt = launchingStartedAtRef.current.get(id) ?? 0;
-        const remaining = 700 - (Date.now() - startedAt);
-        if (remaining <= 0) {
-          launchingStartedAtRef.current.delete(id);
-          immediate.push(id);
-        } else if (!launchingClearTimersRef.current.has(id)) {
-          const clearTimer = setTimeout(() => {
-            launchingClearTimersRef.current.delete(id);
-            launchingStartedAtRef.current.delete(id);
-            setLaunchingApps((prev) => prev.filter((item) => item !== id));
-          }, remaining);
-          launchingClearTimersRef.current.set(id, clearTimer);
-        }
-      }
-      if (immediate.length > 0) {
-        setLaunchingApps((prev) => prev.filter((id) => !immediate.includes(id)));
-      }
-    }
-  }, [combinedWindows, launchingApps]);
-
-  React.useEffect(() => {
-    const timers = launchingTimersRef.current;
-    const clearTimers = launchingClearTimersRef.current;
-    const readyTimers = readyTimersRef.current;
-    return () => {
-      for (const timer of timers.values()) clearTimeout(timer);
-      timers.clear();
-      for (const timer of clearTimers.values()) clearTimeout(timer);
-      clearTimers.clear();
-      for (const timer of readyTimers.values()) clearTimeout(timer);
-      readyTimers.clear();
-    };
-  }, []);
+  const { launchingApps, beginStartupNotification, endStartupNotification } =
+    useStartupNotifications(combinedWindows);
 
   const forceQuitApp = React.useCallback(
     (appId: string) => {
@@ -2113,9 +1517,10 @@ function pruneBrowserRecord(
           }
         }
       }
-      setLaunchingApps((prev) => prev.filter((id) => id !== appId));
+      endStartupNotification(appId);
     },
     [
+      endStartupNotification,
       closeWindow,
       combinedWindows,
       piloti,
@@ -2340,7 +1745,7 @@ function pruneBrowserRecord(
           minSize,
           minimized: false,
           maximized: remembered?.maximized ?? false,
-          zIndex: ++nextZIndex,
+          zIndex: nextZ(),
           payload: options?.payload,
         };
         beginStartupNotification(resolvedAppId);
@@ -2403,16 +1808,12 @@ function pruneBrowserRecord(
       combinedWindows,
       piloti,
       focusWindow,
-      gnomeCapabilities.gnomeControlCenter,
       installedXdgApps,
       compositor,
-      markWindowUnready,
       openBrowserTab,
       screenHeight,
       screenWidth,
       settings.activeWorkspace,
-      settings.hiddenGnomePanels,
-      settings.preferGnomeControlCenter,
       settings.savedWindowBounds,
       settings.workspaceCount,
       shellWindows,
@@ -2823,29 +2224,7 @@ function pruneBrowserRecord(
     tileWindow,
   });
 
-  const dockRefs = React.useRef<
-    Record<string, React.RefObject<Element | null>>
-  >({});
-  const registerDockRef = React.useCallback(
-    (appId: string, node: HTMLElement | null) => {
-      if (!dockRefs.current[appId]) {
-        dockRefs.current[appId] = { current: node };
-      } else {
-        dockRefs.current[appId].current = node;
-      }
-    },
-    []
-  );
-
-  const getDockRef = React.useCallback(
-    (appId: string): React.RefObject<Element | null> => {
-      if (!dockRefs.current[appId]) {
-        dockRefs.current[appId] = { current: null };
-      }
-      return dockRefs.current[appId];
-    },
-    []
-  );
+  const { registerDockRef, getDockRef } = useDockRefs();
 
   const focusedWindow = React.useMemo(
     () => combinedWindows.find((w) => w.id === focusedWindowId),

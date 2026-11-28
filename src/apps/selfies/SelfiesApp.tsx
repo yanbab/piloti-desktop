@@ -72,7 +72,7 @@ export const SelfiesApp: React.FC<SelfiesAppProps> = ({ windowId = "" }) => {
     for (const t of streamRef.current?.getTracks() ?? []) t.stop();
     streamRef.current = null;
     if (videoRef.current) videoRef.current.srcObject = null;
-  }, [ownerId]);
+  }, []);
 
   // (Re)open the device whenever the mode changes. Opening a device = "capture is on".
   React.useEffect(() => {

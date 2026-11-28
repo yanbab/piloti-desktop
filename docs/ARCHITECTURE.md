@@ -74,6 +74,9 @@ Nothing the entry imports up front may read `$HOME` (the build checks).
   (`window-manager-store.ts`). MenuBar, Dock and Launcher are memoised.
 - `DesktopStateProvider` nests settings, system backends, windows and apps.
   Components subscribe to slices, so a change re-renders only what uses it.
+- Window manager: `context/WindowsContext.tsx` holds the state and actions;
+  its types, derived lists and self-contained hooks are in `context/windows/`,
+  pure logic in `lib/windows/`.
 - Windows keep their DOM order and are hidden with CSS, so iframes don't reload.
 - Bounds and workspace are saved per URL, document or app.
 - Folders opened on a folder keeps view, sort and zoom per folder

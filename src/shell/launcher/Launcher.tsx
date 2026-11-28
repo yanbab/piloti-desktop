@@ -988,6 +988,8 @@ export const Launcher = React.memo(function Launcher() {
     updateSettings,
     windows,
     xdgUserDirs,
+    compositor,
+    realFilesystem,
   ]);
 
   const firstItemValue = sections[0]?.items[0]?.value ?? "";

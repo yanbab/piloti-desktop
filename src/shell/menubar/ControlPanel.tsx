@@ -46,11 +46,14 @@ import {
 } from "@/shell/notifications/NotificationParts";
 import { useCapabilities } from "@/hooks/use-capabilities";
 
+// One array while there is nothing, so memos and effects keep still.
+const NO_REQUESTS: NonNullable<ReturnType<typeof usePortalRequests>> = [];
+
 /** Stays mounted while closed (built once); `open` says when it is shown. */
 // Memoised: the menu bar re-renders on every focus change, and this is always mounted.
 export const ControlPanel = React.memo(function ControlPanel({ open = true }: { open?: boolean }) {
   countRender("ControlPanel");
-  const portalRequests = usePortalRequests() ?? [];
+  const portalRequests = usePortalRequests() ?? NO_REQUESTS;
   const activeInhibitors = React.useMemo(
     () =>
       portalRequests.filter(

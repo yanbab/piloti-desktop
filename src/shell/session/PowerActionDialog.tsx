@@ -19,6 +19,9 @@ import {
 } from "@/context/DesktopStateContext";
 import { _ } from "@/lib/core/i18n";
 
+// One array while there is nothing, so memos and effects keep still.
+const NO_REQUESTS: NonNullable<ReturnType<typeof usePortalRequests>> = [];
+
 const AUTO_CONFIRM_SECONDS = 60;
 
 /**
@@ -26,7 +29,7 @@ const AUTO_CONFIRM_SECONDS = 60;
  * built from standard Dialog, Switch, and Button primitives.
  */
 export function PowerActionDialog() {
-  const portalRequests = usePortalRequests() ?? [];
+  const portalRequests = usePortalRequests() ?? NO_REQUESTS;
   const inhibitors = React.useMemo(
     () =>
       portalRequests.filter(

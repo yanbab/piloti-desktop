@@ -1,4 +1,3 @@
-import * as React from "react";
 import { PinOffIcon } from "lucide-react";
 import { PinIcon, PuzzleIcon, SettingsIcon } from "@/components/ui/symbols";
 import {

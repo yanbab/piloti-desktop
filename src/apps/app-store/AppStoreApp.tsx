@@ -1006,7 +1006,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
     ]);
     setFlatpakCaps(caps);
     setInstalledFlatpaks(list);
-  }, [piloti]);
+  }, [piloti, systemServices]);
 
   React.useEffect(() => {
     void refreshFlatpakList();
@@ -1690,7 +1690,6 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
     [
       piloti,
       installedChromeExtensions,
-      systemServices,
       pushNotification,
       settings.enabledPluginIds,
       settings.pinnedAppIds,
@@ -1790,6 +1789,8 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
       });
     },
     [
+      beginOp,
+      endOp,
       commitInstall,
       piloti,
       flatpakCaps.hasUserFlathub,
@@ -1867,10 +1868,11 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({
       });
     },
     [
+      beginOp,
+      endOp,
       commitUninstall,
       piloti,
       systemServices,
-      pendingOp,
       pushNotification,
       refreshFlatpakList,
       refreshXdgApps,

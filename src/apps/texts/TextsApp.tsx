@@ -342,7 +342,7 @@ export const TextsApp: React.FC<TextsAppProps> = ({
         setFilePath(host.normalizePath(droppedPath));
       }
     }
-  }, [handlePrint]);
+  }, [handlePrint, host]);
 
   React.useEffect(() => {
     const onPrintFocused = (detail: { windowId?: string } | undefined) => {
@@ -350,7 +350,7 @@ export const TextsApp: React.FC<TextsAppProps> = ({
       handlePrint();
     };
     return host.onPrintFocused(onPrintFocused);
-  }, [handlePrint, windowId]);
+  }, [handlePrint, windowId, host]);
   const { decorations } = useAppChrome();
   const baseBridge = useIsolatedAppBridge(windowId, decorations === "client", handleMenuAction);
   const bridge = React.useMemo(
@@ -364,7 +364,7 @@ export const TextsApp: React.FC<TextsAppProps> = ({
       if (p) return host.normalizePath(p);
     }
     return null;
-  }, [initialPath]);
+  }, [initialPath, host]);
 
   const [filePath, setFilePath] = React.useState<string | null>(resolvedPath);
   const [content, setContent] = React.useState<string>(() => {
@@ -432,6 +432,8 @@ export const TextsApp: React.FC<TextsAppProps> = ({
     wordWrap,
     highlightLine,
     showCursorPos,
+    host,
+    showCodeFolding,
   ]);
   const [editingTitle, setEditingTitle] = React.useState(false);
   const [draftTitle, setDraftTitle] = React.useState("");
@@ -863,7 +865,7 @@ export const TextsApp: React.FC<TextsAppProps> = ({
     } else {
       bridge.closeWindow();
     }
-  }, [bridge, persistEditorStateNow, windowId]);
+  }, [bridge, persistEditorStateNow, windowId, host]);
 
   // Unsaved text of a file is kept and restored; a new document has nowhere to
   // keep it, so closing it always asks.
@@ -915,7 +917,7 @@ export const TextsApp: React.FC<TextsAppProps> = ({
       persistEditorStateNow(filePathRef.current);
     };
     return host.onBeforeClose(onBeforeClose);
-  }, [mustConfirmClose, persistEditorStateNow, windowId]);
+  }, [mustConfirmClose, persistEditorStateNow, windowId, host]);
 
   const persistText = React.useCallback(
     (next: string) => {

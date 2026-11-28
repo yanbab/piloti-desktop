@@ -53,8 +53,8 @@ in `piloti-macos.css`.
 
 | Area | Files |
 |---|---|
-| Window manager, frame | `shell/windows/WindowManager.tsx`, `components/ui/window.tsx` |
-| App registration | `data/catalog.ts`, `WindowBody` in `WindowManager.tsx`, `launchApp` and `builtinExecMap` in `context/WindowsContext.tsx` |
+| Window manager, frame | `shell/windows/WindowManager.tsx`, `components/ui/window.tsx`; window contents: `WindowBody.tsx` and `*Surface.tsx` |
+| App registration | `data/catalog.ts`, `BUILTIN_APPS` in `shell/windows/WindowBody.tsx`, `launchApp` and `builtinExecMap` in `context/WindowsContext.tsx` |
 | Menus | `shell/menubar/MenuBar.tsx`, `components/common/AppMenuItems.tsx`, `publishWindowMenuState` (`lib/engine/app-bridge.ts`) |
 | Popups (one at a time) | `lib/windows/popup-layer.ts` |
 | Floating windows | `lib/windows/floating-window.ts`, `lib/dnd/pointer-drag.ts`, `shell/windows/PresentationOverlay.tsx` |
@@ -66,7 +66,7 @@ in `piloti-macos.css`.
 | Folder views | `components/ui/folder-icon-view.tsx`, `hooks/{use-folder-ops,use-external-file-drop,use-launcher-items}.ts`, `lib/files/folder-items.ts` |
 | Icons ([details](#icons)) | `lib/xdg/xdg-icon-theme.ts`, `lib/icons/{icon-accent-tint,shell-icon-names}.ts` |
 | UI symbols ([details](./SYMBOLIC-ICONS.md)) | `components/ui/symbolic-icon.tsx`, `lib/icons/symbolic-icons.ts` |
-| Web browser | `WebViewSurface`, `BrowserTabsSurface` (`WindowManager.tsx`), `BrowserTabBar.tsx`; tab groups in `WindowsContext.tsx`. A tab is a Domicile browser window; iframes must not move on reorder |
+| Web browser | `WebViewSurface.tsx`, `BrowserTabsSurface.tsx`, `BrowserTabBar.tsx`; tab groups in `WindowsContext.tsx`. A tab is a Domicile browser window; iframes must not move on reorder |
 | Settings | `context/SettingsContext.tsx`, `piloti-settings-ini.ts` |
 | App chrome | `components/elements/` (`AppWindow`, `HeaderBar`, `AppSplitView`…), fed by `shell/windows/WindowAppChrome.tsx`. Start from `apps/hello/HelloWorldApp.tsx`. Apps only lay out content (`tests/unit/app-styling.test.ts`) |
 | Sidebar apps | `components/ui/adw-split-view.tsx` |

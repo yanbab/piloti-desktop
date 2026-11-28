@@ -84,6 +84,9 @@ import { SystemTrayItem } from "./SystemTray";
 import { AppMenuItems, MenuShortcutLabel } from "@/components/common/AppMenuItems";
 import { useCapabilities } from "@/hooks/use-capabilities";
 
+// One array while there is nothing, so memos and effects keep still.
+const NO_CLIENTS: NonNullable<ReturnType<typeof usePiloti>["windows"]["list"]> = [];
+
 function RemoteSubmenuGroup({
   entry,
   hasCheckable,
@@ -282,7 +285,7 @@ export const MenuBar = React.memo(function MenuBar() {
 
   const trayItems = useWatch(piloti.tray, "change", () => piloti.tray.items) ?? [];
   const waylandClients =
-    useWatch(piloti.windows, "change", () => piloti.windows.list) ?? [];
+    useWatch(piloti.windows, "change", () => piloti.windows.list) ?? NO_CLIENTS;
   const publishedMenuState = useWindowMenuState(focusedWindowId);
   // The run mode is the shell's own checkmark, not one the app publishes.
   React.useSyncExternalStore(subscribeAppSettings, getAppSettingsVersion, getAppSettingsVersion);
@@ -535,9 +538,6 @@ export const MenuBar = React.memo(function MenuBar() {
     add([help], _("About %s", _(activeAppDef.name)), () => openAppAbout(activeAppDef));
     return out;
   }, [
-    activeAppDef.menus,
-    activeAppDef.name,
-    activeAppDef.shortName,
     focusedWindow?.maximized,
     focusedWindowId,
     handleMenuAction,
@@ -552,6 +552,8 @@ export const MenuBar = React.memo(function MenuBar() {
     toggleMaximizeWindow,
     toggleMinimizeWindow,
     windowMenuState,
+    activeAppDef,
+    openAppAbout,
   ]);
 
   const focusedWindowIdRef = React.useRef(focusedWindowId);

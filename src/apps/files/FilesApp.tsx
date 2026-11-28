@@ -396,7 +396,7 @@ export function FilesApp({
 
   React.useEffect(() => onFileUndoApplied(reloadDir), [reloadDir]);
 
-  const undoCtx = React.useMemo(() => ({ piloti }), [piloti, realFilesystem]);
+  const undoCtx = React.useMemo(() => ({ piloti }), [piloti]);
   const { undoLabel, redoLabel } = useFileUndoState();
 
   const ops = useFolderOps({
@@ -434,6 +434,7 @@ export function FilesApp({
     handleNewTextFile: () => void;
     stepZoom: (delta: number) => void;
     openSelected: () => void;
+    openShown: (id: string) => boolean;
     cutSelected: () => void;
     copySelected: () => void;
     pasteClipboard: () => void;
@@ -449,6 +450,7 @@ export function FilesApp({
     handleNewTextFile: () => {},
     stepZoom: () => {},
     openSelected: () => {},
+    openShown: () => false,
     cutSelected: () => {},
     copySelected: () => {},
     pasteClipboard: () => {},
@@ -563,11 +565,7 @@ export function FilesApp({
         selectedIds.length === 1 &&
         !(e.target as HTMLElement | null)?.closest('[role="grid"], [role="treegrid"]')
       ) {
-        const target = shownItems.find((i) => i.id === selectedIds[0]);
-        if (target) {
-          e.preventDefault();
-          handleActivateItem(target);
-        }
+        if (latestActionsRef.current.openShown(selectedIds[0])) e.preventDefault();
       } else if (
         (e.key === "Delete" || e.key === "Backspace") &&
         selectedIds.length > 0
@@ -650,6 +648,7 @@ export function FilesApp({
     renamingId,
     selectedIds,
     windowId,
+    setInfoPaneOpen,
   ]);
 
   React.useEffect(() => {
@@ -1194,6 +1193,11 @@ export function FilesApp({
     handleNewFolder,
     handleNewTextFile,
     stepZoom,
+    openShown: (id) => {
+      const target = shownItems.find((i) => i.id === id);
+      if (target) handleActivateItem(target);
+      return Boolean(target);
+    },
     openSelected: () => {
       if (selectedItems.length === 1) {
         handleActivateItem(selectedItems[0]);
@@ -1295,6 +1299,7 @@ export function FilesApp({
     viewMode,
     windowId,
     settings.debugMode,
+    archive.available,
   ]);
 
   React.useEffect(() => {
@@ -1430,6 +1435,7 @@ export function FilesApp({
     items.length,
     reloadDir,
     windowId,
+    setInfoPaneOpen,
   ]);
 
   const bgMenuPortal = bgMenu ? (
