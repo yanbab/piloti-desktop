@@ -69,7 +69,9 @@ import {
   DEFAULT_HIDDEN_GNOME_PANELS,
 } from "@/platform/shared/desktop-integration";
 import { hardware } from "@/platform/shared/hardware";
+import { DEFAULT_SETTINGS } from "@/core/config/desktop-settings";
 import { startBootPhase } from "@/core/util/perf-log";
+import { applyColors, applyFonts, applyInterface, resolveTheme } from "@/core/config/appearance";
 import { subscribeLocale } from "@/core/util/i18n";
 import type { DesktopIconAlign } from "@/core/files/desktop-icons";
 import type { SavedWindowBounds } from "@/core/windows/spatial-window-bounds";
@@ -84,7 +86,7 @@ import type {
   CssFontSynthesis,
   CssFontStyle,
   InterfaceThemeId,
-  DesktopSettings,
+  DesktopSettings
 } from "@/core/config/desktop-settings";
 
 export type {
@@ -100,97 +102,7 @@ export type {
 };
 export type { InstalledWebApp, SavedWindowBounds, WallpaperColorMode };
 
-export const DEFAULT_SETTINGS: DesktopSettings = {
-  interfaceTheme: "piloti",
-  themeMode: "system",
-  accentColor: "teal",
-  customAccentHex: "",
-  highContrast: false,
-  wallpaperId: "aurora-drift:aurora-drift",
-  customWallpaperUrl: "",
-  customWallpaperColors: [],
-  wallpaperColorMode: "solid",
-  gnomeBackground: { ...DEFAULT_GNOME_BACKGROUND },
-  dockSize: 52,
-  dockPosition: "bottom",
-  dockMagnification: false,
-  dockMagnificationSize: 76,
-  dockAutoHide: false,
-  clock24Hour: true,
-  clockShowSeconds: false,
-  clockShowDay: false,
-  clockShowDate: false,
-  showBatteryPercentage: false,
-  reduceMotion: false,
-  moreTransparency: true,
-  windowDecorationMode: "auto",
-  windowButtonLayout: ":close",
-  showWindowMenu: true,
-  iconTheme: "Piloti",
-  syncGnomeSettings: true,
-  preferGnomeControlCenter: false,
-  hiddenGnomePanels: [...DEFAULT_HIDDEN_GNOME_PANELS],
-  fontSansFamily: "Adwaita Sans",
-  fontMonoFamily: "Adwaita Mono",
-  fontScale: 1,
-  fontSansStyle: "regular",
-  cssFontSmoothing: "antialiased",
-  cssTextRendering: "auto",
-  cssFontOpticalSizing: "auto",
-  cssFontKerning: "auto",
-  cssFontSynthesis: "auto",
-  cssLetterSpacingEm: 0,
-  cssTextStrokePx: 0,
-  gtkFontName: "Adwaita Sans 11",
-  gtkDocumentFontName: "Sans 11",
-  gtkMonospaceFontName: "Adwaita Mono 11",
-  gtkTextScalingFactor: 1,
-  gtkFontAntialiasing: "grayscale",
-  gtkFontHinting: "slight",
-  gtkFontRgbaOrder: "rgb",
-  volume: 78,
-  muted: false,
-  brightness: 95,
-  nightLight: false,
-  wifiEnabled: true,
-  connectedWifi: "Piloti-5G-Ultra",
-  bluetoothEnabled: true,
-  doNotDisturb: false,
-  notificationsEnabled: true,
-  notificationBannersEnabled: true,
-  notificationShowOnLockScreen: true,
-  notificationShowPreviews: true,
-  notificationAllowCriticalInDnd: true,
-  notificationBannerTimeoutMs: 5000,
-  notificationHistoryLimit: 50,
-  powerMode: "balanced",
-  activeWorkspace: 1,
-  workspaceCount: 2,
-  restoreWindowsOnLogin: true,
-  desktopIconsEnabled: true,
-  desktopIconAlign: "left",
-  fileActivationMode: "single",
-  showFileExtensionBadges: true,
-  demoExtensionEnabled: true,
-  pinnedExtensionIds: [],
-  darkReaderWebEnabled: false,
-  debugMode: false,
-  remoteDevtools: false,
-  enabledPluginIds: ["aurora-drift", "app-indicator", "picture-in-picture", "app-dark-mode"],
-  keyboardLayout: "",
-  computerModel:
-    typeof navigator !== "undefined" &&
-      /mac/i.test(navigator.platform || navigator.userAgent || "")
-      ? "mac"
-      : "pc",
-  desktopIconPositions: {},
-  // A getter: the catalog is read from files before the shell starts.
-  get pinnedAppIds() {
-    return APP_CATALOG.filter((a) => a.pinnedByDefault).map((a) => a.id);
-  },
-  installedWebApps: [],
-  savedWindowBounds: {},
-};
+export { DEFAULT_SETTINGS };
 
 /**
  * The desktop's schemas in settings.ini (`org.piloti.desktop.dock`…), readable
@@ -881,87 +793,11 @@ export function useSettingsValue(options?: {
   );
 
   React.useLayoutEffect(() => {
-    document.documentElement.dataset.interfaceTheme =
-      settings.interfaceTheme || "piloti";
-    document.documentElement.dataset.reducedMotion = reducedMotion ? "true" : "false";
-    document.documentElement.dataset.moreTransparency = settings.moreTransparency
-      ? "true"
-      : "false";
+    applyInterface(document.documentElement, settingsRef.current, reducedMotion);
   }, [reducedMotion, settings.interfaceTheme, settings.moreTransparency]);
 
   React.useLayoutEffect(() => {
-    const root = document.documentElement;
-    const formatFontList = (raw: string, fallback: string) => {
-      const cleaned = raw.trim();
-      if (!cleaned) return fallback;
-      const parts = cleaned
-        .split(",")
-        .map((p) => p.trim())
-        .filter(Boolean)
-        .map((p) =>
-          p.includes(" ") && !/^["'].*["']$/.test(p) ? `"${p}"` : p
-        );
-      return parts.length > 0 ? `${parts.join(", ")}, ${fallback}` : fallback;
-    };
-
-    root.style.setProperty(
-      "--font-ui",
-      formatFontList(
-        settings.fontSansFamily,
-        '"Adwaita Sans", "Cantarell", "Inter", system-ui, -apple-system, BlinkMacSystemFont, sans-serif'
-      )
-    );
-    root.style.setProperty(
-      "--font-ui-mono",
-      formatFontList(
-        settings.fontMonoFamily,
-        '"Adwaita Mono", "Source Code Pro", "JetBrains Mono", ui-monospace, monospace'
-      )
-    );
-    root.style.setProperty("--piloti-font-smoothing", settings.cssFontSmoothing);
-    root.style.setProperty("--piloti-text-rendering", settings.cssTextRendering);
-    root.style.setProperty(
-      "--piloti-font-optical-sizing",
-      settings.cssFontOpticalSizing
-    );
-    root.style.setProperty("--piloti-font-kerning", settings.cssFontKerning);
-    root.style.setProperty(
-      "--piloti-font-synthesis",
-      settings.cssFontSynthesis === "none" ? "none" : "weight style"
-    );
-    root.style.setProperty(
-      "--piloti-letter-spacing",
-      `${settings.cssLetterSpacingEm}em`
-    );
-    root.style.setProperty(
-      "--piloti-text-stroke-width",
-      `${settings.cssTextStrokePx}px`
-    );
-    const fontStyleMap: Record<
-      CssFontStyle,
-      { weight: string; medium: string; bold: string; style: string }
-    > = {
-      light: { weight: "300", medium: "400", bold: "500", style: "normal" },
-      regular: { weight: "400", medium: "500", bold: "500", style: "normal" },
-      medium: { weight: "500", medium: "600", bold: "600", style: "normal" },
-      semibold: { weight: "600", medium: "600", bold: "700", style: "normal" },
-      italic: { weight: "400", medium: "500", bold: "500", style: "italic" },
-    };
-    const styleSpec = fontStyleMap[settings.fontSansStyle] ?? fontStyleMap.regular;
-    root.style.setProperty("--piloti-font-weight", styleSpec.weight);
-    root.style.setProperty("--piloti-font-weight-medium", styleSpec.medium);
-    root.style.setProperty("--piloti-font-weight-semibold", styleSpec.bold);
-    root.style.setProperty("--piloti-font-style", styleSpec.style);
-    root.style.setProperty("--font-weight-normal", styleSpec.weight);
-    root.style.setProperty("--font-weight-medium", styleSpec.medium);
-    root.style.setProperty("--font-weight-semibold", styleSpec.bold);
-    root.style.setProperty("--font-weight-bold", styleSpec.bold);
-
-    const scale = Math.max(0.8, Math.min(1.5, settings.fontScale || 1));
-    root.style.setProperty("--piloti-font-scale", String(scale));
-    // Type roles scale in CSS from --piloti-font-scale; this scales rem sizes.
-    root.style.fontSize =
-      Math.abs(scale - 1) < 0.001 ? "" : `${Math.round(16 * scale * 100) / 100}px`;
+    applyFonts(document.documentElement, settingsRef.current);
   }, [
     settings.cssFontKerning,
     settings.cssFontOpticalSizing,
@@ -992,33 +828,13 @@ export function useSettingsValue(options?: {
     return () => window.clearInterval(timer);
   }, [systemServices, settings.themeMode]);
 
-  const resolvedTheme: "dark" | "light" =
-    settings.themeMode === "system"
-      ? !systemServices
-        ? systemDark
-          ? "dark"
-          : "light"
-        : isNightTime
-          ? "dark"
-          : "light"
-      : settings.themeMode;
+  const resolvedTheme = resolveTheme(
+    settings.themeMode,
+    systemServices ? { hour: isNightTime ? 0 : 12 } : { prefersDark: systemDark },
+  );
 
   React.useLayoutEffect(() => {
-    const root = document.documentElement;
-    root.classList.toggle("dark", resolvedTheme === "dark");
-    root.style.colorScheme = resolvedTheme;
-    root.dataset.highContrast = settings.highContrast ? "true" : "false";
-    const customHex = settings.customAccentHex?.trim();
-    if (customHex && /^#[0-9a-f]{6}$/i.test(customHex)) {
-      root.style.setProperty("--ui-active-accent", customHex);
-    } else {
-      const accent = ACCENT_COLORS.find((a) => a.id === settings.accentColor);
-      if (accent && accent.id !== "blue") {
-        root.style.setProperty("--ui-active-accent", accent.cssVar);
-      } else {
-        root.style.removeProperty("--ui-active-accent");
-      }
-    }
+    applyColors(document.documentElement, settingsRef.current, resolvedTheme);
     try {
       piloti.theme.set(resolvedTheme);
     } catch {

@@ -1,30 +1,23 @@
-import { VFS_HOME } from "@/core/state/vfs-home";
 import * as React from "react";
 import { retainVfsWatch } from "@/platform/shared/vfs-query";
-import { usePiloti } from "@/platform/shared/piloti";
-import { getEngine } from "@/core/ports/engine";
-import { emitShellEvent, onShellEvent } from "@/core/windows/shell-events";
 import { CropIcon } from "lucide-react";
 import { CheckIcon, Maximize2Icon, RotateCcwIcon, RotateCwIcon, SaveIcon, XIcon, ZoomInIcon, ZoomOutIcon } from "@/ui/components/ui/symbols";
 import { UnsavedChangesDialog } from "@/ui/components/ui/unsaved-changes-dialog";
 import { useAppChrome } from "@/ui/components/elements/app-chrome";
 import { HeaderBar } from "@/ui/components/elements/header-bar";
 import { useIsolatedAppBridge } from "@/platform/shared/app-bridge";
-import { readVfsStateJson, writeVfsStateJson } from "@/core/state/vfs-state";
-import { shouldConfirmUnsavedOnClose } from "@/core/config/piloti-ini";
 import { _ } from "@/core/util/i18n";
 import { cn } from "@/core/util/utils";
-import { normalizeVfsPath } from "@/core/files/vfs-paths";
-import { renameFsEntry } from "@/platform/shared/fs-bridge";
 import { pathAfterRename } from "@/core/ports/vfs";
-import { subscribeRenames } from "@/platform/shared/renames";
+import type { ImageViewerHost } from "@/ui/apps/image-viewer/host";
 
 export interface ImageViewerAppProps {
+  host: ImageViewerHost;
   initialPath?: string;
   windowId?: string;
 }
 
-const IMAGE_VIEWER_STATE_PATH = `${VFS_HOME}/.local/state/piloti/image-viewer-state.json`;
+const STATE_KEY = "image-viewer-state";
 /** Skip persisting unsaved crops larger than this (data URL chars) to keep state files small. */
 const MAX_PERSISTED_CROP_CHARS = 3_000_000;
 const MAX_PERSISTED_FILES = 200;
@@ -41,11 +34,10 @@ interface PersistedImageViewState {
 
 type PersistedImageViewStateMap = Record<string, PersistedImageViewState>;
 
-function readImageViewStateMap(): PersistedImageViewStateMap {
+function readImageViewStateMap(host: ImageViewerHost): PersistedImageViewStateMap {
   return (
-    readVfsStateJson<PersistedImageViewStateMap>(
-      IMAGE_VIEWER_STATE_PATH,
-      undefined,
+    host.readState<PersistedImageViewStateMap>(
+      STATE_KEY,
       (val): val is PersistedImageViewStateMap =>
         Boolean(val && typeof val === "object" && !Array.isArray(val)),
     ) ?? {}
@@ -57,6 +49,7 @@ function isLocalImagePath(path: string): boolean {
 }
 
 export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
+  host,
   initialPath,
   windowId = "",
 }) => {
@@ -80,10 +73,16 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
       setActivePath(actionId.slice("piloti:open-path:".length));
     }
   }, []);
-  const piloti = usePiloti();
-  const { realFilesystem } = getEngine().capabilities;
+  const { binaryFiles } = host;
   const { decorations } = useAppChrome();
-  const bridge = useIsolatedAppBridge(windowId, decorations === "client", handleShellAction);
+  const baseBridge = useIsolatedAppBridge(windowId, decorations === "client", handleShellAction);
+  const bridge = React.useMemo(
+    () => (host.bridge ? { ...baseBridge, ...host.bridge } : baseBridge),
+    [baseBridge, host],
+  );
+  React.useEffect(() => {
+    host.opened?.(activePath || null);
+  }, [activePath, host]);
 
   const [imageSrc, setImageSrc] = React.useState<string>(() => {
     if (!resolvedPath) return "";
@@ -131,14 +130,14 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
   const restoredPathRef = React.useRef<string | null>(null);
   React.useEffect(() => {
     const persisted = isLocalImagePath(activePath)
-      ? readImageViewStateMap()[normalizeVfsPath(activePath)]
+      ? readImageViewStateMap(host)[host.normalizePath(activePath)]
       : undefined;
     setPan({ x: persisted?.panX ?? 0, y: persisted?.panY ?? 0 });
     setZoom(persisted?.zoom ?? 1);
     setRotation(persisted?.rotation ?? 0);
     setCroppedDataUrl(persisted?.unsavedCrop ?? null);
     restoredPathRef.current = activePath;
-  }, [activePath]);
+  }, [activePath, host]);
 
   React.useEffect(() => {
     if (!activePath) return;
@@ -156,7 +155,7 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
     const isSvg = activePath.toLowerCase().endsWith(".svg");
     const showBytes = async () => {
       // On a real disk images are binary files: load the bytes into a Blob URL.
-      const bytes = await piloti.vfs.read(activePath);
+      const bytes = await host.vfs.read(activePath);
       if (cancelled || !bytes?.length) return;
       const ext = activePath.split(".").pop()?.toLowerCase() ?? "png";
       const mime =
@@ -174,22 +173,22 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
     };
     const showText = async () => {
       // SVG sources, and the demo's pictures (kept as data or asset URLs).
-      const content = await piloti.vfs.readText(activePath);
+      const content = await host.vfs.readText(activePath);
       if (cancelled || !content) return;
       if (content.startsWith("data:image/")) setImageSrc(content);
       else if (isSvg) setImageSrc(`data:image/svg+xml;utf8,${encodeURIComponent(content)}`);
       else setImageSrc(content);
     };
     // Calls once when in place, then when the file changes. Not cached: bytes.
-    const unwatch = retainVfsWatch(piloti.vfs, activePath, () => {
-      void (realFilesystem && !isSvg ? showBytes() : showText()).catch(() => undefined);
+    const unwatch = retainVfsWatch(host.vfs, activePath, () => {
+      void (binaryFiles && !isSvg ? showBytes() : showText()).catch(() => undefined);
     });
     return () => {
       cancelled = true;
       unwatch();
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [activePath, piloti.vfs, realFilesystem]);
+  }, [activePath, host.vfs, binaryFiles]);
 
   const activeSrc = croppedDataUrl ?? imageSrc;
 
@@ -263,17 +262,17 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
     try {
       const nextDataUrl = canvas.toDataURL("image/png");
       // A disk gets the picture's bytes; the browser VFS keeps data URLs.
-      const data = realFilesystem
+      const data = binaryFiles
         ? Uint8Array.from(atob(nextDataUrl.split(",")[1] ?? ""), (c) => c.charCodeAt(0))
         : nextDataUrl;
-      await piloti.vfs.write(activePath, data);
+      await host.vfs.write(activePath, data);
       setImageSrc(nextDataUrl);
       setCroppedDataUrl(null);
       setRotation(0);
     } catch {
       // ignore tainted canvas
     }
-  }, [activePath, piloti.vfs, realFilesystem, rotation]);
+  }, [activePath, host.vfs, binaryFiles, rotation]);
 
   const viewStateRef = React.useRef({ activePath, zoom, pan, rotation, croppedDataUrl });
   viewStateRef.current = { activePath, zoom, pan, rotation, croppedDataUrl };
@@ -281,8 +280,8 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
   const persistViewStateNow = React.useCallback(() => {
     const cur = viewStateRef.current;
     if (!isLocalImagePath(cur.activePath) || restoredPathRef.current !== cur.activePath) return;
-    const key = normalizeVfsPath(cur.activePath);
-    const map = readImageViewStateMap();
+    const key = host.normalizePath(cur.activePath);
+    const map = readImageViewStateMap(host);
     const isDefault =
       cur.zoom === 1 && cur.pan.x === 0 && cur.pan.y === 0 && cur.rotation === 0 && !cur.croppedDataUrl;
     if (isDefault) {
@@ -307,8 +306,8 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
         .slice(0, keys.length - MAX_PERSISTED_FILES)
         .forEach((k) => delete map[k]);
     }
-    writeVfsStateJson(IMAGE_VIEWER_STATE_PATH, map, false);
-  }, []);
+    host.writeState(STATE_KEY, map);
+  }, [host]);
 
   // Debounced: pan/zoom change at pointer/wheel rate.
   React.useEffect(() => {
@@ -332,35 +331,48 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
   const performClose = React.useCallback(() => {
     persistViewStateNow();
     if (window.parent === window) {
-      emitShellEvent("piloti:request-animated-close", { windowId: windowId });
+      host.close(windowId);
     } else {
       bridge.closeWindow();
     }
-  }, [bridge, persistViewStateNow, windowId]);
+  }, [bridge, host, persistViewStateNow, windowId]);
   const requestClose = React.useCallback(() => {
-    if (dirtyRef.current && !forceCloseRef.current && shouldConfirmUnsavedOnClose()) {
+    if (dirtyRef.current && !forceCloseRef.current && host.confirmUnsavedOnClose()) {
       setConfirmCloseOpen(true);
       return;
     }
     performClose();
-  }, [performClose]);
+  }, [host, performClose]);
 
   React.useEffect(() => {
     if (!windowId) return;
     const onBeforeClose = (
       detail: { windowId: string },
-      e: CustomEvent<{ windowId: string }>,
+      e: { preventDefault: () => void },
     ) => {
       if (detail?.windowId !== windowId) return;
-      if (dirtyRef.current && !forceCloseRef.current && shouldConfirmUnsavedOnClose()) {
+      if (dirtyRef.current && !forceCloseRef.current && host.confirmUnsavedOnClose()) {
         e.preventDefault();
         setConfirmCloseOpen(true);
         return;
       }
       persistViewStateNow();
     };
-    return onShellEvent("piloti:before-close-window", onBeforeClose);
-  }, [persistViewStateNow, windowId]);
+    return host.onBeforeClose(onBeforeClose);
+  }, [host, persistViewStateNow, windowId]);
+
+  // A module's window closes without asking the shell first.
+  React.useEffect(
+    () =>
+      host.guardClose?.(
+        () => {
+          persistViewStateNow();
+          return dirtyRef.current && !forceCloseRef.current && host.confirmUnsavedOnClose();
+        },
+        () => setConfirmCloseOpen(true),
+      ),
+    [host, persistViewStateNow],
+  );
 
   React.useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -413,35 +425,35 @@ export const ImageViewerApp: React.FC<ImageViewerAppProps> = ({
 
   React.useEffect(() => {
     if (!isRenameableVfsFile) return;
-    return subscribeRenames(({ oldPath, newPath }) => {
-      const from = normalizeVfsPath(activePath);
-      const to = pathAfterRename(from, normalizeVfsPath(oldPath), normalizeVfsPath(newPath));
+    return host.onRenamed(({ oldPath, newPath }) => {
+      const from = host.normalizePath(activePath);
+      const to = pathAfterRename(from, host.normalizePath(oldPath), host.normalizePath(newPath));
       if (to) {
-        const map = readImageViewStateMap();
+        const map = readImageViewStateMap(host);
         const prev = map[from];
         if (prev) {
           delete map[from];
           map[to] = prev;
-          writeVfsStateJson(IMAGE_VIEWER_STATE_PATH, map, false);
+          host.writeState(STATE_KEY, map);
         }
         setActivePath(to);
         const nextName = to.split("/").filter(Boolean).pop();
         if (nextName) bridge.setTitle(nextName);
       }
     });
-  }, [activePath, bridge, isRenameableVfsFile]);
+  }, [activePath, bridge, host, isRenameableVfsFile]);
 
   const commitTitleRename = React.useCallback(() => {
     setEditingTitle(false);
     if (!isRenameableVfsFile) return;
     const nextName = draftTitle.trim().replace(/[/\\]/g, "");
     if (!nextName || nextName === fileName) return;
-    void renameFsEntry(piloti, activePath, nextName).then((renamed) => {
+    void host.rename(activePath, nextName).then((renamed) => {
       if (!renamed) return;
-      setActivePath(renamed.path);
+      setActivePath(renamed);
       bridge.setTitle(nextName);
     });
-  }, [activePath, bridge, draftTitle, fileName, isRenameableVfsFile, piloti]);
+  }, [activePath, bridge, draftTitle, fileName, host, isRenameableVfsFile]);
 
   React.useEffect(() => {
     if (!editingTitle) return;

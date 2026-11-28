@@ -28,8 +28,8 @@ const PilotiDemoApp = React.lazy(() =>
 );
 
 const SelfiesApp = React.lazy(() =>
-  import("@/ui/apps/selfies/SelfiesApp").then((m) => ({
-    default: m.SelfiesApp,
+  import("@/ui/apps/selfies/shell-host").then((m) => ({
+    default: m.ShellSelfiesApp,
   }))
 );
 
@@ -58,8 +58,8 @@ const TextsApp = React.lazy(() =>
 );
 
 const ImageViewerApp = React.lazy(() =>
-  import("@/ui/apps/image-viewer/ImageViewerApp").then((m) => ({
-    default: m.ImageViewerApp,
+  import("@/ui/apps/image-viewer/shell-host").then((m) => ({
+    default: m.ShellImageViewerApp,
   }))
 );
 

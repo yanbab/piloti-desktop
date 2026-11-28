@@ -1,4 +1,5 @@
 import { beforeAll, describe, expect, test } from "bun:test";
+import { createAppModuleHost } from "@/platform/shared/app-module-host";
 import { createDomicileEditorHost } from "@/ui/apps/texts/host";
 import { Ok } from "@cprussin/option-result";
 import { createFakeDomicile } from "../helpers/fake-domicile";
@@ -16,7 +17,11 @@ async function start(seed: Record<string, string> = {}) {
   }
   // A bus nobody speaks on.
   const dbus = { match: async () => Ok({ items: new ReadableStream() }) };
-  const { host } = await createDomicileEditorHost(Object.assign(domicile, { dbus }) as never);
+  const module = await createAppModuleHost(Object.assign(domicile, { dbus }) as never, {
+    appId: "texts",
+    stateKeys: ["editor-state"],
+  });
+  const host = await createDomicileEditorHost(module, domicile.files as never);
   return { host, files: domicile.files };
 }
 

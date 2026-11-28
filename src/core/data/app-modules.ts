@@ -26,6 +26,8 @@ export const APP_MODULES: readonly AppModuleDef[] = [
     csd: false,
     size: { width: 196, height: 320 },
   },
+  { id: "image-viewer", dir: `${APPS_ROOT}/image-viewer`, csd: false, size: { width: 640, height: 480 } },
+  { id: "selfies", dir: `${APPS_ROOT}/selfies`, csd: false, size: { width: 520, height: 420 } },
   {
     id: "texts",
     dir: `${APPS_ROOT}/texts`,
