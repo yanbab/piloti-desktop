@@ -126,9 +126,12 @@ Paths without a root are under `src/`.
 - DevTools: the engine runs with `--remote-debugging-port=9222` on the VM's
   127.0.0.1. The shell is the page `domicile://shell/`, with `window.piloti`
   and `__PILOTI_RENDER_COUNTS__` as in the demo. From the Mac:
-  `ssh -N -L 9222:127.0.0.1:9222 debian@192.168.162.236`, then Playwright
-  `chromium.connectOverCDP("http://127.0.0.1:9222")`; or run a Node script
-  on the VM (Node 24, global `WebSocket`) against `/json/list`.
+  `ssh -N -L 9222:127.0.0.1:9222 debian@192.168.162.236`, then a plain
+  WebSocket to the page's `webSocketDebuggerUrl` (from `/json/list`) sending
+  `Runtime.evaluate` (`awaitPromise`, `returnByValue`). **Not Playwright's
+  `connectOverCDP`**: once it is attached, opening a browser window makes the
+  engine exit with SIGTRAP (Domicile restarts it up to 5 times in a row, then
+  the session is lost). Use `domicile pointer`/`drag`/`type` for real input.
 - `performance.timeOrigin` of that page tells when the shell last reloaded;
   compare it with the build time of `shell.js`.
 - `npm run test:e2e` targets the web demo only. `tests/wayland-wm-check.py`
