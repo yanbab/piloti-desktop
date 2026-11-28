@@ -79,7 +79,7 @@ not sent to GNOME. The icon theme is sent only. Needs `dconf`; the file's
 header gives the format.
 
 An app file's `[General]` section holds keys the shell applies to the app
-(`getAppSetting`, `setAppSetting`, `ctx.apps`). Unknown schemas read as text.
+(`getAppSetting`, `setAppSetting`, `piloti.desktop.apps`). Unknown schemas read as text.
 Remembered state (window bounds, history) is not a setting.
 
 ## desktop

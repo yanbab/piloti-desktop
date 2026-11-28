@@ -20,3 +20,26 @@ describe("bundled plugins", () => {
     }
   });
 });
+
+// The plugin API changed without aliases (0.10.14): the shipped plugins must use
+// only what `PilotiPluginContext` (`core/plugins/types.ts`) still has.
+describe("shipped plugin scripts", () => {
+  const CTX = ["pluginId", "menubar", "launcher", "commands", "wallpapers", "windows", "notify", "storage", "piloti", "onCleanup"];
+  const CTX_WINDOWS = ["setPresentation", "getPresentation", "addMenuItem"];
+  const scripts = ["usr/share/piloti/plugins", "home/user/.config/piloti/plugins"].flatMap((dir) =>
+    fs
+      .readdirSync(path.join(ROOT, "data/files", dir), { withFileTypes: true })
+      .filter((e) => e.isDirectory() && fs.existsSync(path.join(ROOT, "data/files", dir, e.name, "index.js")))
+      .map((e) => `${dir}/${e.name}/index.js`),
+  );
+
+  test("there are scripts to check", () => expect(scripts.length).toBeGreaterThan(0));
+
+  for (const script of scripts) {
+    test(script, () => {
+      const src = fs.readFileSync(path.join(ROOT, "data/files", script), "utf8");
+      for (const [, member] of src.matchAll(/\bctx\.(\w+)/g)) expect(CTX, member).toContain(member!);
+      for (const [, member] of src.matchAll(/\bctx\.windows\.(\w+)/g)) expect(CTX_WINDOWS, member).toContain(member!);
+    });
+  }
+});
