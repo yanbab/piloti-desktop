@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "bun:test";
-import { createNativeStateStore, type NativeStateStore } from "@/lib/engine-native/state-store";
-import { createNativeVfs, type NativeVfsHost } from "@/lib/engine-native/vfs";
+import { createNativeStateStore, type NativeStateStore } from "@/platform/native/state-store";
+import { createNativeVfs, type NativeVfsHost } from "@/platform/native/vfs";
 import { createFakeDomicile } from "../helpers/fake-domicile";
 
 const HOME = "/home/user";

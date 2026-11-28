@@ -4,25 +4,25 @@ import {
   keyfileSettingsBackend,
   memorySettingsBackend,
   setSettingsBackend,
-} from "@/lib/engine/settings";
+} from "@/core/state/settings";
 import {
   SHELL_SETTINGS_PATH,
   findSettings,
   listSettingsSchemas,
   settingsFor,
   settingsPathForSchema,
-} from "@/lib/engine/settings";
-import { desktopSchemaDefaults } from "@/lib/config/piloti-settings-ini";
-import type { DesktopSettings } from "@/context/SettingsContext";
-import { mergeIniText } from "@/lib/config/ini";
-import { setStateSource } from "@/lib/engine/vfs-state";
+} from "@/core/state/settings";
+import { desktopSchemaDefaults } from "@/core/config/piloti-settings-ini";
+import type { DesktopSettings } from "@/ui/context/SettingsContext";
+import { mergeIniText } from "@/core/config/ini";
+import { setStateSource } from "@/core/state/vfs-state";
 import {
   appSettingsPath,
   getAppSetting,
   setAppSetting,
   subscribeAppSettings,
-} from "@/lib/core/app-settings";
-import type { StateSource } from "@/lib/ports/state-source";
+} from "@/core/config/app-settings";
+import type { StateSource } from "@/core/ports/state-source";
 
 function memoryStateSource(): StateSource & { data: Map<string, string> } {
   const data = new Map<string, string>();

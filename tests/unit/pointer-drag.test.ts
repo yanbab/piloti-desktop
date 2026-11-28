@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { startPointerDrag } from "../../src/lib/dnd/pointer-drag";
-import { DRAG_THRESHOLD, dragShuffleCss } from "../../src/lib/dnd/drag-feedback";
+import { startPointerDrag } from "../../src/ui/dnd/pointer-drag";
+import { DRAG_THRESHOLD, dragShuffleCss } from "../../src/ui/dnd/drag-feedback";
 
 function pointer(type: string, clientX: number, clientY: number, pointerId = 1): Event {
   return Object.assign(new Event(type), { clientX, clientY, pointerId });

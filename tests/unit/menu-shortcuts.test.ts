@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import { buildAppHelpLinks, slugifyAppName } from "@/shell/menubar/app-help-links";
-import { collectMenuShortcuts, formatMenuShortcut } from "@/lib/core/menu-shortcuts";
+import { buildAppHelpLinks, slugifyAppName } from "@/ui/shell/menubar/app-help-links";
+import { collectMenuShortcuts, formatMenuShortcut } from "@/core/windows/menu-shortcuts";
 
 describe("menu shortcut collection", () => {
   it("reads shortcuts from built-in menus, remote menus and extra groups", () => {

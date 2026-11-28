@@ -1,9 +1,9 @@
 import { describe, expect, it } from "bun:test";
 import { Ok } from "@cprussin/option-result";
-import { entryCommand } from "@/lib/apps/entry-command";
-import { createModuleApps } from "@/lib/apps/module-apps";
-import type { AppsHost } from "@/lib/ports/apps";
-import { parseDesktopEntry } from "@/lib/xdg/xdg-desktop-entry";
+import { entryCommand } from "@/core/apps/entry-command";
+import { createModuleApps } from "@/core/apps/module-apps";
+import type { AppsHost } from "@/core/ports/apps";
+import { parseDesktopEntry } from "@/core/xdg/xdg-desktop-entry";
 
 const entry = (extra = "") =>
   parseDesktopEntry(`[Desktop Entry]\nType=Application\nName=Edit\nExec=edit %F\n${extra}`, {

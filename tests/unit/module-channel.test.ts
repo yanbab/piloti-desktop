@@ -1,13 +1,13 @@
 import { describe, expect, test } from "bun:test";
 import { Ok } from "@cprussin/option-result";
-import { documentHash, moduleDocument, moduleInstance } from "@/data/app-modules";
+import { documentHash, moduleDocument, moduleInstance } from "@/core/data/app-modules";
 import {
   createModuleChannel,
   newModuleId,
   parseStateWords,
   type ShellMessage,
   stateWords,
-} from "@/lib/apps/module-channel";
+} from "@/core/apps/module-channel";
 
 /** A module's host: records the programs run, and `signal` plays the shell. */
 function fakeHost() {

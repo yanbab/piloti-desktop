@@ -7,9 +7,9 @@ import {
   hostControlInsets,
   type Decorations,
   type HeaderEdges,
-} from "@/components/elements/app-chrome";
-import { HeaderBar } from "@/components/elements/header-bar";
-import { isCloseOnLeft, Window } from "@/components/ui/window";
+} from "@/ui/components/elements/app-chrome";
+import { HeaderBar } from "@/ui/components/elements/header-bar";
+import { isCloseOnLeft, Window } from "@/ui/components/ui/window";
 
 function render(
   layout: string,

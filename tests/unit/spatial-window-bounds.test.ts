@@ -3,7 +3,7 @@ import {
   lookupSpatialWindowBounds,
   resolveSpatialBoundsKey,
   type SavedWindowBounds,
-} from "@/lib/windows/spatial-window-bounds";
+} from "@/core/windows/spatial-window-bounds";
 
 describe("spatial-window-bounds", () => {
   it("resolves per-URL keys for browser windows and per-payload keys for document apps", () => {

@@ -12,11 +12,11 @@ import {
   parseHtmlThemeColor,
   parseHtmlTitle,
   resolveWebAppTitle,
-} from "@/data/web-apps";
+} from "@/core/data/web-apps";
 import {
   resolveInitialSettings,
   WEB_DEFAULTS_VERSION,
-} from "@/context/SettingsContext";
+} from "@/ui/context/SettingsContext";
 
 describe("DEFAULT_BROWSER_WEB_APPS", () => {
   it("contains 50 unique, valid https entries (including Games) excluding iframe-blocked origins", () => {

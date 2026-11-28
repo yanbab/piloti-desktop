@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { applicationDirsFor, XDG_APPLICATION_DIRS } from "../../src/lib/xdg/xdg-basedir";
+import { applicationDirsFor, XDG_APPLICATION_DIRS } from "../../src/core/xdg/xdg-basedir";
 
 describe("application folders", () => {
   it("follows XDG_DATA_DIRS after the user's own folder", () => {

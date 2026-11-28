@@ -1,43 +1,43 @@
 // First: modules below may read files or state as they load.
-import "./lib/engine-web/install";
-import { loadAppCatalog } from "./lib/engine/app-catalog";
-import { attachConsoleDiskSink, installConsoleCapture } from "./lib/core/console-store";
-import { createShellLogWriter } from "./lib/engine/shell-log";
-import { profileStartup } from "./lib/core/startup-profile";
-import { startBootPhase } from "./lib/core/perf-log";
+import "./platform/web/install";
+import { loadAppCatalog } from "./platform/shared/app-catalog";
+import { attachConsoleDiskSink, installConsoleCapture } from "./core/util/console-store";
+import { createShellLogWriter } from "./platform/shared/shell-log";
+import { profileStartup } from "./core/util/startup-profile";
+import { startBootPhase } from "./core/util/perf-log";
 import * as React from "react";
 import { createRoot } from "react-dom/client";
 import { DomicileProvider } from "@domicile-desktop/react/domicile-provider";
-import "./styles/globals.css";
-import { setEngine, webEngine } from "./lib/engine/engine";
-import { demoVfsSeed } from "./lib/engine-web/vfs-seed";
-import { loadDataFiles } from "./lib/engine-web/data-files";
-import { setVfsSeed } from "./lib/engine-web/web-vfs";
-import { useWebCapture } from "./lib/engine-web/capture";
-import { setHardware } from "./lib/engine/hardware";
-import { webHardware } from "./lib/engine-web/hardware";
-import { setDemoCapture } from "./lib/ports/capture";
-import { installDynamicFavicon } from "./lib/engine-web/dynamic-favicon";
-import { createWebVfs } from "./lib/engine-web/vfs";
-import { withVfs } from "./lib/engine/with-vfs";
+import "./ui/styles/globals.css";
+import { setEngine, webEngine } from "./core/ports/engine";
+import { demoVfsSeed } from "./platform/web/vfs-seed";
+import { loadDataFiles } from "./platform/web/data-files";
+import { setVfsSeed } from "./platform/web/web-vfs";
+import { useWebCapture } from "./platform/web/capture";
+import { setHardware } from "./platform/shared/hardware";
+import { webHardware } from "./platform/web/hardware";
+import { setDemoCapture } from "./core/ports/capture";
+import { installDynamicFavicon } from "./platform/web/dynamic-favicon";
+import { createWebVfs } from "./platform/web/vfs";
+import { withVfs } from "./platform/shared/with-vfs";
 
 setEngine(webEngine);
 setDemoCapture(useWebCapture);
 setHardware(webHardware);
 setVfsSeed(demoVfsSeed);
 installDynamicFavicon();
-import { AppChromeProvider } from "./components/elements/app-chrome";
-import { PilotiQueryProvider } from "./lib/engine/query-client";
-import { ShellErrorBoundary } from "./shell/desktop/ShellErrorBoundary";
+import { AppChromeProvider } from "./ui/components/elements/app-chrome";
+import { PilotiQueryProvider } from "./platform/shared/query-client";
+import { ShellErrorBoundary } from "./ui/shell/desktop/ShellErrorBoundary";
 
 const TextsApp = React.lazy(() =>
-  import("./lib/engine/texts-host-shell").then((m) => ({
+  import("./ui/apps/texts/shell-host").then((m) => ({
     default: m.ShellTextsApp,
   })),
 );
 
 const CalculatorApp = React.lazy(() =>
-  import("./apps/calculator/FrameCalculatorApp").then((m) => ({
+  import("./ui/apps/calculator/FrameCalculatorApp").then((m) => ({
     default: m.FrameCalculatorApp,
   })),
 );
@@ -54,7 +54,7 @@ async function start(root: HTMLElement) {
   const isolatedApp = params.get("piloti_app");
   if (isolatedApp === "texts" || isolatedApp === "calculator") {
     // The frame's own desktop, over the same demo VFS as the shell's.
-    const { createBrowserDomicile } = await import("./lib/engine-web");
+    const { createBrowserDomicile } = await import("./platform/web");
     const domicile = createBrowserDomicile();
     const windowId = params.get("windowId") ?? "";
     const isCsd = params.get("csd") !== "0";
@@ -78,7 +78,7 @@ async function start(root: HTMLElement) {
     );
   } else {
     const finishImport = startBootPhase("desktop module");
-    void import("./lib/engine-web").then(async ({ createBrowserDomicile }) => {
+    void import("./platform/web").then(async ({ createBrowserDomicile }) => {
       const host = createBrowserDomicile();
       installConsoleCapture();
       attachConsoleDiskSink(createShellLogWriter(host));

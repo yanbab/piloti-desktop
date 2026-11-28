@@ -2,7 +2,7 @@ import { afterAll, describe, expect, it } from "bun:test";
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync, mkdirSync, readdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { archiveStem, compressNative, extractNative } from "@/lib/engine-native/archive";
+import { archiveStem, compressNative, extractNative } from "@/platform/native/archive";
 
 // Runs the real scripts: the fake `processes.run` is a local spawn.
 const piloti = {

@@ -10,7 +10,7 @@ import baseline from "./app-styling-baseline.json";
  *
  * After removing some, lower the baseline: `UPDATE_STYLING_BASELINE=1 bun test app-styling`
  */
-const APPS = join(import.meta.dir, "../../src/apps");
+const APPS = join(import.meta.dir, "../../src/ui/apps");
 const BASELINE = join(import.meta.dir, "app-styling-baseline.json");
 
 const APPEARANCE =

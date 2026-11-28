@@ -7,7 +7,7 @@ import { Glob } from "bun";
 const read = (path: string) => readFileSync(path, "utf8");
 const defined = (css: string) =>
   new Set([...css.matchAll(/(?:^|[;{])\s*(--ui-[\w-]+)\s*:/gm)].map((m) => m[1]!));
-const base = defined(read("src/styles/adwaita.css"));
+const base = defined(read("src/ui/styles/adwaita.css"));
 const sources = [...new Glob("src/**/*.{ts,tsx,css}").scanSync(".")];
 
 describe("theme tokens", () => {
@@ -21,7 +21,7 @@ describe("theme tokens", () => {
   });
 
   test("the Cupertino theme is scoped to itself", () => {
-    const rules = read("src/styles/cupertino.css").replace(/\/\*[\s\S]*?\*\//g, "");
+    const rules = read("src/ui/styles/cupertino.css").replace(/\/\*[\s\S]*?\*\//g, "");
     const selectors = [...rules.matchAll(/([^{}]+)\{/g)].flatMap((m) =>
       m[1]!.trim().split(/,\n/),
     );
@@ -39,7 +39,7 @@ describe("theme tokens", () => {
   });
 
   test("component stylesheets use no Tailwind", () => {
-    for (const path of new Glob("src/styles/components/*.css").scanSync(".")) {
+    for (const path of new Glob("src/ui/styles/components/*.css").scanSync(".")) {
       expect(read(path)).not.toMatch(/@apply|@utility|--spacing\(|theme\(/);
     }
   });

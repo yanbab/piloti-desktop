@@ -6,7 +6,7 @@ import {
   shellCommandWords,
   resolvePilotiCommandAppId,
   type PilotiShellCommandHandlers,
-} from "@/shell/desktop/shell-commands";
+} from "@/ui/shell/desktop/shell-commands";
 
 function createRecorder() {
   const calls: Array<{ fn: string; args: unknown[] }> = [];

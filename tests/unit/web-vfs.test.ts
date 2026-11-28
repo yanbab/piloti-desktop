@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "bun:test";
-import { parseGioMetadataInfo } from "@/lib/engine-native/gio";
-import { inferFileVisual } from "@/lib/files/desktop-icons";
+import { parseGioMetadataInfo } from "@/platform/native/gio";
+import { inferFileVisual } from "@/core/files/desktop-icons";
 import {
   clearAllWebVfsBackingStorage,
   copyVfsEntry,
@@ -29,8 +29,8 @@ import {
   WEB_VFS_STORAGE_KEY,
   WEB_VFS_TRASH,
   writeVfsTextFile,
-} from "@/lib/engine-web/web-vfs";
-import { getEmblems, hasEmblem, setEmblem, toggleEmblem } from "@/lib/engine/emblems";
+} from "@/platform/web/web-vfs";
+import { getEmblems, hasEmblem, setEmblem, toggleEmblem } from "@/platform/shared/emblems";
 
 function installMemoryLocalStorage() {
   const store = new Map<string, string>();

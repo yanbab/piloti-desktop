@@ -10,12 +10,31 @@ UI (React)  ─►  piloti: Domicile's desktop + vfs, desktop, settings, plugins
                   └─ web engine     →  fake host, browser storage (demo)
 ```
 
+## Layers
+
+```
+src/
+  core/        plain TypeScript: ports/ (interfaces), apps/, config/, xdg/,
+               files/, windows/, system/, state/, data/, locales/, util/
+  platform/    adapters: shared/ (what UI code calls), native/ (Linux), web/ (demo)
+  ui/          React: apps/, shell/, components/, context/, hooks/, dnd/, styles/
+  piloti-*.tsx entry points: they pick the platform and mount the UI
+```
+
+| Layer | May import | Never |
+|---|---|---|
+| `core/` | `core/` | `platform/`, `ui/` |
+| `platform/` | `core/`, `platform/` | `ui/` |
+| `ui/` | `core/`, `platform/shared/` | `platform/native`, `platform/web` (types excepted) |
+
+`tests/unit/engine-boundary.test.ts` checks it.
+
 ## Engines
 
 | | Native | Web (demo) |
 |---|---|---|
 | Entry | `src/piloti-desktop.tsx` | `src/piloti-web.tsx` |
-| Code | `lib/engine-native/` | `lib/engine-web/` |
+| Code | `platform/native/` | `platform/web/` |
 | Files | the disk | browser storage |
 | System | D-Bus, gsettings, processes | simulated |
 
@@ -24,10 +43,10 @@ UI (React)  ─►  piloti: Domicile's desktop + vfs, desktop, settings, plugins
   not the engine.
 - The native bundle never imports the web engine or the demo files:
   `piloti-web.tsx` injects the seed (`setVfsSeed`) and the demo capture.
-- Each entry point calls `setEngine()` (`lib/engine/engine.ts`).
-  `lib/engine/` holds the bridges both engines share.
+- Each entry point calls `setEngine()` (`core/ports/engine.ts`).
+  `platform/shared/` holds the bridges both engines share.
 - Battery, audio, brightness, power profile, Wi-Fi, Bluetooth and media go
-  through `hardware()` (`engine/hardware.ts`, shape in `ports/hardware.ts`).
+  through `hardware()` (`platform/shared/hardware.ts`, shape in `core/ports/hardware.ts`).
 - System features use Domicile's `@domicile-desktop/system-*` libraries and
   GNOME/freedesktop services.
 - On Linux: Domicile renders the shell, its compositor runs Wayland and
@@ -44,70 +63,70 @@ Nothing the entry imports up front may read `$HOME` (the build checks).
 | What | API | Stored in |
 |---|---|---|
 | Files | `piloti.vfs`; views use `useVfsList` / `useVfsText`… | the disk |
-| Settings | schema + key (`defineSettings`, `useDesktopSettings`) | desktop: dconf (Linux, schema installed) or `settings.ini`; apps: `apps/<app>.ini` |
-| Shell state | `engine/vfs-state.ts`, read synchronously | `~/.local/state/piloti/`, `~/.cache/piloti/` |
+| Settings | schema + key (`defineSettings`, `useDesktopSettings`) | desktop: dconf (Linux, schema installed) or `settings.ini`; apps: `ui/apps/<app>.ini` |
+| Shell state | `core/state/vfs-state.ts`, read synchronously | `~/.local/state/piloti/`, `~/.cache/piloti/` |
 
 - **One cache** (TanStack Query) for file reads; one watch per path, shared.
   The shell's own file operations update open views at once.
 - **Settings** are what the user chose; window bounds, history and caches are
   state.
-- File operations users can undo go through `engine/fs-undo.ts`.
-- **`piloti.vfs`** (`ports/vfs.ts`) is async, rejects on failure and writes
+- File operations users can undo go through `platform/shared/fs-undo.ts`.
+- **`piloti.vfs`** (`core/ports/vfs.ts`) is async, rejects on failure and writes
   through symlinks. `watch` calls once when in place, then on changes. On Linux it
   watches folders only (not recursive), shared and capped: inotify is scarce.
-- `engine/fs-bridge.ts` adds naming rules and listings for Folders and Desktop.
-- Renames are announced on `engine/renames.ts`; emblems go through
-  `engine/emblems.ts` (stored in each file's `metadata::emblems` on Linux, with
+- `platform/shared/fs-bridge.ts` adds naming rules and listings for Folders and Desktop.
+- Renames are announced on `platform/shared/renames.ts`; emblems go through
+  `platform/shared/emblems.ts` (stored in each file's `metadata::emblems` on Linux, with
   the favorites listed in `favorites.json`). What only the demo does with files (open as a page, zip,
-  download) is behind `ports/demo-files.ts`, set by `piloti-web.tsx`.
+  download) is behind `core/ports/demo-files.ts`, set by `piloti-web.tsx`.
 - `web-vfs.ts` (localStorage + IndexedDB) is the demo's storage. On Linux the disk
   is the only copy of files.
 - Config and state are the exception held in memory, read through
-  `vfs-state.ts`; `engine-native/state-store.ts` follows the disk.
+  `vfs-state.ts`; `platform/native/state-store.ts` follows the disk.
 
 ## Shell
 
 - The public `piloti.desktop`, `.settings` and `.plugins` are typed in
-  `ports/shell-api.ts`; `context/use-shell-api.ts` connects them to the shell.
-- Notifications, session lock, power and capture live in `context/backends/`;
+  `core/ports/shell-api.ts`; `ui/context/use-shell-api.ts` connects them to the shell.
+- Notifications, session lock, power and capture live in `ui/context/backends/`;
   `SystemBackendsContext` joins them with the hardware state.
 - Contexts are split and selected (`useWindowManagerSelector`,
   `useDesktopSettings([...])`, `useWindowActions`); the window store is external
   (`window-manager-store.ts`). MenuBar, Dock and Launcher are memoised.
 - `DesktopStateProvider` nests settings, system backends, windows and apps.
   Components subscribe to slices, so a change re-renders only what uses it.
-- Window manager: `context/WindowsContext.tsx` holds the state and actions;
-  its types, derived lists and self-contained hooks are in `context/windows/`,
-  pure logic in `lib/windows/`.
+- Window manager: `ui/context/WindowsContext.tsx` holds the state and actions;
+  its types, derived lists and self-contained hooks are in `ui/context/windows/`,
+  pure logic in `core/windows/`.
 - Windows keep their DOM order and are hidden with CSS, so iframes don't reload.
 - Bounds and workspace are saved per URL, document or app.
 - Folders opened on a folder keeps view, sort and zoom per folder
   (`metadata::piloti-view`); opened without one, a single view in
-  `apps/folders.ini`, with the info pane (`apps/files/folder-view.ts`).
+  `apps/folders.ini`, with the info pane (`ui/apps/files/folder-view.ts`).
 - New webview windows stay hidden until ready (2.5 s limit).
 
 ## Built-in apps
 
-- Described by `data/files/usr/share/applications/piloti-*.desktop`
-  (`X-Piloti-*` keys), read at start by `engine/app-catalog.ts`.
-- `data/catalog.ts` holds their menus. Clicks arrive as `piloti:app-action`
+- Described by `core/data/files/usr/share/applications/piloti-*.desktop`
+  (`X-Piloti-*` keys), read at start by `platform/shared/app-catalog.ts`.
+- `core/data/catalog.ts` holds their menus. Clicks arrive as `piloti:app-action`
   events; apps publish menu state with `publishWindowMenuState`.
-- Shell events are typed in `lib/core/shell-events.ts`.
+- Shell events are typed in `core/windows/shell-events.ts`.
 - `DesktopIconsApp` (the spatial desktop) and Folders share
-  `components/ui/icon-grid.tsx`.
-- Folders' list view is a tree (`components/ui/folder-tree-view.tsx`): each open
+  `ui/components/ui/icon-grid.tsx`.
+- Folders' list view is a tree (`ui/components/ui/folder-tree-view.tsx`): each open
   folder has its own listing and watch, released when it is hidden.
-- Item drags find their target by `data-*` attributes (`lib/dnd/item-drop.ts`),
+- Item drags find their target by `data-*` attributes (`ui/dnd/item-drop.ts`),
   so grids, the tree, the Dock and windows take each other's drops.
 
 ## Backends
 
 Logic any app needs, in the shell or in its own process, is plain TypeScript: no
 React, no engine, and a host passed in (`files`, `processes`, `dbus`, which is
-all an app module has). Interfaces are in `ports/`, code in `lib/<domain>/`; a
+all an app module has). Interfaces are in `core/ports/`, code in `core/<domain>/`; a
 test keeps it so.
 
-- **Apps** (`ports/apps.ts`, `lib/apps/`): list the installed applications, ask
+- **Apps** (`core/ports/apps.ts`, `core/apps/`): list the installed applications, ask
   the shell to open one. A module can't launch programs, so `createModuleApps`
   runs `piloti open`; the shell starts them itself.
 
@@ -119,22 +138,22 @@ for crash and performance isolation (not a sandbox).
 | Host | How |
 |---|---|
 | In shell (default) | a React component |
-| Web, isolated | `IsolatedAppFrame` iframe, messages via `engine/app-bridge.ts` |
+| Web, isolated | `IsolatedAppFrame` iframe, messages via `platform/shared/app-bridge.ts` |
 | Native, isolated | a Domicile app module in its own window |
 
 Domicile app module:
 
 - Exports `main` (`mount(Component)`); run with `domicile open --app /path/app.js`.
-- An app takes what it needs from an `AppHost` (`ports/app-host.ts`: files,
+- An app takes what it needs from an `AppHost` (`core/ports/app-host.ts`: files,
   apps, state, close) and settings from `defineSettings`. The shell builds one
-  with `engine/app-shell-host.ts`, a module with `engine/app-module-host.ts`.
+  with `platform/shared/app-shell-host.ts`, a module with `platform/shared/app-module-host.ts`.
 - Own origin and storage per directory; gets `files`, `processes`, `dbus` only.
   It talks to the shell through files or D-Bus.
 - Shown in a `<webview>`; the shell draws its controls and drag strip
-  (`data/app-modules.ts`).
+  (`core/data/app-modules.ts`).
 - Built with `npm run build:apps` → `dist/apps/<id>/` (`hello`, `calculator`, `texts`).
 
-A module and the shell talk as in Electron (`lib/apps/module-channel.ts`):
+A module and the shell talk as in Electron (`core/apps/module-channel.ts`):
 
 | Direction | Carried by |
 |---|---|
@@ -151,7 +170,7 @@ In a module, menu state and actions are the same window events as in the shell,
 so an app needs nothing of its own. A module that must not close refuses with
 `beforeunload` and asks in its own window.
 
-Texts (`engine/texts-host.ts`) and Calculator (`apps/calculator/host.ts`) add
+Texts (`engine/texts-host.ts`) and Calculator (`ui/apps/calculator/host.ts`) add
 what only they need. A module follows its settings file and `settings.ini`, but
 not dconf, and has no notifications or drag and drop with the shell. View ▸
 Open New Windows Separately sets `run-in=isolated`; without an installed module

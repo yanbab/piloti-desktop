@@ -1,0 +1,1283 @@
+import { hostFiles } from "@/core/files/host-files";
+import * as React from "react";
+import { currentAppId, renameBoundsKeys } from "@/core/config/renamed-apps";
+import { getEngine } from "@/core/ports/engine";
+import { usePiloti } from "@/platform/shared/piloti";
+import { usePortalWallpaper } from "@domicile-desktop/react/portals";
+import { useWatch } from "@domicile-desktop/react/use-watch";
+import {
+  ACCENT_COLORS,
+  APP_CATALOG,
+  type AccentColorId,
+  WALLPAPERS,
+  type WallpaperOption,
+  resolveDynamicWallpaperCss,
+} from "@/core/data/catalog";
+import {
+  DEFAULT_LAUNCHER_WEB_APPS,
+  type InstalledWebApp,
+} from "@/core/data/web-apps";
+import { WEB_VFS_HOME } from "@/core/files/vfs-paths";
+import { demoFiles } from "@/core/ports/demo-files";
+import {
+  readVfsStateJson,
+  readVfsStateText,
+  runVfsStateMigrations,
+  removeVfsStateFile,
+  subscribeVfsPath,
+  VFS_STATE_PATHS,
+  writeVfsStateJson,
+  writeVfsStateText,
+} from "@/core/state/vfs-state";
+import {
+  desktopSchemaDefaults,
+  diffDesktopSettings,
+  parseDesktopSettingsRaw,
+  serializeDesktopSettingsIni,
+} from "@/core/config/piloti-settings-ini";
+import { defineSettings, settingsBackend } from "@/core/state/settings";
+import {
+  readDesktopSettingsRaw,
+  subscribeDesktopSettings,
+  writeDesktopSettings,
+  seedDesktopSettings,
+} from "@/core/config/desktop-settings-store";
+import {
+  XDG_WEBAPPS_CHANGED_EVENT,
+} from "@/core/xdg/xdg-web-apps";
+import {
+  installWebAppDesktopEntry,
+  loadWebAppsFromDesktopEntries,
+} from "@/platform/shared/web-apps-store";
+import {
+  DEFAULT_GNOME_BACKGROUND,
+  type BackgroundRenderSpec,
+  type GnomeBackgroundSettings,
+  type WallpaperColorMode,
+  fileUriToLocalPath,
+  localPathToFileUri,
+  parseGnomeBackgroundXml,
+  resolveBackgroundRenderSpec,
+  selectGnomePictureUri,
+  normalizeGnomeColor,
+  isGnomeBackgroundConfigured,
+} from "@/core/system/gnome-background";
+import { clampHistoryLimit } from "@/core/system/notifications";
+import {
+  readGnomeBackgroundBlob,
+  syncGtkIconTheme,
+  DEFAULT_HIDDEN_GNOME_PANELS,
+} from "@/platform/shared/desktop-integration";
+import { hardware } from "@/platform/shared/hardware";
+import { startBootPhase } from "@/core/util/perf-log";
+import { subscribeLocale } from "@/core/util/i18n";
+import type { DesktopIconAlign } from "@/core/files/desktop-icons";
+import type { SavedWindowBounds } from "@/core/windows/spatial-window-bounds";
+import { useCapabilities } from "@/ui/hooks/use-capabilities";
+
+import type {
+  WindowDecorationMode,
+  CssFontSmoothing,
+  CssTextRendering,
+  CssFontOpticalSizing,
+  CssFontKerning,
+  CssFontSynthesis,
+  CssFontStyle,
+  InterfaceThemeId,
+  DesktopSettings,
+} from "@/core/config/desktop-settings";
+
+export type {
+  WindowDecorationMode,
+  CssFontSmoothing,
+  CssTextRendering,
+  CssFontOpticalSizing,
+  CssFontKerning,
+  CssFontSynthesis,
+  CssFontStyle,
+  InterfaceThemeId,
+  DesktopSettings,
+};
+export type { InstalledWebApp, SavedWindowBounds, WallpaperColorMode };
+
+export const DEFAULT_SETTINGS: DesktopSettings = {
+  interfaceTheme: "piloti",
+  themeMode: "system",
+  accentColor: "teal",
+  customAccentHex: "",
+  highContrast: false,
+  wallpaperId: "aurora-drift:aurora-drift",
+  customWallpaperUrl: "",
+  customWallpaperColors: [],
+  wallpaperColorMode: "solid",
+  gnomeBackground: { ...DEFAULT_GNOME_BACKGROUND },
+  dockSize: 52,
+  dockPosition: "bottom",
+  dockMagnification: false,
+  dockMagnificationSize: 76,
+  dockAutoHide: false,
+  clock24Hour: true,
+  clockShowSeconds: false,
+  clockShowDay: false,
+  clockShowDate: false,
+  showBatteryPercentage: false,
+  reduceMotion: false,
+  moreTransparency: true,
+  windowDecorationMode: "auto",
+  windowButtonLayout: ":close",
+  showWindowMenu: true,
+  iconTheme: "Piloti",
+  syncGnomeSettings: true,
+  preferGnomeControlCenter: false,
+  hiddenGnomePanels: [...DEFAULT_HIDDEN_GNOME_PANELS],
+  fontSansFamily: "Adwaita Sans",
+  fontMonoFamily: "Adwaita Mono",
+  fontScale: 1,
+  fontSansStyle: "regular",
+  cssFontSmoothing: "antialiased",
+  cssTextRendering: "auto",
+  cssFontOpticalSizing: "auto",
+  cssFontKerning: "auto",
+  cssFontSynthesis: "auto",
+  cssLetterSpacingEm: 0,
+  cssTextStrokePx: 0,
+  gtkFontName: "Adwaita Sans 11",
+  gtkDocumentFontName: "Sans 11",
+  gtkMonospaceFontName: "Adwaita Mono 11",
+  gtkTextScalingFactor: 1,
+  gtkFontAntialiasing: "grayscale",
+  gtkFontHinting: "slight",
+  gtkFontRgbaOrder: "rgb",
+  volume: 78,
+  muted: false,
+  brightness: 95,
+  nightLight: false,
+  wifiEnabled: true,
+  connectedWifi: "Piloti-5G-Ultra",
+  bluetoothEnabled: true,
+  doNotDisturb: false,
+  notificationsEnabled: true,
+  notificationBannersEnabled: true,
+  notificationShowOnLockScreen: true,
+  notificationShowPreviews: true,
+  notificationAllowCriticalInDnd: true,
+  notificationBannerTimeoutMs: 5000,
+  notificationHistoryLimit: 50,
+  powerMode: "balanced",
+  activeWorkspace: 1,
+  workspaceCount: 2,
+  restoreWindowsOnLogin: true,
+  desktopIconsEnabled: true,
+  desktopIconAlign: "left",
+  fileActivationMode: "single",
+  showFileExtensionBadges: true,
+  demoExtensionEnabled: true,
+  pinnedExtensionIds: [],
+  darkReaderWebEnabled: false,
+  debugMode: false,
+  remoteDevtools: false,
+  enabledPluginIds: ["aurora-drift", "app-indicator", "picture-in-picture", "app-dark-mode"],
+  keyboardLayout: "",
+  computerModel:
+    typeof navigator !== "undefined" &&
+      /mac/i.test(navigator.platform || navigator.userAgent || "")
+      ? "mac"
+      : "pc",
+  desktopIconPositions: {},
+  // A getter: the catalog is read from files before the shell starts.
+  get pinnedAppIds() {
+    return APP_CATALOG.filter((a) => a.pinnedByDefault).map((a) => a.id);
+  },
+  installedWebApps: [],
+  savedWindowBounds: {},
+};
+
+/**
+ * The desktop's schemas in settings.ini (`org.piloti.desktop.dock`…), readable
+ * and writable through the settings layer; edits reach this context through
+ * the settings.ini watch.
+ */
+for (const [schema, defaults] of Object.entries(desktopSchemaDefaults(DEFAULT_SETTINGS))) {
+  defineSettings(schema, defaults);
+}
+
+const STORAGE_KEY = "piloti.desktop.settings.v1";
+const WINDOW_BOUNDS_STORAGE_KEY = "piloti.window-bounds.v1";
+const DESKTOP_ICONS_STORAGE_KEY = "piloti.desktop-icon-positions.v1";
+
+function loadSeparatedRecord<T>(
+  vfsPath: string,
+  legacyKey: string,
+): Record<string, T> | null {
+  try {
+    const parsed = readVfsStateJson<Record<string, T>>(vfsPath, legacyKey);
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+      ? parsed
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+export const WEB_DEFAULTS_VERSION = 7;
+
+// All our apps except Piloti Devtools and Image Viewer (and the Login Screen preview).
+const DEFAULT_WEB_PINNED_APP_IDS = [
+  "nautilus",
+  "browser",
+  "terminal",
+  "texts",
+  "calculator",
+  "selfies",
+  "piloti-demo",
+  "app-store",
+  "settings",
+];
+
+const WEB_HIDDEN_APP_IDS = new Set([
+  "org.gnome.Console.desktop",
+  "org.gnome.TextEditor.desktop",
+  "org.gnome.Calculator.desktop",
+  "org.gnome.Loupe.desktop",
+  "org.gnome.Evince.desktop",
+  "org.gnome.baobab.desktop",
+  "org.gnome.SystemMonitor.desktop",
+  "kitty.desktop",
+  "firefox-esr.desktop",
+  "code.desktop",
+  "gimp.desktop",
+]);
+
+function normalizeWebPinnedApps(rawPins: unknown): string[] {
+  const base = Array.isArray(rawPins)
+    ? rawPins.filter(
+      (id): id is string =>
+        typeof id === "string" && !WEB_HIDDEN_APP_IDS.has(id)
+    )
+    : [];
+  const merged = [...base];
+  for (const requiredId of DEFAULT_WEB_PINNED_APP_IDS) {
+    if (WEB_HIDDEN_APP_IDS.has(requiredId)) continue;
+    if (!merged.includes(requiredId)) {
+      merged.push(requiredId);
+    }
+  }
+  return merged;
+}
+
+function mergeDefaultBrowserWebApps(
+  existing: InstalledWebApp[]
+): InstalledWebApp[] {
+  const existingUrls = new Set(existing.map((app) => app.url));
+  return [
+    ...existing,
+    ...DEFAULT_LAUNCHER_WEB_APPS.filter((app) => !existingUrls.has(app.url)),
+  ];
+}
+
+/**
+ * Resolves initial desktop settings from serialized storage. When running the
+ * web backend (`demoDefaults`), pins only Files (Nautilus) and Settings and
+ * pre-installs the curated 20 iframe-friendly web apps once per defaults
+ * version without overriding subsequent user edits.
+ */
+/**
+ * Volume and brightness are the hardware's, not choices to restore: Linux reads
+ * them from the system (the `watchSystem*` watchers); the demo's start full.
+ */
+function withEngineLevels(settings: DesktopSettings): DesktopSettings {
+  return getEngine().capabilities.simulatedHardware
+    ? { ...settings, volume: 100, brightness: 100 }
+    : settings;
+}
+
+export function resolveInitialSettings(
+  savedRaw: string | null,
+  demoDefaults: boolean
+): DesktopSettings {
+  if (savedRaw) {
+    try {
+      const parsed = parseDesktopSettingsRaw(savedRaw);
+      if (parsed) {
+        const workspaceCount =
+          typeof parsed.workspaceCount === "number" && parsed.workspaceCount >= 1
+            ? parsed.workspaceCount
+            : DEFAULT_SETTINGS.workspaceCount;
+        const activeWorkspace = Math.max(
+          1,
+          Math.min(workspaceCount, parsed.activeWorkspace ?? 1)
+        );
+        const rawWebApps = Array.isArray(parsed.installedWebApps)
+          ? parsed.installedWebApps
+          : [];
+        const needsWebDefaults =
+          demoDefaults && parsed.webDefaultsVersion !== WEB_DEFAULTS_VERSION;
+
+        const installedWebApps = needsWebDefaults
+          ? parsed.webAppsSeeded === true
+            ? [...DEFAULT_LAUNCHER_WEB_APPS]
+            : mergeDefaultBrowserWebApps(rawWebApps)
+          : rawWebApps;
+
+        const pinnedAppIds = needsWebDefaults
+          ? normalizeWebPinnedApps(
+              Array.isArray(parsed.pinnedAppIds) ? parsed.pinnedAppIds.map(currentAppId) : parsed.pinnedAppIds,
+            )
+          : Array.isArray(parsed.pinnedAppIds)
+            ? parsed.pinnedAppIds
+            : DEFAULT_SETTINGS.pinnedAppIds;
+
+        const rawGnomeBg =
+          parsed.gnomeBackground && typeof parsed.gnomeBackground === "object"
+            ? parsed.gnomeBackground
+            : {};
+        const gnomeBackground: GnomeBackgroundSettings = {
+          ...DEFAULT_GNOME_BACKGROUND,
+          ...rawGnomeBg,
+        };
+        // GNOME may spell colours as `#rrrrggggbbbb`.
+        for (const key of ["primaryColor", "secondaryColor"] as const) {
+          gnomeBackground[key] =
+            normalizeGnomeColor(gnomeBackground[key]) ?? DEFAULT_GNOME_BACKGROUND[key];
+        }
+        if (parsed.customWallpaperUrl && !gnomeBackground.pictureUri) {
+          gnomeBackground.pictureUri = parsed.customWallpaperUrl;
+        }
+
+        const notificationBannerTimeoutMs =
+          typeof parsed.notificationBannerTimeoutMs === "number" &&
+            Number.isFinite(parsed.notificationBannerTimeoutMs)
+            ? Math.max(0, parsed.notificationBannerTimeoutMs)
+            : DEFAULT_SETTINGS.notificationBannerTimeoutMs;
+        const notificationHistoryLimit = clampHistoryLimit(
+          parsed.notificationHistoryLimit
+        );
+
+        const interfaceTheme =
+          parsed.interfaceTheme || DEFAULT_SETTINGS.interfaceTheme;
+        const iconTheme =
+          interfaceTheme === "adwaita"
+            ? "Adwaita"
+            : !parsed.iconTheme ||
+                parsed.iconTheme === "Papirus" ||
+                interfaceTheme === "piloti"
+              ? "Piloti"
+              : parsed.iconTheme;
+
+        const wallpaperColorMode: WallpaperColorMode =
+          parsed.wallpaperColorMode === "linear" ||
+          parsed.wallpaperColorMode === "circular"
+            ? parsed.wallpaperColorMode
+            : "solid";
+        const customWallpaperColors = Array.isArray(parsed.customWallpaperColors)
+          ? parsed.customWallpaperColors.filter(
+              (c): c is string => typeof c === "string" && c.trim().length > 0
+            )
+          : [];
+
+        return {
+          ...DEFAULT_SETTINGS,
+          ...parsed,
+          // No wallpaper chosen in Piloti yet: take GNOME's if there is one.
+          ...(!parsed.wallpaperId && parsed.gnomeBackground && isGnomeBackgroundConfigured(gnomeBackground)
+            ? { wallpaperId: "gnome" }
+            : {}),
+          customWallpaperColors,
+          wallpaperColorMode,
+          interfaceTheme,
+          iconTheme,
+          gnomeBackground,
+          notificationBannerTimeoutMs,
+          notificationHistoryLimit,
+          workspaceCount,
+          activeWorkspace,
+          pinnedAppIds: pinnedAppIds.map(currentAppId),
+          installedWebApps,
+          ...(demoDefaults
+            ? { webAppsSeeded: true, webDefaultsVersion: WEB_DEFAULTS_VERSION }
+            : {}),
+          savedWindowBounds: renameBoundsKeys(parsed.savedWindowBounds ?? {}),
+        };
+      }
+    } catch {
+      // ignore storage errors
+    }
+  }
+
+  if (demoDefaults) {
+    return {
+      ...DEFAULT_SETTINGS,
+      pinnedAppIds: [...DEFAULT_WEB_PINNED_APP_IDS],
+      installedWebApps: [...DEFAULT_LAUNCHER_WEB_APPS],
+      webAppsSeeded: true,
+      webDefaultsVersion: WEB_DEFAULTS_VERSION,
+    };
+  }
+  return DEFAULT_SETTINGS;
+}
+
+export interface SettingsContextValue {
+  settings: DesktopSettings;
+  updateSettings: (patch: Partial<DesktopSettings>) => void;
+  applySettingsState: (patch: Partial<DesktopSettings>) => void;
+  resolvedTheme: "dark" | "light";
+  reducedMotion: boolean;
+  activeWallpaper: WallpaperOption;
+  backgroundSpec: BackgroundRenderSpec;
+}
+
+export const SettingsContext = React.createContext<SettingsContextValue | null>(null);
+
+export function useSettingsValue(options?: {
+  deferLocalWallpaper?: boolean;
+}): SettingsContextValue {
+  const deferLocalWallpaper = Boolean(options?.deferLocalWallpaper);
+  const piloti = usePiloti();
+  const { systemServices, realFilesystem, simulatedHardware, compositor } = useCapabilities();
+  const portalWallpaper = usePortalWallpaper();
+  const [wallpaperFallbackReady, setWallpaperFallbackReady] =
+    React.useState(false);
+
+  React.useEffect(() => {
+    if (!deferLocalWallpaper || wallpaperFallbackReady) return;
+    const timer = window.setTimeout(() => {
+      setWallpaperFallbackReady(true);
+    }, 1500);
+    return () => window.clearTimeout(timer);
+  }, [deferLocalWallpaper, wallpaperFallbackReady]);
+
+  const allowLocalWallpaper = !deferLocalWallpaper || wallpaperFallbackReady;
+
+  const [settings, setSettings] = React.useState<DesktopSettings>(() => withEngineLevels((() => {
+    if (typeof window === "undefined") return DEFAULT_SETTINGS;
+    try {
+      // The settings backend (settings.ini, or dconf on Linux), then older places.
+      let savedRaw =
+        readDesktopSettingsRaw(settingsBackend()) ??
+        readVfsStateText(VFS_STATE_PATHS.settings, STORAGE_KEY);
+      if (savedRaw === null) {
+        const legacyJson = readVfsStateText(VFS_STATE_PATHS.legacySettingsJson);
+        if (legacyJson !== null) {
+          savedRaw = legacyJson;
+          removeVfsStateFile(VFS_STATE_PATHS.legacySettingsJson);
+        }
+      }
+      const base = resolveInitialSettings(savedRaw, simulatedHardware);
+      if (savedRaw !== null && savedRaw.trim().startsWith("{")) {
+        seedDesktopSettings(settingsBackend(), base);
+      }
+      const separatedBounds = loadSeparatedRecord<SavedWindowBounds>(
+        VFS_STATE_PATHS.windowBounds,
+        WINDOW_BOUNDS_STORAGE_KEY
+      );
+      const separatedIcons = loadSeparatedRecord<{ col: number; row: number }>(
+        VFS_STATE_PATHS.desktopIcons,
+        DESKTOP_ICONS_STORAGE_KEY
+      );
+      return {
+        ...base,
+        savedWindowBounds: separatedBounds
+          ? { ...base.savedWindowBounds, ...renameBoundsKeys(separatedBounds) }
+          : base.savedWindowBounds,
+        desktopIconPositions: separatedIcons
+          ? { ...base.desktopIconPositions, ...separatedIcons }
+          : base.desktopIconPositions,
+      };
+    } catch {
+      return resolveInitialSettings(null, simulatedHardware);
+    }
+  })()));
+
+  const settingsRef = React.useRef(settings);
+  settingsRef.current = settings;
+  const sliderTimersRef = React.useRef<{
+    audio?: ReturnType<typeof setTimeout>;
+    brightness?: ReturnType<typeof setTimeout>;
+    boundsStorage?: ReturnType<typeof setTimeout>;
+    iconsStorage?: ReturnType<typeof setTimeout>;
+    xdgWebApps?: ReturnType<typeof setTimeout>;
+    settingsIni?: ReturnType<typeof setTimeout>;
+  }>({});
+
+  // settings.ini is serialized once per burst (sliders, color pickers) instead
+  // of on every update; flushed on page hide so the last change isn't lost.
+  const pendingSettingsIniRef = React.useRef<{
+    previous: DesktopSettings;
+    next: DesktopSettings;
+  } | null>(null);
+  const flushSettingsIni = React.useCallback(() => {
+    clearTimeout(sliderTimersRef.current.settingsIni);
+    sliderTimersRef.current.settingsIni = undefined;
+    const pending = pendingSettingsIniRef.current;
+    if (!pending) return;
+    pendingSettingsIniRef.current = null;
+    try {
+      // Only the keys that changed; keys the shell doesn't know stay.
+      writeDesktopSettings(settingsBackend(), pending.next, pending.previous);
+    } catch {
+      // ignore storage errors
+    }
+  }, []);
+  React.useEffect(() => {
+    window.addEventListener("pagehide", flushSettingsIni);
+    window.addEventListener("beforeunload", flushSettingsIni);
+    return () => {
+      window.removeEventListener("pagehide", flushSettingsIni);
+      window.removeEventListener("beforeunload", flushSettingsIni);
+      flushSettingsIni();
+    };
+  }, [flushSettingsIni]);
+
+  // What a settings change means outside the page (GNOME settings, hardware).
+  const applySystemSettings = React.useCallback(
+    (
+      next: DesktopSettings,
+      changed: Partial<DesktopSettings>
+    ) => {
+      if (systemServices) {
+        // GNOME keys follow through the settings links; GTK 3/4 files don't.
+        if (next.syncGnomeSettings && changed.iconTheme !== undefined) {
+          void syncGtkIconTheme(piloti, next.iconTheme);
+        }
+
+        if (changed.nightLight !== undefined) {
+          piloti.displays
+            .setColorTemperature(next.nightLight ? 4200 : 6500)
+            .catch(() => { });
+        }
+
+        if (changed.volume !== undefined || changed.muted !== undefined) {
+          clearTimeout(sliderTimersRef.current.audio);
+          sliderTimersRef.current.audio = setTimeout(() => {
+            void hardware().audio.set(piloti, next.volume, next.muted);
+          }, 60);
+        }
+
+        if (changed.brightness !== undefined) {
+          clearTimeout(sliderTimersRef.current.brightness);
+          sliderTimersRef.current.brightness = setTimeout(() => {
+            void hardware().brightness.set(piloti, next.brightness);
+          }, 90);
+        }
+
+        if (changed.wifiEnabled !== undefined) {
+          void hardware().wifi.setEnabled(piloti, next.wifiEnabled);
+        }
+
+        if (changed.bluetoothEnabled !== undefined) {
+          void hardware().bluetooth.setPowered(piloti, next.bluetoothEnabled);
+        }
+
+        if (changed.powerMode !== undefined) {
+          void hardware().powerProfile.set(piloti, next.powerMode);
+        }
+      }
+    },
+    [piloti, systemServices]
+  );
+  // The settings.ini subscriber below lives longer than one render.
+  const applySystemSettingsRef = React.useRef(applySystemSettings);
+  applySystemSettingsRef.current = applySystemSettings;
+
+  // Seed settings.ini in VFS on first run so users can inspect/edit it in Files or Texts,
+  // and subscribe to live VFS edits on settings.ini, window-bounds.json, and desktop-icons.json.
+  React.useEffect(() => {
+    try {
+      runVfsStateMigrations();
+      if (readDesktopSettingsRaw(settingsBackend()) === null) {
+        seedDesktopSettings(settingsBackend(), settingsRef.current);
+      }
+      if (readVfsStateText(VFS_STATE_PATHS.windowBounds) === null) {
+        writeVfsStateJson(
+          VFS_STATE_PATHS.windowBounds,
+          settingsRef.current.savedWindowBounds
+        );
+      }
+      if (readVfsStateText(VFS_STATE_PATHS.desktopIcons) === null) {
+        writeVfsStateJson(
+          VFS_STATE_PATHS.desktopIcons,
+          settingsRef.current.desktopIconPositions
+        );
+      }
+    } catch {
+      // ignore initial VFS seed errors
+    }
+
+    // The file must say the same levels, or its next change would restore old ones.
+    if (getEngine().capabilities.simulatedHardware) {
+      const current = settingsRef.current;
+      writeDesktopSettings(settingsBackend(), current, { ...current, volume: -1, brightness: -1 });
+    }
+
+    const unsubSettings = subscribeDesktopSettings(settingsBackend(), (raw) => {
+      if (!raw || !raw.trim()) return;
+      const parsedPatch = parseDesktopSettingsRaw(raw);
+      if (!parsedPatch) return;
+      const nextBase = resolveInitialSettings(raw, simulatedHardware);
+      setSettings((prev) => {
+        const currentSerialized = serializeDesktopSettingsIni(prev);
+        const mergedNext: DesktopSettings = {
+          ...nextBase,
+          installedWebApps: prev.installedWebApps,
+          savedWindowBounds: prev.savedWindowBounds,
+          desktopIconPositions: prev.desktopIconPositions,
+        };
+        if (currentSerialized === serializeDesktopSettingsIni(mergedNext)) {
+          return prev;
+        }
+        const changed = diffDesktopSettings(prev, mergedNext);
+        // A wallpaper chosen outside Piloti (GNOME Settings, gsettings) is shown.
+        if (changed.gnomeBackground && changed.wallpaperId === undefined) {
+          mergedNext.wallpaperId = "gnome";
+          mergedNext.customWallpaperUrl = "";
+        }
+        applySystemSettingsRef.current(mergedNext, changed);
+        return mergedNext;
+      });
+    });
+
+    const unsubBounds = subscribeVfsPath(VFS_STATE_PATHS.windowBounds, (raw) => {
+      if (!raw || !raw.trim()) return;
+      try {
+        const parsed: unknown = JSON.parse(raw);
+        if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return;
+        const incoming = parsed as Record<string, SavedWindowBounds>;
+        setSettings((prev) => {
+          if (JSON.stringify(prev.savedWindowBounds) === JSON.stringify(incoming)) {
+            return prev;
+          }
+          return { ...prev, savedWindowBounds: incoming };
+        });
+      } catch {
+        // ignore invalid JSON while editing
+      }
+    });
+
+    const unsubIcons = subscribeVfsPath(VFS_STATE_PATHS.desktopIcons, (raw) => {
+      if (!raw || !raw.trim()) return;
+      try {
+        const parsed: unknown = JSON.parse(raw);
+        if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return;
+        const incoming = parsed as Record<string, { col: number; row: number }>;
+        setSettings((prev) => {
+          if (
+            JSON.stringify(prev.desktopIconPositions) === JSON.stringify(incoming)
+          ) {
+            return prev;
+          }
+          return { ...prev, desktopIconPositions: incoming };
+        });
+      } catch {
+        // ignore invalid JSON while editing
+      }
+    });
+
+    return () => {
+      unsubSettings();
+      unsubBounds();
+      unsubIcons();
+    };
+  }, [simulatedHardware]);
+
+  const persist = (
+    previous: DesktopSettings,
+    next: DesktopSettings,
+    patch?: Partial<DesktopSettings>
+  ) => {
+    try {
+      const patchKeys = patch ? Object.keys(patch) : null;
+      const onlyBounds =
+        patchKeys !== null &&
+        patchKeys.length === 1 &&
+        patchKeys[0] === "savedWindowBounds";
+      const onlyIcons =
+        patchKeys !== null &&
+        patchKeys.length === 1 &&
+        patchKeys[0] === "desktopIconPositions";
+
+      if (onlyBounds) {
+        clearTimeout(sliderTimersRef.current.boundsStorage);
+        sliderTimersRef.current.boundsStorage = setTimeout(() => {
+          try {
+            writeVfsStateJson(VFS_STATE_PATHS.windowBounds, next.savedWindowBounds);
+          } catch {
+            // ignore
+          }
+        }, 120);
+        return;
+      }
+
+      if (onlyIcons) {
+        clearTimeout(sliderTimersRef.current.iconsStorage);
+        sliderTimersRef.current.iconsStorage = setTimeout(() => {
+          try {
+            writeVfsStateJson(
+              VFS_STATE_PATHS.desktopIcons,
+              next.desktopIconPositions
+            );
+          } catch {
+            // ignore
+          }
+        }, 120);
+        return;
+      }
+
+      if (patch?.savedWindowBounds !== undefined) {
+        writeVfsStateJson(VFS_STATE_PATHS.windowBounds, next.savedWindowBounds);
+      }
+      if (patch?.desktopIconPositions !== undefined) {
+        writeVfsStateJson(VFS_STATE_PATHS.desktopIcons, next.desktopIconPositions);
+      }
+      pendingSettingsIniRef.current = {
+        previous: pendingSettingsIniRef.current?.previous ?? previous,
+        next,
+      };
+      clearTimeout(sliderTimersRef.current.settingsIni);
+      sliderTimersRef.current.settingsIni = setTimeout(flushSettingsIni, 150);
+    } catch {
+      // ignore storage errors
+    }
+  };
+
+  const applySettingsState = React.useCallback((patch: Partial<DesktopSettings>) => {
+    setSettings((prev) => {
+      const next = { ...prev, ...patch };
+      persist(prev, next, patch);
+      return next;
+    });
+  }, []);
+
+  // Load & sync installed web apps from FreeDesktop .desktop files in ~/.local/share/applications
+  React.useEffect(() => {
+    let cancelled = false;
+
+    const syncFromXdg = async (seedIfEmpty: boolean) => {
+      const fromXdg = await loadWebAppsFromDesktopEntries(piloti);
+      if (cancelled) return;
+      if (
+        seedIfEmpty &&
+        fromXdg.length === 0 &&
+        settingsRef.current.installedWebApps.length > 0
+      ) {
+        const toSeed = settingsRef.current.installedWebApps;
+        for (const app of toSeed) {
+          await installWebAppDesktopEntry(piloti, app);
+        }
+        return;
+      }
+      if (
+        JSON.stringify(fromXdg) ===
+        JSON.stringify(settingsRef.current.installedWebApps)
+      ) {
+        return;
+      }
+      setSettings((prev) => {
+        if (JSON.stringify(fromXdg) === JSON.stringify(prev.installedWebApps)) {
+          return prev;
+        }
+        return {
+          ...prev,
+          installedWebApps: fromXdg,
+        };
+      });
+    };
+
+    void syncFromXdg(true);
+
+    const onXdgChanged = () => {
+      clearTimeout(sliderTimersRef.current.xdgWebApps);
+      sliderTimersRef.current.xdgWebApps = setTimeout(() => {
+        void syncFromXdg(false);
+      }, 150);
+    };
+    window.addEventListener(XDG_WEBAPPS_CHANGED_EVENT, onXdgChanged);
+    // Web app .desktop files only live here; ignore unrelated VFS writes.
+    const unsubVfs = !realFilesystem
+      ? demoFiles().watchFolder(`${WEB_VFS_HOME}/.local/share/applications`, onXdgChanged)
+      : undefined;
+    return () => {
+      cancelled = true;
+      clearTimeout(sliderTimersRef.current.xdgWebApps);
+      window.removeEventListener(XDG_WEBAPPS_CHANGED_EVENT, onXdgChanged);
+      unsubVfs?.();
+    };
+  }, [piloti, realFilesystem]);
+
+  const updateSettings = React.useCallback(
+    (patch: Partial<DesktopSettings>) => {
+      setSettings((prev) => {
+        const mergedPatch: Partial<DesktopSettings> = { ...patch };
+        if (
+          patch.interfaceTheme !== undefined &&
+          patch.iconTheme === undefined
+        ) {
+          mergedPatch.iconTheme =
+            patch.interfaceTheme === "adwaita" ? "Adwaita" : "Piloti";
+        }
+        const next = { ...prev, ...mergedPatch };
+        persist(prev, next, mergedPatch);
+
+        applySystemSettings(next, mergedPatch);
+
+        return next;
+      });
+    },
+    [applySystemSettings]
+  );
+
+  // Sync portal-requested background wallpaper path into GNOME background spec
+  React.useEffect(() => {
+    const bgPath = portalWallpaper?.background;
+    if (!bgPath || !realFilesystem) return;
+    const fileUri = localPathToFileUri(bgPath);
+    const curBg = settingsRef.current.gnomeBackground;
+    updateSettings({
+      wallpaperId: "gnome",
+      customWallpaperUrl: "",
+      gnomeBackground: {
+        ...curBg,
+        pictureUri: fileUri,
+        pictureUriDark: fileUri,
+        pictureOptions: curBg.pictureOptions === "none" ? "zoom" : curBg.pictureOptions,
+      },
+    });
+  }, [realFilesystem, portalWallpaper?.background, updateSettings]);
+
+  const [systemDark, setSystemDark] = React.useState(() =>
+    typeof window !== "undefined"
+      ? window.matchMedia("(prefers-color-scheme: dark)").matches
+      : true
+  );
+
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mq = window.matchMedia("(prefers-color-scheme: dark)");
+    const listener = (e: MediaQueryListEvent) => setSystemDark(e.matches);
+    mq.addEventListener("change", listener);
+    return () => mq.removeEventListener("change", listener);
+  }, []);
+
+  const [osReducedMotion, setOsReducedMotion] = React.useState(() =>
+    typeof window !== "undefined"
+      ? window.matchMedia("(prefers-reduced-motion: reduce)").matches
+      : false
+  );
+
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const listener = (e: MediaQueryListEvent) => setOsReducedMotion(e.matches);
+    mq.addEventListener("change", listener);
+    return () => mq.removeEventListener("change", listener);
+  }, []);
+
+  const domicileReducedMotion = useWatch(
+    piloti.appearance,
+    "change",
+    () => piloti.appearance.reducedMotion
+  );
+  const reducedMotion = Boolean(
+    settings.reduceMotion || domicileReducedMotion || osReducedMotion
+  );
+
+  React.useLayoutEffect(() => {
+    document.documentElement.dataset.interfaceTheme =
+      settings.interfaceTheme || "piloti";
+    document.documentElement.dataset.reducedMotion = reducedMotion ? "true" : "false";
+    document.documentElement.dataset.moreTransparency = settings.moreTransparency
+      ? "true"
+      : "false";
+  }, [reducedMotion, settings.interfaceTheme, settings.moreTransparency]);
+
+  React.useLayoutEffect(() => {
+    const root = document.documentElement;
+    const formatFontList = (raw: string, fallback: string) => {
+      const cleaned = raw.trim();
+      if (!cleaned) return fallback;
+      const parts = cleaned
+        .split(",")
+        .map((p) => p.trim())
+        .filter(Boolean)
+        .map((p) =>
+          p.includes(" ") && !/^["'].*["']$/.test(p) ? `"${p}"` : p
+        );
+      return parts.length > 0 ? `${parts.join(", ")}, ${fallback}` : fallback;
+    };
+
+    root.style.setProperty(
+      "--font-ui",
+      formatFontList(
+        settings.fontSansFamily,
+        '"Adwaita Sans", "Cantarell", "Inter", system-ui, -apple-system, BlinkMacSystemFont, sans-serif'
+      )
+    );
+    root.style.setProperty(
+      "--font-ui-mono",
+      formatFontList(
+        settings.fontMonoFamily,
+        '"Adwaita Mono", "Source Code Pro", "JetBrains Mono", ui-monospace, monospace'
+      )
+    );
+    root.style.setProperty("--piloti-font-smoothing", settings.cssFontSmoothing);
+    root.style.setProperty("--piloti-text-rendering", settings.cssTextRendering);
+    root.style.setProperty(
+      "--piloti-font-optical-sizing",
+      settings.cssFontOpticalSizing
+    );
+    root.style.setProperty("--piloti-font-kerning", settings.cssFontKerning);
+    root.style.setProperty(
+      "--piloti-font-synthesis",
+      settings.cssFontSynthesis === "none" ? "none" : "weight style"
+    );
+    root.style.setProperty(
+      "--piloti-letter-spacing",
+      `${settings.cssLetterSpacingEm}em`
+    );
+    root.style.setProperty(
+      "--piloti-text-stroke-width",
+      `${settings.cssTextStrokePx}px`
+    );
+    const fontStyleMap: Record<
+      CssFontStyle,
+      { weight: string; medium: string; bold: string; style: string }
+    > = {
+      light: { weight: "300", medium: "400", bold: "500", style: "normal" },
+      regular: { weight: "400", medium: "500", bold: "500", style: "normal" },
+      medium: { weight: "500", medium: "600", bold: "600", style: "normal" },
+      semibold: { weight: "600", medium: "600", bold: "700", style: "normal" },
+      italic: { weight: "400", medium: "500", bold: "500", style: "italic" },
+    };
+    const styleSpec = fontStyleMap[settings.fontSansStyle] ?? fontStyleMap.regular;
+    root.style.setProperty("--piloti-font-weight", styleSpec.weight);
+    root.style.setProperty("--piloti-font-weight-medium", styleSpec.medium);
+    root.style.setProperty("--piloti-font-weight-semibold", styleSpec.bold);
+    root.style.setProperty("--piloti-font-style", styleSpec.style);
+    root.style.setProperty("--font-weight-normal", styleSpec.weight);
+    root.style.setProperty("--font-weight-medium", styleSpec.medium);
+    root.style.setProperty("--font-weight-semibold", styleSpec.bold);
+    root.style.setProperty("--font-weight-bold", styleSpec.bold);
+
+    const scale = Math.max(0.8, Math.min(1.5, settings.fontScale || 1));
+    root.style.setProperty("--piloti-font-scale", String(scale));
+    // Type roles scale in CSS from --piloti-font-scale; this scales rem sizes.
+    root.style.fontSize =
+      Math.abs(scale - 1) < 0.001 ? "" : `${Math.round(16 * scale * 100) / 100}px`;
+  }, [
+    settings.cssFontKerning,
+    settings.cssFontOpticalSizing,
+    settings.cssFontSmoothing,
+    settings.cssFontSynthesis,
+    settings.cssLetterSpacingEm,
+    settings.cssTextRendering,
+    settings.cssTextStrokePx,
+    settings.fontMonoFamily,
+    settings.fontSansFamily,
+    settings.fontSansStyle,
+    settings.fontScale,
+  ]);
+
+  const [isNightTime, setIsNightTime] = React.useState(() => {
+    const h = new Date().getHours();
+    return h < 7 || h >= 19;
+  });
+
+  React.useEffect(() => {
+    if (!systemServices || settings.themeMode !== "system") return;
+    const updateTime = () => {
+      const h = new Date().getHours();
+      setIsNightTime(h < 7 || h >= 19);
+    };
+    updateTime();
+    const timer = window.setInterval(updateTime, 60_000);
+    return () => window.clearInterval(timer);
+  }, [systemServices, settings.themeMode]);
+
+  const resolvedTheme: "dark" | "light" =
+    settings.themeMode === "system"
+      ? !systemServices
+        ? systemDark
+          ? "dark"
+          : "light"
+        : isNightTime
+          ? "dark"
+          : "light"
+      : settings.themeMode;
+
+  React.useLayoutEffect(() => {
+    const root = document.documentElement;
+    root.classList.toggle("dark", resolvedTheme === "dark");
+    root.style.colorScheme = resolvedTheme;
+    root.dataset.highContrast = settings.highContrast ? "true" : "false";
+    const customHex = settings.customAccentHex?.trim();
+    if (customHex && /^#[0-9a-f]{6}$/i.test(customHex)) {
+      root.style.setProperty("--ui-active-accent", customHex);
+    } else {
+      const accent = ACCENT_COLORS.find((a) => a.id === settings.accentColor);
+      if (accent && accent.id !== "blue") {
+        root.style.setProperty("--ui-active-accent", accent.cssVar);
+      } else {
+        root.style.removeProperty("--ui-active-accent");
+      }
+    }
+    try {
+      piloti.theme.set(resolvedTheme);
+    } catch {
+      // ignore if compositor not ready
+    }
+  }, [
+    resolvedTheme,
+    settings.accentColor,
+    settings.customAccentHex,
+    settings.highContrast,
+    piloti.theme,
+  ]);
+
+  React.useEffect(() => {
+    if (!compositor) return;
+    const applyTemp = () => {
+      piloti.displays
+        .setColorTemperature(settings.nightLight ? 4200 : 6500)
+        .catch(() => { });
+    };
+    applyTemp();
+    return piloti.on("compositorreplaced", applyTemp);
+  }, [piloti, compositor, settings.nightLight]);
+
+  const activeWallpaper = React.useMemo(() => {
+    if (settings.wallpaperId?.startsWith("#")) {
+      return {
+        id: settings.wallpaperId,
+        name: "Custom Color",
+        subtitle: settings.wallpaperId,
+        category: "Solid" as const,
+        backgroundCss: settings.wallpaperId,
+      };
+    }
+    return WALLPAPERS.find((w) => w.id === settings.wallpaperId) ?? WALLPAPERS[0];
+  }, [settings.wallpaperId]);
+
+  const activePictureUri =
+    selectGnomePictureUri(settings.gnomeBackground, resolvedTheme) ||
+    settings.customWallpaperUrl ||
+    (resolvedTheme === "dark" && activeWallpaper?.imageUrlDark
+      ? activeWallpaper.imageUrlDark
+      : activeWallpaper?.imageUrl) ||
+    "";
+  const localPicturePath = fileUriToLocalPath(activePictureUri);
+  const isLocalPictureUri = Boolean(localPicturePath);
+  const [resolvedLocalPicture, setResolvedLocalPicture] = React.useState<{
+    raw: string;
+    blobUrl: string;
+    cssText?: string;
+    htmlText?: string;
+  }>({ raw: "", blobUrl: "" });
+  const activeBlobUrlRef = React.useRef("");
+
+  React.useEffect(() => {
+    if (!activePictureUri || !localPicturePath) {
+      if (activeBlobUrlRef.current) {
+        URL.revokeObjectURL(activeBlobUrlRef.current);
+        activeBlobUrlRef.current = "";
+      }
+      setResolvedLocalPicture({ raw: "", blobUrl: "" });
+      return;
+    }
+    if (!allowLocalWallpaper && realFilesystem) return;
+
+    let cancelled = false;
+    const finishBg = startBootPhase("bg");
+
+    const loadLocal = async () => {
+      let targetPath = localPicturePath;
+      const lower = targetPath.toLowerCase();
+
+      if (lower.endsWith(".html") || lower.endsWith(".htm")) {
+        const res = await hostFiles(piloti).readText(targetPath);
+        const htmlText = res.match({ Ok: (t) => t, Err: () => "" });
+        if (cancelled) return;
+        if (activeBlobUrlRef.current) {
+          URL.revokeObjectURL(activeBlobUrlRef.current);
+          activeBlobUrlRef.current = "";
+        }
+        setResolvedLocalPicture({ raw: activePictureUri, blobUrl: "", htmlText });
+        finishBg(htmlText ? `${Math.round(htmlText.length / 1024)} KB html` : "empty");
+        return;
+      }
+
+      if (lower.endsWith(".css")) {
+        const res = await hostFiles(piloti).readText(targetPath);
+        const cssText = res.match({ Ok: (t) => t, Err: () => "" });
+        if (cancelled) return;
+        if (activeBlobUrlRef.current) {
+          URL.revokeObjectURL(activeBlobUrlRef.current);
+          activeBlobUrlRef.current = "";
+        }
+        setResolvedLocalPicture({ raw: activePictureUri, blobUrl: "", cssText });
+        finishBg(cssText ? `${Math.round(cssText.length / 1024)} KB css` : "empty");
+        return;
+      }
+
+      let blob: Blob | null = null;
+      if (realFilesystem) {
+        blob = await readGnomeBackgroundBlob(piloti, activePictureUri);
+      } else {
+        if (lower.endsWith(".xml")) {
+          const xmlRes = await hostFiles(piloti).readText(targetPath);
+          const xml = xmlRes.match({ Ok: (t) => t, Err: () => "" });
+          const lastSlash = targetPath.lastIndexOf("/");
+          const baseDir = lastSlash > 0 ? targetPath.slice(0, lastSlash) : "/";
+          const extracted = parseGnomeBackgroundXml(xml, baseDir);
+          if (extracted) targetPath = extracted;
+        }
+        const bytesRes = await hostFiles(piloti).read(targetPath);
+        const bytes = bytesRes.match({
+          Ok: (b) => (b.length > 0 ? b : null),
+          Err: () => null,
+        });
+        if (bytes) {
+          const ext = targetPath.split(".").pop()?.toLowerCase() ?? "";
+          const mime =
+            ext === "svg"
+              ? "image/svg+xml"
+              : ext === "png"
+                ? "image/png"
+                : ext === "webp"
+                  ? "image/webp"
+                  : ext === "gif"
+                    ? "image/gif"
+                    : ext === "avif"
+                      ? "image/avif"
+                      : "image/jpeg";
+          blob = new Blob([new Uint8Array(bytes)], { type: mime });
+        }
+      }
+
+      if (cancelled || !blob) {
+        if (!cancelled) finishBg("empty");
+        return;
+      }
+      const nextUrl = URL.createObjectURL(blob);
+      if (activeBlobUrlRef.current) {
+        URL.revokeObjectURL(activeBlobUrlRef.current);
+      }
+      activeBlobUrlRef.current = nextUrl;
+      setResolvedLocalPicture({ raw: activePictureUri, blobUrl: nextUrl });
+      finishBg(`${Math.round(blob.size / 1024)} KB`);
+    };
+
+    void loadLocal();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    activePictureUri,
+    allowLocalWallpaper,
+    piloti,
+    realFilesystem,
+    localPicturePath,
+  ]);
+
+  React.useEffect(() => {
+    return () => {
+      if (activeBlobUrlRef.current) {
+        URL.revokeObjectURL(activeBlobUrlRef.current);
+        activeBlobUrlRef.current = "";
+      }
+    };
+  }, []);
+
+  const resolvedPictureSrc = isLocalPictureUri
+    ? resolvedLocalPicture.raw === activePictureUri
+      ? resolvedLocalPicture.blobUrl
+      : ""
+    : activePictureUri;
+
+  const resolvedAnimatedCssText =
+    isLocalPictureUri && resolvedLocalPicture.raw === activePictureUri
+      ? resolvedLocalPicture.cssText
+      : undefined;
+
+  const resolvedHtmlSrcDoc =
+    isLocalPictureUri && resolvedLocalPicture.raw === activePictureUri
+      ? resolvedLocalPicture.htmlText
+      : undefined;
+
+  const resolvedActiveWallpaper = React.useMemo(() => {
+    const accentHex =
+      ACCENT_COLORS.find((c) => c.id === settings.accentColor)?.hex ?? "#3584e4";
+    const dynamicCss = resolveDynamicWallpaperCss(activeWallpaper.id, accentHex);
+    return dynamicCss
+      ? { ...activeWallpaper, backgroundCss: dynamicCss }
+      : activeWallpaper;
+  }, [activeWallpaper, settings.accentColor]);
+
+  const backgroundSpec = React.useMemo(
+    () =>
+      resolveBackgroundRenderSpec({
+        wallpaperId: settings.wallpaperId,
+        customWallpaperUrl:
+          settings.customWallpaperUrl || resolvedActiveWallpaper?.imageUrl || "",
+        wallpaperColorMode: settings.wallpaperColorMode ?? "solid",
+        gnomeBackground: settings.gnomeBackground,
+        activeWallpaper: resolvedActiveWallpaper,
+        resolvedTheme,
+        resolvedPictureSrc:
+          resolvedPictureSrc ||
+          (resolvedTheme === "dark" && resolvedActiveWallpaper?.imageUrlDark
+            ? resolvedActiveWallpaper.imageUrlDark
+            : resolvedActiveWallpaper?.imageUrl) ||
+          "",
+        resolvedAnimatedCssText,
+        resolvedHtmlSrcDoc,
+      }),
+    [
+      resolvedActiveWallpaper,
+      resolvedAnimatedCssText,
+      resolvedHtmlSrcDoc,
+      resolvedPictureSrc,
+      resolvedTheme,
+      settings.customWallpaperUrl,
+      settings.gnomeBackground,
+      settings.wallpaperColorMode,
+      settings.wallpaperId,
+    ]
+  );
+
+  const [localeTick, setLocaleTick] = React.useState(0);
+  React.useEffect(
+    () => subscribeLocale(() => setLocaleTick((t) => t + 1)),
+    []
+  );
+
+  return React.useMemo<SettingsContextValue>(
+    () => ({
+      settings,
+      updateSettings,
+      applySettingsState,
+      resolvedTheme,
+      reducedMotion,
+      activeWallpaper,
+      backgroundSpec,
+    }),
+    [
+      settings,
+      updateSettings,
+      applySettingsState,
+      resolvedTheme,
+      reducedMotion,
+      activeWallpaper,
+      backgroundSpec,
+      localeTick,
+    ]
+  );
+}
+
+export function useSettings() {
+  const ctx = React.useContext(SettingsContext);
+  if (!ctx) {
+    throw new Error("useSettings must be used within DesktopStateProvider");
+  }
+  return ctx;
+}
+

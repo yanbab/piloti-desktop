@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { parseUDisksDrives } from "@/lib/engine-native/drives";
+import { parseUDisksDrives } from "@/platform/native/drives";
 
 const bytes = (text: string) => [...new TextEncoder().encode(text), 0];
 const v = (value: unknown) => ({ value });

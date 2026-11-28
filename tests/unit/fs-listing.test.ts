@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { mayHaveThumbnail } from "@/lib/engine/fs-bridge";
+import { mayHaveThumbnail } from "@/platform/shared/fs-bridge";
 
 describe("folder listing", () => {
   test("only pictures, videos and PDFs are looked up for thumbnails", () => {

@@ -4,7 +4,7 @@ import {
   parseFlatpakSearchOutput,
   parseGtk4HintFontMetrics,
   upsertGtkSettingsIni,
-} from "@/lib/engine-native";
+} from "@/platform/native";
 
 describe("gnome-bridge parsers", () => {
   test("parses and updates GTK 4 settings.ini gtk-hint-font-metrics", () => {

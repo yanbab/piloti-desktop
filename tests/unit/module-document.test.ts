@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { documentHash, moduleDocument } from "@/data/app-modules";
+import { documentHash, moduleDocument } from "@/core/data/app-modules";
 
 describe("moduleDocument", () => {
   test("reads back the path a module put in its URL", () => {

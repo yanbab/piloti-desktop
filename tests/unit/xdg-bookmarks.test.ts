@@ -4,7 +4,7 @@ import {
   parseGtkBookmarks,
   removeGtkBookmark,
   serializeGtkBookmarks,
-} from "@/lib/xdg/xdg-bookmarks";
+} from "@/core/xdg/xdg-bookmarks";
 
 describe("GTK bookmarks", () => {
   test("parses paths, labels, escapes, and skips non-file URIs", () => {

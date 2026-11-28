@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from "bun:test";
-import { createNativeVfs, type NativeVfsHost } from "@/lib/engine-native/vfs";
-import { createWebVfs } from "@/lib/engine-web/vfs";
-import type { Vfs, VfsError } from "@/lib/ports/vfs";
+import { createNativeVfs, type NativeVfsHost } from "@/platform/native/vfs";
+import { createWebVfs } from "@/platform/web/vfs";
+import type { Vfs, VfsError } from "@/core/ports/vfs";
 import { createFakeDomicile } from "../helpers/fake-domicile";
 
 const HOME = "/home/user";

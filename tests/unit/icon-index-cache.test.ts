@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { deserializeXdgIconThemeIndex, serializeXdgIconThemeIndex } from "@/lib/xdg/xdg-icon-theme";
+import { deserializeXdgIconThemeIndex, serializeXdgIconThemeIndex } from "@/core/xdg/xdg-icon-theme";
 
 const entries: [string, string][] = [
   ["b", "/usr/share/icons/t/48/b.svg"],

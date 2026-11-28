@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
-import type { IconGridItem } from "@/lib/files/desktop-icons";
-import { buildFolderTree, renameExpanded, topmostItems } from "@/lib/files/folder-tree";
-import { folderEntriesToItems } from "@/lib/files/folder-items";
+import type { IconGridItem } from "@/core/files/desktop-icons";
+import { buildFolderTree, renameExpanded, topmostItems } from "@/core/files/folder-tree";
+import { folderEntriesToItems } from "@/core/files/folder-items";
 
 const item = (path: string, kind: "file" | "directory" = "file"): IconGridItem => ({
   id: path,

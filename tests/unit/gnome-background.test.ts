@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { WALLPAPERS } from "@/data/catalog";
-import { resolveInitialSettings } from "@/context/SettingsContext";
+import { WALLPAPERS } from "@/core/data/catalog";
+import { resolveInitialSettings } from "@/ui/context/SettingsContext";
 import {
   DEFAULT_GNOME_BACKGROUND,
   buildGnomeShadingCss,
@@ -13,7 +13,7 @@ import {
   parseGnomeBackgroundXml,
   resolveBackgroundRenderSpec,
   selectGnomePictureUri,
-} from "@/lib/core/gnome-background";
+} from "@/core/system/gnome-background";
 
 describe("GNOME background spec helpers", () => {
   test("converts between file:// URIs and POSIX paths safely", () => {

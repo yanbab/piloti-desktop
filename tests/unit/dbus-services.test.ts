@@ -6,7 +6,7 @@ import {
   parsePowerProfileChange,
   parsePropertyGet,
   pickMprisPlayer,
-} from "@/lib/engine-native/dbus-services";
+} from "@/platform/native/dbus-services";
 
 const v = (value: unknown, signature = "s") => ({ signature, value });
 

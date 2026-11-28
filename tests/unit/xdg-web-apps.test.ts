@@ -1,17 +1,19 @@
 import { beforeEach, describe, expect, test } from "bun:test";
-import type { Piloti } from "@/lib/engine/piloti";
-import type { InstalledWebApp } from "@/data/web-apps";
-import { getVfsEntry, WEB_VFS_STORAGE_KEY } from "@/lib/engine-web/web-vfs";
-import { createWebVfs } from "@/lib/engine-web/vfs";
+import type { Piloti } from "@/platform/shared/piloti";
+import type { InstalledWebApp } from "@/core/data/web-apps";
+import { getVfsEntry, WEB_VFS_STORAGE_KEY } from "@/platform/web/web-vfs";
+import { createWebVfs } from "@/platform/web/vfs";
 import {
-  installWebAppDesktopEntry,
-  loadWebAppsFromDesktopEntries,
   parseWebAppDesktopEntry,
-  removeWebAppDesktopEntry,
   serializeWebAppDesktopEntry,
   WEB_APPS_XDG_DIR,
   webAppDesktopFileName,
-} from "@/lib/xdg/xdg-web-apps";
+} from "@/core/xdg/xdg-web-apps";
+import {
+  installWebAppDesktopEntry,
+  loadWebAppsFromDesktopEntries,
+  removeWebAppDesktopEntry,
+} from "@/platform/shared/web-apps-store";
 
 function createMemoryStorage(): Storage {
   const store = new Map<string, string>();

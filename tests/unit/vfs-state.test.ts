@@ -4,11 +4,11 @@ import {
   getVfsEntry,
   listWebVfsBackingStorageEntries,
   writeVfsTextFile,
-} from "@/lib/engine-web/web-vfs";
+} from "@/platform/web/web-vfs";
 import {
   parseDesktopSettingsRaw,
   serializeDesktopSettingsIni,
-} from "@/lib/config/piloti-settings-ini";
+} from "@/core/config/piloti-settings-ini";
 import {
   getVfsCacheFilePath,
   migrateLegacyStateFilesToJson,
@@ -21,8 +21,8 @@ import {
   VFS_STATE_PATHS,
   writeVfsStateJson,
   writeVfsStateText,
-} from "@/lib/engine/vfs-state";
-import { migrateLegacyConfigDir } from "@/lib/engine-web/state-source";
+} from "@/core/state/vfs-state";
+import { migrateLegacyConfigDir } from "@/platform/web/state-source";
 
 describe("vfs-state", () => {
   const store = new Map<string, string>();

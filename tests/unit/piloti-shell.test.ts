@@ -1,10 +1,10 @@
 import { describe, expect, test } from "bun:test";
-import { complete } from "@/apps/terminal/piloti-completion";
-import { createRepl, expandAliases, formatValue, runLine, type ProgramRunner } from "@/apps/terminal/piloti-repl";
-import { createShellCommands } from "@/apps/terminal/piloti-commands";
-import { runTop } from "@/apps/terminal/piloti-top";
-import { runInTerminal } from "@/apps/terminal/piloti-run";
-import type { Vfs } from "@/lib/ports/vfs";
+import { complete } from "@/ui/apps/terminal/piloti-completion";
+import { createRepl, expandAliases, formatValue, runLine, type ProgramRunner } from "@/ui/apps/terminal/piloti-repl";
+import { createShellCommands } from "@/ui/apps/terminal/piloti-commands";
+import { runTop } from "@/ui/apps/terminal/piloti-top";
+import { runInTerminal } from "@/ui/apps/terminal/piloti-run";
+import type { Vfs } from "@/core/ports/vfs";
 
 const programs: ProgramRunner = {
   has: async (name) => ["git", "apt-get", "true", "find", "ls", "./run.sh"].includes(name),

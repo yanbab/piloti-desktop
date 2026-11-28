@@ -4,7 +4,7 @@ Plugins live in `~/.config/piloti/plugins/` (user) and
 `/usr/share/piloti/plugins/` (system). No build step.
 
 On Linux the shell only runs its own code, so JavaScript works in the plugins
-that ship with Piloti (built into the shell, `lib/plugins/bundled.ts`). Your own
+that ship with Piloti (built into the shell, `core/plugins/bundled.ts`). Your own
 plugins can use CSS and manifest entries there; their scripts run in the browser
 demo only.
 
@@ -19,7 +19,7 @@ JavaScript.
 
 ## Manifest
 
-All fields are optional (`lib/plugins/types.ts`).
+All fields are optional (`core/plugins/types.ts`).
 
 ```json
 {
@@ -72,7 +72,7 @@ included, is the [Piloti API](./API.md) on `ctx.piloti`.
 - `interactive: false` sends the pointer to `onPointerDown` and `onDoubleClick`.
   `above: true` keeps it on top.
 - `floating: { resizable?, minWidth?, maxWidth? }` lets the shell drag, snap and
-  resize it (`lib/windows/floating-window.ts`); `onChange` reports the result.
+  resize it (`core/windows/floating-window.ts`); `onChange` reports the result.
 - `ctx.windows.addMenuItem` adds to the window menu.
 
 Example: the bundled `picture-in-picture` plugin.

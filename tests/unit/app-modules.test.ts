@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { beforeAll, describe, expect, test } from "bun:test";
-import { APP_MODULES, initAppModules, webViewAppId } from "@/data/app-modules";
+import { APP_MODULES, initAppModules, webViewAppId } from "@/core/data/app-modules";
 
 const moduleUrl = (id: string) => {
   const dir = APP_MODULES.find((m) => m.id === id)!.dir;

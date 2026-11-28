@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { resolveInlineCompletionSuffix } from "@/components/ui/inline-completion-input";
+import { resolveInlineCompletionSuffix } from "@/ui/components/ui/inline-completion-input";
 
 describe("resolveInlineCompletionSuffix", () => {
   test("returns suffix when query is a case-insensitive prefix of completion", () => {

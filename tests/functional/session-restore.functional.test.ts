@@ -1,15 +1,15 @@
 import { beforeEach, describe, expect, test } from "bun:test";
-import { resolveInitialSettings } from "@/context/SettingsContext";
+import { resolveInitialSettings } from "@/ui/context/SettingsContext";
 import {
   lookupSpatialWindowBounds,
   resolveSpatialBoundsKey,
-} from "@/lib/windows/spatial-window-bounds";
+} from "@/core/windows/spatial-window-bounds";
 import {
   clearXdgSession,
   loadXdgSession,
   saveXdgSession,
   serializeWindowToXdgSession,
-} from "@/lib/xdg/xdg-session-management";
+} from "@/core/xdg/xdg-session-management";
 
 function installMemoryLocalStorage() {
   const store = new Map<string, string>();

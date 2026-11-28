@@ -6,7 +6,7 @@ import {
   floatingEdgeAt,
   resizeFloatingRect,
   settleFloatingPosition,
-} from "@/lib/windows/floating-window";
+} from "@/core/windows/floating-window";
 
 const bounds = floatingBounds({ x: 0, y: 30, width: 1000, height: 700 });
 const win = { x: 300, y: 300, width: 200, height: 100 };

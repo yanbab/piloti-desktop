@@ -5,11 +5,11 @@ import {
   getLocalePreference,
   getSystemLocale,
   setLocale,
-} from "@/lib/core/i18n";
+} from "@/core/util/i18n";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import es from "@/locales/es.json";
-import fr from "@/locales/fr.json";
+import es from "@/core/locales/es.json";
+import fr from "@/core/locales/fr.json";
 
 /** Literal `_("…")` keys under src/. */
 function sourceKeys(): string[] {

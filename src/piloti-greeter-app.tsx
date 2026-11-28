@@ -1,7 +1,7 @@
 import { mount } from "@domicile-desktop/react/mount";
-import { LoginScreenApp } from "./apps/login/LoginScreenApp";
-import { ShellErrorBoundary } from "./shell/desktop/ShellErrorBoundary";
-import { DesktopStateProvider } from "./context/DesktopStateContext";
+import { LoginScreenApp } from "./ui/apps/login/LoginScreenApp";
+import { ShellErrorBoundary } from "./ui/shell/desktop/ShellErrorBoundary";
+import { DesktopStateProvider } from "./ui/context/DesktopStateContext";
 
 export function Greeter() {
   return (

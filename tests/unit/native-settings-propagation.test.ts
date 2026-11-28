@@ -39,9 +39,9 @@ describe("native $HOME", () => {
   // the Texts then goes nowhere.
   it("the native entries load no VFS path before they know $HOME", () => {
     const loaded = staticImports(path.join(SRC, "piloti-desktop.tsx"));
-    expect(loaded).toContain("lib/core/console-store.ts");
-    expect(loaded).not.toContain("lib/engine/vfs-home.ts");
-    expect(staticImports(path.join(SRC, "piloti-greeter.tsx"))).not.toContain("lib/engine/vfs-home.ts");
+    expect(loaded).toContain("core/util/console-store.ts");
+    expect(loaded).not.toContain("platform/shared/vfs-home.ts");
+    expect(staticImports(path.join(SRC, "piloti-greeter.tsx"))).not.toContain("platform/shared/vfs-home.ts");
   });
 
   // The bundle inlines `import()`, but a module still loads when first imported.
@@ -55,7 +55,7 @@ describe("native $HOME", () => {
       const before = source.slice(source.indexOf("async function boot"), setsHome);
       for (const [, spec] of before.matchAll(/import\(\s*["']([^"']+)["']\s*\)/g)) {
         const target = resolveImport(entry, spec!)!;
-        expect([spec, staticImports(target).includes("lib/engine/vfs-home.ts")]).toEqual([spec, false]);
+        expect([spec, staticImports(target).includes("platform/shared/vfs-home.ts")]).toEqual([spec, false]);
       }
     }
   });

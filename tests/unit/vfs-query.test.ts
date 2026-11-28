@@ -1,9 +1,9 @@
 import { describe, expect, it } from "bun:test";
-import { retainVfsWatch, vfsKeys, watchedVfsPaths } from "@/lib/engine/vfs-query";
-import type { Vfs } from "@/lib/ports/vfs";
+import { retainVfsWatch, vfsKeys, watchedVfsPaths } from "@/platform/shared/vfs-query";
+import type { Vfs } from "@/core/ports/vfs";
 import { QueryClient } from "@tanstack/react-query";
-import { createVfsCacheUpdater } from "@/lib/engine/vfs-cache";
-import type { WebVfsEntry } from "@/lib/core/vfs-paths";
+import { createVfsCacheUpdater } from "@/platform/shared/vfs-cache";
+import type { WebVfsEntry } from "@/core/files/vfs-paths";
 
 /** A Vfs whose watches are driven by hand. */
 function fakeVfs() {

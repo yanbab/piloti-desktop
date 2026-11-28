@@ -1,10 +1,10 @@
 import { describe, expect, it } from "bun:test";
-import type { BatteryInfo } from "@/lib/ports/hardware";
+import type { BatteryInfo } from "@/core/ports/hardware";
 import {
   type BatteryManagerLike,
   batteryFromManager,
   subscribeWebBattery,
-} from "@/lib/engine-web/web-battery";
+} from "@/platform/web/web-battery";
 
 class FakeBatteryManager extends EventTarget implements BatteryManagerLike {
   level: number;
