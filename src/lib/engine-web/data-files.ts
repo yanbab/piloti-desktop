@@ -2,7 +2,7 @@
  * The files shipped with Piloti (`data/files`), as the browser demo sees them.
  * They are served as plain files under `__fs/` (also used by the landing page).
  * The shell waits for /home/user (what a new demo starts with) and /etc; system
- * files (/usr) are fetched alongside and read from memory, read-only.
+ * files (/usr) are fetched when first read, then kept in memory, read-only.
  */
 export interface DataFilesIndex {
   dirs: readonly string[];
@@ -18,9 +18,11 @@ export interface DataDirEntry {
 }
 
 let listings: Map<string, DataDirEntry[]> | null = null;
-/** Every shipped file, whether its content has arrived or not. */
+/** Every shipped file, whether its content has been fetched or not. */
 let paths: readonly string[] = [];
 const requests = new Map<string, Promise<string | undefined>>();
+/** Fetches one file; set once the index is in. */
+let fetchFile: ((path: string) => Promise<string | undefined>) | null = null;
 
 export function setDataFiles(dirs: readonly string[], files: Record<string, string>): void {
   for (const key of Object.keys(DATA_FILES)) delete DATA_FILES[key];
@@ -28,14 +30,20 @@ export function setDataFiles(dirs: readonly string[], files: Record<string, stri
   DATA_DIRS.splice(0, DATA_DIRS.length, ...dirs);
   paths = Object.keys(files);
   requests.clear();
+  fetchFile = null;
   listings = null;
 }
 
-/** A shipped file's content, waiting for it if it is still on its way. */
+/** A shipped file's content, fetching it the first time. */
 export function readShippedFile(path: string): Promise<string | undefined> {
   const loaded = DATA_FILES[path];
   if (loaded !== undefined) return Promise.resolve(loaded);
-  return requests.get(path) ?? Promise.resolve(undefined);
+  let request = requests.get(path);
+  if (!request && fetchFile && paths.includes(path)) {
+    request = fetchFile(path);
+    requests.set(path, request);
+  }
+  return request ?? Promise.resolve(undefined);
 }
 
 /** The page's folder, also when the demo is opened without a trailing slash. */
@@ -48,33 +56,30 @@ function demoBaseUrl(): string {
 }
 
 /**
- * Fetches the index, then every file at once; resolves when /home/user and /etc
- * are in. A file that fails is left out, not fatal.
+ * Fetches the index, then /home/user and /etc; resolves when those are in. A
+ * file that fails is left out, not fatal.
  */
-export async function loadDataFiles(): Promise<void> {
-  const base = demoBaseUrl();
+export async function loadDataFiles(base = demoBaseUrl()): Promise<void> {
   const index = (await (await fetch(new URL("__fs/index.json", base))).json()) as DataFilesIndex;
   setDataFiles(index.dirs, {});
   paths = index.files;
-  for (const path of index.files) {
+  fetchFile = async (path) => {
     const url = new URL(`__fs${path.split("/").map(encodeURIComponent).join("/")}`, base);
-    requests.set(
-      path,
-      fetch(url)
-        .then(async (res) => {
-          if (!res.ok) throw new Error(String(res.status));
-          return (DATA_FILES[path] = await res.text());
-        })
-        .catch(() => {
-          console.warn(`[piloti] could not load ${path}`);
-          return undefined;
-        })
-    );
-  }
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(String(res.status));
+      return (DATA_FILES[path] = await res.text());
+    } catch {
+      console.warn(`[piloti] could not load ${path}`);
+      // Asked again later: the failure may not last.
+      requests.delete(path);
+      return undefined;
+    }
+  };
   await Promise.all(
     index.files
       .filter((p) => p.startsWith("/home/user/") || p.startsWith("/etc/"))
-      .map((p) => requests.get(p))
+      .map(readShippedFile)
   );
 }
 

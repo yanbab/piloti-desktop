@@ -1,6 +1,5 @@
 import * as React from "react";
 import { PortalTestButtons } from "@/components/elements/portal-test-buttons";
-import { LoginScreenApp } from "@/apps/login/LoginScreenApp";
 import { Button } from "@/components/ui/button";
 import {
   GroupedForm,
@@ -16,6 +15,11 @@ import {
 import { FileChangedDialog, UnsavedChangesDialog } from "@/components/ui/unsaved-changes-dialog";
 import { useSystemBackends, useWindowActions } from "@/context/DesktopStateContext";
 import { _ } from "@/lib/core/i18n";
+
+// On demand: the login screen is large, and one section of this page.
+const LoginScreenApp = React.lazy(() =>
+  import("@/apps/login/LoginScreenApp").then((m) => ({ default: m.LoginScreenApp }))
+);
 
 function Row({ title, hint, children }: { title: string; hint?: string; children: React.ReactNode }) {
   return (
@@ -91,7 +95,9 @@ export function DialogsPage() {
 
       {shown === "login" && (
         <div className="relative flex h-[32rem] shrink-0 flex-col overflow-hidden">
-          <LoginScreenApp />
+          <React.Suspense fallback={null}>
+            <LoginScreenApp />
+          </React.Suspense>
         </div>
       )}
       {/* These cover the window they are in. */}
