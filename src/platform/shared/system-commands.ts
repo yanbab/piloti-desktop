@@ -12,6 +12,8 @@ export { readSystemSample } from "@/platform/native/system-stats";
 export { listInstalledFontFamilies } from "@/platform/native/gsettings";
 
 type Host = Pick<Piloti, "processes">;
+/** What running a program needs: the shell's `piloti`, or an app module's host. */
+type Runner = { processes: Pick<Piloti["processes"], "run"> };
 
 /** Whether `bsdtar` is there: Compress and Extract need it. */
 export async function hasArchiver(piloti: Piloti): Promise<boolean> {
@@ -76,14 +78,19 @@ export function spawnProgram(piloti: Host, argv: readonly string[]): void {
 }
 
 /** A line of `sh`, as typed in Piloti Shell. */
-export function runShellLine(piloti: Host, line: string) {
+/** Opens a file or folder with its default application, as any program would. */
+export function openWithDefaultApp(piloti: Runner, path: string): void {
+  void piloti.processes.run(["xdg-open", path]).catch(() => undefined);
+}
+
+export function runShellLine(piloti: Runner, line: string) {
   return piloti.processes.run(["sh", "-c", line]);
 }
 
 const LIST_PROGRAMS = 'IFS=:; for dir in $PATH; do [ -d "$dir" ] && ls -1 "$dir"; done';
 
 /** The names of the programs of `$PATH`. */
-export async function listPathPrograms(piloti: Host): Promise<string[]> {
+export async function listPathPrograms(piloti: Runner): Promise<string[]> {
   const result = await piloti.processes.run(["sh", "-c", LIST_PROGRAMS]);
   return result
     .match({ Ok: (ran) => ran.stdout, Err: () => "" })

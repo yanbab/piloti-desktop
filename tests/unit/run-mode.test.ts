@@ -5,13 +5,21 @@ import { canRunIsolated, getRunIn } from "../../src/core/windows/run-mode";
 
 describe("run mode", () => {
   it("offers separate windows only for apps with a module", () => {
-    expect(canRunIsolated("texts")).toBe(true);
-    expect(canRunIsolated("terminal")).toBe(false);
-    for (const id of ["texts", "calculator", "image-viewer", "selfies"]) {
-      expect(canRunIsolated(id)).toBe(true);
-      expect(APP_MODULES.some((m) => m.id === id)).toBe(true);
+    const before = getEngine();
+    try {
+      setEngine(nativeEngine);
+      expect(canRunIsolated("nautilus")).toBe(false);
+      for (const id of ["texts", "calculator", "image-viewer", "selfies", "system-monitor", "terminal"]) {
+        expect(canRunIsolated(id)).toBe(true);
+        expect(APP_MODULES.some((m) => m.id === id)).toBe(true);
+      }
+      // A terminal needs Linux: the demo has no iframe for it.
+      setEngine(webEngine);
+      expect(canRunIsolated("terminal")).toBe(false);
+      expect(canRunIsolated("system-monitor")).toBe(true);
+    } finally {
+      setEngine(before);
     }
-    expect(APP_MODULES.some((m) => m.id === "texts")).toBe(true);
   });
 
   it("runs the editor and the viewer on their own on Linux, unless chosen", () => {

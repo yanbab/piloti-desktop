@@ -4,7 +4,11 @@
  * `settings.ini`.
  */
 import { DEFAULT_SETTINGS, type DesktopSettings } from "@/core/config/desktop-settings";
-import { readDesktopSettingsRaw, subscribeDesktopSettings } from "@/core/config/desktop-settings-store";
+import {
+  readDesktopSettingsRaw,
+  subscribeDesktopSettings,
+  writeDesktopSettings,
+} from "@/core/config/desktop-settings-store";
 import { parseDesktopSettingsRaw } from "@/core/config/piloti-settings-ini";
 import { loadNativeDesktopBackend } from "@/platform/native/settings-backend";
 import type { NativeVfsHost } from "@/platform/shared/app-module-vfs";
@@ -44,6 +48,16 @@ export async function openDesktopSettings(
   let raw = backend ? readDesktopSettingsRaw(backend) : await readText(SETTINGS_INI);
   return {
     current: () => desktopSettingsFrom(raw),
+    /**
+     * Changes desktop settings where the shell reads them (dconf); the shell
+     * follows. `false` without dconf: the shell's `settings.ini` is its own.
+     */
+    update(patch: Partial<DesktopSettings>): boolean {
+      if (!backend) return false;
+      const current = desktopSettingsFrom(raw);
+      writeDesktopSettings(backend, { ...current, ...patch }, current);
+      return true;
+    },
     /** Calls `onChange` when a desktop setting changes. Returns stop. */
     watch(onChange: (settings: DesktopSettings) => void): () => void {
       const apply = (next: string | null) => {

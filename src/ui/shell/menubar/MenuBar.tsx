@@ -52,7 +52,7 @@ import { matchXdgEntryForWaylandWindow } from "xdg-desktop-entry";
 import { _, getLocale } from "@/core/util/i18n";
 import { useWindowMenuState } from "@/platform/shared/app-bridge";
 import { getAppSettingsVersion, subscribeAppSettings } from "@/core/config/app-settings";
-import { getRunIn, RUN_SEPARATELY_ACTION } from "@/core/windows/run-mode";
+import { canRunIsolated, getRunIn, RUN_SEPARATELY_ACTION } from "@/core/windows/run-mode";
 import { useAltKey } from "@/ui/hooks/use-alt-key";
 import {
   discoverRemoteGlobalMenu,
@@ -290,9 +290,14 @@ export const MenuBar = React.memo(function MenuBar() {
   // The run mode is the shell's own checkmark, not one the app publishes.
   React.useSyncExternalStore(subscribeAppSettings, getAppSettingsVersion, getAppSettingsVersion);
   const runsSeparately = getRunIn(focusedWindow?.appId ?? "") === "isolated";
+  // The demo cannot run a terminal on its own.
+  const canRunSeparately = canRunIsolated(focusedWindow?.appId ?? "");
   const windowMenuState = React.useMemo(
-    (): typeof publishedMenuState => ({ ...publishedMenuState, [RUN_SEPARATELY_ACTION]: { checked: runsSeparately } }),
-    [publishedMenuState, runsSeparately],
+    (): typeof publishedMenuState => ({
+      ...publishedMenuState,
+      [RUN_SEPARATELY_ACTION]: { checked: runsSeparately, hidden: !canRunSeparately },
+    }),
+    [publishedMenuState, runsSeparately, canRunSeparately],
   );
   const [remoteMenu, setRemoteMenu] = React.useState<RemoteGlobalMenu | null>(
     null

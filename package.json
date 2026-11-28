@@ -12,7 +12,7 @@
     "build": "vite build && vite build --config vite.shell.config.ts",
     "build:web": "vite build",
     "build:shell": "vite build --config vite.shell.config.ts",
-    "build:apps": "rm -rf dist/apps && for a in hello calculator image-viewer selfies system-monitor texts; do APP=$a vite build -c vite.apps.config.ts || exit 1; done",
+    "build:apps": "rm -rf dist/apps && for a in hello calculator image-viewer selfies system-monitor terminal texts; do APP=$a vite build -c vite.apps.config.ts || exit 1; done",
     "build:greeter": "vite build --config vite.greeter.config.ts",
     "build:deb": "node scripts/build-deb.mjs",
     "preview": "vite preview",

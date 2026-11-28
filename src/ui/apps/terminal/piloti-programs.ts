@@ -4,7 +4,7 @@ import { listPathPrograms } from "@/platform/shared/system-commands";
 
 const STALE_MS = 5000;
 
-export function createProgramIndex(piloti: Piloti) {
+export function createProgramIndex(piloti: { processes: Pick<Piloti["processes"], "run"> }) {
   let names = new Set<string>();
   let readAt = -Infinity;
   let reading: Promise<void> | null = null;
