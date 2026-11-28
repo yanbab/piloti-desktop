@@ -17,7 +17,7 @@ const SAMPLE_SCRIPT = [
 ].join("; ");
 
 /** The same text, file by file, where there is no `sh` (the browser demo). */
-export async function readProcFiles(piloti: Pick<Piloti, "vfs">): Promise<string> {
+export async function readProcFiles(piloti: Pick<SampleHost, "vfs">): Promise<string> {
   const read = async (path: string) => (await piloti.vfs.readText(path)) ?? "";
   const stat = await read("/proc/stat");
   const pids = ((await piloti.vfs.list("/proc")) ?? []).filter((e) => /^\d+$/.test(e.name));
@@ -25,7 +25,13 @@ export async function readProcFiles(piloti: Pick<Piloti, "vfs">): Promise<string
   return ["4096", stat, await read("/proc/meminfo"), ...processes].join("\n");
 }
 
-export async function readSystemSample(piloti: Piloti): Promise<SystemSample | null> {
+/** What reading a sample takes: the shell's `piloti`, or an app module's host. */
+export interface SampleHost {
+  vfs: Pick<Piloti["vfs"], "readText" | "list">;
+  processes: Pick<Piloti["processes"], "run">;
+}
+
+export async function readSystemSample(piloti: SampleHost): Promise<SystemSample | null> {
   try {
     // On Linux one `sh` reads it all: a call per process would be costly.
     if (!getEngine().capabilities.systemServices) return parseSystemSample(await readProcFiles(piloti));

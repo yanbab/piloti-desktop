@@ -1,19 +1,37 @@
-/** The shell's side of its app module windows: their menus and their size. */
+/** The shell's side of its app module windows: menus, size, and what they watch. */
 import * as React from "react";
 import type { DesktopWindowInstance } from "@/ui/context/windows/types";
 import { moduleInstance, resolveAppModuleByUrl } from "@/core/data/app-modules";
 import { recordAppReady } from "@/core/util/perf-log";
 import { publishWindowMenuState } from "@/platform/shared/app-bridge";
-import { forgetModule, moduleState, onModuleState, sendToModule } from "@/platform/shared/module-ipc";
+import {
+  forgetModule,
+  moduleState,
+  onModuleRequest,
+  onModuleState,
+  sendToModule,
+} from "@/platform/shared/module-ipc";
 import type { Piloti } from "@/platform/shared/piloti";
+import { shellWindowsKey } from "@/core/ports/shell-host";
+import { toShellWindows } from "@/core/windows/shell-windows";
 
 type Resize = (windowId: string, patch: { size: { width: number; height: number } }) => void;
+
+export interface ModuleChannelActions {
+  resize: Resize;
+  close: (windowId: string) => void;
+  focus: (windowId: string) => void;
+}
+
+/** Windows change at drag rate in places; modules hear of them at most this often. */
+const WINDOWS_DELAY_MS = 250;
 
 export function useModuleChannel(
   piloti: Piloti,
   windows: readonly DesktopWindowInstance[],
-  resize: Resize,
+  actions: ModuleChannelActions,
 ): void {
+  const { resize } = actions;
   // `<instance>=<windowId>` pairs: changes only when module windows do.
   const key = windows
     .flatMap((w) => {
@@ -77,4 +95,63 @@ export function useModuleChannel(
       window.removeEventListener("piloti:app-action", onAppAction);
     };
   }, [key, piloti]);
+
+  // Requests: any module may ask, as any program of the session could.
+  const actionsRef = React.useRef(actions);
+  actionsRef.current = actions;
+  React.useEffect(
+    () =>
+      onModuleRequest((_id, request) => {
+        const exists = windowsRef.current.some((w) => w.id === request.windowId);
+        if (!exists) return;
+        if (request.do === "close-window") actionsRef.current.close(request.windowId);
+        else actionsRef.current.focus(request.windowId);
+      }),
+    [],
+  );
+
+  // Modules watching the windows: told when they change, and when they start.
+  const shellWindows = React.useMemo(() => toShellWindows(windows), [windows]);
+  const windowsKey = shellWindowsKey(shellWindows);
+  const shellWindowsRef = React.useRef(shellWindows);
+  shellWindowsRef.current = shellWindows;
+  /** The windows each watcher was last sent. */
+  const told = React.useRef(new Map<string, string>());
+  const keyRef = React.useRef(key);
+  keyRef.current = key;
+  const tell = React.useCallback(() => {
+    const instances = new Set(keyRef.current ? keyRef.current.split(" ").map((p) => p.split("=")[0]!) : []);
+    const list = shellWindowsRef.current;
+    const current = shellWindowsKey(list);
+    for (const id of [...told.current.keys()]) if (!instances.has(id)) told.current.delete(id);
+    for (const id of instances) {
+      if (!moduleState(id)?.watch?.includes("windows")) {
+        told.current.delete(id);
+        continue;
+      }
+      if (told.current.get(id) === current) continue;
+      told.current.set(id, current);
+      sendToModule(piloti, { to: id, type: "windows", windows: list });
+    }
+  }, [piloti]);
+  // A module that starts watching, or a new module window, is told at once.
+  React.useEffect(() => {
+    tell();
+    return onModuleState(tell);
+  }, [key, tell]);
+  // Changes of the windows, at most every WINDOWS_DELAY_MS.
+  const timer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  React.useEffect(() => {
+    if (told.current.size === 0 || timer.current !== null) return;
+    timer.current = setTimeout(() => {
+      timer.current = null;
+      tell();
+    }, WINDOWS_DELAY_MS);
+  }, [windowsKey, tell]);
+  React.useEffect(
+    () => () => {
+      if (timer.current !== null) clearTimeout(timer.current);
+    },
+    [],
+  );
 }

@@ -34,8 +34,8 @@ const SelfiesApp = React.lazy(() =>
 );
 
 const SystemMonitorApp = React.lazy(() =>
-  import("@/ui/apps/system-monitor/SystemMonitorApp").then((m) => ({
-    default: m.SystemMonitorApp,
+  import("@/ui/apps/system-monitor/shell-host").then((m) => ({
+    default: m.ShellSystemMonitorApp,
   }))
 );
 
@@ -104,7 +104,7 @@ const BUILTIN_APPS: Partial<
   "piloti-demo": () => <PilotiDemoApp />,
   selfies: (win) => <SelfiesApp windowId={win.id} />,
   settings: (win) => <SettingsApp initialPane={win.payload} />,
-  "system-monitor": (win) => <SystemMonitorApp windowId={win.id} />,
+  "system-monitor": () => <SystemMonitorApp />,
   terminal: (win) => <TerminalApp initialPath={win.payload} windowId={win.id} />,
   texts: (win) => <TextsApp initialPath={win.payload} windowId={win.id} />,
 };
