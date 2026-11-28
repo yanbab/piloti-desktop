@@ -1,5 +1,6 @@
 "use client"
 
+import { FX_DURATION, FX_EASE } from "@/ui/fx/motion"
 import { installPopupPressThrough } from "@/ui/hooks/popup-layer"
 import * as React from "react"
 import { MinusIcon, XIcon } from "lucide-react"
@@ -181,7 +182,7 @@ function minimizeAnimation(
         { transformOrigin: origin, transform: "scale(1)" },
         { transformOrigin: origin, transform: `scale(${fit})` },
       ],
-      options: { duration: 360, easing: "cubic-bezier(0.45, 0, 0.75, 0.6)" },
+      options: { duration: FX_DURATION.minimize, easing: FX_EASE.minimize },
     }
   }
 
@@ -221,7 +222,7 @@ function minimizeAnimation(
 
   return {
     keyframes,
-    options: { duration: 560, easing: "cubic-bezier(0.4, 0, 0.9, 0.8)" },
+    options: { duration: FX_DURATION.genie, easing: FX_EASE.genie },
   }
 }
 
@@ -432,7 +433,7 @@ function Window({
         },
         { transformOrigin: "0 0", transform: "none" },
       ],
-      { duration: 380, easing: "cubic-bezier(0.25, 0.8, 0.3, 1)" }
+      { duration: FX_DURATION.maximize, easing: FX_EASE.maximize }
     )
   }, [maximized])
 

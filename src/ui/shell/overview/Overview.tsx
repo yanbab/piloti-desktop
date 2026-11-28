@@ -15,6 +15,7 @@ import { AppSquircleIcon } from "@/ui/components/common/AppSymbol";
 import { DesktopBackgroundLayers } from "@/ui/shell/desktop/DesktopBackgroundLayers";
 import { isCloseOnLeft } from "@/ui/components/ui/window";
 import { HoverCloseButton } from "@/ui/shell/windows/HoverCloseButton";
+import { slideTransition, useSlideShown } from "@/ui/fx/slide";
 
 export { computeOverviewColumns } from "@/ui/shell/overview/overview-layout";
 
@@ -37,6 +38,7 @@ function OverviewWorkspacesBar({
   const [hoveredTarget, setHoveredTarget] = React.useState<number | "new" | null>(
     null
   );
+  const shown = useSlideShown(overviewOpen);
 
   const screenW = typeof window !== "undefined" ? Math.max(800, window.innerWidth) : 1440;
   const screenH = typeof window !== "undefined" ? Math.max(600, window.innerHeight) : 900;
@@ -45,11 +47,11 @@ function OverviewWorkspacesBar({
     <div
       onClick={(e) => e.stopPropagation()}
       style={{
-        transition: "transform 350ms cubic-bezier(0.22, 1, 0.36, 1)",
+        transition: slideTransition(),
       }}
       className={cn(
-        "relative flex w-full shrink-0 items-center justify-center px-6 pt-[42px] pb-3 ui-material-hud animate-in fade-in-0 duration-200 motion-reduce:animate-none",
-        !overviewOpen && "-translate-y-full",
+        "relative flex w-full shrink-0 items-center justify-center px-6 pt-[42px] pb-3 ui-material-hud",
+        !shown && "-translate-y-full",
       )}
     >
       <div className="flex max-w-full items-center gap-4 overflow-x-auto px-3 py-2.5">
@@ -242,7 +244,7 @@ function WorkspaceOverview() {
       aria-label="Overview"
       onClick={() => setOverviewOpen(false)}
       className={cn(
-        "fixed inset-0 z-[90] flex flex-col overflow-hidden transition-opacity duration-[350ms] ease-[cubic-bezier(0.22,1,0.36,1)] animate-in fade-in motion-reduce:animate-none",
+        "fixed inset-0 z-[90] flex flex-col overflow-hidden transition-opacity duration-[var(--fx-duration-overview)] ease-[var(--fx-ease-settle)] animate-in fade-in motion-reduce:animate-none",
         !overviewOpen && "pointer-events-none opacity-0",
       )}
     >

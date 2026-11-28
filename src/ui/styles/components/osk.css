@@ -1,0 +1,106 @@
+/*
+ * On-screen keyboard (ui/shell/osk/OnScreenKeyboard.tsx), in plain CSS.
+ *
+ * simple-keyboard draws `.hg-row` and `.hg-button` inside the element with the
+ * theme class `ui-osk-keys`; its own stylesheet is not loaded.
+ * Uses only --ui-* tokens.
+ */
+
+@layer components {
+  .ui-osk {
+    position: fixed;
+    left: 50%;
+    bottom: 0;
+    z-index: 9000;
+    width: min(100vw, 960px);
+    /* Below the screen edge until shown; `transition` comes from piloti-fx. */
+    transform: translate(-50%, calc(100% + 16px));
+    pointer-events: none;
+    --ui-osk-gap: 6px;
+    padding: 8px;
+    border-radius: var(--ui-radius-window) var(--ui-radius-window) 0 0;
+    background: var(--ui-window);
+    box-shadow: var(--ui-shadow-popover);
+    border: 1px solid var(--ui-border);
+    border-bottom: none;
+    color: var(--ui-label);
+    user-select: none;
+    touch-action: manipulation;
+  }
+
+  .ui-osk[data-shown] {
+    transform: translate(-50%, 0);
+    pointer-events: auto;
+  }
+
+  .ui-osk-hint {
+    margin: 0 4px 8px;
+    font-size: var(--ui-font-small);
+    color: var(--ui-label-secondary);
+    text-align: center;
+  }
+
+  /*
+   * simple-keyboard nests rows in `.hg-rows`. Every key gets one width unit,
+   * so letters line up from row to row; space and the corner keys get more.
+   */
+  .ui-osk-keys,
+  .ui-osk-keys .hg-rows {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ui-osk-gap, 6px);
+  }
+
+  .ui-osk-keys .hg-row {
+    display: flex;
+    gap: var(--ui-osk-gap, 6px);
+  }
+
+  .ui-osk-keys .hg-button {
+    display: flex;
+    flex: 1 1 0;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
+    height: 46px;
+    margin: 0;
+    border-radius: var(--ui-radius-control);
+    background: var(--ui-control);
+    color: var(--ui-label);
+    font-size: var(--ui-font-title);
+    box-shadow: 0 1px 0 var(--ui-separator);
+    cursor: default;
+  }
+
+  .ui-osk-keys .hg-button span {
+    pointer-events: none;
+  }
+
+  .ui-osk-keys .hg-button.hg-activeButton {
+    background: var(--ui-control-pressed);
+  }
+
+  .ui-osk-keys .hg-button.ui-osk-action {
+    background: var(--ui-fill-secondary);
+    font-size: var(--ui-font-body);
+  }
+
+  .ui-osk-keys .hg-button.ui-osk-wide {
+    flex-grow: 1.5;
+  }
+
+  .ui-osk-keys .hg-button.ui-osk-space {
+    flex-grow: 4;
+    font-size: var(--ui-font-body);
+    color: var(--ui-label-secondary);
+  }
+
+  .ui-osk-keys .hg-button.ui-osk-latched {
+    background: var(--ui-accent);
+    color: var(--ui-accent-foreground);
+  }
+
+  .ui-osk[data-caps-lock] .ui-osk-keys .hg-button.ui-osk-latched {
+    box-shadow: inset 0 -3px 0 var(--ui-accent-foreground);
+  }
+}

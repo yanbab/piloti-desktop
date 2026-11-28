@@ -1,3 +1,4 @@
+import { FX_DURATION, FX_EASE } from "@/ui/fx/motion";
 import * as React from "react";
 import { Loader2Icon } from "lucide-react";
 import { ArrowLeftIcon, ArrowRightIcon, EyeIcon, EyeOffIcon } from "@/ui/components/ui/symbols";
@@ -79,8 +80,7 @@ export function AuthPasswordCard({
       style={
         shakeTick > 0
           ? {
-              animation:
-                "piloti-gdm-shake 420ms cubic-bezier(0.36, 0.07, 0.19, 0.97)",
+              animation: `piloti-gdm-shake ${FX_DURATION.shake}ms ${FX_EASE.shake}`,
             }
           : undefined
       }

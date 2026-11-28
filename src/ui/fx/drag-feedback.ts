@@ -1,5 +1,5 @@
 /**
- * Drag-and-drop feedback shared by every draggable surface, so they all move
+ * piloti-fx, drag and drop: the feedback shared by every draggable surface, so they all move
  * and look the same: the lift when an item is picked up, the springy shuffle
  * of neighbours, the settle into place after a drop and the fly-back when a
  * drop is cancelled.
@@ -11,12 +11,14 @@
  *   see `pointer-drag.ts` and `floating-window.ts`): the settle transition.
  */
 
+import { FX_EASE } from "@/ui/fx/motion";
+
 /** Calm deceleration: things coming to rest (settle after a drop or a move). */
-export const DRAG_EASE_SETTLE = "cubic-bezier(0.22, 1, 0.36, 1)";
+export const DRAG_EASE_SETTLE = FX_EASE.settle;
 /** Springy overshoot: neighbours sliding aside, the ghost lifting. */
-export const DRAG_EASE_SPRING = "cubic-bezier(0.34, 1.45, 0.5, 1)";
+export const DRAG_EASE_SPRING = FX_EASE.spring;
 /** Softer spring for the ghost flying back when nothing moved. */
-export const DRAG_EASE_FLY_BACK = "cubic-bezier(0.34, 1.35, 0.5, 1)";
+export const DRAG_EASE_FLY_BACK = FX_EASE.flyBack;
 
 export const DRAG_DURATION = {
   /** Ghost scaling up and gaining its shadow. */

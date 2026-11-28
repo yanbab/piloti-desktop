@@ -30,7 +30,7 @@ import {
   dragFlyBackAnimation,
   dragShuffleTransition,
   liftGhost,
-} from "@/ui/dnd/drag-feedback";
+} from "@/ui/fx/drag-feedback";
 import { createPortal } from "react-dom";
 import { countRender } from "@/core/util/render-stats";
 import { usePiloti } from "@/platform/shared/piloti";

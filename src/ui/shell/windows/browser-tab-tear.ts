@@ -5,7 +5,7 @@
  * position is committed once, on release.
  */
 import { startPointerDrag } from "@/ui/dnd/pointer-drag";
-import { DRAG_DURATION, DRAG_EASE_SETTLE, DRAG_EASE_SPRING } from "@/ui/dnd/drag-feedback";
+import { DRAG_DURATION, DRAG_EASE_SETTLE, DRAG_EASE_SPRING } from "@/ui/fx/drag-feedback";
 import { createTabDropIndicator, findTabDropTarget, type TabDropTarget } from "@/ui/shell/windows/browser-tab-drop";
 
 /** While carried, the window is a little smaller and see-through: it is held. */

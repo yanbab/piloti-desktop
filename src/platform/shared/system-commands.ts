@@ -36,10 +36,6 @@ export function showKeyboardLayout(piloti: Piloti, layout: string): Promise<bool
   return launchFirst(piloti, [["tecla", layout], ["gkbd-keyboard-display", "-l", layout]]);
 }
 
-export function showOnScreenKeyboard(piloti: Piloti): Promise<boolean> {
-  return launchFirst(piloti, [["wvkbd-mobintl"], ["squeekboard"], ["onboard"]]);
-}
-
 /** Ends the session, restarts or powers off. */
 export function runPowerAction(piloti: Host, action: "logout" | "restart" | "poweroff") {
   return piloti.processes.run(

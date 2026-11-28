@@ -4,6 +4,7 @@
 @import "./piloti.css";
 @import "./piloti-macos.css";
 @import "./cupertino.css";
+@import "../fx/fx.css";
 @import "./components/button.css";
 @import "./components/switch.css";
 @import "./components/checkbox.css";
@@ -13,6 +14,7 @@
 @import "./components/sidebar.css";
 @import "./components/menu.css";
 @import "./components/segmented.css";
+@import "./components/osk.css";
 
 @layer base {
   html,

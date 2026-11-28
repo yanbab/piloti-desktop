@@ -22,7 +22,7 @@ import {
   dragFlyBackAnimation,
   dragShuffleCss,
   settleFromOffset,
-} from "@/ui/dnd/drag-feedback";
+} from "@/ui/fx/drag-feedback";
 import { buildDragGhost } from "@/ui/dnd/drag-ghost";
 import {
   broadcastItemDrag,
@@ -1039,7 +1039,7 @@ export function IconGrid({
                 ? "flex-row items-center justify-start gap-1 px-1.5 py-0.5 text-left"
                 : "flex-col items-center justify-start gap-1 px-1 py-1.5 text-center",
               !isDragging &&
-                "transition-[left,top,width,height,background-color,opacity] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)]",
+                "transition-[left,top,width,height,background-color,opacity] duration-200 ease-[var(--fx-ease-settle)]",
               isDragging && "opacity-25",
             )}
           >
@@ -1055,7 +1055,7 @@ export function IconGrid({
             <div
               style={{ width: `${iconSize}px`, height: `${iconSize}px` }}
               className={cn(
-                "relative shrink-0 drop-shadow-[0_1px_2px_rgba(0,0,0,0.2)] transition-[width,height,opacity,filter] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)]",
+                "relative shrink-0 drop-shadow-[0_1px_2px_rgba(0,0,0,0.2)] transition-[width,height,opacity,filter] duration-200 ease-[var(--fx-ease-settle)]",
                 item.kind === "file" &&
                   item.path &&
                   openFilePaths.has(item.path.replace(/\/+$/, "") || "/") &&

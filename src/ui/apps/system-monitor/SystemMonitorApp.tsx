@@ -30,7 +30,7 @@ import {
   type MonitorAppInfo,
   type SystemMonitorHost,
 } from "@/ui/apps/system-monitor/host";
-import { DRAG_THRESHOLD, dragShuffleCss, settleFromOffset } from "@/ui/dnd/drag-feedback";
+import { DRAG_THRESHOLD, dragShuffleCss, settleFromOffset } from "@/ui/fx/drag-feedback";
 import {
   formatWidgetLayout,
   parseWidgetLayout,

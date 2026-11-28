@@ -1,4 +1,5 @@
 /// <reference types="@domicile-desktop/react/elements" />
+import { FX_DURATION, fxTransition } from "@/ui/fx/motion";
 import { canResize } from "@/core/windows/tiling";
 import { WorkspaceTransition } from "@/ui/shell/windows/WorkspaceTransition";
 import { logAppEvent, recordAppReady } from "@/core/util/perf-log";
@@ -207,7 +208,7 @@ export function WindowManager() {
       el.style.transformOrigin = "center center";
       el.style.transform = `translate3d(${dx}px, ${dy}px, 0) scale(${scale})`;
       void el.offsetWidth;
-      el.style.transition = "transform 240ms cubic-bezier(0.22, 1, 0.36, 1)";
+      el.style.transition = fxTransition(FX_DURATION.open, "settle", "transform");
       el.style.transform = "translate3d(0px, 0px, 0px) scale(1)";
       window.setTimeout(() => {
         if (windowElementsRef.current.get(win.id) === el) {
@@ -584,8 +585,7 @@ export function WindowManager() {
       stage.style.transform = `translate3d(${dx}px, ${dy}px, 0) scale(${scaleX}, ${scaleY})`;
       stage.style.borderRadius = "14px";
       void stage.offsetWidth;
-      stage.style.transition =
-        "transform 350ms cubic-bezier(0.22, 1, 0.36, 1), border-radius 350ms cubic-bezier(0.22, 1, 0.36, 1)";
+      stage.style.transition = fxTransition(FX_DURATION.overview, "settle", "transform", "border-radius");
       stage.style.transform = "translate3d(0, 0, 0) scale(1, 1)";
       stage.style.borderRadius = "0px";
       cleanupTimer = window.setTimeout(() => {
@@ -646,7 +646,7 @@ export function WindowManager() {
       {/* Transparent Desktop Icons App (below windows, above wallpaper) */}
       <div
         style={{
-          transition: "opacity 350ms cubic-bezier(0.22, 1, 0.36, 1)",
+          transition: fxTransition(FX_DURATION.overview, "settle", "opacity"),
         }}
         className={cn(
           "pointer-events-none absolute inset-0 z-0",
@@ -801,7 +801,7 @@ export function WindowManager() {
                     ? "none"
                     : // No opacity fade: while a window is part transparent the
                     // vibrant sidebar cannot blur what is behind the window.
-                    "transform 350ms cubic-bezier(0.22, 1, 0.36, 1)",
+                    fxTransition(FX_DURATION.overview, "settle", "transform"),
               }}
               className={cn(
                 "contain-[layout_style] outline-none",

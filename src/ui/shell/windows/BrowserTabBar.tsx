@@ -36,7 +36,7 @@ import {
   dragShuffleTransition,
   DRAG_DURATION,
   DRAG_LIFT,
-} from "@/ui/dnd/drag-feedback";
+} from "@/ui/fx/drag-feedback";
 
 /** Dragging this far above or below the bar tears the tab off into its own window. */
 const DETACH_DISTANCE = 32;
