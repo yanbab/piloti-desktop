@@ -126,6 +126,7 @@ import { BrowserPageMenu, type PageMenuCommands } from "@/ui/shell/windows/Brows
 import { PageDialog, PermissionBubble } from "@/ui/shell/windows/BrowserPagePrompts";
 import { BrowserDownloadsMenu } from "@/ui/shell/windows/BrowserDownloadsMenu";
 import { BrowserSiteInfo } from "@/ui/shell/windows/BrowserSiteInfo";
+import { BrowserHistoryMenu } from "@/ui/shell/windows/BrowserHistoryMenu";
 
 function siteHost(url: string): string {
   try {
@@ -869,6 +870,8 @@ export function WebViewSurface({
     return () => window.removeEventListener(BROWSER_TAB_RELOAD_EVENT, onReloadTab);
   }, [win.browserWindowId]);
 
+  const historyNewTab = isBrowserApp ? (url: string) => openBrowserTab(win.id, url) : undefined;
+
   const pageMenuCommands: PageMenuCommands = {
     canGoBack,
     canGoForward,
@@ -1211,26 +1214,30 @@ export function WebViewSurface({
           )}
         >
           <HeaderBar.Start>
-            <button
-              type="button"
-              title={_("Back")}
-              aria-label={_("Back")}
-              disabled={!canGoBack}
-              onClick={handleGoBack}
-              className={toolbarButton}
-            >
-              <SymbolicIcon name="go-previous" fallback={ChevronLeftIcon} className="size-4" />
-            </button>
-            <button
-              type="button"
-              title={_("Forward")}
-              aria-label={_("Forward")}
-              disabled={!canGoForward}
-              onClick={handleGoForward}
-              className={toolbarButton}
-            >
-              <SymbolicIcon name="go-next" fallback={ChevronRightIcon} className="size-4" />
-            </button>
+            <BrowserHistoryMenu view={webviewEl} direction="back" onOpenInNewTab={historyNewTab}>
+              <button
+                type="button"
+                title={_("Back")}
+                aria-label={_("Back")}
+                disabled={!canGoBack}
+                onClick={handleGoBack}
+                className={toolbarButton}
+              >
+                <SymbolicIcon name="go-previous" fallback={ChevronLeftIcon} className="size-4" />
+              </button>
+            </BrowserHistoryMenu>
+            <BrowserHistoryMenu view={webviewEl} direction="forward" onOpenInNewTab={historyNewTab}>
+              <button
+                type="button"
+                title={_("Forward")}
+                aria-label={_("Forward")}
+                disabled={!canGoForward}
+                onClick={handleGoForward}
+                className={toolbarButton}
+              >
+                <SymbolicIcon name="go-next" fallback={ChevronRightIcon} className="size-4" />
+              </button>
+            </BrowserHistoryMenu>
             {isLoading ? (
               <button
                 type="button"

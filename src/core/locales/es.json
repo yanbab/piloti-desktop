@@ -1072,5 +1072,7 @@
   "The connection to this site is secure.": "La conexión con este sitio es segura.",
   "The connection to this site is not secure.": "La conexión con este sitio no es segura.",
   "This page is not a website.": "Esta página no es un sitio web.",
-  "Reset Permissions": "Restablecer permisos"
+  "Reset Permissions": "Restablecer permisos",
+  "No Pages": "Ninguna página",
+  "Go to First Page": "Ir a la primera página"
 }
