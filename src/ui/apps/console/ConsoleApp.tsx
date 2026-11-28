@@ -35,8 +35,8 @@ import {
   formatInspectValue,
   clearConsoleEntries,
   type ConsoleLogLevel,
-  useConsoleEntries,
 } from "@/core/util/console-store";
+import { useConsoleEntries } from "@/ui/hooks/use-console-entries";
 import { parseIniText } from "@/core/config/piloti-ini";
 import { _ } from "@/core/util/i18n";
 import { getRenderCounts, resetRenderCounts } from "@/core/util/render-stats";

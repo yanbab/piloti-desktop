@@ -1,4 +1,3 @@
-import * as React from "react";
 
 export type ConsoleLogLevel = "log" | "info" | "warn" | "error";
 
@@ -246,15 +245,9 @@ export function clearConsoleEntries(): void {
   notifyListeners();
 }
 
-export function useConsoleEntries(): readonly ConsoleLogEntry[] {
-  return React.useSyncExternalStore(
-    (listener) => {
-      listeners.add(listener);
-      return () => listeners.delete(listener);
-    },
-    () => entries,
-    () => entries
-  );
+export function subscribeConsoleEntries(listener: () => void): () => void {
+  listeners.add(listener);
+  return () => void listeners.delete(listener);
 }
 
 const AsyncFunction = Object.getPrototypeOf(async function () {})

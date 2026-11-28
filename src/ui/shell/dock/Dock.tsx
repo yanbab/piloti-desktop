@@ -74,10 +74,8 @@ import { captureLaunchOriginFromElement } from "@/core/windows/launch-origin";
 import { cn } from "@/core/util/utils";
 import {
   setXdgAppUrgent,
-  useXdgAppBadgeCounts,
-  useXdgAppProgress,
-  useXdgAppUrgent,
 } from "@/core/xdg/xdg-badge-count";
+import { useXdgAppBadgeCounts, useXdgAppProgress, useXdgAppUrgent } from "@/ui/hooks/use-xdg-badges";
 import {
   addDockFolder,
   dockFolderLabel,

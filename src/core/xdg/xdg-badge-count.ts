@@ -1,4 +1,3 @@
-import * as React from "react";
 
 export interface XdgBadgeEntry {
   count: number;
@@ -68,21 +67,12 @@ export function getXdgAppBadgeCount(appId: string): number {
   return entry && entry.visible ? entry.count : 0;
 }
 
-function subscribe(listener: () => void): () => void {
+export function subscribeXdgBadges(listener: () => void): () => void {
   listeners.add(listener);
-  return () => {
-    listeners.delete(listener);
-  };
+  return () => void listeners.delete(listener);
 }
 
-function getSnapshot(): Record<string, XdgBadgeEntry> {
-  return snapshotCache;
-}
-
-export function useXdgAppBadgeCounts(): Record<string, XdgBadgeEntry> {
-  return React.useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
-}
-
+export const getXdgBadges = (): Record<string, XdgBadgeEntry> => snapshotCache;
 
 /* ---------- Progress (0..1 determinate, null indeterminate, undefined clear) ---------- */
 const progressMap = new Map<string, number | null>();
@@ -109,19 +99,6 @@ export function setXdgAppProgress(
   for (const l of progressListeners) l();
 }
 
-export function useXdgAppProgress(): Record<string, number | null> {
-  return React.useSyncExternalStore(
-    (l) => {
-      progressListeners.add(l);
-      return () => {
-        progressListeners.delete(l);
-      };
-    },
-    () => progressSnapshot,
-    () => progressSnapshot
-  );
-}
-
 /* ---------- Urgent ---------- */
 const urgentSet = new Set<string>();
 const urgentListeners = new Set<() => void>();
@@ -137,15 +114,16 @@ export function setXdgAppUrgent(appId: string, urgent: boolean): void {
   for (const l of urgentListeners) l();
 }
 
-export function useXdgAppUrgent(): Record<string, boolean> {
-  return React.useSyncExternalStore(
-    (l) => {
-      urgentListeners.add(l);
-      return () => {
-        urgentListeners.delete(l);
-      };
-    },
-    () => urgentSnapshot,
-    () => urgentSnapshot
-  );
+export function subscribeXdgProgress(listener: () => void): () => void {
+  progressListeners.add(listener);
+  return () => void progressListeners.delete(listener);
 }
+
+export const getXdgProgress = (): Record<string, number | null> => progressSnapshot;
+
+export function subscribeXdgUrgent(listener: () => void): () => void {
+  urgentListeners.add(listener);
+  return () => void urgentListeners.delete(listener);
+}
+
+export const getXdgUrgent = (): Record<string, boolean> => urgentSnapshot;

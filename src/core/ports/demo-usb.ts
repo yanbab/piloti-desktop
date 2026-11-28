@@ -3,7 +3,6 @@
  * (`engine-web/usb-drive.ts`, set by the demo); without it, as on Linux, no
  * drive is ever mounted.
  */
-import * as React from "react";
 import { normalizeVfsPath } from "@/core/files/vfs-paths";
 
 export const SIMULATED_USB_PATH = "/media/user/PILOTI_USB";
@@ -43,11 +42,5 @@ export function toggleSimulatedUsb(): void {
   else current.mount();
 }
 
-export function useSimulatedUsbMounted(): boolean {
-  const [mounted, setMounted] = React.useState(() => current.mounted());
-  React.useEffect(() => {
-    setMounted(current.mounted());
-    return current.subscribe(() => setMounted(current.mounted()));
-  }, []);
-  return mounted;
-}
+export const isSimulatedUsbMounted = (): boolean => current.mounted();
+export const subscribeSimulatedUsb = (listener: () => void): (() => void) => current.subscribe(listener);
