@@ -9,7 +9,7 @@ import { getEngine } from "@/core/ports/engine";
 
 export type RunIn = "shell" | "isolated";
 
-/** Apps with an app module (`src/ui/apps/<id>`); all but `NATIVE_ONLY` have an iframe entry. */
+/** Apps with both an app module (`src/ui/apps/<id>`) and an iframe entry. */
 export const ISOLATABLE_APPS: readonly string[] = [
   "calculator",
   "image-viewer",
@@ -19,16 +19,13 @@ export const ISOLATABLE_APPS: readonly string[] = [
   "texts",
 ];
 const ISOLATABLE = new Set(ISOLATABLE_APPS);
-/** A pseudo-terminal needs Linux: the demo keeps these in the shell. */
-const NATIVE_ONLY = new Set(["terminal"]);
 
 /** Apps heavy enough to run on their own unless chosen otherwise, on Linux. */
 const SEPARATE_BY_DEFAULT = new Set(["image-viewer", "system-monitor", "texts"]);
 
 export const RUN_SEPARATELY_ACTION = "shell:run-separately";
 
-export const canRunIsolated = (appId: string): boolean =>
-  ISOLATABLE.has(appId) && (getEngine().capabilities.systemServices || !NATIVE_ONLY.has(appId));
+export const canRunIsolated = (appId: string): boolean => ISOLATABLE.has(appId);
 
 export function getRunIn(appId: string): RunIn {
   const former = formerAppId(appId);

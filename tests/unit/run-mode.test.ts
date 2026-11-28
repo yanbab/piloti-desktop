@@ -13,10 +13,9 @@ describe("run mode", () => {
         expect(canRunIsolated(id)).toBe(true);
         expect(APP_MODULES.some((m) => m.id === id)).toBe(true);
       }
-      // A terminal needs Linux: the demo has no iframe for it.
+      // The demo runs them in an iframe.
       setEngine(webEngine);
-      expect(canRunIsolated("terminal")).toBe(false);
-      expect(canRunIsolated("system-monitor")).toBe(true);
+      expect(canRunIsolated("terminal")).toBe(true);
     } finally {
       setEngine(before);
     }

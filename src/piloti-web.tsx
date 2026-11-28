@@ -49,6 +49,9 @@ const ImageViewerApp = React.lazy(() =>
 const SelfiesApp = React.lazy(() =>
   import("./ui/apps/selfies/shell-host").then((m) => ({ default: m.ShellSelfiesApp })),
 );
+const TerminalApp = React.lazy(() =>
+  import("./ui/apps/terminal/shell-host").then((m) => ({ default: m.FrameTerminalApp })),
+);
 const SystemMonitorApp = React.lazy(() =>
   import("./ui/apps/system-monitor/shell-host").then((m) => ({ default: m.FrameSystemMonitorApp })),
 );
@@ -82,6 +85,8 @@ async function start(root: HTMLElement) {
                 <ImageViewerApp initialPath={initialPath} windowId={windowId} />
               ) : isolatedApp === "selfies" ? (
                 <SelfiesApp windowId={windowId} />
+              ) : isolatedApp === "terminal" ? (
+                <TerminalApp windowId={windowId} />
               ) : isolatedApp === "system-monitor" ? (
                 <SystemMonitorApp windowId={windowId} />
               ) : (

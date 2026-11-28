@@ -186,8 +186,10 @@ the icon theme.
 
 The Terminal's module runs its shells and Piloti Shell itself; `set({...})`
 writes the desktop settings to dconf, which the shell follows, and `piloti` in
-Piloti Shell is the module's own Domicile (`files`, `processes`, `vfs`). The demo
-keeps it in the shell (`NATIVE_ONLY` in `run-mode.ts`).
+Piloti Shell is the module's own Domicile (`files`, `processes`, `vfs`). In the
+demo's iframe it has Piloti Shell only, and asks the page around it for the
+settings, launching and opening (`FrameRequest` in `app-bridge.ts`). Every
+module should have such an iframe entry, so it can be tried in the demo.
 
 **Porting an app:** a `host.ts` with what it needs, a `shell-host.tsx` for the
 shell, a `main.tsx` calling `mountModuleApp` (`ui/apps/module-app.tsx`), a line in

@@ -3,10 +3,13 @@ import { recordAppReady } from "@/core/util/perf-log";
 import { emitShellEvent } from "@/core/windows/shell-events";
 import { createRoot, type Root } from "react-dom/client";
 import {
+  useSettingsSelector,
   useSystemBackends,
+  useUpdateSettings,
   useWindowActions,
   useDesktopSettings,
 } from "@/ui/context/DesktopStateContext";
+import { useOpenPath } from "@/ui/hooks/use-open-path";
 import {
   type AppToShellMessage,
   applyThemeToDocument,
@@ -43,11 +46,19 @@ export const IsolatedAppFrame: React.FC<IsolatedAppFrameProps> = ({
     toggleMaximizeWindow,
     updateWindowGeometry,
     markWindowReady,
+    launchApp,
   } = useWindowActions();
 
   const shell = useShellHost();
   /** The frame watches the desktop's windows (System Monitor). */
   const [watchingWindows, setWatchingWindows] = React.useState(false);
+  /** The frame watches the desktop settings (Terminal). */
+  const [watchingSettings, setWatchingSettings] = React.useState(false);
+  const desktopSettings = useSettingsSelector((v) => v.settings);
+  const updateSettings = useUpdateSettings();
+  const { openPath } = useOpenPath();
+  const live = React.useRef({ updateSettings, openPath });
+  live.current = { updateSettings, openPath };
   const iframeRef = React.useRef<HTMLIFrameElement | null>(null);
   const portalRootRef = React.useRef<Root | null>(null);
   const fallbackElementRef = React.useRef<React.ReactNode>(fallbackElement);
@@ -176,6 +187,10 @@ export const IsolatedAppFrame: React.FC<IsolatedAppFrameProps> = ({
       } else if (data.type === "piloti:shell-request") {
         const { request } = data;
         if (request.do === "watch-windows") setWatchingWindows(request.on);
+        else if (request.do === "watch-settings") setWatchingSettings(request.on);
+        else if (request.do === "update-settings") live.current.updateSettings(request.patch);
+        else if (request.do === "launch") launchApp(request.appId, { payload: request.payload });
+        else if (request.do === "open") void live.current.openPath(request.path, { kind: request.kind });
         else if (request.do === "close-window") shell.closeWindow(request.windowId);
         else shell.focusWindow(request.windowId);
       }
@@ -191,6 +206,7 @@ export const IsolatedAppFrame: React.FC<IsolatedAppFrameProps> = ({
     pushNotification,
     sendThemeSync,
     shell,
+    launchApp,
     title,
     toggleMaximizeWindow,
     updateWindowGeometry,
@@ -206,6 +222,14 @@ export const IsolatedAppFrame: React.FC<IsolatedAppFrameProps> = ({
       ),
     );
   }, [shell, watchingWindows]);
+
+  React.useEffect(() => {
+    if (!watchingSettings) return;
+    iframeRef.current?.contentWindow?.postMessage(
+      { type: "piloti:desktop-settings", settings: desktopSettings } satisfies ShellToAppMessage,
+      "*",
+    );
+  }, [desktopSettings, watchingSettings]);
 
   // Fallback isolated DOM mount when running under file:// (Domicile standalone bundle)
   React.useEffect(() => {
