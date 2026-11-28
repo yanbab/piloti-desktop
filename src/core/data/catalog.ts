@@ -391,6 +391,12 @@ const APP_MENUS: Record<string, AppMenuSection[]> = {
       ],
     },
   ],
+  "system-monitor": [
+    {
+      title: "View",
+      items: [{ label: "Open New Windows Separately", actionId: "shell:run-separately", checked: false }],
+    },
+  ],
   "image-viewer": [
     {
       title: "File",

@@ -13,6 +13,7 @@ import { baseName, joinPath, parentPath } from "@/core/ports/vfs";
 import { Bus } from "@domicile-desktop/sdk/system";
 import type { AppDomicile } from "@domicile-desktop/sdk/desktop/app-desktop";
 import { createModuleApps } from "@/core/apps/module-apps";
+import { createModuleShell } from "@/core/apps/module-shell";
 import {
   type ChannelHost,
   createModuleChannel,
@@ -206,6 +207,9 @@ export async function createAppModuleHost(
     publish: (patch: ModuleWindowState) => void channel.publish(patch),
     /** The shell says whether its window controls lie over this window's titlebar. */
     onOverlay: (listener: (visible: boolean) => void) => channel.onOverlay(listener),
+    /** The desktop's windows, through the shell. */
+    shell: createModuleShell(channel),
+    processes: domicile.processes,
     desktop,
     watchDir,
     /** The file the shell asked this window to open, once. */

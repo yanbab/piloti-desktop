@@ -7,7 +7,7 @@
  *
  * Keys the shell itself applies: `color-scheme` (`dark` forces the app's
  * windows dark; absent = follow the desktop). Plugins read and write them
- * through `ctx.apps`. Stored through the settings layer (`engine/settings.ts`);
+ * through `piloti.desktop.apps`. Stored through the settings layer (`engine/settings.ts`);
  * the app's own schemas live in other sections of the same file.
  */
 import {

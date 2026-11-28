@@ -1,6 +1,8 @@
 import * as React from "react";
 import { ACCENT_COLORS, type AccentColorId } from "@/core/data/catalog";
 import { subscribeLocale } from "@/core/util/i18n";
+import type { ModuleRequest } from "@/core/apps/module-channel";
+import type { ShellWindow } from "@/core/ports/shell-host";
 
 export type ShellToAppMessage =
   | {
@@ -16,6 +18,11 @@ export type ShellToAppMessage =
   | {
       type: "piloti:app-action";
       actionId: string;
+    }
+  | {
+      /** For a frame watching the desktop's windows (`ShellHost`). */
+      type: "piloti:shell-windows";
+      windows: ShellWindow[];
     }
 ;
 
@@ -49,6 +56,12 @@ export type AppToShellMessage =
       windowId: string;
       summary: string;
       body?: string;
+    }
+  | {
+      /** `ShellHost` for a frame: watch the windows, or act on one. */
+      type: "piloti:shell-request";
+      windowId: string;
+      request: ModuleRequest | { do: "watch-windows"; on: boolean };
     }
 
 

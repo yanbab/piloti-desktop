@@ -13,6 +13,7 @@ import {
   type ShellToAppMessage,
 } from "@/platform/shared/app-bridge";
 import { PilotiQueryProvider } from "@/platform/shared/query-client";
+import { useShellHost } from "@/ui/hooks/use-shell-host";
 
 export interface IsolatedAppFrameProps {
   appId: string;
@@ -44,6 +45,9 @@ export const IsolatedAppFrame: React.FC<IsolatedAppFrameProps> = ({
     markWindowReady,
   } = useWindowActions();
 
+  const shell = useShellHost();
+  /** The frame watches the desktop's windows (System Monitor). */
+  const [watchingWindows, setWatchingWindows] = React.useState(false);
   const iframeRef = React.useRef<HTMLIFrameElement | null>(null);
   const portalRootRef = React.useRef<Root | null>(null);
   const fallbackElementRef = React.useRef<React.ReactNode>(fallbackElement);
@@ -169,6 +173,11 @@ export const IsolatedAppFrame: React.FC<IsolatedAppFrameProps> = ({
           summary: data.summary,
           body: data.body ?? "",
         });
+      } else if (data.type === "piloti:shell-request") {
+        const { request } = data;
+        if (request.do === "watch-windows") setWatchingWindows(request.on);
+        else if (request.do === "close-window") shell.closeWindow(request.windowId);
+        else shell.focusWindow(request.windowId);
       }
     };
     window.addEventListener("message", onMessage);
@@ -181,11 +190,22 @@ export const IsolatedAppFrame: React.FC<IsolatedAppFrameProps> = ({
     minimizeWindow,
     pushNotification,
     sendThemeSync,
+    shell,
     title,
     toggleMaximizeWindow,
     updateWindowGeometry,
     windowId,
   ]);
+
+  React.useEffect(() => {
+    if (!watchingWindows) return;
+    return shell.watchWindows((windows) =>
+      iframeRef.current?.contentWindow?.postMessage(
+        { type: "piloti:shell-windows", windows: [...windows] } satisfies ShellToAppMessage,
+        "*",
+      ),
+    );
+  }, [shell, watchingWindows]);
 
   // Fallback isolated DOM mount when running under file:// (Domicile standalone bundle)
   React.useEffect(() => {

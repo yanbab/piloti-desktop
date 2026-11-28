@@ -1,4 +1,4 @@
-// Piloti Showcase Plugin — demonstrates the full PilotiPluginContext API
+// Piloti Showcase Plugin — demonstrates the plugin context (`ctx`) and `ctx.piloti`
 export function activate(ctx) {
   let notesCount = Number(ctx.storage.get("focusCount") ?? 0);
 
@@ -11,7 +11,7 @@ export function activate(ctx) {
       notesCount += 1;
       ctx.storage.set("focusCount", notesCount);
       status.update({ label: `✦ ${notesCount}` });
-      ctx.notifications.push({
+      ctx.notify({
         summary: "Showcase Check-in",
         body: `Recorded ${notesCount} focus session(s).`,
       });
@@ -71,12 +71,12 @@ export function activate(ctx) {
         notesCount += 1;
         ctx.storage.set("focusCount", notesCount);
         status.update({ label: `✦ ${notesCount}` });
-        ctx.notifications.push({
+        ctx.notify({
           summary: "Showcase Check-in",
           body: `Total check-ins: ${notesCount}`,
         });
       } else if (item.id === "files") {
-        ctx.windows.launchApp("nautilus");
+        ctx.piloti.desktop.apps.launch("nautilus");
       }
     },
   });
@@ -90,7 +90,7 @@ export function activate(ctx) {
       notesCount = 0;
       ctx.storage.set("focusCount", 0);
       status.update({ label: "✦ 0" });
-      ctx.notifications.push({
+      ctx.notify({
         summary: "Showcase Reset",
         body: "Focus check-in counter reset to 0.",
       });

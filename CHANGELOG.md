@@ -2,6 +2,22 @@
 
 Releases of Piloti Desktop, latest first. Dates are the tagged commit's.
 
+## 0.10.17 — 2026-11-28
+
+- Overview: a dragged window follows the pointer, instead of only its icon.
+- Internal: the rules for opening apps, workspaces, tiling, moving and resizing
+  windows are out of React, in `core/windows/`, and tested. `core/` no longer
+  uses React at all.
+
+### Commits
+
+- `db4cf49` refactor(windows): move and resize rules in core/, with tests
+- `33b5c7a` refactor(windows): maximize and tile rules in core/, with tests
+- `9772ddf` fix(overview): the window follows the pointer when dragged, not only its icon
+- `401636c` refactor(windows): one way to change a window; workspace rules in core/
+- `8f2b9d1` refactor(windows): decide launches and new windows in core/, with tests
+- `9e13b36` refactor: no React in core/, and a test for it
+
 ## 0.10.16 — 2026-11-28
 
 - Image Viewer and Selfies can run as separate apps, like Texts and Calculator.

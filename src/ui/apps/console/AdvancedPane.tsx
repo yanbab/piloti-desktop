@@ -42,8 +42,8 @@ import { WEB_VFS_HOME } from "@/core/files/vfs-paths";
 import {
   SIMULATED_USB_PATH,
   toggleSimulatedUsb,
-  useSimulatedUsbMounted,
 } from "@/core/ports/demo-usb";
+import { useSimulatedUsbMounted } from "@/ui/hooks/use-simulated-usb";
 
 export function AdvancedPane() {
   const progressDemoTimerRef = React.useRef<number | undefined>(undefined);

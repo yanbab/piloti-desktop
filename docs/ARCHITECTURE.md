@@ -97,7 +97,8 @@ Nothing the entry imports up front may read `$HOME` (the build checks).
   Components subscribe to slices, so a change re-renders only what uses it.
 - Window manager: `ui/context/WindowsContext.tsx` holds the state and actions;
   its types, derived lists and self-contained hooks are in `ui/context/windows/`,
-  pure logic in `core/windows/`.
+  pure logic in `core/windows/`. What a launch does is decided by
+  `core/windows/launch-plan.ts` (tested); the context carries it out.
 - Windows keep their DOM order and are hidden with CSS, so iframes don't reload.
 - Bounds and workspace are saved per URL, document or app.
 - Folders opened on a folder keeps view, sort and zoom per folder
@@ -151,14 +152,15 @@ Domicile app module:
   It talks to the shell through files or D-Bus.
 - Shown in a `<webview>`; the shell draws its controls and drag strip
   (`core/data/app-modules.ts`).
-- Built with `npm run build:apps` → `dist/apps/<id>/` (`hello`, `calculator`, `image-viewer`, `selfies`, `texts`).
+- Built with `npm run build:apps` → `dist/apps/<id>/` (`hello`, `calculator`, `image-viewer`, `selfies`, `system-monitor`, `texts`).
 
 A module and the shell talk as in Electron (`core/apps/module-channel.ts`):
 
 | Direction | Carried by |
 |---|---|
-| Module → shell: menu state, wanted size | a shell command, `piloti send piloti-ipc …`, answered |
-| Shell → module: menu actions, "send again" | the D-Bus signal `org.piloti.Shell.Message` |
+| Module → shell: menu state, wanted size, what it watches | a shell command, `piloti send piloti-ipc …`, answered |
+| Module → shell: close or focus a window | `piloti send piloti-ipc-do …`, answered |
+| Shell → module: menu actions, "send again", the windows | the D-Bus signal `org.piloti.Shell.Message` |
 
 After `#` in its URL, a module puts its open file (so opening it again focuses
 the window) and the name it goes by. Renames and moves made in the shell are
@@ -172,6 +174,15 @@ so an app needs nothing of its own. A module that must not close refuses with
 
 Each app adds only what it needs to `AppHost`; one that holds a file takes
 `DocumentHost` (rename, follow renames, ask before closing).
+
+An app that needs the desktop's windows takes a `ShellHost`
+(`core/ports/shell-host.ts`: watch the windows, close or focus one). The shell
+serves it from its window manager (`ui/hooks/use-shell-host.ts`); a module gets
+it from `core/apps/module-shell.ts`: it adds `watch: ["windows"]` to its state
+and the shell sends the list when it changes, at most every 250 ms; the demo's
+iframe asks the page around it (`platform/shared/app-frame-shell.ts`). Names and
+icons of other apps: `core/apps/describe-apps.ts` reads the `.desktop` files and
+the icon theme.
 
 **Porting an app:** a `host.ts` with what it needs, a `shell-host.tsx` for the
 shell, a `main.tsx` calling `mountModuleApp` (`ui/apps/module-app.tsx`), a line in

@@ -13,18 +13,16 @@ import {
 } from "@domicile-desktop/sdk/window-state";
 import {
   APP_CATALOG,
-  type BuiltinAppId,
 } from "@/core/data/catalog";
 import {
   canonicalizeWebUrl,
   findMatchingWebApp,
 } from "@/core/data/web-apps";
-import { moduleDocument, resolveAppModuleByUrl } from "@/core/data/app-modules";
+import { resolveAppModuleByUrl } from "@/core/data/app-modules";
 import { restoreModuleWindows } from "@/ui/context/windows/restore-modules";
 import {
   DOCUMENT_SCOPED_APP_IDS,
   lookupSpatialWindowBounds,
-  resolveSpatialBoundsKey,
 } from "@/core/windows/spatial-window-bounds";
 import {
   type GnomeSettingsPanel,
@@ -32,6 +30,13 @@ import {
   openGnomeControlCenter,
 } from "@/platform/shared/desktop-integration";
 import { getRunIn } from "@/core/windows/run-mode";
+import { createRepeatGuard, planLaunch } from "@/core/windows/launch-plan";
+import { newShellWindow } from "@/core/windows/new-shell-window";
+import { rememberBounds } from "@/core/windows/remember-bounds";
+import type { WindowPlacement } from "@/core/windows/types";
+import { moveToWorkspace, removeWorkspace as planWorkspaceRemoval } from "@/core/windows/workspaces";
+import { canResize, createUntiledSizes, tiled, toggledMaximize } from "@/core/windows/tiling";
+import { allowedChange, changedGeometry, createGeometryLog } from "@/core/windows/geometry";
 import {
   matchXdgEntryForWaylandWindow,
   resolveWaylandClientFrame,
@@ -902,6 +907,21 @@ export function useWindowsValue(
     piloti.windows.focusShell();
   }, [piloti.windows]);
 
+  /** Changes where a window stands, whether the shell, Linux or the web draws it. */
+  const patchWindow = React.useCallback(
+    (windowId: string, change: (current: WindowPlacement) => Partial<WindowPlacement>) => {
+      const patch = <T extends WindowPlacement>(w: T): T => ({ ...w, ...change(w) });
+      if (windowId.startsWith("wayland:")) {
+        patchExternalMeta(setWaylandMeta, windowId.slice("wayland:".length), patch);
+      } else if (windowId.startsWith("browser:")) {
+        patchExternalMeta(setBrowserMeta, windowId.slice("browser:".length), patch);
+      } else {
+        setShellWindows((prev) => prev.map((w) => (w.id === windowId ? patch(w) : w)));
+      }
+    },
+    [],
+  );
+
   const focusWindow = React.useCallback(
     (windowId: string) => {
       const newZ = nextZ();
@@ -936,79 +956,31 @@ export function useWindowsValue(
             })
           : null;
 
-      if (windowId.startsWith("wayland:")) {
-        const rawId = windowId.slice("wayland:".length);
-        patchExternalMeta(setWaylandMeta, rawId, (cur) => {
-          const clamped = clampForWindow(
-            cur.position,
-            cur.size,
-            cur.maximized,
-            cur.fullscreen,
-            existing?.minSize
-          );
-          return {
-            ...cur,
-            ...(clamped
-              ? { position: clamped.position, size: clamped.size }
-              : {}),
-            workspace: clampWorkspace(cur.workspace, settings.workspaceCount),
-            minimized: false,
-            zIndex: newZ,
-          };
-        });
-        piloti.windows.focus(rawId);
-      } else if (windowId.startsWith("browser:")) {
-        const rawId = windowId.slice("browser:".length);
-        patchExternalMeta(setBrowserMeta, rawId, (cur) => {
-          const clamped = clampForWindow(
-            cur.position,
-            cur.size,
-            cur.maximized,
-            cur.fullscreen,
-            existing?.minSize
-          );
-          return {
-            ...cur,
-            ...(clamped
-              ? { position: clamped.position, size: clamped.size }
-              : {}),
-            workspace: clampWorkspace(cur.workspace, settings.workspaceCount),
-            minimized: false,
-            zIndex: newZ,
-          };
-        });
-        piloti.windows.focusShell();
-      } else {
-        setShellWindows((prev) =>
-          prev.map((w) => {
-            if (w.id !== windowId) return w;
-            const clamped = clampForWindow(
-              w.position,
-              w.size,
-              w.maximized,
-              w.fullscreen,
-              w.minSize
-            );
-            return {
-              ...w,
-              ...(clamped
-                ? {
-                    position: clamped.position,
-                    size: clamped.size,
-                  }
-                : {}),
-              workspace: clampWorkspace(w.workspace, settings.workspaceCount),
-              minimized: false,
-              zIndex: newZ,
-            };
-          })
+      patchWindow(windowId, (cur) => {
+        const clamped = clampForWindow(
+          cur.position,
+          cur.size,
+          cur.maximized,
+          cur.fullscreen,
+          existing?.minSize
         );
+        return {
+          ...(clamped ? { position: clamped.position, size: clamped.size } : {}),
+          workspace: clampWorkspace(cur.workspace, settings.workspaceCount),
+          minimized: false,
+          zIndex: newZ,
+        };
+      });
+      if (windowId.startsWith("wayland:")) {
+        piloti.windows.focus(windowId.slice("wayland:".length));
+      } else {
         piloti.windows.focusShell();
       }
     },
     [
       clearLaunchOverlays,
       combinedWindows,
+      patchWindow,
       piloti.windows,
       screenHeight,
       screenWidth,
@@ -1205,26 +1177,12 @@ export function useWindowsValue(
   const minimizeWindow = React.useCallback(
     (windowId: string) => {
       console.info("[Piloti] minimizeWindow", windowId);
+      patchWindow(windowId, () => ({ minimized: true }));
       if (windowId.startsWith("wayland:")) {
-        const rawId = windowId.slice("wayland:".length);
-        patchExternalMeta(setWaylandMeta, rawId, (cur) => ({
-          ...cur,
-          minimized: true,
-        }));
-        piloti.windows.setBounds(rawId, { x: 0, y: 0, width: 0, height: 0 });
-      } else if (windowId.startsWith("browser:")) {
-        const rawId = windowId.slice("browser:".length);
-        patchExternalMeta(setBrowserMeta, rawId, (cur) => ({
-          ...cur,
-          minimized: true,
-        }));
-      } else {
-        setShellWindows((prev) =>
-          prev.map((w) => (w.id === windowId ? { ...w, minimized: true } : w))
-        );
+        piloti.windows.setBounds(windowId.slice("wayland:".length), { x: 0, y: 0, width: 0, height: 0 });
       }
     },
-    [piloti.windows]
+    [patchWindow, piloti.windows]
   );
 
   const toggleMinimizeWindow = React.useCallback(
@@ -1244,81 +1202,30 @@ export function useWindowsValue(
     (windowId: string) => {
       console.info("[Piloti] toggleMaximizeWindow", windowId);
       const targetWin = combinedWindows.find((w) => w.id === windowId);
-      if (targetWin?.appId === "calculator") {
+      if (!canResize(targetWin?.appId)) {
         return;
       }
       if (targetWin) {
-        const key = resolveSpatialBoundsKey({
-          appId: targetWin.appId,
-          payload: targetWin.payload,
-          browserUrl: targetWin.browserUrl,
-          desktopId: targetWin.waylandDesktopId,
-        });
         updateSettings({
-          savedWindowBounds: {
-            ...settings.savedWindowBounds,
-            [key]: {
-              position: targetWin.position,
-              size: targetWin.size,
-              workspace: targetWin.workspace,
-              maximized: !targetWin.maximized,
-              monitor: primaryMonitorName,
-            },
-          },
+          savedWindowBounds: rememberBounds(settings.savedWindowBounds, targetWin, primaryMonitorName, {
+            maximized: !targetWin.maximized,
+          }),
         });
       }
       const newZ = nextZ();
-      if (windowId.startsWith("wayland:")) {
-        const rawId = windowId.slice("wayland:".length);
-        patchExternalMeta(setWaylandMeta, rawId, (cur) => ({
-          ...cur,
-          maximized: !cur.maximized,
-          minimized: false,
-          zIndex: newZ,
-        }));
-      } else if (windowId.startsWith("browser:")) {
-        const rawId = windowId.slice("browser:".length);
-        patchExternalMeta(setBrowserMeta, rawId, (cur) => ({
-          ...cur,
-          maximized: !cur.maximized,
-          minimized: false,
-          zIndex: newZ,
-        }));
-      } else {
-        setShellWindows((prev) =>
-          prev.map((w) =>
-            w.id === windowId
-              ? { ...w, maximized: !w.maximized, minimized: false, zIndex: newZ }
-              : w
-          )
-        );
-      }
+      patchWindow(windowId, (cur) => ({ ...toggledMaximize(cur), zIndex: newZ }));
       setFocusedWindowId(windowId);
     },
-    [combinedWindows, primaryMonitorName, settings.savedWindowBounds, updateSettings]
+    [combinedWindows, patchWindow, primaryMonitorName, settings.savedWindowBounds, updateSettings]
   );
 
-  const geometryLogRef = React.useRef<
-    Map<
-      string,
-      {
-        timer: ReturnType<typeof setTimeout>;
-        label: string;
-        position?: { x: number; y: number };
-        size?: { width: number; height: number };
-      }
-    >
-  >(new Map());
-
+  const geometryLogRef = React.useRef(createGeometryLog((line) => console.info(line)));
   React.useEffect(() => {
-    const timers = geometryLogRef.current;
-    return () => {
-      for (const entry of timers.values()) {
-        clearTimeout(entry.timer);
-      }
-      timers.clear();
-    };
+    const log = geometryLogRef.current;
+    return () => log.stop();
   }, []);
+
+  const untiledSizesRef = React.useRef(createUntiledSizes());
 
   const updateWindowGeometry = React.useCallback(
     (
@@ -1329,118 +1236,28 @@ export function useWindowsValue(
       }
     ) => {
       const targetWin = combinedWindows.find((w) => w.id === windowId);
-      const untileRestoredSize =
-        patch.position && !patch.size && targetWin?.tiled
-          ? preTileSizesRef.current.get(windowId)
-          : undefined;
-      if (untileRestoredSize) {
-        preTileSizesRef.current.delete(windowId);
-      }
-      const effectiveSizePatch = patch.size ?? untileRestoredSize;
-      const winWidth = effectiveSizePatch?.width ?? targetWin?.size.width ?? 240;
-      const maxY = Math.max(0, screenHeight - 30 - 48);
-      const minX = -Math.max(0, winWidth - 80);
-      const maxX = Math.max(0, screenWidth - 80);
-      const clampedPosition = patch.position
-        ? {
-          x: Math.min(maxX, Math.max(minX, Math.round(patch.position.x))),
-          y: Math.min(maxY, Math.max(0, Math.round(patch.position.y))),
-        }
-        : undefined;
-      const roundedSize = effectiveSizePatch
-        ? {
-          width: Math.round(effectiveSizePatch.width),
-          height: Math.round(effectiveSizePatch.height),
-        }
-        : undefined;
+      const untileRestoredSize = untiledSizesRef.current.takeOnMove(windowId, targetWin, patch);
+      const size = patch.size ?? untileRestoredSize;
+      const change = allowedChange(
+        { position: patch.position, size },
+        size?.width ?? targetWin?.size.width ?? 240,
+        { width: screenWidth, height: screenHeight },
+      );
 
       if (targetWin) {
-        const nextPos = clampedPosition ?? targetWin.position;
-        const nextSize = effectiveSizePatch ?? targetWin.size;
-        const key = resolveSpatialBoundsKey({
-          appId: targetWin.appId,
-          payload: targetWin.payload,
-          browserUrl: targetWin.browserUrl,
-          desktopId: targetWin.waylandDesktopId,
-        });
         updateSettings({
-          savedWindowBounds: {
-            ...settings.savedWindowBounds,
-            [key]: {
-              position: nextPos,
-              size: nextSize,
-              workspace: targetWin.workspace,
-              maximized: targetWin.maximized,
-              monitor: primaryMonitorName,
-            },
-          },
+          savedWindowBounds: rememberBounds(settings.savedWindowBounds, targetWin, primaryMonitorName, {
+            position: change.position ?? targetWin.position,
+            size: change.size ?? targetWin.size,
+          }),
         });
       }
-
-      if (clampedPosition || roundedSize) {
-        const label = targetWin?.appId || windowId;
-        const existing = geometryLogRef.current.get(windowId);
-        if (existing) {
-          clearTimeout(existing.timer);
-        }
-        const nextPosition = clampedPosition ?? existing?.position;
-        const nextSize = roundedSize ?? existing?.size;
-        const timer = setTimeout(() => {
-          const entry = geometryLogRef.current.get(windowId);
-          if (!entry) return;
-          geometryLogRef.current.delete(windowId);
-          if (entry.position) {
-            console.info(
-              `[Piloti] moved ${entry.label} to ${entry.position.x}x${entry.position.y}`
-            );
-          }
-          if (entry.size) {
-            console.info(
-              `[Piloti] resized ${entry.label} to ${entry.size.width}x${entry.size.height}`
-            );
-          }
-        }, 300);
-        geometryLogRef.current.set(windowId, {
-          timer,
-          label,
-          position: nextPosition,
-          size: nextSize,
-        });
-      }
-
-      if (windowId.startsWith("wayland:")) {
-        const rawId = windowId.slice("wayland:".length);
-        patchExternalMeta(setWaylandMeta, rawId, (cur) => ({
-          ...cur,
-          position: clampedPosition ?? cur.position,
-          size: effectiveSizePatch ?? cur.size,
-          tiled: clampedPosition ? null : cur.tiled,
-        }));
-      } else if (windowId.startsWith("browser:")) {
-        const rawId = windowId.slice("browser:".length);
-        patchExternalMeta(setBrowserMeta, rawId, (cur) => ({
-          ...cur,
-          position: clampedPosition ?? cur.position,
-          size: effectiveSizePatch ?? cur.size,
-          tiled: clampedPosition ? null : cur.tiled,
-        }));
-      } else {
-        setShellWindows((prev) =>
-          prev.map((w) =>
-            w.id === windowId
-              ? {
-                ...w,
-                position: clampedPosition ?? w.position,
-                size: effectiveSizePatch ?? w.size,
-                tiled: clampedPosition ? null : w.tiled,
-              }
-              : w
-          )
-        );
-      }
+      geometryLogRef.current.add(windowId, targetWin?.appId || windowId, change);
+      patchWindow(windowId, (cur) => changedGeometry(cur, change));
     },
     [
       combinedWindows,
+      patchWindow,
       primaryMonitorName,
       screenHeight,
       screenWidth,
@@ -1449,82 +1266,24 @@ export function useWindowsValue(
     ]
   );
 
-  const preTileSizesRef = React.useRef<
-    Map<string, { width: number; height: number }>
-  >(new Map());
-
   const tileWindow = React.useCallback(
     (windowId: string, side: "left" | "right" | "full") => {
       console.info("[Piloti] tileWindow", windowId, side);
       const existingWin = combinedWindows.find((w) => w.id === windowId);
-      if (existingWin?.appId === "calculator") {
+      if (!canResize(existingWin?.appId)) {
         return;
       }
       if (side === "full") {
         toggleMaximizeWindow(windowId);
         return;
       }
-      if (existingWin && !existingWin.tiled) {
-        preTileSizesRef.current.set(windowId, existingWin.size);
-      }
-      const menubarHeight = 30;
-      const topInset = 6;
-      const dockPos = settings.dockPosition ?? "bottom";
-      const dockClearance = settings.dockAutoHide ? 8 : settings.dockSize + 24;
-      const bottomInset = dockPos === "bottom" ? dockClearance + 6 : 8;
-      const leftInset = dockPos === "left" ? dockClearance + 8 : 8;
-      const rightInset = dockPos === "right" ? dockClearance + 8 : 8;
-      const usableHeight = Math.max(
-        300,
-        screenHeight - menubarHeight - topInset - bottomInset
-      );
-      const usableWidth = Math.max(400, screenWidth - leftInset - rightInset);
-      const halfWidth = Math.floor((usableWidth - 8) / 2);
-      const pos = {
-        x: side === "left" ? leftInset : leftInset + halfWidth + 8,
-        y: topInset,
-      };
-      const sz = { width: halfWidth, height: usableHeight };
-
-      if (windowId.startsWith("wayland:")) {
-        const rawId = windowId.slice("wayland:".length);
-        patchExternalMeta(setWaylandMeta, rawId, (cur) => ({
-          ...cur,
-          maximized: false,
-          minimized: false,
-          tiled: side,
-          position: pos,
-          size: sz,
-          zIndex: nextZ(),
-        }));
-      } else if (windowId.startsWith("browser:")) {
-        const rawId = windowId.slice("browser:".length);
-        patchExternalMeta(setBrowserMeta, rawId, (cur) => ({
-          ...cur,
-          maximized: false,
-          minimized: false,
-          tiled: side,
-          position: pos,
-          size: sz,
-          zIndex: nextZ(),
-        }));
-      } else {
-        setShellWindows((prev) =>
-          prev.map((w) =>
-            w.id === windowId
-              ? {
-                ...w,
-                maximized: false,
-                minimized: false,
-                tiled: side,
-                position: pos,
-                size: sz,
-                zIndex: nextZ(),
-              }
-              : w
-          )
-        );
-      }
+      if (existingWin) untiledSizesRef.current.keep(windowId, existingWin);
+      const placement = tiled(side, {
+        screen: { width: screenWidth, height: screenHeight },
+        dock: { position: settings.dockPosition, size: settings.dockSize, autoHide: settings.dockAutoHide },
+      });
+      const newZ = nextZ();
+      patchWindow(windowId, () => ({ ...placement, zIndex: newZ }));
       clearLaunchOverlays();
       setFocusedWindowId(windowId);
       setMruIds((prev) => [windowId, ...prev.filter((id) => id !== windowId)]);
@@ -1537,6 +1296,7 @@ export function useWindowsValue(
     [
       clearLaunchOverlays,
       combinedWindows,
+      patchWindow,
       piloti.windows,
       screenHeight,
       screenWidth,
@@ -1596,7 +1356,7 @@ export function useWindowsValue(
 
   const combinedWindowsRef = React.useRef<DesktopWindowInstance[]>(combinedWindows);
   combinedWindowsRef.current = combinedWindows;
-  const recentLaunchGuardRef = React.useRef<Map<string, number>>(new Map());
+  const repeatedRef = React.useRef(createRepeatGuard());
 
   // A document window follows its file, so opening it again finds the window.
   React.useEffect(
@@ -1631,251 +1391,105 @@ export function useWindowsValue(
       appId: string,
       options?: { payload?: string; forceNew?: boolean; forceCsd?: boolean; inShell?: boolean }
     ) => {
-      // Advanced settings are in Devtools now.
-      if (appId === "settings" && options?.payload === "advanced") {
-        launchAppRef.current?.("console", { payload: "advanced" });
+      const definition = APP_CATALOG.find((a) => a.id === appId);
+      const plan = planLaunch(appId, options ?? {}, {
+        windows: combinedWindowsRef.current,
+        definition,
+        programs: installedXdgApps,
+        runIn: getRunIn,
+        systemServices: getEngine().capabilities.systemServices,
+        browserUrl:
+          normalizeWebUrl(options?.payload ?? "") ??
+          (!compositor ? BROWSER_DEMO_HOME_URL : BROWSER_HOME_URL),
+      });
+      if (plan.kind === "instead") {
+        launchAppRef.current?.(plan.appId, plan.options);
         return;
       }
       clearLaunchOverlays();
       logAppLaunch(appId, options?.payload);
-      const def = APP_CATALOG.find((a) => a.id === appId);
 
-      // Web Browser: our own browser window (the web view used by web apps,
-      // with its address bar and extensions), not an external browser.
-      if (appId === "browser") {
-        const url =
-          normalizeWebUrl(options?.payload ?? "") ??
-          (!compositor ? BROWSER_DEMO_HOME_URL : BROWSER_HOME_URL);
-        const existing = options?.forceNew
-          ? undefined
-          : combinedWindowsRef.current.find((w) => w.appId === "browser" && w.browserWindowId);
-        if (existing) {
-          // Like other browsers: a link opens as a tab of the open window.
-          if (options?.payload) openBrowserTab(existing.id, url);
-          focusWindow(existing.id);
-          return;
-        }
-        beginStartupNotification("browser");
-        pendingBrowserAppRef.current += 1;
-        piloti.browser.open(url);
-        return;
-      }
-
-      // Focus existing window unless forceNew (for document-scoped apps with a payload, only reuse matching document/folder)
-      if (!options?.forceNew) {
-        const lowerAppId = appId.toLowerCase();
-        const existing = combinedWindowsRef.current.find((w) => {
-          const idMatches =
-            w.appId === appId ||
-            w.appId.toLowerCase() === lowerAppId ||
-            w.waylandDesktopId?.toLowerCase() === lowerAppId ||
-            w.waylandDesktopId?.replace(/\.desktop$/i, "").toLowerCase() === lowerAppId;
-          return DOCUMENT_SCOPED_APP_IDS.has(appId) && options?.payload
-            ? idMatches && w.payload === options.payload
-            : idMatches;
-        });
-        if (existing) {
-          if (
-            (options?.payload || options?.forceCsd !== undefined) &&
-            !existing.id.startsWith("wayland:")
-          ) {
+      switch (plan.kind) {
+        case "focus": {
+          const { patch } = plan;
+          if (patch) {
             setShellWindows((prev) =>
-              prev.map((w) =>
-                w.id === existing.id
-                  ? {
-                    ...w,
-                    payload: options.payload ?? w.payload,
-                    clientFrame: options.forceCsd ?? w.clientFrame,
-                  }
-                  : w
-              )
+              prev.map((w) => (w.id === plan.windowId ? { ...w, ...patch } : w))
             );
           }
-          focusWindow(existing.id);
+          if (plan.openTab) openBrowserTab(plan.windowId, plan.openTab);
+          focusWindow(plan.windowId);
           return;
         }
-      }
-
-      if (appId === "nautilus" && options?.payload && options?.forceNew) {
-        const sameFolderWin = combinedWindows.find(
-          (w) => w.appId === "nautilus" && w.payload === options.payload,
-        );
-        if (sameFolderWin) {
-          focusWindow(sameFolderWin.id);
+        case "browser":
+          // Our own browser window (the web view used by web apps, with its
+          // address bar and extensions), not an external browser.
+          beginStartupNotification("browser");
+          pendingBrowserAppRef.current += 1;
+          piloti.browser.open(plan.url);
           return;
-        }
-      }
-
-      // One window per document, whatever the caller asked: two editors of the
-      // same file would save over each other.
-      if (options?.forceNew && options.payload && (appId === "texts" || appId === "image-viewer")) {
-        const sameDocument = combinedWindowsRef.current.find(
-          (w) => w.appId === appId && w.payload === options.payload,
-        );
-        if (sameDocument) {
-          focusWindow(sameDocument.id);
+        case "module":
+          if (repeatedRef.current(`module:${plan.builtin}::${options?.payload ?? ""}`)) return;
+          beginStartupNotification(appId);
+          void openAppModule(piloti, plan.builtin, options?.payload)
+            .catch(() => false)
+            .then((opened) => {
+              // No module installed: open it in the shell after all.
+              if (!opened) launchAppRef.current?.(appId, { ...options, inShell: true });
+            });
           return;
-        }
-      }
-
-      // Built-in shell windows (`settings`, `console`, `files`, `terminal`, `texts`, `app-store`, `calculator`, `image-viewer`)
-      const builtinKind: BuiltinAppId | undefined =
-        def?.builtinComponent ??
-        (appId === "settings" || appId === "console"
-          ? (appId as BuiltinAppId)
-          : appId === "nautilus"
-            ? "files"
-            : appId === "terminal"
-              ? "terminal"
-              : undefined);
-      const isolated = !options?.inShell && getRunIn(builtinKind ?? appId) === "isolated";
-      if (builtinKind && isolated && getEngine().capabilities.systemServices) {
-        const open =
-          options?.payload &&
-          combinedWindowsRef.current.find(
-            (w) =>
-              resolveAppModuleByUrl(w.browserUrl)?.id === builtinKind &&
-              moduleDocument(w.browserUrl) === options.payload,
-          );
-        if (open) {
-          focusWindow(open.id);
-          return;
-        }
-        // A double-click can ask twice before the first window is there.
-        const launchKey = `module:${builtinKind}::${options?.payload ?? ""}`;
-        const now = Date.now();
-        if (now - (recentLaunchGuardRef.current.get(launchKey) ?? 0) < 500) return;
-        recentLaunchGuardRef.current.set(launchKey, now);
-        beginStartupNotification(appId);
-        void openAppModule(piloti, builtinKind, options?.payload)
-          .catch(() => false)
-          .then((opened) => {
-            // No module installed: open it in the shell after all.
-            if (!opened) launchAppRef.current?.(appId, { ...options, inShell: true });
+        case "shell": {
+          const catalogEntry =
+            definition ?? APP_CATALOG.find((a) => a.id === plan.builtin) ?? APP_CATALOG[0];
+          const resolvedAppId = definition?.id ?? plan.builtin;
+          const newWin = newShellWindow({
+            id: `shell:${plan.builtin}-${++nextShellWinCounter}`,
+            appId: resolvedAppId,
+            builtin: plan.builtin,
+            definition: catalogEntry,
+            payload: options?.payload,
+            isolated: plan.isolated,
+            forceCsd: options?.forceCsd,
+            remembered: lookupSpatialWindowBounds(settings.savedWindowBounds, {
+              appId: resolvedAppId,
+              payload: options?.payload,
+            }),
+            windows: shellWindows,
+            screen: { width: screenWidth, height: screenHeight },
+            workspaces: { active: settings.activeWorkspace, count: settings.workspaceCount },
+            zIndex: nextZ(),
           });
-        return;
-      }
-      if (builtinKind) {
-        const builtinDef =
-          def ?? APP_CATALOG.find((a) => a.id === builtinKind) ?? APP_CATALOG[0];
-        const count = ++nextShellWinCounter;
-        const resolvedAppId = def?.id ?? builtinKind;
-        const newWinId = `shell:${builtinKind}-${count}`;
-        const remembered = lookupSpatialWindowBounds(settings.savedWindowBounds, {
-          appId: resolvedAppId,
-          payload: options?.payload,
-        });
-        const minSize = builtinDef.minSize ?? {
-          width: Math.min(360, builtinDef.defaultSize.width),
-          height: Math.min(260, builtinDef.defaultSize.height),
-        };
-        const width =
-          remembered?.size.width ??
-          Math.min(builtinDef.defaultSize.width, screenWidth - 48);
-        const height =
-          remembered?.size.height ??
-          Math.min(builtinDef.defaultSize.height, screenHeight - 120);
-        const sameAppPositions = shellWindows
-          .filter((w) => w.appId === resolvedAppId && !w.minimized)
-          .sort((a, b) => a.zIndex - b.zIndex)
-          .map((w) => w.position);
-        const clamped = clampWindowBounds(
-          computeCenteredOrCascadedPosition(
-            sameAppPositions,
-            { width, height },
-            screenWidth,
-            screenHeight,
-            remembered?.position
-          ),
-          { width, height },
-          screenWidth,
-          screenHeight,
-          { minWidth: minSize.width, minHeight: minSize.height }
-        );
-        const targetWorkspace =
-          remembered?.workspace !== undefined
-            ? clampWorkspace(remembered.workspace, settings.workspaceCount)
-            : clampWorkspace(settings.activeWorkspace, settings.workspaceCount);
-        const newWin: DesktopWindowInstance = {
-          id: newWinId,
-          appId: resolvedAppId,
-          title:
-            (builtinKind === "texts" || builtinKind === "image-viewer") &&
-            options?.payload
-              ? options.payload.split("/").pop() || builtinDef.name
-              : builtinDef.name,
-          iconName: builtinDef.iconName,
-          builtinComponent: builtinKind,
-          isolated,
-          clientFrame:
-            options?.forceCsd ?? builtinKind !== "terminal",
-          workspace: targetWorkspace,
-          position: clamped.position,
-          size: clamped.size,
-          minSize,
-          minimized: false,
-          maximized: remembered?.maximized ?? false,
-          zIndex: nextZ(),
-          payload: options?.payload,
-        };
-        beginStartupNotification(resolvedAppId);
-        if (targetWorkspace !== settings.activeWorkspace) {
-          updateSettings({ activeWorkspace: targetWorkspace });
-        }
-        combinedWindowsRef.current = [...combinedWindowsRef.current, newWin];
-        setShellWindows((prev) => {
-          if (
-            !options?.forceNew &&
-            prev.some((w) => w.appId === resolvedAppId && (!DOCUMENT_SCOPED_APP_IDS.has(appId) || !options?.payload || w.payload === options.payload))
-          ) {
-            return prev;
+          beginStartupNotification(resolvedAppId);
+          if (newWin.workspace !== settings.activeWorkspace) {
+            updateSettings({ activeWorkspace: newWin.workspace });
           }
-          return [...prev, newWin];
-        });
-        setFocusedWindowId(newWin.id);
-        setMruIds((prev) => [newWin.id, ...prev]);
-        piloti.windows.focusShell();
-        return;
-      }
-
-      // All other applications run as native Wayland / Linux processes (with XDG Startup Notification)
-      if (!options?.forceNew) {
-        const now = Date.now();
-        const launchKey = `${appId.toLowerCase()}::${options?.payload ?? ""}`;
-        const lastAt = recentLaunchGuardRef.current.get(launchKey) ?? 0;
-        if (now - lastAt < 500) {
+          combinedWindowsRef.current = [...combinedWindowsRef.current, newWin];
+          setShellWindows((prev) => {
+            if (
+              !options?.forceNew &&
+              prev.some((w) => w.appId === resolvedAppId && (!DOCUMENT_SCOPED_APP_IDS.has(appId) || !options?.payload || w.payload === options.payload))
+            ) {
+              return prev;
+            }
+            return [...prev, newWin];
+          });
+          setFocusedWindowId(newWin.id);
+          setMruIds((prev) => [newWin.id, ...prev]);
+          piloti.windows.focusShell();
           return;
         }
-        recentLaunchGuardRef.current.set(launchKey, now);
+        case "program":
+          // A Linux process, with XDG startup notification.
+          if (!options?.forceNew && repeatedRef.current(`${appId.toLowerCase()}::${options?.payload ?? ""}`)) {
+            return;
+          }
+          beginStartupNotification(appId);
+          launchDesktopCommand(piloti, plan.argv);
       }
-      beginStartupNotification(appId);
-      if (def?.linuxCommand) {
-        launchDesktopCommand(piloti, def.linuxCommand);
-        return;
-      }
-      const lowerAppId = appId.toLowerCase();
-      const matchedXdg = installedXdgApps.find(
-        (entry) =>
-          entry.appId.toLowerCase() === lowerAppId ||
-          entry.desktopId.toLowerCase() === lowerAppId ||
-          entry.desktopId.toLowerCase() === `${lowerAppId}.desktop`
-      );
-      if (matchedXdg && matchedXdg.execArgv.length > 0) {
-        launchDesktopCommand(piloti, matchedXdg.execArgv);
-        return;
-      }
-      // Reverse-DNS IDs (e.g. `org.gnome.Calculator`, `com.github.tchx84.Flatseal`)
-      // launch via `flatpak run <appId>` when not already matched to an XDG entry.
-      if (/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_.-]+$/.test(appId)) {
-        launchDesktopCommand(piloti, ["flatpak", "run", appId]);
-        return;
-      }
-      launchDesktopCommand(piloti, [appId]);
     },
     [
       beginStartupNotification,
       clearLaunchOverlays,
-      combinedWindows,
       piloti,
       focusWindow,
       installedXdgApps,
@@ -2074,59 +1688,25 @@ export function useWindowsValue(
 
   const moveWindowToWorkspace = React.useCallback(
     (windowId: string, targetWorkspace: number) => {
-      const ws = Math.max(1, targetWorkspace);
+      const { workspace, count } = moveToWorkspace(targetWorkspace, settings.workspaceCount);
       const targetWin = combinedWindows.find((w) => w.id === windowId);
-      console.info(
-        `[Piloti] moved ${targetWin?.appId || windowId} to workspace ${ws}`
-      );
-      const settingsPatch: {
-        workspaceCount?: number;
-        savedWindowBounds?: typeof settings.savedWindowBounds;
-      } = {};
-      if (ws > settings.workspaceCount) {
-        settingsPatch.workspaceCount = ws;
-      }
-      if (targetWin) {
-        const key = resolveSpatialBoundsKey({
-          appId: targetWin.appId,
-          payload: targetWin.payload,
-          browserUrl: targetWin.browserUrl,
-          desktopId: targetWin.waylandDesktopId,
-        });
-        settingsPatch.savedWindowBounds = {
-          ...settings.savedWindowBounds,
-          [key]: {
-            position: targetWin.position,
-            size: targetWin.size,
-            workspace: ws,
-            maximized: targetWin.maximized,
-            monitor: primaryMonitorName,
-          },
-        };
-      }
-      if (Object.keys(settingsPatch).length > 0) {
-        updateSettings(settingsPatch);
-      }
-      if (windowId.startsWith("wayland:")) {
-        const rawId = windowId.slice("wayland:".length);
-        patchExternalMeta(setWaylandMeta, rawId, (cur) => ({
-          ...cur,
-          workspace: ws,
-        }));
-      } else if (windowId.startsWith("browser:")) {
-        const rawId = windowId.slice("browser:".length);
-        patchExternalMeta(setBrowserMeta, rawId, (cur) => ({
-          ...cur,
-          workspace: ws,
-        }));
-      } else {
-        setShellWindows((prev) =>
-          prev.map((w) => (w.id === windowId ? { ...w, workspace: ws } : w))
-        );
-      }
+      console.info(`[Piloti] moved ${targetWin?.appId || windowId} to workspace ${workspace}`);
+      const settingsPatch = {
+        ...(count !== settings.workspaceCount ? { workspaceCount: count } : {}),
+        ...(targetWin
+          ? {
+              savedWindowBounds: rememberBounds(settings.savedWindowBounds, targetWin, primaryMonitorName, {
+                workspace,
+              }),
+            }
+          : {}),
+      };
+      if (Object.keys(settingsPatch).length > 0) updateSettings(settingsPatch);
+      patchWindow(windowId, () => ({ workspace }));
     },
     [
       combinedWindows,
+      patchWindow,
       primaryMonitorName,
       settings.savedWindowBounds,
       settings.workspaceCount,
@@ -2136,36 +1716,18 @@ export function useWindowsValue(
 
   const removeWorkspace = React.useCallback(
     (workspace: number) => {
-      if (settings.workspaceCount <= 1) return;
-      const remap = (ws: number) =>
-        ws === workspace ? 1 : ws > workspace ? ws - 1 : ws;
-      setWaylandMeta((prev) => {
-        const next: Record<string, ExternalWindowMeta> = {};
-        for (const [k, v] of Object.entries(prev)) {
-          next[k] = { ...v, workspace: remap(v.workspace) };
-        }
-        return next;
+      const removal = planWorkspaceRemoval(workspace, {
+        count: settings.workspaceCount,
+        active: settings.activeWorkspace,
       });
-      setBrowserMeta((prev) => {
-        const next: Record<string, ExternalWindowMeta> = {};
-        for (const [k, v] of Object.entries(prev)) {
-          next[k] = { ...v, workspace: remap(v.workspace) };
-        }
-        return next;
-      });
-      setShellWindows((prev) =>
-        prev.map((w) => ({ ...w, workspace: remap(w.workspace) }))
-      );
-      const nextCount = settings.workspaceCount - 1;
-      const nextActive = Math.min(
-        nextCount,
-        settings.activeWorkspace === workspace
-          ? 1
-          : settings.activeWorkspace > workspace
-            ? settings.activeWorkspace - 1
-            : settings.activeWorkspace
-      );
-      updateSettings({ workspaceCount: nextCount, activeWorkspace: nextActive });
+      if (!removal) return;
+      const move = <T extends WindowPlacement>(w: T): T => ({ ...w, workspace: removal.remap(w.workspace) });
+      const moveAll = (prev: Record<string, ExternalWindowMeta>) =>
+        Object.fromEntries(Object.entries(prev).map(([id, w]) => [id, move(w)]));
+      setWaylandMeta(moveAll);
+      setBrowserMeta(moveAll);
+      setShellWindows((prev) => prev.map(move));
+      updateSettings({ workspaceCount: removal.count, activeWorkspace: removal.active });
     },
     [settings.activeWorkspace, settings.workspaceCount, updateSettings]
   );
@@ -2301,7 +1863,11 @@ export function useWindowsValue(
     [combinedWindows, focusedWindowId]
   );
 
-  useModuleChannel(piloti, combinedWindows, updateWindowGeometry);
+  useModuleChannel(piloti, combinedWindows, {
+    resize: updateWindowGeometry,
+    close: closeWindow,
+    focus: focusWindow,
+  });
   useAppMemory(piloti, systemServices);
 
   const { activeAppDef, handleMenuAction } = useGlobalAppMenu({
