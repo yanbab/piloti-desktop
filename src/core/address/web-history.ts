@@ -5,7 +5,15 @@
 import { VFS_HOME } from "@/core/state/vfs-home";
 import { canonicalizeWebUrl } from "@/core/data/web-apps";
 import { readVfsStateJson, writeVfsStateJson } from "@/core/state/vfs-state";
-import type { BrowserBookmark } from "@/ui/shell/windows/browser-bookmarks";
+import type { AddressSuggestion } from "@/core/address/types";
+
+/** A bookmarked page, as the browser's bookmarks list keeps it. */
+export interface WebBookmark {
+  url: string;
+  title: string;
+  /** ms since epoch */
+  added: number;
+}
 
 export interface BrowserHistoryEntry {
   url: string;
@@ -80,10 +88,9 @@ export function clearBrowserHistory(): void {
   writeVfsStateJson(PATH, [], false);
 }
 
-export interface AddressSuggestion {
-  url: string;
-  title: string;
-  bookmarked: boolean;
+/** `url` without its scheme, `www.` and trailing slash. */
+export function displayUrl(url: string): string {
+  return url.replace(/^https?:\/\/(www\.)?/i, "").replace(/\/$/, "");
 }
 
 function hostOf(url: string): string {
@@ -101,7 +108,7 @@ function hostOf(url: string): string {
  */
 export function addressSuggestions(
   query: string,
-  bookmarks: readonly BrowserBookmark[],
+  bookmarks: readonly WebBookmark[],
   history: readonly BrowserHistoryEntry[],
   now: number,
   limit = 6
@@ -122,7 +129,7 @@ export function addressSuggestions(
       last: seen?.last ?? b.added,
     });
   }
-  const scored: { page: AddressSuggestion; score: number }[] = [];
+  const scored: { page: { url: string; title: string; bookmarked: boolean }; score: number }[] = [];
   for (const p of pages.values()) {
     const bare = p.url.replace(/^https?:\/\/(www\.)?/i, "").toLowerCase();
     const haystack = `${bare} ${p.title.toLowerCase()}`;
@@ -142,5 +149,13 @@ export function addressSuggestions(
     scored.push({ page: { url: p.url, title: p.title, bookmarked: p.bookmarked }, score });
   }
   scored.sort((a, b) => b.score - a.score);
-  return scored.slice(0, limit).map((s) => s.page);
+  return scored.slice(0, limit).map(({ page }) => ({
+    key: page.url,
+    title: page.title || displayUrl(page.url),
+    detail: displayUrl(page.url),
+    // Completes the host, as browsers do (`exa` → `example.com`).
+    completion: displayUrl(page.url).split(/[/?#]/)[0],
+    icon: page.bookmarked ? "bookmark" : "history",
+    target: { kind: "url", url: page.url },
+  }));
 }

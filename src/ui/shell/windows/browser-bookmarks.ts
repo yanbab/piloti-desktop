@@ -11,12 +11,8 @@ import {
   writeVfsStateJson,
 } from "@/core/state/vfs-state";
 
-export interface BrowserBookmark {
-  url: string;
-  title: string;
-  /** ms since epoch */
-  added: number;
-}
+export type { WebBookmark as BrowserBookmark } from "@/core/address/web-history";
+import type { WebBookmark as BrowserBookmark } from "@/core/address/web-history";
 
 const PATH = VFS_STATE_PATHS.browserBookmarks;
 

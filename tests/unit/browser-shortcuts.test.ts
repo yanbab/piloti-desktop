@@ -85,4 +85,10 @@ describe("browser zoom", () => {
     expect(nextBrowserZoom(0.25, -1)).toBe(0.25);
     expect(formatBrowserZoom(1.1)).toBe("110%");
   });
+
+  it("binds Ctrl+D to the bookmark", () => {
+    expect(
+      browserShortcut({ key: "d", ctrlKey: true, metaKey: false, altKey: false, shiftKey: false })
+    ).toEqual({ kind: "toggle-bookmark" });
+  });
 });

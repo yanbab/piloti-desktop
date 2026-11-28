@@ -1,9 +1,17 @@
 import { webSearchUrl } from "@/core/util/web-search";
+import { classifyAddressInput, looksLikePath } from "@/core/address/input";
+import { pathSuggestions } from "@/core/address/path-suggestions";
+import { addressSuggestions, readBrowserHistory } from "@/core/address/web-history";
+import type { AddressSuggestion } from "@/core/address/types";
+import { VFS_HOME } from "@/core/state/vfs-home";
+import { readBrowserBookmarks } from "@/ui/shell/windows/browser-bookmarks";
+import { usePiloti } from "@/platform/shared/piloti";
+import { useOpenPath } from "@/ui/hooks/use-open-path";
 import * as React from "react";
 import { useCapabilities } from "@/ui/hooks/use-capabilities";
 import { countRender } from "@/core/util/render-stats";
 import { LayersIcon, LayoutTemplateIcon } from "lucide-react";
-import { BellRingIcon, CalculatorIcon, CameraIcon, Columns2Icon, GlobeIcon, LockIcon, Maximize2Icon, MoonIcon, PaletteIcon, SettingsIcon, PuzzleIcon, SunIcon, VideoIcon, Volume2Icon, VolumeXIcon } from "@/ui/components/ui/symbols";
+import { BellRingIcon, CalculatorIcon, CameraIcon, Columns2Icon, FolderIcon, GlobeIcon, LockIcon, Maximize2Icon, MoonIcon, PaletteIcon, SettingsIcon, PuzzleIcon, SunIcon, VideoIcon, Volume2Icon, VolumeXIcon } from "@/ui/components/ui/symbols";
 import {
   Command,
   CommandGroup,
@@ -183,21 +191,10 @@ function normalizeSearch(raw: string): string {
     .trim();
 }
 
+/** The web address typed, if the query is one (the address bar's reading). */
 function detectValidUrl(raw: string): string | null {
-  const trimmed = raw.trim();
-  if (!trimmed || /\s/.test(trimmed)) return null;
-  if (/^(https?|file):\/\//i.test(trimmed)) return trimmed;
-  if (/^(localhost|\d{1,3}(?:\.\d{1,3}){3})(:\d+)?(\/.*)?$/i.test(trimmed)) {
-    return `http://${trimmed}`;
-  }
-  if (
-    /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}(:\d+)?(\/.*)?$/i.test(
-      trimmed
-    )
-  ) {
-    return `https://${trimmed}`;
-  }
-  return null;
+  const input = classifyAddressInput(raw, VFS_HOME);
+  return input.kind === "url" ? input.url : null;
 }
 
 /**
@@ -374,6 +371,33 @@ export const Launcher = React.memo(function Launcher() {
     [searchQuery]
   );
 
+  // A path typed (`/`, `~/Doc`): its folders, as in the Folders location field.
+  const piloti = usePiloti();
+  const { openPath } = useOpenPath();
+  const [pathMatches, setPathMatches] = React.useState<readonly AddressSuggestion[]>([]);
+  React.useEffect(() => {
+    if (!launcherOpen || !looksLikePath(searchQuery)) {
+      setPathMatches([]);
+      return;
+    }
+    let current = true;
+    void pathSuggestions(searchQuery, piloti.vfs, VFS_HOME, 6).then(
+      (list) => current && setPathMatches(list)
+    );
+    return () => {
+      current = false;
+    };
+  }, [launcherOpen, piloti, searchQuery]);
+
+  // Pages from the browser's bookmarks and history.
+  const pageMatches = React.useMemo(
+    () =>
+      launcherOpen && searchQuery.trim() && !looksLikePath(searchQuery)
+        ? addressSuggestions(searchQuery, readBrowserBookmarks(), readBrowserHistory(), Date.now(), 4)
+        : [],
+    [launcherOpen, searchQuery]
+  );
+
   const runAndClose = React.useCallback(
     (fn: () => void) => {
       if (searchQuery.trim()) {
@@ -435,6 +459,23 @@ export const Launcher = React.memo(function Launcher() {
             onSelect: () => runAndClose(() => openWebUrl(detectedUrl)),
           },
         ],
+      });
+    }
+
+    if (pathMatches.length > 0) {
+      out.push({
+        heading: "Go to Folder",
+        items: pathMatches.map((m) => ({
+          value: `path:${m.key}`,
+          score: 900,
+          icon: <FolderIcon className="size-4" />,
+          // The path as typed, so the field completes it.
+          label: (m.completion ?? m.detail).replace(/\/$/, ""),
+          onSelect: () =>
+            runAndClose(() => {
+              if (m.target.kind === "path") void openPath(m.target.path, { kind: "directory" });
+            }),
+        })),
       });
     }
 
@@ -669,6 +710,23 @@ export const Launcher = React.memo(function Launcher() {
     );
     if (folderItems.length > 0) {
       out.push({ heading: "Folders", items: folderItems });
+    }
+
+    if (pageMatches.length > 0) {
+      out.push({
+        heading: "Pages",
+        items: pageMatches.map((m) => ({
+          value: `page:${m.key}`,
+          score: 0,
+          icon: <GlobeIcon className="size-4" />,
+          label: m.title,
+          hint: m.detail,
+          onSelect: () =>
+            runAndClose(() => {
+              if (m.target.kind === "url") openWebUrl(m.target.url);
+            }),
+        })),
+      });
     }
 
     if (realFilesystem && tokens.length > 0) {
@@ -924,7 +982,7 @@ export const Launcher = React.memo(function Launcher() {
     }
 
     const webQuery = searchQuery.trim();
-    if (webQuery && !detectedUrl && !mathResult) {
+    if (webQuery && !detectedUrl && !mathResult && !looksLikePath(webQuery)) {
       out.push({
         heading: _("Web Search"),
         items: [
@@ -946,6 +1004,9 @@ export const Launcher = React.memo(function Launcher() {
     availableGnomePanels,
     detectedUrl,
     mathResult,
+    openPath,
+    pageMatches,
+    pathMatches,
     pluginCommands,
     searchQuery,
     snapshots,

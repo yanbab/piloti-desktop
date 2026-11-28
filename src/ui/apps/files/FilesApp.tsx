@@ -78,6 +78,10 @@ import {
   useOpenFolderPaths,
 } from "@/ui/components/folder-icons";
 import { cn } from "@/core/util/utils";
+import { classifyAddressInput, tildePath } from "@/core/address/input";
+import { pathSuggestions } from "@/core/address/path-suggestions";
+import { AddressBar } from "@/ui/components/address-bar/AddressBar";
+import { useAddressField } from "@/ui/components/address-bar/use-address-field";
 import { EMBLEM_META, getEmblems, subscribeEmblems, toggleEmblem, type EmblemId } from "@/platform/shared/emblems";
 import { demoFiles } from "@/core/ports/demo-files";
 import { getVfsClipboard, setVfsClipboard, subscribeVfsClipboard } from "@/core/files/vfs-clipboard";
@@ -260,11 +264,8 @@ export function FilesApp({
     if (!item.path || item.kind === "desktop-entry") return;
     toggleEmblem(item.path, "favorite");
   }, []);
-  const [editingLocation, setEditingLocation] = React.useState(false);
-  const [draftLocation, setDraftLocation] = React.useState("");
   const [searchOpen, setSearchOpen] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState("");
-  const locationInputRef = React.useRef<HTMLInputElement | null>(null);
   const searchInputRef = React.useRef<HTMLInputElement | null>(null);
   const sidebarRef = React.useRef<HTMLElement | null>(null);
   const mainViewRef = React.useRef<HTMLDivElement | null>(null);
@@ -277,6 +278,57 @@ export function FilesApp({
   React.useEffect(() => {
     return registerOpenFolderPath(currentPath);
   }, [currentPath]);
+
+  // The location field: a path (`~` for home) with its subfolders suggested
+  // as it is typed; Tab completes. An address opens the browser; other text
+  // filters the folder.
+  const locationField = useAddressField({
+    value: tildePath(currentPath, WEB_VFS_HOME),
+    suggest: (draft, untouched) =>
+      untouched ? [] : pathSuggestions(draft, piloti.vfs, WEB_VFS_HOME),
+    onSubmit: ({ suggestion, text }) => {
+      const raw = text.trim();
+      if (suggestion?.target.kind === "path") {
+        setCurrentPath(suggestion.target.path);
+        setSelectedIds([]);
+        return;
+      }
+      if (raw === WEB_VFS_APPS_URI) {
+        setCurrentPath(WEB_VFS_APPS_URI);
+        setSelectedIds([]);
+        return;
+      }
+      const input = classifyAddressInput(raw, WEB_VFS_HOME);
+      if (input.kind === "path") {
+        void piloti.vfs.stat(input.path).catch(() => null).then((stat) => {
+          if (stat?.kind !== "directory") return;
+          setCurrentPath(input.path);
+          setSelectedIds([]);
+        });
+      } else if (input.kind === "url") {
+        // An address opens in the Web Browser.
+        openWebUrl(input.url);
+      } else if (input.kind === "text") {
+        setSearchOpen(true);
+        setSearchQuery(input.text);
+      }
+    },
+  });
+  const editingLocation = locationField.editing;
+  const locationInput = locationField.input;
+  const { open: openLocation, close: closeLocation } = locationField;
+  const setEditingLocation = React.useCallback(
+    (editing: boolean) => {
+      if (editing) {
+        setSearchOpen(false);
+        setSearchQuery("");
+        openLocation();
+      } else {
+        closeLocation();
+      }
+    },
+    [openLocation, closeLocation]
+  );
 
   const infoPane = useInfoPane("files-info", infoPaneMemory);
   const { open: infoPaneOpen, setOpen: setInfoPaneOpen } = infoPane;
@@ -472,15 +524,12 @@ export function FilesApp({
       ) {
         if ((e.ctrlKey || e.metaKey) && !e.altKey && e.key.toLowerCase() === "l") {
           e.preventDefault();
-          locationInputRef.current?.select();
+          locationInput?.select();
         }
         return;
       }
       if ((e.ctrlKey || e.metaKey) && !e.altKey && e.key.toLowerCase() === "l") {
         e.preventDefault();
-        setSearchOpen(false);
-        setSearchQuery("");
-        setDraftLocation(currentPath);
         setEditingLocation(true);
       } else if (
         (e.ctrlKey || e.metaKey) &&
@@ -639,6 +688,8 @@ export function FilesApp({
     clipboard,
     currentPath,
     editingLocation,
+    locationInput,
+    setEditingLocation,
     focusedWindowId,
     handleDuplicateItems,
     handlePasteItems,
@@ -662,43 +713,6 @@ export function FilesApp({
     });
     return () => cancelAnimationFrame(frame);
   }, [searchOpen]);
-
-  React.useEffect(() => {
-    if (!editingLocation) return;
-    const frame = requestAnimationFrame(() => {
-      locationInputRef.current?.focus();
-      locationInputRef.current?.select();
-    });
-    const onPointerDown = (e: PointerEvent) => {
-      if (locationInputRef.current?.contains(e.target as Node)) return;
-      setEditingLocation(false);
-    };
-    document.addEventListener("pointerdown", onPointerDown, true);
-    return () => {
-      cancelAnimationFrame(frame);
-      document.removeEventListener("pointerdown", onPointerDown, true);
-    };
-  }, [editingLocation]);
-
-  const submitLocationEdit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const raw = draftLocation.trim();
-    if (raw === WEB_VFS_APPS_URI) {
-      setCurrentPath(WEB_VFS_APPS_URI);
-      setSelectedIds([]);
-    } else if (raw) {
-      const target = raw.startsWith("~")
-        ? `${WEB_VFS_HOME}${raw.slice(1)}`
-        : normalizeVfsPath(raw);
-      setEditingLocation(false);
-      if ((await piloti.vfs.stat(target).catch(() => null))?.kind === "directory") {
-        setCurrentPath(target);
-        setSelectedIds([]);
-      }
-      return;
-    }
-    setEditingLocation(false);
-  };
 
   React.useEffect(() => {
     // Virtual views depend on emblems/access counts anywhere, so they listen to
@@ -1356,9 +1370,6 @@ export function FilesApp({
           }
           break;
         case "files:edit-location":
-          setSearchOpen(false);
-          setSearchQuery("");
-          setDraftLocation(currentPath);
           setEditingLocation(true);
           break;
         case "files:find":
@@ -1424,6 +1435,7 @@ export function FilesApp({
     window.addEventListener("piloti:app-action", onAppAction);
     return () => window.removeEventListener("piloti:app-action", onAppAction);
   }, [
+    setEditingLocation,
     setShowHidden,
     setSortBy,
     setSortDir,
@@ -1804,39 +1816,22 @@ export function FilesApp({
               disabled={!canGoUp}
               onClick={handleGoUp}
             />
-            {editingLocation ? (
-              <form onSubmit={submitLocationEdit} className="min-w-0 flex-1">
-                <input
-                  ref={locationInputRef}
-                  type="text"
-                  value={draftLocation}
-                  onChange={(e) => setDraftLocation(e.target.value)}
-                  onBlur={() => setEditingLocation(false)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Escape") {
-                      e.preventDefault();
-                      setEditingLocation(false);
-                    }
-                  }}
-                  aria-label="Folder path"
-                  className="h-7 w-64 max-w-full rounded-ui-control border border-ui-accent/70 bg-black/8 px-2 font-mono text-ui-body text-ui-label outline-none dark:bg-white/12"
-                />
-              </form>
-            ) : (
+            <AddressBar
+              field={locationField}
+              label={_("Folder path")}
+              suggestionsLabel={_("Folders")}
+              boxClassName="w-64 max-w-full"
+              inputClassName="font-mono"
+            >
               <button
                 type="button"
-                title="Click or press Ctrl+L to edit location"
-                onClick={() => {
-                  setSearchOpen(false);
-                  setSearchQuery("");
-                  setDraftLocation(currentPath);
-                  setEditingLocation(true);
-                }}
+                title={_("Click or press Ctrl+L to edit location")}
+                onClick={() => setEditingLocation(true)}
                 className="flex h-7 items-center truncate rounded-ui-control px-2 text-ui-body font-semibold text-ui-label transition-colors hover-fill:bg-black/8 dark:hover-fill:bg-white/10"
               >
                 {_(currentTitle)}
               </button>
-            )}
+            </AddressBar>
           </HeaderBar.Start>
           <HeaderBar.End>
             <HeaderSearch

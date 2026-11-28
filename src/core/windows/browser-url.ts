@@ -12,7 +12,8 @@ export const BROWSER_DEMO_HOME_URL = webSearchHome(true);
 export function normalizeWebUrl(raw: string): string | null {
   const trimmed = raw.trim();
   if (!trimmed) return null;
-  if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(trimmed)) {
+  // A scheme, but not a host with a port (`localhost:5173`, `example.com:8080`).
+  if (/^[a-zA-Z][a-zA-Z0-9+.-]*:(?!\d)/.test(trimmed)) {
     return trimmed;
   }
   if (/^(localhost|127\.0\.0\.1|\[::1\])(?::\d+)?(\/|$)/i.test(trimmed)) {
