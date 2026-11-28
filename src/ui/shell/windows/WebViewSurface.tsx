@@ -32,14 +32,9 @@ import {
   TriangleAlertIcon,
   XIcon,
   DownloadIcon,
-  ChevronDownIcon,
-  FolderIcon,
   GlobeIcon,
-  TerminalIcon,
   StarIcon,
   Loader2Icon,
-  PlusIcon,
-  AppWindowIcon,
   PuzzleIcon,
 } from "lucide-react";
 import { SymbolicIcon } from "@/ui/components/ui/symbolic-icon";
@@ -57,11 +52,7 @@ import {
 import { HeaderBar } from "@/ui/components/elements/header-bar";
 import { Button } from "@/ui/components/ui/button";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
 } from "@/ui/components/ui/dropdown-menu";
 import { useWindowContext } from "@/ui/components/ui/window";
 import {
@@ -128,8 +119,7 @@ import { BrowserPageMenu, type PageMenuCommands } from "@/ui/shell/windows/Brows
 import { PageDialog, PermissionBubble } from "@/ui/shell/windows/BrowserPagePrompts";
 import { BrowserDownloadsMenu } from "@/ui/shell/windows/BrowserDownloadsMenu";
 import { BrowserSiteInfo } from "@/ui/shell/windows/BrowserSiteInfo";
-import { APP_MODULES } from "@/core/data/app-modules";
-import { APP_CATALOG } from "@/core/data/catalog";
+import { BrowserNewTabButton } from "@/ui/shell/windows/BrowserNewTabButton";
 import { BrowserHistoryMenu } from "@/ui/shell/windows/BrowserHistoryMenu";
 
 function siteHost(url: string): string {
@@ -215,14 +205,15 @@ export function WebViewSurface({
   darkReaderEnabled,
   onToggleDarkReader,
   active = true,
-  tabBar,
+  tabbed = false,
 }: {
   win: DesktopWindowInstance;
   darkReaderEnabled: boolean;
   onToggleDarkReader: () => void;
   /** False for a background tab: it stays mounted but ignores shortcuts. */
   active?: boolean;
-  tabBar?: React.ReactNode;
+  /** Under the tab bar, which holds the window controls: this header has none. */
+  tabbed?: boolean;
 }) {
   const isCsd = useAppChrome().decorations === "client";
   const piloti = usePiloti();
@@ -239,7 +230,6 @@ export function WebViewSurface({
     setBrowserTitle,
     markWindowReady,
     openBrowserTab,
-    openModuleTab,
     closeBrowserTab,
     reopenClosedBrowserTab,
     selectBrowserTab,
@@ -875,15 +865,6 @@ export function WebViewSurface({
     return () => window.removeEventListener(BROWSER_TAB_RELOAD_EVENT, onReloadTab);
   }, [win.browserWindowId]);
 
-  // The app modules that can open as a tab, by their catalog name.
-  const tabApps = React.useMemo(
-    () =>
-      APP_MODULES.filter((m) => m.id !== "hello").map((m) => ({
-        id: m.id,
-        name: APP_CATALOG.find((a) => a.id === m.id || a.builtinComponent === m.id)?.name ?? m.id,
-      })),
-    []
-  );
   const historyNewTab = isBrowserApp ? (url: string) => openBrowserTab(win.id, url) : undefined;
 
   const pageMenuCommands: PageMenuCommands = {
@@ -1228,6 +1209,8 @@ export function WebViewSurface({
           )}
         >
           <HeaderBar.Start>
+            {/* The window menu stays with the page (Install Web App is in it). */}
+            {tabbed && chrome.menu?.("left")}
             <BrowserHistoryMenu view={webviewEl} direction="back" onOpenInNewTab={historyNewTab}>
               <button
                 type="button"
@@ -1425,54 +1408,7 @@ export function WebViewSurface({
                 />
               </button>
             )}
-            {isBrowserApp && (
-              // Split button: + opens a web page tab; the chevron lists apps
-              // that can open in a tab. Placeholder: those apps will declare
-              // tab support in their .desktop entry (e.g. `X-Piloti-Tabs=true`).
-              <div data-slot="new-tab-split" className="flex items-center">
-                <button
-                  type="button"
-                  title={_("New Tab")}
-                  aria-label={_("New Tab")}
-                  onClick={() => openBrowserTab(win.id)}
-                  className="flex size-7 items-center justify-center rounded-l-ui-control transition-colors hover-fill:bg-black/8 dark:hover-fill:bg-white/10"
-                >
-                  <SymbolicIcon name="list-add" fallback={PlusIcon} className="size-4" />
-                </button>
-                <DropdownMenu>
-                  <DropdownMenuTrigger
-                    aria-label={_("New Tab With…")}
-                    title={_("New Tab With…")}
-                    className="flex h-7 w-4 items-center justify-center rounded-r-ui-control outline-none transition-colors hover-fill:bg-black/8 data-[popup-open]:bg-black/12 dark:hover-fill:bg-white/10 dark:data-[popup-open]:bg-white/15"
-                  >
-                    <SymbolicIcon name="pan-down" fallback={ChevronDownIcon} className="size-3" strokeWidth={2.5} />
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="min-w-48">
-                    <DropdownMenuItem onClick={() => openBrowserTab(win.id)}>
-                      <SymbolicIcon name="web-browser" fallback={GlobeIcon} className="size-4" />
-                      {_("Web Page")}
-                    </DropdownMenuItem>
-                    {compositor && tabApps.length > 0 && <DropdownMenuSeparator />}
-                    {compositor &&
-                      tabApps.map((app) => (
-                        <DropdownMenuItem key={app.id} onClick={() => openModuleTab(win.id, app.id)}>
-                          <SymbolicIcon name="application-x-executable" fallback={AppWindowIcon} className="size-4" />
-                          {app.name}
-                        </DropdownMenuItem>
-                      ))}
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem disabled>
-                      <SymbolicIcon name="folder" fallback={FolderIcon} className="size-4" />
-                      {_("Folders")}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem disabled>
-                      <SymbolicIcon name="utilities-terminal" fallback={TerminalIcon} className="size-4" />
-                      {_("Terminal")}
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            )}
+            {isBrowserApp && !tabbed && <BrowserNewTabButton windowId={win.id} />}
             {compositor && <BrowserDownloadsMenu />}
             <BrowserExtensionsMenu
               items={extensionMenuItems}
@@ -1480,10 +1416,10 @@ export function WebViewSurface({
               onTogglePin={toggleExtensionPin}
               onManage={() => launchApp("settings", { payload: "extensions" })}
             />
+            {tabbed && chrome.menu?.("right")}
           </HeaderBar.End>
         </HeaderBar>
       </AppChromeProvider>
-      {tabBar}
 
       <div className="relative min-h-0 flex-1 overflow-hidden">
         {!compositor ? (

@@ -6,6 +6,9 @@ import {
 import type { BrowserTab } from "@/ui/context/WindowsContext";
 import { BrowserTabBar } from "./BrowserTabBar";
 import { cn } from "@/core/util/utils";
+import { BrowserNewTabButton } from "@/ui/shell/windows/BrowserNewTabButton";
+import { WindowControls, WindowTitlebar } from "@/ui/components/ui/window";
+import { HeaderEdgesContext, useAppChrome } from "@/ui/components/elements/app-chrome";
 import { WebViewSurface } from "@/ui/shell/windows/WebViewSurface";
 import { AppModuleSurface } from "@/ui/shell/windows/AppModuleSurface";
 import { followTornTab, TEAR_GRAB_Y } from "@/ui/shell/windows/browser-tab-tear";
@@ -45,25 +48,11 @@ export function BrowserTabsSurface({
     },
   ];
   const showTabBar = tabs.length > 1;
-  // One tab bar for the window, always mounted and only shown or hidden. Each
-  // page keeps an empty slot of the bar's height under its toolbar; the bar is
-  // laid over the active page's slot.
+  // From two tabs on, the tab bar is the window's titlebar (Chrome): window
+  // controls and drag strip stay put whatever the tab; each tab keeps its own
+  // header below, without window controls.
+  const client = useAppChrome().decorations === "client";
   const containerRef = React.useRef<HTMLDivElement | null>(null);
-  const [tabBarTop, setTabBarTop] = React.useState(0);
-  React.useLayoutEffect(() => {
-    const container = containerRef.current;
-    if (!container || !showTabBar) return;
-    const measure = () => {
-      const slot = container.querySelector<HTMLElement>(
-        '[data-active-tab] [data-slot="browser-tab-slot"]'
-      );
-      if (slot) setTabBarTop(slot.offsetTop);
-    };
-    measure();
-    const observer = new ResizeObserver(measure);
-    observer.observe(container);
-    return () => observer.disconnect();
-  }, [showTabBar, win.browserWindowId]);
   // A tab pulled off the bar: a window of its own, under the pointer, that
   // follows it until release.
   const geometryRef = React.useRef(updateWindowGeometry);
@@ -101,21 +90,25 @@ export function BrowserTabsSurface({
         : undefined
     );
   };
-  const tabSlot = (
-    <div
-      data-slot="browser-tab-slot"
-      className={cn("h-ui-control-large shrink-0", !showTabBar && "hidden")}
-    />
-  );
   return (
     <div
       ref={containerRef}
       {...{ [TAB_DROP_ATTR]: win.appId === "browser" ? win.id : undefined }}
-      className="relative flex h-full w-full flex-1 overflow-hidden"
+      className="relative flex h-full w-full flex-1 flex-col overflow-hidden"
     >
+      <WindowTitlebar
+        data-slot="browser-tab-titlebar"
+        data-window-drag-region={client ? "" : undefined}
+        hidden={!showTabBar}
+        className={cn(
+          "h-auto min-h-0 shrink-0 items-center gap-1.5 border-b border-ui-separator bg-black/5 py-1 dark:bg-white/4",
+          showTabBar ? "flex" : "hidden",
+          client ? "px-2.5" : "rounded-none px-1"
+        )}
+      >
+        {client && <WindowControls side="left" data-window-no-drag />}
       <BrowserTabBar
         hidden={!showTabBar}
-        top={tabBarTop}
         tabs={tabs}
         activeId={win.browserWindowId}
         onSelect={(id) => selectBrowserTab(win.id, id)}
@@ -140,6 +133,11 @@ export function BrowserTabsSurface({
         }}
         onPin={(id, pinned) => pinBrowserTab(win.id, id, pinned)}
       />
+        {win.appId === "browser" && <BrowserNewTabButton windowId={win.id} className="text-ui-label-secondary" />}
+        {client && <WindowControls side="right" data-window-no-drag />}
+      </WindowTitlebar>
+      <HeaderEdgesContext.Provider value={showTabBar ? "none" : "both"}>
+      <div className="relative min-h-0 w-full flex-1">
       {tabs.map((tab) => {
         const active = tab.id === win.browserWindowId;
         return (
@@ -163,7 +161,7 @@ export function BrowserTabsSurface({
                   title: tab.title,
                   iconUrl: tab.iconUrl,
                 }}
-                tabBar={tabSlot}
+                tabbed={showTabBar}
               />
             ) : (
               <WebViewSurface
@@ -179,7 +177,7 @@ export function BrowserTabsSurface({
                     }
                 }
                 active={active}
-                tabBar={tabSlot}
+                tabbed={showTabBar}
                 darkReaderEnabled={darkReaderEnabled}
                 onToggleDarkReader={onToggleDarkReader}
               />
@@ -187,6 +185,8 @@ export function BrowserTabsSurface({
           </div>
         );
       })}
+      </div>
+      </HeaderEdgesContext.Provider>
     </div>
   );
 }

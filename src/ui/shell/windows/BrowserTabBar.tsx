@@ -110,6 +110,7 @@ function SortableTab({
       {...sortable.attributes}
       {...listeners}
       role="tab"
+      data-window-no-drag
       aria-selected={active}
       data-slot="browser-tab"
       data-tab-id={tab.id}
@@ -119,6 +120,8 @@ function SortableTab({
       onPointerDown={(e) => {
         if (e.button === 0) onSelect(tab.id);
         listeners?.onPointerDown?.(e);
+        // The bar is the window's titlebar: a tab drags itself, not the window.
+        e.stopPropagation();
       }}
       onAuxClick={(e) => {
         if (e.button === 1) {
@@ -144,7 +147,6 @@ function SortableTab({
  */
 export function BrowserTabBar({
   hidden,
-  top,
   tabs,
   activeId,
   onSelect,
@@ -159,7 +161,6 @@ export function BrowserTabBar({
   onCloseToRight,
 }: {
   hidden: boolean;
-  top: number;
   tabs: BrowserTab[];
   activeId?: string;
   onSelect: (id: string) => void;
@@ -277,9 +278,8 @@ export function BrowserTabBar({
                 role="tablist"
                 data-slot="browser-tab-bar"
                 hidden={hidden}
-                style={{ top }}
                 className={cn(
-                  "absolute inset-x-0 z-10 h-ui-control-large shrink-0 items-stretch gap-px border-b border-ui-separator bg-black/5 px-1 py-0.5 dark:bg-white/4",
+                  "h-ui-control-large min-w-0 flex-1 items-stretch gap-px py-0.5",
                   hidden ? "hidden" : "flex"
                 )}
               />
