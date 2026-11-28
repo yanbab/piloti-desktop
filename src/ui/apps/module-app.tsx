@@ -53,13 +53,26 @@ function applyLook(settings: DesktopSettings, files: ModuleFiles): void {
 
 const LOCALE_INI = ".config/piloti/locale.ini";
 
+/** Tells the shell once the app's first drawing is on screen. */
+function Drawn({ onDrawn }: { onDrawn: () => void }) {
+  React.useEffect(() => {
+    const frame = requestAnimationFrame(onDrawn);
+    return () => cancelAnimationFrame(frame);
+  }, [onDrawn]);
+  return null;
+}
+
 export function mountModuleApp(
   options: ModuleAppOptions,
   setup: (runtime: ModuleRuntime) => Promise<() => React.ReactNode>,
 ): AppMain {
   const Boot = () => {
     const domicile = useAppDomicile();
-    const [app, setApp] = React.useState<{ render: () => React.ReactNode; chrome: AppChrome }>();
+    const [app, setApp] = React.useState<{
+      render: () => React.ReactNode;
+      chrome: AppChrome;
+      drawn: () => void;
+    }>();
     // A new language draws the app again.
     const [locale, setLocale] = React.useState(0);
 
@@ -83,6 +96,7 @@ export function mountModuleApp(
         const render = await setup({ ...module, files });
         setApp({
           render,
+          drawn: () => module.publish({ ready: true }),
           chrome: {
             appId: options.appId,
             decorations: options.decorations,
@@ -97,6 +111,7 @@ export function mountModuleApp(
     return app ? (
       <AppChromeProvider value={app.chrome}>
         <div key={locale} className="flex h-screen flex-col overflow-hidden">
+          <Drawn onDrawn={app.drawn} />
           {app.render()}
         </div>
       </AppChromeProvider>

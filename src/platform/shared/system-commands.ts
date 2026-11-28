@@ -126,3 +126,42 @@ export function emitShellSignal(piloti: Pick<Piloti, "processes">, message: stri
     `'${message.replace(/\\/g, "\\\\").replace(/'/g, "\\'")}'`,
   ]);
 }
+
+export interface RendererMemory {
+  count: number;
+  /** Resident memory of all of them. */
+  totalKb: number;
+}
+
+/** Chromium's renderer processes: the shell, and one per app module or web page. */
+export async function readRendererMemory(piloti: Pick<Piloti, "processes">): Promise<RendererMemory | null> {
+  try {
+    const out = (await piloti.processes.run(["ps", "-eo", "rss=,args="])).match({
+      Ok: (r) => (r.code === 0 ? r.stdout : null),
+      Err: () => null,
+    });
+    return out === null ? null : parseRendererMemory(out);
+  } catch {
+    return null;
+  }
+}
+
+export function parseRendererMemory(ps: string): RendererMemory {
+  const sizes = ps
+    .split("\n")
+    .filter((line) => line.includes("--type=renderer"))
+    .map((line) => Number.parseInt(line.trim(), 10) || 0);
+  return { count: sizes.length, totalKb: sizes.reduce((a, b) => a + b, 0) };
+}
+
+/** Resident memory of one process, in kB. */
+export async function readProcessMemory(piloti: Pick<Piloti, "processes">, pid: number): Promise<number | null> {
+  try {
+    return (await piloti.processes.run(["ps", "-o", "rss=", "-p", String(pid)])).match({
+      Ok: (r) => (r.code === 0 ? Number.parseInt(r.stdout.trim(), 10) || null : null),
+      Err: () => null,
+    });
+  } catch {
+    return null;
+  }
+}

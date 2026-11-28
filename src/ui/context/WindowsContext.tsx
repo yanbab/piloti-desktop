@@ -20,6 +20,7 @@ import {
   findMatchingWebApp,
 } from "@/core/data/web-apps";
 import { moduleDocument, resolveAppModuleByUrl } from "@/core/data/app-modules";
+import { restoreModuleWindows } from "@/ui/context/windows/restore-modules";
 import {
   DOCUMENT_SCOPED_APP_IDS,
   lookupSpatialWindowBounds,
@@ -57,6 +58,7 @@ import { type SettingsContextValue } from "./SettingsContext";
 import { type SystemBackendsContextValue } from "./SystemBackendsContext";
 import { useGlobalAppMenu } from "./windows/useGlobalAppMenu";
 import { useModuleChannel } from "./windows/use-module-channel";
+import { useAppMemory } from "./windows/use-app-memory";
 import { useGlobalShortcuts } from "./windows/useGlobalShortcuts";
 import { getEngine } from "@/core/ports/engine";
 import { useCapabilities } from "@/ui/hooks/use-capabilities";
@@ -252,8 +254,11 @@ export function useWindowsValue(
       return;
     }
 
+    const moduleUrls: string[] = [];
     for (const rec of pendingSessionRestoreRef.current.values()) {
-      if (rec.id.startsWith("web:")) {
+      if (rec.id.startsWith("web:domicile://app-")) {
+        moduleUrls.push(rec.id.slice(4));
+      } else if (rec.id.startsWith("web:")) {
         const url = rec.id.slice(4);
         if (url) piloti.browser.open(url);
       } else if (systemServices) {
@@ -261,6 +266,7 @@ export function useWindowsValue(
         launchDesktopCommand(piloti, def?.linuxCommand ?? [rec.id]);
       }
     }
+    void restoreModuleWindows(piloti, moduleUrls);
   }, [piloti, systemServices, settings.restoreWindowsOnLogin]);
 
   const [waylandMeta, setWaylandMeta] = React.useState<
@@ -1573,6 +1579,11 @@ export function useWindowsValue(
       appId: string,
       options?: { payload?: string; forceNew?: boolean; forceCsd?: boolean; inShell?: boolean }
     ) => {
+      // Advanced settings are in Devtools now.
+      if (appId === "settings" && options?.payload === "advanced") {
+        launchAppRef.current?.("console", { payload: "advanced" });
+        return;
+      }
       clearLaunchOverlays();
       logAppLaunch(appId, options?.payload);
       const def = APP_CATALOG.find((a) => a.id === appId);
@@ -2239,6 +2250,7 @@ export function useWindowsValue(
   );
 
   useModuleChannel(piloti, combinedWindows, updateWindowGeometry);
+  useAppMemory(piloti, systemServices);
 
   const { activeAppDef, handleMenuAction } = useGlobalAppMenu({
     focusedWindow,

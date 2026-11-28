@@ -295,6 +295,8 @@ const APP_MENUS: Record<string, AppMenuSection[]> = {
       items: [
         { label: "Logs", actionId: "console:logs" },
         { label: "State", actionId: "console:inspector" },
+        { label: "Apps", actionId: "console:apps" },
+        { label: "Advanced", actionId: "console:advanced" },
         { label: "Storage", actionId: "console:storage" },
       ],
     },

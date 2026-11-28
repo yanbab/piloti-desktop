@@ -1,3 +1,5 @@
+import { AdvancedPane } from "@/ui/apps/console/AdvancedPane";
+import { AppsModule } from "@/ui/apps/console/AppsModule";
 import { HeaderBar } from "@/ui/components/elements/header-bar";
 import { Segmented } from "@/ui/components/ui/segmented";
 import { VFS_HOME } from "@/core/state/vfs-home";
@@ -53,6 +55,8 @@ import {
 export type ConsoleModuleId =
   | "logs"
   | "inspector"
+  | "apps"
+  | "advanced"
   | "storage"
   | "vfs-events";
 
@@ -1623,6 +1627,8 @@ export function ConsoleApp({
   const isModuleId = (v: string | null | undefined): v is ConsoleModuleId =>
     v === "logs" || // legacy: merged into Events
     v === "inspector" ||
+    v === "apps" ||
+    v === "advanced" ||
     (v === "storage" && vfsInspector() !== null) ||
     v === "vfs-events";
 
@@ -1673,6 +1679,8 @@ export function ConsoleApp({
 
   const modules: { id: ConsoleModuleId; label: string; badge?: number }[] = [
     { id: "inspector", label: _("Infos") },
+    { id: "apps", label: _("Apps") },
+    { id: "advanced", label: _("Advanced") },
     {
       id: "vfs-events",
       label: _("Events"),
@@ -1692,6 +1700,11 @@ export function ConsoleApp({
 
       {/* Active module (Events stays mounted so its log persists across tab switches) */}
       {activeModule === "inspector" && <InspectorModule />}
+      {(activeModule === "apps" || activeModule === "advanced") && (
+        <div className="min-h-0 flex-1 overflow-auto p-4">
+          {activeModule === "apps" ? <AppsModule /> : <AdvancedPane />}
+        </div>
+      )}
       <div
         className={cn(
           "min-h-0 flex-1 overflow-hidden",
