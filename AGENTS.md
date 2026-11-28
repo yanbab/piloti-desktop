@@ -34,9 +34,12 @@ After changing:
 
 ## Code rules
 
+- **Backends.** Logic any app needs is plain TypeScript in `lib/<domain>/` with
+  its interface in `ports/`: no React, no engine, the host passed in (a test
+  checks `lib/apps/`).
 - **Engines.** Components and contexts go through `lib/engine/`. Never call Linux
   CLIs or `piloti.processes` directly: add a function to
-  `engine/system-commands.ts`. Prefer a capability (`realFilesystem`,
+  `engine/system-commands.ts` (backends take their host as an argument). Prefer a capability (`realFilesystem`,
   `systemServices`, `simulatedHardware`, `compositor`) over checking the engine. The native
   bundle imports neither the web engine nor the demo files.
 - **Layout.** A helper only one app or shell feature uses stays in its folder
@@ -77,8 +80,9 @@ Paths without a root are under `src/`.
   `git worktree remove`.
 - In the main checkout, others may be editing: read `git diff` first, commit
   explicit paths, never `git add -A`.
-- `_docs/` (local, not in git): `ROADMAP.md` (scheduled work), `BACKLOG.md`
-  (unscheduled, by area), `DONE.md`, `NOTES.md` (ideas, measurements).
+- `_docs/` (local, not in git): `BACKLOG.md` is the only task list (Now, Next,
+  Later); tick items as they work, delete them at release. Upstream reports are
+  `domicile-*.md`; old plans are in `archive/`.
 
 ## Testing
 
