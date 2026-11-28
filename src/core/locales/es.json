@@ -1009,5 +1009,13 @@
   "Unable to load page": "No se puede cargar la página",
   "Proceed Anyway": "Continuar de todos modos",
   "Find…": "Buscar…",
-  "Go": "Ir"
+  "Go": "Ir",
+  "Download Complete": "Descarga completada",
+  "Download Failed": "Error en la descarga",
+  "Failed": "Error",
+  "Cancel Download": "Cancelar descarga",
+  "Show in Folder": "Mostrar en la carpeta",
+  "Open Downloads Folder": "Abrir la carpeta Descargas",
+  "Clear List": "Borrar la lista",
+  "Accepted Files": "Archivos aceptados"
 }

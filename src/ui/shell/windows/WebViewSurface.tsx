@@ -8,6 +8,7 @@ import { useWatch } from "@domicile-desktop/react/use-watch";
 import {
   WEBVIEW_CLOSE_EVENT,
   WEBVIEW_CONTENT_SIZE_CHANGE_EVENT,
+  WEBVIEW_FILE_CHOOSER_EVENT,
   WEBVIEW_FAVICON_CHANGE_EVENT,
   WEBVIEW_GUEST_FOCUS_EVENT,
   WEBVIEW_GUEST_KEYDOWN_EVENT,
@@ -97,6 +98,25 @@ import {
 } from "@/ui/shell/windows/browser-shortcuts";
 import { formatBrowserZoom, nextBrowserZoom } from "@/ui/shell/windows/browser-zoom";
 import { useWebViewStatus } from "@/ui/shell/windows/use-webview-status";
+import {
+  canFrameGoBack,
+  canFrameGoForward,
+  frameCurrentUrl,
+  frameHistoryVersion,
+  framePushed,
+  frameRemoved,
+  frameStarted,
+  stepFrame,
+  subscribeFrameHistory,
+} from "@/ui/shell/windows/demo-frame-history";
+import { BrowserDownloadsMenu } from "@/ui/shell/windows/BrowserDownloadsMenu";
+import { BrowserFileChooser } from "@/ui/shell/windows/BrowserFileChooser";
+import {
+  downloadFileName,
+  freeDownloadPath,
+  startDownloadsBridge,
+} from "@/ui/shell/windows/browser-downloads";
+import { DownloadState } from "@domicile-desktop/sdk/desktop/downloads";
 
 const toolbarButton = cn(
   "flex size-7 items-center justify-center rounded-ui-control transition-colors disabled:pointer-events-none disabled:opacity-35",
@@ -244,13 +264,43 @@ export function WebViewSurface({
 
   const prefersDark = resolvedTheme === "dark" || darkReaderEnabled;
   const [address, setAddress] = React.useState(win.browserUrl ?? "");
-  const [historyState, setHistoryState] = React.useState<{
-    stack: string[];
-    index: number;
-  }>(() => {
-    const init = normalizeWebUrl(win.browserUrl ?? "");
-    return { stack: init ? [init] : [], index: 0 };
-  });
+  // Web demo: the iframe keeps its first address; later ones are navigations
+  // inside it, so they enter the document's history (demo-frame-history.ts).
+  const frameId = win.browserWindowId ?? win.id;
+  const [initialSrc] = React.useState(
+    () => normalizeWebUrl(win.browserUrl ?? "") ?? "about:blank"
+  );
+  React.useSyncExternalStore(subscribeFrameHistory, frameHistoryVersion, frameHistoryVersion);
+  /** Loads the shell started (address, Back, Reload): not links in the page. */
+  const expectedLoadsRef = React.useRef({ count: 0, until: 0 });
+  const expectLoad = () => {
+    const pending = expectedLoadsRef.current;
+    pending.count = Date.now() < pending.until ? pending.count + 1 : 1;
+    // A step within a page loads nothing: forget it after a while.
+    pending.until = Date.now() + 10_000;
+  };
+  const loadedOnceRef = React.useRef(false);
+  React.useEffect(() => {
+    if (compositor) return;
+    frameStarted(frameId, initialSrc);
+    return () => frameRemoved(frameId);
+  }, [compositor, frameId, initialSrc]);
+  const navigateFrame = (url: string) => {
+    const frame = iframeRef.current;
+    if (!frame) return;
+    expectLoad();
+    setIsLoading(true);
+    try {
+      // Allowed across origins, and adds a history entry as a link would.
+      frame.contentWindow!.location.href = url;
+    } catch {
+      frame.src = url;
+    }
+    framePushed(frameId, url);
+    setAddress(url);
+  };
+  const navigateFrameRef = React.useRef(navigateFrame);
+  navigateFrameRef.current = navigateFrame;
   const [nativeCanGoBack, setNativeCanGoBack] = React.useState(false);
   const [editingAddress, setEditingAddress] = React.useState(false);
   const [draftAddress, setDraftAddress] = React.useState("");
@@ -269,6 +319,58 @@ export function WebViewSurface({
   const [findOpen, setFindOpen] = React.useState(false);
   const [findQuery, setFindQuery] = React.useState("");
   const [findToken, setFindToken] = React.useState(0);
+  const [fileChooser, setFileChooser] = React.useState<DomicileFileChooserEvent | null>(null);
+
+  // Downloads show on the Dock and notify, whichever window started them.
+  React.useEffect(() => {
+    if (!compositor) return;
+    startDownloadsBridge(piloti, {
+      onFinished: (d) =>
+        pushNotification({
+          appName: _("Web Browser"),
+          summary: d.state === DownloadState.Complete ? _("Download Complete") : _("Download Failed"),
+          body: downloadFileName(d.path),
+          ...(d.state === DownloadState.Failed ? { urgency: "critical" as const } : {}),
+        }),
+    });
+  }, [compositor, piloti, pushNotification]);
+
+  // The engine draws no file dialog: a download saves straight to the
+  // download folder under a free name; an upload gets the shell's chooser.
+  React.useEffect(() => {
+    const view = webviewRef.current;
+    if (!view || !compositor) return;
+    const onFileChooser = (event: Event) => {
+      const e = event as DomicileFileChooserEvent;
+      e.preventDefault();
+      if (e.mode !== "save") {
+        setFileChooser(e);
+        return;
+      }
+      const folder = e.currentFolder || `${e.home.replace(/\/$/, "")}/Downloads`;
+      const claimed = new Set(
+        (piloti.downloads.list ?? [])
+          .filter((d) => d.state === DownloadState.InProgress)
+          .map((d) => d.path)
+      );
+      void freeDownloadPath(
+        folder,
+        e.suggestedName,
+        async (path) => (await piloti.vfs.stat(path)) !== null,
+        claimed
+      )
+        .then((path) => e.choose([path]))
+        .catch(() => {
+          try {
+            e.cancel();
+          } catch {
+            // Already answered.
+          }
+        });
+    };
+    view.addEventListener(WEBVIEW_FILE_CHOOSER_EVENT, onFileChooser);
+    return () => view.removeEventListener(WEBVIEW_FILE_CHOOSER_EVENT, onFileChooser);
+  }, [compositor, piloti]);
 
   const focusSelfRef = React.useRef(() => focusWindow(win.id));
   focusSelfRef.current = () => focusWindow(win.id);
@@ -283,19 +385,14 @@ export function WebViewSurface({
     if (win.browserWindowId) setBrowserFavicon(win.browserWindowId, fav);
   };
 
+  const lastBrowserUrlRef = React.useRef(win.browserUrl);
   React.useEffect(() => {
-    if (win.browserUrl) {
-      setAddress(win.browserUrl);
-      const normalized = normalizeWebUrl(win.browserUrl);
-      if (normalized) {
-        setHistoryState((prev) => {
-          if (prev.stack[prev.index] === normalized) return prev;
-          const nextStack = [...prev.stack.slice(0, prev.index + 1), normalized];
-          return { stack: nextStack, index: nextStack.length - 1 };
-        });
-      }
-    }
-  }, [win.browserUrl]);
+    if (!win.browserUrl || win.browserUrl === lastBrowserUrlRef.current) return;
+    lastBrowserUrlRef.current = win.browserUrl;
+    const normalized = normalizeWebUrl(win.browserUrl);
+    if (!compositor && normalized) navigateFrameRef.current(normalized);
+    else setAddress(win.browserUrl);
+  }, [compositor, win.browserUrl]);
 
   React.useEffect(() => {
     const view = webviewRef.current;
@@ -465,51 +562,34 @@ export function WebViewSurface({
         ? webSearchUrl(draftAddress, !compositor)
         : null;
     if (normalized) {
-      setAddress(normalized);
       if (!compositor) {
-        setHistoryState((prev) => {
-          if (prev.stack[prev.index] === normalized) return prev;
-          const nextStack = [...prev.stack.slice(0, prev.index + 1), normalized];
-          return { stack: nextStack, index: nextStack.length - 1 };
-        });
+        navigateFrame(normalized);
       } else if (webviewRef.current) {
+        setAddress(normalized);
         webviewRef.current.src = normalized;
       }
     }
     setEditingAddress(false);
   };
 
-  const canGoBack = !compositor ? historyState.index > 0 : nativeCanGoBack;
-  const handleGoBack = React.useCallback(() => {
-    if (!compositor) {
-      setHistoryState((prev) => {
-        if (prev.index <= 0) return prev;
-        const nextIndex = prev.index - 1;
-        const prevUrl = prev.stack[nextIndex];
-        if (prevUrl) setAddress(prevUrl);
-        return { ...prev, index: nextIndex };
-      });
-    } else {
-      webviewRef.current?.goBack();
-    }
-  }, [compositor]);
+  const stepDemoHistory = (direction: -1 | 1) => {
+    const url = stepFrame(frameId, direction);
+    if (url === undefined) return;
+    expectLoad();
+    setIsLoading(true);
+    if (url) setAddress(url);
+  };
+  const canGoBack = !compositor ? canFrameGoBack(frameId) : nativeCanGoBack;
+  const handleGoBack = () => {
+    if (!compositor) stepDemoHistory(-1);
+    else webviewRef.current?.goBack();
+  };
 
-  const canGoForward = !compositor
-    ? historyState.index < historyState.stack.length - 1
-    : status.canGoForward;
-  const handleGoForward = React.useCallback(() => {
-    if (!compositor) {
-      setHistoryState((prev) => {
-        if (prev.index >= prev.stack.length - 1) return prev;
-        const nextIndex = prev.index + 1;
-        const nextUrl = prev.stack[nextIndex];
-        if (nextUrl) setAddress(nextUrl);
-        return { ...prev, index: nextIndex };
-      });
-    } else {
-      webviewRef.current?.goForward();
-    }
-  }, [compositor]);
+  const canGoForward = !compositor ? canFrameGoForward(frameId) : status.canGoForward;
+  const handleGoForward = () => {
+    if (!compositor) stepDemoHistory(1);
+    else webviewRef.current?.goForward();
+  };
 
   const handleReload = React.useCallback(() => {
     if (compositor) {
@@ -517,12 +597,19 @@ export function WebViewSurface({
       return;
     }
     const frame = iframeRef.current;
-    const src = frame?.getAttribute("src");
-    if (!frame || !src || src === "about:blank") return;
+    // After a link in a page of another origin the address is unknown.
+    const url = frameCurrentUrl(frameId);
+    if (!frame || !url) return;
+    expectLoad();
     setIsLoading(true);
-    // Setting the attribute again navigates, even to the same address.
-    frame.setAttribute("src", src);
-  }, [compositor]);
+    try {
+      // The page's own reload is out of reach across origins; replacing its
+      // address with itself adds no history entry.
+      frame.contentWindow!.location.replace(url);
+    } catch {
+      frame.src = url;
+    }
+  }, [compositor, frameId]);
 
   const handleStop = React.useCallback(() => {
     if (compositor) {
@@ -779,36 +866,44 @@ export function WebViewSurface({
     return () => controller.abort();
   }, [compositor, currentUrl, win.browserWindowId, prefersDark]);
 
-  const iframeSrc = normalizeWebUrl(address) ?? "about:blank";
-
   React.useEffect(() => {
     if (compositor) return;
-    if (iframeSrc === "about:blank") {
+    if (initialSrc === "about:blank") {
       setIsLoading(false);
       markReadyRef.current();
-      return;
+    } else {
+      setIsLoading(true);
     }
-    setIsLoading(true);
+  }, [compositor, initialSrc]);
+
+  // A page that never says it loaded stops spinning after a while.
+  React.useEffect(() => {
+    if (compositor || !isLoading) return;
     const timeout = setTimeout(() => {
       setIsLoading(false);
       markReadyRef.current();
     }, 15000);
     return () => clearTimeout(timeout);
-  }, [compositor, iframeSrc]);
+  }, [compositor, isLoading]);
 
   const handleIframeLoad = React.useCallback(() => {
     setIsLoading(false);
     markReadyRef.current();
+    const pending = expectedLoadsRef.current;
+    const expected = pending.count > 0 && Date.now() < pending.until;
+    if (expected) pending.count--;
+    let frameHref: string | null = null;
     try {
-      const frameHref = iframeRef.current?.contentWindow?.location?.href;
-      if (frameHref && frameHref !== "about:blank") {
-        setAddress(frameHref);
-        setHistoryState((prev) => {
-          if (prev.stack[prev.index] === frameHref) return prev;
-          const nextStack = [...prev.stack.slice(0, prev.index + 1), frameHref];
-          return { stack: nextStack, index: nextStack.length - 1 };
-        });
-      }
+      const href = iframeRef.current?.contentWindow?.location?.href;
+      if (href && href !== "about:blank") frameHref = href;
+    } catch {
+      // Another origin: its address is not readable.
+    }
+    // A link followed in the page: a new entry the shell did not make.
+    if (!expected && loadedOnceRef.current) framePushed(frameId, frameHref);
+    loadedOnceRef.current = true;
+    if (frameHref) setAddress(frameHref);
+    try {
       const doc = iframeRef.current?.contentDocument;
       const docTitle = doc?.title?.trim();
       if (docTitle) {
@@ -851,7 +946,7 @@ export function WebViewSurface({
     } catch {
       // Cross-origin iframes restrict contentDocument access.
     }
-  }, [currentUrl, prefersDark]);
+  }, [currentUrl, prefersDark, frameId]);
 
   const toggleExtensionPin = (id: string) => {
     const current = settings.pinnedExtensionIds ?? [];
@@ -1008,7 +1103,7 @@ export function WebViewSurface({
                 data-slot="browser-reload"
                 title={_("Reload")}
                 aria-label={_("Reload")}
-                disabled={!currentUrl}
+                disabled={!currentUrl || (!compositor && !frameCurrentUrl(frameId))}
                 onClick={handleReload}
                 className={toolbarButton}
               >
@@ -1180,6 +1275,7 @@ export function WebViewSurface({
                 </DropdownMenu>
               </div>
             )}
+            {compositor && <BrowserDownloadsMenu />}
             <BrowserExtensionsMenu
               items={extensionMenuItems}
               pinnedIds={settings.pinnedExtensionIds ?? []}
@@ -1195,7 +1291,7 @@ export function WebViewSurface({
         {!compositor ? (
           <iframe
             ref={iframeRef}
-            src={iframeSrc}
+            src={initialSrc}
             title={win.title}
             onLoad={handleIframeLoad}
             onError={() => setIsLoading(false)}
@@ -1333,6 +1429,10 @@ export function WebViewSurface({
               </div>
             </div>
           </>
+        )}
+
+        {fileChooser && (
+          <BrowserFileChooser event={fileChooser} onDone={() => setFileChooser(null)} />
         )}
 
         {(pageFailure || status.renderProcessGone) && compositor && (

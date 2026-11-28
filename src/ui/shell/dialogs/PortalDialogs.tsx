@@ -315,7 +315,7 @@ function describePortalKind(req: PortalRequest): string {
  * Non-interactive state entries like `PortalKind.Inhibit` are ignored because the
  * compositor keeps them open until the app releases its inhibitor lock.
  */
-function FileChooserPortalDialog({
+export function FileChooserPortalDialog({
   request,
   onAnswer,
 }: {
