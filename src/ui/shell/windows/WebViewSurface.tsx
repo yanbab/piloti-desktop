@@ -4,6 +4,9 @@ import { looksLikeUrl, webSearchUrl } from "@/core/util/web-search";
 import * as React from "react";
 import { onShellEvent } from "@/core/windows/shell-events";
 import { usePiloti } from "@/platform/shared/piloti";
+import { classifyAddressInput } from "@/core/address/input";
+import { VFS_HOME } from "@/core/state/vfs-home";
+import { useOpenPath } from "@/ui/hooks/use-open-path";
 import { useWatch } from "@domicile-desktop/react/use-watch";
 import {
   WEBVIEW_CLOSE_EVENT,
@@ -108,13 +111,14 @@ import {
   stepFrame,
   subscribeFrameHistory,
 } from "@/ui/shell/windows/demo-frame-history";
-import { BrowserAddressSuggestions } from "@/ui/shell/windows/BrowserAddressSuggestions";
+import { AddressBar } from "@/ui/components/address-bar/AddressBar";
+import { useAddressField } from "@/ui/components/address-bar/use-address-field";
 import {
   addressSuggestions,
   clearBrowserHistory,
   readBrowserHistory,
   recordBrowserVisit,
-} from "@/ui/shell/windows/browser-history";
+} from "@/core/address/web-history";
 import { BrowserPageMenu, type PageMenuCommands } from "@/ui/shell/windows/BrowserPageMenu";
 import { PageDialog, PermissionBubble } from "@/ui/shell/windows/BrowserPagePrompts";
 import { BrowserDownloadsMenu } from "@/ui/shell/windows/BrowserDownloadsMenu";
@@ -217,6 +221,7 @@ export function WebViewSurface({
 }) {
   const isCsd = useAppChrome().decorations === "client";
   const piloti = usePiloti();
+  const { openPath } = useOpenPath();
   const { compositor } = useCapabilities();
   const resolvedTheme = useSettingsSelector((v) => v.resolvedTheme);
   const settings = useDesktopSettings(["activeWorkspace", "darkReaderWebEnabled", "debugMode", "demoExtensionEnabled", "dockAutoHide", "dockPosition", "dockSize", "installedWebApps", "pinnedAppIds", "pinnedExtensionIds", "windowButtonLayout", "windowDecorationMode"]);
@@ -243,7 +248,6 @@ export function WebViewSurface({
   React.useEffect(() => setWebviewEl(compositor ? webviewRef.current : null), [compositor]);
   const extPopupWebviewRef = React.useRef<HTMLWebViewElement | null>(null);
   const iframeRef = React.useRef<HTMLIFrameElement | null>(null);
-  const addressInputRef = React.useRef<HTMLInputElement | null>(null);
 
   const extensions =
     useWatch(piloti.extensions, "change", () => piloti.extensions.list) ??
@@ -328,8 +332,6 @@ export function WebViewSurface({
   const navigateFrameRef = React.useRef(navigateFrame);
   navigateFrameRef.current = navigateFrame;
   const [nativeCanGoBack, setNativeCanGoBack] = React.useState(false);
-  const [editingAddress, setEditingAddress] = React.useState(false);
-  const [draftAddress, setDraftAddress] = React.useState("");
   const [isLoading, setIsLoading] = React.useState(false);
   const [latestFavicon, setLatestFavicon] = React.useState("");
   const [themeColor, setThemeColor] = React.useState<string | null>(
@@ -620,28 +622,6 @@ export function WebViewSurface({
     }
   }, [piloti, compositor, pushNotification, storeExtId]);
 
-  React.useEffect(() => {
-    if (!editingAddress) return;
-    const frame = requestAnimationFrame(() => {
-      addressInputRef.current?.focus();
-      addressInputRef.current?.select();
-    });
-    return () => cancelAnimationFrame(frame);
-  }, [editingAddress]);
-
-  // Untouched, the field lists the bookmarks; typed into, matching pages.
-  const [suggestIndex, setSuggestIndex] = React.useState(-1);
-  const [addressInput, setAddressInput] = React.useState<HTMLInputElement | null>(null);
-  const suggestQuery = draftAddress === currentUrl ? "" : draftAddress;
-  const suggestions = React.useMemo(
-    () =>
-      editingAddress && isBrowserApp
-        ? addressSuggestions(suggestQuery, bookmarks, readBrowserHistory(), Date.now())
-        : [],
-    [editingAddress, isBrowserApp, suggestQuery, bookmarks]
-  );
-  React.useEffect(() => setSuggestIndex(-1), [suggestQuery, editingAddress]);
-
   const goTo = (normalized: string) => {
     if (!compositor) {
       navigateFrame(normalized);
@@ -649,32 +629,38 @@ export function WebViewSurface({
       setAddress(normalized);
       webviewRef.current.src = normalized;
     }
-    setEditingAddress(false);
   };
 
-  const submitAddressEdit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const picked = suggestions[suggestIndex];
-    if (picked) {
-      goTo(picked.url);
-      return;
-    }
-    // An address goes there; anything else is a web search.
-    const normalized = looksLikeUrl(draftAddress)
-      ? normalizeWebUrl(draftAddress)
-      : draftAddress.trim()
-        ? webSearchUrl(draftAddress, !compositor)
-        : null;
-    if (normalized) {
-      if (!compositor) {
-        navigateFrame(normalized);
-      } else if (webviewRef.current) {
-        setAddress(normalized);
-        webviewRef.current.src = normalized;
+  // Untouched, the field lists the bookmarks; typed into, matching pages.
+  // An address goes there; anything else is a web search.
+  const addressField = useAddressField({
+    value: currentUrl,
+    suggest: (draft, untouched) =>
+      isBrowserApp
+        ? addressSuggestions(untouched ? "" : draft, bookmarks, readBrowserHistory(), Date.now())
+        : [],
+    onSubmit: ({ suggestion, text }) => {
+      if (suggestion?.target.kind === "url") {
+        goTo(suggestion.target.url);
+        return;
       }
-    }
-    setEditingAddress(false);
-  };
+      // A folder path (`~/Documents`, `file:///…`) opens in Folders.
+      const input = classifyAddressInput(text, VFS_HOME);
+      if (input.kind === "path") {
+        void piloti.vfs.stat(input.path).catch(() => null).then((stat) => {
+          if (stat?.kind === "directory") void openPath(input.path, { kind: "directory" });
+          else if (stat) goTo(`file://${input.path}`);
+        });
+        return;
+      }
+      const normalized = looksLikeUrl(text)
+        ? normalizeWebUrl(text)
+        : text.trim()
+          ? webSearchUrl(text, !compositor)
+          : null;
+      if (normalized) goTo(normalized);
+    },
+  });
 
   const stepDemoHistory = (direction: -1 | 1) => {
     const url = stepFrame(frameId, direction);
@@ -786,8 +772,7 @@ export function WebViewSurface({
   const runCommand = (command: BrowserCommand): boolean => {
     switch (command.kind) {
       case "focus-address":
-        setDraftAddress(currentUrl);
-        setEditingAddress(true);
+        addressField.open();
         return true;
       case "new-tab":
         if (!isBrowserApp) return false;
@@ -1203,7 +1188,7 @@ export function WebViewSurface({
           className={cn(
             "transition-colors duration-200",
             // The address field takes the room the centred title leaves.
-            editingAddress && "grid-cols-[auto_minmax(0,1fr)_auto]",
+            addressField.editing && "grid-cols-[auto_minmax(0,1fr)_auto]",
             // A tinted header tints its window buttons too.
             "[&_[data-slot=window-controls]_button]:bg-[color-mix(in_srgb,currentColor_10%,transparent)] [&_[data-slot=window-controls]_button]:text-current [&_[data-slot=window-controls]_button:hover]:bg-[color-mix(in_srgb,currentColor_18%,transparent)]",
           )}
@@ -1261,54 +1246,15 @@ export function WebViewSurface({
             )}
           </HeaderBar.Start>
           <HeaderBar.Title interactive>
-            {editingAddress ? (
-              <form
-                onSubmit={submitAddressEdit}
-                data-window-no-drag
-                className="relative flex min-w-0 flex-1 items-center justify-center px-2"
-              >
-                <input
-                  ref={(node) => {
-                    addressInputRef.current = node;
-                    setAddressInput(node);
-                  }}
-                  type="text"
-                  value={draftAddress}
-                  onChange={(e) => setDraftAddress(e.target.value)}
-                  onBlur={() => setEditingAddress(false)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Escape") {
-                      e.preventDefault();
-                      setEditingAddress(false);
-                    } else if (e.key === "ArrowDown" || e.key === "ArrowUp") {
-                      if (suggestions.length === 0) return;
-                      e.preventDefault();
-                      const step = e.key === "ArrowDown" ? 1 : -1;
-                      setSuggestIndex((i) =>
-                        Math.max(-1, Math.min(suggestions.length - 1, i + step))
-                      );
-                    }
-                  }}
-                  role="combobox"
-                  aria-expanded={suggestions.length > 0}
-                  aria-autocomplete="list"
-                  aria-label={_("Address")}
-                  placeholder="https://…"
-                  className={cn(
-                    "h-7 w-full max-w-xl rounded-ui-control border border-ui-accent/70 bg-black/8 px-2.5 text-ui-body font-medium outline-none dark:bg-white/12",
-                    !contrastFg && "text-ui-label"
-                  )}
-                />
-                <BrowserAddressSuggestions
-                  anchor={addressInput}
-                  items={suggestions}
-                  selected={suggestIndex}
-                  empty={suggestQuery === ""}
-                  onPick={goTo}
-                  onHover={setSuggestIndex}
-                />
-              </form>
-            ) : (
+            <AddressBar
+              field={addressField}
+              label={_("Address")}
+              placeholder="https://…"
+              suggestionsLabel={addressField.untouched ? _("Bookmarks") : _("Suggestions")}
+              suggestionsHeading={addressField.untouched ? _("Bookmarks") : undefined}
+              className="justify-center px-2"
+              inputClassName={cn("max-w-xl font-medium", !contrastFg && "text-ui-label")}
+            >
               <div className="pointer-events-none flex min-w-0 shrink items-center justify-center gap-1.5 px-4">
                 {isLoading ? (
                   <Loader2Icon
@@ -1347,10 +1293,7 @@ export function WebViewSurface({
                   type="button"
                   data-window-no-drag
                   aria-label={_("Edit address")}
-                  onClick={() => {
-                    setDraftAddress(currentUrl);
-                    setEditingAddress(true);
-                  }}
+                  onClick={addressField.open}
                   className={cn(
                     "pointer-events-auto max-w-full cursor-text truncate rounded-ui-control px-2 py-0.5 text-ui-body font-semibold transition-colors hover-fill:bg-black/6 dark:hover-fill:bg-white/10",
                     !contrastFg && "text-ui-label"
@@ -1359,7 +1302,7 @@ export function WebViewSurface({
                   {win.title}
                 </button>
               </div>
-            )}
+            </AddressBar>
           </HeaderBar.Title>
           <HeaderBar.End>
             {Math.abs(zoom - 1) > 0.001 && (

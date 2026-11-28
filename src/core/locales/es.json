@@ -1088,5 +1088,9 @@
   "To compare with": "Para comparar",
   "Window shown: %s": "Ventana mostrada: %s",
   "Not installed (gnome-calculator)": "No instalada (gnome-calculator)",
-  "Close it before opening it again. Its memory is its whole process.": "Ciérrela antes de volver a abrirla. Su memoria es la de todo su proceso."
+  "Close it before opening it again. Its memory is its whole process.": "Ciérrela antes de volver a abrirla. Su memoria es la de todo su proceso.",
+  "Folder path": "Ruta de la carpeta",
+  "Click or press Ctrl+L to edit location": "Haz clic o pulsa Ctrl+L para editar la ubicación",
+  "Go to Folder": "Ir a la carpeta",
+  "Pages": "Páginas"
 }

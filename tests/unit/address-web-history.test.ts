@@ -1,6 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { addressSuggestions, withVisit, type BrowserHistoryEntry } from "@/ui/shell/windows/browser-history";
-import { browserShortcut } from "@/ui/shell/windows/browser-shortcuts";
+import { addressSuggestions, withVisit, type BrowserHistoryEntry } from "@/core/address/web-history";
 
 const now = 1_800_000_000_000;
 const day = 86_400_000;
@@ -23,22 +22,22 @@ describe("browser history", () => {
       { url: "https://linuxfoundation.org/", title: "The Linux Foundation", visits: 2, last: now },
     ];
     const bookmarks = [{ url: "https://lwn.net/", title: "LWN.net", added: now - day }];
-    expect(addressSuggestions("lin", bookmarks, history, now).map((s) => s.url)).toEqual([
+    expect(addressSuggestions("lin", bookmarks, history, now).map((s) => s.key)).toEqual([
       "https://linuxfoundation.org/",
       "https://www.wikipedia.org/wiki/Linux",
     ]);
-    expect(addressSuggestions("wiki", bookmarks, history, now)[0].url).toBe(
+    expect(addressSuggestions("wiki", bookmarks, history, now)[0].key).toBe(
       "https://www.wikipedia.org/wiki/Linux"
     );
     expect(addressSuggestions("", bookmarks, history, now)).toEqual([
-      { url: "https://lwn.net/", title: "LWN.net", bookmarked: true },
+      {
+        key: "https://lwn.net/",
+        title: "LWN.net",
+        detail: "lwn.net",
+        icon: "bookmark",
+        target: { kind: "url", url: "https://lwn.net/" },
+      },
     ]);
     expect(addressSuggestions("zzz", bookmarks, history, now)).toEqual([]);
-  });
-
-  it("binds Ctrl+D to the bookmark", () => {
-    expect(
-      browserShortcut({ key: "d", ctrlKey: true, metaKey: false, altKey: false, shiftKey: false })
-    ).toEqual({ kind: "toggle-bookmark" });
   });
 });
