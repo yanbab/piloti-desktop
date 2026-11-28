@@ -7,7 +7,7 @@
  * (`tests/unit/engine-boundary.test.ts` checks it), so caching, timing or a
  * different backend has one place to go.
  */
-import type { Piloti } from "@/platform/shared/piloti";
+import type { Piloti } from "@/core/ports/piloti";
 
 export type HostFiles = Piloti["files"];
 

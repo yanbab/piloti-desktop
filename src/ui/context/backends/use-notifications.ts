@@ -7,7 +7,7 @@ import {
   readVfsStateText,
   VFS_STATE_PATHS,
   writeVfsStateJson,
-} from "@/platform/shared/vfs-state";
+} from "@/core/state/vfs-state";
 import { isAppNotificationAllowed } from "@/core/system/app-permissions";
 import { parseOpenAction } from "@/core/files/capture-files";
 import {
@@ -16,13 +16,13 @@ import {
   clampHistoryLimit,
   loadLocalNotificationHistory,
   loadReadNotificationIds,
-  pilotiToastManager,
   resolveNotificationTimeoutMs,
   saveLocalNotificationHistory,
   saveReadNotificationIds,
   shouldShowNotificationBanner,
   toToastId,
 } from "@/core/system/notifications";
+import { pilotiToastManager } from "@/ui/shell/notifications/toast-manager";
 import type { DesktopSettings } from "@/ui/context/SettingsContext";
 
 let nextNotifCounter = 5000;

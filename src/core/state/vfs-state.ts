@@ -1,4 +1,4 @@
-import { VFS_HOME } from "@/platform/shared/vfs-home";
+import { VFS_HOME } from "@/core/state/vfs-home";
 import type { StateFile, StateSource } from "@/core/ports/state-source";
 import { normalizeVfsPath } from "@/core/files/vfs-paths";
 

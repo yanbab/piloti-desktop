@@ -3,7 +3,7 @@
  * Imported first by `piloti-web.tsx` (and the tests), before a module reads them.
  */
 import { setEmblemStorage } from "@/platform/shared/emblems";
-import { setDefaultStateSource } from "@/platform/shared/vfs-state";
+import { setDefaultStateSource } from "@/core/state/vfs-state";
 import { setDemoFiles } from "@/core/ports/demo-files";
 import { setDemoUsb } from "@/core/ports/demo-usb";
 import { setVfsInspector } from "@/core/ports/vfs-inspector";

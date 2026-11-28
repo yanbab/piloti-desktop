@@ -50,8 +50,8 @@ After changing:
 - **Domicile** is received as `piloti: Piloti` (`usePiloti()`), not `domicile`.
 - **Files:** `piloti.vfs`. Domicile's own file calls go through
   `hostFiles(piloti)`, never `piloti.files`. Don't import `web-vfs.ts` in new code.
-- Tests hold lists of old importers (`platform/native`, `web-vfs`, upward imports
-  from `core/`): they may only shrink.
+- Tests hold lists of old importers (`platform/native`, `web-vfs`): they may only
+  shrink.
 - No VFS module may load before the native entry knows `$HOME`.
 - **State** goes in `.ini` files through `vfs-state.ts`, so they stay editable;
   no raw `localStorage` keys (small per-viewer UI prefs excepted).

@@ -1,5 +1,5 @@
 /** Where Wayland popups and subsurfaces go, relative to their toplevel. */
-import type { DesktopWindowInstance, ResolvedPopupWindow } from "@/ui/context/windows/types";
+import type { DesktopWindowInstance, ResolvedPopupWindow } from "@/core/windows/types";
 
 export interface PopupSource {
   appId: string;

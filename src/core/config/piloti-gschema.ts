@@ -1,4 +1,4 @@
-import type { DesktopSettings } from "@/ui/context/SettingsContext";
+import type { DesktopSettings } from "@/core/config/desktop-settings";
 import type { SettingValue } from "@/core/ports/settings";
 import { GVARIANT_TYPE, toGVariant } from "./gvariant";
 import type { DesktopKeyKind } from "./piloti-settings-ini";

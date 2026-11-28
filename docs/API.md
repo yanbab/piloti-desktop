@@ -52,7 +52,7 @@ watch(schema, key, fn)    returns stop
 schemas                   defined schemas
 ```
 
-In shell code (`platform/shared/settings.ts`):
+In shell code (`core/state/settings.ts`):
 
 ```ts
 const calc = defineSettings("org.piloti.calculator", { scientific: false });

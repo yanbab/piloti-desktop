@@ -1,6 +1,6 @@
 /** Starts one of our apps as a Domicile app module (see docs/ARCHITECTURE.md). */
 import { MODULE_MOVES_DIR, MODULE_MOVES_FILE, type ModuleMove, APP_MODULES } from "@/core/data/app-modules";
-import { hostFiles } from "@/platform/shared/host-files";
+import { hostFiles } from "@/core/files/host-files";
 import type { Piloti } from "@/platform/shared/piloti";
 
 /**

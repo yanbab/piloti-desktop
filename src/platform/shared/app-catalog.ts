@@ -5,7 +5,7 @@
  */
 import type { Piloti } from "@/platform/shared/piloti";
 import { APP_CATALOG, registerApps } from "@/core/data/catalog";
-import { hostFiles } from "@/platform/shared/host-files";
+import { hostFiles } from "@/core/files/host-files";
 
 const APPLICATIONS_DIR = "/usr/share/applications";
 

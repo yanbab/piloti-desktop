@@ -1,6 +1,6 @@
 import * as React from "react";
 import { usePiloti } from "@/platform/shared/piloti";
-import { defineSettings } from "@/platform/shared/settings";
+import { defineSettings } from "@/core/state/settings";
 
 /**
  * How Folders shows a folder. A window opened on a folder is spatial: each

@@ -1,4 +1,4 @@
-import { getEngine } from "@/platform/shared/engine";
+import { getEngine } from "@/core/ports/engine";
 import * as React from "react";
 import { usePiloti } from "@/platform/shared/piloti";
 import { useApps, useWindowActions } from "@/ui/context/DesktopStateContext";
@@ -20,7 +20,7 @@ import {
   parseMimeAppsList,
   resolveAppsForMime,
 } from "@/core/xdg/xdg-mimeapps";
-import { subscribeVfsPath } from "@/platform/shared/vfs-state";
+import { subscribeVfsPath } from "@/core/state/vfs-state";
 
 export interface OpenPathOptions {
   /** Defaults to the VFS entry's kind (browser) or "file". */

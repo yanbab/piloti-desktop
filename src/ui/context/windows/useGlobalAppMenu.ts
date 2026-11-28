@@ -4,7 +4,7 @@ import { selectAll } from "@/core/windows/select-all";
 import { APP_CATALOG, type AppDefinition } from "@/core/data/catalog";
 import { type InstalledWebApp, resolveWebAppTitle } from "@/core/data/web-apps";
 import type { XdgDesktopEntry } from "xdg-desktop-entry";
-import { getEngine } from "@/platform/shared/engine";
+import { getEngine } from "@/core/ports/engine";
 import { matchAppFromWayland } from "@/ui/context/AppsContext";
 import type { SystemBackendsContextValue } from "@/ui/context/SystemBackendsContext";
 import type { DesktopWindowInstance } from "@/ui/context/WindowsContext";

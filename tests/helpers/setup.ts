@@ -2,7 +2,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { registerApps } from "@/core/data/catalog";
-import { setEngine, webEngine } from "@/platform/shared/engine";
+import { setEngine, webEngine } from "@/core/ports/engine";
 import { setDataFiles } from "@/platform/web/data-files";
 import { demoVfsSeed } from "@/platform/web/vfs-seed";
 import { setVfsSeed } from "@/platform/web/web-vfs";

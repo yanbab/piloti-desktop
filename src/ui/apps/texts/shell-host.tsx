@@ -4,7 +4,7 @@ import { shouldConfirmUnsavedOnClose, readTextsSettings, writeTextsSettings } fr
 import { normalizeVfsPath } from "@/core/files/vfs-paths";
 import { subscribeRenames } from "@/platform/shared/renames";
 import { announceRename, moveKeepingEmblems } from "@/platform/shared/fs-bridge";
-import { VFS_HOME } from "@/platform/shared/vfs-home";
+import { VFS_HOME } from "@/core/state/vfs-home";
 import { createShellAppHost } from "@/platform/shared/app-shell-host";
 import { onShellEvent } from "@/core/windows/shell-events";
 

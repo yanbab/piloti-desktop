@@ -40,7 +40,7 @@ export const darkFirstPaint = (): Plugin => ({
 });
 
 /**
- * The entry learns `$HOME` before anything reads it (`engine/vfs-home.ts`).
+ * The entry learns `$HOME` before anything reads it (`core/state/vfs-home.ts`).
  * With the shell in chunks, fail the build if one it imports up front does.
  */
 export const homeNotReadEarly = (): Plugin => ({
@@ -56,7 +56,7 @@ export const homeNotReadEarly = (): Plugin => ({
       if (seen.has(name) || chunk?.type !== "chunk") continue;
       seen.add(name);
       queue.push(...chunk.imports);
-      if (Object.keys(chunk.modules).some((id) => id.endsWith("/platform/shared/vfs-home.ts"))) {
+      if (Object.keys(chunk.modules).some((id) => id.endsWith("/core/state/vfs-home.ts"))) {
         this.error(`${name} reads $HOME before the entry knows it`);
       }
     }

@@ -1,5 +1,5 @@
 /// <reference types="@domicile-desktop/react/elements" />
-import { hostFiles } from "@/platform/shared/host-files";
+import { hostFiles } from "@/core/files/host-files";
 import { looksLikeUrl, webSearchUrl } from "@/core/util/web-search";
 import * as React from "react";
 import { onShellEvent } from "@/core/windows/shell-events";
@@ -78,7 +78,7 @@ import {
   parseChromeWebStoreExtensionId,
   setExtensionEnabled,
 } from "@/platform/shared/browser-extensions";
-import { toggleWebAppInstall } from "@/core/xdg/xdg-web-apps";
+import { toggleWebAppInstall } from "@/platform/shared/web-apps-store";
 import { useCapabilities } from "@/ui/hooks/use-capabilities";
 import { dismissOpenPopups } from "@/ui/shell/windows/dismiss-popups";
 

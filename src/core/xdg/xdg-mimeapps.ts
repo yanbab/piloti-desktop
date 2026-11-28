@@ -1,7 +1,7 @@
 import type { Piloti } from "@/core/ports/piloti";
 import type { XdgDesktopEntry } from "./xdg-desktop-entry";
-import { readFsTextFile, writeFsTextFile } from "@/platform/shared/fs-bridge";
-import { WEB_VFS_HOME } from "@/core/files/vfs-paths";
+import { normalizeVfsPath, WEB_VFS_HOME } from "@/core/files/vfs-paths";
+import { parentPath } from "@/core/ports/vfs";
 
 /** Used when the user has no `mimeapps.list`. */
 export const DEFAULT_MIMEAPPS_INI = `[Default Applications]
@@ -259,10 +259,21 @@ export function resolveAppsForMime(
   return options.filter((o) => o.builtinAppId || o.entry);
 }
 
+const readList = async (piloti: Piloti): Promise<string> =>
+  (await piloti.vfs.readText(normalizeVfsPath(MIMEAPPS_PATH)).catch(() => null)) ?? "";
+
+async function writeList(piloti: Piloti, content: string): Promise<void> {
+  const path = normalizeVfsPath(MIMEAPPS_PATH);
+  await piloti.vfs
+    .createDir(parentPath(path))
+    .then(() => piloti.vfs.write(path, content))
+    .catch((error) => console.warn(`[piloti] could not save ${path}`, error));
+}
+
 export async function loadMimeAppsConfig(
   piloti: Piloti,
 ): Promise<MimeAppsConfig> {
-  const raw = await readFsTextFile(piloti, MIMEAPPS_PATH);
+  const raw = await readList(piloti);
   return parseMimeAppsList(raw || DEFAULT_MIMEAPPS_INI);
 }
 
@@ -272,7 +283,7 @@ export async function setDefaultMimeApp(
   desktopId: string,
 ): Promise<void> {
   const raw =
-    (await readFsTextFile(piloti, MIMEAPPS_PATH)) ||
+    (await readList(piloti)) ||
     DEFAULT_MIMEAPPS_INI;
   const config = parseMimeAppsList(raw);
   const existing = config.defaults[mimeType] ?? [];
@@ -288,7 +299,7 @@ export async function setDefaultMimeApp(
   for (const [m, ids] of Object.entries(config.added)) {
     lines.push(`${m}=${ids.join(";")};`);
   }
-  await writeFsTextFile(piloti, MIMEAPPS_PATH, `${lines.join("\n")}\n`);
+  await writeList(piloti, `${lines.join("\n")}\n`);
 }
 
 export interface SharedMimeGlob {

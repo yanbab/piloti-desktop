@@ -44,7 +44,7 @@ import { receiveModuleCommand } from "@/platform/shared/module-ipc";
 import {
   installWebAppDesktopEntry,
   removeWebAppDesktopEntry,
-} from "@/core/xdg/xdg-web-apps";
+} from "@/platform/shared/web-apps-store";
 import { AltTabSwitcher } from "@/ui/shell/overview/AltTabSwitcher";
 const AboutComputerDialog = React.lazy(() =>
   import("@/ui/shell/dialogs/AboutComputerDialog").then((m) => ({

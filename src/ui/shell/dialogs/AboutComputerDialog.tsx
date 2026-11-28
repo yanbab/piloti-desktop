@@ -17,7 +17,7 @@ import {
 } from "@/ui/context/DesktopStateContext";
 import { _ } from "@/core/util/i18n";
 import { cn } from "@/core/util/utils";
-import { type ComputerInfo, probeComputerInfo } from "@/core/system/system-info";
+import { type ComputerInfo, probeComputerInfo } from "@/platform/shared/system-info";
 import { useCapabilities } from "@/ui/hooks/use-capabilities";
 
 export function ComputerHardwareIllustration({

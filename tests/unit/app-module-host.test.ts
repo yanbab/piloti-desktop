@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, test } from "bun:test";
 import { Ok } from "@cprussin/option-result";
 import { createAppModuleHost } from "@/platform/shared/app-module-host";
-import { defineSettings, setSettingsBackend } from "@/platform/shared/settings";
+import { defineSettings, setSettingsBackend } from "@/core/state/settings";
 import { createFakeDomicile } from "../helpers/fake-domicile";
 
 beforeAll(() => {

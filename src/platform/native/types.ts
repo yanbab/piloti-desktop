@@ -1,3 +1,10 @@
+import type {
+  GtkFontAntialiasing,
+  GtkFontHinting,
+  GtkFontRgbaOrder,
+} from "@/core/config/desktop-settings";
+
+export type { GtkFontAntialiasing, GtkFontHinting, GtkFontRgbaOrder };
 
 /**
  * Environment variables injected when launching GNOME / GTK / XDG applications
@@ -34,9 +41,6 @@ export type GnomeSettingsPanel =
   | "users"
   | "datetime";
 
-export type GtkFontAntialiasing = "none" | "grayscale" | "rgba";
-export type GtkFontHinting = "none" | "slight" | "medium" | "full";
-export type GtkFontRgbaOrder = "rgb" | "bgr" | "vrgb" | "vbgr";
 
 export interface GnomeSystemCapabilities {
   gsettings: boolean;

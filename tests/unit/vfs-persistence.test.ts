@@ -7,7 +7,7 @@ import {
   writeVfsTextFile,
   WEB_VFS_STORAGE_KEY,
 } from "@/platform/web/web-vfs";
-import { VFS_HOME } from "@/platform/shared/vfs-home";
+import { VFS_HOME } from "@/core/state/vfs-home";
 
 describe("VFS persistence port", () => {
   afterAll(() => setVfsPersistence(browserPersistence()));

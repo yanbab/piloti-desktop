@@ -1,5 +1,5 @@
 /** Changes to the tabs of one Web Browser window. Each returns `null` for "no change". */
-import type { BrowserTabGroup } from "@/ui/context/windows/types";
+import type { BrowserTabGroup } from "@/core/windows/types";
 
 /** Pinned tabs first, each side keeping its order. */
 export function pinnedFirst(tabs: string[], pinned: string[] | undefined): string[] {

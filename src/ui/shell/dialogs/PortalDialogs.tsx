@@ -1,4 +1,4 @@
-import { VFS_HOME } from "@/platform/shared/vfs-home";
+import { VFS_HOME } from "@/core/state/vfs-home";
 import * as React from "react";
 import { useVfsList } from "@/ui/hooks/use-vfs";
 import { useCapabilities } from "@/ui/hooks/use-capabilities";

@@ -14,7 +14,7 @@ import {
   serializeRecentlyUsedXbel,
   upsertRecentXbelItem,
 } from "@/core/xdg/xdg-recents";
-import { getEngine } from "@/platform/shared/engine";
+import { getEngine } from "@/core/ports/engine";
 import { inferMimeType } from "@/core/xdg/xdg-mimeapps";
 import { compressNative, extractNative } from "@/platform/native/archive";
 import { listEmblems } from "@/platform/native/gio";

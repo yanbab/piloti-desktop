@@ -7,7 +7,7 @@ import {
   vfsChangeAffects,
   writeVfsTextFile,
 } from "@/platform/web/web-vfs";
-import { writeVfsStateJson } from "@/platform/shared/vfs-state";
+import { writeVfsStateJson } from "@/core/state/vfs-state";
 
 describe("vfsChangeAffects", () => {
   it("matches exact paths and ancestors", () => {

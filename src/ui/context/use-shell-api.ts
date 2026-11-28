@@ -8,7 +8,7 @@ import {
 import { WindowManagerStoreContext } from "@/ui/context/windows/window-manager-store";
 import { getAppSetting, setAppSetting } from "@/core/config/app-settings";
 import { usePiloti } from "@/platform/shared/piloti";
-import { listSettingsSchemas, settingsFor } from "@/platform/shared/settings";
+import { listSettingsSchemas, settingsFor } from "@/core/state/settings";
 import { bindShellApi, publishPlugins, publishWindows } from "@/platform/shared/shell-api";
 import type { PilotiWindow } from "@/core/ports/shell-api";
 import type { DiscoveredPlugin } from "@/core/plugins/types";

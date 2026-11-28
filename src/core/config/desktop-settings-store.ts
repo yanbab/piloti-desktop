@@ -1,4 +1,4 @@
-import type { DesktopSettings } from "@/ui/context/SettingsContext";
+import type { DesktopSettings } from "@/core/config/desktop-settings";
 import type { SettingChange, SettingsBackend } from "@/core/ports/settings";
 import { parseIniText, serializeIniText, type IniRecord } from "./ini";
 import { desktopSchemaKeys, serializeDesktopSettingsIni } from "./piloti-settings-ini";

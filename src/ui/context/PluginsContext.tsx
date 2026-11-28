@@ -1,8 +1,8 @@
 import { spawnProgram } from "@/platform/shared/system-commands";
-import { hostFiles } from "@/platform/shared/host-files";
+import { hostFiles } from "@/core/files/host-files";
 import { startBootPhase } from "@/core/util/perf-log";
 import { latestRunner } from "@/core/plugins/latest-run";
-import { VFS_HOME } from "@/platform/shared/vfs-home";
+import { VFS_HOME } from "@/core/state/vfs-home";
 import * as React from "react";
 import { usePiloti } from "@/platform/shared/piloti";
 import { useShellApi } from "@/ui/context/use-shell-api";
@@ -20,13 +20,13 @@ import { BUNDLED_PLUGINS } from "@/core/plugins/bundled";
 import { _ } from "@/core/util/i18n";
 import { useCapabilities } from "@/ui/hooks/use-capabilities";
 import { parseIniText, serializeIniText } from "@/core/config/ini";
-import { consumeLegacyLocalStorageValue } from "@/platform/shared/vfs-state";
+import { consumeLegacyLocalStorageValue } from "@/core/state/vfs-state";
 import {
   readVfsStateJson,
   readVfsStateText,
   removeVfsStateFile,
   writeVfsStateText,
-} from "@/platform/shared/vfs-state";
+} from "@/core/state/vfs-state";
 import type {
   DiscoveredPlugin,
   LauncherProvider,

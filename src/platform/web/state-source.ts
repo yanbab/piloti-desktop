@@ -1,6 +1,6 @@
 /** The browser demo: the browser VFS is the storage, and is read directly. */
 import type { StateSource } from "@/core/ports/state-source";
-import { VFS_HOME } from "@/platform/shared/vfs-home";
+import { VFS_HOME } from "@/core/state/vfs-home";
 import {
   consumeLegacyLocalStorageValue,
   ensureVfsDir,

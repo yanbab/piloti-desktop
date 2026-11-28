@@ -1,23 +1,14 @@
+import type { FlatpakAppEntry } from "@/core/system/flatpak-entry";
 import {
   DEFAULT_FLATPAK_PERMISSIONS,
   type FlatpakPermissionsState,
 } from "@/core/system/flatpak-permissions";
 import type { Piloti } from "@/platform/shared/piloti";
 import { Signal } from "@domicile-desktop/sdk/system";
-import { hostFiles } from "@/platform/shared/host-files";
+import { hostFiles } from "@/core/files/host-files";
 import { commandExists, runText } from "./exec";
 
-export interface FlatpakAppEntry {
-  appId: string;
-  name: string;
-  version?: string;
-  origin?: string;
-  installation?: string;
-  description?: string;
-  iconUrl?: string;
-  mainCategories?: string[];
-  installed: boolean;
-}
+export type { FlatpakAppEntry };
 
 export interface FlatpakCapabilities {
   available: boolean;

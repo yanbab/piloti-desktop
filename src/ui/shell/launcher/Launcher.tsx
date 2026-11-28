@@ -48,12 +48,12 @@ import { startPointerDrag } from "@/ui/dnd/pointer-drag";
 
 /** Height of the menu bar above the floating area. */
 const MENU_BAR_HEIGHT = 30;
-import { consumeLegacyLocalStorageValue } from "@/platform/shared/vfs-state";
+import { consumeLegacyLocalStorageValue } from "@/core/state/vfs-state";
 import {
   readVfsStateJson,
   VFS_STATE_PATHS,
   writeVfsStateJson,
-} from "@/platform/shared/vfs-state";
+} from "@/core/state/vfs-state";
 import { AppSquircleIcon } from "@/ui/components/common/AppSymbol";
 
 const RECENT_LAUNCHES_KEY = "piloti.launcher.recent.v1";

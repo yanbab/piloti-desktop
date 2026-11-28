@@ -1,5 +1,5 @@
 import type { Piloti } from "@/platform/shared/piloti";
-import { keyfileSettingsBackend, setSettingsBackend } from "@/platform/shared/settings";
+import { keyfileSettingsBackend, setSettingsBackend } from "@/core/state/settings";
 import { createDconfSettingsBackend, routeSettingsBackend, type DconfHost } from "@/core/config/dconf-settings-backend";
 import { GSETTINGS_LINKS_PATH, linkSettingsBackend, parseGSettingsLinks } from "@/core/config/gsettings-links";
 import { desktopSchemaKeys } from "@/core/config/piloti-settings-ini";

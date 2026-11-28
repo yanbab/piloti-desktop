@@ -7,7 +7,7 @@ import {
   readVfsStateText,
   VFS_STATE_PATHS,
   writeVfsStateText,
-} from "@/platform/shared/vfs-state";
+} from "@/core/state/vfs-state";
 import {
   XDG_ICON_BASE_DIRS,
   XDG_PIXMAPS_DIRS,

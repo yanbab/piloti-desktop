@@ -1,5 +1,5 @@
 import * as React from "react";
-import type { Settings } from "@/platform/shared/settings";
+import type { Settings } from "@/core/state/settings";
 import type { SettingValue } from "@/core/ports/settings";
 
 /** One setting as React state: `[value, setValue]`, live when it changes elsewhere. */

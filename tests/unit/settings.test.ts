@@ -4,18 +4,18 @@ import {
   keyfileSettingsBackend,
   memorySettingsBackend,
   setSettingsBackend,
-} from "@/platform/shared/settings";
+} from "@/core/state/settings";
 import {
   SHELL_SETTINGS_PATH,
   findSettings,
   listSettingsSchemas,
   settingsFor,
   settingsPathForSchema,
-} from "@/platform/shared/settings";
+} from "@/core/state/settings";
 import { desktopSchemaDefaults } from "@/core/config/piloti-settings-ini";
 import type { DesktopSettings } from "@/ui/context/SettingsContext";
 import { mergeIniText } from "@/core/config/ini";
-import { setStateSource } from "@/platform/shared/vfs-state";
+import { setStateSource } from "@/core/state/vfs-state";
 import {
   appSettingsPath,
   getAppSetting,

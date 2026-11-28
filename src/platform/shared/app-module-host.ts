@@ -14,7 +14,7 @@ import {
 import { parseIniText, serializeIniText } from "@/core/config/ini";
 import { applyThemeToDocument, MENU_STATE_EVENT } from "@/platform/shared/app-bridge";
 import { createNativeVfs, type NativeVfsHost } from "@/platform/shared/app-module-vfs";
-import { setSettingsBackend } from "@/platform/shared/settings";
+import { setSettingsBackend } from "@/core/state/settings";
 import { retainVfsWatch } from "@/platform/shared/vfs-query";
 import type { AppHost } from "@/core/ports/app-host";
 import type { SettingsBackend } from "@/core/ports/settings";

@@ -3,7 +3,7 @@
  * the machine totals and every process, so a sample is a single subprocess.
  * The figures are computed in `core/system-stats.ts`.
  */
-import { getEngine } from "@/platform/shared/engine";
+import { getEngine } from "@/core/ports/engine";
 import type { Piloti } from "@/platform/shared/piloti";
 import { parseSystemSample, type SystemSample } from "@/core/system/system-stats";
 

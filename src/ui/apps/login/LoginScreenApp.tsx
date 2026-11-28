@@ -1,5 +1,5 @@
 import { useAppChrome } from "@/ui/components/elements/app-chrome";
-import { VFS_HOME } from "@/platform/shared/vfs-home";
+import { VFS_HOME } from "@/core/state/vfs-home";
 import * as React from "react";
 import { useCapabilities } from "@/ui/hooks/use-capabilities";
 import { usePiloti } from "@/platform/shared/piloti";
@@ -35,7 +35,7 @@ import {
 import { _, getLocale } from "@/core/util/i18n";
 import { cn } from "@/core/util/utils";
 import { batteryTone } from "@/ui/components/common/power-saver";
-import { readVfsStateJson, writeVfsStateJson } from "@/platform/shared/vfs-state";
+import { readVfsStateJson, writeVfsStateJson } from "@/core/state/vfs-state";
 
 export interface LoginScreenAppProps {
   windowId?: string;

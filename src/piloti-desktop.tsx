@@ -1,12 +1,12 @@
 import { loadAppCatalog } from "./platform/shared/app-catalog";
-import { hostFiles } from "@/platform/shared/host-files";
+import { hostFiles } from "@/core/files/host-files";
 import { attachConsoleDiskSink, installConsoleCapture } from "./core/util/console-store";
 import { createShellLogWriter } from "./platform/shared/shell-log";
 import { profileStartup } from "./core/util/startup-profile";
 import { startBootPhase } from "./core/util/perf-log";
 import type { Shell as ShellModule } from "@domicile-desktop/sdk/shell";
 import "./ui/styles/globals.css";
-import { nativeEngine, setEngine } from "./platform/shared/engine";
+import { nativeEngine, setEngine } from "./core/ports/engine";
 import type { Vfs } from "./core/ports/vfs";
 
 setEngine(nativeEngine);
@@ -49,7 +49,7 @@ async function boot(root: HTMLElement, piloti: Parameters<ShellModule>[1]) {
         import("@/platform/native/gio"),
         import("@/platform/native/emblem-storage"),
         import("@/platform/native/state-store"),
-        import("@/platform/shared/vfs-state"),
+        import("@/core/state/vfs-state"),
         import("@/platform/shared/emblems"),
         import("@/platform/native/clear-old-browser-cache"),
       ]);

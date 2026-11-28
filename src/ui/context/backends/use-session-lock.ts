@@ -1,7 +1,7 @@
 import * as React from "react";
 import { useWatch } from "@domicile-desktop/react/use-watch";
 import { UnlockRefusal, type UnlockRefused } from "@domicile-desktop/sdk/system";
-import { getEngine } from "@/platform/shared/engine";
+import { getEngine } from "@/core/ports/engine";
 import type { Piloti } from "@/platform/shared/piloti";
 
 /** Seconds of warning before the screens blank for inactivity. */

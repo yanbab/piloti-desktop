@@ -1,4 +1,4 @@
-import { hostFiles } from "@/platform/shared/host-files";
+import { hostFiles } from "@/core/files/host-files";
 import type { Piloti } from "@/core/ports/piloti";
 import { posixPathToFileUri } from "./xdg-recents";
 

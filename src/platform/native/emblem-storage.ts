@@ -4,8 +4,8 @@
  * which files have one.
  */
 import { memoryEmblemStorage, type EmblemMap, type EmblemStorage } from "@/platform/shared/emblems";
-import { readVfsStateJson, VFS_STATE_PATHS, writeVfsStateJson } from "@/platform/shared/vfs-state";
-import { VFS_HOME } from "@/platform/shared/vfs-home";
+import { readVfsStateJson, VFS_STATE_PATHS, writeVfsStateJson } from "@/core/state/vfs-state";
+import { VFS_HOME } from "@/core/state/vfs-home";
 import type { Vfs } from "@/core/ports/vfs";
 
 /** Where earlier releases saved the favorites. */

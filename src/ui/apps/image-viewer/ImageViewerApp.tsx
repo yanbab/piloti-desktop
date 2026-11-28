@@ -1,8 +1,8 @@
-import { VFS_HOME } from "@/platform/shared/vfs-home";
+import { VFS_HOME } from "@/core/state/vfs-home";
 import * as React from "react";
 import { retainVfsWatch } from "@/platform/shared/vfs-query";
 import { usePiloti } from "@/platform/shared/piloti";
-import { getEngine } from "@/platform/shared/engine";
+import { getEngine } from "@/core/ports/engine";
 import { emitShellEvent, onShellEvent } from "@/core/windows/shell-events";
 import { CropIcon } from "lucide-react";
 import { CheckIcon, Maximize2Icon, RotateCcwIcon, RotateCwIcon, SaveIcon, XIcon, ZoomInIcon, ZoomOutIcon } from "@/ui/components/ui/symbols";
@@ -10,7 +10,7 @@ import { UnsavedChangesDialog } from "@/ui/components/ui/unsaved-changes-dialog"
 import { useAppChrome } from "@/ui/components/elements/app-chrome";
 import { HeaderBar } from "@/ui/components/elements/header-bar";
 import { useIsolatedAppBridge } from "@/platform/shared/app-bridge";
-import { readVfsStateJson, writeVfsStateJson } from "@/platform/shared/vfs-state";
+import { readVfsStateJson, writeVfsStateJson } from "@/core/state/vfs-state";
 import { shouldConfirmUnsavedOnClose } from "@/core/config/piloti-ini";
 import { _ } from "@/core/util/i18n";
 import { cn } from "@/core/util/utils";

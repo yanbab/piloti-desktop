@@ -11,7 +11,7 @@ import {
 import { onAppAction, publishWindowMenuState } from "@/platform/shared/app-bridge";
 import { createShellAppHost } from "@/platform/shared/app-shell-host";
 import { usePiloti } from "@/platform/shared/piloti";
-import { readVfsStateJson, VFS_STATE_PATHS } from "@/platform/shared/vfs-state";
+import { readVfsStateJson, VFS_STATE_PATHS } from "@/core/state/vfs-state";
 
 export const ShellCalculatorApp = ({ windowId = "" }: { windowId?: string }) => {
   const piloti = usePiloti();

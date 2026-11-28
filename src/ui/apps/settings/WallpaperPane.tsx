@@ -1,4 +1,4 @@
-import { hostFiles } from "@/platform/shared/host-files";
+import { hostFiles } from "@/core/files/host-files";
 import * as React from "react";
 import { useCapabilities } from "@/ui/hooks/use-capabilities";
 import { useDisplays } from "@domicile-desktop/react/displays";

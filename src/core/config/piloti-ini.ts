@@ -1,7 +1,7 @@
-import { VFS_HOME } from "@/platform/shared/vfs-home";
+import { VFS_HOME } from "@/core/state/vfs-home";
 import type { Piloti } from "@/core/ports/piloti";
 import { type IniRecord, parseIniText, serializeIniText } from "@/core/config/ini";
-import { readVfsStateText, writeVfsStateText } from "@/platform/shared/vfs-state";
+import { readVfsStateText, writeVfsStateText } from "@/core/state/vfs-state";
 
 export { type IniRecord, parseIniText, serializeIniText };
 

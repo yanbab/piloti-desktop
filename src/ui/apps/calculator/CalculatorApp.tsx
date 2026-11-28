@@ -10,7 +10,7 @@ import {
 } from "@/ui/components/ui/dropdown-menu";
 import { _ } from "@/core/util/i18n";
 import { cn } from "@/core/util/utils";
-import { defineSettings } from "@/platform/shared/settings";
+import { defineSettings } from "@/core/state/settings";
 import { useSetting } from "@/ui/hooks/use-setting";
 import type { CalculatorHost } from "@/ui/apps/calculator/host";
 

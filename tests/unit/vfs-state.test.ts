@@ -21,7 +21,7 @@ import {
   VFS_STATE_PATHS,
   writeVfsStateJson,
   writeVfsStateText,
-} from "@/platform/shared/vfs-state";
+} from "@/core/state/vfs-state";
 import { migrateLegacyConfigDir } from "@/platform/web/state-source";
 
 describe("vfs-state", () => {

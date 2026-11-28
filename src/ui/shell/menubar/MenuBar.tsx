@@ -22,7 +22,7 @@ import {
 } from "@/ui/components/ui/window";
 import { AppSquircleIcon } from "@/ui/components/common/AppSymbol";
 import { findMatchingWebApp } from "@/core/data/web-apps";
-import { toggleWebAppInstall } from "@/core/xdg/xdg-web-apps";
+import { toggleWebAppInstall } from "@/platform/shared/web-apps-store";
 import {
   DropdownMenu,
   DropdownMenuContent,

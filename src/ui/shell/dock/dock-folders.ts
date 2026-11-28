@@ -1,4 +1,4 @@
-import { VFS_HOME } from "@/platform/shared/vfs-home";
+import { VFS_HOME } from "@/core/state/vfs-home";
 /** Pure helpers for folders pinned to the right side of the Dock (macOS-style stacks). */
 
 export const DEFAULT_WEB_DOWNLOADS_PATH = `${VFS_HOME}/Downloads`;

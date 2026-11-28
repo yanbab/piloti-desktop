@@ -1,7 +1,7 @@
 import * as React from "react";
 import { useCapturing } from "@domicile-desktop/react/portals";
 import { ScreenshotKeptKind } from "@domicile-desktop/sdk/system";
-import { getEngine } from "@/platform/shared/engine";
+import { getEngine } from "@/core/ports/engine";
 import type { Piloti } from "@/platform/shared/piloti";
 import { _ } from "@/core/util/i18n";
 import { type CaptureBackend, demoCapture, type Notify } from "@/core/ports/capture";

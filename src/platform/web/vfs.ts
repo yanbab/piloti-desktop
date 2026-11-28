@@ -24,7 +24,7 @@ import {
   trashVfsEntry,
   writeVfsTextFile,
 } from "@/platform/web/web-vfs";
-import { VFS_HOME } from "@/platform/shared/vfs-home";
+import { VFS_HOME } from "@/core/state/vfs-home";
 import { baseName, createPathQueue, joinPath, parentPath, VfsError, type Vfs } from "@/core/ports/vfs";
 
 const inProc = (path: string) => path === "/proc" || path.startsWith("/proc/");

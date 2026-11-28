@@ -29,7 +29,9 @@ describe("engine boundary", () => {
           .split("\n")
           .some((line) => !/^\s*(\/\/|\*|\/\*)/.test(line) && /\b(piloti|domicile)\??\.files\b/.test(line))
       )
-      .map((file) => path.relative(SRC, file));
+      .map((file) => path.relative(SRC, file))
+      // The accessor itself.
+      .filter((file) => file !== path.join("core", "files", "host-files.ts"));
     expect(offenders).toEqual([]);
   });
 });
@@ -185,12 +187,8 @@ describe("layers", () => {
       .sort();
   };
 
-  it("core imports neither platform nor UI, except what is left to untangle", () => {
-    const left: string[] = JSON.parse(
-      fs.readFileSync(path.join(import.meta.dir, "core-upward-importers.json"), "utf8"),
-    );
-    // The list may only get shorter.
-    expect(importers("core", "platform|ui")).toEqual(left);
+  it("core imports neither platform nor UI", () => {
+    expect(importers("core", "platform|ui")).toEqual([]);
   });
 
   it("platform imports no UI", () => {

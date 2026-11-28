@@ -1,4 +1,4 @@
-import type { DesktopSettings } from "@/ui/context/SettingsContext";
+import type { DesktopSettings } from "@/core/config/desktop-settings";
 import { type IniRecord, parseIniText, serializeIniText } from "./ini";
 import type { SettingValue } from "@/core/ports/settings";
 

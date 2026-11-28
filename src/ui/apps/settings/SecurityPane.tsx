@@ -32,7 +32,7 @@ import {
   listInstalledFlatpaks,
   setFlatpakPermissionOverride,
 } from "@/platform/shared/flatpak";
-import { readVfsStateJson, VFS_STATE_PATHS } from "@/platform/shared/vfs-state";
+import { readVfsStateJson, VFS_STATE_PATHS } from "@/core/state/vfs-state";
 
 interface SecurityAppEntry {
   id: string;

@@ -9,7 +9,7 @@ import * as React from "react";
 import { createRoot } from "react-dom/client";
 import { DomicileProvider } from "@domicile-desktop/react/domicile-provider";
 import "./ui/styles/globals.css";
-import { setEngine, webEngine } from "./platform/shared/engine";
+import { setEngine, webEngine } from "./core/ports/engine";
 import { demoVfsSeed } from "./platform/web/vfs-seed";
 import { loadDataFiles } from "./platform/web/data-files";
 import { setVfsSeed } from "./platform/web/web-vfs";

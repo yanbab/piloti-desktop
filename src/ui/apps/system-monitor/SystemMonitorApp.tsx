@@ -27,13 +27,13 @@ import { APP_CATALOG } from "@/core/data/catalog";
 import { _ } from "@/core/util/i18n";
 import { cn } from "@/core/util/utils";
 import { demoPid, setDemoApps } from "@/platform/shared/demo-processes";
-import { getEngine } from "@/platform/shared/engine";
+import { getEngine } from "@/core/ports/engine";
 import { usePiloti } from "@/platform/shared/piloti";
 import { appUsage, cpuPercent, type SystemSample } from "@/core/system/system-stats";
 import { readSystemSample } from "@/platform/shared/system-commands";
 import { parseIniText, serializeIniText } from "@/core/config/ini";
-import { VFS_HOME } from "@/platform/shared/vfs-home";
-import { readVfsStateText, writeVfsStateText } from "@/platform/shared/vfs-state";
+import { VFS_HOME } from "@/core/state/vfs-home";
+import { readVfsStateText, writeVfsStateText } from "@/core/state/vfs-state";
 import { DRAG_THRESHOLD, dragShuffleCss, settleFromOffset } from "@/ui/dnd/drag-feedback";
 import {
   formatWidgetLayout,

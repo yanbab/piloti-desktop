@@ -7,7 +7,7 @@ import {
   nativeEngine,
   setEngine,
   webEngine,
-} from "@/platform/shared/engine";
+} from "@/core/ports/engine";
 import { webDemoUsb } from "@/platform/web/usb-drive";
 import {
   isSimulatedUsbPath,

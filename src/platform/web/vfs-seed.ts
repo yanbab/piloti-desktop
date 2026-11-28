@@ -1,4 +1,4 @@
-import { VFS_HOME, rehome } from "@/platform/shared/vfs-home";
+import { VFS_HOME, rehome } from "@/core/state/vfs-home";
 import {
   WEB_VFS_HOME,
   WEB_VFS_TRASH,

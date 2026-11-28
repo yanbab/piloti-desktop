@@ -1,5 +1,5 @@
-import { hostFiles } from "@/platform/shared/host-files";
-import { VFS_HOME } from "@/platform/shared/vfs-home";
+import { hostFiles } from "@/core/files/host-files";
+import { VFS_HOME } from "@/core/state/vfs-home";
 import * as React from "react";
 import { useCapabilities } from "@/ui/hooks/use-capabilities";
 import { usePiloti } from "@/platform/shared/piloti";

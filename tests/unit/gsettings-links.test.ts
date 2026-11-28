@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { linkSettingsBackend, parseGSettingsLinks } from "@/core/config/gsettings-links";
 import { toGVariant } from "@/core/config/gvariant";
 import { desktopSchemaKeys } from "@/core/config/piloti-settings-ini";
-import { memorySettingsBackend } from "@/platform/shared/settings";
+import { memorySettingsBackend } from "@/core/state/settings";
 
 const links = parseGSettingsLinks(readFileSync("data/files/usr/share/piloti/gsettings-links.ini", "utf8"));
 const IFACE = "org.piloti.desktop.interface";

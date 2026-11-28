@@ -58,7 +58,7 @@ import { type SystemBackendsContextValue } from "./SystemBackendsContext";
 import { useGlobalAppMenu } from "./windows/useGlobalAppMenu";
 import { useModuleChannel } from "./windows/use-module-channel";
 import { useGlobalShortcuts } from "./windows/useGlobalShortcuts";
-import { getEngine } from "@/platform/shared/engine";
+import { getEngine } from "@/core/ports/engine";
 import { useCapabilities } from "@/ui/hooks/use-capabilities";
 import type { DesktopWindowInstance, BrowserTabGroup, WindowsContextValue, WindowActionsValue, ExternalWindowMeta } from "./windows/types";
 export type { DesktopWindowInstance, BrowserTab, ResolvedPopupWindow, WindowsContextValue, WindowActionsValue } from "./windows/types";

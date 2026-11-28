@@ -1,5 +1,5 @@
 import { runText } from "@/platform/shared/system-commands";
-import { hostFiles } from "@/platform/shared/host-files";
+import { hostFiles } from "@/core/files/host-files";
 import type { Piloti } from "@/core/ports/piloti";
 
 export interface ComputerInfo {

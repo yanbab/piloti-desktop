@@ -1,6 +1,6 @@
 import { HeaderBar } from "@/ui/components/elements/header-bar";
 import { Segmented } from "@/ui/components/ui/segmented";
-import { VFS_HOME } from "@/platform/shared/vfs-home";
+import { VFS_HOME } from "@/core/state/vfs-home";
 import * as React from "react";
 import { useCapabilities } from "@/ui/hooks/use-capabilities";
 import { useDisplays } from "@domicile-desktop/react/displays";
@@ -48,7 +48,7 @@ import {
   VFS_STATE_PATHS,
   writeVfsStateString,
   listVfsStateFiles,
-} from "@/platform/shared/vfs-state";
+} from "@/core/state/vfs-state";
 
 export type ConsoleModuleId =
   | "logs"

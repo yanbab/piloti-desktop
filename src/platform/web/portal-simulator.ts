@@ -1,4 +1,4 @@
-import { VFS_HOME } from "@/platform/shared/vfs-home";
+import { VFS_HOME } from "@/core/state/vfs-home";
 import type { FakeDomicileHost } from "@domicile-desktop/sdk/fake-host";
 
 /**

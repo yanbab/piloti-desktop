@@ -9,7 +9,7 @@ import {
   readVfsStateJson,
   subscribeVfsPath,
   writeVfsStateJson,
-} from "@/platform/shared/vfs-state";
+} from "@/core/state/vfs-state";
 
 export interface BrowserBookmark {
   url: string;

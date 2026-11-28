@@ -10,7 +10,7 @@ import {
 } from "@/platform/shared/emblems";
 import type { WebVfsBackingStorageEntry, WebVfsPerfStats } from "@/core/ports/vfs-inspector";
 export { isTextEditableVfsFile, parseDotHiddenFile } from "@/core/files/file-types";
-import { VFS_HOME } from "@/platform/shared/vfs-home";
+import { VFS_HOME } from "@/core/state/vfs-home";
 import type { KeyValueStorage, VfsPersistence } from "@/core/ports/vfs-persistence";
 import { browserPersistence } from "./vfs-persistence-browser";
 import type { VfsSync } from "@/core/ports/vfs-sync";

@@ -12,8 +12,8 @@ import {
 import { useSystemBackends, useDesktopSettings, useWindowManagerSelector } from "@/ui/context/DesktopStateContext";
 import {
   type NotificationToastData,
-  pilotiToastManager,
 } from "@/core/system/notifications";
+import { pilotiToastManager } from "@/ui/shell/notifications/toast-manager";
 import { cn } from "@/core/util/utils";
 import { NotificationBodyText } from "@/ui/components/common/NicePathLabel";
 import {

@@ -33,7 +33,7 @@ import {
   readVfsStateJson,
   VFS_STATE_PATHS,
   writeVfsStateJson,
-} from "@/platform/shared/vfs-state";
+} from "@/core/state/vfs-state";
 import { Button } from "@/ui/components/ui/button";
 import {
   ContextMenu,
@@ -98,7 +98,7 @@ import { cn } from "@/core/util/utils";
 import {
   installWebAppDesktopEntry,
   removeWebAppDesktopEntry,
-} from "@/core/xdg/xdg-web-apps";
+} from "@/platform/shared/web-apps-store";
 import { useCapabilities } from "@/ui/hooks/use-capabilities";
 
 interface AppStoreAppProps {

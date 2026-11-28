@@ -1,9 +1,8 @@
-import { createToastManager } from "@/ui/components/ui/toast";
 import {
   readVfsStateJson,
   VFS_STATE_PATHS,
   writeVfsStateJson,
-} from "@/platform/shared/vfs-state";
+} from "@/core/state/vfs-state";
 
 export interface NotificationActionItem {
   key: string;
@@ -48,8 +47,6 @@ export interface NotificationToastData {
   actions?: readonly NotificationActionItem[];
   browserWindow?: string;
 }
-
-export const pilotiToastManager = createToastManager<NotificationToastData>();
 
 export const NOTIFICATIONS_HISTORY_STORAGE_KEY =
   "piloti.desktop.notifications.v1";

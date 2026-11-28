@@ -1,5 +1,5 @@
-import { getEngine } from "@/platform/shared/engine";
-import { settingsBackend } from "@/platform/shared/settings";
+import { getEngine } from "@/core/ports/engine";
+import { settingsBackend } from "@/core/state/settings";
 import * as React from "react";
 import { usePiloti } from "@/platform/shared/piloti";
 import { type UnlockRefused } from "@domicile-desktop/sdk/system";

@@ -40,7 +40,7 @@ import {
   subscribeVfsPath,
   VFS_STATE_PATHS,
   writeVfsStateString,
-} from "@/platform/shared/vfs-state";
+} from "@/core/state/vfs-state";
 import { cn } from "@/core/util/utils";
 import { AdvancedPane } from "./AdvancedPane";
 import { ExtensionsPane } from "./ExtensionsPane";

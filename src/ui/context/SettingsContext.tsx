@@ -1,7 +1,7 @@
-import { hostFiles } from "@/platform/shared/host-files";
+import { hostFiles } from "@/core/files/host-files";
 import * as React from "react";
 import { currentAppId, renameBoundsKeys } from "@/core/config/renamed-apps";
-import { getEngine } from "@/platform/shared/engine";
+import { getEngine } from "@/core/ports/engine";
 import { usePiloti } from "@/platform/shared/piloti";
 import { usePortalWallpaper } from "@domicile-desktop/react/portals";
 import { useWatch } from "@domicile-desktop/react/use-watch";
@@ -28,14 +28,14 @@ import {
   VFS_STATE_PATHS,
   writeVfsStateJson,
   writeVfsStateText,
-} from "@/platform/shared/vfs-state";
+} from "@/core/state/vfs-state";
 import {
   desktopSchemaDefaults,
   diffDesktopSettings,
   parseDesktopSettingsRaw,
   serializeDesktopSettingsIni,
 } from "@/core/config/piloti-settings-ini";
-import { defineSettings, settingsBackend } from "@/platform/shared/settings";
+import { defineSettings, settingsBackend } from "@/core/state/settings";
 import {
   readDesktopSettingsRaw,
   subscribeDesktopSettings,
@@ -43,10 +43,12 @@ import {
   seedDesktopSettings,
 } from "@/core/config/desktop-settings-store";
 import {
-  installWebAppDesktopEntry,
-  loadWebAppsFromDesktopEntries,
   XDG_WEBAPPS_CHANGED_EVENT,
 } from "@/core/xdg/xdg-web-apps";
+import {
+  installWebAppDesktopEntry,
+  loadWebAppsFromDesktopEntries,
+} from "@/platform/shared/web-apps-store";
 import {
   DEFAULT_GNOME_BACKGROUND,
   type BackgroundRenderSpec,
@@ -65,9 +67,6 @@ import {
   readGnomeBackgroundBlob,
   syncGtkIconTheme,
   DEFAULT_HIDDEN_GNOME_PANELS,
-  type GtkFontAntialiasing,
-  type GtkFontHinting,
-  type GtkFontRgbaOrder,
 } from "@/platform/shared/desktop-integration";
 import { hardware } from "@/platform/shared/hardware";
 import { startBootPhase } from "@/core/util/perf-log";
@@ -76,114 +75,30 @@ import type { DesktopIconAlign } from "@/core/files/desktop-icons";
 import type { SavedWindowBounds } from "@/core/windows/spatial-window-bounds";
 import { useCapabilities } from "@/ui/hooks/use-capabilities";
 
-export type WindowDecorationMode = "auto" | "csd" | "ssd";
-export type CssFontSmoothing = "antialiased" | "subpixel-antialiased" | "auto";
-export type CssTextRendering =
-  | "auto"
-  | "optimizeLegibility"
-  | "optimizeSpeed"
-  | "geometricPrecision";
-export type CssFontOpticalSizing = "auto" | "none";
-export type CssFontKerning = "auto" | "normal" | "none";
-export type CssFontSynthesis = "auto" | "none";
-export type CssFontStyle = "regular" | "light" | "medium" | "semibold" | "italic";
+import type {
+  WindowDecorationMode,
+  CssFontSmoothing,
+  CssTextRendering,
+  CssFontOpticalSizing,
+  CssFontKerning,
+  CssFontSynthesis,
+  CssFontStyle,
+  InterfaceThemeId,
+  DesktopSettings,
+} from "@/core/config/desktop-settings";
 
+export type {
+  WindowDecorationMode,
+  CssFontSmoothing,
+  CssTextRendering,
+  CssFontOpticalSizing,
+  CssFontKerning,
+  CssFontSynthesis,
+  CssFontStyle,
+  InterfaceThemeId,
+  DesktopSettings,
+};
 export type { InstalledWebApp, SavedWindowBounds, WallpaperColorMode };
-
-export type InterfaceThemeId = "piloti" | "adwaita" | "cupertino" | (string & {});
-
-export interface DesktopSettings {
-  interfaceTheme: InterfaceThemeId;
-  themeMode: "dark" | "light" | "system";
-  accentColor: AccentColorId;
-  wallpaperId: string;
-  customWallpaperUrl: string;
-  customWallpaperColors?: string[];
-  wallpaperColorMode?: WallpaperColorMode;
-  gnomeBackground: GnomeBackgroundSettings;
-  dockSize: number;
-  dockPosition: "bottom" | "left" | "right";
-  dockMagnification: boolean;
-  dockMagnificationSize: number;
-  dockAutoHide: boolean;
-  clock24Hour: boolean;
-  clockShowSeconds: boolean;
-  clockShowDay: boolean;
-  clockShowDate: boolean;
-  showBatteryPercentage: boolean;
-  reduceMotion: boolean;
-  moreTransparency: boolean;
-  customAccentHex?: string;
-  highContrast: boolean;
-  windowDecorationMode: WindowDecorationMode;
-  windowButtonLayout: string;
-  showWindowMenu: boolean;
-  iconTheme: string;
-  syncGnomeSettings: boolean;
-  preferGnomeControlCenter: boolean;
-  hiddenGnomePanels: string[];
-  fontSansFamily: string;
-  fontMonoFamily: string;
-  fontScale: number;
-  fontSansStyle: CssFontStyle;
-  cssFontSmoothing: CssFontSmoothing;
-  cssTextRendering: CssTextRendering;
-  cssFontOpticalSizing: CssFontOpticalSizing;
-  cssFontKerning: CssFontKerning;
-  cssFontSynthesis: CssFontSynthesis;
-  cssLetterSpacingEm: number;
-  cssTextStrokePx: number;
-  gtkFontName: string;
-  gtkDocumentFontName: string;
-  gtkMonospaceFontName: string;
-  gtkTextScalingFactor: number;
-  gtkFontAntialiasing: GtkFontAntialiasing;
-  gtkFontHinting: GtkFontHinting;
-  gtkFontRgbaOrder: GtkFontRgbaOrder;
-  volume: number;
-  muted: boolean;
-  brightness: number;
-  nightLight: boolean;
-  wifiEnabled: boolean;
-  connectedWifi: string;
-  bluetoothEnabled: boolean;
-  doNotDisturb: boolean;
-  notificationsEnabled: boolean;
-  notificationBannersEnabled: boolean;
-  notificationShowOnLockScreen: boolean;
-  notificationShowPreviews: boolean;
-  notificationAllowCriticalInDnd: boolean;
-  notificationBannerTimeoutMs: number;
-  notificationHistoryLimit: number;
-  powerMode: "balanced" | "performance" | "power-saver";
-  activeWorkspace: number;
-  workspaceCount: number;
-  restoreWindowsOnLogin: boolean;
-  desktopIconsEnabled: boolean;
-  desktopIconAlign: DesktopIconAlign;
-  fileActivationMode: "single" | "double";
-  showFileExtensionBadges: boolean;
-  demoExtensionEnabled: boolean;
-  /** Extension ids pinned to the browser toolbar. */
-  pinnedExtensionIds: string[];
-  darkReaderWebEnabled: boolean;
-  /** Show the desktop as it loads (no ready gates or entrances), to profile startup. */
-  debugMode: boolean;
-  /** Expose Chrome DevTools on localhost:9222 on next login. */
-  remoteDevtools: boolean;
-  enabledPluginIds: string[];
-  computerModel: "mac" | "pc";
-  /** Keymap name chosen in Settings; empty leaves the compositor's. */
-  keyboardLayout: string;
-  desktopIconPositions: Record<string, { col: number; row: number }>;
-  pinnedAppIds: string[];
-  /** Folders docked next to Trash; `undefined` = default (Downloads). */
-  dockFolders?: string[];
-  installedWebApps: InstalledWebApp[];
-  webAppsSeeded?: boolean;
-  webDefaultsVersion?: number;
-  savedWindowBounds: Record<string, SavedWindowBounds>;
-}
 
 export const DEFAULT_SETTINGS: DesktopSettings = {
   interfaceTheme: "piloti",

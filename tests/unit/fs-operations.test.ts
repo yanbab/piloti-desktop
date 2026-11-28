@@ -1,6 +1,6 @@
 import { subscribeRenames } from "@/platform/shared/renames";
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { nativeEngine, setEngine, webEngine } from "@/platform/shared/engine";
+import { nativeEngine, setEngine, webEngine } from "@/core/ports/engine";
 import {
   setVfsPersistence,
 } from "@/platform/web/web-vfs";

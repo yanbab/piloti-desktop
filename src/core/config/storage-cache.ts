@@ -2,7 +2,7 @@ import {
   getVfsCacheFilePath,
   readVfsStateJson,
   writeVfsStateJson,
-} from "@/platform/shared/vfs-state";
+} from "@/core/state/vfs-state";
 
 /**
  * Creates a memory-backed VFS cache (`/home/user/.cache/piloti/<key>.json`)

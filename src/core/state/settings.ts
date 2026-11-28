@@ -1,10 +1,10 @@
-import { VFS_HOME } from "@/platform/shared/vfs-home";
+import { VFS_HOME } from "@/core/state/vfs-home";
 import {
   readVfsStateText,
   subscribeVfsPath,
   subscribeVfsStateDir,
   writeVfsStateText,
-} from "@/platform/shared/vfs-state";
+} from "@/core/state/vfs-state";
 import { parseIniText, serializeIniText, type IniRecord } from "@/core/config/ini";
 import type { SettingChange, SettingValue, SettingsBackend } from "@/core/ports/settings";
 

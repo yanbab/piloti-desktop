@@ -1,4 +1,4 @@
-import { hostFiles } from "@/platform/shared/host-files";
+import { hostFiles } from "@/core/files/host-files";
 import { useArchiveActions } from "@/ui/hooks/use-archive-actions";
 import { ICON_SIZES } from "@/core/files/icon-sizes";
 import { HeaderSearch } from "@/ui/components/ui/header-search";

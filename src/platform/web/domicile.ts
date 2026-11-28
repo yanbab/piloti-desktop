@@ -1,7 +1,7 @@
 import { desktop, type Domicile } from "@domicile-desktop/sdk/desktop/desktop";
 import type { DomicileHost, DomicileNotification } from "@domicile-desktop/sdk/domicile-host";
 import { FakeDomicileHost } from "@domicile-desktop/sdk/fake-host";
-import { VFS_HOME } from "@/platform/shared/vfs-home";
+import { VFS_HOME } from "@/core/state/vfs-home";
 import { listDataDir, readShippedFile } from "./data-files";
 import { installPortalSimulator } from "./portal-simulator";
 import {

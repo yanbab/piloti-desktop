@@ -14,7 +14,7 @@ import {
   APP_SETTINGS_DIR,
   appSettingsPath,
   keyfileSettingsBackend,
-} from "@/platform/shared/settings";
+} from "@/core/state/settings";
 
 export { APP_SETTINGS_DIR, appSettingsPath };
 

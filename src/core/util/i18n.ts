@@ -5,7 +5,7 @@ import {
   subscribeVfsPath,
   VFS_STATE_PATHS,
   writeVfsStateText,
-} from "@/platform/shared/vfs-state";
+} from "@/core/state/vfs-state";
 import en from "@/core/locales/en.json";
 import es from "@/core/locales/es.json";
 import fr from "@/core/locales/fr.json";

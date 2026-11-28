@@ -1,5 +1,5 @@
 import { runShellLine } from "@/platform/shared/system-commands";
-import { hostFiles } from "@/platform/shared/host-files";
+import { hostFiles } from "@/core/files/host-files";
 import { onShellEvent } from "@/core/windows/shell-events";
 import * as React from "react";
 import { Terminal } from "@xterm/xterm";
@@ -14,7 +14,7 @@ import {
   useDesktopSettings,
   useUpdateSettings,
 } from "@/ui/context/DesktopStateContext";
-import { getEngine } from "@/platform/shared/engine";
+import { getEngine } from "@/core/ports/engine";
 import { setDemoApps } from "@/platform/shared/demo-processes";
 import { readLoginShells, startShell, type BashSession, type LoginShell } from "@/platform/shared/terminal";
 import { ChevronDownIcon } from "@/ui/components/ui/symbols";

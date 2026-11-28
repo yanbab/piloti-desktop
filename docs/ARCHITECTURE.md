@@ -15,7 +15,7 @@ UI (React)  ─►  piloti: Domicile's desktop + vfs, desktop, settings, plugins
 ```
 src/
   core/        plain TypeScript: ports/ (interfaces), apps/, config/, xdg/,
-               files/, windows/, system/, data/, locales/, util/
+               files/, windows/, system/, state/, data/, locales/, util/
   platform/    adapters: shared/ (what UI code calls), native/ (Linux), web/ (demo)
   ui/          React: apps/, shell/, components/, context/, hooks/, dnd/, styles/
   piloti-*.tsx entry points: they pick the platform and mount the UI
@@ -27,9 +27,7 @@ src/
 | `platform/` | `core/`, `platform/` | `ui/` |
 | `ui/` | `core/`, `platform/shared/` | `platform/native`, `platform/web` (types excepted) |
 
-`tests/unit/engine-boundary.test.ts` checks it. Files of `core/` that still
-import upwards are listed in `tests/unit/core-upward-importers.json`: the list may
-only get shorter.
+`tests/unit/engine-boundary.test.ts` checks it.
 
 ## Engines
 
@@ -45,7 +43,7 @@ only get shorter.
   not the engine.
 - The native bundle never imports the web engine or the demo files:
   `piloti-web.tsx` injects the seed (`setVfsSeed`) and the demo capture.
-- Each entry point calls `setEngine()` (`platform/shared/engine.ts`).
+- Each entry point calls `setEngine()` (`core/ports/engine.ts`).
   `platform/shared/` holds the bridges both engines share.
 - Battery, audio, brightness, power profile, Wi-Fi, Bluetooth and media go
   through `hardware()` (`platform/shared/hardware.ts`, shape in `core/ports/hardware.ts`).
@@ -66,7 +64,7 @@ Nothing the entry imports up front may read `$HOME` (the build checks).
 |---|---|---|
 | Files | `piloti.vfs`; views use `useVfsList` / `useVfsText`… | the disk |
 | Settings | schema + key (`defineSettings`, `useDesktopSettings`) | desktop: dconf (Linux, schema installed) or `settings.ini`; apps: `ui/apps/<app>.ini` |
-| Shell state | `platform/shared/vfs-state.ts`, read synchronously | `~/.local/state/piloti/`, `~/.cache/piloti/` |
+| Shell state | `core/state/vfs-state.ts`, read synchronously | `~/.local/state/piloti/`, `~/.cache/piloti/` |
 
 - **One cache** (TanStack Query) for file reads; one watch per path, shared.
   The shell's own file operations update open views at once.

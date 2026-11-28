@@ -4,7 +4,7 @@
  * replaces the whole file.
  */
 import type { Piloti } from "@/platform/shared/piloti";
-import { getEngine } from "@/platform/shared/engine";
+import { getEngine } from "@/core/ports/engine";
 import { writeNativeShellLog } from "@/platform/native/shell-log";
 import { demoFiles } from "@/core/ports/demo-files";
 
@@ -17,7 +17,7 @@ export function createShellLogWriter(piloti: Pick<Piloti, "files" | "processes">
   // Loaded on first use: the native entry imports this module before `$HOME` is
   // known, and VFS modules read it when they load (see `vfs-home.ts`).
   return async (text) => {
-    const { VFS_STATE_PATHS } = await import("@/platform/shared/vfs-state");
+    const { VFS_STATE_PATHS } = await import("@/core/state/vfs-state");
     demoFiles().writeText(VFS_STATE_PATHS.consoleLog, text);
   };
 }

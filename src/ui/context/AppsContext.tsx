@@ -1,4 +1,4 @@
-import { hostFiles } from "@/platform/shared/host-files";
+import { hostFiles } from "@/core/files/host-files";
 import * as React from "react";
 import { retainVfsWatch } from "@/platform/shared/vfs-query";
 import { usePiloti } from "@/platform/shared/piloti";
@@ -11,7 +11,7 @@ import {
 import { entryCommand } from "@/core/apps/entry-command";
 import { createInstalledApps } from "@/core/apps/installed-apps";
 import { launchDesktopCommand } from "@/platform/shared/system-commands";
-import { getEngine } from "@/platform/shared/engine";
+import { getEngine } from "@/core/ports/engine";
 import { XDG_ICON_BASE_DIRS, XDG_PIXMAPS_DIRS } from "@/core/xdg/xdg-basedir";
 import { readIconFoldersStamp } from "@/platform/shared/system-commands";
 import { PILOTI_VERSION } from "@/core/util/version";
@@ -32,7 +32,7 @@ import {
   whenStateReady,
   VFS_STATE_PATHS,
   writeVfsStateJson,
-} from "@/platform/shared/vfs-state";
+} from "@/core/state/vfs-state";
 import { logBootEvent, startBootPhase } from "@/core/util/perf-log";
 import {
   type XdgDesktopEntry,

@@ -1,6 +1,6 @@
 /// <reference types="@domicile-desktop/react/elements" />
 import { loadAppCatalog } from "./platform/shared/app-catalog";
-import { hostFiles } from "./platform/shared/host-files";
+import { hostFiles } from "./core/files/host-files";
 import "./ui/styles/globals.css";
 import type { Shell as ShellModule } from "@domicile-desktop/sdk/shell";
 
@@ -29,7 +29,7 @@ async function boot(root: HTMLElement, domicile: Parameters<ShellModule>[1]) {
     try {
       const [{ createNativeStateStore }, { setStateSource }] = await Promise.all([
         import("./platform/native/state-store"),
-        import("./platform/shared/vfs-state"),
+        import("./core/state/vfs-state"),
       ]);
       setStateSource(await createNativeStateStore(vfs, home));
     } catch (error) {

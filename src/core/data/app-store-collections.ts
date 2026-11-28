@@ -1,4 +1,4 @@
-import type { FlatpakAppEntry } from "@/platform/native/flatpak";
+import type { FlatpakAppEntry } from "@/core/system/flatpak-entry";
 
 export type CollectionId = "core-apps" | "circle-apps" | "kde-apps";
 

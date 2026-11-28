@@ -1,6 +1,6 @@
 import * as React from "react";
 import { getConsoleEntries } from "@/core/util/console-store";
-import { removeVfsStateFile, VFS_STATE_PATHS } from "@/platform/shared/vfs-state";
+import { removeVfsStateFile, VFS_STATE_PATHS } from "@/core/state/vfs-state";
 
 interface ShellErrorBoundaryState {
   error: Error | null;

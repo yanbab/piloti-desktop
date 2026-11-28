@@ -3,7 +3,7 @@ import {
   ensureXwaylandSatellite,
   getCachedXwaylandDisplay,
 } from "./xwayland";
-import { getEngine } from "@/platform/shared/engine";
+import { getEngine } from "@/core/ports/engine";
 
 export async function runText(
   piloti: Pick<Piloti, "processes">,

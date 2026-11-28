@@ -50,7 +50,7 @@ in `piloti-macos.css`.
 | `platform/` | Adapters: `shared/` (what UI code calls), `native/` (Linux), `web/` (demo) |
 | `core/ports/` | Interfaces: `Piloti`, `vfs`, settings, hardware, the public shell API, `AppHost` and `Apps` |
 | `core/apps/` | The apps backend and the module IPC, plain enough for an app module |
-| `core/<topic>/` | Plain logic: `xdg`, `config`, `files`, `windows`, `icons`, `plugins`, `system`, `util`; `data/` catalogs |
+| `core/<topic>/` | Plain logic: `state` (settings and `.ini` state), `xdg`, `config`, `files`, `windows`, `icons`, `plugins`, `system`, `util`; `data/` catalogs |
 
 ## Map
 

@@ -1,5 +1,5 @@
 import * as React from "react";
-import { getEngine } from "@/platform/shared/engine";
+import { getEngine } from "@/core/ports/engine";
 import type { Piloti } from "@/platform/shared/piloti";
 import { runPowerAction } from "@/platform/shared/system-commands";
 import type { Notify } from "@/core/ports/capture";
