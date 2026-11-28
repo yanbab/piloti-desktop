@@ -153,6 +153,10 @@ export function BrowserTabBar({
   onDetach,
   onTearOff,
   onPin,
+  onDuplicate,
+  onReload,
+  onCloseOthers,
+  onCloseToRight,
 }: {
   hidden: boolean;
   top: number;
@@ -165,6 +169,11 @@ export function BrowserTabBar({
   /** The tab was pulled off the bar: it becomes a window following `pointer`. */
   onTearOff: (id: string, pointer: { clientX: number; clientY: number }) => void;
   onPin: (id: string, pinned: boolean) => void;
+  onDuplicate: (id: string) => void;
+  onReload: (id: string) => void;
+  /** Closes every tab but `id` (pinned ones stay). */
+  onCloseOthers: (id: string) => void;
+  onCloseToRight: (id: string) => void;
 }) {
   const [menuTab, setMenuTab] = React.useState<string | null>(null);
   const menuTabInfo = tabs.find((t) => t.id === menuTab);
@@ -288,6 +297,9 @@ export function BrowserTabBar({
           </ContextMenuTrigger>
           {menuTabInfo && (
             <ContextMenuContent className="min-w-48">
+              <ContextMenuItem onClick={() => onReload(menuTabInfo.id)}>{_("Reload Tab")}</ContextMenuItem>
+              <ContextMenuItem onClick={() => onDuplicate(menuTabInfo.id)}>{_("Duplicate Tab")}</ContextMenuItem>
+              <ContextMenuSeparator />
               <ContextMenuItem onClick={() => onPin(menuTabInfo.id, !menuTabInfo.pinned)}>
                 {menuTabInfo.pinned ? _("Unpin Tab") : _("Pin Tab")}
               </ContextMenuItem>
@@ -298,6 +310,18 @@ export function BrowserTabBar({
               )}
               <ContextMenuSeparator />
               <ContextMenuItem onClick={() => onClose(menuTabInfo.id)}>{_("Close Tab")}</ContextMenuItem>
+              <ContextMenuItem
+                disabled={!tabs.some((t) => t.id !== menuTabInfo.id && !t.pinned)}
+                onClick={() => onCloseOthers(menuTabInfo.id)}
+              >
+                {_("Close Other Tabs")}
+              </ContextMenuItem>
+              <ContextMenuItem
+                disabled={!tabs.slice(tabs.findIndex((t) => t.id === menuTabInfo.id) + 1).some((t) => !t.pinned)}
+                onClick={() => onCloseToRight(menuTabInfo.id)}
+              >
+                {_("Close Tabs to the Right")}
+              </ContextMenuItem>
             </ContextMenuContent>
           )}
         </ContextMenu>

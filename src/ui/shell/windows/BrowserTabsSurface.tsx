@@ -8,6 +8,7 @@ import { BrowserTabBar } from "./BrowserTabBar";
 import { cn } from "@/core/util/utils";
 import { WebViewSurface } from "@/ui/shell/windows/WebViewSurface";
 import { followTornTab, TEAR_GRAB_Y } from "@/ui/shell/windows/browser-tab-tear";
+import { BROWSER_TAB_RELOAD_EVENT } from "@/ui/shell/windows/browser-shortcuts";
 
 /**
  * A web window and its tabs. Every tab keeps its page mounted (switching never
@@ -30,6 +31,7 @@ export function BrowserTabsSurface({
     detachBrowserTab,
     pinBrowserTab,
     updateWindowGeometry,
+    openBrowserTab,
   } = useWindowManager();
   const tabs: BrowserTab[] = win.browserTabs ?? [
     {
@@ -108,6 +110,21 @@ export function BrowserTabsSurface({
         onReorder={(ids) => reorderBrowserTabs(win.id, ids)}
         onDetach={(id) => detachBrowserTab(win.id, id)}
         onTearOff={tearOff}
+        onDuplicate={(id) => {
+          const tab = tabs.find((t) => t.id === id);
+          if (tab?.url) openBrowserTab(win.id, tab.url);
+        }}
+        onReload={(id) => window.dispatchEvent(new CustomEvent(BROWSER_TAB_RELOAD_EVENT, { detail: { tabId: id } }))}
+        onCloseOthers={(id) => {
+          if (win.browserWindowId !== id) selectBrowserTab(win.id, id);
+          for (const t of tabs) if (t.id !== id && !t.pinned) closeBrowserTab(win.id, t.id);
+        }}
+        onCloseToRight={(id) => {
+          const at = tabs.findIndex((t) => t.id === id);
+          const right = tabs.slice(at + 1).filter((t) => !t.pinned);
+          if (right.some((t) => t.id === win.browserWindowId)) selectBrowserTab(win.id, id);
+          for (const t of right) closeBrowserTab(win.id, t.id);
+        }}
         onPin={(id, pinned) => pinBrowserTab(win.id, id, pinned)}
       />
       {tabs.map((tab) => {

@@ -87,3 +87,6 @@ export function browserTabTarget(
   } else return null;
   return ids[next] === activeId ? null : ids[next];
 }
+
+/** Asks one tab's page to reload (the tab menu): `detail.tabId`. */
+export const BROWSER_TAB_RELOAD_EVENT = "piloti:browser-tab-reload";

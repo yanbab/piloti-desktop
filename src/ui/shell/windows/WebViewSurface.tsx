@@ -9,6 +9,10 @@ import {
   WEBVIEW_CLOSE_EVENT,
   WEBVIEW_CONTENT_SIZE_CHANGE_EVENT,
   WEBVIEW_CONTEXT_MENU_EVENT,
+  WEBVIEW_DIALOG_EVENT,
+  WEBVIEW_DIALOG_WITHDRAWN_EVENT,
+  WEBVIEW_PERMISSION_REQUEST_EVENT,
+  WEBVIEW_PERMISSION_REQUEST_WITHDRAWN_EVENT,
   WEBVIEW_FILE_CHOOSER_EVENT,
   WEBVIEW_FAVICON_CHANGE_EVENT,
   WEBVIEW_GUEST_FOCUS_EVENT,
@@ -93,6 +97,7 @@ import { useCapabilities } from "@/ui/hooks/use-capabilities";
 import { dismissOpenPopups } from "@/ui/shell/windows/dismiss-popups";
 import { BrowserFindBar } from "@/ui/shell/windows/BrowserFindBar";
 import {
+  BROWSER_TAB_RELOAD_EVENT,
   browserShortcut,
   browserTabTarget,
   type BrowserCommand,
@@ -118,6 +123,7 @@ import {
   recordBrowserVisit,
 } from "@/ui/shell/windows/browser-history";
 import { BrowserPageMenu, type PageMenuCommands } from "@/ui/shell/windows/BrowserPageMenu";
+import { PageDialog, PermissionBubble } from "@/ui/shell/windows/BrowserPagePrompts";
 import { BrowserDownloadsMenu } from "@/ui/shell/windows/BrowserDownloadsMenu";
 import { BrowserFileChooser } from "@/ui/shell/windows/BrowserFileChooser";
 import {
@@ -334,6 +340,35 @@ export function WebViewSurface({
   const [fileChooser, setFileChooser] = React.useState<DomicileFileChooserEvent | null>(null);
   const [pageMenu, setPageMenu] = React.useState<DomicileContextMenuEvent | null>(null);
   const closePageMenu = React.useCallback(() => setPageMenu(null), []);
+  const [permissionRequest, setPermissionRequest] =
+    React.useState<DomicilePermissionRequestEvent | null>(null);
+  const [pageDialog, setPageDialog] = React.useState<DomicileDialogEvent | null>(null);
+
+  // The engine draws no prompt: permissions and alert/confirm/prompt are ours.
+  React.useEffect(() => {
+    const view = webviewRef.current;
+    if (!view || !compositor) return;
+    const onPermission = (event: Event) => {
+      event.preventDefault();
+      setPermissionRequest(event as DomicilePermissionRequestEvent);
+    };
+    const onPermissionGone = () => setPermissionRequest(null);
+    const onDialog = (event: Event) => {
+      event.preventDefault();
+      setPageDialog(event as DomicileDialogEvent);
+    };
+    const onDialogGone = () => setPageDialog(null);
+    view.addEventListener(WEBVIEW_PERMISSION_REQUEST_EVENT, onPermission);
+    view.addEventListener(WEBVIEW_PERMISSION_REQUEST_WITHDRAWN_EVENT, onPermissionGone);
+    view.addEventListener(WEBVIEW_DIALOG_EVENT, onDialog);
+    view.addEventListener(WEBVIEW_DIALOG_WITHDRAWN_EVENT, onDialogGone);
+    return () => {
+      view.removeEventListener(WEBVIEW_PERMISSION_REQUEST_EVENT, onPermission);
+      view.removeEventListener(WEBVIEW_PERMISSION_REQUEST_WITHDRAWN_EVENT, onPermissionGone);
+      view.removeEventListener(WEBVIEW_DIALOG_EVENT, onDialog);
+      view.removeEventListener(WEBVIEW_DIALOG_WITHDRAWN_EVENT, onDialogGone);
+    };
+  }, [compositor]);
 
   // The engine draws no right-click menu: it says what was clicked.
   React.useEffect(() => {
@@ -811,6 +846,16 @@ export function WebViewSurface({
   };
   const runCommandRef = React.useRef(runCommand);
   runCommandRef.current = runCommand;
+
+  // The tab menu's Reload, for this tab even in the background.
+  React.useEffect(() => {
+    const onReloadTab = (e: Event) => {
+      const tabId = (e as CustomEvent<{ tabId?: string }>).detail?.tabId;
+      if (tabId && tabId === win.browserWindowId) runCommandRef.current({ kind: "reload" });
+    };
+    window.addEventListener(BROWSER_TAB_RELOAD_EVENT, onReloadTab);
+    return () => window.removeEventListener(BROWSER_TAB_RELOAD_EVENT, onReloadTab);
+  }, [win.browserWindowId]);
 
   const pageMenuCommands: PageMenuCommands = {
     canGoBack,
@@ -1538,6 +1583,14 @@ export function WebViewSurface({
               </div>
             </div>
           </>
+        )}
+
+        {permissionRequest && compositor && (
+          <PermissionBubble request={permissionRequest} onDone={() => setPermissionRequest(null)} />
+        )}
+
+        {pageDialog && compositor && (
+          <PageDialog dialog={pageDialog} onDone={() => setPageDialog(null)} />
         )}
 
         {pageMenu && compositor && (
