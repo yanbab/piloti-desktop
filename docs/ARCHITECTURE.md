@@ -97,7 +97,9 @@ Nothing the entry imports up front may read `$HOME` (the build checks).
   Components subscribe to slices, so a change re-renders only what uses it.
 - Window manager: `ui/context/WindowsContext.tsx` holds the state and actions;
   its types, derived lists and self-contained hooks are in `ui/context/windows/`,
-  pure logic in `core/windows/`. What a launch does is decided by
+  pure logic in `core/windows/`. Where windows stand is one record per frame
+  (`windows/frame-meta.ts`), what each frame holds is a layout tree of views
+  (`core/windows/layout/`: tabs now, splits and the mosaic next). What a launch does is decided by
   `core/windows/launch-plan.ts` (tested); the context carries it out.
 - Windows keep their DOM order and are hidden with CSS, so iframes don't reload.
 - Bounds and workspace are saved per URL, document or app.

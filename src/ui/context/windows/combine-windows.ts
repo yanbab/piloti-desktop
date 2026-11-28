@@ -3,7 +3,9 @@ import type { useWindows } from "@domicile-desktop/react/windows";
 import type { Piloti } from "@/platform/shared/piloti";
 import type { AppsContextValue } from "@/ui/context/AppsContext";
 import type { DesktopSettings } from "@/ui/context/SettingsContext";
-import type { BrowserTab, BrowserTabGroup, DesktopWindowInstance, ExternalWindowMeta } from "./types";
+import type { BrowserTab, DesktopWindowInstance, ExternalWindowMeta } from "./types";
+import type { FrameRoots } from "@/core/windows/layout/frames";
+import type { StackNode } from "@/core/windows/layout/types";
 import { findMatchingWebApp, getWebAppFaviconUrl, resolveWebAppTitle } from "@/core/data/web-apps";
 import { resolveAppModuleByUrl, webViewAppId } from "@/core/data/app-modules";
 import { resolveWaylandOuterConstraints } from "@/core/windows/window-bounds";
@@ -15,8 +17,10 @@ export interface CombineWindowsInput {
   browserWindows: NonNullable<Piloti["browser"]["windows"]>;
   browserFavicons: Readonly<Record<string, string>>;
   browserTitles: Readonly<Record<string, string>>;
-  browserMeta: Readonly<Record<string, ExternalWindowMeta>>;
-  browserTabGroups: Readonly<Record<string, BrowserTabGroup>>;
+  /** Where each window stands, by window id; a shell window just opened has none yet. */
+  frameMeta: Readonly<Record<string, ExternalWindowMeta>>;
+  /** Frames with several views, by window id (only web windows' tabs for now, as stacks). */
+  frameRoots: FrameRoots;
   waylandWindows: ReturnType<typeof useWindows>;
   waylandMeta: Readonly<Record<string, ExternalWindowMeta>>;
   syncedParentFrames: ReadonlyMap<string, number>;
@@ -35,8 +39,8 @@ export function combineWindows({
   browserWindows,
   browserFavicons,
   browserTitles,
-  browserMeta,
-  browserTabGroups,
+  frameMeta,
+  frameRoots,
   waylandWindows,
   waylandMeta,
   syncedParentFrames,
@@ -50,6 +54,7 @@ export function combineWindows({
 }: CombineWindowsInput): DesktopWindowInstance[] {
   const resolvedShellWindows = shellWindows.map((sw) => ({
     ...sw,
+    ...frameMeta[sw.id],
     iconUrl: sw.iconUrl ?? getAppIconUrl(sw.appId),
     ready: !unreadyWindowIds.has(sw.id),
   }));
@@ -111,8 +116,18 @@ export function combineWindows({
     });
 
   const tabGroupOf = new Map<string, string>();
-  for (const [group, grp] of Object.entries(browserTabGroups)) {
-    for (const tab of grp.tabs) tabGroupOf.set(tab, group);
+  const stacks: Record<string, StackNode> = {};
+  const raw = (id: string) => id.slice("browser:".length);
+  for (const [frame, root] of Object.entries(frameRoots)) {
+    if (root.kind !== "stack" || !frame.startsWith("browser:")) continue;
+    const group = raw(frame);
+    stacks[group] = {
+      kind: "stack",
+      tabs: root.tabs.map(raw),
+      active: raw(root.active),
+      ...(root.pinned ? { pinned: root.pinned.map(raw) } : {}),
+    };
+    for (const tab of root.tabs) tabGroupOf.set(raw(tab), group);
   }
   const describeBrowserWindow = (bw: (typeof browserWindows)[number]) => {
     const webAppMatch = findMatchingWebApp(bw.url, settings.installedWebApps);
@@ -154,7 +169,7 @@ export function combineWindows({
   const listedGroups = new Set<string>();
   const resolvedBrowserWindows = browserWindows.flatMap((first): DesktopWindowInstance[] => {
     const group = tabGroupOf.get(first.id) ?? first.id;
-    const grp = browserTabGroups[group];
+    const grp = stacks[group];
     // One window per group, listed at its first tab (a stable DOM order,
     // so switching tabs never moves iframes) and drawn from the active one.
     if (grp) {
@@ -162,7 +177,7 @@ export function combineWindows({
       listedGroups.add(group);
     }
     const bw = grp ? browserById.get(grp.active) ?? first : first;
-    const meta = browserMeta[group];
+    const meta = frameMeta[`browser:${group}`];
     if (!meta) return [];
     const described = describeBrowserWindow(bw);
     const browserTabs = grp?.tabs.flatMap((tabId): BrowserTab[] => {

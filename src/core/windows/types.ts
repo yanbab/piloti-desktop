@@ -37,13 +37,6 @@ export interface DesktopWindowInstance {
   payload?: string;
 }
 
-/** The tabs of one web window; `pinned` ones are always first in `tabs`. */
-export interface BrowserTabGroup {
-  tabs: string[];
-  active: string;
-  pinned?: string[];
-}
-
 export interface BrowserTab {
   id: string;
   /** Pinned tabs sit first, as icons. */

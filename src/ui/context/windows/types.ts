@@ -1,7 +1,6 @@
 /** The window manager's shapes (`context/WindowsContext.tsx` provides them). */
 import type {
   DesktopWindowInstance,
-  BrowserTabGroup,
   BrowserTab,
   ResolvedPopupWindow,
   WindowPlacement,
@@ -11,7 +10,7 @@ import type { AppDefinition } from "@/core/data/catalog";
 import type { XdgDesktopEntry } from "xdg-desktop-entry";
 import type { GnomeSettingsPanel } from "@/platform/shared/desktop-integration";
 
-export type { DesktopWindowInstance, BrowserTabGroup, BrowserTab, ResolvedPopupWindow };
+export type { DesktopWindowInstance, BrowserTab, ResolvedPopupWindow };
 
 export interface WindowsContextValue {
   windows: DesktopWindowInstance[];
